@@ -1,9 +1,17 @@
+/* ============================================
+   BASE STYLES
+   ============================================ */
+
 .calendar {
   background-color: var(--bg-calendar);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
   overflow: hidden;
 }
+
+/* ============================================
+   HEADER
+   ============================================ */
 
 .calendar-header {
   display: flex;
@@ -35,6 +43,10 @@
 .btn-nav {
   padding: 8px 12px;
 }
+
+/* ============================================
+   DESKTOP MONTH GRID (hidden on mobile)
+   ============================================ */
 
 .calendar-weekdays {
   display: grid;
@@ -89,10 +101,6 @@
   color: var(--text-light);
 }
 
-.calendar-cell.today {
-  background-color: rgba(139, 115, 85, 0.05);
-}
-
 .calendar-cell.today .day-number {
   background-color: var(--accent-primary);
   color: white;
@@ -125,12 +133,319 @@
   padding: 2px 6px;
 }
 
+/* Event chips in desktop grid */
+.event-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-align: left;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+}
+
+.event-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.event-chip--free {
+  background-color: rgba(125, 155, 138, 0.15);
+  color: #5a7a66;
+}
+
+.event-chip--free .event-chip-dot {
+  background-color: var(--accent-sage);
+}
+
+.event-chip--fee {
+  background-color: rgba(139, 115, 85, 0.12);
+  color: #6b5a45;
+}
+
+.event-chip--fee .event-chip-dot {
+  background-color: var(--accent-primary);
+}
+
+.event-chip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.event-chip-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+/* ============================================
+   MOBILE WEEK STRIP (mobile only)
+   ============================================ */
+
+.week-strip {
+  display: none;
+  padding: 12px 8px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  gap: 4px;
+  justify-content: space-between;
+}
+
+.week-day {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-width: 0;
+}
+
+.week-day:hover {
+  background-color: rgba(139, 115, 85, 0.08);
+}
+
+.week-day.today {
+  background-color: rgba(139, 115, 85, 0.12);
+}
+
+.week-day.today .week-day-num {
+  background-color: var(--accent-primary);
+  color: white;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.week-day.selected {
+  background-color: rgba(139, 115, 85, 0.15);
+}
+
+.week-day.other-month .week-day-num {
+  color: var(--text-light);
+}
+
+.week-day.past .week-day-num {
+  color: var(--text-light);
+}
+
+.week-day-name {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-light);
+}
+
+.week-day-num {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.week-day-dots {
+  display: flex;
+  gap: 2px;
+  justify-content: center;
+  min-height: 6px;
+}
+
+.week-day-dots .dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: var(--accent-primary);
+}
+
+.week-day-dots .dot:nth-child(2) {
+  background-color: var(--accent-lavender);
+}
+
+.week-day-dots .dot:nth-child(3) {
+  background-color: var(--accent-sage);
+}
+
+/* ============================================
+   MOBILE DAY DETAIL (agenda view)
+   ============================================ */
+
+.day-detail {
+  padding: 16px;
+  background-color: var(--bg-calendar);
+  border-bottom: 1px solid var(--border);
+  animation: slideUp 0.2s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.day-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.day-detail-header h3 {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.day-detail-close {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.day-no-events {
+  color: var(--text-light);
+  font-style: italic;
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 8px 0;
+}
+
+.day-events {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.agenda-event-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background-color: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+  width: 100%;
+}
+
+.agenda-event-card:hover {
+  border-color: var(--accent-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.agenda-event-time {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent-primary);
+  min-width: 44px;
+  text-align: center;
+}
+
+.agenda-event-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.agenda-event-title {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.agenda-event-place {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.75rem;
+  color: var(--text-light);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.agenda-event-place svg {
+  flex-shrink: 0;
+}
+
+.agenda-event-badge {
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.agenda-event-badge.free {
+  background-color: rgba(125, 155, 138, 0.15);
+  color: #5a7a66;
+}
+
+.agenda-event-badge.fee {
+  background-color: rgba(139, 115, 85, 0.12);
+  color: #6b5a45;
+}
+
+/* ============================================
+   EMPTY STATE
+   ============================================ */
+
 .calendar-empty {
   padding: 48px;
   text-align: center;
   color: var(--text-light);
   font-style: italic;
 }
+
+/* ============================================
+   DESKTOP ONLY
+   ============================================ */
+
+.desktop-calendar {
+  display: block;
+}
+
+/* ============================================
+   RESPONSIVE — TABLET
+   ============================================ */
 
 @media (max-width: 768px) {
   .calendar-header {
@@ -157,26 +472,56 @@
   }
 }
 
-@media (max-width: 480px) {
+/* ============================================
+   RESPONSIVE — MOBILE (under 640px)
+   Hide month grid, show week strip + agenda
+   ============================================ */
+
+@media (max-width: 639px) {
+  .desktop-calendar {
+    display: none;
+  }
+
+  .week-strip {
+    display: flex;
+  }
+
   .calendar-header {
-    padding: 12px 16px;
+    padding: 16px 20px;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .calendar-title h2 {
+    font-size: 1.35rem;
+    text-align: center;
+  }
+
+  .calendar-controls {
+    width: 100%;
+    justify-content: center;
   }
 
   .btn-today span {
     display: none;
   }
 
-  .calendar-weekdays .weekday {
-    font-size: 0.7rem;
-    padding: 8px 4px;
+  .calendar-empty {
+    padding: 32px 20px;
+  }
+}
+
+@media (max-width: 400px) {
+  .week-day-name {
+    font-size: 0.6rem;
   }
 
-  .calendar-cell {
-    min-height: 60px;
-    padding: 4px;
+  .week-day-num {
+    font-size: 0.85rem;
   }
 
-  .day-number {
-    font-size: 0.75rem;
+  .week-day-dots .dot {
+    width: 4px;
+    height: 4px;
   }
 }
