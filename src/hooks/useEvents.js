@@ -84,13 +84,11 @@ export function useAllEvents() {
         }))
         // Sort client-side
         eventData.sort((a, b) => (a.date > b.date ? 1 : -1))
-        console.log('[useAllEvents] Received', eventData.length, 'events:', eventData.map(e => e.title))
         setEvents(eventData)
         setLoading(false)
         setError(null)
       },
       (err) => {
-        console.error('[useAllEvents] Firestore error:', err.code, err.message)
         setError(err.message)
         setLoading(false)
       }

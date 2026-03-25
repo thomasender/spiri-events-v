@@ -9,11 +9,13 @@ const INITIAL_STATE = {
   title: '',
   date: '',
   time: '',
+  endDate: '',
   place: '',
   contribution: 'free',
   fee: '',
   description: '',
-  link: ''
+  link: '',
+  imageUrl: ''
 }
 
 export default function EventForm({ event }) {
@@ -21,11 +23,13 @@ export default function EventForm({ event }) {
     title: event.title || '',
     date: event.date || '',
     time: event.time || '',
+    endDate: event.endDate || '',
     place: event.place || '',
     contribution: event.contribution || 'free',
     fee: event.fee || '',
     description: event.description || '',
-    link: event.link || ''
+    link: event.link || '',
+    imageUrl: event.imageUrl || ''
   } : INITIAL_STATE)
 
   const [errors, setErrors] = useState({})
@@ -71,11 +75,13 @@ export default function EventForm({ event }) {
         title: formData.title.trim(),
         date: formData.date,
         time: formData.time || '',
+        endDate: formData.endDate || '',
         place: formData.place.trim(),
         contribution: formData.contribution,
         fee: formData.contribution === 'fee' ? parseFloat(formData.fee) : null,
         description: formData.description.trim(),
-        link: formData.link.trim()
+        link: formData.link.trim(),
+        imageUrl: formData.imageUrl.trim()
       }
 
       if (event) {
@@ -140,6 +146,19 @@ export default function EventForm({ event }) {
                 name="time"
                 type="time"
                 value={formData.time}
+                onChange={handleChange}
+              />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="endDate">Enddatum (optional)</label>
+              <input
+                id="endDate"
+                name="endDate"
+                type="date"
+                value={formData.endDate}
                 onChange={handleChange}
               />
             </div>
@@ -224,6 +243,18 @@ export default function EventForm({ event }) {
               value={formData.link}
               onChange={handleChange}
               placeholder="https://... (Anmeldung oder weitere Infos)"
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="imageUrl">Bildlink (optional)</label>
+            <input
+              id="imageUrl"
+              name="imageUrl"
+              type="url"
+              value={formData.imageUrl}
+              onChange={handleChange}
+              placeholder="https://... (Bild-URL für das Event)"
             />
           </div>
 

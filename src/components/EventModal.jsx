@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { X, Calendar, Clock, MapPin, Ticket, ExternalLink } from 'lucide-react'
+import { X, Calendar, Clock, MapPin, Ticket, ExternalLink, Image } from 'lucide-react'
 import './EventModal.css'
 
 function formatDate(dateStr) {
@@ -7,6 +7,23 @@ function formatDate(dateStr) {
   const date = new Date(year, month - 1, day)
   return date.toLocaleDateString('de-DE', {
     weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  })
+}
+
+function formatEndDate(startDateStr, endDateStr) {
+  if (!endDateStr) return null
+  const [syear, smonth, sday] = startDateStr.split('-')
+  const [eyear, emonth, eday] = endDateStr.split('-')
+  const start = new Date(syear, smonth - 1, sday)
+  const end = new Date(eyear, emonth - 1, eday)
+  if (start.getFullYear() === end.getFullYear() && start.getMonth() === end.getMonth() && start.getDate() === end.getDate()) {
+    return null
+  }
+  const endDate = new Date(eyear, emonth - 1, eday)
+  return endDate.toLocaleDateString('de-DE', {
     day: 'numeric',
     month: 'long',
     year: 'numeric'
@@ -45,12 +62,21 @@ export default function EventModal({ event, onClose }) {
           </div>
         </div>
 
+        {event.imageUrl && (
+          <div className="modal-image">
+            <img src={event.imageUrl} alt={event.title} />
+          </div>
+        )}
+
         <div className="modal-details">
           <div className="detail-item">
             <Calendar size={18} className="detail-icon" />
             <div>
               <span className="detail-label">Datum</span>
-              <span className="detail-value">{formatDate(event.date)}</span>
+              <span className="detail-value">
+                {formatDate(event.date)}
+                {formatEndDate(event.date, event.endDate) && ` — ${formatEndDate(event.date, event.endDate)}`}
+              </span>
             </div>
           </div>
 

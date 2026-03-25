@@ -44,8 +44,6 @@ export default function Calendar({ events, onEventClick, currentMonth, onMonthCh
   const year = currentMonth.getFullYear()
   const month = currentMonth.getMonth()
 
-  console.log('[Calendar] Rendering, year:', year, 'month:', month, 'events:', events.map(e => ({ title: e.title, date: e.date })))
-
   const daysInMonth = getDaysInMonth(year, month)
   const firstDay = getFirstDayOfMonth(year, month)
 
@@ -57,7 +55,6 @@ export default function Calendar({ events, onEventClick, currentMonth, onMonthCh
         map[event.date].push(event)
       }
     })
-    console.log('[Calendar] eventsByDay keys:', Object.keys(map))
     return map
   }, [events])
 

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useEvents } from '../hooks/useEvents'
 import { useAuth } from '../hooks/useAuth'
-import { PlusCircle, Edit2, Trash2, Calendar, MapPin } from 'lucide-react'
+import { PlusCircle, Edit2, Trash2, Calendar, MapPin, Image } from 'lucide-react'
 import ConfirmDialog from './ConfirmDialog'
 import { useState } from 'react'
 import './EventList.css'
@@ -10,6 +10,23 @@ function formatDate(dateStr) {
   const [year, month, day] = dateStr.split('-')
   const date = new Date(year, month - 1, day)
   return date.toLocaleDateString('de-DE', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  })
+}
+
+function formatEndDate(startDateStr, endDateStr) {
+  if (!endDateStr) return null
+  const [syear, smonth, sday] = startDateStr.split('-')
+  const [eyear, emonth, eday] = endDateStr.split('-')
+  const start = new Date(syear, smonth - 1, sday)
+  const end = new Date(eyear, emonth - 1, eday)
+  if (start.getFullYear() === end.getFullYear() && start.getMonth() === end.getMonth() && start.getDate() === end.getDate()) {
+    return null
+  }
+  const endDate = new Date(eyear, emonth - 1, eday)
+  return endDate.toLocaleDateString('de-DE', {
     day: 'numeric',
     month: 'short',
     year: 'numeric'
@@ -70,6 +87,11 @@ export default function EventList() {
         <div className="event-list-grid">
           {events.map(event => (
             <div key={event.id} className="event-card">
+              {event.imageUrl ? (
+                <div className="event-card-image">
+                  <img src={event.imageUrl} alt={event.title} />
+                </div>
+              ) : null}
               <div className="event-card-content">
                 <div className="event-card-header">
                   <h3>{event.title}</h3>
@@ -81,7 +103,11 @@ export default function EventList() {
                 <div className="event-card-meta">
                   <div className="meta-item">
                     <Calendar size={14} />
-                    <span>{formatDate(event.date)} {event.time && `• ${event.time}`}</span>
+                    <span>
+                      {formatDate(event.date)}
+                      {formatEndDate(event.date, event.endDate) && ` — ${formatEndDate(event.date, event.endDate)}`}
+                      {event.time && ` • ${event.time}`}
+                    </span>
                   </div>
                   <div className="meta-item">
                     <MapPin size={14} />
