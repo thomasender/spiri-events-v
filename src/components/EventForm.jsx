@@ -14,8 +14,7 @@ const INITIAL_STATE = {
   contribution: 'free',
   fee: '',
   description: '',
-  link: '',
-  imageUrl: ''
+  link: ''
 }
 
 export default function EventForm({ event }) {
@@ -28,8 +27,7 @@ export default function EventForm({ event }) {
     contribution: event.contribution || 'free',
     fee: event.fee || '',
     description: event.description || '',
-    link: event.link || '',
-    imageUrl: event.imageUrl || ''
+    link: event.link || ''
   } : INITIAL_STATE)
 
   const [errors, setErrors] = useState({})
@@ -80,8 +78,7 @@ export default function EventForm({ event }) {
         contribution: formData.contribution,
         fee: formData.contribution === 'fee' ? parseFloat(formData.fee) : null,
         description: formData.description.trim(),
-        link: formData.link.trim(),
-        imageUrl: formData.imageUrl.trim()
+        link: formData.link.trim()
       }
 
       if (event) {
@@ -243,18 +240,6 @@ export default function EventForm({ event }) {
               value={formData.link}
               onChange={handleChange}
               placeholder="https://... (Anmeldung oder weitere Infos)"
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="imageUrl">Bildlink (optional)</label>
-            <input
-              id="imageUrl"
-              name="imageUrl"
-              type="url"
-              value={formData.imageUrl}
-              onChange={handleChange}
-              placeholder="https://... (Bild-URL für das Event)"
             />
           </div>
 

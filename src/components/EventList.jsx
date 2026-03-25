@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useEvents } from '../hooks/useEvents'
 import { useAuth } from '../hooks/useAuth'
-import { PlusCircle, Edit2, Trash2, Calendar, MapPin, Image } from 'lucide-react'
+import { PlusCircle, Edit2, Trash2, Calendar, MapPin } from 'lucide-react'
 import ConfirmDialog from './ConfirmDialog'
 import { useState } from 'react'
 import './EventList.css'
@@ -87,11 +87,6 @@ export default function EventList() {
         <div className="event-list-grid">
           {events.map(event => (
             <div key={event.id} className="event-card">
-              {event.imageUrl ? (
-                <div className="event-card-image">
-                  <img src={event.imageUrl} alt={event.title} />
-                </div>
-              ) : null}
               <div className="event-card-content">
                 <div className="event-card-header">
                   <h3>{event.title}</h3>

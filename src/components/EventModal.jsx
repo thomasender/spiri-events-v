@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { X, Calendar, Clock, MapPin, Ticket, ExternalLink, Image } from 'lucide-react'
+import { X, Calendar, Clock, MapPin, Ticket, ExternalLink } from 'lucide-react'
 import './EventModal.css'
 
 function formatDate(dateStr) {
@@ -61,12 +61,6 @@ export default function EventModal({ event, onClose }) {
             <span>{isFree ? 'Kostenlos' : event.fee ? `${event.fee} €` : 'Gebühr'}</span>
           </div>
         </div>
-
-        {event.imageUrl && (
-          <div className="modal-image">
-            <img src={event.imageUrl} alt={event.title} />
-          </div>
-        )}
 
         <div className="modal-details">
           <div className="detail-item">
