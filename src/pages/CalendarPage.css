@@ -1,0 +1,95 @@
+.calendar-page {
+  min-height: calc(100vh - 72px);
+  background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+}
+
+.page-header {
+  position: relative;
+  padding: 48px 24px 40px;
+  text-align: center;
+  overflow: hidden;
+}
+
+.header-content {
+  position: relative;
+  z-index: 1;
+}
+
+.page-header h1 {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 2.5rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.page-header p {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  font-style: italic;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+}
+
+.header-decoration {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--accent-lavender), transparent);
+}
+
+.calendar-wrapper {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 24px 48px;
+}
+
+.calendar-error {
+  background-color: var(--bg-calendar);
+  border-radius: var(--radius-md);
+  padding: 48px 32px;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.calendar-error h3 {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.35rem;
+  color: var(--error);
+  margin-bottom: 12px;
+}
+
+.calendar-error p {
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.error-detail {
+  font-size: 0.85rem;
+  color: var(--text-light);
+  font-family: monospace;
+  background: var(--bg-secondary);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  display: inline-block;
+}
+
+@media (max-width: 640px) {
+  .page-header {
+    padding: 32px 20px 28px;
+  }
+
+  .page-header h1 {
+    font-size: 1.75rem;
+  }
+
+  .page-header p {
+    font-size: 1rem;
+  }
+
+  .calendar-wrapper {
+    padding: 0 12px 32px;
+  }
+}

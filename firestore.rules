@@ -1,0 +1,13 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /events/{eventId} {
+      // Anyone can read events (public viewing)
+      allow read: if true;
+      // Only authenticated users can create events
+      allow create: if request.auth != null;
+      // Users can only update/delete their own events
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.createdBy;
+    }
+  }
+}
