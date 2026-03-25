@@ -65,8 +65,8 @@
   pointer-events: none;
 }
 
-.input-wrapper input {
-  padding-left: 44px;
+.auth-form .input-wrapper input {
+  padding-left: 52px;
 }
 
 .btn-submit {
