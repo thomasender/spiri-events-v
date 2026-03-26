@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { Mail, Lock, User } from 'lucide-react'
 import './AuthForm.css'
@@ -10,6 +10,8 @@ export default function AuthForm() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [displayName, setDisplayName] = useState('')
+  const [acceptDatenschutz, setAcceptDatenschutz] = useState(false)
+  const [acceptNutzungsbedingungen, setAcceptNutzungsbedingungen] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const { login, register } = useAuth()
@@ -18,6 +20,16 @@ export default function AuthForm() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+
+    if (!isLogin && !acceptDatenschutz) {
+      setError('Bitte akzeptiere die Datenschutzerklärung.')
+      return
+    }
+
+    if (!isLogin && !acceptNutzungsbedingungen) {
+      setError('Bitte akzeptiere die Nutzungsbedingungen.')
+      return
+    }
 
     if (!isLogin && password !== confirmPassword) {
       setError('Die Passwörter stimmen nicht überein.')
@@ -56,6 +68,8 @@ export default function AuthForm() {
   const toggleMode = () => {
     setIsLogin(!isLogin)
     setError('')
+    setAcceptDatenschutz(false)
+    setAcceptNutzungsbedingungen(false)
   }
 
   return (
@@ -143,6 +157,41 @@ export default function AuthForm() {
                   autoComplete="new-password"
                 />
               </div>
+            </div>
+          )}
+
+          {!isLogin && (
+            <div className="legal-checkboxes">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={acceptDatenschutz}
+                  onChange={(e) => setAcceptDatenschutz(e.target.checked)}
+                  required
+                />
+                <span>
+                  Ich habe die{' '}
+                  <Link to="/datenschutz" target="_blank" rel="noopener noreferrer">
+                    Datenschutzerklärung
+                  </Link>{' '}
+                  gelesen und akzeptiere diese.
+                </span>
+              </label>
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={acceptNutzungsbedingungen}
+                  onChange={(e) => setAcceptNutzungsbedingungen(e.target.checked)}
+                  required
+                />
+                <span>
+                  Ich habe die{' '}
+                  <Link to="/nutzungsbedingungen" target="_blank" rel="noopener noreferrer">
+                    Nutzungsbedingungen
+                  </Link>{' '}
+                  gelesen und akzeptiere diese.
+                </span>
+              </label>
             </div>
           )}
 
