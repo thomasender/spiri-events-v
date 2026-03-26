@@ -191,9 +191,25 @@
    MOBILE WEEK STRIP (mobile only)
    ============================================ */
 
+.mobile-week-nav {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+}
+
+.mobile-week-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
 .week-strip {
   display: none;
-  padding: 12px 8px;
+  padding: 10px 8px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
   gap: 4px;
@@ -234,10 +250,6 @@
   justify-content: center;
 }
 
-.week-day.selected {
-  background-color: rgba(139, 115, 85, 0.15);
-}
-
 .week-day.other-month .week-day-num {
   color: var(--text-light);
 }
@@ -247,7 +259,7 @@
 }
 
 .week-day-name {
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -255,7 +267,7 @@
 }
 
 .week-day-num {
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 500;
   color: var(--text-secondary);
 }
@@ -283,74 +295,75 @@
 }
 
 /* ============================================
-   MOBILE DAY DETAIL (agenda view)
+   MOBILE AGENDA VIEW
    ============================================ */
 
-.day-detail {
-  padding: 16px;
-  background-color: var(--bg-calendar);
+.mobile-agenda {
+  display: none;
+  flex-direction: column;
+}
+
+.agenda-day {
+  padding: 0 16px;
   border-bottom: 1px solid var(--border);
-  animation: slideUp 0.2s ease-out;
 }
 
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.agenda-day.other-month {
+  opacity: 0.5;
 }
 
-.day-detail-header {
+.agenda-day-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
+  gap: 10px;
+  padding: 12px 0 8px;
+  position: sticky;
+  top: 0;
+  background: var(--bg-calendar);
+  z-index: 1;
 }
 
-.day-detail-header h3 {
-  font-family: 'Cormorant Garamond', Georgia, serif;
-  font-size: 1.1rem;
-  font-weight: 500;
-  color: var(--text-primary);
+.agenda-day-weekday {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-light);
 }
 
-.day-detail-close {
+.agenda-day-number {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.agenda-day-number.today {
+  background-color: var(--accent-primary);
+  color: white;
+  border-radius: 50%;
   width: 28px;
   height: 28px;
-  border-radius: 50%;
-  border: none;
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
-  font-size: 1.2rem;
-  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  line-height: 1;
-}
-
-.day-no-events {
-  color: var(--text-light);
-  font-style: italic;
   font-size: 0.9rem;
-  text-align: center;
-  padding: 8px 0;
 }
 
-.day-events {
+.agenda-day-empty {
+  height: 8px;
+}
+
+.agenda-events {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding-bottom: 12px;
 }
 
-.agenda-event-card {
+.agenda-event-row {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  gap: 6px;
   padding: 12px;
   background-color: var(--bg-secondary);
   border-radius: var(--radius-sm);
@@ -361,9 +374,15 @@
   width: 100%;
 }
 
-.agenda-event-card:hover {
+.agenda-event-row:hover {
   border-color: var(--accent-primary);
   box-shadow: var(--shadow-sm);
+}
+
+.agenda-event-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .agenda-event-time {
@@ -371,15 +390,6 @@
   font-weight: 600;
   color: var(--accent-primary);
   min-width: 44px;
-  text-align: center;
-}
-
-.agenda-event-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
 }
 
 .agenda-event-title {
@@ -391,6 +401,13 @@
   text-overflow: ellipsis;
 }
 
+.agenda-event-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 54px;
+}
+
 .agenda-event-place {
   display: flex;
   align-items: center;
@@ -400,6 +417,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 60%;
 }
 
 .agenda-event-place svg {
@@ -482,7 +500,15 @@
     display: none;
   }
 
+  .mobile-week-nav {
+    display: flex;
+  }
+
   .week-strip {
+    display: flex;
+  }
+
+  .mobile-agenda {
     display: flex;
   }
 
