@@ -11,7 +11,7 @@ const content = {
         text: `Verantwortlicher für die Verarbeitung personenbezogener Daten im Sinne der DSGVO ist:
 
 Spirituelle Events Vorarlberg
-E-Mail: kontakt@spirituelle-events-vorarlberg.at`
+E-Mail: thomas@blissofkundalini.yoga`
       },
       {
         heading: '2. Welche Daten wir erheben',
@@ -116,6 +116,20 @@ Weitere Informationen finden Sie in der Datenschutzerklärung von ImgBB: https:/
       }
     ]
   },
+  impressum: {
+    title: 'Impressum',
+    lastUpdated: 'März 2026',
+    sections: [
+      {
+        heading: 'Angaben gemäß § 5 TMG',
+        text: `Verantwortlicher:
+
+Thomas Ender
+Starkenfeld 19, 6841 Mäder, Österreich
+E-Mail: thomas@blissofkundalini.yoga`
+      }
+    ]
+  },
   nutzungsbedingungen: {
     title: 'Nutzungsbedingungen',
     lastUpdated: 'März 2026',
@@ -189,7 +203,7 @@ Grundsätzlich:
 
 Anbieter:
 Spirituelle Events Vorarlberg
-E-Mail: kontakt@spirituelle-events-vorarlberg.at`
+E-Mail: thomas@blissofkundalini.yoga`
       }
     ]
   }

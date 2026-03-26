@@ -7,6 +7,7 @@ export default function Footer() {
       <div className="footer-container">
         <span className="footer-copy">© 2026 Spirituelle Events Vorarlberg</span>
         <nav className="footer-nav">
+          <Link to="/impressum">Impressum</Link>
           <Link to="/datenschutz">Datenschutz</Link>
           <Link to="/nutzungsbedingungen">Nutzungsbedingungen</Link>
         </nav>
