@@ -1,10 +1,12 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
 import Header from './components/Header'
+import Footer from './components/Footer'
 import CalendarPage from './pages/CalendarPage'
 import LoginPage from './pages/LoginPage'
 import AdminPage from './pages/AdminPage'
 import EventFormPage from './pages/EventFormPage'
+import LegalPage from './pages/LegalPage'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -25,9 +27,10 @@ function ProtectedRoute({ children }) {
 export default function App() {
   return (
     <BrowserRouter>
-      <Header />
-      <main>
-        <Routes>
+      <div className="app-layout">
+        <Header />
+        <main className="main-content">
+          <Routes>
           <Route path="/" element={<CalendarPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route
@@ -54,9 +57,12 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/:page" element={<LegalPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </main>
+        </main>
+        <Footer />
+      </div>
     </BrowserRouter>
   )
 }

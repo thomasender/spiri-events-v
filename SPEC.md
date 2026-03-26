@@ -67,10 +67,23 @@ Inspiriert von Yoga-Retreats und spirituellen Oasen — warme Erdtöne, viel Wei
 4. **`/admin/new` & `/admin/edit/:id` — Event Form**
    - Full form for event CRUD
 
+5. **`/datenschutz` — Datenschutzerklärung**
+   - Privacy policy in German
+   - Covers data controller, data collected, purpose, no third-party sharing, retention, user rights, security
+
+6. **`/nutzungsbedingungen` — Nutzungsbedingungen**
+   - Terms of service in German
+   - Covers scope, registration, usage rules, content responsibility, availability, liability, data privacy
+
 ### Header
 - Logo/Title: "Spirituelle Events Vorarlberg"
 - Nav: Kalender | (Login/Logout or Admin)
 - Sticky, minimal, with subtle bottom border
+
+### Footer
+- Copyright notice with year
+- Legal links: Datenschutz | Nutzungsbedingungen
+- Links to respective legal pages
 
 ### Calendar Grid
 - 7-column grid (Mo–So)
@@ -136,6 +149,11 @@ interface Event {
 - Login/Logout or Admin link based on auth state
 - Sticky, backdrop-blur on scroll
 
+### `<Footer />`
+- Copyright text with app name
+- Links to Datenschutz and Nutzungsbedingungen pages
+- Minimal styling matching the overall design
+
 ### `<Calendar />`
 - Month/year display with arrows
 - 6-week grid (42 cells)
@@ -195,6 +213,7 @@ src/
     LoginPage.jsx
     AdminPage.jsx
     EventFormPage.jsx
+    LegalPage.jsx
   lib/
     firebase.js        # Firebase init + exports
   hooks/
