@@ -76,6 +76,7 @@
   border-bottom: 1px solid var(--border);
   padding: 8px;
   min-height: 100px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   transition: background-color 0.15s ease;
@@ -131,6 +132,14 @@
   font-size: 0.75rem;
   color: var(--text-light);
   padding: 2px 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.more-events:hover {
+  color: var(--accent-primary);
 }
 
 /* Event chips in desktop grid */
@@ -185,6 +194,151 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 100%;
+}
+
+/* ============================================
+   DAY POPOVER (desktop expanded day)
+   ============================================ */
+
+.desktop-calendar {
+  position: relative;
+}
+
+.day-popover-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  border-radius: var(--radius-md);
+}
+
+.day-popover {
+  background: var(--bg-calendar);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  width: 340px;
+  max-height: 80%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.day-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
+}
+
+.day-popover-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.day-popover-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--text-light);
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.day-popover-close:hover {
+  color: var(--text-primary);
+}
+
+.day-popover-events {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+
+.day-popover-event {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+.day-popover-event:hover {
+  border-color: var(--accent-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.day-popover-event-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.day-popover-event.free .day-popover-event-dot {
+  background-color: var(--accent-sage);
+}
+
+.day-popover-event.fee .day-popover-event-dot {
+  background-color: var(--accent-primary);
+}
+
+.day-popover-event-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.day-popover-event-time {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--accent-primary);
+}
+
+.day-popover-event-name {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.day-popover-event-badge {
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.day-popover-event-badge.free {
+  background-color: rgba(125, 155, 138, 0.15);
+  color: #5a7a66;
+}
+
+.day-popover-event-badge.fee {
+  background-color: rgba(139, 115, 85, 0.12);
+  color: #6b5a45;
 }
 
 /* ============================================

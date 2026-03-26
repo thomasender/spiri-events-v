@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { ChevronLeft, ChevronRight, CalendarDays, MapPin } from 'lucide-react'
 import './Calendar.css'
 
@@ -96,6 +96,8 @@ function getMonthDays(year, month) {
 export default function Calendar({ events, onEventClick, currentMonth, onMonthChange }) {
   const [slideDirection, setSlideDirection] = useState(null)
   const [mobileViewDate, setMobileViewDate] = useState(() => new Date())
+  const [expandedDay, setExpandedDay] = useState(null)
+  const expandedDayRef = useRef(null)
 
   const year = currentMonth.getFullYear()
   const month = currentMonth.getMonth()
@@ -108,6 +110,18 @@ export default function Calendar({ events, onEventClick, currentMonth, onMonthCh
       onMonthChange(new Date(viewYear, viewMonth, 1))
     }
   }, [mobileViewDate]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Close expanded day popover when clicking outside
+  useEffect(() => {
+    if (!expandedDay) return
+    const handleClickOutside = (e) => {
+      if (expandedDayRef.current && !expandedDayRef.current.contains(e.target)) {
+        setExpandedDay(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [expandedDay])
 
   const eventsByDay = useMemo(() => {
     const map = {}
@@ -325,13 +339,62 @@ export default function Calendar({ events, onEventClick, currentMonth, onMonthCh
                     </button>
                   ))}
                   {dayEvents.length > 3 && (
-                    <span className="more-events">+{dayEvents.length - 3}</span>
+                    <button
+                      className="more-events"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setExpandedDay(cell.date === expandedDay ? null : cell.date)
+                      }}
+                    >
+                      +{dayEvents.length - 3}
+                    </button>
                   )}
                 </div>
               </div>
             )
           })}
         </div>
+
+        {/* Expanded day popover */}
+        {expandedDay && eventsByDay[expandedDay] && (
+          <div className="day-popover-overlay" onClick={() => setExpandedDay(null)}>
+            <div
+              ref={expandedDayRef}
+              className="day-popover"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="day-popover-header">
+                <span className="day-popover-title">
+                  Alle Events am {new Date(expandedDay + 'T12:00:00').toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })}
+                </span>
+                <button className="day-popover-close" onClick={() => setExpandedDay(null)}>
+                  ×
+                </button>
+              </div>
+              <div className="day-popover-events">
+                {eventsByDay[expandedDay].map(event => (
+                  <button
+                    key={event.id}
+                    className={`day-popover-event ${event.contribution === 'free' ? 'free' : 'fee'}`}
+                    onClick={() => {
+                      onEventClick(event)
+                      setExpandedDay(null)
+                    }}
+                  >
+                    <span className="day-popover-event-dot" />
+                    <span className="day-popover-event-info">
+                      <span className="day-popover-event-time">{event.time || '—'}</span>
+                      <span className="day-popover-event-name">{event.title}</span>
+                    </span>
+                    <span className={`day-popover-event-badge ${event.contribution === 'free' ? 'free' : 'fee'}`}>
+                      {event.contribution === 'free' ? 'Frei' : `${event.fee}€`}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {!hasEventsAnywhere && (
