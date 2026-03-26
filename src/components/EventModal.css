@@ -69,6 +69,14 @@
   padding-right: 40px;
 }
 
+.modal-image {
+  width: calc(100% + 64px);
+  max-height: 250px;
+  object-fit: cover;
+  margin: -32px -32px 16px;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
 .modal-badge {
   display: inline-flex;
   align-items: center;
@@ -173,5 +181,11 @@
 
   .modal-title {
     font-size: 1.4rem;
+  }
+
+  .modal-image {
+    width: calc(100% + 40px);
+    margin: -16px -20px 16px;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
   }
 }

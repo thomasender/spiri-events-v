@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useEvents } from '../hooks/useEvents'
 import { useAuth } from '../hooks/useAuth'
-import { ArrowLeft, Save } from 'lucide-react'
+import { uploadImage } from '../lib/imageUpload'
+import { ArrowLeft, Save, Image, X } from 'lucide-react'
 import './EventForm.css'
 
 const INITIAL_STATE = {
@@ -33,6 +34,11 @@ export default function EventForm({ event }) {
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
   const [submitError, setSubmitError] = useState('')
+  const [imageFile, setImageFile] = useState(null)
+  const [imagePreview, setImagePreview] = useState(event?.imageUrl || '')
+  const [imageRemoved, setImageRemoved] = useState(false) // Track if user explicitly removed image
+  const [imageUploading, setImageUploading] = useState(false)
+  const fileInputRef = useRef(null)
   const { user } = useAuth()
   const { addEvent, updateEvent } = useEvents(user)
   const navigate = useNavigate()
@@ -46,6 +52,51 @@ export default function EventForm({ event }) {
       newErrors.fee = 'Bitte gib einen gültigen Betrag ein'
     }
     return newErrors
+  }
+
+  const handleImageSelect = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+
+    // Validate file type
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setErrors(prev => ({ ...prev, image: 'Nur JPEG, PNG und WebP erlaubt' }))
+      return
+    }
+
+    // Validate file size (show error if over 5MB before compression)
+    if (file.size > 5 * 1024 * 1024) {
+      setErrors(prev => ({ ...prev, image: 'Bild ist zu groß (max. 5MB)' }))
+      return
+    }
+
+    setErrors(prev => ({ ...prev, image: null }))
+    setImageFile(file)
+    setImagePreview(URL.createObjectURL(file))
+    setImageRemoved(false)
+  }
+
+  const removeImage = () => {
+    setImageFile(null)
+    setImagePreview('')
+    setImageRemoved(true)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  const handleImageUpload = async () => {
+    if (!imageFile) return null
+
+    setImageUploading(true)
+    try {
+      return await uploadImage(imageFile)
+    } catch (err) {
+      console.error('Image upload failed:', err)
+      throw new Error('Bild-Upload fehlgeschlagen')
+    } finally {
+      setImageUploading(false)
+    }
   }
 
   const handleChange = (e) => {
@@ -69,6 +120,7 @@ export default function EventForm({ event }) {
     setLoading(true)
 
     try {
+      // First, create the event (without imageUrl) to get the real Firestore ID
       const eventData = {
         title: formData.title.trim(),
         date: formData.date,
@@ -78,13 +130,27 @@ export default function EventForm({ event }) {
         contribution: formData.contribution,
         fee: formData.contribution === 'fee' ? parseFloat(formData.fee) : null,
         description: formData.description.trim(),
-        link: formData.link.trim()
+        link: formData.link.trim(),
+        imageUrl: null
       }
 
+      let docRef
       if (event) {
         await updateEvent(event.id, eventData)
+        docRef = { id: event.id }
       } else {
-        await addEvent(eventData)
+        docRef = await addEvent(eventData)
+      }
+
+      // Handle image upload after we have the real document ID
+      if (imageFile) {
+        // Upload new image
+        const newImageUrl = await handleImageUpload()
+        // Update event with imageUrl
+        await updateEvent(docRef.id, { imageUrl: newImageUrl })
+      } else if (imageRemoved && event?.imageUrl) {
+        // Image was explicitly removed by user
+        await updateEvent(event.id, { imageUrl: null })
       }
       navigate('/admin')
     } catch (err) {
@@ -243,15 +309,49 @@ export default function EventForm({ event }) {
             />
           </div>
 
+          <div className="form-group">
+            <label>Bild (optional)</label>
+            {imagePreview ? (
+              <div className="image-preview-container">
+                <img src={imagePreview} alt="Vorschau" className="image-preview" />
+                <button
+                  type="button"
+                  onClick={removeImage}
+                  className="image-remove-btn"
+                  aria-label="Bild entfernen"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ) : (
+              <div
+                className="image-upload-area"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Image size={24} />
+                <span>Bild auswählen (JPEG, PNG, WebP, max. 500KB)</span>
+              </div>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handleImageSelect}
+              style={{ display: 'none' }}
+            />
+            {errors.image && <span className="error-text">{errors.image}</span>}
+            {imageUploading && <span className="uploading-text">Bild wird komprimiert und hochgeladen...</span>}
+          </div>
+
           {submitError && <p className="error-text submit-error">{submitError}</p>}
 
           <div className="form-actions">
             <button type="button" onClick={() => navigate('/admin')} className="btn btn-secondary">
               Abbrechen
             </button>
-            <button type="submit" className="btn btn-primary" disabled={loading}>
+            <button type="submit" className="btn btn-primary" disabled={loading || imageUploading}>
               <Save size={18} />
-              <span>{loading ? 'Speichern...' : 'Event speichern'}</span>
+              <span>{loading || imageUploading ? 'Speichern...' : 'Event speichern'}</span>
             </button>
           </div>
         </form>

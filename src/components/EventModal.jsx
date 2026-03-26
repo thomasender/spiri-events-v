@@ -55,6 +55,9 @@ export default function EventModal({ event, onClose }) {
         </button>
 
         <div className="modal-header">
+          {event.imageUrl && (
+            <img src={event.imageUrl} alt={event.title} className="modal-image" />
+          )}
           <h2 className="modal-title">{event.title}</h2>
           <div className={`modal-badge ${isFree ? 'badge--free' : 'badge--fee'}`}>
             <Ticket size={14} />

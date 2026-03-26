@@ -43,7 +43,11 @@ Inspiriert von Yoga-Retreats und spirituellen Oasen — warme Erdtöne, viel Wei
 
 ### Visual Assets
 - Icons: Lucide React (minimal, clean)
-- No external images — use CSS gradients and subtle patterns for atmosphere
+- Event images: Optional user uploads via ImgBB (external image hosting)
+  - Max file size: 500KB (compressed client-side)
+  - Formats: JPEG, PNG, WebP
+  - Images publicly hosted on imgbb.com
+  - **Note:** ImgBB does not provide a delete API. Images cannot be programmatically removed from ImgBB servers. Users can remove the image reference from the app, but the image may remain on ImgBB.
 - Decorative: subtle dot pattern on header, soft gradients
 
 ## 3. Layout & Structure
@@ -126,11 +130,13 @@ interface Event {
   title: string;
   date: string;        // ISO date string (YYYY-MM-DD)
   time: string;        // HH:MM format
+  endDate: string;    // Optional end date for multi-day events
   place: string;       // Address
   contribution: 'free' | 'fee';
   fee?: number;        // Optional, in EUR
   description: string;
   link?: string;       // Ticket/info URL
+  imageUrl?: string;    // Optional Firebase Storage URL
   createdBy: string;   // Firebase UID
   createdAt: Timestamp;
 }
@@ -168,6 +174,7 @@ interface Event {
 ### `<EventModal />`
 - Overlay + centered card
 - All event details
+- Event image displayed at top if available (from ImgBB)
 - Close button (X) top-right
 - Link button if URL present
 
@@ -179,6 +186,10 @@ interface Event {
 
 ### `<EventForm />`
 - All event fields with labels
+- Optional image upload via ImgBB (JPEG, PNG, WebP, max 500KB)
+  - Client-side compression before upload
+  - Image preview before upload
+  - Remove/replace existing images
 - Contribution toggle (Free / Gebühr)
 - Fee input shown only when "Gebühr" selected
 - Submit with loading state
@@ -227,6 +238,9 @@ src/
 ### Firebase Setup (User will provide credentials)
 - Auth: Email/Password provider enabled
 - Firestore: Collection `events`
+- Image Hosting: ImgBB (external, free tier)
+  - Client-side compression to 500KB max
+  - Images served via ImgBB CDN
 - Security: Users can only read all events, but only write/update/delete their own
 
 ### Routing Guards

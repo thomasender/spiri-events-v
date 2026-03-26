@@ -26,8 +26,9 @@ E-Mail: kontakt@spirituelle-events-vorarlberg.at`
 - Beschreibung
 - Beitrag (kostenlos oder gegen Gebühr)
 - Link (optional)
+- Bild (optional, max. 500KB)
 
-Diese Daten werden ausschließlich in Firestore (Firebase) gespeichert.`
+Diese Daten werden in Firestore (Firebase) gespeichert. Event-Bilder werden an den Drittanbieter ImgBB (imgbb.com) übermittelt und dort gehostet.`
       },
       {
         heading: '3. Zweck und Rechtsgrundlage der Verarbeitung',
@@ -92,7 +93,25 @@ Die Datenverarbeitung durch Firebase erfolgt auf Grundlage eines Auftragsverarbe
 Weitere Informationen finden Sie in der Datenschutzerklärung von Google: https://policies.google.com/privacy`
       },
       {
-        heading: '10. Änderungen dieser Datenschutzerklärung',
+        heading: '10. Externe Bildspeicherung (ImgBB)',
+        text: `Wenn Sie ein Bild zu einem Event hochladen, wird dieses an den externen Drittanbieter ImgBB (imgbb.com) übermittelt und dort auf deren Servern gespeichert. ImgBB ist ein öffentlicher Bildhosting-Dienst.
+
+**Was bedeutet das für Sie?**
+- Das hochgeladene Bild wird öffentlich zugänglich auf ImgBB gehostet
+- Wir haben keinen Einfluss auf die Datenschutzpraktiken von ImgBB
+- Die URLs der Bilder sind öffentlich und können von jedem eingesehen werden
+
+**Löschen von Bildern:**
+- Wenn Sie ein Event bearbeiten, können Sie das Bild aus der App entfernen (der Verweis in unserer Datenbank wird gelöscht)
+- Wenn Sie ein Event löschen, wird der Verweis aus unserer Datenbank entfernt
+- **Hinweis:** ImgBB bietet keine API zum Löschen von Bildern. Das Bild selbst verbleibt auf den Servern von ImgBB. Wenn Sie ein Bild vollständig entfernen möchten, müssen Sie sich direkt an ImgBB wenden oder das Bild dort manuell über die imgbb.com-Website löschen.
+
+Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich teilen würden, und keine sensiblen personenbezogenen Daten (z.B. Gesichter unkenntlich machen) in den Bildern zu zeigen.
+
+Weitere Informationen finden Sie in der Datenschutzerklärung von ImgBB: https://imgbb.com/privacy`
+      },
+      {
+        heading: '11. Änderungen dieser Datenschutzerklärung',
         text: `Wir behalten uns vor, diese Datenschutzerklärung bei Änderungen der App oder der Rechtslage anzupassen. Die jeweils aktuelle Version finden Sie immer auf dieser Seite.`
       }
     ]

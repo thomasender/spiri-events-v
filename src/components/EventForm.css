@@ -102,6 +102,69 @@ textarea {
   margin-top: 8px;
 }
 
+.image-upload-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 32px;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.15s ease;
+}
+
+.image-upload-area:hover {
+  border-color: var(--accent-primary);
+  background-color: rgba(139, 115, 85, 0.05);
+}
+
+.image-upload-area span {
+  font-size: 0.875rem;
+}
+
+.image-preview-container {
+  position: relative;
+  display: inline-block;
+}
+
+.image-preview {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+}
+
+.image-remove-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 4px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+}
+
+.image-remove-btn:hover {
+  background: var(--error);
+  color: white;
+  border-color: var(--error);
+}
+
+.uploading-text {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 8px;
+}
+
 @media (max-width: 640px) {
   .event-form-container {
     padding: 24px 20px;
