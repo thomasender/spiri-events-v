@@ -137,10 +137,23 @@ interface Event {
   description: string;
   link?: string;       // Ticket/info URL
   imageUrl?: string;    // Optional Firebase Storage URL
+  recurrence: 'none' | 'weekly' | 'biweekly' | 'monthly';  // Recurrence pattern
+  recurrenceEndDate?: string;  // Optional end date for recurrence
   createdBy: string;   // Firebase UID
   createdAt: Timestamp;
 }
 ```
+
+### Multi-Day Events
+Events with an `endDate` are shown on **all days** they span in the calendar. The first day shows the full event chip, and continuation days show a slightly faded (60% opacity) chip to indicate the event continues.
+
+### Recurring Events
+Events can be set to recur:
+- **Wöchentlich (weekly)**: Same day every week
+- **Zweiwöchentlich (biweekly)**: Every two weeks
+- **Monatlich (monthly)**: Same day every month
+
+Recurring events appear on all matching future dates up to 1 year ahead (or `recurrenceEndDate` if specified). The event modal shows the recurrence pattern (e.g., "Jeden Montag bis 31. Dezember 2026").
 
 ### Edge Cases
 - No events in month: show subtle empty state "Keine Events in diesem Monat"

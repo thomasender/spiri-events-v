@@ -15,7 +15,9 @@ const INITIAL_STATE = {
   contribution: 'free',
   fee: '',
   description: '',
-  link: ''
+  link: '',
+  recurrence: 'none',
+  recurrenceEndDate: ''
 }
 
 export default function EventForm({ event }) {
@@ -28,7 +30,9 @@ export default function EventForm({ event }) {
     contribution: event.contribution || 'free',
     fee: event.fee || '',
     description: event.description || '',
-    link: event.link || ''
+    link: event.link || '',
+    recurrence: event.recurrence || 'none',
+    recurrenceEndDate: event.recurrenceEndDate || ''
   } : INITIAL_STATE)
 
   const [errors, setErrors] = useState({})
@@ -131,6 +135,8 @@ export default function EventForm({ event }) {
         fee: formData.contribution === 'fee' ? parseFloat(formData.fee) : null,
         description: formData.description.trim(),
         link: formData.link.trim(),
+        recurrence: formData.recurrence || 'none',
+        recurrenceEndDate: formData.recurrence === 'none' ? '' : (formData.recurrenceEndDate || ''),
         imageUrl: null
       }
 
@@ -226,6 +232,65 @@ export default function EventForm({ event }) {
               />
             </div>
           </div>
+
+          <div className="form-group">
+            <label>Wiederholung</label>
+            <div className="radio-group">
+              <label className={`radio-label ${formData.recurrence === 'none' ? 'active' : ''}`}>
+                <input
+                  type="radio"
+                  name="recurrence"
+                  value="none"
+                  checked={formData.recurrence === 'none'}
+                  onChange={handleChange}
+                />
+                <span>Keine</span>
+              </label>
+              <label className={`radio-label ${formData.recurrence === 'weekly' ? 'active' : ''}`}>
+                <input
+                  type="radio"
+                  name="recurrence"
+                  value="weekly"
+                  checked={formData.recurrence === 'weekly'}
+                  onChange={handleChange}
+                />
+                <span>Wöchentlich</span>
+              </label>
+              <label className={`radio-label ${formData.recurrence === 'biweekly' ? 'active' : ''}`}>
+                <input
+                  type="radio"
+                  name="recurrence"
+                  value="biweekly"
+                  checked={formData.recurrence === 'biweekly'}
+                  onChange={handleChange}
+                />
+                <span>Zweiwöchentlich</span>
+              </label>
+              <label className={`radio-label ${formData.recurrence === 'monthly' ? 'active' : ''}`}>
+                <input
+                  type="radio"
+                  name="recurrence"
+                  value="monthly"
+                  checked={formData.recurrence === 'monthly'}
+                  onChange={handleChange}
+                />
+                <span>Monatlich</span>
+              </label>
+            </div>
+          </div>
+
+          {formData.recurrence !== 'none' && (
+            <div className="form-group">
+              <label htmlFor="recurrenceEndDate">Wiederholung bis (optional)</label>
+              <input
+                id="recurrenceEndDate"
+                name="recurrenceEndDate"
+                type="date"
+                value={formData.recurrenceEndDate}
+                onChange={handleChange}
+              />
+            </div>
+          )}
 
           <div className="form-group">
             <label htmlFor="place">Ort / Adresse *</label>

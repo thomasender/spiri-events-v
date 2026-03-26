@@ -31,6 +31,90 @@ function formatDateShort(dateStr) {
   })
 }
 
+// Expand event across all days it spans (including endDate)
+function expandEventToDays(event) {
+  if (!event) return []
+  const days = []
+  const start = new Date(event.date + 'T12:00:00')
+  const end = event.endDate ? new Date(event.endDate + 'T12:00:00') : start
+
+  const current = new Date(start)
+  while (current <= end) {
+    const dateStr = formatDate(current.getFullYear(), current.getMonth(), current.getDate())
+    days.push({ ...event, date: dateStr, isMultiDayStart: current.getTime() === start.getTime(), isMultiDayEnd: current.getTime() === end.getTime() })
+    current.setDate(current.getDate() + 1)
+  }
+  return days
+}
+
+// Expand recurring events to their occurrence dates
+function expandRecurringEvents(event) {
+  if (!event || event.recurrence === 'none' || !event.recurrence) return expandEventToDays(event)
+
+  const occurrences = []
+  const startDate = new Date(event.date + 'T12:00:00')
+  const endDate = event.recurrenceEndDate ? new Date(event.recurrenceEndDate + 'T12:00:00') : new Date(startDate)
+  endDate.setMonth(endDate.getMonth() + 3) // Limit to 3 months of occurrences if no end date
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const maxDate = new Date(today)
+  maxDate.setFullYear(maxDate.getFullYear() + 1) // Max 1 year ahead
+
+  const effectiveEnd = endDate < maxDate ? endDate : maxDate
+
+  let interval
+  switch (event.recurrence) {
+    case 'weekly':
+      interval = 1
+      break
+    case 'biweekly':
+      interval = 2
+      break
+    case 'monthly':
+      interval = 0 // handled specially below
+      break
+    default:
+      return expandEventToDays(event)
+  }
+
+  const current = new Date(startDate)
+
+  while (current <= effectiveEnd) {
+    if (current >= today) {
+      const baseOccurrence = { ...event, date: formatDate(current.getFullYear(), current.getMonth(), current.getDate()) }
+      if (event.endDate) {
+        // For recurring multi-day events, keep the same duration
+        const start = new Date(event.date + 'T12:00:00')
+        const eventDays = Math.ceil((new Date(event.endDate + 'T12:00:00') - start) / (1000 * 60 * 60 * 24)) + 1
+        // Add each day of the multi-day span
+        for (let d = 0; d < eventDays; d++) {
+          const dayDate = new Date(current)
+          dayDate.setDate(dayDate.getDate() + d)
+          occurrences.push({
+            ...baseOccurrence,
+            date: formatDate(dayDate.getFullYear(), dayDate.getMonth(), dayDate.getDate()),
+            isMultiDayStart: d === 0,
+            isMultiDayEnd: d === eventDays - 1
+          })
+        }
+      } else {
+        occurrences.push({ ...baseOccurrence, isMultiDayStart: true, isMultiDayEnd: true })
+      }
+    }
+
+    if (interval === 0) {
+      // Monthly: next month same day
+      current.setMonth(current.getMonth() + 1)
+    } else {
+      // Weekly or biweekly
+      current.setDate(current.getDate() + (interval * 7))
+    }
+  }
+
+  return occurrences
+}
+
 function isToday(year, month, day) {
   const today = new Date()
   return (
@@ -126,10 +210,11 @@ export default function Calendar({ events, onEventClick, currentMonth, onMonthCh
   const eventsByDay = useMemo(() => {
     const map = {}
     events.forEach(event => {
-      if (event.date) {
-        if (!map[event.date]) map[event.date] = []
-        map[event.date].push(event)
-      }
+      const expandedDays = expandRecurringEvents(event)
+      expandedDays.forEach(expanded => {
+        if (!map[expanded.date]) map[expanded.date] = []
+        map[expanded.date].push(expanded)
+      })
     })
     return map
   }, [events])
@@ -327,7 +412,7 @@ export default function Calendar({ events, onEventClick, currentMonth, onMonthCh
                   {dayEvents.slice(0, 3).map(event => (
                     <button
                       key={event.id}
-                      className={`event-chip ${event.contribution === 'free' ? 'event-chip--free' : 'event-chip--fee'}`}
+                      className={`event-chip ${event.contribution === 'free' ? 'event-chip--free' : 'event-chip--fee'} ${!event.isMultiDayStart ? 'event-chip--continuation' : ''}`}
                       onClick={(e) => {
                         e.stopPropagation()
                         onEventClick(event)

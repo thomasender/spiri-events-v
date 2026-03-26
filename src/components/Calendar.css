@@ -196,6 +196,25 @@
   max-width: 100%;
 }
 
+/* Continuation chip (not start day of multi-day event) */
+.event-chip--continuation {
+  opacity: 0.6;
+  padding-left: 14px;
+}
+
+.event-chip--continuation::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+  opacity: 0.5;
+}
+
 /* ============================================
    DAY POPOVER (desktop expanded day)
    ============================================ */

@@ -30,6 +30,22 @@ function formatEndDate(startDateStr, endDateStr) {
   })
 }
 
+function formatRecurrence(recurrence, recurrenceEndDate) {
+  if (!recurrence || recurrence === 'none') return null
+  const labels = {
+    weekly: 'Jeden',
+    biweekly: 'Jeden zweiten',
+    monthly: 'Jeden Monat'
+  }
+  let label = labels[recurrence] || recurrence
+  if (recurrenceEndDate) {
+    const [year, month, day] = recurrenceEndDate.split('-')
+    const endDate = new Date(year, month - 1, day)
+    label += ` bis ${endDate.toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })}`
+  }
+  return label
+}
+
 export default function EventModal({ event, onClose }) {
   useEffect(() => {
     const handleEscape = (e) => {
@@ -83,6 +99,16 @@ export default function EventModal({ event, onClose }) {
               <div>
                 <span className="detail-label">Uhrzeit</span>
                 <span className="detail-value">{event.time}</span>
+              </div>
+            </div>
+          )}
+
+          {formatRecurrence(event.recurrence, event.recurrenceEndDate) && (
+            <div className="detail-item">
+              <Calendar size={18} className="detail-icon" />
+              <div>
+                <span className="detail-label">Wiederholung</span>
+                <span className="detail-value">{formatRecurrence(event.recurrence, event.recurrenceEndDate)}</span>
               </div>
             </div>
           )}
