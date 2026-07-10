@@ -55,9 +55,8 @@ export default function CalendarPage() {
 
   const filteredEvents = useMemo(() => {
     if (!showFilters) return events
-    if (selectedCategories.length === 0) return []
     return events.filter(event => {
-      const categoryMatch = event.categories && event.categories.some(cat => selectedCategories.includes(cat))
+      const categoryMatch = selectedCategories.length === 0 || (event.categories && event.categories.some(cat => selectedCategories.includes(cat)))
       const bezirkMatch = selectedBezirke.length === 0 || selectedBezirke.includes(event.bezirk)
       return categoryMatch && bezirkMatch
     })
