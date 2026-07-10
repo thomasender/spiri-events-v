@@ -75,9 +75,18 @@ export default function EventModal({ event, onClose }) {
             <img src={event.imageUrl} alt={event.title} className="modal-image" />
           )}
           <h2 className="modal-title">{event.title}</h2>
-          <div className={`modal-badge ${isFree ? 'badge--free' : 'badge--fee'}`}>
-            <Ticket size={14} />
-            <span>{isFree ? 'Kostenlos' : event.fee ? `${event.fee} €` : 'Gebühr'}</span>
+          <div className="modal-meta-row">
+            {event.categories && event.categories.length > 0 && (
+              <div className="modal-categories">
+                {event.categories.map(cat => (
+                  <span key={cat} className="category-chip">{cat}</span>
+                ))}
+              </div>
+            )}
+            <div className={`modal-badge ${isFree ? 'badge--free' : 'badge--fee'}`}>
+              <Ticket size={14} />
+              <span>{isFree ? 'Kostenlos' : event.fee ? `${event.fee} €` : 'Gebühr'}</span>
+            </div>
           </div>
         </div>
 
@@ -112,6 +121,14 @@ export default function EventModal({ event, onClose }) {
               </div>
             </div>
           )}
+
+          <div className="detail-item">
+            <MapPin size={18} className="detail-icon" />
+            <div>
+              <span className="detail-label">Bezirk</span>
+              <span className="detail-value">{event.bezirk}</span>
+            </div>
+          </div>
 
           <div className="detail-item">
             <MapPin size={18} className="detail-icon" />

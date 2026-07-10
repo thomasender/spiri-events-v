@@ -242,3 +242,14 @@ label {
 .main-content {
   flex: 1;
 }
+
+.category-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  background-color: rgba(155, 138, 166, 0.15);
+  color: var(--accent-lavender);
+  border-radius: 16px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}

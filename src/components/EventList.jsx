@@ -95,6 +95,14 @@ export default function EventList() {
                   </span>
                 </div>
 
+                {event.categories && event.categories.length > 0 && (
+                  <div className="event-card-categories">
+                    {event.categories.map(cat => (
+                      <span key={cat} className="category-chip">{cat}</span>
+                    ))}
+                  </div>
+                )}
+
                 <div className="event-card-meta">
                   <div className="meta-item">
                     <Calendar size={14} />
@@ -104,6 +112,12 @@ export default function EventList() {
                       {event.time && ` • ${event.time}`}
                     </span>
                   </div>
+                  {event.bezirk && (
+                    <div className="meta-item">
+                      <MapPin size={14} />
+                      <span>{event.bezirk}</span>
+                    </div>
+                  )}
                   <div className="meta-item">
                     <MapPin size={14} />
                     <span>{event.place}</span>

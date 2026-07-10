@@ -97,6 +97,19 @@
   color: #6b5a45;
 }
 
+.modal-meta-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.modal-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .modal-details {
   padding: 24px 32px;
   display: flex;

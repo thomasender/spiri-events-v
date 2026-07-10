@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useEvents } from '../hooks/useEvents'
+import Select from 'react-select'
+import { useEvents, KATEGORIEN, BEZIRKE } from '../hooks/useEvents'
 import { useAuth } from '../hooks/useAuth'
 import { uploadImage } from '../lib/imageUpload'
 import { ArrowLeft, Save, Image, X } from 'lucide-react'
@@ -17,8 +18,12 @@ const INITIAL_STATE = {
   description: '',
   link: '',
   recurrence: 'none',
-  recurrenceEndDate: ''
+  recurrenceEndDate: '',
+  categories: [],
+  bezirk: ''
 }
+
+const kategorieOptions = KATEGORIEN.map(k => ({ value: k, label: k }))
 
 export default function EventForm({ event }) {
   const [formData, setFormData] = useState(event ? {
@@ -32,7 +37,9 @@ export default function EventForm({ event }) {
     description: event.description || '',
     link: event.link || '',
     recurrence: event.recurrence || 'none',
-    recurrenceEndDate: event.recurrenceEndDate || ''
+    recurrenceEndDate: event.recurrenceEndDate || '',
+    categories: event.categories && event.categories.length > 0 ? event.categories : [],
+    bezirk: event.bezirk || ''
   } : INITIAL_STATE)
 
   const [errors, setErrors] = useState({})
@@ -52,6 +59,10 @@ export default function EventForm({ event }) {
     if (!formData.title.trim()) newErrors.title = 'Titel ist erforderlich'
     if (!formData.date) newErrors.date = 'Datum ist erforderlich'
     if (!formData.place.trim()) newErrors.place = 'Ort ist erforderlich'
+    if (!formData.bezirk) newErrors.bezirk = 'Bezirk ist erforderlich'
+    if (formData.categories.length === 0) {
+      newErrors.categories = 'Mindestens eine Kategorie ist erforderlich'
+    }
     if (formData.contribution === 'fee' && (!formData.fee || formData.fee <= 0)) {
       newErrors.fee = 'Bitte gib einen gültigen Betrag ein'
     }
@@ -111,6 +122,16 @@ export default function EventForm({ event }) {
     }
   }
 
+  const handleCategoriesChange = (selectedOptions) => {
+    setFormData(prev => ({
+      ...prev,
+      categories: selectedOptions ? selectedOptions.map(opt => opt.value) : []
+    }))
+    if (errors.categories) {
+      setErrors(prev => ({ ...prev, categories: null }))
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setSubmitError('')
@@ -137,6 +158,8 @@ export default function EventForm({ event }) {
         link: formData.link.trim(),
         recurrence: formData.recurrence || 'none',
         recurrenceEndDate: formData.recurrence === 'none' ? '' : (formData.recurrenceEndDate || ''),
+        categories: formData.categories.length > 0 ? formData.categories : ['Sonstiges'],
+        bezirk: formData.bezirk,
         imageUrl: null
       }
 
@@ -291,6 +314,38 @@ export default function EventForm({ event }) {
               />
             </div>
           )}
+
+          <div className="form-group">
+            <label htmlFor="categories">Kategorien</label>
+            <Select
+              id="categories"
+              isMulti
+              options={kategorieOptions}
+              value={kategorieOptions.filter(opt => formData.categories.includes(opt.value))}
+              onChange={handleCategoriesChange}
+              placeholder="Kategorie auswählen..."
+              className="kategorie-select"
+              classNamePrefix="kategorie"
+            />
+            {errors.categories && <span className="error-text">{errors.categories}</span>}
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="bezirk">Bezirk *</label>
+            <select
+              id="bezirk"
+              name="bezirk"
+              value={formData.bezirk}
+              onChange={handleChange}
+              className={errors.bezirk ? 'input-error' : ''}
+            >
+              <option value="">Bezirk auswählen...</option>
+              {BEZIRKE.map(b => (
+                <option key={b} value={b}>{b}</option>
+              ))}
+            </select>
+            {errors.bezirk && <span className="error-text">{errors.bezirk}</span>}
+          </div>
 
           <div className="form-group">
             <label htmlFor="place">Ort / Adresse *</label>

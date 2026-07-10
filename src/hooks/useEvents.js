@@ -13,6 +13,32 @@ import {
 } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 
+export const KATEGORIEN = [
+  'Yoga',
+  'Meditation',
+  'Tanz',
+  'Singen',
+  'Atemarbeit',
+  'Sonstiges'
+]
+
+export const BEZIRKE = [
+  'Bregenz',
+  'Dornbirn',
+  'Feldkirch',
+  'Bludenz'
+]
+
+function normalizeEvents(events) {
+  return events.map(event => ({
+    ...event,
+    categories: event.categories && event.categories.length > 0
+      ? event.categories
+      : ['Sonstiges'],
+    bezirk: event.bezirk || ''
+  }))
+}
+
 export function useEvents(user) {
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
@@ -36,9 +62,9 @@ export function useEvents(user) {
         id: doc.id,
         ...doc.data()
       }))
-      // Sort client-side to avoid needing a composite index
-      eventData.sort((a, b) => (a.date > b.date ? 1 : -1))
-      setEvents(eventData)
+      const normalized = normalizeEvents(eventData)
+      normalized.sort((a, b) => (a.date > b.date ? 1 : -1))
+      setEvents(normalized)
       setLoading(false)
     })
 
@@ -82,9 +108,9 @@ export function useAllEvents() {
           id: doc.id,
           ...doc.data()
         }))
-        // Sort client-side
-        eventData.sort((a, b) => (a.date > b.date ? 1 : -1))
-        setEvents(eventData)
+        const normalized = normalizeEvents(eventData)
+        normalized.sort((a, b) => (a.date > b.date ? 1 : -1))
+        setEvents(normalized)
         setLoading(false)
         setError(null)
       },

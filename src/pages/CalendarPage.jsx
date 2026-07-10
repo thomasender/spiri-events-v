@@ -1,12 +1,16 @@
-import { useState } from 'react'
-import { useAllEvents } from '../hooks/useEvents'
+import { useState, useMemo } from 'react'
+import { useAllEvents, KATEGORIEN, BEZIRKE } from '../hooks/useEvents'
 import Calendar from '../components/Calendar'
 import EventModal from '../components/EventModal'
+import { Filter } from 'lucide-react'
 import './CalendarPage.css'
 
 export default function CalendarPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedEvent, setSelectedEvent] = useState(null)
+  const [selectedCategories, setSelectedCategories] = useState(KATEGORIEN)
+  const [selectedBezirke, setSelectedBezirke] = useState([])
+  const [showFilters, setShowFilters] = useState(false)
   const { events, loading, error } = useAllEvents()
 
   const handleEventClick = (event) => {
@@ -16,6 +20,48 @@ export default function CalendarPage() {
   const closeModal = () => {
     setSelectedEvent(null)
   }
+
+  const toggleCategory = (category) => {
+    setSelectedCategories(prev =>
+      prev.includes(category)
+        ? prev.filter(c => c !== category)
+        : [...prev, category]
+    )
+  }
+
+  const selectAllCategories = () => {
+    setSelectedCategories(KATEGORIEN)
+  }
+
+  const selectNoneCategories = () => {
+    setSelectedCategories([])
+  }
+
+  const toggleBezirk = (bezirk) => {
+    setSelectedBezirke(prev =>
+      prev.includes(bezirk)
+        ? prev.filter(b => b !== bezirk)
+        : [...prev, bezirk]
+    )
+  }
+
+  const selectAllBezirke = () => {
+    setSelectedBezirke(BEZIRKE)
+  }
+
+  const selectNoneBezirke = () => {
+    setSelectedBezirke([])
+  }
+
+  const filteredEvents = useMemo(() => {
+    if (!showFilters) return events
+    if (selectedCategories.length === 0) return []
+    return events.filter(event => {
+      const categoryMatch = event.categories && event.categories.some(cat => selectedCategories.includes(cat))
+      const bezirkMatch = selectedBezirke.length === 0 || selectedBezirke.includes(event.bezirk)
+      return categoryMatch && bezirkMatch
+    })
+  }, [events, selectedCategories, selectedBezirke, showFilters])
 
   return (
     <div className="calendar-page">
@@ -28,6 +74,72 @@ export default function CalendarPage() {
       </div>
 
       <div className="calendar-wrapper">
+        <div className="filter-bar">
+          <button
+            className="filter-toggle-btn"
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <Filter size={18} />
+            <span>Filter</span>
+            {selectedCategories.length < KATEGORIEN.length && (
+              <span className="filter-badge">{selectedCategories.length}</span>
+            )}
+          </button>
+          {selectedCategories.length === 0 && (
+            <span className="filter-hint">Keine Kategorien ausgewählt</span>
+          )}
+        </div>
+
+        {showFilters && (
+          <div className="filter-panel">
+            <div className="filter-header">
+              <span className="filter-label">Kategorien</span>
+              <div className="filter-quick-actions">
+                <button onClick={selectAllCategories}>Alle</button>
+                <button onClick={selectNoneCategories}>Keine</button>
+              </div>
+            </div>
+            <div className="filter-options">
+              {KATEGORIEN.map(category => (
+                <label key={category} className="filter-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={selectedCategories.includes(category)}
+                    onChange={() => toggleCategory(category)}
+                  />
+                  <span>{category}</span>
+                </label>
+              ))}
+            </div>
+
+            <div className="filter-section">
+              <div className="filter-header">
+                <span className="filter-label">Bezirk</span>
+              </div>
+              <div className="filter-options">
+                <label className={`filter-checkbox ${selectedBezirke.length === BEZIRKE.length ? 'active' : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={selectedBezirke.length === BEZIRKE.length}
+                    onChange={() => selectedBezirke.length === BEZIRKE.length ? selectNoneBezirke() : selectAllBezirke()}
+                  />
+                  <span>Alle</span>
+                </label>
+                {BEZIRKE.map(bezirk => (
+                  <label key={bezirk} className={`filter-checkbox ${selectedBezirke.includes(bezirk) ? 'active' : ''}`}>
+                    <input
+                      type="checkbox"
+                      checked={selectedBezirke.includes(bezirk)}
+                      onChange={() => toggleBezirk(bezirk)}
+                    />
+                    <span>{bezirk}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {loading ? (
           <div className="loading-spinner"></div>
         ) : error ? (
@@ -38,7 +150,7 @@ export default function CalendarPage() {
           </div>
         ) : (
           <Calendar
-            events={events}
+            events={filteredEvents}
             onEventClick={handleEventClick}
             currentMonth={currentMonth}
             onMonthChange={setCurrentMonth}

@@ -113,6 +113,18 @@
   color: #6b5a45;
 }
 
+.event-card-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.event-card-categories .category-chip {
+  font-size: 0.75rem;
+  padding: 3px 10px;
+}
+
 .event-card-meta {
   display: flex;
   flex-wrap: wrap;
