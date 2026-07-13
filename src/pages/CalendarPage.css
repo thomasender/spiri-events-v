@@ -1,6 +1,10 @@
 .calendar-page {
   min-height: calc(100vh - 72px);
-  background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+  background: linear-gradient(
+    180deg,
+    var(--bg-primary) 0%,
+    var(--bg-secondary) 100%
+  );
   overflow-x: hidden;
 }
 
@@ -17,7 +21,7 @@
 }
 
 .page-header h1 {
-  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-family: "Cormorant Garamond", Georgia, serif;
   font-size: 2.5rem;
   font-weight: 500;
   color: var(--text-primary);
@@ -28,7 +32,7 @@
   color: var(--text-secondary);
   font-size: 1.1rem;
   font-style: italic;
-  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-family: "Cormorant Garamond", Georgia, serif;
 }
 
 .header-decoration {
@@ -38,10 +42,16 @@
   transform: translateX(-50%);
   width: 120px;
   height: 3px;
-  background: linear-gradient(90deg, transparent, var(--accent-lavender), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--accent-lavender),
+    transparent
+  );
 }
 
 .calendar-wrapper {
+  min-width: 100%;
   max-width: 1000px;
   margin: 0 auto;
   padding: 0 24px 48px;
@@ -208,7 +218,7 @@
 }
 
 .calendar-error h3 {
-  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-family: "Cormorant Garamond", Georgia, serif;
   font-size: 1.35rem;
   color: var(--error);
   margin-bottom: 12px;
