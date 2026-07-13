@@ -18,7 +18,10 @@ service cloud.firestore {
         return resource.data.status == 'approved';
       }
 
-      allow read: if isAuthenticated() && (isAdmin() || isOwner() || isApproved());
+      // Public read: approved events are readable by anyone
+      // Authenticated users can also read their own pending events, admins can read all
+      allow read: if isApproved() ||
+        (isAuthenticated() && (isAdmin() || isOwner()));
 
       allow create: if isAuthenticated() && (request.resource.data.status == 'pending' || isAdmin());
 
