@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router-dom'
 import EventList from '../../src/components/EventList'
 
 vi.mock('../../src/hooks/useAuth', () => ({
-  useAuth: () => ({ user: { uid: 'test' } }),
+  useAuth: () => ({ user: { uid: 'test' }, role: null }),
 }))
 
 vi.mock('../../src/hooks/useEvents', () => ({
@@ -12,6 +12,11 @@ vi.mock('../../src/hooks/useEvents', () => ({
     events: [],
     loading: false,
     deleteEvent: vi.fn(),
+  }),
+  usePendingEvents: () => ({
+    pendingEvents: [],
+    loading: false,
+    approveEvent: vi.fn(),
   }),
 }))
 

@@ -4,27 +4,35 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
-  updateProfile
+  updateProfile,
+  getIdTokenResult
 } from 'firebase/auth'
 import { auth } from '../lib/firebase'
 
 export function useAuth() {
-  // Start with currentUser (restored synchronously from localStorage by Firebase)
-  // This prevents the loading:true on first render causing redirect
   const [user, setUser] = useState(() => auth.currentUser)
   const [loading, setLoading] = useState(false)
+  const [role, setRole] = useState(null)
 
   useEffect(() => {
-    // Even if currentUser was null on init, listen for auth changes
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser)
+      if (firebaseUser) {
+        try {
+          const tokenResult = await getIdTokenResult(firebaseUser, true)
+          setRole(tokenResult.claims.role ?? null)
+        } catch (err) {
+          console.error('Error getting ID token result:', err)
+          setRole(null)
+        }
+      } else {
+        setRole(null)
+      }
       setLoading(false)
     })
 
     return unsubscribe
   }, [])
-
-  const role = user?.reloadUserInfo?.customClaims?.role ?? null;
 
   const register = async (email, password, displayName) => {
     const credential = await createUserWithEmailAndPassword(auth, email, password)

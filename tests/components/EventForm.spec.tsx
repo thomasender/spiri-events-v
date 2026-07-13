@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router-dom'
 import EventForm from '../../src/components/EventForm'
 
 vi.mock('../../src/hooks/useAuth', () => ({
-  useAuth: () => ({ user: { uid: 'test' } }),
+  useAuth: () => ({ user: { uid: 'test' }, role: null }),
 }))
 
 vi.mock('../../src/hooks/useEvents', () => ({
@@ -17,13 +17,13 @@ vi.mock('../../src/hooks/useEvents', () => ({
 }))
 
 describe('EventForm', () => {
-  it('renders form title', () => {
+  it('renders form title for non-admin', () => {
     render(
       <MemoryRouter>
         <EventForm />
       </MemoryRouter>
     )
-    expect(screen.getByText('Neues Event erstellen')).toBeInTheDocument()
+    expect(screen.getByText('Event zur Genehmigung einreichen')).toBeInTheDocument()
   })
 
   it('renders submit button', () => {
@@ -32,6 +32,6 @@ describe('EventForm', () => {
         <EventForm />
       </MemoryRouter>
     )
-    expect(screen.getByRole('button', { name: /speichern/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /einreichen/i })).toBeInTheDocument()
   })
 })

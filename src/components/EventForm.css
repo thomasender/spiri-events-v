@@ -95,6 +95,21 @@ textarea {
   margin-bottom: 16px;
 }
 
+.resubmit-warning {
+  background-color: rgba(180, 160, 100, 0.12);
+  border: 1px solid rgba(180, 160, 100, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  margin-bottom: 16px;
+  color: var(--text-primary);
+}
+
+.resubmit-warning p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
 .form-actions {
   display: flex;
   gap: 12px;

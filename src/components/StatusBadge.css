@@ -1,0 +1,19 @@
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.status-badge--approved {
+  background-color: rgba(125, 155, 138, 0.15);
+  color: #5a7a66;
+}
+
+.status-badge--pending {
+  background-color: rgba(180, 160, 100, 0.15);
+  color: #8a7a50;
+}

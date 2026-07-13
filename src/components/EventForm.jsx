@@ -5,6 +5,7 @@ import { useEvents, KATEGORIEN, BEZIRKE } from '../hooks/useEvents'
 import { useAuth } from '../hooks/useAuth'
 import { uploadImage, getImageDimensions, validateAspectRatio } from '../lib/imageUpload'
 import { ArrowLeft, Save, Image, X } from 'lucide-react'
+import ConfirmDialog from './ConfirmDialog'
 import './EventForm.css'
 
 const INITIAL_STATE = {
@@ -52,10 +53,28 @@ export default function EventForm({ event }) {
   const [imageRemoved, setImageRemoved] = useState(false)
   const [imageUploading, setImageUploading] = useState(false)
   const [isDraggingOver, setIsDraggingOver] = useState(false)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [resubmitWarning, setResubmitWarning] = useState(false)
   const fileInputRef = useRef(null)
   const { user } = useAuth()
+  const { role } = useAuth()
   const { addEvent, updateEvent } = useEvents(user)
   const navigate = useNavigate()
+
+  const isAdmin = role === 'Admin'
+  const isEdit = Boolean(event)
+  const wasApproved = event?.status === 'approved'
+
+  const getFormTitle = () => {
+    if (isEdit) return 'Event bearbeiten'
+    return isAdmin ? 'Neues Event erstellen' : 'Event zur Genehmigung einreichen'
+  }
+
+  const getSubmitButtonText = () => {
+    if (loading || imageUploading) return 'Speichern...'
+    if (isEdit) return wasApproved && !isAdmin ? 'Erneut einreichen' : 'Änderungen speichern'
+    return isAdmin ? 'Event erstellen' : 'Einreichen zur Genehmigung'
+  }
 
   const validate = () => {
     const newErrors = {}
@@ -175,57 +194,91 @@ export default function EventForm({ event }) {
       return
     }
 
+    const eventData = {
+      title: formData.title.trim(),
+      date: formData.date,
+      time: formData.time || '',
+      endTime: formData.endTime || '',
+      endDate: formData.endDate || '',
+      place: formData.place.trim(),
+      contribution: formData.contribution,
+      fee: formData.contribution === 'fee' ? parseFloat(formData.fee) : null,
+      description: formData.description.trim(),
+      link: formData.link.trim(),
+      recurrence: formData.recurrence || 'none',
+      recurrenceEndDate: formData.recurrence === 'none' ? '' : (formData.recurrenceEndDate || ''),
+      categories: formData.categories.length > 0 ? formData.categories : ['Sonstiges'],
+      bezirk: formData.bezirk,
+      imageUrl: null
+    }
+
+    if (!isAdmin) {
+      if (isEdit && wasApproved) {
+        setResubmitWarning(true)
+        eventData.status = 'pending'
+      } else if (!isEdit) {
+        setShowConfirmModal(true)
+        return
+      } else {
+        eventData.status = 'pending'
+      }
+    } else {
+      eventData.status = 'approved'
+    }
+
+    await saveEvent(eventData)
+  }
+
+  const saveEvent = async (eventData) => {
     setLoading(true)
+    setShowConfirmModal(false)
+    setResubmitWarning(false)
 
     try {
-      // First, create the event (without imageUrl) to get the real Firestore ID
-      const eventData = {
-        title: formData.title.trim(),
-        date: formData.date,
-        time: formData.time || '',
-        endTime: formData.endTime || '',
-        endDate: formData.endDate || '',
-        place: formData.place.trim(),
-        contribution: formData.contribution,
-        fee: formData.contribution === 'fee' ? parseFloat(formData.fee) : null,
-        description: formData.description.trim(),
-        link: formData.link.trim(),
-        recurrence: formData.recurrence || 'none',
-        recurrenceEndDate: formData.recurrence === 'none' ? '' : (formData.recurrenceEndDate || ''),
-        categories: formData.categories.length > 0 ? formData.categories : ['Sonstiges'],
-        bezirk: formData.bezirk,
-        imageUrl: null
-      }
-
       let docRef
       if (event) {
         await updateEvent(event.id, eventData)
         docRef = { id: event.id }
       } else {
-        docRef = await addEvent(eventData)
+        docRef = await addEvent(eventData, eventData.status || 'pending')
       }
 
-      // Handle image upload after we have the real document ID
       if (imageFile) {
-        // Upload new image
         const newImageUrl = await handleImageUpload()
-        // Update event with imageUrl
         await updateEvent(docRef.id, { imageUrl: newImageUrl })
       } else if (imageRemoved && event?.imageUrl) {
-        // Image was explicitly removed by user
         await updateEvent(event.id, { imageUrl: null })
       }
       navigate('/admin')
     } catch (err) {
       setSubmitError('Event konnte nicht gespeichert werden. Bitte versuche es erneut.')
-    } finally {
       setLoading(false)
     }
   }
 
-  const isEdit = Boolean(event)
+  const confirmSubmit = () => {
+    const eventData = {
+      title: formData.title.trim(),
+      date: formData.date,
+      time: formData.time || '',
+      endTime: formData.endTime || '',
+      endDate: formData.endDate || '',
+      place: formData.place.trim(),
+      contribution: formData.contribution,
+      fee: formData.contribution === 'fee' ? parseFloat(formData.fee) : null,
+      description: formData.description.trim(),
+      link: formData.link.trim(),
+      recurrence: formData.recurrence || 'none',
+      recurrenceEndDate: formData.recurrence === 'none' ? '' : (formData.recurrenceEndDate || ''),
+      categories: formData.categories.length > 0 ? formData.categories : ['Sonstiges'],
+      bezirk: formData.bezirk,
+      imageUrl: null,
+      status: 'pending'
+    }
+    saveEvent(eventData)
+  }
 
-  return (
+   return (
     <div className="event-form-page">
       <div className="event-form-container">
         <div className="event-form-header">
@@ -233,7 +286,7 @@ export default function EventForm({ event }) {
             <ArrowLeft size={18} />
             <span>Zurück</span>
           </button>
-          <h1>{isEdit ? 'Event bearbeiten' : 'Neues Event erstellen'}</h1>
+          <h1>{getFormTitle()}</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="event-form">
@@ -511,17 +564,34 @@ export default function EventForm({ event }) {
 
           {submitError && <p className="error-text submit-error">{submitError}</p>}
 
+          {resubmitWarning && (
+            <div className="resubmit-warning">
+              <p><strong>Hinweis:</strong> Durch das erneute Einreichen wird das Event wieder auf "Ausstehend" gesetzt und muss erneut durch einen Admin genehmigt werden, bevor es öffentlich angezeigt wird.</p>
+            </div>
+          )}
+
           <div className="form-actions">
             <button type="button" onClick={() => navigate('/admin')} className="btn btn-secondary">
               Abbrechen
             </button>
             <button type="submit" className="btn btn-primary" disabled={loading || imageUploading}>
               <Save size={18} />
-              <span>{loading || imageUploading ? 'Speichern...' : 'Event speichern'}</span>
+              <span>{getSubmitButtonText()}</span>
             </button>
           </div>
         </form>
       </div>
+
+      <ConfirmDialog
+        isOpen={showConfirmModal}
+        title="Event zur Genehmigung einreichen"
+        message="Ihr Event wird zur Prüfung eingereicht. Erst nach Genehmigung durch einen Admin wird es öffentlich angezeigt."
+        confirmLabel="Einreichen"
+        cancelLabel="Abbrechen"
+        onConfirm={confirmSubmit}
+        onCancel={() => setShowConfirmModal(false)}
+        loading={loading}
+      />
     </div>
   )
 }
