@@ -117,6 +117,25 @@ Inspiriert von Yoga-Retreats und spirituellen Oasen — warme Erdtöne, viel Wei
 - **Logout**: Header nav button
 - Protected routes redirect to /login
 
+### User Roles
+- **Roles**: `Admin` | `User`
+- Stored as Firebase Custom Claims in the user's ID token
+- Frontend reads role via `useAuth().role` (UI purposes only)
+- All security enforcement happens server-side in Firestore rules
+
+### Managing User Roles
+The `set-user-role.cjs` script sets custom claims on users via Firebase Admin SDK:
+
+```bash
+node scripts/set-user-role.cjs <email> <role> <path-to-service-account.json>
+
+# Example:
+node scripts/set-user-role.cjs user@example.com Admin /path/to/firebase-service-account.json
+node scripts/set-user-role.cjs user@example.com User /path/to/firebase-service-account.json
+```
+
+**Important**: After changing a role, the user must **sign out and back in** to get the updated token with the new role.
+
 ### Event CRUD (Admin only)
 - **Create**: Form with all fields, validation, save to Firestore
 - **Read**: List of user's events with edit/delete buttons
