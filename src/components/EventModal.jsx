@@ -117,7 +117,9 @@ export default function EventModal({ event, onClose }) {
               <Clock size={18} className="detail-icon" />
               <div>
                 <span className="detail-label">Uhrzeit</span>
-                <span className="detail-value">{event.time}</span>
+                <span className="detail-value">
+                  {event.time}{event.endTime ? ` — ${event.endTime} Uhr` : ' Uhr'}
+                </span>
               </div>
             </div>
           )}

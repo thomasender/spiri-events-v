@@ -11,6 +11,7 @@ const INITIAL_STATE = {
   title: '',
   date: '',
   time: '',
+  endTime: '',
   endDate: '',
   place: '',
   contribution: 'free',
@@ -30,6 +31,7 @@ export default function EventForm({ event }) {
     title: event.title || '',
     date: event.date || '',
     time: event.time || '',
+    endTime: event.endTime || '',
     endDate: event.endDate || '',
     place: event.place || '',
     contribution: event.contribution || 'free',
@@ -181,6 +183,7 @@ export default function EventForm({ event }) {
         title: formData.title.trim(),
         date: formData.date,
         time: formData.time || '',
+        endTime: formData.endTime || '',
         endDate: formData.endDate || '',
         place: formData.place.trim(),
         contribution: formData.contribution,
@@ -365,6 +368,17 @@ export default function EventForm({ event }) {
                 name="time"
                 type="time"
                 value={formData.time}
+                onChange={handleChange}
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="endTime">Bis (optional)</label>
+              <input
+                id="endTime"
+                name="endTime"
+                type="time"
+                value={formData.endTime}
                 onChange={handleChange}
               />
             </div>
