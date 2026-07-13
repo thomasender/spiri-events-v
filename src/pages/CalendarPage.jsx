@@ -1,70 +1,77 @@
-import { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Helmet } from 'react-helmet-async'
-import { useAllEvents, KATEGORIEN, BEZIRKE } from '../hooks/useEvents'
-import Calendar from '../components/Calendar'
-import { Filter } from 'lucide-react'
-import './CalendarPage.css'
+import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
+import { useAllEvents, KATEGORIEN, BEZIRKE } from "../hooks/useEvents";
+import Calendar from "../components/Calendar";
+import { Filter } from "lucide-react";
+import "./CalendarPage.css";
 
 export default function CalendarPage() {
-  const navigate = useNavigate()
-  const [currentMonth, setCurrentMonth] = useState(new Date())
-  const [selectedCategories, setSelectedCategories] = useState(KATEGORIEN)
-  const [selectedBezirke, setSelectedBezirke] = useState([])
-  const [showFilters, setShowFilters] = useState(false)
-  const { events, loading, error } = useAllEvents()
+  const navigate = useNavigate();
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedCategories, setSelectedCategories] = useState(KATEGORIEN);
+  const [selectedBezirke, setSelectedBezirke] = useState([]);
+  const [showFilters, setShowFilters] = useState(false);
+  const { events, loading, error } = useAllEvents();
 
   const handleEventClick = (event) => {
-    const slugOrId = event.slug || event.id
-    navigate(`/event/${slugOrId}`)
-  }
+    const slugOrId = event.slug || event.id;
+    navigate(`/event/${slugOrId}`);
+  };
 
   const toggleCategory = (category) => {
-    setSelectedCategories(prev =>
+    setSelectedCategories((prev) =>
       prev.includes(category)
-        ? prev.filter(c => c !== category)
-        : [...prev, category]
-    )
-  }
+        ? prev.filter((c) => c !== category)
+        : [...prev, category],
+    );
+  };
 
   const selectAllCategories = () => {
-    setSelectedCategories(KATEGORIEN)
-  }
+    setSelectedCategories(KATEGORIEN);
+  };
 
   const selectNoneCategories = () => {
-    setSelectedCategories([])
-  }
+    setSelectedCategories([]);
+  };
 
   const toggleBezirk = (bezirk) => {
-    setSelectedBezirke(prev =>
+    setSelectedBezirke((prev) =>
       prev.includes(bezirk)
-        ? prev.filter(b => b !== bezirk)
-        : [...prev, bezirk]
-    )
-  }
+        ? prev.filter((b) => b !== bezirk)
+        : [...prev, bezirk],
+    );
+  };
 
   const selectAllBezirke = () => {
-    setSelectedBezirke(BEZIRKE)
-  }
+    setSelectedBezirke(BEZIRKE);
+  };
 
   const selectNoneBezirke = () => {
-    setSelectedBezirke([])
-  }
+    setSelectedBezirke([]);
+  };
 
   const filteredEvents = useMemo(() => {
-    if (!showFilters) return events
-    return events.filter(event => {
-      const categoryMatch = selectedCategories.length === 0 || (event.categories && event.categories.some(cat => selectedCategories.includes(cat)))
-      const bezirkMatch = selectedBezirke.length === 0 || selectedBezirke.includes(event.bezirk)
-      return categoryMatch && bezirkMatch
-    })
-  }, [events, selectedCategories, selectedBezirke, showFilters])
+    if (!showFilters) return events;
+    return events.filter((event) => {
+      const categoryMatch =
+        selectedCategories.length === 0 ||
+        (event.categories &&
+          event.categories.some((cat) => selectedCategories.includes(cat)));
+      const bezirkMatch =
+        selectedBezirke.length === 0 || selectedBezirke.includes(event.bezirk);
+      return categoryMatch && bezirkMatch;
+    });
+  }, [events, selectedCategories, selectedBezirke, showFilters]);
 
   return (
     <div className="calendar-page">
       <Helmet>
         <title>Spirituelle Events Vorarlberg | Kalender</title>
-        <meta name="description" content="Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg - Bregenz, Dornbirn, Feldkirch, Bludenz" />
+        <meta
+          name="description"
+          content="Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg - Bregenz, Dornbirn, Feldkirch, Bludenz"
+        />
         <link rel="canonical" href="https://spirievents.at/" />
       </Helmet>
 
@@ -88,9 +95,6 @@ export default function CalendarPage() {
               <span className="filter-badge">{selectedCategories.length}</span>
             )}
           </button>
-          {selectedCategories.length === 0 && (
-            <span className="filter-hint">Keine Kategorien ausgewählt</span>
-          )}
         </div>
 
         {showFilters && (
@@ -103,7 +107,7 @@ export default function CalendarPage() {
               </div>
             </div>
             <div className="filter-options">
-              {KATEGORIEN.map(category => (
+              {KATEGORIEN.map((category) => (
                 <label key={category} className="filter-checkbox">
                   <input
                     type="checkbox"
@@ -120,16 +124,25 @@ export default function CalendarPage() {
                 <span className="filter-label">Bezirk</span>
               </div>
               <div className="filter-options">
-                <label className={`filter-checkbox ${selectedBezirke.length === BEZIRKE.length ? 'active' : ''}`}>
+                <label
+                  className={`filter-checkbox ${selectedBezirke.length === BEZIRKE.length ? "active" : ""}`}
+                >
                   <input
                     type="checkbox"
                     checked={selectedBezirke.length === BEZIRKE.length}
-                    onChange={() => selectedBezirke.length === BEZIRKE.length ? selectNoneBezirke() : selectAllBezirke()}
+                    onChange={() =>
+                      selectedBezirke.length === BEZIRKE.length
+                        ? selectNoneBezirke()
+                        : selectAllBezirke()
+                    }
                   />
                   <span>Alle</span>
                 </label>
-                {BEZIRKE.map(bezirk => (
-                  <label key={bezirk} className={`filter-checkbox ${selectedBezirke.includes(bezirk) ? 'active' : ''}`}>
+                {BEZIRKE.map((bezirk) => (
+                  <label
+                    key={bezirk}
+                    className={`filter-checkbox ${selectedBezirke.includes(bezirk) ? "active" : ""}`}
+                  >
                     <input
                       type="checkbox"
                       checked={selectedBezirke.includes(bezirk)}
@@ -148,7 +161,10 @@ export default function CalendarPage() {
         ) : error ? (
           <div className="calendar-error">
             <h3>Verbindungsfehler</h3>
-            <p>Kalender konnte nicht geladen werden. Bitte überprüfe deine Firebase Konfiguration und Firestore Regeln.</p>
+            <p>
+              Kalender konnte nicht geladen werden. Bitte überprüfe deine
+              Firebase Konfiguration und Firestore Regeln.
+            </p>
             <p className="error-detail">{error}</p>
           </div>
         ) : (
@@ -161,5 +177,5 @@ export default function CalendarPage() {
         )}
       </div>
     </div>
-  )
+  );
 }
