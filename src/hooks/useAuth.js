@@ -24,6 +24,8 @@ export function useAuth() {
     return unsubscribe
   }, [])
 
+  const role = user?.reloadUserInfo?.customClaims?.role ?? null;
+
   const register = async (email, password, displayName) => {
     const credential = await createUserWithEmailAndPassword(auth, email, password)
     if (displayName) {
@@ -38,5 +40,5 @@ export function useAuth() {
 
   const logout = () => signOut(auth)
 
-  return { user, loading, register, login, logout }
+  return { user, loading, role, register, login, logout }
 }
