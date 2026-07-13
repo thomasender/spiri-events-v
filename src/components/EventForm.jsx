@@ -47,8 +47,9 @@ export default function EventForm({ event }) {
   const [submitError, setSubmitError] = useState('')
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState(event?.imageUrl || '')
-  const [imageRemoved, setImageRemoved] = useState(false) // Track if user explicitly removed image
+  const [imageRemoved, setImageRemoved] = useState(false)
   const [imageUploading, setImageUploading] = useState(false)
+  const [isDraggingOver, setIsDraggingOver] = useState(false)
   const fileInputRef = useRef(null)
   const { user } = useAuth()
   const { addEvent, updateEvent } = useEvents(user)
@@ -69,23 +70,19 @@ export default function EventForm({ event }) {
     return newErrors
   }
 
-  const handleImageSelect = async (e) => {
-    const file = e.target.files[0]
+  const handleImageSelect = async (file) => {
     if (!file) return
 
-    // Validate file type
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
       setErrors(prev => ({ ...prev, image: 'Nur JPEG, PNG und WebP erlaubt' }))
       return
     }
 
-    // Validate file size (show error if over 5MB before compression)
     if (file.size > 5 * 1024 * 1024) {
       setErrors(prev => ({ ...prev, image: 'Bild ist zu groß (max. 5MB)' }))
       return
     }
 
-    // Validate aspect ratio (must be 16:9 ±10%)
     const dimensions = await getImageDimensions(file)
     if (!validateAspectRatio(dimensions.width, dimensions.height)) {
       setErrors(prev => ({ ...prev, image: 'Das Bild muss ein Seitenverhältnis von 16:9 haben (z.B. 1600x900px oder 1920x1080px). Bitte wähle ein anderes Bild oder beschnitte es vor dem Upload.' }))
@@ -96,6 +93,33 @@ export default function EventForm({ event }) {
     setImageFile(file)
     setImagePreview(URL.createObjectURL(file))
     setImageRemoved(false)
+  }
+
+  const handleImageSelectFromInput = (e) => {
+    handleImageSelect(e.target.files[0])
+  }
+
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDraggingOver(true)
+  }
+
+  const handleDragLeave = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDraggingOver(false)
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDraggingOver(false)
+
+    const file = e.dataTransfer.files[0]
+    if (file) {
+      handleImageSelect(file)
+    }
   }
 
   const removeImage = () => {
@@ -211,6 +235,43 @@ export default function EventForm({ event }) {
 
         <form onSubmit={handleSubmit} className="event-form">
           <div className="form-group">
+            <label>Bild (optional)</label>
+            {imagePreview ? (
+              <div className="image-preview-container">
+                <img src={imagePreview} alt="Vorschau" className="image-preview" />
+                <button
+                  type="button"
+                  onClick={removeImage}
+                  className="image-remove-btn"
+                  aria-label="Bild entfernen"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ) : (
+              <div
+                className={`image-upload-area ${isDraggingOver ? 'drag-over' : ''}`}
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <Image size={24} />
+                <span>{isDraggingOver ? 'Datei hier ablegen' : 'Bild auswählen oder Datei hierher ziehen (JPEG, PNG, WebP, max. 500KB)'}</span>
+              </div>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handleImageSelectFromInput}
+              style={{ display: 'none' }}
+            />
+            {errors.image && <span className="error-text">{errors.image}</span>}
+            {imageUploading && <span className="uploading-text">Bild wird komprimiert und hochgeladen...</span>}
+          </div>
+
+          <div className="form-group">
             <label htmlFor="title">Titel *</label>
             <input
               id="title"
@@ -223,6 +284,65 @@ export default function EventForm({ event }) {
             />
             {errors.title && <span className="error-text">{errors.title}</span>}
           </div>
+
+          <div className="form-group">
+            <label htmlFor="categories">Kategorien</label>
+            <Select
+              id="categories"
+              isMulti
+              options={kategorieOptions}
+              value={kategorieOptions.filter(opt => formData.categories.includes(opt.value))}
+              onChange={handleCategoriesChange}
+              placeholder="Kategorie auswählen..."
+              className="kategorie-select"
+              classNamePrefix="kategorie"
+            />
+            {errors.categories && <span className="error-text">{errors.categories}</span>}
+          </div>
+
+          <div className="form-group">
+            <label>Beitrag</label>
+            <div className="radio-group">
+              <label className={`radio-label ${formData.contribution === 'free' ? 'active' : ''}`}>
+                <input
+                  type="radio"
+                  name="contribution"
+                  value="free"
+                  checked={formData.contribution === 'free'}
+                  onChange={handleChange}
+                />
+                <span>Kostenlos</span>
+              </label>
+              <label className={`radio-label ${formData.contribution === 'fee' ? 'active' : ''}`}>
+                <input
+                  type="radio"
+                  name="contribution"
+                  value="fee"
+                  checked={formData.contribution === 'fee'}
+                  onChange={handleChange}
+                />
+                <span>Gebühr</span>
+              </label>
+            </div>
+          </div>
+
+          {formData.contribution === 'fee' && (
+            <div className="form-group">
+              <label htmlFor="fee">Betrag (€) *</label>
+              <input
+                id="fee"
+                name="fee"
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.fee}
+                onChange={handleChange}
+                placeholder="z.B. 15.00"
+                className={errors.fee ? 'input-error' : ''}
+              />
+              {errors.fee && <span className="error-text">{errors.fee}</span>}
+            </div>
+          )}
 
           <div className="form-row">
             <div className="form-group">
@@ -250,17 +370,15 @@ export default function EventForm({ event }) {
             </div>
           </div>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="endDate">Enddatum (optional)</label>
-              <input
-                id="endDate"
-                name="endDate"
-                type="date"
-                value={formData.endDate}
-                onChange={handleChange}
-              />
-            </div>
+          <div className="form-group">
+            <label htmlFor="endDate">Enddatum (optional)</label>
+            <input
+              id="endDate"
+              name="endDate"
+              type="date"
+              value={formData.endDate}
+              onChange={handleChange}
+            />
           </div>
 
           <div className="form-group">
@@ -323,21 +441,6 @@ export default function EventForm({ event }) {
           )}
 
           <div className="form-group">
-            <label htmlFor="categories">Kategorien</label>
-            <Select
-              id="categories"
-              isMulti
-              options={kategorieOptions}
-              value={kategorieOptions.filter(opt => formData.categories.includes(opt.value))}
-              onChange={handleCategoriesChange}
-              placeholder="Kategorie auswählen..."
-              className="kategorie-select"
-              classNamePrefix="kategorie"
-            />
-            {errors.categories && <span className="error-text">{errors.categories}</span>}
-          </div>
-
-          <div className="form-group">
             <label htmlFor="bezirk">Bezirk *</label>
             <select
               id="bezirk"
@@ -369,50 +472,6 @@ export default function EventForm({ event }) {
           </div>
 
           <div className="form-group">
-            <label>Beitrag</label>
-            <div className="radio-group">
-              <label className={`radio-label ${formData.contribution === 'free' ? 'active' : ''}`}>
-                <input
-                  type="radio"
-                  name="contribution"
-                  value="free"
-                  checked={formData.contribution === 'free'}
-                  onChange={handleChange}
-                />
-                <span>Kostenlos</span>
-              </label>
-              <label className={`radio-label ${formData.contribution === 'fee' ? 'active' : ''}`}>
-                <input
-                  type="radio"
-                  name="contribution"
-                  value="fee"
-                  checked={formData.contribution === 'fee'}
-                  onChange={handleChange}
-                />
-                <span>Gebühr</span>
-              </label>
-            </div>
-          </div>
-
-          {formData.contribution === 'fee' && (
-            <div className="form-group">
-              <label htmlFor="fee">Betrag (€) *</label>
-              <input
-                id="fee"
-                name="fee"
-                type="number"
-                min="0"
-                step="0.01"
-                value={formData.fee}
-                onChange={handleChange}
-                placeholder="z.B. 15.00"
-                className={errors.fee ? 'input-error' : ''}
-              />
-              {errors.fee && <span className="error-text">{errors.fee}</span>}
-            </div>
-          )}
-
-          <div className="form-group">
             <label htmlFor="description">Beschreibung</label>
             <textarea
               id="description"
@@ -434,40 +493,6 @@ export default function EventForm({ event }) {
               onChange={handleChange}
               placeholder="https://... (Anmeldung oder weitere Infos)"
             />
-          </div>
-
-          <div className="form-group">
-            <label>Bild (optional)</label>
-            {imagePreview ? (
-              <div className="image-preview-container">
-                <img src={imagePreview} alt="Vorschau" className="image-preview" />
-                <button
-                  type="button"
-                  onClick={removeImage}
-                  className="image-remove-btn"
-                  aria-label="Bild entfernen"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-            ) : (
-              <div
-                className="image-upload-area"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Image size={24} />
-                <span>Bild auswählen (JPEG, PNG, WebP, max. 500KB)</span>
-              </div>
-            )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={handleImageSelect}
-              style={{ display: 'none' }}
-            />
-            {errors.image && <span className="error-text">{errors.image}</span>}
-            {imageUploading && <span className="uploading-text">Bild wird komprimiert und hochgeladen...</span>}
           </div>
 
           {submitError && <p className="error-text submit-error">{submitError}</p>}

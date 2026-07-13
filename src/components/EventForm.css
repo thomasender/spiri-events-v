@@ -121,6 +121,12 @@ textarea {
   background-color: rgba(139, 115, 85, 0.05);
 }
 
+.image-upload-area.drag-over {
+  border-color: var(--accent-primary);
+  background-color: rgba(139, 115, 85, 0.12);
+  border-style: solid;
+}
+
 .image-upload-area span {
   font-size: 0.875rem;
 }
