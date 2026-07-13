@@ -119,7 +119,7 @@ export default function EventDetailPage() {
             setError('Event nicht gefunden')
           }
         } else {
-          const q = query(collection(db, 'events'), where('slug', '==', slug))
+          const q = query(collection(db, 'events'), where('slug', '==', slug), where('status', '==', 'approved'))
           const snapshot = await getDocs(q)
 
           if (!snapshot.empty) {
