@@ -14,7 +14,7 @@ export default function Header() {
 
   return (
     <header className="header">
-      <div className="header-container">
+      <nav className="header-container">
         <Link to="/" className="logo">
           <div className="logo-icon">
             <svg viewBox="0 0 100 100" fill="none">
@@ -31,35 +31,33 @@ export default function Header() {
           </div>
         </Link>
 
-        <nav className="nav">
-          <Link to="/" className="nav-link">
-            <Calendar size={18} />
-            <span>Kalender</span>
-          </Link>
+        <Link to="/" className="nav-link">
+          <Calendar size={18} />
+          <span>Kalender</span>
+        </Link>
 
-          {user ? (
-            <>
-              <Link to="/admin" className="nav-link">
-                <User size={18} />
-                <span>Verwaltung</span>
-              </Link>
-              <Link to="/admin/new" className="nav-link nav-link--cta">
-                <PlusCircle size={18} />
-                <span>Event erstellen</span>
-              </Link>
-              <button onClick={handleLogout} className="nav-link nav-link--logout">
-                <LogOut size={18} />
-                <span>Abmelden</span>
-              </button>
-            </>
-          ) : (
-            <Link to="/login" className="nav-link">
+        {user ? (
+          <>
+            <Link to="/admin" className="nav-link">
               <User size={18} />
-              <span>Anmelden</span>
+              <span>Verwaltung</span>
             </Link>
-          )}
-        </nav>
-      </div>
+            <Link to="/admin/new" className="nav-link nav-link--cta">
+              <PlusCircle size={18} />
+              <span>Event erstellen</span>
+            </Link>
+            <button onClick={handleLogout} className="nav-link nav-link--logout">
+              <LogOut size={18} />
+              <span>Abmelden</span>
+            </button>
+          </>
+        ) : (
+          <Link to="/login" className="nav-link">
+            <User size={18} />
+            <span>Anmelden</span>
+          </Link>
+        )}
+      </nav>
     </header>
   )
 }
