@@ -54,6 +54,7 @@ export default function EventForm({ event }) {
   const [imageUploading, setImageUploading] = useState(false)
   const [isDraggingOver, setIsDraggingOver] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [showResubmitConfirmModal, setShowResubmitConfirmModal] = useState(false)
   const [resubmitWarning, setResubmitWarning] = useState(false)
   const fileInputRef = useRef(null)
   const { user } = useAuth()
@@ -214,8 +215,8 @@ export default function EventForm({ event }) {
 
     if (!isAdmin) {
       if (isEdit && wasApproved) {
-        setResubmitWarning(true)
-        eventData.status = 'pending'
+        setShowResubmitConfirmModal(true)
+        return
       } else if (!isEdit) {
         setShowConfirmModal(true)
         return
@@ -276,6 +277,30 @@ export default function EventForm({ event }) {
       imageUrl: null,
       status: 'pending'
     }
+    saveEvent(eventData)
+  }
+
+  const confirmResubmit = () => {
+    const eventData = {
+      title: formData.title.trim(),
+      date: formData.date,
+      time: formData.time || '',
+      endTime: formData.endTime || '',
+      endDate: formData.endDate || '',
+      place: formData.place.trim(),
+      contribution: formData.contribution,
+      fee: formData.contribution === 'fee' ? parseFloat(formData.fee) : null,
+      description: formData.description.trim(),
+      link: formData.link.trim(),
+      recurrence: formData.recurrence || 'none',
+      recurrenceEndDate: formData.recurrence === 'none' ? '' : (formData.recurrenceEndDate || ''),
+      categories: formData.categories.length > 0 ? formData.categories : ['Sonstiges'],
+      bezirk: formData.bezirk,
+      imageUrl: null,
+      status: 'pending'
+    }
+    setShowResubmitConfirmModal(false)
+    setResubmitWarning(true)
     saveEvent(eventData)
   }
 
@@ -591,6 +616,17 @@ export default function EventForm({ event }) {
         cancelLabel="Abbrechen"
         onConfirm={confirmSubmit}
         onCancel={() => setShowConfirmModal(false)}
+        loading={loading}
+      />
+
+      <ConfirmDialog
+        isOpen={showResubmitConfirmModal}
+        title="Event erneut einreichen"
+        message="Durch das Bearbeiten wird das Event wieder auf 'Ausstehend' gesetzt und muss erneut durch einen Admin genehmigt werden. Möchten Sie fortfahren?"
+        confirmLabel="Ja, fortfahren"
+        cancelLabel="Abbrechen"
+        onConfirm={confirmResubmit}
+        onCancel={() => setShowResubmitConfirmModal(false)}
         loading={loading}
       />
     </div>
