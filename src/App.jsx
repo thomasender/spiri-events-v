@@ -31,7 +31,7 @@ function AppContent() {
       <main className="main-content">
         <Routes>
           <Route path="/" element={<CalendarPage />} />
-          <Route path="/event/:id" element={<EventDetailPage />} />
+          <Route path="/event/:slug" element={<EventDetailPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route
             path="/admin"

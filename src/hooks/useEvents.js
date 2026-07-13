@@ -12,6 +12,7 @@ import {
   serverTimestamp
 } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { findUniqueSlug } from '../lib/slug'
 
 export const KATEGORIEN = [
   'Yoga',
@@ -72,8 +73,10 @@ export function useEvents(user) {
   }, [user])
 
   const addEvent = async (eventData) => {
+    const slug = await findUniqueSlug(eventData.title, eventData.place, eventData.date)
     return addDoc(collection(db, 'events'), {
       ...eventData,
+      slug,
       createdBy: user.uid,
       createdAt: serverTimestamp()
     })

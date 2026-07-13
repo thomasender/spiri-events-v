@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
-import { doc, getDoc } from 'firebase/firestore'
+import { collection, doc, getDoc, query, where, getDocs } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { isLegacyId } from '../lib/slug'
 import { Calendar, Clock, MapPin, Ticket, ExternalLink, ArrowLeft } from 'lucide-react'
 import './EventDetailPage.css'
 
@@ -90,7 +91,7 @@ function generateEventJsonLd(event) {
 }
 
 export default function EventDetailPage() {
-  const { id } = useParams()
+  const { slug } = useParams()
   const navigate = useNavigate()
   const [event, setEvent] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -98,20 +99,32 @@ export default function EventDetailPage() {
 
   useEffect(() => {
     async function fetchEvent() {
-      if (!id) {
-        setError('Event ID fehlt')
+      if (!slug) {
+        setError('Event nicht gefunden')
         setLoading(false)
         return
       }
 
       try {
-        const docRef = doc(db, 'events', id)
-        const docSnap = await getDoc(docRef)
+        if (isLegacyId(slug)) {
+          const docRef = doc(db, 'events', slug)
+          const docSnap = await getDoc(docRef)
 
-        if (docSnap.exists()) {
-          setEvent({ id: docSnap.id, ...docSnap.data() })
+          if (docSnap.exists()) {
+            setEvent({ id: docSnap.id, ...docSnap.data() })
+          } else {
+            setError('Event nicht gefunden')
+          }
         } else {
-          setError('Event nicht gefunden')
+          const q = query(collection(db, 'events'), where('slug', '==', slug))
+          const snapshot = await getDocs(q)
+
+          if (!snapshot.empty) {
+            const docSnap = snapshot.docs[0]
+            setEvent({ id: docSnap.id, ...docSnap.data() })
+          } else {
+            setError('Event nicht gefunden')
+          }
         }
       } catch (err) {
         console.error('Error fetching event:', err)
@@ -122,7 +135,7 @@ export default function EventDetailPage() {
     }
 
     fetchEvent()
-  }, [id])
+  }, [slug])
 
   if (loading) {
     return (
@@ -154,11 +167,11 @@ export default function EventDetailPage() {
       <Helmet>
         <title>{event.title} | Spirituelle Events Vorarlberg</title>
         <meta name="description" content={event.description ? event.description.substring(0, 160) : `${event.title} - ${event.categories?.join(', ')} in ${event.bezirk}`} />
-        <link rel="canonical" href={`/event/${event.id}`} />
+        <link rel="canonical" href={`/event/${event.slug || event.id}`} />
         <meta property="og:type" content="event" />
         <meta property="og:title" content={event.title} />
         <meta property="og:description" content={event.description ? event.description.substring(0, 160) : `${event.title} - ${event.categories?.join(', ')} in ${event.bezirk}`} />
-        <meta property="og:url" content={`/event/${event.id}`} />
+        <meta property="og:url" content={`/event/${event.slug || event.id}`} />
         <meta property="og:locale" content="de_AT" />
         {event.imageUrl && <meta property="og:image" content={event.imageUrl} />}
         <meta name="twitter:card" content="summary_large_image" />

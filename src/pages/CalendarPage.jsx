@@ -15,7 +15,8 @@ export default function CalendarPage() {
   const { events, loading, error } = useAllEvents()
 
   const handleEventClick = (event) => {
-    navigate(`/event/${event.id}`)
+    const slugOrId = event.slug || event.id
+    navigate(`/event/${slugOrId}`)
   }
 
   const toggleCategory = (category) => {
