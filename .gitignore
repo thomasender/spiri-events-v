@@ -40,3 +40,5 @@ coverage
 
 # Misc
 .sass-cache
+playwright-report/
+test-results/
