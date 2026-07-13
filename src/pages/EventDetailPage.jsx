@@ -4,7 +4,8 @@ import { Helmet } from 'react-helmet-async'
 import { collection, doc, getDoc, query, where, getDocs } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { isLegacyId } from '../lib/slug'
-import { Calendar, Clock, MapPin, Ticket, ExternalLink, ArrowLeft } from 'lucide-react'
+import { Calendar, Clock, MapPin, Ticket, ExternalLink, ArrowLeft, Edit2 } from 'lucide-react'
+import { useAuth } from '../hooks/useAuth'
 import './EventDetailPage.css'
 
 function formatDate(dateStr) {
@@ -93,6 +94,7 @@ function generateEventJsonLd(event) {
 export default function EventDetailPage() {
   const { slug } = useParams()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [event, setEvent] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -162,6 +164,7 @@ export default function EventDetailPage() {
 
   const isFree = event.contribution === 'free'
   const jsonLd = generateEventJsonLd(event)
+  const isOwner = user && event.createdBy === user.uid
 
   return (
     <div className="event-detail-page">
@@ -185,6 +188,15 @@ export default function EventDetailPage() {
         <ArrowLeft size={16} />
         <span>Zurück zum Kalender</span>
       </Link>
+
+      {isOwner && (
+        <div className="owner-actions">
+          <Link to={`/admin/edit/${event.id}`} className="btn btn-secondary">
+            <Edit2 size={16} />
+            <span>Event bearbeiten</span>
+          </Link>
+        </div>
+      )}
 
       <header className="event-header">
         {event.imageUrl && (

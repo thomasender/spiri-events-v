@@ -25,6 +25,12 @@
   color: var(--accent-primary);
 }
 
+.owner-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
 .event-header {
   margin-bottom: 32px;
 }

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useEvents } from '../hooks/useEvents'
 import { useAuth } from '../hooks/useAuth'
-import { PlusCircle, Edit2, Trash2, Calendar, MapPin } from 'lucide-react'
+import { PlusCircle, Edit2, Trash2, Calendar, MapPin, Eye } from 'lucide-react'
 import ConfirmDialog from './ConfirmDialog'
 import { useState } from 'react'
 import './EventList.css'
@@ -87,7 +87,7 @@ export default function EventList() {
         <div className="event-list-grid">
           {events.map(event => (
             <div key={event.id} className="event-card">
-              <div className="event-card-content">
+              <Link to={`/event/${event.slug || event.id}`} className="event-card-content">
                 <div className="event-card-header">
                   <h3>{event.title}</h3>
                   <span className={`badge ${event.contribution === 'free' ? 'badge--free' : 'badge--fee'}`}>
@@ -131,9 +131,13 @@ export default function EventList() {
                       : event.description}
                   </p>
                 )}
-              </div>
+              </Link>
 
               <div className="event-card-actions">
+                <Link to={`/event/${event.slug || event.id}`} className="btn btn-secondary btn-sm">
+                  <Eye size={16} />
+                  <span>Ansehen</span>
+                </Link>
                 <Link to={`/admin/edit/${event.id}`} className="btn btn-secondary btn-sm">
                   <Edit2 size={16} />
                   <span>Bearbeiten</span>
