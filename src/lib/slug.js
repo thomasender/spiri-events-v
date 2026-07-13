@@ -32,9 +32,14 @@ export async function findUniqueSlug(title, place, date) {
 }
 
 async function slugExists(slug) {
-  const q = query(collection(db, 'events'), where('slug', '==', slug))
-  const snapshot = await getDocs(q)
-  return !snapshot.empty
+  try {
+    const q = query(collection(db, 'events'), where('slug', '==', slug), where('status', '==', 'approved'))
+    const snapshot = await getDocs(q)
+    return !snapshot.empty
+  } catch (err) {
+    console.error('slugExists error:', err.code, err.message)
+    throw err
+  }
 }
 
 export function isLegacyId(id) {

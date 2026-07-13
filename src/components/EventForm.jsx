@@ -251,6 +251,7 @@ export default function EventForm({ event }) {
       }
       navigate('/admin')
     } catch (err) {
+      console.error('Event save failed:', err.code, err.message)
       setSubmitError('Event konnte nicht gespeichert werden. Bitte versuche es erneut.')
       setLoading(false)
     }

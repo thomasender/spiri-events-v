@@ -49,6 +49,7 @@ function normalizeEvents(events) {
 export function useEvents(user) {
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     setLoading(true)
@@ -64,16 +65,25 @@ export function useEvents(user) {
       where('createdBy', '==', user.uid)
     )
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const eventData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }))
-      const normalized = normalizeEvents(eventData)
-      normalized.sort((a, b) => (a.date > b.date ? 1 : -1))
-      setEvents(normalized)
-      setLoading(false)
-    })
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const eventData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+        const normalized = normalizeEvents(eventData)
+        normalized.sort((a, b) => (a.date > b.date ? 1 : -1))
+        setEvents(normalized)
+        setLoading(false)
+        setError(null)
+      },
+      (err) => {
+        console.error('useEvents error:', err)
+        setError(err.message)
+        setLoading(false)
+      }
+    )
 
     return unsubscribe
   }, [user])
@@ -106,32 +116,51 @@ export function useEvents(user) {
 }
 
 export function usePendingEvents() {
-  const { user } = useAuth()
+  const { user, role } = useAuth()
   const [pendingEvents, setPendingEvents] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     setLoading(true)
     setPendingEvents([])
 
-    const q = query(
-      collection(db, 'events'),
-      where('status', '==', 'pending')
+    let q
+    if (role === 'Admin') {
+      q = query(
+        collection(db, 'events'),
+        where('status', '==', 'pending')
+      )
+    } else {
+      q = query(
+        collection(db, 'events'),
+        where('status', '==', 'pending'),
+        where('createdBy', '==', user.uid)
+      )
+    }
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const eventData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+        const normalized = normalizeEvents(eventData)
+        normalized.sort((a, b) => (a.date > b.date ? 1 : -1))
+        setPendingEvents(normalized)
+        setLoading(false)
+        setError(null)
+      },
+      (err) => {
+        console.error('usePendingEvents error:', err)
+        setError(err.message)
+        setLoading(false)
+      }
     )
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const eventData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }))
-      const normalized = normalizeEvents(eventData)
-      normalized.sort((a, b) => (a.date > b.date ? 1 : -1))
-      setPendingEvents(normalized)
-      setLoading(false)
-    })
-
     return unsubscribe
-  }, [])
+  }, [user, role])
 
   const approveEvent = async (eventId) => {
     if (auth.currentUser) {

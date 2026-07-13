@@ -131,7 +131,11 @@ export default function EventDetailPage() {
         }
       } catch (err) {
         console.error('Error fetching event:', err)
-        setError('Event konnte nicht geladen werden')
+        if (err.code === 'permission-denied' || err.message?.includes('permission-denied')) {
+          setError('Du hast keine Berechtigung dieses Event anzusehen')
+        } else {
+          setError('Event konnte nicht geladen werden')
+        }
       } finally {
         setLoading(false)
       }
