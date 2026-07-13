@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://spirievents.at/sitemap.xml
+
+# Block admin pages from indexing
+Disallow: /admin/
+Disallow: /login/

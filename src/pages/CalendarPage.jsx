@@ -1,24 +1,21 @@
 import { useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 import { useAllEvents, KATEGORIEN, BEZIRKE } from '../hooks/useEvents'
 import Calendar from '../components/Calendar'
-import EventModal from '../components/EventModal'
 import { Filter } from 'lucide-react'
 import './CalendarPage.css'
 
 export default function CalendarPage() {
+  const navigate = useNavigate()
   const [currentMonth, setCurrentMonth] = useState(new Date())
-  const [selectedEvent, setSelectedEvent] = useState(null)
   const [selectedCategories, setSelectedCategories] = useState(KATEGORIEN)
   const [selectedBezirke, setSelectedBezirke] = useState([])
   const [showFilters, setShowFilters] = useState(false)
   const { events, loading, error } = useAllEvents()
 
   const handleEventClick = (event) => {
-    setSelectedEvent(event)
-  }
-
-  const closeModal = () => {
-    setSelectedEvent(null)
+    navigate(`/event/${event.id}`)
   }
 
   const toggleCategory = (category) => {
@@ -64,6 +61,12 @@ export default function CalendarPage() {
 
   return (
     <div className="calendar-page">
+      <Helmet>
+        <title>Spirituelle Events Vorarlberg | Kalender</title>
+        <meta name="description" content="Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg - Bregenz, Dornbirn, Feldkirch, Bludenz" />
+        <link rel="canonical" href="https://spirievents.at/" />
+      </Helmet>
+
       <div className="page-header">
         <div className="header-content">
           <h1>Spirituelle Events Vorarlberg</h1>
@@ -156,10 +159,6 @@ export default function CalendarPage() {
           />
         )}
       </div>
-
-      {selectedEvent && (
-        <EventModal event={selectedEvent} onClose={closeModal} />
-      )}
     </div>
   )
 }

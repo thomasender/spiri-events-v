@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { HelmetProvider } from 'react-helmet-async'
 import { useAuth } from './hooks/useAuth'
 import Header from './components/Header'
 import Footer from './components/Footer'
@@ -7,16 +8,15 @@ import LoginPage from './pages/LoginPage'
 import AdminPage from './pages/AdminPage'
 import EventFormPage from './pages/EventFormPage'
 import LegalPage from './pages/LegalPage'
+import EventDetailPage from './pages/EventDetailPage'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
 
-  // Still checking auth — wait for Firebase to restore session
   if (loading) {
     return <div className="loading-spinner"></div>
   }
 
-  // Auth resolved — only redirect if definitively no user (not just "not yet checked")
   if (!user) {
     return <Navigate to="/login" replace />
   }
@@ -24,14 +24,14 @@ function ProtectedRoute({ children }) {
   return children
 }
 
-export default function App() {
+function AppContent() {
   return (
-    <BrowserRouter>
-      <div className="app-layout">
-        <Header />
-        <main className="main-content">
-          <Routes>
+    <div className="app-layout">
+      <Header />
+      <main className="main-content">
+        <Routes>
           <Route path="/" element={<CalendarPage />} />
+          <Route path="/event/:id" element={<EventDetailPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route
             path="/admin"
@@ -60,9 +60,18 @@ export default function App() {
           <Route path="/:page" element={<LegalPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-        </main>
-        <Footer />
-      </div>
-    </BrowserRouter>
+      </main>
+      <Footer />
+    </div>
+  )
+}
+
+export default function App() {
+  return (
+    <HelmetProvider>
+      <BrowserRouter>
+        <AppContent />
+      </BrowserRouter>
+    </HelmetProvider>
   )
 }
