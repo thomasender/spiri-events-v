@@ -18,15 +18,23 @@ service cloud.firestore {
         return resource.data.status == 'approved';
       }
 
-      // Public read: approved events are readable by anyone
+      // Admins: full read access to all events
+      allow read: if isAdmin();
+
+      // Owners: can read their own events (any status)
+      allow read: if isOwner();
+
+      // Public/Anonymous: can only read approved events
       allow read: if isApproved();
 
-      // Authenticated users can read their own events (any status) and admins can read all
-      allow read: if isAuthenticated() && (isAdmin() || isOwner());
+      // Authenticated non-owners: can read approved events
+      allow read: if isAuthenticated() && isApproved();
 
+      // Creating: admins create approved, users create pending
       allow create: if isAuthenticated() && (request.resource.data.status == 'pending' || isAdmin());
 
-      allow update, delete: if isAuthenticated() && (isOwner() || isAdmin());
+      // Updating: owner can update, admin can update any
+      allow update, delete: if isOwner() || isAdmin();
     }
   }
 }
