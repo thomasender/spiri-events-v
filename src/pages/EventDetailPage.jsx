@@ -96,6 +96,7 @@ export default function EventDetailPage() {
   const [event, setEvent] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [imageLoaded, setImageLoaded] = useState(false)
 
   useEffect(() => {
     async function fetchEvent() {
@@ -187,7 +188,15 @@ export default function EventDetailPage() {
 
       <header className="event-header">
         {event.imageUrl && (
-          <img src={event.imageUrl} alt={event.title} className="event-image" />
+          <div className="event-image-wrapper">
+            {!imageLoaded && <div className="event-image-skeleton" />}
+            <img
+              src={event.imageUrl}
+              alt={event.title}
+              className={`event-image ${imageLoaded ? 'loaded' : ''}`}
+              onLoad={() => setImageLoaded(true)}
+            />
+          </div>
         )}
         <h1 className="event-title">{event.title}</h1>
         <div className="event-meta-row">

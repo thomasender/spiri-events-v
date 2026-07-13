@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { X, Calendar, Clock, MapPin, Ticket, ExternalLink } from 'lucide-react'
 import './EventModal.css'
 
@@ -47,6 +47,8 @@ function formatRecurrence(recurrence, recurrenceEndDate) {
 }
 
 export default function EventModal({ event, onClose }) {
+  const [imageLoaded, setImageLoaded] = useState(false)
+
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === 'Escape') onClose()
@@ -72,7 +74,15 @@ export default function EventModal({ event, onClose }) {
 
         <div className="modal-header">
           {event.imageUrl && (
-            <img src={event.imageUrl} alt={event.title} className="modal-image" />
+            <div className="modal-image-wrapper">
+              {!imageLoaded && <div className="modal-image-skeleton" />}
+              <img
+                src={event.imageUrl}
+                alt={event.title}
+                className={`modal-image ${imageLoaded ? 'loaded' : ''}`}
+                onLoad={() => setImageLoaded(true)}
+              />
+            </div>
           )}
           <h2 className="modal-title">{event.title}</h2>
           <div className="modal-meta-row">
