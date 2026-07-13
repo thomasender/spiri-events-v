@@ -121,89 +121,173 @@ Weitere Informationen finden Sie in der Datenschutzerklärung von ImgBB: https:/
     lastUpdated: 'März 2026',
     sections: [
       {
-        heading: 'Angaben gemäß § 5 TMG',
+        heading: 'Angaben gemäß § 5 ECG (E-Commerce-Gesetz)',
         text: `Verantwortlicher:
 
 Thomas Ender
 Starkenfeld 19, 6841 Mäder, Österreich
-E-Mail: thomas@blissofkundalini.yoga`
+E-Mail: kontakt@spirituelle-events-vorarlberg.at`
       }
     ]
   },
-  nutzungsbedingungen: {
-    title: 'Nutzungsbedingungen',
-    lastUpdated: 'März 2026',
+  agbs: {
+    title: 'Allgemeine Geschäftsbedingungen (AGB)',
+    lastUpdated: 'Juli 2026',
     sections: [
       {
         heading: '1. Geltungsbereich',
-        text: `Diese Nutzungsbedingungen gelten für die Nutzung der Web-Anwendung "Spirituelle Events Vorarlberg" (im Folgenden "App"). Mit der Nutzung dieser App erklären Sie sich mit diesen Bedingungen einverstanden.`
+        text: `Diese Allgemeinen Geschäftsbedingungen (AGB) gelten für die Nutzung der Web-Anwendung "Spirituelle Events Vorarlberg" (im Folgenden "Plattform" oder "App"). Mit der Registrierung und Nutzung der Plattform erklären Sie sich mit diesen AGB einverstanden. Die AGB sind integraler Bestandteil des Nutzungsvertrags zwischen Ihnen und dem Betreiber der Plattform.`
       },
       {
-        heading: '2. Gegenstand der App',
-        text: `Die App dient der Veröffentlichung und Verwaltung spiritueller Veranstaltungen in Vorarlberg. Nutzer können Events erstellen, bearbeiten und löschen sowie Events anderer Nutzer ansehen.`
-      },
-      {
-        heading: '3. Registrierung und Zugang',
-        text: `Um die App in vollem Umfang nutzen zu können (Erstellen und Verwalten von Events), ist eine Registrierung erforderlich. Zur Registrierung sind folgende Angaben notwendig:
+        heading: '2. Gegenstand der Plattform',
+        text: `Die Plattform "Spirituelle Events Vorarlberg" dient ausschließlich der Veröffentlichung und Verwaltung von Veranstaltungen (Events) im Bereich Spiritualität, Wellness und persönliche Entwicklung in Vorarlberg, Österreich.
 
-- Eine gültige E-Mail-Adresse
-- Ein Passwort
+Die Plattform bietet Nutzern die Möglichkeit:
+- Veranstaltungen zu erstellen, zu bearbeiten und zu löschen
+- Veranstaltungen anderer Nutzer anzusehen
+- Sich über Veranstaltungen zu informieren und diese weiterzuempfehlen
 
-Sie sind dafür verantwortlich, Ihre Zugangsdaten vertraulich zu halten und vor unbefugtem Zugriff zu schützen.`
+Die Plattform ist eine reine Informations- und Vermittlungsplattform. Sie fungiert nicht als Veranstalter der gelisteten Events und ist nicht Vertragspartner für etwaige Vereinbarungen zwischen Event-Erstellern und Teilnehmern.`
       },
       {
-        heading: '4. Nutzung der App',
-        text: `Die App darf nur für rechtmäßige Zwecke genutzt werden. Als Nutzer verpflichten Sie sich:
+        heading: '3. Registrierung und Konto',
+        text: `Um die Plattform in vollem Umfang nutzen zu können (Erstellen und Verwalten von Events), ist eine Registrierung erforderlich.
 
-- Keine falschen, irreführenden oder rechtswidrigen Events zu erstellen
-- Keine Inhalte zu veröffentlichen, die gegen geltendes Recht verstoßen
-- Die App nicht in einer Weise zu nutzen, die die Stabilität oder Sicherheit der Dienste beeinträchtigt
-- Keine automatisierten Abfragen oder Systeme einzusetzen, die den Betrieb stören könnten`
-      },
-      {
-        heading: '5. Verantwortlichkeit für Inhalte',
-        text: `Für den Inhalt der von Ihnen erstellten Events sind Sie selbst verantwortlich. Wir überprüfen die Inhalte nicht vor der Veröffentlichung und distanzieren uns ausdrücklich von rechtswidrigen Inhalten.
+Zur Registrierung sind folgende Angaben notwendig:
+- Ein gültiger Name (zur Identifikation bei der Event-Verwaltung)
+- Eine gültige E-Mail-Adresse (für die Authentifizierung)
+- Ein Passwort (mindestens 6 Zeichen)
 
-Sollten Sie einen Inhalt melden wollen, schreiben Sie an kontakt@spirituelle-events-vorarlberg.at.`
+Sie sind dafür verantwortlich, Ihre Zugangsdaten vertraulich zu halten und vor unbefugtem Zugriff zu schützen. Jede Person, die sich mit Ihren Zugangsdaten anmeldet, gilt als berechtigter Nutzer. Bei Missbrauch oder Verlust der Zugangsdaten informieren Sie uns bitte umgehend.`
       },
       {
-        heading: '6. Geistiges Eigentum',
-        text: `Die App und deren Inhalte (Design, Texte, Grafiken) sind urheberrechtlich geschützt. Eine Vervielfältigung oder Verbreitung ohne unsere ausdrückliche Zustimmung ist nicht gestattet.`
-      },
-      {
-        heading: '7. Verfügbarkeit',
-        text: `Wir streben eine möglichst unterbrechungsfreie Verfügbarkeit der App an. Ein Anspruch auf ständige Verfügbarkeit besteht jedoch nicht. Wir behalten uns vor, den Dienst jederzeit einzuschränken oder einzustellen.`
-      },
-      {
-        heading: '8. Haftung',
-        text: `Wir haften nicht für Schäden, die durch die Nutzung der App entstehen, es sei denn, diese wurden durch Vorsatz oder grobe Fahrlässigkeit verursacht. Dies gilt nicht für Schäden an Leben, Körper oder Gesundheit.
+        heading: '4. Verifizierung und Verantwortung der Event-Erstatter',
+        text: `Die Plattform führt keine systematische Verifizierung der Event-Erstatter durch. Die Erstellung eines Kontos und die Veröffentlichung von Events ist grundsätzlich jeder registrierte Nutzer möglich.
 
-Für Events, die von Nutzern erstellt werden, übernehmen wir keine Verantwortung. Die Teilnahme an Events erfolgt auf eigene Verantwortung.`
+Für den Inhalt und die Richtigkeit der von Ihnen erstellten Events sind Sie selbst verantwortlich. Die Plattform überprüft die Inhalte nicht vor der Veröffentlichung. Eventuelle Unstimmigkeiten, Fehler oder rechtswidrige Inhalte liegen in der alleinigen Verantwortung des jeweiligen Event-Erstatters.`
       },
       {
-        heading: '9. Datenschutz',
-        text: `Der Schutz Ihrer personenbezogenen Daten ist uns wichtig. Informationen zur Verarbeitung Ihrer Daten finden Sie in unserer Datenschutzerklärung.
+        heading: '5. Kostenpflichtige Veranstaltungen',
+        text: `Die Plattform ermöglicht es Nutzern, Events mit einem Teilnahmebeitrag (Gebühr) zu kennzeichnen. Für kostenpflichtige Veranstaltungen gelten folgende Regelungen:
 
-Grundsätzlich:
-- Wir speichern nur Daten, die für den Betrieb der App notwendig sind
+**Haftungsausschluss:**
+- Die Plattform fungiert NICHT als Zahlungsdienstleister oder Treuhänder
+- Die Plattform übermittelt KEINE Zahlungen zwischen Event-Erstellern und Teilnehmern
+- Etwaige Zahlungsvereinbarungen werden ausschließlich zwischen dem Event-Erstatter und den Teilnehmern direkt getroffen
+- Die Plattform übernimmt KEINE Haftung für Zahlungen, Rückerstattungen oder Streitigkeiten im Zusammenhang mit kostenpflichtigen Veranstaltungen
+- Bei kostenpflichtigen Events obliegt es dem Event-Erstatter, die Zahlungsabwicklung eigenverantwortlich und im Einklang mit geltendem Recht zu regeln (z.B. Rechnungslegung, steuerliche Pflichten)
+
+**Empfehlung:**
+Wir empfehlen Event-Erstellern, bei kostenpflichtigen Veranstaltungen klare Zahlungsbedingungen in der Event-Beschreibung anzugeben und geeignete Zahlungswege (z.B. Überweisung, PayPal, etc.) selbst zu organisieren.`
+      },
+      {
+        heading: '6. Inhalte und Verhaltensregeln',
+        text: `Die Plattform darf nur für rechtmäßige Zwecke genutzt werden. Als Nutzer verpflichten Sie sich:
+
+- Keine falschen, irreführenden, missverständlichen oder rechtswidrigen Events zu erstellen
+- Keine Inhalte zu veröffentlichen, die gegen geltendes Recht verstoßen (einschließlich, aber nicht beschränkt auf: Diskriminierung, Beleidigung, Ehrverletzung, Urheberrechtsverletzung)
+- Die Plattform nicht in einer Weise zu nutzen, die die Stabilität oder Sicherheit der Dienste beeinträchtigt
+- Keine automatisierten Abfragen oder Systeme einzusetzen, die den Betrieb stören könnten
+- Keine Events zu erstellen, die dem Verkauf von Waren oder Dienstleistungen dienen, die nicht im Zusammenhang mit der jeweiligen Veranstaltung stehen
+- Keine personenbezogenen Daten Dritter ohne deren Einwilligung zu veröffentlichen`
+      },
+      {
+        heading: '7. Verantwortung für Event-Inhalte',
+        text: `Für den Inhalt der von Ihnen erstellten Events (einschließlich Texten, Bildern, Links und sonstigen Angaben) sind Sie selbst verantwortlich.
+
+Die Plattform übernimmt keine Gewähr für:
+- Die Richtigkeit, Vollständigkeit oder Aktualität der Event-Informationen
+- Die tatsächliche Durchführung der angekündigten Events
+- Die Qualität, Sicherheit oder Rechtmäßigkeit der angebotenen Veranstaltungen
+- Die Zuverlässigkeit, Seriosität oder Kompetenz der Event-Veranstalter
+
+Sollten Sie einen Inhalt melden wollen (z.B. wegen Rechtswidrigkeit, Irreführung oder Beleidigung), schreiben Sie uns an: kontakt@spirituelle-events-vorarlberg.at. Wir werden den Sachverhalt prüfen und gegebenenfalls den betreffenden Inhalt entfernen.`
+      },
+      {
+        heading: '8. Stornierung und Änderung von Events',
+        text: `Event-Erstatter sind grundsätzlich verpflichtet, ihre Events wie angekündigt durchzuführen. Sollte ein Event abgesagt, verschoben oder wesentlich geändert werden, empfehlen wir Ihnen:
+
+- Die Event-Beschreibung zeitnah zu aktualisieren
+- Teilnehmer, die sich angemeldet haben, auf anderem Wege zu informieren (sofern Kontaktmöglichkeiten bestehen)
+- Ggf. eine Rückerstattung bereits gezahlter Teilnahmegebühren zu veranlassen
+
+Die Plattform übernimmt keine Verantwortung für die Kommunikation zwischen Event-Erstellern und Teilnehmern und haftet nicht für Schäden, die aus einer Absage, Verschiebung oder Änderung eines Events entstehen.`
+      },
+      {
+        heading: '9. Geistiges Eigentum',
+        text: `Die Plattform und deren Inhalte (Design, Texte, Grafiken, Logo, UI-Elemente) sind urheberrechtlich geschützt. Eine Vervielfältigung, Verbreitung, Bearbeitung oder öffentliche Zugänglichmachung ohne unsere ausdrückliche Zustimmung ist nicht gestattet.
+
+Sie behalten alle Rechte an den von Ihnen erstellten Event-Inhalten. Mit der Veröffentlichung eines Events auf der Plattform gewähren Sie uns jedoch das Recht, diese Inhalte im Rahmen der Plattform öffentlich zugänglich zu machen.`
+      },
+      {
+        heading: '10. Verfügbarkeit',
+        text: `Wir streben eine möglichst unterbrechungsfreie Verfügbarkeit der Plattform an. Ein Anspruch auf ständige Verfügbarkeit besteht jedoch nicht. Wir behalten uns vor, den Dienst jederzeit einzuschränken, zu ändern oder einzustellen, insbesondere aufgrund von:
+
+- Wartungsarbeiten
+- Sicherheitsgründen
+- Technischen Problemen
+- Änderungen an der Plattform-Funktionalität
+
+Geplante Wartungsarbeiten werden wir nach Möglichkeit im Voraus ankündigen.`
+      },
+      {
+        heading: '11. Haftung',
+        text: `Wir haften nicht für Schäden, die durch die Nutzung der Plattform entstehen, es sei denn, diese wurden durch Vorsatz oder grobe Fahrlässigkeit verursacht. Dies gilt nicht für Schäden an Leben, Körper oder Gesundheit.
+
+**Haftungsausschluss im Detail:**
+- Für Events, die von Nutzern erstellt werden, übernehmen wir keine Verantwortung
+- Die Teilnahme an Events erfolgt auf eigene Verantwortung der Teilnehmer
+- Für kostenpflichtige Transaktionen zwischen Event-Erstellern und Teilnehmern übernehmen wir keine Haftung
+- Wir haften nicht für Schäden, die aus der Absage, Verschiebung oder Änderung eines Events entstehen
+- Wir haften nicht für die Richtigkeit von Event-Informationen oder die Qualität der angebotenen Veranstaltungen
+
+Für Event-Erstatter: Sie haften als Veranstalter für Ihre Events und stellen uns von allen Ansprüchen Dritter im Zusammenhang mit Ihren Events frei.`
+      },
+      {
+        heading: '12. Konto-Löschung und Vertragsbeendigung',
+        text: `Sie können Ihr Konto jederzeit löschen lassen, indem Sie uns eine entsprechende Anfrage per E-Mail senden an: kontakt@spirituelle-events-vorarlberg.at.
+
+Nach der Löschung werden alle Ihre personenbezogenen Daten gemäß unserer Datenschutzerklärung entfernt. Bereits veröffentlichte Events werden ebenfalls gelöscht, sofern sie keine wesentlichen Inhalte Dritter enthalten.
+
+Wir behalten uns vor, Konten zu sperren oder zu löschen bei:
+- Verstoß gegen diese AGB
+- Rechtswidrigen Handlungen
+- Missbrauch der Plattform
+- Falschen oder irreführenden Event-Informationen`
+      },
+      {
+        heading: '13. Datenschutz',
+        text: `Der Schutz Ihrer personenbezogenen Daten ist uns wichtig. Informationen zur Verarbeitung Ihrer Daten finden Sie in unserer Datenschutzerklärung (abrufbar unter /datenschutz).
+
+Grundsätze:
+- Wir speichern nur Daten, die für den Betrieb der Plattform notwendig sind
 - Wir geben keine Daten an Dritte weiter
-- Wir nutzen keine Tracking- oder Analysetools`
+- Wir nutzen keine Tracking- oder Analysetools
+- Firebase (Google) fungiert als Auftragsverarbeiter gemäß Art. 28 DSGVO`
       },
       {
-        heading: '10. Konto-Löschung',
-        text: `Sie können Ihr Konto jederzeit löschen lassen, indem Sie uns eine entsprechende Anfrage per E-Mail senden. Nach der Löschung werden alle Ihre Daten gemäß unserer Datenschutzerklärung entfernt.`
+        heading: '14. Änderungen dieser AGB',
+        text: `Wir behalten uns vor, diese AGB bei Bedarf zu ändern, insbesondere bei:
+
+- Änderungen der Plattform-Funktionalität
+- Rechtlichen Anforderungen
+- Erweiterung der angebotenen Dienste
+
+Die aktuelle Version finden Sie immer auf dieser Seite. Die geänderten AGB gelten für die Nutzung nach dem Zeitpunkt ihrer Veröffentlichung. Bei wesentlichen Änderungen werden wir Sie beim nächsten Login darauf hinweisen.`
       },
       {
-        heading: '11. Änderungen der Nutzungsbedingungen',
-        text: `Wir behalten uns vor, diese Nutzungsbedingungen bei Bedarf zu ändern. Die aktuelle Version finden Sie immer auf dieser Seite. Die geänderten Bedingungen gelten für die Nutzung nach dem Zeitpunkt ihrer Veröffentlichung.`
-      },
-      {
-        heading: '12. Schlussbestimmungen',
-        text: `Es gilt das Recht der Republik Österreich. Sollten einzelne Bestimmungen dieser Nutzungsbedingungen unwirksam sein, so bleibt die Wirksamkeit der übrigen Bestimmungen unberührt.
+        heading: '15. Schlussbestimmungen',
+        text: `Es gilt das Recht der Republik Österreich unter Ausschluss des UN-Kaufrechts (CISG) und der Verweisungsnormen des Internationalen Privatrechts.
+
+Sollten einzelne Bestimmungen dieser AGB unwirksam sein oder werden, so bleibt die Wirksamkeit der übrigen Bestimmungen unberührt. An die Stelle der unwirksamen Bestimmung tritt eine wirksame Regelung, die dem mit der unwirksamen Bestimmung verfolgten Zweck möglichst nahekommt.
+
+Gerichtsstand für alle Streitigkeiten aus oder im Zusammenhang mit diesen AGB ist, soweit gesetzlich zulässig, der Sitz des Betreibers in Österreich.
 
 Anbieter:
 Spirituelle Events Vorarlberg
-E-Mail: thomas@blissofkundalini.yoga`
+Thomas Ender
+Starkenfeld 19, 6841 Mäder, Österreich
+E-Mail: kontakt@spirituelle-events-vorarlberg.at`
       }
     ]
   }

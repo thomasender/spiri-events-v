@@ -27,7 +27,7 @@ export default function AuthForm() {
     }
 
     if (!isLogin && !acceptNutzungsbedingungen) {
-      setError('Bitte akzeptiere die Nutzungsbedingungen.')
+      setError('Bitte stimme den AGBs zu.')
       return
     }
 
@@ -174,7 +174,7 @@ export default function AuthForm() {
                   <Link to="/datenschutz" target="_blank" rel="noopener noreferrer">
                     Datenschutzerklärung
                   </Link>{' '}
-                  gelesen und akzeptiere diese.
+                  gelesen und stimme dieser zu.
                 </span>
               </label>
               <label className="checkbox-label">
@@ -186,10 +186,10 @@ export default function AuthForm() {
                 />
                 <span>
                   Ich habe die{' '}
-                  <Link to="/nutzungsbedingungen" target="_blank" rel="noopener noreferrer">
-                    Nutzungsbedingungen
+                  <Link to="/agbs" target="_blank" rel="noopener noreferrer">
+                    AGBs
                   </Link>{' '}
-                  gelesen und akzeptiere diese.
+                  gelesen und stimme diesen zu.
                 </span>
               </label>
             </div>

@@ -9,7 +9,7 @@ export default function Footer() {
         <nav className="footer-nav">
           <Link to="/impressum">Impressum</Link>
           <Link to="/datenschutz">Datenschutz</Link>
-          <Link to="/nutzungsbedingungen">Nutzungsbedingungen</Link>
+          <Link to="/agbs">AGBs</Link>
         </nav>
       </div>
     </footer>
