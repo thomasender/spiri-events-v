@@ -710,6 +710,12 @@
   }
 }
 
+@media (max-width: 500px) {
+  .week-day-name {
+    display: none;
+  }
+}
+
 @media (max-width: 400px) {
   .week-day-name {
     font-size: 0.6rem;
