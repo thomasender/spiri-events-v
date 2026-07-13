@@ -182,6 +182,7 @@ export default function Calendar({ events, onEventClick, currentMonth, onMonthCh
   const [mobileViewDate, setMobileViewDate] = useState(() => new Date())
   const [expandedDay, setExpandedDay] = useState(null)
   const expandedDayRef = useRef(null)
+  const mobileAgendaRef = useRef(null)
 
   const year = currentMonth.getFullYear()
   const month = currentMonth.getMonth()
@@ -315,7 +316,14 @@ export default function Calendar({ events, onEventClick, currentMonth, onMonthCh
             <button
               key={cell.date}
               className={`week-day ${!cell.isCurrentMonth ? 'other-month' : ''} ${today ? 'today' : ''} ${past ? 'past' : ''}`}
-              onClick={() => onEventClick && dayEvents.length > 0 && onEventClick(dayEvents[0])}
+              onClick={() => {
+                if (dayEvents.length > 0 && mobileAgendaRef.current) {
+                  const agendaDay = mobileAgendaRef.current.querySelector(`[data-date="${cell.date}"]`)
+                  if (agendaDay) {
+                    agendaDay.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  }
+                }
+              }}
             >
               <span className="week-day-name">
                 {WEEKDAYS_LONG[new Date(cell.date + 'T12:00:00').getDay() === 0 ? 6 : new Date(cell.date + 'T12:00:00').getDay() - 1]}
@@ -334,7 +342,7 @@ export default function Calendar({ events, onEventClick, currentMonth, onMonthCh
       </div>
 
       {/* Mobile agenda: scrollable event list for the visible weeks */}
-      <div className="mobile-agenda">
+      <div className="mobile-agenda" ref={mobileAgendaRef}>
         {monthDays
           .filter(cell => cell.isCurrentMonth)
           .map((cell) => {
@@ -344,7 +352,7 @@ export default function Calendar({ events, onEventClick, currentMonth, onMonthCh
             const weekdayName = WEEKDAYS_LONG[weekdayIndex === 0 ? 6 : weekdayIndex - 1]
 
             return (
-              <div key={cell.date} className={`agenda-day ${!cell.isCurrentMonth ? 'other-month' : ''} ${today ? 'today' : ''}`}>
+              <div key={cell.date} data-date={cell.date} className={`agenda-day ${!cell.isCurrentMonth ? 'other-month' : ''} ${today ? 'today' : ''}`}>
                 <div className="agenda-day-header">
                   <span className="agenda-day-weekday">{weekdayName}</span>
                   <span className={`agenda-day-number ${today ? 'today' : ''}`}>{cell.day}</span>
