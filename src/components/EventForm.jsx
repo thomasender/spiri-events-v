@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { useEvents, KATEGORIEN, BEZIRKE } from '../hooks/useEvents'
 import { useAuth } from '../hooks/useAuth'
-import { uploadImage } from '../lib/imageUpload'
+import { uploadImage, getImageDimensions, validateAspectRatio } from '../lib/imageUpload'
 import { ArrowLeft, Save, Image, X } from 'lucide-react'
 import './EventForm.css'
 
@@ -82,6 +82,13 @@ export default function EventForm({ event }) {
     // Validate file size (show error if over 5MB before compression)
     if (file.size > 5 * 1024 * 1024) {
       setErrors(prev => ({ ...prev, image: 'Bild ist zu groß (max. 5MB)' }))
+      return
+    }
+
+    // Validate aspect ratio (must be 16:9 ±10%)
+    const dimensions = await getImageDimensions(file)
+    if (!validateAspectRatio(dimensions.width, dimensions.height)) {
+      setErrors(prev => ({ ...prev, image: 'Das Bild muss ein Seitenverhältnis von 16:9 haben (z.B. 1600x900px oder 1920x1080px). Bitte wähle ein anderes Bild oder beschnitte es vor dem Upload.' }))
       return
     }
 

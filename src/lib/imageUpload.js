@@ -6,6 +6,29 @@
 
 const IMGBB_API_URL = "https://api.imgbb.com/1/upload";
 
+const TARGET_ASPECT_RATIO = 16 / 9;
+const ASPECT_RATIO_TOLERANCE = 0.1;
+
+export async function getImageDimensions(file) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(img.src);
+      resolve({ width: img.width, height: img.height });
+    };
+    img.onerror = () => resolve({ width: 0, height: 0 });
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+export function validateAspectRatio(width, height) {
+  if (width === 0 || height === 0) return false;
+  const ratio = width / height;
+  const minRatio = TARGET_ASPECT_RATIO * (1 - ASPECT_RATIO_TOLERANCE);
+  const maxRatio = TARGET_ASPECT_RATIO * (1 + ASPECT_RATIO_TOLERANCE);
+  return ratio >= minRatio && ratio <= maxRatio;
+}
+
 /**
  * Upload an image file to ImgBB
  * @param {File} file - The image file to upload
