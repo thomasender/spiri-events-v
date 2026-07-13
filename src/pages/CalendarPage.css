@@ -1,5 +1,8 @@
 .calendar-page {
   min-height: calc(100vh - 72px);
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
   background: linear-gradient(
     180deg,
     var(--bg-primary) 0%,
@@ -52,7 +55,7 @@
 
 .calendar-wrapper {
   min-width: 100%;
-  max-width: 1000px;
+  max-width: 1024px;
   margin: 0 auto;
   padding: 0 24px 48px;
 }

@@ -3,6 +3,7 @@
    ============================================ */
 
 .calendar {
+  width: 100%;
   background-color: var(--bg-calendar);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
@@ -221,6 +222,8 @@
 
 .desktop-calendar {
   position: relative;
+  display: block;
+  width: 100%;
 }
 
 .day-popover-overlay {
