@@ -424,24 +424,26 @@ function generateCalendarPageHtml(events, jsBundlePath) {
   </style>
 </head>
 <body>
-  <div class="calendar-page">
-    <header class="page-header">
-      <div class="header-content">
-        <h1>Spirituelle Events Vorarlberg</h1>
-        <p>Entdecke Workshops, Meditationen und Retreats in deiner Nähe</p>
+  <div id="root">
+    <div class="calendar-page">
+      <header class="page-header">
+        <div class="header-content">
+          <h1>Spirituelle Events Vorarlberg</h1>
+          <p>Entdecke Workshops, Meditationen und Retreats in deiner Nähe</p>
+        </div>
+      </header>
+
+      <div class="calendar-wrapper">
+        <h2 class="page-title">Bevorstehende Events</h2>
+        <ul class="events-list">
+          ${eventsList}
+        </ul>
       </div>
-    </header>
 
-    <div class="calendar-wrapper">
-      <h2 class="page-title">Bevorstehende Events</h2>
-      <ul class="events-list">
-        ${eventsList}
-      </ul>
+      <footer>
+        <p>© ${new Date().getFullYear()} Spirituelle Events Vorarlberg</p>
+      </footer>
     </div>
-
-    <footer>
-      <p>© ${new Date().getFullYear()} Spirituelle Events Vorarlberg</p>
-    </footer>
   </div>
   <script type="module" src="${jsBundlePath}"></script>
 </body>
