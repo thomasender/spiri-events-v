@@ -328,7 +328,16 @@ function getJsBundlePath(assetsDir) {
   return `/assets/${jsFile}`
 }
 
-function generateCalendarPageHtml(events, jsBundlePath) {
+function getCssBundlePath(assetsDir) {
+  const files = fs.readdirSync(assetsDir)
+  const cssFile = files.find(f => f.endsWith('.css') && !f.includes('map'))
+  if (!cssFile) {
+    throw new Error(`No CSS bundle found in ${assetsDir}`)
+  }
+  return `/assets/${cssFile}`
+}
+
+function generateCalendarPageHtml(events, jsBundlePath, cssBundlePath) {
   const upcomingEvents = events.filter(e => e.date >= new Date().toISOString().split('T')[0])
     .slice(0, 20)
 
@@ -366,6 +375,7 @@ function generateCalendarPageHtml(events, jsBundlePath) {
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Nunito+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="${cssBundlePath}" />
 
   <script type="application/ld+json">${JSON.stringify({
     '@context': 'https://schema.org',
@@ -512,8 +522,10 @@ async function prerender() {
   console.log('Generating calendar index page...')
   const assetsPath = path.join(DIST_PATH, 'assets')
   const jsBundlePath = getJsBundlePath(assetsPath)
+  const cssBundlePath = getCssBundlePath(assetsPath)
   console.log(`  Found JS bundle: ${jsBundlePath}`)
-  const calendarHtml = generateCalendarPageHtml(events, jsBundlePath)
+  console.log(`  Found CSS bundle: ${cssBundlePath}`)
+  const calendarHtml = generateCalendarPageHtml(events, jsBundlePath, cssBundlePath)
   fs.writeFileSync(path.join(DIST_PATH, 'index.html'), calendarHtml)
 
   console.log('Generating sitemap.xml...')
