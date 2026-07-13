@@ -319,7 +319,16 @@ function generateEventHtml(event) {
 </html>`
 }
 
-function generateCalendarPageHtml(events) {
+function getJsBundlePath(assetsDir) {
+  const files = fs.readdirSync(assetsDir)
+  const jsFile = files.find(f => f.endsWith('.js') && !f.includes('map'))
+  if (!jsFile) {
+    throw new Error(`No JS bundle found in ${assetsDir}`)
+  }
+  return `/assets/${jsFile}`
+}
+
+function generateCalendarPageHtml(events, jsBundlePath) {
   const upcomingEvents = events.filter(e => e.date >= new Date().toISOString().split('T')[0])
     .slice(0, 20)
 
@@ -434,6 +443,7 @@ function generateCalendarPageHtml(events) {
       <p>© ${new Date().getFullYear()} Spirituelle Events Vorarlberg</p>
     </footer>
   </div>
+  <script type="module" src="${jsBundlePath}"></script>
 </body>
 </html>`
 }
@@ -498,7 +508,10 @@ async function prerender() {
   }
 
   console.log('Generating calendar index page...')
-  const calendarHtml = generateCalendarPageHtml(events)
+  const assetsPath = path.join(DIST_PATH, 'assets')
+  const jsBundlePath = getJsBundlePath(assetsPath)
+  console.log(`  Found JS bundle: ${jsBundlePath}`)
+  const calendarHtml = generateCalendarPageHtml(events, jsBundlePath)
   fs.writeFileSync(path.join(DIST_PATH, 'index.html'), calendarHtml)
 
   console.log('Generating sitemap.xml...')
