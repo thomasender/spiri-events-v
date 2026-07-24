@@ -18,6 +18,11 @@ vi.mock('../../src/hooks/useEvents', () => ({
     loading: false,
     approveEvent: vi.fn(),
   }),
+  useEventById: () => ({
+    event: null,
+    loading: false,
+    error: null,
+  }),
 }))
 
 describe('EventList', () => {

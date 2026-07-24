@@ -214,3 +214,49 @@ export function useAllEvents() {
 
   return { events, loading, error }
 }
+
+export function useEventById(eventId) {
+  const [event, setEvent] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    if (!eventId) {
+      setLoading(false)
+      return
+    }
+
+    const docRef = doc(db, 'events', eventId)
+    const unsubscribe = onSnapshot(
+      docRef,
+      (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data()
+          const normalized = {
+            id: docSnap.id,
+            ...data,
+            categories: data.categories && data.categories.length > 0
+              ? data.categories
+              : ['Sonstiges'],
+            bezirk: data.bezirk || '',
+            status: data.status || 'pending'
+          }
+          setEvent(normalized)
+        } else {
+          setEvent(null)
+        }
+        setLoading(false)
+        setError(null)
+      },
+      (err) => {
+        console.error('useEventById error:', err)
+        setError(err.message)
+        setLoading(false)
+      }
+    )
+
+    return unsubscribe
+  }, [eventId])
+
+  return { event, loading, error }
+}
