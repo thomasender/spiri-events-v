@@ -45,3 +45,7 @@ test-results/
 
 # Firebase Admin scripts (contains secrets)
 scripts/set-user-role.cjs
+scripts/service-account.json
+
+# Local emulator data
+data-export/

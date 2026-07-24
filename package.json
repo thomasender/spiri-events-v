@@ -13,7 +13,9 @@
     "test:ui": "vitest --ui",
     "test:integration": "playwright test tests/integration",
     "test:e2e": "playwright test tests/e2e",
-    "test:all": "npm run test && npm run test:integration && npm run test:e2e"
+    "test:all": "npm run test && npm run test:integration && npm run test:e2e",
+    "dev:emulator": "VITE_USE_EMULATORS=true npm run dev",
+    "export:prod": "node scripts/export-prod-data.mjs"
   },
   "dependencies": {
     "firebase": "^10.7.0",
