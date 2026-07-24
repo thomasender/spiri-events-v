@@ -94,7 +94,7 @@ function generateEventJsonLd(event) {
 export default function EventDetailPage() {
   const { slug } = useParams()
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, role } = useAuth()
   const [event, setEvent] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -119,7 +119,11 @@ export default function EventDetailPage() {
             setError('Event nicht gefunden')
           }
         } else {
-          const q = query(collection(db, 'events'), where('slug', '==', slug), where('status', '==', 'approved'))
+          const constraints = [where('slug', '==', slug)]
+          if (role !== 'Admin') {
+            constraints.push(where('status', '==', 'approved'))
+          }
+          const q = query(collection(db, 'events'), ...constraints)
           const snapshot = await getDocs(q)
 
           if (!snapshot.empty) {
@@ -142,7 +146,7 @@ export default function EventDetailPage() {
     }
 
     fetchEvent()
-  }, [slug])
+  }, [slug, role])
 
   if (loading) {
     return (
