@@ -1,10 +1,10 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Select from 'react-select'
 import { useEvents, KATEGORIEN, BEZIRKE } from '../hooks/useEvents'
 import { useAuth } from '../hooks/useAuth'
 import { uploadImage, getImageDimensions, validateAspectRatio } from '../lib/imageUpload'
-import { ArrowLeft, Save, Image, X } from 'lucide-react'
+import { ArrowLeft, Save, Image, X, Info } from 'lucide-react'
 import ConfirmDialog from './ConfirmDialog'
 import './EventForm.css'
 
@@ -77,6 +77,17 @@ export default function EventForm({ event }) {
     return isAdmin ? 'Event erstellen' : 'Einreichen zur Genehmigung'
   }
 
+  const recurrenceMinDate = useMemo(() => {
+    return formData.date || ''
+  }, [formData.date])
+
+  const recurrenceMaxDate = useMemo(() => {
+    if (!formData.date) return ''
+    const eventDate = new Date(formData.date + 'T12:00:00')
+    eventDate.setFullYear(eventDate.getFullYear() + 1)
+    return eventDate.toISOString().split('T')[0]
+  }, [formData.date])
+
   const validate = () => {
     const newErrors = {}
     if (!formData.title.trim()) newErrors.title = 'Titel ist erforderlich'
@@ -88,6 +99,13 @@ export default function EventForm({ event }) {
     }
     if (formData.contribution === 'fee' && (!formData.fee || formData.fee <= 0)) {
       newErrors.fee = 'Bitte gib einen gültigen Betrag ein'
+    }
+    if (formData.recurrence !== 'none' && formData.recurrenceEndDate && recurrenceMaxDate) {
+      const endRecurrenceDate = new Date(formData.recurrenceEndDate + 'T12:00:00')
+      const maxDate = new Date(recurrenceMaxDate + 'T12:00:00')
+      if (endRecurrenceDate > maxDate) {
+        newErrors.recurrenceEndDate = 'Wiederholung darf maximal 1 Jahr betragen'
+      }
     }
     return newErrors
   }
@@ -522,14 +540,23 @@ export default function EventForm({ event }) {
 
           {formData.recurrence !== 'none' && (
             <div className="form-group">
-              <label htmlFor="recurrenceEndDate">Wiederholung bis (optional)</label>
+              <div className="input-label-row">
+                <label htmlFor="recurrenceEndDate">Wiederholung bis</label>
+                <span className="input-info">
+                  <Info size={14} />
+                  <span>Max. 1 Jahr</span>
+                </span>
+              </div>
               <input
                 id="recurrenceEndDate"
                 name="recurrenceEndDate"
                 type="date"
                 value={formData.recurrenceEndDate}
                 onChange={handleChange}
+                min={recurrenceMinDate}
+                max={recurrenceMaxDate}
               />
+              {errors.recurrenceEndDate && <span className="error-text">{errors.recurrenceEndDate}</span>}
             </div>
           )}
 
