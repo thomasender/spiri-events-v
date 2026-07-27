@@ -123,15 +123,36 @@ export default function EventDetailPage() {
             setError('Event nicht gefunden')
           }
         } else {
-          const constraints = [where('slug', '==', slug)]
-          if (role !== 'Admin') {
-            constraints.push(where('status', '==', 'approved'))
+          let docSnap = null
+          if (role === 'Admin') {
+            const q = query(collection(db, 'events'), where('slug', '==', slug))
+            const snapshot = await getDocs(q)
+            if (!snapshot.empty) {
+              docSnap = snapshot.docs[0]
+            }
+          } else {
+            const approvedQuery = query(
+              collection(db, 'events'),
+              where('slug', '==', slug),
+              where('status', '==', 'approved')
+            )
+            const approvedSnapshot = await getDocs(approvedQuery)
+            if (!approvedSnapshot.empty) {
+              docSnap = approvedSnapshot.docs[0]
+            } else if (user) {
+              const myQuery = query(
+                collection(db, 'events'),
+                where('slug', '==', slug),
+                where('createdBy', '==', user.uid)
+              )
+              const mySnapshot = await getDocs(myQuery)
+              if (!mySnapshot.empty) {
+                docSnap = mySnapshot.docs[0]
+              }
+            }
           }
-          const q = query(collection(db, 'events'), ...constraints)
-          const snapshot = await getDocs(q)
 
-          if (!snapshot.empty) {
-            const docSnap = snapshot.docs[0]
+          if (docSnap) {
             setEvent({ id: docSnap.id, ...docSnap.data() })
           } else {
             setError('Event nicht gefunden')
