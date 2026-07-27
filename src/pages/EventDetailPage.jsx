@@ -108,7 +108,7 @@ export default function EventDetailPage() {
         return
       }
 
-      if (role === null) {
+      if (role === null && user === null) {
         return
       }
 
@@ -171,7 +171,7 @@ export default function EventDetailPage() {
     }
 
     fetchEvent()
-  }, [slug, role])
+  }, [slug, role, user])
 
   if (loading) {
     return (
