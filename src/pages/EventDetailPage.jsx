@@ -108,6 +108,10 @@ export default function EventDetailPage() {
         return
       }
 
+      if (role === null) {
+        return
+      }
+
       try {
         if (isLegacyId(slug)) {
           const docRef = doc(db, 'events', slug)
