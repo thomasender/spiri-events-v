@@ -41,6 +41,7 @@ coverage
 # Misc
 .sass-cache
 playwright-report/
+.playwright-mcp/
 test-results/
 
 # Firebase Admin scripts (contains secrets)
