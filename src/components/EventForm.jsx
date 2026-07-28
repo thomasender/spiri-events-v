@@ -25,6 +25,13 @@ const INITIAL_STATE = {
   bezirk: '',
 };
 
+const normalizeLink = (link) => {
+  const trimmed = link.trim();
+  if (!trimmed) return '';
+  const withProtocol = trimmed.match(/^https?:\/\//i) ? trimmed : 'https://' + trimmed;
+  return withProtocol.replace(/^http:\/\//i, 'https://');
+};
+
 const kategorieOptions = KATEGORIEN.map((k) => ({ value: k, label: k }));
 
 export default function EventForm({ event }) {
@@ -234,7 +241,7 @@ export default function EventForm({ event }) {
       contribution: formData.contribution,
       fee: formData.contribution === 'fee' ? parseFloat(formData.fee) : null,
       description: formData.description.trim(),
-      link: formData.link.trim(),
+      link: normalizeLink(formData.link),
       recurrence: formData.recurrence || 'none',
       recurrenceEndDate: formData.recurrence === 'none' ? '' : formData.recurrenceEndDate || '',
       categories: formData.categories.length > 0 ? formData.categories : ['Sonstiges'],
@@ -298,7 +305,7 @@ export default function EventForm({ event }) {
       contribution: formData.contribution,
       fee: formData.contribution === 'fee' ? parseFloat(formData.fee) : null,
       description: formData.description.trim(),
-      link: formData.link.trim(),
+      link: normalizeLink(formData.link),
       recurrence: formData.recurrence || 'none',
       recurrenceEndDate: formData.recurrence === 'none' ? '' : formData.recurrenceEndDate || '',
       categories: formData.categories.length > 0 ? formData.categories : ['Sonstiges'],
@@ -320,7 +327,7 @@ export default function EventForm({ event }) {
       contribution: formData.contribution,
       fee: formData.contribution === 'fee' ? parseFloat(formData.fee) : null,
       description: formData.description.trim(),
-      link: formData.link.trim(),
+      link: normalizeLink(formData.link),
       recurrence: formData.recurrence || 'none',
       recurrenceEndDate: formData.recurrence === 'none' ? '' : formData.recurrenceEndDate || '',
       categories: formData.categories.length > 0 ? formData.categories : ['Sonstiges'],
