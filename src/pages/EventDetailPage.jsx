@@ -4,7 +4,18 @@ import { Helmet } from 'react-helmet-async';
 import { collection, doc, getDoc, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { isLegacyId } from '../lib/slug';
-import { Calendar, Clock, MapPin, Ticket, ExternalLink, ArrowLeft, Edit2 } from 'lucide-react';
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  Ticket,
+  ExternalLink,
+  ArrowLeft,
+  Edit2,
+  User,
+  Mail,
+  Phone,
+} from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import './EventDetailPage.css';
 
@@ -64,6 +75,10 @@ function formatRecurrence(recurrence, recurrenceEndDate, eventDate) {
     label += ` bis ${endDate.toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })}`;
   }
   return label;
+}
+
+function isContactEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
 function generateEventJsonLd(event) {
@@ -331,6 +346,43 @@ export default function EventDetailPage() {
             <span className="detail-value">{event.place || 'Noch nicht angegeben'}</span>
           </div>
         </div>
+
+        {event.organizer && (event.organizer.firstName || event.organizer.lastName) && (
+          <div className="detail-item" data-testid="event-organizer">
+            <User size={18} className="detail-icon" />
+            <div>
+              <span className="detail-label">Veranstalter</span>
+              <span className="detail-value">
+                {event.organizer.firstName} {event.organizer.lastName}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {event.kontakt && (
+          <div className="detail-item" data-testid="event-kontakt">
+            {isContactEmail(event.kontakt) ? (
+              <Mail size={18} className="detail-icon" />
+            ) : (
+              <Phone size={18} className="detail-icon" />
+            )}
+            <div>
+              <span className="detail-label">Kontakt</span>
+              {isContactEmail(event.kontakt) ? (
+                <a href={`mailto:${event.kontakt}`} className="detail-value detail-link">
+                  {event.kontakt}
+                </a>
+              ) : (
+                <a
+                  href={`tel:${event.kontakt.replace(/\s/g, '')}`}
+                  className="detail-value detail-link"
+                >
+                  {event.kontakt}
+                </a>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {event.description && (

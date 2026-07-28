@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Calendar, Clock, MapPin, Ticket, ExternalLink } from 'lucide-react';
+import { X, Calendar, Clock, MapPin, Ticket, ExternalLink, User, Mail, Phone } from 'lucide-react';
 import './EventModal.css';
 
 function formatDate(dateStr) {
@@ -57,6 +57,10 @@ function formatRecurrence(recurrence, recurrenceEndDate, eventDate) {
     label += ` bis ${endDate.toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })}`;
   }
   return label;
+}
+
+function isContactEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
 export default function EventModal({ event, onClose }) {
@@ -168,6 +172,43 @@ export default function EventModal({ event, onClose }) {
               <span className="detail-value">{event.place}</span>
             </div>
           </div>
+
+          {event.organizer && (event.organizer.firstName || event.organizer.lastName) && (
+            <div className="detail-item">
+              <User size={18} className="detail-icon" />
+              <div>
+                <span className="detail-label">Veranstalter</span>
+                <span className="detail-value">
+                  {event.organizer.firstName} {event.organizer.lastName}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {event.kontakt && (
+            <div className="detail-item">
+              {isContactEmail(event.kontakt) ? (
+                <Mail size={18} className="detail-icon" />
+              ) : (
+                <Phone size={18} className="detail-icon" />
+              )}
+              <div>
+                <span className="detail-label">Kontakt</span>
+                {isContactEmail(event.kontakt) ? (
+                  <a href={`mailto:${event.kontakt}`} className="detail-value detail-link">
+                    {event.kontakt}
+                  </a>
+                ) : (
+                  <a
+                    href={`tel:${event.kontakt.replace(/\s/g, '')}`}
+                    className="detail-value detail-link"
+                  >
+                    {event.kontakt}
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {event.description && (

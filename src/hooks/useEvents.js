@@ -29,6 +29,8 @@ function normalizeEvents(events) {
     categories: event.categories && event.categories.length > 0 ? event.categories : ['Sonstiges'],
     bezirk: event.bezirk || '',
     status: event.status || 'pending',
+    organizer: event.organizer || { firstName: '', lastName: '', email: '' },
+    kontakt: event.kontakt || '',
   }));
 }
 
@@ -216,6 +218,8 @@ export function useEventById(eventId) {
               data.categories && data.categories.length > 0 ? data.categories : ['Sonstiges'],
             bezirk: data.bezirk || '',
             status: data.status || 'pending',
+            organizer: data.organizer || { firstName: '', lastName: '', email: '' },
+            kontakt: data.kontakt || '',
           };
           setEvent(normalized);
         } else {

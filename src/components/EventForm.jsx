@@ -4,7 +4,7 @@ import Select from 'react-select';
 import { useEvents, KATEGORIEN, BEZIRKE } from '../hooks/useEvents';
 import { useAuth } from '../hooks/useAuth';
 import { uploadImage, getImageDimensions, getAspectRatioRecommendation } from '../lib/imageUpload';
-import { ArrowLeft, Save, Image, X, Info } from 'lucide-react';
+import { ArrowLeft, Save, Image, X, Info, User, Mail } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
 import './EventForm.css';
 
@@ -23,7 +23,25 @@ const INITIAL_STATE = {
   recurrenceEndDate: '',
   categories: [],
   bezirk: '',
+  organizer: { firstName: '', lastName: '', email: '' },
+  kontakt: '',
 };
+
+function splitDisplayName(displayName, email) {
+  const trimmed = (displayName || '').trim();
+  if (trimmed) {
+    const parts = trimmed.split(/\s+/);
+    if (parts.length === 1) {
+      return { firstName: parts[0], lastName: '' };
+    }
+    return { firstName: parts[0], lastName: parts.slice(1).join(' ') };
+  }
+  if (email) {
+    const local = email.split('@')[0];
+    return { firstName: local, lastName: '' };
+  }
+  return { firstName: '', lastName: '' };
+}
 
 const normalizeLink = (link) => {
   const trimmed = link.trim();
@@ -47,29 +65,58 @@ const isValidLink = (link) => {
   return domainLike;
 };
 
+const isValidEmail = (email) => {
+  const trimmed = email.trim();
+  if (!trimmed) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
+};
+
 const kategorieOptions = KATEGORIEN.map((k) => ({ value: k, label: k }));
 
 export default function EventForm({ event }) {
-  const [formData, setFormData] = useState(
-    event
-      ? {
-          title: event.title || '',
-          date: event.date || '',
-          time: event.time || '',
-          endTime: event.endTime || '',
-          endDate: event.endDate || '',
-          place: event.place || '',
-          contribution: event.contribution || 'free',
-          fee: event.fee || '',
-          description: event.description || '',
-          link: event.link || '',
-          recurrence: event.recurrence || 'none',
-          recurrenceEndDate: event.recurrenceEndDate || '',
-          categories: event.categories && event.categories.length > 0 ? event.categories : [],
-          bezirk: event.bezirk || '',
-        }
-      : INITIAL_STATE
-  );
+  const { user } = useAuth();
+  const { role } = useAuth();
+  const { addEvent, updateEvent } = useEvents(user);
+
+  const buildInitialState = () => {
+    if (event) {
+      const storedOrganizer = event.organizer || {};
+      return {
+        title: event.title || '',
+        date: event.date || '',
+        time: event.time || '',
+        endTime: event.endTime || '',
+        endDate: event.endDate || '',
+        place: event.place || '',
+        contribution: event.contribution || 'free',
+        fee: event.fee || '',
+        description: event.description || '',
+        link: event.link || '',
+        recurrence: event.recurrence || 'none',
+        recurrenceEndDate: event.recurrenceEndDate || '',
+        categories: event.categories && event.categories.length > 0 ? event.categories : [],
+        bezirk: event.bezirk || '',
+        organizer: {
+          firstName: storedOrganizer.firstName || '',
+          lastName: storedOrganizer.lastName || '',
+          email: storedOrganizer.email || '',
+        },
+        kontakt: event.kontakt || '',
+      };
+    }
+    const { firstName, lastName } = splitDisplayName(user?.displayName, user?.email);
+    return {
+      ...INITIAL_STATE,
+      organizer: {
+        firstName,
+        lastName,
+        email: user?.email || '',
+      },
+      kontakt: user?.email || '',
+    };
+  };
+
+  const [formData, setFormData] = useState(buildInitialState);
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -84,9 +131,6 @@ export default function EventForm({ event }) {
   const [showResubmitConfirmModal, setShowResubmitConfirmModal] = useState(false);
   const [resubmitWarning, setResubmitWarning] = useState(false);
   const fileInputRef = useRef(null);
-  const { user } = useAuth();
-  const { role } = useAuth();
-  const { addEvent, updateEvent } = useEvents(user);
   const navigate = useNavigate();
 
   const isAdmin = role === 'Admin';
@@ -136,6 +180,20 @@ export default function EventForm({ event }) {
     }
     if (!isValidLink(formData.link)) {
       newErrors.link = 'Bitte gib eine gültige URL ein';
+    }
+    if (!formData.organizer.firstName.trim()) {
+      newErrors['organizer.firstName'] = 'Vorname ist erforderlich';
+    }
+    if (!formData.organizer.lastName.trim()) {
+      newErrors['organizer.lastName'] = 'Nachname ist erforderlich';
+    }
+    if (!formData.organizer.email.trim()) {
+      newErrors['organizer.email'] = 'E-Mail ist erforderlich';
+    } else if (!isValidEmail(formData.organizer.email)) {
+      newErrors['organizer.email'] = 'Bitte gib eine gültige E-Mail-Adresse ein';
+    }
+    if (!formData.kontakt.trim()) {
+      newErrors.kontakt = 'Kontakt ist erforderlich';
     }
     return newErrors;
   };
@@ -228,6 +286,17 @@ export default function EventForm({ event }) {
     }
   };
 
+  const handleOrganizerChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      organizer: { ...prev.organizer, [name]: value },
+    }));
+    if (errors[`organizer.${name}`]) {
+      setErrors((prev) => ({ ...prev, [`organizer.${name}`]: null }));
+    }
+  };
+
   const handleCategoriesChange = (selectedOptions) => {
     setFormData((prev) => ({
       ...prev,
@@ -237,6 +306,31 @@ export default function EventForm({ event }) {
       setErrors((prev) => ({ ...prev, categories: null }));
     }
   };
+
+  const buildEventData = (status) => ({
+    title: formData.title.trim(),
+    date: formData.date,
+    time: formData.time || '',
+    endTime: formData.endTime || '',
+    endDate: formData.endDate || '',
+    place: formData.place.trim(),
+    contribution: formData.contribution,
+    fee: formData.contribution === 'fee' ? parseFloat(formData.fee) : null,
+    description: formData.description.trim(),
+    link: normalizeLink(formData.link),
+    recurrence: formData.recurrence || 'none',
+    recurrenceEndDate: formData.recurrence === 'none' ? '' : formData.recurrenceEndDate || '',
+    categories: formData.categories.length > 0 ? formData.categories : ['Sonstiges'],
+    bezirk: formData.bezirk,
+    organizer: {
+      firstName: formData.organizer.firstName.trim(),
+      lastName: formData.organizer.lastName.trim(),
+      email: formData.organizer.email.trim(),
+    },
+    kontakt: formData.kontakt.trim(),
+    imageUrl: null,
+    status,
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -250,24 +344,6 @@ export default function EventForm({ event }) {
       return;
     }
 
-    const eventData = {
-      title: formData.title.trim(),
-      date: formData.date,
-      time: formData.time || '',
-      endTime: formData.endTime || '',
-      endDate: formData.endDate || '',
-      place: formData.place.trim(),
-      contribution: formData.contribution,
-      fee: formData.contribution === 'fee' ? parseFloat(formData.fee) : null,
-      description: formData.description.trim(),
-      link: normalizeLink(formData.link),
-      recurrence: formData.recurrence || 'none',
-      recurrenceEndDate: formData.recurrence === 'none' ? '' : formData.recurrenceEndDate || '',
-      categories: formData.categories.length > 0 ? formData.categories : ['Sonstiges'],
-      bezirk: formData.bezirk,
-      imageUrl: null,
-    };
-
     if (!isAdmin) {
       if (isEdit && wasApproved) {
         setShowResubmitConfirmModal(true);
@@ -275,14 +351,11 @@ export default function EventForm({ event }) {
       } else if (!isEdit) {
         setShowConfirmModal(true);
         return;
-      } else {
-        eventData.status = 'pending';
       }
-    } else {
-      eventData.status = 'approved';
     }
 
-    await saveEvent(eventData);
+    const status = isAdmin ? 'approved' : 'pending';
+    await saveEvent(buildEventData(status));
   };
 
   const saveEvent = async (eventData) => {
@@ -314,49 +387,13 @@ export default function EventForm({ event }) {
   };
 
   const confirmSubmit = () => {
-    const eventData = {
-      title: formData.title.trim(),
-      date: formData.date,
-      time: formData.time || '',
-      endTime: formData.endTime || '',
-      endDate: formData.endDate || '',
-      place: formData.place.trim(),
-      contribution: formData.contribution,
-      fee: formData.contribution === 'fee' ? parseFloat(formData.fee) : null,
-      description: formData.description.trim(),
-      link: normalizeLink(formData.link),
-      recurrence: formData.recurrence || 'none',
-      recurrenceEndDate: formData.recurrence === 'none' ? '' : formData.recurrenceEndDate || '',
-      categories: formData.categories.length > 0 ? formData.categories : ['Sonstiges'],
-      bezirk: formData.bezirk,
-      imageUrl: null,
-      status: 'pending',
-    };
-    saveEvent(eventData);
+    saveEvent(buildEventData('pending'));
   };
 
   const confirmResubmit = () => {
-    const eventData = {
-      title: formData.title.trim(),
-      date: formData.date,
-      time: formData.time || '',
-      endTime: formData.endTime || '',
-      endDate: formData.endDate || '',
-      place: formData.place.trim(),
-      contribution: formData.contribution,
-      fee: formData.contribution === 'fee' ? parseFloat(formData.fee) : null,
-      description: formData.description.trim(),
-      link: normalizeLink(formData.link),
-      recurrence: formData.recurrence || 'none',
-      recurrenceEndDate: formData.recurrence === 'none' ? '' : formData.recurrenceEndDate || '',
-      categories: formData.categories.length > 0 ? formData.categories : ['Sonstiges'],
-      bezirk: formData.bezirk,
-      imageUrl: null,
-      status: 'pending',
-    };
     setShowResubmitConfirmModal(false);
     setResubmitWarning(true);
-    saveEvent(eventData);
+    saveEvent(buildEventData('pending'));
   };
 
   return (
@@ -669,6 +706,96 @@ export default function EventForm({ event }) {
               placeholder="www.example.com oder https://... (Anmeldung oder weitere Infos)"
             />
             {errors.link && <span className="error-text">{errors.link}</span>}
+          </div>
+
+          <div className="form-section-divider">
+            <h3 className="form-section-title">Veranstalter & Kontakt</h3>
+            <p className="form-section-hint">
+              Diese Infos werden den Teilnehmer:innen auf der Event-Seite angezeigt.
+            </p>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="organizer.firstName">Vorname *</label>
+              <div className="input-wrapper">
+                <User size={18} className="input-icon" />
+                <input
+                  id="organizer.firstName"
+                  name="firstName"
+                  type="text"
+                  value={formData.organizer.firstName}
+                  onChange={handleOrganizerChange}
+                  placeholder="Vorname"
+                  autoComplete="given-name"
+                  className={errors['organizer.firstName'] ? 'input-error' : ''}
+                />
+              </div>
+              {errors['organizer.firstName'] && (
+                <span className="error-text">{errors['organizer.firstName']}</span>
+              )}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="organizer.lastName">Nachname *</label>
+              <div className="input-wrapper">
+                <User size={18} className="input-icon" />
+                <input
+                  id="organizer.lastName"
+                  name="lastName"
+                  type="text"
+                  value={formData.organizer.lastName}
+                  onChange={handleOrganizerChange}
+                  placeholder="Nachname"
+                  autoComplete="family-name"
+                  className={errors['organizer.lastName'] ? 'input-error' : ''}
+                />
+              </div>
+              {errors['organizer.lastName'] && (
+                <span className="error-text">{errors['organizer.lastName']}</span>
+              )}
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="organizer.email">E-Mail Veranstalter *</label>
+            <div className="input-wrapper">
+              <Mail size={18} className="input-icon" />
+              <input
+                id="organizer.email"
+                name="email"
+                type="text"
+                inputMode="email"
+                value={formData.organizer.email}
+                onChange={handleOrganizerChange}
+                placeholder="veranstalter@email.de"
+                autoComplete="email"
+                className={errors['organizer.email'] ? 'input-error' : ''}
+              />
+            </div>
+            {errors['organizer.email'] && (
+              <span className="error-text">{errors['organizer.email']}</span>
+            )}
+          </div>
+
+          <div className="form-group">
+            <div className="input-label-row">
+              <label htmlFor="kontakt">Kontakt für Teilnehmer:innen *</label>
+              <span className="input-info">
+                <Info size={14} />
+                <span>E-Mail oder Telefonnummer</span>
+              </span>
+            </div>
+            <input
+              id="kontakt"
+              name="kontakt"
+              type="text"
+              value={formData.kontakt}
+              onChange={handleChange}
+              placeholder="z.B. 0676 1234567 oder kontakt@email.de"
+              className={errors.kontakt ? 'input-error' : ''}
+            />
+            {errors.kontakt && <span className="error-text">{errors.kontakt}</span>}
           </div>
 
           {submitError && <p className="error-text submit-error">{submitError}</p>}
