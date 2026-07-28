@@ -44,7 +44,10 @@ function formatRecurrence(recurrence, recurrenceEndDate) {
     biweekly: 'Jeden zweiten',
     monthly: 'Jeden Monat'
   }
-  let label = labels[recurrence] || recurrence
+  let label = labels[recurrence]
+  if (!label) {
+    label = recurrence.charAt(0).toUpperCase() + recurrence.slice(1)
+  }
   if (recurrenceEndDate) {
     const [year, month, day] = recurrenceEndDate.split('-')
     const endDate = new Date(year, month - 1, day)
