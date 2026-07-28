@@ -15,6 +15,10 @@
     "test:e2e": "playwright test tests/e2e",
     "test:all": "npm run test && npm run test:integration && npm run test:e2e",
     "dev:emulator": "VITE_USE_EMULATORS=true npm run dev",
+    "emulators:start": "bash scripts/start-emulators.sh",
+    "emulators:start:prod": "bash scripts/start-emulators.sh --seed-prod",
+    "seed:dev": "node scripts/seed-dev-data.mjs",
+    "seed:users": "node scripts/import-test-users.mjs",
     "export:prod": "node scripts/export-prod-data.mjs"
   },
   "dependencies": {

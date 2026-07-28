@@ -1,24 +1,24 @@
 #!/usr/bin/env node
-import { initializeApp } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
-
 const AUTH_EMULATOR = 'http://127.0.0.1:9199';
 const PROJECT_ID = 'spirieventsvbg';
 
-process.env.AUTH_EMULATOR_HOST = AUTH_EMULATOR;
-process.env.FIREBASE_PROJECT_ID = PROJECT_ID;
-
-initializeApp({
-  projectId: PROJECT_ID,
-});
-
-const auth = getAuth();
-
 const TEST_USERS = [
+  {
+    email: 'admin@dev.local',
+    password: 'devpassword123',
+    displayName: 'Dev Admin',
+    role: 'Admin',
+  },
+  {
+    email: 'user@dev.local',
+    password: 'devpassword123',
+    displayName: 'Dev User',
+    role: 'User',
+  },
   {
     email: 'admin@test.com',
     password: 'testpassword123',
-    displayName: 'Admin User',
+    displayName: 'Test Admin',
     role: 'Admin',
   },
   {
@@ -38,24 +38,51 @@ const TEST_USERS = [
 async function createUser(user) {
   console.log(`Creating user: ${user.email}...`);
 
-  try {
-    const record = await auth.createUser({
+  const url = `${AUTH_EMULATOR}/identitytoolkit.googleapis.com/v1/accounts:signUp?key=fake-api-key`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
       email: user.email,
       password: user.password,
       displayName: user.displayName,
-    });
+    }),
+  });
 
-    console.log(`  Created: ${record.uid}`);
+  const data = await response.json();
 
-    if (user.role) {
-      await auth.setCustomUserClaims(record.uid, { role: user.role });
-      console.log(`  Set role to: ${user.role}`);
+  if (!response.ok) {
+    if (data.error?.message === 'EMAIL_EXISTS') {
+      console.log(`  Already exists, skipping`);
+      return null;
     }
-
-    return record.uid;
-  } catch (error) {
-    console.error(`  Error: ${error.message}`);
+    console.error(`  Error: ${JSON.stringify(data)}`);
     return null;
+  }
+
+  console.log(`  Created: ${data.localId}`);
+  return data.localId;
+}
+
+async function updateUserRole(uid, role) {
+  console.log(`  Setting role to ${role}...`);
+
+  const url = `${AUTH_EMULATOR}/identitytoolkit.googleapis.com/v1/projects/${PROJECT_ID}/accounts:update?key=fake-api-key`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      localId: uid,
+      customAttributes: JSON.stringify({ role }),
+    }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    console.error(`  Error updating role: ${JSON.stringify(data)}`);
   }
 }
 
@@ -65,7 +92,10 @@ async function main() {
   console.log('');
 
   for (const user of TEST_USERS) {
-    await createUser(user);
+    const uid = await createUser(user);
+    if (uid && user.role) {
+      await updateUserRole(uid, user.role);
+    }
   }
 
   console.log('\nDone! Test users created:');
