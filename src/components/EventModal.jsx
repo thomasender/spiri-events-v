@@ -1,76 +1,80 @@
-import { useState, useEffect } from 'react'
-import { X, Calendar, Clock, MapPin, Ticket, ExternalLink } from 'lucide-react'
-import './EventModal.css'
+import { useState, useEffect } from 'react';
+import { X, Calendar, Clock, MapPin, Ticket, ExternalLink } from 'lucide-react';
+import './EventModal.css';
 
 function formatDate(dateStr) {
-  const [year, month, day] = dateStr.split('-')
-  const date = new Date(year, month - 1, day)
+  const [year, month, day] = dateStr.split('-');
+  const date = new Date(year, month - 1, day);
   return date.toLocaleDateString('de-DE', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
-    year: 'numeric'
-  })
+    year: 'numeric',
+  });
 }
 
 function formatEndDate(startDateStr, endDateStr) {
-  if (!endDateStr) return null
-  const [syear, smonth, sday] = startDateStr.split('-')
-  const [eyear, emonth, eday] = endDateStr.split('-')
-  const start = new Date(syear, smonth - 1, sday)
-  const end = new Date(eyear, emonth - 1, eday)
-  if (start.getFullYear() === end.getFullYear() && start.getMonth() === end.getMonth() && start.getDate() === end.getDate()) {
-    return null
+  if (!endDateStr) return null;
+  const [syear, smonth, sday] = startDateStr.split('-');
+  const [eyear, emonth, eday] = endDateStr.split('-');
+  const start = new Date(syear, smonth - 1, sday);
+  const end = new Date(eyear, emonth - 1, eday);
+  if (
+    start.getFullYear() === end.getFullYear() &&
+    start.getMonth() === end.getMonth() &&
+    start.getDate() === end.getDate()
+  ) {
+    return null;
   }
-  const endDate = new Date(eyear, emonth - 1, eday)
+  const endDate = new Date(eyear, emonth - 1, eday);
   return endDate.toLocaleDateString('de-DE', {
     day: 'numeric',
     month: 'long',
-    year: 'numeric'
-  })
+    year: 'numeric',
+  });
 }
 
 function formatRecurrence(recurrence, recurrenceEndDate) {
-  if (!recurrence || recurrence === 'none') return null
+  if (!recurrence || recurrence === 'none') return null;
   const labels = {
     weekly: 'Jeden',
     biweekly: 'Jeden zweiten',
-    monthly: 'Jeden Monat'
-  }
-  let label = labels[recurrence]
+    monthly: 'Jeden Monat',
+  };
+  let label = labels[recurrence];
   if (!label) {
-    label = recurrence.charAt(0).toUpperCase() + recurrence.slice(1)
+    label = recurrence.charAt(0).toUpperCase() + recurrence.slice(1);
   }
   if (recurrenceEndDate) {
-    const [year, month, day] = recurrenceEndDate.split('-')
-    const endDate = new Date(year, month - 1, day)
-    label += ` bis ${endDate.toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })}`
+    const [year, month, day] = recurrenceEndDate.split('-');
+    const endDate = new Date(year, month - 1, day);
+    label += ` bis ${endDate.toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })}`;
   }
-  return label
+  return label;
 }
 
 export default function EventModal({ event, onClose }) {
-  const [imageLoaded, setImageLoaded] = useState(false)
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   useEffect(() => {
     const handleEscape = (e) => {
-      if (e.key === 'Escape') onClose()
-    }
-    document.addEventListener('keydown', handleEscape)
-    document.body.style.overflow = 'hidden'
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleEscape);
+    document.body.style.overflow = 'hidden';
     return () => {
-      document.removeEventListener('keydown', handleEscape)
-      document.body.style.overflow = ''
-    }
-  }, [onClose])
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = '';
+    };
+  }, [onClose]);
 
-  if (!event) return null
+  if (!event) return null;
 
-  const isFree = event.contribution === 'free'
+  const isFree = event.contribution === 'free';
 
   return (
     <div className="modal-overlay fade-enter" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" onClick={onClose} aria-label="Schließen">
           <X size={24} />
         </button>
@@ -91,8 +95,10 @@ export default function EventModal({ event, onClose }) {
           <div className="modal-meta-row">
             {event.categories && event.categories.length > 0 && (
               <div className="modal-categories">
-                {event.categories.map(cat => (
-                  <span key={cat} className="category-chip">{cat}</span>
+                {event.categories.map((cat) => (
+                  <span key={cat} className="category-chip">
+                    {cat}
+                  </span>
                 ))}
               </div>
             )}
@@ -110,7 +116,8 @@ export default function EventModal({ event, onClose }) {
               <span className="detail-label">Datum</span>
               <span className="detail-value">
                 {formatDate(event.date)}
-                {formatEndDate(event.date, event.endDate) && ` — ${formatEndDate(event.date, event.endDate)}`}
+                {formatEndDate(event.date, event.endDate) &&
+                  ` — ${formatEndDate(event.date, event.endDate)}`}
               </span>
             </div>
           </div>
@@ -121,7 +128,8 @@ export default function EventModal({ event, onClose }) {
               <div>
                 <span className="detail-label">Uhrzeit</span>
                 <span className="detail-value">
-                  {event.time}{event.endTime ? ` — ${event.endTime} Uhr` : ' Uhr'}
+                  {event.time}
+                  {event.endTime ? ` — ${event.endTime} Uhr` : ' Uhr'}
                 </span>
               </div>
             </div>
@@ -132,7 +140,9 @@ export default function EventModal({ event, onClose }) {
               <Calendar size={18} className="detail-icon" />
               <div>
                 <span className="detail-label">Wiederholung</span>
-                <span className="detail-value">{formatRecurrence(event.recurrence, event.recurrenceEndDate)}</span>
+                <span className="detail-value">
+                  {formatRecurrence(event.recurrence, event.recurrenceEndDate)}
+                </span>
               </div>
             </div>
           )}
@@ -174,5 +184,5 @@ export default function EventModal({ event, onClose }) {
         )}
       </div>
     </div>
-  )
+  );
 }

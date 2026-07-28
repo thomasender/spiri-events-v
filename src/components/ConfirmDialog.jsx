@@ -1,6 +1,6 @@
-import { useEffect } from 'react'
-import { X } from 'lucide-react'
-import './ConfirmDialog.css'
+import { useEffect } from 'react';
+import { X } from 'lucide-react';
+import './ConfirmDialog.css';
 
 export default function ConfirmDialog({
   isOpen,
@@ -11,22 +11,22 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel,
   loading = false,
-  danger = false
+  danger = false,
 }) {
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = 'hidden'
+      document.body.style.overflow = 'hidden';
     }
     return () => {
-      document.body.style.overflow = ''
-    }
-  }, [isOpen])
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   return (
     <div className="confirm-overlay fade-enter" onClick={onCancel}>
-      <div className="confirm-dialog" onClick={e => e.stopPropagation()}>
+      <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
         <button className="confirm-close" onClick={onCancel}>
           <X size={20} />
         </button>
@@ -48,5 +48,5 @@ export default function ConfirmDialog({
         </div>
       </div>
     </div>
-  )
+  );
 }

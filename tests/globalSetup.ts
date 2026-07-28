@@ -60,7 +60,9 @@ export default async function globalSetup() {
   const running = await checkEmulatorsRunning();
 
   if (!running) {
-    console.log('Emulators not running. Please start them with: firebase emulators:start --import ./data-export');
+    console.log(
+      'Emulators not running. Please start them with: firebase emulators:start --import ./data-export'
+    );
     console.log('Skipping seed data setup.');
     return;
   }

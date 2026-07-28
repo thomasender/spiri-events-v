@@ -1,11 +1,11 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
-import EventForm from '../../src/components/EventForm'
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import EventForm from '../../src/components/EventForm';
 
 vi.mock('../../src/hooks/useAuth', () => ({
   useAuth: () => ({ user: { uid: 'test' }, role: null }),
-}))
+}));
 
 vi.mock('../../src/hooks/useEvents', () => ({
   useEvents: () => ({
@@ -14,7 +14,7 @@ vi.mock('../../src/hooks/useEvents', () => ({
   }),
   KATEGORIEN: ['Yoga', 'Meditation', 'Tanz', 'Singen', 'Atemarbeit', 'Sonstiges'],
   BEZIRKE: ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz'],
-}))
+}));
 
 describe('EventForm', () => {
   it('renders form title for non-admin', () => {
@@ -22,16 +22,16 @@ describe('EventForm', () => {
       <MemoryRouter>
         <EventForm />
       </MemoryRouter>
-    )
-    expect(screen.getByText('Event zur Genehmigung einreichen')).toBeInTheDocument()
-  })
+    );
+    expect(screen.getByText('Event zur Genehmigung einreichen')).toBeInTheDocument();
+  });
 
   it('renders submit button', () => {
     render(
       <MemoryRouter>
         <EventForm />
       </MemoryRouter>
-    )
-    expect(screen.getByRole('button', { name: /einreichen/i })).toBeInTheDocument()
-  })
-})
+    );
+    expect(screen.getByRole('button', { name: /einreichen/i })).toBeInTheDocument();
+  });
+});

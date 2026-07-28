@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react';
 import {
   collection,
   addDoc,
@@ -11,252 +11,228 @@ import {
   onSnapshot,
   serverTimestamp,
   Timestamp,
-  getFirestore
-} from 'firebase/firestore'
-import { db } from '../lib/firebase'
-import { findUniqueSlug } from '../lib/slug'
-import { useAuth } from './useAuth'
-import { auth } from '../lib/firebase'
-import { getApp } from 'firebase/app'
+  getFirestore,
+} from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { findUniqueSlug } from '../lib/slug';
+import { useAuth } from './useAuth';
+import { auth } from '../lib/firebase';
+import { getApp } from 'firebase/app';
 
-export const KATEGORIEN = [
-  'Yoga',
-  'Meditation',
-  'Tanz',
-  'Singen',
-  'Atemarbeit',
-  'Sonstiges'
-]
+export const KATEGORIEN = ['Yoga', 'Meditation', 'Tanz', 'Singen', 'Atemarbeit', 'Sonstiges'];
 
-export const BEZIRKE = [
-  'Bregenz',
-  'Dornbirn',
-  'Feldkirch',
-  'Bludenz'
-]
+export const BEZIRKE = ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz'];
 
 function normalizeEvents(events) {
-  return events.map(event => ({
+  return events.map((event) => ({
     ...event,
-    categories: event.categories && event.categories.length > 0
-      ? event.categories
-      : ['Sonstiges'],
+    categories: event.categories && event.categories.length > 0 ? event.categories : ['Sonstiges'],
     bezirk: event.bezirk || '',
-    status: event.status || 'pending'
-  }))
+    status: event.status || 'pending',
+  }));
 }
 
 export function useEvents(user) {
-  const [events, setEvents] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    setLoading(true)
-    setEvents([])
+    setLoading(true);
+    setEvents([]);
 
     if (!user) {
-      setLoading(false)
-      return
+      setLoading(false);
+      return;
     }
 
-    const q = query(
-      collection(db, 'events'),
-      where('createdBy', '==', user.uid)
-    )
+    const q = query(collection(db, 'events'), where('createdBy', '==', user.uid));
 
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const eventData = snapshot.docs.map(doc => ({
+        const eventData = snapshot.docs.map((doc) => ({
           id: doc.id,
-          ...doc.data()
-        }))
-        const normalized = normalizeEvents(eventData)
-        normalized.sort((a, b) => (a.date > b.date ? 1 : -1))
-        setEvents(normalized)
-        setLoading(false)
-        setError(null)
+          ...doc.data(),
+        }));
+        const normalized = normalizeEvents(eventData);
+        normalized.sort((a, b) => (a.date > b.date ? 1 : -1));
+        setEvents(normalized);
+        setLoading(false);
+        setError(null);
       },
       (err) => {
-        console.error('useEvents error:', err)
-        setError(err.message)
-        setLoading(false)
+        console.error('useEvents error:', err);
+        setError(err.message);
+        setLoading(false);
       }
-    )
+    );
 
-    return unsubscribe
-  }, [user])
+    return unsubscribe;
+  }, [user]);
 
   const addEvent = async (eventData, status = 'pending') => {
-    const slug = await findUniqueSlug(eventData.title, eventData.place, eventData.date)
+    const slug = await findUniqueSlug(eventData.title, eventData.place, eventData.date);
     return addDoc(collection(db, 'events'), {
       ...eventData,
       slug,
       status,
       createdBy: user.uid,
-      createdAt: serverTimestamp()
-    })
-  }
+      createdAt: serverTimestamp(),
+    });
+  };
 
   const updateEvent = async (id, eventData) => {
-    const ref = doc(db, 'events', id)
+    const ref = doc(db, 'events', id);
     return updateDoc(ref, {
       ...eventData,
-      updatedAt: serverTimestamp()
-    })
-  }
+      updatedAt: serverTimestamp(),
+    });
+  };
 
   const deleteEvent = async (id) => {
-    const ref = doc(db, 'events', id)
-    return deleteDoc(ref)
-  }
+    const ref = doc(db, 'events', id);
+    return deleteDoc(ref);
+  };
 
-  return { events, loading, addEvent, updateEvent, deleteEvent }
+  return { events, loading, addEvent, updateEvent, deleteEvent };
 }
 
 export function usePendingEvents() {
-  const { user, role } = useAuth()
-  const [pendingEvents, setPendingEvents] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const { user, role } = useAuth();
+  const [pendingEvents, setPendingEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    setLoading(true)
-    setPendingEvents([])
+    setLoading(true);
+    setPendingEvents([]);
 
-    let q
+    let q;
     if (role === 'Admin') {
-      q = query(
-        collection(db, 'events'),
-        where('status', '==', 'pending')
-      )
+      q = query(collection(db, 'events'), where('status', '==', 'pending'));
     } else {
       q = query(
         collection(db, 'events'),
         where('status', '==', 'pending'),
         where('createdBy', '==', user.uid)
-      )
+      );
     }
 
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const eventData = snapshot.docs.map(doc => ({
+        const eventData = snapshot.docs.map((doc) => ({
           id: doc.id,
-          ...doc.data()
-        }))
-        const normalized = normalizeEvents(eventData)
-        normalized.sort((a, b) => (a.date > b.date ? 1 : -1))
-        setPendingEvents(normalized)
-        setLoading(false)
-        setError(null)
+          ...doc.data(),
+        }));
+        const normalized = normalizeEvents(eventData);
+        normalized.sort((a, b) => (a.date > b.date ? 1 : -1));
+        setPendingEvents(normalized);
+        setLoading(false);
+        setError(null);
       },
       (err) => {
-        console.error('usePendingEvents error:', err)
-        setError(err.message)
-        setLoading(false)
+        console.error('usePendingEvents error:', err);
+        setError(err.message);
+        setLoading(false);
       }
-    )
+    );
 
-    return unsubscribe
-  }, [user, role])
+    return unsubscribe;
+  }, [user, role]);
 
   const approveEvent = async (eventId) => {
     if (auth.currentUser) {
-      await auth.currentUser.getIdToken(true)
+      await auth.currentUser.getIdToken(true);
     }
-    const freshDb = getFirestore(getApp())
-    const ref = doc(freshDb, 'events', eventId)
+    const freshDb = getFirestore(getApp());
+    const ref = doc(freshDb, 'events', eventId);
     return updateDoc(ref, {
       status: 'approved',
       approvedBy: user.uid,
       approvedAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    })
-  }
+      updatedAt: serverTimestamp(),
+    });
+  };
 
-  return { pendingEvents, loading, approveEvent }
+  return { pendingEvents, loading, approveEvent };
 }
 
 export function useAllEvents() {
-  const [events, setEvents] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const q = query(
-      collection(db, 'events'),
-      where('status', '==', 'approved')
-    )
+    const q = query(collection(db, 'events'), where('status', '==', 'approved'));
 
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const eventData = snapshot.docs.map(doc => ({
+        const eventData = snapshot.docs.map((doc) => ({
           id: doc.id,
-          ...doc.data()
-        }))
-        const normalized = normalizeEvents(eventData)
-        normalized.sort((a, b) => (a.date > b.date ? 1 : -1))
-        setEvents(normalized)
-        setLoading(false)
-        setError(null)
+          ...doc.data(),
+        }));
+        const normalized = normalizeEvents(eventData);
+        normalized.sort((a, b) => (a.date > b.date ? 1 : -1));
+        setEvents(normalized);
+        setLoading(false);
+        setError(null);
       },
       (err) => {
-        setError(err.message)
-        setLoading(false)
+        setError(err.message);
+        setLoading(false);
       }
-    )
+    );
 
-    return unsubscribe
-  }, [])
+    return unsubscribe;
+  }, []);
 
-  return { events, loading, error }
+  return { events, loading, error };
 }
 
 export function useEventById(eventId) {
-  const [event, setEvent] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [event, setEvent] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!eventId) {
-      setLoading(false)
-      return
+      setLoading(false);
+      return;
     }
 
-    const docRef = doc(db, 'events', eventId)
+    const docRef = doc(db, 'events', eventId);
     const unsubscribe = onSnapshot(
       docRef,
       (docSnap) => {
         if (docSnap.exists()) {
-          const data = docSnap.data()
+          const data = docSnap.data();
           const normalized = {
             id: docSnap.id,
             ...data,
-            categories: data.categories && data.categories.length > 0
-              ? data.categories
-              : ['Sonstiges'],
+            categories:
+              data.categories && data.categories.length > 0 ? data.categories : ['Sonstiges'],
             bezirk: data.bezirk || '',
-            status: data.status || 'pending'
-          }
-          setEvent(normalized)
+            status: data.status || 'pending',
+          };
+          setEvent(normalized);
         } else {
-          setEvent(null)
+          setEvent(null);
         }
-        setLoading(false)
-        setError(null)
+        setLoading(false);
+        setError(null);
       },
       (err) => {
-        console.error('useEventById error:', err)
-        setError(err.message)
-        setLoading(false)
+        console.error('useEventById error:', err);
+        setError(err.message);
+        setLoading(false);
       }
-    )
+    );
 
-    return unsubscribe
-  }, [eventId])
+    return unsubscribe;
+  }, [eventId]);
 
-  return { event, loading, error }
+  return { event, loading, error };
 }

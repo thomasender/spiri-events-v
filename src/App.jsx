@@ -1,27 +1,27 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { HelmetProvider } from 'react-helmet-async'
-import { useAuth } from './hooks/useAuth'
-import Header from './components/Header'
-import Footer from './components/Footer'
-import CalendarPage from './pages/CalendarPage'
-import LoginPage from './pages/LoginPage'
-import AdminPage from './pages/AdminPage'
-import EventFormPage from './pages/EventFormPage'
-import LegalPage from './pages/LegalPage'
-import EventDetailPage from './pages/EventDetailPage'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
+import { useAuth } from './hooks/useAuth';
+import Header from './components/Header';
+import Footer from './components/Footer';
+import CalendarPage from './pages/CalendarPage';
+import LoginPage from './pages/LoginPage';
+import AdminPage from './pages/AdminPage';
+import EventFormPage from './pages/EventFormPage';
+import LegalPage from './pages/LegalPage';
+import EventDetailPage from './pages/EventDetailPage';
 
 function ProtectedRoute({ children }) {
-  const { user, loading } = useAuth()
+  const { user, loading } = useAuth();
 
   if (loading) {
-    return <div className="loading-spinner"></div>
+    return <div className="loading-spinner"></div>;
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />
+    return <Navigate to="/login" replace />;
   }
 
-  return children
+  return children;
 }
 
 function AppContent() {
@@ -64,7 +64,7 @@ function AppContent() {
       </main>
       <Footer />
     </div>
-  )
+  );
 }
 
 export default function App() {
@@ -74,5 +74,5 @@ export default function App() {
         <AppContent />
       </BrowserRouter>
     </HelmetProvider>
-  )
+  );
 }

@@ -1,16 +1,16 @@
-import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../hooks/useAuth'
-import { Calendar, LogOut, User, PlusCircle } from 'lucide-react'
-import './Header.css'
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
+import { Calendar, LogOut, User, PlusCircle } from 'lucide-react';
+import './Header.css';
 
 export default function Header() {
-  const { user, logout } = useAuth()
-  const navigate = useNavigate()
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
-    await logout()
-    navigate('/')
-  }
+    await logout();
+    navigate('/');
+  };
 
   return (
     <header className="header">
@@ -18,11 +18,11 @@ export default function Header() {
         <Link to="/" className="logo">
           <div className="logo-icon">
             <svg viewBox="0 0 100 100" fill="none">
-              <circle cx="50" cy="50" r="45" stroke="currentColor" strokeWidth="2"/>
-              <circle cx="50" cy="50" r="20" stroke="currentColor" strokeWidth="1.5"/>
-              <circle cx="50" cy="35" r="4" fill="currentColor"/>
-              <circle cx="35" cy="60" r="4" fill="currentColor"/>
-              <circle cx="65" cy="60" r="4" fill="currentColor"/>
+              <circle cx="50" cy="50" r="45" stroke="currentColor" strokeWidth="2" />
+              <circle cx="50" cy="50" r="20" stroke="currentColor" strokeWidth="1.5" />
+              <circle cx="50" cy="35" r="4" fill="currentColor" />
+              <circle cx="35" cy="60" r="4" fill="currentColor" />
+              <circle cx="65" cy="60" r="4" fill="currentColor" />
             </svg>
           </div>
           <div className="logo-text">
@@ -59,5 +59,5 @@ export default function Header() {
         )}
       </nav>
     </header>
-  )
+  );
 }

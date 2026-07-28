@@ -11,7 +11,7 @@ export async function waitFor(url: string, options: { timeout?: number } = {}): 
     } catch {
       // ignore
     }
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
   }
 
   throw new Error(`Timeout waiting for ${url}`);

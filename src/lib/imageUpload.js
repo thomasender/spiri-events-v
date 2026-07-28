@@ -4,7 +4,7 @@
  * No authentication required for basic uploads
  */
 
-const IMGBB_API_URL = "https://api.imgbb.com/1/upload";
+const IMGBB_API_URL = 'https://api.imgbb.com/1/upload';
 
 const TARGET_ASPECT_RATIO = 16 / 9;
 const ASPECT_RATIO_TOLERANCE = 0.1;
@@ -43,23 +43,20 @@ export async function uploadImage(file, maxSizeKB = 500) {
   const base64 = await blobToBase64(compressedBlob);
 
   // ImgBB expects raw base64 without the "data:image/...;base64," prefix
-  const base64Data = base64.split(",")[1];
+  const base64Data = base64.split(',')[1];
 
   // Build form data
   const formData = new FormData();
-  formData.append("image", base64Data);
+  formData.append('image', base64Data);
 
   // Upload to ImgBB
-  const response = await fetch(
-    `${IMGBB_API_URL}?key=3db7dc19a9f9068d0c780b6b63126d32`,
-    {
-      method: "POST",
-      body: formData,
-    },
-  );
+  const response = await fetch(`${IMGBB_API_URL}?key=3db7dc19a9f9068d0c780b6b63126d32`, {
+    method: 'POST',
+    body: formData,
+  });
 
   if (!response.ok) {
-    throw new Error("Bild-Upload fehlgeschlagen");
+    throw new Error('Bild-Upload fehlgeschlagen');
   }
 
   const data = await response.json();
@@ -67,7 +64,7 @@ export async function uploadImage(file, maxSizeKB = 500) {
   if (data.success) {
     return data.data.url;
   } else {
-    throw new Error("Bild-Upload fehlgeschlagen");
+    throw new Error('Bild-Upload fehlgeschlagen');
   }
 }
 
@@ -81,7 +78,7 @@ function compressImage(file, maxSizeKB = 500) {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
-      const canvas = document.createElement("canvas");
+      const canvas = document.createElement('canvas');
       let { width, height } = img;
 
       // Scale down if needed
@@ -98,22 +95,22 @@ function compressImage(file, maxSizeKB = 500) {
 
       canvas.width = width;
       canvas.height = height;
-      const ctx = canvas.getContext("2d");
+      const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, width, height);
 
       // Try quality 0.8 first, then lower if needed
       let quality = 0.8;
-      let dataUrl = canvas.toDataURL("image/jpeg", quality);
+      let dataUrl = canvas.toDataURL('image/jpeg', quality);
 
       // Base64 is ~37% larger than binary, so check accordingly
       while (dataUrl.length > maxSizeKB * 1024 * 1.37 && quality > 0.2) {
         quality -= 0.1;
-        dataUrl = canvas.toDataURL("image/jpeg", quality);
+        dataUrl = canvas.toDataURL('image/jpeg', quality);
       }
 
       // Convert data URL to blob
-      const byteString = atob(dataUrl.split(",")[1]);
-      const mimeType = "image/jpeg";
+      const byteString = atob(dataUrl.split(',')[1]);
+      const mimeType = 'image/jpeg';
       const ab = new ArrayBuffer(byteString.length);
       const ia = new Uint8Array(ab);
       for (let i = 0; i < byteString.length; i++) {

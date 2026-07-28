@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
-import EventModal from '../../src/components/EventModal'
+import { describe, it, expect } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import EventModal from '../../src/components/EventModal';
 
 const mockEvent = {
   id: '1',
@@ -12,16 +12,16 @@ const mockEvent = {
   contribution: 'free',
   description: 'Test description',
   categories: ['Yoga'],
-}
+};
 
 describe('EventModal', () => {
   it('renders event title', () => {
-    render(<EventModal event={mockEvent} onClose={() => {}} />)
-    expect(screen.getByText('Test Event')).toBeInTheDocument()
-  })
+    render(<EventModal event={mockEvent} onClose={() => {}} />);
+    expect(screen.getByText('Test Event')).toBeInTheDocument();
+  });
 
   it('renders close button', () => {
-    render(<EventModal event={mockEvent} onClose={() => {}} />)
-    expect(screen.getByRole('button')).toBeInTheDocument()
-  })
-})
+    render(<EventModal event={mockEvent} onClose={() => {}} />);
+    expect(screen.getByRole('button')).toBeInTheDocument();
+  });
+});

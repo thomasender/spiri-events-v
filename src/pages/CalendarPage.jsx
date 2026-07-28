@@ -1,12 +1,12 @@
-import { useState, useMemo, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Helmet } from "react-helmet-async";
-import { useAllEvents, KATEGORIEN, BEZIRKE } from "../hooks/useEvents";
-import Calendar from "../components/Calendar";
-import { Filter } from "lucide-react";
-import "./CalendarPage.css";
+import { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
+import { useAllEvents, KATEGORIEN, BEZIRKE } from '../hooks/useEvents';
+import Calendar from '../components/Calendar';
+import { Filter } from 'lucide-react';
+import './CalendarPage.css';
 
-const STORAGE_KEY = "calendarFilterState";
+const STORAGE_KEY = 'calendarFilterState';
 
 function loadFilterState() {
   try {
@@ -28,14 +28,12 @@ export default function CalendarPage() {
   const navigate = useNavigate();
   const savedState = loadFilterState();
   const [currentMonth, setCurrentMonth] = useState(
-    savedState?.currentMonth ? new Date(savedState.currentMonth) : new Date(),
+    savedState?.currentMonth ? new Date(savedState.currentMonth) : new Date()
   );
   const [selectedCategories, setSelectedCategories] = useState(
-    savedState?.selectedCategories || KATEGORIEN,
+    savedState?.selectedCategories || KATEGORIEN
   );
-  const [selectedBezirke, setSelectedBezirke] = useState(
-    savedState?.selectedBezirke || [],
-  );
+  const [selectedBezirke, setSelectedBezirke] = useState(savedState?.selectedBezirke || []);
   const [showFilters, setShowFilters] = useState(savedState?.showFilters || false);
   const { events, loading, error } = useAllEvents();
 
@@ -55,9 +53,7 @@ export default function CalendarPage() {
 
   const toggleCategory = (category) => {
     setSelectedCategories((prev) =>
-      prev.includes(category)
-        ? prev.filter((c) => c !== category)
-        : [...prev, category],
+      prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category]
     );
   };
 
@@ -71,9 +67,7 @@ export default function CalendarPage() {
 
   const toggleBezirk = (bezirk) => {
     setSelectedBezirke((prev) =>
-      prev.includes(bezirk)
-        ? prev.filter((b) => b !== bezirk)
-        : [...prev, bezirk],
+      prev.includes(bezirk) ? prev.filter((b) => b !== bezirk) : [...prev, bezirk]
     );
   };
 
@@ -90,10 +84,8 @@ export default function CalendarPage() {
     return events.filter((event) => {
       const categoryMatch =
         selectedCategories.length === 0 ||
-        (event.categories &&
-          event.categories.some((cat) => selectedCategories.includes(cat)));
-      const bezirkMatch =
-        selectedBezirke.length === 0 || selectedBezirke.includes(event.bezirk);
+        (event.categories && event.categories.some((cat) => selectedCategories.includes(cat)));
+      const bezirkMatch = selectedBezirke.length === 0 || selectedBezirke.includes(event.bezirk);
       return categoryMatch && bezirkMatch;
     });
   }, [events, selectedCategories, selectedBezirke, showFilters]);
@@ -119,10 +111,7 @@ export default function CalendarPage() {
 
       <div className="calendar-wrapper">
         <div className="filter-bar">
-          <button
-            className="filter-toggle-btn"
-            onClick={() => setShowFilters(!showFilters)}
-          >
+          <button className="filter-toggle-btn" onClick={() => setShowFilters(!showFilters)}>
             <Filter size={18} />
             <span>Filter</span>
             {selectedCategories.length < KATEGORIEN.length && (
@@ -164,7 +153,7 @@ export default function CalendarPage() {
               {BEZIRKE.map((bezirk) => (
                 <label
                   key={bezirk}
-                  className={`filter-checkbox ${selectedBezirke.includes(bezirk) ? "active" : ""}`}
+                  className={`filter-checkbox ${selectedBezirke.includes(bezirk) ? 'active' : ''}`}
                 >
                   <input
                     type="checkbox"
@@ -184,8 +173,8 @@ export default function CalendarPage() {
           <div className="calendar-error">
             <h3>Verbindungsfehler</h3>
             <p>
-              Kalender konnte nicht geladen werden. Bitte überprüfe deine
-              Firebase Konfiguration und Firestore Regeln.
+              Kalender konnte nicht geladen werden. Bitte überprüfe deine Firebase Konfiguration und
+              Firestore Regeln.
             </p>
             <p className="error-detail">{error}</p>
           </div>

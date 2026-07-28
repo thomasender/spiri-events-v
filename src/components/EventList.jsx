@@ -1,78 +1,80 @@
-import { Link } from 'react-router-dom'
-import { useEvents, usePendingEvents } from '../hooks/useEvents'
-import { useAuth } from '../hooks/useAuth'
-import { PlusCircle, Edit2, Trash2, Calendar, MapPin, Eye, CheckCircle } from 'lucide-react'
-import ConfirmDialog from './ConfirmDialog'
-import StatusBadge from './StatusBadge'
-import { useState } from 'react'
-import './EventList.css'
+import { Link } from 'react-router-dom';
+import { useEvents, usePendingEvents } from '../hooks/useEvents';
+import { useAuth } from '../hooks/useAuth';
+import { PlusCircle, Edit2, Trash2, Calendar, MapPin, Eye, CheckCircle } from 'lucide-react';
+import ConfirmDialog from './ConfirmDialog';
+import StatusBadge from './StatusBadge';
+import { useState } from 'react';
+import './EventList.css';
 
 function formatDate(dateStr) {
-  const [year, month, day] = dateStr.split('-')
-  const date = new Date(year, month - 1, day)
+  const [year, month, day] = dateStr.split('-');
+  const date = new Date(year, month - 1, day);
   return date.toLocaleDateString('de-DE', {
     day: 'numeric',
     month: 'short',
-    year: 'numeric'
-  })
+    year: 'numeric',
+  });
 }
 
 function formatEndDate(startDateStr, endDateStr) {
-  if (!endDateStr) return null
-  const [syear, smonth, sday] = startDateStr.split('-')
-  const [eyear, emonth, eday] = endDateStr.split('-')
-  const start = new Date(syear, smonth - 1, sday)
-  const end = new Date(eyear, emonth - 1, eday)
-  if (start.getFullYear() === end.getFullYear() && start.getMonth() === end.getMonth() && start.getDate() === end.getDate()) {
-    return null
+  if (!endDateStr) return null;
+  const [syear, smonth, sday] = startDateStr.split('-');
+  const [eyear, emonth, eday] = endDateStr.split('-');
+  const start = new Date(syear, smonth - 1, sday);
+  const end = new Date(eyear, emonth - 1, eday);
+  if (
+    start.getFullYear() === end.getFullYear() &&
+    start.getMonth() === end.getMonth() &&
+    start.getDate() === end.getDate()
+  ) {
+    return null;
   }
-  const endDate = new Date(eyear, emonth - 1, eday)
+  const endDate = new Date(eyear, emonth - 1, eday);
   return endDate.toLocaleDateString('de-DE', {
     day: 'numeric',
     month: 'short',
-    year: 'numeric'
-  })
+    year: 'numeric',
+  });
 }
 
 export default function EventList() {
-  const { user } = useAuth()
-  const { role } = useAuth()
-  const { events, loading, deleteEvent } = useEvents(user)
-  const { pendingEvents, loading: pendingLoading, approveEvent } = usePendingEvents()
-  const [deleteId, setDeleteId] = useState(null)
-  const [deleting, setDeleting] = useState(false)
-  const [approving, setApproving] = useState(null)
+  const { user } = useAuth();
+  const { role } = useAuth();
+  const { events, loading, deleteEvent } = useEvents(user);
+  const { pendingEvents, loading: pendingLoading, approveEvent } = usePendingEvents();
+  const [deleteId, setDeleteId] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [approving, setApproving] = useState(null);
 
-  const isAdmin = role === 'Admin'
+  const isAdmin = role === 'Admin';
 
   const handleDelete = async () => {
-    if (!deleteId) return
-    setDeleting(true)
+    if (!deleteId) return;
+    setDeleting(true);
     try {
-      await deleteEvent(deleteId)
-      setDeleteId(null)
+      await deleteEvent(deleteId);
+      setDeleteId(null);
     } catch (err) {
-      console.error('Delete failed:', err)
+      console.error('Delete failed:', err);
     } finally {
-      setDeleting(false)
+      setDeleting(false);
     }
-  }
+  };
 
   const handleApprove = async (eventId) => {
-    setApproving(eventId)
+    setApproving(eventId);
     try {
-      await approveEvent(eventId)
+      await approveEvent(eventId);
     } catch (err) {
-      console.error('Approve failed:', err)
+      console.error('Approve failed:', err);
     } finally {
-      setApproving(null)
+      setApproving(null);
     }
-  }
+  };
 
   if (loading || pendingLoading) {
-    return (
-      <div className="loading-spinner"></div>
-    )
+    return <div className="loading-spinner"></div>;
   }
 
   const renderEventCard = (event, showStatus = false, showApprove = false) => (
@@ -82,7 +84,9 @@ export default function EventList() {
           <h3>{event.title}</h3>
           <div className="event-card-badges">
             {showStatus && <StatusBadge status={event.status} />}
-            <span className={`badge ${event.contribution === 'free' ? 'badge--free' : 'badge--fee'}`}>
+            <span
+              className={`badge ${event.contribution === 'free' ? 'badge--free' : 'badge--fee'}`}
+            >
               {event.contribution === 'free' ? 'Kostenlos' : `${event.fee} €`}
             </span>
           </div>
@@ -90,8 +94,10 @@ export default function EventList() {
 
         {event.categories && event.categories.length > 0 && (
           <div className="event-card-categories">
-            {event.categories.map(cat => (
-              <span key={cat} className="category-chip">{cat}</span>
+            {event.categories.map((cat) => (
+              <span key={cat} className="category-chip">
+                {cat}
+              </span>
             ))}
           </div>
         )}
@@ -101,7 +107,8 @@ export default function EventList() {
             <Calendar size={14} />
             <span>
               {formatDate(event.date)}
-              {formatEndDate(event.date, event.endDate) && ` — ${formatEndDate(event.date, event.endDate)}`}
+              {formatEndDate(event.date, event.endDate) &&
+                ` — ${formatEndDate(event.date, event.endDate)}`}
               {event.time && ` • ${event.time}`}
             </span>
           </div>
@@ -126,9 +133,7 @@ export default function EventList() {
         )}
 
         {event.status === 'pending' && !isAdmin && (
-          <p className="event-card-pending-note">
-            Wartet auf Genehmigung durch einen Admin
-          </p>
+          <p className="event-card-pending-note">Wartet auf Genehmigung durch einen Admin</p>
         )}
       </Link>
 
@@ -151,16 +156,13 @@ export default function EventList() {
           <Edit2 size={16} />
           <span>Bearbeiten</span>
         </Link>
-        <button
-          onClick={() => setDeleteId(event.id)}
-          className="btn btn-danger btn-sm"
-        >
+        <button onClick={() => setDeleteId(event.id)} className="btn btn-danger btn-sm">
           <Trash2 size={16} />
           <span>Löschen</span>
         </button>
       </div>
     </div>
-  )
+  );
 
   const renderEmptyState = (title, message, showCreateButton = true) => (
     <div className="event-list-empty">
@@ -176,11 +178,11 @@ export default function EventList() {
         </Link>
       )}
     </div>
-  )
+  );
 
   if (isAdmin) {
-    const myEvents = events.filter(e => e.createdBy === user.uid)
-    const allPending = pendingEvents
+    const myEvents = events.filter((e) => e.createdBy === user.uid);
+    const allPending = pendingEvents;
 
     return (
       <div className="event-list-page">
@@ -199,7 +201,9 @@ export default function EventList() {
           <section className="event-list-section">
             <h2>Ausstehende Genehmigungen</h2>
             <div className="event-list-grid">
-              {allPending.map(event => renderEventCard(event, true, event.createdBy !== user.uid))}
+              {allPending.map((event) =>
+                renderEventCard(event, true, event.createdBy !== user.uid)
+              )}
             </div>
           </section>
         )}
@@ -216,10 +220,15 @@ export default function EventList() {
         <section className="event-list-section">
           <h2>Meine Events</h2>
           {myEvents.length === 0 ? (
-            renderEmptyState('Noch keine Events', 'Erstelle dein erstes Event und teile es mit der Community.')
+            renderEmptyState(
+              'Noch keine Events',
+              'Erstelle dein erstes Event und teile es mit der Community.'
+            )
           ) : (
             <div className="event-list-grid">
-              {[...myEvents].sort((a, b) => (a.status === 'pending' ? -1 : 1)).map(event => renderEventCard(event, true))}
+              {[...myEvents]
+                .sort((a, b) => (a.status === 'pending' ? -1 : 1))
+                .map((event) => renderEventCard(event, true))}
             </div>
           )}
         </section>
@@ -235,7 +244,7 @@ export default function EventList() {
           loading={deleting}
         />
       </div>
-    )
+    );
   }
 
   return (
@@ -252,11 +261,12 @@ export default function EventList() {
       </div>
 
       {events.length === 0 ? (
-        renderEmptyState('Noch keine Events', 'Erstelle dein erstes Event und teile es mit der Community.')
+        renderEmptyState(
+          'Noch keine Events',
+          'Erstelle dein erstes Event und teile es mit der Community.'
+        )
       ) : (
-        <div className="event-list-grid">
-          {events.map(event => renderEventCard(event, true))}
-        </div>
+        <div className="event-list-grid">{events.map((event) => renderEventCard(event, true))}</div>
       )}
 
       <ConfirmDialog
@@ -270,5 +280,5 @@ export default function EventList() {
         loading={deleting}
       />
     </div>
-  )
+  );
 }

@@ -1,5 +1,5 @@
-import { useParams, Link } from 'react-router-dom'
-import './LegalPage.css'
+import { useParams, Link } from 'react-router-dom';
+import './LegalPage.css';
 
 const content = {
   datenschutz: {
@@ -11,7 +11,7 @@ const content = {
         text: `Verantwortlicher für die Verarbeitung personenbezogener Daten im Sinne der DSGVO ist:
 
 Spirituelle Events Vorarlberg
-E-Mail: thomas@blissofkundalini.yoga`
+E-Mail: thomas@blissofkundalini.yoga`,
       },
       {
         heading: '2. Welche Daten wir erheben',
@@ -28,7 +28,7 @@ E-Mail: thomas@blissofkundalini.yoga`
 - Link (optional)
 - Bild (optional, max. 500KB)
 
-Diese Daten werden in Firestore (Firebase) gespeichert. Event-Bilder werden an den Drittanbieter ImgBB (imgbb.com) übermittelt und dort gehostet.`
+Diese Daten werden in Firestore (Firebase) gespeichert. Event-Bilder werden an den Drittanbieter ImgBB (imgbb.com) übermittelt und dort gehostet.`,
       },
       {
         heading: '3. Zweck und Rechtsgrundlage der Verarbeitung',
@@ -40,13 +40,13 @@ Diese Daten werden in Firestore (Firebase) gespeichert. Event-Bilder werden an d
 
 **Berechtigte Interessen (Art. 6 Abs. 1 lit. f DSGVO):**
 - Bereitstellung der App-Funktionalität
-- Sicherstellung des ordnungsgemäßen Betriebs`
+- Sicherstellung des ordnungsgemäßen Betriebs`,
       },
       {
         heading: '4. Keine Weitergabe an Dritte',
         text: `Wir geben Ihre personenbezogenen Daten nicht an Dritte weiter. Ihre Daten werden nicht verkauft, vermietet oder in sonstiger Weise an externe Unternehmen oder Organisationen übermittelt.
 
-Firebase (Google) fungiert als Auftragsverarbeiter und erhält Ihre Daten nur insoweit, als dies für die Bereitstellung der Authentifizierungs- und Datenbankdienste erforderlich ist.`
+Firebase (Google) fungiert als Auftragsverarbeiter und erhält Ihre Daten nur insoweit, als dies für die Bereitstellung der Authentifizierungs- und Datenbankdienste erforderlich ist.`,
       },
       {
         heading: '5. Speicherdauer',
@@ -55,7 +55,7 @@ Firebase (Google) fungiert als Auftragsverarbeiter und erhält Ihre Daten nur in
 - **Account-Daten:** Werden gelöscht, sobald Sie Ihr Konto löschen
 - **Events:** Werden gelöscht, wenn Sie diese löschen oder Ihr Konto entfernen lassen
 
-Nach einer Löschunganfrage werden die Daten innerhalb von 30 Tagen entfernt.`
+Nach einer Löschunganfrage werden die Daten innerhalb von 30 Tagen entfernt.`,
       },
       {
         heading: '6. Ihre Rechte',
@@ -68,11 +68,11 @@ Nach einer Löschunganfrage werden die Daten innerhalb von 30 Tagen entfernt.`
 - **Widerspruchsrecht (Art. 21 DSGVO):** Sie können der Verarbeitung widersprechen
 - **Recht auf Datenübertragbarkeit (Art. 20 DSGVO):** Sie können Ihre Daten in einem gängigen Format erhalten
 
-Um Ihre Rechte auszuüben, senden Sie eine E-Mail an kontakt@spirituelle-events-vorarlberg.at`
+Um Ihre Rechte auszuüben, senden Sie eine E-Mail an kontakt@spirituelle-events-vorarlberg.at`,
       },
       {
         heading: '7. Kein Tracking oder Analytics',
-        text: `Diese App verwendet keine Tracking-Dienste, Cookies zu Werbezwecken oder Analyse-Tools. Es werden keine Daten über Ihr Nutzungsverhalten erhoben oder gespeichert.`
+        text: `Diese App verwendet keine Tracking-Dienste, Cookies zu Werbezwecken oder Analyse-Tools. Es werden keine Daten über Ihr Nutzungsverhalten erhoben oder gespeichert.`,
       },
       {
         heading: '8. Datensicherheit',
@@ -80,7 +80,7 @@ Um Ihre Rechte auszuüben, senden Sie eine E-Mail an kontakt@spirituelle-events-
 
 - Firebase Authentication für sichere Authentifizierung
 - Firestore Zugriffsregeln, die sicherstellen, dass Benutzer nur auf ihre eigenen Daten zugreifen können
-- Verschlüsselte Übertragung (HTTPS/TLS)`
+- Verschlüsselte Übertragung (HTTPS/TLS)`,
       },
       {
         heading: '9. Firebase (Google) als Auftragsverarbeiter',
@@ -90,7 +90,7 @@ Um Ihre Rechte auszuüben, senden Sie eine E-Mail an kontakt@spirituelle-events-
 
 Die Datenverarbeitung durch Firebase erfolgt auf Grundlage eines Auftragsverarbeitungsvertrags gemäß Art. 28 DSGVO. Google verarbeitet Daten ausschließlich nach unserer Weisung und nicht für eigene Zwecke.
 
-Weitere Informationen finden Sie in der Datenschutzerklärung von Google: https://policies.google.com/privacy`
+Weitere Informationen finden Sie in der Datenschutzerklärung von Google: https://policies.google.com/privacy`,
       },
       {
         heading: '10. Externe Bildspeicherung (ImgBB)',
@@ -108,13 +108,13 @@ Weitere Informationen finden Sie in der Datenschutzerklärung von Google: https:
 
 Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich teilen würden, und keine sensiblen personenbezogenen Daten (z.B. Gesichter unkenntlich machen) in den Bildern zu zeigen.
 
-Weitere Informationen finden Sie in der Datenschutzerklärung von ImgBB: https://imgbb.com/privacy`
+Weitere Informationen finden Sie in der Datenschutzerklärung von ImgBB: https://imgbb.com/privacy`,
       },
       {
         heading: '11. Änderungen dieser Datenschutzerklärung',
-        text: `Wir behalten uns vor, diese Datenschutzerklärung bei Änderungen der App oder der Rechtslage anzupassen. Die jeweils aktuelle Version finden Sie immer auf dieser Seite.`
-      }
-    ]
+        text: `Wir behalten uns vor, diese Datenschutzerklärung bei Änderungen der App oder der Rechtslage anzupassen. Die jeweils aktuelle Version finden Sie immer auf dieser Seite.`,
+      },
+    ],
   },
   impressum: {
     title: 'Impressum',
@@ -126,9 +126,9 @@ Weitere Informationen finden Sie in der Datenschutzerklärung von ImgBB: https:/
 
 Thomas Ender
 Starkenfeld 19, 6841 Mäder, Österreich
-E-Mail: kontakt@spirituelle-events-vorarlberg.at`
-      }
-    ]
+E-Mail: kontakt@spirituelle-events-vorarlberg.at`,
+      },
+    ],
   },
   agbs: {
     title: 'Allgemeine Geschäftsbedingungen (AGB)',
@@ -136,7 +136,7 @@ E-Mail: kontakt@spirituelle-events-vorarlberg.at`
     sections: [
       {
         heading: '1. Geltungsbereich',
-        text: `Diese Allgemeinen Geschäftsbedingungen (AGB) gelten für die Nutzung der Web-Anwendung "Spirituelle Events Vorarlberg" (im Folgenden "Plattform" oder "App"). Mit der Registrierung und Nutzung der Plattform erklären Sie sich mit diesen AGB einverstanden. Die AGB sind integraler Bestandteil des Nutzungsvertrags zwischen Ihnen und dem Betreiber der Plattform.`
+        text: `Diese Allgemeinen Geschäftsbedingungen (AGB) gelten für die Nutzung der Web-Anwendung "Spirituelle Events Vorarlberg" (im Folgenden "Plattform" oder "App"). Mit der Registrierung und Nutzung der Plattform erklären Sie sich mit diesen AGB einverstanden. Die AGB sind integraler Bestandteil des Nutzungsvertrags zwischen Ihnen und dem Betreiber der Plattform.`,
       },
       {
         heading: '2. Gegenstand der Plattform',
@@ -147,7 +147,7 @@ Die Plattform bietet Nutzern die Möglichkeit:
 - Veranstaltungen anderer Nutzer anzusehen
 - Sich über Veranstaltungen zu informieren und diese weiterzuempfehlen
 
-Die Plattform ist eine reine Informations- und Vermittlungsplattform. Sie fungiert nicht als Veranstalter der gelisteten Events und ist nicht Vertragspartner für etwaige Vereinbarungen zwischen Event-Erstellern und Teilnehmern.`
+Die Plattform ist eine reine Informations- und Vermittlungsplattform. Sie fungiert nicht als Veranstalter der gelisteten Events und ist nicht Vertragspartner für etwaige Vereinbarungen zwischen Event-Erstellern und Teilnehmern.`,
       },
       {
         heading: '3. Registrierung und Konto',
@@ -158,13 +158,13 @@ Zur Registrierung sind folgende Angaben notwendig:
 - Eine gültige E-Mail-Adresse (für die Authentifizierung)
 - Ein Passwort (mindestens 6 Zeichen)
 
-Sie sind dafür verantwortlich, Ihre Zugangsdaten vertraulich zu halten und vor unbefugtem Zugriff zu schützen. Jede Person, die sich mit Ihren Zugangsdaten anmeldet, gilt als berechtigter Nutzer. Bei Missbrauch oder Verlust der Zugangsdaten informieren Sie uns bitte umgehend.`
+Sie sind dafür verantwortlich, Ihre Zugangsdaten vertraulich zu halten und vor unbefugtem Zugriff zu schützen. Jede Person, die sich mit Ihren Zugangsdaten anmeldet, gilt als berechtigter Nutzer. Bei Missbrauch oder Verlust der Zugangsdaten informieren Sie uns bitte umgehend.`,
       },
       {
         heading: '4. Verifizierung und Verantwortung der Event-Erstatter',
         text: `Die Plattform führt keine systematische Verifizierung der Event-Erstatter durch. Die Erstellung eines Kontos und die Veröffentlichung von Events ist grundsätzlich jeder registrierte Nutzer möglich.
 
-Für den Inhalt und die Richtigkeit der von Ihnen erstellten Events sind Sie selbst verantwortlich. Die Plattform überprüft die Inhalte nicht vor der Veröffentlichung. Eventuelle Unstimmigkeiten, Fehler oder rechtswidrige Inhalte liegen in der alleinigen Verantwortung des jeweiligen Event-Erstatters.`
+Für den Inhalt und die Richtigkeit der von Ihnen erstellten Events sind Sie selbst verantwortlich. Die Plattform überprüft die Inhalte nicht vor der Veröffentlichung. Eventuelle Unstimmigkeiten, Fehler oder rechtswidrige Inhalte liegen in der alleinigen Verantwortung des jeweiligen Event-Erstatters.`,
       },
       {
         heading: '5. Kostenpflichtige Veranstaltungen',
@@ -178,7 +178,7 @@ Für den Inhalt und die Richtigkeit der von Ihnen erstellten Events sind Sie sel
 - Bei kostenpflichtigen Events obliegt es dem Event-Erstatter, die Zahlungsabwicklung eigenverantwortlich und im Einklang mit geltendem Recht zu regeln (z.B. Rechnungslegung, steuerliche Pflichten)
 
 **Empfehlung:**
-Wir empfehlen Event-Erstellern, bei kostenpflichtigen Veranstaltungen klare Zahlungsbedingungen in der Event-Beschreibung anzugeben und geeignete Zahlungswege (z.B. Überweisung, PayPal, etc.) selbst zu organisieren.`
+Wir empfehlen Event-Erstellern, bei kostenpflichtigen Veranstaltungen klare Zahlungsbedingungen in der Event-Beschreibung anzugeben und geeignete Zahlungswege (z.B. Überweisung, PayPal, etc.) selbst zu organisieren.`,
       },
       {
         heading: '6. Inhalte und Verhaltensregeln',
@@ -189,7 +189,7 @@ Wir empfehlen Event-Erstellern, bei kostenpflichtigen Veranstaltungen klare Zahl
 - Die Plattform nicht in einer Weise zu nutzen, die die Stabilität oder Sicherheit der Dienste beeinträchtigt
 - Keine automatisierten Abfragen oder Systeme einzusetzen, die den Betrieb stören könnten
 - Keine Events zu erstellen, die dem Verkauf von Waren oder Dienstleistungen dienen, die nicht im Zusammenhang mit der jeweiligen Veranstaltung stehen
-- Keine personenbezogenen Daten Dritter ohne deren Einwilligung zu veröffentlichen`
+- Keine personenbezogenen Daten Dritter ohne deren Einwilligung zu veröffentlichen`,
       },
       {
         heading: '7. Verantwortung für Event-Inhalte',
@@ -201,7 +201,7 @@ Die Plattform übernimmt keine Gewähr für:
 - Die Qualität, Sicherheit oder Rechtmäßigkeit der angebotenen Veranstaltungen
 - Die Zuverlässigkeit, Seriosität oder Kompetenz der Event-Veranstalter
 
-Sollten Sie einen Inhalt melden wollen (z.B. wegen Rechtswidrigkeit, Irreführung oder Beleidigung), schreiben Sie uns an: kontakt@spirituelle-events-vorarlberg.at. Wir werden den Sachverhalt prüfen und gegebenenfalls den betreffenden Inhalt entfernen.`
+Sollten Sie einen Inhalt melden wollen (z.B. wegen Rechtswidrigkeit, Irreführung oder Beleidigung), schreiben Sie uns an: kontakt@spirituelle-events-vorarlberg.at. Wir werden den Sachverhalt prüfen und gegebenenfalls den betreffenden Inhalt entfernen.`,
       },
       {
         heading: '8. Stornierung und Änderung von Events',
@@ -211,13 +211,13 @@ Sollten Sie einen Inhalt melden wollen (z.B. wegen Rechtswidrigkeit, Irreführun
 - Teilnehmer, die sich angemeldet haben, auf anderem Wege zu informieren (sofern Kontaktmöglichkeiten bestehen)
 - Ggf. eine Rückerstattung bereits gezahlter Teilnahmegebühren zu veranlassen
 
-Die Plattform übernimmt keine Verantwortung für die Kommunikation zwischen Event-Erstellern und Teilnehmern und haftet nicht für Schäden, die aus einer Absage, Verschiebung oder Änderung eines Events entstehen.`
+Die Plattform übernimmt keine Verantwortung für die Kommunikation zwischen Event-Erstellern und Teilnehmern und haftet nicht für Schäden, die aus einer Absage, Verschiebung oder Änderung eines Events entstehen.`,
       },
       {
         heading: '9. Geistiges Eigentum',
         text: `Die Plattform und deren Inhalte (Design, Texte, Grafiken, Logo, UI-Elemente) sind urheberrechtlich geschützt. Eine Vervielfältigung, Verbreitung, Bearbeitung oder öffentliche Zugänglichmachung ohne unsere ausdrückliche Zustimmung ist nicht gestattet.
 
-Sie behalten alle Rechte an den von Ihnen erstellten Event-Inhalten. Mit der Veröffentlichung eines Events auf der Plattform gewähren Sie uns jedoch das Recht, diese Inhalte im Rahmen der Plattform öffentlich zugänglich zu machen.`
+Sie behalten alle Rechte an den von Ihnen erstellten Event-Inhalten. Mit der Veröffentlichung eines Events auf der Plattform gewähren Sie uns jedoch das Recht, diese Inhalte im Rahmen der Plattform öffentlich zugänglich zu machen.`,
       },
       {
         heading: '10. Verfügbarkeit',
@@ -228,7 +228,7 @@ Sie behalten alle Rechte an den von Ihnen erstellten Event-Inhalten. Mit der Ver
 - Technischen Problemen
 - Änderungen an der Plattform-Funktionalität
 
-Geplante Wartungsarbeiten werden wir nach Möglichkeit im Voraus ankündigen.`
+Geplante Wartungsarbeiten werden wir nach Möglichkeit im Voraus ankündigen.`,
       },
       {
         heading: '11. Haftung',
@@ -241,7 +241,7 @@ Geplante Wartungsarbeiten werden wir nach Möglichkeit im Voraus ankündigen.`
 - Wir haften nicht für Schäden, die aus der Absage, Verschiebung oder Änderung eines Events entstehen
 - Wir haften nicht für die Richtigkeit von Event-Informationen oder die Qualität der angebotenen Veranstaltungen
 
-Für Event-Erstatter: Sie haften als Veranstalter für Ihre Events und stellen uns von allen Ansprüchen Dritter im Zusammenhang mit Ihren Events frei.`
+Für Event-Erstatter: Sie haften als Veranstalter für Ihre Events und stellen uns von allen Ansprüchen Dritter im Zusammenhang mit Ihren Events frei.`,
       },
       {
         heading: '12. Konto-Löschung und Vertragsbeendigung',
@@ -253,7 +253,7 @@ Wir behalten uns vor, Konten zu sperren oder zu löschen bei:
 - Verstoß gegen diese AGB
 - Rechtswidrigen Handlungen
 - Missbrauch der Plattform
-- Falschen oder irreführenden Event-Informationen`
+- Falschen oder irreführenden Event-Informationen`,
       },
       {
         heading: '13. Datenschutz',
@@ -263,7 +263,7 @@ Grundsätze:
 - Wir speichern nur Daten, die für den Betrieb der Plattform notwendig sind
 - Wir geben keine Daten an Dritte weiter
 - Wir nutzen keine Tracking- oder Analysetools
-- Firebase (Google) fungiert als Auftragsverarbeiter gemäß Art. 28 DSGVO`
+- Firebase (Google) fungiert als Auftragsverarbeiter gemäß Art. 28 DSGVO`,
       },
       {
         heading: '14. Änderungen dieser AGB',
@@ -273,7 +273,7 @@ Grundsätze:
 - Rechtlichen Anforderungen
 - Erweiterung der angebotenen Dienste
 
-Die aktuelle Version finden Sie immer auf dieser Seite. Die geänderten AGB gelten für die Nutzung nach dem Zeitpunkt ihrer Veröffentlichung. Bei wesentlichen Änderungen werden wir Sie beim nächsten Login darauf hinweisen.`
+Die aktuelle Version finden Sie immer auf dieser Seite. Die geänderten AGB gelten für die Nutzung nach dem Zeitpunkt ihrer Veröffentlichung. Bei wesentlichen Änderungen werden wir Sie beim nächsten Login darauf hinweisen.`,
       },
       {
         heading: '15. Schlussbestimmungen',
@@ -287,25 +287,27 @@ Anbieter:
 Spirituelle Events Vorarlberg
 Thomas Ender
 Starkenfeld 19, 6841 Mäder, Österreich
-E-Mail: kontakt@spirituelle-events-vorarlberg.at`
-      }
-    ]
-  }
-}
+E-Mail: kontakt@spirituelle-events-vorarlberg.at`,
+      },
+    ],
+  },
+};
 
 export default function LegalPage() {
-  const { page } = useParams()
-  const data = content[page]
+  const { page } = useParams();
+  const data = content[page];
 
   if (!data) {
     return (
       <div className="page-container">
         <div className="legal-page">
           <p>Die gesuchte Seite wurde nicht gefunden.</p>
-          <Link to="/" className="btn btn-secondary">Zurück zur Startseite</Link>
+          <Link to="/" className="btn btn-secondary">
+            Zurück zur Startseite
+          </Link>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -322,9 +324,11 @@ export default function LegalPage() {
           ))}
         </div>
         <div className="legal-footer">
-          <Link to="/" className="btn btn-secondary">Zurück zur Startseite</Link>
+          <Link to="/" className="btn btn-secondary">
+            Zurück zur Startseite
+          </Link>
         </div>
       </div>
     </div>
-  )
+  );
 }
