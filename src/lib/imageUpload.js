@@ -6,7 +6,8 @@
 
 const IMGBB_API_URL = 'https://api.imgbb.com/1/upload';
 
-const TARGET_ASPECT_RATIO = 16 / 9;
+const LANDSCAPE_RATIO = 16 / 9;
+const PORTRAIT_RATIO = 9 / 16;
 const ASPECT_RATIO_TOLERANCE = 0.1;
 
 export async function getImageDimensions(file) {
@@ -24,9 +25,13 @@ export async function getImageDimensions(file) {
 export function validateAspectRatio(width, height) {
   if (width === 0 || height === 0) return false;
   const ratio = width / height;
-  const minRatio = TARGET_ASPECT_RATIO * (1 - ASPECT_RATIO_TOLERANCE);
-  const maxRatio = TARGET_ASPECT_RATIO * (1 + ASPECT_RATIO_TOLERANCE);
-  return ratio >= minRatio && ratio <= maxRatio;
+  const landscapeMin = LANDSCAPE_RATIO * (1 - ASPECT_RATIO_TOLERANCE);
+  const landscapeMax = LANDSCAPE_RATIO * (1 + ASPECT_RATIO_TOLERANCE);
+  const portraitMin = PORTRAIT_RATIO * (1 - ASPECT_RATIO_TOLERANCE);
+  const portraitMax = PORTRAIT_RATIO * (1 + ASPECT_RATIO_TOLERANCE);
+  const isLandscape = ratio >= landscapeMin && ratio <= landscapeMax;
+  const isPortrait = ratio >= portraitMin && ratio <= portraitMax;
+  return isLandscape || isPortrait;
 }
 
 /**
