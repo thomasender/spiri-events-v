@@ -174,6 +174,19 @@ const TEST_EVENTS = [
     bezirk: 'Dornbirn',
     status: 'pending',
   },
+  {
+    id: 'test-event-foreign-pending',
+    title: 'User Pending Event',
+    date: makeDate(8),
+    endDate: null,
+    time: '14:00',
+    endTime: '15:30',
+    place: 'Test Place Bludenz',
+    description: 'Pending event owned by a regular user, not admin.',
+    categories: ['Sonstiges'],
+    bezirk: 'Bludenz',
+    status: 'pending',
+  },
 ];
 
 for (const event of TEST_EVENTS) {
@@ -266,7 +279,11 @@ async function main() {
   }
 
   for (const event of TEST_EVENTS) {
-    await seedEvent(event, adminUid || 'test-admin-uid');
+    if (event.id === 'test-event-foreign-pending') {
+      await seedEvent(event, userUid || 'test-user-uid');
+    } else {
+      await seedEvent(event, adminUid || 'test-admin-uid');
+    }
   }
 
   console.log(`\nDone! ${TEST_EVENTS.length} events seeded.`);

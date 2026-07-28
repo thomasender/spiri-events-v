@@ -112,7 +112,7 @@ function generateEventJsonLd(event) {
 export default function EventDetailPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const { user, role } = useAuth();
+  const { user, loading: authLoading, role } = useAuth();
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -126,55 +126,33 @@ export default function EventDetailPage() {
         return;
       }
 
-      if (role === null && user === null) {
+      if (authLoading) {
         return;
       }
 
       try {
+        let docSnap = null;
+
         if (isLegacyId(slug)) {
           const docRef = doc(db, 'events', slug);
-          const docSnap = await getDoc(docRef);
-
-          if (docSnap.exists()) {
-            setEvent({ id: docSnap.id, ...docSnap.data() });
-          } else {
-            setError('Event nicht gefunden');
+          const snap = await getDoc(docRef);
+          if (snap.exists()) {
+            docSnap = snap;
           }
         } else {
-          let docSnap = null;
-          if (role === 'Admin') {
-            const q = query(collection(db, 'events'), where('slug', '==', slug));
-            const snapshot = await getDocs(q);
-            if (!snapshot.empty) {
-              docSnap = snapshot.docs[0];
-            }
-          } else {
-            const approvedQuery = query(
-              collection(db, 'events'),
-              where('slug', '==', slug),
-              where('status', '==', 'approved')
-            );
-            const approvedSnapshot = await getDocs(approvedQuery);
-            if (!approvedSnapshot.empty) {
-              docSnap = approvedSnapshot.docs[0];
-            } else if (user) {
-              const myQuery = query(
-                collection(db, 'events'),
-                where('slug', '==', slug),
-                where('createdBy', '==', user.uid)
-              );
-              const mySnapshot = await getDocs(myQuery);
-              if (!mySnapshot.empty) {
-                docSnap = mySnapshot.docs[0];
-              }
-            }
+          const q = query(collection(db, 'events'), where('slug', '==', slug));
+          const snapshot = await getDocs(q);
+          if (!snapshot.empty) {
+            docSnap = snapshot.docs[0];
           }
+        }
 
-          if (docSnap) {
-            setEvent({ id: docSnap.id, ...docSnap.data() });
-          } else {
-            setError('Event nicht gefunden');
-          }
+        if (docSnap) {
+          setEvent({ id: docSnap.id, ...docSnap.data() });
+          setError(null);
+        } else {
+          setEvent(null);
+          setError('Event nicht gefunden');
         }
       } catch (err) {
         console.error('Error fetching event:', err);
@@ -189,7 +167,7 @@ export default function EventDetailPage() {
     }
 
     fetchEvent();
-  }, [slug, role, user]);
+  }, [slug, user, role, authLoading]);
 
   if (loading) {
     return (
