@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { useAllEvents, KATEGORIEN, BEZIRKE } from "../hooks/useEvents";
@@ -6,13 +6,47 @@ import Calendar from "../components/Calendar";
 import { Filter } from "lucide-react";
 import "./CalendarPage.css";
 
+const STORAGE_KEY = "calendarFilterState";
+
+function loadFilterState() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch {}
+  return null;
+}
+
+function saveFilterState(state) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {}
+}
+
 export default function CalendarPage() {
   const navigate = useNavigate();
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedCategories, setSelectedCategories] = useState(KATEGORIEN);
-  const [selectedBezirke, setSelectedBezirke] = useState([]);
-  const [showFilters, setShowFilters] = useState(false);
+  const savedState = loadFilterState();
+  const [currentMonth, setCurrentMonth] = useState(
+    savedState?.currentMonth ? new Date(savedState.currentMonth) : new Date(),
+  );
+  const [selectedCategories, setSelectedCategories] = useState(
+    savedState?.selectedCategories || KATEGORIEN,
+  );
+  const [selectedBezirke, setSelectedBezirke] = useState(
+    savedState?.selectedBezirke || [],
+  );
+  const [showFilters, setShowFilters] = useState(savedState?.showFilters || false);
   const { events, loading, error } = useAllEvents();
+
+  useEffect(() => {
+    saveFilterState({
+      currentMonth: currentMonth.toISOString(),
+      selectedCategories,
+      selectedBezirke,
+      showFilters,
+    });
+  }, [currentMonth, selectedCategories, selectedBezirke, showFilters]);
 
   const handleEventClick = (event) => {
     const slugOrId = event.slug || event.id;
