@@ -52,6 +52,7 @@ export default function EventForm({ event }) {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [validationError, setValidationError] = useState('');
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(event?.imageUrl || '');
   const [imageRemoved, setImageRemoved] = useState(false);
@@ -214,10 +215,12 @@ export default function EventForm({ event }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitError('');
+    setValidationError('');
 
     const newErrors = validate();
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
+      setValidationError('Bitte fülle alle Pflichtfelder aus.');
       return;
     }
 
@@ -646,6 +649,8 @@ export default function EventForm({ event }) {
               </p>
             </div>
           )}
+
+          {validationError && <p className="error-text submit-error">{validationError}</p>}
 
           <div className="form-actions">
             <button type="button" onClick={() => navigate('/admin')} className="btn btn-secondary">
