@@ -180,8 +180,7 @@ export default function EventList() {
 
   if (isAdmin) {
     const myEvents = events.filter(e => e.createdBy === user.uid)
-    const otherEvents = events.filter(e => e.createdBy !== user.uid)
-    const allPending = [...myEvents.filter(e => e.status === 'pending'), ...pendingEvents]
+    const allPending = pendingEvents
 
     return (
       <div className="event-list-page">
@@ -220,7 +219,7 @@ export default function EventList() {
             renderEmptyState('Noch keine Events', 'Erstelle dein erstes Event und teile es mit der Community.')
           ) : (
             <div className="event-list-grid">
-              {myEvents.map(event => renderEventCard(event, true))}
+              {[...myEvents].sort((a, b) => (a.status === 'pending' ? -1 : 1)).map(event => renderEventCard(event, true))}
             </div>
           )}
         </section>
