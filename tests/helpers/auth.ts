@@ -15,6 +15,7 @@ export async function signInWithEmailAndPassword(
   await page.click('button[type="submit"]')
 
   await page.waitForURL(/\/(?!login)/, { timeout: 10000 }).catch(() => {})
+  await page.waitForTimeout(500)
 }
 
 export async function registerWithEmailAndPassword(

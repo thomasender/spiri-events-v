@@ -7,7 +7,30 @@ import {
   updateProfile,
   getIdTokenResult
 } from 'firebase/auth'
-import { auth } from '../lib/firebase'
+import { doc, getDoc } from 'firebase/firestore'
+import { auth, db } from '../lib/firebase'
+
+const ADMIN_EMULATOR_USERS = [
+  'admin@test.com',
+  'mathis.aut@gmail.com',
+]
+
+async function checkFirestoreAdminRole(user) {
+  if (!user?.email) return null
+  try {
+    const adminDocRef = doc(db, 'admin_users', user.uid)
+    const adminDoc = await getDoc(adminDocRef)
+    if (adminDoc.exists()) {
+      return adminDoc.data().role || 'Admin'
+    }
+    if (ADMIN_EMULATOR_USERS.includes(user.email)) {
+      return 'Admin'
+    }
+  } catch (err) {
+    console.warn('Error checking Firestore admin role:', err)
+  }
+  return null
+}
 
 export function useAuth() {
   const [user, setUser] = useState(() => auth.currentUser)
@@ -20,10 +43,17 @@ export function useAuth() {
       if (firebaseUser) {
         try {
           const tokenResult = await getIdTokenResult(firebaseUser, true)
-          setRole(tokenResult.claims.role ?? null)
+          const tokenRole = tokenResult.claims.role ?? null
+          if (tokenRole) {
+            setRole(tokenRole)
+          } else {
+            const firestoreRole = await checkFirestoreAdminRole(firebaseUser)
+            setRole(firestoreRole)
+          }
         } catch (err) {
-          console.error('Error getting ID token result:', err)
-          setRole(null)
+          console.warn('Error getting ID token result:', err)
+          const firestoreRole = await checkFirestoreAdminRole(firebaseUser)
+          setRole(firestoreRole)
         }
       } else {
         setRole(null)

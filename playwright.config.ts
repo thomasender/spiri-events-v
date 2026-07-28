@@ -27,6 +27,8 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
 
+  globalSetup: './tests/globalSetup.ts',
+
   projects: [
     {
       name: 'chromium',
