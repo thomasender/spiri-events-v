@@ -54,12 +54,18 @@ function expandRecurringEvents(event) {
   const occurrences = []
   const startDate = new Date(event.date + 'T12:00:00')
   const endDate = event.recurrenceEndDate ? new Date(event.recurrenceEndDate + 'T12:00:00') : new Date(startDate)
-  endDate.setMonth(endDate.getMonth() + 3) // Limit to 3 months of occurrences if no end date
+  if (!event.recurrenceEndDate) {
+    if (event.recurrence === 'monthly') {
+      endDate.setFullYear(endDate.getFullYear() + 1)
+    } else {
+      endDate.setMonth(endDate.getMonth() + 3)
+    }
+  }
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const maxDate = new Date(today)
-  maxDate.setFullYear(maxDate.getFullYear() + 1) // Max 1 year ahead
+  maxDate.setFullYear(maxDate.getFullYear() + 1)
 
   const effectiveEnd = endDate < maxDate ? endDate : maxDate
 
