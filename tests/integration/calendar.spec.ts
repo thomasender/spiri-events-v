@@ -66,7 +66,7 @@ test.describe('Calendar Integration', () => {
       await expect(page.locator('.filter-panel')).toBeVisible()
       const firstLabel = page.locator('.filter-checkbox').first()
       await firstLabel.click()
-      await page.locator('.filter-panel button:has-text("Alle")').click()
+      await page.locator('.filter-panel button:has-text("Alle")').first().click()
       const checkbox = page.locator('.filter-checkbox').first().locator('input[type="checkbox"]')
       await expect(checkbox).toBeChecked()
     })
@@ -74,7 +74,7 @@ test.describe('Calendar Integration', () => {
     test('"Keine" button deselects all categories', async ({ page }) => {
       await page.locator('.filter-toggle-btn').click()
       await expect(page.locator('.filter-panel')).toBeVisible()
-      await page.locator('.filter-panel button:has-text("Keine")').click()
+      await page.locator('.filter-panel button:has-text("Keine")').first().click()
       const checkboxes = page.locator('.filter-checkbox input[type="checkbox"]')
       const allUnchecked = await checkboxes.evaluateAll((els) =>
         els.every((el) => !(el as HTMLInputElement).checked)
@@ -86,7 +86,7 @@ test.describe('Calendar Integration', () => {
   test.describe('District Filters', () => {
     test('shows district filter section', async ({ page }) => {
       await page.locator('.filter-toggle-btn').click()
-      await expect(page.locator('.filter-section')).toBeVisible()
+      await expect(page.locator('.filter-header:has-text("Bezirk")')).toBeVisible()
       await expect(page.locator('text=Bezirk')).toBeVisible()
     })
 
