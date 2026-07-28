@@ -140,7 +140,7 @@ export default function EventForm({ event }) {
       setErrors((prev) => ({
         ...prev,
         image:
-          'Das Bild muss ein Seitenverhältnis von 16:9 haben (z.B. 1600x900px oder 1920x1080px). Bitte wähle ein anderes Bild oder beschnitte es vor dem Upload.',
+          'Das Bild muss ein Seitenverhältnis von 16:9 (Querformat) oder 9:16 (Hochformat) haben. Bitte wähle ein anderes Bild oder beschnitte es vor dem Upload.',
       }));
       return;
     }
