@@ -410,7 +410,7 @@ export default function EventForm({ event }) {
           </div>
 
           <div className="form-group">
-            <label htmlFor="categories">Kategorien</label>
+            <label htmlFor="categories">Kategorien *</label>
             <Select
               id="categories"
               isMulti
