@@ -35,7 +35,29 @@ Run e2e tests against the local emulator setup:
 npm run test:e2e
 ```
 
+Run integration tests:
+```bash
+npm run test:integration
+```
+
+Run all tests:
+```bash
+npm run test:all
+```
+
 **Always use emulators + real data dump for local development and testing.** Do NOT test against production.
+
+## Test Requirements
+
+**Every feature and bugfix MUST include automated tests.**
+
+- **New features:** Add Playwright integration tests in `tests/integration/` that verify the feature works correctly
+- **Bugfixes:** Add a Playwright test that reproduces the bug (fails before fix, passes after)
+- **Unit tests:** Add unit tests in `tests/components/` for utility functions or complex logic
+- **Test patterns:**
+  - Integration tests: Use Playwright with real emulator (`tests/integration/`)
+  - Component tests: Use Vitest + happy-dom (`tests/components/`)
+- Run `npm run test:all` before committing to ensure all tests pass
 
 ## Communicating with Peter
 
