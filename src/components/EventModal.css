@@ -177,6 +177,17 @@
   font-size: 1rem;
 }
 
+.detail-link {
+  color: var(--accent-primary);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.detail-link:hover {
+  color: var(--text-primary);
+  text-decoration: underline;
+}
+
 .modal-description {
   padding: 24px 32px;
   border-bottom: 1px solid var(--border);

@@ -159,6 +159,17 @@
   color: var(--text-primary);
 }
 
+.detail-link {
+  color: var(--accent-primary);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.detail-link:hover {
+  color: var(--text-primary);
+  text-decoration: underline;
+}
+
 .event-description {
   margin-bottom: 24px;
 }

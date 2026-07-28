@@ -68,6 +68,8 @@ const TEST_EVENTS = [
     description: 'Yoga Kurs heute.',
     categories: ['Yoga'],
     bezirk: 'Dornbirn',
+    organizer: { firstName: 'Anna', lastName: 'Schmidt', email: 'admin@test.com' },
+    kontakt: '0676 1234567',
     status: 'approved',
   },
   {
@@ -81,6 +83,8 @@ const TEST_EVENTS = [
     description: 'Meditation morgen früh.',
     categories: ['Meditation'],
     bezirk: 'Bregenz',
+    organizer: { firstName: 'Anna', lastName: 'Schmidt', email: 'admin@test.com' },
+    kontakt: 'anna@example.com',
     status: 'approved',
   },
   {
@@ -94,6 +98,8 @@ const TEST_EVENTS = [
     description: 'Tanzworkshop.',
     categories: ['Tanz'],
     bezirk: 'Feldkirch',
+    organizer: { firstName: 'Anna', lastName: 'Schmidt', email: 'admin@test.com' },
+    kontakt: '0676 7654321',
     status: 'approved',
   },
   {
@@ -107,6 +113,8 @@ const TEST_EVENTS = [
     description: 'Atemtherapie Workshop.',
     categories: ['Atemarbeit'],
     bezirk: 'Bludenz',
+    organizer: { firstName: 'Anna', lastName: 'Schmidt', email: 'admin@test.com' },
+    kontakt: 'admin@test.com',
     status: 'approved',
   },
   {
@@ -120,6 +128,8 @@ const TEST_EVENTS = [
     description: 'Mehrtägiges Retreat.',
     categories: ['Meditation'],
     bezirk: 'Bregenz',
+    organizer: { firstName: 'Anna', lastName: 'Schmidt', email: 'admin@test.com' },
+    kontakt: '0676 1112233',
     status: 'approved',
   },
   {
@@ -133,6 +143,8 @@ const TEST_EVENTS = [
     description: 'Dynamischer Yoga-Flow.',
     categories: ['Yoga'],
     bezirk: 'Dornbirn',
+    organizer: { firstName: 'Anna', lastName: 'Schmidt', email: 'admin@test.com' },
+    kontakt: 'anna@example.com',
     status: 'approved',
   },
   {
@@ -146,6 +158,8 @@ const TEST_EVENTS = [
     description: 'Gemeinsames Singen von Mantras.',
     categories: ['Singen'],
     bezirk: 'Bregenz',
+    organizer: { firstName: 'Anna', lastName: 'Schmidt', email: 'admin@test.com' },
+    kontakt: '0676 9876543',
     status: 'approved',
   },
   {
@@ -159,6 +173,8 @@ const TEST_EVENTS = [
     description: 'Entspannende Meditation.',
     categories: ['Meditation'],
     bezirk: 'Bregenz',
+    organizer: { firstName: 'Anna', lastName: 'Schmidt', email: 'admin@test.com' },
+    kontakt: 'klang@example.com',
     status: 'approved',
   },
   {
@@ -172,6 +188,8 @@ const TEST_EVENTS = [
     description: 'This event is pending.',
     categories: ['Sonstiges'],
     bezirk: 'Dornbirn',
+    organizer: { firstName: 'Anna', lastName: 'Schmidt', email: 'admin@test.com' },
+    kontakt: '0676 1234567',
     status: 'pending',
   },
   {
@@ -185,6 +203,8 @@ const TEST_EVENTS = [
     description: 'Pending event owned by a regular user, not admin.',
     categories: ['Sonstiges'],
     bezirk: 'Bludenz',
+    organizer: { firstName: 'Test', lastName: 'User', email: 'user@test.local' },
+    kontakt: '0676 5556677',
     status: 'pending',
   },
 ];

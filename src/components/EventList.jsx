@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useEvents, usePendingEvents } from '../hooks/useEvents';
 import { useAuth } from '../hooks/useAuth';
-import { PlusCircle, Edit2, Trash2, Calendar, MapPin, Eye, CheckCircle } from 'lucide-react';
+import { PlusCircle, Edit2, Trash2, Calendar, MapPin, Eye, CheckCircle, Mail } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
 import StatusBadge from './StatusBadge';
 import { useState } from 'react';
@@ -122,6 +122,12 @@ export default function EventList() {
             <MapPin size={14} />
             <span>{event.place}</span>
           </div>
+          {event.organizer && event.organizer.email && (
+            <div className="meta-item" data-testid="event-owner-email">
+              <Mail size={14} />
+              <span>{event.organizer.email}</span>
+            </div>
+          )}
         </div>
 
         {event.description && (
