@@ -127,9 +127,9 @@ test.describe('Event CRUD', () => {
     await eventCard.waitFor({ timeout: 5000 }).catch(() => {});
 
     const eventLinkOnAdmin = page.locator('a[href*="example.com"]').first();
-    const linkExistsOnAdmin = await eventLinkOnAdmin.isVisible().catch(() => false);
+    const eventExistsOnAdmin = await eventLinkOnAdmin.isVisible().catch(() => false);
 
-    if (linkExistsOnAdmin) {
+    if (eventExistsOnAdmin) {
       await expect(eventLinkOnAdmin).toHaveAttribute('href', /^https:\/\/www\.example\.com/);
     } else {
       const createdEvent = page.locator('text=HTTP to HTTPS Test Event').first();
@@ -138,6 +138,23 @@ test.describe('Event CRUD', () => {
 
       const detailLink = page.locator('a[href*="example.com"]').first();
       await expect(detailLink).toHaveAttribute('href', /^https:\/\/www\.example\.com/);
+    }
+  });
+
+  test('all required fields are marked with asterisk', async ({ page }) => {
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+
+    await page.goto('/admin/new');
+
+    await page
+      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+      .catch(() => {});
+
+    const requiredLabels = ['Titel *', 'Kategorien *', 'Datum *', 'Bezirk *', 'Ort / Adresse *'];
+
+    for (const labelText of requiredLabels) {
+      const label = page.locator('label').filter({ hasText: labelText }).first();
+      await expect(label).toBeVisible();
     }
   });
 });
