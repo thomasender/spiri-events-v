@@ -34,11 +34,17 @@ function formatEndDate(startDateStr, endDateStr) {
   });
 }
 
-function formatRecurrence(recurrence, recurrenceEndDate) {
+function formatRecurrence(recurrence, recurrenceEndDate, eventDate) {
   if (!recurrence || recurrence === 'none') return null;
+  let weekday = '';
+  if (eventDate && (recurrence === 'weekly' || recurrence === 'biweekly')) {
+    const [year, month, day] = eventDate.split('-');
+    const date = new Date(year, month - 1, day);
+    weekday = ` ${date.toLocaleDateString('de-DE', { weekday: 'long' })}`;
+  }
   const labels = {
-    weekly: 'Jeden',
-    biweekly: 'Jeden zweiten',
+    weekly: `Jeden${weekday}`,
+    biweekly: `Jeden zweiten${weekday}`,
     monthly: 'Jeden Monat',
   };
   let label = labels[recurrence];
@@ -135,13 +141,13 @@ export default function EventModal({ event, onClose }) {
             </div>
           )}
 
-          {formatRecurrence(event.recurrence, event.recurrenceEndDate) && (
+          {formatRecurrence(event.recurrence, event.recurrenceEndDate, event.date) && (
             <div className="detail-item">
               <Calendar size={18} className="detail-icon" />
               <div>
                 <span className="detail-label">Wiederholung</span>
                 <span className="detail-value">
-                  {formatRecurrence(event.recurrence, event.recurrenceEndDate)}
+                  {formatRecurrence(event.recurrence, event.recurrenceEndDate, event.date)}
                 </span>
               </div>
             </div>
