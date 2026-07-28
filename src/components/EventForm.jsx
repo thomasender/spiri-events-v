@@ -32,6 +32,21 @@ const normalizeLink = (link) => {
   return withProtocol.replace(/^http:\/\//i, 'https://');
 };
 
+const isValidLink = (link) => {
+  const trimmed = link.trim();
+  if (!trimmed) return true;
+  if (/^https?:\/\//i.test(trimmed)) {
+    try {
+      new URL(trimmed);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  const domainLike = /^www\..+\..+/i.test(trimmed) || /^[^/]+\.[^/]+/.test(trimmed);
+  return domainLike;
+};
+
 const kategorieOptions = KATEGORIEN.map((k) => ({ value: k, label: k }));
 
 export default function EventForm({ event }) {
@@ -118,6 +133,9 @@ export default function EventForm({ event }) {
       if (endRecurrenceDate > maxDate) {
         newErrors.recurrenceEndDate = 'Wiederholung darf maximal 1 Jahr betragen';
       }
+    }
+    if (!isValidLink(formData.link)) {
+      newErrors.link = 'Bitte gib eine gültige URL ein';
     }
     return newErrors;
   };
@@ -645,11 +663,12 @@ export default function EventForm({ event }) {
             <input
               id="link"
               name="link"
-              type="url"
+              type="text"
               value={formData.link}
               onChange={handleChange}
-              placeholder="https://... (Anmeldung oder weitere Infos)"
+              placeholder="www.example.com oder https://... (Anmeldung oder weitere Infos)"
             />
+            {errors.link && <span className="error-text">{errors.link}</span>}
           </div>
 
           {submitError && <p className="error-text submit-error">{submitError}</p>}
