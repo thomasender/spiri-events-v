@@ -105,6 +105,23 @@ Examples:
 - `fix(leUdxGn4): correct event date display for recurring events`
 - `feat(leUdxGn4): add recurrence option to event form`
 
+### 7.1 Merge to Main
+
+After successful implementation and testing, merge the branch to main:
+
+```bash
+git checkout main
+git pull origin main
+git merge --no-ff <branch-name>
+git push origin main
+```
+
+Delete the feature branch after merging:
+```bash
+git branch -d <branch-name>
+git push origin --delete <branch-name>
+```
+
 ### 8. Move Ticket to Testing
 
 Use `trello_get_lists` to find the "Testing" list ID (board ID: `rebumcT4`).
