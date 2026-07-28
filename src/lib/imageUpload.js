@@ -23,7 +23,11 @@ export async function getImageDimensions(file) {
 }
 
 export function validateAspectRatio(width, height) {
-  if (width === 0 || height === 0) return false;
+  return true;
+}
+
+export function getAspectRatioRecommendation(width, height) {
+  if (width === 0 || height === 0) return { isRecommended: true, ratio: null };
   const ratio = width / height;
   const landscapeMin = LANDSCAPE_RATIO * (1 - ASPECT_RATIO_TOLERANCE);
   const landscapeMax = LANDSCAPE_RATIO * (1 + ASPECT_RATIO_TOLERANCE);
@@ -31,7 +35,7 @@ export function validateAspectRatio(width, height) {
   const portraitMax = PORTRAIT_RATIO * (1 + ASPECT_RATIO_TOLERANCE);
   const isLandscape = ratio >= landscapeMin && ratio <= landscapeMax;
   const isPortrait = ratio >= portraitMin && ratio <= portraitMax;
-  return isLandscape || isPortrait;
+  return { isRecommended: isLandscape || isPortrait, ratio: width / height };
 }
 
 /**

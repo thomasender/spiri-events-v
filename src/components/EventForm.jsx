@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Select from 'react-select';
 import { useEvents, KATEGORIEN, BEZIRKE } from '../hooks/useEvents';
 import { useAuth } from '../hooks/useAuth';
-import { uploadImage, getImageDimensions, validateAspectRatio } from '../lib/imageUpload';
+import { uploadImage, getImageDimensions, getAspectRatioRecommendation } from '../lib/imageUpload';
 import { ArrowLeft, Save, Image, X, Info } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
 import './EventForm.css';
@@ -136,16 +136,17 @@ export default function EventForm({ event }) {
     }
 
     const dimensions = await getImageDimensions(file);
-    if (!validateAspectRatio(dimensions.width, dimensions.height)) {
+    const recommendation = getAspectRatioRecommendation(dimensions.width, dimensions.height);
+    if (!recommendation.isRecommended) {
       setErrors((prev) => ({
         ...prev,
         image:
-          'Das Bild muss ein Seitenverhältnis von 16:9 (Querformat) oder 9:16 (Hochformat) haben. Bitte wähle ein anderes Bild oder beschnitte es vor dem Upload.',
+          'Tipp: Für beste Darstellung empfehlen wir 16:9 (Querformat) oder 9:16 (Hochformat). Andere Formate funktionieren auch, können aber abgeschnitten angezeigt werden.',
       }));
-      return;
+    } else {
+      setErrors((prev) => ({ ...prev, image: null }));
     }
 
-    setErrors((prev) => ({ ...prev, image: null }));
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
     setImageRemoved(false);
