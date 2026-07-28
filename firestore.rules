@@ -1,40 +1,38 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /events/{eventId} {
-      function isAuthenticated() {
-        return request.auth != null;
-      }
-
-      function isAdmin() {
-        return request.auth != null && request.auth.token.role == 'Admin';
-      }
-
-      function isOwner() {
-        return request.auth.uid == resource.data.createdBy;
-      }
-
-      function isApproved() {
-        return resource.data.status == 'approved';
-      }
-
-      // Admins: full read access to all events
-      allow read: if isAdmin();
-
-      // Owners: can read their own events (any status)
-      allow read: if isOwner();
-
-      // Public/Anonymous: can only read approved events
-      allow read: if isApproved();
-
-      // Authenticated non-owners: can read approved events
-      allow read: if isAuthenticated() && isApproved();
-
-      // Creating: admins create approved, users create pending
-      allow create: if isAuthenticated() && (request.resource.data.status == 'pending' || isAdmin());
-
-      // Updating: owner can update, admin can update any
-      allow update, delete: if isOwner() || isAdmin();
+    function isAuthenticated() {
+      return request.auth != null;
     }
+
+    function isAdmin() {
+      return request.auth != null && request.auth.token.role == 'Admin';
+    }
+
+    function isAdminViaFirestore() {
+      return isAuthenticated() &&
+             exists(/databases/$(database)/documents/admin_users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/admin_users/$(request.auth.uid)).data.role == 'Admin';
+    }
+
+    function isAdminOrEmulatorAdmin() {
+      return isAdmin() || isAdminViaFirestore();
+    }
+
+    function isOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.createdBy;
+    }
+
+    function isApproved() {
+      return resource.data.status == 'approved';
+    }
+
+    allow read: if isApproved() || isOwner() || isAdminOrEmulatorAdmin();
+
+    allow create: if isAuthenticated()
+                  && request.resource.data.createdBy == request.auth.uid
+                  && (request.resource.data.status == 'pending' || isAdminOrEmulatorAdmin());
+
+    allow update, delete: if isOwner() || isAdminOrEmulatorAdmin();
   }
 }

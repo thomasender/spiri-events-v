@@ -306,7 +306,6 @@ test.describe('Calendar E2E', () => {
 
   test.describe('Authenticated User Flows', () => {
     test('admin can login and access admin dashboard', async ({ page }) => {
-      test.skip()
       await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123')
       await page.goto('/admin')
       await page.waitForURL('/admin', { timeout: 10000 }).catch(() => {})

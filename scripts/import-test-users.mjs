@@ -68,7 +68,7 @@ async function createUser(user) {
 async function updateUserRole(uid, role) {
   console.log(`  Setting role to ${role}...`);
 
-  const url = `${AUTH_EMULATOR}/identitytoolkit.googleapis.com/v1/projects/${PROJECT_ID}/accounts:update?key=fake-api-key`;
+  const url = `${AUTH_EMULATOR}/emulator/v1/projects/${PROJECT_ID}/accounts:update`;
 
   const response = await fetch(url, {
     method: 'POST',
@@ -83,7 +83,11 @@ async function updateUserRole(uid, role) {
 
   if (!response.ok) {
     console.error(`  Error updating role: ${JSON.stringify(data)}`);
+    return false;
   }
+
+  console.log(`  Role set successfully`);
+  return true;
 }
 
 async function main() {
@@ -91,16 +95,22 @@ async function main() {
   console.log(`Emulator: ${AUTH_EMULATOR}`);
   console.log('');
 
+  const uidMap = {};
   for (const user of TEST_USERS) {
     const uid = await createUser(user);
     if (uid && user.role) {
       await updateUserRole(uid, user.role);
+      uidMap[user.email] = uid;
     }
   }
 
   console.log('\nDone! Test users created:');
   for (const user of TEST_USERS) {
     console.log(`  ${user.email} / ${user.password} (${user.role})`);
+  }
+  console.log('\nUIDs for reference:');
+  for (const [email, uid] of Object.entries(uidMap)) {
+    console.log(`  ${email}: ${uid}`);
   }
   console.log('\nRefresh: http://127.0.0.1:4040/auth');
 }

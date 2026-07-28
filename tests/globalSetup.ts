@@ -32,6 +32,28 @@ async function runSeedScript(): Promise<void> {
   });
 }
 
+async function runImportUsersScript(): Promise<void> {
+  console.log('Running import test users script...');
+
+  return new Promise((resolve, reject) => {
+    const importUsers = spawn('node', ['scripts/import-test-users.mjs'], {
+      stdio: 'inherit',
+      shell: true,
+    });
+
+    importUsers.on('close', (code) => {
+      if (code === 0) {
+        console.log('Import users script completed successfully.');
+        resolve();
+      } else {
+        reject(new Error(`Import users script exited with code ${code}`));
+      }
+    });
+
+    importUsers.on('error', reject);
+  });
+}
+
 export default async function globalSetup() {
   console.log('Checking if Firebase emulators are running...');
 
@@ -48,6 +70,7 @@ export default async function globalSetup() {
   try {
     await waitFor('http://127.0.0.1:8181', { timeout: 30000 });
     await runSeedScript();
+    await runImportUsersScript();
   } catch (error) {
     console.error('Failed to seed test data:', error);
     throw error;

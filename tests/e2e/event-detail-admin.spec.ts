@@ -13,7 +13,6 @@ test.describe('Event Detail Page - Admin', () => {
   })
 
   test('admin can view pending event directly via URL', async ({ page }) => {
-    test.skip()
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123')
 
     await page.goto(`/event/${PENDING_EVENT_SLUG}`)
@@ -25,7 +24,6 @@ test.describe('Event Detail Page - Admin', () => {
   })
 
   test('admin can view approved event directly via URL', async ({ page }) => {
-    test.skip()
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123')
 
     await page.goto(`/event/${APPROVED_EVENT_SLUG}`)

@@ -34,7 +34,7 @@ async function checkFirestoreAdminRole(user) {
 
 export function useAuth() {
   const [user, setUser] = useState(() => auth.currentUser)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [role, setRole] = useState(null)
 
   useEffect(() => {

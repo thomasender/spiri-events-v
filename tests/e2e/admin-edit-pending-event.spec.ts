@@ -12,11 +12,12 @@ test.describe('Admin Edit Pending Event', () => {
   })
 
   test('admin can edit pending event directly via URL', async ({ page }) => {
-    test.skip()
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123')
 
     await page.goto('/admin/edit/test-event-pending')
-    await page.waitForTimeout(3000)
+
+    await page.waitForURL(/\/admin\/edit\//)
+    await page.waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 }).catch(() => {})
 
     const url = page.url()
     console.log('Current URL:', url)
@@ -28,7 +29,6 @@ test.describe('Admin Edit Pending Event', () => {
   })
 
   test('admin sees pending event in edit list and can navigate to edit', async ({ page }) => {
-    test.skip()
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123')
 
     await page.goto('/admin')
@@ -50,7 +50,6 @@ test.describe('Admin Edit Pending Event', () => {
   })
 
   test('mobile: admin can edit pending event directly via URL', async ({ page }) => {
-    test.skip()
     await page.setViewportSize({ width: 375, height: 667 })
 
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123')

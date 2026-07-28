@@ -3,6 +3,7 @@ import { initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 
 const FIRESTORE_EMULATOR = '127.0.0.1:8181';
+const AUTH_EMULATOR = 'http://127.0.0.1:9199';
 const PROJECT_ID = 'spirieventsvbg';
 
 process.env.FIRESTORE_EMULATOR_HOST = FIRESTORE_EMULATOR;
@@ -40,6 +41,21 @@ function generateSlug(title, place, date) {
   return parts.join('-');
 }
 
+const TEST_USERS = [
+  {
+    email: 'admin@test.com',
+    password: 'testpassword123',
+    displayName: 'Test Admin',
+    role: 'Admin',
+  },
+  {
+    email: 'user@test.local',
+    password: 'testpassword123',
+    displayName: 'Test User',
+    role: 'User',
+  },
+];
+
 const TEST_EVENTS = [
   {
     id: 'test-event-today',
@@ -53,7 +69,6 @@ const TEST_EVENTS = [
     categories: ['Yoga'],
     bezirk: 'Dornbirn',
     status: 'approved',
-    createdBy: 'test-admin-uid',
   },
   {
     id: 'test-event-tomorrow',
@@ -67,7 +82,6 @@ const TEST_EVENTS = [
     categories: ['Meditation'],
     bezirk: 'Bregenz',
     status: 'approved',
-    createdBy: 'test-admin-uid',
   },
   {
     id: 'test-event-this-week',
@@ -81,7 +95,6 @@ const TEST_EVENTS = [
     categories: ['Tanz'],
     bezirk: 'Feldkirch',
     status: 'approved',
-    createdBy: 'test-admin-uid',
   },
   {
     id: 'test-event-next-week',
@@ -95,7 +108,6 @@ const TEST_EVENTS = [
     categories: ['Atemarbeit'],
     bezirk: 'Bludenz',
     status: 'approved',
-    createdBy: 'test-admin-uid',
   },
   {
     id: 'test-event-multi-day',
@@ -109,7 +121,6 @@ const TEST_EVENTS = [
     categories: ['Meditation'],
     bezirk: 'Bregenz',
     status: 'approved',
-    createdBy: 'test-admin-uid',
   },
   {
     id: 'test-event-yoga',
@@ -123,7 +134,6 @@ const TEST_EVENTS = [
     categories: ['Yoga'],
     bezirk: 'Dornbirn',
     status: 'approved',
-    createdBy: 'test-admin-uid',
   },
   {
     id: 'test-event-singen',
@@ -137,7 +147,6 @@ const TEST_EVENTS = [
     categories: ['Singen'],
     bezirk: 'Bregenz',
     status: 'approved',
-    createdBy: 'test-admin-uid',
   },
   {
     id: 'test-event-bregenz',
@@ -151,7 +160,6 @@ const TEST_EVENTS = [
     categories: ['Meditation'],
     bezirk: 'Bregenz',
     status: 'approved',
-    createdBy: 'test-admin-uid',
   },
   {
     id: 'test-event-pending',
@@ -165,7 +173,6 @@ const TEST_EVENTS = [
     categories: ['Sonstiges'],
     bezirk: 'Dornbirn',
     status: 'pending',
-    createdBy: 'test-admin-uid',
   },
 ];
 
@@ -173,10 +180,72 @@ for (const event of TEST_EVENTS) {
   event.slug = generateSlug(event.title, event.place, event.date);
 }
 
-async function seedEvent(event) {
+let createdUsers = {};
+
+async function getUserUid(user) {
+  const signUpUrl = `${AUTH_EMULATOR}/identitytoolkit.googleapis.com/v1/accounts:signUp?key=fake-api-key`;
+
+  const signUpResponse = await fetch(signUpUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: user.email,
+      password: user.password,
+      displayName: user.displayName,
+    }),
+  });
+
+  const signUpData = await signUpResponse.json();
+
+  if (signUpResponse.ok) {
+    console.log(`  Created: ${signUpData.localId}`);
+    return signUpData.localId;
+  }
+
+  if (signUpData.error?.message === 'EMAIL_EXISTS') {
+    console.log(`  Already exists, looking up UID...`);
+    const signInUrl = `${AUTH_EMULATOR}/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=fake-api-key`;
+    const signInResponse = await fetch(signInUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: user.email,
+        password: user.password,
+        returnSecureToken: true,
+      }),
+    });
+    const signInData = await signInResponse.json();
+    if (signInResponse.ok) {
+      console.log(`  Found UID: ${signInData.localId}`);
+      return signInData.localId;
+    }
+    console.error(`  Sign in failed: ${JSON.stringify(signInData)}`);
+    return null;
+  }
+
+  console.error(`  Error: ${JSON.stringify(signUpData)}`);
+  return null;
+}
+
+async function createUser(user) {
+  console.log(`Creating user: ${user.email}...`);
+  const uid = await getUserUid(user);
+  if (uid) {
+    createdUsers[user.email] = uid;
+  }
+  return uid;
+}
+
+async function seedEvent(event, createdBy) {
   const ref = db.collection('events').doc(event.id);
-  await ref.set(event);
+  await ref.set({ ...event, createdBy });
   console.log(`  Seeded: ${event.title} (${event.date}) [${event.id}] slug: ${event.slug}`);
+}
+
+async function seedAdminUser(uid, email) {
+  const ref = db.collection('admin_users').doc(uid);
+  await ref.set({ role: 'Admin', email: email });
+  console.log(`  Created admin user: ${email} (${uid})`);
 }
 
 async function main() {
@@ -185,11 +254,24 @@ async function main() {
   console.log(`Current date: ${today.toISOString().split('T')[0]}`);
   console.log('');
 
+  for (const user of TEST_USERS) {
+    await createUser(user);
+  }
+
+  const adminUid = createdUsers['admin@test.com'];
+  const userUid = createdUsers['user@test.local'];
+
+  if (adminUid) {
+    await seedAdminUser(adminUid, 'admin@test.com');
+  }
+
   for (const event of TEST_EVENTS) {
-    await seedEvent(event);
+    await seedEvent(event, adminUid || 'test-admin-uid');
   }
 
   console.log(`\nDone! ${TEST_EVENTS.length} events seeded.`);
+  console.log(`Admin UID: ${adminUid}`);
+  console.log(`User UID: ${userUid}`);
 }
 
 main().catch(console.error);
