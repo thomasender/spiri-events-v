@@ -119,39 +119,27 @@ export default function CalendarPage() {
               ))}
             </div>
 
-            <div className="filter-section">
-              <div className="filter-header">
-                <span className="filter-label">Bezirk</span>
+            <div className="filter-header">
+              <span className="filter-label">Bezirk</span>
+              <div className="filter-quick-actions">
+                <button onClick={selectAllBezirke}>Alle</button>
+                <button onClick={selectNoneBezirke}>Keine</button>
               </div>
-              <div className="filter-options">
+            </div>
+            <div className="filter-options">
+              {BEZIRKE.map((bezirk) => (
                 <label
-                  className={`filter-checkbox ${selectedBezirke.length === BEZIRKE.length ? "active" : ""}`}
+                  key={bezirk}
+                  className={`filter-checkbox ${selectedBezirke.includes(bezirk) ? "active" : ""}`}
                 >
                   <input
                     type="checkbox"
-                    checked={selectedBezirke.length === BEZIRKE.length}
-                    onChange={() =>
-                      selectedBezirke.length === BEZIRKE.length
-                        ? selectNoneBezirke()
-                        : selectAllBezirke()
-                    }
+                    checked={selectedBezirke.includes(bezirk)}
+                    onChange={() => toggleBezirk(bezirk)}
                   />
-                  <span>Alle</span>
+                  <span>{bezirk}</span>
                 </label>
-                {BEZIRKE.map((bezirk) => (
-                  <label
-                    key={bezirk}
-                    className={`filter-checkbox ${selectedBezirke.includes(bezirk) ? "active" : ""}`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedBezirke.includes(bezirk)}
-                      onChange={() => toggleBezirk(bezirk)}
-                    />
-                    <span>{bezirk}</span>
-                  </label>
-                ))}
-              </div>
+              ))}
             </div>
           </div>
         )}
