@@ -47,6 +47,10 @@
   border-top: 1px solid var(--border);
 }
 
+.form-section-header {
+  margin-bottom: 16px;
+}
+
 .form-section-title {
   font-family: 'Cormorant Garamond', Georgia, serif;
   font-size: 1.25rem;
