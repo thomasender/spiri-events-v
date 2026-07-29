@@ -408,47 +408,98 @@ export default function EventForm({ event }) {
         </div>
 
         <form onSubmit={handleSubmit} className="event-form">
+          <div className="form-section-header">
+            <h3 className="form-section-title">Veranstalter & Kontakt</h3>
+            <p className="form-section-hint">
+              Diese Infos werden den Teilnehmer:innen auf der Event-Seite angezeigt.
+            </p>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="organizer.firstName">Vorname *</label>
+              <div className="input-wrapper">
+                <User size={18} className="input-icon" />
+                <input
+                  id="organizer.firstName"
+                  name="firstName"
+                  type="text"
+                  value={formData.organizer.firstName}
+                  onChange={handleOrganizerChange}
+                  placeholder="Vorname"
+                  autoComplete="given-name"
+                  className={errors['organizer.firstName'] ? 'input-error' : ''}
+                />
+              </div>
+              {errors['organizer.firstName'] && (
+                <span className="error-text">{errors['organizer.firstName']}</span>
+              )}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="organizer.lastName">Nachname *</label>
+              <div className="input-wrapper">
+                <User size={18} className="input-icon" />
+                <input
+                  id="organizer.lastName"
+                  name="lastName"
+                  type="text"
+                  value={formData.organizer.lastName}
+                  onChange={handleOrganizerChange}
+                  placeholder="Nachname"
+                  autoComplete="family-name"
+                  className={errors['organizer.lastName'] ? 'input-error' : ''}
+                />
+              </div>
+              {errors['organizer.lastName'] && (
+                <span className="error-text">{errors['organizer.lastName']}</span>
+              )}
+            </div>
+          </div>
+
           <div className="form-group">
-            <label>Bild (optional)</label>
-            {imagePreview ? (
-              <div className="image-preview-container">
-                <img src={imagePreview} alt="Vorschau" className="image-preview" />
-                <button
-                  type="button"
-                  onClick={removeImage}
-                  className="image-remove-btn"
-                  aria-label="Bild entfernen"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-            ) : (
-              <div
-                className={`image-upload-area ${isDraggingOver ? 'drag-over' : ''}`}
-                onClick={() => fileInputRef.current?.click()}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-              >
-                <Image size={24} />
-                <span>
-                  {isDraggingOver
-                    ? 'Datei hier ablegen'
-                    : 'Bild auswählen oder Datei hierher ziehen (JPEG, PNG, WebP, max. 500KB)'}
-                </span>
-              </div>
+            <label htmlFor="organizer.email">E-Mail Veranstalter *</label>
+            <div className="input-wrapper">
+              <Mail size={18} className="input-icon" />
+              <input
+                id="organizer.email"
+                name="email"
+                type="text"
+                inputMode="email"
+                value={formData.organizer.email}
+                onChange={handleOrganizerChange}
+                placeholder="veranstalter@email.de"
+                autoComplete="email"
+                className={errors['organizer.email'] ? 'input-error' : ''}
+              />
+            </div>
+            {errors['organizer.email'] && (
+              <span className="error-text">{errors['organizer.email']}</span>
             )}
+          </div>
+
+          <div className="form-group">
+            <div className="input-label-row">
+              <label htmlFor="kontakt">Kontakt für Teilnehmer:innen *</label>
+              <span className="input-info">
+                <Info size={14} />
+                <span>E-Mail oder Telefonnummer</span>
+              </span>
+            </div>
             <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={handleImageSelectFromInput}
-              style={{ display: 'none' }}
+              id="kontakt"
+              name="kontakt"
+              type="text"
+              value={formData.kontakt}
+              onChange={handleChange}
+              placeholder="z.B. 0676 1234567 oder kontakt@email.de"
+              className={errors.kontakt ? 'input-error' : ''}
             />
-            {errors.image && <span className="error-text">{errors.image}</span>}
-            {imageUploading && (
-              <span className="uploading-text">Bild wird komprimiert und hochgeladen...</span>
-            )}
+            {errors.kontakt && <span className="error-text">{errors.kontakt}</span>}
+          </div>
+
+          <div className="form-section-divider">
+            <h3 className="form-section-title">Event-Details</h3>
           </div>
 
           <div className="form-group">
@@ -478,6 +529,54 @@ export default function EventForm({ event }) {
               classNamePrefix="kategorie"
             />
             {errors.categories && <span className="error-text">{errors.categories}</span>}
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="date">Datum *</label>
+            <input
+              id="date"
+              name="date"
+              type="date"
+              value={formData.date}
+              onChange={handleChange}
+              className={errors.date ? 'input-error' : ''}
+            />
+            {errors.date && <span className="error-text">{errors.date}</span>}
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="bezirk">Bezirk *</label>
+              <select
+                id="bezirk"
+                name="bezirk"
+                value={formData.bezirk}
+                onChange={handleChange}
+                className={errors.bezirk ? 'input-error' : ''}
+              >
+                <option value="">Bezirk auswählen...</option>
+                {BEZIRKE.map((b) => (
+                  <option key={b} value={b}>
+                    {b}
+                  </option>
+                ))}
+              </select>
+              {errors.bezirk && <span className="error-text">{errors.bezirk}</span>}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="place">Ort / Adresse *</label>
+              <input
+                id="place"
+                name="place"
+                type="text"
+                value={formData.place}
+                onChange={handleChange}
+                placeholder="z.B. Yogastudio Mitte, Stadtstraße 12, 6900 Bregenz"
+                className={errors.place ? 'input-error' : ''}
+              />
+              {errors.place && <span className="error-text">{errors.place}</span>}
+            </div>
           </div>
 
           <div className="form-group">
@@ -524,20 +623,11 @@ export default function EventForm({ event }) {
             </div>
           )}
 
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="date">Datum *</label>
-              <input
-                id="date"
-                name="date"
-                type="date"
-                value={formData.date}
-                onChange={handleChange}
-                className={errors.date ? 'input-error' : ''}
-              />
-              {errors.date && <span className="error-text">{errors.date}</span>}
-            </div>
+          <div className="form-section-divider">
+            <h3 className="form-section-title">Optionale Angaben</h3>
+          </div>
 
+          <div className="form-row">
             <div className="form-group">
               <label htmlFor="time">Uhrzeit</label>
               <input
@@ -651,39 +741,6 @@ export default function EventForm({ event }) {
           )}
 
           <div className="form-group">
-            <label htmlFor="bezirk">Bezirk *</label>
-            <select
-              id="bezirk"
-              name="bezirk"
-              value={formData.bezirk}
-              onChange={handleChange}
-              className={errors.bezirk ? 'input-error' : ''}
-            >
-              <option value="">Bezirk auswählen...</option>
-              {BEZIRKE.map((b) => (
-                <option key={b} value={b}>
-                  {b}
-                </option>
-              ))}
-            </select>
-            {errors.bezirk && <span className="error-text">{errors.bezirk}</span>}
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="place">Ort / Adresse *</label>
-            <input
-              id="place"
-              name="place"
-              type="text"
-              value={formData.place}
-              onChange={handleChange}
-              placeholder="z.B. Yogastudio Mitte, Stadtstraße 12, 6900 Bregenz"
-              className={errors.place ? 'input-error' : ''}
-            />
-            {errors.place && <span className="error-text">{errors.place}</span>}
-          </div>
-
-          <div className="form-group">
             <label htmlFor="description">Beschreibung</label>
             <textarea
               id="description"
@@ -708,94 +765,47 @@ export default function EventForm({ event }) {
             {errors.link && <span className="error-text">{errors.link}</span>}
           </div>
 
-          <div className="form-section-divider">
-            <h3 className="form-section-title">Veranstalter & Kontakt</h3>
-            <p className="form-section-hint">
-              Diese Infos werden den Teilnehmer:innen auf der Event-Seite angezeigt.
-            </p>
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="organizer.firstName">Vorname *</label>
-              <div className="input-wrapper">
-                <User size={18} className="input-icon" />
-                <input
-                  id="organizer.firstName"
-                  name="firstName"
-                  type="text"
-                  value={formData.organizer.firstName}
-                  onChange={handleOrganizerChange}
-                  placeholder="Vorname"
-                  autoComplete="given-name"
-                  className={errors['organizer.firstName'] ? 'input-error' : ''}
-                />
-              </div>
-              {errors['organizer.firstName'] && (
-                <span className="error-text">{errors['organizer.firstName']}</span>
-              )}
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="organizer.lastName">Nachname *</label>
-              <div className="input-wrapper">
-                <User size={18} className="input-icon" />
-                <input
-                  id="organizer.lastName"
-                  name="lastName"
-                  type="text"
-                  value={formData.organizer.lastName}
-                  onChange={handleOrganizerChange}
-                  placeholder="Nachname"
-                  autoComplete="family-name"
-                  className={errors['organizer.lastName'] ? 'input-error' : ''}
-                />
-              </div>
-              {errors['organizer.lastName'] && (
-                <span className="error-text">{errors['organizer.lastName']}</span>
-              )}
-            </div>
-          </div>
-
           <div className="form-group">
-            <label htmlFor="organizer.email">E-Mail Veranstalter *</label>
-            <div className="input-wrapper">
-              <Mail size={18} className="input-icon" />
-              <input
-                id="organizer.email"
-                name="email"
-                type="text"
-                inputMode="email"
-                value={formData.organizer.email}
-                onChange={handleOrganizerChange}
-                placeholder="veranstalter@email.de"
-                autoComplete="email"
-                className={errors['organizer.email'] ? 'input-error' : ''}
-              />
-            </div>
-            {errors['organizer.email'] && (
-              <span className="error-text">{errors['organizer.email']}</span>
+            <label>Bild (optional)</label>
+            {imagePreview ? (
+              <div className="image-preview-container">
+                <img src={imagePreview} alt="Vorschau" className="image-preview" />
+                <button
+                  type="button"
+                  onClick={removeImage}
+                  className="image-remove-btn"
+                  aria-label="Bild entfernen"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ) : (
+              <div
+                className={`image-upload-area ${isDraggingOver ? 'drag-over' : ''}`}
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <Image size={24} />
+                <span>
+                  {isDraggingOver
+                    ? 'Datei hier ablegen'
+                    : 'Bild auswählen oder Datei hierher ziehen (JPEG, PNG, WebP, max. 500KB)'}
+                </span>
+              </div>
             )}
-          </div>
-
-          <div className="form-group">
-            <div className="input-label-row">
-              <label htmlFor="kontakt">Kontakt für Teilnehmer:innen *</label>
-              <span className="input-info">
-                <Info size={14} />
-                <span>E-Mail oder Telefonnummer</span>
-              </span>
-            </div>
             <input
-              id="kontakt"
-              name="kontakt"
-              type="text"
-              value={formData.kontakt}
-              onChange={handleChange}
-              placeholder="z.B. 0676 1234567 oder kontakt@email.de"
-              className={errors.kontakt ? 'input-error' : ''}
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handleImageSelectFromInput}
+              style={{ display: 'none' }}
             />
-            {errors.kontakt && <span className="error-text">{errors.kontakt}</span>}
+            {errors.image && <span className="error-text">{errors.image}</span>}
+            {imageUploading && (
+              <span className="uploading-text">Bild wird komprimiert und hochgeladen...</span>
+            )}
           </div>
 
           {submitError && <p className="error-text submit-error">{submitError}</p>}
