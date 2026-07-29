@@ -207,6 +207,21 @@ const TEST_EVENTS = [
     kontakt: '0676 5556677',
     status: 'pending',
   },
+  {
+    id: 'test-event-user-approved',
+    title: 'User Approved Event',
+    date: makeDate(9),
+    endDate: null,
+    time: '11:00',
+    endTime: '12:30',
+    place: 'User Place Bregenz',
+    description: 'Approved event owned by a regular user, not admin.',
+    categories: ['Yoga'],
+    bezirk: 'Bregenz',
+    organizer: { firstName: 'Test', lastName: 'User', email: 'user@test.local' },
+    kontakt: '0676 5558899',
+    status: 'approved',
+  },
 ];
 
 for (const event of TEST_EVENTS) {
@@ -299,7 +314,7 @@ async function main() {
   }
 
   for (const event of TEST_EVENTS) {
-    if (event.id === 'test-event-foreign-pending') {
+    if (event.id === 'test-event-foreign-pending' || event.id === 'test-event-user-approved') {
       await seedEvent(event, userUid || 'test-user-uid');
     } else {
       await seedEvent(event, adminUid || 'test-admin-uid');

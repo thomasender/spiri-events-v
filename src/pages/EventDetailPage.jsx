@@ -155,10 +155,24 @@ export default function EventDetailPage() {
             docSnap = snap;
           }
         } else {
-          const q = query(collection(db, 'events'), where('slug', '==', slug));
-          const snapshot = await getDocs(q);
-          if (!snapshot.empty) {
-            docSnap = snapshot.docs[0];
+          const approvedQuery = query(
+            collection(db, 'events'),
+            where('slug', '==', slug),
+            where('status', '==', 'approved')
+          );
+          const approvedSnapshot = await getDocs(approvedQuery);
+          if (!approvedSnapshot.empty) {
+            docSnap = approvedSnapshot.docs[0];
+          } else if (user) {
+            const ownQuery = query(
+              collection(db, 'events'),
+              where('slug', '==', slug),
+              where('createdBy', '==', user.uid)
+            );
+            const ownSnapshot = await getDocs(ownQuery);
+            if (!ownSnapshot.empty) {
+              docSnap = ownSnapshot.docs[0];
+            }
           }
         }
 
