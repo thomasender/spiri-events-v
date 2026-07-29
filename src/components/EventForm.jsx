@@ -4,7 +4,7 @@ import Select from 'react-select';
 import { useEvents, KATEGORIEN, BEZIRKE } from '../hooks/useEvents';
 import { useAuth } from '../hooks/useAuth';
 import { uploadImage, getImageDimensions, getAspectRatioRecommendation } from '../lib/imageUpload';
-import { ArrowLeft, Save, Image, X, Info, User, Mail } from 'lucide-react';
+import { ArrowLeft, Save, Image, X, Info } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
 import './EventForm.css';
 
@@ -418,19 +418,16 @@ export default function EventForm({ event }) {
           <div className="form-row">
             <div className="form-group">
               <label htmlFor="organizer.firstName">Vorname *</label>
-              <div className="input-wrapper">
-                <User size={18} className="input-icon" />
-                <input
-                  id="organizer.firstName"
-                  name="firstName"
-                  type="text"
-                  value={formData.organizer.firstName}
-                  onChange={handleOrganizerChange}
-                  placeholder="Vorname"
-                  autoComplete="given-name"
-                  className={errors['organizer.firstName'] ? 'input-error' : ''}
-                />
-              </div>
+              <input
+                id="organizer.firstName"
+                name="firstName"
+                type="text"
+                value={formData.organizer.firstName}
+                onChange={handleOrganizerChange}
+                placeholder="Vorname"
+                autoComplete="given-name"
+                className={errors['organizer.firstName'] ? 'input-error' : ''}
+              />
               {errors['organizer.firstName'] && (
                 <span className="error-text">{errors['organizer.firstName']}</span>
               )}
@@ -438,19 +435,16 @@ export default function EventForm({ event }) {
 
             <div className="form-group">
               <label htmlFor="organizer.lastName">Nachname *</label>
-              <div className="input-wrapper">
-                <User size={18} className="input-icon" />
-                <input
-                  id="organizer.lastName"
-                  name="lastName"
-                  type="text"
-                  value={formData.organizer.lastName}
-                  onChange={handleOrganizerChange}
-                  placeholder="Nachname"
-                  autoComplete="family-name"
-                  className={errors['organizer.lastName'] ? 'input-error' : ''}
-                />
-              </div>
+              <input
+                id="organizer.lastName"
+                name="lastName"
+                type="text"
+                value={formData.organizer.lastName}
+                onChange={handleOrganizerChange}
+                placeholder="Nachname"
+                autoComplete="family-name"
+                className={errors['organizer.lastName'] ? 'input-error' : ''}
+              />
               {errors['organizer.lastName'] && (
                 <span className="error-text">{errors['organizer.lastName']}</span>
               )}
@@ -459,20 +453,17 @@ export default function EventForm({ event }) {
 
           <div className="form-group">
             <label htmlFor="organizer.email">E-Mail Veranstalter *</label>
-            <div className="input-wrapper">
-              <Mail size={18} className="input-icon" />
-              <input
-                id="organizer.email"
-                name="email"
-                type="text"
-                inputMode="email"
-                value={formData.organizer.email}
-                onChange={handleOrganizerChange}
-                placeholder="veranstalter@email.de"
-                autoComplete="email"
-                className={errors['organizer.email'] ? 'input-error' : ''}
-              />
-            </div>
+            <input
+              id="organizer.email"
+              name="email"
+              type="text"
+              inputMode="email"
+              value={formData.organizer.email}
+              onChange={handleOrganizerChange}
+              placeholder="veranstalter@email.de"
+              autoComplete="email"
+              className={errors['organizer.email'] ? 'input-error' : ''}
+            />
             {errors['organizer.email'] && (
               <span className="error-text">{errors['organizer.email']}</span>
             )}
