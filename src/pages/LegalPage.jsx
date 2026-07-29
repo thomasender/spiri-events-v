@@ -26,9 +26,9 @@ E-Mail: thomas@blissofkundalini.yoga`,
 - Beschreibung
 - Beitrag (kostenlos oder gegen Gebühr)
 - Link (optional)
-- Bild (optional, max. 500KB)
+- Bild (optional, max. 15MB; wird automatisch für die Anzeige komprimiert)
 
-Diese Daten werden in Firestore (Firebase) gespeichert. Event-Bilder werden an den Drittanbieter ImgBB (imgbb.com) übermittelt und dort gehostet.`,
+Diese Daten werden in Firestore (Firebase) gespeichert. Event-Bilder werden in Firebase Cloud Storage gespeichert.`,
       },
       {
         heading: '3. Zweck und Rechtsgrundlage der Verarbeitung',
@@ -93,22 +93,19 @@ Die Datenverarbeitung durch Firebase erfolgt auf Grundlage eines Auftragsverarbe
 Weitere Informationen finden Sie in der Datenschutzerklärung von Google: https://policies.google.com/privacy`,
       },
       {
-        heading: '10. Externe Bildspeicherung (ImgBB)',
-        text: `Wenn Sie ein Bild zu einem Event hochladen, wird dieses an den externen Drittanbieter ImgBB (imgbb.com) übermittelt und dort auf deren Servern gespeichert. ImgBB ist ein öffentlicher Bildhosting-Dienst.
+        heading: '10. Bildspeicherung (Firebase Cloud Storage)',
+        text: `Wenn Sie ein Bild zu einem Event hochladen, wird dieses in Firebase Cloud Storage gespeichert. Firebase Cloud Storage ist ein Dienst von Google Ireland Limited und speichert die Daten auf Google-Servern.
 
 **Was bedeutet das für Sie?**
-- Das hochgeladene Bild wird öffentlich zugänglich auf ImgBB gehostet
-- Wir haben keinen Einfluss auf die Datenschutzpraktiken von ImgBB
+- Das hochgeladene Bild wird auf Servern innerhalb der EU/des EWR gespeichert und ist über eine öffentliche URL abrufbar (damit das Bild auf der Event-Seite angezeigt werden kann)
+- Die Verarbeitung erfolgt im Rahmen der Datenverarbeitung mit Google (Firebase), der gleichen Infrastruktur, die wir auch für die übrigen App-Daten nutzen
 - Die URLs der Bilder sind öffentlich und können von jedem eingesehen werden
 
 **Löschen von Bildern:**
-- Wenn Sie ein Event bearbeiten, können Sie das Bild aus der App entfernen (der Verweis in unserer Datenbank wird gelöscht)
-- Wenn Sie ein Event löschen, wird der Verweis aus unserer Datenbank entfernt
-- **Hinweis:** ImgBB bietet keine API zum Löschen von Bildern. Das Bild selbst verbleibt auf den Servern von ImgBB. Wenn Sie ein Bild vollständig entfernen möchten, müssen Sie sich direkt an ImgBB wenden oder das Bild dort manuell über die imgbb.com-Website löschen.
+- Wenn Sie ein Event bearbeiten und das Bild entfernen oder ersetzen, wird das alte Bild automatisch aus dem Speicher gelöscht
+- Wenn Sie ein Event löschen, wird auch das zugehörige Bild entfernt
 
-Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich teilen würden, und keine sensiblen personenbezogenen Daten (z.B. Gesichter unkenntlich machen) in den Bildern zu zeigen.
-
-Weitere Informationen finden Sie in der Datenschutzerklärung von ImgBB: https://imgbb.com/privacy`,
+Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich teilen würden, und keine sensiblen personenbezogenen Daten (z.B. Gesichter unkenntlich machen) in den Bildern zu zeigen.`,
       },
       {
         heading: '11. Änderungen dieser Datenschutzerklärung',

@@ -43,11 +43,12 @@ Inspiriert von Yoga-Retreats und spirituellen Oasen — warme Erdtöne, viel Wei
 
 ### Visual Assets
 - Icons: Lucide React (minimal, clean)
-- Event images: Optional user uploads via ImgBB (external image hosting)
-  - Max file size: 500KB (compressed client-side)
-  - Formats: JPEG, PNG, WebP
-  - Images publicly hosted on imgbb.com
-  - **Note:** ImgBB does not provide a delete API. Images cannot be programmatically removed from ImgBB servers. Users can remove the image reference from the app, but the image may remain on ImgBB.
+- Event images: Optional user uploads via Firebase Cloud Storage
+  - Max input file size: 15 MB (client-side validation)
+  - Compressed client-side to ~1.5 MB max, max dimension 2000px, JPEG quality 0.85 → 0.5
+  - Formats accepted: JPEG, PNG, WebP
+  - Images stored at `events/{eventId}/{timestamp}_{filename}` in Firebase Storage
+  - Old images are automatically deleted when replaced or removed
 - Decorative: subtle dot pattern on header, soft gradients
 
 ## 3. Layout & Structure
@@ -206,7 +207,7 @@ Recurring events appear on all matching future dates up to 1 year ahead (or `rec
 ### `<EventModal />`
 - Overlay + centered card
 - All event details
-- Event image displayed at top if available (from ImgBB)
+- Event image displayed at top if available (from Firebase Storage)
 - Close button (X) top-right
 - Link button if URL present
 
@@ -218,8 +219,10 @@ Recurring events appear on all matching future dates up to 1 year ahead (or `rec
 
 ### `<EventForm />`
 - All event fields with labels
-- Optional image upload via ImgBB (JPEG, PNG, WebP, max 500KB)
-  - Client-side compression before upload
+- Optional image upload via Firebase Storage (JPEG, PNG, WebP, max 15MB raw input)
+  - Client-side compression to ~1.5MB before upload
+  - Upload progress bar shown while uploading
+  - Old images are cleaned up automatically when replaced or removed
   - Image preview before upload
   - Remove/replace existing images
 - Contribution toggle (Free / Gebühr)
@@ -270,9 +273,10 @@ src/
 ### Firebase Setup (User will provide credentials)
 - Auth: Email/Password provider enabled
 - Firestore: Collection `events`
-- Image Hosting: ImgBB (external, free tier)
-  - Client-side compression to 500KB max
-  - Images served via ImgBB CDN
+- Image Hosting: Firebase Cloud Storage (free tier: 5GB storage, 100GB/month download)
+  - Client-side compression to ~1.5MB max, 2000px max dimension
+  - Stored at `events/{eventId}/{filename}` with public read access
+  - Automatic cleanup of replaced/removed images
 - Security: Users can only read all events, but only write/update/delete their own
 
 ### Routing Guards

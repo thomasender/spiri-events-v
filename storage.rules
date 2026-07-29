@@ -1,0 +1,21 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && request.auth.token.role == 'Admin';
+    }
+
+    // Event images: anyone can read (public, served on event pages),
+    // only authenticated users can upload images up to 15MB
+    match /events/{eventId}/{filename} {
+      allow read: if true;
+      allow write: if isAuthenticated()
+                   && request.resource.size < 15 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+  }
+}

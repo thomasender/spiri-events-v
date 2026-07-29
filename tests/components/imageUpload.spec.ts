@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { validateAspectRatio, getAspectRatioRecommendation } from '../../src/lib/imageUpload';
+import {
+  validateAspectRatio,
+  getAspectRatioRecommendation,
+  getStoragePathFromUrl,
+  MAX_INPUT_SIZE_BYTES,
+  TARGET_COMPRESSED_BYTES,
+} from '../../src/lib/imageUpload';
 
 describe('imageUpload', () => {
   describe('validateAspectRatio', () => {
@@ -89,6 +95,41 @@ describe('imageUpload', () => {
     it('returns ratio for non-zero dimensions', () => {
       const result = getAspectRatioRecommendation(1920, 1080);
       expect(result.ratio).toBeCloseTo(1.778, 2);
+    });
+  });
+
+  describe('getStoragePathFromUrl', () => {
+    it('returns null for empty/invalid input', () => {
+      expect(getStoragePathFromUrl(null)).toBeNull();
+      expect(getStoragePathFromUrl('')).toBeNull();
+      expect(getStoragePathFromUrl('https://example.com/foo')).toBeNull();
+      expect(getStoragePathFromUrl('https://i.ibb.co/abc123/test.jpg')).toBeNull();
+    });
+
+    it('extracts the storage path from a Firebase Storage v0 URL', () => {
+      const url =
+        'https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.appspot.com/o/events%2Fabc123%2F123_test.jpg?alt=media&token=xyz';
+      expect(getStoragePathFromUrl(url)).toBe('events/abc123/123_test.jpg');
+    });
+
+    it('extracts the storage path from a Firebase Storage v1 URL', () => {
+      const url =
+        'https://firebasestorage.googleapis.com/v1/b/spirieventsvbg.firebasestorage.app/o/events%2Fevt42%2Fphoto.png';
+      expect(getStoragePathFromUrl(url)).toBe('events/evt42/photo.png');
+    });
+  });
+
+  describe('size limit constants', () => {
+    it('MAX_INPUT_SIZE_BYTES is 15 MB', () => {
+      expect(MAX_INPUT_SIZE_BYTES).toBe(15 * 1024 * 1024);
+    });
+
+    it('TARGET_COMPRESSED_BYTES is ~1.5 MB', () => {
+      expect(TARGET_COMPRESSED_BYTES).toBe(1.5 * 1024 * 1024);
+    });
+
+    it('MAX_INPUT_SIZE_BYTES is at least 3x TARGET_COMPRESSED_BYTES', () => {
+      expect(MAX_INPUT_SIZE_BYTES).toBeGreaterThan(TARGET_COMPRESSED_BYTES * 3);
     });
   });
 });

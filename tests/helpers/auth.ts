@@ -1,6 +1,7 @@
 import { test as base, Page } from '@playwright/test';
 
 export const AUTH_EMULATOR_URL = 'http://localhost:9199';
+export const STORAGE_EMULATOR_URL = 'http://localhost:9299';
 export const PROJECT_ID = 'spirieventsvbg';
 
 export async function signInWithEmailAndPassword(
@@ -108,4 +109,14 @@ export async function clearEmulatorData(): Promise<void> {
   };
 
   await Promise.all([clearFirestore(), clearAuth()]);
+}
+
+export async function clearEmulatorStorage(): Promise<void> {
+  try {
+    await fetch(`${STORAGE_EMULATOR_URL}/storage/v1/b/${PROJECT_ID}.appspot.com/o?force=true`, {
+      method: 'DELETE',
+    });
+  } catch {
+    // Ignore errors
+  }
 }

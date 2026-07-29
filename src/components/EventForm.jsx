@@ -3,7 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import Select from 'react-select';
 import { useEvents, KATEGORIEN, BEZIRKE } from '../hooks/useEvents';
 import { useAuth } from '../hooks/useAuth';
-import { uploadImage, getImageDimensions, getAspectRatioRecommendation } from '../lib/imageUpload';
+import {
+  uploadImage,
+  deleteImageByUrl,
+  getImageDimensions,
+  getAspectRatioRecommendation,
+  MAX_INPUT_SIZE_BYTES,
+} from '../lib/imageUpload';
 import { ArrowLeft, Save, Image, X, Info } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
 import './EventForm.css';
@@ -124,8 +130,10 @@ export default function EventForm({ event }) {
   const [validationError, setValidationError] = useState('');
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(event?.imageUrl || '');
+  const [originalImageUrl] = useState(event?.imageUrl || '');
   const [imageRemoved, setImageRemoved] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
+  const [imageProgress, setImageProgress] = useState(0);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showResubmitConfirmModal, setShowResubmitConfirmModal] = useState(false);
@@ -143,7 +151,8 @@ export default function EventForm({ event }) {
   };
 
   const getSubmitButtonText = () => {
-    if (loading || imageUploading) return 'Speichern...';
+    if (imageUploading) return `Wird hochgeladen… (${imageProgress}%)`;
+    if (loading) return 'Speichern...';
     if (isEdit) return wasApproved && !isAdmin ? 'Erneut einreichen' : 'Änderungen speichern';
     return isAdmin ? 'Event erstellen' : 'Einreichen zur Genehmigung';
   };
@@ -206,8 +215,11 @@ export default function EventForm({ event }) {
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      setErrors((prev) => ({ ...prev, image: 'Bild ist zu groß (max. 5MB)' }));
+    if (file.size > MAX_INPUT_SIZE_BYTES) {
+      setErrors((prev) => ({
+        ...prev,
+        image: `Bild ist zu groß (max. ${Math.round(MAX_INPUT_SIZE_BYTES / 1024 / 1024)}MB)`,
+      }));
       return;
     }
 
@@ -264,12 +276,17 @@ export default function EventForm({ event }) {
     }
   };
 
-  const handleImageUpload = async () => {
+  const handleImageUpload = async (eventId) => {
     if (!imageFile) return null;
 
     setImageUploading(true);
+    setImageProgress(0);
     try {
-      return await uploadImage(imageFile);
+      const url = await uploadImage(imageFile, {
+        eventId,
+        onProgress: setImageProgress,
+      });
+      return url;
     } catch (err) {
       console.error('Image upload failed:', err);
       throw new Error('Bild-Upload fehlgeschlagen');
@@ -373,10 +390,13 @@ export default function EventForm({ event }) {
       }
 
       if (imageFile) {
-        const newImageUrl = await handleImageUpload();
+        const newImageUrl = await handleImageUpload(docRef.id);
         await updateEvent(docRef.id, { imageUrl: newImageUrl });
-      } else if (imageRemoved && event?.imageUrl) {
-        await updateEvent(event.id, { imageUrl: null });
+        if (originalImageUrl && originalImageUrl !== newImageUrl) {
+          await deleteImageByUrl(originalImageUrl);
+        }
+      } else if (imageRemoved && originalImageUrl) {
+        await deleteImageByUrl(originalImageUrl);
       }
       navigate('/admin');
     } catch (err) {
@@ -782,7 +802,9 @@ export default function EventForm({ event }) {
                 <span>
                   {isDraggingOver
                     ? 'Datei hier ablegen'
-                    : 'Bild auswählen oder Datei hierher ziehen (JPEG, PNG, WebP, max. 500KB)'}
+                    : `Bild auswählen oder Datei hierher ziehen (JPEG, PNG, WebP, max. ${Math.round(
+                        MAX_INPUT_SIZE_BYTES / 1024 / 1024
+                      )}MB)`}
                 </span>
               </div>
             )}
@@ -795,7 +817,16 @@ export default function EventForm({ event }) {
             />
             {errors.image && <span className="error-text">{errors.image}</span>}
             {imageUploading && (
-              <span className="uploading-text">Bild wird komprimiert und hochgeladen...</span>
+              <div className="upload-progress">
+                <div className="upload-progress-bar">
+                  <div className="upload-progress-fill" style={{ width: `${imageProgress}%` }} />
+                </div>
+                <span className="upload-progress-text">
+                  {imageProgress < 100
+                    ? `Bild wird hochgeladen… ${imageProgress}%`
+                    : 'Upload abgeschlossen'}
+                </span>
+              </div>
             )}
           </div>
 

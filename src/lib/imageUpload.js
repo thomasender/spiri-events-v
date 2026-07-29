@@ -1,14 +1,24 @@
 /**
- * Image upload service using ImgBB (free public image hosting)
- * Images are uploaded to imgbb.com and served via their CDN
- * No authentication required for basic uploads
+ * Image upload service using Firebase Storage
+ * Images are stored at: events/{eventId}/{timestamp}_{filename}
+ * Compressed client-side before upload for fast transfers
  */
 
-const IMGBB_API_URL = 'https://api.imgbb.com/1/upload';
+import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
+import { storage } from './firebase';
 
 const LANDSCAPE_RATIO = 16 / 9;
 const PORTRAIT_RATIO = 9 / 16;
 const ASPECT_RATIO_TOLERANCE = 0.1;
+
+const MAX_DIMENSION = 2000;
+const TARGET_MAX_BYTES = 1.5 * 1024 * 1024;
+const INITIAL_QUALITY = 0.85;
+const MIN_QUALITY = 0.5;
+const QUALITY_STEP = 0.05;
+
+export const MAX_INPUT_SIZE_BYTES = 15 * 1024 * 1024;
+export const TARGET_COMPRESSED_BYTES = TARGET_MAX_BYTES;
 
 export async function getImageDimensions(file) {
   return new Promise((resolve) => {
@@ -39,108 +49,152 @@ export function getAspectRatioRecommendation(width, height) {
 }
 
 /**
- * Upload an image file to ImgBB
- * @param {File} file - The image file to upload
- * @param {number} maxSizeKB - Maximum file size in KB (default: 500KB)
- * @returns {Promise<string>} - The URL of the uploaded image
- */
-export async function uploadImage(file, maxSizeKB = 500) {
-  // Compress image before upload
-  const compressedBlob = await compressImage(file, maxSizeKB);
-
-  // Convert blob to base64
-  const base64 = await blobToBase64(compressedBlob);
-
-  // ImgBB expects raw base64 without the "data:image/...;base64," prefix
-  const base64Data = base64.split(',')[1];
-
-  // Build form data
-  const formData = new FormData();
-  formData.append('image', base64Data);
-
-  // Upload to ImgBB
-  const response = await fetch(`${IMGBB_API_URL}?key=3db7dc19a9f9068d0c780b6b63126d32`, {
-    method: 'POST',
-    body: formData,
-  });
-
-  if (!response.ok) {
-    throw new Error('Bild-Upload fehlgeschlagen');
-  }
-
-  const data = await response.json();
-
-  if (data.success) {
-    return data.data.url;
-  } else {
-    throw new Error('Bild-Upload fehlgeschlagen');
-  }
-}
-
-/**
- * Compress an image to target size
- * @param {File} file - The image file
- * @param {number} maxSizeKB - Target max size in KB
+ * Compress an image client-side to a target size while preserving maximum quality
+ * @param {File|Blob} file - The image file
  * @returns {Promise<Blob>} - Compressed image blob
  */
-function compressImage(file, maxSizeKB = 500) {
-  return new Promise((resolve) => {
+export function compressImage(file) {
+  return new Promise((resolve, reject) => {
     const img = new Image();
+    img.onerror = () => reject(new Error('Bild konnte nicht geladen werden'));
     img.onload = () => {
-      const canvas = document.createElement('canvas');
       let { width, height } = img;
 
-      // Scale down if needed
-      const maxDim = 1200;
-      if (width > maxDim || height > maxDim) {
+      if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
         if (width > height) {
-          height = Math.round((height / width) * maxDim);
-          width = maxDim;
+          height = Math.round((height / width) * MAX_DIMENSION);
+          width = MAX_DIMENSION;
         } else {
-          width = Math.round((width / height) * maxDim);
-          height = maxDim;
+          width = Math.round((width / height) * MAX_DIMENSION);
+          height = MAX_DIMENSION;
         }
       }
 
+      const canvas = document.createElement('canvas');
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, width, height);
 
-      // Try quality 0.8 first, then lower if needed
-      let quality = 0.8;
+      let quality = INITIAL_QUALITY;
       let dataUrl = canvas.toDataURL('image/jpeg', quality);
 
-      // Base64 is ~37% larger than binary, so check accordingly
-      while (dataUrl.length > maxSizeKB * 1024 * 1.37 && quality > 0.2) {
-        quality -= 0.1;
+      while (dataUrlToBlobSize(dataUrl) > TARGET_MAX_BYTES && quality > MIN_QUALITY) {
+        quality -= QUALITY_STEP;
         dataUrl = canvas.toDataURL('image/jpeg', quality);
       }
 
-      // Convert data URL to blob
-      const byteString = atob(dataUrl.split(',')[1]);
-      const mimeType = 'image/jpeg';
-      const ab = new ArrayBuffer(byteString.length);
-      const ia = new Uint8Array(ab);
-      for (let i = 0; i < byteString.length; i++) {
-        ia[i] = byteString.charCodeAt(i);
-      }
-      resolve(new Blob([ab], { type: mimeType }));
+      const blob = dataUrlToBlob(dataUrl);
+      URL.revokeObjectURL(img.src);
+      resolve(blob);
     };
     img.src = URL.createObjectURL(file);
   });
 }
 
+function dataUrlToBlobSize(dataUrl) {
+  const base64 = dataUrl.split(',')[1] || '';
+  return Math.ceil((base64.length * 3) / 4);
+}
+
+function dataUrlToBlob(dataUrl) {
+  const [meta, base64] = dataUrl.split(',');
+  const mimeMatch = meta.match(/data:(.*?);base64/);
+  const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+  const byteString = atob(base64);
+  const ab = new ArrayBuffer(byteString.length);
+  const ia = new Uint8Array(ab);
+  for (let i = 0; i < byteString.length; i++) {
+    ia[i] = byteString.charCodeAt(i);
+  }
+  return new Blob([ab], { type: mimeType });
+}
+
 /**
- * Convert blob to base64 string
- * @param {Blob} blob - The blob to convert
- * @returns {Promise<string>} - Base64 string
+ * Extract the storage path from a Firebase Storage download URL.
+ * Returns null if URL is not a Firebase Storage URL.
+ * @param {string} url
+ * @returns {string|null}
  */
-function blobToBase64(blob) {
+export function getStoragePathFromUrl(url) {
+  if (!url) return null;
+  const match = url.match(
+    /^https?:\/\/firebasestorage\.googleapis\.com\/v\d+\/b\/[^/]+\/o\/([^?]+)/
+  );
+  if (!match) return null;
+  try {
+    return decodeURIComponent(match[1]);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Delete an image from Firebase Storage by its download URL.
+ * Silently no-ops if the URL is not a Firebase Storage URL or the file does not exist.
+ * @param {string} downloadUrl
+ * @returns {Promise<void>}
+ */
+export async function deleteImageByUrl(downloadUrl) {
+  const path = getStoragePathFromUrl(downloadUrl);
+  if (!path) return;
+  try {
+    const storageRef = ref(storage, path);
+    await deleteObject(storageRef);
+  } catch (err) {
+    if (err?.code !== 'storage/object-not-found') {
+      console.warn('Failed to delete image from storage:', err);
+    }
+  }
+}
+
+function sanitizeFilename(name) {
+  return (name || 'image')
+    .replace(/[^a-zA-Z0-9._-]/g, '_')
+    .replace(/_+/g, '_')
+    .slice(0, 80);
+}
+
+/**
+ * Upload an image file to Firebase Storage.
+ * Compresses the image client-side before upload.
+ * @param {File} file - The image file to upload
+ * @param {Object} [options]
+ * @param {string} [options.eventId] - Event ID to scope the upload path
+ * @param {(progress: number) => void} [options.onProgress] - Progress callback (0-100)
+ * @returns {Promise<string>} - Download URL of the uploaded image
+ */
+export async function uploadImage(file, options = {}) {
+  const { eventId = 'temp', onProgress } = options;
+
+  const compressedBlob = await compressImage(file);
+  const safeName = sanitizeFilename(file.name);
+  const filename = `${Date.now()}_${safeName}`;
+  const storageRef = ref(storage, `events/${eventId}/${filename}`);
+
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
+    const uploadTask = uploadBytesResumable(storageRef, compressedBlob, {
+      contentType: 'image/jpeg',
+    });
+
+    uploadTask.on(
+      'state_changed',
+      (snapshot) => {
+        if (onProgress && snapshot.totalBytes > 0) {
+          const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+          onProgress(pct);
+        }
+      },
+      (error) => reject(error),
+      async () => {
+        try {
+          const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
+          if (onProgress) onProgress(100);
+          resolve(downloadUrl);
+        } catch (err) {
+          reject(err);
+        }
+      }
+    );
   });
 }
