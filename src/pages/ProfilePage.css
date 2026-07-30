@@ -1,0 +1,44 @@
+.profile-page {
+  min-height: calc(100vh - 72px);
+  padding: 48px 24px;
+  background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+}
+
+.profile-container {
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.profile-header {
+  margin-bottom: 8px;
+}
+
+.profile-header h1 {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.85rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.profile-header p {
+  color: var(--text-secondary);
+  margin: 4px 0 0;
+  font-size: 0.95rem;
+}
+
+.profile-card {
+  background-color: var(--bg-calendar);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 32px;
+}
+
+@media (max-width: 640px) {
+  .profile-card {
+    padding: 24px;
+  }
+}

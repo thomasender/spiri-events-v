@@ -9,6 +9,7 @@ import AdminPage from './pages/AdminPage';
 import EventFormPage from './pages/EventFormPage';
 import LegalPage from './pages/LegalPage';
 import EventDetailPage from './pages/EventDetailPage';
+import ProfilePage from './pages/ProfilePage';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -55,6 +56,14 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <EventFormPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profil"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
               </ProtectedRoute>
             }
           />
