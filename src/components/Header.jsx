@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { Calendar, LogOut, User, PlusCircle } from 'lucide-react';
+import { Calendar, LogOut, User, PlusCircle, UserCircle } from 'lucide-react';
 import './Header.css';
 
 export default function Header() {
@@ -41,6 +41,10 @@ export default function Header() {
             <Link to="/admin" className="nav-link">
               <User size={18} />
               <span>Verwaltung</span>
+            </Link>
+            <Link to="/profil" className="nav-link">
+              <UserCircle size={18} />
+              <span>Mein Profil</span>
             </Link>
             <Link to="/admin/new" className="nav-link nav-link--cta">
               <PlusCircle size={18} />

@@ -198,3 +198,48 @@ export async function uploadImage(file, options = {}) {
     );
   });
 }
+
+/**
+ * Upload a profile photo to Firebase Storage under users/{uid}/avatar/.
+ * Compresses the image client-side before upload.
+ * @param {File} file - The image file to upload
+ * @param {string} uid - The user ID that owns the profile
+ * @param {Object} [options]
+ * @param {(progress: number) => void} [options.onProgress] - Progress callback (0-100)
+ * @returns {Promise<string>} - Download URL of the uploaded image
+ */
+export async function uploadProfileImage(file, uid, options = {}) {
+  if (!uid) throw new Error('User ID is required for profile image upload');
+  const { onProgress } = options;
+
+  const compressedBlob = await compressImage(file);
+  const safeName = sanitizeFilename(file.name);
+  const filename = `${Date.now()}_${safeName}`;
+  const photoRef = ref(storage, `users/${uid}/avatar/${filename}`);
+
+  return new Promise((resolve, reject) => {
+    const uploadTask = uploadBytesResumable(photoRef, compressedBlob, {
+      contentType: 'image/jpeg',
+    });
+
+    uploadTask.on(
+      'state_changed',
+      (snapshot) => {
+        if (onProgress && snapshot.totalBytes > 0) {
+          const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+          onProgress(pct);
+        }
+      },
+      (error) => reject(error),
+      async () => {
+        try {
+          const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
+          if (onProgress) onProgress(100);
+          resolve(downloadUrl);
+        } catch (err) {
+          reject(err);
+        }
+      }
+    );
+  });
+}

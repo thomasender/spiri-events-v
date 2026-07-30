@@ -1,0 +1,257 @@
+.profile-page {
+  min-height: calc(100vh - 72px);
+  padding: 48px 24px;
+  background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+}
+
+.profile-container {
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.profile-header {
+  margin-bottom: 8px;
+}
+
+.profile-header h1 {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.85rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.profile-header p {
+  color: var(--text-secondary);
+  margin: 4px 0 0;
+  font-size: 0.95rem;
+}
+
+.profile-card {
+  background-color: var(--bg-calendar);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 32px;
+}
+
+.profile-card-title {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin: 0 0 4px;
+}
+
+.profile-card-hint {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin: 0 0 20px;
+}
+
+.profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.profile-form .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.profile-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.profile-form label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.profile-form input,
+.profile-form textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.profile-form input:focus,
+.profile-form textarea:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(139, 115, 85, 0.12);
+}
+
+.profile-form textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.profile-form .input-error {
+  border-color: #c1453a;
+}
+
+.profile-form .error-text {
+  color: #c1453a;
+  font-size: 0.85rem;
+}
+
+.profile-form .field-counter {
+  font-size: 0.8rem;
+  color: var(--text-light);
+  align-self: flex-end;
+}
+
+.profile-form .field-counter.over-limit {
+  color: #c1453a;
+}
+
+.profile-form .form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.profile-form .success-text {
+  color: #2f7a4a;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.profile-form .submit-error {
+  color: #c1453a;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.profile-danger-card {
+  border: 1px solid #c1453a33;
+}
+
+.profile-danger-card .profile-card-title {
+  color: #c1453a;
+}
+
+.profile-danger-zone {
+  background-color: rgba(193, 69, 58, 0.04);
+  border: 1px solid rgba(193, 69, 58, 0.2);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.profile-danger-zone .danger-title {
+  font-weight: 600;
+  color: #c1453a;
+  margin: 0;
+}
+
+.profile-danger-zone .danger-text {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.profile-photo-upload {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.profile-photo-preview {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-light);
+  flex-shrink: 0;
+}
+
+.profile-photo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-photo-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.profile-photo-controls .photo-error {
+  color: #c1453a;
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.profile-photo-controls input[type='file'] {
+  display: none;
+}
+
+.profile-photo-controls .photo-progress {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.btn-danger {
+  background-color: #c1453a;
+  color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: #a83a30;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--accent-primary);
+  cursor: pointer;
+  padding: 0;
+  font-size: inherit;
+  text-decoration: underline;
+}
+
+.btn-link:hover {
+  color: var(--accent-lavender);
+}
+
+@media (max-width: 640px) {
+  .profile-card {
+    padding: 24px;
+  }
+
+  .profile-form .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-photo-upload {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
