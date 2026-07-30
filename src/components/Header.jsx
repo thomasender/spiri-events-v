@@ -38,7 +38,7 @@ export default function Header() {
 
         {user ? (
           <>
-            <Link to="/admin" className="nav-link">
+            <Link to="/admin" className="nav-link nav-link--admin">
               <User size={18} />
               <span>Verwaltung</span>
             </Link>
