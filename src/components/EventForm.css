@@ -187,7 +187,8 @@ textarea {
 
 .image-preview-container {
   position: relative;
-  display: inline-block;
+  display: block;
+  max-width: fit-content;
 }
 
 .image-preview {
