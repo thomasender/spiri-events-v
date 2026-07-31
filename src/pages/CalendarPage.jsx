@@ -159,7 +159,7 @@ export default function CalendarPage() {
           </ul>
         </div>
         <div className="hero-visual" aria-hidden="true">
-          <img src="/logo-mark.svg" alt="" className="hero-visual-mark" />
+          <img src="/hero.jpeg" alt="" className="hero-visual-image" />
         </div>
       </section>
 
