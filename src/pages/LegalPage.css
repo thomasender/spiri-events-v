@@ -37,7 +37,7 @@
   color: var(--accent-primary);
   margin-bottom: 12px;
   font-weight: 600;
-  font-family: 'Nunito Sans', sans-serif;
+  font-family: var(--font-body);
 }
 
 .legal-content p {
