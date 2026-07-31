@@ -97,7 +97,7 @@
   height: 24px;
   border-radius: 50%;
   background-color: var(--accent-soft);
-  color: var(--accent-primary-hover);
+  color: var(--accent-primary-strong);
   font-size: 0.75rem;
   font-weight: 600;
   flex-shrink: 0;

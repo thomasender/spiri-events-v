@@ -320,10 +320,6 @@ export default function CalendarPage() {
             <span>Ein Ort für Begegnung, Inspiration und echtes Miteinander.</span>
           </div>
         </div>
-        <div className="impact-stat">
-          <strong>{events.length}</strong>
-          <span>Events aktuell online</span>
-        </div>
       </section>
     </div>
   );

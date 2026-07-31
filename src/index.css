@@ -1,15 +1,18 @@
 :root {
-  /* Brand palette — from designer logo assets (Logo_1.svg / Logo_2.svg) */
-  --bg-primary: #f6f1ec; /* cream canvas */
-  --bg-secondary: #efe7dc; /* deeper cream — cards / sections */
+  /* Brand palette — per Farben mockup (Hintergrund/Primär/Sekundär/Buttons/Hover/Fliesstext) */
+  --bg-primary: #f4f2f0; /* Hintergrund */
+  --bg-secondary: #eae7e2; /* deeper cream — cards / sections */
   --bg-calendar: #ffffff; /* white surfaces / calendar cells */
-  --accent-primary: #c48e6a; /* terracotta — primary actions */
-  --accent-primary-hover: #b07a56; /* darker terracotta — hover */
+  --heading-color: #a6a487; /* Primärfarbe — Überschriften */
+  --accent-secondary: #667c62; /* Sekundärfarbe — Waldgrün für Banner, Akzente */
+  --accent-primary: #c48e6a; /* Buttons — terracotta */
+  --accent-primary-hover: #e1c498; /* Hover */
+  --accent-primary-strong: #9a5f38; /* darker terracotta — text on soft fills */
   --accent-soft: rgba(196, 142, 106, 0.14); /* terracotta tint — subtle fills */
   --text-primary: #161819; /* charcoal */
-  --text-secondary: #605e5e; /* muted grey */
+  --text-secondary: #605e5e; /* Fliesstext */
   --text-light: #938d87; /* light warm grey */
-  --border: #e5dccf; /* soft cream border */
+  --border: #e2dcd2; /* soft cream border */
   --modal-overlay: rgba(22, 24, 25, 0.55);
   --error: #bf5b4e; /* warm terracotta-red */
   --error-hover: #a94a3e;
