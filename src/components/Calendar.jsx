@@ -221,6 +221,7 @@ export default function Calendar({
   currentMonth,
   onMonthChange,
   categoryColors,
+  categories,
 }) {
   const [slideDirection, setSlideDirection] = useState(null);
   const [mobileViewDate, setMobileViewDate] = useState(() => new Date());
@@ -308,8 +309,6 @@ export default function Calendar({
   }, [mobileViewDate]);
 
   const calendarKey = `${year}-${month}`;
-
-  const hasEventsAnywhere = events.length > 0;
 
   return (
     <div className="calendar">
@@ -544,13 +543,27 @@ export default function Calendar({
             </div>
           </div>
         )}
-      </div>
 
-      {!hasEventsAnywhere && (
-        <div className="calendar-empty">
-          <p>Keine Events vorhanden</p>
-        </div>
-      )}
+        {categories && categories.length > 0 && (
+          <>
+            <div className="calendar-divider" />
+            <ul className="calendar-legend">
+              {categories.map((category) => (
+                <li key={category}>
+                  <span
+                    className="calendar-legend-dot"
+                    style={{
+                      backgroundColor:
+                        (categoryColors && categoryColors[category]) || FALLBACK_DOT_COLOR,
+                    }}
+                  />
+                  {category}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </div>
     </div>
   );
 }

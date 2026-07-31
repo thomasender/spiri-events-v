@@ -42,6 +42,39 @@
   width: 30px;
 }
 
+/* ============================================
+   CATEGORY LEGEND
+   ============================================ */
+
+.calendar-divider {
+  height: 1px;
+  background-color: var(--border);
+  margin: 8px 24px 0;
+}
+
+.calendar-legend {
+  list-style: none;
+  display: flex;
+  flex-flow: row wrap;
+  gap: 10px 20px;
+  padding: 16px 24px 20px;
+}
+
+.calendar-legend li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--fs-eventinfo);
+  color: var(--text-secondary);
+}
+
+.calendar-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
 .btn-today,
 .btn-nav {
   display: flex;
@@ -555,17 +588,6 @@
 }
 
 /* ============================================
-   EMPTY STATE
-   ============================================ */
-
-.calendar-empty {
-  padding: 48px;
-  text-align: center;
-  color: var(--text-light);
-  font-style: italic;
-}
-
-/* ============================================
    DESKTOP ONLY
    ============================================ */
 
@@ -619,10 +641,6 @@
 
   .calendar-title h2 {
     font-size: 1.2rem;
-  }
-
-  .calendar-empty {
-    padding: 32px 20px;
   }
 }
 

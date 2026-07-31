@@ -88,30 +88,6 @@ describe('Calendar', () => {
       const buttons = screen.getAllByRole('button');
       expect(buttons.length).toBeGreaterThan(0);
     });
-
-    it('renders empty state when no events', () => {
-      render(
-        <Calendar
-          events={[]}
-          onEventClick={onEventClick}
-          currentMonth={currentMonth}
-          onMonthChange={onMonthChange}
-        />
-      );
-      expect(screen.getByText('Keine Events vorhanden')).toBeInTheDocument();
-    });
-
-    it('does not render empty state when events exist', () => {
-      render(
-        <Calendar
-          events={[createEvent()]}
-          onEventClick={onEventClick}
-          currentMonth={currentMonth}
-          onMonthChange={onMonthChange}
-        />
-      );
-      expect(screen.queryByText('Keine Events vorhanden')).not.toBeInTheDocument();
-    });
   });
 
   describe('Month Navigation', () => {

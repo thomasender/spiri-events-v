@@ -18,6 +18,8 @@
   font-size: 1.5rem;
   font-weight: 500;
   color: var(--text-primary);
+  min-width: 13ch;
+  flex-shrink: 0;
 }
 
 .events-section-month-nav {

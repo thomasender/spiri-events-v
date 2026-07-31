@@ -266,26 +266,10 @@ export default function CalendarPage() {
             currentMonth={currentMonth}
             onMonthChange={setCurrentMonth}
             categoryColors={CATEGORY_COLORS}
+            categories={KATEGORIEN}
           />
 
           <div className="sidebar-cards-row">
-            <div className="sidebar-card">
-              <h2 className="sidebar-card-title">Kategorien</h2>
-              <ul className="legend-list">
-                {KATEGORIEN.map((category) => (
-                  <li key={category}>
-                    <span
-                      className="legend-dot"
-                      style={{
-                        backgroundColor: CATEGORY_COLORS[category] || 'var(--text-light)',
-                      }}
-                    />
-                    {category}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
             <div className="sidebar-card">
               <div className="sidebar-card-header">
                 <h2 className="sidebar-card-title">Deine Auswahl</h2>
