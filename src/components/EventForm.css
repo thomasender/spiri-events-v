@@ -94,7 +94,7 @@
 
 .radio-label.active {
   border-color: var(--accent-primary);
-  background-color: rgba(139, 115, 85, 0.08);
+  background-color: rgba(196, 142, 106, 0.08);
 }
 
 .radio-label.active span {
@@ -135,8 +135,8 @@ textarea {
 }
 
 .resubmit-warning {
-  background-color: rgba(180, 160, 100, 0.12);
-  border: 1px solid rgba(180, 160, 100, 0.3);
+  background-color: rgba(198, 160, 92, 0.12);
+  border: 1px solid rgba(198, 160, 92, 0.3);
   border-radius: var(--radius-sm);
   padding: 16px;
   margin-bottom: 16px;
@@ -172,12 +172,12 @@ textarea {
 
 .image-upload-area:hover {
   border-color: var(--accent-primary);
-  background-color: rgba(139, 115, 85, 0.05);
+  background-color: rgba(196, 142, 106, 0.05);
 }
 
 .image-upload-area.drag-over {
   border-color: var(--accent-primary);
-  background-color: rgba(139, 115, 85, 0.12);
+  background-color: rgba(196, 142, 106, 0.12);
   border-style: solid;
 }
 
@@ -233,7 +233,7 @@ textarea {
 .upload-progress-bar {
   width: 100%;
   height: 6px;
-  background: #e5e7eb;
+  background: var(--border);
   border-radius: 999px;
   overflow: hidden;
 }
@@ -265,7 +265,7 @@ textarea {
 .kategorie-select .kategorie__control:focus,
 .kategorie-select .kategorie__control--is-focused {
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px rgba(139, 115, 85, 0.15);
+  box-shadow: 0 0 0 3px rgba(196, 142, 106, 0.15);
 }
 
 .kategorie-select .kategorie__placeholder {
@@ -277,7 +277,7 @@ textarea {
 }
 
 .kategorie-select .kategorie__multi-value {
-  background-color: rgba(139, 115, 85, 0.12);
+  background-color: rgba(196, 142, 106, 0.12);
   border-radius: 12px;
   padding: 2px 8px;
 }
@@ -292,7 +292,7 @@ textarea {
 }
 
 .kategorie-select .kategorie__multi-value__remove:hover {
-  background-color: rgba(139, 115, 85, 0.2);
+  background-color: rgba(196, 142, 106, 0.2);
   color: var(--accent-primary);
 }
 
@@ -323,7 +323,7 @@ textarea {
 }
 
 .kategorie-select .kategorie__option--is-selected {
-  background-color: rgba(139, 115, 85, 0.12);
+  background-color: rgba(196, 142, 106, 0.12);
   color: var(--accent-primary);
 }
 

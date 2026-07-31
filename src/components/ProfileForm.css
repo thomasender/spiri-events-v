@@ -94,7 +94,7 @@
 .profile-form textarea:focus {
   outline: none;
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px rgba(139, 115, 85, 0.12);
+  box-shadow: 0 0 0 3px rgba(196, 142, 106, 0.12);
 }
 
 .profile-form textarea {
@@ -103,11 +103,11 @@
 }
 
 .profile-form .input-error {
-  border-color: #c1453a;
+  border-color: var(--error);
 }
 
 .profile-form .error-text {
-  color: #c1453a;
+  color: var(--error);
   font-size: 0.85rem;
 }
 
@@ -118,7 +118,7 @@
 }
 
 .profile-form .field-counter.over-limit {
-  color: #c1453a;
+  color: var(--error);
 }
 
 .profile-form .form-actions {
@@ -129,28 +129,28 @@
 }
 
 .profile-form .success-text {
-  color: #2f7a4a;
+  color: var(--free-text);
   font-size: 0.9rem;
   margin: 0;
 }
 
 .profile-form .submit-error {
-  color: #c1453a;
+  color: var(--error);
   font-size: 0.9rem;
   margin: 0;
 }
 
 .profile-danger-card {
-  border: 1px solid #c1453a33;
+  border: 1px solid rgba(191, 91, 78, 0.2);
 }
 
 .profile-danger-card .profile-card-title {
-  color: #c1453a;
+  color: var(--error);
 }
 
 .profile-danger-zone {
-  background-color: rgba(193, 69, 58, 0.04);
-  border: 1px solid rgba(193, 69, 58, 0.2);
+  background-color: rgba(191, 91, 78, 0.04);
+  border: 1px solid rgba(191, 91, 78, 0.2);
   border-radius: var(--radius-md);
   padding: 20px;
   display: flex;
@@ -160,7 +160,7 @@
 
 .profile-danger-zone .danger-title {
   font-weight: 600;
-  color: #c1453a;
+  color: var(--error);
   margin: 0;
 }
 
@@ -204,7 +204,7 @@
 }
 
 .profile-photo-controls .photo-error {
-  color: #c1453a;
+  color: var(--error);
   font-size: 0.85rem;
   margin: 0;
 }
@@ -219,12 +219,12 @@
 }
 
 .btn-danger {
-  background-color: #c1453a;
+  background-color: var(--error);
   color: white;
 }
 
 .btn-danger:hover:not(:disabled) {
-  background-color: #a83a30;
+  background-color: var(--error-hover);
 }
 
 .btn-link {
@@ -238,7 +238,7 @@
 }
 
 .btn-link:hover {
-  color: var(--accent-lavender);
+  color: var(--accent-primary);
 }
 
 @media (max-width: 640px) {

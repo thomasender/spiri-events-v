@@ -163,6 +163,12 @@ export default function EventDetailPage() {
           const approvedSnapshot = await getDocs(approvedQuery);
           if (!approvedSnapshot.empty) {
             docSnap = approvedSnapshot.docs[0];
+          } else if (user && role === 'Admin') {
+            const anyQuery = query(collection(db, 'events'), where('slug', '==', slug));
+            const anySnapshot = await getDocs(anyQuery);
+            if (!anySnapshot.empty) {
+              docSnap = anySnapshot.docs[0];
+            }
           } else if (user) {
             const ownQuery = query(
               collection(db, 'events'),
@@ -227,7 +233,7 @@ export default function EventDetailPage() {
   return (
     <div className="event-detail-page">
       <Helmet>
-        <title>{event.title} | Spirituelle Events Vorarlberg</title>
+        <title>{event.title} | tribe Vorarlberg</title>
         <meta
           name="description"
           content={

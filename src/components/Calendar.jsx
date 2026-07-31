@@ -423,11 +423,13 @@ export default function Calendar({ events, onEventClick, currentMonth, onMonthCh
                             <MapPin size={12} />
                             {event.place?.split(',')[0]}
                           </span>
-                          <span
-                            className={`agenda-event-badge ${event.contribution === 'free' ? 'free' : 'fee'}`}
-                          >
-                            {event.contribution === 'free' ? 'Frei' : `${event.fee}€`}
-                          </span>
+                          {(event.contribution === 'free' || event.fee) && (
+                            <span
+                              className={`agenda-event-badge ${event.contribution === 'free' ? 'free' : 'fee'}`}
+                            >
+                              {event.contribution === 'free' ? 'Frei' : `${event.fee}€`}
+                            </span>
+                          )}
                         </div>
                       </button>
                     ))}
@@ -531,11 +533,13 @@ export default function Calendar({ events, onEventClick, currentMonth, onMonthCh
                       <span className="day-popover-event-time">{event.time || '—'}</span>
                       <span className="day-popover-event-name">{event.title}</span>
                     </span>
-                    <span
-                      className={`day-popover-event-badge ${event.contribution === 'free' ? 'free' : 'fee'}`}
-                    >
-                      {event.contribution === 'free' ? 'Frei' : `${event.fee}€`}
-                    </span>
+                    {(event.contribution === 'free' || event.fee) && (
+                      <span
+                        className={`day-popover-event-badge ${event.contribution === 'free' ? 'free' : 'fee'}`}
+                      >
+                        {event.contribution === 'free' ? 'Frei' : `${event.fee}€`}
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>

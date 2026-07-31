@@ -9,11 +9,11 @@
 }
 
 .status-badge--approved {
-  background-color: rgba(125, 155, 138, 0.15);
-  color: #5a7a66;
+  background-color: rgba(122, 138, 95, 0.15);
+  color: var(--free-text);
 }
 
 .status-badge--pending {
-  background-color: rgba(180, 160, 100, 0.15);
-  color: #8a7a50;
+  background-color: rgba(198, 160, 92, 0.15);
+  color: var(--pending-text);
 }

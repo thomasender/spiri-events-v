@@ -93,7 +93,7 @@ export default function CalendarPage() {
   return (
     <div className="calendar-page">
       <Helmet>
-        <title>Spirituelle Events Vorarlberg | Kalender</title>
+        <title>tribe Vorarlberg | Kalender</title>
         <meta
           name="description"
           content="Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg - Bregenz, Dornbirn, Feldkirch, Bludenz"
@@ -103,7 +103,7 @@ export default function CalendarPage() {
 
       <div className="page-header">
         <div className="header-content">
-          <h1>Spirituelle Events Vorarlberg</h1>
+          <h1>tribe Vorarlberg</h1>
           <p>Entdecke Workshops, Meditationen und Retreats in deiner Nähe</p>
         </div>
         <div className="header-decoration"></div>

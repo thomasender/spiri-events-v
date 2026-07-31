@@ -10,7 +10,7 @@ const content = {
         heading: '1. Verantwortlicher',
         text: `Verantwortlicher für die Verarbeitung personenbezogener Daten im Sinne der DSGVO ist:
 
-Spirituelle Events Vorarlberg
+tribe Vorarlberg
 E-Mail: thomas@blissofkundalini.yoga`,
       },
       {
@@ -133,11 +133,11 @@ E-Mail: kontakt@spirituelle-events-vorarlberg.at`,
     sections: [
       {
         heading: '1. Geltungsbereich',
-        text: `Diese Allgemeinen Geschäftsbedingungen (AGB) gelten für die Nutzung der Web-Anwendung "Spirituelle Events Vorarlberg" (im Folgenden "Plattform" oder "App"). Mit der Registrierung und Nutzung der Plattform erklären Sie sich mit diesen AGB einverstanden. Die AGB sind integraler Bestandteil des Nutzungsvertrags zwischen Ihnen und dem Betreiber der Plattform.`,
+        text: `Diese Allgemeinen Geschäftsbedingungen (AGB) gelten für die Nutzung der Web-Anwendung "tribe Vorarlberg" (im Folgenden "Plattform" oder "App"). Mit der Registrierung und Nutzung der Plattform erklären Sie sich mit diesen AGB einverstanden. Die AGB sind integraler Bestandteil des Nutzungsvertrags zwischen Ihnen und dem Betreiber der Plattform.`,
       },
       {
         heading: '2. Gegenstand der Plattform',
-        text: `Die Plattform "Spirituelle Events Vorarlberg" dient ausschließlich der Veröffentlichung und Verwaltung von Veranstaltungen (Events) im Bereich Spiritualität, Wellness und persönliche Entwicklung in Vorarlberg, Österreich.
+        text: `Die Plattform "tribe Vorarlberg" dient ausschließlich der Veröffentlichung und Verwaltung von Veranstaltungen (Events) im Bereich Spiritualität, Wellness und persönliche Entwicklung in Vorarlberg, Österreich.
 
 Die Plattform bietet Nutzern die Möglichkeit:
 - Veranstaltungen zu erstellen, zu bearbeiten und zu löschen
@@ -281,7 +281,7 @@ Sollten einzelne Bestimmungen dieser AGB unwirksam sein oder werden, so bleibt d
 Gerichtsstand für alle Streitigkeiten aus oder im Zusammenhang mit diesen AGB ist, soweit gesetzlich zulässig, der Sitz des Betreibers in Österreich.
 
 Anbieter:
-Spirituelle Events Vorarlberg
+tribe Vorarlberg
 Thomas Ender
 Starkenfeld 19, 6841 Mäder, Österreich
 E-Mail: kontakt@spirituelle-events-vorarlberg.at`,

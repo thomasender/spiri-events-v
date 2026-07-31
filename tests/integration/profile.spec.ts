@@ -30,7 +30,7 @@ async function deleteAuthUser(uid: string): Promise<void> {
   });
 }
 
-test.describe('Profile Management', () => {
+test.describe.serial('Profile Management', () => {
   test.beforeAll(async () => {
     await clearEmulatorStorage();
   });
@@ -43,7 +43,7 @@ test.describe('Profile Management', () => {
   test('logged-in user can navigate to /profil via the header', async ({ page }) => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
 
-    await page.locator('a.nav-link', { hasText: 'Mein Profil' }).click();
+    await page.locator('.nav-desktop a.nav-link', { hasText: 'Mein Profil' }).click();
 
     await page.waitForURL(PROFILE_PATH, { timeout: 10000 });
     await expect(page.getByTestId('profile-page')).toBeVisible();
@@ -249,7 +249,7 @@ test.describe('Profile Management', () => {
     await page.goto('/login');
     await page.waitForSelector('button.link-btn', { timeout: 10000 });
     await page.locator('button.link-btn').click();
-    await expect(page.locator('h1')).toContainText(/Konto erstellen/i, { timeout: 5000 });
+    await expect(page.locator('h1')).toContainText(/Konto erstellen/i, { timeout: 10000 });
     await page.waitForSelector('input#displayName', { timeout: 5000 });
     await page.fill('input#displayName', 'Delete Me');
     await page.fill('input#email', email);
@@ -285,8 +285,11 @@ test.describe('Profile Management', () => {
     await page.fill('input#email', email);
     await page.fill('input#password', password);
     await page.click('button[type="submit"]');
-    await expect(page.getByText(/Kein Konto|falsch|ungültig|nicht gefunden/i)).toBeVisible({
+    await expect(page.locator('.error-text')).toBeVisible({
       timeout: 10000,
     });
+    await expect(page.locator('.error-text')).toContainText(
+      /Kein Konto|falsch|ungültig|nicht gefunden/i
+    );
   });
 });

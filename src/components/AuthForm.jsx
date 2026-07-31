@@ -77,13 +77,7 @@ export default function AuthForm() {
       <div className="auth-container">
         <div className="auth-header">
           <div className="auth-icon">
-            <svg viewBox="0 0 100 100" fill="none">
-              <circle cx="50" cy="50" r="45" stroke="currentColor" strokeWidth="2" />
-              <circle cx="50" cy="50" r="20" stroke="currentColor" strokeWidth="1.5" />
-              <circle cx="50" cy="35" r="4" fill="currentColor" />
-              <circle cx="35" cy="60" r="4" fill="currentColor" />
-              <circle cx="65" cy="60" r="4" fill="currentColor" />
-            </svg>
+            <img src="/logo-mark.svg" alt="" aria-hidden="true" />
           </div>
           <h1>{isLogin ? 'Willkommen zurück' : 'Konto erstellen'}</h1>
           <p>

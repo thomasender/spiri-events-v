@@ -84,11 +84,13 @@ export default function EventList() {
           <h3>{event.title}</h3>
           <div className="event-card-badges">
             {showStatus && <StatusBadge status={event.status} />}
-            <span
-              className={`badge ${event.contribution === 'free' ? 'badge--free' : 'badge--fee'}`}
-            >
-              {event.contribution === 'free' ? 'Kostenlos' : `${event.fee} €`}
-            </span>
+            {(event.contribution === 'free' || event.fee) && (
+              <span
+                className={`badge ${event.contribution === 'free' ? 'badge--free' : 'badge--fee'}`}
+              >
+                {event.contribution === 'free' ? 'Kostenlos' : `${event.fee} €`}
+              </span>
+            )}
           </div>
         </div>
 

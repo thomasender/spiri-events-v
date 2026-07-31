@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test';
 import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
+import { generateSlug } from '../helpers/slug';
 
-const PENDING_EVENT_SLUG = 'pending-event-test-place-20260805';
-const APPROVED_EVENT_SLUG = 'yoga-heute-yogastudio-dornbirn-20260728';
+const PENDING_EVENT_SLUG = generateSlug('Pending Event', 'Test Place', 8);
+const APPROVED_EVENT_SLUG = generateSlug('Yoga heute', 'Yogastudio Dornbirn', 0);
 
 test.describe('Event Detail Page - Admin', () => {
   test.afterEach(async ({ page }) => {

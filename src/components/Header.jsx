@@ -106,16 +106,10 @@ export default function Header() {
       <nav className="header-container" aria-label="Hauptnavigation">
         <Link to="/" className="logo" onClick={closeMenu}>
           <div className="logo-icon">
-            <svg viewBox="0 0 100 100" fill="none">
-              <circle cx="50" cy="50" r="45" stroke="currentColor" strokeWidth="2" />
-              <circle cx="50" cy="50" r="20" stroke="currentColor" strokeWidth="1.5" />
-              <circle cx="50" cy="35" r="4" fill="currentColor" />
-              <circle cx="35" cy="60" r="4" fill="currentColor" />
-              <circle cx="65" cy="60" r="4" fill="currentColor" />
-            </svg>
+            <img src="/logo-mark.svg" alt="" aria-hidden="true" />
           </div>
           <div className="logo-text">
-            <span className="logo-title">Spirituelle Events</span>
+            <span className="logo-title">tribe</span>
             <span className="logo-subtitle">Vorarlberg</span>
           </div>
         </Link>

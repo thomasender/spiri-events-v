@@ -25,7 +25,7 @@ describe('Header (logged out)', () => {
         <Header />
       </MemoryRouter>
     );
-    expect(screen.getByText('Spirituelle Events')).toBeInTheDocument();
+    expect(screen.getByText('tribe')).toBeInTheDocument();
   });
 
   it('renders the Kalender nav link', () => {

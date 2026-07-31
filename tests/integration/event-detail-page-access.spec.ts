@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test';
 import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
+import { generateSlug } from '../helpers/slug';
+
+const YOGA_APPROVED_SLUG = generateSlug('Yoga heute', 'Yogastudio Dornbirn', 0);
+const USER_APPROVED_SLUG = generateSlug('User Approved Event', 'User Place Bregenz', 9);
+const USER_PENDING_SLUG = generateSlug('User Pending Event', 'Test Place Bludenz', 8);
 
 test.describe('Event detail page access (hSONxMKJ)', () => {
   test.afterEach(async ({ page }) => {
@@ -7,7 +12,7 @@ test.describe('Event detail page access (hSONxMKJ)', () => {
   });
 
   test('guest can view an approved event via slug URL', async ({ page }) => {
-    await page.goto('/event/yoga-heute-yogastudio-dornbirn-20260729');
+    await page.goto(`/event/${YOGA_APPROVED_SLUG}`);
 
     await page
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
@@ -30,7 +35,7 @@ test.describe('Event detail page access (hSONxMKJ)', () => {
   test('logged-in user can view their own approved event via slug URL', async ({ page }) => {
     await signInWithEmailAndPassword(page, 'user@test.local', 'testpassword123');
 
-    await page.goto('/event/user-approved-event-user-place-bregenz-20260807');
+    await page.goto(`/event/${USER_APPROVED_SLUG}`);
 
     await page
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
@@ -45,7 +50,7 @@ test.describe('Event detail page access (hSONxMKJ)', () => {
   test('logged-in user can view their own pending event via slug URL', async ({ page }) => {
     await signInWithEmailAndPassword(page, 'user@test.local', 'testpassword123');
 
-    await page.goto('/event/user-pending-event-test-place-bludenz-20260806');
+    await page.goto(`/event/${USER_PENDING_SLUG}`);
 
     await page
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
@@ -58,7 +63,7 @@ test.describe('Event detail page access (hSONxMKJ)', () => {
   });
 
   test('guest sees Event nicht gefunden for another users pending event', async ({ page }) => {
-    await page.goto('/event/user-pending-event-test-place-bludenz-20260806');
+    await page.goto(`/event/${USER_PENDING_SLUG}`);
 
     await page
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })

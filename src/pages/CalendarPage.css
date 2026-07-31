@@ -41,7 +41,7 @@
   transform: translateX(-50%);
   width: 120px;
   height: 3px;
-  background: linear-gradient(90deg, transparent, var(--accent-lavender), transparent);
+  background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
 }
 
 .calendar-wrapper {
@@ -139,7 +139,7 @@
 }
 
 .filter-quick-actions button:hover {
-  color: var(--accent-lavender);
+  color: var(--accent-primary);
 }
 
 .filter-options {
@@ -199,7 +199,7 @@
 }
 
 .filter-checkbox:has(input:checked) {
-  background-color: rgba(139, 115, 85, 0.15);
+  background-color: rgba(196, 142, 106, 0.15);
   border-color: var(--accent-primary);
 }
 
@@ -224,7 +224,7 @@
 }
 
 .filter-checkbox.active {
-  background-color: rgba(139, 115, 85, 0.15);
+  background-color: rgba(196, 142, 106, 0.15);
   border-color: var(--accent-primary);
 }
 

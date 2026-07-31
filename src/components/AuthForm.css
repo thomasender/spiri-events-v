@@ -22,15 +22,20 @@
 }
 
 .auth-icon {
-  width: 64px;
-  height: 64px;
+  width: 80px;
+  height: 80px;
   margin: 0 auto 20px;
-  color: var(--accent-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
+.auth-icon img,
 .auth-icon svg {
   width: 100%;
   height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .auth-header h1 {
@@ -128,7 +133,7 @@
 }
 
 .link-btn:hover {
-  color: var(--accent-lavender);
+  color: var(--accent-primary);
 }
 
 .legal-checkboxes {
@@ -167,7 +172,7 @@
 }
 
 .checkbox-label a:hover {
-  color: var(--accent-lavender);
+  color: var(--accent-primary);
 }
 
 @media (max-width: 480px) {

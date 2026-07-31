@@ -29,32 +29,30 @@ test.describe('Header responsive layout', () => {
     expect(containerWidth).toBeGreaterThan(900);
   });
 
-  test('hides the labels but keeps icons when the viewport is between 561px and 800px', async ({
+  test('collapses to a menu toggle and hides the desktop nav between 561px and 800px', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 700, height: 800 });
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
 
-    await expect(page.locator('.nav-link', { hasText: 'Mein Profil' })).toBeVisible();
-    const labelVisible = await page
-      .locator('.nav-link', { hasText: 'Mein Profil' })
-      .locator('span')
-      .first()
-      .isVisible();
-    expect(labelVisible).toBe(false);
+    await expect(page.locator('.nav-desktop')).toBeHidden();
+    await expect(page.locator('.menu-toggle')).toBeVisible();
   });
 
-  test('hides the Verwaltung and Abmelden icon links on very narrow viewports', async ({
+  test('reveals all nav links, including Verwaltung and Abmelden, via the menu toggle on narrow viewports', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 500, height: 800 });
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
 
-    await expect(page.locator('a.nav-link--admin')).toBeHidden();
-    await expect(page.locator('button.nav-link--logout')).toBeHidden();
+    await expect(page.locator('.nav-desktop')).toBeHidden();
 
-    // Mein Profil and Event erstellen must still be reachable in the header
-    await expect(page.locator('a.nav-link', { hasText: 'Mein Profil' })).toBeVisible();
-    await expect(page.locator('a.nav-link', { hasText: 'Event erstellen' })).toBeVisible();
+    await page.locator('.menu-toggle').click();
+
+    const mobileMenu = page.locator('#mobile-menu');
+    await expect(mobileMenu.locator('a.nav-link--admin')).toBeVisible();
+    await expect(mobileMenu.locator('button.nav-link--logout')).toBeVisible();
+    await expect(mobileMenu.locator('a.nav-link', { hasText: 'Mein Profil' })).toBeVisible();
+    await expect(mobileMenu.locator('a.nav-link', { hasText: 'Event erstellen' })).toBeVisible();
   });
 });

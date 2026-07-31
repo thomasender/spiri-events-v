@@ -126,13 +126,13 @@
 }
 
 .badge--free {
-  background-color: rgba(125, 155, 138, 0.15);
-  color: #5a7a66;
+  background-color: rgba(122, 138, 95, 0.15);
+  color: var(--free-text);
 }
 
 .badge--fee {
-  background-color: rgba(139, 115, 85, 0.12);
-  color: #6b5a45;
+  background-color: rgba(196, 142, 106, 0.12);
+  color: var(--fee-text);
 }
 
 .event-card-badges {
@@ -201,13 +201,13 @@
 }
 
 .btn-success {
-  background-color: rgba(125, 155, 138, 0.15);
-  color: #5a7a66;
+  background-color: rgba(122, 138, 95, 0.15);
+  color: var(--free-text);
   border: none;
 }
 
 .btn-success:hover:not(:disabled) {
-  background-color: rgba(125, 155, 138, 0.25);
+  background-color: rgba(122, 138, 95, 0.25);
 }
 
 .btn-success:disabled {

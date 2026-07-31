@@ -1,19 +1,32 @@
 :root {
-  --bg-primary: #fdfbf7;
-  --bg-secondary: #f5f0e8;
-  --bg-calendar: #ffffff;
-  --accent-primary: #8b7355;
-  --accent-lavender: #9b8aa6;
-  --accent-sage: #7d9b8a;
-  --text-primary: #3d3530;
-  --text-secondary: #7a6f68;
-  --text-light: #a89f98;
-  --border: #e8e0d5;
-  --modal-overlay: rgba(61, 53, 48, 0.6);
-  --error: #c17a7a;
-  --shadow-sm: 0 2px 8px rgba(61, 53, 48, 0.08);
-  --shadow-md: 0 4px 16px rgba(61, 53, 48, 0.12);
-  --shadow-lg: 0 8px 32px rgba(61, 53, 48, 0.16);
+  /* Brand palette — from designer logo assets (Logo_1.svg / Logo_2.svg) */
+  --bg-primary: #f6f1ec; /* cream canvas */
+  --bg-secondary: #efe7dc; /* deeper cream — cards / sections */
+  --bg-calendar: #ffffff; /* white surfaces / calendar cells */
+  --accent-primary: #c48e6a; /* terracotta — primary actions */
+  --accent-primary-hover: #b07a56; /* darker terracotta — hover */
+  --accent-soft: rgba(196, 142, 106, 0.14); /* terracotta tint — subtle fills */
+  --text-primary: #161819; /* charcoal */
+  --text-secondary: #605e5e; /* muted grey */
+  --text-light: #938d87; /* light warm grey */
+  --border: #e5dccf; /* soft cream border */
+  --modal-overlay: rgba(22, 24, 25, 0.55);
+  --error: #bf5b4e; /* warm terracotta-red */
+  --error-hover: #a94a3e;
+
+  /* Functional signal colors (replace old lavender/sage), harmonized with brand */
+  --chip-bg: rgba(196, 142, 106, 0.14);
+  --chip-text: #9a5f38;
+  --free-bg: rgba(122, 138, 95, 0.16); /* muted olive-sage for free events */
+  --free-text: #5c6b3f;
+  --fee-bg: rgba(196, 142, 106, 0.16); /* terracotta for paid events */
+  --fee-text: #9a5f38;
+  --pending-bg: rgba(198, 160, 92, 0.18); /* mustard for pending */
+  --pending-text: #8a6d2f;
+
+  --shadow-sm: 0 2px 8px rgba(22, 24, 25, 0.06);
+  --shadow-md: 0 4px 16px rgba(22, 24, 25, 0.09);
+  --shadow-lg: 0 8px 32px rgba(22, 24, 25, 0.13);
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 20px;
@@ -61,7 +74,7 @@ a {
 }
 
 a:hover {
-  color: var(--accent-lavender);
+  color: var(--accent-primary-hover);
 }
 
 button {
@@ -79,7 +92,7 @@ select {
 }
 
 ::selection {
-  background-color: var(--accent-lavender);
+  background-color: var(--accent-primary);
   color: white;
 }
 
@@ -125,7 +138,7 @@ select {
 }
 
 .btn-primary:hover {
-  background-color: #7a6349;
+  background-color: var(--accent-primary-hover);
   transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
 }
@@ -146,7 +159,7 @@ select {
 }
 
 .btn-danger:hover {
-  background-color: #b06a6a;
+  background-color: var(--error-hover);
 }
 
 .btn:disabled {
@@ -179,7 +192,7 @@ textarea:focus,
 select:focus {
   outline: none;
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px rgba(139, 115, 85, 0.15);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 label {
@@ -280,8 +293,8 @@ label {
   display: inline-flex;
   align-items: center;
   padding: 4px 12px;
-  background-color: rgba(155, 138, 166, 0.15);
-  color: var(--accent-lavender);
+  background-color: var(--chip-bg);
+  color: var(--chip-text);
   border-radius: 16px;
   font-size: 0.8rem;
   font-weight: 500;

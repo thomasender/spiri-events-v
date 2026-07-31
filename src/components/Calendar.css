@@ -88,7 +88,7 @@
 }
 
 .calendar-cell:hover {
-  background-color: rgba(139, 115, 85, 0.03);
+  background-color: rgba(196, 142, 106, 0.03);
 }
 
 .calendar-cell.other-month {
@@ -166,17 +166,17 @@
 }
 
 .event-chip--free {
-  background-color: rgba(125, 155, 138, 0.15);
-  color: #5a7a66;
+  background-color: rgba(122, 138, 95, 0.15);
+  color: var(--free-text);
 }
 
 .event-chip--free .event-chip-dot {
-  background-color: var(--accent-sage);
+  background-color: var(--free-text);
 }
 
 .event-chip--fee {
-  background-color: rgba(139, 115, 85, 0.12);
-  color: #6b5a45;
+  background-color: rgba(196, 142, 106, 0.12);
+  color: var(--fee-text);
 }
 
 .event-chip--fee .event-chip-dot {
@@ -315,7 +315,7 @@
 }
 
 .day-popover-event.free .day-popover-event-dot {
-  background-color: var(--accent-sage);
+  background-color: var(--free-text);
 }
 
 .day-popover-event.fee .day-popover-event-dot {
@@ -354,13 +354,13 @@
 }
 
 .day-popover-event-badge.free {
-  background-color: rgba(125, 155, 138, 0.15);
-  color: #5a7a66;
+  background-color: rgba(122, 138, 95, 0.15);
+  color: var(--free-text);
 }
 
 .day-popover-event-badge.fee {
-  background-color: rgba(139, 115, 85, 0.12);
-  color: #6b5a45;
+  background-color: rgba(196, 142, 106, 0.12);
+  color: var(--fee-text);
 }
 
 /* ============================================
@@ -408,11 +408,11 @@
 }
 
 .week-day:hover {
-  background-color: rgba(139, 115, 85, 0.08);
+  background-color: rgba(196, 142, 106, 0.08);
 }
 
 .week-day.today {
-  background-color: rgba(139, 115, 85, 0.12);
+  background-color: rgba(196, 142, 106, 0.12);
 }
 
 .week-day.today .week-day-num {
@@ -463,11 +463,11 @@
 }
 
 .week-day-dots .dot:nth-child(2) {
-  background-color: var(--accent-lavender);
+  background-color: var(--accent-primary);
 }
 
 .week-day-dots .dot:nth-child(3) {
-  background-color: var(--accent-sage);
+  background-color: var(--free-text);
 }
 
 /* ============================================
@@ -609,13 +609,13 @@
 }
 
 .agenda-event-badge.free {
-  background-color: rgba(125, 155, 138, 0.15);
-  color: #5a7a66;
+  background-color: rgba(122, 138, 95, 0.15);
+  color: var(--free-text);
 }
 
 .agenda-event-badge.fee {
-  background-color: rgba(139, 115, 85, 0.12);
-  color: #6b5a45;
+  background-color: rgba(196, 142, 106, 0.12);
+  color: var(--fee-text);
 }
 
 /* ============================================
