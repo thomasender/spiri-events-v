@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useAllEvents, KATEGORIEN, BEZIRKE } from '../hooks/useEvents';
 import Calendar from '../components/Calendar';
+import EventsSection from '../components/EventsSection';
 import { Filter, MapPin, Sparkles, Users, X } from 'lucide-react';
 import './CalendarPage.css';
 
@@ -62,6 +63,7 @@ export default function CalendarPage() {
   );
   const [selectedBezirke, setSelectedBezirke] = useState(savedState?.selectedBezirke || []);
   const [showFilters, setShowFilters] = useState(savedState?.showFilters || false);
+  const [viewMode, setViewMode] = useState(savedState?.viewMode || 'list');
   const { events, loading, error } = useAllEvents();
 
   useEffect(() => {
@@ -70,8 +72,9 @@ export default function CalendarPage() {
       selectedCategories,
       selectedBezirke,
       showFilters,
+      viewMode,
     });
-  }, [currentMonth, selectedCategories, selectedBezirke, showFilters]);
+  }, [currentMonth, selectedCategories, selectedBezirke, showFilters, viewMode]);
 
   const handleEventClick = (event) => {
     const slugOrId = event.slug || event.id;
@@ -117,6 +120,17 @@ export default function CalendarPage() {
     });
   }, [events, selectedCategories, selectedBezirke, showFilters]);
 
+  const monthEvents = useMemo(() => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    return filteredEvents
+      .filter((event) => {
+        const [eventYear, eventMonth] = event.date.split('-').map(Number);
+        return eventYear === year && eventMonth - 1 === month;
+      })
+      .sort((a, b) => (a.date > b.date ? 1 : -1));
+  }, [filteredEvents, currentMonth]);
+
   const hasActiveFilters =
     selectedCategories.length < KATEGORIEN.length || selectedBezirke.length > 0;
   const hasSelection = selectedCategories.length > 0 || selectedBezirke.length > 0;
@@ -137,114 +151,123 @@ export default function CalendarPage() {
         <link rel="canonical" href="https://spirievents.at/" />
       </Helmet>
 
-      <section className="hero">
-        <div className="hero-content">
-          <h1 className="hero-title">
-            Finde Events. <em>Finde Menschen.</em>
-          </h1>
-          <p className="hero-subtitle">
-            Dein Kalender für Yoga, Breathwork, Meditation, Tanz und viele weitere Veranstaltungen
-            in Vorarlberg.
-          </p>
-          <ul className="hero-features">
-            {HERO_FEATURES.map(({ icon: Icon, title, description }) => (
-              <li key={title}>
-                <Icon size={20} />
-                <div>
-                  <span className="hero-feature-title">{title}</span>
-                  <span className="hero-feature-description">{description}</span>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div className="hero-visual" aria-hidden="true">
-          <img src="/hero.jpeg" alt="" className="hero-visual-image" />
-        </div>
-      </section>
-
-      <div className="calendar-wrapper">
-        <div className="calendar-layout">
-          <div className="calendar-main">
-            <div className="filter-bar">
-              <button className="filter-toggle-btn" onClick={() => setShowFilters(!showFilters)}>
-                <Filter size={18} />
-                <span>Filter</span>
-                {selectedCategories.length < KATEGORIEN.length && (
-                  <span className="filter-badge">{selectedCategories.length}</span>
-                )}
-              </button>
+      <div className="page-layout">
+        <div className="page-main">
+          <section className="hero">
+            <div className="hero-content">
+              <h1 className="hero-title">
+                Finde Events. <em>Finde Menschen.</em>
+              </h1>
+              <p className="hero-subtitle">
+                Dein Kalender für Yoga, Breathwork, Meditation, Tanz und viele weitere
+                Veranstaltungen in Vorarlberg.
+              </p>
+              <ul className="hero-features">
+                {HERO_FEATURES.map(({ icon: Icon, title, description }) => (
+                  <li key={title}>
+                    <Icon size={20} />
+                    <div>
+                      <span className="hero-feature-title">{title}</span>
+                      <span className="hero-feature-description">{description}</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             </div>
+            <div className="hero-visual" aria-hidden="true">
+              <img src="/hero.jpeg" alt="" className="hero-visual-image" />
+            </div>
+          </section>
 
-            {showFilters && (
-              <div className="filter-panel">
-                <div className="filter-header">
-                  <span className="filter-label">Kategorien</span>
-                  <div className="filter-quick-actions">
-                    <button onClick={selectAllCategories}>Alle</button>
-                    <button onClick={selectNoneCategories}>Keine</button>
-                  </div>
-                </div>
-                <div className="filter-options">
-                  {KATEGORIEN.map((category) => (
-                    <label key={category} className="filter-checkbox">
-                      <input
-                        type="checkbox"
-                        checked={selectedCategories.includes(category)}
-                        onChange={() => toggleCategory(category)}
-                      />
-                      <span>{category}</span>
-                    </label>
-                  ))}
-                </div>
-
-                <div className="filter-header">
-                  <span className="filter-label">Bezirk</span>
-                  <div className="filter-quick-actions">
-                    <button onClick={selectAllBezirke}>Alle</button>
-                    <button onClick={selectNoneBezirke}>Keine</button>
-                  </div>
-                </div>
-                <div className="filter-options">
-                  {BEZIRKE.map((bezirk) => (
-                    <label
-                      key={bezirk}
-                      className={`filter-checkbox ${selectedBezirke.includes(bezirk) ? 'active' : ''}`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedBezirke.includes(bezirk)}
-                        onChange={() => toggleBezirk(bezirk)}
-                      />
-                      <span>{bezirk}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {loading ? (
-              <div className="loading-spinner"></div>
-            ) : error ? (
-              <div className="calendar-error">
-                <h3>Verbindungsfehler</h3>
-                <p>
-                  Kalender konnte nicht geladen werden. Bitte überprüfe deine Firebase Konfiguration
-                  und Firestore Regeln.
-                </p>
-                <p className="error-detail">{error}</p>
-              </div>
-            ) : (
-              <Calendar
-                events={filteredEvents}
-                onEventClick={handleEventClick}
-                currentMonth={currentMonth}
-                onMonthChange={setCurrentMonth}
-              />
-            )}
+          <div className="filter-bar">
+            <button className="filter-toggle-btn" onClick={() => setShowFilters(!showFilters)}>
+              <Filter size={18} />
+              <span>Filter</span>
+              {selectedCategories.length < KATEGORIEN.length && (
+                <span className="filter-badge">{selectedCategories.length}</span>
+              )}
+            </button>
           </div>
 
-          <aside className="calendar-sidebar">
+          {showFilters && (
+            <div className="filter-panel">
+              <div className="filter-header">
+                <span className="filter-label">Kategorien</span>
+                <div className="filter-quick-actions">
+                  <button onClick={selectAllCategories}>Alle</button>
+                  <button onClick={selectNoneCategories}>Keine</button>
+                </div>
+              </div>
+              <div className="filter-options">
+                {KATEGORIEN.map((category) => (
+                  <label key={category} className="filter-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={selectedCategories.includes(category)}
+                      onChange={() => toggleCategory(category)}
+                    />
+                    <span>{category}</span>
+                  </label>
+                ))}
+              </div>
+
+              <div className="filter-header">
+                <span className="filter-label">Bezirk</span>
+                <div className="filter-quick-actions">
+                  <button onClick={selectAllBezirke}>Alle</button>
+                  <button onClick={selectNoneBezirke}>Keine</button>
+                </div>
+              </div>
+              <div className="filter-options">
+                {BEZIRKE.map((bezirk) => (
+                  <label
+                    key={bezirk}
+                    className={`filter-checkbox ${selectedBezirke.includes(bezirk) ? 'active' : ''}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedBezirke.includes(bezirk)}
+                      onChange={() => toggleBezirk(bezirk)}
+                    />
+                    <span>{bezirk}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {loading ? (
+            <div className="loading-spinner"></div>
+          ) : error ? (
+            <div className="calendar-error">
+              <h3>Verbindungsfehler</h3>
+              <p>
+                Kalender konnte nicht geladen werden. Bitte überprüfe deine Firebase Konfiguration
+                und Firestore Regeln.
+              </p>
+              <p className="error-detail">{error}</p>
+            </div>
+          ) : (
+            <EventsSection
+              events={monthEvents}
+              currentMonth={currentMonth}
+              onMonthChange={setCurrentMonth}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+              categoryColors={CATEGORY_COLORS}
+            />
+          )}
+        </div>
+
+        <aside className="page-sidebar">
+          <Calendar
+            events={filteredEvents}
+            onEventClick={handleEventClick}
+            currentMonth={currentMonth}
+            onMonthChange={setCurrentMonth}
+          />
+
+          <div className="sidebar-cards-row">
             <div className="sidebar-card">
               <h2 className="sidebar-card-title">Kategorien</h2>
               <ul className="legend-list">
@@ -252,7 +275,9 @@ export default function CalendarPage() {
                   <li key={category}>
                     <span
                       className="legend-dot"
-                      style={{ backgroundColor: CATEGORY_COLORS[category] || 'var(--text-light)' }}
+                      style={{
+                        backgroundColor: CATEGORY_COLORS[category] || 'var(--text-light)',
+                      }}
                     />
                     {category}
                   </li>
@@ -298,8 +323,8 @@ export default function CalendarPage() {
                 <p className="sidebar-card-empty">Noch keine Filter ausgewählt.</p>
               )}
             </div>
-          </aside>
-        </div>
+          </div>
+        </aside>
       </div>
 
       <section className="impact-strip">

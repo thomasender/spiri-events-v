@@ -13,16 +13,14 @@
 
 .hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.7fr);
   align-items: center;
-  gap: 48px;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 56px 24px 40px;
+  gap: 32px;
+  padding: 40px 0 32px;
 }
 
 .hero-title {
-  font-size: var(--fs-hero);
+  font-size: clamp(2.25rem, 2.4vw + 1.5rem, 3.5rem);
   font-weight: 500;
   color: var(--text-primary);
   margin-bottom: 20px;
@@ -92,33 +90,35 @@
 }
 
 /* ============================================
-   CALENDAR + SIDEBAR LAYOUT
+   PAGE LAYOUT (main column + calendar sidebar)
    ============================================ */
 
-.calendar-wrapper {
-  min-width: 100%;
+.page-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  align-items: start;
+  gap: 32px;
   max-width: 1240px;
   margin: 0 auto;
   padding: 0 24px 48px;
 }
 
-.calendar-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
-  align-items: start;
-  gap: 24px;
-}
-
-.calendar-main {
+.page-main {
   min-width: 0;
 }
 
-.calendar-sidebar {
+.page-sidebar {
   display: flex;
   flex-direction: column;
   gap: 16px;
   position: sticky;
   top: 88px;
+}
+
+.sidebar-cards-row {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .sidebar-card {
@@ -506,7 +506,7 @@
 @media (max-width: 900px) {
   .hero {
     grid-template-columns: 1fr;
-    padding: 40px 20px 32px;
+    padding: 32px 0 24px;
   }
 
   .hero-visual {
@@ -514,32 +514,31 @@
     aspect-ratio: 16 / 9;
   }
 
-  .calendar-layout {
+  .page-layout {
     grid-template-columns: 1fr;
   }
 
-  .calendar-sidebar {
+  .page-sidebar {
     position: static;
+  }
+
+  .sidebar-cards-row {
     flex-direction: row;
     flex-wrap: wrap;
   }
 
-  .calendar-sidebar .sidebar-card {
+  .sidebar-cards-row .sidebar-card {
     flex: 1 1 260px;
   }
 }
 
 @media (max-width: 640px) {
-  .hero {
-    padding: 32px 16px 24px;
-  }
-
   .hero-features {
     flex-direction: column;
     gap: 16px;
   }
 
-  .calendar-wrapper {
+  .page-layout {
     padding: 0 12px 32px;
   }
 
