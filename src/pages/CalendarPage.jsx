@@ -265,6 +265,7 @@ export default function CalendarPage() {
             onEventClick={handleEventClick}
             currentMonth={currentMonth}
             onMonthChange={setCurrentMonth}
+            categoryColors={CATEGORY_COLORS}
           />
 
           <div className="sidebar-cards-row">

@@ -143,22 +143,24 @@ test.describe('Calendar Integration', () => {
     test('recurring events show recurrence indicator', async ({ page }) => {
       await page.goto('/');
       await waitForCalendarToLoad(page);
-      const eventChips = page.locator('.event-chip');
-      const count = await eventChips.count();
+      const eventDots = page.locator('.cell-dot');
+      const count = await eventDots.count();
       if (count > 0) {
-        await expect(eventChips.first()).toBeVisible();
+        await expect(eventDots.first()).toBeVisible();
       }
     });
   });
 
   test.describe('Event Navigation', () => {
-    test('clicking event navigates to event detail page', async ({ page }) => {
+    test('clicking event in day popover navigates to event detail page', async ({ page }) => {
       await page.goto('/');
       await waitForCalendarToLoad(page);
 
-      const eventChip = page.locator('.event-chip').first();
-      if (await eventChip.isVisible({ timeout: 3000 })) {
-        await eventChip.click();
+      const dayCell = page.locator('.calendar-cell.has-events').first();
+      if (await dayCell.isVisible({ timeout: 3000 })) {
+        await dayCell.click();
+        const firstEvent = page.locator('.day-popover-event').first();
+        await firstEvent.click();
         await expect(page).toHaveURL(/\/event\//);
       }
     });

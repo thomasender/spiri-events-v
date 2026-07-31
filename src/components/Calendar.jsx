@@ -208,7 +208,20 @@ function getMonthDays(year, month) {
   return cells;
 }
 
-export default function Calendar({ events, onEventClick, currentMonth, onMonthChange }) {
+const FALLBACK_DOT_COLOR = 'var(--text-light)';
+
+function getEventColor(event, categoryColors) {
+  const category = event.categories?.[0];
+  return (categoryColors && categoryColors[category]) || FALLBACK_DOT_COLOR;
+}
+
+export default function Calendar({
+  events,
+  onEventClick,
+  currentMonth,
+  onMonthChange,
+  categoryColors,
+}) {
   const [slideDirection, setSlideDirection] = useState(null);
   const [mobileViewDate, setMobileViewDate] = useState(() => new Date());
   const [expandedDay, setExpandedDay] = useState(null);
@@ -302,27 +315,21 @@ export default function Calendar({ events, onEventClick, currentMonth, onMonthCh
     <div className="calendar">
       {/* Header */}
       <div className="calendar-header">
+        <button onClick={goToToday} className="btn-today" title="Heute">
+          <CalendarDays size={16} />
+        </button>
         <div className="calendar-title">
+          <button onClick={prevMonth} className="btn-nav" title="Vorheriger Monat">
+            <ChevronLeft size={18} />
+          </button>
           <h2>
             {MONTHS[month]} {year}
           </h2>
-        </div>
-        <div className="calendar-controls">
-          <button onClick={goToToday} className="btn btn-secondary btn-today" title="Heute">
-            <CalendarDays size={18} />
-            <span>Heute</span>
-          </button>
-          <button
-            onClick={prevMonth}
-            className="btn btn-secondary btn-nav"
-            title="Vorheriger Monat"
-          >
-            <ChevronLeft size={20} />
-          </button>
-          <button onClick={nextMonth} className="btn btn-secondary btn-nav" title="Nächster Monat">
-            <ChevronRight size={20} />
+          <button onClick={nextMonth} className="btn-nav" title="Nächster Monat">
+            <ChevronRight size={18} />
           </button>
         </div>
+        <span className="calendar-header-spacer" />
       </div>
 
       {/* Mobile week nav */}
@@ -464,39 +471,27 @@ export default function Calendar({ events, onEventClick, currentMonth, onMonthCh
             const hasEvents = dayEvents.length > 0;
 
             return (
-              <div
+              <button
                 key={cell.date}
                 className={`calendar-cell ${!cell.isCurrentMonth ? 'other-month' : ''} ${today ? 'today' : ''} ${past ? 'past' : ''} ${hasEvents ? 'has-events' : ''}`}
+                onClick={() =>
+                  hasEvents && setExpandedDay(cell.date === expandedDay ? null : cell.date)
+                }
+                disabled={!hasEvents}
               >
                 <span className="day-number">{cell.day}</span>
-                <div className="cell-events">
-                  {dayEvents.slice(0, 3).map((event) => (
-                    <button
-                      key={event.id}
-                      className={`event-chip ${event.contribution === 'free' ? 'event-chip--free' : 'event-chip--fee'} ${!event.isMultiDayStart ? 'event-chip--continuation' : ''}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onEventClick(event);
-                      }}
-                      title={event.title}
-                    >
-                      <span className="event-chip-dot" />
-                      <span className="event-chip-title">{event.title}</span>
-                    </button>
-                  ))}
-                  {dayEvents.length > 3 && (
-                    <button
-                      className="more-events"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setExpandedDay(cell.date === expandedDay ? null : cell.date);
-                      }}
-                    >
-                      +{dayEvents.length - 3}
-                    </button>
-                  )}
-                </div>
-              </div>
+                {hasEvents && (
+                  <span className="cell-dots">
+                    {dayEvents.slice(0, 3).map((event, i) => (
+                      <span
+                        key={event.id + i}
+                        className="cell-dot"
+                        style={{ backgroundColor: getEventColor(event, categoryColors) }}
+                      />
+                    ))}
+                  </span>
+                )}
+              </button>
             );
           })}
         </div>
@@ -528,7 +523,10 @@ export default function Calendar({ events, onEventClick, currentMonth, onMonthCh
                       setExpandedDay(null);
                     }}
                   >
-                    <span className="day-popover-event-dot" />
+                    <span
+                      className="day-popover-event-dot"
+                      style={{ backgroundColor: getEventColor(event, categoryColors) }}
+                    />
                     <span className="day-popover-event-info">
                       <span className="day-popover-event-time">{event.time || '—'}</span>
                       <span className="day-popover-event-name">{event.title}</span>

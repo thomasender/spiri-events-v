@@ -18,31 +18,50 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 24px 32px;
-  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
-  border-bottom: 1px solid var(--border);
+  gap: 12px;
+  padding: 20px 24px 16px;
+}
+
+.calendar-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex: 1;
 }
 
 .calendar-title h2 {
   font-family: 'Cormorant Garamond', Georgia, serif;
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   font-weight: 500;
   color: var(--text-primary);
+  white-space: nowrap;
 }
 
-.calendar-controls {
+.calendar-header-spacer {
+  width: 30px;
+}
+
+.btn-today,
+.btn-nav {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: none;
+  color: var(--text-light);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-.btn-today {
-  padding: 8px 16px;
-  font-size: 0.85rem;
-}
-
-.btn-nav {
-  padding: 8px 12px;
+.btn-today:hover,
+.btn-nav:hover {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 /* ============================================
@@ -52,51 +71,52 @@
 .calendar-weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  background-color: var(--bg-secondary);
-  border-bottom: 1px solid var(--border);
+  padding: 0 8px;
 }
 
 .weekday {
-  padding: 12px 8px;
+  padding: 8px 4px 12px;
   text-align: center;
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.03em;
   color: var(--text-light);
 }
 
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  grid-template-rows: repeat(6, minmax(100px, 1fr));
+  grid-template-rows: repeat(6, minmax(56px, 1fr));
+  padding: 0 8px 8px;
 }
 
 .calendar-cell {
-  border-right: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  padding: 8px;
-  min-height: 100px;
+  padding: 6px 4px;
+  min-height: 56px;
   min-width: 0;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: none;
+  border-radius: var(--radius-sm);
+  cursor: default;
   transition: background-color 0.15s ease;
 }
 
-.calendar-cell:nth-child(7n) {
-  border-right: none;
+.calendar-cell.has-events {
+  cursor: pointer;
 }
 
-.calendar-cell:hover {
-  background-color: rgba(196, 142, 106, 0.03);
-}
-
-.calendar-cell.other-month {
+.calendar-cell.has-events:hover {
   background-color: var(--bg-secondary);
 }
 
 .calendar-cell.other-month .day-number {
   color: var(--text-light);
+  opacity: 0.6;
 }
 
 .calendar-cell.past .day-number {
@@ -118,102 +138,26 @@
   font-size: 0.9rem;
   font-weight: 500;
   color: var(--text-secondary);
-  margin-bottom: 4px;
-}
-
-.cell-events {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
-  overflow: hidden;
-}
-
-.more-events {
-  font-size: 0.75rem;
-  color: var(--text-light);
-  padding: 2px 6px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  text-align: left;
-}
-
-.more-events:hover {
-  color: var(--accent-primary);
-}
-
-/* Event chips in desktop grid */
-.event-chip {
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  text-align: left;
-  transition: all 0.15s ease;
-  cursor: pointer;
-  border: none;
-  background: none;
-  width: 100%;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.event-chip:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
+.cell-dots {
+  display: flex;
+  gap: 3px;
+  justify-content: center;
+  min-height: 6px;
 }
 
-.event-chip--free {
-  background-color: rgba(122, 138, 95, 0.15);
-  color: var(--free-text);
-}
-
-.event-chip--free .event-chip-dot {
-  background-color: var(--free-text);
-}
-
-.event-chip--fee {
-  background-color: rgba(196, 142, 106, 0.12);
-  color: var(--fee-text);
-}
-
-.event-chip--fee .event-chip-dot {
-  background-color: var(--accent-primary);
-}
-
-.event-chip-dot {
+.cell-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
   flex-shrink: 0;
-}
-
-.event-chip-title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 100%;
-}
-
-/* Continuation chip (not start day of multi-day event) */
-.event-chip--continuation {
-  opacity: 0.6;
-  padding-left: 14px;
-}
-
-.event-chip--continuation::before {
-  content: '';
-  position: absolute;
-  left: 4px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: currentColor;
-  opacity: 0.5;
 }
 
 /* ============================================
@@ -312,14 +256,6 @@
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
-}
-
-.day-popover-event.free .day-popover-event-dot {
-  background-color: var(--free-text);
-}
-
-.day-popover-event.fee .day-popover-event-dot {
-  background-color: var(--accent-primary);
 }
 
 .day-popover-event-info {
@@ -644,21 +580,10 @@
 @media (max-width: 768px) {
   .calendar-header {
     padding: 16px 20px;
-    flex-direction: column;
-    gap: 16px;
   }
 
   .calendar-title h2 {
-    font-size: 1.5rem;
-  }
-
-  .calendar-grid {
-    grid-template-rows: repeat(6, minmax(80px, 1fr));
-  }
-
-  .calendar-cell {
-    min-height: 80px;
-    padding: 6px;
+    font-size: 1.3rem;
   }
 
   .day-number {
@@ -690,22 +615,10 @@
 
   .calendar-header {
     padding: 12px 16px;
-    flex-direction: column;
-    gap: 12px;
   }
 
   .calendar-title h2 {
-    font-size: 1.35rem;
-    text-align: center;
-  }
-
-  .calendar-controls {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .btn-today span {
-    display: none;
+    font-size: 1.2rem;
   }
 
   .calendar-empty {

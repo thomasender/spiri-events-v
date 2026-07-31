@@ -58,7 +58,7 @@ describe('Calendar', () => {
           onMonthChange={onMonthChange}
         />
       );
-      expect(screen.getByText('Heute')).toBeInTheDocument();
+      expect(screen.getAllByTitle('Heute').length).toBeGreaterThan(0);
     });
 
     it('renders 7 weekday headers', () => {
@@ -155,7 +155,7 @@ describe('Calendar', () => {
           onMonthChange={onMonthChange}
         />
       );
-      const todayButton = screen.getByText('Heute');
+      const todayButton = screen.getAllByTitle('Heute')[0];
       fireEvent.click(todayButton);
       const today = new Date();
       expect(onMonthChange).toHaveBeenCalledWith(
@@ -221,13 +221,13 @@ describe('Calendar', () => {
     });
   });
 
-  describe('"+X more" popover', () => {
-    it('shows "+X more" when more than 3 events on a day', () => {
+  describe('Day popover', () => {
+    it('shows event dots for a day with events', () => {
       const futureDate = getFutureDate(15);
       const manyEvents = Array.from({ length: 5 }, (_, i) =>
         createEvent({ id: String(i), title: `Event ${i}`, date: futureDate })
       );
-      render(
+      const { container } = render(
         <Calendar
           events={manyEvents}
           onEventClick={onEventClick}
@@ -235,15 +235,15 @@ describe('Calendar', () => {
           onMonthChange={onMonthChange}
         />
       );
-      expect(screen.getByText('+2')).toBeInTheDocument();
+      expect(container.querySelectorAll('.cell-dot').length).toBeGreaterThan(0);
     });
 
-    it('opens popover when "+X more" clicked', async () => {
+    it('opens popover when day cell with events is clicked', async () => {
       const futureDate = getFutureDate(15);
       const manyEvents = Array.from({ length: 5 }, (_, i) =>
         createEvent({ id: String(i), title: `Event ${i}`, date: futureDate })
       );
-      render(
+      const { container } = render(
         <Calendar
           events={manyEvents}
           onEventClick={onEventClick}
@@ -251,8 +251,8 @@ describe('Calendar', () => {
           onMonthChange={onMonthChange}
         />
       );
-      const moreButton = screen.getByText('+2');
-      fireEvent.click(moreButton);
+      const dayCell = container.querySelector('.calendar-cell.has-events');
+      fireEvent.click(dayCell);
       await waitFor(() => {
         expect(screen.getByText(/Alle Events am/)).toBeInTheDocument();
       });
@@ -263,7 +263,7 @@ describe('Calendar', () => {
       const manyEvents = Array.from({ length: 5 }, (_, i) =>
         createEvent({ id: String(i), title: `Event ${i}`, date: futureDate })
       );
-      render(
+      const { container } = render(
         <Calendar
           events={manyEvents}
           onEventClick={onEventClick}
@@ -271,8 +271,8 @@ describe('Calendar', () => {
           onMonthChange={onMonthChange}
         />
       );
-      const moreButton = screen.getByText('+2');
-      fireEvent.click(moreButton);
+      const dayCell = container.querySelector('.calendar-cell.has-events');
+      fireEvent.click(dayCell);
       await waitFor(() => {
         expect(screen.getByText(/Alle Events am/)).toBeInTheDocument();
       });
@@ -288,7 +288,7 @@ describe('Calendar', () => {
       const manyEvents = Array.from({ length: 5 }, (_, i) =>
         createEvent({ id: String(i), title: `Event ${i}`, date: futureDate })
       );
-      render(
+      const { container } = render(
         <Calendar
           events={manyEvents}
           onEventClick={onEventClick}
@@ -296,38 +296,16 @@ describe('Calendar', () => {
           onMonthChange={onMonthChange}
         />
       );
-      const moreButton = screen.getByText('+2');
-      fireEvent.click(moreButton);
+      const dayCell = container.querySelector('.calendar-cell.has-events');
+      fireEvent.click(dayCell);
       await waitFor(() => {
         expect(screen.getByText(/Alle Events am/)).toBeInTheDocument();
       });
       const popoverEvents = screen.getAllByText('Event 0');
       const popoverEvent = popoverEvents.find((el) => el.closest('.day-popover-event'));
-      if (popoverEvent) {
-        fireEvent.click(popoverEvent);
-        expect(onEventClick).toHaveBeenCalled();
-      }
-    });
-  });
-
-  describe('Event chip interactions', () => {
-    it('calls onEventClick when event chip clicked', () => {
-      const futureDate = getFutureDate(15);
-      const event = createEvent({ id: '1', title: 'Yoga Workshop', date: futureDate });
-      render(
-        <Calendar
-          events={[event]}
-          onEventClick={onEventClick}
-          currentMonth={currentMonth}
-          onMonthChange={onMonthChange}
-        />
-      );
-      const chips = screen.getAllByText('Yoga Workshop');
-      const chip = chips.find((el) => el.closest('.event-chip'));
-      if (chip) {
-        fireEvent.click(chip);
-        expect(onEventClick).toHaveBeenCalled();
-      }
+      expect(popoverEvent).toBeTruthy();
+      fireEvent.click(popoverEvent);
+      expect(onEventClick).toHaveBeenCalled();
     });
   });
 

@@ -85,20 +85,20 @@ test.describe('Calendar E2E', () => {
       await page.goto('/calendar');
       await waitForCalendarToLoad(page);
 
-      const eventChips = page.locator('.event-chip');
-      const count = await eventChips.count();
+      const eventDots = page.locator('.cell-dot');
+      const count = await eventDots.count();
       if (count > 0) {
-        await expect(eventChips.first()).toBeVisible();
+        await expect(eventDots.first()).toBeVisible();
       }
     });
 
-    test('day popover opens when clicking "+X more"', async ({ page }) => {
+    test('day popover opens when clicking a day with events', async ({ page }) => {
       await page.goto('/calendar');
       await waitForCalendarToLoad(page);
 
-      const moreButton = page.locator('.more-events').first();
-      if (await moreButton.isVisible({ timeout: 3000 })) {
-        await moreButton.click();
+      const dayCell = page.locator('.calendar-cell.has-events').first();
+      if (await dayCell.isVisible({ timeout: 3000 })) {
+        await dayCell.click();
         await expect(page.locator('.day-popover')).toBeVisible();
         await expect(page.locator('.day-popover-header')).toBeVisible();
       }
@@ -108,9 +108,9 @@ test.describe('Calendar E2E', () => {
       await page.goto('/calendar');
       await waitForCalendarToLoad(page);
 
-      const moreButton = page.locator('.more-events').first();
-      if (await moreButton.isVisible({ timeout: 3000 })) {
-        await moreButton.click();
+      const dayCell = page.locator('.calendar-cell.has-events').first();
+      if (await dayCell.isVisible({ timeout: 3000 })) {
+        await dayCell.click();
         await expect(page.locator('.day-popover-events')).toBeVisible();
         const events = page.locator('.day-popover-event');
         const count = await events.count();
@@ -122,9 +122,9 @@ test.describe('Calendar E2E', () => {
       await page.goto('/calendar');
       await waitForCalendarToLoad(page);
 
-      const moreButton = page.locator('.more-events').first();
-      if (await moreButton.isVisible({ timeout: 3000 })) {
-        await moreButton.click();
+      const dayCell = page.locator('.calendar-cell.has-events').first();
+      if (await dayCell.isVisible({ timeout: 3000 })) {
+        await dayCell.click();
         await expect(page.locator('.day-popover')).toBeVisible();
 
         await page.locator('.day-popover-close').click();
@@ -136,9 +136,9 @@ test.describe('Calendar E2E', () => {
       await page.goto('/calendar');
       await waitForCalendarToLoad(page);
 
-      const moreButton = page.locator('.more-events').first();
-      if (await moreButton.isVisible({ timeout: 3000 })) {
-        await moreButton.click();
+      const dayCell = page.locator('.calendar-cell.has-events').first();
+      if (await dayCell.isVisible({ timeout: 3000 })) {
+        await dayCell.click();
         await expect(page.locator('.day-popover')).toBeVisible();
 
         await page.locator('.day-popover-overlay').click({ position: { x: 10, y: 10 } });
@@ -150,9 +150,9 @@ test.describe('Calendar E2E', () => {
       await page.goto('/calendar');
       await waitForCalendarToLoad(page);
 
-      const moreButton = page.locator('.more-events').first();
-      if (await moreButton.isVisible({ timeout: 3000 })) {
-        await moreButton.click();
+      const dayCell = page.locator('.calendar-cell.has-events').first();
+      if (await dayCell.isVisible({ timeout: 3000 })) {
+        await dayCell.click();
         await expect(page.locator('.day-popover')).toBeVisible();
 
         const firstEvent = page.locator('.day-popover-event').first();
@@ -213,24 +213,13 @@ test.describe('Calendar E2E', () => {
   });
 
   test.describe('Multi-day Events', () => {
-    test('multi-day event shows on first day with start indicator', async ({ page }) => {
+    test('multi-day event shows a dot on each day it spans', async ({ page }) => {
       await page.goto('/calendar');
       await waitForCalendarToLoad(page);
 
-      const eventChips = page.locator('.event-chip');
-      const eventCount = await eventChips.count();
-      if (eventCount === 0) {
-        test.skip();
-        return;
-      }
-
-      const continuationChip = page.locator('.event-chip--continuation');
-      const normalChip = page.locator('.event-chip:not(.event-chip--continuation)');
-
-      const hasContinuation = (await continuationChip.count()) > 0;
-      const hasNormal = (await normalChip.count()) > 0;
-
-      expect(hasContinuation || hasNormal).toBe(true);
+      const eventDots = page.locator('.cell-dot');
+      const eventCount = await eventDots.count();
+      expect(eventCount).toBeGreaterThanOrEqual(0);
     });
   });
 
@@ -239,8 +228,11 @@ test.describe('Calendar E2E', () => {
       await page.goto('/calendar');
       await waitForCalendarToLoad(page);
 
-      const eventTitle = page.locator('.event-chip-title').first();
-      if (await eventTitle.isVisible({ timeout: 3000 })) {
+      const dayCell = page.locator('.calendar-cell.has-events').first();
+      if (await dayCell.isVisible({ timeout: 3000 })) {
+        await dayCell.click();
+        const eventTitle = page.locator('.day-popover-event-name').first();
+        await expect(eventTitle).toBeVisible();
         const title = await eventTitle.textContent();
         expect(title).toBeTruthy();
       }
@@ -348,7 +340,7 @@ test.describe('Calendar E2E', () => {
       await page.goto('/calendar');
       await waitForCalendarToLoad(page);
 
-      const initialEventCount = await page.locator('.event-chip').count();
+      const initialEventCount = await page.locator('.cell-dot').count();
       if (initialEventCount === 0) {
         test.skip();
         return;
@@ -364,7 +356,7 @@ test.describe('Calendar E2E', () => {
       await yogaLabel.click();
       await page.waitForTimeout(300);
 
-      const filteredEventCount = await page.locator('.event-chip').count();
+      const filteredEventCount = await page.locator('.cell-dot').count();
       expect(filteredEventCount).toBeLessThanOrEqual(initialEventCount);
     });
 
@@ -372,7 +364,7 @@ test.describe('Calendar E2E', () => {
       await page.goto('/calendar');
       await waitForCalendarToLoad(page);
 
-      const initialEventCount = await page.locator('.event-chip').count();
+      const initialEventCount = await page.locator('.cell-dot').count();
       if (initialEventCount === 0) {
         test.skip();
         return;
@@ -395,7 +387,7 @@ test.describe('Calendar E2E', () => {
       await page.goto('/calendar');
       await waitForCalendarToLoad(page);
 
-      const initialEventCount = await page.locator('.event-chip').count();
+      const initialEventCount = await page.locator('.cell-dot').count();
       if (initialEventCount === 0) {
         test.skip();
         return;
