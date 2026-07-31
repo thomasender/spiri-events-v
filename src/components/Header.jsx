@@ -75,7 +75,7 @@ export default function Header() {
       </NavLink>
       {user ? (
         <>
-          <NavLink to="/admin" className={adminNavClass} onClick={closeMenu}>
+          <NavLink to="/admin" className={adminNavClass} end onClick={closeMenu}>
             <Pen size={18} />
             <span>Verwaltung</span>
           </NavLink>
