@@ -37,7 +37,7 @@
 }
 
 .hero-title em {
-  color: var(--accent-primary);
+  color: var(--accent-secondary);
   font-style: normal;
 }
 
@@ -61,7 +61,7 @@
   gap: 8px;
   flex: 1 1 180px;
   min-width: 0;
-  color: var(--accent-primary);
+  color: var(--accent-secondary);
 }
 
 .hero-features li svg {
