@@ -156,10 +156,15 @@ export default function CalendarPage() {
           <section className="hero">
             <div className="hero-content">
               <h1 className="hero-title">
-                Finde Events. <em>Finde Menschen.</em>
+                Finde Events.
+                <br />
+                Finde <em>Menschen.</em>
               </h1>
               <p className="hero-subtitle">
-                Dein Kalender für Yoga, Breathwork, Meditation, Tanz und viele weitere
+                Dein Kalender für Yoga, Breathwork, Meditation,
+                <br />
+                Tanz und viele weitere
+                <br />
                 Veranstaltungen in Vorarlberg.
               </p>
               <ul className="hero-features">
