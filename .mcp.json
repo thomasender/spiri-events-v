@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "trello": {
+      "type": "stdio",
+      "command": "/Users/thomasender/Desktop/playground/trello-desktop-mcp/start.sh",
+      "env": {
+        "TRELLO_API_KEY": "${TRELLO_API_KEY}",
+        "TRELLO_TOKEN": "${TRELLO_TOKEN}"
+      }
+    }
+  }
+}

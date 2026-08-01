@@ -4,5 +4,9 @@
       "Bash(npm run:*)",
       "Bash(grep -E '\\\\.\\(jsx|js|css|html|svg\\)$')"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "trello"
+  ],
+  "enableAllProjectMcpServers": true
 }
