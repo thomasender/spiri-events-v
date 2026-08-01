@@ -148,6 +148,26 @@ describe('Header active nav state', () => {
     });
   });
 
+  it('does NOT highlight Verwaltung on /admin/new - only Event erstellen should be active', () => {
+    mockAuth.user = { uid: 'test-uid' };
+
+    const { container } = render(
+      <MemoryRouter initialEntries={['/admin/new']}>
+        <Header />
+      </MemoryRouter>
+    );
+
+    const adminLink = container.querySelector('a[href="/admin"]');
+    expect(adminLink?.className).not.toContain('nav-link--active');
+
+    const activeLinks = container.querySelectorAll('a.nav-link--active');
+    expect(activeLinks.length).toBe(2);
+    const activeHrefs = Array.from(activeLinks)
+      .map((l) => l.getAttribute('href'))
+      .sort();
+    expect(activeHrefs).toEqual(['/admin/new', '/admin/new']);
+  });
+
   it('highlights Mein Profil on /profil', () => {
     mockAuth.user = { uid: 'test-uid' };
 

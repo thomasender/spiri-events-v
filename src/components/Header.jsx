@@ -6,8 +6,8 @@ import './Header.css';
 
 const navClass = ({ isActive }) => (isActive ? 'nav-link nav-link--active' : 'nav-link');
 
-const adminNavClass = ({ isActive }) =>
-  isActive ? 'nav-link nav-link--admin nav-link--active' : 'nav-link nav-link--admin';
+const getAdminNavClass = (pathname) =>
+  pathname === '/admin' ? 'nav-link nav-link--admin nav-link--active' : 'nav-link nav-link--admin';
 
 export default function Header() {
   const { user, logout } = useAuth();
@@ -75,7 +75,12 @@ export default function Header() {
       </NavLink>
       {user ? (
         <>
-          <NavLink to="/admin" className={adminNavClass} end onClick={closeMenu}>
+          <NavLink
+            to="/admin"
+            className={getAdminNavClass(location.pathname)}
+            end
+            onClick={closeMenu}
+          >
             <Pen size={18} />
             <span>Verwaltung</span>
           </NavLink>
