@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, LayoutGrid, List } from 'lucide-react';
 import EventCard from './EventCard';
 import EventListRow from './EventListRow';
@@ -19,6 +20,8 @@ const MONTHS = [
   'Dezember',
 ];
 
+const MOBILE_BREAKPOINT = 768;
+
 export default function EventsSection({
   events,
   currentMonth,
@@ -27,6 +30,17 @@ export default function EventsSection({
   onViewModeChange,
   categoryColors,
 }) {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < MOBILE_BREAKPOINT);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const effectiveViewMode = isMobile ? 'card' : viewMode;
   const monthLabel = `${MONTHS[currentMonth.getMonth()]} ${currentMonth.getFullYear()}`;
 
   const goToPrevMonth = () => {
@@ -56,7 +70,7 @@ export default function EventsSection({
         <div className="events-section-view-toggle">
           <button
             type="button"
-            className={viewMode === 'list' ? 'active' : ''}
+            className={`view-toggle-list ${effectiveViewMode === 'list' ? 'active' : ''}`}
             onClick={() => onViewModeChange('list')}
           >
             <List size={16} />
@@ -64,7 +78,7 @@ export default function EventsSection({
           </button>
           <button
             type="button"
-            className={viewMode === 'card' ? 'active' : ''}
+            className={effectiveViewMode === 'card' ? 'active' : ''}
             onClick={() => onViewModeChange('card')}
           >
             <LayoutGrid size={16} />
@@ -77,7 +91,7 @@ export default function EventsSection({
         <div className="events-section-empty">
           <p>Keine Events in diesem Monat gefunden.</p>
         </div>
-      ) : viewMode === 'card' ? (
+      ) : effectiveViewMode === 'card' ? (
         <div className="events-section-grid">
           {events.map((event) => (
             <EventCard
