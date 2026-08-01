@@ -249,6 +249,15 @@ test.describe('Calendar E2E', () => {
       await expect(page.locator('.mobile-week-nav')).toHaveCount(0);
     });
 
+    test('redundant calendar month header is not shown on narrow viewport', async ({ page }) => {
+      await page.setViewportSize({ width: 375, height: 667 });
+      await page.goto('/calendar');
+      await waitForCalendarToLoad(page);
+
+      await expect(page.locator('.calendar-header')).toBeHidden();
+      await expect(page.locator('.events-section-header')).toBeVisible();
+    });
+
     test('mobile agenda is scrollable', async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 667 });
       await page.goto('/calendar');
@@ -264,9 +273,6 @@ test.describe('Calendar E2E', () => {
       await page.setViewportSize({ width: 375, height: 667 });
       await page.goto('/calendar');
       await waitForCalendarToLoad(page);
-
-      await page.locator('.btn-today').click();
-      await page.waitForTimeout(600);
 
       await expect(page.locator('.agenda-day.today')).toBeVisible();
     });

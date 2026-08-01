@@ -520,11 +520,8 @@
     display: flex;
   }
 
+  /* Month navigation is already provided by the events section header above */
   .calendar-header {
-    padding: 12px 16px;
-  }
-
-  .calendar-title h2 {
-    font-size: 1.2rem;
+    display: none;
   }
 }
