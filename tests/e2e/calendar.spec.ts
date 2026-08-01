@@ -240,22 +240,13 @@ test.describe('Calendar E2E', () => {
   });
 
   test.describe('Mobile View', () => {
-    test('week strip is visible on narrow viewport', async ({ page }) => {
+    test('redundant week strip is not shown on narrow viewport', async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 667 });
       await page.goto('/calendar');
       await waitForCalendarToLoad(page);
 
-      await expect(page.locator('.week-strip')).toBeVisible();
-      await expect(page.locator('.mobile-week-nav')).toBeVisible();
-    });
-
-    test('week strip has 7 days', async ({ page }) => {
-      await page.setViewportSize({ width: 375, height: 667 });
-      await page.goto('/calendar');
-      await waitForCalendarToLoad(page);
-
-      const weekDays = page.locator('.week-day');
-      await expect(weekDays).toHaveCount(7);
+      await expect(page.locator('.week-strip')).toHaveCount(0);
+      await expect(page.locator('.mobile-week-nav')).toHaveCount(0);
     });
 
     test('mobile agenda is scrollable', async ({ page }) => {
@@ -269,7 +260,7 @@ test.describe('Calendar E2E', () => {
       expect(count).toBeGreaterThan(0);
     });
 
-    test('today is highlighted in week strip', async ({ page }) => {
+    test('today is highlighted in mobile agenda', async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 667 });
       await page.goto('/calendar');
       await waitForCalendarToLoad(page);
@@ -277,28 +268,7 @@ test.describe('Calendar E2E', () => {
       await page.locator('.btn-today').click();
       await page.waitForTimeout(600);
 
-      await expect(page.locator('.week-day.today')).toBeVisible();
-    });
-
-    test('week navigation changes displayed week', async ({ page }) => {
-      await page.setViewportSize({ width: 375, height: 667 });
-      await page.goto('/calendar');
-      await waitForCalendarToLoad(page);
-
-      const weekLabel = page.locator('.mobile-week-label');
-      const initialLabel = await weekLabel.textContent();
-
-      await page.locator('button[title="Nächste Woche"]').click();
-      await page.waitForTimeout(500);
-
-      const newLabel = await weekLabel.textContent();
-      expect(newLabel).not.toBe(initialLabel);
-
-      await page.locator('button[title="Vorherige Woche"]').click();
-      await page.waitForTimeout(500);
-
-      const revertedLabel = await weekLabel.textContent();
-      expect(revertedLabel).toBe(initialLabel);
+      await expect(page.locator('.agenda-day.today')).toBeVisible();
     });
   });
 

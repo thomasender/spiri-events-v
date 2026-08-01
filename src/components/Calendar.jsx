@@ -40,15 +40,6 @@ function formatDate(year, month, day) {
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
-function formatDateShort(dateStr) {
-  const [year, month, day] = dateStr.split('-');
-  const date = new Date(year, month - 1, day);
-  return date.toLocaleDateString('de-DE', {
-    day: 'numeric',
-    month: 'short',
-  });
-}
-
 // Expand event across all days it spans (including endDate)
 function expandEventToDays(event) {
   if (!event) return [];
@@ -163,27 +154,6 @@ function isPast(dateStr) {
   return date < today;
 }
 
-function getWeekDaysStartingFrom(year, month, day) {
-  const date = new Date(year, month, day);
-  const dayOfWeek = date.getDay();
-  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-  const monday = new Date(date);
-  monday.setDate(date.getDate() + mondayOffset);
-
-  const week = [];
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(monday);
-    d.setDate(monday.getDate() + i);
-    const isCurrentMonth = d.getMonth() === month;
-    week.push({
-      date: formatDate(d.getFullYear(), d.getMonth(), d.getDate()),
-      day: d.getDate(),
-      isCurrentMonth,
-    });
-  }
-  return week;
-}
-
 function getMonthDays(year, month) {
   const firstDay = getFirstDayOfMonth(year, month);
   const daysInMonth = getDaysInMonth(year, month);
@@ -224,22 +194,11 @@ export default function Calendar({
   categories,
 }) {
   const [slideDirection, setSlideDirection] = useState(null);
-  const [mobileViewDate, setMobileViewDate] = useState(() => new Date());
   const [expandedDay, setExpandedDay] = useState(null);
   const expandedDayRef = useRef(null);
-  const mobileAgendaRef = useRef(null);
 
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
-
-  // Sync month header with week navigation
-  useEffect(() => {
-    const viewYear = mobileViewDate.getFullYear();
-    const viewMonth = mobileViewDate.getMonth();
-    if (viewYear !== year || viewMonth !== month) {
-      onMonthChange(new Date(viewYear, viewMonth, 1));
-    }
-  }, [mobileViewDate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Close expanded day popover when clicking outside
   useEffect(() => {
@@ -269,44 +228,19 @@ export default function Calendar({
 
   const prevMonth = () => {
     setSlideDirection('right');
-    const newDate = new Date(year, month - 1, 1);
-    onMonthChange(newDate);
-    setMobileViewDate(newDate);
+    onMonthChange(new Date(year, month - 1, 1));
   };
 
   const nextMonth = () => {
     setSlideDirection('left');
-    const newDate = new Date(year, month + 1, 1);
-    onMonthChange(newDate);
-    setMobileViewDate(newDate);
+    onMonthChange(new Date(year, month + 1, 1));
   };
 
   const goToToday = () => {
     const today = new Date();
     setSlideDirection(null);
     onMonthChange(new Date(today.getFullYear(), today.getMonth(), 1));
-    setMobileViewDate(today);
   };
-
-  const goToPrevWeek = () => {
-    const d = new Date(mobileViewDate);
-    d.setDate(d.getDate() - 7);
-    setMobileViewDate(d);
-  };
-
-  const goToNextWeek = () => {
-    const d = new Date(mobileViewDate);
-    d.setDate(d.getDate() + 7);
-    setMobileViewDate(d);
-  };
-
-  const mobileWeekDays = useMemo(() => {
-    return getWeekDaysStartingFrom(
-      mobileViewDate.getFullYear(),
-      mobileViewDate.getMonth(),
-      mobileViewDate.getDate()
-    );
-  }, [mobileViewDate]);
 
   const calendarKey = `${year}-${month}`;
 
@@ -331,69 +265,8 @@ export default function Calendar({
         <span className="calendar-header-spacer" />
       </div>
 
-      {/* Mobile week nav */}
-      <div className="mobile-week-nav">
-        <button
-          onClick={goToPrevWeek}
-          className="btn btn-secondary btn-nav"
-          title="Vorherige Woche"
-        >
-          <ChevronLeft size={18} />
-        </button>
-        <span className="mobile-week-label">
-          {formatDateShort(mobileWeekDays[0].date)} — {formatDateShort(mobileWeekDays[6].date)}
-        </span>
-        <button onClick={goToNextWeek} className="btn btn-secondary btn-nav" title="Nächste Woche">
-          <ChevronRight size={18} />
-        </button>
-      </div>
-
-      {/* Mobile week strip */}
-      <div className="week-strip">
-        {mobileWeekDays.map((cell) => {
-          const dayEvents = eventsByDay[cell.date] || [];
-          const today = isToday(cell.date);
-          const past = isPast(cell.date) && !today;
-
-          return (
-            <button
-              key={cell.date}
-              className={`week-day ${!cell.isCurrentMonth ? 'other-month' : ''} ${today ? 'today' : ''} ${past ? 'past' : ''}`}
-              onClick={() => {
-                if (dayEvents.length > 0 && mobileAgendaRef.current) {
-                  const agendaDay = mobileAgendaRef.current.querySelector(
-                    `[data-date="${cell.date}"]`
-                  );
-                  if (agendaDay) {
-                    agendaDay.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }
-                }
-              }}
-            >
-              <span className="week-day-name">
-                {
-                  WEEKDAYS_LONG[
-                    new Date(cell.date + 'T12:00:00').getDay() === 0
-                      ? 6
-                      : new Date(cell.date + 'T12:00:00').getDay() - 1
-                  ]
-                }
-              </span>
-              <span className="week-day-num">{cell.day}</span>
-              {dayEvents.length > 0 && (
-                <span className="week-day-dots">
-                  {dayEvents.slice(0, 3).map((_, i) => (
-                    <span key={i} className="dot" />
-                  ))}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-
       {/* Mobile agenda: scrollable event list for the visible weeks */}
-      <div className="mobile-agenda" ref={mobileAgendaRef}>
+      <div className="mobile-agenda">
         {monthDays
           .filter((cell) => cell.isCurrentMonth)
           .map((cell) => {

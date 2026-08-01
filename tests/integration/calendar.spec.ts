@@ -166,23 +166,14 @@ test.describe('Calendar Integration', () => {
     });
   });
 
-  test.describe('Mobile Week Strip', () => {
-    test('shows mobile week navigation on narrow viewport', async ({ page }) => {
+  test.describe('Mobile View', () => {
+    test('week strip is not shown on narrow viewport', async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 667 });
       await page.goto('/');
       await waitForCalendarToLoad(page);
 
-      await expect(page.locator('.mobile-week-nav')).toBeVisible();
-      await expect(page.locator('.week-strip')).toBeVisible();
-    });
-
-    test('week strip has prev/next week buttons', async ({ page }) => {
-      await page.setViewportSize({ width: 375, height: 667 });
-      await page.goto('/');
-      await waitForCalendarToLoad(page);
-
-      await expect(page.locator('button[title="Vorherige Woche"]')).toBeVisible();
-      await expect(page.locator('button[title="Nächste Woche"]')).toBeVisible();
+      await expect(page.locator('.mobile-week-nav')).toHaveCount(0);
+      await expect(page.locator('.week-strip')).toHaveCount(0);
     });
 
     test('mobile agenda is visible on narrow viewport', async ({ page }) => {
