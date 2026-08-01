@@ -285,21 +285,6 @@ describe('Calendar', () => {
     });
   });
 
-  describe('Mobile week strip', () => {
-    it('renders mobile week navigation buttons', () => {
-      render(
-        <Calendar
-          events={[]}
-          onEventClick={onEventClick}
-          currentMonth={currentMonth}
-          onMonthChange={onMonthChange}
-        />
-      );
-      expect(screen.getAllByTitle('Vorherige Woche').length).toBeGreaterThan(0);
-      expect(screen.getAllByTitle('Nächste Woche').length).toBeGreaterThan(0);
-    });
-  });
-
   describe('Mobile agenda', () => {
     it('renders agenda events', () => {
       const futureDate = getFutureDate(15);

@@ -166,31 +166,14 @@ test.describe('Calendar Integration', () => {
     });
   });
 
-  test.describe('Mobile Week Strip', () => {
-    test('shows mobile week navigation on narrow viewport', async ({ page }) => {
+  test.describe('Mobile View', () => {
+    test('redundant calendar widget is not shown on narrow viewport', async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 667 });
       await page.goto('/');
       await waitForCalendarToLoad(page);
 
-      await expect(page.locator('.mobile-week-nav')).toBeVisible();
-      await expect(page.locator('.week-strip')).toBeVisible();
-    });
-
-    test('week strip has prev/next week buttons', async ({ page }) => {
-      await page.setViewportSize({ width: 375, height: 667 });
-      await page.goto('/');
-      await waitForCalendarToLoad(page);
-
-      await expect(page.locator('button[title="Vorherige Woche"]')).toBeVisible();
-      await expect(page.locator('button[title="Nächste Woche"]')).toBeVisible();
-    });
-
-    test('mobile agenda is visible on narrow viewport', async ({ page }) => {
-      await page.setViewportSize({ width: 375, height: 667 });
-      await page.goto('/');
-      await waitForCalendarToLoad(page);
-
-      await expect(page.locator('.mobile-agenda')).toBeVisible();
+      await expect(page.locator('.calendar')).toBeHidden();
+      await expect(page.locator('.events-section-header')).toBeVisible();
     });
   });
 

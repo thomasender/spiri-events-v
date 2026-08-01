@@ -78,7 +78,10 @@ export async function setEmulatorAuthCookie(page: Page, uid: string): Promise<vo
 }
 
 export async function waitForCalendarToLoad(page: Page): Promise<void> {
-  await page.waitForSelector('.calendar', { timeout: 10000 });
+  // Use 'attached' rather than the default 'visible': .calendar is intentionally
+  // hidden via CSS on narrow viewports (< 900px), where the events section above
+  // it already provides month navigation and an event list.
+  await page.waitForSelector('.calendar', { state: 'attached', timeout: 10000 });
   await page
     .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
     .catch(() => {});
