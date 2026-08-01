@@ -240,41 +240,21 @@ test.describe('Calendar E2E', () => {
   });
 
   test.describe('Mobile View', () => {
-    test('redundant week strip is not shown on narrow viewport', async ({ page }) => {
+    test('redundant calendar widget is not shown on narrow viewport', async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 667 });
       await page.goto('/calendar');
       await waitForCalendarToLoad(page);
 
-      await expect(page.locator('.week-strip')).toHaveCount(0);
-      await expect(page.locator('.mobile-week-nav')).toHaveCount(0);
-    });
-
-    test('redundant calendar month header is not shown on narrow viewport', async ({ page }) => {
-      await page.setViewportSize({ width: 375, height: 667 });
-      await page.goto('/calendar');
-      await waitForCalendarToLoad(page);
-
-      await expect(page.locator('.calendar-header')).toBeHidden();
+      await expect(page.locator('.calendar')).toBeHidden();
       await expect(page.locator('.events-section-header')).toBeVisible();
     });
 
-    test('mobile agenda is scrollable', async ({ page }) => {
-      await page.setViewportSize({ width: 375, height: 667 });
+    test('calendar widget reappears on wide viewport', async ({ page }) => {
+      await page.setViewportSize({ width: 1200, height: 800 });
       await page.goto('/calendar');
       await waitForCalendarToLoad(page);
 
-      await expect(page.locator('.mobile-agenda')).toBeVisible();
-      const agendaDays = page.locator('.agenda-day');
-      const count = await agendaDays.count();
-      expect(count).toBeGreaterThan(0);
-    });
-
-    test('today is highlighted in mobile agenda', async ({ page }) => {
-      await page.setViewportSize({ width: 375, height: 667 });
-      await page.goto('/calendar');
-      await waitForCalendarToLoad(page);
-
-      await expect(page.locator('.agenda-day.today')).toBeVisible();
+      await expect(page.locator('.calendar')).toBeVisible();
     });
   });
 

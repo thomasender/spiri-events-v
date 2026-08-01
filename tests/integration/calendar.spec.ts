@@ -167,21 +167,13 @@ test.describe('Calendar Integration', () => {
   });
 
   test.describe('Mobile View', () => {
-    test('week strip is not shown on narrow viewport', async ({ page }) => {
+    test('redundant calendar widget is not shown on narrow viewport', async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 667 });
       await page.goto('/');
       await waitForCalendarToLoad(page);
 
-      await expect(page.locator('.mobile-week-nav')).toHaveCount(0);
-      await expect(page.locator('.week-strip')).toHaveCount(0);
-    });
-
-    test('mobile agenda is visible on narrow viewport', async ({ page }) => {
-      await page.setViewportSize({ width: 375, height: 667 });
-      await page.goto('/');
-      await waitForCalendarToLoad(page);
-
-      await expect(page.locator('.mobile-agenda')).toBeVisible();
+      await expect(page.locator('.calendar')).toBeHidden();
+      await expect(page.locator('.events-section-header')).toBeVisible();
     });
   });
 

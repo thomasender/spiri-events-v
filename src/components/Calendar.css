@@ -3,11 +3,20 @@
    ============================================ */
 
 .calendar {
+  display: none;
   width: 100%;
   background-color: var(--bg-calendar);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
   overflow: hidden;
+}
+
+/* The events section above already provides month navigation and an
+   event list on narrow viewports, making this calendar widget redundant */
+@media (min-width: 900px) {
+  .calendar {
+    display: block;
+  }
 }
 
 /* ============================================
