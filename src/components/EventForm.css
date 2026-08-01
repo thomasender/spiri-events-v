@@ -67,6 +67,7 @@
 
 .radio-group {
   display: flex;
+  flex-flow: row wrap;
   gap: 12px;
 }
 
