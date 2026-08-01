@@ -150,9 +150,9 @@ function expandRecurringEvents(event) {
   return occurrences;
 }
 
-function isToday(year, month, day) {
+function isToday(dateStr) {
   const today = new Date();
-  return today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
+  return dateStr === formatDate(today.getFullYear(), today.getMonth(), today.getDate());
 }
 
 function isPast(dateStr) {
@@ -352,7 +352,7 @@ export default function Calendar({
       <div className="week-strip">
         {mobileWeekDays.map((cell) => {
           const dayEvents = eventsByDay[cell.date] || [];
-          const today = isToday(mobileViewDate.getFullYear(), mobileViewDate.getMonth(), cell.day);
+          const today = isToday(cell.date);
           const past = isPast(cell.date) && !today;
 
           return (
@@ -398,7 +398,7 @@ export default function Calendar({
           .filter((cell) => cell.isCurrentMonth)
           .map((cell) => {
             const dayEvents = eventsByDay[cell.date] || [];
-            const today = isToday(year, month, cell.day);
+            const today = isToday(cell.date);
             const weekdayIndex = new Date(cell.date + 'T12:00:00').getDay();
             const weekdayName = WEEKDAYS_LONG[weekdayIndex === 0 ? 6 : weekdayIndex - 1];
 
@@ -465,7 +465,7 @@ export default function Calendar({
         >
           {monthDays.map((cell) => {
             const dayEvents = eventsByDay[cell.date] || [];
-            const today = isToday(year, month, cell.day);
+            const today = isToday(cell.date);
             const past = isPast(cell.date) && !today;
             const hasEvents = dayEvents.length > 0;
 

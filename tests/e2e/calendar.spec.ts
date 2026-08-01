@@ -441,7 +441,14 @@ test.describe('Calendar E2E', () => {
 
       const header = page.locator('.calendar-header h2');
 
-      for (let i = 0; i < 6; i++) {
+      const thirtyOneDayMonths = [0, 2, 4, 6, 7, 9, 11]; // Jan, Mar, May, Jul, Aug, Oct, Dec
+      const currentMonth = new Date().getMonth();
+      let clicksNeeded = 0;
+      while (!thirtyOneDayMonths.includes((currentMonth + clicksNeeded) % 12)) {
+        clicksNeeded++;
+      }
+
+      for (let i = 0; i < clicksNeeded; i++) {
         await page.locator('button[title="Nächster Monat"]').click();
         await page.waitForTimeout(300);
       }
