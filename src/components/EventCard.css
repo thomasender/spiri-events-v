@@ -19,7 +19,7 @@
 
 .event-tile-image-wrapper {
   position: relative;
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 16 / 9;
   background-color: var(--bg-secondary);
 }
 
