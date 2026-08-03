@@ -94,10 +94,23 @@ test.describe('Calendar Integration', () => {
 
     test('shows all district options', async ({ page }) => {
       await page.locator('.filter-toggle-btn').click();
-      const districts = ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz'];
+      const districts = ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe'];
       for (const district of districts) {
         await expect(page.locator(`.filter-panel:has-text("${district}")`)).toBeVisible();
       }
+    });
+
+    test('Grenznahe district filter can be toggled', async ({ page }) => {
+      await page.locator('.filter-toggle-btn').click();
+      await expect(page.locator('.filter-panel')).toBeVisible();
+      const grenznaheLabel = page
+        .locator('.filter-panel label')
+        .filter({ hasText: 'Grenznahe' })
+        .first();
+      await expect(grenznaheLabel).toBeVisible();
+      await grenznaheLabel.click();
+      const checkbox = grenznaheLabel.locator('input[type="checkbox"]');
+      await expect(checkbox).toBeChecked();
     });
   });
 

@@ -148,7 +148,7 @@ export default function CalendarPage() {
         <title>tribe Vorarlberg | Kalender</title>
         <meta
           name="description"
-          content="Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg - Bregenz, Dornbirn, Feldkirch, Bludenz"
+          content="Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg - Bregenz, Dornbirn, Feldkirch, Bludenz, Grenznahe"
         />
         <link rel="canonical" href="https://spirievents.at/" />
       </Helmet>

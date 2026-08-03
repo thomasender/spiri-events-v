@@ -13,7 +13,7 @@ vi.mock('../../src/hooks/useEvents', () => ({
     updateEvent: vi.fn(),
   }),
   KATEGORIEN: ['Yoga', 'Meditation', 'Tanz', 'Singen', 'Atemarbeit', 'Sonstiges'],
-  BEZIRKE: ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz'],
+  BEZIRKE: ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe'],
 }));
 
 describe('EventForm', () => {
@@ -33,5 +33,14 @@ describe('EventForm', () => {
       </MemoryRouter>
     );
     expect(screen.getByRole('button', { name: /einreichen/i })).toBeInTheDocument();
+  });
+
+  it('includes Grenznahe as a selectable district for events in the Allgäu/Lindau/St. Gallen area', () => {
+    render(
+      <MemoryRouter>
+        <EventForm />
+      </MemoryRouter>
+    );
+    expect(screen.getByRole('option', { name: 'Grenznahe' })).toBeInTheDocument();
   });
 });
