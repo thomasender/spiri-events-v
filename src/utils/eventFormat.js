@@ -30,5 +30,5 @@ export function getOrganizerName(event) {
 }
 
 export function getPrimaryCategory(event) {
-  return event.categories && event.categories.length > 0 ? event.categories[0] : null;
+  return event.category || null;
 }

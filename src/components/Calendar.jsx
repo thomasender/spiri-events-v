@@ -81,7 +81,7 @@ function getMonthDays(year, month) {
 const FALLBACK_DOT_COLOR = 'var(--text-light)';
 
 function getEventColor(event, categoryColors) {
-  const category = event.categories?.[0];
+  const category = event.category;
   return (categoryColors && categoryColors[category]) || FALLBACK_DOT_COLOR;
 }
 

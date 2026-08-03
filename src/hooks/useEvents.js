@@ -24,10 +24,18 @@ export const KATEGORIEN = ['Yoga', 'Meditation', 'Tanz', 'Singen', 'Atemarbeit',
 
 export const BEZIRKE = ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe'];
 
+function normalizeCategory(event) {
+  if (event.category) return event.category;
+  if (Array.isArray(event.categories) && event.categories.length > 0) {
+    return event.categories[0];
+  }
+  return 'Sonstiges';
+}
+
 function normalizeEvents(events) {
   return events.map((event) => ({
     ...event,
-    categories: event.categories && event.categories.length > 0 ? event.categories : ['Sonstiges'],
+    category: normalizeCategory(event),
     bezirk: event.bezirk || '',
     status: event.status || 'pending',
     organizer: event.organizer || { firstName: '', lastName: '', email: '' },
@@ -223,8 +231,7 @@ export function useEventById(eventId) {
           const normalized = {
             id: docSnap.id,
             ...data,
-            categories:
-              data.categories && data.categories.length > 0 ? data.categories : ['Sonstiges'],
+            category: normalizeCategory(data),
             bezirk: data.bezirk || '',
             status: data.status || 'pending',
             organizer: data.organizer || { firstName: '', lastName: '', email: '' },

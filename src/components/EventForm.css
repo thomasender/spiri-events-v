@@ -277,24 +277,9 @@ textarea {
   color: var(--text-primary);
 }
 
-.kategorie-select .kategorie__multi-value {
-  background-color: rgba(196, 142, 106, 0.12);
-  border-radius: 12px;
-  padding: 2px 8px;
-}
-
-.kategorie-select .kategorie__multi-value__label {
+.kategorie-select .kategorie__single-value {
   color: var(--accent-primary);
-  font-size: 0.85rem;
-}
-
-.kategorie-select .kategorie__multi-value__remove {
-  color: var(--accent-primary);
-}
-
-.kategorie-select .kategorie__multi-value__remove:hover {
-  background-color: rgba(196, 142, 106, 0.2);
-  color: var(--accent-primary);
+  font-size: 0.95rem;
 }
 
 .kategorie-select .kategorie__dropdown-indicator {

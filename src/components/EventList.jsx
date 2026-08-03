@@ -94,13 +94,9 @@ export default function EventList() {
           </div>
         </div>
 
-        {event.categories && event.categories.length > 0 && (
+        {event.category && (
           <div className="event-card-categories">
-            {event.categories.map((cat) => (
-              <span key={cat} className="category-chip">
-                {cat}
-              </span>
-            ))}
+            <span className="category-chip">{event.category}</span>
           </div>
         )}
 

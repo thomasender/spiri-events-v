@@ -115,7 +115,7 @@ export default function CalendarPage() {
     return events.filter((event) => {
       const categoryMatch =
         selectedCategories.length === 0 ||
-        (event.categories && event.categories.some((cat) => selectedCategories.includes(cat)));
+        (event.category && selectedCategories.includes(event.category));
       const bezirkMatch = selectedBezirke.length === 0 || selectedBezirke.includes(event.bezirk);
       return categoryMatch && bezirkMatch;
     });
