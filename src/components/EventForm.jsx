@@ -864,6 +864,13 @@ export default function EventForm({ event }) {
           {validationError && <p className="error-text submit-error">{validationError}</p>}
 
           <div className="form-actions">
+            <button type="button" onClick={() => navigate('/admin')} className="btn btn-secondary">
+              Abbrechen
+            </button>
+            <button type="submit" className="btn btn-primary" disabled={loading || imageUploading}>
+              <Save size={18} />
+              <span>{getSubmitButtonText()}</span>
+            </button>
             {canDelete && (
               <button
                 type="button"
@@ -875,13 +882,6 @@ export default function EventForm({ event }) {
                 <span>Event löschen</span>
               </button>
             )}
-            <button type="button" onClick={() => navigate('/admin')} className="btn btn-secondary">
-              Abbrechen
-            </button>
-            <button type="submit" className="btn btn-primary" disabled={loading || imageUploading}>
-              <Save size={18} />
-              <span>{getSubmitButtonText()}</span>
-            </button>
           </div>
         </form>
       </div>
