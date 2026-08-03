@@ -493,6 +493,7 @@
 
   .page-sidebar {
     position: static;
+    order: -1;
   }
 
   .sidebar-cards-row {

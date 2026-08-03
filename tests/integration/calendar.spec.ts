@@ -180,13 +180,22 @@ test.describe('Calendar Integration', () => {
   });
 
   test.describe('Mobile View', () => {
-    test('redundant calendar widget is not shown on narrow viewport', async ({ page }) => {
+    test('places selection container above events on narrow viewport', async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 667 });
       await page.goto('/');
       await waitForCalendarToLoad(page);
 
-      await expect(page.locator('.calendar')).toBeHidden();
-      await expect(page.locator('.events-section-header')).toBeVisible();
+      const sidebar = page.locator('.page-sidebar');
+      const eventsSection = page.locator('.events-section');
+
+      await expect(sidebar).toBeVisible();
+      await expect(page.locator('.sidebar-card-title')).toHaveText('Deine Auswahl');
+
+      const sidebarBox = await sidebar.boundingBox();
+      const eventsBox = await eventsSection.boundingBox();
+      expect(sidebarBox).not.toBeNull();
+      expect(eventsBox).not.toBeNull();
+      expect(sidebarBox!.y).toBeLessThan(eventsBox!.y);
     });
   });
 
