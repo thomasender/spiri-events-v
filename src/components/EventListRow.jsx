@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin } from 'lucide-react';
 import {
@@ -7,11 +8,15 @@ import {
   getOrganizerName,
   getPrimaryCategory,
 } from '../utils/eventFormat';
+import { getEventFallbackImage } from '../utils/eventFallbacks';
 import './EventListRow.css';
 
 export default function EventListRow({ event, categoryColor }) {
   const organizerName = getOrganizerName(event);
   const category = getPrimaryCategory(event);
+  const fallbackImage = getEventFallbackImage(event);
+  const [imageError, setImageError] = useState(false);
+  const imageSrc = event.imageUrl && !imageError ? event.imageUrl : fallbackImage;
 
   return (
     <Link to={`/event/${event.slug || event.id}`} className="event-row">
@@ -22,11 +27,12 @@ export default function EventListRow({ event, categoryColor }) {
       </div>
 
       <div className="event-row-image-wrapper">
-        {event.imageUrl ? (
-          <img src={event.imageUrl} alt="" className="event-row-image" />
-        ) : (
-          <div className="event-row-image-placeholder" />
-        )}
+        <img
+          src={imageSrc}
+          alt=""
+          className="event-row-image"
+          onError={() => setImageError(true)}
+        />
       </div>
 
       <div className="event-row-body">

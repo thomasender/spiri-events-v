@@ -1,20 +1,26 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin } from 'lucide-react';
 import { formatEventDateLabel, getOrganizerName, getPrimaryCategory } from '../utils/eventFormat';
+import { getEventFallbackImage } from '../utils/eventFallbacks';
 import './EventCard.css';
 
 export default function EventCard({ event, categoryColor }) {
   const organizerName = getOrganizerName(event);
   const category = getPrimaryCategory(event);
+  const fallbackImage = getEventFallbackImage(event);
+  const [imageError, setImageError] = useState(false);
+  const imageSrc = event.imageUrl && !imageError ? event.imageUrl : fallbackImage;
 
   return (
     <Link to={`/event/${event.slug || event.id}`} className="event-tile">
       <div className="event-tile-image-wrapper">
-        {event.imageUrl ? (
-          <img src={event.imageUrl} alt="" className="event-tile-image" />
-        ) : (
-          <div className="event-tile-image-placeholder" />
-        )}
+        <img
+          src={imageSrc}
+          alt=""
+          className="event-tile-image"
+          onError={() => setImageError(true)}
+        />
         {category && (
           <span className="event-tile-category" style={{ backgroundColor: categoryColor }}>
             {category}
