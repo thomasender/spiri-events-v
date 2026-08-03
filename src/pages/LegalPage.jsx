@@ -115,15 +115,24 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
   },
   impressum: {
     title: 'Impressum',
-    lastUpdated: 'März 2026',
+    lastUpdated: 'August 2026',
     sections: [
       {
         heading: 'Angaben gemäß § 5 ECG (E-Commerce-Gesetz)',
-        text: `Verantwortlicher:
+        text: `Tribe Vorarlberg – Verein zur Förderung einer ganzheitlichen Lebensweise und Gesundheitsförderung
 
-Thomas Ender
-Starkenfeld 19, 6841 Mäder, Österreich
-E-Mail: kontakt@spirituelle-events-vorarlberg.at`,
+ZVR-Zahl: 1865711062
+
+Sitz des Vereins:
+Dornbirn, Österreich
+
+Vertretungsbefugtes Organ:
+Die Präsidenten gemäß den Vereinsstatuten.
+
+E-Mail: office@tribevorarlberg.at
+
+Grundlegende Richtung der Website:
+Diese Website informiert über die Tätigkeiten, Veranstaltungen und Ziele des Vereins.`,
       },
     ],
   },
