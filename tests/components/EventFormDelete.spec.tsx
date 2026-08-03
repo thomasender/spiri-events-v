@@ -145,3 +145,29 @@ describe('EventForm — delete flow', () => {
     expect(mockEvents.updateEvent).not.toHaveBeenCalled();
   });
 });
+
+describe('EventForm — delete button placement', () => {
+  it('renders the delete button after the primary actions so it appears on the right', () => {
+    mockAuth.user = { uid: 'owner-uid' };
+    mockAuth.role = null;
+
+    const { container } = render(
+      <MemoryRouter>
+        <EventForm event={baseEvent} />
+      </MemoryRouter>
+    );
+
+    const formActions = container.querySelector('.form-actions');
+    expect(formActions).not.toBeNull();
+
+    const buttons = Array.from(formActions!.querySelectorAll('button'));
+    const deleteIndex = buttons.findIndex(
+      (btn) => btn.getAttribute('data-testid') === 'delete-event-from-form-button'
+    );
+    const submitIndex = buttons.findIndex((btn) => btn.getAttribute('type') === 'submit');
+
+    expect(deleteIndex).toBeGreaterThan(-1);
+    expect(submitIndex).toBeGreaterThan(-1);
+    expect(deleteIndex).toBeGreaterThan(submitIndex);
+  });
+});
