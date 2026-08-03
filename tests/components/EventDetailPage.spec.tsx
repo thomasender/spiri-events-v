@@ -1,0 +1,174 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
+
+const mockAuth = vi.hoisted(() => ({
+  user: null as { uid: string } | null,
+  role: null as string | null,
+  loading: false,
+}));
+
+const mockEvents = vi.hoisted(() => ({
+  deleteEvent: vi.fn(async () => {}),
+}));
+
+const mockFirestoreDoc = vi.hoisted(() => ({
+  getDocResult: null as null | { id: string; data: Record<string, unknown> },
+}));
+
+vi.mock('../../src/hooks/useAuth', () => ({
+  useAuth: () => ({
+    user: mockAuth.user,
+    role: mockAuth.role,
+    loading: mockAuth.loading,
+  }),
+}));
+
+vi.mock('../../src/hooks/useEvents', () => ({
+  useEvents: () => mockEvents,
+}));
+
+vi.mock('firebase/firestore', async () => {
+  const actual = await vi.importActual('firebase/firestore');
+  return {
+    ...actual,
+    getDoc: async () => {
+      if (!mockFirestoreDoc.getDocResult) {
+        return { exists: () => false, data: () => ({}) };
+      }
+      return {
+        exists: () => true,
+        data: () => mockFirestoreDoc.getDocResult.data,
+      };
+    },
+    getDocs: async () => ({ empty: true, docs: [] }),
+    collection: () => ({ type: 'collection' }),
+    doc: () => ({ type: 'doc' }),
+    query: () => ({ type: 'query' }),
+    where: () => ({ type: 'where' }),
+  };
+});
+
+vi.mock('react-helmet-async', () => ({
+  Helmet: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="helmet">{children}</div>
+  ),
+}));
+
+vi.mock('../../src/lib/firebase', () => ({
+  db: {},
+}));
+
+vi.mock('../../src/lib/slug', () => ({
+  isLegacyId: () => true,
+}));
+
+vi.mock('../../src/utils/eventFallbacks', () => ({
+  getEventFallbackImage: () => '/event-fallbacks/sonstiges.svg',
+}));
+
+import EventDetailPage from '../../src/pages/EventDetailPage';
+
+const foreignEvent = {
+  id: 'remote-event-id',
+  title: 'Yoga heute',
+  slug: 'yoga-heute-yogastudio-dornbirn-20260804',
+  date: '2026-08-04',
+  endDate: null,
+  time: '10:00',
+  endTime: '11:30',
+  place: 'Yogastudio Dornbirn',
+  description: 'Yoga Kurs.',
+  categories: ['Yoga'],
+  bezirk: 'Dornbirn',
+  organizer: { firstName: 'Anna', lastName: 'Schmidt', email: 'admin@test.com' },
+  kontakt: '0676 1234567',
+  status: 'approved',
+  createdBy: 'other-user-uid',
+};
+
+const renderPage = () =>
+  render(
+    <MemoryRouter initialEntries={['/event/yoga-heute-yogastudio-dornbirn-20260804']}>
+      <Routes>
+        <Route path="/event/:slug" element={<EventDetailPage />} />
+      </Routes>
+    </MemoryRouter>
+  );
+
+beforeEach(() => {
+  mockAuth.user = null;
+  mockAuth.role = null;
+  mockAuth.loading = false;
+  mockFirestoreDoc.getDocResult = {
+    id: foreignEvent.id,
+    data: foreignEvent,
+  };
+  mockEvents.deleteEvent.mockClear();
+});
+
+describe('EventDetailPage — edit/delete visibility', () => {
+  it('shows no edit or delete buttons for guest visitors', async () => {
+    renderPage();
+    expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /event bearbeiten/i })).toBeNull();
+    expect(screen.queryByTestId('delete-event-button')).toBeNull();
+  });
+
+  it('shows edit and delete buttons for the event owner', async () => {
+    mockAuth.user = { uid: 'other-user-uid' };
+
+    renderPage();
+    expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
+
+    const editLink = screen.getByRole('link', { name: /event bearbeiten/i });
+    expect(editLink).toHaveAttribute('href', '/admin/edit/remote-event-id');
+
+    expect(screen.getByTestId('delete-event-button')).toBeInTheDocument();
+  });
+
+  it('shows edit and delete buttons for an admin even on a non-owned event', async () => {
+    mockAuth.user = { uid: 'admin-uid' };
+    mockAuth.role = 'Admin';
+
+    renderPage();
+    expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
+
+    const editLink = screen.getByRole('link', { name: /event bearbeiten/i });
+    expect(editLink).toHaveAttribute('href', '/admin/edit/remote-event-id');
+
+    expect(screen.getByTestId('delete-event-button')).toBeInTheDocument();
+  });
+
+  it('hides edit and delete buttons for a non-admin non-owner user', async () => {
+    mockAuth.user = { uid: 'random-user-uid' };
+
+    renderPage();
+    expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
+
+    expect(screen.queryByRole('link', { name: /event bearbeiten/i })).toBeNull();
+    expect(screen.queryByTestId('delete-event-button')).toBeNull();
+  });
+});
+
+describe('EventDetailPage — delete flow', () => {
+  it('calls deleteEvent and returns to the calendar when the user confirms', async () => {
+    mockAuth.user = { uid: 'admin-uid' };
+    mockAuth.role = 'Admin';
+
+    renderPage();
+    expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
+
+    const deleteButton = await screen.findByTestId('delete-event-button');
+    deleteButton.click();
+
+    expect(
+      await screen.findByText(/möchtest du dieses event wirklich löschen\?/i)
+    ).toBeInTheDocument();
+
+    const confirmButton = screen.getByRole('button', { name: /^löschen$/i });
+    await confirmButton.click();
+
+    expect(mockEvents.deleteEvent).toHaveBeenCalledWith('remote-event-id');
+  });
+});

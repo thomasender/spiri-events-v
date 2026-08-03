@@ -93,6 +93,9 @@ export function useEvents(user) {
   };
 
   const deleteEvent = async (id) => {
+    if (auth.currentUser) {
+      await auth.currentUser.getIdToken(true);
+    }
     const ref = doc(db, 'events', id);
     return deleteDoc(ref);
   };

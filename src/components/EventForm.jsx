@@ -10,8 +10,9 @@ import {
   getAspectRatioRecommendation,
   MAX_INPUT_SIZE_BYTES,
 } from '../lib/imageUpload';
-import { ArrowLeft, Save, Image, X, Info } from 'lucide-react';
+import { ArrowLeft, Save, Image, X, Info, Trash2 } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
+import { canDeleteEvent } from '../utils/eventPermissions';
 import './EventForm.css';
 
 const INITIAL_STATE = {
@@ -82,7 +83,7 @@ const kategorieOptions = KATEGORIEN.map((k) => ({ value: k, label: k }));
 export default function EventForm({ event }) {
   const { user } = useAuth();
   const { role } = useAuth();
-  const { addEvent, updateEvent } = useEvents(user);
+  const { addEvent, updateEvent, deleteEvent } = useEvents(user);
 
   const buildInitialState = () => {
     if (event) {
@@ -138,12 +139,15 @@ export default function EventForm({ event }) {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showResubmitConfirmModal, setShowResubmitConfirmModal] = useState(false);
   const [resubmitWarning, setResubmitWarning] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
 
   const isAdmin = role === 'Admin';
   const isEdit = Boolean(event);
   const wasApproved = event?.status === 'approved';
+  const canDelete = isEdit && canDeleteEvent(user, event, role);
 
   const getFormTitle = () => {
     if (isEdit) return 'Event bearbeiten';
@@ -414,6 +418,22 @@ export default function EventForm({ event }) {
     setShowResubmitConfirmModal(false);
     setResubmitWarning(true);
     saveEvent(buildEventData('pending'));
+  };
+
+  const handleDelete = async () => {
+    if (!event?.id) return;
+    setDeleting(true);
+    try {
+      if (event.imageUrl) {
+        await deleteImageByUrl(event.imageUrl).catch(() => {});
+      }
+      await deleteEvent(event.id);
+      setShowDeleteModal(false);
+      navigate('/');
+    } catch (err) {
+      console.error('Event delete failed:', err.code, err.message);
+      setDeleting(false);
+    }
   };
 
   return (
@@ -845,6 +865,17 @@ export default function EventForm({ event }) {
           {validationError && <p className="error-text submit-error">{validationError}</p>}
 
           <div className="form-actions">
+            {canDelete && (
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(true)}
+                className="btn btn-danger"
+                data-testid="delete-event-from-form-button"
+              >
+                <Trash2 size={18} />
+                <span>Event löschen</span>
+              </button>
+            )}
             <button type="button" onClick={() => navigate('/admin')} className="btn btn-secondary">
               Abbrechen
             </button>
@@ -876,6 +907,18 @@ export default function EventForm({ event }) {
         onConfirm={confirmResubmit}
         onCancel={() => setShowResubmitConfirmModal(false)}
         loading={loading}
+      />
+
+      <ConfirmDialog
+        isOpen={showDeleteModal}
+        title="Event löschen"
+        message="Möchtest du dieses Event wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden."
+        confirmLabel="Löschen"
+        cancelLabel="Abbrechen"
+        onConfirm={handleDelete}
+        onCancel={() => setShowDeleteModal(false)}
+        loading={deleting}
+        danger
       />
     </div>
   );

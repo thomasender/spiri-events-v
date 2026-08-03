@@ -12,12 +12,16 @@ import {
   ExternalLink,
   ArrowLeft,
   Edit2,
+  Trash2,
   User,
   Mail,
   Phone,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { useEvents } from '../hooks/useEvents';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
+import { canEditEvent, canDeleteEvent } from '../utils/eventPermissions';
+import ConfirmDialog from '../components/ConfirmDialog';
 import './EventDetailPage.css';
 
 function formatDate(dateStr) {
@@ -129,11 +133,14 @@ export default function EventDetailPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const { user, loading: authLoading, role } = useAuth();
+  const { deleteEvent } = useEvents(user);
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     async function fetchEvent() {
@@ -231,9 +238,23 @@ export default function EventDetailPage() {
   const isFree = event.contribution === 'free';
   const jsonLd = generateEventJsonLd(event);
   const isOwner = user && event.createdBy === user.uid;
+  const showEditButton = canEditEvent(user, event, role);
+  const showDeleteButton = canDeleteEvent(user, event, role);
   const fallbackImage = getEventFallbackImage(event);
   const showRemoteImage = Boolean(event.imageUrl) && !imageError;
   const imageSrc = showRemoteImage ? event.imageUrl : fallbackImage;
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await deleteEvent(event.id);
+      setShowDeleteDialog(false);
+      navigate('/');
+    } catch (err) {
+      console.error('Delete failed:', err);
+      setDeleting(false);
+    }
+  };
 
   return (
     <div className="event-detail-page">
@@ -280,12 +301,25 @@ export default function EventDetailPage() {
         <span>Zurück zum Kalender</span>
       </Link>
 
-      {isOwner && (
+      {(showEditButton || showDeleteButton) && (
         <div className="owner-actions">
-          <Link to={`/admin/edit/${event.id}`} className="btn btn-secondary">
-            <Edit2 size={16} />
-            <span>Event bearbeiten</span>
-          </Link>
+          {showEditButton && (
+            <Link to={`/admin/edit/${event.id}`} className="btn btn-secondary">
+              <Edit2 size={16} />
+              <span>Event bearbeiten</span>
+            </Link>
+          )}
+          {showDeleteButton && (
+            <button
+              type="button"
+              onClick={() => setShowDeleteDialog(true)}
+              className="btn btn-danger"
+              data-testid="delete-event-button"
+            >
+              <Trash2 size={16} />
+              <span>Event löschen</span>
+            </button>
+          )}
         </div>
       )}
 
@@ -428,6 +462,18 @@ export default function EventDetailPage() {
           <ExternalLink size={16} />
         </a>
       )}
+
+      <ConfirmDialog
+        isOpen={showDeleteDialog}
+        title="Event löschen"
+        message="Möchtest du dieses Event wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden."
+        confirmLabel="Löschen"
+        cancelLabel="Abbrechen"
+        onConfirm={handleDelete}
+        onCancel={() => setShowDeleteDialog(false)}
+        loading={deleting}
+        danger
+      />
     </div>
   );
 }
