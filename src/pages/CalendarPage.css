@@ -132,6 +132,10 @@
   top: 88px;
 }
 
+.sidebar-card-mobile {
+  display: none;
+}
+
 .sidebar-cards-row {
   display: flex;
   flex-direction: column;
@@ -492,8 +496,7 @@
   }
 
   .page-sidebar {
-    position: static;
-    order: -1;
+    display: none;
   }
 
   .sidebar-cards-row {
@@ -503,6 +506,15 @@
 
   .sidebar-cards-row .sidebar-card {
     flex: 1 1 260px;
+  }
+
+  .filter-bar {
+    flex-wrap: wrap;
+  }
+
+  .sidebar-card-mobile {
+    display: block;
+    flex: 1 1 100%;
   }
 }
 

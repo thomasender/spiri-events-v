@@ -180,22 +180,49 @@ test.describe('Calendar Integration', () => {
   });
 
   test.describe('Mobile View', () => {
-    test('places selection container above events on narrow viewport', async ({ page }) => {
+    test('places selection container next to filter toggle on narrow viewport', async ({
+      page,
+    }) => {
       await page.setViewportSize({ width: 375, height: 667 });
       await page.goto('/');
       await waitForCalendarToLoad(page);
 
-      const sidebar = page.locator('.page-sidebar');
+      const filterBar = page.locator('.filter-bar');
+      const mobileCard = page.locator('.sidebar-card-mobile');
+      const desktopSidebar = page.locator('.page-sidebar');
       const eventsSection = page.locator('.events-section');
 
-      await expect(sidebar).toBeVisible();
-      await expect(page.locator('.sidebar-card-title')).toHaveText('Deine Auswahl');
+      await expect(filterBar).toBeVisible();
+      await expect(mobileCard).toBeVisible();
+      await expect(mobileCard.locator('.sidebar-card-title')).toHaveText('Deine Auswahl');
+      await expect(desktopSidebar).toBeHidden();
 
-      const sidebarBox = await sidebar.boundingBox();
+      const filterBarBox = await filterBar.boundingBox();
+      const mobileCardBox = await mobileCard.boundingBox();
       const eventsBox = await eventsSection.boundingBox();
-      expect(sidebarBox).not.toBeNull();
+      expect(filterBarBox).not.toBeNull();
+      expect(mobileCardBox).not.toBeNull();
       expect(eventsBox).not.toBeNull();
-      expect(sidebarBox!.y).toBeLessThan(eventsBox!.y);
+
+      const filterBarBottom = filterBarBox!.y + filterBarBox!.height;
+      const mobileCardTop = mobileCardBox!.y;
+      const mobileCardBottom = mobileCardBox!.y + mobileCardBox!.height;
+      expect(mobileCardTop).toBeGreaterThanOrEqual(filterBarBox!.y);
+      expect(mobileCardBottom).toBeLessThanOrEqual(filterBarBottom + 1);
+      expect(mobileCardBottom).toBeLessThan(eventsBox!.y);
+    });
+
+    test('keeps selection container in sidebar on desktop viewport', async ({ page }) => {
+      await page.setViewportSize({ width: 1280, height: 800 });
+      await page.goto('/');
+      await waitForCalendarToLoad(page);
+
+      const desktopSidebar = page.locator('.page-sidebar');
+      const mobileCard = page.locator('.sidebar-card-mobile');
+
+      await expect(desktopSidebar).toBeVisible();
+      await expect(desktopSidebar.locator('.sidebar-card-title')).toHaveText('Deine Auswahl');
+      await expect(mobileCard).toBeHidden();
     });
   });
 

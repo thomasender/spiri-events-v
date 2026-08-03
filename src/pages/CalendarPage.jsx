@@ -194,6 +194,45 @@ export default function CalendarPage() {
                 <span className="filter-badge">{selectedCategories.length}</span>
               )}
             </button>
+
+            <div className="sidebar-card sidebar-card-mobile" data-mobile-only="true">
+              <div className="sidebar-card-header">
+                <h2 className="sidebar-card-title">Deine Auswahl</h2>
+                {hasActiveFilters && (
+                  <button type="button" className="sidebar-clear-btn" onClick={clearAllFilters}>
+                    Alle Filter löschen
+                  </button>
+                )}
+              </div>
+              {hasSelection ? (
+                <div className="selection-chips">
+                  {selectedCategories.map((category) => (
+                    <button
+                      key={category}
+                      type="button"
+                      className="selection-chip"
+                      onClick={() => toggleCategory(category)}
+                    >
+                      {category}
+                      <X size={12} />
+                    </button>
+                  ))}
+                  {selectedBezirke.map((bezirk) => (
+                    <button
+                      key={bezirk}
+                      type="button"
+                      className="selection-chip"
+                      onClick={() => toggleBezirk(bezirk)}
+                    >
+                      {bezirk}
+                      <X size={12} />
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="sidebar-card-empty">Noch keine Filter ausgewählt.</p>
+              )}
+            </div>
           </div>
 
           {showFilters && (
@@ -276,7 +315,7 @@ export default function CalendarPage() {
             categories={KATEGORIEN}
           />
 
-          <div className="sidebar-cards-row">
+          <div className="sidebar-cards-row sidebar-cards-row-desktop">
             <div className="sidebar-card">
               <div className="sidebar-card-header">
                 <h2 className="sidebar-card-title">Deine Auswahl</h2>
