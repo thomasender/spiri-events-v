@@ -5,19 +5,11 @@ import { useAllEvents, KATEGORIEN, BEZIRKE } from '../hooks/useEvents';
 import Calendar from '../components/Calendar';
 import EventsSection from '../components/EventsSection';
 import { getEventOccurrences } from '../utils/eventOccurrences';
+import { CATEGORY_COLORS } from '../utils/categoryColors';
 import { Filter, MapPin, Sparkles, Users, X } from 'lucide-react';
 import './CalendarPage.css';
 
 const STORAGE_KEY = 'calendarFilterState';
-
-const CATEGORY_COLORS = {
-  Yoga: 'var(--accent-primary)',
-  Meditation: 'var(--free-text)',
-  Tanz: 'var(--pending-text)',
-  Singen: 'var(--chip-text)',
-  Atemarbeit: 'var(--error)',
-  Sonstiges: 'var(--text-light)',
-};
 
 const HERO_FEATURES = [
   {
@@ -207,7 +199,12 @@ export default function CalendarPage() {
               </div>
               <div className="filter-options">
                 {KATEGORIEN.map((category) => (
-                  <label key={category} className="filter-checkbox">
+                  <label
+                    key={category}
+                    className="filter-checkbox filter-checkbox--category"
+                    data-category={category}
+                    style={{ '--category-color': CATEGORY_COLORS[category] }}
+                  >
                     <input
                       type="checkbox"
                       checked={selectedCategories.includes(category)}
@@ -258,7 +255,9 @@ export default function CalendarPage() {
                   <button
                     key={category}
                     type="button"
-                    className="selection-chip"
+                    className="selection-chip selection-chip--category"
+                    data-category={category}
+                    style={{ '--category-color': CATEGORY_COLORS[category] }}
                     onClick={() => toggleCategory(category)}
                   >
                     {category}
@@ -331,7 +330,9 @@ export default function CalendarPage() {
                     <button
                       key={category}
                       type="button"
-                      className="selection-chip"
+                      className="selection-chip selection-chip--category"
+                      data-category={category}
+                      style={{ '--category-color': CATEGORY_COLORS[category] }}
                       onClick={() => toggleCategory(category)}
                     >
                       {category}

@@ -199,6 +199,15 @@
   background-color: rgba(196, 142, 106, 0.24);
 }
 
+.selection-chip--category {
+  background-color: color-mix(in srgb, var(--category-color) 14%, transparent);
+  color: var(--category-color);
+}
+
+.selection-chip--category:hover {
+  background-color: color-mix(in srgb, var(--category-color) 24%, transparent);
+}
+
 .filter-bar {
   display: flex;
   align-items: center;
@@ -338,12 +347,13 @@
   content: '';
   position: absolute;
   left: 20px;
-  width: 8px;
-  height: 4px;
+  top: 50%;
+  width: 6px;
+  height: 3px;
   border: 2px solid var(--bg-primary);
   border-top: none;
   border-right: none;
-  transform: rotate(-45deg);
+  transform: translateY(-50%) rotate(-45deg);
 }
 
 .filter-checkbox:has(input:checked) {
@@ -363,6 +373,55 @@
 .filter-checkbox:has(input:checked) span {
   color: var(--accent-primary);
   font-weight: 500;
+}
+
+/* Per-category color hint (unchecked) — small dot at the right of the chip */
+.filter-checkbox--category {
+  padding-right: 32px;
+}
+
+.filter-checkbox--category::after {
+  content: '';
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--category-color);
+  transform: translateY(-50%) scale(0.85);
+  transition: all 0.15s ease;
+  pointer-events: none;
+}
+
+.filter-checkbox--category:hover::after {
+  transform: translateY(-50%) scale(1.1);
+}
+
+.filter-checkbox--category:has(input:checked)::after {
+  background-color: var(--bg-primary);
+  width: 6px;
+  height: 3px;
+  border: 2px solid var(--bg-primary);
+  border-top: none;
+  border-right: none;
+  border-radius: 0;
+  transform: translateY(-50%) rotate(-45deg);
+}
+
+/* Per-category checked state — border, background tint, text, checkbox in category color */
+.filter-checkbox--category:has(input:checked) {
+  background-color: color-mix(in srgb, var(--category-color) 14%, transparent);
+  border-color: var(--category-color);
+}
+
+.filter-checkbox--category:has(input:checked)::before {
+  background: var(--category-color);
+  border-color: var(--category-color);
+}
+
+.filter-checkbox--category:has(input:checked) span {
+  color: var(--category-color);
 }
 
 .filter-section {
