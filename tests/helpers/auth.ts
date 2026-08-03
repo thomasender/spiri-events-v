@@ -40,9 +40,27 @@ export async function registerWithEmailAndPassword(
 
 export async function signOut(page: Page): Promise<void> {
   await page.goto('/');
-  const signOutButton = page.locator('text=Abmelden').first();
-  if (await signOutButton.isVisible({ timeout: 2000 }).catch(() => false)) {
-    await signOutButton.click();
+  const desktopLogout = page.locator('.nav-desktop button.nav-link--logout');
+  const mobileLogout = page.locator('.nav-mobile:not(.nav-mobile--open) button.nav-link--logout');
+
+  let signedOut = false;
+  if (await desktopLogout.isVisible({ timeout: 2000 }).catch(() => false)) {
+    await desktopLogout.click();
+    signedOut = true;
+  } else if (
+    await page
+      .locator('.menu-toggle')
+      .isVisible({ timeout: 1000 })
+      .catch(() => false)
+  ) {
+    await page.locator('.menu-toggle').click();
+    await page.locator('.nav-mobile--open button.nav-link--logout').click();
+    signedOut = true;
+  }
+
+  if (signedOut) {
+    await page.waitForSelector('.nav-desktop a[href="/login"]', { timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(500);
   }
 }
 

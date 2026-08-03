@@ -23,6 +23,11 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == resource.data.createdBy;
     }
 
+    function isEventOwner(eventId) {
+      return isAuthenticated()
+        && request.auth.uid == get(/databases/$(database)/documents/events/$(eventId)).data.createdBy;
+    }
+
     function isApproved() {
       return resource.data.status == 'approved';
     }
@@ -35,6 +40,25 @@ service cloud.firestore {
                     && (request.resource.data.status == 'pending' || isAdminOrEmulatorAdmin());
 
       allow update, delete: if isOwner() || isAdminOrEmulatorAdmin();
+
+      match /messages/{messageId} {
+        allow read: if isEventOwner(eventId) || isAdminOrEmulatorAdmin();
+
+        allow create: if (isEventOwner(eventId) || isAdminOrEmulatorAdmin())
+                      && request.resource.data.authorUid == request.auth.uid
+                      && request.resource.data.keys().hasOnly(
+                        ['text', 'authorUid', 'authorRole', 'authorName', 'createdAt', 'readByRecipient']
+                      )
+                      && request.resource.data.text.size() > 0
+                      && request.resource.data.text.size() <= 2000
+                      && request.resource.data.authorRole in ['Admin', 'User'];
+
+        allow update: if (isEventOwner(eventId) || isAdminOrEmulatorAdmin())
+                      && request.resource.data.diff(resource.data).affectedKeys()
+                          .hasOnly(['readByRecipient']);
+
+        allow delete: if isAdminOrEmulatorAdmin();
+      }
     }
 
     match /admin_users/{uid} {
