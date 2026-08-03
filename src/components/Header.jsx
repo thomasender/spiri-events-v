@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Calendar, LogOut, User, PlusCircle, UserCircle, Pen, Menu, X } from 'lucide-react';
+import NotificationBell from './NotificationBell';
 import './Header.css';
 
 const navClass = ({ isActive }) => (isActive ? 'nav-link nav-link--active' : 'nav-link');
@@ -84,6 +85,7 @@ export default function Header() {
             <Pen size={18} />
             <span>Verwaltung</span>
           </NavLink>
+          <NotificationBell />
           <NavLink to="/profil" className={navClass} onClick={closeMenu}>
             <UserCircle size={18} />
             <span>Mein Profil</span>

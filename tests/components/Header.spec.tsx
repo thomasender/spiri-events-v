@@ -337,7 +337,9 @@ describe('Header mobile menu', () => {
     expect(hrefs).toContain('/profil');
     expect(hrefs).toContain('/admin/new');
 
-    const logoutButton = Array.from(mobileLinks).find((el) => el.tagName === 'BUTTON');
+    const logoutButton = Array.from(mobileLinks).find(
+      (el) => el.tagName === 'BUTTON' && el.classList.contains('nav-link--logout')
+    );
     expect(logoutButton).toBeDefined();
     expect(logoutButton?.textContent).toContain('Abmelden');
   });

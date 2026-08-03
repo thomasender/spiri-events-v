@@ -22,6 +22,7 @@ import { useEvents } from '../hooks/useEvents';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
 import { canEditEvent, canDeleteEvent } from '../utils/eventPermissions';
 import ConfirmDialog from '../components/ConfirmDialog';
+import EventMessages from '../components/EventMessages';
 import './EventDetailPage.css';
 
 function formatDate(dateStr) {
@@ -237,6 +238,7 @@ export default function EventDetailPage() {
 
   const isFree = event.contribution === 'free';
   const jsonLd = generateEventJsonLd(event);
+  const isAdmin = role === 'Admin';
   const isOwner = user && event.createdBy === user.uid;
   const showEditButton = canEditEvent(user, event, role);
   const showDeleteButton = canDeleteEvent(user, event, role);
@@ -449,6 +451,10 @@ export default function EventDetailPage() {
           <h3>Über das Event</h3>
           <p>{event.description}</p>
         </div>
+      )}
+
+      {event.status === 'pending' && user && (isAdmin || isOwner) && (
+        <EventMessages eventId={event.id} />
       )}
 
       {event.link && (

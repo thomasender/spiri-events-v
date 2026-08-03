@@ -303,6 +303,10 @@ async function createUser(user) {
 
 async function seedEvent(event, createdBy) {
   const ref = db.collection('events').doc(event.id);
+
+  const messagesSnapshot = await ref.collection('messages').get();
+  await Promise.all(messagesSnapshot.docs.map((docSnap) => docSnap.ref.delete()));
+
   await ref.set({ ...event, createdBy });
   console.log(`  Seeded: ${event.title} (${event.date}) [${event.id}] slug: ${event.slug}`);
 }

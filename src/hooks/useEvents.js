@@ -12,6 +12,7 @@ import {
   serverTimestamp,
   Timestamp,
   getFirestore,
+  getDocs,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { findUniqueSlug } from '../lib/slug';
@@ -153,6 +154,11 @@ export function usePendingEvents() {
     }
     const freshDb = getFirestore(getApp());
     const ref = doc(freshDb, 'events', eventId);
+
+    const messagesRef = collection(freshDb, 'events', eventId, 'messages');
+    const messagesSnapshot = await getDocs(messagesRef);
+    await Promise.all(messagesSnapshot.docs.map((docSnap) => deleteDoc(docSnap.ref)));
+
     return updateDoc(ref, {
       status: 'approved',
       approvedBy: user.uid,
