@@ -85,6 +85,75 @@ test.describe('Calendar Integration', () => {
     });
   });
 
+  test.describe('Category Filter Colors', () => {
+    const expectedCategories = [
+      { name: 'Yoga', color: 'rgb(196, 142, 106)' },
+      { name: 'Meditation', color: 'rgb(92, 107, 63)' },
+      { name: 'Tanz', color: 'rgb(138, 109, 47)' },
+      { name: 'Singen', color: 'rgb(154, 95, 56)' },
+      { name: 'Atemarbeit', color: 'rgb(191, 91, 78)' },
+      { name: 'Sonstiges', color: 'rgb(147, 141, 135)' },
+    ];
+
+    test.beforeEach(async ({ page }) => {
+      await page.locator('.filter-toggle-btn').click();
+      await expect(page.locator('.filter-panel')).toBeVisible();
+    });
+
+    test('each category filter exposes data-category and a category color', async ({ page }) => {
+      for (const { name } of expectedCategories) {
+        const filter = page.locator(`.filter-checkbox--category[data-category="${name}"]`);
+        await expect(filter).toBeVisible();
+        const cssVar = await filter.evaluate((el) =>
+          window.getComputedStyle(el).getPropertyValue('--category-color').trim()
+        );
+        expect(cssVar).not.toBe('');
+        expect(cssVar).not.toBe('initial');
+      }
+    });
+
+    test('each category has a distinct color', async ({ page }) => {
+      const colors = await Promise.all(
+        expectedCategories.map(async ({ name }) => {
+          const filter = page.locator(`.filter-checkbox--category[data-category="${name}"]`);
+          return filter.evaluate((el) =>
+            window.getComputedStyle(el).getPropertyValue('--category-color').trim()
+          );
+        })
+      );
+      expect(new Set(colors).size).toBe(colors.length);
+    });
+
+    test('checked category filter applies its category color to border and text', async ({
+      page,
+    }) => {
+      await page.locator('.filter-panel button:has-text("Keine")').first().click();
+      for (const { name, color } of expectedCategories) {
+        const filter = page.locator(`.filter-checkbox--category[data-category="${name}"]`);
+        await filter.click();
+        const checkbox = filter.locator('input[type="checkbox"]');
+        await expect(checkbox).toBeChecked();
+
+        await expect(filter).toHaveCSS('border-color', color);
+        await expect(filter.locator('span')).toHaveCSS('color', color);
+      }
+    });
+
+    test('selection chip in sidebar uses the category color', async ({ page }) => {
+      await page.locator('.filter-panel button:has-text("Keine")').first().click();
+      for (const { name, color } of expectedCategories) {
+        const filter = page.locator(`.filter-checkbox--category[data-category="${name}"]`);
+        await filter.click();
+
+        const chip = page
+          .locator(`.page-sidebar .selection-chip--category[data-category="${name}"]`)
+          .first();
+        await expect(chip).toBeVisible();
+        await expect(chip).toHaveCSS('color', color);
+      }
+    });
+  });
+
   test.describe('District Filters', () => {
     test('shows district filter section', async ({ page }) => {
       await page.locator('.filter-toggle-btn').click();
