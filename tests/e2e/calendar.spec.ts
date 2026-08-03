@@ -302,7 +302,6 @@ test.describe('Calendar E2E', () => {
         return;
       }
 
-      await page.locator('.filter-toggle-btn').click();
       const yogaLabel = page
         .locator('.filter-panel')
         .locator('label')
@@ -326,9 +325,9 @@ test.describe('Calendar E2E', () => {
         return;
       }
 
-      await page.locator('.filter-toggle-btn').click();
+      await page.locator('.filter-accordion .filter-accordion-summary').click();
       const bregenzLabel = page
-        .locator('.filter-panel')
+        .locator('.filter-accordion')
         .locator('label')
         .filter({ hasText: 'Bregenz' })
         .first();
@@ -339,29 +338,26 @@ test.describe('Calendar E2E', () => {
       await expect(page.locator('.calendar')).toBeVisible();
     });
 
-    test('filters show badge with active count', async ({ page }) => {
+    test('filter panel is visible without a toggle button', async ({ page }) => {
       await page.goto('/calendar');
       await waitForCalendarToLoad(page);
 
-      const initialEventCount = await page.locator('.cell-dot').count();
-      if (initialEventCount === 0) {
-        test.skip();
-        return;
-      }
+      await expect(page.locator('.filter-panel')).toBeVisible();
+      await expect(page.locator('.filter-toggle-btn')).toHaveCount(0);
+      await expect(page.locator('.filter-section-title')).toHaveText('Hier kannst du filtern');
+    });
 
-      await page.locator('.filter-toggle-btn').click();
-      const yogaLabel = page
-        .locator('.filter-panel')
-        .locator('label')
-        .filter({ hasText: 'Yoga' })
-        .first();
+    test('"Mehr Filter" accordion starts collapsed and opens on click', async ({ page }) => {
+      await page.goto('/calendar');
+      await waitForCalendarToLoad(page);
 
-      await yogaLabel.click();
+      const accordion = page.locator('.filter-accordion');
+      await expect(accordion).toBeVisible();
+      await expect(accordion).toHaveJSProperty('open', false);
 
-      const badge = page.locator('.filter-badge');
-      await expect(badge).toBeVisible();
-      const count = await badge.textContent();
-      expect(parseInt(count || '0')).toBeGreaterThan(0);
+      await accordion.locator('.filter-accordion-summary').click();
+      await expect(accordion).toHaveJSProperty('open', true);
+      await expect(page.locator('.filter-accordion label:has-text("Bregenz")')).toBeVisible();
     });
   });
 
