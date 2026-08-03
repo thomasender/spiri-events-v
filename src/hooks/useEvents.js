@@ -21,7 +21,7 @@ import { getApp } from 'firebase/app';
 
 export const KATEGORIEN = ['Yoga', 'Meditation', 'Tanz', 'Singen', 'Atemarbeit', 'Sonstiges'];
 
-export const BEZIRKE = ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz'];
+export const BEZIRKE = ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe'];
 
 function normalizeEvents(events) {
   return events.map((event) => ({

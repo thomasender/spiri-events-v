@@ -375,7 +375,7 @@ function generateCalendarPageHtml(events, jsBundlePath, cssBundlePath) {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Spirituelle Events Vorarlberg | Kalender</title>
-  <meta name="description" content="Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg - Bregenz, Dornbirn, Feldkirch, Bludenz" />
+  <meta name="description" content="Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg - Bregenz, Dornbirn, Feldkirch, Bludenz, Grenznahe" />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="${BASE_URL}/" />
 
