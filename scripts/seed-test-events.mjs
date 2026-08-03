@@ -222,6 +222,23 @@ const TEST_EVENTS = [
     kontakt: '0676 5558899',
     status: 'approved',
   },
+  {
+    id: 'test-event-recurring-weekly',
+    title: 'Test Weekly Yoga Series',
+    date: makeDate(7),
+    endDate: null,
+    time: '18:00',
+    endTime: '19:00',
+    place: 'Yogastudio Test',
+    description: 'Wöchentlicher Yoga-Kurs für Tests der wiederkehrenden Anzeige.',
+    categories: ['Yoga'],
+    bezirk: 'Bregenz',
+    organizer: { firstName: 'Anna', lastName: 'Schmidt', email: 'admin@test.com' },
+    kontakt: 'anna@example.com',
+    status: 'approved',
+    recurrence: 'weekly',
+    recurrenceEndDate: makeDate(75),
+  },
 ];
 
 for (const event of TEST_EVENTS) {

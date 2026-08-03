@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, CalendarDays, MapPin } from 'lucide-react';
+import { getEventOccurrences } from '../utils/eventOccurrences';
 import './Calendar.css';
 
 const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
@@ -38,107 +39,6 @@ function getFirstDayOfMonth(year, month) {
 
 function formatDate(year, month, day) {
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-}
-
-// Expand event across all days it spans (including endDate)
-function expandEventToDays(event) {
-  if (!event) return [];
-  const days = [];
-  const start = new Date(event.date + 'T12:00:00');
-  const end = event.endDate ? new Date(event.endDate + 'T12:00:00') : start;
-
-  const current = new Date(start);
-  while (current <= end) {
-    const dateStr = formatDate(current.getFullYear(), current.getMonth(), current.getDate());
-    days.push({
-      ...event,
-      date: dateStr,
-      isMultiDayStart: current.getTime() === start.getTime(),
-      isMultiDayEnd: current.getTime() === end.getTime(),
-    });
-    current.setDate(current.getDate() + 1);
-  }
-  return days;
-}
-
-// Expand recurring events to their occurrence dates
-function expandRecurringEvents(event) {
-  if (!event || event.recurrence === 'none' || !event.recurrence) return expandEventToDays(event);
-
-  const occurrences = [];
-  const startDate = new Date(event.date + 'T12:00:00');
-  const endDate = event.recurrenceEndDate
-    ? new Date(event.recurrenceEndDate + 'T12:00:00')
-    : new Date(startDate);
-  if (!event.recurrenceEndDate) {
-    if (event.recurrence === 'monthly') {
-      endDate.setFullYear(endDate.getFullYear() + 1);
-    } else {
-      endDate.setMonth(endDate.getMonth() + 3);
-    }
-  }
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const maxDate = new Date(today);
-  maxDate.setFullYear(maxDate.getFullYear() + 1);
-
-  const effectiveEnd = endDate < maxDate ? endDate : maxDate;
-
-  let interval;
-  switch (event.recurrence) {
-    case 'weekly':
-      interval = 1;
-      break;
-    case 'biweekly':
-      interval = 2;
-      break;
-    case 'monthly':
-      interval = 0; // handled specially below
-      break;
-    default:
-      return expandEventToDays(event);
-  }
-
-  const current = new Date(startDate);
-
-  while (current <= effectiveEnd) {
-    if (current >= today) {
-      const baseOccurrence = {
-        ...event,
-        date: formatDate(current.getFullYear(), current.getMonth(), current.getDate()),
-      };
-      if (event.endDate) {
-        // For recurring multi-day events, keep the same duration
-        const start = new Date(event.date + 'T12:00:00');
-        const eventDays =
-          Math.ceil((new Date(event.endDate + 'T12:00:00') - start) / (1000 * 60 * 60 * 24)) + 1;
-        // Add each day of the multi-day span
-        for (let d = 0; d < eventDays; d++) {
-          const dayDate = new Date(current);
-          dayDate.setDate(dayDate.getDate() + d);
-          occurrences.push({
-            ...baseOccurrence,
-            date: formatDate(dayDate.getFullYear(), dayDate.getMonth(), dayDate.getDate()),
-            isMultiDayStart: d === 0,
-            isMultiDayEnd: d === eventDays - 1,
-          });
-        }
-      } else {
-        occurrences.push({ ...baseOccurrence, isMultiDayStart: true, isMultiDayEnd: true });
-      }
-    }
-
-    if (interval === 0) {
-      // Monthly: next month same day
-      current.setMonth(current.getMonth() + 1);
-    } else {
-      // Weekly or biweekly
-      current.setDate(current.getDate() + interval * 7);
-    }
-  }
-
-  return occurrences;
 }
 
 function isToday(dateStr) {
@@ -215,7 +115,7 @@ export default function Calendar({
   const eventsByDay = useMemo(() => {
     const map = {};
     events.forEach((event) => {
-      const expandedDays = expandRecurringEvents(event);
+      const expandedDays = getEventOccurrences(event);
       expandedDays.forEach((expanded) => {
         if (!map[expanded.date]) map[expanded.date] = [];
         map[expanded.date].push(expanded);

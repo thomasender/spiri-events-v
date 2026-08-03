@@ -4,6 +4,7 @@ import { Helmet } from 'react-helmet-async';
 import { useAllEvents, KATEGORIEN, BEZIRKE } from '../hooks/useEvents';
 import Calendar from '../components/Calendar';
 import EventsSection from '../components/EventsSection';
+import { getEventOccurrences } from '../utils/eventOccurrences';
 import { Filter, MapPin, Sparkles, Users, X } from 'lucide-react';
 import './CalendarPage.css';
 
@@ -124,6 +125,7 @@ export default function CalendarPage() {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
     return filteredEvents
+      .flatMap((event) => getEventOccurrences(event))
       .filter((event) => {
         const [eventYear, eventMonth] = event.date.split('-').map(Number);
         return eventYear === year && eventMonth - 1 === month;
