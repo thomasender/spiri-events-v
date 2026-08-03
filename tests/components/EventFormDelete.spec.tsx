@@ -48,7 +48,7 @@ const baseEvent = {
   link: '',
   recurrence: 'none',
   recurrenceEndDate: '',
-  categories: ['Yoga'],
+  category: 'Yoga',
   bezirk: 'Bregenz',
   organizer: { firstName: 'A', lastName: 'B', email: 'a@b.c' },
   kontakt: '0676 1234567',

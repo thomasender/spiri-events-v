@@ -29,11 +29,18 @@ async function fetchEvents() {
     ...doc.data()
   }))
 
-  return events.map(event => ({
-    ...event,
-    categories: event.categories && event.categories.length > 0 ? event.categories : ['Sonstiges'],
-    bezirk: event.bezirk || ''
-  }))
+  return events.map(event => {
+    const category =
+      event.category ||
+      (Array.isArray(event.categories) && event.categories.length > 0
+        ? event.categories[0]
+        : 'Sonstiges')
+    return {
+      ...event,
+      category,
+      bezirk: event.bezirk || ''
+    }
+  })
 }
 
 function formatDate(dateStr) {
@@ -59,8 +66,8 @@ const CATEGORY_FALLBACKS = {
 const DEFAULT_EVENT_FALLBACK = '/event-fallbacks/sonstiges.svg'
 
 function getEventFallbackImage(event) {
-  const primary = event?.categories?.[0]
-  return CATEGORY_FALLBACKS[primary] || DEFAULT_EVENT_FALLBACK
+  const category = event?.category
+  return CATEGORY_FALLBACKS[category] || DEFAULT_EVENT_FALLBACK
 }
 
 function generateEventJsonLd(event) {
@@ -105,11 +112,11 @@ function generateEventHtml(event) {
   const jsonLd = generateEventJsonLd(event)
   const isFree = event.contribution === 'free'
   const formattedDate = formatDate(event.date)
-  const categories = event.categories ? event.categories.join(', ') : 'Sonstiges'
+  const category = event.category || 'Sonstiges'
 
   const description = event.description
     ? event.description.substring(0, 160)
-    : `${event.title} - ${categories} in ${event.bezirk || 'Vorarlberg'}`
+    : `${event.title} - ${category} in ${event.bezirk || 'Vorarlberg'}`
 
   return `<!DOCTYPE html>
 <html lang="de">
@@ -274,7 +281,7 @@ function generateEventHtml(event) {
           : `<img src="${getEventFallbackImage(event)}" alt="${event.title}" class="event-image" />`}
         <h1 class="event-title">${event.title}</h1>
         <div class="event-meta-row">
-          ${event.categories && event.categories.map(cat => `<span class="category-chip">${cat}</span>`).join('')}
+          ${event.category ? `<span class="category-chip">${event.category}</span>` : ''}
           <span class="event-badge ${isFree ? 'badge--free' : 'badge--fee'}">
             ${isFree ? 'Kostenlos' : event.fee ? `${event.fee} €` : 'Gebühr'}
           </span>

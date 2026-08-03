@@ -39,18 +39,16 @@ describe('eventFallbacks', () => {
   });
 
   describe('getEventFallbackImage', () => {
-    it('uses the first category of the event', () => {
-      expect(getEventFallbackImage({ categories: ['Yoga', 'Tanz'] })).toBe(
-        '/event-fallbacks/yoga.jpg'
-      );
-      expect(getEventFallbackImage({ categories: ['Meditation'] })).toBe(
+    it('uses the category of the event', () => {
+      expect(getEventFallbackImage({ category: 'Yoga' })).toBe('/event-fallbacks/yoga.jpg');
+      expect(getEventFallbackImage({ category: 'Meditation' })).toBe(
         '/event-fallbacks/meditation.jpg'
       );
     });
 
-    it('returns the default when the event has no categories', () => {
+    it('returns the default when the event has no category', () => {
       expect(getEventFallbackImage({})).toBe(DEFAULT_EVENT_FALLBACK);
-      expect(getEventFallbackImage({ categories: [] })).toBe(DEFAULT_EVENT_FALLBACK);
+      expect(getEventFallbackImage({ category: '' })).toBe(DEFAULT_EVENT_FALLBACK);
     });
 
     it('returns the default for null/undefined events', () => {

@@ -15,6 +15,5 @@ export function getCategoryFallbackImage(category) {
 }
 
 export function getEventFallbackImage(event) {
-  const primary = event?.categories?.[0];
-  return getCategoryFallbackImage(primary);
+  return getCategoryFallbackImage(event?.category);
 }

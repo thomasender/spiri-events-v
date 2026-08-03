@@ -159,6 +159,7 @@ interface Event {
   imageUrl?: string;    // Optional Firebase Storage URL
   recurrence: 'none' | 'weekly' | 'biweekly' | 'monthly';  // Recurrence pattern
   recurrenceEndDate?: string;  // Optional end date for recurrence
+  category: string;    // Single category (one of KATEGORIEN, defaults to 'Sonstiges')
   createdBy: string;   // Firebase UID
   createdAt: Timestamp;
 }

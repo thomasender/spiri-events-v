@@ -56,7 +56,7 @@ test.describe('Event CRUD', () => {
 
     await page.locator('.kategorie-select').click();
     await page.waitForTimeout(500);
-    await page.locator('.kategorie__menu').locator('*').first().click();
+    await page.locator('.kategorie__menu .kategorie__option').first().click();
     await page.waitForTimeout(300);
 
     await page.fill('input[name="link"]', 'www.example.com/test-event');
@@ -107,7 +107,7 @@ test.describe('Event CRUD', () => {
 
     await page.locator('.kategorie-select').click();
     await page.waitForTimeout(500);
-    await page.locator('.kategorie__menu').locator('*').first().click();
+    await page.locator('.kategorie__menu .kategorie__option').first().click();
     await page.waitForTimeout(300);
 
     await page.fill('input[name="link"]', 'http://www.example.com/test');
@@ -150,7 +150,7 @@ test.describe('Event CRUD', () => {
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
       .catch(() => {});
 
-    const requiredLabels = ['Titel *', 'Kategorien *', 'Datum *', 'Bezirk *', 'Ort / Adresse *'];
+    const requiredLabels = ['Titel *', 'Kategorie *', 'Datum *', 'Bezirk *', 'Ort / Adresse *'];
 
     for (const labelText of requiredLabels) {
       const label = page.locator('label').filter({ hasText: labelText }).first();

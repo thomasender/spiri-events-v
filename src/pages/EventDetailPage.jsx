@@ -267,7 +267,7 @@ export default function EventDetailPage() {
           content={
             event.description
               ? event.description.substring(0, 160)
-              : `${event.title} - ${event.categories?.join(', ')} in ${event.bezirk}`
+              : `${event.title} - ${event.category} in ${event.bezirk}`
           }
         />
         <link rel="canonical" href={`/event/${event.slug || event.id}`} />
@@ -278,7 +278,7 @@ export default function EventDetailPage() {
           content={
             event.description
               ? event.description.substring(0, 160)
-              : `${event.title} - ${event.categories?.join(', ')} in ${event.bezirk}`
+              : `${event.title} - ${event.category} in ${event.bezirk}`
           }
         />
         <meta property="og:url" content={`/event/${event.slug || event.id}`} />
@@ -292,7 +292,7 @@ export default function EventDetailPage() {
           content={
             event.description
               ? event.description.substring(0, 160)
-              : `${event.title} - ${event.categories?.join(', ')} in ${event.bezirk}`
+              : `${event.title} - ${event.category} in ${event.bezirk}`
           }
         />
         <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
@@ -338,13 +338,9 @@ export default function EventDetailPage() {
         </div>
         <h1 className="event-title">{event.title}</h1>
         <div className="event-meta-row">
-          {event.categories && event.categories.length > 0 && (
+          {event.category && (
             <div className="event-categories">
-              {event.categories.map((cat) => (
-                <span key={cat} className="category-chip">
-                  {cat}
-                </span>
-              ))}
+              <span className="category-chip">{event.category}</span>
             </div>
           )}
           <div className={`event-badge ${isFree ? 'badge--free' : 'badge--fee'}`}>

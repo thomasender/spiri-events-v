@@ -8,7 +8,7 @@ async function fillRequiredEventFields(page: import('@playwright/test').Page, ti
   await page.selectOption('select[name="bezirk"]', 'Bregenz');
   await page.locator('.kategorie-select').click();
   await page.waitForTimeout(500);
-  await page.locator('.kategorie__menu').locator('*').first().click();
+  await page.locator('.kategorie__menu .kategorie__option').first().click();
   await page.waitForTimeout(300);
   await page.fill('input[name="firstName"]', 'Maria');
   await page.fill('input[name="lastName"]', 'Mustermann');

@@ -17,7 +17,7 @@ const createEvent = (overrides = {}) => ({
   place: 'Bregenz',
   bezirk: 'Bregenz',
   contribution: 'free',
-  categories: ['Yoga'],
+  category: 'Yoga',
   description: 'Test description',
   ...overrides,
 });

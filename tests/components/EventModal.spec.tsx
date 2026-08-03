@@ -11,7 +11,7 @@ const mockEvent = {
   bezirk: 'Bregenz',
   contribution: 'free',
   description: 'Test description',
-  categories: ['Yoga'],
+  category: 'Yoga',
   recurrence: 'none',
 };
 

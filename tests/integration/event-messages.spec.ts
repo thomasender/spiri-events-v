@@ -147,7 +147,7 @@ test.describe('Direct messages for pending events (Tx65YNEQ)', () => {
 
     await page.locator('.kategorie-select').click();
     await page.waitForTimeout(500);
-    await page.locator('.kategorie__menu').locator('*').first().click();
+    await page.locator('.kategorie__menu .kategorie__option').first().click();
     await page.waitForTimeout(300);
 
     await page

@@ -72,7 +72,7 @@ test.describe('Event fields: Veranstalter & Kontakt', () => {
 
     await page.locator('.kategorie-select').click();
     await page.waitForTimeout(500);
-    await page.locator('.kategorie__menu').locator('*').first().click();
+    await page.locator('.kategorie__menu .kategorie__option').first().click();
     await page.waitForTimeout(300);
 
     await page.fill('input[name="firstName"]', '');
@@ -102,7 +102,7 @@ test.describe('Event fields: Veranstalter & Kontakt', () => {
 
     await page.locator('.kategorie-select').click();
     await page.waitForTimeout(500);
-    await page.locator('.kategorie__menu').locator('*').first().click();
+    await page.locator('.kategorie__menu .kategorie__option').first().click();
     await page.waitForTimeout(300);
 
     await page.fill('input[name="firstName"]', 'Max');
@@ -208,7 +208,7 @@ test.describe('Event fields: Veranstalter & Kontakt', () => {
 
     await page.locator('.kategorie-select').click();
     await page.waitForTimeout(500);
-    await page.locator('.kategorie__menu').locator('*').first().click();
+    await page.locator('.kategorie__menu .kategorie__option').first().click();
     await page.waitForTimeout(300);
 
     await page.fill('input[name="firstName"]', 'Maria');

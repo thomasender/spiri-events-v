@@ -28,7 +28,7 @@ const INITIAL_STATE = {
   link: '',
   recurrence: 'none',
   recurrenceEndDate: '',
-  categories: [],
+  category: '',
   bezirk: '',
   organizer: { firstName: '', lastName: '', email: '' },
   kontakt: '',
@@ -101,7 +101,7 @@ export default function EventForm({ event }) {
         link: event.link || '',
         recurrence: event.recurrence || 'none',
         recurrenceEndDate: event.recurrenceEndDate || '',
-        categories: event.categories && event.categories.length > 0 ? event.categories : [],
+        category: event.category || '',
         bezirk: event.bezirk || '',
         organizer: {
           firstName: storedOrganizer.firstName || '',
@@ -178,8 +178,8 @@ export default function EventForm({ event }) {
     if (!formData.date) newErrors.date = 'Datum ist erforderlich';
     if (!formData.place.trim()) newErrors.place = 'Ort ist erforderlich';
     if (!formData.bezirk) newErrors.bezirk = 'Bezirk ist erforderlich';
-    if (formData.categories.length === 0) {
-      newErrors.categories = 'Mindestens eine Kategorie ist erforderlich';
+    if (!formData.category) {
+      newErrors.category = 'Kategorie ist erforderlich';
     }
     if (formData.contribution === 'fee' && (!formData.fee || formData.fee <= 0)) {
       newErrors.fee = 'Bitte gib einen gültigen Betrag ein';
@@ -318,13 +318,13 @@ export default function EventForm({ event }) {
     }
   };
 
-  const handleCategoriesChange = (selectedOptions) => {
+  const handleCategoryChange = (selectedOption) => {
     setFormData((prev) => ({
       ...prev,
-      categories: selectedOptions ? selectedOptions.map((opt) => opt.value) : [],
+      category: selectedOption ? selectedOption.value : '',
     }));
-    if (errors.categories) {
-      setErrors((prev) => ({ ...prev, categories: null }));
+    if (errors.category) {
+      setErrors((prev) => ({ ...prev, category: null }));
     }
   };
 
@@ -341,7 +341,7 @@ export default function EventForm({ event }) {
     link: normalizeLink(formData.link),
     recurrence: formData.recurrence || 'none',
     recurrenceEndDate: formData.recurrence === 'none' ? '' : formData.recurrenceEndDate || '',
-    categories: formData.categories.length > 0 ? formData.categories : ['Sonstiges'],
+    category: formData.category || 'Sonstiges',
     bezirk: formData.bezirk,
     organizer: {
       firstName: formData.organizer.firstName.trim(),
@@ -548,18 +548,17 @@ export default function EventForm({ event }) {
           </div>
 
           <div className="form-group">
-            <label htmlFor="categories">Kategorien *</label>
+            <label htmlFor="category">Kategorie *</label>
             <Select
-              id="categories"
-              isMulti
+              id="category"
               options={kategorieOptions}
-              value={kategorieOptions.filter((opt) => formData.categories.includes(opt.value))}
-              onChange={handleCategoriesChange}
+              value={kategorieOptions.find((opt) => opt.value === formData.category) || null}
+              onChange={handleCategoryChange}
               placeholder="Kategorie auswählen..."
               className="kategorie-select"
               classNamePrefix="kategorie"
             />
-            {errors.categories && <span className="error-text">{errors.categories}</span>}
+            {errors.category && <span className="error-text">{errors.category}</span>}
           </div>
 
           <div className="form-group">
@@ -791,7 +790,7 @@ export default function EventForm({ event }) {
               type="text"
               value={formData.link}
               onChange={handleChange}
-              placeholder="www.example.com oder https://... (Anmeldung oder weitere Infos)"
+              placeholder="www.deineurl.com"
             />
             {errors.link && <span className="error-text">{errors.link}</span>}
           </div>

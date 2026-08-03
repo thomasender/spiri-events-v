@@ -107,13 +107,9 @@ export default function EventModal({ event, onClose }) {
           </div>
           <h2 className="modal-title">{event.title}</h2>
           <div className="modal-meta-row">
-            {event.categories && event.categories.length > 0 && (
+            {event.category && (
               <div className="modal-categories">
-                {event.categories.map((cat) => (
-                  <span key={cat} className="category-chip">
-                    {cat}
-                  </span>
-                ))}
+                <span className="category-chip">{event.category}</span>
               </div>
             )}
             <div className={`modal-badge ${isFree ? 'badge--free' : 'badge--fee'}`}>

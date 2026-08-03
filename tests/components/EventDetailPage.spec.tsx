@@ -79,7 +79,7 @@ const foreignEvent = {
   endTime: '11:30',
   place: 'Yogastudio Dornbirn',
   description: 'Yoga Kurs.',
-  categories: ['Yoga'],
+  category: 'Yoga',
   bezirk: 'Dornbirn',
   organizer: { firstName: 'Anna', lastName: 'Schmidt', email: 'admin@test.com' },
   kontakt: '0676 1234567',
