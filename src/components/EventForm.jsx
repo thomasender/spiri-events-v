@@ -877,9 +877,9 @@ export default function EventForm({ event }) {
                 onClick={() => setShowDeleteModal(true)}
                 className="btn btn-danger"
                 data-testid="delete-event-from-form-button"
+                aria-label="Event löschen"
               >
                 <Trash2 size={18} />
-                <span>Event löschen</span>
               </button>
             )}
           </div>

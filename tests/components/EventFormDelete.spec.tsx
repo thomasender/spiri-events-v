@@ -161,13 +161,15 @@ describe('EventForm — delete button placement', () => {
     expect(formActions).not.toBeNull();
 
     const buttons = Array.from(formActions!.querySelectorAll('button'));
-    const deleteIndex = buttons.findIndex(
+    const deleteButton = buttons.find(
       (btn) => btn.getAttribute('data-testid') === 'delete-event-from-form-button'
     );
     const submitIndex = buttons.findIndex((btn) => btn.getAttribute('type') === 'submit');
 
-    expect(deleteIndex).toBeGreaterThan(-1);
+    expect(deleteButton).not.toBeUndefined();
+    expect(deleteButton).toHaveAttribute('aria-label', 'Event löschen');
+    expect(deleteButton).toHaveTextContent('');
     expect(submitIndex).toBeGreaterThan(-1);
-    expect(deleteIndex).toBeGreaterThan(submitIndex);
+    expect(buttons.indexOf(deleteButton!)).toBeGreaterThan(submitIndex);
   });
 });
