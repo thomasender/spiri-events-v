@@ -274,7 +274,11 @@ export default function EventList() {
           'Erstelle dein erstes Event und teile es mit der Community.'
         )
       ) : (
-        <div className="event-list-grid">{events.map((event) => renderEventCard(event, true))}</div>
+        <div className="event-list-grid">
+          {[...events]
+            .sort((a, b) => (a.status === 'pending' ? 0 : 1) - (b.status === 'pending' ? 0 : 1))
+            .map((event) => renderEventCard(event, true))}
+        </div>
       )}
 
       <ConfirmDialog
