@@ -180,36 +180,30 @@ test.describe('Calendar Integration', () => {
   });
 
   test.describe('Mobile View', () => {
-    test('places selection container next to filter toggle on narrow viewport', async ({
-      page,
-    }) => {
+    test('places selection container after filter panel on narrow viewport', async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 667 });
       await page.goto('/');
       await waitForCalendarToLoad(page);
 
-      const filterBar = page.locator('.filter-bar');
+      const filterToggle = page.locator('.filter-toggle-btn');
+      const filterPanel = page.locator('.filter-panel');
       const mobileCard = page.locator('.sidebar-card-mobile');
       const desktopSidebar = page.locator('.page-sidebar');
       const eventsSection = page.locator('.events-section');
 
-      await expect(filterBar).toBeVisible();
       await expect(mobileCard).toBeVisible();
       await expect(mobileCard.locator('.sidebar-card-title')).toHaveText('Deine Auswahl');
       await expect(desktopSidebar).toBeHidden();
 
-      const filterBarBox = await filterBar.boundingBox();
       const mobileCardBox = await mobileCard.boundingBox();
       const eventsBox = await eventsSection.boundingBox();
-      expect(filterBarBox).not.toBeNull();
       expect(mobileCardBox).not.toBeNull();
       expect(eventsBox).not.toBeNull();
+      expect(mobileCardBox!.y + mobileCardBox!.height).toBeLessThanOrEqual(eventsBox!.y + 4);
 
-      const filterBarBottom = filterBarBox!.y + filterBarBox!.height;
-      const mobileCardTop = mobileCardBox!.y;
-      const mobileCardBottom = mobileCardBox!.y + mobileCardBox!.height;
-      expect(mobileCardTop).toBeGreaterThanOrEqual(filterBarBox!.y);
-      expect(mobileCardBottom).toBeLessThanOrEqual(filterBarBottom + 1);
-      expect(mobileCardBottom).toBeLessThan(eventsBox!.y);
+      await filterToggle.click();
+      await expect(filterPanel).toBeVisible();
+      await expect(mobileCard).toBeHidden();
     });
 
     test('keeps selection container in sidebar on desktop viewport', async ({ page }) => {

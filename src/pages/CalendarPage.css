@@ -514,7 +514,10 @@
 
   .sidebar-card-mobile {
     display: block;
-    flex: 1 1 100%;
+  }
+
+  .filter-panel-open .sidebar-card-mobile {
+    display: none;
   }
 }
 
