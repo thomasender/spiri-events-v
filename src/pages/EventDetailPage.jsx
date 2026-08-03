@@ -17,6 +17,7 @@ import {
   Phone,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { getEventFallbackImage } from '../utils/eventFallbacks';
 import './EventDetailPage.css';
 
 function formatDate(dateStr) {
@@ -118,7 +119,7 @@ function generateEventJsonLd(event) {
     endDate: event.endDate || event.date,
     location,
     description: event.description || '',
-    image: event.imageUrl || null,
+    image: event.imageUrl || getEventFallbackImage(event),
     eventStatus: 'https://schema.org/EventScheduled',
     ...(offer && { offer }),
   };
@@ -132,6 +133,7 @@ export default function EventDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     async function fetchEvent() {
@@ -229,6 +231,9 @@ export default function EventDetailPage() {
   const isFree = event.contribution === 'free';
   const jsonLd = generateEventJsonLd(event);
   const isOwner = user && event.createdBy === user.uid;
+  const fallbackImage = getEventFallbackImage(event);
+  const showRemoteImage = Boolean(event.imageUrl) && !imageError;
+  const imageSrc = showRemoteImage ? event.imageUrl : fallbackImage;
 
   return (
     <div className="event-detail-page">
@@ -256,6 +261,7 @@ export default function EventDetailPage() {
         <meta property="og:url" content={`/event/${event.slug || event.id}`} />
         <meta property="og:locale" content="de_AT" />
         {event.imageUrl && <meta property="og:image" content={event.imageUrl} />}
+        {!event.imageUrl && <meta property="og:image" content={fallbackImage} />}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={event.title} />
         <meta
@@ -284,17 +290,16 @@ export default function EventDetailPage() {
       )}
 
       <header className="event-header">
-        {event.imageUrl && (
-          <div className="event-image-wrapper">
-            {!imageLoaded && <div className="event-image-skeleton" />}
-            <img
-              src={event.imageUrl}
-              alt={event.title}
-              className={`event-image ${imageLoaded ? 'loaded' : ''}`}
-              onLoad={() => setImageLoaded(true)}
-            />
-          </div>
-        )}
+        <div className="event-image-wrapper">
+          {showRemoteImage && !imageLoaded && <div className="event-image-skeleton" />}
+          <img
+            src={imageSrc}
+            alt={event.title}
+            className={`event-image ${imageLoaded || !showRemoteImage ? 'loaded' : ''}`}
+            onLoad={() => setImageLoaded(true)}
+            onError={() => setImageError(true)}
+          />
+        </div>
         <h1 className="event-title">{event.title}</h1>
         <div className="event-meta-row">
           {event.categories && event.categories.length > 0 && (

@@ -48,6 +48,21 @@ function formatDate(dateStr) {
   })
 }
 
+const CATEGORY_FALLBACKS = {
+  Yoga: '/event-fallbacks/yoga.jpg',
+  Meditation: '/event-fallbacks/meditation.jpg',
+  Tanz: '/event-fallbacks/tanz.jpg',
+  Singen: '/event-fallbacks/singen.png',
+  Atemarbeit: '/event-fallbacks/atemarbeit.jpg',
+  Sonstiges: '/event-fallbacks/sonstiges.svg'
+}
+const DEFAULT_EVENT_FALLBACK = '/event-fallbacks/sonstiges.svg'
+
+function getEventFallbackImage(event) {
+  const primary = event?.categories?.[0]
+  return CATEGORY_FALLBACKS[primary] || DEFAULT_EVENT_FALLBACK
+}
+
 function generateEventJsonLd(event) {
   const location = {
     '@type': 'Place',
@@ -80,7 +95,7 @@ function generateEventJsonLd(event) {
     endDate: event.endDate || event.date,
     location,
     description: event.description || '',
-    image: event.imageUrl || null,
+    image: event.imageUrl || getEventFallbackImage(event),
     eventStatus: 'https://schema.org/EventScheduled',
     ...(offer && { offer })
   }
@@ -111,7 +126,7 @@ function generateEventHtml(event) {
   <meta property="og:description" content="${description}" />
   <meta property="og:url" content="${BASE_URL}/event/${event.id}" />
   <meta property="og:locale" content="de_AT" />
-  ${event.imageUrl ? `<meta property="og:image" content="${event.imageUrl}" />` : ''}
+  ${event.imageUrl ? `<meta property="og:image" content="${event.imageUrl}" />` : `<meta property="og:image" content="${getEventFallbackImage(event)}" />`}
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${event.title}" />
@@ -254,7 +269,9 @@ function generateEventHtml(event) {
       <a href="/" class="back-link">← Zurück zum Kalender</a>
 
       <header class="event-header">
-        ${event.imageUrl ? `<img src="${event.imageUrl}" alt="${event.title}" class="event-image" />` : ''}
+        ${event.imageUrl
+          ? `<img src="${event.imageUrl}" alt="${event.title}" class="event-image" />`
+          : `<img src="${getEventFallbackImage(event)}" alt="${event.title}" class="event-image" />`}
         <h1 class="event-title">${event.title}</h1>
         <div class="event-meta-row">
           ${event.categories && event.categories.map(cat => `<span class="category-chip">${cat}</span>`).join('')}

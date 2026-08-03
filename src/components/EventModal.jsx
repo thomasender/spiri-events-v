@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Calendar, Clock, MapPin, Ticket, ExternalLink, User, Mail, Phone } from 'lucide-react';
+import { getEventFallbackImage } from '../utils/eventFallbacks';
 import './EventModal.css';
 
 function formatDate(dateStr) {
@@ -65,6 +66,10 @@ function isContactEmail(value) {
 
 export default function EventModal({ event, onClose }) {
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  const fallbackImage = getEventFallbackImage(event);
+  const showRemoteImage = Boolean(event.imageUrl) && !imageError;
+  const imageSrc = showRemoteImage ? event.imageUrl : fallbackImage;
 
   useEffect(() => {
     const handleEscape = (e) => {
@@ -90,17 +95,16 @@ export default function EventModal({ event, onClose }) {
         </button>
 
         <div className="modal-header">
-          {event.imageUrl && (
-            <div className="modal-image-wrapper">
-              {!imageLoaded && <div className="modal-image-skeleton" />}
-              <img
-                src={event.imageUrl}
-                alt={event.title}
-                className={`modal-image ${imageLoaded ? 'loaded' : ''}`}
-                onLoad={() => setImageLoaded(true)}
-              />
-            </div>
-          )}
+          <div className="modal-image-wrapper">
+            {showRemoteImage && !imageLoaded && <div className="modal-image-skeleton" />}
+            <img
+              src={imageSrc}
+              alt={event.title}
+              className={`modal-image ${imageLoaded || !showRemoteImage ? 'loaded' : ''}`}
+              onLoad={() => setImageLoaded(true)}
+              onError={() => setImageError(true)}
+            />
+          </div>
           <h2 className="modal-title">{event.title}</h2>
           <div className="modal-meta-row">
             {event.categories && event.categories.length > 0 && (
