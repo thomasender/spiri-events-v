@@ -295,6 +295,13 @@ export default function EventFormWizard() {
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && currentStep < 4) {
+      e.preventDefault();
+      nextStep();
+    }
+  };
+
   const nextStep = () => {
     const stepErrors = validateStep(currentStep);
     if (Object.keys(stepErrors).length > 0) {
@@ -869,7 +876,7 @@ export default function EventFormWizard() {
 
         {renderStepIndicator()}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} onKeyDown={handleKeyDown}>
           {currentStep === 1 && renderStep1()}
           {currentStep === 2 && renderStep2()}
           {currentStep === 3 && renderStep3()}
