@@ -345,6 +345,9 @@ export default function EventFormWizard() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (currentStep < 4) {
+      return;
+    }
     setSubmitError('');
     setValidationError('');
 
@@ -875,7 +878,7 @@ export default function EventFormWizard() {
         <div className="event-form-header">
           <button onClick={() => navigate('/admin')} className="btn btn-secondary back-btn">
             <ArrowLeft size={18} />
-            <span>Zurück</span>
+            <span>Zurück zur Verwaltung</span>
           </button>
           <h1>{isAdmin ? 'Neues Event erstellen' : 'Event zur Genehmigung einreichen'}</h1>
         </div>
