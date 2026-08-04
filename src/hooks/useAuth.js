@@ -10,6 +10,8 @@ import {
   reauthenticateWithCredential,
   EmailAuthProvider,
   getIdTokenResult,
+  sendEmailVerification,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { ref as storageRef, listAll, deleteObject } from 'firebase/storage';
@@ -110,6 +112,7 @@ export function useAuth() {
       await updateProfile(credential.user, { displayName });
     }
     await seedProfileDoc(credential.user, displayName);
+    await sendEmailVerification(credential.user);
     return credential;
   };
 
@@ -118,6 +121,10 @@ export function useAuth() {
   };
 
   const logout = () => signOut(auth);
+
+  const resetPassword = async (email) => {
+    await sendPasswordResetEmail(auth, email);
+  };
 
   const reauthenticate = async (password) => {
     const current = auth.currentUser;
@@ -174,6 +181,7 @@ export function useAuth() {
     register,
     login,
     logout,
+    resetPassword,
     reauthenticate,
     changeEmail,
     deleteAccount,
