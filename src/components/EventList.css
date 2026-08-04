@@ -200,6 +200,7 @@
   flex: 0 0 auto;
   width: auto;
   padding: 8px;
+  margin-left: auto;
 }
 
 .btn-sm {
