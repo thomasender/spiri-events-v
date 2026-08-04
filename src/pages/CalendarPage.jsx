@@ -178,19 +178,16 @@ export default function CalendarPage() {
             </div>
             <div className="filter-options">
               {KATEGORIEN.map((category) => (
-                <label
+                <button
                   key={category}
-                  className="filter-checkbox filter-checkbox--category"
+                  className={`filter-checkbox filter-checkbox--category ${selectedCategories.includes(category) ? 'active' : ''}`}
                   data-category={category}
                   style={{ '--category-color': CATEGORY_COLORS[category] }}
+                  onClick={() => toggleCategory(category)}
+                  aria-pressed={selectedCategories.includes(category)}
                 >
-                  <input
-                    type="checkbox"
-                    checked={selectedCategories.includes(category)}
-                    onChange={() => toggleCategory(category)}
-                  />
                   <span>{category}</span>
-                </label>
+                </button>
               ))}
             </div>
 
