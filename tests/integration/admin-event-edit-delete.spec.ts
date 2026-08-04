@@ -267,6 +267,33 @@ test.describe('Admin delete workflow (kf8i6vqj)', () => {
     await expect(page.locator('.event-not-found')).toBeVisible({ timeout: 10000 });
   });
 
+  test('admin editing pending event does not auto-approve it (jdfLnD7p)', async ({ page }) => {
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+
+    await page.goto(`/admin/edit/test-event-foreign-pending`);
+
+    await page.waitForURL(/\/admin\/edit\//);
+    await page
+      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+      .catch(() => {});
+
+    const newDescription = 'Updated description to verify edit does not auto-approve';
+    await page.locator('#description').fill(newDescription);
+
+    await page.getByRole('button', { name: /änderungen speichern/i }).click();
+
+    await page.waitForURL('/', { timeout: 10000 });
+
+    await page.goto(`/event/${USER_OWNED_PENDING_SLUG}`);
+
+    await page
+      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+      .catch(() => {});
+
+    await expect(page.locator('.status-badge')).toContainText('Ausstehend');
+    await expect(page.locator('.status-badge')).not.toContainText('Genehmigt');
+  });
+
   test('admin can delete a user-owned pending event from the edit form', async ({ page }) => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
 

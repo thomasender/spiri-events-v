@@ -375,7 +375,7 @@ export default function EventForm({ event }) {
       }
     }
 
-    const status = isAdmin ? 'approved' : 'pending';
+    const status = isEdit ? event.status : isAdmin ? 'approved' : 'pending';
     await saveEvent(buildEventData(status));
   };
 
