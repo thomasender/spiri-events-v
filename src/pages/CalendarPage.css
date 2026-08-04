@@ -297,19 +297,19 @@
   transform: translateY(-50%) rotate(-45deg);
 }
 
-/* Per-category checked state — border, background tint, text, checkbox in category color */
+/* Per-category checked state — full background in category color, white text */
 .filter-checkbox--category:has(input:checked) {
-  background-color: color-mix(in srgb, var(--category-color) 14%, transparent);
+  background-color: var(--category-color);
   border-color: var(--category-color);
 }
 
 .filter-checkbox--category:has(input:checked)::before {
-  background: var(--category-color);
-  border-color: var(--category-color);
+  background: var(--bg-primary);
+  border-color: var(--bg-primary);
 }
 
 .filter-checkbox--category:has(input:checked) span {
-  color: var(--category-color);
+  color: var(--bg-primary);
 }
 
 /* "Mehr Filter" accordion — wraps the Bezirke filter */
