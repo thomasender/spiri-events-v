@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { arrayUnion } from 'firebase/firestore';
 
 const mockAuth = vi.hoisted(() => ({
   user: null as { uid: string } | null,
@@ -231,7 +232,7 @@ describe('EventDetailPage — recurring event delete flow', () => {
     expect(screen.getByText(/ganze serie löschen/i)).toBeInTheDocument();
   });
 
-  it('calls updateEvent to convert to non-recurring when "delete this only" is clicked', async () => {
+  it('calls updateEvent to add exception date when "delete this only" is clicked', async () => {
     mockAuth.user = { uid: 'admin-uid' };
     mockAuth.role = 'Admin';
 
@@ -247,9 +248,7 @@ describe('EventDetailPage — recurring event delete flow', () => {
     await deleteThisOnlyBtn.click();
 
     expect(mockEvents.updateEvent).toHaveBeenCalledWith('recurring-event-id', {
-      recurrence: 'none',
-      recurrenceEndDate: '',
-      date: '2026-08-10',
+      exceptionDates: arrayUnion('2026-08-10'),
     });
   });
 

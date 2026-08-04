@@ -73,12 +73,26 @@ export function getEventOccurrences(event) {
   }
 
   const current = new Date(startDate);
+  const exceptionDates = event.exceptionDates || [];
 
   while (current <= effectiveEnd) {
     if (current >= today) {
+      const occurrenceDate = formatDate(
+        current.getFullYear(),
+        current.getMonth(),
+        current.getDate()
+      );
+      if (exceptionDates.includes(occurrenceDate)) {
+        if (interval === 0) {
+          current.setMonth(current.getMonth() + 1);
+        } else {
+          current.setDate(current.getDate() + interval * 7);
+        }
+        continue;
+      }
       const baseOccurrence = {
         ...event,
-        date: formatDate(current.getFullYear(), current.getMonth(), current.getDate()),
+        date: occurrenceDate,
       };
       if (event.endDate) {
         const start = new Date(event.date + 'T12:00:00');

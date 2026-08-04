@@ -103,4 +103,21 @@ describe('getEventOccurrences', () => {
   it('returns empty array for null events', () => {
     expect(getEventOccurrences(null)).toEqual([]);
   });
+
+  it('filters out exception dates from recurring events', () => {
+    const event = {
+      id: '1',
+      date: dateStr(7),
+      recurrence: 'weekly',
+      recurrenceEndDate: dateStr(35),
+      exceptionDates: [dateStr(14), dateStr(28)],
+    };
+    const result = getEventOccurrences(event);
+    const dates = result.map((e) => e.date);
+    expect(dates).not.toContain(dateStr(14));
+    expect(dates).not.toContain(dateStr(28));
+    expect(dates).toContain(dateStr(7));
+    expect(dates).toContain(dateStr(21));
+    expect(dates).toContain(dateStr(35));
+  });
 });
