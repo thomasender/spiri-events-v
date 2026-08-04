@@ -95,7 +95,7 @@ export default function EventsSection({
         <div className="events-section-grid">
           {events.map((event) => (
             <EventCard
-              key={event.id}
+              key={`${event.id}-${event.date}`}
               event={event}
               categoryColor={categoryColors[getPrimaryCategory(event)] || 'var(--text-light)'}
             />
@@ -105,7 +105,7 @@ export default function EventsSection({
         <div className="events-section-list">
           {events.map((event) => (
             <EventListRow
-              key={event.id}
+              key={`${event.id}-${event.date}`}
               event={event}
               categoryColor={categoryColors[getPrimaryCategory(event)] || 'var(--text-light)'}
             />
