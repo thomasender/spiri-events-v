@@ -79,7 +79,11 @@ export default function EventList() {
 
   const renderEventCard = (event, showStatus = false, showApprove = false) => (
     <div key={event.id} className="event-card">
-      <Link to={`/event/${event.slug || event.id}`} className="event-card-content">
+      <Link
+        to={`/event/${event.slug || event.id}`}
+        state={{ from: '/admin' }}
+        className="event-card-content"
+      >
         <div className="event-card-header">
           <h3>{event.title}</h3>
           <div className="event-card-badges">
@@ -142,7 +146,11 @@ export default function EventList() {
       </Link>
 
       <div className="event-card-actions">
-        <Link to={`/event/${event.slug || event.id}`} className="btn btn-secondary btn-sm">
+        <Link
+          to={`/event/${event.slug || event.id}`}
+          state={{ from: '/admin' }}
+          className="btn btn-secondary btn-sm"
+        >
           <Eye size={16} />
           <span>Ansehen</span>
         </Link>

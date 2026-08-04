@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { collection, doc, getDoc, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -133,6 +133,7 @@ function generateEventJsonLd(event) {
 export default function EventDetailPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, loading: authLoading, role } = useAuth();
   const { deleteEvent } = useEvents(user);
   const [event, setEvent] = useState(null);
@@ -258,6 +259,9 @@ export default function EventDetailPage() {
     }
   };
 
+  const backPath = location.state?.from || '/';
+  const backLabel = backPath === '/admin' ? 'Zurück zur Verwaltung' : 'Zurück zum Kalender';
+
   return (
     <div className="event-detail-page">
       <Helmet>
@@ -298,9 +302,9 @@ export default function EventDetailPage() {
         <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
       </Helmet>
 
-      <Link to="/" className="back-link">
+      <Link to={backPath} className="back-link">
         <ArrowLeft size={16} />
-        <span>Zurück zum Kalender</span>
+        <span>{backLabel}</span>
       </Link>
 
       {(showEditButton || showDeleteButton) && (
