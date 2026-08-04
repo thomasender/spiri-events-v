@@ -10,6 +10,7 @@ const mockAuth = vi.hoisted(() => ({
 
 const mockEvents = vi.hoisted(() => ({
   deleteEvent: vi.fn(async () => {}),
+  updateEvent: vi.fn(async () => {}),
 }));
 
 const mockFirestoreDoc = vi.hoisted(() => ({
@@ -87,9 +88,42 @@ const foreignEvent = {
   createdBy: 'other-user-uid',
 };
 
+const recurringEvent = {
+  id: 'recurring-event-id',
+  title: 'Wochen-Yoga',
+  slug: 'wochen-yoga-20260804',
+  date: '2026-08-04',
+  endDate: null,
+  time: '10:00',
+  endTime: '11:30',
+  place: 'Yogastudio Dornbirn',
+  description: 'Wöchentlicher Yoga Kurs.',
+  category: 'Yoga',
+  bezirk: 'Dornbirn',
+  organizer: { firstName: 'Anna', lastName: 'Schmidt', email: 'admin@test.com' },
+  kontakt: '0676 1234567',
+  status: 'approved',
+  createdBy: 'other-user-uid',
+  recurrence: 'weekly',
+  recurrenceEndDate: '2026-12-31',
+};
+
 const renderPage = () =>
   render(
     <MemoryRouter initialEntries={['/event/yoga-heute-yogastudio-dornbirn-20260804']}>
+      <Routes>
+        <Route path="/event/:slug" element={<EventDetailPage />} />
+      </Routes>
+    </MemoryRouter>
+  );
+
+const renderRecurringEventPage = (occurrenceDate) =>
+  render(
+    <MemoryRouter
+      initialEntries={[
+        `/event/wochen-yoga-20260804${occurrenceDate ? `?occurrenceDate=${occurrenceDate}` : ''}`,
+      ]}
+    >
       <Routes>
         <Route path="/event/:slug" element={<EventDetailPage />} />
       </Routes>
@@ -170,5 +204,90 @@ describe('EventDetailPage — delete flow', () => {
     await confirmButton.click();
 
     expect(mockEvents.deleteEvent).toHaveBeenCalledWith('remote-event-id');
+  });
+});
+
+describe('EventDetailPage — recurring event delete flow', () => {
+  beforeEach(() => {
+    mockFirestoreDoc.getDocResult = {
+      id: recurringEvent.id,
+      data: recurringEvent,
+    };
+    mockEvents.updateEvent.mockClear();
+    mockEvents.deleteEvent.mockClear();
+  });
+
+  it('shows recurring delete dialog when deleting a recurring event', async () => {
+    mockAuth.user = { uid: 'admin-uid' };
+    mockAuth.role = 'Admin';
+
+    renderRecurringEventPage('2026-08-10');
+    expect(await screen.findByText('Wochen-Yoga')).toBeInTheDocument();
+
+    const deleteButton = await screen.findByTestId('delete-event-button');
+    deleteButton.click();
+
+    expect(await screen.findByText(/wiederholendes event löschen/i)).toBeInTheDocument();
+    expect(screen.getByText(/ganze serie löschen/i)).toBeInTheDocument();
+  });
+
+  it('calls updateEvent to convert to non-recurring when "delete this only" is clicked', async () => {
+    mockAuth.user = { uid: 'admin-uid' };
+    mockAuth.role = 'Admin';
+
+    renderRecurringEventPage('2026-08-10');
+    expect(await screen.findByText('Wochen-Yoga')).toBeInTheDocument();
+
+    const deleteButton = await screen.findByTestId('delete-event-button');
+    deleteButton.click();
+
+    expect(await screen.findByText(/wiederholendes event löschen/i)).toBeInTheDocument();
+
+    const deleteThisOnlyBtn = screen.getByText(/nur dieses event/i);
+    await deleteThisOnlyBtn.click();
+
+    expect(mockEvents.updateEvent).toHaveBeenCalledWith('recurring-event-id', {
+      recurrence: 'none',
+      recurrenceEndDate: '',
+      date: '2026-08-10',
+    });
+  });
+
+  it('calls updateEvent to set recurrenceEndDate when "delete this and future" is clicked', async () => {
+    mockAuth.user = { uid: 'admin-uid' };
+    mockAuth.role = 'Admin';
+
+    renderRecurringEventPage('2026-08-10');
+    expect(await screen.findByText('Wochen-Yoga')).toBeInTheDocument();
+
+    const deleteButton = await screen.findByTestId('delete-event-button');
+    deleteButton.click();
+
+    expect(await screen.findByText(/wiederholendes event löschen/i)).toBeInTheDocument();
+
+    const deleteThisAndFutureBtn = screen.getByText(/dieses und alle zukünftigen events/i);
+    await deleteThisAndFutureBtn.click();
+
+    expect(mockEvents.updateEvent).toHaveBeenCalledWith('recurring-event-id', {
+      recurrenceEndDate: '2026-08-09',
+    });
+  });
+
+  it('calls deleteEvent when "delete whole series" is clicked', async () => {
+    mockAuth.user = { uid: 'admin-uid' };
+    mockAuth.role = 'Admin';
+
+    renderRecurringEventPage('2026-08-10');
+    expect(await screen.findByText('Wochen-Yoga')).toBeInTheDocument();
+
+    const deleteButton = await screen.findByTestId('delete-event-button');
+    deleteButton.click();
+
+    expect(await screen.findByText(/wiederholendes event löschen/i)).toBeInTheDocument();
+
+    const deleteAllBtn = screen.getByText(/ganze serie löschen/i);
+    await deleteAllBtn.click();
+
+    expect(mockEvents.deleteEvent).toHaveBeenCalledWith('recurring-event-id');
   });
 });

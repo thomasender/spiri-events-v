@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { collection, doc, getDoc, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -22,6 +22,7 @@ import { useEvents } from '../hooks/useEvents';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
 import { canEditEvent, canDeleteEvent } from '../utils/eventPermissions';
 import ConfirmDialog from '../components/ConfirmDialog';
+import RecurringDeleteDialog from '../components/RecurringDeleteDialog';
 import EventMessages from '../components/EventMessages';
 import './EventDetailPage.css';
 
@@ -134,14 +135,17 @@ export default function EventDetailPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const occurrenceDate = searchParams.get('occurrenceDate');
   const { user, loading: authLoading, role } = useAuth();
-  const { deleteEvent } = useEvents(user);
+  const { deleteEvent, updateEvent } = useEvents(user);
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showRecurringDeleteDialog, setShowRecurringDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
@@ -259,6 +263,53 @@ export default function EventDetailPage() {
     }
   };
 
+  const handleDeleteThisOnly = async () => {
+    setDeleting(true);
+    try {
+      await updateEvent(event.id, {
+        recurrence: 'none',
+        recurrenceEndDate: '',
+        date: occurrenceDate || event.date,
+      });
+      setShowRecurringDeleteDialog(false);
+      navigate('/');
+    } catch (err) {
+      console.error('Delete this only failed:', err);
+      setDeleting(false);
+    }
+  };
+
+  const handleDeleteThisAndFuture = async () => {
+    setDeleting(true);
+    try {
+      const deleteDate = occurrenceDate || event.date;
+      const [year, month, day] = deleteDate.split('-');
+      const prevDate = new Date(year, month - 1, day);
+      prevDate.setDate(prevDate.getDate() - 1);
+      const prevDateStr = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}-${String(prevDate.getDate()).padStart(2, '0')}`;
+      await updateEvent(event.id, {
+        recurrenceEndDate: prevDateStr,
+      });
+      setShowRecurringDeleteDialog(false);
+      navigate('/');
+    } catch (err) {
+      console.error('Delete this and future failed:', err);
+      setDeleting(false);
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    setDeleting(true);
+    try {
+      await deleteEvent(event.id);
+      setShowRecurringDeleteDialog(false);
+      navigate('/');
+    } catch (err) {
+      console.error('Delete all failed:', err);
+      setDeleting(false);
+    }
+  };
+
   const backPath = location.state?.from || '/';
   const backLabel = backPath === '/admin' ? 'Zurück zur Verwaltung' : 'Zurück zum Kalender';
 
@@ -318,7 +369,13 @@ export default function EventDetailPage() {
           {showDeleteButton && (
             <button
               type="button"
-              onClick={() => setShowDeleteDialog(true)}
+              onClick={() => {
+                if (event.recurrence && event.recurrence !== 'none') {
+                  setShowRecurringDeleteDialog(true);
+                } else {
+                  setShowDeleteDialog(true);
+                }
+              }}
               className="btn btn-subtle-danger"
               data-testid="delete-event-button"
               aria-label="Event löschen"
@@ -491,6 +548,17 @@ export default function EventDetailPage() {
         onCancel={() => setShowDeleteDialog(false)}
         loading={deleting}
         danger
+      />
+
+      <RecurringDeleteDialog
+        isOpen={showRecurringDeleteDialog}
+        eventTitle={event.title}
+        occurrenceDate={occurrenceDate}
+        onDeleteThisOnly={handleDeleteThisOnly}
+        onDeleteThisAndFuture={handleDeleteThisAndFuture}
+        onDeleteAll={handleDeleteAll}
+        onCancel={() => setShowRecurringDeleteDialog(false)}
+        loading={deleting}
       />
     </div>
   );

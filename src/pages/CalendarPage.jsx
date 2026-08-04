@@ -69,7 +69,8 @@ export default function CalendarPage() {
 
   const handleEventClick = (event) => {
     const slugOrId = event.slug || event.id;
-    navigate(`/event/${slugOrId}`);
+    const occurrenceDate = event.date;
+    navigate(`/event/${slugOrId}?occurrenceDate=${occurrenceDate}`);
   };
 
   const toggleCategory = (category) => {

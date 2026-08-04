@@ -1,0 +1,125 @@
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: var(--modal-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 1100;
+  backdrop-filter: blur(4px);
+}
+
+.recurring-delete-dialog {
+  background-color: var(--bg-calendar);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: 32px;
+  max-width: 480px;
+  width: 100%;
+  position: relative;
+  animation: modalIn 0.2s ease-out;
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.dialog-header h2 {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.warning-icon {
+  color: var(--color-warning, #f59e0b);
+}
+
+.dialog-message {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+.occurrence-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background-color: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  margin-bottom: 20px;
+}
+
+.delete-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.delete-option-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 16px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.delete-option-btn:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  background-color: var(--bg-hover);
+}
+
+.delete-option-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.delete-option-btn--danger {
+  border-color: var(--color-danger, #ef4444);
+}
+
+.delete-option-btn--danger:hover:not(:disabled) {
+  border-color: var(--color-danger, #ef4444);
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+.option-title {
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.option-desc {
+  font-size: 0.8rem;
+  color: var(--text-light);
+  line-height: 1.4;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+}
