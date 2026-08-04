@@ -8,6 +8,10 @@ describe('authErrorMessage', () => {
     expect(authErrorMessage({ code: 'auth/requires-recent-login' })).toMatch(/erneut an/);
     expect(authErrorMessage({ code: 'auth/invalid-credential' })).toMatch(/falsch/);
     expect(authErrorMessage({ code: 'auth/user-mismatch' })).toMatch(/Anmeldung passt nicht/);
+    expect(authErrorMessage({ code: 'auth/too-many-requests' })).toMatch(/warte/);
+    expect(authErrorMessage({ code: 'auth/network-request-failed' })).toMatch(/Netzwerk/);
+    expect(authErrorMessage({ code: 'auth/user-disabled' })).toMatch(/deaktiviert/);
+    expect(authErrorMessage({ code: 'auth/user-token-expired' })).toMatch(/Sitzung/);
   });
 
   it('falls back to a generic message for unknown codes', () => {

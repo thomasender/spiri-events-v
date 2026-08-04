@@ -29,6 +29,11 @@ const AUTH_ERROR_MESSAGES = {
   'auth/email-already-in-use': 'Diese E-Mail-Adresse wird bereits verwendet.',
   'auth/invalid-email': 'Bitte gib eine gültige E-Mail-Adresse ein.',
   'auth/weak-password': 'Das Passwort ist zu schwach.',
+  'auth/too-many-requests': 'Zu viele Versuche. Bitte warte einen Moment und versuche es erneut.',
+  'auth/network-request-failed': 'Netzwerkfehler. Bitte überprüfe deine Internetverbindung.',
+  'auth/user-disabled': 'Dieses Konto wurde deaktiviert.',
+  'auth/user-token-expired': 'Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.',
+  'auth/user-token-revoked': 'Deine Sitzung wurde ungültig gemacht. Bitte melde dich erneut an.',
 };
 
 export function authErrorMessage(err) {
