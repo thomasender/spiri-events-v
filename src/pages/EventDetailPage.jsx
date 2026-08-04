@@ -420,6 +420,18 @@ export default function EventDetailPage() {
           </div>
         )}
 
+        {isAdmin && event.organizer?.email && (
+          <div className="detail-item" data-testid="event-owner-email">
+            <Mail size={18} className="detail-icon" />
+            <div>
+              <span className="detail-label">Owner</span>
+              <a href={`mailto:${event.organizer.email}`} className="detail-value detail-link">
+                {event.organizer.email}
+              </a>
+            </div>
+          </div>
+        )}
+
         {event.kontakt && (
           <div className="detail-item" data-testid="event-kontakt">
             {isContactEmail(event.kontakt) ? (

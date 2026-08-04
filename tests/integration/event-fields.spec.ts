@@ -135,6 +135,10 @@ test.describe('Event fields: Veranstalter & Kontakt', () => {
 
     const kontakt = page.locator('[data-testid="event-kontakt"]');
     await expect(kontakt).toBeVisible();
+
+    const ownerEmail = page.locator('[data-testid="event-owner-email"]');
+    await expect(ownerEmail).toBeVisible();
+    await expect(ownerEmail).toContainText('@');
   });
 
   test('manage cards in Verwalten section show organizer email', async ({ page }) => {
