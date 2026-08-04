@@ -27,6 +27,7 @@
 
 .owner-actions {
   display: flex;
+  justify-content: space-between;
   gap: 12px;
   margin-bottom: 24px;
   width: 100%;
