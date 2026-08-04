@@ -102,16 +102,15 @@ export default function AuthForm() {
               <>
                 <h1>E-Mail gesendet</h1>
                 <p>
-                  Bitte überprüfe dein Postfach und folge dem Link, um dein Passwort
-                  zurückzusetzen.
+                  Bitte überprüfe dein Postfach und folge dem Link, um dein Passwort zurückzusetzen.
                 </p>
               </>
             ) : (
               <>
                 <h1>Passwort vergessen</h1>
                 <p>
-                  Gib deine E-Mail-Adresse ein, um eine Anleitung zum Zurücksetzen deines
-                  Passworts zu erhalten.
+                  Gib deine E-Mail-Adresse ein, um eine Anleitung zum Zurücksetzen deines Passworts
+                  zu erhalten.
                 </p>
               </>
             )
