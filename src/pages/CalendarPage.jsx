@@ -14,8 +14,8 @@ const STORAGE_KEY = 'calendarFilterState';
 const HERO_FEATURES = [
   {
     icon: MapPin,
-    title: 'Regional & persönlich',
-    description: 'Für Vorarlberg & Umgebung',
+    title: 'In deiner Umgebung',
+    description: 'Für Vorarlberg und Umkreis',
   },
   {
     icon: Users,
