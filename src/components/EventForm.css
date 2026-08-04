@@ -130,6 +130,19 @@ textarea {
   color: var(--text-secondary);
 }
 
+.input-hint {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: var(--bg-secondary);
+}
+
 .submit-error {
   text-align: center;
   margin-bottom: 16px;

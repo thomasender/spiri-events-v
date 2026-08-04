@@ -346,7 +346,7 @@ export default function EventForm({ event }) {
     organizer: {
       firstName: formData.organizer.firstName.trim(),
       lastName: formData.organizer.lastName.trim(),
-      email: formData.organizer.email.trim(),
+      email: isEdit ? event.organizer.email : formData.organizer.email.trim(),
     },
     kontakt: formData.kontakt.trim(),
     imageUrl: null,
@@ -492,7 +492,10 @@ export default function EventForm({ event }) {
           </div>
 
           <div className="form-group">
-            <label htmlFor="organizer.email">E-Mail Veranstalter *</label>
+            <label htmlFor="organizer.email">
+              E-Mail Veranstalter *{' '}
+              {isEdit && <span className="input-info">(wird nicht angezeigt)</span>}
+            </label>
             <input
               id="organizer.email"
               name="email"
@@ -502,8 +505,14 @@ export default function EventForm({ event }) {
               onChange={handleOrganizerChange}
               placeholder="veranstalter@email.de"
               autoComplete="email"
+              disabled={isEdit}
               className={errors['organizer.email'] ? 'input-error' : ''}
             />
+            {isEdit && (
+              <span className="input-hint">
+                Diese E-Mail ist gesperrt und kann nicht geändert werden.
+              </span>
+            )}
             {errors['organizer.email'] && (
               <span className="error-text">{errors['organizer.email']}</span>
             )}
