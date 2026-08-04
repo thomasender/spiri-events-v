@@ -13,6 +13,7 @@ import {
   Timestamp,
   getFirestore,
   getDocs,
+  arrayUnion,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { findUniqueSlug } from '../lib/slug';

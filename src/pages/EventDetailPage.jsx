@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { collection, doc, getDoc, query, where, getDocs } from 'firebase/firestore';
+import { collection, doc, getDoc, query, where, getDocs, arrayUnion } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { isLegacyId } from '../lib/slug';
 import {
@@ -266,10 +266,9 @@ export default function EventDetailPage() {
   const handleDeleteThisOnly = async () => {
     setDeleting(true);
     try {
+      const dateToDelete = occurrenceDate || event.date;
       await updateEvent(event.id, {
-        recurrence: 'none',
-        recurrenceEndDate: '',
-        date: occurrenceDate || event.date,
+        exceptionDates: arrayUnion(dateToDelete),
       });
       setShowRecurringDeleteDialog(false);
       navigate('/');
