@@ -296,9 +296,17 @@ export default function EventFormWizard() {
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && currentStep < 4) {
-      e.preventDefault();
-      nextStep();
+    if (e.key === 'Enter') {
+      if (currentStep < 4) {
+        e.preventDefault();
+        nextStep();
+      } else if (currentStep === 4) {
+        const activeElement = document.activeElement;
+        const isSubmitButton = activeElement?.type === 'submit';
+        if (!isSubmitButton) {
+          e.preventDefault();
+        }
+      }
     }
   };
 
