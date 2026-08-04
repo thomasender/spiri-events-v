@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useEventById } from '../hooks/useEvents';
 import { useAuth } from '../hooks/useAuth';
 import EventForm from '../components/EventForm';
+import EventFormWizard from '../components/EventFormWizard';
 
 export default function EventFormPage() {
   const { id } = useParams();
@@ -36,5 +37,5 @@ export default function EventFormPage() {
     return null;
   }
 
-  return <EventForm event={event} />;
+  return isEdit ? <EventForm event={event} /> : <EventFormWizard />;
 }
