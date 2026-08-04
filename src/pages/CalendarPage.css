@@ -269,6 +269,42 @@
   color: var(--bg-primary);
 }
 
+.filter-checkbox--bezirk {
+  padding-left: 16px;
+  position: relative;
+}
+
+.filter-checkbox--bezirk::before {
+  display: none;
+}
+
+.filter-checkbox--bezirk {
+  background-color: var(--bg-secondary);
+  border: 1px solid transparent;
+}
+
+.filter-checkbox--bezirk span {
+  color: var(--text-secondary);
+}
+
+.filter-checkbox--bezirk:hover {
+  background-color: var(--border);
+}
+
+.filter-checkbox--bezirk:hover span {
+  color: var(--text-primary);
+}
+
+.filter-checkbox--bezirk.active {
+  background-color: rgba(196, 142, 106, 0.15);
+  border-color: var(--accent-primary);
+}
+
+.filter-checkbox--bezirk.active span {
+  color: var(--accent-primary);
+  font-weight: 500;
+}
+
 /* "Mehr Filter" accordion — wraps the Bezirke filter */
 .filter-accordion {
   margin-top: 20px;
