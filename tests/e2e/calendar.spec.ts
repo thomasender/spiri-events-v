@@ -326,13 +326,13 @@ test.describe('Calendar E2E', () => {
       }
 
       await page.locator('.filter-accordion .filter-accordion-summary').click();
-      const bregenzLabel = page
+      const bregenzButton = page
         .locator('.filter-accordion')
-        .locator('label')
+        .locator('button')
         .filter({ hasText: 'Bregenz' })
         .first();
 
-      await bregenzLabel.click();
+      await bregenzButton.click();
       await page.waitForTimeout(300);
 
       await expect(page.locator('.calendar')).toBeVisible();
@@ -357,7 +357,7 @@ test.describe('Calendar E2E', () => {
 
       await accordion.locator('.filter-accordion-summary').click();
       await expect(accordion).toHaveJSProperty('open', true);
-      await expect(page.locator('.filter-accordion label:has-text("Bregenz")')).toBeVisible();
+      await expect(page.locator('.filter-accordion button:has-text("Bregenz")')).toBeVisible();
     });
   });
 

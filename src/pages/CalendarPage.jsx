@@ -207,17 +207,14 @@ export default function CalendarPage() {
                 </div>
                 <div className="filter-options">
                   {BEZIRKE.map((bezirk) => (
-                    <label
+                    <button
                       key={bezirk}
-                      className={`filter-checkbox ${selectedBezirke.includes(bezirk) ? 'active' : ''}`}
+                      className={`filter-checkbox filter-checkbox--bezirk ${selectedBezirke.includes(bezirk) ? 'active' : ''}`}
+                      onClick={() => toggleBezirk(bezirk)}
+                      aria-pressed={selectedBezirke.includes(bezirk)}
                     >
-                      <input
-                        type="checkbox"
-                        checked={selectedBezirke.includes(bezirk)}
-                        onChange={() => toggleBezirk(bezirk)}
-                      />
                       <span>{bezirk}</span>
-                    </label>
+                    </button>
                   ))}
                 </div>
               </div>
