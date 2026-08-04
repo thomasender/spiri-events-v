@@ -626,7 +626,13 @@ export default function EventFormWizard() {
       </div>
 
       <div className="form-group">
-        <label htmlFor="endDate">Enddatum (optional)</label>
+        <div className="input-label-row">
+          <label htmlFor="endDate">Enddatum (optional)</label>
+          <span className="input-info">
+            <Info size={14} />
+            <span>Nur bei mehrtätigen Events (z.B. Retreats, Festivals, etc.) notwendig</span>
+          </span>
+        </div>
         <input
           id="endDate"
           name="endDate"
