@@ -189,7 +189,7 @@ export default function Calendar({
                   <div className="agenda-events">
                     {dayEvents.map((event) => (
                       <button
-                        key={event.id}
+                        key={`${event.id}-${event.date}`}
                         className="agenda-event-row"
                         onClick={() => onEventClick(event)}
                       >
@@ -288,7 +288,7 @@ export default function Calendar({
               <div className="day-popover-events">
                 {eventsByDay[expandedDay].map((event) => (
                   <button
-                    key={event.id}
+                    key={`${event.id}-${event.date}`}
                     className={`day-popover-event ${event.contribution === 'free' ? 'free' : 'fee'}`}
                     onClick={() => {
                       onEventClick(event);
