@@ -83,9 +83,9 @@ export default function DeleteAccountSection({ onDelete }) {
             onClick={handleTrigger}
             disabled={deleting}
             data-testid="delete-account-trigger"
+            aria-label="Konto löschen"
           >
             <Trash2 size={18} />
-            <span>{deleting ? 'Wird gelöscht…' : 'Konto löschen'}</span>
           </button>
         </div>
       </div>

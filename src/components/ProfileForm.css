@@ -126,6 +126,12 @@
   justify-content: flex-end;
   gap: 12px;
   margin-top: 8px;
+  width: 100%;
+}
+
+.profile-form .form-actions .btn-primary {
+  flex: 1;
+  min-width: 0;
 }
 
 .profile-form .success-text {
@@ -156,6 +162,18 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.profile-danger-zone .form-actions {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.profile-danger-zone .form-actions .btn-danger {
+  flex: 0 0 auto;
+  width: auto;
+  padding: 8px;
 }
 
 .profile-danger-zone .danger-title {

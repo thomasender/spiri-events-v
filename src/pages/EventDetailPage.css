@@ -29,6 +29,13 @@
   display: flex;
   gap: 12px;
   margin-bottom: 24px;
+  width: 100%;
+}
+
+.owner-actions .btn-danger {
+  flex: 0 0 auto;
+  width: auto;
+  padding: 8px;
 }
 
 .event-header {

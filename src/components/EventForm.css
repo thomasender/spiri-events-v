@@ -155,6 +155,23 @@ textarea {
   gap: 12px;
   justify-content: flex-end;
   margin-top: 8px;
+  width: 100%;
+}
+
+.form-actions .btn-danger {
+  flex: 0 0 auto;
+  width: auto;
+  padding: 8px;
+}
+
+.form-actions .btn-secondary {
+  flex: 0 0 auto;
+  width: auto;
+}
+
+.form-actions .btn-primary {
+  flex: 1;
+  min-width: 0;
 }
 
 .image-upload-area {
@@ -330,7 +347,13 @@ textarea {
     flex-direction: column;
   }
 
-  .form-actions .btn {
+  .form-actions .btn-secondary,
+  .form-actions .btn-primary {
     width: 100%;
+  }
+
+  .form-actions .btn-danger {
+    width: auto;
+    align-self: center;
   }
 }

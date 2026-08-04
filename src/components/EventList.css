@@ -193,6 +193,13 @@
   padding: 16px 24px;
   background-color: var(--bg-secondary);
   border-top: 1px solid var(--border);
+  width: 100%;
+}
+
+.event-card-actions .btn-danger {
+  flex: 0 0 auto;
+  width: auto;
+  padding: 8px;
 }
 
 .btn-sm {
@@ -248,8 +255,14 @@
     flex-direction: column;
   }
 
-  .event-card-actions .btn {
+  .event-card-actions .btn:not(.btn-danger) {
     width: 100%;
     justify-content: center;
+  }
+
+  .event-card-actions .btn-danger {
+    width: auto;
+    align-self: center;
+    padding: 8px;
   }
 }

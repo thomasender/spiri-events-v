@@ -168,9 +168,12 @@ export default function EventList() {
           <Edit2 size={16} />
           <span>Bearbeiten</span>
         </Link>
-        <button onClick={() => setDeleteId(event.id)} className="btn btn-danger btn-sm">
+        <button
+          onClick={() => setDeleteId(event.id)}
+          className="btn btn-danger btn-sm"
+          aria-label="Event löschen"
+        >
           <Trash2 size={16} />
-          <span>Löschen</span>
         </button>
       </div>
     </div>

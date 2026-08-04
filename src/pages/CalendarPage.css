@@ -263,38 +263,18 @@
   font-weight: 500;
 }
 
-/* Per-category color hint (unchecked) — small dot at the right of the chip */
+/* Per-category filters — always have category color as background */
 .filter-checkbox--category {
-  padding-right: 32px;
+  background-color: color-mix(in srgb, var(--category-color) 35%, var(--bg-primary));
+  border-color: var(--category-color);
 }
 
-.filter-checkbox--category::after {
-  content: '';
-  position: absolute;
-  right: 14px;
-  top: 50%;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: var(--category-color);
-  transform: translateY(-50%) scale(0.85);
-  transition: all 0.15s ease;
-  pointer-events: none;
+.filter-checkbox--category span {
+  color: var(--category-color);
 }
 
-.filter-checkbox--category:hover::after {
-  transform: translateY(-50%) scale(1.1);
-}
-
-.filter-checkbox--category:has(input:checked)::after {
-  background-color: var(--bg-primary);
-  width: 6px;
-  height: 3px;
-  border: 2px solid var(--bg-primary);
-  border-top: none;
-  border-right: none;
-  border-radius: 0;
-  transform: translateY(-50%) rotate(-45deg);
+.filter-checkbox--category:hover {
+  background-color: color-mix(in srgb, var(--category-color) 50%, var(--bg-primary));
 }
 
 /* Per-category checked state — full background in category color, white text */
