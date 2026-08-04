@@ -170,7 +170,7 @@
   width: 100%;
 }
 
-.profile-danger-zone .form-actions .btn-danger {
+.profile-danger-zone .form-actions .btn-subtle-danger {
   flex: 0 0 auto;
   width: auto;
   padding: 8px;

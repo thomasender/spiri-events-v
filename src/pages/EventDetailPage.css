@@ -33,7 +33,7 @@
   width: 100%;
 }
 
-.owner-actions .btn-danger {
+.owner-actions .btn-subtle-danger {
   flex: 0 0 auto;
   width: auto;
   padding: 8px;

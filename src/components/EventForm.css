@@ -158,7 +158,7 @@ textarea {
   width: 100%;
 }
 
-.form-actions .btn-danger {
+.form-actions .btn-subtle-danger {
   flex: 0 0 auto;
   width: auto;
   padding: 8px;

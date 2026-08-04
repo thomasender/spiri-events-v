@@ -196,7 +196,7 @@
   width: 100%;
 }
 
-.event-card-actions .btn-danger {
+.event-card-actions .btn-subtle-danger {
   flex: 0 0 auto;
   width: auto;
   padding: 8px;

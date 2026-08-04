@@ -170,7 +170,7 @@ export default function EventList() {
         </Link>
         <button
           onClick={() => setDeleteId(event.id)}
-          className="btn btn-danger btn-sm"
+          className="btn btn-subtle-danger btn-sm"
           aria-label="Event löschen"
         >
           <Trash2 size={16} />

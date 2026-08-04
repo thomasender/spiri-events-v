@@ -79,7 +79,7 @@ export default function DeleteAccountSection({ onDelete }) {
         <div className="form-actions">
           <button
             type="button"
-            className="btn btn-danger"
+            className="btn btn-subtle-danger"
             onClick={handleTrigger}
             disabled={deleting}
             data-testid="delete-account-trigger"

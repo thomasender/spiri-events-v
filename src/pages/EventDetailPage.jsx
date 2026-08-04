@@ -319,7 +319,7 @@ export default function EventDetailPage() {
             <button
               type="button"
               onClick={() => setShowDeleteDialog(true)}
-              className="btn btn-danger"
+              className="btn btn-subtle-danger"
               data-testid="delete-event-button"
               aria-label="Event löschen"
             >

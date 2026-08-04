@@ -186,6 +186,17 @@ select {
   background-color: var(--error-hover);
 }
 
+.btn-subtle-danger {
+  background-color: transparent;
+  color: var(--error);
+  border: none;
+  padding: 8px;
+}
+
+.btn-subtle-danger:hover:not(:disabled) {
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
 .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
