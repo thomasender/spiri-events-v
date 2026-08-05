@@ -21,6 +21,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useEvents } from '../hooks/useEvents';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
 import { canEditEvent, canDeleteEvent } from '../utils/eventPermissions';
+import { parseContactText } from '../utils/contactFormat';
 import ConfirmDialog from '../components/ConfirmDialog';
 import RecurringDeleteDialog from '../components/RecurringDeleteDialog';
 import EventMessages from '../components/EventMessages';
@@ -82,10 +83,6 @@ function formatRecurrence(recurrence, recurrenceEndDate, eventDate) {
     label += ` bis ${endDate.toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })}`;
   }
   return label;
-}
-
-function isContactEmail(value) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
 function generateEventJsonLd(event) {
@@ -490,25 +487,41 @@ export default function EventDetailPage() {
 
         {event.kontakt && (
           <div className="detail-item" data-testid="event-kontakt">
-            {isContactEmail(event.kontakt) ? (
-              <Mail size={18} className="detail-icon" />
-            ) : (
-              <Phone size={18} className="detail-icon" />
-            )}
+            {(() => {
+              const segments = parseContactText(event.kontakt);
+              const hasEmail = segments.some((s) => s.type === 'email');
+              const hasPhone = segments.some((s) => s.type === 'phone');
+              return hasEmail || hasPhone ? (
+                hasEmail ? (
+                  <Mail size={18} className="detail-icon" />
+                ) : (
+                  <Phone size={18} className="detail-icon" />
+                )
+              ) : (
+                <Phone size={18} className="detail-icon" />
+              );
+            })()}
             <div>
               <span className="detail-label">Kontakt</span>
-              {isContactEmail(event.kontakt) ? (
-                <a href={`mailto:${event.kontakt}`} className="detail-value detail-link">
-                  {event.kontakt}
-                </a>
-              ) : (
-                <a
-                  href={`tel:${event.kontakt.replace(/\s/g, '')}`}
-                  className="detail-value detail-link"
-                >
-                  {event.kontakt}
-                </a>
-              )}
+              <span className="detail-value">
+                {parseContactText(event.kontakt).map((segment, index) => {
+                  if (segment.type === 'email') {
+                    return (
+                      <a key={index} href={`mailto:${segment.value}`} className="detail-link">
+                        {segment.value}
+                      </a>
+                    );
+                  }
+                  if (segment.type === 'phone') {
+                    return (
+                      <a key={index} href={`tel:${segment.value}`} className="detail-link">
+                        {segment.value}
+                      </a>
+                    );
+                  }
+                  return <span key={index}>{segment.value}</span>;
+                })}
+              </span>
             </div>
           </div>
         )}
