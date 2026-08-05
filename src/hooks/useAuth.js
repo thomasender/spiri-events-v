@@ -6,6 +6,7 @@ import {
   onAuthStateChanged,
   updateProfile,
   updateEmail,
+  verifyBeforeUpdateEmail,
   deleteUser,
   reauthenticateWithCredential,
   EmailAuthProvider,
@@ -146,7 +147,7 @@ export function useAuth() {
     if (!current) {
       throw { code: 'auth/no-current-user', message: 'Kein angemeldeter Benutzer.' };
     }
-    await updateEmail(current, newEmail);
+    await verifyBeforeUpdateEmail(current, newEmail);
     return current;
   };
 

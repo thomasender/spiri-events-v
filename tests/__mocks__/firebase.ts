@@ -15,6 +15,7 @@ export const onAuthStateChanged = (auth, callback) => {
 };
 export const updateProfile = async () => {};
 export const updateEmail = async () => {};
+export const verifyBeforeUpdateEmail = async () => {};
 export const deleteUser = async () => {};
 export const reauthenticateWithCredential = async () => {};
 export const getIdTokenResult = async () => ({ claims: {} });

@@ -35,8 +35,10 @@ export default function ChangeEmailForm({ currentEmail, onChangeEmail }) {
       await onChangeEmail(trimmed, password);
       setPassword('');
       setNewEmail('');
-      setSuccess('E-Mail-Adresse aktualisiert.');
-      setTimeout(() => setSuccess(''), 4000);
+      setSuccess(
+        'Bestätigungs-E-Mail gesendet. Bitte öffne den Link in deiner neuen E-Mail-Adresse, um die Änderung abzuschließen.'
+      );
+      setTimeout(() => setSuccess(''), 6000);
     } catch (err) {
       console.error('Email change failed:', err.code, err.message);
       setError(authErrorMessage(err));
