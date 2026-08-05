@@ -278,7 +278,11 @@ export default function EventDetailPage() {
   const handleDeleteThisAndFuture = async () => {
     setDeleting(true);
     try {
-      const deleteDate = occurrenceDate || event.date;
+      let deleteDate = occurrenceDate;
+      if (!deleteDate) {
+        const today = new Date();
+        deleteDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      }
       const [year, month, day] = deleteDate.split('-');
       const prevDate = new Date(year, month - 1, day);
       prevDate.setDate(prevDate.getDate() - 1);

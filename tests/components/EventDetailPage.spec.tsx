@@ -272,6 +272,30 @@ describe('EventDetailPage — recurring event delete flow', () => {
     });
   });
 
+  it('sets recurrenceEndDate to yesterday when "delete this and future" is clicked without occurrenceDate', async () => {
+    mockAuth.user = { uid: 'admin-uid' };
+    mockAuth.role = 'Admin';
+
+    renderRecurringEventPage(null);
+    expect(await screen.findByText('Wochen-Yoga')).toBeInTheDocument();
+
+    const deleteButton = await screen.findByTestId('delete-event-button');
+    deleteButton.click();
+
+    expect(await screen.findByText(/wiederholendes event löschen/i)).toBeInTheDocument();
+
+    const deleteThisAndFutureBtn = screen.getByText(/dieses und alle zukünftigen events/i);
+    await deleteThisAndFutureBtn.click();
+
+    const today = new Date();
+    today.setDate(today.getDate() - 1);
+    const expectedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+    expect(mockEvents.updateEvent).toHaveBeenCalledWith('recurring-event-id', {
+      recurrenceEndDate: expectedDate,
+    });
+  });
+
   it('calls deleteEvent when "delete whole series" is clicked', async () => {
     mockAuth.user = { uid: 'admin-uid' };
     mockAuth.role = 'Admin';
