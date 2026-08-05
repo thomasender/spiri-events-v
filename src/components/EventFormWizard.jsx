@@ -301,11 +301,7 @@ export default function EventFormWizard() {
         e.preventDefault();
         nextStep();
       } else if (currentStep === 4) {
-        const activeElement = document.activeElement;
-        const isSubmitButton = activeElement?.type === 'submit';
-        if (!isSubmitButton) {
-          e.preventDefault();
-        }
+        e.preventDefault();
       }
     }
   };
@@ -895,7 +891,8 @@ export default function EventFormWizard() {
               </button>
             ) : (
               <button
-                type="submit"
+                type="button"
+                onClick={handleSubmit}
                 className="btn btn-primary"
                 disabled={loading || imageUploading}
               >
