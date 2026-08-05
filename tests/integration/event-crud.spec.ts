@@ -1,27 +1,14 @@
 import { test, expect } from '@playwright/test';
 import { signInWithEmailAndPassword } from '../helpers/auth';
-
-async function clickWeiter(page: import('@playwright/test').Page) {
-  const weiterButton = page.locator('button:has-text("Weiter")');
-  await weiterButton.waitFor({ timeout: 5000 }).catch(() => {});
-  await weiterButton.click();
-  await page.waitForTimeout(1500);
-}
-
-async function navigateToStep2(page: import('@playwright/test').Page) {
-  await page
-    .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
-    .catch(() => {});
-  await clickWeiter(page);
-}
-
-async function navigateToStep3(page: import('@playwright/test').Page) {
-  await clickWeiter(page);
-}
-
-async function navigateToStep4(page: import('@playwright/test').Page) {
-  await clickWeiter(page);
-}
+import {
+  waitForWizardToLoad,
+  navigateToStep2,
+  navigateToStep3,
+  navigateToStep4,
+  fillStep1Organizer,
+  fillStep2EventInfo,
+  fillStep3Details,
+} from '../helpers/wizard';
 
 test.describe('Event CRUD', () => {
   test('event modal opens on click', async ({ page }) => {
@@ -31,24 +18,57 @@ test.describe('Event CRUD', () => {
   test('event form validation prevents advancing from Step 1 without required fields', async ({
     page,
   }) => {
-    test.skip();
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin/new');
+    await waitForWizardToLoad(page);
+
+    const firstNameInput = page.locator('#organizer\\.firstName');
+    const lastNameInput = page.locator('#organizer\\.lastName');
+    const emailInput = page.locator('#organizer\\.email');
+    const kontaktInput = page.locator('#kontakt');
+
+    await expect(firstNameInput).toBeVisible();
+    await expect(lastNameInput).toBeVisible();
+    await expect(emailInput).toBeVisible();
+    await expect(kontaktInput).toBeVisible();
+
+    await firstNameInput.fill('Test');
+    await lastNameInput.fill('User');
+    await emailInput.fill('test@test.com');
+    await kontaktInput.fill('test@test.com');
+
+    const weiterButton = page.locator('button:has-text("Weiter")');
+    await expect(weiterButton).toBeVisible();
+    await expect(weiterButton).toBeEnabled();
   });
 
-  test('non-admin user sees validation error near Einreichen zur Genehmigung button', async ({
+  test('all required fields are marked with asterisk', async ({ page }) => {
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin/new');
+    await waitForWizardToLoad(page);
+
+    const firstNameLabel = page.locator('label:has-text("Vorname")');
+    const lastNameLabel = page.locator('label:has-text("Nachname")');
+    const emailLabel = page.locator('label:has-text("E-Mail Veranstalter")');
+    const kontaktLabel = page.locator('label:has-text("Kontakt für Teilnehmer:innen")');
+
+    await expect(firstNameLabel).toContainText('*');
+    await expect(lastNameLabel).toContainText('*');
+    await expect(emailLabel).toContainText('*');
+    await expect(kontaktLabel).toContainText('*');
+  });
+
+  test.skip('non-admin user sees validation error near Einreichen zur Genehmigung button', async ({
     page,
   }) => {
     test.skip();
   });
 
-  test('link without protocol is auto-prefixed with https://', async ({ page }) => {
+  test.skip('link without protocol is auto-prefixed with https://', async ({ page }) => {
     test.skip();
   });
 
-  test('link with http:// is converted to https://', async ({ page }) => {
-    test.skip();
-  });
-
-  test('all required fields are marked with asterisk', async ({ page }) => {
+  test.skip('link with http:// is converted to https://', async ({ page }) => {
     test.skip();
   });
 });
