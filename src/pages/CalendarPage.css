@@ -245,28 +245,32 @@
   font-weight: 500;
 }
 
-/* Per-category filters — always have category color as background */
+/* Per-category filters — look like bezirk buttons but with category color */
 .filter-checkbox--category {
-  background-color: color-mix(in srgb, var(--category-color) 35%, var(--bg-primary));
-  border-color: var(--category-color);
+  background-color: var(--bg-secondary);
+  border: 1px solid transparent;
 }
 
 .filter-checkbox--category span {
-  color: var(--category-color);
+  color: var(--text-secondary);
 }
 
 .filter-checkbox--category:hover {
-  background-color: color-mix(in srgb, var(--category-color) 50%, var(--bg-primary));
+  background-color: var(--border);
 }
 
-/* Per-category checked state — full background in category color, white text */
+.filter-checkbox--category:hover span {
+  color: var(--text-primary);
+}
+
 .filter-checkbox--category.active {
-  background-color: var(--category-color);
+  background-color: color-mix(in srgb, var(--category-color) 15%, transparent);
   border-color: var(--category-color);
 }
 
 .filter-checkbox--category.active span {
-  color: var(--bg-primary);
+  color: var(--category-color);
+  font-weight: 500;
 }
 
 .filter-checkbox--bezirk {
