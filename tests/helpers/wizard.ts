@@ -1,7 +1,9 @@
 import { Page } from '@playwright/test';
 
 export async function waitForWizardToLoad(page: Page) {
-  await page.waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 }).catch(() => {});
+  await page
+    .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+    .catch(() => {});
   await page.waitForTimeout(500);
 }
 
@@ -32,12 +34,15 @@ export async function navigateToStep4(page: Page) {
   await clickWeiter(page);
 }
 
-export async function fillStep1Organizer(page: Page, data: {
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-  kontakt?: string;
-}) {
+export async function fillStep1Organizer(
+  page: Page,
+  data: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    kontakt?: string;
+  }
+) {
   if (data.firstName !== undefined) {
     await page.fill('#organizer\\.firstName', data.firstName);
   }
@@ -52,11 +57,14 @@ export async function fillStep1Organizer(page: Page, data: {
   }
 }
 
-export async function fillStep2EventInfo(page: Page, data: {
-  title?: string;
-  description?: string;
-  link?: string;
-}) {
+export async function fillStep2EventInfo(
+  page: Page,
+  data: {
+    title?: string;
+    description?: string;
+    link?: string;
+  }
+) {
   if (data.title !== undefined) {
     await page.fill('#title', data.title);
   }
@@ -68,16 +76,19 @@ export async function fillStep2EventInfo(page: Page, data: {
   }
 }
 
-export async function fillStep3Details(page: Page, data: {
-  date?: string;
-  time?: string;
-  endDate?: string;
-  bezirk?: string;
-  place?: string;
-  category?: string;
-  contribution?: 'free' | 'fee';
-  fee?: string;
-}) {
+export async function fillStep3Details(
+  page: Page,
+  data: {
+    date?: string;
+    time?: string;
+    endDate?: string;
+    bezirk?: string;
+    place?: string;
+    category?: string;
+    contribution?: 'free' | 'fee';
+    fee?: string;
+  }
+) {
   if (data.date !== undefined) {
     await page.fill('#date', data.date);
   }
@@ -97,7 +108,9 @@ export async function fillStep3Details(page: Page, data: {
     await page.waitForTimeout(300);
   }
   if (data.contribution !== undefined) {
-    await page.click(`.radio-label:has-text("${data.contribution === 'free' ? 'Kostenlos' : 'Gebühr'}")`);
+    await page.click(
+      `.radio-label:has-text("${data.contribution === 'free' ? 'Kostenlos' : 'Gebühr'}")`
+    );
   }
   if (data.fee !== undefined) {
     await page.fill('#fee', data.fee);
@@ -112,7 +125,9 @@ export async function selectBezirk(page: Page, bezirk: string) {
 }
 
 export async function submitWizard(page: Page) {
-  await page.click('button:has-text("Event erstellen"), button:has-text("Einreichen zur Genehmigung")');
+  await page.click(
+    'button:has-text("Event erstellen"), button:has-text("Einreichen zur Genehmigung")'
+  );
   await page.waitForTimeout(500);
 }
 
@@ -122,7 +137,9 @@ export async function confirmSubmission(page: Page) {
 }
 
 export async function getValidationError(page: Page) {
-  const errorLocator = page.locator('.validation-error, .wizard-validation-error, [data-testid="validation-error"]');
+  const errorLocator = page.locator(
+    '.validation-error, .wizard-validation-error, [data-testid="validation-error"]'
+  );
   if (await errorLocator.isVisible()) {
     return await errorLocator.textContent();
   }

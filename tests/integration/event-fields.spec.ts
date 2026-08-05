@@ -125,18 +125,4 @@ test.describe('Event fields: Veranstalter & Kontakt', () => {
     await expect(ownerEmails.first()).toBeVisible();
     await expect(ownerEmails.first()).toContainText('@');
   });
-
-  test.skip('form sections are in expected order: Veranstalter > Event-Details > Optional', async ({
-    page,
-  }) => {
-    test.skip();
-  });
-
-  test.skip('organizer and kontakt are editable on event edit view', async ({ page }) => {
-    test.skip();
-  });
-
-  test.skip('create event with valid organizer and kontakt succeeds', async ({ page }) => {
-    test.skip();
-  });
 });

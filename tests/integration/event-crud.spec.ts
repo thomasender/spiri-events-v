@@ -1,14 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { signInWithEmailAndPassword } from '../helpers/auth';
-import {
-  waitForWizardToLoad,
-  navigateToStep2,
-  navigateToStep3,
-  navigateToStep4,
-  fillStep1Organizer,
-  fillStep2EventInfo,
-  fillStep3Details,
-} from '../helpers/wizard';
+import { waitForWizardToLoad } from '../helpers/wizard';
 
 test.describe('Event CRUD', () => {
   test('event modal opens on click', async ({ page }) => {
@@ -56,19 +48,5 @@ test.describe('Event CRUD', () => {
     await expect(lastNameLabel).toContainText('*');
     await expect(emailLabel).toContainText('*');
     await expect(kontaktLabel).toContainText('*');
-  });
-
-  test.skip('non-admin user sees validation error near Einreichen zur Genehmigung button', async ({
-    page,
-  }) => {
-    test.skip();
-  });
-
-  test.skip('link without protocol is auto-prefixed with https://', async ({ page }) => {
-    test.skip();
-  });
-
-  test.skip('link with http:// is converted to https://', async ({ page }) => {
-    test.skip();
   });
 });

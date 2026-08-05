@@ -24,10 +24,4 @@ test.describe('Event image upload (Firebase Storage)', () => {
     await expect(uploadArea).toBeVisible();
     await expect(uploadArea).toContainText('15MB');
   });
-
-  test.skip('admin can upload a real generated JPEG and event ends up with a Firebase Storage imageUrl', async ({
-    page,
-  }) => {
-    test.skip();
-  });
 });
