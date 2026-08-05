@@ -216,9 +216,7 @@ export default function EventList() {
           <section className="event-list-section">
             <h2>Ausstehende Genehmigungen</h2>
             <div className="event-list-grid">
-              {allPending.map((event) =>
-                renderEventCard(event, true, event.createdBy !== user.uid)
-              )}
+              {allPending.map((event) => renderEventCard(event, true, true))}
             </div>
           </section>
         )}
