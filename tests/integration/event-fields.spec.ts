@@ -46,12 +46,10 @@ test.describe('Event fields: Veranstalter & Kontakt', () => {
 
     const firstNameLabel = page.locator('label:has-text("Vorname")');
     const lastNameLabel = page.locator('label:has-text("Nachname")');
-    const emailLabel = page.locator('label:has-text("E-Mail Veranstalter")');
     const kontaktLabel = page.locator('label:has-text("Kontakt für Teilnehmer:innen")');
 
     await expect(firstNameLabel).toContainText('*');
     await expect(lastNameLabel).toContainText('*');
-    await expect(emailLabel).toContainText('*');
     await expect(kontaktLabel).toContainText('*');
   });
 
@@ -62,7 +60,6 @@ test.describe('Event fields: Veranstalter & Kontakt', () => {
 
     await page.locator('#organizer\\.firstName').fill('');
     await page.locator('#organizer\\.lastName').fill('');
-    await page.locator('#organizer\\.email').fill('');
     await page.locator('#kontakt').fill('');
 
     await page.locator('button:has-text("Weiter")').click();
@@ -71,19 +68,6 @@ test.describe('Event fields: Veranstalter & Kontakt', () => {
     const errorTexts = page.locator('.error-text');
     const count = await errorTexts.count();
     expect(count).toBeGreaterThan(0);
-  });
-
-  test('event cannot be created with invalid organizer email', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
-    await page.goto('/admin/new');
-    await waitForWizardToLoad(page);
-
-    await page.locator('#organizer\\.email').fill('not-an-email');
-    await page.locator('button:has-text("Weiter")').click();
-    await page.waitForTimeout(500);
-
-    const errorText = page.locator('.error-text');
-    await expect(errorText.first()).toBeVisible();
   });
 
   test('event detail page shows organizer and kontakt for approved event', async ({ page }) => {
