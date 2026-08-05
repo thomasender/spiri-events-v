@@ -248,7 +248,7 @@ test.describe.serial('Profile Management', () => {
     // The auth form is initially in login mode; toggle it to register mode.
     await page.goto('/login');
     await page.waitForSelector('button.link-btn', { timeout: 10000 });
-    await page.locator('button.link-btn').click();
+    await page.getByRole('button', { name: 'Registrieren' }).click();
     await expect(page.locator('h1')).toContainText(/Konto erstellen/i, { timeout: 10000 });
     await page.waitForSelector('input#displayName', { timeout: 5000 });
     await page.fill('input#displayName', 'Delete Me');

@@ -302,13 +302,13 @@ test.describe('Calendar E2E', () => {
         return;
       }
 
-      const yogaLabel = page
+      const yogaButton = page
         .locator('.filter-panel')
-        .locator('label')
+        .locator('.filter-checkbox--category')
         .filter({ hasText: 'Yoga' })
         .first();
 
-      await yogaLabel.click();
+      await yogaButton.click();
       await page.waitForTimeout(300);
 
       const filteredEventCount = await page.locator('.cell-dot').count();

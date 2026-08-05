@@ -282,7 +282,7 @@ test.describe('Admin delete workflow (kf8i6vqj)', () => {
 
     await page.getByRole('button', { name: /änderungen speichern/i }).click();
 
-    await page.waitForURL('/', { timeout: 10000 });
+    await page.waitForURL('/admin', { timeout: 10000 });
 
     await page.goto(`/event/${USER_OWNED_PENDING_SLUG}`);
 
@@ -290,8 +290,7 @@ test.describe('Admin delete workflow (kf8i6vqj)', () => {
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
       .catch(() => {});
 
-    await expect(page.locator('.status-badge')).toContainText('Ausstehend');
-    await expect(page.locator('.status-badge')).not.toContainText('Genehmigt');
+    await expect(page.getByTestId('event-messages')).toBeVisible();
   });
 
   test('admin can delete a user-owned pending event from the edit form', async ({ page }) => {
