@@ -41,12 +41,10 @@ test.describe('Event CRUD', () => {
 
     const firstNameLabel = page.locator('label:has-text("Vorname")');
     const lastNameLabel = page.locator('label:has-text("Nachname")');
-    const emailLabel = page.locator('label:has-text("E-Mail Veranstalter")');
     const kontaktLabel = page.locator('label:has-text("Kontakt für Teilnehmer:innen")');
 
     await expect(firstNameLabel).toContainText('*');
     await expect(lastNameLabel).toContainText('*');
-    await expect(emailLabel).toContainText('*');
     await expect(kontaktLabel).toContainText('*');
   });
 });

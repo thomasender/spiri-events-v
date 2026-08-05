@@ -459,24 +459,6 @@ export default function EventFormWizard() {
       </div>
 
       <div className="form-group">
-        <label htmlFor="organizer.email">E-Mail Veranstalter *</label>
-        <input
-          id="organizer.email"
-          name="email"
-          type="text"
-          inputMode="email"
-          value={formData.organizer.email}
-          onChange={handleOrganizerChange}
-          placeholder="veranstalter@email.de"
-          autoComplete="email"
-          className={errors['organizer.email'] ? 'input-error' : ''}
-        />
-        {errors['organizer.email'] && (
-          <span className="error-text">{errors['organizer.email']}</span>
-        )}
-      </div>
-
-      <div className="form-group">
         <div className="input-label-row">
           <label htmlFor="kontakt">Kontakt für Teilnehmer:innen *</label>
           <span className="input-info">
