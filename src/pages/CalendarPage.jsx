@@ -134,39 +134,39 @@ export default function CalendarPage() {
         <link rel="canonical" href="https://spirievents.at/" />
       </Helmet>
 
+      <section className="hero">
+        <div className="hero-content">
+          <h1 className="hero-title">
+            Finde Events.
+            <br />
+            Finde <em>Menschen.</em>
+          </h1>
+          <p className="hero-subtitle">
+            Dein Kalender für Yoga, Breathwork, Meditation,
+            <br />
+            Tanz und viele weitere
+            <br />
+            Veranstaltungen in Vorarlberg.
+          </p>
+          <ul className="hero-features">
+            {HERO_FEATURES.map(({ icon: Icon, title, description }) => (
+              <li key={title}>
+                <Icon size={20} />
+                <div>
+                  <span className="hero-feature-title">{title}</span>
+                  <span className="hero-feature-description">{description}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="hero-visual" aria-hidden="true">
+          <img src="/hero.jpeg" alt="" className="hero-visual-image" />
+        </div>
+      </section>
+
       <div className="page-layout">
         <div className="page-main">
-          <section className="hero">
-            <div className="hero-content">
-              <h1 className="hero-title">
-                Finde Events.
-                <br />
-                Finde <em>Menschen.</em>
-              </h1>
-              <p className="hero-subtitle">
-                Dein Kalender für Yoga, Breathwork, Meditation,
-                <br />
-                Tanz und viele weitere
-                <br />
-                Veranstaltungen in Vorarlberg.
-              </p>
-              <ul className="hero-features">
-                {HERO_FEATURES.map(({ icon: Icon, title, description }) => (
-                  <li key={title}>
-                    <Icon size={20} />
-                    <div>
-                      <span className="hero-feature-title">{title}</span>
-                      <span className="hero-feature-description">{description}</span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="hero-visual" aria-hidden="true">
-              <img src="/hero.jpeg" alt="" className="hero-visual-image" />
-            </div>
-          </section>
-
           <section className="filter-panel" aria-label="Filter">
             <div className="filter-header filter-header--title">
               <h2 className="filter-section-title">Hier kannst du filtern</h2>

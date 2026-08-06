@@ -6,7 +6,7 @@
 }
 
 /* ============================================
-   HERO
+   HERO — spans full viewport width above the page grid
    ============================================ */
 
 .hero {
@@ -16,8 +16,8 @@
   align-items: center;
   width: 100%;
   aspect-ratio: 2.6 / 1;
+  margin: 32px 0;
   padding: 32px 48px;
-  margin: 32px 0 32px;
   overflow: hidden;
   border-radius: var(--radius-lg);
 }
@@ -25,7 +25,8 @@
 .hero-content {
   position: relative;
   z-index: 2;
-  max-width: 56ch;
+  width: 100%;
+  max-width: 50%;
 }
 
 .hero-title {
@@ -99,11 +100,13 @@
   object-fit: cover;
 }
 
+/* Gradient overlay covers only the left 50% so the image is fully
+   visible on the right half while text on the left stays readable. */
 .hero-visual::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, var(--bg-primary) 0%, var(--bg-primary) 30%, transparent 75%);
+  background: linear-gradient(90deg, var(--bg-primary) 0%, var(--bg-primary) 50%, transparent 100%);
 }
 
 /* ============================================
@@ -407,17 +410,33 @@
 @media (max-width: 900px) {
   .hero {
     aspect-ratio: auto;
-    min-height: 360px;
-    padding: 28px 24px;
+    flex-direction: column;
+    min-height: 500px;
+    padding: 0;
     margin: 24px 0;
+  }
+
+  /* On mobile the image takes the top third of the hero;
+     text content sits in the bottom two thirds. */
+  .hero-visual {
+    order: -1;
+    position: relative;
+    inset: auto;
+    width: 100%;
+    height: 33%;
+    min-height: 160px;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   }
 
   .hero-content {
     max-width: 100%;
+    flex: 1;
+    padding: 24px;
+    justify-content: center;
   }
 
   .hero-visual::after {
-    background: linear-gradient(0deg, var(--bg-primary) 0%, var(--bg-primary) 45%, transparent 90%);
+    display: none;
   }
 
   .page-layout {
