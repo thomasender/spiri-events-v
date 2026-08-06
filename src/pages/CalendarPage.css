@@ -152,8 +152,12 @@
   margin-bottom: 16px;
 }
 
-.filter-quick-actions--inline {
-  margin-bottom: 12px;
+.filter-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-light);
 }
 
 .filter-section-title {

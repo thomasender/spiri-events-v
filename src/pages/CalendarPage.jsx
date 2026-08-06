@@ -194,13 +194,16 @@ export default function CalendarPage() {
 
             <details className="filter-accordion">
               <summary className="filter-accordion-summary">
-                <span>Bezirk</span>
+                <span>Mehr Filter</span>
                 <ChevronDown size={18} className="filter-accordion-icon" aria-hidden="true" />
               </summary>
               <div className="filter-accordion-body">
-                <div className="filter-quick-actions filter-quick-actions--inline">
-                  <button type="button" onClick={selectAllBezirke}>Alle</button>
-                  <button type="button" onClick={selectNoneBezirke}>Keine</button>
+                <div className="filter-header">
+                  <span className="filter-label">Bezirk</span>
+                  <div className="filter-quick-actions">
+                    <button type="button" onClick={selectAllBezirke}>Alle</button>
+                    <button type="button" onClick={selectNoneBezirke}>Keine</button>
+                  </div>
                 </div>
                 <div className="filter-options">
                   {BEZIRKE.map((bezirk) => (
