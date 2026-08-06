@@ -141,14 +141,6 @@
   box-shadow: var(--shadow-sm);
 }
 
-.filter-section-title {
-  font-family: var(--font-heading);
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 16px;
-}
-
 .filter-header {
   display: flex;
   align-items: center;
@@ -156,121 +148,140 @@
   margin-bottom: 16px;
 }
 
-.filter-header:not(:first-of-type) {
-  margin-top: 20px;
+.filter-header--title {
+  margin-bottom: 16px;
 }
 
-.filter-label {
-  font-size: 0.85rem;
+.filter-quick-actions--inline {
+  margin-bottom: 12px;
+}
+
+.filter-section-title {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-light);
+  color: var(--text-primary);
+  margin: 0;
 }
 
 .filter-quick-actions {
   display: flex;
-  gap: 12px;
+  gap: 8px;
 }
 
 .filter-quick-actions button {
   font-size: 0.8rem;
-  color: var(--accent-primary);
-  text-decoration: underline;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background-color: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 12px;
   cursor: pointer;
-  background: none;
-  border: none;
-  padding: 0;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .filter-quick-actions button:hover {
+  background-color: var(--bg-secondary);
+  border-color: var(--accent-primary);
   color: var(--accent-primary);
+}
+
+.filter-quick-actions button:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
 }
 
 .filter-options {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-}
-
-.filter-checkbox {
-  display: flex;
-  align-items: center;
   gap: 8px;
-  padding: 8px 16px;
-  background-color: var(--bg-secondary);
-  border: 1px solid transparent;
-  border-radius: 20px;
-  cursor: pointer;
-  transition: all 0.15s ease;
 }
 
-.filter-checkbox:hover {
-  background-color: var(--border);
-}
+/* ----------------------------------------------------------------
+   Filter chips — konsistentes Toggle-Pill-Design für Kategorien
+   und Bezirke. Inaktiv: Outline. Aktiv: gefüllt mit Check-Icon.
+   Zustand wird über aria-pressed gesteuert (echtes DOM-Attribut,
+   kein :has(input:checked) mehr).
+   ---------------------------------------------------------------- */
 
-.filter-checkbox {
-  position: relative;
-  padding-left: 36px;
-}
-
-.filter-checkbox::before {
-  content: '';
-  position: absolute;
-  left: 16px;
-  width: 16px;
-  height: 16px;
-  border: 2px solid var(--text-secondary);
-  border-radius: 4px;
-  background: var(--bg-primary);
-  transition: all 0.15s ease;
-}
-
-.filter-checkbox input {
-  display: none;
-}
-
-.filter-checkbox span {
-  font-size: 0.9rem;
-  color: var(--text-primary);
-}
-
-.filter-checkbox:has(input:checked) span {
-  color: var(--accent-primary);
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 0.875rem;
   font-weight: 500;
+  line-height: 1.2;
+  color: var(--text-secondary);
+  background-color: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
-/* Per-category filters — always use non-selected styling (unfilled checkbox, solid category color) */
-.filter-checkbox--category {
-  padding-left: 36px;
+.filter-chip:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.filter-chip:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.filter-chip-icon {
+  width: 0;
+  height: 14px;
+  flex-shrink: 0;
+  opacity: 0;
+  transform: scale(0.6);
+  transition:
+    width 0.18s ease,
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+
+.filter-chip[aria-pressed='true'] {
+  background-color: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: #ffffff;
+}
+
+.filter-chip[aria-pressed='true']:hover {
+  filter: brightness(0.92);
+  color: #ffffff;
+}
+
+.filter-chip[aria-pressed='true'] .filter-chip-icon {
+  width: 14px;
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Kategorien übernehmen im Active-State ihre jeweilige Kategoriefarbe
+   (match zu Badges auf Event-Karten). Bezirke bleiben auf der Akzentfarbe. */
+.filter-chip--category[aria-pressed='true'] {
   background-color: var(--category-color);
-  border: 1px solid var(--category-color);
-}
-
-.filter-checkbox--category::before {
-  background: var(--bg-primary);
   border-color: var(--category-color);
 }
 
-.filter-checkbox--category span {
-  color: #ffffff;
+.filter-chip--category[aria-pressed='true']:hover {
+  background-color: var(--category-color);
+  border-color: var(--category-color);
 }
 
-/* Bezirk filters — always use selected styling (filled checkbox, solid accent color) */
-.filter-checkbox--bezirk {
-  padding-left: 36px;
-  background-color: var(--accent-primary);
-  border: 1px solid var(--accent-primary);
-}
-
-.filter-checkbox--bezirk::before {
-  background: var(--accent-primary);
-  border-color: var(--accent-primary);
-}
-
-.filter-checkbox--bezirk span {
-  color: #ffffff;
-}
+/* Per-Kategorie/per-Bezirk Styling entfällt — beide nutzen das
+   gleiche Toggle-Pill-Design mit der Akzentfarbe. */
 
 /* "Mehr Filter" accordion — wraps the Bezirke filter */
 .filter-accordion {
@@ -314,10 +325,6 @@
 .filter-accordion-body {
   padding-top: 16px;
   animation: fadeIn 0.15s ease-out;
-}
-
-.filter-checkbox input {
-  display: none;
 }
 
 .calendar-error {

@@ -50,9 +50,9 @@ test.describe('Calendar Integration', () => {
   });
 
   test.describe('Category Filters', () => {
-    test('category buttons are always visible', async ({ page }) => {
-      const buttons = page.locator('.filter-checkbox--category');
-      const count = await buttons.count();
+    test('category chips are always visible', async ({ page }) => {
+      const chips = page.locator('.filter-chip--category');
+      const count = await chips.count();
       expect(count).toBeGreaterThan(5);
     });
 
@@ -62,61 +62,114 @@ test.describe('Calendar Integration', () => {
     });
 
     test('"Alle" button selects all categories', async ({ page }) => {
-      const firstButton = page.locator('.filter-checkbox--category').first();
-      await firstButton.click();
+      const firstChip = page.locator('.filter-chip--category').first();
+      await firstChip.click();
+      await expect(firstChip).toHaveAttribute('aria-pressed', 'false');
       await page.locator('.filter-panel button:has-text("Alle")').first().click();
-      const button = page.locator('.filter-checkbox--category').first();
-      await expect(button).toHaveAttribute('aria-pressed', 'true');
+      const firstChipAfter = page.locator('.filter-chip--category').first();
+      await expect(firstChipAfter).toHaveAttribute('aria-pressed', 'true');
     });
 
     test('"Keine" button deselects all categories', async ({ page }) => {
       await page.locator('.filter-panel button:has-text("Keine")').first().click();
-      const buttons = page.locator('.filter-checkbox--category');
-      const allUnpressed = await buttons.evaluateAll((els) =>
+      const chips = page.locator('.filter-chip--category');
+      const allUnpressed = await chips.evaluateAll((els) =>
         els.every((el) => el.getAttribute('aria-pressed') !== 'true')
       );
       expect(allUnpressed).toBe(true);
     });
-  });
 
-  test.describe('Category Filter Colors', () => {
-    const expectedCategories = [
-      { name: 'Yoga', color: 'rgb(196, 142, 106)' },
-      { name: 'Meditation', color: 'rgb(92, 107, 63)' },
-      { name: 'Tanz', color: 'rgb(138, 109, 47)' },
-      { name: 'Singen', color: 'rgb(154, 95, 56)' },
-      { name: 'Atemarbeit', color: 'rgb(191, 91, 78)' },
-      { name: 'Sonstiges', color: 'rgb(147, 141, 135)' },
-    ];
-
-    test('each category filter exposes data-category and a category color', async ({ page }) => {
-      for (const { name } of expectedCategories) {
-        const filter = page.locator(`.filter-checkbox--category[data-category="${name}"]`);
-        await expect(filter).toBeVisible();
-        const cssVar = await filter.evaluate((el) =>
-          window.getComputedStyle(el).getPropertyValue('--category-color').trim()
-        );
-        expect(cssVar).not.toBe('');
-        expect(cssVar).not.toBe('initial');
-      }
-    });
-
-    test('each category has a distinct color', async ({ page }) => {
-      const colors = await Promise.all(
-        expectedCategories.map(async ({ name }) => {
-          const filter = page.locator(`.filter-checkbox--category[data-category="${name}"]`);
-          return filter.evaluate((el) =>
-            window.getComputedStyle(el).getPropertyValue('--category-color').trim()
-          );
-        })
+    test('active chip is visually distinct from inactive (filled vs outline)', async ({ page }) => {
+      await page.locator('.filter-panel button:has-text("Keine")').first().click();
+      const inactive = page.locator('.filter-chip--category').first();
+      const inactiveBg = await inactive.evaluate(
+        (el) => window.getComputedStyle(el).backgroundColor
       );
-      expect(new Set(colors).size).toBe(colors.length);
+
+      await page.locator('.filter-panel button:has-text("Alle")').first().click();
+      const active = page.locator('.filter-chip--category').first();
+      const activeBg = await active.evaluate((el) => window.getComputedStyle(el).backgroundColor);
+
+      expect(activeBg).not.toBe(inactiveBg);
     });
 
-    test('checked category filter applies its category color to border and text', async ({
-      page,
-    }) => {
-      test.skip();
+    test('active chip renders the check icon (svg with non-zero icon width)', async ({ page }) => {
+      const chip = page.locator('.filter-chip--category').first();
+      await expect(chip).toHaveAttribute('aria-pressed', 'true');
+
+      const icon = chip.locator('.filter-chip-icon');
+      const iconWidth = await icon.evaluate((el) => el.getBoundingClientRect().width);
+      expect(iconWidth).toBeGreaterThan(0);
+    });
+
+    test('inactive chip hides the check icon (icon width collapses to 0)', async ({ page }) => {
+      await page.locator('.filter-panel button:has-text("Keine")').first().click();
+      const chip = page.locator('.filter-chip--category').first();
+      await expect(chip).toHaveAttribute('aria-pressed', 'false');
+
+      const icon = chip.locator('.filter-chip-icon');
+      const iconWidth = await icon.evaluate((el) => el.getBoundingClientRect().width);
+      expect(iconWidth).toBe(0);
+    });
+
+    test('inactive category chips share a uniform neutral background', async ({ page }) => {
+      await page.locator('.filter-panel button:has-text("Keine")').first().click();
+      const chips = page.locator('.filter-chip--category');
+      const bgs = await chips.evaluateAll((els) =>
+        els.map((el) => window.getComputedStyle(el).backgroundColor)
+      );
+      expect(new Set(bgs).size).toBe(1);
+    });
+
+    test('active category chip takes its respective category color', async ({ page }) => {
+      const yoga = page.locator('.filter-chip--category[data-category="Yoga"]');
+      await expect(yoga).toHaveAttribute('aria-pressed', 'true');
+
+      const [chipBg, categoryVar] = await Promise.all([
+        yoga.evaluate((el) => window.getComputedStyle(el).backgroundColor),
+        yoga.evaluate((el) =>
+          window.getComputedStyle(el).getPropertyValue('--category-color').trim()
+        ),
+      ]);
+
+      expect(categoryVar).not.toBe('');
+      expect(categoryVar).not.toBe('initial');
+      expect(chipBg).not.toBe('rgba(0, 0, 0, 0)');
+      expect(chipBg).not.toBe('transparent');
+    });
+
+    test('each category chip carries its own --category-color CSS variable', async ({ page }) => {
+      const expected = ['Yoga', 'Meditation', 'Tanz', 'Singen', 'Atemarbeit', 'Sonstiges'];
+      const colors = await Promise.all(
+        expected.map((name) =>
+          page
+            .locator(`.filter-chip--category[data-category="${name}"]`)
+            .evaluate((el) =>
+              window.getComputedStyle(el).getPropertyValue('--category-color').trim()
+            )
+        )
+      );
+
+      expect(colors.every((c) => c !== '' && c !== 'initial')).toBe(true);
+    });
+
+    test('district chip does not use a category color (stays on accent)', async ({ page }) => {
+      await page.locator('.filter-accordion .filter-accordion-summary').click();
+      const bregenz = page
+        .locator('.filter-chip--bezirk')
+        .filter({ hasText: 'Bregenz' })
+        .first();
+      await bregenz.click();
+
+      const cssVars = await bregenz.evaluate((el) => {
+        const s = window.getComputedStyle(el);
+        return {
+          categoryColor: s.getPropertyValue('--category-color').trim(),
+          bg: s.backgroundColor,
+        };
+      });
+
+      expect(cssVars.categoryColor).toBe('');
     });
   });
 
@@ -153,13 +206,13 @@ test.describe('Calendar Integration', () => {
     test('Grenznahe district filter can be toggled once accordion is open', async ({ page }) => {
       await page.locator('.filter-accordion .filter-accordion-summary').click();
       await expect(page.locator('.filter-accordion')).toHaveJSProperty('open', true);
-      const grenznaheButton = page
-        .locator('.filter-accordion button')
+      const grenznaheChip = page
+        .locator('.filter-chip--bezirk')
         .filter({ hasText: 'Grenznahe' })
         .first();
-      await expect(grenznaheButton).toBeVisible();
-      await grenznaheButton.click();
-      await expect(grenznaheButton).toHaveAttribute('aria-pressed', 'true');
+      await expect(grenznaheChip).toBeVisible();
+      await grenznaheChip.click();
+      await expect(grenznaheChip).toHaveAttribute('aria-pressed', 'true');
     });
 
     test('district filter section is hidden while accordion is collapsed', async ({ page }) => {

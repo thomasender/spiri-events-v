@@ -6,7 +6,7 @@ import Calendar from '../components/Calendar';
 import EventsSection from '../components/EventsSection';
 import { getEventOccurrences } from '../utils/eventOccurrences';
 import { CATEGORY_COLORS } from '../utils/categoryColors';
-import { MapPin, Sparkles, Users, ChevronDown } from 'lucide-react';
+import { MapPin, Sparkles, Users, ChevronDown, Check } from 'lucide-react';
 import './CalendarPage.css';
 
 const STORAGE_KEY = 'calendarFilterState';
@@ -168,25 +168,25 @@ export default function CalendarPage() {
           </section>
 
           <section className="filter-panel" aria-label="Filter">
-            <h2 className="filter-section-title">Hier kannst du filtern</h2>
-
-            <div className="filter-header">
-              <span className="filter-label">Kategorien</span>
+            <div className="filter-header filter-header--title">
+              <h2 className="filter-section-title">Hier kannst du filtern</h2>
               <div className="filter-quick-actions">
-                <button onClick={selectAllCategories}>Alle</button>
-                <button onClick={selectNoneCategories}>Keine</button>
+                <button type="button" onClick={selectAllCategories}>Alle</button>
+                <button type="button" onClick={selectNoneCategories}>Keine</button>
               </div>
             </div>
             <div className="filter-options">
               {KATEGORIEN.map((category) => (
                 <button
                   key={category}
-                  className={`filter-checkbox filter-checkbox--category ${selectedCategories.includes(category) ? 'active' : ''}`}
+                  type="button"
+                  className="filter-chip filter-chip--category"
                   data-category={category}
                   style={{ '--category-color': CATEGORY_COLORS[category] }}
                   onClick={() => toggleCategory(category)}
                   aria-pressed={selectedCategories.includes(category)}
                 >
+                  <Check size={14} className="filter-chip-icon" aria-hidden="true" />
                   <span>{category}</span>
                 </button>
               ))}
@@ -194,25 +194,24 @@ export default function CalendarPage() {
 
             <details className="filter-accordion">
               <summary className="filter-accordion-summary">
-                <span>Mehr Filter</span>
+                <span>Bezirk</span>
                 <ChevronDown size={18} className="filter-accordion-icon" aria-hidden="true" />
               </summary>
               <div className="filter-accordion-body">
-                <div className="filter-header">
-                  <span className="filter-label">Bezirk</span>
-                  <div className="filter-quick-actions">
-                    <button onClick={selectAllBezirke}>Alle</button>
-                    <button onClick={selectNoneBezirke}>Keine</button>
-                  </div>
+                <div className="filter-quick-actions filter-quick-actions--inline">
+                  <button type="button" onClick={selectAllBezirke}>Alle</button>
+                  <button type="button" onClick={selectNoneBezirke}>Keine</button>
                 </div>
                 <div className="filter-options">
                   {BEZIRKE.map((bezirk) => (
                     <button
                       key={bezirk}
-                      className={`filter-checkbox filter-checkbox--bezirk ${selectedBezirke.includes(bezirk) ? 'active' : ''}`}
+                      type="button"
+                      className="filter-chip filter-chip--bezirk"
                       onClick={() => toggleBezirk(bezirk)}
                       aria-pressed={selectedBezirke.includes(bezirk)}
                     >
+                      <Check size={14} className="filter-chip-icon" aria-hidden="true" />
                       <span>{bezirk}</span>
                     </button>
                   ))}

@@ -304,7 +304,7 @@ test.describe('Calendar E2E', () => {
 
       const yogaButton = page
         .locator('.filter-panel')
-        .locator('.filter-checkbox--category')
+        .locator('.filter-chip--category')
         .filter({ hasText: 'Yoga' })
         .first();
 
