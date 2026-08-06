@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { arrayUnion } from 'firebase/firestore';
 
@@ -68,6 +68,20 @@ vi.mock('../../src/lib/slug', () => ({
 vi.mock('../../src/utils/eventFallbacks', () => ({
   getEventFallbackImage: () => '/event-fallbacks/sonstiges.svg',
 }));
+
+const mockGetEventOccurrences = vi.hoisted(() => vi.fn());
+const mockGetNextUpcomingOccurrence = vi.hoisted(() => vi.fn());
+
+vi.mock('../../src/utils/eventOccurrences', async () => {
+  const actual = await vi.importActual('../../src/utils/eventOccurrences');
+  return {
+    ...actual,
+    getEventOccurrences: (...args) => mockGetEventOccurrences(...args),
+    getNextUpcomingOccurrence: (...args) => mockGetNextUpcomingOccurrence(...args),
+    getOccurrenceCount: vi.fn(),
+    getRecurrenceLabel: vi.fn(),
+  };
+});
 
 import EventDetailPage from '../../src/pages/EventDetailPage';
 
@@ -216,6 +230,11 @@ describe('EventDetailPage — recurring event delete flow', () => {
     };
     mockEvents.updateEvent.mockClear();
     mockEvents.deleteEvent.mockClear();
+    mockGetEventOccurrences.mockReturnValue([
+      { ...recurringEvent, date: '2026-08-10' },
+      { ...recurringEvent, date: '2026-08-17' },
+    ]);
+    mockGetNextUpcomingOccurrence.mockReturnValue('2026-08-10');
   });
 
   it('shows recurring delete dialog when deleting a recurring event', async () => {
@@ -226,7 +245,14 @@ describe('EventDetailPage — recurring event delete flow', () => {
     expect(await screen.findByText('Wochen-Yoga')).toBeInTheDocument();
 
     const deleteButton = await screen.findByTestId('delete-event-button');
-    deleteButton.click();
+    await act(async () => {
+      fireEvent.click(deleteButton);
+    });
+
+    expect(await screen.findByRole('heading', { name: /termin auswählen/i })).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Weiter' }));
+    });
 
     await screen.findByRole('heading', { name: /termin löschen/i });
     expect(screen.getByText('Gesamte Serie löschen')).toBeInTheDocument();
@@ -240,7 +266,14 @@ describe('EventDetailPage — recurring event delete flow', () => {
     expect(await screen.findByText('Wochen-Yoga')).toBeInTheDocument();
 
     const deleteButton = await screen.findByTestId('delete-event-button');
-    deleteButton.click();
+    await act(async () => {
+      fireEvent.click(deleteButton);
+    });
+
+    expect(await screen.findByRole('heading', { name: /termin auswählen/i })).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Weiter' }));
+    });
 
     await screen.findByRole('heading', { name: /termin löschen/i });
 
@@ -260,7 +293,14 @@ describe('EventDetailPage — recurring event delete flow', () => {
     expect(await screen.findByText('Wochen-Yoga')).toBeInTheDocument();
 
     const deleteButton = await screen.findByTestId('delete-event-button');
-    deleteButton.click();
+    await act(async () => {
+      fireEvent.click(deleteButton);
+    });
+
+    expect(await screen.findByRole('heading', { name: /termin auswählen/i })).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Weiter' }));
+    });
 
     await screen.findByRole('heading', { name: /termin löschen/i });
 
@@ -272,7 +312,7 @@ describe('EventDetailPage — recurring event delete flow', () => {
     });
   });
 
-  it('sets recurrenceEndDate to day before event.date when "delete this and future" is clicked without occurrenceDate', async () => {
+  it('sets recurrenceEndDate to day before selected occurrence when "delete this and future" is clicked without occurrenceDate', async () => {
     mockAuth.user = { uid: 'admin-uid' };
     mockAuth.role = 'Admin';
 
@@ -280,7 +320,14 @@ describe('EventDetailPage — recurring event delete flow', () => {
     expect(await screen.findByText('Wochen-Yoga')).toBeInTheDocument();
 
     const deleteButton = await screen.findByTestId('delete-event-button');
-    deleteButton.click();
+    await act(async () => {
+      fireEvent.click(deleteButton);
+    });
+
+    expect(await screen.findByRole('heading', { name: /termin auswählen/i })).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Weiter' }));
+    });
 
     await screen.findByRole('heading', { name: /termin löschen/i });
 
@@ -288,7 +335,7 @@ describe('EventDetailPage — recurring event delete flow', () => {
     await deleteThisAndFutureBtn.click();
 
     expect(mockEvents.updateEvent).toHaveBeenCalledWith('recurring-event-id', {
-      recurrenceEndDate: '2026-08-03',
+      recurrenceEndDate: '2026-08-09',
     });
   });
 
@@ -300,7 +347,14 @@ describe('EventDetailPage — recurring event delete flow', () => {
     expect(await screen.findByText('Wochen-Yoga')).toBeInTheDocument();
 
     const deleteButton = await screen.findByTestId('delete-event-button');
-    deleteButton.click();
+    await act(async () => {
+      fireEvent.click(deleteButton);
+    });
+
+    expect(await screen.findByRole('heading', { name: /termin auswählen/i })).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Weiter' }));
+    });
 
     await screen.findByRole('heading', { name: /termin löschen/i });
 

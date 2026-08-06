@@ -22,8 +22,10 @@ import { useEvents } from '../hooks/useEvents';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
 import { canEditEvent, canDeleteEvent } from '../utils/eventPermissions';
 import { parseContactText } from '../utils/contactFormat';
+import { getNextUpcomingOccurrence } from '../utils/eventOccurrences';
 import ConfirmDialog from '../components/ConfirmDialog';
 import RecurringDeleteDialog from '../components/RecurringDeleteDialog';
+import OccurrencePickerDialog from '../components/OccurrencePickerDialog';
 import EventMessages from '../components/EventMessages';
 import './EventDetailPage.css';
 
@@ -143,6 +145,8 @@ export default function EventDetailPage() {
   const [imageError, setImageError] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showRecurringDeleteDialog, setShowRecurringDeleteDialog] = useState(false);
+  const [pendingRecurringDelete, setPendingRecurringDelete] = useState(null);
+  const [selectedOccurrenceDate, setSelectedOccurrenceDate] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
@@ -263,7 +267,7 @@ export default function EventDetailPage() {
   const handleDeleteThisOnly = async () => {
     setDeleting(true);
     try {
-      const dateToDelete = occurrenceDate || event.date;
+      const dateToDelete = selectedOccurrenceDate || event.date;
       await updateEvent(event.id, {
         exceptionDates: arrayUnion(dateToDelete),
       });
@@ -276,7 +280,7 @@ export default function EventDetailPage() {
   };
 
   const handleDeleteThisAndFuture = async () => {
-    const deleteDate = occurrenceDate || event.date;
+    const deleteDate = selectedOccurrenceDate || event.date;
     setDeleting(true);
     try {
       const [year, month, day] = deleteDate.split('-');
@@ -304,6 +308,17 @@ export default function EventDetailPage() {
       console.error('Delete all failed:', err);
       setDeleting(false);
     }
+  };
+
+  const handleOccurrenceConfirmed = (date) => {
+    setSelectedOccurrenceDate(date);
+    setPendingRecurringDelete(null);
+    setShowRecurringDeleteDialog(true);
+  };
+
+  const handleRecurringDeleteChangeOccurrence = () => {
+    setShowRecurringDeleteDialog(false);
+    setPendingRecurringDelete({ event });
   };
 
   const backPath = location.state?.from || '/';
@@ -367,7 +382,9 @@ export default function EventDetailPage() {
               type="button"
               onClick={() => {
                 if (event.recurrence && event.recurrence !== 'none') {
-                  setShowRecurringDeleteDialog(true);
+                  const initial = occurrenceDate || getNextUpcomingOccurrence(event) || event.date;
+                  setPendingRecurringDelete({ event });
+                  setSelectedOccurrenceDate(initial);
                 } else {
                   setShowDeleteDialog(true);
                 }
@@ -565,12 +582,24 @@ export default function EventDetailPage() {
       <RecurringDeleteDialog
         isOpen={showRecurringDeleteDialog}
         eventTitle={event.title}
-        occurrenceDate={occurrenceDate}
+        occurrenceDate={selectedOccurrenceDate}
         onDeleteThisOnly={handleDeleteThisOnly}
         onDeleteThisAndFuture={handleDeleteThisAndFuture}
         onDeleteAll={handleDeleteAll}
         onCancel={() => setShowRecurringDeleteDialog(false)}
+        onChangeOccurrence={handleRecurringDeleteChangeOccurrence}
         loading={deleting}
+      />
+
+      <OccurrencePickerDialog
+        isOpen={Boolean(pendingRecurringDelete)}
+        event={pendingRecurringDelete?.event}
+        initialOccurrenceDate={selectedOccurrenceDate}
+        onConfirm={handleOccurrenceConfirmed}
+        onCancel={() => {
+          setPendingRecurringDelete(null);
+          setSelectedOccurrenceDate(null);
+        }}
       />
     </div>
   );
