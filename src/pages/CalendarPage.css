@@ -245,32 +245,37 @@
   font-weight: 500;
 }
 
-/* Per-category filters — pill with category color */
+/* Per-category filters — solid category color, checkbox indicates selected */
 .filter-checkbox--category {
-  padding-left: 16px;
-  background-color: color-mix(in srgb, var(--category-color) 20%, transparent);
+  padding-left: 36px;
+  background-color: var(--category-color);
   border: 1px solid var(--category-color);
 }
 
-.filter-checkbox--category::before,
-.filter-checkbox--category::after {
-  display: none;
+.filter-checkbox--category::before {
+  background: var(--bg-primary);
+  border-color: var(--category-color);
 }
 
 .filter-checkbox--category span {
-  color: var(--category-color);
+  color: #ffffff;
 }
 
 .filter-checkbox--category:hover {
-  background-color: color-mix(in srgb, var(--category-color) 35%, transparent);
+  /* background stays solid */
 }
 
 .filter-checkbox--category:hover span {
-  color: var(--category-color);
+  color: #ffffff;
 }
 
 .filter-checkbox--category.active {
   background-color: var(--category-color);
+  border-color: var(--category-color);
+}
+
+.filter-checkbox--category.active::before {
+  background: var(--category-color);
   border-color: var(--category-color);
 }
 
@@ -280,39 +285,41 @@
 }
 
 .filter-checkbox--bezirk {
-  padding-left: 16px;
-  position: relative;
+  padding-left: 36px;
+  background-color: var(--accent-primary);
+  border: 1px solid var(--accent-primary);
 }
 
 .filter-checkbox--bezirk::before {
-  display: none;
-}
-
-.filter-checkbox--bezirk {
-  background-color: var(--bg-secondary);
-  border: 1px solid transparent;
+  background: var(--bg-primary);
+  border-color: var(--accent-primary);
 }
 
 .filter-checkbox--bezirk span {
-  color: var(--text-secondary);
+  color: #ffffff;
 }
 
 .filter-checkbox--bezirk:hover {
-  background-color: var(--border);
+  /* background stays solid */
 }
 
 .filter-checkbox--bezirk:hover span {
-  color: var(--text-primary);
+  color: #ffffff;
 }
 
 .filter-checkbox--bezirk.active {
-  background-color: rgba(196, 142, 106, 0.15);
+  background-color: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
+.filter-checkbox--bezirk.active::before {
+  background: var(--accent-primary);
   border-color: var(--accent-primary);
 }
 
 .filter-checkbox--bezirk.active span {
-  color: var(--accent-primary);
-  font-weight: 500;
+  color: #ffffff;
+  font-weight: 700;
 }
 
 /* "Mehr Filter" accordion — wraps the Bezirke filter */
