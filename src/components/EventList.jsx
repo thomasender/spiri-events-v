@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
 import RecurringDeleteDialog from './RecurringDeleteDialog';
+import OccurrencePickerDialog from './OccurrencePickerDialog';
 import StatusBadge from './StatusBadge';
 import { useState } from 'react';
 import { arrayUnion } from 'firebase/firestore';
@@ -65,6 +66,7 @@ export default function EventList() {
   const [deleting, setDeleting] = useState(false);
   const [approving, setApproving] = useState(null);
   const [recurringDeleteTarget, setRecurringDeleteTarget] = useState(null);
+  const [pendingRecurringDelete, setPendingRecurringDelete] = useState(null);
 
   const isAdmin = role === 'Admin';
 
@@ -144,11 +146,21 @@ export default function EventList() {
 
   const openRecurringDelete = (event) => {
     const nextOccurrence = getNextUpcomingOccurrence(event);
-    setRecurringDeleteTarget({
+    setPendingRecurringDelete({
       id: event.id,
-      occurrenceDate: nextOccurrence || event.date,
-      eventTitle: event.title,
+      event,
+      initialOccurrenceDate: nextOccurrence || event.date,
     });
+  };
+
+  const handleOccurrenceConfirmed = (selectedDate) => {
+    if (!pendingRecurringDelete) return;
+    setRecurringDeleteTarget({
+      id: pendingRecurringDelete.id,
+      occurrenceDate: selectedDate,
+      eventTitle: pendingRecurringDelete.event.title,
+    });
+    setPendingRecurringDelete(null);
   };
 
   if (loading || pendingLoading) {
@@ -397,6 +409,14 @@ export default function EventList() {
           onCancel={() => setRecurringDeleteTarget(null)}
           loading={deleting}
         />
+
+        <OccurrencePickerDialog
+          isOpen={Boolean(pendingRecurringDelete)}
+          event={pendingRecurringDelete?.event}
+          initialOccurrenceDate={pendingRecurringDelete?.initialOccurrenceDate}
+          onConfirm={handleOccurrenceConfirmed}
+          onCancel={() => setPendingRecurringDelete(null)}
+        />
       </div>
     );
   }
@@ -447,6 +467,14 @@ export default function EventList() {
         onDeleteAll={handleDeleteRecurringAll}
         onCancel={() => setRecurringDeleteTarget(null)}
         loading={deleting}
+      />
+
+      <OccurrencePickerDialog
+        isOpen={Boolean(pendingRecurringDelete)}
+        event={pendingRecurringDelete?.event}
+        initialOccurrenceDate={pendingRecurringDelete?.initialOccurrenceDate}
+        onConfirm={handleOccurrenceConfirmed}
+        onCancel={() => setPendingRecurringDelete(null)}
       />
     </div>
   );

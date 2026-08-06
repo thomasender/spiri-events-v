@@ -1,0 +1,101 @@
+.occurrence-picker-dialog {
+  background-color: var(--bg-calendar);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: 32px;
+  max-width: 440px;
+  width: 100%;
+  position: relative;
+  animation: modalIn 0.2s ease-out;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.occurrence-picker-dialog .dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.occurrence-picker-dialog .dialog-header h2 {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.occurrence-picker-dialog .dialog-message {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.occurrence-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  max-height: 320px;
+  margin-bottom: 24px;
+  padding-right: 4px;
+}
+
+.occurrence-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 12px 16px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.occurrence-option:hover {
+  border-color: var(--color-primary);
+  background-color: var(--bg-hover);
+}
+
+.occurrence-option--selected {
+  border-color: var(--color-primary);
+  background-color: rgba(139, 92, 246, 0.1);
+}
+
+.occurrence-date {
+  font-weight: 500;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.occurrence-time {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.occurrence-check {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.no-occurrences {
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 24px;
+}
