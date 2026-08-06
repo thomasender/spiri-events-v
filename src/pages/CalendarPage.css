@@ -252,7 +252,8 @@
   border: 1px solid var(--category-color);
 }
 
-.filter-checkbox--category::before {
+.filter-checkbox--category::before,
+.filter-checkbox--category::after {
   display: none;
 }
 
@@ -261,7 +262,7 @@
 }
 
 .filter-checkbox--category:hover {
-  background-color: color-mix(in srgb, var(--category-color) 25%, transparent);
+  background-color: color-mix(in srgb, var(--category-color) 30%, transparent);
 }
 
 .filter-checkbox--category:hover span {
@@ -270,13 +271,13 @@
 }
 
 .filter-checkbox--category.active {
-  background-color: color-mix(in srgb, var(--category-color) 40%, transparent);
+  background-color: color-mix(in srgb, var(--category-color) 75%, transparent);
   border-color: var(--category-color);
 }
 
 .filter-checkbox--category.active span {
   color: var(--category-color);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .filter-checkbox--bezirk {
