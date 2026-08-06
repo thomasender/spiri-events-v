@@ -35,37 +35,52 @@ export default function RecurringDeleteDialog({
     });
   };
 
+  const formatDateShort = (dateStr) => {
+    if (!dateStr) return '';
+    const [year, month, day] = dateStr.split('-');
+    const date = new Date(year, month - 1, day);
+    return date.toLocaleDateString('de-DE', {
+      day: 'numeric',
+      month: 'long',
+    });
+  };
+
   return (
     <div className="confirm-overlay fade-enter" onClick={onCancel}>
       <div className="recurring-delete-dialog" onClick={(e) => e.stopPropagation()}>
         <div className="dialog-header">
           <AlertTriangle size={24} className="warning-icon" />
-          <h2>Wiederholendes Event löschen</h2>
+          <h2>Termin löschen</h2>
         </div>
 
         <p className="dialog-message">
-          &ldquo;{eventTitle}&rdquo; findet regelmäßig statt. Was möchtest du löschen?
+          &ldquo;{eventTitle}&rdquo; ist eine wiederholende Veranstaltung.
         </p>
 
         {occurrenceDate && (
           <div className="occurrence-info">
             <Calendar size={16} />
-            <span>Du bist auf dem Event vom {formatDate(occurrenceDate)}</span>
+            <span>Du hast den Termin vom {formatDate(occurrenceDate)} ausgewählt</span>
           </div>
         )}
 
         <div className="delete-options">
           <button className="delete-option-btn" onClick={onDeleteThisOnly} disabled={loading}>
-            <div className="option-title">Nur dieses Event</div>
+            <div className="option-title">Nur diesen Termin löschen</div>
             <div className="option-desc">
-              Lösche nur dieses eine Event am{' '}
-              {occurrenceDate ? formatDate(occurrenceDate) : 'ausgewählten Datum'}
+              {occurrenceDate
+                ? `Der Termin am ${formatDateShort(occurrenceDate)} wird gelöscht. Alle anderen Termine bleiben bestehen.`
+                : 'Nur dieser eine Termin wird gelöscht.'}
             </div>
           </button>
 
           <button className="delete-option-btn" onClick={onDeleteThisAndFuture} disabled={loading}>
-            <div className="option-title">Dieses und alle zukünftigen Events</div>
-            <div className="option-desc">Lösche dieses Event und alle folgenden Wiederholungen</div>
+            <div className="option-title">Diesen und alle folgenden Termine löschen</div>
+            <div className="option-desc">
+              {occurrenceDate
+                ? `Alle Termine ab ${formatDateShort(occurrenceDate)} werden gelöscht. Frühere Termine bleiben bestehen.`
+                : 'Alle Termine ab dem Serienstart werden gelöscht.'}
+            </div>
           </button>
 
           <button
@@ -73,8 +88,10 @@ export default function RecurringDeleteDialog({
             onClick={onDeleteAll}
             disabled={loading}
           >
-            <div className="option-title">Ganze Serie löschen</div>
-            <div className="option-desc">Lösche die gesamte wiederholende Event-Serie</div>
+            <div className="option-title">Gesamte Serie löschen</div>
+            <div className="option-desc">
+              Alle Termine dieser Serie werden unwiderruflich gelöscht.
+            </div>
           </button>
         </div>
 

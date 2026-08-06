@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import Select from 'react-select';
 import { useEvents, KATEGORIEN, BEZIRKE } from '../hooks/useEvents';
 import { useAuth } from '../hooks/useAuth';
@@ -86,6 +86,8 @@ export default function EventForm({ event }) {
   const { user } = useAuth();
   const { role } = useAuth();
   const { addEvent, updateEvent, deleteEvent } = useEvents(user);
+  const [searchParams] = useSearchParams();
+  const occurrenceDate = searchParams.get('occurrenceDate');
 
   const buildInitialState = () => {
     if (event) {
@@ -440,10 +442,11 @@ export default function EventForm({ event }) {
   };
 
   const handleDeleteThisOnly = async () => {
+    const dateToDelete = occurrenceDate || event.date;
     setDeleting(true);
     try {
       await updateEvent(event.id, {
-        exceptionDates: arrayUnion(event.date),
+        exceptionDates: arrayUnion(dateToDelete),
       });
       setShowRecurringDeleteDialog(false);
       navigate('/');
@@ -454,10 +457,9 @@ export default function EventForm({ event }) {
   };
 
   const handleDeleteThisAndFuture = async () => {
+    const deleteDate = occurrenceDate || event.date;
     setDeleting(true);
     try {
-      const today = new Date();
-      const deleteDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
       const [year, month, day] = deleteDate.split('-');
       const prevDate = new Date(year, month - 1, day);
       prevDate.setDate(prevDate.getDate() - 1);
@@ -987,7 +989,7 @@ export default function EventForm({ event }) {
       <RecurringDeleteDialog
         isOpen={showRecurringDeleteDialog}
         eventTitle={event?.title}
-        occurrenceDate={event?.date}
+        occurrenceDate={occurrenceDate || event?.date}
         onDeleteThisOnly={handleDeleteThisOnly}
         onDeleteThisAndFuture={handleDeleteThisAndFuture}
         onDeleteAll={handleDeleteAll}

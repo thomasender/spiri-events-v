@@ -228,8 +228,8 @@ describe('EventDetailPage — recurring event delete flow', () => {
     const deleteButton = await screen.findByTestId('delete-event-button');
     deleteButton.click();
 
-    expect(await screen.findByText(/wiederholendes event löschen/i)).toBeInTheDocument();
-    expect(screen.getByText(/ganze serie löschen/i)).toBeInTheDocument();
+    await screen.findByRole('heading', { name: /termin löschen/i });
+    expect(screen.getByText('Gesamte Serie löschen')).toBeInTheDocument();
   });
 
   it('calls updateEvent to add exception date when "delete this only" is clicked', async () => {
@@ -242,9 +242,9 @@ describe('EventDetailPage — recurring event delete flow', () => {
     const deleteButton = await screen.findByTestId('delete-event-button');
     deleteButton.click();
 
-    expect(await screen.findByText(/wiederholendes event löschen/i)).toBeInTheDocument();
+    await screen.findByRole('heading', { name: /termin löschen/i });
 
-    const deleteThisOnlyBtn = screen.getByText(/nur dieses event/i);
+    const deleteThisOnlyBtn = screen.getByText('Nur diesen Termin löschen');
     await deleteThisOnlyBtn.click();
 
     expect(mockEvents.updateEvent).toHaveBeenCalledWith('recurring-event-id', {
@@ -262,9 +262,9 @@ describe('EventDetailPage — recurring event delete flow', () => {
     const deleteButton = await screen.findByTestId('delete-event-button');
     deleteButton.click();
 
-    expect(await screen.findByText(/wiederholendes event löschen/i)).toBeInTheDocument();
+    await screen.findByRole('heading', { name: /termin löschen/i });
 
-    const deleteThisAndFutureBtn = screen.getByText(/dieses und alle zukünftigen events/i);
+    const deleteThisAndFutureBtn = screen.getByText('Diesen und alle folgenden Termine löschen');
     await deleteThisAndFutureBtn.click();
 
     expect(mockEvents.updateEvent).toHaveBeenCalledWith('recurring-event-id', {
@@ -272,7 +272,7 @@ describe('EventDetailPage — recurring event delete flow', () => {
     });
   });
 
-  it('sets recurrenceEndDate to yesterday when "delete this and future" is clicked without occurrenceDate', async () => {
+  it('sets recurrenceEndDate to day before event.date when "delete this and future" is clicked without occurrenceDate', async () => {
     mockAuth.user = { uid: 'admin-uid' };
     mockAuth.role = 'Admin';
 
@@ -282,17 +282,13 @@ describe('EventDetailPage — recurring event delete flow', () => {
     const deleteButton = await screen.findByTestId('delete-event-button');
     deleteButton.click();
 
-    expect(await screen.findByText(/wiederholendes event löschen/i)).toBeInTheDocument();
+    await screen.findByRole('heading', { name: /termin löschen/i });
 
-    const deleteThisAndFutureBtn = screen.getByText(/dieses und alle zukünftigen events/i);
+    const deleteThisAndFutureBtn = screen.getByText('Diesen und alle folgenden Termine löschen');
     await deleteThisAndFutureBtn.click();
 
-    const today = new Date();
-    today.setDate(today.getDate() - 1);
-    const expectedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-
     expect(mockEvents.updateEvent).toHaveBeenCalledWith('recurring-event-id', {
-      recurrenceEndDate: expectedDate,
+      recurrenceEndDate: '2026-08-03',
     });
   });
 
@@ -306,9 +302,9 @@ describe('EventDetailPage — recurring event delete flow', () => {
     const deleteButton = await screen.findByTestId('delete-event-button');
     deleteButton.click();
 
-    expect(await screen.findByText(/wiederholendes event löschen/i)).toBeInTheDocument();
+    await screen.findByRole('heading', { name: /termin löschen/i });
 
-    const deleteAllBtn = screen.getByText(/ganze serie löschen/i);
+    const deleteAllBtn = screen.getByText('Gesamte Serie löschen');
     await deleteAllBtn.click();
 
     expect(mockEvents.deleteEvent).toHaveBeenCalledWith('recurring-event-id');

@@ -19,7 +19,11 @@ export default function EventListRow({ event, categoryColor, linkState }) {
   const imageSrc = event.imageUrl && !imageError ? event.imageUrl : fallbackImage;
 
   return (
-    <Link to={`/event/${event.slug || event.id}`} state={linkState} className="event-row">
+    <Link
+      to={`/event/${event.slug || event.id}?occurrenceDate=${event.date}`}
+      state={linkState}
+      className="event-row"
+    >
       <div className="event-row-date">
         <span className="event-row-weekday">{formatWeekdayShort(event.date)}</span>
         <span className="event-row-day">{formatDayNumber(event.date)}</span>
