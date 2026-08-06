@@ -12,6 +12,8 @@ import {
 } from '../lib/imageUpload';
 import { ArrowLeft, Save, Image, X, Info, Trash2 } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
+import RecurringDeleteDialog from './RecurringDeleteDialog';
+import { arrayUnion } from 'firebase/firestore';
 import { canDeleteEvent } from '../utils/eventPermissions';
 import './EventForm.css';
 
@@ -140,6 +142,7 @@ export default function EventForm({ event }) {
   const [showResubmitConfirmModal, setShowResubmitConfirmModal] = useState(false);
   const [resubmitWarning, setResubmitWarning] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showRecurringDeleteDialog, setShowRecurringDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
@@ -432,6 +435,52 @@ export default function EventForm({ event }) {
       navigate('/');
     } catch (err) {
       console.error('Event delete failed:', err.code, err.message);
+      setDeleting(false);
+    }
+  };
+
+  const handleDeleteThisOnly = async () => {
+    setDeleting(true);
+    try {
+      await updateEvent(event.id, {
+        exceptionDates: arrayUnion(event.date),
+      });
+      setShowRecurringDeleteDialog(false);
+      navigate('/');
+    } catch (err) {
+      console.error('Delete this only failed:', err);
+      setDeleting(false);
+    }
+  };
+
+  const handleDeleteThisAndFuture = async () => {
+    setDeleting(true);
+    try {
+      const today = new Date();
+      const deleteDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const [year, month, day] = deleteDate.split('-');
+      const prevDate = new Date(year, month - 1, day);
+      prevDate.setDate(prevDate.getDate() - 1);
+      const prevDateStr = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}-${String(prevDate.getDate()).padStart(2, '0')}`;
+      await updateEvent(event.id, {
+        recurrenceEndDate: prevDateStr,
+      });
+      setShowRecurringDeleteDialog(false);
+      navigate('/');
+    } catch (err) {
+      console.error('Delete this and future failed:', err);
+      setDeleting(false);
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    setDeleting(true);
+    try {
+      await deleteEvent(event.id);
+      setShowRecurringDeleteDialog(false);
+      navigate('/');
+    } catch (err) {
+      console.error('Delete all failed:', err);
       setDeleting(false);
     }
   };
@@ -883,7 +932,13 @@ export default function EventForm({ event }) {
             {canDelete && (
               <button
                 type="button"
-                onClick={() => setShowDeleteModal(true)}
+                onClick={() => {
+                  if (event.recurrence && event.recurrence !== 'none') {
+                    setShowRecurringDeleteDialog(true);
+                  } else {
+                    setShowDeleteModal(true);
+                  }
+                }}
                 className="btn btn-subtle-danger"
                 data-testid="delete-event-from-form-button"
                 aria-label="Event löschen"
@@ -927,6 +982,17 @@ export default function EventForm({ event }) {
         onCancel={() => setShowDeleteModal(false)}
         loading={deleting}
         danger
+      />
+
+      <RecurringDeleteDialog
+        isOpen={showRecurringDeleteDialog}
+        eventTitle={event?.title}
+        occurrenceDate={event?.date}
+        onDeleteThisOnly={handleDeleteThisOnly}
+        onDeleteThisAndFuture={handleDeleteThisAndFuture}
+        onDeleteAll={handleDeleteAll}
+        onCancel={() => setShowRecurringDeleteDialog(false)}
+        loading={deleting}
       />
     </div>
   );
