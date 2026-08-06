@@ -20,6 +20,10 @@
   padding: 32px 48px;
   overflow: hidden;
   border-radius: var(--radius-lg);
+  max-height: 600px;
+  max-width: 85vw;
+  margin: 0 auto;
+  margin-bottom: 2rem;
 }
 
 .hero-content {
