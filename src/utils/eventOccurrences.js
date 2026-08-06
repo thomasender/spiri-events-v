@@ -1,4 +1,58 @@
-// Returns the set of all occurrences for an event:
+// Returns the next upcoming occurrence for an event, or event.date as fallback.
+export function getNextUpcomingOccurrence(event) {
+  if (!event) return null;
+
+  if (!event.recurrence || event.recurrence === 'none') {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const eventDate = new Date(event.date + 'T12:00:00');
+    return eventDate >= today ? event.date : null;
+  }
+
+  const occurrences = getEventOccurrences(event);
+  if (occurrences.length === 0) {
+    return event.date;
+  }
+  return occurrences[0].date;
+}
+
+// Returns the total number of occurrences for a recurring event (future only).
+export function getOccurrenceCount(event) {
+  if (!event || !event.recurrence || event.recurrence === 'none') {
+    return event?.date ? 1 : 0;
+  }
+  return getEventOccurrences(event).length;
+}
+
+// Returns a short human-readable recurrence label, e.g. "Jeden Donnerstag" or
+// "Jeden zweiten Donnerstag". Returns null for non-recurring events.
+export function getRecurrenceLabel(event) {
+  if (!event || !event.recurrence || event.recurrence === 'none') return null;
+
+  const weekdayNames = [
+    'Sonntag',
+    'Montag',
+    'Dienstag',
+    'Mittwoch',
+    'Donnerstag',
+    'Freitag',
+    'Samstag',
+  ];
+  const date = new Date(event.date + 'T12:00:00');
+  const weekday = weekdayNames[date.getDay()];
+
+  switch (event.recurrence) {
+    case 'weekly':
+      return `Jeden ${weekday}`;
+    case 'biweekly':
+      return `Jeden zweiten ${weekday}`;
+    case 'monthly':
+      return 'Jeden Monat';
+    default:
+      return null;
+  }
+}
+
 // - For non-recurring events, one entry per day in the [date, endDate] span.
 // - For recurring events, one entry per recurrence occurrence, with `isMultiDayStart`
 //   / `isMultiDayEnd` flags preserved for multi-day recurring events.

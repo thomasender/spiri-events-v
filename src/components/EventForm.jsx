@@ -499,6 +499,16 @@ export default function EventForm({ event }) {
         </div>
 
         <form onSubmit={handleSubmit} className="event-form">
+          {isEdit && event?.recurrence && event.recurrence !== 'none' && (
+            <div className="recurring-info-banner">
+              <Info size={16} />
+              <span>
+                Du bearbeitest eine Veranstaltungs-Serie. Änderungen an Wiederholung, Uhrzeit oder
+                Ort gelten für alle Termine.
+              </span>
+            </div>
+          )}
+
           <div className="form-section-header">
             <h3 className="form-section-title">Veranstalter & Kontakt</h3>
             <p className="form-section-hint">

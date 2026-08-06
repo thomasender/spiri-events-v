@@ -1,10 +1,28 @@
 import { Link } from 'react-router-dom';
 import { useEvents, usePendingEvents } from '../hooks/useEvents';
 import { useAuth } from '../hooks/useAuth';
-import { PlusCircle, Edit2, Trash2, Calendar, MapPin, Eye, CheckCircle, Mail } from 'lucide-react';
+import {
+  PlusCircle,
+  Edit2,
+  Trash2,
+  Calendar,
+  MapPin,
+  Eye,
+  CheckCircle,
+  Mail,
+  Repeat,
+  Info,
+} from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
+import RecurringDeleteDialog from './RecurringDeleteDialog';
 import StatusBadge from './StatusBadge';
 import { useState } from 'react';
+import { arrayUnion } from 'firebase/firestore';
+import {
+  getNextUpcomingOccurrence,
+  getOccurrenceCount,
+  getRecurrenceLabel,
+} from '../utils/eventOccurrences';
 import './EventList.css';
 
 function formatDate(dateStr) {
@@ -41,11 +59,12 @@ function formatEndDate(startDateStr, endDateStr) {
 export default function EventList() {
   const { user } = useAuth();
   const { role } = useAuth();
-  const { events, loading, deleteEvent } = useEvents(user);
+  const { events, loading, deleteEvent, updateEvent } = useEvents(user);
   const { pendingEvents, loading: pendingLoading, approveEvent } = usePendingEvents();
   const [deleteId, setDeleteId] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [approving, setApproving] = useState(null);
+  const [recurringDeleteTarget, setRecurringDeleteTarget] = useState(null);
 
   const isAdmin = role === 'Admin';
 
@@ -73,111 +92,222 @@ export default function EventList() {
     }
   };
 
+  const handleDeleteRecurringThis = async () => {
+    if (!recurringDeleteTarget) return;
+    const { id, occurrenceDate } = recurringDeleteTarget;
+    setDeleting(true);
+    try {
+      await updateEvent(id, {
+        exceptionDates: arrayUnion(occurrenceDate),
+      });
+      setRecurringDeleteTarget(null);
+    } catch (err) {
+      console.error('Delete recurring this failed:', err);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleDeleteRecurringThisAndFuture = async () => {
+    if (!recurringDeleteTarget) return;
+    const { id, occurrenceDate } = recurringDeleteTarget;
+    setDeleting(true);
+    try {
+      const [year, month, day] = occurrenceDate.split('-');
+      const prevDate = new Date(year, month - 1, day);
+      prevDate.setDate(prevDate.getDate() - 1);
+      const prevDateStr = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}-${String(prevDate.getDate()).padStart(2, '0')}`;
+      await updateEvent(id, {
+        recurrenceEndDate: prevDateStr,
+      });
+      setRecurringDeleteTarget(null);
+    } catch (err) {
+      console.error('Delete recurring this and future failed:', err);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleDeleteRecurringAll = async () => {
+    if (!recurringDeleteTarget) return;
+    const { id } = recurringDeleteTarget;
+    setDeleting(true);
+    try {
+      await deleteEvent(id);
+      setRecurringDeleteTarget(null);
+    } catch (err) {
+      console.error('Delete recurring all failed:', err);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const openRecurringDelete = (event) => {
+    const nextOccurrence = getNextUpcomingOccurrence(event);
+    setRecurringDeleteTarget({
+      id: event.id,
+      occurrenceDate: nextOccurrence || event.date,
+      eventTitle: event.title,
+    });
+  };
+
   if (loading || pendingLoading) {
     return <div className="loading-spinner"></div>;
   }
 
-  const renderEventCard = (event, showStatus = false, showApprove = false) => (
-    <div key={event.id} className="event-card">
-      <Link
-        to={`/event/${event.slug || event.id}`}
-        state={{ from: '/admin' }}
-        className="event-card-content"
-      >
-        <div className="event-card-header">
-          <h3>{event.title}</h3>
-          <div className="event-card-badges">
-            {showStatus && <StatusBadge status={event.status} />}
-            {(event.contribution === 'free' || event.fee) && (
-              <span
-                className={`badge ${event.contribution === 'free' ? 'badge--free' : 'badge--fee'}`}
-              >
-                {event.contribution === 'free' ? 'Kostenlos' : `${event.fee} €`}
+  const renderEventCard = (event, showStatus = false, showApprove = false) => {
+    const isRecurring = event.recurrence && event.recurrence !== 'none';
+    const recurrenceLabel = getRecurrenceLabel(event);
+    const nextOccurrence = isRecurring ? getNextUpcomingOccurrence(event) : null;
+    const occurrenceCount = isRecurring ? getOccurrenceCount(event) : 0;
+
+    const nextOccurrenceDisplay = nextOccurrence
+      ? (() => {
+          const [year, month, day] = nextOccurrence.split('-');
+          const d = new Date(year, month - 1, day);
+          return d.toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'long' });
+        })()
+      : null;
+
+    return (
+      <div key={event.id} className="event-card">
+        <Link
+          to={
+            isRecurring && nextOccurrence
+              ? `/event/${event.slug || event.id}?occurrenceDate=${nextOccurrence}`
+              : `/event/${event.slug || event.id}`
+          }
+          state={{ from: '/admin' }}
+          className="event-card-content"
+        >
+          <div className="event-card-header">
+            <h3>{event.title}</h3>
+            <div className="event-card-badges">
+              {showStatus && <StatusBadge status={event.status} />}
+              {isRecurring && (
+                <span className="badge badge--recurring" title="Wiederholende Veranstaltung">
+                  <Repeat size={12} />
+                  <span>Serie</span>
+                </span>
+              )}
+              {(event.contribution === 'free' || event.fee) && (
+                <span
+                  className={`badge ${event.contribution === 'free' ? 'badge--free' : 'badge--fee'}`}
+                >
+                  {event.contribution === 'free' ? 'Kostenlos' : `${event.fee} €`}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {event.category && (
+            <div className="event-card-categories">
+              <span className="category-chip">{event.category}</span>
+            </div>
+          )}
+
+          <div className="event-card-meta">
+            <div className="meta-item">
+              <Calendar size={14} />
+              <span>
+                {isRecurring
+                  ? nextOccurrenceDisplay || formatDate(event.date)
+                  : formatDate(event.date)}
+                {formatEndDate(event.date, event.endDate) &&
+                  ` — ${formatEndDate(event.date, event.endDate)}`}
+                {event.time && ` • ${event.time}`}
               </span>
+            </div>
+            {event.bezirk && (
+              <div className="meta-item">
+                <MapPin size={14} />
+                <span>{event.bezirk}</span>
+              </div>
             )}
-          </div>
-        </div>
-
-        {event.category && (
-          <div className="event-card-categories">
-            <span className="category-chip">{event.category}</span>
-          </div>
-        )}
-
-        <div className="event-card-meta">
-          <div className="meta-item">
-            <Calendar size={14} />
-            <span>
-              {formatDate(event.date)}
-              {formatEndDate(event.date, event.endDate) &&
-                ` — ${formatEndDate(event.date, event.endDate)}`}
-              {event.time && ` • ${event.time}`}
-            </span>
-          </div>
-          {event.bezirk && (
             <div className="meta-item">
               <MapPin size={14} />
-              <span>{event.bezirk}</span>
+              <span>{event.place}</span>
             </div>
-          )}
-          <div className="meta-item">
-            <MapPin size={14} />
-            <span>{event.place}</span>
+            {event.organizer && event.organizer.email && (
+              <div className="meta-item" data-testid="event-owner-email">
+                <Mail size={14} />
+                <span>{event.organizer.email}</span>
+              </div>
+            )}
           </div>
-          {event.organizer && event.organizer.email && (
-            <div className="meta-item" data-testid="event-owner-email">
-              <Mail size={14} />
-              <span>{event.organizer.email}</span>
+
+          {isRecurring && recurrenceLabel && (
+            <div className="event-card-recurrence">
+              <span className="recurrence-pattern">
+                <Repeat size={12} />
+                {recurrenceLabel}
+                {occurrenceCount > 0 && ` · ${occurrenceCount} Termine`}
+              </span>
+              {nextOccurrence && nextOccurrence !== event.date && (
+                <span className="next-occurrence">· Nächster: {nextOccurrenceDisplay}</span>
+              )}
             </div>
           )}
-        </div>
 
-        {event.description && (
-          <p className="event-card-description">
-            {event.description.length > 120
-              ? event.description.substring(0, 120) + '...'
-              : event.description}
-          </p>
-        )}
+          {event.description && (
+            <p className="event-card-description">
+              {event.description.length > 120
+                ? event.description.substring(0, 120) + '...'
+                : event.description}
+            </p>
+          )}
 
-        {event.status === 'pending' && !isAdmin && (
-          <p className="event-card-pending-note">Wartet auf Genehmigung durch einen Admin</p>
-        )}
-      </Link>
-
-      <div className="event-card-actions">
-        <Link
-          to={`/event/${event.slug || event.id}`}
-          state={{ from: '/admin' }}
-          className="btn btn-secondary btn-sm"
-        >
-          <Eye size={16} />
-          <span>Ansehen</span>
+          {event.status === 'pending' && !isAdmin && (
+            <p className="event-card-pending-note">Wartet auf Genehmigung durch einen Admin</p>
+          )}
         </Link>
-        {showApprove && (
-          <button
-            onClick={() => handleApprove(event.id)}
-            className="btn btn-success btn-sm"
-            disabled={approving === event.id}
+
+        <div className="event-card-actions">
+          <Link
+            to={
+              isRecurring && nextOccurrence
+                ? `/event/${event.slug || event.id}?occurrenceDate=${nextOccurrence}`
+                : `/event/${event.slug || event.id}`
+            }
+            state={{ from: '/admin' }}
+            className="btn btn-secondary btn-sm"
           >
-            <CheckCircle size={16} />
-            <span>{approving === event.id ? 'Genehmige...' : 'Genehmigen'}</span>
+            <Eye size={16} />
+            <span>Ansehen</span>
+          </Link>
+          {showApprove && (
+            <button
+              onClick={() => handleApprove(event.id)}
+              className="btn btn-success btn-sm"
+              disabled={approving === event.id}
+            >
+              <CheckCircle size={16} />
+              <span>{approving === event.id ? 'Genehmige...' : 'Genehmigen'}</span>
+            </button>
+          )}
+          <Link
+            to={`/admin/edit/${event.id}`}
+            className="btn btn-secondary btn-sm"
+            title={
+              isRecurring
+                ? 'Du bearbeitest die Seriendefinition. Wiederholung, Uhrzeit, Ort etc. gelten für alle Termine.'
+                : undefined
+            }
+          >
+            <Edit2 size={16} />
+            <span>{isRecurring ? 'Serie bearbeiten' : 'Bearbeiten'}</span>
+          </Link>
+          <button
+            onClick={() => (isRecurring ? openRecurringDelete(event) : setDeleteId(event.id))}
+            className="btn btn-subtle-danger btn-sm"
+            aria-label={isRecurring ? 'Serie löschen' : 'Event löschen'}
+          >
+            <Trash2 size={16} />
           </button>
-        )}
-        <Link to={`/admin/edit/${event.id}`} className="btn btn-secondary btn-sm">
-          <Edit2 size={16} />
-          <span>Bearbeiten</span>
-        </Link>
-        <button
-          onClick={() => setDeleteId(event.id)}
-          className="btn btn-subtle-danger btn-sm"
-          aria-label="Event löschen"
-        >
-          <Trash2 size={16} />
-        </button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderEmptyState = (title, message, showCreateButton = true) => (
     <div className="event-list-empty">
@@ -256,6 +386,17 @@ export default function EventList() {
           onCancel={() => setDeleteId(null)}
           loading={deleting}
         />
+
+        <RecurringDeleteDialog
+          isOpen={Boolean(recurringDeleteTarget)}
+          eventTitle={recurringDeleteTarget?.eventTitle}
+          occurrenceDate={recurringDeleteTarget?.occurrenceDate}
+          onDeleteThisOnly={handleDeleteRecurringThis}
+          onDeleteThisAndFuture={handleDeleteRecurringThisAndFuture}
+          onDeleteAll={handleDeleteRecurringAll}
+          onCancel={() => setRecurringDeleteTarget(null)}
+          loading={deleting}
+        />
       </div>
     );
   }
@@ -294,6 +435,17 @@ export default function EventList() {
         cancelLabel="Abbrechen"
         onConfirm={handleDelete}
         onCancel={() => setDeleteId(null)}
+        loading={deleting}
+      />
+
+      <RecurringDeleteDialog
+        isOpen={Boolean(recurringDeleteTarget)}
+        eventTitle={recurringDeleteTarget?.eventTitle}
+        occurrenceDate={recurringDeleteTarget?.occurrenceDate}
+        onDeleteThisOnly={handleDeleteRecurringThis}
+        onDeleteThisAndFuture={handleDeleteRecurringThisAndFuture}
+        onDeleteAll={handleDeleteRecurringAll}
+        onCancel={() => setRecurringDeleteTarget(null)}
         loading={deleting}
       />
     </div>
