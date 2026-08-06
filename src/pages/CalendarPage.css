@@ -245,10 +245,10 @@
   font-weight: 500;
 }
 
-/* Per-category filters — look like bezirk buttons but with category color */
+/* Per-category filters — pill with category color */
 .filter-checkbox--category {
   padding-left: 16px;
-  background-color: color-mix(in srgb, var(--category-color) 10%, transparent);
+  background-color: color-mix(in srgb, var(--category-color) 20%, transparent);
   border: 1px solid var(--category-color);
 }
 
@@ -262,21 +262,20 @@
 }
 
 .filter-checkbox--category:hover {
-  background-color: color-mix(in srgb, var(--category-color) 30%, transparent);
+  background-color: color-mix(in srgb, var(--category-color) 35%, transparent);
 }
 
 .filter-checkbox--category:hover span {
   color: var(--category-color);
-  font-weight: 500;
 }
 
 .filter-checkbox--category.active {
-  background-color: color-mix(in srgb, var(--category-color) 75%, transparent);
+  background-color: var(--category-color);
   border-color: var(--category-color);
 }
 
 .filter-checkbox--category.active span {
-  color: var(--category-color);
+  color: #ffffff;
   font-weight: 700;
 }
 

@@ -4,5 +4,5 @@ export const CATEGORY_COLORS = {
   Tanz: 'var(--pending-text)',
   Singen: 'var(--chip-text)',
   Atemarbeit: 'var(--error)',
-  Sonstiges: 'var(--text-light)',
+  Sonstiges: 'var(--text-secondary)',
 };
