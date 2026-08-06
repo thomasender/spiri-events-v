@@ -159,8 +159,19 @@ export default function EventList() {
       id: pendingRecurringDelete.id,
       occurrenceDate: selectedDate,
       eventTitle: pendingRecurringDelete.event.title,
+      event: pendingRecurringDelete.event,
     });
     setPendingRecurringDelete(null);
+  };
+
+  const handleRecurringDeleteChangeOccurrence = () => {
+    if (!recurringDeleteTarget?.event) return;
+    setPendingRecurringDelete({
+      id: recurringDeleteTarget.id,
+      event: recurringDeleteTarget.event,
+      initialOccurrenceDate: recurringDeleteTarget.occurrenceDate,
+    });
+    setRecurringDeleteTarget(null);
   };
 
   if (loading || pendingLoading) {
@@ -407,6 +418,7 @@ export default function EventList() {
           onDeleteThisAndFuture={handleDeleteRecurringThisAndFuture}
           onDeleteAll={handleDeleteRecurringAll}
           onCancel={() => setRecurringDeleteTarget(null)}
+          onChangeOccurrence={handleRecurringDeleteChangeOccurrence}
           loading={deleting}
         />
 
@@ -466,6 +478,7 @@ export default function EventList() {
         onDeleteThisAndFuture={handleDeleteRecurringThisAndFuture}
         onDeleteAll={handleDeleteRecurringAll}
         onCancel={() => setRecurringDeleteTarget(null)}
+        onChangeOccurrence={handleRecurringDeleteChangeOccurrence}
         loading={deleting}
       />
 

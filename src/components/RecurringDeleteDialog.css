@@ -67,6 +67,22 @@
   color: var(--text-secondary);
   font-size: 0.875rem;
   margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.occurrence-change-btn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: 0.8rem;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 2px 4px;
+}
+
+.occurrence-change-btn:hover {
+  opacity: 0.8;
 }
 
 .delete-options {

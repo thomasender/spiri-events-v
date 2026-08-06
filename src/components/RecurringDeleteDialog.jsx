@@ -10,6 +10,7 @@ export default function RecurringDeleteDialog({
   onDeleteThisAndFuture,
   onDeleteAll,
   onCancel,
+  onChangeOccurrence,
   loading = false,
 }) {
   useEffect(() => {
@@ -61,6 +62,15 @@ export default function RecurringDeleteDialog({
           <div className="occurrence-info">
             <Calendar size={16} />
             <span>Du hast den Termin vom {formatDate(occurrenceDate)} ausgewählt</span>
+            {onChangeOccurrence && (
+              <button
+                className="occurrence-change-btn"
+                onClick={onChangeOccurrence}
+                title="Anderen Termin auswählen"
+              >
+                Ändern
+              </button>
+            )}
           </div>
         )}
 
