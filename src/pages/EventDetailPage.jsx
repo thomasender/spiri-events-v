@@ -483,8 +483,18 @@ export default function EventDetailPage() {
             <User size={18} className="detail-icon" />
             <div>
               <span className="detail-label">Veranstalter</span>
-              <span className="detail-value">
-                {event.organizer.firstName} {event.organizer.lastName}
+              <span className="detail-value organizer-value">
+                {event.organizer.photoURL && (
+                  <img
+                    src={event.organizer.photoURL}
+                    alt=""
+                    className="organizer-photo"
+                    data-testid="organizer-photo"
+                  />
+                )}
+                <span>
+                  {event.organizer.firstName} {event.organizer.lastName}
+                </span>
               </span>
             </div>
           </div>
