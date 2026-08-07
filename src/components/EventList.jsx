@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useEvents, usePendingEvents } from '../hooks/useEvents';
+import { useEventsWithMessages } from '../hooks/useEventsWithMessages';
 import { useAuth } from '../hooks/useAuth';
 import {
   PlusCircle,
@@ -72,6 +73,7 @@ export default function EventList() {
   const { events, loading, deleteEvent, updateEvent, submitForReview, revertToDraft } =
     useEvents(user);
   const { pendingEvents, loading: pendingLoading, approveEvent } = usePendingEvents();
+  const { unreadCountByEvent } = useEventsWithMessages();
   const [deleteId, setDeleteId] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [approving, setApproving] = useState(null);
@@ -238,6 +240,8 @@ export default function EventList() {
     const recurrenceLabel = getRecurrenceLabel(event);
     const nextOccurrence = isRecurring ? getNextUpcomingOccurrence(event) : null;
     const occurrenceCount = isRecurring ? getOccurrenceCount(event) : 0;
+    const unreadCount = unreadCountByEvent[event.id] || 0;
+    const hasUnread = unreadCount > 0;
 
     const nextOccurrenceDisplay = nextOccurrence
       ? (() => {
@@ -248,7 +252,7 @@ export default function EventList() {
       : null;
 
     return (
-      <div key={event.id} className="event-card">
+      <div key={event.id} className={`event-card${hasUnread ? ' event-card--has-unread' : ''}`}>
         <Link
           to={
             isRecurring && nextOccurrence
@@ -259,7 +263,18 @@ export default function EventList() {
           className="event-card-content"
         >
           <div className="event-card-header">
-            <h3>{event.title}</h3>
+            <h3>
+              {event.title}
+              {hasUnread && (
+                <span
+                  className="event-card-unread-indicator"
+                  data-testid="event-card-unread-indicator"
+                  role="img"
+                  aria-label={`${unreadCount} ungelesene Nachricht${unreadCount > 1 ? 'en' : ''}`}
+                  title={`${unreadCount} ungelesene Nachricht${unreadCount > 1 ? 'en' : ''}`}
+                />
+              )}
+            </h3>
             <div className="event-card-badges">
               {showStatus && <StatusBadge status={event.status} />}
               {isRecurring && (

@@ -57,7 +57,12 @@ export default function EventMessages({ eventId }) {
   };
 
   return (
-    <section className="event-messages" data-testid="event-messages" aria-label="Nachrichten">
+    <section
+      className="event-messages"
+      id="event-messages"
+      data-testid="event-messages"
+      aria-label="Nachrichten"
+    >
       <header className="event-messages-header">
         <MessageSquare size={20} aria-hidden="true" />
         <h2>Nachrichten</h2>

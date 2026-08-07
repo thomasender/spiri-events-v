@@ -3,14 +3,16 @@ import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from './useAuth';
 
-export function useEventsWithUnreadMessages() {
+export function useEventsWithMessages() {
   const { user, role } = useAuth();
   const [events, setEvents] = useState([]);
+  const [unreadCountByEvent, setUnreadCountByEvent] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) {
       setEvents([]);
+      setUnreadCountByEvent({});
       setLoading(false);
       return undefined;
     }
@@ -50,16 +52,24 @@ export function useEventsWithUnreadMessages() {
 
         if (docs.length === 0) {
           setEvents([]);
+          setUnreadCountByEvent({});
           setLoading(false);
           return;
         }
 
-        const perEventHasUnread = {};
+        const perEventUnread = {};
+        const perEventHasAny = {};
         const recompute = () => {
           const list = docs
-            .filter((e) => perEventHasUnread[e.id])
-            .sort((a, b) => (a.date > b.date ? 1 : -1));
+            .filter((e) => perEventHasAny[e.id])
+            .sort((a, b) => {
+              const aUnread = perEventUnread[a.id] || 0;
+              const bUnread = perEventUnread[b.id] || 0;
+              if (aUnread !== bUnread) return bUnread - aUnread;
+              return a.date > b.date ? 1 : -1;
+            });
           setEvents(list);
+          setUnreadCountByEvent({ ...perEventUnread });
           setLoading(false);
         };
 
@@ -68,18 +78,22 @@ export function useEventsWithUnreadMessages() {
           const unsub = onSnapshot(
             messagesRef,
             (snap) => {
-              let hasUnread = false;
+              let unread = 0;
+              let hasAny = false;
               snap.docs.forEach((docSnap) => {
+                hasAny = true;
                 const data = docSnap.data();
                 if (data.authorUid !== user.uid && data.readByRecipient !== true) {
-                  hasUnread = true;
+                  unread += 1;
                 }
               });
-              perEventHasUnread[event.id] = hasUnread;
+              perEventUnread[event.id] = unread;
+              perEventHasAny[event.id] = hasAny;
               recompute();
             },
             () => {
-              perEventHasUnread[event.id] = false;
+              perEventUnread[event.id] = 0;
+              perEventHasAny[event.id] = false;
               recompute();
             }
           );
@@ -87,8 +101,9 @@ export function useEventsWithUnreadMessages() {
         });
       },
       (err) => {
-        console.warn('useEventsWithUnreadMessages events error:', err);
+        console.warn('useEventsWithMessages events error:', err);
         setEvents([]);
+        setUnreadCountByEvent({});
         setLoading(false);
       }
     );
@@ -109,5 +124,5 @@ export function useEventsWithUnreadMessages() {
     };
   }, [user, role]);
 
-  return { events, loading };
+  return { events, unreadCountByEvent, loading };
 }

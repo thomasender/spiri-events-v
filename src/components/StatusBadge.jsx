@@ -28,18 +28,8 @@ export default function StatusBadge({ status }) {
             strokeWidth="1.5"
             strokeLinejoin="round"
           />
-          <path
-            d="M7 2.5V5H9.5"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M4.25 7.25H7.75"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
+          <path d="M7 2.5V5H9.5" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+          <path d="M4.25 7.25H7.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
         Entwurf
       </span>

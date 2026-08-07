@@ -30,6 +30,12 @@ const mockUsePendingEvents = vi.hoisted(() => ({
   approveEvent: mockApproveEvent,
 }));
 
+const mockUseEventsWithMessages = vi.hoisted(() => ({
+  events: [] as Array<{ id: string }>,
+  unreadCountByEvent: {} as Record<string, number>,
+  loading: false,
+}));
+
 const mockGetNextUpcomingOccurrence = vi.hoisted(() => vi.fn());
 const mockGetOccurrenceCount = vi.hoisted(() => vi.fn());
 const mockGetRecurrenceLabel = vi.hoisted(() => vi.fn());
@@ -42,6 +48,10 @@ vi.mock('../../src/hooks/useAuth', () => ({
 vi.mock('../../src/hooks/useEvents', () => ({
   useEvents: () => mockUseEvents,
   usePendingEvents: () => mockUsePendingEvents,
+}));
+
+vi.mock('../../src/hooks/useEventsWithMessages', () => ({
+  useEventsWithMessages: () => mockUseEventsWithMessages,
 }));
 
 vi.mock('../../src/utils/eventOccurrences', () => ({
@@ -112,6 +122,9 @@ describe('EventList', () => {
     mockGetRecurrenceLabel.mockReturnValue('Jeden Donnerstag');
     mockUseEvents.events = [];
     mockUseEvents.loading = false;
+    mockUseEventsWithMessages.events = [];
+    mockUseEventsWithMessages.unreadCountByEvent = {};
+    mockUseEventsWithMessages.loading = false;
   });
 
   it('renders empty state when no events', () => {
@@ -253,7 +266,9 @@ describe('EventList', () => {
 
     expect(screen.getByTestId('status-filter')).toBeInTheDocument();
     const options = screen.getAllByRole('option').map((opt) => opt.textContent);
-    expect(options).toEqual(expect.arrayContaining(['Alle', 'Entwürfe', 'Ausstehend', 'Genehmigt']));
+    expect(options).toEqual(
+      expect.arrayContaining(['Alle', 'Entwürfe', 'Ausstehend', 'Genehmigt'])
+    );
   });
 
   it('status filter dropdown does NOT include Entwürfe option for admin', () => {
@@ -289,5 +304,45 @@ describe('EventList', () => {
     fireEvent.click(screen.getByTestId('submit-draft-button'));
 
     expect(screen.getByText('Event einreichen')).toBeInTheDocument();
+  });
+
+  it('shows an unread indicator on an event card when it has unread messages', () => {
+    mockUseEvents.events = [pendingEvent];
+    mockUseEventsWithMessages.unreadCountByEvent = { [pendingEvent.id]: 2 };
+
+    render(
+      <MemoryRouter>
+        <EventList />
+      </MemoryRouter>
+    );
+
+    const indicator = screen.getByTestId('event-card-unread-indicator');
+    expect(indicator).toBeInTheDocument();
+    expect(indicator).toHaveAttribute('aria-label', '2 ungelesene Nachrichten');
+  });
+
+  it('does not show an unread indicator when the event has no unread messages', () => {
+    mockUseEvents.events = [pendingEvent];
+    mockUseEventsWithMessages.unreadCountByEvent = { [pendingEvent.id]: 0 };
+
+    render(
+      <MemoryRouter>
+        <EventList />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByTestId('event-card-unread-indicator')).not.toBeInTheDocument();
+  });
+
+  it('does not show an unread indicator when the event has no entry in the unread map', () => {
+    mockUseEvents.events = [pendingEvent];
+
+    render(
+      <MemoryRouter>
+        <EventList />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByTestId('event-card-unread-indicator')).not.toBeInTheDocument();
   });
 });
