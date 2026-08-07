@@ -52,6 +52,33 @@ test.describe.serial('Profile Management', () => {
     await expect(page.getByTestId('delete-account-card')).toBeVisible();
   });
 
+  test('delete account section is collapsed by default and expands on request', async ({
+    page,
+  }) => {
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto(PROFILE_PATH);
+    await page
+      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+      .catch(() => {});
+
+    const card = page.getByTestId('delete-account-card');
+    await expect(card).toBeVisible();
+
+    // Heading is always visible
+    await expect(card.getByRole('heading', { name: 'Konto löschen' })).toBeVisible();
+
+    // The accordion is initially closed → password field is hidden
+    await expect(page.getByTestId('delete-account-password')).not.toBeVisible();
+
+    // Expanding the accordion reveals the password field
+    await page.getByTestId('delete-account-accordion-summary').click();
+    await expect(page.getByTestId('delete-account-password')).toBeVisible();
+
+    // Toggling again collapses the section
+    await page.getByTestId('delete-account-accordion-summary').click();
+    await expect(page.getByTestId('delete-account-password')).not.toBeVisible();
+  });
+
   test('profile page renders the form even without a pre-existing users/{uid} doc', async ({
     page,
   }) => {
@@ -270,6 +297,7 @@ test.describe.serial('Profile Management', () => {
     await expect(page.getByTestId('profile-page')).toBeVisible({ timeout: 10000 });
 
     // Trigger the delete-account flow
+    await page.getByTestId('delete-account-accordion-summary').click();
     await page.getByTestId('delete-account-password').fill(password);
     await page.getByTestId('delete-account-trigger').click();
 
