@@ -177,9 +177,9 @@ export default function ShareButton({ event }) {
                   onClick={() => handleChannelClick(channel.id)}
                   data-testid={`share-channel-${channel.id}`}
                   aria-label={`Über ${channel.label} teilen`}
+                  title={channel.label}
                 >
                   <channel.Icon size={20} aria-hidden="true" />
-                  <span>{channel.label}</span>
                 </button>
               ))}
             </div>
