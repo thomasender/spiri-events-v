@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
 import { Calendar, LogOut, User, PlusCircle, UserCircle, Pen, Menu, X } from 'lucide-react';
-import NotificationBell from './NotificationBell';
 import './Header.css';
 
 const navClass = ({ isActive }) => (isActive ? 'nav-link nav-link--active' : 'nav-link');
@@ -14,6 +14,7 @@ export default function Header() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { count: unreadCount } = useUnreadMessageCount();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const toggleRef = useRef(null);
@@ -68,6 +69,28 @@ export default function Header() {
     closeMenu();
   }, [location.pathname]);
 
+  const hasUnread = unreadCount > 0;
+
+  const renderAdminLink = () => (
+    <NavLink
+      to="/admin"
+      className={getAdminNavClass(location.pathname)}
+      end
+      onClick={closeMenu}
+      aria-label={hasUnread ? `Verwaltung (${unreadCount} ungelesene Nachrichten)` : 'Verwaltung'}
+    >
+      <span className="nav-link-admin-icon">
+        <Pen size={18} aria-hidden="true" />
+        {hasUnread && (
+          <span className="nav-link-badge" data-testid="verwaltung-unread-badge" aria-hidden="true">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        )}
+      </span>
+      <span>Verwaltung</span>
+    </NavLink>
+  );
+
   const renderNavLinks = () => (
     <>
       <NavLink to="/" className={navClass} end onClick={closeMenu}>
@@ -76,16 +99,7 @@ export default function Header() {
       </NavLink>
       {user ? (
         <>
-          <NavLink
-            to="/admin"
-            className={getAdminNavClass(location.pathname)}
-            end
-            onClick={closeMenu}
-          >
-            <Pen size={18} />
-            <span>Verwaltung</span>
-          </NavLink>
-          <NotificationBell />
+          {renderAdminLink()}
           <NavLink to="/profil" className={navClass} onClick={closeMenu}>
             <UserCircle size={18} />
             <span>Mein Profil</span>
