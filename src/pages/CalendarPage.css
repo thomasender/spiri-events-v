@@ -278,8 +278,18 @@
   transform: scale(1);
 }
 
-/* Kategorien übernehmen im Active-State ihre jeweilige Kategoriefarbe
-   (match zu Badges auf Event-Karten). Bezirke bleiben auf der Akzentfarbe. */
+/* Kategorien zeigen bereits inaktiv ihre Kategoriefarbe als Border
+   und übernehmen sie im Active-State als Fill (match zu Badges
+   auf Event-Karten). Bezirke bleiben auf der Akzentfarbe. */
+.filter-chip--category {
+  border-color: var(--category-color);
+}
+
+.filter-chip--category:hover {
+  border-color: var(--category-color);
+  color: var(--category-color);
+}
+
 .filter-chip--category[aria-pressed='true'] {
   background-color: var(--category-color);
   border-color: var(--category-color);
