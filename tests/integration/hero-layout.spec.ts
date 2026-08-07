@@ -126,9 +126,7 @@ test.describe('Hero Section Layout', () => {
       await waitForCalendarToLoad(page);
     });
 
-    test('hero stacks vertically: image on top (1/3), text on bottom (2/3)', async ({
-      page,
-    }) => {
+    test('hero stacks vertically: image on top (1/3), text on bottom (2/3)', async ({ page }) => {
       const hero = page.locator('.hero');
       const heroVisual = page.locator('.hero-visual');
       const heroContent = page.locator('.hero-content');

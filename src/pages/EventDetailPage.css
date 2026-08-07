@@ -97,6 +97,20 @@
   color: var(--text-primary);
 }
 
+.event-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.event-title-row .event-title {
+  margin-bottom: 0;
+  flex: 1;
+  min-width: 0;
+}
+
 .event-meta-row {
   display: flex;
   flex-wrap: wrap;

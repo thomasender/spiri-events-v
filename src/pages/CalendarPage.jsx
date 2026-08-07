@@ -171,8 +171,12 @@ export default function CalendarPage() {
             <div className="filter-header filter-header--title">
               <h2 className="filter-section-title">Hier kannst du filtern</h2>
               <div className="filter-quick-actions">
-                <button type="button" onClick={selectAllCategories}>Alle</button>
-                <button type="button" onClick={selectNoneCategories}>Keine</button>
+                <button type="button" onClick={selectAllCategories}>
+                  Alle
+                </button>
+                <button type="button" onClick={selectNoneCategories}>
+                  Keine
+                </button>
               </div>
             </div>
             <div className="filter-options">
@@ -201,8 +205,12 @@ export default function CalendarPage() {
                 <div className="filter-header">
                   <span className="filter-label">Bezirk</span>
                   <div className="filter-quick-actions">
-                    <button type="button" onClick={selectAllBezirke}>Alle</button>
-                    <button type="button" onClick={selectNoneBezirke}>Keine</button>
+                    <button type="button" onClick={selectAllBezirke}>
+                      Alle
+                    </button>
+                    <button type="button" onClick={selectNoneBezirke}>
+                      Keine
+                    </button>
                   </div>
                 </div>
                 <div className="filter-options">

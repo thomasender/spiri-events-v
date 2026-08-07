@@ -155,10 +155,7 @@ test.describe('Calendar Integration', () => {
 
     test('district chip does not use a category color (stays on accent)', async ({ page }) => {
       await page.locator('.filter-accordion .filter-accordion-summary').click();
-      const bregenz = page
-        .locator('.filter-chip--bezirk')
-        .filter({ hasText: 'Bregenz' })
-        .first();
+      const bregenz = page.locator('.filter-chip--bezirk').filter({ hasText: 'Bregenz' }).first();
       await bregenz.click();
 
       const cssVars = await bregenz.evaluate((el) => {
