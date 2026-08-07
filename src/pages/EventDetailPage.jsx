@@ -149,6 +149,12 @@ export default function EventDetailPage() {
   const [pendingRecurringDelete, setPendingRecurringDelete] = useState(null);
   const [selectedOccurrenceDate, setSelectedOccurrenceDate] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const isAdmin = role === 'Admin';
+  const showMessagesForHash =
+    event &&
+    user &&
+    (event.status === 'pending' || event.status === 'draft') &&
+    (isAdmin || event.createdBy === user.uid);
 
   useEffect(() => {
     async function fetchEvent() {
@@ -221,6 +227,19 @@ export default function EventDetailPage() {
     fetchEvent();
   }, [slug, user, role, authLoading]);
 
+  useEffect(() => {
+    if (location.hash !== '#event-messages') return;
+    if (loading || !event) return;
+    if (!showMessagesForHash) return;
+    const id = window.requestAnimationFrame(() => {
+      const node = document.getElementById('event-messages');
+      if (node) {
+        node.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [location.hash, loading, event, showMessagesForHash]);
+
   if (loading) {
     return (
       <div className="event-detail-page">
@@ -245,7 +264,6 @@ export default function EventDetailPage() {
 
   const isFree = event.contribution === 'free';
   const jsonLd = generateEventJsonLd(event);
-  const isAdmin = role === 'Admin';
   const isOwner = user && event.createdBy === user.uid;
   const showEditButton = canEditEvent(user, event, role);
   const showDeleteButton = canDeleteEvent(user, event, role);
@@ -565,11 +583,9 @@ export default function EventDetailPage() {
         </div>
       )}
 
-      {(event.status === 'pending' || event.status === 'draft') &&
-        user &&
-        (isAdmin || isOwner) && (
-          <EventMessages eventId={event.id} />
-        )}
+      {(event.status === 'pending' || event.status === 'draft') && user && (isAdmin || isOwner) && (
+        <EventMessages eventId={event.id} />
+      )}
 
       {event.link && (
         <a

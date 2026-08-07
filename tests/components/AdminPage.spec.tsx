@@ -14,8 +14,9 @@ const mockUseUnread = vi.hoisted(() => ({
   loading: false,
 }));
 
-const mockUseEventsWithUnread = vi.hoisted(() => ({
+const mockUseEventsWithMessages = vi.hoisted(() => ({
   events: [] as Array<{ id: string; title: string; date: string; slug?: string }>,
+  unreadCountByEvent: {} as Record<string, number>,
   loading: false,
 }));
 
@@ -40,8 +41,8 @@ vi.mock('../../src/hooks/useUnreadMessageCount', () => ({
   useUnreadMessageCount: () => mockUseUnread,
 }));
 
-vi.mock('../../src/hooks/useEventsWithUnreadMessages', () => ({
-  useEventsWithUnreadMessages: () => mockUseEventsWithUnread,
+vi.mock('../../src/hooks/useEventsWithMessages', () => ({
+  useEventsWithMessages: () => mockUseEventsWithMessages,
 }));
 
 vi.mock('../../src/hooks/useEvents', () => ({
@@ -65,8 +66,9 @@ beforeEach(() => {
   mockAuth.role = 'User';
   mockUseUnread.count = 0;
   mockUseUnread.loading = false;
-  mockUseEventsWithUnread.events = [];
-  mockUseEventsWithUnread.loading = false;
+  mockUseEventsWithMessages.events = [];
+  mockUseEventsWithMessages.unreadCountByEvent = {};
+  mockUseEventsWithMessages.loading = false;
   mockUseEvents.events = [];
   mockUseEvents.loading = false;
   mockUsePendingEvents.pendingEvents = [];
@@ -105,13 +107,13 @@ describe('AdminPage tabs (zejdjTnm)', () => {
     expect(screen.getByTestId('admin-tab-events')).toHaveAttribute('aria-selected', 'true');
   });
 
-  it('renders the empty messages state when there are no events with unread messages', () => {
+  it('renders the empty messages state when there are no events with messages', () => {
     renderAdmin(['/admin?tab=messages']);
     expect(screen.getByTestId('messages-tab-empty')).toBeInTheDocument();
   });
 
-  it('renders the list of events with unread messages on the Nachrichten tab', () => {
-    mockUseEventsWithUnread.events = [
+  it('renders the list of events with messages on the Nachrichten tab', () => {
+    mockUseEventsWithMessages.events = [
       { id: 'e1', title: 'Yoga Workshop', date: '2026-09-01', slug: 'yoga-workshop' },
     ];
     renderAdmin(['/admin?tab=messages']);

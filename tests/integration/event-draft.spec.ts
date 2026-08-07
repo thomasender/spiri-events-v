@@ -64,9 +64,7 @@ test.describe('Event draft status — read-only (AzGFKWfV)', () => {
     await expect(draftTitle).toHaveCount(0);
   });
 
-  test('status filter shows only events with the selected status (non-admin)', async ({
-    page,
-  }) => {
+  test('status filter shows only events with the selected status (non-admin)', async ({ page }) => {
     await signInWithEmailAndPassword(page, 'user@test.local', 'testpassword123');
     await page.goto('/admin');
 
@@ -74,24 +72,16 @@ test.describe('Event draft status — read-only (AzGFKWfV)', () => {
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
       .catch(() => {});
 
-    await expect(
-      page.locator('.event-card', { hasText: 'User Draft Event' })
-    ).toBeVisible({ timeout: 10000 });
-    await expect(
-      page.locator('.event-card', { hasText: 'User Approved Event' })
-    ).toBeVisible();
+    await expect(page.locator('.event-card', { hasText: 'User Draft Event' })).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(page.locator('.event-card', { hasText: 'User Approved Event' })).toBeVisible();
 
     await page.getByTestId('status-filter').selectOption('draft');
 
-    await expect(
-      page.locator('.event-card', { hasText: 'User Draft Event' })
-    ).toBeVisible();
-    await expect(
-      page.locator('.event-card', { hasText: 'User Approved Event' })
-    ).toHaveCount(0);
-    await expect(
-      page.locator('.event-card', { hasText: 'User Pending Event' })
-    ).toHaveCount(0);
+    await expect(page.locator('.event-card', { hasText: 'User Draft Event' })).toBeVisible();
+    await expect(page.locator('.event-card', { hasText: 'User Approved Event' })).toHaveCount(0);
+    await expect(page.locator('.event-card', { hasText: 'User Pending Event' })).toHaveCount(0);
   });
 
   test('guest cannot view a draft event via slug URL', async ({ page }) => {

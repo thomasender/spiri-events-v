@@ -129,10 +129,28 @@
   box-shadow: var(--shadow-sm);
   overflow: hidden;
   transition: box-shadow 0.15s ease;
+  position: relative;
 }
 
 .event-card:hover {
   box-shadow: var(--shadow-md);
+}
+
+.event-card--has-unread {
+  box-shadow:
+    0 0 0 2px var(--error),
+    var(--shadow-sm);
+}
+
+.event-card-unread-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--error);
+  margin-left: 10px;
+  vertical-align: middle;
+  flex-shrink: 0;
 }
 
 .event-card-content {

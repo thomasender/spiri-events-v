@@ -38,6 +38,7 @@
 }
 
 .messages-tab-item {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -61,9 +62,32 @@
   font-weight: 500;
   font-size: 1rem;
   color: var(--text-primary);
+  padding-right: 56px;
 }
 
 .messages-tab-item-meta {
   font-size: 0.85rem;
   color: var(--text-secondary);
+}
+
+.messages-tab-item-badge {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--error);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.messages-tab-item--unread .messages-tab-item-title {
+  font-weight: 600;
 }
