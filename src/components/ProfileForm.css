@@ -154,6 +154,57 @@
   color: var(--error);
 }
 
+/* "Konto löschen" accordion — keeps the heading visible, hides the rest */
+.danger-accordion {
+  margin: 0;
+}
+
+.danger-accordion-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  padding: 0;
+  margin: 0;
+}
+
+.danger-accordion-summary::-webkit-details-marker {
+  display: none;
+}
+
+.danger-accordion-summary::marker {
+  content: '';
+}
+
+.danger-accordion-summary .profile-card-title {
+  margin: 0;
+  color: var(--error);
+}
+
+.danger-accordion-icon {
+  color: var(--error);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.danger-accordion[open] > .danger-accordion-summary .danger-accordion-icon {
+  transform: rotate(180deg);
+}
+
+.danger-accordion-body {
+  padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.danger-accordion-body .profile-card-hint {
+  margin: 0;
+}
+
 .profile-danger-zone {
   background-color: rgba(191, 91, 78, 0.04);
   border: 1px solid rgba(191, 91, 78, 0.2);
