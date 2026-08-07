@@ -12,12 +12,14 @@ import {
   Mail,
   Repeat,
   Info,
+  Send,
+  FileText,
 } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
 import RecurringDeleteDialog from './RecurringDeleteDialog';
 import OccurrencePickerDialog from './OccurrencePickerDialog';
 import StatusBadge from './StatusBadge';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { arrayUnion } from 'firebase/firestore';
 import {
   getNextUpcomingOccurrence,
@@ -57,18 +59,49 @@ function formatEndDate(startDateStr, endDateStr) {
   });
 }
 
+const STATUS_FILTERS = [
+  { value: 'all', label: 'Alle' },
+  { value: 'draft', label: 'Entwürfe' },
+  { value: 'pending', label: 'Ausstehend' },
+  { value: 'approved', label: 'Genehmigt' },
+];
+
 export default function EventList() {
   const { user } = useAuth();
   const { role } = useAuth();
-  const { events, loading, deleteEvent, updateEvent } = useEvents(user);
+  const { events, loading, deleteEvent, updateEvent, submitForReview, revertToDraft } =
+    useEvents(user);
   const { pendingEvents, loading: pendingLoading, approveEvent } = usePendingEvents();
   const [deleteId, setDeleteId] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [approving, setApproving] = useState(null);
   const [recurringDeleteTarget, setRecurringDeleteTarget] = useState(null);
   const [pendingRecurringDelete, setPendingRecurringDelete] = useState(null);
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusActionTarget, setStatusActionTarget] = useState(null);
 
   const isAdmin = role === 'Admin';
+
+  const filteredEvents = useMemo(() => {
+    let list = events;
+    if (isAdmin) {
+      list = list.filter((e) => e.status !== 'draft');
+    }
+    if (statusFilter !== 'all') {
+      list = list.filter((e) => e.status === statusFilter);
+    }
+    return list;
+  }, [events, statusFilter, isAdmin]);
+
+  const sortedEvents = useMemo(() => {
+    return [...filteredEvents].sort((a, b) => {
+      const order = { pending: 0, draft: 1, approved: 2 };
+      const aOrder = order[a.status] ?? 3;
+      const bOrder = order[b.status] ?? 3;
+      if (aOrder !== bOrder) return aOrder - bOrder;
+      return a.date > b.date ? 1 : -1;
+    });
+  }, [filteredEvents]);
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -91,6 +124,28 @@ export default function EventList() {
       console.error('Approve failed:', err);
     } finally {
       setApproving(null);
+    }
+  };
+
+  const handleSubmitForReview = async () => {
+    if (!statusActionTarget) return;
+    try {
+      await submitForReview(statusActionTarget.id);
+    } catch (err) {
+      console.error('Submit for review failed:', err);
+    } finally {
+      setStatusActionTarget(null);
+    }
+  };
+
+  const handleRevertToDraft = async () => {
+    if (!statusActionTarget) return;
+    try {
+      await revertToDraft(statusActionTarget.id);
+    } catch (err) {
+      console.error('Revert to draft failed:', err);
+    } finally {
+      setStatusActionTarget(null);
     }
   };
 
@@ -283,6 +338,9 @@ export default function EventList() {
           {event.status === 'pending' && !isAdmin && (
             <p className="event-card-pending-note">Wartet auf Genehmigung durch einen Admin</p>
           )}
+          {event.status === 'draft' && (
+            <p className="event-card-pending-note">Entwurf — noch nicht eingereicht</p>
+          )}
         </Link>
 
         <div className="event-card-actions">
@@ -306,6 +364,26 @@ export default function EventList() {
             >
               <CheckCircle size={16} />
               <span>{approving === event.id ? 'Genehmige...' : 'Genehmigen'}</span>
+            </button>
+          )}
+          {event.status === 'draft' && (
+            <button
+              onClick={() => setStatusActionTarget({ id: event.id, action: 'submit' })}
+              className="btn btn-primary btn-sm"
+              data-testid="submit-draft-button"
+            >
+              <Send size={16} />
+              <span>Einreichen</span>
+            </button>
+          )}
+          {event.status === 'pending' && (
+            <button
+              onClick={() => setStatusActionTarget({ id: event.id, action: 'revert' })}
+              className="btn btn-secondary btn-sm"
+              data-testid="revert-to-draft-button"
+            >
+              <FileText size={16} />
+              <span>Zu Entwurf</span>
             </button>
           )}
           <Link
@@ -348,6 +426,30 @@ export default function EventList() {
     </div>
   );
 
+  const renderStatusFilter = () => (
+    <div className="event-list-filters">
+      <label htmlFor="status-filter" className="event-list-filter-label">
+        Status:
+      </label>
+      <select
+        id="status-filter"
+        value={statusFilter}
+        onChange={(e) => setStatusFilter(e.target.value)}
+        className="event-list-filter-select"
+        data-testid="status-filter"
+      >
+        {STATUS_FILTERS.filter((f) => {
+          if (isAdmin && f.value === 'draft') return false;
+          return true;
+        }).map((f) => (
+          <option key={f.value} value={f.value}>
+            {f.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+
   if (isAdmin) {
     const myEvents = events.filter((e) => e.createdBy === user.uid);
     const allPending = pendingEvents;
@@ -384,17 +486,24 @@ export default function EventList() {
         )}
 
         <section className="event-list-section">
-          <h2>Meine Events</h2>
-          {myEvents.length === 0 ? (
-            renderEmptyState(
-              'Noch keine Events',
-              'Erstelle dein erstes Event und teile es mit der Community.'
+          <div className="event-list-section-header">
+            <h2>Meine Events</h2>
+            {renderStatusFilter()}
+          </div>
+          {sortedEvents.length === 0 ? (
+            statusFilter === 'all' ? (
+              renderEmptyState(
+                'Noch keine Events',
+                'Erstelle dein erstes Event und teile es mit der Community.'
+              )
+            ) : (
+              <div className="event-list-empty-small">
+                <p>Keine Events mit diesem Status</p>
+              </div>
             )
           ) : (
             <div className="event-list-grid">
-              {[...myEvents]
-                .sort((a, b) => (a.status === 'pending' ? -1 : 1))
-                .map((event) => renderEventCard(event, true))}
+              {sortedEvents.map((event) => renderEventCard(event, true))}
             </div>
           )}
         </section>
@@ -408,6 +517,27 @@ export default function EventList() {
           onConfirm={handleDelete}
           onCancel={() => setDeleteId(null)}
           loading={deleting}
+        />
+
+        <ConfirmDialog
+          isOpen={Boolean(statusActionTarget)}
+          title={
+            statusActionTarget?.action === 'submit'
+              ? 'Event einreichen'
+              : 'Event zu Entwurf zurückziehen'
+          }
+          message={
+            statusActionTarget?.action === 'submit'
+              ? 'Das Event wird zur Genehmigung eingereicht. Nach der Einreichung kann es nicht mehr bearbeitet werden, bis ein Admin es bearbeitet.'
+              : 'Das Event wird auf "Entwurf" zurückgesetzt und ist nicht mehr öffentlich sichtbar. Du kannst es später erneut einreichen.'
+          }
+          confirmLabel={statusActionTarget?.action === 'submit' ? 'Einreichen' : 'Zu Entwurf'}
+          cancelLabel="Abbrechen"
+          onConfirm={
+            statusActionTarget?.action === 'submit' ? handleSubmitForReview : handleRevertToDraft
+          }
+          onCancel={() => setStatusActionTarget(null)}
+          loading={false}
         />
 
         <RecurringDeleteDialog
@@ -446,18 +576,28 @@ export default function EventList() {
         </Link>
       </div>
 
-      {events.length === 0 ? (
-        renderEmptyState(
-          'Noch keine Events',
-          'Erstelle dein erstes Event und teile es mit der Community.'
-        )
-      ) : (
-        <div className="event-list-grid">
-          {[...events]
-            .sort((a, b) => (a.status === 'pending' ? 0 : 1) - (b.status === 'pending' ? 0 : 1))
-            .map((event) => renderEventCard(event, true))}
+      <section className="event-list-section">
+        <div className="event-list-section-header">
+          <h2>Events</h2>
+          {renderStatusFilter()}
         </div>
-      )}
+        {sortedEvents.length === 0 ? (
+          statusFilter === 'all' ? (
+            renderEmptyState(
+              'Noch keine Events',
+              'Erstelle dein erstes Event und teile es mit der Community.'
+            )
+          ) : (
+            <div className="event-list-empty-small">
+              <p>Keine Events mit diesem Status</p>
+            </div>
+          )
+        ) : (
+          <div className="event-list-grid">
+            {sortedEvents.map((event) => renderEventCard(event, true))}
+          </div>
+        )}
+      </section>
 
       <ConfirmDialog
         isOpen={Boolean(deleteId)}
@@ -468,6 +608,27 @@ export default function EventList() {
         onConfirm={handleDelete}
         onCancel={() => setDeleteId(null)}
         loading={deleting}
+      />
+
+      <ConfirmDialog
+        isOpen={Boolean(statusActionTarget)}
+        title={
+          statusActionTarget?.action === 'submit'
+            ? 'Event einreichen'
+            : 'Event zu Entwurf zurückziehen'
+        }
+        message={
+          statusActionTarget?.action === 'submit'
+            ? 'Das Event wird zur Genehmigung eingereicht. Nach der Einreichung kann es nicht mehr bearbeitet werden, bis ein Admin es bearbeitet.'
+            : 'Das Event wird auf "Entwurf" zurückgesetzt und ist nicht mehr öffentlich sichtbar. Du kannst es später erneut einreichen.'
+        }
+        confirmLabel={statusActionTarget?.action === 'submit' ? 'Einreichen' : 'Zu Entwurf'}
+        cancelLabel="Abbrechen"
+        onConfirm={
+          statusActionTarget?.action === 'submit' ? handleSubmitForReview : handleRevertToDraft
+        }
+        onCancel={() => setStatusActionTarget(null)}
+        loading={false}
       />
 
       <RecurringDeleteDialog

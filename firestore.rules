@@ -37,7 +37,7 @@ service cloud.firestore {
 
       allow create: if isAuthenticated()
                     && request.resource.data.createdBy == request.auth.uid
-                    && (request.resource.data.status == 'pending' || isAdminOrEmulatorAdmin());
+                    && (request.resource.data.status in ['pending', 'draft'] || isAdminOrEmulatorAdmin());
 
       allow update, delete: if isOwner() || isAdminOrEmulatorAdmin();
 

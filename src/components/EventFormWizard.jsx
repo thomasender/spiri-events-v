@@ -368,6 +368,20 @@ export default function EventFormWizard() {
     setShowConfirmModal(true);
   };
 
+  const handleSaveAsDraft = async () => {
+    setSubmitError('');
+    setValidationError('');
+
+    const newErrors = validateStep(3);
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      setValidationError('Bitte fülle alle Pflichtfelder aus.');
+      return;
+    }
+
+    await saveEvent(buildEventData('draft'));
+  };
+
   const saveEvent = async (eventData) => {
     setLoading(true);
     setShowConfirmModal(false);
@@ -885,6 +899,24 @@ export default function EventFormWizard() {
               <button type="button" onClick={prevStep} className="btn btn-secondary">
                 <ArrowLeft size={18} />
                 <span>Zurück</span>
+              </button>
+            )}
+            {currentStep === 4 && (
+              <button
+                type="button"
+                onClick={handleSaveAsDraft}
+                className="btn btn-secondary"
+                disabled={loading || imageUploading}
+                data-testid="save-as-draft-button"
+              >
+                <Save size={18} />
+                <span>
+                  {imageUploading
+                    ? `Wird hochgeladen… (${imageProgress}%)`
+                    : loading
+                      ? 'Speichern...'
+                      : 'Als Entwurf speichern'}
+                </span>
               </button>
             )}
             {currentStep < 4 ? (

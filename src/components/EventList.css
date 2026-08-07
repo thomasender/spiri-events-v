@@ -27,6 +27,24 @@
   margin-bottom: 48px;
 }
 
+.event-list-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.event-list-section-header h2 {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin: 0;
+}
+
 .event-list-section h2 {
   font-family: 'Cormorant Garamond', Georgia, serif;
   font-size: 1.35rem;
@@ -35,6 +53,33 @@
   margin-bottom: 20px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--border);
+}
+
+.event-list-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.event-list-filter-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.event-list-filter-select {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background-color: var(--bg-calendar);
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.event-list-filter-select:focus {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 1px;
 }
 
 .event-list-empty {

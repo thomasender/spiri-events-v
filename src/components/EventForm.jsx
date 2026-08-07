@@ -87,7 +87,7 @@ export default function EventForm({ event }) {
   const { user } = useAuth();
   const { role } = useAuth();
   const { profile } = useProfile(user?.uid);
-  const { addEvent, updateEvent, deleteEvent } = useEvents(user);
+  const { addEvent, updateEvent, deleteEvent, submitForReview, revertToDraft } = useEvents(user);
   const [searchParams] = useSearchParams();
   const occurrenceDate = searchParams.get('occurrenceDate');
 
@@ -154,6 +154,8 @@ export default function EventForm({ event }) {
   const isAdmin = role === 'Admin';
   const isEdit = Boolean(event);
   const wasApproved = event?.status === 'approved';
+  const isDraft = event?.status === 'draft';
+  const isPending = event?.status === 'pending';
   const canDelete = isEdit && canDeleteEvent(user, event, role);
 
   const getFormTitle = () => {
@@ -167,6 +169,15 @@ export default function EventForm({ event }) {
     if (isEdit) return wasApproved && !isAdmin ? 'Erneut einreichen' : 'Änderungen speichern';
     return isAdmin ? 'Event erstellen' : 'Einreichen zur Genehmigung';
   };
+
+  const getDraftButtonText = () => {
+    if (imageUploading) return `Wird hochgeladen… (${imageProgress}%)`;
+    if (loading) return 'Speichern...';
+    if (isEdit) return 'Als Entwurf speichern';
+    return 'Als Entwurf speichern';
+  };
+
+  const canSaveAsDraft = !isEdit || isDraft || (isPending && !isAdmin);
 
   const recurrenceMinDate = useMemo(() => {
     return formData.date || '';
@@ -385,6 +396,20 @@ export default function EventForm({ event }) {
 
     const status = isEdit ? event.status : isAdmin ? 'approved' : 'pending';
     await saveEvent(buildEventData(status));
+  };
+
+  const handleSaveAsDraft = async () => {
+    setSubmitError('');
+    setValidationError('');
+
+    const newErrors = validate();
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      setValidationError('Bitte fülle alle Pflichtfelder aus.');
+      return;
+    }
+
+    await saveEvent(buildEventData('draft'));
   };
 
   const saveEvent = async (eventData) => {
@@ -940,6 +965,18 @@ export default function EventForm({ event }) {
             <button type="button" onClick={() => navigate('/admin')} className="btn btn-secondary">
               Abbrechen
             </button>
+            {canSaveAsDraft && (
+              <button
+                type="button"
+                onClick={handleSaveAsDraft}
+                className="btn btn-secondary"
+                disabled={loading || imageUploading}
+                data-testid="save-as-draft-button"
+              >
+                <Save size={18} />
+                <span>{getDraftButtonText()}</span>
+              </button>
+            )}
             <button type="submit" className="btn btn-primary" disabled={loading || imageUploading}>
               <Save size={18} />
               <span>{getSubmitButtonText()}</span>
