@@ -565,9 +565,11 @@ export default function EventDetailPage() {
         </div>
       )}
 
-      {event.status === 'pending' && user && (isAdmin || isOwner) && (
-        <EventMessages eventId={event.id} />
-      )}
+      {(event.status === 'pending' || event.status === 'draft') &&
+        user &&
+        (isAdmin || isOwner) && (
+          <EventMessages eventId={event.id} />
+        )}
 
       {event.link && (
         <a

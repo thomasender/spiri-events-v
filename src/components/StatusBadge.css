@@ -17,3 +17,8 @@
   background-color: rgba(198, 160, 92, 0.15);
   color: var(--pending-text);
 }
+
+.status-badge--draft {
+  background-color: rgba(122, 122, 122, 0.12);
+  color: var(--text-secondary);
+}

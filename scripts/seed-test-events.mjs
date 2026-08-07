@@ -212,6 +212,21 @@ const TEST_EVENTS = [
     status: 'pending',
   },
   {
+    id: 'test-event-user-draft',
+    title: 'User Draft Event',
+    date: makeDate(20),
+    endDate: null,
+    time: '16:00',
+    endTime: '17:30',
+    place: 'User Draft Place Dornbirn',
+    description: 'Draft event owned by a regular user, not yet submitted.',
+    category: 'Meditation',
+    bezirk: 'Dornbirn',
+    organizer: { firstName: 'Test', lastName: 'User', email: 'user@test.local' },
+    kontakt: '0676 5550011',
+    status: 'draft',
+  },
+  {
     id: 'test-event-user-approved',
     title: 'User Approved Event',
     date: makeDate(9),
@@ -363,7 +378,11 @@ async function main() {
   for (const event of TEST_EVENTS) {
     let createdBy;
     let organizerPhotoURL;
-    if (event.id === 'test-event-foreign-pending' || event.id === 'test-event-user-approved') {
+    if (
+      event.id === 'test-event-foreign-pending' ||
+      event.id === 'test-event-user-approved' ||
+      event.id === 'test-event-user-draft'
+    ) {
       createdBy = userUid || 'test-user-uid';
       organizerPhotoURL = TEST_USERS.find((u) => u.email === 'user@test.local')?.photoURL || null;
     } else {

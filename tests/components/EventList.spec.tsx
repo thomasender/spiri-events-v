@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import EventList from '../../src/components/EventList';
 
 const mockDeleteEvent = vi.hoisted(() => vi.fn());
 const mockUpdateEvent = vi.hoisted(() => vi.fn());
 const mockApproveEvent = vi.hoisted(() => vi.fn());
+const mockSubmitForReview = vi.hoisted(() => vi.fn());
+const mockRevertToDraft = vi.hoisted(() => vi.fn());
 
 const mockAuth = vi.hoisted(() => ({
   user: { uid: 'test-uid' },
@@ -18,6 +20,8 @@ const mockUseEvents = vi.hoisted(() => ({
   loading: false,
   deleteEvent: mockDeleteEvent,
   updateEvent: mockUpdateEvent,
+  submitForReview: mockSubmitForReview,
+  revertToDraft: mockRevertToDraft,
 }));
 
 const mockUsePendingEvents = vi.hoisted(() => ({
@@ -74,6 +78,30 @@ const recurringEvent = {
   contribution: 'free',
   recurrence: 'weekly',
   recurrenceEndDate: '2027-12-31',
+};
+
+const draftEvent = {
+  id: 'draft-1',
+  title: 'Draft Yoga Class',
+  date: todayStr,
+  time: '10:00',
+  place: 'Studio A',
+  bezirk: 'Bregenz',
+  status: 'draft',
+  contribution: 'free',
+  recurrence: 'none',
+};
+
+const pendingEvent = {
+  id: 'pending-1',
+  title: 'Pending Yoga Class',
+  date: todayStr,
+  time: '10:00',
+  place: 'Studio A',
+  bezirk: 'Bregenz',
+  status: 'pending',
+  contribution: 'free',
+  recurrence: 'none',
 };
 
 describe('EventList', () => {
@@ -167,5 +195,99 @@ describe('EventList', () => {
 
     const ansehenLink = screen.getByRole('link', { name: /ansehen/i });
     expect(ansehenLink.href).not.toContain('occurrenceDate=');
+  });
+
+  it('renders Entwurf status badge and Einreichen button for a draft event', () => {
+    mockUseEvents.events = [draftEvent];
+
+    render(
+      <MemoryRouter>
+        <EventList />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('Entwurf')).toBeInTheDocument();
+    expect(screen.getByTestId('submit-draft-button')).toBeInTheDocument();
+  });
+
+  it('renders Zu Entwurf button for a pending event owned by current user (non-admin)', () => {
+    mockAuth.role = null;
+    mockUseEvents.events = [pendingEvent];
+
+    render(
+      <MemoryRouter>
+        <EventList />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByTestId('revert-to-draft-button')).toBeInTheDocument();
+  });
+
+  it('admin does NOT see drafts in their Meine Events list', () => {
+    mockAuth.role = 'Admin';
+    mockAuth.user = { uid: 'admin-uid' };
+    mockUseEvents.events = [{ ...draftEvent, createdBy: 'admin-uid' }];
+
+    render(
+      <MemoryRouter>
+        <EventList />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByText('Draft Yoga Class')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('submit-draft-button')).not.toBeInTheDocument();
+
+    mockAuth.role = null;
+    mockAuth.user = { uid: 'test-uid' };
+  });
+
+  it('shows status filter dropdown for non-admin user', () => {
+    mockAuth.role = null;
+    mockUseEvents.events = [singleEvent];
+
+    render(
+      <MemoryRouter>
+        <EventList />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByTestId('status-filter')).toBeInTheDocument();
+    const options = screen.getAllByRole('option').map((opt) => opt.textContent);
+    expect(options).toEqual(expect.arrayContaining(['Alle', 'Entwürfe', 'Ausstehend', 'Genehmigt']));
+  });
+
+  it('status filter dropdown does NOT include Entwürfe option for admin', () => {
+    mockAuth.role = 'Admin';
+    mockAuth.user = { uid: 'admin-uid' };
+    mockUseEvents.events = [];
+
+    render(
+      <MemoryRouter>
+        <EventList />
+      </MemoryRouter>
+    );
+
+    const statusFilter = screen.queryByTestId('status-filter');
+    if (statusFilter) {
+      const options = screen.getAllByRole('option').map((opt) => opt.textContent);
+      expect(options).not.toContain('Entwürfe');
+    }
+
+    mockAuth.role = null;
+    mockAuth.user = { uid: 'test-uid' };
+  });
+
+  it('clicking submit-draft-button opens the submit confirmation dialog', () => {
+    mockUseEvents.events = [draftEvent];
+
+    render(
+      <MemoryRouter>
+        <EventList />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByTestId('submit-draft-button'));
+
+    expect(screen.getByText('Event einreichen')).toBeInTheDocument();
   });
 });
