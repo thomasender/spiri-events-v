@@ -243,3 +243,48 @@ export async function uploadProfileImage(file, uid, options = {}) {
     );
   });
 }
+
+/**
+ * Upload a feedback screenshot to Firebase Storage under feedback/{feedbackId}/.
+ * Compresses the image client-side before upload.
+ * @param {File} file - The screenshot file to upload
+ * @param {string} feedbackId - The feedback ID used to scope the storage path
+ * @param {Object} [options]
+ * @param {(progress: number) => void} [options.onProgress] - Progress callback (0-100)
+ * @returns {Promise<string>} - Download URL of the uploaded screenshot
+ */
+export async function uploadFeedbackScreenshot(file, feedbackId, options = {}) {
+  if (!feedbackId) throw new Error('Feedback ID is required for screenshot upload');
+  const { onProgress } = options;
+
+  const compressedBlob = await compressImage(file);
+  const safeName = sanitizeFilename(file.name);
+  const filename = `${Date.now()}_${safeName}`;
+  const screenshotRef = ref(storage, `feedback/${feedbackId}/${filename}`);
+
+  return new Promise((resolve, reject) => {
+    const uploadTask = uploadBytesResumable(screenshotRef, compressedBlob, {
+      contentType: 'image/jpeg',
+    });
+
+    uploadTask.on(
+      'state_changed',
+      (snapshot) => {
+        if (onProgress && snapshot.totalBytes > 0) {
+          const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+          onProgress(pct);
+        }
+      },
+      (error) => reject(error),
+      async () => {
+        try {
+          const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
+          if (onProgress) onProgress(100);
+          resolve(downloadUrl);
+        } catch (err) {
+          reject(err);
+        }
+      }
+    );
+  });
+}

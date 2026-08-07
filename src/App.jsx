@@ -10,6 +10,7 @@ import EventFormPage from './pages/EventFormPage';
 import LegalPage from './pages/LegalPage';
 import EventDetailPage from './pages/EventDetailPage';
 import ProfilePage from './pages/ProfilePage';
+import FeedbackButton from './components/FeedbackButton';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -72,6 +73,7 @@ function AppContent() {
         </Routes>
       </main>
       <Footer />
+      <FeedbackButton />
     </div>
   );
 }
