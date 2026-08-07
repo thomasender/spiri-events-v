@@ -27,6 +27,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import RecurringDeleteDialog from '../components/RecurringDeleteDialog';
 import OccurrencePickerDialog from '../components/OccurrencePickerDialog';
 import EventMessages from '../components/EventMessages';
+import ShareButton from '../components/ShareButton';
 import './EventDetailPage.css';
 
 function formatDate(dateStr) {
@@ -410,7 +411,10 @@ export default function EventDetailPage() {
             onError={() => setImageError(true)}
           />
         </div>
-        <h1 className="event-title">{event.title}</h1>
+        <div className="event-title-row">
+          <h1 className="event-title">{event.title}</h1>
+          <ShareButton event={event} />
+        </div>
         <div className="event-meta-row">
           {event.category && (
             <div className="event-categories">
