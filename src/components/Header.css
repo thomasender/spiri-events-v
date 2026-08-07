@@ -122,6 +122,32 @@
   background-color: rgba(191, 91, 78, 0.1);
 }
 
+.nav-link-admin-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-link-badge {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--error);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 0 0 2px var(--bg-primary);
+}
+
 .menu-toggle {
   display: none;
 }
