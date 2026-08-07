@@ -85,5 +85,28 @@ service cloud.firestore {
 
       allow delete: if isAuthenticated() && request.auth.uid == uid;
     }
+
+    // Feedback collection: anyone can submit anonymous feedback (with optional
+    // name, email, and screenshot). Only admins can read / update / delete.
+    match /feedback/{feedbackId} {
+      allow read: if isAdminOrEmulatorAdmin();
+
+      allow create: if request.resource.data.keys().hasOnly(
+                      ['description', 'name', 'email', 'screenshotUrl', 'pageUrl', 'pageTitle', 'userAgent', 'userId', 'status', 'createdAt']
+                    )
+                    && request.resource.data.description is string
+                    && request.resource.data.description.size() > 0
+                    && request.resource.data.description.size() <= 1000
+                    && request.resource.data.status == 'new'
+                    && (!('name' in request.resource.data) || request.resource.data.name == null || (request.resource.data.name is string && request.resource.data.name.size() <= 80))
+                    && (!('email' in request.resource.data) || request.resource.data.email == null || (request.resource.data.email is string && request.resource.data.email.size() <= 120))
+                    && (!('screenshotUrl' in request.resource.data) || request.resource.data.screenshotUrl == null || request.resource.data.screenshotUrl is string)
+                    && (!('pageUrl' in request.resource.data) || request.resource.data.pageUrl == null || (request.resource.data.pageUrl is string && request.resource.data.pageUrl.size() <= 500))
+                    && (!('pageTitle' in request.resource.data) || request.resource.data.pageTitle == null || (request.resource.data.pageTitle is string && request.resource.data.pageTitle.size() <= 200))
+                    && (!('userAgent' in request.resource.data) || request.resource.data.userAgent == null || (request.resource.data.userAgent is string && request.resource.data.userAgent.size() <= 500))
+                    && (!('userId' in request.resource.data) || request.resource.data.userId == null || request.resource.data.userId is string);
+
+      allow update, delete: if isAdminOrEmulatorAdmin();
+    }
   }
 }

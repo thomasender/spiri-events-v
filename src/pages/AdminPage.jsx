@@ -1,16 +1,19 @@
 import { useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { CalendarDays, Mail, PlusCircle } from 'lucide-react';
+import { CalendarDays, Mail, MessageSquare, PlusCircle } from 'lucide-react';
 import EventList from '../components/EventList';
 import MessagesTab from '../components/MessagesTab';
+import FeedbackTab from '../components/FeedbackTab';
 import { useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
+import { useUnreadFeedbackCount } from '../hooks/useFeedbackList';
 import './AdminPage.css';
 
-const VALID_TABS = new Set(['events', 'messages']);
+const VALID_TABS = new Set(['events', 'messages', 'feedback']);
 
 export default function AdminPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { count: unreadCount } = useUnreadMessageCount();
+  const { count: unreadFeedbackCount } = useUnreadFeedbackCount();
 
   const rawTab = searchParams.get('tab');
   const activeTab = useMemo(() => {
@@ -77,6 +80,28 @@ export default function AdminPage() {
             </span>
           )}
         </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'feedback'}
+          aria-controls="admin-tab-feedback"
+          id="admin-tab-feedback-btn"
+          className={`admin-page-tab${activeTab === 'feedback' ? ' admin-page-tab--active' : ''}`}
+          onClick={() => setTab('feedback')}
+          data-testid="admin-tab-feedback"
+        >
+          <MessageSquare size={16} aria-hidden="true" />
+          <span>Feedback</span>
+          {unreadFeedbackCount > 0 && (
+            <span
+              className="admin-page-tab-badge"
+              data-testid="admin-tab-feedback-badge"
+              aria-label={`${unreadFeedbackCount} neues Feedback`}
+            >
+              {unreadFeedbackCount > 9 ? '9+' : unreadFeedbackCount}
+            </span>
+          )}
+        </button>
       </div>
 
       <div
@@ -94,6 +119,14 @@ export default function AdminPage() {
         hidden={activeTab !== 'messages'}
       >
         {activeTab === 'messages' && <MessagesTab />}
+      </div>
+      <div
+        role="tabpanel"
+        id="admin-tab-feedback"
+        aria-labelledby="admin-tab-feedback-btn"
+        hidden={activeTab !== 'feedback'}
+      >
+        {activeTab === 'feedback' && <FeedbackTab />}
       </div>
     </div>
   );

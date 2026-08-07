@@ -1,0 +1,94 @@
+import { useEffect, useState, useMemo } from 'react';
+import {
+  collection,
+  query,
+  orderBy,
+  onSnapshot,
+  doc,
+  updateDoc,
+  deleteDoc,
+  serverTimestamp,
+} from 'firebase/firestore';
+import { db } from '../lib/firebase';
+
+export function useFeedbackList() {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    setLoading(true);
+    const feedbackRef = collection(db, 'feedback');
+    const q = query(feedbackRef, orderBy('createdAt', 'desc'));
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const docs = snapshot.docs.map((docSnap) => ({
+          id: docSnap.id,
+          ...docSnap.data(),
+        }));
+        setItems(docs);
+        setLoading(false);
+        setError(null);
+      },
+      (err) => {
+        console.error('useFeedbackList error:', err);
+        setError(err.message);
+        setLoading(false);
+      }
+    );
+
+    return unsubscribe;
+  }, []);
+
+  const markAsRead = async (id) => {
+    if (!id) return;
+    try {
+      await updateDoc(doc(db, 'feedback', id), {
+        status: 'read',
+        readAt: serverTimestamp(),
+      });
+    } catch (err) {
+      console.warn('Failed to mark feedback as read:', err);
+    }
+  };
+
+  const archive = async (id) => {
+    if (!id) return;
+    try {
+      await updateDoc(doc(db, 'feedback', id), {
+        status: 'archived',
+        archivedAt: serverTimestamp(),
+      });
+    } catch (err) {
+      console.warn('Failed to archive feedback:', err);
+    }
+  };
+
+  const remove = async (id) => {
+    if (!id) return;
+    try {
+      await deleteDoc(doc(db, 'feedback', id));
+    } catch (err) {
+      console.warn('Failed to delete feedback:', err);
+      throw err;
+    }
+  };
+
+  const counts = useMemo(() => {
+    const result = { total: items.length, new: 0, read: 0, archived: 0 };
+    for (const item of items) {
+      const status = item.status || 'new';
+      if (result[status] !== undefined) result[status] += 1;
+    }
+    return result;
+  }, [items]);
+
+  return { items, loading, error, counts, markAsRead, archive, remove };
+}
+
+export function useUnreadFeedbackCount() {
+  const { counts, loading } = useFeedbackList();
+  return { count: counts.new, loading };
+}

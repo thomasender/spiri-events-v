@@ -27,5 +27,13 @@ service firebase.storage {
                    && request.resource.size < 15 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*');
     }
+
+    // Feedback screenshots: anyone can upload (feedback is anonymous-friendly),
+    // only admins can read them. Images only, max 15 MB.
+    match /feedback/{feedbackId}/{filename} {
+      allow read: if isAdmin();
+      allow write: if request.resource.size < 15 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
   }
 }
