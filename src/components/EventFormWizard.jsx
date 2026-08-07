@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Select from 'react-select';
 import { useEvents, KATEGORIEN, BEZIRKE } from '../hooks/useEvents';
 import { useAuth } from '../hooks/useAuth';
+import { useProfile } from '../hooks/useProfile';
 import {
   uploadImage,
   deleteImageByUrl,
@@ -100,6 +101,7 @@ const kategorieOptions = KATEGORIEN.map((k) => ({ value: k, label: k }));
 export default function EventFormWizard() {
   const { user } = useAuth();
   const { role } = useAuth();
+  const { profile } = useProfile(user?.uid);
   const { addEvent, updateEvent } = useEvents(user);
 
   const { firstName, lastName } = splitDisplayName(user?.displayName, user?.email);
@@ -341,6 +343,7 @@ export default function EventFormWizard() {
       firstName: formData.organizer.firstName.trim(),
       lastName: formData.organizer.lastName.trim(),
       email: formData.organizer.email.trim(),
+      photoURL: profile?.photoURL || null,
     },
     kontakt: formData.kontakt.trim(),
     imageUrl: null,

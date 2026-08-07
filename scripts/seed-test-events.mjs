@@ -47,12 +47,16 @@ const TEST_USERS = [
     password: 'testpassword123',
     displayName: 'Test Admin',
     role: 'Admin',
+    photoURL:
+      'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="32" fill="%237a8a5f"/><text x="32" y="40" font-family="sans-serif" font-size="28" font-weight="600" fill="white" text-anchor="middle">A</text></svg>',
   },
   {
     email: 'user@test.local',
     password: 'testpassword123',
     displayName: 'Test User',
     role: 'User',
+    photoURL:
+      'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="32" fill="%23c48e6a"/><text x="32" y="40" font-family="sans-serif" font-size="28" font-weight="600" fill="white" text-anchor="middle">T</text></svg>',
   },
 ];
 
@@ -317,6 +321,21 @@ async function seedAdminUser(uid, email) {
   console.log(`  Created admin user: ${email} (${uid})`);
 }
 
+async function seedUserProfile(uid, user) {
+  const ref = db.collection('users').doc(uid);
+  await ref.set(
+    {
+      displayName: user.displayName || '',
+      bio: '',
+      website: '',
+      contact: user.email || '',
+      photoURL: user.photoURL || null,
+    },
+    { merge: true }
+  );
+  console.log(`  Created user profile: ${user.email} (${uid})`);
+}
+
 async function main() {
   console.log('Seeding test events to Firestore Emulator...');
   console.log(`Emulator: ${FIRESTORE_EMULATOR}`);
@@ -334,12 +353,30 @@ async function main() {
     await seedAdminUser(adminUid, 'admin@test.com');
   }
 
-  for (const event of TEST_EVENTS) {
-    if (event.id === 'test-event-foreign-pending' || event.id === 'test-event-user-approved') {
-      await seedEvent(event, userUid || 'test-user-uid');
-    } else {
-      await seedEvent(event, adminUid || 'test-admin-uid');
+  for (const user of TEST_USERS) {
+    const uid = createdUsers[user.email];
+    if (uid) {
+      await seedUserProfile(uid, user);
     }
+  }
+
+  for (const event of TEST_EVENTS) {
+    let createdBy;
+    let organizerPhotoURL;
+    if (event.id === 'test-event-foreign-pending' || event.id === 'test-event-user-approved') {
+      createdBy = userUid || 'test-user-uid';
+      organizerPhotoURL = TEST_USERS.find((u) => u.email === 'user@test.local')?.photoURL || null;
+    } else {
+      createdBy = adminUid || 'test-admin-uid';
+      organizerPhotoURL = TEST_USERS.find((u) => u.email === 'admin@test.com')?.photoURL || null;
+    }
+    await seedEvent(
+      {
+        ...event,
+        organizer: { ...event.organizer, photoURL: organizerPhotoURL },
+      },
+      createdBy
+    );
   }
 
   console.log(`\nDone! ${TEST_EVENTS.length} events seeded.`);

@@ -364,3 +364,48 @@ describe('EventDetailPage — recurring event delete flow', () => {
     expect(mockEvents.deleteEvent).toHaveBeenCalledWith('recurring-event-id');
   });
 });
+
+describe('EventDetailPage — organizer profile photo', () => {
+  const eventWithPhoto = {
+    ...foreignEvent,
+    organizer: {
+      firstName: 'Anna',
+      lastName: 'Schmidt',
+      email: 'admin@test.com',
+      photoURL: 'https://example.com/anna.png',
+    },
+  };
+
+  beforeEach(() => {
+    mockFirestoreDoc.getDocResult = {
+      id: eventWithPhoto.id,
+      data: eventWithPhoto,
+    };
+  });
+
+  it('renders organizer profile photo when event has photoURL', async () => {
+    renderPage();
+    expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
+
+    const organizer = screen.getByTestId('event-organizer');
+    expect(organizer).toBeInTheDocument();
+
+    const photo = screen.getByTestId('organizer-photo');
+    expect(photo).toBeInTheDocument();
+    expect(photo.tagName).toBe('IMG');
+    expect(photo).toHaveAttribute('src', 'https://example.com/anna.png');
+  });
+
+  it('does not render organizer photo when event has no photoURL', async () => {
+    mockFirestoreDoc.getDocResult = {
+      id: foreignEvent.id,
+      data: foreignEvent,
+    };
+
+    renderPage();
+    expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
+
+    expect(screen.getByTestId('event-organizer')).toBeInTheDocument();
+    expect(screen.queryByTestId('organizer-photo')).toBeNull();
+  });
+});

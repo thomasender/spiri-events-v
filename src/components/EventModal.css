@@ -177,6 +177,22 @@
   font-size: 1rem;
 }
 
+.organizer-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.organizer-photo {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
 .detail-link {
   color: var(--accent-primary);
   text-decoration: none;

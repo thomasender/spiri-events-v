@@ -62,4 +62,32 @@ describe('EventModal', () => {
       expect(screen.queryByText('Wiederholung')).not.toBeInTheDocument();
     });
   });
+
+  describe('organizer profile photo', () => {
+    it('renders organizer profile photo when organizer has photoURL', () => {
+      const event = {
+        ...mockEvent,
+        organizer: {
+          firstName: 'Anna',
+          lastName: 'Schmidt',
+          email: 'anna@example.com',
+          photoURL: 'https://example.com/anna.png',
+        },
+      };
+      render(<EventModal event={event} onClose={() => {}} />);
+      const photo = screen.getByTestId('organizer-photo');
+      expect(photo).toBeInTheDocument();
+      expect(photo.tagName).toBe('IMG');
+      expect(photo).toHaveAttribute('src', 'https://example.com/anna.png');
+    });
+
+    it('does not render organizer photo when organizer has no photoURL', () => {
+      const event = {
+        ...mockEvent,
+        organizer: { firstName: 'Anna', lastName: 'Schmidt', email: 'anna@example.com' },
+      };
+      render(<EventModal event={event} onClose={() => {}} />);
+      expect(screen.queryByTestId('organizer-photo')).toBeNull();
+    });
+  });
 });
