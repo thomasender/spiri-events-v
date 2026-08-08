@@ -13,7 +13,7 @@ const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
 
 export default function FeedbackModal({ open, onClose, pageUrl, pageTitle }) {
-  const { submitting, uploadProgress, error, submitFeedback, reset } = useFeedback();
+  const { submitting, uploadProgress, error, warning, submitFeedback, reset } = useFeedback();
   const [description, setDescription] = useState('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -149,6 +149,15 @@ export default function FeedbackModal({ open, onClose, pageUrl, pageTitle }) {
               Wir haben deine Nachricht erhalten und schauen sie uns an. Eine Antwort ist nicht
               vorgesehen, aber dein Feedback hilft uns, die Plattform besser zu machen.
             </p>
+            {warning && (
+              <p
+                className="feedback-success-warning"
+                role="status"
+                data-testid="feedback-success-warning"
+              >
+                {warning}
+              </p>
+            )}
             <button
               type="button"
               className="btn btn-primary"

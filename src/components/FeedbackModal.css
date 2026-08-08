@@ -203,6 +203,16 @@
   max-width: 380px;
 }
 
+.feedback-success-warning {
+  background-color: rgba(191, 91, 78, 0.08);
+  color: var(--error);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin: 0 auto 20px;
+  max-width: 380px;
+  font-size: 0.9rem;
+}
+
 .required-mark {
   color: var(--error);
   margin-left: 2px;

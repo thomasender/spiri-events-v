@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react';
-import { collection, addDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from './useAuth';
-import { uploadFeedbackScreenshot } from '../lib/imageUpload';
+import { deleteImageByUrl, uploadFeedbackScreenshot } from '../lib/imageUpload';
 
 export const MAX_FEEDBACK_DESCRIPTION_LENGTH = 1000;
 export const MAX_FEEDBACK_NAME_LENGTH = 80;
@@ -36,20 +36,30 @@ export function validateFeedback({ description, name, email }) {
   return errors;
 }
 
+function generateFeedbackId() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `fb-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export function useFeedback() {
   const { user } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState('');
+  const [warning, setWarning] = useState('');
 
   const reset = useCallback(() => {
     setError('');
+    setWarning('');
     setUploadProgress(0);
   }, []);
 
   const submitFeedback = useCallback(
     async ({ description, name, email, screenshot, pageUrl, pageTitle }) => {
       setError('');
+      setWarning('');
       setUploadProgress(0);
 
       const trimmedDescription = (description || '').trim();
@@ -66,10 +76,25 @@ export function useFeedback() {
         throw new Error(Object.values(errors)[0]);
       }
 
+      const feedbackId = generateFeedbackId();
+      let screenshotUrl = null;
+
       setSubmitting(true);
       try {
-        const feedbackRef = collection(db, 'feedback');
-        const docRef = await addDoc(feedbackRef, {
+        if (screenshot) {
+          try {
+            screenshotUrl = await uploadFeedbackScreenshot(screenshot, feedbackId, {
+              onProgress: setUploadProgress,
+            });
+          } catch (uploadErr) {
+            console.warn('Feedback screenshot upload failed:', uploadErr);
+            setWarning(
+              'Dein Feedback wurde gesendet, aber der Screenshot konnte nicht hochgeladen werden.'
+            );
+          }
+        }
+
+        await setDoc(doc(db, 'feedback', feedbackId), {
           description: trimmedDescription,
           name: trimmedName || null,
           email: trimmedEmail || null,
@@ -77,26 +102,17 @@ export function useFeedback() {
           pageTitle: (pageTitle || '').slice(0, 200) || null,
           userAgent: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 500) : null,
           userId: user?.uid || null,
-          screenshotUrl: null,
+          screenshotUrl,
           status: 'new',
           createdAt: serverTimestamp(),
         });
 
-        if (screenshot) {
-          try {
-            const url = await uploadFeedbackScreenshot(screenshot, docRef.id, {
-              onProgress: setUploadProgress,
-            });
-            const { updateDoc } = await import('firebase/firestore');
-            await updateDoc(doc(db, 'feedback', docRef.id), { screenshotUrl: url });
-          } catch (uploadErr) {
-            console.warn('Feedback screenshot upload failed:', uploadErr);
-          }
-        }
-
-        return { id: docRef.id };
+        return { id: feedbackId };
       } catch (err) {
         console.error('Feedback submission failed:', err);
+        if (screenshotUrl) {
+          await deleteImageByUrl(screenshotUrl).catch(() => {});
+        }
         setError('Feedback konnte nicht gesendet werden. Bitte versuche es erneut.');
         throw err;
       } finally {
@@ -110,6 +126,7 @@ export function useFeedback() {
     submitting,
     uploadProgress,
     error,
+    warning,
     submitFeedback,
     reset,
   };

@@ -28,10 +28,13 @@ service firebase.storage {
                    && request.resource.contentType.matches('image/.*');
     }
 
-    // Feedback screenshots: anyone can upload (feedback is anonymous-friendly),
-    // only admins can read them. Images only, max 15 MB.
+    // Feedback screenshots: anyone can upload (feedback is anonymous-friendly).
+    // Read is open so the uploader can capture the download URL via
+    // getDownloadURL(); the URL itself is only stored in admin-only Firestore
+    // docs and includes a random UUID path that cannot be guessed. Images
+    // only, max 15 MB.
     match /feedback/{feedbackId}/{filename} {
-      allow read: if isAdmin();
+      allow read: if true;
       allow write: if request.resource.size < 15 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*');
     }

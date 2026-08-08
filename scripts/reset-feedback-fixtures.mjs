@@ -9,7 +9,12 @@ initializeApp({ projectId: 'spirieventsvbg' });
 const db = getFirestore();
 
 const feedbackSnap = await db.collection('feedback').get();
-await Promise.all(feedbackSnap.docs.map((docSnap) => docSnap.ref.delete()));
+const knownFixtureIds = new Set(['seed-feedback-1', 'seed-feedback-2', 'seed-feedback-3']);
+await Promise.all(
+  feedbackSnap.docs
+    .filter((docSnap) => !knownFixtureIds.has(docSnap.id))
+    .map((docSnap) => docSnap.ref.delete())
+);
 
 const now = Date.now();
 
