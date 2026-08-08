@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useProfile } from '../hooks/useProfile';
 import { useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
 import { useUnreadFeedbackCount } from '../hooks/useFeedbackList';
 import { Calendar, LogOut, User, PlusCircle, UserCircle, Pen, Menu, X } from 'lucide-react';
@@ -13,6 +14,7 @@ const getAdminNavClass = (pathname) =>
 
 export default function Header() {
   const { user, logout, role } = useAuth();
+  const { profile } = useProfile(user?.uid);
   const isAdmin = role === 'Admin';
   const navigate = useNavigate();
   const location = useLocation();
@@ -107,7 +109,17 @@ export default function Header() {
         <>
           {renderAdminLink()}
           <NavLink to="/profil" className={navClass} onClick={closeMenu}>
-            <UserCircle size={18} />
+            {profile?.photoURL || user?.photoURL ? (
+              <img
+                src={profile?.photoURL || user?.photoURL}
+                alt=""
+                className="nav-link-avatar"
+                aria-hidden="true"
+                data-testid="profile-nav-avatar"
+              />
+            ) : (
+              <UserCircle size={18} aria-hidden="true" />
+            )}
             <span>Mein Profil</span>
           </NavLink>
           <NavLink to="/admin/new" className={navClass} onClick={closeMenu}>

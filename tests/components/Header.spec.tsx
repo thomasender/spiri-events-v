@@ -4,7 +4,11 @@ import { MemoryRouter } from 'react-router-dom';
 import Header from '../../src/components/Header';
 
 const mockAuth = vi.hoisted(() => ({
-  user: null as { uid: string } | null,
+  user: null as { uid: string; photoURL?: string | null } | null,
+}));
+
+const mockProfile = vi.hoisted(() => ({
+  photoURL: null as string | null,
 }));
 
 vi.mock('../../src/hooks/useAuth', () => ({
@@ -14,8 +18,19 @@ vi.mock('../../src/hooks/useAuth', () => ({
   }),
 }));
 
+vi.mock('../../src/hooks/useProfile', () => ({
+  useProfile: () => ({
+    profile: { photoURL: mockProfile.photoURL },
+    loading: false,
+    exists: mockProfile.photoURL !== null,
+    save: () => {},
+  }),
+}));
+
 beforeEach(() => {
   mockAuth.user = null;
+  if (mockAuth.user) mockAuth.user.photoURL = undefined;
+  mockProfile.photoURL = null;
 });
 
 describe('Header (logged out)', () => {
@@ -342,5 +357,99 @@ describe('Header mobile menu', () => {
     );
     expect(logoutButton).toBeDefined();
     expect(logoutButton?.textContent).toContain('Abmelden');
+  });
+});
+
+describe('Header profile nav avatar', () => {
+  it('shows the fallback user icon when the logged-in user has no profile photo', () => {
+    mockAuth.user = { uid: 'test-uid' };
+    mockProfile.photoURL = null;
+
+    const { container } = render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    const profilLinks = Array.from(container.querySelectorAll('a[href="/profil"]'));
+    expect(profilLinks.length).toBeGreaterThan(0);
+
+    profilLinks.forEach((link) => {
+      expect(link.querySelector('img.nav-link-avatar')).toBeNull();
+    });
+
+    const svgs = profilLinks.flatMap((link) => Array.from(link.querySelectorAll('svg')));
+    expect(svgs.length).toBeGreaterThan(0);
+  });
+
+  it('renders the user uploaded profile photo as a circular avatar in the Mein Profil nav link', () => {
+    mockAuth.user = { uid: 'test-uid' };
+    mockProfile.photoURL = 'https://example.com/uploads/avatar.jpg';
+
+    const { container } = render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    const avatars = Array.from(container.querySelectorAll('img.nav-link-avatar'));
+    expect(avatars.length).toBeGreaterThanOrEqual(2);
+    avatars.forEach((img) => {
+      expect(img.getAttribute('src')).toBe('https://example.com/uploads/avatar.jpg');
+      expect(img.getAttribute('alt')).toBe('');
+      expect(img.getAttribute('aria-hidden')).toBe('true');
+    });
+
+    const profilLinks = Array.from(container.querySelectorAll('a[href="/profil"]'));
+    profilLinks.forEach((link) => {
+      expect(link.querySelector('img.nav-link-avatar')).not.toBeNull();
+    });
+  });
+
+  it('falls back to the auth provider photoURL when no Firestore profile photo is set', () => {
+    mockAuth.user = { uid: 'test-uid', photoURL: 'https://example.com/google-avatar.jpg' };
+    mockProfile.photoURL = null;
+
+    const { container } = render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    const avatars = Array.from(container.querySelectorAll('img.nav-link-avatar'));
+    expect(avatars.length).toBeGreaterThanOrEqual(2);
+    avatars.forEach((img) => {
+      expect(img.getAttribute('src')).toBe('https://example.com/google-avatar.jpg');
+    });
+  });
+
+  it('prefers the Firestore profile photoURL over the auth provider photoURL', () => {
+    mockAuth.user = { uid: 'test-uid', photoURL: 'https://example.com/google-avatar.jpg' };
+    mockProfile.photoURL = 'https://example.com/uploads/avatar.jpg';
+
+    const { container } = render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    const avatars = Array.from(container.querySelectorAll('img.nav-link-avatar'));
+    expect(avatars.length).toBeGreaterThanOrEqual(2);
+    avatars.forEach((img) => {
+      expect(img.getAttribute('src')).toBe('https://example.com/uploads/avatar.jpg');
+    });
+  });
+
+  it('does not render any avatar in the Mein Profil nav when the user is logged out', () => {
+    mockAuth.user = null;
+
+    const { container } = render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    expect(container.querySelectorAll('img.nav-link-avatar').length).toBe(0);
+    expect(container.querySelectorAll('a[href="/profil"]').length).toBe(0);
   });
 });
