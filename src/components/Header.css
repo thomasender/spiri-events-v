@@ -129,6 +129,16 @@
   justify-content: center;
 }
 
+.nav-link-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+  display: block;
+}
+
 .nav-link-badge {
   position: absolute;
   top: -6px;
