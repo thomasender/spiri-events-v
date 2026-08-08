@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Send, CheckCircle2, MessageSquare, Camera, ImagePlus, Loader2 } from 'lucide-react';
+import { X, Send, CheckCircle2, MessageSquare, ImagePlus, Loader2 } from 'lucide-react';
 import {
   MAX_FEEDBACK_DESCRIPTION_LENGTH,
   MAX_FEEDBACK_NAME_LENGTH,
@@ -305,15 +305,6 @@ export default function FeedbackModal({ open, onClose, pageUrl, pageTitle }) {
                 </span>
               )}
             </div>
-
-            {pageUrl && (
-              <p className="feedback-modal-context" data-testid="feedback-page-context">
-                <Camera size={14} aria-hidden="true" />
-                <span>
-                  Seite: <code>{pageUrl}</code>
-                </span>
-              </p>
-            )}
 
             {error && (
               <div className="feedback-modal-error" role="alert" data-testid="feedback-error">

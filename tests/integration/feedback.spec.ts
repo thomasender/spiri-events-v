@@ -61,7 +61,7 @@ test.describe('Feedback feature', () => {
       .getByTestId('feedback-description')
       .fill('Wunderschöne Plattform, danke für eure Arbeit!');
 
-    await expect(page.getByTestId('feedback-page-context')).toContainText('/');
+    await expect(page.getByTestId('feedback-page-context')).toHaveCount(0);
 
     await page.getByTestId('feedback-submit').click();
 

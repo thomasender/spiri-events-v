@@ -93,7 +93,7 @@ describe('Header Verwaltung unread badge (zejdjTnm)', () => {
     const adminLinks = screen.getAllByRole('link', { name: /Verwaltung/ });
     expect(adminLinks.length).toBeGreaterThan(0);
     adminLinks.forEach((link) => {
-      expect(link.getAttribute('aria-label')).toBe('Verwaltung (4 ungelesene Nachrichten)');
+      expect(link.getAttribute('aria-label')).toBe('Verwaltung (4 ungelesene Benachrichtigungen)');
     });
   });
 

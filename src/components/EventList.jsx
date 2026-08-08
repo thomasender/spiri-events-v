@@ -543,7 +543,7 @@ export default function EventList() {
           }
           message={
             statusActionTarget?.action === 'submit'
-              ? 'Das Event wird zur Genehmigung eingereicht. Nach der Einreichung kann es nicht mehr bearbeitet werden, bis ein Admin es bearbeitet.'
+              ? 'Das Event wird zur Genehmigung eingereicht.'
               : 'Das Event wird auf "Entwurf" zurückgesetzt und ist nicht mehr öffentlich sichtbar. Du kannst es später erneut einreichen.'
           }
           confirmLabel={statusActionTarget?.action === 'submit' ? 'Einreichen' : 'Zu Entwurf'}

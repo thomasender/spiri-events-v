@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
+import { useUnreadFeedbackCount } from '../hooks/useFeedbackList';
 import { Calendar, LogOut, User, PlusCircle, UserCircle, Pen, Menu, X } from 'lucide-react';
 import './Header.css';
 
@@ -11,10 +12,12 @@ const getAdminNavClass = (pathname) =>
   pathname === '/admin' ? 'nav-link nav-link--admin nav-link--active' : 'nav-link nav-link--admin';
 
 export default function Header() {
-  const { user, logout } = useAuth();
+  const { user, logout, role } = useAuth();
+  const isAdmin = role === 'Admin';
   const navigate = useNavigate();
   const location = useLocation();
-  const { count: unreadCount } = useUnreadMessageCount();
+  const { count: unreadMessageCount } = useUnreadMessageCount();
+  const { count: unreadFeedbackCount } = useUnreadFeedbackCount(isAdmin);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const toggleRef = useRef(null);
@@ -69,6 +72,7 @@ export default function Header() {
     closeMenu();
   }, [location.pathname]);
 
+  const unreadCount = unreadMessageCount + unreadFeedbackCount;
   const hasUnread = unreadCount > 0;
 
   const renderAdminLink = () => (
@@ -77,7 +81,9 @@ export default function Header() {
       className={getAdminNavClass(location.pathname)}
       end
       onClick={closeMenu}
-      aria-label={hasUnread ? `Verwaltung (${unreadCount} ungelesene Nachrichten)` : 'Verwaltung'}
+      aria-label={
+        hasUnread ? `Verwaltung (${unreadCount} ungelesene Benachrichtigungen)` : 'Verwaltung'
+      }
     >
       <span className="nav-link-admin-icon">
         <Pen size={18} aria-hidden="true" />

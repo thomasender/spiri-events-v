@@ -57,15 +57,8 @@ describe('FeedbackModal', () => {
     expect(screen.getByTestId('feedback-cancel')).toBeInTheDocument();
   });
 
-  it('shows the page context when pageUrl is provided', () => {
+  it('does not show the page context, even when pageUrl is provided', () => {
     render(<FeedbackModal open onClose={() => {}} pageUrl="https://example.com/page" />);
-    expect(screen.getByTestId('feedback-page-context')).toHaveTextContent(
-      'https://example.com/page'
-    );
-  });
-
-  it('does not show page context when pageUrl is missing', () => {
-    render(<FeedbackModal open onClose={() => {}} />);
     expect(screen.queryByTestId('feedback-page-context')).not.toBeInTheDocument();
   });
 

@@ -11,12 +11,19 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
-export function useFeedbackList() {
+export function useFeedbackList({ enabled = true } = {}) {
   const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (!enabled) {
+      setItems([]);
+      setLoading(false);
+      setError(null);
+      return undefined;
+    }
+
     setLoading(true);
     const feedbackRef = collection(db, 'feedback');
     const q = query(feedbackRef, orderBy('createdAt', 'desc'));
@@ -40,7 +47,7 @@ export function useFeedbackList() {
     );
 
     return unsubscribe;
-  }, []);
+  }, [enabled]);
 
   const markAsRead = async (id) => {
     if (!id) return;
@@ -88,7 +95,7 @@ export function useFeedbackList() {
   return { items, loading, error, counts, markAsRead, archive, remove };
 }
 
-export function useUnreadFeedbackCount() {
-  const { counts, loading } = useFeedbackList();
-  return { count: counts.new, loading };
+export function useUnreadFeedbackCount(enabled = true) {
+  const { counts, loading } = useFeedbackList({ enabled });
+  return { count: enabled ? counts.new : 0, loading };
 }
