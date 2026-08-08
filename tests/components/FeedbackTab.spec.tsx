@@ -124,7 +124,7 @@ describe('FeedbackTab', () => {
     expect(removeMock).toHaveBeenCalledWith('fb-1');
   });
 
-  it('renders a screenshot link when screenshotUrl is present', () => {
+  it('renders a screenshot thumbnail button when screenshotUrl is present', () => {
     mockItems.push({
       id: 'fb-1',
       description: 'siehe screenshot',
@@ -134,9 +134,52 @@ describe('FeedbackTab', () => {
     });
 
     render(<FeedbackTab />);
-    const link = screen.getByTestId('feedback-screenshot-link');
-    expect(link).toHaveAttribute('href', 'https://example.com/feedback/fb-1/screenshot.jpg');
-    expect(link).toHaveAttribute('target', '_blank');
+    const thumb = screen.getByTestId('feedback-screenshot-thumb');
+    expect(thumb).toBeInTheDocument();
+    expect(thumb.querySelector('img')).toHaveAttribute(
+      'src',
+      'https://example.com/feedback/fb-1/screenshot.jpg'
+    );
+  });
+
+  it('opens the screenshot lightbox when the thumbnail is clicked and closes via X', () => {
+    mockItems.push({
+      id: 'fb-1',
+      description: 'siehe screenshot',
+      status: 'read',
+      screenshotUrl: 'https://example.com/feedback/fb-1/screenshot.jpg',
+      createdAt: { toDate: () => new Date() },
+    });
+
+    render(<FeedbackTab />);
+    fireEvent.click(screen.getByTestId('feedback-screenshot-thumb'));
+
+    const lightbox = screen.getByTestId('feedback-screenshot-lightbox');
+    expect(lightbox).toBeInTheDocument();
+    expect(screen.getByTestId('feedback-screenshot-lightbox-image')).toHaveAttribute(
+      'src',
+      'https://example.com/feedback/fb-1/screenshot.jpg'
+    );
+    const download = screen.getByTestId('feedback-screenshot-download');
+    expect(download).toHaveAttribute('href', 'https://example.com/feedback/fb-1/screenshot.jpg');
+    expect(download).toHaveAttribute('download', 'screenshot.jpg');
+
+    fireEvent.click(screen.getByTestId('feedback-screenshot-close'));
+    expect(screen.queryByTestId('feedback-screenshot-lightbox')).not.toBeInTheDocument();
+  });
+
+  it('falls back to a sanitized URL when no pageTitle is set', () => {
+    mockItems.push({
+      id: 'fb-1',
+      description: 'ohne titel',
+      status: 'read',
+      pageUrl: 'https://events.thetribe.at/?foo=bar#section',
+      createdAt: { toDate: () => new Date() },
+    });
+
+    render(<FeedbackTab />);
+    const link = screen.getByRole('link', { name: 'https://events.thetribe.at/' });
+    expect(link).toHaveAttribute('href', 'https://events.thetribe.at/?foo=bar#section');
   });
 
   it('renders the summary with counts', () => {

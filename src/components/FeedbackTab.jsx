@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Check, Trash2, Archive, Inbox, MessageSquare } from 'lucide-react';
+import { useEffect, useState, useCallback } from 'react';
+import { Check, Trash2, Archive, Inbox, X, Download } from 'lucide-react';
 import { useFeedbackList } from '../hooks/useFeedbackList';
 import './FeedbackTab.css';
 
@@ -15,6 +15,23 @@ function formatDate(timestamp) {
   });
 }
 
+function cleanUrlForDisplay(url) {
+  if (!url) return '';
+  return url.replace(/[?#].*$/, '');
+}
+
+function fileNameFromUrl(url) {
+  if (!url) return 'screenshot.jpg';
+  try {
+    const withoutQuery = url.split('?')[0].split('#')[0];
+    const lastSlash = withoutQuery.lastIndexOf('/');
+    const name = lastSlash >= 0 ? withoutQuery.slice(lastSlash + 1) : withoutQuery;
+    return name || 'screenshot.jpg';
+  } catch {
+    return 'screenshot.jpg';
+  }
+}
+
 const STATUS_LABELS = {
   new: 'Neu',
   read: 'Gelesen',
@@ -24,6 +41,7 @@ const STATUS_LABELS = {
 export default function FeedbackTab() {
   const { items, loading, error, counts, markAsRead, archive, remove } = useFeedbackList();
   const [deletingId, setDeletingId] = useState(null);
+  const [lightbox, setLightbox] = useState(null);
 
   useEffect(() => {
     items
@@ -33,11 +51,27 @@ export default function FeedbackTab() {
       });
   }, [items, markAsRead]);
 
+  const closeLightbox = useCallback(() => setLightbox(null), []);
+
+  useEffect(() => {
+    if (!lightbox) return undefined;
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') closeLightbox();
+    };
+    document.addEventListener('keydown', handleEscape);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = '';
+    };
+  }, [lightbox, closeLightbox]);
+
   const handleDelete = async (id) => {
     if (!window.confirm('Feedback wirklich löschen?')) return;
     setDeletingId(id);
     try {
       await remove(id);
+      if (lightbox?.itemId === id) closeLightbox();
     } finally {
       setDeletingId(null);
     }
@@ -135,7 +169,7 @@ export default function FeedbackTab() {
                     <dt>Seite</dt>
                     <dd>
                       <a href={item.pageUrl} target="_blank" rel="noopener noreferrer">
-                        {item.pageTitle || item.pageUrl}
+                        {item.pageTitle || cleanUrlForDisplay(item.pageUrl)}
                       </a>
                     </dd>
                   </div>
@@ -149,15 +183,16 @@ export default function FeedbackTab() {
               </dl>
 
               {item.screenshotUrl && (
-                <a
-                  href={item.screenshotUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="feedback-item-screenshot-link"
-                  data-testid="feedback-screenshot-link"
+                <button
+                  type="button"
+                  className="feedback-item-screenshot-thumb"
+                  onClick={() => setLightbox({ itemId: item.id, url: item.screenshotUrl })}
+                  aria-label="Screenshot vergrößern"
+                  data-testid="feedback-screenshot-thumb"
                 >
-                  Screenshot ansehen
-                </a>
+                  <img src={item.screenshotUrl} alt="Screenshot Vorschau" />
+                  <span className="feedback-item-screenshot-hint">Screenshot ansehen</span>
+                </button>
               )}
             </li>
           );
@@ -170,6 +205,50 @@ export default function FeedbackTab() {
           archiviert
         </span>
       </footer>
+
+      {lightbox && (
+        <div
+          className="modal-overlay fade-enter"
+          onClick={closeLightbox}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Screenshot vergrößert"
+          data-testid="feedback-screenshot-lightbox"
+        >
+          <div
+            className="modal-content feedback-lightbox"
+            onClick={(e) => e.stopPropagation()}
+            data-testid="feedback-screenshot-lightbox-content"
+          >
+            <button
+              type="button"
+              className="modal-close"
+              onClick={closeLightbox}
+              aria-label="Schließen"
+              data-testid="feedback-screenshot-close"
+            >
+              <X size={24} />
+            </button>
+            <img
+              src={lightbox.url}
+              alt="Screenshot in voller Größe"
+              className="feedback-lightbox-image"
+              data-testid="feedback-screenshot-lightbox-image"
+            />
+            <a
+              href={lightbox.url}
+              download={fileNameFromUrl(lightbox.url)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-primary feedback-lightbox-download"
+              data-testid="feedback-screenshot-download"
+            >
+              <Download size={16} aria-hidden="true" />
+              <span>Herunterladen</span>
+            </a>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -10,6 +10,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { deleteImageByUrl } from '../lib/imageUpload';
 
 export function useFeedbackList({ enabled = true } = {}) {
   const [items, setItems] = useState([]);
@@ -75,6 +76,10 @@ export function useFeedbackList({ enabled = true } = {}) {
 
   const remove = async (id) => {
     if (!id) return;
+    const item = items.find((it) => it.id === id);
+    if (item?.screenshotUrl) {
+      await deleteImageByUrl(item.screenshotUrl);
+    }
     try {
       await deleteDoc(doc(db, 'feedback', id));
     } catch (err) {

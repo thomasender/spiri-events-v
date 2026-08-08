@@ -96,7 +96,7 @@ test.describe('Feedback feature', () => {
     await page.goto('/admin');
 
     await expect(page.getByTestId('admin-tab-feedback-badge')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByTestId('admin-tab-feedback-badge')).toHaveText('2');
+    await expect(page.getByTestId('admin-tab-feedback-badge')).toHaveText('3');
   });
 
   test('Admin sees feedback items in the Feedback tab and can navigate to it via URL', async ({
@@ -114,13 +114,16 @@ test.describe('Feedback feature', () => {
     await expect(page.getByTestId('feedback-tab')).toBeVisible({ timeout: 10000 });
 
     const items = page.getByTestId('feedback-item');
-    await expect(items).toHaveCount(2);
+    await expect(items).toHaveCount(3);
 
     const firstDescription = items.first().getByTestId('feedback-item-description');
     await expect(firstDescription).toContainText('Super Plattform');
 
     const secondDescription = items.nth(1).getByTestId('feedback-item-description');
-    await expect(secondDescription).toContainText('Filterung');
+    await expect(secondDescription).toContainText('Bezirks-Filter');
+
+    const thirdDescription = items.nth(2).getByTestId('feedback-item-description');
+    await expect(thirdDescription).toContainText('Filterung');
   });
 
   test('Admin can switch to Feedback tab via clicking and URL updates', async ({ page }) => {
@@ -164,5 +167,90 @@ test.describe('Feedback feature', () => {
 
     await expect(page.getByText('Peter Mathis')).toBeVisible();
     await expect(page.getByRole('link', { name: 'peter@example.com' })).toBeVisible();
+  });
+
+  test('Feedback list sanitizes URL by stripping query string and hash in link text', async ({
+    page,
+  }) => {
+    await resetFeedbackFixtures();
+
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin?tab=feedback');
+
+    await page
+      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+      .catch(() => {});
+
+    await expect(page.getByTestId('feedback-tab')).toBeVisible({ timeout: 10000 });
+
+    const anna = page.getByTestId('feedback-item').filter({ hasText: 'Anna' });
+
+    const pageLink = anna.getByRole('link', { name: 'https://events.thetribe.at/' });
+    await expect(pageLink).toBeVisible();
+    await expect(pageLink).toHaveAttribute('href', /foo=bar/);
+    await expect(pageLink).not.toHaveText(/foo=bar/);
+    await expect(pageLink).not.toHaveText(/#section/);
+  });
+
+  test('Admin can open, view and close the screenshot lightbox', async ({ page }) => {
+    await resetFeedbackFixtures();
+
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin?tab=feedback');
+
+    await page
+      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+      .catch(() => {});
+
+    await expect(page.getByTestId('feedback-tab')).toBeVisible({ timeout: 10000 });
+
+    await page.getByTestId('feedback-screenshot-thumb').first().click();
+
+    const lightbox = page.getByTestId('feedback-screenshot-lightbox');
+    await expect(lightbox).toBeVisible();
+    await expect(page.getByTestId('feedback-screenshot-lightbox-image')).toBeVisible();
+    await expect(page.getByTestId('feedback-screenshot-download')).toBeVisible();
+    await expect(page.getByTestId('feedback-screenshot-download')).toHaveAttribute(
+      'href',
+      /seed-feedback-screenshot\.png/
+    );
+
+    await page.getByTestId('feedback-screenshot-close').click();
+    await expect(lightbox).not.toBeVisible();
+  });
+
+  test('Screenshot lightbox closes on Escape key', async ({ page }) => {
+    await resetFeedbackFixtures();
+
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin?tab=feedback');
+
+    await page
+      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+      .catch(() => {});
+
+    await expect(page.getByTestId('feedback-tab')).toBeVisible({ timeout: 10000 });
+
+    await page.getByTestId('feedback-screenshot-thumb').first().click();
+    await expect(page.getByTestId('feedback-screenshot-lightbox')).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('feedback-screenshot-lightbox')).not.toBeVisible();
+  });
+
+  test('Feedback without a screenshot does not render a thumbnail', async ({ page }) => {
+    await resetFeedbackFixtures();
+
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin?tab=feedback');
+
+    await page
+      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+      .catch(() => {});
+
+    await expect(page.getByTestId('feedback-tab')).toBeVisible({ timeout: 10000 });
+
+    const peter = page.getByTestId('feedback-item').filter({ hasText: 'Peter Mathis' });
+    await expect(peter.getByTestId('feedback-screenshot-thumb')).toHaveCount(0);
   });
 });
