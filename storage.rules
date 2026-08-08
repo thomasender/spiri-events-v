@@ -5,10 +5,6 @@ service firebase.storage {
       return request.auth != null;
     }
 
-    function isAdmin() {
-      return isAuthenticated() && request.auth.token.role == 'Admin';
-    }
-
     // Event images: anyone can read (public, served on event pages),
     // only authenticated users can upload images up to 15MB
     match /events/{eventId}/{filename} {
