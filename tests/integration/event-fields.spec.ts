@@ -70,6 +70,56 @@ test.describe('Event fields: Veranstalter & Kontakt', () => {
     expect(count).toBeGreaterThan(0);
   });
 
+  test('Beschreibung field is marked as required with asterisk on step 2', async ({ page }) => {
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin/new');
+    await waitForWizardToLoad(page);
+
+    await navigateToStep2(page);
+
+    const descriptionLabel = page.locator('label[for="description"]');
+    await expect(descriptionLabel).toBeVisible();
+    await expect(descriptionLabel).toContainText('*');
+    await expect(descriptionLabel).toContainText('Beschreibung');
+  });
+
+  test('cannot advance from step 2 without filling description', async ({ page }) => {
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin/new');
+    await waitForWizardToLoad(page);
+
+    await navigateToStep2(page);
+
+    await page.locator('#title').fill('Event ohne Beschreibung');
+
+    await page.locator('button:has-text("Weiter")').click();
+    await page.waitForTimeout(500);
+
+    const descriptionError = page.getByTestId('description-error');
+    await expect(descriptionError).toBeVisible();
+    await expect(descriptionError).toContainText('Beschreibung ist erforderlich');
+
+    await expect(page.locator('#title')).toBeVisible();
+  });
+
+  test('filling description allows advancing past step 2', async ({ page }) => {
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin/new');
+    await waitForWizardToLoad(page);
+
+    await navigateToStep2(page);
+
+    await fillStep2EventInfo(page, {
+      title: 'Event mit Beschreibung',
+      description: 'Eine ausführliche Beschreibung des Events.',
+    });
+
+    await page.locator('button:has-text("Weiter")').click();
+    await page.waitForTimeout(500);
+
+    await expect(page.locator('#date')).toBeVisible();
+  });
+
   test('event detail page shows organizer and kontakt for approved event', async ({ page }) => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin');

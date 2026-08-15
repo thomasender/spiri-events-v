@@ -293,6 +293,33 @@ test.describe('Admin delete workflow (kf8i6vqj)', () => {
     await expect(page.getByTestId('event-messages')).toBeVisible();
   });
 
+  test('edit form Beschreibung is marked required and blocks save when empty (uvquhhJS)', async ({
+    page,
+  }) => {
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+
+    await page.goto(`/admin/edit/test-event-foreign-pending`);
+
+    await page.waitForURL(/\/admin\/edit\//);
+    await page
+      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+      .catch(() => {});
+
+    const descriptionLabel = page.locator('label[for="description"]');
+    await expect(descriptionLabel).toContainText('*');
+
+    await page.locator('#description').fill('');
+
+    await page.getByRole('button', { name: /änderungen speichern/i }).click();
+    await page.waitForTimeout(500);
+
+    const descriptionError = page.getByTestId('description-error');
+    await expect(descriptionError).toBeVisible();
+    await expect(descriptionError).toContainText('Beschreibung ist erforderlich');
+
+    await expect(page).toHaveURL(/\/admin\/edit\//);
+  });
+
   test('admin can delete a user-owned pending event from the edit form', async ({ page }) => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
 

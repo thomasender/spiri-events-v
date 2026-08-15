@@ -161,6 +161,7 @@ export default function EventFormWizard() {
       }
     } else if (step === 2) {
       if (!formData.title.trim()) newErrors.title = 'Titel ist erforderlich';
+      if (!formData.description.trim()) newErrors.description = 'Beschreibung ist erforderlich';
     } else if (step === 3) {
       if (!formData.date) newErrors.date = 'Datum ist erforderlich';
       if (!formData.time) newErrors.time = 'Uhrzeit ist erforderlich';
@@ -515,7 +516,7 @@ export default function EventFormWizard() {
       </div>
 
       <div className="form-group">
-        <label htmlFor="description">Beschreibung</label>
+        <label htmlFor="description">Beschreibung *</label>
         <textarea
           id="description"
           name="description"
@@ -523,7 +524,15 @@ export default function EventFormWizard() {
           onChange={handleChange}
           placeholder="Beschreibe das Event... (Was erwartet die Teilnehmer? Für wen ist es geeignet? Was sollte man mitbringen?)"
           rows={5}
+          className={errors.description ? 'input-error' : ''}
+          aria-invalid={Boolean(errors.description)}
+          aria-describedby={errors.description ? 'description-error' : undefined}
         />
+        {errors.description && (
+          <span className="error-text" id="description-error" data-testid="description-error">
+            {errors.description}
+          </span>
+        )}
       </div>
 
       <div className="form-group">
