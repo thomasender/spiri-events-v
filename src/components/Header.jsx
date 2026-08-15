@@ -13,7 +13,7 @@ const getAdminNavClass = (pathname) =>
   pathname === '/admin' ? 'nav-link nav-link--admin nav-link--active' : 'nav-link nav-link--admin';
 
 export default function Header() {
-  const { user, logout, role } = useAuth();
+  const { user, logout, role, canCreateEvents } = useAuth();
   const { profile } = useProfile(user?.uid);
   const isAdmin = role === 'Admin';
   const navigate = useNavigate();
@@ -122,10 +122,22 @@ export default function Header() {
             )}
             <span>Mein Profil</span>
           </NavLink>
-          <NavLink to="/admin/new" className={navClass} onClick={closeMenu}>
-            <PlusCircle size={18} />
-            <span>Event erstellen</span>
-          </NavLink>
+          {canCreateEvents ? (
+            <NavLink to="/admin/new" className={navClass} onClick={closeMenu}>
+              <PlusCircle size={18} />
+              <span>Event erstellen</span>
+            </NavLink>
+          ) : (
+            <span
+              className="nav-link nav-link--disabled"
+              aria-disabled="true"
+              title="Bitte bestätige zuerst deine E-Mail-Adresse, um Events zu erstellen."
+              data-testid="event-create-locked"
+            >
+              <PlusCircle size={18} aria-hidden="true" />
+              <span>Event erstellen</span>
+            </span>
+          )}
           <button type="button" onClick={handleLogout} className="nav-link nav-link--logout">
             <LogOut size={18} />
             <span>Abmelden</span>

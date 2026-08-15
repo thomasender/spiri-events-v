@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -84,10 +84,25 @@ export function useAuth() {
   const [user, setUser] = useState(() => auth.currentUser);
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState(null);
+  const [emailVerified, setEmailVerified] = useState(() =>
+    Boolean(auth.currentUser?.emailVerified)
+  );
+
+  const refreshEmailVerified = async () => {
+    const current = auth.currentUser;
+    if (!current) return;
+    try {
+      await current.reload();
+      setEmailVerified(Boolean(current.emailVerified));
+    } catch (err) {
+      console.warn('Error reloading user to refresh emailVerified:', err);
+    }
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
+      setEmailVerified(Boolean(firebaseUser?.emailVerified));
       if (firebaseUser) {
         try {
           const tokenResult = await getIdTokenResult(firebaseUser, true);
@@ -112,14 +127,32 @@ export function useAuth() {
     return unsubscribe;
   }, []);
 
+  const canCreateEvents = useMemo(
+    () => Boolean(user) && (role === 'Admin' || Boolean(user?.emailVerified)),
+    [user, role]
+  );
+
   const register = async (email, password, displayName) => {
     const credential = await createUserWithEmailAndPassword(auth, email, password);
     if (displayName) {
       await updateProfile(credential.user, { displayName });
     }
     await seedProfileDoc(credential.user, displayName);
-    await sendEmailVerification(credential.user);
+    try {
+      await sendEmailVerification(credential.user);
+    } catch (err) {
+      console.warn('Failed to send initial verification email:', err);
+    }
+    setEmailVerified(Boolean(credential.user?.emailVerified));
     return credential;
+  };
+
+  const resendVerificationEmail = async () => {
+    const current = auth.currentUser;
+    if (!current) {
+      throw { code: 'auth/no-current-user', message: 'Kein angemeldeter Benutzer.' };
+    }
+    await sendEmailVerification(current);
   };
 
   const login = async (email, password) => {
@@ -184,6 +217,8 @@ export function useAuth() {
     user,
     loading,
     role,
+    emailVerified,
+    canCreateEvents,
     register,
     login,
     logout,
@@ -191,5 +226,7 @@ export function useAuth() {
     reauthenticate,
     changeEmail,
     deleteAccount,
+    resendVerificationEmail,
+    refreshEmailVerified,
   };
 }
