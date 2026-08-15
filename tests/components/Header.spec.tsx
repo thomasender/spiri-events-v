@@ -5,6 +5,7 @@ import Header from '../../src/components/Header';
 
 const mockAuth = vi.hoisted(() => ({
   user: null as { uid: string; photoURL?: string | null } | null,
+  canCreateEvents: true,
 }));
 
 const mockProfile = vi.hoisted(() => ({
@@ -14,6 +15,7 @@ const mockProfile = vi.hoisted(() => ({
 vi.mock('../../src/hooks/useAuth', () => ({
   useAuth: () => ({
     user: mockAuth.user,
+    canCreateEvents: mockAuth.canCreateEvents,
     logout: () => {},
   }),
 }));
@@ -29,6 +31,7 @@ vi.mock('../../src/hooks/useProfile', () => ({
 
 beforeEach(() => {
   mockAuth.user = null;
+  mockAuth.canCreateEvents = true;
   if (mockAuth.user) mockAuth.user.photoURL = undefined;
   mockProfile.photoURL = null;
 });

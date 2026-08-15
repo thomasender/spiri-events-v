@@ -4,6 +4,7 @@ import { CalendarDays, Mail, MessageSquare, PlusCircle } from 'lucide-react';
 import EventList from '../components/EventList';
 import MessagesTab from '../components/MessagesTab';
 import FeedbackTab from '../components/FeedbackTab';
+import EmailVerificationBanner from '../components/EmailVerificationBanner';
 import { useAuth } from '../hooks/useAuth';
 import { useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
 import { useUnreadFeedbackCount } from '../hooks/useFeedbackList';
@@ -13,7 +14,7 @@ const VALID_TABS = new Set(['events', 'messages', 'feedback']);
 
 export default function AdminPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { role } = useAuth();
+  const { role, canCreateEvents } = useAuth();
   const isAdmin = role === 'Admin';
   const { count: unreadCount } = useUnreadMessageCount();
   const { count: unreadFeedbackCount } = useUnreadFeedbackCount(isAdmin);
@@ -42,11 +43,25 @@ export default function AdminPage() {
           <h1>Verwaltung</h1>
           <p>Verwalte deine Events und Nachrichten</p>
         </div>
-        <Link to="/admin/new" className="btn btn-primary">
-          <PlusCircle size={18} aria-hidden="true" />
-          <span>Neues Event</span>
-        </Link>
+        {canCreateEvents ? (
+          <Link to="/admin/new" className="btn btn-primary">
+            <PlusCircle size={18} aria-hidden="true" />
+            <span>Neues Event</span>
+          </Link>
+        ) : (
+          <span
+            className="btn btn-primary btn-disabled"
+            aria-disabled="true"
+            title="Bitte bestätige zuerst deine E-Mail-Adresse."
+            data-testid="new-event-locked"
+          >
+            <PlusCircle size={18} aria-hidden="true" />
+            <span>Neues Event</span>
+          </span>
+        )}
       </header>
+
+      {!canCreateEvents && <EmailVerificationBanner />}
 
       <div className="admin-page-tabs" role="tablist" aria-label="Verwaltungs-Bereiche">
         <button
