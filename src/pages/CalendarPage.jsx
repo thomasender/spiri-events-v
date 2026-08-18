@@ -1,12 +1,13 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useAllEvents, KATEGORIEN, BEZIRKE } from '../hooks/useEvents';
+import { useAuth } from '../hooks/useAuth';
 import Calendar from '../components/Calendar';
 import EventsSection from '../components/EventsSection';
 import { getEventOccurrences } from '../utils/eventOccurrences';
 import { CATEGORY_COLORS } from '../utils/categoryColors';
-import { MapPin, Sparkles, Users, ChevronDown, Check } from 'lucide-react';
+import { MapPin, Sparkles, Users, ChevronDown, Check, PlusCircle } from 'lucide-react';
 import './CalendarPage.css';
 
 const STORAGE_KEY = 'calendarFilterState';
@@ -47,6 +48,7 @@ function saveFilterState(state) {
 
 export default function CalendarPage() {
   const navigate = useNavigate();
+  const { user, canCreateEvents } = useAuth();
   const savedState = loadFilterState();
   const [currentMonth, setCurrentMonth] = useState(
     savedState?.currentMonth ? new Date(savedState.currentMonth) : new Date()
@@ -167,6 +169,42 @@ export default function CalendarPage() {
 
       <div className="page-layout">
         <div className="page-main">
+          <div className="create-event-cta" data-testid="create-event-cta">
+            <div className="create-event-cta-text">
+              <strong>Du willst ein Event teilen?</strong>
+              <span>Erstelle dein eigenes Event in wenigen Schritten.</span>
+            </div>
+            {canCreateEvents ? (
+              <Link
+                to="/admin/new"
+                className="btn btn-primary create-event-cta-button"
+                data-testid="create-event-cta-button"
+              >
+                <PlusCircle size={18} aria-hidden="true" />
+                <span>Event erstellen</span>
+              </Link>
+            ) : user ? (
+              <span
+                className="btn btn-primary create-event-cta-button btn-disabled"
+                aria-disabled="true"
+                title="Bitte bestätige zuerst deine E-Mail-Adresse, um Events zu erstellen."
+                data-testid="create-event-cta-locked"
+              >
+                <PlusCircle size={18} aria-hidden="true" />
+                <span>Event erstellen</span>
+              </span>
+            ) : (
+              <Link
+                to="/login"
+                className="btn btn-primary create-event-cta-button"
+                data-testid="create-event-cta-button"
+              >
+                <PlusCircle size={18} aria-hidden="true" />
+                <span>Event erstellen</span>
+              </Link>
+            )}
+          </div>
+
           <section className="filter-panel" aria-label="Filter">
             <div className="filter-header filter-header--title">
               <h2 className="filter-section-title">Hier kannst du filtern</h2>

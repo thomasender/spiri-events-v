@@ -144,10 +144,21 @@ export default function Header() {
           </button>
         </>
       ) : (
-        <NavLink to="/login" className={navClass} onClick={closeMenu}>
-          <User size={18} />
-          <span>Anmelden</span>
-        </NavLink>
+        <>
+          <NavLink to="/login" className={navClass} onClick={closeMenu}>
+            <User size={18} />
+            <span>Anmelden</span>
+          </NavLink>
+          <NavLink
+            to="/login"
+            className={navClass}
+            onClick={closeMenu}
+            data-testid="event-create-cta"
+          >
+            <PlusCircle size={18} />
+            <span>Event erstellen</span>
+          </NavLink>
+        </>
       )}
     </>
   );

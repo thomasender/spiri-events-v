@@ -63,7 +63,21 @@ describe('Header (logged out)', () => {
     );
     expect(screen.getAllByText('Anmelden').length).toBeGreaterThan(0);
     expect(screen.queryByText('Mein Profil')).toBeNull();
-    expect(screen.queryByText('Event erstellen')).toBeNull();
+    expect(screen.queryByText('Verwaltung')).toBeNull();
+    expect(screen.queryByText('Abmelden')).toBeNull();
+  });
+
+  it('renders an "Event erstellen" link for logged-out users that points to /login', () => {
+    const { container } = render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    const createLinks = container.querySelectorAll('a[href="/login"]');
+    expect(createLinks.length).toBeGreaterThan(0);
+    const labels = Array.from(createLinks).map((link) => link.textContent?.trim() ?? '');
+    expect(labels.some((l) => l.includes('Event erstellen'))).toBe(true);
   });
 });
 
