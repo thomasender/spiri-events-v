@@ -164,11 +164,13 @@ describe('Calendar', () => {
         date: startDate,
         endDate: endDate,
       });
+      const eventDate = new Date(startDate + 'T12:00:00');
+      const eventMonth = new Date(eventDate.getFullYear(), eventDate.getMonth(), 1);
       render(
         <Calendar
           events={[multiDayEvent]}
           onEventClick={onEventClick}
-          currentMonth={currentMonth}
+          currentMonth={eventMonth}
           onMonthChange={onMonthChange}
         />
       );
