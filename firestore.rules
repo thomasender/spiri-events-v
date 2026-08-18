@@ -96,7 +96,7 @@ service cloud.firestore {
       allow read: if isAdminOrEmulatorAdmin();
 
       allow create: if request.resource.data.keys().hasOnly(
-                      ['description', 'name', 'email', 'screenshotUrl', 'pageUrl', 'pageTitle', 'userAgent', 'userId', 'status', 'createdAt']
+                      ['description', 'name', 'email', 'screenshotUrl', 'screenshotFailed', 'pageUrl', 'pageTitle', 'userAgent', 'userId', 'status', 'createdAt']
                     )
                     && request.resource.data.description is string
                     && request.resource.data.description.size() > 0
@@ -105,6 +105,7 @@ service cloud.firestore {
                     && (!('name' in request.resource.data) || request.resource.data.name == null || (request.resource.data.name is string && request.resource.data.name.size() <= 80))
                     && (!('email' in request.resource.data) || request.resource.data.email == null || (request.resource.data.email is string && request.resource.data.email.size() <= 120))
                     && (!('screenshotUrl' in request.resource.data) || request.resource.data.screenshotUrl == null || request.resource.data.screenshotUrl is string)
+                    && (!('screenshotFailed' in request.resource.data) || request.resource.data.screenshotFailed == null || request.resource.data.screenshotFailed is bool)
                     && (!('pageUrl' in request.resource.data) || request.resource.data.pageUrl == null || (request.resource.data.pageUrl is string && request.resource.data.pageUrl.size() <= 500))
                     && (!('pageTitle' in request.resource.data) || request.resource.data.pageTitle == null || (request.resource.data.pageTitle is string && request.resource.data.pageTitle.size() <= 200))
                     && (!('userAgent' in request.resource.data) || request.resource.data.userAgent == null || (request.resource.data.userAgent is string && request.resource.data.userAgent.size() <= 500))

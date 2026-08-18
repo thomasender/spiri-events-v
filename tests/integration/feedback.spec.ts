@@ -331,4 +331,72 @@ test.describe('Feedback feature', () => {
     await expect(newItem).toBeVisible({ timeout: 10000 });
     await expect(newItem.getByTestId('feedback-screenshot-thumb')).toBeVisible({ timeout: 10000 });
   });
+
+  test('Feedback submitted from an event detail page captures that page as the link', async ({
+    page,
+  }) => {
+    await page.goto('/event/yoga-heute-yogastudio-dornbirn-20260807');
+
+    await page
+      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+      .catch(() => {});
+
+    await page.getByTestId('feedback-fab').click();
+    await expect(page.getByTestId('feedback-modal')).toBeVisible();
+
+    await page.getByTestId('feedback-description').fill('Feedback von der Event-Detailseite');
+
+    const linkField = page.getByTestId('feedback-link');
+    await expect(linkField).toBeVisible();
+    await expect(linkField).toHaveValue(/\/event\/yoga-heute-yogastudio-dornbirn-20260807/);
+
+    await page.getByTestId('feedback-submit').click();
+    await expect(page.getByTestId('feedback-success')).toBeVisible({ timeout: 15000 });
+
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin?tab=feedback');
+    await page
+      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+      .catch(() => {});
+    await expect(page.getByTestId('feedback-tab')).toBeVisible({ timeout: 10000 });
+
+    const newItem = page
+      .getByTestId('feedback-item')
+      .filter({ hasText: 'Feedback von der Event-Detailseite' });
+    await expect(newItem).toBeVisible({ timeout: 10000 });
+
+    const pageLinks = newItem.locator('.feedback-item-details a[href]');
+    const hrefs = await pageLinks.evaluateAll((els) => els.map((el) => el.getAttribute('href')));
+    const eventHref = hrefs.find((href) => href && href.includes('/event/yoga-heute'));
+    expect(eventHref).toBeTruthy();
+    expect(eventHref).toMatch(/\/event\/yoga-heute-yogastudio-dornbirn-20260807/);
+  });
+
+  test('User can override the auto-captured page link in the feedback form', async ({ page }) => {
+    await page.goto('/');
+    await page.getByTestId('feedback-fab').click();
+    await expect(page.getByTestId('feedback-modal')).toBeVisible();
+
+    await page.getByTestId('feedback-description').fill('Manuell überschriebener Seitenlink');
+
+    await page.getByTestId('feedback-link').fill('https://events.thetribe.at/impressum');
+    await page.getByTestId('feedback-submit').click();
+    await expect(page.getByTestId('feedback-success')).toBeVisible({ timeout: 15000 });
+
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin?tab=feedback');
+    await page
+      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+      .catch(() => {});
+    await expect(page.getByTestId('feedback-tab')).toBeVisible({ timeout: 10000 });
+
+    const newItem = page
+      .getByTestId('feedback-item')
+      .filter({ hasText: 'Manuell überschriebener Seitenlink' });
+    await expect(newItem).toBeVisible({ timeout: 10000 });
+
+    const pageLinks = newItem.locator('.feedback-item-details a[href]');
+    const hrefs = await pageLinks.evaluateAll((els) => els.map((el) => el.getAttribute('href')));
+    expect(hrefs).toContain('https://events.thetribe.at/impressum');
+  });
 });

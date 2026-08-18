@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { MessageSquare } from 'lucide-react';
 import FeedbackModal from './FeedbackModal';
 import './FeedbackButton.css';
 
 export default function FeedbackButton() {
   const [open, setOpen] = useState(false);
+  const location = useLocation();
   const [pageContext, setPageContext] = useState({ pageUrl: '', pageTitle: '' });
 
   useEffect(() => {
-    if (typeof window === 'undefined') return undefined;
+    if (typeof window === 'undefined') return;
     const updateContext = () => {
       setPageContext({
         pageUrl: window.location.href,
@@ -16,13 +18,7 @@ export default function FeedbackButton() {
       });
     };
     updateContext();
-    window.addEventListener('popstate', updateContext);
-    window.addEventListener('hashchange', updateContext);
-    return () => {
-      window.removeEventListener('popstate', updateContext);
-      window.removeEventListener('hashchange', updateContext);
-    };
-  }, []);
+  }, [location.pathname, location.search, location.hash]);
 
   return (
     <>

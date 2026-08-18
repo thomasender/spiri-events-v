@@ -182,7 +182,7 @@ export default function FeedbackTab() {
                 )}
               </dl>
 
-              {item.screenshotUrl && (
+              {item.screenshotUrl ? (
                 <button
                   type="button"
                   className="feedback-item-screenshot-thumb"
@@ -193,7 +193,14 @@ export default function FeedbackTab() {
                   <img src={item.screenshotUrl} alt="Screenshot Vorschau" />
                   <span className="feedback-item-screenshot-hint">Screenshot ansehen</span>
                 </button>
-              )}
+              ) : item.screenshotFailed ? (
+                <div
+                  className="feedback-item-screenshot-missing"
+                  data-testid="feedback-screenshot-missing"
+                >
+                  Screenshot konnte nicht hochgeladen werden.
+                </div>
+              ) : null}
             </li>
           );
         })}

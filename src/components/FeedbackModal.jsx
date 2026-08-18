@@ -12,11 +12,14 @@ import './FeedbackModal.css';
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
 
+const MAX_FEEDBACK_LINK_LENGTH = 500;
+
 export default function FeedbackModal({ open, onClose, pageUrl, pageTitle }) {
   const { submitting, uploadProgress, error, warning, submitFeedback, reset } = useFeedback();
   const [description, setDescription] = useState('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [link, setLink] = useState('');
   const [screenshot, setScreenshot] = useState(null);
   const [screenshotPreview, setScreenshotPreview] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
@@ -29,6 +32,7 @@ export default function FeedbackModal({ open, onClose, pageUrl, pageTitle }) {
       setDescription('');
       setName('');
       setEmail('');
+      setLink(pageUrl || '');
       if (previewUrlRef.current) {
         URL.revokeObjectURL(previewUrlRef.current);
         previewUrlRef.current = null;
@@ -38,8 +42,10 @@ export default function FeedbackModal({ open, onClose, pageUrl, pageTitle }) {
       setFieldErrors({});
       setSuccess(false);
       reset();
+    } else {
+      setLink((current) => current || pageUrl || '');
     }
-  }, [open, reset]);
+  }, [open, pageUrl, reset]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -95,14 +101,17 @@ export default function FeedbackModal({ open, onClose, pageUrl, pageTitle }) {
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) return;
 
+    const finalPageUrl =
+      link.trim() || (typeof window !== 'undefined' ? window.location.href : '') || pageUrl;
+
     try {
       await submitFeedback({
         description,
         name,
         email,
         screenshot,
-        pageUrl,
-        pageTitle,
+        pageUrl: finalPageUrl,
+        pageTitle: pageTitle || (typeof document !== 'undefined' ? document.title : '') || '',
       });
       setSuccess(true);
     } catch {
@@ -257,6 +266,30 @@ export default function FeedbackModal({ open, onClose, pageUrl, pageTitle }) {
               )}
               <span className="feedback-modal-hint">
                 Bleibt anonym, wenn du das Feld leer lässt.
+              </span>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="feedback-link">Seitenlink (optional)</label>
+              <input
+                id="feedback-link"
+                type="url"
+                value={link}
+                onChange={(e) => setLink(e.target.value.slice(0, MAX_FEEDBACK_LINK_LENGTH))}
+                placeholder="https://…"
+                disabled={submitting}
+                data-testid="feedback-link"
+                maxLength={MAX_FEEDBACK_LINK_LENGTH}
+                aria-invalid={Boolean(fieldErrors.link)}
+              />
+              {fieldErrors.link && (
+                <span className="error-text" data-testid="feedback-link-error">
+                  {fieldErrors.link}
+                </span>
+              )}
+              <span className="feedback-modal-hint">
+                Die aktuelle Seite ist bereits eingetragen. Du kannst den Link anpassen, falls dein
+                Feedback eine andere Seite betrifft.
               </span>
             </div>
 

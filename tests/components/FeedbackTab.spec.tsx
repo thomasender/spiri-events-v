@@ -182,6 +182,23 @@ describe('FeedbackTab', () => {
     expect(link).toHaveAttribute('href', 'https://events.thetribe.at/?foo=bar#section');
   });
 
+  it('shows a placeholder when screenshot upload failed and no URL is present', () => {
+    mockItems.push({
+      id: 'fb-1',
+      description: 'screenshot ging nicht',
+      status: 'read',
+      screenshotUrl: null,
+      screenshotFailed: true,
+      createdAt: { toDate: () => new Date() },
+    });
+
+    render(<FeedbackTab />);
+    const placeholder = screen.getByTestId('feedback-screenshot-missing');
+    expect(placeholder).toBeInTheDocument();
+    expect(placeholder).toHaveTextContent(/Screenshot konnte nicht hochgeladen werden/);
+    expect(screen.queryByTestId('feedback-screenshot-thumb')).not.toBeInTheDocument();
+  });
+
   it('renders the summary with counts', () => {
     mockCounts.total = 5;
     mockCounts.new = 2;
