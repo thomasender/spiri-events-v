@@ -1,10 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { CalendarDays, Mail, MessageSquare, PlusCircle } from 'lucide-react';
 import EventList from '../components/EventList';
 import MessagesTab from '../components/MessagesTab';
 import FeedbackTab from '../components/FeedbackTab';
 import EmailVerificationBanner from '../components/EmailVerificationBanner';
+import EmailVerificationModal from '../components/EmailVerificationModal';
 import { useAuth } from '../hooks/useAuth';
 import { useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
 import { useUnreadFeedbackCount } from '../hooks/useFeedbackList';
@@ -18,6 +19,7 @@ export default function AdminPage() {
   const isAdmin = role === 'Admin';
   const { count: unreadCount } = useUnreadMessageCount();
   const { count: unreadFeedbackCount } = useUnreadFeedbackCount(isAdmin);
+  const [verificationModalOpen, setVerificationModalOpen] = useState(false);
 
   const rawTab = searchParams.get('tab');
   const activeTab = useMemo(() => {
@@ -49,15 +51,16 @@ export default function AdminPage() {
             <span>Neues Event</span>
           </Link>
         ) : (
-          <span
+          <button
+            type="button"
             className="btn btn-primary btn-disabled"
-            aria-disabled="true"
+            onClick={() => setVerificationModalOpen(true)}
             title="Bitte bestätige zuerst deine E-Mail-Adresse."
             data-testid="new-event-locked"
           >
             <PlusCircle size={18} aria-hidden="true" />
             <span>Neues Event</span>
-          </span>
+          </button>
         )}
       </header>
 
@@ -151,6 +154,11 @@ export default function AdminPage() {
           {activeTab === 'feedback' && <FeedbackTab />}
         </div>
       )}
+
+      <EmailVerificationModal
+        open={verificationModalOpen}
+        onClose={() => setVerificationModalOpen(false)}
+      />
     </div>
   );
 }

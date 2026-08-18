@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
 import { useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
 import { useUnreadFeedbackCount } from '../hooks/useFeedbackList';
+import EmailVerificationModal from './EmailVerificationModal';
 import { Calendar, LogOut, User, PlusCircle, UserCircle, Pen, Menu, X } from 'lucide-react';
 import './Header.css';
 
@@ -21,10 +22,16 @@ export default function Header() {
   const { count: unreadMessageCount } = useUnreadMessageCount();
   const { count: unreadFeedbackCount } = useUnreadFeedbackCount(isAdmin);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [verificationModalOpen, setVerificationModalOpen] = useState(false);
   const menuRef = useRef(null);
   const toggleRef = useRef(null);
 
   const closeMenu = () => setMenuOpen(false);
+
+  const openVerificationModal = () => {
+    closeMenu();
+    setVerificationModalOpen(true);
+  };
 
   const handleLogout = async () => {
     closeMenu();
@@ -128,15 +135,16 @@ export default function Header() {
               <span>Event erstellen</span>
             </NavLink>
           ) : (
-            <span
+            <button
+              type="button"
               className="nav-link nav-link--disabled"
-              aria-disabled="true"
+              onClick={openVerificationModal}
               title="Bitte bestätige zuerst deine E-Mail-Adresse, um Events zu erstellen."
               data-testid="event-create-locked"
             >
               <PlusCircle size={18} aria-hidden="true" />
               <span>Event erstellen</span>
-            </span>
+            </button>
           )}
           <button type="button" onClick={handleLogout} className="nav-link nav-link--logout">
             <LogOut size={18} />
@@ -199,6 +207,11 @@ export default function Header() {
       >
         {renderNavLinks()}
       </div>
+
+      <EmailVerificationModal
+        open={verificationModalOpen}
+        onClose={() => setVerificationModalOpen(false)}
+      />
     </header>
   );
 }

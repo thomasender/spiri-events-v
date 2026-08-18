@@ -109,7 +109,10 @@ test.describe('Event erstellen for non-logged-in users', () => {
 
     const lockedCta = page.getByTestId('create-event-cta-locked');
     await expect(lockedCta).toBeVisible();
-    await expect(lockedCta).toHaveAttribute('aria-disabled', 'true');
+    await expect(lockedCta).toHaveAttribute(
+      'title',
+      'Bitte bestätige zuerst deine E-Mail-Adresse, um Events zu erstellen.'
+    );
 
     await page.locator('.menu-toggle').click();
     const lockedNav = page.locator('#mobile-menu').getByTestId('event-create-locked');

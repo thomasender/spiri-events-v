@@ -5,6 +5,7 @@ import { useAllEvents, KATEGORIEN, BEZIRKE } from '../hooks/useEvents';
 import { useAuth } from '../hooks/useAuth';
 import Calendar from '../components/Calendar';
 import EventsSection from '../components/EventsSection';
+import EmailVerificationModal from '../components/EmailVerificationModal';
 import { getEventOccurrences } from '../utils/eventOccurrences';
 import { CATEGORY_COLORS } from '../utils/categoryColors';
 import { MapPin, Sparkles, Users, ChevronDown, Check, PlusCircle } from 'lucide-react';
@@ -58,6 +59,7 @@ export default function CalendarPage() {
   );
   const [selectedBezirke, setSelectedBezirke] = useState(savedState?.selectedBezirke || []);
   const [viewMode, setViewMode] = useState(savedState?.viewMode || 'list');
+  const [verificationModalOpen, setVerificationModalOpen] = useState(false);
   const { events, loading, error } = useAllEvents();
 
   useEffect(() => {
@@ -184,15 +186,16 @@ export default function CalendarPage() {
                 <span>Event erstellen</span>
               </Link>
             ) : user ? (
-              <span
+              <button
+                type="button"
                 className="btn btn-primary create-event-cta-button btn-disabled"
-                aria-disabled="true"
+                onClick={() => setVerificationModalOpen(true)}
                 title="Bitte bestätige zuerst deine E-Mail-Adresse, um Events zu erstellen."
                 data-testid="create-event-cta-locked"
               >
                 <PlusCircle size={18} aria-hidden="true" />
                 <span>Event erstellen</span>
-              </span>
+              </button>
             ) : (
               <Link
                 to="/login"
@@ -313,6 +316,11 @@ export default function CalendarPage() {
           </div>
         </div>
       </section>
+
+      <EmailVerificationModal
+        open={verificationModalOpen}
+        onClose={() => setVerificationModalOpen(false)}
+      />
     </div>
   );
 }
