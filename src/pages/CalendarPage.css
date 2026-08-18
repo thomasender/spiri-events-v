@@ -427,6 +427,7 @@
     min-height: 500px;
     padding: 0;
     margin: 24px 0;
+    max-width: 100%;
   }
 
   /* On mobile the image takes the top third of the hero;

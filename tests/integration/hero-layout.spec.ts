@@ -165,6 +165,35 @@ test.describe('Hero Section Layout', () => {
       expect(heroBox!.x + heroBox!.width).toBeGreaterThanOrEqual(viewport!.width - 1);
     });
 
+    test('hero image fills the hero on mobile (no left/right gap)', async ({ page }) => {
+      // Regression: the hero had max-width: 85vw on mobile which left
+      // a 15vw gap on the right because the mobile margin override
+      // dropped the auto-centering. The image inside the hero then
+      // appeared left-aligned with empty space on the right.
+      const hero = page.locator('.hero');
+      const heroVisual = page.locator('.hero-visual');
+      const heroImage = page.locator('.hero-visual-image');
+
+      await expect(hero).toBeVisible();
+      await expect(heroVisual).toBeVisible();
+      await expect(heroImage).toBeVisible();
+
+      const heroBox = await hero.boundingBox();
+      const visualBox = await heroVisual.boundingBox();
+      const imageBox = await heroImage.boundingBox();
+      const viewport = page.viewportSize();
+
+      // The image must reach both edges of the viewport on mobile.
+      expect(imageBox!.x).toBeLessThanOrEqual(1);
+      expect(imageBox!.x + imageBox!.width).toBeGreaterThanOrEqual(viewport!.width - 1);
+
+      // The visual container and image must align with the hero box.
+      expect(Math.abs(visualBox!.x - heroBox!.x)).toBeLessThan(1);
+      expect(Math.abs(visualBox!.width - heroBox!.width)).toBeLessThan(1);
+      expect(Math.abs(imageBox!.x - heroBox!.x)).toBeLessThan(1);
+      expect(Math.abs(imageBox!.width - heroBox!.width)).toBeLessThan(1);
+    });
+
     test('hero gradient is hidden on mobile (text and image are stacked, not overlaid)', async ({
       page,
     }) => {
