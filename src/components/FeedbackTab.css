@@ -196,6 +196,16 @@
   background-color: var(--bg-secondary);
 }
 
+.feedback-item-screenshot-missing {
+  display: inline-block;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  color: var(--error);
+  background-color: rgba(191, 91, 78, 0.08);
+  border: 1px dashed var(--error);
+  border-radius: var(--radius-sm);
+}
+
 .feedback-item-screenshot-hint {
   font-size: 0.8rem;
   font-weight: 500;

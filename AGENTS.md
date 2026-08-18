@@ -23,10 +23,13 @@ Set `VITE_USE_EMULATORS=true` to connect the app to local emulators instead of p
 **Important:** The Playwright test runner's webServer must also have this env var. It's configured in `playwright.config.ts`:
 ```json
 webServer: {
-  command: 'VITE_USE_EMULATORS=true npm run dev',
+  command: 'VITE_USE_EMULATORS=true npm run dev -- --port 5180',
+  url: 'http://localhost:5180',
   ...
 }
 ```
+
+The dev server / Playwright baseURL is `http://localhost:5180` (chosen to avoid conflicting with other Vite projects on the default port 5173).
 
 ## Playwright Tests
 

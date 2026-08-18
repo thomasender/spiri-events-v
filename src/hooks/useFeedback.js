@@ -78,6 +78,7 @@ export function useFeedback() {
 
       const feedbackId = generateFeedbackId();
       let screenshotUrl = null;
+      let screenshotFailed = false;
 
       setSubmitting(true);
       try {
@@ -88,6 +89,7 @@ export function useFeedback() {
             });
           } catch (uploadErr) {
             console.warn('Feedback screenshot upload failed:', uploadErr);
+            screenshotFailed = true;
             setWarning(
               'Dein Feedback wurde gesendet, aber der Screenshot konnte nicht hochgeladen werden.'
             );
@@ -103,6 +105,7 @@ export function useFeedback() {
           userAgent: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 500) : null,
           userId: user?.uid || null,
           screenshotUrl,
+          screenshotFailed,
           status: 'new',
           createdAt: serverTimestamp(),
         });
