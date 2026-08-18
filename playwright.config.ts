@@ -22,7 +22,7 @@ export default defineConfig({
   ],
 
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: 'http://localhost:5180',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
@@ -37,8 +37,8 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'VITE_USE_EMULATORS=true npm run dev',
-    url: 'http://localhost:5173',
+    command: 'VITE_USE_EMULATORS=true npm run dev -- --port 5180',
+    url: 'http://localhost:5180',
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
   },
