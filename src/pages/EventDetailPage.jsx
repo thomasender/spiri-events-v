@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { collection, doc, getDoc, query, where, getDocs, arrayUnion } from 'firebase/firestore';
@@ -227,18 +227,50 @@ export default function EventDetailPage() {
     fetchEvent();
   }, [slug, user, role, authLoading]);
 
+  const eventMessagesReadyRef = useRef(false);
+  const [eventMessagesReady, setEventMessagesReady] = useState(false);
+
   useEffect(() => {
     if (location.hash !== '#event-messages') return;
     if (loading || !event) return;
     if (!showMessagesForHash) return;
-    const id = window.requestAnimationFrame(() => {
+    if (!eventMessagesReady) return;
+    if (eventMessagesReadyRef.current) return;
+    eventMessagesReadyRef.current = true;
+    let cancelled = false;
+    let attempts = 0;
+    const tryScroll = () => {
+      if (cancelled) return;
       const node = document.getElementById('event-messages');
-      if (node) {
-        node.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (!node) {
+        if (attempts < 20) {
+          attempts += 1;
+          window.requestAnimationFrame(tryScroll);
+        }
+        return;
       }
-    });
-    return () => window.cancelAnimationFrame(id);
-  }, [location.hash, loading, event, showMessagesForHash]);
+      const rect = node.getBoundingClientRect();
+      if (Math.abs(rect.top) < 1) return;
+      node.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      window.setTimeout(() => {
+        if (cancelled) return;
+        const next = node.getBoundingClientRect();
+        if (Math.abs(next.top) > 1 && attempts < 10) {
+          attempts += 1;
+          node.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 250);
+    };
+    window.requestAnimationFrame(tryScroll);
+    return () => {
+      cancelled = true;
+    };
+  }, [location.hash, loading, event, showMessagesForHash, eventMessagesReady]);
+
+  useEffect(() => {
+    eventMessagesReadyRef.current = false;
+    setEventMessagesReady(false);
+  }, [event?.id, location.hash]);
 
   if (loading) {
     return (
@@ -584,7 +616,7 @@ export default function EventDetailPage() {
       )}
 
       {(event.status === 'pending' || event.status === 'draft') && user && (isAdmin || isOwner) && (
-        <EventMessages eventId={event.id} />
+        <EventMessages eventId={event.id} onReady={() => setEventMessagesReady(true)} />
       )}
 
       {event.link && (

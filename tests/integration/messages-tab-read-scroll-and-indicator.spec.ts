@@ -118,4 +118,80 @@ test.describe('Messages tab — read messages & auto-scroll & event indicator', 
     });
     expect(isInViewport).toBe(false);
   });
+
+  test('Clicking a message item auto-scrolls to the #event-messages anchor', async ({ page }) => {
+    await signInWithEmailAndPassword(page, 'user@test.local', 'testpassword123');
+    await page.goto('/admin?tab=messages');
+
+    await page
+      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+      .catch(() => {});
+
+    const list = page.getByTestId('messages-tab-list');
+    await expect(list).toBeVisible({ timeout: 10000 });
+
+    const item = page.getByTestId('messages-tab-item').first();
+    await item.click();
+
+    await page.waitForURL(/#event-messages$/, { timeout: 10000 });
+    await page.waitForSelector('[data-testid="event-message"]', { timeout: 10000 });
+    await page.waitForTimeout(1500);
+
+    const measurement = await page.evaluate(() => {
+      const node = document.getElementById('event-messages');
+      const rect = node ? node.getBoundingClientRect() : { top: -1, bottom: -1 };
+      return {
+        scrollY: window.scrollY,
+        maxScroll: document.documentElement.scrollHeight - window.innerHeight,
+        sectionTop: rect.top,
+        viewportH: window.innerHeight,
+      };
+    });
+
+    expect(measurement.scrollY, 'page should have scrolled').toBeGreaterThan(0);
+    expect(
+      measurement.sectionTop,
+      'event-messages section should land in the viewport (not below it)'
+    ).toBeLessThan(measurement.viewportH);
+    expect(measurement.scrollY, 'page should scroll to max so the section is fully visible').toBe(
+      measurement.maxScroll
+    );
+  });
+
+  test('Direct navigation to /event/{slug}#event-messages also scrolls to the anchor', async ({
+    page,
+  }) => {
+    await signInWithEmailAndPassword(page, 'user@test.local', 'testpassword123');
+    await page.goto('/admin?tab=messages');
+    await page
+      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+      .catch(() => {});
+    const href = await page.getByTestId('messages-tab-item').first().getAttribute('href');
+    expect(href).toBeTruthy();
+
+    await page.goto(href!);
+
+    await page.waitForSelector('[data-testid="event-message"]', { timeout: 10000 });
+    await page.waitForTimeout(1500);
+
+    const measurement = await page.evaluate(() => {
+      const node = document.getElementById('event-messages');
+      const rect = node ? node.getBoundingClientRect() : { top: -1, bottom: -1 };
+      return {
+        scrollY: window.scrollY,
+        maxScroll: document.documentElement.scrollHeight - window.innerHeight,
+        sectionTop: rect.top,
+        viewportH: window.innerHeight,
+      };
+    });
+
+    expect(measurement.scrollY, 'page should have scrolled').toBeGreaterThan(0);
+    expect(
+      measurement.sectionTop,
+      'event-messages section should land in the viewport (not below it)'
+    ).toBeLessThan(measurement.viewportH);
+    expect(measurement.scrollY, 'page should scroll to max so the section is fully visible').toBe(
+      measurement.maxScroll
+    );
+  });
 });

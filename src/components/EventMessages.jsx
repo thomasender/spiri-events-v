@@ -15,13 +15,32 @@ function formatTime(timestamp) {
   });
 }
 
-export default function EventMessages({ eventId }) {
+export default function EventMessages({ eventId, onReady }) {
   const { user, role } = useAuth();
   const { messages, loading, sending, sendMessage, markAsRead } = useEventMessages(eventId);
   const [text, setText] = useState('');
   const [error, setError] = useState('');
   const listRef = useRef(null);
   const markedRef = useRef(new Set());
+  const wasLoadingRef = useRef(true);
+  const onReadyRef = useRef(onReady);
+
+  useEffect(() => {
+    onReadyRef.current = onReady;
+  }, [onReady]);
+
+  useEffect(() => {
+    if (loading) {
+      wasLoadingRef.current = true;
+      return undefined;
+    }
+    if (!wasLoadingRef.current) return undefined;
+    wasLoadingRef.current = false;
+    const handle = window.requestAnimationFrame(() => {
+      onReadyRef.current?.();
+    });
+    return () => window.cancelAnimationFrame(handle);
+  }, [loading]);
 
   useEffect(() => {
     if (!user || messages.length === 0) return;
