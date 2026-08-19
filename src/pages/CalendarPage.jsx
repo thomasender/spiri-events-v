@@ -29,6 +29,11 @@ const HERO_FEATURES = [
     title: 'Einfach & kostenlos',
     description: 'Finden. Teilen. Dabeisein.',
   },
+  {
+    icon: Sparkles,
+    title: 'Tribe ist für alle da.',
+    description: 'Ein Ort für Begegnung, Inspiration und echtes Miteinander.',
+  },
 ];
 
 function loadFilterState() {
@@ -163,13 +168,6 @@ export default function CalendarPage() {
               </li>
             ))}
           </ul>
-          <div className="hero-tagline">
-            <Sparkles size={22} aria-hidden="true" />
-            <div>
-              <strong>Tribe ist für alle da.</strong>
-              <span>Ein Ort für Begegnung, Inspiration und echtes Miteinander.</span>
-            </div>
-          </div>
         </div>
         <div className="hero-visual" aria-hidden="true">
           <img src="/hero.jpeg" alt="" className="hero-visual-image" />
