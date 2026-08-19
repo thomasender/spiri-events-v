@@ -46,6 +46,20 @@ describe('Header (logged out)', () => {
     expect(screen.getByText('tribe')).toBeInTheDocument();
   });
 
+  it('renders the tagline inside the logo block', () => {
+    const { container } = render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+    const tagline = container.querySelector('.logo-tagline');
+    expect(tagline).not.toBeNull();
+    expect(tagline?.textContent).toContain('Tribe ist für alle da.');
+    expect(tagline?.textContent).toContain(
+      'Ein Ort für Begegnung, Inspiration und echtes Miteinander.'
+    );
+  });
+
   it('renders the Kalender nav link', () => {
     render(
       <MemoryRouter>

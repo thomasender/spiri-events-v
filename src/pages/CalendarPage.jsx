@@ -307,16 +307,6 @@ export default function CalendarPage() {
         </aside>
       </div>
 
-      <section className="impact-strip">
-        <div className="impact-message">
-          <Sparkles size={22} />
-          <div>
-            <strong>Tribe ist für alle da.</strong>
-            <span>Ein Ort für Begegnung, Inspiration und echtes Miteinander.</span>
-          </div>
-        </div>
-      </section>
-
       <EmailVerificationModal
         open={verificationModalOpen}
         onClose={() => setVerificationModalOpen(false)}
