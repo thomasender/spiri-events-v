@@ -60,6 +60,18 @@ describe('Header (logged out)', () => {
     );
   });
 
+  it('renders a Sparkles icon next to the tagline', () => {
+    const { container } = render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+    const tagline = container.querySelector('.logo-tagline');
+    expect(tagline).not.toBeNull();
+    const icon = tagline?.querySelector('svg.logo-tagline-icon');
+    expect(icon).not.toBeNull();
+  });
+
   it('renders the Kalender nav link', () => {
     render(
       <MemoryRouter>

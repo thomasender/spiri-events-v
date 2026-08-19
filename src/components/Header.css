@@ -69,19 +69,30 @@
 
 .logo-tagline {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 8px;
   margin-top: 2px;
   line-height: 1.25;
+  color: var(--accent-primary);
 }
 
-.logo-tagline strong {
+.logo-tagline-icon {
+  flex-shrink: 0;
+}
+
+.logo-tagline-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.logo-tagline-text strong {
   font-family: var(--font-heading);
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--text-primary);
 }
 
-.logo-tagline span {
+.logo-tagline-text span {
   font-size: 0.78rem;
   color: var(--text-secondary);
 }
