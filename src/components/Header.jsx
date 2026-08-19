@@ -181,6 +181,10 @@ export default function Header() {
           <div className="logo-text">
             <span className="logo-title">tribe</span>
             <span className="logo-subtitle">Vorarlberg</span>
+            <span className="logo-tagline">
+              <strong>Tribe ist für alle da.</strong>
+              <span>Ein Ort für Begegnung, Inspiration und echtes Miteinander.</span>
+            </span>
           </div>
         </Link>
 

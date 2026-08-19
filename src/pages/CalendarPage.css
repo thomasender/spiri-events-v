@@ -449,45 +449,6 @@
 }
 
 /* ============================================
-   IMPACT STRIP
-   ============================================ */
-
-.impact-strip {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 24px 56px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 24px;
-}
-
-.impact-message {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  color: var(--accent-primary);
-}
-
-.impact-message div {
-  display: flex;
-  flex-direction: column;
-}
-
-.impact-message strong {
-  font-family: var(--font-heading);
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.impact-message span {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-}
-
-/* ============================================
    RESPONSIVE
    ============================================ */
 
@@ -545,11 +506,5 @@
 
   .page-layout {
     padding: 0 12px 32px;
-  }
-
-  .impact-strip {
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 0 16px 40px;
   }
 }
