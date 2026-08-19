@@ -5,17 +5,7 @@ import { useProfile } from '../hooks/useProfile';
 import { useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
 import { useUnreadFeedbackCount } from '../hooks/useFeedbackList';
 import EmailVerificationModal from './EmailVerificationModal';
-import {
-  Calendar,
-  LogOut,
-  User,
-  PlusCircle,
-  UserCircle,
-  Pen,
-  Menu,
-  Sparkles,
-  X,
-} from 'lucide-react';
+import { Calendar, LogOut, User, PlusCircle, UserCircle, Pen, Menu, X } from 'lucide-react';
 import './Header.css';
 
 const navClass = ({ isActive }) => (isActive ? 'nav-link nav-link--active' : 'nav-link');
@@ -191,13 +181,6 @@ export default function Header() {
           <div className="logo-text">
             <span className="logo-title">tribe</span>
             <span className="logo-subtitle">Vorarlberg</span>
-            <span className="logo-tagline">
-              <Sparkles size={18} className="logo-tagline-icon" aria-hidden="true" />
-              <span className="logo-tagline-text">
-                <strong>Tribe ist für alle da.</strong>
-                <span>Ein Ort für Begegnung, Inspiration und echtes Miteinander.</span>
-              </span>
-            </span>
           </div>
         </Link>
 

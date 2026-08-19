@@ -46,30 +46,13 @@ describe('Header (logged out)', () => {
     expect(screen.getByText('tribe')).toBeInTheDocument();
   });
 
-  it('renders the tagline inside the logo block', () => {
+  it('does not render the "Tribe ist für alle da" tagline inside the header (it lives in the hero)', () => {
     const { container } = render(
       <MemoryRouter>
         <Header />
       </MemoryRouter>
     );
-    const tagline = container.querySelector('.logo-tagline');
-    expect(tagline).not.toBeNull();
-    expect(tagline?.textContent).toContain('Tribe ist für alle da.');
-    expect(tagline?.textContent).toContain(
-      'Ein Ort für Begegnung, Inspiration und echtes Miteinander.'
-    );
-  });
-
-  it('renders a Sparkles icon next to the tagline', () => {
-    const { container } = render(
-      <MemoryRouter>
-        <Header />
-      </MemoryRouter>
-    );
-    const tagline = container.querySelector('.logo-tagline');
-    expect(tagline).not.toBeNull();
-    const icon = tagline?.querySelector('svg.logo-tagline-icon');
-    expect(icon).not.toBeNull();
+    expect(container.querySelector('.logo-tagline')).toBeNull();
   });
 
   it('renders the Kalender nav link', () => {

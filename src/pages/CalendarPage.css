@@ -89,6 +89,31 @@
   color: var(--text-secondary);
 }
 
+.hero-tagline {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 28px;
+  color: var(--accent-primary);
+}
+
+.hero-tagline > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.hero-tagline strong {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.hero-tagline span {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
 .hero-visual {
   position: absolute;
   inset: 0;
