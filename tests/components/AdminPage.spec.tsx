@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import AdminPage from '../../src/pages/AdminPage';
 
 const mockAuth = vi.hoisted(() => ({
@@ -52,12 +53,14 @@ vi.mock('../../src/hooks/useEvents', () => ({
 
 function renderAdmin(initialEntries: string[] = ['/admin']) {
   return render(
-    <MemoryRouter initialEntries={initialEntries}>
-      <Routes>
-        <Route path="/admin" element={<AdminPage />} />
-        <Route path="/admin/new" element={<div>New Event Page</div>} />
-      </Routes>
-    </MemoryRouter>
+    <HelmetProvider>
+      <MemoryRouter initialEntries={initialEntries}>
+        <Routes>
+          <Route path="/admin" element={<AdminPage />} />
+          <Route path="/admin/new" element={<div>New Event Page</div>} />
+        </Routes>
+      </MemoryRouter>
+    </HelmetProvider>
   );
 }
 

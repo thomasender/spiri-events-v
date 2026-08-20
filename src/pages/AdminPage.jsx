@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { CalendarDays, Mail, MessageSquare, PlusCircle } from 'lucide-react';
 import EventList from '../components/EventList';
 import MessagesTab from '../components/MessagesTab';
@@ -40,6 +41,9 @@ export default function AdminPage() {
 
   return (
     <div className="admin-page">
+      <Helmet>
+        <title>Verwaltung | tribe Vorarlberg</title>
+      </Helmet>
       <header className="admin-page-header">
         <div>
           <h1>Verwaltung</h1>

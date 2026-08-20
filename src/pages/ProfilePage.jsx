@@ -1,3 +1,4 @@
+import { Helmet } from 'react-helmet-async';
 import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
 import ProfileForm from '../components/ProfileForm';
@@ -19,6 +20,9 @@ export default function ProfilePage() {
 
   return (
     <div className="profile-page" data-testid="profile-page">
+      <Helmet>
+        <title>Mein Profil | tribe Vorarlberg</title>
+      </Helmet>
       <div className="profile-container">
         <div className="profile-header">
           <h1>Mein Profil</h1>

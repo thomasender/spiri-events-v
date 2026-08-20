@@ -41,14 +41,7 @@ describe('FeedbackModal', () => {
   });
 
   it('renders the modal with all form fields when open is true', () => {
-    render(
-      <FeedbackModal
-        open
-        onClose={() => {}}
-        pageUrl="https://example.com/page"
-        pageTitle="My Page"
-      />
-    );
+    render(<FeedbackModal open onClose={() => {}} pageUrl="https://example.com/page" />);
     expect(screen.getByTestId('feedback-modal')).toBeInTheDocument();
     expect(screen.getByTestId('feedback-description')).toBeInTheDocument();
     expect(screen.getByTestId('feedback-name')).toBeInTheDocument();
@@ -60,6 +53,29 @@ describe('FeedbackModal', () => {
   it('does not show the page context, even when pageUrl is provided', () => {
     render(<FeedbackModal open onClose={() => {}} pageUrl="https://example.com/page" />);
     expect(screen.queryByTestId('feedback-page-context')).not.toBeInTheDocument();
+  });
+
+  it('captures the current document.title at submit time (not from a prop)', async () => {
+    submitFeedbackMock.mockResolvedValue({ id: 'fb-1' });
+    const originalTitle = document.title;
+    document.title = 'Live Page Title';
+    try {
+      render(<FeedbackModal open onClose={() => {}} pageUrl="https://example.com/page" />);
+
+      fireEvent.change(screen.getByTestId('feedback-description'), {
+        target: { value: 'Live title test' },
+      });
+      fireEvent.click(screen.getByTestId('feedback-submit'));
+
+      await waitFor(() => {
+        expect(submitFeedbackMock).toHaveBeenCalled();
+      });
+
+      const payload = submitFeedbackMock.mock.calls[0][0];
+      expect(payload.pageTitle).toBe('Live Page Title');
+    } finally {
+      document.title = originalTitle;
+    }
   });
 
   it('shows a validation error when description is empty and form is submitted', async () => {
@@ -93,31 +109,35 @@ describe('FeedbackModal', () => {
   it('submits the feedback with the form values and page context', async () => {
     submitFeedbackMock.mockResolvedValue({ id: 'fb-1' });
     const onClose = vi.fn();
-    render(
-      <FeedbackModal open onClose={onClose} pageUrl="https://example.com/page" pageTitle="Page" />
-    );
+    const originalTitle = document.title;
+    document.title = 'Page';
+    try {
+      render(<FeedbackModal open onClose={onClose} pageUrl="https://example.com/page" />);
 
-    fireEvent.change(screen.getByTestId('feedback-description'), {
-      target: { value: 'Wunderschöne Plattform!' },
-    });
-    fireEvent.change(screen.getByTestId('feedback-name'), {
-      target: { value: 'Peter' },
-    });
-    fireEvent.change(screen.getByTestId('feedback-email'), {
-      target: { value: 'peter@example.com' },
-    });
-    fireEvent.click(screen.getByTestId('feedback-submit'));
+      fireEvent.change(screen.getByTestId('feedback-description'), {
+        target: { value: 'Wunderschöne Plattform!' },
+      });
+      fireEvent.change(screen.getByTestId('feedback-name'), {
+        target: { value: 'Peter' },
+      });
+      fireEvent.change(screen.getByTestId('feedback-email'), {
+        target: { value: 'peter@example.com' },
+      });
+      fireEvent.click(screen.getByTestId('feedback-submit'));
 
-    await waitFor(() => {
-      expect(submitFeedbackMock).toHaveBeenCalled();
-    });
+      await waitFor(() => {
+        expect(submitFeedbackMock).toHaveBeenCalled();
+      });
 
-    const payload = submitFeedbackMock.mock.calls[0][0];
-    expect(payload.description).toBe('Wunderschöne Plattform!');
-    expect(payload.name).toBe('Peter');
-    expect(payload.email).toBe('peter@example.com');
-    expect(payload.pageUrl).toBe('https://example.com/page');
-    expect(payload.pageTitle).toBe('Page');
+      const payload = submitFeedbackMock.mock.calls[0][0];
+      expect(payload.description).toBe('Wunderschöne Plattform!');
+      expect(payload.name).toBe('Peter');
+      expect(payload.email).toBe('peter@example.com');
+      expect(payload.pageUrl).toBe('https://example.com/page');
+      expect(payload.pageTitle).toBe('Page');
+    } finally {
+      document.title = originalTitle;
+    }
   });
 
   it('submits empty name and email when omitted (anonymous submission)', async () => {

@@ -372,6 +372,43 @@ test.describe('Feedback feature', () => {
     expect(eventHref).toMatch(/\/event\/yoga-heute-yogastudio-dornbirn-20260807/);
   });
 
+  test('Feedback submitted from /impressum stores the precise page title (not the calendar)', async ({
+    page,
+  }) => {
+    await resetFeedbackFixtures();
+
+    await page.goto('/impressum');
+
+    await expect(page).toHaveTitle(/Impressum/);
+
+    await page.getByTestId('feedback-fab').click();
+    await expect(page.getByTestId('feedback-modal')).toBeVisible();
+
+    await page
+      .getByTestId('feedback-description')
+      .fill('Bitte präziseren Label-Test vom Impressum');
+
+    await page.getByTestId('feedback-submit').click();
+    await expect(page.getByTestId('feedback-success')).toBeVisible({ timeout: 15000 });
+
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin?tab=feedback');
+    await page
+      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+      .catch(() => {});
+    await expect(page.getByTestId('feedback-tab')).toBeVisible({ timeout: 10000 });
+
+    const newItem = page
+      .getByTestId('feedback-item')
+      .filter({ hasText: 'Bitte präziseren Label-Test vom Impressum' });
+    await expect(newItem).toBeVisible({ timeout: 10000 });
+
+    const pageLink = newItem.getByRole('link', { name: /Impressum/ });
+    await expect(pageLink).toBeVisible();
+    await expect(pageLink).toHaveAttribute('href', /\/impressum/);
+    await expect(pageLink).not.toHaveText(/Kalender/);
+  });
+
   test('User can override the auto-captured page link in the feedback form', async ({ page }) => {
     await page.goto('/');
     await page.getByTestId('feedback-fab').click();

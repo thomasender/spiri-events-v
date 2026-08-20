@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { useEventById } from '../hooks/useEvents';
 import { useAuth } from '../hooks/useAuth';
 import EventForm from '../components/EventForm';
@@ -42,6 +43,9 @@ export default function EventFormPage() {
   if (!isEdit && !canCreateEvents) {
     return (
       <div className="event-form-page" data-testid="event-create-blocked">
+        <Helmet>
+          <title>Event erstellen | tribe Vorarlberg</title>
+        </Helmet>
         <div className="event-form-container">
           <h1>Event erstellen</h1>
           <EmailVerificationBanner />
@@ -55,5 +59,23 @@ export default function EventFormPage() {
     );
   }
 
-  return isEdit ? <EventForm event={event} /> : <EventFormWizard />;
+  if (isEdit) {
+    return (
+      <>
+        <Helmet>
+          <title>Event bearbeiten | tribe Vorarlberg</title>
+        </Helmet>
+        <EventForm event={event} />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Helmet>
+        <title>Neues Event | tribe Vorarlberg</title>
+      </Helmet>
+      <EventFormWizard />
+    </>
+  );
 }

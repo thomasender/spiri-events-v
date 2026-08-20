@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import EventFormPage from '../../src/pages/EventFormPage';
 
 const mockNavigate = vi.fn();
@@ -45,11 +46,13 @@ describe('EventFormPage', () => {
     });
 
     render(
-      <MemoryRouter initialEntries={['/admin/edit/test-id']}>
-        <Routes>
-          <Route path="/admin/edit/:id" element={<EventFormPage />} />
-        </Routes>
-      </MemoryRouter>
+      <HelmetProvider>
+        <MemoryRouter initialEntries={['/admin/edit/test-id']}>
+          <Routes>
+            <Route path="/admin/edit/:id" element={<EventFormPage />} />
+          </Routes>
+        </MemoryRouter>
+      </HelmetProvider>
     );
 
     expect(document.querySelector('.loading-spinner')).toBeTruthy();
@@ -63,12 +66,14 @@ describe('EventFormPage', () => {
     });
 
     render(
-      <MemoryRouter initialEntries={['/admin/edit/non-existent-id']}>
-        <Routes>
-          <Route path="/admin/edit/:id" element={<EventFormPage />} />
-          <Route path="/admin" element={<div>Admin Page</div>} />
-        </Routes>
-      </MemoryRouter>
+      <HelmetProvider>
+        <MemoryRouter initialEntries={['/admin/edit/non-existent-id']}>
+          <Routes>
+            <Route path="/admin/edit/:id" element={<EventFormPage />} />
+            <Route path="/admin" element={<div>Admin Page</div>} />
+          </Routes>
+        </MemoryRouter>
+      </HelmetProvider>
     );
 
     expect(mockNavigate).toHaveBeenCalledWith('/admin');
@@ -92,11 +97,13 @@ describe('EventFormPage', () => {
     });
 
     render(
-      <MemoryRouter initialEntries={['/admin/edit/test-id']}>
-        <Routes>
-          <Route path="/admin/edit/:id" element={<EventFormPage />} />
-        </Routes>
-      </MemoryRouter>
+      <HelmetProvider>
+        <MemoryRouter initialEntries={['/admin/edit/test-id']}>
+          <Routes>
+            <Route path="/admin/edit/:id" element={<EventFormPage />} />
+          </Routes>
+        </MemoryRouter>
+      </HelmetProvider>
     );
 
     expect(screen.getByText('Event bearbeiten')).toBeTruthy();
@@ -110,11 +117,13 @@ describe('EventFormPage', () => {
     });
 
     render(
-      <MemoryRouter initialEntries={['/admin/edit/test-id']}>
-        <Routes>
-          <Route path="/admin/edit/:id" element={<EventFormPage />} />
-        </Routes>
-      </MemoryRouter>
+      <HelmetProvider>
+        <MemoryRouter initialEntries={['/admin/edit/test-id']}>
+          <Routes>
+            <Route path="/admin/edit/:id" element={<EventFormPage />} />
+          </Routes>
+        </MemoryRouter>
+      </HelmetProvider>
     );
 
     expect(screen.queryByText('Event bearbeiten')).not.toBeInTheDocument();

@@ -1,4 +1,5 @@
 import { Navigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { useAuth } from '../hooks/useAuth';
 import AuthForm from '../components/AuthForm';
 
@@ -9,5 +10,12 @@ export default function LoginPage() {
 
   if (user) return <Navigate to="/" replace />;
 
-  return <AuthForm />;
+  return (
+    <>
+      <Helmet>
+        <title>Anmelden | tribe Vorarlberg</title>
+      </Helmet>
+      <AuthForm />
+    </>
+  );
 }

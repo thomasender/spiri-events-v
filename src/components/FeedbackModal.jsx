@@ -14,7 +14,7 @@ const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
 
 const MAX_FEEDBACK_LINK_LENGTH = 500;
 
-export default function FeedbackModal({ open, onClose, pageUrl, pageTitle }) {
+export default function FeedbackModal({ open, onClose, pageUrl }) {
   const { submitting, uploadProgress, error, warning, submitFeedback, reset } = useFeedback();
   const [description, setDescription] = useState('');
   const [name, setName] = useState('');
@@ -111,7 +111,7 @@ export default function FeedbackModal({ open, onClose, pageUrl, pageTitle }) {
         email,
         screenshot,
         pageUrl: finalPageUrl,
-        pageTitle: pageTitle || (typeof document !== 'undefined' ? document.title : '') || '',
+        pageTitle: (typeof document !== 'undefined' ? document.title : '') || '',
       });
       setSuccess(true);
     } catch {

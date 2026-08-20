@@ -7,17 +7,11 @@ import './FeedbackButton.css';
 export default function FeedbackButton() {
   const [open, setOpen] = useState(false);
   const location = useLocation();
-  const [pageContext, setPageContext] = useState({ pageUrl: '', pageTitle: '' });
+  const [pageUrl, setPageUrl] = useState('');
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const updateContext = () => {
-      setPageContext({
-        pageUrl: window.location.href,
-        pageTitle: document.title || '',
-      });
-    };
-    updateContext();
+    setPageUrl(window.location.href);
   }, [location.pathname, location.search, location.hash]);
 
   return (
@@ -33,12 +27,7 @@ export default function FeedbackButton() {
         <MessageSquare size={22} aria-hidden="true" />
         <span className="feedback-fab-label">Feedback</span>
       </button>
-      <FeedbackModal
-        open={open}
-        onClose={() => setOpen(false)}
-        pageUrl={pageContext.pageUrl}
-        pageTitle={pageContext.pageTitle}
-      />
+      <FeedbackModal open={open} onClose={() => setOpen(false)} pageUrl={pageUrl} />
     </>
   );
 }

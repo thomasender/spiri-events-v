@@ -1,4 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import './LegalPage.css';
 
 const content = {
@@ -318,6 +319,9 @@ export default function LegalPage() {
 
   return (
     <div className="page-container">
+      <Helmet>
+        <title>{data.title} | tribe Vorarlberg</title>
+      </Helmet>
       <div className="legal-page fade-enter">
         <p className="legal-updated">Stand: {data.lastUpdated}</p>
         <h1 className="legal-title">{data.title}</h1>
