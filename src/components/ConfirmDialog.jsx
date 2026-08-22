@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { X } from 'lucide-react';
+import { Loader2, X } from 'lucide-react';
 import './ConfirmDialog.css';
 
 export default function ConfirmDialog({
@@ -40,10 +40,18 @@ export default function ConfirmDialog({
           </button>
           <button
             onClick={onConfirm}
-            className={`btn ${danger ? 'btn-danger' : 'btn-primary'}`}
+            className={`btn ${danger ? 'btn-danger' : 'btn-primary'} confirm-confirm`}
             disabled={loading}
           >
-            {loading ? '...' : confirmLabel}
+            {loading && (
+              <Loader2
+                size={16}
+                className="spin"
+                aria-hidden="true"
+                data-testid="confirm-dialog-spinner"
+              />
+            )}
+            <span>{confirmLabel}</span>
           </button>
         </div>
       </div>

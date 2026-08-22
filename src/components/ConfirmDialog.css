@@ -74,3 +74,11 @@
   gap: 12px;
   justify-content: flex-end;
 }
+
+.confirm-confirm {
+  min-width: 120px;
+}
+
+.confirm-confirm .spin {
+  animation: spin 0.8s linear infinite;
+}

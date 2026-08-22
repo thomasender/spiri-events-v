@@ -234,6 +234,49 @@ test.describe('Admin delete workflow (kf8i6vqj)', () => {
     await expect(page.getByTestId('delete-event-button')).toBeVisible();
   });
 
+  test('delete confirm dialog shows a spinner while the delete is in flight, not "..." text (visual regression)', async ({
+    page,
+  }) => {
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+
+    await page.goto(`/event/${USER_OWNED_APPROVED_SLUG}`);
+
+    await page
+      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+      .catch(() => {});
+
+    await expect(page.locator('.event-title')).toContainText('User Approved Event', {
+      timeout: 10000,
+    });
+
+    await page.route('**/*', async (route) => {
+      const url = route.request().url();
+      const method = route.request().method();
+      if (url.includes(':8181') && (method === 'POST' || method === 'DELETE')) {
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        await route.abort();
+      } else {
+        await route.continue();
+      }
+    });
+
+    try {
+      await page.getByTestId('delete-event-button').click();
+
+      await expect(page.getByText('Möchtest du dieses Event wirklich löschen?')).toBeVisible();
+
+      const confirmButton = page.getByRole('button', { name: /^löschen$/i });
+      await confirmButton.click();
+
+      const spinner = page.getByTestId('confirm-dialog-spinner');
+      await expect(spinner).toBeVisible();
+      await expect(confirmButton).toContainText('Löschen');
+      await expect(confirmButton).not.toContainText('...');
+    } finally {
+      await page.unroute('**/*').catch(() => {});
+    }
+  });
+
   test('admin can delete a user-owned approved event from the detail page', async ({ page }) => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
 
