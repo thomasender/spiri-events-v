@@ -226,6 +226,30 @@ test.describe('Calendar Integration', () => {
     test('filters persist when clicking Heute button', async ({ page }) => {
       test.skip();
     });
+
+    test('stale ISO-timestamp localStorage value is dropped so user lands on current month', async ({
+      page,
+    }) => {
+      await page.evaluate(() => {
+        localStorage.setItem(
+          'calendarFilterState',
+          JSON.stringify({
+            currentMonth: '2026-07-31T22:00:00.000Z',
+            selectedCategories: ['Yoga', 'Meditation', 'Tanz', 'Singen', 'Atemarbeit', 'Sonstiges'],
+            selectedBezirke: [],
+            viewMode: 'list',
+          })
+        );
+      });
+
+      await page.goto('/');
+      await waitForCalendarToLoad(page);
+
+      const stored = await page.evaluate(() => localStorage.getItem('calendarFilterState'));
+      expect(stored).toBeTruthy();
+      const parsed = JSON.parse(stored);
+      expect(parsed.currentMonth).toMatch(/^\d{4}-(0[1-9]|1[0-2])$/);
+    });
   });
 
   test.describe('Event Recurrence Display', () => {

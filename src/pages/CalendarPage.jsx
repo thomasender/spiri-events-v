@@ -8,6 +8,7 @@ import EventsSection from '../components/EventsSection';
 import EmailVerificationModal from '../components/EmailVerificationModal';
 import { getEventOccurrences } from '../utils/eventOccurrences';
 import { CATEGORY_COLORS } from '../utils/categoryColors';
+import { monthKeyToDate, dateToMonthKey } from '../utils/calendarFilterState';
 import { MapPin, Sparkles, Users, ChevronDown, Check, PlusCircle } from 'lucide-react';
 import './CalendarPage.css';
 
@@ -39,16 +40,27 @@ const HERO_FEATURES = [
 function loadFilterState() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      return JSON.parse(saved);
+    if (!saved) return null;
+    const parsed = JSON.parse(saved);
+    if (parsed && typeof parsed.currentMonth === 'string' && !monthKeyToDate(parsed.currentMonth)) {
+      // Legacy ISO timestamp format is timezone-dependent and unreliable.
+      // Reset to the current month so users land where they expect.
+      delete parsed.currentMonth;
     }
+    return parsed;
   } catch {}
   return null;
 }
 
 function saveFilterState(state) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    const date =
+      state.currentMonth instanceof Date ? state.currentMonth : new Date(state.currentMonth);
+    const toSave = {
+      ...state,
+      currentMonth: isNaN(date.getTime()) ? dateToMonthKey(new Date()) : dateToMonthKey(date),
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
   } catch {}
 }
 
@@ -57,7 +69,7 @@ export default function CalendarPage() {
   const { user, canCreateEvents } = useAuth();
   const savedState = loadFilterState();
   const [currentMonth, setCurrentMonth] = useState(
-    savedState?.currentMonth ? new Date(savedState.currentMonth) : new Date()
+    monthKeyToDate(savedState?.currentMonth) || new Date()
   );
   const [selectedCategories, setSelectedCategories] = useState(
     savedState?.selectedCategories || KATEGORIEN
@@ -69,7 +81,7 @@ export default function CalendarPage() {
 
   useEffect(() => {
     saveFilterState({
-      currentMonth: currentMonth.toISOString(),
+      currentMonth,
       selectedCategories,
       selectedBezirke,
       viewMode,
