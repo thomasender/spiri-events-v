@@ -23,6 +23,12 @@ export function formatEventDateLabel(dateStr) {
   });
 }
 
+export function formatEventDateShort(dateStr) {
+  if (!dateStr) return '';
+  const [year, month, day] = dateStr.split('-');
+  return `${day}.${month}.${year}`;
+}
+
 export function getOrganizerName(event) {
   const organizer = event.organizer;
   if (!organizer) return '';

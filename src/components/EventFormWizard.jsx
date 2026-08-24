@@ -25,6 +25,7 @@ import {
   List,
 } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
+import { formatEventDateShort } from '../utils/eventFormat';
 import './EventFormWizard.css';
 
 const INITIAL_STATE = {
@@ -862,9 +863,9 @@ export default function EventFormWizard() {
           </p>
           <p>📍 {formData.place}</p>
           <p>
-            📅 {formData.date} um {formData.time}
+            📅 {formatEventDateShort(formData.date)} um {formData.time}
           </p>
-          {formData.endDate && <p>Bis: {formData.endDate}</p>}
+          {formData.endDate && <p>Bis: {formatEventDateShort(formData.endDate)}</p>}
           {formData.recurrence !== 'none' && (
             <p>
               🔁{' '}
