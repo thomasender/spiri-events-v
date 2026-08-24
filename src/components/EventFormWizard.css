@@ -123,6 +123,16 @@
   gap: 16px;
 }
 
+.form-row > .form-group {
+  min-width: 0;
+}
+
+.form-row input[type='date'],
+.form-row input[type='time'] {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .form-section-divider {
   margin-top: 24px;
   padding-top: 24px;
