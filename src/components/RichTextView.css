@@ -1,0 +1,61 @@
+.rich-text-view {
+  color: var(--text-secondary);
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.rich-text-view > p {
+  margin: 0 0 12px;
+}
+
+.rich-text-view > p:last-child {
+  margin-bottom: 0;
+}
+
+.rich-text-view strong {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.rich-text-view em,
+.rich-text-view i {
+  font-style: italic;
+}
+
+.rich-text-view ul,
+.rich-text-view ol {
+  margin: 0 0 12px;
+  padding-left: 24px;
+}
+
+.rich-text-view ul {
+  list-style: disc;
+}
+
+.rich-text-view ol {
+  list-style: decimal;
+}
+
+.rich-text-view li {
+  margin-bottom: 4px;
+}
+
+.rich-text-view li:last-child {
+  margin-bottom: 0;
+}
+
+.rich-text-view a {
+  color: var(--accent-primary);
+  text-decoration: underline;
+  text-decoration-color: var(--accent-soft);
+  text-underline-offset: 3px;
+}
+
+.rich-text-view a:hover {
+  color: var(--accent-primary-hover);
+  text-decoration-color: currentColor;
+}
+
+.rich-text-view--truncated {
+  white-space: pre-wrap;
+}

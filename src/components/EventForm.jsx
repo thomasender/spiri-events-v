@@ -16,6 +16,8 @@ import ConfirmDialog from './ConfirmDialog';
 import RecurringDeleteDialog from './RecurringDeleteDialog';
 import { arrayUnion } from 'firebase/firestore';
 import { canDeleteEvent } from '../utils/eventPermissions';
+import RichTextEditor from './RichTextEditorLazy';
+import { isHtmlEmpty } from '../utils/sanitize';
 import './EventForm.css';
 
 const INITIAL_STATE = {
@@ -193,7 +195,7 @@ export default function EventForm({ event }) {
   const validate = () => {
     const newErrors = {};
     if (!formData.title.trim()) newErrors.title = 'Titel ist erforderlich';
-    if (!formData.description.trim()) newErrors.description = 'Beschreibung ist erforderlich';
+    if (isHtmlEmpty(formData.description)) newErrors.description = 'Beschreibung ist erforderlich';
     if (!formData.date) newErrors.date = 'Datum ist erforderlich';
     if (!formData.place.trim()) newErrors.place = 'Ort ist erforderlich';
     if (!formData.bezirk) newErrors.bezirk = 'Bezirk ist erforderlich';
@@ -356,7 +358,7 @@ export default function EventForm({ event }) {
     place: formData.place.trim(),
     contribution: formData.contribution,
     fee: formData.contribution === 'fee' ? parseFloat(formData.fee) : null,
-    description: formData.description.trim(),
+    description: formData.description,
     link: normalizeLink(formData.link),
     recurrence: formData.recurrence || 'none',
     recurrenceEndDate: formData.recurrence === 'none' ? '' : formData.recurrenceEndDate || '',
@@ -871,16 +873,18 @@ export default function EventForm({ event }) {
 
           <div className="form-group">
             <label htmlFor="description">Beschreibung *</label>
-            <textarea
+            <RichTextEditor
               id="description"
-              name="description"
               value={formData.description}
-              onChange={handleChange}
-              placeholder="Beschreibe das Event... (Was erwartet die Teilnehmer? Für wen ist es geeignet? Was sollte man mitbringen?)"
-              rows={5}
-              className={errors.description ? 'input-error' : ''}
-              aria-invalid={Boolean(errors.description)}
-              aria-describedby={errors.description ? 'description-error' : undefined}
+              onChange={(html) => {
+                setFormData((prev) => ({ ...prev, description: html }));
+                if (errors.description && !isHtmlEmpty(html)) {
+                  setErrors((prev) => ({ ...prev, description: null }));
+                }
+              }}
+              placeholder="Beschreibe das Event… (Was erwartet die Teilnehmer? Für wen ist es geeignet? Was sollte man mitbringen?)"
+              hasError={Boolean(errors.description)}
+              describedBy={errors.description ? 'description-error' : undefined}
             />
             {errors.description && (
               <span className="error-text" id="description-error" data-testid="description-error">

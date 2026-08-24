@@ -26,6 +26,9 @@ import {
 } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
 import { formatEventDateShort } from '../utils/eventFormat';
+import RichTextEditor from './RichTextEditorLazy';
+import RichTextView from './RichTextView';
+import { isHtmlEmpty } from '../utils/sanitize';
 import './EventFormWizard.css';
 
 const INITIAL_STATE = {
@@ -162,7 +165,8 @@ export default function EventFormWizard() {
       }
     } else if (step === 2) {
       if (!formData.title.trim()) newErrors.title = 'Titel ist erforderlich';
-      if (!formData.description.trim()) newErrors.description = 'Beschreibung ist erforderlich';
+      if (isHtmlEmpty(formData.description))
+        newErrors.description = 'Beschreibung ist erforderlich';
     } else if (step === 3) {
       if (!formData.date) newErrors.date = 'Datum ist erforderlich';
       if (!formData.time) newErrors.time = 'Uhrzeit ist erforderlich';
@@ -335,7 +339,7 @@ export default function EventFormWizard() {
     place: formData.place.trim(),
     contribution: formData.contribution,
     fee: formData.contribution === 'fee' ? parseFloat(formData.fee) : null,
-    description: formData.description.trim(),
+    description: formData.description,
     link: normalizeLink(formData.link),
     recurrence: formData.recurrence || 'none',
     recurrenceEndDate: formData.recurrence === 'none' ? '' : formData.recurrenceEndDate || '',
@@ -518,16 +522,18 @@ export default function EventFormWizard() {
 
       <div className="form-group">
         <label htmlFor="description">Beschreibung *</label>
-        <textarea
+        <RichTextEditor
           id="description"
-          name="description"
           value={formData.description}
-          onChange={handleChange}
-          placeholder="Beschreibe das Event... (Was erwartet die Teilnehmer? Für wen ist es geeignet? Was sollte man mitbringen?)"
-          rows={5}
-          className={errors.description ? 'input-error' : ''}
-          aria-invalid={Boolean(errors.description)}
-          aria-describedby={errors.description ? 'description-error' : undefined}
+          onChange={(html) => {
+            setFormData((prev) => ({ ...prev, description: html }));
+            if (errors.description && !isHtmlEmpty(html)) {
+              setErrors((prev) => ({ ...prev, description: null }));
+            }
+          }}
+          placeholder="Beschreibe das Event… (Was erwartet die Teilnehmer? Für wen ist es geeignet? Was sollte man mitbringen?)"
+          hasError={Boolean(errors.description)}
+          describedBy={errors.description ? 'description-error' : undefined}
         />
         {errors.description && (
           <span className="error-text" id="description-error" data-testid="description-error">
@@ -847,7 +853,9 @@ export default function EventFormWizard() {
           <p>
             <strong>{formData.title}</strong>
           </p>
-          {formData.description && <p className="summary-description">{formData.description}</p>}
+          {formData.description && (
+            <RichTextView html={formData.description} className="summary-description" />
+          )}
           {formData.link && <p>Link: {formData.link}</p>}
           {imagePreview && (
             <div className="summary-image">

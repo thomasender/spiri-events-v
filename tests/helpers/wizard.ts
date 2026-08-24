@@ -69,7 +69,9 @@ export async function fillStep2EventInfo(
     await page.fill('#title', data.title);
   }
   if (data.description !== undefined) {
-    await page.fill('#description', data.description);
+    const editor = page.locator('[data-testid="description-editor"] .rte-content');
+    await editor.click();
+    await editor.fill(data.description);
   }
   if (data.link !== undefined) {
     await page.fill('#link', data.link);
