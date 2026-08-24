@@ -20,6 +20,7 @@ import ConfirmDialog from './ConfirmDialog';
 import RecurringDeleteDialog from './RecurringDeleteDialog';
 import OccurrencePickerDialog from './OccurrencePickerDialog';
 import StatusBadge from './StatusBadge';
+import RichTextView from './RichTextView';
 import { useState, useMemo } from 'react';
 import { arrayUnion } from 'firebase/firestore';
 import {
@@ -343,11 +344,11 @@ export default function EventList() {
           )}
 
           {event.description && (
-            <p className="event-card-description">
-              {event.description.length > 120
-                ? event.description.substring(0, 120) + '...'
-                : event.description}
-            </p>
+            <RichTextView
+              html={event.description}
+              truncate={120}
+              className="event-card-description"
+            />
           )}
 
           {event.status === 'pending' && !isAdmin && (

@@ -321,7 +321,9 @@ test.describe('Admin delete workflow (kf8i6vqj)', () => {
       .catch(() => {});
 
     const newDescription = 'Updated description to verify edit does not auto-approve';
-    await page.locator('#description').fill(newDescription);
+    const descEditor = page.locator('[data-testid="description-editor"] .rte-content');
+    await descEditor.click();
+    await descEditor.fill(newDescription);
 
     await page.getByRole('button', { name: /änderungen speichern/i }).click();
 
@@ -351,7 +353,9 @@ test.describe('Admin delete workflow (kf8i6vqj)', () => {
     const descriptionLabel = page.locator('label[for="description"]');
     await expect(descriptionLabel).toContainText('*');
 
-    await page.locator('#description').fill('');
+    const emptyDescEditor = page.locator('[data-testid="description-editor"] .rte-content');
+    await emptyDescEditor.click();
+    await emptyDescEditor.fill('');
 
     await page.getByRole('button', { name: /änderungen speichern/i }).click();
     await page.waitForTimeout(500);

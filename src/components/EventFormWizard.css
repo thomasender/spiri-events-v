@@ -441,7 +441,6 @@ textarea {
 }
 
 .summary-description {
-  white-space: pre-wrap;
   font-size: 0.9rem;
   color: var(--text-secondary);
 }

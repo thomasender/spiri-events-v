@@ -28,6 +28,8 @@ import RecurringDeleteDialog from '../components/RecurringDeleteDialog';
 import OccurrencePickerDialog from '../components/OccurrencePickerDialog';
 import EventMessages from '../components/EventMessages';
 import ShareButton from '../components/ShareButton';
+import RichTextView from '../components/RichTextView';
+import { stripHtml, truncateHtmlText } from '../utils/sanitize';
 import './EventDetailPage.css';
 
 function formatDate(dateStr) {
@@ -124,7 +126,7 @@ function generateEventJsonLd(event) {
     startDate: event.date,
     endDate: event.endDate || event.date,
     location,
-    description: event.description || '',
+    description: stripHtml(event.description || ''),
     image: event.imageUrl || getEventFallbackImage(event),
     eventStatus: 'https://schema.org/EventScheduled',
     ...(offer && { offer }),
@@ -383,7 +385,7 @@ export default function EventDetailPage() {
           name="description"
           content={
             event.description
-              ? event.description.substring(0, 160)
+              ? truncateHtmlText(event.description, 160)
               : `${event.title} - ${event.category} in ${event.bezirk}`
           }
         />
@@ -394,7 +396,7 @@ export default function EventDetailPage() {
           property="og:description"
           content={
             event.description
-              ? event.description.substring(0, 160)
+              ? truncateHtmlText(event.description, 160)
               : `${event.title} - ${event.category} in ${event.bezirk}`
           }
         />
@@ -408,7 +410,7 @@ export default function EventDetailPage() {
           name="twitter:description"
           content={
             event.description
-              ? event.description.substring(0, 160)
+              ? truncateHtmlText(event.description, 160)
               : `${event.title} - ${event.category} in ${event.bezirk}`
           }
         />
@@ -611,7 +613,7 @@ export default function EventDetailPage() {
       {event.description && (
         <div className="event-description">
           <h3>Über das Event</h3>
-          <p>{event.description}</p>
+          <RichTextView html={event.description} />
         </div>
       )}
 

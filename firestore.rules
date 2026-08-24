@@ -41,9 +41,12 @@ service cloud.firestore {
                     || (isAuthenticated()
                         && request.auth.token.email_verified == true
                         && request.resource.data.createdBy == request.auth.uid
-                        && (request.resource.data.status in ['pending', 'draft']));
+                        && (request.resource.data.status in ['pending', 'draft'])
+                        && request.resource.data.description.size() <= 20000);
 
-      allow update, delete: if isOwner() || isAdminOrEmulatorAdmin();
+      allow update: if (isOwner() || isAdminOrEmulatorAdmin())
+                    && request.resource.data.description.size() <= 20000;
+      allow delete: if isOwner() || isAdminOrEmulatorAdmin();
 
       match /messages/{messageId} {
         allow read: if isEventOwner(eventId) || isAdminOrEmulatorAdmin();

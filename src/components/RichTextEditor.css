@@ -1,0 +1,210 @@
+.rte-wrapper {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-calendar);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+  overflow: hidden;
+}
+
+.rte-wrapper:focus-within {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.rte-wrapper--error {
+  border-color: var(--error);
+}
+
+.rte-wrapper--error:focus-within {
+  border-color: var(--error);
+  box-shadow: 0 0 0 3px rgba(191, 91, 78, 0.18);
+}
+
+.rte-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  background-color: var(--bg-secondary);
+}
+
+.rte-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.rte-toolbar-btn:hover:not(:disabled) {
+  background-color: var(--accent-soft);
+  color: var(--accent-primary-strong);
+}
+
+.rte-toolbar-btn--active {
+  background-color: var(--accent-soft);
+  color: var(--accent-primary-strong);
+  border-color: var(--accent-primary);
+}
+
+.rte-toolbar-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.rte-toolbar-sep {
+  width: 1px;
+  height: 18px;
+  background-color: var(--border);
+  margin: 0 4px;
+}
+
+.rte-link-popover {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  background-color: var(--bg-calendar);
+}
+
+.rte-link-input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-calendar);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.rte-link-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.rte-link-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.rte-link-btn--confirm:hover {
+  background-color: var(--accent-secondary);
+  color: white;
+  border-color: var(--accent-secondary);
+}
+
+.rte-link-btn--cancel:hover {
+  background-color: var(--error);
+  color: white;
+  border-color: var(--error);
+}
+
+.rte-editor-surface {
+  padding: 0;
+}
+
+.rte-editor-surface .rte-content {
+  padding: 12px 16px;
+  min-height: 140px;
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  color: var(--text-primary);
+  line-height: 1.6;
+  outline: none;
+}
+
+.rte-editor-surface .rte-content > p {
+  margin: 0 0 10px;
+}
+
+.rte-editor-surface .rte-content > p:last-child {
+  margin-bottom: 0;
+}
+
+.rte-editor-surface .rte-content ul,
+.rte-editor-surface .rte-content ol {
+  margin: 0 0 10px;
+  padding-left: 24px;
+}
+
+.rte-editor-surface .rte-content ul {
+  list-style: disc;
+}
+
+.rte-editor-surface .rte-content ol {
+  list-style: decimal;
+}
+
+.rte-editor-surface .rte-content li {
+  margin-bottom: 4px;
+}
+
+.rte-editor-surface .rte-content li:last-child {
+  margin-bottom: 0;
+}
+
+.rte-editor-surface .rte-content p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--text-light);
+  pointer-events: none;
+  height: 0;
+}
+
+.rte-editor-surface .rte-content a {
+  color: var(--accent-primary);
+  text-decoration: underline;
+  text-decoration-color: var(--accent-soft);
+  text-underline-offset: 3px;
+}
+
+.rte-editor-surface .rte-content--error {
+  background-color: rgba(191, 91, 78, 0.05);
+}
+
+.rte-counter {
+  padding: 6px 12px;
+  border-top: 1px solid var(--border);
+  background-color: var(--bg-secondary);
+  color: var(--text-light);
+  font-size: 0.8rem;
+  text-align: right;
+}
+
+.rte-counter--over {
+  color: var(--error);
+  font-weight: 500;
+}
+
+.rte-loading {
+  padding: 12px 16px;
+  color: var(--text-light);
+  font-size: 0.9rem;
+}

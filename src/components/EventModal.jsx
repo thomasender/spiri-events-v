@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Calendar, Clock, MapPin, Ticket, ExternalLink, User, Mail, Phone } from 'lucide-react';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
 import { parseContactText } from '../utils/contactFormat';
+import RichTextView from './RichTextView';
 import './EventModal.css';
 
 function formatDate(dateStr) {
@@ -237,7 +238,7 @@ export default function EventModal({ event, onClose }) {
         {event.description && (
           <div className="modal-description">
             <h3>Über das Event</h3>
-            <p>{event.description}</p>
+            <RichTextView html={event.description} />
           </div>
         )}
 
