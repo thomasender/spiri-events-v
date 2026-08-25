@@ -391,14 +391,14 @@ export default function EventForm({ event }) {
       if (isEdit && wasApproved) {
         setShowResubmitConfirmModal(true);
         return;
-      } else if (!isEdit) {
-        setShowConfirmModal(true);
-        return;
       }
     }
+    if (!isEdit) {
+      setShowConfirmModal(true);
+      return;
+    }
 
-    const status = isEdit ? event.status : isAdmin ? 'approved' : 'pending';
-    await saveEvent(buildEventData(status));
+    await saveEvent(buildEventData(event.status));
   };
 
   const handleSaveAsDraft = async () => {
