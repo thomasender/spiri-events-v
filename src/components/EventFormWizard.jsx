@@ -304,13 +304,18 @@ export default function EventFormWizard() {
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      if (currentStep < 4) {
-        e.preventDefault();
-        nextStep();
-      } else if (currentStep === 4) {
-        e.preventDefault();
-      }
+    if (e.key !== 'Enter') return;
+
+    const target = e.target;
+    if (target && (target.isContentEditable || target.tagName === 'TEXTAREA')) {
+      return;
+    }
+
+    if (currentStep < 4) {
+      e.preventDefault();
+      nextStep();
+    } else if (currentStep === 4) {
+      e.preventDefault();
     }
   };
 

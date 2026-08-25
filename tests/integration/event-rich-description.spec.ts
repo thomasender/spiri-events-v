@@ -58,6 +58,35 @@ test.describe('Rich-text event description', () => {
     await expect(descriptionError).toContainText('Beschreibung ist erforderlich');
   });
 
+  test('pressing Enter inside the description editor inserts a line break instead of advancing the wizard', async ({
+    page,
+  }) => {
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin/new');
+    await waitForWizardToLoad(page);
+
+    await page.click('button:has-text("Weiter")');
+    await page.waitForTimeout(500);
+
+    await page.fill('#title', 'Enter-im-Beschreibung-Test');
+
+    const editor = page.locator('[data-testid="description-editor"] .rte-content');
+    await editor.click();
+    await editor.fill('Erste Zeile');
+
+    await editor.click();
+    await page.keyboard.press('End');
+    await page.keyboard.press('Enter');
+    await page.keyboard.type('Zweite Zeile');
+    await page.waitForTimeout(300);
+
+    await expect(page.locator('#title')).toBeVisible();
+    await expect(editor).toBeVisible();
+    await expect(page.locator('#date')).not.toBeVisible();
+    await expect(editor).toContainText('Erste Zeile');
+    await expect(editor).toContainText('Zweite Zeile');
+  });
+
   test('formatted description (bold) roundtrips to the event detail page', async ({ page }) => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/edit/test-event-foreign-pending');
