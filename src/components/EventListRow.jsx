@@ -5,8 +5,10 @@ import {
   formatDayNumber,
   formatMonthShort,
   formatWeekdayShort,
+  formatEventDateRangeLabel,
   getOrganizerName,
   getPrimaryCategory,
+  isMultiDayEvent,
 } from '../utils/eventFormat';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
 import './EventListRow.css';
@@ -15,6 +17,8 @@ export default function EventListRow({ event, categoryColor, linkState }) {
   const organizerName = getOrganizerName(event);
   const category = getPrimaryCategory(event);
   const fallbackImage = getEventFallbackImage(event);
+  const multiDay = isMultiDayEvent(event);
+  const dateRangeLabel = multiDay ? formatEventDateRangeLabel(event.date, event.endDate) : null;
   const [imageError, setImageError] = useState(false);
   const imageSrc = event.imageUrl && !imageError ? event.imageUrl : fallbackImage;
 
@@ -61,10 +65,20 @@ export default function EventListRow({ event, categoryColor, linkState }) {
         )}
       </div>
 
-      {event.time && (
-        <div className="event-row-time">
-          <span>{event.time} Uhr</span>
+      {multiDay ? (
+        <div
+          className="event-row-time event-row-date-range"
+          data-testid="event-row-date-range"
+          title={dateRangeLabel}
+        >
+          <span>{dateRangeLabel}</span>
         </div>
+      ) : (
+        event.time && (
+          <div className="event-row-time">
+            <span>{event.time} Uhr</span>
+          </div>
+        )
       )}
     </Link>
   );

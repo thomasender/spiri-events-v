@@ -6,6 +6,8 @@ import {
   formatMonthShort,
   formatEventDateLabel,
   formatEventDateShort,
+  formatEventDateRangeLabel,
+  isMultiDayEvent,
   getOrganizerName,
   getPrimaryCategory,
 } from '../../src/utils/eventFormat';
@@ -104,5 +106,57 @@ describe('getPrimaryCategory', () => {
 
   it('returns null when no category is set', () => {
     expect(getPrimaryCategory({})).toBeNull();
+  });
+});
+
+describe('formatEventDateRangeLabel', () => {
+  it('returns null when endDate is missing', () => {
+    expect(formatEventDateRangeLabel('2026-01-15', null)).toBeNull();
+    expect(formatEventDateRangeLabel('2026-01-15', '')).toBeNull();
+  });
+
+  it('returns null when start and end date are the same', () => {
+    expect(formatEventDateRangeLabel('2026-01-15', '2026-01-15')).toBeNull();
+  });
+
+  it('returns a range like "Di, 1. Sept - So, 6. Sept" for multi-day events', () => {
+    const label = formatEventDateRangeLabel('2026-09-01', '2026-09-06');
+    expect(label).not.toBeNull();
+    expect(label).toMatch(/1/);
+    expect(label).toMatch(/6/);
+    expect(label).toMatch(/Sept/);
+    expect(label).toContain(' - ');
+  });
+
+  it('formats across month boundaries with both months visible', () => {
+    const label = formatEventDateRangeLabel('2026-08-30', '2026-09-05');
+    expect(label).toMatch(/30/);
+    expect(label).toMatch(/5/);
+    expect(label).toMatch(/Aug/);
+    expect(label).toMatch(/Sept/);
+  });
+});
+
+describe('isMultiDayEvent', () => {
+  it('returns false when no endDate is set', () => {
+    expect(isMultiDayEvent({ date: '2026-01-15' })).toBe(false);
+  });
+
+  it('returns false when endDate equals date', () => {
+    expect(isMultiDayEvent({ date: '2026-01-15', endDate: '2026-01-15' })).toBe(false);
+  });
+
+  it('returns false when endDate is before date', () => {
+    expect(isMultiDayEvent({ date: '2026-01-15', endDate: '2026-01-14' })).toBe(false);
+  });
+
+  it('returns true when endDate is after date', () => {
+    expect(isMultiDayEvent({ date: '2026-01-15', endDate: '2026-01-16' })).toBe(true);
+    expect(isMultiDayEvent({ date: '2026-08-30', endDate: '2026-09-05' })).toBe(true);
+  });
+
+  it('returns false for null/undefined events', () => {
+    expect(isMultiDayEvent(null)).toBe(false);
+    expect(isMultiDayEvent(undefined)).toBe(false);
   });
 });

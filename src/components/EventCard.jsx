@@ -1,7 +1,13 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin } from 'lucide-react';
-import { formatEventDateLabel, getOrganizerName, getPrimaryCategory } from '../utils/eventFormat';
+import {
+  formatEventDateLabel,
+  formatEventDateRangeLabel,
+  getOrganizerName,
+  getPrimaryCategory,
+  isMultiDayEvent,
+} from '../utils/eventFormat';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
 import './EventCard.css';
 
@@ -9,6 +15,8 @@ export default function EventCard({ event, categoryColor }) {
   const organizerName = getOrganizerName(event);
   const category = getPrimaryCategory(event);
   const fallbackImage = getEventFallbackImage(event);
+  const multiDay = isMultiDayEvent(event);
+  const dateRangeLabel = multiDay ? formatEventDateRangeLabel(event.date, event.endDate) : null;
   const [imageError, setImageError] = useState(false);
   const imageSrc = event.imageUrl && !imageError ? event.imageUrl : fallbackImage;
 
@@ -33,8 +41,14 @@ export default function EventCard({ event, categoryColor }) {
 
       <div className="event-tile-body">
         <span className="event-tile-date">
-          {formatEventDateLabel(event.date)}
-          {event.time && ` · ${event.time} Uhr`}
+          {multiDay ? (
+            <span data-testid="event-tile-date-range">{dateRangeLabel}</span>
+          ) : (
+            <>
+              {formatEventDateLabel(event.date)}
+              {event.time && ` · ${event.time} Uhr`}
+            </>
+          )}
         </span>
         <h3 className="event-tile-title">{event.title}</h3>
         {event.bezirk && (

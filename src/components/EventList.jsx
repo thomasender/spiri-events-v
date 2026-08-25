@@ -28,6 +28,7 @@ import {
   getOccurrenceCount,
   getRecurrenceLabel,
 } from '../utils/eventOccurrences';
+import { isMultiDayEvent } from '../utils/eventFormat';
 import './EventList.css';
 
 function formatDate(dateStr) {
@@ -238,6 +239,7 @@ export default function EventList() {
 
   const renderEventCard = (event, showStatus = false, showApprove = false) => {
     const isRecurring = event.recurrence && event.recurrence !== 'none';
+    const isMultiDay = isMultiDayEvent(event);
     const recurrenceLabel = getRecurrenceLabel(event);
     const nextOccurrence = isRecurring ? getNextUpcomingOccurrence(event) : null;
     const occurrenceCount = isRecurring ? getOccurrenceCount(event) : 0;
@@ -309,7 +311,7 @@ export default function EventList() {
                   : formatDate(event.date)}
                 {formatEndDate(event.date, event.endDate) &&
                   ` — ${formatEndDate(event.date, event.endDate)}`}
-                {event.time && ` • ${event.time}`}
+                {!isMultiDay && event.time && ` • ${event.time}`}
               </span>
             </div>
             {event.bezirk && (
