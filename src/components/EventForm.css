@@ -37,18 +37,12 @@
 
 .form-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 16px;
 }
 
 .form-row > .form-group {
   min-width: 0;
-}
-
-.form-row input[type='date'],
-.form-row input[type='time'] {
-  min-width: 0;
-  max-width: 100%;
 }
 
 .form-section-divider {
@@ -381,7 +375,7 @@ input:disabled {
   }
 
   .form-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .form-actions {
