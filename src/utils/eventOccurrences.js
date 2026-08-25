@@ -9,7 +9,7 @@ export function getNextUpcomingOccurrence(event) {
     return eventDate >= today ? event.date : null;
   }
 
-  const occurrences = getEventOccurrences(event);
+  const occurrences = getEventOccurrences(event, { mode: 'list' });
   if (occurrences.length === 0) {
     return event.date;
   }
@@ -21,7 +21,7 @@ export function getOccurrenceCount(event) {
   if (!event || !event.recurrence || event.recurrence === 'none') {
     return event?.date ? 1 : 0;
   }
-  return getEventOccurrences(event).length;
+  return getEventOccurrences(event, { mode: 'list' }).length;
 }
 
 // Returns a short human-readable recurrence label, e.g. "Jeden Donnerstag" or
@@ -53,44 +53,75 @@ export function getRecurrenceLabel(event) {
   }
 }
 
-// - For non-recurring events, one entry per day in the [date, endDate] span.
-// - For recurring events, one entry per recurrence occurrence, with `isMultiDayStart`
-//   / `isMultiDayEnd` flags preserved for multi-day recurring events.
+// `mode: 'list'` (default): produces ONE entry per month the event spans, suitable
+// for the list/card view where multi-day retreats should not be duplicated for
+// every day. Each entry's `date` is set to the first day of the event in that
+// month so month-based filtering/sorting keeps working.
 //
-// The returned occurrences share the original event's fields but each has its own
-// `date` set to that occurrence's date. This is used by both the calendar sidebar
-// and the card/list view, which previously disagreed on whether recurring events
-// should appear on every future matching date.
+// `mode: 'calendar'`: produces one entry per day (the original behavior). The
+// sidebar calendar uses this to render a dot on every day an event spans.
 
 function formatDate(year, month, day) {
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
-function expandEventToDays(event) {
+function collapseToMonthEntries(event, start, end) {
+  const entries = [];
+  const monthCursor = new Date(start.getFullYear(), start.getMonth(), 1);
+  const lastMonthStart = new Date(end.getFullYear(), end.getMonth(), 1);
+  let cursor = new Date(monthCursor);
+  while (cursor <= lastMonthStart) {
+    const monthEnd = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0);
+    const entryStart = cursor < start ? start : cursor;
+    const entryEnd = monthEnd < end ? monthEnd : end;
+    entries.push({
+      ...event,
+      date: formatDate(entryStart.getFullYear(), entryStart.getMonth(), entryStart.getDate()),
+      isMultiDayStart: entryStart.getTime() === start.getTime(),
+      isMultiDayEnd: entryEnd.getTime() === end.getTime(),
+    });
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+  return entries;
+}
+
+function expandNonRecurring(event, mode) {
   if (!event) return [];
-  const days = [];
   const start = new Date(event.date + 'T12:00:00');
   const end = event.endDate ? new Date(event.endDate + 'T12:00:00') : start;
 
-  const current = new Date(start);
-  while (current <= end) {
-    const dateStr = formatDate(current.getFullYear(), current.getMonth(), current.getDate());
-    days.push({
-      ...event,
-      date: dateStr,
-      isMultiDayStart: current.getTime() === start.getTime(),
-      isMultiDayEnd: current.getTime() === end.getTime(),
-    });
-    current.setDate(current.getDate() + 1);
+  if (mode === 'calendar') {
+    const days = [];
+    const current = new Date(start);
+    while (current <= end) {
+      const dateStr = formatDate(current.getFullYear(), current.getMonth(), current.getDate());
+      days.push({
+        ...event,
+        date: dateStr,
+        isMultiDayStart: current.getTime() === start.getTime(),
+        isMultiDayEnd: current.getTime() === end.getTime(),
+      });
+      current.setDate(current.getDate() + 1);
+    }
+    return days;
   }
-  return days;
+
+  // list mode
+  if (start.getTime() === end.getTime() || !event.endDate) {
+    return [
+      {
+        ...event,
+        date: event.date,
+        isMultiDayStart: true,
+        isMultiDayEnd: true,
+      },
+    ];
+  }
+
+  return collapseToMonthEntries(event, start, end);
 }
 
-export function getEventOccurrences(event) {
-  if (!event || event.recurrence === 'none' || !event.recurrence) {
-    return expandEventToDays(event);
-  }
-
+function expandRecurring(event, mode) {
   const occurrences = [];
   const startDate = new Date(event.date + 'T12:00:00');
   const endDate = event.recurrenceEndDate
@@ -123,20 +154,23 @@ export function getEventOccurrences(event) {
       interval = 0;
       break;
     default:
-      return expandEventToDays(event);
+      return expandNonRecurring(event, mode);
   }
 
   const current = new Date(startDate);
   const exceptionDates = event.exceptionDates || [];
+  const eventDays = event.endDate
+    ? Math.ceil((new Date(event.endDate + 'T12:00:00') - startDate) / (1000 * 60 * 60 * 24)) + 1
+    : 1;
 
   while (current <= effectiveEnd) {
     if (current >= today) {
-      const occurrenceDate = formatDate(
+      const occurrenceStart = formatDate(
         current.getFullYear(),
         current.getMonth(),
         current.getDate()
       );
-      if (exceptionDates.includes(occurrenceDate)) {
+      if (exceptionDates.includes(occurrenceStart)) {
         if (interval === 0) {
           current.setMonth(current.getMonth() + 1);
         } else {
@@ -144,26 +178,44 @@ export function getEventOccurrences(event) {
         }
         continue;
       }
-      const baseOccurrence = {
-        ...event,
-        date: occurrenceDate,
-      };
-      if (event.endDate) {
-        const start = new Date(event.date + 'T12:00:00');
-        const eventDays =
-          Math.ceil((new Date(event.endDate + 'T12:00:00') - start) / (1000 * 60 * 60 * 24)) + 1;
-        for (let d = 0; d < eventDays; d++) {
-          const dayDate = new Date(current);
-          dayDate.setDate(dayDate.getDate() + d);
+
+      if (mode === 'calendar') {
+        if (event.endDate) {
+          for (let d = 0; d < eventDays; d++) {
+            const dayDate = new Date(current);
+            dayDate.setDate(dayDate.getDate() + d);
+            occurrences.push({
+              ...event,
+              date: formatDate(dayDate.getFullYear(), dayDate.getMonth(), dayDate.getDate()),
+              isMultiDayStart: d === 0,
+              isMultiDayEnd: d === eventDays - 1,
+            });
+          }
+        } else {
           occurrences.push({
-            ...baseOccurrence,
-            date: formatDate(dayDate.getFullYear(), dayDate.getMonth(), dayDate.getDate()),
-            isMultiDayStart: d === 0,
-            isMultiDayEnd: d === eventDays - 1,
+            ...event,
+            date: occurrenceStart,
+            isMultiDayStart: true,
+            isMultiDayEnd: true,
           });
         }
       } else {
-        occurrences.push({ ...baseOccurrence, isMultiDayStart: true, isMultiDayEnd: true });
+        // list mode: emit one entry per month the occurrence spans
+        if (event.endDate) {
+          const occStart = new Date(current);
+          const occEnd = new Date(current);
+          occEnd.setDate(occEnd.getDate() + eventDays - 1);
+          for (const entry of collapseToMonthEntries(event, occStart, occEnd)) {
+            occurrences.push(entry);
+          }
+        } else {
+          occurrences.push({
+            ...event,
+            date: occurrenceStart,
+            isMultiDayStart: true,
+            isMultiDayEnd: true,
+          });
+        }
       }
     }
 
@@ -175,4 +227,14 @@ export function getEventOccurrences(event) {
   }
 
   return occurrences;
+}
+
+export function getEventOccurrences(event, { mode = 'list' } = {}) {
+  if (!event) return [];
+
+  if (!event.recurrence || event.recurrence === 'none') {
+    return expandNonRecurring(event, mode);
+  }
+
+  return expandRecurring(event, mode);
 }

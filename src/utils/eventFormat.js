@@ -23,6 +23,26 @@ export function formatEventDateLabel(dateStr) {
   });
 }
 
+// Formats a multi-day event's range as "Di, 1. Sept - So, 6. Sept" using the
+// short German weekday/day/month format. Returns null when the event has no
+// real endDate (single-day or not set), so callers can fall back to other
+// formatters for single-day events.
+export function formatEventDateRangeLabel(startDateStr, endDateStr) {
+  if (!endDateStr || !startDateStr || endDateStr === startDateStr) return null;
+  const start = parseEventDate(startDateStr);
+  const end = parseEventDate(endDateStr);
+  const fmt = (d) =>
+    d.toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'short' });
+  return `${fmt(start)} - ${fmt(end)}`;
+}
+
+// Returns true when the event has an endDate strictly after its date, i.e. it
+// spans more than one calendar day.
+export function isMultiDayEvent(event) {
+  if (!event || !event.date || !event.endDate) return false;
+  return event.endDate > event.date;
+}
+
 export function formatEventDateShort(dateStr) {
   if (!dateStr) return '';
   const [year, month, day] = dateStr.split('-');

@@ -115,7 +115,7 @@ export default function Calendar({
   const eventsByDay = useMemo(() => {
     const map = {};
     events.forEach((event) => {
-      const expandedDays = getEventOccurrences(event);
+      const expandedDays = getEventOccurrences(event, { mode: 'calendar' });
       expandedDays.forEach((expanded) => {
         if (!map[expanded.date]) map[expanded.date] = [];
         map[expanded.date].push(expanded);
