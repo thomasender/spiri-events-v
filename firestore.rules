@@ -35,14 +35,15 @@ service cloud.firestore {
     match /events/{eventId} {
       allow read: if isApproved() || isOwner() || isAdminOrEmulatorAdmin();
 
-      // Non-admins must have a confirmed email address before they can
-      // create events. Admins are exempt (onboarded manually by Peter).
-      allow create: if isAdminOrEmulatorAdmin()
-                    || (isAuthenticated()
-                        && request.auth.token.email_verified == true
-                        && request.resource.data.createdBy == request.auth.uid
-                        && (request.resource.data.status in ['pending', 'draft'])
-                        && request.resource.data.description.size() <= 20000);
+      // Anyone creating an event (including admins) must start it as
+      // 'pending' or 'draft'. Approval happens via update. Non-admins
+      // additionally need a confirmed email address.
+      allow create: if (isAdminOrEmulatorAdmin()
+                        || (isAuthenticated()
+                            && request.auth.token.email_verified == true))
+                    && request.resource.data.createdBy == request.auth.uid
+                    && (request.resource.data.status in ['pending', 'draft'])
+                    && request.resource.data.description.size() <= 20000;
 
       allow update: if (isOwner() || isAdminOrEmulatorAdmin())
                     && request.resource.data.description.size() <= 20000;

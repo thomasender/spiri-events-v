@@ -413,7 +413,7 @@ export default function EventFormWizard() {
   };
 
   const confirmSubmit = () => {
-    saveEvent(buildEventData(isAdmin ? 'approved' : 'pending'));
+    saveEvent(buildEventData('pending'));
   };
 
   const renderStepIndicator = () => (
