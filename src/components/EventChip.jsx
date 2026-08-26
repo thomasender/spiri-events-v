@@ -2,10 +2,17 @@ import './EventChip.css';
 
 export default function EventChip({ event, onClick }) {
   const isFree = event.contribution === 'free';
+  const isDonation = event.contribution === 'donation';
+
+  const variant = isFree
+    ? 'event-chip--free'
+    : isDonation
+      ? 'event-chip--donation'
+      : 'event-chip--fee';
 
   return (
     <button
-      className={`event-chip ${isFree ? 'event-chip--free' : 'event-chip--fee'}`}
+      className={`event-chip ${variant}`}
       onClick={(e) => {
         e.stopPropagation();
         onClick(event);

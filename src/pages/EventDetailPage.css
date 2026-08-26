@@ -144,6 +144,11 @@
   color: var(--accent-primary);
 }
 
+.badge--donation {
+  background-color: rgba(140, 120, 180, 0.15);
+  color: var(--donation-text);
+}
+
 .event-details {
   background: var(--bg-calendar);
   border-radius: var(--radius-md);

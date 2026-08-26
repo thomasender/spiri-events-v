@@ -87,7 +87,7 @@ export async function fillStep3Details(
     bezirk?: string;
     place?: string;
     category?: string;
-    contribution?: 'free' | 'fee';
+    contribution?: 'free' | 'fee' | 'donation';
     fee?: string;
   }
 ) {
@@ -110,9 +110,12 @@ export async function fillStep3Details(
     await page.waitForTimeout(300);
   }
   if (data.contribution !== undefined) {
-    await page.click(
-      `.radio-label:has-text("${data.contribution === 'free' ? 'Kostenlos' : 'Gebühr'}")`
-    );
+    const labelMap: Record<'free' | 'fee' | 'donation', string> = {
+      free: 'Kostenlos',
+      fee: 'Gebühr',
+      donation: 'Freie Spende',
+    };
+    await page.click(`.radio-label:has-text("${labelMap[data.contribution]}")`);
   }
   if (data.fee !== undefined) {
     await page.fill('#fee', data.fee);

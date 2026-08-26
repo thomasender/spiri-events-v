@@ -24,6 +24,8 @@
   --free-text: #5c6b3f;
   --fee-bg: rgba(196, 142, 106, 0.16); /* terracotta for paid events */
   --fee-text: #9a5f38;
+  --donation-bg: rgba(140, 120, 180, 0.16); /* soft violet for donation/free-contribution events */
+  --donation-text: #6b568b;
   --pending-bg: rgba(198, 160, 92, 0.18); /* mustard for pending */
   --pending-text: #8a6d2f;
 

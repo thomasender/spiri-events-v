@@ -741,6 +741,16 @@ export default function EventFormWizard() {
             />
             <span>Gebühr</span>
           </label>
+          <label className={`radio-label ${formData.contribution === 'donation' ? 'active' : ''}`}>
+            <input
+              type="radio"
+              name="contribution"
+              value="donation"
+              checked={formData.contribution === 'donation'}
+              onChange={handleChange}
+            />
+            <span>Freie Spende</span>
+          </label>
         </div>
       </div>
 
@@ -889,7 +899,13 @@ export default function EventFormWizard() {
                   : 'Monatlich'}
             </p>
           )}
-          <p>{formData.contribution === 'free' ? 'Kostenlos' : `Gebühr: ${formData.fee}€`}</p>
+          <p>
+            {formData.contribution === 'free'
+              ? 'Kostenlos'
+              : formData.contribution === 'donation'
+                ? 'Freie Spende'
+                : `Gebühr: ${formData.fee}€`}
+          </p>
         </div>
       </div>
 
