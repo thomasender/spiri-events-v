@@ -197,6 +197,22 @@ const TEST_EVENTS = [
     recurrence: 'weekly',
     recurrenceEndDate: makeDate(60),
   },
+  {
+    id: 'test-event-custom-dates',
+    title: 'Workshop an individuellen Terminen',
+    date: makeDate(7),
+    endDate: null,
+    time: '17:00',
+    endTime: '19:00',
+    place: 'Workshop Raum',
+    description: 'Workshop mit individuell gewählten Terminen.',
+    category: 'Yoga',
+    bezirk: 'Dornbirn',
+    status: 'approved',
+    createdBy: 'dev-admin-uid',
+    recurrence: 'custom',
+    customDates: [makeDate(7), makeDate(21), makeDate(35), makeDate(63)],
+  },
 ];
 
 for (const event of TEST_EVENTS) {

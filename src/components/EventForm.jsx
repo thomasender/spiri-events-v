@@ -11,7 +11,7 @@ import {
   getAspectRatioRecommendation,
   MAX_INPUT_SIZE_BYTES,
 } from '../lib/imageUpload';
-import { ArrowLeft, Save, Image, X, Info, Trash2 } from 'lucide-react';
+import { ArrowLeft, Save, Image, X, Info, Trash2, Plus } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
 import RecurringDeleteDialog from './RecurringDeleteDialog';
 import { arrayUnion } from 'firebase/firestore';
@@ -33,6 +33,7 @@ const INITIAL_STATE = {
   link: '',
   recurrence: 'none',
   recurrenceEndDate: '',
+  customDates: [],
   category: '',
   bezirk: '',
   organizer: { firstName: '', lastName: '', email: '' },
@@ -109,6 +110,7 @@ export default function EventForm({ event }) {
         link: event.link || '',
         recurrence: event.recurrence || 'none',
         recurrenceEndDate: event.recurrenceEndDate || '',
+        customDates: Array.isArray(event.customDates) ? [...event.customDates] : [],
         category: event.category || '',
         bezirk: event.bezirk || '',
         organizer: {
@@ -211,6 +213,12 @@ export default function EventForm({ event }) {
       if (endRecurrenceDate > maxDate) {
         newErrors.recurrenceEndDate = 'Wiederholung darf maximal 1 Jahr betragen';
       }
+    }
+    if (
+      formData.recurrence === 'custom' &&
+      (!formData.customDates || formData.customDates.length === 0)
+    ) {
+      newErrors.customDates = 'Bitte mindestens ein Datum hinzufügen';
     }
     if (!isValidLink(formData.link)) {
       newErrors.link = 'Bitte gib eine gültige URL ein';
@@ -349,6 +357,41 @@ export default function EventForm({ event }) {
     }
   };
 
+  const handleAddCustomDate = () => {
+    setFormData((prev) => {
+      const existing = prev.customDates || [];
+      const last = existing[existing.length - 1];
+      const baseDate = last || prev.date;
+      let nextDate = '';
+      if (baseDate) {
+        const d = new Date(baseDate + 'T12:00:00');
+        d.setDate(d.getDate() + 7);
+        nextDate = d.toISOString().split('T')[0];
+      }
+      return { ...prev, customDates: [...existing, nextDate] };
+    });
+    if (errors.customDates) {
+      setErrors((prev) => ({ ...prev, customDates: null }));
+    }
+  };
+
+  const handleRemoveCustomDate = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      customDates: (prev.customDates || []).filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleCustomDateChange = (index, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      customDates: (prev.customDates || []).map((d, i) => (i === index ? value : d)),
+    }));
+    if (errors.customDates) {
+      setErrors((prev) => ({ ...prev, customDates: null }));
+    }
+  };
+
   const buildEventData = (status) => ({
     title: formData.title.trim(),
     date: formData.date,
@@ -361,7 +404,14 @@ export default function EventForm({ event }) {
     description: formData.description,
     link: normalizeLink(formData.link),
     recurrence: formData.recurrence || 'none',
-    recurrenceEndDate: formData.recurrence === 'none' ? '' : formData.recurrenceEndDate || '',
+    recurrenceEndDate:
+      formData.recurrence === 'none' || formData.recurrence === 'custom'
+        ? ''
+        : formData.recurrenceEndDate || '',
+    customDates:
+      formData.recurrence === 'custom'
+        ? [...(formData.customDates || [])].filter((d) => d && d.length > 0).sort()
+        : [],
     category: formData.category || 'Sonstiges',
     bezirk: formData.bezirk,
     organizer: {
@@ -476,9 +526,14 @@ export default function EventForm({ event }) {
     const dateToDelete = occurrenceDate || event.date;
     setDeleting(true);
     try {
-      await updateEvent(event.id, {
-        exceptionDates: arrayUnion(dateToDelete),
-      });
+      if (event.recurrence === 'custom') {
+        const remaining = (event.customDates || []).filter((d) => d !== dateToDelete);
+        await updateEvent(event.id, { customDates: remaining });
+      } else {
+        await updateEvent(event.id, {
+          exceptionDates: arrayUnion(dateToDelete),
+        });
+      }
       setShowRecurringDeleteDialog(false);
       navigate('/');
     } catch (err) {
@@ -491,13 +546,18 @@ export default function EventForm({ event }) {
     const deleteDate = occurrenceDate || event.date;
     setDeleting(true);
     try {
-      const [year, month, day] = deleteDate.split('-');
-      const prevDate = new Date(year, month - 1, day);
-      prevDate.setDate(prevDate.getDate() - 1);
-      const prevDateStr = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}-${String(prevDate.getDate()).padStart(2, '0')}`;
-      await updateEvent(event.id, {
-        recurrenceEndDate: prevDateStr,
-      });
+      if (event.recurrence === 'custom') {
+        const remaining = (event.customDates || []).filter((d) => d < deleteDate);
+        await updateEvent(event.id, { customDates: remaining });
+      } else {
+        const [year, month, day] = deleteDate.split('-');
+        const prevDate = new Date(year, month - 1, day);
+        prevDate.setDate(prevDate.getDate() - 1);
+        const prevDateStr = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}-${String(prevDate.getDate()).padStart(2, '0')}`;
+        await updateEvent(event.id, {
+          recurrenceEndDate: prevDateStr,
+        });
+      }
       setShowRecurringDeleteDialog(false);
       navigate('/');
     } catch (err) {
@@ -856,10 +916,68 @@ export default function EventForm({ event }) {
                 />
                 <span>Monatlich</span>
               </label>
+              <label className={`radio-label ${formData.recurrence === 'custom' ? 'active' : ''}`}>
+                <input
+                  type="radio"
+                  name="recurrence"
+                  value="custom"
+                  checked={formData.recurrence === 'custom'}
+                  onChange={handleChange}
+                />
+                <span>Benutzerdefinierte Daten</span>
+              </label>
             </div>
           </div>
 
-          {formData.recurrence !== 'none' && (
+          {formData.recurrence === 'custom' && (
+            <div className="form-group">
+              <div className="input-label-row">
+                <label>Termine</label>
+                <span className="input-info">
+                  <Info size={14} />
+                  <span>Füge einzelne Termine hinzu</span>
+                </span>
+              </div>
+              <div className="custom-dates-list" data-testid="custom-dates-list">
+                {(formData.customDates || []).map((date, index) => (
+                  <div key={index} className="custom-date-row">
+                    <input
+                      type="date"
+                      value={date}
+                      onChange={(e) => handleCustomDateChange(index, e.target.value)}
+                      data-testid={`custom-date-input-${index}`}
+                      aria-label={`Termin ${index + 1}`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveCustomDate(index)}
+                      className="custom-date-remove-btn"
+                      aria-label={`Termin ${index + 1} entfernen`}
+                      data-testid={`custom-date-remove-${index}`}
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={handleAddCustomDate}
+                className="btn btn-secondary btn-sm custom-date-add-btn"
+                data-testid="custom-date-add-button"
+              >
+                <Plus size={16} />
+                <span>Weiteres Datum hinzufügen</span>
+              </button>
+              {errors.customDates && (
+                <span className="error-text" data-testid="custom-dates-error">
+                  {errors.customDates}
+                </span>
+              )}
+            </div>
+          )}
+
+          {formData.recurrence !== 'none' && formData.recurrence !== 'custom' && (
             <div className="form-group">
               <div className="input-label-row">
                 <label htmlFor="recurrenceEndDate">Wiederholung bis</label>

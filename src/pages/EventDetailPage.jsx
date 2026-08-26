@@ -67,6 +67,7 @@ function formatEndDate(startDateStr, endDateStr) {
 
 function formatRecurrence(recurrence, recurrenceEndDate, eventDate) {
   if (!recurrence || recurrence === 'none') return null;
+  if (recurrence === 'custom') return 'An einzelnen Terminen';
   let weekday = '';
   if (eventDate && (recurrence === 'weekly' || recurrence === 'biweekly')) {
     const [year, month, day] = eventDate.split('-');
@@ -330,9 +331,14 @@ export default function EventDetailPage() {
     setDeleting(true);
     try {
       const dateToDelete = selectedOccurrenceDate || event.date;
-      await updateEvent(event.id, {
-        exceptionDates: arrayUnion(dateToDelete),
-      });
+      if (event.recurrence === 'custom') {
+        const remaining = (event.customDates || []).filter((d) => d !== dateToDelete);
+        await updateEvent(event.id, { customDates: remaining });
+      } else {
+        await updateEvent(event.id, {
+          exceptionDates: arrayUnion(dateToDelete),
+        });
+      }
       setShowRecurringDeleteDialog(false);
       navigate('/');
     } catch (err) {
@@ -345,13 +351,18 @@ export default function EventDetailPage() {
     const deleteDate = selectedOccurrenceDate || event.date;
     setDeleting(true);
     try {
-      const [year, month, day] = deleteDate.split('-');
-      const prevDate = new Date(year, month - 1, day);
-      prevDate.setDate(prevDate.getDate() - 1);
-      const prevDateStr = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}-${String(prevDate.getDate()).padStart(2, '0')}`;
-      await updateEvent(event.id, {
-        recurrenceEndDate: prevDateStr,
-      });
+      if (event.recurrence === 'custom') {
+        const remaining = (event.customDates || []).filter((d) => d < deleteDate);
+        await updateEvent(event.id, { customDates: remaining });
+      } else {
+        const [year, month, day] = deleteDate.split('-');
+        const prevDate = new Date(year, month - 1, day);
+        prevDate.setDate(prevDate.getDate() - 1);
+        const prevDateStr = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}-${String(prevDate.getDate()).padStart(2, '0')}`;
+        await updateEvent(event.id, {
+          recurrenceEndDate: prevDateStr,
+        });
+      }
       setShowRecurringDeleteDialog(false);
       navigate('/');
     } catch (err) {

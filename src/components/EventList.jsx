@@ -155,12 +155,17 @@ export default function EventList() {
 
   const handleDeleteRecurringThis = async () => {
     if (!recurringDeleteTarget) return;
-    const { id, occurrenceDate } = recurringDeleteTarget;
+    const { id, occurrenceDate, event: targetEvent } = recurringDeleteTarget;
     setDeleting(true);
     try {
-      await updateEvent(id, {
-        exceptionDates: arrayUnion(occurrenceDate),
-      });
+      if (targetEvent?.recurrence === 'custom') {
+        const remaining = (targetEvent.customDates || []).filter((d) => d !== occurrenceDate);
+        await updateEvent(id, { customDates: remaining });
+      } else {
+        await updateEvent(id, {
+          exceptionDates: arrayUnion(occurrenceDate),
+        });
+      }
       setRecurringDeleteTarget(null);
     } catch (err) {
       console.error('Delete recurring this failed:', err);
@@ -171,16 +176,21 @@ export default function EventList() {
 
   const handleDeleteRecurringThisAndFuture = async () => {
     if (!recurringDeleteTarget) return;
-    const { id, occurrenceDate } = recurringDeleteTarget;
+    const { id, occurrenceDate, event: targetEvent } = recurringDeleteTarget;
     setDeleting(true);
     try {
-      const [year, month, day] = occurrenceDate.split('-');
-      const prevDate = new Date(year, month - 1, day);
-      prevDate.setDate(prevDate.getDate() - 1);
-      const prevDateStr = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}-${String(prevDate.getDate()).padStart(2, '0')}`;
-      await updateEvent(id, {
-        recurrenceEndDate: prevDateStr,
-      });
+      if (targetEvent?.recurrence === 'custom') {
+        const remaining = (targetEvent.customDates || []).filter((d) => d < occurrenceDate);
+        await updateEvent(id, { customDates: remaining });
+      } else {
+        const [year, month, day] = occurrenceDate.split('-');
+        const prevDate = new Date(year, month - 1, day);
+        prevDate.setDate(prevDate.getDate() - 1);
+        const prevDateStr = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}-${String(prevDate.getDate()).padStart(2, '0')}`;
+        await updateEvent(id, {
+          recurrenceEndDate: prevDateStr,
+        });
+      }
       setRecurringDeleteTarget(null);
     } catch (err) {
       console.error('Delete recurring this and future failed:', err);

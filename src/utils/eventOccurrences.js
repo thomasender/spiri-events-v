@@ -9,6 +9,17 @@ export function getNextUpcomingOccurrence(event) {
     return eventDate >= today ? event.date : null;
   }
 
+  if (event.recurrence === 'custom') {
+    const dates = (event.customDates || [])
+      .filter((d) => !event.exceptionDates || !event.exceptionDates.includes(d))
+      .sort();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayIso = today.toISOString().split('T')[0];
+    const next = dates.find((d) => d >= todayIso);
+    return next || null;
+  }
+
   const occurrences = getEventOccurrences(event, { mode: 'list' });
   if (occurrences.length === 0) {
     return event.date;
@@ -21,6 +32,16 @@ export function getOccurrenceCount(event) {
   if (!event || !event.recurrence || event.recurrence === 'none') {
     return event?.date ? 1 : 0;
   }
+  if (event.recurrence === 'custom') {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayIso = today.toISOString().split('T')[0];
+    return (event.customDates || []).filter((d) => {
+      if (d < todayIso) return false;
+      if (event.exceptionDates && event.exceptionDates.includes(d)) return false;
+      return true;
+    }).length;
+  }
   return getEventOccurrences(event, { mode: 'list' }).length;
 }
 
@@ -28,6 +49,10 @@ export function getOccurrenceCount(event) {
 // "Jeden zweiten Donnerstag". Returns null for non-recurring events.
 export function getRecurrenceLabel(event) {
   if (!event || !event.recurrence || event.recurrence === 'none') return null;
+
+  if (event.recurrence === 'custom') {
+    return 'An einzelnen Terminen';
+  }
 
   const weekdayNames = [
     'Sonntag',
@@ -119,6 +144,53 @@ function expandNonRecurring(event, mode) {
   }
 
   return collapseToMonthEntries(event, start, end);
+}
+
+function expandCustom(event, mode) {
+  const customDates = Array.isArray(event.customDates) ? event.customDates : [];
+  if (customDates.length === 0) return [];
+
+  const exceptionDates = event.exceptionDates || [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const sortedDates = [...customDates].sort();
+
+  const eventDays = event.endDate
+    ? Math.ceil(
+        (new Date(event.endDate + 'T12:00:00') - new Date(event.date + 'T12:00:00')) /
+          (1000 * 60 * 60 * 24)
+      ) + 1
+    : 1;
+
+  const occurrences = [];
+  for (const occurrenceStart of sortedDates) {
+    if (exceptionDates.includes(occurrenceStart)) continue;
+    const occDate = new Date(occurrenceStart + 'T12:00:00');
+    if (occDate < today) continue;
+
+    if (mode === 'calendar' && eventDays > 1) {
+      for (let d = 0; d < eventDays; d++) {
+        const dayDate = new Date(occDate);
+        dayDate.setDate(dayDate.getDate() + d);
+        occurrences.push({
+          ...event,
+          date: formatDate(dayDate.getFullYear(), dayDate.getMonth(), dayDate.getDate()),
+          isMultiDayStart: d === 0,
+          isMultiDayEnd: d === eventDays - 1,
+        });
+      }
+    } else {
+      occurrences.push({
+        ...event,
+        date: occurrenceStart,
+        isMultiDayStart: true,
+        isMultiDayEnd: true,
+      });
+    }
+  }
+
+  return occurrences;
 }
 
 function expandRecurring(event, mode) {
@@ -234,6 +306,10 @@ export function getEventOccurrences(event, { mode = 'list' } = {}) {
 
   if (!event.recurrence || event.recurrence === 'none') {
     return expandNonRecurring(event, mode);
+  }
+
+  if (event.recurrence === 'custom') {
+    return expandCustom(event, mode);
   }
 
   return expandRecurring(event, mode);
