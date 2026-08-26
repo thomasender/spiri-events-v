@@ -32,7 +32,7 @@ describe('eventFallbacks', () => {
       expect(getCategoryFallbackImage('Meditation')).toBe('/event-fallbacks/meditation.jpg');
       expect(getCategoryFallbackImage('Tanz')).toBe('/event-fallbacks/tanz.jpg');
       expect(getCategoryFallbackImage('Singen')).toBe('/event-fallbacks/singen.png');
-      expect(getCategoryFallbackImage('Soundhealing')).toBe('/event-fallbacks/soundhealing.jpg');
+      expect(getCategoryFallbackImage('Soundhealing')).toBe('/event-fallbacks/soundhealing.jpeg');
       expect(getCategoryFallbackImage('Sonstiges')).toBe('/event-fallbacks/sonstiges.svg');
     });
 

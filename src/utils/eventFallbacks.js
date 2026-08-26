@@ -4,7 +4,7 @@ export const CATEGORY_FALLBACKS = {
   Meditation: '/event-fallbacks/meditation.jpg',
   Tanz: '/event-fallbacks/tanz.jpg',
   Singen: '/event-fallbacks/singen.png',
-  Soundhealing: '/event-fallbacks/soundhealing.jpg',
+  Soundhealing: '/event-fallbacks/soundhealing.jpeg',
   Sonstiges: '/event-fallbacks/sonstiges.svg',
 };
 
