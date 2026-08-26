@@ -136,6 +136,68 @@
   color: var(--accent-primary);
 }
 
+.auth-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background-color: var(--bg-primary);
+  border-radius: var(--radius-md);
+  margin-bottom: 24px;
+}
+
+.auth-tab {
+  flex: 1;
+  padding: 10px 16px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.auth-tab:hover {
+  color: var(--text-primary);
+}
+
+.auth-tab.is-active {
+  background-color: var(--bg-calendar);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.auth-create-cta {
+  margin-top: 20px;
+  padding: 16px;
+  background-color: var(--bg-primary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--accent-primary);
+}
+
+.auth-create-cta p {
+  margin: 0 0 12px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.auth-create-cta strong {
+  color: var(--text-primary);
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.auth-create-cta .btn-submit {
+  margin-top: 0;
+  padding: 10px 16px;
+  font-size: 0.95rem;
+}
+
 .legal-checkboxes {
   display: flex;
   flex-direction: column;

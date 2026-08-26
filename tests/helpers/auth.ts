@@ -26,9 +26,9 @@ export async function registerWithEmailAndPassword(
 ): Promise<void> {
   await page.goto('/login');
 
-  const toggleLink = page.locator('text=Konto erstellen');
-  if (await toggleLink.isVisible()) {
-    await toggleLink.click();
+  const registerTab = page.getByTestId('auth-tab-register');
+  if (await registerTab.isVisible().catch(() => false)) {
+    await registerTab.click();
   }
 
   await page.fill('input[type="email"], input[name="email"], input[id="email"]', email);
@@ -69,9 +69,9 @@ export async function createAuthenticatedUser(
   email: string,
   password: string
 ): Promise<void> {
-  const signUpToggle = page.locator('text=Konto erstellen');
-  if (await signUpToggle.isVisible()) {
-    await signUpToggle.click();
+  const registerTab = page.getByTestId('auth-tab-register');
+  if (await registerTab.isVisible().catch(() => false)) {
+    await registerTab.click();
   }
 
   await page.fill('input[type="email"], input[name="email"], input[id="email"]', email);
