@@ -1,0 +1,103 @@
+import { test, expect } from '@playwright/test';
+import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
+import { waitForWizardToLoad, clickWeiter, fillStep2EventInfo } from '../helpers/wizard';
+
+const EVENT_TITLE = 'Event ohne Ort';
+
+test.describe('Event wizard: "Ort / Adresse" is optional (ZPiZqKrG)', () => {
+  test.afterEach(async ({ page }) => {
+    await signOut(page);
+  });
+
+  async function navigateToStep3(page) {
+    await clickWeiter(page);
+    await fillStep2EventInfo(page, {
+      title: EVENT_TITLE,
+      description: 'Event ohne Ort-Information.',
+    });
+    await clickWeiter(page);
+  }
+
+  test('"Ort / Adresse" label is not marked with an asterisk on step 3', async ({ page }) => {
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin/new');
+    await waitForWizardToLoad(page);
+
+    await navigateToStep3(page);
+
+    const placeLabel = page.locator('label[for="place"]');
+    await expect(placeLabel).toBeVisible();
+    await expect(placeLabel).toContainText('Ort / Adresse');
+    await expect(placeLabel).not.toContainText('*');
+  });
+
+  test('wizard advances past step 3 with empty "Ort / Adresse"', async ({ page }) => {
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin/new');
+    await waitForWizardToLoad(page);
+
+    await navigateToStep3(page);
+
+    const future = new Date();
+    future.setDate(future.getDate() + 30);
+    const futureIso = future.toISOString().split('T')[0];
+
+    await page.fill('#date', futureIso);
+    await page.fill('#time', '10:00');
+    await page.selectOption('#bezirk', 'Bregenz');
+    await page.click('.kategorie-select');
+    await page.waitForTimeout(300);
+    await page.getByText('Yoga', { exact: true }).click();
+    await page.waitForTimeout(300);
+    await page.click('.radio-label:has-text("Kostenlos")');
+
+    await clickWeiter(page);
+
+    const placeError = page.locator('.error-text', { hasText: 'Ort ist erforderlich' });
+    await expect(placeError).toHaveCount(0);
+
+    const summary = page.locator('.summary-card');
+    await expect(summary).toBeVisible();
+  });
+
+  test('event can be submitted through the wizard without an "Ort / Adresse" value', async ({
+    page,
+  }) => {
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin/new');
+    await waitForWizardToLoad(page);
+
+    await navigateToStep3(page);
+
+    const future = new Date();
+    future.setDate(future.getDate() + 30);
+    const futureIso = future.toISOString().split('T')[0];
+
+    await page.fill('#date', futureIso);
+    await page.fill('#time', '10:00');
+    await page.selectOption('#bezirk', 'Bregenz');
+    await page.click('.kategorie-select');
+    await page.waitForTimeout(300);
+    await page.getByText('Yoga', { exact: true }).click();
+    await page.waitForTimeout(300);
+    await page.click('.radio-label:has-text("Kostenlos")');
+
+    await clickWeiter(page);
+
+    await page.click(
+      'button:has-text("Event erstellen"), button:has-text("Einreichen zur Genehmigung")'
+    );
+    await page.waitForTimeout(500);
+    await page.click('button:has-text("Einreichen"), button:has-text("Bestätigen")');
+    await page.waitForTimeout(2000);
+
+    await page.waitForURL('/admin', { timeout: 10000 });
+
+    await page
+      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+      .catch(() => {});
+
+    const card = page.locator('.event-card', { hasText: EVENT_TITLE }).first();
+    await expect(card).toBeVisible({ timeout: 10000 });
+  });
+});
