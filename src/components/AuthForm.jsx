@@ -5,7 +5,7 @@ import { Mail, Lock, User } from 'lucide-react';
 import './AuthForm.css';
 
 export default function AuthForm() {
-  const [isLogin, setIsLogin] = useState(true);
+  const [mode, setMode] = useState('login');
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -14,14 +14,31 @@ export default function AuthForm() {
   const [acceptDatenschutz, setAcceptDatenschutz] = useState(false);
   const [acceptNutzungsbedingungen, setAcceptNutzungsbedingungen] = useState(false);
   const [error, setError] = useState('');
+  const [errorCode, setErrorCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   const { login, register, resetPassword } = useAuth();
   const navigate = useNavigate();
 
+  const isLogin = mode === 'login';
+
+  const switchMode = (nextMode) => {
+    if (nextMode === mode) return;
+    setMode(nextMode);
+    setIsForgotPassword(false);
+    setError('');
+    setErrorCode('');
+    setPassword('');
+    setConfirmPassword('');
+    setDisplayName('');
+    setAcceptDatenschutz(false);
+    setAcceptNutzungsbedingungen(false);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setErrorCode('');
 
     if (!isLogin && !acceptDatenschutz) {
       setError('Bitte akzeptiere die Datenschutzerklärung.');
@@ -62,33 +79,33 @@ export default function AuthForm() {
         'auth/invalid-credential': 'E-Mail oder Passwort sind falsch.',
       };
       setError(errorMessages[err.code] || 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.');
+      setErrorCode(err.code || '');
     } finally {
       setLoading(false);
     }
-  };
-
-  const toggleMode = () => {
-    setIsLogin(!isLogin);
-    setIsForgotPassword(false);
-    setError('');
-    setAcceptDatenschutz(false);
-    setAcceptNutzungsbedingungen(false);
   };
 
   const handleForgotPassword = async (e) => {
     e.preventDefault();
     setError('');
+    setErrorCode('');
     setLoading(true);
 
     try {
       await resetPassword(email);
       setResetSent(true);
-    } catch (err) {
+    } catch {
       setError('Ein Fehler ist aufgetreten. Bitte überprüfe deine E-Mail-Adresse.');
     } finally {
       setLoading(false);
     }
   };
+
+  const showCreateAccountCta =
+    isLogin &&
+    error &&
+    ['auth/invalid-credential', 'auth/user-not-found', 'auth/wrong-password'].includes(errorCode) &&
+    email.includes('@');
 
   return (
     <div className="auth-page">
@@ -125,6 +142,31 @@ export default function AuthForm() {
             </>
           )}
         </div>
+
+        {!isForgotPassword && (
+          <div className="auth-tabs" role="tablist" aria-label="Anmeldung oder Registrierung">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={isLogin}
+              className={`auth-tab ${isLogin ? 'is-active' : ''}`}
+              onClick={() => switchMode('login')}
+              data-testid="auth-tab-login"
+            >
+              Anmelden
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={!isLogin}
+              className={`auth-tab ${!isLogin ? 'is-active' : ''}`}
+              onClick={() => switchMode('register')}
+              data-testid="auth-tab-register"
+            >
+              Registrieren
+            </button>
+          </div>
+        )}
 
         {isForgotPassword ? (
           resetSent ? (
@@ -288,28 +330,49 @@ export default function AuthForm() {
               </button>
             </form>
 
-            <div className="auth-footer">
-              {isLogin && (
-                <p className="forgot-password">
-                  <button
-                    onClick={() => {
-                      setIsForgotPassword(true);
-                      setResetSent(false);
-                      setError('');
-                    }}
-                    className="link-btn"
-                  >
-                    Passwort vergessen?
-                  </button>
+            {showCreateAccountCta && (
+              <div className="auth-create-cta" data-testid="auth-create-cta">
+                <p>
+                  Noch kein Konto? Erstelle jetzt eines mit <strong>{email}</strong>.
                 </p>
-              )}
-              <p>
-                {isLogin ? 'Noch kein Konto?' : 'Bereits ein Konto?'}
-                <button onClick={toggleMode} className="link-btn">
-                  {isLogin ? 'Registrieren' : 'Anmelden'}
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-submit"
+                  onClick={() => switchMode('register')}
+                  data-testid="auth-create-cta-button"
+                >
+                  Konto erstellen
                 </button>
-              </p>
-            </div>
+              </div>
+            )}
+
+            {!showCreateAccountCta && (
+              <div className="auth-footer">
+                {isLogin && (
+                  <p className="forgot-password">
+                    <button
+                      onClick={() => {
+                        setIsForgotPassword(true);
+                        setResetSent(false);
+                        setError('');
+                        setErrorCode('');
+                      }}
+                      className="link-btn"
+                    >
+                      Passwort vergessen?
+                    </button>
+                  </p>
+                )}
+                {!isLogin && (
+                  <p>
+                    Bereits ein Konto?{' '}
+                    <button onClick={() => switchMode('login')} className="link-btn">
+                      Zur Anmeldung
+                    </button>
+                  </p>
+                )}
+              </div>
+            )}
           </>
         )}
       </div>
