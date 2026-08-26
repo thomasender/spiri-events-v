@@ -14,6 +14,7 @@ import {
   getFirestore,
   getDocs,
   arrayUnion,
+  getDoc,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { findUniqueSlug } from '../lib/slug';
@@ -140,7 +141,58 @@ export function useEvents(user) {
     return deleteDoc(ref);
   };
 
-  return { events, loading, addEvent, updateEvent, deleteEvent, submitForReview, revertToDraft };
+  const duplicateEvent = async (sourceId) => {
+    if (auth.currentUser) {
+      await auth.currentUser.getIdToken(true);
+    }
+    const sourceRef = doc(db, 'events', sourceId);
+    const sourceSnap = await getDoc(sourceRef);
+    if (!sourceSnap.exists()) {
+      throw new Error('Event zum Duplizieren nicht gefunden');
+    }
+    const source = sourceSnap.data();
+    const slug = await findUniqueSlug(source.title, source.place, source.date);
+    const duplicateData = {
+      title: source.title,
+      date: source.date,
+      endDate: source.endDate || '',
+      time: source.time || '',
+      endTime: source.endTime || '',
+      place: source.place || '',
+      contribution: source.contribution || 'free',
+      fee: source.fee ?? null,
+      description: source.description || '',
+      link: source.link || '',
+      recurrence: source.recurrence || 'none',
+      recurrenceEndDate: source.recurrenceEndDate || '',
+      customDates: Array.isArray(source.customDates) ? [...source.customDates] : [],
+      exceptionDates: [],
+      category: source.category || 'Sonstiges',
+      bezirk: source.bezirk || '',
+      organizer: source.organizer
+        ? { ...source.organizer }
+        : { firstName: '', lastName: '', email: '', photoURL: null },
+      kontakt: source.kontakt || '',
+      imageUrl: source.imageUrl || null,
+      status: 'draft',
+      slug,
+      createdBy: user.uid,
+      createdAt: serverTimestamp(),
+    };
+    const newRef = await addDoc(collection(db, 'events'), duplicateData);
+    return newRef.id;
+  };
+
+  return {
+    events,
+    loading,
+    addEvent,
+    updateEvent,
+    deleteEvent,
+    duplicateEvent,
+    submitForReview,
+    revertToDraft,
+  };
 }
 
 export function usePendingEvents() {

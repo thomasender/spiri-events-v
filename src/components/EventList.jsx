@@ -2,65 +2,15 @@ import { Link } from 'react-router-dom';
 import { useEvents, usePendingEvents } from '../hooks/useEvents';
 import { useEventsWithMessages } from '../hooks/useEventsWithMessages';
 import { useAuth } from '../hooks/useAuth';
-import {
-  PlusCircle,
-  Edit2,
-  Trash2,
-  Calendar,
-  MapPin,
-  Eye,
-  CheckCircle,
-  Mail,
-  Repeat,
-  Info,
-  Send,
-  FileText,
-} from 'lucide-react';
+import { PlusCircle, Calendar } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
 import RecurringDeleteDialog from './RecurringDeleteDialog';
 import OccurrencePickerDialog from './OccurrencePickerDialog';
-import StatusBadge from './StatusBadge';
-import RichTextView from './RichTextView';
+import EventAdminCard from './EventAdminCard';
 import { useState, useMemo } from 'react';
 import { arrayUnion } from 'firebase/firestore';
-import {
-  getNextUpcomingOccurrence,
-  getOccurrenceCount,
-  getRecurrenceLabel,
-} from '../utils/eventOccurrences';
-import { isMultiDayEvent } from '../utils/eventFormat';
+import { getNextUpcomingOccurrence } from '../utils/eventOccurrences';
 import './EventList.css';
-
-function formatDate(dateStr) {
-  const [year, month, day] = dateStr.split('-');
-  const date = new Date(year, month - 1, day);
-  return date.toLocaleDateString('de-DE', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
-}
-
-function formatEndDate(startDateStr, endDateStr) {
-  if (!endDateStr) return null;
-  const [syear, smonth, sday] = startDateStr.split('-');
-  const [eyear, emonth, eday] = endDateStr.split('-');
-  const start = new Date(syear, smonth - 1, sday);
-  const end = new Date(eyear, emonth - 1, eday);
-  if (
-    start.getFullYear() === end.getFullYear() &&
-    start.getMonth() === end.getMonth() &&
-    start.getDate() === end.getDate()
-  ) {
-    return null;
-  }
-  const endDate = new Date(eyear, emonth - 1, eday);
-  return endDate.toLocaleDateString('de-DE', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
-}
 
 const STATUS_FILTERS = [
   { value: 'all', label: 'Alle' },
@@ -247,206 +197,34 @@ export default function EventList() {
     return <div className="loading-spinner"></div>;
   }
 
-  const renderEventCard = (event, showStatus = false, showApprove = false) => {
+  const renderCard = (event, showStatus = false, showApprove = false) => {
     const isRecurring = event.recurrence && event.recurrence !== 'none';
-    const isMultiDay = isMultiDayEvent(event);
-    const recurrenceLabel = getRecurrenceLabel(event);
-    const nextOccurrence = isRecurring ? getNextUpcomingOccurrence(event) : null;
-    const occurrenceCount = isRecurring ? getOccurrenceCount(event) : 0;
-    const unreadCount = unreadCountByEvent[event.id] || 0;
-    const hasUnread = unreadCount > 0;
-
-    const nextOccurrenceDisplay = nextOccurrence
-      ? (() => {
-          const [year, month, day] = nextOccurrence.split('-');
-          const d = new Date(year, month - 1, day);
-          return d.toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'long' });
-        })()
-      : null;
-
+    const onDeleteClick = (evt) => {
+      if (isRecurring) {
+        setPendingRecurringDelete({
+          id: evt.id,
+          event: evt,
+          initialOccurrenceDate: evt.date,
+        });
+      } else {
+        setDeleteId(evt.id);
+      }
+    };
     return (
-      <div key={event.id} className={`event-card${hasUnread ? ' event-card--has-unread' : ''}`}>
-        <Link
-          to={
-            isRecurring && nextOccurrence
-              ? `/event/${event.slug || event.id}?occurrenceDate=${nextOccurrence}`
-              : `/event/${event.slug || event.id}`
-          }
-          state={{ from: '/admin' }}
-          className="event-card-content"
-        >
-          <div className="event-card-header">
-            <h3>
-              {event.title}
-              {hasUnread && (
-                <span
-                  className="event-card-unread-indicator"
-                  data-testid="event-card-unread-indicator"
-                  role="img"
-                  aria-label={`${unreadCount} ungelesene Nachricht${unreadCount > 1 ? 'en' : ''}`}
-                  title={`${unreadCount} ungelesene Nachricht${unreadCount > 1 ? 'en' : ''}`}
-                />
-              )}
-            </h3>
-            <div className="event-card-badges">
-              {showStatus && <StatusBadge status={event.status} />}
-              {isRecurring && (
-                <span className="badge badge--recurring" title="Wiederholende Veranstaltung">
-                  <Repeat size={12} />
-                  <span>Serie</span>
-                </span>
-              )}
-              {(event.contribution === 'free' ||
-                event.contribution === 'donation' ||
-                event.fee) && (
-                <span
-                  className={`badge ${
-                    event.contribution === 'free'
-                      ? 'badge--free'
-                      : event.contribution === 'donation'
-                        ? 'badge--donation'
-                        : 'badge--fee'
-                  }`}
-                >
-                  {event.contribution === 'free'
-                    ? 'Kostenlos'
-                    : event.contribution === 'donation'
-                      ? 'Freie Spende'
-                      : `${event.fee} €`}
-                </span>
-              )}
-            </div>
-          </div>
-
-          {event.category && (
-            <div className="event-card-categories">
-              <span className="category-chip">{event.category}</span>
-            </div>
-          )}
-
-          <div className="event-card-meta">
-            <div className="meta-item">
-              <Calendar size={14} />
-              <span>
-                {isRecurring
-                  ? nextOccurrenceDisplay || formatDate(event.date)
-                  : formatDate(event.date)}
-                {formatEndDate(event.date, event.endDate) &&
-                  ` — ${formatEndDate(event.date, event.endDate)}`}
-                {!isMultiDay && event.time && ` • ${event.time}`}
-              </span>
-            </div>
-            {event.bezirk && (
-              <div className="meta-item">
-                <MapPin size={14} />
-                <span>{event.bezirk}</span>
-              </div>
-            )}
-            <div className="meta-item">
-              <MapPin size={14} />
-              <span>{event.place}</span>
-            </div>
-            {event.organizer && event.organizer.email && (
-              <div className="meta-item" data-testid="event-owner-email">
-                <Mail size={14} />
-                <span>{event.organizer.email}</span>
-              </div>
-            )}
-          </div>
-
-          {isRecurring && recurrenceLabel && (
-            <div className="event-card-recurrence">
-              <span className="recurrence-pattern">
-                <Repeat size={12} />
-                {recurrenceLabel}
-                {occurrenceCount > 0 && ` · ${occurrenceCount} Termine`}
-              </span>
-              {nextOccurrence && nextOccurrence !== event.date && (
-                <span className="next-occurrence">· Nächster: {nextOccurrenceDisplay}</span>
-              )}
-            </div>
-          )}
-
-          {event.description && (
-            <RichTextView
-              html={event.description}
-              truncate={120}
-              className="event-card-description"
-            />
-          )}
-
-          {event.status === 'pending' && !isAdmin && (
-            <p className="event-card-pending-note">Wartet auf Genehmigung durch einen Admin</p>
-          )}
-          {event.status === 'draft' && (
-            <p className="event-card-pending-note">Entwurf — noch nicht eingereicht</p>
-          )}
-        </Link>
-
-        <div className="event-card-actions">
-          <Link
-            to={
-              isRecurring && nextOccurrence
-                ? `/event/${event.slug || event.id}?occurrenceDate=${nextOccurrence}`
-                : `/event/${event.slug || event.id}`
-            }
-            state={{ from: '/admin' }}
-            className="btn btn-secondary btn-sm"
-          >
-            <Eye size={16} />
-            <span>Ansehen</span>
-          </Link>
-          {showApprove && (
-            <button
-              onClick={() => handleApprove(event.id)}
-              className="btn btn-success btn-sm"
-              disabled={approving === event.id}
-            >
-              <CheckCircle size={16} />
-              <span>{approving === event.id ? 'Genehmige...' : 'Genehmigen'}</span>
-            </button>
-          )}
-          {event.status === 'draft' && (
-            <button
-              onClick={() => setStatusActionTarget({ id: event.id, action: 'submit' })}
-              className="btn btn-primary btn-sm"
-              data-testid="submit-draft-button"
-            >
-              <Send size={16} />
-              <span>Einreichen</span>
-            </button>
-          )}
-          {event.status === 'pending' && (
-            <button
-              onClick={() => setStatusActionTarget({ id: event.id, action: 'revert' })}
-              className="btn btn-secondary btn-sm"
-              data-testid="revert-to-draft-button"
-            >
-              <FileText size={16} />
-              <span>Zu Entwurf</span>
-            </button>
-          )}
-          <Link
-            to={`/admin/edit/${event.id}`}
-            className="btn btn-secondary btn-sm"
-            title={
-              isRecurring
-                ? 'Du bearbeitest die Seriendefinition. Wiederholung, Uhrzeit, Ort etc. gelten für alle Termine.'
-                : undefined
-            }
-          >
-            <Edit2 size={16} />
-            <span>{isRecurring ? 'Serie bearbeiten' : 'Bearbeiten'}</span>
-          </Link>
-          <button
-            onClick={() => (isRecurring ? openRecurringDelete(event) : setDeleteId(event.id))}
-            className="btn btn-subtle-danger btn-sm"
-            aria-label={isRecurring ? 'Serie löschen' : 'Event löschen'}
-          >
-            <Trash2 size={16} />
-          </button>
-        </div>
-      </div>
+      <EventAdminCard
+        event={event}
+        showStatus={showStatus}
+        showApprove={showApprove}
+        showSubmit={event.status === 'draft'}
+        showRevert={event.status === 'pending'}
+        unreadCount={unreadCountByEvent[event.id] || 0}
+        isAdmin={isAdmin}
+        approving={approving}
+        onApprove={handleApprove}
+        onSubmit={(evt) => setStatusActionTarget({ id: evt.id, action: 'submit' })}
+        onRevert={(evt) => setStatusActionTarget({ id: evt.id, action: 'revert' })}
+        onDeleteClick={onDeleteClick}
+      />
     );
   };
 
@@ -511,7 +289,9 @@ export default function EventList() {
           <section className="event-list-section">
             <h2>Ausstehende Genehmigungen</h2>
             <div className="event-list-grid">
-              {allPending.map((event) => renderEventCard(event, true, true))}
+              {allPending.map((event) => (
+                <div key={event.id}>{renderCard(event, true, true)}</div>
+              ))}
             </div>
           </section>
         )}
@@ -543,7 +323,9 @@ export default function EventList() {
             )
           ) : (
             <div className="event-list-grid">
-              {sortedEvents.map((event) => renderEventCard(event, true))}
+              {sortedEvents.map((event) => (
+                <div key={event.id}>{renderCard(event, true)}</div>
+              ))}
             </div>
           )}
         </section>
@@ -634,7 +416,9 @@ export default function EventList() {
           )
         ) : (
           <div className="event-list-grid">
-            {sortedEvents.map((event) => renderEventCard(event, true))}
+            {sortedEvents.map((event) => (
+              <div key={event.id}>{renderCard(event, true)}</div>
+            ))}
           </div>
         )}
       </section>

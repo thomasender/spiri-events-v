@@ -22,10 +22,13 @@ const mockUseEventsWithMessages = vi.hoisted(() => ({
 }));
 
 const mockUseEvents = vi.hoisted(() => ({
-  events: [] as Array<{ id: string; title: string }>,
+  events: [] as Array<{ id: string; title: string; status?: string }>,
   loading: false,
   deleteEvent: vi.fn(),
   updateEvent: vi.fn(),
+  duplicateEvent: vi.fn(),
+  submitForReview: vi.fn(),
+  revertToDraft: vi.fn(),
 }));
 
 const mockUsePendingEvents = vi.hoisted(() => ({
@@ -143,5 +146,63 @@ describe('AdminPage tabs (zejdjTnm)', () => {
     mockUseUnread.count = 0;
     renderAdmin();
     expect(screen.queryByTestId('admin-tab-messages-badge')).not.toBeInTheDocument();
+  });
+});
+
+describe('AdminPage Entwürfe tab (Bslx5TQW)', () => {
+  it('renders the Entwürfe tab', () => {
+    renderAdmin();
+    expect(screen.getByTestId('admin-tab-drafts')).toBeInTheDocument();
+    expect(screen.getByTestId('admin-tab-drafts')).toHaveTextContent('Entwürfe');
+  });
+
+  it('hides the Entwürfe tab content by default', () => {
+    renderAdmin();
+    const draftsPanel = document.getElementById('admin-tab-drafts');
+    expect(draftsPanel).toHaveAttribute('hidden');
+    expect(screen.getByTestId('admin-tab-drafts')).toHaveAttribute('aria-selected', 'false');
+  });
+
+  it('activates the Entwürfe tab when ?tab=drafts is in the URL', () => {
+    renderAdmin(['/admin?tab=drafts']);
+    const draftsPanel = document.getElementById('admin-tab-drafts');
+    const eventsPanel = document.getElementById('admin-tab-events');
+    expect(draftsPanel).not.toHaveAttribute('hidden');
+    expect(eventsPanel).toHaveAttribute('hidden');
+    expect(screen.getByTestId('admin-tab-drafts')).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByTestId('admin-tab-events')).toHaveAttribute('aria-selected', 'false');
+  });
+
+  it('shows the empty drafts state when there are no drafts', () => {
+    renderAdmin(['/admin?tab=drafts']);
+    expect(screen.getByTestId('drafts-empty-state')).toBeInTheDocument();
+  });
+
+  it('shows a badge with the draft count when drafts exist', () => {
+    mockUseEvents.events = [
+      { id: 'd1', title: 'Draft 1', status: 'draft' },
+      { id: 'd2', title: 'Draft 2', status: 'draft' },
+      { id: 'a1', title: 'Approved', status: 'approved' },
+    ];
+    renderAdmin();
+    const badge = screen.getByTestId('admin-tab-drafts-badge');
+    expect(badge).toBeInTheDocument();
+    expect(badge).toHaveTextContent('2');
+  });
+
+  it('caps the drafts badge at 9+', () => {
+    mockUseEvents.events = Array.from({ length: 12 }, (_, i) => ({
+      id: `d${i}`,
+      title: `Draft ${i}`,
+      status: 'draft',
+    }));
+    renderAdmin();
+    expect(screen.getByTestId('admin-tab-drafts-badge')).toHaveTextContent('9+');
+  });
+
+  it('does NOT show the drafts badge when there are no drafts', () => {
+    mockUseEvents.events = [{ id: 'a1', title: 'Approved', status: 'approved' }];
+    renderAdmin();
+    expect(screen.queryByTestId('admin-tab-drafts-badge')).not.toBeInTheDocument();
   });
 });
