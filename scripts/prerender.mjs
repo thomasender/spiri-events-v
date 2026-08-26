@@ -57,10 +57,11 @@ function formatDate(dateStr) {
 
 const CATEGORY_FALLBACKS = {
   Yoga: '/event-fallbacks/yoga.jpg',
+  Breathwork: '/event-fallbacks/breathwork.jpg',
   Meditation: '/event-fallbacks/meditation.jpg',
   Tanz: '/event-fallbacks/tanz.jpg',
   Singen: '/event-fallbacks/singen.png',
-  Atemarbeit: '/event-fallbacks/atemarbeit.jpg',
+  Soundhealing: '/event-fallbacks/soundhealing.jpg',
   Sonstiges: '/event-fallbacks/sonstiges.svg'
 }
 const DEFAULT_EVENT_FALLBACK = '/event-fallbacks/sonstiges.svg'

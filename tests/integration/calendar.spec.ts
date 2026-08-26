@@ -139,7 +139,15 @@ test.describe('Calendar Integration', () => {
     });
 
     test('each category chip carries its own --category-color CSS variable', async ({ page }) => {
-      const expected = ['Yoga', 'Meditation', 'Tanz', 'Singen', 'Atemarbeit', 'Sonstiges'];
+      const expected = [
+        'Yoga',
+        'Breathwork',
+        'Meditation',
+        'Tanz',
+        'Singen',
+        'Soundhealing',
+        'Sonstiges',
+      ];
       const colors = await Promise.all(
         expected.map((name) =>
           page
@@ -235,7 +243,15 @@ test.describe('Calendar Integration', () => {
           'calendarFilterState',
           JSON.stringify({
             currentMonth: '2026-07-31T22:00:00.000Z',
-            selectedCategories: ['Yoga', 'Meditation', 'Tanz', 'Singen', 'Atemarbeit', 'Sonstiges'],
+            selectedCategories: [
+              'Yoga',
+              'Meditation',
+              'Tanz',
+              'Singen',
+              'Breathwork',
+              'Soundhealing',
+              'Sonstiges',
+            ],
             selectedBezirke: [],
             viewMode: 'list',
           })

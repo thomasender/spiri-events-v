@@ -106,7 +106,7 @@ const TEST_EVENTS = [
     endTime: '12:00',
     place: 'Gesundheitszentrum Bludenz',
     description: 'Bewusstes Atmen für mehr Energie.',
-    category: 'Atemarbeit',
+    category: 'Breathwork',
     bezirk: 'Bludenz',
     status: 'approved',
     createdBy: 'dev-admin-uid',
