@@ -202,11 +202,23 @@ export default function Calendar({
                             <MapPin size={12} />
                             {event.place?.split(',')[0]}
                           </span>
-                          {(event.contribution === 'free' || event.fee) && (
+                          {(event.contribution === 'free' ||
+                            event.contribution === 'donation' ||
+                            event.fee) && (
                             <span
-                              className={`agenda-event-badge ${event.contribution === 'free' ? 'free' : 'fee'}`}
+                              className={`agenda-event-badge ${
+                                event.contribution === 'free'
+                                  ? 'free'
+                                  : event.contribution === 'donation'
+                                    ? 'donation'
+                                    : 'fee'
+                              }`}
                             >
-                              {event.contribution === 'free' ? 'Frei' : `${event.fee}€`}
+                              {event.contribution === 'free'
+                                ? 'Frei'
+                                : event.contribution === 'donation'
+                                  ? 'Spende'
+                                  : `${event.fee}€`}
                             </span>
                           )}
                         </div>
@@ -289,7 +301,13 @@ export default function Calendar({
                 {eventsByDay[expandedDay].map((event) => (
                   <button
                     key={`${event.id}-${event.date}`}
-                    className={`day-popover-event ${event.contribution === 'free' ? 'free' : 'fee'}`}
+                    className={`day-popover-event ${
+                      event.contribution === 'free'
+                        ? 'free'
+                        : event.contribution === 'donation'
+                          ? 'donation'
+                          : 'fee'
+                    }`}
                     onClick={() => {
                       onEventClick(event);
                       setExpandedDay(null);
@@ -303,11 +321,23 @@ export default function Calendar({
                       <span className="day-popover-event-time">{event.time || '—'}</span>
                       <span className="day-popover-event-name">{event.title}</span>
                     </span>
-                    {(event.contribution === 'free' || event.fee) && (
+                    {(event.contribution === 'free' ||
+                      event.contribution === 'donation' ||
+                      event.fee) && (
                       <span
-                        className={`day-popover-event-badge ${event.contribution === 'free' ? 'free' : 'fee'}`}
+                        className={`day-popover-event-badge ${
+                          event.contribution === 'free'
+                            ? 'free'
+                            : event.contribution === 'donation'
+                              ? 'donation'
+                              : 'fee'
+                        }`}
                       >
-                        {event.contribution === 'free' ? 'Frei' : `${event.fee}€`}
+                        {event.contribution === 'free'
+                          ? 'Frei'
+                          : event.contribution === 'donation'
+                            ? 'Spende'
+                            : `${event.fee}€`}
                       </span>
                     )}
                   </button>

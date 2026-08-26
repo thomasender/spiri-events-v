@@ -733,6 +733,18 @@ export default function EventForm({ event }) {
                 />
                 <span>Gebühr</span>
               </label>
+              <label
+                className={`radio-label ${formData.contribution === 'donation' ? 'active' : ''}`}
+              >
+                <input
+                  type="radio"
+                  name="contribution"
+                  value="donation"
+                  checked={formData.contribution === 'donation'}
+                  onChange={handleChange}
+                />
+                <span>Freie Spende</span>
+              </label>
             </div>
           </div>
 

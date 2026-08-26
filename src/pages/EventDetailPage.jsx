@@ -110,14 +110,22 @@ function generateEventJsonLd(event) {
           priceCurrency: 'EUR',
           availability: 'https://schema.org/InStock',
         }
-      : event.fee
+      : event.contribution === 'donation'
         ? {
             '@type': 'Offer',
-            price: event.fee.toString(),
+            price: '0',
             priceCurrency: 'EUR',
             availability: 'https://schema.org/InStock',
+            description: 'Freie Spende',
           }
-        : null;
+        : event.fee
+          ? {
+              '@type': 'Offer',
+              price: event.fee.toString(),
+              priceCurrency: 'EUR',
+              availability: 'https://schema.org/InStock',
+            }
+          : null;
 
   return {
     '@context': 'https://schema.org',
@@ -297,6 +305,7 @@ export default function EventDetailPage() {
   }
 
   const isFree = event.contribution === 'free';
+  const isDonation = event.contribution === 'donation';
   const jsonLd = generateEventJsonLd(event);
   const isOwner = user && event.createdBy === user.uid;
   const showEditButton = canEditEvent(user, event, role);
@@ -473,9 +482,19 @@ export default function EventDetailPage() {
               <span className="category-chip">{event.category}</span>
             </div>
           )}
-          <div className={`event-badge ${isFree ? 'badge--free' : 'badge--fee'}`}>
+          <div
+            className={`event-badge ${isFree ? 'badge--free' : isDonation ? 'badge--donation' : 'badge--fee'}`}
+          >
             <Ticket size={14} />
-            <span>{isFree ? 'Kostenlos' : event.fee ? `${event.fee} €` : 'Gebühr'}</span>
+            <span>
+              {isFree
+                ? 'Kostenlos'
+                : isDonation
+                  ? 'Freie Spende'
+                  : event.fee
+                    ? `${event.fee} €`
+                    : 'Gebühr'}
+            </span>
           </div>
         </div>
       </header>

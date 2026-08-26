@@ -25,7 +25,7 @@ E-Mail: thomas@blissofkundalini.yoga`,
 **Bei der Erstellung von Events:**
 - Titel, Datum, Uhrzeit, Ort
 - Beschreibung
-- Beitrag (kostenlos oder gegen Gebühr)
+- Beitrag (kostenlos, gegen Gebühr oder freie Spende)
 - Link (optional)
 - Bild (optional, max. 15MB; wird automatisch für die Anzeige komprimiert)
 

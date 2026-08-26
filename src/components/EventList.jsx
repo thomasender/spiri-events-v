@@ -286,11 +286,23 @@ export default function EventList() {
                   <span>Serie</span>
                 </span>
               )}
-              {(event.contribution === 'free' || event.fee) && (
+              {(event.contribution === 'free' ||
+                event.contribution === 'donation' ||
+                event.fee) && (
                 <span
-                  className={`badge ${event.contribution === 'free' ? 'badge--free' : 'badge--fee'}`}
+                  className={`badge ${
+                    event.contribution === 'free'
+                      ? 'badge--free'
+                      : event.contribution === 'donation'
+                        ? 'badge--donation'
+                        : 'badge--fee'
+                  }`}
                 >
-                  {event.contribution === 'free' ? 'Kostenlos' : `${event.fee} €`}
+                  {event.contribution === 'free'
+                    ? 'Kostenlos'
+                    : event.contribution === 'donation'
+                      ? 'Freie Spende'
+                      : `${event.fee} €`}
                 </span>
               )}
             </div>

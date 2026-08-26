@@ -68,6 +68,11 @@
   color: var(--fee-text);
 }
 
+.badge--donation {
+  background-color: rgba(140, 120, 180, 0.15);
+  color: var(--donation-text);
+}
+
 .modal-meta-row {
   display: flex;
   align-items: center;

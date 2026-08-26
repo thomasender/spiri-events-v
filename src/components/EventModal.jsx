@@ -84,6 +84,7 @@ export default function EventModal({ event, onClose }) {
   if (!event) return null;
 
   const isFree = event.contribution === 'free';
+  const isDonation = event.contribution === 'donation';
 
   return (
     <div className="modal-overlay fade-enter" onClick={onClose}>
@@ -110,9 +111,19 @@ export default function EventModal({ event, onClose }) {
                 <span className="category-chip">{event.category}</span>
               </div>
             )}
-            <div className={`modal-badge ${isFree ? 'badge--free' : 'badge--fee'}`}>
+            <div
+              className={`modal-badge ${isFree ? 'badge--free' : isDonation ? 'badge--donation' : 'badge--fee'}`}
+            >
               <Ticket size={14} />
-              <span>{isFree ? 'Kostenlos' : event.fee ? `${event.fee} €` : 'Gebühr'}</span>
+              <span>
+                {isFree
+                  ? 'Kostenlos'
+                  : isDonation
+                    ? 'Freie Spende'
+                    : event.fee
+                      ? `${event.fee} €`
+                      : 'Gebühr'}
+              </span>
             </div>
           </div>
         </div>
