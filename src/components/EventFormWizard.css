@@ -11,6 +11,7 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   padding: 40px;
+  scroll-margin-top: 80px;
 }
 
 .event-form-header {

@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Select from 'react-select';
 import { useEvents, KATEGORIEN, BEZIRKE } from '../hooks/useEvents';
@@ -131,7 +131,19 @@ export default function EventFormWizard() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const fileInputRef = useRef(null);
+  const wizardContainerRef = useRef(null);
+  const isInitialStepMount = useRef(true);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isInitialStepMount.current) {
+      isInitialStepMount.current = false;
+      return;
+    }
+    if (wizardContainerRef.current) {
+      wizardContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [currentStep]);
 
   const isAdmin = role === 'Admin';
 
@@ -914,7 +926,7 @@ export default function EventFormWizard() {
 
   return (
     <div className="event-form-page">
-      <div className="event-form-container">
+      <div className="event-form-container" ref={wizardContainerRef}>
         <div className="event-form-header">
           <button onClick={() => navigate('/admin')} className="btn btn-secondary back-btn">
             <ArrowLeft size={18} />
