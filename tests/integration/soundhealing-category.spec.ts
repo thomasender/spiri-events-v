@@ -75,6 +75,6 @@ test.describe('Soundhealing category', () => {
       .first();
     await expect(card).toBeVisible();
     const src = await card.locator('img').first().getAttribute('src');
-    expect(src).toBe('/event-fallbacks/soundhealing.jpg');
+    expect(src).toBe('/event-fallbacks/soundhealing.jpeg');
   });
 });

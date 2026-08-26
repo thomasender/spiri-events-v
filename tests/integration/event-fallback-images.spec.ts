@@ -98,7 +98,7 @@ test.describe('Event category fallback images', () => {
       '/event-fallbacks/meditation.jpg',
       '/event-fallbacks/tanz.jpg',
       '/event-fallbacks/singen.png',
-      '/event-fallbacks/soundhealing.jpg',
+      '/event-fallbacks/soundhealing.jpeg',
       '/event-fallbacks/sonstiges.svg',
     ]) {
       const response = await page.request.get(path);
