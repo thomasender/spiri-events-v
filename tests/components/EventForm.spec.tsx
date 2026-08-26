@@ -12,7 +12,7 @@ vi.mock('../../src/hooks/useEvents', () => ({
     addEvent: vi.fn(),
     updateEvent: vi.fn(),
   }),
-  KATEGORIEN: ['Yoga', 'Meditation', 'Tanz', 'Singen', 'Atemarbeit', 'Sonstiges'],
+  KATEGORIEN: ['Yoga', 'Breathwork', 'Meditation', 'Tanz', 'Singen', 'Soundhealing', 'Sonstiges'],
   BEZIRKE: ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe'],
 }));
 

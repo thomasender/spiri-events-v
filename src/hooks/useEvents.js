@@ -21,7 +21,15 @@ import { useAuth } from './useAuth';
 import { auth } from '../lib/firebase';
 import { getApp } from 'firebase/app';
 
-export const KATEGORIEN = ['Yoga', 'Meditation', 'Tanz', 'Singen', 'Atemarbeit', 'Sonstiges'];
+export const KATEGORIEN = [
+  'Yoga',
+  'Breathwork',
+  'Meditation',
+  'Tanz',
+  'Singen',
+  'Soundhealing',
+  'Sonstiges',
+];
 
 export const BEZIRKE = ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe'];
 

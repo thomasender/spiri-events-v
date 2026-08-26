@@ -9,7 +9,15 @@ import {
 describe('eventFallbacks', () => {
   describe('CATEGORY_FALLBACKS', () => {
     it('has a fallback for every category in KATEGORIEN', () => {
-      const kategorien = ['Yoga', 'Meditation', 'Tanz', 'Singen', 'Atemarbeit', 'Sonstiges'];
+      const kategorien = [
+        'Yoga',
+        'Breathwork',
+        'Meditation',
+        'Tanz',
+        'Singen',
+        'Soundhealing',
+        'Sonstiges',
+      ];
       for (const cat of kategorien) {
         expect(CATEGORY_FALLBACKS[cat]).toBeTruthy();
         expect(CATEGORY_FALLBACKS[cat]).toMatch(/^\/event-fallbacks\//);
@@ -20,10 +28,11 @@ describe('eventFallbacks', () => {
   describe('getCategoryFallbackImage', () => {
     it('returns the mapped image for a known category', () => {
       expect(getCategoryFallbackImage('Yoga')).toBe('/event-fallbacks/yoga.jpg');
+      expect(getCategoryFallbackImage('Breathwork')).toBe('/event-fallbacks/breathwork.jpg');
       expect(getCategoryFallbackImage('Meditation')).toBe('/event-fallbacks/meditation.jpg');
       expect(getCategoryFallbackImage('Tanz')).toBe('/event-fallbacks/tanz.jpg');
       expect(getCategoryFallbackImage('Singen')).toBe('/event-fallbacks/singen.png');
-      expect(getCategoryFallbackImage('Atemarbeit')).toBe('/event-fallbacks/atemarbeit.jpg');
+      expect(getCategoryFallbackImage('Soundhealing')).toBe('/event-fallbacks/soundhealing.jpg');
       expect(getCategoryFallbackImage('Sonstiges')).toBe('/event-fallbacks/sonstiges.svg');
     });
 

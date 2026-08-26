@@ -165,9 +165,9 @@ export default function CalendarPage() {
           <p className="hero-subtitle">
             Dein Kalender für Yoga, Breathwork, Meditation,
             <br />
-            Tanz und viele weitere
+            Tanz, Singen, Soundhealing und viele
             <br />
-            Veranstaltungen in Vorarlberg.
+            weitere Veranstaltungen in Vorarlberg.
           </p>
           <ul className="hero-features">
             {HERO_FEATURES.map(({ icon: Icon, title, description }) => (

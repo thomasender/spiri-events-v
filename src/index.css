@@ -28,6 +28,7 @@
   --donation-text: #6b568b;
   --pending-bg: rgba(198, 160, 92, 0.18); /* mustard for pending */
   --pending-text: #8a6d2f;
+  --sound-healing: #6b568b; /* soft violet — Soundhealing category */
 
   --shadow-sm: 0 2px 8px rgba(22, 24, 25, 0.06);
   --shadow-md: 0 4px 16px rgba(22, 24, 25, 0.09);
