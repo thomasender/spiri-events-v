@@ -1,26 +1,29 @@
 import { useMemo, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { CalendarDays, Mail, MessageSquare, PlusCircle } from 'lucide-react';
+import { CalendarDays, Mail, MessageSquare, PlusCircle, FileText } from 'lucide-react';
 import EventList from '../components/EventList';
+import DraftsTab from '../components/DraftsTab';
 import MessagesTab from '../components/MessagesTab';
 import FeedbackTab from '../components/FeedbackTab';
 import EmailVerificationBanner from '../components/EmailVerificationBanner';
 import EmailVerificationModal from '../components/EmailVerificationModal';
 import { useAuth } from '../hooks/useAuth';
+import { useEvents } from '../hooks/useEvents';
 import { useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
 import { useUnreadFeedbackCount } from '../hooks/useFeedbackList';
 import './AdminPage.css';
 
-const VALID_TABS = new Set(['events', 'messages', 'feedback']);
+const VALID_TABS = new Set(['events', 'drafts', 'messages', 'feedback']);
 
 export default function AdminPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { role, canCreateEvents } = useAuth();
+  const { user, role, canCreateEvents } = useAuth();
   const isAdmin = role === 'Admin';
   const { count: unreadCount } = useUnreadMessageCount();
   const { count: unreadFeedbackCount } = useUnreadFeedbackCount(isAdmin);
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
+  const { events } = useEvents(user);
 
   const rawTab = searchParams.get('tab');
   const activeTab = useMemo(() => {
@@ -28,6 +31,8 @@ export default function AdminPage() {
     if (rawTab && VALID_TABS.has(rawTab)) return rawTab;
     return 'events';
   }, [rawTab, isAdmin]);
+
+  const draftCount = useMemo(() => events.filter((e) => e.status === 'draft').length, [events]);
 
   const setTab = (tab) => {
     const next = new URLSearchParams(searchParams);
@@ -87,6 +92,28 @@ export default function AdminPage() {
         <button
           type="button"
           role="tab"
+          aria-selected={activeTab === 'drafts'}
+          aria-controls="admin-tab-drafts"
+          id="admin-tab-drafts-btn"
+          className={`admin-page-tab${activeTab === 'drafts' ? ' admin-page-tab--active' : ''}`}
+          onClick={() => setTab('drafts')}
+          data-testid="admin-tab-drafts"
+        >
+          <FileText size={16} aria-hidden="true" />
+          <span>Entwürfe</span>
+          {draftCount > 0 && (
+            <span
+              className="admin-page-tab-badge"
+              data-testid="admin-tab-drafts-badge"
+              aria-label={`${draftCount} Entwurf${draftCount > 1 ? 'e' : ''}`}
+            >
+              {draftCount > 9 ? '9+' : draftCount}
+            </span>
+          )}
+        </button>
+        <button
+          type="button"
+          role="tab"
           aria-selected={activeTab === 'messages'}
           aria-controls="admin-tab-messages"
           id="admin-tab-messages-btn"
@@ -139,6 +166,14 @@ export default function AdminPage() {
         hidden={activeTab !== 'events'}
       >
         {activeTab === 'events' && <EventList />}
+      </div>
+      <div
+        role="tabpanel"
+        id="admin-tab-drafts"
+        aria-labelledby="admin-tab-drafts-btn"
+        hidden={activeTab !== 'drafts'}
+      >
+        {activeTab === 'drafts' && <DraftsTab />}
       </div>
       <div
         role="tabpanel"
