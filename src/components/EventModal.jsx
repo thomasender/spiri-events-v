@@ -39,6 +39,7 @@ function formatEndDate(startDateStr, endDateStr) {
 
 function formatRecurrence(recurrence, recurrenceEndDate, eventDate) {
   if (!recurrence || recurrence === 'none') return null;
+  if (recurrence === 'custom') return 'An einzelnen Terminen';
   let weekday = '';
   if (eventDate && (recurrence === 'weekly' || recurrence === 'biweekly')) {
     const [year, month, day] = eventDate.split('-');

@@ -157,8 +157,9 @@ interface Event {
   description: string;
   link?: string;       // Ticket/info URL
   imageUrl?: string;    // Optional Firebase Storage URL
-  recurrence: 'none' | 'weekly' | 'biweekly' | 'monthly';  // Recurrence pattern
-  recurrenceEndDate?: string;  // Optional end date for recurrence
+  recurrence: 'none' | 'weekly' | 'biweekly' | 'monthly' | 'custom';  // Recurrence pattern
+  recurrenceEndDate?: string;  // Optional end date for recurrence (ignored when recurrence === 'custom')
+  customDates?: string[];  // Optional list of ISO date strings, used when recurrence === 'custom'
   category: string;    // Single category (one of KATEGORIEN, defaults to 'Sonstiges')
   createdBy: string;   // Firebase UID
   createdAt: Timestamp;
@@ -173,8 +174,9 @@ Events can be set to recur:
 - **Wöchentlich (weekly)**: Same day every week
 - **Zweiwöchentlich (biweekly)**: Every two weeks
 - **Monatlich (monthly)**: Same day every month
+- **Benutzerdefinierte Daten (custom)**: An explicit list of dates in `customDates`. Use this for irregular patterns (e.g. every third Wednesday, or alternating week schedules).
 
-Recurring events appear on all matching future dates up to 1 year ahead (or `recurrenceEndDate` if specified). The event modal shows the recurrence pattern (e.g., "Jeden Montag bis 31. Dezember 2026").
+Recurring events appear on all matching future dates up to 1 year ahead (or `recurrenceEndDate` if specified, ignored when `recurrence === 'custom'`). The event modal shows the recurrence pattern (e.g., "Jeden Montag bis 31. Dezember 2026") or "An einzelnen Terminen" for custom.
 
 ### Edge Cases
 - No events in month: show subtle empty state "Keine Events in diesem Monat"

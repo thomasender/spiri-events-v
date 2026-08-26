@@ -23,12 +23,14 @@ import {
   User,
   FileText,
   List,
+  Plus,
 } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
 import { formatEventDateShort } from '../utils/eventFormat';
 import RichTextEditor from './RichTextEditorLazy';
 import RichTextView from './RichTextView';
 import { isHtmlEmpty } from '../utils/sanitize';
+import './EventForm.css';
 import './EventFormWizard.css';
 
 const INITIAL_STATE = {
@@ -43,6 +45,7 @@ const INITIAL_STATE = {
   link: '',
   recurrence: 'none',
   recurrenceEndDate: '',
+  customDates: [],
   category: '',
   bezirk: '',
   organizer: { firstName: '', lastName: '', email: '' },
@@ -196,6 +199,12 @@ export default function EventFormWizard() {
           newErrors.recurrenceEndDate = 'Wiederholung darf maximal 1 Jahr betragen';
         }
       }
+      if (
+        formData.recurrence === 'custom' &&
+        (!formData.customDates || formData.customDates.length === 0)
+      ) {
+        newErrors.customDates = 'Bitte mindestens ein Datum hinzufügen';
+      }
     }
     return newErrors;
   };
@@ -314,6 +323,41 @@ export default function EventFormWizard() {
     }
   };
 
+  const handleAddCustomDate = () => {
+    setFormData((prev) => {
+      const existing = prev.customDates || [];
+      const last = existing[existing.length - 1];
+      const baseDate = last || prev.date;
+      let nextDate = '';
+      if (baseDate) {
+        const d = new Date(baseDate + 'T12:00:00');
+        d.setDate(d.getDate() + 7);
+        nextDate = d.toISOString().split('T')[0];
+      }
+      return { ...prev, customDates: [...existing, nextDate] };
+    });
+    if (errors.customDates) {
+      setErrors((prev) => ({ ...prev, customDates: null }));
+    }
+  };
+
+  const handleRemoveCustomDate = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      customDates: (prev.customDates || []).filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleCustomDateChange = (index, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      customDates: (prev.customDates || []).map((d, i) => (i === index ? value : d)),
+    }));
+    if (errors.customDates) {
+      setErrors((prev) => ({ ...prev, customDates: null }));
+    }
+  };
+
   const handleKeyDown = (e) => {
     if (e.key !== 'Enter') return;
 
@@ -358,7 +402,14 @@ export default function EventFormWizard() {
     description: formData.description,
     link: normalizeLink(formData.link),
     recurrence: formData.recurrence || 'none',
-    recurrenceEndDate: formData.recurrence === 'none' ? '' : formData.recurrenceEndDate || '',
+    recurrenceEndDate:
+      formData.recurrence === 'none' || formData.recurrence === 'custom'
+        ? ''
+        : formData.recurrenceEndDate || '',
+    customDates:
+      formData.recurrence === 'custom'
+        ? [...(formData.customDates || [])].filter((d) => d && d.length > 0).sort()
+        : [],
     category: formData.category || 'Sonstiges',
     bezirk: formData.bezirk,
     organizer: {
@@ -826,10 +877,68 @@ export default function EventFormWizard() {
             />
             <span>Monatlich</span>
           </label>
+          <label className={`radio-label ${formData.recurrence === 'custom' ? 'active' : ''}`}>
+            <input
+              type="radio"
+              name="recurrence"
+              value="custom"
+              checked={formData.recurrence === 'custom'}
+              onChange={handleChange}
+            />
+            <span>Benutzerdefinierte Daten</span>
+          </label>
         </div>
       </div>
 
-      {formData.recurrence !== 'none' && (
+      {formData.recurrence === 'custom' && (
+        <div className="form-group">
+          <div className="input-label-row">
+            <label>Termine</label>
+            <span className="input-info">
+              <Info size={14} />
+              <span>Füge einzelne Termine hinzu</span>
+            </span>
+          </div>
+          <div className="custom-dates-list" data-testid="custom-dates-list">
+            {(formData.customDates || []).map((date, index) => (
+              <div key={index} className="custom-date-row">
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => handleCustomDateChange(index, e.target.value)}
+                  data-testid={`custom-date-input-${index}`}
+                  aria-label={`Termin ${index + 1}`}
+                />
+                <button
+                  type="button"
+                  onClick={() => handleRemoveCustomDate(index)}
+                  className="custom-date-remove-btn"
+                  aria-label={`Termin ${index + 1} entfernen`}
+                  data-testid={`custom-date-remove-${index}`}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={handleAddCustomDate}
+            className="btn btn-secondary btn-sm custom-date-add-btn"
+            data-testid="custom-date-add-button"
+          >
+            <Plus size={16} />
+            <span>Weiteres Datum hinzufügen</span>
+          </button>
+          {errors.customDates && (
+            <span className="error-text" data-testid="custom-dates-error">
+              {errors.customDates}
+            </span>
+          )}
+        </div>
+      )}
+
+      {formData.recurrence !== 'none' && formData.recurrence !== 'custom' && (
         <div className="form-group">
           <div className="input-label-row">
             <label htmlFor="recurrenceEndDate">Wiederholung bis</label>
@@ -906,7 +1015,9 @@ export default function EventFormWizard() {
                 ? 'Wöchentlich'
                 : formData.recurrence === 'biweekly'
                   ? 'Zweiwöchentlich'
-                  : 'Monatlich'}
+                  : formData.recurrence === 'monthly'
+                    ? 'Monatlich'
+                    : `An einzelnen Terminen (${formData.customDates?.length || 0} Termine)`}
             </p>
           )}
           <p>

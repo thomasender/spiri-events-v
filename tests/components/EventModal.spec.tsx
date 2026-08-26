@@ -56,6 +56,16 @@ describe('EventModal', () => {
       expect(screen.getByText('Jeden Monat')).toBeInTheDocument();
     });
 
+    it('shows "An einzelnen Terminen" for custom recurrence', () => {
+      const event = {
+        ...mockEvent,
+        recurrence: 'custom',
+        customDates: ['2026-09-10', '2026-09-24'],
+      };
+      render(<EventModal event={event} onClose={() => {}} />);
+      expect(screen.getByText('An einzelnen Terminen')).toBeInTheDocument();
+    });
+
     it('does not show recurrence section when recurrence is none', () => {
       const event = { ...mockEvent, recurrence: 'none' };
       render(<EventModal event={event} onClose={() => {}} />);
