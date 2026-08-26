@@ -859,7 +859,6 @@ export default function EventFormWizard() {
               {formData.organizer.firstName} {formData.organizer.lastName}
             </strong>
           </p>
-          <p>{formData.organizer.email}</p>
           <p>{formData.kontakt}</p>
         </div>
 
