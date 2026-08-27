@@ -1,12 +1,33 @@
 import { test, expect } from '@playwright/test';
+import { spawn } from 'child_process';
 import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
 
 const RECURRING_EVENT_ID = 'test-event-recurring-weekly';
 const RECURRING_EVENT_SLUG = 'test-weekly-yoga-series-yogastudio-test-20260813';
 
+async function resetRecurringEventFixture(): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const proc = spawn('node', ['scripts/reset-recurring-event-fixtures.mjs'], {
+      cwd: process.cwd(),
+      stdio: 'ignore',
+      shell: true,
+    });
+    proc.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`exit ${code}`))));
+    proc.on('error', reject);
+  });
+}
+
 test.describe.configure({ mode: 'serial' });
 
 test.describe('Recurring event deletion from EventForm', () => {
+  // This is the single shared fixture doc other specs (e.g.
+  // recurring-events-card-list.spec.ts) also read, and this file's last test deletes
+  // it entirely — reset before each test so ordering relative to other spec files
+  // never leaves this suite (or the ones after it) looking at stale/missing data.
+  test.beforeEach(async () => {
+    await resetRecurringEventFixture();
+  });
+
   test.afterEach(async ({ page }) => {
     await signOut(page);
   });

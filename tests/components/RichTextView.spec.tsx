@@ -36,28 +36,12 @@ describe('RichTextView', () => {
     expect(container.querySelectorAll('li')).toHaveLength(2);
   });
 
-  it('strips script tags', () => {
+  it('sanitizes html before rendering (script tags stripped)', () => {
+    // Sanitization rules themselves are covered exhaustively in sanitize.spec.ts;
+    // this only confirms RichTextView actually wires sanitizeHtml() in.
     const { container } = render(<RichTextView html="<p>safe</p><script>alert(1)</script>" />);
     expect(container.querySelector('script')).toBeNull();
     expect(container.textContent).toContain('safe');
-  });
-
-  it('strips iframe tags', () => {
-    const { container } = render(
-      <RichTextView html='<iframe src="https://evil.example"></iframe><p>ok</p>' />
-    );
-    expect(container.querySelector('iframe')).toBeNull();
-  });
-
-  it('strips inline event handlers', () => {
-    const { container } = render(<RichTextView html='<p><img src="x" onerror="alert(1)"></p>' />);
-    const rendered = container.innerHTML;
-    expect(rendered).not.toContain('onerror');
-  });
-
-  it('strips javascript: URLs', () => {
-    const { container } = render(<RichTextView html='<a href="javascript:alert(1)">x</a>' />);
-    expect(container.innerHTML).not.toContain('javascript:');
   });
 
   it('returns null for empty input', () => {

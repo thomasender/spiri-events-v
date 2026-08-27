@@ -21,12 +21,12 @@ vi.mock('dompurify', () => ({
   },
 }));
 
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import RichTextEditor from '../../src/components/RichTextEditor';
 
 const waitForEditor = async () => {
-  await act(async () => {
-    await new Promise((r) => setTimeout(r, 50));
+  await waitFor(() => {
+    expect(document.querySelector('.rte-content')).toBeInTheDocument();
   });
 };
 
@@ -86,17 +86,6 @@ describe('RichTextEditor', () => {
   it('applies error styling when hasError is true', () => {
     const { container } = render(<RichTextEditor value="" onChange={() => {}} hasError />);
     expect(container.querySelector('.rte-wrapper--error')).toBeInTheDocument();
-  });
-
-  it('toggles bold when toolbar button is clicked', async () => {
-    render(<RichTextEditor value="<p>some bold content</p>" onChange={() => {}} />);
-    await waitForEditor();
-
-    const boldBtn = screen.getByLabelText(/fett/i);
-    expect(boldBtn).toBeInTheDocument();
-    expect(boldBtn.className).toContain('rte-toolbar-btn');
-    fireEvent.click(boldBtn);
-    expect(boldBtn).toBeInTheDocument();
   });
 
   it('opens link popover when link button is clicked', async () => {

@@ -59,42 +59,40 @@ test.describe('Multi-day retreat display (rpyIkFjm)', () => {
     await waitForCalendarToLoad(page);
   });
 
-  test('list view shows date range and hides time for multi-day event', async ({ page }) => {
-    const { year, month } = retreatMonthInfo();
-    await navigateToMonth(page, year, month);
-    await goToListView(page);
+  for (const view of [
+    {
+      name: 'list',
+      goTo: goToListView,
+      itemSelector: '.event-row',
+      dateRangeTestId: 'event-row-date-range',
+    },
+    {
+      name: 'card',
+      goTo: goToCardView,
+      itemSelector: '.event-tile',
+      dateRangeTestId: 'event-tile-date-range',
+    },
+  ] as const) {
+    test(`${view.name} view shows date range and hides time for multi-day event`, async ({
+      page,
+    }) => {
+      const { year, month } = retreatMonthInfo();
+      await navigateToMonth(page, year, month);
+      await view.goTo(page);
 
-    const row = page.locator('.event-row', { hasText: MULTI_DAY_EVENT_TITLE }).first();
-    await expect(row).toBeVisible();
+      const item = page.locator(view.itemSelector, { hasText: MULTI_DAY_EVENT_TITLE }).first();
+      await expect(item).toBeVisible();
 
-    const dateRange = row.locator('[data-testid="event-row-date-range"]');
-    await expect(dateRange).toBeVisible();
-    const rangeText = (await dateRange.textContent())?.trim() ?? '';
-    expect(rangeText).toMatch(/\d/);
-    expect(rangeText).toContain(' - ');
+      const dateRange = item.locator(`[data-testid="${view.dateRangeTestId}"]`);
+      await expect(dateRange).toBeVisible();
+      const rangeText = (await dateRange.textContent())?.trim() ?? '';
+      expect(rangeText).toMatch(/\d/);
+      expect(rangeText).toContain(' - ');
 
-    // Time (Uhr) must not appear inside the multi-day row.
-    const rowText = (await row.textContent()) ?? '';
-    expect(rowText).not.toContain('Uhr');
-  });
-
-  test('card view shows date range and hides time for multi-day event', async ({ page }) => {
-    const { year, month } = retreatMonthInfo();
-    await navigateToMonth(page, year, month);
-    await goToCardView(page);
-
-    const tile = page.locator('.event-tile', { hasText: MULTI_DAY_EVENT_TITLE }).first();
-    await expect(tile).toBeVisible();
-
-    const dateRange = tile.locator('[data-testid="event-tile-date-range"]');
-    await expect(dateRange).toBeVisible();
-    const rangeText = (await dateRange.textContent())?.trim() ?? '';
-    expect(rangeText).toMatch(/\d/);
-    expect(rangeText).toContain(' - ');
-
-    const tileText = (await tile.textContent()) ?? '';
-    expect(tileText).not.toContain('Uhr');
-  });
+      const itemText = (await item.textContent()) ?? '';
+      expect(itemText).not.toContain('Uhr');
+    });
+  }
 
   test('multi-day retreat appears exactly once per month in the list view', async ({ page }) => {
     const { year, month } = retreatMonthInfo();

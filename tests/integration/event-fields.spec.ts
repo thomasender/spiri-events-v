@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { signInWithEmailAndPassword } from '../helpers/auth';
+import { generateSlug } from '../helpers/slug';
 import {
   waitForWizardToLoad,
   navigateToStep2,
@@ -9,6 +10,8 @@ import {
   fillStep2EventInfo,
   fillStep3Details,
 } from '../helpers/wizard';
+
+const USER_APPROVED_SLUG = generateSlug('User Approved Event', 'User Place Bregenz', 9);
 
 test.describe('Event fields: Veranstalter & Kontakt', () => {
   test('organizer and kontakt fields are required and visible on form', async ({ page }) => {
@@ -137,6 +140,7 @@ test.describe('Event fields: Veranstalter & Kontakt', () => {
     await expect(organizer).toBeVisible();
     await expect(organizer).toContainText('Anna');
     await expect(organizer).toContainText('Schmidt');
+    await expect(organizer.locator('[data-testid="organizer-photo"]')).toBeVisible();
 
     const kontakt = page.locator('[data-testid="event-kontakt"]');
     await expect(kontakt).toBeVisible();
@@ -158,5 +162,23 @@ test.describe('Event fields: Veranstalter & Kontakt', () => {
     const ownerEmails = page.locator('[data-testid="event-owner-email"]');
     await expect(ownerEmails.first()).toBeVisible();
     await expect(ownerEmails.first()).toContainText('@');
+  });
+
+  test("guest visiting another user's approved event via slug sees organizer photo", async ({
+    page,
+  }) => {
+    await page.goto(`/event/${USER_APPROVED_SLUG}`);
+
+    await page
+      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+      .catch(() => {});
+
+    await expect(page.locator('.event-title')).toContainText('User Approved Event', {
+      timeout: 10000,
+    });
+
+    const organizer = page.locator('[data-testid="event-organizer"]');
+    await expect(organizer).toBeVisible();
+    await expect(organizer.locator('[data-testid="organizer-photo"]')).toBeVisible();
   });
 });

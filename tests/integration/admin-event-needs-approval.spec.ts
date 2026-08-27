@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
+import { signInWithEmailAndPassword, signOut, waitForCalendarToLoad } from '../helpers/auth';
 import { waitForWizardToLoad } from '../helpers/wizard';
 
 const EVENT_TITLE = 'Admin Created Test Event';
@@ -96,7 +96,7 @@ test.describe('Admin-created events need approval (hGxrS6gp)', () => {
     await signOut(page);
 
     await page.goto('/');
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+    await waitForCalendarToLoad(page);
 
     const eventCards = page.locator('.event-card-public, .event-row');
     const count = await eventCards.count();

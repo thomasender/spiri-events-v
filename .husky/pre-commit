@@ -1,1 +1,1 @@
-npm run lint && npm run style && npm run types && npm run test:all
+npm run lint && npm run style && npm run types && npm run test

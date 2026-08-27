@@ -77,6 +77,11 @@ test.describe('Event category fallback images', () => {
       { title: 'Tanzworkshop diese Woche', dayOffset: 3, expected: '/event-fallbacks/tanz.jpg' },
       { title: 'Atemtherapie', dayOffset: 10, expected: '/event-fallbacks/breathwork.jpg' },
       { title: 'Mantrasingen', dayOffset: 2, expected: '/event-fallbacks/singen.png' },
+      {
+        title: 'Klangreise mit Bowls',
+        dayOffset: 11,
+        expected: '/event-fallbacks/soundhealing.jpeg',
+      },
     ];
 
     for (const { title, dayOffset, expected } of expectations) {

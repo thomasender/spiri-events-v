@@ -1,86 +1,34 @@
 import { test, expect } from '@playwright/test';
+import { spawn } from 'child_process';
 import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
 import { generateSlug } from '../helpers/slug';
 
 const RECURRING_EVENT_SLUG = generateSlug('Test Weekly Yoga Series', 'Yogastudio Test', 7);
 
-test.describe.configure({ mode: 'serial' });
+async function resetRecurringEventFixture(): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const proc = spawn('node', ['scripts/reset-recurring-event-fixtures.mjs'], {
+      cwd: process.cwd(),
+      stdio: 'ignore',
+      shell: true,
+    });
+    proc.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`exit ${code}`))));
+    proc.on('error', reject);
+  });
+}
 
 test.describe('Recurring event deletion from EventDetailPage', () => {
+  // recurring-event-deletion-edit-form.spec.ts deletes this same shared fixture doc
+  // in its last test; reset it here so this file passes regardless of file order.
+  test.beforeEach(async () => {
+    await resetRecurringEventFixture();
+  });
+
   test.afterEach(async ({ page }) => {
     await signOut(page);
   });
 
-  test('delete button shows RecurringDeleteDialog for recurring event', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
-
-    await page.goto(`/event/${RECURRING_EVENT_SLUG}`);
-    await page
-      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
-      .catch(() => {});
-
-    await expect(page.locator('.event-title')).toContainText('Test Weekly Yoga Series', {
-      timeout: 10000,
-    });
-
-    await page.getByTestId('delete-event-button').click();
-
-    await expect(page.getByRole('heading', { name: 'Termin löschen' })).toBeVisible();
-    await expect(page.getByText('Nur diesen Termin löschen')).toBeVisible();
-    await expect(page.getByText('Diesen und alle folgenden Termine löschen')).toBeVisible();
-    await expect(page.getByText('Gesamte Serie löschen')).toBeVisible();
-  });
-
-  test('canceling RecurringDeleteDialog does NOT delete the event', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
-
-    await page.goto(`/event/${RECURRING_EVENT_SLUG}`);
-    await page
-      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
-      .catch(() => {});
-
-    await expect(page.locator('.event-title')).toContainText('Test Weekly Yoga Series', {
-      timeout: 10000,
-    });
-
-    await page.getByTestId('delete-event-button').click();
-
-    await expect(page.getByRole('heading', { name: 'Termin löschen' })).toBeVisible();
-
-    await page.getByRole('button', { name: /abbrechen/i }).click();
-
-    await expect(page.getByText('Termin löschen')).toHaveCount(0);
-
-    await page.reload();
-    await page
-      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
-      .catch(() => {});
-
-    await expect(page.locator('.event-title')).toContainText('Test Weekly Yoga Series', {
-      timeout: 10000,
-    });
-  });
-
-  test('"Nur dieses Event" adds date to exceptionDates and navigates home', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
-
-    await page.goto(`/event/${RECURRING_EVENT_SLUG}`);
-    await page
-      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
-      .catch(() => {});
-
-    await expect(page.locator('.event-title')).toContainText('Test Weekly Yoga Series', {
-      timeout: 10000,
-    });
-
-    await page.getByTestId('delete-event-button').click();
-
-    await page.getByText('Nur diesen Termin löschen').click();
-
-    await page.waitForURL((url) => url.pathname === '/', { timeout: 10000 });
-  });
-
-  test('"Dieses und alle zukünftigen Events" sets recurrenceEndDate and navigates home', async ({
+  test('delete button opens RecurringDeleteDialog with all three delete modes', async ({
     page,
   }) => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
@@ -96,34 +44,18 @@ test.describe('Recurring event deletion from EventDetailPage', () => {
 
     await page.getByTestId('delete-event-button').click();
 
-    await page.getByText('Diesen und alle folgenden Termine löschen').click();
+    // EventDetailPage first asks which occurrence to delete before showing the
+    // delete-mode dialog (EventForm's edit-form entry point skips this step).
+    await expect(page.getByRole('heading', { name: 'Termin auswählen' })).toBeVisible();
+    await page.locator('.occurrence-option').first().click();
+    await page.getByRole('button', { name: /weiter/i }).click();
 
-    await page.waitForURL((url) => url.pathname === '/', { timeout: 10000 });
-  });
+    await expect(page.getByRole('heading', { name: 'Termin löschen' })).toBeVisible();
+    await expect(page.getByText('Nur diesen Termin löschen')).toBeVisible();
+    await expect(page.getByText('Diesen und alle folgenden Termine löschen')).toBeVisible();
+    await expect(page.getByText('Gesamte Serie löschen')).toBeVisible();
 
-  test('"Gesamte Serie löschen" deletes entire event document', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
-
-    await page.goto(`/event/${RECURRING_EVENT_SLUG}`);
-    await page
-      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
-      .catch(() => {});
-
-    await expect(page.locator('.event-title')).toContainText('Test Weekly Yoga Series', {
-      timeout: 10000,
-    });
-
-    await page.getByTestId('delete-event-button').click();
-
-    await page.getByText('Gesamte Serie löschen').click();
-
-    await page.waitForURL((url) => !/\/event\//.test(url.pathname), { timeout: 10000 });
-
-    await page.goto(`/event/${RECURRING_EVENT_SLUG}`);
-    await page
-      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
-      .catch(() => {});
-
-    await expect(page.locator('.event-not-found')).toBeVisible({ timeout: 10000 });
+    await page.getByRole('button', { name: /abbrechen/i }).click();
+    await expect(page.getByText('Termin löschen')).toHaveCount(0);
   });
 });

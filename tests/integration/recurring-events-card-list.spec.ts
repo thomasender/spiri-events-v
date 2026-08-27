@@ -1,5 +1,18 @@
 import { test, expect, Page } from '@playwright/test';
+import { spawn } from 'child_process';
 import { waitForCalendarToLoad } from '../helpers/auth';
+
+async function resetRecurringEventFixture(): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const proc = spawn('node', ['scripts/reset-recurring-event-fixtures.mjs'], {
+      cwd: process.cwd(),
+      stdio: 'ignore',
+      shell: true,
+    });
+    proc.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`exit ${code}`))));
+    proc.on('error', reject);
+  });
+}
 
 const MONTHS_DE = [
   'Januar',
@@ -47,34 +60,28 @@ test.describe('Card and List view recurring events (TEgXPOfN)', () => {
   const start = startMonthInfo();
   const future = nextMonthInfo();
 
+  // recurring-event-deletion-edit-form.spec.ts deletes this same shared fixture doc
+  // in its last test; reset it here so this file passes regardless of file order.
   test.beforeEach(async ({ page }) => {
+    await resetRecurringEventFixture();
     await page.goto('/');
     await waitForCalendarToLoad(page);
   });
 
-  test('list view shows recurring event in its starting month', async ({ page }) => {
-    await navigateToMonth(page, start.year, start.month);
-    const eventRow = page.locator('.event-row', { hasText: RECURRING_EVENT_TITLE });
-    await expect(eventRow.first()).toBeVisible();
-  });
+  for (const month of [
+    { name: 'starting', ...start },
+    { name: 'future', ...future },
+  ]) {
+    test(`list and card view show recurring event in its ${month.name} month`, async ({ page }) => {
+      await navigateToMonth(page, month.year, month.month);
+      await expect(
+        page.locator('.event-row', { hasText: RECURRING_EVENT_TITLE }).first()
+      ).toBeVisible();
 
-  test('card view shows recurring event in its starting month', async ({ page }) => {
-    await page.locator('button:has-text("Kartenansicht")').first().click();
-    await navigateToMonth(page, start.year, start.month);
-    const eventTile = page.locator('.event-tile', { hasText: RECURRING_EVENT_TITLE });
-    await expect(eventTile.first()).toBeVisible();
-  });
-
-  test('list view shows recurring event in a future month', async ({ page }) => {
-    await navigateToMonth(page, future.year, future.month);
-    const eventRow = page.locator('.event-row', { hasText: RECURRING_EVENT_TITLE });
-    await expect(eventRow.first()).toBeVisible();
-  });
-
-  test('card view shows recurring event in a future month', async ({ page }) => {
-    await page.locator('button:has-text("Kartenansicht")').first().click();
-    await navigateToMonth(page, future.year, future.month);
-    const eventTile = page.locator('.event-tile', { hasText: RECURRING_EVENT_TITLE });
-    await expect(eventTile.first()).toBeVisible();
-  });
+      await page.locator('button:has-text("Kartenansicht")').first().click();
+      await expect(
+        page.locator('.event-tile', { hasText: RECURRING_EVENT_TITLE }).first()
+      ).toBeVisible();
+    });
+  }
 });

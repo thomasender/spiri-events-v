@@ -86,7 +86,6 @@ test.describe('Share Event Feature (u0fvkYae)', () => {
     await page.locator('[data-testid="share-channel-facebook"]').click();
     const popup = await popupPromise;
 
-    await popup.waitForLoadState('domcontentloaded').catch(() => {});
     expect(popup.url()).toContain('facebook.com/sharer/sharer.php');
     expect(popup.url()).toContain(encodeURIComponent(`/event/${YOGA_APPROVED_SLUG}`));
 
@@ -111,7 +110,6 @@ test.describe('Share Event Feature (u0fvkYae)', () => {
     await page.locator('[data-testid="share-channel-whatsapp"]').click();
     const popup = await popupPromise;
 
-    await popup.waitForLoadState('domcontentloaded').catch(() => {});
     expect(popup.url()).toContain('whatsapp.com');
     expect(popup.url()).toContain(encodeURIComponent(`/event/${YOGA_APPROVED_SLUG}`));
 
@@ -136,7 +134,6 @@ test.describe('Share Event Feature (u0fvkYae)', () => {
     await page.locator('[data-testid="share-channel-telegram"]').click();
     const popup = await popupPromise;
 
-    await popup.waitForLoadState('domcontentloaded').catch(() => {});
     expect(popup.url()).toContain('t.me/share/url');
     expect(popup.url()).toContain(encodeURIComponent(`/event/${YOGA_APPROVED_SLUG}`));
 

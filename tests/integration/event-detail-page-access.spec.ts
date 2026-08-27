@@ -72,3 +72,24 @@ test.describe('Event detail page access (hSONxMKJ)', () => {
     await expect(page.locator('.event-not-found')).toBeVisible({ timeout: 10000 });
   });
 });
+
+test.describe('Admin access to pending events of other users', () => {
+  test.afterEach(async ({ page }) => {
+    await signOut(page);
+  });
+
+  test('admin can view pending event owned by another user via slug URL', async ({ page }) => {
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+
+    await page.goto(`/event/${USER_PENDING_SLUG}`);
+
+    await page
+      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+      .catch(() => {});
+
+    await expect(page.locator('.event-not-found')).not.toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.event-title')).toContainText('User Pending Event', {
+      timeout: 10000,
+    });
+  });
+});

@@ -12,6 +12,11 @@ const mockProfile = vi.hoisted(() => ({
   photoURL: null as string | null,
 }));
 
+const mockUseUnread = vi.hoisted(() => ({
+  count: 0,
+  loading: false,
+}));
+
 vi.mock('../../src/hooks/useAuth', () => ({
   useAuth: () => ({
     user: mockAuth.user,
@@ -29,11 +34,17 @@ vi.mock('../../src/hooks/useProfile', () => ({
   }),
 }));
 
+vi.mock('../../src/hooks/useUnreadMessageCount', () => ({
+  useUnreadMessageCount: () => mockUseUnread,
+}));
+
 beforeEach(() => {
   mockAuth.user = null;
   mockAuth.canCreateEvents = true;
   if (mockAuth.user) mockAuth.user.photoURL = undefined;
   mockProfile.photoURL = null;
+  mockUseUnread.count = 0;
+  mockUseUnread.loading = false;
 });
 
 describe('Header (logged out)', () => {
@@ -477,5 +488,84 @@ describe('Header profile nav avatar', () => {
 
     expect(container.querySelectorAll('img.nav-link-avatar').length).toBe(0);
     expect(container.querySelectorAll('a[href="/profil"]').length).toBe(0);
+  });
+});
+
+describe('Header Verwaltung unread badge (zejdjTnm)', () => {
+  it('does not render the Verwaltung link at all when no user is signed in', () => {
+    render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+    expect(screen.queryByTestId('verwaltung-unread-badge')).not.toBeInTheDocument();
+  });
+
+  it('does not show an unread badge on the Verwaltung link when count is zero', () => {
+    mockAuth.user = { uid: 'test-uid' };
+    mockUseUnread.count = 0;
+
+    render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByTestId('verwaltung-unread-badge')).not.toBeInTheDocument();
+  });
+
+  it('shows the unread count badge on the Verwaltung link when count > 0, capped at 9+', () => {
+    mockAuth.user = { uid: 'test-uid' };
+    mockUseUnread.count = 3;
+
+    const { rerender } = render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    expect(screen.getAllByTestId('verwaltung-unread-badge')[0]).toHaveTextContent('3');
+
+    mockUseUnread.count = 25;
+    rerender(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    expect(screen.getAllByTestId('verwaltung-unread-badge')[0]).toHaveTextContent('9+');
+  });
+
+  it('announces the unread count to screen readers via aria-label on the Verwaltung link', () => {
+    mockAuth.user = { uid: 'test-uid' };
+    mockUseUnread.count = 4;
+
+    render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    const adminLinks = screen.getAllByRole('link', { name: /Verwaltung/ });
+    expect(adminLinks.length).toBeGreaterThan(0);
+    adminLinks.forEach((link) => {
+      expect(link.getAttribute('aria-label')).toBe('Verwaltung (4 ungelesene Benachrichtigungen)');
+    });
+  });
+
+  it('falls back to a plain "Verwaltung" aria-label when there are no unread messages', () => {
+    mockAuth.user = { uid: 'test-uid' };
+    mockUseUnread.count = 0;
+
+    render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    const adminLinks = screen.getAllByRole('link', { name: /Verwaltung/ });
+    adminLinks.forEach((link) => {
+      expect(link.getAttribute('aria-label')).toBe('Verwaltung');
+    });
   });
 });

@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { spawn } from 'child_process';
-import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
+import { signInWithEmailAndPassword, signOut, waitForCalendarToLoad } from '../helpers/auth';
 import { generateSlug } from '../helpers/slug';
 
 const USER_DRAFT_SLUG = generateSlug('User Draft Event', 'User Draft Place Dornbirn', 20);
@@ -112,7 +112,7 @@ test.describe('Event draft status — read-only (AzGFKWfV)', () => {
   test('draft never appears on the public events list (CalendarPage)', async ({ page }) => {
     await page.goto('/');
 
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+    await waitForCalendarToLoad(page);
 
     const eventCards = page.locator('.event-card-public, .event-row');
     const count = await eventCards.count();

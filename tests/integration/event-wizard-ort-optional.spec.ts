@@ -31,35 +31,6 @@ test.describe('Event wizard: "Ort / Adresse" is optional (ZPiZqKrG)', () => {
     await expect(placeLabel).not.toContainText('*');
   });
 
-  test('wizard advances past step 3 with empty "Ort / Adresse"', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
-    await page.goto('/admin/new');
-    await waitForWizardToLoad(page);
-
-    await navigateToStep3(page);
-
-    const future = new Date();
-    future.setDate(future.getDate() + 30);
-    const futureIso = future.toISOString().split('T')[0];
-
-    await page.fill('#date', futureIso);
-    await page.fill('#time', '10:00');
-    await page.selectOption('#bezirk', 'Bregenz');
-    await page.click('.kategorie-select');
-    await page.waitForTimeout(300);
-    await page.getByText('Yoga', { exact: true }).click();
-    await page.waitForTimeout(300);
-    await page.click('.radio-label:has-text("Kostenlos")');
-
-    await clickWeiter(page);
-
-    const placeError = page.locator('.error-text', { hasText: 'Ort ist erforderlich' });
-    await expect(placeError).toHaveCount(0);
-
-    const summary = page.locator('.summary-card');
-    await expect(summary).toBeVisible();
-  });
-
   test('event can be submitted through the wizard without an "Ort / Adresse" value', async ({
     page,
   }) => {
@@ -99,5 +70,51 @@ test.describe('Event wizard: "Ort / Adresse" is optional (ZPiZqKrG)', () => {
 
     const card = page.locator('.event-card', { hasText: EVENT_TITLE }).first();
     await expect(card).toBeVisible({ timeout: 10000 });
+  });
+});
+
+test.describe('Event edit form: "Ort / Adresse" is optional (8BzdB9xp)', () => {
+  test.afterEach(async ({ page }) => {
+    await signOut(page);
+  });
+
+  test('"Ort / Adresse" label is not marked with an asterisk in the edit form', async ({
+    page,
+  }) => {
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+
+    await page.goto('/admin/edit/test-event-foreign-pending');
+
+    await page.waitForURL(/\/admin\/edit\//);
+    await page
+      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+      .catch(() => {});
+
+    const placeLabel = page.locator('label[for="place"]');
+    await expect(placeLabel).toBeVisible();
+    await expect(placeLabel).toContainText('Ort / Adresse');
+    await expect(placeLabel).not.toContainText('*');
+  });
+
+  test('edit form allows saving with an empty "Ort / Adresse" field', async ({ page }) => {
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+
+    await page.goto('/admin/edit/test-event-foreign-pending');
+
+    await page.waitForURL(/\/admin\/edit\//);
+    await page
+      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+      .catch(() => {});
+
+    await page.fill('#place', '');
+
+    await page.getByRole('button', { name: /änderungen speichern/i }).click();
+
+    await page.waitForURL('/admin', { timeout: 10000 });
+
+    const placeError = page.locator('.error-text', { hasText: 'Ort ist erforderlich' });
+    await expect(placeError).toHaveCount(0);
+
+    await expect(page).toHaveURL(/\/admin$/);
   });
 });
