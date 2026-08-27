@@ -206,7 +206,13 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  min-width: 0;
+}
+
+.input-label-row label {
+  margin-bottom: 0;
 }
 
 .input-info {
@@ -215,6 +221,7 @@ textarea {
   gap: 4px;
   font-size: 0.8rem;
   color: var(--text-secondary);
+  min-width: 0;
 }
 
 .submit-error {
