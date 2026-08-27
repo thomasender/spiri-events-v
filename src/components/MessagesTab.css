@@ -40,9 +40,9 @@
 .messages-tab-item {
   position: relative;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 16px 20px;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 20px;
   background: var(--bg-calendar);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -58,11 +58,38 @@
   outline: none;
 }
 
+.messages-tab-item-image-wrapper {
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: var(--bg-secondary);
+}
+
+.messages-tab-item-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.messages-tab-item-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+  padding-right: 56px;
+}
+
 .messages-tab-item-title {
   font-weight: 500;
   font-size: 1rem;
   color: var(--text-primary);
-  padding-right: 56px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .messages-tab-item-meta {

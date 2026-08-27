@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Edit2,
@@ -20,6 +21,7 @@ import {
   getRecurrenceLabel,
 } from '../utils/eventOccurrences';
 import { isMultiDayEvent } from '../utils/eventFormat';
+import { getEventFallbackImage } from '../utils/eventFallbacks';
 
 function formatDate(dateStr) {
   if (!dateStr) return '';
@@ -76,6 +78,9 @@ export default function EventAdminCard({
   const nextOccurrence = isRecurring ? getNextUpcomingOccurrence(event) : null;
   const occurrenceCount = isRecurring ? getOccurrenceCount(event) : 0;
   const hasUnread = unreadCount > 0;
+  const fallbackImage = getEventFallbackImage(event);
+  const [imageError, setImageError] = useState(false);
+  const imageSrc = event.imageUrl && !imageError ? event.imageUrl : fallbackImage;
 
   const nextOccurrenceDisplay = nextOccurrence
     ? (() => {
@@ -96,6 +101,15 @@ export default function EventAdminCard({
         state={{ from: '/admin' }}
         className="event-card-content"
       >
+        <div className="event-card-image-wrapper">
+          <img
+            src={imageSrc}
+            alt=""
+            className="event-card-image"
+            data-testid="event-card-image"
+            onError={() => setImageError(true)}
+          />
+        </div>
         <div className="event-card-header">
           <h3>
             {event.title}
