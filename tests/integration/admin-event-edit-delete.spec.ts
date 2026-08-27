@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { spawn } from 'child_process';
 import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
 import { generateSlug } from '../helpers/slug';
 
@@ -6,10 +7,34 @@ const ADMIN_OWNED_APPROVED_SLUG = generateSlug('Yoga heute', 'Yogastudio Dornbir
 const USER_OWNED_APPROVED_SLUG = generateSlug('User Approved Event', 'User Place Bregenz', 9);
 const USER_OWNED_PENDING_SLUG = generateSlug('User Pending Event', 'Test Place Bludenz', 8);
 
+function runScript(scriptPath: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const proc = spawn('node', [scriptPath], { cwd: process.cwd(), stdio: 'ignore', shell: true });
+    proc.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`exit ${code}`))));
+    proc.on('error', reject);
+  });
+}
+
+// This file's own tests permanently delete both test-event-user-approved and
+// test-event-foreign-pending as part of exercising the delete flow. Several other
+// specs (event-fields, event-detail-page-access, event-draft, event-rich-description,
+// event-wizard-ort-optional) also read these fixtures, so reset both before every
+// test here rather than assuming the global seed from the start of the run is intact.
+async function resetSharedEventFixtures(): Promise<void> {
+  await Promise.all([
+    runScript('scripts/reset-draft-fixtures.mjs'),
+    runScript('scripts/reset-user-approved-event-fixture.mjs'),
+  ]);
+}
+
 // All tests in this file share Firestore seed data and some of them mutate it
 // (admin deleting user-owned events). Run the whole file serially to avoid
 // races against parallel reads from other spec files.
 test.describe.configure({ mode: 'serial' });
+
+test.beforeEach(async () => {
+  await resetSharedEventFixtures();
+});
 
 test.describe('Event detail page — edit/delete button visibility (kf8i6vqj)', () => {
   test.afterEach(async ({ page }) => {
@@ -368,9 +393,16 @@ test.describe('Admin delete workflow (kf8i6vqj)', () => {
   });
 
   test('admin can delete a user-owned pending event from the edit form', async ({ page }) => {
+    // Use a disposable, uniquely-ID'd fixture rather than the shared
+    // test-event-foreign-pending doc: several other specs defensively recreate
+    // that one before their own tests, which can resurrect it between this
+    // test's delete action and its "not found" check under parallel execution.
+    const throwawayId = `throwaway-pending-delete-${Date.now()}`;
+    await runScript(`scripts/create-throwaway-pending-event.mjs ${throwawayId}`);
+
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
 
-    await page.goto(`/admin/edit/test-event-foreign-pending`);
+    await page.goto(`/admin/edit/${throwawayId}`);
 
     await page.waitForURL(/\/admin\/edit\//);
     await page
@@ -390,7 +422,7 @@ test.describe('Admin delete workflow (kf8i6vqj)', () => {
     // Wait a beat for the delete to fully propagate to the emulator.
     await page.waitForTimeout(2000);
 
-    await page.goto(`/event/${USER_OWNED_PENDING_SLUG}`);
+    await page.goto(`/event/${throwawayId}`);
 
     await page
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })

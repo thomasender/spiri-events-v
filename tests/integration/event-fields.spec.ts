@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { spawn } from 'child_process';
 import { signInWithEmailAndPassword } from '../helpers/auth';
 import { generateSlug } from '../helpers/slug';
 import {
@@ -12,8 +13,28 @@ import {
 } from '../helpers/wizard';
 
 const USER_APPROVED_SLUG = generateSlug('User Approved Event', 'User Place Bregenz', 9);
+const YOGA_HEUTE_SLUG = generateSlug('Yoga heute', 'Yogastudio Dornbirn', 0);
+
+// admin-event-edit-delete.spec.ts permanently deletes this shared seed fixture as
+// part of its delete-flow tests; reset it here so this file passes regardless of
+// file execution order.
+async function resetUserApprovedEventFixture(): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const proc = spawn('node', ['scripts/reset-user-approved-event-fixture.mjs'], {
+      cwd: process.cwd(),
+      stdio: 'ignore',
+      shell: true,
+    });
+    proc.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`exit ${code}`))));
+    proc.on('error', reject);
+  });
+}
 
 test.describe('Event fields: Veranstalter & Kontakt', () => {
+  test.beforeEach(async () => {
+    await resetUserApprovedEventFixture();
+  });
+
   test('organizer and kontakt fields are required and visible on form', async ({ page }) => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/new');
@@ -22,24 +43,27 @@ test.describe('Event fields: Veranstalter & Kontakt', () => {
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
       .catch(() => {});
 
-    await expect(page.locator('label[for="organizer.firstName"]')).toBeVisible();
+    // The create wizard only collects firstName/lastName + a combined "Kontakt"
+    // field; organizer.email is derived from the logged-in user internally
+    // (see EventFormWizard.jsx) and has no visible input of its own here — unlike
+    // the edit form (EventForm.jsx), which does show a locked organizer-email field.
+    await expect(page.locator('label[for="organizer.firstName"]')).toBeVisible({
+      timeout: 10000,
+    });
     await expect(page.locator('label[for="organizer.lastName"]')).toBeVisible();
-    await expect(page.locator('label[for="organizer.email"]')).toBeVisible();
     await expect(page.locator('label[for="kontakt"]')).toBeVisible();
 
     await expect(page.locator('input[name="firstName"]')).toBeVisible();
     await expect(page.locator('input[name="lastName"]')).toBeVisible();
-    await expect(page.locator('input[name="email"]')).toBeVisible();
     await expect(page.locator('input[name="kontakt"]')).toBeVisible();
   });
 
-  test('organizer is pre-filled from current user on new event', async ({ page }) => {
+  test('kontakt is pre-filled from current user on new event', async ({ page }) => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/new');
     await waitForWizardToLoad(page);
 
-    await expect(page.locator('#organizer\\.email')).toHaveValue('admin@test.com');
-    await expect(page.locator('#kontakt')).toHaveValue('admin@test.com');
+    await expect(page.locator('#kontakt')).toHaveValue('admin@test.com', { timeout: 10000 });
   });
 
   test('all required fields are marked with asterisk', async ({ page }) => {
@@ -125,15 +149,16 @@ test.describe('Event fields: Veranstalter & Kontakt', () => {
 
   test('event detail page shows organizer and kontakt for approved event', async ({ page }) => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
-    await page.goto('/admin');
+
+    // Navigate to the known admin-owned fixture directly by slug rather than
+    // clicking the first card in "Meine Events" — that list accumulates events
+    // created by other wizard-driven specs across test runs, so "first" is not
+    // a stable way to reach a specific fixture.
+    await page.goto(`/event/${YOGA_HEUTE_SLUG}`);
 
     await page
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
       .catch(() => {});
-    await page.waitForTimeout(1500);
-
-    await page.locator('.event-card-content').first().click();
-
     await page.waitForSelector('.event-title', { timeout: 20000 });
 
     const organizer = page.locator('[data-testid="event-organizer"]');

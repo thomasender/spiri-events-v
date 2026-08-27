@@ -200,7 +200,7 @@ test.describe.serial('Profile Management', () => {
     // Verify a file was uploaded under users/<uid>/avatar/
     const storageObjects = await page.evaluate(async () => {
       const res = await fetch(
-        `${window.location.origin.replace('5173', '9299')}/storage/v1/b/${'spirieventsvbg.firebasestorage.app'}/o?prefix=users/`
+        'http://localhost:9299/storage/v1/b/spirieventsvbg.firebasestorage.app/o?prefix=users/'
       );
       const data = await res.json();
       return (data.items || []).map((o: { name: string }) => o.name);
@@ -209,7 +209,7 @@ test.describe.serial('Profile Management', () => {
     expect(storageObjects.some((name) => /\/avatar\//.test(name))).toBe(true);
   });
 
-  test('change email requires the current password and updates the Auth email', async ({
+  test('change email requires the current password and sends a confirmation email', async ({
     page,
   }) => {
     // Use a dedicated throwaway account so the rename doesn't break other tests
@@ -229,13 +229,19 @@ test.describe.serial('Profile Management', () => {
       await page.getByTestId('change-email-password').fill(password);
       await page.getByTestId('change-email-submit').click();
 
+      // useAuth.changeEmail() uses verifyBeforeUpdateEmail(), which only sends a
+      // confirmation link to the new address — it does NOT change auth.currentUser.email
+      // until that link is clicked. So the Auth email correctly stays the old one here.
       await expect(page.getByTestId('change-email-success')).toBeVisible({ timeout: 15000 });
+      await expect(page.getByTestId('change-email-success')).toContainText(
+        /Bestätigungs-E-Mail gesendet/i
+      );
 
       await page.reload();
       await page
         .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
         .catch(() => {});
-      await expect(page.getByTestId('current-email')).toHaveText(newEmail);
+      await expect(page.getByTestId('current-email')).toHaveText(email);
     } finally {
       // Clean up: ensure the renamed user doesn't linger in the emulator
       await deleteAuthUser(uid).catch(() => {});
@@ -305,7 +311,7 @@ test.describe.serial('Profile Management', () => {
     await page.getByRole('button', { name: /endgültig löschen/i }).click();
 
     // After deletion, the user is signed out and redirected to "/"
-    await page.waitForURL(/^http:\/\/localhost:5173\/$/, { timeout: 15000 }).catch(() => {});
+    await page.waitForURL(/^http:\/\/localhost:5180\/$/, { timeout: 15000 }).catch(() => {});
 
     // Behavioural check: trying to sign in with the deleted account should fail.
     // This proves the Auth user is gone (it cannot log back in).

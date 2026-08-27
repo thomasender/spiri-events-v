@@ -1,7 +1,28 @@
 import { test, expect } from '@playwright/test';
+import { spawn } from 'child_process';
 import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
 
+// test-event-with-messages is a permanent shared fixture (seeded by
+// reset-message-fixtures.mjs) that always carries messages on a pending event;
+// this file's "empty state"/"no unread badge" assertions need it cleared first.
+// Other specs that need those messages re-seed them in their own beforeEach.
+async function clearMessageFixtures(): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const proc = spawn('node', ['scripts/clear-message-fixtures.mjs'], {
+      cwd: process.cwd(),
+      stdio: 'ignore',
+      shell: true,
+    });
+    proc.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`exit ${code}`))));
+    proc.on('error', reject);
+  });
+}
+
 test.describe('Admin Page tabs (zejdjTnm)', () => {
+  test.beforeEach(async () => {
+    await clearMessageFixtures();
+  });
+
   test.afterEach(async ({ page }) => {
     await signOut(page);
   });

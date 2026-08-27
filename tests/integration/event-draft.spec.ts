@@ -6,19 +6,30 @@ import { generateSlug } from '../helpers/slug';
 const USER_DRAFT_SLUG = generateSlug('User Draft Event', 'User Draft Place Dornbirn', 20);
 const USER_PENDING_SLUG = generateSlug('User Pending Event', 'Test Place Bludenz', 8);
 
-async function resetDraftFixtures(): Promise<void> {
-  await new Promise<void>((resolve, reject) => {
-    const proc = spawn('node', ['scripts/reset-draft-fixtures.mjs'], {
-      cwd: process.cwd(),
-      stdio: 'ignore',
-      shell: true,
-    });
+function runScript(scriptPath: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const proc = spawn('node', [scriptPath], { cwd: process.cwd(), stdio: 'ignore', shell: true });
     proc.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`reset exit ${code}`))));
     proc.on('error', reject);
   });
 }
 
+async function resetDraftFixtures(): Promise<void> {
+  await runScript('scripts/reset-draft-fixtures.mjs');
+}
+
+// admin-event-edit-delete.spec.ts permanently deletes this shared seed fixture as
+// part of its delete-flow tests; reset it here so this file passes regardless of
+// file execution order.
+async function resetUserApprovedEventFixture(): Promise<void> {
+  await runScript('scripts/reset-user-approved-event-fixture.mjs');
+}
+
 test.describe('Event draft status — read-only (AzGFKWfV)', () => {
+  test.beforeEach(async () => {
+    await resetUserApprovedEventFixture();
+  });
+
   test.afterEach(async ({ page }) => {
     await signOut(page);
   });

@@ -1,8 +1,24 @@
 import { test, expect } from '@playwright/test';
+import { spawn } from 'child_process';
 import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
 import { waitForWizardToLoad, clickWeiter, fillStep2EventInfo } from '../helpers/wizard';
 
 const EVENT_TITLE = 'Event ohne Ort';
+
+// admin-event-edit-delete.spec.ts permanently deletes this shared seed fixture as
+// part of its delete-flow tests; reset it here so this file passes regardless of
+// file execution order.
+async function resetSharedPendingFixture(): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const proc = spawn('node', ['scripts/reset-draft-fixtures.mjs'], {
+      cwd: process.cwd(),
+      stdio: 'ignore',
+      shell: true,
+    });
+    proc.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`exit ${code}`))));
+    proc.on('error', reject);
+  });
+}
 
 test.describe('Event wizard: "Ort / Adresse" is optional (ZPiZqKrG)', () => {
   test.afterEach(async ({ page }) => {
@@ -73,7 +89,16 @@ test.describe('Event wizard: "Ort / Adresse" is optional (ZPiZqKrG)', () => {
   });
 });
 
+// One test in this block saves an edit to the shared test-event-foreign-pending
+// fixture; serialize so its beforeEach reset can't race the other test's own
+// reset+read of the same doc.
+test.describe.configure({ mode: 'serial' });
+
 test.describe('Event edit form: "Ort / Adresse" is optional (8BzdB9xp)', () => {
+  test.beforeEach(async () => {
+    await resetSharedPendingFixture();
+  });
+
   test.afterEach(async ({ page }) => {
     await signOut(page);
   });

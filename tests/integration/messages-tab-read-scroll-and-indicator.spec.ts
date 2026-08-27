@@ -17,6 +17,12 @@ async function resetMessageFixtures(): Promise<void> {
   });
 }
 
+// Every test's beforeEach re-seeds shared messages on the same fixture event
+// (test-event-with-messages). Without serial mode, one test's reset can
+// resurrect unread messages while another test in this file is mid-way through
+// marking them read and checking the resulting badge/indicator state.
+test.describe.configure({ mode: 'serial' });
+
 test.describe('Messages tab — read messages & auto-scroll & event indicator', () => {
   test.beforeEach(async () => {
     await resetMessageFixtures();

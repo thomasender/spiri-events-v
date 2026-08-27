@@ -1,11 +1,36 @@
 import { test, expect } from '@playwright/test';
+import { spawn } from 'child_process';
 import { signInWithEmailAndPassword } from '../helpers/auth';
 import { waitForWizardToLoad } from '../helpers/wizard';
 import { generateSlug } from '../helpers/slug';
 
 const FOREIGN_PENDING_SLUG = generateSlug('User Pending Event', 'Test Place Bludenz', 8);
 
+// admin-event-edit-delete.spec.ts permanently deletes this shared seed fixture as
+// part of its delete-flow tests; reset it here so this file passes regardless of
+// file execution order.
+async function resetSharedPendingFixture(): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const proc = spawn('node', ['scripts/reset-draft-fixtures.mjs'], {
+      cwd: process.cwd(),
+      stdio: 'ignore',
+      shell: true,
+    });
+    proc.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`exit ${code}`))));
+    proc.on('error', reject);
+  });
+}
+
+// The last test in this file edits and saves the shared test-event-foreign-pending
+// fixture, then reads it back; serialize so other tests' beforeEach reset can't
+// race that edit-then-verify sequence.
+test.describe.configure({ mode: 'serial' });
+
 test.describe('Rich-text event description', () => {
+  test.beforeEach(async () => {
+    await resetSharedPendingFixture();
+  });
+
   test('description field renders the rich-text toolbar on the create form', async ({ page }) => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/new');

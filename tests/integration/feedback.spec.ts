@@ -26,6 +26,12 @@ async function resetFeedbackFixtures(): Promise<void> {
   });
 }
 
+// Several tests below call resetFeedbackFixtures() mid-test, which wipes and
+// reseeds the shared feedback collection. Without serial mode, two of these tests
+// running concurrently in the same file can race: one test's reset can delete
+// feedback another test just submitted and is still checking for.
+test.describe.configure({ mode: 'serial' });
+
 test.describe('Feedback feature', () => {
   test.afterEach(async ({ page }) => {
     await signOut(page);
