@@ -33,22 +33,50 @@ The dev server / Playwright baseURL is `http://localhost:5180` (chosen to avoid 
 
 ## Playwright Tests
 
-Run e2e tests against the local emulator setup:
-```bash
-npm run test:e2e
-```
-
-Run integration tests:
+Run integration tests against the local emulator setup:
 ```bash
 npm run test:integration
 ```
 
-Run all tests:
+Run everything (unit + integration):
 ```bash
 npm run test:all
 ```
 
+`npm run test` (unit/component tests via Vitest) runs on every commit via the
+pre-commit hook. `npm run test:integration` runs on every push via the
+pre-push hook instead — it needs the emulators + a dev server and is too slow
+to run on every commit.
+
 **Always use emulators + real data dump for local development and testing.** Do NOT test against production.
+
+### ⚠️ If integration tests fail with widespread, unrelated-looking errors
+
+Before assuming the test code or the app is broken, check whether the
+**Firestore emulator itself has degraded**. It's a long-running JVM process
+(`cloud-firestore-emulator-*.jar`) and under sustained load during a work
+session it can start thrashing — CPU pegs at 300–900%, memory balloons into
+the multiple-GB range, and requests start timing out or hanging. When this
+happens you'll see things like: dozens of unrelated tests all failing with
+"element not found" for basic seeded content (e.g. an event title that's
+always present), or a plain `curl` to `http://127.0.0.1:8181` hanging
+instead of returning immediately.
+
+Check for it:
+```bash
+ps aux | grep cloud-firestore-emulator
+```
+If CPU% is very high (compare to a fresh baseline, which idles near 0%),
+the emulator is degraded, not the tests. Fix: kill all the emulator
+processes and restart them fresh, then re-run.
+```bash
+ps aux | grep -i "firebase\|emulator" | grep -v grep | awk '{print $2}' | xargs -I{} kill {}
+bash scripts/start-emulators.sh &
+```
+Do **not** spend time debugging or rewriting tests based on a run where this
+is happening — restart the emulator first, then re-run, and only chase a
+failure that reproduces against a freshly-restarted emulator. Otherwise you
+will loop indefinitely "fixing" tests that were never actually broken.
 
 ## Test Requirements
 
