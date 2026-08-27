@@ -43,6 +43,41 @@ test.describe('Event creation form: mobile layout', () => {
     }
   });
 
+  test('keeps the end date label/info row inside the form container on mobile', async ({
+    page,
+  }) => {
+    // Regression test for PPaKdZLW. The Enddatum field's label row
+    // (label + info tooltip text) is a plain flex row with no wrapping,
+    // so on narrow viewports the long German info text could force the
+    // row (and therefore the standalone .form-group around #endDate,
+    // which unlike #date/#time is not clamped by the .form-row grid)
+    // wider than the container.
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin/new');
+    await waitForWizardToLoad(page);
+
+    await clickWeiter(page);
+    await fillStep2EventInfo(page, {
+      title: 'End Date Label Row Test',
+      description: 'Beschreibung für den End-Date-Label-Row-Test.',
+    });
+    await clickWeiter(page);
+
+    const container = page.locator('.event-form-container');
+    const containerBox = await container.boundingBox();
+    expect(containerBox).not.toBeNull();
+
+    const labelRow = page.locator('.input-label-row').first();
+    await expect(labelRow).toBeVisible();
+    const labelRowBox = await labelRow.boundingBox();
+    expect(labelRowBox).not.toBeNull();
+
+    expect(
+      labelRowBox!.x + labelRowBox!.width,
+      '.input-label-row should not overflow the container on the right'
+    ).toBeLessThanOrEqual(containerBox!.x + containerBox!.width + 1);
+  });
+
   test('does not introduce horizontal page scroll on mobile', async ({ page }) => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/new');
