@@ -18,6 +18,7 @@ import { arrayUnion } from 'firebase/firestore';
 import { canDeleteEvent } from '../utils/eventPermissions';
 import RichTextEditor from './RichTextEditorLazy';
 import { isHtmlEmpty } from '../utils/sanitize';
+import { normalizeLink } from '../utils/link';
 import './EventForm.css';
 
 const INITIAL_STATE = {
@@ -55,13 +56,6 @@ function splitDisplayName(displayName, email) {
   }
   return { firstName: '', lastName: '' };
 }
-
-const normalizeLink = (link) => {
-  const trimmed = link.trim();
-  if (!trimmed) return '';
-  const withProtocol = trimmed.match(/^https?:\/\//i) ? trimmed : 'https://' + trimmed;
-  return withProtocol.replace(/^http:\/\//i, 'https://');
-};
 
 const isValidLink = (link) => {
   const trimmed = link.trim();

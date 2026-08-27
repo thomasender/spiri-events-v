@@ -30,6 +30,7 @@ import { formatEventDateShort } from '../utils/eventFormat';
 import RichTextEditor from './RichTextEditorLazy';
 import RichTextView from './RichTextView';
 import { isHtmlEmpty } from '../utils/sanitize';
+import { normalizeLink } from '../utils/link';
 import './EventForm.css';
 import './EventFormWizard.css';
 
@@ -74,13 +75,6 @@ function splitDisplayName(displayName, email) {
   }
   return { firstName: '', lastName: '' };
 }
-
-const normalizeLink = (link) => {
-  const trimmed = link.trim();
-  if (!trimmed) return '';
-  const withProtocol = trimmed.match(/^https?:\/\//i) ? trimmed : 'https://' + trimmed;
-  return withProtocol.replace(/^http:\/\//i, 'https://');
-};
 
 const isValidLink = (link) => {
   const trimmed = link.trim();
