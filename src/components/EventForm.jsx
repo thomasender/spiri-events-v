@@ -199,7 +199,6 @@ export default function EventForm({ event }) {
     if (!formData.title.trim()) newErrors.title = 'Titel ist erforderlich';
     if (isHtmlEmpty(formData.description)) newErrors.description = 'Beschreibung ist erforderlich';
     if (!formData.date) newErrors.date = 'Datum ist erforderlich';
-    if (!formData.place.trim()) newErrors.place = 'Ort ist erforderlich';
     if (!formData.bezirk) newErrors.bezirk = 'Bezirk ist erforderlich';
     if (!formData.category) {
       newErrors.category = 'Kategorie ist erforderlich';
@@ -756,7 +755,7 @@ export default function EventForm({ event }) {
             </div>
 
             <div className="form-group">
-              <label htmlFor="place">Ort / Adresse *</label>
+              <label htmlFor="place">Ort / Adresse</label>
               <input
                 id="place"
                 name="place"
