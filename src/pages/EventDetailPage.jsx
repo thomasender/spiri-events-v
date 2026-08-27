@@ -30,6 +30,7 @@ import EventMessages from '../components/EventMessages';
 import ShareButton from '../components/ShareButton';
 import RichTextView from '../components/RichTextView';
 import { stripHtml, truncateHtmlText } from '../utils/sanitize';
+import { normalizeLink } from '../utils/link';
 import './EventDetailPage.css';
 
 function formatDate(dateStr) {
@@ -653,7 +654,7 @@ export default function EventDetailPage() {
 
       {event.link && (
         <a
-          href={event.link}
+          href={normalizeLink(event.link)}
           target="_blank"
           rel="noopener noreferrer"
           className="btn btn-primary event-link"
