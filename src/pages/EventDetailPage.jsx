@@ -23,6 +23,10 @@ import { getEventFallbackImage } from '../utils/eventFallbacks';
 import { canEditEvent, canDeleteEvent } from '../utils/eventPermissions';
 import { parseContactText } from '../utils/contactFormat';
 import { getNextUpcomingOccurrence } from '../utils/eventOccurrences';
+import {
+  buildCustomDeleteOccurrenceUpdate,
+  buildCustomDeleteFromDateUpdate,
+} from '../utils/customSeriesUpdates';
 import ConfirmDialog from '../components/ConfirmDialog';
 import RecurringDeleteDialog from '../components/RecurringDeleteDialog';
 import OccurrencePickerDialog from '../components/OccurrencePickerDialog';
@@ -333,8 +337,7 @@ export default function EventDetailPage() {
     try {
       const dateToDelete = selectedOccurrenceDate || event.date;
       if (event.recurrence === 'custom') {
-        const remaining = (event.customDates || []).filter((d) => d !== dateToDelete);
-        await updateEvent(event.id, { customDates: remaining });
+        await updateEvent(event.id, buildCustomDeleteOccurrenceUpdate(event, dateToDelete));
       } else {
         await updateEvent(event.id, {
           exceptionDates: arrayUnion(dateToDelete),
@@ -353,8 +356,7 @@ export default function EventDetailPage() {
     setDeleting(true);
     try {
       if (event.recurrence === 'custom') {
-        const remaining = (event.customDates || []).filter((d) => d < deleteDate);
-        await updateEvent(event.id, { customDates: remaining });
+        await updateEvent(event.id, buildCustomDeleteFromDateUpdate(event, deleteDate));
       } else {
         const [year, month, day] = deleteDate.split('-');
         const prevDate = new Date(year, month - 1, day);

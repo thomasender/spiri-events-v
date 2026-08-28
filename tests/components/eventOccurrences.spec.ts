@@ -257,7 +257,7 @@ describe('getEventOccurrences (custom recurrence)', () => {
     today.setHours(0, 0, 0, 0);
     const todayIso = today.toISOString().split('T')[0];
     expect(result.every((occ) => occ.date >= todayIso)).toBe(true);
-    expect(result).toHaveLength(2);
+    expect(result).toHaveLength(3);
   });
 
   it('filters out exception dates from custom recurrence', () => {
@@ -269,10 +269,10 @@ describe('getEventOccurrences (custom recurrence)', () => {
       exceptionDates: [dateStr(14)],
     };
     const result = getEventOccurrences(event);
-    expect(result.map((e) => e.date)).toEqual([dateStr(7), dateStr(21)]);
+    expect(result.map((e) => e.date)).toEqual([dateStr(5), dateStr(7), dateStr(21)]);
   });
 
-  it('returns empty array when customDates is empty', () => {
+  it('still returns the initial event date when customDates is empty', () => {
     const event = {
       id: '1',
       date: dateStr(5),
@@ -280,13 +280,47 @@ describe('getEventOccurrences (custom recurrence)', () => {
       customDates: [],
     };
     const result = getEventOccurrences(event);
-    expect(result).toEqual([]);
+    expect(result.map((e) => e.date)).toEqual([dateStr(5)]);
   });
 
-  it('returns empty array when customDates is missing', () => {
+  it('still returns the initial event date when customDates is missing', () => {
     const event = { id: '1', date: dateStr(5), recurrence: 'custom' };
     const result = getEventOccurrences(event);
-    expect(result).toEqual([]);
+    expect(result.map((e) => e.date)).toEqual([dateStr(5)]);
+  });
+
+  it('includes the initial event date even when not listed in customDates', () => {
+    const event = {
+      id: '1',
+      date: dateStr(5),
+      recurrence: 'custom',
+      customDates: [dateStr(6), dateStr(7)],
+    };
+    const result = getEventOccurrences(event);
+    expect(result.map((e) => e.date)).toEqual([dateStr(5), dateStr(6), dateStr(7)]);
+  });
+
+  it('does not duplicate the initial event date when it is listed in customDates', () => {
+    const event = {
+      id: '1',
+      date: dateStr(5),
+      recurrence: 'custom',
+      customDates: [dateStr(5), dateStr(6)],
+    };
+    const result = getEventOccurrences(event);
+    expect(result.map((e) => e.date)).toEqual([dateStr(5), dateStr(6)]);
+  });
+
+  it('omits the initial event date when it is an exception date', () => {
+    const event = {
+      id: '1',
+      date: dateStr(5),
+      recurrence: 'custom',
+      customDates: [dateStr(6)],
+      exceptionDates: [dateStr(5)],
+    };
+    const result = getEventOccurrences(event);
+    expect(result.map((e) => e.date)).toEqual([dateStr(6)]);
   });
 
   it('expands multi-day custom occurrences in calendar mode', () => {
@@ -295,13 +329,20 @@ describe('getEventOccurrences (custom recurrence)', () => {
       date: dateStr(5),
       endDate: dateStr(7),
       recurrence: 'custom',
-      customDates: [dateStr(10)],
+      customDates: [dateStr(5), dateStr(10)],
     };
     const result = getEventOccurrences(event, { mode: 'calendar' });
-    expect(result).toHaveLength(3);
-    expect(result.map((e) => e.date)).toEqual([dateStr(10), dateStr(11), dateStr(12)]);
-    expect(result[0].isMultiDayStart).toBe(true);
-    expect(result[2].isMultiDayEnd).toBe(true);
+    expect(result).toHaveLength(6);
+    expect(result.map((e) => e.date)).toEqual([
+      dateStr(5),
+      dateStr(6),
+      dateStr(7),
+      dateStr(10),
+      dateStr(11),
+      dateStr(12),
+    ]);
+    expect(result[3].isMultiDayStart).toBe(true);
+    expect(result[5].isMultiDayEnd).toBe(true);
   });
 
   it('returns single-day entry in list mode for multi-day custom occurrences', () => {
@@ -310,11 +351,11 @@ describe('getEventOccurrences (custom recurrence)', () => {
       date: dateStr(5),
       endDate: dateStr(7),
       recurrence: 'custom',
-      customDates: [dateStr(10), dateStr(20)],
+      customDates: [dateStr(5), dateStr(10), dateStr(20)],
     };
     const result = getEventOccurrences(event, { mode: 'list' });
-    expect(result).toHaveLength(2);
-    expect(result[0].date).toBe(dateStr(10));
+    expect(result).toHaveLength(3);
+    expect(result[1].date).toBe(dateStr(10));
     expect(result[0].isMultiDayStart).toBe(true);
     expect(result[0].isMultiDayEnd).toBe(true);
   });
@@ -328,13 +369,13 @@ describe('getNextUpcomingOccurrence (custom)', () => {
       recurrence: 'custom',
       customDates: [dateStr(20), dateStr(7), dateStr(14)],
     };
-    expect(getNextUpcomingOccurrence(event)).toBe(dateStr(7));
+    expect(getNextUpcomingOccurrence(event)).toBe(dateStr(5));
   });
 
   it('returns null when all custom dates are in the past', () => {
     const event = {
       id: '1',
-      date: dateStr(5),
+      date: dateStr(-10),
       recurrence: 'custom',
       customDates: [dateStr(-7), dateStr(-3)],
     };
@@ -347,7 +388,7 @@ describe('getNextUpcomingOccurrence (custom)', () => {
       date: dateStr(5),
       recurrence: 'custom',
       customDates: [dateStr(7), dateStr(14)],
-      exceptionDates: [dateStr(7)],
+      exceptionDates: [dateStr(5), dateStr(7)],
     };
     expect(getNextUpcomingOccurrence(event)).toBe(dateStr(14));
   });
@@ -361,7 +402,7 @@ describe('getOccurrenceCount (custom)', () => {
       recurrence: 'custom',
       customDates: [dateStr(-7), dateStr(7), dateStr(14), dateStr(21)],
     };
-    expect(getOccurrenceCount(event)).toBe(3);
+    expect(getOccurrenceCount(event)).toBe(4);
   });
 
   it('excludes exception dates from the count', () => {
@@ -372,7 +413,7 @@ describe('getOccurrenceCount (custom)', () => {
       customDates: [dateStr(7), dateStr(14), dateStr(21)],
       exceptionDates: [dateStr(14)],
     };
-    expect(getOccurrenceCount(event)).toBe(2);
+    expect(getOccurrenceCount(event)).toBe(3);
   });
 });
 

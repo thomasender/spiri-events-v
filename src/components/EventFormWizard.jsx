@@ -404,7 +404,11 @@ export default function EventFormWizard() {
         : formData.recurrenceEndDate || '',
     customDates:
       formData.recurrence === 'custom'
-        ? [...(formData.customDates || [])].filter((d) => d && d.length > 0).sort()
+        ? [
+            ...new Set(
+              [formData.date, ...(formData.customDates || [])].filter((d) => d && d.length > 0)
+            ),
+          ].sort()
         : [],
     category: formData.category || 'Sonstiges',
     bezirk: formData.bezirk,

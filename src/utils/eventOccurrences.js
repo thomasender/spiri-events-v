@@ -1,3 +1,16 @@
+// For events with `recurrence: 'custom'` the initial event date is part of the
+// series as well, even if it was never added to `customDates` explicitly.
+// Returns a sorted, de-duplicated list of all dates of the series with
+// exception dates removed.
+export function getCustomSeriesDates(event) {
+  if (!event) return [];
+  const customDates = Array.isArray(event.customDates) ? event.customDates : [];
+  const exceptionDates = Array.isArray(event.exceptionDates) ? event.exceptionDates : [];
+  const all = new Set(customDates.filter((d) => d && d.length > 0));
+  if (event.date) all.add(event.date);
+  return [...all].filter((d) => !exceptionDates.includes(d)).sort();
+}
+
 // Returns the next upcoming occurrence for an event, or event.date as fallback.
 export function getNextUpcomingOccurrence(event) {
   if (!event) return null;
@@ -10,9 +23,7 @@ export function getNextUpcomingOccurrence(event) {
   }
 
   if (event.recurrence === 'custom') {
-    const dates = (event.customDates || [])
-      .filter((d) => !event.exceptionDates || !event.exceptionDates.includes(d))
-      .sort();
+    const dates = getCustomSeriesDates(event);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayIso = today.toISOString().split('T')[0];
@@ -36,11 +47,7 @@ export function getOccurrenceCount(event) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayIso = today.toISOString().split('T')[0];
-    return (event.customDates || []).filter((d) => {
-      if (d < todayIso) return false;
-      if (event.exceptionDates && event.exceptionDates.includes(d)) return false;
-      return true;
-    }).length;
+    return getCustomSeriesDates(event).filter((d) => d >= todayIso).length;
   }
   return getEventOccurrences(event, { mode: 'list' }).length;
 }
@@ -147,14 +154,11 @@ function expandNonRecurring(event, mode) {
 }
 
 function expandCustom(event, mode) {
-  const customDates = Array.isArray(event.customDates) ? event.customDates : [];
-  if (customDates.length === 0) return [];
+  const sortedDates = getCustomSeriesDates(event);
+  if (sortedDates.length === 0) return [];
 
-  const exceptionDates = event.exceptionDates || [];
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-
-  const sortedDates = [...customDates].sort();
 
   const eventDays = event.endDate
     ? Math.ceil(
@@ -165,7 +169,6 @@ function expandCustom(event, mode) {
 
   const occurrences = [];
   for (const occurrenceStart of sortedDates) {
-    if (exceptionDates.includes(occurrenceStart)) continue;
     const occDate = new Date(occurrenceStart + 'T12:00:00');
     if (occDate < today) continue;
 

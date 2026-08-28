@@ -10,6 +10,10 @@ import EventAdminCard from './EventAdminCard';
 import { useState, useMemo } from 'react';
 import { arrayUnion } from 'firebase/firestore';
 import { getNextUpcomingOccurrence } from '../utils/eventOccurrences';
+import {
+  buildCustomDeleteOccurrenceUpdate,
+  buildCustomDeleteFromDateUpdate,
+} from '../utils/customSeriesUpdates';
 import './EventList.css';
 
 const STATUS_FILTERS = [
@@ -109,8 +113,7 @@ export default function EventList() {
     setDeleting(true);
     try {
       if (targetEvent?.recurrence === 'custom') {
-        const remaining = (targetEvent.customDates || []).filter((d) => d !== occurrenceDate);
-        await updateEvent(id, { customDates: remaining });
+        await updateEvent(id, buildCustomDeleteOccurrenceUpdate(targetEvent, occurrenceDate));
       } else {
         await updateEvent(id, {
           exceptionDates: arrayUnion(occurrenceDate),
@@ -130,8 +133,7 @@ export default function EventList() {
     setDeleting(true);
     try {
       if (targetEvent?.recurrence === 'custom') {
-        const remaining = (targetEvent.customDates || []).filter((d) => d < occurrenceDate);
-        await updateEvent(id, { customDates: remaining });
+        await updateEvent(id, buildCustomDeleteFromDateUpdate(targetEvent, occurrenceDate));
       } else {
         const [year, month, day] = occurrenceDate.split('-');
         const prevDate = new Date(year, month - 1, day);
