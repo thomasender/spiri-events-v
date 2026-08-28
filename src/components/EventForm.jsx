@@ -19,6 +19,10 @@ import { canDeleteEvent } from '../utils/eventPermissions';
 import RichTextEditor from './RichTextEditorLazy';
 import { isHtmlEmpty } from '../utils/sanitize';
 import { normalizeLink } from '../utils/link';
+import {
+  buildCustomDeleteOccurrenceUpdate,
+  buildCustomDeleteFromDateUpdate,
+} from '../utils/customSeriesUpdates';
 import './EventForm.css';
 
 const INITIAL_STATE = {
@@ -403,7 +407,11 @@ export default function EventForm({ event }) {
         : formData.recurrenceEndDate || '',
     customDates:
       formData.recurrence === 'custom'
-        ? [...(formData.customDates || [])].filter((d) => d && d.length > 0).sort()
+        ? [
+            ...new Set(
+              [formData.date, ...(formData.customDates || [])].filter((d) => d && d.length > 0)
+            ),
+          ].sort()
         : [],
     category: formData.category || 'Sonstiges',
     bezirk: formData.bezirk,
@@ -520,8 +528,7 @@ export default function EventForm({ event }) {
     setDeleting(true);
     try {
       if (event.recurrence === 'custom') {
-        const remaining = (event.customDates || []).filter((d) => d !== dateToDelete);
-        await updateEvent(event.id, { customDates: remaining });
+        await updateEvent(event.id, buildCustomDeleteOccurrenceUpdate(event, dateToDelete));
       } else {
         await updateEvent(event.id, {
           exceptionDates: arrayUnion(dateToDelete),
@@ -540,8 +547,7 @@ export default function EventForm({ event }) {
     setDeleting(true);
     try {
       if (event.recurrence === 'custom') {
-        const remaining = (event.customDates || []).filter((d) => d < deleteDate);
-        await updateEvent(event.id, { customDates: remaining });
+        await updateEvent(event.id, buildCustomDeleteFromDateUpdate(event, deleteDate));
       } else {
         const [year, month, day] = deleteDate.split('-');
         const prevDate = new Date(year, month - 1, day);

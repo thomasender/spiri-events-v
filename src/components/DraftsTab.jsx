@@ -9,6 +9,7 @@ import RecurringDeleteDialog from './RecurringDeleteDialog';
 import OccurrencePickerDialog from './OccurrencePickerDialog';
 import { arrayUnion } from 'firebase/firestore';
 import { getNextUpcomingOccurrence } from '../utils/eventOccurrences';
+import { buildCustomDeleteOccurrenceUpdate } from '../utils/customSeriesUpdates';
 
 export default function DraftsTab() {
   const { user } = useAuth();
@@ -75,8 +76,7 @@ export default function DraftsTab() {
     setDeleting(true);
     try {
       if (targetEvent?.recurrence === 'custom') {
-        const remaining = (targetEvent.customDates || []).filter((d) => d !== occurrenceDate);
-        await updateEvent(id, { customDates: remaining });
+        await updateEvent(id, buildCustomDeleteOccurrenceUpdate(targetEvent, occurrenceDate));
       } else {
         await updateEvent(id, {
           exceptionDates: arrayUnion(occurrenceDate),
