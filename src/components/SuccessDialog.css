@@ -1,0 +1,27 @@
+.success-dialog {
+  text-align: center;
+}
+
+.success-dialog-icon {
+  display: block;
+  margin: 0 auto 16px;
+  color: var(--free-text);
+}
+
+.success-dialog-message {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+.success-dialog-details {
+  background-color: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  padding: 14px 18px;
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  text-align: left;
+  margin: 0 0 24px;
+  border-left: 3px solid var(--accent-secondary);
+}

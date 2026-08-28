@@ -74,6 +74,16 @@ test.describe('Admin-created events need approval (hGxrS6gp)', () => {
     await page.click('button:has-text("Einreichen")');
     await page.waitForTimeout(2000);
 
+    await page.waitForURL('/admin', { timeout: 10000 }).catch(() => {});
+    await page
+      .getByTestId('success-dialog')
+      .waitFor({ state: 'visible', timeout: 10000 })
+      .catch(() => {});
+    const successDialog = page.getByTestId('success-dialog');
+    if (await successDialog.isVisible().catch(() => false)) {
+      await successDialog.getByTestId('success-dialog-confirm').click();
+    }
+
     await page.waitForURL('/admin', { timeout: 10000 });
 
     await page

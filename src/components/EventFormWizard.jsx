@@ -26,6 +26,7 @@ import {
   Plus,
 } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
+import SuccessDialog from './SuccessDialog';
 import { formatEventDateShort } from '../utils/eventFormat';
 import RichTextEditor from './RichTextEditorLazy';
 import RichTextView from './RichTextView';
@@ -126,6 +127,7 @@ export default function EventFormWizard() {
   const [imageProgress, setImageProgress] = useState(0);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [successState, setSuccessState] = useState(null);
   const [currentStep, setCurrentStep] = useState(1);
   const fileInputRef = useRef(null);
   const wizardContainerRef = useRef(null);
@@ -460,12 +462,27 @@ export default function EventFormWizard() {
         const newImageUrl = await handleImageUpload(docRef.id);
         await updateEvent(docRef.id, { imageUrl: newImageUrl });
       }
-      navigate('/admin');
+
+      if (eventData.status === 'draft') {
+        navigate('/admin');
+        return;
+      }
+
+      setSuccessState({
+        title: 'Vielen Dank!',
+        eventTitle: eventData.title,
+      });
     } catch (err) {
       console.error('Event save failed:', err.code, err.message);
       setSubmitError('Event konnte nicht gespeichert werden. Bitte versuche es erneut.');
       setLoading(false);
     }
+  };
+
+  const handleSuccessConfirm = () => {
+    setSuccessState(null);
+    setLoading(false);
+    navigate('/admin');
   };
 
   const confirmSubmit = () => {
@@ -1110,6 +1127,21 @@ export default function EventFormWizard() {
         onConfirm={confirmSubmit}
         onCancel={() => setShowConfirmModal(false)}
         loading={loading}
+      />
+
+      <SuccessDialog
+        isOpen={successState !== null}
+        title={successState?.title}
+        message={
+          successState
+            ? `Dein Event „${successState.eventTitle}” wurde erfolgreich eingereicht und wartet nun auf die Prüfung durch einen Admin.`
+            : ''
+        }
+        details={
+          'Da die Prüfung durch eine Person erfolgt, kann es etwas dauern, bis dein Event öffentlich sichtbar wird. Du kannst den Status jederzeit in deiner Verwaltung einsehen.'
+        }
+        confirmLabel="Zur Verwaltung"
+        onConfirm={handleSuccessConfirm}
       />
     </div>
   );

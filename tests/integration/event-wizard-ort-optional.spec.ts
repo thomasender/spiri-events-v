@@ -78,6 +78,12 @@ test.describe('Event wizard: "Ort / Adresse" is optional (ZPiZqKrG)', () => {
     await page.click('button:has-text("Einreichen"), button:has-text("Bestätigen")');
     await page.waitForTimeout(2000);
 
+    await page.waitForURL('/admin', { timeout: 10000 }).catch(() => {});
+    const successDialog = page.getByTestId('success-dialog');
+    if (await successDialog.isVisible().catch(() => false)) {
+      await successDialog.getByTestId('success-dialog-confirm').click();
+    }
+
     await page.waitForURL('/admin', { timeout: 10000 });
 
     await page
