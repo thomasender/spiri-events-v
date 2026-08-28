@@ -422,7 +422,7 @@ export default function EventForm({ event }) {
       photoURL: profile?.photoURL || null,
     },
     kontakt: formData.kontakt.trim(),
-    imageUrl: null,
+    imageUrl: imageFile || imageRemoved ? null : originalImageUrl || null,
     status,
   });
 
