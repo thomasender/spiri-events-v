@@ -111,110 +111,114 @@ export default function EventAdminCard({
             onError={() => setImageError(true)}
           />
         </div>
-        <div className="event-card-header">
-          <h3>
-            {event.title}
-            {hasUnread && (
-              <span
-                className="event-card-unread-indicator"
-                data-testid="event-card-unread-indicator"
-                role="img"
-                aria-label={`${unreadCount} ungelesene Nachricht${unreadCount > 1 ? 'en' : ''}`}
-                title={`${unreadCount} ungelesene Nachricht${unreadCount > 1 ? 'en' : ''}`}
-              />
-            )}
-          </h3>
-          <div className="event-card-badges">
-            {showStatus && <StatusBadge status={event.status} />}
-            {isRecurring && (
-              <span className="badge badge--recurring" title="Wiederholende Veranstaltung">
-                <Repeat size={12} />
-                <span>Serie</span>
-              </span>
-            )}
-            {(event.contribution === 'free' || event.contribution === 'donation' || event.fee) && (
-              <span
-                className={`badge ${
-                  event.contribution === 'free'
-                    ? 'badge--free'
+        <div className="event-card-body">
+          <div className="event-card-header">
+            <h3>
+              {event.title}
+              {hasUnread && (
+                <span
+                  className="event-card-unread-indicator"
+                  data-testid="event-card-unread-indicator"
+                  role="img"
+                  aria-label={`${unreadCount} ungelesene Nachricht${unreadCount > 1 ? 'en' : ''}`}
+                  title={`${unreadCount} ungelesene Nachricht${unreadCount > 1 ? 'en' : ''}`}
+                />
+              )}
+            </h3>
+            <div className="event-card-badges">
+              {showStatus && <StatusBadge status={event.status} />}
+              {isRecurring && (
+                <span className="badge badge--recurring" title="Wiederholende Veranstaltung">
+                  <Repeat size={12} />
+                  <span>Serie</span>
+                </span>
+              )}
+              {(event.contribution === 'free' ||
+                event.contribution === 'donation' ||
+                event.fee) && (
+                <span
+                  className={`badge ${
+                    event.contribution === 'free'
+                      ? 'badge--free'
+                      : event.contribution === 'donation'
+                        ? 'badge--donation'
+                        : 'badge--fee'
+                  }`}
+                >
+                  {event.contribution === 'free'
+                    ? 'Kostenlos'
                     : event.contribution === 'donation'
-                      ? 'badge--donation'
-                      : 'badge--fee'
-                }`}
-              >
-                {event.contribution === 'free'
-                  ? 'Kostenlos'
-                  : event.contribution === 'donation'
-                    ? 'Freie Spende'
-                    : `${event.fee} €`}
+                      ? 'Freie Spende'
+                      : `${event.fee} €`}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {event.category && (
+            <div className="event-card-categories">
+              <span className="category-chip">{event.category}</span>
+            </div>
+          )}
+
+          <div className="event-card-meta">
+            <div className="meta-item">
+              <Calendar size={14} />
+              <span>
+                {isRecurring
+                  ? nextOccurrenceDisplay || formatDate(event.date)
+                  : formatDate(event.date)}
+                {formatEndDate(event.date, event.endDate) &&
+                  ` — ${formatEndDate(event.date, event.endDate)}`}
+                {!isMultiDay && event.time && ` • ${event.time}`}
               </span>
+            </div>
+            {event.bezirk && (
+              <div className="meta-item">
+                <MapPin size={14} />
+                <span>{event.bezirk}</span>
+              </div>
             )}
-          </div>
-        </div>
-
-        {event.category && (
-          <div className="event-card-categories">
-            <span className="category-chip">{event.category}</span>
-          </div>
-        )}
-
-        <div className="event-card-meta">
-          <div className="meta-item">
-            <Calendar size={14} />
-            <span>
-              {isRecurring
-                ? nextOccurrenceDisplay || formatDate(event.date)
-                : formatDate(event.date)}
-              {formatEndDate(event.date, event.endDate) &&
-                ` — ${formatEndDate(event.date, event.endDate)}`}
-              {!isMultiDay && event.time && ` • ${event.time}`}
-            </span>
-          </div>
-          {event.bezirk && (
             <div className="meta-item">
               <MapPin size={14} />
-              <span>{event.bezirk}</span>
+              <span>{event.place}</span>
             </div>
-          )}
-          <div className="meta-item">
-            <MapPin size={14} />
-            <span>{event.place}</span>
-          </div>
-          {event.organizer && event.organizer.email && (
-            <div className="meta-item" data-testid="event-owner-email">
-              <Mail size={14} />
-              <span>{event.organizer.email}</span>
-            </div>
-          )}
-        </div>
-
-        {isRecurring && recurrenceLabel && (
-          <div className="event-card-recurrence">
-            <span className="recurrence-pattern">
-              <Repeat size={12} />
-              {recurrenceLabel}
-              {occurrenceCount > 0 && ` · ${occurrenceCount} Termine`}
-            </span>
-            {nextOccurrence && nextOccurrence !== event.date && (
-              <span className="next-occurrence">· Nächster: {nextOccurrenceDisplay}</span>
+            {event.organizer && event.organizer.email && (
+              <div className="meta-item" data-testid="event-owner-email">
+                <Mail size={14} />
+                <span>{event.organizer.email}</span>
+              </div>
             )}
           </div>
-        )}
 
-        {event.description && (
-          <RichTextView
-            html={event.description}
-            truncate={120}
-            className="event-card-description"
-          />
-        )}
+          {isRecurring && recurrenceLabel && (
+            <div className="event-card-recurrence">
+              <span className="recurrence-pattern">
+                <Repeat size={12} />
+                {recurrenceLabel}
+                {occurrenceCount > 0 && ` · ${occurrenceCount} Termine`}
+              </span>
+              {nextOccurrence && nextOccurrence !== event.date && (
+                <span className="next-occurrence">· Nächster: {nextOccurrenceDisplay}</span>
+              )}
+            </div>
+          )}
 
-        {event.status === 'pending' && !isAdmin && (
-          <p className="event-card-pending-note">Wartet auf Genehmigung durch einen Admin</p>
-        )}
-        {event.status === 'draft' && (
-          <p className="event-card-pending-note">Entwurf — noch nicht eingereicht</p>
-        )}
+          {event.description && (
+            <RichTextView
+              html={event.description}
+              truncate={120}
+              className="event-card-description"
+            />
+          )}
+
+          {event.status === 'pending' && !isAdmin && (
+            <p className="event-card-pending-note">Wartet auf Genehmigung durch einen Admin</p>
+          )}
+          {event.status === 'draft' && (
+            <p className="event-card-pending-note">Entwurf — noch nicht eingereicht</p>
+          )}
+        </div>
       </Link>
 
       <div className="event-card-actions">
