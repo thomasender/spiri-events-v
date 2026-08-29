@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import Select from 'react-select';
 import { useEvents, KATEGORIEN, BEZIRKE } from '../hooks/useEvents';
 import { useAuth } from '../hooks/useAuth';
@@ -152,6 +152,8 @@ export default function EventForm({ event }) {
   const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const cancelTarget = location.state?.from || '/admin';
 
   const isAdmin = role === 'Admin';
   const isEdit = Boolean(event);
@@ -489,7 +491,7 @@ export default function EventForm({ event }) {
       } else if (imageRemoved && originalImageUrl) {
         await deleteImageByUrl(originalImageUrl);
       }
-      navigate('/admin');
+      navigate(cancelTarget);
     } catch (err) {
       console.error('Event save failed:', err.code, err.message);
       setSubmitError('Event konnte nicht gespeichert werden. Bitte versuche es erneut.');
@@ -581,7 +583,7 @@ export default function EventForm({ event }) {
     <div className="event-form-page">
       <div className="event-form-container">
         <div className="event-form-header">
-          <button onClick={() => navigate('/admin')} className="btn btn-secondary back-btn">
+          <button onClick={() => navigate(cancelTarget)} className="btn btn-secondary back-btn">
             <ArrowLeft size={18} />
             <span>Zurück</span>
           </button>
@@ -1104,7 +1106,11 @@ export default function EventForm({ event }) {
           {validationError && <p className="error-text submit-error">{validationError}</p>}
 
           <div className="form-actions">
-            <button type="button" onClick={() => navigate('/admin')} className="btn btn-secondary">
+            <button
+              type="button"
+              onClick={() => navigate(cancelTarget)}
+              className="btn btn-secondary"
+            >
               Abbrechen
             </button>
             {canSaveAsDraft && (
