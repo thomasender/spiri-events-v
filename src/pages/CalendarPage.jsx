@@ -75,7 +75,7 @@ export default function CalendarPage() {
     savedState?.selectedCategories || KATEGORIEN
   );
   const [selectedBezirke, setSelectedBezirke] = useState(savedState?.selectedBezirke || []);
-  const [viewMode, setViewMode] = useState(savedState?.viewMode || 'list');
+  const [viewMode, setViewMode] = useState(savedState?.viewMode || 'card');
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
   const { events, loading, error } = useAllEvents();
 

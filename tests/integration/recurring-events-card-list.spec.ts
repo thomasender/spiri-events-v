@@ -74,13 +74,16 @@ test.describe('Card and List view recurring events (TEgXPOfN)', () => {
   ]) {
     test(`list and card view show recurring event in its ${month.name} month`, async ({ page }) => {
       await navigateToMonth(page, month.year, month.month);
-      await expect(
-        page.locator('.event-row', { hasText: RECURRING_EVENT_TITLE }).first()
-      ).toBeVisible();
 
-      await page.locator('button:has-text("Kartenansicht")').first().click();
+      // Card view is now the default on first visit, so the tile renders without
+      // a click. Then flip to list view and confirm the row is rendered too.
       await expect(
         page.locator('.event-tile', { hasText: RECURRING_EVENT_TITLE }).first()
+      ).toBeVisible();
+
+      await page.locator('button:has-text("Listenansicht")').first().click();
+      await expect(
+        page.locator('.event-row', { hasText: RECURRING_EVENT_TITLE }).first()
       ).toBeVisible();
     });
   }
