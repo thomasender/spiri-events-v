@@ -135,6 +135,7 @@ export default function DraftsTab() {
         showSubmit
         showDuplicate
         duplicating={duplicatingId === event.id}
+        fromPath="/admin?tab=drafts"
         onSubmit={(evt) => setStatusActionTarget({ id: evt.id, action: 'submit' })}
         onDuplicate={handleDuplicate}
         onDeleteClick={onDeleteClick}

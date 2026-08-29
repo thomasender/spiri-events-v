@@ -66,6 +66,7 @@ export default function EventAdminCard({
   isAdmin = false,
   approving = null,
   duplicating = false,
+  fromPath = '/admin',
   onApprove,
   onSubmit,
   onRevert,
@@ -273,6 +274,7 @@ export default function EventAdminCard({
         )}
         <Link
           to={`/admin/edit/${event.id}`}
+          state={{ from: fromPath }}
           className="btn btn-secondary btn-sm"
           title={
             isRecurring
