@@ -147,4 +147,36 @@ describe('ShareButton', () => {
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
+
+  it('renders the WhatsApp brand icon (SiWhatsapp) inside the channel button', () => {
+    render(<ShareButton event={mockEvent} />);
+    fireEvent.click(screen.getByTestId('share-event-button'));
+
+    const whatsappButton = screen.getByTestId('share-channel-whatsapp');
+    const svg = whatsappButton.querySelector('svg');
+    expect(svg).not.toBeNull();
+    expect(svg.getAttribute('viewBox')).toBe('0 0 24 24');
+    const paths = svg.querySelectorAll('path');
+    expect(paths.length).toBeGreaterThanOrEqual(1);
+    paths.forEach((p) => {
+      expect(p.getAttribute('d')).toBeTruthy();
+      expect(p.getAttribute('d').length).toBeGreaterThan(50);
+    });
+  });
+
+  it('renders the Signal brand icon (SiSignal) inside the channel button', () => {
+    render(<ShareButton event={mockEvent} />);
+    fireEvent.click(screen.getByTestId('share-event-button'));
+
+    const signalButton = screen.getByTestId('share-channel-signal');
+    const svg = signalButton.querySelector('svg');
+    expect(svg).not.toBeNull();
+    expect(svg.getAttribute('viewBox')).toBe('0 0 24 24');
+    const paths = svg.querySelectorAll('path');
+    expect(paths.length).toBeGreaterThanOrEqual(1);
+    paths.forEach((p) => {
+      expect(p.getAttribute('d')).toBeTruthy();
+      expect(p.getAttribute('d').length).toBeGreaterThan(50);
+    });
+  });
 });

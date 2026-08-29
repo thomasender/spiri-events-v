@@ -1,15 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  Share2,
-  Facebook,
-  Instagram,
-  Send,
-  MessageCircle,
-  MessageSquare,
-  Copy,
-  Check,
-  X,
-} from 'lucide-react';
+import { Share2, Facebook, Instagram, Send, Copy, Check, X } from 'lucide-react';
+import { SiWhatsapp, SiSignal } from 'react-icons/si';
 import './ShareButton.css';
 
 const SHARE_URL_BUILDERS = {
@@ -22,9 +13,9 @@ const SHARE_URL_BUILDERS = {
 const CHANNELS = [
   { id: 'facebook', label: 'Facebook', Icon: Facebook },
   { id: 'instagram', label: 'Instagram', Icon: Instagram },
-  { id: 'whatsapp', label: 'WhatsApp', Icon: MessageCircle },
+  { id: 'whatsapp', label: 'WhatsApp', Icon: SiWhatsapp },
   { id: 'telegram', label: 'Telegram', Icon: Send },
-  { id: 'signal', label: 'Signal', Icon: MessageSquare },
+  { id: 'signal', label: 'Signal', Icon: SiSignal },
 ];
 
 function buildShareUrl(event) {
