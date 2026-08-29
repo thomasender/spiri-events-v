@@ -154,7 +154,10 @@
 }
 
 .event-card-content {
-  display: block;
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 20px;
+  align-items: flex-start;
   padding: 20px 24px;
   text-decoration: none;
   color: inherit;
@@ -165,13 +168,19 @@
   background-color: var(--bg-secondary);
 }
 
+.event-card-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
 .event-card-image-wrapper {
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  max-height: 180px;
-  margin: -20px -24px 16px;
+  width: 120px;
+  height: 90px;
+  border-radius: var(--radius-sm);
   background-color: var(--bg-secondary);
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .event-card-image {
@@ -361,12 +370,14 @@
   }
 
   .event-card-content {
+    grid-template-columns: 88px minmax(0, 1fr);
+    gap: 14px;
     padding: 16px 20px;
   }
 
   .event-card-image-wrapper {
-    margin: -16px -20px 12px;
-    max-height: 140px;
+    width: 88px;
+    height: 66px;
   }
 
   .event-card-actions {
