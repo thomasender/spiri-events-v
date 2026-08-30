@@ -993,7 +993,7 @@ export default function EventForm({ event }) {
                   checked={formData.recurrence === 'custom'}
                   onChange={handleChange}
                 />
-                <span>Benutzerdefinierte Daten</span>
+                <span>Benutzerdefinierte Termine</span>
               </label>
             </div>
           </div>

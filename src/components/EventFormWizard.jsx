@@ -965,7 +965,7 @@ export default function EventFormWizard() {
               checked={formData.recurrence === 'custom'}
               onChange={handleChange}
             />
-            <span>Benutzerdefinierte Daten</span>
+            <span>Benutzerdefinierte Termine</span>
           </label>
         </div>
       </div>

@@ -39,7 +39,7 @@ async function createCustomDatesEvent(page, title: string) {
   await page.click('.kategorie__option:has-text("Yoga")');
   await page.waitForTimeout(300);
 
-  await page.locator('.radio-label:has-text("Benutzerdefinierte Daten")').click();
+  await page.locator('.radio-label:has-text("Benutzerdefinierte Termine")').click();
   await page.waitForTimeout(200);
 
   await page.getByTestId('custom-date-add-button').click();
