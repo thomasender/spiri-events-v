@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Calendar, Clock, MapPin, Ticket, ExternalLink, User, Mail, Phone } from 'lucide-react';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
 import { parseContactText } from '../utils/contactFormat';
+import { formatPriceWithCurrency } from '../utils/currency';
 import RichTextView from './RichTextView';
 import './EventModal.css';
 
@@ -122,7 +123,7 @@ export default function EventModal({ event, onClose }) {
                   : isDonation
                     ? 'Freie Spende'
                     : event.fee
-                      ? `${event.fee} €`
+                      ? formatPriceWithCurrency(event.fee, event.priceCurrency)
                       : 'Gebühr'}
               </span>
             </div>

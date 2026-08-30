@@ -35,6 +35,7 @@ import ShareButton from '../components/ShareButton';
 import RichTextView from '../components/RichTextView';
 import { stripHtml, truncateHtmlText } from '../utils/sanitize';
 import { normalizeLink } from '../utils/link';
+import { DEFAULT_CURRENCY, formatPriceWithCurrency } from '../utils/currency';
 import './EventDetailPage.css';
 
 function formatDate(dateStr) {
@@ -118,14 +119,14 @@ function generateEventJsonLd(event) {
       ? {
           '@type': 'Offer',
           price: '0',
-          priceCurrency: 'EUR',
+          priceCurrency: DEFAULT_CURRENCY,
           availability: 'https://schema.org/InStock',
         }
       : event.contribution === 'donation'
         ? {
             '@type': 'Offer',
             price: '0',
-            priceCurrency: 'EUR',
+            priceCurrency: DEFAULT_CURRENCY,
             availability: 'https://schema.org/InStock',
             description: 'Freie Spende',
           }
@@ -133,7 +134,7 @@ function generateEventJsonLd(event) {
           ? {
               '@type': 'Offer',
               price: event.fee.toString(),
-              priceCurrency: 'EUR',
+              priceCurrency: event.priceCurrency || DEFAULT_CURRENCY,
               availability: 'https://schema.org/InStock',
             }
           : null;
@@ -511,7 +512,7 @@ export default function EventDetailPage() {
                 : isDonation
                   ? 'Freie Spende'
                   : event.fee
-                    ? `${event.fee} €`
+                    ? formatPriceWithCurrency(event.fee, event.priceCurrency)
                     : 'Gebühr'}
             </span>
           </div>

@@ -23,6 +23,7 @@ import {
   buildCustomDeleteOccurrenceUpdate,
   buildCustomDeleteFromDateUpdate,
 } from '../utils/customSeriesUpdates';
+import { CURRENCIES, DEFAULT_CURRENCY } from '../utils/currency';
 import './EventForm.css';
 
 const INITIAL_STATE = {
@@ -34,6 +35,7 @@ const INITIAL_STATE = {
   place: '',
   contribution: 'free',
   fee: '',
+  priceCurrency: DEFAULT_CURRENCY,
   description: '',
   link: '',
   recurrence: 'none',
@@ -105,6 +107,7 @@ export default function EventForm({ event }) {
         place: event.place || '',
         contribution: event.contribution || 'free',
         fee: event.fee || '',
+        priceCurrency: event.priceCurrency || DEFAULT_CURRENCY,
         description: event.description || '',
         link: event.link || '',
         recurrence: event.recurrence || 'none',
@@ -426,6 +429,7 @@ export default function EventForm({ event }) {
     place: formData.isOnline ? '' : formData.place.trim(),
     contribution: formData.contribution,
     fee: formData.contribution === 'fee' ? parseFloat(formData.fee) : null,
+    priceCurrency: formData.contribution === 'fee' ? formData.priceCurrency : null,
     description: formData.description,
     link: normalizeLink(formData.link),
     recurrence: formData.recurrence || 'none',
@@ -856,20 +860,38 @@ export default function EventForm({ event }) {
           </div>
 
           {formData.contribution === 'fee' && (
-            <div className="form-group">
-              <label htmlFor="fee">Betrag (€) *</label>
-              <input
-                id="fee"
-                name="fee"
-                type="number"
-                min="0"
-                step="0.01"
-                value={formData.fee}
-                onChange={handleChange}
-                placeholder="z.B. 15.00"
-                className={errors.fee ? 'input-error' : ''}
-              />
-              {errors.fee && <span className="error-text">{errors.fee}</span>}
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="fee">Betrag *</label>
+                <input
+                  id="fee"
+                  name="fee"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={formData.fee}
+                  onChange={handleChange}
+                  placeholder="z.B. 15.00"
+                  className={errors.fee ? 'input-error' : ''}
+                />
+                {errors.fee && <span className="error-text">{errors.fee}</span>}
+              </div>
+              <div className="form-group">
+                <label htmlFor="priceCurrency">Währung *</label>
+                <select
+                  id="priceCurrency"
+                  name="priceCurrency"
+                  value={formData.priceCurrency}
+                  onChange={handleChange}
+                  data-testid="price-currency-select"
+                >
+                  {CURRENCIES.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           )}
 
