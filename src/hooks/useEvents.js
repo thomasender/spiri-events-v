@@ -34,6 +34,8 @@ export const KATEGORIEN = [
 
 export const BEZIRKE = ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe'];
 
+export const ONLINE_LOCATION = 'Online';
+
 function normalizeCategory(event) {
   if (event.category) return event.category;
   if (Array.isArray(event.categories) && event.categories.length > 0) {
@@ -43,14 +45,18 @@ function normalizeCategory(event) {
 }
 
 function normalizeEvents(events) {
-  return events.map((event) => ({
-    ...event,
-    category: normalizeCategory(event),
-    bezirk: event.bezirk || '',
-    status: event.status || 'pending',
-    organizer: event.organizer || { firstName: '', lastName: '', email: '' },
-    kontakt: event.kontakt || '',
-  }));
+  return events.map((event) => {
+    const isOnline = Boolean(event.isOnline);
+    return {
+      ...event,
+      category: normalizeCategory(event),
+      bezirk: isOnline ? '' : event.bezirk || '',
+      isOnline,
+      status: event.status || 'pending',
+      organizer: event.organizer || { firstName: '', lastName: '', email: '' },
+      kontakt: event.kontakt || '',
+    };
+  });
 }
 
 export function useEvents(user) {
@@ -169,6 +175,7 @@ export function useEvents(user) {
       exceptionDates: [],
       category: source.category || 'Sonstiges',
       bezirk: source.bezirk || '',
+      isOnline: Boolean(source.isOnline),
       organizer: source.organizer
         ? { ...source.organizer }
         : { firstName: '', lastName: '', email: '', photoURL: null },
@@ -311,11 +318,13 @@ export function useEventById(eventId) {
       (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
+          const isOnline = Boolean(data.isOnline);
           const normalized = {
             id: docSnap.id,
             ...data,
             category: normalizeCategory(data),
-            bezirk: data.bezirk || '',
+            bezirk: isOnline ? '' : data.bezirk || '',
+            isOnline,
             status: data.status || 'pending',
             organizer: data.organizer || { firstName: '', lastName: '', email: '' },
             kontakt: data.kontakt || '',

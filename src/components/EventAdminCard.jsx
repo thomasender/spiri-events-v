@@ -20,7 +20,7 @@ import {
   getOccurrenceCount,
   getRecurrenceLabel,
 } from '../utils/eventOccurrences';
-import { isMultiDayEvent } from '../utils/eventFormat';
+import { getEventLocationLabel, isMultiDayEvent } from '../utils/eventFormat';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
 
 function formatDate(dateStr) {
@@ -79,6 +79,7 @@ export default function EventAdminCard({
   const nextOccurrence = isRecurring ? getNextUpcomingOccurrence(event) : null;
   const occurrenceCount = isRecurring ? getOccurrenceCount(event) : 0;
   const hasUnread = unreadCount > 0;
+  const locationLabel = getEventLocationLabel(event);
   const fallbackImage = getEventFallbackImage(event);
   const [imageError, setImageError] = useState(false);
   const imageSrc = event.imageUrl && !imageError ? event.imageUrl : fallbackImage;
@@ -173,16 +174,18 @@ export default function EventAdminCard({
                 {!isMultiDay && event.time && ` • ${event.time}`}
               </span>
             </div>
-            {event.bezirk && (
+            {locationLabel && (
               <div className="meta-item">
                 <MapPin size={14} />
-                <span>{event.bezirk}</span>
+                <span>{locationLabel}</span>
               </div>
             )}
-            <div className="meta-item">
-              <MapPin size={14} />
-              <span>{event.place}</span>
-            </div>
+            {!event.isOnline && event.place && (
+              <div className="meta-item">
+                <MapPin size={14} />
+                <span>{event.place}</span>
+              </div>
+            )}
             {event.organizer && event.organizer.email && (
               <div className="meta-item" data-testid="event-owner-email">
                 <Mail size={14} />

@@ -58,3 +58,12 @@ export function getOrganizerName(event) {
 export function getPrimaryCategory(event) {
   return event.category || null;
 }
+
+// Returns the human-readable location label for an event: the district for
+// in-person events, the literal string "Online" for online events, and an
+// empty string when neither is set.
+export function getEventLocationLabel(event) {
+  if (!event) return '';
+  if (event.isOnline) return 'Online';
+  return event.bezirk || '';
+}

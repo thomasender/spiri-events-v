@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { useAllEvents, KATEGORIEN, BEZIRKE } from '../hooks/useEvents';
+import { useAllEvents, KATEGORIEN, BEZIRKE, ONLINE_LOCATION } from '../hooks/useEvents';
 import { useAuth } from '../hooks/useAuth';
 import Calendar from '../components/Calendar';
 import EventsSection from '../components/EventsSection';
@@ -47,6 +47,12 @@ function loadFilterState() {
       // Reset to the current month so users land where they expect.
       delete parsed.currentMonth;
     }
+    // Backwards compat: previous schema stored the location filter under
+    // `selectedBezirke`. Migrate any saved selection forward to the new key.
+    if (parsed && Array.isArray(parsed.selectedBezirke) && !parsed.selectedOrte) {
+      parsed.selectedOrte = parsed.selectedBezirke;
+      delete parsed.selectedBezirke;
+    }
     return parsed;
   } catch {}
   return null;
@@ -74,7 +80,7 @@ export default function CalendarPage() {
   const [selectedCategories, setSelectedCategories] = useState(
     savedState?.selectedCategories || KATEGORIEN
   );
-  const [selectedBezirke, setSelectedBezirke] = useState(savedState?.selectedBezirke || []);
+  const [selectedOrte, setSelectedOrte] = useState(savedState?.selectedOrte || []);
   const [viewMode, setViewMode] = useState(savedState?.viewMode || 'card');
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
   const { events, loading, error } = useAllEvents();
@@ -83,10 +89,10 @@ export default function CalendarPage() {
     saveFilterState({
       currentMonth,
       selectedCategories,
-      selectedBezirke,
+      selectedOrte,
       viewMode,
     });
-  }, [currentMonth, selectedCategories, selectedBezirke, viewMode]);
+  }, [currentMonth, selectedCategories, selectedOrte, viewMode]);
 
   const handleEventClick = (event) => {
     const slugOrId = event.slug || event.id;
@@ -108,18 +114,18 @@ export default function CalendarPage() {
     setSelectedCategories([]);
   };
 
-  const toggleBezirk = (bezirk) => {
-    setSelectedBezirke((prev) =>
-      prev.includes(bezirk) ? prev.filter((b) => b !== bezirk) : [...prev, bezirk]
+  const toggleOrt = (ort) => {
+    setSelectedOrte((prev) =>
+      prev.includes(ort) ? prev.filter((o) => o !== ort) : [...prev, ort]
     );
   };
 
-  const selectAllBezirke = () => {
-    setSelectedBezirke(BEZIRKE);
+  const selectAllOrte = () => {
+    setSelectedOrte([...BEZIRKE, ONLINE_LOCATION]);
   };
 
-  const selectNoneBezirke = () => {
-    setSelectedBezirke([]);
+  const selectNoneOrte = () => {
+    setSelectedOrte([]);
   };
 
   const filteredEvents = useMemo(() => {
@@ -127,10 +133,12 @@ export default function CalendarPage() {
       const categoryMatch =
         selectedCategories.length === 0 ||
         (event.category && selectedCategories.includes(event.category));
-      const bezirkMatch = selectedBezirke.length === 0 || selectedBezirke.includes(event.bezirk);
-      return categoryMatch && bezirkMatch;
+      if (selectedOrte.length === 0) return categoryMatch;
+      const eventOrtKey = event.isOnline ? ONLINE_LOCATION : event.bezirk;
+      const ortMatch = selectedOrte.includes(eventOrtKey);
+      return categoryMatch && ortMatch;
     });
-  }, [events, selectedCategories, selectedBezirke]);
+  }, [events, selectedCategories, selectedOrte]);
 
   const monthEvents = useMemo(() => {
     const year = currentMonth.getFullYear();
@@ -261,12 +269,12 @@ export default function CalendarPage() {
               </summary>
               <div className="filter-accordion-body">
                 <div className="filter-header">
-                  <span className="filter-label">Bezirk</span>
+                  <span className="filter-label">Ort</span>
                   <div className="filter-quick-actions">
-                    <button type="button" onClick={selectAllBezirke}>
+                    <button type="button" onClick={selectAllOrte}>
                       Alle
                     </button>
-                    <button type="button" onClick={selectNoneBezirke}>
+                    <button type="button" onClick={selectNoneOrte}>
                       Keine
                     </button>
                   </div>
@@ -276,14 +284,24 @@ export default function CalendarPage() {
                     <button
                       key={bezirk}
                       type="button"
-                      className="filter-chip filter-chip--bezirk"
-                      onClick={() => toggleBezirk(bezirk)}
-                      aria-pressed={selectedBezirke.includes(bezirk)}
+                      className="filter-chip filter-chip--ort"
+                      onClick={() => toggleOrt(bezirk)}
+                      aria-pressed={selectedOrte.includes(bezirk)}
                     >
                       <Check size={14} className="filter-chip-icon" aria-hidden="true" />
                       <span>{bezirk}</span>
                     </button>
                   ))}
+                  <button
+                    type="button"
+                    className="filter-chip filter-chip--ort filter-chip--ort-online"
+                    onClick={() => toggleOrt(ONLINE_LOCATION)}
+                    aria-pressed={selectedOrte.includes(ONLINE_LOCATION)}
+                    data-testid="filter-chip-online"
+                  >
+                    <Check size={14} className="filter-chip-icon" aria-hidden="true" />
+                    <span>{ONLINE_LOCATION}</span>
+                  </button>
                 </div>
               </div>
             </details>

@@ -69,7 +69,7 @@ test.describe('Calendar Integration', () => {
   });
 
   test.describe('Mehr Filter Accordion', () => {
-    test('accordion is initially collapsed and reveals Bezirke on open', async ({ page }) => {
+    test('accordion is initially collapsed and reveals Orte on open', async ({ page }) => {
       const accordion = page.locator('.filter-accordion');
       await expect(accordion).toBeVisible();
       await expect(accordion).toHaveJSProperty('open', false);
@@ -77,8 +77,8 @@ test.describe('Calendar Integration', () => {
 
       await accordion.locator('.filter-accordion-summary').click();
       await expect(accordion).toHaveJSProperty('open', true);
-      const districts = ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe'];
-      for (const district of districts) {
+      const orte = ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe'];
+      for (const district of orte) {
         await expect(
           page.locator(`.filter-accordion button:has-text("${district}")`)
         ).toBeVisible();
@@ -89,17 +89,28 @@ test.describe('Calendar Integration', () => {
     });
   });
 
-  test.describe('District Filters', () => {
+  test.describe('Ort Filters', () => {
     test('Grenznahe district filter can be toggled once accordion is open', async ({ page }) => {
       await page.locator('.filter-accordion .filter-accordion-summary').click();
       await expect(page.locator('.filter-accordion')).toHaveJSProperty('open', true);
       const grenznaheChip = page
-        .locator('.filter-chip--bezirk')
+        .locator('.filter-chip--ort')
         .filter({ hasText: 'Grenznahe' })
         .first();
       await expect(grenznaheChip).toBeVisible();
       await grenznaheChip.click();
       await expect(grenznaheChip).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    test('Online chip is visible alongside the districts and is toggleable', async ({ page }) => {
+      await page.locator('.filter-accordion .filter-accordion-summary').click();
+      await expect(page.locator('.filter-accordion')).toHaveJSProperty('open', true);
+
+      const onlineChip = page.getByTestId('filter-chip-online');
+      await expect(onlineChip).toBeVisible();
+      await expect(onlineChip).toHaveText('Online');
+      await onlineChip.click();
+      await expect(onlineChip).toHaveAttribute('aria-pressed', 'true');
     });
   });
 
@@ -121,7 +132,7 @@ test.describe('Calendar Integration', () => {
               'Soundhealing',
               'Sonstiges',
             ],
-            selectedBezirke: [],
+            selectedOrte: [],
             viewMode: 'list',
           })
         );

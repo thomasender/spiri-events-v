@@ -10,6 +10,7 @@ import {
   isMultiDayEvent,
   getOrganizerName,
   getPrimaryCategory,
+  getEventLocationLabel,
 } from '../../src/utils/eventFormat';
 
 describe('formatEventDateShort', () => {
@@ -106,6 +107,30 @@ describe('getPrimaryCategory', () => {
 
   it('returns null when no category is set', () => {
     expect(getPrimaryCategory({})).toBeNull();
+  });
+});
+
+describe('getEventLocationLabel', () => {
+  it('returns "Online" for online events regardless of bezirk', () => {
+    expect(getEventLocationLabel({ isOnline: true })).toBe('Online');
+    expect(getEventLocationLabel({ isOnline: true, bezirk: 'Bregenz' })).toBe('Online');
+  });
+
+  it('returns the bezirk for in-person events', () => {
+    expect(getEventLocationLabel({ bezirk: 'Dornbirn' })).toBe('Dornbirn');
+  });
+
+  it('returns the bezirk when isOnline is explicitly false', () => {
+    expect(getEventLocationLabel({ isOnline: false, bezirk: 'Feldkirch' })).toBe('Feldkirch');
+  });
+
+  it('returns an empty string when no location info is set', () => {
+    expect(getEventLocationLabel({})).toBe('');
+  });
+
+  it('returns an empty string for null/undefined events', () => {
+    expect(getEventLocationLabel(null)).toBe('');
+    expect(getEventLocationLabel(undefined)).toBe('');
   });
 });
 

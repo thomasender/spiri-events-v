@@ -4,6 +4,7 @@ import { MapPin } from 'lucide-react';
 import {
   formatEventDateLabel,
   formatEventDateRangeLabel,
+  getEventLocationLabel,
   getOrganizerName,
   getPrimaryCategory,
   isMultiDayEvent,
@@ -17,6 +18,7 @@ export default function EventCard({ event, categoryColor }) {
   const fallbackImage = getEventFallbackImage(event);
   const multiDay = isMultiDayEvent(event);
   const dateRangeLabel = multiDay ? formatEventDateRangeLabel(event.date, event.endDate) : null;
+  const locationLabel = getEventLocationLabel(event);
   const [imageError, setImageError] = useState(false);
   const imageSrc = event.imageUrl && !imageError ? event.imageUrl : fallbackImage;
 
@@ -51,10 +53,13 @@ export default function EventCard({ event, categoryColor }) {
           )}
         </span>
         <h3 className="event-tile-title">{event.title}</h3>
-        {event.bezirk && (
-          <span className="event-tile-location">
+        {locationLabel && (
+          <span
+            className={`event-tile-location${event.isOnline ? ' event-tile-location--online' : ''}`}
+            data-testid={event.isOnline ? 'event-tile-location-online' : undefined}
+          >
             <MapPin size={14} />
-            {event.bezirk}
+            {locationLabel}
           </span>
         )}
         {organizerName && (
