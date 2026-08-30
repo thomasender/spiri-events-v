@@ -32,6 +32,7 @@ import RichTextEditor from './RichTextEditorLazy';
 import RichTextView from './RichTextView';
 import { isHtmlEmpty } from '../utils/sanitize';
 import { normalizeLink } from '../utils/link';
+import { CURRENCIES, DEFAULT_CURRENCY, formatPriceWithCurrency } from '../utils/currency';
 import './EventForm.css';
 import './EventFormWizard.css';
 
@@ -43,6 +44,7 @@ const INITIAL_STATE = {
   place: '',
   contribution: 'free',
   fee: '',
+  priceCurrency: DEFAULT_CURRENCY,
   description: '',
   link: '',
   recurrence: 'none',
@@ -419,6 +421,7 @@ export default function EventFormWizard() {
     place: formData.isOnline ? '' : formData.place.trim(),
     contribution: formData.contribution,
     fee: formData.contribution === 'fee' ? parseFloat(formData.fee) : null,
+    priceCurrency: formData.contribution === 'fee' ? formData.priceCurrency : null,
     description: formData.description,
     link: normalizeLink(formData.link),
     recurrence: formData.recurrence || 'none',
@@ -876,20 +879,38 @@ export default function EventFormWizard() {
       </div>
 
       {formData.contribution === 'fee' && (
-        <div className="form-group">
-          <label htmlFor="fee">Betrag (€) *</label>
-          <input
-            id="fee"
-            name="fee"
-            type="number"
-            min="0"
-            step="0.01"
-            value={formData.fee}
-            onChange={handleChange}
-            placeholder="z.B. 15.00"
-            className={errors.fee ? 'input-error' : ''}
-          />
-          {errors.fee && <span className="error-text">{errors.fee}</span>}
+        <div className="form-row">
+          <div className="form-group">
+            <label htmlFor="fee">Betrag *</label>
+            <input
+              id="fee"
+              name="fee"
+              type="number"
+              min="0"
+              step="0.01"
+              value={formData.fee}
+              onChange={handleChange}
+              placeholder="z.B. 15.00"
+              className={errors.fee ? 'input-error' : ''}
+            />
+            {errors.fee && <span className="error-text">{errors.fee}</span>}
+          </div>
+          <div className="form-group">
+            <label htmlFor="priceCurrency">Währung *</label>
+            <select
+              id="priceCurrency"
+              name="priceCurrency"
+              value={formData.priceCurrency}
+              onChange={handleChange}
+              data-testid="price-currency-select"
+            >
+              {CURRENCIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       )}
 
@@ -1084,7 +1105,7 @@ export default function EventFormWizard() {
               ? 'Kostenlos'
               : formData.contribution === 'donation'
                 ? 'Freie Spende'
-                : `Gebühr: ${formData.fee}€`}
+                : `Gebühr: ${formatPriceWithCurrency(formData.fee, formData.priceCurrency) || `${formData.fee}`}`}
           </p>
         </div>
       </div>

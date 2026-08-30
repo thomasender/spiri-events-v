@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, CalendarDays, MapPin } from 'lucide-react';
 import { getEventOccurrences } from '../utils/eventOccurrences';
+import { formatPriceWithCurrency } from '../utils/currency';
 import './Calendar.css';
 
 const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
@@ -218,7 +219,7 @@ export default function Calendar({
                                 ? 'Frei'
                                 : event.contribution === 'donation'
                                   ? 'Spende'
-                                  : `${event.fee}€`}
+                                  : formatPriceWithCurrency(event.fee, event.priceCurrency)}
                             </span>
                           )}
                         </div>
@@ -337,7 +338,7 @@ export default function Calendar({
                           ? 'Frei'
                           : event.contribution === 'donation'
                             ? 'Spende'
-                            : `${event.fee}€`}
+                            : formatPriceWithCurrency(event.fee, event.priceCurrency)}
                       </span>
                     )}
                   </button>

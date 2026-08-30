@@ -22,6 +22,7 @@ import {
 } from '../utils/eventOccurrences';
 import { getEventLocationLabel, isMultiDayEvent } from '../utils/eventFormat';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
+import { formatPriceWithCurrency } from '../utils/currency';
 
 function formatDate(dateStr) {
   if (!dateStr) return '';
@@ -150,7 +151,7 @@ export default function EventAdminCard({
                     ? 'Kostenlos'
                     : event.contribution === 'donation'
                       ? 'Freie Spende'
-                      : `${event.fee} €`}
+                      : formatPriceWithCurrency(event.fee, event.priceCurrency)}
                 </span>
               )}
             </div>

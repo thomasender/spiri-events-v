@@ -18,6 +18,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { findUniqueSlug } from '../lib/slug';
+import { normalizeCurrency } from '../utils/currency';
 import { useAuth } from './useAuth';
 import { auth } from '../lib/firebase';
 import { getApp } from 'firebase/app';
@@ -55,6 +56,7 @@ function normalizeEvents(events) {
       status: event.status || 'pending',
       organizer: event.organizer || { firstName: '', lastName: '', email: '' },
       kontakt: event.kontakt || '',
+      priceCurrency: normalizeCurrency(event.priceCurrency),
     };
   });
 }
@@ -167,6 +169,7 @@ export function useEvents(user) {
       place: source.place || '',
       contribution: source.contribution || 'free',
       fee: source.fee ?? null,
+      priceCurrency: normalizeCurrency(source.priceCurrency),
       description: source.description || '',
       link: source.link || '',
       recurrence: source.recurrence || 'none',
@@ -328,6 +331,7 @@ export function useEventById(eventId) {
             status: data.status || 'pending',
             organizer: data.organizer || { firstName: '', lastName: '', email: '' },
             kontakt: data.kontakt || '',
+            priceCurrency: normalizeCurrency(data.priceCurrency),
           };
           setEvent(normalized);
         } else {
