@@ -1238,12 +1238,12 @@ export default function EventForm({ event }) {
                 disabled={loading || imageUploading}
                 data-testid="save-as-draft-button"
               >
-                <Save size={18} />
+                <Save size={22} />
                 <span>{getDraftButtonText()}</span>
               </button>
             )}
             <button type="submit" className="btn btn-primary" disabled={loading || imageUploading}>
-              <Save size={18} />
+              <Save size={22} />
               <span>{getSubmitButtonText()}</span>
             </button>
             {canDelete && (
