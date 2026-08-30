@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
-import { waitForWizardToLoad } from '../helpers/wizard';
+import { enableRecurrence, waitForWizardToLoad } from '../helpers/wizard';
 
 const EVENT_TITLE = `Custom Dates Initial Date Event ${Date.now()}`;
 
@@ -39,6 +39,7 @@ async function createCustomDatesEvent(page, title: string) {
   await page.click('.kategorie__option:has-text("Yoga")');
   await page.waitForTimeout(300);
 
+  await enableRecurrence(page);
   await page.locator('.radio-label:has-text("Benutzerdefinierte Termine")').click();
   await page.waitForTimeout(200);
 

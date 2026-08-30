@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
-import { waitForWizardToLoad } from '../helpers/wizard';
+import { enableRecurrence, waitForWizardToLoad } from '../helpers/wizard';
 
 const ISO_DATE = (offsetDays) => {
   const d = new Date();
@@ -33,6 +33,8 @@ test.describe('Custom dates recurrence (O54F3kAx)', () => {
     await page.goto('/admin/new');
     await navigateToStep3(page);
 
+    await enableRecurrence(page);
+
     const customRadio = page.locator('.radio-label:has-text("Benutzerdefinierte Termine")');
     await expect(customRadio).toBeVisible();
   });
@@ -42,6 +44,7 @@ test.describe('Custom dates recurrence (O54F3kAx)', () => {
     await page.goto('/admin/new');
     await navigateToStep3(page);
 
+    await enableRecurrence(page);
     await page.locator('.radio-label:has-text("Benutzerdefinierte Termine")').click();
     await page.waitForTimeout(200);
 
@@ -56,6 +59,7 @@ test.describe('Custom dates recurrence (O54F3kAx)', () => {
 
     await expect(page.locator('#recurrenceEndDate')).not.toBeVisible();
 
+    await enableRecurrence(page);
     await page.locator('.radio-label:has-text("Benutzerdefinierte Termine")').click();
     await page.waitForTimeout(200);
 
@@ -78,6 +82,7 @@ test.describe('Custom dates recurrence (O54F3kAx)', () => {
     await page.locator('.kategorie__option:has-text("Yoga")').click();
     await page.waitForTimeout(300);
 
+    await enableRecurrence(page);
     await page.locator('.radio-label:has-text("Benutzerdefinierte Termine")').click();
     await page.waitForTimeout(200);
 
@@ -94,6 +99,7 @@ test.describe('Custom dates recurrence (O54F3kAx)', () => {
     await page.goto('/admin/new');
     await navigateToStep3(page);
 
+    await enableRecurrence(page);
     await page.locator('.radio-label:has-text("Benutzerdefinierte Termine")').click();
     await page.waitForTimeout(200);
 

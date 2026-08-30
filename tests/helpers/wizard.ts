@@ -130,6 +130,14 @@ export async function fillStep3Details(
   }
 }
 
+export async function enableRecurrence(page: Page) {
+  const yesRadio = page.getByTestId('recurrence-yes-radio');
+  if ((await yesRadio.count()) === 0) return;
+  if (await yesRadio.isChecked()) return;
+  await page.locator('.radio-label:has-text("Ja")').first().click();
+  await page.waitForTimeout(150);
+}
+
 export async function selectBezirk(page: Page, bezirk: string) {
   await page.click('.filter-accordion .filter-accordion-summary');
   await page.waitForTimeout(300);
