@@ -28,12 +28,12 @@ test.describe('Custom dates recurrence (O54F3kAx)', () => {
     await signOut(page);
   });
 
-  test('wizard offers "Benutzerdefinierte Daten" radio option', async ({ page }) => {
+  test('wizard offers "Benutzerdefinierte Termine" radio option', async ({ page }) => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/new');
     await navigateToStep3(page);
 
-    const customRadio = page.locator('.radio-label:has-text("Benutzerdefinierte Daten")');
+    const customRadio = page.locator('.radio-label:has-text("Benutzerdefinierte Termine")');
     await expect(customRadio).toBeVisible();
   });
 
@@ -42,7 +42,7 @@ test.describe('Custom dates recurrence (O54F3kAx)', () => {
     await page.goto('/admin/new');
     await navigateToStep3(page);
 
-    await page.locator('.radio-label:has-text("Benutzerdefinierte Daten")').click();
+    await page.locator('.radio-label:has-text("Benutzerdefinierte Termine")').click();
     await page.waitForTimeout(200);
 
     await expect(page.getByTestId('custom-dates-list')).toBeAttached();
@@ -56,7 +56,7 @@ test.describe('Custom dates recurrence (O54F3kAx)', () => {
 
     await expect(page.locator('#recurrenceEndDate')).not.toBeVisible();
 
-    await page.locator('.radio-label:has-text("Benutzerdefinierte Daten")').click();
+    await page.locator('.radio-label:has-text("Benutzerdefinierte Termine")').click();
     await page.waitForTimeout(200);
 
     await expect(page.locator('#recurrenceEndDate')).not.toBeVisible();
@@ -78,7 +78,7 @@ test.describe('Custom dates recurrence (O54F3kAx)', () => {
     await page.locator('.kategorie__option:has-text("Yoga")').click();
     await page.waitForTimeout(300);
 
-    await page.locator('.radio-label:has-text("Benutzerdefinierte Daten")').click();
+    await page.locator('.radio-label:has-text("Benutzerdefinierte Termine")').click();
     await page.waitForTimeout(200);
 
     await page.getByRole('button', { name: 'Weiter', exact: true }).click();
@@ -94,7 +94,7 @@ test.describe('Custom dates recurrence (O54F3kAx)', () => {
     await page.goto('/admin/new');
     await navigateToStep3(page);
 
-    await page.locator('.radio-label:has-text("Benutzerdefinierte Daten")').click();
+    await page.locator('.radio-label:has-text("Benutzerdefinierte Termine")').click();
     await page.waitForTimeout(200);
 
     await page.getByTestId('custom-date-add-button').click();

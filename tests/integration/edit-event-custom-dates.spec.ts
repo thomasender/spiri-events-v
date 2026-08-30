@@ -10,7 +10,7 @@ test.describe('Editing a custom-dates (series) event shows the custom dates (4HF
     await signOut(page);
   });
 
-  test('edit form has "Benutzerdefinierte Daten" radio selected for a custom-recurrence event', async ({
+  test('edit form has "Benutzerdefinierte Termine" radio selected for a custom-recurrence event', async ({
     page,
   }) => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
@@ -24,7 +24,7 @@ test.describe('Editing a custom-dates (series) event shows the custom dates (4HF
     await expect(page.locator('h1')).toContainText('Event bearbeiten', { timeout: 10000 });
 
     const customRadio = page.locator(
-      '.radio-label:has-text("Benutzerdefinierte Daten") input[type="radio"]'
+      '.radio-label:has-text("Benutzerdefinierte Termine") input[type="radio"]'
     );
     await expect(customRadio).toBeChecked();
   });

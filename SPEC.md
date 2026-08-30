@@ -174,7 +174,7 @@ Events can be set to recur:
 - **Wöchentlich (weekly)**: Same day every week
 - **Zweiwöchentlich (biweekly)**: Every two weeks
 - **Monatlich (monthly)**: Same day every month
-- **Benutzerdefinierte Daten (custom)**: An explicit list of dates in `customDates`. Use this for irregular patterns (e.g. every third Wednesday, or alternating week schedules).
+- **Benutzerdefinierte Termine (custom)**: An explicit list of dates in `customDates`. Use this for irregular patterns (e.g. every third Wednesday, or alternating week schedules).
 
 Recurring events appear on all matching future dates up to 1 year ahead (or `recurrenceEndDate` if specified, ignored when `recurrence === 'custom'`). The event modal shows the recurrence pattern (e.g., "Jeden Montag bis 31. Dezember 2026") or "An einzelnen Terminen" for custom.
 
