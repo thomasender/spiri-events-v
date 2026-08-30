@@ -86,6 +86,7 @@ export async function fillStep3Details(
     endDate?: string;
     bezirk?: string;
     place?: string;
+    isOnline?: boolean;
     category?: string;
     contribution?: 'free' | 'fee' | 'donation';
     fee?: string;
@@ -102,6 +103,13 @@ export async function fillStep3Details(
   }
   if (data.place !== undefined) {
     await page.fill('#place', data.place);
+  }
+  if (data.isOnline !== undefined) {
+    const checkbox = page.getByTestId('is-online-checkbox');
+    const isChecked = await checkbox.isChecked();
+    if (isChecked !== data.isOnline) {
+      await checkbox.check();
+    }
   }
   if (data.category !== undefined) {
     await page.click('.kategorie-select');

@@ -164,12 +164,19 @@ for (const fx of fixtures) {
       ...fx,
       date,
       slug,
+      bezirk: fx.bezirk || '',
+      isOnline: false,
       createdBy: ownerUid || fx.id,
       createdAt: Timestamp.now(),
     });
     console.log(`Created ${fx.id} (status=${fx.status})`);
   } else {
-    await ref.update({ status: fx.status });
+    await ref.update({
+      status: fx.status,
+      bezirk: fx.bezirk || '',
+      place: fx.place,
+      isOnline: false,
+    });
     console.log(`Reset ${fx.id} status=${fx.status}`);
   }
 }

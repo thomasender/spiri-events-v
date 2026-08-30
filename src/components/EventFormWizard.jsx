@@ -50,6 +50,7 @@ const INITIAL_STATE = {
   customDates: [],
   category: '',
   bezirk: '',
+  isOnline: false,
   organizer: { firstName: '', lastName: '', email: '' },
   kontakt: '',
 };
@@ -181,7 +182,9 @@ export default function EventFormWizard() {
     } else if (step === 3) {
       if (!formData.date) newErrors.date = 'Datum ist erforderlich';
       if (!formData.time) newErrors.time = 'Uhrzeit ist erforderlich';
-      if (!formData.bezirk) newErrors.bezirk = 'Bezirk ist erforderlich';
+      if (!formData.isOnline && !formData.bezirk) {
+        newErrors.bezirk = 'Bitte Bezirk auswählen oder als Online-Event markieren';
+      }
       if (!formData.category) {
         newErrors.category = 'Kategorie ist erforderlich';
       }
@@ -291,10 +294,31 @@ export default function EventFormWizard() {
   };
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    if (type === 'checkbox') {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: checked,
+        ...(name === 'isOnline' && checked ? { bezirk: '' } : {}),
+      }));
+      if (errors[name]) {
+        setErrors((prev) => ({ ...prev, [name]: null }));
+      }
+      if (name === 'isOnline' && errors.bezirk) {
+        setErrors((prev) => ({ ...prev, bezirk: null }));
+      }
+      return;
+    }
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+      ...(name === 'bezirk' && value ? { isOnline: false } : {}),
+    }));
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: null }));
+    }
+    if (name === 'bezirk' && errors.isOnline) {
+      setErrors((prev) => ({ ...prev, isOnline: null }));
     }
   };
 
@@ -392,7 +416,7 @@ export default function EventFormWizard() {
     time: formData.time || '',
     endTime: '',
     endDate: formData.endDate || '',
-    place: formData.place.trim(),
+    place: formData.isOnline ? '' : formData.place.trim(),
     contribution: formData.contribution,
     fee: formData.contribution === 'fee' ? parseFloat(formData.fee) : null,
     description: formData.description,
@@ -411,7 +435,8 @@ export default function EventFormWizard() {
           ].sort()
         : [],
     category: formData.category || 'Sonstiges',
-    bezirk: formData.bezirk,
+    bezirk: formData.isOnline ? '' : formData.bezirk,
+    isOnline: Boolean(formData.isOnline),
     organizer: {
       firstName: formData.organizer.firstName.trim(),
       lastName: formData.organizer.lastName.trim(),
@@ -748,12 +773,13 @@ export default function EventFormWizard() {
 
       <div className="form-row">
         <div className="form-group">
-          <label htmlFor="bezirk">Bezirk *</label>
+          <label htmlFor="bezirk">Ort *</label>
           <select
             id="bezirk"
             name="bezirk"
             value={formData.bezirk}
             onChange={handleChange}
+            disabled={formData.isOnline}
             className={errors.bezirk ? 'input-error' : ''}
           >
             <option value="">Bezirk auswählen...</option>
@@ -774,11 +800,29 @@ export default function EventFormWizard() {
             type="text"
             value={formData.place}
             onChange={handleChange}
-            placeholder="z.B. Yogastudio Mitte, Stadtstraße 12, 6900 Bregenz"
+            placeholder={
+              formData.isOnline
+                ? 'Nicht relevant für Online-Events'
+                : 'z.B. Yogastudio Mitte, Stadtstraße 12, 6900 Bregenz'
+            }
+            disabled={formData.isOnline}
             className={errors.place ? 'input-error' : ''}
           />
           {errors.place && <span className="error-text">{errors.place}</span>}
         </div>
+      </div>
+
+      <div className="form-group">
+        <label className="checkbox-label checkbox-label--inline">
+          <input
+            type="checkbox"
+            name="isOnline"
+            checked={formData.isOnline}
+            onChange={handleChange}
+            data-testid="is-online-checkbox"
+          />
+          <span>Online-Event (kein Bezirk und keine Adresse nötig)</span>
+        </label>
       </div>
 
       <div className="form-group">
@@ -1016,9 +1060,9 @@ export default function EventFormWizard() {
         <div className="summary-section">
           <h4>Details</h4>
           <p>
-            <strong>{formData.category}</strong> • {formData.bezirk}
+            <strong>{formData.category}</strong> • {formData.isOnline ? 'Online' : formData.bezirk}
           </p>
-          <p>📍 {formData.place}</p>
+          {!formData.isOnline && formData.place && <p>📍 {formData.place}</p>}
           <p>
             📅 {formatEventDateShort(formData.date)} um {formData.time}
           </p>

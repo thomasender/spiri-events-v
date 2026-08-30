@@ -97,16 +97,21 @@ function formatRecurrence(recurrence, recurrenceEndDate, eventDate) {
 }
 
 function generateEventJsonLd(event) {
-  const location = {
-    '@type': 'Place',
-    name: event.place || event.bezirk,
-    address: {
-      '@type': 'PostalAddress',
-      addressLocality: event.bezirk || 'Vorarlberg',
-      addressRegion: 'Vorarlberg',
-      addressCountry: 'AT',
-    },
-  };
+  const location = event.isOnline
+    ? {
+        '@type': 'VirtualLocation',
+        url: event.link || undefined,
+      }
+    : {
+        '@type': 'Place',
+        name: event.place || event.bezirk,
+        address: {
+          '@type': 'PostalAddress',
+          addressLocality: event.bezirk || 'Vorarlberg',
+          addressRegion: 'Vorarlberg',
+          addressCountry: 'AT',
+        },
+      };
 
   const offer =
     event.contribution === 'free'
@@ -409,7 +414,7 @@ export default function EventDetailPage() {
           content={
             event.description
               ? truncateHtmlText(event.description, 160)
-              : `${event.title} - ${event.category} in ${event.bezirk}`
+              : `${event.title} - ${event.category}${event.isOnline ? ' (Online)' : ` in ${event.bezirk}`}`
           }
         />
         <link rel="canonical" href={`/event/${event.slug || event.id}`} />
@@ -420,7 +425,7 @@ export default function EventDetailPage() {
           content={
             event.description
               ? truncateHtmlText(event.description, 160)
-              : `${event.title} - ${event.category} in ${event.bezirk}`
+              : `${event.title} - ${event.category}${event.isOnline ? ' (Online)' : ` in ${event.bezirk}`}`
           }
         />
         <meta property="og:url" content={`/event/${event.slug || event.id}`} />
@@ -434,7 +439,7 @@ export default function EventDetailPage() {
           content={
             event.description
               ? truncateHtmlText(event.description, 160)
-              : `${event.title} - ${event.category} in ${event.bezirk}`
+              : `${event.title} - ${event.category}${event.isOnline ? ' (Online)' : ` in ${event.bezirk}`}`
           }
         />
         <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
@@ -554,18 +559,25 @@ export default function EventDetailPage() {
         <div className="detail-item">
           <MapPin size={18} className="detail-icon" />
           <div>
-            <span className="detail-label">Bezirk</span>
-            <span className="detail-value">{event.bezirk || 'Vorarlberg'}</span>
+            <span className="detail-label">Ort</span>
+            <span
+              className="detail-value"
+              data-testid={event.isOnline ? 'event-detail-location-online' : undefined}
+            >
+              {event.isOnline ? 'Online' : event.bezirk || 'Vorarlberg'}
+            </span>
           </div>
         </div>
 
-        <div className="detail-item">
-          <MapPin size={18} className="detail-icon" />
-          <div>
-            <span className="detail-label">Ort</span>
-            <span className="detail-value">{event.place || 'Noch nicht angegeben'}</span>
+        {!event.isOnline && (
+          <div className="detail-item">
+            <MapPin size={18} className="detail-icon" />
+            <div>
+              <span className="detail-label">Adresse</span>
+              <span className="detail-value">{event.place || 'Noch nicht angegeben'}</span>
+            </div>
           </div>
-        </div>
+        )}
 
         {event.organizer && (event.organizer.firstName || event.organizer.lastName) && (
           <div className="detail-item" data-testid="event-organizer">

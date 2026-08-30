@@ -6,6 +6,7 @@ import {
   formatMonthShort,
   formatWeekdayShort,
   formatEventDateRangeLabel,
+  getEventLocationLabel,
   getOrganizerName,
   getPrimaryCategory,
   isMultiDayEvent,
@@ -19,6 +20,7 @@ export default function EventListRow({ event, categoryColor, linkState }) {
   const fallbackImage = getEventFallbackImage(event);
   const multiDay = isMultiDayEvent(event);
   const dateRangeLabel = multiDay ? formatEventDateRangeLabel(event.date, event.endDate) : null;
+  const locationLabel = getEventLocationLabel(event);
   const [imageError, setImageError] = useState(false);
   const imageSrc = event.imageUrl && !imageError ? event.imageUrl : fallbackImage;
 
@@ -50,11 +52,14 @@ export default function EventListRow({ event, categoryColor, linkState }) {
           </span>
         )}
         <h3 className="event-row-title">{event.title}</h3>
-        {event.bezirk && (
-          <span className="event-row-location">
+        {locationLabel && (
+          <span
+            className={`event-row-location${event.isOnline ? ' event-row-location--online' : ''}`}
+            data-testid={event.isOnline ? 'event-row-location-online' : undefined}
+          >
             <MapPin size={14} />
-            {event.bezirk}
-            {event.place && ` · ${event.place}`}
+            {locationLabel}
+            {!event.isOnline && event.place && ` · ${event.place}`}
           </span>
         )}
         {organizerName && (

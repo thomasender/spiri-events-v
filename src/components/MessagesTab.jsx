@@ -46,7 +46,7 @@ function MessagesTabItem({ event, unreadCount }) {
         <span className="messages-tab-item-title">{event.title}</span>
         <span className="messages-tab-item-meta">
           {formatDate(event.date)}
-          {event.bezirk ? ` • ${event.bezirk}` : ''}
+          {event.isOnline ? ' • Online' : event.bezirk ? ` • ${event.bezirk}` : ''}
         </span>
       </span>
       {hasUnread && (
