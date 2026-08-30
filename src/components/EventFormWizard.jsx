@@ -1192,7 +1192,7 @@ export default function EventFormWizard() {
                 disabled={loading || imageUploading}
                 data-testid="save-as-draft-button"
               >
-                <Save size={18} />
+                <Save size={22} />
                 <span>
                   {imageUploading
                     ? `Wird hochgeladen… (${imageProgress}%)`
@@ -1214,7 +1214,7 @@ export default function EventFormWizard() {
                 className="btn btn-primary"
                 disabled={loading || imageUploading}
               >
-                <Save size={18} />
+                <Save size={22} />
                 <span>
                   {imageUploading
                     ? `Wird hochgeladen… (${imageProgress}%)`
