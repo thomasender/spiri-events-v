@@ -6,8 +6,8 @@
   --heading-color: #a6a487; /* Primärfarbe — Überschriften */
   --accent-secondary: #667c62; /* Sekundärfarbe — Waldgrün für Banner, Akzente */
   --accent-primary: #c48e6a; /* Buttons — terracotta */
-  --accent-primary-hover: #e1c498; /* Hover */
-  --accent-primary-strong: #9a5f38; /* darker terracotta — text on soft fills */
+  --accent-primary-hover: #9a5f38; /* darker terracotta — hover (WCAG AA contrast with white) */
+  --accent-primary-strong: #9a5f38; /* darkest terracotta — text on soft fills */
   --accent-soft: rgba(196, 142, 106, 0.14); /* terracotta tint — subtle fills */
   --text-primary: #161819; /* charcoal */
   --text-secondary: #605e5e; /* Fliesstext */
@@ -166,6 +166,9 @@ select {
 
 .btn-primary:hover {
   background-color: var(--accent-primary-hover);
+  /* Override the generic a:hover color change — btn-primary must keep white
+     text in every state so the label stays visible on the dark terracotta fill. */
+  color: white;
   transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
 }
@@ -178,6 +181,9 @@ select {
 
 .btn-secondary:hover {
   background-color: var(--border);
+  /* Keep the dark label color on hover — the global a:hover rule would otherwise
+     paint the text in accent-primary-hover and break contrast. */
+  color: var(--text-primary);
 }
 
 .btn-danger {
@@ -187,6 +193,7 @@ select {
 
 .btn-danger:hover {
   background-color: var(--error-hover);
+  color: white;
 }
 
 .btn-subtle-danger {
