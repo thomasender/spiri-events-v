@@ -213,6 +213,11 @@
   text-decoration: underline;
 }
 
+.detail-link--break {
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+
 .event-description {
   margin-bottom: 24px;
 }

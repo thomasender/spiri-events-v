@@ -152,6 +152,11 @@
   text-decoration: underline;
 }
 
+.detail-link--break {
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+
 .modal-description {
   padding: 24px 32px;
   border-bottom: 1px solid var(--border);
