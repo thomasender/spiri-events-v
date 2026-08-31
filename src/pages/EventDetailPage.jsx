@@ -654,6 +654,23 @@ export default function EventDetailPage() {
             </div>
           </div>
         )}
+
+        {event.link && (
+          <div className="detail-item" data-testid="event-detail-link">
+            <ExternalLink size={18} className="detail-icon" />
+            <div>
+              <span className="detail-label">Webseite</span>
+              <a
+                href={normalizeLink(event.link)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="detail-value detail-link detail-link--break"
+              >
+                {event.link}
+              </a>
+            </div>
+          </div>
+        )}
       </div>
 
       {event.description && (

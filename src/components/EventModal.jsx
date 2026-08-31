@@ -3,6 +3,7 @@ import { X, Calendar, Clock, MapPin, Ticket, ExternalLink, User, Mail, Phone } f
 import { getEventFallbackImage } from '../utils/eventFallbacks';
 import { parseContactText } from '../utils/contactFormat';
 import { formatPriceWithCurrency } from '../utils/currency';
+import { normalizeLink } from '../utils/link';
 import RichTextView from './RichTextView';
 import './EventModal.css';
 
@@ -250,6 +251,23 @@ export default function EventModal({ event, onClose }) {
                     return <span key={index}>{segment.value}</span>;
                   })}
                 </span>
+              </div>
+            </div>
+          )}
+
+          {event.link && (
+            <div className="detail-item" data-testid="event-modal-link">
+              <ExternalLink size={18} className="detail-icon" />
+              <div>
+                <span className="detail-label">Webseite</span>
+                <a
+                  href={normalizeLink(event.link)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="detail-value detail-link detail-link--break"
+                >
+                  {event.link}
+                </a>
               </div>
             </div>
           )}
