@@ -174,6 +174,24 @@ describe('DraftsTab (Bslx5TQW)', () => {
     expect(mockDuplicateEvent).toHaveBeenCalledWith('draft-1');
   });
 
+  it('shows the success dialog after the duplicate resolves', async () => {
+    mockDuplicateEvent.mockResolvedValue('new-event-id');
+    mockUseEvents.events = [draftEvent];
+
+    render(
+      <MemoryRouter>
+        <DraftsTab />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByTestId('duplicate-event-button'));
+
+    const successDialog = await screen.findByTestId('success-dialog');
+    expect(successDialog).toBeInTheDocument();
+    expect(successDialog).toHaveTextContent('Duplikat erstellt');
+    expect(successDialog).toHaveTextContent('My Draft Event');
+  });
+
   it('opens the submit confirmation dialog when Einreichen is clicked', () => {
     mockUseEvents.events = [draftEvent];
 

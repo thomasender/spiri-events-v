@@ -48,7 +48,10 @@ test.describe('Duplizieren von bereits veröffentlichten Events (wgC6f0pK)', () 
 
     await expect(approvedCard.locator('.status-badge--approved')).toBeVisible();
 
-    await page.getByTestId('admin-tab-drafts').click();
+    await expect(page.getByTestId('success-dialog')).toBeVisible({ timeout: 10000 });
+    await page.getByTestId('success-dialog-confirm').click();
+    await page.waitForURL(/\/admin\?tab=drafts/, { timeout: 10000 });
+
     await page
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
       .catch(() => {});
@@ -68,7 +71,9 @@ test.describe('Duplizieren von bereits veröffentlichten Events (wgC6f0pK)', () 
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
       .catch(() => {});
 
-    const approvedCard = page.locator('.event-card', { hasText: 'User Approved Event' });
+    const approvedCard = page
+      .locator('.event-card', { hasText: 'User Approved Event' })
+      .filter({ has: page.locator('.status-badge--approved') });
     await expect(approvedCard).toBeVisible({ timeout: 10000 });
     await expect(approvedCard.locator('.status-badge--approved')).toBeVisible();
 
@@ -95,7 +100,10 @@ test.describe('Duplizieren von bereits veröffentlichten Events (wgC6f0pK)', () 
 
     await expect(pendingCard.locator('.status-badge--pending')).toBeVisible();
 
-    await page.getByTestId('admin-tab-drafts').click();
+    await expect(page.getByTestId('success-dialog')).toBeVisible({ timeout: 10000 });
+    await page.getByTestId('success-dialog-confirm').click();
+    await page.waitForURL(/\/admin\?tab=drafts/, { timeout: 10000 });
+
     await page
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
       .catch(() => {});
@@ -121,7 +129,10 @@ test.describe('Duplizieren von bereits veröffentlichten Events (wgC6f0pK)', () 
     const duplicateButton = approvedCard.getByTestId('duplicate-event-button');
 
     await duplicateButton.click();
-    await page.getByTestId('admin-tab-drafts').click();
+    await expect(page.getByTestId('success-dialog')).toBeVisible({ timeout: 10000 });
+    await page.getByTestId('success-dialog-confirm').click();
+    await page.waitForURL(/\/admin\?tab=drafts/, { timeout: 10000 });
+
     await page
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
       .catch(() => {});
@@ -137,8 +148,10 @@ test.describe('Duplizieren von bereits veröffentlichten Events (wgC6f0pK)', () 
 
     await expect(approvedCard).toBeVisible({ timeout: 10000 });
     await duplicateButton.click();
+    await expect(page.getByTestId('success-dialog')).toBeVisible({ timeout: 10000 });
+    await page.getByTestId('success-dialog-confirm').click();
+    await page.waitForURL(/\/admin\?tab=drafts/, { timeout: 10000 });
 
-    await page.getByTestId('admin-tab-drafts').click();
     await page
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
       .catch(() => {});

@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useEvents, usePendingEvents } from '../hooks/useEvents';
 import { useEventsWithMessages } from '../hooks/useEventsWithMessages';
 import { useAuth } from '../hooks/useAuth';
@@ -6,6 +6,7 @@ import { PlusCircle, Calendar } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
 import RecurringDeleteDialog from './RecurringDeleteDialog';
 import OccurrencePickerDialog from './OccurrencePickerDialog';
+import SuccessDialog from './SuccessDialog';
 import EventAdminCard from './EventAdminCard';
 import { useState, useMemo } from 'react';
 import { arrayUnion } from 'firebase/firestore';
@@ -24,6 +25,7 @@ const STATUS_FILTERS = [
 ];
 
 export default function EventList() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { role } = useAuth();
   const {
@@ -45,6 +47,7 @@ export default function EventList() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [statusActionTarget, setStatusActionTarget] = useState(null);
   const [duplicatingId, setDuplicatingId] = useState(null);
+  const [duplicateSuccess, setDuplicateSuccess] = useState(null);
 
   const isAdmin = role === 'Admin';
 
@@ -119,11 +122,17 @@ export default function EventList() {
     setDuplicatingId(event.id);
     try {
       await duplicateEvent(event.id);
+      setDuplicateSuccess({ eventTitle: event.title });
     } catch (err) {
       console.error('Duplicate event failed:', err);
     } finally {
       setDuplicatingId(null);
     }
+  };
+
+  const handleDuplicateSuccessConfirm = () => {
+    setDuplicateSuccess(null);
+    navigate('/admin?tab=drafts');
   };
 
   const handleDeleteRecurringThis = async () => {
@@ -405,6 +414,19 @@ export default function EventList() {
           onConfirm={handleOccurrenceConfirmed}
           onCancel={() => setPendingRecurringDelete(null)}
         />
+
+        <SuccessDialog
+          isOpen={Boolean(duplicateSuccess)}
+          title="Duplikat erstellt"
+          message={
+            duplicateSuccess
+              ? `Dein Event „${duplicateSuccess.eventTitle}” wurde erfolgreich dupliziert.`
+              : ''
+          }
+          details="Du findest das Duplikat in deinen Entwürfen und kannst es dort weiter bearbeiten oder einreichen."
+          confirmLabel="Zu den Entwürfen"
+          onConfirm={handleDuplicateSuccessConfirm}
+        />
       </div>
     );
   }
@@ -497,6 +519,19 @@ export default function EventList() {
         initialOccurrenceDate={pendingRecurringDelete?.initialOccurrenceDate}
         onConfirm={handleOccurrenceConfirmed}
         onCancel={() => setPendingRecurringDelete(null)}
+      />
+
+      <SuccessDialog
+        isOpen={Boolean(duplicateSuccess)}
+        title="Duplikat erstellt"
+        message={
+          duplicateSuccess
+            ? `Dein Event „${duplicateSuccess.eventTitle}” wurde erfolgreich dupliziert.`
+            : ''
+        }
+        details="Du findest das Duplikat in deinen Entwürfen und kannst es dort weiter bearbeiten oder einreichen."
+        confirmLabel="Zu den Entwürfen"
+        onConfirm={handleDuplicateSuccessConfirm}
       />
     </div>
   );
