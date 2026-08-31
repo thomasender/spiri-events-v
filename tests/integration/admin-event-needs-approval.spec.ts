@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { signInWithEmailAndPassword, signOut, waitForCalendarToLoad } from '../helpers/auth';
-import { waitForWizardToLoad } from '../helpers/wizard';
+import { confirmCopyrightCheckbox, waitForWizardToLoad } from '../helpers/wizard';
 
 const EVENT_TITLE = 'Admin Created Test Event';
 
@@ -34,6 +34,8 @@ async function fillWizardAndSubmit(page, title, placeName) {
 
   await page.locator('button:has-text("Weiter")').click();
   await page.waitForTimeout(500);
+
+  await confirmCopyrightCheckbox(page);
 
   await page.click(
     'button:has-text("Event erstellen"), button:has-text("Einreichen zur Genehmigung")'

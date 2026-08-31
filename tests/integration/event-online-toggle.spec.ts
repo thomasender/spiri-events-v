@@ -6,6 +6,7 @@ import {
   clickWeiter,
   fillStep2EventInfo,
   fillStep3Details,
+  confirmCopyrightCheckbox,
 } from '../helpers/wizard';
 
 const ONLINE_EVENT_TITLE = 'Online Yoga Session';
@@ -160,6 +161,8 @@ test.describe('Event wizard: "Online-Event" checkbox (1e9YUHCh)', () => {
 
     // Step 4 (summary) — confirm "Online" appears and no Bezirk is shown.
     await expect(page.locator('.summary-section', { hasText: 'Details' })).toContainText('Online');
+
+    await confirmCopyrightCheckbox(page);
 
     await page.click(
       'button:has-text("Event erstellen"), button:has-text("Einreichen zur Genehmigung")'

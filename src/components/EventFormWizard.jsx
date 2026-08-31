@@ -1,6 +1,7 @@
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Select from 'react-select';
+import { serverTimestamp } from 'firebase/firestore';
 import { useEvents, KATEGORIEN, BEZIRKE } from '../hooks/useEvents';
 import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
@@ -132,6 +133,7 @@ export default function EventFormWizard() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [successState, setSuccessState] = useState(null);
   const [currentStep, setCurrentStep] = useState(1);
+  const [rightsConfirmed, setRightsConfirmed] = useState(false);
   const fileInputRef = useRef(null);
   const wizardContainerRef = useRef(null);
   const isInitialStepMount = useRef(true);
@@ -228,6 +230,10 @@ export default function EventFormWizard() {
         (!formData.customDates || formData.customDates.length === 0)
       ) {
         newErrors.customDates = 'Bitte mindestens ein Datum hinzufügen';
+      }
+    } else if (step === 4) {
+      if (!rightsConfirmed) {
+        newErrors.rightsConfirmed = 'Bitte bestätige die Nutzungsrechte';
       }
     }
     return newErrors;
@@ -472,6 +478,8 @@ export default function EventFormWizard() {
     kontakt: formData.kontakt.trim(),
     imageUrl: null,
     status,
+    rightsConfirmed,
+    rightsConfirmedAt: rightsConfirmed ? serverTimestamp() : null,
   });
 
   const handleSubmit = async (e) => {
@@ -482,10 +490,16 @@ export default function EventFormWizard() {
     setSubmitError('');
     setValidationError('');
 
-    const newErrors = validateStep(3);
+    const step3Errors = validateStep(3);
+    const step4Errors = validateStep(4);
+    const newErrors = { ...step3Errors, ...step4Errors };
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      setValidationError('Bitte fülle alle Pflichtfelder aus.');
+      if (step4Errors.rightsConfirmed) {
+        setValidationError('Bitte bestätige die Nutzungsrechte.');
+      } else {
+        setValidationError('Bitte fülle alle Pflichtfelder aus.');
+      }
       return;
     }
 
@@ -1153,6 +1167,32 @@ export default function EventFormWizard() {
         </div>
       </div>
 
+      <div className="form-group rights-confirmation">
+        <label className="checkbox-label checkbox-label--block" htmlFor="rightsConfirmed">
+          <input
+            id="rightsConfirmed"
+            type="checkbox"
+            checked={rightsConfirmed}
+            onChange={(e) => {
+              setRightsConfirmed(e.target.checked);
+              if (e.target.checked && errors.rightsConfirmed) {
+                setErrors((prev) => ({ ...prev, rightsConfirmed: null }));
+              }
+            }}
+            data-testid="rights-confirmed-checkbox"
+          />
+          <span>
+            Ich bestätige, dass ich die Rechte an dem hochgeladenen Bild (falls vorhanden) und am
+            Text besitze bzw. diese verwenden darf.
+          </span>
+        </label>
+        {errors.rightsConfirmed && (
+          <span className="error-text" data-testid="rights-confirmed-error">
+            {errors.rightsConfirmed}
+          </span>
+        )}
+      </div>
+
       {submitError && <p className="error-text submit-error">{submitError}</p>}
       {validationError && <p className="error-text submit-error">{validationError}</p>}
     </div>
@@ -1212,7 +1252,8 @@ export default function EventFormWizard() {
                 type="button"
                 onClick={handleSubmit}
                 className="btn btn-primary"
-                disabled={loading || imageUploading}
+                disabled={loading || imageUploading || !rightsConfirmed}
+                data-testid="submit-event-button"
               >
                 <Save size={22} />
                 <span>

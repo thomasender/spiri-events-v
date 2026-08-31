@@ -1,7 +1,12 @@
 import { test, expect } from '@playwright/test';
 import { spawn } from 'child_process';
 import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
-import { waitForWizardToLoad, clickWeiter, fillStep2EventInfo } from '../helpers/wizard';
+import {
+  confirmCopyrightCheckbox,
+  waitForWizardToLoad,
+  clickWeiter,
+  fillStep2EventInfo,
+} from '../helpers/wizard';
 
 const EVENT_TITLE = 'Event ohne Ort';
 
@@ -70,6 +75,8 @@ test.describe('Event wizard: "Ort / Adresse" is optional (ZPiZqKrG)', () => {
     await page.click('.radio-label:has-text("Kostenlos")');
 
     await clickWeiter(page);
+
+    await confirmCopyrightCheckbox(page);
 
     await page.click(
       'button:has-text("Event erstellen"), button:has-text("Einreichen zur Genehmigung")'
