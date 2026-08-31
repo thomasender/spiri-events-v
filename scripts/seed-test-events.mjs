@@ -320,6 +320,22 @@ const TEST_EVENTS = [
     kontakt: 'anna@example.com',
     status: 'draft',
   },
+  {
+    id: 'test-event-with-link',
+    title: 'Event mit Ticketlink',
+    date: makeDate(20),
+    endDate: null,
+    time: '18:00',
+    endTime: '20:00',
+    place: 'Yogastudio Bregenz',
+    description: 'Event mit externem Link, um den Hover-State des Link-Buttons zu testen.',
+    category: 'Yoga',
+    bezirk: 'Bregenz',
+    organizer: { firstName: 'Anna', lastName: 'Schmidt', email: 'admin@test.com' },
+    kontakt: 'anna@example.com',
+    status: 'approved',
+    link: 'https://tickets.example.com/yoga-bregenz',
+  },
 ];
 
 for (const event of TEST_EVENTS) {
