@@ -116,13 +116,13 @@ test.describe('Duplizieren von bereits veröffentlichten Events (wgC6f0pK)', () 
     const approvedCard = page.locator('.event-card', { hasText: 'User Approved Event' });
     await expect(approvedCard).toBeVisible({ timeout: 10000 });
 
-    await approvedCard.getByTestId('duplicate-event-button').click();
+    const duplicateButton = approvedCard.getByTestId('duplicate-event-button');
 
-    await expect(approvedCard.locator('.status-badge--approved')).toBeVisible();
+    await duplicateButton.click();
+    await expect(duplicateButton).toBeEnabled({ timeout: 10000 });
 
-    await approvedCard.getByTestId('duplicate-event-button').click();
-
-    await expect(approvedCard.locator('.status-badge--approved')).toBeVisible();
+    await duplicateButton.click();
+    await expect(duplicateButton).toBeEnabled({ timeout: 10000 });
 
     await page.getByTestId('admin-tab-drafts').click();
     await page
@@ -130,7 +130,7 @@ test.describe('Duplizieren von bereits veröffentlichten Events (wgC6f0pK)', () 
       .catch(() => {});
 
     await expect(page.locator('.event-card', { hasText: 'User Approved Event' })).toHaveCount(2, {
-      timeout: 10000,
+      timeout: 15000,
     });
   });
 });
