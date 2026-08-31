@@ -102,9 +102,9 @@ test.describe('Entwürfe tab — admin (Bslx5TQW)', () => {
 
     const originalCard = page.locator('.event-card', { hasText: 'Admin Draft Event' });
     await expect(originalCard).toBeVisible({ timeout: 10000 });
-    await expect(originalCard.getByTestId('duplicate-draft-button')).toBeVisible();
+    await expect(originalCard.getByTestId('duplicate-event-button')).toBeVisible();
 
-    await originalCard.getByTestId('duplicate-draft-button').click();
+    await originalCard.getByTestId('duplicate-event-button').click();
 
     await expect(page.locator('.event-card', { hasText: 'Admin Draft Event' })).toHaveCount(2, {
       timeout: 10000,
@@ -124,7 +124,7 @@ test.describe('Entwürfe tab — admin (Bslx5TQW)', () => {
     const secondDraft = page.locator('.event-card', { hasText: 'Second Admin Draft' });
     await expect(secondDraft).toBeVisible({ timeout: 10000 });
 
-    await secondDraft.getByTestId('duplicate-draft-button').click();
+    await secondDraft.getByTestId('duplicate-event-button').click();
 
     await expect(page.locator('.event-card', { hasText: 'Second Admin Draft' })).toHaveCount(2, {
       timeout: 10000,
@@ -235,9 +235,9 @@ test.describe('Entwürfe tab — regular user (Bslx5TQW)', () => {
 
     const draftCard = page.locator('.event-card', { hasText: 'User Draft Event' });
     await expect(draftCard).toBeVisible({ timeout: 10000 });
-    await expect(draftCard.getByTestId('duplicate-draft-button')).toBeVisible();
+    await expect(draftCard.getByTestId('duplicate-event-button')).toBeVisible();
 
-    await draftCard.getByTestId('duplicate-draft-button').click();
+    await draftCard.getByTestId('duplicate-event-button').click();
 
     await expect(page.locator('.event-card', { hasText: 'User Draft Event' })).toHaveCount(2, {
       timeout: 10000,

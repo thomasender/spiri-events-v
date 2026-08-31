@@ -126,7 +126,7 @@ describe('DraftsTab (Bslx5TQW)', () => {
     );
 
     expect(screen.getByText('Entwurf')).toBeInTheDocument();
-    expect(screen.getByTestId('duplicate-draft-button')).toBeInTheDocument();
+    expect(screen.getByTestId('duplicate-event-button')).toBeInTheDocument();
     expect(screen.getByTestId('submit-draft-button')).toBeInTheDocument();
     expect(screen.getByText('Entwurf — noch nicht eingereicht')).toBeInTheDocument();
   });
@@ -168,7 +168,7 @@ describe('DraftsTab (Bslx5TQW)', () => {
       </MemoryRouter>
     );
 
-    fireEvent.click(screen.getByTestId('duplicate-draft-button'));
+    fireEvent.click(screen.getByTestId('duplicate-event-button'));
 
     expect(mockDuplicateEvent).toHaveBeenCalledTimes(1);
     expect(mockDuplicateEvent).toHaveBeenCalledWith('draft-1');
