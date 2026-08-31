@@ -131,6 +131,9 @@ for (const fx of fixtures) {
   fixtureTitlesByOwner.get(key).add(fx.title);
 }
 
+fixtureTitlesByOwner.get('user')?.add('User Approved Event');
+const protectedFixtureIds = new Set(['test-event-user-approved']);
+
 const ownerUids = {
   admin: adminUid,
   user: userUid,
@@ -146,6 +149,7 @@ for (const [role, ownerUid] of Object.entries(ownerUids)) {
   for (const doc of ownerEvents.docs) {
     const data = doc.data();
     if (fixtures.some((f) => f.id === doc.id)) continue;
+    if (protectedFixtureIds.has(doc.id)) continue;
     if (titles.has(data.title)) {
       await doc.ref.delete();
       console.log(`Deleted duplicate ${role} event ${doc.id} (${data.title})`);

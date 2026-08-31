@@ -273,8 +273,8 @@ export default function EventAdminCard({
             onClick={() => onDuplicate?.(event)}
             className="btn btn-secondary btn-sm"
             disabled={duplicating}
-            data-testid="duplicate-draft-button"
-            title="Erstellt eine Kopie dieses Entwurfs"
+            data-testid="duplicate-event-button"
+            title="Erstellt eine Kopie dieses Events als neuen Entwurf"
           >
             <Copy size={16} />
             <span>{duplicating ? 'Dupliziere...' : 'Duplizieren'}</span>

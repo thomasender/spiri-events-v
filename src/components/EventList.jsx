@@ -26,8 +26,15 @@ const STATUS_FILTERS = [
 export default function EventList() {
   const { user } = useAuth();
   const { role } = useAuth();
-  const { events, loading, deleteEvent, updateEvent, submitForReview, revertToDraft } =
-    useEvents(user);
+  const {
+    events,
+    loading,
+    deleteEvent,
+    updateEvent,
+    submitForReview,
+    revertToDraft,
+    duplicateEvent,
+  } = useEvents(user);
   const { pendingEvents, loading: pendingLoading, approveEvent } = usePendingEvents();
   const { unreadCountByEvent } = useEventsWithMessages();
   const [deleteId, setDeleteId] = useState(null);
@@ -37,6 +44,7 @@ export default function EventList() {
   const [pendingRecurringDelete, setPendingRecurringDelete] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
   const [statusActionTarget, setStatusActionTarget] = useState(null);
+  const [duplicatingId, setDuplicatingId] = useState(null);
 
   const isAdmin = role === 'Admin';
 
@@ -104,6 +112,17 @@ export default function EventList() {
       console.error('Revert to draft failed:', err);
     } finally {
       setStatusActionTarget(null);
+    }
+  };
+
+  const handleDuplicate = async (event) => {
+    setDuplicatingId(event.id);
+    try {
+      await duplicateEvent(event.id);
+    } catch (err) {
+      console.error('Duplicate event failed:', err);
+    } finally {
+      setDuplicatingId(null);
     }
   };
 
@@ -219,12 +238,15 @@ export default function EventList() {
         showApprove={showApprove}
         showSubmit={event.status === 'draft'}
         showRevert={event.status === 'pending'}
+        showDuplicate={event.status !== 'draft'}
+        duplicating={duplicatingId === event.id}
         unreadCount={unreadCountByEvent[event.id] || 0}
         isAdmin={isAdmin}
         approving={approving}
         onApprove={handleApprove}
         onSubmit={(evt) => setStatusActionTarget({ id: evt.id, action: 'submit' })}
         onRevert={(evt) => setStatusActionTarget({ id: evt.id, action: 'revert' })}
+        onDuplicate={handleDuplicate}
         onDeleteClick={onDeleteClick}
       />
     );
