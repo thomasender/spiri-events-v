@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
-import { enableRecurrence, waitForWizardToLoad } from '../helpers/wizard';
+import { confirmCopyrightCheckbox, enableRecurrence, waitForWizardToLoad } from '../helpers/wizard';
 
 const EVENT_TITLE = `Custom Dates Initial Date Event ${Date.now()}`;
 
@@ -52,6 +52,8 @@ async function createCustomDatesEvent(page, title: string) {
 
   await page.getByRole('button', { name: 'Weiter', exact: true }).click();
   await page.waitForTimeout(400);
+
+  await confirmCopyrightCheckbox(page);
 
   await page.click(
     'button:has-text("Event erstellen"), button:has-text("Einreichen zur Genehmigung")'

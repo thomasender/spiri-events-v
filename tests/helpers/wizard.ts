@@ -157,6 +157,14 @@ export async function confirmSubmission(page: Page) {
   await page.waitForTimeout(2000);
 }
 
+export async function confirmCopyrightCheckbox(page: Page) {
+  const checkbox = page.getByTestId('rights-confirmed-checkbox');
+  await checkbox.waitFor({ state: 'visible', timeout: 5000 });
+  if (!(await checkbox.isChecked())) {
+    await checkbox.check();
+  }
+}
+
 export async function getValidationError(page: Page) {
   const errorLocator = page.locator(
     '.validation-error, .wizard-validation-error, [data-testid="validation-error"]'
