@@ -60,7 +60,6 @@ test.describe('Entwürfe tab — admin (Bslx5TQW)', () => {
     const draftCard = page.locator('.event-card', { hasText: 'Admin Draft Event' });
     await expect(draftCard).toBeVisible({ timeout: 10000 });
     await expect(draftCard.locator('.status-badge--draft')).toBeVisible();
-    await expect(draftCard.getByText('Entwurf — noch nicht eingereicht')).toBeVisible();
   });
 
   test('admin does NOT see drafts in the Meine Events tab (regression for filter behavior)', async ({

@@ -128,7 +128,6 @@ describe('DraftsTab (Bslx5TQW)', () => {
     expect(screen.getByText('Entwurf')).toBeInTheDocument();
     expect(screen.getByTestId('duplicate-event-button')).toBeInTheDocument();
     expect(screen.getByTestId('submit-draft-button')).toBeInTheDocument();
-    expect(screen.getByText('Entwurf — noch nicht eingereicht')).toBeInTheDocument();
   });
 
   it('shows the draft count in the section header', () => {
@@ -209,7 +208,7 @@ describe('DraftsTab (Bslx5TQW)', () => {
       expect(mockDuplicateEvent).toHaveBeenCalledTimes(1);
     });
 
-    expect(screen.getByTestId('duplicate-event-button')).toHaveTextContent('Duplizieren');
+    expect(screen.getByTestId('duplicate-event-button')).toHaveAttribute('title', 'Duplizieren');
     expect(screen.getByTestId('duplicate-event-button')).not.toBeDisabled();
   });
 
@@ -299,7 +298,7 @@ describe('DraftsTab (Bslx5TQW)', () => {
     expect(screen.queryByRole('button', { name: /genehmigen/i })).not.toBeInTheDocument();
   });
 
-  it('defaults to card view in Entwürfe (sosoEwss)', () => {
+  it('renders drafts as list rows, not cards (sosoEwss)', () => {
     mockUseEvents.events = [draftEvent];
 
     render(
@@ -308,32 +307,12 @@ describe('DraftsTab (Bslx5TQW)', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByTestId('drafts-view-toggle-card')).toHaveClass(/active/);
-    expect(screen.getByTestId('drafts-view-toggle-list')).not.toHaveClass(/active/);
-    expect(document.querySelector('.event-list-grid')).toBeInTheDocument();
-    expect(document.querySelector('.event-list-rows')).not.toBeInTheDocument();
-    expect(document.querySelector('.event-card')).toBeInTheDocument();
-  });
-
-  it('switches to list view when the Listenansicht toggle is clicked (sosoEwss)', () => {
-    mockUseEvents.events = [draftEvent];
-
-    render(
-      <MemoryRouter>
-        <DraftsTab />
-      </MemoryRouter>
-    );
-
-    fireEvent.click(screen.getByTestId('drafts-view-toggle-list'));
-
-    expect(screen.getByTestId('drafts-view-toggle-list')).toHaveClass(/active/);
-    expect(screen.getByTestId('drafts-view-toggle-card')).not.toHaveClass(/active/);
     expect(document.querySelector('.event-list-rows')).toBeInTheDocument();
-    expect(document.querySelector('.event-list-grid')).not.toBeInTheDocument();
-    expect(document.querySelector('.event-admin-row')).toBeInTheDocument();
+    expect(document.querySelector('.event-card-content')).toBeInTheDocument();
+    expect(document.querySelector('.event-card-actions')).toBeInTheDocument();
   });
 
-  it('still shows the Einreichen / Duplizieren buttons in list view (sosoEwss)', () => {
+  it('does not render the card/list view toggle anymore (sosoEwss)', () => {
     mockUseEvents.events = [draftEvent];
 
     render(
@@ -342,14 +321,11 @@ describe('DraftsTab (Bslx5TQW)', () => {
       </MemoryRouter>
     );
 
-    fireEvent.click(screen.getByTestId('drafts-view-toggle-list'));
-
-    expect(screen.getByTestId('submit-draft-button')).toBeInTheDocument();
-    expect(screen.getByTestId('duplicate-event-button')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /event löschen/i })).toBeInTheDocument();
+    expect(screen.queryByTestId('drafts-view-toggle-card')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('drafts-view-toggle-list')).not.toBeInTheDocument();
   });
 
-  it('clicking Duplizieren in list view still triggers duplicateEvent (sosoEwss)', () => {
+  it('does not render the price badge on draft rows in Entwürfe (sosoEwss)', () => {
     mockUseEvents.events = [draftEvent];
 
     render(
@@ -358,9 +334,7 @@ describe('DraftsTab (Bslx5TQW)', () => {
       </MemoryRouter>
     );
 
-    fireEvent.click(screen.getByTestId('drafts-view-toggle-list'));
-    fireEvent.click(screen.getByTestId('duplicate-event-button'));
-
-    expect(mockDuplicateEvent).toHaveBeenCalledWith('draft-1');
+    expect(screen.queryByText(/kostenlos/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/freie spende/i)).not.toBeInTheDocument();
   });
 });

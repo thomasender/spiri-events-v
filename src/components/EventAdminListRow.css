@@ -1,4 +1,4 @@
-.event-admin-row {
+.event-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
@@ -10,17 +10,17 @@
   transition: box-shadow 0.15s ease;
 }
 
-.event-admin-row:hover {
+.event-card:hover {
   box-shadow: var(--shadow-md);
 }
 
-.event-admin-row--has-unread {
+.event-card--has-unread {
   box-shadow:
     0 0 0 2px var(--error),
     var(--shadow-sm);
 }
 
-.event-admin-row-link {
+.event-card-content {
   display: grid;
   grid-template-columns: 56px 88px minmax(0, 1fr);
   align-items: center;
@@ -31,12 +31,12 @@
   padding: 4px 0;
 }
 
-.event-admin-row-link:hover {
+.event-card-content:hover {
   background-color: var(--bg-secondary);
   border-radius: var(--radius-sm);
 }
 
-.event-admin-row-date {
+.event-card-date {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -44,13 +44,13 @@
   color: var(--text-secondary);
 }
 
-.event-admin-row-weekday {
+.event-card-weekday {
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
 
-.event-admin-row-day {
+.event-card-day {
   font-family: var(--font-heading);
   font-size: 1.4rem;
   font-weight: 600;
@@ -58,13 +58,13 @@
   line-height: 1.1;
 }
 
-.event-admin-row-month {
+.event-card-month {
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
 
-.event-admin-row-image-wrapper {
+.event-card-image-wrapper {
   width: 88px;
   height: 66px;
   border-radius: var(--radius-sm);
@@ -73,27 +73,28 @@
   background-color: var(--bg-secondary);
 }
 
-.event-admin-row-image {
+.event-card-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
 }
 
-.event-admin-row-body {
+.event-card-body {
   display: flex;
   flex-direction: column;
   gap: 6px;
   min-width: 0;
 }
 
-.event-admin-row-header {
+.event-card-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
 }
 
-.event-admin-row-header h3 {
+.event-card-header h3 {
   font-family: 'Cormorant Garamond', Georgia, serif;
   font-size: 1.1rem;
   font-weight: 500;
@@ -104,7 +105,7 @@
   white-space: nowrap;
 }
 
-.event-admin-row-badges {
+.event-card-badges {
   display: flex;
   gap: 6px;
   align-items: center;
@@ -112,7 +113,7 @@
   flex-wrap: wrap;
 }
 
-.event-admin-row-meta {
+.event-card-meta {
   display: flex;
   flex-wrap: wrap;
   gap: 14px;
@@ -120,27 +121,27 @@
   color: var(--text-secondary);
 }
 
-.event-admin-row-meta-item {
+.event-card-meta-item {
   display: inline-flex;
   align-items: center;
   gap: 4px;
 }
 
-.event-admin-row-meta-item--email {
+.event-card-meta-item--email {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 240px;
 }
 
-.event-admin-row-actions {
+.event-card-actions {
   display: flex;
   gap: 4px;
   align-items: center;
   flex-shrink: 0;
 }
 
-.event-admin-row-action {
+.event-card-action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -149,29 +150,29 @@
   height: 36px;
 }
 
-.event-admin-row-action.btn-sm {
+.event-card-action.btn-sm {
   padding: 8px;
 }
 
-.event-admin-row-actions .btn-subtle-danger {
+.event-card-actions .btn-subtle-danger {
   margin-left: 0;
 }
 
 @media (max-width: 768px) {
-  .event-admin-row-link {
+  .event-card-content {
     grid-template-columns: 44px minmax(0, 1fr);
     gap: 10px;
   }
 
-  .event-admin-row-image-wrapper {
+  .event-card-image-wrapper {
     display: none;
   }
 
-  .event-admin-row-header h3 {
+  .event-card-header h3 {
     font-size: 1rem;
   }
 
-  .event-admin-row-actions {
+  .event-card-actions {
     grid-column: 1 / -1;
     flex-wrap: wrap;
     padding-top: 8px;

@@ -17,7 +17,6 @@ import { formatDayNumber, formatMonthShort, formatWeekdayShort } from '../utils/
 import { getNextUpcomingOccurrence, getRecurrenceLabel } from '../utils/eventOccurrences';
 import { getEventLocationLabel, isMultiDayEvent } from '../utils/eventFormat';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
-import { formatPriceWithCurrency } from '../utils/currency';
 import './EventAdminListRow.css';
 
 function formatDate(dateStr) {
@@ -67,25 +66,30 @@ export default function EventAdminListRow({
       : `/event/${event.slug || event.id}`;
 
   return (
-    <div className={`event-admin-row${hasUnread ? ' event-admin-row--has-unread' : ''}`}>
-      <Link to={eventLinkTarget} state={{ from: fromPath }} className="event-admin-row-link">
-        <div className="event-admin-row-date">
-          <span className="event-admin-row-weekday">{formatWeekdayShort(eventDate)}</span>
-          <span className="event-admin-row-day">{formatDayNumber(eventDate)}</span>
-          <span className="event-admin-row-month">{formatMonthShort(eventDate)}</span>
-        </div>
+    <div className={`event-card${hasUnread ? ' event-card--has-unread' : ''}`}>
+      <Link to={eventLinkTarget} state={{ from: fromPath }} className="event-card-content">
+        {eventDate ? (
+          <div className="event-card-date">
+            <span className="event-card-weekday">{formatWeekdayShort(eventDate)}</span>
+            <span className="event-card-day">{formatDayNumber(eventDate)}</span>
+            <span className="event-card-month">{formatMonthShort(eventDate)}</span>
+          </div>
+        ) : (
+          <div className="event-card-date" />
+        )}
 
-        <div className="event-admin-row-image-wrapper">
+        <div className="event-card-image-wrapper">
           <img
             src={imageSrc}
             alt=""
-            className="event-admin-row-image"
+            className="event-card-image"
+            data-testid="event-card-image"
             onError={() => setImageError(true)}
           />
         </div>
 
-        <div className="event-admin-row-body">
-          <div className="event-admin-row-header">
+        <div className="event-card-body">
+          <div className="event-card-header">
             <h3>
               {event.title}
               {hasUnread && (
@@ -98,7 +102,7 @@ export default function EventAdminListRow({
                 />
               )}
             </h3>
-            <div className="event-admin-row-badges">
+            <div className="event-card-badges">
               {showStatus && <StatusBadge status={event.status} />}
               {isRecurring && (
                 <span className="badge badge--recurring" title="Wiederholende Veranstaltung">
@@ -106,46 +110,27 @@ export default function EventAdminListRow({
                   <span>Serie</span>
                 </span>
               )}
-              {(event.contribution === 'free' ||
-                event.contribution === 'donation' ||
-                event.fee) && (
-                <span
-                  className={`badge ${
-                    event.contribution === 'free'
-                      ? 'badge--free'
-                      : event.contribution === 'donation'
-                        ? 'badge--donation'
-                        : 'badge--fee'
-                  }`}
-                >
-                  {event.contribution === 'free'
-                    ? 'Kostenlos'
-                    : event.contribution === 'donation'
-                      ? 'Freie Spende'
-                      : formatPriceWithCurrency(event.fee, event.priceCurrency)}
-                </span>
-              )}
             </div>
           </div>
 
-          <div className="event-admin-row-meta">
+          <div className="event-card-meta">
             {!multiDay && event.time && (
-              <span className="event-admin-row-meta-item">{event.time} Uhr</span>
+              <span className="event-card-meta-item">{event.time} Uhr</span>
             )}
             {!multiDay && event.date && !isRecurring && (
-              <span className="event-admin-row-meta-item">{formatDate(event.date)}</span>
+              <span className="event-card-meta-item">{formatDate(event.date)}</span>
             )}
             {isRecurring && recurrenceLabel && (
-              <span className="event-admin-row-meta-item">{recurrenceLabel}</span>
+              <span className="event-card-meta-item">{recurrenceLabel}</span>
             )}
             {locationLabel && (
-              <span className="event-admin-row-meta-item">
+              <span className="event-card-meta-item">
                 <MapPin size={12} />
                 {locationLabel}
               </span>
             )}
             {event.organizer && event.organizer.email && (
-              <span className="event-admin-row-meta-item event-admin-row-meta-item--email">
+              <span className="event-card-meta-item event-card-meta-item--email">
                 <Mail size={12} />
                 {event.organizer.email}
               </span>
@@ -154,11 +139,11 @@ export default function EventAdminListRow({
         </div>
       </Link>
 
-      <div className="event-admin-row-actions">
+      <div className="event-card-actions">
         <Link
           to={eventLinkTarget}
           state={{ from: fromPath }}
-          className="btn btn-secondary btn-sm event-admin-row-action"
+          className="btn btn-secondary btn-sm event-card-action"
           aria-label="Ansehen"
           title="Ansehen"
         >
@@ -167,7 +152,7 @@ export default function EventAdminListRow({
         {showApprove && (
           <button
             onClick={() => onApprove?.(event.id)}
-            className="btn btn-success btn-sm event-admin-row-action"
+            className="btn btn-success btn-sm event-card-action"
             disabled={approving === event.id}
             aria-label="Genehmigen"
             title={approving === event.id ? 'Genehmige...' : 'Genehmigen'}
@@ -178,7 +163,7 @@ export default function EventAdminListRow({
         {showSubmit && (
           <button
             onClick={() => onSubmit?.(event)}
-            className="btn btn-primary btn-sm event-admin-row-action"
+            className="btn btn-primary btn-sm event-card-action"
             data-testid="submit-draft-button"
             aria-label="Einreichen"
             title="Einreichen"
@@ -189,7 +174,7 @@ export default function EventAdminListRow({
         {showRevert && (
           <button
             onClick={() => onRevert?.(event)}
-            className="btn btn-secondary btn-sm event-admin-row-action"
+            className="btn btn-secondary btn-sm event-card-action"
             data-testid="revert-to-draft-button"
             aria-label="Zu Entwurf"
             title="Zu Entwurf"
@@ -200,7 +185,7 @@ export default function EventAdminListRow({
         {showDuplicate && (
           <button
             onClick={() => onDuplicate?.(event)}
-            className="btn btn-secondary btn-sm event-admin-row-action"
+            className="btn btn-secondary btn-sm event-card-action"
             disabled={duplicating}
             data-testid="duplicate-event-button"
             aria-label="Duplizieren"
@@ -212,7 +197,7 @@ export default function EventAdminListRow({
         <Link
           to={`/admin/edit/${event.id}`}
           state={{ from: fromPath }}
-          className="btn btn-secondary btn-sm event-admin-row-action"
+          className="btn btn-secondary btn-sm event-card-action"
           aria-label={isRecurring ? 'Serie bearbeiten' : 'Bearbeiten'}
           title={isRecurring ? 'Serie bearbeiten' : 'Bearbeiten'}
         >
@@ -220,7 +205,7 @@ export default function EventAdminListRow({
         </Link>
         <button
           onClick={() => onDeleteClick?.(event)}
-          className="btn btn-subtle-danger btn-sm event-admin-row-action"
+          className="btn btn-subtle-danger btn-sm event-card-action"
           aria-label={isRecurring ? 'Serie löschen' : 'Event löschen'}
           title={isRecurring ? 'Serie löschen' : 'Event löschen'}
         >
