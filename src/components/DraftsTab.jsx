@@ -4,6 +4,8 @@ import { PlusCircle, FileText } from 'lucide-react';
 import { useEvents } from '../hooks/useEvents';
 import { useAuth } from '../hooks/useAuth';
 import EventAdminCard from './EventAdminCard';
+import EventAdminListRow from './EventAdminListRow';
+import AdminViewToggle from './AdminViewToggle';
 import ConfirmDialog from './ConfirmDialog';
 import RecurringDeleteDialog from './RecurringDeleteDialog';
 import OccurrencePickerDialog from './OccurrencePickerDialog';
@@ -21,6 +23,7 @@ export default function DraftsTab() {
   const [duplicatingId, setDuplicatingId] = useState(null);
   const [recurringDeleteTarget, setRecurringDeleteTarget] = useState(null);
   const [pendingRecurringDelete, setPendingRecurringDelete] = useState(null);
+  const [viewMode, setViewMode] = useState('card');
 
   const drafts = useMemo(() => {
     return events.filter((e) => e.status === 'draft').sort((a, b) => (a.date > b.date ? 1 : -1));
@@ -128,18 +131,40 @@ export default function DraftsTab() {
         setDeleteId(evt.id);
       }
     };
+    const commonProps = {
+      event,
+      showStatus: true,
+      showSubmit: true,
+      showDuplicate: true,
+      duplicating: duplicatingId === event.id,
+      fromPath: '/admin?tab=drafts',
+      onSubmit: (evt) => setStatusActionTarget({ id: evt.id, action: 'submit' }),
+      onDuplicate: handleDuplicate,
+      onDeleteClick,
+    };
+    return viewMode === 'card' ? (
+      <EventAdminCard {...commonProps} />
+    ) : (
+      <EventAdminListRow {...commonProps} />
+    );
+  };
+
+  const renderDraftsGrid = (draftsList) => {
+    if (viewMode === 'card') {
+      return (
+        <div className="event-list-grid">
+          {draftsList.map((event) => (
+            <div key={event.id}>{renderDraftCard(event)}</div>
+          ))}
+        </div>
+      );
+    }
     return (
-      <EventAdminCard
-        event={event}
-        showStatus
-        showSubmit
-        showDuplicate
-        duplicating={duplicatingId === event.id}
-        fromPath="/admin?tab=drafts"
-        onSubmit={(evt) => setStatusActionTarget({ id: evt.id, action: 'submit' })}
-        onDuplicate={handleDuplicate}
-        onDeleteClick={onDeleteClick}
-      />
+      <div className="event-list-rows">
+        {draftsList.map((event) => (
+          <div key={event.id}>{renderDraftCard(event)}</div>
+        ))}
+      </div>
     );
   };
 
@@ -191,12 +216,15 @@ export default function DraftsTab() {
       <section className="event-list-section">
         <div className="event-list-section-header">
           <h2>{drafts.length === 1 ? '1 Entwurf' : `${drafts.length} Entwürfe`}</h2>
+          <div className="event-list-section-header-actions">
+            <AdminViewToggle
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+              testIdPrefix="drafts"
+            />
+          </div>
         </div>
-        <div className="event-list-grid">
-          {drafts.map((event) => (
-            <div key={event.id}>{renderDraftCard(event)}</div>
-          ))}
-        </div>
+        {renderDraftsGrid(drafts)}
       </section>
 
       <ConfirmDialog

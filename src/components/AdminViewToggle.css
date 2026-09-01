@@ -1,0 +1,44 @@
+.admin-view-toggle {
+  display: inline-flex;
+  background-color: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  gap: 4px;
+}
+
+.admin-view-toggle button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.admin-view-toggle button:hover:not(.active) {
+  color: var(--text-primary);
+}
+
+.admin-view-toggle button.active {
+  background-color: var(--bg-calendar);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+@media (max-width: 640px) {
+  .admin-view-toggle button span {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .admin-view-toggle .admin-view-toggle-list {
+    display: none;
+  }
+}

@@ -345,4 +345,72 @@ describe('EventList', () => {
 
     expect(screen.queryByTestId('event-card-unread-indicator')).not.toBeInTheDocument();
   });
+
+  it('defaults to card view in Meine Events (sosoEwss)', () => {
+    mockUseEvents.events = [singleEvent];
+
+    render(
+      <MemoryRouter>
+        <EventList />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByTestId('events-view-toggle-card')).toHaveClass(/active/);
+    expect(screen.getByTestId('events-view-toggle-list')).not.toHaveClass(/active/);
+    expect(document.querySelector('.event-list-grid')).toBeInTheDocument();
+    expect(document.querySelector('.event-list-rows')).not.toBeInTheDocument();
+    expect(document.querySelector('.event-card')).toBeInTheDocument();
+  });
+
+  it('switches to list view when the Listenansicht toggle is clicked (sosoEwss)', () => {
+    mockUseEvents.events = [singleEvent];
+
+    render(
+      <MemoryRouter>
+        <EventList />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByTestId('events-view-toggle-list'));
+
+    expect(screen.getByTestId('events-view-toggle-list')).toHaveClass(/active/);
+    expect(screen.getByTestId('events-view-toggle-card')).not.toHaveClass(/active/);
+    expect(document.querySelector('.event-list-rows')).toBeInTheDocument();
+    expect(document.querySelector('.event-list-grid')).not.toBeInTheDocument();
+    expect(document.querySelector('.event-admin-row')).toBeInTheDocument();
+  });
+
+  it('still shows the admin action buttons when in list view (sosoEwss)', () => {
+    mockUseEvents.events = [pendingEvent];
+
+    render(
+      <MemoryRouter>
+        <EventList />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByTestId('events-view-toggle-list'));
+
+    expect(screen.getByTestId('revert-to-draft-button')).toBeInTheDocument();
+    expect(screen.getByTestId('duplicate-event-button')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /event löschen/i })).toBeInTheDocument();
+  });
+
+  it('switches back to card view when Kartenansicht toggle is clicked (sosoEwss)', () => {
+    mockUseEvents.events = [singleEvent];
+
+    render(
+      <MemoryRouter>
+        <EventList />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByTestId('events-view-toggle-list'));
+    expect(document.querySelector('.event-admin-row')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('events-view-toggle-card'));
+    expect(screen.getByTestId('events-view-toggle-card')).toHaveClass(/active/);
+    expect(document.querySelector('.event-list-grid')).toBeInTheDocument();
+    expect(document.querySelector('.event-admin-row')).not.toBeInTheDocument();
+  });
 });
