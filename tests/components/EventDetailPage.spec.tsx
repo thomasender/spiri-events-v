@@ -132,6 +132,19 @@ const renderPage = () =>
     </MemoryRouter>
   );
 
+const renderPageWithState = (from: string) =>
+  render(
+    <MemoryRouter
+      initialEntries={[
+        { pathname: '/event/yoga-heute-yogastudio-dornbirn-20260804', state: { from } },
+      ]}
+    >
+      <Routes>
+        <Route path="/event/:slug" element={<EventDetailPage />} />
+      </Routes>
+    </MemoryRouter>
+  );
+
 const renderRecurringEventPage = (occurrenceDate) =>
   render(
     <MemoryRouter
@@ -407,5 +420,31 @@ describe('EventDetailPage — organizer profile photo', () => {
 
     expect(screen.getByTestId('event-organizer')).toBeInTheDocument();
     expect(screen.queryByTestId('organizer-photo')).toBeNull();
+  });
+});
+
+describe('EventDetailPage — back navigation from admin drafts', () => {
+  it('shows "Zurück zur Verwaltung" pointing at /admin?tab=drafts when state.from is /admin?tab=drafts', async () => {
+    renderPageWithState('/admin?tab=drafts');
+    expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
+
+    const backLink = screen.getByRole('link', { name: /zurück zur verwaltung/i });
+    expect(backLink).toHaveAttribute('href', '/admin?tab=drafts');
+  });
+
+  it('shows "Zurück zur Verwaltung" pointing at /admin when state.from is /admin', async () => {
+    renderPageWithState('/admin');
+    expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
+
+    const backLink = screen.getByRole('link', { name: /zurück zur verwaltung/i });
+    expect(backLink).toHaveAttribute('href', '/admin');
+  });
+
+  it('shows "Zurück zum Kalender" pointing at / when state.from is /', async () => {
+    renderPageWithState('/');
+    expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
+
+    const backLink = screen.getByRole('link', { name: /zurück zum kalender/i });
+    expect(backLink).toHaveAttribute('href', '/');
   });
 });

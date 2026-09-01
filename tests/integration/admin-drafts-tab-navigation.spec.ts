@@ -151,4 +151,93 @@ test.describe('Entwurf Tab navigation (wFCSgPls)', () => {
     await expect(page.getByTestId('admin-tab-events')).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByTestId('admin-tab-drafts')).toHaveAttribute('aria-selected', 'false');
   });
+
+  test('Ansehen button on draft card preview returns to Entwürfe tab via Zurück link', async ({
+    page,
+  }) => {
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin?tab=drafts');
+
+    await page
+      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+      .catch(() => {});
+
+    const draftCard = page.locator('.event-card', { hasText: 'Admin Draft Event' });
+    await expect(draftCard).toBeVisible({ timeout: 10000 });
+
+    await draftCard.getByRole('link', { name: /^ansehen$/i }).click();
+    await page.waitForURL(/\/event\//);
+    await page
+      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+      .catch(() => {});
+
+    await expect(page.getByRole('link', { name: /zurück zur verwaltung/i })).toHaveAttribute(
+      'href',
+      /\/admin\?tab=drafts/
+    );
+
+    await page.getByRole('link', { name: /zurück zur verwaltung/i }).click();
+
+    await page.waitForURL(/\/admin\?tab=drafts/, { timeout: 10000 });
+    await expect(page.getByTestId('admin-tab-drafts')).toHaveAttribute('aria-selected', 'true');
+  });
+
+  test('Clicking draft card content opens preview whose Zurück link returns to Entwürfe tab', async ({
+    page,
+  }) => {
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin?tab=drafts');
+
+    await page
+      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+      .catch(() => {});
+
+    const draftCard = page.locator('.event-card', { hasText: 'Admin Draft Event' });
+    await expect(draftCard).toBeVisible({ timeout: 10000 });
+
+    await draftCard.locator('.event-card-content').click();
+    await page.waitForURL(/\/event\//);
+    await page
+      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+      .catch(() => {});
+
+    await expect(page.getByRole('link', { name: /zurück zur verwaltung/i })).toHaveAttribute(
+      'href',
+      /\/admin\?tab=drafts/
+    );
+
+    await page.getByRole('link', { name: /zurück zur verwaltung/i }).click();
+
+    await page.waitForURL(/\/admin\?tab=drafts/, { timeout: 10000 });
+    await expect(page.getByTestId('admin-tab-drafts')).toHaveAttribute('aria-selected', 'true');
+  });
+
+  test('Preview back button from default /admin returns to Meine Events tab', async ({ page }) => {
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin');
+
+    await page
+      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+      .catch(() => {});
+
+    const eventCard = page.locator('.event-card').first();
+    await expect(eventCard).toBeVisible({ timeout: 10000 });
+
+    await eventCard.getByRole('link', { name: /^ansehen$/i }).click();
+    await page.waitForURL(/\/event\//);
+    await page
+      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+      .catch(() => {});
+
+    await expect(page.getByRole('link', { name: /zurück zur verwaltung/i })).toHaveAttribute(
+      'href',
+      /\/admin$/
+    );
+
+    await page.getByRole('link', { name: /zurück zur verwaltung/i }).click();
+
+    await page.waitForURL(/\/admin(\?|$)/, { timeout: 10000 });
+    await expect(page.getByTestId('admin-tab-events')).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByTestId('admin-tab-drafts')).toHaveAttribute('aria-selected', 'false');
+  });
 });

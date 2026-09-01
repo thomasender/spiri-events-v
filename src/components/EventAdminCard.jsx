@@ -101,7 +101,7 @@ export default function EventAdminCard({
             ? `/event/${event.slug || event.id}?occurrenceDate=${nextOccurrence}`
             : `/event/${event.slug || event.id}`
         }
-        state={{ from: '/admin' }}
+        state={{ from: fromPath }}
         className="event-card-content"
       >
         <div className="event-card-image-wrapper">
@@ -232,7 +232,7 @@ export default function EventAdminCard({
               ? `/event/${event.slug || event.id}?occurrenceDate=${nextOccurrence}`
               : `/event/${event.slug || event.id}`
           }
-          state={{ from: '/admin' }}
+          state={{ from: fromPath }}
           className="btn btn-secondary btn-sm"
         >
           <Eye size={16} />
