@@ -93,6 +93,25 @@ test.describe('Event wizard: Copyright confirmation (tQ9gWPJv)', () => {
     await expect(submitButton).toBeEnabled();
   });
 
+  test('save-as-draft button is disabled until the copyright confirmation is checked', async ({
+    page,
+  }) => {
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin/new');
+    await waitForWizardToLoad(page);
+
+    await fillWizardThroughToSummary(page);
+
+    const draftButton = page.getByTestId('save-as-draft-button');
+    await expect(draftButton).toBeDisabled();
+
+    await page.getByTestId('rights-confirmed-checkbox').check();
+    await expect(draftButton).toBeEnabled();
+
+    await page.getByTestId('rights-confirmed-checkbox').uncheck();
+    await expect(draftButton).toBeDisabled();
+  });
+
   test('toggling the copyright checkbox on and off keeps the submit button in sync', async ({
     page,
   }) => {
