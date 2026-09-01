@@ -8,6 +8,8 @@ import RecurringDeleteDialog from './RecurringDeleteDialog';
 import OccurrencePickerDialog from './OccurrencePickerDialog';
 import SuccessDialog from './SuccessDialog';
 import EventAdminCard from './EventAdminCard';
+import EventAdminListRow from './EventAdminListRow';
+import AdminViewToggle from './AdminViewToggle';
 import { useState, useMemo } from 'react';
 import { arrayUnion } from 'firebase/firestore';
 import { getNextUpcomingOccurrence } from '../utils/eventOccurrences';
@@ -48,6 +50,7 @@ export default function EventList() {
   const [statusActionTarget, setStatusActionTarget] = useState(null);
   const [duplicatingId, setDuplicatingId] = useState(null);
   const [duplicateSuccess, setDuplicateSuccess] = useState(null);
+  const [viewMode, setViewMode] = useState('card');
 
   const isAdmin = role === 'Admin';
 
@@ -240,24 +243,46 @@ export default function EventList() {
         setDeleteId(evt.id);
       }
     };
+    const commonProps = {
+      event,
+      showStatus,
+      showApprove,
+      showSubmit: event.status === 'draft',
+      showRevert: event.status === 'pending',
+      showDuplicate: event.status !== 'draft',
+      duplicating: duplicatingId === event.id,
+      unreadCount: unreadCountByEvent[event.id] || 0,
+      isAdmin,
+      approving,
+      onApprove: handleApprove,
+      onSubmit: (evt) => setStatusActionTarget({ id: evt.id, action: 'submit' }),
+      onRevert: (evt) => setStatusActionTarget({ id: evt.id, action: 'revert' }),
+      onDuplicate: handleDuplicate,
+      onDeleteClick,
+    };
+    return viewMode === 'card' ? (
+      <EventAdminCard {...commonProps} />
+    ) : (
+      <EventAdminListRow {...commonProps} />
+    );
+  };
+
+  const renderEventsGrid = (eventsList, showStatus, showApprove) => {
+    if (viewMode === 'card') {
+      return (
+        <div className="event-list-grid">
+          {eventsList.map((event) => (
+            <div key={event.id}>{renderCard(event, showStatus, showApprove)}</div>
+          ))}
+        </div>
+      );
+    }
     return (
-      <EventAdminCard
-        event={event}
-        showStatus={showStatus}
-        showApprove={showApprove}
-        showSubmit={event.status === 'draft'}
-        showRevert={event.status === 'pending'}
-        showDuplicate={event.status !== 'draft'}
-        duplicating={duplicatingId === event.id}
-        unreadCount={unreadCountByEvent[event.id] || 0}
-        isAdmin={isAdmin}
-        approving={approving}
-        onApprove={handleApprove}
-        onSubmit={(evt) => setStatusActionTarget({ id: evt.id, action: 'submit' })}
-        onRevert={(evt) => setStatusActionTarget({ id: evt.id, action: 'revert' })}
-        onDuplicate={handleDuplicate}
-        onDeleteClick={onDeleteClick}
-      />
+      <div className="event-list-rows">
+        {eventsList.map((event) => (
+          <div key={event.id}>{renderCard(event, showStatus, showApprove)}</div>
+        ))}
+      </div>
     );
   };
 
@@ -321,11 +346,7 @@ export default function EventList() {
         {allPending.length > 0 && (
           <section className="event-list-section">
             <h2>Ausstehende Genehmigungen</h2>
-            <div className="event-list-grid">
-              {allPending.map((event) => (
-                <div key={event.id}>{renderCard(event, true, true)}</div>
-              ))}
-            </div>
+            {renderEventsGrid(allPending, true, true)}
           </section>
         )}
 
@@ -341,7 +362,14 @@ export default function EventList() {
         <section className="event-list-section">
           <div className="event-list-section-header">
             <h2>Meine Events</h2>
-            {renderStatusFilter()}
+            <div className="event-list-section-header-actions">
+              {renderStatusFilter()}
+              <AdminViewToggle
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
+                testIdPrefix="events"
+              />
+            </div>
           </div>
           {sortedEvents.length === 0 ? (
             statusFilter === 'all' ? (
@@ -355,11 +383,7 @@ export default function EventList() {
               </div>
             )
           ) : (
-            <div className="event-list-grid">
-              {sortedEvents.map((event) => (
-                <div key={event.id}>{renderCard(event, true)}</div>
-              ))}
-            </div>
+            renderEventsGrid(sortedEvents, true)
           )}
         </section>
 
@@ -447,7 +471,14 @@ export default function EventList() {
       <section className="event-list-section">
         <div className="event-list-section-header">
           <h2>Events</h2>
-          {renderStatusFilter()}
+          <div className="event-list-section-header-actions">
+            {renderStatusFilter()}
+            <AdminViewToggle
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+              testIdPrefix="events"
+            />
+          </div>
         </div>
         {sortedEvents.length === 0 ? (
           statusFilter === 'all' ? (
@@ -461,11 +492,7 @@ export default function EventList() {
             </div>
           )
         ) : (
-          <div className="event-list-grid">
-            {sortedEvents.map((event) => (
-              <div key={event.id}>{renderCard(event, true)}</div>
-            ))}
-          </div>
+          renderEventsGrid(sortedEvents, true)
         )}
       </section>
 

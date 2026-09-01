@@ -123,6 +123,19 @@
   gap: 16px;
 }
 
+.event-list-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.event-list-section-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .event-card {
   background-color: var(--bg-calendar);
   border-radius: var(--radius-md);

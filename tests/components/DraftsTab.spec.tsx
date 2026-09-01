@@ -298,4 +298,69 @@ describe('DraftsTab (Bslx5TQW)', () => {
 
     expect(screen.queryByRole('button', { name: /genehmigen/i })).not.toBeInTheDocument();
   });
+
+  it('defaults to card view in Entwürfe (sosoEwss)', () => {
+    mockUseEvents.events = [draftEvent];
+
+    render(
+      <MemoryRouter>
+        <DraftsTab />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByTestId('drafts-view-toggle-card')).toHaveClass(/active/);
+    expect(screen.getByTestId('drafts-view-toggle-list')).not.toHaveClass(/active/);
+    expect(document.querySelector('.event-list-grid')).toBeInTheDocument();
+    expect(document.querySelector('.event-list-rows')).not.toBeInTheDocument();
+    expect(document.querySelector('.event-card')).toBeInTheDocument();
+  });
+
+  it('switches to list view when the Listenansicht toggle is clicked (sosoEwss)', () => {
+    mockUseEvents.events = [draftEvent];
+
+    render(
+      <MemoryRouter>
+        <DraftsTab />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByTestId('drafts-view-toggle-list'));
+
+    expect(screen.getByTestId('drafts-view-toggle-list')).toHaveClass(/active/);
+    expect(screen.getByTestId('drafts-view-toggle-card')).not.toHaveClass(/active/);
+    expect(document.querySelector('.event-list-rows')).toBeInTheDocument();
+    expect(document.querySelector('.event-list-grid')).not.toBeInTheDocument();
+    expect(document.querySelector('.event-admin-row')).toBeInTheDocument();
+  });
+
+  it('still shows the Einreichen / Duplizieren buttons in list view (sosoEwss)', () => {
+    mockUseEvents.events = [draftEvent];
+
+    render(
+      <MemoryRouter>
+        <DraftsTab />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByTestId('drafts-view-toggle-list'));
+
+    expect(screen.getByTestId('submit-draft-button')).toBeInTheDocument();
+    expect(screen.getByTestId('duplicate-event-button')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /event löschen/i })).toBeInTheDocument();
+  });
+
+  it('clicking Duplizieren in list view still triggers duplicateEvent (sosoEwss)', () => {
+    mockUseEvents.events = [draftEvent];
+
+    render(
+      <MemoryRouter>
+        <DraftsTab />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByTestId('drafts-view-toggle-list'));
+    fireEvent.click(screen.getByTestId('duplicate-event-button'));
+
+    expect(mockDuplicateEvent).toHaveBeenCalledWith('draft-1');
+  });
 });
