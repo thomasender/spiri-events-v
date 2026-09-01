@@ -139,6 +139,16 @@ const ownerUids = {
   user: userUid,
 };
 
+function stripKopieSuffix(title) {
+  let current = title;
+  let next = current.replace(/\s*\(Kopie\)\s*\d*$/, '').trim();
+  while (next !== current) {
+    current = next;
+    next = current.replace(/\s*\(Kopie\)\s*\d*$/, '').trim();
+  }
+  return current;
+}
+
 for (const [role, ownerUid] of Object.entries(ownerUids)) {
   if (!ownerUid) continue;
   const titles = fixtureTitlesByOwner.get(role) || new Set();
@@ -150,7 +160,8 @@ for (const [role, ownerUid] of Object.entries(ownerUids)) {
     const data = doc.data();
     if (fixtures.some((f) => f.id === doc.id)) continue;
     if (protectedFixtureIds.has(doc.id)) continue;
-    if (titles.has(data.title)) {
+    const normalizedTitle = stripKopieSuffix(data.title || '');
+    if (titles.has(normalizedTitle)) {
       await doc.ref.delete();
       console.log(`Deleted duplicate ${role} event ${doc.id} (${data.title})`);
     }

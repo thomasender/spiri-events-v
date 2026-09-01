@@ -174,7 +174,7 @@ describe('DraftsTab (Bslx5TQW)', () => {
     expect(mockDuplicateEvent).toHaveBeenCalledWith('draft-1');
   });
 
-  it('shows the success dialog after the duplicate resolves', async () => {
+  it('does NOT show a success dialog after duplicating a draft (VPCvHJKg)', async () => {
     mockDuplicateEvent.mockResolvedValue('new-event-id');
     mockUseEvents.events = [draftEvent];
 
@@ -186,10 +186,31 @@ describe('DraftsTab (Bslx5TQW)', () => {
 
     fireEvent.click(screen.getByTestId('duplicate-event-button'));
 
-    const successDialog = await screen.findByTestId('success-dialog');
-    expect(successDialog).toBeInTheDocument();
-    expect(successDialog).toHaveTextContent('Duplikat erstellt');
-    expect(successDialog).toHaveTextContent('My Draft Event');
+    await waitFor(() => {
+      expect(mockDuplicateEvent).toHaveBeenCalledWith('draft-1');
+    });
+
+    expect(screen.queryByTestId('success-dialog')).not.toBeInTheDocument();
+  });
+
+  it('clears the duplicating spinner after the duplicate resolves', async () => {
+    mockDuplicateEvent.mockResolvedValue('new-event-id');
+    mockUseEvents.events = [draftEvent];
+
+    render(
+      <MemoryRouter>
+        <DraftsTab />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByTestId('duplicate-event-button'));
+
+    await waitFor(() => {
+      expect(mockDuplicateEvent).toHaveBeenCalledTimes(1);
+    });
+
+    expect(screen.getByTestId('duplicate-event-button')).toHaveTextContent('Duplizieren');
+    expect(screen.getByTestId('duplicate-event-button')).not.toBeDisabled();
   });
 
   it('opens the submit confirmation dialog when Einreichen is clicked', () => {

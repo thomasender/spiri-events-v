@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useState, useMemo } from 'react';
 import { PlusCircle, FileText } from 'lucide-react';
 import { useEvents } from '../hooks/useEvents';
@@ -7,13 +7,11 @@ import EventAdminCard from './EventAdminCard';
 import ConfirmDialog from './ConfirmDialog';
 import RecurringDeleteDialog from './RecurringDeleteDialog';
 import OccurrencePickerDialog from './OccurrencePickerDialog';
-import SuccessDialog from './SuccessDialog';
 import { arrayUnion } from 'firebase/firestore';
 import { getNextUpcomingOccurrence } from '../utils/eventOccurrences';
 import { buildCustomDeleteOccurrenceUpdate } from '../utils/customSeriesUpdates';
 
 export default function DraftsTab() {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const { events, loading, deleteEvent, updateEvent, submitForReview, duplicateEvent } =
     useEvents(user);
@@ -21,7 +19,6 @@ export default function DraftsTab() {
   const [deleting, setDeleting] = useState(false);
   const [statusActionTarget, setStatusActionTarget] = useState(null);
   const [duplicatingId, setDuplicatingId] = useState(null);
-  const [duplicateSuccess, setDuplicateSuccess] = useState(null);
   const [recurringDeleteTarget, setRecurringDeleteTarget] = useState(null);
   const [pendingRecurringDelete, setPendingRecurringDelete] = useState(null);
 
@@ -57,17 +54,11 @@ export default function DraftsTab() {
     setDuplicatingId(event.id);
     try {
       await duplicateEvent(event.id);
-      setDuplicateSuccess({ eventTitle: event.title });
     } catch (err) {
       console.error('Duplicate draft failed:', err);
     } finally {
       setDuplicatingId(null);
     }
-  };
-
-  const handleDuplicateSuccessConfirm = () => {
-    setDuplicateSuccess(null);
-    navigate('/admin?tab=drafts');
   };
 
   const openRecurringDelete = (event) => {
@@ -256,19 +247,6 @@ export default function DraftsTab() {
         initialOccurrenceDate={pendingRecurringDelete?.initialOccurrenceDate}
         onConfirm={handleOccurrenceConfirmed}
         onCancel={() => setPendingRecurringDelete(null)}
-      />
-
-      <SuccessDialog
-        isOpen={Boolean(duplicateSuccess)}
-        title="Duplikat erstellt"
-        message={
-          duplicateSuccess
-            ? `Dein Event „${duplicateSuccess.eventTitle}” wurde erfolgreich dupliziert.`
-            : ''
-        }
-        details="Du findest das Duplikat in deinen Entwürfen und kannst es dort weiter bearbeiten oder einreichen."
-        confirmLabel="Zu den Entwürfen"
-        onConfirm={handleDuplicateSuccessConfirm}
       />
     </div>
   );

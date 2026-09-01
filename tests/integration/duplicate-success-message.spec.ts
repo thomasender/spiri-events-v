@@ -121,8 +121,21 @@ test.describe('Erfolgsmeldung nach Duplikation (YGBHPBdZ)', () => {
 
     await expect(successDialog).toBeHidden({ timeout: 5000 });
   });
+});
 
-  test('shows a success dialog after duplicating a draft from the Entwürfe tab', async ({
+test.describe('Duplikation im Entwürfe-Tab (VPCvHJKg)', () => {
+  test.beforeEach(async () => {
+    await resetDraftFixtures();
+    await resetUserApprovedEventFixture();
+  });
+
+  test.afterEach(async ({ page }) => {
+    await signOut(page);
+    await resetDraftFixtures();
+    await resetUserApprovedEventFixture();
+  });
+
+  test('does NOT show a success dialog when duplicating from the Entwürfe tab', async ({
     page,
   }) => {
     await signInWithEmailAndPassword(page, 'user@test.local', 'testpassword123');
@@ -138,18 +151,60 @@ test.describe('Erfolgsmeldung nach Duplikation (YGBHPBdZ)', () => {
 
     await draftCard.getByTestId('duplicate-event-button').click();
 
-    const successDialog = page.getByTestId('success-dialog');
-    await expect(successDialog).toBeVisible({ timeout: 10000 });
-    await expect(successDialog.getByTestId('success-dialog-icon')).toBeVisible();
-    await expect(successDialog.locator('h2')).toContainText('Duplikat erstellt');
-    await expect(successDialog).toContainText('User Draft Event');
-
-    const details = successDialog.getByTestId('success-dialog-details');
-    await expect(details).toBeVisible();
-    await expect(details).toContainText(/Entwürfen/i);
-
     await expect(page.locator('.event-card', { hasText: 'User Draft Event' })).toHaveCount(2, {
       timeout: 10000,
     });
+
+    await expect(page.getByTestId('success-dialog')).toHaveCount(0);
+  });
+
+  test('appends (Kopie) to the duplicated draft title in the Entwürfe tab', async ({ page }) => {
+    await signInWithEmailAndPassword(page, 'user@test.local', 'testpassword123');
+    await page.goto('/admin?tab=drafts');
+
+    await page
+      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+      .catch(() => {});
+
+    const draftCard = page.locator('.event-card', { hasText: 'User Draft Event' }).first();
+    await expect(draftCard).toBeVisible({ timeout: 10000 });
+    await draftCard.getByTestId('duplicate-event-button').click();
+
+    const duplicateCard = page
+      .locator('.event-card', { hasText: 'User Draft Event (Kopie)' })
+      .filter({ has: page.locator('.status-badge--draft') });
+    await expect(duplicateCard).toBeVisible({ timeout: 10000 });
+  });
+
+  test('appends (Kopie) to the duplicated approved event title in Meine Events', async ({
+    page,
+  }) => {
+    await signInWithEmailAndPassword(page, 'user@test.local', 'testpassword123');
+    await page.goto('/admin');
+
+    await page
+      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+      .catch(() => {});
+
+    const approvedCard = page
+      .locator('.event-card', { hasText: 'User Approved Event' })
+      .filter({ has: page.locator('.status-badge--approved') });
+    await expect(approvedCard).toBeVisible({ timeout: 10000 });
+
+    await approvedCard.getByTestId('duplicate-event-button').click();
+
+    await expect(page.getByTestId('success-dialog')).toBeVisible({ timeout: 10000 });
+    await page.getByTestId('success-dialog-confirm').click();
+
+    await page.waitForURL(/\/admin\?tab=drafts/, { timeout: 10000 });
+
+    await page
+      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+      .catch(() => {});
+
+    const duplicateCard = page
+      .locator('.event-card', { hasText: 'User Approved Event (Kopie)' })
+      .filter({ has: page.locator('.status-badge--draft') });
+    await expect(duplicateCard).toBeVisible({ timeout: 10000 });
   });
 });
