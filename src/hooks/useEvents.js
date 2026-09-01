@@ -159,9 +159,10 @@ export function useEvents(user) {
       throw new Error('Event zum Duplizieren nicht gefunden');
     }
     const source = sourceSnap.data();
-    const slug = await findUniqueSlug(source.title, source.place, source.date);
+    const duplicatedTitle = `${source.title} (Kopie)`;
+    const slug = await findUniqueSlug(duplicatedTitle, source.place, source.date);
     const duplicateData = {
-      title: source.title,
+      title: duplicatedTitle,
       date: source.date,
       endDate: source.endDate || '',
       time: source.time || '',
