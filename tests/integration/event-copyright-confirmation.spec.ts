@@ -77,7 +77,7 @@ test.describe('Event wizard: Copyright confirmation (tQ9gWPJv)', () => {
     await expect(label).toContainText('am Text');
   });
 
-  test('submit button is disabled until the copyright confirmation is checked', async ({
+  test('submit button is greyed out until the copyright confirmation is checked', async ({
     page,
   }) => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
@@ -87,13 +87,15 @@ test.describe('Event wizard: Copyright confirmation (tQ9gWPJv)', () => {
     await fillWizardThroughToSummary(page);
 
     const submitButton = page.getByTestId('submit-event-button');
-    await expect(submitButton).toBeDisabled();
+    await expect(submitButton).toHaveAttribute('aria-disabled', 'true');
+    await expect(submitButton).toHaveClass(/btn-greyed-out/);
 
     await page.getByTestId('rights-confirmed-checkbox').check();
-    await expect(submitButton).toBeEnabled();
+    await expect(submitButton).toHaveAttribute('aria-disabled', 'false');
+    await expect(submitButton).not.toHaveClass(/btn-greyed-out/);
   });
 
-  test('save-as-draft button is disabled until the copyright confirmation is checked', async ({
+  test('save-as-draft button is greyed out until the copyright confirmation is checked', async ({
     page,
   }) => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
@@ -103,13 +105,16 @@ test.describe('Event wizard: Copyright confirmation (tQ9gWPJv)', () => {
     await fillWizardThroughToSummary(page);
 
     const draftButton = page.getByTestId('save-as-draft-button');
-    await expect(draftButton).toBeDisabled();
+    await expect(draftButton).toHaveAttribute('aria-disabled', 'true');
+    await expect(draftButton).toHaveClass(/btn-greyed-out/);
 
     await page.getByTestId('rights-confirmed-checkbox').check();
-    await expect(draftButton).toBeEnabled();
+    await expect(draftButton).toHaveAttribute('aria-disabled', 'false');
+    await expect(draftButton).not.toHaveClass(/btn-greyed-out/);
 
     await page.getByTestId('rights-confirmed-checkbox').uncheck();
-    await expect(draftButton).toBeDisabled();
+    await expect(draftButton).toHaveAttribute('aria-disabled', 'true');
+    await expect(draftButton).toHaveClass(/btn-greyed-out/);
   });
 
   test('toggling the copyright checkbox on and off keeps the submit button in sync', async ({
@@ -124,12 +129,81 @@ test.describe('Event wizard: Copyright confirmation (tQ9gWPJv)', () => {
     const submitButton = page.getByTestId('submit-event-button');
     const checkbox = page.getByTestId('rights-confirmed-checkbox');
 
-    await expect(submitButton).toBeDisabled();
+    await expect(submitButton).toHaveAttribute('aria-disabled', 'true');
+    await expect(submitButton).toHaveClass(/btn-greyed-out/);
     await checkbox.check();
-    await expect(submitButton).toBeEnabled();
+    await expect(submitButton).toHaveAttribute('aria-disabled', 'false');
+    await expect(submitButton).not.toHaveClass(/btn-greyed-out/);
     await checkbox.uncheck();
-    await expect(submitButton).toBeDisabled();
+    await expect(submitButton).toHaveAttribute('aria-disabled', 'true');
+    await expect(submitButton).toHaveClass(/btn-greyed-out/);
     await expect(page.locator('.confirm-dialog')).toHaveCount(0);
+  });
+
+  test('clicking the greyed-out submit button without confirmation shows an inline copyright error', async ({
+    page,
+  }) => {
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin/new');
+    await waitForWizardToLoad(page);
+
+    await fillWizardThroughToSummary(page);
+
+    const checkbox = page.getByTestId('rights-confirmed-checkbox');
+    const errorLocator = page.getByTestId('rights-confirmed-error');
+
+    await expect(errorLocator).toHaveCount(0);
+    await page.getByTestId('submit-event-button').click({ force: true });
+    await expect(errorLocator).toBeVisible();
+    await expect(errorLocator).toHaveText('Bitte bestätige die Nutzungsrechte');
+    await expect(errorLocator).toHaveClass(/error-text/);
+    await expect(page.locator('.confirm-dialog')).toHaveCount(0);
+    await expect(checkbox).not.toBeChecked();
+  });
+
+  test('clicking the greyed-out draft button without confirmation shows an inline copyright error', async ({
+    page,
+  }) => {
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin/new');
+    await waitForWizardToLoad(page);
+
+    await fillWizardThroughToSummary(page);
+
+    const checkbox = page.getByTestId('rights-confirmed-checkbox');
+    const errorLocator = page.getByTestId('rights-confirmed-error');
+
+    await expect(errorLocator).toHaveCount(0);
+    await page.getByTestId('save-as-draft-button').click({ force: true });
+    await expect(errorLocator).toBeVisible();
+    await expect(errorLocator).toHaveText('Bitte bestätige die Nutzungsrechte');
+    await expect(errorLocator).toHaveClass(/error-text/);
+    await expect(page.locator('.confirm-dialog')).toHaveCount(0);
+    await expect(checkbox).not.toBeChecked();
+  });
+
+  test('checking the copyright checkbox after clicking the greyed-out button clears the inline error', async ({
+    page,
+  }) => {
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin/new');
+    await waitForWizardToLoad(page);
+
+    await fillWizardThroughToSummary(page);
+
+    const checkbox = page.getByTestId('rights-confirmed-checkbox');
+    const errorLocator = page.getByTestId('rights-confirmed-error');
+
+    await page.getByTestId('submit-event-button').click({ force: true });
+    await expect(errorLocator).toBeVisible();
+
+    await checkbox.check();
+    await expect(errorLocator).toHaveCount(0);
+
+    await page.getByTestId('submit-event-button').click();
+    await expect(page.locator('.confirm-dialog').filter({ hasText: 'Einreichen' })).toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test('submitting with confirmation saves the rightsConfirmed flag on the event', async ({

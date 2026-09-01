@@ -252,6 +252,26 @@ textarea {
   gap: 8px;
 }
 
+.btn-greyed-out {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-greyed-out:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.wizard-actions .btn-primary.btn-greyed-out:hover {
+  background-color: var(--accent-primary);
+  color: white;
+}
+
+.wizard-actions .btn-secondary.btn-greyed-out:hover {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
 .image-upload-area {
   display: flex;
   flex-direction: column;

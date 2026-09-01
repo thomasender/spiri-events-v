@@ -1234,8 +1234,9 @@ export default function EventFormWizard() {
               <button
                 type="button"
                 onClick={handleSaveAsDraft}
-                className="btn btn-secondary"
-                disabled={loading || imageUploading || !rightsConfirmed}
+                className={`btn btn-secondary ${!rightsConfirmed ? 'btn-greyed-out' : ''}`}
+                disabled={loading || imageUploading}
+                aria-disabled={!rightsConfirmed}
                 data-testid="save-as-draft-button"
               >
                 <Save size={22} />
@@ -1257,8 +1258,9 @@ export default function EventFormWizard() {
               <button
                 type="button"
                 onClick={handleSubmit}
-                className="btn btn-primary"
-                disabled={loading || imageUploading || !rightsConfirmed}
+                className={`btn btn-primary ${!rightsConfirmed ? 'btn-greyed-out' : ''}`}
+                disabled={loading || imageUploading}
+                aria-disabled={!rightsConfirmed}
                 data-testid="submit-event-button"
               >
                 <Save size={22} />
