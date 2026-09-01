@@ -510,10 +510,16 @@ export default function EventFormWizard() {
     setSubmitError('');
     setValidationError('');
 
-    const newErrors = validateStep(3);
+    const step3Errors = validateStep(3);
+    const step4Errors = validateStep(4);
+    const newErrors = { ...step3Errors, ...step4Errors };
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      setValidationError('Bitte fülle alle Pflichtfelder aus.');
+      if (step4Errors.rightsConfirmed) {
+        setValidationError('Bitte bestätige die Nutzungsrechte.');
+      } else {
+        setValidationError('Bitte fülle alle Pflichtfelder aus.');
+      }
       return;
     }
 
@@ -1229,7 +1235,7 @@ export default function EventFormWizard() {
                 type="button"
                 onClick={handleSaveAsDraft}
                 className="btn btn-secondary"
-                disabled={loading || imageUploading}
+                disabled={loading || imageUploading || !rightsConfirmed}
                 data-testid="save-as-draft-button"
               >
                 <Save size={22} />
