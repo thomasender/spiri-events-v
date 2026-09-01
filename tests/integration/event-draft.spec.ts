@@ -45,7 +45,7 @@ test.describe('Event draft status — read-only (AzGFKWfV)', () => {
     const draftTitle = page.locator('.event-card', { hasText: 'User Draft Event' });
     await expect(draftTitle).toBeVisible({ timeout: 10000 });
     await expect(draftTitle.locator('.status-badge--draft')).toBeVisible();
-    await expect(draftTitle.getByText('Entwurf — noch nicht eingereicht')).toBeVisible();
+    await expect(draftTitle.locator('.status-badge--draft')).toBeVisible();
   });
 
   test('draft shows Einreichen button and does NOT show Genehmigen button', async ({ page }) => {

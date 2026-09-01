@@ -169,7 +169,7 @@ describe('EventList', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText('Serie bearbeiten')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /serie bearbeiten/i })).toBeInTheDocument();
   });
 
   it('shows Bearbeiten button for non-recurring events', () => {
@@ -181,7 +181,7 @@ describe('EventList', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText('Bearbeiten')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /bearbeiten/i })).toBeInTheDocument();
   });
 
   it('Ansehen link contains occurrenceDate for recurring events', () => {
@@ -346,7 +346,7 @@ describe('EventList', () => {
     expect(screen.queryByTestId('event-card-unread-indicator')).not.toBeInTheDocument();
   });
 
-  it('defaults to card view in Meine Events (sosoEwss)', () => {
+  it('renders events as list rows, not cards (sosoEwss)', () => {
     mockUseEvents.events = [singleEvent];
 
     render(
@@ -355,48 +355,12 @@ describe('EventList', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByTestId('events-view-toggle-card')).toHaveClass(/active/);
-    expect(screen.getByTestId('events-view-toggle-list')).not.toHaveClass(/active/);
-    expect(document.querySelector('.event-list-grid')).toBeInTheDocument();
-    expect(document.querySelector('.event-list-rows')).not.toBeInTheDocument();
-    expect(document.querySelector('.event-card')).toBeInTheDocument();
-  });
-
-  it('switches to list view when the Listenansicht toggle is clicked (sosoEwss)', () => {
-    mockUseEvents.events = [singleEvent];
-
-    render(
-      <MemoryRouter>
-        <EventList />
-      </MemoryRouter>
-    );
-
-    fireEvent.click(screen.getByTestId('events-view-toggle-list'));
-
-    expect(screen.getByTestId('events-view-toggle-list')).toHaveClass(/active/);
-    expect(screen.getByTestId('events-view-toggle-card')).not.toHaveClass(/active/);
     expect(document.querySelector('.event-list-rows')).toBeInTheDocument();
-    expect(document.querySelector('.event-list-grid')).not.toBeInTheDocument();
-    expect(document.querySelector('.event-admin-row')).toBeInTheDocument();
+    expect(document.querySelector('.event-card-content')).toBeInTheDocument();
+    expect(document.querySelector('.event-card-actions')).toBeInTheDocument();
   });
 
-  it('still shows the admin action buttons when in list view (sosoEwss)', () => {
-    mockUseEvents.events = [pendingEvent];
-
-    render(
-      <MemoryRouter>
-        <EventList />
-      </MemoryRouter>
-    );
-
-    fireEvent.click(screen.getByTestId('events-view-toggle-list'));
-
-    expect(screen.getByTestId('revert-to-draft-button')).toBeInTheDocument();
-    expect(screen.getByTestId('duplicate-event-button')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /event löschen/i })).toBeInTheDocument();
-  });
-
-  it('switches back to card view when Kartenansicht toggle is clicked (sosoEwss)', () => {
+  it('does not render the card/list view toggle anymore (sosoEwss)', () => {
     mockUseEvents.events = [singleEvent];
 
     render(
@@ -405,12 +369,20 @@ describe('EventList', () => {
       </MemoryRouter>
     );
 
-    fireEvent.click(screen.getByTestId('events-view-toggle-list'));
-    expect(document.querySelector('.event-admin-row')).toBeInTheDocument();
+    expect(screen.queryByTestId('events-view-toggle-card')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('events-view-toggle-list')).not.toBeInTheDocument();
+  });
 
-    fireEvent.click(screen.getByTestId('events-view-toggle-card'));
-    expect(screen.getByTestId('events-view-toggle-card')).toHaveClass(/active/);
-    expect(document.querySelector('.event-list-grid')).toBeInTheDocument();
-    expect(document.querySelector('.event-admin-row')).not.toBeInTheDocument();
+  it('does not render the price badge on event rows in Verwaltung (sosoEwss)', () => {
+    mockUseEvents.events = [singleEvent];
+
+    render(
+      <MemoryRouter>
+        <EventList />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByText(/kostenlos/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/freie spende/i)).not.toBeInTheDocument();
   });
 });
