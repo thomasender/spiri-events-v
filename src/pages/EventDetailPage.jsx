@@ -404,7 +404,10 @@ export default function EventDetailPage() {
   };
 
   const backPath = location.state?.from || '/';
-  const backLabel = backPath === '/admin' ? 'Zurück zur Verwaltung' : 'Zurück zum Kalender';
+  const backLabel =
+    backPath === '/admin' || backPath.startsWith('/admin?')
+      ? 'Zurück zur Verwaltung'
+      : 'Zurück zum Kalender';
 
   return (
     <div className="event-detail-page">
