@@ -34,6 +34,7 @@ import RichTextView from './RichTextView';
 import { isHtmlEmpty } from '../utils/sanitize';
 import { normalizeLink } from '../utils/link';
 import { CURRENCIES, DEFAULT_CURRENCY, formatPriceWithCurrency } from '../utils/currency';
+import { saveWizardDraft, loadWizardDraft, clearWizardDraft } from '../utils/wizardDraftStorage';
 import './EventForm.css';
 import './EventFormWizard.css';
 
@@ -111,14 +112,34 @@ export default function EventFormWizard() {
   const { addEvent, updateEvent } = useEvents(user);
 
   const { firstName, lastName } = splitDisplayName(user?.displayName, user?.email);
-  const [formData, setFormData] = useState({
-    ...INITIAL_STATE,
+  const profileDefaults = {
     organizer: {
       firstName,
       lastName,
       email: user?.email || '',
     },
     kontakt: user?.email || '',
+  };
+  const restoredDraft = user ? loadWizardDraft(user.uid) : null;
+
+  const [formData, setFormData] = useState(() => {
+    if (restoredDraft && restoredDraft.formData) {
+      return {
+        ...INITIAL_STATE,
+        ...restoredDraft.formData,
+        organizer: {
+          ...INITIAL_STATE.organizer,
+          ...(restoredDraft.formData.organizer || {}),
+        },
+        customDates: Array.isArray(restoredDraft.formData.customDates)
+          ? restoredDraft.formData.customDates
+          : [],
+      };
+    }
+    return {
+      ...INITIAL_STATE,
+      ...profileDefaults,
+    };
   });
 
   const [errors, setErrors] = useState({});
@@ -132,8 +153,14 @@ export default function EventFormWizard() {
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [successState, setSuccessState] = useState(null);
-  const [currentStep, setCurrentStep] = useState(1);
-  const [rightsConfirmed, setRightsConfirmed] = useState(false);
+  const [currentStep, setCurrentStep] = useState(() =>
+    restoredDraft && Number.isInteger(restoredDraft.currentStep)
+      ? Math.min(Math.max(restoredDraft.currentStep, 1), STEPS.length)
+      : 1
+  );
+  const [rightsConfirmed, setRightsConfirmed] = useState(
+    Boolean(restoredDraft && restoredDraft.rightsConfirmed)
+  );
   const fileInputRef = useRef(null);
   const wizardContainerRef = useRef(null);
   const isInitialStepMount = useRef(true);
@@ -148,6 +175,19 @@ export default function EventFormWizard() {
       wizardContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }, [currentStep]);
+
+  useEffect(() => {
+    if (!user) return;
+    if (loading) return;
+    const timeoutId = setTimeout(() => {
+      saveWizardDraft(user.uid, {
+        formData,
+        currentStep,
+        rightsConfirmed,
+      });
+    }, 300);
+    return () => clearTimeout(timeoutId);
+  }, [user, formData, currentStep, rightsConfirmed, loading]);
 
   const isAdmin = role === 'Admin';
 
@@ -536,6 +576,10 @@ export default function EventFormWizard() {
       if (imageFile) {
         const newImageUrl = await handleImageUpload(docRef.id);
         await updateEvent(docRef.id, { imageUrl: newImageUrl });
+      }
+
+      if (user) {
+        clearWizardDraft(user.uid);
       }
 
       if (eventData.status === 'draft') {
