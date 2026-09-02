@@ -45,8 +45,12 @@ service cloud.firestore {
                     && (request.resource.data.status in ['pending', 'draft'])
                     && request.resource.data.description.size() <= 20000;
 
+      // Owners and admins can move events to/from the trash (status='trashed'),
+      // and the first read rule already lets the owner + admin read trashed
+      // events so the Papierkorb tab can list them.
       allow update: if (isOwner() || isAdminOrEmulatorAdmin())
-                    && request.resource.data.description.size() <= 20000;
+                    && request.resource.data.description.size() <= 20000
+                    && (request.resource.data.status in ['pending', 'draft', 'approved', 'trashed']);
       allow delete: if isOwner() || isAdminOrEmulatorAdmin();
 
       match /messages/{messageId} {
@@ -65,7 +69,9 @@ service cloud.firestore {
                       && request.resource.data.diff(resource.data).affectedKeys()
                           .hasOnly(['readByRecipient']);
 
-        allow delete: if isAdminOrEmulatorAdmin();
+        // Owners can permanently delete their own event's messages via the
+        // Papierkorb. Admins can always delete messages.
+        allow delete: if isAdminOrEmulatorAdmin() || isEventOwner(eventId);
       }
     }
 

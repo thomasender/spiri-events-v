@@ -213,8 +213,8 @@ describe('EventDetailPage — edit/delete visibility', () => {
   });
 });
 
-describe('EventDetailPage — delete flow', () => {
-  it('calls deleteEvent and returns to the calendar when the user confirms', async () => {
+describe('EventDetailPage — trash flow', () => {
+  it('calls deleteEvent and navigates to the trash tab when the user confirms (SS79oSci)', async () => {
     mockAuth.user = { uid: 'admin-uid' };
     mockAuth.role = 'Admin';
 
@@ -222,14 +222,16 @@ describe('EventDetailPage — delete flow', () => {
     expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
 
     const deleteButton = await screen.findByTestId('delete-event-button');
-    deleteButton.click();
+    await act(async () => {
+      fireEvent.click(deleteButton);
+    });
 
-    expect(
-      await screen.findByText(/möchtest du dieses event wirklich löschen\?/i)
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/in den Papierkorb verschoben/i)).toBeInTheDocument();
 
-    const confirmButton = screen.getByRole('button', { name: /^löschen$/i });
-    await confirmButton.click();
+    const confirmButton = screen.getByRole('button', { name: /papierkorb/i });
+    await act(async () => {
+      fireEvent.click(confirmButton);
+    });
 
     expect(mockEvents.deleteEvent).toHaveBeenCalledWith('remote-event-id');
   });

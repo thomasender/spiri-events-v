@@ -226,7 +226,7 @@ describe('DraftsTab (Bslx5TQW)', () => {
     expect(screen.getByText('Entwurf einreichen')).toBeInTheDocument();
   });
 
-  it('opens the delete confirmation dialog when the trash icon is clicked', () => {
+  it('opens the trash confirmation dialog when the trash icon is clicked', () => {
     mockUseEvents.events = [draftEvent];
 
     render(
@@ -237,7 +237,7 @@ describe('DraftsTab (Bslx5TQW)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /event löschen/i }));
 
-    expect(screen.getByText('Entwurf löschen')).toBeInTheDocument();
+    expect(screen.getByText(/in den Papierkorb verschoben/i)).toBeInTheDocument();
   });
 
   it('calls deleteEvent when delete is confirmed', async () => {
@@ -252,7 +252,7 @@ describe('DraftsTab (Bslx5TQW)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /event löschen/i }));
 
-    const dialog = await screen.findByText('Entwurf löschen');
+    const dialog = await screen.findByText(/in den Papierkorb verschoben/i);
     const dialogRoot = dialog.closest('.confirm-dialog');
     const confirmButton = dialogRoot.querySelector('.confirm-confirm');
     fireEvent.click(confirmButton);

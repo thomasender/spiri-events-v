@@ -167,7 +167,7 @@ test.describe('Entwürfe tab — admin (Bslx5TQW)', () => {
 
     const dialog = page.locator('.confirm-dialog');
     await expect(dialog).toBeVisible();
-    await dialog.getByRole('button', { name: /^löschen$/i }).click();
+    await dialog.getByRole('button', { name: /papierkorb/i }).click();
 
     await expect(draftCard).toHaveCount(0, { timeout: 10000 });
   });

@@ -134,11 +134,9 @@ describe('EventForm — delete flow', () => {
 
     fireEvent.click(screen.getByTestId('delete-event-from-form-button'));
 
-    expect(
-      await screen.findByText(/möchtest du dieses event wirklich löschen\?/i)
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/in den Papierkorb verschoben/i)).toBeInTheDocument();
 
-    const confirmButton = screen.getByRole('button', { name: /^löschen$/i });
+    const confirmButton = screen.getByRole('button', { name: /papierkorb/i });
     await fireEvent.click(confirmButton);
 
     expect(mockEvents.deleteEvent).toHaveBeenCalledWith('event-x');

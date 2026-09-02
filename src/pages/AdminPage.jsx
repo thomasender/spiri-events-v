@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { CalendarDays, Mail, MessageSquare, PlusCircle, FileText } from 'lucide-react';
+import { CalendarDays, Mail, MessageSquare, PlusCircle, FileText, Trash2 } from 'lucide-react';
 import EventList from '../components/EventList';
 import DraftsTab from '../components/DraftsTab';
+import TrashTab from '../components/TrashTab';
 import MessagesTab from '../components/MessagesTab';
 import FeedbackTab from '../components/FeedbackTab';
 import EmailVerificationBanner from '../components/EmailVerificationBanner';
@@ -12,9 +13,10 @@ import { useAuth } from '../hooks/useAuth';
 import { useEvents } from '../hooks/useEvents';
 import { useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
 import { useUnreadFeedbackCount } from '../hooks/useFeedbackList';
+import { useTrashedEventsCount } from '../hooks/useTrashedEventsCount';
 import './AdminPage.css';
 
-const VALID_TABS = new Set(['events', 'drafts', 'messages', 'feedback']);
+const VALID_TABS = new Set(['events', 'drafts', 'messages', 'feedback', 'trash']);
 
 export default function AdminPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -22,15 +24,19 @@ export default function AdminPage() {
   const isAdmin = role === 'Admin';
   const { count: unreadCount } = useUnreadMessageCount();
   const { count: unreadFeedbackCount } = useUnreadFeedbackCount(isAdmin);
+  const { count: trashedCount } = useTrashedEventsCount(isAdmin);
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
   const { events } = useEvents(user);
 
   const rawTab = searchParams.get('tab');
   const activeTab = useMemo(() => {
     if (rawTab === 'feedback' && !isAdmin) return 'events';
+    // The trash tab is only visible while there are trashed events; if it was
+    // open and the user empties the trash, fall back to "events".
+    if (rawTab === 'trash' && trashedCount === 0) return 'events';
     if (rawTab && VALID_TABS.has(rawTab)) return rawTab;
     return 'events';
-  }, [rawTab, isAdmin]);
+  }, [rawTab, isAdmin, trashedCount]);
 
   const draftCount = useMemo(() => events.filter((e) => e.status === 'draft').length, [events]);
 
@@ -111,6 +117,21 @@ export default function AdminPage() {
             </span>
           )}
         </button>
+        {trashedCount > 0 && (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'trash'}
+            aria-controls="admin-tab-trash"
+            id="admin-tab-trash-btn"
+            className={`admin-page-tab${activeTab === 'trash' ? ' admin-page-tab--active' : ''}`}
+            onClick={() => setTab('trash')}
+            data-testid="admin-tab-trash"
+          >
+            <Trash2 size={16} aria-hidden="true" />
+            <span>Papierkorb</span>
+          </button>
+        )}
         <button
           type="button"
           role="tab"
@@ -175,6 +196,16 @@ export default function AdminPage() {
       >
         {activeTab === 'drafts' && <DraftsTab />}
       </div>
+      {trashedCount > 0 && (
+        <div
+          role="tabpanel"
+          id="admin-tab-trash"
+          aria-labelledby="admin-tab-trash-btn"
+          hidden={activeTab !== 'trash'}
+        >
+          {activeTab === 'trash' && <TrashTab />}
+        </div>
+      )}
       <div
         role="tabpanel"
         id="admin-tab-messages"

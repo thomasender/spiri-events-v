@@ -19,6 +19,7 @@ import {
 import { db } from '../lib/firebase';
 import { findUniqueSlug } from '../lib/slug';
 import { normalizeCurrency } from '../utils/currency';
+import { deleteImageByUrl } from '../lib/imageUpload';
 import { useAuth } from './useAuth';
 import { auth } from '../lib/firebase';
 import { getApp } from 'firebase/app';
@@ -146,6 +147,42 @@ export function useEvents(user) {
       await auth.currentUser.getIdToken(true);
     }
     const ref = doc(db, 'events', id);
+    return updateDoc(ref, {
+      status: 'trashed',
+      trashedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  };
+
+  const restoreEvent = async (id) => {
+    if (auth.currentUser) {
+      await auth.currentUser.getIdToken(true);
+    }
+    const ref = doc(db, 'events', id);
+    return updateDoc(ref, {
+      status: 'draft',
+      trashedAt: null,
+      updatedAt: serverTimestamp(),
+    });
+  };
+
+  const permanentDeleteEvent = async (id) => {
+    if (auth.currentUser) {
+      await auth.currentUser.getIdToken(true);
+    }
+    const ref = doc(db, 'events', id);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return;
+
+    const eventData = snap.data();
+    if (eventData.imageUrl) {
+      await deleteImageByUrl(eventData.imageUrl);
+    }
+
+    const messagesRef = collection(db, 'events', id, 'messages');
+    const messagesSnapshot = await getDocs(messagesRef);
+    await Promise.all(messagesSnapshot.docs.map((docSnap) => deleteDoc(docSnap.ref)));
+
     return deleteDoc(ref);
   };
 
@@ -200,6 +237,8 @@ export function useEvents(user) {
     addEvent,
     updateEvent,
     deleteEvent,
+    restoreEvent,
+    permanentDeleteEvent,
     duplicateEvent,
     submitForReview,
     revertToDraft,

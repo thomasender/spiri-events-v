@@ -21,6 +21,16 @@ const mockUseEventsWithMessages = vi.hoisted(() => ({
   loading: false,
 }));
 
+const mockUseUnreadFeedbackCount = vi.hoisted(() => ({
+  count: 0,
+  loading: false,
+}));
+
+const mockUseTrashedCount = vi.hoisted(() => ({
+  count: 0,
+  loading: false,
+}));
+
 const mockUseEvents = vi.hoisted(() => ({
   events: [] as Array<{ id: string; title: string; status?: string }>,
   loading: false,
@@ -52,6 +62,12 @@ vi.mock('../../src/hooks/useEventsWithMessages', () => ({
 vi.mock('../../src/hooks/useEvents', () => ({
   useEvents: () => mockUseEvents,
   usePendingEvents: () => mockUsePendingEvents,
+}));
+vi.mock('../../src/hooks/useFeedbackList', () => ({
+  useUnreadFeedbackCount: () => mockUseUnreadFeedbackCount,
+}));
+vi.mock('../../src/hooks/useTrashedEventsCount', () => ({
+  useTrashedEventsCount: () => mockUseTrashedCount,
 }));
 
 function renderAdmin(initialEntries: string[] = ['/admin']) {

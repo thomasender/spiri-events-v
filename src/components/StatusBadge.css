@@ -22,3 +22,8 @@
   background-color: rgba(122, 122, 122, 0.12);
   color: var(--text-secondary);
 }
+
+.status-badge--trashed {
+  background-color: rgba(193, 122, 122, 0.15);
+  color: var(--error);
+}

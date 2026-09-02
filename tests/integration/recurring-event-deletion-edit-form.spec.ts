@@ -117,7 +117,9 @@ test.describe('Recurring event deletion from EventForm', () => {
     await page.waitForURL((url) => url.pathname === '/', { timeout: 10000 });
   });
 
-  test('"Gesamte Serie löschen" from edit form deletes entire event document', async ({ page }) => {
+  test('"Gesamte Serie löschen" from edit form moves the event to the trash (SS79oSci)', async ({
+    page,
+  }) => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
 
     await page.goto(`/admin/edit/${RECURRING_EVENT_ID}`);
@@ -130,13 +132,15 @@ test.describe('Recurring event deletion from EventForm', () => {
 
     await page.getByText('Gesamte Serie löschen').click();
 
-    await page.waitForURL((url) => url.pathname === '/', { timeout: 10000 });
+    // The whole-series delete now lands on the trash tab.
+    await page.waitForURL(/\/admin\?tab=trash/, { timeout: 10000 });
 
-    await page.goto(`/event/${RECURRING_EVENT_SLUG}`);
     await page
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
       .catch(() => {});
 
-    await expect(page.locator('.event-not-found')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.event-card', { hasText: 'Test Weekly Yoga Series' })).toBeVisible({
+      timeout: 10000,
+    });
   });
 });
