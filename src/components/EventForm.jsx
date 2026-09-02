@@ -142,6 +142,8 @@ export default function EventForm({ event }) {
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [validationError, setValidationError] = useState('');
+  const [wobblingAction, setWobblingAction] = useState(null);
+  const wobbleTimersRef = useRef({});
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(event?.imageUrl || '');
   const [originalImageUrl] = useState(event?.imageUrl || '');
@@ -482,6 +484,19 @@ export default function EventForm({ event }) {
     status,
   });
 
+  const triggerWobble = (action) => {
+    setWobblingAction(null);
+    if (wobbleTimersRef.current[action]) {
+      clearTimeout(wobbleTimersRef.current[action]);
+    }
+    requestAnimationFrame(() => {
+      setWobblingAction(action);
+      wobbleTimersRef.current[action] = setTimeout(() => {
+        setWobblingAction((current) => (current === action ? null : current));
+      }, 850);
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitError('');
@@ -491,6 +506,7 @@ export default function EventForm({ event }) {
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       setValidationError('Bitte fülle alle Pflichtfelder aus.');
+      triggerWobble('submit');
       return;
     }
 
@@ -516,6 +532,7 @@ export default function EventForm({ event }) {
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       setValidationError('Bitte fülle alle Pflichtfelder aus.');
+      triggerWobble('draft');
       return;
     }
 
@@ -1234,15 +1251,30 @@ export default function EventForm({ event }) {
               <button
                 type="button"
                 onClick={handleSaveAsDraft}
-                className="btn btn-secondary"
+                className={`btn btn-secondary ${wobblingAction === 'draft' ? 'btn-wobble' : ''}`}
                 disabled={loading || imageUploading}
                 data-testid="save-as-draft-button"
+                onAnimationEnd={() => {
+                  if (wobblingAction === 'draft') {
+                    setWobblingAction(null);
+                  }
+                }}
               >
                 <Save size={22} />
                 <span>{getDraftButtonText()}</span>
               </button>
             )}
-            <button type="submit" className="btn btn-primary" disabled={loading || imageUploading}>
+            <button
+              type="submit"
+              className={`btn btn-primary ${wobblingAction === 'submit' ? 'btn-wobble' : ''}`}
+              disabled={loading || imageUploading}
+              data-testid="submit-event-button"
+              onAnimationEnd={() => {
+                if (wobblingAction === 'submit') {
+                  setWobblingAction(null);
+                }
+              }}
+            >
               <Save size={22} />
               <span>{getSubmitButtonText()}</span>
             </button>
