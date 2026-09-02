@@ -146,6 +146,8 @@ export default function EventFormWizard() {
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [validationError, setValidationError] = useState('');
+  const [wobblingAction, setWobblingAction] = useState(null);
+  const wobbleTimersRef = useRef({});
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
   const [imageUploading, setImageUploading] = useState(false);
@@ -465,11 +467,25 @@ export default function EventFormWizard() {
     }
   };
 
+  const triggerWobble = (action) => {
+    setWobblingAction(null);
+    if (wobbleTimersRef.current[action]) {
+      clearTimeout(wobbleTimersRef.current[action]);
+    }
+    requestAnimationFrame(() => {
+      setWobblingAction(action);
+      wobbleTimersRef.current[action] = setTimeout(() => {
+        setWobblingAction((current) => (current === action ? null : current));
+      }, 850);
+    });
+  };
+
   const nextStep = () => {
     const stepErrors = validateStep(currentStep);
     if (Object.keys(stepErrors).length > 0) {
       setErrors(stepErrors);
       setValidationError('Bitte fülle alle Pflichtfelder aus.');
+      triggerWobble('next');
       return;
     }
     setErrors({});
@@ -540,6 +556,7 @@ export default function EventFormWizard() {
       } else {
         setValidationError('Bitte fülle alle Pflichtfelder aus.');
       }
+      triggerWobble('submit');
       return;
     }
 
@@ -560,6 +577,7 @@ export default function EventFormWizard() {
       } else {
         setValidationError('Bitte fülle alle Pflichtfelder aus.');
       }
+      triggerWobble('draft');
       return;
     }
 
@@ -1244,7 +1262,6 @@ export default function EventFormWizard() {
       </div>
 
       {submitError && <p className="error-text submit-error">{submitError}</p>}
-      {validationError && <p className="error-text submit-error">{validationError}</p>}
     </div>
   );
 
@@ -1267,6 +1284,12 @@ export default function EventFormWizard() {
           {currentStep === 3 && renderStep3()}
           {currentStep === 4 && renderStep4()}
 
+          {validationError && (
+            <p className="wizard-actions-error" data-testid="wizard-validation-error" role="alert">
+              {validationError}
+            </p>
+          )}
+
           <div className="wizard-actions">
             {currentStep > 1 && (
               <button type="button" onClick={prevStep} className="btn btn-secondary">
@@ -1278,10 +1301,17 @@ export default function EventFormWizard() {
               <button
                 type="button"
                 onClick={handleSaveAsDraft}
-                className={`btn btn-secondary ${!rightsConfirmed ? 'btn-greyed-out' : ''}`}
+                className={`btn btn-secondary ${!rightsConfirmed ? 'btn-greyed-out' : ''} ${
+                  wobblingAction === 'draft' ? 'btn-wobble' : ''
+                }`}
                 disabled={loading || imageUploading}
                 aria-disabled={!rightsConfirmed}
                 data-testid="save-as-draft-button"
+                onAnimationEnd={() => {
+                  if (wobblingAction === 'draft') {
+                    setWobblingAction(null);
+                  }
+                }}
               >
                 <Save size={22} />
                 <span>
@@ -1294,7 +1324,17 @@ export default function EventFormWizard() {
               </button>
             )}
             {currentStep < 4 ? (
-              <button type="button" onClick={nextStep} className="btn btn-primary">
+              <button
+                type="button"
+                onClick={nextStep}
+                className={`btn btn-primary ${wobblingAction === 'next' ? 'btn-wobble' : ''}`}
+                data-testid="continue-button"
+                onAnimationEnd={() => {
+                  if (wobblingAction === 'next') {
+                    setWobblingAction(null);
+                  }
+                }}
+              >
                 <span>Weiter</span>
                 <ArrowRight size={18} />
               </button>
@@ -1302,10 +1342,17 @@ export default function EventFormWizard() {
               <button
                 type="button"
                 onClick={handleSubmit}
-                className={`btn btn-primary ${!rightsConfirmed ? 'btn-greyed-out' : ''}`}
+                className={`btn btn-primary ${!rightsConfirmed ? 'btn-greyed-out' : ''} ${
+                  wobblingAction === 'submit' ? 'btn-wobble' : ''
+                }`}
                 disabled={loading || imageUploading}
                 aria-disabled={!rightsConfirmed}
                 data-testid="submit-event-button"
+                onAnimationEnd={() => {
+                  if (wobblingAction === 'submit') {
+                    setWobblingAction(null);
+                  }
+                }}
               >
                 <Save size={22} />
                 <span>
