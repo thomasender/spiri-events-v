@@ -22,6 +22,7 @@ const STATUS_FILTERS = [
   { value: 'draft', label: 'Entwürfe' },
   { value: 'pending', label: 'Ausstehend' },
   { value: 'approved', label: 'Genehmigt' },
+  { value: 'trashed', label: 'Papierkorb' },
 ];
 
 export default function EventList() {
@@ -52,7 +53,7 @@ export default function EventList() {
   const isAdmin = role === 'Admin';
 
   const filteredEvents = useMemo(() => {
-    let list = events;
+    let list = events.filter((e) => e.status !== 'trashed');
     if (isAdmin) {
       list = list.filter((e) => e.status !== 'draft');
     }
@@ -365,9 +366,9 @@ export default function EventList() {
 
         <ConfirmDialog
           isOpen={Boolean(deleteId)}
-          title="Event löschen"
-          message="Möchtest du dieses Event wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden."
-          confirmLabel="Löschen"
+          title="In Papierkorb verschieben"
+          message="Das Event wird in den Papierkorb verschoben und nach 30 Tagen endgültig gelöscht. Du kannst es innerhalb dieser 30 Tage im Papierkorb wiederherstellen."
+          confirmLabel="In Papierkorb"
           cancelLabel="Abbrechen"
           onConfirm={handleDelete}
           onCancel={() => setDeleteId(null)}
@@ -467,9 +468,9 @@ export default function EventList() {
 
       <ConfirmDialog
         isOpen={Boolean(deleteId)}
-        title="Event löschen"
-        message="Möchtest du dieses Event wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden."
-        confirmLabel="Löschen"
+        title="In Papierkorb verschieben"
+        message="Das Event wird in den Papierkorb verschoben und nach 30 Tagen endgültig gelöscht. Du kannst es innerhalb dieser 30 Tage im Papierkorb wiederherstellen."
+        confirmLabel="In Papierkorb"
         cancelLabel="Abbrechen"
         onConfirm={handleDelete}
         onCancel={() => setDeleteId(null)}

@@ -36,6 +36,23 @@ export default function StatusBadge({ status }) {
     );
   }
 
+  if (status === 'trashed') {
+    return (
+      <span className="status-badge status-badge--trashed" data-testid="status-badge-trashed">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path
+            d="M3 4H9M5 4V3C5 2.4 5.4 2 6 2C6.6 2 7 2.4 7 3V4M4 4L4.5 9C4.5 9.6 5 10 5.5 10H6.5C7 10 7.5 9.6 7.5 9L8 4"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+        Papierkorb
+      </span>
+    );
+  }
+
   return (
     <span className="status-badge status-badge--pending">
       <svg width="12" height="12" viewBox="0 0 12 12" fill="none">

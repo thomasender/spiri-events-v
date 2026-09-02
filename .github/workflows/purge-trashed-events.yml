@@ -1,0 +1,36 @@
+name: Purge trashed events
+
+# Runs the trash-retention cron. Every event with status='trashed' and trashedAt
+# older than 30 days is permanently removed (Firestore doc + Storage images +
+# messages subcollection). See scripts/purge-trashed-events.mjs.
+
+on:
+  schedule:
+    # 03:00 UTC every day. cron syntax: minute hour day-of-month month day-of-week
+    - cron: '0 3 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PROJECT_ID: spirieventsvbg
+      STORAGE_BUCKET: spirieventsvbg.firebasestorage.app
+      TRASH_RETENTION_DAYS: '30'
+      FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install firebase-admin
+        run: npm install --no-save firebase-admin@^14
+
+      - name: Run purge script
+        run: node scripts/purge-trashed-events.mjs

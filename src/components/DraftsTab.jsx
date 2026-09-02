@@ -205,9 +205,9 @@ export default function DraftsTab() {
 
       <ConfirmDialog
         isOpen={Boolean(deleteId)}
-        title="Entwurf löschen"
-        message="Möchtest du diesen Entwurf wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden."
-        confirmLabel="Löschen"
+        title="In Papierkorb verschieben"
+        message="Der Entwurf wird in den Papierkorb verschoben und nach 30 Tagen endgültig gelöscht. Du kannst ihn innerhalb dieser 30 Tage im Papierkorb wiederherstellen."
+        confirmLabel="In Papierkorb"
         cancelLabel="Abbrechen"
         onConfirm={handleDelete}
         onCancel={() => setDeleteId(null)}

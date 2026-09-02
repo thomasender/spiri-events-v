@@ -226,7 +226,7 @@ test.describe('Admin delete workflow (kf8i6vqj)', () => {
     await signOut(page);
   });
 
-  test('canceling the delete dialog does NOT delete the event', async ({ page }) => {
+  test('canceling the trash dialog does NOT move the event to trash', async ({ page }) => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
 
     await page.goto(`/event/${USER_OWNED_PENDING_SLUG}`);
@@ -241,11 +241,11 @@ test.describe('Admin delete workflow (kf8i6vqj)', () => {
 
     await page.getByTestId('delete-event-button').click();
 
-    await expect(page.getByText('Möchtest du dieses Event wirklich löschen?')).toBeVisible();
+    await expect(page.getByText(/in den Papierkorb verschoben/i)).toBeVisible();
 
     await page.getByRole('button', { name: /abbrechen/i }).click();
 
-    await expect(page.getByText('Möchtest du dieses Event wirklich löschen?')).toHaveCount(0);
+    await expect(page.getByText(/in den Papierkorb verschoben/i)).toHaveCount(0);
 
     await page.reload();
 
@@ -259,7 +259,7 @@ test.describe('Admin delete workflow (kf8i6vqj)', () => {
     await expect(page.getByTestId('delete-event-button')).toBeVisible();
   });
 
-  test('delete confirm dialog shows a spinner while the delete is in flight, not "..." text (visual regression)', async ({
+  test('trash confirm dialog shows a spinner while the move is in flight, not "..." text (visual regression)', async ({
     page,
   }) => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
@@ -288,21 +288,23 @@ test.describe('Admin delete workflow (kf8i6vqj)', () => {
     try {
       await page.getByTestId('delete-event-button').click();
 
-      await expect(page.getByText('Möchtest du dieses Event wirklich löschen?')).toBeVisible();
+      await expect(page.getByText(/in den Papierkorb verschoben/i)).toBeVisible();
 
-      const confirmButton = page.getByRole('button', { name: /^löschen$/i });
+      const confirmButton = page.getByRole('button', { name: /papierkorb/i });
       await confirmButton.click();
 
       const spinner = page.getByTestId('confirm-dialog-spinner');
       await expect(spinner).toBeVisible();
-      await expect(confirmButton).toContainText('Löschen');
+      await expect(confirmButton).toContainText('In Papierkorb');
       await expect(confirmButton).not.toContainText('...');
     } finally {
       await page.unroute('**/*').catch(() => {});
     }
   });
 
-  test('admin can delete a user-owned approved event from the detail page', async ({ page }) => {
+  test('admin can trash a user-owned approved event from the detail page (SS79oSci)', async ({
+    page,
+  }) => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
 
     await page.goto(`/event/${USER_OWNED_APPROVED_SLUG}`);
@@ -317,22 +319,23 @@ test.describe('Admin delete workflow (kf8i6vqj)', () => {
 
     await page.getByTestId('delete-event-button').click();
 
-    await expect(page.getByText('Möchtest du dieses Event wirklich löschen?')).toBeVisible();
+    await expect(page.getByText(/in den Papierkorb verschoben/i)).toBeVisible();
 
-    await page.getByRole('button', { name: /^löschen$/i }).click();
+    await page
+      .locator('.confirm-dialog')
+      .getByRole('button', { name: /papierkorb/i })
+      .click();
 
-    await page.waitForURL((url) => !/\/event\//.test(url.pathname), { timeout: 10000 });
-
-    // Wait a beat for the delete to fully propagate to the emulator.
-    await page.waitForTimeout(2000);
-
-    await page.goto(`/event/${USER_OWNED_APPROVED_SLUG}`);
+    // Navigates to the trash tab so the user sees where their event went.
+    await page.waitForURL(/\/admin\?tab=trash/, { timeout: 10000 });
 
     await page
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
       .catch(() => {});
 
-    await expect(page.locator('.event-not-found')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.event-card', { hasText: 'User Approved Event' })).toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test('admin editing pending event does not auto-approve it (jdfLnD7p)', async ({ page }) => {
@@ -413,21 +416,23 @@ test.describe('Admin delete workflow (kf8i6vqj)', () => {
 
     await page.getByTestId('delete-event-from-form-button').click();
 
-    await expect(page.getByText('Möchtest du dieses Event wirklich löschen?')).toBeVisible();
+    await expect(page.getByText(/in den Papierkorb verschoben/i)).toBeVisible();
 
-    await page.getByRole('button', { name: /^löschen$/i }).click();
+    await page
+      .locator('.confirm-dialog')
+      .getByRole('button', { name: /papierkorb/i })
+      .click();
 
-    await page.waitForURL((url) => !/\/admin\/edit\//.test(url.pathname), { timeout: 10000 });
-
-    // Wait a beat for the delete to fully propagate to the emulator.
-    await page.waitForTimeout(2000);
-
-    await page.goto(`/event/${throwawayId}`);
+    // Navigates to the trash tab.
+    await page.waitForURL(/\/admin\?tab=trash/, { timeout: 10000 });
 
     await page
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
       .catch(() => {});
 
-    await expect(page.locator('.event-not-found')).toBeVisible({ timeout: 10000 });
+    // The thrown-away event shows up in the trash list (admin sees all trashed events).
+    await expect(page.getByTestId(`trash-event-card-${throwawayId}`)).toBeVisible({
+      timeout: 10000,
+    });
   });
 });

@@ -584,14 +584,11 @@ export default function EventForm({ event }) {
     if (!event?.id) return;
     setDeleting(true);
     try {
-      if (event.imageUrl) {
-        await deleteImageByUrl(event.imageUrl).catch(() => {});
-      }
       await deleteEvent(event.id);
       setShowDeleteModal(false);
-      navigate('/');
+      navigate('/admin?tab=trash');
     } catch (err) {
-      console.error('Event delete failed:', err.code, err.message);
+      console.error('Event trash failed:', err.code, err.message);
       setDeleting(false);
     }
   };
@@ -643,7 +640,7 @@ export default function EventForm({ event }) {
     try {
       await deleteEvent(event.id);
       setShowRecurringDeleteDialog(false);
-      navigate('/');
+      navigate('/admin?tab=trash');
     } catch (err) {
       console.error('Delete all failed:', err);
       setDeleting(false);
@@ -1323,14 +1320,13 @@ export default function EventForm({ event }) {
 
       <ConfirmDialog
         isOpen={showDeleteModal}
-        title="Event löschen"
-        message="Möchtest du dieses Event wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden."
-        confirmLabel="Löschen"
+        title="In Papierkorb verschieben"
+        message="Das Event wird in den Papierkorb verschoben und nach 30 Tagen endgültig gelöscht. Du kannst es innerhalb dieser 30 Tage im Papierkorb wiederherstellen."
+        confirmLabel="In Papierkorb"
         cancelLabel="Abbrechen"
         onConfirm={handleDelete}
         onCancel={() => setShowDeleteModal(false)}
         loading={deleting}
-        danger
       />
 
       <RecurringDeleteDialog
