@@ -67,24 +67,26 @@ export default function EventsSection({
           <span className="events-section-count">{events.length} Events</span>
         </div>
 
-        <div className="events-section-view-toggle">
-          <button
-            type="button"
-            className={`view-toggle-list ${effectiveViewMode === 'list' ? 'active' : ''}`}
-            onClick={() => onViewModeChange('list')}
-          >
-            <List size={16} />
-            <span>Listenansicht</span>
-          </button>
-          <button
-            type="button"
-            className={effectiveViewMode === 'card' ? 'active' : ''}
-            onClick={() => onViewModeChange('card')}
-          >
-            <LayoutGrid size={16} />
-            <span>Kartenansicht</span>
-          </button>
-        </div>
+        {!isMobile && (
+          <div className="events-section-view-toggle">
+            <button
+              type="button"
+              className={`view-toggle-list ${effectiveViewMode === 'list' ? 'active' : ''}`}
+              onClick={() => onViewModeChange('list')}
+            >
+              <List size={16} />
+              <span>Listenansicht</span>
+            </button>
+            <button
+              type="button"
+              className={effectiveViewMode === 'card' ? 'active' : ''}
+              onClick={() => onViewModeChange('card')}
+            >
+              <LayoutGrid size={16} />
+              <span>Kartenansicht</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {events.length === 0 ? (
