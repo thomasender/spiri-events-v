@@ -135,6 +135,20 @@ describe('getEventOccurrences (list mode)', () => {
     });
   });
 
+  it('keeps a recurring multi-day occurrence whose last day is today', () => {
+    // Multi-day weekly event that started yesterday and ends today.
+    const event = {
+      id: '1',
+      date: dateStr(-1),
+      endDate: dateStr(0),
+      recurrence: 'weekly',
+      recurrenceEndDate: dateStr(28),
+    };
+    const result = getEventOccurrences(event, { mode: 'calendar' });
+    // The current occurrence's last day is today, so it must still be returned.
+    expect(result.some((occ) => occ.date === dateStr(0))).toBe(true);
+  });
+
   it('produces occurrences across different months for a weekly event', () => {
     const event = {
       id: '1',
@@ -195,6 +209,81 @@ describe('getEventOccurrences (list mode)', () => {
     expect(dates).toContain(dateStr(7));
     expect(dates).toContain(dateStr(21));
     expect(dates).toContain(dateStr(35));
+  });
+});
+
+describe('Past events are hidden', () => {
+  it('returns nothing for past single-day non-recurring events', () => {
+    const event = { id: '1', date: dateStr(-7), recurrence: 'none' };
+    expect(getEventOccurrences(event)).toEqual([]);
+    expect(getEventOccurrences(event, { mode: 'calendar' })).toEqual([]);
+  });
+
+  it('returns nothing for past multi-day events whose last day has ended', () => {
+    const event = {
+      id: '1',
+      date: dateStr(-7),
+      endDate: dateStr(-3),
+      recurrence: 'none',
+    };
+    expect(getEventOccurrences(event)).toEqual([]);
+    expect(getEventOccurrences(event, { mode: 'calendar' })).toEqual([]);
+  });
+
+  it('keeps a multi-day event that is still ongoing (today is within the span)', () => {
+    const event = {
+      id: '1',
+      date: dateStr(-2),
+      endDate: dateStr(2),
+      recurrence: 'none',
+    };
+    const list = getEventOccurrences(event);
+    expect(list).toHaveLength(1);
+    expect(list[0].date).toBe(dateStr(-2));
+    expect(list[0].isMultiDayStart).toBe(true);
+    expect(list[0].isMultiDayEnd).toBe(true);
+
+    const cal = getEventOccurrences(event, { mode: 'calendar' });
+    expect(cal).toHaveLength(5);
+    expect(cal[0].date).toBe(dateStr(-2));
+    expect(cal[4].date).toBe(dateStr(2));
+  });
+
+  it('keeps a multi-day event whose last day is today', () => {
+    const event = {
+      id: '1',
+      date: dateStr(-3),
+      endDate: dateStr(0),
+      recurrence: 'none',
+    };
+    const cal = getEventOccurrences(event, { mode: 'calendar' });
+    expect(cal).toHaveLength(4);
+    expect(cal[cal.length - 1].date).toBe(dateStr(0));
+  });
+
+  it('keeps a custom recurrence multi-day occurrence whose last day is today', () => {
+    const event = {
+      id: '1',
+      date: dateStr(-2),
+      endDate: dateStr(0),
+      recurrence: 'custom',
+      customDates: [dateStr(-2)],
+    };
+    const cal = getEventOccurrences(event, { mode: 'calendar' });
+    expect(cal).toHaveLength(3);
+    expect(cal[cal.length - 1].date).toBe(dateStr(0));
+  });
+
+  it('hides a custom recurrence multi-day occurrence whose last day is past', () => {
+    const event = {
+      id: '1',
+      date: dateStr(-7),
+      endDate: dateStr(-3),
+      recurrence: 'custom',
+      customDates: [dateStr(-7)],
+    };
+    expect(getEventOccurrences(event)).toEqual([]);
+    expect(getEventOccurrences(event, { mode: 'calendar' })).toEqual([]);
   });
 });
 
