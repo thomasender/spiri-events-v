@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Trash2, RefreshCw, AlertTriangle, Calendar } from 'lucide-react';
+import { Trash2, AlertTriangle } from 'lucide-react';
 import {
   doc,
   updateDoc,
@@ -17,23 +17,12 @@ import { useAuth } from '../hooks/useAuth';
 import ConfirmDialog from './ConfirmDialog';
 import RecurringDeleteDialog from './RecurringDeleteDialog';
 import OccurrencePickerDialog from './OccurrencePickerDialog';
-import StatusBadge from './StatusBadge';
+import EventAdminListRow from './EventAdminListRow';
 import { getNextUpcomingOccurrence } from '../utils/eventOccurrences';
 import {
   buildCustomDeleteOccurrenceUpdate,
   buildCustomDeleteFromDateUpdate,
 } from '../utils/customSeriesUpdates';
-
-function formatTrashedDate(timestamp) {
-  if (!timestamp) return '';
-  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleDateString('de-DE', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
-}
 
 async function refreshToken() {
   if (auth.currentUser) {
@@ -246,73 +235,15 @@ export default function TrashTab() {
               }
             };
             return (
-              <div
-                key={event.id}
-                className="event-card"
-                data-testid={`trash-event-card-${event.id}`}
-              >
-                <div className="event-card-content">
-                  {event.date ? (
-                    <div className="event-card-date">
-                      <span className="event-card-day">{event.date.split('-').reverse()[0]}</span>
-                      <span className="event-card-month">
-                        {new Date(event.date).toLocaleDateString('de-DE', { month: 'short' })}
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="event-card-date" />
-                  )}
-                  <div className="event-card-body">
-                    <div className="event-card-header">
-                      <h3>{event.title}</h3>
-                      <div className="event-card-badges">
-                        <StatusBadge status="trashed" />
-                        {isRecurring && (
-                          <span
-                            className="badge badge--recurring"
-                            title="Wiederholende Veranstaltung"
-                          >
-                            <Calendar size={12} />
-                            <span>Serie</span>
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="event-card-meta">
-                      {event.trashedAt && (
-                        <span
-                          className="event-card-meta-item"
-                          data-testid={`trash-event-trashed-at-${event.id}`}
-                        >
-                          Gelöscht am {formatTrashedDate(event.trashedAt)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="event-card-actions">
-                  <button
-                    type="button"
-                    onClick={() => setRestoreId(event.id)}
-                    className="btn btn-secondary btn-sm event-card-action"
-                    data-testid={`trash-restore-button-${event.id}`}
-                    aria-label="Wiederherstellen"
-                    title="Wiederherstellen"
-                  >
-                    <RefreshCw size={16} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onPermanentDeleteClick(event)}
-                    className="btn btn-subtle-danger btn-sm event-card-action"
-                    data-testid={`trash-permanent-delete-button-${event.id}`}
-                    aria-label="Endgültig löschen"
-                    title="Endgültig löschen"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
+              <div key={event.id} data-testid={`trash-event-card-${event.id}`}>
+                <EventAdminListRow
+                  event={event}
+                  showStatus
+                  showTrashedAt
+                  fromPath="/admin?tab=trash"
+                  onRestore={(evt) => setRestoreId(evt.id)}
+                  onPermanentDelete={onPermanentDeleteClick}
+                />
               </div>
             );
           })}

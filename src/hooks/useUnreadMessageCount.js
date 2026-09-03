@@ -9,3 +9,8 @@ export function useUnreadMessageCount() {
   );
   return { count, loading };
 }
+
+export function useHasMessages() {
+  const { events, loading } = useEventsWithMessages();
+  return { hasMessages: events.length > 0, loading };
+}

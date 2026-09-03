@@ -20,6 +20,17 @@
     var(--shadow-sm);
 }
 
+.event-card-unread-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--error);
+  margin-left: 8px;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
 .event-card-content {
   display: grid;
   grid-template-columns: 56px 88px minmax(0, 1fr);

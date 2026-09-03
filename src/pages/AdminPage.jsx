@@ -11,8 +11,8 @@ import EmailVerificationBanner from '../components/EmailVerificationBanner';
 import EmailVerificationModal from '../components/EmailVerificationModal';
 import { useAuth } from '../hooks/useAuth';
 import { useEvents } from '../hooks/useEvents';
-import { useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
-import { useUnreadFeedbackCount } from '../hooks/useFeedbackList';
+import { useHasMessages, useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
+import { useUnreadFeedbackCount, useHasFeedback } from '../hooks/useFeedbackList';
 import { useTrashedEventsCount } from '../hooks/useTrashedEventsCount';
 import './AdminPage.css';
 
@@ -23,22 +23,30 @@ export default function AdminPage() {
   const { user, role, canCreateEvents } = useAuth();
   const isAdmin = role === 'Admin';
   const { count: unreadCount } = useUnreadMessageCount();
+  const { hasMessages } = useHasMessages();
   const { count: unreadFeedbackCount } = useUnreadFeedbackCount(isAdmin);
+  const { hasFeedback } = useHasFeedback(isAdmin);
   const { count: trashedCount } = useTrashedEventsCount(isAdmin);
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
   const { events } = useEvents(user);
 
+  const draftCount = useMemo(() => events.filter((e) => e.status === 'draft').length, [events]);
+
+  const visibleTabs = useMemo(() => {
+    return {
+      events: true,
+      drafts: draftCount > 0,
+      messages: hasMessages,
+      feedback: isAdmin && hasFeedback,
+      trash: trashedCount > 0,
+    };
+  }, [draftCount, hasMessages, isAdmin, hasFeedback, trashedCount]);
+
   const rawTab = searchParams.get('tab');
   const activeTab = useMemo(() => {
-    if (rawTab === 'feedback' && !isAdmin) return 'events';
-    // The trash tab is only visible while there are trashed events; if it was
-    // open and the user empties the trash, fall back to "events".
-    if (rawTab === 'trash' && trashedCount === 0) return 'events';
-    if (rawTab && VALID_TABS.has(rawTab)) return rawTab;
+    if (rawTab && VALID_TABS.has(rawTab) && visibleTabs[rawTab]) return rawTab;
     return 'events';
-  }, [rawTab, isAdmin, trashedCount]);
-
-  const draftCount = useMemo(() => events.filter((e) => e.status === 'draft').length, [events]);
+  }, [rawTab, visibleTabs]);
 
   const setTab = (tab) => {
     const next = new URLSearchParams(searchParams);
@@ -95,66 +103,55 @@ export default function AdminPage() {
           <CalendarDays size={16} aria-hidden="true" />
           <span>Meine Events</span>
         </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'drafts'}
-          aria-controls="admin-tab-drafts"
-          id="admin-tab-drafts-btn"
-          className={`admin-page-tab${activeTab === 'drafts' ? ' admin-page-tab--active' : ''}`}
-          onClick={() => setTab('drafts')}
-          data-testid="admin-tab-drafts"
-        >
-          <FileText size={16} aria-hidden="true" />
-          <span>Entwürfe</span>
-          {draftCount > 0 && (
-            <span
-              className="admin-page-tab-badge"
-              data-testid="admin-tab-drafts-badge"
-              aria-label={`${draftCount} Entwurf${draftCount > 1 ? 'e' : ''}`}
-            >
-              {draftCount > 9 ? '9+' : draftCount}
-            </span>
-          )}
-        </button>
-        {trashedCount > 0 && (
+        {visibleTabs.drafts && (
           <button
             type="button"
             role="tab"
-            aria-selected={activeTab === 'trash'}
-            aria-controls="admin-tab-trash"
-            id="admin-tab-trash-btn"
-            className={`admin-page-tab${activeTab === 'trash' ? ' admin-page-tab--active' : ''}`}
-            onClick={() => setTab('trash')}
-            data-testid="admin-tab-trash"
+            aria-selected={activeTab === 'drafts'}
+            aria-controls="admin-tab-drafts"
+            id="admin-tab-drafts-btn"
+            className={`admin-page-tab${activeTab === 'drafts' ? ' admin-page-tab--active' : ''}`}
+            onClick={() => setTab('drafts')}
+            data-testid="admin-tab-drafts"
           >
-            <Trash2 size={16} aria-hidden="true" />
-            <span>Papierkorb</span>
+            <FileText size={16} aria-hidden="true" />
+            <span>Entwürfe</span>
+            {draftCount > 0 && (
+              <span
+                className="admin-page-tab-badge"
+                data-testid="admin-tab-drafts-badge"
+                aria-label={`${draftCount} Entwurf${draftCount > 1 ? 'e' : ''}`}
+              >
+                {draftCount > 9 ? '9+' : draftCount}
+              </span>
+            )}
           </button>
         )}
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'messages'}
-          aria-controls="admin-tab-messages"
-          id="admin-tab-messages-btn"
-          className={`admin-page-tab${activeTab === 'messages' ? ' admin-page-tab--active' : ''}`}
-          onClick={() => setTab('messages')}
-          data-testid="admin-tab-messages"
-        >
-          <Mail size={16} aria-hidden="true" />
-          <span>Nachrichten</span>
-          {unreadCount > 0 && (
-            <span
-              className="admin-page-tab-badge"
-              data-testid="admin-tab-messages-badge"
-              aria-label={`${unreadCount} ungelesene Nachrichten`}
-            >
-              {unreadCount > 9 ? '9+' : unreadCount}
-            </span>
-          )}
-        </button>
-        {isAdmin && (
+        {visibleTabs.messages && (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'messages'}
+            aria-controls="admin-tab-messages"
+            id="admin-tab-messages-btn"
+            className={`admin-page-tab${activeTab === 'messages' ? ' admin-page-tab--active' : ''}`}
+            onClick={() => setTab('messages')}
+            data-testid="admin-tab-messages"
+          >
+            <Mail size={16} aria-hidden="true" />
+            <span>Nachrichten</span>
+            {unreadCount > 0 && (
+              <span
+                className="admin-page-tab-badge"
+                data-testid="admin-tab-messages-badge"
+                aria-label={`${unreadCount} ungelesene Nachrichten`}
+              >
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </button>
+        )}
+        {visibleTabs.feedback && (
           <button
             type="button"
             role="tab"
@@ -178,6 +175,21 @@ export default function AdminPage() {
             )}
           </button>
         )}
+        {visibleTabs.trash && (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'trash'}
+            aria-controls="admin-tab-trash"
+            id="admin-tab-trash-btn"
+            className={`admin-page-tab${activeTab === 'trash' ? ' admin-page-tab--active' : ''}`}
+            onClick={() => setTab('trash')}
+            data-testid="admin-tab-trash"
+          >
+            <Trash2 size={16} aria-hidden="true" />
+            <span>Papierkorb</span>
+          </button>
+        )}
       </div>
 
       <div
@@ -188,33 +200,27 @@ export default function AdminPage() {
       >
         {activeTab === 'events' && <EventList />}
       </div>
-      <div
-        role="tabpanel"
-        id="admin-tab-drafts"
-        aria-labelledby="admin-tab-drafts-btn"
-        hidden={activeTab !== 'drafts'}
-      >
-        {activeTab === 'drafts' && <DraftsTab />}
-      </div>
-      {trashedCount > 0 && (
+      {visibleTabs.drafts && (
         <div
           role="tabpanel"
-          id="admin-tab-trash"
-          aria-labelledby="admin-tab-trash-btn"
-          hidden={activeTab !== 'trash'}
+          id="admin-tab-drafts"
+          aria-labelledby="admin-tab-drafts-btn"
+          hidden={activeTab !== 'drafts'}
         >
-          {activeTab === 'trash' && <TrashTab />}
+          {activeTab === 'drafts' && <DraftsTab />}
         </div>
       )}
-      <div
-        role="tabpanel"
-        id="admin-tab-messages"
-        aria-labelledby="admin-tab-messages-btn"
-        hidden={activeTab !== 'messages'}
-      >
-        {activeTab === 'messages' && <MessagesTab />}
-      </div>
-      {isAdmin && (
+      {visibleTabs.messages && (
+        <div
+          role="tabpanel"
+          id="admin-tab-messages"
+          aria-labelledby="admin-tab-messages-btn"
+          hidden={activeTab !== 'messages'}
+        >
+          {activeTab === 'messages' && <MessagesTab />}
+        </div>
+      )}
+      {visibleTabs.feedback && (
         <div
           role="tabpanel"
           id="admin-tab-feedback"
@@ -222,6 +228,16 @@ export default function AdminPage() {
           hidden={activeTab !== 'feedback'}
         >
           {activeTab === 'feedback' && <FeedbackTab />}
+        </div>
+      )}
+      {visibleTabs.trash && (
+        <div
+          role="tabpanel"
+          id="admin-tab-trash"
+          aria-labelledby="admin-tab-trash-btn"
+          hidden={activeTab !== 'trash'}
+        >
+          {activeTab === 'trash' && <TrashTab />}
         </div>
       )}
 

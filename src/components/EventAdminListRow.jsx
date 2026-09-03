@@ -11,6 +11,7 @@ import {
   Send,
   FileText,
   Copy,
+  RefreshCw,
 } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 import { formatDayNumber, formatMonthShort, formatWeekdayShort } from '../utils/eventFormat';
@@ -21,8 +22,18 @@ import './EventAdminListRow.css';
 
 function formatDate(dateStr) {
   if (!dateStr) return '';
-  const [year, month, day] = dateStr.split('-');
-  const date = new Date(year, month - 1, day);
+  let date;
+  if (typeof dateStr === 'string') {
+    const [year, month, day] = dateStr.split('-');
+    date = new Date(year, month - 1, day);
+  } else if (typeof dateStr === 'object' && typeof dateStr.toDate === 'function') {
+    date = dateStr.toDate();
+  } else if (dateStr instanceof Date) {
+    date = dateStr;
+  } else {
+    date = new Date(dateStr);
+  }
+  if (Number.isNaN(date.getTime())) return '';
   return date.toLocaleDateString('de-DE', {
     day: 'numeric',
     month: 'short',
@@ -42,11 +53,14 @@ export default function EventAdminListRow({
   approving = null,
   duplicating = false,
   fromPath = '/admin',
+  showTrashedAt = false,
   onApprove,
   onSubmit,
   onRevert,
   onDuplicate,
   onDeleteClick,
+  onRestore,
+  onPermanentDelete,
 }) {
   const isRecurring = event.recurrence && event.recurrence !== 'none';
   const recurrenceLabel = getRecurrenceLabel(event);
@@ -135,6 +149,14 @@ export default function EventAdminListRow({
                 {event.organizer.email}
               </span>
             )}
+            {showTrashedAt && event.trashedAt && (
+              <span
+                className="event-card-meta-item"
+                data-testid={`trash-event-trashed-at-${event.id}`}
+              >
+                Gelöscht am {formatDate(event.trashedAt)}
+              </span>
+            )}
           </div>
         </div>
       </Link>
@@ -194,20 +216,50 @@ export default function EventAdminListRow({
             <Copy size={16} />
           </button>
         )}
-        <Link
-          to={`/admin/edit/${event.id}`}
-          state={{ from: fromPath }}
-          className="btn btn-secondary btn-sm event-card-action"
-          aria-label={isRecurring ? 'Serie bearbeiten' : 'Bearbeiten'}
-          title={isRecurring ? 'Serie bearbeiten' : 'Bearbeiten'}
-        >
-          <Edit2 size={16} />
-        </Link>
+        {onRestore && (
+          <button
+            onClick={() => onRestore(event)}
+            className="btn btn-secondary btn-sm event-card-action"
+            data-testid={`trash-restore-button-${event.id}`}
+            aria-label="Wiederherstellen"
+            title="Wiederherstellen"
+          >
+            <RefreshCw size={16} />
+          </button>
+        )}
+        {!onRestore && (
+          <Link
+            to={`/admin/edit/${event.id}`}
+            state={{ from: fromPath }}
+            className="btn btn-secondary btn-sm event-card-action"
+            aria-label={isRecurring ? 'Serie bearbeiten' : 'Bearbeiten'}
+            title={isRecurring ? 'Serie bearbeiten' : 'Bearbeiten'}
+          >
+            <Edit2 size={16} />
+          </Link>
+        )}
         <button
-          onClick={() => onDeleteClick?.(event)}
+          onClick={() => (onPermanentDelete ? onPermanentDelete(event) : onDeleteClick?.(event))}
           className="btn btn-subtle-danger btn-sm event-card-action"
-          aria-label={isRecurring ? 'Serie löschen' : 'Event löschen'}
-          title={isRecurring ? 'Serie löschen' : 'Event löschen'}
+          data-testid={onPermanentDelete ? `trash-permanent-delete-button-${event.id}` : undefined}
+          aria-label={
+            onPermanentDelete
+              ? isRecurring
+                ? 'Serie endgültig löschen'
+                : 'Endgültig löschen'
+              : isRecurring
+                ? 'Serie löschen'
+                : 'Event löschen'
+          }
+          title={
+            onPermanentDelete
+              ? isRecurring
+                ? 'Serie endgültig löschen'
+                : 'Endgültig löschen'
+              : isRecurring
+                ? 'Serie löschen'
+                : 'Event löschen'
+          }
         >
           <Trash2 size={16} />
         </button>

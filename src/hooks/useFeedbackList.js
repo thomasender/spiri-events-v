@@ -104,3 +104,8 @@ export function useUnreadFeedbackCount(enabled = true) {
   const { counts, loading } = useFeedbackList({ enabled });
   return { count: enabled ? counts.new : 0, loading };
 }
+
+export function useHasFeedback(enabled = true) {
+  const { counts, loading } = useFeedbackList({ enabled });
+  return { hasFeedback: enabled ? counts.total > 0 : false, loading };
+}

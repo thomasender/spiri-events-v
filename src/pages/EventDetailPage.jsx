@@ -331,7 +331,7 @@ export default function EventDetailPage() {
     try {
       await deleteEvent(event.id);
       setShowDeleteDialog(false);
-      navigate('/admin?tab=trash');
+      navigate(backPath);
     } catch (err) {
       console.error('Trash failed:', err);
       setDeleting(false);
