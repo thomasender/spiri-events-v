@@ -98,6 +98,8 @@ test.describe('Feedback feature', () => {
   });
 
   test('Admin sees a Feedback tab in the Verwaltung page', async ({ page }) => {
+    await resetFeedbackFixtures();
+
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin');
 
