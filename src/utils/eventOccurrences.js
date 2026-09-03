@@ -122,6 +122,14 @@ function expandNonRecurring(event, mode) {
   const start = new Date(event.date + 'T12:00:00');
   const end = event.endDate ? new Date(event.endDate + 'T12:00:00') : start;
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Hide events that have already ended. For single-day events `end === start`,
+  // so this is equivalent to `event.date < today`. Multi-day events stay
+  // visible until their last day ends.
+  if (end < today) return [];
+
   if (mode === 'calendar') {
     const days = [];
     const current = new Date(start);
@@ -170,7 +178,11 @@ function expandCustom(event, mode) {
   const occurrences = [];
   for (const occurrenceStart of sortedDates) {
     const occDate = new Date(occurrenceStart + 'T12:00:00');
-    if (occDate < today) continue;
+    // For multi-day occurrences, the occurrence is still visible until its
+    // last day ends (e.g. an Aug 30 - Sep 2 event is still shown on Sep 2).
+    const lastDay =
+      eventDays > 1 ? new Date(occDate.getTime() + (eventDays - 1) * 86400000) : occDate;
+    if (lastDay < today) continue;
 
     if (mode === 'calendar' && eventDays > 1) {
       for (let d = 0; d < eventDays; d++) {
@@ -239,7 +251,9 @@ function expandRecurring(event, mode) {
     : 1;
 
   while (current <= effectiveEnd) {
-    if (current >= today) {
+    const occurrenceLastDay =
+      eventDays > 1 ? new Date(current.getTime() + (eventDays - 1) * 86400000) : current;
+    if (occurrenceLastDay >= today) {
       const occurrenceStart = formatDate(
         current.getFullYear(),
         current.getMonth(),
