@@ -14,6 +14,18 @@ async function resetTrashFixtures(): Promise<void> {
   });
 }
 
+async function resetFeedbackFixtures(): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const proc = spawn('node', ['scripts/reset-feedback-fixtures.mjs'], {
+      cwd: process.cwd(),
+      stdio: 'ignore',
+      shell: true,
+    });
+    proc.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`exit ${code}`))));
+    proc.on('error', reject);
+  });
+}
+
 async function waitForAdminTabs(page): Promise<void> {
   await page
     .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
@@ -25,11 +37,16 @@ test.describe.configure({ mode: 'serial' });
 test.describe('Papierkorb tab — display + tab order (oSwjBKM3)', () => {
   test.beforeEach(async () => {
     await resetTrashFixtures();
+    // Re-seed feedback so the "tab order" test sees the Feedback tab.
+    // Other specs (feedback.spec.ts) archive / delete feedback in their own
+    // beforeEach and leave nothing for us to find.
+    await resetFeedbackFixtures();
   });
 
   test.afterEach(async ({ page }) => {
     await signOut(page);
     await resetTrashFixtures();
+    await resetFeedbackFixtures();
   });
 
   test('Papierkorb events render with the same row layout as Meine Events (image + weekday)', async ({
