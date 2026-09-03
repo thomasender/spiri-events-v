@@ -40,16 +40,24 @@ async function seedEventViaFirestoreApi(
     fields[key] = { stringValue: String(value) };
   }
   const url = `${FIRESTORE_EMULATOR}/v1/projects/${PROJECT_ID}/databases/(default)/documents/events/${event.id}`;
-  const res = await apiContext.patch(url, {
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: 'Bearer owner',
-    },
-    data: { fields },
-  });
-  if (!res.ok()) {
-    throw new Error(`Failed to seed event ${event.id}: ${res.status()} ${await res.text()}`);
+  // The Firestore emulator can return 409 "Transaction lock timeout" when
+  // multiple parallel workers seed the same doc. Retry briefly so the
+  // beforeAll hook does not fail spuriously.
+  let lastError: string | undefined;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const res = await apiContext.patch(url, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer owner',
+      },
+      data: { fields },
+    });
+    if (res.ok()) return;
+    lastError = `${res.status()} ${await res.text()}`;
+    if (res.status() !== 409) break;
+    await new Promise((r) => setTimeout(r, 200 * (attempt + 1)));
   }
+  throw new Error(`Failed to seed event ${event.id}: ${lastError}`);
 }
 
 async function navigateToMonth(
