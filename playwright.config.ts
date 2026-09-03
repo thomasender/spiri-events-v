@@ -34,6 +34,19 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
+    {
+      name: 'webkit',
+      use: {
+        ...devices['Desktop Safari'],
+        // iPhone 13 viewport — the smallest realistic phone width where
+        // Peter has reported the event wizard date/time fields overflow
+        // the container on iOS Safari / iOS Chrome (both WebKit).
+        viewport: { width: 390, height: 844 },
+        deviceScaleFactor: 3,
+        isMobile: true,
+        hasTouch: true,
+      },
+    },
   ],
 
   webServer: {
