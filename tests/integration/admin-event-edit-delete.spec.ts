@@ -326,16 +326,20 @@ test.describe('Admin delete workflow (kf8i6vqj)', () => {
       .getByRole('button', { name: /papierkorb/i })
       .click();
 
-    // Navigates to the trash tab so the user sees where their event went.
-    await page.waitForURL(/\/admin\?tab=trash/, { timeout: 10000 });
+    // Detail-page delete just sends the user back where they came from
+    // (the calendar, since we navigated directly to /event/...). The event
+    // is now in the trash; visiting /admin?tab=trash confirms it.
+    await page.waitForURL(/\/$|\/admin/, { timeout: 10000 });
+
+    await page.goto('/admin?tab=trash');
 
     await page
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
       .catch(() => {});
 
-    await expect(page.locator('.event-card', { hasText: 'User Approved Event' })).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(
+      page.locator('[data-testid^="trash-event-card-"]', { hasText: 'User Approved Event' })
+    ).toBeVisible({ timeout: 10000 });
   });
 
   test('admin editing pending event does not auto-approve it (jdfLnD7p)', async ({ page }) => {
@@ -423,8 +427,11 @@ test.describe('Admin delete workflow (kf8i6vqj)', () => {
       .getByRole('button', { name: /papierkorb/i })
       .click();
 
-    // Navigates to the trash tab.
-    await page.waitForURL(/\/admin\?tab=trash/, { timeout: 10000 });
+    // Edit-form delete sends the user back where they came from. With no
+    // explicit `from` we fall back to /admin (Meine Events).
+    await page.waitForURL(/\/admin(\?|$)/, { timeout: 10000 });
+
+    await page.goto('/admin?tab=trash');
 
     await page
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })

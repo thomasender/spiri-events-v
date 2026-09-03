@@ -21,8 +21,18 @@ const mockUseEventsWithMessages = vi.hoisted(() => ({
   loading: false,
 }));
 
+const mockUseHasMessages = vi.hoisted(() => ({
+  hasMessages: false,
+  loading: false,
+}));
+
 const mockUseUnreadFeedbackCount = vi.hoisted(() => ({
   count: 0,
+  loading: false,
+}));
+
+const mockUseHasFeedback = vi.hoisted(() => ({
+  hasFeedback: false,
   loading: false,
 }));
 
@@ -53,18 +63,19 @@ vi.mock('../../src/hooks/useAuth', () => ({
 
 vi.mock('../../src/hooks/useUnreadMessageCount', () => ({
   useUnreadMessageCount: () => mockUseUnread,
-}));
-
-vi.mock('../../src/hooks/useEventsWithMessages', () => ({
-  useEventsWithMessages: () => mockUseEventsWithMessages,
+  useHasMessages: () => mockUseHasMessages,
 }));
 
 vi.mock('../../src/hooks/useEvents', () => ({
   useEvents: () => mockUseEvents,
   usePendingEvents: () => mockUsePendingEvents,
 }));
+vi.mock('../../src/hooks/useEventsWithMessages', () => ({
+  useEventsWithMessages: () => mockUseEventsWithMessages,
+}));
 vi.mock('../../src/hooks/useFeedbackList', () => ({
   useUnreadFeedbackCount: () => mockUseUnreadFeedbackCount,
+  useHasFeedback: () => mockUseHasFeedback,
 }));
 vi.mock('../../src/hooks/useTrashedEventsCount', () => ({
   useTrashedEventsCount: () => mockUseTrashedCount,
@@ -88,9 +99,17 @@ beforeEach(() => {
   mockAuth.role = 'User';
   mockUseUnread.count = 0;
   mockUseUnread.loading = false;
+  mockUseHasMessages.hasMessages = false;
+  mockUseHasMessages.loading = false;
   mockUseEventsWithMessages.events = [];
   mockUseEventsWithMessages.unreadCountByEvent = {};
   mockUseEventsWithMessages.loading = false;
+  mockUseUnreadFeedbackCount.count = 0;
+  mockUseUnreadFeedbackCount.loading = false;
+  mockUseHasFeedback.hasFeedback = false;
+  mockUseHasFeedback.loading = false;
+  mockUseTrashedCount.count = 0;
+  mockUseTrashedCount.loading = false;
   mockUseEvents.events = [];
   mockUseEvents.loading = false;
   mockUsePendingEvents.pendingEvents = [];
@@ -98,21 +117,31 @@ beforeEach(() => {
 });
 
 describe('AdminPage tabs (zejdjTnm)', () => {
-  it('renders the Events and Nachrichten tabs', () => {
+  it('renders the Events tab by default', () => {
     renderAdmin();
     expect(screen.getByTestId('admin-tab-events')).toBeInTheDocument();
+  });
+
+  it('hides the Messages tab when there are no messages', () => {
+    mockUseHasMessages.hasMessages = false;
+    renderAdmin();
+    expect(screen.queryByTestId('admin-tab-messages')).not.toBeInTheDocument();
+  });
+
+  it('shows the Messages tab when there are messages', () => {
+    mockUseHasMessages.hasMessages = true;
+    renderAdmin();
     expect(screen.getByTestId('admin-tab-messages')).toBeInTheDocument();
   });
 
-  it('shows the Events tab content by default and hides the Messages tab', () => {
+  it('shows the Events tab content by default', () => {
     renderAdmin();
     const eventsPanel = document.getElementById('admin-tab-events');
-    const messagesPanel = document.getElementById('admin-tab-messages');
     expect(eventsPanel).not.toHaveAttribute('hidden');
-    expect(messagesPanel).toHaveAttribute('hidden');
   });
 
-  it('activates the Messages tab when ?tab=messages is in the URL', () => {
+  it('activates the Messages tab when ?tab=messages is in the URL and there are messages', () => {
+    mockUseHasMessages.hasMessages = true;
     renderAdmin(['/admin?tab=messages']);
     const eventsPanel = document.getElementById('admin-tab-events');
     const messagesPanel = document.getElementById('admin-tab-messages');
@@ -129,22 +158,16 @@ describe('AdminPage tabs (zejdjTnm)', () => {
     expect(screen.getByTestId('admin-tab-events')).toHaveAttribute('aria-selected', 'true');
   });
 
-  it('renders the empty messages state when there are no events with messages', () => {
+  it('falls back to the Events tab when ?tab=messages is requested but no messages exist', () => {
+    mockUseHasMessages.hasMessages = false;
     renderAdmin(['/admin?tab=messages']);
-    expect(screen.getByTestId('messages-tab-empty')).toBeInTheDocument();
-  });
-
-  it('renders the list of events with messages on the Nachrichten tab', () => {
-    mockUseEventsWithMessages.events = [
-      { id: 'e1', title: 'Yoga Workshop', date: '2026-09-01', slug: 'yoga-workshop' },
-    ];
-    renderAdmin(['/admin?tab=messages']);
-    const list = screen.getByTestId('messages-tab-list');
-    expect(list).toBeInTheDocument();
-    expect(list).toHaveTextContent('Yoga Workshop');
+    const eventsPanel = document.getElementById('admin-tab-events');
+    expect(eventsPanel).not.toHaveAttribute('hidden');
+    expect(screen.getByTestId('admin-tab-events')).toHaveAttribute('aria-selected', 'true');
   });
 
   it('shows a badge on the Nachrichten tab when unread count > 0', () => {
+    mockUseHasMessages.hasMessages = true;
     mockUseUnread.count = 5;
     renderAdmin();
     const badge = screen.getByTestId('admin-tab-messages-badge');
@@ -153,12 +176,14 @@ describe('AdminPage tabs (zejdjTnm)', () => {
   });
 
   it('caps the tab badge at 9+ when unread count is very high', () => {
+    mockUseHasMessages.hasMessages = true;
     mockUseUnread.count = 42;
     renderAdmin();
     expect(screen.getByTestId('admin-tab-messages-badge')).toHaveTextContent('9+');
   });
 
   it('does not show the tab badge when there are no unread messages', () => {
+    mockUseHasMessages.hasMessages = true;
     mockUseUnread.count = 0;
     renderAdmin();
     expect(screen.queryByTestId('admin-tab-messages-badge')).not.toBeInTheDocument();
@@ -166,20 +191,21 @@ describe('AdminPage tabs (zejdjTnm)', () => {
 });
 
 describe('AdminPage Entwürfe tab (Bslx5TQW)', () => {
-  it('renders the Entwürfe tab', () => {
+  it('hides the Entwürfe tab when there are no drafts', () => {
+    mockUseEvents.events = [];
+    renderAdmin();
+    expect(screen.queryByTestId('admin-tab-drafts')).not.toBeInTheDocument();
+  });
+
+  it('shows the Entwürfe tab when drafts exist', () => {
+    mockUseEvents.events = [{ id: 'd1', title: 'Draft 1', status: 'draft' }];
     renderAdmin();
     expect(screen.getByTestId('admin-tab-drafts')).toBeInTheDocument();
     expect(screen.getByTestId('admin-tab-drafts')).toHaveTextContent('Entwürfe');
   });
 
-  it('hides the Entwürfe tab content by default', () => {
-    renderAdmin();
-    const draftsPanel = document.getElementById('admin-tab-drafts');
-    expect(draftsPanel).toHaveAttribute('hidden');
-    expect(screen.getByTestId('admin-tab-drafts')).toHaveAttribute('aria-selected', 'false');
-  });
-
   it('activates the Entwürfe tab when ?tab=drafts is in the URL', () => {
+    mockUseEvents.events = [{ id: 'd1', title: 'Draft 1', status: 'draft' }];
     renderAdmin(['/admin?tab=drafts']);
     const draftsPanel = document.getElementById('admin-tab-drafts');
     const eventsPanel = document.getElementById('admin-tab-events');
@@ -189,9 +215,12 @@ describe('AdminPage Entwürfe tab (Bslx5TQW)', () => {
     expect(screen.getByTestId('admin-tab-events')).toHaveAttribute('aria-selected', 'false');
   });
 
-  it('shows the empty drafts state when there are no drafts', () => {
+  it('falls back to the Events tab when ?tab=drafts is requested but no drafts exist', () => {
+    mockUseEvents.events = [];
     renderAdmin(['/admin?tab=drafts']);
-    expect(screen.getByTestId('drafts-empty-state')).toBeInTheDocument();
+    const eventsPanel = document.getElementById('admin-tab-events');
+    expect(eventsPanel).not.toHaveAttribute('hidden');
+    expect(screen.getByTestId('admin-tab-events')).toHaveAttribute('aria-selected', 'true');
   });
 
   it('shows a badge with the draft count when drafts exist', () => {
@@ -220,5 +249,44 @@ describe('AdminPage Entwürfe tab (Bslx5TQW)', () => {
     mockUseEvents.events = [{ id: 'a1', title: 'Approved', status: 'approved' }];
     renderAdmin();
     expect(screen.queryByTestId('admin-tab-drafts-badge')).not.toBeInTheDocument();
+  });
+});
+
+describe('AdminPage Feedback tab (admin only)', () => {
+  it('does not show the Feedback tab for non-admin users', () => {
+    mockAuth.role = 'User';
+    mockUseHasFeedback.hasFeedback = true;
+    renderAdmin();
+    expect(screen.queryByTestId('admin-tab-feedback')).not.toBeInTheDocument();
+  });
+
+  it('does not show the Feedback tab for admins when there is no feedback', () => {
+    mockAuth.role = 'Admin';
+    mockUseHasFeedback.hasFeedback = false;
+    renderAdmin();
+    expect(screen.queryByTestId('admin-tab-feedback')).not.toBeInTheDocument();
+  });
+
+  it('shows the Feedback tab for admins when there is feedback', () => {
+    mockAuth.role = 'Admin';
+    mockUseHasFeedback.hasFeedback = true;
+    renderAdmin();
+    expect(screen.getByTestId('admin-tab-feedback')).toBeInTheDocument();
+    expect(screen.getByTestId('admin-tab-feedback')).toHaveTextContent('Feedback');
+  });
+});
+
+describe('AdminPage Papierkorb tab', () => {
+  it('hides the Papierkorb tab when there are no trashed events', () => {
+    mockUseTrashedCount.count = 0;
+    renderAdmin();
+    expect(screen.queryByTestId('admin-tab-trash')).not.toBeInTheDocument();
+  });
+
+  it('shows the Papierkorb tab when there are trashed events', () => {
+    mockUseTrashedCount.count = 2;
+    renderAdmin();
+    expect(screen.getByTestId('admin-tab-trash')).toBeInTheDocument();
+    expect(screen.getByTestId('admin-tab-trash')).toHaveTextContent('Papierkorb');
   });
 });

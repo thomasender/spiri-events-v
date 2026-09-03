@@ -132,15 +132,20 @@ test.describe('Recurring event deletion from EventForm', () => {
 
     await page.getByText('Gesamte Serie löschen').click();
 
-    // The whole-series delete now lands on the trash tab.
-    await page.waitForURL(/\/admin\?tab=trash/, { timeout: 10000 });
+    // The whole-series delete sends the user back where they came from
+    // (/admin, since we navigated directly to /admin/edit/...).
+    await page.waitForURL(/\/admin(\?|$)/, { timeout: 10000 });
+
+    await page.goto('/admin?tab=trash');
 
     await page
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
       .catch(() => {});
 
-    await expect(page.locator('.event-card', { hasText: 'Test Weekly Yoga Series' })).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(
+      page
+        .locator('[data-testid^="trash-event-card-"]', { hasText: 'Test Weekly Yoga Series' })
+        .first()
+    ).toBeVisible({ timeout: 10000 });
   });
 });

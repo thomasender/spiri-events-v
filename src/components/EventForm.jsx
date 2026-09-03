@@ -586,7 +586,7 @@ export default function EventForm({ event }) {
     try {
       await deleteEvent(event.id);
       setShowDeleteModal(false);
-      navigate('/admin?tab=trash');
+      navigate(cancelTarget);
     } catch (err) {
       console.error('Event trash failed:', err.code, err.message);
       setDeleting(false);
@@ -640,7 +640,7 @@ export default function EventForm({ event }) {
     try {
       await deleteEvent(event.id);
       setShowRecurringDeleteDialog(false);
-      navigate('/admin?tab=trash');
+      navigate(cancelTarget);
     } catch (err) {
       console.error('Delete all failed:', err);
       setDeleting(false);
