@@ -24,6 +24,8 @@
     "export:prod": "node scripts/export-prod-data.mjs",
     "firestore:rules:pull": "firebase firestore:rules:get > firestore.rules",
     "firestore:rules:push": "firebase deploy --only firestore:rules",
+    "storage:rules:pull": "firebase storage:rules:get > storage.rules",
+    "storage:rules:push": "firebase deploy --only storage",
     "prepare": "husky"
   },
   "dependencies": {
