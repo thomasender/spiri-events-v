@@ -23,7 +23,7 @@ import { useEvents } from '../hooks/useEvents';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
 import { canEditEvent, canDeleteEvent } from '../utils/eventPermissions';
 import { parseContactText } from '../utils/contactFormat';
-import { getNextUpcomingOccurrence } from '../utils/eventOccurrences';
+import { getNextUpcomingOccurrence, getCustomSeriesDates } from '../utils/eventOccurrences';
 import {
   buildCustomDeleteOccurrenceUpdate,
   buildCustomDeleteFromDateUpdate,
@@ -506,11 +506,24 @@ export default function EventDetailPage() {
           <Calendar size={18} className="detail-icon" />
           <div>
             <span className="detail-label">Datum</span>
-            <span className="detail-value">
-              {formatDate(occurrenceDate || event.date)}
-              {formatEndDate(occurrenceDate || event.date, event.endDate) &&
-                ` — ${formatEndDate(occurrenceDate || event.date, event.endDate)}`}
-            </span>
+            {event.recurrence === 'custom' && !occurrenceDate ? (
+              <ul
+                className="detail-value event-detail-dates-list"
+                data-testid="event-detail-dates-list"
+              >
+                {getCustomSeriesDates(event).map((date) => (
+                  <li key={date} data-testid="event-detail-date-item">
+                    {formatDate(date)}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <span className="detail-value">
+                {formatDate(occurrenceDate || event.date)}
+                {formatEndDate(occurrenceDate || event.date, event.endDate) &&
+                  ` — ${formatEndDate(occurrenceDate || event.date, event.endDate)}`}
+              </span>
+            )}
           </div>
         </div>
 

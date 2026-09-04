@@ -186,6 +186,15 @@
   color: var(--text-primary);
 }
 
+.event-detail-dates-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .organizer-value {
   display: inline-flex;
   align-items: center;
