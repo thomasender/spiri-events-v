@@ -1,9 +1,9 @@
-import { Helmet } from 'react-helmet-async';
 import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
 import ProfileForm from '../components/ProfileForm';
 import ChangeEmailForm from '../components/ChangeEmailForm';
 import DeleteAccountSection from '../components/DeleteAccountSection';
+import SeoMeta from '../components/SeoMeta';
 import './ProfilePage.css';
 
 export default function ProfilePage() {
@@ -11,18 +11,26 @@ export default function ProfilePage() {
   const { profile, loading: profileLoading, save } = useProfile(user?.uid);
 
   if (!user) {
-    return <div className="loading-spinner" data-testid="profile-loading" />;
+    return (
+      <>
+        <SeoMeta title="Mein Profil" path="/profil" noindex />
+        <div className="loading-spinner" data-testid="profile-loading" />
+      </>
+    );
   }
 
   if (profileLoading) {
-    return <div className="loading-spinner" data-testid="profile-loading" />;
+    return (
+      <>
+        <SeoMeta title="Mein Profil" path="/profil" noindex />
+        <div className="loading-spinner" data-testid="profile-loading" />
+      </>
+    );
   }
 
   return (
     <div className="profile-page" data-testid="profile-page">
-      <Helmet>
-        <title>Mein Profil | tribe Vorarlberg</title>
-      </Helmet>
+      <SeoMeta title="Mein Profil" path="/profil" noindex />
       <div className="profile-container">
         <div className="profile-header">
           <h1>Mein Profil</h1>

@@ -1,11 +1,11 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
 import { useAllEvents, KATEGORIEN, BEZIRKE, ONLINE_LOCATION } from '../hooks/useEvents';
 import { useAuth } from '../hooks/useAuth';
 import Calendar from '../components/Calendar';
 import EventsSection from '../components/EventsSection';
 import EmailVerificationModal from '../components/EmailVerificationModal';
+import SeoMeta from '../components/SeoMeta';
 import { getEventOccurrences } from '../utils/eventOccurrences';
 import { CATEGORY_COLORS } from '../utils/categoryColors';
 import { monthKeyToDate, dateToMonthKey } from '../utils/calendarFilterState';
@@ -154,14 +154,11 @@ export default function CalendarPage() {
 
   return (
     <div className="calendar-page">
-      <Helmet>
-        <title>tribe Vorarlberg | Kalender</title>
-        <meta
-          name="description"
-          content="Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg - Bregenz, Dornbirn, Feldkirch, Bludenz, Grenznahe"
-        />
-        <link rel="canonical" href="https://spirievents.at/" />
-      </Helmet>
+      <SeoMeta
+        title="Kalender"
+        description="Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg - Bregenz, Dornbirn, Feldkirch, Bludenz, Grenznahe"
+        path="/"
+      />
 
       <section className="hero">
         <div className="hero-content">

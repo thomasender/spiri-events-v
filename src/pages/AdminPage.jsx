@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
 import { CalendarDays, Mail, MessageSquare, PlusCircle, FileText, Trash2 } from 'lucide-react';
+import SeoMeta from '../components/SeoMeta';
 import EventList from '../components/EventList';
 import DraftsTab from '../components/DraftsTab';
 import TrashTab from '../components/TrashTab';
@@ -60,9 +60,7 @@ export default function AdminPage() {
 
   return (
     <div className="admin-page">
-      <Helmet>
-        <title>Verwaltung | tribe Vorarlberg</title>
-      </Helmet>
+      <SeoMeta title="Verwaltung" path="/admin" noindex />
       <header className="admin-page-header">
         <div>
           <h1>Verwaltung</h1>

@@ -1,7 +1,7 @@
 import { Navigate } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
 import { useAuth } from '../hooks/useAuth';
 import AuthForm from '../components/AuthForm';
+import SeoMeta from '../components/SeoMeta';
 
 export default function LoginPage() {
   const { user, loading } = useAuth();
@@ -12,9 +12,7 @@ export default function LoginPage() {
 
   return (
     <>
-      <Helmet>
-        <title>Anmelden | tribe Vorarlberg</title>
-      </Helmet>
+      <SeoMeta title="Anmelden" path="/login" noindex />
       <AuthForm />
     </>
   );
