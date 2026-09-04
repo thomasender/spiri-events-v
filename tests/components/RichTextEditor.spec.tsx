@@ -21,6 +21,13 @@ vi.mock('dompurify', () => ({
   },
 }));
 
+vi.mock('../../src/lib/imageUpload', () => ({
+  uploadDescriptionImage: vi.fn(
+    async () => 'https://firebasestorage.googleapis.com/v0/b/x/o/photo.jpg'
+  ),
+  MAX_INPUT_SIZE_BYTES: 15 * 1024 * 1024,
+}));
+
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import RichTextEditor from '../../src/components/RichTextEditor';
 
@@ -107,5 +114,38 @@ describe('RichTextEditor', () => {
     fireEvent.click(screen.getByLabelText(/abbrechen/i));
 
     expect(screen.queryByLabelText('Link einfügen')).toBeNull();
+  });
+
+  it('renders an image insert button in the toolbar', async () => {
+    render(<RichTextEditor value="" onChange={() => {}} />);
+    await waitForEditor();
+    expect(screen.getByLabelText(/bild einfügen/i)).toBeInTheDocument();
+  });
+
+  it('uploads the selected file and inserts an <img> with the returned URL', async () => {
+    const uploadDescriptionImage = (await import('../../src/lib/imageUpload'))
+      .uploadDescriptionImage;
+    const onChange = vi.fn();
+
+    render(<RichTextEditor value="<p>start</p>" onChange={onChange} eventId="evt-42" />);
+    await waitForEditor();
+
+    const fileInput = document.querySelector(
+      'input[type="file"][data-testid="description-image-input"]'
+    );
+    expect(fileInput).toBeInTheDocument();
+
+    const file = new File(['fake-bytes'], 'flyer.png', { type: 'image/png' });
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    await waitFor(() => {
+      expect(uploadDescriptionImage).toHaveBeenCalledWith(file, 'evt-42');
+    });
+
+    await waitFor(() => {
+      const lastCall = onChange.mock.calls[onChange.mock.calls.length - 1][0];
+      expect(lastCall).toContain('<img');
+      expect(lastCall).toContain('https://firebasestorage.googleapis.com/v0/b/x/o/photo.jpg');
+    });
   });
 });

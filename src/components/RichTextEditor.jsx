@@ -1,11 +1,23 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import Link from '@tiptap/extension-link';
+import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
-import { Bold, Italic, List, ListOrdered, Link as LinkIcon, Check, X } from 'lucide-react';
+import {
+  Bold,
+  Italic,
+  List,
+  ListOrdered,
+  Link as LinkIcon,
+  Check,
+  X,
+  ImagePlus,
+} from 'lucide-react';
 import { sanitizeHtml, getPlainTextLength, MAX_DESCRIPTION_LENGTH } from '../utils/sanitize';
+import { uploadDescriptionImage, MAX_INPUT_SIZE_BYTES } from '../lib/imageUpload';
 import './RichTextEditor.css';
+
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 const ToolbarButton = ({ active, onClick, disabled, label, children }) => (
   <button
@@ -76,10 +88,15 @@ function RichTextEditor({
   describedBy,
   id,
   testId = 'description-editor',
+  eventId = 'temp',
+  onImageError,
 }) {
   const [linkOpen, setLinkOpen] = useState(false);
   const [linkInitial, setLinkInitial] = useState('');
   const [plainLength, setPlainLength] = useState(() => getPlainTextLength(value));
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imageError, setImageError] = useState(null);
+  const fileInputRef = useRef(null);
 
   const editor = useEditor({
     extensions: [
@@ -89,11 +106,16 @@ function RichTextEditor({
         blockquote: false,
         horizontalRule: false,
         hardBreak: true,
+        link: {
+          openOnClick: false,
+          autolink: true,
+          protocols: ['http', 'https', 'mailto'],
+        },
       }),
-      Link.configure({
-        openOnClick: false,
-        autolink: true,
-        protocols: ['http', 'https', 'mailto'],
+      Image.configure({
+        inline: false,
+        allowBase64: false,
+        HTMLAttributes: { class: 'rte-embedded-image' },
       }),
       Placeholder.configure({ placeholder }),
     ],
@@ -164,6 +186,45 @@ function RichTextEditor({
     editor.chain().focus().extendMarkRange('link').setLink({ href: normalized }).run();
   };
 
+  const handleImageButtonClick = () => {
+    setImageError(null);
+    fileInputRef.current?.click();
+  };
+
+  const handleImageFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (!file) return;
+
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      const msg = 'Nur JPEG, PNG und WebP erlaubt';
+      setImageError(msg);
+      onImageError?.(msg);
+      return;
+    }
+    if (file.size > MAX_INPUT_SIZE_BYTES) {
+      const msg = `Bild ist zu groß (max. ${Math.round(MAX_INPUT_SIZE_BYTES / 1024 / 1024)}MB)`;
+      setImageError(msg);
+      onImageError?.(msg);
+      return;
+    }
+
+    setImageError(null);
+    setImageUploading(true);
+    try {
+      const url = await uploadDescriptionImage(file, eventId);
+      const alt = file.name.replace(/\.[^.]+$/, '').slice(0, 120) || 'Eingebettetes Bild';
+      editor.chain().focus().setImage({ src: url, alt }).run();
+    } catch (err) {
+      console.error('Description image upload failed:', err);
+      const msg = 'Bild-Upload fehlgeschlagen';
+      setImageError(msg);
+      onImageError?.(msg);
+    } finally {
+      setImageUploading(false);
+    }
+  };
+
   return (
     <div className={`rte-wrapper${hasError ? ' rte-wrapper--error' : ''}`} data-testid={testId}>
       <div className="rte-toolbar" role="toolbar" aria-label="Formatierung">
@@ -204,7 +265,26 @@ function RichTextEditor({
         >
           <LinkIcon size={16} />
         </ToolbarButton>
+        <ToolbarButton
+          label="Bild einfügen"
+          active={editor.isActive('image')}
+          disabled={imageUploading}
+          onClick={handleImageButtonClick}
+        >
+          <ImagePlus size={16} />
+        </ToolbarButton>
       </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        onChange={handleImageFileChange}
+        className="rte-image-file-input"
+        data-testid="description-image-input"
+        aria-hidden="true"
+        tabIndex={-1}
+      />
 
       {linkOpen && (
         <LinkPopover
@@ -212,6 +292,17 @@ function RichTextEditor({
           onApply={applyLink}
           onCancel={() => setLinkOpen(false)}
         />
+      )}
+
+      {imageUploading && (
+        <div className="rte-image-status" role="status" data-testid="description-image-uploading">
+          Bild wird hochgeladen…
+        </div>
+      )}
+      {imageError && !imageUploading && (
+        <div className="rte-image-status rte-image-status--error" role="alert">
+          {imageError}
+        </div>
       )}
 
       <EditorContent editor={editor} className="rte-editor-surface" />

@@ -284,6 +284,17 @@ input:disabled {
   border-style: solid;
 }
 
+.image-hint {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  background-color: var(--bg-secondary);
+  border-left: 3px solid var(--accent-primary);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
 .image-upload-area span {
   font-size: 0.875rem;
 }

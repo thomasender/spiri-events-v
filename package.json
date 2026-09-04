@@ -29,6 +29,7 @@
   "dependencies": {
     "@fontsource/cormorant-garamond": "^5.3.0",
     "@fontsource/inter": "^5.3.0",
+    "@tiptap/extension-image": "^3.30.3",
     "@tiptap/extension-link": "^3.30.3",
     "@tiptap/extension-placeholder": "^3.30.3",
     "@tiptap/pm": "^3.30.3",

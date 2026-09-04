@@ -810,6 +810,10 @@ export default function EventFormWizard() {
           onChange={handleImageSelectFromInput}
           style={{ display: 'none' }}
         />
+        <p className="image-hint" data-testid="title-image-hint">
+          Tipp: Verwende als Titelfoto am besten ein schönes Symbolfoto mit wenig Text. Fotos mit
+          viel Text (z.B. ein Flyer) kannst du im Feld „Beschreibung“ weiter unten einfügen.
+        </p>
         {errors.image && <span className="error-text">{errors.image}</span>}
         {imageUploading && (
           <div className="upload-progress">

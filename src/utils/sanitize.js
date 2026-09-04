@@ -1,19 +1,54 @@
 import DOMPurify from 'dompurify';
 
-const ALLOWED_TAGS = ['p', 'br', 'strong', 'em', 'b', 'i', 'u', 'a', 'ul', 'ol', 'li'];
-const ALLOWED_ATTR = ['href', 'rel', 'target'];
+const ALLOWED_TAGS = ['p', 'br', 'strong', 'em', 'b', 'i', 'u', 'a', 'ul', 'ol', 'li', 'img'];
+const ALLOWED_ATTR = ['href', 'rel', 'target', 'src', 'alt', 'title'];
 
 const ALLOWED_URI_REGEXP =
   /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp|matrix):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i;
 
+const PROD_IMG_SRC_REGEXP =
+  /^https:\/\/(?:firebasestorage\.googleapis\.com|storage\.googleapis\.com)\//i;
+const EMULATOR_IMG_SRC_REGEXP = /^http:\/\/localhost:9299\//i;
+const ALLOWED_IMG_SRC_REGEXP =
+  import.meta.env.VITE_USE_EMULATORS === 'true'
+    ? /^(?:https:\/\/(?:firebasestorage\.googleapis\.com|storage\.googleapis\.com)\/|http:\/\/localhost:9299\/)/i
+    : PROD_IMG_SRC_REGEXP;
+
 export function sanitizeHtml(html) {
   if (!html || typeof html !== 'string') return '';
-  return DOMPurify.sanitize(html, {
+  const cleaned = DOMPurify.sanitize(html, {
     ALLOWED_TAGS,
     ALLOWED_ATTR,
     ALLOWED_URI_REGEXP,
     KEEP_CONTENT: true,
+    ALLOW_DATA_ATTR: false,
   });
+  return stripUnsafeImages(cleaned);
+}
+
+function stripUnsafeImages(html) {
+  if (typeof document === 'undefined') {
+    return html.replace(/<img\b[^>]*>/gi, (match) => {
+      const srcMatch = match.match(/src=(["'])([^"']+)\1/i);
+      const src = srcMatch ? srcMatch[2] : '';
+      return ALLOWED_IMG_SRC_REGEXP.test(src) ? match : '';
+    });
+  }
+  if (typeof document === 'undefined') return html;
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  const imgs = tmp.querySelectorAll('img');
+  imgs.forEach((img) => {
+    if (!ALLOWED_IMG_SRC_REGEXP.test(img.getAttribute('src') || '')) {
+      img.remove();
+    }
+  });
+  return tmp.innerHTML;
+}
+
+export function isAllowedImageUrl(url) {
+  if (!url || typeof url !== 'string') return false;
+  return ALLOWED_IMG_SRC_REGEXP.test(url);
 }
 
 export function stripHtml(html) {

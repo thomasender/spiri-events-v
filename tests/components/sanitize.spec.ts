@@ -2,6 +2,7 @@
 import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('dompurify', () => {
+  const IMG_SRC_RE = /^https:\/\/(?:firebasestorage\.googleapis\.com|storage\.googleapis\.com)\//i;
   return {
     default: {
       sanitize: (html, options = {}) => {
@@ -34,6 +35,12 @@ vi.mock('dompurify', () => {
           return '';
         });
 
+        result = result.replace(/<img\b[^>]*>/gi, (match) => {
+          const srcMatch = match.match(/src=(["'])([^"']+)\1/i);
+          const src = srcMatch ? srcMatch[2] : '';
+          return IMG_SRC_RE.test(src) ? match : '';
+        });
+
         return result;
       },
     },
@@ -46,6 +53,7 @@ import {
   getPlainTextLength,
   isHtmlEmpty,
   truncateHtmlText,
+  isAllowedImageUrl,
 } from '../../src/utils/sanitize';
 
 describe('sanitizeHtml', () => {
@@ -107,6 +115,58 @@ describe('sanitizeHtml', () => {
     expect(sanitizeHtml('')).toBe('');
     expect(sanitizeHtml(null)).toBe('');
     expect(sanitizeHtml(undefined)).toBe('');
+  });
+
+  it('keeps <img> tags with a Firebase Storage src', () => {
+    const out = sanitizeHtml(
+      '<p>vorher</p><img src="https://firebasestorage.googleapis.com/v0/b/x/o/event-descriptions%2Ftemp%2Fphoto.jpg" alt="Foto"><p>nachher</p>'
+    );
+    expect(out).toContain('<img');
+    expect(out).toContain('src="https://firebasestorage.googleapis.com/');
+    expect(out).toContain('alt="Foto"');
+  });
+
+  it('strips <img> tags whose src is not a Firebase Storage URL', () => {
+    const out = sanitizeHtml('<img src="https://evil.example/foo.jpg">');
+    expect(out).not.toContain('<img');
+  });
+
+  it('strips <img> tags with javascript: src', () => {
+    const out = sanitizeHtml('<img src="javascript:alert(1)">');
+    expect(out).not.toContain('<img');
+    expect(out).not.toContain('javascript:');
+  });
+});
+
+describe('isAllowedImageUrl', () => {
+  it('accepts firebasestorage.googleapis.com URLs', () => {
+    expect(
+      isAllowedImageUrl(
+        'https://firebasestorage.googleapis.com/v0/b/x/o/event-descriptions%2Ftemp%2Fphoto.jpg'
+      )
+    ).toBe(true);
+    expect(
+      isAllowedImageUrl(
+        'https://firebasestorage.googleapis.com/v1/b/x.appspot.com/o/events%2Fabc%2Fimg.png'
+      )
+    ).toBe(true);
+  });
+
+  it('accepts storage.googleapis.com URLs', () => {
+    expect(
+      isAllowedImageUrl(
+        'https://storage.googleapis.com/spirieventsvbg.appspot.com/event-descriptions/temp/x.jpg'
+      )
+    ).toBe(true);
+  });
+
+  it('rejects non-https or non-Firebase URLs', () => {
+    expect(isAllowedImageUrl('http://firebasestorage.googleapis.com/v0/b/x/o/foo.jpg')).toBe(false);
+    expect(isAllowedImageUrl('https://example.com/foo.jpg')).toBe(false);
+    expect(isAllowedImageUrl('javascript:alert(1)')).toBe(false);
+    expect(isAllowedImageUrl('data:image/png;base64,abc')).toBe(false);
+    expect(isAllowedImageUrl(null)).toBe(false);
+    expect(isAllowedImageUrl('')).toBe(false);
   });
 });
 
