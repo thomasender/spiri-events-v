@@ -8,8 +8,18 @@ export const storage = {};
 
 export const signInWithEmailAndPassword = async () => ({ user: { uid: 'test-uid' } });
 export const createUserWithEmailAndPassword = async () => ({ user: { uid: 'test-uid' } });
+export const signInWithPopup = async () => ({
+  user: {
+    uid: 'test-google-uid',
+    email: 'googleuser@example.com',
+    emailVerified: true,
+    displayName: 'Google User',
+    photoURL: 'https://example.com/avatar.png',
+    providerData: [{ providerId: 'google.com', uid: 'google-sub-123' }],
+  },
+});
 export const signOut = async () => {};
-export const onAuthStateChanged = (auth, callback) => {
+export const onAuthStateChanged = (_auth, callback) => {
   callback(null);
   return () => {};
 };
@@ -18,7 +28,19 @@ export const updateEmail = async () => {};
 export const verifyBeforeUpdateEmail = async () => {};
 export const deleteUser = async () => {};
 export const reauthenticateWithCredential = async () => {};
+export const reauthenticateWithPopup = async () => ({ user: { uid: 'test-uid' } });
 export const getIdTokenResult = async () => ({ claims: {} });
+export const sendEmailVerification = async () => {};
+export const sendPasswordResetEmail = async () => {};
+export const GoogleAuthProvider = class {
+  static credentialFromResult() {
+    return { accessToken: 'fake-token' };
+  }
+  static credentialFromError() {
+    return null;
+  }
+  setCustomParameters() {}
+};
 export const EmailAuthProvider = {
   credential: (email, password) => ({ providerId: 'password', email, password }),
 };

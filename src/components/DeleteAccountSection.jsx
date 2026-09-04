@@ -5,7 +5,7 @@ import { authErrorMessage } from '../hooks/useAuth';
 import ConfirmDialog from './ConfirmDialog';
 import './ProfileForm.css';
 
-export default function DeleteAccountSection({ onDelete }) {
+export default function DeleteAccountSection({ onDelete, isGoogleUser = false }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [deleting, setDeleting] = useState(false);
@@ -15,7 +15,7 @@ export default function DeleteAccountSection({ onDelete }) {
   const handleConfirm = async () => {
     setError('');
 
-    if (!password) {
+    if (!isGoogleUser && !password) {
       setError('Bitte gib dein Passwort ein.');
       setConfirmOpen(false);
       return;
@@ -23,7 +23,7 @@ export default function DeleteAccountSection({ onDelete }) {
 
     setDeleting(true);
     try {
-      await onDelete(password);
+      await onDelete(isGoogleUser ? null : password);
       setConfirmOpen(false);
       navigate('/');
     } catch (err) {
@@ -36,7 +36,7 @@ export default function DeleteAccountSection({ onDelete }) {
   };
 
   const handleTrigger = () => {
-    if (!password) {
+    if (!isGoogleUser && !password) {
       setError('Bitte gib dein Passwort ein.');
       return;
     }
@@ -65,22 +65,25 @@ export default function DeleteAccountSection({ onDelete }) {
               Achtung: Diese Aktion kann nicht rückgängig gemacht werden.
             </p>
             <p className="danger-text">
-              Gib dein Passwort ein und bestätige die Löschung, um dein Konto dauerhaft zu
-              entfernen.
+              {isGoogleUser
+                ? 'Beim Klick auf „Konto löschen“ öffnet sich ein Google-Anmeldefenster, um dich zu bestätigen. Anschließend wird dein Konto dauerhaft entfernt.'
+                : 'Gib dein Passwort ein und bestätige die Löschung, um dein Konto dauerhaft zu entfernen.'}
             </p>
 
-            <div className="form-group">
-              <label htmlFor="delete-account-password">Aktuelles Passwort</label>
-              <input
-                id="delete-account-password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-                placeholder="••••••••"
-                data-testid="delete-account-password"
-              />
-            </div>
+            {!isGoogleUser && (
+              <div className="form-group">
+                <label htmlFor="delete-account-password">Aktuelles Passwort</label>
+                <input
+                  id="delete-account-password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                  data-testid="delete-account-password"
+                />
+              </div>
+            )}
 
             {error && (
               <p className="submit-error" data-testid="delete-account-error">
@@ -107,7 +110,11 @@ export default function DeleteAccountSection({ onDelete }) {
       <ConfirmDialog
         isOpen={confirmOpen}
         title="Konto wirklich löschen?"
-        message="Dein Konto, dein Profil und dein Profilfoto werden dauerhaft gelöscht. Bereits erstellte Events bleiben erhalten, werden aber ohne Veranstalter-Namen angezeigt."
+        message={
+          isGoogleUser
+            ? 'Du wirst gleich aufgefordert, dich mit Google anzumelden, um die Löschung zu bestätigen. Dein Konto, dein Profil und dein Profilfoto werden dauerhaft gelöscht. Bereits erstellte Events bleiben erhalten, werden aber ohne Veranstalter-Namen angezeigt.'
+            : 'Dein Konto, dein Profil und dein Profilfoto werden dauerhaft gelöscht. Bereits erstellte Events bleiben erhalten, werden aber ohne Veranstalter-Namen angezeigt.'
+        }
         confirmLabel="Ja, endgültig löschen"
         cancelLabel="Abbrechen"
         onConfirm={handleConfirm}

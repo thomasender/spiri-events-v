@@ -98,6 +98,56 @@ describe('ChangeEmailForm', () => {
     });
     expect(screen.getByTestId('change-email-error').textContent).toMatch(/Passwort ist falsch/i);
   });
+
+  it('omits the password field for Google users and shows a Google re-auth notice', () => {
+    render(
+      <ChangeEmailForm currentEmail="alice@example.com" onChangeEmail={vi.fn()} isGoogleUser />
+    );
+
+    expect(screen.queryByTestId('change-email-password')).not.toBeInTheDocument();
+    expect(screen.getByTestId('change-email-google-notice')).toBeInTheDocument();
+    expect(screen.getByTestId('change-email-google-notice').textContent).toMatch(/Google/);
+  });
+
+  it('calls onChangeEmail with the new email and a null password for Google users', async () => {
+    const onChangeEmail = vi.fn().mockResolvedValue(undefined);
+    render(
+      <ChangeEmailForm
+        currentEmail="alice@example.com"
+        onChangeEmail={onChangeEmail}
+        isGoogleUser
+      />
+    );
+
+    fireEvent.change(screen.getByTestId('change-email-new'), {
+      target: { value: 'new@example.com' },
+    });
+    fireEvent.submit(screen.getByTestId('change-email-form'));
+
+    await waitFor(() => expect(onChangeEmail).toHaveBeenCalled());
+    expect(onChangeEmail).toHaveBeenCalledWith('new@example.com', null);
+  });
+
+  it('still validates the new email address for Google users', async () => {
+    const onChangeEmail = vi.fn();
+    render(
+      <ChangeEmailForm
+        currentEmail="alice@example.com"
+        onChangeEmail={onChangeEmail}
+        isGoogleUser
+      />
+    );
+
+    fireEvent.change(screen.getByTestId('change-email-new'), {
+      target: { value: '' },
+    });
+    fireEvent.submit(screen.getByTestId('change-email-form'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('change-email-error')).toBeInTheDocument();
+    });
+    expect(onChangeEmail).not.toHaveBeenCalled();
+  });
 });
 
 describe('DeleteAccountSection', () => {
@@ -183,5 +233,34 @@ describe('DeleteAccountSection', () => {
       expect(screen.getByTestId('delete-account-error')).toBeInTheDocument();
     });
     expect(screen.getByTestId('delete-account-error').textContent).toMatch(/Passwort ist falsch/i);
+  });
+
+  it('omits the password field for Google users', () => {
+    render(
+      <MemoryRouter>
+        <DeleteAccountSection onDelete={vi.fn()} isGoogleUser />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByTestId('delete-account-password')).not.toBeInTheDocument();
+  });
+
+  it('calls onDelete with a null password for Google users after confirming', async () => {
+    const onDelete = vi.fn().mockResolvedValue(undefined);
+    render(
+      <MemoryRouter>
+        <DeleteAccountSection onDelete={onDelete} isGoogleUser />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByTestId('delete-account-trigger'));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Konto wirklich löschen/i)).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /endgültig löschen/i }));
+
+    await waitFor(() => expect(onDelete).toHaveBeenCalledWith(null));
   });
 });

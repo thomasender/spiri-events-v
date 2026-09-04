@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
   signOut,
   onAuthStateChanged,
   updateProfile,
@@ -9,6 +11,7 @@ import {
   verifyBeforeUpdateEmail,
   deleteUser,
   reauthenticateWithCredential,
+  reauthenticateWithPopup,
   EmailAuthProvider,
   getIdTokenResult,
   sendEmailVerification,
@@ -19,6 +22,7 @@ import { ref as storageRef, listAll, deleteObject } from 'firebase/storage';
 import { auth, db, storage } from '../lib/firebase';
 
 const ADMIN_EMULATOR_USERS = ['admin@test.com', 'mathis.aut@gmail.com'];
+const GOOGLE_PROVIDER_ID = 'google.com';
 
 const AUTH_ERROR_MESSAGES = {
   'auth/invalid-credential': 'E-Mail oder Passwort sind falsch.',
@@ -35,6 +39,12 @@ const AUTH_ERROR_MESSAGES = {
   'auth/user-disabled': 'Dieses Konto wurde deaktiviert.',
   'auth/user-token-expired': 'Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.',
   'auth/user-token-revoked': 'Deine Sitzung wurde ungültig gemacht. Bitte melde dich erneut an.',
+  'auth/popup-closed-by-user': 'Anmeldung abgebrochen.',
+  'auth/popup-blocked':
+    'Das Anmeldefenster wurde vom Browser blockiert. Bitte erlaube Pop-ups für diese Seite.',
+  'auth/cancelled-popup-request': 'Anmeldung abgebrochen.',
+  'auth/account-exists-with-different-credential':
+    'Für diese E-Mail-Adresse ist bereits eine andere Anmeldemethode registriert.',
 };
 
 export function authErrorMessage(err) {
@@ -59,17 +69,20 @@ async function checkFirestoreAdminRole(user) {
   return null;
 }
 
-async function seedProfileDoc(user, displayName) {
+async function seedProfileDoc(user, displayName, photoURL) {
   try {
     const profileRef = doc(db, 'users', user.uid);
+    const fallbackName =
+      displayName || user.displayName || (user.email ? user.email.split('@')[0] : '');
+    const fallbackPhoto = photoURL || user.photoURL || null;
     await setDoc(
       profileRef,
       {
-        displayName: displayName || '',
+        displayName: fallbackName,
         bio: '',
         website: '',
         contact: user.email || '',
-        photoURL: null,
+        photoURL: fallbackPhoto,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       },
@@ -78,6 +91,18 @@ async function seedProfileDoc(user, displayName) {
   } catch (err) {
     console.warn('Failed to seed profile doc:', err);
   }
+}
+
+export function isGoogleProviderUser(user) {
+  if (!user?.providerData) return false;
+  return user.providerData.some((p) => p?.providerId === GOOGLE_PROVIDER_ID);
+}
+
+export function isPasswordProviderUser(user) {
+  if (!user?.providerData || user.providerData.length === 0) {
+    return Boolean(user?.email);
+  }
+  return user.providerData.some((p) => p?.providerId === 'password');
 }
 
 export function useAuth() {
@@ -159,6 +184,14 @@ export function useAuth() {
     return signInWithEmailAndPassword(auth, email, password);
   };
 
+  const loginWithGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    const credential = await signInWithPopup(auth, provider);
+    await seedProfileDoc(credential.user, credential.user.displayName, credential.user.photoURL);
+    return credential;
+  };
+
   const logout = () => signOut(auth);
 
   const resetPassword = async (email) => {
@@ -174,8 +207,31 @@ export function useAuth() {
     return reauthenticateWithCredential(current, credential);
   };
 
+  const reauthenticateWithGoogle = async () => {
+    const current = auth.currentUser;
+    if (!current) {
+      throw { code: 'auth/no-current-user', message: 'Kein angemeldeter Benutzer.' };
+    }
+    return reauthenticateWithPopup(current, new GoogleAuthProvider());
+  };
+
+  const reauthenticateCurrent = async (password) => {
+    if (password) {
+      await reauthenticate(password);
+      return;
+    }
+    if (isGoogleProviderUser(auth.currentUser)) {
+      await reauthenticateWithGoogle();
+      return;
+    }
+    throw {
+      code: 'auth/missing-password',
+      message: 'Bitte gib dein Passwort ein, um fortzufahren.',
+    };
+  };
+
   const changeEmail = async (newEmail, password) => {
-    await reauthenticate(password);
+    await reauthenticateCurrent(password);
     const current = auth.currentUser;
     if (!current) {
       throw { code: 'auth/no-current-user', message: 'Kein angemeldeter Benutzer.' };
@@ -191,7 +247,7 @@ export function useAuth() {
     }
     const uid = current.uid;
 
-    await reauthenticate(password);
+    await reauthenticateCurrent(password);
 
     try {
       const userFolder = storageRef(storage, `users/${uid}`);
@@ -221,12 +277,15 @@ export function useAuth() {
     canCreateEvents,
     register,
     login,
+    loginWithGoogle,
     logout,
     resetPassword,
     reauthenticate,
+    reauthenticateWithGoogle,
     changeEmail,
     deleteAccount,
     resendVerificationEmail,
     refreshEmailVerified,
+    isGoogleUser: isGoogleProviderUser(user),
   };
 }

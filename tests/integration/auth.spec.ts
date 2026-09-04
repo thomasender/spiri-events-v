@@ -23,7 +23,7 @@ test.describe('Authentication UX', () => {
     await expect(page.getByLabel('Passwort bestätigen')).toBeVisible();
     await expect(page.getByLabel(/Datenschutzerklärung/)).toBeVisible();
     await expect(page.getByLabel(/AGBs/)).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Registrieren' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Registrieren', exact: true })).toBeVisible();
     await expect(page.getByTestId('auth-tab-register')).toHaveAttribute('aria-selected', 'true');
   });
 
@@ -35,7 +35,7 @@ test.describe('Authentication UX', () => {
     await page.getByLabel('E-Mail').fill(email);
     await page.getByLabel('Passwort', { exact: true }).fill('falsches-passwort');
 
-    await page.getByRole('button', { name: 'Anmelden' }).click();
+    await page.getByRole('button', { name: 'Anmelden', exact: true }).click();
 
     const cta = page.getByTestId('auth-create-cta');
     await expect(cta).toBeVisible();
@@ -48,7 +48,7 @@ test.describe('Authentication UX', () => {
     await page.getByLabel('E-Mail').fill(email);
     await page.getByLabel('Passwort', { exact: true }).fill('falsches-passwort');
 
-    await page.getByRole('button', { name: 'Anmelden' }).click();
+    await page.getByRole('button', { name: 'Anmelden', exact: true }).click();
     await page.getByTestId('auth-create-cta-button').click();
 
     await expect(page.getByTestId('auth-tab-register')).toHaveAttribute('aria-selected', 'true');
