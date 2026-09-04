@@ -56,6 +56,14 @@
   text-decoration-color: currentColor;
 }
 
+.rich-text-view img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 12px 0;
+  border-radius: var(--radius-sm);
+}
+
 .rich-text-view--truncated {
   white-space: pre-wrap;
 }
