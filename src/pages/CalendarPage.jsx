@@ -186,9 +186,6 @@ export default function CalendarPage() {
             ))}
           </ul>
         </div>
-        <div className="hero-visual" aria-hidden="true">
-          <img src="/hero.jpeg" alt="" className="hero-visual-image" />
-        </div>
       </section>
 
       <div className="page-layout">

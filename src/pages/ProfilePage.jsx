@@ -7,7 +7,7 @@ import SeoMeta from '../components/SeoMeta';
 import './ProfilePage.css';
 
 export default function ProfilePage() {
-  const { user, changeEmail, deleteAccount } = useAuth();
+  const { user, changeEmail, deleteAccount, isGoogleUser } = useAuth();
   const { profile, loading: profileLoading, save } = useProfile(user?.uid);
 
   if (!user) {
@@ -42,9 +42,13 @@ export default function ProfilePage() {
         <ChangeEmailForm
           currentEmail={user.email}
           onChangeEmail={(newEmail, password) => changeEmail(newEmail, password)}
+          isGoogleUser={isGoogleUser}
         />
 
-        <DeleteAccountSection onDelete={(password) => deleteAccount(password)} />
+        <DeleteAccountSection
+          onDelete={(password) => deleteAccount(password)}
+          isGoogleUser={isGoogleUser}
+        />
       </div>
     </div>
   );

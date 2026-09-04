@@ -9,7 +9,12 @@ import {
 const dateStr = (offsetDays = 0) => {
   const d = new Date();
   d.setDate(d.getDate() + offsetDays);
-  return d.toISOString().split('T')[0];
+  // Format using LOCAL date components, not UTC, so this matches what the
+  // production code (which compares against a local-midnight Date) considers
+  // "today". Without this, running the suite just after midnight in a
+  // non-UTC timezone makes `dateStr(0)` return yesterday's UTC date, which
+  // breaks the "last day is today" assertions.
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
 describe('getEventOccurrences (list mode)', () => {
