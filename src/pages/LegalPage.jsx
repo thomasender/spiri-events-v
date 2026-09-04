@@ -1,10 +1,12 @@
 import { useParams, Link } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
+import SeoMeta from '../components/SeoMeta';
 import './LegalPage.css';
 
 const content = {
   datenschutz: {
     title: 'Datenschutzerklärung',
+    description:
+      'Datenschutzerklärung von tribe Vorarlberg: welche Daten wir erheben, wie wir sie schützen und welche Rechte du hast.',
     lastUpdated: 'März 2026',
     sections: [
       {
@@ -116,6 +118,8 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
   },
   impressum: {
     title: 'Impressum',
+    description:
+      'Impressum und Anbieterkennzeichnung von tribe Vorarlberg – Verein zur Förderung einer ganzheitlichen Lebensweise.',
     lastUpdated: 'August 2026',
     sections: [
       {
@@ -139,6 +143,8 @@ Diese Website informiert über die Tätigkeiten, Veranstaltungen und Ziele des V
   },
   agbs: {
     title: 'Allgemeine Geschäftsbedingungen (AGB)',
+    description:
+      'Allgemeine Geschäftsbedingungen für die Nutzung von tribe Vorarlberg – Events, Registrierung und Inhalte.',
     lastUpdated: 'Juli 2026',
     sections: [
       {
@@ -319,9 +325,7 @@ export default function LegalPage() {
 
   return (
     <div className="page-container">
-      <Helmet>
-        <title>{data.title} | tribe Vorarlberg</title>
-      </Helmet>
+      <SeoMeta title={data.title} description={data.description} path={`/${page}`} />
       <div className="legal-page fade-enter">
         <p className="legal-updated">Stand: {data.lastUpdated}</p>
         <h1 className="legal-title">{data.title}</h1>

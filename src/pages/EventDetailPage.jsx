@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
+import SeoMeta from '../components/SeoMeta';
 import { collection, doc, getDoc, query, where, getDocs, arrayUnion } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { isLegacyId } from '../lib/slug';
@@ -409,43 +410,21 @@ export default function EventDetailPage() {
       ? 'Zurück zur Verwaltung'
       : 'Zurück zum Kalender';
 
+  const eventDescription = event.description
+    ? truncateHtmlText(event.description, 160)
+    : `${event.title} - ${event.category || 'Event'}${event.isOnline ? ' (Online)' : event.bezirk ? ` in ${event.bezirk}` : ''}`;
+  const eventPath = `/event/${event.slug || event.id}`;
+
   return (
     <div className="event-detail-page">
+      <SeoMeta
+        title={event.title}
+        description={eventDescription}
+        path={eventPath}
+        type="event"
+        event={event}
+      />
       <Helmet>
-        <title>{event.title} | tribe Vorarlberg</title>
-        <meta
-          name="description"
-          content={
-            event.description
-              ? truncateHtmlText(event.description, 160)
-              : `${event.title} - ${event.category}${event.isOnline ? ' (Online)' : ` in ${event.bezirk}`}`
-          }
-        />
-        <link rel="canonical" href={`/event/${event.slug || event.id}`} />
-        <meta property="og:type" content="event" />
-        <meta property="og:title" content={event.title} />
-        <meta
-          property="og:description"
-          content={
-            event.description
-              ? truncateHtmlText(event.description, 160)
-              : `${event.title} - ${event.category}${event.isOnline ? ' (Online)' : ` in ${event.bezirk}`}`
-          }
-        />
-        <meta property="og:url" content={`/event/${event.slug || event.id}`} />
-        <meta property="og:locale" content="de_AT" />
-        {event.imageUrl && <meta property="og:image" content={event.imageUrl} />}
-        {!event.imageUrl && <meta property="og:image" content={fallbackImage} />}
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={event.title} />
-        <meta
-          name="twitter:description"
-          content={
-            event.description
-              ? truncateHtmlText(event.description, 160)
-              : `${event.title} - ${event.category}${event.isOnline ? ' (Online)' : ` in ${event.bezirk}`}`
-          }
-        />
         <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
       </Helmet>
 

@@ -7,7 +7,21 @@ import { getFirestore, collection, getDocs } from 'firebase/firestore'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DIST_PATH = path.resolve(__dirname, '../dist')
-const BASE_URL = 'https://spirievents.at'
+const BASE_URL = 'https://events.thetribe.at'
+const DEFAULT_OG_IMAGE_URL = `${BASE_URL}/og-default.jpg`
+const OG_IMAGE_WIDTH = 1200
+const OG_IMAGE_HEIGHT = 630
+const SITE_NAME = 'tribe Vorarlberg'
+const DEFAULT_DESCRIPTION =
+  'Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg - Bregenz, Dornbirn, Feldkirch, Bludenz, Grenznahe'
+
+function toAbsoluteUrl(pathOrUrl) {
+  if (!pathOrUrl) return DEFAULT_OG_IMAGE_URL
+  if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl
+  if (pathOrUrl.startsWith('//')) return `https:${pathOrUrl}`
+  if (!pathOrUrl.startsWith('/')) return `${BASE_URL}/${pathOrUrl}`
+  return `${BASE_URL}${pathOrUrl}`
+}
 
 const firebaseConfig = {
   apiKey: 'AIzaSyCMvCOUD27daEjYO2TKE5CB32fuMXRt0RA',
@@ -103,7 +117,7 @@ function generateEventJsonLd(event) {
     endDate: event.endDate || event.date,
     location,
     description: event.description || '',
-    image: event.imageUrl || getEventFallbackImage(event),
+    image: toAbsoluteUrl(event.imageUrl || getEventFallbackImage(event)),
     eventStatus: 'https://schema.org/EventScheduled',
     ...(offer && { offer })
   }
@@ -119,26 +133,35 @@ function generateEventHtml(event) {
     ? event.description.substring(0, 160)
     : `${event.title} - ${category} in ${event.bezirk || 'Vorarlberg'}`
 
+  const ogImage = toAbsoluteUrl(event.imageUrl || getEventFallbackImage(event))
+  const eventUrl = `${BASE_URL}/event/${event.id}`
+
   return `<!DOCTYPE html>
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${event.title} | Spirituelle Events Vorarlberg</title>
+  <title>${event.title} | ${SITE_NAME}</title>
   <meta name="description" content="${description}" />
   <meta name="robots" content="index, follow" />
-  <link rel="canonical" href="${BASE_URL}/event/${event.id}" />
+  <link rel="canonical" href="${eventUrl}" />
 
+  <meta property="og:site_name" content="${SITE_NAME}" />
   <meta property="og:type" content="event" />
   <meta property="og:title" content="${event.title}" />
   <meta property="og:description" content="${description}" />
-  <meta property="og:url" content="${BASE_URL}/event/${event.id}" />
+  <meta property="og:url" content="${eventUrl}" />
   <meta property="og:locale" content="de_AT" />
-  ${event.imageUrl ? `<meta property="og:image" content="${event.imageUrl}" />` : `<meta property="og:image" content="${getEventFallbackImage(event)}" />`}
+  <meta property="og:image" content="${ogImage}" />
+  <meta property="og:image:width" content="${OG_IMAGE_WIDTH}" />
+  <meta property="og:image:height" content="${OG_IMAGE_HEIGHT}" />
+  <meta property="og:image:alt" content="${event.title}" />
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${event.title}" />
   <meta name="twitter:description" content="${description}" />
+  <meta name="twitter:image" content="${ogImage}" />
+  <meta name="twitter:image:alt" content="${event.title}" />
 
   <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
 
@@ -382,19 +405,27 @@ function generateCalendarPageHtml(events, jsBundlePath, cssBundlePath) {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Spirituelle Events Vorarlberg | Kalender</title>
-  <meta name="description" content="Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg - Bregenz, Dornbirn, Feldkirch, Bludenz, Grenznahe" />
+  <title>${SITE_NAME} | Kalender</title>
+  <meta name="description" content="${DEFAULT_DESCRIPTION}" />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="${BASE_URL}/" />
 
+  <meta property="og:site_name" content="${SITE_NAME}" />
   <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="Spirituelle Events Vorarlberg" />
-  <meta property="og:title" content="Spirituelle Events Vorarlberg" />
-  <meta property="og:description" content="Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg" />
+  <meta property="og:title" content="${SITE_NAME}" />
+  <meta property="og:description" content="${DEFAULT_DESCRIPTION}" />
   <meta property="og:url" content="${BASE_URL}/" />
   <meta property="og:locale" content="de_AT" />
+  <meta property="og:image" content="${DEFAULT_OG_IMAGE_URL}" />
+  <meta property="og:image:width" content="${OG_IMAGE_WIDTH}" />
+  <meta property="og:image:height" content="${OG_IMAGE_HEIGHT}" />
+  <meta property="og:image:alt" content="${SITE_NAME}" />
 
   <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="${SITE_NAME}" />
+  <meta name="twitter:description" content="${DEFAULT_DESCRIPTION}" />
+  <meta name="twitter:image" content="${DEFAULT_OG_IMAGE_URL}" />
+  <meta name="twitter:image:alt" content="${SITE_NAME}" />
 
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -405,8 +436,8 @@ function generateCalendarPageHtml(events, jsBundlePath, cssBundlePath) {
   <script type="application/ld+json">${JSON.stringify({
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    name: 'Spirituelle Events Vorarlberg',
-    description: 'Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg',
+    name: SITE_NAME,
+    description: DEFAULT_DESCRIPTION,
     url: BASE_URL
   })}</script>
 
@@ -476,7 +507,7 @@ function generateCalendarPageHtml(events, jsBundlePath, cssBundlePath) {
       </div>
 
       <footer>
-        <p>© ${new Date().getFullYear()} Spirituelle Events Vorarlberg</p>
+        <p>© ${new Date().getFullYear()} ${SITE_NAME}</p>
       </footer>
     </div>
   </div>

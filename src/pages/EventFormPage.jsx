@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
 import { useEventById } from '../hooks/useEvents';
 import { useAuth } from '../hooks/useAuth';
 import EventForm from '../components/EventForm';
 import EventFormWizard from '../components/EventFormWizard';
 import EmailVerificationBanner from '../components/EmailVerificationBanner';
+import SeoMeta from '../components/SeoMeta';
 import '../components/EventFormWizard.css';
 
 export default function EventFormPage() {
@@ -43,9 +43,7 @@ export default function EventFormPage() {
   if (!isEdit && !canCreateEvents) {
     return (
       <div className="event-form-page" data-testid="event-create-blocked">
-        <Helmet>
-          <title>Event erstellen | tribe Vorarlberg</title>
-        </Helmet>
+        <SeoMeta title="Event erstellen" path="/admin/new" noindex />
         <div className="event-form-container">
           <h1>Event erstellen</h1>
           <EmailVerificationBanner />
@@ -62,9 +60,7 @@ export default function EventFormPage() {
   if (isEdit) {
     return (
       <>
-        <Helmet>
-          <title>Event bearbeiten | tribe Vorarlberg</title>
-        </Helmet>
+        <SeoMeta title="Event bearbeiten" path={id ? `/admin/edit/${id}` : '/admin'} noindex />
         <EventForm event={event} />
       </>
     );
@@ -72,9 +68,7 @@ export default function EventFormPage() {
 
   return (
     <>
-      <Helmet>
-        <title>Neues Event | tribe Vorarlberg</title>
-      </Helmet>
+      <SeoMeta title="Neues Event" path="/admin/new" noindex />
       <EventFormWizard />
     </>
   );
