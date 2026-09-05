@@ -53,7 +53,7 @@
 
 .hero-features {
   display: flex;
-  flex-direction: column;
+  flex-flow: row wrap;
   gap: 20px;
   list-style: none;
 }
