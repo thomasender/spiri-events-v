@@ -1,0 +1,108 @@
+.similar-events {
+  margin-top: 32px;
+  margin-bottom: 8px;
+}
+
+.similar-events-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.similar-events-header h2 {
+  font-size: 1.3rem;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.similar-events-category-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: white;
+}
+
+.similar-events-slider-wrapper {
+  position: relative;
+}
+
+.similar-events-slider {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(220px, 1fr);
+  gap: 16px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  padding: 4px 4px 16px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.similar-events-slider::-webkit-scrollbar {
+  height: 6px;
+}
+
+.similar-events-slider::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border-radius: 3px;
+}
+
+.similar-events-slide {
+  scroll-snap-align: start;
+  min-width: 220px;
+}
+
+.similar-events-arrow {
+  position: absolute;
+  top: calc(50% - 8px);
+  transform: translateY(-50%);
+  z-index: 2;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--bg-calendar);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.similar-events-arrow:hover:not(:disabled) {
+  background-color: var(--bg-secondary);
+}
+
+.similar-events-arrow:disabled {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.similar-events-arrow--left {
+  left: -8px;
+}
+
+.similar-events-arrow--right {
+  right: -8px;
+}
+
+@media (max-width: 640px) {
+  .similar-events-slider {
+    grid-auto-columns: 75%;
+  }
+
+  .similar-events-arrow {
+    display: none;
+  }
+}

@@ -34,6 +34,7 @@ import OccurrencePickerDialog from '../components/OccurrencePickerDialog';
 import EventMessages from '../components/EventMessages';
 import ShareButton from '../components/ShareButton';
 import RichTextView from '../components/RichTextView';
+import SimilarEvents from '../components/SimilarEvents';
 import { stripHtml, truncateHtmlText } from '../utils/sanitize';
 import { normalizeLink } from '../utils/link';
 import { DEFAULT_CURRENCY, formatPriceWithCurrency } from '../utils/currency';
@@ -674,6 +675,8 @@ export default function EventDetailPage() {
           <RichTextView html={event.description} />
         </div>
       )}
+
+      <SimilarEvents currentEvent={event} />
 
       {(event.status === 'pending' || event.status === 'draft') && user && (isAdmin || isOwner) && (
         <EventMessages eventId={event.id} onReady={() => setEventMessagesReady(true)} />
