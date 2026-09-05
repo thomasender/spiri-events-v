@@ -25,6 +25,14 @@ describe('authErrorMessage', () => {
     expect(authErrorMessage({ code: 'auth/account-exists-with-different-credential' })).toMatch(
       /andere Anmeldemethode/
     );
+    expect(authErrorMessage({ code: 'auth/unauthorized-domain' })).toMatch(/Domain.*freigegeben/);
+    expect(authErrorMessage({ code: 'auth/operation-not-allowed' })).toMatch(/nicht verfügbar/);
+    expect(authErrorMessage({ code: 'auth/internal-error' })).toMatch(/interner Fehler/);
+    expect(authErrorMessage({ code: 'auth/app-not-authorized' })).toMatch(/autorisiert/);
+    expect(authErrorMessage({ code: 'auth/invalid-api-key' })).toMatch(/Konfigurationsproblem/);
+    expect(authErrorMessage({ code: 'auth/invalid-oauth-client-id' })).toMatch(
+      /Konfigurationsproblem/
+    );
   });
 
   it('falls back to a generic message for unknown codes', () => {
