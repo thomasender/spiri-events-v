@@ -22,6 +22,7 @@
     "seed:dev": "node scripts/seed-dev-data.mjs",
     "seed:users": "node scripts/import-test-users.mjs",
     "export:prod": "node scripts/export-prod-data.mjs",
+    "prerender:refresh": "node scripts/refresh-prerender-data.mjs",
     "firestore:rules:pull": "firebase firestore:rules:get > firestore.rules",
     "firestore:rules:push": "firebase deploy --only firestore:rules",
     "storage:rules:pull": "firebase storage:rules:get > storage.rules",

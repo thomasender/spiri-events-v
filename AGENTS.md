@@ -90,6 +90,39 @@ will loop indefinitely "fixing" tests that were never actually broken.
   - Component tests: Use Vitest + happy-dom (`tests/components/`)
 - Run `npm run test:all` before committing to ensure all tests pass
 
+## Prerender (Open Graph / Social Media Preview)
+
+`npm run build` runs `vite build && node scripts/prerender.mjs`. The prerender
+generates one static HTML file per event under `dist/event/<slug>/index.html`
+with full Open Graph + Twitter meta tags, so messengers (WhatsApp, Telegram,
+Facebook, LinkedIn, Slack) and crawlers see a proper preview without running
+any JavaScript.
+
+**Data source priority:**
+
+1. `data-export/firestore-export/events.json` (committed to the repo — preferred
+   because it's deterministic, offline, and works on every build environment).
+2. Firestore REST API (anonymous read; only works when the project's security
+   rules allow it).
+3. Live Firestore SDK (kept as a final fallback — requires network access from
+   the build environment and Firestore read permissions).
+
+If none of the three succeed, the prerender emits a manifest with `eventCount: 0`
+and logs a clear warning. The build still succeeds; the static homepage
+keeps working because `index.html` ships baked-in OG/Twitter tags.
+
+**Refreshing the prerender data** after production events change:
+
+```bash
+firebase emulators:start --import ./data-export   # in one terminal
+npm run prerender:refresh                          # in another — writes events.json
+git add data-export/firestore-export/events.json
+git commit -m "chore: refresh prerender event snapshot"
+```
+
+The refresh script reads from the emulator (preferred) or production Firestore
+(via `scripts/service-account.json`).
+
 ## Communicating with Peter
 
 Peter is the product owner and tester. He tests directly on production at https://events.thetribe.at (NOT locally).

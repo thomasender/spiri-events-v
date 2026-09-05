@@ -1,0 +1,7 @@
+{
+  "version": "emulator-data",
+  "collections": [
+    "events",
+    "users"
+  ]
+}
