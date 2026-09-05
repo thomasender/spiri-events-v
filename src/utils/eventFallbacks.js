@@ -3,12 +3,12 @@ export const CATEGORY_FALLBACKS = {
   Breathwork: '/event-fallbacks/breathwork.jpg',
   Meditation: '/event-fallbacks/meditation.jpg',
   Tanz: '/event-fallbacks/tanz.jpg',
-  Singen: '/event-fallbacks/singen.png',
+  Singen: '/event-fallbacks/singen.jpg',
   Soundhealing: '/event-fallbacks/soundhealing.jpeg',
-  Sonstiges: '/event-fallbacks/sonstiges.svg',
+  Sonstiges: '/event-fallbacks/sonstiges.jpg',
 };
 
-export const DEFAULT_EVENT_FALLBACK = '/event-fallbacks/sonstiges.svg';
+export const DEFAULT_EVENT_FALLBACK = '/event-fallbacks/sonstiges.jpg';
 
 export function getCategoryFallbackImage(category) {
   if (!category) return DEFAULT_EVENT_FALLBACK;
