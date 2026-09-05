@@ -21,6 +21,14 @@ async function setupFakeDist(distPath: string): Promise<void> {
   fs.mkdirSync(path.join(distPath, 'assets'), { recursive: true });
   fs.writeFileSync(path.join(distPath, 'assets', 'index-AbCdEfGh.js'), '// fake js bundle');
   fs.writeFileSync(path.join(distPath, 'assets', 'index-AbCdEfGh.css'), '/* fake css */');
+  fs.writeFileSync(
+    path.join(distPath, 'assets', 'RichTextEditor-XyZwVuTq.css'),
+    '/* fake lazy chunk css */'
+  );
+  fs.writeFileSync(
+    path.join(distPath, 'assets', 'RichTextEditor-LmNoPqRs.js'),
+    '// fake lazy chunk js'
+  );
   fs.writeFileSync(path.join(distPath, 'robots.txt'), 'User-agent: *\nAllow: /\n');
 }
 
@@ -317,6 +325,17 @@ describe('prerender() end-to-end', () => {
       '<meta property="og:image" content="https://events.thetribe.at/og-default.jpg" />'
     );
     expect(indexHtml).not.toContain('old placeholder');
+  });
+
+  it('references the main index-* entry chunk, never a lazy chunk (MCwrJJ5Y)', async () => {
+    writeJson(path.join(exportPath, 'events.json'), sampleEvents);
+    const { prerender } = await importPrerender();
+    await prerender({ rootDir: tmpRoot, distPath, exportPath, skipFirestore: true });
+
+    const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf8');
+    expect(indexHtml).toContain('/assets/index-AbCdEfGh.js');
+    expect(indexHtml).toContain('/assets/index-AbCdEfGh.css');
+    expect(indexHtml).not.toContain('RichTextEditor-');
   });
 
   it('emits a sitemap.xml with /event/<slug> URLs (not /event/<id>)', async () => {

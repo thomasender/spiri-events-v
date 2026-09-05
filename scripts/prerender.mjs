@@ -558,18 +558,29 @@ export async function loadEventsFromFirestoreRest({
   }
 }
 
-function findJsBundlePath(assetsDir) {
+function pickBundlePath(assetsDir, ext) {
   const files = fs.readdirSync(assetsDir)
-  const jsFile = files.find(f => f.endsWith('.js') && !f.includes('map'))
-  if (!jsFile) throw new Error(`No JS bundle found in ${assetsDir}`)
-  return `/assets/${jsFile}`
+  const candidates = files.filter(f => f.endsWith(`.${ext}`) && !f.includes('map'))
+  if (candidates.length === 0) {
+    throw new Error(`No ${ext.toUpperCase()} bundle found in ${assetsDir}`)
+  }
+  const entry = candidates.find(f => /^index-/.test(f))
+  const chosen = entry || candidates[0]
+  if (!entry && candidates.length > 1) {
+    console.warn(
+      `No index-* ${ext.toUpperCase()} entry found in ${assetsDir}; falling back to ${chosen}. ` +
+        `Picked this one because fs.readdirSync order is not guaranteed — verify it is the real app entry.`
+    )
+  }
+  return `/assets/${chosen}`
+}
+
+function findJsBundlePath(assetsDir) {
+  return pickBundlePath(assetsDir, 'js')
 }
 
 function findCssBundlePath(assetsDir) {
-  const files = fs.readdirSync(assetsDir)
-  const cssFile = files.find(f => f.endsWith('.css') && !f.includes('map'))
-  if (!cssFile) throw new Error(`No CSS bundle found in ${assetsDir}`)
-  return `/assets/${cssFile}`
+  return pickBundlePath(assetsDir, 'css')
 }
 
 function ensureDir(dir) {
