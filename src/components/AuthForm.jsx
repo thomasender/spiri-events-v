@@ -74,6 +74,7 @@ export default function AuthForm() {
       await loginWithGoogle();
       navigate('/');
     } catch (err) {
+      console.error('Google sign-in failed:', err);
       setError(authErrorMessage(err));
       setErrorCode(err?.code || '');
     } finally {

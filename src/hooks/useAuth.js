@@ -45,6 +45,20 @@ const AUTH_ERROR_MESSAGES = {
   'auth/cancelled-popup-request': 'Anmeldung abgebrochen.',
   'auth/account-exists-with-different-credential':
     'Für diese E-Mail-Adresse ist bereits eine andere Anmeldemethode registriert.',
+  'auth/unauthorized-domain':
+    'Diese Domain ist für die Google-Anmeldung nicht freigegeben. Bitte informiere den Seitenbetreiber.',
+  'auth/operation-not-allowed':
+    'Die Google-Anmeldung ist derzeit nicht verfügbar. Bitte versuche es später erneut.',
+  'auth/internal-error':
+    'Ein interner Fehler ist aufgetreten. Bitte versuche es in einem Moment erneut.',
+  'auth/app-not-authorized':
+    'Diese App ist nicht für die Google-Anmeldung autorisiert. Bitte informiere den Seitenbetreiber.',
+  'auth/invalid-api-key':
+    'Es liegt ein Konfigurationsproblem vor. Bitte informiere den Seitenbetreiber.',
+  'auth/invalid-oauth-client-id':
+    'Es liegt ein Konfigurationsproblem vor. Bitte informiere den Seitenbetreiber.',
+  'auth/invalid-tenant-id':
+    'Es liegt ein Konfigurationsproblem vor. Bitte informiere den Seitenbetreiber.',
 };
 
 export function authErrorMessage(err) {

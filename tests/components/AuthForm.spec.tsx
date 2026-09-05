@@ -22,6 +22,8 @@ vi.mock('../../src/hooks/useAuth', () => ({
     if (!err) return 'Ein Fehler ist aufgetreten.';
     if (err.code === 'auth/popup-closed-by-user') return 'Anmeldung abgebrochen.';
     if (err.code === 'auth/popup-blocked') return 'Popup blockiert.';
+    if (err.code === 'auth/unauthorized-domain') return 'Domain nicht freigegeben.';
+    if (err.code === 'auth/operation-not-allowed') return 'Google-Anmeldung nicht verfügbar.';
     return 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.';
   },
 }));
@@ -116,6 +118,39 @@ describe('AuthForm Google sign-in', () => {
     await waitFor(() => {
       expect(screen.getByText(/Popup blockiert/i)).toBeInTheDocument();
     });
+  });
+
+  it('displays a friendly German error when the domain is not authorized for Google sign-in', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mocks.loginWithGoogle.mockRejectedValueOnce({ code: 'auth/unauthorized-domain' });
+
+    renderForm();
+
+    fireEvent.click(screen.getByTestId('auth-google-signin'));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Domain nicht freigegeben/i)).toBeInTheDocument();
+    });
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Google sign-in failed:',
+      expect.objectContaining({ code: 'auth/unauthorized-domain' })
+    );
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('logs the raw error to the console so the actual error code is visible', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const rawError = { code: 'auth/something-new-and-unmapped', message: 'raw message' };
+    mocks.loginWithGoogle.mockRejectedValueOnce(rawError);
+
+    renderForm();
+
+    fireEvent.click(screen.getByTestId('auth-google-signin'));
+
+    await waitFor(() => {
+      expect(consoleErrorSpy).toHaveBeenCalledWith('Google sign-in failed:', rawError);
+    });
+    consoleErrorSpy.mockRestore();
   });
 
   it('disables the Google button while the email/password submit is loading', async () => {
