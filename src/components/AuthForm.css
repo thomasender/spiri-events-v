@@ -219,6 +219,38 @@
   letter-spacing: 0.08em;
 }
 
+.auth-form .btn-submit.btn-wobble {
+  animation: auth-btn-wobble 0.8s ease-in-out;
+}
+
+@keyframes auth-btn-wobble {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  15% {
+    transform: translateX(-8px) rotate(-2deg);
+  }
+  30% {
+    transform: translateX(7px) rotate(1.5deg);
+  }
+  45% {
+    transform: translateX(-5px) rotate(-1deg);
+  }
+  60% {
+    transform: translateX(3px) rotate(0.8deg);
+  }
+  75% {
+    transform: translateX(-2px) rotate(-0.3deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-form .btn-submit.btn-wobble {
+    animation: none;
+  }
+}
+
 .auth-divider::before,
 .auth-divider::after {
   content: '';
