@@ -76,7 +76,7 @@ test.describe('Verwaltung lists — title picture (TnMMKIc7)', () => {
 
     const image = card.getByTestId('event-card-image');
     await expect(image).toBeVisible();
-    await expect(image).toHaveAttribute('src', '/event-fallbacks/sonstiges.svg');
+    await expect(image).toHaveAttribute('src', '/event-fallbacks/sonstiges.jpg');
   });
 
   test('Entwürfe: each draft card shows the title picture with the category fallback', async ({
@@ -87,7 +87,7 @@ test.describe('Verwaltung lists — title picture (TnMMKIc7)', () => {
     await waitForAdminTabs(page);
 
     const draftCards = [
-      { title: 'Admin Draft Event', fallback: '/event-fallbacks/sonstiges.svg' },
+      { title: 'Admin Draft Event', fallback: '/event-fallbacks/sonstiges.jpg' },
       { title: 'Second Admin Draft', fallback: '/event-fallbacks/yoga.jpg' },
     ];
 
@@ -127,7 +127,7 @@ test.describe('Verwaltung lists — title picture (TnMMKIc7)', () => {
     await expect(fixtureItem).toBeVisible({ timeout: 10000 });
     const fixtureImage = fixtureItem.getByTestId('messages-tab-item-image');
     await expect(fixtureImage).toBeVisible();
-    await expect(fixtureImage).toHaveAttribute('src', '/event-fallbacks/sonstiges.svg');
+    await expect(fixtureImage).toHaveAttribute('src', '/event-fallbacks/sonstiges.jpg');
   });
 
   test('Meine Events: title picture sits left of the card content, not on top (ASWJkYMY)', async ({

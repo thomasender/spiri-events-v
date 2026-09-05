@@ -139,17 +139,17 @@ describe('getEventOgImage', () => {
       'https://events.thetribe.at/event-fallbacks/tanz.jpg'
     );
     expect(getEventOgImage({ category: 'Sonstiges' })).toBe(
-      'https://events.thetribe.at/event-fallbacks/sonstiges.svg'
+      'https://events.thetribe.at/event-fallbacks/sonstiges.jpg'
     );
   });
 
   it('returns the Sonstiges category fallback when the event has no category', () => {
     // Mirrors getEventFallbackImage's behavior — events without a category
-    // resolve to the generic "Sonstiges" SVG fallback used everywhere else.
-    expect(getEventOgImage({})).toBe('https://events.thetribe.at/event-fallbacks/sonstiges.svg');
-    expect(getEventOgImage(null)).toBe('https://events.thetribe.at/event-fallbacks/sonstiges.svg');
+    // resolve to the generic "Sonstiges" fallback used everywhere else.
+    expect(getEventOgImage({})).toBe('https://events.thetribe.at/event-fallbacks/sonstiges.jpg');
+    expect(getEventOgImage(null)).toBe('https://events.thetribe.at/event-fallbacks/sonstiges.jpg');
     expect(getEventOgImage(undefined)).toBe(
-      'https://events.thetribe.at/event-fallbacks/sonstiges.svg'
+      'https://events.thetribe.at/event-fallbacks/sonstiges.jpg'
     );
   });
 

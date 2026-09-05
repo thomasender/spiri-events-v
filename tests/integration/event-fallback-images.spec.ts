@@ -76,7 +76,7 @@ test.describe('Event category fallback images', () => {
       { title: 'Meditation morgen', dayOffset: 1, expected: '/event-fallbacks/meditation.jpg' },
       { title: 'Tanzworkshop diese Woche', dayOffset: 3, expected: '/event-fallbacks/tanz.jpg' },
       { title: 'Atemtherapie', dayOffset: 10, expected: '/event-fallbacks/breathwork.jpg' },
-      { title: 'Mantrasingen', dayOffset: 2, expected: '/event-fallbacks/singen.png' },
+      { title: 'Mantrasingen', dayOffset: 2, expected: '/event-fallbacks/singen.jpg' },
       {
         title: 'Klangreise mit Bowls',
         dayOffset: 11,
@@ -102,9 +102,9 @@ test.describe('Event category fallback images', () => {
       '/event-fallbacks/breathwork.jpg',
       '/event-fallbacks/meditation.jpg',
       '/event-fallbacks/tanz.jpg',
-      '/event-fallbacks/singen.png',
+      '/event-fallbacks/singen.jpg',
       '/event-fallbacks/soundhealing.jpeg',
-      '/event-fallbacks/sonstiges.svg',
+      '/event-fallbacks/sonstiges.jpg',
     ]) {
       const response = await page.request.get(path);
       expect(response.status(), `${path} should be served`).toBe(200);

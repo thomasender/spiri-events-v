@@ -31,9 +31,9 @@ describe('eventFallbacks', () => {
       expect(getCategoryFallbackImage('Breathwork')).toBe('/event-fallbacks/breathwork.jpg');
       expect(getCategoryFallbackImage('Meditation')).toBe('/event-fallbacks/meditation.jpg');
       expect(getCategoryFallbackImage('Tanz')).toBe('/event-fallbacks/tanz.jpg');
-      expect(getCategoryFallbackImage('Singen')).toBe('/event-fallbacks/singen.png');
+      expect(getCategoryFallbackImage('Singen')).toBe('/event-fallbacks/singen.jpg');
       expect(getCategoryFallbackImage('Soundhealing')).toBe('/event-fallbacks/soundhealing.jpeg');
-      expect(getCategoryFallbackImage('Sonstiges')).toBe('/event-fallbacks/sonstiges.svg');
+      expect(getCategoryFallbackImage('Sonstiges')).toBe('/event-fallbacks/sonstiges.jpg');
     });
 
     it('falls back to the default for unknown categories', () => {
