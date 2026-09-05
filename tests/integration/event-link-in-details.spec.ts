@@ -9,6 +9,7 @@ test.describe('Event link shown in details section (pYXBNkID)', () => {
   test('event detail page shows the organizer link in the general info section', async ({
     page,
   }) => {
+    test.setTimeout(75000);
     await page.goto(`/event/${EVENT_WITH_LINK_SLUG}`);
 
     await page
@@ -54,6 +55,18 @@ test.describe('Event link shown in details section (pYXBNkID)', () => {
     const primaryButton = page.locator('a.event-link');
     await expect(primaryButton).toBeVisible();
     await expect(primaryButton).toHaveAttribute('href', EVENT_WITH_LINK_HREF);
+
+    await expect(page.getByTestId('similar-events')).toBeVisible({ timeout: 60000 });
+    const linkIsBeforeSimilarEvents = await page.evaluate(() => {
+      const link = document.querySelector('a.event-link');
+      const similarEvents = document.querySelector('[data-testid="similar-events"]');
+      return Boolean(
+        link &&
+        similarEvents &&
+        link.compareDocumentPosition(similarEvents) & Node.DOCUMENT_POSITION_FOLLOWING
+      );
+    });
+    expect(linkIsBeforeSimilarEvents).toBe(true);
   });
 
   test('event detail page does not show the link section when the event has no link', async ({

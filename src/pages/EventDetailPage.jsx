@@ -676,8 +676,6 @@ export default function EventDetailPage() {
         </div>
       )}
 
-      <SimilarEvents currentEvent={event} />
-
       {(event.status === 'pending' || event.status === 'draft') && user && (isAdmin || isOwner) && (
         <EventMessages eventId={event.id} onReady={() => setEventMessagesReady(true)} />
       )}
@@ -693,6 +691,8 @@ export default function EventDetailPage() {
           <ExternalLink size={16} />
         </a>
       )}
+
+      <SimilarEvents currentEvent={event} />
 
       <ConfirmDialog
         isOpen={showDeleteDialog}

@@ -146,7 +146,11 @@ export default function SimilarEvents({ currentEvent }) {
               key={`${event.id}-${event.date}`}
               data-testid="similar-event-card"
             >
-              <EventCard event={event} categoryColor={categoryColor} />
+              <EventCard
+                event={event}
+                categoryColor={categoryColor}
+                onClick={() => window.scrollTo(0, 0)}
+              />
             </div>
           ))}
         </div>

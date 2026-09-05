@@ -19,6 +19,7 @@ test.describe('Similar events on event detail page (SNKCKBob)', () => {
   // network ops — the secondary query for similar events routinely takes
   // 30–50s on webkit under load. Generous timeout so both engines pass.
   const VISIBLE_TIMEOUT = 60000;
+  test.describe.configure({ timeout: 75000 });
 
   test('shows the Ähnliche Events section for events that share a category', async ({ page }) => {
     await openEventAndWaitForSimilarEvents(page, YOGA_HEUTE_SLUG);
@@ -77,6 +78,21 @@ test.describe('Similar events on event detail page (SNKCKBob)', () => {
 
     await page.waitForTimeout(2000);
     await expect(page.getByTestId('similar-events')).toHaveCount(0);
+  });
+
+  test('scrolls to the top when opening a similar event', async ({ page }) => {
+    await openEventAndWaitForSimilarEvents(page, YOGA_HEUTE_SLUG);
+
+    await expect(page.getByTestId('similar-events')).toBeVisible({ timeout: VISIBLE_TIMEOUT });
+    const firstTile = page.getByTestId('similar-events-slider').locator('a.event-tile').first();
+    const targetHref = await firstTile.getAttribute('href');
+
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+
+    await firstTile.click();
+    await page.waitForURL((url) => `${url.pathname}${url.search}` === targetHref);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
   });
 
   test('each similar event links to that event detail page', async ({ page }) => {

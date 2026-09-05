@@ -12,7 +12,7 @@ import {
 import { getEventFallbackImage } from '../utils/eventFallbacks';
 import './EventCard.css';
 
-export default function EventCard({ event, categoryColor }) {
+export default function EventCard({ event, categoryColor, onClick }) {
   const organizerName = getOrganizerName(event);
   const category = getPrimaryCategory(event);
   const fallbackImage = getEventFallbackImage(event);
@@ -26,6 +26,7 @@ export default function EventCard({ event, categoryColor }) {
     <Link
       to={`/event/${event.slug || event.id}?occurrenceDate=${event.date}`}
       className="event-tile"
+      onClick={onClick}
     >
       <div className="event-tile-image-wrapper">
         <img
