@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth, authErrorMessage } from '../hooks/useAuth';
 import { Mail, Lock, User } from 'lucide-react';
@@ -48,10 +48,23 @@ export default function AuthForm() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+  const [wobbling, setWobbling] = useState(false);
+  const wobbleTimerRef = useRef(null);
   const { login, register, loginWithGoogle, resetPassword } = useAuth();
   const navigate = useNavigate();
 
   const isLogin = mode === 'login';
+
+  const triggerWobble = () => {
+    setWobbling(false);
+    if (wobbleTimerRef.current) {
+      clearTimeout(wobbleTimerRef.current);
+    }
+    requestAnimationFrame(() => {
+      setWobbling(true);
+      wobbleTimerRef.current = setTimeout(() => setWobbling(false), 850);
+    });
+  };
 
   const switchMode = (nextMode) => {
     if (nextMode === mode) return;
@@ -64,6 +77,11 @@ export default function AuthForm() {
     setDisplayName('');
     setAcceptDatenschutz(false);
     setAcceptNutzungsbedingungen(false);
+    setWobbling(false);
+    if (wobbleTimerRef.current) {
+      clearTimeout(wobbleTimerRef.current);
+      wobbleTimerRef.current = null;
+    }
   };
 
   const handleGoogleSignIn = async () => {
@@ -89,21 +107,25 @@ export default function AuthForm() {
 
     if (!isLogin && !acceptDatenschutz) {
       setError('Bitte akzeptiere die Datenschutzerklärung.');
+      triggerWobble();
       return;
     }
 
     if (!isLogin && !acceptNutzungsbedingungen) {
       setError('Bitte stimme den AGBs zu.');
+      triggerWobble();
       return;
     }
 
     if (!isLogin && password !== confirmPassword) {
       setError('Die Passwörter stimmen nicht überein.');
+      triggerWobble();
       return;
     }
 
     if (!isLogin && password.length < 6) {
       setError('Das Passwort muss mindestens 6 Zeichen haben.');
+      triggerWobble();
       return;
     }
 
@@ -127,6 +149,7 @@ export default function AuthForm() {
       };
       setError(errorMessages[err.code] || 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.');
       setErrorCode(err.code || '');
+      triggerWobble();
     } finally {
       setLoading(false);
     }
@@ -143,6 +166,7 @@ export default function AuthForm() {
       setResetSent(true);
     } catch {
       setError('Ein Fehler ist aufgetreten. Bitte überprüfe deine E-Mail-Adresse.');
+      triggerWobble();
     } finally {
       setLoading(false);
     }
@@ -244,7 +268,13 @@ export default function AuthForm() {
 
               {error && <p className="error-text">{error}</p>}
 
-              <button type="submit" className="btn btn-primary btn-submit" disabled={loading}>
+              <button
+                type="submit"
+                className={`btn btn-primary btn-submit ${wobbling ? 'btn-wobble' : ''}`}
+                disabled={loading}
+                data-testid="auth-submit"
+                onAnimationEnd={() => wobbling && setWobbling(false)}
+              >
                 {loading ? (
                   <span className="loading-dots">
                     <span></span>
@@ -334,7 +364,7 @@ export default function AuthForm() {
                       type="checkbox"
                       checked={acceptDatenschutz}
                       onChange={(e) => setAcceptDatenschutz(e.target.checked)}
-                      required
+                      aria-required="true"
                     />
                     <span>
                       Ich habe die{' '}
@@ -349,7 +379,7 @@ export default function AuthForm() {
                       type="checkbox"
                       checked={acceptNutzungsbedingungen}
                       onChange={(e) => setAcceptNutzungsbedingungen(e.target.checked)}
-                      required
+                      aria-required="true"
                     />
                     <span>
                       Ich habe die{' '}
@@ -364,7 +394,13 @@ export default function AuthForm() {
 
               {error && <p className="error-text">{error}</p>}
 
-              <button type="submit" className="btn btn-primary btn-submit" disabled={loading}>
+              <button
+                type="submit"
+                className={`btn btn-primary btn-submit ${wobbling ? 'btn-wobble' : ''}`}
+                disabled={loading}
+                data-testid="auth-submit"
+                onAnimationEnd={() => wobbling && setWobbling(false)}
+              >
                 {loading ? (
                   <span className="loading-dots">
                     <span></span>
