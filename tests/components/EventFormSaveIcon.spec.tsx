@@ -36,6 +36,18 @@ vi.mock('../../src/hooks/useEvents', () => ({
   BEZIRKE: ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe'],
 }));
 
+vi.mock('../../src/hooks/useCategories', () => ({
+  useCategories: () => [
+    'Yoga',
+    'Breathwork',
+    'Meditation',
+    'Tanz',
+    'Singen',
+    'Soundhealing',
+    'Sonstiges',
+  ],
+}));
+
 vi.mock('../../src/lib/imageUpload', () => ({
   uploadImage: vi.fn(async () => 'https://example.com/test.jpg'),
   deleteImageByUrl: vi.fn(async () => {}),

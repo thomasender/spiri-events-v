@@ -7,3 +7,10 @@ export const CATEGORY_COLORS = {
   Soundhealing: 'var(--sound-healing)',
   Sonstiges: 'var(--text-secondary)',
 };
+
+export const FALLBACK_CATEGORY_COLOR = 'var(--text-secondary)';
+
+export function getCategoryColor(category) {
+  if (!category) return FALLBACK_CATEGORY_COLOR;
+  return CATEGORY_COLORS[category] || FALLBACK_CATEGORY_COLOR;
+}
