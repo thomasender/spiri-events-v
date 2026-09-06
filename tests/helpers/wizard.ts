@@ -157,6 +157,34 @@ export async function confirmSubmission(page: Page) {
   await page.waitForTimeout(2000);
 }
 
+// Picks the first enabled swatch in the category color picker. The 7
+// seed-category colors are always disabled; on a fresh emulator only the
+// 8th is free, but earlier test runs may have consumed additional palette
+// slots, so we always pick whichever swatch is currently enabled.
+export async function pickEnabledCategoryColor(page: Page): Promise<string> {
+  const palette = [
+    '#c48e6a',
+    '#bf5b4e',
+    '#5c6b3f',
+    '#8a6d2f',
+    '#9a5f38',
+    '#6b568b',
+    '#605e5e',
+    '#4a7572',
+  ];
+  const picker = page.getByTestId('category-color-picker');
+  await picker.waitFor({ state: 'visible', timeout: 5000 });
+  for (const color of palette) {
+    const swatch = picker.locator(`[data-color="${color}"]`);
+    if (await swatch.isEnabled().catch(() => false)) {
+      await swatch.click();
+      await picker.waitFor({ state: 'hidden', timeout: 5000 });
+      return color;
+    }
+  }
+  throw new Error('No enabled swatch in the category color picker — all 8 colors are used.');
+}
+
 export async function confirmCopyrightCheckbox(page: Page) {
   const checkbox = page.getByTestId('rights-confirmed-checkbox');
   await checkbox.waitFor({ state: 'visible', timeout: 5000 });

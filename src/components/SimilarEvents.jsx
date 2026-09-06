@@ -110,7 +110,7 @@ export default function SimilarEvents({ currentEvent }) {
     return null;
   }
 
-  const categoryColor = getCategoryColor(category);
+  const categoryColor = getCategoryColor(category, currentEvent?.categoryColor);
 
   return (
     <section className="similar-events" data-testid="similar-events" aria-label="Ähnliche Events">

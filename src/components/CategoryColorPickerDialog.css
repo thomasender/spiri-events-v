@@ -1,0 +1,98 @@
+.category-color-picker {
+  max-width: 520px;
+  padding: 32px 32px 24px;
+}
+
+.category-color-picker-header {
+  margin-bottom: 20px;
+  padding-right: 32px;
+}
+
+.category-color-picker-header h2 {
+  font-family: var(--font-heading);
+  font-size: var(--fs-section);
+  color: var(--heading-color);
+  margin-bottom: 8px;
+  line-height: 1.15;
+}
+
+.category-color-picker-subtitle {
+  font-size: var(--fs-intro);
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.category-color-picker-swatches {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 480px) {
+  .category-color-picker-swatches {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.category-color-picker-swatch {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  min-height: 64px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
+  padding: 0;
+  position: relative;
+  outline: none;
+  font: inherit;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.category-color-picker-swatch:hover:not(:disabled):not(.category-color-picker-swatch--disabled),
+.category-color-picker-swatch:focus-visible:not(:disabled):not(
+    .category-color-picker-swatch--disabled
+  ) {
+  transform: scale(1.05);
+  box-shadow: var(--shadow-md);
+  border-color: var(--text-primary);
+}
+
+.category-color-picker-swatch-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-align: center;
+  padding: 0 6px;
+  line-height: 1.15;
+}
+
+.category-color-picker-swatch--disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+  filter: grayscale(0.6);
+  transform: none;
+  box-shadow: none;
+}
+
+.category-color-picker-hint {
+  font-size: var(--fs-eyebrow);
+  color: var(--text-light);
+  margin: 0 0 20px;
+}
+
+.category-color-picker-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}

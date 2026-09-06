@@ -1,6 +1,10 @@
 import { test, expect } from '@playwright/test';
 import { signInWithEmailAndPassword, signOut, waitForCalendarToLoad } from '../helpers/auth';
-import { waitForWizardToLoad, confirmCopyrightCheckbox } from '../helpers/wizard';
+import {
+  waitForWizardToLoad,
+  confirmCopyrightCheckbox,
+  pickEnabledCategoryColor,
+} from '../helpers/wizard';
 
 const RUN_ID = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
 const EVENT_TITLE = `Custom Kategorie Pilates Event ${RUN_ID}`;
@@ -38,6 +42,12 @@ async function fillWizardWithCustomCategory(page, title) {
   // CreatableSelect shows a "Create" option labelled like:
   //   "Pilates" als neue Kategorie anlegen
   await page.click('.kategorie__option:has-text("Pilates")');
+  await page.waitForTimeout(300);
+
+  // Creating a brand-new category now opens the color picker. The 7 seed
+  // colors are always disabled; pick whichever swatch is still available
+  // (the 8th palette slot is the only free one on a clean emulator).
+  await pickEnabledCategoryColor(page);
   await page.waitForTimeout(300);
 
   await page.locator('button:has-text("Weiter")').click();
@@ -109,7 +119,7 @@ test.describe('Custom event category creation (fWaRFw5P)', () => {
     // The new category chip "Pilates" should be present in the filter.
     // That is enough proof that the dynamic category discovery picks up
     // user-created categories as soon as their first event is approved.
-    const pilatesChip = page.locator('.filter-chip--category', { hasText: 'Pilates' });
+    const pilatesChip = page.getByRole('button', { name: 'Pilates', exact: true });
     await expect(pilatesChip).toBeVisible({ timeout: 10000 });
 
     // And the chip must be auto-selected — the user shouldn't have to
@@ -154,6 +164,10 @@ test.describe('Custom event category creation (fWaRFw5P)', () => {
       page.locator('.kategorie__option', { hasText: /Qi gong.*als neue Kategorie anlegen/ })
     ).toBeVisible();
     await page.click('.kategorie__option:has-text("Qi gong")');
+    await page.waitForTimeout(300);
+
+    // Pick a swatch to commit the new category.
+    await pickEnabledCategoryColor(page);
     await page.waitForTimeout(300);
 
     await page.locator('button:has-text("Weiter")').click();
