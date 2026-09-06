@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAllEvents, BEZIRKE, ONLINE_LOCATION } from '../hooks/useEvents';
 import { useCategories } from '../hooks/useCategories';
@@ -74,7 +74,11 @@ function saveFilterState(state) {
 export default function CalendarPage() {
   const navigate = useNavigate();
   const { user, canCreateEvents } = useAuth();
-  const savedState = loadFilterState();
+  // Load saved state exactly once per mount. Reading it inside the render body
+  // would create a new object reference on every render and trip the
+  // auto-include effect below into re-adding categories the user just toggled
+  // off.
+  const [savedState] = useState(() => loadFilterState());
   const categories = useCategories();
   const [currentMonth, setCurrentMonth] = useState(
     monthKeyToDate(savedState?.currentMonth) || new Date()
@@ -87,27 +91,30 @@ export default function CalendarPage() {
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
   const { events, loading, error } = useAllEvents();
 
+  // Tracks every category we have ever surfaced in the filter, so we can
+  // auto-include only genuinely NEW ones (and never re-add a category the
+  // user has explicitly toggled off). Cleared on full unmount only.
+  const knownCategoriesRef = useRef(null);
+  if (knownCategoriesRef.current === null) {
+    knownCategoriesRef.current = new Set(selectedCategories);
+  }
+
   useEffect(() => {
     if (categories.length === 0) return;
     setSelectedCategories((prev) => {
-      // Initial-load path: nothing selected yet → select everything.
-      if (prev.length === 0 && !savedState?.selectedCategories) {
-        return categories;
-      }
-      // Auto-include any newly-discovered categories so they show up
-      // even when the user already had a saved selection from before.
-      const known = new Set(prev);
-      const next = [...prev];
+      let next = prev;
       let changed = false;
       for (const cat of categories) {
-        if (!known.has(cat)) {
+        if (!knownCategoriesRef.current.has(cat)) {
+          knownCategoriesRef.current.add(cat);
+          if (next === prev) next = [...prev];
           next.push(cat);
           changed = true;
         }
       }
       return changed ? next : prev;
     });
-  }, [categories, savedState]);
+  }, [categories]);
 
   useEffect(() => {
     saveFilterState({
