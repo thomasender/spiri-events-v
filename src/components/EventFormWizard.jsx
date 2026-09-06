@@ -1,8 +1,9 @@
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Select from 'react-select';
+import CreatableSelect from 'react-select/creatable';
 import { serverTimestamp } from 'firebase/firestore';
-import { useEvents, KATEGORIEN, BEZIRKE } from '../hooks/useEvents';
+import { useEvents, BEZIRKE } from '../hooks/useEvents';
+import { useCategories } from '../hooks/useCategories';
 import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
 import {
@@ -35,6 +36,7 @@ import { isHtmlEmpty } from '../utils/sanitize';
 import { normalizeLink } from '../utils/link';
 import { CURRENCIES, DEFAULT_CURRENCY, formatPriceWithCurrency } from '../utils/currency';
 import { saveWizardDraft, loadWizardDraft, clearWizardDraft } from '../utils/wizardDraftStorage';
+import { normalizeCategoryInput, isValidCategoryInput } from '../utils/categoryInput';
 import './EventForm.css';
 import './EventFormWizard.css';
 
@@ -103,13 +105,13 @@ const isValidEmail = (email) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
 };
 
-const kategorieOptions = KATEGORIEN.map((k) => ({ value: k, label: k }));
-
 export default function EventFormWizard() {
   const { user } = useAuth();
   const { role } = useAuth();
   const { profile } = useProfile(user?.uid);
   const { addEvent, updateEvent } = useEvents(user);
+  const allCategories = useCategories();
+  const kategorieOptions = allCategories.map((k) => ({ value: k, label: k }));
 
   const { firstName, lastName } = splitDisplayName(user?.displayName, user?.email);
   const profileDefaults = {
@@ -940,12 +942,27 @@ export default function EventFormWizard() {
 
       <div className="form-group">
         <label htmlFor="category">Kategorie *</label>
-        <Select
+        <CreatableSelect
           id="category"
           options={kategorieOptions}
           value={kategorieOptions.find((opt) => opt.value === formData.category) || null}
           onChange={handleCategoryChange}
-          placeholder="Kategorie auswählen..."
+          onCreateOption={(input) => {
+            const normalized = normalizeCategoryInput(input);
+            if (!isValidCategoryInput(normalized)) return;
+            handleCategoryChange({ value: normalized, label: normalized });
+          }}
+          isValidNewOption={(input) => {
+            const normalized = normalizeCategoryInput(input);
+            if (!isValidCategoryInput(normalized)) return false;
+            return !kategorieOptions.some(
+              (o) => o.value.toLowerCase() === normalized.toLowerCase()
+            );
+          }}
+          formatCreateLabel={(input) =>
+            `"${normalizeCategoryInput(input)}" als neue Kategorie anlegen`
+          }
+          placeholder="Kategorie auswählen oder neu anlegen..."
           className="kategorie-select"
           classNamePrefix="kategorie"
         />

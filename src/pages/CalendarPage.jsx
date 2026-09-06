@@ -1,13 +1,14 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAllEvents, KATEGORIEN, BEZIRKE, ONLINE_LOCATION } from '../hooks/useEvents';
+import { useAllEvents, BEZIRKE, ONLINE_LOCATION } from '../hooks/useEvents';
+import { useCategories } from '../hooks/useCategories';
 import { useAuth } from '../hooks/useAuth';
 import Calendar from '../components/Calendar';
 import EventsSection from '../components/EventsSection';
 import EmailVerificationModal from '../components/EmailVerificationModal';
 import SeoMeta from '../components/SeoMeta';
 import { getEventOccurrences } from '../utils/eventOccurrences';
-import { CATEGORY_COLORS } from '../utils/categoryColors';
+import { CATEGORY_COLORS, getCategoryColor } from '../utils/categoryColors';
 import { monthKeyToDate, dateToMonthKey } from '../utils/calendarFilterState';
 import { MapPin, Sparkles, Users, ChevronDown, Check, PlusCircle } from 'lucide-react';
 import './CalendarPage.css';
@@ -74,16 +75,39 @@ export default function CalendarPage() {
   const navigate = useNavigate();
   const { user, canCreateEvents } = useAuth();
   const savedState = loadFilterState();
+  const categories = useCategories();
   const [currentMonth, setCurrentMonth] = useState(
     monthKeyToDate(savedState?.currentMonth) || new Date()
   );
   const [selectedCategories, setSelectedCategories] = useState(
-    savedState?.selectedCategories || KATEGORIEN
+    savedState?.selectedCategories || []
   );
   const [selectedOrte, setSelectedOrte] = useState(savedState?.selectedOrte || []);
   const [viewMode, setViewMode] = useState(savedState?.viewMode || 'card');
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
   const { events, loading, error } = useAllEvents();
+
+  useEffect(() => {
+    if (categories.length === 0) return;
+    setSelectedCategories((prev) => {
+      // Initial-load path: nothing selected yet → select everything.
+      if (prev.length === 0 && !savedState?.selectedCategories) {
+        return categories;
+      }
+      // Auto-include any newly-discovered categories so they show up
+      // even when the user already had a saved selection from before.
+      const known = new Set(prev);
+      const next = [...prev];
+      let changed = false;
+      for (const cat of categories) {
+        if (!known.has(cat)) {
+          next.push(cat);
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [categories, savedState]);
 
   useEffect(() => {
     saveFilterState({
@@ -106,9 +130,9 @@ export default function CalendarPage() {
     );
   };
 
-  const selectAllCategories = () => {
-    setSelectedCategories(KATEGORIEN);
-  };
+  const selectAllCategories = useCallback(() => {
+    setSelectedCategories(categories);
+  }, [categories]);
 
   const selectNoneCategories = () => {
     setSelectedCategories([]);
@@ -240,13 +264,15 @@ export default function CalendarPage() {
               </div>
             </div>
             <div className="filter-options">
-              {KATEGORIEN.map((category) => (
+              {categories.map((category) => (
                 <button
                   key={category}
                   type="button"
                   className="filter-chip filter-chip--category"
                   data-category={category}
-                  style={{ '--category-color': CATEGORY_COLORS[category] }}
+                  style={{
+                    '--category-color': CATEGORY_COLORS[category] || getCategoryColor(category),
+                  }}
                   onClick={() => toggleCategory(category)}
                   aria-pressed={selectedCategories.includes(category)}
                 >
@@ -330,8 +356,8 @@ export default function CalendarPage() {
             onEventClick={handleEventClick}
             currentMonth={currentMonth}
             onMonthChange={setCurrentMonth}
-            categoryColors={CATEGORY_COLORS}
-            categories={KATEGORIEN}
+            categoryColors={{ ...CATEGORY_COLORS }}
+            categories={categories}
           />
         </aside>
       </div>

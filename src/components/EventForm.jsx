@@ -1,7 +1,8 @@
 import { useState, useRef, useMemo } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import Select from 'react-select';
-import { useEvents, KATEGORIEN, BEZIRKE } from '../hooks/useEvents';
+import CreatableSelect from 'react-select/creatable';
+import { useEvents, BEZIRKE } from '../hooks/useEvents';
+import { useCategories } from '../hooks/useCategories';
 import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
 import {
@@ -24,6 +25,7 @@ import {
   buildCustomDeleteFromDateUpdate,
 } from '../utils/customSeriesUpdates';
 import { CURRENCIES, DEFAULT_CURRENCY } from '../utils/currency';
+import { normalizeCategoryInput, isValidCategoryInput } from '../utils/categoryInput';
 import './EventForm.css';
 
 const INITIAL_STATE = {
@@ -85,15 +87,15 @@ const isValidEmail = (email) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
 };
 
-const kategorieOptions = KATEGORIEN.map((k) => ({ value: k, label: k }));
-
 export default function EventForm({ event }) {
   const { user } = useAuth();
   const { role } = useAuth();
   const { profile } = useProfile(user?.uid);
   const { addEvent, updateEvent, deleteEvent, submitForReview, revertToDraft } = useEvents(user);
+  const allCategories = useCategories();
   const [searchParams] = useSearchParams();
   const occurrenceDate = searchParams.get('occurrenceDate');
+  const kategorieOptions = allCategories.map((k) => ({ value: k, label: k }));
 
   const buildInitialState = () => {
     if (event) {
@@ -779,12 +781,27 @@ export default function EventForm({ event }) {
 
           <div className="form-group">
             <label htmlFor="category">Kategorie *</label>
-            <Select
+            <CreatableSelect
               id="category"
               options={kategorieOptions}
               value={kategorieOptions.find((opt) => opt.value === formData.category) || null}
               onChange={handleCategoryChange}
-              placeholder="Kategorie auswählen..."
+              onCreateOption={(input) => {
+                const normalized = normalizeCategoryInput(input);
+                if (!isValidCategoryInput(normalized)) return;
+                handleCategoryChange({ value: normalized, label: normalized });
+              }}
+              isValidNewOption={(input) => {
+                const normalized = normalizeCategoryInput(input);
+                if (!isValidCategoryInput(normalized)) return false;
+                return !kategorieOptions.some(
+                  (o) => o.value.toLowerCase() === normalized.toLowerCase()
+                );
+              }}
+              formatCreateLabel={(input) =>
+                `"${normalizeCategoryInput(input)}" als neue Kategorie anlegen`
+              }
+              placeholder="Kategorie auswählen oder neu anlegen..."
               className="kategorie-select"
               classNamePrefix="kategorie"
             />

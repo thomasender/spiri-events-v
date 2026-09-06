@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import EventCard from './EventCard';
-import { CATEGORY_COLORS } from '../utils/categoryColors';
+import { CATEGORY_COLORS, getCategoryColor } from '../utils/categoryColors';
 import { getPrimaryCategory } from '../utils/eventFormat';
 import './SimilarEvents.css';
 
@@ -110,7 +110,7 @@ export default function SimilarEvents({ currentEvent }) {
     return null;
   }
 
-  const categoryColor = CATEGORY_COLORS[category] || 'var(--text-light)';
+  const categoryColor = getCategoryColor(category);
 
   return (
     <section className="similar-events" data-testid="similar-events" aria-label="Ähnliche Events">

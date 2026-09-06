@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, CalendarDays, MapPin } from 'lucide-react';
 import { getEventOccurrences } from '../utils/eventOccurrences';
 import { formatPriceWithCurrency } from '../utils/currency';
+import { getCategoryColor } from '../utils/categoryColors';
 import './Calendar.css';
 
 const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
@@ -79,11 +80,9 @@ function getMonthDays(year, month) {
   return cells;
 }
 
-const FALLBACK_DOT_COLOR = 'var(--text-light)';
-
 function getEventColor(event, categoryColors) {
   const category = event.category;
-  return (categoryColors && categoryColors[category]) || FALLBACK_DOT_COLOR;
+  return (categoryColors && categoryColors[category]) || getCategoryColor(category);
 }
 
 export default function Calendar({
@@ -358,7 +357,7 @@ export default function Calendar({
                     className="calendar-legend-dot"
                     style={{
                       backgroundColor:
-                        (categoryColors && categoryColors[category]) || FALLBACK_DOT_COLOR,
+                        (categoryColors && categoryColors[category]) || getCategoryColor(category),
                     }}
                   />
                   {category}

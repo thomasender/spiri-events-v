@@ -43,14 +43,20 @@ service cloud.firestore {
                             && request.auth.token.email_verified == true))
                     && request.resource.data.createdBy == request.auth.uid
                     && (request.resource.data.status in ['pending', 'draft'])
-                    && request.resource.data.description.size() <= 20000;
+                    && request.resource.data.description.size() <= 20000
+                    && (!('category' in request.resource.data)
+                        || (request.resource.data.category is string
+                            && request.resource.data.category.size() <= 40));
 
       // Owners and admins can move events to/from the trash (status='trashed'),
       // and the first read rule already lets the owner + admin read trashed
       // events so the Papierkorb tab can list them.
       allow update: if (isOwner() || isAdminOrEmulatorAdmin())
                     && request.resource.data.description.size() <= 20000
-                    && (request.resource.data.status in ['pending', 'draft', 'approved', 'trashed']);
+                    && (request.resource.data.status in ['pending', 'draft', 'approved', 'trashed'])
+                    && (!('category' in request.resource.data)
+                        || (request.resource.data.category is string
+                            && request.resource.data.category.size() <= 40));
       allow delete: if isOwner() || isAdminOrEmulatorAdmin();
 
       match /messages/{messageId} {

@@ -30,6 +30,18 @@ vi.mock('../../src/hooks/useEvents', () => ({
   BEZIRKE: ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe'],
 }));
 
+vi.mock('../../src/hooks/useCategories', () => ({
+  useCategories: () => [
+    'Yoga',
+    'Breathwork',
+    'Meditation',
+    'Tanz',
+    'Singen',
+    'Soundhealing',
+    'Sonstiges',
+  ],
+}));
+
 import { useEventById } from '../../src/hooks/useEvents';
 
 describe('EventFormPage', () => {
