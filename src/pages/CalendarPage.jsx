@@ -10,6 +10,12 @@ import SeoMeta from '../components/SeoMeta';
 import { getEventOccurrences } from '../utils/eventOccurrences';
 import { CATEGORY_COLORS, getCategoryColor } from '../utils/categoryColors';
 import { monthKeyToDate, dateToMonthKey } from '../utils/calendarFilterState';
+import {
+  DATE_FILTER_OPTIONS,
+  applyDateFilter,
+  getDateFilterMonthKey,
+  isValidDateFilterId,
+} from '../utils/dateQuickFilters';
 import { MapPin, Sparkles, Users, ChevronDown, Check, PlusCircle } from 'lucide-react';
 import './CalendarPage.css';
 
@@ -54,6 +60,10 @@ function loadFilterState() {
       parsed.selectedOrte = parsed.selectedBezirke;
       delete parsed.selectedBezirke;
     }
+    // Drop any persisted date filter that doesn't match the current schema.
+    if (parsed && !isValidDateFilterId(parsed.dateFilter)) {
+      delete parsed.dateFilter;
+    }
     return parsed;
   } catch {}
   return null;
@@ -87,6 +97,7 @@ export default function CalendarPage() {
     savedState?.selectedCategories || []
   );
   const [selectedOrte, setSelectedOrte] = useState(savedState?.selectedOrte || []);
+  const [dateFilter, setDateFilter] = useState(savedState?.dateFilter || null);
   const [viewMode, setViewMode] = useState(savedState?.viewMode || 'card');
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
   const { events, loading, error } = useAllEvents();
@@ -121,9 +132,10 @@ export default function CalendarPage() {
       currentMonth,
       selectedCategories,
       selectedOrte,
+      dateFilter,
       viewMode,
     });
-  }, [currentMonth, selectedCategories, selectedOrte, viewMode]);
+  }, [currentMonth, selectedCategories, selectedOrte, dateFilter, viewMode]);
 
   const handleEventClick = (event) => {
     const slugOrId = event.slug || event.id;
@@ -159,6 +171,23 @@ export default function CalendarPage() {
     setSelectedOrte([]);
   };
 
+  const toggleDateFilter = (filterId) => {
+    setDateFilter((prev) => {
+      const next = prev === filterId ? null : filterId;
+      // When activating a date filter, jump the calendar sidebar to the month
+      // the filter targets so the agenda and the sidebar stay in sync. When
+      // clearing the filter, leave the current month untouched.
+      if (next) {
+        const monthKey = getDateFilterMonthKey(next);
+        if (monthKey) {
+          const target = monthKeyToDate(monthKey);
+          if (target) setCurrentMonth(target);
+        }
+      }
+      return next;
+    });
+  };
+
   const filteredEvents = useMemo(() => {
     return events.filter((event) => {
       const categoryMatch =
@@ -182,6 +211,11 @@ export default function CalendarPage() {
       })
       .sort((a, b) => (a.date > b.date ? 1 : -1));
   }, [filteredEvents, currentMonth]);
+
+  const visibleEvents = useMemo(() => {
+    if (!dateFilter) return monthEvents;
+    return applyDateFilter(monthEvents, dateFilter);
+  }, [monthEvents, dateFilter]);
 
   return (
     <div className="calendar-page">
@@ -289,6 +323,26 @@ export default function CalendarPage() {
               ))}
             </div>
 
+            <div className="filter-header filter-header--section">
+              <span className="filter-label">Datum</span>
+            </div>
+            <div className="filter-options" data-testid="filter-options-date">
+              {DATE_FILTER_OPTIONS.map(({ id, label }) => (
+                <button
+                  key={id}
+                  type="button"
+                  className="filter-chip filter-chip--date"
+                  data-date-filter={id}
+                  data-testid={`filter-chip-date-${id}`}
+                  onClick={() => toggleDateFilter(id)}
+                  aria-pressed={dateFilter === id}
+                >
+                  <Check size={14} className="filter-chip-icon" aria-hidden="true" />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
+
             <details className="filter-accordion">
               <summary className="filter-accordion-summary">
                 <span>Mehr Filter</span>
@@ -347,7 +401,7 @@ export default function CalendarPage() {
             </div>
           ) : (
             <EventsSection
-              events={monthEvents}
+              events={visibleEvents}
               currentMonth={currentMonth}
               onMonthChange={setCurrentMonth}
               viewMode={viewMode}
