@@ -132,6 +132,20 @@ export async function clearEmulatorData(): Promise<void> {
   await Promise.all([clearFirestore(), clearAuth()]);
 }
 
+export async function clearFirestoreData(): Promise<void> {
+  // Reset only the Firestore documents. Auth users are kept intact so
+  // existing test accounts (admin@test.com, user@test.local, …) keep
+  // working across test files that wipe leftover events between runs.
+  try {
+    await fetch(
+      `http://localhost:8181/emulator/v1/projects/${PROJECT_ID}/databases/(default)/documents`,
+      { method: 'DELETE' }
+    );
+  } catch {
+    // Ignore errors
+  }
+}
+
 export async function clearEmulatorStorage(): Promise<void> {
   try {
     await fetch(`${STORAGE_EMULATOR_URL}/storage/v1/b/${PROJECT_ID}.appspot.com/o?force=true`, {

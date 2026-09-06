@@ -82,6 +82,9 @@ function getMonthDays(year, month) {
 
 function getEventColor(event, categoryColors) {
   const category = event.category;
+  // Prefer the event's own categoryColor (set when a user picked a color for a
+  // brand-new category), fall back to the static map, then to the global default.
+  if (event.categoryColor) return event.categoryColor;
   return (categoryColors && categoryColors[category]) || getCategoryColor(category);
 }
 
@@ -121,6 +124,17 @@ export default function Calendar({
         map[expanded.date].push(expanded);
       });
     });
+    return map;
+  }, [events]);
+
+  // First-event-wins per category name: a user-defined category that has no
+  // static CATEGORY_COLORS entry gets the color of the first event carrying it.
+  const categoryColorByName = useMemo(() => {
+    const map = {};
+    for (const event of events) {
+      if (!event.category || map[event.category]) continue;
+      if (event.categoryColor) map[event.category] = event.categoryColor;
+    }
     return map;
   }, [events]);
 
@@ -357,7 +371,9 @@ export default function Calendar({
                     className="calendar-legend-dot"
                     style={{
                       backgroundColor:
-                        (categoryColors && categoryColors[category]) || getCategoryColor(category),
+                        (categoryColors && categoryColors[category]) ||
+                        categoryColorByName[category] ||
+                        getCategoryColor(category),
                     }}
                   />
                   {category}

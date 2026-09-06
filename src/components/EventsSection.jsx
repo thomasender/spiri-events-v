@@ -100,10 +100,7 @@ export default function EventsSection({
             <EventCard
               key={`${event.id}-${event.date}`}
               event={event}
-              categoryColor={
-                categoryColors[getPrimaryCategory(event)] ||
-                getCategoryColor(getPrimaryCategory(event))
-              }
+              categoryColor={getCategoryColor(getPrimaryCategory(event), event.categoryColor)}
             />
           ))}
         </div>
@@ -113,10 +110,7 @@ export default function EventsSection({
             <EventListRow
               key={`${event.id}-${event.date}`}
               event={event}
-              categoryColor={
-                categoryColors[getPrimaryCategory(event)] ||
-                getCategoryColor(getPrimaryCategory(event))
-              }
+              categoryColor={getCategoryColor(getPrimaryCategory(event), event.categoryColor)}
             />
           ))}
         </div>

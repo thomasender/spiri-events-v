@@ -1,6 +1,10 @@
 import { test, expect } from '@playwright/test';
 import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
-import { waitForWizardToLoad, confirmCopyrightCheckbox } from '../helpers/wizard';
+import {
+  waitForWizardToLoad,
+  confirmCopyrightCheckbox,
+  pickEnabledCategoryColor,
+} from '../helpers/wizard';
 
 const RUN_ID = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
 const EVENT_TITLE = `Enter Bug Regression ${RUN_ID}`;
@@ -75,6 +79,12 @@ test.describe('Custom category: regression tests (fWaRFw5P follow-up)', () => {
     await page.fill('.kategorie-select input', NEW_CATEGORY);
     await page.waitForTimeout(200);
     await page.click(`.kategorie__option:has-text("${NEW_CATEGORY}")`);
+    await page.waitForTimeout(300);
+
+    // Creating a brand-new category now opens the color picker. Pick the
+    // currently-enabled swatch (the 8th palette slot on a clean emulator)
+    // to commit the category.
+    await pickEnabledCategoryColor(page);
     await page.waitForTimeout(300);
 
     // The CreatableSelect control should now show the new category as selected.

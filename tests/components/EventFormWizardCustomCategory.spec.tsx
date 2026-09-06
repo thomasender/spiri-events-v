@@ -28,6 +28,8 @@ vi.mock('../../src/hooks/useProfile', () => ({
 
 vi.mock('../../src/hooks/useEvents', () => ({
   useEvents: () => mockEvents,
+  useAllEvents: () => ({ events: [], loading: false, error: null }),
+  useEventById: () => ({ event: null, loading: false, error: null }),
   KATEGORIEN: ['Yoga', 'Breathwork', 'Meditation', 'Tanz', 'Singen', 'Soundhealing', 'Sonstiges'],
   BEZIRKE: ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe'],
 }));
@@ -145,12 +147,80 @@ describe('EventFormWizard — custom category creation', () => {
     const createOption = await screen.findByText(/Pilates.*als neue Kategorie anlegen/);
     fireEvent.click(createOption);
 
-    // After creating, the input's container should show "Pilates" as the
-    // currently selected value (not be empty).
+    // After clicking "Create", the color picker opens. Pick the deep teal
+    // swatch (the only free slot in the default palette) to commit the
+    // category name + color into formData.
+    const picker = await screen.findByTestId('category-color-picker');
+    expect(picker).toBeTruthy();
+    const swatch = picker.querySelector('[data-color="#4a7572"]');
+    expect(swatch).toBeTruthy();
+    fireEvent.click(swatch);
+
+    // The picker should close and the category should be selected.
+    await waitFor(() => {
+      expect(screen.queryByTestId('category-color-picker')).toBeNull();
+    });
     await waitFor(() => {
       const control = document.querySelector('.kategorie__control');
       expect(control).toBeTruthy();
       expect(control.textContent).toContain('Pilates');
     });
+  });
+
+  it('does not commit the new category when the color picker is cancelled', async () => {
+    renderWizard();
+    await fillStep1();
+    await advanceToStep3();
+
+    const input = document.querySelector('.kategorie__input');
+    fireEvent.change(input, { target: { value: 'Pilates' } });
+    fireEvent.keyDown(input, { key: 'ArrowDown' });
+
+    const createOption = await screen.findByText(/Pilates.*als neue Kategorie anlegen/);
+    fireEvent.click(createOption);
+
+    const picker = await screen.findByTestId('category-color-picker');
+    fireEvent.click(picker.querySelector('[data-testid="category-color-picker-cancel"]'));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('category-color-picker')).toBeNull();
+    });
+    // The category must NOT be in the dropdown selection.
+    await waitFor(() => {
+      const control = document.querySelector('.kategorie__control');
+      expect(control.textContent).not.toContain('Pilates');
+    });
+  });
+
+  it('clears the picked color when the user switches to an existing category', async () => {
+    renderWizard();
+    await fillStep1();
+    await advanceToStep3();
+
+    const input = document.querySelector('.kategorie__input');
+    fireEvent.change(input, { target: { value: 'Pilates' } });
+    fireEvent.keyDown(input, { key: 'ArrowDown' });
+    fireEvent.click(await screen.findByText(/Pilates.*als neue Kategorie anlegen/));
+
+    // Pick the teal swatch — both name and color are now in formData.
+    const picker = await screen.findByTestId('category-color-picker');
+    fireEvent.click(picker.querySelector('[data-color="#4a7572"]'));
+    await waitFor(() => {
+      expect(screen.queryByTestId('category-color-picker')).toBeNull();
+    });
+
+    // Now switch to an existing category via the dropdown.
+    fireEvent.change(input, { target: { value: '' } });
+    fireEvent.keyDown(input, { key: 'ArrowDown' });
+    fireEvent.click(await screen.findByText(/^Yoga$/));
+
+    // The selected value should be Yoga, not Pilates, and the picker must
+    // NOT re-open on its own.
+    await waitFor(() => {
+      const control = document.querySelector('.kategorie__control');
+      expect(control.textContent).toContain('Yoga');
+      expect(control.textContent).not.toContain('Pilates');
+    });
+    expect(screen.queryByTestId('category-color-picker')).toBeNull();
   });
 });

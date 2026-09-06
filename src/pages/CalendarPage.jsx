@@ -217,6 +217,18 @@ export default function CalendarPage() {
     return applyDateFilter(monthEvents, dateFilter);
   }, [monthEvents, dateFilter]);
 
+  // First-event-wins per category name: a user-defined category that has no
+  // static CATEGORY_COLORS entry gets the color of the first event carrying it.
+  // Falls back to the global default when no event has set a color yet.
+  const categoryColorByName = useMemo(() => {
+    const map = {};
+    for (const event of events) {
+      if (!event.category || map[event.category]) continue;
+      if (event.categoryColor) map[event.category] = event.categoryColor;
+    }
+    return map;
+  }, [events]);
+
   return (
     <div className="calendar-page">
       <SeoMeta
@@ -312,7 +324,10 @@ export default function CalendarPage() {
                   className="filter-chip filter-chip--category"
                   data-category={category}
                   style={{
-                    '--category-color': CATEGORY_COLORS[category] || getCategoryColor(category),
+                    '--category-color':
+                      CATEGORY_COLORS[category] ||
+                      categoryColorByName[category] ||
+                      getCategoryColor(category),
                   }}
                   onClick={() => toggleCategory(category)}
                   aria-pressed={selectedCategories.includes(category)}
