@@ -95,7 +95,16 @@ export default function EventForm({ event }) {
   const allCategories = useCategories();
   const [searchParams] = useSearchParams();
   const occurrenceDate = searchParams.get('occurrenceDate');
-  const kategorieOptions = allCategories.map((k) => ({ value: k, label: k }));
+  // Categories the user has typed into the dropdown during this session.
+  // They live here (and not in `useCategories`) because `useCategories` only
+  // knows about categories backed by approved events — so a brand-new category
+  // wouldn't be findable by `value=` until at least one event with it has
+  // been approved. Holding them locally keeps the CreatableSelect's selected
+  // value rendered correctly.
+  const [extraCategories, setExtraCategories] = useState([]);
+  const kategorieOptions = [...allCategories, ...extraCategories]
+    .filter((cat, idx, arr) => arr.findIndex((c) => c.toLowerCase() === cat.toLowerCase()) === idx)
+    .map((k) => ({ value: k, label: k }));
 
   const buildInitialState = () => {
     if (event) {
@@ -410,6 +419,15 @@ export default function EventForm({ event }) {
     if (errors.category) {
       setErrors((prev) => ({ ...prev, category: null }));
     }
+  };
+
+  const handleCreateCategory = (input) => {
+    const normalized = normalizeCategoryInput(input);
+    if (!isValidCategoryInput(normalized)) return;
+    setExtraCategories((prev) =>
+      prev.some((c) => c.toLowerCase() === normalized.toLowerCase()) ? prev : [...prev, normalized]
+    );
+    handleCategoryChange({ value: normalized, label: normalized });
   };
 
   const handleAddCustomDate = () => {
@@ -786,11 +804,7 @@ export default function EventForm({ event }) {
               options={kategorieOptions}
               value={kategorieOptions.find((opt) => opt.value === formData.category) || null}
               onChange={handleCategoryChange}
-              onCreateOption={(input) => {
-                const normalized = normalizeCategoryInput(input);
-                if (!isValidCategoryInput(normalized)) return;
-                handleCategoryChange({ value: normalized, label: normalized });
-              }}
+              onCreateOption={handleCreateCategory}
               isValidNewOption={(input) => {
                 const normalized = normalizeCategoryInput(input);
                 if (!isValidCategoryInput(normalized)) return false;

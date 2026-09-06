@@ -111,7 +111,16 @@ export default function EventFormWizard() {
   const { profile } = useProfile(user?.uid);
   const { addEvent, updateEvent } = useEvents(user);
   const allCategories = useCategories();
-  const kategorieOptions = allCategories.map((k) => ({ value: k, label: k }));
+  // Categories the user has typed into the dropdown during this session.
+  // They live here (and not in `useCategories`) because `useCategories` only
+  // knows about categories backed by approved events — so a brand-new category
+  // wouldn't be findable by `value=` until at least one event with it has
+  // been approved. Holding them locally keeps the CreatableSelect's selected
+  // value rendered correctly.
+  const [extraCategories, setExtraCategories] = useState([]);
+  const kategorieOptions = [...allCategories, ...extraCategories]
+    .filter((cat, idx, arr) => arr.findIndex((c) => c.toLowerCase() === cat.toLowerCase()) === idx)
+    .map((k) => ({ value: k, label: k }));
 
   const { firstName, lastName } = splitDisplayName(user?.displayName, user?.email);
   const profileDefaults = {
@@ -418,6 +427,15 @@ export default function EventFormWizard() {
     }
   };
 
+  const handleCreateCategory = (input) => {
+    const normalized = normalizeCategoryInput(input);
+    if (!isValidCategoryInput(normalized)) return;
+    setExtraCategories((prev) =>
+      prev.some((c) => c.toLowerCase() === normalized.toLowerCase()) ? prev : [...prev, normalized]
+    );
+    handleCategoryChange({ value: normalized, label: normalized });
+  };
+
   const handleAddCustomDate = () => {
     setFormData((prev) => {
       const existing = prev.customDates || [];
@@ -457,7 +475,18 @@ export default function EventFormWizard() {
     if (e.key !== 'Enter') return;
 
     const target = e.target;
-    if (target && (target.isContentEditable || target.tagName === 'TEXTAREA')) {
+    if (!target) return;
+
+    // react-select's CreatableSelect renders a real <input> that listens for
+    // Enter to confirm the highlighted "create new option" entry. If we let the
+    // form's keydown handler fire on Enter too, the wizard would advance to the
+    // next step before react-select had a chance to commit the new category.
+    // Skip the advance when the keypress originated inside a CreatableSelect.
+    if (target.closest && target.closest('.kategorie-select')) {
+      return;
+    }
+
+    if (target.isContentEditable || target.tagName === 'TEXTAREA') {
       return;
     }
 
@@ -947,11 +976,7 @@ export default function EventFormWizard() {
           options={kategorieOptions}
           value={kategorieOptions.find((opt) => opt.value === formData.category) || null}
           onChange={handleCategoryChange}
-          onCreateOption={(input) => {
-            const normalized = normalizeCategoryInput(input);
-            if (!isValidCategoryInput(normalized)) return;
-            handleCategoryChange({ value: normalized, label: normalized });
-          }}
+          onCreateOption={handleCreateCategory}
           isValidNewOption={(input) => {
             const normalized = normalizeCategoryInput(input);
             if (!isValidCategoryInput(normalized)) return false;
