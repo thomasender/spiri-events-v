@@ -11,6 +11,7 @@ import LegalPage from './pages/LegalPage';
 import EventDetailPage from './pages/EventDetailPage';
 import ProfilePage from './pages/ProfilePage';
 import FeedbackButton from './components/FeedbackButton';
+import SeedBootstrap from './components/SeedBootstrap';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -29,6 +30,7 @@ function ProtectedRoute({ children }) {
 function AppContent() {
   return (
     <div className="app-layout">
+      <SeedBootstrap />
       <Header />
       <main className="main-content">
         <Routes>

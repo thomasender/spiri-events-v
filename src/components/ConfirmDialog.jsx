@@ -6,6 +6,7 @@ export default function ConfirmDialog({
   isOpen,
   title,
   message,
+  children,
   confirmLabel = 'Bestätigen',
   cancelLabel = 'Abbrechen',
   onConfirm,
@@ -32,7 +33,7 @@ export default function ConfirmDialog({
         </button>
 
         <h2>{title}</h2>
-        <p>{message}</p>
+        {children ? <div className="confirm-dialog-body">{children}</div> : <p>{message}</p>}
 
         <div className="confirm-actions">
           <button onClick={onCancel} className="btn btn-secondary" disabled={loading}>

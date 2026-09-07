@@ -4,7 +4,6 @@ import CreatableSelect from 'react-select/creatable';
 import { serverTimestamp } from 'firebase/firestore';
 import { useEvents, BEZIRKE } from '../hooks/useEvents';
 import { useCategories } from '../hooks/useCategories';
-import { useUsedCategoryColors } from '../hooks/useUsedCategoryColors';
 import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
 import {
@@ -30,7 +29,6 @@ import {
 } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
 import SuccessDialog from './SuccessDialog';
-import CategoryColorPickerDialog from './CategoryColorPickerDialog';
 import { formatEventDateShort } from '../utils/eventFormat';
 import RichTextEditor from './RichTextEditorLazy';
 import RichTextView from './RichTextView';
@@ -57,7 +55,6 @@ const INITIAL_STATE = {
   recurrenceEndDate: '',
   customDates: [],
   category: '',
-  categoryColor: '',
   bezirk: '',
   isOnline: false,
   organizer: { firstName: '', lastName: '', email: '' },
@@ -114,7 +111,6 @@ export default function EventFormWizard() {
   const { profile } = useProfile(user?.uid);
   const { addEvent, updateEvent } = useEvents(user);
   const allCategories = useCategories();
-  const usedCategoryColors = useUsedCategoryColors();
   // Categories the user has typed into the dropdown during this session.
   // They live here (and not in `useCategories`) because `useCategories` only
   // knows about categories backed by approved events — so a brand-new category
@@ -122,10 +118,6 @@ export default function EventFormWizard() {
   // been approved. Holding them locally keeps the CreatableSelect's selected
   // value rendered correctly.
   const [extraCategories, setExtraCategories] = useState([]);
-  // When the user types a brand-new category name into CreatableSelect, we
-  // stash it here and open the color picker. Only once they pick a color do
-  // we commit the name + color into formData.
-  const [pendingNewCategory, setPendingNewCategory] = useState(null);
   const kategorieOptions = [...allCategories, ...extraCategories]
     .filter((cat, idx, arr) => arr.findIndex((c) => c.toLowerCase() === cat.toLowerCase()) === idx)
     .map((k) => ({ value: k, label: k }));
@@ -275,11 +267,6 @@ export default function EventFormWizard() {
       }
       if (!formData.category) {
         newErrors.category = 'Kategorie ist erforderlich';
-      } else {
-        const isBrandNewCategory = !allCategories.some((c) => c === formData.category);
-        if (isBrandNewCategory && !formData.categoryColor) {
-          newErrors.category = 'Bitte wähle eine Farbe für die neue Kategorie';
-        }
       }
       if (formData.contribution === 'fee' && (!formData.fee || formData.fee <= 0)) {
         newErrors.fee = 'Bitte gib einen gültigen Betrag ein';
@@ -433,14 +420,9 @@ export default function EventFormWizard() {
   const handleCategoryChange = (selectedOption) => {
     setFormData((prev) => {
       const pickedName = selectedOption ? selectedOption.value : '';
-      // If the user switches to a known (existing) category, drop any
-      // brand-new-category color so we don't accidentally persist an
-      // event-level color that contradicts the static CATEGORY_COLORS map.
-      const isKnown = allCategories.some((c) => c === pickedName);
       return {
         ...prev,
         category: pickedName,
-        categoryColor: isKnown ? '' : prev.categoryColor,
       };
     });
     if (errors.category) {
@@ -451,31 +433,16 @@ export default function EventFormWizard() {
   const handleCreateCategory = (input) => {
     const normalized = normalizeCategoryInput(input);
     if (!isValidCategoryInput(normalized)) return;
-    // Don't commit the new category yet — open the color picker first. The
-    // category name + color are both written into formData only after the
-    // user picks a swatch (or the dialog is dismissed without a pick).
-    setPendingNewCategory(normalized);
-  };
-
-  const handleColorPickerSelect = (color) => {
-    if (!pendingNewCategory) return;
-    const normalized = pendingNewCategory;
     setExtraCategories((prev) =>
       prev.some((c) => c.toLowerCase() === normalized.toLowerCase()) ? prev : [...prev, normalized]
     );
     setFormData((prev) => ({
       ...prev,
       category: normalized,
-      categoryColor: color,
     }));
     if (errors.category) {
       setErrors((prev) => ({ ...prev, category: null }));
     }
-    setPendingNewCategory(null);
-  };
-
-  const handleColorPickerClose = () => {
-    setPendingNewCategory(null);
   };
 
   const handleAddCustomDate = () => {
@@ -596,7 +563,6 @@ export default function EventFormWizard() {
           ].sort()
         : [],
     category: formData.category || 'Sonstiges',
-    categoryColor: formData.categoryColor || null,
     bezirk: formData.isOnline ? '' : formData.bezirk,
     isOnline: Boolean(formData.isOnline),
     organizer: {
@@ -1484,14 +1450,6 @@ export default function EventFormWizard() {
         }
         confirmLabel="Zur Verwaltung"
         onConfirm={handleSuccessConfirm}
-      />
-
-      <CategoryColorPickerDialog
-        open={Boolean(pendingNewCategory)}
-        categoryLabel={pendingNewCategory || ''}
-        usedColors={usedCategoryColors}
-        onSelect={handleColorPickerSelect}
-        onClose={handleColorPickerClose}
       />
     </div>
   );

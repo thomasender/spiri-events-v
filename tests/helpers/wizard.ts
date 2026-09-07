@@ -157,20 +157,33 @@ export async function confirmSubmission(page: Page) {
   await page.waitForTimeout(2000);
 }
 
-// Picks the first enabled swatch in the category color picker. The 7
-// seed-category colors are always disabled; on a fresh emulator only the
-// 8th is free, but earlier test runs may have consumed additional palette
-// slots, so we always pick whichever swatch is currently enabled.
+// Picks the first enabled swatch in the category color picker. Walks the
+// full 20-color palette in order and clicks the first swatch that is not
+// disabled. On a freshly cleared emulator every swatch is free; earlier test
+// runs may have consumed slots, so we always pick whichever is currently
+// enabled. Throws if every swatch is greyed out.
 export async function pickEnabledCategoryColor(page: Page): Promise<string> {
   const palette = [
-    '#c48e6a',
-    '#bf5b4e',
-    '#5c6b3f',
-    '#8a6d2f',
-    '#9a5f38',
-    '#6b568b',
-    '#605e5e',
     '#4a7572',
+    '#6b8e7f',
+    '#8b6b8e',
+    '#5e7a8a',
+    '#b08a6e',
+    '#b87a4e',
+    '#7a6b8a',
+    '#5a7a5a',
+    '#a06b8a',
+    '#8a5a4a',
+    '#6b8a8e',
+    '#a85a4a',
+    '#5a6b7a',
+    '#9a8a4e',
+    '#a67c52',
+    '#8e7a6b',
+    '#6b8a6b',
+    '#4a6b8a',
+    '#a08a6b',
+    '#d4a574',
   ];
   const picker = page.getByTestId('category-color-picker');
   await picker.waitFor({ state: 'visible', timeout: 5000 });
@@ -182,7 +195,7 @@ export async function pickEnabledCategoryColor(page: Page): Promise<string> {
       return color;
     }
   }
-  throw new Error('No enabled swatch in the category color picker — all 8 colors are used.');
+  throw new Error('No enabled swatch in the category color picker — all 20 colors are used.');
 }
 
 export async function confirmCopyrightCheckbox(page: Page) {

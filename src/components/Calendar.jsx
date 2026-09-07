@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, CalendarDays, MapPin } from 'lucide-react';
 import { getEventOccurrences } from '../utils/eventOccurrences';
 import { formatPriceWithCurrency } from '../utils/currency';
-import { getCategoryColor } from '../utils/categoryColors';
+import { resolveEventColor } from '../utils/categoryColors';
 import './Calendar.css';
 
 const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
@@ -80,12 +80,8 @@ function getMonthDays(year, month) {
   return cells;
 }
 
-function getEventColor(event, categoryColors) {
-  const category = event.category;
-  // Prefer the event's own categoryColor (set when a user picked a color for a
-  // brand-new category), fall back to the static map, then to the global default.
-  if (event.categoryColor) return event.categoryColor;
-  return (categoryColors && categoryColors[category]) || getCategoryColor(category);
+function getEventColor(event, categoryColorByName) {
+  return resolveEventColor(event, categoryColorByName);
 }
 
 export default function Calendar({
@@ -93,7 +89,7 @@ export default function Calendar({
   onEventClick,
   currentMonth,
   onMonthChange,
-  categoryColors,
+  categoryColorByName,
   categories,
 }) {
   const [slideDirection, setSlideDirection] = useState(null);
@@ -127,16 +123,10 @@ export default function Calendar({
     return map;
   }, [events]);
 
-  // First-event-wins per category name: a user-defined category that has no
-  // static CATEGORY_COLORS entry gets the color of the first event carrying it.
-  const categoryColorByName = useMemo(() => {
-    const map = {};
-    for (const event of events) {
-      if (!event.category || map[event.category]) continue;
-      if (event.categoryColor) map[event.category] = event.categoryColor;
-    }
-    return map;
-  }, [events]);
+  // First-event-wins per category name is no longer needed: the registry
+  // (`categoryColorByName` prop) owns the canonical mapping. Legacy events
+  // that carry an `event.categoryColor` override still win via
+  // `resolveEventColor`.
 
   const monthDays = useMemo(() => getMonthDays(year, month), [year, month]);
 
@@ -284,7 +274,7 @@ export default function Calendar({
                       <span
                         key={event.id + i}
                         className="cell-dot"
-                        style={{ backgroundColor: getEventColor(event, categoryColors) }}
+                        style={{ backgroundColor: getEventColor(event, categoryColorByName) }}
                       />
                     ))}
                   </span>
@@ -329,7 +319,7 @@ export default function Calendar({
                   >
                     <span
                       className="day-popover-event-dot"
-                      style={{ backgroundColor: getEventColor(event, categoryColors) }}
+                      style={{ backgroundColor: getEventColor(event, categoryColorByName) }}
                     />
                     <span className="day-popover-event-info">
                       <span className="day-popover-event-time">{event.time || '—'}</span>
@@ -370,10 +360,7 @@ export default function Calendar({
                   <span
                     className="calendar-legend-dot"
                     style={{
-                      backgroundColor:
-                        (categoryColors && categoryColors[category]) ||
-                        categoryColorByName[category] ||
-                        getCategoryColor(category),
+                      backgroundColor: resolveEventColor({ category }, categoryColorByName),
                     }}
                   />
                   {category}

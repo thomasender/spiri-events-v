@@ -23,6 +23,7 @@ import { deleteImageByUrl } from '../lib/imageUpload';
 import { useAuth } from './useAuth';
 import { auth } from '../lib/firebase';
 import { getApp } from 'firebase/app';
+import { ensureCategoryExists } from '../utils/ensureCategoryExists';
 
 export const KATEGORIEN = [
   'Yoga',
@@ -300,12 +301,28 @@ export function usePendingEvents() {
     const messagesSnapshot = await getDocs(messagesRef);
     await Promise.all(messagesSnapshot.docs.map((docSnap) => deleteDoc(docSnap.ref)));
 
-    return updateDoc(ref, {
+    // Read the event first so we can ensure its category exists in the
+    // registry before marking it approved. Done outside the update so a
+    // missing/renamed category can't fail the approval transaction.
+    const eventSnap = await getDoc(ref);
+    const eventData = eventSnap.exists() ? eventSnap.data() : null;
+
+    await updateDoc(ref, {
       status: 'approved',
       approvedBy: user.uid,
       approvedAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
+
+    if (eventData?.category) {
+      try {
+        await ensureCategoryExists(eventData.category);
+      } catch (err) {
+        // Don't block approval on category seed failure — admin can
+        // create it manually via the Kategorien tab.
+        console.warn('ensureCategoryExists failed during approval:', err);
+      }
+    }
   };
 
   return { pendingEvents, loading, approveEvent };

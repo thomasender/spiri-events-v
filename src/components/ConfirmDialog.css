@@ -69,6 +69,10 @@
   margin-bottom: 24px;
 }
 
+.confirm-dialog-body p:last-child {
+  margin-bottom: 0;
+}
+
 .confirm-actions {
   display: flex;
   gap: 12px;
