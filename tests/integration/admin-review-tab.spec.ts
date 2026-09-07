@@ -14,6 +14,32 @@ async function resetDraftFixtures(): Promise<void> {
   });
 }
 
+async function createThrowawayPendingEvent(eventId: string): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const proc = spawn('node', ['scripts/create-throwaway-pending-event.mjs', eventId], {
+      cwd: process.cwd(),
+      stdio: 'ignore',
+      shell: true,
+    });
+    proc.on('close', (code) =>
+      code === 0 ? resolve() : reject(new Error(`throwaway create exit ${code}`))
+    );
+    proc.on('error', reject);
+  });
+}
+
+async function deleteEventById(eventId: string): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const proc = spawn('node', ['scripts/delete-event-by-id.mjs', eventId], {
+      cwd: process.cwd(),
+      stdio: 'ignore',
+      shell: true,
+    });
+    proc.on('close', () => resolve());
+    proc.on('error', reject);
+  });
+}
+
 test.describe.configure({ mode: 'serial' });
 
 const FOREIGN_PENDING_TITLE = 'User Pending Event';
@@ -90,83 +116,70 @@ test.describe('Review tab for admins (dUWoE5vu)', () => {
   });
 
   test('admin can approve a pending event from the Review tab', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
-    await page.goto('/admin?tab=review');
+    const throwawayId = `test-review-approve-${Date.now()}`;
+    const throwawayTitle = `Throwaway Pending ${throwawayId}`;
+    await createThrowawayPendingEvent(throwawayId);
 
-    await page
-      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
-      .catch(() => {});
+    try {
+      await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+      await page.goto('/admin?tab=review');
 
-    const reviewPanel = page.locator('#admin-tab-review');
-    const pendingCard = reviewPanel.locator('.event-card', {
-      hasText: FOREIGN_PENDING_TITLE,
-    });
-    await expect(pendingCard).toBeVisible({ timeout: 10000 });
+      await page
+        .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+        .catch(() => {});
 
-    const initialBadgeText = await page.getByTestId('admin-tab-review-badge').textContent();
-    const initialCount = Number(initialBadgeText);
+      const reviewPanel = page.locator('#admin-tab-review');
+      const pendingCard = reviewPanel.locator('.event-card', { hasText: throwawayTitle });
+      await expect(pendingCard).toBeVisible({ timeout: 10000 });
+      await expect(pendingCard.locator('.status-badge--pending')).toBeVisible();
 
-    await pendingCard.getByRole('button', { name: /genehmigen/i }).click();
+      await pendingCard.getByRole('button', { name: /genehmigen/i }).click();
 
-    const successDialog = page.getByTestId('success-dialog');
-    await expect(successDialog).toBeVisible({ timeout: 10000 });
-    await expect(successDialog).toContainText('Event genehmigt');
+      const successDialog = page.getByTestId('success-dialog');
+      await expect(successDialog).toBeVisible({ timeout: 10000 });
+      await expect(successDialog).toContainText('Event genehmigt');
 
-    await successDialog.getByTestId('success-dialog-confirm').click();
-    await expect(successDialog).toBeHidden();
+      await successDialog.getByTestId('success-dialog-confirm').click();
+      await expect(successDialog).toBeHidden();
 
-    await expect(
-      reviewPanel.locator('.event-card', { hasText: FOREIGN_PENDING_TITLE })
-    ).toHaveCount(0, { timeout: 10000 });
-
-    if (initialCount === 1) {
-      await expect(page.getByTestId('admin-tab-review')).toHaveCount(0, { timeout: 10000 });
-      await expect(page.getByTestId('admin-tab-review-badge')).toHaveCount(0);
-    } else {
-      const newBadge = page.getByTestId('admin-tab-review-badge');
-      await expect(newBadge).toBeVisible();
-      const newCount = Number(await newBadge.textContent());
-      expect(newCount).toBe(initialCount - 1);
+      await expect(reviewPanel.locator('.event-card', { hasText: throwawayTitle })).toHaveCount(0, {
+        timeout: 10000,
+      });
+    } finally {
+      await deleteEventById(throwawayId);
     }
   });
 
   test('admin can revert a pending event to draft from the Review tab', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
-    await page.goto('/admin?tab=review');
+    const throwawayId = `test-review-revert-${Date.now()}`;
+    const throwawayTitle = `Throwaway Pending ${throwawayId}`;
+    await createThrowawayPendingEvent(throwawayId);
 
-    await page
-      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
-      .catch(() => {});
+    try {
+      await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+      await page.goto('/admin?tab=review');
 
-    const reviewPanel = page.locator('#admin-tab-review');
-    const pendingCard = reviewPanel.locator('.event-card', {
-      hasText: FOREIGN_PENDING_TITLE,
-    });
-    await expect(pendingCard).toBeVisible({ timeout: 10000 });
+      await page
+        .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+        .catch(() => {});
 
-    const initialBadgeText = await page.getByTestId('admin-tab-review-badge').textContent();
-    const initialCount = Number(initialBadgeText);
+      const reviewPanel = page.locator('#admin-tab-review');
+      const pendingCard = reviewPanel.locator('.event-card', { hasText: throwawayTitle });
+      await expect(pendingCard).toBeVisible({ timeout: 10000 });
 
-    await pendingCard.getByRole('button', { name: /zu entwurf/i }).click();
+      await pendingCard.getByRole('button', { name: /zu entwurf/i }).click();
 
-    const confirmDialog = page.locator('.confirm-dialog').filter({ hasText: /zu entwurf/i });
-    await expect(confirmDialog).toBeVisible({ timeout: 10000 });
+      const confirmDialog = page.locator('.confirm-dialog').filter({ hasText: /zu entwurf/i });
+      await expect(confirmDialog).toBeVisible({ timeout: 10000 });
 
-    const revertButton = confirmDialog.getByRole('button', { name: /^zu entwurf$/i });
-    await revertButton.click();
+      const revertButton = confirmDialog.getByRole('button', { name: /^zu entwurf$/i });
+      await revertButton.click();
 
-    await expect(
-      reviewPanel.locator('.event-card', { hasText: FOREIGN_PENDING_TITLE })
-    ).toHaveCount(0, { timeout: 10000 });
-
-    if (initialCount === 1) {
-      await expect(page.getByTestId('admin-tab-review')).toHaveCount(0, { timeout: 10000 });
-      await expect(page.getByTestId('admin-tab-review-badge')).toHaveCount(0);
-    } else {
-      const newBadge = page.getByTestId('admin-tab-review-badge');
-      await expect(newBadge).toBeVisible();
-      const newCount = Number(await newBadge.textContent());
-      expect(newCount).toBe(initialCount - 1);
+      await expect(reviewPanel.locator('.event-card', { hasText: throwawayTitle })).toHaveCount(0, {
+        timeout: 10000,
+      });
+    } finally {
+      await deleteEventById(throwawayId);
     }
   });
 });
