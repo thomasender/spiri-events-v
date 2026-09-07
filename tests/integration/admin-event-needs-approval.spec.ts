@@ -92,18 +92,25 @@ test.describe('Admin-created events need approval (hGxrS6gp)', () => {
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
       .catch(() => {});
 
-    const pendingSection = page.locator('h2', { hasText: 'Ausstehende Genehmigungen' });
-    await expect(pendingSection).toBeVisible({ timeout: 10000 });
+    const reviewTab = page.getByTestId('admin-tab-review');
+    await expect(reviewTab).toBeVisible({ timeout: 10000 });
+    await reviewTab.click();
 
-    const pendingCard = page
-      .locator('.event-list-section')
-      .filter({ has: page.locator('h2', { hasText: 'Ausstehende Genehmigungen' }) })
-      .locator('.event-card', { hasText: EVENT_TITLE })
-      .first();
+    const reviewPanel = page.locator('#admin-tab-review');
+    await expect(reviewPanel).toBeVisible({ timeout: 10000 });
+
+    const pendingCard = reviewPanel.locator('.event-card', { hasText: EVENT_TITLE }).first();
     await expect(pendingCard).toBeVisible({ timeout: 10000 });
     await expect(pendingCard.locator('.status-badge--pending')).toBeVisible();
     await expect(pendingCard.locator('.status-badge--approved')).toHaveCount(0);
     await expect(pendingCard.getByRole('button', { name: /genehmigen/i })).toBeVisible();
+
+    const eventsPanel = page.locator('#admin-tab-events');
+    await eventsPanel.locator('..').waitFor();
+    const pendingInEvents = page
+      .locator('#admin-tab-events')
+      .locator('.event-card', { hasText: EVENT_TITLE });
+    await expect(pendingInEvents).toHaveCount(0);
 
     await signOut(page);
 

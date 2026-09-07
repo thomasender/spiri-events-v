@@ -1,22 +1,31 @@
 import { useMemo, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { CalendarDays, Mail, MessageSquare, PlusCircle, FileText, Trash2 } from 'lucide-react';
+import {
+  CalendarDays,
+  Mail,
+  MessageSquare,
+  PlusCircle,
+  FileText,
+  Trash2,
+  ClipboardCheck,
+} from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
 import EventList from '../components/EventList';
 import DraftsTab from '../components/DraftsTab';
+import ReviewTab from '../components/ReviewTab';
 import TrashTab from '../components/TrashTab';
 import MessagesTab from '../components/MessagesTab';
 import FeedbackTab from '../components/FeedbackTab';
 import EmailVerificationBanner from '../components/EmailVerificationBanner';
 import EmailVerificationModal from '../components/EmailVerificationModal';
 import { useAuth } from '../hooks/useAuth';
-import { useEvents } from '../hooks/useEvents';
+import { useEvents, usePendingEvents } from '../hooks/useEvents';
 import { useHasMessages, useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
 import { useUnreadFeedbackCount, useHasFeedback } from '../hooks/useFeedbackList';
 import { useTrashedEventsCount } from '../hooks/useTrashedEventsCount';
 import './AdminPage.css';
 
-const VALID_TABS = new Set(['events', 'drafts', 'messages', 'feedback', 'trash']);
+const VALID_TABS = new Set(['events', 'drafts', 'review', 'messages', 'feedback', 'trash']);
 
 export default function AdminPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -29,18 +38,21 @@ export default function AdminPage() {
   const { count: trashedCount } = useTrashedEventsCount(isAdmin);
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
   const { events } = useEvents(user);
+  const { pendingEvents } = usePendingEvents();
 
   const draftCount = useMemo(() => events.filter((e) => e.status === 'draft').length, [events]);
+  const reviewCount = useMemo(() => (isAdmin ? pendingEvents.length : 0), [isAdmin, pendingEvents]);
 
   const visibleTabs = useMemo(() => {
     return {
       events: true,
       drafts: draftCount > 0,
+      review: reviewCount > 0,
       messages: hasMessages,
       feedback: isAdmin && hasFeedback,
       trash: trashedCount > 0,
     };
-  }, [draftCount, hasMessages, isAdmin, hasFeedback, trashedCount]);
+  }, [draftCount, reviewCount, hasMessages, isAdmin, hasFeedback, trashedCount]);
 
   const rawTab = searchParams.get('tab');
   const activeTab = useMemo(() => {
@@ -121,6 +133,30 @@ export default function AdminPage() {
                 aria-label={`${draftCount} Entwurf${draftCount > 1 ? 'e' : ''}`}
               >
                 {draftCount > 9 ? '9+' : draftCount}
+              </span>
+            )}
+          </button>
+        )}
+        {visibleTabs.review && (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'review'}
+            aria-controls="admin-tab-review"
+            id="admin-tab-review-btn"
+            className={`admin-page-tab${activeTab === 'review' ? ' admin-page-tab--active' : ''}`}
+            onClick={() => setTab('review')}
+            data-testid="admin-tab-review"
+          >
+            <ClipboardCheck size={16} aria-hidden="true" />
+            <span>Review</span>
+            {reviewCount > 0 && (
+              <span
+                className="admin-page-tab-badge"
+                data-testid="admin-tab-review-badge"
+                aria-label={`${reviewCount} ausstehende Genehmigung${reviewCount > 1 ? 'en' : ''}`}
+              >
+                {reviewCount > 9 ? '9+' : reviewCount}
               </span>
             )}
           </button>
@@ -206,6 +242,16 @@ export default function AdminPage() {
           hidden={activeTab !== 'drafts'}
         >
           {activeTab === 'drafts' && <DraftsTab />}
+        </div>
+      )}
+      {visibleTabs.review && (
+        <div
+          role="tabpanel"
+          id="admin-tab-review"
+          aria-labelledby="admin-tab-review-btn"
+          hidden={activeTab !== 'review'}
+        >
+          {activeTab === 'review' && <ReviewTab />}
         </div>
       )}
       {visibleTabs.messages && (

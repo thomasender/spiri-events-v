@@ -5,7 +5,6 @@ import EventList from '../../src/components/EventList';
 
 const mockDeleteEvent = vi.hoisted(() => vi.fn());
 const mockUpdateEvent = vi.hoisted(() => vi.fn());
-const mockApproveEvent = vi.hoisted(() => vi.fn());
 const mockSubmitForReview = vi.hoisted(() => vi.fn());
 const mockRevertToDraft = vi.hoisted(() => vi.fn());
 
@@ -22,12 +21,6 @@ const mockUseEvents = vi.hoisted(() => ({
   updateEvent: mockUpdateEvent,
   submitForReview: mockSubmitForReview,
   revertToDraft: mockRevertToDraft,
-}));
-
-const mockUsePendingEvents = vi.hoisted(() => ({
-  pendingEvents: [],
-  loading: false,
-  approveEvent: mockApproveEvent,
 }));
 
 const mockUseEventsWithMessages = vi.hoisted(() => ({
@@ -47,7 +40,6 @@ vi.mock('../../src/hooks/useAuth', () => ({
 
 vi.mock('../../src/hooks/useEvents', () => ({
   useEvents: () => mockUseEvents,
-  usePendingEvents: () => mockUsePendingEvents,
 }));
 
 vi.mock('../../src/hooks/useEventsWithMessages', () => ({
@@ -290,6 +282,61 @@ describe('EventList', () => {
 
     mockAuth.role = null;
     mockAuth.user = { uid: 'test-uid' };
+  });
+
+  it('admin does NOT see Ausstehend option in status filter (dUWoE5vu)', () => {
+    mockAuth.role = 'Admin';
+    mockAuth.user = { uid: 'admin-uid' };
+    mockUseEvents.events = [];
+
+    render(
+      <MemoryRouter>
+        <EventList />
+      </MemoryRouter>
+    );
+
+    const statusFilter = screen.queryByTestId('status-filter');
+    expect(statusFilter).toBeInTheDocument();
+    const options = screen.getAllByRole('option').map((opt) => opt.textContent);
+    expect(options).not.toContain('Ausstehend');
+    expect(options).not.toContain('Entwürfe');
+
+    mockAuth.role = null;
+    mockAuth.user = { uid: 'test-uid' };
+  });
+
+  it('admin does NOT see their own pending events in Meine Events (dUWoE5vu)', () => {
+    mockAuth.role = 'Admin';
+    mockAuth.user = { uid: 'admin-uid' };
+    const adminPending = { ...pendingEvent, createdBy: 'admin-uid', title: 'Admin Pending Event' };
+    mockUseEvents.events = [adminPending];
+
+    render(
+      <MemoryRouter>
+        <EventList />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByText('Admin Pending Event')).not.toBeInTheDocument();
+    expect(screen.queryByText('Ausstehende Genehmigungen')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('revert-to-draft-button')).not.toBeInTheDocument();
+
+    mockAuth.role = null;
+    mockAuth.user = { uid: 'test-uid' };
+  });
+
+  it('non-admin still sees their own pending events in Meine Events (dUWoE5vu)', () => {
+    mockAuth.role = null;
+    mockUseEvents.events = [pendingEvent];
+
+    render(
+      <MemoryRouter>
+        <EventList />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('Pending Yoga Class')).toBeInTheDocument();
+    expect(screen.getByTestId('revert-to-draft-button')).toBeInTheDocument();
   });
 
   it('clicking submit-draft-button opens the submit confirmation dialog', () => {
