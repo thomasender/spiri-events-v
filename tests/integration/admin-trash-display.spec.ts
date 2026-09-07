@@ -26,6 +26,18 @@ async function resetFeedbackFixtures(): Promise<void> {
   });
 }
 
+async function resetMessageFixtures(): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const proc = spawn('node', ['scripts/reset-message-fixtures.mjs'], {
+      cwd: process.cwd(),
+      stdio: 'ignore',
+      shell: true,
+    });
+    proc.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`exit ${code}`))));
+    proc.on('error', reject);
+  });
+}
+
 async function waitForAdminTabs(page): Promise<void> {
   await page
     .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
@@ -41,12 +53,15 @@ test.describe('Papierkorb tab — display + tab order (oSwjBKM3)', () => {
     // Other specs (feedback.spec.ts) archive / delete feedback in their own
     // beforeEach and leave nothing for us to find.
     await resetFeedbackFixtures();
+    // Re-seed messages so the "tab order" test sees the Nachrichten tab.
+    await resetMessageFixtures();
   });
 
   test.afterEach(async ({ page }) => {
     await signOut(page);
     await resetTrashFixtures();
     await resetFeedbackFixtures();
+    await resetMessageFixtures();
   });
 
   test('Papierkorb events render with the same row layout as Meine Events (image + weekday)', async ({
@@ -79,18 +94,21 @@ test.describe('Papierkorb tab — display + tab order (oSwjBKM3)', () => {
     );
   });
 
-  test('admin tabs render in the order: Meine Events, Entwürfe, Nachrichten, Feedback, Papierkorb', async ({
+  test('admin tabs render in the order: Meine Events, Entwürfe, Review, Nachrichten, Feedback, Papierkorb', async ({
     page,
   }) => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin');
     await waitForAdminTabs(page);
 
-    // All five tabs are visible because the seeded data has drafts, messages,
-    // feedback and at least one trashed event.
+    // All tabs are visible because the seeded data has drafts, a pending event
+    // (so the Review tab shows), feedback and at least one trashed event.
+    // The messages tab is included for ordering; it only renders when an admin
+    // actually has a pending event with messages in this session.
     const expectedOrder = [
       'admin-tab-events',
       'admin-tab-drafts',
+      'admin-tab-review',
       'admin-tab-messages',
       'admin-tab-feedback',
       'admin-tab-trash',
@@ -102,6 +120,13 @@ test.describe('Papierkorb tab — display + tab order (oSwjBKM3)', () => {
     const tabLabels = await page.locator('.admin-page-tab').allInnerTexts();
     // Trim whitespace and pick the first non-empty line per tab.
     const cleaned = tabLabels.map((label) => label.split('\n')[0].trim());
-    expect(cleaned).toEqual(['Meine Events', 'Entwürfe', 'Nachrichten', 'Feedback', 'Papierkorb']);
+    expect(cleaned).toEqual([
+      'Meine Events',
+      'Entwürfe',
+      'Review',
+      'Nachrichten',
+      'Feedback',
+      'Papierkorb',
+    ]);
   });
 });
