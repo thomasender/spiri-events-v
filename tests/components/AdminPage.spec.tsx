@@ -290,3 +290,71 @@ describe('AdminPage Papierkorb tab', () => {
     expect(screen.getByTestId('admin-tab-trash')).toHaveTextContent('Papierkorb');
   });
 });
+
+describe('AdminPage Review tab (dUWoE5vu)', () => {
+  it('hides the Review tab for non-admin users', () => {
+    mockAuth.role = 'User';
+    mockUsePendingEvents.pendingEvents = [{ id: 'p1', title: 'Pending', status: 'pending' }];
+    renderAdmin();
+    expect(screen.queryByTestId('admin-tab-review')).not.toBeInTheDocument();
+  });
+
+  it('hides the Review tab for admins when there are no pending events', () => {
+    mockAuth.role = 'Admin';
+    mockUsePendingEvents.pendingEvents = [];
+    renderAdmin();
+    expect(screen.queryByTestId('admin-tab-review')).not.toBeInTheDocument();
+  });
+
+  it('shows the Review tab for admins when there are pending events', () => {
+    mockAuth.role = 'Admin';
+    mockUsePendingEvents.pendingEvents = [{ id: 'p1', title: 'Pending One', status: 'pending' }];
+    renderAdmin();
+    expect(screen.getByTestId('admin-tab-review')).toBeInTheDocument();
+    expect(screen.getByTestId('admin-tab-review')).toHaveTextContent('Review');
+  });
+
+  it('shows a badge with the pending count on the Review tab', () => {
+    mockAuth.role = 'Admin';
+    mockUsePendingEvents.pendingEvents = [
+      { id: 'p1', title: 'Pending One', status: 'pending' },
+      { id: 'p2', title: 'Pending Two', status: 'pending' },
+    ];
+    renderAdmin();
+    const badge = screen.getByTestId('admin-tab-review-badge');
+    expect(badge).toBeInTheDocument();
+    expect(badge).toHaveTextContent('2');
+  });
+
+  it('caps the Review tab badge at 9+', () => {
+    mockAuth.role = 'Admin';
+    mockUsePendingEvents.pendingEvents = Array.from({ length: 15 }, (_, i) => ({
+      id: `p${i}`,
+      title: `Pending ${i}`,
+      status: 'pending',
+    }));
+    renderAdmin();
+    expect(screen.getByTestId('admin-tab-review-badge')).toHaveTextContent('9+');
+  });
+
+  it('activates the Review tab when ?tab=review is in the URL and pending events exist', () => {
+    mockAuth.role = 'Admin';
+    mockUsePendingEvents.pendingEvents = [{ id: 'p1', title: 'Pending One', status: 'pending' }];
+    renderAdmin(['/admin?tab=review']);
+    const reviewPanel = document.getElementById('admin-tab-review');
+    const eventsPanel = document.getElementById('admin-tab-events');
+    expect(reviewPanel).not.toHaveAttribute('hidden');
+    expect(eventsPanel).toHaveAttribute('hidden');
+    expect(screen.getByTestId('admin-tab-review')).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByTestId('admin-tab-events')).toHaveAttribute('aria-selected', 'false');
+  });
+
+  it('falls back to the Events tab when ?tab=review is requested but no pending events exist', () => {
+    mockAuth.role = 'Admin';
+    mockUsePendingEvents.pendingEvents = [];
+    renderAdmin(['/admin?tab=review']);
+    const eventsPanel = document.getElementById('admin-tab-events');
+    expect(eventsPanel).not.toHaveAttribute('hidden');
+    expect(screen.getByTestId('admin-tab-events')).toHaveAttribute('aria-selected', 'true');
+  });
+});

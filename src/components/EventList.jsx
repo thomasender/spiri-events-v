@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { useEvents, usePendingEvents } from '../hooks/useEvents';
+import { useEvents } from '../hooks/useEvents';
 import { useEventsWithMessages } from '../hooks/useEventsWithMessages';
 import { useAuth } from '../hooks/useAuth';
 import { PlusCircle, Calendar } from 'lucide-react';
@@ -38,11 +38,9 @@ export default function EventList() {
     revertToDraft,
     duplicateEvent,
   } = useEvents(user);
-  const { pendingEvents, loading: pendingLoading, approveEvent } = usePendingEvents();
   const { unreadCountByEvent } = useEventsWithMessages();
   const [deleteId, setDeleteId] = useState(null);
   const [deleting, setDeleting] = useState(false);
-  const [approving, setApproving] = useState(null);
   const [recurringDeleteTarget, setRecurringDeleteTarget] = useState(null);
   const [pendingRecurringDelete, setPendingRecurringDelete] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
@@ -55,7 +53,7 @@ export default function EventList() {
   const filteredEvents = useMemo(() => {
     let list = events.filter((e) => e.status !== 'trashed');
     if (isAdmin) {
-      list = list.filter((e) => e.status !== 'draft');
+      list = list.filter((e) => e.status !== 'draft' && e.status !== 'pending');
     }
     if (statusFilter !== 'all') {
       list = list.filter((e) => e.status === statusFilter);
@@ -83,17 +81,6 @@ export default function EventList() {
       console.error('Delete failed:', err);
     } finally {
       setDeleting(false);
-    }
-  };
-
-  const handleApprove = async (eventId) => {
-    setApproving(eventId);
-    try {
-      await approveEvent(eventId);
-    } catch (err) {
-      console.error('Approve failed:', err);
-    } finally {
-      setApproving(null);
     }
   };
 
@@ -224,11 +211,11 @@ export default function EventList() {
     setRecurringDeleteTarget(null);
   };
 
-  if (loading || pendingLoading) {
+  if (loading) {
     return <div className="loading-spinner"></div>;
   }
 
-  const renderCard = (event, showStatus = false, showApprove = false) => {
+  const renderCard = (event, showStatus = false) => {
     const isRecurring = event.recurrence && event.recurrence !== 'none';
     const onDeleteClick = (evt) => {
       if (isRecurring) {
@@ -245,15 +232,12 @@ export default function EventList() {
       <EventAdminListRow
         event={event}
         showStatus={showStatus}
-        showApprove={showApprove}
         showSubmit={event.status === 'draft'}
         showRevert={event.status === 'pending'}
         showDuplicate={event.status !== 'draft'}
         duplicating={duplicatingId === event.id}
         unreadCount={unreadCountByEvent[event.id] || 0}
         isAdmin={isAdmin}
-        approving={approving}
-        onApprove={handleApprove}
         onSubmit={(evt) => setStatusActionTarget({ id: evt.id, action: 'submit' })}
         onRevert={(evt) => setStatusActionTarget({ id: evt.id, action: 'revert' })}
         onDuplicate={handleDuplicate}
@@ -262,10 +246,10 @@ export default function EventList() {
     );
   };
 
-  const renderEventsList = (eventsList, showStatus, showApprove) => (
+  const renderEventsList = (eventsList, showStatus) => (
     <div className="event-list-rows">
       {eventsList.map((event) => (
-        <div key={event.id}>{renderCard(event, showStatus, showApprove)}</div>
+        <div key={event.id}>{renderCard(event, showStatus)}</div>
       ))}
     </div>
   );
@@ -299,7 +283,7 @@ export default function EventList() {
         data-testid="status-filter"
       >
         {STATUS_FILTERS.filter((f) => {
-          if (isAdmin && f.value === 'draft') return false;
+          if (isAdmin && (f.value === 'draft' || f.value === 'pending')) return false;
           return true;
         }).map((f) => (
           <option key={f.value} value={f.value}>
@@ -311,9 +295,6 @@ export default function EventList() {
   );
 
   if (isAdmin) {
-    const myEvents = events.filter((e) => e.createdBy === user.uid);
-    const allPending = pendingEvents;
-
     return (
       <div className="event-list-page">
         <div className="event-list-header">
@@ -326,22 +307,6 @@ export default function EventList() {
             <span>Neues Event</span>
           </Link>
         </div>
-
-        {allPending.length > 0 && (
-          <section className="event-list-section">
-            <h2>Ausstehende Genehmigungen</h2>
-            {renderEventsList(allPending, true, true)}
-          </section>
-        )}
-
-        {allPending.length === 0 && (
-          <section className="event-list-section">
-            <h2>Ausstehende Genehmigungen</h2>
-            <div className="event-list-empty-small">
-              <p>Keine ausstehenden Events zur Genehmigung</p>
-            </div>
-          </section>
-        )}
 
         <section className="event-list-section">
           <div className="event-list-section-header">
