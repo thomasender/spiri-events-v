@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { signInWithEmailAndPassword, signOut, waitForCalendarToLoad } from '../helpers/auth';
+import {
+  signInWithEmailAndPassword,
+  signOut,
+  waitForCalendarToLoad,
+  clearEventsWithCategoryColor,
+} from '../helpers/auth';
 import {
   waitForWizardToLoad,
   confirmCopyrightCheckbox,
@@ -98,6 +103,12 @@ async function approveMostRecentPending(page, title) {
 }
 
 test.describe('Custom event category creation (fWaRFw5P)', () => {
+  test.beforeAll(async () => {
+    // The 7 seed colors are hard-coded; the 8th palette slot can be
+    // consumed by an earlier picker test. Free it for this file.
+    await clearEventsWithCategoryColor();
+  });
+
   test.afterEach(async ({ page }) => {
     await signOut(page);
   });

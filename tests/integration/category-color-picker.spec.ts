@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { signInWithEmailAndPassword, signOut, waitForCalendarToLoad } from '../helpers/auth';
+import {
+  signInWithEmailAndPassword,
+  signOut,
+  waitForCalendarToLoad,
+  clearEventsWithCategoryColor,
+} from '../helpers/auth';
 import {
   waitForWizardToLoad,
   confirmCopyrightCheckbox,
@@ -54,6 +59,14 @@ async function fillStep3Details(page, category) {
 }
 
 test.describe('Category color picker (Xv4ESAHR)', () => {
+  test.beforeAll(async () => {
+    // Free the palette for this file by wiping any leftover events that
+    // carry a categoryColor — those are test artifacts from previous
+    // picker runs. The 7 seed categories are hard-coded in CATEGORY_COLORS
+    // and unaffected.
+    await clearEventsWithCategoryColor();
+  });
+
   test.afterEach(async ({ page }) => {
     await signOut(page);
   });

@@ -146,6 +146,34 @@ export async function clearFirestoreData(): Promise<void> {
   }
 }
 
+// Delete only the events that carry a `categoryColor` field — these are
+// test artifacts from previous picker runs that would otherwise consume
+// the 8-color palette. Safe to call while parallel tests run: no other
+// integration test depends on these documents.
+export async function clearEventsWithCategoryColor(): Promise<void> {
+  try {
+    const url = `http://127.0.0.1:8181/v1/projects/${PROJECT_ID}/databases/(default)/documents/events?pageSize=500`;
+    const response = await fetch(url, { headers: { Authorization: 'Bearer owner' } });
+    if (!response.ok) return;
+    const payload = (await response.json()) as {
+      documents?: Array<{ name: string; fields?: Record<string, { stringValue?: string }> }>;
+    };
+    const docs = payload.documents ?? [];
+    await Promise.all(
+      docs
+        .filter((doc) => Boolean(doc.fields?.categoryColor?.stringValue))
+        .map((doc) =>
+          fetch(doc.name.replace(/^.*\/v1/, 'http://127.0.0.1:8181/v1'), {
+            method: 'DELETE',
+            headers: { Authorization: 'Bearer owner' },
+          }).catch(() => {})
+        )
+    );
+  } catch {
+    // Ignore errors
+  }
+}
+
 export async function clearEmulatorStorage(): Promise<void> {
   try {
     await fetch(`${STORAGE_EMULATOR_URL}/storage/v1/b/${PROJECT_ID}.appspot.com/o?force=true`, {

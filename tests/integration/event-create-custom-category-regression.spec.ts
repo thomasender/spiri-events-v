@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
+import { signInWithEmailAndPassword, signOut, clearEventsWithCategoryColor } from '../helpers/auth';
 import {
   waitForWizardToLoad,
   confirmCopyrightCheckbox,
@@ -35,6 +35,11 @@ async function fillWizardWithCustomCategory(page) {
 }
 
 test.describe('Custom category: regression tests (fWaRFw5P follow-up)', () => {
+  test.beforeAll(async () => {
+    // Keep the color palette free for the picker in this file.
+    await clearEventsWithCategoryColor();
+  });
+
   test.afterEach(async ({ page }) => {
     await signOut(page);
   });
