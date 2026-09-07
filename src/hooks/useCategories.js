@@ -1,16 +1,12 @@
 import { useMemo } from 'react';
-import { useAllEvents, KATEGORIEN } from './useEvents';
+import { useCategoryRegistry } from './useCategoryRegistry';
 
+// Returns the sorted list of category names from the registry. This is the
+// canonical source for filter chips, dropdowns, and similar UI. Event forms
+// merge in any session-local "extras" (a name the user is currently typing)
+// themselves, since those don't live in the registry until the event is
+// approved.
 export function useCategories() {
-  const { events } = useAllEvents();
-
-  return useMemo(() => {
-    const set = new Set(KATEGORIEN);
-    for (const e of events) {
-      if (e.category && typeof e.category === 'string') {
-        set.add(e.category);
-      }
-    }
-    return Array.from(set).sort((a, b) => a.localeCompare(b, 'de'));
-  }, [events]);
+  const { categories } = useCategoryRegistry();
+  return useMemo(() => categories.map((cat) => cat.name), [categories]);
 }

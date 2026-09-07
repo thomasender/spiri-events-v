@@ -2,13 +2,14 @@ import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAllEvents, BEZIRKE, ONLINE_LOCATION } from '../hooks/useEvents';
 import { useCategories } from '../hooks/useCategories';
+import { useCategoryRegistry } from '../hooks/useCategoryRegistry';
 import { useAuth } from '../hooks/useAuth';
 import Calendar from '../components/Calendar';
 import EventsSection from '../components/EventsSection';
 import EmailVerificationModal from '../components/EmailVerificationModal';
 import SeoMeta from '../components/SeoMeta';
 import { getEventOccurrences } from '../utils/eventOccurrences';
-import { CATEGORY_COLORS, getCategoryColor } from '../utils/categoryColors';
+import { resolveEventColor } from '../utils/categoryColors';
 import { monthKeyToDate, dateToMonthKey } from '../utils/calendarFilterState';
 import {
   DATE_FILTER_OPTIONS,
@@ -98,6 +99,7 @@ export default function CalendarPage() {
   );
   const [selectedOrte, setSelectedOrte] = useState(savedState?.selectedOrte || []);
   const [dateFilter, setDateFilter] = useState(savedState?.dateFilter || null);
+  const { colorByName } = useCategoryRegistry();
   const [viewMode, setViewMode] = useState(savedState?.viewMode || 'card');
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
   const { events, loading, error } = useAllEvents();
@@ -217,17 +219,10 @@ export default function CalendarPage() {
     return applyDateFilter(monthEvents, dateFilter);
   }, [monthEvents, dateFilter]);
 
-  // First-event-wins per category name: a user-defined category that has no
-  // static CATEGORY_COLORS entry gets the color of the first event carrying it.
-  // Falls back to the global default when no event has set a color yet.
-  const categoryColorByName = useMemo(() => {
-    const map = {};
-    for (const event of events) {
-      if (!event.category || map[event.category]) continue;
-      if (event.categoryColor) map[event.category] = event.categoryColor;
-    }
-    return map;
-  }, [events]);
+  // Color resolution is now driven by the categories registry. Legacy
+  // events that still carry an `event.categoryColor` override win over the
+  // registry; everyone else uses the registry color for their category name.
+  const categoryColorByName = colorByName;
 
   return (
     <div className="calendar-page">
@@ -324,10 +319,7 @@ export default function CalendarPage() {
                   className="filter-chip filter-chip--category"
                   data-category={category}
                   style={{
-                    '--category-color':
-                      CATEGORY_COLORS[category] ||
-                      categoryColorByName[category] ||
-                      getCategoryColor(category),
+                    '--category-color': resolveEventColor({ category }, categoryColorByName),
                   }}
                   onClick={() => toggleCategory(category)}
                   aria-pressed={selectedCategories.includes(category)}
@@ -421,7 +413,7 @@ export default function CalendarPage() {
               onMonthChange={setCurrentMonth}
               viewMode={viewMode}
               onViewModeChange={setViewMode}
-              categoryColors={CATEGORY_COLORS}
+              categoryColorByName={categoryColorByName}
             />
           )}
         </div>
@@ -432,7 +424,7 @@ export default function CalendarPage() {
             onEventClick={handleEventClick}
             currentMonth={currentMonth}
             onMonthChange={setCurrentMonth}
-            categoryColors={{ ...CATEGORY_COLORS }}
+            categoryColorByName={categoryColorByName}
             categories={categories}
           />
         </aside>

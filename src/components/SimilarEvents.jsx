@@ -3,7 +3,8 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import EventCard from './EventCard';
-import { CATEGORY_COLORS, getCategoryColor } from '../utils/categoryColors';
+import { resolveEventColor } from '../utils/categoryColors';
+import { useCategoryRegistry } from '../hooks/useCategoryRegistry';
 import { getPrimaryCategory } from '../utils/eventFormat';
 import './SimilarEvents.css';
 
@@ -28,6 +29,7 @@ function normalizeSimilarEvent(event) {
 export default function SimilarEvents({ currentEvent }) {
   const category = currentEvent ? getPrimaryCategory(currentEvent) : null;
   const currentId = currentEvent?.id;
+  const { colorByName } = useCategoryRegistry();
   const sliderRef = useRef(null);
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -110,7 +112,10 @@ export default function SimilarEvents({ currentEvent }) {
     return null;
   }
 
-  const categoryColor = getCategoryColor(category, currentEvent?.categoryColor);
+  const categoryColor = resolveEventColor(
+    { category, categoryColor: currentEvent?.categoryColor },
+    categoryColorByName
+  );
 
   return (
     <section className="similar-events" data-testid="similar-events" aria-label="Ähnliche Events">

@@ -30,6 +30,20 @@ vi.mock('../../src/hooks/useEvents', () => ({
   useEvents: () => mockEvents,
 }));
 
+vi.mock('../../src/hooks/useCategoryRegistry', () => ({
+  useCategoryRegistry: () => ({
+    categories: [],
+    colorByName: new Map(),
+    nameExists: () => false,
+    loading: false,
+    error: null,
+    isAdmin: false,
+    addCategory: vi.fn(),
+    updateCategory: vi.fn(),
+    deleteCategory: vi.fn(),
+  }),
+}));
+
 vi.mock('firebase/firestore', async () => {
   const actual = await vi.importActual('firebase/firestore');
   return {

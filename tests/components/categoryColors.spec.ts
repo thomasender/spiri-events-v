@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import {
   CATEGORY_COLORS,
-  CATEGORY_COLOR_PALETTE,
+  SEED_CATEGORIES,
   FALLBACK_CATEGORY_COLOR,
   getCategoryColor,
-  getPaletteColorValues,
+  resolveEventColor,
 } from '../../src/utils/categoryColors';
 
 describe('CATEGORY_COLORS', () => {
@@ -14,31 +14,28 @@ describe('CATEGORY_COLORS', () => {
     expect(CATEGORY_COLORS.Sonstiges).toBeTruthy();
   });
 
-  it('uses hex color values so the picker can compare colors directly', () => {
+  it('uses hex color values so the picker logic can compare colors directly', () => {
     for (const value of Object.values(CATEGORY_COLORS)) {
       expect(value).toMatch(/^#[0-9a-fA-F]{6}$/);
     }
   });
 });
 
-describe('CATEGORY_COLOR_PALETTE', () => {
-  it('exposes exactly 8 distinct swatches', () => {
-    expect(CATEGORY_COLOR_PALETTE).toHaveLength(8);
-    const values = CATEGORY_COLOR_PALETTE.map((entry) => entry.value);
-    expect(new Set(values).size).toBe(8);
-  });
-
-  it('every swatch has a hex value and a label', () => {
-    for (const entry of CATEGORY_COLOR_PALETTE) {
-      expect(entry.value).toMatch(/^#[0-9a-fA-F]{6}$/);
-      expect(entry.label).toBeTruthy();
+describe('SEED_CATEGORIES', () => {
+  it('exposes one entry per seed category with matching color', () => {
+    expect(SEED_CATEGORIES).toHaveLength(Object.keys(CATEGORY_COLORS).length);
+    for (const entry of SEED_CATEGORIES) {
+      expect(entry.id).toBeTruthy();
+      expect(entry.name).toBeTruthy();
+      expect(entry.color).toMatch(/^#[0-9a-fA-F]{6}$/);
+      expect(CATEGORY_COLORS[entry.name]).toBe(entry.color);
     }
   });
-});
 
-describe('getPaletteColorValues', () => {
-  it('returns the hex strings in palette order', () => {
-    expect(getPaletteColorValues()).toEqual(CATEGORY_COLOR_PALETTE.map((entry) => entry.value));
+  it('uses a lowercase slug for the id so admins and the seed write to the same doc', () => {
+    for (const entry of SEED_CATEGORIES) {
+      expect(entry.id).toBe(entry.name.toLowerCase());
+    }
   });
 });
 
@@ -70,5 +67,31 @@ describe('getCategoryColor', () => {
 
   it('returns the fallback when categoryColor is an empty string', () => {
     expect(getCategoryColor('Yoga', '')).toBe(CATEGORY_COLORS.Yoga);
+  });
+});
+
+describe('resolveEventColor', () => {
+  const registry = new Map([
+    ['Pilates', '#4a7572'],
+    ['Yoga', '#c48e6a'],
+  ]);
+
+  it('returns the event-level categoryColor override first', () => {
+    expect(resolveEventColor({ category: 'Yoga', categoryColor: '#ffffff' }, registry)).toBe(
+      '#ffffff'
+    );
+  });
+
+  it('falls back to the registry color for the category name', () => {
+    expect(resolveEventColor({ category: 'Pilates' }, registry)).toBe('#4a7572');
+  });
+
+  it('falls back to the synchronous seed map when the registry is empty', () => {
+    expect(resolveEventColor({ category: 'Yoga' }, new Map())).toBe(CATEGORY_COLORS.Yoga);
+  });
+
+  it('returns the neutral fallback for unknown categories', () => {
+    expect(resolveEventColor({ category: 'BrandNew' }, registry)).toBe(FALLBACK_CATEGORY_COLOR);
+    expect(resolveEventColor(null, registry)).toBe(FALLBACK_CATEGORY_COLOR);
   });
 });

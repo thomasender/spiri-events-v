@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, LayoutGrid, List } from 'lucide-react';
 import EventCard from './EventCard';
 import EventListRow from './EventListRow';
 import { getPrimaryCategory } from '../utils/eventFormat';
-import { getCategoryColor } from '../utils/categoryColors';
+import { resolveEventColor } from '../utils/categoryColors';
 import './EventsSection.css';
 
 const MONTHS = [
@@ -29,7 +29,7 @@ export default function EventsSection({
   onMonthChange,
   viewMode,
   onViewModeChange,
-  categoryColors,
+  categoryColorByName,
 }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < MOBILE_BREAKPOINT);
 
@@ -100,7 +100,10 @@ export default function EventsSection({
             <EventCard
               key={`${event.id}-${event.date}`}
               event={event}
-              categoryColor={getCategoryColor(getPrimaryCategory(event), event.categoryColor)}
+              categoryColor={resolveEventColor(
+                { ...event, category: getPrimaryCategory(event) },
+                categoryColorByName
+              )}
             />
           ))}
         </div>
@@ -110,7 +113,10 @@ export default function EventsSection({
             <EventListRow
               key={`${event.id}-${event.date}`}
               event={event}
-              categoryColor={getCategoryColor(getPrimaryCategory(event), event.categoryColor)}
+              categoryColor={resolveEventColor(
+                { ...event, category: getPrimaryCategory(event) },
+                categoryColorByName
+              )}
             />
           ))}
         </div>

@@ -8,6 +8,7 @@ import {
   FileText,
   Trash2,
   ClipboardCheck,
+  Tag,
 } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
 import EventList from '../components/EventList';
@@ -16,6 +17,7 @@ import ReviewTab from '../components/ReviewTab';
 import TrashTab from '../components/TrashTab';
 import MessagesTab from '../components/MessagesTab';
 import FeedbackTab from '../components/FeedbackTab';
+import CategoriesTab from '../components/CategoriesTab';
 import EmailVerificationBanner from '../components/EmailVerificationBanner';
 import EmailVerificationModal from '../components/EmailVerificationModal';
 import { useAuth } from '../hooks/useAuth';
@@ -25,7 +27,15 @@ import { useUnreadFeedbackCount, useHasFeedback } from '../hooks/useFeedbackList
 import { useTrashedEventsCount } from '../hooks/useTrashedEventsCount';
 import './AdminPage.css';
 
-const VALID_TABS = new Set(['events', 'drafts', 'review', 'messages', 'feedback', 'trash']);
+const VALID_TABS = new Set([
+  'events',
+  'drafts',
+  'review',
+  'messages',
+  'feedback',
+  'trash',
+  'categories',
+]);
 
 export default function AdminPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -51,6 +61,7 @@ export default function AdminPage() {
       messages: hasMessages,
       feedback: isAdmin && hasFeedback,
       trash: trashedCount > 0,
+      categories: isAdmin,
     };
   }, [draftCount, reviewCount, hasMessages, isAdmin, hasFeedback, trashedCount]);
 
@@ -224,6 +235,21 @@ export default function AdminPage() {
             <span>Papierkorb</span>
           </button>
         )}
+        {visibleTabs.categories && (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'categories'}
+            aria-controls="admin-tab-categories"
+            id="admin-tab-categories-btn"
+            className={`admin-page-tab${activeTab === 'categories' ? ' admin-page-tab--active' : ''}`}
+            onClick={() => setTab('categories')}
+            data-testid="admin-tab-categories"
+          >
+            <Tag size={16} aria-hidden="true" />
+            <span>Kategorien</span>
+          </button>
+        )}
       </div>
 
       <div
@@ -282,6 +308,16 @@ export default function AdminPage() {
           hidden={activeTab !== 'trash'}
         >
           {activeTab === 'trash' && <TrashTab />}
+        </div>
+      )}
+      {visibleTabs.categories && (
+        <div
+          role="tabpanel"
+          id="admin-tab-categories"
+          aria-labelledby="admin-tab-categories-btn"
+          hidden={activeTab !== 'categories'}
+        >
+          {activeTab === 'categories' && <CategoriesTab />}
         </div>
       )}
 

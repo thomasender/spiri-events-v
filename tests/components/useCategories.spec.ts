@@ -2,72 +2,50 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { useCategories } from '../../src/hooks/useCategories';
 
-const mockUseAllEvents = vi.hoisted(() => ({ events: [] }));
+const mockRegistry = vi.hoisted(() => ({ categories: [] }));
 
-vi.mock('../../src/hooks/useEvents', () => ({
-  useAllEvents: () => mockUseAllEvents,
-  KATEGORIEN: ['Yoga', 'Breathwork', 'Meditation', 'Tanz', 'Singen', 'Soundhealing', 'Sonstiges'],
+vi.mock('../../src/hooks/useCategoryRegistry', () => ({
+  useCategoryRegistry: () => mockRegistry,
 }));
 
 beforeEach(() => {
-  mockUseAllEvents.events = [];
+  mockRegistry.categories = [];
 });
 
+const SEED_NAMES = [
+  'Breathwork',
+  'Meditation',
+  'Singen',
+  'Sonstiges',
+  'Soundhealing',
+  'Tanz',
+  'Yoga',
+];
+
 describe('useCategories', () => {
-  it('returns the seed categories when no events exist', () => {
+  it('returns an empty list when the registry is empty', () => {
     const { result } = renderHook(() => useCategories());
-    expect(result.current).toEqual([
-      'Breathwork',
-      'Meditation',
-      'Singen',
-      'Sonstiges',
-      'Soundhealing',
-      'Tanz',
-      'Yoga',
-    ]);
+    expect(result.current).toEqual([]);
   });
 
-  it('merges in categories from events', () => {
-    mockUseAllEvents.events = [{ category: 'Pilates' }, { category: 'Qi Gong' }];
-    const { result } = renderHook(() => useCategories());
-    expect(result.current).toContain('Pilates');
-    expect(result.current).toContain('Qi Gong');
-    expect(result.current).toContain('Yoga');
-  });
-
-  it('deduplicates case-sensitively while keeping original casing', () => {
-    mockUseAllEvents.events = [
-      { category: 'Yoga' },
-      { category: 'Pilates' },
-      { category: 'pilates' },
+  it('returns registry category names in the registry order', () => {
+    mockRegistry.categories = [
+      { id: 'a', name: 'Ayurveda' },
+      { id: 'm', name: 'Meditation' },
+      { id: 'z', name: 'Zumba' },
     ];
     const { result } = renderHook(() => useCategories());
-    const occurrences = result.current.filter((c) => c.toLowerCase() === 'pilates');
-    expect(occurrences).toHaveLength(2);
-    expect(result.current).toContain('Pilates');
-    expect(result.current).toContain('pilates');
+    expect(result.current).toEqual(['Ayurveda', 'Meditation', 'Zumba']);
   });
 
-  it('ignores events without a category', () => {
-    mockUseAllEvents.events = [{ category: '' }, { category: null }, {}];
+  it('mirrors the registry names including duplicates from case differences', () => {
+    mockRegistry.categories = [
+      { id: 'yoga', name: 'Yoga' },
+      { id: 'yoga-flow', name: 'yoga' },
+    ];
     const { result } = renderHook(() => useCategories());
-    expect(result.current).toEqual([
-      'Breathwork',
-      'Meditation',
-      'Singen',
-      'Sonstiges',
-      'Soundhealing',
-      'Tanz',
-      'Yoga',
-    ]);
-  });
-
-  it('sorts the result using German collation', () => {
-    mockUseAllEvents.events = [{ category: 'Äpfel' }, { category: 'Banane' }];
-    const { result } = renderHook(() => useCategories());
-    const idxA = result.current.indexOf('Äpfel');
-    const idxB = result.current.indexOf('Banane');
-    expect(idxA).toBeGreaterThanOrEqual(0);
-    expect(idxB).toBeGreaterThan(idxA);
+    expect(result.current).toContain('Yoga');
+    expect(result.current).toContain('yoga');
+    expect(result.current).toHaveLength(2);
   });
 });

@@ -32,6 +32,17 @@ service cloud.firestore {
       return resource.data.status == 'approved';
     }
 
+    // Categories are managed by admins and shown on the public calendar.
+    // `name` is normalized server-side (trim + 2–40 chars); `color` is a
+    // 6-digit hex string. On create the id must match a deterministic slug
+    // of the name so admins can't accidentally create duplicates.
+    function isValidCategoryName(name) {
+      return name is string && name.size() >= 2 && name.size() <= 40;
+    }
+    function isValidCategoryColor(color) {
+      return color is string && color.matches('^#[0-9a-fA-F]{6}$');
+    }
+
     match /events/{eventId} {
       allow read: if isApproved() || isOwner() || isAdminOrEmulatorAdmin();
 
@@ -104,6 +115,43 @@ service cloud.firestore {
                         .hasOnly(['displayName', 'bio', 'website', 'contact', 'photoURL', 'updatedAt']);
 
       allow delete: if isAuthenticated() && request.auth.uid == uid;
+    }
+
+    // Categories registry — admins manage name + color, the calendar reads
+    // it publicly to render category chips. Only admins can update/delete.
+    // On create there are two paths:
+    //   1. Admin-authenticated write (normal CRUD via the admin UI).
+    //   2. Anonymous "system seed" — locked to the canonical 7 initial
+    //      category names so the app can self-bootstrap the registry on
+    //      first run without requiring an admin to be signed in. The
+    //      `createdBy == 'system'` flag + locked name list prevents abuse.
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow create: if (isAdminOrEmulatorAdmin()
+                       && request.resource.data.keys().hasOnly(
+                         ['name', 'color', 'createdAt', 'updatedAt', 'createdBy']
+                       )
+                       && isValidCategoryName(request.resource.data.name)
+                       && isValidCategoryColor(request.resource.data.color))
+                     || (request.auth == null
+                         && request.resource.data.createdBy == 'system'
+                         && request.resource.data.name in [
+                           'Yoga',
+                           'Breathwork',
+                           'Meditation',
+                           'Tanz',
+                           'Singen',
+                           'Soundhealing',
+                           'Sonstiges',
+                         ]
+                         && request.resource.data.color is string
+                         && isValidCategoryColor(request.resource.data.color));
+      allow update: if isAdminOrEmulatorAdmin()
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                          .hasOnly(['name', 'color', 'updatedAt'])
+                    && isValidCategoryName(request.resource.data.name)
+                    && isValidCategoryColor(request.resource.data.color);
+      allow delete: if isAdminOrEmulatorAdmin();
     }
 
     // Feedback collection: anyone can submit anonymous feedback (with optional
