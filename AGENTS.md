@@ -128,6 +128,7 @@ The refresh script reads from the emulator (preferred) or production Firestore
 Peter is the product owner and tester. He tests directly on production at https://events.thetribe.at (NOT locally).
 
 **When updating Trello tickets or communicating with Peter:**
+- **ALWAYS tag Peter with `@petermathis1`** in Trello comments. This is his Trello username and the only way he gets a notification. Plain text like "Lieber Peter", "Hallo Peter", "@Peter", or "Peter," in a comment will NOT notify him.
 - Write in **German**
 - Use **non-technical language** - Peter has no understanding of code
 - Focus on **what works/doesn't work for users**, not implementation details

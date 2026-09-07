@@ -12,6 +12,7 @@ End-to-end workflow for processing a Trello ticket: analyze, plan, implement, te
 - Trello ticket URL (e.g., `https://trello.com/c/leUdxGn4`)
 - Trello board ID: `rebumcT4` (Conscious Community Vorarlberg Kalender)
 - Testing list name: `Testing`
+- **Peter's Trello handle: `@petermathis1`** — always tag him exactly like this in comments. Plain text like "Lieber Peter", "Hallo Peter", "@Peter", or "Peter," will NOT trigger a notification.
 
 ## Workflow
 
@@ -165,6 +166,15 @@ Wie getestet wird:
 
 Link: https://events.thetribe.at
 ```
+
+## Mentioning Peter (mandatory)
+
+Every comment that is meant for Peter **MUST** start with `@petermathis1`. This is his exact Trello username and the only mention format that triggers a notification.
+
+- ✅ Correct: `@petermathis1 Die Änderung ist fertig...`
+- ❌ Wrong: `Lieber Peter,`, `Hallo @Peter,`, `Hi Peter,`, `@peter`, `petermathis1`, `@peter-mathis1`
+
+If a comment is meant to address Peter, prepend `@petermathis1` (with the `@` and no space before the username). Never use "Lieber Peter", "Hallo Peter", "Hi Peter", or address him by name in plain text — Trello will not link it to his account and he will not get notified.
 
 ## Important Notes
 
