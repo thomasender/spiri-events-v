@@ -205,8 +205,13 @@
 }
 
 .filter-header--section {
-  margin-top: 20px;
   margin-bottom: 12px;
+}
+
+/* Subsequent section headers get a divider on top. The first section
+   sits flush under the panel title and needs no separator. */
+.filter-header--section ~ .filter-header--section {
+  margin-top: 20px;
   padding-top: 16px;
   border-top: 1px solid var(--border);
 }
