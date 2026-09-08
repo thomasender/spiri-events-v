@@ -302,32 +302,6 @@ export default function CalendarPage() {
           <section className="filter-panel" aria-label="Filter">
             <div className="filter-header filter-header--title">
               <h2 className="filter-section-title">Hier kannst du filtern</h2>
-              <div className="filter-quick-actions">
-                <button type="button" onClick={selectAllCategories}>
-                  Alle
-                </button>
-                <button type="button" onClick={selectNoneCategories}>
-                  Keine
-                </button>
-              </div>
-            </div>
-            <div className="filter-options">
-              {categories.map((category) => (
-                <button
-                  key={category}
-                  type="button"
-                  className="filter-chip filter-chip--category"
-                  data-category={category}
-                  style={{
-                    '--category-color': resolveEventColor({ category }, categoryColorByName),
-                  }}
-                  onClick={() => toggleCategory(category)}
-                  aria-pressed={selectedCategories.includes(category)}
-                >
-                  <Check size={14} className="filter-chip-icon" aria-hidden="true" />
-                  <span>{category}</span>
-                </button>
-              ))}
             </div>
 
             <div className="filter-header filter-header--section">
@@ -346,6 +320,36 @@ export default function CalendarPage() {
                 >
                   <Check size={14} className="filter-chip-icon" aria-hidden="true" />
                   <span>{label}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="filter-header filter-header--section">
+              <span className="filter-label">Kategorie</span>
+              <div className="filter-quick-actions">
+                <button type="button" onClick={selectAllCategories}>
+                  Alle
+                </button>
+                <button type="button" onClick={selectNoneCategories}>
+                  Keine
+                </button>
+              </div>
+            </div>
+            <div className="filter-options" data-testid="filter-options-category">
+              {categories.map((category) => (
+                <button
+                  key={category}
+                  type="button"
+                  className="filter-chip filter-chip--category"
+                  data-category={category}
+                  style={{
+                    '--category-color': resolveEventColor({ category }, categoryColorByName),
+                  }}
+                  onClick={() => toggleCategory(category)}
+                  aria-pressed={selectedCategories.includes(category)}
+                >
+                  <Check size={14} className="filter-chip-icon" aria-hidden="true" />
+                  <span>{category}</span>
                 </button>
               ))}
             </div>

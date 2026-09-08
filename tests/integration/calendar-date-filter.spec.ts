@@ -25,18 +25,23 @@ test.describe('Calendar: Datum quick filter (8aHT1FUG)', () => {
       await expect(page.getByTestId('filter-chip-date-aktuelleWoche')).toHaveText('Aktuelle Woche');
     });
 
-    test('is positioned between the category chips and the "Mehr Filter" accordion', async ({
-      page,
-    }) => {
+    test('sits above the category chips and the "Mehr Filter" accordion', async ({ page }) => {
       const order = await page.evaluate(() => {
         const panel = document.querySelector('.filter-panel');
         if (!panel) return null;
-        const chipsContainer = panel.querySelector('[data-testid="filter-options-date"]');
+        const dateContainer = panel.querySelector('[data-testid="filter-options-date"]');
+        const categoryContainer = panel.querySelector('[data-testid="filter-options-category"]');
         const accordion = panel.querySelector('.filter-accordion');
-        if (!chipsContainer || !accordion) return null;
-        const cmp = chipsContainer.compareDocumentPosition(accordion);
-        // DOCUMENT_POSITION_FOLLOWING (4) means the accordion is after the chips.
-        return Boolean(cmp & Node.DOCUMENT_POSITION_FOLLOWING);
+        if (!dateContainer || !categoryContainer || !accordion) return null;
+        // DOCUMENT_POSITION_FOLLOWING (4) means the second node comes after the first.
+        const dateBeforeCategory = Boolean(
+          dateContainer.compareDocumentPosition(categoryContainer) &
+          Node.DOCUMENT_POSITION_FOLLOWING
+        );
+        const categoryBeforeAccordion = Boolean(
+          categoryContainer.compareDocumentPosition(accordion) & Node.DOCUMENT_POSITION_FOLLOWING
+        );
+        return dateBeforeCategory && categoryBeforeAccordion;
       });
       expect(order).toBe(true);
     });
