@@ -1,1 +1,3 @@
-/*  /index.html  200
+https://thetribe.at/*       https://events.thetribe.at/:splat   301!
+https://www.thetribe.at/*   https://events.thetribe.at/:splat   301!
+/*                          /index.html                        200
