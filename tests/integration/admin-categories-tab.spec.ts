@@ -15,13 +15,13 @@ const SEED_NAMES = [
 ];
 
 const SEED_CATEGORIES = [
-  { id: 'breathwork', name: 'Breathwork', color: '#bf5b4e' },
-  { id: 'meditation', name: 'Meditation', color: '#5c6b3f' },
-  { id: 'singen', name: 'Singen', color: '#9a5f38' },
-  { id: 'sonstiges', name: 'Sonstiges', color: '#605e5e' },
-  { id: 'soundhealing', name: 'Soundhealing', color: '#6b568b' },
-  { id: 'tanz', name: 'Tanz', color: '#8a6d2f' },
-  { id: 'yoga', name: 'Yoga', color: '#c48e6a' },
+  { id: 'breathwork', name: 'Breathwork', color: '#bf5b4e', order: 100 },
+  { id: 'meditation', name: 'Meditation', color: '#5c6b3f', order: 200 },
+  { id: 'singen', name: 'Singen', color: '#9a5f38', order: 400 },
+  { id: 'sonstiges', name: 'Sonstiges', color: '#605e5e', order: 600 },
+  { id: 'soundhealing', name: 'Soundhealing', color: '#6b568b', order: 500 },
+  { id: 'tanz', name: 'Tanz', color: '#8a6d2f', order: 300 },
+  { id: 'yoga', name: 'Yoga', color: '#c48e6a', order: 0 },
 ];
 
 async function clearCollection(collectionName: string): Promise<void> {
@@ -32,31 +32,42 @@ async function clearCollection(collectionName: string): Promise<void> {
   const payload = (await response.json()) as { documents?: Array<{ name: string }> };
   const docs = payload.documents || [];
   await Promise.all(
-    docs.map((doc) =>
-      fetch(doc.name.replace(/^.*\/v1/, FIRESTORE_BASE), {
+    docs.map((doc) => {
+      // doc.name is the relative path returned by the Firestore REST API
+      // (e.g. "projects/.../categories/<id>"). Rebuild the absolute URL
+      // instead of trying to splice into it — the previous regex-based
+      // approach silently no-op'd because the returned names don't contain
+      // "/v1", leaving stale docs (including leftover TestCat-* from prior
+      // runs) to pollute the registry.
+      const id = doc.name.split('/').pop();
+      return fetch(`${FIRESTORE_BASE}/${collectionName}/${id}`, {
         method: 'DELETE',
         headers: { Authorization: 'Bearer owner' },
-      }).catch(() => {})
-    )
+      }).catch(() => {});
+    })
   );
 }
 
 async function seedCategories(): Promise<void> {
-  await Promise.all(
-    SEED_CATEGORIES.map((cat) =>
-      fetch(`${FIRESTORE_BASE}/categories/${cat.id}`, {
-        method: 'PATCH',
-        headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fields: {
-            name: { stringValue: cat.name },
-            color: { stringValue: cat.color },
-            createdBy: { stringValue: 'system' },
-          },
-        }),
-      })
-    )
-  );
+  // Write serially so the Firestore snapshot never lands mid-batch with
+  // some categories carrying the `order` field and others not. With
+  // Promise.all the writes race and the registry's comparator falls back
+  // to alphabetical sorting for the not-yet-written rows, scrambling the
+  // test's "initial order" expectations.
+  for (const cat of SEED_CATEGORIES) {
+    await fetch(`${FIRESTORE_BASE}/categories/${cat.id}`, {
+      method: 'PATCH',
+      headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fields: {
+          name: { stringValue: cat.name },
+          color: { stringValue: cat.color },
+          order: { integerValue: String(cat.order) },
+          createdBy: { stringValue: 'system' },
+        },
+      }),
+    });
+  }
 }
 
 const RUN_ID = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
@@ -201,5 +212,64 @@ test.describe('Admin Kategorien tab (Uu0EoNra)', () => {
     await hex.fill('not-a-color');
     await expect(hex).toHaveAttribute('aria-invalid', 'true');
     await expect(page.getByTestId('category-edit-save')).toBeDisabled();
+  });
+
+  test('admin can reorder categories and the new order is reflected on the admin page', async ({
+    page,
+  }) => {
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin?tab=categories');
+    await expect(page.getByTestId('categories-tab')).toBeVisible();
+    await expect(page.locator('[data-testid="category-row"]')).toHaveCount(7, { timeout: 15000 });
+
+    // Capture Yoga's current index. After clicking "down" once, Yoga swaps
+    // with the row immediately below it — that row's id will be left at
+    // Yoga's original index, so we assert against the row at yogaIdx.
+    const yogaIdx = await page.locator('[data-testid="category-row"]').evaluateAll((rows) => {
+      return rows.findIndex((row) => {
+        const id = row.getAttribute('data-category-id');
+        return id === 'yoga' || (row.textContent && row.textContent.includes('Yoga'));
+      });
+    });
+    expect(yogaIdx).toBeGreaterThanOrEqual(0);
+    const yogaNeighbourId = await page
+      .locator('[data-testid="category-row"]')
+      .nth(yogaIdx + 1)
+      .getAttribute('data-category-id');
+
+    await page
+      .locator('[data-testid="category-row"]')
+      .filter({ hasText: 'Yoga' })
+      .getByTestId('category-row-down')
+      .click();
+
+    await expect(page.locator('[data-testid="category-row"]').nth(yogaIdx)).toHaveAttribute(
+      'data-category-id',
+      yogaNeighbourId,
+      { timeout: 15000 }
+    );
+
+    // Yoga should now sit one row below where it started.
+    await expect(page.locator('[data-testid="category-row"]').nth(yogaIdx + 1)).toHaveAttribute(
+      'data-category-id',
+      'yoga',
+      { timeout: 15000 }
+    );
+  });
+
+  test('the first row has its up button disabled and the last row its down button', async ({
+    page,
+  }) => {
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin?tab=categories');
+    await expect(page.locator('[data-testid="category-row"]').first()).toHaveAttribute(
+      'data-category-id',
+      'yoga',
+      { timeout: 15000 }
+    );
+
+    const rows = page.locator('[data-testid="category-row"]');
+    await expect(rows.first().getByTestId('category-row-up')).toBeDisabled();
+    await expect(rows.last().getByTestId('category-row-down')).toBeDisabled();
   });
 });

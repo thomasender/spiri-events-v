@@ -42,6 +42,9 @@ service cloud.firestore {
     function isValidCategoryColor(color) {
       return color is string && color.matches('^#[0-9a-fA-F]{6}$');
     }
+    function isValidCategoryOrder(order) {
+      return order is int && order >= 0;
+    }
 
     match /events/{eventId} {
       allow read: if isApproved() || isOwner() || isAdminOrEmulatorAdmin();
@@ -129,10 +132,12 @@ service cloud.firestore {
       allow read: if true;
       allow create: if (isAdminOrEmulatorAdmin()
                        && request.resource.data.keys().hasOnly(
-                         ['name', 'color', 'createdAt', 'updatedAt', 'createdBy']
+                         ['name', 'color', 'order', 'createdAt', 'updatedAt', 'createdBy']
                        )
                        && isValidCategoryName(request.resource.data.name)
-                       && isValidCategoryColor(request.resource.data.color))
+                       && isValidCategoryColor(request.resource.data.color)
+                       && (!('order' in request.resource.data)
+                           || isValidCategoryOrder(request.resource.data.order)))
                      || (request.auth == null
                          && request.resource.data.createdBy == 'system'
                          && request.resource.data.name in [
@@ -148,9 +153,17 @@ service cloud.firestore {
                          && isValidCategoryColor(request.resource.data.color));
       allow update: if isAdminOrEmulatorAdmin()
                     && request.resource.data.diff(resource.data).affectedKeys()
-                          .hasOnly(['name', 'color', 'updatedAt'])
-                    && isValidCategoryName(request.resource.data.name)
-                    && isValidCategoryColor(request.resource.data.color);
+                          .hasOnly(['name', 'color', 'order', 'updatedAt'])
+                    // Only validate the fields the admin actually changed —
+                    // `request.resource.data` carries just the changed keys,
+                    // not the merged document, so checking `name` on a
+                    // reorder-only update would falsely fail.
+                    && (!('name' in request.resource.data)
+                        || isValidCategoryName(request.resource.data.name))
+                    && (!('color' in request.resource.data)
+                        || isValidCategoryColor(request.resource.data.color))
+                    && (!('order' in request.resource.data)
+                        || isValidCategoryOrder(request.resource.data.order));
       allow delete: if isAdminOrEmulatorAdmin();
     }
 

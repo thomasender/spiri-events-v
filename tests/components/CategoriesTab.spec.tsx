@@ -12,6 +12,18 @@ const mockRegistry = vi.hoisted(() => ({
   addCategory: vi.fn(),
   updateCategory: vi.fn(),
   deleteCategory: vi.fn(),
+  reorderCategories: vi.fn(async (orderedIds) => {
+    // Update the mock registry's local order so the snapshot the component
+    // re-reads reflects the move — mirrors how the real hook writes back
+    // through the onSnapshot listener.
+    const map = new Map(mockRegistry.categories.map((c) => [c.id, c]));
+    mockRegistry.categories = orderedIds
+      .map((id, index) => {
+        const cat = map.get(id);
+        return cat ? { ...cat, order: index * 100 } : null;
+      })
+      .filter(Boolean);
+  }),
 }));
 
 const mockEvents = vi.hoisted(() => ({ events: [] }));
@@ -146,5 +158,57 @@ describe('CategoriesTab', () => {
     expect(
       screen.getByText(/Beim Löschen verlieren diese Events ihre Kategorie-Zuordnung/)
     ).toBeInTheDocument();
+  });
+
+  it('disables the up button on the first row and the down button on the last row', () => {
+    mockRegistry.categories = SEED_CATS;
+    render(<CategoriesTab />);
+
+    const upButtons = screen.getAllByTestId('category-row-up');
+    const downButtons = screen.getAllByTestId('category-row-down');
+    // Alphabetical: Breathwork (0), Meditation (1), Yoga (2).
+    expect(upButtons[0]).toBeDisabled();
+    expect(downButtons[0]).not.toBeDisabled();
+    expect(upButtons[2]).not.toBeDisabled();
+    expect(downButtons[2]).toBeDisabled();
+  });
+
+  it('calls reorderCategories with the swapped ids when "down" is clicked', async () => {
+    mockRegistry.categories = SEED_CATS;
+    render(<CategoriesTab />);
+
+    const downButtons = screen.getAllByTestId('category-row-down');
+    fireEvent.click(downButtons[0]); // Move Breathwork below Meditation
+
+    await waitFor(() => {
+      expect(mockRegistry.reorderCategories).toHaveBeenCalledWith([
+        'meditation',
+        'breathwork',
+        'yoga',
+      ]);
+    });
+  });
+
+  it('calls reorderCategories with the swapped ids when "up" is clicked', async () => {
+    mockRegistry.categories = SEED_CATS;
+    render(<CategoriesTab />);
+
+    const upButtons = screen.getAllByTestId('category-row-up');
+    fireEvent.click(upButtons[2]); // Move Yoga above Meditation
+
+    await waitFor(() => {
+      expect(mockRegistry.reorderCategories).toHaveBeenCalledWith([
+        'breathwork',
+        'yoga',
+        'meditation',
+      ]);
+    });
+  });
+
+  it('shows a drag handle on each row so reordering is discoverable', () => {
+    mockRegistry.categories = SEED_CATS;
+    render(<CategoriesTab />);
+    const handles = screen.getAllByTestId('category-row-drag-handle');
+    expect(handles).toHaveLength(3);
   });
 });

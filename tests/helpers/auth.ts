@@ -54,8 +54,20 @@ export async function signOut(page: Page): Promise<void> {
       .catch(() => false)
   ) {
     await page.locator('.menu-toggle').click();
-    await page.locator('.nav-mobile--open button.nav-link--logout').click();
-    signedOut = true;
+    // The mobile menu opens even when no user is signed in (it then shows
+    // an "Anmelden" link instead of a logout button). Guard the logout
+    // selector with a short timeout so we don't block the test on a
+    // locator that will never resolve.
+    const mobileLogoutOpen = page.locator('.nav-mobile--open button.nav-link--logout');
+    if (await mobileLogoutOpen.isVisible({ timeout: 1000 }).catch(() => false)) {
+      await mobileLogoutOpen.click();
+      signedOut = true;
+    } else {
+      await page
+        .locator('.menu-toggle')
+        .click({ timeout: 1000 })
+        .catch(() => {});
+    }
   }
 
   if (signedOut) {
