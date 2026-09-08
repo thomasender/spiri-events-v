@@ -38,10 +38,39 @@
   border-radius: var(--radius-md);
   background-color: var(--bg-calendar);
   transition: border-color 0.15s ease;
+  position: relative;
 }
 
 .category-row:hover {
   border-color: var(--text-light);
+}
+
+.category-row--busy {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.category-row[data-drop-before] {
+  box-shadow: 0 -3px 0 0 var(--accent-primary);
+}
+
+.category-row[data-drop-after] {
+  box-shadow: 0 3px 0 0 var(--accent-primary);
+}
+
+.category-row-drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-light);
+  cursor: grab;
+  flex-shrink: 0;
+  user-select: none;
+  touch-action: none;
+}
+
+.category-row-drag-handle:active {
+  cursor: grabbing;
 }
 
 .category-row-swatch {
@@ -79,6 +108,42 @@
   display: flex;
   gap: 8px;
   flex-shrink: 0;
+}
+
+.category-row-reorder {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.category-row-reorder-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background-color: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.category-row-reorder-btn:hover:not(:disabled) {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: var(--text-light);
+}
+
+.category-row-reorder-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 .category-row-action {
@@ -150,7 +215,7 @@
   }
 
   .category-row-info {
-    flex-basis: calc(100% - 52px);
+    flex-basis: calc(100% - 96px);
   }
 
   .category-row-actions {

@@ -199,4 +199,94 @@ describe('useCategoryRegistry', () => {
     });
     mockAuth.role = 'Admin';
   });
+
+  it('sorts categories by admin-defined order with name as a tiebreaker', () => {
+    mockRegistryState.docs = [
+      { id: 'singen', data: { name: 'Singen', color: '#9a5f38', order: 400 } },
+      { id: 'yoga', data: { name: 'Yoga', color: '#c48e6a', order: 100 } },
+      { id: 'tanz', data: { name: 'Tanz', color: '#8a6d2f', order: 300 } },
+      // Categories without an order should sink to the end.
+      { id: 'legacy', data: { name: 'Legacy', color: '#605e5e' } },
+      { id: 'alpha-legacy', data: { name: 'Alpha Legacy', color: '#605e5e' } },
+    ];
+    const { result } = renderHook(() => useCategoryRegistry());
+    expect(result.current.categories.map((c) => c.id)).toEqual([
+      'yoga',
+      'tanz',
+      'singen',
+      'alpha-legacy',
+      'legacy',
+    ]);
+  });
+
+  it('falls back to alphabetical sort when no category has an order field', () => {
+    mockRegistryState.docs = [
+      { id: 'yoga', data: { name: 'Yoga', color: '#c48e6a' } },
+      { id: 'breathwork', data: { name: 'Breathwork', color: '#bf5b4e' } },
+      { id: 'tanz', data: { name: 'Tanz', color: '#8a6d2f' } },
+    ];
+    const { result } = renderHook(() => useCategoryRegistry());
+    expect(result.current.categories.map((c) => c.id)).toEqual(['breathwork', 'tanz', 'yoga']);
+  });
+
+  it('writes an order for newly created categories so they appear at the end', async () => {
+    mockRegistryState.docs = [
+      { id: 'yoga', data: { name: 'Yoga', color: '#c48e6a', order: 100 } },
+      { id: 'tanz', data: { name: 'Tanz', color: '#8a6d2f', order: 200 } },
+    ];
+    const { result } = renderHook(() => useCategoryRegistry());
+    await act(async () => {
+      await result.current.addCategory({ name: 'Pilates', color: '#4a7572' });
+    });
+    const created = mockRegistryState.docs.find((d) => d.id === 'pilates');
+    expect(created.data.order).toBe(300);
+  });
+
+  it('persists a new ordering via reorderCategories', async () => {
+    mockRegistryState.docs = [
+      { id: 'yoga', data: { name: 'Yoga', color: '#c48e6a', order: 100 } },
+      { id: 'tanz', data: { name: 'Tanz', color: '#8a6d2f', order: 200 } },
+      { id: 'singen', data: { name: 'Singen', color: '#9a5f38', order: 300 } },
+    ];
+    const { result } = renderHook(() => useCategoryRegistry());
+    await act(async () => {
+      await result.current.reorderCategories(['tanz', 'yoga', 'singen']);
+    });
+    const yoga = mockRegistryState.docs.find((d) => d.id === 'yoga');
+    const tanz = mockRegistryState.docs.find((d) => d.id === 'tanz');
+    const singen = mockRegistryState.docs.find((d) => d.id === 'singen');
+    expect(tanz.data.order).toBe(0);
+    expect(yoga.data.order).toBe(100);
+    expect(singen.data.order).toBe(200);
+  });
+
+  it('refuses to reorder when the caller passes an unknown id', async () => {
+    mockRegistryState.docs = [{ id: 'yoga', data: { name: 'Yoga', color: '#c48e6a', order: 100 } }];
+    const { result } = renderHook(() => useCategoryRegistry());
+    await act(async () => {
+      await expect(result.current.reorderCategories(['yoga', 'nonexistent'])).rejects.toThrow(
+        /Unbekannte Kategorie/
+      );
+    });
+  });
+
+  it('refuses to reorder when the caller passes a duplicate id', async () => {
+    mockRegistryState.docs = [{ id: 'yoga', data: { name: 'Yoga', color: '#c48e6a', order: 100 } }];
+    const { result } = renderHook(() => useCategoryRegistry());
+    await act(async () => {
+      await expect(result.current.reorderCategories(['yoga', 'yoga'])).rejects.toThrow(
+        /Doppelte Kategorie/
+      );
+    });
+  });
+
+  it('refuses to reorder when the caller is not admin', async () => {
+    mockRegistryState.docs = [{ id: 'yoga', data: { name: 'Yoga', color: '#c48e6a', order: 100 } }];
+    mockAuth.role = 'User';
+    const { result } = renderHook(() => useCategoryRegistry());
+    await act(async () => {
+      await expect(result.current.reorderCategories(['yoga'])).rejects.toThrow(/Nur Admins/);
+    });
+    mockAuth.role = 'Admin';
+  });
 });
