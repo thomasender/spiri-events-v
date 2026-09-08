@@ -179,14 +179,35 @@ service cloud.firestore {
     match /app_settings/{docId} {
       allow read: if true;
 
-      // Anonymous system bootstrap — only the canonical `theme` doc may be
-      // created this way, and only when the doc carries `createdBy == 'system'`.
+      // Two create paths so an admin is never locked out if the system
+      // seeder fails to run:
+      //   1. Anonymous bootstrap gated on `createdBy == 'system'`.
+      //   2. Admin write — same field whitelist as updates.
       allow create: if docId == 'theme'
-                    && request.auth == null
-                    && request.resource.data.createdBy == 'system'
-                    && request.resource.data.updatedBy == null
-                    && request.resource.data.updatedAt != null
-                    && request.resource.data.createdAt != null;
+                    && (
+                      (request.auth == null
+                        && request.resource.data.createdBy == 'system'
+                        && request.resource.data.updatedBy == null
+                        && request.resource.data.updatedAt != null
+                        && request.resource.data.createdAt != null)
+                      || (isAdminOrEmulatorAdmin()
+                        && request.resource.data.keys().hasOnly([
+                          'createdBy', 'createdAt', 'updatedAt', 'updatedBy',
+                          '--bg-primary', '--bg-secondary', '--bg-calendar',
+                          '--heading-color',
+                          '--accent-secondary', '--accent-primary',
+                          '--accent-primary-hover', '--accent-primary-strong',
+                          '--accent-soft',
+                          '--text-primary', '--text-secondary', '--text-light',
+                          '--border', '--error', '--error-hover',
+                          '--chip-bg', '--chip-text',
+                          '--free-bg', '--free-text',
+                          '--fee-bg', '--fee-text',
+                          '--donation-bg', '--donation-text',
+                          '--pending-bg', '--pending-text',
+                          '--sound-healing', '--category-teal',
+                        ]))
+                    );
 
       // Admin write path — partial updates (merge) must include only
       // known token names plus the bookkeeping fields. `affectedKeys()`
