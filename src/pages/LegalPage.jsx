@@ -20,11 +20,11 @@ E-Mail: thomas@blissofkundalini.yoga`,
         heading: '2. Welche Daten wir erheben',
         text: `Wir erheben und verarbeiten nur die Daten, die für den Betrieb dieser App notwendig sind.
 
-**Bei der Registrierung:**
+*Bei der Registrierung:*
 - E-Mail-Adresse (für die Authentifizierung)
 - Passwort (verschlüsselt gespeichert, Firebase Authentication)
 
-**Bei der Erstellung von Events:**
+*Bei der Erstellung von Events:*
 - Titel, Datum, Uhrzeit, Ort
 - Beschreibung
 - Beitrag (kostenlos, gegen Gebühr oder freie Spende)
@@ -37,11 +37,11 @@ Diese Daten werden in Firestore (Firebase) gespeichert. Event-Bilder werden in F
         heading: '3. Zweck und Rechtsgrundlage der Verarbeitung',
         text: `Wir verarbeiten Ihre Daten auf Grundlage folgender Rechtsgrundlagen:
 
-**Vertragserfüllung (Art. 6 Abs. 1 lit. b DSGVO):**
+*Vertragserfüllung (Art. 6 Abs. 1 lit. b DSGVO):*
 - Registrierung und Authentifizierung
 - Verwaltung Ihrer Events
 
-**Berechtigte Interessen (Art. 6 Abs. 1 lit. f DSGVO):**
+*Berechtigte Interessen (Art. 6 Abs. 1 lit. f DSGVO):*
 - Bereitstellung der App-Funktionalität
 - Sicherstellung des ordnungsgemäßen Betriebs`,
       },
@@ -55,8 +55,8 @@ Firebase (Google) fungiert als Auftragsverarbeiter und erhält Ihre Daten nur in
         heading: '5. Speicherdauer',
         text: `Wir speichern Ihre Daten so lange, wie Sie Ihr Konto aktiv nutzen:
 
-- **Account-Daten:** Werden gelöscht, sobald Sie Ihr Konto löschen
-- **Events:** Werden gelöscht, wenn Sie diese löschen oder Ihr Konto entfernen lassen
+- *Account-Daten:* Werden gelöscht, sobald Sie Ihr Konto löschen
+- *Events:* Werden gelöscht, wenn Sie diese löschen oder Ihr Konto entfernen lassen
 
 Nach einer Löschunganfrage werden die Daten innerhalb von 30 Tagen entfernt.`,
       },
@@ -64,12 +64,12 @@ Nach einer Löschunganfrage werden die Daten innerhalb von 30 Tagen entfernt.`,
         heading: '6. Ihre Rechte',
         text: `Sie haben folgende Rechte bezüglich Ihrer personenbezogenen Daten:
 
-- **Auskunftsrecht (Art. 15 DSGVO):** Sie können Auskunft über Ihre gespeicherten Daten verlangen
-- **Recht auf Berichtigung (Art. 16 DSGVO):** Sie können unrichtige Daten korrigieren lassen
-- **Recht auf Löschung (Art. 17 DSGVO):** Sie können die Löschung Ihrer Daten verlangen
-- **Recht auf Einschränkung (Art. 18 DSGVO):** Sie können die Verarbeitung einschränken lassen
-- **Widerspruchsrecht (Art. 21 DSGVO):** Sie können der Verarbeitung widersprechen
-- **Recht auf Datenübertragbarkeit (Art. 20 DSGVO):** Sie können Ihre Daten in einem gängigen Format erhalten
+- *Auskunftsrecht (Art. 15 DSGVO):* Sie können Auskunft über Ihre gespeicherten Daten verlangen
+- *Recht auf Berichtigung (Art. 16 DSGVO):* Sie können unrichtige Daten korrigieren lassen
+- *Recht auf Löschung (Art. 17 DSGVO):* Sie können die Löschung Ihrer Daten verlangen
+- *Recht auf Einschränkung (Art. 18 DSGVO):* Sie können die Verarbeitung einschränken lassen
+- *Widerspruchsrecht (Art. 21 DSGVO):* Sie können der Verarbeitung widersprechen
+- *Recht auf Datenübertragbarkeit (Art. 20 DSGVO):* Sie können Ihre Daten in einem gängigen Format erhalten
 
 Um Ihre Rechte auszuüben, senden Sie eine E-Mail an kontakt@spirituelle-events-vorarlberg.at`,
       },
@@ -99,12 +99,12 @@ Weitere Informationen finden Sie in der Datenschutzerklärung von Google: https:
         heading: '10. Bildspeicherung (Firebase Cloud Storage)',
         text: `Wenn Sie ein Bild zu einem Event hochladen, wird dieses in Firebase Cloud Storage gespeichert. Firebase Cloud Storage ist ein Dienst von Google Ireland Limited und speichert die Daten auf Google-Servern.
 
-**Was bedeutet das für Sie?**
+*Was bedeutet das für Sie?*
 - Das hochgeladene Bild wird auf Servern innerhalb der EU/des EWR gespeichert und ist über eine öffentliche URL abrufbar (damit das Bild auf der Event-Seite angezeigt werden kann)
 - Die Verarbeitung erfolgt im Rahmen der Datenverarbeitung mit Google (Firebase), der gleichen Infrastruktur, die wir auch für die übrigen App-Daten nutzen
 - Die URLs der Bilder sind öffentlich und können von jedem eingesehen werden
 
-**Löschen von Bildern:**
+*Löschen von Bildern:*
 - Wenn Sie ein Event bearbeiten und das Bild entfernen oder ersetzen, wird das alte Bild automatisch aus dem Speicher gelöscht
 - Wenn Sie ein Event löschen, wird auch das zugehörige Bild entfernt
 
@@ -183,14 +183,14 @@ Für den Inhalt und die Richtigkeit der von Ihnen erstellten Events sind Sie sel
         heading: '5. Kostenpflichtige Veranstaltungen',
         text: `Die Plattform ermöglicht es Nutzern, Events mit einem Teilnahmebeitrag (Gebühr) zu kennzeichnen. Für kostenpflichtige Veranstaltungen gelten folgende Regelungen:
 
-**Haftungsausschluss:**
+*Haftungsausschluss:*
 - Die Plattform fungiert NICHT als Zahlungsdienstleister oder Treuhänder
 - Die Plattform übermittelt KEINE Zahlungen zwischen Event-Erstellern und Teilnehmern
 - Etwaige Zahlungsvereinbarungen werden ausschließlich zwischen dem Event-Erstatter und den Teilnehmern direkt getroffen
 - Die Plattform übernimmt KEINE Haftung für Zahlungen, Rückerstattungen oder Streitigkeiten im Zusammenhang mit kostenpflichtigen Veranstaltungen
 - Bei kostenpflichtigen Events obliegt es dem Event-Erstatter, die Zahlungsabwicklung eigenverantwortlich und im Einklang mit geltendem Recht zu regeln (z.B. Rechnungslegung, steuerliche Pflichten)
 
-**Empfehlung:**
+*Empfehlung:*
 Wir empfehlen Event-Erstellern, bei kostenpflichtigen Veranstaltungen klare Zahlungsbedingungen in der Event-Beschreibung anzugeben und geeignete Zahlungswege (z.B. Überweisung, PayPal, etc.) selbst zu organisieren.`,
       },
       {
@@ -247,7 +247,7 @@ Geplante Wartungsarbeiten werden wir nach Möglichkeit im Voraus ankündigen.`,
         heading: '11. Haftung',
         text: `Wir haften nicht für Schäden, die durch die Nutzung der Plattform entstehen, es sei denn, diese wurden durch Vorsatz oder grobe Fahrlässigkeit verursacht. Dies gilt nicht für Schäden an Leben, Körper oder Gesundheit.
 
-**Haftungsausschluss im Detail:**
+*Haftungsausschluss im Detail:*
 - Für Events, die von Nutzern erstellt werden, übernehmen wir keine Verantwortung
 - Die Teilnahme an Events erfolgt auf eigene Verantwortung der Teilnehmer
 - Für kostenpflichtige Transaktionen zwischen Event-Erstellern und Teilnehmern übernehmen wir keine Haftung
