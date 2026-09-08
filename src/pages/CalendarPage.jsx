@@ -45,6 +45,8 @@ const HERO_FEATURES = [
   },
 ];
 
+const HERO_SLIDER_INTERVAL_MS = 4000;
+
 function loadFilterState() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -103,6 +105,28 @@ export default function CalendarPage() {
   const [viewMode, setViewMode] = useState(savedState?.viewMode || 'card');
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
   const { events, loading, error } = useAllEvents();
+
+  const [activeHeroFeature, setActiveHeroFeature] = useState(0);
+  const heroSliderRef = useRef(null);
+
+  // Auto-rotate the hero features every HERO_SLIDER_INTERVAL_MS. Users cannot
+  // swipe/click through the items by design — the slider is purely presentational
+  // and exists so the hero stays compact (one row of bullet points).
+  // prefers-reduced-motion disables the rotation.
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    if (prefersReducedMotion) return undefined;
+
+    const id = window.setInterval(() => {
+      setActiveHeroFeature((prev) => (prev + 1) % HERO_FEATURES.length);
+    }, HERO_SLIDER_INTERVAL_MS);
+    heroSliderRef.current = id;
+    return () => {
+      window.clearInterval(id);
+      if (heroSliderRef.current === id) heroSliderRef.current = null;
+    };
+  }, []);
 
   // Tracks every category we have ever surfaced in the filter, so we can
   // auto-include only genuinely NEW ones (and never re-add a category the
@@ -246,17 +270,35 @@ export default function CalendarPage() {
             <br />
             weitere Veranstaltungen in Vorarlberg.
           </p>
-          <ul className="hero-features">
-            {HERO_FEATURES.map(({ icon: Icon, title, description }) => (
-              <li key={title}>
-                <Icon size={20} />
-                <div>
-                  <span className="hero-feature-title">{title}</span>
-                  <span className="hero-feature-description">{description}</span>
+          <div
+            className="hero-features-slider"
+            role="group"
+            aria-roledescription="carousel"
+            aria-label="Was die Seite bietet"
+            data-testid="hero-features-slider"
+          >
+            {HERO_FEATURES.map(({ icon: Icon, title, description }, index) => {
+              const isActive = index === activeHeroFeature;
+              return (
+                <div
+                  key={title}
+                  className={`hero-feature-slide${isActive ? ' is-active' : ''}`}
+                  role="group"
+                  aria-roledescription="slide"
+                  aria-label={`${index + 1} von ${HERO_FEATURES.length}`}
+                  aria-hidden={!isActive}
+                  data-testid="hero-feature-slide"
+                  data-slide-index={index}
+                >
+                  <Icon size={20} aria-hidden="true" />
+                  <div>
+                    <span className="hero-feature-title">{title}</span>
+                    <span className="hero-feature-description">{description}</span>
+                  </div>
                 </div>
-              </li>
-            ))}
-          </ul>
+              );
+            })}
+          </div>
         </div>
       </section>
 

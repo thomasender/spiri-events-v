@@ -18,7 +18,7 @@ test.describe('Hero layout', () => {
     expect(heroImageRequest, 'no /hero.jpeg request should be made').toBeNull();
   });
 
-  test('still renders the hero title, subtitle and feature list', async ({ page }) => {
+  test('still renders the hero title, subtitle and feature slider', async ({ page }) => {
     await expect(page.locator('section.hero .hero-title')).toBeVisible();
     await expect(page.locator('section.hero .hero-title')).toContainText('Finde Events');
     await expect(page.locator('section.hero .hero-title')).toContainText('Finde');
@@ -26,9 +26,14 @@ test.describe('Hero layout', () => {
 
     await expect(page.locator('section.hero .hero-subtitle')).toBeVisible();
 
-    const features = page.locator('section.hero .hero-features li');
-    await expect(features).toHaveCount(4);
-    await expect(features.first()).toBeVisible();
+    const slider = page.locator('section.hero [data-testid="hero-features-slider"]');
+    await expect(slider).toBeVisible();
+
+    const slides = page.locator('section.hero [data-testid="hero-feature-slide"]');
+    await expect(slides).toHaveCount(4);
+    // First slide is the active one on mount.
+    await expect(slides.nth(0)).toHaveClass(/is-active/);
+    await expect(slides.nth(0)).toBeVisible();
   });
 
   test('hero section is compact on desktop (no full-bleed image)', async ({ page }) => {
