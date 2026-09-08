@@ -51,31 +51,6 @@
   margin-bottom: 20px;
 }
 
-.hero-features {
-  display: flex;
-  flex-flow: row wrap;
-  gap: 20px;
-  list-style: none;
-}
-
-.hero-features li {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  min-width: 0;
-  color: var(--accent-secondary);
-}
-
-.hero-features li svg {
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.hero-features li div {
-  display: flex;
-  flex-direction: column;
-}
-
 .hero-feature-title {
   font-size: var(--fs-body);
   font-weight: 600;
@@ -87,6 +62,80 @@
   color: var(--text-secondary);
 }
 
+/* ----------------------------------------------------------------
+   Hero feature slider — one rotating bullet point at a time, green
+   "waldgrün" background (#5C6B3F), light text/icons for contrast.
+   Auto-advances every 4s; users cannot swipe or click through.
+   ---------------------------------------------------------------- */
+.hero-features-slider {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 14px 18px;
+  background-color: #5c6b3f;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  color: var(--bg-primary);
+}
+
+.hero-feature-slide {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  position: absolute;
+  inset: 14px 18px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(8px);
+  transition:
+    opacity 0.4s ease,
+    transform 0.4s ease,
+    visibility 0s linear 0.4s;
+}
+
+.hero-feature-slide.is-active {
+  position: relative;
+  inset: auto;
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+  transition:
+    opacity 0.4s ease,
+    transform 0.4s ease,
+    visibility 0s linear 0s;
+}
+
+.hero-feature-slide svg {
+  flex-shrink: 0;
+  color: var(--bg-primary);
+}
+
+.hero-feature-slide div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.hero-feature-slide .hero-feature-title {
+  color: var(--bg-primary);
+}
+
+.hero-feature-slide .hero-feature-description {
+  color: var(--bg-primary);
+  opacity: 0.85;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-feature-slide,
+  .hero-feature-slide.is-active {
+    transition: none;
+    transform: none;
+  }
+}
+
 /* ============================================
    PAGE LAYOUT (main column + calendar sidebar)
    ============================================ */
@@ -96,7 +145,8 @@
   grid-template-columns: minmax(0, 1fr) 360px;
   align-items: start;
   gap: 32px;
-  max-width: 1400px;
+  width: 100%;
+  max-width: 85vw;
   margin: 0 auto;
   padding: 0 32px 48px;
 }
@@ -478,15 +528,6 @@
 }
 
 @media (max-width: 640px) {
-  .hero-features {
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .hero-features li {
-    flex: 0 1 auto;
-  }
-
   .page-layout {
     padding: 0 12px 32px;
   }
