@@ -38,6 +38,54 @@ const CATEGORY_FALLBACKS = {
 }
 const DEFAULT_EVENT_FALLBACK = '/event-fallbacks/sonstiges.jpg'
 
+// Hardcoded fallback for the theme snapshot. Mirrors `src/utils/themeDefaults.js`
+// and is only used when `data-export/firestore-export/theme.json` is
+// missing (e.g. before the first `prerender:refresh` run). Keep the keys
+// aligned with the hook's `THEME_VARIABLES` list — both sources drive the
+// same `:root` block.
+export const THEME_FALLBACK = {
+  '--bg-primary': '#f4f2f0',
+  '--bg-secondary': '#eae7e2',
+  '--bg-calendar': '#ffffff',
+  '--heading-color': '#a6a487',
+  '--accent-secondary': '#667c62',
+  '--accent-primary': '#c48e6a',
+  '--accent-primary-hover': '#9a5f38',
+  '--accent-primary-strong': '#9a5f38',
+  '--accent-soft': 'rgba(196, 142, 106, 0.14)',
+  '--text-primary': '#161819',
+  '--text-secondary': '#605e5e',
+  '--text-light': '#938d87',
+  '--border': '#e2dcd2',
+  '--error': '#bf5b4e',
+  '--error-hover': '#a94a3e',
+  '--chip-bg': 'rgba(196, 142, 106, 0.14)',
+  '--chip-text': '#9a5f38',
+  '--free-bg': 'rgba(122, 138, 95, 0.16)',
+  '--free-text': '#5c6b3f',
+  '--fee-bg': 'rgba(196, 142, 106, 0.16)',
+  '--fee-text': '#9a5f38',
+  '--donation-bg': 'rgba(140, 120, 180, 0.16)',
+  '--donation-text': '#6b568b',
+  '--pending-bg': 'rgba(198, 160, 92, 0.18)',
+  '--pending-text': '#8a6d2f',
+  '--sound-healing': '#6b568b',
+  '--category-teal': '#4a7572',
+}
+
+// Renders the `:root { ... }` CSS block that paints all admin-managed
+// theme variables into the prerendered HTML so crawlers and OG previews
+// see the same palette as the live app. Falls back to `THEME_FALLBACK`
+// when a key is missing from the snapshot.
+export function buildThemeRootBlock(theme) {
+  const lines = []
+  for (const [name, fallback] of Object.entries(THEME_FALLBACK)) {
+    const value = (theme && typeof theme[name] === 'string') ? theme[name] : fallback
+    lines.push(`      ${name}: ${value};`)
+  }
+  return `:root {\n${lines.join('\n')}\n    }`
+}
+
 export function getEventFallbackImage(event) {
   const category = event?.category
   return CATEGORY_FALLBACKS[category] || DEFAULT_EVENT_FALLBACK
@@ -122,7 +170,7 @@ export function buildEventDescription(event) {
   return `${event.title} - ${category} in ${event.bezirk || 'Vorarlberg'}`
 }
 
-export function generateEventHtml(event) {
+export function generateEventHtml(event, theme = THEME_FALLBACK) {
   const jsonLd = generateEventJsonLd(event)
   const isFree = event.contribution === 'free'
   const formattedDate = formatDate(event.date)
@@ -131,6 +179,7 @@ export function generateEventHtml(event) {
   const ogImage = getEventOgImage(event)
   const eventPath = getEventPath(event)
   const eventUrl = `${BASE_URL}/event/${eventPath}`
+  const themeRoot = buildThemeRootBlock(theme)
 
   return `<!DOCTYPE html>
 <html lang="de">
@@ -167,23 +216,7 @@ export function generateEventHtml(event) {
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Nunito+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
 
   <style>
-    :root {
-      --bg-primary: #FDFBF7;
-      --bg-secondary: #F5F0E8;
-      --bg-calendar: #FFFFFF;
-      --accent-primary: #8B7355;
-      --accent-lavender: #9B8AA6;
-      --accent-sage: #7D9B8A;
-      --text-primary: #3D3530;
-      --text-secondary: #7A6F68;
-      --border: #E8E0D5;
-      --error: #C17A7A;
-      --shadow-sm: 0 2px 8px rgba(61, 53, 48, 0.08);
-      --shadow-md: 0 4px 16px rgba(61, 53, 48, 0.12);
-      --radius-sm: 8px;
-      --radius-md: 12px;
-      --radius-lg: 20px;
-    }
+    ${themeRoot}
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'Nunito Sans', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -194,17 +227,17 @@ export function generateEventHtml(event) {
     }
     h1, h2, h3 { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; line-height: 1.3; }
     a { color: var(--accent-primary); text-decoration: none; transition: color 0.15s ease; }
-    a:hover { color: var(--accent-lavender); }
+    a:hover { color: var(--accent-primary-hover); }
     .event-detail-page { max-width: 800px; margin: 0 auto; padding: 40px 24px; }
     .event-header { margin-bottom: 32px; }
     .event-image { width: 100%; max-height: 400px; object-fit: cover; border-radius: var(--radius-md); margin-bottom: 24px; }
     .event-title { font-size: 2.5rem; margin-bottom: 16px; color: var(--text-primary); }
     .event-meta-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 16px; }
-    .category-chip { display: inline-flex; padding: 4px 12px; background-color: rgba(155, 138, 166, 0.15); color: var(--accent-lavender); border-radius: 16px; font-size: 0.8rem; font-weight: 500; }
+    .category-chip { display: inline-flex; padding: 4px 12px; background-color: var(--chip-bg); color: var(--chip-text); border-radius: 16px; font-size: 0.8rem; font-weight: 500; }
     .event-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 500; }
-    .badge--free { background-color: rgba(125, 155, 138, 0.15); color: var(--accent-sage); }
-    .badge--fee { background-color: rgba(139, 115, 85, 0.15); color: var(--accent-primary); }
-    .event-details { background: var(--bg-calendar); border-radius: var(--radius-md); padding: 24px; margin-bottom: 24px; box-shadow: var(--shadow-sm); }
+    .badge--free { background-color: var(--free-bg); color: var(--free-text); }
+    .badge--fee { background-color: var(--fee-bg); color: var(--fee-text); }
+    .event-details { background: var(--bg-calendar); border-radius: var(--radius-md); padding: 24px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(22, 24, 25, 0.06); }
     .detail-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
     .detail-item:last-child { border-bottom: none; }
     .detail-icon { color: var(--accent-primary); flex-shrink: 0; margin-top: 2px; }
@@ -214,7 +247,7 @@ export function generateEventHtml(event) {
     .event-description h3 { font-size: 1.3rem; margin-bottom: 12px; }
     .event-description p { color: var(--text-secondary); white-space: pre-wrap; }
     .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 24px; border-radius: var(--radius-sm); font-size: 0.95rem; font-weight: 500; transition: all 0.15s ease; background-color: var(--accent-primary); color: white; }
-    .btn:hover { background-color: #7A6349; transform: translateY(-1px); box-shadow: var(--shadow-sm); color: white; }
+    .btn:hover { background-color: var(--accent-primary-hover); transform: translateY(-1px); box-shadow: 0 2px 8px rgba(22, 24, 25, 0.06); color: white; }
     .back-link { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 24px; font-size: 0.9rem; }
     .loading-spinner { display: flex; justify-content: center; align-items: center; padding: 48px; }
     .loading-spinner::after { content: ''; width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent-primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
@@ -292,7 +325,7 @@ export function generateEventHtml(event) {
 </html>`
 }
 
-export function generateCalendarPageHtml(events, jsBundlePath, cssBundlePath) {
+export function generateCalendarPageHtml(events, jsBundlePath, cssBundlePath, theme = THEME_FALLBACK) {
   const today = new Date().toISOString().split('T')[0]
   const upcomingEvents = events
     .filter(e => e.date && e.date >= today)
@@ -310,6 +343,7 @@ export function generateCalendarPageHtml(events, jsBundlePath, cssBundlePath) {
         </li>`
       }).join('')
     : '<li>Keine bevorstehenden Events</li>'
+  const themeRoot = buildThemeRootBlock(theme)
 
   return `<!DOCTYPE html>
 <html lang="de">
@@ -353,16 +387,7 @@ export function generateCalendarPageHtml(events, jsBundlePath, cssBundlePath) {
   })}</script>
 
   <style>
-    :root {
-      --bg-primary: #FDFBF7;
-      --bg-secondary: #F5F0E8;
-      --bg-calendar: #FFFFFF;
-      --accent-primary: #8B7355;
-      --accent-lavender: #9B8AA6;
-      --text-primary: #3D3530;
-      --text-secondary: #7A6F68;
-      --border: #E8E0D5;
-    }
+    ${themeRoot}
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'Nunito Sans', -apple-system, sans-serif;
@@ -372,7 +397,7 @@ export function generateCalendarPageHtml(events, jsBundlePath, cssBundlePath) {
     }
     h1, h2, h3 { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; }
     a { color: var(--accent-primary); text-decoration: none; }
-    a:hover { color: var(--accent-lavender); }
+    a:hover { color: var(--accent-primary-hover); }
     .calendar-page { min-height: 100vh; display: flex; flex-direction: column; }
     .page-header { background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%); padding: 48px 24px; text-align: center; }
     .header-content h1 { font-size: 2.5rem; margin-bottom: 8px; }
@@ -380,7 +405,7 @@ export function generateCalendarPageHtml(events, jsBundlePath, cssBundlePath) {
     .calendar-wrapper { max-width: 1000px; margin: 0 auto; padding: 40px 24px; flex: 1; }
     .page-title { font-size: 1.8rem; margin-bottom: 24px; text-align: center; }
     .events-list { list-style: none; display: grid; gap: 16px; }
-    .events-list li { background: var(--bg-calendar); border-radius: 8px; padding: 16px; box-shadow: 0 2px 8px rgba(61,53,48,0.08); }
+    .events-list li { background: var(--bg-calendar); border-radius: 8px; padding: 16px; box-shadow: 0 2px 8px rgba(22, 24, 25, 0.06); }
     .events-list a { display: flex; flex-direction: column; gap: 4px; }
     .events-list strong { font-size: 1.1rem; color: var(--text-primary); }
     .events-list span { font-size: 0.9rem; color: var(--text-secondary); }
@@ -517,6 +542,40 @@ export function loadEventsFromExport(exportPath) {
   return { events, source: eventsFile, error: null }
 }
 
+// Loads the `app_settings/theme` doc snapshot written by
+// `scripts/refresh-prerender-data.mjs`. The on-disk format is the same
+// Firestore emulator export shape used for `events.json` (a single doc
+// keyed `app_settings/theme`), so `unfirestore()` flattens it into a
+// plain `{ '--bg-primary': '#...', ... }` map. Missing or invalid files
+// fall back to `THEME_FALLBACK` so a build never fails just because the
+// theme doc hasn't been refreshed yet.
+export function loadThemeFromExport(exportPath) {
+  const themeFile = path.join(exportPath, 'theme.json')
+  if (!fs.existsSync(themeFile)) {
+    return { theme: { ...THEME_FALLBACK }, source: null, error: `No theme.json at ${themeFile}` }
+  }
+  try {
+    const raw = JSON.parse(fs.readFileSync(themeFile, 'utf8'))
+    // Single-doc export shape: { id: 'theme', fields: { '--bg-primary': { stringValue: '#...' }, ... } }
+    // or just { '--bg-primary': '#...', ... } if hand-edited.
+    const fields =
+      raw && typeof raw === 'object' && raw.fields && typeof raw.fields === 'object'
+        ? raw.fields
+        : raw
+    const resolved = { ...THEME_FALLBACK }
+    for (const [name, value] of Object.entries(fields || {})) {
+      if (!Object.prototype.hasOwnProperty.call(THEME_FALLBACK, name)) continue
+      const unwrapped = typeof value === 'string' ? value : unfirestore(value)
+      if (typeof unwrapped === 'string') {
+        resolved[name] = unwrapped
+      }
+    }
+    return { theme: resolved, source: themeFile, error: null }
+  } catch (err) {
+    return { theme: { ...THEME_FALLBACK }, source: themeFile, error: `Failed to read theme.json: ${err.message}` }
+  }
+}
+
 export async function loadEventsFromFirestore(firebaseConfig) {
   const { initializeApp } = await import('firebase/app')
   const { getFirestore, collection, getDocs } = await import('firebase/firestore')
@@ -612,6 +671,17 @@ export async function prerender({
   let events = []
   let source = null
 
+  // Theme snapshot: load whatever's in data-export/theme.json so the
+  // prerendered HTML paints the same palette admins see in the Theme tab.
+  // Falls back to bundled defaults if the file is missing or stale.
+  const themeResult = loadThemeFromExport(exportPath)
+  const theme = themeResult.theme
+  if (themeResult.error) {
+    console.warn(`Theme snapshot not used: ${themeResult.error}`)
+  } else {
+    console.log(`Loaded theme from ${themeResult.source}`)
+  }
+
   const exportResult = loadEventsFromExport(exportPath)
   if (exportResult.events.length > 0) {
     events = exportResult.events
@@ -677,7 +747,7 @@ export async function prerender({
 
     const eventDir = path.join(distPath, 'event', eventPath)
     ensureDir(eventDir)
-    const html = generateEventHtml(event)
+    const html = generateEventHtml(event, theme)
     const filePath = path.join(eventDir, 'index.html')
     fs.writeFileSync(filePath, html)
     writtenFiles.push({ path: `/event/${eventPath}/index.html`, slug: eventPath, title: event.title })
@@ -695,7 +765,7 @@ export async function prerender({
   if (fs.existsSync(assetsPath)) {
     const jsBundlePath = findJsBundlePath(assetsPath)
     const cssBundlePath = findCssBundlePath(assetsPath)
-    const calendarHtml = generateCalendarPageHtml(events, jsBundlePath, cssBundlePath)
+    const calendarHtml = generateCalendarPageHtml(events, jsBundlePath, cssBundlePath, theme)
     fs.writeFileSync(path.join(distPath, 'index.html'), calendarHtml)
     writtenFiles.push({ path: '/index.html', slug: null, title: SITE_NAME })
     console.log(`Prerendered calendar index page with ${events.length} events.`)

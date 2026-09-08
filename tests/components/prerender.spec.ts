@@ -229,6 +229,59 @@ describe('prerender.mjs helpers', () => {
       expect(html).not.toContain(`href="/event/${sampleEvents[0].id}"`);
     });
   });
+
+  describe('theme integration', () => {
+    it('renders the dynamic :root block from the provided theme', async () => {
+      const { generateEventHtml, THEME_FALLBACK } = await importPrerender();
+      const html = generateEventHtml(sampleEvents[0], {
+        ...THEME_FALLBACK,
+        '--accent-primary': '#abcdef',
+      });
+      expect(html).toContain('--accent-primary: #abcdef;');
+      expect(html).not.toContain('--accent-lavender');
+    });
+
+    it('falls back to bundled defaults when a theme token is missing', async () => {
+      const { generateEventHtml, THEME_FALLBACK } = await importPrerender();
+      const html = generateEventHtml(sampleEvents[0], {
+        '--accent-primary': '#abcdef',
+      });
+      expect(html).toContain(`--accent-primary: #abcdef;`);
+      expect(html).toContain(`--bg-primary: ${THEME_FALLBACK['--bg-primary']};`);
+    });
+
+    it('ignores unknown keys in the theme snapshot', async () => {
+      const { generateEventHtml } = await importPrerender();
+      const html = generateEventHtml(sampleEvents[0], {
+        '--accent-primary': '#abcdef',
+        '--injected-attack': 'expression(alert(1))',
+      });
+      expect(html).not.toContain('--injected-attack');
+    });
+
+    it('loadThemeFromExport returns bundled defaults when theme.json is missing', async () => {
+      const tmp = await makeFixtureDir('prerender-theme-missing-');
+      const { loadThemeFromExport, THEME_FALLBACK } = await importPrerender();
+      const result = loadThemeFromExport(tmp);
+      expect(result.theme).toEqual({ ...THEME_FALLBACK });
+      expect(result.error).toMatch(/theme\.json/);
+    });
+
+    it('loadThemeFromExport unwraps Firestore emulator export fields', async () => {
+      const tmp = await makeFixtureDir('prerender-theme-firestore-');
+      writeJson(path.join(tmp, 'theme.json'), {
+        id: 'theme',
+        '--accent-primary': { stringValue: '#abcdef' },
+        '--bg-primary': { stringValue: '#000000' },
+      });
+      const { loadThemeFromExport, THEME_FALLBACK } = await importPrerender();
+      const result = loadThemeFromExport(tmp);
+      expect(result.theme['--accent-primary']).toBe('#abcdef');
+      expect(result.theme['--bg-primary']).toBe('#000000');
+      expect(result.theme['--error']).toBe(THEME_FALLBACK['--error']);
+      expect(result.error).toBeNull();
+    });
+  });
 });
 
 describe('static index.html (production safety net)', () => {
@@ -448,5 +501,22 @@ describe('prerender() end-to-end', () => {
     expect(result.writtenFiles.filter((f) => f.path.startsWith('/event/'))).toHaveLength(0);
     expect(fs.existsSync(path.join(distPath, 'sitemap.xml'))).toBe(true);
     expect(fs.existsSync(path.join(distPath, 'prerender-manifest.json'))).toBe(true);
+  });
+
+  it('embeds the theme snapshot in the generated event HTML', async () => {
+    writeJson(path.join(exportPath, 'events.json'), [sampleEvents[0]]);
+    writeJson(path.join(exportPath, 'theme.json'), {
+      id: 'theme',
+      '--accent-primary': { stringValue: '#abcdef' },
+    });
+    const { prerender } = await importPrerender();
+    await prerender({ rootDir: tmpRoot, distPath, exportPath, skipFirestore: true });
+
+    const html = fs.readFileSync(
+      path.join(distPath, 'event', sampleEvents[0].slug, 'index.html'),
+      'utf8'
+    );
+    expect(html).toContain('--accent-primary: #abcdef;');
+    expect(html).not.toContain('--accent-lavender');
   });
 });

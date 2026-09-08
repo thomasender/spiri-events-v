@@ -34,8 +34,10 @@ test.describe('Hero feature slider', () => {
       };
     });
 
-    // #5C6B3F waldgrün
-    expect(styles.backgroundColor).toBe('rgb(92, 107, 63)');
+    // The slider pulls its background from the admin-managed
+    // --accent-secondary token (#667c62 Waldgrün); previously this was
+    // hardcoded to #5c6b3f and the test asserted that value directly.
+    expect(styles.backgroundColor).toBe('rgb(102, 124, 98)');
     // Light text/icon color comes from --bg-primary (#f4f2f0)
     expect(styles.color).toBe('rgb(244, 242, 240)');
   });

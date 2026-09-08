@@ -167,6 +167,53 @@ service cloud.firestore {
       allow delete: if isAdminOrEmulatorAdmin();
     }
 
+    // App-level settings — currently a single `theme` doc that holds the
+    // admin-managed CSS color variables. Public read (clients need to
+    // resolve the live values to paint `:root`), admin-only write. The
+    // `updateVariable` and `resetAllToDefaults` actions write via a
+    // merge with the keys that are actually changing, so we only need
+    // to validate the union of all known fields plus `updatedAt` /
+    // `updatedBy`. The canonical defaults land via `seedThemeIfMissing`
+    // (anonymous write gated on `createdBy == 'system'`), mirroring the
+    // categories bootstrap pattern.
+    match /app_settings/{docId} {
+      allow read: if true;
+
+      // Anonymous system bootstrap — only the canonical `theme` doc may be
+      // created this way, and only when the doc carries `createdBy == 'system'`.
+      allow create: if docId == 'theme'
+                    && request.auth == null
+                    && request.resource.data.createdBy == 'system'
+                    && request.resource.data.updatedBy == null
+                    && request.resource.data.updatedAt != null
+                    && request.resource.data.createdAt != null;
+
+      // Admin write path — partial updates (merge) must include only
+      // known token names plus the bookkeeping fields. `affectedKeys()`
+      // gives us exactly the keys touched by this update.
+      allow update: if docId == 'theme'
+                    && isAdminOrEmulatorAdmin()
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly([
+                          'createdBy', 'createdAt', 'updatedAt', 'updatedBy',
+                          '--bg-primary', '--bg-secondary', '--bg-calendar',
+                          '--heading-color',
+                          '--accent-secondary', '--accent-primary',
+                          '--accent-primary-hover', '--accent-primary-strong',
+                          '--accent-soft',
+                          '--text-primary', '--text-secondary', '--text-light',
+                          '--border', '--error', '--error-hover',
+                          '--chip-bg', '--chip-text',
+                          '--free-bg', '--free-text',
+                          '--fee-bg', '--fee-text',
+                          '--donation-bg', '--donation-text',
+                          '--pending-bg', '--pending-text',
+                          '--sound-healing', '--category-teal',
+                        ]);
+
+      allow delete: if isAdminOrEmulatorAdmin();
+    }
+
     // Feedback collection: anyone can submit anonymous feedback (with optional
     // name, email, and screenshot). Only admins can read / update / delete.
     match /feedback/{feedbackId} {
