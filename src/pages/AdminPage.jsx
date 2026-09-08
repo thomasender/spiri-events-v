@@ -9,6 +9,7 @@ import {
   Trash2,
   ClipboardCheck,
   Tag,
+  Palette,
 } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
 import EventList from '../components/EventList';
@@ -18,6 +19,7 @@ import TrashTab from '../components/TrashTab';
 import MessagesTab from '../components/MessagesTab';
 import FeedbackTab from '../components/FeedbackTab';
 import CategoriesTab from '../components/CategoriesTab';
+import ThemeTab from '../components/ThemeTab';
 import EmailVerificationBanner from '../components/EmailVerificationBanner';
 import EmailVerificationModal from '../components/EmailVerificationModal';
 import { useAuth } from '../hooks/useAuth';
@@ -35,6 +37,7 @@ const VALID_TABS = new Set([
   'feedback',
   'trash',
   'categories',
+  'theme',
 ]);
 
 export default function AdminPage() {
@@ -62,6 +65,7 @@ export default function AdminPage() {
       feedback: isAdmin && hasFeedback,
       trash: trashedCount > 0,
       categories: isAdmin,
+      theme: isAdmin,
     };
   }, [draftCount, reviewCount, hasMessages, isAdmin, hasFeedback, trashedCount]);
 
@@ -250,6 +254,21 @@ export default function AdminPage() {
             <span>Kategorien</span>
           </button>
         )}
+        {visibleTabs.theme && (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'theme'}
+            aria-controls="admin-tab-theme"
+            id="admin-tab-theme-btn"
+            className={`admin-page-tab${activeTab === 'theme' ? ' admin-page-tab--active' : ''}`}
+            onClick={() => setTab('theme')}
+            data-testid="admin-tab-theme"
+          >
+            <Palette size={16} aria-hidden="true" />
+            <span>Theme</span>
+          </button>
+        )}
       </div>
 
       <div
@@ -318,6 +337,16 @@ export default function AdminPage() {
           hidden={activeTab !== 'categories'}
         >
           {activeTab === 'categories' && <CategoriesTab />}
+        </div>
+      )}
+      {visibleTabs.theme && (
+        <div
+          role="tabpanel"
+          id="admin-tab-theme"
+          aria-labelledby="admin-tab-theme-btn"
+          hidden={activeTab !== 'theme'}
+        >
+          {activeTab === 'theme' && <ThemeTab />}
         </div>
       )}
 

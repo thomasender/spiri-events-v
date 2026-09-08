@@ -1,0 +1,87 @@
+{
+  "id": "theme",
+  "--bg-primary": {
+    "stringValue": "#f4f2f0"
+  },
+  "--bg-secondary": {
+    "stringValue": "#eae7e2"
+  },
+  "--bg-calendar": {
+    "stringValue": "#ffffff"
+  },
+  "--heading-color": {
+    "stringValue": "#a6a487"
+  },
+  "--accent-secondary": {
+    "stringValue": "#667c62"
+  },
+  "--accent-primary": {
+    "stringValue": "#c48e6a"
+  },
+  "--accent-primary-hover": {
+    "stringValue": "#9a5f38"
+  },
+  "--accent-primary-strong": {
+    "stringValue": "#9a5f38"
+  },
+  "--accent-soft": {
+    "stringValue": "rgba(196, 142, 106, 0.14)"
+  },
+  "--text-primary": {
+    "stringValue": "#161819"
+  },
+  "--text-secondary": {
+    "stringValue": "#605e5e"
+  },
+  "--text-light": {
+    "stringValue": "#938d87"
+  },
+  "--border": {
+    "stringValue": "#e2dcd2"
+  },
+  "--error": {
+    "stringValue": "#bf5b4e"
+  },
+  "--error-hover": {
+    "stringValue": "#a94a3e"
+  },
+  "--chip-bg": {
+    "stringValue": "rgba(196, 142, 106, 0.14)"
+  },
+  "--chip-text": {
+    "stringValue": "#9a5f38"
+  },
+  "--free-bg": {
+    "stringValue": "rgba(122, 138, 95, 0.16)"
+  },
+  "--free-text": {
+    "stringValue": "#5c6b3f"
+  },
+  "--fee-bg": {
+    "stringValue": "rgba(196, 142, 106, 0.16)"
+  },
+  "--fee-text": {
+    "stringValue": "#9a5f38"
+  },
+  "--donation-bg": {
+    "stringValue": "rgba(140, 120, 180, 0.16)"
+  },
+  "--donation-text": {
+    "stringValue": "#6b568b"
+  },
+  "--pending-bg": {
+    "stringValue": "rgba(198, 160, 92, 0.18)"
+  },
+  "--pending-text": {
+    "stringValue": "#8a6d2f"
+  },
+  "--sound-healing": {
+    "stringValue": "#6b568b"
+  },
+  "--category-teal": {
+    "stringValue": "#4a7572"
+  },
+  "createdBy": {
+    "stringValue": "system"
+  }
+}

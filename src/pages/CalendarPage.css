@@ -74,7 +74,7 @@
   gap: 12px;
   min-height: 56px;
   padding: 14px 18px;
-  background-color: #5c6b3f;
+  background-color: var(--accent-secondary);
   border-radius: var(--radius-md);
   overflow: hidden;
   color: var(--bg-primary);

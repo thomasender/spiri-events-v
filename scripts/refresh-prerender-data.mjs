@@ -1,14 +1,15 @@
 #!/usr/bin/env node
 /**
- * Refresh data-export/firestore-export/events.json from the running Firestore
- * emulator (or production Firestore when FIRESTORE_EMULATOR_HOST is unset).
+ * Refresh data-export/firestore-export/events.json AND theme.json from
+ * the running Firestore emulator (or production Firestore when
+ * FIRESTORE_EMULATOR_HOST is unset).
  *
  * Usage:
  *   1. Start the emulators with production data imported:
  *        firebase emulators:start --import ./data-export
  *   2. Run:
  *        node scripts/refresh-prerender-data.mjs
- *   3. Commit the updated data-export/firestore-export/events.json.
+ *   3. Commit the updated data-export/firestore-export/{events,theme}.json.
  *
  * When FIRESTORE_EMULATOR_HOST is unset and a service-account.json is
  * available at scripts/service-account.json, the script falls back to
@@ -20,7 +21,8 @@ import { fileURLToPath } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..')
-const OUT_FILE = join(ROOT, 'data-export', 'firestore-export', 'events.json')
+const EVENTS_FILE = join(ROOT, 'data-export', 'firestore-export', 'events.json')
+const THEME_FILE = join(ROOT, 'data-export', 'firestore-export', 'theme.json')
 const SERVICE_ACCOUNT = join(__dirname, 'service-account.json')
 
 function pad2(n) {
@@ -83,14 +85,24 @@ async function main() {
     process.exit(1)
   }
 
-  const { collection, getDocs } = await import('firebase-admin/firestore')
-  const snap = await getDocs(collection(adminDb, 'events'))
-  const events = snap.docs.map(firestoreToEmulatorExport)
-  writeFileSync(OUT_FILE, JSON.stringify(events, null, 2))
-  console.log(`Wrote ${events.length} events to ${OUT_FILE}`)
+  const { collection, doc, getDocs, getDoc } = await import('firebase-admin/firestore')
+  const eventsSnap = await getDocs(collection(adminDb, 'events'))
+  const events = eventsSnap.docs.map(firestoreToEmulatorExport)
+  writeFileSync(EVENTS_FILE, JSON.stringify(events, null, 2))
+  console.log(`Wrote ${events.length} events to ${EVENTS_FILE}`)
+
+  const themeSnap = await getDoc(doc(adminDb, 'app_settings', 'theme'))
+  if (themeSnap.exists()) {
+    const theme = firestoreToEmulatorExport(themeSnap)
+    writeFileSync(THEME_FILE, JSON.stringify(theme, null, 2))
+    console.log(`Wrote theme snapshot (${Object.keys(themeSnap.data()).length} fields) to ${THEME_FILE}`)
+  } else {
+    console.log(`No app_settings/theme doc found — skipping theme.json (prerender will use bundled defaults).`)
+  }
+
   console.log('')
   console.log('Next: review the diff and commit if it looks right:')
-  console.log(`  git diff data-export/firestore-export/events.json`)
+  console.log(`  git diff data-export/firestore-export/`)
 }
 
 main().catch(err => {
