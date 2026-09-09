@@ -1,15 +1,15 @@
 import { useMemo, useState, useEffect } from 'react';
-import Calendar from './Calendar';
+import HomepagePreview from './HomepagePreview';
 import { SEED_CATEGORIES } from '../utils/categoryColors';
 import './ThemeEditorSandbox.css';
 
 // Theme Editor v2 — live preview surface.
 //
-// Renders the real `<Calendar>` widget inside a wrapper that re-skins
-// itself with the editor's CSS variable values via inline `style`. CSS
-// custom properties inherit down the DOM, so the calendar picks up
-// every value painted on the wrapper — no global `:root` mutation,
-// no `<style>` injection, no iframe.
+// Renders the public homepage (`HomepagePreview`) inside a wrapper that
+// re-skins itself with the editor's CSS variable values via inline
+// `style`. CSS custom properties inherit down the DOM, so every page
+// element picks up every value painted on the wrapper — no global
+// `:root` mutation, no `<style>` injection, no iframe.
 //
 // Why inline-style and not a scoped `<style>` tag?
 //   - Zero DOM side effects (no head/body appendChild/removeChild).
@@ -82,6 +82,7 @@ function buildDemoEvents(currentMonth) {
       endTime: '',
       place: 'Bregenz',
       bezirk: 'Bregenz',
+      category: sample.category,
       categories: [sample.category],
       contribution: sample.contribution,
       fee: sample.contribution === 'fee' ? '25' : null,
@@ -138,20 +139,21 @@ export default function ThemeEditorSandbox({ values, testIdPrefix = 'theme-edito
       className="theme-editor-sandbox"
       style={wrapperStyle}
       data-testid={testIdPrefix}
-      aria-label="Live-Vorschau des Kalenders mit den aktuellen Theme-Werten"
+      aria-label="Live-Vorschau der Homepage mit den aktuellen Theme-Werten"
     >
       <div className="theme-editor-sandbox-chrome" data-testid={`${testIdPrefix}-chrome`}>
         <span className="theme-editor-sandbox-chrome-dot" aria-hidden="true" />
-        <span className="theme-editor-sandbox-chrome-label">Live-Vorschau · Demo-Events</span>
+        <span className="theme-editor-sandbox-chrome-label">
+          Live-Vorschau · Homepage · Demo-Events
+        </span>
       </div>
       <div className="theme-editor-sandbox-frame" data-testid={`${testIdPrefix}-frame`}>
-        <Calendar
+        <HomepagePreview
           events={events}
-          onEventClick={() => {}}
+          categories={categories}
+          categoryColorByName={categoryColorByName}
           currentMonth={currentMonth}
           onMonthChange={setCurrentMonth}
-          categoryColorByName={categoryColorByName}
-          categories={categories}
         />
       </div>
       {/* Hidden marker so tests can verify the inline style was applied

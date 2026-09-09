@@ -295,12 +295,55 @@ describe('ThemeEditorPage', () => {
     renderPage();
     const group = screen.getAllByTestId('theme-editor-group')[0];
     const toggle = within(group).getByTestId('theme-editor-group-toggle');
-    // Initially expanded → body is present.
-    expect(within(group).queryByTestId('theme-editor-group-body')).toBeInTheDocument();
+    // Initially expanded → data-collapsed="false" and body wrapper visible.
+    expect(group).toHaveAttribute('data-collapsed', 'false');
+    expect(within(group).getByTestId('theme-editor-group-body-wrapper')).toHaveAttribute(
+      'aria-hidden',
+      'false'
+    );
     fireEvent.click(toggle);
-    expect(within(group).queryByTestId('theme-editor-group-body')).not.toBeInTheDocument();
+    expect(group).toHaveAttribute('data-collapsed', 'true');
+    expect(within(group).getByTestId('theme-editor-group-body-wrapper')).toHaveAttribute(
+      'aria-hidden',
+      'true'
+    );
     fireEvent.click(toggle);
-    expect(within(group).queryByTestId('theme-editor-group-body')).toBeInTheDocument();
+    expect(group).toHaveAttribute('data-collapsed', 'false');
+    expect(within(group).getByTestId('theme-editor-group-body-wrapper')).toHaveAttribute(
+      'aria-hidden',
+      'false'
+    );
+  });
+
+  it('wires up aria-expanded, aria-controls and a <h3> wrapper for each group header', () => {
+    renderPage();
+    const groups = screen.getAllByTestId('theme-editor-group');
+    expect(groups.length).toBeGreaterThan(0);
+    for (const group of groups) {
+      const toggle = within(group).getByTestId('theme-editor-group-toggle');
+      const wrapper = within(group).getByTestId('theme-editor-group-body-wrapper');
+      // Toggle button uses proper WAI-ARIA attributes.
+      expect(toggle.tagName).toBe('BUTTON');
+      expect(toggle).toHaveAttribute('aria-expanded');
+      const controlsId = toggle.getAttribute('aria-controls');
+      expect(controlsId).toBeTruthy();
+      expect(wrapper).toHaveAttribute('id', controlsId);
+      // Heading semantics: the toggle is wrapped in an <h3> so screen
+      // readers can navigate the page by heading.
+      expect(toggle.parentElement?.tagName).toBe('H3');
+    }
+  });
+
+  it('always renders the group body wrapper but flips aria-hidden on collapse', () => {
+    renderPage();
+    const group = screen.getAllByTestId('theme-editor-group')[0];
+    const wrapper = within(group).getByTestId('theme-editor-group-body-wrapper');
+    expect(wrapper).toBeInTheDocument();
+    fireEvent.click(within(group).getByTestId('theme-editor-group-toggle'));
+    // Body stays in the DOM so the height can animate; aria-hidden keeps
+    // assistive tech out of collapsed content.
+    expect(within(group).queryByTestId('theme-editor-group-body-wrapper')).toBeInTheDocument();
+    expect(wrapper).toHaveAttribute('aria-hidden', 'true');
   });
 
   it('opens the SaveThemeDialog when "Als neues Theme speichern" is clicked', () => {

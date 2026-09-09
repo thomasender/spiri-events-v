@@ -1,0 +1,218 @@
+/* Scoped overrides for HomepagePreview inside the Theme Editor sandbox.
+   The preview reuses CalendarPage's layout, but those styles assume a
+   full-viewport page. Inside a sidebar-sized frame we need to:
+     - drop the 85vw / 100vh constraints
+     - shrink the hero so it doesn't dominate the preview
+     - stack vertically below ~700px so the sidebar calendar doesn't get
+       crushed on narrower editor viewports
+*/
+
+.homepage-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.homepage-preview .calendar-page.homepage-preview-page {
+  min-height: 0;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: transparent;
+  overflow-x: hidden;
+}
+
+/* ── Hero ──────────────────────────────────────────────────────────── */
+
+.homepage-preview .hero {
+  max-width: 100%;
+  margin: 0 0 0.75rem 0;
+  padding: 14px 18px;
+  border-radius: var(--radius-md);
+}
+
+.homepage-preview .hero-content {
+  max-width: 100%;
+}
+
+.homepage-preview .hero-title {
+  font-size: clamp(1.05rem, 0.6vw + 0.95rem, 1.5rem);
+  margin-bottom: 6px;
+  line-height: 1.15;
+}
+
+.homepage-preview .hero-subtitle {
+  font-size: 0.85rem;
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+.homepage-preview .hero-features-slider {
+  padding: 8px 12px;
+  min-height: 0;
+  gap: 10px;
+}
+
+.homepage-preview .hero-feature-slide {
+  inset: 8px 12px;
+  gap: 10px;
+}
+
+.homepage-preview .hero-feature-title {
+  font-size: 0.85rem;
+}
+
+.homepage-preview .hero-feature-description {
+  font-size: 0.75rem;
+}
+
+/* ── Layout (main + sidebar calendar) ────────────────────────────────
+   The Theme Editor preview is meant to look like the public desktop
+   homepage at all times — even when the editor itself is rendered on a
+   narrow viewport (e.g. mobile Safari). Hiding the sidebar calendar on
+   small viewports would lie to the admin about how the theme will look
+   on events.thetribe.at. So we keep the two-column layout and let the
+   surrounding scroll frame absorb any horizontal overflow. */
+
+.homepage-preview .page-layout {
+  max-width: 100%;
+  padding: 0;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) 200px;
+}
+
+.homepage-preview .page-main {
+  min-width: 0;
+}
+
+.homepage-preview .page-sidebar {
+  position: static;
+  top: auto;
+  display: flex;
+}
+
+/* ── Filter panel ──────────────────────────────────────────────────── */
+
+.homepage-preview .filter-panel {
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+
+.homepage-preview .filter-header--title {
+  margin-bottom: 10px;
+}
+
+.homepage-preview .filter-section-title {
+  font-size: 1rem;
+}
+
+.homepage-preview .filter-header {
+  margin-bottom: 10px;
+}
+
+.homepage-preview .filter-header--section {
+  margin-bottom: 8px;
+}
+
+.homepage-preview .filter-header--section ~ .filter-header--section {
+  margin-top: 14px;
+  padding-top: 12px;
+}
+
+.homepage-preview .filter-accordion {
+  margin-top: 14px;
+  padding-top: 12px;
+}
+
+.homepage-preview .filter-accordion-body {
+  padding-top: 10px;
+}
+
+.homepage-preview .filter-options {
+  gap: 6px;
+}
+
+.homepage-preview .filter-chip {
+  padding: 4px 10px;
+  font-size: 0.8rem;
+}
+
+/* ── Events section ────────────────────────────────────────────────── */
+
+.homepage-preview .events-section-header {
+  margin-bottom: 10px;
+}
+
+.homepage-preview .events-section-month h2 {
+  font-size: 1.05rem;
+}
+
+/* ── Create-event CTA (always visible in preview so theme edits show) */
+
+.homepage-preview-create-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  background-color: var(--bg-calendar);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  margin-top: 0.75rem;
+}
+
+.homepage-preview-create-cta .create-event-cta-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.homepage-preview-create-cta .create-event-cta-text strong {
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.homepage-preview-create-cta .create-event-cta-text span {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1.3;
+}
+
+.homepage-preview-create-cta .create-event-cta-button {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+}
+
+/* On very narrow viewports the create-event CTA stacks vertically so
+   the button gets full width and stays tappable. We deliberately do
+   NOT collapse the page-layout — the preview must keep mirroring the
+   desktop homepage regardless of the editor's own viewport width. */
+@media (max-width: 720px) {
+  .homepage-preview-create-cta {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 10px 12px;
+  }
+
+  .homepage-preview-create-cta .create-event-cta-button {
+    width: 100%;
+  }
+}
+
+/* CalendarPage.css hides `.page-sidebar` below 900px. The Theme Editor
+   preview must keep showing the sidebar calendar at every viewport
+   because the admin's preview target is the *desktop* homepage, not
+   the mobile one. Override with higher specificity so the desktop
+   preview always renders the full layout. */
+.homepage-preview .page-sidebar,
+.homepage-preview .page-layout {
+  display: flex !important;
+  grid-template-columns: minmax(0, 1fr) 200px !important;
+}

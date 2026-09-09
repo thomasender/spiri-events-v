@@ -14,7 +14,7 @@ import {
 import { getEventFallbackImage } from '../utils/eventFallbacks';
 import './EventListRow.css';
 
-export default function EventListRow({ event, categoryColor, linkState }) {
+export default function EventListRow({ event, categoryColor, linkState, onClick }) {
   const organizerName = getOrganizerName(event);
   const category = getPrimaryCategory(event);
   const fallbackImage = getEventFallbackImage(event);
@@ -29,6 +29,7 @@ export default function EventListRow({ event, categoryColor, linkState }) {
       to={`/event/${event.slug || event.id}?occurrenceDate=${event.date}`}
       state={linkState}
       className="event-row"
+      onClick={onClick}
     >
       <div className="event-row-date">
         <span className="event-row-weekday">{formatWeekdayShort(event.date)}</span>

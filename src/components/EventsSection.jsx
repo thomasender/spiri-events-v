@@ -30,6 +30,7 @@ export default function EventsSection({
   viewMode,
   onViewModeChange,
   categoryColorByName,
+  onCardClick,
 }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < MOBILE_BREAKPOINT);
 
@@ -104,6 +105,7 @@ export default function EventsSection({
                 { ...event, category: getPrimaryCategory(event) },
                 categoryColorByName
               )}
+              onClick={onCardClick}
             />
           ))}
         </div>
@@ -117,6 +119,7 @@ export default function EventsSection({
                 { ...event, category: getPrimaryCategory(event) },
                 categoryColorByName
               )}
+              onClick={onCardClick}
             />
           ))}
         </div>
