@@ -10,6 +10,7 @@ import EventFormPage from './pages/EventFormPage';
 import LegalPage from './pages/LegalPage';
 import EventDetailPage from './pages/EventDetailPage';
 import ProfilePage from './pages/ProfilePage';
+import ThemeEditorPage from './pages/ThemeEditorPage';
 import FeedbackButton from './components/FeedbackButton';
 import SeedBootstrap from './components/SeedBootstrap';
 import ThemeApplier from './components/ThemeApplier';
@@ -45,6 +46,14 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <AdminPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/theme-editor"
+            element={
+              <ProtectedRoute>
+                <ThemeEditorPage />
               </ProtectedRoute>
             }
           />

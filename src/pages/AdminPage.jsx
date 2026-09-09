@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import {
   CalendarDays,
   Mail,
@@ -42,6 +42,7 @@ const VALID_TABS = new Set([
 
 export default function AdminPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { user, role, canCreateEvents } = useAuth();
   const isAdmin = role === 'Admin';
   const { count: unreadCount } = useUnreadMessageCount();
@@ -262,7 +263,7 @@ export default function AdminPage() {
             aria-controls="admin-tab-theme"
             id="admin-tab-theme-btn"
             className={`admin-page-tab${activeTab === 'theme' ? ' admin-page-tab--active' : ''}`}
-            onClick={() => setTab('theme')}
+            onClick={() => navigate('/admin/theme-editor')}
             data-testid="admin-tab-theme"
           >
             <Palette size={16} aria-hidden="true" />
