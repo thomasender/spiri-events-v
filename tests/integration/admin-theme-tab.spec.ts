@@ -5,10 +5,36 @@ const PROJECT_ID = 'spirieventsvbg';
 const FIRESTORE_BASE = `http://127.0.0.1:8181/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
 
 async function clearThemeDoc(): Promise<void> {
-  await fetch(`${FIRESTORE_BASE}/app_settings/theme`, {
-    method: 'DELETE',
+  // The REST API doesn't support DELETE on a collection path — we have
+  // to list every doc under `themes/` and delete each one individually.
+  // Skipping silently if a collection doesn't exist or the emulator
+  // returns a transient error keeps `beforeEach` resilient.
+  const list = await fetch(`${FIRESTORE_BASE}/themes?pageSize=100`, {
     headers: { Authorization: 'Bearer owner' },
-  }).catch(() => {});
+  }).catch(() => null);
+  if (list && list.ok) {
+    const data = await list.json();
+    const ids = (data.documents || []).map((doc) => doc.name.split('/').pop()).filter(Boolean);
+    await Promise.all(
+      ids.map((id) =>
+        fetch(`${FIRESTORE_BASE}/themes/${id}`, {
+          method: 'DELETE',
+          headers: { Authorization: 'Bearer owner' },
+        }).catch(() => {})
+      )
+    );
+  }
+
+  await Promise.all([
+    fetch(`${FIRESTORE_BASE}/app_settings/theme`, {
+      method: 'DELETE',
+      headers: { Authorization: 'Bearer owner' },
+    }).catch(() => {}),
+    fetch(`${FIRESTORE_BASE}/app_settings/activeTheme`, {
+      method: 'DELETE',
+      headers: { Authorization: 'Bearer owner' },
+    }).catch(() => {}),
+  ]);
 }
 
 async function seedThemeDoc(): Promise<void> {
@@ -53,7 +79,11 @@ async function seedThemeDoc(): Promise<void> {
   });
 }
 
-test.describe('Admin Theme tab (Xks3pwLt)', () => {
+test.describe('Admin Theme tab (DfcpNYBw)', () => {
+  // Run serially: tests leave saved themes in the registry, and parallel
+  // worker collisions produce flaky assertions on the theme-library rows.
+  test.describe.configure({ mode: 'serial' });
+
   test.beforeEach(async () => {
     await clearThemeDoc();
     await seedThemeDoc();
@@ -63,67 +93,36 @@ test.describe('Admin Theme tab (Xks3pwLt)', () => {
     await signOut(page);
   });
 
-  test('admin can open the Theme tab and see all theme variables grouped', async ({ page }) => {
+  test('admin opens the Theme tab and sees every color token grouped', async ({ page }) => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin?tab=theme');
 
     await expect(page.getByTestId('admin-tab-theme')).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByTestId('theme-tab')).toBeVisible();
 
-    // Wait for the snapshot to land and the rows to render.
     const rows = page.locator('[data-testid="theme-row"]');
     await expect(rows.first()).toBeVisible({ timeout: 15000 });
     const rowCount = await rows.count();
-    expect(rowCount).toBeGreaterThan(15); // we expose ~22 color tokens
+    expect(rowCount).toBeGreaterThan(15);
 
-    // Group headers are rendered.
     await expect(page.getByTestId('theme-tab-group').first()).toBeVisible();
   });
 
-  test('admin can change a variable via the color picker and the live :root updates', async ({
+  test('color-picker changes update the sandboxed editor and preview, not :root', async ({
     page,
   }) => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin?tab=theme');
 
-    // Find the row for --accent-primary and edit it.
     const row = page.locator('[data-variable-name="--accent-primary"]');
     await expect(row).toBeVisible({ timeout: 15000 });
     const hex = row.getByTestId('color-picker-hex');
     await hex.fill('#123456');
 
-    // The hook should set document.documentElement.style.setProperty
-    // on the live page. We assert against the computed style of the
-    // document root.
-    await expect
-      .poll(async () => {
-        return page.evaluate(() =>
-          getComputedStyle(document.documentElement).getPropertyValue('--accent-primary').trim()
-        );
-      })
-      .toBe('#123456');
-
-    // The row should now show the "modified" badge.
-    await expect(row).toHaveAttribute('data-modified', 'true');
-  });
-
-  test('reset on a modified row restores the bundled default', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
-    await page.goto('/admin?tab=theme');
-
-    const row = page.locator('[data-variable-name="--accent-primary"]');
-    await expect(row).toBeVisible({ timeout: 15000 });
-    await row.getByTestId('color-picker-hex').fill('#123456');
-
+    // The editor row now carries the modified badge…
     await expect(row).toHaveAttribute('data-modified', 'true', { timeout: 5000 });
 
-    // Wait until the reset button is enabled. The Firestore snapshot
-    // causes the row to re-render briefly, so we wait for a stable
-    // enabled state before clicking.
-    const reset = row.getByTestId('theme-row-reset');
-    await expect(reset).toBeEnabled({ timeout: 5000 });
-    await reset.click({ force: true });
-
+    // …but the live :root is untouched because the editor is sandboxed.
     await expect
       .poll(async () => {
         return page.evaluate(() =>
@@ -131,6 +130,59 @@ test.describe('Admin Theme tab (Xks3pwLt)', () => {
         );
       })
       .toBe('#c48e6a');
+
+    // The preview card on the same tab reflects the editor value though,
+    // so the admin sees an immediate visual signal of their change.
+    await expect
+      .poll(async () => {
+        return page.evaluate(() => {
+          const card = document.querySelector('.theme-tab-preview-card');
+          if (!card) return null;
+          const btn = card.querySelector('.btn-primary');
+          return btn ? getComputedStyle(btn).backgroundColor : null;
+        });
+      })
+      .not.toBeNull();
+  });
+
+  test('"Aktivieren" publishes the editor values to the live theme and :root updates', async ({
+    page,
+  }) => {
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin?tab=theme');
+
+    const row = page.locator('[data-variable-name="--accent-primary"]');
+    await expect(row).toBeVisible({ timeout: 15000 });
+    await row.getByTestId('color-picker-hex').fill('#123456');
+    await expect(row).toHaveAttribute('data-modified', 'true', { timeout: 5000 });
+
+    const activate = page.getByTestId('theme-tab-activate');
+    await expect(activate).toBeEnabled({ timeout: 5000 });
+    await activate.click();
+
+    await expect
+      .poll(async () => {
+        return page.evaluate(() =>
+          getComputedStyle(document.documentElement).getPropertyValue('--accent-primary').trim()
+        );
+      })
+      .toBe('#123456');
+  });
+
+  test('reset on a modified row restores the bundled default in the editor', async ({ page }) => {
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin?tab=theme');
+
+    const row = page.locator('[data-variable-name="--accent-primary"]');
+    await expect(row).toBeVisible({ timeout: 15000 });
+    await row.getByTestId('color-picker-hex').fill('#123456');
+    await expect(row).toHaveAttribute('data-modified', 'true', { timeout: 5000 });
+
+    const reset = row.getByTestId('theme-row-reset');
+    await expect(reset).toBeEnabled({ timeout: 5000 });
+    await reset.click({ force: true });
+
+    await expect(row).not.toHaveAttribute('data-modified', undefined, { timeout: 5000 });
   });
 
   test('info dialog opens and shows the usage list', async ({ page }) => {
@@ -149,13 +201,12 @@ test.describe('Admin Theme tab (Xks3pwLt)', () => {
     await expect(dialog.locator('[data-testid="theme-info-usage-list"] li').first()).toBeVisible();
   });
 
-  test('"Reset all" confirm dialog restores every token to the bundled defaults', async ({
+  test('"Auf Standard zurücksetzen" wipes every editor change after confirmation', async ({
     page,
   }) => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin?tab=theme');
 
-    // Change two tokens to confirm the counter shows up and the reset works.
     const accentRow = page.locator('[data-variable-name="--accent-primary"]');
     await expect(accentRow).toBeVisible({ timeout: 15000 });
     await accentRow.getByTestId('color-picker-hex').fill('#123456');
@@ -166,12 +217,73 @@ test.describe('Admin Theme tab (Xks3pwLt)', () => {
     await textRow.getByTestId('color-picker-hex').fill('#abcdef');
     await expect(textRow).toHaveAttribute('data-modified', 'true', { timeout: 5000 });
 
-    // The modified counter should appear and the reset button should enable.
     const resetAll = page.getByTestId('theme-tab-reset-all');
     await expect(resetAll).toBeEnabled({ timeout: 5000 });
     await resetAll.click({ force: true });
-    await expect(page.getByText(/Alle Theme-Variablen zurücksetzen/)).toBeVisible();
+    await expect(page.getByText(/Alle Theme-Variablen auf Standard/i)).toBeVisible();
     await page.locator('.confirm-dialog').getByRole('button', { name: 'Zurücksetzen' }).click();
+
+    await expect(accentRow).not.toHaveAttribute('data-modified', undefined, { timeout: 5000 });
+    await expect(textRow).not.toHaveAttribute('data-modified', undefined, { timeout: 5000 });
+  });
+
+  test('"Als neues Theme speichern" creates a theme doc in the library', async ({ page }) => {
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin?tab=theme');
+
+    const accentRow = page.locator('[data-variable-name="--accent-primary"]');
+    await expect(accentRow).toBeVisible({ timeout: 15000 });
+    await accentRow.getByTestId('color-picker-hex').fill('#123456');
+    await expect(accentRow).toHaveAttribute('data-modified', 'true', { timeout: 5000 });
+
+    await page.getByTestId('theme-tab-save-as-new').click();
+    const dialog = page.getByTestId('save-theme-dialog');
+    await expect(dialog).toBeVisible();
+    const nameInput = dialog.getByTestId('save-theme-name');
+    await nameInput.click();
+    await nameInput.fill('');
+    await nameInput.fill('Waldfrühling');
+    await expect(nameInput).toHaveValue('Waldfrühling');
+    await dialog.getByTestId('save-theme-confirm').click();
+
+    // The new theme shows up in the library…
+    await expect(page.getByTestId('theme-tab-library-empty')).toBeHidden({ timeout: 5000 });
+    const row = page.getByTestId('theme-library-row').first();
+    await expect(row).toBeVisible({ timeout: 5000 });
+    await expect(row.getByTestId('theme-library-row-name')).toContainText('Waldfrühling');
+
+    // …and the corresponding Firestore doc carries the entered name plus
+    // the editor values (sanity check via the REST API).
+    await expect
+      .poll(async () => {
+        const r = await fetch(`${FIRESTORE_BASE}/themes?pageSize=20`, {
+          headers: { Authorization: 'Bearer owner' },
+        });
+        const data = await r.json();
+        return data.documents?.find((d) => d.fields?.name?.stringValue === 'Waldfrühling');
+      })
+      .toBeTruthy();
+  });
+
+  test('"Aktivieren" on a saved-theme row publishes it to the live theme', async ({ page }) => {
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin?tab=theme');
+
+    // Make a change and save it as a named theme via the UI so the row
+    // goes through the real admin path (the REST emulator can't bypass
+    // the admin auth rule for `themes/`).
+    const accentRow = page.locator('[data-variable-name="--accent-primary"]');
+    await expect(accentRow).toBeVisible({ timeout: 15000 });
+    await accentRow.getByTestId('color-picker-hex').fill('#3f523c');
+    await expect(accentRow).toHaveAttribute('data-modified', 'true', { timeout: 5000 });
+
+    await page.getByTestId('theme-tab-save-as-new').click();
+    const dialog = page.getByTestId('save-theme-dialog');
+    await dialog.getByTestId('save-theme-name').fill('Mein Theme');
+    await dialog.getByTestId('save-theme-confirm').click();
+
+    await expect(page.getByTestId('theme-library-row').first()).toBeVisible({ timeout: 10000 });
+    await page.getByTestId('theme-library-row-activate').first().click();
 
     await expect
       .poll(async () => {
@@ -179,14 +291,127 @@ test.describe('Admin Theme tab (Xks3pwLt)', () => {
           getComputedStyle(document.documentElement).getPropertyValue('--accent-primary').trim()
         );
       })
-      .toBe('#c48e6a');
+      .toBe('#3f523c');
+  });
+
+  test('the active saved theme carries the "aktiv" badge', async ({ page }) => {
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin?tab=theme');
+
+    const accentRow = page.locator('[data-variable-name="--accent-primary"]');
+    await expect(accentRow).toBeVisible({ timeout: 15000 });
+    await accentRow.getByTestId('color-picker-hex').fill('#9a5f38');
+    await expect(accentRow).toHaveAttribute('data-modified', 'true', { timeout: 5000 });
+
+    await page.getByTestId('theme-tab-save-as-new').click();
+    const dialog = page.getByTestId('save-theme-dialog');
+    await dialog.getByTestId('save-theme-name').fill('Aktives Theme');
+    await dialog.getByTestId('save-theme-confirm').click();
+
+    await expect(page.getByTestId('theme-library-row').first()).toBeVisible({ timeout: 10000 });
+    await page.getByTestId('theme-library-row-activate').first().click();
+
+    const row = page.getByTestId('theme-library-row').first();
+    await expect(row).toHaveAttribute('data-active', 'true', { timeout: 5000 });
+    await expect(row.getByTestId('theme-library-row-active-badge')).toBeVisible();
+  });
+
+  test('rename a saved theme via the library', async ({ page }) => {
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin?tab=theme');
+
+    await page.getByTestId('theme-tab-save-as-new').click();
+    const dialog = page.getByTestId('save-theme-dialog');
+    const nameInput = dialog.getByTestId('save-theme-name');
+    await nameInput.fill('');
+    await nameInput.fill('Alt');
+    await expect(nameInput).toHaveValue('Alt');
+    await dialog.getByTestId('save-theme-confirm').click();
+
+    await expect(page.getByTestId('theme-library-row').first()).toBeVisible({ timeout: 10000 });
+    // Confirm we picked the right row before clicking.
+    await expect(page.getByTestId('theme-library-row-name').first()).toContainText('Alt');
+
+    await page.getByTestId('theme-library-row-rename').first().click();
+    const input = page.getByTestId('theme-library-rename-input');
+    await input.fill('');
+    await input.fill('Neu');
+    await expect(input).toHaveValue('Neu');
+    await page.getByTestId('theme-library-rename-confirm').click();
 
     await expect
       .poll(async () => {
+        const row = page.getByTestId('theme-library-row-name').first();
+        return row.textContent();
+      })
+      .toContain('Neu');
+  });
+
+  test('delete a saved theme via the library after confirmation', async ({ page }) => {
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin?tab=theme');
+
+    await page.getByTestId('theme-tab-save-as-new').click();
+    const dialog = page.getByTestId('save-theme-dialog');
+    await dialog.getByTestId('save-theme-name').fill('Wegdamit');
+    await dialog.getByTestId('save-theme-confirm').click();
+
+    await expect(page.getByTestId('theme-library-row').first()).toBeVisible({ timeout: 10000 });
+    await page.getByTestId('theme-library-row-delete').first().click();
+    const confirmDialog = page.locator('.confirm-dialog');
+    await expect(confirmDialog).toBeVisible();
+    await confirmDialog.getByRole('button', { name: 'Löschen' }).click();
+
+    await expect(page.getByTestId('theme-tab-library-empty')).toBeVisible({ timeout: 10000 });
+  });
+
+  test('calendar preview link opens the public calendar in a new tab', async ({ page }) => {
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin?tab=theme');
+
+    const link = page.getByTestId('theme-tab-preview-link');
+    await expect(link).toBeVisible({ timeout: 10000 });
+    await expect(link).toHaveAttribute('href', '/');
+    await expect(link).toHaveAttribute('target', '_blank');
+  });
+
+  test('loading a saved theme into the editor does NOT change the live :root', async ({ page }) => {
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin?tab=theme');
+
+    // Seed a saved theme via the admin UI — change a token and persist as
+    // a new theme so the row exists in the library.
+    const accentRow = page.locator('[data-variable-name="--accent-primary"]');
+    await expect(accentRow).toBeVisible({ timeout: 15000 });
+    await accentRow.getByTestId('color-picker-hex').fill('#ff00ff');
+    await expect(accentRow).toHaveAttribute('data-modified', 'true', { timeout: 5000 });
+
+    await page.getByTestId('theme-tab-save-as-new').click();
+    const dialog = page.getByTestId('save-theme-dialog');
+    await dialog.getByTestId('save-theme-name').fill('Spezial');
+    await dialog.getByTestId('save-theme-confirm').click();
+
+    await expect(page.getByTestId('theme-library-row').first()).toBeVisible({ timeout: 10000 });
+    // The accent row now has no modifications (we saved the editor's
+    // values into the saved theme). Re-introduce a tiny edit so the
+    // editor switches away from the freshly-saved theme before we click
+    // "Laden" — otherwise the load button is disabled because the
+    // editor already references the same theme.
+    await accentRow.getByTestId('color-picker-hex').fill('#010101');
+    await expect(accentRow).toHaveAttribute('data-modified', 'true', { timeout: 5000 });
+    await page.getByTestId('theme-library-row-load').first().click();
+
+    // The editor source banner now shows the loaded theme name.
+    await expect(page.getByTestId('theme-tab-editor-source')).toContainText('Spezial');
+
+    // …but :root still reflects the seeded live value (#c48e6a), not the
+    // freshly-loaded theme's #ff00ff. Loading ≠ activating.
+    await expect
+      .poll(async () => {
         return page.evaluate(() =>
-          getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim()
+          getComputedStyle(document.documentElement).getPropertyValue('--accent-primary').trim()
         );
       })
-      .toBe('#161819');
+      .toBe('#c48e6a');
   });
 });

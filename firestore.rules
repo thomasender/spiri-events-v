@@ -235,6 +235,123 @@ service cloud.firestore {
       allow delete: if isAdminOrEmulatorAdmin();
     }
 
+    // Saved theme registry — admin-only CRUD. Each doc holds a named
+    // snapshot of variable values plus bookkeeping metadata. Public read
+    // so the admin UI can show theme names to non-admin viewers (e.g. a
+    // read-only "currently active theme: X" indicator) without leaking
+    // the concrete color values into the rules. The values themselves
+    // are validated the same way as the live theme doc.
+    match /themes/{themeId} {
+      allow read: if true;
+
+      function isKnownVariableName(name) {
+        return name in [
+          '--bg-primary', '--bg-secondary', '--bg-calendar',
+          '--heading-color',
+          '--accent-secondary', '--accent-primary',
+          '--accent-primary-hover', '--accent-primary-strong',
+          '--accent-soft',
+          '--text-primary', '--text-secondary', '--text-light',
+          '--border', '--error', '--error-hover',
+          '--chip-bg', '--chip-text',
+          '--free-bg', '--free-text',
+          '--fee-bg', '--fee-text',
+          '--donation-bg', '--donation-text',
+          '--pending-bg', '--pending-text',
+          '--sound-healing', '--category-teal',
+        ];
+      }
+
+      function isValidThemeName(name) {
+        return name is string && name.size() >= 1 && name.size() <= 50;
+      }
+
+      function isValidThemeDescription(description) {
+        return description == null
+          || (description is string && description.size() <= 200);
+      }
+
+      function isValidThemeValues(values) {
+        return values is map
+          && values.keys().hasOnly([
+            '--bg-primary', '--bg-secondary', '--bg-calendar',
+            '--heading-color',
+            '--accent-secondary', '--accent-primary',
+            '--accent-primary-hover', '--accent-primary-strong',
+            '--accent-soft',
+            '--text-primary', '--text-secondary', '--text-light',
+            '--border', '--error', '--error-hover',
+            '--chip-bg', '--chip-text',
+            '--free-bg', '--free-text',
+            '--fee-bg', '--fee-text',
+            '--donation-bg', '--donation-text',
+            '--pending-bg', '--pending-text',
+            '--sound-healing', '--category-teal',
+          ])
+          && values.keys().hasAll([
+            '--bg-primary', '--bg-secondary', '--bg-calendar',
+            '--heading-color',
+            '--accent-secondary', '--accent-primary',
+            '--accent-primary-hover', '--accent-primary-strong',
+            '--accent-soft',
+            '--text-primary', '--text-secondary', '--text-light',
+            '--border', '--error', '--error-hover',
+            '--chip-bg', '--chip-text',
+            '--free-bg', '--free-text',
+            '--fee-bg', '--fee-text',
+            '--donation-bg', '--donation-text',
+            '--pending-bg', '--pending-text',
+            '--sound-healing', '--category-teal',
+          ]);
+      }
+
+      allow create: if isAdminOrEmulatorAdmin()
+                    && request.resource.data.keys().hasOnly([
+                      'name', 'description', 'values',
+                      'createdBy', 'createdAt', 'updatedAt', 'updatedBy',
+                    ])
+                    && isValidThemeName(request.resource.data.name)
+                    && isValidThemeDescription(request.resource.data.description)
+                    && isValidThemeValues(request.resource.data.values)
+                    && request.resource.data.createdBy == request.auth.uid;
+
+      allow update: if isAdminOrEmulatorAdmin()
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                          .hasOnly([
+                            'name', 'description', 'values',
+                            'updatedAt', 'updatedBy',
+                          ])
+                    && (!('name' in request.resource.data)
+                        || isValidThemeName(request.resource.data.name))
+                    && (!('description' in request.resource.data)
+                        || isValidThemeDescription(request.resource.data.description))
+                    && (!('values' in request.resource.data)
+                        || isValidThemeValues(request.resource.data.values));
+
+      allow delete: if isAdminOrEmulatorAdmin();
+    }
+
+    // Pointer doc that names which saved theme is currently active on the
+    // website. Lives under `app_settings/` so it's grouped with the live
+    // theme doc and so the existing public-read rule already covers it.
+    // Admin-only writes; reads stay public so the admin UI can show
+    // "Aktiv: …" labels without auth gymnastics.
+    match /app_settings/activeTheme {
+      allow read: if true;
+      allow create, update: if isAdminOrEmulatorAdmin()
+                            && request.resource.data.keys().hasOnly([
+                              'themeId', 'name', 'activatedAt', 'activatedBy',
+                            ])
+                            && request.resource.data.themeId is string
+                            && request.resource.data.themeId.size() > 0
+                            && request.resource.data.themeId.size() <= 100
+                            && (!('name' in request.resource.data)
+                                || (request.resource.data.name is string
+                                    && request.resource.data.name.size() <= 50))
+                            && request.resource.data.activatedBy == request.auth.uid;
+      allow delete: if isAdminOrEmulatorAdmin();
+    }
+
     // Feedback collection: anyone can submit anonymous feedback (with optional
     // name, email, and screenshot). Only admins can read / update / delete.
     match /feedback/{feedbackId} {
