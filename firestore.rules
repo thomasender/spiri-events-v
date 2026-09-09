@@ -244,24 +244,6 @@ service cloud.firestore {
     match /themes/{themeId} {
       allow read: if true;
 
-      function isKnownVariableName(name) {
-        return name in [
-          '--bg-primary', '--bg-secondary', '--bg-calendar',
-          '--heading-color',
-          '--accent-secondary', '--accent-primary',
-          '--accent-primary-hover', '--accent-primary-strong',
-          '--accent-soft',
-          '--text-primary', '--text-secondary', '--text-light',
-          '--border', '--error', '--error-hover',
-          '--chip-bg', '--chip-text',
-          '--free-bg', '--free-text',
-          '--fee-bg', '--fee-text',
-          '--donation-bg', '--donation-text',
-          '--pending-bg', '--pending-text',
-          '--sound-healing', '--category-teal',
-        ];
-      }
-
       function isValidThemeName(name) {
         return name is string && name.size() >= 1 && name.size() <= 50;
       }
