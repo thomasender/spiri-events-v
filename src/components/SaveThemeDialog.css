@@ -1,0 +1,135 @@
+.save-theme-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(22, 24, 25, 0.45);
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.save-theme-dialog {
+  position: relative;
+  background-color: var(--bg-calendar);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 520px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.save-theme-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: transparent;
+  border: none;
+  color: var(--text-light);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.save-theme-close:hover:not(:disabled) {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.save-theme-close:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.save-theme-header h2 {
+  margin: 0 0 6px;
+  font-family: var(--font-heading);
+  font-size: 1.4rem;
+  color: var(--heading-color);
+}
+
+.save-theme-header p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.save-theme-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.save-theme-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.save-theme-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.save-theme-required {
+  color: var(--error);
+  margin-left: 2px;
+}
+
+.save-theme-field input,
+.save-theme-field textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-calendar);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition: border-color 0.15s ease;
+  resize: vertical;
+}
+
+.save-theme-field textarea {
+  min-height: 80px;
+}
+
+.save-theme-field input:focus,
+.save-theme-field textarea:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.save-theme-field input:disabled,
+.save-theme-field textarea:disabled {
+  background-color: var(--bg-secondary);
+  cursor: not-allowed;
+}
+
+.save-theme-hint {
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+
+.save-theme-error {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background-color: rgba(191, 91, 78, 0.08);
+  color: var(--error);
+  font-size: 0.9rem;
+}
+
+.save-theme-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
