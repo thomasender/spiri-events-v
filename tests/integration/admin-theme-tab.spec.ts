@@ -108,7 +108,7 @@ test.describe('Admin Theme tab (DfcpNYBw)', () => {
     await expect(page.getByTestId('theme-tab-group').first()).toBeVisible();
   });
 
-  test('color-picker changes update the sandboxed editor and preview, not :root', async ({
+  test('color-picker changes update the sandboxed editor and paint :root live', async ({
     page,
   }) => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
@@ -119,20 +119,26 @@ test.describe('Admin Theme tab (DfcpNYBw)', () => {
     const hex = row.getByTestId('color-picker-hex');
     await hex.fill('#123456');
 
-    // The editor row now carries the modified badge…
+    // The editor row now carries the modified badge.
     await expect(row).toHaveAttribute('data-modified', 'true', { timeout: 5000 });
 
-    // …but the live :root is untouched because the editor is sandboxed.
+    // The admin's :root also updates live, because the editor tab
+    // broadcasts every change via BroadcastChannel and the page itself
+    // (mounted through <ThemeApplier />) re-applies those preview
+    // values onto :root. That gives the admin a live kitchen-sink
+    // preview of their color picks across the whole admin UI without
+    // waiting for "Aktivieren". Visitors without an open editor tab
+    // never receive a broadcast so they keep the published theme.
     await expect
       .poll(async () => {
         return page.evaluate(() =>
           getComputedStyle(document.documentElement).getPropertyValue('--accent-primary').trim()
         );
       })
-      .toBe('#c48e6a');
+      .toBe('#123456');
 
-    // The preview card on the same tab reflects the editor value though,
-    // so the admin sees an immediate visual signal of their change.
+    // And the preview card on the same tab reflects the editor value,
+    // so the admin still gets the in-tab preview feedback too.
     await expect
       .poll(async () => {
         return page.evaluate(() => {
@@ -143,6 +149,51 @@ test.describe('Admin Theme tab (DfcpNYBw)', () => {
         });
       })
       .not.toBeNull();
+  });
+
+  test('public calendar reflects published theme values after Aktivieren', async ({ browser }) => {
+    // The calendar page no longer renders with static CSS defaults:
+    // <ThemeApplier /> mounts the hook globally so :root gets the
+    // live `app_settings/theme` values on every page load. Without
+    // the admin's editor tab open, no BroadcastChannel traffic flows,
+    // so the public site shows the published theme — not the
+    // sandboxed editor draft.
+    const adminCtx = await browser.newContext();
+    const adminPage = await adminCtx.newPage();
+    await signInWithEmailAndPassword(adminPage, 'admin@test.com', 'testpassword123');
+    await adminPage.goto('/admin?tab=theme');
+
+    const accentRow = adminPage.locator('[data-variable-name="--accent-primary"]');
+    await expect(accentRow).toBeVisible({ timeout: 15000 });
+    await accentRow.getByTestId('color-picker-hex').fill('#0f5132');
+    await expect(accentRow).toHaveAttribute('data-modified', 'true', { timeout: 5000 });
+
+    await adminPage.getByTestId('theme-tab-activate').click();
+    await expect
+      .poll(() =>
+        adminPage.evaluate(() =>
+          getComputedStyle(document.documentElement).getPropertyValue('--accent-primary').trim()
+        )
+      )
+      .toBe('#0f5132');
+
+    // Open the calendar in a SEPARATE browser context with no admin
+    // session — no BroadcastChannel survives across contexts, so the
+    // preview window is a fair simulation of what a public visitor
+    // would see.
+    const publicCtx = await browser.newContext();
+    const publicPage = await publicCtx.newPage();
+    await publicPage.goto('/');
+    await expect
+      .poll(() =>
+        publicPage.evaluate(() =>
+          getComputedStyle(document.documentElement).getPropertyValue('--accent-primary').trim()
+        )
+      )
+      .toBe('#0f5132');
+
+    await adminCtx.close();
+    await publicCtx.close();
   });
 
   test('"Aktivieren" publishes the editor values to the live theme and :root updates', async ({
@@ -375,23 +426,88 @@ test.describe('Admin Theme tab (DfcpNYBw)', () => {
     await expect(link).toHaveAttribute('target', '_blank');
   });
 
-  test('loading a saved theme into the editor does NOT change the live :root', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
-    await page.goto('/admin?tab=theme');
+  test('preview tab sees in-progress editor values live via BroadcastChannel', async ({
+    browser,
+  }) => {
+    // Two pages share the same browser context so BroadcastChannel
+    // (per-origin, per-browser) connects them. The admin's editor tab
+    // broadcasts every color-pick via BroadcastChannel; the calendar
+    // page (mounted globally via <ThemeApplier />) receives it and
+    // paints the in-progress values onto its own `:root` so the
+    // designer sees the live preview before clicking "Aktivieren".
+    const context = await browser.newContext();
+    const adminPage = await context.newPage();
+    const previewPage = await context.newPage();
+
+    await signInWithEmailAndPassword(adminPage, 'admin@test.com', 'testpassword123');
+
+    // Open the calendar in a second tab FIRST, so it's already
+    // subscribed to the BroadcastChannel before the admin broadcasts.
+    await previewPage.goto('/');
+    await expect(previewPage.locator('.calendar, .events-section').first()).toBeAttached({
+      timeout: 15000,
+    });
+
+    // The preview initially reflects the live (seeded) accent color.
+    await expect
+      .poll(async () =>
+        previewPage.evaluate(() =>
+          getComputedStyle(document.documentElement).getPropertyValue('--accent-primary').trim()
+        )
+      )
+      .toBe('#c48e6a');
+
+    // Now open the admin editor and pick a non-default color.
+    await adminPage.goto('/admin?tab=theme');
+    const row = adminPage.locator('[data-variable-name="--accent-primary"]');
+    await expect(row).toBeVisible({ timeout: 15000 });
+    await row.getByTestId('color-picker-hex').fill('#ff00ff');
+    await expect(row).toHaveAttribute('data-modified', 'true', { timeout: 5000 });
+
+    // Without clicking "Aktivieren", the preview tab SHOULD pick up the
+    // broadcast and paint the editor's in-progress color.
+    await expect
+      .poll(
+        async () =>
+          previewPage.evaluate(() =>
+            getComputedStyle(document.documentElement).getPropertyValue('--accent-primary').trim()
+          ),
+        { timeout: 5000 }
+      )
+      .toBe('#ff00ff');
+
+    await context.close();
+  });
+
+  test('loading a saved theme into the editor does NOT change the public site :root', async ({
+    browser,
+  }) => {
+    // Loading a saved theme must NOT publish it — only "Aktivieren"
+    // does. The admin tab's own :root now reflects whatever the editor
+    // is holding (because the editor broadcasts via BroadcastChannel
+    // and the page itself is a receiver), so the meaningful check is
+    // on a separate context with no editor session — i.e. a fair
+    // proxy for what a public visitor sees.
+    const adminCtx = await browser.newContext();
+    const adminPage = await adminCtx.newPage();
+    await signInWithEmailAndPassword(adminPage, 'admin@test.com', 'testpassword123');
+    await adminPage.goto('/admin?tab=theme');
 
     // Seed a saved theme via the admin UI — change a token and persist as
     // a new theme so the row exists in the library.
-    const accentRow = page.locator('[data-variable-name="--accent-primary"]');
+    const accentRow = adminPage.locator('[data-variable-name="--accent-primary"]');
     await expect(accentRow).toBeVisible({ timeout: 15000 });
     await accentRow.getByTestId('color-picker-hex').fill('#ff00ff');
     await expect(accentRow).toHaveAttribute('data-modified', 'true', { timeout: 5000 });
 
-    await page.getByTestId('theme-tab-save-as-new').click();
-    const dialog = page.getByTestId('save-theme-dialog');
+    await adminPage.getByTestId('theme-tab-save-as-new').click();
+    const dialog = adminPage.getByTestId('save-theme-dialog');
     await dialog.getByTestId('save-theme-name').fill('Spezial');
     await dialog.getByTestId('save-theme-confirm').click();
 
-    await expect(page.getByTestId('theme-library-row').first()).toBeVisible({ timeout: 10000 });
+    await expect(adminPage.getByTestId('theme-library-row').first()).toBeVisible({
+      timeout: 10000,
+    });
     // The accent row now has no modifications (we saved the editor's
     // values into the saved theme). Re-introduce a tiny edit so the
     // editor switches away from the freshly-saved theme before we click
@@ -399,19 +515,27 @@ test.describe('Admin Theme tab (DfcpNYBw)', () => {
     // editor already references the same theme.
     await accentRow.getByTestId('color-picker-hex').fill('#010101');
     await expect(accentRow).toHaveAttribute('data-modified', 'true', { timeout: 5000 });
-    await page.getByTestId('theme-library-row-load').first().click();
+    await adminPage.getByTestId('theme-library-row-load').first().click();
 
     // The editor source banner now shows the loaded theme name.
-    await expect(page.getByTestId('theme-tab-editor-source')).toContainText('Spezial');
+    await expect(adminPage.getByTestId('theme-tab-editor-source')).toContainText('Spezial');
 
-    // …but :root still reflects the seeded live value (#c48e6a), not the
-    // freshly-loaded theme's #ff00ff. Loading ≠ activating.
+    // The published live site, viewed from a separate context with no
+    // editor session and therefore no BroadcastChannel traffic, must
+    // still reflect the seeded live value (#c48e6a) — NOT the freshly
+    // loaded theme's #ff00ff. Loading ≠ activating.
+    const publicCtx = await browser.newContext();
+    const publicPage = await publicCtx.newPage();
+    await publicPage.goto('/');
     await expect
-      .poll(async () => {
-        return page.evaluate(() =>
+      .poll(() =>
+        publicPage.evaluate(() =>
           getComputedStyle(document.documentElement).getPropertyValue('--accent-primary').trim()
-        );
-      })
+        )
+      )
       .toBe('#c48e6a');
+
+    await adminCtx.close();
+    await publicCtx.close();
   });
 });

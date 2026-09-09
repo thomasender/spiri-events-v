@@ -12,6 +12,7 @@ import EventDetailPage from './pages/EventDetailPage';
 import ProfilePage from './pages/ProfilePage';
 import FeedbackButton from './components/FeedbackButton';
 import SeedBootstrap from './components/SeedBootstrap';
+import ThemeApplier from './components/ThemeApplier';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -31,6 +32,7 @@ function AppContent() {
   return (
     <div className="app-layout">
       <SeedBootstrap />
+      <ThemeApplier />
       <Header />
       <main className="main-content">
         <Routes>

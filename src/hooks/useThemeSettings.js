@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   collection,
   deleteDoc,
@@ -25,6 +25,13 @@ const THEMES_COLLECTION = 'themes';
 const THEME_NAME_MIN = 1;
 const THEME_NAME_MAX = 50;
 const THEME_DESC_MAX = 200;
+
+// BroadcastChannel name shared by the admin editor (sender) and any
+// preview window (receiver). Per-origin and per-browser, so cross-tenant
+// leakage is impossible — only tabs the admin opened in the same
+// browser session can see each other's editor traffic.
+const PREVIEW_CHANNEL_NAME = 'spiri-theme-preview';
+const PREVIEW_MESSAGE_TYPE = 'theme-editor-values';
 
 function sanitizeValues(values) {
   // Strip unknown keys and fall back to the bundled default for missing tokens.
@@ -91,6 +98,68 @@ export function useThemeSettings() {
   const [editorValues, setEditorValues] = useState(() => ({ ...THEME_DEFAULTS }));
   const [editorBase, setEditorBase] = useState({ kind: 'active' });
   const [editorInitialized, setEditorInitialized] = useState(false);
+
+  // ── Live-preview state (NEW) ────────────────────────────────────
+  // When the admin editor broadcasts in-progress values via BroadcastChannel,
+  // we stash them here and paint *those* onto `:root` for this tab. Live
+  // visitors never receive broadcasts (per-browser scope), so they keep
+  // seeing the published active theme until the admin clicks "Aktivieren".
+  const [previewValues, setPreviewValues] = useState(null);
+
+  // Receive broadcasts from the admin editor. Browsers without
+  // BroadcastChannel (very old Safari) just fall back to active values.
+  useEffect(() => {
+    if (typeof BroadcastChannel === 'undefined') return undefined;
+    const channel = new BroadcastChannel(PREVIEW_CHANNEL_NAME);
+    const handler = (event) => {
+      const data = event?.data;
+      if (!data || data.type !== PREVIEW_MESSAGE_TYPE) return;
+      if (data.values && typeof data.values === 'object') {
+        setPreviewValues(sanitizeValues(data.values));
+      }
+    };
+    channel.addEventListener('message', handler);
+    return () => {
+      channel.removeEventListener('message', handler);
+      channel.close();
+    };
+  }, []);
+
+  // Lazy sender — only constructed when something actually broadcasts.
+  // Per-instance is fine; BroadcastChannel is cheap and the small
+  // duplication is the price of letting React tear it down cleanly.
+  const senderRef = useRef(null);
+  const getSender = useCallback(() => {
+    if (senderRef.current) return senderRef.current;
+    if (typeof BroadcastChannel === 'undefined') return null;
+    senderRef.current = new BroadcastChannel(PREVIEW_CHANNEL_NAME);
+    return senderRef.current;
+  }, []);
+
+  const broadcastEditorValues = useCallback(
+    (values) => {
+      const ch = getSender();
+      if (!ch) return;
+      try {
+        ch.postMessage({ type: PREVIEW_MESSAGE_TYPE, values });
+      } catch (err) {
+        // Serialization can fail for non-cloneable values; surface as a
+        // console warning so the admin knows the preview tab won't
+        // update without crashing the editor itself.
+        console.warn('useThemeSettings: failed to broadcast preview values', err);
+      }
+    },
+    [getSender]
+  );
+
+  useEffect(() => {
+    return () => {
+      if (senderRef.current) {
+        senderRef.current.close();
+        senderRef.current = null;
+      }
+    };
+  }, []);
 
   // Live subscription to the active theme doc. Falls back to the bundled
   // defaults if the doc is missing or empty so the UI keeps the static look
@@ -159,20 +228,25 @@ export function useThemeSettings() {
     return unsub;
   }, []);
 
-  // Mirror the active values onto `:root`. This is what every other client
-  // sees: the live website, the admin UI on other tabs, anonymous visitors.
-  // The editor's in-memory state never feeds into `:root` so a sandboxed
-  // edit can't leak to anyone else until the admin clicks "Aktivieren".
+  // Mirror the active values onto `:root`, unless this tab is the admin's
+  // preview window — in that case `previewValues` (broadcast from the
+  // editor) wins so the designer sees in-progress changes live. Every
+  // other client (live visitors, anonymous tabs) keeps using `activeValues`
+  // because they never receive a broadcast. The editor's in-memory state
+  // on the admin tab itself is *also* preview-only and never feeds into
+  // `:root` unless broadcast, so a sandboxed edit can't leak to anyone
+  // else until the admin clicks "Aktivieren".
   useEffect(() => {
     if (typeof document === 'undefined') return;
     const root = document.documentElement;
+    const source = previewValues || activeValues;
     for (const variable of THEME_VARIABLES) {
-      const value = activeValues[variable.name];
+      const value = source[variable.name];
       if (typeof value === 'string') {
         root.style.setProperty(variable.name, value);
       }
     }
-  }, [activeValues]);
+  }, [activeValues, previewValues]);
 
   // Seed the editor once the active values have loaded the first time. We
   // intentionally don't re-seed on subsequent active-value changes — the
@@ -480,6 +554,12 @@ export function useThemeSettings() {
     // Activation
     activateEditor,
     activateSavedTheme,
+
+    // Live-preview bridge: editor tab calls `broadcastEditorValues` on
+    // every change; preview tabs receive via BroadcastChannel and apply
+    // to their own `:root`. See comments near the top of the file.
+    broadcastEditorValues,
+    previewActive: previewValues != null,
 
     // Shape retained from the pre-saved-themes hook so the existing
     // ThemeTab render path keeps working without renames.
