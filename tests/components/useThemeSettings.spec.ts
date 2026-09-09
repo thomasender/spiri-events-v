@@ -526,4 +526,79 @@ describe('useThemeSettings', () => {
       mockAuth.role = 'Admin';
     });
   });
+
+  describe('live-preview broadcast (BroadcastChannel)', () => {
+    it('exposes broadcastEditorValues and previewActive on the hook return', () => {
+      const { result } = renderHook(() => useThemeSettings());
+      expect(typeof result.current.broadcastEditorValues).toBe('function');
+      expect(result.current.previewActive).toBe(false);
+    });
+
+    it('broadcastEditorValues does not throw with valid payloads', () => {
+      const { result } = renderHook(() => useThemeSettings());
+      // happy-dom has BroadcastChannel, so the call should just succeed
+      // without throwing — even with non-cloneable payloads it must
+      // degrade gracefully rather than crash the editor.
+      expect(() => result.current.broadcastEditorValues({})).not.toThrow();
+      expect(() =>
+        result.current.broadcastEditorValues({
+          '--accent-primary': '#123456',
+        })
+      ).not.toThrow();
+    });
+
+    it('received preview values override active values when painted to :root', async () => {
+      firestore.state.docs.set(firestore.key('app_settings', 'theme'), {
+        '--accent-primary': '#000000',
+      });
+
+      const { result } = renderHook(() => useThemeSettings());
+      // Let the Firestore snapshot land + apply to :root.
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 10));
+      });
+      expect(
+        getComputedStyle(document.documentElement).getPropertyValue('--accent-primary').trim()
+      ).toBe('#000000');
+
+      const channel = new BroadcastChannel('spiri-theme-preview');
+      try {
+        await act(async () => {
+          channel.postMessage({
+            type: 'theme-editor-values',
+            values: { ...THEME_DEFAULTS, '--accent-primary': '#ff00ff' },
+          });
+          await new Promise((r) => setTimeout(r, 10));
+        });
+      } finally {
+        channel.close();
+      }
+
+      expect(
+        getComputedStyle(document.documentElement).getPropertyValue('--accent-primary').trim()
+      ).toBe('#ff00ff');
+      // activeValues on the hook still reflects the Firestore state, not
+      // the preview — that separation is the whole point of the hook's
+      // three orthogonal concerns.
+      expect(result.current.activeValues['--accent-primary']).toBe('#000000');
+    });
+
+    it('ignores messages with an unknown type or a non-object payload', async () => {
+      const { result } = renderHook(() => useThemeSettings());
+
+      const channel = new BroadcastChannel('spiri-theme-preview');
+      try {
+        await act(async () => {
+          channel.postMessage({ type: 'something-else', values: { x: 1 } });
+          channel.postMessage(null);
+          channel.postMessage('plain string');
+          channel.postMessage({ type: 'theme-editor-values', values: 'not-an-object' });
+          await new Promise((r) => setTimeout(r, 10));
+        });
+        expect(result.current.previewActive).toBe(false);
+      } finally {
+        channel.close();
+      }
+    });
+  });
 });

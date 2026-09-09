@@ -78,6 +78,7 @@ export default function ThemeTab() {
     deleteTheme,
     activateEditor,
     activateSavedTheme,
+    broadcastEditorValues,
   } = useThemeSettings();
 
   const [infoToken, setInfoToken] = useState(null);
@@ -98,6 +99,18 @@ export default function ThemeTab() {
     const t = setTimeout(() => setActionSuccess(null), 3000);
     return () => clearTimeout(t);
   }, [actionSuccess]);
+
+  // Push every editor change to any open preview tab via BroadcastChannel.
+  // We send on every render (even when nothing's changed) so a freshly
+  // opened preview window that subscribes after this one still gets the
+  // current editor state on its next paint, and so the preview never
+  // drifts stale after a "Verwerfen". The receiver prefers these values
+  // over the published active theme, so the designer sees in-progress
+  // changes live — but live visitors never receive a broadcast because
+  // BroadcastChannel is per-browser.
+  useEffect(() => {
+    broadcastEditorValues(editorValues);
+  }, [editorValues, broadcastEditorValues]);
 
   // ── Color-picker handlers (purely local — the editor is sandboxed) ──
 
@@ -354,6 +367,7 @@ export default function ThemeTab() {
             rel="noopener noreferrer"
             className="btn btn-secondary"
             data-testid="theme-tab-preview-link"
+            title='Öffnet die Kalenderseite in einem neuen Tab. Sie sieht die aktuellen Editor-Werte live — auch bevor du auf „Aktivieren" klickst.'
           >
             <ExternalLink size={16} aria-hidden="true" />
             <span>Kalender-Vorschau öffnen</span>

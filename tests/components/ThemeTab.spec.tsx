@@ -34,6 +34,7 @@ const mockHook = vi.hoisted(() => ({
   deleteTheme: vi.fn(async () => {}),
   activateEditor: vi.fn(async () => {}),
   activateSavedTheme: vi.fn(async () => {}),
+  broadcastEditorValues: vi.fn(),
 }));
 
 vi.mock('../../src/hooks/useThemeSettings', () => ({
@@ -69,6 +70,7 @@ beforeEach(() => {
   mockHook.isAdmin = true;
   mockHook.isModified.mockReturnValue(false);
   mockHook.modifiedCount = 0;
+  mockHook.broadcastEditorValues = vi.fn();
   setupGroupedVariables();
 });
 
@@ -380,5 +382,19 @@ describe('ThemeTab', () => {
     mockHook.activeThemeName = 'Waldfrühling';
     render(<ThemeTab />);
     expect(screen.getByTestId('theme-tab-active-theme-name').textContent).toContain('Waldfrühling');
+  });
+
+  it('broadcasts editor values to the preview channel on mount and after edits', () => {
+    const { rerender } = render(<ThemeTab />);
+    // Initial mount broadcasts the current editor state so a freshly opened
+    // preview tab gets the latest values without having to wait for the
+    // admin to touch anything.
+    expect(mockHook.broadcastEditorValues).toHaveBeenCalledWith(THEME_DEFAULTS);
+
+    mockHook.settings = { ...THEME_DEFAULTS, '--accent-primary': '#abcdef' };
+    rerender(<ThemeTab />);
+    expect(mockHook.broadcastEditorValues).toHaveBeenCalledWith(
+      expect.objectContaining({ '--accent-primary': '#abcdef' })
+    );
   });
 });
