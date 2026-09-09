@@ -114,7 +114,7 @@ export default function SimilarEvents({ currentEvent }) {
 
   const categoryColor = resolveEventColor(
     { category, categoryColor: currentEvent?.categoryColor },
-    categoryColorByName
+    colorByName
   );
 
   return (
