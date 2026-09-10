@@ -23,7 +23,7 @@ import { useEvents } from '../hooks/useEvents';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
 import { canEditEvent, canDeleteEvent } from '../utils/eventPermissions';
 import { parseContactText } from '../utils/contactFormat';
-import { getNextUpcomingOccurrence, getCustomSeriesDates } from '../utils/eventOccurrences';
+import { getNextUpcomingOccurrence, getRecurrenceDatesForDetail } from '../utils/eventOccurrences';
 import {
   buildCustomDeleteOccurrenceUpdate,
   buildCustomDeleteFromDateUpdate,
@@ -415,6 +415,8 @@ export default function EventDetailPage() {
     ? truncateHtmlText(event.description, 160)
     : `${event.title} - ${event.category || 'Event'}${event.isOnline ? ' (Online)' : event.bezirk ? ` in ${event.bezirk}` : ''}`;
   const eventPath = `/event/${event.slug || event.id}`;
+  const recurrenceDates = getRecurrenceDatesForDetail(event);
+  const showRecurrenceDatesList = !occurrenceDate && recurrenceDates.length > 0;
 
   return (
     <div className="event-detail-page">
@@ -507,14 +509,20 @@ export default function EventDetailPage() {
           <Calendar size={18} className="detail-icon" />
           <div>
             <span className="detail-label">Datum</span>
-            {event.recurrence === 'custom' && !occurrenceDate ? (
+            {showRecurrenceDatesList ? (
               <ul
                 className="detail-value event-detail-dates-list"
                 data-testid="event-detail-dates-list"
               >
-                {getCustomSeriesDates(event).map((date) => (
+                {recurrenceDates.map((date) => (
                   <li key={date} data-testid="event-detail-date-item">
-                    {formatDate(date)}
+                    <Link
+                      to={`${eventPath}?occurrenceDate=${date}`}
+                      className="event-detail-date-link"
+                      data-testid="event-detail-date-link"
+                    >
+                      {formatDate(date)}
+                    </Link>
                   </li>
                 ))}
               </ul>

@@ -85,6 +85,7 @@ vi.mock('../../src/utils/eventFallbacks', () => ({
 
 const mockGetEventOccurrences = vi.hoisted(() => vi.fn());
 const mockGetNextUpcomingOccurrence = vi.hoisted(() => vi.fn());
+const mockGetRecurrenceDatesForDetail = vi.hoisted(() => vi.fn());
 
 vi.mock('../../src/utils/eventOccurrences', async () => {
   const actual = await vi.importActual('../../src/utils/eventOccurrences');
@@ -92,6 +93,7 @@ vi.mock('../../src/utils/eventOccurrences', async () => {
     ...actual,
     getEventOccurrences: (...args) => mockGetEventOccurrences(...args),
     getNextUpcomingOccurrence: (...args) => mockGetNextUpcomingOccurrence(...args),
+    getRecurrenceDatesForDetail: (...args) => mockGetRecurrenceDatesForDetail(...args),
     getOccurrenceCount: vi.fn(),
     getRecurrenceLabel: vi.fn(),
   };
@@ -137,6 +139,26 @@ const recurringEvent = {
   recurrenceEndDate: '2026-12-31',
 };
 
+const customDatesEvent = {
+  id: 'custom-dates-event-id',
+  title: 'Individuelle Termine',
+  slug: 'individuelle-termine-workshop-raum-20260804',
+  date: '2026-08-04',
+  endDate: null,
+  time: '17:00',
+  endTime: '19:00',
+  place: 'Workshop Raum',
+  description: 'Workshopreihe mit individuellen Terminen.',
+  category: 'Yoga',
+  bezirk: 'Dornbirn',
+  organizer: { firstName: 'Anna', lastName: 'Schmidt', email: 'admin@test.com' },
+  kontakt: 'anna@example.com',
+  status: 'approved',
+  createdBy: 'other-user-uid',
+  recurrence: 'custom',
+  customDates: ['2026-08-04', '2026-08-18', '2026-09-01', '2026-10-06'],
+};
+
 const renderPage = () =>
   render(
     <MemoryRouter initialEntries={['/event/yoga-heute-yogastudio-dornbirn-20260804']}>
@@ -172,6 +194,19 @@ const renderRecurringEventPage = (occurrenceDate) =>
     </MemoryRouter>
   );
 
+const renderCustomDatesEventPage = (occurrenceDate?: string | null) =>
+  render(
+    <MemoryRouter
+      initialEntries={[
+        `/event/individuelle-termine-workshop-raum-20260804${occurrenceDate ? `?occurrenceDate=${occurrenceDate}` : ''}`,
+      ]}
+    >
+      <Routes>
+        <Route path="/event/:slug" element={<EventDetailPage />} />
+      </Routes>
+    </MemoryRouter>
+  );
+
 beforeEach(() => {
   mockAuth.user = null;
   mockAuth.role = null;
@@ -181,6 +216,8 @@ beforeEach(() => {
     data: foreignEvent,
   };
   mockEvents.deleteEvent.mockClear();
+  mockGetRecurrenceDatesForDetail.mockReset();
+  mockGetRecurrenceDatesForDetail.mockReturnValue([]);
 });
 
 describe('EventDetailPage — edit/delete visibility', () => {
@@ -462,5 +499,100 @@ describe('EventDetailPage — back navigation from admin drafts', () => {
 
     const backLink = screen.getByRole('link', { name: /zurück zum kalender/i });
     expect(backLink).toHaveAttribute('href', '/');
+  });
+});
+
+describe('EventDetailPage — recurrence dates are clickable links (AmfbLIFQ)', () => {
+  describe('custom-dates series', () => {
+    beforeEach(() => {
+      mockFirestoreDoc.getDocResult = {
+        id: customDatesEvent.id,
+        data: customDatesEvent,
+      };
+      mockGetRecurrenceDatesForDetail.mockReturnValue([...customDatesEvent.customDates].sort());
+    });
+
+    it('renders each individual date as a link to that occurrence', async () => {
+      renderCustomDatesEventPage();
+
+      expect(await screen.findByText('Individuelle Termine')).toBeInTheDocument();
+
+      const datesList = screen.getByTestId('event-detail-dates-list');
+      expect(datesList).toBeInTheDocument();
+
+      const items = screen.getAllByTestId('event-detail-date-item');
+      expect(items).toHaveLength(customDatesEvent.customDates.length);
+
+      const links = screen.getAllByTestId('event-detail-date-link');
+      expect(links).toHaveLength(customDatesEvent.customDates.length);
+
+      const expectedHrefs = [...customDatesEvent.customDates]
+        .sort()
+        .map((date) => `/event/${customDatesEvent.slug}?occurrenceDate=${date}`);
+      const actualHrefs = links.map((link) => link.getAttribute('href'));
+      expect(actualHrefs).toEqual(expectedHrefs);
+    });
+
+    it('hides the list and shows a single date when navigated to a specific occurrence', async () => {
+      renderCustomDatesEventPage('2026-09-01');
+
+      expect(await screen.findByText('Individuelle Termine')).toBeInTheDocument();
+
+      expect(screen.queryByTestId('event-detail-dates-list')).toBeNull();
+      expect(screen.queryByTestId('event-detail-date-item')).toBeNull();
+    });
+  });
+
+  describe('weekly series', () => {
+    beforeEach(() => {
+      mockFirestoreDoc.getDocResult = {
+        id: recurringEvent.id,
+        data: recurringEvent,
+      };
+      mockGetRecurrenceDatesForDetail.mockReturnValue(['2026-09-07', '2026-09-14', '2026-09-21']);
+    });
+
+    it('renders every future occurrence as a link to that occurrence', async () => {
+      renderRecurringEventPage(null);
+
+      expect(await screen.findByText('Wochen-Yoga')).toBeInTheDocument();
+
+      const items = screen.getAllByTestId('event-detail-date-item');
+      expect(items).toHaveLength(3);
+
+      const links = screen.getAllByTestId('event-detail-date-link');
+      expect(links).toHaveLength(3);
+
+      expect(links[0]).toHaveAttribute(
+        'href',
+        `/event/${recurringEvent.slug}?occurrenceDate=2026-09-07`
+      );
+      expect(links[1]).toHaveAttribute(
+        'href',
+        `/event/${recurringEvent.slug}?occurrenceDate=2026-09-14`
+      );
+      expect(links[2]).toHaveAttribute(
+        'href',
+        `/event/${recurringEvent.slug}?occurrenceDate=2026-09-21`
+      );
+    });
+
+    it('hides the list when navigated to a specific occurrence', async () => {
+      renderRecurringEventPage('2026-09-14');
+
+      expect(await screen.findByText('Wochen-Yoga')).toBeInTheDocument();
+
+      expect(screen.queryByTestId('event-detail-dates-list')).toBeNull();
+    });
+  });
+
+  describe('non-recurring event', () => {
+    it('does not render a dates list', async () => {
+      renderPage();
+      expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
+
+      expect(screen.queryByTestId('event-detail-dates-list')).toBeNull();
+      expect(screen.queryByTestId('event-detail-date-item')).toBeNull();
+    });
   });
 });
