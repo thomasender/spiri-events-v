@@ -258,7 +258,6 @@
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
   overflow-y: auto;
-  max-height: calc(100vh - 14rem);
 }
 
 .theme-editor-sidebar-intro {
