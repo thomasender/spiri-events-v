@@ -11,6 +11,25 @@ export function getCustomSeriesDates(event) {
   return [...all].filter((d) => !exceptionDates.includes(d)).sort();
 }
 
+// Returns the sorted, de-duplicated list of dates to show on the event detail
+// page for any recurring event. For `custom` series this is the full series
+// (past + future, including the implicit `event.date`). For `weekly`,
+// `biweekly` and `monthly` series this is the future-only occurrences that
+// `getEventOccurrences` already bounds by the recurrence end date / default
+// look-ahead horizon. For non-recurring events it returns an empty array.
+export function getRecurrenceDatesForDetail(event) {
+  if (!event) return [];
+  if (!event.recurrence || event.recurrence === 'none') return [];
+
+  if (event.recurrence === 'custom') {
+    return getCustomSeriesDates(event);
+  }
+
+  const occurrences = getEventOccurrences(event, { mode: 'list' });
+  const dates = [...new Set(occurrences.map((occ) => occ.date).filter(Boolean))];
+  return dates.sort();
+}
+
 // Returns the next upcoming occurrence for an event, or event.date as fallback.
 export function getNextUpcomingOccurrence(event) {
   if (!event) return null;

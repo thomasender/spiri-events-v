@@ -195,6 +195,21 @@
   gap: 4px;
 }
 
+.event-detail-dates-list li {
+  margin: 0;
+}
+
+.event-detail-date-link {
+  color: var(--accent-primary);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.event-detail-date-link:hover {
+  color: var(--text-primary);
+  text-decoration: underline;
+}
+
 .organizer-value {
   display: inline-flex;
   align-items: center;
