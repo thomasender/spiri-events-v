@@ -250,4 +250,110 @@ test.describe('Admin Theme Editor v2 (U2Bcb7jJ)', () => {
     await page.waitForURL('**/admin/theme-editor');
     await expect(page.getByTestId('theme-editor-page')).toBeVisible({ timeout: 15000 });
   });
+
+  test('live preview renders the full homepage (hero + filter + events + sidebar calendar)', async ({
+    page,
+    isMobile,
+  }) => {
+    // The Theme Editor preview is designed to mirror the *desktop*
+    // homepage — the admin's preview target is events.thetribe.at on a
+    // laptop, not a phone. Skip the assertion on the mobile-WebKit
+    // project, where the sandbox frame is too narrow to render the
+    // two-column layout at any meaningful size.
+    test.skip(isMobile === true, 'Preview is desktop-only by design.');
+
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin/theme-editor');
+
+    const preview = page.getByTestId('homepage-preview');
+    await expect(preview).toBeVisible({ timeout: 15000 });
+    await expect(preview.getByTestId('homepage-preview-hero')).toBeVisible();
+    await expect(preview.getByTestId('homepage-preview-hero-slider')).toBeVisible();
+    await expect(preview.getByTestId('homepage-preview-filter-panel')).toBeVisible();
+    await expect(preview.getByTestId('homepage-preview-create-cta')).toBeVisible();
+    await expect(preview.getByTestId('homepage-preview-sidebar-calendar')).toBeVisible();
+
+    // Events section renders its own grid of event tiles — at least one
+    // should be visible since we always seed the preview with demo events.
+    await expect(preview.locator('.events-section-grid .event-tile').first()).toBeVisible();
+
+    // Chrome label advertises that the preview is the homepage.
+    const chrome = page.getByTestId('theme-editor-sandbox-chrome');
+    await expect(chrome).toContainText(/Homepage/);
+  });
+
+  test('clicking an event in the preview does not navigate away from the editor', async ({
+    page,
+    isMobile,
+  }) => {
+    // Desktop-only — see comment above.
+    test.skip(isMobile === true, 'Preview is desktop-only by design.');
+
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin/theme-editor');
+
+    const eventsSection = page.locator('.events-section-grid .event-tile').first();
+    await expect(eventsSection).toBeVisible({ timeout: 15000 });
+
+    // We're still on /admin/theme-editor. Click the first event card —
+    // the preview's stubbed onCardClick must preventDefault so we stay put.
+    await eventsSection.click({ noWaitAfter: true });
+    await expect(page).toHaveURL(/\/admin\/theme-editor$/);
+    await expect(page.getByTestId('theme-editor-page')).toBeVisible();
+  });
+
+  test('color groups have a proper WAI-ARIA accordion (heading + button + aria-controls)', async ({
+    page,
+  }) => {
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin/theme-editor');
+
+    const firstGroup = page.getByTestId('theme-editor-group').first();
+    await expect(firstGroup).toBeVisible({ timeout: 15000 });
+
+    // The toggle lives inside an <h3> so screen readers can navigate by heading.
+    const toggle = firstGroup.getByTestId('theme-editor-group-toggle');
+    await expect(toggle).toBeVisible();
+    const headingTag = await toggle.evaluate((el) => el.parentElement?.tagName);
+    expect(headingTag).toBe('H3');
+
+    // aria-controls on the button points at an existing element with that id.
+    const controlsId = await toggle.getAttribute('aria-controls');
+    expect(controlsId).toBeTruthy();
+    const controlledElement = page.locator(`#${controlsId}`);
+    await expect(controlledElement).toHaveCount(1);
+
+    // Toggling flips aria-expanded and the group's data-collapsed flag.
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(firstGroup).toHaveAttribute('data-collapsed', 'false');
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(firstGroup).toHaveAttribute('data-collapsed', 'true');
+    await expect(controlledElement).toHaveAttribute('aria-hidden', 'true');
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(firstGroup).toHaveAttribute('data-collapsed', 'false');
+    await expect(controlledElement).toHaveAttribute('aria-hidden', 'false');
+  });
+
+  test('group headers are visually clickable with a chevron affordance', async ({ page }) => {
+    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+    await page.goto('/admin/theme-editor');
+
+    const toggle = page
+      .getByTestId('theme-editor-group')
+      .first()
+      .getByTestId('theme-editor-group-toggle');
+    await expect(toggle).toBeVisible({ timeout: 15000 });
+
+    // Header renders a chevron icon (the affordance that signals expandability)
+    // and a count chip that tells the admin how many variables the group holds.
+    await expect(toggle.locator('svg').first()).toBeVisible();
+    await expect(page.getByTestId('theme-editor-group-count').first()).toBeVisible();
+
+    // The header has a non-trivial click target (~38px high) so it's clearly
+    // tappable on touch devices and not "a thin line".
+    const box = await toggle.boundingBox();
+    expect(box?.height).toBeGreaterThanOrEqual(32);
+  });
 });

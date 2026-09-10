@@ -4,18 +4,13 @@ import ThemeEditorSandbox from '../../src/components/ThemeEditorSandbox';
 import { THEME_DEFAULTS } from '../../src/utils/themeDefaults';
 import { SEED_CATEGORIES } from '../../src/utils/categoryColors';
 
-// Replace the real Calendar with a tiny stub so the sandbox tests stay
-// focused on what the wrapper actually does (CSS variable scoping + demo
-// event shape), without dragging in the full calendar's DOM tree.
-vi.mock('../../src/components/Calendar', () => ({
-  default: function CalendarStub({ events, currentMonth }) {
-    return (
-      <div
-        data-testid="calendar-stub"
-        data-month={currentMonth instanceof Date ? currentMonth.toISOString() : ''}
-        data-event-count={events.length}
-      />
-    );
+// Replace the heavy HomepagePreview tree with a tiny stub so the sandbox
+// tests stay focused on what the wrapper actually does (CSS variable
+// scoping + demo event shape), without dragging in Calendar / EventsSection
+// / filter panels etc.
+vi.mock('../../src/components/HomepagePreview', () => ({
+  default: function HomepagePreviewStub({ events }) {
+    return <div data-testid="homepage-preview-stub" data-event-count={events.length} />;
   },
 }));
 
@@ -25,14 +20,16 @@ describe('ThemeEditorSandbox', () => {
     expect(screen.getByTestId('theme-editor-sandbox')).toBeInTheDocument();
   });
 
-  it('renders the chrome strip with the demo-event label', () => {
+  it('renders the chrome strip with the homepage preview label', () => {
     render(<ThemeEditorSandbox values={THEME_DEFAULTS} />);
-    expect(screen.getByTestId('theme-editor-sandbox-chrome')).toHaveTextContent(/Demo-Events/);
+    const chrome = screen.getByTestId('theme-editor-sandbox-chrome');
+    expect(chrome).toHaveTextContent(/Homepage/);
+    expect(chrome).toHaveTextContent(/Demo-Events/);
   });
 
-  it('renders the inner Calendar stub with a positive number of demo events', () => {
+  it('renders the inner HomepagePreview stub with a positive number of demo events', () => {
     render(<ThemeEditorSandbox values={THEME_DEFAULTS} />);
-    const stub = screen.getByTestId('calendar-stub');
+    const stub = screen.getByTestId('homepage-preview-stub');
     const count = Number(stub.getAttribute('data-event-count'));
     expect(count).toBeGreaterThan(0);
   });

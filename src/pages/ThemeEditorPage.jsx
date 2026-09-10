@@ -487,30 +487,46 @@ export default function ThemeEditorPage() {
 
           {groupedVariables.map((group) => {
             const isCollapsed = collapsedGroups.has(group.group);
+            const headerId = `theme-editor-group-header-${group.group.replace(/\s+/g, '-').toLowerCase()}`;
+            const bodyId = `theme-editor-group-body-${group.group.replace(/\s+/g, '-').toLowerCase()}`;
             return (
               <section
                 key={group.group}
-                className="theme-editor-group"
+                className={`theme-editor-group${isCollapsed ? ' theme-editor-group--collapsed' : ''}`}
                 data-testid="theme-editor-group"
+                data-collapsed={isCollapsed ? 'true' : 'false'}
               >
-                <button
-                  type="button"
-                  className="theme-editor-group-header"
-                  onClick={() => toggleGroup(group.group)}
-                  aria-expanded={!isCollapsed}
-                  data-testid="theme-editor-group-toggle"
+                <h3 className="theme-editor-group-heading">
+                  <button
+                    id={headerId}
+                    type="button"
+                    className="theme-editor-group-header"
+                    onClick={() => toggleGroup(group.group)}
+                    aria-expanded={!isCollapsed}
+                    aria-controls={bodyId}
+                    data-testid="theme-editor-group-toggle"
+                  >
+                    <ChevronRight
+                      size={18}
+                      aria-hidden="true"
+                      className="theme-editor-group-chevron"
+                    />
+                    <span className="theme-editor-group-name">{group.group}</span>
+                    <span
+                      className="theme-editor-group-count"
+                      data-testid="theme-editor-group-count"
+                    >
+                      {group.variables.length}{' '}
+                      {group.variables.length === 1 ? 'Variable' : 'Variablen'}
+                    </span>
+                  </button>
+                </h3>
+                <div
+                  id={bodyId}
+                  className="theme-editor-group-body-wrapper"
+                  data-testid="theme-editor-group-body-wrapper"
+                  aria-hidden={isCollapsed}
                 >
-                  {isCollapsed ? (
-                    <ChevronRight size={16} aria-hidden="true" />
-                  ) : (
-                    <ChevronDown size={16} aria-hidden="true" />
-                  )}
-                  <span>{group.group}</span>
-                  <span className="theme-editor-group-count" data-testid="theme-editor-group-count">
-                    {group.variables.length}
-                  </span>
-                </button>
-                {!isCollapsed && (
                   <div className="theme-editor-group-body" data-testid="theme-editor-group-body">
                     {group.variables.map((variable) => (
                       <div
@@ -563,7 +579,7 @@ export default function ThemeEditorPage() {
                       </div>
                     ))}
                   </div>
-                )}
+                </div>
               </section>
             );
           })}

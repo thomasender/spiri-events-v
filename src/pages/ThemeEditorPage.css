@@ -279,40 +279,115 @@
   overflow: hidden;
 }
 
+/* ── Accordion (group) ──────────────────────────────────────────────
+   Best-practice affordances:
+     - <h3> semantic heading wrapping the button (screen-reader landmark)
+     - aria-expanded + aria-controls wired up in JSX
+     - rotating chevron icon (CSS transition on transform)
+     - smooth grid-template-rows height animation (CSS only, no JS)
+     - always-rendered body with aria-hidden toggled for AT
+     - clear hover/focus states, ample click target (~38px)
+*/
+
+.theme-editor-group-heading {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
 .theme-editor-group-header {
   display: flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: 0.5rem;
   width: 100%;
-  padding: 0.5rem 0.625rem;
+  padding: 0.625rem 0.75rem;
   background: var(--bg-secondary);
   border: none;
   border-bottom: 1px solid var(--border);
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 600;
   color: var(--text-primary);
   cursor: pointer;
   text-align: left;
   font-family: inherit;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
 }
 
 .theme-editor-group-header:hover {
   background: var(--accent-soft);
+  color: var(--accent-primary-strong);
+}
+
+.theme-editor-group-header:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: -2px;
+}
+
+.theme-editor-group-chevron {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  transform: rotate(90deg);
+  transition:
+    transform 220ms ease,
+    color 150ms ease;
+}
+
+.theme-editor-group-header:hover .theme-editor-group-chevron {
+  color: var(--accent-primary);
+}
+
+/* When the group is expanded, rotate the chevron to point down. */
+.theme-editor-group:not(.theme-editor-group--collapsed) .theme-editor-group-chevron {
+  transform: rotate(0deg);
+}
+
+.theme-editor-group-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  word-break: break-word;
 }
 
 .theme-editor-group-count {
   margin-left: auto;
+  flex-shrink: 0;
   font-size: 0.6875rem;
   color: var(--text-light);
   font-weight: 500;
-  padding: 0.0625rem 0.375rem;
+  padding: 0.125rem 0.5rem;
   background: var(--bg-calendar);
   border-radius: 999px;
+  border: 1px solid var(--border);
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+.theme-editor-group-header:hover .theme-editor-group-count {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+/* Smooth expand/collapse using the CSS grid trick: 1fr → 0fr transitions
+   the row track size smoothly so the body height animates without us
+   having to measure anything in JS. */
+.theme-editor-group-body-wrapper {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 220ms ease;
+}
+
+.theme-editor-group--collapsed .theme-editor-group-body-wrapper {
+  grid-template-rows: 0fr;
 }
 
 .theme-editor-group-body {
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
 }
 
 .theme-editor-row {
@@ -585,4 +660,15 @@
   margin: 0;
   font-size: 0.8125rem;
   color: var(--text-secondary);
+}
+
+/* Respect the user's reduced-motion preference for the accordion
+   chevron rotation and the grid-row height transition. */
+@media (prefers-reduced-motion: reduce) {
+  .theme-editor-group-header,
+  .theme-editor-group-chevron,
+  .theme-editor-group-count,
+  .theme-editor-group-body-wrapper {
+    transition: none;
+  }
 }
