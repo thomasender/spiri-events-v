@@ -485,105 +485,6 @@ export default function ThemeEditorPage() {
             </p>
           </div>
 
-          {groupedVariables.map((group) => {
-            const isCollapsed = collapsedGroups.has(group.group);
-            const headerId = `theme-editor-group-header-${group.group.replace(/\s+/g, '-').toLowerCase()}`;
-            const bodyId = `theme-editor-group-body-${group.group.replace(/\s+/g, '-').toLowerCase()}`;
-            return (
-              <section
-                key={group.group}
-                className={`theme-editor-group${isCollapsed ? ' theme-editor-group--collapsed' : ''}`}
-                data-testid="theme-editor-group"
-                data-collapsed={isCollapsed ? 'true' : 'false'}
-              >
-                <h3 className="theme-editor-group-heading">
-                  <button
-                    id={headerId}
-                    type="button"
-                    className="theme-editor-group-header"
-                    onClick={() => toggleGroup(group.group)}
-                    aria-expanded={!isCollapsed}
-                    aria-controls={bodyId}
-                    data-testid="theme-editor-group-toggle"
-                  >
-                    <ChevronRight
-                      size={18}
-                      aria-hidden="true"
-                      className="theme-editor-group-chevron"
-                    />
-                    <span className="theme-editor-group-name">{group.group}</span>
-                    <span
-                      className="theme-editor-group-count"
-                      data-testid="theme-editor-group-count"
-                    >
-                      {group.variables.length}{' '}
-                      {group.variables.length === 1 ? 'Variable' : 'Variablen'}
-                    </span>
-                  </button>
-                </h3>
-                <div
-                  id={bodyId}
-                  className="theme-editor-group-body-wrapper"
-                  data-testid="theme-editor-group-body-wrapper"
-                  aria-hidden={isCollapsed}
-                >
-                  <div className="theme-editor-group-body" data-testid="theme-editor-group-body">
-                    {group.variables.map((variable) => (
-                      <div
-                        key={variable.name}
-                        className="theme-editor-row"
-                        data-testid="theme-editor-row"
-                        data-variable-name={variable.name}
-                        data-modified={isModified(variable.name) ? 'true' : 'false'}
-                      >
-                        <div className="theme-editor-row-label">
-                          <span
-                            className="theme-editor-row-swatch"
-                            style={{ backgroundColor: editorValues[variable.name] }}
-                            aria-hidden="true"
-                          />
-                          <div className="theme-editor-row-text">
-                            <span className="theme-editor-row-title">{variable.label}</span>
-                            <code className="theme-editor-row-name">{variable.name}</code>
-                          </div>
-                        </div>
-                        <div className="theme-editor-row-controls">
-                          <ColorPicker
-                            value={editorValues[variable.name]}
-                            onChange={(value) => handleChange(variable.name, value)}
-                            id={`theme-editor-row-${variable.name}`}
-                            label={variable.label}
-                          />
-                          <button
-                            type="button"
-                            className="theme-editor-row-btn"
-                            onClick={() => setInfoToken(variable)}
-                            title="Verwendung anzeigen"
-                            data-testid="theme-editor-row-info"
-                            aria-label={`Verwendung von ${variable.label} anzeigen`}
-                          >
-                            <Info size={16} aria-hidden="true" />
-                          </button>
-                          <button
-                            type="button"
-                            className="theme-editor-row-btn"
-                            onClick={() => handleReset(variable.name)}
-                            disabled={!isModified(variable.name)}
-                            title="Auf Standard zurücksetzen"
-                            data-testid="theme-editor-row-reset"
-                            aria-label={`${variable.label} auf Standard zurücksetzen`}
-                          >
-                            <RotateCcw size={16} aria-hidden="true" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </section>
-            );
-          })}
-
           {/* Saved themes library — collapsible panel at sidebar bottom */}
           <section className="theme-editor-library" data-testid="theme-editor-library">
             <button
@@ -745,6 +646,105 @@ export default function ThemeEditorPage() {
               </div>
             )}
           </section>
+
+          {groupedVariables.map((group) => {
+            const isCollapsed = collapsedGroups.has(group.group);
+            const headerId = `theme-editor-group-header-${group.group.replace(/\s+/g, '-').toLowerCase()}`;
+            const bodyId = `theme-editor-group-body-${group.group.replace(/\s+/g, '-').toLowerCase()}`;
+            return (
+              <section
+                key={group.group}
+                className={`theme-editor-group${isCollapsed ? ' theme-editor-group--collapsed' : ''}`}
+                data-testid="theme-editor-group"
+                data-collapsed={isCollapsed ? 'true' : 'false'}
+              >
+                <h3 className="theme-editor-group-heading">
+                  <button
+                    id={headerId}
+                    type="button"
+                    className="theme-editor-group-header"
+                    onClick={() => toggleGroup(group.group)}
+                    aria-expanded={!isCollapsed}
+                    aria-controls={bodyId}
+                    data-testid="theme-editor-group-toggle"
+                  >
+                    <ChevronRight
+                      size={18}
+                      aria-hidden="true"
+                      className="theme-editor-group-chevron"
+                    />
+                    <span className="theme-editor-group-name">{group.group}</span>
+                    <span
+                      className="theme-editor-group-count"
+                      data-testid="theme-editor-group-count"
+                    >
+                      {group.variables.length}{' '}
+                      {group.variables.length === 1 ? 'Variable' : 'Variablen'}
+                    </span>
+                  </button>
+                </h3>
+                <div
+                  id={bodyId}
+                  className="theme-editor-group-body-wrapper"
+                  data-testid="theme-editor-group-body-wrapper"
+                  aria-hidden={isCollapsed}
+                >
+                  <div className="theme-editor-group-body" data-testid="theme-editor-group-body">
+                    {group.variables.map((variable) => (
+                      <div
+                        key={variable.name}
+                        className="theme-editor-row"
+                        data-testid="theme-editor-row"
+                        data-variable-name={variable.name}
+                        data-modified={isModified(variable.name) ? 'true' : 'false'}
+                      >
+                        <div className="theme-editor-row-label">
+                          <span
+                            className="theme-editor-row-swatch"
+                            style={{ backgroundColor: editorValues[variable.name] }}
+                            aria-hidden="true"
+                          />
+                          <div className="theme-editor-row-text">
+                            <span className="theme-editor-row-title">{variable.label}</span>
+                            <code className="theme-editor-row-name">{variable.name}</code>
+                          </div>
+                        </div>
+                        <div className="theme-editor-row-controls">
+                          <ColorPicker
+                            value={editorValues[variable.name]}
+                            onChange={(value) => handleChange(variable.name, value)}
+                            id={`theme-editor-row-${variable.name}`}
+                            label={variable.label}
+                          />
+                          <button
+                            type="button"
+                            className="theme-editor-row-btn"
+                            onClick={() => setInfoToken(variable)}
+                            title="Verwendung anzeigen"
+                            data-testid="theme-editor-row-info"
+                            aria-label={`Verwendung von ${variable.label} anzeigen`}
+                          >
+                            <Info size={16} aria-hidden="true" />
+                          </button>
+                          <button
+                            type="button"
+                            className="theme-editor-row-btn"
+                            onClick={() => handleReset(variable.name)}
+                            disabled={!isModified(variable.name)}
+                            title="Auf Standard zurücksetzen"
+                            data-testid="theme-editor-row-reset"
+                            aria-label={`${variable.label} auf Standard zurücksetzen`}
+                          >
+                            <RotateCcw size={16} aria-hidden="true" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </section>
+            );
+          })}
         </aside>
 
         <section className="theme-editor-preview" data-testid="theme-editor-preview">
