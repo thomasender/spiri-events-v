@@ -210,6 +210,11 @@
   text-decoration: underline;
 }
 
+.event-detail-date-current {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
 .organizer-value {
   display: inline-flex;
   align-items: center;
