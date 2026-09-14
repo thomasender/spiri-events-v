@@ -176,7 +176,7 @@ describe('EventList', () => {
     expect(screen.getByRole('link', { name: /bearbeiten/i })).toBeInTheDocument();
   });
 
-  it('Ansehen link contains occurrenceDate for recurring events', () => {
+  it('Ansehen link does not contain occurrenceDate for recurring events', () => {
     mockUseEvents.events = [recurringEvent];
 
     render(
@@ -186,7 +186,7 @@ describe('EventList', () => {
     );
 
     const ansehenLink = screen.getByRole('link', { name: /ansehen/i });
-    expect(ansehenLink.href).toContain('occurrenceDate=');
+    expect(ansehenLink.href).not.toContain('occurrenceDate=');
   });
 
   it('Ansehen link does not contain occurrenceDate for non-recurring events', () => {
