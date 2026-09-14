@@ -65,7 +65,9 @@ test.describe('Event detail page shows all individual dates for custom-dates ser
     }
   });
 
-  test('navigating to a specific occurrence shows only that date', async ({ page }) => {
+  test('navigating to a specific occurrence keeps the dates list visible and marks the selected date', async ({
+    page,
+  }) => {
     const target = makeDate(21);
     await page.goto(`/event/${expectedSlug()}?occurrenceDate=${target}`);
     await page
@@ -76,11 +78,18 @@ test.describe('Event detail page shows all individual dates for custom-dates ser
       timeout: 10000,
     });
 
-    await expect(page.getByTestId('event-detail-dates-list')).toHaveCount(0);
+    const datesList = page.getByTestId('event-detail-dates-list');
+    await expect(datesList).toBeVisible();
 
-    const detailValue = page.locator('.event-details .detail-item .detail-value').first();
-    await expect(detailValue).toContainText(formatDe(target));
-    await expect(detailValue).not.toContainText(formatDe(makeDate(7)));
+    const items = page.getByTestId('event-detail-date-item');
+    await expect(items).toHaveCount(expectedSeriesDates().length);
+
+    const currentItems = page.getByTestId('event-detail-date-current');
+    await expect(currentItems).toHaveCount(1);
+    await expect(currentItems.first()).toContainText(formatDe(target));
+
+    const links = page.getByTestId('event-detail-date-link');
+    await expect(links).toHaveCount(expectedSeriesDates().length - 1);
   });
 });
 
@@ -134,9 +143,10 @@ test.describe('Event detail page recurrence dates are clickable links (AmfbLIFQ)
       new RegExp(`/event/${expectedSlug()}\\?occurrenceDate=${target}$`)
     );
 
-    await expect(page.getByTestId('event-detail-dates-list')).toHaveCount(0);
+    await expect(page.getByTestId('event-detail-dates-list')).toBeVisible();
 
-    const detailValue = page.locator('.event-details .detail-item .detail-value').first();
-    await expect(detailValue).toContainText(formatDe(target));
+    const currentItems = page.getByTestId('event-detail-date-current');
+    await expect(currentItems).toHaveCount(1);
+    await expect(currentItems.first()).toContainText(formatDe(target));
   });
 });

@@ -533,13 +533,23 @@ describe('EventDetailPage — recurrence dates are clickable links (AmfbLIFQ)', 
       expect(actualHrefs).toEqual(expectedHrefs);
     });
 
-    it('hides the list and shows a single date when navigated to a specific occurrence', async () => {
+    it('keeps the list visible when navigated to a specific occurrence and marks the selected date as current', async () => {
       renderCustomDatesEventPage('2026-09-01');
 
       expect(await screen.findByText('Individuelle Termine')).toBeInTheDocument();
 
-      expect(screen.queryByTestId('event-detail-dates-list')).toBeNull();
-      expect(screen.queryByTestId('event-detail-date-item')).toBeNull();
+      const datesList = screen.getByTestId('event-detail-dates-list');
+      expect(datesList).toBeInTheDocument();
+
+      const items = screen.getAllByTestId('event-detail-date-item');
+      expect(items).toHaveLength(customDatesEvent.customDates.length);
+
+      const currentItems = screen.getAllByTestId('event-detail-date-current');
+      expect(currentItems).toHaveLength(1);
+      expect(currentItems[0]).toHaveTextContent('1. September 2026');
+
+      const links = screen.getAllByTestId('event-detail-date-link');
+      expect(links).toHaveLength(customDatesEvent.customDates.length - 1);
     });
   });
 
@@ -577,12 +587,31 @@ describe('EventDetailPage — recurrence dates are clickable links (AmfbLIFQ)', 
       );
     });
 
-    it('hides the list when navigated to a specific occurrence', async () => {
+    it('keeps the list visible when navigated to a specific weekly occurrence and marks the selected date as current', async () => {
       renderRecurringEventPage('2026-09-14');
 
       expect(await screen.findByText('Wochen-Yoga')).toBeInTheDocument();
 
-      expect(screen.queryByTestId('event-detail-dates-list')).toBeNull();
+      const datesList = screen.getByTestId('event-detail-dates-list');
+      expect(datesList).toBeInTheDocument();
+
+      const items = screen.getAllByTestId('event-detail-date-item');
+      expect(items).toHaveLength(3);
+
+      const currentItems = screen.getAllByTestId('event-detail-date-current');
+      expect(currentItems).toHaveLength(1);
+      expect(currentItems[0]).toHaveTextContent('14. September 2026');
+
+      const links = screen.getAllByTestId('event-detail-date-link');
+      expect(links).toHaveLength(2);
+      expect(links[0]).toHaveAttribute(
+        'href',
+        `/event/${recurringEvent.slug}?occurrenceDate=2026-09-07`
+      );
+      expect(links[1]).toHaveAttribute(
+        'href',
+        `/event/${recurringEvent.slug}?occurrenceDate=2026-09-21`
+      );
     });
   });
 

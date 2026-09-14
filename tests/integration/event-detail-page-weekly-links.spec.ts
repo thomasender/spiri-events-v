@@ -50,7 +50,9 @@ test.describe('Event detail page lists weekly recurrence dates as clickable link
     }
   });
 
-  test('clicking a weekly date link navigates to that occurrence', async ({ page }) => {
+  test('clicking a weekly date link navigates to that occurrence and marks the selected date', async ({
+    page,
+  }) => {
     await page.goto(`/event/${WEEKLY_SLUG}`);
     await page
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
@@ -68,6 +70,9 @@ test.describe('Event detail page lists weekly recurrence dates as clickable link
       new RegExp(`/event/${WEEKLY_SLUG}\\?occurrenceDate=\\d{4}-\\d{2}-\\d{2}$`)
     );
 
-    await expect(page.getByTestId('event-detail-dates-list')).toHaveCount(0);
+    await expect(page.getByTestId('event-detail-dates-list')).toBeVisible();
+
+    const currentItems = page.getByTestId('event-detail-date-current');
+    await expect(currentItems).toHaveCount(1);
   });
 });

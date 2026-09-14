@@ -416,7 +416,7 @@ export default function EventDetailPage() {
     : `${event.title} - ${event.category || 'Event'}${event.isOnline ? ' (Online)' : event.bezirk ? ` in ${event.bezirk}` : ''}`;
   const eventPath = `/event/${event.slug || event.id}`;
   const recurrenceDates = getRecurrenceDatesForDetail(event);
-  const showRecurrenceDatesList = !occurrenceDate && recurrenceDates.length > 0;
+  const showRecurrenceDatesList = recurrenceDates.length > 0;
 
   return (
     <div className="event-detail-page">
@@ -514,17 +514,29 @@ export default function EventDetailPage() {
                 className="detail-value event-detail-dates-list"
                 data-testid="event-detail-dates-list"
               >
-                {recurrenceDates.map((date) => (
-                  <li key={date} data-testid="event-detail-date-item">
-                    <Link
-                      to={`${eventPath}?occurrenceDate=${date}`}
-                      className="event-detail-date-link"
-                      data-testid="event-detail-date-link"
-                    >
-                      {formatDate(date)}
-                    </Link>
-                  </li>
-                ))}
+                {recurrenceDates.map((date) => {
+                  const isCurrent = date === occurrenceDate;
+                  return (
+                    <li key={date} data-testid="event-detail-date-item">
+                      {isCurrent ? (
+                        <span
+                          className="event-detail-date-current"
+                          data-testid="event-detail-date-current"
+                        >
+                          {formatDate(date)}
+                        </span>
+                      ) : (
+                        <Link
+                          to={`${eventPath}?occurrenceDate=${date}`}
+                          className="event-detail-date-link"
+                          data-testid="event-detail-date-link"
+                        >
+                          {formatDate(date)}
+                        </Link>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             ) : (
               <span className="detail-value">
