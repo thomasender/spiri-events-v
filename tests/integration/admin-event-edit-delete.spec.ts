@@ -390,7 +390,6 @@ test.describe('Admin delete workflow (kf8i6vqj)', () => {
     await emptyDescEditor.fill('');
 
     await page.getByRole('button', { name: /änderungen speichern/i }).click();
-    await page.waitForTimeout(500);
 
     const descriptionError = page.getByTestId('description-error');
     await expect(descriptionError).toBeVisible();

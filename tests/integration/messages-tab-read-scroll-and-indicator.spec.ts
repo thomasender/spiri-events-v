@@ -1,7 +1,13 @@
 import { test, expect } from '@playwright/test';
 import { spawn } from 'child_process';
-import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
+
 import { generateSlug } from '../helpers/slug';
+
+import { STORAGE_STATE } from '../helpers/roles';
+
+// Signed in as `user` via the session captured once by tests/auth.setup.ts,
+// instead of driving the login form in every test.
+test.use({ storageState: STORAGE_STATE.user });
 
 const FOREIGN_PENDING_SLUG = generateSlug('Test Event With Messages', 'Test Place', 8);
 
@@ -28,12 +34,9 @@ test.describe('Messages tab — read messages & auto-scroll & event indicator', 
     await resetMessageFixtures();
   });
 
-  test.afterEach(async ({ page }) => {
-    await signOut(page);
-  });
+  test.afterEach(async ({ page }) => {});
 
   test('Messages tab shows events with messages even after they are all read', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'user@test.local', 'testpassword123');
     await page.goto('/admin?tab=messages');
 
     await page
@@ -58,7 +61,6 @@ test.describe('Messages tab — read messages & auto-scroll & event indicator', 
       .catch(() => {});
 
     await expect(page.getByTestId('event-messages')).toBeVisible({ timeout: 10000 });
-    await page.waitForTimeout(1500);
 
     await page.goto('/admin?tab=messages');
     await page
@@ -72,7 +74,6 @@ test.describe('Messages tab — read messages & auto-scroll & event indicator', 
   });
 
   test('Message item links include #event-messages hash', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'user@test.local', 'testpassword123');
     await page.goto('/admin?tab=messages');
 
     await page
@@ -86,7 +87,6 @@ test.describe('Messages tab — read messages & auto-scroll & event indicator', 
   test('Event card in Meine Events shows red unread indicator while messages are unread', async ({
     page,
   }) => {
-    await signInWithEmailAndPassword(page, 'user@test.local', 'testpassword123');
     await page.goto('/admin');
 
     await page
@@ -99,7 +99,6 @@ test.describe('Messages tab — read messages & auto-scroll & event indicator', 
   });
 
   test('Visiting a different event page does NOT auto-scroll (no hash)', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'user@test.local', 'testpassword123');
     await page.goto(`/event/${FOREIGN_PENDING_SLUG}`);
 
     await page
@@ -113,8 +112,6 @@ test.describe('Messages tab — read messages & auto-scroll & event indicator', 
     const messagesSection = page.getByTestId('event-messages');
     await expect(messagesSection).toBeVisible();
 
-    await page.waitForTimeout(500);
-
     const isInViewport = await messagesSection.evaluate((el) => {
       const rect = el.getBoundingClientRect();
       return (
@@ -126,7 +123,6 @@ test.describe('Messages tab — read messages & auto-scroll & event indicator', 
   });
 
   test('Clicking a message item auto-scrolls to the #event-messages anchor', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'user@test.local', 'testpassword123');
     await page.goto('/admin?tab=messages');
 
     await page
@@ -141,7 +137,6 @@ test.describe('Messages tab — read messages & auto-scroll & event indicator', 
 
     await page.waitForURL(/#event-messages$/, { timeout: 10000 });
     await page.waitForSelector('[data-testid="event-message"]', { timeout: 10000 });
-    await page.waitForTimeout(1500);
 
     const measurement = await page.evaluate(() => {
       const node = document.getElementById('event-messages');
@@ -167,7 +162,6 @@ test.describe('Messages tab — read messages & auto-scroll & event indicator', 
   test('Direct navigation to /event/{slug}#event-messages also scrolls to the anchor', async ({
     page,
   }) => {
-    await signInWithEmailAndPassword(page, 'user@test.local', 'testpassword123');
     await page.goto('/admin?tab=messages');
     await page
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
@@ -178,7 +172,6 @@ test.describe('Messages tab — read messages & auto-scroll & event indicator', 
     await page.goto(href!);
 
     await page.waitForSelector('[data-testid="event-message"]', { timeout: 10000 });
-    await page.waitForTimeout(1500);
 
     const measurement = await page.evaluate(() => {
       const node = document.getElementById('event-messages');

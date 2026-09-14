@@ -22,7 +22,7 @@ async function waitForAdminTabs(page): Promise<void> {
 
 test.describe.configure({ mode: 'serial' });
 
-test.describe('Papierkorb tab (SS79oSci)', () => {
+test.describe('Papierkorb tab (SS79oSci) @smoke', () => {
   test.beforeEach(async () => {
     await resetTrashFixtures();
   });

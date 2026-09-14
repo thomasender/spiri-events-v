@@ -1,7 +1,13 @@
 import { test, expect } from '@playwright/test';
 import { spawn } from 'child_process';
-import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
+
 import { waitForWizardToLoad, clickWeiter, confirmCopyrightCheckbox } from '../helpers/wizard';
+
+import { STORAGE_STATE } from '../helpers/roles';
+
+// Signed in as `admin` via the session captured once by tests/auth.setup.ts,
+// instead of driving the login form in every test.
+test.use({ storageState: STORAGE_STATE.admin });
 
 const EVENT_TITLE = `Copyright Confirmation Event ${Date.now()}`;
 
@@ -25,7 +31,6 @@ function runVerificationScript(action: 'inspect' | 'cleanup', title: string): Pr
 
 test.describe('Event wizard: Copyright confirmation (tQ9gWPJv)', () => {
   test.afterEach(async ({ page }) => {
-    await signOut(page);
     await runVerificationScript('cleanup', EVENT_TITLE).catch(() => {});
   });
 
@@ -50,9 +55,7 @@ test.describe('Event wizard: Copyright confirmation (tQ9gWPJv)', () => {
     await page.fill('#place', 'Test Place');
     await page.selectOption('#bezirk', 'Bregenz');
     await page.click('.kategorie-select');
-    await page.waitForTimeout(300);
     await page.getByText('Yoga', { exact: true }).click();
-    await page.waitForTimeout(300);
     await page.click('.radio-label:has-text("Kostenlos")');
     await clickWeiter(page);
 
@@ -62,7 +65,6 @@ test.describe('Event wizard: Copyright confirmation (tQ9gWPJv)', () => {
   test('summary step shows a copyright confirmation checkbox that is unchecked by default', async ({
     page,
   }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/new');
     await waitForWizardToLoad(page);
 
@@ -80,7 +82,6 @@ test.describe('Event wizard: Copyright confirmation (tQ9gWPJv)', () => {
   test('submit button is greyed out until the copyright confirmation is checked', async ({
     page,
   }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/new');
     await waitForWizardToLoad(page);
 
@@ -98,7 +99,6 @@ test.describe('Event wizard: Copyright confirmation (tQ9gWPJv)', () => {
   test('save-as-draft button is greyed out until the copyright confirmation is checked', async ({
     page,
   }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/new');
     await waitForWizardToLoad(page);
 
@@ -120,7 +120,6 @@ test.describe('Event wizard: Copyright confirmation (tQ9gWPJv)', () => {
   test('toggling the copyright checkbox on and off keeps the submit button in sync', async ({
     page,
   }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/new');
     await waitForWizardToLoad(page);
 
@@ -143,7 +142,6 @@ test.describe('Event wizard: Copyright confirmation (tQ9gWPJv)', () => {
   test('clicking the greyed-out submit button without confirmation shows an inline copyright error', async ({
     page,
   }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/new');
     await waitForWizardToLoad(page);
 
@@ -164,7 +162,6 @@ test.describe('Event wizard: Copyright confirmation (tQ9gWPJv)', () => {
   test('clicking the greyed-out draft button without confirmation shows an inline copyright error', async ({
     page,
   }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/new');
     await waitForWizardToLoad(page);
 
@@ -185,7 +182,6 @@ test.describe('Event wizard: Copyright confirmation (tQ9gWPJv)', () => {
   test('checking the copyright checkbox after clicking the greyed-out button clears the inline error', async ({
     page,
   }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/new');
     await waitForWizardToLoad(page);
 
@@ -209,7 +205,6 @@ test.describe('Event wizard: Copyright confirmation (tQ9gWPJv)', () => {
   test('submitting with confirmation saves the rightsConfirmed flag on the event', async ({
     page,
   }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/new');
     await waitForWizardToLoad(page);
 
@@ -217,7 +212,6 @@ test.describe('Event wizard: Copyright confirmation (tQ9gWPJv)', () => {
 
     await confirmCopyrightCheckbox(page);
     await page.click('button:has-text("Event erstellen")');
-    await page.waitForTimeout(500);
 
     const preSubmitDialog = page.locator('.confirm-dialog').filter({ hasText: 'Einreichen' });
     await expect(preSubmitDialog).toBeVisible({ timeout: 10000 });
@@ -238,7 +232,6 @@ test.describe('Event wizard: Copyright confirmation (tQ9gWPJv)', () => {
 
     // The pending event is created with a serverTimestamp for rightsConfirmedAt,
     // so wait briefly for it to settle before inspecting Firestore.
-    await page.waitForTimeout(1500);
 
     const inspectOutput = await runVerificationScript('inspect', EVENT_TITLE);
     const result = JSON.parse(inspectOutput) as {

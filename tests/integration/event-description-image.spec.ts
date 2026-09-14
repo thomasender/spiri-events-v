@@ -1,7 +1,13 @@
 import { test, expect } from '@playwright/test';
 import { spawn } from 'child_process';
-import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
+
 import { waitForWizardToLoad } from '../helpers/wizard';
+
+import { STORAGE_STATE } from '../helpers/roles';
+
+// Signed in as `admin` via the session captured once by tests/auth.setup.ts,
+// instead of driving the login form in every test.
+test.use({ storageState: STORAGE_STATE.admin });
 
 async function resetSharedPendingFixture(): Promise<void> {
   await new Promise<void>((resolve, reject) => {
@@ -23,17 +29,14 @@ test.describe('Description image upload & title-image hint (b94MmbeY)', () => {
   });
 
   test.afterEach(async ({ page }) => {
-    await signOut(page);
     await resetSharedPendingFixture();
   });
 
   test('description editor shows the image insert button in its toolbar', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/new');
     await waitForWizardToLoad(page);
 
     await page.click('button:has-text("Weiter")');
-    await page.waitForTimeout(500);
 
     await expect(page.getByLabel('Bild einfügen')).toBeVisible();
   });
@@ -41,12 +44,10 @@ test.describe('Description image upload & title-image hint (b94MmbeY)', () => {
   test('title-image upload area shows the hint that text-heavy images belong in the description', async ({
     page,
   }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/new');
     await waitForWizardToLoad(page);
 
     await page.click('button:has-text("Weiter")');
-    await page.waitForTimeout(500);
 
     const hint = page.getByTestId('title-image-hint');
     await expect(hint).toBeVisible();
@@ -57,21 +58,17 @@ test.describe('Description image upload & title-image hint (b94MmbeY)', () => {
   test('uploading an image into the description inserts an <img> with a Firebase Storage URL', async ({
     page,
   }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/edit/test-event-foreign-pending');
     await page.waitForURL(/\/admin\/edit\//);
 
     await page.waitForSelector('[data-testid="description-editor"] .rte-content', {
       timeout: 10000,
     });
-    await page.waitForTimeout(800);
 
     const editor = page.locator('[data-testid="description-editor"] .rte-content');
     await editor.click();
     await editor.fill('');
-    await page.waitForTimeout(200);
     await editor.type('Flyer im Anhang:');
-    await page.waitForTimeout(200);
 
     const imageInput = page.locator('input[data-testid="description-image-input"]');
     await imageInput.setInputFiles('public/event-fallbacks/yoga.jpg');

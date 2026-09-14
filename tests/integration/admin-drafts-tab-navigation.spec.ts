@@ -1,6 +1,11 @@
 import { test, expect } from '@playwright/test';
 import { spawn } from 'child_process';
-import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
+
+import { STORAGE_STATE } from '../helpers/roles';
+
+// Signed in as `admin` via the session captured once by tests/auth.setup.ts,
+// instead of driving the login form in every test.
+test.use({ storageState: STORAGE_STATE.admin });
 
 async function resetDraftFixtures(): Promise<void> {
   await new Promise<void>((resolve, reject) => {
@@ -22,14 +27,12 @@ test.describe('Entwurf Tab navigation (wFCSgPls)', () => {
   });
 
   test.afterEach(async ({ page }) => {
-    await signOut(page);
     await resetDraftFixtures();
   });
 
   test('Zurück button on edit form returns to Entwürfe tab when entered from drafts tab', async ({
     page,
   }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin?tab=drafts');
 
     await page
@@ -54,7 +57,6 @@ test.describe('Entwurf Tab navigation (wFCSgPls)', () => {
   test('Abbrechen button on edit form returns to Entwürfe tab when entered from drafts tab', async ({
     page,
   }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin?tab=drafts');
 
     await page
@@ -79,7 +81,6 @@ test.describe('Entwurf Tab navigation (wFCSgPls)', () => {
   test('Änderungen speichern on edit form returns to Entwürfe tab when entered from drafts tab', async ({
     page,
   }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin?tab=drafts');
 
     await page
@@ -104,7 +105,6 @@ test.describe('Entwurf Tab navigation (wFCSgPls)', () => {
   test('Als Entwurf speichern on edit form returns to Entwürfe tab when entered from drafts tab', async ({
     page,
   }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin?tab=drafts');
 
     await page
@@ -129,7 +129,6 @@ test.describe('Entwurf Tab navigation (wFCSgPls)', () => {
   test('Zurück button on edit form returns to Meine Events tab when entered from default /admin', async ({
     page,
   }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin');
 
     await page
@@ -155,7 +154,6 @@ test.describe('Entwurf Tab navigation (wFCSgPls)', () => {
   test('Ansehen button on draft card preview returns to Entwürfe tab via Zurück link', async ({
     page,
   }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin?tab=drafts');
 
     await page
@@ -185,7 +183,6 @@ test.describe('Entwurf Tab navigation (wFCSgPls)', () => {
   test('Clicking draft card content opens preview whose Zurück link returns to Entwürfe tab', async ({
     page,
   }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin?tab=drafts');
 
     await page
@@ -213,7 +210,6 @@ test.describe('Entwurf Tab navigation (wFCSgPls)', () => {
   });
 
   test('Preview back button from default /admin returns to Meine Events tab', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin');
 
     await page

@@ -1,80 +1,56 @@
 import { spawn } from 'child_process';
-import { waitFor } from './utils/wait-for.js';
 
-async function checkEmulatorsRunning(): Promise<boolean> {
+const AUTH_URL = 'http://127.0.0.1:9199';
+const FIRESTORE_PROBE =
+  'http://127.0.0.1:8181/v1/projects/spirieventsvbg/databases/(default)/documents/events?pageSize=1';
+
+async function reachable(url: string, timeoutMs = 3000): Promise<boolean> {
   try {
-    const response = await fetch('http://127.0.0.1:9199');
-    return response.ok || response.status === 400;
+    const response = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
+    // Any answer means the emulator is alive; 400/404 are fine.
+    return response.status > 0;
   } catch {
     return false;
   }
 }
 
-async function runSeedScript(): Promise<void> {
-  console.log('Running seed script...');
-
+function runScript(script: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    const seed = spawn('node', ['scripts/seed-test-events.mjs'], {
-      stdio: 'inherit',
-      shell: true,
-    });
-
-    seed.on('close', (code) => {
-      if (code === 0) {
-        console.log('Seed script completed successfully.');
-        resolve();
-      } else {
-        reject(new Error(`Seed script exited with code ${code}`));
-      }
-    });
-
-    seed.on('error', reject);
-  });
-}
-
-async function runImportUsersScript(): Promise<void> {
-  console.log('Running import test users script...');
-
-  return new Promise((resolve, reject) => {
-    const importUsers = spawn('node', ['scripts/import-test-users.mjs'], {
-      stdio: 'inherit',
-      shell: true,
-    });
-
-    importUsers.on('close', (code) => {
-      if (code === 0) {
-        console.log('Import users script completed successfully.');
-        resolve();
-      } else {
-        reject(new Error(`Import users script exited with code ${code}`));
-      }
-    });
-
-    importUsers.on('error', reject);
+    const child = spawn('node', [script], { stdio: 'inherit' });
+    child.on('close', (code) =>
+      code === 0 ? resolve() : reject(new Error(`${script} exited with code ${code}`))
+    );
+    child.on('error', reject);
   });
 }
 
 export default async function globalSetup() {
-  console.log('Checking if Firebase emulators are running...');
+  // Probe Auth *and* Firestore. The old version only checked Auth, so a
+  // degraded Firestore emulator (alive as a process, not answering queries)
+  // meant a 30s wait followed by a confusing cascade of failures. Both probes
+  // are capped at 3s, so a bad setup is reported almost immediately.
+  const [authOk, firestoreOk] = await Promise.all([
+    reachable(AUTH_URL),
+    reachable(FIRESTORE_PROBE),
+  ]);
 
-  const running = await checkEmulatorsRunning();
+  if (!authOk || !firestoreOk) {
+    const detail = [
+      `  Auth      (:9199)  ${authOk ? 'OK' : 'NOT RESPONDING'}`,
+      `  Firestore (:8181)  ${firestoreOk ? 'OK' : 'NOT RESPONDING'}`,
+    ].join('\n');
 
-  if (!running) {
-    console.log(
-      'Emulators not running. Please start them with: firebase emulators:start --import ./data-export'
-    );
-    console.log('Skipping seed data setup.');
-    return;
+    const hint =
+      authOk && !firestoreOk
+        ? 'The Firestore emulator has most likely degraded under load.\n' +
+          'Restart it:  pkill -f cloud-firestore-emulator && npm run emulators:start'
+        : 'Start them in a separate terminal:  npm run emulators:start';
+
+    // Fail loudly instead of running the whole suite against a dead backend.
+    throw new Error(`Firebase emulators are not usable.\n${detail}\n\n${hint}\n`);
   }
 
-  console.log('Emulators are running. Seeding test data...');
-
-  try {
-    await waitFor('http://127.0.0.1:8181', { timeout: 30000 });
-    await runSeedScript();
-    await runImportUsersScript();
-  } catch (error) {
-    console.error('Failed to seed test data:', error);
-    throw error;
-  }
+  console.log('Emulators are up. Seeding test data...');
+  await runScript('scripts/seed-test-events.mjs');
+  await runScript('scripts/import-test-users.mjs');
 }

@@ -12,11 +12,20 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "baseUrl": ".",
+    "types": ["node"],
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["../src/*"]
     }
   },
-  "include": ["**/*.ts", "**/*.tsx"],
+  // Only the test *infrastructure* is type-checked (npm run types).
+  // The spec files themselves need jest-dom matcher types and declarations
+  // for the .jsx modules they import; wiring that up is a separate cleanup.
+  "include": [
+    "globalSetup.ts",
+    "auth.setup.ts",
+    "helpers/**/*.ts",
+    "fixtures/**/*.ts",
+    "utils/**/*.ts"
+  ],
   "exclude": ["node_modules", "dist"]
 }

@@ -13,14 +13,12 @@ async function fillWizardAndSubmit(page, title, placeName) {
   await page.fill('#organizer\\.lastName', 'Tester');
   await page.fill('#kontakt', 'admin@test.com');
   await page.locator('button:has-text("Weiter")').click();
-  await page.waitForTimeout(500);
 
   await page.fill('#title', title);
   const editor = page.locator('[data-testid="description-editor"] .rte-content');
   await editor.click();
   await editor.fill('Event created by admin to verify approval workflow.');
   await page.locator('button:has-text("Weiter")').click();
-  await page.waitForTimeout(500);
 
   await page.fill('#date', futureIso);
   await page.fill('#time', '10:00');
@@ -28,19 +26,15 @@ async function fillWizardAndSubmit(page, title, placeName) {
   await page.selectOption('#bezirk', 'Bregenz');
 
   await page.click('.kategorie-select');
-  await page.waitForTimeout(300);
   await page.click('.kategorie__option:has-text("Yoga")');
-  await page.waitForTimeout(300);
 
   await page.locator('button:has-text("Weiter")').click();
-  await page.waitForTimeout(500);
 
   await confirmCopyrightCheckbox(page);
 
   await page.click(
     'button:has-text("Event erstellen"), button:has-text("Einreichen zur Genehmigung")'
   );
-  await page.waitForTimeout(500);
 }
 
 test.describe('Admin-created events need approval (hGxrS6gp)', () => {
@@ -74,7 +68,6 @@ test.describe('Admin-created events need approval (hGxrS6gp)', () => {
     await fillWizardAndSubmit(page, EVENT_TITLE, 'Admin Test Place');
 
     await page.click('button:has-text("Einreichen")');
-    await page.waitForTimeout(2000);
 
     await page.waitForURL('/admin', { timeout: 10000 }).catch(() => {});
     await page

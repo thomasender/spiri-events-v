@@ -1,1 +1,8 @@
-npm run lint && npm run style && npm run types && npm run test
+# Fast gate: only what the change itself can break.
+#   - lint-staged runs ESLint + Prettier on the staged files only
+#   - types is the full TS check (native TS 7, well under a second)
+#   - the Vitest suite runs in ~4s, so there is nothing to gain by selecting
+#
+# Playwright deliberately does NOT run here. It runs on push (@smoke) and on
+# demand (npm run test:e2e:full). See AGENTS.md -> Testing.
+npx lint-staged && npm run types && npm run test

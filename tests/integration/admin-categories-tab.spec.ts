@@ -1,5 +1,11 @@
 import { test, expect } from '@playwright/test';
-import { signInWithEmailAndPassword, signOut, waitForCalendarToLoad } from '../helpers/auth';
+import { waitForCalendarToLoad } from '../helpers/auth';
+
+import { STORAGE_STATE } from '../helpers/roles';
+
+// Signed in as `admin` via the session captured once by tests/auth.setup.ts,
+// instead of driving the login form in every test.
+test.use({ storageState: STORAGE_STATE.admin });
 
 const PROJECT_ID = 'spirieventsvbg';
 const FIRESTORE_BASE = `http://127.0.0.1:8181/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
@@ -73,19 +79,26 @@ async function seedCategories(): Promise<void> {
 const RUN_ID = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
 const newCategoryName = (suffix: string) => `TestCat-${RUN_ID}-${suffix}`;
 
-test.describe('Admin Kategorien tab (Uu0EoNra)', () => {
+// This spec is globally destructive: it wipes and re-seeds the shared
+// `categories` registry and the `events` collection, which every other spec
+// reads. It therefore runs in the dedicated `destructive` Playwright project,
+// which only starts once the parallel suite has finished (see
+// playwright.config.ts). It is deliberately NOT part of @smoke.
+test.describe('Admin Kategorien tab', () => {
   test.beforeEach(async () => {
     // Wipe categories and pre-seed via the REST API so the registry has
     // a known state before the browser opens. Skips the SeedBootstrap
     // path entirely — the bootstrap is covered by the seed test below.
     await clearCollection('categories');
     await seedCategories();
+    // Wiping events is load-bearing here: a category cannot be renamed or
+    // recoloured cleanly while seeded events still reference it. This is
+    // exactly why the spec runs isolated in the `destructive` project rather
+    // than alongside the parallel suite.
     await clearCollection('events');
   });
 
-  test.afterEach(async ({ page }) => {
-    await signOut(page);
-  });
+  test.afterEach(async ({ page }) => {});
 
   test('seeds the 7 canonical categories on first visit when the collection is empty', async ({
     page,
@@ -102,7 +115,6 @@ test.describe('Admin Kategorien tab (Uu0EoNra)', () => {
   });
 
   test('admin can open the Kategorien tab and see all 7 seed categories', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin?tab=categories');
 
     await expect(page.getByTestId('admin-tab-categories')).toHaveAttribute('aria-selected', 'true');
@@ -117,7 +129,6 @@ test.describe('Admin Kategorien tab (Uu0EoNra)', () => {
 
   test('admin can create a new category via the dialog', async ({ page }) => {
     const name = newCategoryName('create');
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin?tab=categories');
 
     await page.getByTestId('categories-tab-add').click();
@@ -139,7 +150,6 @@ test.describe('Admin Kategorien tab (Uu0EoNra)', () => {
   });
 
   test('admin can recolor an existing category and the calendar updates', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin?tab=categories');
 
     const yogaRow = page.locator('[data-testid="category-row"]').filter({ hasText: 'Yoga' });
@@ -157,7 +167,6 @@ test.describe('Admin Kategorien tab (Uu0EoNra)', () => {
   });
 
   test('admin can delete an unused category after confirmation', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin?tab=categories');
 
     const row = page.locator('[data-testid="category-row"]').filter({ hasText: 'Soundhealing' });
@@ -183,7 +192,6 @@ test.describe('Admin Kategorien tab (Uu0EoNra)', () => {
 
   test('admin can rename a category and the row text updates', async ({ page }) => {
     const newName = newCategoryName('renamed');
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin?tab=categories');
 
     const row = page.locator('[data-testid="category-row"]').filter({ hasText: 'Singen' });
@@ -202,7 +210,6 @@ test.describe('Admin Kategorien tab (Uu0EoNra)', () => {
   });
 
   test('rejects saving a category with an invalid hex code', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin?tab=categories');
 
     await page.getByTestId('categories-tab-add').click();
@@ -217,7 +224,6 @@ test.describe('Admin Kategorien tab (Uu0EoNra)', () => {
   test('admin can reorder categories and the new order is reflected on the admin page', async ({
     page,
   }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin?tab=categories');
     await expect(page.getByTestId('categories-tab')).toBeVisible();
     await expect(page.locator('[data-testid="category-row"]')).toHaveCount(7, { timeout: 15000 });
@@ -260,7 +266,6 @@ test.describe('Admin Kategorien tab (Uu0EoNra)', () => {
   test('the first row has its up button disabled and the last row its down button', async ({
     page,
   }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin?tab=categories');
     await expect(page.locator('[data-testid="category-row"]').first()).toHaveAttribute(
       'data-category-id',

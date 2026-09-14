@@ -1,8 +1,14 @@
 import { test, expect } from '@playwright/test';
 import { spawn } from 'child_process';
-import { signInWithEmailAndPassword } from '../helpers/auth';
+
 import { waitForWizardToLoad } from '../helpers/wizard';
 import { generateSlug } from '../helpers/slug';
+
+import { STORAGE_STATE } from '../helpers/roles';
+
+// Signed in as `admin` via the session captured once by tests/auth.setup.ts,
+// instead of driving the login form in every test.
+test.use({ storageState: STORAGE_STATE.admin });
 
 const FOREIGN_PENDING_SLUG = generateSlug('User Pending Event', 'Test Place Bludenz', 8);
 
@@ -32,12 +38,10 @@ test.describe('Rich-text event description', () => {
   });
 
   test('description field renders the rich-text toolbar on the create form', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/new');
     await waitForWizardToLoad(page);
 
     await page.click('button:has-text("Weiter")');
-    await page.waitForTimeout(500);
 
     await expect(page.getByLabel('Fett (Strg+B)')).toBeVisible();
     await expect(page.getByLabel('Kursiv (Strg+I)')).toBeVisible();
@@ -47,12 +51,10 @@ test.describe('Rich-text event description', () => {
   });
 
   test('character counter updates as the user types', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/new');
     await waitForWizardToLoad(page);
 
     await page.click('button:has-text("Weiter")');
-    await page.waitForTimeout(500);
 
     const editor = page.locator('[data-testid="description-editor"] .rte-content');
     await editor.click();
@@ -64,19 +66,16 @@ test.describe('Rich-text event description', () => {
   });
 
   test('empty description triggers the required validation error', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/new');
     await waitForWizardToLoad(page);
 
     await page.click('button:has-text("Weiter")');
-    await page.waitForTimeout(500);
 
     const editor = page.locator('[data-testid="description-editor"] .rte-content');
     await editor.click();
     await editor.fill('');
 
     await page.click('button:has-text("Weiter")');
-    await page.waitForTimeout(500);
 
     const descriptionError = page.getByTestId('description-error');
     await expect(descriptionError).toBeVisible();
@@ -86,12 +85,10 @@ test.describe('Rich-text event description', () => {
   test('pressing Enter inside the description editor inserts a line break instead of advancing the wizard', async ({
     page,
   }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/new');
     await waitForWizardToLoad(page);
 
     await page.click('button:has-text("Weiter")');
-    await page.waitForTimeout(500);
 
     await page.fill('#title', 'Enter-im-Beschreibung-Test');
 
@@ -103,7 +100,6 @@ test.describe('Rich-text event description', () => {
     await page.keyboard.press('End');
     await page.keyboard.press('Enter');
     await page.keyboard.type('Zweite Zeile');
-    await page.waitForTimeout(300);
 
     await expect(page.locator('#title')).toBeVisible();
     await expect(editor).toBeVisible();
@@ -113,21 +109,17 @@ test.describe('Rich-text event description', () => {
   });
 
   test('formatted description (bold) roundtrips to the event detail page', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/edit/test-event-foreign-pending');
     await page.waitForURL(/\/admin\/edit\//);
 
     await page.waitForSelector('[data-testid="description-editor"] .rte-content', {
       timeout: 10000,
     });
-    await page.waitForTimeout(800);
 
     const editor = page.locator('[data-testid="description-editor"] .rte-content');
     await editor.click();
     await editor.fill('');
-    await page.waitForTimeout(200);
     await editor.type('Mit fettem Text');
-    await page.waitForTimeout(200);
 
     await page.evaluate(() => {
       const el = document.querySelector('[data-testid="description-editor"] .rte-content');
@@ -139,7 +131,6 @@ test.describe('Rich-text event description', () => {
     });
 
     await page.getByLabel('Fett (Strg+B)').click();
-    await page.waitForTimeout(300);
 
     const htmlAfterBold = await editor.innerHTML();
     expect(htmlAfterBold).toMatch(/<(strong|b)>/i);

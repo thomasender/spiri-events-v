@@ -1,7 +1,13 @@
 import { test, expect } from '@playwright/test';
 import { spawn } from 'child_process';
-import { signInWithEmailAndPassword } from '../helpers/auth';
+
 import { generateSlug } from '../helpers/slug';
+
+import { STORAGE_STATE } from '../helpers/roles';
+
+// Signed in as `admin` via the session captured once by tests/auth.setup.ts,
+// instead of driving the login form in every test.
+test.use({ storageState: STORAGE_STATE.admin });
 import {
   waitForWizardToLoad,
   navigateToStep2,
@@ -36,7 +42,6 @@ test.describe('Event fields: Veranstalter & Kontakt', () => {
   });
 
   test('organizer and kontakt fields are required and visible on form', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/new');
 
     await page
@@ -59,7 +64,6 @@ test.describe('Event fields: Veranstalter & Kontakt', () => {
   });
 
   test('kontakt is pre-filled from current user on new event', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/new');
     await waitForWizardToLoad(page);
 
@@ -67,7 +71,6 @@ test.describe('Event fields: Veranstalter & Kontakt', () => {
   });
 
   test('all required fields are marked with asterisk', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/new');
     await waitForWizardToLoad(page);
 
@@ -81,7 +84,6 @@ test.describe('Event fields: Veranstalter & Kontakt', () => {
   });
 
   test('event cannot be created without organizer fields', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/new');
     await waitForWizardToLoad(page);
 
@@ -90,7 +92,6 @@ test.describe('Event fields: Veranstalter & Kontakt', () => {
     await page.locator('#kontakt').fill('');
 
     await page.locator('button:has-text("Weiter")').click();
-    await page.waitForTimeout(500);
 
     const errorTexts = page.locator('.error-text');
     const count = await errorTexts.count();
@@ -98,7 +99,6 @@ test.describe('Event fields: Veranstalter & Kontakt', () => {
   });
 
   test('Beschreibung field is marked as required with asterisk on step 2', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/new');
     await waitForWizardToLoad(page);
 
@@ -111,7 +111,6 @@ test.describe('Event fields: Veranstalter & Kontakt', () => {
   });
 
   test('cannot advance from step 2 without filling description', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/new');
     await waitForWizardToLoad(page);
 
@@ -120,7 +119,6 @@ test.describe('Event fields: Veranstalter & Kontakt', () => {
     await page.locator('#title').fill('Event ohne Beschreibung');
 
     await page.locator('button:has-text("Weiter")').click();
-    await page.waitForTimeout(500);
 
     const descriptionError = page.getByTestId('description-error');
     await expect(descriptionError).toBeVisible();
@@ -130,7 +128,6 @@ test.describe('Event fields: Veranstalter & Kontakt', () => {
   });
 
   test('filling description allows advancing past step 2', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/new');
     await waitForWizardToLoad(page);
 
@@ -142,14 +139,11 @@ test.describe('Event fields: Veranstalter & Kontakt', () => {
     });
 
     await page.locator('button:has-text("Weiter")').click();
-    await page.waitForTimeout(500);
 
     await expect(page.locator('#date')).toBeVisible();
   });
 
   test('event detail page shows organizer and kontakt for approved event', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
-
     // Navigate to the known admin-owned fixture directly by slug rather than
     // clicking the first card in "Meine Events" — that list accumulates events
     // created by other wizard-driven specs across test runs, so "first" is not
@@ -176,13 +170,11 @@ test.describe('Event fields: Veranstalter & Kontakt', () => {
   });
 
   test('manage cards in Verwalten section show organizer email', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin');
 
     await page
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
       .catch(() => {});
-    await page.waitForTimeout(1500);
 
     const ownerEmails = page.locator('[data-testid="event-owner-email"]');
     await expect(ownerEmails.first()).toBeVisible();

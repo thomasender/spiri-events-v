@@ -30,7 +30,7 @@ async function deleteAuthUser(uid: string): Promise<void> {
   });
 }
 
-test.describe.serial('Profile Management', () => {
+test.describe.serial('Profile Management @smoke', () => {
   test.beforeAll(async () => {
     await clearEmulatorStorage();
   });

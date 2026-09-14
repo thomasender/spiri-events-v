@@ -25,7 +25,7 @@ async function resetUserApprovedEventFixture(): Promise<void> {
   await runScript('scripts/reset-user-approved-event-fixture.mjs');
 }
 
-test.describe('Event draft status — read-only (AzGFKWfV)', () => {
+test.describe('Event draft status — read-only (AzGFKWfV) @smoke', () => {
   test.beforeEach(async () => {
     await resetUserApprovedEventFixture();
   });

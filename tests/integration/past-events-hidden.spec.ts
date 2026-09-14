@@ -73,7 +73,6 @@ async function navigateToMonth(
     const current = (await header.textContent())?.trim() ?? '';
     if (current === target) return;
     await page.locator('.events-section-month-nav button').nth(navButtonIndex).click();
-    await page.waitForTimeout(150);
   }
   throw new Error(`Failed to navigate to ${target}`);
 }
@@ -82,7 +81,7 @@ const PAST_SINGLE_DAY_ID = 'test-past-single-day-nUoA0Wbx';
 const PAST_MULTI_DAY_ID = 'test-past-multi-day-nUoA0Wbx';
 const ONGOING_MULTI_DAY_ID = 'test-ongoing-multi-day-nUoA0Wbx';
 
-test.describe('Calendar hides past events (nUoA0Wbx)', () => {
+test.describe('Calendar hides past events (nUoA0Wbx) @smoke', () => {
   test.beforeAll(async ({ playwright }) => {
     const apiContext = await request.newContext({
       baseURL: FIRESTORE_EMULATOR,

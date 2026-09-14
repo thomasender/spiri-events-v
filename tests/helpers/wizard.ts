@@ -1,24 +1,46 @@
-import { Page } from '@playwright/test';
+import { expect, Page } from '@playwright/test';
+
+/**
+ * Which wizard step is currently shown (1-based).
+ *
+ * The indicator marks every step before the current one as `.completed`, so
+ * the count of completed markers + 1 is the active step. Used to wait for a
+ * real step transition instead of sleeping a fixed second after each click.
+ */
+async function currentStep(page: Page): Promise<number> {
+  return (await page.locator('.wizard-step.completed').count()) + 1;
+}
 
 export async function waitForWizardToLoad(page: Page) {
-  await page
-    .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
-    .catch(() => {});
-  await page.waitForTimeout(500);
+  await page.waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 });
+  await expect(page.locator('.wizard-step-content')).toBeVisible({ timeout: 10000 });
+}
+
+async function clickStepButton(page: Page, label: 'Weiter' | 'Zurück') {
+  const button = page.locator(`button:has-text("${label}")`);
+  await button.waitFor({ timeout: 5000 });
+
+  const before = await currentStep(page);
+  await button.click();
+
+  // Either the step changed, or validation refused to advance and surfaced an
+  // error. Both are legitimate outcomes — several specs click Weiter precisely
+  // to assert that it is blocked — so wait for whichever happens first.
+  await expect
+    .poll(
+      async () =>
+        (await currentStep(page)) !== before || (await page.locator('.error-text').count()) > 0,
+      { timeout: 5000 }
+    )
+    .toBe(true);
 }
 
 export async function clickWeiter(page: Page) {
-  const weiterButton = page.locator('button:has-text("Weiter")');
-  await weiterButton.waitFor({ timeout: 5000 }).catch(() => {});
-  await weiterButton.click();
-  await page.waitForTimeout(1000);
+  await clickStepButton(page, 'Weiter');
 }
 
 export async function clickZurueck(page: Page) {
-  const zurueckButton = page.locator('button:has-text("Zurück")');
-  await zurueckButton.waitFor({ timeout: 5000 }).catch(() => {});
-  await zurueckButton.click();
-  await page.waitForTimeout(1000);
+  await clickStepButton(page, 'Zurück');
 }
 
 export async function navigateToStep2(page: Page) {
@@ -113,9 +135,9 @@ export async function fillStep3Details(
   }
   if (data.category !== undefined) {
     await page.click('.kategorie-select');
-    await page.waitForTimeout(300);
-    await page.click(`.kategorie-select__option:has-text("${data.category}")`);
-    await page.waitForTimeout(300);
+    const option = page.locator(`.kategorie-select__option:has-text("${data.category}")`);
+    await option.click();
+    await expect(option).toBeHidden();
   }
   if (data.contribution !== undefined) {
     const labelMap: Record<'free' | 'fee' | 'donation', string> = {
@@ -135,26 +157,37 @@ export async function enableRecurrence(page: Page) {
   if ((await yesRadio.count()) === 0) return;
   if (await yesRadio.isChecked()) return;
   await page.locator('.radio-label:has-text("Ja")').first().click();
-  await page.waitForTimeout(150);
+  await expect(yesRadio).toBeChecked();
 }
 
 export async function selectBezirk(page: Page, bezirk: string) {
   await page.click('.filter-accordion .filter-accordion-summary');
-  await page.waitForTimeout(300);
-  await page.click(`.filter-accordion button:has-text("${bezirk}")`);
-  await page.waitForTimeout(300);
+  const option = page.locator(`.filter-accordion button:has-text("${bezirk}")`);
+  await option.waitFor({ state: 'visible', timeout: 5000 });
+  await option.click();
 }
 
 export async function submitWizard(page: Page) {
   await page.click(
     'button:has-text("Event erstellen"), button:has-text("Einreichen zur Genehmigung")'
   );
-  await page.waitForTimeout(500);
+  // Submitting opens a ConfirmDialog. Wait for it before returning, otherwise
+  // confirmSubmission() races the dialog and its text selector can re-match
+  // the wizard's own submit button instead.
+  await expect(page.locator('.confirm-dialog')).toBeVisible({ timeout: 10000 });
 }
 
 export async function confirmSubmission(page: Page) {
-  await page.click('button:has-text("Einreichen"), button:has-text("Bestätigen")');
-  await page.waitForTimeout(2000);
+  const dialog = page.locator('.confirm-dialog');
+  await expect(dialog).toBeVisible({ timeout: 10000 });
+  // Scope to the dialog: unscoped, "Einreichen" also matches the wizard's own
+  // "Einreichen zur Genehmigung" button sitting behind the overlay.
+  await dialog
+    .locator('button:has-text("Einreichen"), button:has-text("Bestätigen")')
+    .first()
+    .click();
+  // The dialog closes once the write completes.
+  await expect(dialog).toBeHidden({ timeout: 15000 });
 }
 
 // Picks the first enabled swatch in the category color picker. Walks the
@@ -226,7 +259,8 @@ export async function hasValidationErrors(page: Page) {
 }
 
 export async function clearField(page: Page, fieldId: string) {
-  await page.click(`#${fieldId}`);
-  await page.selectText(`#${fieldId}`);
-  await page.keyboard.press('Backspace');
+  // `page.selectText()` does not exist in Playwright — this helper silently
+  // threw and left the field untouched. `fill('')` clears it properly and
+  // fires the same input events the app listens for.
+  await page.fill(`#${fieldId}`, '');
 }

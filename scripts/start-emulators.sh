@@ -45,18 +45,30 @@ cleanup() {
 
 trap cleanup SIGINT SIGTERM
 
-firebase emulators:start --import "$IMPORT_PATH" --project spirieventsvbg &
+# Keep the emulator's debug logs out of the repo root. Left at the default
+# verbosity they grow into the multi-GB range within a single work session,
+# which is what makes the Firestore emulator start thrashing and time out.
+EMULATOR_LOG_DIR="${TMPDIR:-/tmp}/spiri-events-emulators"
+mkdir -p "$EMULATOR_LOG_DIR"
+
+firebase emulators:start \
+  --import "$IMPORT_PATH" \
+  --project spirieventsvbg \
+  --log-verbosity QUIET 2>"$EMULATOR_LOG_DIR/emulators.err" &
 EMULATOR_PID=$!
 
 echo "Waiting for emulators to be ready..."
-sleep 8
 
-MAX_WAIT=30
+# Poll from the first second instead of sleeping blind for 8s.
+MAX_WAIT=60
 WAITED=0
 while [ $WAITED -lt $MAX_WAIT ]; do
-  if curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:9199 | grep -q "200" && \
-     curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8181 | grep -q "200"; then
-    echo "Emulators ready!"
+  if ! kill -0 $EMULATOR_PID 2>/dev/null; then
+    echo "Emulator process exited during startup."
+    exit 1
+  fi
+  if bash "$SCRIPT_DIR/check-emulators.sh" >/dev/null 2>&1; then
+    echo "Emulators ready after ${WAITED}s."
     break
   fi
   sleep 1

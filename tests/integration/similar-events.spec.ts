@@ -76,7 +76,6 @@ test.describe('Similar events on event detail page (SNKCKBob)', () => {
     await openEventAndWaitForSimilarEvents(page, MANTRASINGEN_SLUG);
     await expect(page.locator('.event-title')).toContainText('Mantrasingen');
 
-    await page.waitForTimeout(2000);
     await expect(page.getByTestId('similar-events')).toHaveCount(0);
   });
 
