@@ -23,11 +23,7 @@ export default function EventCard({ event, categoryColor, onClick }) {
   const imageSrc = event.imageUrl && !imageError ? event.imageUrl : fallbackImage;
 
   return (
-    <Link
-      to={`/event/${event.slug || event.id}?occurrenceDate=${event.date}`}
-      className="event-tile"
-      onClick={onClick}
-    >
+    <Link to={`/event/${event.slug || event.id}`} className="event-tile" onClick={onClick}>
       <div className="event-tile-image-wrapper">
         <img
           src={imageSrc}

@@ -74,10 +74,7 @@ export default function EventAdminListRow({
 
   const eventDate = isRecurring && nextOccurrence ? nextOccurrence : event.date;
 
-  const eventLinkTarget =
-    isRecurring && nextOccurrence
-      ? `/event/${event.slug || event.id}?occurrenceDate=${nextOccurrence}`
-      : `/event/${event.slug || event.id}`;
+  const eventLinkTarget = `/event/${event.slug || event.id}`;
 
   return (
     <div className={`event-card${hasUnread ? ' event-card--has-unread' : ''}`}>
