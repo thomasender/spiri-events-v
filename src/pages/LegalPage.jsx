@@ -306,6 +306,91 @@ E-Mail: kontakt@spirituelle-events-vorarlberg.at`,
   },
 };
 
+function renderInline(text, keyPrefix) {
+  const parts = [];
+  const regex = /\*([^*]+)\*/g;
+  let lastIndex = 0;
+  let match;
+  let i = 0;
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.substring(lastIndex, match.index));
+    }
+    parts.push(<strong key={`${keyPrefix}-b-${i++}`}>{match[1]}</strong>);
+    lastIndex = regex.lastIndex;
+  }
+  if (lastIndex < text.length) {
+    parts.push(text.substring(lastIndex));
+  }
+  return parts;
+}
+
+function LegalText({ text }) {
+  const lines = text.split('\n');
+  const blocks = [];
+  let current = null;
+
+  const flush = () => {
+    if (current) {
+      blocks.push(current);
+      current = null;
+    }
+  };
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+
+    if (!line) {
+      flush();
+      continue;
+    }
+
+    if (line.startsWith('- ')) {
+      const item = line.substring(2);
+      if (current?.type !== 'list') {
+        flush();
+        current = { type: 'list', items: [item] };
+      } else {
+        current.items.push(item);
+      }
+    } else {
+      if (current?.type !== 'paragraph') {
+        flush();
+        current = { type: 'paragraph', lines: [line] };
+      } else {
+        current.lines.push(line);
+      }
+    }
+  }
+  flush();
+
+  return (
+    <>
+      {blocks.map((block, blockIdx) => {
+        if (block.type === 'list') {
+          return (
+            <ul key={blockIdx} className="legal-list">
+              {block.items.map((item, itemIdx) => (
+                <li key={itemIdx}>{renderInline(item, `l-${blockIdx}-${itemIdx}`)}</li>
+              ))}
+            </ul>
+          );
+        }
+        return (
+          <p key={blockIdx} className="legal-paragraph">
+            {block.lines.map((line, lineIdx) => (
+              <span key={lineIdx}>
+                {renderInline(line, `p-${blockIdx}-${lineIdx}`)}
+                {lineIdx < block.lines.length - 1 && <br />}
+              </span>
+            ))}
+          </p>
+        );
+      })}
+    </>
+  );
+}
+
 export default function LegalPage() {
   const { page } = useParams();
   const data = content[page];
@@ -333,7 +418,7 @@ export default function LegalPage() {
           {data.sections.map((section, index) => (
             <section key={index}>
               <h2>{section.heading}</h2>
-              <p style={{ whiteSpace: 'pre-wrap' }}>{section.text}</p>
+              <LegalText text={section.text} />
             </section>
           ))}
         </div>
