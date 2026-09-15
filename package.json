@@ -32,7 +32,8 @@
     "test:e2e:smoke": "playwright test --project=chromium --grep @smoke && playwright test --project=destructive --grep @smoke",
     "test:e2e:full": "playwright test --project=chromium && playwright test --project=destructive",
     "test:e2e:mobile": "playwright test --project=webkit",
-    "emulators:check": "bash scripts/check-emulators.sh"
+    "emulators:check": "bash scripts/check-emulators.sh",
+    "emulators:restart": "pkill -f cloud-firestore-emulator; pkill -f \"firebase.*emulators\"; sleep 3; bash scripts/start-emulators.sh"
   },
   "dependencies": {
     "@fontsource/cormorant-garamond": "^5.3.0",

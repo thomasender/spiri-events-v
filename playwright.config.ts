@@ -17,7 +17,13 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // Capped deliberately. Playwright's default (half the logical cores, 7 here)
+  // drives the single Firestore emulator into a GC death spiral: CPU pegs near
+  // 900%, queries go from ~10ms to well over a second, and dozens of unrelated
+  // tests then fail with "element not found". Four workers keeps it healthy and
+  // the wall-clock difference is small, because the emulator was the bottleneck
+  // rather than the browsers.
+  workers: process.env.CI ? 1 : 4,
 
   // `html` used to be the default reporter, which writes a report directory on
   // every run and opens a server on failure. `list` is enough for a hook; pass

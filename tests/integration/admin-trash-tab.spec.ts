@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { spawn } from 'child_process';
 import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
+import { createApprovedEvent, deleteEventById } from '../fixtures/events';
 
 async function resetTrashFixtures(): Promise<void> {
   await new Promise<void>((resolve, reject) => {
@@ -188,22 +189,38 @@ test.describe('Papierkorb tab (SS79oSci) @smoke', () => {
     await expect(page.getByTestId('trash-event-card-test-event-user-trashed')).toBeVisible();
   });
 
+  // Uses its own event rather than the seeded "Yoga heute". That event is read
+  // concurrently by share-event, similar-events and admin-event-edit-delete via
+  // its slug; trashing it mid-run made all of those 404.
+  const DELETE_FIXTURE_ID = 'test-event-trash-from-list';
+  const DELETE_FIXTURE_TITLE = 'Trash From List Fixture';
+
   test('Deleting from EventList moves the event to Papierkorb', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
-    await page.goto('/admin');
-    await waitForAdminTabs(page);
+    await createApprovedEvent({
+      id: DELETE_FIXTURE_ID,
+      title: DELETE_FIXTURE_TITLE,
+      ownerEmail: 'admin@test.com',
+    });
 
-    const yogaCard = page.locator('.event-card', { hasText: 'Yoga heute' }).first();
-    await expect(yogaCard).toBeVisible();
-    await yogaCard.getByRole('button', { name: /event löschen/i }).click();
+    try {
+      await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+      await page.goto('/admin');
+      await waitForAdminTabs(page);
 
-    await expect(page.getByText(/in den Papierkorb verschoben/i)).toBeVisible();
-    await page.getByRole('button', { name: /papierkorb/i }).click();
+      const card = page.locator('.event-card', { hasText: DELETE_FIXTURE_TITLE }).first();
+      await expect(card).toBeVisible();
+      await card.getByRole('button', { name: /event löschen/i }).click();
 
-    await expect(yogaCard).toHaveCount(0, { timeout: 5000 });
+      await expect(page.getByText(/in den Papierkorb verschoben/i)).toBeVisible();
+      await page.getByRole('button', { name: /papierkorb/i }).click();
 
-    await page.goto('/admin?tab=trash');
-    await waitForAdminTabs(page);
-    await expect(page.locator('.event-card', { hasText: 'Yoga heute' })).toBeVisible();
+      await expect(card).toHaveCount(0, { timeout: 5000 });
+
+      await page.goto('/admin?tab=trash');
+      await waitForAdminTabs(page);
+      await expect(page.locator('.event-card', { hasText: DELETE_FIXTURE_TITLE })).toBeVisible();
+    } finally {
+      await deleteEventById(DELETE_FIXTURE_ID);
+    }
   });
 });

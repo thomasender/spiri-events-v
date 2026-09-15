@@ -222,12 +222,16 @@ test.describe('Event wizard: Copyright confirmation (tQ9gWPJv)', () => {
     await successDialog.getByTestId('success-dialog-confirm').click();
 
     await page.waitForURL('/admin', { timeout: 10000 });
-    await page
-      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
-      .catch(() => {});
+    await page.waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 });
 
-    const cards = page.locator('.event-card', { hasText: EVENT_TITLE });
-    await expect(cards.first()).toBeVisible({ timeout: 10000 });
+    // Admin-created events are pending (ticket hGxrS6gp) and pending events do
+    // not appear under "Meine Events" — they live in the Review tab.
+    await page.getByTestId('admin-tab-review').click();
+    const panel = page.locator('#admin-tab-review');
+    await expect(panel).toBeVisible();
+
+    const cards = panel.locator('.event-card', { hasText: EVENT_TITLE });
+    await expect(cards.first()).toBeVisible({ timeout: 15000 });
     await expect(cards.first().locator('.status-badge--pending')).toBeVisible();
 
     // The pending event is created with a serverTimestamp for rightsConfirmedAt,

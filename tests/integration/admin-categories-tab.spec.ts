@@ -79,6 +79,17 @@ async function seedCategories(): Promise<void> {
 const RUN_ID = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
 const newCategoryName = (suffix: string) => `TestCat-${RUN_ID}-${suffix}`;
 
+// KNOWN FLAKY — pre-existing, not introduced by the test-tier rework.
+// Two or three of these tests fail on roughly every other run, and which ones
+// varies. The cause is this spec fighting the app over the shared `categories`
+// registry: it wipes and re-seeds the collection in `beforeEach` while the
+// app's own seed bootstrap and live Firestore listener are also writing to it.
+// `pickEnabledCategoryColor` in tests/helpers/wizard.ts exists as a workaround
+// for the same class of problem (a colour palette exhausted by earlier runs).
+// Fixing it properly means giving the spec its own category namespace rather
+// than rewriting the global one. Until then it stays out of @smoke so it never
+// blocks a push.
+//
 // This spec is globally destructive: it wipes and re-seeds the shared
 // `categories` registry and the `events` collection, which every other spec
 // reads. It therefore runs in the dedicated `destructive` Playwright project,
@@ -267,13 +278,13 @@ test.describe('Admin Kategorien tab', () => {
     page,
   }) => {
     await page.goto('/admin?tab=categories');
-    await expect(page.locator('[data-testid="category-row"]').first()).toHaveAttribute(
-      'data-category-id',
-      'yoga',
-      { timeout: 15000 }
-    );
 
     const rows = page.locator('[data-testid="category-row"]');
+    // Wait for the full seeded set before asserting on order: the registry
+    // renders incrementally as the Firestore snapshot arrives, and a row read
+    // mid-stream sorts alphabetically because `order` has not landed yet.
+    await expect(rows).toHaveCount(SEED_CATEGORIES.length, { timeout: 15000 });
+    await expect(rows.first()).toHaveAttribute('data-category-id', 'yoga', { timeout: 15000 });
     await expect(rows.first().getByTestId('category-row-up')).toBeDisabled();
     await expect(rows.last().getByTestId('category-row-down')).toBeDisabled();
   });

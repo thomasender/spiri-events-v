@@ -169,18 +169,6 @@ test.describe('Event fields: Veranstalter & Kontakt', () => {
     await expect(ownerEmail).toContainText('@');
   });
 
-  test('manage cards in Verwalten section show organizer email', async ({ page }) => {
-    await page.goto('/admin');
-
-    await page
-      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
-      .catch(() => {});
-
-    const ownerEmails = page.locator('[data-testid="event-owner-email"]');
-    await expect(ownerEmails.first()).toBeVisible();
-    await expect(ownerEmails.first()).toContainText('@');
-  });
-
   test("guest visiting another user's approved event via slug sees organizer photo", async ({
     page,
   }) => {

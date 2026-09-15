@@ -90,6 +90,22 @@ keep that from happening again.
 | `npm run test:e2e:full`   | Playwright, everything, Chromium                   | manually, before a release      | measure before you rely on it |
 | `npm run test:e2e:mobile` | Playwright, `@mobile`-tagged specs, WebKit @ 390px | manually, for iOS Safari issues | short                         |
 
+### The emulator is the bottleneck, not the browsers
+
+There is one Firestore emulator and it is a JVM process that does not cope with
+unbounded parallelism. Left at Playwright's default worker count it goes into a
+GC death spiral part-way through a long run: CPU pegs near 900%, a
+one-document query goes from ~10ms to over a second, and dozens of unrelated
+tests fail with "element not found".
+
+Two consequences:
+
+- `playwright.config.ts` caps `workers` at 4 on purpose. Raising it makes the
+  suite slower and flakier, not faster.
+- **Start the full suite against a freshly restarted emulator.** A long work
+  session degrades it gradually. `npm run emulators:restart` does it in one
+  step, and `npm run emulators:check` tells you whether you need to.
+
 ### Shared state and the `destructive` project
 
 The integration specs share one emulator, one seeded `events` collection and one
@@ -107,6 +123,15 @@ uniquely-named fixtures and delete only those.
 `npm run emulators:check` tells you in ~3 s whether the emulators are usable.
 The pre-push hook runs it first, so a dead emulator fails immediately with
 instructions instead of after 30 s of silence.
+
+### Known flaky
+
+`tests/integration/admin-categories-tab.spec.ts` fails two or three of its
+twelve tests on roughly every other run, and which ones varies. It wipes and
+re-seeds the shared `categories` registry while the app's own seed bootstrap
+and Firestore listener write to it too. It is deliberately out of `@smoke` so
+it never blocks a push; the full suite is otherwise green. Fixing it means
+giving it its own category namespace instead of rewriting the global one.
 
 ### Default: do NOT write a new E2E test
 

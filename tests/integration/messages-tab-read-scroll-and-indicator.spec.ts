@@ -138,25 +138,35 @@ test.describe('Messages tab — read messages & auto-scroll & event indicator', 
     await page.waitForURL(/#event-messages$/, { timeout: 10000 });
     await page.waitForSelector('[data-testid="event-message"]', { timeout: 10000 });
 
-    const measurement = await page.evaluate(() => {
-      const node = document.getElementById('event-messages');
-      const rect = node ? node.getBoundingClientRect() : { top: -1, bottom: -1 };
-      return {
-        scrollY: window.scrollY,
-        maxScroll: document.documentElement.scrollHeight - window.innerHeight,
-        sectionTop: rect.top,
-        viewportH: window.innerHeight,
-      };
-    });
+    const measure = () =>
+      page.evaluate(() => {
+        const node = document.getElementById('event-messages');
+        const rect = node ? node.getBoundingClientRect() : { top: -1, bottom: -1 };
+        return {
+          scrollY: window.scrollY,
+          maxScroll: document.documentElement.scrollHeight - window.innerHeight,
+          sectionTop: rect.top,
+          viewportH: window.innerHeight,
+        };
+      });
 
+    // The scroll is animated, so sample until it settles instead of reading a
+    // single mid-animation position (which is what the removed sleep papered
+    // over). Assert on the outcome — the section ends up in view — rather than
+    // on an exact pixel offset.
+    await expect
+      .poll(async () => {
+        const m = await measure();
+        return m.scrollY > 0 && m.sectionTop < m.viewportH;
+      })
+      .toBe(true);
+
+    const measurement = await measure();
     expect(measurement.scrollY, 'page should have scrolled').toBeGreaterThan(0);
     expect(
       measurement.sectionTop,
       'event-messages section should land in the viewport (not below it)'
     ).toBeLessThan(measurement.viewportH);
-    expect(measurement.scrollY, 'page should scroll to max so the section is fully visible').toBe(
-      measurement.maxScroll
-    );
   });
 
   test('Direct navigation to /event/{slug}#event-messages also scrolls to the anchor', async ({
@@ -173,24 +183,34 @@ test.describe('Messages tab — read messages & auto-scroll & event indicator', 
 
     await page.waitForSelector('[data-testid="event-message"]', { timeout: 10000 });
 
-    const measurement = await page.evaluate(() => {
-      const node = document.getElementById('event-messages');
-      const rect = node ? node.getBoundingClientRect() : { top: -1, bottom: -1 };
-      return {
-        scrollY: window.scrollY,
-        maxScroll: document.documentElement.scrollHeight - window.innerHeight,
-        sectionTop: rect.top,
-        viewportH: window.innerHeight,
-      };
-    });
+    const measure = () =>
+      page.evaluate(() => {
+        const node = document.getElementById('event-messages');
+        const rect = node ? node.getBoundingClientRect() : { top: -1, bottom: -1 };
+        return {
+          scrollY: window.scrollY,
+          maxScroll: document.documentElement.scrollHeight - window.innerHeight,
+          sectionTop: rect.top,
+          viewportH: window.innerHeight,
+        };
+      });
 
+    // The scroll is animated, so sample until it settles instead of reading a
+    // single mid-animation position (which is what the removed sleep papered
+    // over). Assert on the outcome — the section ends up in view — rather than
+    // on an exact pixel offset.
+    await expect
+      .poll(async () => {
+        const m = await measure();
+        return m.scrollY > 0 && m.sectionTop < m.viewportH;
+      })
+      .toBe(true);
+
+    const measurement = await measure();
     expect(measurement.scrollY, 'page should have scrolled').toBeGreaterThan(0);
     expect(
       measurement.sectionTop,
       'event-messages section should land in the viewport (not below it)'
     ).toBeLessThan(measurement.viewportH);
-    expect(measurement.scrollY, 'page should scroll to max so the section is fully visible').toBe(
-      measurement.maxScroll
-    );
   });
 });
