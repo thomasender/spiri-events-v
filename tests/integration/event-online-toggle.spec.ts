@@ -62,20 +62,20 @@ test.describe('Event wizard: "Online-Event" checkbox (1e9YUHCh) @smoke', () => {
     await expect(label).toContainText('Online-Event');
   });
 
-  test('Bezirk label is renamed to "Ort" on the wizard step 3', async ({ page }) => {
+  test('wizard step 3 labels the district dropdown as "Bezirk"', async ({ page }) => {
     await page.goto('/admin/new');
     await waitForWizardToLoad(page);
 
     await clickWeiter(page);
     await fillStep2EventInfo(page, {
-      title: 'Ort label test',
+      title: 'Bezirk label test',
       description: 'Test description.',
     });
     await clickWeiter(page);
 
     const bezirkLabel = page.locator('label[for="bezirk"]');
     await expect(bezirkLabel).toBeVisible();
-    await expect(bezirkLabel).toContainText('Ort');
+    await expect(bezirkLabel).toContainText('Bezirk');
     await expect(bezirkLabel).toContainText('*');
   });
 
