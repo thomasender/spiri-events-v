@@ -1,0 +1,42 @@
+.spenden-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 48px 24px 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.spenden-hero {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+
+.spenden-hero-title {
+  font-size: var(--fs-section);
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.spenden-hero-lead {
+  max-width: 56ch;
+  color: var(--text-secondary);
+  font-size: var(--fs-intro);
+  line-height: 1.7;
+  margin: 0;
+}
+
+.spenden-back-link {
+  display: flex;
+  justify-content: center;
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .spenden-page {
+    padding: 32px 16px 64px;
+  }
+}
