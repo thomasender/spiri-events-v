@@ -902,7 +902,7 @@ export default function EventFormWizard() {
 
       <div className="form-row">
         <div className="form-group">
-          <label htmlFor="bezirk">Ort *</label>
+          <label htmlFor="bezirk">Bezirk *</label>
           <select
             id="bezirk"
             name="bezirk"

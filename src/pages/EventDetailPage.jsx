@@ -586,7 +586,7 @@ export default function EventDetailPage() {
         <div className="detail-item">
           <MapPin size={18} className="detail-icon" />
           <div>
-            <span className="detail-label">Ort</span>
+            <span className="detail-label">Bezirk</span>
             <span
               className="detail-value"
               data-testid={event.isOnline ? 'event-detail-location-online' : undefined}
