@@ -3,19 +3,27 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import DonationBlock from '../../src/components/DonationBlock';
 
-const startDonation = vi.hoisted(() => vi.fn());
+const startOneTimeDonation = vi.hoisted(() => vi.fn());
+const startMonthlyDonation = vi.hoisted(() => vi.fn());
 
-vi.mock('../../src/lib/mollieClient', () => ({
-  DONATION_AMOUNTS: [1.9, 6.9, 12.9],
-  startDonation: startDonation,
-}));
+vi.mock('../../src/lib/mollieClient', async () => {
+  const validation = await import('../../src/lib/donationValidation');
+  return {
+    MIN_DONATION_AMOUNT: validation.MIN_DONATION_AMOUNT,
+    DONATION_AMOUNT_PRESETS: validation.DONATION_AMOUNT_PRESETS,
+    isValidDonationAmount: validation.isValidDonationAmount,
+    parseDonationAmount: validation.parseDonationAmount,
+    startOneTimeDonation: startOneTimeDonation,
+    startMonthlyDonation: startMonthlyDonation,
+  };
+});
 
 describe('DonationBlock', () => {
   const originalLocation = window.location;
 
   beforeEach(() => {
-    startDonation.mockReset();
-    // happy-dom does not implement navigation; replace assign with a spy.
+    startOneTimeDonation.mockReset();
+    startMonthlyDonation.mockReset();
     delete window.location;
     window.location = { ...originalLocation, assign: vi.fn() };
   });
@@ -32,12 +40,45 @@ describe('DonationBlock', () => {
     );
   }
 
-  it('renders the three allowed donation amounts in EUR', () => {
+  function fillAmount(value) {
+    fireEvent.change(screen.getByLabelText(/betrag in euro/i), {
+      target: { value: String(value) },
+    });
+  }
+
+  function submit() {
+    fireEvent.click(screen.getByRole('button', { name: /spenden$/ }));
+  }
+
+  function selectMonthly() {
+    fireEvent.click(screen.getByRole('tab', { name: /monatlich/i }));
+  }
+
+  function selectOneTime() {
+    fireEvent.click(screen.getByRole('tab', { name: /einmalig/i }));
+  }
+
+  it('renders the frequency tabs with the one-time tab active by default', () => {
     renderBlock();
 
-    expect(screen.getByRole('button', { name: '1,90 € / Monat' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '6,90 € / Monat' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '12,90 € / Monat' })).toBeInTheDocument();
+    const oneTimeTab = screen.getByRole('tab', { name: /einmalig/i });
+    const monthlyTab = screen.getByRole('tab', { name: /monatlich/i });
+
+    expect(oneTimeTab).toHaveAttribute('aria-selected', 'true');
+    expect(monthlyTab).toHaveAttribute('aria-selected', 'false');
+  });
+
+  it('renders the amount input and preset chips', () => {
+    renderBlock();
+
+    const input = screen.getByLabelText(/betrag in euro/i);
+    expect(input).toBeInTheDocument();
+    expect(input).toHaveAttribute('type', 'text');
+    expect(input).toHaveAttribute('inputmode', 'decimal');
+
+    expect(screen.getByRole('button', { name: '5 €' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '10 €' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '20 €' })).toBeInTheDocument();
   });
 
   it('renders the optional name input', () => {
@@ -48,62 +89,113 @@ describe('DonationBlock', () => {
     expect(input).toHaveAttribute('type', 'text');
   });
 
-  it('calls startDonation with the amount (no name when empty) and redirects to checkout', async () => {
-    startDonation.mockResolvedValue({
-      checkoutUrl: 'https://www.mollie.com/checkout/test',
-      customerId: 'cst_test',
-      subscriptionId: 'sub_test',
-    });
-
+  it('clicking a preset chip fills the amount input', () => {
     renderBlock();
 
-    fireEvent.click(screen.getByRole('button', { name: '6,90 € / Monat' }));
+    fireEvent.click(screen.getByRole('button', { name: '10 €' }));
 
-    await waitFor(() => {
-      expect(startDonation).toHaveBeenCalledWith(6.9, null);
-    });
-    await waitFor(() => {
-      expect(window.location.assign).toHaveBeenCalledWith('https://www.mollie.com/checkout/test');
-    });
+    const input = screen.getByLabelText(/betrag in euro/i);
+    expect(input).toHaveValue('10');
   });
 
-  it('passes the typed name to startDonation', async () => {
-    startDonation.mockResolvedValue({
-      checkoutUrl: 'https://www.mollie.com/checkout/test',
-      customerId: 'cst_test',
-      subscriptionId: 'sub_test',
+  it('disables the submit button until a valid amount is entered', () => {
+    renderBlock();
+
+    const submit = screen.getByRole('button', { name: /spenden$/ });
+    expect(submit).toBeDisabled();
+
+    fillAmount(4);
+    expect(submit).toBeDisabled();
+
+    fillAmount(5);
+    expect(submit).not.toBeDisabled();
+  });
+
+  it('calls startOneTimeDonation with the typed amount and redirects to checkout', async () => {
+    startOneTimeDonation.mockResolvedValue({
+      checkoutUrl: 'https://www.mollie.com/checkout/one-time',
+      paymentId: 'tr_test',
     });
 
     renderBlock();
 
+    fillAmount(15);
     fireEvent.change(screen.getByPlaceholderText(/anna musterfrau/i), {
-      target: { value: '  Peter Mathis  ' },
+      target: { value: '  Anna  ' },
     });
-    fireEvent.click(screen.getByRole('button', { name: '1,90 € / Monat' }));
+    submit();
 
     await waitFor(() => {
-      expect(startDonation).toHaveBeenCalledWith(1.9, 'Peter Mathis');
+      expect(startOneTimeDonation).toHaveBeenCalledWith(15, 'Anna');
     });
+    await waitFor(() => {
+      expect(window.location.assign).toHaveBeenCalledWith(
+        'https://www.mollie.com/checkout/one-time'
+      );
+    });
+    expect(startMonthlyDonation).not.toHaveBeenCalled();
   });
 
-  it('shows an error and re-enables the buttons when startDonation throws', async () => {
-    startDonation.mockRejectedValue(new Error('Mollie down'));
+  it('calls startMonthlyDonation when the monthly tab is selected', async () => {
+    startMonthlyDonation.mockResolvedValue({
+      checkoutUrl: 'https://www.mollie.com/checkout/monthly',
+      customerId: 'cst_test',
+      subscriptionId: 'sub_test',
+    });
 
     renderBlock();
 
-    fireEvent.click(screen.getByRole('button', { name: '12,90 € / Monat' }));
+    selectMonthly();
+    fireEvent.click(screen.getByRole('button', { name: '5 €' }));
+    submit();
+
+    await waitFor(() => {
+      expect(startMonthlyDonation).toHaveBeenCalledWith(5, null);
+    });
+    await waitFor(() => {
+      expect(window.location.assign).toHaveBeenCalledWith(
+        'https://www.mollie.com/checkout/monthly'
+      );
+    });
+    expect(startOneTimeDonation).not.toHaveBeenCalled();
+  });
+
+  it('accepts comma as decimal separator in the input', async () => {
+    startOneTimeDonation.mockResolvedValue({
+      checkoutUrl: 'https://www.mollie.com/checkout/one-time',
+      paymentId: 'tr_test',
+    });
+
+    renderBlock();
+
+    fillAmount('12,50');
+    submit();
+
+    await waitFor(() => {
+      expect(startOneTimeDonation).toHaveBeenCalledWith(12.5, null);
+    });
+  });
+
+  it('shows an inline error and re-enables the form when the donation call throws', async () => {
+    startOneTimeDonation.mockRejectedValue(new Error('Mollie down'));
+
+    renderBlock();
+
+    fireEvent.click(screen.getByRole('button', { name: '20 €' }));
+    submit();
 
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent('Mollie down');
     });
 
-    expect(screen.getByRole('button', { name: '12,90 € / Monat' })).not.toBeDisabled();
+    expect(screen.getByLabelText(/betrag in euro/i)).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: '5 €' })).not.toBeDisabled();
     expect(window.location.assign).not.toHaveBeenCalled();
   });
 
-  it('disables all buttons while a checkout is in flight', async () => {
+  it('disables the tabs and submit while a checkout is in flight', async () => {
     let resolveCheckout;
-    startDonation.mockReturnValue(
+    startOneTimeDonation.mockReturnValue(
       new Promise((resolve) => {
         resolveCheckout = resolve;
       })
@@ -111,13 +203,15 @@ describe('DonationBlock', () => {
 
     renderBlock();
 
-    fireEvent.click(screen.getByRole('button', { name: '1,90 € / Monat' }));
+    fireEvent.click(screen.getByRole('button', { name: '10 €' }));
+    submit();
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /weiterleitung/i })).toBeDisabled();
     });
-    expect(screen.getByRole('button', { name: '6,90 € / Monat' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: '12,90 € / Monat' })).toBeDisabled();
+    expect(screen.getByRole('tab', { name: /monatlich/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '5 €' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '20 €' })).toBeDisabled();
 
     resolveCheckout({ checkoutUrl: 'https://example.com/checkout' });
   });

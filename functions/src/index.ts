@@ -1,19 +1,21 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions';
 import {
-  ALLOWED_DONATION_AMOUNTS,
   MOLLIE_API_KEY,
+  MIN_DONATION_AMOUNT,
   createMollieCustomer,
-  createMollieSubscription,
-  isAllowedDonationAmount,
+  isValidDonationAmount,
+  startMolliePaymentCheckout,
+  startMollieSubscriptionCheckout,
 } from './mollie';
 
-interface CreateMollieSubscriptionRequest {
+const REGION = 'europe-west3';
+const ALLOWED_ORIGINS = ['https://events.thetribe.at'];
+
+interface CreateDonationRequest {
   amount: number;
   name?: string | null;
 }
-
-const REGION = 'europe-west3';
 
 function resolveAppBaseUrl(req: { rawRequest: { host?: string; protocol?: string } }): string {
   const host = req.rawRequest.host ?? 'localhost';
@@ -21,31 +23,38 @@ function resolveAppBaseUrl(req: { rawRequest: { host?: string; protocol?: string
   return `${protocol}://${host}`;
 }
 
-export const createMollieSubscriptionHandler = onCall(
+function assertValidAmount(amount: unknown): asserts amount is number {
+  if (!isValidDonationAmount(amount)) {
+    throw new HttpsError(
+      'invalid-argument',
+      `amount must be a number of at least ${MIN_DONATION_AMOUNT.toFixed(2)} EUR`
+    );
+  }
+}
+
+function assertApiKey(value: string | undefined): asserts value is string {
+  if (!value) {
+    logger.error('MOLLIE_API_KEY secret is not configured');
+    throw new HttpsError('internal', 'payment provider is not configured');
+  }
+}
+
+export const createMollieSubscription = onCall(
   {
     region: REGION,
     secrets: [MOLLIE_API_KEY],
-    cors: ['https://events.thetribe.at'],
+    cors: ALLOWED_ORIGINS,
   },
   async (request) => {
-    const data = (request.data ?? {}) as CreateMollieSubscriptionRequest;
-
-    if (!isAllowedDonationAmount(data.amount)) {
-      throw new HttpsError(
-        'invalid-argument',
-        `amount must be one of ${ALLOWED_DONATION_AMOUNTS.join(', ')} EUR`
-      );
-    }
+    const data = (request.data ?? {}) as CreateDonationRequest;
+    assertValidAmount(data.amount);
 
     const apiKey = MOLLIE_API_KEY.value();
-    if (!apiKey) {
-      logger.error('MOLLIE_API_KEY secret is not configured');
-      throw new HttpsError('internal', 'payment provider is not configured');
-    }
+    assertApiKey(apiKey);
 
     try {
       const customer = await createMollieCustomer(apiKey, data.name ?? null);
-      const checkout = await createMollieSubscription(apiKey, {
+      const checkout = await startMollieSubscriptionCheckout(apiKey, {
         customerId: customer.id,
         amount: data.amount,
         appBaseUrl: resolveAppBaseUrl(request),
@@ -54,6 +63,34 @@ export const createMollieSubscriptionHandler = onCall(
     } catch (err) {
       const message = err instanceof Error ? err.message : 'unknown error';
       logger.error('Mollie subscription creation failed', { message });
+      throw new HttpsError('unavailable', `payment provider error: ${message}`);
+    }
+  }
+);
+
+export const createMolliePayment = onCall(
+  {
+    region: REGION,
+    secrets: [MOLLIE_API_KEY],
+    cors: ALLOWED_ORIGINS,
+  },
+  async (request) => {
+    const data = (request.data ?? {}) as CreateDonationRequest;
+    assertValidAmount(data.amount);
+
+    const apiKey = MOLLIE_API_KEY.value();
+    assertApiKey(apiKey);
+
+    try {
+      const checkout = await startMolliePaymentCheckout(apiKey, {
+        amount: data.amount,
+        appBaseUrl: resolveAppBaseUrl(request),
+        name: data.name ?? null,
+      });
+      return checkout;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'unknown error';
+      logger.error('Mollie one-time payment creation failed', { message });
       throw new HttpsError('unavailable', `payment provider error: ${message}`);
     }
   }

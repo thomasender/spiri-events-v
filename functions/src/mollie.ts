@@ -4,13 +4,18 @@ export const MOLLIE_API_KEY = defineSecret('MOLLIE_API_KEY');
 
 export const MOLLIE_API_BASE = 'https://api.mollie.com/v2';
 
-export const ALLOWED_DONATION_AMOUNTS = [1.9, 6.9, 12.9] as const;
-export type AllowedDonationAmount = (typeof ALLOWED_DONATION_AMOUNTS)[number];
+export const MIN_DONATION_AMOUNT = 5.0;
 
-export function isAllowedDonationAmount(value: unknown): value is AllowedDonationAmount {
-  return (
-    typeof value === 'number' && (ALLOWED_DONATION_AMOUNTS as readonly number[]).includes(value)
-  );
+export const DONATION_CURRENCY = 'EUR';
+
+export const SUBSCRIPTION_INTERVAL = '1 month';
+
+export const SUBSCRIPTION_DESCRIPTION = 'Monatliche Spende tribe Vorarlberg';
+
+export const PAYMENT_DESCRIPTION = 'Einmalige Spende tribe Vorarlberg';
+
+export function isValidDonationAmount(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= MIN_DONATION_AMOUNT;
 }
 
 export function formatAmount(value: number): string {
@@ -53,6 +58,11 @@ export async function mollieRequest<T>(
   return data as T;
 }
 
+interface MollieCheckoutUrl {
+  href: string;
+  type: string;
+}
+
 interface MollieCustomerResponse {
   id: string;
   name?: string;
@@ -66,13 +76,18 @@ interface MollieSubscriptionResponse {
 
 interface MolliePaymentResponse {
   id: string;
-  checkoutUrl?: { href: string; type: string };
+  checkoutUrl?: MollieCheckoutUrl;
 }
 
-export interface MollieCheckoutResult {
+export interface MollieSubscriptionCheckoutResult {
   checkoutUrl: string;
   customerId: string;
   subscriptionId: string;
+}
+
+export interface MolliePaymentCheckoutResult {
+  checkoutUrl: string;
+  paymentId: string;
 }
 
 export async function createMollieCustomer(
@@ -89,36 +104,27 @@ export async function createMollieCustomer(
   });
 }
 
-export async function createMollieSubscription(
+export async function startMollieSubscriptionCheckout(
   apiKey: string,
   params: {
     customerId: string;
-    amount: AllowedDonationAmount;
+    amount: number;
     appBaseUrl: string;
   }
-): Promise<MollieCheckoutResult> {
+): Promise<MollieSubscriptionCheckoutResult> {
   const subscription = await mollieRequest<MollieSubscriptionResponse>(apiKey, '/subscriptions', {
     method: 'POST',
     body: {
       customerId: params.customerId,
       amount: {
-        currency: 'EUR',
+        currency: DONATION_CURRENCY,
         value: formatAmount(params.amount),
       },
-      description: 'Monatliche Spende tribe Vorarlberg',
-      interval: '1 month',
+      description: SUBSCRIPTION_DESCRIPTION,
+      interval: SUBSCRIPTION_INTERVAL,
       webhookUrl: `${params.appBaseUrl}/mollieWebhook`,
-      _links: {},
     },
   });
-
-  const payment = await mollieRequest<MolliePaymentResponse>(
-    apiKey,
-    `/subscriptions/${subscription.id}`,
-    { method: 'GET' }
-  );
-
-  void payment;
 
   const subPayments = await mollieRequest<{ _embedded?: { payments?: MolliePaymentResponse[] } }>(
     apiKey,
@@ -135,5 +141,41 @@ export async function createMollieSubscription(
     checkoutUrl: firstPayment.checkoutUrl.href,
     customerId: params.customerId,
     subscriptionId: subscription.id,
+  };
+}
+
+export async function startMolliePaymentCheckout(
+  apiKey: string,
+  params: {
+    amount: number;
+    appBaseUrl: string;
+    name?: string | null;
+  }
+): Promise<MolliePaymentCheckoutResult> {
+  const body: Record<string, unknown> = {
+    amount: {
+      currency: DONATION_CURRENCY,
+      value: formatAmount(params.amount),
+    },
+    description: PAYMENT_DESCRIPTION,
+    redirectUrl: `${params.appBaseUrl}/spenden/danke`,
+    webhookUrl: `${params.appBaseUrl}/mollieWebhook`,
+  };
+  if (params.name && params.name.trim().length > 0) {
+    body.metadata = { donorName: params.name.trim() };
+  }
+
+  const payment = await mollieRequest<MolliePaymentResponse>(apiKey, '/payments', {
+    method: 'POST',
+    body,
+  });
+
+  if (!payment.checkoutUrl?.href) {
+    throw new Error('Mollie did not return a checkout URL for the one-time payment');
+  }
+
+  return {
+    checkoutUrl: payment.checkoutUrl.href,
+    paymentId: payment.id,
   };
 }
