@@ -103,6 +103,14 @@ export default function CalendarPage() {
   const [dateFilter, setDateFilter] = useState(savedState?.dateFilter || null);
   const { colorByName } = useCategoryRegistry();
   const [viewMode, setViewMode] = useState(savedState?.viewMode || 'card');
+  // Auto-expand the "Mehr Filter" accordion when one of its inner filters is
+  // already set (e.g. a user picked a Bezirk a week ago and forgot). Without
+  // this they'd land on a filtered list with no visible cue that a filter is
+  // active. We seed once at mount and then defer to the user — collapsing or
+  // expanding the accordion after load is always under their control.
+  const [moreFiltersOpen, setMoreFiltersOpen] = useState(
+    (savedState?.selectedOrte?.length ?? 0) > 0
+  );
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
   const { events, loading, error } = useAllEvents();
 
@@ -395,7 +403,11 @@ export default function CalendarPage() {
               ))}
             </div>
 
-            <details className="filter-accordion">
+            <details
+              className="filter-accordion"
+              open={moreFiltersOpen}
+              onToggle={(event) => setMoreFiltersOpen(event.currentTarget.open)}
+            >
               <summary className="filter-accordion-summary">
                 <span>Mehr Filter</span>
                 <ChevronDown size={18} className="filter-accordion-icon" aria-hidden="true" />

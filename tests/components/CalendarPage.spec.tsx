@@ -41,6 +41,32 @@ function getPressedChips() {
     .map((c) => c.textContent.trim());
 }
 
+function setStoredOrte(selectedOrte: string[]) {
+  window.localStorage.setItem(
+    'calendarFilterState',
+    JSON.stringify({
+      currentMonth: '2026-09',
+      selectedCategories: ['Yoga', 'Meditation'],
+      selectedOrte,
+      viewMode: 'card',
+    })
+  );
+}
+
+function renderPage() {
+  return render(
+    <MemoryRouter>
+      <HelmetProvider>
+        <CalendarPage />
+      </HelmetProvider>
+    </MemoryRouter>
+  );
+}
+
+function getAccordion() {
+  return document.querySelector('.filter-accordion') as HTMLDetailsElement;
+}
+
 describe('CalendarPage — category filter persistence after new categories appear', () => {
   beforeEach(() => {
     window.localStorage.clear();
@@ -127,5 +153,71 @@ describe('CalendarPage — category filter persistence after new categories appe
       expect(pressed).toContain('Yoga');
       expect(pressed).toContain('Meditation');
     });
+  });
+});
+
+describe('CalendarPage — "Mehr Filter" accordion auto-expand (W3OspPxk)', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    mockUseAllEvents.events = [];
+    mockUseCategories.value = ['Yoga', 'Meditation'];
+  });
+
+  it('starts collapsed when no saved Ort filter is active', () => {
+    setStoredOrte([]);
+
+    renderPage();
+
+    const accordion = getAccordion();
+    expect(accordion).not.toBeNull();
+    expect(accordion.open).toBe(false);
+  });
+
+  it('starts expanded when a saved Ort filter is active', () => {
+    setStoredOrte(['Feldkirch']);
+
+    renderPage();
+
+    const accordion = getAccordion();
+    expect(accordion.open).toBe(true);
+    // The active filter chip inside the accordion must be visible so the user
+    // sees which filter is in effect.
+    expect(screen.getByRole('button', { name: 'Feldkirch' })).toBeVisible();
+  });
+
+  it('lets the user collapse the accordion manually even when a filter is active', () => {
+    setStoredOrte(['Bregenz', 'Feldkirch']);
+
+    renderPage();
+    const accordion = getAccordion();
+    expect(accordion.open).toBe(true);
+
+    fireEvent.click(accordion.querySelector('.filter-accordion-summary')!);
+    expect(accordion.open).toBe(false);
+
+    // The user's collapse must survive an unrelated re-render of the page.
+    fireEvent.click(accordion.querySelector('.filter-accordion-summary')!);
+    expect(accordion.open).toBe(true);
+  });
+
+  it('does not auto-re-expand after the user collapses and adds another Ort filter', () => {
+    setStoredOrte(['Bregenz']);
+
+    renderPage();
+    const accordion = getAccordion();
+    expect(accordion.open).toBe(true);
+
+    // User collapses the accordion on purpose.
+    fireEvent.click(accordion.querySelector('.filter-accordion-summary')!);
+    expect(accordion.open).toBe(false);
+
+    // Now they open it and toggle on another Ort filter.
+    fireEvent.click(accordion.querySelector('.filter-accordion-summary')!);
+    const dornbirn = screen.getByRole('button', { name: 'Dornbirn' });
+    fireEvent.click(dornbirn);
+
+    // User-driven state must win — collapsing again still collapses.
+    fireEvent.click(accordion.querySelector('.filter-accordion-summary')!);
+    expect(accordion.open).toBe(false);
   });
 });
