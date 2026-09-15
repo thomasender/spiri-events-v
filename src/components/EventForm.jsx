@@ -47,24 +47,29 @@ const INITIAL_STATE = {
   category: '',
   bezirk: '',
   isOnline: false,
-  organizer: { firstName: '', lastName: '', email: '' },
+  organizer: { name: '', email: '' },
   kontakt: '',
 };
 
-function splitDisplayName(displayName, email) {
+function getOrganizerDefault(displayName, email) {
   const trimmed = (displayName || '').trim();
-  if (trimmed) {
-    const parts = trimmed.split(/\s+/);
-    if (parts.length === 1) {
-      return { firstName: parts[0], lastName: '' };
-    }
-    return { firstName: parts[0], lastName: parts.slice(1).join(' ') };
-  }
-  if (email) {
-    const local = email.split('@')[0];
-    return { firstName: local, lastName: '' };
-  }
-  return { firstName: '', lastName: '' };
+  if (trimmed) return trimmed;
+  if (email) return email.split('@')[0];
+  return '';
+}
+
+function splitOrganizerName(name) {
+  const trimmed = (name || '').trim();
+  if (!trimmed) return { firstName: '', lastName: '' };
+  const parts = trimmed.split(/\s+/);
+  if (parts.length === 1) return { firstName: parts[0], lastName: '' };
+  return { firstName: parts[0], lastName: parts.slice(1).join(' ') };
+}
+
+function combineOrganizerName(organizer) {
+  if (!organizer) return '';
+  if (organizer.name && organizer.name.trim()) return organizer.name.trim();
+  return [organizer.firstName || '', organizer.lastName || ''].filter(Boolean).join(' ');
 }
 
 const isValidLink = (link) => {
@@ -130,19 +135,17 @@ export default function EventForm({ event }) {
         bezirk: event.isOnline ? '' : event.bezirk || '',
         isOnline: Boolean(event.isOnline),
         organizer: {
-          firstName: storedOrganizer.firstName || '',
-          lastName: storedOrganizer.lastName || '',
+          name: combineOrganizerName(storedOrganizer),
           email: storedOrganizer.email || '',
         },
         kontakt: event.kontakt || '',
       };
     }
-    const { firstName, lastName } = splitDisplayName(user?.displayName, user?.email);
+    const organizerDefault = getOrganizerDefault(user?.displayName, user?.email);
     return {
       ...INITIAL_STATE,
       organizer: {
-        firstName,
-        lastName,
+        name: organizerDefault,
         email: user?.email || '',
       },
       kontakt: user?.email || '',
@@ -267,11 +270,8 @@ export default function EventForm({ event }) {
     if (!isValidLink(formData.link)) {
       newErrors.link = 'Bitte gib eine gültige URL ein';
     }
-    if (!formData.organizer.firstName.trim()) {
-      newErrors['organizer.firstName'] = 'Vorname ist erforderlich';
-    }
-    if (!formData.organizer.lastName.trim()) {
-      newErrors['organizer.lastName'] = 'Nachname ist erforderlich';
+    if (!formData.organizer.name.trim()) {
+      newErrors['organizer.name'] = 'Veranstalter ist erforderlich';
     }
     if (!formData.organizer.email.trim()) {
       newErrors['organizer.email'] = 'E-Mail ist erforderlich';
@@ -506,8 +506,8 @@ export default function EventForm({ event }) {
     bezirk: formData.isOnline ? '' : formData.bezirk,
     isOnline: Boolean(formData.isOnline),
     organizer: {
-      firstName: formData.organizer.firstName.trim(),
-      lastName: formData.organizer.lastName.trim(),
+      firstName: splitOrganizerName(formData.organizer.name).firstName,
+      lastName: splitOrganizerName(formData.organizer.name).lastName,
       email: isEdit ? event.organizer.email : formData.organizer.email.trim(),
       photoURL: profile?.photoURL || null,
     },
@@ -708,40 +708,21 @@ export default function EventForm({ event }) {
             </p>
           </div>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="organizer.firstName">Vorname *</label>
-              <input
-                id="organizer.firstName"
-                name="firstName"
-                type="text"
-                value={formData.organizer.firstName}
-                onChange={handleOrganizerChange}
-                placeholder="Vorname"
-                autoComplete="given-name"
-                className={errors['organizer.firstName'] ? 'input-error' : ''}
-              />
-              {errors['organizer.firstName'] && (
-                <span className="error-text">{errors['organizer.firstName']}</span>
-              )}
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="organizer.lastName">Nachname *</label>
-              <input
-                id="organizer.lastName"
-                name="lastName"
-                type="text"
-                value={formData.organizer.lastName}
-                onChange={handleOrganizerChange}
-                placeholder="Nachname"
-                autoComplete="family-name"
-                className={errors['organizer.lastName'] ? 'input-error' : ''}
-              />
-              {errors['organizer.lastName'] && (
-                <span className="error-text">{errors['organizer.lastName']}</span>
-              )}
-            </div>
+          <div className="form-group">
+            <label htmlFor="organizer.name">Veranstalter *</label>
+            <input
+              id="organizer.name"
+              name="name"
+              type="text"
+              value={formData.organizer.name}
+              onChange={handleOrganizerChange}
+              placeholder="z.B. Peter Mathis oder Yoga Studio Dornbirn"
+              autoComplete="organization"
+              className={errors['organizer.name'] ? 'input-error' : ''}
+            />
+            {errors['organizer.name'] && (
+              <span className="error-text">{errors['organizer.name']}</span>
+            )}
           </div>
 
           <div className="form-group">

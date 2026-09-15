@@ -59,17 +59,23 @@ export async function navigateToStep4(page: Page) {
 export async function fillStep1Organizer(
   page: Page,
   data: {
+    name?: string;
     firstName?: string;
     lastName?: string;
     email?: string;
     kontakt?: string;
   }
 ) {
-  if (data.firstName !== undefined) {
-    await page.fill('#organizer\\.firstName', data.firstName);
-  }
-  if (data.lastName !== undefined) {
-    await page.fill('#organizer\\.lastName', data.lastName);
+  if (data.name !== undefined) {
+    await page.fill('#organizer\\.name', data.name);
+  } else {
+    if (data.firstName !== undefined) {
+      await page.fill('#organizer\\.name', data.firstName);
+    }
+    if (data.lastName !== undefined) {
+      const existing = await page.locator('#organizer\\.name').inputValue();
+      await page.fill('#organizer\\.name', `${existing} ${data.lastName}`.trim());
+    }
   }
   if (data.email !== undefined) {
     await page.fill('#organizer\\.email', data.email);

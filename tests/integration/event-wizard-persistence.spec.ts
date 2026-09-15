@@ -32,7 +32,7 @@ test.describe('Event wizard draft isolation between users', () => {
           draft: {
             formData: {
               title: 'Geheimer Titel',
-              organizer: { firstName: 'X', lastName: 'Y', email: 'x@y.com' },
+              organizer: { name: 'X Y', email: 'x@y.com' },
             },
             currentStep: 2,
             rightsConfirmed: false,
@@ -44,7 +44,7 @@ test.describe('Event wizard draft isolation between users', () => {
     await page.goto('/admin/new');
     await waitForWizardToLoad(page);
 
-    await expect(page.locator('#organizer\\.firstName')).not.toHaveValue('X');
+    await expect(page.locator('#organizer\\.name')).not.toHaveValue('X Y');
     await expect(page.locator('#title')).not.toBeVisible();
   });
 });

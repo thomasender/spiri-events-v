@@ -39,8 +39,7 @@ test.describe('Event wizard: Copyright confirmation (tQ9gWPJv)', () => {
     future.setDate(future.getDate() + 30);
     const futureIso = future.toISOString().split('T')[0];
 
-    await page.fill('#organizer\\.firstName', 'Copyright');
-    await page.fill('#organizer\\.lastName', 'Tester');
+    await page.fill('#organizer\\.name', 'Copyright Tester');
     await page.fill('#kontakt', 'copyright@test.com');
     await clickWeiter(page);
 

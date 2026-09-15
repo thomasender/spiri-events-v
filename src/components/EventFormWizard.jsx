@@ -58,7 +58,7 @@ const INITIAL_STATE = {
   category: '',
   bezirk: '',
   isOnline: false,
-  organizer: { firstName: '', lastName: '', email: '' },
+  organizer: { name: '', email: '' },
   kontakt: '',
 };
 
@@ -69,20 +69,19 @@ const STEPS = [
   { id: 4, key: 'summary', title: 'Zusammenfassung', icon: List },
 ];
 
-function splitDisplayName(displayName, email) {
+function getOrganizerDefault(displayName, email) {
   const trimmed = (displayName || '').trim();
-  if (trimmed) {
-    const parts = trimmed.split(/\s+/);
-    if (parts.length === 1) {
-      return { firstName: parts[0], lastName: '' };
-    }
-    return { firstName: parts[0], lastName: parts.slice(1).join(' ') };
-  }
-  if (email) {
-    const local = email.split('@')[0];
-    return { firstName: local, lastName: '' };
-  }
-  return { firstName: '', lastName: '' };
+  if (trimmed) return trimmed;
+  if (email) return email.split('@')[0];
+  return '';
+}
+
+function splitOrganizerName(name) {
+  const trimmed = (name || '').trim();
+  if (!trimmed) return { firstName: '', lastName: '' };
+  const parts = trimmed.split(/\s+/);
+  if (parts.length === 1) return { firstName: parts[0], lastName: '' };
+  return { firstName: parts[0], lastName: parts.slice(1).join(' ') };
 }
 
 const isValidLink = (link) => {
@@ -123,11 +122,10 @@ export default function EventFormWizard() {
     .filter((cat, idx, arr) => arr.findIndex((c) => c.toLowerCase() === cat.toLowerCase()) === idx)
     .map((k) => ({ value: k, label: k }));
 
-  const { firstName, lastName } = splitDisplayName(user?.displayName, user?.email);
+  const organizerDefault = getOrganizerDefault(user?.displayName, user?.email);
   const profileDefaults = {
     organizer: {
-      firstName,
-      lastName,
+      name: organizerDefault,
       email: user?.email || '',
     },
     kontakt: user?.email || '',
@@ -242,11 +240,8 @@ export default function EventFormWizard() {
   const validateStep = (step) => {
     const newErrors = {};
     if (step === 1) {
-      if (!formData.organizer.firstName.trim()) {
-        newErrors['organizer.firstName'] = 'Vorname ist erforderlich';
-      }
-      if (!formData.organizer.lastName.trim()) {
-        newErrors['organizer.lastName'] = 'Nachname ist erforderlich';
+      if (!formData.organizer.name.trim()) {
+        newErrors['organizer.name'] = 'Veranstalter ist erforderlich';
       }
       if (!formData.organizer.email.trim()) {
         newErrors['organizer.email'] = 'E-Mail ist erforderlich';
@@ -568,8 +563,8 @@ export default function EventFormWizard() {
     bezirk: formData.isOnline ? '' : formData.bezirk,
     isOnline: Boolean(formData.isOnline),
     organizer: {
-      firstName: formData.organizer.firstName.trim(),
-      lastName: formData.organizer.lastName.trim(),
+      firstName: splitOrganizerName(formData.organizer.name).firstName,
+      lastName: splitOrganizerName(formData.organizer.name).lastName,
       email: formData.organizer.email.trim(),
       photoURL: profile?.photoURL || null,
     },
@@ -698,40 +693,19 @@ export default function EventFormWizard() {
         </p>
       </div>
 
-      <div className="form-row">
-        <div className="form-group">
-          <label htmlFor="organizer.firstName">Vorname *</label>
-          <input
-            id="organizer.firstName"
-            name="firstName"
-            type="text"
-            value={formData.organizer.firstName}
-            onChange={handleOrganizerChange}
-            placeholder="Vorname"
-            autoComplete="given-name"
-            className={errors['organizer.firstName'] ? 'input-error' : ''}
-          />
-          {errors['organizer.firstName'] && (
-            <span className="error-text">{errors['organizer.firstName']}</span>
-          )}
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="organizer.lastName">Nachname *</label>
-          <input
-            id="organizer.lastName"
-            name="lastName"
-            type="text"
-            value={formData.organizer.lastName}
-            onChange={handleOrganizerChange}
-            placeholder="Nachname"
-            autoComplete="family-name"
-            className={errors['organizer.lastName'] ? 'input-error' : ''}
-          />
-          {errors['organizer.lastName'] && (
-            <span className="error-text">{errors['organizer.lastName']}</span>
-          )}
-        </div>
+      <div className="form-group">
+        <label htmlFor="organizer.name">Veranstalter *</label>
+        <input
+          id="organizer.name"
+          name="name"
+          type="text"
+          value={formData.organizer.name}
+          onChange={handleOrganizerChange}
+          placeholder="z.B. Peter Mathis oder Yoga Studio Dornbirn"
+          autoComplete="organization"
+          className={errors['organizer.name'] ? 'input-error' : ''}
+        />
+        {errors['organizer.name'] && <span className="error-text">{errors['organizer.name']}</span>}
       </div>
 
       <div className="form-group">
@@ -1258,9 +1232,7 @@ export default function EventFormWizard() {
         <div className="summary-section">
           <h4>Veranstalter & Kontakt</h4>
           <p>
-            <strong>
-              {formData.organizer.firstName} {formData.organizer.lastName}
-            </strong>
+            <strong>{formData.organizer.name}</strong>
           </p>
           <p>{formData.kontakt}</p>
         </div>

@@ -52,6 +52,7 @@ export function formatEventDateShort(dateStr) {
 export function getOrganizerName(event) {
   const organizer = event.organizer;
   if (!organizer) return '';
+  if (organizer.name && organizer.name.trim()) return organizer.name.trim();
   return [organizer.firstName, organizer.lastName].filter(Boolean).join(' ');
 }
 

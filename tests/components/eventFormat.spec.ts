@@ -84,7 +84,13 @@ describe('formatMonthShort', () => {
 });
 
 describe('getOrganizerName', () => {
-  it('returns first + last name when both are set', () => {
+  it('prefers organizer.name when set', () => {
+    expect(getOrganizerName({ organizer: { name: 'Yoga Studio Dornbirn' } })).toBe(
+      'Yoga Studio Dornbirn'
+    );
+  });
+
+  it('returns first + last name when name is absent', () => {
     expect(getOrganizerName({ organizer: { firstName: 'Anna', lastName: 'Schmidt' } })).toBe(
       'Anna Schmidt'
     );

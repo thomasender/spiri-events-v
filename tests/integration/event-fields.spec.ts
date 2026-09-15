@@ -48,18 +48,17 @@ test.describe('Event fields: Veranstalter & Kontakt', () => {
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
       .catch(() => {});
 
-    // The create wizard only collects firstName/lastName + a combined "Kontakt"
-    // field; organizer.email is derived from the logged-in user internally
-    // (see EventFormWizard.jsx) and has no visible input of its own here — unlike
-    // the edit form (EventForm.jsx), which does show a locked organizer-email field.
-    await expect(page.locator('label[for="organizer.firstName"]')).toBeVisible({
+    // The create wizard collects a single "Veranstalter" name field plus a
+    // "Kontakt" field; organizer.email is derived from the logged-in user
+    // internally (see EventFormWizard.jsx) and has no visible input of its own
+    // here — unlike the edit form (EventForm.jsx), which does show a locked
+    // organizer-email field.
+    await expect(page.locator('label[for="organizer.name"]')).toBeVisible({
       timeout: 10000,
     });
-    await expect(page.locator('label[for="organizer.lastName"]')).toBeVisible();
     await expect(page.locator('label[for="kontakt"]')).toBeVisible();
 
-    await expect(page.locator('input[name="firstName"]')).toBeVisible();
-    await expect(page.locator('input[name="lastName"]')).toBeVisible();
+    await expect(page.locator('input[name="name"]')).toBeVisible();
     await expect(page.locator('input[name="kontakt"]')).toBeVisible();
   });
 
@@ -74,12 +73,10 @@ test.describe('Event fields: Veranstalter & Kontakt', () => {
     await page.goto('/admin/new');
     await waitForWizardToLoad(page);
 
-    const firstNameLabel = page.locator('label:has-text("Vorname")');
-    const lastNameLabel = page.locator('label:has-text("Nachname")');
+    const nameLabel = page.locator('label:has-text("Veranstalter")');
     const kontaktLabel = page.locator('label:has-text("Kontakt für Teilnehmer:innen")');
 
-    await expect(firstNameLabel).toContainText('*');
-    await expect(lastNameLabel).toContainText('*');
+    await expect(nameLabel).toContainText('*');
     await expect(kontaktLabel).toContainText('*');
   });
 
@@ -87,8 +84,7 @@ test.describe('Event fields: Veranstalter & Kontakt', () => {
     await page.goto('/admin/new');
     await waitForWizardToLoad(page);
 
-    await page.locator('#organizer\\.firstName').fill('');
-    await page.locator('#organizer\\.lastName').fill('');
+    await page.locator('#organizer\\.name').fill('');
     await page.locator('#kontakt').fill('');
 
     await page.locator('button:has-text("Weiter")').click();

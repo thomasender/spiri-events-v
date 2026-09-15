@@ -38,8 +38,7 @@ test.describe('Event wizard: feedback for missing mandatory fields (QIwqfq6g)', 
     await waitForWizardToLoad(page);
 
     await fillStep1Organizer(page, {
-      firstName: '',
-      lastName: '',
+      name: '',
       kontakt: '',
     });
 
@@ -62,8 +61,7 @@ test.describe('Event wizard: feedback for missing mandatory fields (QIwqfq6g)', 
     await waitForWizardToLoad(page);
 
     await fillStep1Organizer(page, {
-      firstName: '',
-      lastName: '',
+      name: '',
       kontakt: '',
     });
 
@@ -84,8 +82,7 @@ test.describe('Event wizard: feedback for missing mandatory fields (QIwqfq6g)', 
     await waitForWizardToLoad(page);
 
     await fillStep1Organizer(page, {
-      firstName: '',
-      lastName: '',
+      name: '',
       kontakt: '',
     });
 
@@ -104,8 +101,7 @@ test.describe('Event wizard: feedback for missing mandatory fields (QIwqfq6g)', 
     await waitForWizardToLoad(page);
 
     await fillStep1Organizer(page, {
-      firstName: '',
-      lastName: '',
+      name: '',
       kontakt: '',
     });
 
@@ -115,8 +111,7 @@ test.describe('Event wizard: feedback for missing mandatory fields (QIwqfq6g)', 
     await expect(errorMessage).toBeVisible();
 
     await fillStep1Organizer(page, {
-      firstName: 'Thomas',
-      lastName: 'Ender',
+      name: 'Thomas Ender',
       kontakt: 'thomas@example.com',
     });
 
@@ -133,8 +128,7 @@ test.describe('Event wizard: feedback for missing mandatory fields (QIwqfq6g)', 
     await waitForWizardToLoad(page);
 
     await fillStep1Organizer(page, {
-      firstName: 'Thomas',
-      lastName: 'Ender',
+      name: 'Thomas Ender',
       kontakt: 'thomas@example.com',
     });
     await clickContinueImmediately(page);
@@ -161,8 +155,7 @@ test.describe('Event wizard: feedback for missing mandatory fields (QIwqfq6g)', 
     await waitForWizardToLoad(page);
 
     await fillStep1Organizer(page, {
-      firstName: '',
-      lastName: '',
+      name: '',
       kontakt: '',
     });
 
@@ -173,8 +166,8 @@ test.describe('Event wizard: feedback for missing mandatory fields (QIwqfq6g)', 
 
     await expect(continueButton).not.toHaveClass(/btn-wobble/);
 
-    await page.locator('#organizer\\.firstName').fill('Thomas');
-    await page.locator('#organizer\\.firstName').fill('');
+    await page.locator('#organizer\\.name').fill('Thomas');
+    await page.locator('#organizer\\.name').fill('');
 
     await clickContinueImmediately(page);
 
@@ -188,8 +181,7 @@ test.describe('Event wizard: feedback for missing mandatory fields (QIwqfq6g)', 
     await waitForWizardToLoad(page);
 
     await fillStep1Organizer(page, {
-      firstName: 'Thomas',
-      lastName: 'Ender',
+      name: 'Thomas Ender',
       kontakt: 'thomas@example.com',
     });
     await clickContinueImmediately(page);
@@ -231,8 +223,7 @@ test.describe('Event wizard: feedback for missing mandatory fields (QIwqfq6g)', 
     await waitForWizardToLoad(page);
 
     await fillStep1Organizer(page, {
-      firstName: 'Thomas',
-      lastName: 'Ender',
+      name: 'Thomas Ender',
       kontakt: 'thomas@example.com',
     });
     await clickContinueImmediately(page);
