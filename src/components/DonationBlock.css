@@ -160,6 +160,7 @@
 
 .donation-submit {
   align-self: flex-start;
+  margin-top: 8px;
 }
 
 .donation-error {
