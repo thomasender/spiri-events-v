@@ -7,6 +7,7 @@ export default function Footer() {
       <div className="footer-container">
         <span className="footer-copy">© 2026 tribe Vorarlberg</span>
         <nav className="footer-nav">
+          <Link to="/ueber-uns">Über uns</Link>
           <Link to="/impressum">Impressum</Link>
           <Link to="/datenschutz">Datenschutz</Link>
           <Link to="/agbs">AGBs</Link>
