@@ -30,83 +30,93 @@ const SEED_CATEGORIES = [
   { id: 'yoga', name: 'Yoga', color: '#c48e6a', order: 0 },
 ];
 
-async function clearCollection(collectionName: string): Promise<void> {
+const DOC_ROOT = `projects/${PROJECT_ID}/databases/(default)/documents`;
+
+async function listDocIds(collectionName: string): Promise<string[]> {
   const response = await fetch(`${FIRESTORE_BASE}/${collectionName}?pageSize=500`, {
     headers: { Authorization: 'Bearer owner' },
   });
-  if (!response.ok) return;
+  if (!response.ok) return [];
   const payload = (await response.json()) as { documents?: Array<{ name: string }> };
-  const docs = payload.documents || [];
+  // doc.name is the full resource path; the id is its last segment.
+  return (payload.documents ?? []).map((doc) => doc.name.split('/').pop() as string);
+}
+
+async function deleteDocs(collectionName: string, ids: string[]): Promise<void> {
   await Promise.all(
-    docs.map((doc) => {
-      // doc.name is the relative path returned by the Firestore REST API
-      // (e.g. "projects/.../categories/<id>"). Rebuild the absolute URL
-      // instead of trying to splice into it — the previous regex-based
-      // approach silently no-op'd because the returned names don't contain
-      // "/v1", leaving stale docs (including leftover TestCat-* from prior
-      // runs) to pollute the registry.
-      const id = doc.name.split('/').pop();
-      return fetch(`${FIRESTORE_BASE}/${collectionName}/${id}`, {
+    ids.map((id) =>
+      fetch(`${FIRESTORE_BASE}/${collectionName}/${id}`, {
         method: 'DELETE',
         headers: { Authorization: 'Bearer owner' },
-      }).catch(() => {});
-    })
+      }).catch(() => {})
+    )
   );
 }
 
-async function seedCategories(): Promise<void> {
-  // Write serially so the Firestore snapshot never lands mid-batch with
-  // some categories carrying the `order` field and others not. With
-  // Promise.all the writes race and the registry's comparator falls back
-  // to alphabetical sorting for the not-yet-written rows, scrambling the
-  // test's "initial order" expectations.
-  for (const cat of SEED_CATEGORIES) {
-    await fetch(`${FIRESTORE_BASE}/categories/${cat.id}`, {
-      method: 'PATCH',
-      headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        fields: {
-          name: { stringValue: cat.name },
-          color: { stringValue: cat.color },
-          order: { integerValue: String(cat.order) },
-          createdBy: { stringValue: 'system' },
-        },
-      }),
-    });
-  }
+async function clearCollection(collectionName: string): Promise<void> {
+  await deleteDocs(collectionName, await listDocIds(collectionName));
+}
+
+/**
+ * Brings the `categories` collection to the canonical seed state.
+ *
+ * Deliberately *reconciles* rather than wipe-then-reseed, and writes the seven
+ * documents in a single atomic commit. Both details matter:
+ *
+ * The app mounts `SeedBootstrap` on every page load, which calls
+ * `seedCategoriesIfEmpty()`: it reads the collection and, if it finds it empty,
+ * batch-writes the seven canonical categories itself. A wipe-then-reseed leaves
+ * a window where the collection really is empty, so the app writes against the
+ * test — which showed up as the row order collapsing to alphabetical (the
+ * `order` field not yet landed) and as "element is not stable" click failures,
+ * because the resulting snapshot bursts kept re-rendering the list under the
+ * open dialog.
+ *
+ * Reconciling means the collection is never empty, so `seedCategoriesIfEmpty`
+ * always short-circuits; the single commit means a reader never observes a
+ * half-seeded set.
+ */
+async function resetCategories(): Promise<void> {
+  const writes = SEED_CATEGORIES.map((cat) => ({
+    update: {
+      name: `${DOC_ROOT}/categories/${cat.id}`,
+      fields: {
+        name: { stringValue: cat.name },
+        color: { stringValue: cat.color },
+        order: { integerValue: String(cat.order) },
+        createdBy: { stringValue: 'system' },
+      },
+    },
+  }));
+
+  await fetch(`http://127.0.0.1:8181/v1/${DOC_ROOT}:commit`, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ writes }),
+  });
+
+  // Remove anything this or an earlier run added on top of the seed set
+  // (TestCat-* from the create/rename tests), but never the seed docs
+  // themselves — that is what would open the empty window again.
+  const seedIds = new Set(SEED_CATEGORIES.map((c) => c.id));
+  const strays = (await listDocIds('categories')).filter((id) => !seedIds.has(id));
+  await deleteDocs('categories', strays);
 }
 
 const RUN_ID = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
 const newCategoryName = (suffix: string) => `TestCat-${RUN_ID}-${suffix}`;
 
-// KNOWN FLAKY — pre-existing, not introduced by the test-tier rework.
-// Two or three of these tests fail on roughly every other run, and which ones
-// varies. The cause is this spec fighting the app over the shared `categories`
-// registry: it wipes and re-seeds the collection in `beforeEach` while the
-// app's own seed bootstrap and live Firestore listener are also writing to it.
-// `pickEnabledCategoryColor` in tests/helpers/wizard.ts exists as a workaround
-// for the same class of problem (a colour palette exhausted by earlier runs).
-// Fixing it properly means giving the spec its own category namespace rather
-// than rewriting the global one. Until then it stays out of @smoke so it never
-// blocks a push.
+// This spec rewrites the shared `categories` registry — briefly renaming or
+// deleting a seed category, which the wizard's category picker and the
+// calendar's filter chips both read. It therefore runs in the dedicated
+// `destructive` Playwright project, which starts only after the parallel suite
+// has finished (see playwright.config.ts), and is not part of @smoke.
 //
-// This spec is globally destructive: it wipes and re-seeds the shared
-// `categories` registry and the `events` collection, which every other spec
-// reads. It therefore runs in the dedicated `destructive` Playwright project,
-// which only starts once the parallel suite has finished (see
-// playwright.config.ts). It is deliberately NOT part of @smoke.
+// It no longer wipes the `events` collection: that was only needed while the
+// reset raced the app's own category bootstrap (see resetCategories above).
 test.describe('Admin Kategorien tab', () => {
   test.beforeEach(async () => {
-    // Wipe categories and pre-seed via the REST API so the registry has
-    // a known state before the browser opens. Skips the SeedBootstrap
-    // path entirely — the bootstrap is covered by the seed test below.
-    await clearCollection('categories');
-    await seedCategories();
-    // Wiping events is load-bearing here: a category cannot be renamed or
-    // recoloured cleanly while seeded events still reference it. This is
-    // exactly why the spec runs isolated in the `destructive` project rather
-    // than alongside the parallel suite.
-    await clearCollection('events');
+    await resetCategories();
   });
 
   test.afterEach(async ({ page }) => {});

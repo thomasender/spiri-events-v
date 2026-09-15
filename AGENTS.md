@@ -112,8 +112,9 @@ The integration specs share one emulator, one seeded `events` collection and one
 `categories` registry. Most specs only read that state, so they run in parallel.
 A few rewrite it wholesale, or contend with each other over it:
 
-- `admin-categories-tab.spec.ts` wipes and re-seeds the `categories` registry
-  and the `events` collection
+- `admin-categories-tab.spec.ts` rewrites the shared `categories` registry —
+  it briefly renames and deletes seed categories, which the wizard's category
+  picker and the calendar's filter chips read
 - `profile.spec.ts` clears the Storage bucket
 - `admin-trash-tab.spec.ts`, `recurring-event-deletion-edit-form.spec.ts` and
   `recurring-event-list-link-no-occurrence.spec.ts` all own the trash: the first
@@ -130,6 +131,14 @@ Those run in the separate `destructive` Playwright project, invoked as a second
 Playwright run after the parallel one finishes, **with `--workers=1`** — they
 conflict with each other, not only with the parallel suite.
 
+A pattern worth knowing before you write the next fixture reset: the app mounts
+`SeedBootstrap` on every page load, which calls `seedCategoriesIfEmpty()` and
+`seedThemeIfMissing()`. A reset that _empties_ one of those collections opens a
+window where the app seeds it back, racing your test. Reconcile to the desired
+state instead of wipe-then-reseed, and write the set in one commit so no reader
+sees it half-populated. That alone turned admin-categories-tab from "two or
+three shifting failures per run, 45s" into twelve green in 15s.
+
 If you write a spec that wipes a whole collection, add it to
 `DESTRUCTIVE_SPECS` in `playwright.config.ts`. Better: don't — create your own
 uniquely-named fixtures and delete only those.
@@ -139,15 +148,6 @@ same smoke run takes 3–4 minutes, because the Firestore emulator degrades (see
 below). `npm run emulators:check` tells you in ~3 s whether that has happened.
 The pre-push hook runs it first, so a dead emulator fails immediately with
 instructions instead of after 30 s of silence.
-
-### Known flaky
-
-`tests/integration/admin-categories-tab.spec.ts` fails two or three of its
-twelve tests on roughly every other run, and which ones varies. It wipes and
-re-seeds the shared `categories` registry while the app's own seed bootstrap
-and Firestore listener write to it too. It is deliberately out of `@smoke` so
-it never blocks a push; the full suite is otherwise green. Fixing it means
-giving it its own category namespace instead of rewriting the global one.
 
 ### Default: do NOT write a new E2E test
 
