@@ -625,3 +625,85 @@ describe('EventDetailPage — recurrence dates are clickable links (AmfbLIFQ)', 
     });
   });
 });
+
+describe('EventDetailPage — contribution badge (VtFz800s)', () => {
+  const baseEvent = { ...foreignEvent };
+
+  beforeEach(() => {
+    mockFirestoreDoc.getDocResult = {
+      id: baseEvent.id,
+      data: { ...baseEvent },
+    };
+  });
+
+  it('shows "Kostenlos" badge for free events', async () => {
+    mockFirestoreDoc.getDocResult = {
+      id: baseEvent.id,
+      data: { ...baseEvent, contribution: 'free' },
+    };
+    renderPage();
+    expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
+    expect(screen.getByText('Kostenlos')).toBeInTheDocument();
+  });
+
+  it('shows "Freie Spende" badge for donation events', async () => {
+    mockFirestoreDoc.getDocResult = {
+      id: baseEvent.id,
+      data: { ...baseEvent, contribution: 'donation' },
+    };
+    renderPage();
+    expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
+    expect(screen.getByText('Freie Spende')).toBeInTheDocument();
+  });
+
+  it('shows formatted price only for fee events with a fee and no note', async () => {
+    mockFirestoreDoc.getDocResult = {
+      id: baseEvent.id,
+      data: { ...baseEvent, contribution: 'fee', fee: 25, priceCurrency: 'EUR' },
+    };
+    renderPage();
+    expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
+    expect(screen.getByText('25 €')).toBeInTheDocument();
+  });
+
+  it('shows price with feeNote separator when both are present', async () => {
+    mockFirestoreDoc.getDocResult = {
+      id: baseEvent.id,
+      data: {
+        ...baseEvent,
+        contribution: 'fee',
+        fee: 120,
+        priceCurrency: 'EUR',
+        feeNote: '10er-Block',
+      },
+    };
+    renderPage();
+    expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
+    expect(screen.getByText('120 € / 10er-Block')).toBeInTheDocument();
+  });
+
+  it('shows "Kostenpflichtig" when contribution is fee but fee and feeNote are both missing', async () => {
+    mockFirestoreDoc.getDocResult = {
+      id: baseEvent.id,
+      data: { ...baseEvent, contribution: 'fee', fee: null, feeNote: '' },
+    };
+    renderPage();
+    expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
+    expect(screen.getByText('Kostenpflichtig')).toBeInTheDocument();
+  });
+
+  it('shows the feeNote alone when contribution is fee but no fee is set', async () => {
+    mockFirestoreDoc.getDocResult = {
+      id: baseEvent.id,
+      data: {
+        ...baseEvent,
+        contribution: 'fee',
+        fee: null,
+        feeNote: 'Einzelstunde',
+      },
+    };
+    renderPage();
+    expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
+    expect(screen.getByText('Einzelstunde')).toBeInTheDocument();
+  });
+});

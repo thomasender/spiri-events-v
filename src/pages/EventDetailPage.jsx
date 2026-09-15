@@ -138,8 +138,15 @@ function generateEventJsonLd(event) {
               price: event.fee.toString(),
               priceCurrency: event.priceCurrency || DEFAULT_CURRENCY,
               availability: 'https://schema.org/InStock',
+              ...(event.feeNote && { description: event.feeNote }),
             }
-          : null;
+          : {
+              '@type': 'Offer',
+              price: '0',
+              priceCurrency: DEFAULT_CURRENCY,
+              availability: 'https://schema.org/InStock',
+              description: event.feeNote || 'Kostenpflichtig',
+            };
 
   return {
     '@context': 'https://schema.org',
@@ -497,8 +504,10 @@ export default function EventDetailPage() {
                 : isDonation
                   ? 'Freie Spende'
                   : event.fee
-                    ? formatPriceWithCurrency(event.fee, event.priceCurrency)
-                    : 'Gebühr'}
+                    ? `${formatPriceWithCurrency(event.fee, event.priceCurrency)}${
+                        event.feeNote ? ` / ${event.feeNote}` : ''
+                      }`
+                    : event.feeNote || 'Kostenpflichtig'}
             </span>
           </div>
         </div>

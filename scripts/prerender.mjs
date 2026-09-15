@@ -265,7 +265,7 @@ export function generateEventHtml(event, theme = THEME_FALLBACK) {
         <div class="event-meta-row">
           <span class="category-chip">${escapeHtml(category)}</span>
           <span class="event-badge ${isFree ? 'badge--free' : 'badge--fee'}">
-            ${isFree ? 'Kostenlos' : event.fee != null && event.fee !== '' ? `${escapeHtml(event.fee)} €` : 'Gebühr'}
+            ${isFree ? 'Kostenlos' : event.fee != null && event.fee !== '' ? `${escapeHtml(event.fee)} €${event.feeNote ? ` / ${escapeHtml(event.feeNote)}` : ''}` : event.feeNote ? escapeHtml(event.feeNote) : 'Kostenpflichtig'}
           </span>
         </div>
       </header>

@@ -100,4 +100,59 @@ describe('EventModal', () => {
       expect(screen.queryByTestId('organizer-photo')).toBeNull();
     });
   });
+
+  describe('contribution badge (VtFz800s)', () => {
+    it('shows "Kostenlos" for free events', () => {
+      render(<EventModal event={{ ...mockEvent, contribution: 'free' }} onClose={() => {}} />);
+      expect(screen.getByText('Kostenlos')).toBeInTheDocument();
+    });
+
+    it('shows "Freie Spende" for donation events', () => {
+      render(<EventModal event={{ ...mockEvent, contribution: 'donation' }} onClose={() => {}} />);
+      expect(screen.getByText('Freie Spende')).toBeInTheDocument();
+    });
+
+    it('shows formatted price for paid events without a note', () => {
+      render(
+        <EventModal
+          event={{ ...mockEvent, contribution: 'fee', fee: 25, priceCurrency: 'EUR' }}
+          onClose={() => {}}
+        />
+      );
+      expect(screen.getByText('25 €')).toBeInTheDocument();
+    });
+
+    it('shows price with feeNote separator when both are present', () => {
+      render(
+        <EventModal
+          event={{
+            ...mockEvent,
+            contribution: 'fee',
+            fee: 120,
+            priceCurrency: 'EUR',
+            feeNote: '10er-Block',
+          }}
+          onClose={() => {}}
+        />
+      );
+      expect(screen.getByText('120 € / 10er-Block')).toBeInTheDocument();
+    });
+
+    it('shows "Kostenpflichtig" when contribution is fee but fee and feeNote are missing', () => {
+      render(
+        <EventModal event={{ ...mockEvent, contribution: 'fee', fee: null }} onClose={() => {}} />
+      );
+      expect(screen.getByText('Kostenpflichtig')).toBeInTheDocument();
+    });
+
+    it('shows feeNote alone when contribution is fee but no fee is set', () => {
+      render(
+        <EventModal
+          event={{ ...mockEvent, contribution: 'fee', fee: null, feeNote: 'Einzelstunde' }}
+          onClose={() => {}}
+        />
+      );
+      expect(screen.getByText('Einzelstunde')).toBeInTheDocument();
+    });
+  });
 });
