@@ -83,12 +83,12 @@ keep that from happening again.
 
 ### The three tiers
 
-| Command                   | What runs                                          | When                            | Budget                        |
-| ------------------------- | -------------------------------------------------- | ------------------------------- | ----------------------------- |
-| `npm run test`            | Vitest, all component/unit tests                   | every commit (pre-commit hook)  | ~5 s                          |
-| `npm run test:e2e:smoke`  | Playwright, `@smoke`-tagged flows, Chromium only   | every push (pre-push hook)      | 2–3 min                       |
-| `npm run test:e2e:full`   | Playwright, everything, Chromium                   | manually, before a release      | measure before you rely on it |
-| `npm run test:e2e:mobile` | Playwright, `@mobile`-tagged specs, WebKit @ 390px | manually, for iOS Safari issues | short                         |
+| Command                   | What runs                                          | When                            | Budget                    |
+| ------------------------- | -------------------------------------------------- | ------------------------------- | ------------------------- |
+| `npm run test`            | Vitest, all component/unit tests                   | every commit (pre-commit hook)  | ~8 s (incl. lint + types) |
+| `npm run test:e2e:smoke`  | Playwright, `@smoke`-tagged flows, Chromium only   | every push (pre-push hook)      | ~1:30 on a fresh emulator |
+| `npm run test:e2e:full`   | Playwright, everything, Chromium                   | manually, before a release      | ~3–5 min                  |
+| `npm run test:e2e:mobile` | Playwright, `@mobile`-tagged specs, WebKit @ 390px | manually, for iOS Safari issues | short                     |
 
 ### The emulator is the bottleneck, not the browsers
 
@@ -119,6 +119,12 @@ A few rewrite it wholesale, or contend with each other over it:
   `recurring-event-list-link-no-occurrence.spec.ts` all own the trash: the first
   resets every trashed event in its `beforeEach`, the other two put events into
   the trash and read them back
+- `admin-theme-tab.spec.ts` and `admin-theme-editor.spec.ts` publish to the
+  global `theme` document, which every page renders its CSS variables from
+- `admin-drafts-tab.spec.ts`, `admin-drafts-tab-navigation.spec.ts` and
+  `duplicate-published-event.spec.ts` write draft state that
+  `scripts/reset-draft-fixtures.mjs` — run by nine other specs — deletes by
+  title, "(Kopie)" suffixes included
 
 Those run in the separate `destructive` Playwright project, invoked as a second
 Playwright run after the parallel one finishes, **with `--workers=1`** — they
@@ -128,7 +134,9 @@ If you write a spec that wipes a whole collection, add it to
 `DESTRUCTIVE_SPECS` in `playwright.config.ts`. Better: don't — create your own
 uniquely-named fixtures and delete only those.
 
-`npm run emulators:check` tells you in ~3 s whether the emulators are usable.
+Those numbers assume a freshly started emulator. After a long work session the
+same smoke run takes 3–4 minutes, because the Firestore emulator degrades (see
+below). `npm run emulators:check` tells you in ~3 s whether that has happened.
 The pre-push hook runs it first, so a dead emulator fails immediately with
 instructions instead of after 30 s of silence.
 

@@ -14,6 +14,15 @@ const DESTRUCTIVE_SPECS = [
   '**/integration/admin-trash-tab.spec.ts',
   '**/integration/recurring-event-deletion-edit-form.spec.ts',
   '**/integration/recurring-event-list-link-no-occurrence.spec.ts',
+  // Publish a theme to the global `theme` document, which every page — including
+  // the public calendar every other spec loads — renders its CSS variables from.
+  '**/integration/admin-theme-tab.spec.ts',
+  '**/integration/admin-theme-editor.spec.ts',
+  // Write draft state that scripts/reset-draft-fixtures.mjs (run by nine other
+  // specs) deletes by title, "(Kopie)" suffixes included.
+  '**/integration/admin-drafts-tab.spec.ts',
+  '**/integration/admin-drafts-tab-navigation.spec.ts',
+  '**/integration/duplicate-published-event.spec.ts',
 ];
 
 export default defineConfig({
