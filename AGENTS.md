@@ -110,11 +110,19 @@ Two consequences:
 
 The integration specs share one emulator, one seeded `events` collection and one
 `categories` registry. Most specs only read that state, so they run in parallel.
-A few rewrite it wholesale — `admin-categories-tab.spec.ts` wipes and re-seeds
-both collections, `profile.spec.ts` clears the Storage bucket. Those run in the
-separate `destructive` Playwright project, which declares
-`dependencies: ['chromium']` and therefore only starts once the parallel suite
-has finished.
+A few rewrite it wholesale, or contend with each other over it:
+
+- `admin-categories-tab.spec.ts` wipes and re-seeds the `categories` registry
+  and the `events` collection
+- `profile.spec.ts` clears the Storage bucket
+- `admin-trash-tab.spec.ts`, `recurring-event-deletion-edit-form.spec.ts` and
+  `recurring-event-list-link-no-occurrence.spec.ts` all own the trash: the first
+  resets every trashed event in its `beforeEach`, the other two put events into
+  the trash and read them back
+
+Those run in the separate `destructive` Playwright project, invoked as a second
+Playwright run after the parallel one finishes, **with `--workers=1`** — they
+conflict with each other, not only with the parallel suite.
 
 If you write a spec that wipes a whole collection, add it to
 `DESTRUCTIVE_SPECS` in `playwright.config.ts`. Better: don't — create your own

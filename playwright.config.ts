@@ -5,8 +5,15 @@ import { defineConfig, devices } from '@playwright/test';
 // anything else, so they get their own project that only starts once the
 // parallel suite has finished (see the `destructive` project below).
 const DESTRUCTIVE_SPECS = [
+  // Rewrite the shared `categories` registry / clear the Storage bucket.
   '**/integration/admin-categories-tab.spec.ts',
   '**/integration/profile.spec.ts',
+  // All three own the trash: admin-trash-tab resets every trashed event in its
+  // beforeEach, while the deletion specs put events *into* the trash and read
+  // them back. Run in parallel they delete each other's fixtures mid-assertion.
+  '**/integration/admin-trash-tab.spec.ts',
+  '**/integration/recurring-event-deletion-edit-form.spec.ts',
+  '**/integration/recurring-event-list-link-no-occurrence.spec.ts',
 ];
 
 export default defineConfig({
