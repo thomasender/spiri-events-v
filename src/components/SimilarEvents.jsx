@@ -21,7 +21,7 @@ function normalizeSimilarEvent(event) {
     bezirk: isOnline ? '' : event.bezirk || '',
     isOnline,
     status: event.status || 'approved',
-    organizer: event.organizer || { firstName: '', lastName: '', email: '' },
+    organizer: event.organizer || { name: '', email: '' },
     kontakt: event.kontakt || '',
   };
 }

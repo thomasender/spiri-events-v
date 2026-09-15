@@ -16,7 +16,7 @@ describe('wizardDraftStorage', () => {
         formData: {
           title: 'Test Event',
           date: '2026-09-15',
-          organizer: { firstName: 'Anna', lastName: 'Muster', email: 'a@b.com' },
+          organizer: { name: 'Anna Muster', email: 'a@b.com' },
           customDates: ['2026-09-15', '2026-09-22'],
         },
         currentStep: 3,

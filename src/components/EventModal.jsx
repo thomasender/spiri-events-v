@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Calendar, Clock, MapPin, Ticket, ExternalLink, User, Mail, Phone } from 'lucide-react';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
+import { getOrganizerName } from '../utils/eventFormat';
 import { parseContactText } from '../utils/contactFormat';
 import { formatPriceWithCurrency } from '../utils/currency';
 import { normalizeLink } from '../utils/link';
@@ -194,7 +195,7 @@ export default function EventModal({ event, onClose }) {
             </div>
           )}
 
-          {event.organizer && (event.organizer.firstName || event.organizer.lastName) && (
+          {event.organizer && getOrganizerName(event) && (
             <div className="detail-item" data-testid="event-organizer">
               <User size={18} className="detail-icon" />
               <div>
@@ -208,9 +209,7 @@ export default function EventModal({ event, onClose }) {
                       data-testid="organizer-photo"
                     />
                   )}
-                  <span>
-                    {event.organizer.firstName} {event.organizer.lastName}
-                  </span>
+                  <span>{getOrganizerName(event)}</span>
                 </span>
               </div>
             </div>

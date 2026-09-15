@@ -21,6 +21,7 @@ import {
 import { useAuth } from '../hooks/useAuth';
 import { useEvents } from '../hooks/useEvents';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
+import { getOrganizerName } from '../utils/eventFormat';
 import { canEditEvent, canDeleteEvent } from '../utils/eventPermissions';
 import { parseContactText } from '../utils/contactFormat';
 import { getNextUpcomingOccurrence, getRecurrenceDatesForDetail } from '../utils/eventOccurrences';
@@ -605,7 +606,7 @@ export default function EventDetailPage() {
           </div>
         )}
 
-        {event.organizer && (event.organizer.firstName || event.organizer.lastName) && (
+        {event.organizer && getOrganizerName(event) && (
           <div className="detail-item" data-testid="event-organizer">
             <User size={18} className="detail-icon" />
             <div>
@@ -619,9 +620,7 @@ export default function EventDetailPage() {
                     data-testid="organizer-photo"
                   />
                 )}
-                <span>
-                  {event.organizer.firstName} {event.organizer.lastName}
-                </span>
+                <span>{getOrganizerName(event)}</span>
               </span>
             </div>
           </div>

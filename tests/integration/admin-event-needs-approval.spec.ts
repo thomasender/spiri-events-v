@@ -13,8 +13,7 @@ async function fillWizardAndSubmit(page, title, placeName) {
   future.setDate(future.getDate() + 30);
   const futureIso = future.toISOString().split('T')[0];
 
-  await page.fill('#organizer\\.firstName', 'Admin');
-  await page.fill('#organizer\\.lastName', 'Tester');
+  await page.fill('#organizer\\.name', 'Admin Tester');
   await page.fill('#kontakt', 'admin@test.com');
   await page.locator('button:has-text("Weiter")').click();
 

@@ -56,7 +56,7 @@ function normalizeEvents(events) {
       bezirk: isOnline ? '' : event.bezirk || '',
       isOnline,
       status: event.status || 'pending',
-      organizer: event.organizer || { firstName: '', lastName: '', email: '' },
+      organizer: event.organizer || { name: '', email: '' },
       kontakt: event.kontakt || '',
       priceCurrency: normalizeCurrency(event.priceCurrency),
     };
@@ -220,7 +220,7 @@ export function useEvents(user) {
       isOnline: Boolean(source.isOnline),
       organizer: source.organizer
         ? { ...source.organizer }
-        : { firstName: '', lastName: '', email: '', photoURL: null },
+        : { name: '', email: '', photoURL: null },
       kontakt: source.kontakt || '',
       imageUrl: source.imageUrl || null,
       status: 'draft',
@@ -386,7 +386,7 @@ export function useEventById(eventId) {
             bezirk: isOnline ? '' : data.bezirk || '',
             isOnline,
             status: data.status || 'pending',
-            organizer: data.organizer || { firstName: '', lastName: '', email: '' },
+            organizer: data.organizer || { name: '', email: '' },
             kontakt: data.kontakt || '',
             priceCurrency: normalizeCurrency(data.priceCurrency),
           };
