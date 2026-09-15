@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { spawn } from 'child_process';
-import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
+import { signInWithEmailAndPassword } from '../helpers/auth';
 import { generateSlug } from '../helpers/slug';
 
 async function resetDraftFixtures(): Promise<void> {
@@ -23,7 +23,6 @@ test.describe('Entwürfe tab — admin (Bslx5TQW)', () => {
   });
 
   test.afterEach(async ({ page }) => {
-    await signOut(page);
     await resetDraftFixtures();
   });
 
@@ -196,7 +195,6 @@ test.describe('Entwürfe tab — regular user (Bslx5TQW)', () => {
   });
 
   test.afterEach(async ({ page }) => {
-    await signOut(page);
     await resetDraftFixtures();
   });
 

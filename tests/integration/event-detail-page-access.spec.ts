@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { spawn } from 'child_process';
-import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
+import { signInWithEmailAndPassword } from '../helpers/auth';
 import { generateSlug } from '../helpers/slug';
 
 const YOGA_APPROVED_SLUG = generateSlug('Yoga heute', 'Yogastudio Dornbirn', 0);
@@ -26,10 +26,6 @@ test.beforeEach(async () => {
 });
 
 test.describe('Event detail page access (hSONxMKJ)', () => {
-  test.afterEach(async ({ page }) => {
-    await signOut(page);
-  });
-
   test('guest can view an approved event via slug URL', async ({ page }) => {
     await page.goto(`/event/${YOGA_APPROVED_SLUG}`);
 
@@ -93,10 +89,6 @@ test.describe('Event detail page access (hSONxMKJ)', () => {
 });
 
 test.describe('Admin access to pending events of other users', () => {
-  test.afterEach(async ({ page }) => {
-    await signOut(page);
-  });
-
   test('admin can view pending event owned by another user via slug URL', async ({ page }) => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
 

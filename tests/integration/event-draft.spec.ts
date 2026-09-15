@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { spawn } from 'child_process';
-import { signInWithEmailAndPassword, signOut, waitForCalendarToLoad } from '../helpers/auth';
+import { signInWithEmailAndPassword, waitForCalendarToLoad } from '../helpers/auth';
 import { generateSlug } from '../helpers/slug';
 
 const USER_DRAFT_SLUG = generateSlug('User Draft Event', 'User Draft Place Dornbirn', 20);
@@ -28,10 +28,6 @@ async function resetUserApprovedEventFixture(): Promise<void> {
 test.describe('Event draft status — read-only (AzGFKWfV) @smoke', () => {
   test.beforeEach(async () => {
     await resetUserApprovedEventFixture();
-  });
-
-  test.afterEach(async ({ page }) => {
-    await signOut(page);
   });
 
   test('user can see their own draft in Meine Events with Entwurf badge', async ({ page }) => {
@@ -143,7 +139,6 @@ test.describe('Event draft status — state transitions (AzGFKWfV)', () => {
   });
 
   test.afterEach(async ({ page }) => {
-    await signOut(page);
     await resetDraftFixtures();
   });
 

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
+import { signInWithEmailAndPassword } from '../helpers/auth';
 
 const PROJECT_ID = 'spirieventsvbg';
 const FIRESTORE_BASE = `http://127.0.0.1:8181/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
@@ -87,10 +87,6 @@ test.describe('Admin Theme tab (DfcpNYBw)', () => {
   test.beforeEach(async () => {
     await clearThemeDoc();
     await seedThemeDoc();
-  });
-
-  test.afterEach(async ({ page }) => {
-    await signOut(page);
   });
 
   test('admin opens the Theme tab and sees every color token grouped', async ({ page }) => {

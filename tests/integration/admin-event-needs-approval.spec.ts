@@ -42,10 +42,6 @@ async function fillWizardAndSubmit(page, title, placeName) {
 }
 
 test.describe('Admin-created events need approval (hGxrS6gp)', () => {
-  test.afterEach(async ({ page }) => {
-    await signOut(page);
-  });
-
   test('admin sees confirmation modal when creating a new event', async ({ page }) => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
 

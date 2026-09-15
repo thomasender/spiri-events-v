@@ -1,11 +1,7 @@
 import { test, expect } from '@playwright/test';
-import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
+import { signInWithEmailAndPassword } from '../helpers/auth';
 
 test.describe('Email verification required for event creation @smoke', () => {
-  test.afterEach(async ({ page }) => {
-    await signOut(page);
-  });
-
   test('verified user sees the "Neues Event" button on /admin and can open the form', async ({
     page,
   }) => {

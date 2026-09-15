@@ -1,6 +1,6 @@
 import { test, expect, request } from '@playwright/test';
 import { spawn } from 'child_process';
-import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
+import { signInWithEmailAndPassword } from '../helpers/auth';
 
 const STORAGE_EMULATOR_URL = 'http://localhost:9299';
 const PROJECT_ID = 'spirieventsvbg';
@@ -33,10 +33,6 @@ async function resetFeedbackFixtures(): Promise<void> {
 test.describe.configure({ mode: 'serial' });
 
 test.describe('Feedback feature', () => {
-  test.afterEach(async ({ page }) => {
-    await signOut(page);
-  });
-
   test('Floating feedback button is visible on every page', async ({ page }) => {
     await page.goto('/');
     await expect(page.getByTestId('feedback-fab')).toBeVisible();

@@ -1,6 +1,6 @@
 import { test, expect, Page } from '@playwright/test';
 import { spawn } from 'child_process';
-import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
+import { signInWithEmailAndPassword } from '../helpers/auth';
 
 async function resetDraftFixtures(): Promise<void> {
   await new Promise<void>((resolve, reject) => {
@@ -41,7 +41,6 @@ test.describe('Verwaltung lists — title picture (TnMMKIc7)', () => {
   });
 
   test.afterEach(async ({ page }) => {
-    await signOut(page);
     await resetDraftFixtures();
     await resetMessageFixtures();
   });

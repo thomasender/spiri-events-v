@@ -51,10 +51,6 @@ test.describe('Event erstellen success message more obvious (NyC8Ui2W)', () => {
     await deleteEventsByTitlePrefix('Success Dialog Test Event');
   });
 
-  test.afterEach(async ({ page }) => {
-    await signOut(page);
-  });
-
   test('shows a success dialog after submitting an event for approval', async ({ page }) => {
     await signInWithEmailAndPassword(page, 'user@test.local', 'testpassword123');
 

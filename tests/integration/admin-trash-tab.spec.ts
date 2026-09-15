@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { spawn } from 'child_process';
-import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
+import { signInWithEmailAndPassword } from '../helpers/auth';
 import { createApprovedEvent, deleteEventById } from '../fixtures/events';
 
 async function resetTrashFixtures(): Promise<void> {
@@ -29,7 +29,6 @@ test.describe('Papierkorb tab (SS79oSci) @smoke', () => {
   });
 
   test.afterEach(async ({ page }) => {
-    await signOut(page);
     await resetTrashFixtures();
   });
 

@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { spawn } from 'child_process';
-import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
+import { signInWithEmailAndPassword } from '../helpers/auth';
 import { generateSlug } from '../helpers/slug';
 
 const ADMIN_OWNED_APPROVED_SLUG = generateSlug('Yoga heute', 'Yogastudio Dornbirn', 0);
@@ -37,10 +37,6 @@ test.beforeEach(async () => {
 });
 
 test.describe('Event detail page — edit/delete button visibility (kf8i6vqj)', () => {
-  test.afterEach(async ({ page }) => {
-    await signOut(page);
-  });
-
   test('guest sees no edit or delete buttons on an approved event', async ({ page }) => {
     await page.goto(`/event/${ADMIN_OWNED_APPROVED_SLUG}`);
 
@@ -222,10 +218,6 @@ test.describe('Event detail page — edit/delete button visibility (kf8i6vqj)', 
 });
 
 test.describe('Admin delete workflow (kf8i6vqj)', () => {
-  test.afterEach(async ({ page }) => {
-    await signOut(page);
-  });
-
   test('canceling the trash dialog does NOT move the event to trash', async ({ page }) => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
 
