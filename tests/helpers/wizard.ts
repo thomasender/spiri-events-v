@@ -264,3 +264,35 @@ export async function clearField(page: Page, fieldId: string) {
   // fires the same input events the app listens for.
   await page.fill(`#${fieldId}`, '');
 }
+
+/**
+ * Dismisses the post-submit success dialog and waits until the app is back on
+ * /admin.
+ *
+ * Probing `successDialog.isVisible()` straight after the submit does not work:
+ * the dialog has not rendered at that point, the probe returns false, the
+ * confirm click is skipped and the app never navigates. Wait for it instead.
+ */
+export async function completeSubmissionAndReturnToAdmin(page: Page) {
+  const successDialog = page.getByTestId('success-dialog');
+  await expect(successDialog).toBeVisible({ timeout: 15000 });
+  await successDialog.getByTestId('success-dialog-confirm').click();
+  await page.waitForURL('/admin', { timeout: 15000 });
+}
+
+/**
+ * Opens the Verwaltung "Review" tab and returns its panel.
+ *
+ * Admin-created events start as `pending` (ticket hGxrS6gp) and pending events
+ * deliberately do not appear under "Meine Events" — see admin-review-tab.spec.ts.
+ * Click the tab rather than cold-loading `/admin?tab=review`, which does not
+ * reliably land on the populated panel.
+ */
+export async function openReviewTab(page: Page) {
+  await page.goto('/admin');
+  await page.waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 });
+  await page.getByTestId('admin-tab-review').click();
+  const panel = page.locator('#admin-tab-review');
+  await expect(panel).toBeVisible();
+  return panel;
+}

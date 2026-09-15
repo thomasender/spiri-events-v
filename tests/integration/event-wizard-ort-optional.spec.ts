@@ -15,6 +15,7 @@ import {
   fillStep2EventInfo,
   submitWizard,
   confirmSubmission,
+  completeSubmissionAndReturnToAdmin,
 } from '../helpers/wizard';
 
 const EVENT_TITLE = 'Event ohne Ort';
@@ -90,13 +91,7 @@ test.describe('Event wizard: "Ort / Adresse" is optional (ZPiZqKrG) @mobile', ()
     await submitWizard(page);
     await confirmSubmission(page);
 
-    await page.waitForURL('/admin', { timeout: 10000 }).catch(() => {});
-    const successDialog = page.getByTestId('success-dialog');
-    if (await successDialog.isVisible().catch(() => false)) {
-      await successDialog.getByTestId('success-dialog-confirm').click();
-    }
-
-    await page.waitForURL('/admin', { timeout: 10000 });
+    await completeSubmissionAndReturnToAdmin(page);
 
     // Admin-created events start as `pending` (ticket hGxrS6gp), and pending
     // events deliberately do NOT appear under "Meine Events" — that is asserted

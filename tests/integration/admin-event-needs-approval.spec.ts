@@ -1,6 +1,10 @@
 import { test, expect } from '@playwright/test';
 import { signInWithEmailAndPassword, signOut, waitForCalendarToLoad } from '../helpers/auth';
-import { confirmCopyrightCheckbox, waitForWizardToLoad } from '../helpers/wizard';
+import {
+  confirmCopyrightCheckbox,
+  waitForWizardToLoad,
+  completeSubmissionAndReturnToAdmin,
+} from '../helpers/wizard';
 
 const EVENT_TITLE = 'Admin Created Test Event';
 
@@ -69,17 +73,7 @@ test.describe('Admin-created events need approval (hGxrS6gp)', () => {
 
     await page.click('button:has-text("Einreichen")');
 
-    await page.waitForURL('/admin', { timeout: 10000 }).catch(() => {});
-    await page
-      .getByTestId('success-dialog')
-      .waitFor({ state: 'visible', timeout: 10000 })
-      .catch(() => {});
-    const successDialog = page.getByTestId('success-dialog');
-    if (await successDialog.isVisible().catch(() => false)) {
-      await successDialog.getByTestId('success-dialog-confirm').click();
-    }
-
-    await page.waitForURL('/admin', { timeout: 10000 });
+    await completeSubmissionAndReturnToAdmin(page);
 
     await page
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })

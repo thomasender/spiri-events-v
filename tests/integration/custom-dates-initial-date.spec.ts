@@ -1,6 +1,11 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
-import { confirmCopyrightCheckbox, enableRecurrence, waitForWizardToLoad } from '../helpers/wizard';
+import {
+  confirmCopyrightCheckbox,
+  enableRecurrence,
+  waitForWizardToLoad,
+  openReviewTab,
+} from '../helpers/wizard';
 
 import { STORAGE_STATE } from '../helpers/roles';
 import { deleteEventsByTitlePrefix } from '../fixtures/events';
@@ -8,19 +13,6 @@ import { deleteEventsByTitlePrefix } from '../fixtures/events';
 // Signed in as `admin` via the session captured once by tests/auth.setup.ts,
 // instead of driving the login form in every test.
 test.use({ storageState: STORAGE_STATE.admin });
-
-/**
- * Opens the Review tab the way a user does. A cold `goto('/admin?tab=review')`
- * does not reliably land on the populated panel, so click the tab instead.
- */
-async function openReviewTab(page: Page) {
-  await page.goto('/admin');
-  await page.waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 });
-  await page.getByTestId('admin-tab-review').click();
-  const panel = page.locator('#admin-tab-review');
-  await expect(panel).toBeVisible();
-  return panel;
-}
 
 const EVENT_TITLE = `Custom Dates Initial Date Event ${Date.now()}`;
 

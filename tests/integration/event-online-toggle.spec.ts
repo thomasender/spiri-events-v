@@ -16,6 +16,8 @@ import {
   confirmCopyrightCheckbox,
   submitWizard,
   confirmSubmission,
+  completeSubmissionAndReturnToAdmin,
+  openReviewTab,
 } from '../helpers/wizard';
 
 const ONLINE_EVENT_TITLE = 'Online Yoga Session';
@@ -171,23 +173,10 @@ test.describe('Event wizard: "Online-Event" checkbox (1e9YUHCh) @smoke', () => {
     await submitWizard(page);
     await confirmSubmission(page);
 
-    await page.waitForURL('/admin', { timeout: 10000 }).catch(() => {});
-    const successDialog = page.getByTestId('success-dialog');
-    if (await successDialog.isVisible().catch(() => false)) {
-      await successDialog.getByTestId('success-dialog-confirm').click();
-    }
+    await completeSubmissionAndReturnToAdmin(page);
 
-    await page.waitForURL('/admin', { timeout: 10000 });
-
-    // Admin-created events start as `pending` (ticket hGxrS6gp), and pending
-    // events deliberately do NOT appear under "Meine Events" — that is asserted
-    // in admin-review-tab.spec.ts. They land in the Review tab, so look there.
-    await page.goto('/admin?tab=review');
-    await page.waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 });
-
-    const card = page
-      .locator('#admin-tab-review .event-card', { hasText: ONLINE_EVENT_TITLE })
-      .first();
+    const panel = await openReviewTab(page);
+    const card = panel.locator('.event-card', { hasText: ONLINE_EVENT_TITLE }).first();
     await expect(card).toBeVisible({ timeout: 15000 });
   });
 });
