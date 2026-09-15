@@ -49,6 +49,7 @@ const INITIAL_STATE = {
   contribution: 'free',
   fee: '',
   priceCurrency: DEFAULT_CURRENCY,
+  feeNote: '',
   description: '',
   link: '',
   recurrence: 'none',
@@ -268,7 +269,7 @@ export default function EventFormWizard() {
       if (!formData.category) {
         newErrors.category = 'Kategorie ist erforderlich';
       }
-      if (formData.contribution === 'fee' && (!formData.fee || formData.fee <= 0)) {
+      if (formData.contribution === 'fee' && formData.fee && Number(formData.fee) < 0) {
         newErrors.fee = 'Bitte gib einen gültigen Betrag ein';
       }
       if (formData.recurrence !== 'none' && formData.recurrenceEndDate && recurrenceMaxDate) {
@@ -547,6 +548,7 @@ export default function EventFormWizard() {
     contribution: formData.contribution,
     fee: formData.contribution === 'fee' ? parseFloat(formData.fee) : null,
     priceCurrency: formData.contribution === 'fee' ? formData.priceCurrency : null,
+    feeNote: formData.contribution === 'fee' ? formData.feeNote.trim().slice(0, 12) : '',
     description: formData.description,
     link: normalizeLink(formData.link),
     recurrence: formData.recurrence || 'none',
@@ -1042,7 +1044,7 @@ export default function EventFormWizard() {
       {formData.contribution === 'fee' && (
         <div className="form-row">
           <div className="form-group">
-            <label htmlFor="fee">Betrag *</label>
+            <label htmlFor="fee">Betrag</label>
             <input
               id="fee"
               name="fee"
@@ -1053,11 +1055,12 @@ export default function EventFormWizard() {
               onChange={handleChange}
               placeholder="z.B. 15.00"
               className={errors.fee ? 'input-error' : ''}
+              data-testid="fee-input"
             />
             {errors.fee && <span className="error-text">{errors.fee}</span>}
           </div>
           <div className="form-group">
-            <label htmlFor="priceCurrency">Währung *</label>
+            <label htmlFor="priceCurrency">Währung</label>
             <select
               id="priceCurrency"
               name="priceCurrency"
@@ -1071,6 +1074,25 @@ export default function EventFormWizard() {
                 </option>
               ))}
             </select>
+          </div>
+          <div className="form-group">
+            <label htmlFor="feeNote">
+              Einheit
+              <span className="input-info">
+                <Info size={14} />
+                <span>z.B. Einzelstunde, 10er-Block, ganzer Kurs</span>
+              </span>
+            </label>
+            <input
+              id="feeNote"
+              name="feeNote"
+              type="text"
+              maxLength={12}
+              value={formData.feeNote}
+              onChange={handleChange}
+              placeholder="z.B. Einzelstunde"
+              data-testid="fee-note-input"
+            />
           </div>
         </div>
       )}
@@ -1286,7 +1308,13 @@ export default function EventFormWizard() {
               ? 'Kostenlos'
               : formData.contribution === 'donation'
                 ? 'Freie Spende'
-                : `Gebühr: ${formatPriceWithCurrency(formData.fee, formData.priceCurrency) || `${formData.fee}`}`}
+                : formData.fee
+                  ? `Gebühr: ${formatPriceWithCurrency(formData.fee, formData.priceCurrency) || formData.fee}${
+                      formData.feeNote ? ` / ${formData.feeNote}` : ''
+                    }`
+                  : formData.feeNote
+                    ? `Gebühr: ${formData.feeNote}`
+                    : 'Kostenpflichtig'}
           </p>
         </div>
       </div>

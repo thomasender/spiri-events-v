@@ -208,7 +208,7 @@ export default function Calendar({
                           </span>
                           {(event.contribution === 'free' ||
                             event.contribution === 'donation' ||
-                            event.fee) && (
+                            event.contribution === 'fee') && (
                             <span
                               className={`agenda-event-badge ${
                                 event.contribution === 'free'
@@ -222,7 +222,11 @@ export default function Calendar({
                                 ? 'Frei'
                                 : event.contribution === 'donation'
                                   ? 'Spende'
-                                  : formatPriceWithCurrency(event.fee, event.priceCurrency)}
+                                  : event.fee
+                                    ? `${formatPriceWithCurrency(event.fee, event.priceCurrency)}${
+                                        event.feeNote ? ` / ${event.feeNote}` : ''
+                                      }`
+                                    : event.feeNote || 'Gebühr'}
                             </span>
                           )}
                         </div>
@@ -327,7 +331,7 @@ export default function Calendar({
                     </span>
                     {(event.contribution === 'free' ||
                       event.contribution === 'donation' ||
-                      event.fee) && (
+                      event.contribution === 'fee') && (
                       <span
                         className={`day-popover-event-badge ${
                           event.contribution === 'free'
@@ -341,7 +345,11 @@ export default function Calendar({
                           ? 'Frei'
                           : event.contribution === 'donation'
                             ? 'Spende'
-                            : formatPriceWithCurrency(event.fee, event.priceCurrency)}
+                            : event.fee
+                              ? `${formatPriceWithCurrency(event.fee, event.priceCurrency)}${
+                                  event.feeNote ? ` / ${event.feeNote}` : ''
+                                }`
+                              : event.feeNote || 'Gebühr'}
                       </span>
                     )}
                   </button>
