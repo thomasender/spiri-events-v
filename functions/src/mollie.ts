@@ -46,12 +46,16 @@ export async function mollieRequest<T>(
   const data = text ? (JSON.parse(text) as unknown) : null;
 
   if (!response.ok) {
-    const message =
-      (data && typeof data === 'object' && 'message' in data && typeof data.message === 'string'
+    const mollieMessage =
+      data && typeof data === 'object' && 'message' in data && typeof data.message === 'string'
         ? data.message
-        : null) ?? `Mollie request to ${path} failed with ${response.status}`;
-    const error = new Error(message) as Error & { status?: number };
+        : null;
+    const message = mollieMessage
+      ? `Mollie ${path} ${response.status}: ${mollieMessage}`
+      : `Mollie ${path} failed with ${response.status}`;
+    const error = new Error(message) as Error & { status?: number; body?: unknown };
     error.status = response.status;
+    error.body = data;
     throw error;
   }
 

@@ -61,9 +61,8 @@ export const createMollieSubscription = onCall(
       });
       return checkout;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'unknown error';
-      logger.error('Mollie subscription creation failed', { message });
-      throw new HttpsError('unavailable', `payment provider error: ${message}`);
+      logger.error('Mollie subscription creation failed', err);
+      throw new HttpsError('unavailable', err instanceof Error ? err.message : 'unknown error');
     }
   }
 );
@@ -89,9 +88,8 @@ export const createMolliePayment = onCall(
       });
       return checkout;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'unknown error';
-      logger.error('Mollie one-time payment creation failed', { message });
-      throw new HttpsError('unavailable', `payment provider error: ${message}`);
+      logger.error('Mollie one-time payment creation failed', err);
+      throw new HttpsError('unavailable', err instanceof Error ? err.message : 'unknown error');
     }
   }
 );
