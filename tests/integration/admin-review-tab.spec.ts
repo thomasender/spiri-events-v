@@ -1,6 +1,11 @@
 import { test, expect } from '@playwright/test';
 import { spawn } from 'child_process';
-import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
+
+import { STORAGE_STATE } from '../helpers/roles';
+
+// Signed in as `admin` via the session captured once by tests/auth.setup.ts,
+// instead of driving the login form in every test.
+test.use({ storageState: STORAGE_STATE.admin });
 
 async function resetDraftFixtures(): Promise<void> {
   await new Promise<void>((resolve, reject) => {
@@ -44,18 +49,16 @@ test.describe.configure({ mode: 'serial' });
 
 const FOREIGN_PENDING_TITLE = 'User Pending Event';
 
-test.describe('Review tab for admins (dUWoE5vu)', () => {
+test.describe('Review tab for admins (dUWoE5vu) @smoke', () => {
   test.beforeEach(async () => {
     await resetDraftFixtures();
   });
 
   test.afterEach(async ({ page }) => {
-    await signOut(page);
     await resetDraftFixtures();
   });
 
   test('admin sees the Review tab when pending events exist', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin');
 
     await page
@@ -68,7 +71,6 @@ test.describe('Review tab for admins (dUWoE5vu)', () => {
   });
 
   test('Review tab shows the count of pending events on its badge', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin');
 
     await page
@@ -77,12 +79,17 @@ test.describe('Review tab for admins (dUWoE5vu)', () => {
 
     const badge = page.getByTestId('admin-tab-review-badge');
     await expect(badge).toBeVisible();
-    const count = Number(await badge.textContent());
-    expect(count).toBeGreaterThanOrEqual(1);
+    // The badge caps at "9+" once there are more than nine pending events, so
+    // parse it as a number only when it actually is one. The cap itself is
+    // covered by tests/components/AdminPage.spec.tsx.
+    const label = (await badge.textContent())?.trim() ?? '';
+    expect(label).toMatch(/^(\d+\+?)$/);
+    if (!label.endsWith('+')) {
+      expect(Number(label)).toBeGreaterThanOrEqual(1);
+    }
   });
 
   test('pending events show up in the Review tab and NOT in Meine Events', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin');
 
     await page
@@ -121,7 +128,6 @@ test.describe('Review tab for admins (dUWoE5vu)', () => {
     await createThrowawayPendingEvent(throwawayId);
 
     try {
-      await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
       await page.goto('/admin?tab=review');
 
       await page
@@ -156,7 +162,6 @@ test.describe('Review tab for admins (dUWoE5vu)', () => {
     await createThrowawayPendingEvent(throwawayId);
 
     try {
-      await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
       await page.goto('/admin?tab=review');
 
       await page

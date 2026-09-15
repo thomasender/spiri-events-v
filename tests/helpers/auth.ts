@@ -1,4 +1,6 @@
-import { test as base, Page } from '@playwright/test';
+import { expect, Page } from '@playwright/test';
+
+export { STORAGE_STATE, TEST_ROLES, type TestRole } from './roles';
 
 export const AUTH_EMULATOR_URL = 'http://localhost:9199';
 export const STORAGE_EMULATOR_URL = 'http://localhost:9299';
@@ -15,8 +17,12 @@ export async function signInWithEmailAndPassword(
   await page.fill('input[type="password"], input[name="password"], input[id="password"]', password);
   await page.click('button[type="submit"]');
 
-  await page.waitForURL(/\/(?!login)/, { timeout: 10000 }).catch(() => {});
-  await page.waitForTimeout(2000);
+  // Wait for the session to actually exist instead of sleeping 2s and hoping.
+  // The header renders a logout button once Firebase Auth resolves, which is
+  // the earliest point a test can safely act. Assert on *attachment*, not
+  // visibility: the desktop and mobile navs are toggled by CSS, so on a phone
+  // viewport the desktop logout button is present but hidden.
+  await expect(page.locator('button.nav-link--logout').first()).toBeAttached({ timeout: 15000 });
 }
 
 export async function registerWithEmailAndPassword(
@@ -35,7 +41,7 @@ export async function registerWithEmailAndPassword(
   await page.fill('input[type="password"], input[name="password"], input[id="password"]', password);
   await page.click('button[type="submit"]');
 
-  await page.waitForURL(/\/(?!login)/, { timeout: 10000 }).catch(() => {});
+  await page.waitForURL(/\/(?!login)/, { timeout: 15000 });
 }
 
 export async function signOut(page: Page): Promise<void> {
@@ -71,8 +77,11 @@ export async function signOut(page: Page): Promise<void> {
   }
 
   if (signedOut) {
-    await page.waitForSelector('.nav-desktop a[href="/login"]', { timeout: 5000 }).catch(() => {});
-    await page.waitForTimeout(500);
+    // Wait on the logout button disappearing rather than on a login link
+    // appearing: the login link exists in both the desktop and the mobile nav
+    // (and the desktop nav renders more than one), whereas the logout button
+    // is unambiguous and its absence is exactly what "signed out" means.
+    await expect(page.locator('button.nav-link--logout')).toHaveCount(0, { timeout: 10000 });
   }
 }
 
@@ -90,21 +99,7 @@ export async function createAuthenticatedUser(
   await page.fill('input[type="password"], input[name="password"], input[id="password"]', password);
   await page.click('button[type="submit"]');
 
-  await page.waitForURL(/\/(?!login)/, { timeout: 10000 }).catch(() => {});
-}
-
-export async function setEmulatorAuthCookie(page: Page, uid: string): Promise<void> {
-  await page.context().addCookies([
-    {
-      name: 'firebase-auth-container',
-      value: JSON.stringify({
-        uid,
-        email: 'test@example.com',
-      }),
-      domain: 'localhost',
-      path: '/',
-    },
-  ]);
+  await page.waitForURL(/\/(?!login)/, { timeout: 15000 });
 }
 
 export async function waitForCalendarToLoad(page: Page): Promise<void> {
@@ -112,9 +107,7 @@ export async function waitForCalendarToLoad(page: Page): Promise<void> {
   // hidden via CSS on narrow viewports (< 900px), where the events section above
   // it already provides month navigation and an event list.
   await page.waitForSelector('.calendar', { state: 'attached', timeout: 10000 });
-  await page
-    .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
-    .catch(() => {});
+  await page.waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 });
 }
 
 export async function clearEmulatorData(): Promise<void> {

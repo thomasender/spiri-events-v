@@ -1,6 +1,11 @@
 import { test, expect } from '@playwright/test';
 import { spawn } from 'child_process';
-import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
+
+import { STORAGE_STATE } from '../helpers/roles';
+
+// Signed in as `admin` via the session captured once by tests/auth.setup.ts,
+// instead of driving the login form in every test.
+test.use({ storageState: STORAGE_STATE.admin });
 
 const RECURRING_EVENT_ID = 'test-event-recurring-weekly';
 const RECURRING_EVENT_SLUG = 'test-weekly-yoga-series-yogastudio-test-20260813';
@@ -19,7 +24,7 @@ async function resetRecurringEventFixture(): Promise<void> {
 
 test.describe.configure({ mode: 'serial' });
 
-test.describe('Recurring event deletion from EventForm', () => {
+test.describe('Recurring event deletion from EventForm @smoke', () => {
   // This is the single shared fixture doc other specs (e.g.
   // recurring-events-card-list.spec.ts) also read, and this file's last test deletes
   // it entirely — reset before each test so ordering relative to other spec files
@@ -28,15 +33,11 @@ test.describe('Recurring event deletion from EventForm', () => {
     await resetRecurringEventFixture();
   });
 
-  test.afterEach(async ({ page }) => {
-    await signOut(page);
-  });
+  test.afterEach(async ({ page }) => {});
 
   test('delete button shows RecurringDeleteDialog for recurring event in edit form', async ({
     page,
   }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
-
     await page.goto(`/admin/edit/${RECURRING_EVENT_ID}`);
     await page.waitForURL(/\/admin\/edit\//);
     await page
@@ -56,8 +57,6 @@ test.describe('Recurring event deletion from EventForm', () => {
   test('canceling RecurringDeleteDialog from edit form does NOT delete the event', async ({
     page,
   }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
-
     await page.goto(`/admin/edit/${RECURRING_EVENT_ID}`);
     await page.waitForURL(/\/admin\/edit\//);
     await page
@@ -84,8 +83,6 @@ test.describe('Recurring event deletion from EventForm', () => {
   });
 
   test('"Nur dieses Event" from edit form adds date to exceptionDates', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
-
     await page.goto(`/admin/edit/${RECURRING_EVENT_ID}`);
     await page.waitForURL(/\/admin\/edit\//);
     await page
@@ -102,8 +99,6 @@ test.describe('Recurring event deletion from EventForm', () => {
   test('"Dieses und alle zukünftigen Events" from edit form sets recurrenceEndDate', async ({
     page,
   }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
-
     await page.goto(`/admin/edit/${RECURRING_EVENT_ID}`);
     await page.waitForURL(/\/admin\/edit\//);
     await page
@@ -120,8 +115,6 @@ test.describe('Recurring event deletion from EventForm', () => {
   test('"Gesamte Serie löschen" from edit form moves the event to the trash (SS79oSci)', async ({
     page,
   }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
-
     await page.goto(`/admin/edit/${RECURRING_EVENT_ID}`);
     await page.waitForURL(/\/admin\/edit\//);
     await page

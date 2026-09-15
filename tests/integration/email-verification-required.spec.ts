@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
 
-test.describe('Email verification required for event creation', () => {
+test.describe('Email verification required for event creation @smoke', () => {
   test.afterEach(async ({ page }) => {
     await signOut(page);
   });

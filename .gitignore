@@ -57,3 +57,4 @@ data-export/*
 !data-export/firestore-export/
 !data-export/firestore-export/events.json
 !data-export/firestore-export/manifest.json
+tests/.auth/

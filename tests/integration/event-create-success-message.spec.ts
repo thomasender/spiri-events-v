@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { signInWithEmailAndPassword, signOut, waitForCalendarToLoad } from '../helpers/auth';
 import { confirmCopyrightCheckbox, waitForWizardToLoad } from '../helpers/wizard';
+import { deleteEventsByTitlePrefix } from '../fixtures/events';
 
 const EVENT_TITLE = 'Success Dialog Test Event';
 
@@ -19,14 +20,12 @@ async function fillWizardAndSubmit(page, title) {
   await page.fill('#organizer\\.lastName', 'User');
   await page.fill('#kontakt', 'test@example.com');
   await page.locator('button:has-text("Weiter")').click();
-  await page.waitForTimeout(500);
 
   await page.fill('#title', title);
   const editor = page.locator('[data-testid="description-editor"] .rte-content');
   await editor.click();
   await editor.fill('Event created to verify the post-submit success dialog.');
   await page.locator('button:has-text("Weiter")').click();
-  await page.waitForTimeout(500);
 
   await page.fill('#date', futureIso);
   await page.fill('#time', '10:00');
@@ -34,22 +33,24 @@ async function fillWizardAndSubmit(page, title) {
   await page.selectOption('#bezirk', 'Bregenz');
 
   await page.click('.kategorie-select');
-  await page.waitForTimeout(300);
   await page.click('.kategorie__option:has-text("Yoga")');
-  await page.waitForTimeout(300);
 
   await page.locator('button:has-text("Weiter")').click();
-  await page.waitForTimeout(500);
 
   await confirmCopyrightCheckbox(page);
 
   await page.click(
     'button:has-text("Event erstellen"), button:has-text("Einreichen zur Genehmigung")'
   );
-  await page.waitForTimeout(500);
 }
 
 test.describe('Event erstellen success message more obvious (NyC8Ui2W)', () => {
+  // The wizard specs create real events; remove them so they do not
+  // accumulate in the emulator across runs.
+  test.afterAll(async () => {
+    await deleteEventsByTitlePrefix('Success Dialog Test Event');
+  });
+
   test.afterEach(async ({ page }) => {
     await signOut(page);
   });

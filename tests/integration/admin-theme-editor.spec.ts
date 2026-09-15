@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
+
+import { STORAGE_STATE } from '../helpers/roles';
+
+// Signed in as `admin` via the session captured once by tests/auth.setup.ts,
+// instead of driving the login form in every test.
+test.use({ storageState: STORAGE_STATE.admin });
 
 const PROJECT_ID = 'spirieventsvbg';
 const FIRESTORE_BASE = `http://127.0.0.1:8181/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
@@ -79,12 +84,9 @@ test.describe('Admin Theme Editor v2 (U2Bcb7jJ)', () => {
     await seedThemeDoc();
   });
 
-  test.afterEach(async ({ page }) => {
-    await signOut(page);
-  });
+  test.afterEach(async ({ page }) => {});
 
   test('admin opens /admin/theme-editor and sees the workspace + sandbox', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/theme-editor');
 
     await expect(page.getByTestId('theme-editor-page')).toBeVisible({ timeout: 15000 });
@@ -105,7 +107,6 @@ test.describe('Admin Theme Editor v2 (U2Bcb7jJ)', () => {
   test('editing a color paints it onto the live sandbox without affecting the sidebar', async ({
     page,
   }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/theme-editor');
 
     const row = page.locator(
@@ -151,7 +152,6 @@ test.describe('Admin Theme Editor v2 (U2Bcb7jJ)', () => {
   });
 
   test('Aktivieren publishes the editor values to the live theme', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/theme-editor');
 
     const row = page.locator(
@@ -179,7 +179,6 @@ test.describe('Admin Theme Editor v2 (U2Bcb7jJ)', () => {
   });
 
   test('Speichern (Als neues Theme speichern) creates a saved theme', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/theme-editor');
 
     const row = page.locator('[data-testid="theme-editor-row"][data-variable-name="--bg-primary"]');
@@ -207,7 +206,6 @@ test.describe('Admin Theme Editor v2 (U2Bcb7jJ)', () => {
   });
 
   test('reset-all confirm dialog resets all rows to the bundled defaults', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/theme-editor');
 
     const row = page.locator(
@@ -227,7 +225,6 @@ test.describe('Admin Theme Editor v2 (U2Bcb7jJ)', () => {
   });
 
   test('Verwerfen reverts the editor to its starting base', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/theme-editor');
 
     const row = page.locator(
@@ -242,7 +239,6 @@ test.describe('Admin Theme Editor v2 (U2Bcb7jJ)', () => {
   });
 
   test('the public Theme tab button now navigates to the new editor page', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin');
     const themeTab = page.getByTestId('admin-tab-theme');
     await expect(themeTab).toBeVisible();
@@ -262,7 +258,6 @@ test.describe('Admin Theme Editor v2 (U2Bcb7jJ)', () => {
     // two-column layout at any meaningful size.
     test.skip(isMobile === true, 'Preview is desktop-only by design.');
 
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/theme-editor');
 
     const preview = page.getByTestId('homepage-preview');
@@ -289,7 +284,6 @@ test.describe('Admin Theme Editor v2 (U2Bcb7jJ)', () => {
     // Desktop-only — see comment above.
     test.skip(isMobile === true, 'Preview is desktop-only by design.');
 
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/theme-editor');
 
     const eventsSection = page.locator('.events-section-grid .event-tile').first();
@@ -305,7 +299,6 @@ test.describe('Admin Theme Editor v2 (U2Bcb7jJ)', () => {
   test('color groups have a proper WAI-ARIA accordion (heading + button + aria-controls)', async ({
     page,
   }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/theme-editor');
 
     const firstGroup = page.getByTestId('theme-editor-group').first();
@@ -337,7 +330,6 @@ test.describe('Admin Theme Editor v2 (U2Bcb7jJ)', () => {
   });
 
   test('group headers are visually clickable with a chevron affordance', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/theme-editor');
 
     const toggle = page

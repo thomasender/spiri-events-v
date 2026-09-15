@@ -45,12 +45,11 @@ async function navigateToMonth(page: Page, year: number, month: number): Promise
     const current = (await header.textContent())?.trim() ?? '';
     if (current === target) return;
     await page.locator('.events-section-month-nav button').nth(1).click();
-    await page.waitForTimeout(150);
   }
   throw new Error(`Failed to navigate to ${target}`);
 }
 
-test.describe('Recurring event list links do not pin to a specific occurrence (4bVW6i7o)', () => {
+test.describe('Recurring event list links do not pin to a specific occurrence (4bVW6i7o) @smoke', () => {
   const start = startMonthInfo();
   test.describe.configure({ timeout: 60000 });
 

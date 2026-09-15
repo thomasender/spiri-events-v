@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { waitForCalendarToLoad } from '../helpers/auth';
 
-test.describe('Calendar Integration', () => {
+test.describe('Calendar Integration @mobile', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await waitForCalendarToLoad(page);

@@ -1,11 +1,20 @@
 import { test, expect } from '@playwright/test';
 import { spawn } from 'child_process';
-import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
+
+import { STORAGE_STATE } from '../helpers/roles';
+import { deleteEventsByTitlePrefix } from '../fixtures/events';
+
+// Signed in as `admin` via the session captured once by tests/auth.setup.ts,
+// instead of driving the login form in every test.
+test.use({ storageState: STORAGE_STATE.admin });
+
 import {
   confirmCopyrightCheckbox,
   waitForWizardToLoad,
   clickWeiter,
   fillStep2EventInfo,
+  submitWizard,
+  confirmSubmission,
 } from '../helpers/wizard';
 
 const EVENT_TITLE = 'Event ohne Ort';
@@ -25,10 +34,14 @@ async function resetSharedPendingFixture(): Promise<void> {
   });
 }
 
-test.describe('Event wizard: "Ort / Adresse" is optional (ZPiZqKrG)', () => {
-  test.afterEach(async ({ page }) => {
-    await signOut(page);
+test.describe('Event wizard: "Ort / Adresse" is optional (ZPiZqKrG) @mobile', () => {
+  // The wizard specs create real events; remove them so they do not
+  // accumulate in the emulator across runs.
+  test.afterAll(async () => {
+    await deleteEventsByTitlePrefix('Event ohne Ort');
   });
+
+  test.afterEach(async ({ page }) => {});
 
   async function navigateToStep3(page) {
     await clickWeiter(page);
@@ -40,7 +53,6 @@ test.describe('Event wizard: "Ort / Adresse" is optional (ZPiZqKrG)', () => {
   }
 
   test('"Ort / Adresse" label is not marked with an asterisk on step 3', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/new');
     await waitForWizardToLoad(page);
 
@@ -55,7 +67,6 @@ test.describe('Event wizard: "Ort / Adresse" is optional (ZPiZqKrG)', () => {
   test('event can be submitted through the wizard without an "Ort / Adresse" value', async ({
     page,
   }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/new');
     await waitForWizardToLoad(page);
 
@@ -69,21 +80,15 @@ test.describe('Event wizard: "Ort / Adresse" is optional (ZPiZqKrG)', () => {
     await page.fill('#time', '10:00');
     await page.selectOption('#bezirk', 'Bregenz');
     await page.click('.kategorie-select');
-    await page.waitForTimeout(300);
     await page.getByText('Yoga', { exact: true }).click();
-    await page.waitForTimeout(300);
     await page.click('.radio-label:has-text("Kostenlos")');
 
     await clickWeiter(page);
 
     await confirmCopyrightCheckbox(page);
 
-    await page.click(
-      'button:has-text("Event erstellen"), button:has-text("Einreichen zur Genehmigung")'
-    );
-    await page.waitForTimeout(500);
-    await page.click('button:has-text("Einreichen"), button:has-text("Bestätigen")');
-    await page.waitForTimeout(2000);
+    await submitWizard(page);
+    await confirmSubmission(page);
 
     await page.waitForURL('/admin', { timeout: 10000 }).catch(() => {});
     const successDialog = page.getByTestId('success-dialog');
@@ -93,12 +98,14 @@ test.describe('Event wizard: "Ort / Adresse" is optional (ZPiZqKrG)', () => {
 
     await page.waitForURL('/admin', { timeout: 10000 });
 
-    await page
-      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
-      .catch(() => {});
+    // Admin-created events start as `pending` (ticket hGxrS6gp), and pending
+    // events deliberately do NOT appear under "Meine Events" — that is asserted
+    // in admin-review-tab.spec.ts. They land in the Review tab, so look there.
+    await page.goto('/admin?tab=review');
+    await page.waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 });
 
-    const card = page.locator('.event-card', { hasText: EVENT_TITLE }).first();
-    await expect(card).toBeVisible({ timeout: 10000 });
+    const card = page.locator('#admin-tab-review .event-card', { hasText: EVENT_TITLE }).first();
+    await expect(card).toBeVisible({ timeout: 15000 });
   });
 });
 
@@ -112,15 +119,11 @@ test.describe('Event edit form: "Ort / Adresse" is optional (8BzdB9xp)', () => {
     await resetSharedPendingFixture();
   });
 
-  test.afterEach(async ({ page }) => {
-    await signOut(page);
-  });
+  test.afterEach(async ({ page }) => {});
 
   test('"Ort / Adresse" label is not marked with an asterisk in the edit form', async ({
     page,
   }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
-
     await page.goto('/admin/edit/test-event-foreign-pending');
 
     await page.waitForURL(/\/admin\/edit\//);
@@ -135,8 +138,6 @@ test.describe('Event edit form: "Ort / Adresse" is optional (8BzdB9xp)', () => {
   });
 
   test('edit form allows saving with an empty "Ort / Adresse" field', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
-
     await page.goto('/admin/edit/test-event-foreign-pending');
 
     await page.waitForURL(/\/admin\/edit\//);

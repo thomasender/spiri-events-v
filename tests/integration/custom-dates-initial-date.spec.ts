@@ -1,6 +1,26 @@
-import { test, expect } from '@playwright/test';
-import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
+import { test, expect, type Page } from '@playwright/test';
+
 import { confirmCopyrightCheckbox, enableRecurrence, waitForWizardToLoad } from '../helpers/wizard';
+
+import { STORAGE_STATE } from '../helpers/roles';
+import { deleteEventsByTitlePrefix } from '../fixtures/events';
+
+// Signed in as `admin` via the session captured once by tests/auth.setup.ts,
+// instead of driving the login form in every test.
+test.use({ storageState: STORAGE_STATE.admin });
+
+/**
+ * Opens the Review tab the way a user does. A cold `goto('/admin?tab=review')`
+ * does not reliably land on the populated panel, so click the tab instead.
+ */
+async function openReviewTab(page: Page) {
+  await page.goto('/admin');
+  await page.waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 });
+  await page.getByTestId('admin-tab-review').click();
+  const panel = page.locator('#admin-tab-review');
+  await expect(panel).toBeVisible();
+  return panel;
+}
 
 const EVENT_TITLE = `Custom Dates Initial Date Event ${Date.now()}`;
 
@@ -20,14 +40,12 @@ async function createCustomDatesEvent(page, title: string) {
 
   await waitForWizardToLoad(page);
   await page.locator('button:has-text("Weiter")').click();
-  await page.waitForTimeout(400);
 
   await page.fill('#title', title);
   const editor = page.locator('[data-testid="description-editor"] .rte-content');
   await editor.click();
   await editor.fill('Event zum Testen der benutzerdefinierten Daten.');
   await page.locator('button:has-text("Weiter")').click();
-  await page.waitForTimeout(400);
 
   await page.fill('#date', initialDate);
   await page.fill('#time', '20:00');
@@ -35,84 +53,87 @@ async function createCustomDatesEvent(page, title: string) {
   await page.selectOption('#bezirk', 'Bregenz');
 
   await page.click('.kategorie-select');
-  await page.waitForTimeout(300);
   await page.click('.kategorie__option:has-text("Yoga")');
-  await page.waitForTimeout(300);
 
   await enableRecurrence(page);
   await page.locator('.radio-label:has-text("Benutzerdefinierte Termine")').click();
-  await page.waitForTimeout(200);
 
   await page.getByTestId('custom-date-add-button').click();
-  await page.waitForTimeout(150);
   await page.getByTestId('custom-date-add-button').click();
-  await page.waitForTimeout(150);
   await page.getByTestId('custom-date-input-0').fill(second);
   await page.getByTestId('custom-date-input-1').fill(third);
 
   await page.getByRole('button', { name: 'Weiter', exact: true }).click();
-  await page.waitForTimeout(400);
 
   await confirmCopyrightCheckbox(page);
 
   await page.click(
     'button:has-text("Event erstellen"), button:has-text("Einreichen zur Genehmigung")'
   );
-  await page.waitForTimeout(500);
 
+  // Wait for the confirm dialog rather than probing isVisible() straight after
+  // the click — at that point it has not rendered yet, the probe returns false
+  // and the event is never actually submitted.
   const preSubmitDialog = page
     .locator('.confirm-dialog')
     .filter({ hasText: /erstellen|Einreichen/ });
-  if (await preSubmitDialog.isVisible().catch(() => false)) {
-    await preSubmitDialog
-      .getByRole('button', { name: /erstellen|einreichen/i })
-      .first()
-      .click();
-    await page.waitForTimeout(500);
-  }
+  await expect(preSubmitDialog).toBeVisible({ timeout: 10000 });
+  await preSubmitDialog
+    .getByRole('button', { name: /erstellen|einreichen/i })
+    .first()
+    .click();
 
   const successDialog = page.getByTestId('success-dialog');
-  if (await successDialog.isVisible().catch(() => false)) {
-    await successDialog.getByTestId('success-dialog-confirm').click();
-  }
+  await expect(successDialog).toBeVisible({ timeout: 15000 });
+  await successDialog.getByTestId('success-dialog-confirm').click();
 
   return { initialDate, second, third };
 }
 
 test.describe.configure({ mode: 'serial' });
 
-test.describe('Custom dates series includes the initial event date (DbtucPK2)', () => {
-  test.afterEach(async ({ page }) => {
-    await signOut(page);
+test.describe('Custom dates series includes the initial event date (DbtucPK2) @smoke', () => {
+  // The wizard specs create real events; remove them so they do not
+  // accumulate in the emulator across runs.
+  test.afterAll(async () => {
+    await deleteEventsByTitlePrefix('Custom Dates Initial Date Event');
   });
 
   test('all three dates (initial + 2 custom) belong to the published series', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
-
     await page.goto('/admin/new');
-    await createCustomDatesEvent(page, EVENT_TITLE);
+    const { initialDate, second, third } = await createCustomDatesEvent(page, EVENT_TITLE);
 
-    await page.goto('/admin');
-    await page
-      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
-      .catch(() => {});
+    // Admin-created events start as `pending` (ticket hGxrS6gp) and pending
+    // events deliberately do NOT show under "Meine Events" — see
+    // admin-review-tab.spec.ts. They land in the Review tab.
+    const panel = await openReviewTab(page);
+    const card = panel.locator('.event-card', { hasText: EVENT_TITLE }).first();
+    await expect(card).toBeVisible({ timeout: 15000 });
+    await expect(card).toContainText('An einzelnen Terminen');
 
-    const card = page.locator('.event-card', { hasText: EVENT_TITLE }).first();
-    await expect(card).toBeVisible({ timeout: 10000 });
-    await expect(card).toContainText('3 Termine');
+    // The point of this test: the date the event was created with is part of
+    // the series, not silently dropped in favour of the two added dates.
+    await card.locator('a').first().click();
+    const datesList = page.getByTestId('event-detail-dates-list');
+    await expect(datesList).toBeVisible({ timeout: 15000 });
+
+    for (const iso of [initialDate, second, third]) {
+      await expect(datesList.locator(`a[href*="occurrenceDate=${iso}"]`)).toHaveCount(1);
+    }
   });
 
   test('editing the event shows the initial date among the custom dates', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
-
-    await page.goto('/admin');
-    await page
-      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
-      .catch(() => {});
-
-    const card = page.locator('.event-card', { hasText: EVENT_TITLE }).first();
-    await expect(card).toBeVisible({ timeout: 10000 });
-    await card.locator('a:has-text("Bearbeiten"), button:has-text("Bearbeiten")').first().click();
+    // Same as above: the event created in the previous test is pending, so it
+    // sits in the Review tab, not under "Meine Events".
+    const panel = await openReviewTab(page);
+    const card = panel.locator('.event-card', { hasText: EVENT_TITLE }).first();
+    await expect(card).toBeVisible({ timeout: 15000 });
+    // The admin list row exposes edit as an icon link; its accessible name is
+    // "Serie bearbeiten" for a recurring event and "Bearbeiten" otherwise.
+    await card
+      .getByRole('link', { name: /bearbeiten/i })
+      .first()
+      .click();
     await page.waitForURL(/\/admin\/edit\//, { timeout: 10000 });
     await page
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })

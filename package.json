@@ -11,11 +11,11 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
-    "test:integration": "playwright test tests/integration",
-    "test:all": "npm run test && npm run test:integration",
+    "test:integration": "playwright test --project=chromium && playwright test --project=destructive --workers=1",
+    "test:all": "npm run test && npm run test:e2e:full",
     "lint": "eslint src --ext js,jsx",
     "style": "prettier --check src tests",
-    "types": "tsc --noEmit --skipLibCheck",
+    "types": "tsc --noEmit --skipLibCheck && tsc --noEmit --skipLibCheck -p tests/tsconfig.json",
     "dev:emulator": "VITE_USE_EMULATORS=true npm run dev",
     "emulators:start": "bash scripts/start-emulators.sh",
     "emulators:start:prod": "bash scripts/start-emulators.sh --seed-prod",
@@ -27,7 +27,13 @@
     "firestore:rules:push": "firebase deploy --only firestore:rules",
     "storage:rules:pull": "firebase storage:rules:get > storage.rules",
     "storage:rules:push": "firebase deploy --only storage",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test:e2e": "playwright test --project=chromium && playwright test --project=destructive --workers=1",
+    "test:e2e:smoke": "playwright test --project=chromium --grep @smoke && playwright test --project=destructive --workers=1 --grep @smoke",
+    "test:e2e:full": "playwright test --project=chromium && playwright test --project=destructive --workers=1",
+    "test:e2e:mobile": "playwright test --project=webkit",
+    "emulators:check": "bash scripts/check-emulators.sh",
+    "emulators:restart": "pkill -f cloud-firestore-emulator; pkill -f \"firebase.*emulators\"; sleep 3; bash scripts/start-emulators.sh"
   },
   "dependencies": {
     "@fontsource/cormorant-garamond": "^5.3.0",
@@ -65,10 +71,23 @@
     "google-auth-library": "^10.9.0",
     "happy-dom": "^20.10.6",
     "husky": "^9.1.7",
+    "lint-staged": "^15.5.2",
     "playwright": "^1.61.1",
     "prettier": "^3.9.6",
     "typescript": "^7.0.2",
     "vite": "^6.4.3",
     "vitest": "^4.1.10"
+  },
+  "lint-staged": {
+    "*.{js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{ts,tsx,css,json,md}": [
+      "prettier --write"
+    ]
+  },
+  "engines": {
+    "node": ">=20.10"
   }
 }

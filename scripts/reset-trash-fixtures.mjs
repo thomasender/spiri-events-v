@@ -122,7 +122,17 @@ for (const fx of fixtures) {
   }
 }
 
-const protectedIds = new Set(['test-event-user-trashed', 'test-event-user-trashed-old', 'test-event-admin-trashed']);
+// Documents this script must never delete. Besides its own three fixtures it
+// has to leave `test-event-recurring-weekly` alone: recurring-event-deletion-
+// edit-form.spec.ts trashes that series and then asserts it shows up in the
+// Papierkorb tab. Deleting it from under that spec makes it fail whenever the
+// two run at the same time.
+const protectedIds = new Set([
+  'test-event-user-trashed',
+  'test-event-user-trashed-old',
+  'test-event-admin-trashed',
+  'test-event-recurring-weekly',
+]);
 
 for (const [role, ownerUid] of Object.entries({ admin: adminUid, user: userUid })) {
   if (!ownerUid) continue;

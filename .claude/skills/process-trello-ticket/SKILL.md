@@ -21,11 +21,13 @@ End-to-end workflow for processing a Trello ticket: analyze, plan, implement, te
 Extract the card short ID from URL (e.g., `leUdxGn4` from `https://trello.com/c/leUdxGn4`).
 
 Use `trello_get_card` to fetch:
+
 - Title and description
 - Comments for context
 - Labels for type (bugfix/feature)
 
 Determine if code change is needed:
+
 - Bug reports → likely needs fix
 - Questions/queries → may not need code
 - Documentation → may not need code
@@ -43,6 +45,7 @@ Types: `feature`, `bugfix`, `task`
 Branch formula: `<type>/<short-id>_<descriptive-name>`
 
 Examples:
+
 ```
 bugfix/leUdxGn4_fix-event-date-display
 feature/leUdxGn4_add-recurrence-option
@@ -52,46 +55,53 @@ Use `git checkout -b` directly (do not push yet).
 
 ### 3. Load Relevant Skills
 
-For Vue/components: Load `vue-best-practices`
+For React components: Load `frontend-best-practices`
 For Firebase/Firestore: Load `firebase-firestore`
 
 ### 4. Understand & Plan
 
 Read relevant code:
+
 - Event-related features → check `src/views/`, `src/components/`, `src/stores/`
 - Firestore rules → check `firestore.rules`
-- Tests → check `tests/e2e/`, `tests/integration/`
+- Tests → check `tests/components/` (Vitest) and `tests/integration/` (Playwright)
 
 Plan minimal change that solves the problem.
 
 ### 5. Implement
 
 Make the code change following project conventions:
-- Vue 3 + Options API + TypeScript
-- Pinia for state management
+
+- React 18 + function components (`.jsx` in `src/components`, `src/pages`)
+- Firebase (Auth / Firestore / Storage) via hooks in `src/hooks`
 - Conventional commits: `fix:`, `feat:`, `chore:`, `docs:`
 
 ### 6. Test
 
+**Read the "Testing" section in `AGENTS.md` before writing any test.** The short
+version: the default is _no new Playwright test_. Logic and component behaviour
+belong in Vitest (`tests/components/`), which runs in about 5 seconds. Only
+reach for Playwright when the behaviour genuinely requires a real browser with
+real Firebase — and then add to an existing spec file rather than creating a new
+one per ticket.
+
 Start emulators (if not running):
+
 ```bash
-firebase emulators:start --import ./data-export
+npm run emulators:start
 ```
 
-Run e2e tests:
+Checks:
+
 ```bash
-npm run test:e2e
+npm run test              # Vitest — runs on commit anyway
+npm run types             # TypeScript
+npm run lint              # ESLint
+npm run test:e2e:smoke    # critical flows — runs on push anyway
 ```
 
-Run typecheck:
-```bash
-npm run typecheck
-```
-
-Run lint:
-```bash
-npm run lint
-```
+The commit and push hooks run these for you. Do not use `--no-verify`; if a
+hook is too slow or wrong, fix the hook and say so.
 
 ### 7. Commit & Push
 
@@ -103,6 +113,7 @@ git push -u origin HEAD
 
 Commit format: `<type>(<short-id>): <description>`
 Examples:
+
 - `fix(leUdxGn4): correct event date display for recurring events`
 - `feat(leUdxGn4): add recurrence option to event form`
 
@@ -118,6 +129,7 @@ git push origin main
 ```
 
 Delete the feature branch after merging:
+
 ```bash
 git branch -d <branch-name>
 git push origin --delete <branch-name>
@@ -128,6 +140,7 @@ git push origin --delete <branch-name>
 Use `trello_get_lists` to find the "Testing" list ID (board ID: `rebumcT4`).
 
 Move card:
+
 ```
 trello_move_card with idList = Testing list ID
 ```
@@ -139,6 +152,7 @@ Add comment with testing instructions:
 **In German, non-technical language.**
 
 Template:
+
 ```
 @petermathis1 Die Änderung ist fertig und kann getestet werden!
 
@@ -153,6 +167,7 @@ Link zum Testen:
 ```
 
 Example:
+
 ```
 @petermathis1 Die Änderung ist fertig und kann getestet werden!
 
@@ -186,6 +201,6 @@ If a comment is meant to address Peter, prepend `@petermathis1` (with the `@` an
 
 ## Related Skills
 
-- `vue-best-practices` - for Vue component implementation
+- `frontend-best-practices` - for React component implementation
 - `firebase-firestore` - for Firestore queries and rules
 - `create-new-branch` - for branch naming convention reference

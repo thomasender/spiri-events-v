@@ -1,6 +1,11 @@
 import { test, expect } from '@playwright/test';
 import { spawn } from 'child_process';
-import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
+
+import { STORAGE_STATE } from '../helpers/roles';
+
+// Signed in as `user` via the session captured once by tests/auth.setup.ts,
+// instead of driving the login form in every test.
+test.use({ storageState: STORAGE_STATE.user });
 
 function runScript(scriptPath: string): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -27,13 +32,11 @@ test.describe('Duplizieren von bereits veröffentlichten Events (wgC6f0pK)', () 
   });
 
   test.afterEach(async ({ page }) => {
-    await signOut(page);
     await resetDraftFixtures();
     await resetUserApprovedEventFixture();
   });
 
   test('user can duplicate their own approved event from Meine Events', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'user@test.local', 'testpassword123');
     await page.goto('/admin');
 
     await page
@@ -64,7 +67,6 @@ test.describe('Duplizieren von bereits veröffentlichten Events (wgC6f0pK)', () 
   test('duplicating an approved event preserves the original (it stays approved)', async ({
     page,
   }) => {
-    await signInWithEmailAndPassword(page, 'user@test.local', 'testpassword123');
     await page.goto('/admin');
 
     await page
@@ -79,13 +81,10 @@ test.describe('Duplizieren von bereits veröffentlichten Events (wgC6f0pK)', () 
 
     await approvedCard.getByTestId('duplicate-event-button').click();
 
-    await page.waitForTimeout(2000);
-
     await expect(approvedCard.locator('.status-badge--approved')).toBeVisible();
   });
 
   test('user can also duplicate their own pending event from Meine Events', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'user@test.local', 'testpassword123');
     await page.goto('/admin');
 
     await page
@@ -114,7 +113,6 @@ test.describe('Duplizieren von bereits veröffentlichten Events (wgC6f0pK)', () 
   });
 
   test('duplicating a published event twice creates two independent drafts', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'user@test.local', 'testpassword123');
     await page.goto('/admin');
 
     await page

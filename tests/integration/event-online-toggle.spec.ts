@@ -1,12 +1,21 @@
 import { test, expect } from '@playwright/test';
 import { spawn } from 'child_process';
-import { signInWithEmailAndPassword, signOut } from '../helpers/auth';
+
+import { STORAGE_STATE } from '../helpers/roles';
+import { deleteEventsByTitlePrefix } from '../fixtures/events';
+
+// Signed in as `admin` via the session captured once by tests/auth.setup.ts,
+// instead of driving the login form in every test.
+test.use({ storageState: STORAGE_STATE.admin });
+
 import {
   waitForWizardToLoad,
   clickWeiter,
   fillStep2EventInfo,
   fillStep3Details,
   confirmCopyrightCheckbox,
+  submitWizard,
+  confirmSubmission,
 } from '../helpers/wizard';
 
 const ONLINE_EVENT_TITLE = 'Online Yoga Session';
@@ -23,13 +32,16 @@ function runScript(scriptPath: string): Promise<void> {
 // Run the suite serially so resets do not race other tests reading the doc.
 test.describe.configure({ mode: 'serial' });
 
-test.describe('Event wizard: "Online-Event" checkbox (1e9YUHCh)', () => {
-  test.afterEach(async ({ page }) => {
-    await signOut(page);
+test.describe('Event wizard: "Online-Event" checkbox (1e9YUHCh) @smoke', () => {
+  // The wizard specs create real events; remove them so they do not
+  // accumulate in the emulator across runs.
+  test.afterAll(async () => {
+    await deleteEventsByTitlePrefix('Online Yoga Session');
   });
 
+  test.afterEach(async ({ page }) => {});
+
   test('checkbox is visible on step 3 and labeled as Online-Event', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/new');
     await waitForWizardToLoad(page);
 
@@ -49,7 +61,6 @@ test.describe('Event wizard: "Online-Event" checkbox (1e9YUHCh)', () => {
   });
 
   test('Bezirk label is renamed to "Ort" on the wizard step 3', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/new');
     await waitForWizardToLoad(page);
 
@@ -67,7 +78,6 @@ test.describe('Event wizard: "Online-Event" checkbox (1e9YUHCh)', () => {
   });
 
   test('checking Online disables the Bezirk dropdown and Ort/Adresse field', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/new');
     await waitForWizardToLoad(page);
 
@@ -91,7 +101,6 @@ test.describe('Event wizard: "Online-Event" checkbox (1e9YUHCh)', () => {
   });
 
   test('wizard requires either Bezirk or "Online" to advance from step 3', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/new');
     await waitForWizardToLoad(page);
 
@@ -110,9 +119,7 @@ test.describe('Event wizard: "Online-Event" checkbox (1e9YUHCh)', () => {
     await page.fill('#time', '10:00');
     // Bezirk and Online are both unset.
     await page.click('.kategorie-select');
-    await page.waitForTimeout(300);
     await page.getByText('Yoga', { exact: true }).click();
-    await page.waitForTimeout(300);
     await page.click('.radio-label:has-text("Kostenlos")');
 
     await clickWeiter(page);
@@ -124,7 +131,6 @@ test.describe('Event wizard: "Online-Event" checkbox (1e9YUHCh)', () => {
   });
 
   test('an Online event can be created through the wizard without Bezirk', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin/new');
     await waitForWizardToLoad(page);
 
@@ -145,9 +151,7 @@ test.describe('Event wizard: "Online-Event" checkbox (1e9YUHCh)', () => {
     // The kategorie react-select opens with a click and the options are plain
     // <div> elements. Wait briefly so the menu is in the DOM before clicking.
     await page.click('.kategorie-select');
-    await page.waitForTimeout(300);
     await page.getByText('Yoga', { exact: true }).click();
-    await page.waitForTimeout(300);
 
     await page.click('.radio-label:has-text("Kostenlos")');
 
@@ -164,12 +168,8 @@ test.describe('Event wizard: "Online-Event" checkbox (1e9YUHCh)', () => {
 
     await confirmCopyrightCheckbox(page);
 
-    await page.click(
-      'button:has-text("Event erstellen"), button:has-text("Einreichen zur Genehmigung")'
-    );
-    await page.waitForTimeout(500);
-    await page.click('button:has-text("Einreichen"), button:has-text("Bestätigen")');
-    await page.waitForTimeout(2000);
+    await submitWizard(page);
+    await confirmSubmission(page);
 
     await page.waitForURL('/admin', { timeout: 10000 }).catch(() => {});
     const successDialog = page.getByTestId('success-dialog');
@@ -177,12 +177,17 @@ test.describe('Event wizard: "Online-Event" checkbox (1e9YUHCh)', () => {
       await successDialog.getByTestId('success-dialog-confirm').click();
     }
 
-    await page.waitForURL('/admin', { timeout: 15000 });
-    await page
-      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
-      .catch(() => {});
+    await page.waitForURL('/admin', { timeout: 10000 });
 
-    const card = page.locator('.event-card', { hasText: ONLINE_EVENT_TITLE }).first();
+    // Admin-created events start as `pending` (ticket hGxrS6gp), and pending
+    // events deliberately do NOT appear under "Meine Events" — that is asserted
+    // in admin-review-tab.spec.ts. They land in the Review tab, so look there.
+    await page.goto('/admin?tab=review');
+    await page.waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 });
+
+    const card = page
+      .locator('#admin-tab-review .event-card', { hasText: ONLINE_EVENT_TITLE })
+      .first();
     await expect(card).toBeVisible({ timeout: 15000 });
   });
 });
@@ -192,15 +197,11 @@ test.describe('Event edit form: "Online-Event" support (1e9YUHCh)', () => {
     await runScript('scripts/reset-draft-fixtures.mjs');
   });
 
-  test.afterEach(async ({ page }) => {
-    await signOut(page);
-  });
+  test.afterEach(async ({ page }) => {});
 
   test('editing an in-person event and toggling Online clears Bezirk and saves isOnline', async ({
     page,
   }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
-
     await page.goto('/admin/edit/test-event-foreign-pending');
     await page.waitForURL(/\/admin\/edit\//);
     await page

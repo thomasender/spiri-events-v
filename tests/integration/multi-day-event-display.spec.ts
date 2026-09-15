@@ -31,7 +31,6 @@ async function navigateToMonth(page: Page, year: number, month: number): Promise
     const current = (await header.textContent())?.trim() ?? '';
     if (current === target) return;
     await page.locator('.events-section-month-nav button').nth(1).click();
-    await page.waitForTimeout(150);
   }
   throw new Error(`Failed to navigate to ${target}`);
 }
@@ -53,7 +52,7 @@ async function goToCardView(page: Page): Promise<void> {
   }
 }
 
-test.describe('Multi-day retreat display (rpyIkFjm)', () => {
+test.describe('Multi-day retreat display (rpyIkFjm) @mobile', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await waitForCalendarToLoad(page);

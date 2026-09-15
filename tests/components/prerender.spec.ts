@@ -330,6 +330,7 @@ describe('prerender() end-to-end', () => {
       distPath,
       exportPath,
       skipFirestore: true,
+      skipRest: true,
     });
 
     for (const event of sampleEvents) {
@@ -349,6 +350,7 @@ describe('prerender() end-to-end', () => {
       distPath,
       exportPath,
       skipFirestore: true,
+      skipRest: true,
     });
 
     const event = sampleEvents[0];
@@ -370,7 +372,13 @@ describe('prerender() end-to-end', () => {
       '<html><body>old placeholder</body></html>'
     );
     const { prerender } = await importPrerender();
-    await prerender({ rootDir: tmpRoot, distPath, exportPath, skipFirestore: true });
+    await prerender({
+      rootDir: tmpRoot,
+      distPath,
+      exportPath,
+      skipFirestore: true,
+      skipRest: true,
+    });
 
     const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf8');
     expect(indexHtml).toContain('<meta property="og:type" content="website" />');
@@ -383,7 +391,13 @@ describe('prerender() end-to-end', () => {
   it('references the main index-* entry chunk, never a lazy chunk (MCwrJJ5Y)', async () => {
     writeJson(path.join(exportPath, 'events.json'), sampleEvents);
     const { prerender } = await importPrerender();
-    await prerender({ rootDir: tmpRoot, distPath, exportPath, skipFirestore: true });
+    await prerender({
+      rootDir: tmpRoot,
+      distPath,
+      exportPath,
+      skipFirestore: true,
+      skipRest: true,
+    });
 
     const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf8');
     expect(indexHtml).toContain('/assets/index-AbCdEfGh.js');
@@ -394,7 +408,13 @@ describe('prerender() end-to-end', () => {
   it('emits a sitemap.xml with /event/<slug> URLs (not /event/<id>)', async () => {
     writeJson(path.join(exportPath, 'events.json'), sampleEvents);
     const { prerender } = await importPrerender();
-    await prerender({ rootDir: tmpRoot, distPath, exportPath, skipFirestore: true });
+    await prerender({
+      rootDir: tmpRoot,
+      distPath,
+      exportPath,
+      skipFirestore: true,
+      skipRest: true,
+    });
 
     const sitemap = fs.readFileSync(path.join(distPath, 'sitemap.xml'), 'utf8');
     for (const event of sampleEvents) {
@@ -407,7 +427,13 @@ describe('prerender() end-to-end', () => {
   it('writes a prerender-manifest.json listing every prerendered page', async () => {
     writeJson(path.join(exportPath, 'events.json'), sampleEvents);
     const { prerender } = await importPrerender();
-    await prerender({ rootDir: tmpRoot, distPath, exportPath, skipFirestore: true });
+    await prerender({
+      rootDir: tmpRoot,
+      distPath,
+      exportPath,
+      skipFirestore: true,
+      skipRest: true,
+    });
 
     const manifest = JSON.parse(
       fs.readFileSync(path.join(distPath, 'prerender-manifest.json'), 'utf8')
@@ -437,7 +463,13 @@ describe('prerender() end-to-end', () => {
     ];
     writeJson(path.join(exportPath, 'events.json'), legacyOnly);
     const { prerender } = await importPrerender();
-    await prerender({ rootDir: tmpRoot, distPath, exportPath, skipFirestore: true });
+    await prerender({
+      rootDir: tmpRoot,
+      distPath,
+      exportPath,
+      skipFirestore: true,
+      skipRest: true,
+    });
 
     const html = fs.readFileSync(
       path.join(distPath, 'event', 'legacy-firestore-id', 'index.html'),
@@ -463,7 +495,13 @@ describe('prerender() end-to-end', () => {
     ];
     writeJson(path.join(exportPath, 'events.json'), invalid);
     const { prerender } = await importPrerender();
-    const result = await prerender({ rootDir: tmpRoot, distPath, exportPath, skipFirestore: true });
+    const result = await prerender({
+      rootDir: tmpRoot,
+      distPath,
+      exportPath,
+      skipFirestore: true,
+      skipRest: true,
+    });
 
     expect(result.manifest.eventCount).toBe(1);
     expect(result.manifest.prerenderedPages).toBe(2);
@@ -478,7 +516,13 @@ describe('prerender() end-to-end', () => {
     ];
     writeJson(path.join(exportPath, 'events.json'), dupes);
     const { prerender } = await importPrerender();
-    const result = await prerender({ rootDir: tmpRoot, distPath, exportPath, skipFirestore: true });
+    const result = await prerender({
+      rootDir: tmpRoot,
+      distPath,
+      exportPath,
+      skipFirestore: true,
+      skipRest: true,
+    });
 
     expect(result.manifest.eventCount).toBe(2);
     expect(result.skippedEvents).toHaveLength(1);
@@ -490,13 +534,19 @@ describe('prerender() end-to-end', () => {
     writeJson(path.join(exportPath, 'events.json'), sampleEvents);
     const { prerender } = await importPrerender();
     await expect(
-      prerender({ rootDir: tmpRoot, distPath, exportPath, skipFirestore: true })
+      prerender({ rootDir: tmpRoot, distPath, exportPath, skipFirestore: true, skipRest: true })
     ).rejects.toThrow(/dist folder not found/);
   });
 
   it('fails soft (no prerendered event pages) when no data is available and Firestore is skipped', async () => {
     const { prerender } = await importPrerender();
-    const result = await prerender({ rootDir: tmpRoot, distPath, exportPath, skipFirestore: true });
+    const result = await prerender({
+      rootDir: tmpRoot,
+      distPath,
+      exportPath,
+      skipFirestore: true,
+      skipRest: true,
+    });
     expect(result.manifest.eventCount).toBe(0);
     expect(result.writtenFiles.filter((f) => f.path.startsWith('/event/'))).toHaveLength(0);
     expect(fs.existsSync(path.join(distPath, 'sitemap.xml'))).toBe(true);
@@ -510,7 +560,13 @@ describe('prerender() end-to-end', () => {
       '--accent-primary': { stringValue: '#abcdef' },
     });
     const { prerender } = await importPrerender();
-    await prerender({ rootDir: tmpRoot, distPath, exportPath, skipFirestore: true });
+    await prerender({
+      rootDir: tmpRoot,
+      distPath,
+      exportPath,
+      skipFirestore: true,
+      skipRest: true,
+    });
 
     const html = fs.readFileSync(
       path.join(distPath, 'event', sampleEvents[0].slug, 'index.html'),

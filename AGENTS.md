@@ -5,6 +5,7 @@
 This project uses Firebase Local Emulators with a production data dump.
 
 **Emulator Ports:**
+
 - Auth: `localhost:9199`
 - Firestore: `localhost:8181`
 - Emulator UI: `localhost:4040`
@@ -12,6 +13,7 @@ This project uses Firebase Local Emulators with a production data dump.
 **Data:** Production dump imported from `./data-export/` on emulator startup.
 
 **To start emulators:**
+
 ```bash
 firebase emulators:start --import ./data-export
 ```
@@ -21,6 +23,7 @@ firebase emulators:start --import ./data-export
 Set `VITE_USE_EMULATORS=true` to connect the app to local emulators instead of production.
 
 **Important:** The Playwright test runner's webServer must also have this env var. It's configured in `playwright.config.ts`:
+
 ```json
 webServer: {
   command: 'VITE_USE_EMULATORS=true npm run dev -- --port 5180',
@@ -33,62 +36,171 @@ The dev server / Playwright baseURL is `http://localhost:5180` (chosen to avoid 
 
 ## Playwright Tests
 
-Run integration tests against the local emulator setup:
+See **Testing** below for which suite to run when. Quick reference:
+
 ```bash
-npm run test:integration
+npm run emulators:check      # ~3s: are the emulators usable?
+npm run test:e2e:smoke       # critical flows, Chromium (runs on push)
+npm run test:e2e:full        # everything, Chromium (manual / pre-release)
+npm run test:e2e:mobile      # @mobile specs on WebKit @ 390px
 ```
 
-Run everything (unit + integration):
-```bash
-npm run test:all
-```
-
-`npm run test` (unit/component tests via Vitest) runs on every commit via the
-pre-commit hook. `npm run test:integration` runs on every push via the
-pre-push hook instead — it needs the emulators + a dev server and is too slow
-to run on every commit.
-
-**Always use emulators + real data dump for local development and testing.** Do NOT test against production.
+**Always use emulators + seeded test data for local development and testing.**
+Do NOT test against production.
 
 ### ⚠️ If integration tests fail with widespread, unrelated-looking errors
 
-Before assuming the test code or the app is broken, check whether the
-**Firestore emulator itself has degraded**. It's a long-running JVM process
-(`cloud-firestore-emulator-*.jar`) and under sustained load during a work
-session it can start thrashing — CPU pegs at 300–900%, memory balloons into
-the multiple-GB range, and requests start timing out or hanging. When this
-happens you'll see things like: dozens of unrelated tests all failing with
-"element not found" for basic seeded content (e.g. an event title that's
-always present), or a plain `curl` to `http://127.0.0.1:8181` hanging
-instead of returning immediately.
+The Firestore emulator is a long-running JVM process and under sustained load
+it degrades: CPU pegs at 300–900%, memory balloons, requests hang. Dozens of
+unrelated tests then fail with "element not found" for content that is always
+present.
 
-Check for it:
+`npm run emulators:check` detects this directly — it probes Auth _and_ a real
+Firestore query, and tells you which one is dead. The pre-push hook runs it
+first, so you should see a clear message rather than a wall of failures.
+
+Fix:
+
 ```bash
-ps aux | grep cloud-firestore-emulator
+pkill -f cloud-firestore-emulator
+npm run emulators:start
 ```
-If CPU% is very high (compare to a fresh baseline, which idles near 0%),
-the emulator is degraded, not the tests. Fix: kill all the emulator
-processes and restart them fresh, then re-run.
-```bash
-ps aux | grep -i "firebase\|emulator" | grep -v grep | awk '{print $2}' | xargs -I{} kill {}
-bash scripts/start-emulators.sh &
-```
-Do **not** spend time debugging or rewriting tests based on a run where this
-is happening — restart the emulator first, then re-run, and only chase a
-failure that reproduces against a freshly-restarted emulator. Otherwise you
-will loop indefinitely "fixing" tests that were never actually broken.
 
-## Test Requirements
+Do **not** debug or rewrite tests based on a run where this is happening.
+Restart the emulator, re-run, and only chase a failure that reproduces against
+a freshly-restarted emulator.
 
-**Every feature and bugfix MUST include automated tests.**
+Emulator debug logs are written to `$TMPDIR/spiri-events-emulators/` at QUIET
+verbosity. They used to land in the repo root at debug level and reached 10 GB
+within a work session, which was itself a cause of the degradation above.
 
-- **New features:** Add Playwright integration tests in `tests/integration/` that verify the feature works correctly
-- **Bugfixes:** Add a Playwright test that reproduces the bug (fails before fix, passes after)
-- **Unit tests:** Add unit tests in `tests/components/` for utility functions or complex logic
-- **Test patterns:**
-  - Integration tests: Use Playwright with real emulator (`tests/integration/`)
-  - Component tests: Use Vitest + happy-dom (`tests/components/`)
-- Run `npm run test:all` before committing to ensure all tests pass
+## Testing
+
+Read this before writing a single test. The suite used to grow by one Playwright
+file per ticket; that made a push take hours, so everyone started using
+`--no-verify` and the tests stopped protecting anything. The rules below exist to
+keep that from happening again.
+
+### The three tiers
+
+| Command                   | What runs                                          | When                            | Budget                    |
+| ------------------------- | -------------------------------------------------- | ------------------------------- | ------------------------- |
+| `npm run test`            | Vitest, all component/unit tests                   | every commit (pre-commit hook)  | ~8 s (incl. lint + types) |
+| `npm run test:e2e:smoke`  | Playwright, `@smoke`-tagged flows, Chromium only   | every push (pre-push hook)      | ~1:30 on a fresh emulator |
+| `npm run test:e2e:full`   | Playwright, everything, Chromium                   | manually, before a release      | ~3–5 min                  |
+| `npm run test:e2e:mobile` | Playwright, `@mobile`-tagged specs, WebKit @ 390px | manually, for iOS Safari issues | short                     |
+
+### The emulator is the bottleneck, not the browsers
+
+There is one Firestore emulator and it is a JVM process that does not cope with
+unbounded parallelism. Left at Playwright's default worker count it goes into a
+GC death spiral part-way through a long run: CPU pegs near 900%, a
+one-document query goes from ~10ms to over a second, and dozens of unrelated
+tests fail with "element not found".
+
+Two consequences:
+
+- `playwright.config.ts` caps `workers` at 4 on purpose. Raising it makes the
+  suite slower and flakier, not faster.
+- **Start the full suite against a freshly restarted emulator.** A long work
+  session degrades it gradually. `npm run emulators:restart` does it in one
+  step, and `npm run emulators:check` tells you whether you need to.
+
+### Shared state and the `destructive` project
+
+The integration specs share one emulator, one seeded `events` collection and one
+`categories` registry. Most specs only read that state, so they run in parallel.
+A few rewrite it wholesale, or contend with each other over it:
+
+- `admin-categories-tab.spec.ts` wipes and re-seeds the `categories` registry
+  and the `events` collection
+- `profile.spec.ts` clears the Storage bucket
+- `admin-trash-tab.spec.ts`, `recurring-event-deletion-edit-form.spec.ts` and
+  `recurring-event-list-link-no-occurrence.spec.ts` all own the trash: the first
+  resets every trashed event in its `beforeEach`, the other two put events into
+  the trash and read them back
+- `admin-theme-tab.spec.ts` and `admin-theme-editor.spec.ts` publish to the
+  global `theme` document, which every page renders its CSS variables from
+- `admin-drafts-tab.spec.ts`, `admin-drafts-tab-navigation.spec.ts` and
+  `duplicate-published-event.spec.ts` write draft state that
+  `scripts/reset-draft-fixtures.mjs` — run by nine other specs — deletes by
+  title, "(Kopie)" suffixes included
+
+Those run in the separate `destructive` Playwright project, invoked as a second
+Playwright run after the parallel one finishes, **with `--workers=1`** — they
+conflict with each other, not only with the parallel suite.
+
+If you write a spec that wipes a whole collection, add it to
+`DESTRUCTIVE_SPECS` in `playwright.config.ts`. Better: don't — create your own
+uniquely-named fixtures and delete only those.
+
+Those numbers assume a freshly started emulator. After a long work session the
+same smoke run takes 3–4 minutes, because the Firestore emulator degrades (see
+below). `npm run emulators:check` tells you in ~3 s whether that has happened.
+The pre-push hook runs it first, so a dead emulator fails immediately with
+instructions instead of after 30 s of silence.
+
+### Known flaky
+
+`tests/integration/admin-categories-tab.spec.ts` fails two or three of its
+twelve tests on roughly every other run, and which ones varies. It wipes and
+re-seeds the shared `categories` registry while the app's own seed bootstrap
+and Firestore listener write to it too. It is deliberately out of `@smoke` so
+it never blocks a push; the full suite is otherwise green. Fixing it means
+giving it its own category namespace instead of rewriting the global one.
+
+### Default: do NOT write a new E2E test
+
+Writing a Playwright test is the expensive choice. It costs a browser, a dev
+server, an emulator round trip and a login, on every push, forever. Before
+reaching for one, work down this list:
+
+1. **Is it pure logic?** (dates, recurrence, formatting, slugs, permissions,
+   validation, sanitising, localStorage shape) -> a Vitest test in
+   `tests/components/`. This is almost always the right answer.
+2. **Is it component behaviour?** (a dialog opens, a badge counts, a field is
+   disabled) -> a Vitest + Testing Library test in `tests/components/`.
+3. **Does it only reproduce in a real browser against real Firebase?** (multi-page
+   navigation, auth session behaviour, Firestore writes and their effects,
+   cross-tab behaviour) -> only then a Playwright test.
+
+For a bugfix, the regression test belongs at the lowest tier that can actually
+fail before the fix. A bug in date maths gets a unit test, not a browser.
+
+### If you do write a Playwright test
+
+- **Put it in an existing spec file.** Find the thematic file that covers the
+  area and add to it. Do not create a new file per ticket.
+- **No ticket IDs in `describe` titles.** Name the behaviour, not the ticket.
+- **At most one new `test()` block per ticket.** A new spec file needs explicit
+  approval from the user.
+- **Use the storageState fixtures, never a UI login.** `tests/auth.setup.ts`
+  signs in once per role; specs get the session via
+  `test.use({ storageState: STORAGE_STATE.admin })` (see `tests/helpers/roles.ts`).
+- **Tag it `@smoke` only if it is a critical user flow.** The smoke set is a
+  budget, not a collection.
+
+### Never test these
+
+These produce tests that are slow, brittle, and prove nothing about behaviour.
+They were the bulk of what had to be deleted:
+
+- CSS classes, `getComputedStyle`, colour values, contrast ratios
+- Pixel measurements, `boundingBox()`, viewport overflow, element ordering
+- SVG attributes, icon presence
+- Static text content of legal/marketing copy
+- "the mocked function was called" without an observable effect
+- `page.waitForTimeout()` — **banned**. Use web-first assertions
+  (`await expect(locator).toBeVisible()`) or `expect.poll()`. Playwright actions
+  already wait for actionability; a sleep is either redundant or hiding a
+  missing assertion.
+
+### Before you commit
+
+`npm run test` and `npm run types` run automatically on commit; the `@smoke`
+suite runs automatically on push. You do not need to run the full E2E suite for
+an ordinary change — and if you find yourself wanting `--no-verify`, that is a
+bug in this setup worth reporting, not a workaround to normalise.
 
 ## Prerender (Open Graph / Social Media Preview)
 
@@ -128,6 +240,7 @@ The refresh script reads from the emulator (preferred) or production Firestore
 Peter is the product owner and tester. He tests directly on production at https://events.thetribe.at (NOT locally).
 
 **When updating Trello tickets or communicating with Peter:**
+
 - **ALWAYS tag Peter with `@petermathis1`** in Trello comments. This is his Trello username and the only way he gets a notification. Plain text like "Lieber Peter", "Hallo Peter", "@Peter", or "Peter," in a comment will NOT notify him.
 - Write in **German**
 - Use **non-technical language** - Peter has no understanding of code
