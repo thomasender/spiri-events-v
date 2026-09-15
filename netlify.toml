@@ -6,6 +6,18 @@
   NODE_VERSION = "18"
 
 [[redirects]]
+  from = "https://thetribe.at/*"
+  to = "https://events.thetribe.at/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://www.thetribe.at/*"
+  to = "https://events.thetribe.at/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
