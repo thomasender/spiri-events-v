@@ -7,9 +7,11 @@ Eine elegante SPA für spirituelle Events in Vorarlberg. Die App fühlt sich an 
 ## 2. Design Language
 
 ### Aesthetic Direction
+
 Inspiriert von Yoga-Retreats und spirituellen Oasen — warme Erdtöne, viel Weißraum, sanfte Schatten, fließende Formen. Nicht kitschig-esoterisch, sondern modern-minimalistisch mit spiritueller Wärme.
 
 ### Color Palette
+
 ```
 --bg-primary:     #FDFBF7   (warm white — main background)
 --bg-secondary:   #F5F0E8   (soft cream — card backgrounds)
@@ -26,22 +28,26 @@ Inspiriert von Yoga-Retreats und spirituellen Oasen — warme Erdtöne, viel Wei
 ```
 
 ### Typography
+
 - **Headings**: "Cormorant Garamond" (serif, elegant, spiritual feel) — Google Fonts
 - **Body**: "Nunito Sans" (clean, rounded, friendly) — Google Fonts
 - **Accents**: "Cormorant Garamond" italic for quotes/taglines
 
 ### Spatial System
+
 - Base unit: 8px
 - Generous padding (24–48px) for breathing room
 - Border radius: 12px (cards), 8px (buttons), 20px (modal)
 
 ### Motion Philosophy
+
 - Subtle fade + scale on modal open (200ms ease-out)
 - Smooth month transitions (slide left/right, 300ms)
 - Gentle hover lifts on calendar days (translateY -2px, 150ms)
 - No jarring animations — everything should feel meditative
 
 ### Visual Assets
+
 - Icons: Lucide React (minimal, clean)
 - Event images: Optional user uploads via Firebase Cloud Storage
   - Max input file size: 15 MB (client-side validation)
@@ -54,6 +60,7 @@ Inspiriert von Yoga-Retreats und spirituellen Oasen — warme Erdtöne, viel Wei
 ## 3. Layout & Structure
 
 ### Pages (SPA Routes)
+
 1. **`/` — Kalender View** (Guest & Auth users)
    - Full-month calendar grid
    - Month/year header with prev/next navigation
@@ -76,21 +83,20 @@ Inspiriert von Yoga-Retreats und spirituellen Oasen — warme Erdtöne, viel Wei
    - Privacy policy in German
    - Covers data controller, data collected, purpose, no third-party sharing, retention, user rights, security
 
-6. **`/nutzungsbedingungen` — Nutzungsbedingungen**
-   - Terms of service in German
-   - Covers scope, registration, usage rules, content responsibility, availability, liability, data privacy
-
 ### Header
+
 - Logo/Title: "Spirituelle Events Vorarlberg"
 - Nav: Kalender | (Login/Logout or Admin)
 - Sticky, minimal, with subtle bottom border
 
 ### Footer
+
 - Copyright notice with year
-- Legal links: Datenschutz | Nutzungsbedingungen
+- Legal links: Datenschutz
 - Links to respective legal pages
 
 ### Calendar Grid
+
 - 7-column grid (Mo–So)
 - Day headers: Mo, Di, Mi, Do, Fr, Sa, So
 - Each cell shows: date number + event chips
@@ -100,6 +106,7 @@ Inspiriert von Yoga-Retreats und spirituellen Oasen — warme Erdtöne, viel Wei
 ## 4. Features & Interactions
 
 ### Calendar
+
 - **View**: Shows full month at a time
 - **Navigation**: Left/Right arrows to flip months (slide animation)
 - **Today button**: Jump back to current month
@@ -107,11 +114,13 @@ Inspiriert von Yoga-Retreats und spirituellen Oasen — warme Erdtöne, viel Wei
 - **Click event chip**: Opens event detail modal
 
 ### Event Detail Modal
+
 - **Fields shown**: Title, Datum & Zeit, Ort, Beitrag (Free/Gebühr), Beschreibung, Link
 - **Actions**: Close (X button or click overlay)
 - **Animation**: Fade in + scale from 0.95 to 1
 
 ### Authentication
+
 - Firebase Email/Password Auth
 - **Login page**: Email, Password, "Anmelden" button, "Noch kein Konto? Registrieren"
 - **Register page**: Email, Password, "Passwort bestätigen", "Registrieren"
@@ -119,12 +128,14 @@ Inspiriert von Yoga-Retreats und spirituellen Oasen — warme Erdtöne, viel Wei
 - Protected routes redirect to /login
 
 ### User Roles
+
 - **Roles**: `Admin` | `User`
 - Stored as Firebase Custom Claims in the user's ID token
 - Frontend reads role via `useAuth().role` (UI purposes only)
 - All security enforcement happens server-side in Firestore rules
 
 ### Managing User Roles
+
 The `set-user-role.cjs` script sets custom claims on users via Firebase Admin SDK:
 
 ```bash
@@ -138,39 +149,44 @@ node scripts/set-user-role.cjs user@example.com User /path/to/firebase-service-a
 **Important**: After changing a role, the user must **sign out and back in** to get the updated token with the new role.
 
 ### Event CRUD (Admin only)
+
 - **Create**: Form with all fields, validation, save to Firestore
 - **Read**: List of user's events with edit/delete buttons
 - **Update**: Same form pre-filled, update in Firestore
 - **Delete**: Confirmation dialog, remove from Firestore
 
 ### Event Fields (Firestore Schema)
+
 ```typescript
 interface Event {
   id: string;
   title: string;
-  date: string;        // ISO date string (YYYY-MM-DD)
-  time: string;        // HH:MM format
-  endDate: string;    // Optional end date for multi-day events
-  place: string;       // Address
+  date: string; // ISO date string (YYYY-MM-DD)
+  time: string; // HH:MM format
+  endDate: string; // Optional end date for multi-day events
+  place: string; // Address
   contribution: 'free' | 'fee';
-  fee?: number;        // Optional, in EUR
+  fee?: number; // Optional, in EUR
   description: string;
-  link?: string;       // Ticket/info URL
-  imageUrl?: string;    // Optional Firebase Storage URL
-  recurrence: 'none' | 'weekly' | 'biweekly' | 'monthly' | 'custom';  // Recurrence pattern
-  recurrenceEndDate?: string;  // Optional end date for recurrence (ignored when recurrence === 'custom')
-  customDates?: string[];  // Optional list of ISO date strings, used when recurrence === 'custom'
-  category: string;    // Single category (one of KATEGORIEN, defaults to 'Sonstiges')
-  createdBy: string;   // Firebase UID
+  link?: string; // Ticket/info URL
+  imageUrl?: string; // Optional Firebase Storage URL
+  recurrence: 'none' | 'weekly' | 'biweekly' | 'monthly' | 'custom'; // Recurrence pattern
+  recurrenceEndDate?: string; // Optional end date for recurrence (ignored when recurrence === 'custom')
+  customDates?: string[]; // Optional list of ISO date strings, used when recurrence === 'custom'
+  category: string; // Single category (one of KATEGORIEN, defaults to 'Sonstiges')
+  createdBy: string; // Firebase UID
   createdAt: Timestamp;
 }
 ```
 
 ### Multi-Day Events
+
 Events with an `endDate` are shown on **all days** they span in the calendar. The first day shows the full event chip, and continuation days show a slightly faded (60% opacity) chip to indicate the event continues.
 
 ### Recurring Events
+
 Events can be set to recur:
+
 - **Wöchentlich (weekly)**: Same day every week
 - **Zweiwöchentlich (biweekly)**: Every two weeks
 - **Monatlich (monthly)**: Same day every month
@@ -179,6 +195,7 @@ Events can be set to recur:
 Recurring events appear on all matching future dates up to 1 year ahead (or `recurrenceEndDate` if specified, ignored when `recurrence === 'custom'`). The event modal shows the recurrence pattern (e.g., "Jeden Montag bis 31. Dezember 2026") or "An einzelnen Terminen" for custom.
 
 ### Edge Cases
+
 - No events in month: show subtle empty state "Keine Events in diesem Monat"
 - Past events: show but visually dimmed
 - Long titles in calendar: truncate with ellipsis
@@ -187,27 +204,32 @@ Recurring events appear on all matching future dates up to 1 year ahead (or `rec
 ## 5. Component Inventory
 
 ### `<Header />`
+
 - Logo text left, nav right
 - Login/Logout or Admin link based on auth state
 - Sticky, backdrop-blur on scroll
 
 ### `<Footer />`
+
 - Copyright text with app name
-- Links to Datenschutz and Nutzungsbedingungen pages
+- Link to Datenschutz page
 - Minimal styling matching the overall design
 
 ### `<Calendar />`
+
 - Month/year display with arrows
 - 6-week grid (42 cells)
 - Day cells with event indicators
 - States: current month, other month (dimmed), today (accent border), has-events
 
 ### `<EventChip />`
+
 - Small colored chip on calendar day
 - Title truncated to 15 chars
 - Color: sage for free, taupe for fee events
 
 ### `<EventModal />`
+
 - Overlay + centered card
 - All event details
 - Event image displayed at top if available (from Firebase Storage)
@@ -215,12 +237,14 @@ Recurring events appear on all matching future dates up to 1 year ahead (or `rec
 - Link button if URL present
 
 ### `<AuthForm />`
+
 - Email input, Password input, Submit button
 - Toggle between login/register
 - Error message display
 - Loading state on submit
 
 ### `<EventForm />`
+
 - All event fields with labels
 - Optional image upload via Firebase Storage (JPEG, PNG, WebP, max 15MB raw input)
   - Client-side compression to ~1.5MB before upload
@@ -234,6 +258,7 @@ Recurring events appear on all matching future dates up to 1 year ahead (or `rec
 - Validation errors inline
 
 ### `<EventList />`
+
 - Card grid of user's events
 - Each card: title, date, edit/delete buttons
 - Empty state when no events
@@ -241,6 +266,7 @@ Recurring events appear on all matching future dates up to 1 year ahead (or `rec
 ## 6. Technical Approach
 
 ### Stack
+
 - **Vite** + **React 18** (SPA)
 - **React Router v6** (client-side routing)
 - **Firebase v10** (Auth + Firestore)
@@ -248,6 +274,7 @@ Recurring events appear on all matching future dates up to 1 year ahead (or `rec
 - **Lucide React** (icons)
 
 ### Project Structure
+
 ```
 src/
   components/
@@ -274,6 +301,7 @@ src/
 ```
 
 ### Firebase Setup (User will provide credentials)
+
 - Auth: Email/Password provider enabled
 - Firestore: Collection `events`
 - Image Hosting: Firebase Cloud Storage (free tier: 5GB storage, 100GB/month download)
@@ -283,5 +311,6 @@ src/
 - Security: Users can only read all events, but only write/update/delete their own
 
 ### Routing Guards
+
 - `/admin/*` requires authentication (redirect to /login)
 - Public routes: `/`, `/login`

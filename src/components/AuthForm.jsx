@@ -42,7 +42,6 @@ export default function AuthForm() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [acceptDatenschutz, setAcceptDatenschutz] = useState(false);
-  const [acceptNutzungsbedingungen, setAcceptNutzungsbedingungen] = useState(false);
   const [error, setError] = useState('');
   const [errorCode, setErrorCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -76,7 +75,6 @@ export default function AuthForm() {
     setConfirmPassword('');
     setDisplayName('');
     setAcceptDatenschutz(false);
-    setAcceptNutzungsbedingungen(false);
     setWobbling(false);
     if (wobbleTimerRef.current) {
       clearTimeout(wobbleTimerRef.current);
@@ -107,12 +105,6 @@ export default function AuthForm() {
 
     if (!isLogin && !acceptDatenschutz) {
       setError('Bitte akzeptiere die Datenschutzerklärung.');
-      triggerWobble();
-      return;
-    }
-
-    if (!isLogin && !acceptNutzungsbedingungen) {
-      setError('Bitte stimme den AGBs zu.');
       triggerWobble();
       return;
     }
@@ -372,21 +364,6 @@ export default function AuthForm() {
                         Datenschutzerklärung
                       </Link>{' '}
                       gelesen und stimme dieser zu.
-                    </span>
-                  </label>
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={acceptNutzungsbedingungen}
-                      onChange={(e) => setAcceptNutzungsbedingungen(e.target.checked)}
-                      aria-required="true"
-                    />
-                    <span>
-                      Ich habe die{' '}
-                      <Link to="/agbs" target="_blank" rel="noopener noreferrer">
-                        AGBs
-                      </Link>{' '}
-                      gelesen und stimme diesen zu.
                     </span>
                   </label>
                 </div>
