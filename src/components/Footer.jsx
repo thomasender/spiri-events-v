@@ -10,7 +10,6 @@ export default function Footer() {
           <Link to="/ueber-uns">Über uns</Link>
           <Link to="/impressum">Impressum</Link>
           <Link to="/datenschutz">Datenschutz</Link>
-          <Link to="/agbs">AGBs</Link>
         </nav>
       </div>
     </footer>
