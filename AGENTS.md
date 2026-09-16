@@ -219,6 +219,15 @@ any JavaScript.
 3. Live Firestore SDK (kept as a final fallback — requires network access from
    the build environment and Firestore read permissions).
 
+The snapshot is the deterministic offline base, but the build also tries the
+live sources (REST first, then SDK) and **merges** them on top: events matched
+by `id`/`slug` get their live field values (so a freshly changed `imageUrl`
+wins immediately), and events that exist only in Firestore are appended. This
+is what makes a newly-created event get the right OG image in its share
+preview without waiting for the next `prerender:refresh` commit — and it
+stays a no-op when the live reads fail, so Netlify builds without network
+access keep working off the snapshot alone.
+
 If none of the three succeed, the prerender emits a manifest with `eventCount: 0`
 and logs a clear warning. The build still succeeds; the static homepage
 keeps working because `index.html` ships baked-in OG/Twitter tags.

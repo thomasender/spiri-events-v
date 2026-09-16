@@ -542,6 +542,55 @@ export function loadEventsFromExport(exportPath) {
   return { events, source: eventsFile, error: null }
 }
 
+// Merges two event lists, preferring the second (`incoming`) for events
+// already represented by `id` or `slug` and appending any net-new events.
+// Used to fold live Firestore reads (REST / SDK) on top of the committed
+// `events.json` snapshot so a freshly-created event — or one whose imageUrl
+// was just changed in Firestore — gets correct OG tags the next time the
+// site is built, even before `npm run prerender:refresh` lands in git. The
+// `events.json` entry is the deterministic offline fallback, so this merge
+// only ADDS or OVERWRITES fields from live data; it never removes an event
+// that still exists in the committed snapshot. Neither input is mutated —
+// shared events produce a fresh merged object — so callers can safely reuse
+// the committed snapshot for the next build.
+export function mergeEventsByIdentity(base, incoming) {
+  const order = []
+  // Indexed by every key (id + slug) we know the row by, so an event that
+  // gets its id reassigned in Firestore but keeps its slug (or vice versa)
+  // still merges with its snapshot twin instead of producing a duplicate.
+  const lookupByKey = new Map() // key -> index in `order`
+
+  const keysFor = (event) => {
+    const keys = []
+    if (event.id) keys.push(`id:${event.id}`)
+    if (event.slug) keys.push(`slug:${event.slug}`)
+    return keys
+  }
+
+  for (const event of base) {
+    const idx = order.length
+    order.push({ ...event })
+    for (const key of keysFor(event)) lookupByKey.set(key, idx)
+  }
+
+  for (const event of incoming) {
+    const keys = keysFor(event)
+    const matchIdx = keys.map((k) => lookupByKey.get(k)).find((i) => i !== undefined)
+    if (matchIdx !== undefined) {
+      order[matchIdx] = { ...order[matchIdx], ...event }
+      // Re-index so future lookups land on the same row even after the
+      // merge overwrote the id/slug fields.
+      for (const key of keysFor(order[matchIdx])) lookupByKey.set(key, matchIdx)
+    } else {
+      const idx = order.length
+      order.push({ ...event })
+      for (const key of keys) lookupByKey.set(key, idx)
+    }
+  }
+
+  return order
+}
+
 // Loads the `app_settings/theme` doc snapshot written by
 // `scripts/refresh-prerender-data.mjs`. The on-disk format is the same
 // Firestore emulator export shape used for `events.json` (a single doc
@@ -577,13 +626,17 @@ export function loadThemeFromExport(exportPath) {
 }
 
 export async function loadEventsFromFirestore(firebaseConfig) {
-  const { initializeApp } = await import('firebase/app')
-  const { getFirestore, collection, getDocs } = await import('firebase/firestore')
-  const app = initializeApp(firebaseConfig)
-  const db = getFirestore(app)
-  const snapshot = await getDocs(collection(db, 'events'))
-  const events = snapshot.docs.map(doc => normalizeEvent({ id: doc.id, ...doc.data() }))
-  return { events, source: 'firestore', error: null }
+  try {
+    const { initializeApp } = await import('firebase/app')
+    const { getFirestore, collection, getDocs } = await import('firebase/firestore')
+    const app = initializeApp(firebaseConfig)
+    const db = getFirestore(app)
+    const snapshot = await getDocs(collection(db, 'events'))
+    const events = snapshot.docs.map(doc => normalizeEvent({ id: doc.id, ...doc.data() }))
+    return { events, source: 'firestore', error: null }
+  } catch (err) {
+    return { events: [], source: null, error: `Live Firestore SDK read threw: ${err.message}` }
+  }
 }
 
 export async function loadEventsFromFirestoreRest({
@@ -683,50 +736,77 @@ export async function prerender({
   }
 
   const exportResult = loadEventsFromExport(exportPath)
-  if (exportResult.events.length > 0) {
-    events = exportResult.events
-    source = exportResult.source
-    console.log(`Loaded ${events.length} events from export: ${source}`)
+  events = exportResult.events
+  source = exportResult.source
+  if (exportResult.error) {
+    console.warn(`data-export not usable: ${exportResult.error}`)
   } else {
-    if (exportResult.error) {
-      console.warn(`data-export not usable: ${exportResult.error}`)
-    }
+    console.log(`Loaded ${events.length} events from export: ${source}`)
+  }
 
-    if (!skipRest) {
-      console.log('Falling back to Firestore REST API...')
-      try {
-        const restResult = await loadEventsFromFirestoreRest({
-          projectId: firebaseConfig.projectId,
-          apiKey: firebaseConfig.apiKey,
-        })
-        if (restResult.events.length > 0) {
-          events = restResult.events
-          source = restResult.source
-          console.log(`Loaded ${events.length} events from Firestore REST.`)
-        } else if (restResult.error) {
-          console.warn(`Firestore REST fetch failed: ${restResult.error}`)
-        }
-      } catch (err) {
-        console.warn(`Firestore REST fetch threw: ${err.message}`)
+  // events.json is the deterministic offline snapshot, but it can lag
+  // behind production whenever an event is created/edited between
+  // `npm run prerender:refresh` commits. A stale snapshot is fine for
+  // every other field on the page, but it makes the OG image wrong:
+  // events that were never in the snapshot never get a prerendered
+  // /event/<slug>/index.html, so the SPA fallback at /index.html
+  // (og:image = og-default.jpg) is what crawlers actually see when
+  // someone shares the link. Same story for events whose imageUrl
+  // changed in Firestore but is still null/old in the snapshot.
+  //
+  // So whenever live reads are enabled we fold them on top of the
+  // committed snapshot, preferring live data for events matched by
+  // id/slug and appending anything that's only in Firestore. When
+  // both live reads fail (e.g. Netlify build with rules blocking
+  // anonymous access), we keep the snapshot as-is and the build
+  // stays reproducible.
+  const liveSources = []
+
+  if (!skipRest) {
+    try {
+      const restResult = await loadEventsFromFirestoreRest({
+        projectId: firebaseConfig.projectId,
+        apiKey: firebaseConfig.apiKey,
+      })
+      if (restResult.events.length > 0) {
+        liveSources.push({ label: 'firestore-rest', events: restResult.events })
+        console.log(`Merged ${restResult.events.length} live events from Firestore REST.`)
+      } else if (restResult.error) {
+        console.warn(`Firestore REST fetch failed: ${restResult.error}`)
       }
+    } catch (err) {
+      console.warn(`Firestore REST fetch threw: ${err.message}`)
     }
+  }
 
-    if (events.length === 0 && !skipFirestore) {
-      console.log('Falling back to live Firestore SDK...')
-      try {
-        const fsResult = await loadEventsFromFirestore(firebaseConfig)
-        events = fsResult.events
-        source = fsResult.source
-        console.log(`Loaded ${events.length} events from live Firestore.`)
-      } catch (err) {
-        console.error(`Live Firestore read failed: ${err.message}`)
-        if (err.stack) console.error(err.stack)
+  if (!skipFirestore) {
+    try {
+      const fsResult = await loadEventsFromFirestore(firebaseConfig)
+      if (fsResult.events.length > 0) {
+        liveSources.push({ label: 'firestore-sdk', events: fsResult.events })
+        console.log(`Merged ${fsResult.events.length} live events from Firestore SDK.`)
+      } else if (fsResult.error) {
+        console.warn(`Live Firestore read failed: ${fsResult.error}`)
       }
+    } catch (err) {
+      console.error(`Live Firestore read failed: ${err.message}`)
+      if (err.stack) console.error(err.stack)
     }
+  }
 
-    if (events.length === 0) {
-      console.warn('No events loaded from any source — prerendering without event pages.')
+  if (liveSources.length > 0) {
+    const before = events.length
+    for (const { events: liveEvents } of liveSources) {
+      events = mergeEventsByIdentity(events, liveEvents)
     }
+    if (events.length !== before) {
+      console.log(`Merged live events into prerender (${before} → ${events.length}).`)
+    }
+    source = `${source || 'unknown'} + ${liveSources.map((s) => s.label).join(', ')}`
+  }
+
+  if (events.length === 0) {
+    console.warn('No events loaded from any source — prerendering without event pages.')
   }
 
   const writtenFiles = []

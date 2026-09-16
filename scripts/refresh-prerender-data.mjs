@@ -71,10 +71,10 @@ async function main() {
     console.log(`Connected to emulator at ${emulatorHost}, project ${projectId}`)
   } else if (existsSync(SERVICE_ACCOUNT)) {
     const admin = await import('firebase-admin/app')
-    const { getFirestore, cert } = await import('firebase-admin/firestore')
+    const { getFirestore } = await import('firebase-admin/firestore')
     const serviceAccount = JSON.parse(readFileSync(SERVICE_ACCOUNT, 'utf8'))
     adminApp = admin.initializeApp(
-      { credential: cert(serviceAccount), projectId },
+      { credential: admin.cert(serviceAccount), projectId },
       `refresh-prerender-${Date.now()}`
     )
     adminDb = getFirestore(adminApp)
@@ -85,14 +85,13 @@ async function main() {
     process.exit(1)
   }
 
-  const { collection, doc, getDocs, getDoc } = await import('firebase-admin/firestore')
-  const eventsSnap = await getDocs(collection(adminDb, 'events'))
+  const eventsSnap = await adminDb.collection('events').get()
   const events = eventsSnap.docs.map(firestoreToEmulatorExport)
   writeFileSync(EVENTS_FILE, JSON.stringify(events, null, 2))
   console.log(`Wrote ${events.length} events to ${EVENTS_FILE}`)
 
-  const themeSnap = await getDoc(doc(adminDb, 'app_settings', 'theme'))
-  if (themeSnap.exists()) {
+  const themeSnap = await adminDb.collection('app_settings').doc('theme').get()
+  if (themeSnap.exists) {
     const theme = firestoreToEmulatorExport(themeSnap)
     writeFileSync(THEME_FILE, JSON.stringify(theme, null, 2))
     console.log(`Wrote theme snapshot (${Object.keys(themeSnap.data()).length} fields) to ${THEME_FILE}`)
