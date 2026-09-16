@@ -289,7 +289,6 @@ test.describe.serial('Profile Management @smoke', () => {
     await page.fill('input#password', password);
     await page.fill('input#confirmPassword', password);
     await page.locator('label.checkbox-label').first().click();
-    await page.locator('label.checkbox-label').nth(1).click();
     await page.getByRole('button', { name: 'Registrieren', exact: true }).click();
 
     // Wait for redirect away from /login (registration success → home)
