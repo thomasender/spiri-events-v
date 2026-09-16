@@ -29,6 +29,8 @@ function normalizeSimilarEvent(event) {
 export default function SimilarEvents({ currentEvent }) {
   const category = currentEvent ? getPrimaryCategory(currentEvent) : null;
   const currentId = currentEvent?.id;
+  const currentBezirk = currentEvent?.isOnline ? '' : currentEvent?.bezirk || '';
+  const hasCurrentBezirk = Boolean(currentBezirk);
   const { colorByName } = useCategoryRegistry();
   const sliderRef = useRef(null);
   const [events, setEvents] = useState([]);
@@ -63,7 +65,14 @@ export default function SimilarEvents({ currentEvent }) {
             const referenceDate = event.endDate || event.date;
             return referenceDate && referenceDate >= todayIso;
           })
-          .sort((a, b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0))
+          .sort((a, b) => {
+            if (hasCurrentBezirk) {
+              const aSame = a.bezirk === currentBezirk ? 1 : 0;
+              const bSame = b.bezirk === currentBezirk ? 1 : 0;
+              if (aSame !== bSame) return bSame - aSame;
+            }
+            return a.date > b.date ? 1 : a.date < b.date ? -1 : 0;
+          })
           .slice(0, SIMILAR_EVENTS_LIMIT);
 
         setEvents(normalized);
@@ -79,7 +88,7 @@ export default function SimilarEvents({ currentEvent }) {
     return () => {
       cancelled = true;
     };
-  }, [category, currentId]);
+  }, [category, currentId, currentBezirk, hasCurrentBezirk]);
 
   useEffect(() => {
     const node = sliderRef.current;
