@@ -297,6 +297,23 @@ describe('prerender.mjs helpers', () => {
       expect(html).toContain(`href="/event/${sampleEvents[0].slug}"`);
       expect(html).not.toContain(`href="/event/${sampleEvents[0].id}"`);
     });
+
+    it('renders an animated loading spinner (no misleading "no events" copy) when no upcoming events exist', async () => {
+      const { generateCalendarPageHtml } = await importPrerender();
+      const pastEvent = { ...sampleEvents[0], date: '2020-01-01' };
+      const html = generateCalendarPageHtml([pastEvent], '/assets/x.js', '/assets/x.css');
+      expect(html).not.toContain('Keine bevorstehenden');
+      expect(html).toContain('class="prerender-loading"');
+      expect(html).toContain('@keyframes prerender-spin');
+      expect(html).toContain('prefers-reduced-motion');
+    });
+
+    it('renders the events list when upcoming events exist', async () => {
+      const { generateCalendarPageHtml } = await importPrerender();
+      const html = generateCalendarPageHtml([sampleEvents[0]], '/assets/x.js', '/assets/x.css');
+      expect(html).toContain('class="events-list"');
+      expect(html).not.toContain('class="prerender-loading"');
+    });
   });
 
   describe('theme integration', () => {
@@ -620,6 +637,22 @@ describe('prerender() end-to-end', () => {
     expect(result.writtenFiles.filter((f) => f.path.startsWith('/event/'))).toHaveLength(0);
     expect(fs.existsSync(path.join(distPath, 'sitemap.xml'))).toBe(true);
     expect(fs.existsSync(path.join(distPath, 'prerender-manifest.json'))).toBe(true);
+  });
+
+  it('renders a loading spinner in dist/index.html when no upcoming events exist (BqooC4xW)', async () => {
+    const pastEvents = sampleEvents.map((e) => ({ ...e, date: '2020-01-01' }));
+    writeJson(path.join(exportPath, 'events.json'), pastEvents);
+    const { prerender } = await importPrerender();
+    await prerender({
+      rootDir: tmpRoot,
+      distPath,
+      exportPath,
+      skipFirestore: true,
+      skipRest: true,
+    });
+    const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf8');
+    expect(indexHtml).toContain('class="prerender-loading"');
+    expect(indexHtml).not.toContain('Keine bevorstehenden');
   });
 
   it('embeds the theme snapshot in the generated event HTML', async () => {
