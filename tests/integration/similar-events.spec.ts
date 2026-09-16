@@ -106,4 +106,20 @@ test.describe('Similar events on event detail page (SNKCKBob)', () => {
       expect(href, `tile ${i} should not link to the current event`).not.toContain(YOGA_HEUTE_SLUG);
     }
   });
+
+  test('prioritizes events from the same district before other districts (P4ujxIxF)', async ({
+    page,
+  }) => {
+    await openEventAndWaitForSimilarEvents(page, YOGA_HEUTE_SLUG);
+
+    const slider = page.getByTestId('similar-events-slider');
+    await expect(slider).toBeVisible({ timeout: VISIBLE_TIMEOUT });
+
+    const locations = await slider.locator('.event-tile-location').allInnerTexts();
+    expect(locations.length).toBeGreaterThan(0);
+    expect(locations[0]).toMatch(/Dornbirn/);
+
+    const distinctDistricts = new Set(locations.map((text) => text.trim()).filter(Boolean));
+    expect(distinctDistricts.has('Dornbirn')).toBe(true);
+  });
 });
