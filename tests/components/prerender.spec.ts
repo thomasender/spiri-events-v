@@ -151,6 +151,75 @@ describe('prerender.mjs helpers', () => {
     });
   });
 
+  describe('mergeEventsByIdentity', () => {
+    it('appends events only present in the incoming list (BKtuzVC2)', async () => {
+      const { mergeEventsByIdentity } = await importPrerender();
+      const base = [{ id: 'old-1', slug: 'old-1', title: 'Old Event', imageUrl: null }];
+      const incoming = [
+        {
+          id: 'new-1',
+          slug: 'new-event-2026-09-01',
+          title: 'Brand New Event',
+          imageUrl: 'https://i.ibb.co/x.jpg',
+        },
+      ];
+      const merged = mergeEventsByIdentity(base, incoming);
+      expect(merged).toHaveLength(2);
+      expect(merged.map((e) => e.id)).toEqual(['old-1', 'new-1']);
+    });
+
+    it('overwrites stale fields on events matched by id (BKtuzVC2)', async () => {
+      const { mergeEventsByIdentity } = await importPrerender();
+      const base = [{ id: 'evt-1', slug: 'evt-1', title: 'Event 1', imageUrl: null }];
+      const incoming = [
+        { id: 'evt-1', slug: 'evt-1', title: 'Event 1', imageUrl: 'https://i.ibb.co/x.jpg' },
+      ];
+      const merged = mergeEventsByIdentity(base, incoming);
+      expect(merged).toHaveLength(1);
+      expect(merged[0].imageUrl).toBe('https://i.ibb.co/x.jpg');
+    });
+
+    it('overwrites stale fields on events matched by slug when ids differ (BKtuzVC2)', async () => {
+      const { mergeEventsByIdentity } = await importPrerender();
+      const base = [
+        { id: 'firestore-id', slug: 'shared-slug', title: 'Old Title', imageUrl: null },
+      ];
+      const incoming = [
+        {
+          id: 'live-id',
+          slug: 'shared-slug',
+          title: 'New Title',
+          imageUrl: 'https://i.ibb.co/y.jpg',
+        },
+      ];
+      const merged = mergeEventsByIdentity(base, incoming);
+      expect(merged).toHaveLength(1);
+      expect(merged[0].imageUrl).toBe('https://i.ibb.co/y.jpg');
+      expect(merged[0].title).toBe('New Title');
+    });
+
+    it('keeps snapshot events that are absent from the live read (no deletion)', async () => {
+      const { mergeEventsByIdentity } = await importPrerender();
+      const base = [
+        { id: 'kept', slug: 'kept', imageUrl: null },
+        { id: 'gone-from-firestore', slug: 'gone-from-firestore', imageUrl: null },
+      ];
+      const incoming = [{ id: 'kept', slug: 'kept', imageUrl: 'https://i.ibb.co/x.jpg' }];
+      const merged = mergeEventsByIdentity(base, incoming);
+      expect(merged).toHaveLength(2);
+      expect(merged.map((e) => e.id)).toEqual(['kept', 'gone-from-firestore']);
+      expect(merged[0].imageUrl).toBe('https://i.ibb.co/x.jpg');
+    });
+
+    it('does not mutate the base array', async () => {
+      const { mergeEventsByIdentity } = await importPrerender();
+      const base = [{ id: 'evt-1', slug: 'evt-1', imageUrl: null }];
+      const incoming = [{ id: 'evt-1', slug: 'evt-1', imageUrl: 'https://i.ibb.co/x.jpg' }];
+      mergeEventsByIdentity(base, incoming);
+      expect(base[0].imageUrl).toBeNull();
+    });
+  });
+
   describe('loadEventsFromExport', () => {
     it('reads events from data-export/firestore-export/events.json', async () => {
       const tmp = await makeFixtureDir('prerender-export-');
@@ -574,5 +643,38 @@ describe('prerender() end-to-end', () => {
     );
     expect(html).toContain('--accent-primary: #abcdef;');
     expect(html).not.toContain('--accent-lavender');
+  });
+
+  it('still works with an empty snapshot when both live sources fail (BKtuzVC2)', async () => {
+    writeJson(path.join(exportPath, 'events.json'), []);
+    const { prerender } = await importPrerender();
+    const result = await prerender({
+      rootDir: tmpRoot,
+      distPath,
+      exportPath,
+      firebaseConfig: { projectId: 'no-such-project', apiKey: 'invalid' },
+    });
+    expect(result.manifest.eventCount).toBe(0);
+    expect(result.manifest.prerenderedPages).toBe(2);
+    expect(fs.existsSync(path.join(distPath, 'sitemap.xml'))).toBe(true);
+  });
+
+  it('keeps using the committed snapshot when the live REST read fails (BKtuzVC2)', async () => {
+    writeJson(path.join(exportPath, 'events.json'), sampleEvents);
+    const { prerender } = await importPrerender();
+    const result = await prerender({
+      rootDir: tmpRoot,
+      distPath,
+      exportPath,
+      firebaseConfig: { projectId: 'no-such-project', apiKey: 'invalid' },
+    });
+    expect(result.manifest.eventCount).toBe(3);
+    const html = fs.readFileSync(
+      path.join(distPath, 'event', sampleEvents[0].slug, 'index.html'),
+      'utf8'
+    );
+    expect(html).toContain(
+      '<meta property="og:image" content="https://storage.googleapis.com/bucket/yoga.jpg" />'
+    );
   });
 });

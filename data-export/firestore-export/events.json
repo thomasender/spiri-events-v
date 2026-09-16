@@ -1,654 +1,5836 @@
 [
   {
-    "id": "0mB6NKHi4kFWSezQ7aYO",
-    "place": "kjöasjdöfklajsdf",
-    "createdAt": "2026-07-22T06:12:44.392Z",
-    "link": "",
+    "id": "45UDf0cZBdii8QVS5vMo",
+    "link": {
+      "stringValue": ""
+    },
+    "place": {
+      "stringValue": ""
+    },
+    "slug": {
+      "stringValue": "wiederholender-event-20260910"
+    },
+    "title": {
+      "stringValue": "wiederholender event"
+    },
+    "time": {
+      "stringValue": "12:59"
+    },
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "bezirk": {
+      "stringValue": "Dornbirn"
+    },
     "fee": {
       "nullValue": null
     },
-    "bezirk": "Dornbirn",
-    "recurrenceEndDate": "",
-    "time": "",
-    "title": "4ter Event an einem Tag",
-    "endDate": "",
-    "date": "2026-07-23",
-    "status": "approved",
-    "recurrence": "weekly",
-    "contribution": "free",
-    "slug": "4ter-event-an-einem-tag-kjasjdfklajsdf-20260723",
+    "kontakt": {
+      "stringValue": "mathis.aut@gmail.com"
+    },
+    "createdBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "description": {
+      "stringValue": "<p>asdf</p>"
+    },
     "imageUrl": {
       "nullValue": null
     },
-    "createdBy": "IccG8JVa2rZxKhnuleOKvpJaV7x1",
-    "endTime": "",
-    "categories": [
-      "Sonstiges"
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "category": {
+      "stringValue": "Breathwork"
+    },
+    "contribution": {
+      "stringValue": "free"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "priceCurrency": {
+      "nullValue": null
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "lastName": {
+            "stringValue": "Mathis"
+          },
+          "firstName": {
+            "stringValue": "Peter"
+          },
+          "email": {
+            "stringValue": "mathis.aut@gmail.com"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FIccG8JVa2rZxKhnuleOKvpJaV7x1%2Favatar%2F1786124601568_Gemini_Generated_Image_q7ivr8q7ivr8q7iv.png?alt=media&token=ad13856e-599c-4f01-8c08-e5493bc669f0"
+          }
+        }
+      }
+    },
+    "date": {
+      "stringValue": "2026-09-10"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789034351"
+          },
+          "_nanoseconds": {
+            "integerValue": "865000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789034351"
+          },
+          "_nanoseconds": {
+            "integerValue": "865000000"
+          }
+        }
+      }
+    },
+    "approvedBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "status": {
+      "stringValue": "approved"
+    },
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789034358"
+          },
+          "_nanoseconds": {
+            "integerValue": "864000000"
+          }
+        }
+      }
+    },
+    "recurrence": {
+      "stringValue": "custom"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "customDates": [
+      {
+        "stringValue": "2026-09-10"
+      },
+      {
+        "stringValue": "2026-09-17"
+      }
     ],
-    "description": "- Liste\n- Liste\n- Liste\n- Liste\n- Liste\n- Liste- Liste\n- Liste\n- Liste- Liste\n- Liste\n- Liste"
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789034445"
+          },
+          "_nanoseconds": {
+            "integerValue": "274000000"
+          }
+        }
+      }
+    }
   },
   {
-    "id": "9cFvtwNVS57oGZJgYz3W",
-    "description": "",
+    "id": "4MWgsHteCetG6CNrjM3F",
+    "endTime": {
+      "stringValue": ""
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Sarah Maria"
+          },
+          "lastName": {
+            "stringValue": "Hämmerle"
+          },
+          "email": {
+            "stringValue": "mathis.aut@gmail.com"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FIccG8JVa2rZxKhnuleOKvpJaV7x1%2Favatar%2F1786124601568_Gemini_Generated_Image_q7ivr8q7ivr8q7iv.png?alt=media&token=ad13856e-599c-4f01-8c08-e5493bc669f0"
+          }
+        }
+      }
+    },
     "imageUrl": {
       "nullValue": null
     },
-    "createdBy": "u3xmb2UpROOYMHQQy4PxtSUI9Pp1",
-    "endTime": "",
-    "categories": [
-      "Yoga"
-    ],
-    "updatedAt": "2026-07-13T14:48:08.220Z",
-    "approvedBy": "IccG8JVa2rZxKhnuleOKvpJaV7x1",
-    "slug": "yogaaaa-annagasse-12-20260714",
-    "contribution": "free",
-    "status": "approved",
-    "date": "2026-07-14",
-    "endDate": "",
-    "title": "yogaaaaaaa",
-    "recurrence": "none",
-    "time": "",
+    "link": {
+      "stringValue": ""
+    },
+    "category": {
+      "stringValue": "Sonstiges"
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "description": {
+      "stringValue": "<p>Du lernst…</p>"
+    },
+    "time": {
+      "stringValue": "10:00"
+    },
+    "customDates": [],
+    "slug": {
+      "stringValue": "ayurveda-basiskochkurs-to-be-announced-20260926"
+    },
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "contribution": {
+      "stringValue": "fee"
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "priceCurrency": {
+      "stringValue": "EUR"
+    },
+    "bezirk": {
+      "stringValue": "Dornbirn"
+    },
+    "kontakt": {
+      "stringValue": "sarah.haemmerle@gmx.at"
+    },
+    "place": {
+      "stringValue": "To be announced"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "title": {
+      "stringValue": "Ayurveda Basiskochkurs"
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "fee": {
+      "integerValue": "85"
+    },
+    "date": {
+      "stringValue": "2026-09-26"
+    },
+    "createdBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788354190"
+          },
+          "_nanoseconds": {
+            "integerValue": "467000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788354190"
+          },
+          "_nanoseconds": {
+            "integerValue": "467000000"
+          }
+        }
+      }
+    },
+    "approvedBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "trashedAt": {
+      "nullValue": null
+    },
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788385168"
+          },
+          "_nanoseconds": {
+            "integerValue": "318000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "approved"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788385168"
+          },
+          "_nanoseconds": {
+            "integerValue": "318000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "5eLlJLZfYqN6vVunApVj",
+    "title": {
+      "stringValue": "Kings Journey – Initations Retreats für Männer"
+    },
+    "date": {
+      "stringValue": "2026-09-18"
+    },
+    "time": {
+      "stringValue": "14:00"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "endDate": {
+      "stringValue": "2026-09-20"
+    },
+    "place": {
+      "stringValue": "Hittisau"
+    },
+    "contribution": {
+      "stringValue": "free"
+    },
     "fee": {
       "nullValue": null
     },
-    "link": "",
-    "recurrenceEndDate": "",
-    "bezirk": "Bregenz",
-    "approvedAt": "2026-07-13T14:48:08.220Z",
-    "place": "Annagasse 12",
-    "createdAt": "2026-07-13T14:05:20.291Z"
+    "description": {
+      "stringValue": "Ein Raum für Männer, die mehr wollen als funktionieren. Es ist Zeit um loszulassen, zu atmen, zu spüren – und dich selbst wiederzufinden. In unserer Männer Arbeit verbinden wir kraftvolle Rituale, archetypische Männerarbeit und tiefgehende Selbsterfahrung. Hier entsteht echte Bruderschaft – jenseits von Konkurrenz, Leistungsdruck oder Rollenklischees. Du bist eingeladen, dich selbst zu zeigen – ehrlich, mutig und verletzlich. Gemeinsam erinnern wir uns an das, was es wirklich heißt, Mann zu sein."
+    },
+    "link": {
+      "stringValue": "https://Barefootyoga.eu/kingsjourney"
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "category": {
+      "stringValue": "Sonstiges"
+    },
+    "bezirk": {
+      "stringValue": "Bregenz"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Barefoot"
+          },
+          "lastName": {
+            "stringValue": "Yoga"
+          },
+          "email": {
+            "stringValue": "mathis.aut@gmail.com"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FIccG8JVa2rZxKhnuleOKvpJaV7x1%2Favatar%2F1786124601568_Gemini_Generated_Image_q7ivr8q7ivr8q7iv.png?alt=media&token=ad13856e-599c-4f01-8c08-e5493bc669f0"
+          }
+        }
+      }
+    },
+    "kontakt": {
+      "stringValue": "Barefootyoga.eu/kingsjourney"
+    },
+    "status": {
+      "stringValue": "approved"
+    },
+    "slug": {
+      "stringValue": "kings-journey-initations-retreats-fr-mnner-hittisau-20260918"
+    },
+    "createdBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787549788"
+          },
+          "_nanoseconds": {
+            "integerValue": "385000000"
+          }
+        }
+      }
+    },
+    "imageUrl": {
+      "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/events%2F5eLlJLZfYqN6vVunApVj%2F1787721868453_men_retreat.jpg?alt=media&token=c4fc0250-43d4-4f15-ab1b-c523782ba298"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787721870"
+          },
+          "_nanoseconds": {
+            "integerValue": "125000000"
+          }
+        }
+      }
+    }
   },
   {
-    "id": "9ezFoIIVuEGGAWyQJIak",
-    "updatedAt": "2026-07-13T14:31:15.367Z",
-    "approvedBy": "RrLP8vZFUtTxi9HKWZIYqnRHgxY2",
-    "contribution": "free",
-    "slug": "neues-event-annagasse-12-20260721",
-    "createdBy": "u3xmb2UpROOYMHQQy4PxtSUI9Pp1",
+    "id": "66PPlwIuAkx3TKxA8UjN",
+    "fee": {
+      "integerValue": "30"
+    },
+    "date": {
+      "stringValue": "2026-09-27"
+    },
+    "recurrence": {
+      "stringValue": "custom"
+    },
+    "customDates": [
+      {
+        "stringValue": "2026-09-27"
+      },
+      {
+        "stringValue": "2026-10-04"
+      },
+      {
+        "stringValue": "2026-10-25"
+      },
+      {
+        "stringValue": "2026-11-15"
+      },
+      {
+        "stringValue": "2026-11-29"
+      },
+      {
+        "stringValue": "2026-12-20"
+      }
+    ],
+    "place": {
+      "stringValue": "Zem Yoga Feldkirch, Schmiedgasse 4"
+    },
+    "title": {
+      "stringValue": "Breathwork"
+    },
+    "slug": {
+      "stringValue": "breathwork-zem-yoga-feldkirch-schmiedgasse-4-20260927"
+    },
+    "contribution": {
+      "stringValue": "fee"
+    },
+    "bezirk": {
+      "stringValue": "Feldkirch"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "link": {
+      "stringValue": "https://www.zem.yoga/event-details/breathwork-10"
+    },
+    "kontakt": {
+      "stringValue": "angelika.kaufmann40@gmail.com"
+    },
+    "category": {
+      "stringValue": "Breathwork"
+    },
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "photoURL": {
+            "nullValue": null
+          },
+          "firstName": {
+            "stringValue": "Angelika"
+          },
+          "lastName": {
+            "stringValue": "Kaufmann"
+          },
+          "email": {
+            "stringValue": "angelika.kaufmann40@gmail.com"
+          }
+        }
+      }
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "createdBy": {
+      "stringValue": "pqKSUtktqwS8yFVa6gI8Ha1gNZK2"
+    },
+    "description": {
+      "stringValue": "<p>Eine Session, in der du für eine Weile nichts leisten, nichts erreichen und nirgendwo anders sein musst. Nur du, dein Atem und das, was gerade da ist.</p><p>Über verschiedene Atemphasen und bewusste Körperwahrnehmung begleitet dich Anschie Schritt für Schritt tiefer zu dir selbst. Die Atmung kann dabei intensiver werden und unterschiedliche körperliche, emotionale oder innere Erfahrungen anregen.</p><p>Dabei geht es nicht darum, etwas Bestimmtes erreichen oder verändern zu müssen – sondern darum, wahrzunehmen, zu fühlen und neugierig dem zu begegnen, was gerade da ist.</p><p>Durch Musik, Atem und Anschies Begleitung entsteht ein geschützter Raum, in dem du das Außen für eine Weile leiser werden lassen und ganz bei dir ankommen darfst.</p><p>Das Tragen von Kopfhörern schafft dabei ein besonders intensives, immersives Klangerlebnis und unterstützt dich dabei, deine Aufmerksamkeit noch mehr nach innen zu richten.</p><p></p><p><em>Ideal wenn du…</em></p><ul><li><p>tiefer mit deinem Körper und deiner Atmung in Verbindung kommen möchtest.</p></li></ul><ul><li><p>dir bewusst Zeit für dich und dein inneres Erleben nehmen möchtest.</p></li></ul><ul><li><p>neugierig bist, was sich zeigen darf, wenn du für einen Moment aus dem Alltag aussteigst.</p></li></ul><ul><li><p>deine Selbstwahrnehmung vertiefen und deinen Körper bewusster spüren möchtest.</p></li></ul><ul><li><p>dir einen Raum für Präsenz, Fühlen und authentischen Ausdruck wünschst.</p></li></ul><p></p>"
+    },
+    "priceCurrency": {
+      "stringValue": "EUR"
+    },
+    "time": {
+      "stringValue": "17:00"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788593376"
+          },
+          "_nanoseconds": {
+            "integerValue": "811000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788593376"
+          },
+          "_nanoseconds": {
+            "integerValue": "811000000"
+          }
+        }
+      }
+    },
+    "imageUrl": {
+      "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/events%2F66PPlwIuAkx3TKxA8UjN%2F1788593379305_1000113339.png?alt=media&token=c866920d-1689-4a9d-a334-fb6d94deb4f7"
+    },
+    "endTime": {
+      "stringValue": "18:30"
+    },
+    "approvedBy": {
+      "stringValue": "RrLP8vZFUtTxi9HKWZIYqnRHgxY2"
+    },
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788642285"
+          },
+          "_nanoseconds": {
+            "integerValue": "281000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "approved"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788642285"
+          },
+          "_nanoseconds": {
+            "integerValue": "281000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "78DjCeYN9NimmJQLujjK",
+    "title": {
+      "stringValue": "Bliss of Kundalini Retreat 2026"
+    },
+    "date": {
+      "stringValue": "2026-08-30"
+    },
+    "time": {
+      "stringValue": "07:45"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "endDate": {
+      "stringValue": "2026-09-06"
+    },
+    "place": {
+      "stringValue": "Aldeia do Bispo, Portugal"
+    },
+    "contribution": {
+      "stringValue": "fee"
+    },
+    "fee": {
+      "integerValue": "800"
+    },
+    "description": {
+      "stringValue": "Tauche ein in eine Woche Rückverbindung zu dir selbst und der Natur im Bliss of Kundalini Ashram Portugal."
+    },
+    "link": {
+      "stringValue": "https://www.blissofkundalini.yoga/group"
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "category": {
+      "stringValue": "Yoga"
+    },
+    "bezirk": {
+      "stringValue": "Grenznahe"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Thomas"
+          },
+          "lastName": {
+            "stringValue": "Ender"
+          },
+          "email": {
+            "stringValue": "thomas@blissofkundalini.yoga"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FRrLP8vZFUtTxi9HKWZIYqnRHgxY2%2Favatar%2F1785759707182_IMG_7920.jpeg?alt=media&token=560ffcf0-4b10-452d-9a66-36877030a5bf"
+          }
+        }
+      }
+    },
+    "kontakt": {
+      "stringValue": "thomas@blissofkundalini.yoga"
+    },
+    "status": {
+      "stringValue": "approved"
+    },
+    "slug": {
+      "stringValue": "bliss-of-kundalini-retreat-2026-aldeia-do-bispo-portugal-20260830"
+    },
+    "createdBy": {
+      "stringValue": "RrLP8vZFUtTxi9HKWZIYqnRHgxY2"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787512023"
+          },
+          "_nanoseconds": {
+            "integerValue": "457000000"
+          }
+        }
+      }
+    },
+    "customDates": [],
+    "priceCurrency": {
+      "stringValue": "EUR"
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "imageUrl": {
+      "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/events%2F78DjCeYN9NimmJQLujjK%2F1788642176567_IMG_8556.jpeg?alt=media&token=c9c3269c-7a90-4698-8bd4-f206ea7a4a3a"
+    },
+    "feeNote": {
+      "stringValue": ""
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789547353"
+          },
+          "_nanoseconds": {
+            "integerValue": "677000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "9xize2NcWp5sRMXakRsy",
+    "title": {
+      "stringValue": "Männeryoga"
+    },
+    "date": {
+      "stringValue": "2026-09-16"
+    },
+    "time": {
+      "stringValue": "19:15"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "place": {
+      "stringValue": "Kirchgasse 7"
+    },
+    "contribution": {
+      "stringValue": "fee"
+    },
+    "fee": {
+      "integerValue": "22"
+    },
+    "description": {
+      "stringValue": "<p><strong>Kraftvoll. Beweglich. Ausgeglichen.</strong></p><p>Diese Yogastunde verbindet die<strong> jahrtausendealte Tradition </strong>des Yoga mit <strong>modernen Erkenntnissen </strong>aus der <strong>Bewegungswissenschaft</strong>.</p><p>Der Fokus liegt auf den typischen Herausforderungen vieler Männer: e<strong>ingeschränkte Beweglichkeit, Verspannungen, mangelnde Regeneration und hoher Alltagsstress.</strong></p><p><strong>Das Ziel:</strong> Ein kräftiger, beweglicher Körper und ein ruhiger, klarer Geist.</p><p>Was dich erwartet:<strong>✓ Mobilität &amp; Beweglichkeit</strong> für Rücken, Hüfte und Schultern</p><p><strong>✓ Funktionelle Kräftigung</strong> mit effektiven Eigengewichtsübungen</p><p><strong>✓ Stabilität für Wirbelsäule &amp; Gelenke</strong> für einen belastbaren Körper im Alltag</p><p><strong>✓ Atem und Entspannungstechniken</strong> für mehr Fokus, Gelassenheit und Regeneration</p><p>Das sagen Teilnehmer:</p><p>„Ich habe Yoga immer etwas belächelt. Heute bin ich fitter und gelenkiger.“ <strong>Gernot K.</strong></p><p>„Am Anfang war ich skeptisch. Nach der ersten Stunde war ich überzeugt.“ <strong>Nicolas G.</strong></p><p>„Männeryoga ist genau das, was ich brauche.“ <strong>Bernhard S.</strong></p><p>„Es fordert mich, verbessert meine Beweglichkeit und mein Gleichgewicht.” <strong>Albert S.</strong></p><p>Wissenschaftlich fundiertRegelmäßiges Yoga kann nachweislich:</p><p><strong>✓ Beweglichkeit verbessern</strong></p><p><strong>✓ Muskelkraft aufbauen</strong></p><p><strong>✓ Stress reduzieren</strong></p><p><strong>✓ Gleichgewicht fördern</strong></p><p><strong>✓ Das Nervensystem beruhigen</strong></p><p><em>Basierend auf aktuellen systematischen Reviews und Metaanalysen.</em></p><p><br></p>"
+    },
+    "recurrence": {
+      "stringValue": "weekly"
+    },
+    "recurrenceEndDate": {
+      "stringValue": "2026-12-02"
+    },
+    "customDates": [],
+    "category": {
+      "stringValue": "Yoga"
+    },
+    "bezirk": {
+      "stringValue": "Dornbirn"
+    },
+    "kontakt": {
+      "stringValue": "paul@bodhiyogastudio.at"
+    },
+    "slug": {
+      "stringValue": "mnneryoga-kirchgasse-7-20260916"
+    },
+    "createdBy": {
+      "stringValue": "LRlO2SPYNLNiPztL823dh5EiJZ92"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787827475"
+          },
+          "_nanoseconds": {
+            "integerValue": "1000000"
+          }
+        }
+      }
+    },
+    "approvedBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787827931"
+          },
+          "_nanoseconds": {
+            "integerValue": "131000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "approved"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Paul"
+          },
+          "lastName": {
+            "stringValue": "Hartmann"
+          },
+          "email": {
+            "stringValue": "paul@bodhiyogastudio.at"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FIccG8JVa2rZxKhnuleOKvpJaV7x1%2Favatar%2F1786124601568_Gemini_Generated_Image_q7ivr8q7ivr8q7iv.png?alt=media&token=ad13856e-599c-4f01-8c08-e5493bc669f0"
+          }
+        }
+      }
+    },
+    "link": {
+      "stringValue": "https://www.eversports.at/s/bodhi-studio-vorarlberg"
+    },
+    "priceCurrency": {
+      "stringValue": "EUR"
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "imageUrl": {
+      "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/events%2F9xize2NcWp5sRMXakRsy%2F1788988909962_paul.webp?alt=media&token=c60364a4-f1a3-47f8-86f8-f7fa81c0063f"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788988910"
+          },
+          "_nanoseconds": {
+            "integerValue": "989000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "AGS59HjwCdso82qCOpIB",
+    "place": {
+      "stringValue": ""
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "time": {
+      "stringValue": "01:17"
+    },
+    "date": {
+      "stringValue": "2026-09-23"
+    },
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "title": {
+      "stringValue": "asdfasdf"
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "bezirk": {
+      "stringValue": "Feldkirch"
+    },
+    "fee": {
+      "nullValue": null
+    },
+    "createdBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "priceCurrency": {
+      "nullValue": null
+    },
+    "category": {
+      "stringValue": "Breathwork"
+    },
+    "status": {
+      "stringValue": "draft"
+    },
+    "description": {
+      "stringValue": "<p>asdfsdf</p>"
+    },
+    "customDates": [],
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Peter"
+          },
+          "lastName": {
+            "stringValue": "Mathis"
+          },
+          "email": {
+            "stringValue": "mathis.aut@gmail.com"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FIccG8JVa2rZxKhnuleOKvpJaV7x1%2Favatar%2F1786124601568_Gemini_Generated_Image_q7ivr8q7ivr8q7iv.png?alt=media&token=ad13856e-599c-4f01-8c08-e5493bc669f0"
+          }
+        }
+      }
+    },
     "imageUrl": {
       "nullValue": null
     },
-    "endTime": "",
-    "categories": [
-      "Singen"
-    ],
-    "description": "",
-    "place": "Annagasse 12",
-    "createdAt": "2026-07-13T14:07:38.182Z",
+    "slug": {
+      "stringValue": "asdfasdf-20260923"
+    },
+    "contribution": {
+      "stringValue": "free"
+    },
+    "kontakt": {
+      "stringValue": "mathis.aut@gmail.com"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788380308"
+          },
+          "_nanoseconds": {
+            "integerValue": "349000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788380308"
+          },
+          "_nanoseconds": {
+            "integerValue": "349000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "CXLKWySv8fGUVl7MroDq",
+    "endTime": {
+      "stringValue": ""
+    },
+    "bezirk": {
+      "stringValue": "Feldkirch"
+    },
+    "createdBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "contribution": {
+      "stringValue": "free"
+    },
+    "status": {
+      "stringValue": "draft"
+    },
+    "description": {
+      "stringValue": "Ecstatic Dance 🔥\nMit live DJ\n\n\nIm J.J. Ender Saal, Schlössleweg 3, \nMäder, Vorarlberg\n\nTanztempel mit 360qm Holzboden. ❤️\n\nEs gibt genügend Parkplätze direkt vor dem Ender Saal und beim Spar. \n\nNo shoes \nNo alcohol\nNo talking\n\nEintrittspreis = gib was sich für dich stimmig anfühlt in unsere Box an der Eingangstür. \n\nAbschlusskreis mit Snacks.\n\nWir freuen uns auf euch!\nAndreas und Robert ❤️"
+    },
+    "date": {
+      "stringValue": "2026-09-22"
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "kontakt": {
+      "stringValue": "Andi Daum"
+    },
+    "priceCurrency": {
+      "stringValue": "EUR"
+    },
+    "category": {
+      "stringValue": "Tanz"
+    },
     "fee": {
       "nullValue": null
     },
-    "link": "",
-    "recurrenceEndDate": "",
-    "bezirk": "Bregenz",
-    "approvedAt": "2026-07-13T14:31:15.367Z",
-    "time": "",
-    "status": "approved",
-    "date": "2026-07-21",
-    "title": "neues event 2",
-    "endDate": "",
-    "recurrence": "none"
+    "imageUrl": {
+      "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/events%2FsVFw37sN25LIeZ6ecYc0%2F1787549091891_IMG_2154.jpeg?alt=media&token=29aba202-8ce5-4a58-a415-c08973ca2e6a"
+    },
+    "time": {
+      "stringValue": "19:00"
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "place": {
+      "stringValue": "Mäder"
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "slug": {
+      "stringValue": "ecstatic-dance-kopie-mder-20260922"
+    },
+    "exceptionDates": [],
+    "customDates": [],
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Ecstatic Dance Tribe"
+          },
+          "lastName": {
+            "stringValue": "Vorarlberg"
+          },
+          "email": {
+            "stringValue": "mathis.aut@gmail.com"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FIccG8JVa2rZxKhnuleOKvpJaV7x1%2Favatar%2F1786124601568_Gemini_Generated_Image_q7ivr8q7ivr8q7iv.png?alt=media&token=ad13856e-599c-4f01-8c08-e5493bc669f0"
+          }
+        }
+      }
+    },
+    "title": {
+      "stringValue": "Ecstatic Dance (Kopie)"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788463895"
+          },
+          "_nanoseconds": {
+            "integerValue": "253000000"
+          }
+        }
+      }
+    }
   },
   {
-    "id": "Abwg9WyWMWSJzKdYisoN",
-    "description": "orem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, sem. Nulla consequat massa quis enim. Donec pede justo, fringilla vel, aliquet nec, vulputate eget, arcu. In enim justo, rhoncus ut, imperdiet a, venenatis vitae, justo. Nullam dictum felis eu pede mollis pretium. Integer tincidunt. Cras dapibus. Vivamus elementum semper nisi. Aenean vulputate eleifend tellus. Aenean leo ligula, porttitor eu, consequat vitae, eleifend ac, enim. Aliquam lorem ante, dapibus in, viverra quis, feugiat a, tellus. Phasellus viverra nulla ut metus varius laoreet. Quisque rutrum. Aenean imperdiet. Etiam ultricies nisi vel augue. Curabitur ullamcorper ultricies nisi. Nam eget dui. Etiam rhoncus. Maecenas tempus, tellus eget condimentum rhoncus, sem quam semper libero, sit amet adipiscing sem neque sed ipsum. Nam quam nunc, blandit vel, luctus pulvinar, hendrerit id, lorem. Maecenas nec odio et ante tincidunt tempus. Donec vitae sapien ut libero venenatis faucibus. Nullam quis ante. Etiam sit amet orci eget eros faucibus tincidunt. Duis leo. Sed fringilla mauris sit amet nibh. Donec sodales sagittis magna. Sed consequat, leo eget bibendum sodales, augue velit cursus nunc,\n\norem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, sem. Nulla consequat massa quis enim. Donec pede justo, fringilla vel, aliquet nec, vulputate eget, arcu. In enim justo, rhoncus ut, imperdiet a, venenatis vitae, justo. Nullam dictum felis eu pede mollis pretium. Integer tincidunt. Cras dapibus. Vivamus elementum semper nisi. Aenean vulputate eleifend tellus. Aenean leo ligula, porttitor eu, consequat vitae, eleifend ac, enim. Aliquam lorem ante, dapibus in, viverra quis, feugiat a, tellus. Phasellus viverra nulla ut metus varius laoreet. Quisque rutrum. Aenean imperdiet. Etiam ultricies nisi vel augue. Curabitur ullamcorper ultricies nisi. Nam eget dui. Etiam rhoncus. Maecenas tempus, tellus eget condimentum rhoncus, sem quam semper libero, sit amet adipiscing sem neque sed ipsum. Nam quam nunc, blandit vel, luctus pulvinar, hendrerit id, lorem. Maecenas nec odio et ante tincidunt tempus. Donec vitae sapien ut libero venenatis faucibus. Nullam quis ante. Etiam sit amet orci eget eros faucibus tincidunt. Duis leo. Sed fringilla mauris sit amet nibh. Donec sodales sagittis magna. Sed consequat, leo eget bibendum sodales, augue velit cursus nunc,\n\n\norem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, sem. Nulla consequat massa quis enim. Donec pede justo, fringilla vel, aliquet nec, vulputate eget, arcu. In enim justo, rhoncus ut, imperdiet a, venenatis vitae, justo. Nullam dictum felis eu pede mollis pretium. Integer tincidunt. Cras dapibus. Vivamus elementum semper nisi. Aenean vulputate eleifend tellus. Aenean leo ligula, porttitor eu, consequat vitae, eleifend ac, enim. Aliquam lorem ante, dapibus in, viverra quis, feugiat a, tellus. Phasellus viverra nulla ut metus varius laoreet. Quisque rutrum. Aenean imperdiet. Etiam ultricies nisi vel augue. Curabitur ullamcorper ultricies nisi. Nam eget dui. Etiam rhoncus. Maecenas tempus, tellus eget condimentum rhoncus, sem quam semper libero, sit amet adipiscing sem neque sed ipsum. Nam quam nunc, blandit vel, luctus pulvinar, hendrerit id, lorem. Maecenas nec odio et ante tincidunt tempus. Donec vitae sapien ut libero venenatis faucibus. Nullam quis ante. Etiam sit amet orci eget eros faucibus tincidunt. Duis leo. Sed fringilla mauris sit amet nibh. Donec sodales sagittis magna. Sed consequat, leo eget bibendum sodales, augue velit cursus nunc,",
-    "createdBy": "fQ5jQEMSBZgdWhn5ls76yFstPO03",
-    "imageUrl": "https://i.ibb.co/Rpm888K5/d3b8bab26eab.jpg",
-    "endTime": "",
-    "categories": [
-      "Meditation"
-    ],
-    "approvedBy": "IccG8JVa2rZxKhnuleOKvpJaV7x1",
-    "updatedAt": "2026-07-22T06:04:03.281Z",
-    "contribution": "fee",
-    "slug": "ein-event-mit-kategorie-meeega-strae-20260723",
-    "endDate": "",
-    "date": "2026-07-23",
-    "title": "Ein Event mit Kategorie, meeega!",
-    "status": "approved",
-    "recurrence": "weekly",
-    "time": "10:54",
-    "link": "",
-    "fee": 9,
-    "bezirk": "Feldkirch",
-    "approvedAt": "2026-07-22T06:04:03.281Z",
-    "recurrenceEndDate": "2026-08-26",
-    "place": "Straße",
-    "createdAt": "2026-07-22T05:52:56.872Z"
-  },
-  {
-    "id": "FncjzTNrO4YxAfHnLhAD",
-    "categories": [
-      "Yoga"
-    ],
-    "endTime": "",
-    "createdBy": "IccG8JVa2rZxKhnuleOKvpJaV7x1",
+    "id": "D6TbKRBLQ3TJMFGNFhx1",
+    "title": {
+      "stringValue": "asdf"
+    },
+    "date": {
+      "stringValue": "2026-09-16"
+    },
+    "time": {
+      "stringValue": "23:31"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "place": {
+      "stringValue": ""
+    },
+    "contribution": {
+      "stringValue": "fee"
+    },
+    "fee": {
+      "integerValue": "14"
+    },
+    "priceCurrency": {
+      "stringValue": "EUR"
+    },
+    "feeNote": {
+      "stringValue": "10er Blöckle"
+    },
+    "description": {
+      "stringValue": "<p>asdf</p>"
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "customDates": [],
+    "category": {
+      "stringValue": "Meditation"
+    },
+    "bezirk": {
+      "stringValue": "Dornbirn"
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Peter"
+          },
+          "lastName": {
+            "stringValue": "Mathis"
+          },
+          "email": {
+            "stringValue": "mathis.aut@gmail.com"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FIccG8JVa2rZxKhnuleOKvpJaV7x1%2Favatar%2F1786124601568_Gemini_Generated_Image_q7ivr8q7ivr8q7iv.png?alt=media&token=ad13856e-599c-4f01-8c08-e5493bc669f0"
+          }
+        }
+      }
+    },
+    "kontakt": {
+      "stringValue": "mathis.aut@gmail.com"
+    },
     "imageUrl": {
       "nullValue": null
     },
-    "contribution": "free",
-    "slug": "yoga-workshop-yogastteet-20260728",
-    "description": "",
-    "bezirk": "Dornbirn",
-    "recurrenceEndDate": "2027-02-16",
-    "link": "",
-    "fee": {
-      "nullValue": null
+    "status": {
+      "stringValue": "pending"
     },
-    "createdAt": "2026-07-22T06:42:03.038Z",
-    "place": "yogastteet",
-    "recurrence": "weekly",
-    "date": "2026-07-28",
-    "title": "yoga workshop",
-    "endDate": "",
-    "status": "approved",
-    "time": ""
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "slug": {
+      "stringValue": "asdf-20260916"
+    },
+    "createdBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789461948"
+          },
+          "_nanoseconds": {
+            "integerValue": "172000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789461948"
+          },
+          "_nanoseconds": {
+            "integerValue": "172000000"
+          }
+        }
+      }
+    }
   },
   {
-    "id": "JQhlz7ugAGceK7RHoaHa",
-    "place": "circlestreet",
-    "createdAt": "2026-07-22T06:33:56.328Z",
-    "link": "",
+    "id": "J26XfOyehzRhhPhcD83W",
+    "title": {
+      "stringValue": "Embodiment Yoga & Klang"
+    },
+    "date": {
+      "stringValue": "2026-09-29"
+    },
+    "time": {
+      "stringValue": "19:00"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "place": {
+      "stringValue": "Bewegung Raum,  KANALSTRASSE I0 RUGGELL"
+    },
+    "contribution": {
+      "stringValue": "fee"
+    },
+    "fee": {
+      "integerValue": "50"
+    },
+    "description": {
+      "stringValue": "<p>EIN BESONDERES ERLEBNIS</p><p>TAUCHE EIN IN EINE ATMOSPHÄRE.</p><p>DEINE SANFTEN BEWEGUNGEN WERDEN DURCH KLANGE VON VERSCHIEDENEN INSTRUMENTEN UND OBERTONGESANG BEGLEITET.</p>"
+    },
+    "link": {
+      "stringValue": "https://www.yogafromming.li"
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "category": {
+      "stringValue": "Yoga"
+    },
+    "bezirk": {
+      "stringValue": "Grenznahe"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Richard"
+          },
+          "lastName": {
+            "stringValue": "Gaste"
+          },
+          "email": {
+            "stringValue": "cosmicklang@gmail.com"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FzcafEZZ0Ked8d9rB4n9zonv7rwv2%2Favatar%2F1787552391004_IMG_6788.jpeg?alt=media&token=cb7bd952-3393-4e46-8bb2-60865703e24a"
+          }
+        }
+      }
+    },
+    "kontakt": {
+      "stringValue": "cosmicklang@gmail.com"
+    },
+    "slug": {
+      "stringValue": "embodiment-yoga-klang-bewegung-raum-kanalstrasse-i0-ruggell-20260929"
+    },
+    "createdBy": {
+      "stringValue": "zcafEZZ0Ked8d9rB4n9zonv7rwv2"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787734199"
+          },
+          "_nanoseconds": {
+            "integerValue": "399000000"
+          }
+        }
+      }
+    },
+    "imageUrl": {
+      "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/events%2FJ26XfOyehzRhhPhcD83W%2F1787734199434_Bej_ve_Mavi_Modern_Otel_Tan_t_m_Instagram_Go_nderisi.png?alt=media&token=92af0631-e594-44be-ab7b-81b76db3ca58"
+    },
+    "approvedBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787739154"
+          },
+          "_nanoseconds": {
+            "integerValue": "954000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "approved"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787739154"
+          },
+          "_nanoseconds": {
+            "integerValue": "954000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "JTn940cohJHRUeiTeM5U",
+    "title": {
+      "stringValue": "Meditativer Klangabend in der Kapelle"
+    },
+    "date": {
+      "stringValue": "2026-09-06"
+    },
+    "time": {
+      "stringValue": "19:00"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "endDate": {
+      "stringValue": "2026-09-06"
+    },
+    "place": {
+      "stringValue": "Kapelle Vorderachmühle Spinnergasse 500, Dornbirn"
+    },
+    "description": {
+      "stringValue": "MEDITATIVER KLANGABENDE \n\nAb September lädt Richard Gasté zu einer Reihe meditativer Klangabende in der Kapelle der Vorderachmühle in Dornbirn ein.\n\nWährend 45 Minuten kannst du dich von beruhigenden Klängen und tiefen Schwingungen umhüllen lassen. Ein Raum, um zur Ruhe zu kommen, Spannungen loszulassen, den Geist zu beruhigen und wieder ganz bei dir anzukommen.\n\nEine wohltuende Auszeit vom Alltag – in einem besonderen Ort, der Raum für Stille, Achtsamkeit und innere Einkehr schafft.\n\nDie Termine:\n6. September\n4. Oktober\n8. November\n6. Dezember\n\nJeweils von 19:00 bis 19:45 Uhr\nKapelle Vorderachmühle\nSpinnergasse 500, Dornbirn\n\nMit Richard Gasté\nKeine Anmeldung erforderlich\nFreiwillige Spende\n\nLass dich von den Klängen auf eine heilsame Reise nach innen begleiten und schenke dir 45 Minuten ganz für dich.\n\nwww.cosmicklang.com"
+    },
+    "link": {
+      "stringValue": "https://www.cosmicklang.com"
+    },
+    "recurrence": {
+      "stringValue": "monthly"
+    },
+    "recurrenceEndDate": {
+      "stringValue": "2026-12-06"
+    },
+    "bezirk": {
+      "stringValue": "Dornbirn"
+    },
+    "kontakt": {
+      "stringValue": "cosmicklang@gmail.com"
+    },
+    "slug": {
+      "stringValue": "meditativer-klangabend-in-der-kapelle-kapelle-vorderachmhle-spinnergasse-500-dornbirn-20260906"
+    },
+    "createdBy": {
+      "stringValue": "zcafEZZ0Ked8d9rB4n9zonv7rwv2"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787551282"
+          },
+          "_nanoseconds": {
+            "integerValue": "3000000"
+          }
+        }
+      }
+    },
+    "approvedBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "contribution": {
+      "stringValue": "donation"
+    },
     "fee": {
       "nullValue": null
     },
-    "recurrenceEndDate": "2027-06-16",
-    "bezirk": "Bregenz",
-    "time": "",
-    "status": "approved",
-    "date": "2026-07-25",
-    "endDate": "",
-    "title": "Männerkreis nur für Initierte",
-    "recurrence": "weekly",
-    "updatedAt": "2026-07-22T06:37:06.877Z",
-    "contribution": "free",
-    "slug": "mnnerkreis-nur-fr-initierte-circlestreet-20260725",
     "imageUrl": {
       "nullValue": null
     },
-    "createdBy": "IccG8JVa2rZxKhnuleOKvpJaV7x1",
-    "endTime": "",
-    "categories": [
-      "Sonstiges"
-    ],
-    "description": ""
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787732695"
+          },
+          "_nanoseconds": {
+            "integerValue": "631000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "approved"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Richard"
+          },
+          "lastName": {
+            "stringValue": "Gaste"
+          },
+          "email": {
+            "stringValue": "cosmicklang@gmail.com"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FIccG8JVa2rZxKhnuleOKvpJaV7x1%2Favatar%2F1786124601568_Gemini_Generated_Image_q7ivr8q7ivr8q7iv.png?alt=media&token=ad13856e-599c-4f01-8c08-e5493bc669f0"
+          }
+        }
+      }
+    },
+    "category": {
+      "stringValue": "Soundhealing"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787747011"
+          },
+          "_nanoseconds": {
+            "integerValue": "169000000"
+          }
+        }
+      }
+    }
   },
   {
-    "id": "OGVnCx6RdDacRB204uSt",
+    "id": "JZgHdpEuw1Nok1v9qIP0",
+    "title": {
+      "stringValue": "Floating Gongbath"
+    },
+    "date": {
+      "stringValue": "2026-09-20"
+    },
+    "time": {
+      "stringValue": "19:00"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "place": {
+      "stringValue": "Le Studio, Steinebach 7, Dornbirn"
+    },
+    "contribution": {
+      "stringValue": "fee"
+    },
+    "fee": {
+      "integerValue": "39"
+    },
+    "description": {
+      "stringValue": "<p>FLOATING GONGBATH</p><p>EINE EXKLUSIVE REISE FÜR KÖRPER, GEIST &amp; SEELE</p><p></p><p>Was wäre, wenn du dir für einen Abend nichts vornehmen müsstest – außer loszulassen?</p><p></p><p>Stell dir vor, du liegst schwerelos und vollkommen geborgen in deiner persönlichen Hängematte. Dein Körper darf entspannen, dein Atem wird ruhiger und der Alltag tritt immer mehr in den Hintergrund.</p><p></p><p>Dann beginnt der Gong zu schwingen.</p><p></p><p>Seine tiefen, warmen und zugleich kraftvollen Klänge breiten sich im Raum aus. Die Vibrationen berühren deinen Körper, während du dich immer mehr dem Moment hingibst. Du musst nichts leisten, nichts erreichen und nichts festhalten.</p><p></p><p>Du darfst einfach sein. 🤍</p><p></p><p>FLOATING GONGBATH ist eine besondere Form der Klangreise, bei der du in einer Hängematte getragen wirst und dich vollkommen den Schwingungen des Gongs anvertrauen kannst.</p><p></p><p>Eine achtsame Auszeit vom schnellen Rhythmus des Alltags.</p><p>Ein Moment, in dem du tief durchatmen darfst.</p><p>Ein Raum, in dem du zur Ruhe kommen und neue Kraft schöpfen kannst.</p><p></p><p>Die Kombination aus sanfter Schwerelosigkeit, tiefen Klangwellen und bewusster Entspannung schafft eine außergewöhnliche Atmosphäre – fast wie ein Eintauchen in eine andere Welt.</p><p></p><p>✨ Lass dich tragen.</p><p>✨ Lass dich berühren.</p><p>✨ Lass Gedanken leiser werden.</p><p>✨ Lass die Schwingungen des Gongs durch den Raum und durch dich hindurchfließen.</p><p></p><p>Diese 90 Minuten gehören ganz dir.</p><p></p><p>Eine kostbare kleine Auszeit, um den Körper loszulassen, den Geist zur Ruhe kommen zu lassen und wieder bei dir selbst anzukommen.</p><p></p><p>Ein Abend zum Entschleunigen.</p><p>Zum Spüren.</p><p>Zum Loslassen.</p><p>Zum Auftanken. 🌿</p><p></p><p>Angebot für 2 Personen: 69€</p><p></p><p>━━━━━━━━━━━━━━━</p><p></p><p>Schenke dir diesen Abend.</p><p>Nicht als weiteren Termin im Kalender, sondern als bewusste Begegnung mit dir selbst.</p><p></p><p>Mach es dir gemütlich.</p><p>Schließe die Augen.</p><p>Atme tief ein.</p><p>Und lass dich von den Schwingungen des Gongs dorthin tragen, wo Stille, Ruhe und tiefe Entspannung entstehen dürfen. </p><p>Wenn Klang auf Schwerelosigkeit trifft.</p>"
+    },
+    "link": {
+      "stringValue": "https://www.cosmicklang.com"
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "bezirk": {
+      "stringValue": "Dornbirn"
+    },
+    "kontakt": {
+      "stringValue": "cosmicklang@gmail.com"
+    },
+    "slug": {
+      "stringValue": "floating-gongbath-le-studio-steinebach-7-dornbirn-20260920"
+    },
+    "createdBy": {
+      "stringValue": "zcafEZZ0Ked8d9rB4n9zonv7rwv2"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787731162"
+          },
+          "_nanoseconds": {
+            "integerValue": "842000000"
+          }
+        }
+      }
+    },
+    "approvedBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787732691"
+          },
+          "_nanoseconds": {
+            "integerValue": "47000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "approved"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Richard"
+          },
+          "lastName": {
+            "stringValue": "Gaste"
+          },
+          "email": {
+            "stringValue": "cosmicklang@gmail.com"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FIccG8JVa2rZxKhnuleOKvpJaV7x1%2Favatar%2F1786124601568_Gemini_Generated_Image_q7ivr8q7ivr8q7iv.png?alt=media&token=ad13856e-599c-4f01-8c08-e5493bc669f0"
+          }
+        }
+      }
+    },
     "imageUrl": {
       "nullValue": null
     },
-    "createdBy": "IccG8JVa2rZxKhnuleOKvpJaV7x1",
-    "categories": [
-      "Sonstiges"
-    ],
-    "endTime": "",
-    "slug": "wandern-mit-wanderslust-and-friends-wandererstrae-20260725",
-    "contribution": "free",
-    "description": "",
-    "link": "",
-    "fee": {
-      "nullValue": null
+    "category": {
+      "stringValue": "Soundhealing"
     },
-    "recurrenceEndDate": "2027-01-14",
-    "bezirk": "Feldkirch",
-    "place": "Wandererstraße",
-    "createdAt": "2026-07-22T06:33:08.328Z",
-    "status": "approved",
-    "title": "Wandern mit Wanderslust and Friends",
-    "date": "2026-07-25",
-    "endDate": "",
-    "recurrence": "weekly",
-    "time": ""
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787747108"
+          },
+          "_nanoseconds": {
+            "integerValue": "843000000"
+          }
+        }
+      }
+    }
   },
   {
-    "id": "Pp039b3FTS7Cy4BjRPef",
-    "recurrence": "weekly",
-    "status": "approved",
-    "title": "supidupi mega hupi",
-    "date": "2026-07-23",
-    "endDate": "",
-    "time": "",
-    "recurrenceEndDate": "",
-    "bezirk": "Bregenz",
+    "id": "KlGWxm7AumCi4NwBYRqx",
+    "createdBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "priceCurrency": {
+      "nullValue": null
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "kontakt": {
+      "stringValue": "mathis.aut@gmail.com"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "slug": {
+      "stringValue": "asdf-20260906"
+    },
+    "place": {
+      "stringValue": ""
+    },
+    "title": {
+      "stringValue": "asdf"
+    },
+    "bezirk": {
+      "stringValue": "Feldkirch"
+    },
+    "customDates": [],
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "description": {
+      "stringValue": "<p>asdf</p>"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "lastName": {
+            "stringValue": "Mathis"
+          },
+          "email": {
+            "stringValue": "mathis.aut@gmail.com"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FIccG8JVa2rZxKhnuleOKvpJaV7x1%2Favatar%2F1786124601568_Gemini_Generated_Image_q7ivr8q7ivr8q7iv.png?alt=media&token=ad13856e-599c-4f01-8c08-e5493bc669f0"
+          },
+          "firstName": {
+            "stringValue": "Peter"
+          }
+        }
+      }
+    },
+    "time": {
+      "stringValue": "11:03"
+    },
     "fee": {
       "nullValue": null
     },
-    "link": "https://www.dasistkeinlink.com",
-    "createdAt": "2026-07-22T06:11:46.782Z",
-    "place": "supi straße",
-    "description": "Lorem ipsum dolor sit amet, \n\n- Liste\n- Liste\n- Liste\n\nconsectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, sem. Nulla consequat massa quis enim. Donec pede justo, fringilla vel, aliquet nec, vulputate eget, arcu. In enim justo, rhoncus ut, imperdiet a, venenatis vitae, justo. Nullam dictum felis eu pede mollis pretium. Integer tincidunt. Cras dapibus. Vivamus elementum semper nisi. Aenean vulputate eleifend tellus. Aenean leo ligula, porttitor eu, consequat vitae, eleifend ac, enim. Aliquam lorem ante, dapibus in, viverra quis, feugiat a, tellus. Phasellus viverra nulla ut metus varius laoreet. Quisque rutrum. Aenean imperdiet. Etiam ultricies nisi vel augue. Curabitur ullamcorper ultricies nisi. Nam eget dui. Etiam rhoncus. Maecenas tempus, tellus eget condimentum rhoncus, sem quam semper libero, sit amet adipiscing sem neque sed ipsum. Nam quam nunc, blandit vel, luctus pulvinar, hendrerit id, lorem. Maecenas nec odio et ante tincidunt tempus. Donec vitae sapien ut libero venenatis faucibus. Nullam quis ante. Etiam sit amet orci eget eros faucibus tincidunt. Duis leo. Sed fringilla mauris sit amet nibh. Donec sodales sagittis magna. Sed consequat, leo eget bibendum sodales, augue velit cursus nunc,\n\n- Liste\n- Liste\n- Liste",
-    "endTime": "",
-    "categories": [
-      "Breathwork"
-    ],
-    "createdBy": "IccG8JVa2rZxKhnuleOKvpJaV7x1",
-    "imageUrl": "https://i.ibb.co/Rpm888K5/d3b8bab26eab.jpg",
-    "contribution": "free",
-    "slug": "supidupi-mega-hupi-supi-strae-20260723",
-    "updatedAt": "2026-07-22T06:11:48.484Z"
-  },
-  {
-    "id": "RjtzGNkeWmjR1Dh2OeG4",
-    "time": "",
-    "status": "approved",
-    "title": "osho meditation Dynmac",
-    "date": "2026-07-29",
-    "endDate": "",
-    "recurrence": "weekly",
-    "place": "osho",
-    "createdAt": "2026-07-22T06:42:41.464Z",
-    "fee": {
-      "nullValue": null
-    },
-    "link": "",
-    "recurrenceEndDate": "2027-02-22",
-    "bezirk": "Feldkirch",
-    "description": "",
-    "slug": "osho-meditation-dynmac-osho-20260729",
-    "contribution": "free",
     "imageUrl": {
       "nullValue": null
     },
-    "createdBy": "IccG8JVa2rZxKhnuleOKvpJaV7x1",
-    "categories": [
-      "Meditation"
-    ],
-    "endTime": ""
+    "date": {
+      "stringValue": "2026-09-06"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "contribution": {
+      "stringValue": "free"
+    },
+    "category": {
+      "stringValue": "Ayurveda"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788681893"
+          },
+          "_nanoseconds": {
+            "integerValue": "118000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788681893"
+          },
+          "_nanoseconds": {
+            "integerValue": "118000000"
+          }
+        }
+      }
+    },
+    "approvedBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788681900"
+          },
+          "_nanoseconds": {
+            "integerValue": "244000000"
+          }
+        }
+      }
+    },
+    "trashedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788783330"
+          },
+          "_nanoseconds": {
+            "integerValue": "597000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "trashed"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788783330"
+          },
+          "_nanoseconds": {
+            "integerValue": "597000000"
+          }
+        }
+      }
+    }
   },
   {
-    "id": "Vw9VGinQxXPOWyTuOEjR",
-    "time": "",
-    "status": "approved",
-    "title": "Kakaozeremonie mit Hubert und Chantal",
-    "endDate": "",
-    "date": "2026-08-27",
-    "recurrence": "weekly",
-    "place": "ka",
-    "createdAt": "2026-07-22T06:43:40.314Z",
-    "link": "",
-    "fee": {
-      "nullValue": null
+    "id": "KoyJss6M921ISAEHzdol",
+    "link": {
+      "stringValue": ""
     },
-    "recurrenceEndDate": "2027-02-10",
-    "bezirk": "Bludenz",
-    "description": "",
-    "slug": "kakaozeremonie-mit-hubert-und-chantal-ka-20260827",
-    "contribution": "free",
+    "date": {
+      "stringValue": "2026-08-30"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "category": {
+      "stringValue": "Yoga"
+    },
+    "bezirk": {
+      "stringValue": "Dornbirn"
+    },
+    "createdBy": {
+      "stringValue": "RrLP8vZFUtTxi9HKWZIYqnRHgxY2"
+    },
+    "description": {
+      "stringValue": "<p>Test Event</p>"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Thomas"
+          },
+          "lastName": {
+            "stringValue": "Ender"
+          },
+          "email": {
+            "stringValue": "thomas@blissofkundalini.yoga"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FRrLP8vZFUtTxi9HKWZIYqnRHgxY2%2Favatar%2F1785759707182_IMG_7920.jpeg?alt=media&token=560ffcf0-4b10-452d-9a66-36877030a5bf"
+          }
+        }
+      }
+    },
+    "time": {
+      "stringValue": "20:57"
+    },
+    "slug": {
+      "stringValue": "yoga-testevent-20260830"
+    },
     "imageUrl": {
       "nullValue": null
     },
-    "createdBy": "IccG8JVa2rZxKhnuleOKvpJaV7x1",
-    "endTime": "",
-    "categories": [
-      "Sonstiges"
-    ]
+    "customDates": [],
+    "endDate": {
+      "stringValue": ""
+    },
+    "kontakt": {
+      "stringValue": "thomas@blissofkundalini.yoga"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "title": {
+      "stringValue": "Yoga testevent"
+    },
+    "place": {
+      "stringValue": ""
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788019057"
+          },
+          "_nanoseconds": {
+            "integerValue": "783000000"
+          }
+        }
+      }
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "status": {
+      "stringValue": "draft"
+    },
+    "feeNote": {
+      "stringValue": "10er - Block"
+    },
+    "priceCurrency": {
+      "stringValue": "EUR"
+    },
+    "contribution": {
+      "stringValue": "fee"
+    },
+    "fee": {
+      "integerValue": "250"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789460314"
+          },
+          "_nanoseconds": {
+            "integerValue": "560000000"
+          }
+        }
+      }
+    }
   },
   {
-    "id": "VzGBMrfOXICkgyDuXxxe",
-    "recurrenceEndDate": "",
-    "bezirk": "Feldkirch",
-    "fee": {
-      "nullValue": null
+    "id": "PZmYRyO1HYiWgMXRaV7I",
+    "title": {
+      "stringValue": "Cosmic Klangreise"
     },
-    "link": "",
-    "createdAt": "2026-07-23T12:12:27.128Z",
-    "place": "asdf",
-    "recurrence": "none",
-    "status": "pending",
-    "date": "2026-07-24",
-    "endDate": "",
-    "title": "asdfasfd",
-    "time": "",
-    "endTime": "",
-    "categories": [
-      "Meditation"
-    ],
+    "date": {
+      "stringValue": "2026-09-07"
+    },
+    "time": {
+      "stringValue": "19:30"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "endDate": {
+      "stringValue": "2026-09-07"
+    },
+    "place": {
+      "stringValue": "Netzwerk Tanz, Annagasse 5 Dornbirn"
+    },
+    "contribution": {
+      "stringValue": "fee"
+    },
+    "fee": {
+      "integerValue": "25"
+    },
+    "description": {
+      "stringValue": "<p>COSMIC KLANG REISE</p><p>EINTAUCHEN. LOSLASSEN. SEIN.</p><p>Am 7. September möchte ich dich auf eine besondere Klangreise mitnehmen – einen Abend, an dem du für eine Weile aus dem Alltag aussteigen, ankommen und einfach sein darfst.</p><p>Mit Gong, Kristallklängen, Monochord und Obertongesang erschaffe ich einen Raum, in dem du dich von den Klängen tragen lassen, tief entspannen und loslassen kannst. </p><p>Ich lade dich ein, deine Augen zu schließen, nach innen zu lauschen und dich ganz der Erfahrung hinzugeben.</p><p>🌀 07. Sept von 19:30 bis 21:00 Uhr</p><p>🌀 Netzwerk Tanz, Angasse 5, Dornbirn</p><p>🌀 Ausgleich: 25 €</p><p>Du brauchst keinerlei Vorkenntnisse – nur etwas Zeit für dich und die Offenheit, dich auf die Klänge einzulassen.</p><p>Bitte bringe alles mit, was du brauchst, um es dir für die Klangreise bequem zu machen und dich hinzulegen – zum Beispiel eine Matte, Decke, Kissen oder etwas Warmes zum Zudecken.</p><p>Anmeldung erforderlich:</p><p><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"http://www.cosmicklang.com\">www.cosmicklang.com</a> </p><p>Ich freue mich, diesen besonderen Abend mit dir zu teilen. 🌀</p><p>Eintauchen. Loslassen. Sein.</p>"
+    },
+    "link": {
+      "stringValue": "https://www.cosmicklang.com"
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "bezirk": {
+      "stringValue": "Dornbirn"
+    },
+    "kontakt": {
+      "stringValue": "cosmicklang@gmail.com"
+    },
+    "slug": {
+      "stringValue": "cosmic-klangreise-netzwerk-tanz-annagasse-5-dornbirn-20260907"
+    },
+    "createdBy": {
+      "stringValue": "zcafEZZ0Ked8d9rB4n9zonv7rwv2"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787730628"
+          },
+          "_nanoseconds": {
+            "integerValue": "620000000"
+          }
+        }
+      }
+    },
+    "approvedBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787732694"
+          },
+          "_nanoseconds": {
+            "integerValue": "282000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "approved"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Richard"
+          },
+          "lastName": {
+            "stringValue": "Gaste"
+          },
+          "email": {
+            "stringValue": "cosmicklang@gmail.com"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FIccG8JVa2rZxKhnuleOKvpJaV7x1%2Favatar%2F1786124601568_Gemini_Generated_Image_q7ivr8q7ivr8q7iv.png?alt=media&token=ad13856e-599c-4f01-8c08-e5493bc669f0"
+          }
+        }
+      }
+    },
     "imageUrl": {
       "nullValue": null
     },
-    "createdBy": "fQ5jQEMSBZgdWhn5ls76yFstPO03",
-    "contribution": "free",
-    "slug": "asdfasfd-asdf-20260724",
-    "description": ""
+    "category": {
+      "stringValue": "Soundhealing"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787747065"
+          },
+          "_nanoseconds": {
+            "integerValue": "34000000"
+          }
+        }
+      }
+    }
   },
   {
-    "id": "grOYv5MJcanAyNMnYBwO",
-    "contribution": "free",
-    "slug": "atmen-mit-lunge-lungtown-20260727",
-    "categories": [
-      "Breathwork"
-    ],
-    "endTime": "",
-    "createdBy": "IccG8JVa2rZxKhnuleOKvpJaV7x1",
+    "id": "RRfSK94VZpQw4FmS4IUm",
+    "title": {
+      "stringValue": "Floating Gongbath"
+    },
+    "date": {
+      "stringValue": "2026-11-22"
+    },
+    "time": {
+      "stringValue": "19:00"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "place": {
+      "stringValue": "Le Studio, Steinebach 7, Dornbirn"
+    },
+    "contribution": {
+      "stringValue": "fee"
+    },
+    "fee": {
+      "integerValue": "39"
+    },
+    "description": {
+      "stringValue": "<p>FLOATING GONGBATH </p><p>Was wäre, wenn du dir für einen Abend nichts vornehmen müsstest – außer loszulassen?</p><p>Stell dir vor, du liegst schwerelos und vollkommen geborgen in deiner persönlichen Hängematte. Dein Körper darf entspannen, dein Atem wird ruhiger und der Alltag tritt immer mehr in den Hintergrund.</p><p>Dann beginnt der Gong zu schwingen.</p><p>Seine tiefen, warmen und zugleich kraftvollen Klänge breiten sich im Raum aus. Die Vibrationen berühren deinen Körper, während du dich immer mehr dem Moment hingibst. Du musst nichts leisten, nichts erreichen und nichts festhalten.</p><p>Du darfst einfach sein. 🤍</p><p>🌙 FLOATING GONGBATH ist eine besondere Form der Klangreise, bei der du in einer Hängematte getragen wirst und dich vollkommen den Schwingungen des Gongs anvertrauen kannst.</p><p>Eine achtsame Auszeit vom schnellen Rhythmus des Alltags.</p><p>Ein Moment, in dem du tief durchatmen darfst.</p><p>Ein Raum, in dem du zur Ruhe kommen und neue Kraft schöpfen kannst.</p><p>Die Kombination aus sanfter Schwerelosigkeit, tiefen Klangwellen und bewusster Entspannung schafft eine außergewöhnliche Atmosphäre – fast wie ein Eintauchen in eine andere Welt.</p><p>✨ Lass dich tragen.</p><p>✨ Lass dich berühren.</p><p>✨ Lass Gedanken leiser werden.</p><p>✨ Lass die Schwingungen des Gongs durch den Raum und durch dich hindurchfließen.</p><p>Diese 90 Minuten gehören ganz dir.</p><p>Eine kostbare kleine Auszeit, um den Körper loszulassen, den Geist zur Ruhe kommen zu lassen und wieder bei dir selbst anzukommen.</p><p>Ein Abend zum Entschleunigen.</p><p>Zum Spüren.</p><p>Zum Loslassen.</p><p>Zum Auftanken. </p>"
+    },
+    "link": {
+      "stringValue": "https://www.cosmicklang.com"
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "category": {
+      "stringValue": "Meditation"
+    },
+    "bezirk": {
+      "stringValue": "Dornbirn"
+    },
+    "kontakt": {
+      "stringValue": "cosmicklang@gmail.com"
+    },
+    "slug": {
+      "stringValue": "floating-gongbath-le-studio-steinebach-7-dornbirn-20261122"
+    },
+    "createdBy": {
+      "stringValue": "zcafEZZ0Ked8d9rB4n9zonv7rwv2"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787733564"
+          },
+          "_nanoseconds": {
+            "integerValue": "760000000"
+          }
+        }
+      }
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Richard"
+          },
+          "lastName": {
+            "stringValue": "Gaste"
+          },
+          "email": {
+            "stringValue": "cosmicklang@gmail.com"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FIccG8JVa2rZxKhnuleOKvpJaV7x1%2Favatar%2F1786124601568_Gemini_Generated_Image_q7ivr8q7ivr8q7iv.png?alt=media&token=ad13856e-599c-4f01-8c08-e5493bc669f0"
+          }
+        }
+      }
+    },
     "imageUrl": {
       "nullValue": null
     },
-    "description": "",
-    "createdAt": "2026-07-22T06:40:15.040Z",
-    "place": "lungtown",
-    "bezirk": "Dornbirn",
-    "recurrenceEndDate": "2027-03-15",
-    "link": "",
-    "fee": {
-      "nullValue": null
+    "customDates": [],
+    "approvedBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
     },
-    "time": "",
-    "recurrence": "weekly",
-    "title": "Atmen mit Lunge",
-    "endDate": "",
-    "date": "2026-07-27",
-    "status": "approved"
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787918628"
+          },
+          "_nanoseconds": {
+            "integerValue": "780000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "approved"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787918661"
+          },
+          "_nanoseconds": {
+            "integerValue": "767000000"
+          }
+        }
+      }
+    }
   },
   {
-    "id": "hQmPI2fFMLqd0eLgIYWD",
+    "id": "TfWe1aVIN93L7tXaVc27",
+    "title": {
+      "stringValue": "WOMEN CIRCLE"
+    },
+    "date": {
+      "stringValue": "2026-08-28"
+    },
+    "time": {
+      "stringValue": "18:00"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "endDate": {
+      "stringValue": "2026-08-25"
+    },
+    "place": {
+      "stringValue": "Yoga Vila Landammanngasse 18"
+    },
+    "contribution": {
+      "stringValue": "fee"
+    },
+    "fee": {
+      "integerValue": "50"
+    },
+    "description": {
+      "stringValue": "<p>fake </p>"
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "recurrence": {
+      "stringValue": "monthly"
+    },
+    "recurrenceEndDate": {
+      "stringValue": "2027-01-25"
+    },
+    "category": {
+      "stringValue": "Sonstiges"
+    },
+    "bezirk": {
+      "stringValue": "Feldkirch"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Katharina"
+          },
+          "lastName": {
+            "stringValue": "Eller"
+          },
+          "email": {
+            "stringValue": "katharinaflows@gmail.com"
+          },
+          "photoURL": {
+            "nullValue": null
+          }
+        }
+      }
+    },
+    "kontakt": {
+      "stringValue": "katharinaflows@gmail.com"
+    },
+    "slug": {
+      "stringValue": "women-circle-yoga-vila-landammanngasse-18-20260828"
+    },
+    "createdBy": {
+      "stringValue": "IeI9F7reBtQuUWbOqf70bK8vaBx2"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787611900"
+          },
+          "_nanoseconds": {
+            "integerValue": "473000000"
+          }
+        }
+      }
+    },
+    "imageUrl": {
+      "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/events%2FTfWe1aVIN93L7tXaVc27%2F1787611900474_IMG_5443.jpeg?alt=media&token=e6876730-d4c5-4830-b961-f3f85e69c3a9"
+    },
+    "approvedBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787632110"
+          },
+          "_nanoseconds": {
+            "integerValue": "549000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "approved"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787632110"
+          },
+          "_nanoseconds": {
+            "integerValue": "549000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "U4UDyL4u84fW4PzFHfZp",
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
     "fee": {
       "nullValue": null
     },
-    "link": "",
-    "bezirk": "Bregenz",
-    "recurrenceEndDate": "2027-01-18",
-    "place": "singstreet",
-    "createdAt": "2026-07-22T06:41:30.385Z",
-    "endDate": "",
-    "date": "2026-07-28",
-    "title": "Singen am Pfänder",
-    "status": "approved",
-    "recurrence": "weekly",
-    "time": "",
+    "place": {
+      "stringValue": "Mäder"
+    },
+    "customDates": [],
+    "title": {
+      "stringValue": "Ecstatic Dance (Kopie) (Kopie)"
+    },
+    "contribution": {
+      "stringValue": "free"
+    },
+    "imageUrl": {
+      "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/events%2FsVFw37sN25LIeZ6ecYc0%2F1787549091891_IMG_2154.jpeg?alt=media&token=29aba202-8ce5-4a58-a415-c08973ca2e6a"
+    },
+    "status": {
+      "stringValue": "draft"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FIccG8JVa2rZxKhnuleOKvpJaV7x1%2Favatar%2F1786124601568_Gemini_Generated_Image_q7ivr8q7ivr8q7iv.png?alt=media&token=ad13856e-599c-4f01-8c08-e5493bc669f0"
+          },
+          "firstName": {
+            "stringValue": "Ecstatic Dance Tribe"
+          },
+          "email": {
+            "stringValue": "mathis.aut@gmail.com"
+          },
+          "lastName": {
+            "stringValue": "Vorarlberg"
+          }
+        }
+      }
+    },
+    "priceCurrency": {
+      "stringValue": "EUR"
+    },
+    "date": {
+      "stringValue": "2026-09-22"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "slug": {
+      "stringValue": "ecstatic-dance-kopie-kopie-mder-20260922"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "time": {
+      "stringValue": "19:00"
+    },
+    "description": {
+      "stringValue": "Ecstatic Dance 🔥\nMit live DJ\n\n\nIm J.J. Ender Saal, Schlössleweg 3, \nMäder, Vorarlberg\n\nTanztempel mit 360qm Holzboden. ❤️\n\nEs gibt genügend Parkplätze direkt vor dem Ender Saal und beim Spar. \n\nNo shoes \nNo alcohol\nNo talking\n\nEintrittspreis = gib was sich für dich stimmig anfühlt in unsere Box an der Eingangstür. \n\nAbschlusskreis mit Snacks.\n\nWir freuen uns auf euch!\nAndreas und Robert ❤️"
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "bezirk": {
+      "stringValue": "Feldkirch"
+    },
+    "exceptionDates": [],
+    "kontakt": {
+      "stringValue": "Andi Daum"
+    },
+    "createdBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "category": {
+      "stringValue": "Tanz"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788463905"
+          },
+          "_nanoseconds": {
+            "integerValue": "638000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "UEYsrBuANBcYrFg6C1SS",
+    "time": {
+      "stringValue": "19:30"
+    },
+    "description": {
+      "stringValue": "<p>Tauche ein in eine einzigartige Klangreise und gönn dir eine bewusste Auszeit vom Alltag.</p><p>Dies ist für dich die Gelegenheit, einen eigens für diesen Anlass vorbereiteten Raum zu besuchen – einen heiligen Raum, einen Ort der Ruhe und Entspannung, an dem du dich einfach nur fallen lassen kannst. Eine Zeit, ganz für dich allein, um einfach nur zu sein, ohne irgendetwas leisten zu müssen.</p><p>Dich erwartet eine harmonische Kombination aus</p><p>Gong · Kristallklangschalen · Monochord · Oberton-Gesang, und andere Schätze.</p><p>Die Schwingungen wirken tief auf Körper und Geist, fördern Entspannung und können innere Türen öffnen.</p><p>Ich werde diese Klangreise mit verschiedenen Instrumenten aus aller Welt begleiten. Eine innere Reise der Schwingungen, die dir helfen soll, loszulassen und vielleicht neue Horizonte zu eröffnen.</p><p>Bring bitte alles mit, was du brauchst, um es dir bequem zu machen: eine Matratze, ein Kissen und eine Decke – alles, was du für nötig hältst, um es dir so gemütlich wie möglich zu machen.</p><p>In einer entspannten und wohlwollenden Atmosphäre darfst du loslassen, dich neu zentrieren und einfach sein.</p><p></p>"
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "fee": {
+      "integerValue": "25"
+    },
+    "createdBy": {
+      "stringValue": "zcafEZZ0Ked8d9rB4n9zonv7rwv2"
+    },
+    "contribution": {
+      "stringValue": "fee"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "link": {
+      "stringValue": "https://www.cosmicklang.com"
+    },
+    "kontakt": {
+      "stringValue": "cosmicklang@gmail.com"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "title": {
+      "stringValue": "Cosmic Klangreise"
+    },
+    "date": {
+      "stringValue": "2026-09-22"
+    },
+    "place": {
+      "stringValue": "VogelFrei Raum, Rankweil"
+    },
+    "bezirk": {
+      "stringValue": "Feldkirch"
+    },
+    "priceCurrency": {
+      "stringValue": "EUR"
+    },
+    "customDates": [
+      {
+        "stringValue": "2026-09-22"
+      },
+      {
+        "stringValue": "2026-10-13"
+      },
+      {
+        "stringValue": "2026-11-24"
+      },
+      {
+        "stringValue": "2026-12-15"
+      }
+    ],
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Richard"
+          },
+          "lastName": {
+            "stringValue": "Gaste"
+          },
+          "email": {
+            "stringValue": "cosmicklang@gmail.com"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FzcafEZZ0Ked8d9rB4n9zonv7rwv2%2Favatar%2F1787552391004_IMG_6788.jpeg?alt=media&token=cb7bd952-3393-4e46-8bb2-60865703e24a"
+          }
+        }
+      }
+    },
+    "slug": {
+      "stringValue": "cosmic-klangreise-vogelfrei-raum-rankweil-20260922"
+    },
+    "category": {
+      "stringValue": "Soundhealing"
+    },
+    "recurrence": {
+      "stringValue": "custom"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788466360"
+          },
+          "_nanoseconds": {
+            "integerValue": "505000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788466360"
+          },
+          "_nanoseconds": {
+            "integerValue": "505000000"
+          }
+        }
+      }
+    },
+    "imageUrl": {
+      "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/events%2FUEYsrBuANBcYrFg6C1SS%2F1788466360594_Cosmic_Klangreise_Publication_Instagram_45_.png?alt=media&token=db0f9714-4d98-4f87-bc25-10635880484f"
+    },
+    "approvedBy": {
+      "stringValue": "RrLP8vZFUtTxi9HKWZIYqnRHgxY2"
+    },
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788519735"
+          },
+          "_nanoseconds": {
+            "integerValue": "270000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "approved"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788519735"
+          },
+          "_nanoseconds": {
+            "integerValue": "270000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "UNDCxvOEE4iLx1Aq6JJi",
+    "slug": {
+      "stringValue": "test-20260908"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "lastName": {
+            "stringValue": "Mathis"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FIccG8JVa2rZxKhnuleOKvpJaV7x1%2Favatar%2F1786124601568_Gemini_Generated_Image_q7ivr8q7ivr8q7iv.png?alt=media&token=ad13856e-599c-4f01-8c08-e5493bc669f0"
+          },
+          "email": {
+            "stringValue": "mathis.aut@gmail.com"
+          },
+          "firstName": {
+            "stringValue": "Peter"
+          }
+        }
+      }
+    },
+    "categoryColor": {
+      "nullValue": null
+    },
+    "title": {
+      "stringValue": "test"
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "customDates": [],
     "imageUrl": {
       "nullValue": null
     },
-    "createdBy": "IccG8JVa2rZxKhnuleOKvpJaV7x1",
-    "endTime": "",
-    "categories": [
-      "Singen"
-    ],
-    "contribution": "free",
-    "slug": "singen-am-pfnder-singstreet-20260728",
-    "description": ""
-  },
-  {
-    "id": "jv9DUU9IfdXB4jWdmcQL",
-    "title": "Singen mit Sabine",
-    "date": "2026-07-24",
-    "endDate": "",
-    "status": "approved",
-    "recurrence": "weekly",
-    "time": "",
-    "link": "",
+    "time": {
+      "stringValue": "23:03"
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "createdBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
     "fee": {
       "nullValue": null
     },
-    "bezirk": "Dornbirn",
-    "recurrenceEndDate": "2026-12-16",
-    "place": "Singstraße",
-    "createdAt": "2026-07-22T06:32:05.386Z",
-    "description": "",
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "contribution": {
+      "stringValue": "free"
+    },
+    "bezirk": {
+      "stringValue": "Dornbirn"
+    },
+    "category": {
+      "stringValue": "Breathwork"
+    },
+    "date": {
+      "stringValue": "2026-09-08"
+    },
+    "description": {
+      "stringValue": "<p>asdf</p>"
+    },
+    "place": {
+      "stringValue": ""
+    },
+    "kontakt": {
+      "stringValue": "mathis.aut@gmail.com"
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "priceCurrency": {
+      "nullValue": null
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788783299"
+          },
+          "_nanoseconds": {
+            "integerValue": "614000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788783299"
+          },
+          "_nanoseconds": {
+            "integerValue": "614000000"
+          }
+        }
+      }
+    },
+    "trashedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788783317"
+          },
+          "_nanoseconds": {
+            "integerValue": "729000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "trashed"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788783317"
+          },
+          "_nanoseconds": {
+            "integerValue": "729000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "UjIwCKYESPB4cKP6W9aD",
+    "recurrence": {
+      "stringValue": "custom"
+    },
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "priceCurrency": {
+      "nullValue": null
+    },
+    "title": {
+      "stringValue": "mehrere termine"
+    },
+    "customDates": [
+      {
+        "stringValue": "2026-09-04"
+      },
+      {
+        "stringValue": "2026-09-11"
+      },
+      {
+        "stringValue": "2026-09-18"
+      },
+      {
+        "stringValue": "2026-09-25"
+      }
+    ],
+    "endDate": {
+      "stringValue": ""
+    },
+    "createdBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "bezirk": {
+      "stringValue": "Bludenz"
+    },
+    "place": {
+      "stringValue": ""
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "kontakt": {
+      "stringValue": "mathis.aut@gmail.com"
+    },
+    "slug": {
+      "stringValue": "mehrere-termine-20260904"
+    },
+    "description": {
+      "stringValue": "<p>dasdf</p>"
+    },
+    "contribution": {
+      "stringValue": "free"
+    },
+    "category": {
+      "stringValue": "Breathwork"
+    },
+    "fee": {
+      "nullValue": null
+    },
+    "time": {
+      "stringValue": "20:00"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Peter"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FIccG8JVa2rZxKhnuleOKvpJaV7x1%2Favatar%2F1786124601568_Gemini_Generated_Image_q7ivr8q7ivr8q7iv.png?alt=media&token=ad13856e-599c-4f01-8c08-e5493bc669f0"
+          },
+          "lastName": {
+            "stringValue": "Mathis"
+          },
+          "email": {
+            "stringValue": "mathis.aut@gmail.com"
+          }
+        }
+      }
+    },
+    "date": {
+      "stringValue": "2026-09-04"
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788529451"
+          },
+          "_nanoseconds": {
+            "integerValue": "163000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788529451"
+          },
+          "_nanoseconds": {
+            "integerValue": "163000000"
+          }
+        }
+      }
+    },
+    "imageUrl": {
+      "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/events%2FUjIwCKYESPB4cKP6W9aD%2F1788529451263_morgenpraxis_postkarte_1_.png?alt=media&token=a9bd3e35-2473-4638-a7d6-201af3e26309"
+    },
+    "approvedBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788529468"
+          },
+          "_nanoseconds": {
+            "integerValue": "459000000"
+          }
+        }
+      }
+    },
+    "trashedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788530369"
+          },
+          "_nanoseconds": {
+            "integerValue": "444000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "trashed"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788530369"
+          },
+          "_nanoseconds": {
+            "integerValue": "444000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "VIDvotpun3en5Gemm5o2",
+    "title": {
+      "stringValue": "Akasha Chronik Seminar"
+    },
+    "date": {
+      "stringValue": "2026-11-13"
+    },
+    "time": {
+      "stringValue": "10:00"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "endDate": {
+      "stringValue": "2026-11-15"
+    },
+    "place": {
+      "stringValue": "Secret Yoga Place Gütle 11b Dornbirn"
+    },
+    "contribution": {
+      "stringValue": "fee"
+    },
+    "fee": {
+      "integerValue": "630"
+    },
+    "description": {
+      "stringValue": "<p>Lerne in deiner eigenen Akasha Chronik zu lesen und in der von anderen mit ihrer Erlaubnis . </p><p>Verfeinere deine intuitive Wahrnehmung und spüre die Unterschiede zwischen Fremd und Selbstbestimmung .</p>"
+    },
+    "link": {
+      "stringValue": "https://Www.meikeschroeder.com"
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "category": {
+      "stringValue": "Sonstiges"
+    },
+    "bezirk": {
+      "stringValue": "Dornbirn"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Meike"
+          },
+          "lastName": {
+            "stringValue": "Schröder"
+          },
+          "email": {
+            "stringValue": "meike.shakti@gmail.com"
+          },
+          "photoURL": {
+            "nullValue": null
+          }
+        }
+      }
+    },
+    "kontakt": {
+      "stringValue": "meike.shakti@gmail.com"
+    },
+    "slug": {
+      "stringValue": "akasha-chronik-seminar-secret-yoga-place-gtle-11b-dornbirn-20261113"
+    },
+    "createdBy": {
+      "stringValue": "gNqGIOfQFvQvgBbCYo3PNxrUhgb2"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787751649"
+          },
+          "_nanoseconds": {
+            "integerValue": "813000000"
+          }
+        }
+      }
+    },
+    "imageUrl": {
+      "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/events%2FVIDvotpun3en5Gemm5o2%2F1787751649952_2026-Akasha-Post.jpeg?alt=media&token=39e87714-a5f2-470a-affa-75ea3dae98a6"
+    },
+    "approvedBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787753013"
+          },
+          "_nanoseconds": {
+            "integerValue": "260000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "approved"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787753013"
+          },
+          "_nanoseconds": {
+            "integerValue": "260000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "ZMzBnOWMbNlrNW3rU0Bm",
+    "createdBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "description": {
+      "stringValue": "<p>asdf</p>"
+    },
+    "category": {
+      "stringValue": "Meditation"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Peter"
+          },
+          "lastName": {
+            "stringValue": "Mathis"
+          },
+          "email": {
+            "stringValue": "mathis.aut@gmail.com"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FIccG8JVa2rZxKhnuleOKvpJaV7x1%2Favatar%2F1786124601568_Gemini_Generated_Image_q7ivr8q7ivr8q7iv.png?alt=media&token=ad13856e-599c-4f01-8c08-e5493bc669f0"
+          }
+        }
+      }
+    },
     "imageUrl": {
       "nullValue": null
     },
-    "createdBy": "IccG8JVa2rZxKhnuleOKvpJaV7x1",
-    "categories": [
-      "Singen"
-    ],
-    "endTime": "",
-    "updatedAt": "2026-07-22T06:32:18.397Z",
-    "contribution": "free",
-    "slug": "singen-mit-sabine-singstrae-20260724"
-  },
-  {
-    "id": "lRj01XwRzPVNbLXZ1iLW",
+    "endDate": {
+      "stringValue": ""
+    },
+    "slug": {
+      "stringValue": "asdf-20260901"
+    },
+    "customDates": [],
+    "contribution": {
+      "stringValue": "free"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "bezirk": {
+      "stringValue": "Dornbirn"
+    },
+    "kontakt": {
+      "stringValue": "mathis.aut@gmail.com"
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "title": {
+      "stringValue": "asdf"
+    },
+    "priceCurrency": {
+      "nullValue": null
+    },
     "fee": {
       "nullValue": null
     },
-    "link": "",
-    "recurrenceEndDate": "",
-    "bezirk": "Bludenz",
-    "approvedAt": "2026-07-13T14:49:26.071Z",
-    "place": "Auf der Fluh 1",
-    "createdAt": "2026-07-13T14:41:18.348Z",
-    "status": "approved",
-    "endDate": "",
-    "date": "2026-07-15",
-    "title": "Ecstatic Dance",
-    "recurrence": "none",
-    "time": "17:41",
-    "imageUrl": "https://i.ibb.co/yDv9HCS/b20f0e427c96.jpg",
-    "createdBy": "u3xmb2UpROOYMHQQy4PxtSUI9Pp1",
-    "endTime": "19:41",
-    "categories": [
-      "Tanz"
-    ],
-    "updatedAt": "2026-07-13T14:49:26.071Z",
-    "approvedBy": "IccG8JVa2rZxKhnuleOKvpJaV7x1",
-    "slug": "ecstatic-dance-auf-der-fluh-1-20260715",
-    "contribution": "free",
-    "description": ""
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "time": {
+      "stringValue": "01:45"
+    },
+    "place": {
+      "stringValue": ""
+    },
+    "date": {
+      "stringValue": "2026-09-01"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788385527"
+          },
+          "_nanoseconds": {
+            "integerValue": "895000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788385527"
+          },
+          "_nanoseconds": {
+            "integerValue": "895000000"
+          }
+        }
+      }
+    },
+    "approvedBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788385537"
+          },
+          "_nanoseconds": {
+            "integerValue": "449000000"
+          }
+        }
+      }
+    },
+    "trashedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788783326"
+          },
+          "_nanoseconds": {
+            "integerValue": "935000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "trashed"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788783326"
+          },
+          "_nanoseconds": {
+            "integerValue": "935000000"
+          }
+        }
+      }
+    }
   },
   {
-    "id": "ls8GoWKJCVxLDUncEMjP",
-    "description": "",
-    "contribution": "free",
-    "slug": "rarohupidu-asdf-20260721",
-    "endTime": "",
-    "categories": [
-      "Meditation"
-    ],
+    "id": "ZduQ7J6pjcCQxDk7SkAQ",
+    "title": {
+      "stringValue": "YOGA & BRUNCH"
+    },
+    "date": {
+      "stringValue": "2026-08-29"
+    },
+    "time": {
+      "stringValue": "09:33"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "place": {
+      "stringValue": "Spielerstrasse 27a, 6845 Hohenems"
+    },
+    "contribution": {
+      "stringValue": "fee"
+    },
+    "fee": {
+      "integerValue": "33"
+    },
+    "description": {
+      "stringValue": "<p>for all this saturday &lt;3</p>"
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "category": {
+      "stringValue": "Yoga"
+    },
+    "bezirk": {
+      "stringValue": "Dornbirn"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Marylou"
+          },
+          "lastName": {
+            "stringValue": "Ender"
+          },
+          "email": {
+            "stringValue": "maryloumusic42@gmail.com"
+          },
+          "photoURL": {
+            "nullValue": null
+          }
+        }
+      }
+    },
+    "kontakt": {
+      "stringValue": "maryloumusic42@gmail.com"
+    },
+    "slug": {
+      "stringValue": "yoga-brunch-spielerstrasse-27a-6845-hohenems-20260829"
+    },
+    "createdBy": {
+      "stringValue": "jeWVhIdmtPRsbXNOqT8JLaAgHIP2"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787733957"
+          },
+          "_nanoseconds": {
+            "integerValue": "68000000"
+          }
+        }
+      }
+    },
+    "imageUrl": {
+      "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/events%2FZduQ7J6pjcCQxDk7SkAQ%2F1787733957230_38064a87-c213-46a9-b80b-40d0ac696896.jpeg?alt=media&token=e04d4a18-43cf-47f3-8db8-5ca6d31aa495"
+    },
+    "approvedBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787739067"
+          },
+          "_nanoseconds": {
+            "integerValue": "753000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "approved"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787739067"
+          },
+          "_nanoseconds": {
+            "integerValue": "753000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "ZqpnbCoch5A3J7seU5tV",
+    "time": {
+      "stringValue": "17:30"
+    },
+    "recurrence": {
+      "stringValue": "weekly"
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "description": {
+      "stringValue": "<p><strong>Du kümmerst dich um deinen Körper, aber kannst du auch richtig runterfahren?</strong></p><p>Dein Körper braucht auch die Fähigkeit, <strong>aus dem Leistungsmodus herauszukommen.</strong></p><p></p><p>Du weißt: deine Muskeln wachsen in der Regeneration.</p><p>Du weißt auch: ein ruhiger Geist unterstützt deine Regeneration.</p><p></p><p>Doch echte Regeneration bedeutet mehr als Schlaf und gesunde Ernährung.</p><p>Genau darum geht es in unserer gemeinsamen Praxis. An 7 Sonntagen widmen wir uns</p><p>der ganzheitlichen Regeneration bevor die neue Arbeitswoche beginnt.</p><p></p><p>Dieser Kurs ist auch für Unsportliche geeignet.</p><p></p><p><strong>SANDRA BASIC<br></strong>Yin-Yoga-Expertin<br>→ tiefe körperliche Entspannung, Loslassen &amp; Regeneration<br></p><p></p><p><strong>PETER MATHIS<br></strong>Meditations- &amp; Atemexperte<br>→ bewusste Atmung, Meditation &amp; Regulation des Nervensystems</p><p></p><p></p>"
+    },
+    "fee": {
+      "integerValue": "120"
+    },
     "imageUrl": {
       "nullValue": null
     },
-    "createdBy": "IccG8JVa2rZxKhnuleOKvpJaV7x1",
-    "time": "",
-    "recurrence": "weekly",
-    "title": "Rarohupidu",
-    "date": "2026-07-21",
-    "endDate": "",
-    "status": "approved",
-    "createdAt": "2026-07-22T06:44:57.792Z",
-    "place": "asdf",
-    "bezirk": "Feldkirch",
-    "recurrenceEndDate": "2027-03-09",
+    "place": {
+      "stringValue": "Yoga Studio Dornbirn, Kirchgasse 4a"
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "customDates": [],
+    "bezirk": {
+      "stringValue": "Dornbirn"
+    },
+    "createdBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "category": {
+      "stringValue": "Yoga"
+    },
+    "title": {
+      "stringValue": "The Power of Relaxation"
+    },
+    "priceCurrency": {
+      "stringValue": "EUR"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "contribution": {
+      "stringValue": "fee"
+    },
+    "recurrenceEndDate": {
+      "stringValue": "2026-12-20"
+    },
+    "slug": {
+      "stringValue": "the-power-of-relaxation-yoga-studio-dornbirn-kirchgasse-4a-20261101"
+    },
+    "kontakt": {
+      "stringValue": "sandra@yogastudiodornbirn.at"
+    },
+    "date": {
+      "stringValue": "2026-11-01"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788955983"
+          },
+          "_nanoseconds": {
+            "integerValue": "756000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788955983"
+          },
+          "_nanoseconds": {
+            "integerValue": "756000000"
+          }
+        }
+      }
+    },
+    "approvedBy": {
+      "stringValue": "RrLP8vZFUtTxi9HKWZIYqnRHgxY2"
+    },
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788974311"
+          },
+          "_nanoseconds": {
+            "integerValue": "461000000"
+          }
+        }
+      }
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FRrLP8vZFUtTxi9HKWZIYqnRHgxY2%2Favatar%2F1785759707182_IMG_7920.jpeg?alt=media&token=560ffcf0-4b10-452d-9a66-36877030a5bf"
+          },
+          "lastName": {
+            "stringValue": "Dornbirn"
+          },
+          "email": {
+            "stringValue": "mathis.aut@gmail.com"
+          },
+          "firstName": {
+            "stringValue": "Yoga Studio"
+          }
+        }
+      }
+    },
+    "trashedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788988698"
+          },
+          "_nanoseconds": {
+            "integerValue": "0"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "trashed"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788988698"
+          },
+          "_nanoseconds": {
+            "integerValue": "0"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "boh7ggwnVpTiSSLK8cHc",
+    "title": {
+      "stringValue": "asdf"
+    },
+    "date": {
+      "stringValue": "2026-09-02"
+    },
+    "time": {
+      "stringValue": "03:24"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "place": {
+      "stringValue": ""
+    },
+    "contribution": {
+      "stringValue": "free"
+    },
     "fee": {
       "nullValue": null
     },
-    "link": ""
-  },
-  {
-    "id": "mXNqUlN7FZCvtVmJ0Ifl",
-    "updatedAt": "2026-07-22T06:04:02.025Z",
-    "approvedBy": "IccG8JVa2rZxKhnuleOKvpJaV7x1",
-    "slug": "naked-ecstatic-dance-naked-studios-0815-20260723",
-    "contribution": "free",
-    "createdBy": "fQ5jQEMSBZgdWhn5ls76yFstPO03",
-    "imageUrl": "https://i.ibb.co/Rpm888K5/d3b8bab26eab.jpg",
-    "categories": [
-      "Tanz"
-    ],
-    "endTime": "10:00",
-    "description": "Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, sem. Nulla consequat massa quis enim. Donec pede justo, fringilla vel, aliquet nec, vulputate eget, arcu. In enim justo, rhoncus ut, imperdiet a, venenatis vitae, justo. Nullam dictum felis eu pede mollis pretium. Integer tincidunt. Cras dapibus. Vivamus elementum semper nisi. Aenean vulputate eleifend tellus. Aenean leo ligula, porttitor eu, consequat vitae, eleifend ac, enim. Aliquam lorem ante, dapibus in, viverra quis, feugiat a, tellus. Phasellus viverra nulla ut metus varius laoreet. Quisque rutrum. Aenean imperdiet. Etiam ultricies nisi vel augue. Curabitur ullamcorper ultricies nisi. Nam eget dui. Etiam rhoncus. Maecenas tempus, tellus eget condimentum rhoncus, sem quam semper libero, sit amet adipiscing sem neque sed ipsum. Nam quam nunc, blandit vel, luctus pulvinar, hendrerit id, lorem. Maecenas nec odio et ante tincidunt tempus. Donec vitae sapien ut libero venenatis faucibus. Nullam quis ante. Etiam sit amet orci eget eros faucibus tincidunt. Duis leo. Sed fringilla mauris sit amet nibh. Donec sodales sagittis magna. Sed consequat, leo eget bibendum sodales, augue velit cursus nunc,\n\nLorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, sem. Nulla consequat massa quis enim. Donec pede justo, fringilla vel, aliquet nec, vulputate eget, arcu. In enim justo, rhoncus ut, imperdiet a, venenatis vitae, justo. Nullam dictum felis eu pede mollis pretium. Integer tincidunt. Cras dapibus. Vivamus elementum semper nisi. Aenean vulputate eleifend tellus. Aenean leo ligula, porttitor eu, consequat vitae, eleifend ac, enim. Aliquam lorem ante, dapibus in, viverra quis, feugiat a, tellus. Phasellus viverra nulla ut metus varius laoreet. Quisque rutrum. Aenean imperdiet. Etiam ultricies nisi vel augue. Curabitur ullamcorper ultricies nisi. Nam eget dui. Etiam rhoncus. Maecenas tempus, tellus eget condimentum rhoncus, sem quam semper libero, sit amet adipiscing sem neque sed ipsum. Nam quam nunc, blandit vel, luctus pulvinar, hendrerit id, lorem. Maecenas nec odio et ante tincidunt tempus. Donec vitae sapien ut libero venenatis faucibus. Nullam quis ante. Etiam sit amet orci eget eros faucibus tincidunt. Duis leo. Sed fringilla mauris sit amet nibh. Donec sodales sagittis magna. Sed consequat, leo eget bibendum sodales, augue velit cursus nunc,\n\nLorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, sem. Nulla consequat massa quis enim. Donec pede justo, fringilla vel, aliquet nec, vulputate eget, arcu. In enim justo, rhoncus ut, imperdiet a, venenatis vitae, justo. Nullam dictum felis eu pede mollis pretium. Integer tincidunt. Cras dapibus. Vivamus elementum semper nisi. Aenean vulputate eleifend tellus. Aenean leo ligula, porttitor eu, consequat vitae, eleifend ac, enim. Aliquam lorem ante, dapibus in, viverra quis, feugiat a, tellus. Phasellus viverra nulla ut metus varius laoreet. Quisque rutrum. Aenean imperdiet. Etiam ultricies nisi vel augue. Curabitur ullamcorper ultricies nisi. Nam eget dui. Etiam rhoncus. Maecenas tempus, tellus eget condimentum rhoncus, sem quam semper libero, sit amet adipiscing sem neque sed ipsum. Nam quam nunc, blandit vel, luctus pulvinar, hendrerit id, lorem. Maecenas nec odio et ante tincidunt tempus. Donec vitae sapien ut libero venenatis faucibus. Nullam quis ante. Etiam sit amet orci eget eros faucibus tincidunt. Duis leo. Sed fringilla mauris sit amet nibh. Donec sodales sagittis magna. Sed consequat, leo eget bibendum sodales, augue velit cursus nunc,",
-    "place": "Naked Studios 0815",
-    "createdAt": "2026-07-22T06:01:50.604Z",
-    "link": "https://www.google.com",
-    "fee": {
+    "priceCurrency": {
       "nullValue": null
     },
-    "recurrenceEndDate": "",
-    "approvedAt": "2026-07-22T06:04:02.025Z",
-    "bezirk": "Bludenz",
-    "time": "08:00",
-    "status": "approved",
-    "title": "Naked Ecstatic Dance",
-    "endDate": "",
-    "date": "2026-07-23",
-    "recurrence": "weekly"
-  },
-  {
-    "id": "nuTmEgpYQqHODLnWf8fS",
-    "description": "",
-    "imageUrl": "https://i.ibb.co/Rpm888K5/d3b8bab26eab.jpg",
-    "createdBy": "IccG8JVa2rZxKhnuleOKvpJaV7x1",
-    "endTime": "",
-    "categories": [
-      "Sonstiges"
-    ],
-    "updatedAt": "2026-07-22T06:30:28.061Z",
-    "slug": "mehrtagesretreat-into-the-wild-street-20260723",
-    "contribution": "free",
-    "status": "approved",
-    "title": "Mehrtagesretreat",
-    "date": "2026-07-23",
-    "endDate": "2026-07-31",
-    "recurrence": "monthly",
-    "time": "14:35",
-    "fee": {
-      "nullValue": null
+    "feeNote": {
+      "stringValue": ""
     },
-    "link": "https://www.meldedichhieran.com",
-    "recurrenceEndDate": "",
-    "bezirk": "Feldkirch",
-    "place": "into the wild street",
-    "createdAt": "2026-07-22T06:30:26.252Z"
-  },
-  {
-    "id": "vtYrdFMKn6QusgWyloXJ",
-    "description": "- Liste\n- Liste\n- Liste- Liste\n- Liste\n- Liste- Liste iste- Liste\n- Liste\n- Liste- \n- Liste\n- Liste- Liste\n- Liste\n- Liste",
-    "contribution": "free",
-    "slug": "event-wiederholend-forever-strae-20260723",
-    "updatedAt": "2026-07-22T06:16:22.004Z",
-    "categories": [
-      "Yoga"
-    ],
-    "endTime": "",
-    "createdBy": "IccG8JVa2rZxKhnuleOKvpJaV7x1",
+    "description": {
+      "stringValue": "<p>asdf</p>"
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "customDates": [],
+    "category": {
+      "stringValue": "Meditation"
+    },
+    "bezirk": {
+      "stringValue": "Bludenz"
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Yoga"
+          },
+          "lastName": {
+            "stringValue": "Studio"
+          },
+          "email": {
+            "stringValue": "mathis.aut@gmail.com"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FIccG8JVa2rZxKhnuleOKvpJaV7x1%2Favatar%2F1786124601568_Gemini_Generated_Image_q7ivr8q7ivr8q7iv.png?alt=media&token=ad13856e-599c-4f01-8c08-e5493bc669f0"
+          }
+        }
+      }
+    },
+    "kontakt": {
+      "stringValue": "mathis.aut@gmail.com"
+    },
     "imageUrl": {
       "nullValue": null
     },
-    "time": "13:19",
-    "recurrence": "weekly",
-    "title": "Event wiederholend forever",
-    "date": "2026-07-23",
-    "endDate": "",
-    "status": "approved",
-    "createdAt": "2026-07-22T06:14:25.962Z",
-    "place": "Straße",
-    "bezirk": "Dornbirn",
-    "recurrenceEndDate": "",
-    "fee": {
-      "nullValue": null
+    "rightsConfirmed": {
+      "booleanValue": "true"
     },
-    "link": ""
-  },
-  {
-    "id": "x8Fidyj4TzgjIoVVUj5L",
-    "place": "Annagasse 12",
-    "createdAt": "2026-07-14T07:11:39.250Z",
-    "fee": {
-      "nullValue": null
+    "slug": {
+      "stringValue": "asdf-20260902"
     },
-    "link": "",
-    "recurrenceEndDate": "",
-    "bezirk": "Dornbirn",
-    "approvedAt": "2026-07-22T06:03:56.979Z",
-    "time": "",
-    "status": "approved",
-    "title": "TestEvent1",
-    "date": "2026-07-15",
-    "endDate": "",
-    "recurrence": "none",
-    "updatedAt": "2026-07-22T06:03:56.979Z",
-    "approvedBy": "IccG8JVa2rZxKhnuleOKvpJaV7x1",
-    "contribution": "free",
-    "slug": "testevent1-annagasse-12-20260715",
-    "createdBy": "u3xmb2UpROOYMHQQy4PxtSUI9Pp1",
-    "imageUrl": "https://i.ibb.co/yDv9HCS/b20f0e427c96.jpg",
-    "categories": [
-      "Meditation"
-    ],
-    "endTime": "",
-    "description": ""
+    "createdBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789480369"
+          },
+          "_nanoseconds": {
+            "integerValue": "69000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789480369"
+          },
+          "_nanoseconds": {
+            "integerValue": "69000000"
+          }
+        }
+      }
+    },
+    "trashedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789480394"
+          },
+          "_nanoseconds": {
+            "integerValue": "109000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "trashed"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789480394"
+          },
+          "_nanoseconds": {
+            "integerValue": "109000000"
+          }
+        }
+      }
+    }
   },
   {
-    "id": "xZXetEhOAghf0KiBbpWf",
-    "approvedBy": "IccG8JVa2rZxKhnuleOKvpJaV7x1",
-    "updatedAt": "2026-07-22T06:19:49.497Z",
-    "slug": "rolling-mountain-wiederholend-bis-dezember-2027-sabalumba-20260723",
-    "contribution": "fee",
-    "createdBy": "fQ5jQEMSBZgdWhn5ls76yFstPO03",
-    "imageUrl": "https://i.ibb.co/Rpm888K5/d3b8bab26eab.jpg",
-    "endTime": "",
-    "categories": [
-      "Singen"
-    ],
-    "description": "",
-    "place": "Sabalumba",
-    "createdAt": "2026-07-22T06:19:31.932Z",
-    "fee": 1400,
-    "link": "",
-    "bezirk": "Feldkirch",
-    "approvedAt": "2026-07-22T06:19:49.497Z",
-    "recurrenceEndDate": "2027-12-22",
-    "time": "10:00",
-    "date": "2026-07-23",
-    "endDate": "",
-    "title": "Rolling Mountain, wiederholend bis dezember 2027",
-    "status": "approved",
-    "recurrence": "weekly"
-  },
-  {
-    "id": "xwYbOADzpov6h6DCRUXN",
-    "description": "",
-    "createdBy": "IccG8JVa2rZxKhnuleOKvpJaV7x1",
+    "id": "dLMhrxfNwitpn3PTc1Pi",
+    "title": {
+      "stringValue": "Gong Puja - Gong Nacht der Balance – Herbst-Tag-und-Nacht-Gleiche"
+    },
+    "date": {
+      "stringValue": "2026-09-19"
+    },
+    "time": {
+      "stringValue": "21:00"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "endDate": {
+      "stringValue": "2026-09-20"
+    },
+    "place": {
+      "stringValue": "Gong Kubus, Dritteläckerweg 9 Dornbirn, 6850"
+    },
+    "contribution": {
+      "stringValue": "fee"
+    },
+    "fee": {
+      "integerValue": "210"
+    },
+    "description": {
+      "stringValue": "<p>Eine Nacht in den Gongs und Klängen lädt dich ein, die besondere Kraft der <strong>Herbst-Tagundnachtgleiche (Equinox)</strong> bewusst zu erleben. Wenn <strong>Tag und Nacht im vollkommenen Gleichgewicht</strong> stehen, öffnet sich ein kraftvolles Zeitfenster für Ausgleich, Integration und inneres Loslassen.</p><p>Diese Schwelle im Jahreskreis unterstützt dich dabei:</p><ul><li><p>die <strong>Fülle und Erfahrungen des Sommers zu integrieren</strong></p></li><li><p>in eine <strong>tiefe innere Balance</strong> zwischen Aktivität und Ruhe zu finden</p></li><li><p><strong>Abschied zu nehmen</strong>, von dem, was nicht mit in die dunklere Jahreszeit gehen soll</p></li><li><p>Klarheit für <strong>innere Prozesse, Entscheidungen und Übergänge</strong> zu gewinnen</p></li><li><p>Körper, Geist und Seele sanft auf <strong>Rückzug, Regeneration und Zentrierung</strong> einzustimmen</p></li></ul><p>Die Herbst-Tagundnachtgleiche steht energetisch für:</p><ul><li><p>einen <strong>bewussten Übergang</strong> vom Außen ins Innen</p></li><li><p>die <strong>Harmonie von Licht und Dunkelheit</strong> als Quelle innerer Stabilität</p></li><li><p><strong>Ernte, Dankbarkeit und Transformation</strong></p></li><li><p>ein <strong>Portal für Integration und Neuausrichtung</strong></p></li><li><p>das Setzen von <strong>Intentionen für die kommende Zeit der Innenschau</strong></p></li></ul><p>Die Gongs und Klänge wirken dabei wie ein tragender Raum, der dich durch diese Schwelle begleitet – tief entspannend, klärend und verbindend.<br>Eine Einladung, still zu werden, loszulassen und dich neu auszurichten.</p><p><strong>Bist du dabei?</strong> – Mit der Königin der Nacht, der Gong Puja Nacht von Samstag auf Sonntag, krönen wir die Qualitäten der Frequenzen der Entspannung, Regeneration und Wiederherstellung in uns selbst. Du empfängst die Gongs und Klänge eine ganze Nacht von 7.5 Stunden.</p><p>Das Gong-Team Alexandra Ott &amp; Richard Gasté (<a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"http://www.cosmicklang.com\"><strong>www.cosmicklang.com</strong></a>) spielen für dich, durchgehend die ganze Nacht. Hier findet Bewußtwerdung jenseits allen Tuns und Verstehens statt sowie tiefe Selbstregulation, Geborgenheit, Energetisierung, ein Gefühl des inneren Friedens und die zentrierende Stille danach.</p>"
+    },
+    "link": {
+      "stringValue": "https://alexandraottgong.at/event/gong-nacht-der-balance-herbst-tag-und-nacht-gleiche/"
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "bezirk": {
+      "stringValue": "Dornbirn"
+    },
+    "kontakt": {
+      "stringValue": "cosmicklang@gmail.com"
+    },
+    "slug": {
+      "stringValue": "gong-puja-gong-nacht-der-balance-herbst-tag-und-nacht-gleiche-gong-kubus-drittelckerweg-9-dornbirn-6850-20260919"
+    },
+    "createdBy": {
+      "stringValue": "zcafEZZ0Ked8d9rB4n9zonv7rwv2"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787731782"
+          },
+          "_nanoseconds": {
+            "integerValue": "493000000"
+          }
+        }
+      }
+    },
+    "approvedBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787732692"
+          },
+          "_nanoseconds": {
+            "integerValue": "692000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "approved"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Richard"
+          },
+          "lastName": {
+            "stringValue": "Gaste"
+          },
+          "email": {
+            "stringValue": "cosmicklang@gmail.com"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FIccG8JVa2rZxKhnuleOKvpJaV7x1%2Favatar%2F1786124601568_Gemini_Generated_Image_q7ivr8q7ivr8q7iv.png?alt=media&token=ad13856e-599c-4f01-8c08-e5493bc669f0"
+          }
+        }
+      }
+    },
     "imageUrl": {
       "nullValue": null
     },
-    "endTime": "",
-    "categories": [
-      "Yoga"
-    ],
-    "slug": "lalahupsi-asdf-20260721",
-    "contribution": "free",
-    "status": "approved",
-    "date": "2026-07-21",
-    "endDate": "",
-    "title": "lalahupsi",
-    "recurrence": "weekly",
-    "time": "",
-    "link": "",
-    "fee": {
-      "nullValue": null
+    "category": {
+      "stringValue": "Soundhealing"
     },
-    "recurrenceEndDate": "2027-01-12",
-    "bezirk": "Feldkirch",
-    "place": "asdf",
-    "createdAt": "2026-07-22T06:45:30.825Z"
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787747086"
+          },
+          "_nanoseconds": {
+            "integerValue": "673000000"
+          }
+        }
+      }
+    }
   },
   {
-    "id": "zCWMttdFj71G9TWJpXbh",
-    "time": "",
-    "title": "Bodywork Massage",
-    "date": "2026-07-22",
-    "endDate": "",
-    "status": "approved",
-    "recurrence": "weekly",
-    "place": "asdf",
-    "createdAt": "2026-07-22T06:46:12.328Z",
-    "fee": {
-      "nullValue": null
+    "id": "gJudENx1ceE9YjWeTYkd",
+    "description": {
+      "stringValue": "<p><strong>Du kümmerst dich um deinen Körper, aber kannst du auch richtig runterfahren?</strong></p><p>Dein Körper braucht auch die Fähigkeit, <strong>aus dem Leistungsmodus herauszukommen.</strong></p><p></p><p>Du weißt: deine Muskeln wachsen in der Regeneration.</p><p>Du weißt auch: ein ruhiger Geist unterstützt deine Regeneration.</p><p></p><p>Doch echte Regeneration bedeutet mehr als Schlaf und gesunde Ernährung.</p><p>Genau darum geht es in unserer gemeinsamen Praxis. An 7 Sonntagen widmen wir uns</p><p>der ganzheitlichen Regeneration bevor die neue Arbeitswoche beginnt.</p><p></p><p>Dieser Kurs ist auch für Unsportliche geeignet.</p><p></p><p><strong>SANDRA BASIC<br></strong>Yin-Yoga-Expertin<br>→ tiefe körperliche Entspannung, Loslassen &amp; Regeneration<br></p><p></p><p><strong>PETER MATHIS<br></strong>Meditations- &amp; Atemexperte<br>→ bewusste Atmung, Meditation &amp; Regulation des Nervensystems</p><p></p><p></p>"
     },
-    "link": "",
-    "bezirk": "Bregenz",
-    "recurrenceEndDate": "2027-04-14",
-    "description": "",
-    "slug": "bodywork-massage-asdf-20260722",
-    "contribution": "free",
-    "createdBy": "IccG8JVa2rZxKhnuleOKvpJaV7x1",
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "customDates": [],
+    "priceCurrency": {
+      "stringValue": "EUR"
+    },
+    "recurrenceEndDate": {
+      "stringValue": "2026-12-20"
+    },
+    "slug": {
+      "stringValue": "the-power-of-relaxation-yoga-studio-dornbirn-kirchgasse-4a-20261101"
+    },
+    "status": {
+      "stringValue": "draft"
+    },
+    "fee": {
+      "integerValue": "120"
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "place": {
+      "stringValue": "Yoga Studio Dornbirn, Kirchgasse 4a"
+    },
+    "date": {
+      "stringValue": "2026-11-01"
+    },
     "imageUrl": {
       "nullValue": null
     },
-    "endTime": "",
-    "categories": [
-      "Sonstiges"
-    ]
+    "contribution": {
+      "stringValue": "fee"
+    },
+    "createdBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "category": {
+      "stringValue": "Yoga"
+    },
+    "time": {
+      "stringValue": "17:30"
+    },
+    "recurrence": {
+      "stringValue": "weekly"
+    },
+    "title": {
+      "stringValue": "The Power of Relaxation"
+    },
+    "bezirk": {
+      "stringValue": "Dornbirn"
+    },
+    "kontakt": {
+      "stringValue": "sandra@yogastudiodornbirn.at"
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "lastName": {
+            "stringValue": "Dornbirn"
+          },
+          "email": {
+            "stringValue": "mathis.aut@gmail.com"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FIccG8JVa2rZxKhnuleOKvpJaV7x1%2Favatar%2F1786124601568_Gemini_Generated_Image_q7ivr8q7ivr8q7iv.png?alt=media&token=ad13856e-599c-4f01-8c08-e5493bc669f0"
+          },
+          "firstName": {
+            "stringValue": "Yoga Studio"
+          }
+        }
+      }
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788955978"
+          },
+          "_nanoseconds": {
+            "integerValue": "861000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788955978"
+          },
+          "_nanoseconds": {
+            "integerValue": "861000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "iGDH40YNdCnVm7V9G1KZ",
+    "title": {
+      "stringValue": "✨ Traumasensible Inneres-Kind-Gruppenhypnose"
+    },
+    "date": {
+      "stringValue": "2026-09-09"
+    },
+    "time": {
+      "stringValue": "19:00"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "place": {
+      "stringValue": "Online"
+    },
+    "contribution": {
+      "stringValue": "donation"
+    },
+    "fee": {
+      "nullValue": null
+    },
+    "description": {
+      "stringValue": "<p>Manchmal wissen wir genau, was uns belastet und kommen trotzdem nicht weiter. Manche Themen sitzen tiefer, als der Verstand reicht. Genau dort arbeite ich mit dir.</p><p>Ich begleite dich in einen tiefen, entspannten Zustand, in dem dein Unterbewusstsein zugänglich wird. Dort begegnen wir liebevoll deinem inneren Kind und arbeiten mit Gefühlen, Glaubenssätzen und Mustern, die dich heute noch belasten, um sie dauerhaft zu lösen.</p>"
+    },
+    "link": {
+      "stringValue": "https://joannacwalina.com"
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "customDates": [],
+    "category": {
+      "stringValue": "Meditation"
+    },
+    "bezirk": {
+      "stringValue": "Feldkirch"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Joanna"
+          },
+          "lastName": {
+            "stringValue": "Cwalina"
+          },
+          "email": {
+            "stringValue": "joannacwalinaa@gmail.com"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FMucnRVAaLlMnsv9MiFAqz0YVveG2%2Favatar%2F1787844660706_Joanna_Cwalina.jpg?alt=media&token=3403f131-90bb-446a-b37d-c158509dbbb3"
+          }
+        }
+      }
+    },
+    "kontakt": {
+      "stringValue": "joannacwalinaa@gmail.com"
+    },
+    "slug": {
+      "stringValue": "traumasensible-inneres-kind-gruppenhypnose-online-20260909"
+    },
+    "createdBy": {
+      "stringValue": "MucnRVAaLlMnsv9MiFAqz0YVveG2"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787845830"
+          },
+          "_nanoseconds": {
+            "integerValue": "495000000"
+          }
+        }
+      }
+    },
+    "imageUrl": {
+      "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/events%2FiGDH40YNdCnVm7V9G1KZ%2F1787845892324_ChatGPT_Image_Aug_27_2026_05_51_02_PM.png?alt=media&token=533bad60-843f-41a8-8e05-0eb11a3ed787"
+    },
+    "approvedBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787916850"
+          },
+          "_nanoseconds": {
+            "integerValue": "583000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "approved"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787916850"
+          },
+          "_nanoseconds": {
+            "integerValue": "583000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "jp8w7MmOQJ3vDdGiK028",
+    "time": {
+      "stringValue": "09:15"
+    },
+    "date": {
+      "stringValue": "2026-09-07"
+    },
+    "categoryColor": {
+      "stringValue": "#4a7572"
+    },
+    "priceCurrency": {
+      "nullValue": null
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "email": {
+            "stringValue": "mathis.aut@gmail.com"
+          },
+          "lastName": {
+            "stringValue": "Mathis"
+          },
+          "firstName": {
+            "stringValue": "Peter"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FIccG8JVa2rZxKhnuleOKvpJaV7x1%2Favatar%2F1786124601568_Gemini_Generated_Image_q7ivr8q7ivr8q7iv.png?alt=media&token=ad13856e-599c-4f01-8c08-e5493bc669f0"
+          }
+        }
+      }
+    },
+    "customDates": [],
+    "category": {
+      "stringValue": "Not another category"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "imageUrl": {
+      "nullValue": null
+    },
+    "slug": {
+      "stringValue": "zu-viel-kategorien-20260907"
+    },
+    "place": {
+      "stringValue": ""
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "kontakt": {
+      "stringValue": "mathis.aut@gmail.com"
+    },
+    "bezirk": {
+      "stringValue": "Dornbirn"
+    },
+    "createdBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "description": {
+      "stringValue": "<p>asdf</p>"
+    },
+    "title": {
+      "stringValue": "zu viel Kategorien?"
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "fee": {
+      "nullValue": null
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "contribution": {
+      "stringValue": "free"
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788761752"
+          },
+          "_nanoseconds": {
+            "integerValue": "534000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788761752"
+          },
+          "_nanoseconds": {
+            "integerValue": "534000000"
+          }
+        }
+      }
+    },
+    "approvedBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788761759"
+          },
+          "_nanoseconds": {
+            "integerValue": "459000000"
+          }
+        }
+      }
+    },
+    "trashedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788783333"
+          },
+          "_nanoseconds": {
+            "integerValue": "899000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "trashed"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788783333"
+          },
+          "_nanoseconds": {
+            "integerValue": "899000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "m4PeSfDDcNxfdA2Prl3b",
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "place": {
+      "stringValue": ""
+    },
+    "category": {
+      "stringValue": "Breathwork"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "contribution": {
+      "stringValue": "free"
+    },
+    "slug": {
+      "stringValue": "foto-upload-20260911"
+    },
+    "time": {
+      "stringValue": "13:27"
+    },
+    "date": {
+      "stringValue": "2026-09-11"
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "customDates": [],
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FIccG8JVa2rZxKhnuleOKvpJaV7x1%2Favatar%2F1786124601568_Gemini_Generated_Image_q7ivr8q7ivr8q7iv.png?alt=media&token=ad13856e-599c-4f01-8c08-e5493bc669f0"
+          },
+          "firstName": {
+            "stringValue": "Peter"
+          },
+          "email": {
+            "stringValue": "mathis.aut@gmail.com"
+          },
+          "lastName": {
+            "stringValue": "Mathis"
+          }
+        }
+      }
+    },
+    "createdBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "bezirk": {
+      "stringValue": "Feldkirch"
+    },
+    "priceCurrency": {
+      "nullValue": null
+    },
+    "description": {
+      "stringValue": "<img src=\"https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/event-descriptions%2Ftemp%2F1788596747403_morgenpraxis_postkarte_1_.png?alt=media&amp;token=1c296120-ce95-4454-98e1-9cda84a30e52\" alt=\"morgenpraxis postkarte (1)\"><p>hier derf lyer</p>"
+    },
+    "kontakt": {
+      "stringValue": "mathis.aut@gmail.com"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "title": {
+      "stringValue": "foto upload"
+    },
+    "fee": {
+      "nullValue": null
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788596892"
+          },
+          "_nanoseconds": {
+            "integerValue": "914000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788596892"
+          },
+          "_nanoseconds": {
+            "integerValue": "914000000"
+          }
+        }
+      }
+    },
+    "imageUrl": {
+      "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/events%2Fm4PeSfDDcNxfdA2Prl3b%2F1788596893056_ig_profile.png?alt=media&token=c0a40630-76f5-43da-b20d-2336790cd736"
+    },
+    "approvedBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788596942"
+          },
+          "_nanoseconds": {
+            "integerValue": "245000000"
+          }
+        }
+      }
+    },
+    "trashedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788783342"
+          },
+          "_nanoseconds": {
+            "integerValue": "657000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "trashed"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788783342"
+          },
+          "_nanoseconds": {
+            "integerValue": "657000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "m82iWzsd6E7gyNUV1bep",
+    "link": {
+      "stringValue": ""
+    },
+    "description": {
+      "stringValue": "<p><strong>Du kümmerst dich um deinen Körper, aber kannst du auch richtig runterfahren?</strong></p><p>Dein Körper braucht auch die Fähigkeit, <strong>aus dem Leistungsmodus herauszukommen.</strong></p><p></p><p>Du weißt: deine Muskeln wachsen in der Regeneration.</p><p>Du weißt auch: ein ruhiger Geist unterstützt deine Regeneration.</p><p></p><p>Doch echte Regeneration bedeutet mehr als Schlaf und gesunde Ernährung.</p><p>Genau darum geht es in unserer gemeinsamen Praxis. An 7 Sonntagen widmen wir uns</p><p>der ganzheitlichen Regeneration bevor die neue Arbeitswoche beginnt.</p><p></p><p>Dieser Kurs ist auch für Unsportliche geeignet.</p><p></p><p><strong>SANDRA BASIC<br></strong>Yin-Yoga-Expertin<br>→ tiefe körperliche Entspannung, Loslassen &amp; Regeneration<br></p><p></p><p><strong>PETER MATHIS<br></strong>Meditations- &amp; Atemexperte<br>→ bewusste Atmung, Meditation &amp; Regulation des Nervensystems</p><p></p><p></p>"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "email": {
+            "stringValue": "mathis.aut@gmail.com"
+          },
+          "lastName": {
+            "stringValue": "Dornbirn"
+          },
+          "firstName": {
+            "stringValue": "Yoga Studio"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FIccG8JVa2rZxKhnuleOKvpJaV7x1%2Favatar%2F1786124601568_Gemini_Generated_Image_q7ivr8q7ivr8q7iv.png?alt=media&token=ad13856e-599c-4f01-8c08-e5493bc669f0"
+          }
+        }
+      }
+    },
+    "time": {
+      "stringValue": "17:30"
+    },
+    "kontakt": {
+      "stringValue": "sandra@yogastudiodornbirn.at"
+    },
+    "imageUrl": {
+      "nullValue": null
+    },
+    "customDates": [],
+    "bezirk": {
+      "stringValue": "Dornbirn"
+    },
+    "priceCurrency": {
+      "nullValue": null
+    },
+    "recurrenceEndDate": {
+      "stringValue": "2026-12-20"
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "slug": {
+      "stringValue": "testevent-yoga-studio-dornbirn-kirchgasse-4a-20261101"
+    },
+    "fee": {
+      "nullValue": null
+    },
+    "date": {
+      "stringValue": "2026-11-01"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "title": {
+      "stringValue": "testevent"
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "category": {
+      "stringValue": "Yoga"
+    },
+    "createdBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "place": {
+      "stringValue": "Yoga Studio Dornbirn, Kirchgasse 4a"
+    },
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "contribution": {
+      "stringValue": "free"
+    },
+    "recurrence": {
+      "stringValue": "weekly"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788988271"
+          },
+          "_nanoseconds": {
+            "integerValue": "483000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788988271"
+          },
+          "_nanoseconds": {
+            "integerValue": "483000000"
+          }
+        }
+      }
+    },
+    "trashedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788988282"
+          },
+          "_nanoseconds": {
+            "integerValue": "751000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "trashed"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788988282"
+          },
+          "_nanoseconds": {
+            "integerValue": "751000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "mky3E4VldWYQlaFCR4Je",
+    "place": {
+      "stringValue": "Yoga Studio Dornbirn, Kirchgasse 4a"
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "priceCurrency": {
+      "stringValue": "EUR"
+    },
+    "contribution": {
+      "stringValue": "fee"
+    },
+    "bezirk": {
+      "stringValue": "Dornbirn"
+    },
+    "fee": {
+      "integerValue": "120"
+    },
+    "time": {
+      "stringValue": "17:30"
+    },
+    "recurrence": {
+      "stringValue": "weekly"
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "date": {
+      "stringValue": "2026-11-01"
+    },
+    "customDates": [],
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "slug": {
+      "stringValue": "the-power-of-relaxation-yoga-studio-dornbirn-kirchgasse-4a-20261101"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "lastName": {
+            "stringValue": "Dornbirn"
+          },
+          "email": {
+            "stringValue": "mathis.aut@gmail.com"
+          },
+          "firstName": {
+            "stringValue": "Yoga Studio"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FIccG8JVa2rZxKhnuleOKvpJaV7x1%2Favatar%2F1786124601568_Gemini_Generated_Image_q7ivr8q7ivr8q7iv.png?alt=media&token=ad13856e-599c-4f01-8c08-e5493bc669f0"
+          }
+        }
+      }
+    },
+    "title": {
+      "stringValue": "The Power of Relaxation"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "createdBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "recurrenceEndDate": {
+      "stringValue": "2026-12-20"
+    },
+    "kontakt": {
+      "stringValue": "sandra@yogastudiodornbirn.at"
+    },
+    "category": {
+      "stringValue": "Yoga"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788955941"
+          },
+          "_nanoseconds": {
+            "integerValue": "850000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788955941"
+          },
+          "_nanoseconds": {
+            "integerValue": "850000000"
+          }
+        }
+      }
+    },
+    "description": {
+      "stringValue": "<p><strong>Du kümmerst dich um deinen Körper, aber kannst du auch richtig runterfahren?</strong></p><p><strong>Dein Körper braucht auch die Fähigkeit, aus dem Leistungsmodus herauszukommen.</strong></p><p>Du weißt: ein ruhiger Geist unterstützt deine Regeneration.</p><p>Du weißt auch: deine Muskeln wachsen in der Regeneration.</p><p>Echte Regeneration bedeutet mehr als Schlaf und gesunde Ernährung.</p><p>Genau darum geht es in unserer gemeinsamen Praxis.</p><p>An 7 Sonntagen widmen wir uns der ganzheitlichen Regeneration bevor die neue Arbeitswoche beginnt.</p><p><strong>﻿</strong></p><p><strong>Dieser Kurs ist auch für Unsportliche geeignet.</strong></p><p><strong>﻿</strong></p><p><strong>Jede Woche bekommst du neue Impulse, wie du dich richtig entspannen &amp; regenerieren kannst.</strong></p><p><strong>Du wirst begleitet von:</strong></p><p><strong>SANDRA BASIC</strong></p><p>Yin-Yoga-Expertin</p><p>→ tiefe körperliche Entspannung, Loslassen &amp; Regeneration</p><p><strong>PETER MATHIS</strong></p><p>Meditations- &amp; Atemexperte</p><p>→ bewusste Atmung, Meditation &amp; Regulation des Nervensystems</p><p></p><p>Wir freuen uns auf die gemeinsame ENTSPANNENDE &amp; REGENERIERENDE Zeit! .)</p>"
+    },
+    "imageUrl": {
+      "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/events%2Fmky3E4VldWYQlaFCR4Je%2F1788956395473_flyer.jpg?alt=media&token=d65cbd2c-4e30-447b-9a48-d1a9309d184c"
+    },
+    "approvedBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788956402"
+          },
+          "_nanoseconds": {
+            "integerValue": "550000000"
+          }
+        }
+      }
+    },
+    "trashedAt": {
+      "nullValue": null
+    },
+    "status": {
+      "stringValue": "draft"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788988724"
+          },
+          "_nanoseconds": {
+            "integerValue": "729000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "mvfVHjQ3bJqWUg1XLGyW",
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "kontakt": {
+      "stringValue": "sandra@yogastudiodornbirn.at"
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "title": {
+      "stringValue": "The Power of Relaxation"
+    },
+    "imageUrl": {
+      "nullValue": null
+    },
+    "priceCurrency": {
+      "stringValue": "EUR"
+    },
+    "time": {
+      "stringValue": "17:30"
+    },
+    "fee": {
+      "integerValue": "120"
+    },
+    "bezirk": {
+      "stringValue": "Dornbirn"
+    },
+    "category": {
+      "stringValue": "Yoga"
+    },
+    "contribution": {
+      "stringValue": "fee"
+    },
+    "slug": {
+      "stringValue": "the-power-of-relaxation-yoga-studio-dornbirn-kirchgasse-4a-20261101"
+    },
+    "createdBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "description": {
+      "stringValue": "<p><strong>Du kümmerst dich um deinen Körper, aber kannst du auch richtig runterfahren?</strong></p><p>Dein Körper braucht auch die Fähigkeit, <strong>aus dem Leistungsmodus herauszukommen.</strong></p><p></p><p>Du weißt: deine Muskeln wachsen in der Regeneration.</p><p>Du weißt auch: ein ruhiger Geist unterstützt deine Regeneration.</p><p></p><p>Doch echte Regeneration bedeutet mehr als Schlaf und gesunde Ernährung.</p><p>Genau darum geht es in unserer gemeinsamen Praxis. An 7 Sonntagen widmen wir uns</p><p>der ganzheitlichen Regeneration bevor die neue Arbeitswoche beginnt.</p><p></p><p>Dieser Kurs ist auch für Unsportliche geeignet.</p><p></p><p><strong>SANDRA BASIC<br></strong>Yin-Yoga-Expertin<br>→ tiefe körperliche Entspannung, Loslassen &amp; Regeneration<br></p><p></p><p><strong>PETER MATHIS<br></strong>Meditations- &amp; Atemexperte<br>→ bewusste Atmung, Meditation &amp; Regulation des Nervensystems</p><p></p><p></p>"
+    },
+    "place": {
+      "stringValue": "Yoga Studio Dornbirn, Kirchgasse 4a"
+    },
+    "date": {
+      "stringValue": "2026-11-01"
+    },
+    "customDates": [],
+    "endDate": {
+      "stringValue": ""
+    },
+    "recurrenceEndDate": {
+      "stringValue": "2026-12-20"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "lastName": {
+            "stringValue": "Dornbirn"
+          },
+          "email": {
+            "stringValue": "mathis.aut@gmail.com"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FIccG8JVa2rZxKhnuleOKvpJaV7x1%2Favatar%2F1786124601568_Gemini_Generated_Image_q7ivr8q7ivr8q7iv.png?alt=media&token=ad13856e-599c-4f01-8c08-e5493bc669f0"
+          },
+          "firstName": {
+            "stringValue": "Yoga Studio"
+          }
+        }
+      }
+    },
+    "recurrence": {
+      "stringValue": "weekly"
+    },
+    "status": {
+      "stringValue": "draft"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788955952"
+          },
+          "_nanoseconds": {
+            "integerValue": "978000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788955952"
+          },
+          "_nanoseconds": {
+            "integerValue": "978000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "ozxmFVDWXazlo95PZvy7",
+    "title": {
+      "stringValue": "Floating Gongbath"
+    },
+    "date": {
+      "stringValue": "2026-12-13"
+    },
+    "time": {
+      "stringValue": "19:00"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "place": {
+      "stringValue": "Le Studio, Steinebach 7, Dornbirn"
+    },
+    "contribution": {
+      "stringValue": "fee"
+    },
+    "fee": {
+      "integerValue": "39"
+    },
+    "description": {
+      "stringValue": "<p>FLOATING GONGBATH </p><p>Was wäre, wenn du dir für einen Abend nichts vornehmen müsstest – außer loszulassen?</p><p></p><p>Stell dir vor, du liegst schwerelos und vollkommen geborgen in deiner persönlichen Hängematte. Dein Körper darf entspannen, dein Atem wird ruhiger und der Alltag tritt immer mehr in den Hintergrund.</p><p></p><p>Dann beginnt der Gong zu schwingen.</p><p></p><p>Seine tiefen, warmen und zugleich kraftvollen Klänge breiten sich im Raum aus. Die Vibrationen berühren deinen Körper, während du dich immer mehr dem Moment hingibst. Du musst nichts leisten, nichts erreichen und nichts festhalten.</p><p></p><p>Du darfst einfach sein. 🤍</p><p></p><p>🌙 FLOATING GONGBATH ist eine besondere Form der Klangreise, bei der du in einer Hängematte getragen wirst und dich vollkommen den Schwingungen des Gongs anvertrauen kannst.</p><p></p><p>Eine achtsame Auszeit vom schnellen Rhythmus des Alltags.</p><p>Ein Moment, in dem du tief durchatmen darfst.</p><p>Ein Raum, in dem du zur Ruhe kommen und neue Kraft schöpfen kannst.</p><p></p><p>Die Kombination aus sanfter Schwerelosigkeit, tiefen Klangwellen und bewusster Entspannung schafft eine außergewöhnliche Atmosphäre – fast wie ein Eintauchen in eine andere Welt.</p><p></p><p>✨ Lass dich tragen.</p><p>✨ Lass dich berühren.</p><p>✨ Lass Gedanken leiser werden.</p><p>✨ Lass die Schwingungen des Gongs durch den Raum und durch dich hindurchfließen.</p><p></p><p>Diese 90 Minuten gehören ganz dir.</p><p></p><p>Eine kostbare kleine Auszeit, um den Körper loszulassen, den Geist zur Ruhe kommen zu lassen und wieder bei dir selbst anzukommen.</p><p></p><p>Ein Abend zum Entschleunigen.</p><p>Zum Spüren.</p><p>Zum Loslassen.</p><p>Zum Auftanken. </p><p>━━━━━━━━━━━━━━━</p><p></p><p>Schenke dir diesen Abend.</p><p>Nicht als weiteren Termin im Kalender, sondern als bewusste Begegnung mit dir selbst.</p><p></p><p>Mach es dir gemütlich.</p><p>Schließe die Augen.</p><p>Atme tief ein.</p><p>Und lass dich von den Schwingungen des Gongs dorthin tragen, wo Stille, Ruhe und tiefe Entspannung entstehen dürfen. 🤍✨</p><p>Wenn Klang auf Schwerelosigkeit trifft.</p>"
+    },
+    "link": {
+      "stringValue": "https://www.cosmicklang.com"
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "bezirk": {
+      "stringValue": "Dornbirn"
+    },
+    "kontakt": {
+      "stringValue": "cosmicklang@gmail.com"
+    },
+    "slug": {
+      "stringValue": "floating-gongbath-le-studio-steinebach-7-dornbirn-20261213"
+    },
+    "createdBy": {
+      "stringValue": "zcafEZZ0Ked8d9rB4n9zonv7rwv2"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787733721"
+          },
+          "_nanoseconds": {
+            "integerValue": "152000000"
+          }
+        }
+      }
+    },
+    "approvedBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787739225"
+          },
+          "_nanoseconds": {
+            "integerValue": "365000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "approved"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Richard"
+          },
+          "lastName": {
+            "stringValue": "Gaste"
+          },
+          "email": {
+            "stringValue": "cosmicklang@gmail.com"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FIccG8JVa2rZxKhnuleOKvpJaV7x1%2Favatar%2F1786124601568_Gemini_Generated_Image_q7ivr8q7ivr8q7iv.png?alt=media&token=ad13856e-599c-4f01-8c08-e5493bc669f0"
+          }
+        }
+      }
+    },
+    "imageUrl": {
+      "nullValue": null
+    },
+    "category": {
+      "stringValue": "Soundhealing"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787747157"
+          },
+          "_nanoseconds": {
+            "integerValue": "267000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "pIFeiCQXdgzOfTOvASAt",
+    "customDates": [],
+    "date": {
+      "stringValue": "2026-09-07"
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "time": {
+      "stringValue": "19:30"
+    },
+    "fee": {
+      "integerValue": "25"
+    },
+    "priceCurrency": {
+      "stringValue": "EUR"
+    },
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "createdBy": {
+      "stringValue": "zcafEZZ0Ked8d9rB4n9zonv7rwv2"
+    },
+    "description": {
+      "stringValue": "<p>🌀KLANG REISE 🌀</p><p>EINTAUCHEN. LOSLASSEN. SEIN.</p><p>Am 7. September möchte ich dich auf eine besondere Klangreise mitnehmen – einen Abend, an dem du für eine Weile aus dem Alltag aussteigen, ankommen und einfach sein darfst.</p><p>Mit Gong, Kristallklängen, Monochord und Obertongesang erschaffe ich einen Raum, in dem du dich von den Klängen tragen lassen, tief entspannen und loslassen kannst. </p><p>Ich lade dich ein, deine Augen zu schließen, nach innen zu lauschen und dich ganz der Erfahrung hinzugeben.</p><p>🌀 07. Sept von 19:30 bis 21:00 Uhr</p><p>🌀 Netzwerk Tanz, Angasse 5, Dornbirn</p><p>🌀 Ausgleich: 25 €</p><p>Du brauchst keinerlei Vorkenntnisse – nur etwas Zeit für dich und die Offenheit, dich auf die Klänge einzulassen.</p><p>Bitte bringe alles mit, was du brauchst, um es dir für die Klangreise bequem zu machen und dich hinzulegen – zum Beispiel eine Matte, Decke, Kissen oder etwas Warmes zum Zudecken.</p><p>Anmeldung erforderlich:</p><p><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"http://www.cosmicklang.com\">www.cosmicklang.com</a> </p><p>Ich freue mich, diesen besonderen Abend mit dir zu teilen. 🌀</p>"
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "place": {
+      "stringValue": "Netzwerk Tanz, Annagasse 5"
+    },
+    "bezirk": {
+      "stringValue": "Dornbirn"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "slug": {
+      "stringValue": "cosmic-klangreise-netzwerk-tanz-annagasse-5-20260907"
+    },
+    "link": {
+      "stringValue": "https://www.cosmicklang.com"
+    },
+    "category": {
+      "stringValue": "Soundhealing"
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "title": {
+      "stringValue": "Cosmic Klangreise"
+    },
+    "kontakt": {
+      "stringValue": "cosmicklang@gmail.com"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Richard"
+          },
+          "lastName": {
+            "stringValue": "Gaste"
+          },
+          "email": {
+            "stringValue": "cosmicklang@gmail.com"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FzcafEZZ0Ked8d9rB4n9zonv7rwv2%2Favatar%2F1787552391004_IMG_6788.jpeg?alt=media&token=cb7bd952-3393-4e46-8bb2-60865703e24a"
+          }
+        }
+      }
+    },
+    "contribution": {
+      "stringValue": "fee"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788465841"
+          },
+          "_nanoseconds": {
+            "integerValue": "468000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788465841"
+          },
+          "_nanoseconds": {
+            "integerValue": "468000000"
+          }
+        }
+      }
+    },
+    "imageUrl": {
+      "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/events%2FpIFeiCQXdgzOfTOvASAt%2F1788465841617_Beige_Aesthetic_Reiki_and_Energy_Healing_Workshop_Mockup_Facebook_Post_Publicati?alt=media&token=ed9d8ce4-6429-43c6-8c0f-6530711cf882"
+    },
+    "approvedBy": {
+      "stringValue": "RrLP8vZFUtTxi9HKWZIYqnRHgxY2"
+    },
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788519635"
+          },
+          "_nanoseconds": {
+            "integerValue": "752000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "approved"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788519635"
+          },
+          "_nanoseconds": {
+            "integerValue": "752000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "pqcjgc6QW3ojiiVmrq43",
+    "createdBy": {
+      "stringValue": "cDtYZUfxnDfbx7tRyxNuXg1JcqX2"
+    },
+    "category": {
+      "stringValue": "Soundhealing"
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "email": {
+            "stringValue": "sandra@yogastudiodornbirn.at"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FcDtYZUfxnDfbx7tRyxNuXg1JcqX2%2Favatar%2F1788960920698_IMG_8822.JPG?alt=media&token=d9409725-b8f5-459c-92ff-2989d9fae8ae"
+          },
+          "lastName": {
+            "stringValue": "Basic"
+          },
+          "firstName": {
+            "stringValue": "Sandra"
+          }
+        }
+      }
+    },
+    "date": {
+      "stringValue": "2026-10-25"
+    },
+    "bezirk": {
+      "stringValue": "Dornbirn"
+    },
+    "time": {
+      "stringValue": "18:30"
+    },
+    "kontakt": {
+      "stringValue": "sandra@yogastudiodornbirn.at"
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "fee": {
+      "integerValue": "35"
+    },
+    "contribution": {
+      "stringValue": "fee"
+    },
+    "slug": {
+      "stringValue": "eine-klangreise-zum-inneren-fluss-yogastudio-dornbirn-kirchgasse-4a-20261025"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "place": {
+      "stringValue": "Yogastudio Dornbirn, Kirchgasse 4a"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "customDates": [],
+    "title": {
+      "stringValue": "Eine Klangreise zum inneren Fluss"
+    },
+    "priceCurrency": {
+      "stringValue": "EUR"
+    },
+    "description": {
+      "stringValue": "<p><strong>Ein Abend für Fluss. Für Tiefe. Für dich.</strong></p><p>Gemeinsam laden Richard &amp; Sandra dich zu einem besonderen zweistündigen Abend ein, der <strong>Bewegung, Geschichte und Klang </strong>miteinander verbindet.</p><p>Zu Beginn führen dich wenige, ganz sanfte und intuitive Bewegungen aus dem Alltag in den Körper. Du darfst ankommen, loslassen und den Raum schaffen, um wirklich zu spüren.</p><p>Dann beginnt die Reise.</p><p>Eine Geschichte nimmt dich mit – begleitet von Richards Live-Klängen. Rhythmische Impulse treffen auf ruhige, harmonisierende Klänge kristalliner Instrumente und verweben sich zu einer Erfahrung, die dich nach innen führt.</p><p><strong>Weniger Denken. Mehr Spüren. Mehr Fluss.</strong></p><p>Die Geschichte, die Musik und die Körperwahrnehmung dürfen sich miteinander verbinden und dich auf eine ganz eigene innere Reise führen.</p><p>Den Abschluss bildet eine etwa 30-minütige Klangentspannung. Du darfst einfach liegen, lauschen und geschehen lassen, während die Klänge nachwirken und Raum für Integration schaffen.</p><p>Ein Abend zum Loslassen.<br> Zum Eintauchen.<br> Zum Fließen.</p><p><br></p>"
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788961413"
+          },
+          "_nanoseconds": {
+            "integerValue": "912000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788961413"
+          },
+          "_nanoseconds": {
+            "integerValue": "912000000"
+          }
+        }
+      }
+    },
+    "imageUrl": {
+      "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/events%2Fpqcjgc6QW3ojiiVmrq43%2F1788961666444_EVERSPORTS_VORLAGE-9.png?alt=media&token=fab54da6-a7ad-4239-b8ca-a44df5f4a323"
+    },
+    "approvedBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788966031"
+          },
+          "_nanoseconds": {
+            "integerValue": "783000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "approved"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788966031"
+          },
+          "_nanoseconds": {
+            "integerValue": "783000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "q1DolKIsq5s5L5zEqOCm",
+    "date": {
+      "stringValue": "2026-09-16"
+    },
+    "time": {
+      "stringValue": "23:33"
+    },
+    "priceCurrency": {
+      "nullValue": null
+    },
+    "contribution": {
+      "stringValue": "free"
+    },
+    "slug": {
+      "stringValue": "test-20260916"
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "title": {
+      "stringValue": "test"
+    },
+    "createdBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "status": {
+      "stringValue": "draft"
+    },
+    "description": {
+      "stringValue": "<p>asdf</p>"
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "place": {
+      "stringValue": ""
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "customDates": [],
+    "bezirk": {
+      "stringValue": "Feldkirch"
+    },
+    "category": {
+      "stringValue": "Seminar"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Peter"
+          },
+          "email": {
+            "stringValue": "mathis.aut@gmail.com"
+          },
+          "lastName": {
+            "stringValue": "Mathis"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FIccG8JVa2rZxKhnuleOKvpJaV7x1%2Favatar%2F1786124601568_Gemini_Generated_Image_q7ivr8q7ivr8q7iv.png?alt=media&token=ad13856e-599c-4f01-8c08-e5493bc669f0"
+          }
+        }
+      }
+    },
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "kontakt": {
+      "stringValue": "mathis.aut@gmail.com"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "fee": {
+      "nullValue": null
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788988351"
+          },
+          "_nanoseconds": {
+            "integerValue": "621000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788988351"
+          },
+          "_nanoseconds": {
+            "integerValue": "621000000"
+          }
+        }
+      }
+    },
+    "imageUrl": {
+      "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/events%2Fq1DolKIsq5s5L5zEqOCm%2F1788988351727_L1010595.jpg?alt=media&token=7b55ace6-d0f0-4128-ba6f-febff1f8d01a"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788988354"
+          },
+          "_nanoseconds": {
+            "integerValue": "41000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "q5E3CaHoKjdVQ2WZZ8zm",
+    "slug": {
+      "stringValue": "the-power-of-relaxation-yoga-studio-dornbirn-kirchgasse-4a-20261101"
+    },
+    "customDates": [],
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "priceCurrency": {
+      "stringValue": "EUR"
+    },
+    "contribution": {
+      "stringValue": "fee"
+    },
+    "date": {
+      "stringValue": "2026-11-01"
+    },
+    "description": {
+      "stringValue": "<p><strong>Du kümmerst dich um deinen Körper, aber kannst du auch richtig runterfahren?</strong></p><p>Dein Körper braucht auch die Fähigkeit, <strong>aus dem Leistungsmodus herauszukommen.</strong></p><p></p><p>Du weißt: deine Muskeln wachsen in der Regeneration.</p><p>Du weißt auch: ein ruhiger Geist unterstützt deine Regeneration.</p><p></p><p>Doch echte Regeneration bedeutet mehr als Schlaf und gesunde Ernährung.</p><p>Genau darum geht es in unserer gemeinsamen Praxis. An 7 Sonntagen widmen wir uns</p><p>der ganzheitlichen Regeneration bevor die neue Arbeitswoche beginnt.</p><p></p><p>Dieser Kurs ist auch für Unsportliche geeignet.</p><p></p><p><strong>SANDRA BASIC<br></strong>Yin-Yoga-Expertin<br>→ tiefe körperliche Entspannung, Loslassen &amp; Regeneration<br></p><p></p><p><strong>PETER MATHIS<br></strong>Meditations- &amp; Atemexperte<br>→ bewusste Atmung, Meditation &amp; Regulation des Nervensystems</p><p></p><p></p>"
+    },
+    "kontakt": {
+      "stringValue": "sandra@yogastudiodornbirn.at"
+    },
+    "recurrence": {
+      "stringValue": "weekly"
+    },
+    "place": {
+      "stringValue": "Yoga Studio Dornbirn, Kirchgasse 4a"
+    },
+    "fee": {
+      "integerValue": "120"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "createdBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "title": {
+      "stringValue": "The Power of Relaxation"
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "category": {
+      "stringValue": "Yoga"
+    },
+    "recurrenceEndDate": {
+      "stringValue": "2026-12-20"
+    },
+    "bezirk": {
+      "stringValue": "Dornbirn"
+    },
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "lastName": {
+            "stringValue": "Dornbirn"
+          },
+          "email": {
+            "stringValue": "mathis.aut@gmail.com"
+          },
+          "firstName": {
+            "stringValue": "Yoga Studio"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FIccG8JVa2rZxKhnuleOKvpJaV7x1%2Favatar%2F1786124601568_Gemini_Generated_Image_q7ivr8q7ivr8q7iv.png?alt=media&token=ad13856e-599c-4f01-8c08-e5493bc669f0"
+          }
+        }
+      }
+    },
+    "time": {
+      "stringValue": "17:30"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788955931"
+          },
+          "_nanoseconds": {
+            "integerValue": "382000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788955931"
+          },
+          "_nanoseconds": {
+            "integerValue": "382000000"
+          }
+        }
+      }
+    },
+    "approvedBy": {
+      "stringValue": "RrLP8vZFUtTxi9HKWZIYqnRHgxY2"
+    },
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788974306"
+          },
+          "_nanoseconds": {
+            "integerValue": "432000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "approved"
+    },
+    "imageUrl": {
+      "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/events%2Fq5E3CaHoKjdVQ2WZZ8zm%2F1788988799785_flyer.jpg?alt=media&token=537a338c-e4e4-4691-bd09-dc9c419a4ab4"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788988802"
+          },
+          "_nanoseconds": {
+            "integerValue": "330000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "qp7MUKpgOYlaeVswziBA",
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "fee": {
+      "nullValue": null
+    },
+    "slug": {
+      "stringValue": "qi-gong-2-20260910"
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "bezirk": {
+      "stringValue": "Bregenz"
+    },
+    "customDates": [],
+    "imageUrl": {
+      "nullValue": null
+    },
+    "place": {
+      "stringValue": ""
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "description": {
+      "stringValue": "<p>Qi Gong 2</p>"
+    },
+    "priceCurrency": {
+      "nullValue": null
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "time": {
+      "stringValue": "11:11"
+    },
+    "kontakt": {
+      "stringValue": "thomas@blissofkundalini.yoga"
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "createdBy": {
+      "stringValue": "RrLP8vZFUtTxi9HKWZIYqnRHgxY2"
+    },
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "title": {
+      "stringValue": "Qi Gong 2"
+    },
+    "contribution": {
+      "stringValue": "free"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FRrLP8vZFUtTxi9HKWZIYqnRHgxY2%2Favatar%2F1785759707182_IMG_7920.jpeg?alt=media&token=560ffcf0-4b10-452d-9a66-36877030a5bf"
+          },
+          "email": {
+            "stringValue": "thomas@blissofkundalini.yoga"
+          },
+          "lastName": {
+            "stringValue": "Ender"
+          },
+          "firstName": {
+            "stringValue": "Thomas"
+          }
+        }
+      }
+    },
+    "category": {
+      "stringValue": "Yoga"
+    },
+    "date": {
+      "stringValue": "2026-09-10"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788987051"
+          },
+          "_nanoseconds": {
+            "integerValue": "937000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788987051"
+          },
+          "_nanoseconds": {
+            "integerValue": "937000000"
+          }
+        }
+      }
+    },
+    "approvedBy": {
+      "stringValue": "RrLP8vZFUtTxi9HKWZIYqnRHgxY2"
+    },
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788987068"
+          },
+          "_nanoseconds": {
+            "integerValue": "999000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "approved"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788987068"
+          },
+          "_nanoseconds": {
+            "integerValue": "999000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "r6J7Qn0XhJIIjlHqbgd0",
+    "slug": {
+      "stringValue": "asdf-20260908"
+    },
+    "createdBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "imageUrl": {
+      "nullValue": null
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "kontakt": {
+      "stringValue": "mathis.aut@gmail.com"
+    },
+    "contribution": {
+      "stringValue": "free"
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "place": {
+      "stringValue": ""
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "lastName": {
+            "stringValue": "Mathis"
+          },
+          "firstName": {
+            "stringValue": "Peter"
+          },
+          "email": {
+            "stringValue": "mathis.aut@gmail.com"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FIccG8JVa2rZxKhnuleOKvpJaV7x1%2Favatar%2F1786124601568_Gemini_Generated_Image_q7ivr8q7ivr8q7iv.png?alt=media&token=ad13856e-599c-4f01-8c08-e5493bc669f0"
+          }
+        }
+      }
+    },
+    "time": {
+      "stringValue": "10:13"
+    },
+    "priceCurrency": {
+      "nullValue": null
+    },
+    "title": {
+      "stringValue": "asdf"
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "description": {
+      "stringValue": "<p>asdf</p>"
+    },
+    "category": {
+      "stringValue": "Spacko-Rave"
+    },
+    "fee": {
+      "nullValue": null
+    },
+    "customDates": [],
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "categoryColor": {
+      "stringValue": "#4a7572"
+    },
+    "date": {
+      "stringValue": "2026-09-08"
+    },
+    "bezirk": {
+      "stringValue": "Bludenz"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788761662"
+          },
+          "_nanoseconds": {
+            "integerValue": "109000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788761662"
+          },
+          "_nanoseconds": {
+            "integerValue": "109000000"
+          }
+        }
+      }
+    },
+    "approvedBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788761765"
+          },
+          "_nanoseconds": {
+            "integerValue": "219000000"
+          }
+        }
+      }
+    },
+    "trashedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788783337"
+          },
+          "_nanoseconds": {
+            "integerValue": "539000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "trashed"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788783337"
+          },
+          "_nanoseconds": {
+            "integerValue": "539000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "rrEiR2cTt2WD7vF1aDKd",
+    "date": {
+      "stringValue": "2026-08-27"
+    },
+    "time": {
+      "stringValue": "20:00"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "contribution": {
+      "stringValue": "free"
+    },
+    "fee": {
+      "nullValue": null
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "customDates": [],
+    "category": {
+      "stringValue": "Sonstiges"
+    },
+    "bezirk": {
+      "stringValue": "Dornbirn"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Peter"
+          },
+          "lastName": {
+            "stringValue": "Mathis"
+          },
+          "email": {
+            "stringValue": "info@petermathis.at"
+          },
+          "photoURL": {
+            "nullValue": null
+          }
+        }
+      }
+    },
+    "kontakt": {
+      "stringValue": "info@petermathis.at"
+    },
+    "status": {
+      "stringValue": "draft"
+    },
+    "slug": {
+      "stringValue": "entwurf-20260827"
+    },
+    "createdBy": {
+      "stringValue": "ckSw2ZuVOFYg9YMfm44SRl9qDBQ2"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787810265"
+          },
+          "_nanoseconds": {
+            "integerValue": "105000000"
+          }
+        }
+      }
+    },
+    "description": {
+      "stringValue": "<p>asdf alles anders</p>"
+    },
+    "place": {
+      "stringValue": "asdf"
+    },
+    "title": {
+      "stringValue": "entwurf 2"
+    },
+    "imageUrl": {
+      "nullValue": null
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787810333"
+          },
+          "_nanoseconds": {
+            "integerValue": "562000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "sVFw37sN25LIeZ6ecYc0",
+    "title": {
+      "stringValue": "Ecstatic Dance"
+    },
+    "date": {
+      "stringValue": "2026-09-22"
+    },
+    "time": {
+      "stringValue": "19:00"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "place": {
+      "stringValue": "Mäder"
+    },
+    "contribution": {
+      "stringValue": "free"
+    },
+    "fee": {
+      "nullValue": null
+    },
+    "description": {
+      "stringValue": "Ecstatic Dance 🔥\nMit live DJ\n\n\nIm J.J. Ender Saal, Schlössleweg 3, \nMäder, Vorarlberg\n\nTanztempel mit 360qm Holzboden. ❤️\n\nEs gibt genügend Parkplätze direkt vor dem Ender Saal und beim Spar. \n\nNo shoes \nNo alcohol\nNo talking\n\nEintrittspreis = gib was sich für dich stimmig anfühlt in unsere Box an der Eingangstür. \n\nAbschlusskreis mit Snacks.\n\nWir freuen uns auf euch!\nAndreas und Robert ❤️"
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "category": {
+      "stringValue": "Tanz"
+    },
+    "bezirk": {
+      "stringValue": "Feldkirch"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Ecstatic Dance Tribe"
+          },
+          "lastName": {
+            "stringValue": "Vorarlberg"
+          },
+          "email": {
+            "stringValue": "mathis.aut@gmail.com"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FIccG8JVa2rZxKhnuleOKvpJaV7x1%2Favatar%2F1786124601568_Gemini_Generated_Image_q7ivr8q7ivr8q7iv.png?alt=media&token=ad13856e-599c-4f01-8c08-e5493bc669f0"
+          }
+        }
+      }
+    },
+    "kontakt": {
+      "stringValue": "Andi Daum"
+    },
+    "status": {
+      "stringValue": "approved"
+    },
+    "slug": {
+      "stringValue": "ecstatic-dance-mder-20260922"
+    },
+    "createdBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787549091"
+          },
+          "_nanoseconds": {
+            "integerValue": "703000000"
+          }
+        }
+      }
+    },
+    "imageUrl": {
+      "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/events%2FsVFw37sN25LIeZ6ecYc0%2F1787549091891_IMG_2154.jpeg?alt=media&token=29aba202-8ce5-4a58-a415-c08973ca2e6a"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787549093"
+          },
+          "_nanoseconds": {
+            "integerValue": "108000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "wbmaGB3MRqqrIMYrxgCi",
+    "title": {
+      "stringValue": "Floating Gongbath"
+    },
+    "date": {
+      "stringValue": "2026-10-18"
+    },
+    "time": {
+      "stringValue": "19:00"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "place": {
+      "stringValue": "Le studio, Steinebach 7, Dornbirn"
+    },
+    "contribution": {
+      "stringValue": "fee"
+    },
+    "fee": {
+      "integerValue": "39"
+    },
+    "description": {
+      "stringValue": "<p>FLOATING GONGBATH 🌜</p><p>EINE EXKLUSIVE REISE FÜR KÖRPER, GEIST &amp; SEELE </p><p>Was wäre, wenn du dir für einen Abend nichts vornehmen müsstest – außer loszulassen?</p><p>Stell dir vor, du liegst schwerelos und vollkommen geborgen in deiner persönlichen Hängematte. Dein Körper darf entspannen, dein Atem wird ruhiger und der Alltag tritt immer mehr in den Hintergrund.</p><p>Dann beginnt der Gong zu schwingen.</p><p>Seine tiefen, warmen und zugleich kraftvollen Klänge breiten sich im Raum aus. Die Vibrationen berühren deinen Körper, während du dich immer mehr dem Moment hingibst. Du musst nichts leisten, nichts erreichen und nichts festhalten.</p><p>Du darfst einfach sein. 🤍</p><p>🌙 FLOATING GONGBATH ist eine besondere Form der Klangreise, bei der du in einer Hängematte getragen wirst und dich vollkommen den Schwingungen des Gongs anvertrauen kannst.</p><p>Eine achtsame Auszeit vom schnellen Rhythmus des Alltags.</p><p>Ein Moment, in dem du tief durchatmen darfst.</p><p>Ein Raum, in dem du zur Ruhe kommen und neue Kraft schöpfen kannst.</p><p>Die Kombination aus sanfter Schwerelosigkeit, tiefen Klangwellen und bewusster Entspannung schafft eine außergewöhnliche Atmosphäre – fast wie ein Eintauchen in eine andere Welt.</p><p>✨ Lass dich tragen.</p><p>✨ Lass dich berühren.</p><p>✨ Lass Gedanken leiser werden.</p><p>✨ Lass die Schwingungen des Gongs durch den Raum und durch dich hindurchfließen.</p><p>Diese 90 Minuten gehören ganz dir.</p><p>Eine kostbare kleine Auszeit, um den Körper loszulassen, den Geist zur Ruhe kommen zu lassen und wieder bei dir selbst anzukommen.</p><p>Ein Abend zum Entschleunigen.</p><p>Zum Spüren.</p><p>Zum Loslassen.</p><p>Zum Auftanken. </p>"
+    },
+    "link": {
+      "stringValue": "https://www.cosmicklang.com"
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "bezirk": {
+      "stringValue": "Dornbirn"
+    },
+    "kontakt": {
+      "stringValue": "cosmicklang@gmail.com"
+    },
+    "slug": {
+      "stringValue": "floating-gongbath-le-studio-steinebach-7-dornbirn-20261018"
+    },
+    "createdBy": {
+      "stringValue": "zcafEZZ0Ked8d9rB4n9zonv7rwv2"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787733389"
+          },
+          "_nanoseconds": {
+            "integerValue": "806000000"
+          }
+        }
+      }
+    },
+    "approvedBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787739091"
+          },
+          "_nanoseconds": {
+            "integerValue": "445000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "approved"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Richard"
+          },
+          "lastName": {
+            "stringValue": "Gaste"
+          },
+          "email": {
+            "stringValue": "cosmicklang@gmail.com"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FIccG8JVa2rZxKhnuleOKvpJaV7x1%2Favatar%2F1786124601568_Gemini_Generated_Image_q7ivr8q7ivr8q7iv.png?alt=media&token=ad13856e-599c-4f01-8c08-e5493bc669f0"
+          }
+        }
+      }
+    },
+    "imageUrl": {
+      "nullValue": null
+    },
+    "category": {
+      "stringValue": "Soundhealing"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787747134"
+          },
+          "_nanoseconds": {
+            "integerValue": "339000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "ycENigEcHgrXw1VpKCOP",
+    "title": {
+      "stringValue": "Kings Journey – Initations Retreats für Männer (Kopie)"
+    },
+    "date": {
+      "stringValue": "2026-09-18"
+    },
+    "endDate": {
+      "stringValue": "2026-09-20"
+    },
+    "time": {
+      "stringValue": "14:00"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "place": {
+      "stringValue": "Hittisau"
+    },
+    "contribution": {
+      "stringValue": "free"
+    },
+    "fee": {
+      "nullValue": null
+    },
+    "priceCurrency": {
+      "stringValue": "EUR"
+    },
+    "description": {
+      "stringValue": "Ein Raum für Männer, die mehr wollen als funktionieren. Es ist Zeit um loszulassen, zu atmen, zu spüren – und dich selbst wiederzufinden. In unserer Männer Arbeit verbinden wir kraftvolle Rituale, archetypische Männerarbeit und tiefgehende Selbsterfahrung. Hier entsteht echte Bruderschaft – jenseits von Konkurrenz, Leistungsdruck oder Rollenklischees. Du bist eingeladen, dich selbst zu zeigen – ehrlich, mutig und verletzlich. Gemeinsam erinnern wir uns an das, was es wirklich heißt, Mann zu sein."
+    },
+    "link": {
+      "stringValue": "https://Barefootyoga.eu/kingsjourney"
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "customDates": [],
+    "exceptionDates": [],
+    "category": {
+      "stringValue": "Sonstiges"
+    },
+    "bezirk": {
+      "stringValue": "Bregenz"
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Barefoot"
+          },
+          "lastName": {
+            "stringValue": "Yoga"
+          },
+          "email": {
+            "stringValue": "mathis.aut@gmail.com"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FIccG8JVa2rZxKhnuleOKvpJaV7x1%2Favatar%2F1786124601568_Gemini_Generated_Image_q7ivr8q7ivr8q7iv.png?alt=media&token=ad13856e-599c-4f01-8c08-e5493bc669f0"
+          }
+        }
+      }
+    },
+    "kontakt": {
+      "stringValue": "Barefootyoga.eu/kingsjourney"
+    },
+    "imageUrl": {
+      "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/events%2F5eLlJLZfYqN6vVunApVj%2F1787721868453_men_retreat.jpg?alt=media&token=c4fc0250-43d4-4f15-ab1b-c523782ba298"
+    },
+    "status": {
+      "stringValue": "draft"
+    },
+    "slug": {
+      "stringValue": "kings-journey-initations-retreats-fr-mnner-kopie-hittisau-20260918"
+    },
+    "createdBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1788286625"
+          },
+          "_nanoseconds": {
+            "integerValue": "668000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "z7QQ3Dx9374FYejsOvrx",
+    "title": {
+      "stringValue": "Akasha Chronik Seminar"
+    },
+    "date": {
+      "stringValue": "2026-11-06"
+    },
+    "time": {
+      "stringValue": "10:00"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "endDate": {
+      "stringValue": "2026-11-08"
+    },
+    "place": {
+      "stringValue": "Gütle11b Dornbirn"
+    },
+    "contribution": {
+      "stringValue": "fee"
+    },
+    "fee": {
+      "integerValue": "630"
+    },
+    "description": {
+      "stringValue": "<p>In dieser Ausbildung erlernst du in deine eigene Akasha Chronik zu lesen und in der von anderen Menschen zu lesen, wenn du die Erlaubnis hast. </p><p>Deine intuitiven Kräfte werden geschult und vermitteln dir Sicherheit deinen Lebensweg zu gehen . </p><p>Lebendige und intensive Tage mit Herzensmenschen . </p><p>Freue mich auf deine Anmeldung </p>"
+    },
+    "link": {
+      "stringValue": "https://Www.meikeschroeder.com"
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "customDates": [],
+    "category": {
+      "stringValue": "Sonstiges"
+    },
+    "bezirk": {
+      "stringValue": "Dornbirn"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Meike"
+          },
+          "lastName": {
+            "stringValue": "Schröder"
+          },
+          "email": {
+            "stringValue": "meike.shakti@gmail.com"
+          },
+          "photoURL": {
+            "nullValue": null
+          }
+        }
+      }
+    },
+    "kontakt": {
+      "stringValue": "meike.shakti@gmail.com"
+    },
+    "slug": {
+      "stringValue": "akasha-chronik-seminar-gtle11b-dornbirn-20261106"
+    },
+    "createdBy": {
+      "stringValue": "gNqGIOfQFvQvgBbCYo3PNxrUhgb2"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787836177"
+          },
+          "_nanoseconds": {
+            "integerValue": "85000000"
+          }
+        }
+      }
+    },
+    "imageUrl": {
+      "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/events%2Fz7QQ3Dx9374FYejsOvrx%2F1787836177282_2026-Akasha-Post.jpeg?alt=media&token=2c0b3896-d84c-4873-8ce9-55cbd991db7b"
+    },
+    "approvedBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787837340"
+          },
+          "_nanoseconds": {
+            "integerValue": "155000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "approved"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1787837340"
+          },
+          "_nanoseconds": {
+            "integerValue": "155000000"
+          }
+        }
+      }
+    }
   }
 ]
