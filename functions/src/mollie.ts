@@ -1,5 +1,15 @@
 import { defineSecret } from 'firebase-functions/params';
-import { extractMollieCheckoutUrl } from '../../src/lib/mollieCheckout';
+
+// Kept inline because the functions bundle is CJS and the shared helper in
+// src/lib/mollieCheckout.js is an ESM module. Keep in sync with the helper.
+function extractMollieCheckoutUrl(
+  response: { _links?: { checkout?: { href?: unknown } } } | null | undefined
+): string | null {
+  if (!response || typeof response !== 'object') return null;
+  const checkout = response._links?.checkout;
+  if (!checkout || typeof checkout.href !== 'string') return null;
+  return checkout.href;
+}
 
 export const MOLLIE_API_KEY = defineSecret('MOLLIE_API_KEY');
 
