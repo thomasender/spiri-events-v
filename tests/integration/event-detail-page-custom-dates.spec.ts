@@ -88,65 +88,9 @@ test.describe('Event detail page shows all individual dates for custom-dates ser
     await expect(currentItems).toHaveCount(1);
     await expect(currentItems.first()).toContainText(formatDe(target));
 
-    const links = page.getByTestId('event-detail-date-link');
-    await expect(links).toHaveCount(expectedSeriesDates().length - 1);
-  });
-});
-
-test.describe('Event detail page recurrence dates are clickable links (AmfbLIFQ)', () => {
-  test('every custom-dates entry is an anchor pointing at /event/{slug}?occurrenceDate={iso}', async ({
-    page,
-  }) => {
-    await page.goto(`/event/${expectedSlug()}`);
-    await page
-      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
-      .catch(() => {});
-
-    await expect(page.locator('.event-title')).toContainText(CUSTOM_DATES_TITLE, {
-      timeout: 10000,
-    });
-
-    const datesList = page.getByTestId('event-detail-dates-list');
-    await expect(datesList).toBeVisible();
-
-    const links = page.getByTestId('event-detail-date-link');
-    await expect(links).toHaveCount(expectedSeriesDates().length);
-
-    const hrefs = await links.evaluateAll((els) =>
-      els.map((el) => (el as HTMLAnchorElement).getAttribute('href') || '')
-    );
-    const expectedHrefs = expectedSeriesDates().map(
-      (iso) => `/event/${expectedSlug()}?occurrenceDate=${iso}`
-    );
-    expect(hrefs.sort()).toEqual(expectedHrefs.sort());
-  });
-
-  test('clicking a custom-dates link navigates to that occurrence', async ({ page }) => {
-    const target = makeDate(35);
-
-    await page.goto(`/event/${expectedSlug()}`);
-    await page
-      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
-      .catch(() => {});
-
-    await expect(page.locator('.event-title')).toContainText(CUSTOM_DATES_TITLE, {
-      timeout: 10000,
-    });
-
-    const link = page
-      .getByTestId('event-detail-date-link')
-      .filter({ has: page.locator(`text="${formatDe(target)}"`) });
-    await expect(link).toHaveCount(1);
-    await link.click();
-
-    await expect(page).toHaveURL(
-      new RegExp(`/event/${expectedSlug()}\\?occurrenceDate=${target}$`)
-    );
-
-    await expect(page.getByTestId('event-detail-dates-list')).toBeVisible();
-
-    const currentItems = page.getByTestId('event-detail-date-current');
-    await expect(currentItems).toHaveCount(1);
-    await expect(currentItems.first()).toContainText(formatDe(target));
+    // No anchors should still link individual dates back to the same page
+    // (4bVW6i7o): clicking a date would only navigate to itself.
+    const occurrenceAnchors = datesList.locator('a[href*="occurrenceDate="]');
+    await expect(occurrenceAnchors).toHaveCount(0);
   });
 });

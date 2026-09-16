@@ -174,22 +174,18 @@ test.describe('Recurring event list links do not pin to a specific occurrence (4
     expect(page.url()).not.toContain('occurrenceDate=');
   });
 
-  test('detail page still links individual recurring dates with occurrenceDate (regression guard)', async ({
+  test('detail page does not link individual recurring dates back to the same page (4bVW6i7o)', async ({
     page,
   }) => {
-    // Sanity check that the detail-page behavior (which we deliberately kept)
-    // is not regressed by the list-view fix above.
     const tile = page.locator('.event-tile', { hasText: RECURRING_EVENT_TITLE }).first();
     await expect(tile).toBeVisible();
 
     await tile.click();
     await expect(page).toHaveURL(/\/event\/[^/?]+$/);
 
-    // The detail page lists individual occurrence dates; each entry should still
-    // link back with occurrenceDate= so the page can deep-link a specific date.
-    const occurrenceLinks = page.locator('a[href*="occurrenceDate="]');
-    await expect(occurrenceLinks.first()).toBeVisible({ timeout: 10000 });
-    const count = await occurrenceLinks.count();
-    expect(count).toBeGreaterThan(0);
+    // The detail page lists every occurrence date, but as plain text — not as
+    // an anchor pointing back at the same page with occurrenceDate=.
+    const occurrenceAnchors = page.locator('a[href*="occurrenceDate="]');
+    await expect(occurrenceAnchors).toHaveCount(0);
   });
 });

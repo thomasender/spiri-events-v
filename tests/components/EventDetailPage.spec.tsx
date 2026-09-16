@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, act, within } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { arrayUnion } from 'firebase/firestore';
 
@@ -502,7 +502,7 @@ describe('EventDetailPage — back navigation from admin drafts', () => {
   });
 });
 
-describe('EventDetailPage — recurrence dates are clickable links (AmfbLIFQ)', () => {
+describe('EventDetailPage — recurrence dates list (4bVW6i7o)', () => {
   describe('custom-dates series', () => {
     beforeEach(() => {
       mockFirestoreDoc.getDocResult = {
@@ -512,7 +512,7 @@ describe('EventDetailPage — recurrence dates are clickable links (AmfbLIFQ)', 
       mockGetRecurrenceDatesForDetail.mockReturnValue([...customDatesEvent.customDates].sort());
     });
 
-    it('renders each individual date as a link to that occurrence', async () => {
+    it('renders every date of the series as plain text without links', async () => {
       renderCustomDatesEventPage();
 
       expect(await screen.findByText('Individuelle Termine')).toBeInTheDocument();
@@ -523,14 +523,12 @@ describe('EventDetailPage — recurrence dates are clickable links (AmfbLIFQ)', 
       const items = screen.getAllByTestId('event-detail-date-item');
       expect(items).toHaveLength(customDatesEvent.customDates.length);
 
-      const links = screen.getAllByTestId('event-detail-date-link');
-      expect(links).toHaveLength(customDatesEvent.customDates.length);
-
-      const expectedHrefs = [...customDatesEvent.customDates]
-        .sort()
-        .map((date) => `/event/${customDatesEvent.slug}?occurrenceDate=${date}`);
-      const actualHrefs = links.map((link) => link.getAttribute('href'));
-      expect(actualHrefs).toEqual(expectedHrefs);
+      // No anchors pointing at the same page with occurrenceDate=
+      const anchors = within(datesList).queryAllByRole('link');
+      const occurrenceAnchors = anchors.filter((a) =>
+        (a.getAttribute('href') || '').includes('occurrenceDate=')
+      );
+      expect(occurrenceAnchors).toHaveLength(0);
     });
 
     it('keeps the list visible when navigated to a specific occurrence and marks the selected date as current', async () => {
@@ -547,9 +545,6 @@ describe('EventDetailPage — recurrence dates are clickable links (AmfbLIFQ)', 
       const currentItems = screen.getAllByTestId('event-detail-date-current');
       expect(currentItems).toHaveLength(1);
       expect(currentItems[0]).toHaveTextContent('1. September 2026');
-
-      const links = screen.getAllByTestId('event-detail-date-link');
-      expect(links).toHaveLength(customDatesEvent.customDates.length - 1);
     });
   });
 
@@ -562,7 +557,7 @@ describe('EventDetailPage — recurrence dates are clickable links (AmfbLIFQ)', 
       mockGetRecurrenceDatesForDetail.mockReturnValue(['2026-09-07', '2026-09-14', '2026-09-21']);
     });
 
-    it('renders every future occurrence as a link to that occurrence', async () => {
+    it('renders every future occurrence as plain text without links', async () => {
       renderRecurringEventPage(null);
 
       expect(await screen.findByText('Wochen-Yoga')).toBeInTheDocument();
@@ -570,21 +565,11 @@ describe('EventDetailPage — recurrence dates are clickable links (AmfbLIFQ)', 
       const items = screen.getAllByTestId('event-detail-date-item');
       expect(items).toHaveLength(3);
 
-      const links = screen.getAllByTestId('event-detail-date-link');
-      expect(links).toHaveLength(3);
-
-      expect(links[0]).toHaveAttribute(
-        'href',
-        `/event/${recurringEvent.slug}?occurrenceDate=2026-09-07`
+      const anchors = screen.queryAllByRole('link');
+      const occurrenceAnchors = anchors.filter((a) =>
+        (a.getAttribute('href') || '').includes('occurrenceDate=')
       );
-      expect(links[1]).toHaveAttribute(
-        'href',
-        `/event/${recurringEvent.slug}?occurrenceDate=2026-09-14`
-      );
-      expect(links[2]).toHaveAttribute(
-        'href',
-        `/event/${recurringEvent.slug}?occurrenceDate=2026-09-21`
-      );
+      expect(occurrenceAnchors).toHaveLength(0);
     });
 
     it('keeps the list visible when navigated to a specific weekly occurrence and marks the selected date as current', async () => {
@@ -601,17 +586,6 @@ describe('EventDetailPage — recurrence dates are clickable links (AmfbLIFQ)', 
       const currentItems = screen.getAllByTestId('event-detail-date-current');
       expect(currentItems).toHaveLength(1);
       expect(currentItems[0]).toHaveTextContent('14. September 2026');
-
-      const links = screen.getAllByTestId('event-detail-date-link');
-      expect(links).toHaveLength(2);
-      expect(links[0]).toHaveAttribute(
-        'href',
-        `/event/${recurringEvent.slug}?occurrenceDate=2026-09-07`
-      );
-      expect(links[1]).toHaveAttribute(
-        'href',
-        `/event/${recurringEvent.slug}?occurrenceDate=2026-09-21`
-      );
     });
   });
 

@@ -199,17 +199,6 @@
   margin: 0;
 }
 
-.event-detail-date-link {
-  color: var(--accent-primary);
-  text-decoration: none;
-  transition: color 0.15s ease;
-}
-
-.event-detail-date-link:hover {
-  color: var(--text-primary);
-  text-decoration: underline;
-}
-
 .event-detail-date-current {
   font-weight: 600;
   color: var(--text-primary);

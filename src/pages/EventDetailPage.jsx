@@ -528,22 +528,12 @@ export default function EventDetailPage() {
                   const isCurrent = date === occurrenceDate;
                   return (
                     <li key={date} data-testid="event-detail-date-item">
-                      {isCurrent ? (
-                        <span
-                          className="event-detail-date-current"
-                          data-testid="event-detail-date-current"
-                        >
-                          {formatDate(date)}
-                        </span>
-                      ) : (
-                        <Link
-                          to={`${eventPath}?occurrenceDate=${date}`}
-                          className="event-detail-date-link"
-                          data-testid="event-detail-date-link"
-                        >
-                          {formatDate(date)}
-                        </Link>
-                      )}
+                      <span
+                        className={isCurrent ? 'event-detail-date-current' : undefined}
+                        data-testid={isCurrent ? 'event-detail-date-current' : undefined}
+                      >
+                        {formatDate(date)}
+                      </span>
                     </li>
                   );
                 })}

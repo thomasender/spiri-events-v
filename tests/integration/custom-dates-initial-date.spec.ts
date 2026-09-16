@@ -27,6 +27,16 @@ function seriesDates(): string[] {
   });
 }
 
+function formatDe(isoDate: string): string {
+  const [year, month, day] = isoDate.split('-').map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString('de-DE', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
 async function createCustomDatesEvent(page, title: string) {
   const [initialDate, second, third] = seriesDates();
 
@@ -110,7 +120,11 @@ test.describe('Custom dates series includes the initial event date (DbtucPK2) @s
     await expect(datesList).toBeVisible({ timeout: 15000 });
 
     for (const iso of [initialDate, second, third]) {
-      await expect(datesList.locator(`a[href*="occurrenceDate=${iso}"]`)).toHaveCount(1);
+      await expect(
+        datesList
+          .locator('[data-testid="event-detail-date-item"]')
+          .filter({ hasText: formatDe(iso) })
+      ).toHaveCount(1);
     }
   });
 
