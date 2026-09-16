@@ -13,9 +13,21 @@
   flex-direction: column;
   gap: 16px;
   align-items: center;
+  margin-top: 48px;
+}
+
+.spenden-danke-hero .eyebrow {
+  font-family: var(--font-heading);
+  font-size: var(--fs-section);
+  font-weight: 500;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--text-primary);
+  margin-top: 16px;
 }
 
 .spenden-danke-hero-title {
+  font-family: var(--font-heading);
   font-size: var(--fs-section);
   color: var(--text-primary);
   font-weight: 500;
