@@ -16,6 +16,7 @@ import SpendenPage from './pages/SpendenPage';
 import FeedbackButton from './components/FeedbackButton';
 import SeedBootstrap from './components/SeedBootstrap';
 import ThemeApplier from './components/ThemeApplier';
+import ScrollToTop from './components/ScrollToTop';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -36,6 +37,7 @@ function AppContent() {
     <div className="app-layout">
       <SeedBootstrap />
       <ThemeApplier />
+      <ScrollToTop />
       <Header />
       <main className="main-content">
         <Routes>
