@@ -13,6 +13,7 @@ import ProfilePage from './pages/ProfilePage';
 import ThemeEditorPage from './pages/ThemeEditorPage';
 import AboutPage from './pages/AboutPage';
 import SpendenPage from './pages/SpendenPage';
+import SpendenDankePage from './pages/SpendenDankePage';
 import FeedbackButton from './components/FeedbackButton';
 import SeedBootstrap from './components/SeedBootstrap';
 import ThemeApplier from './components/ThemeApplier';
@@ -49,6 +50,7 @@ function AppContent() {
             <Route path="/event/:slug" element={<EventDetailPage />} />
             <Route path="/ueber-uns" element={<AboutPage />} />
             <Route path="/spenden" element={<SpendenPage />} />
+            <Route path="/spenden/danke" element={<SpendenDankePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route
               path="/admin"

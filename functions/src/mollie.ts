@@ -1,7 +1,7 @@
 import { defineSecret } from 'firebase-functions/params';
 
-// Kept inline because the functions bundle is CJS and the shared helper in
-// src/lib/mollieCheckout.js is an ESM module. Keep in sync with the helper.
+// Kept inline because the functions bundle is CJS and the shared helpers in
+// src/lib/ are ESM modules. Keep in sync with the helper.
 function extractMollieCheckoutUrl(
   response: { _links?: { checkout?: { href?: unknown } } } | null | undefined
 ): string | null {
@@ -31,6 +31,47 @@ export function isValidDonationAmount(value: unknown): value is number {
 
 export function formatAmount(value: number): string {
   return value.toFixed(2);
+}
+
+export interface CallableRequest {
+  rawRequest: {
+    host?: string;
+    protocol?: string;
+    headers?: Record<string, string | string[] | undefined>;
+  };
+}
+
+// Kept inline because the functions bundle is CJS and the shared helper in
+// src/lib/mollieBaseUrl.js is an ESM module. Keep in sync with the helper.
+function readHeader(
+  headers: Record<string, string | string[] | undefined> | undefined,
+  name: string
+): string | undefined {
+  if (!headers) return undefined;
+  const value = headers[name] ?? headers[name.toLowerCase()];
+  if (Array.isArray(value)) return value[0];
+  if (typeof value === 'string') return value;
+  return undefined;
+}
+
+export function resolveAppBaseUrl(req: CallableRequest): string {
+  const headers = req.rawRequest?.headers;
+
+  const origin = readHeader(headers, 'origin');
+  if (origin) return origin;
+
+  const referer = readHeader(headers, 'referer');
+  if (referer) {
+    try {
+      return new URL(referer).origin;
+    } catch {
+      // fall through
+    }
+  }
+
+  const host = req.rawRequest?.host ?? 'localhost';
+  const protocol = req.rawRequest?.protocol ?? 'https';
+  return `${protocol}://${host}`;
 }
 
 interface MollieRequestOptions {

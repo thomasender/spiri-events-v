@@ -5,6 +5,7 @@ import {
   MIN_DONATION_AMOUNT,
   createMollieCustomer,
   isValidDonationAmount,
+  resolveAppBaseUrl,
   startMolliePaymentCheckout,
   startMollieSubscriptionCheckout,
 } from './mollie';
@@ -15,12 +16,6 @@ const ALLOWED_ORIGINS = ['https://events.thetribe.at'];
 interface CreateDonationRequest {
   amount: number;
   name?: string | null;
-}
-
-function resolveAppBaseUrl(req: { rawRequest: { host?: string; protocol?: string } }): string {
-  const host = req.rawRequest.host ?? 'localhost';
-  const protocol = req.rawRequest.protocol ?? 'https';
-  return `${protocol}://${host}`;
 }
 
 function assertValidAmount(amount: unknown): asserts amount is number {
