@@ -331,7 +331,8 @@ export function generateCalendarPageHtml(events, jsBundlePath, cssBundlePath, th
     .filter(e => e.date && e.date >= today)
     .slice(0, 20)
 
-  const eventsList = upcomingEvents.length > 0
+  const hasEvents = upcomingEvents.length > 0
+  const eventsList = hasEvents
     ? upcomingEvents.map(event => {
         const eventPath = getEventPath(event)
         return `
@@ -342,7 +343,10 @@ export function generateCalendarPageHtml(events, jsBundlePath, cssBundlePath, th
           </a>
         </li>`
       }).join('')
-    : '<li>Keine bevorstehenden Events</li>'
+    : ''
+  const eventsPlaceholder = hasEvents
+    ? `<ul class="events-list" data-testid="prerender-events-list">${eventsList}</ul>`
+    : `<div class="prerender-loading" role="status" aria-live="polite" data-testid="prerender-loading"></div>`
   const themeRoot = buildThemeRootBlock(theme)
 
   return `<!DOCTYPE html>
@@ -409,6 +413,10 @@ export function generateCalendarPageHtml(events, jsBundlePath, cssBundlePath, th
     .events-list a { display: flex; flex-direction: column; gap: 4px; }
     .events-list strong { font-size: 1.1rem; color: var(--text-primary); }
     .events-list span { font-size: 0.9rem; color: var(--text-secondary); }
+    .prerender-loading { display: flex; justify-content: center; align-items: center; padding: 48px 16px; min-height: 160px; }
+    .prerender-loading::after { content: ''; width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent-primary); border-radius: 50%; animation: prerender-spin 0.8s linear infinite; }
+    @keyframes prerender-spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .prerender-loading::after { animation-duration: 3s; } }
     footer { background: var(--bg-secondary); padding: 24px; text-align: center; color: var(--text-secondary); font-size: 0.9rem; }
   </style>
 </head>
@@ -424,9 +432,7 @@ export function generateCalendarPageHtml(events, jsBundlePath, cssBundlePath, th
 
       <div class="calendar-wrapper">
         <h2 class="page-title">Bevorstehende Events</h2>
-        <ul class="events-list">
-          ${eventsList}
-        </ul>
+        ${eventsPlaceholder}
       </div>
 
       <footer>
