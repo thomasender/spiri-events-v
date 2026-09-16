@@ -1,4 +1,5 @@
 import { defineSecret } from 'firebase-functions/params';
+import { extractMollieCheckoutUrl } from '../../src/lib/mollieCheckout';
 
 export const MOLLIE_API_KEY = defineSecret('MOLLIE_API_KEY');
 
@@ -62,9 +63,19 @@ export async function mollieRequest<T>(
   return data as T;
 }
 
-interface MollieCheckoutUrl {
+interface MollieLink {
   href: string;
   type: string;
+}
+
+interface MollieLinks {
+  checkout?: MollieLink;
+}
+
+export interface MolliePaymentResponse {
+  id: string;
+  status?: string;
+  _links?: MollieLinks;
 }
 
 interface MollieCustomerResponse {
@@ -76,11 +87,6 @@ interface MollieSubscriptionResponse {
   id: string;
   customerId?: string;
   status: string;
-}
-
-interface MolliePaymentResponse {
-  id: string;
-  checkoutUrl?: MollieCheckoutUrl;
 }
 
 export interface MollieSubscriptionCheckoutResult {
@@ -116,33 +122,39 @@ export async function startMollieSubscriptionCheckout(
     appBaseUrl: string;
   }
 ): Promise<MollieSubscriptionCheckoutResult> {
-  const subscription = await mollieRequest<MollieSubscriptionResponse>(apiKey, '/subscriptions', {
-    method: 'POST',
-    body: {
-      customerId: params.customerId,
-      amount: {
-        currency: DONATION_CURRENCY,
-        value: formatAmount(params.amount),
-      },
-      description: SUBSCRIPTION_DESCRIPTION,
-      interval: SUBSCRIPTION_INTERVAL,
-      webhookUrl: `${params.appBaseUrl}/mollieWebhook`,
-    },
-  });
-
-  const subPayments = await mollieRequest<{ _embedded?: { payments?: MolliePaymentResponse[] } }>(
+  const subscription = await mollieRequest<MollieSubscriptionResponse>(
     apiKey,
-    `/subscriptions/${subscription.id}/payments?limit=1`,
-    { method: 'GET' }
+    `/customers/${params.customerId}/subscriptions`,
+    {
+      method: 'POST',
+      body: {
+        amount: {
+          currency: DONATION_CURRENCY,
+          value: formatAmount(params.amount),
+        },
+        description: SUBSCRIPTION_DESCRIPTION,
+        interval: SUBSCRIPTION_INTERVAL,
+        webhookUrl: `${params.appBaseUrl}/mollieWebhook`,
+      },
+    }
   );
 
+  const subPayments = await mollieRequest<{
+    _embedded?: { payments?: MolliePaymentResponse[] };
+  }>(apiKey, `/customers/${params.customerId}/subscriptions/${subscription.id}/payments?limit=1`, {
+    method: 'GET',
+  });
+
   const firstPayment = subPayments._embedded?.payments?.[0];
-  if (!firstPayment?.checkoutUrl?.href) {
-    throw new Error('Mollie did not return a checkout URL for the first subscription payment');
+  const checkoutUrl = firstPayment ? extractMollieCheckoutUrl(firstPayment) : null;
+  if (!checkoutUrl) {
+    throw new Error(
+      `Mollie did not return a checkout URL for the first subscription payment (status: ${firstPayment?.status ?? 'unknown'})`
+    );
   }
 
   return {
-    checkoutUrl: firstPayment.checkoutUrl.href,
+    checkoutUrl,
     customerId: params.customerId,
     subscriptionId: subscription.id,
   };
@@ -164,6 +176,7 @@ export async function startMolliePaymentCheckout(
     description: PAYMENT_DESCRIPTION,
     redirectUrl: `${params.appBaseUrl}/spenden/danke`,
     webhookUrl: `${params.appBaseUrl}/mollieWebhook`,
+    locale: 'de_AT',
   };
   if (params.name && params.name.trim().length > 0) {
     body.metadata = { donorName: params.name.trim() };
@@ -174,12 +187,15 @@ export async function startMolliePaymentCheckout(
     body,
   });
 
-  if (!payment.checkoutUrl?.href) {
-    throw new Error('Mollie did not return a checkout URL for the one-time payment');
+  const checkoutUrl = extractMollieCheckoutUrl(payment);
+  if (!checkoutUrl) {
+    throw new Error(
+      `Mollie did not return a checkout URL for the one-time payment (status: ${payment.status ?? 'unknown'})`
+    );
   }
 
   return {
-    checkoutUrl: payment.checkoutUrl.href,
+    checkoutUrl,
     paymentId: payment.id,
   };
 }
