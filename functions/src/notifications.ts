@@ -1,0 +1,321 @@
+import { logger } from 'firebase-functions';
+import { onDocumentUpdated, onDocumentCreated } from 'firebase-functions/v2/firestore';
+import { initializeApp, getApps } from 'firebase-admin/app';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+
+if (getApps().length === 0) {
+  initializeApp();
+}
+
+import {
+  MAILGUN_API_KEY,
+  MAILGUN_DOMAIN,
+  MAILGUN_FROM,
+  MAILGUN_EU_BASE,
+  sendMailgunMessage,
+  isMailgunDryRun,
+} from './mailgun';
+import {
+  decideEventStatusNotification,
+  decideAdminMessageNotification,
+  EventSnapshot,
+  AdminMessageSnapshot,
+  NotificationDecision,
+} from './notificationRouting';
+import { getAdminEmails } from './adminEmails';
+import {
+  buildEmailPayload,
+  NotificationType,
+  SubmittedPayloadInput,
+  ChangesRequestedPayloadInput,
+  PublishedPayloadInput,
+  DeletedPayloadInput,
+  EmailPayload,
+} from './emailTemplates';
+
+const REGION = 'europe-west3';
+const ADMINS_RECIPIENT = 'admins' as const;
+type RecipientMarker = string | typeof ADMINS_RECIPIENT;
+
+function readString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+}
+
+function readStatus(value: unknown): EventSnapshot['status'] {
+  return value === 'draft' || value === 'pending' || value === 'approved' || value === 'trashed'
+    ? value
+    : null;
+}
+
+interface OrganizerLike {
+  firstName?: unknown;
+  lastName?: unknown;
+  email?: unknown;
+  photoURL?: unknown;
+}
+
+function readOrganizer(value: unknown): EventSnapshot['organizer'] {
+  if (!value || typeof value !== 'object') return null;
+  const org = value as OrganizerLike;
+  return {
+    firstName: typeof org.firstName === 'string' ? org.firstName : null,
+    lastName: typeof org.lastName === 'string' ? org.lastName : null,
+    email: typeof org.email === 'string' ? org.email : null,
+    photoURL: typeof org.photoURL === 'string' ? org.photoURL : null,
+  };
+}
+
+function snapshotToEventSnapshot(data: FirebaseFirestore.DocumentData | undefined): EventSnapshot {
+  if (!data) return {};
+  return {
+    status: readStatus(data.status),
+    organizer: readOrganizer(data.organizer),
+    createdBy: readString(data.createdBy),
+    trashedAt: data.trashedAt ?? null,
+    lastNotifiedStatus: readStatus(data.lastNotifiedStatus),
+  };
+}
+
+function eventIdFromPath(params: { eventId?: string }): string {
+  return typeof params.eventId === 'string' ? params.eventId : '';
+}
+
+interface SendOptions {
+  apiKey: string;
+  domain: string;
+  from: string;
+  dryRun: boolean;
+}
+
+async function sendPayload(
+  payload: EmailPayload,
+  options: SendOptions
+): Promise<{ delivered: boolean; id?: string }> {
+  if (options.dryRun) {
+    logger.info('MAILGUN dry-run: would send email', {
+      to: payload.to,
+      subject: payload.subject,
+      htmlLength: payload.html.length,
+      textLength: payload.text.length,
+    });
+    return { delivered: true };
+  }
+  const result = await sendMailgunMessage(MAILGUN_EU_BASE, {
+    apiKey: options.apiKey,
+    domain: options.domain,
+    from: options.from,
+    to: payload.to,
+    subject: payload.subject,
+    text: payload.text,
+    html: payload.html,
+  });
+  return { delivered: true, id: result.id };
+}
+
+async function resolveRecipients(recipient: RecipientMarker): Promise<string[]> {
+  if (recipient === ADMINS_RECIPIENT) {
+    const emails = await getAdminEmails();
+    return emails;
+  }
+  return [recipient];
+}
+
+async function dispatchDecision(
+  eventId: string,
+  type: NotificationType,
+  recipient: RecipientMarker,
+  payloadInput:
+    | SubmittedPayloadInput
+    | ChangesRequestedPayloadInput
+    | PublishedPayloadInput
+    | DeletedPayloadInput,
+  options: SendOptions
+): Promise<{ recipients: number; dryRun: boolean }> {
+  const recipients = await resolveRecipients(recipient);
+  if (recipients.length === 0) {
+    logger.warn('No recipients resolved, skipping email', { eventId, type });
+    return { recipients: 0, dryRun: options.dryRun };
+  }
+  let sent = 0;
+  for (const to of recipients) {
+    const payload = buildEmailPayload(type, { ...payloadInput, recipient: to });
+    const result = await sendPayload(payload, options).catch((err) => {
+      logger.error('Mailgun send failed', { eventId, type, recipient: to, err });
+      return { delivered: false as const };
+    });
+    if (result.delivered) sent += 1;
+  }
+  return { recipients: sent, dryRun: options.dryRun };
+}
+
+function markNotified(eventId: string, status: EventSnapshot['status']): Promise<void> {
+  const db = getFirestore();
+  return db
+    .collection('events')
+    .doc(eventId)
+    .set(
+      {
+        lastNotifiedStatus: status ?? null,
+        lastNotifiedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    )
+    .then(() => undefined)
+    .catch((err) => {
+      logger.warn('Failed to write lastNotifiedAt', { eventId, err });
+    });
+}
+
+function safeSecrets(dryRun: boolean): { apiKey: string; domain: string; from: string } | null {
+  const apiKey = MAILGUN_API_KEY.value() ?? '';
+  const domain = MAILGUN_DOMAIN.value() ?? '';
+  const from = MAILGUN_FROM.value() ?? '';
+  if (!dryRun && (!apiKey || !domain || !from)) {
+    return null;
+  }
+  return { apiKey, domain, from };
+}
+
+function buildPayloadInputFromDecision(
+  decision: NotificationDecision
+):
+  | SubmittedPayloadInput
+  | ChangesRequestedPayloadInput
+  | PublishedPayloadInput
+  | DeletedPayloadInput {
+  if (decision.type === 'submitted') {
+    const submitterName =
+      [decision.event.organizer?.firstName, decision.event.organizer?.lastName]
+        .filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
+        .join(' ')
+        .trim() || 'Ein Mitglied';
+    return {
+      event: decision.event,
+      recipient: '',
+      context: { submitterName },
+    };
+  }
+  if (decision.type === 'changes_requested') {
+    return {
+      event: decision.event,
+      recipient: decision.recipient,
+      context: decision.context,
+    };
+  }
+  if (decision.type === 'published') {
+    return {
+      event: decision.event,
+      recipient: decision.recipient as string,
+    };
+  }
+  return {
+    event: decision.event,
+    recipient: decision.recipient as string,
+  };
+}
+
+export const onEventStatusChanged = onDocumentUpdated(
+  {
+    region: REGION,
+    document: 'events/{eventId}',
+    secrets: [MAILGUN_API_KEY, MAILGUN_DOMAIN, MAILGUN_FROM],
+  },
+  async (event) => {
+    const eventId = eventIdFromPath(event.params);
+    const before = snapshotToEventSnapshot(event.data?.before.data());
+    const after = snapshotToEventSnapshot(event.data?.after.data());
+    const title = readString(event.data?.after.data()?.title);
+    const slug = readString(event.data?.after.data()?.slug);
+
+    const decision = decideEventStatusNotification(eventId, before, after, title, slug);
+    if (!decision) {
+      logger.debug('No status transition to notify', { eventId });
+      return;
+    }
+
+    const dryRun = isMailgunDryRun(process.env);
+    const secrets = safeSecrets(dryRun);
+    if (!secrets) {
+      logger.error('Mailgun secrets are not configured; skipping send', { eventId });
+      return;
+    }
+
+    const payloadInput = buildPayloadInputFromDecision(decision);
+    const recipientMarker: RecipientMarker =
+      decision.type === 'submitted' ? ADMINS_RECIPIENT : (decision.recipient as string);
+    const result = await dispatchDecision(eventId, decision.type, recipientMarker, payloadInput, {
+      ...secrets,
+      dryRun,
+    });
+    logger.info(`${decision.type} notification processed`, { eventId, ...result });
+    if (result.recipients > 0 || result.dryRun) {
+      await markNotified(eventId, after.status);
+    }
+  }
+);
+
+export const onAdminMessageCreated = onDocumentCreated(
+  {
+    region: REGION,
+    document: 'events/{eventId}/messages/{messageId}',
+    secrets: [MAILGUN_API_KEY, MAILGUN_DOMAIN, MAILGUN_FROM],
+  },
+  async (event) => {
+    const eventId = eventIdFromPath(event.params);
+    const messageId = typeof event.params.messageId === 'string' ? event.params.messageId : '';
+    const data = event.data?.data();
+    if (!data) return;
+
+    const snapshot: AdminMessageSnapshot = {
+      id: messageId,
+      authorRole:
+        data.authorRole === 'Admin' || data.authorRole === 'User' ? data.authorRole : null,
+      authorUid: readString(data.authorUid),
+      text: readString(data.text),
+      authorName: readString(data.authorName),
+    };
+
+    const db = getFirestore();
+    const eventSnap = await db.collection('events').doc(eventId).get();
+    if (!eventSnap.exists) {
+      logger.warn('Event missing for message notification', { eventId, messageId });
+      return;
+    }
+    const eventData = eventSnap.data() ?? {};
+    const eventSnapshot = snapshotToEventSnapshot(eventData);
+    const title = readString(eventData.title);
+    const slug = readString(eventData.slug);
+
+    const decision = decideAdminMessageNotification(eventId, snapshot, eventSnapshot, title, slug);
+    if (!decision) {
+      logger.debug('No admin message notification needed', { eventId, messageId });
+      return;
+    }
+
+    const dryRun = isMailgunDryRun(process.env);
+    const secrets = safeSecrets(dryRun);
+    if (!secrets) {
+      logger.error('Mailgun secrets are not configured; skipping send', { eventId });
+      return;
+    }
+
+    const input: ChangesRequestedPayloadInput = {
+      event: decision.event,
+      recipient: decision.recipient,
+      context: {
+        messageId: decision.context.messageId,
+        authorName: decision.context.authorName,
+        text: decision.context.text,
+      },
+    };
+    const result = await dispatchDecision(eventId, 'changes_requested', decision.recipient, input, {
+      ...secrets,
+      dryRun,
+    });
+    logger.info('changes_requested notification processed', {
+      eventId,
+      messageId,
+      ...result,
+    });
+  }
+);
