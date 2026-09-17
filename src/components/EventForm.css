@@ -12,7 +12,6 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   padding: 40px;
-  overflow-x: clip;
 }
 
 .event-form-header {
