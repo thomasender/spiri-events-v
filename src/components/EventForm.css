@@ -6,11 +6,13 @@
 
 .event-form-container {
   max-width: 640px;
+  min-width: 0;
   margin: 0 auto;
   background-color: var(--bg-calendar);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   padding: 40px;
+  overflow-x: clip;
 }
 
 .event-form-header {
@@ -33,6 +35,7 @@
 .event-form {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .form-row {
