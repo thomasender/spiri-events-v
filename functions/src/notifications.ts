@@ -11,9 +11,11 @@ import {
   MAILGUN_API_KEY,
   MAILGUN_DOMAIN,
   MAILGUN_FROM,
+  SUBMITTED_NOTIFICATION_INBOX,
   MAILGUN_EU_BASE,
   sendMailgunMessage,
   isMailgunDryRun,
+  readSubmittedInbox,
 } from './mailgun';
 import {
   decideEventStatusNotification,
@@ -84,6 +86,7 @@ interface SendOptions {
   apiKey: string;
   domain: string;
   from: string;
+  submittedInbox?: string | null;
   dryRun: boolean;
 }
 
@@ -112,12 +115,38 @@ async function sendPayload(
   return { delivered: true, id: result.id };
 }
 
-async function resolveRecipients(recipient: RecipientMarker): Promise<string[]> {
+async function resolveRecipients(
+  recipient: RecipientMarker,
+  submittedInbox?: string | null
+): Promise<string[]> {
   if (recipient === ADMINS_RECIPIENT) {
     const emails = await getAdminEmails();
-    return emails;
+    return buildAdminRecipients(emails, submittedInbox);
   }
   return [recipient];
+}
+
+export function buildAdminRecipients(
+  adminEmails: string[],
+  submittedInbox?: string | null
+): string[] {
+  if (submittedInbox) {
+    return uniqueEmails([...adminEmails, submittedInbox]);
+  }
+  return uniqueEmails(adminEmails);
+}
+
+export function uniqueEmails(emails: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const email of emails) {
+    if (typeof email !== 'string') continue;
+    const normalized = email.trim().toLowerCase();
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    out.push(email);
+  }
+  return out;
 }
 
 async function dispatchDecision(
@@ -131,7 +160,7 @@ async function dispatchDecision(
     | DeletedPayloadInput,
   options: SendOptions
 ): Promise<{ recipients: number; dryRun: boolean }> {
-  const recipients = await resolveRecipients(recipient);
+  const recipients = await resolveRecipients(recipient, options.submittedInbox);
   if (recipients.length === 0) {
     logger.warn('No recipients resolved, skipping email', { eventId, type });
     return { recipients: 0, dryRun: options.dryRun };
@@ -166,14 +195,20 @@ function markNotified(eventId: string, status: EventSnapshot['status']): Promise
     });
 }
 
-function safeSecrets(dryRun: boolean): { apiKey: string; domain: string; from: string } | null {
+function safeSecrets(dryRun: boolean): {
+  apiKey: string;
+  domain: string;
+  from: string;
+  submittedInbox: string | null;
+} | null {
   const apiKey = MAILGUN_API_KEY.value() ?? '';
   const domain = MAILGUN_DOMAIN.value() ?? '';
   const from = MAILGUN_FROM.value() ?? '';
+  const submittedInbox = readSubmittedInbox(process.env);
   if (!dryRun && (!apiKey || !domain || !from)) {
     return null;
   }
-  return { apiKey, domain, from };
+  return { apiKey, domain, from, submittedInbox };
 }
 
 function buildPayloadInputFromDecision(
@@ -218,7 +253,7 @@ export const onEventStatusChanged = onDocumentUpdated(
   {
     region: REGION,
     document: 'events/{eventId}',
-    secrets: [MAILGUN_API_KEY, MAILGUN_DOMAIN, MAILGUN_FROM],
+    secrets: [MAILGUN_API_KEY, MAILGUN_DOMAIN, MAILGUN_FROM, SUBMITTED_NOTIFICATION_INBOX],
   },
   async (event) => {
     const eventId = eventIdFromPath(event.params);

@@ -3,8 +3,19 @@ import { defineSecret } from 'firebase-functions/params';
 export const MAILGUN_API_KEY = defineSecret('MAILGUN_API_KEY');
 export const MAILGUN_DOMAIN = defineSecret('MAILGUN_DOMAIN');
 export const MAILGUN_FROM = defineSecret('MAILGUN_FROM');
+export const SUBMITTED_NOTIFICATION_INBOX = defineSecret('SUBMITTED_NOTIFICATION_INBOX');
 
 export const MAILGUN_EU_BASE = 'https://api.eu.mailgun.net/v3';
+
+export function readSubmittedInbox(
+  env: NodeJS.ProcessEnv | Record<string, string | undefined> | undefined
+): string | null {
+  const raw = env?.SUBMITTED_NOTIFICATION_INBOX;
+  if (typeof raw !== 'string') return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  return trimmed;
+}
 
 export interface MailgunSendInput {
   apiKey: string;

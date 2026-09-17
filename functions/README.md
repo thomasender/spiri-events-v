@@ -65,6 +65,9 @@ firebase functions:secrets:set MOLLIE_API_KEY
 firebase functions:secrets:set MAILGUN_API_KEY
 firebase functions:secrets:set MAILGUN_DOMAIN
 firebase functions:secrets:set MAILGUN_FROM
+# Optional: a shared inbox that always receives "Neuer Event-Vorschlag" emails
+# in addition to per-admin recipients from the admin_users collection.
+firebase functions:secrets:set SUBMITTED_NOTIFICATION_INBOX
 ```
 
 For local dev with `MAILGUN_DRY_RUN=true`, the Mailgun secrets can stay empty.

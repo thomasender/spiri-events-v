@@ -6,13 +6,16 @@ _Test-Protokoll für die vier automatischen Benachrichtigungs-E-Mails, die beim 
 
 - **Wer löst aus:** beliebiger User
 - **Aktion:** Event im Wizard erstellen, am Ende „Einreichen" klicken
-- **Empfänger:** alle Admins (aufgelöst über die `admin_users`-Collection und Firebase Auth)
+- **Empfänger:**
+  - Optional: eine geteilte Team-Inbox (Secret `SUBMITTED_NOTIFICATION_INBOX`, z. B. `admin@thetribe.at`), wenn das Secret gesetzt ist — wird zusätzlich zu den Admins aus `admin_users` angeschrieben
+  - alle Admins (aufgelöst über die `admin_users`-Collection und Firebase Auth)
+  - Doppelte Empfänger werden dedupliziert (Groß-/Kleinschreibung + Whitespace ignoriert)
 - **Betreff:** `Neuer Event-Vorschlag: {Titel}`
 - **Inhalt:** Name des Einreichers + Button „Im Review ansehen" (Link zu `/admin/review#<eventId>`)
 - **Verifizieren:**
-  - Mailgun Dashboard → Sending → Logs → Filter `mg.thetribe.at` → Status `delivered`, To enthält alle Admin-Adressen
-  - Function Log: `firebase functions:log --only onEventStatusChanged -n 50` → Meldung `submitted notification processed`, `recipients` = Anzahl Admins
-  - Bei `recipients: 0` stimmt etwas mit `admin_users` nicht (kein Doc vorhanden oder Auth-User fehlt)
+  - Mailgun Dashboard → Sending → Logs → Filter `mg.thetribe.at` → Status `delivered`, To enthält alle Admin-Adressen (inkl. Team-Inbox, falls gesetzt)
+  - Function Log: `firebase functions:log --only onEventStatusChanged -n 50` → Meldung `submitted notification processed`, `recipients` = Anzahl Empfänger
+  - Bei `recipients: 0` stimmt etwas mit `admin_users` nicht (kein Doc vorhanden oder Auth-User fehlt) UND es ist keine `SUBMITTED_NOTIFICATION_INBOX` gesetzt
 
 ## 2. „Dein Event ist live" (Published → an Ersteller)
 
