@@ -6,12 +6,14 @@
 
 .event-form-container {
   max-width: 640px;
+  min-width: 0;
   margin: 0 auto;
   background-color: var(--bg-calendar);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   padding: 40px;
   scroll-margin-top: 80px;
+  overflow-x: clip;
 }
 
 .event-form-header {
