@@ -37,8 +37,10 @@ import { normalizeLink } from '../utils/link';
 import { CURRENCIES, DEFAULT_CURRENCY, formatPriceWithCurrency } from '../utils/currency';
 import { saveWizardDraft, loadWizardDraft, clearWizardDraft } from '../utils/wizardDraftStorage';
 import { normalizeCategoryInput, isValidCategoryInput } from '../utils/categoryInput';
+import DateTimeInput from './DateTimeInput';
 import './EventForm.css';
 import './EventFormWizard.css';
+import './DateTimeInput.css';
 
 const INITIAL_STATE = {
   title: '',
@@ -858,26 +860,28 @@ export default function EventFormWizard() {
       <div className="form-row">
         <div className="form-group">
           <label htmlFor="date">Datum *</label>
-          <input
+          <DateTimeInput
+            kind="date"
             id="date"
             name="date"
-            type="date"
             value={formData.date}
             onChange={handleChange}
-            className={errors.date ? 'input-error' : ''}
+            hasError={Boolean(errors.date)}
+            required
           />
           {errors.date && <span className="error-text">{errors.date}</span>}
         </div>
 
         <div className="form-group">
           <label htmlFor="time">Uhrzeit *</label>
-          <input
+          <DateTimeInput
+            kind="time"
             id="time"
             name="time"
-            type="time"
             value={formData.time}
             onChange={handleChange}
-            className={errors.time ? 'input-error' : ''}
+            hasError={Boolean(errors.time)}
+            required
           />
           {errors.time && <span className="error-text">{errors.time}</span>}
         </div>
@@ -891,10 +895,10 @@ export default function EventFormWizard() {
             <span>Nur bei mehrtätigen Events (z.B. Retreats, Festivals, etc.) notwendig</span>
           </span>
         </div>
-        <input
+        <DateTimeInput
+          kind="date"
           id="endDate"
           name="endDate"
-          type="date"
           value={formData.endDate}
           onChange={handleChange}
         />

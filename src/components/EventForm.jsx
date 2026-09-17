@@ -26,7 +26,9 @@ import {
 } from '../utils/customSeriesUpdates';
 import { CURRENCIES, DEFAULT_CURRENCY } from '../utils/currency';
 import { normalizeCategoryInput, isValidCategoryInput } from '../utils/categoryInput';
+import DateTimeInput from './DateTimeInput';
 import './EventForm.css';
+import './DateTimeInput.css';
 
 const INITIAL_STATE = {
   title: '',
@@ -817,13 +819,14 @@ export default function EventForm({ event }) {
 
           <div className="form-group">
             <label htmlFor="date">Datum *</label>
-            <input
+            <DateTimeInput
+              kind="date"
               id="date"
               name="date"
-              type="date"
               value={formData.date}
               onChange={handleChange}
-              className={errors.date ? 'input-error' : ''}
+              hasError={Boolean(errors.date)}
+              required
             />
             {errors.date && <span className="error-text">{errors.date}</span>}
           </div>
@@ -983,10 +986,10 @@ export default function EventForm({ event }) {
           <div className="form-row">
             <div className="form-group">
               <label htmlFor="time">Uhrzeit</label>
-              <input
+              <DateTimeInput
+                kind="time"
                 id="time"
                 name="time"
-                type="time"
                 value={formData.time}
                 onChange={handleChange}
               />
@@ -994,10 +997,10 @@ export default function EventForm({ event }) {
 
             <div className="form-group">
               <label htmlFor="endTime">Bis (optional)</label>
-              <input
+              <DateTimeInput
+                kind="time"
                 id="endTime"
                 name="endTime"
-                type="time"
                 value={formData.endTime}
                 onChange={handleChange}
               />
@@ -1012,10 +1015,10 @@ export default function EventForm({ event }) {
                 <span>Nur bei mehrtägigen Veranstaltungen (Retreats, Festivals)</span>
               </span>
             </div>
-            <input
+            <DateTimeInput
+              kind="date"
               id="endDate"
               name="endDate"
-              type="date"
               value={formData.endDate}
               onChange={handleChange}
             />

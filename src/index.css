@@ -241,6 +241,14 @@ input[type='time'] {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+  font-size: 16px;
+  /* Strip iOS Safari's native picker chrome (calendar/clock indicator,
+     locale-format placeholder chrome). Without this, iOS enforces an
+     intrinsic min-content width on the input that CSS width: 100% cannot
+     override, and the field extends past the form container on iPhone.
+     Tapping the field still opens the native date/time picker. */
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 input:focus,

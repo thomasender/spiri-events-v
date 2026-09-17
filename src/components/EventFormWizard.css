@@ -13,7 +13,6 @@
   box-shadow: var(--shadow-md);
   padding: 40px;
   scroll-margin-top: 80px;
-  overflow-x: clip;
 }
 
 .event-form-header {
