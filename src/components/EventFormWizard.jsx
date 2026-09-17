@@ -37,10 +37,8 @@ import { normalizeLink } from '../utils/link';
 import { CURRENCIES, DEFAULT_CURRENCY, formatPriceWithCurrency } from '../utils/currency';
 import { saveWizardDraft, loadWizardDraft, clearWizardDraft } from '../utils/wizardDraftStorage';
 import { normalizeCategoryInput, isValidCategoryInput } from '../utils/categoryInput';
-import DateTimeInput from './DateTimeInput';
 import './EventForm.css';
 import './EventFormWizard.css';
-import './DateTimeInput.css';
 
 const INITIAL_STATE = {
   title: '',
@@ -860,13 +858,13 @@ export default function EventFormWizard() {
       <div className="form-row">
         <div className="form-group">
           <label htmlFor="date">Datum *</label>
-          <DateTimeInput
-            kind="date"
+          <input
             id="date"
             name="date"
+            type="date"
             value={formData.date}
             onChange={handleChange}
-            hasError={Boolean(errors.date)}
+            className={errors.date ? 'input-error' : ''}
             required
           />
           {errors.date && <span className="error-text">{errors.date}</span>}
@@ -874,13 +872,13 @@ export default function EventFormWizard() {
 
         <div className="form-group">
           <label htmlFor="time">Uhrzeit *</label>
-          <DateTimeInput
-            kind="time"
+          <input
             id="time"
             name="time"
+            type="time"
             value={formData.time}
             onChange={handleChange}
-            hasError={Boolean(errors.time)}
+            className={errors.time ? 'input-error' : ''}
             required
           />
           {errors.time && <span className="error-text">{errors.time}</span>}
@@ -895,10 +893,10 @@ export default function EventFormWizard() {
             <span>Nur bei mehrtätigen Events (z.B. Retreats, Festivals, etc.) notwendig</span>
           </span>
         </div>
-        <DateTimeInput
-          kind="date"
+        <input
           id="endDate"
           name="endDate"
+          type="date"
           value={formData.endDate}
           onChange={handleChange}
         />
