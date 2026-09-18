@@ -214,6 +214,14 @@ describe('buildDeletedPayload', () => {
     expect(payload.text).toContain('Papierkorb');
   });
 
+  it('points users to the Verwaltungs-Bereich, not the Admin-Bereich', () => {
+    const payload = buildDeletedPayload({ event: baseEvent, recipient: 'lukas@example.com' });
+    expect(payload.html).toContain('Verwaltungs-Bereich');
+    expect(payload.text).toContain('Verwaltungs-Bereich');
+    expect(payload.html).not.toContain('Admin-Bereich');
+    expect(payload.text).not.toContain('Admin-Bereich');
+  });
+
   it('falls back to a generic greeting when the organizer name is missing', () => {
     const payload = buildDeletedPayload({
       event: { ...baseEvent, organizer: null },

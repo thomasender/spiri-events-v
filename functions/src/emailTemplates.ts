@@ -205,11 +205,11 @@ export function buildDeletedPayload({ event, recipient }: DeletedPayloadInput): 
   const htmlBody = `
     <p style="font-size:14px;line-height:1.5;margin:0 0 16px 0;">${greeting}</p>
     <p style="font-size:14px;line-height:1.5;margin:0 0 16px 0;">
-      Dein Event <strong>${escapeHtml(event.title)}</strong> wurde in den Papierkorb verschoben. Falls du es wiederherstellen möchtest, findest du es im Admin-Bereich unter „Papierkorb".
+      Dein Event <strong>${escapeHtml(event.title)}</strong> wurde in den Papierkorb verschoben. Falls du es wiederherstellen möchtest, findest du es im Verwaltungs-Bereich unter „Papierkorb".
     </p>`;
   const textBody =
     `${greetingName ? `Hallo ${greetingName},\n\n` : 'Hallo,\n\n'}` +
-    `Dein Event "${event.title}" wurde in den Papierkorb verschoben. Falls du es wiederherstellen möchtest, findest du es im Admin-Bereich unter "Papierkorb".`;
+    `Dein Event "${event.title}" wurde in den Papierkorb verschoben. Falls du es wiederherstellen möchtest, findest du es im Verwaltungs-Bereich unter "Papierkorb".`;
   return {
     to: recipient,
     subject,
