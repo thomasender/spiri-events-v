@@ -4,6 +4,7 @@ import {
   buildSubmittedPayload,
   buildChangesRequestedPayload,
   buildPublishedPayload,
+  buildPublishedShareUrls,
   buildDeletedPayload,
   escapeHtml,
   notificationSettingsUrl,
@@ -166,6 +167,15 @@ describe('buildChangesRequestedPayload', () => {
   });
 });
 
+function byChannelUrl(channel, url, title) {
+  const encodedUrl = encodeURIComponent(url);
+  if (channel === 'facebook') return `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+  if (channel === 'whatsapp') return `https://wa.me/?text=${encodedUrl}`;
+  if (channel === 'telegram')
+    return `https://t.me/share/url?url=${encodedUrl}&text=${encodeURIComponent(title)}`;
+  throw new Error(`unknown channel ${channel}`);
+}
+
 describe('buildPublishedPayload', () => {
   const baseEvent = {
     id: 'evt3',
@@ -192,6 +202,85 @@ describe('buildPublishedPayload', () => {
       recipient: 'maria@example.com',
     });
     expect(payload.html).toContain('Hallo,');
+  });
+
+  it('includes a "share" section that encourages the owner to spread the event', () => {
+    const payload = buildPublishedPayload({ event: baseEvent, recipient: 'maria@example.com' });
+    expect(payload.html).toContain('Hilf mit, dein Event zu verbreiten');
+    expect(payload.text).toContain('Hilf mit, dein Event zu verbreiten');
+  });
+
+  it('renders share buttons for Facebook, WhatsApp and Telegram in the HTML', () => {
+    const payload = buildPublishedPayload({ event: baseEvent, recipient: 'maria@example.com' });
+    expect(payload.html).toContain('Über Facebook teilen');
+    expect(payload.html).toContain('Über WhatsApp teilen');
+    expect(payload.html).toContain('Über Telegram teilen');
+  });
+
+  it('builds correctly encoded share URLs for each channel', () => {
+    const shareLinks = buildPublishedShareUrls(baseEvent);
+    const byChannel = Object.fromEntries(shareLinks.map((entry) => [entry.channelId, entry.url]));
+    const expectedUrl = `${APP_BASE_URL}/event/konzert-im-dom`;
+    expect(byChannel.facebook).toBe(
+      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(expectedUrl)}`
+    );
+    expect(byChannel.whatsapp).toBe(`https://wa.me/?text=${encodeURIComponent(expectedUrl)}`);
+    expect(byChannel.telegram).toBe(
+      `https://t.me/share/url?url=${encodeURIComponent(expectedUrl)}&text=${encodeURIComponent(baseEvent.title)}`
+    );
+  });
+
+  it('embeds each share URL in the HTML body', () => {
+    const payload = buildPublishedPayload({ event: baseEvent, recipient: 'maria@example.com' });
+    const expectedUrl = `${APP_BASE_URL}/event/konzert-im-dom`;
+    expect(payload.html).toContain(
+      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(expectedUrl)}`
+    );
+    expect(payload.html).toContain(`https://wa.me/?text=${encodeURIComponent(expectedUrl)}`);
+    expect(payload.html).toContain(
+      `https://t.me/share/url?url=${encodeURIComponent(expectedUrl)}&text=${encodeURIComponent(baseEvent.title)}`
+    );
+  });
+
+  it('lists each share URL in the plain text body', () => {
+    const payload = buildPublishedPayload({ event: baseEvent, recipient: 'maria@example.com' });
+    const expectedUrl = `${APP_BASE_URL}/event/konzert-im-dom`;
+    expect(payload.text).toContain(`Facebook: ${byChannelUrl('facebook', expectedUrl)}`);
+    expect(payload.text).toContain(`WhatsApp: ${byChannelUrl('whatsapp', expectedUrl)}`);
+    expect(payload.text).toContain(
+      `Telegram: ${byChannelUrl('telegram', expectedUrl, baseEvent.title)}`
+    );
+  });
+
+  it('shows the direct event URL prominently so it can be copied or forwarded', () => {
+    const payload = buildPublishedPayload({ event: baseEvent, recipient: 'maria@example.com' });
+    const expectedUrl = `${APP_BASE_URL}/event/konzert-im-dom`;
+    expect(payload.html).toContain('Direkter Link zum Event');
+    expect(payload.html).toContain(`href="${expectedUrl}"`);
+    expect(payload.html).toContain(`>${expectedUrl}</a>`);
+    expect(payload.text).toContain(`Direkter Link zum Event: ${expectedUrl}`);
+  });
+
+  it('escapes the event title when it contains HTML in the share CTA copy', () => {
+    const payload = buildPublishedPayload({
+      event: { ...baseEvent, title: '<script>alert("xss")</script>' },
+      recipient: 'maria@example.com',
+    });
+    expect(payload.html).not.toContain('<script>alert("xss")</script>');
+    expect(payload.html).toContain('&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;');
+  });
+
+  it('still renders the share section when the event has no slug (falls back to the home URL)', () => {
+    const payload = buildPublishedPayload({
+      event: { ...baseEvent, slug: null },
+      recipient: 'maria@example.com',
+    });
+    const fallbackUrl = `${APP_BASE_URL}/`;
+    expect(payload.html).toContain('Direkter Link zum Event');
+    expect(payload.html).toContain(`href="${fallbackUrl}"`);
+    expect(payload.html).toContain(
+      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(fallbackUrl)}`
+    );
   });
 });
 

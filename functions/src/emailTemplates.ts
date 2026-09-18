@@ -173,11 +173,57 @@ export interface PublishedPayloadInput {
   recipient: string;
 }
 
+interface ShareChannel {
+  id: 'facebook' | 'whatsapp' | 'telegram';
+  label: string;
+  buildUrl: (url: string, title: string) => string;
+}
+
+const PUBLISHED_SHARE_CHANNELS: ShareChannel[] = [
+  {
+    id: 'facebook',
+    label: 'Facebook',
+    buildUrl: (url) => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
+  },
+  {
+    id: 'whatsapp',
+    label: 'WhatsApp',
+    buildUrl: (url) => `https://wa.me/?text=${encodeURIComponent(url)}`,
+  },
+  {
+    id: 'telegram',
+    label: 'Telegram',
+    buildUrl: (url, title) =>
+      `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`,
+  },
+];
+
+export function buildPublishedShareUrls(
+  event: NotificationEvent
+): { channelId: ShareChannel['id']; label: string; url: string }[] {
+  const url = eventUrl(event.slug);
+  const title = event.title || '';
+  return PUBLISHED_SHARE_CHANNELS.map((channel) => ({
+    channelId: channel.id,
+    label: channel.label,
+    url: channel.buildUrl(url, title),
+  }));
+}
+
 export function buildPublishedPayload({ event, recipient }: PublishedPayloadInput): EmailPayload {
   const link = eventUrl(event.slug);
   const greetingName = organizerDisplayName(event.organizer);
   const greeting = greetingName ? `Hallo ${escapeHtml(greetingName)},` : 'Hallo,';
   const subject = `Dein Event ist live: ${event.title}`;
+  const shareLinks = buildPublishedShareUrls(event);
+  const shareButtons = shareLinks
+    .map(
+      (share) =>
+        `<a href="${share.url}" target="_blank" rel="noopener noreferrer" ` +
+        `style="display:inline-block;background:#faf9f5;color:#1f1f1d;padding:10px 18px;margin:0 8px 8px 0;border:1px solid #c2bdb1;border-radius:8px;text-decoration:none;font-size:14px;">` +
+        `Über ${escapeHtml(share.label)} teilen</a>`
+    )
+    .join('');
   const htmlBody = `
     <p style="font-size:14px;line-height:1.5;margin:0 0 16px 0;">${greeting}</p>
     <p style="font-size:14px;line-height:1.5;margin:0 0 16px 0;">
@@ -185,11 +231,25 @@ export function buildPublishedPayload({ event, recipient }: PublishedPayloadInpu
     </p>
     <p style="margin:0 0 24px 0;">
       <a href="${link}" style="display:inline-block;background:#1f1f1d;color:#faf9f5;padding:10px 18px;border-radius:8px;text-decoration:none;font-size:14px;">Event ansehen</a>
+    </p>
+    <h2 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;margin:24px 0 8px 0;color:#1f1f1d;">Hilf mit, dein Event zu verbreiten</h2>
+    <p style="font-size:14px;line-height:1.5;margin:0 0 16px 0;">
+      Je mehr Leute von deinem Event erfahren, desto mehr Menschen können teilnehmen. Teile den Link über deine bevorzugten Kanäle – oder leite diese E-Mail einfach weiter.
+    </p>
+    <p style="margin:0 0 16px 0;">${shareButtons}</p>
+    <p style="font-size:13px;line-height:1.5;margin:0 0 8px 0;color:#5b5a55;">Direkter Link zum Event:</p>
+    <p style="font-size:14px;line-height:1.5;margin:0 0 24px 0;word-break:break-all;background:#faf9f5;padding:10px 12px;border-radius:6px;border:1px solid #e2e0d8;">
+      <a href="${link}" style="color:#1f1f1d;">${link}</a>
     </p>`;
+  const shareTextLines = shareLinks.map((share) => `${share.label}: ${share.url}`);
   const textBody =
     `${greetingName ? `Hallo ${greetingName},\n\n` : 'Hallo,\n\n'}` +
     `Schön, dass du dein Event mit der Community teilst! Dein Event "${event.title}" ist jetzt öffentlich sichtbar.\n\n` +
-    `Event ansehen: ${link}`;
+    `Event ansehen: ${link}\n\n` +
+    `Hilf mit, dein Event zu verbreiten:\n` +
+    `Je mehr Leute von deinem Event erfahren, desto mehr Menschen können teilnehmen. Teile den Link über deine bevorzugten Kanäle – oder leite diese E-Mail einfach weiter.\n\n` +
+    `${shareTextLines.join('\n')}\n\n` +
+    `Direkter Link zum Event: ${link}`;
   return {
     to: recipient,
     subject,
