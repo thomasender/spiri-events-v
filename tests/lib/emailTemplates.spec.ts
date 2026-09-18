@@ -301,8 +301,8 @@ describe('payloads share a common footer', () => {
       buildEmailPayload('deleted', { event, recipient: 'a@x.com' }),
     ];
     for (const p of payloads) {
-      expect(p.html).toContain('events@thetribe.at');
-      expect(p.text).toContain('events@thetribe.at');
+      expect(p.html).toContain('admin@thetribe.at');
+      expect(p.text).toContain('admin@thetribe.at');
     }
   });
 

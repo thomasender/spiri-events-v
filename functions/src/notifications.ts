@@ -11,6 +11,7 @@ import {
   MAILGUN_API_KEY,
   MAILGUN_DOMAIN,
   MAILGUN_FROM,
+  MAILGUN_REPLY_TO,
   SUBMITTED_NOTIFICATION_INBOX,
   MAILGUN_EU_BASE,
   sendMailgunMessage,
@@ -100,6 +101,7 @@ interface SendOptions {
   apiKey: string;
   domain: string;
   from: string;
+  replyTo?: string | null;
   submittedInbox?: string | null;
   dryRun: boolean;
 }
@@ -125,6 +127,7 @@ async function sendPayload(
     subject: payload.subject,
     text: payload.text,
     html: payload.html,
+    replyTo: options.replyTo ?? undefined,
   });
   return { delivered: true, id: result.id };
 }
@@ -280,16 +283,20 @@ function safeSecrets(dryRun: boolean): {
   apiKey: string;
   domain: string;
   from: string;
+  replyTo: string | null;
   submittedInbox: string | null;
 } | null {
   const apiKey = MAILGUN_API_KEY.value() ?? '';
   const domain = MAILGUN_DOMAIN.value() ?? '';
   const from = MAILGUN_FROM.value() ?? '';
+  const replyToRaw = MAILGUN_REPLY_TO.value();
+  const replyTo =
+    typeof replyToRaw === 'string' && replyToRaw.trim().length > 0 ? replyToRaw.trim() : null;
   const submittedInbox = readSubmittedInbox(process.env);
   if (!dryRun && (!apiKey || !domain || !from)) {
     return null;
   }
-  return { apiKey, domain, from, submittedInbox };
+  return { apiKey, domain, from, replyTo, submittedInbox };
 }
 
 function buildPayloadInputFromDecision(
@@ -334,7 +341,13 @@ export const onEventCreated = onDocumentCreated(
   {
     region: REGION,
     document: 'events/{eventId}',
-    secrets: [MAILGUN_API_KEY, MAILGUN_DOMAIN, MAILGUN_FROM, SUBMITTED_NOTIFICATION_INBOX],
+    secrets: [
+      MAILGUN_API_KEY,
+      MAILGUN_DOMAIN,
+      MAILGUN_FROM,
+      MAILGUN_REPLY_TO,
+      SUBMITTED_NOTIFICATION_INBOX,
+    ],
   },
   async (event) => {
     const eventId = eventIdFromPath(event.params);
@@ -375,7 +388,13 @@ export const onEventStatusChanged = onDocumentUpdated(
   {
     region: REGION,
     document: 'events/{eventId}',
-    secrets: [MAILGUN_API_KEY, MAILGUN_DOMAIN, MAILGUN_FROM, SUBMITTED_NOTIFICATION_INBOX],
+    secrets: [
+      MAILGUN_API_KEY,
+      MAILGUN_DOMAIN,
+      MAILGUN_FROM,
+      MAILGUN_REPLY_TO,
+      SUBMITTED_NOTIFICATION_INBOX,
+    ],
   },
   async (event) => {
     const eventId = eventIdFromPath(event.params);
@@ -417,7 +436,7 @@ export const onAdminMessageCreated = onDocumentCreated(
   {
     region: REGION,
     document: 'events/{eventId}/messages/{messageId}',
-    secrets: [MAILGUN_API_KEY, MAILGUN_DOMAIN, MAILGUN_FROM],
+    secrets: [MAILGUN_API_KEY, MAILGUN_DOMAIN, MAILGUN_FROM, MAILGUN_REPLY_TO],
   },
   async (event) => {
     const eventId = eventIdFromPath(event.params);
