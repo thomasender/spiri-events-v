@@ -2,6 +2,20 @@ import { useState, useEffect } from 'react';
 import { doc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
+export const NOTIFICATION_PREFERENCE_KEYS = [
+  'notifyOnSubmitted',
+  'notifyOnChangesRequested',
+  'notifyOnPublished',
+  'notifyOnDeleted',
+];
+
+const DEFAULT_NOTIFICATION_PREFERENCES = {
+  notifyOnSubmitted: true,
+  notifyOnChangesRequested: true,
+  notifyOnPublished: true,
+  notifyOnDeleted: true,
+};
+
 const EMPTY_PROFILE = {
   displayName: '',
   bio: '',
@@ -11,6 +25,16 @@ const EMPTY_PROFILE = {
   createdAt: null,
   updatedAt: null,
 };
+
+function normalizePreferences(data) {
+  const prefs = { ...DEFAULT_NOTIFICATION_PREFERENCES };
+  for (const key of NOTIFICATION_PREFERENCE_KEYS) {
+    if (typeof data[key] === 'boolean') {
+      prefs[key] = data[key];
+    }
+  }
+  return prefs;
+}
 
 function normalize(data) {
   if (!data) return EMPTY_PROFILE;
@@ -27,11 +51,15 @@ function normalize(data) {
 
 export function useProfile(uid) {
   const [profile, setProfile] = useState(null);
+  const [notificationPreferences, setNotificationPreferences] = useState(
+    DEFAULT_NOTIFICATION_PREFERENCES
+  );
   const [loading, setLoading] = useState(true);
   const [exists, setExists] = useState(false);
 
   useEffect(() => {
     setProfile(null);
+    setNotificationPreferences(DEFAULT_NOTIFICATION_PREFERENCES);
     setLoading(true);
     setExists(false);
 
@@ -46,9 +74,11 @@ export function useProfile(uid) {
       (snap) => {
         if (snap.exists()) {
           setProfile(normalize(snap.data()));
+          setNotificationPreferences(normalizePreferences(snap.data()));
           setExists(true);
         } else {
           setProfile(EMPTY_PROFILE);
+          setNotificationPreferences(DEFAULT_NOTIFICATION_PREFERENCES);
           setExists(false);
         }
         setLoading(false);
@@ -56,6 +86,7 @@ export function useProfile(uid) {
       (err) => {
         console.error('useProfile error:', err);
         setProfile(EMPTY_PROFILE);
+        setNotificationPreferences(DEFAULT_NOTIFICATION_PREFERENCES);
         setExists(false);
         setLoading(false);
       }
@@ -77,5 +108,11 @@ export function useProfile(uid) {
     await setDoc(profileRef, payload, { merge: true });
   };
 
-  return { profile, loading, exists, save };
+  return {
+    profile,
+    notificationPreferences,
+    loading,
+    exists,
+    save,
+  };
 }

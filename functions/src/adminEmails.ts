@@ -9,15 +9,20 @@ if (getApps().length === 0) {
 
 const ADMIN_CACHE_TTL_MS = 5 * 60 * 1000;
 
+export interface AdminAccount {
+  uid: string;
+  email: string;
+}
+
 interface AdminCache {
-  emails: string[];
+  accounts: AdminAccount[];
   fetchedAt: number;
 }
 
 let cache: AdminCache | null = null;
-let inflight: Promise<string[]> | null = null;
+let inflight: Promise<AdminAccount[]> | null = null;
 
-async function fetchAdminEmails(): Promise<string[]> {
+async function fetchAdminAccounts(): Promise<AdminAccount[]> {
   const db = getFirestore();
   const snapshot = await db.collection('admin_users').get();
   const uids = snapshot.docs.map((doc) => doc.id).filter((uid) => typeof uid === 'string' && uid);
@@ -29,33 +34,45 @@ async function fetchAdminEmails(): Promise<string[]> {
   try {
     const auth = getAuth();
     const result = await auth.getUsers(uids.map((uid) => ({ uid })));
-    const emails = result.users
-      .map((user) => user.email)
-      .filter((email): email is string => typeof email === 'string' && email.length > 0);
-    return emails;
+    const accounts: AdminAccount[] = [];
+    for (const user of result.users) {
+      if (typeof user.email === 'string' && user.email.length > 0) {
+        accounts.push({ uid: user.uid, email: user.email });
+      }
+    }
+    return accounts;
   } catch (err) {
     logger.error('Failed to resolve admin emails via firebase-admin', err);
     return [];
   }
 }
 
-export async function getAdminEmails(): Promise<string[]> {
+async function loadAdminAccounts(): Promise<AdminAccount[]> {
   const now = Date.now();
   if (cache && now - cache.fetchedAt < ADMIN_CACHE_TTL_MS) {
-    return cache.emails;
+    return cache.accounts;
   }
   if (inflight) {
     return inflight;
   }
-  inflight = fetchAdminEmails()
-    .then((emails) => {
-      cache = { emails, fetchedAt: Date.now() };
-      return emails;
+  inflight = fetchAdminAccounts()
+    .then((accounts) => {
+      cache = { accounts, fetchedAt: Date.now() };
+      return accounts;
     })
     .finally(() => {
       inflight = null;
     });
   return inflight;
+}
+
+export async function getAdminAccounts(): Promise<AdminAccount[]> {
+  return loadAdminAccounts();
+}
+
+export async function getAdminEmails(): Promise<string[]> {
+  const accounts = await loadAdminAccounts();
+  return accounts.map((account) => account.email);
 }
 
 export function resetAdminEmailCache(): void {

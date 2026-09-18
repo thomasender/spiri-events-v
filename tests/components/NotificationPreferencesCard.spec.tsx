@@ -1,0 +1,124 @@
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import NotificationPreferencesCard from '../../src/components/NotificationPreferencesCard';
+
+const allOn = {
+  notifyOnSubmitted: true,
+  notifyOnChangesRequested: true,
+  notifyOnPublished: true,
+  notifyOnDeleted: true,
+};
+
+describe('NotificationPreferencesCard', () => {
+  it('renders three checkboxes for non-admin users', () => {
+    render(
+      <NotificationPreferencesCard
+        preferences={allOn}
+        isAdmin={false}
+        onSave={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+
+    expect(screen.getByTestId('notification-pref-notifyOnChangesRequested')).toBeInTheDocument();
+    expect(screen.getByTestId('notification-pref-notifyOnPublished')).toBeInTheDocument();
+    expect(screen.getByTestId('notification-pref-notifyOnDeleted')).toBeInTheDocument();
+    expect(screen.queryByTestId('notification-pref-notifyOnSubmitted')).not.toBeInTheDocument();
+  });
+
+  it('renders four checkboxes (including the admin-only one) for admins', () => {
+    render(
+      <NotificationPreferencesCard
+        preferences={allOn}
+        isAdmin
+        onSave={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+
+    expect(screen.getByTestId('notification-pref-notifyOnSubmitted')).toBeInTheDocument();
+    expect(screen.getByTestId('notification-pref-notifyOnChangesRequested')).toBeInTheDocument();
+    expect(screen.getByTestId('notification-pref-notifyOnPublished')).toBeInTheDocument();
+    expect(screen.getByTestId('notification-pref-notifyOnDeleted')).toBeInTheDocument();
+  });
+
+  it('reflects the current preference values on the checkboxes', () => {
+    render(
+      <NotificationPreferencesCard
+        preferences={{
+          notifyOnChangesRequested: true,
+          notifyOnPublished: false,
+          notifyOnDeleted: true,
+        }}
+        isAdmin={false}
+        onSave={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+
+    expect(screen.getByTestId('notification-pref-notifyOnChangesRequested')).toBeChecked();
+    expect(screen.getByTestId('notification-pref-notifyOnPublished')).not.toBeChecked();
+    expect(screen.getByTestId('notification-pref-notifyOnDeleted')).toBeChecked();
+  });
+
+  it('calls onSave with the toggled preference when a checkbox changes', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<NotificationPreferencesCard preferences={allOn} isAdmin={false} onSave={onSave} />);
+
+    fireEvent.click(screen.getByTestId('notification-pref-notifyOnPublished'));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave).toHaveBeenCalledWith({ notifyOnPublished: false });
+  });
+
+  it('shows a brief "Gespeichert." indicator after a successful toggle', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<NotificationPreferencesCard preferences={allOn} isAdmin={false} onSave={onSave} />);
+
+    fireEvent.click(screen.getByTestId('notification-pref-notifyOnPublished'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('notification-pref-saved')).toBeInTheDocument();
+    });
+  });
+
+  it('shows an error message when save fails', async () => {
+    const onSave = vi.fn().mockRejectedValue(new Error('boom'));
+    render(<NotificationPreferencesCard preferences={allOn} isAdmin={false} onSave={onSave} />);
+
+    fireEvent.click(screen.getByTestId('notification-pref-notifyOnPublished'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('notification-pref-error')).toBeInTheDocument();
+    });
+    expect(screen.getByTestId('notification-pref-error').textContent).toMatch(
+      /Einstellung konnte nicht gespeichert werden/i
+    );
+  });
+
+  it('toggles a checkbox back to its previous value and saves the new state', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const { rerender } = render(
+      <NotificationPreferencesCard preferences={allOn} isAdmin={false} onSave={onSave} />
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('notification-pref-notifyOnDeleted'));
+    });
+
+    await waitFor(() => expect(onSave).toHaveBeenLastCalledWith({ notifyOnDeleted: false }));
+
+    await act(async () => {
+      rerender(
+        <NotificationPreferencesCard
+          preferences={{ ...allOn, notifyOnDeleted: false }}
+          isAdmin={false}
+          onSave={onSave}
+        />
+      );
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('notification-pref-notifyOnDeleted'));
+    });
+
+    await waitFor(() => expect(onSave).toHaveBeenLastCalledWith({ notifyOnDeleted: true }));
+  });
+});

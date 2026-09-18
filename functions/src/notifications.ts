@@ -25,7 +25,7 @@ import {
   AdminMessageSnapshot,
   NotificationDecision,
 } from './notificationRouting';
-import { getAdminEmails } from './adminEmails';
+import { getAdminAccounts, AdminAccount } from './adminEmails';
 import {
   buildEmailPayload,
   NotificationType,
@@ -35,10 +35,23 @@ import {
   DeletedPayloadInput,
   EmailPayload,
 } from './emailTemplates';
+import {
+  DEFAULT_NOTIFICATION_PREFERENCES,
+  getUsersNotificationPreferences,
+  PreferenceKey,
+  NotificationPreferenceMap,
+} from './userPreferences';
 
 const REGION = 'europe-west3';
 const ADMINS_RECIPIENT = 'admins' as const;
-type RecipientMarker = string | typeof ADMINS_RECIPIENT;
+type UserRecipient = { email: string; uid?: string | null };
+type RecipientMarker = UserRecipient | typeof ADMINS_RECIPIENT;
+
+const PREFERENCE_KEY_BY_TYPE: Record<Exclude<NotificationType, 'submitted'>, PreferenceKey> = {
+  changes_requested: 'notifyOnChangesRequested',
+  published: 'notifyOnPublished',
+  deleted: 'notifyOnDeleted',
+};
 
 function readString(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
@@ -116,17 +129,6 @@ async function sendPayload(
   return { delivered: true, id: result.id };
 }
 
-async function resolveRecipients(
-  recipient: RecipientMarker,
-  submittedInbox?: string | null
-): Promise<string[]> {
-  if (recipient === ADMINS_RECIPIENT) {
-    const emails = await getAdminEmails();
-    return buildAdminRecipients(emails, submittedInbox);
-  }
-  return [recipient];
-}
-
 export function buildAdminRecipients(
   adminEmails: string[],
   submittedInbox?: string | null
@@ -150,6 +152,80 @@ export function uniqueEmails(emails: string[]): string[] {
   return out;
 }
 
+export interface ResolvedRecipient {
+  uid?: string | null;
+  email: string;
+}
+
+async function resolveRecipients(
+  recipient: RecipientMarker,
+  submittedInbox?: string | null
+): Promise<ResolvedRecipient[]> {
+  if (recipient === ADMINS_RECIPIENT) {
+    const accounts = await getAdminAccounts();
+    return buildAdminRecipientList(accounts, submittedInbox);
+  }
+  return [{ uid: recipient.uid ?? null, email: recipient.email }];
+}
+
+export function buildAdminRecipientList(
+  accounts: AdminAccount[],
+  submittedInbox?: string | null
+): ResolvedRecipient[] {
+  const out: ResolvedRecipient[] = accounts.map((account) => ({
+    uid: account.uid,
+    email: account.email,
+  }));
+  if (!submittedInbox) return out;
+  const normalized = submittedInbox.trim().toLowerCase();
+  if (!normalized) return out;
+  const alreadyPresent = out.some((r) => r.email.trim().toLowerCase() === normalized);
+  if (alreadyPresent) return out;
+  out.push({ email: submittedInbox });
+  return out;
+}
+
+export function preferenceKeyForType(type: NotificationType): PreferenceKey {
+  if (type === 'submitted') return 'notifyOnSubmitted';
+  return PREFERENCE_KEY_BY_TYPE[type];
+}
+
+export function filterRecipientsByPreferenceMap(
+  type: NotificationType,
+  recipients: ResolvedRecipient[],
+  prefMap: Map<string, NotificationPreferenceMap>
+): ResolvedRecipient[] {
+  if (recipients.length === 0) return recipients;
+  const prefKey = preferenceKeyForType(type);
+  return recipients.filter((recipient) => {
+    if (typeof recipient.uid !== 'string' || recipient.uid.length === 0) return true;
+    const prefs = prefMap.get(recipient.uid) ?? DEFAULT_NOTIFICATION_PREFERENCES;
+    if (prefs[prefKey]) return true;
+    logger.info('Skipping notification due to user preference', {
+      type,
+      uid: recipient.uid,
+      prefKey,
+    });
+    return false;
+  });
+}
+
+async function filterRecipientsByPreferences(
+  type: NotificationType,
+  recipients: ResolvedRecipient[]
+): Promise<ResolvedRecipient[]> {
+  if (recipients.length === 0) return recipients;
+  const uidsToCheck = Array.from(
+    new Set(
+      recipients
+        .map((r) => r.uid)
+        .filter((uid): uid is string => typeof uid === 'string' && uid.length > 0)
+    )
+  );
+  const prefMap = await getUsersNotificationPreferences(uidsToCheck);
+  return filterRecipientsByPreferenceMap(type, recipients, prefMap);
+}
+
 async function dispatchDecision(
   eventId: string,
   type: NotificationType,
@@ -161,13 +237,17 @@ async function dispatchDecision(
     | DeletedPayloadInput,
   options: SendOptions
 ): Promise<{ recipients: number; dryRun: boolean }> {
-  const recipients = await resolveRecipients(recipient, options.submittedInbox);
-  if (recipients.length === 0) {
-    logger.warn('No recipients resolved, skipping email', { eventId, type });
+  const resolved = await resolveRecipients(recipient, options.submittedInbox);
+  const filtered = await filterRecipientsByPreferences(type, resolved);
+  if (filtered.length === 0) {
+    logger.warn('No recipients resolved after preference filter, skipping email', {
+      eventId,
+      type,
+    });
     return { recipients: 0, dryRun: options.dryRun };
   }
   let sent = 0;
-  for (const to of recipients) {
+  for (const { email: to } of filtered) {
     const payload = buildEmailPayload(type, { ...payloadInput, recipient: to });
     const result = await sendPayload(payload, options).catch((err) => {
       logger.error('Mailgun send failed', { eventId, type, recipient: to, err });
@@ -241,12 +321,12 @@ function buildPayloadInputFromDecision(
   if (decision.type === 'published') {
     return {
       event: decision.event,
-      recipient: decision.recipient as string,
+      recipient: decision.recipient,
     };
   }
   return {
     event: decision.event,
-    recipient: decision.recipient as string,
+    recipient: decision.recipient,
   };
 }
 
@@ -277,7 +357,9 @@ export const onEventCreated = onDocumentCreated(
 
     const payloadInput = buildPayloadInputFromDecision(decision);
     const recipientMarker: RecipientMarker =
-      decision.type === 'submitted' ? ADMINS_RECIPIENT : (decision.recipient as string);
+      decision.type === 'submitted'
+        ? ADMINS_RECIPIENT
+        : { email: decision.recipient as string, uid: after.createdBy ?? null };
     const result = await dispatchDecision(eventId, decision.type, recipientMarker, payloadInput, {
       ...secrets,
       dryRun,
@@ -317,7 +399,9 @@ export const onEventStatusChanged = onDocumentUpdated(
 
     const payloadInput = buildPayloadInputFromDecision(decision);
     const recipientMarker: RecipientMarker =
-      decision.type === 'submitted' ? ADMINS_RECIPIENT : (decision.recipient as string);
+      decision.type === 'submitted'
+        ? ADMINS_RECIPIENT
+        : { email: decision.recipient as string, uid: after.createdBy ?? null };
     const result = await dispatchDecision(eventId, decision.type, recipientMarker, payloadInput, {
       ...secrets,
       dryRun,
@@ -383,10 +467,16 @@ export const onAdminMessageCreated = onDocumentCreated(
         text: decision.context.text,
       },
     };
-    const result = await dispatchDecision(eventId, 'changes_requested', decision.recipient, input, {
-      ...secrets,
-      dryRun,
-    });
+    const result = await dispatchDecision(
+      eventId,
+      'changes_requested',
+      { email: decision.recipient, uid: eventSnapshot.createdBy ?? null },
+      input,
+      {
+        ...secrets,
+        dryRun,
+      }
+    );
     logger.info('changes_requested notification processed', {
       eventId,
       messageId,

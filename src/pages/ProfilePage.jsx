@@ -2,13 +2,15 @@ import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
 import ProfileForm from '../components/ProfileForm';
 import ChangeEmailForm from '../components/ChangeEmailForm';
+import NotificationPreferencesCard from '../components/NotificationPreferencesCard';
 import DeleteAccountSection from '../components/DeleteAccountSection';
 import SeoMeta from '../components/SeoMeta';
 import './ProfilePage.css';
 
 export default function ProfilePage() {
-  const { user, changeEmail, deleteAccount, isGoogleUser } = useAuth();
-  const { profile, loading: profileLoading, save } = useProfile(user?.uid);
+  const { user, role, changeEmail, deleteAccount, isGoogleUser } = useAuth();
+  const { profile, notificationPreferences, loading: profileLoading, save } = useProfile(user?.uid);
+  const isAdmin = role === 'Admin';
 
   if (!user) {
     return (
@@ -38,6 +40,12 @@ export default function ProfilePage() {
         </div>
 
         <ProfileForm profile={profile} uid={user.uid} onSave={save} />
+
+        <NotificationPreferencesCard
+          preferences={notificationPreferences}
+          isAdmin={isAdmin}
+          onSave={save}
+        />
 
         <ChangeEmailForm
           currentEmail={user.email}
