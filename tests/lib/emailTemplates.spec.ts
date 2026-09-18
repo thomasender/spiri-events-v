@@ -425,3 +425,88 @@ describe('notificationSettingsUrl', () => {
     expect(notificationSettingsUrl()).toBe(`${APP_BASE_URL}/profil`);
   });
 });
+
+describe('email brand identity', () => {
+  const event = {
+    id: 'evt-brand',
+    title: 'Markentreue',
+    slug: 'markentreue',
+    organizer: {
+      firstName: 'Anna',
+      lastName: 'Müller',
+      email: 'anna@example.com',
+      photoURL: null,
+    },
+  };
+
+  const allPayloads = () => [
+    buildEmailPayload('submitted', {
+      event,
+      recipient: 'a@x.com',
+      context: { submitterName: 'Anna' },
+    }),
+    buildEmailPayload('changes_requested', {
+      event,
+      recipient: 'a@x.com',
+      context: { messageId: 'm', authorName: 'A', text: 'Bitte anpassen.' },
+    }),
+    buildEmailPayload('published', { event, recipient: 'a@x.com' }),
+    buildEmailPayload('deleted', { event, recipient: 'a@x.com' }),
+  ];
+
+  it('uses Nunito Sans as the body font and Cormorant Garamond as the heading font', () => {
+    for (const p of allPayloads()) {
+      expect(p.html).toContain("'Nunito Sans'");
+      expect(p.html).toContain("'Cormorant Garamond'");
+      expect(p.html).not.toMatch(/font-family:\s*Inter/);
+    }
+  });
+
+  it('loads the brand fonts via Google Fonts so email clients render the right typography', () => {
+    for (const p of allPayloads()) {
+      expect(p.html).toContain('https://fonts.googleapis.com/css2?family=Cormorant+Garamond');
+      expect(p.html).toContain('family=Nunito+Sans');
+    }
+  });
+
+  it('uses the terracotta accent (#c48e6a) for the primary action buttons', () => {
+    const payloadsWithButtons = [
+      buildEmailPayload('submitted', {
+        event,
+        recipient: 'a@x.com',
+        context: { submitterName: 'Anna' },
+      }),
+      buildEmailPayload('changes_requested', {
+        event,
+        recipient: 'a@x.com',
+        context: { messageId: 'm', authorName: 'A', text: 'Bitte anpassen.' },
+      }),
+      buildEmailPayload('published', { event, recipient: 'a@x.com' }),
+    ];
+    for (const p of payloadsWithButtons) {
+      expect(p.html).toContain('background:#c48e6a');
+      expect(p.html).toContain('color:#ffffff');
+    }
+  });
+
+  it('uses the cream page background (#f4f2f0) and the warm border (#e2dcd2)', () => {
+    for (const p of allPayloads()) {
+      expect(p.html).toContain('background:#f4f2f0');
+      expect(p.html).toContain('#e2dcd2');
+    }
+  });
+
+  it('shows the tribe logo and brand name in the email header', () => {
+    for (const p of allPayloads()) {
+      expect(p.html).toContain(`${APP_BASE_URL}/logo-mark.svg`);
+      expect(p.html).toContain('tribe Vorarlberg');
+    }
+  });
+
+  it('renders the published email heading as a typography-rich h1', () => {
+    const payload = buildEmailPayload('published', { event, recipient: 'a@x.com' });
+    expect(payload.html).toMatch(
+      /<h1[^>]*font-family:'Cormorant Garamond'[^>]*>Dein Event ist live<\/h1>/
+    );
+  });
+});

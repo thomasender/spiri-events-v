@@ -63,12 +63,61 @@ export function notificationSettingsUrl(): string {
   return `${APP_BASE_URL}/profil`;
 }
 
+const BRAND_LOGO_URL = `${APP_BASE_URL}/logo-mark.svg`;
+
+const HEADING_FONT = "'Cormorant Garamond',Georgia,'Times New Roman',serif";
+const BODY_FONT =
+  "'Nunito Sans','Segoe UI',-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif";
+
+const COLOR_TEXT = '#161819';
+const COLOR_MUTED = '#605e5e';
+const COLOR_BORDER = '#e2dcd2';
+const COLOR_BG_PAGE = '#f4f2f0';
+const COLOR_BG_SOFT = '#f4f2f0';
+const COLOR_PRIMARY = '#c48e6a';
+const COLOR_PRIMARY_HOVER = '#9a5f38';
+
+function brandButtonStyle(): string {
+  return `display:inline-block;background:${COLOR_PRIMARY};color:#ffffff;padding:12px 22px;border-radius:8px;text-decoration:none;font-size:15px;font-weight:600;letter-spacing:0.01em;`;
+}
+
+function brandSecondaryButtonStyle(): string {
+  return `display:inline-block;background:${COLOR_BG_SOFT};color:${COLOR_TEXT};padding:10px 16px;margin:0 8px 8px 0;border:1px solid ${COLOR_BORDER};border-radius:8px;text-decoration:none;font-size:14px;`;
+}
+
+function paragraphStyle(): string {
+  return `font-family:${BODY_FONT};font-size:15px;line-height:1.6;margin:0 0 16px 0;color:${COLOR_TEXT};`;
+}
+
+function mutedStyle(): string {
+  return `font-family:${BODY_FONT};font-size:13px;line-height:1.5;margin:0 0 8px 0;color:${COLOR_MUTED};`;
+}
+
+function headingStyle(level: 1 | 2): string {
+  const size = level === 1 ? 26 : 19;
+  return `font-family:${HEADING_FONT};font-size:${size}px;font-weight:500;line-height:1.3;margin:0 0 16px 0;color:${COLOR_TEXT};letter-spacing:0.005em;`;
+}
+
+function brandHeader(): string {
+  return `
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin:0 0 24px 0;">
+      <tr>
+        <td style="vertical-align:middle;padding-right:12px;">
+          <img src="${BRAND_LOGO_URL}" alt="tribe Vorarlberg" width="40" height="40" style="display:block;border:0;outline:none;text-decoration:none;" />
+        </td>
+        <td style="vertical-align:middle;">
+          <span style="font-family:${HEADING_FONT};font-size:22px;font-weight:500;color:${COLOR_TEXT};letter-spacing:0.01em;">tribe Vorarlberg</span>
+        </td>
+      </tr>
+    </table>`;
+}
+
 function footerHtml(): string {
   return `
-    <p style="margin-top:32px;padding-top:16px;border-top:1px solid #e2e0d8;font-size:12px;color:#5b5a55;">
+    <p style="margin-top:32px;padding-top:16px;border-top:1px solid ${COLOR_BORDER};font-family:${BODY_FONT};font-size:12px;line-height:1.5;color:${COLOR_MUTED};">
       Du erhältst diese E-Mail, weil du auf tribe Events ein Event eingereicht hast oder verwaltest.
-      <a href="${notificationSettingsUrl()}" style="color:#5b5a55;">Benachrichtigungseinstellungen anpassen</a>.
-      Bei Fragen wende dich an <a href="mailto:admin@thetribe.at" style="color:#5b5a55;">admin@thetribe.at</a>.
+      <a href="${notificationSettingsUrl()}" style="color:${COLOR_MUTED};text-decoration:underline;">Benachrichtigungseinstellungen anpassen</a>.
+      Bei Fragen wende dich an <a href="mailto:admin@thetribe.at" style="color:${COLOR_MUTED};text-decoration:underline;">admin@thetribe.at</a>.
     </p>`;
 }
 
@@ -79,12 +128,22 @@ function footerText(): string {
 function wrapHtml(body: string): string {
   return `<!doctype html>
 <html lang="de">
-<head><meta charset="utf-8"><title>tribe Events</title></head>
-<body style="font-family:Inter,Helvetica,Arial,sans-serif;color:#1f1f1d;background:#faf9f5;margin:0;padding:24px;">
-  <div style="max-width:560px;margin:0 auto;background:#ffffff;padding:32px;border-radius:12px;">
-    <h1 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;margin:0 0 16px 0;color:#1f1f1d;">tribe Events</h1>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>tribe Vorarlberg</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Nunito+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body style="font-family:${BODY_FONT};color:${COLOR_TEXT};background:${COLOR_BG_PAGE};margin:0;padding:32px 16px;">
+  <div style="max-width:560px;margin:0 auto;background:#ffffff;padding:36px 36px 28px 36px;border-radius:12px;border:1px solid ${COLOR_BORDER};">
+    ${brandHeader()}
     ${body}
     ${footerHtml()}
+  </div>
+  <div style="max-width:560px;margin:16px auto 0 auto;font-family:${BODY_FONT};font-size:11px;line-height:1.5;color:${COLOR_MUTED};text-align:center;">
+    © tribe Vorarlberg
   </div>
 </body>
 </html>`;
@@ -105,13 +164,14 @@ export function buildSubmittedPayload({
   const submitter = (context.submitterName ?? '').trim() || 'Ein Mitglied';
   const subject = `Neuer Event-Vorschlag: ${event.title}`;
   const htmlBody = `
-    <p style="font-size:14px;line-height:1.5;margin:0 0 16px 0;">Hallo,</p>
-    <p style="font-size:14px;line-height:1.5;margin:0 0 16px 0;">
+    <h1 style="${headingStyle(1)}">Neuer Event-Vorschlag</h1>
+    <p style="${paragraphStyle()}">Hallo,</p>
+    <p style="${paragraphStyle()}">
       <strong>${escapeHtml(submitter)}</strong> hat ein neues Event zur Prüfung eingereicht:
     </p>
-    <p style="font-size:14px;line-height:1.5;margin:0 0 16px 0;"><strong>${escapeHtml(event.title)}</strong></p>
-    <p style="margin:0 0 24px 0;">
-      <a href="${link}" style="display:inline-block;background:#1f1f1d;color:#faf9f5;padding:10px 18px;border-radius:8px;text-decoration:none;font-size:14px;">Im Review ansehen</a>
+    <p style="${paragraphStyle()}"><strong>${escapeHtml(event.title)}</strong></p>
+    <p style="margin:8px 0 24px 0;">
+      <a href="${link}" style="${brandButtonStyle()}">Im Review ansehen</a>
     </p>`;
   const textBody =
     `Hallo,\n\n` +
@@ -144,16 +204,17 @@ export function buildChangesRequestedPayload({
   const greeting = greetingName ? `Hallo ${escapeHtml(greetingName)},` : 'Hallo,';
   const subject = `Änderungen gewünscht: ${event.title}`;
   const htmlBody = `
-    <p style="font-size:14px;line-height:1.5;margin:0 0 16px 0;">${greeting}</p>
-    <p style="font-size:14px;line-height:1.5;margin:0 0 16px 0;">
+    <h1 style="${headingStyle(1)}">Änderungen gewünscht</h1>
+    <p style="${paragraphStyle()}">${greeting}</p>
+    <p style="${paragraphStyle()}">
       ${escapeHtml(author)} hat sich dein Event angesehen und wünscht folgende Änderung:
     </p>
-    <blockquote style="margin:0 0 16px 0;padding:12px 16px;border-left:3px solid #c2bdb1;background:#faf9f5;font-size:14px;line-height:1.5;white-space:pre-wrap;">${escapeHtml(messageText)}</blockquote>
-    <p style="font-size:14px;line-height:1.5;margin:0 0 24px 0;">
+    <blockquote style="margin:0 0 20px 0;padding:14px 18px;border-left:3px solid ${COLOR_PRIMARY};background:${COLOR_BG_SOFT};border-radius:0 6px 6px 0;font-family:${BODY_FONT};font-size:15px;line-height:1.6;color:${COLOR_TEXT};white-space:pre-wrap;">${escapeHtml(messageText)}</blockquote>
+    <p style="${paragraphStyle()}">
       Du kannst das Event direkt öffnen und die Änderungen vornehmen:
     </p>
-    <p style="margin:0 0 24px 0;">
-      <a href="${link}" style="display:inline-block;background:#1f1f1d;color:#faf9f5;padding:10px 18px;border-radius:8px;text-decoration:none;font-size:14px;">Event bearbeiten</a>
+    <p style="margin:8px 0 24px 0;">
+      <a href="${link}" style="${brandButtonStyle()}">Event bearbeiten</a>
     </p>`;
   const textBody =
     `${greetingName ? `Hallo ${greetingName},\n\n` : 'Hallo,\n\n'}` +
@@ -220,26 +281,27 @@ export function buildPublishedPayload({ event, recipient }: PublishedPayloadInpu
     .map(
       (share) =>
         `<a href="${share.url}" target="_blank" rel="noopener noreferrer" ` +
-        `style="display:inline-block;background:#faf9f5;color:#1f1f1d;padding:10px 18px;margin:0 8px 8px 0;border:1px solid #c2bdb1;border-radius:8px;text-decoration:none;font-size:14px;">` +
+        `style="${brandSecondaryButtonStyle()}">` +
         `Über ${escapeHtml(share.label)} teilen</a>`
     )
     .join('');
   const htmlBody = `
-    <p style="font-size:14px;line-height:1.5;margin:0 0 16px 0;">${greeting}</p>
-    <p style="font-size:14px;line-height:1.5;margin:0 0 16px 0;">
+    <h1 style="${headingStyle(1)}">Dein Event ist live</h1>
+    <p style="${paragraphStyle()}">${greeting}</p>
+    <p style="${paragraphStyle()}">
       Schön, dass du dein Event mit der Community teilst! Dein Event <strong>${escapeHtml(event.title)}</strong> ist jetzt öffentlich sichtbar.
     </p>
-    <p style="margin:0 0 24px 0;">
-      <a href="${link}" style="display:inline-block;background:#1f1f1d;color:#faf9f5;padding:10px 18px;border-radius:8px;text-decoration:none;font-size:14px;">Event ansehen</a>
+    <p style="margin:8px 0 28px 0;">
+      <a href="${link}" style="${brandButtonStyle()}">Event ansehen</a>
     </p>
-    <h2 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;margin:24px 0 8px 0;color:#1f1f1d;">Hilf mit, dein Event zu verbreiten</h2>
-    <p style="font-size:14px;line-height:1.5;margin:0 0 16px 0;">
+    <h2 style="${headingStyle(2)}">Hilf mit, dein Event zu verbreiten</h2>
+    <p style="${paragraphStyle()}">
       Je mehr Leute von deinem Event erfahren, desto mehr Menschen können teilnehmen. Teile den Link über deine bevorzugten Kanäle – oder leite diese E-Mail einfach weiter.
     </p>
     <p style="margin:0 0 16px 0;">${shareButtons}</p>
-    <p style="font-size:13px;line-height:1.5;margin:0 0 8px 0;color:#5b5a55;">Direkter Link zum Event:</p>
-    <p style="font-size:14px;line-height:1.5;margin:0 0 24px 0;word-break:break-all;background:#faf9f5;padding:10px 12px;border-radius:6px;border:1px solid #e2e0d8;">
-      <a href="${link}" style="color:#1f1f1d;">${link}</a>
+    <p style="${mutedStyle()}">Direkter Link zum Event:</p>
+    <p style="font-family:${BODY_FONT};font-size:14px;line-height:1.6;margin:0 0 24px 0;word-break:break-all;background:${COLOR_BG_SOFT};padding:12px 14px;border-radius:8px;border:1px solid ${COLOR_BORDER};">
+      <a href="${link}" style="color:${COLOR_TEXT};text-decoration:underline;">${link}</a>
     </p>`;
   const shareTextLines = shareLinks.map((share) => `${share.label}: ${share.url}`);
   const textBody =
@@ -268,8 +330,9 @@ export function buildDeletedPayload({ event, recipient }: DeletedPayloadInput): 
   const greeting = greetingName ? `Hallo ${escapeHtml(greetingName)},` : 'Hallo,';
   const subject = `Dein Event wurde gelöscht: ${event.title}`;
   const htmlBody = `
-    <p style="font-size:14px;line-height:1.5;margin:0 0 16px 0;">${greeting}</p>
-    <p style="font-size:14px;line-height:1.5;margin:0 0 16px 0;">
+    <h1 style="${headingStyle(1)}">Dein Event wurde gelöscht</h1>
+    <p style="${paragraphStyle()}">${greeting}</p>
+    <p style="${paragraphStyle()}">
       Dein Event <strong>${escapeHtml(event.title)}</strong> wurde in den Papierkorb verschoben. Falls du es wiederherstellen möchtest, findest du es im Verwaltungs-Bereich unter „Papierkorb".
     </p>`;
   const textBody =
