@@ -202,6 +202,13 @@ suite runs automatically on push. You do not need to run the full E2E suite for
 an ordinary change — and if you find yourself wanting `--no-verify`, that is a
 bug in this setup worth reporting, not a workaround to normalise.
 
+**Exception — doc-only commits may push with `--no-verify`.** Changes that touch
+only files under `docs/` (or other pure-prose markdown like this file itself)
+cannot regress tests or production behaviour, so the pre-push smoke suite adds
+no signal. For these, `git push --no-verify` is fine. Any commit that touches
+`src/`, `functions/`, `tests/`, `firestore.rules`, `firebase.json`, or any
+other executable code or config still goes through the hooks normally.
+
 ## Prerender (Open Graph / Social Media Preview)
 
 `npm run build` runs `vite build && node scripts/prerender.mjs`. The prerender
