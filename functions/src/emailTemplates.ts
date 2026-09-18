@@ -59,16 +59,21 @@ function adminReviewUrl(eventId: string): string {
   return `${APP_BASE_URL}/admin/review#${eventId}`;
 }
 
+export function notificationSettingsUrl(): string {
+  return `${APP_BASE_URL}/profil`;
+}
+
 function footerHtml(): string {
   return `
     <p style="margin-top:32px;padding-top:16px;border-top:1px solid #e2e0d8;font-size:12px;color:#5b5a55;">
       Du erhältst diese E-Mail, weil du auf tribe Events ein Event eingereicht hast oder verwaltest.
+      <a href="${notificationSettingsUrl()}" style="color:#5b5a55;">Benachrichtigungseinstellungen anpassen</a>.
       Bei Fragen wende dich an <a href="mailto:events@thetribe.at" style="color:#5b5a55;">events@thetribe.at</a>.
     </p>`;
 }
 
 function footerText(): string {
-  return `\n--\nDu erhältst diese E-Mail, weil du auf tribe Events ein Event eingereicht hast oder verwaltest.\nBei Fragen wende dich an events@thetribe.at.`;
+  return `\n--\nDu erhältst diese E-Mail, weil du auf tribe Events ein Event eingereicht hast oder verwaltest.\nBenachrichtigungseinstellungen anpassen: ${notificationSettingsUrl()}\nBei Fragen wende dich an events@thetribe.at.`;
 }
 
 function wrapHtml(body: string): string {

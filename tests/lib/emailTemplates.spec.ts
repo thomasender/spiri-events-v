@@ -6,6 +6,7 @@ import {
   buildPublishedPayload,
   buildDeletedPayload,
   escapeHtml,
+  notificationSettingsUrl,
   APP_BASE_URL,
 } from '../../functions/src/emailTemplates';
 
@@ -303,5 +304,35 @@ describe('payloads share a common footer', () => {
       expect(p.html).toContain('events@thetribe.at');
       expect(p.text).toContain('events@thetribe.at');
     }
+  });
+
+  it('every payload links to the notification settings page', () => {
+    const payloads = [
+      buildEmailPayload('submitted', {
+        event,
+        recipient: 'a@x.com',
+        context: { submitterName: 'Anna' },
+      }),
+      buildEmailPayload('changes_requested', {
+        event,
+        recipient: 'a@x.com',
+        context: { messageId: 'm', authorName: 'A', text: 'hi' },
+      }),
+      buildEmailPayload('published', { event, recipient: 'a@x.com' }),
+      buildEmailPayload('deleted', { event, recipient: 'a@x.com' }),
+    ];
+    const settingsUrl = notificationSettingsUrl();
+    for (const p of payloads) {
+      expect(p.html).toContain(settingsUrl);
+      expect(p.html).toContain('Benachrichtigungseinstellungen anpassen');
+      expect(p.text).toContain(settingsUrl);
+      expect(p.text).toContain('Benachrichtigungseinstellungen anpassen');
+    }
+  });
+});
+
+describe('notificationSettingsUrl', () => {
+  it('points at the profile page on the production host', () => {
+    expect(notificationSettingsUrl()).toBe(`${APP_BASE_URL}/profil`);
   });
 });
