@@ -1,6 +1,6 @@
 # Testprotokoll: Event-Lifecycle-E-Mails
 
-_Test-Protokoll für die vier automatischen Benachrichtigungs-E-Mails, die beim Lebenszyklus eines Events ausgelöst werden. Voraussetzung: Funktionen sind deployt (`firebase deploy --only functions`), Mailgun-Domain `mg.thetribe.at` ist verifiziert, die drei Secrets `MAILGUN_API_KEY`, `MAILGUN_DOMAIN`, `MAILGUN_FROM` sind gebunden._
+_Test-Protokoll für die vier automatischen Benachrichtigungs-E-Mails, die beim Lebenszyklus eines Events ausgelöst werden. Voraussetzung: Funktionen sind deployt (`firebase deploy --only functions`), Mailgun-Domain `mg.thetribe.at` ist verifiziert, die Secrets `MAILGUN_API_KEY`, `MAILGUN_DOMAIN`, `MAILGUN_FROM`, `MAILGUN_REPLY_TO` sind gebunden. `MAILGUN_FROM` ist der angezeigte Absender (`The Tribe <admin@mg.thetribe.at>`), `MAILGUN_REPLY_TO` ist die Adresse, an die Antworten gehen (`admin@thetribe.at`, Outlook-365-Posteingang)._
 
 ## 1. „Neuer Event-Vorschlag" (Submitted → an alle Admins)
 
@@ -13,7 +13,7 @@ _Test-Protokoll für die vier automatischen Benachrichtigungs-E-Mails, die beim 
 - **Betreff:** `Neuer Event-Vorschlag: {Titel}`
 - **Inhalt:** Name des Einreichers + Button „Im Review ansehen" (Link zu `/admin/review#<eventId>`)
 - **Verifizieren:**
-  - Mailgun Dashboard → Sending → Logs → Filter `mg.thetribe.at` → Status `delivered`, To enthält alle Admin-Adressen (inkl. Team-Inbox, falls gesetzt)
+  - Mailgun Dashboard → Sending → Logs → Filter `mg.thetribe.at` → Status `delivered`, To enthält alle Admin-Adressen (inkl. Team-Inbox, falls gesetzt). Auf einer Nachricht: Header prüfen → `From` ist `The Tribe <admin@mg.thetribe.at>`, `Reply-To` ist `admin@thetribe.at`.
   - Function Log: `firebase functions:log --only onEventCreated,onEventStatusChanged -n 50` → Meldung `submitted notification processed`, `recipients` = Anzahl Empfänger. Bei einem brandneuen Event ist `onEventCreated` der Auslöser; bei einem Re-Submit aus Entwurf/Papierkorb `onEventStatusChanged`.
   - Bei `recipients: 0` stimmt etwas mit `admin_users` nicht (kein Doc vorhanden oder Auth-User fehlt) UND es ist keine `SUBMITTED_NOTIFICATION_INBOX` gesetzt
 
