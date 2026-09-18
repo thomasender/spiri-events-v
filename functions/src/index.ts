@@ -9,7 +9,7 @@ import {
   startMolliePaymentCheckout,
   startMollieSubscriptionCheckout,
 } from './mollie';
-import { onEventStatusChanged, onAdminMessageCreated } from './notifications';
+import { onEventStatusChanged, onEventCreated, onAdminMessageCreated } from './notifications';
 
 const REGION = 'europe-west3';
 const ALLOWED_ORIGINS = ['https://events.thetribe.at'];
@@ -101,4 +101,4 @@ export const mollieWebhook = onCall(
   }
 );
 
-export { onEventStatusChanged, onAdminMessageCreated };
+export { onEventStatusChanged, onEventCreated, onAdminMessageCreated };

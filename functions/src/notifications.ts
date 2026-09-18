@@ -19,6 +19,7 @@ import {
 } from './mailgun';
 import {
   decideEventStatusNotification,
+  decideCreatedEventNotification,
   decideAdminMessageNotification,
   EventSnapshot,
   AdminMessageSnapshot,
@@ -248,6 +249,45 @@ function buildPayloadInputFromDecision(
     recipient: decision.recipient as string,
   };
 }
+
+export const onEventCreated = onDocumentCreated(
+  {
+    region: REGION,
+    document: 'events/{eventId}',
+    secrets: [MAILGUN_API_KEY, MAILGUN_DOMAIN, MAILGUN_FROM, SUBMITTED_NOTIFICATION_INBOX],
+  },
+  async (event) => {
+    const eventId = eventIdFromPath(event.params);
+    const after = snapshotToEventSnapshot(event.data?.data());
+    const title = readString(event.data?.data()?.title);
+    const slug = readString(event.data?.data()?.slug);
+
+    const decision = decideCreatedEventNotification(eventId, after, title, slug);
+    if (!decision) {
+      logger.debug('No notification needed for newly created event', { eventId });
+      return;
+    }
+
+    const dryRun = isMailgunDryRun(process.env);
+    const secrets = safeSecrets(dryRun);
+    if (!secrets) {
+      logger.error('Mailgun secrets are not configured; skipping send', { eventId });
+      return;
+    }
+
+    const payloadInput = buildPayloadInputFromDecision(decision);
+    const recipientMarker: RecipientMarker =
+      decision.type === 'submitted' ? ADMINS_RECIPIENT : (decision.recipient as string);
+    const result = await dispatchDecision(eventId, decision.type, recipientMarker, payloadInput, {
+      ...secrets,
+      dryRun,
+    });
+    logger.info(`${decision.type} notification processed`, { eventId, ...result });
+    if (result.recipients > 0 || result.dryRun) {
+      await markNotified(eventId, after.status);
+    }
+  }
+);
 
 export const onEventStatusChanged = onDocumentUpdated(
   {

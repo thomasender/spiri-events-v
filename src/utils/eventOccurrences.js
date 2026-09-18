@@ -124,7 +124,12 @@ function collapseToMonthEntries(event, start, end) {
   while (cursor <= lastMonthStart) {
     const monthEnd = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0);
     const entryStart = cursor < start ? start : cursor;
-    const entryEnd = monthEnd < end ? monthEnd : end;
+    // `monthEnd` is at 00:00 local while `start`/`end` are at 12:00 local
+    // (they're parsed with `T12:00:00`), so a plain timestamp comparison would
+    // wrongly cap an in-month end at `monthEnd`. Compare by year+month instead.
+    const endIsInThisMonth =
+      end.getFullYear() === cursor.getFullYear() && end.getMonth() === cursor.getMonth();
+    const entryEnd = endIsInThisMonth ? end : monthEnd;
     entries.push({
       ...event,
       date: formatDate(entryStart.getFullYear(), entryStart.getMonth(), entryStart.getDate()),
