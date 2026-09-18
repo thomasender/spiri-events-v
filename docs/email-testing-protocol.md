@@ -14,7 +14,7 @@ _Test-Protokoll für die vier automatischen Benachrichtigungs-E-Mails, die beim 
 - **Inhalt:** Name des Einreichers + Button „Im Review ansehen" (Link zu `/admin/review#<eventId>`)
 - **Verifizieren:**
   - Mailgun Dashboard → Sending → Logs → Filter `mg.thetribe.at` → Status `delivered`, To enthält alle Admin-Adressen (inkl. Team-Inbox, falls gesetzt)
-  - Function Log: `firebase functions:log --only onEventStatusChanged -n 50` → Meldung `submitted notification processed`, `recipients` = Anzahl Empfänger
+  - Function Log: `firebase functions:log --only onEventCreated,onEventStatusChanged -n 50` → Meldung `submitted notification processed`, `recipients` = Anzahl Empfänger. Bei einem brandneuen Event ist `onEventCreated` der Auslöser; bei einem Re-Submit aus Entwurf/Papierkorb `onEventStatusChanged`.
   - Bei `recipients: 0` stimmt etwas mit `admin_users` nicht (kein Doc vorhanden oder Auth-User fehlt) UND es ist keine `SUBMITTED_NOTIFICATION_INBOX` gesetzt
 
 ## 2. „Dein Event ist live" (Published → an Ersteller)
@@ -68,10 +68,10 @@ _Test-Protokoll für die vier automatischen Benachrichtigungs-E-Mails, die beim 
 
 ```bash
 # Aktuelle Logs (einmalig, letzte 50 Zeilen)
-firebase functions:log --only onEventStatusChanged,onAdminMessageCreated -n 50
+firebase functions:log --only onEventCreated,onEventStatusChanged,onAdminMessageCreated -n 50
 
 # Live-Log im Browser (Firebase Console)
-firebase functions:log --only onEventStatusChanged,onAdminMessageCreated --open
+firebase functions:log --only onEventCreated,onEventStatusChanged,onAdminMessageCreated --open
 
 # Mailgun Dashboard (Ground Truth für Zustellung)
 open https://app.eu.mailgun.net/sending/mg.thetribe.at/logs

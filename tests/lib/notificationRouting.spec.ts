@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   decideEventStatusNotification,
+  decideCreatedEventNotification,
   decideAdminMessageNotification,
   EventSnapshot,
 } from '../../functions/src/notificationRouting';
@@ -105,6 +106,58 @@ describe('decideEventStatusNotification', () => {
     const decision = decideEventStatusNotification('evt1', before, after);
     expect(decision?.event.title).toBe('');
     expect(decision?.event.slug).toBeNull();
+  });
+});
+
+describe('decideCreatedEventNotification', () => {
+  it('emits a "submitted" decision when a new event is created with status pending', () => {
+    const after: EventSnapshot = { status: 'pending', organizer: organizer() };
+    const decision = decideCreatedEventNotification('evt1', after, 'Neues Event', 'neues-event');
+    expect(decision).not.toBeNull();
+    expect(decision?.type).toBe('submitted');
+    expect(decision?.recipient).toBe('admins');
+    expect(decision?.event.id).toBe('evt1');
+    expect(decision?.event.title).toBe('Neues Event');
+    expect(decision?.event.slug).toBe('neues-event');
+  });
+
+  it('returns null when a new event is created as a draft', () => {
+    const after: EventSnapshot = { status: 'draft', organizer: organizer() };
+    expect(decideCreatedEventNotification('evt1', after)).toBeNull();
+  });
+
+  it('returns null when a new event is created directly as approved', () => {
+    const after: EventSnapshot = { status: 'approved', organizer: organizer() };
+    expect(decideCreatedEventNotification('evt1', after)).toBeNull();
+  });
+
+  it('returns null when a new event is created directly as trashed', () => {
+    const after: EventSnapshot = { status: 'trashed', organizer: organizer() };
+    expect(decideCreatedEventNotification('evt1', after)).toBeNull();
+  });
+
+  it('returns null when the created event has no recognisable status', () => {
+    const after: EventSnapshot = {
+      status: 'archived' as unknown as 'pending',
+      organizer: organizer(),
+    };
+    expect(decideCreatedEventNotification('evt1', after)).toBeNull();
+  });
+
+  it('skips the notification when the event was already marked as notified for pending', () => {
+    const after: EventSnapshot = {
+      status: 'pending',
+      organizer: organizer(),
+      lastNotifiedStatus: 'pending',
+    };
+    expect(decideCreatedEventNotification('evt1', after)).toBeNull();
+  });
+
+  it('emits "submitted" even when the organizer email is missing (recipients are admins)', () => {
+    const after: EventSnapshot = { status: 'pending', organizer: organizer(null) };
+    const decision = decideCreatedEventNotification('evt1', after);
+    expect(decision?.type).toBe('submitted');
+    expect(decision?.recipient).toBe('admins');
   });
 });
 

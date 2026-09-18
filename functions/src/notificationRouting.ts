@@ -110,6 +110,22 @@ export function decideEventStatusNotification(
   return null;
 }
 
+export function decideCreatedEventNotification(
+  eventId: string,
+  after: EventSnapshot,
+  eventTitle?: string | null,
+  slug?: string | null
+): EventNotificationDecision | null {
+  const afterStatus = isStatus(after.status) ? after.status : null;
+  if (afterStatus !== 'pending') return null;
+  if (after.lastNotifiedStatus === 'pending') return null;
+  return {
+    type: 'submitted',
+    event: buildEventFor(eventId, after, eventTitle, slug),
+    recipient: 'admins',
+  };
+}
+
 export function decideAdminMessageNotification(
   eventId: string,
   message: AdminMessageSnapshot,
