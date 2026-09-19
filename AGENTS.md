@@ -253,7 +253,7 @@ The refresh script reads from the emulator (preferred) or production Firestore
 
 ## Communicating with Peter
 
-Peter is the product owner and tester. He tests directly on production at https://events.thetribe.at (NOT locally).
+Peter is the product owner and tester. He tests directly on production at https://www.thetribe.at (NOT locally).
 
 **When updating Trello tickets or communicating with Peter:**
 

@@ -6,7 +6,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT_DIR = path.resolve(__dirname, '..')
 const DIST_PATH = path.resolve(ROOT_DIR, 'dist')
 
-export const BASE_URL = 'https://events.thetribe.at'
+export const BASE_URL = 'https://www.thetribe.at'
 export const DEFAULT_OG_IMAGE_URL = `${BASE_URL}/og-default.jpg`
 export const OG_IMAGE_WIDTH = 1200
 export const OG_IMAGE_HEIGHT = 630

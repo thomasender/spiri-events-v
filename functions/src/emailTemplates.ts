@@ -31,7 +31,7 @@ export interface EmailPayload {
   text: string;
 }
 
-export const APP_BASE_URL = 'https://events.thetribe.at';
+export const APP_BASE_URL = 'https://www.thetribe.at';
 
 export function escapeHtml(value: string): string {
   return value

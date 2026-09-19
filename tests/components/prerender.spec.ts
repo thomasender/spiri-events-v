@@ -127,14 +127,14 @@ describe('prerender.mjs helpers', () => {
     it('uses imageUrl when present, even if category would have its own fallback', async () => {
       const { getEventOgImage } = await importPrerender();
       expect(getEventOgImage({ imageUrl: '/uploads/foo.jpg', category: 'Yoga' })).toBe(
-        'https://events.thetribe.at/uploads/foo.jpg'
+        'https://www.thetribe.at/uploads/foo.jpg'
       );
     });
 
     it('falls back to the category image when imageUrl is null', async () => {
       const { getEventOgImage } = await importPrerender();
       expect(getEventOgImage({ imageUrl: null, category: 'Yoga' })).toBe(
-        'https://events.thetribe.at/event-fallbacks/yoga.jpg'
+        'https://www.thetribe.at/event-fallbacks/yoga.jpg'
       );
     });
   });
@@ -377,17 +377,17 @@ describe('static index.html (production safety net)', () => {
     const html = readFileSync(resolve(__dirname, '../../index.html'), 'utf8');
     expect(html).toContain('<meta property="og:type" content="website" />');
     expect(html).toContain('<meta property="og:site_name" content="tribe Vorarlberg" />');
-    expect(html).toContain('<meta property="og:url" content="https://events.thetribe.at/" />');
+    expect(html).toContain('<meta property="og:url" content="https://www.thetribe.at/" />');
     expect(html).toContain(
-      '<meta property="og:image" content="https://events.thetribe.at/og-default.jpg" />'
+      '<meta property="og:image" content="https://www.thetribe.at/og-default.jpg" />'
     );
     expect(html).toContain('<meta property="og:image:width" content="1200" />');
     expect(html).toContain('<meta property="og:image:height" content="630" />');
     expect(html).toContain('<meta name="twitter:card" content="summary_large_image" />');
     expect(html).toContain(
-      '<meta name="twitter:image" content="https://events.thetribe.at/og-default.jpg" />'
+      '<meta name="twitter:image" content="https://www.thetribe.at/og-default.jpg" />'
     );
-    expect(html).toContain('<link rel="canonical" href="https://events.thetribe.at/" />');
+    expect(html).toContain('<link rel="canonical" href="https://www.thetribe.at/" />');
   });
 });
 
@@ -442,7 +442,7 @@ describe('prerender() end-to-end', () => {
     const event = sampleEvents[0];
     const html = fs.readFileSync(path.join(distPath, 'event', event.slug, 'index.html'), 'utf8');
     expect(html).toContain(
-      `<meta property="og:url" content="https://events.thetribe.at/event/${event.slug}" />`
+      `<meta property="og:url" content="https://www.thetribe.at/event/${event.slug}" />`
     );
     expect(html).toContain('<meta property="og:type" content="event" />');
     expect(html).toMatch(/<meta property="og:image:width" content="1200" \/>/);
@@ -469,7 +469,7 @@ describe('prerender() end-to-end', () => {
     const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf8');
     expect(indexHtml).toContain('<meta property="og:type" content="website" />');
     expect(indexHtml).toContain(
-      '<meta property="og:image" content="https://events.thetribe.at/og-default.jpg" />'
+      '<meta property="og:image" content="https://www.thetribe.at/og-default.jpg" />'
     );
     expect(indexHtml).not.toContain('old placeholder');
   });
@@ -505,8 +505,8 @@ describe('prerender() end-to-end', () => {
     const sitemap = fs.readFileSync(path.join(distPath, 'sitemap.xml'), 'utf8');
     for (const event of sampleEvents) {
       if (!event.slug) continue;
-      expect(sitemap).toContain(`https://events.thetribe.at/event/${event.slug}`);
-      expect(sitemap).not.toContain(`https://events.thetribe.at/event/${event.id}`);
+      expect(sitemap).toContain(`https://www.thetribe.at/event/${event.slug}`);
+      expect(sitemap).not.toContain(`https://www.thetribe.at/event/${event.id}`);
     }
   });
 
@@ -562,7 +562,7 @@ describe('prerender() end-to-end', () => {
       'utf8'
     );
     expect(html).toContain(
-      '<meta property="og:url" content="https://events.thetribe.at/event/legacy-firestore-id" />'
+      '<meta property="og:url" content="https://www.thetribe.at/event/legacy-firestore-id" />'
     );
   });
 

@@ -13,7 +13,7 @@ import { onEventStatusChanged, onEventCreated, onAdminMessageCreated } from './n
 import { enforceRateLimit, RATE_LIMIT_PRESETS } from './rateLimit';
 
 const REGION = 'europe-west3';
-const ALLOWED_ORIGINS = ['https://events.thetribe.at'];
+const ALLOWED_ORIGINS = ['https://www.thetribe.at', 'https://thetribe.at'];
 
 interface CreateDonationRequest {
   amount: number;

@@ -201,7 +201,7 @@ test.describe('Feedback feature', () => {
 
     const anna = page.getByTestId('feedback-item').filter({ hasText: 'Anna' });
 
-    const pageLink = anna.getByRole('link', { name: 'https://events.thetribe.at/' });
+    const pageLink = anna.getByRole('link', { name: 'https://www.thetribe.at/' });
     await expect(pageLink).toBeVisible();
     await expect(pageLink).toHaveAttribute('href', /foo=bar/);
     await expect(pageLink).not.toHaveText(/foo=bar/);
@@ -420,7 +420,7 @@ test.describe('Feedback feature', () => {
 
     await page.getByTestId('feedback-description').fill('Manuell überschriebener Seitenlink');
 
-    await page.getByTestId('feedback-link').fill('https://events.thetribe.at/impressum');
+    await page.getByTestId('feedback-link').fill('https://www.thetribe.at/impressum');
     await page.getByTestId('feedback-submit').click();
     await expect(page.getByTestId('feedback-success')).toBeVisible({ timeout: 15000 });
 
@@ -438,6 +438,6 @@ test.describe('Feedback feature', () => {
 
     const pageLinks = newItem.locator('.feedback-item-details a[href]');
     const hrefs = await pageLinks.evaluateAll((els) => els.map((el) => el.getAttribute('href')));
-    expect(hrefs).toContain('https://events.thetribe.at/impressum');
+    expect(hrefs).toContain('https://www.thetribe.at/impressum');
   });
 });

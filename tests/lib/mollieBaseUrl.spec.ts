@@ -8,10 +8,10 @@ describe('resolveAppBaseUrl', () => {
         rawRequest: {
           host: 'europe-west3-spirieventsvbg.cloudfunctions.net',
           protocol: 'https',
-          headers: { origin: 'https://events.thetribe.at' },
+          headers: { origin: 'https://www.thetribe.at' },
         },
       })
-    ).toBe('https://events.thetribe.at');
+    ).toBe('https://www.thetribe.at');
   });
 
   it('falls back to the Referer origin when Origin is missing', () => {
@@ -20,10 +20,10 @@ describe('resolveAppBaseUrl', () => {
         rawRequest: {
           host: 'europe-west3-spirieventsvbg.cloudfunctions.net',
           protocol: 'https',
-          headers: { referer: 'https://events.thetribe.at/spenden' },
+          headers: { referer: 'https://www.thetribe.at/spenden' },
         },
       })
-    ).toBe('https://events.thetribe.at');
+    ).toBe('https://www.thetribe.at');
   });
 
   it('falls back to host + protocol when no browser headers are present', () => {
@@ -44,10 +44,10 @@ describe('resolveAppBaseUrl', () => {
         rawRequest: {
           host: 'placeholder',
           protocol: 'https',
-          headers: { origin: 'https://events.thetribe.at' },
+          headers: { origin: 'https://www.thetribe.at' },
         },
       })
-    ).toBe('https://events.thetribe.at');
+    ).toBe('https://www.thetribe.at');
   });
 
   it('ignores an unparseable Referer and falls back to host', () => {
@@ -68,9 +68,9 @@ describe('resolveAppBaseUrl', () => {
         rawRequest: {
           host: 'placeholder',
           protocol: 'https',
-          headers: { origin: ['https://events.thetribe.at', 'https://other.example'] },
+          headers: { origin: ['https://www.thetribe.at', 'https://other.example'] },
         },
       })
-    ).toBe('https://events.thetribe.at');
+    ).toBe('https://www.thetribe.at');
   });
 });

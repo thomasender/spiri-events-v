@@ -1,4 +1,4 @@
-export const SITE_URL = 'https://events.thetribe.at';
+export const SITE_URL = 'https://www.thetribe.at';
 export const SITE_NAME = 'tribe Vorarlberg';
 
 export const DEFAULT_DESCRIPTION =
