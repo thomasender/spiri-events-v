@@ -26,6 +26,7 @@ vi.mock('../../src/hooks/useAuth', () => ({
     if (err.code === 'auth/operation-not-allowed') return 'Google-Anmeldung nicht verfügbar.';
     return 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.';
   },
+  MIN_PASSWORD_LENGTH: 8,
 }));
 
 vi.mock('react-router-dom', async () => {

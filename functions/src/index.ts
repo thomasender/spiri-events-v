@@ -10,6 +10,7 @@ import {
   startMollieSubscriptionCheckout,
 } from './mollie';
 import { onEventStatusChanged, onEventCreated, onAdminMessageCreated } from './notifications';
+import { enforceRateLimit, RATE_LIMIT_PRESETS } from './rateLimit';
 
 const REGION = 'europe-west3';
 const ALLOWED_ORIGINS = ['https://events.thetribe.at'];
@@ -42,6 +43,7 @@ export const createMollieSubscription = onCall(
     cors: ALLOWED_ORIGINS,
   },
   async (request) => {
+    enforceRateLimit(request, 'donation', RATE_LIMIT_PRESETS.donation);
     const data = (request.data ?? {}) as CreateDonationRequest;
     assertValidAmount(data.amount);
 
@@ -70,6 +72,7 @@ export const createMolliePayment = onCall(
     cors: ALLOWED_ORIGINS,
   },
   async (request) => {
+    enforceRateLimit(request, 'donation', RATE_LIMIT_PRESETS.donation);
     const data = (request.data ?? {}) as CreateDonationRequest;
     assertValidAmount(data.amount);
 
