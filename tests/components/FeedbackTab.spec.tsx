@@ -48,7 +48,7 @@ describe('FeedbackTab', () => {
       description: 'Sehr schöne Plattform!',
       name: 'Peter',
       email: 'peter@example.com',
-      pageUrl: 'https://events.thetribe.at/',
+      pageUrl: 'https://www.thetribe.at/',
       pageTitle: 'Tribe Vorarlberg',
       userAgent: 'Mozilla/5.0',
       status: 'new',
@@ -173,13 +173,13 @@ describe('FeedbackTab', () => {
       id: 'fb-1',
       description: 'ohne titel',
       status: 'read',
-      pageUrl: 'https://events.thetribe.at/?foo=bar#section',
+      pageUrl: 'https://www.thetribe.at/?foo=bar#section',
       createdAt: { toDate: () => new Date() },
     });
 
     render(<FeedbackTab />);
-    const link = screen.getByRole('link', { name: 'https://events.thetribe.at/' });
-    expect(link).toHaveAttribute('href', 'https://events.thetribe.at/?foo=bar#section');
+    const link = screen.getByRole('link', { name: 'https://www.thetribe.at/' });
+    expect(link).toHaveAttribute('href', 'https://www.thetribe.at/?foo=bar#section');
   });
 
   it('shows a placeholder when screenshot upload failed and no URL is present', () => {

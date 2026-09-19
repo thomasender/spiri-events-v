@@ -1,6 +1,6 @@
 # Mailgun Sender Photo
 
-Mails, die der Eventskalender (`events.thetribe.at`) über Mailgun verschickt,
+Mails, die der Eventskalender (`www.thetribe.at`) über Mailgun verschickt,
 erscheinen im Posteingang mit einem Absender-Foto neben "The Tribe". Das Foto
 ist eine Domain-Einstellung im Mailgun-Dashboard und wird hier zentral
 hinterlegt, damit das Branding konsistent und die Mails professionell wirken.

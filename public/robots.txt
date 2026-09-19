@@ -1,7 +1,7 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://events.thetribe.at/sitemap.xml
+Sitemap: https://www.thetribe.at/sitemap.xml
 
 # Block admin pages from indexing
 Disallow: /admin/

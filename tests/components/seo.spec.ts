@@ -16,8 +16,8 @@ import {
 import { getEventOgImage } from '../../src/components/SeoMeta';
 
 describe('seo constants', () => {
-  it('uses events.thetribe.at as the production site URL', () => {
-    expect(SITE_URL).toBe('https://events.thetribe.at');
+  it('uses www.thetribe.at as the production site URL', () => {
+    expect(SITE_URL).toBe('https://www.thetribe.at');
   });
 
   it('has a branded site name', () => {
@@ -25,7 +25,7 @@ describe('seo constants', () => {
   });
 
   it('points the default OG image at an absolute URL under the site', () => {
-    expect(DEFAULT_OG_IMAGE_URL).toBe('https://events.thetribe.at/og-default.jpg');
+    expect(DEFAULT_OG_IMAGE_URL).toBe('https://www.thetribe.at/og-default.jpg');
     expect(DEFAULT_OG_IMAGE_URL.startsWith('http')).toBe(true);
   });
 
@@ -45,7 +45,7 @@ describe('seo constants', () => {
 
 describe('getSiteUrl', () => {
   it('returns the canonical site URL', () => {
-    expect(getSiteUrl()).toBe('https://events.thetribe.at');
+    expect(getSiteUrl()).toBe('https://www.thetribe.at');
   });
 });
 
@@ -60,7 +60,7 @@ describe('toAbsoluteUrl', () => {
 
   it('prepends the site URL to paths starting with /', () => {
     expect(toAbsoluteUrl('/event-fallbacks/yoga.jpg')).toBe(
-      'https://events.thetribe.at/event-fallbacks/yoga.jpg'
+      'https://www.thetribe.at/event-fallbacks/yoga.jpg'
     );
   });
 
@@ -69,7 +69,7 @@ describe('toAbsoluteUrl', () => {
   });
 
   it('prepends the site URL with a slash for paths without a leading slash', () => {
-    expect(toAbsoluteUrl('og-default.jpg')).toBe('https://events.thetribe.at/og-default.jpg');
+    expect(toAbsoluteUrl('og-default.jpg')).toBe('https://www.thetribe.at/og-default.jpg');
   });
 
   it('returns the default OG image when given a falsy value', () => {
@@ -81,16 +81,16 @@ describe('toAbsoluteUrl', () => {
 
 describe('buildPageUrl', () => {
   it('returns an absolute URL under the site when no path is provided', () => {
-    expect(buildPageUrl()).toMatch(/^https:\/\/events\.thetribe\.at\//);
-    expect(buildPageUrl('')).toMatch(/^https:\/\/events\.thetribe\.at/);
+    expect(buildPageUrl()).toMatch(/^https:\/\/www\.thetribe\.at\//);
+    expect(buildPageUrl('')).toMatch(/^https:\/\/www\.thetribe\.at/);
   });
 
   it('builds an absolute URL for "/"', () => {
-    expect(buildPageUrl('/')).toBe('https://events.thetribe.at/');
+    expect(buildPageUrl('/')).toBe('https://www.thetribe.at/');
   });
 
   it('builds an absolute URL for an event detail path', () => {
-    expect(buildPageUrl('/event/yoga-heute')).toBe('https://events.thetribe.at/event/yoga-heute');
+    expect(buildPageUrl('/event/yoga-heute')).toBe('https://www.thetribe.at/event/yoga-heute');
   });
 
   it('returns absolute URLs unchanged', () => {
@@ -103,7 +103,7 @@ describe('getDefaultOgTags', () => {
     const tags = getDefaultOgTags();
     expect(tags.title).toBe('tribe Vorarlberg');
     expect(tags.description).toMatch(/Vorarlberg/);
-    expect(tags.url).toBe('https://events.thetribe.at/');
+    expect(tags.url).toBe('https://www.thetribe.at/');
     expect(tags.imageUrl).toBe(DEFAULT_OG_IMAGE_URL);
     expect(tags.type).toBe('website');
   });
@@ -118,8 +118,8 @@ describe('getDefaultOgTags', () => {
     });
     expect(tags.title).toBe('Mein Event');
     expect(tags.description).toBe('Tolle Beschreibung');
-    expect(tags.url).toBe('https://events.thetribe.at/event/mein-event');
-    expect(tags.imageUrl).toBe('https://events.thetribe.at/event-fallbacks/yoga.jpg');
+    expect(tags.url).toBe('https://www.thetribe.at/event/mein-event');
+    expect(tags.imageUrl).toBe('https://www.thetribe.at/event-fallbacks/yoga.jpg');
     expect(tags.type).toBe('event');
   });
 });
@@ -127,29 +127,29 @@ describe('getDefaultOgTags', () => {
 describe('getEventOgImage', () => {
   it('returns the event imageUrl (made absolute) when present', () => {
     expect(getEventOgImage({ imageUrl: '/event-fallbacks/yoga.jpg', category: 'Yoga' })).toBe(
-      'https://events.thetribe.at/event-fallbacks/yoga.jpg'
+      'https://www.thetribe.at/event-fallbacks/yoga.jpg'
     );
   });
 
   it('falls back to the category fallback image when the event has no imageUrl (acceptance criterion 4)', () => {
     expect(getEventOgImage({ category: 'Yoga' })).toBe(
-      'https://events.thetribe.at/event-fallbacks/yoga.jpg'
+      'https://www.thetribe.at/event-fallbacks/yoga.jpg'
     );
     expect(getEventOgImage({ category: 'Tanz' })).toBe(
-      'https://events.thetribe.at/event-fallbacks/tanz.jpg'
+      'https://www.thetribe.at/event-fallbacks/tanz.jpg'
     );
     expect(getEventOgImage({ category: 'Sonstiges' })).toBe(
-      'https://events.thetribe.at/event-fallbacks/sonstiges.jpg'
+      'https://www.thetribe.at/event-fallbacks/sonstiges.jpg'
     );
   });
 
   it('returns the Sonstiges category fallback when the event has no category', () => {
     // Mirrors getEventFallbackImage's behavior — events without a category
     // resolve to the generic "Sonstiges" fallback used everywhere else.
-    expect(getEventOgImage({})).toBe('https://events.thetribe.at/event-fallbacks/sonstiges.jpg');
-    expect(getEventOgImage(null)).toBe('https://events.thetribe.at/event-fallbacks/sonstiges.jpg');
+    expect(getEventOgImage({})).toBe('https://www.thetribe.at/event-fallbacks/sonstiges.jpg');
+    expect(getEventOgImage(null)).toBe('https://www.thetribe.at/event-fallbacks/sonstiges.jpg');
     expect(getEventOgImage(undefined)).toBe(
-      'https://events.thetribe.at/event-fallbacks/sonstiges.jpg'
+      'https://www.thetribe.at/event-fallbacks/sonstiges.jpg'
     );
   });
 

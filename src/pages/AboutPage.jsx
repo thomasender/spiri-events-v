@@ -85,7 +85,7 @@ export default function AboutPage() {
         </p>
         <p>
           <a
-            href="https://events.thetribe.at"
+            href="https://www.thetribe.at"
             className="btn btn-secondary about-link-button"
             rel="noopener noreferrer"
           >

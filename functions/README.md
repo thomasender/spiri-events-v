@@ -1,6 +1,6 @@
 # Cloud Functions
 
-Server-side backend for [tribe Vorarlberg](https://events.thetribe.at).
+Server-side backend for [tribe Vorarlberg](https://www.thetribe.at).
 Powers the Mollie donation flow (one-time and recurring SEPA / card) and the
 event-lifecycle notification emails.
 
@@ -79,6 +79,6 @@ the Mollie secret to exist; otherwise both callable handlers return an
 
 ## CORS
 
-Both Mollie callable endpoints declare `cors: ['https://events.thetribe.at']`
+Both Mollie callable endpoints declare `cors: ['https://www.thetribe.at', 'https://thetribe.at']`
 so they can be invoked from the production origin. The Firebase Functions
 emulator bypasses CORS locally. The Firestore triggers do not need CORS.

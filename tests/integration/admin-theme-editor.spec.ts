@@ -252,7 +252,7 @@ test.describe('Admin Theme Editor v2 (U2Bcb7jJ)', () => {
     isMobile,
   }) => {
     // The Theme Editor preview is designed to mirror the *desktop*
-    // homepage — the admin's preview target is events.thetribe.at on a
+    // homepage — the admin's preview target is www.thetribe.at on a
     // laptop, not a phone. Skip the assertion on the mobile-WebKit
     // project, where the sandbox frame is too narrow to render the
     // two-column layout at any meaningful size.

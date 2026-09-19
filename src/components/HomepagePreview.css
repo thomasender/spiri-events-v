@@ -72,7 +72,7 @@
    homepage at all times — even when the editor itself is rendered on a
    narrow viewport (e.g. mobile Safari). Hiding the sidebar calendar on
    small viewports would lie to the admin about how the theme will look
-   on events.thetribe.at. So we keep the two-column layout and let the
+   on www.thetribe.at. So we keep the two-column layout and let the
    surrounding scroll frame absorb any horizontal overflow. */
 
 .homepage-preview .page-layout {
