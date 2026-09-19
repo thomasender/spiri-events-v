@@ -32,10 +32,19 @@ describe('getEventOccurrences (list mode)', () => {
   });
 
   it('returns a single occurrence for multi-day events that fit in one month', () => {
-    const event = { id: '1', date: dateStr(10), endDate: dateStr(12), recurrence: 'none' };
+    // Anchor to the first of next month so a 2-day span is always in the
+    // future (past events are hidden) and always within the same month,
+    // regardless of when the suite runs.
+    const start = new Date();
+    start.setMonth(start.getMonth() + 1, 1);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 2);
+    const fmt = (d) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const event = { id: '1', date: fmt(start), endDate: fmt(end), recurrence: 'none' };
     const result = getEventOccurrences(event);
     expect(result).toHaveLength(1);
-    expect(result[0].date).toBe(dateStr(10));
+    expect(result[0].date).toBe(fmt(start));
     expect(result[0].isMultiDayStart).toBe(true);
     expect(result[0].isMultiDayEnd).toBe(true);
   });
