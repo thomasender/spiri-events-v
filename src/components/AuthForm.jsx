@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth, authErrorMessage } from '../hooks/useAuth';
+import { useAuth, authErrorMessage, MIN_PASSWORD_LENGTH } from '../hooks/useAuth';
 import { Mail, Lock, User } from 'lucide-react';
 import './AuthForm.css';
 
@@ -115,8 +115,8 @@ export default function AuthForm() {
       return;
     }
 
-    if (!isLogin && password.length < 6) {
-      setError('Das Passwort muss mindestens 6 Zeichen haben.');
+    if (!isLogin && password.length < MIN_PASSWORD_LENGTH) {
+      setError(`Das Passwort muss mindestens ${MIN_PASSWORD_LENGTH} Zeichen haben.`);
       triggerWobble();
       return;
     }
@@ -138,6 +138,10 @@ export default function AuthForm() {
         'auth/user-not-found': 'Kein Konto mit dieser E-Mail-Adresse gefunden.',
         'auth/wrong-password': 'Das Passwort ist falsch.',
         'auth/invalid-credential': 'E-Mail oder Passwort sind falsch.',
+        'auth/too-many-requests':
+          err.message && err.message.startsWith('Bitte warte')
+            ? err.message
+            : 'Zu viele Versuche. Bitte warte einen Moment und versuche es erneut.',
       };
       setError(errorMessages[err.code] || 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.');
       setErrorCode(err.code || '');
@@ -156,8 +160,12 @@ export default function AuthForm() {
     try {
       await resetPassword(email);
       setResetSent(true);
-    } catch {
-      setError('Ein Fehler ist aufgetreten. Bitte überprüfe deine E-Mail-Adresse.');
+    } catch (err) {
+      if (err?.code === 'auth/too-many-requests' && err.message) {
+        setError(err.message);
+      } else {
+        setError('Ein Fehler ist aufgetreten. Bitte überprüfe deine E-Mail-Adresse.');
+      }
       triggerWobble();
     } finally {
       setLoading(false);

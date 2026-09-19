@@ -3,6 +3,13 @@ import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from './useAuth';
 import { deleteImageByUrl, uploadFeedbackScreenshot } from '../lib/imageUpload';
+import {
+  checkRateLimit,
+  recordRateLimitAttempt,
+  formatRetryAfter,
+  rateLimitBucket,
+  RATE_LIMIT_PRESETS,
+} from '../utils/rateLimit';
 
 export const MAX_FEEDBACK_DESCRIPTION_LENGTH = 1000;
 export const MAX_FEEDBACK_NAME_LENGTH = 80;
@@ -75,6 +82,16 @@ export function useFeedback() {
         setError(Object.values(errors)[0]);
         throw new Error(Object.values(errors)[0]);
       }
+
+      const feedbackBucket = rateLimitBucket('feedback', user?.uid || trimmedEmail || 'anon');
+      const feedbackPreset = RATE_LIMIT_PRESETS.feedback;
+      const feedbackStatus = checkRateLimit({ bucket: feedbackBucket, ...feedbackPreset });
+      if (!feedbackStatus.allowed) {
+        const message = formatRetryAfter(feedbackStatus.retryAfterMs);
+        setError(message);
+        throw new Error(message);
+      }
+      recordRateLimitAttempt({ bucket: feedbackBucket, ...feedbackPreset });
 
       const feedbackId = generateFeedbackId();
       let screenshotUrl = null;

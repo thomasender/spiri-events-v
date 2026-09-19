@@ -20,9 +20,17 @@ import {
 import { doc, getDoc, setDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { ref as storageRef, listAll, deleteObject } from 'firebase/storage';
 import { auth, db, storage } from '../lib/firebase';
+import {
+  checkRateLimit,
+  recordRateLimitAttempt,
+  formatRetryAfter,
+  rateLimitBucket,
+  RATE_LIMIT_PRESETS,
+} from '../utils/rateLimit';
 
 const ADMIN_EMULATOR_USERS = ['admin@test.com', 'mathis.aut@gmail.com'];
 const GOOGLE_PROVIDER_ID = 'google.com';
+export const MIN_PASSWORD_LENGTH = 8;
 
 const AUTH_ERROR_MESSAGES = {
   'auth/invalid-credential': 'E-Mail oder Passwort sind falsch.',
@@ -172,6 +180,16 @@ export function useAuth() {
   );
 
   const register = async (email, password, displayName) => {
+    const bucket = rateLimitBucket('register', email);
+    const preset = RATE_LIMIT_PRESETS.register;
+    const status = checkRateLimit({ bucket, ...preset });
+    if (!status.allowed) {
+      const err = new Error(formatRetryAfter(status.retryAfterMs));
+      err.code = 'auth/too-many-requests';
+      err.retryAfterMs = status.retryAfterMs;
+      throw err;
+    }
+    recordRateLimitAttempt({ bucket, ...preset });
     const credential = await createUserWithEmailAndPassword(auth, email, password);
     if (displayName) {
       await updateProfile(credential.user, { displayName });
@@ -195,6 +213,16 @@ export function useAuth() {
   };
 
   const login = async (email, password) => {
+    const bucket = rateLimitBucket('login', email);
+    const preset = RATE_LIMIT_PRESETS.login;
+    const status = checkRateLimit({ bucket, ...preset });
+    if (!status.allowed) {
+      const err = new Error(formatRetryAfter(status.retryAfterMs));
+      err.code = 'auth/too-many-requests';
+      err.retryAfterMs = status.retryAfterMs;
+      throw err;
+    }
+    recordRateLimitAttempt({ bucket, ...preset });
     return signInWithEmailAndPassword(auth, email, password);
   };
 
@@ -209,6 +237,16 @@ export function useAuth() {
   const logout = () => signOut(auth);
 
   const resetPassword = async (email) => {
+    const bucket = rateLimitBucket('passwordReset', email);
+    const preset = RATE_LIMIT_PRESETS.passwordReset;
+    const status = checkRateLimit({ bucket, ...preset });
+    if (!status.allowed) {
+      const err = new Error(formatRetryAfter(status.retryAfterMs));
+      err.code = 'auth/too-many-requests';
+      err.retryAfterMs = status.retryAfterMs;
+      throw err;
+    }
+    recordRateLimitAttempt({ bucket, ...preset });
     await sendPasswordResetEmail(auth, email);
   };
 
