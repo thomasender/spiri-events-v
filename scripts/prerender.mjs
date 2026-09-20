@@ -331,9 +331,14 @@ export function generateCalendarPageHtml(events, jsBundlePath, cssBundlePath, th
     .filter(e => e.date && e.date >= today)
     .slice(0, 20)
 
-  const hasEvents = upcomingEvents.length > 0
-  const eventsList = hasEvents
-    ? upcomingEvents.map(event => {
+  // JS-enabled users get a clean spinner that React replaces with the real
+  // calendar the moment it mounts. The events list used to be rendered for
+  // everyone — it looked real, then flashed into the actual app UI once React
+  // took over. Users without JS still see the static events list below the
+  // spinner via <noscript>. Note that this only changes the visible body;
+  // the <head> OG tags above still serve the same messengers and crawlers.
+  const noscriptEventsList = upcomingEvents.length > 0
+    ? `<ul class="events-list">${upcomingEvents.map(event => {
         const eventPath = getEventPath(event)
         return `
         <li>
@@ -342,11 +347,8 @@ export function generateCalendarPageHtml(events, jsBundlePath, cssBundlePath, th
             <span>${escapeHtml(formatDate(event.date))} - ${escapeHtml(event.bezirk || 'Vorarlberg')}</span>
           </a>
         </li>`
-      }).join('')
-    : ''
-  const eventsPlaceholder = hasEvents
-    ? `<ul class="events-list" data-testid="prerender-events-list">${eventsList}</ul>`
-    : `<div class="prerender-loading" role="status" aria-live="polite" data-testid="prerender-loading"></div>`
+      }).join('')}</ul>`
+    : '<p class="prerender-no-events">Aktuell sind keine bevorstehenden Events geplant.</p>'
   const themeRoot = buildThemeRootBlock(theme)
 
   return `<!DOCTYPE html>
@@ -417,11 +419,15 @@ export function generateCalendarPageHtml(events, jsBundlePath, cssBundlePath, th
     .prerender-loading::after { content: ''; width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent-primary); border-radius: 50%; animation: prerender-spin 0.8s linear infinite; }
     @keyframes prerender-spin { to { transform: rotate(360deg); } }
     @media (prefers-reduced-motion: reduce) { .prerender-loading::after { animation-duration: 3s; } }
+    .prerender-no-events { text-align: center; color: var(--text-secondary); padding: 48px 16px; }
     footer { background: var(--bg-secondary); padding: 24px; text-align: center; color: var(--text-secondary); font-size: 0.9rem; }
   </style>
 </head>
 <body>
   <div id="root">
+    <div class="prerender-loading" role="status" aria-live="polite" aria-label="Lädt Events"></div>
+  </div>
+  <noscript>
     <div class="calendar-page">
       <header class="page-header">
         <div class="header-content">
@@ -432,14 +438,14 @@ export function generateCalendarPageHtml(events, jsBundlePath, cssBundlePath, th
 
       <div class="calendar-wrapper">
         <h2 class="page-title">Bevorstehende Events</h2>
-        ${eventsPlaceholder}
+        ${noscriptEventsList}
       </div>
 
       <footer>
         <p>© ${new Date().getFullYear()} ${escapeHtml(SITE_NAME)}</p>
       </footer>
     </div>
-  </div>
+  </noscript>
   <script type="module" src="${escapeHtml(jsBundlePath)}"></script>
 </body>
 </html>`

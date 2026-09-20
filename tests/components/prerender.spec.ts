@@ -308,11 +308,18 @@ describe('prerender.mjs helpers', () => {
       expect(html).toContain('prefers-reduced-motion');
     });
 
-    it('renders the events list when upcoming events exist', async () => {
+    it('renders the spinner for JS users and the events list inside <noscript> when upcoming events exist', async () => {
       const { generateCalendarPageHtml } = await importPrerender();
       const html = generateCalendarPageHtml([sampleEvents[0]], '/assets/x.js', '/assets/x.css');
-      expect(html).toContain('class="events-list"');
-      expect(html).not.toContain('class="prerender-loading"');
+      // JS-enabled users see a clean spinner, then React replaces it with the real calendar.
+      expect(html).toContain('class="prerender-loading"');
+      // The events list still ships, but only inside <noscript> for no-JS clients.
+      const noscriptMatch = html.match(/<noscript>([\s\S]*?)<\/noscript>/);
+      expect(noscriptMatch).not.toBeNull();
+      expect(noscriptMatch[1]).toContain('class="events-list"');
+      // And the events list must NOT appear in the visible body — only inside <noscript>.
+      const visibleBody = html.split('<noscript>')[0];
+      expect(visibleBody).not.toContain('class="events-list"');
     });
   });
 
