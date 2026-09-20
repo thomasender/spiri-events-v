@@ -645,6 +645,88 @@ export async function loadEventsFromFirestore(firebaseConfig) {
   }
 }
 
+// Resolves a service-account credential object from one of three places,
+// in order of precedence. The env var path follows Google's standard
+// `GOOGLE_APPLICATION_CREDENTIALS` convention; the inline-JSON variant is for
+// CI/CD environments (Netlify, GitHub Actions, ...) where writing a file is
+// awkward. The local fallback at `scripts/service-account.json` keeps local
+// dev frictionless. Returns `{ credential, source }` on success or
+// `{ credential: null, error }` when nothing usable is available. Set
+// `fallbackPath` to `''` (or any non-existent path) to disable the local
+// fallback — useful in tests that want to assert the env-var-only paths.
+export function resolveServiceAccountCredential({
+  envCredentialsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS,
+  envCredentialsJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON,
+  fallbackPath = 'scripts/service-account.json',
+} = {}) {
+  if (envCredentialsJson && envCredentialsJson.trim()) {
+    try {
+      return { credential: JSON.parse(envCredentialsJson), source: 'FIREBASE_SERVICE_ACCOUNT_JSON env var' }
+    } catch (err) {
+      return { credential: null, error: `Failed to parse FIREBASE_SERVICE_ACCOUNT_JSON: ${err.message}` }
+    }
+  }
+  if (envCredentialsPath) {
+    try {
+      const cred = JSON.parse(fs.readFileSync(envCredentialsPath, 'utf8'))
+      return { credential: cred, source: envCredentialsPath }
+    } catch (err) {
+      return { credential: null, error: `Failed to read GOOGLE_APPLICATION_CREDENTIALS=${envCredentialsPath}: ${err.message}` }
+    }
+  }
+  if (fallbackPath && fs.existsSync(fallbackPath)) {
+    try {
+      const cred = JSON.parse(fs.readFileSync(fallbackPath, 'utf8'))
+      return { credential: cred, source: fallbackPath }
+    } catch (err) {
+      return { credential: null, error: `Failed to read ${fallbackPath}: ${err.message}` }
+    }
+  }
+  return { credential: null, error: 'No service account credentials available (set GOOGLE_APPLICATION_CREDENTIALS, FIREBASE_SERVICE_ACCOUNT_JSON, or add scripts/service-account.json).' }
+}
+
+// Reads events via the Firebase Admin SDK, which bypasses security rules.
+// This is what makes the prerender useful on production builds: the REST
+// API and the client SDK both fail with PERMISSION_DENIED because the
+// events rules only allow anonymous single-doc reads of approved events
+// (list queries are evaluated against the collection and don't have a
+// `resource.data.status` to check). The admin SDK authenticates with a
+// service account and is allowed to read everything.
+//
+// Falls back gracefully when no credentials are present so the rest of the
+// prerender pipeline (snapshot + REST + client SDK) still works. Honours
+// FIRESTORE_EMULATOR_HOST the same way `refresh-prerender-data.mjs` does,
+// so local emulator builds can also exercise this code path without
+// pointing at production.
+export async function loadEventsFromFirestoreAdmin({
+  projectId = 'spirieventsvbg',
+  appName = `prerender-admin-${Date.now()}`,
+  fallbackPath = 'scripts/service-account.json',
+} = {}) {
+  const { credential, source: credentialSource, error: credentialError } = resolveServiceAccountCredential({ fallbackPath })
+  if (!credential) {
+    return { events: [], source: null, error: credentialError }
+  }
+  try {
+    const admin = await import('firebase-admin/app')
+    const { getFirestore } = await import('firebase-admin/firestore')
+    const app = admin.initializeApp(
+      { credential: admin.cert(credential), projectId },
+      appName
+    )
+    try {
+      const db = getFirestore(app)
+      const snapshot = await db.collection('events').get()
+      const events = snapshot.docs.map(doc => normalizeEvent({ id: doc.id, ...doc.data() }))
+      return { events, source: `firestore-admin:${credentialSource}`, error: null }
+    } finally {
+      app.delete().catch(() => {})
+    }
+  } catch (err) {
+    return { events: [], source: null, error: `Firestore Admin SDK read threw: ${err.message}` }
+  }
+}
+
 export async function loadEventsFromFirestoreRest({
   projectId,
   apiKey,
@@ -722,6 +804,7 @@ export async function prerender({
   firebaseConfig = DEFAULT_FIREBASE_CONFIG,
   skipFirestore = false,
   skipRest = false,
+  skipAdmin = false,
 } = {}) {
   if (!fs.existsSync(distPath)) {
     throw new Error(`dist folder not found at ${distPath}. Run \`npm run build\` (vite build) first.`)
@@ -767,6 +850,28 @@ export async function prerender({
   // anonymous access), we keep the snapshot as-is and the build
   // stays reproducible.
   const liveSources = []
+
+  // Admin SDK is the first live source tried because, unlike the REST and
+  // client SDK paths, it can read the events collection at all on production
+  // (rules allow anonymous single-doc reads of approved events, but list
+  // queries are evaluated against the collection and the `isApproved()`
+  // rule has no resource to inspect). When this succeeds it is the freshest
+  // data we have, so the merge below will overwrite stale snapshot fields
+  // for events matched by id/slug and append anything that's only in
+  // Firestore (a freshly created approved event).
+  if (!skipAdmin) {
+    try {
+      const adminResult = await loadEventsFromFirestoreAdmin({ projectId: firebaseConfig.projectId })
+      if (adminResult.events.length > 0) {
+        liveSources.push({ label: 'firestore-admin', events: adminResult.events })
+        console.log(`Merged ${adminResult.events.length} live events from Firestore Admin SDK.`)
+      } else if (adminResult.error) {
+        console.warn(`Firestore Admin SDK skipped: ${adminResult.error}`)
+      }
+    } catch (err) {
+      console.warn(`Firestore Admin SDK threw: ${err.message}`)
+    }
+  }
 
   if (!skipRest) {
     try {

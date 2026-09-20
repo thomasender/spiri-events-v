@@ -417,6 +417,7 @@ describe('prerender() end-to-end', () => {
       exportPath,
       skipFirestore: true,
       skipRest: true,
+      skipAdmin: true,
     });
 
     for (const event of sampleEvents) {
@@ -437,6 +438,7 @@ describe('prerender() end-to-end', () => {
       exportPath,
       skipFirestore: true,
       skipRest: true,
+      skipAdmin: true,
     });
 
     const event = sampleEvents[0];
@@ -464,6 +466,7 @@ describe('prerender() end-to-end', () => {
       exportPath,
       skipFirestore: true,
       skipRest: true,
+      skipAdmin: true,
     });
 
     const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf8');
@@ -483,6 +486,7 @@ describe('prerender() end-to-end', () => {
       exportPath,
       skipFirestore: true,
       skipRest: true,
+      skipAdmin: true,
     });
 
     const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf8');
@@ -500,6 +504,7 @@ describe('prerender() end-to-end', () => {
       exportPath,
       skipFirestore: true,
       skipRest: true,
+      skipAdmin: true,
     });
 
     const sitemap = fs.readFileSync(path.join(distPath, 'sitemap.xml'), 'utf8');
@@ -519,6 +524,7 @@ describe('prerender() end-to-end', () => {
       exportPath,
       skipFirestore: true,
       skipRest: true,
+      skipAdmin: true,
     });
 
     const manifest = JSON.parse(
@@ -555,6 +561,7 @@ describe('prerender() end-to-end', () => {
       exportPath,
       skipFirestore: true,
       skipRest: true,
+      skipAdmin: true,
     });
 
     const html = fs.readFileSync(
@@ -587,6 +594,7 @@ describe('prerender() end-to-end', () => {
       exportPath,
       skipFirestore: true,
       skipRest: true,
+      skipAdmin: true,
     });
 
     expect(result.manifest.eventCount).toBe(1);
@@ -608,6 +616,7 @@ describe('prerender() end-to-end', () => {
       exportPath,
       skipFirestore: true,
       skipRest: true,
+      skipAdmin: true,
     });
 
     expect(result.manifest.eventCount).toBe(2);
@@ -620,7 +629,14 @@ describe('prerender() end-to-end', () => {
     writeJson(path.join(exportPath, 'events.json'), sampleEvents);
     const { prerender } = await importPrerender();
     await expect(
-      prerender({ rootDir: tmpRoot, distPath, exportPath, skipFirestore: true, skipRest: true })
+      prerender({
+        rootDir: tmpRoot,
+        distPath,
+        exportPath,
+        skipFirestore: true,
+        skipRest: true,
+        skipAdmin: true,
+      })
     ).rejects.toThrow(/dist folder not found/);
   });
 
@@ -632,6 +648,7 @@ describe('prerender() end-to-end', () => {
       exportPath,
       skipFirestore: true,
       skipRest: true,
+      skipAdmin: true,
     });
     expect(result.manifest.eventCount).toBe(0);
     expect(result.writtenFiles.filter((f) => f.path.startsWith('/event/'))).toHaveLength(0);
@@ -649,6 +666,7 @@ describe('prerender() end-to-end', () => {
       exportPath,
       skipFirestore: true,
       skipRest: true,
+      skipAdmin: true,
     });
     const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf8');
     expect(indexHtml).toContain('class="prerender-loading"');
@@ -668,6 +686,7 @@ describe('prerender() end-to-end', () => {
       exportPath,
       skipFirestore: true,
       skipRest: true,
+      skipAdmin: true,
     });
 
     const html = fs.readFileSync(
@@ -709,5 +728,168 @@ describe('prerender() end-to-end', () => {
     expect(html).toContain(
       '<meta property="og:image" content="https://storage.googleapis.com/bucket/yoga.jpg" />'
     );
+  });
+});
+
+describe('loadEventsFromFirestoreAdmin (UIWI8kWx)', () => {
+  let savedEnv: { json?: string; path?: string };
+
+  beforeEach(() => {
+    savedEnv = {
+      json: process.env.FIREBASE_SERVICE_ACCOUNT_JSON,
+      path: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+    };
+    delete process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+    delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  });
+
+  afterEach(() => {
+    if (savedEnv.json !== undefined) process.env.FIREBASE_SERVICE_ACCOUNT_JSON = savedEnv.json;
+    else delete process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+    if (savedEnv.path !== undefined) process.env.GOOGLE_APPLICATION_CREDENTIALS = savedEnv.path;
+    else delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  });
+
+  it('returns an error and no events when no credentials are available anywhere', async () => {
+    const { loadEventsFromFirestoreAdmin } = await importPrerender();
+    const result = await loadEventsFromFirestoreAdmin({
+      projectId: 'spirieventsvbg',
+      fallbackPath: '',
+    });
+    expect(result.events).toEqual([]);
+    expect(result.source).toBeNull();
+    expect(result.error).toMatch(/No service account credentials available/);
+  });
+
+  it('returns an error when FIREBASE_SERVICE_ACCOUNT_JSON is set but not valid JSON', async () => {
+    process.env.FIREBASE_SERVICE_ACCOUNT_JSON = 'not json at all';
+    const { loadEventsFromFirestoreAdmin } = await importPrerender();
+    const result = await loadEventsFromFirestoreAdmin({
+      projectId: 'spirieventsvbg',
+      fallbackPath: '',
+    });
+    expect(result.events).toEqual([]);
+    expect(result.source).toBeNull();
+    expect(result.error).toMatch(/Failed to parse FIREBASE_SERVICE_ACCOUNT_JSON/);
+  });
+
+  it('returns an error when GOOGLE_APPLICATION_CREDENTIALS points to a missing file', async () => {
+    process.env.GOOGLE_APPLICATION_CREDENTIALS = '/tmp/definitely-does-not-exist.json';
+    const { loadEventsFromFirestoreAdmin } = await importPrerender();
+    const result = await loadEventsFromFirestoreAdmin({
+      projectId: 'spirieventsvbg',
+      fallbackPath: '',
+    });
+    expect(result.events).toEqual([]);
+    expect(result.source).toBeNull();
+    expect(result.error).toMatch(/Failed to read GOOGLE_APPLICATION_CREDENTIALS/);
+  });
+});
+
+describe('resolveServiceAccountCredential (UIWI8kWx)', () => {
+  let savedEnv: { json?: string; path?: string };
+
+  beforeEach(() => {
+    savedEnv = {
+      json: process.env.FIREBASE_SERVICE_ACCOUNT_JSON,
+      path: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+    };
+    delete process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+    delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  });
+
+  afterEach(() => {
+    if (savedEnv.json !== undefined) process.env.FIREBASE_SERVICE_ACCOUNT_JSON = savedEnv.json;
+    else delete process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+    if (savedEnv.path !== undefined) process.env.GOOGLE_APPLICATION_CREDENTIALS = savedEnv.path;
+    else delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  });
+
+  it('prefers FIREBASE_SERVICE_ACCOUNT_JSON over GOOGLE_APPLICATION_CREDENTIALS', async () => {
+    const inlineJson = JSON.stringify({ type: 'service_account', project_id: 'inline' });
+    process.env.FIREBASE_SERVICE_ACCOUNT_JSON = inlineJson;
+    process.env.GOOGLE_APPLICATION_CREDENTIALS = '/tmp/definitely-does-not-exist.json';
+    const { resolveServiceAccountCredential } = await importPrerender();
+    const result = resolveServiceAccountCredential({ fallbackPath: '' });
+    expect(result.source).toBe('FIREBASE_SERVICE_ACCOUNT_JSON env var');
+    expect(result.credential).toEqual({ type: 'service_account', project_id: 'inline' });
+  });
+
+  it('reads from GOOGLE_APPLICATION_CREDENTIALS when no inline JSON is set', async () => {
+    const tmpFile = path.join(os.tmpdir(), `sa-cred-${Date.now()}-${Math.random()}.json`);
+    fs.writeFileSync(tmpFile, JSON.stringify({ type: 'service_account', project_id: 'from-file' }));
+    try {
+      process.env.GOOGLE_APPLICATION_CREDENTIALS = tmpFile;
+      const { resolveServiceAccountCredential } = await importPrerender();
+      const result = resolveServiceAccountCredential({ fallbackPath: '' });
+      expect(result.source).toBe(tmpFile);
+      expect(result.credential).toEqual({ type: 'service_account', project_id: 'from-file' });
+    } finally {
+      fs.unlinkSync(tmpFile);
+    }
+  });
+
+  it('falls back to scripts/service-account.json when nothing is configured', async () => {
+    const { resolveServiceAccountCredential } = await importPrerender();
+    const result = resolveServiceAccountCredential();
+    if (fs.existsSync('scripts/service-account.json')) {
+      expect(result.source).toBe('scripts/service-account.json');
+      expect(result.credential).toBeDefined();
+    } else {
+      expect(result.credential).toBeNull();
+      expect(result.error).toMatch(/No service account credentials available/);
+    }
+  });
+});
+
+describe('prerender() with skipAdmin (UIWI8kWx)', () => {
+  let tmpRoot: string;
+  let distPath: string;
+  let exportPath: string;
+  let savedEnv: { json?: string; path?: string };
+
+  beforeEach(async () => {
+    tmpRoot = await makeFixtureDir('prerender-admin-');
+    distPath = path.join(tmpRoot, 'dist');
+    exportPath = path.join(tmpRoot, 'data-export', 'firestore-export');
+    fs.mkdirSync(exportPath, { recursive: true });
+    await setupFakeDist(distPath);
+
+    savedEnv = {
+      json: process.env.FIREBASE_SERVICE_ACCOUNT_JSON,
+      path: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+    };
+    delete process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+    delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  });
+
+  afterEach(() => {
+    if (savedEnv.json !== undefined) process.env.FIREBASE_SERVICE_ACCOUNT_JSON = savedEnv.json;
+    else delete process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+    if (savedEnv.path !== undefined) process.env.GOOGLE_APPLICATION_CREDENTIALS = savedEnv.path;
+    else delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  });
+
+  it('does not log an Admin SDK warning when skipAdmin is true', async () => {
+    writeJson(path.join(exportPath, 'events.json'), sampleEvents);
+    const warnings: string[] = [];
+    const origWarn = console.warn;
+    console.warn = (msg: string) => warnings.push(msg);
+    try {
+      const { prerender } = await importPrerender();
+      const result = await prerender({
+        rootDir: tmpRoot,
+        distPath,
+        exportPath,
+        skipFirestore: true,
+        skipRest: true,
+        skipAdmin: true,
+      });
+      expect(result.manifest.eventCount).toBe(3);
+      expect(warnings.some((w) => w.includes('Admin SDK'))).toBe(false);
+    } finally {
+      console.warn = origWarn;
+    }
   });
 });

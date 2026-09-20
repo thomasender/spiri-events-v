@@ -219,27 +219,58 @@ any JavaScript.
 
 **Data source priority:**
 
-1. `data-export/firestore-export/events.json` (committed to the repo — preferred
-   because it's deterministic, offline, and works on every build environment).
-2. Firestore REST API (anonymous read; only works when the project's security
-   rules allow it).
-3. Live Firestore SDK (kept as a final fallback — requires network access from
-   the build environment and Firestore read permissions).
+1. `data-export/firestore-export/events.json` (committed to the repo — the
+   deterministic offline base).
+2. Live Firestore Admin SDK — bypasses security rules using a service
+   account, so it can list all events including the freshly created ones
+   that aren't in the snapshot yet. Only runs when a service account is
+   available (see "Netlify setup" below).
+3. Firestore REST API (anonymous read — usually blocked on production).
+4. Live Firestore client SDK (anonymous — usually blocked on production).
 
-The snapshot is the deterministic offline base, but the build also tries the
-live sources (REST first, then SDK) and **merges** them on top: events matched
+When more than one source succeeds, the build **merges** them: events matched
 by `id`/`slug` get their live field values (so a freshly changed `imageUrl`
-wins immediately), and events that exist only in Firestore are appended. This
-is what makes a newly-created event get the right OG image in its share
-preview without waiting for the next `prerender:refresh` commit — and it
-stays a no-op when the live reads fail, so Netlify builds without network
-access keep working off the snapshot alone.
+wins immediately), and events that exist only in Firestore are appended.
 
-If none of the three succeed, the prerender emits a manifest with `eventCount: 0`
-and logs a clear warning. The build still succeeds; the static homepage
-keeps working because `index.html` ships baked-in OG/Twitter tags.
+### Auto-trigger on event changes (UIWI8kWx)
 
-**Refreshing the prerender data** after production events change:
+The `onEventWriteTriggerNetlifyBuild` Cloud Function fires on every Firestore
+write to `events/{eventId}`. It skips drafts and pending submissions (they
+don't appear in OG previews anyway) and POSTs a Netlify build hook for every
+write where the event was, is, or becomes `status === 'approved'`. Netlify
+then runs `npm run build`, which includes the Admin SDK live read described
+above, so a freshly approved event gets its own `/event/<slug>/index.html`
+within one build cycle (≈3–5 min) without anyone manually refreshing the
+snapshot.
+
+Rapid edits queue builds on Netlify — fine for current volume. A debounced
+Cloud Tasks front-end is a future optimisation.
+
+### Netlify setup
+
+For the auto-trigger + live read to work on production, two Netlify env vars
+must be set:
+
+| Variable                        | Source                                                                                                                                                                                            |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NETLIFY_BUILD_HOOK`            | URL of a Netlify build hook created in the site's dashboard (`Site settings → Build & deploy → Build hooks → Add build hook`). The Cloud Function reads it as a Firebase Functions secret.        |
+| `FIREBASE_SERVICE_ACCOUNT_JSON` | Inline JSON of `scripts/service-account.json`. The prerender reads it during the build, falls back to `GOOGLE_APPLICATION_CREDENTIALS` (file path) or `scripts/service-account.json` (local dev). |
+
+To set the secret:
+
+```bash
+firebase functions:secrets:set NETLIFY_BUILD_HOOK   # paste the build hook URL
+```
+
+To set the build env var: Netlify dashboard → Site settings → Environment
+variables → Add variable → key `FIREBASE_SERVICE_ACCOUNT_JSON`, value = the
+entire contents of `scripts/service-account.json`. (Use "Same value for all
+branches" — there is one production build.)
+
+### Manual refresh (fallback)
+
+If the auto-trigger or live read is broken, the OG previews can still be
+refreshed manually after production events change:
 
 ```bash
 firebase emulators:start --import ./data-export   # in one terminal
@@ -248,8 +279,8 @@ git add data-export/firestore-export/events.json
 git commit -m "chore: refresh prerender event snapshot"
 ```
 
-The refresh script reads from the emulator (preferred) or production Firestore
-(via `scripts/service-account.json`).
+The refresh script reads from the emulator (preferred) or production
+Firestore (via `scripts/service-account.json`).
 
 ## Communicating with Peter
 
