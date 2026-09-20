@@ -1,6 +1,7 @@
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { defineSecret } from 'firebase-functions/params';
 import { logger } from 'firebase-functions';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 
 // URL of the Netlify build hook created in Netlify's dashboard
 // (Site settings → Build & deploy → Build hooks → Add build hook).
@@ -9,6 +10,13 @@ import { logger } from 'firebase-functions';
 const NETLIFY_BUILD_HOOK = defineSecret('NETLIFY_BUILD_HOOK');
 
 const REGION = 'europe-west3';
+const DEBOUNCE_WINDOW_MS = 5 * 60 * 1000;
+
+// Single doc whose `buildAt` timestamp records when this function last
+// successfully POSTed the Netlify build hook. Read on every event write
+// to enforce a debounce window so a burst of rapid edits (one publish +
+// several image tweaks) only fires one build, not N.
+const LAST_BUILD_DOC_PATH = 'app_settings/last_netlify_build';
 
 // Fires whenever an event doc is created, updated or deleted. Triggers a
 // Netlify build so the prerendered /event/<slug>/index.html (and the index
@@ -24,9 +32,13 @@ const REGION = 'europe-west3';
 //   - approved → trashed or deleted (event disappears from the calendar)
 //   - any → approved for the first time
 //
-// Rapid edits to the same event will queue multiple builds on Netlify; that
-// is acceptable for the current volume and keeps the function simple.
-// A future optimisation is a Cloud Tasks debounce in front of this trigger.
+// Within a DEBOUNCE_WINDOW_MS window, only the first event write triggers a
+// build. Subsequent writes inside that window are silently coalesced into
+// the same build. This is safe because one Netlify build regenerates ALL
+// event pages from the live Firestore snapshot, so the user-visible result
+// after the build finishes is the same whether 1 or 50 events changed in
+// the meantime — and it keeps the Netlify build queue from stacking up
+// during bulk imports / onboarding bursts.
 export const onEventWriteTriggerNetlifyBuild = onDocumentWritten(
   {
     region: REGION,
@@ -56,10 +68,29 @@ export const onEventWriteTriggerNetlifyBuild = onDocumentWritten(
       return;
     }
 
+    const db = getFirestore();
+    const lastBuildDoc = db.doc(LAST_BUILD_DOC_PATH);
+    const lastSnap = await lastBuildDoc.get();
+    const lastBuildAt = lastSnap.exists ? (lastSnap.get('buildAt')?.toMillis?.() ?? 0) : 0;
+    const elapsedMs = Date.now() - lastBuildAt;
+    if (elapsedMs < DEBOUNCE_WINDOW_MS) {
+      const remainingSec = Math.max(0, Math.round((DEBOUNCE_WINDOW_MS - elapsedMs) / 1000));
+      logger.debug('Skipping Netlify build: within debounce window', {
+        eventId,
+        lastBuildAt,
+        elapsedMs,
+        remainingSec,
+      });
+      return;
+    }
+
     try {
       const response = await fetch(hookUrl, { method: 'POST' });
       const status = response.status;
       if (status >= 200 && status < 300) {
+        // Stamp the timestamp only on success so a failed POST doesn't burn
+        // the debounce window — the next event change retries immediately.
+        await lastBuildDoc.set({ buildAt: FieldValue.serverTimestamp() }, { merge: true });
         logger.info('Triggered Netlify build for event change', {
           eventId,
           beforeStatus,

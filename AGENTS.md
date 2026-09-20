@@ -243,8 +243,24 @@ above, so a freshly approved event gets its own `/event/<slug>/index.html`
 within one build cycle (≈3–5 min) without anyone manually refreshing the
 snapshot.
 
-Rapid edits queue builds on Netlify — fine for current volume. A debounced
-Cloud Tasks front-end is a future optimisation.
+A **5-minute debounce window** is enforced via a `buildAt` timestamp on
+`app_settings/last_netlify_build`: only the first event write inside the
+window triggers a build, subsequent writes are coalesced into the same
+build. This is safe because one Netlify build regenerates ALL event pages
+from the live Firestore snapshot — so the result after the build is the
+same whether 1 or 50 events changed in the meantime — and it prevents the
+Netlify build queue from stacking up during bulk-import / onboarding
+bursts. Worst-case latency for a single edit is 5 min (when another build
+just fired). The timestamp is only stamped on a 2xx POST, so a failed build
+doesn't burn the window — the next event change retries immediately.
+
+A **6-hour safety-net scheduled rebuild** (`scheduledNetlifyRebuild`,
+Cloud Scheduler) runs as a backstop in case the event-driven trigger is
+ever lost — Cloud Function cold-start crash, secret-lookup transient
+failure, debounce edge case where a POST never reached Netlify. The build
+is idempotent (always reads live Firestore), so the only cost of a
+no-change run is a few minutes of Netlify build time. Worst-case staleness
+for any event page is bounded by this interval.
 
 ### Netlify setup
 
