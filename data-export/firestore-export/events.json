@@ -1,5 +1,150 @@
 [
   {
+    "id": "3GgosPhMXnbGsCxO4jdY",
+    "title": {
+      "stringValue": "neuer event von temp user"
+    },
+    "date": {
+      "stringValue": "2026-09-17"
+    },
+    "time": {
+      "stringValue": "03:21"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "place": {
+      "stringValue": ""
+    },
+    "contribution": {
+      "stringValue": "free"
+    },
+    "fee": {
+      "nullValue": null
+    },
+    "priceCurrency": {
+      "nullValue": null
+    },
+    "feeNote": {
+      "stringValue": ""
+    },
+    "description": {
+      "stringValue": "<p>asdf</p>"
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "customDates": [],
+    "category": {
+      "stringValue": "Soundhealing"
+    },
+    "bezirk": {
+      "stringValue": "Feldkirch"
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "temp"
+          },
+          "lastName": {
+            "stringValue": "user"
+          },
+          "email": {
+            "stringValue": "yixidil848@findize.com"
+          },
+          "photoURL": {
+            "nullValue": null
+          }
+        }
+      }
+    },
+    "kontakt": {
+      "stringValue": "yixidil848@findize.com"
+    },
+    "imageUrl": {
+      "nullValue": null
+    },
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "slug": {
+      "stringValue": "neuer-event-von-temp-user-20260917"
+    },
+    "createdBy": {
+      "stringValue": "uQwsLt50RXYLdj5aLRey20mBTLo1"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789672550"
+          },
+          "_nanoseconds": {
+            "integerValue": "628000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789672550"
+          },
+          "_nanoseconds": {
+            "integerValue": "628000000"
+          }
+        }
+      }
+    },
+    "lastNotifiedStatus": {
+      "stringValue": "trashed"
+    },
+    "lastNotifiedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789712727"
+          },
+          "_nanoseconds": {
+            "integerValue": "118000000"
+          }
+        }
+      }
+    },
+    "trashedAt": {
+      "nullValue": null
+    },
+    "status": {
+      "stringValue": "draft"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789739998"
+          },
+          "_nanoseconds": {
+            "integerValue": "14000000"
+          }
+        }
+      }
+    }
+  },
+  {
     "id": "45UDf0cZBdii8QVS5vMo",
     "link": {
       "stringValue": ""
@@ -548,6 +693,160 @@
     }
   },
   {
+    "id": "71UEJGatySmVoLfq4rzJ",
+    "title": {
+      "stringValue": "asdf"
+    },
+    "date": {
+      "stringValue": "2026-09-17"
+    },
+    "time": {
+      "stringValue": "23:22"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "place": {
+      "stringValue": ""
+    },
+    "contribution": {
+      "stringValue": "free"
+    },
+    "fee": {
+      "nullValue": null
+    },
+    "priceCurrency": {
+      "nullValue": null
+    },
+    "feeNote": {
+      "stringValue": ""
+    },
+    "description": {
+      "stringValue": "<p>asdf</p>"
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "customDates": [],
+    "category": {
+      "stringValue": "Yoga"
+    },
+    "bezirk": {
+      "stringValue": ""
+    },
+    "isOnline": {
+      "booleanValue": "true"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Peter"
+          },
+          "lastName": {
+            "stringValue": "Mathis"
+          },
+          "email": {
+            "stringValue": "mathis.aut@gmail.com"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FIccG8JVa2rZxKhnuleOKvpJaV7x1%2Favatar%2F1786124601568_Gemini_Generated_Image_q7ivr8q7ivr8q7iv.png?alt=media&token=ad13856e-599c-4f01-8c08-e5493bc669f0"
+          }
+        }
+      }
+    },
+    "kontakt": {
+      "stringValue": "mathis.aut@gmail.com"
+    },
+    "imageUrl": {
+      "nullValue": null
+    },
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "slug": {
+      "stringValue": "asdf-20260917"
+    },
+    "createdBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789654272"
+          },
+          "_nanoseconds": {
+            "integerValue": "981000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789654272"
+          },
+          "_nanoseconds": {
+            "integerValue": "981000000"
+          }
+        }
+      }
+    },
+    "trashedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789657372"
+          },
+          "_nanoseconds": {
+            "integerValue": "636000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "trashed"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789657372"
+          },
+          "_nanoseconds": {
+            "integerValue": "636000000"
+          }
+        }
+      }
+    },
+    "lastNotifiedStatus": {
+      "stringValue": "trashed"
+    },
+    "lastNotifiedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789657374"
+          },
+          "_nanoseconds": {
+            "integerValue": "580000000"
+          }
+        }
+      }
+    }
+  },
+  {
     "id": "78DjCeYN9NimmJQLujjK",
     "title": {
       "stringValue": "Bliss of Kundalini Retreat 2026"
@@ -896,6 +1195,163 @@
     }
   },
   {
+    "id": "ALRxcKcGx9DUtXKm1Shc",
+    "title": {
+      "stringValue": "event von user eingereicht"
+    },
+    "date": {
+      "stringValue": "2026-09-18"
+    },
+    "time": {
+      "stringValue": "23:11"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "place": {
+      "stringValue": ""
+    },
+    "contribution": {
+      "stringValue": "free"
+    },
+    "fee": {
+      "nullValue": null
+    },
+    "priceCurrency": {
+      "nullValue": null
+    },
+    "feeNote": {
+      "stringValue": ""
+    },
+    "description": {
+      "stringValue": "<p>asdf</p>"
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "customDates": [],
+    "category": {
+      "stringValue": "Singen"
+    },
+    "bezirk": {
+      "stringValue": "Dornbirn"
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Peter"
+          },
+          "lastName": {
+            "stringValue": "Mathis"
+          },
+          "email": {
+            "stringValue": "info@petermathis.at"
+          },
+          "photoURL": {
+            "nullValue": null
+          }
+        }
+      }
+    },
+    "kontakt": {
+      "stringValue": "info@petermathis.at"
+    },
+    "imageUrl": {
+      "nullValue": null
+    },
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "slug": {
+      "stringValue": "event-von-user-eingereicht-20260918"
+    },
+    "createdBy": {
+      "stringValue": "ckSw2ZuVOFYg9YMfm44SRl9qDBQ2"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789654357"
+          },
+          "_nanoseconds": {
+            "integerValue": "323000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789654357"
+          },
+          "_nanoseconds": {
+            "integerValue": "323000000"
+          }
+        }
+      }
+    },
+    "approvedBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789654862"
+          },
+          "_nanoseconds": {
+            "integerValue": "661000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "approved"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789654862"
+          },
+          "_nanoseconds": {
+            "integerValue": "661000000"
+          }
+        }
+      }
+    },
+    "lastNotifiedStatus": {
+      "stringValue": "approved"
+    },
+    "lastNotifiedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789654865"
+          },
+          "_nanoseconds": {
+            "integerValue": "456000000"
+          }
+        }
+      }
+    }
+  },
+  {
     "id": "CXLKWySv8fGUVl7MroDq",
     "endTime": {
       "stringValue": ""
@@ -994,15 +1450,15 @@
     }
   },
   {
-    "id": "D6TbKRBLQ3TJMFGNFhx1",
+    "id": "IIZtGRZzZO1OmRILKjQu",
     "title": {
-      "stringValue": "asdf"
+      "stringValue": "temp user event"
     },
     "date": {
-      "stringValue": "2026-09-16"
+      "stringValue": "2026-09-19"
     },
     "time": {
-      "stringValue": "23:31"
+      "stringValue": "21:00"
     },
     "endTime": {
       "stringValue": ""
@@ -1014,16 +1470,16 @@
       "stringValue": ""
     },
     "contribution": {
-      "stringValue": "fee"
+      "stringValue": "free"
     },
     "fee": {
-      "integerValue": "14"
+      "nullValue": null
     },
     "priceCurrency": {
-      "stringValue": "EUR"
+      "nullValue": null
     },
     "feeNote": {
-      "stringValue": "10er Blöckle"
+      "stringValue": ""
     },
     "description": {
       "stringValue": "<p>asdf</p>"
@@ -1039,10 +1495,10 @@
     },
     "customDates": [],
     "category": {
-      "stringValue": "Meditation"
+      "stringValue": "Singen"
     },
     "bezirk": {
-      "stringValue": "Dornbirn"
+      "stringValue": "Feldkirch"
     },
     "isOnline": {
       "booleanValue": "false"
@@ -1051,46 +1507,43 @@
       "mapValue": {
         "fields": {
           "firstName": {
-            "stringValue": "Peter"
+            "stringValue": "temp"
           },
           "lastName": {
-            "stringValue": "Mathis"
+            "stringValue": "user again"
           },
           "email": {
-            "stringValue": "mathis.aut@gmail.com"
+            "stringValue": "hn56ofw6n2@yzcalo.com"
           },
           "photoURL": {
-            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FIccG8JVa2rZxKhnuleOKvpJaV7x1%2Favatar%2F1786124601568_Gemini_Generated_Image_q7ivr8q7ivr8q7iv.png?alt=media&token=ad13856e-599c-4f01-8c08-e5493bc669f0"
+            "nullValue": null
           }
         }
       }
     },
     "kontakt": {
-      "stringValue": "mathis.aut@gmail.com"
+      "stringValue": "hn56ofw6n2@yzcalo.com"
     },
     "imageUrl": {
       "nullValue": null
-    },
-    "status": {
-      "stringValue": "pending"
     },
     "rightsConfirmed": {
       "booleanValue": "true"
     },
     "slug": {
-      "stringValue": "asdf-20260916"
+      "stringValue": "temp-user-event-20260919"
     },
     "createdBy": {
-      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+      "stringValue": "uQwsLt50RXYLdj5aLRey20mBTLo1"
     },
     "createdAt": {
       "mapValue": {
         "fields": {
           "_seconds": {
-            "integerValue": "1789461948"
+            "integerValue": "1789739765"
           },
           "_nanoseconds": {
-            "integerValue": "172000000"
+            "integerValue": "766000000"
           }
         }
       }
@@ -1099,10 +1552,58 @@
       "mapValue": {
         "fields": {
           "_seconds": {
-            "integerValue": "1789461948"
+            "integerValue": "1789739765"
           },
           "_nanoseconds": {
-            "integerValue": "172000000"
+            "integerValue": "766000000"
+          }
+        }
+      }
+    },
+    "approvedBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "trashedAt": {
+      "nullValue": null
+    },
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789756531"
+          },
+          "_nanoseconds": {
+            "integerValue": "818000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "approved"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789756531"
+          },
+          "_nanoseconds": {
+            "integerValue": "818000000"
+          }
+        }
+      }
+    },
+    "lastNotifiedStatus": {
+      "stringValue": "approved"
+    },
+    "lastNotifiedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789756532"
+          },
+          "_nanoseconds": {
+            "integerValue": "254000000"
           }
         }
       }
@@ -1611,118 +2112,6 @@
     }
   },
   {
-    "id": "KoyJss6M921ISAEHzdol",
-    "link": {
-      "stringValue": ""
-    },
-    "date": {
-      "stringValue": "2026-08-30"
-    },
-    "endTime": {
-      "stringValue": ""
-    },
-    "category": {
-      "stringValue": "Yoga"
-    },
-    "bezirk": {
-      "stringValue": "Dornbirn"
-    },
-    "createdBy": {
-      "stringValue": "RrLP8vZFUtTxi9HKWZIYqnRHgxY2"
-    },
-    "description": {
-      "stringValue": "<p>Test Event</p>"
-    },
-    "organizer": {
-      "mapValue": {
-        "fields": {
-          "firstName": {
-            "stringValue": "Thomas"
-          },
-          "lastName": {
-            "stringValue": "Ender"
-          },
-          "email": {
-            "stringValue": "thomas@blissofkundalini.yoga"
-          },
-          "photoURL": {
-            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FRrLP8vZFUtTxi9HKWZIYqnRHgxY2%2Favatar%2F1785759707182_IMG_7920.jpeg?alt=media&token=560ffcf0-4b10-452d-9a66-36877030a5bf"
-          }
-        }
-      }
-    },
-    "time": {
-      "stringValue": "20:57"
-    },
-    "slug": {
-      "stringValue": "yoga-testevent-20260830"
-    },
-    "imageUrl": {
-      "nullValue": null
-    },
-    "customDates": [],
-    "endDate": {
-      "stringValue": ""
-    },
-    "kontakt": {
-      "stringValue": "thomas@blissofkundalini.yoga"
-    },
-    "recurrenceEndDate": {
-      "stringValue": ""
-    },
-    "recurrence": {
-      "stringValue": "none"
-    },
-    "title": {
-      "stringValue": "Yoga testevent"
-    },
-    "place": {
-      "stringValue": ""
-    },
-    "createdAt": {
-      "mapValue": {
-        "fields": {
-          "_seconds": {
-            "integerValue": "1788019057"
-          },
-          "_nanoseconds": {
-            "integerValue": "783000000"
-          }
-        }
-      }
-    },
-    "isOnline": {
-      "booleanValue": "false"
-    },
-    "status": {
-      "stringValue": "draft"
-    },
-    "feeNote": {
-      "stringValue": "10er - Block"
-    },
-    "priceCurrency": {
-      "stringValue": "EUR"
-    },
-    "contribution": {
-      "stringValue": "fee"
-    },
-    "fee": {
-      "integerValue": "250"
-    },
-    "updatedAt": {
-      "mapValue": {
-        "fields": {
-          "_seconds": {
-            "integerValue": "1789460314"
-          },
-          "_nanoseconds": {
-            "integerValue": "560000000"
-          }
-        }
-      }
-    }
-  },
-  {
     "id": "PZmYRyO1HYiWgMXRaV7I",
     "title": {
       "stringValue": "Cosmic Klangreise"
@@ -1834,6 +2223,160 @@
           },
           "_nanoseconds": {
             "integerValue": "34000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "Q0yaFxrI1jHzZWMQobkI",
+    "title": {
+      "stringValue": "ttest"
+    },
+    "date": {
+      "stringValue": "2026-09-19"
+    },
+    "time": {
+      "stringValue": "12:43"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "place": {
+      "stringValue": ""
+    },
+    "contribution": {
+      "stringValue": "free"
+    },
+    "fee": {
+      "nullValue": null
+    },
+    "priceCurrency": {
+      "nullValue": null
+    },
+    "feeNote": {
+      "stringValue": ""
+    },
+    "description": {
+      "stringValue": "<p>test</p>"
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "customDates": [],
+    "category": {
+      "stringValue": "Yoga"
+    },
+    "bezirk": {
+      "stringValue": "Dornbirn"
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Thomas"
+          },
+          "lastName": {
+            "stringValue": ""
+          },
+          "email": {
+            "stringValue": "thomas@blissofkundalini.yoga"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FRrLP8vZFUtTxi9HKWZIYqnRHgxY2%2Favatar%2F1785759707182_IMG_7920.jpeg?alt=media&token=560ffcf0-4b10-452d-9a66-36877030a5bf"
+          }
+        }
+      }
+    },
+    "kontakt": {
+      "stringValue": "thomas@blissofkundalini.yoga"
+    },
+    "imageUrl": {
+      "nullValue": null
+    },
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "slug": {
+      "stringValue": "ttest-20260919"
+    },
+    "createdBy": {
+      "stringValue": "RrLP8vZFUtTxi9HKWZIYqnRHgxY2"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789721047"
+          },
+          "_nanoseconds": {
+            "integerValue": "59000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789721047"
+          },
+          "_nanoseconds": {
+            "integerValue": "59000000"
+          }
+        }
+      }
+    },
+    "lastNotifiedStatus": {
+      "stringValue": "pending"
+    },
+    "lastNotifiedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789721051"
+          },
+          "_nanoseconds": {
+            "integerValue": "227000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "trashed"
+    },
+    "trashedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789721102"
+          },
+          "_nanoseconds": {
+            "integerValue": "587000000"
+          }
+        }
+      }
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789721102"
+          },
+          "_nanoseconds": {
+            "integerValue": "587000000"
           }
         }
       }
@@ -2745,6 +3288,483 @@
     }
   },
   {
+    "id": "WkIKkR8Iy8EVPZmBXeZO",
+    "title": {
+      "stringValue": "Testevent Notifications"
+    },
+    "date": {
+      "stringValue": "2026-09-18"
+    },
+    "time": {
+      "stringValue": "16:41"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "place": {
+      "stringValue": ""
+    },
+    "contribution": {
+      "stringValue": "free"
+    },
+    "fee": {
+      "nullValue": null
+    },
+    "priceCurrency": {
+      "nullValue": null
+    },
+    "feeNote": {
+      "stringValue": ""
+    },
+    "description": {
+      "stringValue": "<p>Mails test</p>"
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "customDates": [],
+    "category": {
+      "stringValue": "Yoga"
+    },
+    "bezirk": {
+      "stringValue": "Bregenz"
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Thomas"
+          },
+          "lastName": {
+            "stringValue": ""
+          },
+          "email": {
+            "stringValue": "thomas@blissofkundalini.yoga"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FRrLP8vZFUtTxi9HKWZIYqnRHgxY2%2Favatar%2F1785759707182_IMG_7920.jpeg?alt=media&token=560ffcf0-4b10-452d-9a66-36877030a5bf"
+          }
+        }
+      }
+    },
+    "kontakt": {
+      "stringValue": "thomas@blissofkundalini.yoga"
+    },
+    "imageUrl": {
+      "nullValue": null
+    },
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "slug": {
+      "stringValue": "testevent-notifications-20260918"
+    },
+    "createdBy": {
+      "stringValue": "RrLP8vZFUtTxi9HKWZIYqnRHgxY2"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789655934"
+          },
+          "_nanoseconds": {
+            "integerValue": "345000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789655934"
+          },
+          "_nanoseconds": {
+            "integerValue": "345000000"
+          }
+        }
+      }
+    },
+    "approvedBy": {
+      "stringValue": "RrLP8vZFUtTxi9HKWZIYqnRHgxY2"
+    },
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789656113"
+          },
+          "_nanoseconds": {
+            "integerValue": "218000000"
+          }
+        }
+      }
+    },
+    "trashedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789656423"
+          },
+          "_nanoseconds": {
+            "integerValue": "629000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "trashed"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789656423"
+          },
+          "_nanoseconds": {
+            "integerValue": "629000000"
+          }
+        }
+      }
+    },
+    "lastNotifiedStatus": {
+      "stringValue": "trashed"
+    },
+    "lastNotifiedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789656424"
+          },
+          "_nanoseconds": {
+            "integerValue": "746000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "YTnii6kI7y8Txy8fjeqW",
+    "title": {
+      "stringValue": "New Event"
+    },
+    "date": {
+      "stringValue": "2026-09-19"
+    },
+    "time": {
+      "stringValue": "10:24"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "place": {
+      "stringValue": ""
+    },
+    "contribution": {
+      "stringValue": "free"
+    },
+    "fee": {
+      "nullValue": null
+    },
+    "priceCurrency": {
+      "nullValue": null
+    },
+    "feeNote": {
+      "stringValue": ""
+    },
+    "description": {
+      "stringValue": "<p>New Event</p>"
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "customDates": [],
+    "category": {
+      "stringValue": "Meditation"
+    },
+    "bezirk": {
+      "stringValue": "Feldkirch"
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Thomas"
+          },
+          "lastName": {
+            "stringValue": ""
+          },
+          "email": {
+            "stringValue": "thomas@blissofkundalini.yoga"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FRrLP8vZFUtTxi9HKWZIYqnRHgxY2%2Favatar%2F1785759707182_IMG_7920.jpeg?alt=media&token=560ffcf0-4b10-452d-9a66-36877030a5bf"
+          }
+        }
+      }
+    },
+    "kontakt": {
+      "stringValue": "thomas@blissofkundalini.yoga"
+    },
+    "imageUrl": {
+      "nullValue": null
+    },
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "slug": {
+      "stringValue": "new-event-20260919"
+    },
+    "createdBy": {
+      "stringValue": "RrLP8vZFUtTxi9HKWZIYqnRHgxY2"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789712682"
+          },
+          "_nanoseconds": {
+            "integerValue": "41000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789712682"
+          },
+          "_nanoseconds": {
+            "integerValue": "41000000"
+          }
+        }
+      }
+    },
+    "trashedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789712723"
+          },
+          "_nanoseconds": {
+            "integerValue": "304000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "trashed"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789712723"
+          },
+          "_nanoseconds": {
+            "integerValue": "304000000"
+          }
+        }
+      }
+    },
+    "lastNotifiedStatus": {
+      "stringValue": "trashed"
+    },
+    "lastNotifiedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789712724"
+          },
+          "_nanoseconds": {
+            "integerValue": "170000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "ZHvgvGtbBQKpPBxlYNDC",
+    "title": {
+      "stringValue": "Testing"
+    },
+    "date": {
+      "stringValue": "2026-09-20"
+    },
+    "time": {
+      "stringValue": "09:16"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "place": {
+      "stringValue": ""
+    },
+    "contribution": {
+      "stringValue": "free"
+    },
+    "fee": {
+      "nullValue": null
+    },
+    "priceCurrency": {
+      "nullValue": null
+    },
+    "feeNote": {
+      "stringValue": ""
+    },
+    "description": {
+      "stringValue": "<p>Hallo</p>"
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "customDates": [],
+    "category": {
+      "stringValue": "Breathwork"
+    },
+    "bezirk": {
+      "stringValue": "Dornbirn"
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Thomas"
+          },
+          "lastName": {
+            "stringValue": ""
+          },
+          "email": {
+            "stringValue": "thomas@blissofkundalini.yoga"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FRrLP8vZFUtTxi9HKWZIYqnRHgxY2%2Favatar%2F1785759707182_IMG_7920.jpeg?alt=media&token=560ffcf0-4b10-452d-9a66-36877030a5bf"
+          }
+        }
+      }
+    },
+    "kontakt": {
+      "stringValue": "thomas@blissofkundalini.yoga"
+    },
+    "imageUrl": {
+      "nullValue": null
+    },
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "slug": {
+      "stringValue": "testing-20260920"
+    },
+    "createdBy": {
+      "stringValue": "RrLP8vZFUtTxi9HKWZIYqnRHgxY2"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789712112"
+          },
+          "_nanoseconds": {
+            "integerValue": "517000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789712112"
+          },
+          "_nanoseconds": {
+            "integerValue": "517000000"
+          }
+        }
+      }
+    },
+    "trashedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789712646"
+          },
+          "_nanoseconds": {
+            "integerValue": "717000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "trashed"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789712646"
+          },
+          "_nanoseconds": {
+            "integerValue": "717000000"
+          }
+        }
+      }
+    },
+    "lastNotifiedStatus": {
+      "stringValue": "trashed"
+    },
+    "lastNotifiedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789712646"
+          },
+          "_nanoseconds": {
+            "integerValue": "966000000"
+          }
+        }
+      }
+    }
+  },
+  {
     "id": "ZMzBnOWMbNlrNW3rU0Bm",
     "createdBy": {
       "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
@@ -3164,145 +4184,6 @@
     }
   },
   {
-    "id": "boh7ggwnVpTiSSLK8cHc",
-    "title": {
-      "stringValue": "asdf"
-    },
-    "date": {
-      "stringValue": "2026-09-02"
-    },
-    "time": {
-      "stringValue": "03:24"
-    },
-    "endTime": {
-      "stringValue": ""
-    },
-    "endDate": {
-      "stringValue": ""
-    },
-    "place": {
-      "stringValue": ""
-    },
-    "contribution": {
-      "stringValue": "free"
-    },
-    "fee": {
-      "nullValue": null
-    },
-    "priceCurrency": {
-      "nullValue": null
-    },
-    "feeNote": {
-      "stringValue": ""
-    },
-    "description": {
-      "stringValue": "<p>asdf</p>"
-    },
-    "link": {
-      "stringValue": ""
-    },
-    "recurrence": {
-      "stringValue": "none"
-    },
-    "recurrenceEndDate": {
-      "stringValue": ""
-    },
-    "customDates": [],
-    "category": {
-      "stringValue": "Meditation"
-    },
-    "bezirk": {
-      "stringValue": "Bludenz"
-    },
-    "isOnline": {
-      "booleanValue": "false"
-    },
-    "organizer": {
-      "mapValue": {
-        "fields": {
-          "firstName": {
-            "stringValue": "Yoga"
-          },
-          "lastName": {
-            "stringValue": "Studio"
-          },
-          "email": {
-            "stringValue": "mathis.aut@gmail.com"
-          },
-          "photoURL": {
-            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FIccG8JVa2rZxKhnuleOKvpJaV7x1%2Favatar%2F1786124601568_Gemini_Generated_Image_q7ivr8q7ivr8q7iv.png?alt=media&token=ad13856e-599c-4f01-8c08-e5493bc669f0"
-          }
-        }
-      }
-    },
-    "kontakt": {
-      "stringValue": "mathis.aut@gmail.com"
-    },
-    "imageUrl": {
-      "nullValue": null
-    },
-    "rightsConfirmed": {
-      "booleanValue": "true"
-    },
-    "slug": {
-      "stringValue": "asdf-20260902"
-    },
-    "createdBy": {
-      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
-    },
-    "createdAt": {
-      "mapValue": {
-        "fields": {
-          "_seconds": {
-            "integerValue": "1789480369"
-          },
-          "_nanoseconds": {
-            "integerValue": "69000000"
-          }
-        }
-      }
-    },
-    "rightsConfirmedAt": {
-      "mapValue": {
-        "fields": {
-          "_seconds": {
-            "integerValue": "1789480369"
-          },
-          "_nanoseconds": {
-            "integerValue": "69000000"
-          }
-        }
-      }
-    },
-    "trashedAt": {
-      "mapValue": {
-        "fields": {
-          "_seconds": {
-            "integerValue": "1789480394"
-          },
-          "_nanoseconds": {
-            "integerValue": "109000000"
-          }
-        }
-      }
-    },
-    "status": {
-      "stringValue": "trashed"
-    },
-    "updatedAt": {
-      "mapValue": {
-        "fields": {
-          "_seconds": {
-            "integerValue": "1789480394"
-          },
-          "_nanoseconds": {
-            "integerValue": "109000000"
-          }
-        }
-      }
-    }
-  },
-  {
     "id": "dLMhrxfNwitpn3PTc1Pi",
     "title": {
       "stringValue": "Gong Puja - Gong Nacht der Balance – Herbst-Tag-und-Nacht-Gleiche"
@@ -3420,6 +4301,163 @@
     }
   },
   {
+    "id": "gAJUveVAyQMJJfhlBLaT",
+    "title": {
+      "stringValue": "test notification event"
+    },
+    "date": {
+      "stringValue": "2026-09-18"
+    },
+    "time": {
+      "stringValue": "20:11"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "place": {
+      "stringValue": ""
+    },
+    "contribution": {
+      "stringValue": "free"
+    },
+    "fee": {
+      "nullValue": null
+    },
+    "priceCurrency": {
+      "nullValue": null
+    },
+    "feeNote": {
+      "stringValue": ""
+    },
+    "description": {
+      "stringValue": "<p>asdf</p>"
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "customDates": [],
+    "category": {
+      "stringValue": "Yoga"
+    },
+    "bezirk": {
+      "stringValue": "Dornbirn"
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "temp"
+          },
+          "lastName": {
+            "stringValue": "user"
+          },
+          "email": {
+            "stringValue": "yixidil848@findize.com"
+          },
+          "photoURL": {
+            "nullValue": null
+          }
+        }
+      }
+    },
+    "kontakt": {
+      "stringValue": "yixidil848@findize.com"
+    },
+    "imageUrl": {
+      "nullValue": null
+    },
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "slug": {
+      "stringValue": "test-notification-event-20260918"
+    },
+    "createdBy": {
+      "stringValue": "uQwsLt50RXYLdj5aLRey20mBTLo1"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789739404"
+          },
+          "_nanoseconds": {
+            "integerValue": "793000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789739404"
+          },
+          "_nanoseconds": {
+            "integerValue": "793000000"
+          }
+        }
+      }
+    },
+    "approvedBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789756480"
+          },
+          "_nanoseconds": {
+            "integerValue": "41000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "approved"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789756480"
+          },
+          "_nanoseconds": {
+            "integerValue": "41000000"
+          }
+        }
+      }
+    },
+    "lastNotifiedStatus": {
+      "stringValue": "approved"
+    },
+    "lastNotifiedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789756482"
+          },
+          "_nanoseconds": {
+            "integerValue": "758000000"
+          }
+        }
+      }
+    }
+  },
+  {
     "id": "gJudENx1ceE9YjWeTYkd",
     "description": {
       "stringValue": "<p><strong>Du kümmerst dich um deinen Körper, aber kannst du auch richtig runterfahren?</strong></p><p>Dein Körper braucht auch die Fähigkeit, <strong>aus dem Leistungsmodus herauszukommen.</strong></p><p></p><p>Du weißt: deine Muskeln wachsen in der Regeneration.</p><p>Du weißt auch: ein ruhiger Geist unterstützt deine Regeneration.</p><p></p><p>Doch echte Regeneration bedeutet mehr als Schlaf und gesunde Ernährung.</p><p>Genau darum geht es in unserer gemeinsamen Praxis. An 7 Sonntagen widmen wir uns</p><p>der ganzheitlichen Regeneration bevor die neue Arbeitswoche beginnt.</p><p></p><p>Dieser Kurs ist auch für Unsportliche geeignet.</p><p></p><p><strong>SANDRA BASIC<br></strong>Yin-Yoga-Expertin<br>→ tiefe körperliche Entspannung, Loslassen &amp; Regeneration<br></p><p></p><p><strong>PETER MATHIS<br></strong>Meditations- &amp; Atemexperte<br>→ bewusste Atmung, Meditation &amp; Regulation des Nervensystems</p><p></p><p></p>"
@@ -3526,6 +4564,163 @@
           },
           "_nanoseconds": {
             "integerValue": "861000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "hcoQjA9RS3hSBZ6MQCeT",
+    "title": {
+      "stringValue": "ein event der geteilt werden möchte"
+    },
+    "date": {
+      "stringValue": "2026-09-18"
+    },
+    "time": {
+      "stringValue": "20:22"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "place": {
+      "stringValue": ""
+    },
+    "contribution": {
+      "stringValue": "free"
+    },
+    "fee": {
+      "nullValue": null
+    },
+    "priceCurrency": {
+      "nullValue": null
+    },
+    "feeNote": {
+      "stringValue": ""
+    },
+    "description": {
+      "stringValue": "<p>asdf</p>"
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "customDates": [],
+    "category": {
+      "stringValue": "Singen"
+    },
+    "bezirk": {
+      "stringValue": "Bludenz"
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Peter"
+          },
+          "lastName": {
+            "stringValue": "Mathis"
+          },
+          "email": {
+            "stringValue": "info@petermathis.at"
+          },
+          "photoURL": {
+            "nullValue": null
+          }
+        }
+      }
+    },
+    "kontakt": {
+      "stringValue": "info@petermathis.at"
+    },
+    "imageUrl": {
+      "nullValue": null
+    },
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "slug": {
+      "stringValue": "ein-event-der-geteilt-werden-mchte-20260918"
+    },
+    "createdBy": {
+      "stringValue": "ckSw2ZuVOFYg9YMfm44SRl9qDBQ2"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789757487"
+          },
+          "_nanoseconds": {
+            "integerValue": "6000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789757487"
+          },
+          "_nanoseconds": {
+            "integerValue": "6000000"
+          }
+        }
+      }
+    },
+    "approvedBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789757527"
+          },
+          "_nanoseconds": {
+            "integerValue": "114000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "approved"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789757527"
+          },
+          "_nanoseconds": {
+            "integerValue": "114000000"
+          }
+        }
+      }
+    },
+    "lastNotifiedStatus": {
+      "stringValue": "approved"
+    },
+    "lastNotifiedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789757528"
+          },
+          "_nanoseconds": {
+            "integerValue": "865000000"
           }
         }
       }
@@ -4345,6 +5540,489 @@
     }
   },
   {
+    "id": "nH26z3J36HjWl2RefZiG",
+    "date": {
+      "stringValue": "2026-09-11"
+    },
+    "time": {
+      "stringValue": "23:22"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "place": {
+      "stringValue": ""
+    },
+    "contribution": {
+      "stringValue": "free"
+    },
+    "fee": {
+      "nullValue": null
+    },
+    "priceCurrency": {
+      "nullValue": null
+    },
+    "feeNote": {
+      "stringValue": ""
+    },
+    "description": {
+      "stringValue": "<p>asdf</p>"
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "customDates": [],
+    "category": {
+      "stringValue": "Singen"
+    },
+    "bezirk": {
+      "stringValue": "Dornbirn"
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "kontakt": {
+      "stringValue": "yixidil848@findize.com"
+    },
+    "imageUrl": {
+      "nullValue": null
+    },
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "slug": {
+      "stringValue": "test-event-temp-user-20260911"
+    },
+    "createdBy": {
+      "stringValue": "uQwsLt50RXYLdj5aLRey20mBTLo1"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789671336"
+          },
+          "_nanoseconds": {
+            "integerValue": "257000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789671336"
+          },
+          "_nanoseconds": {
+            "integerValue": "257000000"
+          }
+        }
+      }
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "temp"
+          },
+          "lastName": {
+            "stringValue": "user"
+          },
+          "email": {
+            "stringValue": "yixidil848@findize.com"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FIccG8JVa2rZxKhnuleOKvpJaV7x1%2Favatar%2F1786124601568_Gemini_Generated_Image_q7ivr8q7ivr8q7iv.png?alt=media&token=ad13856e-599c-4f01-8c08-e5493bc669f0"
+          }
+        }
+      }
+    },
+    "title": {
+      "stringValue": "test event temp user edited by admin"
+    },
+    "approvedBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789671668"
+          },
+          "_nanoseconds": {
+            "integerValue": "982000000"
+          }
+        }
+      }
+    },
+    "trashedAt": {
+      "nullValue": null
+    },
+    "lastNotifiedStatus": {
+      "stringValue": "pending"
+    },
+    "lastNotifiedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789672342"
+          },
+          "_nanoseconds": {
+            "integerValue": "918000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "draft"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789710142"
+          },
+          "_nanoseconds": {
+            "integerValue": "378000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "nhnqVlfIOsHHyAzcIZli",
+    "title": {
+      "stringValue": "test"
+    },
+    "date": {
+      "stringValue": "2026-09-18"
+    },
+    "time": {
+      "stringValue": "19:06"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "place": {
+      "stringValue": ""
+    },
+    "contribution": {
+      "stringValue": "free"
+    },
+    "fee": {
+      "nullValue": null
+    },
+    "priceCurrency": {
+      "nullValue": null
+    },
+    "feeNote": {
+      "stringValue": ""
+    },
+    "description": {
+      "stringValue": "<p>test</p>"
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "customDates": [],
+    "category": {
+      "stringValue": "Breathwork"
+    },
+    "bezirk": {
+      "stringValue": "Bregenz"
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Thomas"
+          },
+          "lastName": {
+            "stringValue": ""
+          },
+          "email": {
+            "stringValue": "thomas@blissofkundalini.yoga"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FRrLP8vZFUtTxi9HKWZIYqnRHgxY2%2Favatar%2F1785759707182_IMG_7920.jpeg?alt=media&token=560ffcf0-4b10-452d-9a66-36877030a5bf"
+          }
+        }
+      }
+    },
+    "kontakt": {
+      "stringValue": "thomas@blissofkundalini.yoga"
+    },
+    "imageUrl": {
+      "nullValue": null
+    },
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "slug": {
+      "stringValue": "test-20260918"
+    },
+    "createdBy": {
+      "stringValue": "RrLP8vZFUtTxi9HKWZIYqnRHgxY2"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789657603"
+          },
+          "_nanoseconds": {
+            "integerValue": "624000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789657603"
+          },
+          "_nanoseconds": {
+            "integerValue": "624000000"
+          }
+        }
+      }
+    },
+    "approvedBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789671028"
+          },
+          "_nanoseconds": {
+            "integerValue": "90000000"
+          }
+        }
+      }
+    },
+    "trashedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789710170"
+          },
+          "_nanoseconds": {
+            "integerValue": "44000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "trashed"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789710170"
+          },
+          "_nanoseconds": {
+            "integerValue": "44000000"
+          }
+        }
+      }
+    },
+    "lastNotifiedStatus": {
+      "stringValue": "trashed"
+    },
+    "lastNotifiedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789710171"
+          },
+          "_nanoseconds": {
+            "integerValue": "120000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "oAeVmbIFwdtaGsmahQQj",
+    "title": {
+      "stringValue": "TestEvent"
+    },
+    "date": {
+      "stringValue": "2026-09-19"
+    },
+    "time": {
+      "stringValue": "09:40"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "place": {
+      "stringValue": ""
+    },
+    "contribution": {
+      "stringValue": "free"
+    },
+    "fee": {
+      "nullValue": null
+    },
+    "priceCurrency": {
+      "nullValue": null
+    },
+    "feeNote": {
+      "stringValue": ""
+    },
+    "description": {
+      "stringValue": "<p>TestEvent 1</p>"
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "customDates": [],
+    "category": {
+      "stringValue": "Yoga"
+    },
+    "bezirk": {
+      "stringValue": "Dornbirn"
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Thomas"
+          },
+          "lastName": {
+            "stringValue": ""
+          },
+          "email": {
+            "stringValue": "thomas@blissofkundalini.yoga"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FRrLP8vZFUtTxi9HKWZIYqnRHgxY2%2Favatar%2F1785759707182_IMG_7920.jpeg?alt=media&token=560ffcf0-4b10-452d-9a66-36877030a5bf"
+          }
+        }
+      }
+    },
+    "kontakt": {
+      "stringValue": "thomas@blissofkundalini.yoga"
+    },
+    "imageUrl": {
+      "nullValue": null
+    },
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "slug": {
+      "stringValue": "testevent-20260919"
+    },
+    "createdBy": {
+      "stringValue": "RrLP8vZFUtTxi9HKWZIYqnRHgxY2"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789710021"
+          },
+          "_nanoseconds": {
+            "integerValue": "639000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789710021"
+          },
+          "_nanoseconds": {
+            "integerValue": "639000000"
+          }
+        }
+      }
+    },
+    "trashedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789712644"
+          },
+          "_nanoseconds": {
+            "integerValue": "798000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "trashed"
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789712644"
+          },
+          "_nanoseconds": {
+            "integerValue": "798000000"
+          }
+        }
+      }
+    },
+    "lastNotifiedStatus": {
+      "stringValue": "trashed"
+    },
+    "lastNotifiedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789712646"
+          },
+          "_nanoseconds": {
+            "integerValue": "866000000"
+          }
+        }
+      }
+    }
+  },
+  {
     "id": "ozxmFVDWXazlo95PZvy7",
     "title": {
       "stringValue": "Floating Gongbath"
@@ -4768,9 +6446,6 @@
     "recurrenceEndDate": {
       "stringValue": ""
     },
-    "status": {
-      "stringValue": "draft"
-    },
     "description": {
       "stringValue": "<p>asdf</p>"
     },
@@ -4850,14 +6525,59 @@
     "imageUrl": {
       "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/events%2Fq1DolKIsq5s5L5zEqOCm%2F1788988351727_L1010595.jpg?alt=media&token=7b55ace6-d0f0-4128-ba6f-febff1f8d01a"
     },
+    "approvedBy": {
+      "stringValue": "IccG8JVa2rZxKhnuleOKvpJaV7x1"
+    },
+    "approvedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789763526"
+          },
+          "_nanoseconds": {
+            "integerValue": "990000000"
+          }
+        }
+      }
+    },
+    "trashedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789763589"
+          },
+          "_nanoseconds": {
+            "integerValue": "469000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "trashed"
+    },
     "updatedAt": {
       "mapValue": {
         "fields": {
           "_seconds": {
-            "integerValue": "1788988354"
+            "integerValue": "1789763589"
           },
           "_nanoseconds": {
-            "integerValue": "41000000"
+            "integerValue": "469000000"
+          }
+        }
+      }
+    },
+    "lastNotifiedStatus": {
+      "stringValue": "trashed"
+    },
+    "lastNotifiedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789763590"
+          },
+          "_nanoseconds": {
+            "integerValue": "401000000"
           }
         }
       }
@@ -5125,17 +6845,44 @@
         }
       }
     },
+    "trashedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789710172"
+          },
+          "_nanoseconds": {
+            "integerValue": "474000000"
+          }
+        }
+      }
+    },
     "status": {
-      "stringValue": "approved"
+      "stringValue": "trashed"
     },
     "updatedAt": {
       "mapValue": {
         "fields": {
           "_seconds": {
-            "integerValue": "1788987068"
+            "integerValue": "1789710172"
           },
           "_nanoseconds": {
-            "integerValue": "999000000"
+            "integerValue": "474000000"
+          }
+        }
+      }
+    },
+    "lastNotifiedStatus": {
+      "stringValue": "trashed"
+    },
+    "lastNotifiedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789710172"
+          },
+          "_nanoseconds": {
+            "integerValue": "698000000"
           }
         }
       }
@@ -5828,6 +7575,314 @@
           },
           "_nanoseconds": {
             "integerValue": "155000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "zHR14pGk5lCPoLTnFLd6",
+    "title": {
+      "stringValue": "test"
+    },
+    "date": {
+      "stringValue": "2026-10-04"
+    },
+    "time": {
+      "stringValue": "19:05"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "place": {
+      "stringValue": ""
+    },
+    "contribution": {
+      "stringValue": "free"
+    },
+    "fee": {
+      "nullValue": null
+    },
+    "priceCurrency": {
+      "nullValue": null
+    },
+    "feeNote": {
+      "stringValue": ""
+    },
+    "description": {
+      "stringValue": "<p>test</p>"
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "customDates": [],
+    "category": {
+      "stringValue": "Yoga"
+    },
+    "bezirk": {
+      "stringValue": "Dornbirn"
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Thomas"
+          },
+          "lastName": {
+            "stringValue": ""
+          },
+          "email": {
+            "stringValue": "thomas@blissofkundalini.yoga"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FRrLP8vZFUtTxi9HKWZIYqnRHgxY2%2Favatar%2F1785759707182_IMG_7920.jpeg?alt=media&token=560ffcf0-4b10-452d-9a66-36877030a5bf"
+          }
+        }
+      }
+    },
+    "kontakt": {
+      "stringValue": "thomas@blissofkundalini.yoga"
+    },
+    "imageUrl": {
+      "nullValue": null
+    },
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "slug": {
+      "stringValue": "test-20261004"
+    },
+    "createdBy": {
+      "stringValue": "RrLP8vZFUtTxi9HKWZIYqnRHgxY2"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789657529"
+          },
+          "_nanoseconds": {
+            "integerValue": "68000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789657529"
+          },
+          "_nanoseconds": {
+            "integerValue": "68000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "trashed"
+    },
+    "trashedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789657582"
+          },
+          "_nanoseconds": {
+            "integerValue": "102000000"
+          }
+        }
+      }
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789657582"
+          },
+          "_nanoseconds": {
+            "integerValue": "102000000"
+          }
+        }
+      }
+    },
+    "lastNotifiedStatus": {
+      "stringValue": "trashed"
+    },
+    "lastNotifiedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789657582"
+          },
+          "_nanoseconds": {
+            "integerValue": "218000000"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "zTMydD1Xh8F1TDs6bLJ2",
+    "title": {
+      "stringValue": "test 2"
+    },
+    "date": {
+      "stringValue": "2026-10-03"
+    },
+    "time": {
+      "stringValue": "12:45"
+    },
+    "endTime": {
+      "stringValue": ""
+    },
+    "endDate": {
+      "stringValue": ""
+    },
+    "place": {
+      "stringValue": ""
+    },
+    "contribution": {
+      "stringValue": "free"
+    },
+    "fee": {
+      "nullValue": null
+    },
+    "priceCurrency": {
+      "nullValue": null
+    },
+    "feeNote": {
+      "stringValue": ""
+    },
+    "description": {
+      "stringValue": "<p>teset 2</p>"
+    },
+    "link": {
+      "stringValue": ""
+    },
+    "recurrence": {
+      "stringValue": "none"
+    },
+    "recurrenceEndDate": {
+      "stringValue": ""
+    },
+    "customDates": [],
+    "category": {
+      "stringValue": "Breathwork"
+    },
+    "bezirk": {
+      "stringValue": "Bregenz"
+    },
+    "isOnline": {
+      "booleanValue": "false"
+    },
+    "organizer": {
+      "mapValue": {
+        "fields": {
+          "firstName": {
+            "stringValue": "Thomas"
+          },
+          "lastName": {
+            "stringValue": ""
+          },
+          "email": {
+            "stringValue": "thomas@blissofkundalini.yoga"
+          },
+          "photoURL": {
+            "stringValue": "https://firebasestorage.googleapis.com/v0/b/spirieventsvbg.firebasestorage.app/o/users%2FRrLP8vZFUtTxi9HKWZIYqnRHgxY2%2Favatar%2F1785759707182_IMG_7920.jpeg?alt=media&token=560ffcf0-4b10-452d-9a66-36877030a5bf"
+          }
+        }
+      }
+    },
+    "kontakt": {
+      "stringValue": "thomas@blissofkundalini.yoga"
+    },
+    "imageUrl": {
+      "nullValue": null
+    },
+    "rightsConfirmed": {
+      "booleanValue": "true"
+    },
+    "slug": {
+      "stringValue": "test-2-20261003"
+    },
+    "createdBy": {
+      "stringValue": "RrLP8vZFUtTxi9HKWZIYqnRHgxY2"
+    },
+    "createdAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789721141"
+          },
+          "_nanoseconds": {
+            "integerValue": "869000000"
+          }
+        }
+      }
+    },
+    "rightsConfirmedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789721141"
+          },
+          "_nanoseconds": {
+            "integerValue": "869000000"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "trashed"
+    },
+    "trashedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789721171"
+          },
+          "_nanoseconds": {
+            "integerValue": "612000000"
+          }
+        }
+      }
+    },
+    "updatedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789721171"
+          },
+          "_nanoseconds": {
+            "integerValue": "612000000"
+          }
+        }
+      }
+    },
+    "lastNotifiedStatus": {
+      "stringValue": "trashed"
+    },
+    "lastNotifiedAt": {
+      "mapValue": {
+        "fields": {
+          "_seconds": {
+            "integerValue": "1789721171"
+          },
+          "_nanoseconds": {
+            "integerValue": "843000000"
           }
         }
       }
