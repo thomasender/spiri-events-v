@@ -14,9 +14,9 @@ import {
   reauthenticateWithPopup,
   EmailAuthProvider,
   getIdTokenResult,
-  sendEmailVerification,
   sendPasswordResetEmail,
 } from 'firebase/auth';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { doc, getDoc, setDoc, serverTimestamp, deleteDoc, writeBatch } from 'firebase/firestore';
 import { splitProfileData } from '../utils/profile';
 import { ref as storageRef, listAll, deleteObject } from 'firebase/storage';
@@ -201,7 +201,7 @@ export function useAuth() {
     }
     await seedProfileDoc(credential.user, displayName);
     try {
-      await sendEmailVerification(credential.user);
+      await requestVerificationEmail(credential.user);
     } catch (err) {
       console.warn('Failed to send initial verification email:', err);
     }
@@ -209,12 +209,17 @@ export function useAuth() {
     return credential;
   };
 
-  const resendVerificationEmail = async () => {
-    const current = auth.currentUser;
-    if (!current) {
+  const requestVerificationEmail = async (targetUser = auth.currentUser) => {
+    if (!targetUser) {
       throw { code: 'auth/no-current-user', message: 'Kein angemeldeter Benutzer.' };
     }
-    await sendEmailVerification(current);
+    const functions = getFunctions();
+    const fn = httpsCallable(functions, 'sendVerificationEmail');
+    await fn({ userId: targetUser.uid });
+  };
+
+  const resendVerificationEmail = async () => {
+    await requestVerificationEmail();
   };
 
   const login = async (email, password) => {

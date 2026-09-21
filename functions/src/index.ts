@@ -107,3 +107,4 @@ export const mollieWebhook = onCall(
 export { onEventStatusChanged, onEventCreated, onAdminMessageCreated } from './notifications';
 export { onEventWriteTriggerBuild } from './triggerBuild';
 export { scheduledBuildTrigger } from './scheduledBuildTrigger';
+export { sendVerificationEmail } from './sendVerificationEmail';

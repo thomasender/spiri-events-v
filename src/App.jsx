@@ -15,6 +15,7 @@ import PublicProfilePage from './pages/PublicProfilePage';
 import AboutPage from './pages/AboutPage';
 import SpendenPage from './pages/SpendenPage';
 import SpendenDankePage from './pages/SpendenDankePage';
+import AuthActionPage from './pages/AuthActionPage';
 import FeedbackButton from './components/FeedbackButton';
 import SeedBootstrap from './components/SeedBootstrap';
 import ThemeApplier from './components/ThemeApplier';
@@ -53,6 +54,7 @@ function AppContent() {
             <Route path="/ueber-uns" element={<AboutPage />} />
             <Route path="/spenden" element={<SpendenPage />} />
             <Route path="/spenden/danke" element={<SpendenDankePage />} />
+            <Route path="/auth-action" element={<AuthActionPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route
               path="/admin"
