@@ -106,6 +106,7 @@ service cloud.firestore {
                     && request.auth.uid == uid
                     && request.resource.data.keys().hasOnly(
                       ['displayName', 'bio', 'website', 'contact', 'photoURL',
+                       'slug',
                        'notifyOnSubmitted', 'notifyOnChangesRequested',
                        'notifyOnPublished', 'notifyOnDeleted',
                        'createdAt', 'updatedAt']
@@ -119,6 +120,7 @@ service cloud.firestore {
                     && request.resource.data.displayName.size() <= 80
                     && request.resource.data.diff(resource.data).affectedKeys()
                         .hasOnly(['displayName', 'bio', 'website', 'contact', 'photoURL',
+                                  'slug',
                                   'notifyOnSubmitted', 'notifyOnChangesRequested',
                                   'notifyOnPublished', 'notifyOnDeleted',
                                   'updatedAt']);
@@ -126,18 +128,18 @@ service cloud.firestore {
       allow delete: if isAuthenticated() && request.auth.uid == uid;
 
       // Public profile subdoc: mirrors only the public-safe fields
-      // (displayName, bio, website, photoURL) so anyone can render a
-      // organizer's "Veranstalter" page via the public `/veranstalter/:uid`
-      // route without exposing `contact`, `notifyOn*`, or the user's
-      // identity-bound email. Only the owner can write — the client
-      // mirrors this from the parent profile doc on save.
+      // (displayName, bio, website, photoURL, slug) so anyone can render a
+      // organizer's public profile page via the `/:slug` route without
+      // exposing `contact`, `notifyOn*`, or the user's identity-bound
+      // email. Only the owner can write — the client mirrors this from
+      // the parent profile doc on save.
       match /publicProfile/{docId} {
         allow read: if true;
 
         allow create: if isAuthenticated()
                       && request.auth.uid == uid
                       && request.resource.data.keys().hasOnly(
-                        ['displayName', 'bio', 'website', 'photoURL',
+                        ['displayName', 'bio', 'website', 'photoURL', 'slug',
                          'updatedAt']
                       )
                       && request.resource.data.bio.size() <= 500
@@ -148,11 +150,22 @@ service cloud.firestore {
                       && request.resource.data.bio.size() <= 500
                       && request.resource.data.displayName.size() <= 80
                       && request.resource.data.diff(resource.data).affectedKeys()
-                          .hasOnly(['displayName', 'bio', 'website', 'photoURL',
+                          .hasOnly(['displayName', 'bio', 'website', 'photoURL', 'slug',
                                     'updatedAt']);
 
         allow delete: if isAuthenticated() && request.auth.uid == uid;
       }
+    }
+
+    // Public-readable collection group rule for `publicProfile`. Used by the
+    // `/:slug` organizer page lookup and by slug-uniqueness checks on
+    // profile save. Without an explicit top-level match, Firestore rejects
+    // collection group queries on a subcollection because the parent
+    // `/users/{uid}` rule does not allow `list` (only owner reads). This
+    // rule exposes only the `publicProfile` subdoc — the parent user doc
+    // and other private fields stay protected by the rules above.
+    match /{parentPath=**}/publicProfile/{docId} {
+      allow read: if true;
     }
 
     // Categories registry — admins manage name + color, the calendar reads

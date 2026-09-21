@@ -603,7 +603,7 @@ export default function EventDetailPage() {
             <div>
               <span className="detail-label">Veranstalter</span>
               {(() => {
-                const profilePath = getOrganizerProfilePath(event.createdBy);
+                const profilePath = getOrganizerProfilePath(event.organizerSlug);
                 const organizerContent = (
                   <>
                     {event.organizer.photoURL && (

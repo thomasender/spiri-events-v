@@ -1,15 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 
 const mockPublicProfile = vi.hoisted(() => ({
   profile: null,
   loading: false,
   exists: false,
+  uid: null,
+}));
+
+const mockAuth = vi.hoisted(() => ({
+  user: null,
 }));
 
 vi.mock('../../src/hooks/usePublicProfile', () => ({
   usePublicProfile: () => mockPublicProfile,
+}));
+
+vi.mock('../../src/hooks/useAuth', () => ({
+  useAuth: () => mockAuth,
 }));
 
 vi.mock('react-helmet-async', () => ({
@@ -18,13 +27,19 @@ vi.mock('react-helmet-async', () => ({
   ),
 }));
 
+vi.mock('../../src/components/OrganizerEvents', () => ({
+  default: ({ organizerUid, organizerName }) => (
+    <div data-testid="organizer-events-mock" data-uid={organizerUid} data-name={organizerName} />
+  ),
+}));
+
 import PublicProfilePage from '../../src/pages/PublicProfilePage';
 
-const renderPage = (uid = 'user-42') =>
+const renderPage = (slug = 'anna-schmidt') =>
   render(
-    <MemoryRouter initialEntries={[`/veranstalter/${uid}`]}>
+    <MemoryRouter initialEntries={[`/${slug}`]}>
       <Routes>
-        <Route path="/veranstalter/:uid" element={<PublicProfilePage />} />
+        <Route path="/:slug" element={<PublicProfilePage />} />
       </Routes>
     </MemoryRouter>
   );
@@ -33,6 +48,9 @@ beforeEach(() => {
   mockPublicProfile.profile = null;
   mockPublicProfile.loading = false;
   mockPublicProfile.exists = false;
+  mockPublicProfile.uid = null;
+  mockAuth.user = null;
+  window.history.replaceState({}, '', '/');
 });
 
 describe('PublicProfilePage (k9CYVFsc)', () => {
@@ -58,8 +76,10 @@ describe('PublicProfilePage (k9CYVFsc)', () => {
       bio: 'Yoga-Lehrerin aus Vorarlberg.',
       website: 'www.anna-yoga.at',
       photoURL: 'https://example.com/anna.png',
+      slug: 'anna-schmidt',
       updatedAt: null,
     };
+    mockPublicProfile.uid = 'user-42';
 
     renderPage();
 
@@ -86,8 +106,10 @@ describe('PublicProfilePage (k9CYVFsc)', () => {
       bio: '',
       website: '',
       photoURL: null,
+      slug: 'beatrice-brunner',
       updatedAt: null,
     };
+    mockPublicProfile.uid = 'user-43';
 
     renderPage();
 
@@ -105,12 +127,139 @@ describe('PublicProfilePage (k9CYVFsc)', () => {
       bio: '',
       website: 'https://carla.example',
       photoURL: null,
+      slug: 'carla-carter',
       updatedAt: null,
     };
+    mockPublicProfile.uid = 'user-44';
 
     renderPage();
 
     const websiteLink = screen.getByTestId('public-profile-website');
     expect(websiteLink).toHaveAttribute('href', 'https://carla.example');
+  });
+
+  it('shows a back button at the top of the page when the profile exists', () => {
+    mockPublicProfile.loading = false;
+    mockPublicProfile.exists = true;
+    mockPublicProfile.profile = {
+      displayName: 'Anna Schmidt',
+      bio: '',
+      website: '',
+      photoURL: null,
+      slug: 'anna-schmidt',
+      updatedAt: null,
+    };
+    mockPublicProfile.uid = 'user-42';
+
+    renderPage();
+
+    expect(screen.getByTestId('public-profile-back-top')).toBeInTheDocument();
+  });
+
+  it('does not render the edit button when the viewer is not the owner', () => {
+    mockPublicProfile.loading = false;
+    mockPublicProfile.exists = true;
+    mockPublicProfile.profile = {
+      displayName: 'Anna Schmidt',
+      bio: '',
+      website: '',
+      photoURL: null,
+      slug: 'anna-schmidt',
+      updatedAt: null,
+    };
+    mockPublicProfile.uid = 'user-42';
+    mockAuth.user = { uid: 'other-user' };
+
+    renderPage();
+
+    expect(screen.queryByTestId('public-profile-edit')).toBeNull();
+  });
+
+  it('renders an edit button linking to /profil when the viewer is the owner', () => {
+    mockPublicProfile.loading = false;
+    mockPublicProfile.exists = true;
+    mockPublicProfile.profile = {
+      displayName: 'Anna Schmidt',
+      bio: '',
+      website: '',
+      photoURL: null,
+      slug: 'anna-schmidt',
+      updatedAt: null,
+    };
+    mockPublicProfile.uid = 'user-42';
+    mockAuth.user = { uid: 'user-42' };
+
+    renderPage();
+
+    const editLink = screen.getByTestId('public-profile-edit');
+    expect(editLink).toBeInTheDocument();
+    expect(editLink).toHaveAttribute('href', '/profil');
+  });
+
+  it('renders the share button when the profile exists', () => {
+    mockPublicProfile.loading = false;
+    mockPublicProfile.exists = true;
+    mockPublicProfile.profile = {
+      displayName: 'Anna Schmidt',
+      bio: '',
+      website: '',
+      photoURL: null,
+      slug: 'anna-schmidt',
+      updatedAt: null,
+    };
+    mockPublicProfile.uid = 'user-42';
+
+    renderPage();
+
+    expect(screen.getByTestId('public-profile-share')).toBeInTheDocument();
+  });
+
+  it('renders the "Weitere Events" section when the profile has a uid', () => {
+    mockPublicProfile.loading = false;
+    mockPublicProfile.exists = true;
+    mockPublicProfile.profile = {
+      displayName: 'Anna Schmidt',
+      bio: '',
+      website: '',
+      photoURL: null,
+      slug: 'anna-schmidt',
+      updatedAt: null,
+    };
+    mockPublicProfile.uid = 'user-42';
+
+    renderPage();
+
+    const wrapper = screen.getByTestId('public-profile-events-wrapper');
+    expect(wrapper).toBeInTheDocument();
+    const events = screen.getByTestId('organizer-events-mock');
+    expect(events).toHaveAttribute('data-uid', 'user-42');
+    expect(events).toHaveAttribute('data-name', 'Anna Schmidt');
+  });
+
+  it('does not render the "Weitere Events" section when no uid is set', () => {
+    mockPublicProfile.loading = false;
+    mockPublicProfile.exists = true;
+    mockPublicProfile.profile = {
+      displayName: 'Anna Schmidt',
+      bio: '',
+      website: '',
+      photoURL: null,
+      slug: 'anna-schmidt',
+      updatedAt: null,
+    };
+    mockPublicProfile.uid = null;
+
+    renderPage();
+
+    expect(screen.queryByTestId('public-profile-events-wrapper')).toBeNull();
+  });
+
+  it('renders a back button on the not-found state too', () => {
+    mockPublicProfile.loading = false;
+    mockPublicProfile.exists = false;
+    renderPage();
+    const back = screen.getByTestId('public-profile-back');
+    expect(back).toBeInTheDocument();
+    fireEvent.click(back);
   });
 });

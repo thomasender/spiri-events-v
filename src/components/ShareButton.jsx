@@ -18,10 +18,29 @@ const CHANNELS = [
   { id: 'signal', label: 'Signal', Icon: SiSignal },
 ];
 
-function buildShareUrl(event) {
-  if (typeof window === 'undefined') return '';
-  const slugOrId = event.slug || event.id;
-  return `${window.location.origin}/event/${slugOrId}`;
+function resolveShareProps(props) {
+  if (props.event) {
+    const slugOrId = props.event.slug || props.event.id;
+    return {
+      shareUrl:
+        typeof window !== 'undefined' && slugOrId
+          ? `${window.location.origin}/event/${slugOrId}`
+          : '',
+      shareTitle: props.event.title || '',
+      dialogTitle: props.dialogTitle || 'Event teilen',
+      triggerLabel: props.triggerLabel || 'Teilen',
+      ariaLabel: props.ariaLabel || 'Event teilen',
+      testId: props.testId || 'share-event-button',
+    };
+  }
+  return {
+    shareUrl: props.url || '',
+    shareTitle: props.title || '',
+    dialogTitle: props.dialogTitle || 'Profil teilen',
+    triggerLabel: props.triggerLabel || 'Teilen',
+    ariaLabel: props.ariaLabel || 'Profil teilen',
+    testId: props.testId || 'share-profile-button',
+  };
 }
 
 async function copyToClipboard(text) {
@@ -49,15 +68,17 @@ async function copyToClipboard(text) {
   }
 }
 
-export default function ShareButton({ event }) {
+export default function ShareButton(props) {
   const [isOpen, setIsOpen] = useState(false);
   const [copyState, setCopyState] = useState('idle');
   const triggerRef = useRef(null);
   const dialogRef = useRef(null);
   const firstButtonRef = useRef(null);
 
-  const shareUrl = buildShareUrl(event);
-  const shareTitle = event.title || '';
+  const { shareUrl, shareTitle, dialogTitle, triggerLabel, ariaLabel, testId } =
+    resolveShareProps(props);
+
+  const triggerClassName = props.subtle ? 'share-trigger share-trigger--subtle' : 'share-trigger';
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -125,13 +146,13 @@ export default function ShareButton({ event }) {
       <button
         ref={triggerRef}
         type="button"
-        className="share-trigger"
+        className={triggerClassName}
         onClick={() => setIsOpen(true)}
-        aria-label="Event teilen"
-        data-testid="share-event-button"
+        aria-label={ariaLabel}
+        data-testid={testId}
       >
         <Share2 size={18} />
-        <span>Teilen</span>
+        <span>{triggerLabel}</span>
       </button>
 
       {isOpen && (
@@ -154,7 +175,7 @@ export default function ShareButton({ event }) {
             </button>
 
             <h2 id="share-dialog-title" className="share-dialog-title">
-              Event teilen
+              {dialogTitle}
             </h2>
             {shareTitle && <p className="share-dialog-subtitle">{shareTitle}</p>}
 

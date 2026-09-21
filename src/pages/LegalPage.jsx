@@ -1,4 +1,4 @@
-import { useParams, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import SeoMeta from '../components/SeoMeta';
 import './LegalPage.css';
 
@@ -228,8 +228,7 @@ function LegalText({ text }) {
   );
 }
 
-export default function LegalPage() {
-  const { page } = useParams();
+export default function LegalPage({ page }) {
   const data = content[page];
 
   if (!data) {

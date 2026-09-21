@@ -24,6 +24,20 @@
   border-color: var(--accent-primary);
 }
 
+.share-trigger--subtle {
+  background-color: transparent;
+  border-color: transparent;
+  color: var(--text-secondary);
+  padding: 6px 10px;
+  font-size: 0.85rem;
+}
+
+.share-trigger--subtle:hover {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+
 .share-overlay {
   position: fixed;
   inset: 0;

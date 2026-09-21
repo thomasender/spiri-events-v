@@ -114,6 +114,7 @@ const foreignEvent = {
   category: 'Yoga',
   bezirk: 'Dornbirn',
   organizer: { firstName: 'Anna', lastName: 'Schmidt', email: 'admin@test.com' },
+  organizerSlug: 'anna-schmidt',
   kontakt: '0676 1234567',
   status: 'approved',
   createdBy: 'other-user-uid',
@@ -477,22 +478,23 @@ describe('EventDetailPage — organizer profile photo', () => {
 });
 
 describe('EventDetailPage — organizer link to public profile (k9CYVFsc)', () => {
-  it('renders organizer name as a link to /veranstalter/:uid when createdBy is set', async () => {
+  it('renders organizer name as a link to /:slug when organizerSlug is set', async () => {
     renderPage();
     expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
 
     const link = screen.getByTestId('organizer-link');
     expect(link).toBeInTheDocument();
     expect(link.tagName).toBe('A');
-    expect(link).toHaveAttribute('href', '/veranstalter/other-user-uid');
+    expect(link).toHaveAttribute('href', '/anna-schmidt');
     expect(link).toHaveTextContent('Anna Schmidt');
   });
 
-  it('renders organizer name as plain text when createdBy is missing', async () => {
-    const { createdBy, ...eventWithoutCreator } = foreignEvent;
+  it('renders organizer name as plain text when organizerSlug is missing', async () => {
+    const { organizerSlug, ...eventWithoutSlug } = foreignEvent;
+    void organizerSlug;
     mockFirestoreDoc.getDocResult = {
       id: foreignEvent.id,
-      data: eventWithoutCreator,
+      data: eventWithoutSlug,
     };
 
     renderPage();

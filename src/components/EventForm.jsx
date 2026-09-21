@@ -511,6 +511,7 @@ export default function EventForm({ event }) {
       email: isEdit ? event.organizer.email : formData.organizer.email.trim(),
       photoURL: profile?.photoURL || null,
     },
+    organizerSlug: profile?.slug || '',
     kontakt: formData.kontakt.trim(),
     imageUrl: imageFile || imageRemoved ? null : originalImageUrl || null,
     status,
