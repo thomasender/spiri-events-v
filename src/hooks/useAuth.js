@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -140,7 +140,7 @@ export function useAuth() {
     Boolean(auth.currentUser?.emailVerified)
   );
 
-  const refreshEmailVerified = async () => {
+  const refreshEmailVerified = useCallback(async () => {
     const current = auth.currentUser;
     if (!current) return;
     try {
@@ -149,7 +149,7 @@ export function useAuth() {
     } catch (err) {
       console.warn('Error reloading user to refresh emailVerified:', err);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
