@@ -51,7 +51,7 @@ scripts/service-account.json
 # Local emulator data
 # data-export/ holds the production dump for emulators + prerender.
 # We track only the public event snapshot (used by prerender at build time)
-# so the prerender has data to work with on Netlify. Sensitive bits (auth,
+# so the prerender has data to work with in CI. Sensitive bits (auth,
 # users with PII) stay ignored.
 data-export/*
 !data-export/firestore-export/

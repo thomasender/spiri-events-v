@@ -105,5 +105,5 @@ export const mollieWebhook = onCall(
 );
 
 export { onEventStatusChanged, onEventCreated, onAdminMessageCreated } from './notifications';
-export { onEventWriteTriggerNetlifyBuild } from './triggerNetlifyBuild';
-export { scheduledNetlifyRebuild } from './scheduledNetlifyRebuild';
+export { onEventWriteTriggerBuild } from './triggerBuild';
+export { scheduledBuildTrigger } from './scheduledBuildTrigger';

@@ -224,7 +224,7 @@ any JavaScript.
 2. Live Firestore Admin SDK — bypasses security rules using a service
    account, so it can list all events including the freshly created ones
    that aren't in the snapshot yet. Only runs when a service account is
-   available (see "Netlify setup" below).
+   available (see "GitHub Actions + Firebase setup" below).
 3. Firestore REST API (anonymous read — usually blocked on production).
 4. Live Firestore client SDK (anonymous — usually blocked on production).
 
@@ -234,54 +234,60 @@ wins immediately), and events that exist only in Firestore are appended.
 
 ### Auto-trigger on event changes (UIWI8kWx)
 
-The `onEventWriteTriggerNetlifyBuild` Cloud Function fires on every Firestore
+The `onEventWriteTriggerBuild` Cloud Function fires on every Firestore
 write to `events/{eventId}`. It skips drafts and pending submissions (they
-don't appear in OG previews anyway) and POSTs a Netlify build hook for every
-write where the event was, is, or becomes `status === 'approved'`. Netlify
-then runs `npm run build`, which includes the Admin SDK live read described
-above, so a freshly approved event gets its own `/event/<slug>/index.html`
-within one build cycle (≈3–5 min) without anyone manually refreshing the
-snapshot.
+don't appear in OG previews anyway) and POSTs to the GitHub
+`repository_dispatch` API for every write where the event was, is, or
+becomes `status === 'approved'`. The matching GitHub Actions workflow
+(`.github/workflows/deploy.yml`) then runs `npm run build` and
+`firebase deploy --only hosting`, which includes the Admin SDK live read
+described above, so a freshly approved event gets its own
+`/event/<slug>/index.html` within one build cycle (≈3–5 min) without
+anyone manually refreshing the snapshot.
 
 A **5-minute debounce window** is enforced via a `buildAt` timestamp on
-`app_settings/last_netlify_build`: only the first event write inside the
-window triggers a build, subsequent writes are coalesced into the same
-build. This is safe because one Netlify build regenerates ALL event pages
-from the live Firestore snapshot — so the result after the build is the
-same whether 1 or 50 events changed in the meantime — and it prevents the
-Netlify build queue from stacking up during bulk-import / onboarding
-bursts. Worst-case latency for a single edit is 5 min (when another build
-just fired). The timestamp is only stamped on a 2xx POST, so a failed build
+`app_settings/last_build`: only the first event write inside the window
+triggers a build, subsequent writes are coalesced into the same build.
+This is safe because one build regenerates ALL event pages from the live
+Firestore snapshot — so the result after the build is the same whether 1
+or 50 events changed in the meantime — and it prevents the GitHub Actions
+queue from stacking up during bulk-import / onboarding bursts.
+Worst-case latency for a single edit is 5 min (when another build just
+fired). The timestamp is only stamped on a 2xx POST, so a failed dispatch
 doesn't burn the window — the next event change retries immediately.
 
-A **6-hour safety-net scheduled rebuild** (`scheduledNetlifyRebuild`,
+A **6-hour safety-net scheduled rebuild** (`scheduledBuildTrigger`,
 Cloud Scheduler) runs as a backstop in case the event-driven trigger is
 ever lost — Cloud Function cold-start crash, secret-lookup transient
-failure, debounce edge case where a POST never reached Netlify. The build
-is idempotent (always reads live Firestore), so the only cost of a
-no-change run is a few minutes of Netlify build time. Worst-case staleness
-for any event page is bounded by this interval.
+failure, debounce edge case where a POST was lost, or anything else
+weird in the underlying infrastructure. Rebuilding on a 6-hour cadence
+means the worst-case staleness for any event page is bounded even if the
+event-driven path silently broke.
 
-### Netlify setup
+The build is idempotent — it always reads the live Firestore snapshot
+(Admin SDK in the prerender) and writes the same HTML when nothing has
+changed — so the only cost of an unnecessary run is a few minutes of
+GitHub Actions + Firebase Hosting deploy time.
 
-For the auto-trigger + live read to work on production, two Netlify env vars
-must be set:
+### GitHub Actions + Firebase setup
 
-| Variable                        | Source                                                                                                                                                                                            |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `NETLIFY_BUILD_HOOK`            | URL of a Netlify build hook created in the site's dashboard (`Site settings → Build & deploy → Build hooks → Add build hook`). The Cloud Function reads it as a Firebase Functions secret.        |
-| `FIREBASE_SERVICE_ACCOUNT_JSON` | Inline JSON of `scripts/service-account.json`. The prerender reads it during the build, falls back to `GOOGLE_APPLICATION_CREDENTIALS` (file path) or `scripts/service-account.json` (local dev). |
+For the auto-trigger + live read to work on production, two secret sets
+must be configured.
 
-To set the secret:
+**Firebase Functions secrets** (read by the Cloud Functions at runtime):
 
 ```bash
-firebase functions:secrets:set NETLIFY_BUILD_HOOK   # paste the build hook URL
+firebase functions:secrets:set GH_DISPATCH_TOKEN   # GitHub PAT with `repo` scope
+firebase functions:secrets:set GH_DISPATCH_REPO    # e.g. thomasender/spiri-events-v
 ```
 
-To set the build env var: Netlify dashboard → Site settings → Environment
-variables → Add variable → key `FIREBASE_SERVICE_ACCOUNT_JSON`, value = the
-entire contents of `scripts/service-account.json`. (Use "Same value for all
-branches" — there is one production build.)
+**GitHub Actions secrets** (read by `.github/workflows/deploy.yml` at build time):
+
+| Secret                              | Source                                                                                                                                                                                        |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `FIREBASE_SERVICE_ACCOUNT_JSON_B64` | `base64 -i scripts/service-account.json` — the encoded JSON of a service account with Firebase Admin / Hosting deploy permissions on `spirieventsvbg`. The workflow decodes it at build time. |
+
+Set them in GitHub → repo → Settings → Secrets and variables → Actions.
 
 ### Manual refresh (fallback)
 
