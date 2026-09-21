@@ -148,4 +148,17 @@ describe('RichTextEditor', () => {
       expect(lastCall).toContain('https://firebasestorage.googleapis.com/v0/b/x/o/photo.jpg');
     });
   });
+
+  it('places the editable surface before the toolbar in DOM order so Tab from a preceding field lands in the editor first', async () => {
+    const { container } = render(<RichTextEditor value="<p>x</p>" onChange={() => {}} />);
+    await waitForEditor();
+
+    const surface = container.querySelector('.rte-editor-surface');
+    const toolbar = container.querySelector('.rte-toolbar');
+    expect(surface).toBeInTheDocument();
+    expect(toolbar).toBeInTheDocument();
+
+    const surfacePos = surface.compareDocumentPosition(toolbar);
+    expect(surfacePos & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
 });
