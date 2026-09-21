@@ -11,6 +11,7 @@ import LegalPage from './pages/LegalPage';
 import EventDetailPage from './pages/EventDetailPage';
 import ProfilePage from './pages/ProfilePage';
 import ThemeEditorPage from './pages/ThemeEditorPage';
+import PublicProfilePage from './pages/PublicProfilePage';
 import AboutPage from './pages/AboutPage';
 import SpendenPage from './pages/SpendenPage';
 import SpendenDankePage from './pages/SpendenDankePage';
@@ -48,6 +49,7 @@ function AppContent() {
             <Route path="/" element={<CalendarPage />} />
             <Route path="/calendar" element={<Navigate to="/" replace />} />
             <Route path="/event/:slug" element={<EventDetailPage />} />
+            <Route path="/veranstalter/:uid" element={<PublicProfilePage />} />
             <Route path="/ueber-uns" element={<AboutPage />} />
             <Route path="/spenden" element={<SpendenPage />} />
             <Route path="/spenden/danke" element={<SpendenDankePage />} />

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { doc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { splitProfileData } from '../utils/profile';
 
 export const NOTIFICATION_PREFERENCE_KEYS = [
   'notifyOnSubmitted',
@@ -98,14 +99,24 @@ export function useProfile(uid) {
   const save = async (updates) => {
     if (!uid) throw new Error('Cannot save profile without a uid');
     const profileRef = doc(db, 'users', uid);
+    const publicProfileRef = doc(db, 'users', uid, 'publicProfile', 'data');
+    const updatedAt = serverTimestamp();
     const payload = {
       ...updates,
-      updatedAt: serverTimestamp(),
+      updatedAt,
     };
     if (!exists) {
       payload.createdAt = serverTimestamp();
     }
-    await setDoc(profileRef, payload, { merge: true });
+    const { publicDoc } = splitProfileData(updates);
+    const publicPayload = {
+      ...publicDoc,
+      updatedAt,
+    };
+    const batch = writeBatch(db);
+    batch.set(profileRef, payload, { merge: true });
+    batch.set(publicProfileRef, publicPayload, { merge: true });
+    await batch.commit();
   };
 
   return {

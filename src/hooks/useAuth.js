@@ -17,7 +17,8 @@ import {
   sendEmailVerification,
   sendPasswordResetEmail,
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, deleteDoc, writeBatch } from 'firebase/firestore';
+import { splitProfileData } from '../utils/profile';
 import { ref as storageRef, listAll, deleteObject } from 'firebase/storage';
 import { auth, db, storage } from '../lib/firebase';
 import {
@@ -94,22 +95,26 @@ async function checkFirestoreAdminRole(user) {
 async function seedProfileDoc(user, displayName, photoURL) {
   try {
     const profileRef = doc(db, 'users', user.uid);
+    const publicProfileRef = doc(db, 'users', user.uid, 'publicProfile', 'data');
     const fallbackName =
       displayName || user.displayName || (user.email ? user.email.split('@')[0] : '');
     const fallbackPhoto = photoURL || user.photoURL || null;
-    await setDoc(
-      profileRef,
-      {
-        displayName: fallbackName,
-        bio: '',
-        website: '',
-        contact: user.email || '',
-        photoURL: fallbackPhoto,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      },
-      { merge: true }
-    );
+    const now = serverTimestamp();
+    const privatePayload = {
+      displayName: fallbackName,
+      bio: '',
+      website: '',
+      contact: user.email || '',
+      photoURL: fallbackPhoto,
+      createdAt: now,
+      updatedAt: now,
+    };
+    const { publicDoc } = splitProfileData(privatePayload);
+    const publicPayload = { ...publicDoc, updatedAt: now };
+    const batch = writeBatch(db);
+    batch.set(profileRef, privatePayload, { merge: true });
+    batch.set(publicProfileRef, publicPayload, { merge: true });
+    await batch.commit();
   } catch (err) {
     console.warn('Failed to seed profile doc:', err);
   }
@@ -312,7 +317,10 @@ export function useAuth() {
     }
 
     try {
-      await deleteDoc(doc(db, 'users', uid));
+      const batch = writeBatch(db);
+      batch.delete(doc(db, 'users', uid, 'publicProfile', 'data'));
+      batch.delete(doc(db, 'users', uid));
+      await batch.commit();
     } catch (err) {
       console.warn('Failed to delete profile doc:', err);
     }

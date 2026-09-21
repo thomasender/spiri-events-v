@@ -476,6 +476,45 @@ describe('EventDetailPage — organizer profile photo', () => {
   });
 });
 
+describe('EventDetailPage — organizer link to public profile (k9CYVFsc)', () => {
+  it('renders organizer name as a link to /veranstalter/:uid when createdBy is set', async () => {
+    renderPage();
+    expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
+
+    const link = screen.getByTestId('organizer-link');
+    expect(link).toBeInTheDocument();
+    expect(link.tagName).toBe('A');
+    expect(link).toHaveAttribute('href', '/veranstalter/other-user-uid');
+    expect(link).toHaveTextContent('Anna Schmidt');
+  });
+
+  it('renders organizer name as plain text when createdBy is missing', async () => {
+    const { createdBy, ...eventWithoutCreator } = foreignEvent;
+    mockFirestoreDoc.getDocResult = {
+      id: foreignEvent.id,
+      data: eventWithoutCreator,
+    };
+
+    renderPage();
+    expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
+
+    expect(screen.getByTestId('event-organizer')).toBeInTheDocument();
+    expect(screen.queryByTestId('organizer-link')).toBeNull();
+  });
+
+  it('does not render an organizer block at all when the organizer name is missing', async () => {
+    mockFirestoreDoc.getDocResult = {
+      id: foreignEvent.id,
+      data: { ...foreignEvent, organizer: { email: 'anon@example.com' } },
+    };
+
+    renderPage();
+    expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
+
+    expect(screen.queryByTestId('event-organizer')).toBeNull();
+  });
+});
+
 describe('EventDetailPage — back navigation from admin drafts', () => {
   it('shows "Zurück zur Verwaltung" pointing at /admin?tab=drafts when state.from is /admin?tab=drafts', async () => {
     renderPageWithState('/admin?tab=drafts');
