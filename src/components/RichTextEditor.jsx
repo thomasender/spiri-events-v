@@ -227,6 +227,23 @@ function RichTextEditor({
 
   return (
     <div className={`rte-wrapper${hasError ? ' rte-wrapper--error' : ''}`} data-testid={testId}>
+      <EditorContent editor={editor} className="rte-editor-surface" />
+
+      <div className={`rte-counter${overLimit ? ' rte-counter--over' : ''}`}>
+        {plainLength} / {maxLength} Zeichen
+      </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        onChange={handleImageFileChange}
+        className="rte-image-file-input"
+        data-testid="description-image-input"
+        aria-hidden="true"
+        tabIndex={-1}
+      />
+
       <div className="rte-toolbar" role="toolbar" aria-label="Formatierung">
         <ToolbarButton
           label="Fett (Strg+B)"
@@ -275,17 +292,6 @@ function RichTextEditor({
         </ToolbarButton>
       </div>
 
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        onChange={handleImageFileChange}
-        className="rte-image-file-input"
-        data-testid="description-image-input"
-        aria-hidden="true"
-        tabIndex={-1}
-      />
-
       {linkOpen && (
         <LinkPopover
           initialUrl={linkInitial}
@@ -304,12 +310,6 @@ function RichTextEditor({
           {imageError}
         </div>
       )}
-
-      <EditorContent editor={editor} className="rte-editor-surface" />
-
-      <div className={`rte-counter${overLimit ? ' rte-counter--over' : ''}`}>
-        {plainLength} / {maxLength} Zeichen
-      </div>
     </div>
   );
 }
