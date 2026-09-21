@@ -20,7 +20,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { doc, getDoc, setDoc, serverTimestamp, deleteDoc, writeBatch } from 'firebase/firestore';
 import { splitProfileData } from '../utils/profile';
 import { ref as storageRef, listAll, deleteObject } from 'firebase/storage';
-import { auth, db, storage } from '../lib/firebase';
+import { auth, db, storage, functions } from '../lib/firebase';
 import {
   checkRateLimit,
   recordRateLimitAttempt,
@@ -213,7 +213,6 @@ export function useAuth() {
     if (!targetUser) {
       throw { code: 'auth/no-current-user', message: 'Kein angemeldeter Benutzer.' };
     }
-    const functions = getFunctions();
     const fn = httpsCallable(functions, 'sendVerificationEmail');
     await fn({ userId: targetUser.uid });
   };
