@@ -415,17 +415,26 @@ async function seedAdminUser(uid, email) {
 }
 
 async function seedUserProfile(uid, user) {
-  const ref = db.collection('users').doc(uid);
-  await ref.set(
-    {
-      displayName: user.displayName || '',
-      bio: '',
-      website: '',
-      contact: user.email || '',
-      photoURL: user.photoURL || null,
-    },
-    { merge: true }
-  );
+  const privateData = {
+    displayName: user.displayName || '',
+    bio: '',
+    website: '',
+    contact: user.email || '',
+    photoURL: user.photoURL || null,
+  };
+  await db.collection('users').doc(uid).set(privateData, { merge: true });
+  const publicData = {
+    displayName: privateData.displayName,
+    bio: privateData.bio,
+    website: privateData.website,
+    photoURL: privateData.photoURL,
+  };
+  await db
+    .collection('users')
+    .doc(uid)
+    .collection('publicProfile')
+    .doc('data')
+    .set(publicData, { merge: true });
   console.log(`  Created user profile: ${user.email} (${uid})`);
 }
 

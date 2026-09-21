@@ -124,6 +124,35 @@ service cloud.firestore {
                                   'updatedAt']);
 
       allow delete: if isAuthenticated() && request.auth.uid == uid;
+
+      // Public profile subdoc: mirrors only the public-safe fields
+      // (displayName, bio, website, photoURL) so anyone can render a
+      // organizer's "Veranstalter" page via the public `/veranstalter/:uid`
+      // route without exposing `contact`, `notifyOn*`, or the user's
+      // identity-bound email. Only the owner can write — the client
+      // mirrors this from the parent profile doc on save.
+      match /publicProfile/{docId} {
+        allow read: if true;
+
+        allow create: if isAuthenticated()
+                      && request.auth.uid == uid
+                      && request.resource.data.keys().hasOnly(
+                        ['displayName', 'bio', 'website', 'photoURL',
+                         'updatedAt']
+                      )
+                      && request.resource.data.bio.size() <= 500
+                      && request.resource.data.displayName.size() <= 80;
+
+        allow update: if isAuthenticated()
+                      && request.auth.uid == uid
+                      && request.resource.data.bio.size() <= 500
+                      && request.resource.data.displayName.size() <= 80
+                      && request.resource.data.diff(resource.data).affectedKeys()
+                          .hasOnly(['displayName', 'bio', 'website', 'photoURL',
+                                    'updatedAt']);
+
+        allow delete: if isAuthenticated() && request.auth.uid == uid;
+      }
     }
 
     // Categories registry — admins manage name + color, the calendar reads

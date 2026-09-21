@@ -211,6 +211,10 @@
   flex-wrap: wrap;
 }
 
+.organizer-link {
+  width: fit-content;
+}
+
 .organizer-photo {
   width: 28px;
   height: 28px;

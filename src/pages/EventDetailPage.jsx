@@ -22,6 +22,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useEvents } from '../hooks/useEvents';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
 import { getOrganizerName } from '../utils/eventFormat';
+import { getOrganizerProfilePath } from '../utils/profile';
 import { canEditEvent, canDeleteEvent } from '../utils/eventPermissions';
 import { parseContactText } from '../utils/contactFormat';
 import { getNextUpcomingOccurrence, getRecurrenceDatesForDetail } from '../utils/eventOccurrences';
@@ -601,17 +602,34 @@ export default function EventDetailPage() {
             <User size={18} className="detail-icon" />
             <div>
               <span className="detail-label">Veranstalter</span>
-              <span className="detail-value organizer-value">
-                {event.organizer.photoURL && (
-                  <img
-                    src={event.organizer.photoURL}
-                    alt=""
-                    className="organizer-photo"
-                    data-testid="organizer-photo"
-                  />
-                )}
-                <span>{getOrganizerName(event)}</span>
-              </span>
+              {(() => {
+                const profilePath = getOrganizerProfilePath(event.createdBy);
+                const organizerContent = (
+                  <>
+                    {event.organizer.photoURL && (
+                      <img
+                        src={event.organizer.photoURL}
+                        alt=""
+                        className="organizer-photo"
+                        data-testid="organizer-photo"
+                      />
+                    )}
+                    <span>{getOrganizerName(event)}</span>
+                  </>
+                );
+                if (profilePath) {
+                  return (
+                    <Link
+                      to={profilePath}
+                      className="detail-value organizer-value organizer-link detail-link"
+                      data-testid="organizer-link"
+                    >
+                      {organizerContent}
+                    </Link>
+                  );
+                }
+                return <span className="detail-value organizer-value">{organizerContent}</span>;
+              })()}
             </div>
           </div>
         )}
