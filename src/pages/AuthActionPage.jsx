@@ -5,6 +5,7 @@ import { auth, functions } from '../lib/firebase';
 import { httpsCallable } from 'firebase/functions';
 import { useAuth } from '../hooks/useAuth';
 import SeoMeta from '../components/SeoMeta';
+import './AuthActionPage.css';
 
 const STATUS = {
   APPLYING: 'applying',
