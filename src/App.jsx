@@ -50,12 +50,13 @@ function AppContent() {
             <Route path="/" element={<CalendarPage />} />
             <Route path="/calendar" element={<Navigate to="/" replace />} />
             <Route path="/event/:slug" element={<EventDetailPage />} />
-            <Route path="/veranstalter/:uid" element={<PublicProfilePage />} />
             <Route path="/ueber-uns" element={<AboutPage />} />
             <Route path="/spenden" element={<SpendenPage />} />
             <Route path="/spenden/danke" element={<SpendenDankePage />} />
             <Route path="/auth-action" element={<AuthActionPage />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/datenschutz" element={<LegalPage page="datenschutz" />} />
+            <Route path="/impressum" element={<LegalPage page="impressum" />} />
             <Route
               path="/admin"
               element={
@@ -96,7 +97,7 @@ function AppContent() {
                 </ProtectedRoute>
               }
             />
-            <Route path="/:page" element={<LegalPage />} />
+            <Route path="/:slug" element={<PublicProfilePage />} />
             <Route path="*" element={<ErrorPage type="not-found" />} />
           </Routes>
         </ErrorBoundary>

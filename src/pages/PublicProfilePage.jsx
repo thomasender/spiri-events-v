@@ -1,7 +1,11 @@
-import { Link, useParams } from 'react-router-dom';
-import { ExternalLink } from 'lucide-react';
+import { useEffect } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, ExternalLink, Pencil } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
+import ShareButton from '../components/ShareButton';
+import OrganizerEvents from '../components/OrganizerEvents';
 import { usePublicProfile } from '../hooks/usePublicProfile';
+import { useAuth } from '../hooks/useAuth';
 import './PublicProfilePage.css';
 
 function normalizeWebsite(url) {
@@ -12,19 +16,43 @@ function normalizeWebsite(url) {
   return `https://${trimmed}`;
 }
 
+function buildProfileShareUrl(slug) {
+  if (typeof window === 'undefined' || !slug) return '';
+  return `${window.location.origin}/${slug}`;
+}
+
 export default function PublicProfilePage() {
-  const { uid } = useParams();
-  const { profile, loading, exists } = usePublicProfile(uid);
+  const { slug } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { profile, loading, exists, uid } = usePublicProfile(slug);
+
+  const isOwnProfile = Boolean(user && uid && user.uid === uid);
+  const showOrganizerEvents = Boolean(exists && uid);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.scrollTo(0, 0);
+  }, [slug]);
 
   const seoTitle = profile?.displayName ? `${profile.displayName} – Veranstalter` : 'Veranstalter';
   const seoDescription = profile?.bio
     ? profile.bio.slice(0, 160)
     : 'Profilseite des Veranstalters auf tribe Vorarlberg.';
+  const seoPath = `/${slug}`;
+
+  const handleBack = () => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate('/', { replace: true });
+    }
+  };
 
   if (loading) {
     return (
       <>
-        <SeoMeta title={seoTitle} description={seoDescription} path={`/veranstalter/${uid}`} />
+        <SeoMeta title={seoTitle} description={seoDescription} path={seoPath} />
         <div className="page-container public-profile-page" data-testid="public-profile-loading">
           <div className="loading-spinner" />
         </div>
@@ -38,7 +66,7 @@ export default function PublicProfilePage() {
         <SeoMeta
           title="Veranstalter-Profil nicht verfügbar"
           description="Für diesen Veranstalter ist kein öffentliches Profil hinterlegt."
-          path={`/veranstalter/${uid}`}
+          path={seoPath}
         />
         <div className="page-container public-profile-page" data-testid="public-profile-not-found">
           <div className="public-profile-card">
@@ -47,9 +75,20 @@ export default function PublicProfilePage() {
             <p className="public-profile-message">
               Für diesen Veranstalter ist aktuell kein öffentliches Profil hinterlegt.
             </p>
-            <Link to="/" className="btn btn-primary" data-testid="public-profile-back">
-              Zurück zur Startseite
-            </Link>
+            <div className="public-profile-actions">
+              <button
+                type="button"
+                className="btn btn-secondary public-profile-back-btn"
+                onClick={handleBack}
+                data-testid="public-profile-back"
+              >
+                <ArrowLeft size={18} aria-hidden="true" />
+                <span>Zurück</span>
+              </button>
+              <Link to="/" className="btn btn-primary" data-testid="public-profile-home">
+                Zur Startseite
+              </Link>
+            </div>
           </div>
         </div>
       </>
@@ -59,16 +98,47 @@ export default function PublicProfilePage() {
   const website = normalizeWebsite(profile.website);
   const hasBio = profile.bio && profile.bio.trim().length > 0;
   const hasWebsite = website.length > 0;
+  const shareUrl = buildProfileShareUrl(slug);
 
   return (
     <>
-      <SeoMeta
-        title={seoTitle}
-        description={seoDescription}
-        path={`/veranstalter/${uid}`}
-        type="profile"
-      />
+      <SeoMeta title={seoTitle} description={seoDescription} path={seoPath} type="profile" />
       <div className="page-container public-profile-page" data-testid="public-profile-page">
+        <div className="public-profile-toolbar">
+          <button
+            type="button"
+            className="public-profile-toolbar-btn"
+            onClick={handleBack}
+            aria-label="Zurück zur vorherigen Seite"
+            data-testid="public-profile-back-top"
+          >
+            <ArrowLeft size={18} aria-hidden="true" />
+            <span>Zurück</span>
+          </button>
+          <div className="public-profile-toolbar-actions">
+            {isOwnProfile && (
+              <Link
+                to="/profil"
+                className="public-profile-toolbar-btn"
+                aria-label="Profil bearbeiten"
+                data-testid="public-profile-edit"
+              >
+                <Pencil size={18} aria-hidden="true" />
+                <span>Bearbeiten</span>
+              </Link>
+            )}
+            <ShareButton
+              url={shareUrl}
+              title={profile.displayName}
+              dialogTitle="Profil teilen"
+              triggerLabel="Teilen"
+              ariaLabel="Profil teilen"
+              testId="public-profile-share"
+              subtle
+            />
+          </div>
+        </div>
+
         <article className="public-profile-card">
           <span className="public-profile-eyebrow">Veranstalter</span>
 
@@ -112,6 +182,12 @@ export default function PublicProfilePage() {
             </a>
           )}
         </article>
+
+        {showOrganizerEvents && (
+          <div className="public-profile-events" data-testid="public-profile-events-wrapper">
+            <OrganizerEvents organizerUid={uid} organizerName={profile.displayName} />
+          </div>
+        )}
       </div>
     </>
   );

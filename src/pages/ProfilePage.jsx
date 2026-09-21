@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
 import ProfileForm from '../components/ProfileForm';
@@ -11,6 +12,18 @@ export default function ProfilePage() {
   const { user, role, changeEmail, deleteAccount, isGoogleUser } = useAuth();
   const { profile, notificationPreferences, loading: profileLoading, save } = useProfile(user?.uid);
   const isAdmin = role === 'Admin';
+  const navigate = useNavigate();
+
+  const handleProfileSave = async (updates) => {
+    const newSlug = await save(updates);
+    if (newSlug) {
+      window.setTimeout(() => navigate(`/${newSlug}`), 1500);
+    }
+  };
+
+  const handlePreferencesSave = async (updates) => {
+    await save(updates);
+  };
 
   if (!user) {
     return (
@@ -39,12 +52,12 @@ export default function ProfilePage() {
           <p>Verwalte deine persönlichen Daten und dein Konto.</p>
         </div>
 
-        <ProfileForm profile={profile} uid={user.uid} onSave={save} />
+        <ProfileForm profile={profile} uid={user.uid} onSave={handleProfileSave} />
 
         <NotificationPreferencesCard
           preferences={notificationPreferences}
           isAdmin={isAdmin}
-          onSave={save}
+          onSave={handlePreferencesSave}
         />
 
         <ChangeEmailForm

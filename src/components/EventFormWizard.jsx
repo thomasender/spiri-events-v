@@ -568,6 +568,7 @@ export default function EventFormWizard() {
       email: formData.organizer.email.trim(),
       photoURL: profile?.photoURL || null,
     },
+    organizerSlug: profile?.slug || '',
     kontakt: formData.kontakt.trim(),
     imageUrl: null,
     status,

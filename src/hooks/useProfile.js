@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { doc, onSnapshot, setDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { splitProfileData } from '../utils/profile';
+import { findUniqueProfileSlug, slugifyName } from '../lib/slug';
 
 export const NOTIFICATION_PREFERENCE_KEYS = [
   'notifyOnSubmitted',
@@ -23,6 +24,7 @@ const EMPTY_PROFILE = {
   website: '',
   contact: '',
   photoURL: null,
+  slug: '',
   createdAt: null,
   updatedAt: null,
 };
@@ -45,6 +47,7 @@ function normalize(data) {
     website: data.website || '',
     contact: data.contact || '',
     photoURL: data.photoURL || null,
+    slug: data.slug || '',
     createdAt: data.createdAt || null,
     updatedAt: data.updatedAt || null,
   };
@@ -101,8 +104,17 @@ export function useProfile(uid) {
     const profileRef = doc(db, 'users', uid);
     const publicProfileRef = doc(db, 'users', uid, 'publicProfile', 'data');
     const updatedAt = serverTimestamp();
+
+    const currentSlug = profile?.slug || '';
+    const desiredSlug = slugifyName(updates.displayName);
+    let nextSlug = currentSlug;
+    if (!currentSlug || slugifyName(profile?.displayName) !== desiredSlug) {
+      nextSlug = await findUniqueProfileSlug(updates.displayName, uid);
+    }
+
     const payload = {
       ...updates,
+      slug: nextSlug,
       updatedAt,
     };
     if (!exists) {
@@ -111,12 +123,14 @@ export function useProfile(uid) {
     const { publicDoc } = splitProfileData(updates);
     const publicPayload = {
       ...publicDoc,
+      slug: nextSlug,
       updatedAt,
     };
     const batch = writeBatch(db);
     batch.set(profileRef, payload, { merge: true });
     batch.set(publicProfileRef, publicPayload, { merge: true });
     await batch.commit();
+    return nextSlug;
   };
 
   return {

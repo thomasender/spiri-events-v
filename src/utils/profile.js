@@ -1,4 +1,4 @@
-export const PUBLIC_PROFILE_FIELDS = ['displayName', 'bio', 'website', 'photoURL'];
+export const PUBLIC_PROFILE_FIELDS = ['displayName', 'bio', 'website', 'photoURL', 'slug'];
 
 export const BIO_MAX = 500;
 export const DISPLAY_NAME_MAX = 80;
@@ -26,7 +26,7 @@ export function buildPublicProfileDoc(publicDoc, { updatedAt } = {}) {
   };
 }
 
-export function getOrganizerProfilePath(uid) {
-  if (!uid || typeof uid !== 'string') return null;
-  return `/veranstalter/${uid}`;
+export function getOrganizerProfilePath(slug) {
+  if (!slug || typeof slug !== 'string') return null;
+  return `/${slug}`;
 }

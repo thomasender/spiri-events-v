@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { describe, it, expect } from 'vitest';
 import LegalPage from '../../src/pages/LegalPage';
@@ -12,13 +12,11 @@ import LegalPage from '../../src/pages/LegalPage';
  * needs neither a browser nor Firebase, so it lives here instead of costing a
  * Playwright run in two engines.
  */
-function renderLegalPage(page: string) {
+function renderLegalPage(page: 'datenschutz' | 'impressum') {
   return render(
     <HelmetProvider>
-      <MemoryRouter initialEntries={[`/${page}`]}>
-        <Routes>
-          <Route path="/:page" element={<LegalPage />} />
-        </Routes>
+      <MemoryRouter>
+        <LegalPage page={page} />
       </MemoryRouter>
     </HelmetProvider>
   );

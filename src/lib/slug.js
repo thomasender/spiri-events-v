@@ -1,4 +1,4 @@
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, collectionGroup, query, where, getDocs } from 'firebase/firestore';
 import { db } from './firebase';
 
 export function generateSlug(title, place, date) {
@@ -48,4 +48,45 @@ async function slugExists(slug) {
 
 export function isLegacyId(id) {
   return id && !id.includes('-') && id.length > 15;
+}
+
+export function slugifyName(name) {
+  if (!name) return '';
+  return String(name)
+    .toLowerCase()
+    .trim()
+    .replace(/ä/g, 'ae')
+    .replace(/ö/g, 'oe')
+    .replace(/ü/g, 'ue')
+    .replace(/ß/g, 'ss')
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+export async function findUniqueProfileSlug(displayName, currentUid) {
+  const baseSlug = slugifyName(displayName) || 'veranstalter';
+  let slug = baseSlug;
+  let counter = 2;
+
+  while (await profileSlugTakenByOther(slug, currentUid)) {
+    slug = `${baseSlug}-${counter}`;
+    counter++;
+  }
+
+  return slug;
+}
+
+async function profileSlugTakenByOther(slug, currentUid) {
+  try {
+    const q = query(collectionGroup(db, 'publicProfile'), where('slug', '==', slug));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.some((doc) => {
+      const ownerUid = doc.ref.parent.parent?.id;
+      return ownerUid && ownerUid !== currentUid;
+    });
+  } catch (err) {
+    console.error('profileSlugTakenByOther error:', err.code, err.message);
+    throw err;
+  }
 }

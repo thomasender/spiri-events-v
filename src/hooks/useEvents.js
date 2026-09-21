@@ -221,6 +221,7 @@ export function useEvents(user) {
       organizer: source.organizer
         ? { ...source.organizer }
         : { name: '', email: '', photoURL: null },
+      organizerSlug: source.organizerSlug || '',
       kontakt: source.kontakt || '',
       imageUrl: source.imageUrl || null,
       status: 'draft',

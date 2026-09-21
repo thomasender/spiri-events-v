@@ -1,9 +1,54 @@
 .public-profile-page {
   min-height: calc(100vh - 72px);
-  padding: 48px 24px;
+  padding: 24px 24px 48px;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
   background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+}
+
+.public-profile-toolbar {
+  width: 100%;
+  max-width: 1080px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.public-profile-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  background-color: transparent;
+  color: var(--text-secondary);
+  border: 1px solid transparent;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.public-profile-toolbar-btn:hover {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+
+.public-profile-toolbar-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  border-color: var(--accent-primary);
+}
+
+.public-profile-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .public-profile-card {
@@ -18,6 +63,32 @@
   align-items: center;
   text-align: center;
   gap: 16px;
+}
+
+.public-profile-events {
+  width: 100%;
+  max-width: 1080px;
+}
+
+.public-profile-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.public-profile-back-btn {
+  background-color: var(--bg-secondary);
+  border-color: var(--border);
+}
+
+.public-profile-title {
+  font-family: var(--font-heading);
+  font-size: 1.6rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin: 0;
 }
 
 .public-profile-eyebrow {
@@ -80,7 +151,7 @@
 
 @media (max-width: 640px) {
   .public-profile-page {
-    padding: 32px 16px;
+    padding: 16px 16px 32px;
   }
 
   .public-profile-card {
@@ -95,5 +166,9 @@
 
   .public-profile-name {
     font-size: 1.6rem;
+  }
+
+  .public-profile-toolbar {
+    flex-wrap: wrap;
   }
 }
