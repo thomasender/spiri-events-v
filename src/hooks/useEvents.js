@@ -103,7 +103,12 @@ export function useEvents(user) {
   }, [user]);
 
   const addEvent = async (eventData, status = 'pending') => {
-    const slug = await findUniqueSlug(eventData.title, eventData.place, eventData.date);
+    const slug = await findUniqueSlug(
+      eventData.title,
+      eventData.category,
+      eventData.bezirk,
+      eventData.date
+    );
     return addDoc(collection(db, 'events'), {
       ...eventData,
       slug,
@@ -198,7 +203,12 @@ export function useEvents(user) {
     }
     const source = sourceSnap.data();
     const duplicatedTitle = `${source.title} (Kopie)`;
-    const slug = await findUniqueSlug(duplicatedTitle, source.place, source.date);
+    const slug = await findUniqueSlug(
+      duplicatedTitle,
+      source.category || 'Sonstiges',
+      source.bezirk || '',
+      source.date
+    );
     const duplicateData = {
       title: duplicatedTitle,
       date: source.date,

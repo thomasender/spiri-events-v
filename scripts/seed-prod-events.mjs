@@ -2,6 +2,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { generateEventSlug } from '../src/lib/slug-helpers.js';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyCMvCOUD27daEjYO2TKE5CB32fuMXRt0RA',
@@ -23,23 +24,6 @@ function makeDate(dayOffset, monthOffset = 0) {
   d.setDate(d.getDate() + dayOffset);
   d.setMonth(d.getMonth() + monthOffset);
   return d.toISOString().split('T')[0];
-}
-
-function generateSlug(title, place, date) {
-  const normalize = (str) =>
-    str
-      .toLowerCase()
-      .trim()
-      .replace(/[^\w\s-]/g, '')
-      .replace(/[\s_-]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-
-  const titleSlug = normalize(title);
-  const placeSlug = normalize(place);
-  const dateSlug = date ? date.replace(/-/g, '') : '';
-
-  const parts = [titleSlug, placeSlug, dateSlug].filter(Boolean);
-  return parts.join('-');
 }
 
 const ORGANIZERS = [
@@ -151,7 +135,7 @@ async function main() {
 
   for (let i = 0; i < builtEvents.length; i++) {
     const event = builtEvents[i];
-    const slug = generateSlug(event.title, event.place, event.date);
+    const slug = generateEventSlug(event.title, event.category, event.bezirk, event.date);
     await addDoc(collection(db, 'events'), {
       ...event,
       slug,

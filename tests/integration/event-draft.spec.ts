@@ -3,8 +3,8 @@ import { spawn } from 'child_process';
 import { signInWithEmailAndPassword, waitForCalendarToLoad } from '../helpers/auth';
 import { generateSlug } from '../helpers/slug';
 
-const USER_DRAFT_SLUG = generateSlug('User Draft Event', 'User Draft Place Dornbirn', 20);
-const USER_PENDING_SLUG = generateSlug('User Pending Event', 'Test Place Bludenz', 8);
+const USER_DRAFT_SLUG = generateSlug('User Draft Event', 'Meditation', 'Dornbirn', 20);
+const USER_PENDING_SLUG = generateSlug('User Pending Event', 'Sonstiges', 'Bludenz', 8);
 
 function runScript(scriptPath: string): Promise<void> {
   return new Promise((resolve, reject) => {

@@ -10,7 +10,7 @@ import { STORAGE_STATE } from '../helpers/roles';
 // instead of driving the login form in every test.
 test.use({ storageState: STORAGE_STATE.admin });
 
-const FOREIGN_PENDING_SLUG = generateSlug('User Pending Event', 'Test Place Bludenz', 8);
+const FOREIGN_PENDING_SLUG = generateSlug('User Pending Event', 'Sonstiges', 'Bludenz', 8);
 
 // admin-event-edit-delete.spec.ts permanently deletes this shared seed fixture as
 // part of its delete-flow tests; reset it here so this file passes regardless of

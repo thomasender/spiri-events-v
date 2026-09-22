@@ -9,7 +9,7 @@ import { STORAGE_STATE } from '../helpers/roles';
 // instead of driving the login form in every test.
 test.use({ storageState: STORAGE_STATE.user });
 
-const FOREIGN_PENDING_SLUG = generateSlug('Test Event With Messages', 'Test Place', 8);
+const FOREIGN_PENDING_SLUG = generateSlug('Test Event With Messages', 'Sonstiges', 'Bludenz', 8);
 
 async function resetMessageFixtures(): Promise<void> {
   await new Promise<void>((resolve, reject) => {

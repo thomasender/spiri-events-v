@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { generateEventSlug } from '../src/lib/slug-helpers.js';
 
 const FIRESTORE_EMULATOR = '127.0.0.1:8181';
 const AUTH_EMULATOR = 'http://127.0.0.1:9199';
@@ -22,23 +23,6 @@ function makeDate(dayOffset, monthOffset = 0) {
   d.setDate(d.getDate() + dayOffset);
   d.setMonth(d.getMonth() + monthOffset);
   return d.toISOString().split('T')[0];
-}
-
-function generateSlug(title, place, date) {
-  const normalize = (str) =>
-    str
-      .toLowerCase()
-      .trim()
-      .replace(/[^\w\s-]/g, '')
-      .replace(/[\s_-]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-
-  const titleSlug = normalize(title);
-  const placeSlug = normalize(place);
-  const dateSlug = date ? date.replace(/-/g, '') : '';
-
-  const parts = [titleSlug, placeSlug, dateSlug].filter(Boolean);
-  return parts.join('-');
 }
 
 const TEST_USERS = [
@@ -339,7 +323,7 @@ const TEST_EVENTS = [
 ];
 
 for (const event of TEST_EVENTS) {
-  event.slug = generateSlug(event.title, event.place, event.date);
+  event.slug = generateEventSlug(event.title, event.category, event.bezirk, event.date);
 }
 
 let createdUsers = {};
