@@ -106,10 +106,12 @@ export function useProfile(uid) {
     const updatedAt = serverTimestamp();
 
     const currentSlug = profile?.slug || '';
-    const desiredSlug = slugifyName(updates.displayName);
     let nextSlug = currentSlug;
-    if (!currentSlug || slugifyName(profile?.displayName) !== desiredSlug) {
-      nextSlug = await findUniqueProfileSlug(updates.displayName, uid);
+    if (updates.displayName !== undefined) {
+      const desiredSlug = slugifyName(updates.displayName);
+      if (!currentSlug || slugifyName(profile?.displayName) !== desiredSlug) {
+        nextSlug = await findUniqueProfileSlug(updates.displayName, uid);
+      }
     }
 
     const payload = {
@@ -121,14 +123,16 @@ export function useProfile(uid) {
       payload.createdAt = serverTimestamp();
     }
     const { publicDoc } = splitProfileData(updates);
-    const publicPayload = {
-      ...publicDoc,
-      slug: nextSlug,
-      updatedAt,
-    };
     const batch = writeBatch(db);
     batch.set(profileRef, payload, { merge: true });
-    batch.set(publicProfileRef, publicPayload, { merge: true });
+    if (Object.keys(publicDoc).length > 0 || nextSlug !== currentSlug) {
+      const publicPayload = {
+        ...publicDoc,
+        slug: nextSlug,
+        updatedAt,
+      };
+      batch.set(publicProfileRef, publicPayload, { merge: true });
+    }
     await batch.commit();
     return nextSlug;
   };
