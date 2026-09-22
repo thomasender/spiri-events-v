@@ -91,8 +91,11 @@ describe('Calendar', () => {
   });
 
   describe('Month Navigation', () => {
-    it('calls onMonthChange with previous month when prev button clicked', () => {
-      const testMonth = new Date(2024, 6, 1);
+    it('calls onMonthChange with previous month when prev button clicked (QveMKnvt)', () => {
+      // Use a future month so the prev button is enabled.
+      const future = new Date();
+      future.setMonth(future.getMonth() + 2);
+      const testMonth = new Date(future.getFullYear(), future.getMonth(), 1);
       render(
         <Calendar
           events={[]}
@@ -103,7 +106,9 @@ describe('Calendar', () => {
       );
       const prevButton = screen.getByTitle('Vorheriger Monat');
       fireEvent.click(prevButton);
-      expect(onMonthChange).toHaveBeenCalledWith(new Date(2024, 5, 1));
+      expect(onMonthChange).toHaveBeenCalledWith(
+        new Date(testMonth.getFullYear(), testMonth.getMonth() - 1, 1)
+      );
     });
 
     it('calls onMonthChange with next month when next button clicked', () => {
@@ -136,6 +141,92 @@ describe('Calendar', () => {
       const today = new Date();
       expect(onMonthChange).toHaveBeenCalledWith(
         new Date(today.getFullYear(), today.getMonth(), 1)
+      );
+    });
+
+    it('disables the prev button when viewing the current month (QveMKnvt)', () => {
+      const today = new Date();
+      const currentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      render(
+        <Calendar
+          events={[]}
+          onEventClick={onEventClick}
+          currentMonth={currentMonth}
+          onMonthChange={onMonthChange}
+        />
+      );
+      const prevButton = screen.getByTitle(/Im aktuellen Monat/);
+      expect(prevButton).toBeDisabled();
+    });
+
+    it('does not call onMonthChange when prev button is disabled at current month (QveMKnvt)', () => {
+      const today = new Date();
+      const currentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      render(
+        <Calendar
+          events={[]}
+          onEventClick={onEventClick}
+          currentMonth={currentMonth}
+          onMonthChange={onMonthChange}
+        />
+      );
+      const prevButton = screen.getByTitle(/Im aktuellen Monat/);
+      fireEvent.click(prevButton);
+      expect(onMonthChange).not.toHaveBeenCalled();
+    });
+
+    it('disables the prev button when viewing a past month (QveMKnvt)', () => {
+      const today = new Date();
+      const pastMonth = new Date(today.getFullYear(), today.getMonth() - 2, 1);
+      render(
+        <Calendar
+          events={[]}
+          onEventClick={onEventClick}
+          currentMonth={pastMonth}
+          onMonthChange={onMonthChange}
+        />
+      );
+      const prevButton = screen.getByTitle(/Im aktuellen Monat/);
+      expect(prevButton).toBeDisabled();
+    });
+
+    it('enables the prev button when viewing a future month (QveMKnvt)', () => {
+      const today = new Date();
+      const futureMonth = new Date(today.getFullYear(), today.getMonth() + 3, 1);
+      render(
+        <Calendar
+          events={[]}
+          onEventClick={onEventClick}
+          currentMonth={futureMonth}
+          onMonthChange={onMonthChange}
+        />
+      );
+      const prevButton = screen.getByTitle('Vorheriger Monat');
+      expect(prevButton).not.toBeDisabled();
+    });
+
+    it('enables the prev button across the year boundary in future (QveMKnvt)', () => {
+      // October, November, December → previous month is still in the same year.
+      // December → November is fine. To exercise the year boundary in the future
+      // path, use February of the next year: prev month is January of the next
+      // year, which is still in the future relative to a Jan-or-later "today".
+      const future = new Date();
+      // Pick a month that's at least 3 months ahead so we never land in the past.
+      future.setMonth(future.getMonth() + 4);
+      const testMonth = new Date(future.getFullYear(), future.getMonth(), 1);
+      render(
+        <Calendar
+          events={[]}
+          onEventClick={onEventClick}
+          currentMonth={testMonth}
+          onMonthChange={onMonthChange}
+        />
+      );
+      const prevButton = screen.getByTitle('Vorheriger Monat');
+      expect(prevButton).not.toBeDisabled();
+      fireEvent.click(prevButton);
+      expect(onMonthChange).toHaveBeenCalledWith(
+        new Date(testMonth.getFullYear(), testMonth.getMonth() - 1, 1)
       );
     });
   });

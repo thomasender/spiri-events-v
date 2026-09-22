@@ -98,6 +98,13 @@ export default function Calendar({
 
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
+  const today = new Date();
+  // The earliest navigable month is the calendar's current month. Going further
+  // back would only show past months, which are not displayed and would confuse
+  // users (e.g. a September view would otherwise be one click away from a
+  // ghost August with no events).
+  const canGoPrev =
+    year > today.getFullYear() || (year === today.getFullYear() && month > today.getMonth());
 
   // Close expanded day popover when clicking outside
   useEffect(() => {
@@ -131,6 +138,7 @@ export default function Calendar({
   const monthDays = useMemo(() => getMonthDays(year, month), [year, month]);
 
   const prevMonth = () => {
+    if (!canGoPrev) return;
     setSlideDirection('right');
     onMonthChange(new Date(year, month - 1, 1));
   };
@@ -156,7 +164,13 @@ export default function Calendar({
           <CalendarDays size={16} />
         </button>
         <div className="calendar-title">
-          <button onClick={prevMonth} className="btn-nav" title="Vorheriger Monat">
+          <button
+            onClick={prevMonth}
+            className="btn-nav"
+            title={canGoPrev ? 'Vorheriger Monat' : 'Im aktuellen Monat'}
+            aria-label="Vorheriger Monat"
+            disabled={!canGoPrev}
+          >
             <ChevronLeft size={18} />
           </button>
           <h2>

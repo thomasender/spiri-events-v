@@ -44,8 +44,17 @@ export default function EventsSection({
 
   const effectiveViewMode = isMobile ? 'card' : viewMode;
   const monthLabel = `${MONTHS[currentMonth.getMonth()]} ${currentMonth.getFullYear()}`;
+  // Past months are hidden from the public view, so navigating back from the
+  // current month would just land users on an empty month. Disable the back
+  // button at the current month to make that explicit.
+  const today = new Date();
+  const canGoPrev =
+    currentMonth.getFullYear() > today.getFullYear() ||
+    (currentMonth.getFullYear() === today.getFullYear() &&
+      currentMonth.getMonth() > today.getMonth());
 
   const goToPrevMonth = () => {
+    if (!canGoPrev) return;
     onMonthChange(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
   };
 
@@ -59,7 +68,13 @@ export default function EventsSection({
         <div className="events-section-month">
           <h2>{monthLabel}</h2>
           <div className="events-section-month-nav">
-            <button type="button" onClick={goToPrevMonth} aria-label="Vorheriger Monat">
+            <button
+              type="button"
+              onClick={goToPrevMonth}
+              aria-label="Vorheriger Monat"
+              title={canGoPrev ? 'Vorheriger Monat' : 'Im aktuellen Monat'}
+              disabled={!canGoPrev}
+            >
               <ChevronLeft size={18} />
             </button>
             <button type="button" onClick={goToNextMonth} aria-label="Nächster Monat">
