@@ -110,4 +110,5 @@ export const RATE_LIMIT_PRESETS = {
   donation: { maxAttempts: 5, windowMs: 10 * 60 * 1000 },
   feedback: { maxAttempts: 3, windowMs: 10 * 60 * 1000 },
   contact: { maxAttempts: 5, windowMs: 10 * 60 * 1000 },
+  passwordReset: { maxAttempts: 3, windowMs: 15 * 60 * 1000 },
 } as const;

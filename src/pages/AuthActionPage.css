@@ -55,3 +55,48 @@
   color: var(--text-secondary, #555);
   font-size: 14px;
 }
+
+.auth-action-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.auth-action-form label {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-secondary, #555);
+  text-align: left;
+  width: 100%;
+}
+
+.auth-action-form input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 6px;
+  font-size: 15px;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.auth-action-form input:focus {
+  outline: 2px solid #4a5d23;
+  outline-offset: 1px;
+}
+
+.auth-action-error {
+  color: #b00020;
+  font-size: 14px;
+}
+
+.auth-action-login-cta {
+  margin-top: 4px;
+  color: var(--text-secondary, #555);
+  font-size: 14px;
+}

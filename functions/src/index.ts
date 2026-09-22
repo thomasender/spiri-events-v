@@ -108,3 +108,4 @@ export { onEventStatusChanged, onEventCreated, onAdminMessageCreated } from './n
 export { onEventWriteTriggerBuild } from './triggerBuild';
 export { scheduledBuildTrigger } from './scheduledBuildTrigger';
 export { sendVerificationEmail } from './sendVerificationEmail';
+export { sendPasswordResetEmailFn } from './sendPasswordResetEmail';
