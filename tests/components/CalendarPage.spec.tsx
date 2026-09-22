@@ -252,3 +252,18 @@ describe('CalendarPage — "Mehr Filter" accordion auto-expand (W3OspPxk)', () =
     expect(accordion.open).toBe(false);
   });
 });
+
+describe('CalendarPage — empty events hint (DWz8EwMO)', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    mockUseAllEvents.events = [];
+    mockUseCategories.value = ['Yoga', 'Meditation'];
+  });
+
+  it('shows the filter-adjustment hint when no events match', () => {
+    renderPage();
+
+    expect(screen.getByText(/Keine Events mit dieser Auswahl gefunden/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Keine Events in diesem Monat gefunden/i)).toBeNull();
+  });
+});

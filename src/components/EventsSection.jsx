@@ -93,7 +93,7 @@ export default function EventsSection({
 
       {events.length === 0 ? (
         <div className="events-section-empty">
-          <p>Keine Events in diesem Monat gefunden.</p>
+          <p>Keine Events mit dieser Auswahl gefunden. Bitte passe deine Filter an.</p>
         </div>
       ) : effectiveViewMode === 'card' ? (
         <div className="events-section-grid">
