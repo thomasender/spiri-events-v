@@ -288,6 +288,66 @@ describe('prerender.mjs helpers', () => {
       expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
       expect(html).toContain('Place &amp; Co');
     });
+
+    it('loads the JS bundle so React can mount on a direct /event/<slug>/ visit (UDhvTSPq)', async () => {
+      const { generateEventHtml } = await importPrerender();
+      const html = generateEventHtml(sampleEvents[0], undefined, '/assets/index-AbCdEfGh.js');
+      // The script tag must come from the path the caller passed — otherwise
+      // Firebase Hosting serves the prerendered file with no React at all
+      // and visitors from messengers never see Header/Footer/SimilarEvents.
+      expect(html).toContain('<script type="module" src="/assets/index-AbCdEfGh.js"></script>');
+      // And the visible body must NOT carry the static event fragment;
+      // that fragment used to be the only thing the user saw because there
+      // was no JS to swap it out for the real React app.
+      const visibleBody = html.split('<noscript>')[0];
+      expect(visibleBody).not.toContain('class="event-detail-page"');
+      expect(visibleBody).toContain('class="prerender-loading"');
+    });
+
+    it('links the CSS bundle when provided (UDhvTSPq)', async () => {
+      const { generateEventHtml } = await importPrerender();
+      const html = generateEventHtml(
+        sampleEvents[0],
+        undefined,
+        '/assets/index-AbCdEfGh.js',
+        '/assets/index-AbCdEfGh.css'
+      );
+      expect(html).toContain('<link rel="stylesheet" href="/assets/index-AbCdEfGh.css" />');
+    });
+
+    it('keeps the static event fragment inside <noscript> when a JS bundle is provided (UDhvTSPq)', async () => {
+      const { generateEventHtml } = await importPrerender();
+      const html = generateEventHtml(sampleEvents[0], undefined, '/assets/index-AbCdEfGh.js');
+      const noscriptMatch = html.match(/<noscript>([\s\S]*?)<\/noscript>/);
+      expect(noscriptMatch).not.toBeNull();
+      expect(noscriptMatch[1]).toContain('class="event-detail-page"');
+      expect(noscriptMatch[1]).toContain(sampleEvents[0].title);
+      // The static fragment escapes HTML in the description so no-JS
+      // clients (the only ones who see this) get safe text. JS users see
+      // the React-rendered RichTextView instead.
+      const eventWithHtmlDescription = {
+        ...sampleEvents[0],
+        description: '<img src=x onerror=alert(1)>',
+      };
+      const htmlWithHtml = generateEventHtml(
+        eventWithHtmlDescription,
+        undefined,
+        '/assets/index-AbCdEfGh.js'
+      );
+      const noscriptWithHtml = htmlWithHtml.match(/<noscript>([\s\S]*?)<\/noscript>/);
+      expect(noscriptWithHtml[1]).toContain('&lt;img src=x onerror=alert(1)&gt;');
+      expect(noscriptWithHtml[1]).not.toContain('<img src=x onerror=alert(1)>');
+    });
+
+    it('keeps the historical static-only body when no JS bundle path is provided', async () => {
+      // Backward compatibility for any caller (or older test) that omits the
+      // bundle path — the visible body is the static fragment, no spinner.
+      const { generateEventHtml } = await importPrerender();
+      const html = generateEventHtml(sampleEvents[0]);
+      expect(html).not.toContain('<script type="module"');
+      expect(html).not.toContain('class="prerender-loading"');
+      expect(html).toContain('class="event-detail-page"');
+    });
   });
 
   describe('generateCalendarPageHtml', () => {
@@ -500,6 +560,43 @@ describe('prerender() end-to-end', () => {
     expect(indexHtml).toContain('/assets/index-AbCdEfGh.js');
     expect(indexHtml).toContain('/assets/index-AbCdEfGh.css');
     expect(indexHtml).not.toContain('RichTextEditor-');
+  });
+
+  it('wires the JS+CSS bundle into every event page so React mounts on a direct /event/<slug>/ visit (UDhvTSPq)', async () => {
+    writeJson(path.join(exportPath, 'events.json'), sampleEvents);
+    const { prerender } = await importPrerender();
+    await prerender({
+      rootDir: tmpRoot,
+      distPath,
+      exportPath,
+      skipFirestore: true,
+      skipRest: true,
+      skipAdmin: true,
+    });
+
+    for (const event of sampleEvents) {
+      const eventPath = event.slug || event.id;
+      const eventHtml = fs.readFileSync(
+        path.join(distPath, 'event', eventPath, 'index.html'),
+        'utf8'
+      );
+      // Without this tag, visitors who arrive via a messenger link never
+      // see the app Header/Footer/SimilarEvents — they get the static
+      // fragment only, with the description rendered as escaped markup.
+      expect(
+        eventHtml,
+        `${eventPath}: event page should reference the JS bundle so React can mount`
+      ).toContain('<script type="module" src="/assets/index-AbCdEfGh.js"></script>');
+      expect(eventHtml, `${eventPath}: event page should reference the CSS bundle`).toContain(
+        '<link rel="stylesheet" href="/assets/index-AbCdEfGh.css" />'
+      );
+      // And the visible body (everything outside <noscript>) must be the
+      // spinner — not the historical static event fragment, which would
+      // flash unstyled content before React swaps it out.
+      const visibleBody = eventHtml.split('<noscript>')[0];
+      expect(visibleBody).toContain('class="prerender-loading"');
+      expect(visibleBody).not.toContain('class="event-detail-page"');
+    }
   });
 
   it('emits a sitemap.xml with /event/<slug> URLs (not /event/<id>)', async () => {

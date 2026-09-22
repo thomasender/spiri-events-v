@@ -170,92 +170,18 @@ export function buildEventDescription(event) {
   return `${event.title} - ${category} in ${event.bezirk || 'Vorarlberg'}`
 }
 
-export function generateEventHtml(event, theme = THEME_FALLBACK) {
-  const jsonLd = generateEventJsonLd(event)
-  const isFree = event.contribution === 'free'
-  const formattedDate = formatDate(event.date)
-  const category = event.category || 'Sonstiges'
-  const description = buildEventDescription(event)
-  const ogImage = getEventOgImage(event)
-  const eventPath = getEventPath(event)
-  const eventUrl = `${BASE_URL}/event/${eventPath}`
-  const themeRoot = buildThemeRootBlock(theme)
-
-  return `<!DOCTYPE html>
-<html lang="de">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${escapeHtml(event.title)} | ${escapeHtml(SITE_NAME)}</title>
-  <meta name="description" content="${escapeHtml(description)}" />
-  <meta name="robots" content="index, follow" />
-  <link rel="canonical" href="${escapeHtml(eventUrl)}" />
-
-  <meta property="og:site_name" content="${escapeHtml(SITE_NAME)}" />
-  <meta property="og:type" content="event" />
-  <meta property="og:title" content="${escapeHtml(event.title)}" />
-  <meta property="og:description" content="${escapeHtml(description)}" />
-  <meta property="og:url" content="${escapeHtml(eventUrl)}" />
-  <meta property="og:locale" content="de_AT" />
-  <meta property="og:image" content="${escapeHtml(ogImage)}" />
-  <meta property="og:image:width" content="${OG_IMAGE_WIDTH}" />
-  <meta property="og:image:height" content="${OG_IMAGE_HEIGHT}" />
-  <meta property="og:image:alt" content="${escapeHtml(event.title)}" />
-
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="${escapeHtml(event.title)}" />
-  <meta name="twitter:description" content="${escapeHtml(description)}" />
-  <meta name="twitter:image" content="${escapeHtml(ogImage)}" />
-  <meta name="twitter:image:alt" content="${escapeHtml(event.title)}" />
-
-  <script type="application/ld+json">${escapeJson(jsonLd)}</script>
-
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Nunito+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
-
-  <style>
-    ${themeRoot}
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Nunito Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-      background-color: var(--bg-primary);
-      color: var(--text-primary);
-      line-height: 1.6;
-      min-height: 100vh;
-    }
-    h1, h2, h3 { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; line-height: 1.3; }
-    a { color: var(--accent-primary); text-decoration: none; transition: color 0.15s ease; }
-    a:hover { color: var(--accent-primary-hover); }
-    .event-detail-page { max-width: 800px; margin: 0 auto; padding: 40px 24px; }
-    .event-header { margin-bottom: 32px; }
-    .event-image { width: 100%; max-height: 400px; object-fit: cover; border-radius: var(--radius-md); margin-bottom: 24px; }
-    .event-title { font-size: 2.5rem; margin-bottom: 16px; color: var(--text-primary); }
-    .event-meta-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 16px; }
-    .category-chip { display: inline-flex; padding: 4px 12px; background-color: var(--chip-bg); color: var(--chip-text); border-radius: 16px; font-size: 0.8rem; font-weight: 500; }
-    .event-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 500; }
-    .badge--free { background-color: var(--free-bg); color: var(--free-text); }
-    .badge--fee { background-color: var(--fee-bg); color: var(--fee-text); }
-    .event-details { background: var(--bg-calendar); border-radius: var(--radius-md); padding: 24px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(22, 24, 25, 0.06); }
-    .detail-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
-    .detail-item:last-child { border-bottom: none; }
-    .detail-icon { color: var(--accent-primary); flex-shrink: 0; margin-top: 2px; }
-    .detail-label { display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 4px; }
-    .detail-value { font-size: 1rem; color: var(--text-primary); }
-    .event-description { margin-bottom: 24px; }
-    .event-description h3 { font-size: 1.3rem; margin-bottom: 12px; }
-    .event-description p { color: var(--text-secondary); white-space: pre-wrap; }
-    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 24px; border-radius: var(--radius-sm); font-size: 0.95rem; font-weight: 500; transition: all 0.15s ease; background-color: var(--accent-primary); color: white; }
-    .btn:hover { background-color: var(--accent-primary-hover); transform: translateY(-1px); box-shadow: 0 2px 8px rgba(22, 24, 25, 0.06); color: white; }
-    .back-link { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 24px; font-size: 0.9rem; }
-    .loading-spinner { display: flex; justify-content: center; align-items: center; padding: 48px; }
-    .loading-spinner::after { content: ''; width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent-primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-  </style>
-</head>
-<body>
-  <div id="root">
+// Renders the static event content (title, date, place, description, link)
+// as a self-contained HTML fragment. Used as the visible body when no JS
+// bundle path is known (the prerender ran without a `dist/assets/` folder —
+// only happens in tests), and as the <noscript> fallback for the very rare
+// no-JS client when a bundle path is provided. Note that `description` is
+// intentionally `escapeHtml`'d here: this fragment is for crawlers and
+// no-JS clients, both of whom prefer escaped markup to a raw HTML payload
+// that the platform can't safely style. JS users see the React-rendered
+// `EventDetailPage` instead, which uses `RichTextView` to render the
+// description as proper HTML.
+function buildEventStaticBody(event, isFree, category, formattedDate) {
+  return `
     <div class="event-detail-page">
       <a href="/" class="back-link">← Zurück zum Kalender</a>
 
@@ -320,8 +246,123 @@ export function generateEventHtml(event, theme = THEME_FALLBACK) {
       </a>
       ` : ''}
     </div>
-  </div>
-</body>
+  `
+}
+
+export function generateEventHtml(
+  event,
+  theme = THEME_FALLBACK,
+  jsBundlePath = null,
+  cssBundlePath = null
+) {
+  const jsonLd = generateEventJsonLd(event)
+  const isFree = event.contribution === 'free'
+  const formattedDate = formatDate(event.date)
+  const category = event.category || 'Sonstiges'
+  const description = buildEventDescription(event)
+  const ogImage = getEventOgImage(event)
+  const eventPath = getEventPath(event)
+  const eventUrl = `${BASE_URL}/event/${eventPath}`
+  const themeRoot = buildThemeRootBlock(theme)
+  const cssLink = cssBundlePath
+    ? `\n  <link rel="stylesheet" href="${escapeHtml(cssBundlePath)}" />`
+    : ''
+  const staticBody = buildEventStaticBody(event, isFree, category, formattedDate)
+
+  // When a JS bundle path is known we ship a `#root` with a spinner that
+  // React replaces with the full event page (Header, Footer, SimilarEvents,
+  // description rendered via `RichTextView`). The static event fragment
+  // moves into `<noscript>` as a fallback for the rare no-JS client. When
+  // no bundle path is known (prerender ran without `dist/assets/`) we keep
+  // the historical static body so the OG tags still preview sensibly.
+  // Without this split, visitors who arrive at `/event/<slug>/` via a
+  // messenger link get the static fragment only — no app chrome, no
+  // "Ähnliche Events", and the description shows raw escaped markup.
+  const body = jsBundlePath
+    ? `
+  <div id="root"><div class="prerender-loading" role="status" aria-live="polite" aria-label="Lädt Event"></div></div>
+  <noscript>${staticBody}</noscript>
+  <script type="module" src="${escapeHtml(jsBundlePath)}"></script>
+`
+    : `
+  <div id="root">${staticBody}</div>
+`
+
+  return `<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${escapeHtml(event.title)} | ${escapeHtml(SITE_NAME)}</title>
+  <meta name="description" content="${escapeHtml(description)}" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="${escapeHtml(eventUrl)}" />
+
+  <meta property="og:site_name" content="${escapeHtml(SITE_NAME)}" />
+  <meta property="og:type" content="event" />
+  <meta property="og:title" content="${escapeHtml(event.title)}" />
+  <meta property="og:description" content="${escapeHtml(description)}" />
+  <meta property="og:url" content="${escapeHtml(eventUrl)}" />
+  <meta property="og:locale" content="de_AT" />
+  <meta property="og:image" content="${escapeHtml(ogImage)}" />
+  <meta property="og:image:width" content="${OG_IMAGE_WIDTH}" />
+  <meta property="og:image:height" content="${OG_IMAGE_HEIGHT}" />
+  <meta property="og:image:alt" content="${escapeHtml(event.title)}" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="${escapeHtml(event.title)}" />
+  <meta name="twitter:description" content="${escapeHtml(description)}" />
+  <meta name="twitter:image" content="${escapeHtml(ogImage)}" />
+  <meta name="twitter:image:alt" content="${escapeHtml(event.title)}" />
+
+  <script type="application/ld+json">${escapeJson(jsonLd)}</script>
+
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Nunito+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />${cssLink}
+
+  <style>
+    ${themeRoot}
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Nunito Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    h1, h2, h3 { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; line-height: 1.3; }
+    a { color: var(--accent-primary); text-decoration: none; transition: color 0.15s ease; }
+    a:hover { color: var(--accent-primary-hover); }
+    .prerender-loading { display: flex; justify-content: center; align-items: center; padding: 48px 16px; min-height: 160px; }
+    .prerender-loading::after { content: ''; width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent-primary); border-radius: 50%; animation: prerender-spin 0.8s linear infinite; }
+    @keyframes prerender-spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .prerender-loading::after { animation-duration: 3s; } }
+    .event-detail-page { max-width: 800px; margin: 0 auto; padding: 40px 24px; }
+    .event-header { margin-bottom: 32px; }
+    .event-image { width: 100%; max-height: 400px; object-fit: cover; border-radius: var(--radius-md); margin-bottom: 24px; }
+    .event-title { font-size: 2.5rem; margin-bottom: 16px; color: var(--text-primary); }
+    .event-meta-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 16px; }
+    .category-chip { display: inline-flex; padding: 4px 12px; background-color: var(--chip-bg); color: var(--chip-text); border-radius: 16px; font-size: 0.8rem; font-weight: 500; }
+    .event-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 500; }
+    .badge--free { background-color: var(--free-bg); color: var(--free-text); }
+    .badge--fee { background-color: var(--fee-bg); color: var(--fee-text); }
+    .event-details { background: var(--bg-calendar); border-radius: var(--radius-md); padding: 24px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(22, 24, 25, 0.06); }
+    .detail-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .detail-item:last-child { border-bottom: none; }
+    .detail-icon { color: var(--accent-primary); flex-shrink: 0; margin-top: 2px; }
+    .detail-label { display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 4px; }
+    .detail-value { font-size: 1rem; color: var(--text-primary); }
+    .event-description { margin-bottom: 24px; }
+    .event-description h3 { font-size: 1.3rem; margin-bottom: 12px; }
+    .event-description p { color: var(--text-secondary); white-space: pre-wrap; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 24px; border-radius: var(--radius-sm); font-size: 0.95rem; font-weight: 500; transition: all 0.15s ease; background-color: var(--accent-primary); color: white; }
+    .btn:hover { background-color: var(--accent-primary-hover); transform: translateY(-1px); box-shadow: 0 2px 8px rgba(22, 24, 25, 0.06); color: white; }
+    .back-link { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 24px; font-size: 0.9rem; }
+  </style>
+</head>
+<body>${body}</body>
 </html>`
 }
 
@@ -930,6 +971,17 @@ export async function prerender({
   const skippedEvents = []
   const seenPaths = new Set()
 
+  // Resolve the JS/CSS bundle paths once, before generating event pages,
+  // so every `/event/<slug>/index.html` can ship the same bundle tags as
+  // the calendar index. Without the JS bundle the static event fragment is
+  // what the browser shows — no app chrome, no "Ähnliche Events", and the
+  // description renders as escaped markup. Resolving upfront lets the
+  // `generateEventHtml` call below wire React up the same way the calendar
+  // page already does.
+  const assetsPath = path.join(distPath, 'assets')
+  const jsBundlePath = fs.existsSync(assetsPath) ? findJsBundlePath(assetsPath) : null
+  const cssBundlePath = fs.existsSync(assetsPath) ? findCssBundlePath(assetsPath) : null
+
   for (const event of events) {
     const eventPath = getEventPath(event)
     if (!eventPath) {
@@ -944,7 +996,7 @@ export async function prerender({
 
     const eventDir = path.join(distPath, 'event', eventPath)
     ensureDir(eventDir)
-    const html = generateEventHtml(event, theme)
+    const html = generateEventHtml(event, theme, jsBundlePath, cssBundlePath)
     const filePath = path.join(eventDir, 'index.html')
     fs.writeFileSync(filePath, html)
     writtenFiles.push({ path: `/event/${eventPath}/index.html`, slug: eventPath, title: event.title })
@@ -958,10 +1010,7 @@ export async function prerender({
     }
   }
 
-  const assetsPath = path.join(distPath, 'assets')
-  if (fs.existsSync(assetsPath)) {
-    const jsBundlePath = findJsBundlePath(assetsPath)
-    const cssBundlePath = findCssBundlePath(assetsPath)
+  if (jsBundlePath && cssBundlePath) {
     const calendarHtml = generateCalendarPageHtml(events, jsBundlePath, cssBundlePath, theme)
     fs.writeFileSync(path.join(distPath, 'index.html'), calendarHtml)
     writtenFiles.push({ path: '/index.html', slug: null, title: SITE_NAME })
