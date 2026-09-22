@@ -1451,6 +1451,19 @@ export default function EventFormWizard() {
         details={
           'Da die Prüfung durch eine Person erfolgt, kann es etwas dauern, bis dein Event öffentlich sichtbar wird. Du kannst den Status jederzeit in deiner Verwaltung einsehen.'
         }
+        cta={
+          successState && !profile?.slug
+            ? {
+                text: 'Lege jetzt dein Profil an, damit andere dich als Veranstalter:in finden können.',
+                label: 'Profil ausfüllen',
+                onClick: () => {
+                  setSuccessState(null);
+                  setLoading(false);
+                  navigate('/profil');
+                },
+              }
+            : null
+        }
         confirmLabel="Zur Verwaltung"
         onConfirm={handleSuccessConfirm}
       />

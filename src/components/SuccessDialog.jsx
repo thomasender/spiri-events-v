@@ -7,6 +7,7 @@ export default function SuccessDialog({
   title,
   message,
   details,
+  cta,
   confirmLabel = 'Verstanden',
   onConfirm,
 }) {
@@ -51,6 +52,20 @@ export default function SuccessDialog({
           <p className="success-dialog-details" data-testid="success-dialog-details">
             {details}
           </p>
+        )}
+
+        {cta && (
+          <div className="success-dialog-cta" data-testid="success-dialog-cta">
+            <p className="success-dialog-cta-text">{cta.text}</p>
+            <button
+              type="button"
+              onClick={cta.onClick}
+              className="btn btn-secondary success-dialog-cta-button"
+              data-testid="success-dialog-cta-button"
+            >
+              {cta.label}
+            </button>
+          </div>
         )}
 
         <div className="confirm-actions">
