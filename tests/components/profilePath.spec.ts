@@ -3,7 +3,6 @@ import {
   getOrganizerProfilePath,
   splitProfileData,
   PUBLIC_PROFILE_FIELDS,
-  deriveOrganizerSlug,
   resolveOrganizerProfilePath,
 } from '../../src/utils/profile';
 
@@ -42,77 +41,86 @@ describe('splitProfileData', () => {
   });
 });
 
-describe('deriveOrganizerSlug (LjqWg0mD)', () => {
-  it('slugifies firstName + lastName from a legacy organizer object', () => {
-    expect(deriveOrganizerSlug({ firstName: 'Anna', lastName: 'Schmidt', email: 'a@x.com' })).toBe(
-      'anna-schmidt'
-    );
+describe('resolveOrganizerProfilePath (TYz5kp0d)', () => {
+  const annaEvent = {
+    createdBy: 'user-1',
+    organizer: { firstName: 'Anna', lastName: 'Schmidt', email: 'a@x.com' },
+  };
+
+  it('returns the profile path when the organizer name matches the profile displayName', () => {
+    const profile = { displayName: 'Anna Schmidt', slug: 'anna-schmidt' };
+    expect(resolveOrganizerProfilePath(annaEvent, profile)).toBe('/anna-schmidt');
   });
 
-  it('handles umlauts in the same way as profile slug generation', () => {
-    expect(deriveOrganizerSlug({ firstName: 'Lukas', lastName: 'Müller', email: 'l@x.com' })).toBe(
-      'lukas-mueller'
-    );
+  it('returns null when the organizer name differs from the profile displayName', () => {
+    const profile = { displayName: 'Anna Schmidt', slug: 'anna-schmidt' };
+    const mismatchedEvent = {
+      ...annaEvent,
+      organizer: { ...annaEvent.organizer, name: 'Yoga Studio Dornbirn' },
+    };
+    expect(resolveOrganizerProfilePath(mismatchedEvent, profile)).toBeNull();
   });
 
-  it('prefers organizer.name when present and non-empty', () => {
-    expect(
-      deriveOrganizerSlug({
+  it('matches via firstName + lastName when organizer.name is not set', () => {
+    const profile = { displayName: 'Lukas Müller', slug: 'lukas-mueller' };
+    const event = {
+      createdBy: 'user-2',
+      organizer: { firstName: 'Lukas', lastName: 'Müller', email: 'l@x.com' },
+    };
+    expect(resolveOrganizerProfilePath(event, profile)).toBe('/lukas-mueller');
+  });
+
+  it('prefers organizer.name over firstName + lastName when both are set', () => {
+    const profile = { displayName: 'Anna M. Schmidt', slug: 'anna-m-schmidt' };
+    const event = {
+      createdBy: 'user-1',
+      organizer: {
         firstName: 'Anna',
         lastName: 'Schmidt',
-        name: '  Anna M. Schmidt  ',
+        name: 'Anna M. Schmidt',
         email: 'a@x.com',
-      })
-    ).toBe('anna-m-schmidt');
+      },
+    };
+    expect(resolveOrganizerProfilePath(event, profile)).toBe('/anna-m-schmidt');
   });
 
-  it('falls back to firstName + lastName when organizer.name is empty', () => {
+  it('returns null when the profile is missing', () => {
+    expect(resolveOrganizerProfilePath(annaEvent, null)).toBeNull();
+    expect(resolveOrganizerProfilePath(annaEvent, undefined)).toBeNull();
+  });
+
+  it('returns null when the profile has no slug', () => {
+    const profile = { displayName: 'Anna Schmidt' };
+    expect(resolveOrganizerProfilePath(annaEvent, profile)).toBeNull();
+  });
+
+  it('returns null when the event has no createdBy (legacy event)', () => {
+    const profile = { displayName: 'Anna Schmidt', slug: 'anna-schmidt' };
     expect(
-      deriveOrganizerSlug({ firstName: 'Anna', lastName: 'Schmidt', name: '', email: 'a@x.com' })
-    ).toBe('anna-schmidt');
+      resolveOrganizerProfilePath(
+        { organizer: { firstName: 'Anna', lastName: 'Schmidt' } },
+        profile
+      )
+    ).toBeNull();
   });
 
-  it('returns null when no name fields are present', () => {
-    expect(deriveOrganizerSlug({ email: 'anon@x.com' })).toBeNull();
-  });
-
-  it('returns null for invalid input', () => {
-    expect(deriveOrganizerSlug(null)).toBeNull();
-    expect(deriveOrganizerSlug(undefined)).toBeNull();
-    expect(deriveOrganizerSlug('not-an-object')).toBeNull();
-    expect(deriveOrganizerSlug({ firstName: ' ', lastName: ' ' })).toBeNull();
-  });
-});
-
-describe('resolveOrganizerProfilePath (LjqWg0mD)', () => {
-  it('prefers the persisted organizerSlug when it is set', () => {
+  it('returns null when the event organizer has no usable name', () => {
+    const profile = { displayName: 'Anna Schmidt', slug: 'anna-schmidt' };
     expect(
-      resolveOrganizerProfilePath({
-        organizerSlug: 'anna-schmidt',
-        organizer: { firstName: 'Wrong', lastName: 'Name' },
-      })
-    ).toBe('/anna-schmidt');
+      resolveOrganizerProfilePath(
+        { createdBy: 'user-1', organizer: { email: 'anon@x.com' } },
+        profile
+      )
+    ).toBeNull();
   });
 
-  it('falls back to a derived slug when organizerSlug is missing', () => {
+  it('returns null for invalid inputs', () => {
+    expect(resolveOrganizerProfilePath(null, { displayName: 'x', slug: 'x' })).toBeNull();
     expect(
-      resolveOrganizerProfilePath({
-        organizer: { firstName: 'Anna', lastName: 'Schmidt' },
-      })
-    ).toBe('/anna-schmidt');
-  });
-
-  it('falls back to a derived slug when organizerSlug is an empty string', () => {
+      resolveOrganizerProfilePath({ createdBy: 'u' }, { displayName: 'x', slug: 'x' })
+    ).toBeNull();
     expect(
-      resolveOrganizerProfilePath({
-        organizerSlug: '',
-        organizer: { firstName: 'Anna', lastName: 'Schmidt' },
-      })
-    ).toBe('/anna-schmidt');
-  });
-
-  it('returns null when neither organizerSlug nor organizer name exist', () => {
-    expect(resolveOrganizerProfilePath({ organizer: { email: 'anon@x.com' } })).toBeNull();
-    expect(resolveOrganizerProfilePath({})).toBeNull();
+      resolveOrganizerProfilePath({ createdBy: 'u', organizer: { name: 'x' } }, null)
+    ).toBeNull();
   });
 });

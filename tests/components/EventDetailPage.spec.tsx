@@ -19,7 +19,10 @@ const mockFirestoreDoc = vi.hoisted(() => ({
 }));
 
 const mockOrganizerProfile = vi.hoisted(() => ({
-  existsByUid: new Map<string, boolean>(),
+  // Map<uid, profile | null>. When a uid is not present, a default profile is
+  // returned so the foreignEvent's organizer (Anna Schmidt) is treated as a
+  // known profile. Setting a uid to `null` simulates a missing profile doc.
+  profileByUid: new Map<string, { displayName: string; slug: string } | null>(),
 }));
 
 vi.mock('../../src/hooks/useAuth', () => ({
@@ -66,17 +69,28 @@ vi.mock('firebase/firestore', async () => {
     query: () => ({ type: 'query' }),
     where: () => ({ type: 'where' }),
     onSnapshot: (ref: { id?: string; path?: string }, callback: (snap: unknown) => void) => {
-      // Default to "profile exists" when `useOrganizerProfileExists` subscribes
-      // to `users/{uid}/publicProfile/data`. Tests that need to assert the
-      // no-profile path seed `mockOrganizerProfile.existsByUid.set(uid, false)`.
+      // Default to "profile exists with matching displayName" when
+      // `useOrganizerProfile` subscribes to `users/{uid}/publicProfile/data`.
+      // The default profile mirrors foreignEvent (Anna Schmidt) so the
+      // organizer-link tests behave the way they used to. Tests that need a
+      // missing profile seed `mockOrganizerProfile.profileByUid.set(uid, null)`;
+      // tests that need a mismatched displayName set a different profile.
       const path = ref?.path || '';
       const match = path.match(/^users\/([^/]+)\/publicProfile\/(.+)$/);
       if (match) {
         const uid = match[1];
-        const exists = mockOrganizerProfile.existsByUid.has(uid)
-          ? Boolean(mockOrganizerProfile.existsByUid.get(uid))
-          : true;
-        callback({ exists: () => exists, data: () => ({}) });
+        const profile = mockOrganizerProfile.profileByUid.has(uid)
+          ? mockOrganizerProfile.profileByUid.get(uid)
+          : { displayName: 'Anna Schmidt', slug: 'anna-schmidt' };
+        if (profile === null) {
+          callback({ exists: () => false, id: 'data', data: () => ({}) });
+        } else {
+          callback({
+            exists: () => true,
+            id: 'data',
+            data: () => ({ displayName: profile.displayName, slug: profile.slug }),
+          });
+        }
         return () => {};
       }
       callback({ exists: () => false, data: () => ({}) });
@@ -241,7 +255,7 @@ beforeEach(() => {
     id: foreignEvent.id,
     data: foreignEvent,
   };
-  mockOrganizerProfile.existsByUid.clear();
+  mockOrganizerProfile.profileByUid.clear();
   mockEvents.deleteEvent.mockClear();
   mockGetRecurrenceDatesForDetail.mockReset();
   mockGetRecurrenceDatesForDetail.mockReturnValue([]);
@@ -503,26 +517,15 @@ describe('EventDetailPage — organizer profile photo', () => {
   });
 });
 
-describe('EventDetailPage — organizer link to public profile (k9CYVFsc)', () => {
-  it('renders organizer name as a link to /:slug when organizerSlug is set', async () => {
-    renderPage();
-    expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
-
-    const link = screen.getByTestId('organizer-link');
-    expect(link).toBeInTheDocument();
-    expect(link.tagName).toBe('A');
-    expect(link).toHaveAttribute('href', '/anna-schmidt');
-    expect(link).toHaveTextContent('Anna Schmidt');
-  });
-
-  it('renders organizer name as a derived link when organizerSlug is missing (LjqWg0mD)', async () => {
-    const { organizerSlug, ...eventWithoutSlug } = foreignEvent;
-    void organizerSlug;
+describe('EventDetailPage — organizer link to public profile (TYz5kp0d)', () => {
+  beforeEach(() => {
     mockFirestoreDoc.getDocResult = {
       id: foreignEvent.id,
-      data: eventWithoutSlug,
+      data: foreignEvent,
     };
+  });
 
+  it('renders organizer name as a link to /:slug when the organizer name matches the profile displayName', async () => {
     renderPage();
     expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
 
@@ -533,21 +536,25 @@ describe('EventDetailPage — organizer link to public profile (k9CYVFsc)', () =
     expect(link).toHaveTextContent('Anna Schmidt');
   });
 
-  it('derives organizer slug from firstName + lastName for legacy events without organizerSlug', async () => {
+  it('renders organizer as plain text when the organizer name differs from the profile displayName', async () => {
     mockFirestoreDoc.getDocResult = {
       id: foreignEvent.id,
       data: {
         ...foreignEvent,
-        organizer: { firstName: 'Lukas', lastName: 'Müller', email: 'lukas@example.com' },
+        organizer: { name: 'Yoga Studio Dornbirn', email: 'anna@example.com' },
       },
     };
-    delete (mockFirestoreDoc.getDocResult.data as { organizerSlug?: string }).organizerSlug;
+    mockOrganizerProfile.profileByUid.set('other-user-uid', {
+      displayName: 'Anna Schmidt',
+      slug: 'anna-schmidt',
+    });
 
     renderPage();
     expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
 
-    const link = screen.getByTestId('organizer-link');
-    expect(link).toHaveAttribute('href', '/lukas-mueller');
+    expect(screen.getByTestId('event-organizer')).toBeInTheDocument();
+    expect(screen.queryByTestId('organizer-link')).toBeNull();
+    expect(screen.getByTestId('organizer-text')).toHaveTextContent('Yoga Studio Dornbirn');
   });
 
   it('does not render an organizer block at all when the organizer name is missing', async () => {
@@ -562,8 +569,8 @@ describe('EventDetailPage — organizer link to public profile (k9CYVFsc)', () =
     expect(screen.queryByTestId('event-organizer')).toBeNull();
   });
 
-  it('renders organizer as plain text when the organizer has not created a profile (LjqWg0mD)', async () => {
-    mockOrganizerProfile.existsByUid.set('other-user-uid', false);
+  it('renders organizer as plain text when the user has not created a public profile', async () => {
+    mockOrganizerProfile.profileByUid.set('other-user-uid', null);
 
     renderPage();
     expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
@@ -573,22 +580,24 @@ describe('EventDetailPage — organizer link to public profile (k9CYVFsc)', () =
     expect(screen.getByTestId('organizer-text')).toHaveTextContent('Anna Schmidt');
   });
 
-  it('also hides the derived-slug link when the organizer has not created a profile (LjqWg0mD)', async () => {
+  it('ignores the stale organizerSlug field — resolution always goes through the live profile', async () => {
     mockFirestoreDoc.getDocResult = {
       id: foreignEvent.id,
       data: {
         ...foreignEvent,
-        organizer: { firstName: 'Lukas', lastName: 'Müller', email: 'lukas@example.com' },
+        organizerSlug: 'some-other-slug-from-an-old-event',
       },
     };
-    delete (mockFirestoreDoc.getDocResult.data as { organizerSlug?: string }).organizerSlug;
-    mockOrganizerProfile.existsByUid.set('other-user-uid', false);
+    mockOrganizerProfile.profileByUid.set('other-user-uid', {
+      displayName: 'Anna Schmidt',
+      slug: 'anna-schmidt',
+    });
 
     renderPage();
     expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
 
-    expect(screen.queryByTestId('organizer-link')).toBeNull();
-    expect(screen.getByTestId('organizer-text')).toHaveTextContent('Lukas Müller');
+    const link = screen.getByTestId('organizer-link');
+    expect(link).toHaveAttribute('href', '/anna-schmidt');
   });
 });
 

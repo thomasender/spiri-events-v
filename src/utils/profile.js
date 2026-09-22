@@ -1,5 +1,3 @@
-import { slugifyName } from '../lib/slug-helpers';
-
 export const PUBLIC_PROFILE_FIELDS = ['displayName', 'bio', 'website', 'photoURL', 'slug'];
 
 export const BIO_MAX = 500;
@@ -33,29 +31,29 @@ export function getOrganizerProfilePath(slug) {
   return `/${slug}`;
 }
 
-// Best-effort slug derived from the denormalized organizer object on an event.
-// Used as a fallback when the event document has no `organizerSlug` (legacy
-// events created before that field existed). Mirrors `getOrganizerName`: prefers
-// `organizer.name`, otherwise joins `firstName` + `lastName`.
-export function deriveOrganizerSlug(organizer) {
-  if (!organizer || typeof organizer !== 'object') return null;
-  const name =
-    (typeof organizer.name === 'string' && organizer.name.trim()) ||
-    [organizer.firstName, organizer.lastName]
-      .filter((part) => typeof part === 'string' && part.trim())
-      .join(' ');
-  if (!name) return null;
-  const slug = slugifyName(name);
-  return slug || null;
+// Combines the denormalized organizer object on an event into a single
+// display string. Mirrors `getOrganizerName`: prefers the explicit `name`
+// field, otherwise joins `firstName` + `lastName`.
+function combineOrganizerName(organizer) {
+  if (!organizer || typeof organizer !== 'object') return '';
+  if (typeof organizer.name === 'string' && organizer.name.trim()) {
+    return organizer.name.trim();
+  }
+  return [organizer.firstName, organizer.lastName]
+    .filter((part) => typeof part === 'string' && part.trim())
+    .join(' ');
 }
 
-// Resolves the public profile path for an event's organizer. Prefers the
-// persisted `event.organizerSlug`; falls back to a slug derived from the
-// denormalized `event.organizer` object so legacy events still link somewhere.
-export function resolveOrganizerProfilePath(event) {
-  const persisted = event?.organizerSlug;
-  if (typeof persisted === 'string' && persisted.trim()) {
-    return getOrganizerProfilePath(persisted);
-  }
-  return getOrganizerProfilePath(deriveOrganizerSlug(event?.organizer));
+// Resolves the public profile path for an event's organizer. The profile is
+// strictly tied to the user account (keyed by uid via the live
+// `users/{createdBy}/publicProfile/data` doc), not to the organizer display
+// name. A link is only shown when the event's organizer name matches the
+// profile's displayName — otherwise we hide it, since linking to a profile
+// with a mismatched name would be confusing for users. (TYz5kp0d)
+export function resolveOrganizerProfilePath(event, profile) {
+  if (!event || !profile || !profile.slug) return null;
+  if (!event.createdBy) return null;
+  const organizerName = combineOrganizerName(event.organizer);
+  if (!organizerName || organizerName !== profile.displayName) return null;
+  return getOrganizerProfilePath(profile.slug);
 }

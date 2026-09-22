@@ -19,6 +19,7 @@ import {
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { doc, getDoc, setDoc, serverTimestamp, deleteDoc, writeBatch } from 'firebase/firestore';
 import { splitProfileData } from '../utils/profile';
+import { findUniqueProfileSlug } from '../lib/slug';
 import { ref as storageRef, listAll, deleteObject } from 'firebase/storage';
 import { auth, db, storage, functions } from '../lib/firebase';
 import {
@@ -99,6 +100,7 @@ async function seedProfileDoc(user, displayName, photoURL) {
     const fallbackName =
       displayName || user.displayName || (user.email ? user.email.split('@')[0] : '');
     const fallbackPhoto = photoURL || user.photoURL || null;
+    const slug = await findUniqueProfileSlug(fallbackName, user.uid);
     const now = serverTimestamp();
     const privatePayload = {
       displayName: fallbackName,
@@ -106,6 +108,7 @@ async function seedProfileDoc(user, displayName, photoURL) {
       website: '',
       contact: user.email || '',
       photoURL: fallbackPhoto,
+      slug,
       createdAt: now,
       updatedAt: now,
     };
