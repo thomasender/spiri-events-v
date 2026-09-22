@@ -1,17 +1,37 @@
 import { collection, collectionGroup, query, where, getDocs } from 'firebase/firestore';
 import { db } from './firebase';
 
-export function generateSlug(title, place, date) {
-  const normalize = (str) =>
-    str
-      .toLowerCase()
-      .trim()
-      .replace(/[^\w\s-]/g, '')
-      .replace(/[\s_-]+/g, '-')
-      .replace(/^-+|-+$/g, '');
+// Replacements applied before lowercasing so multi-character digraphs like
+// "Ae"/"Oe"/"Ue" survive the .toLowerCase() step. Order matters: uppercase
+// umlauts first (so Ä→Ae→ae), then &→und.
+const CHAR_REPLACEMENTS = [
+  [/Ä/g, 'Ae'],
+  [/Ö/g, 'Oe'],
+  [/Ü/g, 'Ue'],
+  [/ä/g, 'ae'],
+  [/ö/g, 'oe'],
+  [/ü/g, 'ue'],
+  [/ß/g, 'ss'],
+  [/&/g, ' und '],
+];
 
-  const titleSlug = normalize(title);
-  const placeSlug = normalize(place);
+export function slugify(input) {
+  if (input == null) return '';
+  let s = String(input);
+  for (const [pattern, replacement] of CHAR_REPLACEMENTS) {
+    s = s.replace(pattern, replacement);
+  }
+  return s
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+export function generateSlug(title, place, date) {
+  const titleSlug = slugify(title);
+  const placeSlug = slugify(place);
   const dateSlug = date ? date.replace(/-/g, '') : '';
 
   const parts = [titleSlug, placeSlug, dateSlug].filter(Boolean);
@@ -51,17 +71,7 @@ export function isLegacyId(id) {
 }
 
 export function slugifyName(name) {
-  if (!name) return '';
-  return String(name)
-    .toLowerCase()
-    .trim()
-    .replace(/ä/g, 'ae')
-    .replace(/ö/g, 'oe')
-    .replace(/ü/g, 'ue')
-    .replace(/ß/g, 'ss')
-    .replace(/[^\w\s-]/g, '')
-    .replace(/[\s_-]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+  return slugify(name);
 }
 
 export async function findUniqueProfileSlug(displayName, currentUid) {

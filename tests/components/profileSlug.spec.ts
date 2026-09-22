@@ -33,9 +33,18 @@ describe('slugifyName', () => {
     expect(slugifyName('Straße')).toBe('strasse');
   });
 
-  it('removes punctuation', () => {
+  it('handles uppercase German umlauts at the start of a word', () => {
+    expect(slugifyName('Öpfel Äste Übermut')).toBe('oepfel-aeste-uebermut');
+  });
+
+  it('expands & to "und" instead of stripping it (y0sPCm0P)', () => {
+    expect(slugifyName('Anna & Co.')).toBe('anna-und-co');
+    expect(slugifyName('Yoga & Meditation')).toBe('yoga-und-meditation');
+  });
+
+  it('removes other punctuation that has no German mapping', () => {
     expect(slugifyName('Anna! Schmidt?')).toBe('anna-schmidt');
-    expect(slugifyName('Anna & Co.')).toBe('anna-co');
+    expect(slugifyName('Anna (Schmidt)')).toBe('anna-schmidt');
   });
 
   it('returns an empty string for empty or nullish input', () => {
