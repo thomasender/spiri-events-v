@@ -104,6 +104,18 @@
   margin-top: 0;
 }
 
+.legal-content .legal-subsubsubheading {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  margin: 16px 0 8px;
+  font-weight: 600;
+  font-family: var(--font-body);
+}
+
+.legal-content .legal-subsubsubheading:first-child {
+  margin-top: 0;
+}
+
 .legal-content .legal-link {
   color: var(--accent-primary);
   text-decoration: underline;
