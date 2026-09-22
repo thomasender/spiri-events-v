@@ -50,6 +50,11 @@ jobs:
           GOOGLE_APPLICATION_CREDENTIALS: scripts/service-account.json
         run: npm run build
 
+      - name: Deploy Firestore rules and indexes
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: scripts/service-account.json
+        run: npx -y firebase-tools@latest deploy --only firestore:rules,firestore:indexes --project spirieventsvbg --non-interactive
+
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
