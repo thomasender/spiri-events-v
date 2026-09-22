@@ -88,9 +88,8 @@ export default function CalendarPage() {
   const navigate = useNavigate();
   const { user, canCreateEvents } = useAuth();
   // Load saved state exactly once per mount. Reading it inside the render body
-  // would create a new object reference on every render and trip the
-  // auto-include effect below into re-adding categories the user just toggled
-  // off.
+  // would create a new object reference on every render and trip downstream
+  // effects into re-doing work that depends on the initial values.
   const [savedState] = useState(() => loadFilterState());
   const categories = useCategories();
   const [currentMonth, setCurrentMonth] = useState(
@@ -136,30 +135,11 @@ export default function CalendarPage() {
     };
   }, []);
 
-  // Tracks every category we have ever surfaced in the filter, so we can
-  // auto-include only genuinely NEW ones (and never re-add a category the
-  // user has explicitly toggled off). Cleared on full unmount only.
-  const knownCategoriesRef = useRef(null);
-  if (knownCategoriesRef.current === null) {
-    knownCategoriesRef.current = new Set(selectedCategories);
-  }
-
-  useEffect(() => {
-    if (categories.length === 0) return;
-    setSelectedCategories((prev) => {
-      let next = prev;
-      let changed = false;
-      for (const cat of categories) {
-        if (!knownCategoriesRef.current.has(cat)) {
-          knownCategoriesRef.current.add(cat);
-          if (next === prev) next = [...prev];
-          next.push(cat);
-          changed = true;
-        }
-      }
-      return changed ? next : prev;
-    });
-  }, [categories]);
+  // No auto-include of newly loaded categories: the filter starts on "Keine"
+  // (selectedCategories === []), which shows every event because the
+  // category match short-circuits on an empty selection. A user who wants to
+  // see every category can hit the "Alle" button — surfacing new categories
+  // silently would contradict the "one click to filter" promise of the UI.
 
   useEffect(() => {
     saveFilterState({
