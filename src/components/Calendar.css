@@ -106,6 +106,17 @@
   color: var(--text-primary);
 }
 
+.btn-nav:disabled {
+  color: var(--text-light);
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-nav:disabled:hover {
+  background-color: transparent;
+  color: var(--text-light);
+}
+
 /* ============================================
    DESKTOP MONTH GRID (hidden on mobile)
    ============================================ */

@@ -141,15 +141,15 @@ test.describe('Calendar hides past events (nUoA0Wbx) @smoke', () => {
     await waitForCalendarToLoad(page);
   });
 
-  test('a month well in the past shows no events', async ({ page }) => {
-    const today = new Date();
-    today.setMonth(today.getMonth() - 3);
-    const year = today.getFullYear();
-    const month = today.getMonth();
-
-    await navigateToMonth(page, year, month, 'backward');
-
-    await expect(page.locator('.events-section-empty')).toBeVisible();
+  test('past months are not navigable from the calendar (QveMKnvt)', async ({ page }) => {
+    // The events-section prev button is disabled at the current month — users
+    // cannot navigate to past months in the first place. Asserting that the
+    // button is locked at the current month is the new contract; the old
+    // "navigate back to a past month and check it is empty" check is replaced
+    // by "we never reach the past at all" because past events are filtered
+    // out by useAllEvents.
+    const prevButton = page.locator('.events-section-month-nav button').nth(0);
+    await expect(prevButton).toBeDisabled();
   });
 
   test('an ongoing multi-day event that started 2 days ago is visible', async ({ page }) => {

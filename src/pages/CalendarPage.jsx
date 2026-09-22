@@ -56,6 +56,18 @@ function loadFilterState() {
       // Legacy ISO timestamp format is timezone-dependent and unreliable.
       // Reset to the current month so users land where they expect.
       delete parsed.currentMonth;
+    } else if (parsed?.currentMonth) {
+      // Past months are no longer navigable in the calendar — drop a stale
+      // saved month so users don't load onto an empty calendar with the back
+      // button disabled.
+      const savedDate = monthKeyToDate(parsed.currentMonth);
+      if (savedDate) {
+        const now = new Date();
+        const isPast =
+          savedDate.getFullYear() < now.getFullYear() ||
+          (savedDate.getFullYear() === now.getFullYear() && savedDate.getMonth() < now.getMonth());
+        if (isPast) delete parsed.currentMonth;
+      }
     }
     // Backwards compat: previous schema stored the location filter under
     // `selectedBezirke`. Migrate any saved selection forward to the new key.

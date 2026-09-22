@@ -267,3 +267,79 @@ describe('CalendarPage — empty events hint (DWz8EwMO)', () => {
     expect(screen.queryByText(/Keine Events in diesem Monat gefunden/i)).toBeNull();
   });
 });
+
+describe('CalendarPage — past-month navigation disabled (QveMKnvt)', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    mockUseAllEvents.events = [];
+    mockUseCategories.value = ['Yoga'];
+  });
+
+  function setStoredCurrentMonth(monthKey: string) {
+    window.localStorage.setItem(
+      'calendarFilterState',
+      JSON.stringify({
+        currentMonth: monthKey,
+        selectedCategories: [],
+        selectedOrte: [],
+        viewMode: 'card',
+      })
+    );
+  }
+
+  it('drops a saved currentMonth that is in the past', async () => {
+    const today = new Date();
+    const past = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const pastKey = `${past.getFullYear()}-${String(past.getMonth() + 1).padStart(2, '0')}`;
+    setStoredCurrentMonth(pastKey);
+
+    renderPage();
+
+    // The saved past month must be discarded so the user lands on the
+    // current month (and can navigate forward from there).
+    const expectedKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+    await waitFor(() => {
+      const stored = JSON.parse(window.localStorage.getItem('calendarFilterState') || '{}');
+      expect(stored.currentMonth).toBe(expectedKey);
+    });
+  });
+
+  it('keeps a saved currentMonth that is the current month', () => {
+    const today = new Date();
+    const currentKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+    setStoredCurrentMonth(currentKey);
+
+    renderPage();
+
+    const stored = JSON.parse(window.localStorage.getItem('calendarFilterState') || '{}');
+    expect(stored.currentMonth).toBe(currentKey);
+  });
+
+  it('keeps a saved currentMonth that is in the future', () => {
+    const today = new Date();
+    const future = new Date(today.getFullYear(), today.getMonth() + 2, 1);
+    const futureKey = `${future.getFullYear()}-${String(future.getMonth() + 1).padStart(2, '0')}`;
+    setStoredCurrentMonth(futureKey);
+
+    renderPage();
+
+    const stored = JSON.parse(window.localStorage.getItem('calendarFilterState') || '{}');
+    expect(stored.currentMonth).toBe(futureKey);
+  });
+
+  it('disables the events-section prev button when the current month is loaded', async () => {
+    const today = new Date();
+    const currentKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+    setStoredCurrentMonth(currentKey);
+
+    renderPage();
+
+    const prevButton = await waitFor(() => {
+      const buttons = screen.getAllByRole('button', { name: /Vorheriger Monat/i });
+      const disabled = buttons.find((b) => b.hasAttribute('disabled'));
+      expect(disabled).toBeDefined();
+      return disabled!;
+    });
+    expect(prevButton).toBeDisabled();
+  });
+});
