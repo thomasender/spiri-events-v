@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { generateSlug } from '../helpers/slug';
 
-const YOGA_HEUTE_SLUG = generateSlug('Yoga heute', 'Yogastudio Dornbirn', 0);
-const MANTRASINGEN_SLUG = generateSlug('Mantrasingen', 'Gemeinschaftsraum Bregenz', 2);
+const YOGA_HEUTE_SLUG = generateSlug('Yoga heute', 'Yoga', 'Dornbirn', 0);
+const MANTRASINGEN_SLUG = generateSlug('Mantrasingen', 'Singen', 'Bregenz', 2);
 
 async function openEventAndWaitForSimilarEvents(page, slug) {
   await page.goto(`/event/${slug}`);

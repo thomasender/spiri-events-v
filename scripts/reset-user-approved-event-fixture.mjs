@@ -3,6 +3,7 @@ process.env.GCLOUD_PROJECT = 'spirieventsvbg';
 
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { generateEventSlug } from '../src/lib/slug-helpers.js';
 
 initializeApp({ projectId: 'spirieventsvbg' });
 const db = getFirestore();
@@ -16,20 +17,6 @@ async function getUserUid() {
   return null;
 }
 
-function generateSlug(title, place, date) {
-  const normalize = (str) =>
-    str
-      .toLowerCase()
-      .trim()
-      .replace(/[^\w\s-]/g, '')
-      .replace(/[\s_-]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-
-  const titleSlug = normalize(title);
-  const placeSlug = normalize(place);
-  const dateSlug = date ? date.replace(/-/g, '') : '';
-  return [titleSlug, placeSlug, dateSlug].filter(Boolean).join('-');
-}
 
 const today = new Date();
 function makeDate(dayOffset) {
@@ -53,7 +40,7 @@ const date = makeDate(9);
 const ref = db.collection('events').doc('test-event-user-approved');
 await ref.set({
   title: 'User Approved Event',
-  slug: generateSlug('User Approved Event', 'User Place Bregenz', date),
+  slug: generateEventSlug('User Approved Event', 'Yoga', 'Bregenz', date),
   date,
   endDate: null,
   time: '11:00',

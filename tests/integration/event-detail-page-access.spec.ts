@@ -3,9 +3,9 @@ import { spawn } from 'child_process';
 import { signInWithEmailAndPassword } from '../helpers/auth';
 import { generateSlug } from '../helpers/slug';
 
-const YOGA_APPROVED_SLUG = generateSlug('Yoga heute', 'Yogastudio Dornbirn', 0);
-const USER_APPROVED_SLUG = generateSlug('User Approved Event', 'User Place Bregenz', 9);
-const USER_PENDING_SLUG = generateSlug('User Pending Event', 'Test Place Bludenz', 8);
+const YOGA_APPROVED_SLUG = generateSlug('Yoga heute', 'Yoga', 'Dornbirn', 0);
+const USER_APPROVED_SLUG = generateSlug('User Approved Event', 'Yoga', 'Bregenz', 9);
+const USER_PENDING_SLUG = generateSlug('User Pending Event', 'Sonstiges', 'Bludenz', 8);
 
 function runScript(scriptPath: string): Promise<void> {
   return new Promise((resolve, reject) => {

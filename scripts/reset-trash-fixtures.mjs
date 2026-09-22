@@ -3,6 +3,7 @@ process.env.GCLOUD_PROJECT = 'spirieventsvbg';
 
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import { generateEventSlug } from '../src/lib/slug-helpers.js';
 
 initializeApp({ projectId: 'spirieventsvbg' });
 const db = getFirestore();
@@ -34,20 +35,6 @@ function makeDate(dayOffset) {
   const d = new Date(today);
   d.setDate(d.getDate() + dayOffset);
   return d.toISOString().split('T')[0];
-}
-
-function generateSlug(title, place, date) {
-  const normalize = (str) =>
-    str
-      .toLowerCase()
-      .trim()
-      .replace(/[^\w\s-]/g, '')
-      .replace(/[\s_-]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-  const titleSlug = normalize(title);
-  const placeSlug = normalize(place);
-  const dateSlug = date ? date.replace(/-/g, '') : '';
-  return [titleSlug, placeSlug, dateSlug].filter(Boolean).join('-');
 }
 
 const fixtures = [
@@ -85,7 +72,7 @@ for (const fx of fixtures) {
   const existing = await ref.get();
   const ownerUid = fx.ownerRole === 'admin' ? adminUid : userUid;
   const date = makeDate(fx.dateOffset);
-  const slug = generateSlug(fx.title, fx.place, date);
+  const slug = generateEventSlug(fx.title, fx.category, fx.bezirk, date);
   const trashedAtMillis = Date.now() - fx.trashedDaysAgo * 24 * 60 * 60 * 1000;
   const baseData = {
     title: fx.title,

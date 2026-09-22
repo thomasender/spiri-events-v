@@ -1,51 +1,27 @@
 import { collection, collectionGroup, query, where, getDocs } from 'firebase/firestore';
 import { db } from './firebase';
+import { slugify, generateEventSlug, slugifyName } from './slug-helpers';
 
-// Replacements applied before lowercasing so multi-character digraphs like
-// "Ae"/"Oe"/"Ue" survive the .toLowerCase() step. Order matters: uppercase
-// umlauts first (so Ä→Ae→ae), then &→und.
-const CHAR_REPLACEMENTS = [
-  [/Ä/g, 'Ae'],
-  [/Ö/g, 'Oe'],
-  [/Ü/g, 'Ue'],
-  [/ä/g, 'ae'],
-  [/ö/g, 'oe'],
-  [/ü/g, 'ue'],
-  [/ß/g, 'ss'],
-  [/&/g, ' und '],
-];
+// Re-exports so existing callers of `slugify` and `generateSlug` keep working.
+// `generateSlug` is intentionally NOT re-exported: the canonical name is now
+// `generateEventSlug(title, category, bezirk, date)` and takes the new fields.
+export { slugify, generateEventSlug, slugifyName };
 
-export function slugify(input) {
-  if (input == null) return '';
-  let s = String(input);
-  for (const [pattern, replacement] of CHAR_REPLACEMENTS) {
-    s = s.replace(pattern, replacement);
+// Generates a slug from the new event format:
+//   {titleSlug}-{categorySlug}-in-{bezirkSlug}-{yyyymmdd}
+// Then checks Firestore for collisions and appends a counter (-2, -3, …) when
+// the generated slug is already in use by another approved event.
+export async function findUniqueSlug(title, category, bezirk, date) {
+  let baseSlug = generateEventSlug(title, category, bezirk, date);
+  if (!baseSlug) {
+    throw new Error('Cannot generate slug from empty inputs');
   }
-  return s
-    .toLowerCase()
-    .trim()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/[\s_-]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}
-
-export function generateSlug(title, place, date) {
-  const titleSlug = slugify(title);
-  const placeSlug = slugify(place);
-  const dateSlug = date ? date.replace(/-/g, '') : '';
-
-  const parts = [titleSlug, placeSlug, dateSlug].filter(Boolean);
-  return parts.join('-');
-}
-
-export async function findUniqueSlug(title, place, date) {
-  let baseSlug = generateSlug(title, place, date);
   let slug = baseSlug;
   let counter = 1;
 
   while (await slugExists(slug)) {
+    counter += 1;
     slug = `${baseSlug}-${counter}`;
-    counter++;
   }
 
   return slug;
@@ -68,10 +44,6 @@ async function slugExists(slug) {
 
 export function isLegacyId(id) {
   return id && !id.includes('-') && id.length > 15;
-}
-
-export function slugifyName(name) {
-  return slugify(name);
 }
 
 export async function findUniqueProfileSlug(displayName, currentUid) {

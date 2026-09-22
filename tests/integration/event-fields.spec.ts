@@ -18,8 +18,8 @@ import {
   fillStep3Details,
 } from '../helpers/wizard';
 
-const USER_APPROVED_SLUG = generateSlug('User Approved Event', 'User Place Bregenz', 9);
-const YOGA_HEUTE_SLUG = generateSlug('Yoga heute', 'Yogastudio Dornbirn', 0);
+const USER_APPROVED_SLUG = generateSlug('User Approved Event', 'Yoga', 'Bregenz', 9);
+const YOGA_HEUTE_SLUG = generateSlug('Yoga heute', 'Yoga', 'Dornbirn', 0);
 
 // admin-event-edit-delete.spec.ts permanently deletes this shared seed fixture as
 // part of its delete-flow tests; reset it here so this file passes regardless of

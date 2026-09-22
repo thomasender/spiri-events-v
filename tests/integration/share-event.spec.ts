@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { generateSlug } from '../helpers/slug';
 
-const YOGA_APPROVED_SLUG = generateSlug('Yoga heute', 'Yogastudio Dornbirn', 0);
+const YOGA_APPROVED_SLUG = generateSlug('Yoga heute', 'Yoga', 'Dornbirn', 0);
 
 test.describe('Share Event Feature (u0fvkYae)', () => {
   test('share button is visible on the event detail page header', async ({ page }) => {

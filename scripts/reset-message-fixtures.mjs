@@ -4,6 +4,7 @@ process.env.GCLOUD_PROJECT = 'spirieventsvbg';
 
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import { generateEventSlug } from '../src/lib/slug-helpers.js';
 
 initializeApp({ projectId: 'spirieventsvbg' });
 const db = getFirestore();
@@ -42,7 +43,7 @@ const futureDate = new Date(today);
 futureDate.setDate(futureDate.getDate() + 8);
 const date = futureDate.toISOString().split('T')[0];
 
-const slug = `test-event-with-messages-test-place-${date.replace(/-/g, '')}`;
+const slug = generateEventSlug('Test Event With Messages', 'Sonstiges', 'Bludenz', date);
 
 await eventRef.set({
   id: MESSAGE_EVENT_ID,

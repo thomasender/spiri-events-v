@@ -3,6 +3,7 @@ process.env.GCLOUD_PROJECT = 'spirieventsvbg';
 
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import { generateEventSlug } from '../src/lib/slug-helpers.js';
 
 initializeApp({ projectId: 'spirieventsvbg' });
 const db = getFirestore();
@@ -22,23 +23,10 @@ function makeDate(dayOffset) {
   return d.toISOString().split('T')[0];
 }
 
-function generateSlug(title, place, date) {
-  const normalize = (str) =>
-    str
-      .toLowerCase()
-      .trim()
-      .replace(/[^\w\s-]/g, '')
-      .replace(/[\s_-]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-
-  const titleSlug = normalize(title);
-  const placeSlug = normalize(place);
-  const dateSlug = date ? date.replace(/-/g, '') : '';
-  return [titleSlug, placeSlug, dateSlug].filter(Boolean).join('-');
-}
-
 const FIXTURE_TITLE = 'Test Weekly Yoga Series';
 const FIXTURE_PLACE = 'Yogastudio Test';
+const FIXTURE_CATEGORY = 'Yoga';
+const FIXTURE_BEZIRK = 'Bregenz';
 const fixtureDate = makeDate(7);
 
 // Recreates the shared recurring-event fixture used by multiple specs
@@ -49,15 +37,15 @@ const fixtureDate = makeDate(7);
 const ref = db.collection('events').doc('test-event-recurring-weekly');
 await ref.set({
   title: FIXTURE_TITLE,
-  slug: generateSlug(FIXTURE_TITLE, FIXTURE_PLACE, fixtureDate),
+  slug: generateEventSlug(FIXTURE_TITLE, FIXTURE_CATEGORY, FIXTURE_BEZIRK, fixtureDate),
   date: fixtureDate,
   endDate: null,
   time: '18:00',
   endTime: '19:00',
   place: FIXTURE_PLACE,
   description: 'Wöchentlicher Yoga-Kurs für Tests der wiederkehrenden Anzeige.',
-  category: 'Yoga',
-  bezirk: 'Bregenz',
+  category: FIXTURE_CATEGORY,
+  bezirk: FIXTURE_BEZIRK,
   organizer: { firstName: 'Anna', lastName: 'Schmidt', email: 'admin@test.com' },
   kontakt: 'anna@example.com',
   status: 'approved',

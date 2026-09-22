@@ -12,52 +12,63 @@ vi.mock('../../src/lib/firebase', () => ({
   db: {},
 }));
 
-import { generateSlug } from '../../src/lib/slug';
+import { generateEventSlug } from '../../src/lib/slug-helpers';
 
-describe('generateSlug (events)', () => {
-  it('joins title, place, and date with hyphens', () => {
-    expect(generateSlug('Yoga Workshop', 'Yogastudio Bregenz', '2026-09-15')).toBe(
-      'yoga-workshop-yogastudio-bregenz-20260915'
+describe('generateEventSlug', () => {
+  it('joins title, category, "in", bezirk, and date with hyphens', () => {
+    expect(generateEventSlug('Lasst uns singen', 'Singkreis', 'Dornbirn', '2026-11-02')).toBe(
+      'lasst-uns-singen-singkreis-in-dornbirn-20261102'
     );
   });
 
-  it('omits empty place and date parts', () => {
-    expect(generateSlug('Offene Meditation', '', '')).toBe('offene-meditation');
-    expect(generateSlug('Online Yoga', 'Yoga Online', '')).toBe('online-yoga-yoga-online');
+  it('falls back to "sonstiges" when category is missing', () => {
+    expect(generateEventSlug('Yoga Workshop', '', 'Bregenz', '2026-09-15')).toBe(
+      'yoga-workshop-sonstiges-in-bregenz-20260915'
+    );
   });
 
-  it('strips surrounding separators and collapses runs', () => {
-    expect(generateSlug('  Yoga   Workshop  ', '  Yogastudio  ', '2026-09-15')).toBe(
-      'yoga-workshop-yogastudio-20260915'
+  it('falls back to "online" when bezirk is missing', () => {
+    expect(generateEventSlug('Online Yoga', 'Yoga', '', '2026-09-15')).toBe(
+      'online-yoga-yoga-in-online-20260915'
+    );
+  });
+
+  it('uses both fallbacks for events without category and bezirk', () => {
+    expect(generateEventSlug('Offene Meditation', '', '', '2026-09-15')).toBe(
+      'offene-meditation-sonstiges-in-online-20260915'
+    );
+  });
+
+  it('strips surrounding separators and collapses runs in every part', () => {
+    expect(generateEventSlug('  Yoga   Workshop  ', '  Yoga  ', '  Dornbirn  ', '2026-09-15')).toBe(
+      'yoga-workshop-yoga-in-dornbirn-20260915'
     );
   });
 
   it('replaces German umlauts with ASCII digraphs instead of stripping them (y0sPCm0P)', () => {
-    expect(generateSlug('Hörst du den Käfer?', 'Kulturhaus Götzis', '2026-09-15')).toBe(
-      'hoerst-du-den-kaefer-kulturhaus-goetzis-20260915'
+    expect(generateEventSlug('Hörst du den Käfer?', 'Kultur', 'Götzis', '2026-09-15')).toBe(
+      'hoerst-du-den-kaefer-kultur-in-goetzis-20260915'
     );
   });
 
-  it('handles uppercase German umlauts at the start of a word', () => {
-    expect(generateSlug('Äpfel über die Alpen', 'Ölberg Hütte', '2026-09-15')).toBe(
-      'aepfel-ueber-die-alpen-oelberg-huette-20260915'
+  it('handles uppercase German umlaute at the start of a word', () => {
+    expect(generateEventSlug('Äpfel über die Alpen', 'Yoga', 'Ölberg', '2026-09-15')).toBe(
+      'aepfel-ueber-die-alpen-yoga-in-oelberg-20260915'
     );
   });
 
   it('expands & to "und" inside the title (y0sPCm0P)', () => {
-    expect(generateSlug('Yoga & Meditation', 'Studio Dornbirn', '2026-09-15')).toBe(
-      'yoga-und-meditation-studio-dornbirn-20260915'
+    expect(generateEventSlug('Yoga & Meditation', 'Yoga', 'Dornbirn', '2026-09-15')).toBe(
+      'yoga-und-meditation-yoga-in-dornbirn-20260915'
     );
-    expect(generateSlug('Körper & Geist', 'Räumlichkeit', '2026-09-15')).toBe(
-      'koerper-und-geist-raeumlichkeit-20260915'
+    expect(generateEventSlug('Körper & Geist', 'Yoga', 'Bregenz', '2026-09-15')).toBe(
+      'koerper-und-geist-yoga-in-bregenz-20260915'
     );
   });
 
   it('strips punctuation that has no mapping (e.g. ?, !, .)', () => {
-    expect(generateSlug('Workshop!', 'Atelier?', '2026-09-15')).toBe('workshop-atelier-20260915');
-  });
-
-  it('returns a date-only slug when title and place are empty', () => {
-    expect(generateSlug('', '', '2026-09-15')).toBe('20260915');
+    expect(generateEventSlug('Workshop!', 'Yoga', 'Bregenz', '2026-09-15')).toBe(
+      'workshop-yoga-in-bregenz-20260915'
+    );
   });
 });

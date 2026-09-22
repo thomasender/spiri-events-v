@@ -1,7 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { generateSlug } from '../helpers/slug';
 
 const CUSTOM_DATES_TITLE = 'Test Custom Dates Workshop';
-const CUSTOM_DATES_PLACE = 'Workshop Raum Test';
+const CUSTOM_DATES_CATEGORY = 'Yoga';
+const CUSTOM_DATES_BEZIRK = 'Dornbirn';
 
 function makeDate(dayOffset: number): string {
   const d = new Date();
@@ -9,18 +11,8 @@ function makeDate(dayOffset: number): string {
   return d.toISOString().split('T')[0];
 }
 
-function normalize(str: string): string {
-  return str
-    .toLowerCase()
-    .trim()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/[\s_-]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}
-
 function expectedSlug(): string {
-  const datePart = makeDate(7).replace(/-/g, '');
-  return [normalize(CUSTOM_DATES_TITLE), normalize(CUSTOM_DATES_PLACE), datePart].join('-');
+  return generateSlug(CUSTOM_DATES_TITLE, CUSTOM_DATES_CATEGORY, CUSTOM_DATES_BEZIRK, 7);
 }
 
 function expectedSeriesDates(): string[] {
