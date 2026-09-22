@@ -149,4 +149,33 @@ test.describe('Event erstellen success message more obvious (NyC8Ui2W)', () => {
 
     await page.waitForURL('/admin', { timeout: 10000 });
   });
+
+  test('prompts the user to fill out their profile when they have no public profile (EkrMNDkO)', async ({
+    page,
+  }) => {
+    await signInWithEmailAndPassword(page, 'user@test.local', 'testpassword123');
+
+    await page.goto('/admin/new');
+    await waitForWizardToLoad(page);
+
+    await fillWizardAndSubmit(page, EVENT_TITLE);
+
+    await confirmPreSubmitDialog(page);
+
+    const successDialog = page.getByTestId('success-dialog');
+    await expect(successDialog).toBeVisible({ timeout: 10000 });
+
+    const cta = successDialog.getByTestId('success-dialog-cta');
+    await expect(cta).toBeVisible();
+    await expect(cta).toContainText(/Profil/i);
+
+    const ctaButton = successDialog.getByTestId('success-dialog-cta-button');
+    await expect(ctaButton).toBeVisible();
+    await expect(ctaButton).toContainText(/Profil/i);
+
+    await ctaButton.click();
+
+    await page.waitForURL(/\/profil/, { timeout: 10000 });
+    await expect(page.getByTestId('profile-page')).toBeVisible();
+  });
 });
