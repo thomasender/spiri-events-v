@@ -18,6 +18,10 @@ const mockFirestoreDoc = vi.hoisted(() => ({
   getDocResult: null as null | { id: string; data: Record<string, unknown> },
 }));
 
+const mockOrganizerProfile = vi.hoisted(() => ({
+  existsByUid: new Map<string, boolean>(),
+}));
+
 vi.mock('../../src/hooks/useAuth', () => ({
   useAuth: () => ({
     user: mockAuth.user,
@@ -59,9 +63,30 @@ vi.mock('firebase/firestore', async () => {
     },
     getDocs: async () => ({ empty: true, docs: [] }),
     collection: () => ({ type: 'collection' }),
-    doc: () => ({ type: 'doc' }),
     query: () => ({ type: 'query' }),
     where: () => ({ type: 'where' }),
+    onSnapshot: (ref: { id?: string; path?: string }, callback: (snap: unknown) => void) => {
+      // Default to "profile exists" when `useOrganizerProfileExists` subscribes
+      // to `users/{uid}/publicProfile/data`. Tests that need to assert the
+      // no-profile path seed `mockOrganizerProfile.existsByUid.set(uid, false)`.
+      const path = ref?.path || '';
+      const match = path.match(/^users\/([^/]+)\/publicProfile\/(.+)$/);
+      if (match) {
+        const uid = match[1];
+        const exists = mockOrganizerProfile.existsByUid.has(uid)
+          ? Boolean(mockOrganizerProfile.existsByUid.get(uid))
+          : true;
+        callback({ exists: () => exists, data: () => ({}) });
+        return () => {};
+      }
+      callback({ exists: () => false, data: () => ({}) });
+      return () => {};
+    },
+    doc: (_db: unknown, ...segments: string[]) => ({
+      type: 'doc',
+      path: segments.join('/'),
+      id: segments[segments.length - 1],
+    }),
   };
 });
 
@@ -216,6 +241,7 @@ beforeEach(() => {
     id: foreignEvent.id,
     data: foreignEvent,
   };
+  mockOrganizerProfile.existsByUid.clear();
   mockEvents.deleteEvent.mockClear();
   mockGetRecurrenceDatesForDetail.mockReset();
   mockGetRecurrenceDatesForDetail.mockReturnValue([]);
@@ -534,6 +560,35 @@ describe('EventDetailPage — organizer link to public profile (k9CYVFsc)', () =
     expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
 
     expect(screen.queryByTestId('event-organizer')).toBeNull();
+  });
+
+  it('renders organizer as plain text when the organizer has not created a profile (LjqWg0mD)', async () => {
+    mockOrganizerProfile.existsByUid.set('other-user-uid', false);
+
+    renderPage();
+    expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
+
+    expect(screen.getByTestId('event-organizer')).toBeInTheDocument();
+    expect(screen.queryByTestId('organizer-link')).toBeNull();
+    expect(screen.getByTestId('organizer-text')).toHaveTextContent('Anna Schmidt');
+  });
+
+  it('also hides the derived-slug link when the organizer has not created a profile (LjqWg0mD)', async () => {
+    mockFirestoreDoc.getDocResult = {
+      id: foreignEvent.id,
+      data: {
+        ...foreignEvent,
+        organizer: { firstName: 'Lukas', lastName: 'Müller', email: 'lukas@example.com' },
+      },
+    };
+    delete (mockFirestoreDoc.getDocResult.data as { organizerSlug?: string }).organizerSlug;
+    mockOrganizerProfile.existsByUid.set('other-user-uid', false);
+
+    renderPage();
+    expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
+
+    expect(screen.queryByTestId('organizer-link')).toBeNull();
+    expect(screen.getByTestId('organizer-text')).toHaveTextContent('Lukas Müller');
   });
 });
 

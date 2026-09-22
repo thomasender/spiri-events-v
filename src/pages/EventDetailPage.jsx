@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useEvents } from '../hooks/useEvents';
+import { useOrganizerProfileExists } from '../hooks/useOrganizerProfileExists';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
 import { getOrganizerName } from '../utils/eventFormat';
 import { resolveOrganizerProfilePath } from '../utils/profile';
@@ -41,6 +42,41 @@ import { stripHtml, truncateHtmlText } from '../utils/sanitize';
 import { normalizeLink } from '../utils/link';
 import { DEFAULT_CURRENCY, formatPriceWithCurrency } from '../utils/currency';
 import './EventDetailPage.css';
+
+function OrganizerLine({ event }) {
+  const profilePath = resolveOrganizerProfilePath(event);
+  const { exists: organizerProfileExists } = useOrganizerProfileExists(event?.createdBy);
+  const showLink = Boolean(profilePath) && organizerProfileExists;
+  const organizerContent = (
+    <>
+      {event.organizer.photoURL && (
+        <img
+          src={event.organizer.photoURL}
+          alt=""
+          className="organizer-photo"
+          data-testid="organizer-photo"
+        />
+      )}
+      <span>{getOrganizerName(event)}</span>
+    </>
+  );
+  if (showLink) {
+    return (
+      <Link
+        to={profilePath}
+        className="detail-value organizer-value organizer-link detail-link"
+        data-testid="organizer-link"
+      >
+        {organizerContent}
+      </Link>
+    );
+  }
+  return (
+    <span className="detail-value organizer-value" data-testid="organizer-text">
+      {organizerContent}
+    </span>
+  );
+}
 
 function formatDate(dateStr) {
   if (!dateStr) return '';
@@ -602,34 +638,7 @@ export default function EventDetailPage() {
             <User size={18} className="detail-icon" />
             <div>
               <span className="detail-label">Veranstalter</span>
-              {(() => {
-                const profilePath = resolveOrganizerProfilePath(event);
-                const organizerContent = (
-                  <>
-                    {event.organizer.photoURL && (
-                      <img
-                        src={event.organizer.photoURL}
-                        alt=""
-                        className="organizer-photo"
-                        data-testid="organizer-photo"
-                      />
-                    )}
-                    <span>{getOrganizerName(event)}</span>
-                  </>
-                );
-                if (profilePath) {
-                  return (
-                    <Link
-                      to={profilePath}
-                      className="detail-value organizer-value organizer-link detail-link"
-                      data-testid="organizer-link"
-                    >
-                      {organizerContent}
-                    </Link>
-                  );
-                }
-                return <span className="detail-value organizer-value">{organizerContent}</span>;
-              })()}
+              <OrganizerLine event={event} />
             </div>
           </div>
         )}
