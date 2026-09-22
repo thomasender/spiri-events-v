@@ -7,14 +7,21 @@ const content = {
     title: 'Datenschutzerklärung',
     description:
       'Datenschutzerklärung von tribe Vorarlberg: welche Daten wir erheben, wie wir sie schützen und welche Rechte du hast.',
-    lastUpdated: 'März 2026',
+    lastUpdated: 'September 2026',
     sections: [
       {
         heading: '1. Verantwortlicher',
         text: `Verantwortlicher für die Verarbeitung personenbezogener Daten im Sinne der DSGVO ist:
 
-tribe Vorarlberg
-E-Mail: thomas@blissofkundalini.yoga`,
+**Tribe Vorarlberg - Verein zur Förderung einer ganzheitlichen Lebensweise und Gesundheitsförderung**
+
+ZVR-Zahl: 1865711062
+Vordere Achmühlerstraße 17C
+A-6850 Dornbirn
+Vorarlberg / Österreich
+
+E-Mail: [admin@thetribe.at](mailto:admin@thetribe.at)
+Tel: +43 68181828713`,
       },
       {
         heading: '2. Welche Daten wir erheben',
