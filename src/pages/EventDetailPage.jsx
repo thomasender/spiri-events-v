@@ -22,7 +22,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useEvents } from '../hooks/useEvents';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
 import { getOrganizerName } from '../utils/eventFormat';
-import { getOrganizerProfilePath } from '../utils/profile';
+import { resolveOrganizerProfilePath } from '../utils/profile';
 import { canEditEvent, canDeleteEvent } from '../utils/eventPermissions';
 import { parseContactText } from '../utils/contactFormat';
 import { getNextUpcomingOccurrence, getRecurrenceDatesForDetail } from '../utils/eventOccurrences';
@@ -603,7 +603,7 @@ export default function EventDetailPage() {
             <div>
               <span className="detail-label">Veranstalter</span>
               {(() => {
-                const profilePath = getOrganizerProfilePath(event.organizerSlug);
+                const profilePath = resolveOrganizerProfilePath(event);
                 const organizerContent = (
                   <>
                     {event.organizer.photoURL && (

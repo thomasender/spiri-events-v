@@ -489,7 +489,7 @@ describe('EventDetailPage — organizer link to public profile (k9CYVFsc)', () =
     expect(link).toHaveTextContent('Anna Schmidt');
   });
 
-  it('renders organizer name as plain text when organizerSlug is missing', async () => {
+  it('renders organizer name as a derived link when organizerSlug is missing (LjqWg0mD)', async () => {
     const { organizerSlug, ...eventWithoutSlug } = foreignEvent;
     void organizerSlug;
     mockFirestoreDoc.getDocResult = {
@@ -500,8 +500,28 @@ describe('EventDetailPage — organizer link to public profile (k9CYVFsc)', () =
     renderPage();
     expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
 
-    expect(screen.getByTestId('event-organizer')).toBeInTheDocument();
-    expect(screen.queryByTestId('organizer-link')).toBeNull();
+    const link = screen.getByTestId('organizer-link');
+    expect(link).toBeInTheDocument();
+    expect(link.tagName).toBe('A');
+    expect(link).toHaveAttribute('href', '/anna-schmidt');
+    expect(link).toHaveTextContent('Anna Schmidt');
+  });
+
+  it('derives organizer slug from firstName + lastName for legacy events without organizerSlug', async () => {
+    mockFirestoreDoc.getDocResult = {
+      id: foreignEvent.id,
+      data: {
+        ...foreignEvent,
+        organizer: { firstName: 'Lukas', lastName: 'Müller', email: 'lukas@example.com' },
+      },
+    };
+    delete (mockFirestoreDoc.getDocResult.data as { organizerSlug?: string }).organizerSlug;
+
+    renderPage();
+    expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
+
+    const link = screen.getByTestId('organizer-link');
+    expect(link).toHaveAttribute('href', '/lukas-mueller');
   });
 
   it('does not render an organizer block at all when the organizer name is missing', async () => {
