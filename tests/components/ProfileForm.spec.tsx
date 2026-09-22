@@ -1,6 +1,15 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import ProfileForm from '../../src/components/ProfileForm';
+
+function renderForm(profile, props = {}) {
+  return render(
+    <MemoryRouter>
+      <ProfileForm profile={profile} uid="user-123" onSave={vi.fn()} {...props} />
+    </MemoryRouter>
+  );
+}
 
 describe('ProfileForm', () => {
   const baseProfile = {
@@ -9,10 +18,11 @@ describe('ProfileForm', () => {
     website: 'www.example.com',
     contact: 'maria@example.com',
     photoURL: null,
+    slug: 'maria-musterfrau',
   };
 
   it('renders pre-filled form values from profile', () => {
-    render(<ProfileForm profile={baseProfile} uid="user-123" onSave={vi.fn()} />);
+    renderForm(baseProfile);
 
     expect(screen.getByTestId('profile-displayName')).toHaveValue('Maria Musterfrau');
     expect(screen.getByTestId('profile-bio')).toHaveValue('Yoga-Lehrerin aus Vorarlberg.');
@@ -21,7 +31,7 @@ describe('ProfileForm', () => {
   });
 
   it('shows a live character counter for bio', () => {
-    render(<ProfileForm profile={baseProfile} uid="user-123" onSave={vi.fn()} />);
+    renderForm(baseProfile);
 
     const counter = screen.getByTestId('profile-bio-counter');
     expect(counter.textContent).toContain(` / 500`);
@@ -29,7 +39,7 @@ describe('ProfileForm', () => {
 
   it('rejects empty displayName', async () => {
     const onSave = vi.fn();
-    render(<ProfileForm profile={baseProfile} uid="user-123" onSave={onSave} />);
+    renderForm(baseProfile, { onSave });
 
     fireEvent.change(screen.getByTestId('profile-displayName'), {
       target: { value: '' },
@@ -44,7 +54,7 @@ describe('ProfileForm', () => {
 
   it('rejects invalid website URL', async () => {
     const onSave = vi.fn();
-    render(<ProfileForm profile={baseProfile} uid="user-123" onSave={onSave} />);
+    renderForm(baseProfile, { onSave });
 
     fireEvent.change(screen.getByTestId('profile-website'), {
       target: { value: 'not a url at all' },
@@ -59,7 +69,7 @@ describe('ProfileForm', () => {
 
   it('normalises website without protocol to https://', async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
-    render(<ProfileForm profile={baseProfile} uid="user-123" onSave={onSave} />);
+    renderForm(baseProfile, { onSave });
 
     fireEvent.change(screen.getByTestId('profile-website'), {
       target: { value: 'www.example.com' },
@@ -74,7 +84,7 @@ describe('ProfileForm', () => {
 
   it('converts http:// to https://', async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
-    render(<ProfileForm profile={baseProfile} uid="user-123" onSave={onSave} />);
+    renderForm(baseProfile, { onSave });
 
     fireEvent.change(screen.getByTestId('profile-website'), {
       target: { value: 'http://example.com' },
@@ -87,7 +97,7 @@ describe('ProfileForm', () => {
 
   it('calls onSave with trimmed values', async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
-    render(<ProfileForm profile={baseProfile} uid="user-123" onSave={onSave} />);
+    renderForm(baseProfile, { onSave });
 
     fireEvent.change(screen.getByTestId('profile-displayName'), {
       target: { value: '  Peter Mathis  ' },
@@ -110,7 +120,7 @@ describe('ProfileForm', () => {
 
   it('shows success message after save', async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
-    render(<ProfileForm profile={baseProfile} uid="user-123" onSave={onSave} />);
+    renderForm(baseProfile, { onSave });
 
     fireEvent.click(screen.getByTestId('profile-save'));
 
@@ -121,12 +131,38 @@ describe('ProfileForm', () => {
 
   it('shows submit error when save fails', async () => {
     const onSave = vi.fn().mockRejectedValue(new Error('boom'));
-    render(<ProfileForm profile={baseProfile} uid="user-123" onSave={onSave} />);
+    renderForm(baseProfile, { onSave });
 
     fireEvent.click(screen.getByTestId('profile-save'));
 
     await waitFor(() => {
       expect(screen.getByText(/Profil konnte nicht gespeichert werden/i)).toBeInTheDocument();
     });
+  });
+});
+
+describe('ProfileForm — public profile link (VwXzeWqG)', () => {
+  const baseProfile = {
+    displayName: 'Maria Musterfrau',
+    bio: 'Yoga-Lehrerin aus Vorarlberg.',
+    website: 'www.example.com',
+    contact: 'maria@example.com',
+    photoURL: null,
+    slug: 'maria-musterfrau',
+  };
+
+  it('renders a link to the public profile when the profile has a slug', () => {
+    renderForm(baseProfile);
+
+    const link = screen.getByTestId('profile-view-public');
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute('href', '/maria-musterfrau');
+    expect(link).toHaveTextContent(/öffentliches Profil anzeigen/i);
+  });
+
+  it('does not render the public profile link when the profile has no slug yet', () => {
+    renderForm({ ...baseProfile, slug: '' });
+
+    expect(screen.queryByTestId('profile-view-public')).toBeNull();
   });
 });
