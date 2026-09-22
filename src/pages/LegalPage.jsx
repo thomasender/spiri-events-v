@@ -142,9 +142,9 @@ Vorarlberg / Österreich`,
         heading: 'Projekt',
         text: `Dieser Online Veranstaltungskalender ist ein Projekt des gemeinnützigen Vereins "Tribe Vorarlberg" welcher mit diesem Projekt seinen Zweck eine ganzheitliche, bewusste und gesundheitsfördernde Lebensweise zu fördern und zu pflegen, sowie die Unterstützung von Menschen in ihrer persönlichen, körperlichen, geistigen, sozialen, spirituellen und kulturellen Entwicklung nachkommt.
 
-Verantwortliche / Vereinsvorstand
+### Verantwortliche / Vereinsvorstand
 
-Präsident
+#### Präsident
 
 Peter Mathis
 
@@ -152,7 +152,7 @@ Peter Mathis
 
 +4368181828713
 
-Vizepräsident
+#### Vizepräsident
 
 Thomas Ender
 
@@ -167,7 +167,7 @@ Thomas Ender
 - Facebook: [https://www.facebook.com/tribevorarlberg](https://www.facebook.com/tribevorarlberg)
 - Instagram: [https://www.instagram.com/tribevorarlberg](https://www.instagram.com/tribevorarlberg)
 
-E-Mail: admin@thetribe.at`,
+E-Mail: [admin@thetribe.at](mailto:admin@thetribe.at)`,
       },
       {
         heading: 'Streitschlichtung',
@@ -290,6 +290,12 @@ function LegalText({ text }) {
       continue;
     }
 
+    if (line.startsWith('#### ')) {
+      flush();
+      blocks.push({ type: 'h5', text: line.substring(5) });
+      continue;
+    }
+
     if (line.startsWith('### ')) {
       flush();
       blocks.push({ type: 'h4', text: line.substring(4) });
@@ -336,6 +342,13 @@ function LegalText({ text }) {
             <h4 key={blockIdx} className="legal-subsubheading">
               {renderInline(block.text, `h4-${blockIdx}`)}
             </h4>
+          );
+        }
+        if (block.type === 'h5') {
+          return (
+            <h5 key={blockIdx} className="legal-subsubsubheading">
+              {renderInline(block.text, `h5-${blockIdx}`)}
+            </h5>
           );
         }
         if (block.type === 'list') {
