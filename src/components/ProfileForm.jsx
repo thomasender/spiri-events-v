@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Save } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ExternalLink, Save } from 'lucide-react';
 import ProfilePhotoUpload from './ProfilePhotoUpload';
 import './ProfileForm.css';
 
@@ -98,8 +99,24 @@ export default function ProfileForm({ profile, uid, onSave }) {
 
   return (
     <div className="profile-card" data-testid="profile-form-card">
-      <h2 className="profile-card-title">Profil</h2>
-      <p className="profile-card-hint">Diese Informationen werden in deinem Profil angezeigt.</p>
+      <div className="profile-card-header">
+        <div className="profile-card-header-text">
+          <h2 className="profile-card-title">Profil</h2>
+          <p className="profile-card-hint">
+            Diese Informationen werden in deinem Profil angezeigt.
+          </p>
+        </div>
+        {profile?.slug && (
+          <Link
+            to={`/${profile.slug}`}
+            className="profile-card-view-link"
+            data-testid="profile-view-public"
+          >
+            <ExternalLink size={16} aria-hidden="true" />
+            <span>öffentliches Profil anzeigen</span>
+          </Link>
+        )}
+      </div>
 
       <ProfilePhotoUpload
         uid={uid}
