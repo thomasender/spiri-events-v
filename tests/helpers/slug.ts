@@ -8,8 +8,24 @@ export function makeSeedDate(dayOffset: number, monthOffset = 0): string {
   return d.toISOString().split('T')[0];
 }
 
-function normalize(str: string): string {
-  return str
+const CHAR_REPLACEMENTS: [RegExp, string][] = [
+  [/Ä/g, 'Ae'],
+  [/Ö/g, 'Oe'],
+  [/Ü/g, 'Ue'],
+  [/ä/g, 'ae'],
+  [/ö/g, 'oe'],
+  [/ü/g, 'ue'],
+  [/ß/g, 'ss'],
+  [/&/g, ' und '],
+];
+
+function slugify(input: string | null | undefined): string {
+  if (input == null) return '';
+  let s = String(input);
+  for (const [pattern, replacement] of CHAR_REPLACEMENTS) {
+    s = s.replace(pattern, replacement);
+  }
+  return s
     .toLowerCase()
     .trim()
     .replace(/[^\w\s-]/g, '')
@@ -19,8 +35,8 @@ function normalize(str: string): string {
 
 export function generateSlug(title: string, place: string, dayOffset: number): string {
   const date = makeSeedDate(dayOffset);
-  const titleSlug = normalize(title);
-  const placeSlug = normalize(place);
+  const titleSlug = slugify(title);
+  const placeSlug = slugify(place);
   const dateSlug = date.replace(/-/g, '');
 
   return [titleSlug, placeSlug, dateSlug].filter(Boolean).join('-');
