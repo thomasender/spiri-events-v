@@ -180,3 +180,64 @@ describe('AuthForm Google sign-in', () => {
     resolveLogin?.();
   });
 });
+
+describe('AuthForm password reset', () => {
+  it('calls resetPassword and shows the "E-Mail gesendet" confirmation', async () => {
+    mocks.resetPassword.mockResolvedValueOnce(undefined);
+
+    renderForm();
+
+    fireEvent.click(screen.getByText(/Passwort vergessen\?/i));
+
+    fireEvent.change(screen.getByLabelText('E-Mail'), {
+      target: { value: 'peter@example.com' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Link senden/i }));
+
+    await waitFor(() => {
+      expect(mocks.resetPassword).toHaveBeenCalledWith('peter@example.com');
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Bitte überprüfe dein Postfach und folge dem Link/i)
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('surfaces a friendly error when resetPassword rejects with too-many-requests', async () => {
+    mocks.resetPassword.mockRejectedValueOnce({
+      code: 'auth/too-many-requests',
+      message: 'Bitte warte 2 Minuten.',
+    });
+
+    renderForm();
+
+    fireEvent.click(screen.getByText(/Passwort vergessen\?/i));
+    fireEvent.change(screen.getByLabelText('E-Mail'), {
+      target: { value: 'peter@example.com' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Link senden/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Bitte warte 2 Minuten/i)).toBeInTheDocument();
+    });
+  });
+
+  it('shows a generic error for any other resetPassword failure', async () => {
+    mocks.resetPassword.mockRejectedValueOnce({ code: 'functions/internal' });
+
+    renderForm();
+
+    fireEvent.click(screen.getByText(/Passwort vergessen\?/i));
+    fireEvent.change(screen.getByLabelText('E-Mail'), {
+      target: { value: 'peter@example.com' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Link senden/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Ein Fehler ist aufgetreten/i)).toBeInTheDocument();
+    });
+  });
+});

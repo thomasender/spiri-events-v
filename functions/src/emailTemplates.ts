@@ -112,7 +112,15 @@ function brandHeader(): string {
     </table>`;
 }
 
-function footerHtml(): string {
+type FooterKind = 'notification' | 'auth';
+
+function footerHtml(kind: FooterKind = 'notification'): string {
+  if (kind === 'auth') {
+    return `
+      <p style="margin-top:32px;padding-top:16px;border-top:1px solid ${COLOR_BORDER};font-family:${BODY_FONT};font-size:12px;line-height:1.5;color:${COLOR_MUTED};">
+        Bei Fragen wende dich an <a href="mailto:admin@thetribe.at" style="color:${COLOR_MUTED};text-decoration:underline;">admin@thetribe.at</a>.
+      </p>`;
+  }
   return `
     <p style="margin-top:32px;padding-top:16px;border-top:1px solid ${COLOR_BORDER};font-family:${BODY_FONT};font-size:12px;line-height:1.5;color:${COLOR_MUTED};">
       Du erhältst diese E-Mail, weil du auf tribe Events ein Event eingereicht hast oder verwaltest.
@@ -121,11 +129,14 @@ function footerHtml(): string {
     </p>`;
 }
 
-function footerText(): string {
+function footerText(kind: FooterKind = 'notification'): string {
+  if (kind === 'auth') {
+    return `\n--\nBei Fragen wende dich an admin@thetribe.at.`;
+  }
   return `\n--\nDu erhältst diese E-Mail, weil du auf tribe Events ein Event eingereicht hast oder verwaltest.\nBenachrichtigungseinstellungen anpassen: ${notificationSettingsUrl()}\nBei Fragen wende dich an admin@thetribe.at.`;
 }
 
-function wrapHtml(body: string): string {
+function wrapHtml(body: string, kind: FooterKind = 'notification'): string {
   return `<!doctype html>
 <html lang="de">
 <head>
@@ -140,7 +151,7 @@ function wrapHtml(body: string): string {
   <div style="max-width:560px;margin:0 auto;background:#ffffff;padding:36px 36px 28px 36px;border-radius:12px;border:1px solid ${COLOR_BORDER};">
     ${brandHeader()}
     ${body}
-    ${footerHtml()}
+    ${footerHtml(kind)}
   </div>
   <div style="max-width:560px;margin:16px auto 0 auto;font-family:${BODY_FONT};font-size:11px;line-height:1.5;color:${COLOR_MUTED};text-align:center;">
     © tribe Vorarlberg
@@ -343,6 +354,46 @@ export function buildDeletedPayload({ event, recipient }: DeletedPayloadInput): 
     subject,
     html: wrapHtml(htmlBody),
     text: textBody + footerText(),
+  };
+}
+
+export interface PasswordResetPayloadInput {
+  recipient: string;
+  buttonUrl: string;
+}
+
+export function buildPasswordResetPayload({
+  recipient,
+  buttonUrl,
+}: PasswordResetPayloadInput): EmailPayload {
+  const link = escapeHtml(buttonUrl);
+  const subject = 'Passwort zurücksetzen für tribe Vorarlberg';
+  const htmlBody = `
+    <h1 style="${headingStyle(1)}">Passwort zurücksetzen</h1>
+    <p style="${paragraphStyle()}">Hallo,</p>
+    <p style="${paragraphStyle()}">
+      wir haben eine Anfrage zum Zurücksetzen deines Passworts erhalten. Klicke auf den Button, um ein neues Passwort zu vergeben.
+    </p>
+    <p style="margin:8px 0 24px 0;">
+      <a href="${link}" style="${brandButtonStyle()}">Neues Passwort vergeben</a>
+    </p>
+    <p style="${mutedStyle()}">Direkter Link, falls der Button nicht funktioniert:</p>
+    <p style="font-family:${BODY_FONT};font-size:14px;line-height:1.6;margin:0 0 24px 0;word-break:break-all;background:${COLOR_BG_SOFT};padding:12px 14px;border-radius:8px;border:1px solid ${COLOR_BORDER};">
+      <a href="${link}" style="color:${COLOR_TEXT};text-decoration:underline;">${link}</a>
+    </p>
+    <p style="${mutedStyle()}">
+      Wenn du diese Anfrage nicht gestellt hast, kannst du diese E-Mail ignorieren – dein Passwort bleibt dann unverändert.
+    </p>`;
+  const textBody =
+    `Hallo,\n\n` +
+    `wir haben eine Anfrage zum Zurücksetzen deines Passworts erhalten. Klicke auf den Link, um ein neues Passwort zu vergeben:\n\n` +
+    `${buttonUrl}\n\n` +
+    `Wenn du diese Anfrage nicht gestellt hast, kannst du diese E-Mail ignorieren – dein Passwort bleibt dann unverändert.`;
+  return {
+    to: recipient,
+    subject,
+    html: wrapHtml(htmlBody, 'auth'),
+    text: textBody + footerText('auth'),
   };
 }
 

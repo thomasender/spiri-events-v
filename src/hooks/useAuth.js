@@ -14,7 +14,6 @@ import {
   reauthenticateWithPopup,
   EmailAuthProvider,
   getIdTokenResult,
-  sendPasswordResetEmail,
 } from 'firebase/auth';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { doc, getDoc, setDoc, serverTimestamp, deleteDoc, writeBatch } from 'firebase/firestore';
@@ -259,7 +258,20 @@ export function useAuth() {
       throw err;
     }
     recordRateLimitAttempt({ bucket, ...preset });
-    await sendPasswordResetEmail(auth, email);
+    try {
+      const fn = httpsCallable(functions, 'sendPasswordResetEmailFn');
+      await fn({ email });
+    } catch (err) {
+      const code = err?.code || err?.details?.code;
+      if (code === 'functions/resource-exhausted') {
+        const retryAfterMs = err?.details?.retryAfterMs;
+        const wrapped = new Error(formatRetryAfter(retryAfterMs || 60_000));
+        wrapped.code = 'auth/too-many-requests';
+        wrapped.retryAfterMs = retryAfterMs;
+        throw wrapped;
+      }
+      throw err;
+    }
   };
 
   const reauthenticate = async (password) => {

@@ -31,7 +31,8 @@ export const reauthenticateWithCredential = async () => {};
 export const reauthenticateWithPopup = async () => ({ user: { uid: 'test-uid' } });
 export const getIdTokenResult = async () => ({ claims: {} });
 export const sendEmailVerification = async () => {};
-export const sendPasswordResetEmail = async () => {};
+export const confirmPasswordReset = async () => {};
+export const verifyPasswordResetCode = async () => 'user@example.com';
 export const GoogleAuthProvider = class {
   static credentialFromResult() {
     return { accessToken: 'fake-token' };

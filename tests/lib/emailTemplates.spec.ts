@@ -6,6 +6,7 @@ import {
   buildPublishedPayload,
   buildPublishedShareUrls,
   buildDeletedPayload,
+  buildPasswordResetPayload,
   escapeHtml,
   notificationSettingsUrl,
   APP_BASE_URL,
@@ -318,6 +319,65 @@ describe('buildDeletedPayload', () => {
       recipient: 'lukas@example.com',
     });
     expect(payload.html).toContain('Hallo,');
+  });
+});
+
+describe('buildPasswordResetPayload', () => {
+  const buttonUrl = `${APP_BASE_URL}/auth-action?mode=resetPassword&oobCode=abc123`;
+
+  it('uses a German subject and the recipient address', () => {
+    const payload = buildPasswordResetPayload({
+      recipient: 'peter@example.com',
+      buttonUrl,
+    });
+    expect(payload.subject).toBe('Passwort zurücksetzen für tribe Vorarlberg');
+    expect(payload.to).toBe('peter@example.com');
+  });
+
+  it('includes the branded reset link in both the button and the fallback copy', () => {
+    const payload = buildPasswordResetPayload({
+      recipient: 'peter@example.com',
+      buttonUrl,
+    });
+    const escapedUrl = buttonUrl.replace(/&/g, '&amp;');
+    expect(payload.html).toContain(`href="${escapedUrl}"`);
+    expect(payload.html).toContain('Neues Passwort vergeben');
+    expect(payload.html).toContain('Direkter Link, falls der Button nicht funktioniert');
+    expect(payload.text).toContain(buttonUrl);
+  });
+
+  it('uses the auth footer (no notification-settings link) and still shows the support address', () => {
+    const payload = buildPasswordResetPayload({
+      recipient: 'peter@example.com',
+      buttonUrl,
+    });
+    expect(payload.html).toContain('admin@thetribe.at');
+    expect(payload.text).toContain('admin@thetribe.at');
+    expect(payload.html).not.toContain('Benachrichtigungseinstellungen anpassen');
+    expect(payload.text).not.toContain('Benachrichtigungseinstellungen anpassen');
+    expect(payload.html).not.toContain('Event eingereicht');
+    expect(payload.text).not.toContain('Event eingereicht');
+  });
+
+  it('matches the brand identity (fonts, logo, primary button color)', () => {
+    const payload = buildPasswordResetPayload({
+      recipient: 'peter@example.com',
+      buttonUrl,
+    });
+    expect(payload.html).toContain(`${APP_BASE_URL}/logo-mark.svg`);
+    expect(payload.html).toContain("'Nunito Sans'");
+    expect(payload.html).toContain("'Cormorant Garamond'");
+    expect(payload.html).toContain('background:#c48e6a');
+  });
+
+  it('escapes HTML in the buttonUrl so a tampered link cannot inject markup', () => {
+    const evilUrl = `${APP_BASE_URL}/auth-action?mode=resetPassword&oobCode=<script>x</script>`;
+    const payload = buildPasswordResetPayload({
+      recipient: 'peter@example.com',
+      buttonUrl: evilUrl,
+    });
+    expect(payload.html).toContain('&lt;script&gt;x&lt;/script&gt;');
+    expect(payload.html).not.toMatch(/href="[^"]*<script/);
   });
 });
 
