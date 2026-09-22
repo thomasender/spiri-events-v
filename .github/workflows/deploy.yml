@@ -40,6 +40,11 @@ jobs:
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
 
+      - name: Migrate existing event slugs to the new format
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: scripts/service-account.json
+        run: node scripts/migrate-event-slugs.mjs
+
       - name: Build (Vite + prerender)
         env:
           GOOGLE_APPLICATION_CREDENTIALS: scripts/service-account.json
