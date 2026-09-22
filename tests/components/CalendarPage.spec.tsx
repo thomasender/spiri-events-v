@@ -67,11 +67,20 @@ function getAccordion() {
   return document.querySelector('.filter-accordion') as HTMLDetailsElement;
 }
 
-describe('CalendarPage — category filter persistence after new categories appear', () => {
+describe('CalendarPage — category filter initial state (wkzZei1s)', () => {
   beforeEach(() => {
     window.localStorage.clear();
+    // Anchor to the last day of the current month so the events stay in
+    // `monthEvents` (and therefore the rendered agenda) regardless of when
+    // the tests run.
+    const lastOfMonth = new Date(2026, 8, 30); // 2026-09-30
+    const isoDate = `${lastOfMonth.getFullYear()}-${String(lastOfMonth.getMonth() + 1).padStart(
+      2,
+      '0'
+    )}-${String(lastOfMonth.getDate()).padStart(2, '0')}`;
     mockUseAllEvents.events = [
-      { id: '1', title: 'Y1', date: '2026-09-10', bezirk: 'Bregenz', category: 'Yoga' },
+      { id: '1', title: 'Y1', date: isoDate, bezirk: 'Bregenz', category: 'Yoga' },
+      { id: '2', title: 'M1', date: isoDate, bezirk: 'Dornbirn', category: 'Meditation' },
     ];
     mockUseCategories.value = [
       'Yoga',
@@ -84,75 +93,97 @@ describe('CalendarPage — category filter persistence after new categories appe
     ];
   });
 
-  it('does NOT re-add a category the user just toggled off when categories hook re-emits', async () => {
-    // The user previously had only a subset of categories selected.
-    setStoredCategories(['Yoga', 'Meditation', 'Tanz']);
+  it('starts on "Keine" — no category chips pressed — when no saved state exists', async () => {
+    renderPage();
 
-    render(
-      <MemoryRouter>
-        <HelmetProvider>
-          <CalendarPage />
-        </HelmetProvider>
-      </MemoryRouter>
-    );
-
-    // Auto-include on first render picks up the rest, so all 7 are now pressed.
-    await waitFor(() => {
-      expect(getPressedChips().sort()).toEqual([
-        'Breathwork',
-        'Meditation',
-        'Singen',
-        'Sonstiges',
-        'Soundhealing',
-        'Tanz',
-        'Yoga',
-      ]);
-    });
-
-    // User clicks "Soundhealing" to deselect it.
-    const chip = screen.getByRole('button', { name: 'Soundhealing' });
-    await act(async () => {
-      fireEvent.click(chip);
-    });
-
-    // Soundhealing must be deselected now.
+    // No chip should be pressed on initial render.
     await waitFor(() => {
       const pressed = getPressedChips();
-      expect(pressed).not.toContain('Soundhealing');
+      expect(pressed).toEqual([]);
     });
 
-    // A re-render of the categories hook should NOT silently re-add
-    // Soundhealing to the selection.
-    await act(async () => {
-      // Force a re-render by triggering a no-op state change elsewhere.
-      fireEvent.click(screen.getAllByRole('button', { name: 'Alle' })[0]);
-      fireEvent.click(screen.getAllByRole('button', { name: 'Keine' })[0]);
-    });
-
-    // The user's deselection of Soundhealing must persist through the noise.
-    const finalPressed = getPressedChips();
-    expect(finalPressed).not.toContain('Soundhealing');
+    // All seeded events must still be visible: an empty selection is the
+    // documented "show everything" semantic and must not change.
+    const tiles = document.querySelectorAll('.event-tile, .event-row');
+    expect(tiles.length).toBeGreaterThan(0);
   });
 
-  it('still auto-includes a genuinely new category that was not in the saved selection', async () => {
+  it('does NOT auto-include a new category that loads after the saved selection', async () => {
+    // User previously selected Yoga + Meditation. A new category "Qi Gong"
+    // appears in the registry while they are away. Without auto-include, the
+    // user's saved selection must be preserved exactly — widening it
+    // silently would contradict the "one click to filter" promise.
     setStoredCategories(['Yoga', 'Meditation']);
-    // Qi Gong is a previously-unseen category that just got approved.
     mockUseCategories.value = ['Yoga', 'Meditation', 'Qi Gong'];
 
-    render(
-      <MemoryRouter>
-        <HelmetProvider>
-          <CalendarPage />
-        </HelmetProvider>
-      </MemoryRouter>
-    );
+    renderPage();
 
     await waitFor(() => {
-      const pressed = getPressedChips();
-      expect(pressed).toContain('Qi Gong');
-      expect(pressed).toContain('Yoga');
-      expect(pressed).toContain('Meditation');
+      const pressed = getPressedChips().sort();
+      expect(pressed).toEqual(['Meditation', 'Yoga']);
     });
+  });
+
+  it('keeps a deselected category off across unrelated re-renders', async () => {
+    // The user previously had a subset of categories selected.
+    setStoredCategories(['Yoga', 'Meditation', 'Tanz']);
+
+    renderPage();
+
+    // Without auto-include the saved subset is the initial selection —
+    // exactly what the user left the filter in last time.
+    await waitFor(() => {
+      expect(getPressedChips().sort()).toEqual(['Meditation', 'Tanz', 'Yoga']);
+    });
+
+    // User expands to every category then drops Soundhealing.
+    await act(async () => {
+      fireEvent.click(screen.getAllByRole('button', { name: 'Alle' })[0]);
+    });
+    const soundhealing = screen.getByRole('button', { name: 'Soundhealing' });
+    await act(async () => {
+      fireEvent.click(soundhealing);
+    });
+
+    await waitFor(() => {
+      expect(getPressedChips()).not.toContain('Soundhealing');
+    });
+
+    // An unrelated state change (date filter) forces a re-render. The
+    // selection must not silently re-add Soundhealing — the original bug
+    // this test guarded against would resurface here if auto-include were
+    // ever re-introduced.
+    const heute = screen.getByTestId('filter-chip-date-heute');
+    await act(async () => {
+      fireEvent.click(heute);
+    });
+    await act(async () => {
+      fireEvent.click(heute);
+    });
+
+    expect(getPressedChips()).not.toContain('Soundhealing');
+  });
+
+  it('"Alle" and "Keine" both keep every event visible (no change in filter behaviour)', async () => {
+    renderPage();
+
+    const baseline = document.querySelectorAll('.event-tile, .event-row').length;
+    expect(baseline).toBeGreaterThan(0);
+
+    // Click "Alle" — every chip pressed, every event still visible.
+    await act(async () => {
+      fireEvent.click(screen.getAllByRole('button', { name: 'Alle' })[0]);
+    });
+    expect(document.querySelectorAll('.event-tile, .event-row').length).toBe(baseline);
+
+    // Click "Keine" — no chip pressed, every event still visible.
+    await act(async () => {
+      fireEvent.click(screen.getAllByRole('button', { name: 'Keine' })[0]);
+    });
+    await waitFor(() => {
+      expect(getPressedChips()).toEqual([]);
+    });
+    expect(document.querySelectorAll('.event-tile, .event-row').length).toBe(baseline);
   });
 });
 
