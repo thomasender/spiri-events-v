@@ -80,6 +80,40 @@
   color: var(--text-primary);
 }
 
+.legal-content .legal-subheading {
+  font-size: 1.05rem;
+  color: var(--text-primary);
+  margin: 24px 0 12px;
+  font-weight: 600;
+  font-family: var(--font-body);
+}
+
+.legal-content .legal-subheading:first-child {
+  margin-top: 0;
+}
+
+.legal-content .legal-subsubheading {
+  font-size: 1rem;
+  color: var(--text-primary);
+  margin: 20px 0 10px;
+  font-weight: 600;
+  font-family: var(--font-body);
+}
+
+.legal-content .legal-subsubheading:first-child {
+  margin-top: 0;
+}
+
+.legal-content .legal-link {
+  color: var(--accent-primary);
+  text-decoration: underline;
+  word-break: break-word;
+}
+
+.legal-content .legal-link:hover {
+  opacity: 0.8;
+}
+
 .legal-footer {
   margin-top: 32px;
   display: flex;
