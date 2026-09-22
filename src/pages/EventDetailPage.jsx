@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useEvents } from '../hooks/useEvents';
-import { useOrganizerProfileExists } from '../hooks/useOrganizerProfileExists';
+import { useOrganizerProfile } from '../hooks/useOrganizerProfile';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
 import { getOrganizerName } from '../utils/eventFormat';
 import { resolveOrganizerProfilePath } from '../utils/profile';
@@ -44,9 +44,9 @@ import { DEFAULT_CURRENCY, formatPriceWithCurrency } from '../utils/currency';
 import './EventDetailPage.css';
 
 function OrganizerLine({ event }) {
-  const profilePath = resolveOrganizerProfilePath(event);
-  const { exists: organizerProfileExists } = useOrganizerProfileExists(event?.createdBy);
-  const showLink = Boolean(profilePath) && organizerProfileExists;
+  const { profile: organizerProfile } = useOrganizerProfile(event?.createdBy);
+  const profilePath = resolveOrganizerProfilePath(event, organizerProfile);
+  const showLink = Boolean(profilePath);
   const organizerContent = (
     <>
       {event.organizer.photoURL && (

@@ -107,9 +107,13 @@ export function useProfile(uid) {
 
     const currentSlug = profile?.slug || '';
     let nextSlug = currentSlug;
-    if (updates.displayName !== undefined) {
+    const effectiveDisplayName =
+      updates.displayName !== undefined ? updates.displayName : profile?.displayName;
+    if (!currentSlug && effectiveDisplayName) {
+      nextSlug = await findUniqueProfileSlug(effectiveDisplayName, uid);
+    } else if (updates.displayName !== undefined) {
       const desiredSlug = slugifyName(updates.displayName);
-      if (!currentSlug || slugifyName(profile?.displayName) !== desiredSlug) {
+      if (slugifyName(profile?.displayName) !== desiredSlug) {
         nextSlug = await findUniqueProfileSlug(updates.displayName, uid);
       }
     }
