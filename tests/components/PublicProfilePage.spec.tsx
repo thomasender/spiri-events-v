@@ -263,3 +263,90 @@ describe('PublicProfilePage (k9CYVFsc)', () => {
     fireEvent.click(back);
   });
 });
+
+describe('PublicProfilePage — social media links (gIVugxij)', () => {
+  function setupProfile(socialMedia) {
+    mockPublicProfile.loading = false;
+    mockPublicProfile.exists = true;
+    mockPublicProfile.profile = {
+      displayName: 'Anna Schmidt',
+      bio: '',
+      website: '',
+      photoURL: null,
+      slug: 'anna-schmidt',
+      updatedAt: null,
+      socialMedia,
+    };
+    mockPublicProfile.uid = 'user-42';
+  }
+
+  it('does not render social media links when sharePublicly is false', () => {
+    setupProfile({ facebook: 'anna.fb', instagram: 'anna.ig', sharePublicly: false });
+    renderPage();
+    expect(screen.queryByTestId('public-profile-social-media')).toBeNull();
+    expect(screen.queryByTestId('public-profile-facebook')).toBeNull();
+    expect(screen.queryByTestId('public-profile-instagram')).toBeNull();
+  });
+
+  it('renders Facebook and Instagram links as profile URLs when sharePublicly is true', () => {
+    setupProfile({ facebook: 'anna.fb', instagram: 'anna.ig', sharePublicly: true });
+    renderPage();
+
+    const fb = screen.getByTestId('public-profile-facebook');
+    expect(fb).toHaveAttribute('href', 'https://www.facebook.com/anna.fb');
+
+    const ig = screen.getByTestId('public-profile-instagram');
+    expect(ig).toHaveAttribute('href', 'https://www.instagram.com/anna.ig');
+  });
+
+  it('strips a leading @ from handles when building the profile URL', () => {
+    setupProfile({ facebook: '@anna.fb', instagram: '@anna.ig', sharePublicly: true });
+    renderPage();
+
+    expect(screen.getByTestId('public-profile-facebook')).toHaveAttribute(
+      'href',
+      'https://www.facebook.com/anna.fb'
+    );
+    expect(screen.getByTestId('public-profile-instagram')).toHaveAttribute(
+      'href',
+      'https://www.instagram.com/anna.ig'
+    );
+  });
+
+  it('preserves an explicit https:// URL the user pasted in', () => {
+    setupProfile({
+      facebook: 'https://www.facebook.com/anna.custom',
+      instagram: 'https://www.instagram.com/anna.custom',
+      sharePublicly: true,
+    });
+    renderPage();
+
+    expect(screen.getByTestId('public-profile-facebook')).toHaveAttribute(
+      'href',
+      'https://www.facebook.com/anna.custom'
+    );
+  });
+
+  it('upgrades http:// to https://', () => {
+    setupProfile({
+      facebook: 'http://www.facebook.com/anna',
+      instagram: '',
+      sharePublicly: true,
+    });
+    renderPage();
+
+    expect(screen.getByTestId('public-profile-facebook')).toHaveAttribute(
+      'href',
+      'https://www.facebook.com/anna'
+    );
+    expect(screen.queryByTestId('public-profile-instagram')).toBeNull();
+  });
+
+  it('only renders the platforms the user actually provided', () => {
+    setupProfile({ facebook: 'anna.fb', instagram: '', sharePublicly: true });
+    renderPage();
+
+    expect(screen.getByTestId('public-profile-facebook')).toBeInTheDocument();
+    expect(screen.queryByTestId('public-profile-instagram')).toBeNull();
+  });
+});

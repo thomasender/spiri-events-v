@@ -28,6 +28,7 @@ vi.mock('firebase/firestore', () => ({
     commit: mockBatchCommit,
   })),
   serverTimestamp: vi.fn(() => ({ __serverTimestamp: true })),
+  deleteField: vi.fn(() => ({ __deleteField: true })),
   collectionGroup: (...args) => mockCollectionGroup(...args),
   query: vi.fn(),
   where: vi.fn(),
@@ -197,6 +198,178 @@ describe('useProfile.save — notification preferences', () => {
         bio: 'neue Bio',
         slug: 'anna-beispiel-neu',
       }),
+    });
+  });
+});
+
+describe('useProfile.save — social media mirroring (gIVugxij)', () => {
+  function setupWithProfile(profileData) {
+    mockOnSnapshot.mockImplementation((_ref, onNext) => {
+      onNext(makeSnapshot(profileData));
+      return () => {};
+    });
+  }
+
+  it('always writes socialMedia to the private users/{uid} doc', async () => {
+    setupWithProfile({
+      displayName: 'Anna Beispiel',
+      bio: '',
+      website: '',
+      photoURL: null,
+      slug: 'anna-beispiel',
+      socialMedia: { facebook: 'anna.fb', instagram: 'anna.ig', sharePublicly: false },
+    });
+
+    const { result } = renderHook(() => useProfile('user-1'));
+    await waitFor(() => expect(result.current.profile).not.toBeNull());
+
+    await act(async () => {
+      await result.current.save({
+        socialMedia: {
+          facebook: 'anna.fb',
+          instagram: 'anna.ig',
+          sharePublicly: false,
+        },
+      });
+    });
+
+    const privatePayload = mockBatchSet.mock.calls.find(([ref]) => ref.path?.[0] === 'users')?.[1];
+    expect(privatePayload).toMatchObject({
+      socialMedia: {
+        facebook: 'anna.fb',
+        instagram: 'anna.ig',
+        sharePublicly: false,
+      },
+    });
+  });
+
+  it('mirrors socialMedia to publicProfile only when sharePublicly=true', async () => {
+    setupWithProfile({
+      displayName: 'Anna Beispiel',
+      bio: '',
+      website: '',
+      photoURL: null,
+      slug: 'anna-beispiel',
+      socialMedia: { facebook: 'anna.fb', instagram: 'anna.ig', sharePublicly: true },
+    });
+
+    const { result } = renderHook(() => useProfile('user-1'));
+    await waitFor(() => expect(result.current.profile).not.toBeNull());
+
+    await act(async () => {
+      await result.current.save({
+        socialMedia: {
+          facebook: 'anna.fb',
+          instagram: 'anna.ig',
+          sharePublicly: true,
+        },
+      });
+    });
+
+    const publicPayload = mockBatchSet.mock.calls.find(
+      ([ref]) => ref.path?.join('/') === 'users/user-1/publicProfile/data'
+    )?.[1];
+    expect(publicPayload).toMatchObject({
+      slug: 'anna-beispiel',
+      socialMedia: {
+        facebook: 'anna.fb',
+        instagram: 'anna.ig',
+        sharePublicly: true,
+      },
+    });
+  });
+
+  it('omits socialMedia from publicProfile when sharePublicly=false', async () => {
+    setupWithProfile({
+      displayName: 'Anna Beispiel',
+      bio: '',
+      website: '',
+      photoURL: null,
+      slug: 'anna-beispiel',
+      socialMedia: { facebook: '', instagram: '', sharePublicly: false },
+    });
+
+    const { result } = renderHook(() => useProfile('user-1'));
+    await waitFor(() => expect(result.current.profile).not.toBeNull());
+
+    await act(async () => {
+      await result.current.save({
+        socialMedia: {
+          facebook: 'anna.fb',
+          instagram: 'anna.ig',
+          sharePublicly: false,
+        },
+      });
+    });
+
+    // No publicProfile write should happen — slug is unchanged and socialMedia
+    // is excluded because sharePublicly is false.
+    const publicCall = mockBatchSet.mock.calls.find(
+      ([ref]) => ref.path?.join('/') === 'users/user-1/publicProfile/data'
+    );
+    expect(publicCall).toBeUndefined();
+  });
+
+  it('actively removes socialMedia from publicProfile when toggling sharePublicly off', async () => {
+    setupWithProfile({
+      displayName: 'Anna Beispiel',
+      bio: '',
+      website: '',
+      photoURL: null,
+      slug: 'anna-beispiel',
+      socialMedia: { facebook: 'anna.fb', instagram: 'anna.ig', sharePublicly: true },
+    });
+
+    const { result } = renderHook(() => useProfile('user-1'));
+    await waitFor(() => expect(result.current.profile).not.toBeNull());
+
+    await act(async () => {
+      await result.current.save({
+        socialMedia: {
+          facebook: 'anna.fb',
+          instagram: 'anna.ig',
+          sharePublicly: false,
+        },
+      });
+    });
+
+    const publicPayload = mockBatchSet.mock.calls.find(
+      ([ref]) => ref.path?.join('/') === 'users/user-1/publicProfile/data'
+    )?.[1];
+    expect(publicPayload).toBeDefined();
+    expect(publicPayload.socialMedia).toMatchObject({ __deleteField: true });
+  });
+
+  it('trims whitespace from socialMedia handles when mirroring', async () => {
+    setupWithProfile({
+      displayName: 'Anna Beispiel',
+      bio: '',
+      website: '',
+      photoURL: null,
+      slug: 'anna-beispiel',
+      socialMedia: { facebook: '', instagram: '', sharePublicly: true },
+    });
+
+    const { result } = renderHook(() => useProfile('user-1'));
+    await waitFor(() => expect(result.current.profile).not.toBeNull());
+
+    await act(async () => {
+      await result.current.save({
+        socialMedia: {
+          facebook: '  anna.fb  ',
+          instagram: '  anna.ig  ',
+          sharePublicly: true,
+        },
+      });
+    });
+
+    const publicPayload = mockBatchSet.mock.calls.find(
+      ([ref]) => ref.path?.join('/') === 'users/user-1/publicProfile/data'
+    )?.[1];
+    expect(publicPayload.socialMedia).toEqual({
+      facebook: 'anna.fb',
+      instagram: 'anna.ig',
+      sharePublicly: true,
     });
   });
 });

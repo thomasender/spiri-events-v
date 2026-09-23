@@ -106,7 +106,7 @@ service cloud.firestore {
                     && request.auth.uid == uid
                     && request.resource.data.keys().hasOnly(
                       ['displayName', 'bio', 'website', 'contact', 'photoURL',
-                       'slug',
+                       'slug', 'socialMedia',
                        'notifyOnSubmitted', 'notifyOnChangesRequested',
                        'notifyOnPublished', 'notifyOnDeleted',
                        'createdAt', 'updatedAt']
@@ -120,7 +120,7 @@ service cloud.firestore {
                     && request.resource.data.displayName.size() <= 80
                     && request.resource.data.diff(resource.data).affectedKeys()
                         .hasOnly(['displayName', 'bio', 'website', 'contact', 'photoURL',
-                                  'slug',
+                                  'slug', 'socialMedia',
                                   'notifyOnSubmitted', 'notifyOnChangesRequested',
                                   'notifyOnPublished', 'notifyOnDeleted',
                                   'updatedAt']);
@@ -139,7 +139,7 @@ service cloud.firestore {
         allow create: if isAuthenticated()
                       && request.auth.uid == uid
                       && request.resource.data.keys().hasOnly(
-                        ['displayName', 'bio', 'website', 'photoURL', 'slug',
+                        ['displayName', 'bio', 'website', 'photoURL', 'slug', 'socialMedia',
                          'updatedAt']
                       )
                       && request.resource.data.bio.size() <= 500
@@ -150,7 +150,7 @@ service cloud.firestore {
                       && request.resource.data.bio.size() <= 500
                       && request.resource.data.displayName.size() <= 80
                       && request.resource.data.diff(resource.data).affectedKeys()
-                          .hasOnly(['displayName', 'bio', 'website', 'photoURL', 'slug',
+                          .hasOnly(['displayName', 'bio', 'website', 'photoURL', 'slug', 'socialMedia',
                                     'updatedAt']);
 
         allow delete: if isAuthenticated() && request.auth.uid == uid;

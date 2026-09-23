@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, ExternalLink, Pencil } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Facebook, Instagram, Pencil } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
 import ShareButton from '../components/ShareButton';
 import OrganizerEvents from '../components/OrganizerEvents';
@@ -14,6 +14,18 @@ function normalizeWebsite(url) {
   if (!trimmed) return '';
   if (/^https?:\/\//i.test(trimmed)) return trimmed;
   return `https://${trimmed}`;
+}
+
+function normalizeSocialHandle(value, platform) {
+  if (!value) return '';
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed.replace(/^http:\/\//i, 'https://');
+  }
+  const handle = trimmed.replace(/^@/, '').split('/').filter(Boolean).pop();
+  if (!handle) return '';
+  return `https://www.${platform}.com/${handle}`;
 }
 
 function buildProfileShareUrl(slug) {
@@ -98,6 +110,15 @@ export default function PublicProfilePage() {
   const website = normalizeWebsite(profile.website);
   const hasBio = profile.bio && profile.bio.trim().length > 0;
   const hasWebsite = website.length > 0;
+  const socialMedia = profile.socialMedia || {};
+  const showSocialMedia = socialMedia.sharePublicly === true;
+  const facebookUrl = showSocialMedia
+    ? normalizeSocialHandle(socialMedia.facebook, 'facebook')
+    : '';
+  const instagramUrl = showSocialMedia
+    ? normalizeSocialHandle(socialMedia.instagram, 'instagram')
+    : '';
+  const hasSocialLinks = Boolean(facebookUrl || instagramUrl);
   const shareUrl = buildProfileShareUrl(slug);
 
   return (
@@ -180,6 +201,35 @@ export default function PublicProfilePage() {
               <ExternalLink size={16} aria-hidden="true" />
               <span>{profile.website}</span>
             </a>
+          )}
+
+          {hasSocialLinks && (
+            <div className="public-profile-social-media" data-testid="public-profile-social-media">
+              {facebookUrl && (
+                <a
+                  href={facebookUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="public-profile-social-link"
+                  aria-label="Facebook Profil"
+                  data-testid="public-profile-facebook"
+                >
+                  <Facebook size={18} aria-hidden="true" />
+                </a>
+              )}
+              {instagramUrl && (
+                <a
+                  href={instagramUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="public-profile-social-link"
+                  aria-label="Instagram Profil"
+                  data-testid="public-profile-instagram"
+                >
+                  <Instagram size={18} aria-hidden="true" />
+                </a>
+              )}
+            </div>
           )}
         </article>
 

@@ -8,17 +8,24 @@ const EMPTY_PROFILE = {
   website: '',
   photoURL: null,
   slug: '',
+  socialMedia: { facebook: '', instagram: '', sharePublicly: false },
   updatedAt: null,
 };
 
 function normalize(data) {
   if (!data) return EMPTY_PROFILE;
+  const sm = data.socialMedia && typeof data.socialMedia === 'object' ? data.socialMedia : {};
   return {
     displayName: data.displayName || '',
     bio: data.bio || '',
     website: data.website || '',
     photoURL: data.photoURL || null,
     slug: data.slug || '',
+    socialMedia: {
+      facebook: typeof sm.facebook === 'string' ? sm.facebook : '',
+      instagram: typeof sm.instagram === 'string' ? sm.instagram : '',
+      sharePublicly: sm.sharePublicly === true,
+    },
     updatedAt: data.updatedAt || null,
   };
 }
