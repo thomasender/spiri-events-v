@@ -161,4 +161,15 @@ describe('RichTextEditor', () => {
     const surfacePos = surface.compareDocumentPosition(toolbar);
     expect(surfacePos & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
+
+  it('skips the toolbar buttons when tabbing through the form so Tab from the editor lands on the next input field', async () => {
+    const { container } = render(<RichTextEditor value="<p>x</p>" onChange={() => {}} />);
+    await waitForEditor();
+
+    const toolbarButtons = container.querySelectorAll('.rte-toolbar .rte-toolbar-btn');
+    expect(toolbarButtons.length).toBeGreaterThan(0);
+    toolbarButtons.forEach((btn) => {
+      expect(btn.getAttribute('tabindex')).toBe('-1');
+    });
+  });
 });
