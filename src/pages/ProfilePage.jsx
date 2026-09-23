@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
 import ProfileForm from '../components/ProfileForm';
@@ -12,13 +11,10 @@ export default function ProfilePage() {
   const { user, role, changeEmail, deleteAccount, isGoogleUser } = useAuth();
   const { profile, notificationPreferences, loading: profileLoading, save } = useProfile(user?.uid);
   const isAdmin = role === 'Admin';
-  const navigate = useNavigate();
 
   const handleProfileSave = async (updates) => {
     const newSlug = await save(updates);
-    if (newSlug) {
-      window.setTimeout(() => navigate(`/${newSlug}`), 1500);
-    }
+    return newSlug;
   };
 
   const handlePreferencesSave = async (updates) => {
