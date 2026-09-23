@@ -99,6 +99,13 @@ function RichTextEditor({
   const [imageUploading, setImageUploading] = useState(false);
   const [imageError, setImageError] = useState(null);
   const fileInputRef = useRef(null);
+  // Tracks the last HTML we forwarded to the parent via onChange, so the
+  // `value`-`setContent` effect can distinguish a parent-driven update from
+  // the roundtrip of our own onChange. Without this, every keystroke
+  // re-invokes setContent (re-parses the doc, normalizes whitespace, drops the
+  // trailingBreak DOM hack), which is what makes the first character after an
+  // image upload silently disappear.
+  const lastForwardedHtml = useRef('');
 
   const editor = useEditor({
     extensions: [
@@ -115,7 +122,11 @@ function RichTextEditor({
         },
       }),
       Image.configure({
-        inline: false,
+        // Inline images sit inside the surrounding paragraph, so inserting an
+        // image no longer splits the doc into a block image plus an empty
+        // trailing paragraph (whose <br class="ProseMirror-trailingBreak"> DOM
+        // hack swallows the user's first keystroke).
+        inline: true,
         allowBase64: false,
         HTMLAttributes: { class: 'rte-embedded-image' },
       }),
@@ -130,22 +141,34 @@ function RichTextEditor({
         role: 'textbox',
         'aria-multiline': 'true',
       },
+      // Preserve trailing whitespace inside paragraphs so a single space typed
+      // between words or after an image isn't collapsed on the next re-render.
+      parseOptions: {
+        preserveWhitespace: 'full',
+      },
     },
     onUpdate({ editor }) {
       const html = editor.getHTML();
       const clean = sanitizeHtml(html);
       const len = getPlainTextLength(clean);
       setPlainLength(len);
-      if (onChange) onChange(clean);
+      if (onChange) {
+        lastForwardedHtml.current = clean;
+        onChange(clean);
+      }
     },
   });
 
   useEffect(() => {
     if (!editor) return;
-    if (value !== editor.getHTML()) {
-      editor.commands.setContent(value || '', { emitUpdate: false });
-      setPlainLength(getPlainTextLength(value || ''));
-    }
+    // Ignore the roundtrip from our own onChange. Otherwise every keystroke
+    // would tear down the doc and re-parse it via setContent, losing the
+    // trailing whitespace the user just typed.
+    if (value === lastForwardedHtml.current) return;
+    // External value change (initial load, profile switch): sync once.
+    lastForwardedHtml.current = value || '';
+    editor.commands.setContent(value || '', { emitUpdate: false });
+    setPlainLength(getPlainTextLength(value || ''));
   }, [value, editor]);
 
   useEffect(() => {
