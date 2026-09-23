@@ -10,6 +10,28 @@ export const PUBLIC_PROFILE_FIELDS = [
 export const BIO_MAX = 500;
 export const DISPLAY_NAME_MAX = 80;
 
+// Fields required for a public profile to feel "worth viewing". Without these,
+// the public profile page (PublicProfilePage.jsx) renders mostly empty. The
+// "Save & View Profile" button on the profile edit form gates the redirect on
+// this list. Add an entry here when a new field is added to the public page
+// that makes the page meaningfully richer.
+//   key    — the profile doc field (must match what ProfileForm saves)
+//   label  — German label shown in the "Profil noch nicht vollständig" dialog
+export const REQUIRED_PUBLIC_PROFILE_FIELDS = [
+  { key: 'displayName', label: 'Name' },
+  { key: 'bio', label: 'Kurze Beschreibung' },
+];
+
+export function getMissingProfileFields(profile) {
+  if (!profile || typeof profile !== 'object') {
+    return REQUIRED_PUBLIC_PROFILE_FIELDS.map(({ key, label }) => ({ key, label }));
+  }
+  return REQUIRED_PUBLIC_PROFILE_FIELDS.filter(({ key }) => {
+    const value = profile[key];
+    return typeof value !== 'string' || value.trim() === '';
+  });
+}
+
 export function splitProfileData(data) {
   if (!data || typeof data !== 'object') {
     return { publicDoc: {}, privateDoc: {} };

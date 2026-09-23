@@ -1,0 +1,15 @@
+.profile-incomplete-dialog-intro {
+  margin-bottom: 12px;
+}
+
+.profile-incomplete-fields {
+  list-style: disc;
+  padding-left: 20px;
+  margin: 0 0 24px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.profile-incomplete-fields li {
+  margin: 4px 0;
+}

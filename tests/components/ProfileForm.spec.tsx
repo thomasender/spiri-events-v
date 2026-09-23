@@ -1,7 +1,13 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import ProfileForm from '../../src/components/ProfileForm';
+
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return { ...actual, useNavigate: () => mockNavigate };
+});
 
 function renderForm(profile, props = {}) {
   return render(
@@ -219,28 +225,192 @@ describe('ProfileForm — social media (gIVugxij)', () => {
   });
 });
 
-describe('ProfileForm — public profile link (VwXzeWqG)', () => {
-  const baseProfile = {
+describe('ProfileForm — Speichern & Profil anzeigen button (WBFFzVcm)', () => {
+  const completeProfile = {
     displayName: 'Maria Musterfrau',
     bio: 'Yoga-Lehrerin aus Vorarlberg.',
-    website: 'www.example.com',
-    contact: 'maria@example.com',
+    website: '',
+    contact: '',
     photoURL: null,
     slug: 'maria-musterfrau',
   };
 
-  it('renders a link to the public profile when the profile has a slug', () => {
-    renderForm(baseProfile);
+  const incompleteProfile = {
+    displayName: 'Maria Musterfrau',
+    bio: '',
+    website: '',
+    contact: '',
+    photoURL: null,
+    slug: 'maria-musterfrau',
+  };
 
-    const link = screen.getByTestId('profile-view-public');
-    expect(link).toBeInTheDocument();
-    expect(link).toHaveAttribute('href', '/maria-musterfrau');
-    expect(link).toHaveTextContent(/öffentliches Profil anzeigen/i);
+  const newUserProfile = {
+    displayName: '',
+    bio: '',
+    website: '',
+    contact: '',
+    photoURL: null,
+    slug: '',
+  };
+
+  beforeEach(() => {
+    mockNavigate.mockClear();
   });
 
-  it('does not render the public profile link when the profile has no slug yet', () => {
-    renderForm({ ...baseProfile, slug: '' });
+  it('renders the "Speichern & Profil anzeigen" button when the profile has a slug', () => {
+    renderForm(completeProfile);
+    expect(screen.getByTestId('profile-save-and-view')).toBeInTheDocument();
+    expect(screen.getByTestId('profile-save-and-view')).toHaveTextContent(
+      /Speichern & Profil anzeigen/i
+    );
+  });
 
-    expect(screen.queryByTestId('profile-view-public')).toBeNull();
+  it('renders only the "Speichern" button when the profile has no slug yet', () => {
+    renderForm(newUserProfile);
+    expect(screen.queryByTestId('profile-save-and-view')).toBeNull();
+    expect(screen.getByTestId('profile-save')).toBeInTheDocument();
+  });
+
+  it('does not navigate when the plain "Speichern" button is clicked', async () => {
+    const onSave = vi.fn().mockResolvedValue('maria-musterfrau');
+    renderForm(completeProfile, { onSave });
+
+    fireEvent.click(screen.getByTestId('profile-save'));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(screen.getByTestId('profile-save-success')).toBeInTheDocument();
+  });
+
+  it('navigates to the public profile after saving when the profile is complete', async () => {
+    const onSave = vi.fn().mockResolvedValue('maria-musterfrau');
+    renderForm(completeProfile, { onSave });
+
+    fireEvent.click(screen.getByTestId('profile-save-and-view'));
+
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/maria-musterfrau'));
+    expect(onSave).toHaveBeenCalled();
+  });
+
+  it('uses the slug returned by onSave (e.g. after renaming the displayName) when navigating', async () => {
+    const onSave = vi.fn().mockResolvedValue('peter-mathis');
+    renderForm({ ...completeProfile, slug: 'old-slug' }, { onSave });
+
+    fireEvent.change(screen.getByTestId('profile-displayName'), {
+      target: { value: 'Peter Mathis' },
+    });
+    fireEvent.click(screen.getByTestId('profile-save-and-view'));
+
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/peter-mathis'));
+  });
+
+  it('shows the incomplete-profile dialog instead of navigating when bio is missing', async () => {
+    const onSave = vi.fn().mockResolvedValue('maria-musterfrau');
+    renderForm(incompleteProfile, { onSave });
+
+    fireEvent.click(screen.getByTestId('profile-save-and-view'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('profile-incomplete-dialog')).toBeInTheDocument();
+    });
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(screen.getByTestId('profile-incomplete-field-bio')).toBeInTheDocument();
+  });
+
+  it('still saves the profile even when the dialog blocks navigation', async () => {
+    const onSave = vi.fn().mockResolvedValue('maria-musterfrau');
+    renderForm(incompleteProfile, { onSave });
+
+    fireEvent.click(screen.getByTestId('profile-save-and-view'));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(screen.getByTestId('profile-incomplete-dialog')).toBeInTheDocument();
+  });
+
+  it('does not render the "Speichern & Profil anzeigen" button when validation fails (empty name)', async () => {
+    // The button only renders when a slug exists; for a brand-new account
+    // there is no slug, so the button does not exist and validation must
+    // happen via the plain "Speichern" path.
+    const onSave = vi.fn();
+    renderForm(newUserProfile, { onSave });
+
+    expect(screen.queryByTestId('profile-save-and-view')).toBeNull();
+
+    fireEvent.click(screen.getByTestId('profile-save'));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Name ist erforderlich/i)).toBeInTheDocument();
+    });
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it('closes the dialog via its "Verstanden" button without navigating', async () => {
+    const onSave = vi.fn().mockResolvedValue('maria-musterfrau');
+    renderForm(incompleteProfile, { onSave });
+
+    fireEvent.click(screen.getByTestId('profile-save-and-view'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('profile-incomplete-dialog')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('profile-incomplete-dialog-confirm'));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('profile-incomplete-dialog')).toBeNull();
+    });
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('closes the dialog via the close (X) button', async () => {
+    const onSave = vi.fn().mockResolvedValue('maria-musterfrau');
+    renderForm(incompleteProfile, { onSave });
+
+    fireEvent.click(screen.getByTestId('profile-save-and-view'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('profile-incomplete-dialog')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('profile-incomplete-dialog-close'));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('profile-incomplete-dialog')).toBeNull();
+    });
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+});
+
+describe('getMissingProfileFields (WBFFzVcm)', () => {
+  it('returns displayName and bio as missing for a null profile', async () => {
+    const { getMissingProfileFields } = await import('../../src/utils/profile');
+    expect(getMissingProfileFields(null)).toEqual([
+      { key: 'displayName', label: 'Name' },
+      { key: 'bio', label: 'Kurze Beschreibung' },
+    ]);
+  });
+
+  it('returns no missing fields for a fully populated profile', async () => {
+    const { getMissingProfileFields } = await import('../../src/utils/profile');
+    expect(
+      getMissingProfileFields({
+        displayName: 'Maria',
+        bio: 'Yoga-Lehrerin.',
+      })
+    ).toEqual([]);
+  });
+
+  it('returns bio when only bio is missing', async () => {
+    const { getMissingProfileFields } = await import('../../src/utils/profile');
+    expect(getMissingProfileFields({ displayName: 'Maria', bio: '   ' })).toEqual([
+      { key: 'bio', label: 'Kurze Beschreibung' },
+    ]);
+  });
+
+  it('ignores non-string values when checking fields', async () => {
+    const { getMissingProfileFields } = await import('../../src/utils/profile');
+    expect(getMissingProfileFields({ displayName: 'Maria', bio: null })).toEqual([
+      { key: 'bio', label: 'Kurze Beschreibung' },
+    ]);
   });
 });

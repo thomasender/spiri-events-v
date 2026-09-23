@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ExternalLink, Facebook, Instagram, Save } from 'lucide-react';
 import ProfilePhotoUpload from './ProfilePhotoUpload';
+import ProfileIncompleteDialog from './ProfileIncompleteDialog';
+import { getMissingProfileFields } from '../utils/profile';
 import './ProfileForm.css';
 
 const BIO_MAX = 500;
@@ -42,6 +44,10 @@ export default function ProfileForm({ profile, uid, onSave }) {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogMissingFields, setDialogMissingFields] = useState([]);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!profile) return;
@@ -71,6 +77,19 @@ export default function ProfileForm({ profile, uid, onSave }) {
     return newErrors;
   };
 
+  const buildPayload = () => ({
+    displayName: displayName.trim(),
+    bio: bio.trim(),
+    website: normalizeWebsite(website),
+    contact: contact.trim(),
+    photoURL: photoURL || null,
+    socialMedia: {
+      facebook: facebook.trim(),
+      instagram: instagram.trim(),
+      sharePublicly,
+    },
+  });
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitError('');
@@ -86,18 +105,7 @@ export default function ProfileForm({ profile, uid, onSave }) {
     setSaving(true);
 
     try {
-      await onSave({
-        displayName: displayName.trim(),
-        bio: bio.trim(),
-        website: normalizeWebsite(website),
-        contact: contact.trim(),
-        photoURL: photoURL || null,
-        socialMedia: {
-          facebook: facebook.trim(),
-          instagram: instagram.trim(),
-          sharePublicly,
-        },
-      });
+      await onSave(buildPayload());
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
@@ -106,6 +114,52 @@ export default function ProfileForm({ profile, uid, onSave }) {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSaveAndView = async () => {
+    setSubmitError('');
+    setSuccess(false);
+
+    const newErrors = validate();
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setErrors({});
+    setSaving(true);
+    setDialogOpen(false);
+    setDialogMissingFields([]);
+
+    try {
+      const payload = buildPayload();
+      const newSlug = await onSave(payload);
+
+      const savedProfile = {
+        ...profile,
+        ...payload,
+        slug: newSlug || profile?.slug || '',
+      };
+      const missing = getMissingProfileFields(savedProfile);
+
+      if (missing.length === 0 && savedProfile.slug) {
+        navigate(`/${savedProfile.slug}`);
+        return;
+      }
+
+      setDialogMissingFields(missing);
+      setDialogOpen(true);
+    } catch (err) {
+      console.error('Profile save failed:', err);
+      setSubmitError('Profil konnte nicht gespeichert werden. Bitte versuche es erneut.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const closeDialog = () => {
+    setDialogOpen(false);
+    setDialogMissingFields([]);
   };
 
   return (
@@ -117,16 +171,6 @@ export default function ProfileForm({ profile, uid, onSave }) {
             Diese Informationen werden in deinem Profil angezeigt.
           </p>
         </div>
-        {profile?.slug && (
-          <Link
-            to={`/${profile.slug}`}
-            className="profile-card-view-link"
-            data-testid="profile-view-public"
-          >
-            <ExternalLink size={16} aria-hidden="true" />
-            <span>öffentliches Profil anzeigen</span>
-          </Link>
-        )}
       </div>
 
       <ProfilePhotoUpload
@@ -270,6 +314,18 @@ export default function ProfileForm({ profile, uid, onSave }) {
         )}
 
         <div className="form-actions">
+          {profile?.slug && (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={handleSaveAndView}
+              disabled={saving}
+              data-testid="profile-save-and-view"
+            >
+              <ExternalLink size={18} aria-hidden="true" />
+              <span>{saving ? 'Speichern…' : 'Speichern & Profil anzeigen'}</span>
+            </button>
+          )}
           <button
             type="submit"
             className="btn btn-primary"
@@ -281,6 +337,12 @@ export default function ProfileForm({ profile, uid, onSave }) {
           </button>
         </div>
       </form>
+
+      <ProfileIncompleteDialog
+        isOpen={dialogOpen}
+        missingFields={dialogMissingFields}
+        onClose={closeDialog}
+      />
     </div>
   );
 }

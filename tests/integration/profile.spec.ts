@@ -209,6 +209,61 @@ test.describe.serial('Profile Management @smoke', () => {
     expect(storageObjects.some((name) => /\/avatar\//.test(name))).toBe(true);
   });
 
+  test('Speichern stays on /profil; Speichern & Profil anzeigen blocks until bio is filled, then navigates', async ({
+    page,
+  }) => {
+    const email = `save-and-view-${Date.now()}@example.com`;
+    const password = 'testpassword123';
+    const uid = await createAuthUser(email, password);
+
+    try {
+      await signInWithEmailAndPassword(page, email, password);
+      await page.goto(PROFILE_PATH);
+      await page
+        .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+        .catch(() => {});
+
+      await page.getByTestId('profile-displayName').fill('Test Organizer');
+      // Bio left empty on purpose — the dialog must block navigation until it is filled.
+
+      // 1) Plain "Speichern" must not navigate away from /profil.
+      await page.getByTestId('profile-save').click();
+      await expect(page.getByTestId('profile-save-success')).toBeVisible({ timeout: 10000 });
+      await expect(page).toHaveURL(/\/profil/);
+
+      // Reload so the slug generated on the first save is reflected.
+      await page.reload();
+      await page
+        .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+        .catch(() => {});
+
+      // 2) "Speichern & Profil anzeigen" with no bio shows the dialog and does not navigate.
+      await page.getByTestId('profile-save-and-view').click();
+      await expect(page.getByTestId('profile-incomplete-dialog')).toBeVisible({ timeout: 10000 });
+      await expect(page.getByTestId('profile-incomplete-field-bio')).toBeVisible();
+      await expect(page).toHaveURL(/\/profil/);
+
+      // Close the dialog and confirm we stay on /profil.
+      await page.getByTestId('profile-incomplete-dialog-confirm').click();
+      await expect(page.getByTestId('profile-incomplete-dialog')).toBeHidden();
+      await expect(page).toHaveURL(/\/profil/);
+
+      // 3) Now fill bio and click "Speichern & Profil anzeigen" again — it must navigate away.
+      await page.getByTestId('profile-bio').fill('Eine kurze Beschreibung für den Test.');
+      await page.getByTestId('profile-save-and-view').click();
+      await page.waitForURL(
+        (url) =>
+          !url.pathname.startsWith('/profil') &&
+          !url.pathname.startsWith('/login') &&
+          url.pathname !== '/',
+        { timeout: 15000 }
+      );
+      await expect(page.getByTestId('public-profile-page')).toBeVisible({ timeout: 10000 });
+    } finally {
+      await deleteAuthUser(uid);
+    }
+  });
+
   test('change email requires the current password and sends a confirmation email', async ({
     page,
   }) => {
