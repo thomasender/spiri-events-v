@@ -68,6 +68,8 @@ const AUTH_ERROR_MESSAGES = {
     'Es liegt ein Konfigurationsproblem vor. Bitte informiere den Seitenbetreiber.',
   'auth/invalid-tenant-id':
     'Es liegt ein Konfigurationsproblem vor. Bitte informiere den Seitenbetreiber.',
+  'auth/email-change-failed':
+    'Die E-Mail-Adresse konnte nicht geändert werden. Bitte versuche es mit einer anderen E-Mail-Adresse.',
 };
 
 export function authErrorMessage(err) {
@@ -312,7 +314,18 @@ export function useAuth() {
     if (!current) {
       throw { code: 'auth/no-current-user', message: 'Kein angemeldeter Benutzer.' };
     }
-    await verifyBeforeUpdateEmail(current, newEmail);
+    try {
+      await verifyBeforeUpdateEmail(current, newEmail);
+    } catch (err) {
+      if (err?.code === 'auth/email-already-in-use') {
+        // Don't leak that the requested email is already in use — show a
+        // generic failure so callers can't use this flow to probe whether an
+        // arbitrary address belongs to an account. Registration keeps the
+        // specific message because it isn't authenticated.
+        throw { code: 'auth/email-change-failed', message: err.message };
+      }
+      throw err;
+    }
     return current;
   };
 

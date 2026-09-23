@@ -99,6 +99,27 @@ describe('ChangeEmailForm', () => {
     expect(screen.getByTestId('change-email-error').textContent).toMatch(/Passwort ist falsch/i);
   });
 
+  it('shows a generic error when the hook reports auth/email-change-failed (masked from auth/email-already-in-use)', async () => {
+    const onChangeEmail = vi.fn().mockRejectedValue({ code: 'auth/email-change-failed' });
+    render(<ChangeEmailForm currentEmail="alice@example.com" onChangeEmail={onChangeEmail} />);
+
+    fireEvent.change(screen.getByTestId('change-email-new'), {
+      target: { value: 'bob@example.com' },
+    });
+    fireEvent.change(screen.getByTestId('change-email-password'), {
+      target: { value: 'secret123' },
+    });
+    fireEvent.submit(screen.getByTestId('change-email-form'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('change-email-error')).toBeInTheDocument();
+    });
+    const text = screen.getByTestId('change-email-error').textContent;
+    expect(text).toMatch(/nicht geändert/i);
+    expect(text).not.toMatch(/bereits verwendet/i);
+    expect(text).not.toMatch(/already/i);
+  });
+
   it('omits the password field for Google users and shows a Google re-auth notice', () => {
     render(
       <ChangeEmailForm currentEmail="alice@example.com" onChangeEmail={vi.fn()} isGoogleUser />
