@@ -105,21 +105,27 @@ service cloud.firestore {
       allow create: if isAuthenticated()
                     && request.auth.uid == uid
                     && request.resource.data.keys().hasOnly(
-                      ['displayName', 'bio', 'website', 'contact', 'photoURL',
+                      ['displayName', 'bio', 'bioHtml', 'website', 'contact', 'photoURL',
                        'slug', 'socialMedia',
                        'notifyOnSubmitted', 'notifyOnChangesRequested',
                        'notifyOnPublished', 'notifyOnDeleted',
                        'createdAt', 'updatedAt']
                     )
                     && request.resource.data.bio.size() <= 500
-                    && request.resource.data.displayName.size() <= 80;
+                    && request.resource.data.displayName.size() <= 80
+                    && (!('bioHtml' in request.resource.data)
+                        || (request.resource.data.bioHtml is string
+                            && request.resource.data.bioHtml.size() <= 5000));
 
       allow update: if isAuthenticated()
                     && request.auth.uid == uid
                     && request.resource.data.bio.size() <= 500
                     && request.resource.data.displayName.size() <= 80
+                    && (!('bioHtml' in request.resource.data)
+                        || (request.resource.data.bioHtml is string
+                            && request.resource.data.bioHtml.size() <= 5000))
                     && request.resource.data.diff(resource.data).affectedKeys()
-                        .hasOnly(['displayName', 'bio', 'website', 'contact', 'photoURL',
+                        .hasOnly(['displayName', 'bio', 'bioHtml', 'website', 'contact', 'photoURL',
                                   'slug', 'socialMedia',
                                   'notifyOnSubmitted', 'notifyOnChangesRequested',
                                   'notifyOnPublished', 'notifyOnDeleted',
@@ -139,18 +145,24 @@ service cloud.firestore {
         allow create: if isAuthenticated()
                       && request.auth.uid == uid
                       && request.resource.data.keys().hasOnly(
-                        ['displayName', 'bio', 'website', 'photoURL', 'slug', 'socialMedia',
+                        ['displayName', 'bio', 'bioHtml', 'website', 'photoURL', 'slug', 'socialMedia',
                          'updatedAt']
                       )
                       && request.resource.data.bio.size() <= 500
-                      && request.resource.data.displayName.size() <= 80;
+                      && request.resource.data.displayName.size() <= 80
+                      && (!('bioHtml' in request.resource.data)
+                          || (request.resource.data.bioHtml is string
+                              && request.resource.data.bioHtml.size() <= 5000));
 
         allow update: if isAuthenticated()
                       && request.auth.uid == uid
                       && request.resource.data.bio.size() <= 500
                       && request.resource.data.displayName.size() <= 80
+                      && (!('bioHtml' in request.resource.data)
+                          || (request.resource.data.bioHtml is string
+                              && request.resource.data.bioHtml.size() <= 5000))
                       && request.resource.data.diff(resource.data).affectedKeys()
-                          .hasOnly(['displayName', 'bio', 'website', 'photoURL', 'slug', 'socialMedia',
+                          .hasOnly(['displayName', 'bio', 'bioHtml', 'website', 'photoURL', 'slug', 'socialMedia',
                                     'updatedAt']);
 
         allow delete: if isAuthenticated() && request.auth.uid == uid;

@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
@@ -8,6 +9,36 @@ vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
   return { ...actual, useNavigate: () => mockNavigate };
 });
+
+vi.mock('../../src/lib/imageUpload', () => ({
+  uploadProfileDescriptionImage: vi.fn(
+    async () => 'https://firebasestorage.googleapis.com/v0/b/x/o/bio-photo.jpg'
+  ),
+  MAX_INPUT_SIZE_BYTES: 15 * 1024 * 1024,
+}));
+
+vi.mock('../../src/components/RichTextEditorLazy', () => ({
+  default: ({ value, onChange, testId, hasError, maxLength }) => {
+    const text = (value || '').replace(/<[^>]*>/g, '');
+    const len = text.length;
+    return (
+      <div data-testid={testId} className={`rte-wrapper${hasError ? ' rte-wrapper--error' : ''}`}>
+        <div
+          role="textbox"
+          aria-multiline="true"
+          className="rte-content"
+          contentEditable
+          suppressContentEditableWarning
+          onInput={(e) => onChange(`<p>${e.currentTarget.textContent || ''}</p>`)}
+          dangerouslySetInnerHTML={{ __html: value || '' }}
+        />
+        <div className={`rte-counter${len > maxLength ? ' rte-counter--over' : ''}`}>
+          {len} / {maxLength} Zeichen
+        </div>
+      </div>
+    );
+  },
+}));
 
 function renderForm(profile, props = {}) {
   return render(
@@ -21,26 +52,34 @@ describe('ProfileForm', () => {
   const baseProfile = {
     displayName: 'Maria Musterfrau',
     bio: 'Yoga-Lehrerin aus Vorarlberg.',
+    bioHtml: '<p>Yoga-Lehrerin aus Vorarlberg.</p>',
     website: 'www.example.com',
     contact: 'maria@example.com',
     photoURL: null,
     slug: 'maria-musterfrau',
   };
 
-  it('renders pre-filled form values from profile', () => {
+  it('renders pre-filled form values from profile', async () => {
     renderForm(baseProfile);
 
     expect(screen.getByTestId('profile-displayName')).toHaveValue('Maria Musterfrau');
-    expect(screen.getByTestId('profile-bio')).toHaveValue('Yoga-Lehrerin aus Vorarlberg.');
+
+    const editor = screen.getByTestId('profile-bio-editor');
+    await waitFor(() => expect(editor.querySelector('.rte-content')).toBeInTheDocument());
+    expect(editor.querySelector('.rte-content')).toHaveTextContent('Yoga-Lehrerin aus Vorarlberg.');
+
     expect(screen.getByTestId('profile-website')).toHaveValue('www.example.com');
     expect(screen.getByTestId('profile-contact')).toHaveValue('maria@example.com');
   });
 
-  it('shows a live character counter for bio', () => {
+  it('shows a live character counter for bio based on plain text length', async () => {
     renderForm(baseProfile);
 
-    const counter = screen.getByTestId('profile-bio-counter');
+    const editor = screen.getByTestId('profile-bio-editor');
+    await waitFor(() => expect(editor.querySelector('.rte-counter')).toBeInTheDocument());
+    const counter = editor.querySelector('.rte-counter');
     expect(counter.textContent).toContain(` / 500`);
+    expect(counter.textContent).toContain('29');
   });
 
   it('rejects empty displayName', async () => {
@@ -101,15 +140,15 @@ describe('ProfileForm', () => {
     expect(onSave.mock.calls[0][0].website).toBe('https://example.com');
   });
 
-  it('calls onSave with trimmed values', async () => {
+  it('calls onSave with trimmed values and the rich-text bioHtml', async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
     renderForm(baseProfile, { onSave });
 
     fireEvent.change(screen.getByTestId('profile-displayName'), {
       target: { value: '  Peter Mathis  ' },
     });
-    fireEvent.change(screen.getByTestId('profile-bio'), {
-      target: { value: '  Neue Bio  ' },
+    fireEvent.input(screen.getByTestId('profile-bio-editor').querySelector('.rte-content'), {
+      target: { textContent: '  Neue Bio  ' },
     });
     fireEvent.change(screen.getByTestId('profile-contact'), {
       target: { value: '  peter@example.com  ' },
@@ -121,6 +160,7 @@ describe('ProfileForm', () => {
     const payload = onSave.mock.calls[0][0];
     expect(payload.displayName).toBe('Peter Mathis');
     expect(payload.bio).toBe('Neue Bio');
+    expect(payload.bioHtml).toContain('Neue Bio');
     expect(payload.contact).toBe('peter@example.com');
   });
 
@@ -154,6 +194,7 @@ describe('ProfileForm — social media (gIVugxij)', () => {
   const baseProfile = {
     displayName: 'Maria Musterfrau',
     bio: '',
+    bioHtml: '',
     website: '',
     contact: '',
     photoURL: null,
@@ -229,6 +270,7 @@ describe('ProfileForm — Speichern & Profil anzeigen button (WBFFzVcm)', () => 
   const completeProfile = {
     displayName: 'Maria Musterfrau',
     bio: 'Yoga-Lehrerin aus Vorarlberg.',
+    bioHtml: '<p>Yoga-Lehrerin aus Vorarlberg.</p>',
     website: '',
     contact: '',
     photoURL: null,
@@ -238,6 +280,7 @@ describe('ProfileForm — Speichern & Profil anzeigen button (WBFFzVcm)', () => 
   const incompleteProfile = {
     displayName: 'Maria Musterfrau',
     bio: '',
+    bioHtml: '',
     website: '',
     contact: '',
     photoURL: null,
@@ -247,6 +290,7 @@ describe('ProfileForm — Speichern & Profil anzeigen button (WBFFzVcm)', () => 
   const newUserProfile = {
     displayName: '',
     bio: '',
+    bioHtml: '',
     website: '',
     contact: '',
     photoURL: null,

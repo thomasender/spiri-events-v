@@ -240,6 +240,30 @@ export async function uploadDescriptionImage(file, eventId = 'temp', options = {
   return uploadCompressedBlob(compressedBlob, descriptionRef, onProgress);
 }
 
+/**
+ * Upload an image embedded inside a profile bio (richtext).
+ * Stored under users/{uid}/bio/ so it lives alongside the user's avatar
+ * (also under users/{uid}/) but is clearly scoped to bio content. Falls back
+ * to a 'temp' prefix for users not yet signed in — orphaned uploads there
+ * accumulate harmlessly and the bucket is GC'd separately.
+ * Compresses the image client-side before upload.
+ * @param {File} file - The image file to upload
+ * @param {string} [uid] - User ID; defaults to 'temp' for unsaved profile drafts
+ * @param {Object} [options]
+ * @param {(progress: number) => void} [options.onProgress] - Progress callback (0-100)
+ * @returns {Promise<string>} - Download URL of the uploaded image
+ */
+export async function uploadProfileDescriptionImage(file, uid = 'temp', options = {}) {
+  const { onProgress } = options;
+
+  const compressedBlob = await compressImage(file);
+  const safeName = sanitizeFilename(file.name);
+  const filename = `${Date.now()}_${safeName}`;
+  const bioImageRef = ref(storage, `users/${uid}/bio/${filename}`);
+
+  return uploadCompressedBlob(compressedBlob, bioImageRef, onProgress);
+}
+
 function uploadCompressedBlob(blob, storageRef, onProgress) {
   return new Promise((resolve, reject) => {
     const uploadTask = uploadBytesResumable(storageRef, blob, {
