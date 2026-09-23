@@ -5,6 +5,7 @@ import { db } from '../lib/firebase';
 const EMPTY_PROFILE = {
   displayName: '',
   bio: '',
+  bioHtml: '',
   website: '',
   photoURL: null,
   slug: '',
@@ -18,6 +19,7 @@ function normalize(data) {
   return {
     displayName: data.displayName || '',
     bio: data.bio || '',
+    bioHtml: data.bioHtml || '',
     website: data.website || '',
     photoURL: data.photoURL || null,
     slug: data.slug || '',

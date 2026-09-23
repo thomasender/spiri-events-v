@@ -137,6 +137,11 @@
   max-width: 560px;
 }
 
+.public-profile-bio-content {
+  text-align: left;
+  width: 100%;
+}
+
 .public-profile-website {
   display: inline-flex;
   align-items: center;

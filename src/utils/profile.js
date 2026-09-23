@@ -1,6 +1,7 @@
 export const PUBLIC_PROFILE_FIELDS = [
   'displayName',
   'bio',
+  'bioHtml',
   'website',
   'photoURL',
   'slug',

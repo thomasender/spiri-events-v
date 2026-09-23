@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { ExternalLink, Facebook, Instagram, Save } from 'lucide-react';
 import ProfilePhotoUpload from './ProfilePhotoUpload';
 import ProfileIncompleteDialog from './ProfileIncompleteDialog';
-import { getMissingProfileFields } from '../utils/profile';
+import RichTextEditorLazy from './RichTextEditorLazy';
+import { uploadProfileDescriptionImage } from '../lib/imageUpload';
+import { getPlainTextLength, stripHtml } from '../utils/sanitize';
+import { getMissingProfileFields, BIO_MAX } from '../utils/profile';
 import './ProfileForm.css';
 
-const BIO_MAX = 500;
 const NAME_MAX = 80;
 const SOCIAL_MAX = 200;
 
@@ -32,7 +34,7 @@ const isValidWebsite = (raw) => {
 
 export default function ProfileForm({ profile, uid, onSave }) {
   const [displayName, setDisplayName] = useState(profile?.displayName || '');
-  const [bio, setBio] = useState(profile?.bio || '');
+  const [bioHtml, setBioHtml] = useState(profile?.bioHtml || '');
   const [website, setWebsite] = useState(profile?.website || '');
   const [contact, setContact] = useState(profile?.contact || '');
   const [photoURL, setPhotoURL] = useState(profile?.photoURL || null);
@@ -48,11 +50,13 @@ export default function ProfileForm({ profile, uid, onSave }) {
   const [dialogMissingFields, setDialogMissingFields] = useState([]);
 
   const navigate = useNavigate();
+  const plainBioLength = getPlainTextLength(bioHtml);
+  const bioOverLimit = plainBioLength > BIO_MAX;
 
   useEffect(() => {
     if (!profile) return;
     setDisplayName(profile.displayName || '');
-    setBio(profile.bio || '');
+    setBioHtml(profile.bioHtml || '');
     setWebsite(profile.website || '');
     setContact(profile.contact || '');
     setPhotoURL(profile.photoURL || null);
@@ -68,7 +72,7 @@ export default function ProfileForm({ profile, uid, onSave }) {
     } else if (displayName.trim().length > NAME_MAX) {
       newErrors.displayName = `Name darf maximal ${NAME_MAX} Zeichen haben.`;
     }
-    if (bio.length > BIO_MAX) {
+    if (plainBioLength > BIO_MAX) {
       newErrors.bio = `Bio darf maximal ${BIO_MAX} Zeichen haben.`;
     }
     if (!isValidWebsite(website)) {
@@ -79,7 +83,8 @@ export default function ProfileForm({ profile, uid, onSave }) {
 
   const buildPayload = () => ({
     displayName: displayName.trim(),
-    bio: bio.trim(),
+    bio: stripHtml(bioHtml).trim(),
+    bioHtml,
     website: normalizeWebsite(website),
     contact: contact.trim(),
     photoURL: photoURL || null,
@@ -162,6 +167,8 @@ export default function ProfileForm({ profile, uid, onSave }) {
     setDialogMissingFields([]);
   };
 
+  const handleBioUpload = (file) => uploadProfileDescriptionImage(file, uid);
+
   return (
     <div className="profile-card" data-testid="profile-form-card">
       <div className="profile-card-header">
@@ -198,24 +205,17 @@ export default function ProfileForm({ profile, uid, onSave }) {
         </div>
 
         <div className="form-group">
-          <label htmlFor="profile-bio">Kurze Beschreibung</label>
-          <textarea
-            id="profile-bio"
-            name="bio"
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            maxLength={BIO_MAX}
-            rows={4}
-            className={errors.bio ? 'input-error' : ''}
-            data-testid="profile-bio"
+          <label htmlFor="profile-bio-editor">Kurze Beschreibung</label>
+          <RichTextEditorLazy
+            id="profile-bio-editor"
+            testId="profile-bio-editor"
+            value={bioHtml}
+            onChange={setBioHtml}
             placeholder="Erzähl etwas über dich (max. 500 Zeichen)"
+            maxLength={BIO_MAX}
+            hasError={bioOverLimit || Boolean(errors.bio)}
+            uploadImage={handleBioUpload}
           />
-          <span
-            className={`field-counter ${bio.length >= BIO_MAX ? 'over-limit' : ''}`}
-            data-testid="profile-bio-counter"
-          >
-            {bio.length} / {BIO_MAX}
-          </span>
           {errors.bio && <span className="error-text">{errors.bio}</span>}
         </div>
 

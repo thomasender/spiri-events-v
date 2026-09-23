@@ -74,6 +74,7 @@ describe('PublicProfilePage (k9CYVFsc)', () => {
     mockPublicProfile.profile = {
       displayName: 'Anna Schmidt',
       bio: 'Yoga-Lehrerin aus Vorarlberg.',
+      bioHtml: '<p>Yoga-Lehrerin aus Vorarlberg.</p>',
       website: 'www.anna-yoga.at',
       photoURL: 'https://example.com/anna.png',
       slug: 'anna-schmidt',
@@ -96,6 +97,50 @@ describe('PublicProfilePage (k9CYVFsc)', () => {
     const websiteLink = screen.getByTestId('public-profile-website');
     expect(websiteLink).toHaveAttribute('href', 'https://www.anna-yoga.at');
     expect(websiteLink).toHaveAttribute('target', '_blank');
+  });
+
+  it('renders rich-text bio (with formatting) when bioHtml is present', () => {
+    mockPublicProfile.loading = false;
+    mockPublicProfile.exists = true;
+    mockPublicProfile.profile = {
+      displayName: 'Anna Schmidt',
+      bio: 'Yoga-Lehrerin aus Vorarlberg.',
+      bioHtml:
+        '<p>Yoga-Lehrerin <strong>aus</strong> Vorarlberg.</p><ul><li>Workshops</li><li>Retreats</li></ul>',
+      website: '',
+      photoURL: null,
+      slug: 'anna-schmidt',
+      updatedAt: null,
+    };
+    mockPublicProfile.uid = 'user-42';
+
+    renderPage();
+
+    const bio = screen.getByTestId('public-profile-bio');
+    expect(bio).toBeInTheDocument();
+    expect(bio.querySelector('strong')).toHaveTextContent('aus');
+    expect(bio.querySelectorAll('li')).toHaveLength(2);
+  });
+
+  it('falls back to the plain-text bio when only bio is set (legacy profiles)', () => {
+    mockPublicProfile.loading = false;
+    mockPublicProfile.exists = true;
+    mockPublicProfile.profile = {
+      displayName: 'Anna Schmidt',
+      bio: 'Alte Beschreibung ohne Formatierung.',
+      bioHtml: '',
+      website: '',
+      photoURL: null,
+      slug: 'anna-schmidt',
+      updatedAt: null,
+    };
+    mockPublicProfile.uid = 'user-42';
+
+    renderPage();
+
+    const bio = screen.getByTestId('public-profile-bio');
+    expect(bio.tagName).toBe('P');
+    expect(bio).toHaveTextContent('Alte Beschreibung ohne Formatierung.');
   });
 
   it('falls back to a placeholder avatar when the profile has no photoURL', () => {

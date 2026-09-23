@@ -4,8 +4,10 @@ import { ArrowLeft, ExternalLink, Facebook, Instagram, Pencil } from 'lucide-rea
 import SeoMeta from '../components/SeoMeta';
 import ShareButton from '../components/ShareButton';
 import OrganizerEvents from '../components/OrganizerEvents';
+import RichTextView from '../components/RichTextView';
 import { usePublicProfile } from '../hooks/usePublicProfile';
 import { useAuth } from '../hooks/useAuth';
+import { stripHtml } from '../utils/sanitize';
 import './PublicProfilePage.css';
 
 function normalizeWebsite(url) {
@@ -46,13 +48,12 @@ export default function PublicProfilePage() {
     if (typeof window === 'undefined') return;
     window.scrollTo(0, 0);
   }, [slug]);
-
   const seoTitle = profile?.displayName ? `${profile.displayName} – Veranstalter` : 'Veranstalter';
-  const seoDescription = profile?.bio
-    ? profile.bio.slice(0, 160)
+  const seoSourceText = profile?.bioHtml ? stripHtml(profile.bioHtml) : profile?.bio || '';
+  const seoDescription = seoSourceText.trim()
+    ? seoSourceText.slice(0, 160)
     : 'Profilseite des Veranstalters auf tribe Vorarlberg.';
   const seoPath = `/${slug}`;
-
   const handleBack = () => {
     if (typeof window !== 'undefined' && window.history.length > 1) {
       navigate(-1);
@@ -108,7 +109,10 @@ export default function PublicProfilePage() {
   }
 
   const website = normalizeWebsite(profile.website);
-  const hasBio = profile.bio && profile.bio.trim().length > 0;
+  const richBioText = profile.bioHtml ? stripHtml(profile.bioHtml) : '';
+  const hasRichBio = richBioText.trim().length > 0;
+  const hasPlainBio = !hasRichBio && profile.bio && profile.bio.trim().length > 0;
+  const hasBio = hasRichBio || hasPlainBio;
   const hasWebsite = website.length > 0;
   const socialMedia = profile.socialMedia || {};
   const showSocialMedia = socialMedia.sharePublicly === true;
@@ -184,7 +188,12 @@ export default function PublicProfilePage() {
             {profile.displayName}
           </h1>
 
-          {hasBio && (
+          {hasRichBio && (
+            <div className="public-profile-bio" data-testid="public-profile-bio">
+              <RichTextView html={profile.bioHtml} className="public-profile-bio-content" />
+            </div>
+          )}
+          {hasPlainBio && (
             <p className="public-profile-bio" data-testid="public-profile-bio">
               {profile.bio}
             </p>

@@ -90,6 +90,7 @@ function RichTextEditor({
   id,
   testId = 'description-editor',
   eventId = 'temp',
+  uploadImage,
   onImageError,
 }) {
   const [linkOpen, setLinkOpen] = useState(false);
@@ -213,7 +214,9 @@ function RichTextEditor({
     setImageError(null);
     setImageUploading(true);
     try {
-      const url = await uploadDescriptionImage(file, eventId);
+      const url = uploadImage
+        ? await uploadImage(file)
+        : await uploadDescriptionImage(file, eventId);
       const alt = file.name.replace(/\.[^.]+$/, '').slice(0, 120) || 'Eingebettetes Bild';
       editor.chain().focus().setImage({ src: url, alt }).run();
     } catch (err) {

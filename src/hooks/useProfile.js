@@ -28,6 +28,7 @@ const DEFAULT_NOTIFICATION_PREFERENCES = {
 const EMPTY_PROFILE = {
   displayName: '',
   bio: '',
+  bioHtml: '',
   website: '',
   contact: '',
   photoURL: null,
@@ -61,6 +62,7 @@ function normalize(data) {
   return {
     displayName: data.displayName || '',
     bio: data.bio || '',
+    bioHtml: data.bioHtml || '',
     website: data.website || '',
     contact: data.contact || '',
     photoURL: data.photoURL || null,

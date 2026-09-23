@@ -373,3 +373,65 @@ describe('useProfile.save — social media mirroring (gIVugxij)', () => {
     });
   });
 });
+
+describe('useProfile.save — rich-text bio (kKjV8UFZ)', () => {
+  function setupWithProfile(profileData) {
+    mockOnSnapshot.mockImplementation((_ref, onNext) => {
+      onNext(makeSnapshot(profileData));
+    });
+  }
+
+  it('mirrors bioHtml to the publicProfile doc alongside bio', async () => {
+    setupWithProfile({
+      displayName: 'Anna Beispiel',
+      bio: '',
+      website: '',
+      photoURL: null,
+      slug: 'anna-beispiel',
+    });
+
+    const { result } = renderHook(() => useProfile('user-1'));
+    await waitFor(() => expect(result.current.profile).not.toBeNull());
+
+    await act(async () => {
+      await result.current.save({
+        bio: 'Kurze Beschreibung',
+        bioHtml: '<p>Kurze <strong>Beschreibung</strong></p>',
+      });
+    });
+
+    const publicPayload = mockBatchSet.mock.calls.find(
+      ([ref]) => ref.path?.join('/') === 'users/user-1/publicProfile/data'
+    )?.[1];
+    expect(publicPayload).toMatchObject({
+      slug: 'anna-beispiel',
+      bio: 'Kurze Beschreibung',
+      bioHtml: '<p>Kurze <strong>Beschreibung</strong></p>',
+    });
+  });
+
+  it('writes bioHtml to the private users/{uid} doc', async () => {
+    setupWithProfile({
+      displayName: 'Anna Beispiel',
+      bio: '',
+      website: '',
+      photoURL: null,
+      slug: 'anna-beispiel',
+    });
+
+    const { result } = renderHook(() => useProfile('user-1'));
+    await waitFor(() => expect(result.current.profile).not.toBeNull());
+
+    await act(async () => {
+      await result.current.save({
+        bio: 'Eine neue Bio.',
+        bioHtml: '<p>Eine neue <em>Bio</em>.</p>',
+      });
+    });
+
+    const privatePayload = mockBatchSet.mock.calls.find(([ref]) => ref.path?.[0] === 'users')?.[1];
+    expect(privatePayload).toMatchObject({
+      bioHtml: '<p>Eine neue <em>Bio</em>.</p>',
+    });
+  });
+});

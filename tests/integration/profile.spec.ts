@@ -99,7 +99,12 @@ test.describe.serial('Profile Management @smoke', () => {
       .catch(() => {});
 
     await page.getByTestId('profile-displayName').fill('Admin Tester');
-    await page.getByTestId('profile-bio').fill('Bearbeitet durch Playwright-Test.');
+    await page.waitForSelector('[data-testid="profile-bio-editor"] .rte-content', {
+      timeout: 15000,
+    });
+    const bioEditor = page.locator('[data-testid="profile-bio-editor"] .rte-content');
+    await bioEditor.click();
+    await bioEditor.fill('Bearbeitet durch Playwright-Test.');
     await page.getByTestId('profile-website').fill('www.example.com');
     await page.getByTestId('profile-contact').fill('tester@example.com');
 
@@ -112,9 +117,14 @@ test.describe.serial('Profile Management @smoke', () => {
     await page
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
       .catch(() => {});
+    await page.waitForSelector('[data-testid="profile-bio-editor"] .rte-content', {
+      timeout: 15000,
+    });
 
     await expect(page.getByTestId('profile-displayName')).toHaveValue('Admin Tester');
-    await expect(page.getByTestId('profile-bio')).toHaveValue('Bearbeitet durch Playwright-Test.');
+    await expect(page.locator('[data-testid="profile-bio-editor"] .rte-content')).toHaveText(
+      'Bearbeitet durch Playwright-Test.'
+    );
     await expect(page.getByTestId('profile-website')).toHaveValue('https://www.example.com');
   });
 
@@ -125,22 +135,24 @@ test.describe.serial('Profile Management @smoke', () => {
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
       .catch(() => {});
 
-    // The textarea has maxLength=500, so we use evaluate to bypass the
-    // client-side cap and check the form validation still surfaces an error.
+    await page.waitForSelector('[data-testid="profile-bio-editor"] .rte-content', {
+      timeout: 15000,
+    });
+    const bioEditor = page.locator('[data-testid="profile-bio-editor"] .rte-content');
+
+    // The TipTap editor accepts arbitrary input, so we can type well over the
+    // 500-character cap and check the form validation surfaces an error.
     const longBio = 'x'.repeat(600);
-    await page.getByTestId('profile-bio').evaluate((el, value) => {
-      const node = el as HTMLTextAreaElement;
-      const setter = Object.getOwnPropertyDescriptor(
-        window.HTMLTextAreaElement.prototype,
-        'value'
-      )?.set;
-      setter?.call(node, value);
-      node.dispatchEvent(new Event('input', { bubbles: true }));
-    }, longBio);
+    await bioEditor.click();
+    await bioEditor.fill(longBio);
+
+    await expect(page.locator('[data-testid="profile-bio-editor"] .rte-counter--over')).toBeVisible(
+      { timeout: 5000 }
+    );
 
     await page.getByTestId('profile-save').click();
 
-    await expect(page.getByText(/500 Zeichen/i)).toBeVisible();
+    await expect(page.getByText(/Bio darf maximal 500 Zeichen/)).toBeVisible();
   });
 
   test('user can upload a profile photo and the file lands in users/{uid}/avatar/', async ({
@@ -236,6 +248,9 @@ test.describe.serial('Profile Management @smoke', () => {
       await page
         .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
         .catch(() => {});
+      await page.waitForSelector('[data-testid="profile-bio-editor"] .rte-content', {
+        timeout: 15000,
+      });
 
       // 2) "Speichern & Profil anzeigen" with no bio shows the dialog and does not navigate.
       await page.getByTestId('profile-save-and-view').click();
@@ -249,7 +264,9 @@ test.describe.serial('Profile Management @smoke', () => {
       await expect(page).toHaveURL(/\/profil/);
 
       // 3) Now fill bio and click "Speichern & Profil anzeigen" again — it must navigate away.
-      await page.getByTestId('profile-bio').fill('Eine kurze Beschreibung für den Test.');
+      const bioEditor = page.locator('[data-testid="profile-bio-editor"] .rte-content');
+      await bioEditor.click();
+      await bioEditor.fill('Eine kurze Beschreibung für den Test.');
       await page.getByTestId('profile-save-and-view').click();
       await page.waitForURL(
         (url) =>
