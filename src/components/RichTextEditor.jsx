@@ -27,6 +27,7 @@ const ToolbarButton = ({ active, onClick, disabled, label, children }) => (
     aria-label={label}
     aria-pressed={Boolean(active)}
     title={label}
+    tabIndex={-1}
     className={`rte-toolbar-btn${active ? ' rte-toolbar-btn--active' : ''}`}
   >
     {children}
