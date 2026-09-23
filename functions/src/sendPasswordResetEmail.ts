@@ -7,6 +7,7 @@ import {
   MAILGUN_FROM,
   MAILGUN_REPLY_TO,
   MAILGUN_EU_BASE,
+  isMailgunDryRun,
   sendMailgunMessage,
 } from './mailgun';
 import { APP_BASE_URL, buildPasswordResetPayload } from './emailTemplates';
@@ -76,14 +77,26 @@ export const sendPasswordResetEmailFn = onCall(
     const domain = MAILGUN_DOMAIN.value();
     const from = MAILGUN_FROM.value();
     const replyTo = MAILGUN_REPLY_TO.value();
-    if (!apiKey || !domain || !from) {
+    const dryRun = isMailgunDryRun(process.env);
+    if (!dryRun && (!apiKey || !domain || !from)) {
       throw new HttpsError('internal', 'Mailgun credentials are not configured.');
     }
 
+    if (dryRun) {
+      logger.info('MAILGUN dry-run: would send password reset email', {
+        to: email,
+        subject,
+        buttonUrl,
+        htmlLength: html.length,
+        textLength: text.length,
+      });
+      return { sent: true };
+    }
+
     await sendMailgunMessage(MAILGUN_EU_BASE, {
-      apiKey,
-      domain,
-      from,
+      apiKey: apiKey ?? '',
+      domain: domain ?? '',
+      from: from ?? '',
       to: email,
       subject,
       text,

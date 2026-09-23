@@ -162,4 +162,25 @@ test.describe('Email verification required for event creation @smoke', () => {
 
     await expect(page.getByTestId('email-verification-modal-feedback')).toBeVisible();
   });
+
+  test('forgot-password form routes through the branded sendPasswordResetEmailFn callable', async ({
+    page,
+  }) => {
+    let sawCallable = false;
+    page.on('request', (req) => {
+      if (req.method() === 'POST' && req.url().includes('sendPasswordResetEmailFn')) {
+        sawCallable = true;
+      }
+    });
+
+    await page.goto('/login');
+
+    await page.getByRole('button', { name: /Passwort vergessen\?/i }).click();
+    await page.fill('input[type="email"]', 'admin@test.com');
+    await page.getByRole('button', { name: /Link senden/i }).click();
+
+    await expect(page.getByRole('heading', { name: 'E-Mail gesendet' })).toBeVisible();
+    await expect(page.getByText(/überprüfe dein Postfach und folge dem Link/i)).toBeVisible();
+    expect(sawCallable).toBe(true);
+  });
 });
