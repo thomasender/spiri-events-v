@@ -188,6 +188,63 @@
   margin: 0;
 }
 
+.profile-social-media {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+
+.profile-social-media-title {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.profile-social-media-hint {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.profile-social-media .form-group label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.profile-social-media-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-primary);
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  transition: border-color 0.15s ease;
+}
+
+.profile-social-media-checkbox:hover {
+  border-color: var(--accent-primary);
+}
+
+.profile-social-media-checkbox input[type='checkbox'] {
+  margin-top: 3px;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent-primary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
 .profile-danger-card {
   border: 1px solid rgba(191, 91, 78, 0.2);
 }

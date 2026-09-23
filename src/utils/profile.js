@@ -1,4 +1,11 @@
-export const PUBLIC_PROFILE_FIELDS = ['displayName', 'bio', 'website', 'photoURL', 'slug'];
+export const PUBLIC_PROFILE_FIELDS = [
+  'displayName',
+  'bio',
+  'website',
+  'photoURL',
+  'slug',
+  'socialMedia',
+];
 
 export const BIO_MAX = 500;
 export const DISPLAY_NAME_MAX = 80;

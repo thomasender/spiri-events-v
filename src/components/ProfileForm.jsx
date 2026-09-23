@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ExternalLink, Save } from 'lucide-react';
+import { ExternalLink, Facebook, Instagram, Save } from 'lucide-react';
 import ProfilePhotoUpload from './ProfilePhotoUpload';
 import './ProfileForm.css';
 
 const BIO_MAX = 500;
 const NAME_MAX = 80;
+const SOCIAL_MAX = 200;
 
 const normalizeWebsite = (raw) => {
   const trimmed = (raw || '').trim();
@@ -33,6 +34,9 @@ export default function ProfileForm({ profile, uid, onSave }) {
   const [website, setWebsite] = useState(profile?.website || '');
   const [contact, setContact] = useState(profile?.contact || '');
   const [photoURL, setPhotoURL] = useState(profile?.photoURL || null);
+  const [facebook, setFacebook] = useState(profile?.socialMedia?.facebook || '');
+  const [instagram, setInstagram] = useState(profile?.socialMedia?.instagram || '');
+  const [sharePublicly, setSharePublicly] = useState(profile?.socialMedia?.sharePublicly === true);
 
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -46,8 +50,10 @@ export default function ProfileForm({ profile, uid, onSave }) {
     setWebsite(profile.website || '');
     setContact(profile.contact || '');
     setPhotoURL(profile.photoURL || null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile?.displayName, profile?.bio, profile?.website, profile?.contact, profile?.photoURL]);
+    setFacebook(profile.socialMedia?.facebook || '');
+    setInstagram(profile.socialMedia?.instagram || '');
+    setSharePublicly(profile.socialMedia?.sharePublicly === true);
+  }, [profile]);
 
   const validate = () => {
     const newErrors = {};
@@ -86,6 +92,11 @@ export default function ProfileForm({ profile, uid, onSave }) {
         website: normalizeWebsite(website),
         contact: contact.trim(),
         photoURL: photoURL || null,
+        socialMedia: {
+          facebook: facebook.trim(),
+          instagram: instagram.trim(),
+          sharePublicly,
+        },
       });
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
@@ -192,6 +203,63 @@ export default function ProfileForm({ profile, uid, onSave }) {
             data-testid="profile-contact"
             autoComplete="email"
           />
+        </div>
+
+        <div className="profile-social-media" data-testid="profile-social-media-section">
+          <h3 className="profile-social-media-title">Social Media</h3>
+          <p className="profile-social-media-hint">
+            Teile gerne deine Social Media Handles mit uns, damit wir dich beim Promoten deiner
+            Events leichter finden und taggen können.
+          </p>
+
+          <div className="form-group">
+            <label htmlFor="profile-facebook">
+              <Facebook size={16} aria-hidden="true" />
+              <span>Facebook</span>
+            </label>
+            <input
+              id="profile-facebook"
+              name="facebook"
+              type="text"
+              value={facebook}
+              onChange={(e) => setFacebook(e.target.value)}
+              maxLength={SOCIAL_MAX}
+              placeholder="Name oder Profil-URL"
+              data-testid="profile-facebook"
+              autoComplete="off"
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="profile-instagram">
+              <Instagram size={16} aria-hidden="true" />
+              <span>Instagram</span>
+            </label>
+            <input
+              id="profile-instagram"
+              name="instagram"
+              type="text"
+              value={instagram}
+              onChange={(e) => setInstagram(e.target.value)}
+              maxLength={SOCIAL_MAX}
+              placeholder="Name oder Profil-URL"
+              data-testid="profile-instagram"
+              autoComplete="off"
+            />
+          </div>
+
+          <label
+            className="profile-social-media-checkbox"
+            data-testid="profile-share-publicly-label"
+          >
+            <input
+              type="checkbox"
+              checked={sharePublicly}
+              onChange={(e) => setSharePublicly(e.target.checked)}
+              data-testid="profile-share-publicly"
+            />
+            <span>Meine Social Media Links auch öffentlich auf meinem Profil anzeigen.</span>
+          </label>
         </div>
 
         {submitError && <p className="submit-error">{submitError}</p>}

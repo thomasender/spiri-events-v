@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import ProfileForm from '../../src/components/ProfileForm';
 
@@ -130,14 +130,92 @@ describe('ProfileForm', () => {
   });
 
   it('shows submit error when save fails', async () => {
-    const onSave = vi.fn().mockRejectedValue(new Error('boom'));
+    const onSave = vi.fn().mockImplementation(() => Promise.reject(new Error('boom')));
     renderForm(baseProfile, { onSave });
 
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('profile-save'));
+    });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    expect(screen.getByText(/Profil konnte nicht gespeichert werden/i)).toBeInTheDocument();
+  });
+});
+
+describe('ProfileForm — social media (gIVugxij)', () => {
+  const baseProfile = {
+    displayName: 'Maria Musterfrau',
+    bio: '',
+    website: '',
+    contact: '',
+    photoURL: null,
+    slug: 'maria-musterfrau',
+    socialMedia: { facebook: '', instagram: '', sharePublicly: false },
+  };
+
+  it('renders Facebook and Instagram inputs and the sharePublicly checkbox', () => {
+    renderForm(baseProfile);
+
+    expect(screen.getByTestId('profile-social-media-section')).toBeInTheDocument();
+    expect(screen.getByTestId('profile-facebook')).toBeInTheDocument();
+    expect(screen.getByTestId('profile-instagram')).toBeInTheDocument();
+    expect(screen.getByTestId('profile-share-publicly')).toBeInTheDocument();
+    expect(screen.getByTestId('profile-share-publicly')).not.toBeChecked();
+  });
+
+  it('pre-fills social media values from the profile', () => {
+    renderForm({
+      ...baseProfile,
+      socialMedia: {
+        facebook: 'maria.example',
+        instagram: '@maria_insta',
+        sharePublicly: true,
+      },
+    });
+
+    expect(screen.getByTestId('profile-facebook')).toHaveValue('maria.example');
+    expect(screen.getByTestId('profile-instagram')).toHaveValue('@maria_insta');
+    expect(screen.getByTestId('profile-share-publicly')).toBeChecked();
+  });
+
+  it('saves socialMedia with trimmed values and the sharePublicly flag', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    renderForm(baseProfile, { onSave });
+
+    fireEvent.change(screen.getByTestId('profile-facebook'), {
+      target: { value: '  maria.example  ' },
+    });
+    fireEvent.change(screen.getByTestId('profile-instagram'), {
+      target: { value: '  maria_insta  ' },
+    });
+    fireEvent.click(screen.getByTestId('profile-share-publicly'));
     fireEvent.click(screen.getByTestId('profile-save'));
 
-    await waitFor(() => {
-      expect(screen.getByText(/Profil konnte nicht gespeichert werden/i)).toBeInTheDocument();
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0][0].socialMedia).toEqual({
+      facebook: 'maria.example',
+      instagram: 'maria_insta',
+      sharePublicly: true,
     });
+  });
+
+  it('persists sharePublicly=false when the user opts out', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    renderForm(
+      {
+        ...baseProfile,
+        socialMedia: { facebook: 'a', instagram: 'b', sharePublicly: true },
+      },
+      { onSave }
+    );
+
+    fireEvent.click(screen.getByTestId('profile-share-publicly'));
+    fireEvent.click(screen.getByTestId('profile-save'));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0][0].socialMedia.sharePublicly).toBe(false);
   });
 });
 

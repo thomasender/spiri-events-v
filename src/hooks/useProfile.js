@@ -1,5 +1,12 @@
 import { useState, useEffect } from 'react';
-import { doc, onSnapshot, setDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
+import {
+  doc,
+  onSnapshot,
+  setDoc,
+  writeBatch,
+  serverTimestamp,
+  deleteField,
+} from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { splitProfileData } from '../utils/profile';
 import { findUniqueProfileSlug, slugifyName } from '../lib/slug';
@@ -25,6 +32,7 @@ const EMPTY_PROFILE = {
   contact: '',
   photoURL: null,
   slug: '',
+  socialMedia: { facebook: '', instagram: '', sharePublicly: false },
   createdAt: null,
   updatedAt: null,
 };
@@ -39,6 +47,15 @@ function normalizePreferences(data) {
   return prefs;
 }
 
+function normalizeSocialMedia(raw) {
+  const obj = raw && typeof raw === 'object' ? raw : {};
+  return {
+    facebook: typeof obj.facebook === 'string' ? obj.facebook : '',
+    instagram: typeof obj.instagram === 'string' ? obj.instagram : '',
+    sharePublicly: obj.sharePublicly === true,
+  };
+}
+
 function normalize(data) {
   if (!data) return EMPTY_PROFILE;
   return {
@@ -48,6 +65,7 @@ function normalize(data) {
     contact: data.contact || '',
     photoURL: data.photoURL || null,
     slug: data.slug || '',
+    socialMedia: normalizeSocialMedia(data.socialMedia),
     createdAt: data.createdAt || null,
     updatedAt: data.updatedAt || null,
   };
@@ -126,7 +144,36 @@ export function useProfile(uid) {
     if (!exists) {
       payload.createdAt = serverTimestamp();
     }
+
     const { publicDoc } = splitProfileData(updates);
+
+    // socialMedia is mirrored to the publicProfile doc only when the user has
+    // opted in via sharePublicly. Toggling it off after a previous on must
+    // actively remove the field so it does not linger for public readers.
+    if ('socialMedia' in publicDoc) {
+      const wasPubliclyShared = profile?.socialMedia?.sharePublicly === true;
+      const willBePubliclyShared =
+        updates.socialMedia?.sharePublicly !== undefined
+          ? updates.socialMedia.sharePublicly === true
+          : wasPubliclyShared;
+
+      if (willBePubliclyShared) {
+        const sm =
+          publicDoc.socialMedia && typeof publicDoc.socialMedia === 'object'
+            ? publicDoc.socialMedia
+            : {};
+        publicDoc.socialMedia = {
+          facebook: typeof sm.facebook === 'string' ? sm.facebook.trim() : '',
+          instagram: typeof sm.instagram === 'string' ? sm.instagram.trim() : '',
+          sharePublicly: true,
+        };
+      } else if (wasPubliclyShared) {
+        publicDoc.socialMedia = deleteField();
+      } else {
+        delete publicDoc.socialMedia;
+      }
+    }
+
     const batch = writeBatch(db);
     batch.set(profileRef, payload, { merge: true });
     if (Object.keys(publicDoc).length > 0 || nextSlug !== currentSlug) {

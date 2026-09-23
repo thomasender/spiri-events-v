@@ -144,6 +144,38 @@
   word-break: break-word;
 }
 
+.public-profile-social-media {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.public-profile-social-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background-color: var(--bg-secondary);
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.public-profile-social-link:hover {
+  background-color: var(--accent-primary);
+  color: white;
+}
+
+.public-profile-social-link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
 .public-profile-message {
   color: var(--text-secondary);
   margin: 0 0 8px;
