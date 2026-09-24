@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useSearchParams, Link, useNavigate } from 'react-router-dom';
+import { useLocation, useSearchParams, Link, useNavigate } from 'react-router-dom';
 import {
   CalendarDays,
   Mail,
@@ -22,6 +22,7 @@ import CategoriesTab from '../components/CategoriesTab';
 import ThemeTab from '../components/ThemeTab';
 import EmailVerificationBanner from '../components/EmailVerificationBanner';
 import EmailVerificationModal from '../components/EmailVerificationModal';
+import EventStatusMismatchBanner from '../components/EventStatusMismatchBanner';
 import { useAuth } from '../hooks/useAuth';
 import { useEvents, usePendingEvents } from '../hooks/useEvents';
 import { useHasMessages, useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
@@ -42,6 +43,7 @@ const VALID_TABS = new Set([
 
 export default function AdminPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const { user, role, canCreateEvents } = useAuth();
   const isAdmin = role === 'Admin';
@@ -55,6 +57,10 @@ export default function AdminPage() {
   const { pendingEvents } = usePendingEvents();
 
   const draftCount = useMemo(() => events.filter((e) => e.status === 'draft').length, [events]);
+  const hashEventId = useMemo(() => {
+    const hash = location.hash.replace(/^#/, '').trim();
+    return hash || null;
+  }, [location.hash]);
   const reviewCount = useMemo(() => (isAdmin ? pendingEvents.length : 0), [isAdmin, pendingEvents]);
 
   const visibleTabs = useMemo(() => {
@@ -114,6 +120,8 @@ export default function AdminPage() {
       </header>
 
       {!canCreateEvents && <EmailVerificationBanner />}
+
+      {hashEventId && <EventStatusMismatchBanner key={hashEventId} eventId={hashEventId} />}
 
       <div className="admin-page-tabs" role="tablist" aria-label="Verwaltungs-Bereiche">
         <button

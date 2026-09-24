@@ -56,7 +56,7 @@ function eventUrl(slug: string | null | undefined): string {
 }
 
 function adminReviewUrl(eventId: string): string {
-  return `${APP_BASE_URL}/admin/review#${eventId}`;
+  return `${APP_BASE_URL}/admin?tab=review#${eventId}`;
 }
 
 export function notificationSettingsUrl(): string {
