@@ -29,6 +29,13 @@ const PREFERENCE_DEFINITIONS = [
       'Du erhältst eine E-Mail, sobald ein Mitglied ein neues Event zur Prüfung einreicht.',
     adminOnly: true,
   },
+  {
+    key: 'notifyNewsletter',
+    label: 'Newsletter abonnieren',
+    description:
+      'Du erhältst gelegentlich eine E-Mail mit Neuigkeiten und Updates rund um die Plattform.',
+    adminOnly: false,
+  },
 ];
 
 const SAVED_INDICATOR_TIMEOUT_MS = 3000;

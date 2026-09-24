@@ -129,6 +129,7 @@ service cloud.firestore {
                        'slug', 'username', 'socialMedia',
                        'notifyOnSubmitted', 'notifyOnChangesRequested',
                        'notifyOnPublished', 'notifyOnDeleted',
+                       'notifyNewsletter',
                        'createdAt', 'updatedAt']
                     )
                     && request.resource.data.bio.size() <= 500
@@ -149,6 +150,7 @@ service cloud.firestore {
                                   'slug', 'username', 'socialMedia',
                                   'notifyOnSubmitted', 'notifyOnChangesRequested',
                                   'notifyOnPublished', 'notifyOnDeleted',
+                                  'notifyNewsletter',
                                   'updatedAt']);
 
       allow delete: if isAuthenticated() && request.auth.uid == uid;
