@@ -311,9 +311,15 @@ describe('ProfileForm — Speichern & Profil anzeigen button (WBFFzVcm)', () => 
     );
   });
 
-  it('renders only the "Speichern" button when the profile has no slug yet', () => {
+  it('still renders the "Speichern & Profil anzeigen" button when the profile has no slug yet', () => {
+    // The button is always present so users are never left wondering why the
+    // public profile link is hidden — clicking it surfaces the missing-fields
+    // dialog instead.
     renderForm(newUserProfile);
-    expect(screen.queryByTestId('profile-save-and-view')).toBeNull();
+    expect(screen.getByTestId('profile-save-and-view')).toBeInTheDocument();
+    expect(screen.getByTestId('profile-save-and-view')).toHaveTextContent(
+      /Speichern & Profil anzeigen/i
+    );
     expect(screen.getByTestId('profile-save')).toBeInTheDocument();
   });
 
@@ -373,21 +379,37 @@ describe('ProfileForm — Speichern & Profil anzeigen button (WBFFzVcm)', () => 
     expect(screen.getByTestId('profile-incomplete-dialog')).toBeInTheDocument();
   });
 
-  it('does not render the "Speichern & Profil anzeigen" button when validation fails (empty name)', async () => {
-    // The button only renders when a slug exists; for a brand-new account
-    // there is no slug, so the button does not exist and validation must
-    // happen via the plain "Speichern" path.
+  it('surfaces inline validation errors when "Speichern & Profil anzeigen" is clicked with an empty name', async () => {
+    // The button is always visible. Clicking it on a brand-new account must
+    // still block navigation and tell the user what to fix — either inline
+    // (empty required fields) or via the incomplete-profile dialog (missing
+    // bio / no slug).
     const onSave = vi.fn();
     renderForm(newUserProfile, { onSave });
 
-    expect(screen.queryByTestId('profile-save-and-view')).toBeNull();
+    expect(screen.getByTestId('profile-save-and-view')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByTestId('profile-save'));
+    fireEvent.click(screen.getByTestId('profile-save-and-view'));
 
     await waitFor(() => {
       expect(screen.getByText(/Name ist erforderlich/i)).toBeInTheDocument();
     });
     expect(onSave).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('surfaces the incomplete-profile dialog for a brand-new account with a name but no bio or slug', async () => {
+    const onSave = vi.fn().mockResolvedValue('test-organizer');
+    renderForm({ ...newUserProfile, displayName: 'Test Organizer' }, { onSave });
+
+    fireEvent.click(screen.getByTestId('profile-save-and-view'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('profile-incomplete-dialog')).toBeInTheDocument();
+    });
+    expect(screen.getByTestId('profile-incomplete-field-bio')).toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(onSave).toHaveBeenCalled();
   });
 
   it('closes the dialog via its "Verstanden" button without navigating', async () => {

@@ -469,18 +469,16 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
         )}
 
         <div className="form-actions">
-          {profile?.slug && (
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={handleSaveAndView}
-              disabled={saving}
-              data-testid="profile-save-and-view"
-            >
-              <ExternalLink size={18} aria-hidden="true" />
-              <span>{saving ? 'Speichern…' : 'Speichern & Profil anzeigen'}</span>
-            </button>
-          )}
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={handleSaveAndView}
+            disabled={saving}
+            data-testid="profile-save-and-view"
+          >
+            <ExternalLink size={18} aria-hidden="true" />
+            <span>{saving ? 'Speichern…' : 'Speichern & Profil anzeigen'}</span>
+          </button>
           <button
             type="submit"
             className="btn btn-primary"
