@@ -73,16 +73,20 @@ test.describe('Email verification required for event creation @smoke', () => {
     await expect(page.getByTestId('email-verification-modal-refresh')).toBeVisible();
   });
 
-  test('clicking the locked "Event erstellen" on the home page hero opens the verification modal', async ({
+  test('clicking the locked "Event erstellen" FAB on the home page opens the verification modal', async ({
     page,
   }) => {
+    // The phone-only floating action button (CreateEventFab) replaces the
+    // inline create-event CTA on the calendar page. Unverified users see
+    // a locked button that opens the same verification modal as the
+    // header's locked link.
     await page.setViewportSize({ width: 500, height: 800 });
     await signInWithEmailAndPassword(page, 'unverified@test.local', 'testpassword123');
     await page.goto('/');
 
-    const ctaLocked = page.getByTestId('create-event-cta-locked');
-    await expect(ctaLocked).toBeVisible();
-    await ctaLocked.click();
+    const fab = page.getByTestId('create-event-fab');
+    await expect(fab).toBeVisible();
+    await fab.click();
 
     const modal = page.getByTestId('email-verification-modal');
     await expect(modal).toBeVisible();

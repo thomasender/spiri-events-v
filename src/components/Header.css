@@ -9,14 +9,21 @@
 }
 
 .header-container {
-  max-width: 1200px;
+  max-width: var(--page-max-width);
   margin: 0 auto;
   padding: 0 24px;
+  padding-left: 0;
   height: 72px;
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
   gap: 8px;
+}
+
+@media (max-width: 1300px) {
+  .header-container {
+    padding-left: 20px;
+  }
 }
 
 .logo {
@@ -162,6 +169,14 @@
   display: none;
 }
 
+/* Phone-only tagline that replaces the desktop hero subtitle on narrow
+   viewports (see CalendarPage.css `.hero { display: none }` at the
+   640px breakpoint). Hidden on tablet+ so the desktop logo/subtitle
+   stays untouched. */
+.header-tagline-mobile {
+  display: none;
+}
+
 .nav-mobile {
   display: none;
 }
@@ -244,5 +259,29 @@
 
   .logo-text {
     display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .header-container {
+    /* Match the CalendarPage mobile padding (8px) so the header, hero
+       and filter panel share the same horizontal inset. */
+    padding: 0 8px;
+  }
+
+  /* On phone-sized viewports the hero is hidden (see CalendarPage.css)
+     and a short tagline takes its place next to the logo. */
+  .header-tagline-mobile {
+    display: inline-block;
+    font-family: var(--font-heading);
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.2;
+    margin-left: 4px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }

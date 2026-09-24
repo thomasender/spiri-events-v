@@ -182,6 +182,12 @@ export default function Header() {
             <span className="logo-title">tribe</span>
             <span className="logo-subtitle">Vorarlberg</span>
           </div>
+          {/* Phone-only tagline — replaces the desktop hero subtitle on
+              narrow viewports (see CalendarPage.css `.hero { display: none }`
+              at the 640px breakpoint). */}
+          <span className="header-tagline-mobile" data-testid="header-tagline-mobile">
+            Dein Kalender für bewusste Events
+          </span>
         </Link>
 
         <div className="nav-desktop">{renderNavLinks()}</div>
