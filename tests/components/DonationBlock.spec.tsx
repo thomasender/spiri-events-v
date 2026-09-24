@@ -58,14 +58,14 @@ describe('DonationBlock', () => {
     fireEvent.click(screen.getByRole('tab', { name: /einmalig/i }));
   }
 
-  it('renders the frequency tabs with the one-time tab active by default', () => {
+  it('renders the frequency tabs with the monthly tab active by default (5dlVbOmf)', () => {
     renderBlock();
 
     const oneTimeTab = screen.getByRole('tab', { name: /einmalig/i });
     const monthlyTab = screen.getByRole('tab', { name: /monatlich/i });
 
-    expect(oneTimeTab).toHaveAttribute('aria-selected', 'true');
-    expect(monthlyTab).toHaveAttribute('aria-selected', 'false');
+    expect(monthlyTab).toHaveAttribute('aria-selected', 'true');
+    expect(oneTimeTab).toHaveAttribute('aria-selected', 'false');
   });
 
   it('renders the amount input and preset chips', () => {
@@ -119,6 +119,7 @@ describe('DonationBlock', () => {
 
     renderBlock();
 
+    selectOneTime();
     fillAmount(15);
     fireEvent.change(screen.getByPlaceholderText(/anna musterfrau/i), {
       target: { value: '  Anna  ' },
@@ -168,6 +169,7 @@ describe('DonationBlock', () => {
 
     renderBlock();
 
+    selectOneTime();
     fillAmount('12,50');
     submit();
 
@@ -181,6 +183,7 @@ describe('DonationBlock', () => {
 
     renderBlock();
 
+    selectOneTime();
     fireEvent.click(screen.getByRole('button', { name: '20 €' }));
     submit();
 
@@ -203,6 +206,7 @@ describe('DonationBlock', () => {
 
     renderBlock();
 
+    selectOneTime();
     fireEvent.click(screen.getByRole('button', { name: '10 €' }));
     submit();
 

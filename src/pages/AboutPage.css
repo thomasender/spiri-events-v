@@ -1,18 +1,41 @@
 .about-page {
   max-width: 960px;
   margin: 0 auto;
-  padding: 48px 24px 80px;
+  padding: 32px 24px 80px;
   display: flex;
   flex-direction: column;
-  gap: 48px;
+  gap: 40px;
 }
 
 .about-hero {
-  text-align: center;
   display: flex;
   flex-direction: column;
   gap: 16px;
   align-items: center;
+  text-align: center;
+}
+
+.about-hero-image-wrap {
+  width: 100%;
+  max-width: 720px;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: 8px;
+  box-shadow: 0 12px 32px rgba(34, 27, 18, 0.12);
+  border: 1px solid var(--border);
+  background-color: var(--bg-secondary);
+}
+
+.about-hero-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.about-hero-eyebrow {
+  letter-spacing: 0.12em;
 }
 
 .about-hero-title {
@@ -20,6 +43,7 @@
   color: var(--text-primary);
   font-weight: 500;
   line-height: 1.1;
+  margin: 0;
 }
 
 .about-hero-lead {
@@ -30,25 +54,44 @@
   margin: 0;
 }
 
+.about-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.about-hero-cta {
+  text-decoration: none;
+}
+
 .about-section {
   background-color: var(--bg-calendar);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 40px;
+  padding: 32px;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  box-shadow: 0 1px 0 rgba(34, 27, 18, 0.04);
 }
 
 .about-section h2 {
   font-size: var(--fs-section);
   color: var(--accent-secondary);
   font-weight: 500;
+  margin: 0;
+}
+
+.about-section-eyebrow {
+  align-self: flex-start;
 }
 
 .about-section p {
   color: var(--text-secondary);
   line-height: 1.8;
+  margin: 0;
 }
 
 .about-highlight {
@@ -56,7 +99,8 @@
   color: var(--text-primary);
   font-weight: 600;
   text-align: center;
-  padding: 12px 0;
+  padding: 8px 0;
+  margin: 0;
 }
 
 .about-list {
@@ -64,6 +108,7 @@
   padding-left: 24px;
   color: var(--text-secondary);
   line-height: 1.9;
+  margin: 0;
 }
 
 .about-list li::marker {
@@ -77,6 +122,7 @@
 
 .about-link-button {
   margin-top: 8px;
+  text-decoration: none;
 }
 
 .about-inline-link {
@@ -87,7 +133,7 @@
 .about-founders {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
+  gap: 20px;
   margin-top: 8px;
 }
 
@@ -112,7 +158,7 @@
 }
 
 .about-founder-name {
-  font-size: 1.35rem;
+  font-size: 1.25rem;
   color: var(--text-primary);
   font-weight: 600;
   margin: 0;
@@ -140,8 +186,65 @@
   word-break: break-word;
 }
 
+.about-section-callout {
+  margin-top: 8px;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--accent-primary);
+  border-left-width: 4px;
+  border-radius: var(--radius-md);
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.about-section-callout-title {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--accent-primary-strong);
+  font-weight: 600;
+}
+
+.about-section-callout p {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.about-section--helpers {
+  background-color: var(--bg-secondary);
+}
+
 .about-support {
   background-color: var(--bg-secondary);
+}
+
+.about-donors-block {
+  margin-top: 16px;
+  background-color: var(--bg-calendar);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.about-donors-title {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent-primary-strong);
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.about-donors-intro {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.6;
 }
 
 .about-footer {
@@ -153,15 +256,41 @@
   .about-founders {
     grid-template-columns: 1fr;
   }
+
+  .about-section {
+    padding: 24px;
+  }
+
+  .about-hero-image-wrap {
+    aspect-ratio: 16 / 10;
+  }
 }
 
 @media (max-width: 640px) {
   .about-page {
-    padding: 32px 16px 64px;
-    gap: 32px;
+    padding: 24px 16px 64px;
+    gap: 28px;
   }
 
   .about-section {
-    padding: 24px;
+    padding: 22px 20px;
+  }
+
+  .about-hero-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .about-hero-cta {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .about-hero-image-wrap {
+    aspect-ratio: 4 / 3;
+  }
+
+  .about-donors-block {
+    padding: 20px;
   }
 }

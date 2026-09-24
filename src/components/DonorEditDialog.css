@@ -1,0 +1,194 @@
+.donor-edit-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+  padding: 24px;
+}
+
+.donor-edit-dialog {
+  background-color: var(--bg-primary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  width: 100%;
+  max-width: 540px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.donor-edit-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.donor-edit-dialog-title {
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.donor-edit-dialog-close {
+  background: transparent;
+  border: 0;
+  padding: 6px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+}
+
+.donor-edit-dialog-close:hover:not(:disabled) {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.donor-edit-dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 24px 24px;
+}
+
+.donor-edit-dialog-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.donor-edit-dialog-field--checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--bg-secondary);
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+}
+
+.donor-edit-dialog-field--checkbox input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+}
+
+.donor-edit-dialog-label {
+  font-size: var(--fs-eyebrow);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-light);
+}
+
+.donor-edit-dialog-field input[type='text'],
+.donor-edit-dialog-field textarea {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font: inherit;
+  resize: vertical;
+}
+
+.donor-edit-dialog-field input:disabled,
+.donor-edit-dialog-field textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.donor-edit-dialog-field input:focus,
+.donor-edit-dialog-field textarea:focus {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.donor-edit-dialog-amount-wrapper {
+  position: relative;
+}
+
+.donor-edit-dialog-amount-wrapper input {
+  width: 100%;
+  padding-right: 36px;
+}
+
+.donor-edit-dialog-amount-suffix {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-light);
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.donor-edit-dialog-frequency-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.donor-edit-dialog-frequency-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  background-color: var(--bg-primary);
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.donor-edit-dialog-frequency-option.is-selected {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary-strong);
+  background-color: var(--bg-secondary);
+}
+
+.donor-edit-dialog-frequency-clear {
+  background: transparent;
+  border: 0;
+  color: var(--text-light);
+  text-decoration: underline;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.donor-edit-dialog-hint {
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+
+.donor-edit-dialog-error {
+  color: var(--error);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.donor-edit-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+@media (max-width: 480px) {
+  .donor-edit-dialog-backdrop {
+    padding: 12px;
+  }
+
+  .donor-edit-dialog-form,
+  .donor-edit-dialog-header {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}

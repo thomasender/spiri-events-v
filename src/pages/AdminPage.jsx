@@ -10,6 +10,8 @@ import {
   ClipboardCheck,
   Tag,
   Palette,
+  Users,
+  Heart,
 } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
 import EventList from '../components/EventList';
@@ -20,6 +22,8 @@ import MessagesTab from '../components/MessagesTab';
 import FeedbackTab from '../components/FeedbackTab';
 import CategoriesTab from '../components/CategoriesTab';
 import ThemeTab from '../components/ThemeTab';
+import HelpersTab from '../components/HelpersTab';
+import DonorsTab from '../components/DonorsTab';
 import EmailVerificationBanner from '../components/EmailVerificationBanner';
 import EmailVerificationModal from '../components/EmailVerificationModal';
 import EventStatusMismatchBanner from '../components/EventStatusMismatchBanner';
@@ -39,6 +43,8 @@ const VALID_TABS = new Set([
   'trash',
   'categories',
   'theme',
+  'helpers',
+  'donors',
 ]);
 
 export default function AdminPage() {
@@ -73,6 +79,8 @@ export default function AdminPage() {
       trash: trashedCount > 0,
       categories: isAdmin,
       theme: isAdmin,
+      helpers: isAdmin,
+      donors: isAdmin,
     };
   }, [draftCount, reviewCount, hasMessages, isAdmin, hasFeedback, trashedCount]);
 
@@ -278,6 +286,36 @@ export default function AdminPage() {
             <span>Theme</span>
           </button>
         )}
+        {visibleTabs.helpers && (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'helpers'}
+            aria-controls="admin-tab-helpers"
+            id="admin-tab-helpers-btn"
+            className={`admin-page-tab${activeTab === 'helpers' ? ' admin-page-tab--active' : ''}`}
+            onClick={() => setTab('helpers')}
+            data-testid="admin-tab-helpers"
+          >
+            <Users size={16} aria-hidden="true" />
+            <span>Helfer</span>
+          </button>
+        )}
+        {visibleTabs.donors && (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'donors'}
+            aria-controls="admin-tab-donors"
+            id="admin-tab-donors-btn"
+            className={`admin-page-tab${activeTab === 'donors' ? ' admin-page-tab--active' : ''}`}
+            onClick={() => setTab('donors')}
+            data-testid="admin-tab-donors"
+          >
+            <Heart size={16} aria-hidden="true" />
+            <span>Spender</span>
+          </button>
+        )}
       </div>
 
       <div
@@ -356,6 +394,26 @@ export default function AdminPage() {
           hidden={activeTab !== 'theme'}
         >
           {activeTab === 'theme' && <ThemeTab />}
+        </div>
+      )}
+      {visibleTabs.helpers && (
+        <div
+          role="tabpanel"
+          id="admin-tab-helpers"
+          aria-labelledby="admin-tab-helpers-btn"
+          hidden={activeTab !== 'helpers'}
+        >
+          {activeTab === 'helpers' && <HelpersTab />}
+        </div>
+      )}
+      {visibleTabs.donors && (
+        <div
+          role="tabpanel"
+          id="admin-tab-donors"
+          aria-labelledby="admin-tab-donors-btn"
+          hidden={activeTab !== 'donors'}
+        >
+          {activeTab === 'donors' && <DonorsTab />}
         </div>
       )}
 

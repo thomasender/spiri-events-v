@@ -1,0 +1,64 @@
+.donors-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.donors-list-loading,
+.donors-list-error,
+.donors-list-empty {
+  background-color: var(--bg-primary);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.donors-list-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+}
+
+.donors-list-item[data-anonymous='true'] .donors-list-name {
+  font-style: italic;
+  color: var(--text-secondary);
+}
+
+.donors-list-name {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.donors-list-meta {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.donors-list-amount {
+  color: var(--accent-primary-strong);
+  font-weight: 600;
+}
+
+.donors-list-frequency {
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  color: var(--text-light);
+  font-weight: 600;
+}

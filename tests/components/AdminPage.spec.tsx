@@ -41,6 +41,28 @@ const mockUseTrashedCount = vi.hoisted(() => ({
   loading: false,
 }));
 
+const mockUseHelpers = vi.hoisted(() => ({
+  helpers: [] as Array<{ id: string; name: string }>,
+  loading: false,
+  error: null as string | null,
+  isAdmin: true,
+  addHelper: vi.fn(),
+  updateHelper: vi.fn(),
+  deleteHelper: vi.fn(),
+  reorderHelpers: vi.fn(),
+}));
+
+const mockUseDonors = vi.hoisted(() => ({
+  donors: [] as Array<{ id: string; name?: string | null }>,
+  loading: false,
+  error: null as string | null,
+  isAdmin: true,
+  addDonor: vi.fn(),
+  updateDonor: vi.fn(),
+  deleteDonor: vi.fn(),
+  reorderDonors: vi.fn(),
+}));
+
 const mockUseEvents = vi.hoisted(() => ({
   events: [] as Array<{ id: string; title: string; status?: string }>,
   loading: false,
@@ -92,6 +114,12 @@ vi.mock('../../src/hooks/useFeedbackList', () => ({
 vi.mock('../../src/hooks/useTrashedEventsCount', () => ({
   useTrashedEventsCount: () => mockUseTrashedCount,
 }));
+vi.mock('../../src/hooks/useHelpers', () => ({
+  useHelpers: () => mockUseHelpers,
+}));
+vi.mock('../../src/hooks/useDonors', () => ({
+  useDonors: () => mockUseDonors,
+}));
 
 function renderAdmin(initialEntries: string[] = ['/admin']) {
   return render(
@@ -129,6 +157,12 @@ beforeEach(() => {
   mockUseEventById.event = null;
   mockUseEventById.loading = false;
   mockUseEventById.error = null;
+  mockUseHelpers.helpers = [];
+  mockUseHelpers.loading = false;
+  mockUseHelpers.error = null;
+  mockUseDonors.donors = [];
+  mockUseDonors.loading = false;
+  mockUseDonors.error = null;
 });
 
 describe('AdminPage tabs (zejdjTnm)', () => {
@@ -303,6 +337,52 @@ describe('AdminPage Papierkorb tab', () => {
     renderAdmin();
     expect(screen.getByTestId('admin-tab-trash')).toBeInTheDocument();
     expect(screen.getByTestId('admin-tab-trash')).toHaveTextContent('Papierkorb');
+  });
+});
+
+describe('AdminPage Helfer tab (5dlVbOmf)', () => {
+  it('hides the Helfer tab for non-admin users', () => {
+    mockAuth.role = 'User';
+    renderAdmin();
+    expect(screen.queryByTestId('admin-tab-helpers')).not.toBeInTheDocument();
+  });
+
+  it('shows the Helfer tab for admins', () => {
+    mockAuth.role = 'Admin';
+    renderAdmin();
+    expect(screen.getByTestId('admin-tab-helpers')).toBeInTheDocument();
+    expect(screen.getByTestId('admin-tab-helpers')).toHaveTextContent('Helfer');
+  });
+
+  it('activates the Helfer tab when ?tab=helpers is in the URL', () => {
+    mockAuth.role = 'Admin';
+    renderAdmin(['/admin?tab=helpers']);
+    expect(screen.getByTestId('admin-tab-helpers')).toHaveAttribute('aria-selected', 'true');
+    const eventsPanel = document.getElementById('admin-tab-events');
+    expect(eventsPanel).toHaveAttribute('hidden');
+  });
+});
+
+describe('AdminPage Spender tab (5dlVbOmf)', () => {
+  it('hides the Spender tab for non-admin users', () => {
+    mockAuth.role = 'User';
+    renderAdmin();
+    expect(screen.queryByTestId('admin-tab-donors')).not.toBeInTheDocument();
+  });
+
+  it('shows the Spender tab for admins', () => {
+    mockAuth.role = 'Admin';
+    renderAdmin();
+    expect(screen.getByTestId('admin-tab-donors')).toBeInTheDocument();
+    expect(screen.getByTestId('admin-tab-donors')).toHaveTextContent('Spender');
+  });
+
+  it('activates the Spender tab when ?tab=donors is in the URL', () => {
+    mockAuth.role = 'Admin';
+    renderAdmin(['/admin?tab=donors']);
+    expect(screen.getByTestId('admin-tab-donors')).toHaveAttribute('aria-selected', 'true');
+    const eventsPanel = document.getElementById('admin-tab-events');
+    expect(eventsPanel).toHaveAttribute('hidden');
   });
 });
 
