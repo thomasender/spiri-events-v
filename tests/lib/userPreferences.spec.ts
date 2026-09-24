@@ -19,6 +19,7 @@ describe('normalizePreferences', () => {
       notifyOnChangesRequested: true,
       notifyOnPublished: false,
       notifyOnDeleted: true,
+      notifyNewsletter: false,
     });
   });
 
@@ -34,6 +35,7 @@ describe('normalizePreferences', () => {
       notifyOnChangesRequested: true,
       notifyOnPublished: true,
       notifyOnDeleted: true,
+      notifyNewsletter: false,
     });
   });
 
@@ -44,12 +46,31 @@ describe('normalizePreferences', () => {
         notifyOnChangesRequested: false,
         notifyOnPublished: true,
         notifyOnDeleted: false,
+        notifyNewsletter: true,
       })
     ).toEqual({
       notifyOnSubmitted: false,
       notifyOnChangesRequested: false,
       notifyOnPublished: true,
       notifyOnDeleted: false,
+      notifyNewsletter: true,
+    });
+  });
+
+  it('defaults notifyNewsletter to false (opt-in) for users without the field set', () => {
+    expect(normalizePreferences({ notifyOnPublished: true })).toMatchObject({
+      notifyNewsletter: false,
+    });
+  });
+
+  it('honours an explicit notifyNewsletter override', () => {
+    expect(normalizePreferences({ notifyNewsletter: true, notifyOnPublished: true })).toMatchObject(
+      {
+        notifyNewsletter: true,
+      }
+    );
+    expect(normalizePreferences({ notifyNewsletter: false })).toMatchObject({
+      notifyNewsletter: false,
     });
   });
 });

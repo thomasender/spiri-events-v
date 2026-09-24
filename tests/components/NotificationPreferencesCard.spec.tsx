@@ -7,10 +7,11 @@ const allOn = {
   notifyOnChangesRequested: true,
   notifyOnPublished: true,
   notifyOnDeleted: true,
+  notifyNewsletter: true,
 };
 
 describe('NotificationPreferencesCard', () => {
-  it('renders three checkboxes for non-admin users', () => {
+  it('renders four checkboxes (including the newsletter one) for non-admin users', () => {
     render(
       <NotificationPreferencesCard
         preferences={allOn}
@@ -22,10 +23,11 @@ describe('NotificationPreferencesCard', () => {
     expect(screen.getByTestId('notification-pref-notifyOnChangesRequested')).toBeInTheDocument();
     expect(screen.getByTestId('notification-pref-notifyOnPublished')).toBeInTheDocument();
     expect(screen.getByTestId('notification-pref-notifyOnDeleted')).toBeInTheDocument();
+    expect(screen.getByTestId('notification-pref-notifyNewsletter')).toBeInTheDocument();
     expect(screen.queryByTestId('notification-pref-notifyOnSubmitted')).not.toBeInTheDocument();
   });
 
-  it('renders four checkboxes (including the admin-only one) for admins', () => {
+  it('renders five checkboxes (including the admin-only one) for admins', () => {
     render(
       <NotificationPreferencesCard
         preferences={allOn}
@@ -38,6 +40,7 @@ describe('NotificationPreferencesCard', () => {
     expect(screen.getByTestId('notification-pref-notifyOnChangesRequested')).toBeInTheDocument();
     expect(screen.getByTestId('notification-pref-notifyOnPublished')).toBeInTheDocument();
     expect(screen.getByTestId('notification-pref-notifyOnDeleted')).toBeInTheDocument();
+    expect(screen.getByTestId('notification-pref-notifyNewsletter')).toBeInTheDocument();
   });
 
   it('reflects the current preference values on the checkboxes', () => {
@@ -47,6 +50,7 @@ describe('NotificationPreferencesCard', () => {
           notifyOnChangesRequested: true,
           notifyOnPublished: false,
           notifyOnDeleted: true,
+          notifyNewsletter: false,
         }}
         isAdmin={false}
         onSave={vi.fn().mockResolvedValue(undefined)}
@@ -56,6 +60,7 @@ describe('NotificationPreferencesCard', () => {
     expect(screen.getByTestId('notification-pref-notifyOnChangesRequested')).toBeChecked();
     expect(screen.getByTestId('notification-pref-notifyOnPublished')).not.toBeChecked();
     expect(screen.getByTestId('notification-pref-notifyOnDeleted')).toBeChecked();
+    expect(screen.getByTestId('notification-pref-notifyNewsletter')).not.toBeChecked();
   });
 
   it('calls onSave with the toggled preference when a checkbox changes', async () => {
@@ -66,6 +71,22 @@ describe('NotificationPreferencesCard', () => {
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     expect(onSave).toHaveBeenCalledWith({ notifyOnPublished: false });
+  });
+
+  it('calls onSave with notifyNewsletter=true when the newsletter checkbox is toggled on', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(
+      <NotificationPreferencesCard
+        preferences={{ ...allOn, notifyNewsletter: false }}
+        isAdmin={false}
+        onSave={onSave}
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('notification-pref-notifyNewsletter'));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave).toHaveBeenLastCalledWith({ notifyNewsletter: true });
   });
 
   it('shows a brief "Gespeichert." indicator after a successful toggle', async () => {

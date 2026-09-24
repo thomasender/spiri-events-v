@@ -7,7 +7,11 @@ if (getApps().length === 0) {
 }
 
 export type PreferenceKey =
-  'notifyOnSubmitted' | 'notifyOnChangesRequested' | 'notifyOnPublished' | 'notifyOnDeleted';
+  | 'notifyOnSubmitted'
+  | 'notifyOnChangesRequested'
+  | 'notifyOnPublished'
+  | 'notifyOnDeleted'
+  | 'notifyNewsletter';
 
 export type NotificationPreferenceMap = Record<PreferenceKey, boolean>;
 
@@ -16,6 +20,7 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferenceMap = {
   notifyOnChangesRequested: true,
   notifyOnPublished: true,
   notifyOnDeleted: true,
+  notifyNewsletter: false,
 };
 
 function readBool(value: unknown): boolean | null {

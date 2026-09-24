@@ -17,6 +17,7 @@ export const NOTIFICATION_PREFERENCE_KEYS = [
   'notifyOnChangesRequested',
   'notifyOnPublished',
   'notifyOnDeleted',
+  'notifyNewsletter',
 ];
 
 const DEFAULT_NOTIFICATION_PREFERENCES = {
@@ -24,6 +25,7 @@ const DEFAULT_NOTIFICATION_PREFERENCES = {
   notifyOnChangesRequested: true,
   notifyOnPublished: true,
   notifyOnDeleted: true,
+  notifyNewsletter: false,
 };
 
 const EMPTY_PROFILE = {
