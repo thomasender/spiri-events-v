@@ -11,7 +11,7 @@ _Test-Protokoll für die vier automatischen Benachrichtigungs-E-Mails, die beim 
   - alle Admins (aufgelöst über die `admin_users`-Collection und Firebase Auth)
   - Doppelte Empfänger werden dedupliziert (Groß-/Kleinschreibung + Whitespace ignoriert)
 - **Betreff:** `Neuer Event-Vorschlag: {Titel}`
-- **Inhalt:** Name des Einreichers + Button „Im Review ansehen" (Link zu `/admin/review#<eventId>`)
+- **Inhalt:** Name des Einreichers + Button „Im Review ansehen" (Link zu `/admin?tab=review#<eventId>`)
 - **Verifizieren:**
   - Mailgun Dashboard → Sending → Logs → Filter `mg.thetribe.at` → Status `delivered`, To enthält alle Admin-Adressen (inkl. Team-Inbox, falls gesetzt). Auf einer Nachricht: Header prüfen → `From` ist `The Tribe <admin@mg.thetribe.at>`, `Reply-To` ist `admin@thetribe.at`.
   - Function Log: `firebase functions:log --only onEventCreated,onEventStatusChanged -n 50` → Meldung `submitted notification processed`, `recipients` = Anzahl Empfänger. Bei einem brandneuen Event ist `onEventCreated` der Auslöser; bei einem Re-Submit aus Entwurf/Papierkorb `onEventStatusChanged`.

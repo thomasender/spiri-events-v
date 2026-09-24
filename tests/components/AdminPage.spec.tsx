@@ -57,6 +57,17 @@ const mockUsePendingEvents = vi.hoisted(() => ({
   approveEvent: vi.fn(),
 }));
 
+const mockUseEventById = vi.hoisted(() => ({
+  event: null as null | {
+    id: string;
+    title: string;
+    slug?: string | null;
+    status?: string;
+  },
+  loading: false,
+  error: null as string | null,
+}));
+
 vi.mock('../../src/hooks/useAuth', () => ({
   useAuth: () => mockAuth,
 }));
@@ -69,6 +80,7 @@ vi.mock('../../src/hooks/useUnreadMessageCount', () => ({
 vi.mock('../../src/hooks/useEvents', () => ({
   useEvents: () => mockUseEvents,
   usePendingEvents: () => mockUsePendingEvents,
+  useEventById: () => mockUseEventById,
 }));
 vi.mock('../../src/hooks/useEventsWithMessages', () => ({
   useEventsWithMessages: () => mockUseEventsWithMessages,
@@ -114,6 +126,9 @@ beforeEach(() => {
   mockUseEvents.loading = false;
   mockUsePendingEvents.pendingEvents = [];
   mockUsePendingEvents.loading = false;
+  mockUseEventById.event = null;
+  mockUseEventById.loading = false;
+  mockUseEventById.error = null;
 });
 
 describe('AdminPage tabs (zejdjTnm)', () => {
@@ -356,5 +371,122 @@ describe('AdminPage Review tab (dUWoE5vu)', () => {
     const eventsPanel = document.getElementById('admin-tab-events');
     expect(eventsPanel).not.toHaveAttribute('hidden');
     expect(screen.getByTestId('admin-tab-events')).toHaveAttribute('aria-selected', 'true');
+  });
+});
+
+describe('AdminPage EventStatusMismatchBanner (hehX4tTc)', () => {
+  it('does not show the banner when no event id is in the URL hash', () => {
+    mockAuth.role = 'Admin';
+    mockUsePendingEvents.pendingEvents = [{ id: 'p1', title: 'Pending', status: 'pending' }];
+    mockUseEventById.event = { id: 'p1', title: 'Pending', status: 'pending' };
+    renderAdmin(['/admin?tab=review']);
+    expect(screen.queryByTestId('event-status-mismatch-banner')).not.toBeInTheDocument();
+  });
+
+  it('does not show the banner when the event is still pending', () => {
+    mockAuth.role = 'Admin';
+    mockUsePendingEvents.pendingEvents = [{ id: 'p1', title: 'Pending', status: 'pending' }];
+    mockUseEventById.event = { id: 'p1', title: 'Pending', status: 'pending' };
+    renderAdmin(['/admin?tab=review#p1']);
+    expect(screen.queryByTestId('event-status-mismatch-banner')).not.toBeInTheDocument();
+  });
+
+  it('shows an "approved" banner with a link to the public event page when the event was approved in the meantime', () => {
+    mockAuth.role = 'Admin';
+    mockUsePendingEvents.pendingEvents = [];
+    mockUseEventById.event = {
+      id: 'p1',
+      title: 'Yoga Workshop',
+      slug: 'yoga-workshop',
+      status: 'approved',
+    };
+    renderAdmin(['/admin?tab=review#p1']);
+    const banner = screen.getByTestId('event-status-mismatch-banner');
+    expect(banner).toBeInTheDocument();
+    expect(banner.dataset.status).toBe('approved');
+    expect(banner).toHaveTextContent('bereits freigegeben');
+    expect(banner).toHaveTextContent('Yoga Workshop');
+    const eventLink = banner.querySelector('a[href="/event/yoga-workshop"]');
+    expect(eventLink).toBeInTheDocument();
+    expect(eventLink).toHaveTextContent('Event ansehen');
+    expect(banner.querySelector('a[href="/admin"]')).toBeInTheDocument();
+  });
+
+  it('shows a "trashed" banner with a link to the Papierkorb tab', () => {
+    mockAuth.role = 'Admin';
+    mockUseTrashedCount.count = 1;
+    mockUsePendingEvents.pendingEvents = [];
+    mockUseEventById.event = {
+      id: 'p1',
+      title: 'Yoga Workshop',
+      slug: 'yoga-workshop',
+      status: 'trashed',
+    };
+    renderAdmin(['/admin?tab=review#p1']);
+    const banner = screen.getByTestId('event-status-mismatch-banner');
+    expect(banner).toBeInTheDocument();
+    expect(banner.dataset.status).toBe('trashed');
+    expect(banner).toHaveTextContent('Papierkorb');
+    const papierkorbLink = banner.querySelector('a[href="/admin?tab=trash"]');
+    expect(papierkorbLink).toBeInTheDocument();
+    expect(papierkorbLink).toHaveTextContent('Zum Papierkorb');
+  });
+
+  it('shows a "draft" banner with a link to the Entwürfe tab when the event was reverted to draft', () => {
+    mockAuth.role = 'Admin';
+    mockUseEvents.events = [{ id: 'p1', title: 'Yoga Workshop', status: 'draft' }];
+    mockUsePendingEvents.pendingEvents = [];
+    mockUseEventById.event = {
+      id: 'p1',
+      title: 'Yoga Workshop',
+      slug: 'yoga-workshop',
+      status: 'draft',
+    };
+    renderAdmin(['/admin?tab=review#p1']);
+    const banner = screen.getByTestId('event-status-mismatch-banner');
+    expect(banner).toBeInTheDocument();
+    expect(banner.dataset.status).toBe('draft');
+    expect(banner).toHaveTextContent('Entwurf');
+    const draftsLink = banner.querySelector('a[href="/admin?tab=drafts"]');
+    expect(draftsLink).toBeInTheDocument();
+    expect(draftsLink).toHaveTextContent('Zu den Entwürfen');
+  });
+
+  it('shows a "missing" banner when the event no longer exists', () => {
+    mockAuth.role = 'Admin';
+    mockUsePendingEvents.pendingEvents = [];
+    mockUseEventById.event = null;
+    renderAdmin(['/admin?tab=review#deleted-id']);
+    const banner = screen.getByTestId('event-status-mismatch-banner');
+    expect(banner).toBeInTheDocument();
+    expect(banner.dataset.status).toBe('missing');
+    expect(banner).toHaveTextContent('nicht gefunden');
+    expect(banner.querySelector('a[href="/admin"]')).toBeInTheDocument();
+  });
+
+  it('does not render anything while the event lookup is still loading', () => {
+    mockAuth.role = 'Admin';
+    mockUsePendingEvents.pendingEvents = [];
+    mockUseEventById.event = null;
+    mockUseEventById.loading = true;
+    renderAdmin(['/admin?tab=review#p1']);
+    expect(screen.queryByTestId('event-status-mismatch-banner')).not.toBeInTheDocument();
+  });
+
+  it('hides the banner and clears the hash when the dismiss button is clicked', async () => {
+    mockAuth.role = 'Admin';
+    mockUsePendingEvents.pendingEvents = [];
+    mockUseEventById.event = {
+      id: 'p1',
+      title: 'Yoga Workshop',
+      slug: 'yoga-workshop',
+      status: 'approved',
+    };
+    renderAdmin(['/admin?tab=review#p1']);
+    const banner = screen.getByTestId('event-status-mismatch-banner');
+    expect(banner).toBeInTheDocument();
+    const dismiss = screen.getByTestId('event-status-mismatch-banner-dismiss');
+    await dismiss.click();
+    expect(screen.queryByTestId('event-status-mismatch-banner')).not.toBeInTheDocument();
   });
 });

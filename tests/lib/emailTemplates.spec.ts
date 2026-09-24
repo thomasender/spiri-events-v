@@ -57,7 +57,7 @@ describe('buildSubmittedPayload', () => {
       context: { submitterName: 'Anna Müller' },
       recipient: 'admin@example.com',
     });
-    expect(payload.html).toContain(`${APP_BASE_URL}/admin/review#evt1`);
+    expect(payload.html).toContain(`${APP_BASE_URL}/admin?tab=review#evt1`);
     expect(payload.html).toContain('Im Review ansehen');
   });
 
