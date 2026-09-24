@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Edit2,
@@ -18,6 +17,7 @@ import { formatDayNumber, formatMonthShort, formatWeekdayShort } from '../utils/
 import { getNextUpcomingOccurrence, getRecurrenceLabel } from '../utils/eventOccurrences';
 import { getEventLocationLabel, isMultiDayEvent } from '../utils/eventFormat';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
+import EventCoverImage from './EventCoverImage';
 import './EventAdminListRow.css';
 
 function formatDate(dateStr) {
@@ -69,8 +69,6 @@ export default function EventAdminListRow({
   const locationLabel = getEventLocationLabel(event);
   const multiDay = isMultiDayEvent(event);
   const fallbackImage = getEventFallbackImage(event);
-  const [imageError, setImageError] = useState(false);
-  const imageSrc = event.imageUrl && !imageError ? event.imageUrl : fallbackImage;
 
   const eventDate = isRecurring && nextOccurrence ? nextOccurrence : event.date;
 
@@ -90,12 +88,12 @@ export default function EventAdminListRow({
         )}
 
         <div className="event-card-image-wrapper">
-          <img
-            src={imageSrc}
-            alt=""
+          <EventCoverImage
+            event={event}
+            fallbackSrc={fallbackImage}
             className="event-card-image"
             data-testid="event-card-image"
-            onError={() => setImageError(true)}
+            alt=""
           />
         </div>
 

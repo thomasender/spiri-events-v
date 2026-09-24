@@ -1,0 +1,125 @@
+.focal-point-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 480px;
+}
+
+.focal-point-picker-canvas {
+  position: relative;
+  width: 100%;
+  max-height: 220px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  cursor: crosshair;
+  touch-action: none;
+  user-select: none;
+}
+
+.focal-point-picker-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+.focal-point-picker-handle {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  margin-left: -14px;
+  margin-top: -14px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary);
+  color: var(--accent-primary);
+  border: 2px solid var(--accent-primary);
+  border-radius: 50%;
+  box-shadow: var(--shadow-md);
+  cursor: grab;
+  touch-action: none;
+  transition:
+    transform 0.1s ease,
+    box-shadow 0.15s ease;
+}
+
+.focal-point-picker-handle:hover {
+  transform: scale(1.06);
+  box-shadow: var(--shadow-lg, var(--shadow-md));
+}
+
+.focal-point-picker-handle:active {
+  cursor: grabbing;
+  transform: scale(1.1);
+}
+
+.focal-point-picker-handle:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 3px var(--bg-primary),
+    0 0 0 5px var(--accent-primary);
+}
+
+.focal-point-picker-readout {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  flex-wrap: wrap;
+}
+
+.focal-point-picker-readout-label {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.focal-point-picker-readout-value {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  background-color: var(--bg-secondary);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.focal-point-picker-reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 4px 10px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.focal-point-picker-reset:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: var(--accent-primary);
+}
+
+.focal-point-picker-reset:focus-visible {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow:
+    0 0 0 2px var(--bg-primary),
+    0 0 0 4px var(--accent-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .focal-point-picker-handle,
+  .focal-point-picker-reset {
+    transition: none;
+  }
+}

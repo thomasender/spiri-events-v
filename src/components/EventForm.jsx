@@ -18,8 +18,10 @@ import RecurringDeleteDialog from './RecurringDeleteDialog';
 import { arrayUnion } from 'firebase/firestore';
 import { canDeleteEvent } from '../utils/eventPermissions';
 import RichTextEditor from './RichTextEditorLazy';
+import FocalPointPicker from './FocalPointPicker';
 import { isHtmlEmpty } from '../utils/sanitize';
 import { normalizeLink } from '../utils/link';
+import { DEFAULT_FOCAL_POINT, isDefaultFocalPoint, normalizeFocalPoint } from '../lib/eventImage';
 import {
   buildCustomDeleteOccurrenceUpdate,
   buildCustomDeleteFromDateUpdate,
@@ -163,6 +165,9 @@ export default function EventForm({ event }) {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(event?.imageUrl || '');
   const [originalImageUrl] = useState(event?.imageUrl || '');
+  const [imageFocalPoint, setImageFocalPoint] = useState(
+    normalizeFocalPoint(event?.imageFocalPoint) ?? DEFAULT_FOCAL_POINT
+  );
   const [imageRemoved, setImageRemoved] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
   const [imageProgress, setImageProgress] = useState(0);
@@ -314,6 +319,7 @@ export default function EventForm({ event }) {
 
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
+    setImageFocalPoint(DEFAULT_FOCAL_POINT);
     setImageRemoved(false);
   };
 
@@ -347,6 +353,7 @@ export default function EventForm({ event }) {
   const removeImage = () => {
     setImageFile(null);
     setImagePreview('');
+    setImageFocalPoint(DEFAULT_FOCAL_POINT);
     setImageRemoved(true);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -513,6 +520,8 @@ export default function EventForm({ event }) {
     },
     kontakt: formData.kontakt.trim(),
     imageUrl: imageFile || imageRemoved ? null : originalImageUrl || null,
+    imageFocalPoint:
+      imageFile || imageRemoved || isDefaultFocalPoint(imageFocalPoint) ? null : imageFocalPoint,
     status,
   });
 
@@ -587,7 +596,11 @@ export default function EventForm({ event }) {
 
       if (imageFile) {
         const newImageUrl = await handleImageUpload(docRef.id);
-        await updateEvent(docRef.id, { imageUrl: newImageUrl });
+        const patch = { imageUrl: newImageUrl };
+        if (!isDefaultFocalPoint(imageFocalPoint)) {
+          patch.imageFocalPoint = imageFocalPoint;
+        }
+        await updateEvent(docRef.id, patch);
         if (originalImageUrl && originalImageUrl !== newImageUrl) {
           await deleteImageByUrl(originalImageUrl);
         }
@@ -1217,7 +1230,13 @@ export default function EventForm({ event }) {
             <label>Bild (optional)</label>
             {imagePreview ? (
               <div className="image-preview-container">
-                <img src={imagePreview} alt="Vorschau" className="image-preview" />
+                <FocalPointPicker
+                  imageUrl={imagePreview}
+                  value={imageFocalPoint}
+                  onChange={setImageFocalPoint}
+                  ariaLabel="Fokuspunkt für das Titelbild festlegen"
+                  testId="title-image-focal-picker"
+                />
                 <button
                   type="button"
                   onClick={removeImage}

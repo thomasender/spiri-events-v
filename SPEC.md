@@ -170,6 +170,7 @@ interface Event {
   description: string;
   link?: string; // Ticket/info URL
   imageUrl?: string; // Optional Firebase Storage URL
+  imageFocalPoint?: { x: number; y: number }; // Optional focal point (0..1) for the cover image. Applied as object-position so the chosen region stays visible when the image is cropped to 16:9.
   recurrence: 'none' | 'weekly' | 'biweekly' | 'monthly' | 'custom'; // Recurrence pattern
   recurrenceEndDate?: string; // Optional end date for recurrence (ignored when recurrence === 'custom')
   customDates?: string[]; // Optional list of ISO date strings, used when recurrence === 'custom'

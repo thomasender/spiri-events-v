@@ -49,6 +49,24 @@ service cloud.firestore {
     match /events/{eventId} {
       allow read: if isApproved() || isOwner() || isAdminOrEmulatorAdmin();
 
+      // imageFocalPoint, if present, must be a {x, y} map with both values
+      // being numbers in [0, 1]. The form layer treats {0.5, 0.5} as "no
+      // focal point set" and omits the field entirely — these rules allow
+      // either form. Used by the calendar tile, list row, and modal hero
+      // via object-position to keep the chosen region visible after cropping.
+      function isValidFocalPoint() {
+        return !('imageFocalPoint' in request.resource.data)
+               || (
+                 request.resource.data.imageFocalPoint.keys().hasOnly(['x', 'y'])
+                 && request.resource.data.imageFocalPoint.x is number
+                 && request.resource.data.imageFocalPoint.y is number
+                 && request.resource.data.imageFocalPoint.x >= 0
+                 && request.resource.data.imageFocalPoint.x <= 1
+                 && request.resource.data.imageFocalPoint.y >= 0
+                 && request.resource.data.imageFocalPoint.y <= 1
+               );
+      }
+
       // Anyone creating an event (including admins) must start it as
       // 'pending' or 'draft'. Approval happens via update. Non-admins
       // additionally need a confirmed email address.
@@ -60,7 +78,8 @@ service cloud.firestore {
                     && request.resource.data.description.size() <= 20000
                     && (!('category' in request.resource.data)
                         || (request.resource.data.category is string
-                            && request.resource.data.category.size() <= 40));
+                            && request.resource.data.category.size() <= 40))
+                    && isValidFocalPoint();
 
       // Owners and admins can move events to/from the trash (status='trashed'),
       // and the first read rule already lets the owner + admin read trashed
@@ -70,7 +89,8 @@ service cloud.firestore {
                     && (request.resource.data.status in ['pending', 'draft', 'approved', 'trashed'])
                     && (!('category' in request.resource.data)
                         || (request.resource.data.category is string
-                            && request.resource.data.category.size() <= 40));
+                            && request.resource.data.category.size() <= 40))
+                    && isValidFocalPoint();
       allow delete: if isOwner() || isAdminOrEmulatorAdmin();
 
       match /messages/{messageId} {

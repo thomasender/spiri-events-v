@@ -180,13 +180,32 @@ export function buildEventDescription(event) {
 // that the platform can't safely style. JS users see the React-rendered
 // `EventDetailPage` instead, which uses `RichTextView` to render the
 // description as proper HTML.
+function getEventCoverImageStyle(focalPoint) {
+  if (
+    !focalPoint ||
+    typeof focalPoint.x !== 'number' ||
+    typeof focalPoint.y !== 'number' ||
+    focalPoint.x < 0 ||
+    focalPoint.x > 1 ||
+    focalPoint.y < 0 ||
+    focalPoint.y > 1
+  ) {
+    return '';
+  }
+  // Mirror src/lib/eventImage.js#focalPointToStyle — values in [0,1] become
+  // percentages. The static fragment uses object-fit: contain, so the
+  // focal point only takes effect if the consuming CSS changes to cover.
+  return ` style="object-position: ${focalPoint.x * 100}% ${focalPoint.y * 100}%"`
+}
+
 function buildEventStaticBody(event, isFree, category, formattedDate) {
+  const imageStyle = getEventCoverImageStyle(event.imageFocalPoint)
   return `
     <div class="event-detail-page">
       <a href="/" class="back-link">← Zurück zum Kalender</a>
 
       <header class="event-header">
-        <img src="${escapeHtml(event.imageUrl || getEventFallbackImage(event))}" alt="${escapeHtml(event.title)}" class="event-image" />
+        <img src="${escapeHtml(event.imageUrl || getEventFallbackImage(event))}" alt="${escapeHtml(event.title)}" class="event-image"${imageStyle} />
         <h1 class="event-title">${escapeHtml(event.title)}</h1>
         <div class="event-meta-row">
           <span class="category-chip">${escapeHtml(category)}</span>

@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin } from 'lucide-react';
 import {
@@ -10,6 +9,7 @@ import {
   isMultiDayEvent,
 } from '../utils/eventFormat';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
+import EventCoverImage from './EventCoverImage';
 import './EventCard.css';
 
 export default function EventCard({ event, categoryColor, onClick }) {
@@ -19,17 +19,15 @@ export default function EventCard({ event, categoryColor, onClick }) {
   const multiDay = isMultiDayEvent(event);
   const dateRangeLabel = multiDay ? formatEventDateRangeLabel(event.date, event.endDate) : null;
   const locationLabel = getEventLocationLabel(event);
-  const [imageError, setImageError] = useState(false);
-  const imageSrc = event.imageUrl && !imageError ? event.imageUrl : fallbackImage;
 
   return (
     <Link to={`/event/${event.slug || event.id}`} className="event-tile" onClick={onClick}>
       <div className="event-tile-image-wrapper">
-        <img
-          src={imageSrc}
-          alt=""
+        <EventCoverImage
+          event={event}
+          fallbackSrc={fallbackImage}
           className="event-tile-image"
-          onError={() => setImageError(true)}
+          alt=""
         />
         {category && (
           <span className="event-tile-category" style={{ backgroundColor: categoryColor }}>

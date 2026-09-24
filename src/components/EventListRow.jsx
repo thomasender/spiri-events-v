@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin } from 'lucide-react';
 import {
@@ -12,6 +11,7 @@ import {
   isMultiDayEvent,
 } from '../utils/eventFormat';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
+import EventCoverImage from './EventCoverImage';
 import './EventListRow.css';
 
 export default function EventListRow({ event, categoryColor, linkState, onClick }) {
@@ -21,8 +21,6 @@ export default function EventListRow({ event, categoryColor, linkState, onClick 
   const multiDay = isMultiDayEvent(event);
   const dateRangeLabel = multiDay ? formatEventDateRangeLabel(event.date, event.endDate) : null;
   const locationLabel = getEventLocationLabel(event);
-  const [imageError, setImageError] = useState(false);
-  const imageSrc = event.imageUrl && !imageError ? event.imageUrl : fallbackImage;
 
   return (
     <Link
@@ -38,11 +36,11 @@ export default function EventListRow({ event, categoryColor, linkState, onClick 
       </div>
 
       <div className="event-row-image-wrapper">
-        <img
-          src={imageSrc}
-          alt=""
+        <EventCoverImage
+          event={event}
+          fallbackSrc={fallbackImage}
           className="event-row-image"
-          onError={() => setImageError(true)}
+          alt=""
         />
       </div>
 

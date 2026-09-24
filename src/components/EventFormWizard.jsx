@@ -32,8 +32,11 @@ import SuccessDialog from './SuccessDialog';
 import { formatEventDateShort } from '../utils/eventFormat';
 import RichTextEditor from './RichTextEditorLazy';
 import RichTextView from './RichTextView';
+import FocalPointPicker from './FocalPointPicker';
+import EventCoverImage from './EventCoverImage';
 import { isHtmlEmpty } from '../utils/sanitize';
 import { normalizeLink } from '../utils/link';
+import { DEFAULT_FOCAL_POINT, isDefaultFocalPoint } from '../lib/eventImage';
 import { CURRENCIES, DEFAULT_CURRENCY, formatPriceWithCurrency } from '../utils/currency';
 import { saveWizardDraft, loadWizardDraft, clearWizardDraft } from '../utils/wizardDraftStorage';
 import { normalizeCategoryInput, isValidCategoryInput } from '../utils/categoryInput';
@@ -160,6 +163,7 @@ export default function EventFormWizard() {
   const wobbleTimersRef = useRef({});
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
+  const [imageFocalPoint, setImageFocalPoint] = useState(DEFAULT_FOCAL_POINT);
   const [imageUploading, setImageUploading] = useState(false);
   const [imageProgress, setImageProgress] = useState(0);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
@@ -318,6 +322,7 @@ export default function EventFormWizard() {
 
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
+    setImageFocalPoint(DEFAULT_FOCAL_POINT);
   };
 
   const handleImageSelectFromInput = (e) => {
@@ -349,6 +354,7 @@ export default function EventFormWizard() {
   const removeImage = () => {
     setImageFile(null);
     setImagePreview('');
+    setImageFocalPoint(DEFAULT_FOCAL_POINT);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -630,7 +636,11 @@ export default function EventFormWizard() {
 
       if (imageFile) {
         const newImageUrl = await handleImageUpload(docRef.id);
-        await updateEvent(docRef.id, { imageUrl: newImageUrl });
+        const patch = { imageUrl: newImageUrl };
+        if (!isDefaultFocalPoint(imageFocalPoint)) {
+          patch.imageFocalPoint = imageFocalPoint;
+        }
+        await updateEvent(docRef.id, patch);
       }
 
       if (user) {
@@ -791,7 +801,13 @@ export default function EventFormWizard() {
         <label>Bild (optional)</label>
         {imagePreview ? (
           <div className="image-preview-container">
-            <img src={imagePreview} alt="Vorschau" className="image-preview" />
+            <FocalPointPicker
+              imageUrl={imagePreview}
+              value={imageFocalPoint}
+              onChange={setImageFocalPoint}
+              ariaLabel="Fokuspunkt für das Titelbild festlegen"
+              testId="title-image-focal-picker"
+            />
             <button
               type="button"
               onClick={removeImage}
@@ -1250,7 +1266,7 @@ export default function EventFormWizard() {
           {formData.link && <p>Link: {formData.link}</p>}
           {imagePreview && (
             <div className="summary-image">
-              <img src={imagePreview} alt="Event" />
+              <EventCoverImage event={{ imageUrl: imagePreview, imageFocalPoint }} alt="Event" />
             </div>
           )}
         </div>

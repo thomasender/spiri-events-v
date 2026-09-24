@@ -82,6 +82,7 @@ const baseEvent = {
   kontakt: '0676 1234567',
   status: 'approved',
   imageUrl: EXISTING_IMAGE_URL,
+  imageFocalPoint: { x: 0.3, y: 0.2 },
   createdBy: 'owner-uid',
 };
 
@@ -129,5 +130,83 @@ describe('EventForm — image preservation on edit (6bs5MvXI)', () => {
 
     const payload = mockEvents.updateEvent.mock.calls[0][1];
     expect(payload.imageUrl).toBeNull();
+  });
+
+  it('preserves the existing imageFocalPoint when editing without touching the picture (hGQ6ogl7)', async () => {
+    render(
+      <MemoryRouter>
+        <EventForm event={baseEvent} />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /änderungen speichern/i }));
+
+    await vi.waitFor(() => {
+      expect(mockEvents.updateEvent).toHaveBeenCalledTimes(1);
+    });
+
+    const payload = mockEvents.updateEvent.mock.calls[0][1];
+    expect(payload.imageFocalPoint).toEqual({ x: 0.3, y: 0.2 });
+  });
+
+  it('omits imageFocalPoint when the saved point is the default center', async () => {
+    const eventWithCenter = { ...baseEvent, imageFocalPoint: { x: 0.5, y: 0.5 } };
+    render(
+      <MemoryRouter>
+        <EventForm event={eventWithCenter} />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /änderungen speichern/i }));
+
+    await vi.waitFor(() => {
+      expect(mockEvents.updateEvent).toHaveBeenCalledTimes(1);
+    });
+
+    const payload = mockEvents.updateEvent.mock.calls[0][1];
+    expect(payload.imageFocalPoint).toBeNull();
+  });
+
+  it('clears imageFocalPoint when the user removes the picture', async () => {
+    render(
+      <MemoryRouter>
+        <EventForm event={baseEvent} />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /bild entfernen/i }));
+    fireEvent.click(screen.getByRole('button', { name: /änderungen speichern/i }));
+
+    await vi.waitFor(() => {
+      expect(mockEvents.updateEvent).toHaveBeenCalledTimes(1);
+    });
+
+    const payload = mockEvents.updateEvent.mock.calls[0][1];
+    expect(payload.imageFocalPoint).toBeNull();
+  });
+
+  it('shows the focal point picker when an image is loaded, seeded with the saved point', () => {
+    render(
+      <MemoryRouter>
+        <EventForm event={baseEvent} />
+      </MemoryRouter>
+    );
+
+    const handle = screen.getByTestId('title-image-focal-picker-handle-x');
+    expect(handle.style.left).toBe('30%');
+    expect(handle.style.top).toBe('20%');
+    const readout = screen.getByTestId('title-image-focal-picker-readout');
+    expect(readout.textContent).toMatch(/30%/);
+    expect(readout.textContent).toMatch(/20%/);
+  });
+
+  it('does not show the focal point picker when the event has no image', () => {
+    render(
+      <MemoryRouter>
+        <EventForm event={{ ...baseEvent, imageUrl: undefined, imageFocalPoint: undefined }} />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByTestId('focal-point-picker')).toBeNull();
   });
 });

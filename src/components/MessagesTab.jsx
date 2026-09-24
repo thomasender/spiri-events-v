@@ -1,8 +1,8 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail } from 'lucide-react';
 import { useEventsWithMessages } from '../hooks/useEventsWithMessages';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
+import EventCoverImage from './EventCoverImage';
 import './MessagesTab.css';
 
 const MESSAGES_ANCHOR = 'event-messages';
@@ -19,8 +19,6 @@ function formatDate(dateStr) {
 
 function MessagesTabItem({ event, unreadCount }) {
   const fallbackImage = getEventFallbackImage(event);
-  const [imageError, setImageError] = useState(false);
-  const imageSrc = event.imageUrl && !imageError ? event.imageUrl : fallbackImage;
   const hasUnread = unreadCount > 0;
   return (
     <Link
@@ -34,12 +32,12 @@ function MessagesTabItem({ event, unreadCount }) {
       }
     >
       <span className="messages-tab-item-image-wrapper">
-        <img
-          src={imageSrc}
-          alt=""
+        <EventCoverImage
+          event={event}
+          fallbackSrc={fallbackImage}
           className="messages-tab-item-image"
           data-testid="messages-tab-item-image"
-          onError={() => setImageError(true)}
+          alt=""
         />
       </span>
       <span className="messages-tab-item-body">

@@ -6,6 +6,7 @@ import { parseContactText } from '../utils/contactFormat';
 import { formatPriceWithCurrency } from '../utils/currency';
 import { normalizeLink } from '../utils/link';
 import RichTextView from './RichTextView';
+import EventCoverImage from './EventCoverImage';
 import './EventModal.css';
 
 function formatDate(dateStr) {
@@ -68,10 +69,7 @@ function formatRecurrence(recurrence, recurrenceEndDate, eventDate) {
 
 export default function EventModal({ event, onClose }) {
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageError, setImageError] = useState(false);
   const fallbackImage = getEventFallbackImage(event);
-  const showRemoteImage = Boolean(event.imageUrl) && !imageError;
-  const imageSrc = showRemoteImage ? event.imageUrl : fallbackImage;
 
   useEffect(() => {
     const handleEscape = (e) => {
@@ -85,10 +83,15 @@ export default function EventModal({ event, onClose }) {
     };
   }, [onClose]);
 
+  useEffect(() => {
+    setImageLoaded(false);
+  }, [event?.id]);
+
   if (!event) return null;
 
   const isFree = event.contribution === 'free';
   const isDonation = event.contribution === 'donation';
+  const hasRemoteImage = Boolean(event.imageUrl);
 
   return (
     <div className="modal-overlay fade-enter" onClick={onClose}>
@@ -99,13 +102,13 @@ export default function EventModal({ event, onClose }) {
 
         <div className="modal-header">
           <div className="modal-image-wrapper">
-            {showRemoteImage && !imageLoaded && <div className="modal-image-skeleton" />}
-            <img
-              src={imageSrc}
+            {hasRemoteImage && !imageLoaded && <div className="modal-image-skeleton" />}
+            <EventCoverImage
+              event={event}
+              fallbackSrc={fallbackImage}
               alt={event.title}
-              className={`modal-image ${imageLoaded || !showRemoteImage ? 'loaded' : ''}`}
+              className={`modal-image ${imageLoaded || !hasRemoteImage ? 'loaded' : ''}`}
               onLoad={() => setImageLoaded(true)}
-              onError={() => setImageError(true)}
             />
           </div>
           <h2 className="modal-title">{event.title}</h2>
