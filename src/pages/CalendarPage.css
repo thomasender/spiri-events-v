@@ -75,6 +75,7 @@
   display: flex;
   align-items: center;
   gap: 16px;
+  max-width: 776px;
   min-height: 56px;
   padding: 14px 18px;
   background-color: var(--accent-secondary);
@@ -85,7 +86,9 @@
 .hero-feature-slide {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 16px;
+  width: 100%;
   min-width: 0;
   /* Hidden by default — one slide visible at a time. */
   position: absolute;
