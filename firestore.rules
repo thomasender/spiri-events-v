@@ -106,7 +106,7 @@ service cloud.firestore {
                     && request.auth.uid == uid
                     && request.resource.data.keys().hasOnly(
                       ['displayName', 'bio', 'bioHtml', 'website', 'contact', 'photoURL',
-                       'slug', 'socialMedia',
+                       'slug', 'username', 'socialMedia',
                        'notifyOnSubmitted', 'notifyOnChangesRequested',
                        'notifyOnPublished', 'notifyOnDeleted',
                        'createdAt', 'updatedAt']
@@ -126,7 +126,7 @@ service cloud.firestore {
                             && request.resource.data.bioHtml.size() <= 5000))
                     && request.resource.data.diff(resource.data).affectedKeys()
                         .hasOnly(['displayName', 'bio', 'bioHtml', 'website', 'contact', 'photoURL',
-                                  'slug', 'socialMedia',
+                                  'slug', 'username', 'socialMedia',
                                   'notifyOnSubmitted', 'notifyOnChangesRequested',
                                   'notifyOnPublished', 'notifyOnDeleted',
                                   'updatedAt']);
@@ -145,7 +145,7 @@ service cloud.firestore {
         allow create: if isAuthenticated()
                       && request.auth.uid == uid
                       && request.resource.data.keys().hasOnly(
-                        ['displayName', 'bio', 'bioHtml', 'website', 'photoURL', 'slug', 'socialMedia',
+                        ['displayName', 'bio', 'bioHtml', 'website', 'photoURL', 'slug', 'username', 'socialMedia',
                          'updatedAt']
                       )
                       && request.resource.data.bio.size() <= 500
@@ -162,7 +162,7 @@ service cloud.firestore {
                           || (request.resource.data.bioHtml is string
                               && request.resource.data.bioHtml.size() <= 5000))
                       && request.resource.data.diff(resource.data).affectedKeys()
-                          .hasOnly(['displayName', 'bio', 'bioHtml', 'website', 'photoURL', 'slug', 'socialMedia',
+                          .hasOnly(['displayName', 'bio', 'bioHtml', 'website', 'photoURL', 'slug', 'username', 'socialMedia',
                                     'updatedAt']);
 
         allow delete: if isAuthenticated() && request.auth.uid == uid;

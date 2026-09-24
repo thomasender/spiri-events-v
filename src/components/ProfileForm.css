@@ -141,6 +141,47 @@
   color: var(--error);
 }
 
+.profile-username-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.profile-username-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  margin-top: 2px;
+  min-height: 1.4em;
+}
+
+.profile-username-status--muted {
+  color: var(--text-light);
+}
+
+.profile-username-status--success {
+  color: var(--free-text);
+}
+
+.profile-username-status--error {
+  color: var(--error);
+}
+
+.profile-username-preview {
+  font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-secondary);
+}
+
+.profile-username-message {
+  flex: 1 1 auto;
+}
+
 .profile-form .form-actions {
   display: flex;
   justify-content: flex-end;

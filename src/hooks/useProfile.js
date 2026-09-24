@@ -10,6 +10,7 @@ import {
 import { db } from '../lib/firebase';
 import { splitProfileData } from '../utils/profile';
 import { findUniqueProfileSlug, slugifyName } from '../lib/slug';
+import { normalizeUsername } from '../utils/username';
 
 export const NOTIFICATION_PREFERENCE_KEYS = [
   'notifyOnSubmitted',
@@ -33,6 +34,7 @@ const EMPTY_PROFILE = {
   contact: '',
   photoURL: null,
   slug: '',
+  username: '',
   socialMedia: { facebook: '', instagram: '', sharePublicly: false },
   createdAt: null,
   updatedAt: null,
@@ -67,6 +69,7 @@ function normalize(data) {
     contact: data.contact || '',
     photoURL: data.photoURL || null,
     slug: data.slug || '',
+    username: normalizeUsername(data.username || ''),
     socialMedia: normalizeSocialMedia(data.socialMedia),
     createdAt: data.createdAt || null,
     updatedAt: data.updatedAt || null,
@@ -126,20 +129,37 @@ export function useProfile(uid) {
     const updatedAt = serverTimestamp();
 
     const currentSlug = profile?.slug || '';
-    let nextSlug = currentSlug;
+    const currentUsername = normalizeUsername(profile?.username || '');
+    const hasUsernameUpdate = Object.prototype.hasOwnProperty.call(updates, 'username');
+    const incomingUsername = hasUsernameUpdate
+      ? normalizeUsername(updates.username || '')
+      : currentUsername;
     const effectiveDisplayName =
-      updates.displayName !== undefined ? updates.displayName : profile?.displayName;
-    if (!currentSlug && effectiveDisplayName) {
+      updates.displayName !== undefined ? updates.displayName : profile?.displayName || '';
+
+    let nextSlug = currentSlug;
+    if (incomingUsername) {
+      // Username is the source of truth for the public path. Re-derive when
+      // it changed or when we still need a first slug for this user.
+      if (incomingUsername !== currentUsername || !currentSlug) {
+        nextSlug = await findUniqueProfileSlug(incomingUsername, uid);
+      }
+    } else if (!currentSlug && effectiveDisplayName) {
+      // First save for a brand-new user without a username: fall back to
+      // the displayName so the public URL is non-empty by default.
       nextSlug = await findUniqueProfileSlug(effectiveDisplayName, uid);
-    } else if (updates.displayName !== undefined) {
-      const desiredSlug = slugifyName(updates.displayName);
+    } else if (updates.displayName !== undefined && !currentUsername && !incomingUsername) {
+      // Legacy behaviour for users who never set a username: keep the slug
+      // in sync with displayName changes so the public URL stays stable.
+      const desiredSlug = slugifyName(effectiveDisplayName);
       if (slugifyName(profile?.displayName) !== desiredSlug) {
-        nextSlug = await findUniqueProfileSlug(updates.displayName, uid);
+        nextSlug = await findUniqueProfileSlug(effectiveDisplayName, uid);
       }
     }
 
     const payload = {
       ...updates,
+      username: incomingUsername,
       slug: nextSlug,
       updatedAt,
     };
@@ -147,7 +167,13 @@ export function useProfile(uid) {
       payload.createdAt = serverTimestamp();
     }
 
-    const { publicDoc } = splitProfileData(updates);
+    // Split the original updates (not the full payload) so callers that only
+    // touch private fields don't accidentally write to the public doc.
+    // Normalise username here so the public mirror receives the canonical
+    // form regardless of the casing/whitespace in `updates`.
+    const normalisedUpdates =
+      'username' in updates ? { ...updates, username: incomingUsername } : updates;
+    const { publicDoc } = splitProfileData(normalisedUpdates);
 
     // socialMedia is mirrored to the publicProfile doc only when the user has
     // opted in via sharePublicly. Toggling it off after a previous on must

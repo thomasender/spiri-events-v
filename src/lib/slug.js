@@ -72,3 +72,24 @@ async function profileSlugTakenByOther(slug, currentUid) {
     throw err;
   }
 }
+
+// True when *another* user's publicProfile mirrors this username. Used by the
+// profile form to surface an availability hint as the user types.
+//
+// Returns false for invalid input — callers validate first and we don't want
+// availability UI to mask a format error.
+export async function isUsernameAvailable(rawUsername, currentUid) {
+  const candidate = typeof rawUsername === 'string' ? rawUsername.trim().toLowerCase() : '';
+  if (!candidate) return false;
+  try {
+    const q = query(collectionGroup(db, 'publicProfile'), where('username', '==', candidate));
+    const snapshot = await getDocs(q);
+    return !snapshot.docs.some((doc) => {
+      const ownerUid = doc.ref.parent.parent?.id;
+      return ownerUid && ownerUid !== currentUid;
+    });
+  } catch (err) {
+    console.error('isUsernameAvailable error:', err.code, err.message);
+    throw err;
+  }
+}
