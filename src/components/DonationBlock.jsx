@@ -23,7 +23,7 @@ function formatPreset(amount) {
 }
 
 export default function DonationBlock() {
-  const [frequency, setFrequency] = useState('one-time');
+  const [frequency, setFrequency] = useState('monthly');
   const [name, setName] = useState('');
   const [amountInput, setAmountInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -65,7 +65,7 @@ export default function DonationBlock() {
     <form className="donation-block" onSubmit={handleSubmit}>
       <p className="donation-intro">
         Unterstütze unsere ehrenamtliche Arbeit — Webhosting, Technik und Flyer — mit einer
-        einmaligen oder monatlichen Spende in selbstgewählter Höhe.
+        monatlichen oder einmaligen Spende in selbstgewählter Höhe.
       </p>
 
       <div className="donation-frequency-tabs" role="tablist" aria-label="Spendenfrequenz">

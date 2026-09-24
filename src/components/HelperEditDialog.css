@@ -1,0 +1,125 @@
+.helper-edit-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+  padding: 24px;
+}
+
+.helper-edit-dialog {
+  background-color: var(--bg-primary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  width: 100%;
+  max-width: 540px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.helper-edit-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.helper-edit-dialog-title {
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.helper-edit-dialog-close {
+  background: transparent;
+  border: 0;
+  padding: 6px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+}
+
+.helper-edit-dialog-close:hover:not(:disabled) {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.helper-edit-dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 24px 24px;
+}
+
+.helper-edit-dialog-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.helper-edit-dialog-label {
+  font-size: var(--fs-eyebrow);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-light);
+}
+
+.helper-edit-dialog-field input,
+.helper-edit-dialog-field textarea {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font: inherit;
+  resize: vertical;
+}
+
+.helper-edit-dialog-field input:focus,
+.helper-edit-dialog-field textarea:focus {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.helper-edit-dialog-hint {
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+
+.helper-edit-dialog-hint code {
+  background-color: var(--bg-secondary);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.helper-edit-dialog-error {
+  color: var(--error);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.helper-edit-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+@media (max-width: 480px) {
+  .helper-edit-dialog-backdrop {
+    padding: 12px;
+  }
+
+  .helper-edit-dialog-form,
+  .helper-edit-dialog-header {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}

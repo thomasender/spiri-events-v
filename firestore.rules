@@ -394,6 +394,122 @@ service cloud.firestore {
       allow delete: if isAdminOrEmulatorAdmin();
     }
 
+    // Helpers (Mithelfer) registry — admin-managed list of people who
+    // support the tribe. Public read so the "Über uns" page can render the
+    // cards without auth gymnastics; admin-only CRUD. `profileSlug` links
+    // to the public profile page (must start with `/` to discourage open
+    // redirects when admins paste an arbitrary path), `website` is an
+    // optional URL, `photoURL` an optional image, and `description` is
+    // capped at 120 chars (matching the spec on the Trello ticket).
+    match /helpers/{helperId} {
+      allow read: if true;
+
+      function isValidHelperName(name) {
+        return name is string && name.size() >= 1 && name.size() <= 80;
+      }
+      function isValidHelperProfileSlug(slug) {
+        return slug == null
+          || (slug is string && slug.size() <= 120 && slug.matches('^/[A-Za-z0-9._/-]+$'));
+      }
+      function isValidHelperWebsite(website) {
+        return website == null
+          || (website is string && website.size() <= 300 && website.matches('^https?://'));
+      }
+      function isValidHelperPhotoUrl(url) {
+        return url == null
+          || (url is string && url.size() <= 500
+              && (url.matches('^https?://') || url.matches('^/[^/].*')));
+      }
+      function isValidHelperDescription(description) {
+        return description == null
+          || (description is string && description.size() <= 120);
+      }
+
+      allow create: if isAdminOrEmulatorAdmin()
+                    && request.resource.data.keys().hasOnly([
+                      'name', 'profileSlug', 'website', 'photoURL', 'description',
+                      'order', 'createdAt', 'updatedAt', 'createdBy',
+                    ])
+                    && isValidHelperName(request.resource.data.name)
+                    && isValidHelperProfileSlug(request.resource.data.profileSlug)
+                    && isValidHelperWebsite(request.resource.data.website)
+                    && isValidHelperPhotoUrl(request.resource.data.photoURL)
+                    && isValidHelperDescription(request.resource.data.description);
+
+      allow update: if isAdminOrEmulatorAdmin()
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                          .hasOnly([
+                            'name', 'profileSlug', 'website', 'photoURL', 'description',
+                            'order', 'updatedAt',
+                          ])
+                    && (!('name' in request.resource.data)
+                        || isValidHelperName(request.resource.data.name))
+                    && (!('profileSlug' in request.resource.data)
+                        || isValidHelperProfileSlug(request.resource.data.profileSlug))
+                    && (!('website' in request.resource.data)
+                        || isValidHelperWebsite(request.resource.data.website))
+                    && (!('photoURL' in request.resource.data)
+                        || isValidHelperPhotoUrl(request.resource.data.photoURL))
+                    && (!('description' in request.resource.data)
+                        || isValidHelperDescription(request.resource.data.description));
+
+      allow delete: if isAdminOrEmulatorAdmin();
+    }
+
+    // Donors registry — admin-managed list of previous donors for the
+    // "Über uns" page. Public read so the list can render without auth;
+    // admin-only CRUD. `name` may be null for anonymous donors,
+    // `amount` may be null when the donor chose to hide it, and
+    // `frequency` is informational (`one-time` | `monthly`) — donors who
+    // pick "anonymous + amount shown" still appear by amount only.
+    match /donors/{donorId} {
+      allow read: if true;
+
+      function isValidDonorName(name) {
+        return name == null
+          || (name is string && name.size() >= 1 && name.size() <= 80);
+      }
+      function isValidDonorAmount(amount) {
+        return amount == null
+          || (amount is number && amount >= 0 && amount <= 1000000);
+      }
+      function isValidDonorFrequency(frequency) {
+        return frequency == null
+          || (frequency is string && frequency in ['one-time', 'monthly']);
+      }
+      function isValidDonorNote(note) {
+        return note == null
+          || (note is string && note.size() <= 120);
+      }
+
+      allow create: if isAdminOrEmulatorAdmin()
+                    && request.resource.data.keys().hasOnly([
+                      'name', 'amount', 'frequency', 'note',
+                      'order', 'createdAt', 'updatedAt', 'createdBy',
+                    ])
+                    && isValidDonorName(request.resource.data.name)
+                    && isValidDonorAmount(request.resource.data.amount)
+                    && isValidDonorFrequency(request.resource.data.frequency)
+                    && isValidDonorNote(request.resource.data.note);
+
+      allow update: if isAdminOrEmulatorAdmin()
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                          .hasOnly([
+                            'name', 'amount', 'frequency', 'note',
+                            'order', 'updatedAt',
+                          ])
+                    && (!('name' in request.resource.data)
+                        || isValidDonorName(request.resource.data.name))
+                    && (!('amount' in request.resource.data)
+                        || isValidDonorAmount(request.resource.data.amount))
+                    && (!('frequency' in request.resource.data)
+                        || isValidDonorFrequency(request.resource.data.frequency))
+                    && (!('note' in request.resource.data)
+                        || isValidDonorNote(request.resource.data.note));
+
+      allow delete: if isAdminOrEmulatorAdmin();
+    }
+
     // Feedback collection: anyone can submit anonymous feedback (with optional
     // name, email, and screenshot). Only admins can read / update / delete.
     match /feedback/{feedbackId} {

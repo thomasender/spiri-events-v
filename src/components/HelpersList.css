@@ -1,0 +1,111 @@
+.helpers-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.helpers-list-loading,
+.helpers-list-error,
+.helpers-list-empty {
+  background-color: var(--bg-secondary);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.helpers-list-card {
+  display: flex;
+  gap: 16px;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  align-items: flex-start;
+}
+
+.helpers-list-photo-wrap {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background-color: var(--bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.helpers-list-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.helpers-list-photo-placeholder {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text-light);
+}
+
+.helpers-list-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.helpers-list-name {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.helpers-list-description {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.helpers-list-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.helpers-list-link {
+  font-size: 0.85rem;
+  color: var(--accent-primary-strong);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.helpers-list-link:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+  .helpers-list-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .helpers-list-photo-wrap {
+    width: 100%;
+    height: 160px;
+  }
+
+  .helpers-list-photo {
+    object-position: top;
+  }
+}
