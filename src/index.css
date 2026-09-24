@@ -38,6 +38,11 @@
   --radius-md: 12px;
   --radius-lg: 20px;
 
+  /* Shared page container width — header, footer and main content share
+     the same horizontal bounds so the logo, hero subtitle and filter
+     panel stay vertically aligned on desktop. */
+  --page-max-width: 1200px;
+
   /* Typographic hierarchy */
   --font-heading: 'Cormorant Garamond', Georgia, serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;

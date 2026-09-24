@@ -17,18 +17,17 @@
   width: 100%;
   margin: 32px 0;
   padding: 32px 48px;
+  padding-left: 0;
   overflow: hidden;
   border-radius: var(--radius-lg);
-  max-width: 85vw;
+  max-width: var(--page-max-width);
   margin: 0 auto;
-  margin-bottom: 2rem;
 }
 
 .hero-content {
   position: relative;
   z-index: 2;
   width: 100%;
-  max-width: 640px;
 }
 
 .hero-title {
@@ -63,28 +62,32 @@
 }
 
 /* ----------------------------------------------------------------
-   Hero feature slider — one rotating bullet point at a time, green
-   "waldgrün" background (#5C6B3F), light text/icons for contrast.
+   Hero feature slider — rotating carousel with two slides of two facts
+   each. On tablet+ viewports (≥ 768px) each slide lays its two facts
+   out as a single flex row. On phone-sized viewports (< 768px) CSS
+   hides every fact beyond the first in each slide so the row collapses
+   to a single fact. The green "waldgrün" background (#5C6B3F) spans
+   the full slider width; light text/icons contrast against it.
    Auto-advances every 4s; users cannot swipe or click through.
    ---------------------------------------------------------------- */
 .hero-features-slider {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   min-height: 56px;
   padding: 14px 18px;
   background-color: var(--accent-secondary);
   border-radius: var(--radius-md);
-  overflow: hidden;
   color: var(--bg-primary);
 }
 
 .hero-feature-slide {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   min-width: 0;
+  /* Hidden by default — one slide visible at a time. */
   position: absolute;
   inset: 14px 18px;
   opacity: 0;
@@ -108,22 +111,37 @@
     visibility 0s linear 0s;
 }
 
-.hero-feature-slide svg {
+/* Below 768px the second fact of every slide is hidden, collapsing the
+   row to a single fact. */
+@media (max-width: 767px) {
+  .hero-feature-slide .hero-feature-item:nth-child(n + 2) {
+    display: none;
+  }
+}
+
+.hero-feature-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.hero-feature-item svg {
   flex-shrink: 0;
   color: var(--bg-primary);
 }
 
-.hero-feature-slide div {
+.hero-feature-item > div {
   display: flex;
   flex-direction: column;
   min-width: 0;
 }
 
-.hero-feature-slide .hero-feature-title {
+.hero-feature-item .hero-feature-title {
   color: var(--bg-primary);
 }
 
-.hero-feature-slide .hero-feature-description {
+.hero-feature-item .hero-feature-description {
   color: var(--bg-primary);
   opacity: 0.85;
 }
@@ -146,9 +164,17 @@
   align-items: start;
   gap: 32px;
   width: 100%;
-  max-width: 85vw;
+  max-width: var(--page-max-width);
   margin: 0 auto;
   padding: 0 32px 48px;
+  padding-left: 0;
+}
+
+@media (max-width: 1300px) {
+  .page-layout,
+  .hero {
+    padding-left: 20px;
+  }
 }
 
 .page-main {
@@ -294,6 +320,14 @@
   display: flex;
   gap: 8px;
 }
+
+/* On phone-sized viewports the section labels (Datum / Kategorie / Ort)
+   and the Alle/Keine quick-action buttons are stripped from the filter
+   panel to keep it compact. The filter chips themselves still work and
+   keep their aria-pressed state. The "Hier kannst du filtern" panel
+   title is also hidden on mobile — the header now carries the page
+   tagline in its place — and the inline create-event CTA is replaced by
+   the global CreateEventFab so it stays reachable while scrolling. */
 
 .filter-quick-actions button {
   font-size: 0.8rem;
@@ -529,6 +563,68 @@
 
 @media (max-width: 640px) {
   .page-layout {
-    padding: 0 12px 32px;
+    padding: 0 8px 32px;
+  }
+
+  /* On phone-sized viewports the hero (title, subtitle, fact slider)
+     is replaced by a short title inside the header — see Header.jsx
+     `.header-tagline-mobile`. */
+  .hero {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  /* Stripped filter-panel chrome on phone-sized viewports: section
+     labels (Datum / Kategorie / Ort), Alle/Keine toggles, the panel
+     title "Hier kannst du filtern", and the inline create-event CTA.
+     The header carries the page tagline in its place and the global
+     CreateEventFab keeps "Event erstellen" reachable. Defined after the
+     default `.filter-options` rule so source order wins for the
+     `flex-wrap` override below. The title wrapper is hidden entirely so
+     its `margin-bottom` does not leave a gap above the filter chips. */
+  .filter-header.filter-header--title,
+  .filter-header--section .filter-label,
+  .filter-quick-actions,
+  .create-event-cta {
+    display: none;
+  }
+
+  /* Tiny breathing room above the filter panel on mobile — the hero is
+     gone so the panel now sits directly under the header tagline. */
+  .filter-panel {
+    margin-top: 1rem;
+  }
+
+  /* Date and category filter chips become a single, horizontally
+     scrollable row on phone-sized viewports so the panel stays compact
+     even when the category list grows long. The wrap behaviour returns
+     at the tablet breakpoint. */
+  .filter-options {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    /* Snap chips into place for a steadier feel when swiping. */
+    scroll-snap-type: x proximity;
+    /* Allow room for chip shadows / focus rings without clipping. */
+    padding-bottom: 4px;
+    /* Bleed slightly past the page gutter so the first/last chip align
+       with the rest of the filter panel content. */
+    margin-right: -8px;
+    margin-left: -8px;
+    padding-left: 8px;
+    padding-right: 8px;
+    /* Hide the scrollbar — chips are still reachable via swipe. */
+    scrollbar-width: none;
+  }
+
+  .filter-options::-webkit-scrollbar {
+    display: none;
+  }
+
+  .filter-options .filter-chip {
+    /* Keep the chip from shrinking under the nowrap flex layout. */
+    flex-shrink: 0;
+    scroll-snap-align: start;
   }
 }

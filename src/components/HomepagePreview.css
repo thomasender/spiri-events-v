@@ -30,6 +30,11 @@
   margin: 0 0 0.75rem 0;
   padding: 14px 18px;
   border-radius: var(--radius-md);
+  /* The CalendarPage hero is hidden below 640px so the phone layout can
+     show a short title in the header instead. The Theme Editor preview
+     intentionally mirrors the *desktop* homepage at every viewport, so
+     we force the hero back on here. */
+  display: flex;
 }
 
 .homepage-preview .hero-content {
@@ -56,6 +61,10 @@
 
 .homepage-preview .hero-feature-slide {
   inset: 8px 12px;
+  gap: 10px;
+}
+
+.homepage-preview .hero-feature-item {
   gap: 10px;
 }
 
@@ -136,6 +145,14 @@
 .homepage-preview .filter-chip {
   padding: 4px 10px;
   font-size: 0.8rem;
+}
+
+/* The CalendarPage hides filter section labels and Alle/Keine toggles
+   below 640px. The preview mirrors the desktop homepage at every
+   viewport, so we force them back on here. */
+.homepage-preview .filter-header--section .filter-label,
+.homepage-preview .filter-quick-actions {
+  display: flex;
 }
 
 /* ── Events section ────────────────────────────────────────────────── */

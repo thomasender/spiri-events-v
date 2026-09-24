@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { Check, ChevronDown, MapPin, PlusCircle, Sparkles, Users } from 'lucide-react';
 import Calendar from './Calendar';
 import EventsSection from './EventsSection';
@@ -34,10 +34,12 @@ const HERO_FEATURES = [
   },
 ];
 
-const HERO_SLIDER_INTERVAL_MS = 4000;
-
 const BEZIRKE = ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe'];
 const ONLINE_LOCATION = 'Online';
+
+const HERO_SLIDER_INTERVAL_MS = 4000;
+
+const HERO_FEATURE_PAIRS = [HERO_FEATURES.slice(0, 2), HERO_FEATURES.slice(2, 4)];
 
 // Static, navigation-free replica of the public homepage (CalendarPage)
 // used as the Theme Editor's live preview surface. Mirrors the real
@@ -64,21 +66,27 @@ export default function HomepagePreview({
   onEventClick,
   onCardClick,
 }) {
-  const [activeHeroFeature, setActiveHeroFeature] = useState(0);
+  const [activeHeroPair, setActiveHeroPair] = useState(0);
+  const heroSliderRef = useRef(null);
   const [selectedCategories, setSelectedCategories] = useState(categories);
   const [selectedOrte, setSelectedOrte] = useState(() => [...BEZIRKE, ONLINE_LOCATION]);
   const [dateFilter, setDateFilter] = useState(null);
   const [viewMode, setViewMode] = useState('card');
 
-  // Auto-rotate the hero features so the preview stays lively.
+  // Auto-rotate the hero slides every HERO_SLIDER_INTERVAL_MS so the
+  // preview stays lively. Mirrors CalendarPage's hero behaviour.
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
     const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
     if (prefersReducedMotion) return undefined;
     const id = window.setInterval(() => {
-      setActiveHeroFeature((prev) => (prev + 1) % HERO_FEATURES.length);
+      setActiveHeroPair((prev) => (prev + 1) % HERO_FEATURE_PAIRS.length);
     }, HERO_SLIDER_INTERVAL_MS);
-    return () => window.clearInterval(id);
+    heroSliderRef.current = id;
+    return () => {
+      window.clearInterval(id);
+      if (heroSliderRef.current === id) heroSliderRef.current = null;
+    };
   }, []);
 
   const filteredEvents = useMemo(() => {
@@ -163,24 +171,28 @@ export default function HomepagePreview({
               aria-label="Was die Seite bietet"
               data-testid="homepage-preview-hero-slider"
             >
-              {HERO_FEATURES.map(({ icon: Icon, title, description }, index) => {
-                const isActive = index === activeHeroFeature;
+              {HERO_FEATURE_PAIRS.map((pair, pairIndex) => {
+                const isActive = pairIndex === activeHeroPair;
                 return (
                   <div
-                    key={title}
+                    key={pairIndex}
                     className={`hero-feature-slide${isActive ? ' is-active' : ''}`}
                     role="group"
                     aria-roledescription="slide"
-                    aria-label={`${index + 1} von ${HERO_FEATURES.length}`}
+                    aria-label={`${pairIndex + 1} von ${HERO_FEATURE_PAIRS.length}`}
                     aria-hidden={!isActive}
                     data-testid="homepage-preview-hero-slide"
-                    data-slide-index={index}
+                    data-slide-index={pairIndex}
                   >
-                    <Icon size={20} aria-hidden="true" />
-                    <div>
-                      <span className="hero-feature-title">{title}</span>
-                      <span className="hero-feature-description">{description}</span>
-                    </div>
+                    {pair.map(({ icon: Icon, title, description }) => (
+                      <div key={title} className="hero-feature-item">
+                        <Icon size={20} aria-hidden="true" />
+                        <div>
+                          <span className="hero-feature-title">{title}</span>
+                          <span className="hero-feature-description">{description}</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 );
               })}

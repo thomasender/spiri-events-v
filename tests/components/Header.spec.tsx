@@ -569,3 +569,48 @@ describe('Header Verwaltung unread badge (zejdjTnm)', () => {
     });
   });
 });
+
+describe('Header mobile tagline (zh4jJzje)', () => {
+  // The phone-only tagline replaces the desktop hero subtitle below the
+  // 640px breakpoint. jsdom does not apply CSS, so we can only assert
+  // the DOM scaffolding is in place — the visual hide/show is driven by
+  // the `@media (max-width: 640px)` rule in Header.css.
+  it('renders the mobile tagline inside the logo link with the German copy', () => {
+    render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    const tagline = screen.getByTestId('header-tagline-mobile');
+    expect(tagline).toBeInTheDocument();
+    expect(tagline).toHaveTextContent('Dein Kalender für bewusste Events');
+  });
+
+  it('places the mobile tagline next to the logo (inside the home link)', () => {
+    const { container } = render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    const logoLink = container.querySelector('a.logo');
+    expect(logoLink).not.toBeNull();
+    expect(logoLink?.querySelector('.header-tagline-mobile')).not.toBeNull();
+  });
+
+  it('does NOT change the desktop logo-text on desktop viewports (tribe / Vorarlberg still render)', () => {
+    const { container } = render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('tribe')).toBeInTheDocument();
+    expect(screen.getByText('Vorarlberg')).toBeInTheDocument();
+    // Both the desktop subtitle and the mobile tagline coexist in the
+    // DOM — the CSS hides whichever is irrelevant for the current width.
+    expect(container.querySelector('.logo-text')).not.toBeNull();
+    expect(container.querySelector('.header-tagline-mobile')).not.toBeNull();
+  });
+});

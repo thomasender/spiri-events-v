@@ -17,6 +17,7 @@ import SpendenPage from './pages/SpendenPage';
 import SpendenDankePage from './pages/SpendenDankePage';
 import AuthActionPage from './pages/AuthActionPage';
 import FeedbackButton from './components/FeedbackButton';
+import CreateEventFab from './components/CreateEventFab';
 import SeedBootstrap from './components/SeedBootstrap';
 import ThemeApplier from './components/ThemeApplier';
 import ScrollToTop from './components/ScrollToTop';
@@ -103,6 +104,7 @@ function AppContent() {
         </ErrorBoundary>
       </main>
       <Footer />
+      <CreateEventFab />
       <FeedbackButton />
     </div>
   );

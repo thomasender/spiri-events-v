@@ -47,6 +47,13 @@ const HERO_FEATURES = [
 
 const HERO_SLIDER_INTERVAL_MS = 4000;
 
+// The four hero facts are grouped into two slides of two facts each so
+// that on tablet+ viewports the slider can show two facts side by side.
+// On phone-sized viewports CSS hides every fact beyond the first one in
+// each slide, collapsing the row to a single fact. With two slides the
+// rotation cycles every 8 s.
+const HERO_FEATURE_PAIRS = [HERO_FEATURES.slice(0, 2), HERO_FEATURES.slice(2, 4)];
+
 function loadFilterState() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -125,20 +132,21 @@ export default function CalendarPage() {
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
   const { events, loading, error } = useAllEvents();
 
-  const [activeHeroFeature, setActiveHeroFeature] = useState(0);
+  const [activeHeroPair, setActiveHeroPair] = useState(0);
   const heroSliderRef = useRef(null);
 
-  // Auto-rotate the hero features every HERO_SLIDER_INTERVAL_MS. Users cannot
-  // swipe/click through the items by design — the slider is purely presentational
-  // and exists so the hero stays compact (one row of bullet points).
-  // prefers-reduced-motion disables the rotation.
+  // Auto-rotate the hero slides every HERO_SLIDER_INTERVAL_MS. Each slide
+  // shows two facts on tablet+ viewports and a single fact on phone-sized
+  // viewports (see CSS `.hero-feature-item:nth-child(n+2)`). Users cannot
+  // swipe/click through the items by design — the slider is purely
+  // presentational. prefers-reduced-motion disables the rotation.
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
     const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
     if (prefersReducedMotion) return undefined;
 
     const id = window.setInterval(() => {
-      setActiveHeroFeature((prev) => (prev + 1) % HERO_FEATURES.length);
+      setActiveHeroPair((prev) => (prev + 1) % HERO_FEATURE_PAIRS.length);
     }, HERO_SLIDER_INTERVAL_MS);
     heroSliderRef.current = id;
     return () => {
@@ -276,24 +284,28 @@ export default function CalendarPage() {
             aria-label="Was die Seite bietet"
             data-testid="hero-features-slider"
           >
-            {HERO_FEATURES.map(({ icon: Icon, title, description }, index) => {
-              const isActive = index === activeHeroFeature;
+            {HERO_FEATURE_PAIRS.map((pair, pairIndex) => {
+              const isActive = pairIndex === activeHeroPair;
               return (
                 <div
-                  key={title}
+                  key={pairIndex}
                   className={`hero-feature-slide${isActive ? ' is-active' : ''}`}
                   role="group"
                   aria-roledescription="slide"
-                  aria-label={`${index + 1} von ${HERO_FEATURES.length}`}
+                  aria-label={`${pairIndex + 1} von ${HERO_FEATURE_PAIRS.length}`}
                   aria-hidden={!isActive}
                   data-testid="hero-feature-slide"
-                  data-slide-index={index}
+                  data-slide-index={pairIndex}
                 >
-                  <Icon size={20} aria-hidden="true" />
-                  <div>
-                    <span className="hero-feature-title">{title}</span>
-                    <span className="hero-feature-description">{description}</span>
-                  </div>
+                  {pair.map(({ icon: Icon, title, description }) => (
+                    <div key={title} className="hero-feature-item">
+                      <Icon size={20} aria-hidden="true" />
+                      <div>
+                        <span className="hero-feature-title">{title}</span>
+                        <span className="hero-feature-description">{description}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               );
             })}

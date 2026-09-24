@@ -343,3 +343,41 @@ describe('CalendarPage — past-month navigation disabled (QveMKnvt)', () => {
     expect(prevButton).toBeDisabled();
   });
 });
+
+describe('CalendarPage — mobile layout DOM scaffolding (zh4jJzje)', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    mockUseAllEvents.events = [];
+    mockUseCategories.value = ['Yoga', 'Meditation'];
+  });
+
+  // The mobile layout hides the hero, the section labels (Datum /
+  // Kategorie / Ort) and the Alle/Keine toggles via CSS media queries.
+  // jsdom does not apply CSS, so we can only assert the DOM scaffolding
+  // is in place — the responsive show/hide behaviour is verified by a
+  // Playwright @mobile spec rather than by Vitest.
+
+  it('keeps the hero block in the DOM (CSS hides it below 640px)', () => {
+    renderPage();
+    expect(document.querySelector('.hero')).not.toBeNull();
+    expect(screen.getByTestId('hero-features-slider')).toBeInTheDocument();
+  });
+
+  it('keeps the Datum section label in the DOM (CSS hides it below 640px)', () => {
+    renderPage();
+    // The Datum label is a section eyebrow inside the filter panel.
+    expect(screen.getByText('Datum')).toBeInTheDocument();
+  });
+
+  it('keeps the Kategorie section label in the DOM (CSS hides it below 640px)', () => {
+    renderPage();
+    expect(screen.getByText('Kategorie')).toBeInTheDocument();
+  });
+
+  it('keeps the Alle/Keine quick-action buttons in the filter panel', () => {
+    renderPage();
+    const alleButtons = screen.getAllByRole('button', { name: 'Alle' });
+    expect(alleButtons.length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('button', { name: 'Keine' }).length).toBeGreaterThan(0);
+  });
+});
