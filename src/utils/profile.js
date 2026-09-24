@@ -5,6 +5,7 @@ export const PUBLIC_PROFILE_FIELDS = [
   'website',
   'photoURL',
   'slug',
+  'username',
   'socialMedia',
 ];
 

@@ -48,6 +48,8 @@ function renderForm(profile, props = {}) {
   );
 }
 
+const waitForDebouncedCheck = () => new Promise((r) => setTimeout(r, 400));
+
 describe('ProfileForm', () => {
   const baseProfile = {
     displayName: 'Maria Musterfrau',
@@ -456,5 +458,188 @@ describe('getMissingProfileFields (WBFFzVcm)', () => {
     expect(getMissingProfileFields({ displayName: 'Maria', bio: null })).toEqual([
       { key: 'bio', label: 'Kurze Beschreibung' },
     ]);
+  });
+});
+
+describe('ProfileForm — Benutzername (LtBHuNes)', () => {
+  const baseProfile = {
+    displayName: 'Maria Musterfrau',
+    bio: 'Yoga-Lehrerin aus Vorarlberg.',
+    bioHtml: '<p>Yoga-Lehrerin aus Vorarlberg.</p>',
+    website: '',
+    contact: '',
+    photoURL: null,
+    slug: 'maria-musterfrau',
+    username: 'maria.musterfrau',
+  };
+
+  it('pre-fills the username input from profile.username', () => {
+    renderForm(baseProfile);
+
+    expect(screen.getByTestId('profile-username')).toHaveValue('maria.musterfrau');
+  });
+
+  it('falls back to the slug when the profile has no explicit username (legacy users)', () => {
+    renderForm({ ...baseProfile, username: '', slug: 'legacy-slug' });
+
+    expect(screen.getByTestId('profile-username')).toHaveValue('legacy-slug');
+  });
+
+  it('shows the public URL preview for the entered username', () => {
+    renderForm(baseProfile);
+
+    const preview = screen.getByTestId('profile-username-preview');
+    expect(preview.textContent).toBe('thetribe.at/maria.musterfrau');
+  });
+
+  it('pre-fills the username from the displayName until the user touches the field', () => {
+    renderForm({ ...baseProfile, displayName: '', slug: '', username: '' });
+
+    fireEvent.change(screen.getByTestId('profile-displayName'), {
+      target: { value: 'Anna Schmidt' },
+    });
+
+    expect(screen.getByTestId('profile-username')).toHaveValue('anna-schmidt');
+  });
+
+  it('does not overwrite the username once the user has typed into it', () => {
+    renderForm({ ...baseProfile, displayName: '', slug: '', username: '' });
+
+    const usernameInput = screen.getByTestId('profile-username');
+    fireEvent.change(usernameInput, { target: { value: 'jane-doe' } });
+
+    fireEvent.change(screen.getByTestId('profile-displayName'), {
+      target: { value: 'New Name Here' },
+    });
+
+    expect(usernameInput).toHaveValue('jane-doe');
+  });
+
+  it('surfaces a TOO_SHORT validation error when the username is below the minimum', async () => {
+    renderForm({ ...baseProfile, username: '' });
+
+    fireEvent.change(screen.getByTestId('profile-username'), {
+      target: { value: 'ab' },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('profile-username-status').dataset.status).toBe('invalid');
+    });
+    expect(screen.getByText(/mindestens 3 Zeichen/)).toBeInTheDocument();
+  });
+
+  it('surfaces a RESERVED error for reserved route names like "admin"', async () => {
+    renderForm({ ...baseProfile, username: '' });
+
+    fireEvent.change(screen.getByTestId('profile-username'), {
+      target: { value: 'admin' },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/reserviert/)).toBeInTheDocument();
+    });
+  });
+
+  it('surfaces an INVALID_CHARS error for uppercase letters (the form already normalises on save)', async () => {
+    renderForm({ ...baseProfile, username: '' });
+
+    fireEvent.change(screen.getByTestId('profile-username'), {
+      target: { value: 'Anna!Schmidt' },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('profile-username-status').dataset.status).toBe('invalid');
+    });
+  });
+
+  it('asks the injected availability probe and marks the username as available', async () => {
+    const checkAvailability = vi.fn(async (name) => name === 'maria.musterfrau');
+    renderForm({ ...baseProfile, username: '' }, { checkAvailability });
+
+    fireEvent.change(screen.getByTestId('profile-username'), {
+      target: { value: 'maria.musterfrau' },
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('profile-username-status').dataset.status).toBe('available')
+    );
+    expect(checkAvailability).toHaveBeenCalledWith('maria.musterfrau', 'user-123');
+  });
+
+  it('marks the username as taken when the availability probe returns false', async () => {
+    const checkAvailability = vi.fn(async () => false);
+    renderForm({ ...baseProfile, username: '' }, { checkAvailability });
+
+    fireEvent.change(screen.getByTestId('profile-username'), {
+      target: { value: 'jane-doe' },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('profile-username-status').dataset.status).toBe('taken');
+    });
+    expect(screen.getByText(/bereits vergeben/)).toBeInTheDocument();
+  });
+
+  it("does not block submission when the username is the user's own current value", async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const checkAvailability = vi.fn(async () => false);
+    renderForm(baseProfile, { onSave, checkAvailability });
+
+    fireEvent.click(screen.getByTestId('profile-save'));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(screen.queryByText(/bereits vergeben/)).not.toBeInTheDocument();
+  });
+
+  it('blocks submission when the entered username is taken by another user', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const checkAvailability = vi.fn(async () => false);
+    renderForm({ ...baseProfile, username: '' }, { onSave, checkAvailability });
+
+    fireEvent.change(screen.getByTestId('profile-username'), {
+      target: { value: 'jane-doe' },
+    });
+    await waitForDebouncedCheck();
+    await waitFor(() => {
+      expect(screen.getByTestId('profile-username-status').dataset.status).toBe('taken');
+    });
+
+    fireEvent.click(screen.getByTestId('profile-save'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('profile-username')).toHaveClass('input-error');
+    });
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it('sends the normalised username to onSave', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    renderForm(baseProfile, { onSave });
+
+    fireEvent.change(screen.getByTestId('profile-username'), {
+      target: { value: '  Jane.Doe  ' },
+    });
+
+    fireEvent.click(screen.getByTestId('profile-save'));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0][0].username).toBe('jane.doe');
+  });
+
+  it('allows empty username (the hook derives a slug from displayName as fallback)', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    renderForm(
+      { ...baseProfile, displayName: 'Maria Musterfrau', username: '', slug: '' },
+      { onSave }
+    );
+
+    // Sanity check: nothing was pre-filled for a fresh user.
+    expect(screen.getByTestId('profile-username')).toHaveValue('');
+
+    fireEvent.click(screen.getByTestId('profile-save'));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    // Empty username is sent through and the hook decides what to do with it.
+    expect(onSave.mock.calls[0][0].username).toBe('');
   });
 });

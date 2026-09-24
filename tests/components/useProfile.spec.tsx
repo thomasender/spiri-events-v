@@ -435,3 +435,152 @@ describe('useProfile.save — rich-text bio (kKjV8UFZ)', () => {
     });
   });
 });
+
+describe('useProfile.save — username (LtBHuNes)', () => {
+  function setupWithProfile(profileData) {
+    mockOnSnapshot.mockImplementation((_ref, onNext) => {
+      onNext(makeSnapshot(profileData));
+    });
+  }
+
+  it('reuses the existing slug when the username is unchanged', async () => {
+    setupWithProfile({
+      displayName: 'Anna Beispiel',
+      bio: '',
+      website: '',
+      photoURL: null,
+      slug: 'anna-beispiel',
+      username: 'anna.beispiel',
+    });
+
+    const { result } = renderHook(() => useProfile('user-1'));
+    await waitFor(() => expect(result.current.profile).not.toBeNull());
+
+    let newSlug;
+    await act(async () => {
+      newSlug = await result.current.save({ username: 'anna.beispiel' });
+    });
+
+    expect(newSlug).toBe('anna-beispiel');
+    expect(mockFindUniqueProfileSlug).not.toHaveBeenCalled();
+  });
+
+  it('derives a new slug when the username changes', async () => {
+    setupWithProfile({
+      displayName: 'Anna Beispiel',
+      bio: '',
+      website: '',
+      photoURL: null,
+      slug: 'anna-beispiel',
+      username: 'anna.beispiel',
+    });
+
+    mockFindUniqueProfileSlug.mockResolvedValueOnce('jane-doe');
+
+    const { result } = renderHook(() => useProfile('user-1'));
+    await waitFor(() => expect(result.current.profile).not.toBeNull());
+
+    let newSlug;
+    await act(async () => {
+      newSlug = await result.current.save({ username: 'jane-doe' });
+    });
+
+    expect(newSlug).toBe('jane-doe');
+    expect(mockFindUniqueProfileSlug).toHaveBeenCalledWith('jane-doe', 'user-1');
+  });
+
+  it('writes the normalised username to both the private and public docs', async () => {
+    setupWithProfile({
+      displayName: 'Anna Beispiel',
+      bio: '',
+      website: '',
+      photoURL: null,
+      slug: 'anna-beispiel',
+    });
+
+    mockFindUniqueProfileSlug.mockResolvedValueOnce('jane-doe');
+
+    const { result } = renderHook(() => useProfile('user-1'));
+    await waitFor(() => expect(result.current.profile).not.toBeNull());
+
+    await act(async () => {
+      await result.current.save({ username: '  Jane.Doe  ' });
+    });
+
+    const privatePayload = mockBatchSet.mock.calls.find(([ref]) => ref.path?.[0] === 'users')?.[1];
+    const publicPayload = mockBatchSet.mock.calls.find(
+      ([ref]) => ref.path?.join('/') === 'users/user-1/publicProfile/data'
+    )?.[1];
+
+    expect(privatePayload).toMatchObject({ username: 'jane.doe', slug: 'jane-doe' });
+    expect(publicPayload).toMatchObject({ username: 'jane.doe', slug: 'jane-doe' });
+  });
+
+  it('falls back to deriving the slug from displayName when username is cleared and no slug exists yet', async () => {
+    setupWithProfile({
+      displayName: 'Anna Beispiel',
+      bio: '',
+      website: '',
+      photoURL: null,
+      slug: '',
+    });
+
+    mockFindUniqueProfileSlug.mockResolvedValueOnce('anna-beispiel');
+
+    const { result } = renderHook(() => useProfile('user-1'));
+    await waitFor(() => expect(result.current.profile).not.toBeNull());
+
+    await act(async () => {
+      await result.current.save({ username: '', displayName: 'Anna Beispiel' });
+    });
+
+    expect(mockFindUniqueProfileSlug).toHaveBeenCalledWith('Anna Beispiel', 'user-1');
+  });
+
+  it('keeps the slug in sync with displayName changes for legacy users (no username ever set)', async () => {
+    setupWithProfile({
+      displayName: 'Anna Beispiel',
+      bio: '',
+      website: '',
+      photoURL: null,
+      slug: 'anna-beispiel',
+    });
+
+    mockFindUniqueProfileSlug.mockResolvedValueOnce('anna-beispiel-neu');
+
+    const { result } = renderHook(() => useProfile('user-1'));
+    await waitFor(() => expect(result.current.profile).not.toBeNull());
+
+    await act(async () => {
+      await result.current.save({ displayName: 'Anna Beispiel Neu' });
+    });
+
+    expect(mockFindUniqueProfileSlug).toHaveBeenCalledWith('Anna Beispiel Neu', 'user-1');
+  });
+
+  it('does not re-derive the slug when only notification preferences are saved', async () => {
+    setupWithProfile({
+      displayName: 'Anna Beispiel',
+      bio: '',
+      website: '',
+      photoURL: null,
+      slug: 'anna-beispiel',
+      username: 'anna.beispiel',
+    });
+
+    const { result } = renderHook(() => useProfile('user-1'));
+    await waitFor(() => expect(result.current.profile).not.toBeNull());
+
+    await act(async () => {
+      await result.current.save({ notifyOnPublished: false });
+    });
+
+    expect(mockFindUniqueProfileSlug).not.toHaveBeenCalled();
+    const privatePayload = mockBatchSet.mock.calls.find(([ref]) => ref.path?.[0] === 'users')?.[1];
+    expect(privatePayload).toMatchObject({
+      notifyOnPublished: false,
+      slug: 'anna-beispiel',
+      username: 'anna.beispiel',
+    });
+  });
+});

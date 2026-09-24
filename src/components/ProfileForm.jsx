@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ExternalLink, Facebook, Instagram, Save } from 'lucide-react';
 import ProfilePhotoUpload from './ProfilePhotoUpload';
@@ -7,6 +7,9 @@ import RichTextEditorLazy from './RichTextEditorLazy';
 import { uploadProfileDescriptionImage } from '../lib/imageUpload';
 import { getPlainTextLength, stripHtml } from '../utils/sanitize';
 import { getMissingProfileFields, BIO_MAX } from '../utils/profile';
+import { slugifyName } from '../lib/slug';
+import { validateUsername, normalizeUsername, USERNAME_MIN, USERNAME_MAX } from '../utils/username';
+import { isUsernameAvailable } from '../lib/slug';
 import './ProfileForm.css';
 
 const NAME_MAX = 80;
@@ -32,8 +35,24 @@ const isValidWebsite = (raw) => {
   }
 };
 
-export default function ProfileForm({ profile, uid, onSave }) {
+const USERNAME_ERROR_MESSAGES = {
+  EMPTY: '',
+  TOO_SHORT: `Benutzername muss mindestens ${USERNAME_MIN} Zeichen haben.`,
+  TOO_LONG: `Benutzername darf maximal ${USERNAME_MAX} Zeichen haben.`,
+  INVALID_CHARS:
+    'Nur Kleinbuchstaben, Zahlen, Punkt, Unterstrich und Bindestrich. Beginne und ende mit Buchstabe oder Zahl.',
+  RESERVED: 'Dieser Benutzername ist reserviert und kann nicht verwendet werden.',
+  TAKEN: 'Dieser Benutzername ist bereits vergeben.',
+};
+
+const AVAILABILITY_DEBOUNCE_MS = 350;
+
+export default function ProfileForm({ profile, uid, onSave, checkAvailability }) {
   const [displayName, setDisplayName] = useState(profile?.displayName || '');
+  const [username, setUsername] = useState(profile?.username || profile?.slug || '');
+  const [usernameTouched, setUsernameTouched] = useState(
+    Boolean(profile?.username || profile?.slug)
+  );
   const [bioHtml, setBioHtml] = useState(profile?.bioHtml || '');
   const [website, setWebsite] = useState(profile?.website || '');
   const [contact, setContact] = useState(profile?.contact || '');
@@ -48,6 +67,10 @@ export default function ProfileForm({ profile, uid, onSave }) {
   const [submitError, setSubmitError] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMissingFields, setDialogMissingFields] = useState([]);
+  const [usernameStatus, setUsernameStatus] = useState({
+    state: 'idle',
+    message: '',
+  });
 
   const navigate = useNavigate();
   const plainBioLength = getPlainTextLength(bioHtml);
@@ -56,6 +79,8 @@ export default function ProfileForm({ profile, uid, onSave }) {
   useEffect(() => {
     if (!profile) return;
     setDisplayName(profile.displayName || '');
+    setUsername(profile.username || profile.slug || '');
+    setUsernameTouched(Boolean(profile.username || profile.slug));
     setBioHtml(profile.bioHtml || '');
     setWebsite(profile.website || '');
     setContact(profile.contact || '');
@@ -65,12 +90,84 @@ export default function ProfileForm({ profile, uid, onSave }) {
     setSharePublicly(profile.socialMedia?.sharePublicly === true);
   }, [profile]);
 
+  const usernameCheckSeqRef = useRef(0);
+  const checkAvailabilityRef = useRef(checkAvailability);
+  useEffect(() => {
+    checkAvailabilityRef.current = checkAvailability;
+  }, [checkAvailability]);
+
+  const runAvailabilityCheck = useCallback(async (normalized, currentUid, currentUsername) => {
+    const seq = ++usernameCheckSeqRef.current;
+    const result = validateUsername(normalized, { currentUsername });
+    if (!result.valid) {
+      setUsernameStatus({ state: 'invalid', message: USERNAME_ERROR_MESSAGES[result.error] });
+      return result;
+    }
+    setUsernameStatus({ state: 'checking', message: 'Verfügbarkeit wird geprüft…' });
+    try {
+      const probe = checkAvailabilityRef.current || isUsernameAvailable;
+      const available = await probe(result.normalized, currentUid);
+      if (seq !== usernameCheckSeqRef.current) return result;
+      if (!available) {
+        setUsernameStatus({ state: 'taken', message: USERNAME_ERROR_MESSAGES.TAKEN });
+        return { valid: false, error: 'TAKEN', normalized: result.normalized };
+      }
+      setUsernameStatus({ state: 'available', message: 'Benutzername ist verfügbar.' });
+      return result;
+    } catch (err) {
+      console.warn('Username availability check failed:', err);
+      if (seq !== usernameCheckSeqRef.current) return result;
+      setUsernameStatus({ state: 'idle', message: '' });
+      return result;
+    }
+  }, []);
+
+  useEffect(() => {
+    const trimmed = username.trim();
+    if (!trimmed) {
+      usernameCheckSeqRef.current += 1;
+      setUsernameStatus({ state: 'idle', message: '' });
+      return undefined;
+    }
+    const normalized = normalizeUsername(trimmed);
+    const sameAsSaved = normalized && normalized === normalizeUsername(profile?.username || '');
+    const formatCheck = validateUsername(normalized, { currentUsername: profile?.username || '' });
+    if (!formatCheck.valid) {
+      usernameCheckSeqRef.current += 1;
+      setUsernameStatus({
+        state: 'invalid',
+        message: USERNAME_ERROR_MESSAGES[formatCheck.error],
+      });
+      return undefined;
+    }
+    if (sameAsSaved) {
+      usernameCheckSeqRef.current += 1;
+      setUsernameStatus({ state: 'available', message: 'Benutzername ist verfügbar.' });
+      return undefined;
+    }
+    const handle = setTimeout(() => {
+      runAvailabilityCheck(normalized, uid, profile?.username || '');
+    }, AVAILABILITY_DEBOUNCE_MS);
+    return () => clearTimeout(handle);
+  }, [uid, username, profile?.username, runAvailabilityCheck]);
+
   const validate = () => {
     const newErrors = {};
     if (!displayName.trim()) {
       newErrors.displayName = 'Name ist erforderlich.';
     } else if (displayName.trim().length > NAME_MAX) {
       newErrors.displayName = `Name darf maximal ${NAME_MAX} Zeichen haben.`;
+    }
+    const usernameTrimmed = username.trim();
+    if (usernameTrimmed) {
+      const format = validateUsername(usernameTrimmed, {
+        currentUsername: profile?.username || '',
+      });
+      if (!format.valid) {
+        newErrors.username = USERNAME_ERROR_MESSAGES[format.error] || 'Ungültiger Benutzername.';
+      } else if (usernameStatus.state === 'taken') {
+        newErrors.username = USERNAME_ERROR_MESSAGES.TAKEN;
+      }
     }
     if (plainBioLength > BIO_MAX) {
       newErrors.bio = `Bio darf maximal ${BIO_MAX} Zeichen haben.`;
@@ -83,6 +180,7 @@ export default function ProfileForm({ profile, uid, onSave }) {
 
   const buildPayload = () => ({
     displayName: displayName.trim(),
+    username: normalizeUsername(username),
     bio: stripHtml(bioHtml).trim(),
     bioHtml,
     website: normalizeWebsite(website),
@@ -144,6 +242,7 @@ export default function ProfileForm({ profile, uid, onSave }) {
         ...profile,
         ...payload,
         slug: newSlug || profile?.slug || '',
+        username: payload.username,
       };
       const missing = getMissingProfileFields(savedProfile);
 
@@ -168,6 +267,16 @@ export default function ProfileForm({ profile, uid, onSave }) {
   };
 
   const handleBioUpload = (file) => uploadProfileDescriptionImage(file, uid);
+
+  const usernameStatusData =
+    usernameStatus.state === 'available'
+      ? { kind: 'success', text: usernameStatus.message }
+      : usernameStatus.state === 'taken' || usernameStatus.state === 'invalid'
+        ? { kind: 'error', text: usernameStatus.message }
+        : usernameStatus.state === 'checking'
+          ? { kind: 'muted', text: usernameStatus.message }
+          : { kind: 'muted', text: 'thetribe.at/' };
+  const usernamePreview = username.trim() ? `thetribe.at/${normalizeUsername(username)}` : null;
 
   return (
     <div className="profile-card" data-testid="profile-form-card">
@@ -195,13 +304,59 @@ export default function ProfileForm({ profile, uid, onSave }) {
             name="displayName"
             type="text"
             value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
+            onChange={(e) => {
+              const next = e.target.value;
+              setDisplayName(next);
+              // Pre-fill the username from the display name until the user
+              // touches the field. After that, leave their typed value alone.
+              if (!usernameTouched) {
+                setUsername(slugifyName(next));
+              }
+            }}
             maxLength={NAME_MAX}
             className={errors.displayName ? 'input-error' : ''}
             data-testid="profile-displayName"
             autoComplete="name"
           />
           {errors.displayName && <span className="error-text">{errors.displayName}</span>}
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="profile-username">Benutzername</label>
+          <p className="profile-username-hint">
+            Bestimmt die URL deines öffentlichen Profils, z.B. thetribe.at/jane-doe. Wird
+            automatisch aus deinem Namen vorgeschlagen — kann aber angepasst werden.
+          </p>
+          <input
+            id="profile-username"
+            name="username"
+            type="text"
+            value={username}
+            onChange={(e) => {
+              setUsernameTouched(true);
+              setUsername(e.target.value);
+            }}
+            maxLength={USERNAME_MAX}
+            spellCheck="false"
+            autoCapitalize="none"
+            autoCorrect="off"
+            className={errors.username ? 'input-error' : ''}
+            data-testid="profile-username"
+            autoComplete="off"
+          />
+          <div
+            className={`profile-username-status profile-username-status--${usernameStatusData.kind}`}
+            data-testid="profile-username-status"
+            data-status={usernameStatus.state}
+          >
+            {usernamePreview && (
+              <span className="profile-username-preview" data-testid="profile-username-preview">
+                {usernamePreview}
+              </span>
+            )}
+            <span className="profile-username-message">{usernameStatusData.text}</span>
+          </div>
+          {errors.username && <span className="error-text">{errors.username}</span>}
         </div>
 
         <div className="form-group">
