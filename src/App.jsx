@@ -104,8 +104,8 @@ function AppContent() {
         </ErrorBoundary>
       </main>
       <Footer />
-      <CreateEventFab />
       <FeedbackButton />
+      <CreateEventFab />
     </div>
   );
 }

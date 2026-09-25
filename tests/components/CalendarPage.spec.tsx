@@ -381,3 +381,48 @@ describe('CalendarPage — mobile layout DOM scaffolding (zh4jJzje)', () => {
     expect(screen.getAllByRole('button', { name: 'Keine' }).length).toBeGreaterThan(0);
   });
 });
+
+describe('CalendarPage — "Mehr Filter" summary (zh4jJzje)', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    mockUseAllEvents.events = [];
+    mockUseCategories.value = ['Yoga', 'Meditation'];
+  });
+
+  it('renders a filter icon (sliders) next to the "Mehr Filter" label', () => {
+    renderPage();
+
+    const summary = document.querySelector('.filter-accordion-summary');
+    expect(summary).not.toBeNull();
+
+    // The label wrapper holds both the icon and the text — the icon is
+    // a lucide SVG marked with a dedicated class so the test does not
+    // accidentally match the chevron at the other end of the summary.
+    const label = summary?.querySelector('.filter-accordion-label');
+    expect(label).not.toBeNull();
+    expect(label?.textContent).toContain('Mehr Filter');
+
+    const filterIcon = label?.querySelector('.filter-accordion-filter-icon');
+    expect(filterIcon).not.toBeNull();
+    expect(filterIcon?.tagName.toLowerCase()).toBe('svg');
+
+    // The chevron still lives at the right edge of the summary so users
+    // can tell the accordion is expandable.
+    const chevron = summary?.querySelector('.filter-accordion-icon');
+    expect(chevron).not.toBeNull();
+    expect(chevron?.tagName.toLowerCase()).toBe('svg');
+  });
+
+  it('still toggles the accordion open and closed via the summary click', () => {
+    renderPage();
+
+    const accordion = getAccordion();
+    expect(accordion.open).toBe(false);
+
+    fireEvent.click(accordion.querySelector('.filter-accordion-summary')!);
+    expect(accordion.open).toBe(true);
+
+    fireEvent.click(accordion.querySelector('.filter-accordion-summary')!);
+    expect(accordion.open).toBe(false);
+  });
+});

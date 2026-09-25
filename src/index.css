@@ -9,6 +9,8 @@
   --accent-primary-hover: #9a5f38; /* darker terracotta — hover (WCAG AA contrast with white) */
   --accent-primary-strong: #9a5f38; /* darkest terracotta — text on soft fills */
   --accent-soft: rgba(196, 142, 106, 0.14); /* terracotta tint — subtle fills */
+  --accent-create-event: #e5a72e; /* mustard yellow — floating CreateEventFab only */
+  --accent-create-event-hover: #b8851f; /* darker mustard — hover state */
   --text-primary: #161819; /* charcoal */
   --text-secondary: #605e5e; /* Fliesstext */
   --text-light: #938d87; /* light warm grey */
