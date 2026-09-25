@@ -54,7 +54,7 @@ describe('Header (logged out)', () => {
         <Header />
       </MemoryRouter>
     );
-    expect(screen.getByText('tribe')).toBeInTheDocument();
+    expect(screen.getByText('Dein Vorarlberger Kalender')).toBeInTheDocument();
   });
 
   it('does not render the "Tribe ist für alle da" tagline inside the header (it lives in the hero)', () => {
@@ -437,8 +437,12 @@ describe('Header profile nav avatar', () => {
       expect(img.getAttribute('aria-hidden')).toBe('true');
     });
 
-    const profilLinks = Array.from(container.querySelectorAll('a[href="/profil"]'));
-    profilLinks.forEach((link) => {
+    // Scope to nav links only — the header profile shortcut (also a
+    // /profil anchor) renders its own `header-profile-avatar` img, not
+    // the nav-link one, so we check the nav-link variants here.
+    const profilNavLinks = Array.from(container.querySelectorAll('a.nav-link[href="/profil"]'));
+    expect(profilNavLinks.length).toBeGreaterThanOrEqual(2);
+    profilNavLinks.forEach((link) => {
       expect(link.querySelector('img.nav-link-avatar')).not.toBeNull();
     });
   });
@@ -570,24 +574,25 @@ describe('Header Verwaltung unread badge (zejdjTnm)', () => {
   });
 });
 
-describe('Header mobile tagline (zh4jJzje)', () => {
-  // The phone-only tagline replaces the desktop hero subtitle below the
-  // 640px breakpoint. jsdom does not apply CSS, so we can only assert
-  // the DOM scaffolding is in place — the visual hide/show is driven by
-  // the `@media (max-width: 640px)` rule in Header.css.
-  it('renders the mobile tagline inside the logo link with the German copy', () => {
+describe('Header two-line tagline on every viewport (zh4jJzje)', () => {
+  // The two-line desktop tagline ("Dein Vorarlberger Kalender" /
+  // "für bewusste Events") replaces the previous phone-only single-line
+  // variant. The same `.logo-text` block now ships on every viewport —
+  // CSS shrinks it on phones rather than swapping in a different
+  // element. jsdom does not apply CSS, so we only assert the DOM
+  // scaffolding here; the responsive sizing is verified by Playwright.
+  it('renders both lines of the German tagline inside the logo link', () => {
     render(
       <MemoryRouter>
         <Header />
       </MemoryRouter>
     );
 
-    const tagline = screen.getByTestId('header-tagline-mobile');
-    expect(tagline).toBeInTheDocument();
-    expect(tagline).toHaveTextContent('Dein Kalender für bewusste Events');
+    expect(screen.getByText('Dein Vorarlberger Kalender')).toBeInTheDocument();
+    expect(screen.getByText('für bewusste Events')).toBeInTheDocument();
   });
 
-  it('places the mobile tagline next to the logo (inside the home link)', () => {
+  it('keeps the two-line tagline inside the home link (next to the logo icon)', () => {
     const { container } = render(
       <MemoryRouter>
         <Header />
@@ -596,21 +601,117 @@ describe('Header mobile tagline (zh4jJzje)', () => {
 
     const logoLink = container.querySelector('a.logo');
     expect(logoLink).not.toBeNull();
-    expect(logoLink?.querySelector('.header-tagline-mobile')).not.toBeNull();
+    expect(logoLink?.querySelector('.logo-text')).not.toBeNull();
   });
 
-  it('does NOT change the desktop logo-text on desktop viewports (tribe / Vorarlberg still render)', () => {
+  it('does not render the old single-line `.header-tagline-mobile` variant anymore', () => {
     const { container } = render(
       <MemoryRouter>
         <Header />
       </MemoryRouter>
     );
 
-    expect(screen.getByText('tribe')).toBeInTheDocument();
-    expect(screen.getByText('Vorarlberg')).toBeInTheDocument();
-    // Both the desktop subtitle and the mobile tagline coexist in the
-    // DOM — the CSS hides whichever is irrelevant for the current width.
-    expect(container.querySelector('.logo-text')).not.toBeNull();
-    expect(container.querySelector('.header-tagline-mobile')).not.toBeNull();
+    expect(container.querySelector('.header-tagline-mobile')).toBeNull();
+  });
+});
+
+describe('Header profile/login shortcut button (zh4jJzje)', () => {
+  it('renders the shortcut button next to the burger with a login target when logged out', () => {
+    mockAuth.user = null;
+
+    const { container } = render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    const buttons = screen.getAllByTestId('header-profile-button');
+    expect(buttons.length).toBeGreaterThan(0);
+    buttons.forEach((btn) => {
+      expect(btn.getAttribute('href')).toBe('/login');
+      expect(btn.getAttribute('aria-label')).toBe('Anmelden');
+    });
+
+    // The button is hidden on desktop (display: none in CSS) but the DOM
+    // node is always rendered so we can assert the markup regardless of
+    // the test viewport.
+    expect(container.querySelector('.header-profile-button')).not.toBeNull();
+  });
+
+  it('points the shortcut button at /profil and labels it "Mein Profil" when signed in', () => {
+    mockAuth.user = { uid: 'test-uid' };
+
+    render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    const buttons = screen.getAllByTestId('header-profile-button');
+    expect(buttons.length).toBeGreaterThan(0);
+    buttons.forEach((btn) => {
+      expect(btn.getAttribute('href')).toBe('/profil');
+      expect(btn.getAttribute('aria-label')).toBe('Mein Profil');
+    });
+  });
+
+  it('renders the profile photo as a circular avatar inside the shortcut button when one is available', () => {
+    mockAuth.user = { uid: 'test-uid' };
+    mockProfile.photoURL = 'https://example.com/uploads/avatar.jpg';
+
+    const { container } = render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    const buttons = screen.getAllByTestId('header-profile-button');
+    expect(buttons.length).toBeGreaterThan(0);
+    buttons.forEach((btn) => {
+      const avatar = btn.querySelector('img.header-profile-avatar');
+      expect(avatar).not.toBeNull();
+      expect(avatar?.getAttribute('src')).toBe('https://example.com/uploads/avatar.jpg');
+    });
+
+    // Sanity: no lucide UserCircle fallback should render inside the
+    // shortcut when the user has a photo.
+    const firstButton = container.querySelectorAll('.header-profile-button')[0];
+    expect(firstButton?.querySelector('svg')).toBeNull();
+  });
+
+  it('falls back to a lucide user icon inside the shortcut button when no photo is available', () => {
+    mockAuth.user = { uid: 'test-uid' };
+    mockProfile.photoURL = null;
+
+    render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    const buttons = screen.getAllByTestId('header-profile-button');
+    expect(buttons.length).toBeGreaterThan(0);
+    buttons.forEach((btn) => {
+      expect(btn.querySelector('img.header-profile-avatar')).toBeNull();
+      expect(btn.querySelector('svg')).not.toBeNull();
+    });
+  });
+
+  it('falls back to the auth provider photoURL when no Firestore profile photo is set', () => {
+    mockAuth.user = { uid: 'test-uid', photoURL: 'https://example.com/google-avatar.jpg' };
+    mockProfile.photoURL = null;
+
+    render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    const buttons = screen.getAllByTestId('header-profile-button');
+    expect(buttons.length).toBeGreaterThan(0);
+    buttons.forEach((btn) => {
+      const avatar = btn.querySelector('img.header-profile-avatar');
+      expect(avatar?.getAttribute('src')).toBe('https://example.com/google-avatar.jpg');
+    });
   });
 });

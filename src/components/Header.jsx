@@ -171,6 +171,10 @@ export default function Header() {
     </>
   );
 
+  const profilePhotoURL = profile?.photoURL || user?.photoURL;
+  const profileTarget = user ? '/profil' : '/login';
+  const profileLabel = user ? 'Mein Profil' : 'Anmelden';
+
   return (
     <header className={`header${menuOpen ? ' header--menu-open' : ''}`}>
       <nav className="header-container" aria-label="Hauptnavigation">
@@ -179,18 +183,36 @@ export default function Header() {
             <img src="/logo-mark.svg" alt="" aria-hidden="true" />
           </div>
           <div className="logo-text">
-            <span className="logo-title">tribe</span>
-            <span className="logo-subtitle">Vorarlberg</span>
+            <span className="logo-title">Dein Vorarlberger Kalender</span>
+            <span className="logo-subtitle">für bewusste Events</span>
           </div>
-          {/* Phone-only tagline — replaces the desktop hero subtitle on
-              narrow viewports (see CalendarPage.css `.hero { display: none }`
-              at the 640px breakpoint). */}
-          <span className="header-tagline-mobile" data-testid="header-tagline-mobile">
-            Dein Kalender für bewusste Events
-          </span>
         </Link>
 
         <div className="nav-desktop">{renderNavLinks()}</div>
+
+        {/* Tablet+phone only — quick login/profile shortcut next to the
+            burger so users do not have to open the mobile menu to sign in
+            (or to reach their profile when already signed in). Hidden on
+            desktop where the nav already exposes the same actions. */}
+        <Link
+          to={profileTarget}
+          className="header-profile-button"
+          aria-label={profileLabel}
+          data-testid="header-profile-button"
+          onClick={closeMenu}
+        >
+          {profilePhotoURL ? (
+            <img
+              src={profilePhotoURL}
+              alt=""
+              className="header-profile-avatar"
+              aria-hidden="true"
+              data-testid="header-profile-avatar"
+            />
+          ) : (
+            <UserCircle size={24} aria-hidden="true" />
+          )}
+        </Link>
 
         <button
           ref={toggleRef}

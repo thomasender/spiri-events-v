@@ -1,24 +1,27 @@
 /* Floating action button that surfaces "Event erstellen" on phone-sized
    viewports. It replaces the inline `.create-event-cta` block on the
    CalendarPage so the action stays reachable while the user scrolls
-   the events list. Positioned above the FeedbackButton FAB on the
+   the events list. Positioned below the FeedbackButton FAB on the
    right edge. Hidden on tablet+ where the inline CTA / nav already
-   exposes the same action. */
+   exposes the same action. The mustard yellow (#E5A72E) distinguishes
+   it from the terracotta feedback FAB so the two actions read as
+   different controls (zh4jJzje). */
 
 .create-event-fab {
   position: fixed;
-  /* 88px = feedback FAB height (~48px) + 16px gap + safe padding */
-  bottom: 88px;
+  bottom: 24px;
   right: 24px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
   padding: 12px 20px;
-  background-color: var(--accent-primary);
+  background-color: var(--accent-create-event);
   color: white;
   border: none;
   border-radius: 999px;
-  box-shadow: var(--shadow-lg);
+  box-shadow:
+    0 4px 12px rgba(22, 24, 25, 0.12),
+    0 12px 28px rgba(229, 167, 46, 0.35);
   cursor: pointer;
   font-family: var(--font-body);
   font-size: 0.95rem;
@@ -32,14 +35,16 @@
 }
 
 .create-event-fab:hover {
-  background-color: var(--accent-primary-hover);
+  background-color: var(--accent-create-event-hover);
   color: white;
   transform: translateY(-2px);
-  box-shadow: 0 12px 32px rgba(22, 24, 25, 0.18);
+  box-shadow:
+    0 6px 16px rgba(22, 24, 25, 0.15),
+    0 14px 32px rgba(229, 167, 46, 0.4);
 }
 
 .create-event-fab:focus-visible {
-  outline: 2px solid var(--accent-primary);
+  outline: 2px solid var(--accent-create-event);
   outline-offset: 3px;
 }
 
@@ -59,7 +64,7 @@
 @media (max-width: 640px) {
   .create-event-fab {
     /* Match the feedback FAB's mobile corner inset. */
-    bottom: 80px;
+    bottom: 16px;
     right: 16px;
     padding: 12px 16px;
     font-size: 0;

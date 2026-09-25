@@ -279,19 +279,47 @@
   margin-bottom: 16px;
 }
 
+.filter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+/* ----------------------------------------------------------------
+   Filter panel — vertical rhythm
+   ----------------------------------------------------------------
+   All vertical gaps inside the filter panel share one pixel value
+   so the panel reads as a single, even column. The reference gap is
+   the header-to-filter-container distance (1rem on mobile, where
+   the hero is hidden and the panel sits directly under the header
+   tagline) — the same value flows through every subsequent gap:
+
+     • panel padding → first filter section ............ 16px
+     • section label → section chips ................... 16px
+     • Datum chips → Kategorie chips ................... 16px (+ 1px hairline)
+     • Kategorie chips → Mehr Filter summary ........... 16px
+     • Mehr Filter summary → accordion body ............ 16px
+     • accordion label → accordion chips ............... 16px
+
+   The defaults below are viewport-agnostic — phone-sized viewports
+   inherit them unchanged and only override the chrome (hide the
+   section labels, scroll the chip rows). No mobile override for the
+   gaps themselves is needed; if the rhythm ever changes, update
+   the four declarations in this block (zh4jJzje). */
 .filter-header--title {
   margin-bottom: 16px;
 }
 
 .filter-header--section {
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
-/* Subsequent section headers get a divider on top. The first section
-   sits flush under the panel title and needs no separator. */
+/* Subsequent section headers (e.g. Datum → Kategorie) share a hairline
+   divider so the user can tell where one filter group ends and the next
+   begins. The 16px gap matches the rest of the filter panel rhythm. */
 .filter-header--section ~ .filter-header--section {
-  margin-top: 20px;
-  padding-top: 16px;
+  margin-top: 16px;
   border-top: 1px solid var(--border);
 }
 
@@ -456,11 +484,12 @@
 /* Per-Kategorie/per-Bezirk Styling entfällt — beide nutzen das
    gleiche Toggle-Pill-Design mit der Akzentfarbe. */
 
-/* "Mehr Filter" accordion — wraps the Bezirke filter */
+/* "Mehr Filter" accordion — wraps the Bezirke filter. Sits flush under
+   the category bubbles with the same 16px gap as the rest of the panel.
+   The hairline divider that used to separate it from the chips above was
+   removed so the accordion no longer feels detached (zh4jJzje). */
 .filter-accordion {
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border);
+  margin-top: 16px;
 }
 
 .filter-accordion-summary {
@@ -485,6 +514,16 @@
 
 .filter-accordion-summary::marker {
   content: '';
+}
+
+.filter-accordion-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-accordion-filter-icon {
+  color: var(--text-light);
 }
 
 .filter-accordion-icon {
@@ -579,23 +618,35 @@
 
 @media (max-width: 640px) {
   /* Stripped filter-panel chrome on phone-sized viewports: section
-     labels (Datum / Kategorie / Ort), Alle/Keine toggles, the panel
-     title "Hier kannst du filtern", and the inline create-event CTA.
-     The header carries the page tagline in its place and the global
-     CreateEventFab keeps "Event erstellen" reachable. Defined after the
-     default `.filter-options` rule so source order wins for the
-     `flex-wrap` override below. The title wrapper is hidden entirely so
-     its `margin-bottom` does not leave a gap above the filter chips. */
+     headers (Datum / Kategorie — their labels are already hidden on
+     mobile, so the whole wrapper goes), the panel title, Alle/Keine
+     toggles, and the inline create-event CTA. The header carries the
+     page tagline in its place and the global CreateEventFab keeps
+     "Event erstellen" reachable. The Ort label inside the Mehr-Filter
+     accordion stays visible since it is the only header for that
+     filter group. */
   .filter-header.filter-header--title,
-  .filter-header--section .filter-label,
+  .filter-header.filter-header--section,
   .filter-quick-actions,
   .create-event-cta {
     display: none;
   }
 
   /* Tiny breathing room above the filter panel on mobile — the hero is
-     gone so the panel now sits directly under the header tagline. */
+     gone so the panel now sits directly under the header tagline. The
+     panel padding is also tightened to 1rem on all sides so the chips
+     have a uniform, compact rhythm that matches the rest of the mobile
+     layout (zh4jJzje). */
   .filter-panel {
+    margin-top: 1rem;
+    padding: 1rem;
+  }
+
+  /* Now that the section header wrappers are hidden, the gap between
+     consecutive chip rows (Datum → Kategorie) is owned by the
+     `.filter-options` blocks themselves — 1rem keeps it on the same
+     16px rhythm as the rest of the panel (zh4jJzje). */
+  .filter-options + .filter-options {
     margin-top: 1rem;
   }
 

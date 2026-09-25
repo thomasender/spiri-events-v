@@ -56,22 +56,24 @@
 .logo-text {
   display: flex;
   flex-direction: column;
+  line-height: 1.15;
 }
 
 .logo-title {
   font-family: var(--font-heading);
-  font-size: 1.5rem;
+  font-size: 1.35rem;
   font-weight: 600;
-  line-height: 1.2;
+  line-height: 1.15;
   color: var(--text-primary);
 }
 
 .logo-subtitle {
-  font-size: var(--fs-eyebrow);
+  font-family: var(--font-heading);
+  font-size: 1.35rem;
   font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-light);
+  font-style: italic;
+  line-height: 1.15;
+  color: var(--accent-secondary);
 }
 
 .nav-desktop {
@@ -169,12 +171,19 @@
   display: none;
 }
 
-/* Phone-only tagline that replaces the desktop hero subtitle on narrow
-   viewports (see CalendarPage.css `.hero { display: none }` at the
-   640px breakpoint). Hidden on tablet+ so the desktop logo/subtitle
-   stays untouched. */
-.header-tagline-mobile {
+/* Tablet+phone only — quick login/profile shortcut next to the burger.
+   Hidden on desktop where the nav already exposes the same actions. */
+.header-profile-button {
   display: none;
+}
+
+.header-profile-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  display: block;
 }
 
 .nav-mobile {
@@ -190,6 +199,28 @@
 
   .nav-desktop {
     display: none;
+  }
+
+  .header-profile-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    text-decoration: none;
+    flex-shrink: 0;
+    transition: background-color 0.15s ease;
+  }
+
+  .header-profile-button:hover {
+    background-color: var(--bg-secondary);
+  }
+
+  .header-profile-button:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
   }
 
   .menu-toggle {
@@ -256,10 +287,6 @@
     padding: 14px 16px;
     font-size: 1rem;
   }
-
-  .logo-text {
-    display: none;
-  }
 }
 
 @media (max-width: 640px) {
@@ -267,21 +294,15 @@
     /* Match the CalendarPage mobile padding (8px) so the header, hero
        and filter panel share the same horizontal inset. */
     padding: 0 8px;
+    gap: 6px;
   }
 
-  /* On phone-sized viewports the hero is hidden (see CalendarPage.css)
-     and a short tagline takes its place next to the logo. */
-  .header-tagline-mobile {
-    display: inline-block;
-    font-family: var(--font-heading);
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    line-height: 1.2;
-    margin-left: 4px;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  /* The two-line tagline stays visible on phones — just shrunk so it
+     fits between the 44px logo icon and the 44px profile/burger
+     buttons on narrow viewports (zh4jJzje). */
+  .logo-title,
+  .logo-subtitle {
+    font-size: 0.9rem;
+    line-height: 1.15;
   }
 }

@@ -17,7 +17,15 @@ import {
   getDateFilterMonthKey,
   isValidDateFilterId,
 } from '../utils/dateQuickFilters';
-import { MapPin, Sparkles, Users, ChevronDown, Check, PlusCircle } from 'lucide-react';
+import {
+  MapPin,
+  Sparkles,
+  Users,
+  ChevronDown,
+  Check,
+  PlusCircle,
+  SlidersHorizontal,
+} from 'lucide-react';
 import './CalendarPage.css';
 
 const STORAGE_KEY = 'calendarFilterState';
@@ -413,7 +421,14 @@ export default function CalendarPage() {
               onToggle={(event) => setMoreFiltersOpen(event.currentTarget.open)}
             >
               <summary className="filter-accordion-summary">
-                <span>Mehr Filter</span>
+                <span className="filter-accordion-label">
+                  <SlidersHorizontal
+                    size={16}
+                    className="filter-accordion-filter-icon"
+                    aria-hidden="true"
+                  />
+                  <span>Mehr Filter</span>
+                </span>
                 <ChevronDown size={18} className="filter-accordion-icon" aria-hidden="true" />
               </summary>
               <div className="filter-accordion-body">
