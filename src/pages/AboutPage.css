@@ -281,7 +281,7 @@ a.about-inline-link:hover {
 
 @media (max-width: 640px) {
   .about-page {
-    padding: 24px 16px 64px;
+    padding: 24px 8px 64px;
     gap: 28px;
   }
 

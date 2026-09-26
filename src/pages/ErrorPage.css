@@ -81,7 +81,7 @@
 
 @media (max-width: 640px) {
   .error-page {
-    padding: 32px 16px 64px;
+    padding: 32px 8px 64px;
   }
 
   .error-page-card {
