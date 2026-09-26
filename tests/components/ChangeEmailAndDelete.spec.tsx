@@ -118,6 +118,7 @@ describe('ChangeEmailForm', () => {
     expect(text).toMatch(/nicht geändert/i);
     expect(text).not.toMatch(/bereits verwendet/i);
     expect(text).not.toMatch(/already/i);
+    expect(screen.queryByTestId('change-email-success')).not.toBeInTheDocument();
   });
 
   it('omits the password field for Google users and shows a Google re-auth notice', () => {
