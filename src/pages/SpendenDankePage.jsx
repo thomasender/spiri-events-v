@@ -22,7 +22,7 @@ export default function SpendenDankePage() {
       </header>
 
       <p className="spenden-danke-disclaimer">
-        Für eine offizielle Spendenquittung oder bei Fragen schreibe gerne an{' '}
+        Bei Fragen schreibe gerne an{' '}
         <a href="mailto:office@tribevorarlberg.at">office@tribevorarlberg.at</a>.
       </p>
 

@@ -30,9 +30,9 @@ describe('SpendenDankePage', () => {
     expect(link).toHaveAttribute('href', '/');
   });
 
-  it('mentions the contact email for donation receipts', () => {
+  it('mentions the contact email for questions', () => {
     renderDankePage();
-    expect(screen.getByText(/offizielle spendenquittung/i)).toBeInTheDocument();
+    expect(screen.getByText(/bei fragen/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'office@tribevorarlberg.at' })).toHaveAttribute(
       'href',
       'mailto:office@tribevorarlberg.at'
