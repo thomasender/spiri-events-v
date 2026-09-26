@@ -8,6 +8,30 @@
   overflow-x: clip;
 }
 
+/* Hide-on-scroll-down / show-on-scroll-up for the mobile header
+   (kq5ob4S0). The transition + transform only kick in at the same
+   800px breakpoint the rest of the mobile layout uses — desktop
+   viewports never get `.header--hidden` from JS (the scroll handler
+   is gated on the mobile matchMedia), so they stay completely
+   unaffected. */
+@media (max-width: 800px) {
+  .header {
+    transition: transform 0.25s ease;
+    will-change: transform;
+  }
+
+  .header--hidden {
+    transform: translateY(-100%);
+    pointer-events: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header {
+    transition: none;
+  }
+}
+
 .header-container {
   max-width: var(--page-max-width);
   margin: 0 auto;

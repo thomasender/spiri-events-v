@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import Header from '../../src/components/Header';
 
@@ -713,5 +713,299 @@ describe('Header profile/login shortcut button (zh4jJzje)', () => {
       const avatar = btn.querySelector('img.header-profile-avatar');
       expect(avatar?.getAttribute('src')).toBe('https://example.com/google-avatar.jpg');
     });
+  });
+});
+
+describe('Header mobile hide-on-scroll behaviour (kq5ob4S0)', () => {
+  type MediaListener = (event: { matches: boolean }) => void;
+
+  interface FakeMediaQueryList {
+    matches: boolean;
+    media: string;
+    onchange: MediaListener | null;
+    addEventListener: ReturnType<typeof vi.fn>;
+    removeEventListener: ReturnType<typeof vi.fn>;
+    addListener: ReturnType<typeof vi.fn>;
+    removeListener: ReturnType<typeof vi.fn>;
+    dispatch: (matches: boolean) => void;
+  }
+
+  const mediaQueries: FakeMediaQueryList[] = [];
+
+  function installMatchMedia(initialMatches: boolean) {
+    const lists: FakeMediaQueryList[] = [];
+    const listeners: MediaListener[] = [];
+
+    const factory = (query: string): FakeMediaQueryList => {
+      const list: FakeMediaQueryList = {
+        matches: initialMatches,
+        media: query,
+        onchange: null,
+        addEventListener: vi.fn((event: string, cb: MediaListener) => {
+          if (event === 'change') listeners.push(cb);
+        }),
+        removeEventListener: vi.fn((event: string, cb: MediaListener) => {
+          if (event !== 'change') return;
+          const i = listeners.indexOf(cb);
+          if (i !== -1) listeners.splice(i, 1);
+        }),
+        addListener: vi.fn((cb: MediaListener) => listeners.push(cb)),
+        removeListener: vi.fn((cb: MediaListener) => {
+          const i = listeners.indexOf(cb);
+          if (i !== -1) listeners.splice(i, 1);
+        }),
+        dispatch: (matches: boolean) => {
+          list.matches = matches;
+          listeners.forEach((l) => l({ matches }));
+        },
+      };
+      lists.push(list);
+      mediaQueries.push(list);
+      return list;
+    };
+
+    const original = window.matchMedia;
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      configurable: true,
+      value: factory,
+    });
+
+    return {
+      lists,
+      restore: () => {
+        Object.defineProperty(window, 'matchMedia', {
+          writable: true,
+          configurable: true,
+          value: original,
+        });
+      },
+    };
+  }
+
+  function setScrollY(y: number) {
+    Object.defineProperty(window, 'scrollY', {
+      writable: true,
+      configurable: true,
+      value: y,
+    });
+  }
+
+  async function flushAnimationFrames() {
+    // The Header scroll handler schedules a single rAF; resolve it
+    // inside an act() boundary so React commits the resulting
+    // setState cleanly without warning about un-wrapped updates, then
+    // yield once more so microtasks flush.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+  }
+
+  function scrollTo(y: number) {
+    setScrollY(y);
+    act(() => {
+      fireEvent.scroll(window);
+    });
+  }
+
+  beforeEach(() => {
+    mediaQueries.length = 0;
+    setScrollY(0);
+  });
+
+  it('hides the header on mobile after scrolling down past the threshold', async () => {
+    installMatchMedia(true);
+    mockAuth.user = { uid: 'test-uid' };
+
+    const { container } = render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    const header = container.querySelector('header.header');
+    expect(header).not.toBeNull();
+    expect(header?.classList.contains('header--hidden')).toBe(false);
+
+    scrollTo(200);
+    await flushAnimationFrames();
+
+    expect(header?.classList.contains('header--hidden')).toBe(true);
+  });
+
+  it('shows the header again after scrolling up past the threshold', async () => {
+    installMatchMedia(true);
+    mockAuth.user = { uid: 'test-uid' };
+
+    const { container } = render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    const header = container.querySelector('header.header');
+    expect(header).not.toBeNull();
+
+    scrollTo(300);
+    await flushAnimationFrames();
+    expect(header?.classList.contains('header--hidden')).toBe(true);
+
+    scrollTo(100);
+    await flushAnimationFrames();
+    expect(header?.classList.contains('header--hidden')).toBe(false);
+  });
+
+  it('keeps the header visible while the user is still inside the top buffer', async () => {
+    installMatchMedia(true);
+    mockAuth.user = { uid: 'test-uid' };
+
+    const { container } = render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    const header = container.querySelector('header.header');
+
+    scrollTo(40);
+    await flushAnimationFrames();
+    expect(header?.classList.contains('header--hidden')).toBe(false);
+
+    scrollTo(70);
+    await flushAnimationFrames();
+    expect(header?.classList.contains('header--hidden')).toBe(false);
+  });
+
+  it('forces the header back to visible when the user reaches the top', async () => {
+    installMatchMedia(true);
+    mockAuth.user = { uid: 'test-uid' };
+
+    const { container } = render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    const header = container.querySelector('header.header');
+
+    scrollTo(500);
+    await flushAnimationFrames();
+    expect(header?.classList.contains('header--hidden')).toBe(true);
+
+    scrollTo(0);
+    await flushAnimationFrames();
+    expect(header?.classList.contains('header--hidden')).toBe(false);
+  });
+
+  it('ignores tiny scroll deltas to avoid jitter at the threshold', async () => {
+    installMatchMedia(true);
+    mockAuth.user = { uid: 'test-uid' };
+
+    const { container } = render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    const header = container.querySelector('header.header');
+
+    // Cross the top buffer with a decisive downward scroll — header
+    // hides as expected.
+    scrollTo(200);
+    await flushAnimationFrames();
+    expect(header?.classList.contains('header--hidden')).toBe(true);
+
+    // A 4px upward nudge (below SCROLL_DIRECTION_THRESHOLD = 8) must
+    // NOT flip the state back to visible — bouncing back and forth a
+    // handful of pixels is exactly the jitter this guard exists to
+    // swallow.
+    scrollTo(196);
+    await flushAnimationFrames();
+    expect(header?.classList.contains('header--hidden')).toBe(true);
+  });
+
+  it('does NOT hide the header on desktop viewports', async () => {
+    installMatchMedia(false);
+    mockAuth.user = { uid: 'test-uid' };
+
+    const { container } = render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    const header = container.querySelector('header.header');
+    expect(header).not.toBeNull();
+
+    scrollTo(500);
+    await flushAnimationFrames();
+
+    expect(header?.classList.contains('header--hidden')).toBe(false);
+  });
+
+  it('does not hide the header while the mobile menu is open even on a scroll down', async () => {
+    installMatchMedia(true);
+    mockAuth.user = { uid: 'test-uid' };
+
+    const { container } = render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    const header = container.querySelector('header.header');
+
+    fireEvent.click(screen.getByRole('button', { name: /menü öffnen/i }));
+    expect(header?.classList.contains('header--menu-open')).toBe(true);
+
+    scrollTo(400);
+    await flushAnimationFrames();
+    expect(header?.classList.contains('header--hidden')).toBe(false);
+  });
+
+  it('reflects the visibility state in a data-header-visible attribute', async () => {
+    installMatchMedia(true);
+    mockAuth.user = { uid: 'test-uid' };
+
+    const { container } = render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    const header = container.querySelector('header.header');
+    expect(header?.getAttribute('data-header-visible')).toBe('true');
+
+    scrollTo(400);
+    await flushAnimationFrames();
+    expect(header?.getAttribute('data-header-visible')).toBe('false');
+  });
+
+  it('restores the header when the viewport grows back into mobile range', async () => {
+    const media = installMatchMedia(true);
+    mockAuth.user = { uid: 'test-uid' };
+
+    const { container } = render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    const header = container.querySelector('header.header');
+
+    scrollTo(400);
+    await flushAnimationFrames();
+    expect(header?.classList.contains('header--hidden')).toBe(true);
+
+    // Cross the breakpoint into desktop — the hidden class must come
+    // off and the header must be reachable again.
+    act(() => {
+      media.lists[0].dispatch(false);
+    });
+    await flushAnimationFrames();
+    expect(header?.classList.contains('header--hidden')).toBe(false);
   });
 });
