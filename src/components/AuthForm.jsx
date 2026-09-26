@@ -42,6 +42,7 @@ export default function AuthForm() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [acceptDatenschutz, setAcceptDatenschutz] = useState(false);
+  const [subscribeNewsletter, setSubscribeNewsletter] = useState(false);
   const [error, setError] = useState('');
   const [errorCode, setErrorCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -75,6 +76,7 @@ export default function AuthForm() {
     setConfirmPassword('');
     setDisplayName('');
     setAcceptDatenschutz(false);
+    setSubscribeNewsletter(false);
     setWobbling(false);
     if (wobbleTimerRef.current) {
       clearTimeout(wobbleTimerRef.current);
@@ -127,7 +129,7 @@ export default function AuthForm() {
       if (isLogin) {
         await login(email, password);
       } else {
-        await register(email, password, displayName);
+        await register(email, password, displayName, subscribeNewsletter);
       }
       navigate('/');
     } catch (err) {
@@ -372,6 +374,26 @@ export default function AuthForm() {
                         Datenschutzerklärung
                       </Link>{' '}
                       gelesen und stimme dieser zu.
+                    </span>
+                  </label>
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={subscribeNewsletter}
+                      onChange={(e) => setSubscribeNewsletter(e.target.checked)}
+                      data-testid="auth-newsletter-opt-in"
+                    />
+                    <span>
+                      Ich möchte den Newsletter abonnieren und willige in den Erhalt entsprechender
+                      E-Mails ein. Die Einwilligung kann jederzeit in den{' '}
+                      <Link to="/profile" target="_blank" rel="noopener noreferrer">
+                        Benachrichtigungseinstellungen
+                      </Link>{' '}
+                      widerrufen werden (siehe{' '}
+                      <Link to="/datenschutz" target="_blank" rel="noopener noreferrer">
+                        Datenschutzerklärung
+                      </Link>
+                      ).
                     </span>
                   </label>
                 </div>

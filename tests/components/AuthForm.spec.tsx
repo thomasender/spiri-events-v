@@ -181,6 +181,83 @@ describe('AuthForm Google sign-in', () => {
   });
 });
 
+describe('AuthForm newsletter opt-in during registration', () => {
+  async function fillRegistrationBasics({ tickNewsletter = false } = {}) {
+    fireEvent.click(screen.getByTestId('auth-tab-register'));
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Peter' } });
+    fireEvent.change(screen.getByLabelText('E-Mail'), {
+      target: { value: 'peter@example.com' },
+    });
+    fireEvent.change(screen.getByLabelText('Passwort', { exact: true }), {
+      target: { value: 'supergeheim123' },
+    });
+    fireEvent.change(screen.getByLabelText('Passwort bestätigen'), {
+      target: { value: 'supergeheim123' },
+    });
+    fireEvent.click(screen.getAllByRole('checkbox')[0]);
+    if (tickNewsletter) {
+      fireEvent.click(screen.getByTestId('auth-newsletter-opt-in'));
+    }
+  }
+
+  it('renders a newsletter opt-in checkbox on the registration form, checked off by default', () => {
+    renderForm();
+
+    fireEvent.click(screen.getByTestId('auth-tab-register'));
+
+    const checkbox = screen.getByTestId('auth-newsletter-opt-in');
+    expect(checkbox).toBeInTheDocument();
+    expect(checkbox).not.toBeChecked();
+    expect(checkbox.parentElement?.textContent ?? '').toMatch(/Newsletter/i);
+  });
+
+  it('does not render the newsletter checkbox on the login form', () => {
+    renderForm();
+
+    expect(screen.queryByTestId('auth-newsletter-opt-in')).not.toBeInTheDocument();
+  });
+
+  it('forwards subscribeNewsletter=false when the checkbox stays unchecked', async () => {
+    mocks.register.mockResolvedValueOnce({ user: { uid: 'p1' } });
+
+    renderForm();
+    await fillRegistrationBasics();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Registrieren' }));
+
+    await waitFor(() => {
+      expect(mocks.register).toHaveBeenCalledTimes(1);
+    });
+    expect(mocks.register).toHaveBeenCalledWith(
+      'peter@example.com',
+      'supergeheim123',
+      'Peter',
+      false
+    );
+  });
+
+  it('forwards subscribeNewsletter=true after the user ticks the checkbox', async () => {
+    mocks.register.mockResolvedValueOnce({ user: { uid: 'p2' } });
+
+    renderForm();
+    await fillRegistrationBasics({ tickNewsletter: true });
+
+    expect(screen.getByTestId('auth-newsletter-opt-in')).toBeChecked();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Registrieren' }));
+
+    await waitFor(() => {
+      expect(mocks.register).toHaveBeenCalledTimes(1);
+    });
+    expect(mocks.register).toHaveBeenCalledWith(
+      'peter@example.com',
+      'supergeheim123',
+      'Peter',
+      true
+    );
+  });
+});
+
 describe('AuthForm password reset', () => {
   it('calls resetPassword and shows the "E-Mail gesendet" confirmation', async () => {
     mocks.resetPassword.mockResolvedValueOnce(undefined);
