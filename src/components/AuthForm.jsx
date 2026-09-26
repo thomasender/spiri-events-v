@@ -204,10 +204,10 @@ export default function AuthForm() {
             )
           ) : (
             <>
-              <h1>{isLogin ? 'Willkommen zurück' : 'Konto erstellen'}</h1>
+              <h1>{isLogin ? 'Willkommen beim Tribe' : 'Konto erstellen'}</h1>
               <p>
                 {isLogin
-                  ? 'Melde dich an, um Events zu verwalten.'
+                  ? 'Melde dich an, um Events zu veröffentlichen und zu vewalten.'
                   : 'Registriere dich, um eigene Events zu erstellen.'}
               </p>
             </>
