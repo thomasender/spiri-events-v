@@ -178,13 +178,13 @@ describe('AboutPage helpers list (5dlVbOmf)', () => {
     );
   });
 
-  it('renders a placeholder initial when no photoURL is provided', () => {
+  it('renders a fallback placeholder when no photoURL is provided', () => {
     mockHelpers.helpers = [{ id: 'h1', name: 'Bernd Berger' }];
     renderAboutPage();
     const card = screen.getByTestId('helpers-list-card');
     const placeholder = card.querySelector('.helpers-list-photo-placeholder');
     expect(placeholder).not.toBeNull();
-    expect(placeholder?.textContent).toBe('B');
+    expect(placeholder?.textContent?.trim()).toBe('');
   });
 
   it('shows a loading hint while the helpers registry loads', () => {

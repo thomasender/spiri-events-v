@@ -1,13 +1,9 @@
+import { User } from 'lucide-react';
 import { useHelpers } from '../hooks/useHelpers';
 import './HelpersList.css';
 
 function isExternalUrl(url) {
   return typeof url === 'string' && /^https?:\/\//.test(url);
-}
-
-function pickInitial(helper) {
-  const name = helper.name?.trim() ?? '';
-  return name ? name.slice(0, 1).toUpperCase() : '?';
 }
 
 // Public list of helpers rendered on the "Über uns" page. Live-fetches via
@@ -55,7 +51,9 @@ export default function HelpersList() {
               {helper.photoURL ? (
                 <img src={helper.photoURL} alt="" className="helpers-list-photo" loading="lazy" />
               ) : (
-                <span className="helpers-list-photo-placeholder">{pickInitial(helper)}</span>
+                <span className="helpers-list-photo-placeholder">
+                  <User size={32} strokeWidth={2} aria-hidden="true" />
+                </span>
               )}
             </div>
             <div className="helpers-list-body">
