@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Save, X } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
+import HelperUserSearch from './HelperUserSearch';
+import HelperPhotoUpload from './HelperPhotoUpload';
 import './HelperEditDialog.css';
 
 const DESCRIPTION_MAX = 120;
@@ -70,6 +72,17 @@ export default function HelperEditDialog({ open, mode, initialName, helper, onSa
   function updateField(field, value) {
     setDraft((prev) => ({ ...prev, [field]: value }));
     setError(null);
+  }
+
+  function applyUserSnapshot(user) {
+    if (!user || !user.username) return;
+    setDraft((prev) => {
+      const next = { ...prev };
+      if (user.displayName) next.name = user.displayName;
+      if (user.slug) next.profileSlug = `/${user.slug}`;
+      if (user.photoURL) next.photoURL = user.photoURL;
+      return next;
+    });
   }
 
   function isDirty() {
@@ -147,6 +160,17 @@ export default function HelperEditDialog({ open, mode, initialName, helper, onSa
         </header>
 
         <form className="helper-edit-dialog-form" onSubmit={handleSubmit}>
+          {isCreate && (
+            <div className="helper-edit-dialog-field" data-testid="helper-edit-user-search-field">
+              <span className="helper-edit-dialog-label">Aus Benutzerkonto übernehmen</span>
+              <HelperUserSearch disabled={submitting} onSelect={applyUserSnapshot} />
+              <span className="helper-edit-dialog-hint">
+                Optional. Benutzername eingeben — Name, Profil-Link und Foto werden automatisch
+                ausgefüllt, falls das Konto ein Profilfoto hat.
+              </span>
+            </div>
+          )}
+
           <label className="helper-edit-dialog-field">
             <span className="helper-edit-dialog-label">Name *</span>
             <input
@@ -192,18 +216,27 @@ export default function HelperEditDialog({ open, mode, initialName, helper, onSa
             />
           </label>
 
-          <label className="helper-edit-dialog-field">
-            <span className="helper-edit-dialog-label">Foto-URL</span>
-            <input
-              type="text"
-              value={draft.photoURL}
-              onChange={(e) => updateField('photoURL', e.target.value)}
-              placeholder="/peter.jpg oder https://"
-              maxLength={500}
+          <div className="helper-edit-dialog-field">
+            <span className="helper-edit-dialog-label">Foto</span>
+            <HelperPhotoUpload
+              photoURL={draft.photoURL}
+              onUploaded={(url) => updateField('photoURL', url)}
+              onRemoved={() => updateField('photoURL', '')}
               disabled={submitting}
-              data-testid="helper-edit-photo"
             />
-          </label>
+            <label className="helper-edit-dialog-photo-url">
+              <span className="helper-edit-dialog-photo-url-label">Oder URL eintragen</span>
+              <input
+                type="text"
+                value={draft.photoURL}
+                onChange={(e) => updateField('photoURL', e.target.value)}
+                placeholder="/peter.jpg oder https://…"
+                maxLength={500}
+                disabled={submitting}
+                data-testid="helper-edit-photo"
+              />
+            </label>
+          </div>
 
           <label className="helper-edit-dialog-field">
             <span className="helper-edit-dialog-label">

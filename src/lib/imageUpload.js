@@ -197,6 +197,25 @@ export async function uploadProfileImage(file, uid, options = {}) {
 }
 
 /**
+ * Upload a helper portrait to Firebase Storage under helpers/photos/.
+ * Compresses the image client-side before upload.
+ * @param {File} file - The image file to upload
+ * @param {Object} [options]
+ * @param {(progress: number) => void} [options.onProgress] - Progress callback (0-100)
+ * @returns {Promise<string>} - Download URL of the uploaded image
+ */
+export async function uploadHelperImage(file, options = {}) {
+  const { onProgress } = options;
+
+  const compressedBlob = await compressImage(file);
+  const safeName = sanitizeFilename(file.name);
+  const filename = `${Date.now()}_${safeName}`;
+  const helperImageRef = ref(storage, `helpers/photos/${filename}`);
+
+  return uploadCompressedBlob(compressedBlob, helperImageRef, onProgress);
+}
+
+/**
  * Upload a feedback screenshot to Firebase Storage under feedback/{feedbackId}/.
  * Compresses the image client-side before upload.
  * @param {File} file - The screenshot file to upload
