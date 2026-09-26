@@ -79,7 +79,14 @@ body {
   color: var(--text-primary);
   line-height: 1.6;
   min-height: 100vh;
-  overflow-x: hidden;
+  /* `clip` prevents horizontal overflow without creating a scrolling
+     context the way `hidden` does. `overflow: hidden` on a flex
+     ancestor makes the CSS spec compute `overflow-y: auto`, which
+     silently breaks `position: sticky` on the header (sticky binds to
+     the nearest scrolling ancestor, so .app-layout never actually
+     scrolls and the header falls back to `position: relative`).
+     Keep this `clip`, not `hidden`. */
+  overflow-x: clip;
 }
 
 h1,
@@ -355,7 +362,10 @@ label {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  overflow-x: hidden;
+  /* `clip` (not `hidden`) — see the comment on `body` above. `hidden`
+     would turn this into a scrolling context and break sticky on the
+     Header. */
+  overflow-x: clip;
 }
 
 .main-content {
