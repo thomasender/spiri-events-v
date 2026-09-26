@@ -526,11 +526,31 @@ textarea {
   margin-top: 12px;
 }
 
+.summary-image-label {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
 .summary-image img {
   max-width: 200px;
   max-height: 120px;
   border-radius: var(--radius-sm);
   object-fit: cover;
+}
+
+.summary-image .event-tile {
+  max-width: 320px;
+}
+
+.summary-focal-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.summary-focal-picker {
+  margin-top: 12px;
 }
 
 .rights-confirmation {
