@@ -94,6 +94,7 @@ describe('preferenceKeyForType', () => {
     expect(preferenceKeyForType('changes_requested')).toBe('notifyOnChangesRequested');
     expect(preferenceKeyForType('published')).toBe('notifyOnPublished');
     expect(preferenceKeyForType('deleted')).toBe('notifyOnDeleted');
+    expect(preferenceKeyForType('contact_message')).toBe('notifyOnContactMessage');
   });
 });
 

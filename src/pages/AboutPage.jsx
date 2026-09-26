@@ -1,9 +1,12 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, Sparkles, Users } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
 import DonationBlock from '../components/DonationBlock';
 import HelpersList from '../components/HelpersList';
 import DonorsList from '../components/DonorsList';
+import FeedbackModal from '../components/FeedbackModal';
+import { useAuth } from '../hooks/useAuth';
 import './AboutPage.css';
 
 const founders = [
@@ -39,7 +42,53 @@ const founders = [
   },
 ];
 
+const CONTACT_EMAIL = 'admin@thetribe.at';
+
+function ContactCta({ label, className, testId, onOpen }) {
+  if (onOpen) {
+    return (
+      <button type="button" className={className} onClick={onOpen} data-testid={testId}>
+        {label}
+      </button>
+    );
+  }
+  return (
+    <a href={`mailto:${CONTACT_EMAIL}`} className={className} data-testid={testId}>
+      {label}
+    </a>
+  );
+}
+
 export default function AboutPage() {
+  const { user } = useAuth();
+  const [contactOpen, setContactOpen] = useState(false);
+  const openContact = user ? () => setContactOpen(true) : null;
+  const contactClass = 'about-inline-link';
+  const sayHello = (
+    <ContactCta
+      label="Sag uns Hallo"
+      className={contactClass}
+      testId="about-say-hello-link"
+      onOpen={openContact}
+    />
+  );
+  const joinUs = (
+    <ContactCta
+      label="melde dich gerne bei uns"
+      className={contactClass}
+      testId="about-contact-us-link"
+      onOpen={openContact}
+    />
+  );
+  const getInTouch = (
+    <ContactCta
+      label="Kontakt mit uns auf"
+      className={contactClass}
+      testId="about-get-in-touch-link"
+      onOpen={openContact}
+    />
+  );
+
   return (
     <div className="page-container about-page fade-enter">
       <SeoMeta
@@ -173,11 +222,7 @@ export default function AboutPage() {
             Du musst nichts können, nichts wissen und niemand sein. tribe Vorarlberg lebt von jeder
             einzelnen Person, die sich einbringt — sei es mit einem Workshop, einer
             Mitfahrgelegenheit, einem Foto, einer Tasse Tee oder einfach mit einem offenen Ohr. Wenn
-            du dich angesprochen fühlst:{' '}
-            <Link to="/" className="about-inline-link">
-              melde dich gerne bei uns
-            </Link>
-            . Wir freuen uns, dich kennenzulernen.
+            du dich angesprochen fühlst: {joinUs}. Wir freuen uns, dich kennenzulernen.
           </p>
         </div>
       </section>
@@ -188,11 +233,7 @@ export default function AboutPage() {
         <p>
           Hinter jedem Event, jedem Foto und jeder Zeile Code stehen Menschen, die ihre Zeit
           schenken. Hier sind sie — die Helfer:innen, die tribe Vorarlberg tragen. Möchtest du auch
-          mithelfen?{' '}
-          <Link to="/" className="about-inline-link">
-            Sag uns Hallo
-          </Link>
-          .
+          mithelfen? {sayHello}.
         </p>
         <HelpersList />
       </section>
@@ -204,11 +245,7 @@ export default function AboutPage() {
           Viele Stunden ehrenamtlicher Arbeit stecken in dieser Website und in unserem Verein. Falls
           du uns unterstützen möchtest, freuen wir uns sehr über deine Spende. Diese wird aktuell
           primär in Webhosting, Technik und Flyer gesteckt. Falls du mit deinen Talenten beitragen
-          möchtest, nimm gerne{' '}
-          <Link to="/" className="about-inline-link">
-            Kontakt mit uns auf
-          </Link>
-          .
+          möchtest, nimm gerne {getInTouch}.
         </p>
 
         <DonationBlock />
@@ -232,6 +269,14 @@ export default function AboutPage() {
           Zurück zur Startseite
         </Link>
       </div>
+
+      {user && (
+        <FeedbackModal
+          open={contactOpen}
+          onClose={() => setContactOpen(false)}
+          pageUrl="/ueber-uns"
+        />
+      )}
     </div>
   );
 }

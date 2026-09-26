@@ -20,7 +20,8 @@ export interface AdminMessageSnapshot {
   id: string;
 }
 
-export type NotificationType = 'submitted' | 'changes_requested' | 'published' | 'deleted';
+export type NotificationType =
+  'submitted' | 'changes_requested' | 'published' | 'deleted' | 'contact_message';
 
 export interface EventNotificationDecision {
   type: Exclude<NotificationType, 'changes_requested'>;

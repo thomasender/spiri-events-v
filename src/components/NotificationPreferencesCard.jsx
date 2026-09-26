@@ -30,6 +30,13 @@ const PREFERENCE_DEFINITIONS = [
     adminOnly: true,
   },
   {
+    key: 'notifyOnContactMessage',
+    label: 'Kontakt-Nachrichten',
+    description:
+      'Du erhältst eine E-Mail, wenn jemand eine Nachricht über „Sag Hallo" oder „Kontakt mit uns auf" schickt.',
+    adminOnly: true,
+  },
+  {
     key: 'notifyNewsletter',
     label: 'Newsletter abonnieren',
     description:

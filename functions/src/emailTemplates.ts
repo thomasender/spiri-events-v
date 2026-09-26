@@ -1,4 +1,14 @@
-export type NotificationType = 'submitted' | 'changes_requested' | 'published' | 'deleted';
+export type NotificationType =
+  'submitted' | 'changes_requested' | 'published' | 'deleted' | 'contact_message';
+
+export interface ContactMessageContext {
+  feedbackId: string;
+  description: string;
+  name?: string | null;
+  email?: string | null;
+  pageUrl?: string | null;
+  pageTitle?: string | null;
+}
 
 export interface EventOrganizer {
   firstName?: string | null;
@@ -397,6 +407,55 @@ export function buildPasswordResetPayload({
   };
 }
 
+export interface ContactMessagePayloadInput {
+  context: ContactMessageContext;
+  recipient: string;
+}
+
+export function buildContactMessagePayload({
+  context,
+  recipient,
+}: ContactMessagePayloadInput): EmailPayload {
+  const senderName = (context.name ?? '').trim() || 'Anonyme:r Besucher:in';
+  const senderEmail = (context.email ?? '').trim();
+  const pageLine = context.pageUrl
+    ? `<p style="${mutedStyle()}">Seite: <a href="${escapeHtml(context.pageUrl)}" style="color:${COLOR_TEXT};text-decoration:underline;">${escapeHtml(context.pageTitle || context.pageUrl)}</a></p>`
+    : '';
+  const senderLine = senderEmail
+    ? `<p style="${paragraphStyle()}">Absender: <strong>${escapeHtml(senderName)}</strong> &lt;<a href="mailto:${escapeHtml(senderEmail)}" style="color:${COLOR_TEXT};text-decoration:underline;">${escapeHtml(senderEmail)}</a>&gt;</p>`
+    : `<p style="${paragraphStyle()}">Absender: <strong>${escapeHtml(senderName)}</strong> (keine E-Mail hinterlassen)</p>`;
+  const link = `${APP_BASE_URL}/admin?tab=feedback`;
+  const subject = `Neue Kontakt-Nachricht: ${senderName}`;
+  const htmlBody = `
+    <h1 style="${headingStyle(1)}">Neue Kontakt-Nachricht</h1>
+    <p style="${paragraphStyle()}">Hallo,</p>
+    ${senderLine}
+    ${pageLine}
+    <blockquote style="margin:0 0 20px 0;padding:14px 18px;border-left:3px solid ${COLOR_PRIMARY};background:${COLOR_BG_SOFT};border-radius:0 6px 6px 0;font-family:${BODY_FONT};font-size:15px;line-height:1.6;color:${COLOR_TEXT};white-space:pre-wrap;">${escapeHtml(context.description)}</blockquote>
+    <p style="margin:8px 0 24px 0;">
+      <a href="${link}" style="${brandButtonStyle()}">Im Verwaltungs-Bereich ansehen</a>
+    </p>`;
+  const senderLineText = senderEmail
+    ? `${senderName} <${senderEmail}>`
+    : `${senderName} (keine E-Mail hinterlassen)`;
+  const pageLineText = context.pageUrl
+    ? `\nSeite: ${context.pageTitle ? `${context.pageTitle} – ` : ''}${context.pageUrl}\n`
+    : '';
+  const textBody =
+    `Hallo,\n\n` +
+    `Neue Kontakt-Nachricht von ${senderLineText}.\n` +
+    pageLineText +
+    `\nNachricht:\n` +
+    `${context.description}\n\n` +
+    `Im Verwaltungs-Bereich ansehen: ${link}`;
+  return {
+    to: recipient,
+    subject,
+    html: wrapHtml(htmlBody),
+    text: textBody + footerText(),
+  };
+}
+
 export function buildEmailPayload(
   type: NotificationType,
   input:
@@ -404,6 +463,7 @@ export function buildEmailPayload(
     | ChangesRequestedPayloadInput
     | PublishedPayloadInput
     | DeletedPayloadInput
+    | ContactMessagePayloadInput
 ): EmailPayload {
   switch (type) {
     case 'submitted':
@@ -414,6 +474,8 @@ export function buildEmailPayload(
       return buildPublishedPayload(input as PublishedPayloadInput);
     case 'deleted':
       return buildDeletedPayload(input as DeletedPayloadInput);
+    case 'contact_message':
+      return buildContactMessagePayload(input as ContactMessagePayloadInput);
     default: {
       const exhaustive: never = type;
       throw new Error(`Unknown notification type: ${exhaustive as string}`);

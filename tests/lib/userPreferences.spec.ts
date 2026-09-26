@@ -20,6 +20,7 @@ describe('normalizePreferences', () => {
       notifyOnPublished: false,
       notifyOnDeleted: true,
       notifyNewsletter: false,
+      notifyOnContactMessage: true,
     });
   });
 
@@ -36,6 +37,7 @@ describe('normalizePreferences', () => {
       notifyOnPublished: true,
       notifyOnDeleted: true,
       notifyNewsletter: false,
+      notifyOnContactMessage: true,
     });
   });
 
@@ -47,6 +49,7 @@ describe('normalizePreferences', () => {
         notifyOnPublished: true,
         notifyOnDeleted: false,
         notifyNewsletter: true,
+        notifyOnContactMessage: false,
       })
     ).toEqual({
       notifyOnSubmitted: false,
@@ -54,6 +57,7 @@ describe('normalizePreferences', () => {
       notifyOnPublished: true,
       notifyOnDeleted: false,
       notifyNewsletter: true,
+      notifyOnContactMessage: false,
     });
   });
 
