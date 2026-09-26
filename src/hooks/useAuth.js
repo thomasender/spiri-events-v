@@ -9,6 +9,7 @@ import {
   updateProfile,
   updateEmail,
   verifyBeforeUpdateEmail,
+  fetchSignInMethodsForEmail,
   deleteUser,
   reauthenticateWithCredential,
   reauthenticateWithPopup,
@@ -314,14 +315,37 @@ export function useAuth() {
     if (!current) {
       throw { code: 'auth/no-current-user', message: 'Kein angemeldeter Benutzer.' };
     }
+    // Check upfront whether the new email is already associated with an
+    // account. verifyBeforeUpdateEmail does NOT synchronously throw
+    // auth/email-already-in-use for taken addresses — it sends a
+    // verification email regardless and only fails later when the user
+    // clicks the link — so without this pre-check the form would show a
+    // confusing "success" message while nothing actually happens.
+    // We still throw auth/email-change-failed (not the original code) so
+    // the UI shows the generic retry message and never reveals that the
+    // address is taken.
+    let signInMethods = [];
+    try {
+      signInMethods = await fetchSignInMethodsForEmail(auth, newEmail);
+    } catch {
+      // Transient failure (network, rate limit, etc.) — let
+      // verifyBeforeUpdateEmail try anyway; its own catch will surface a
+      // generic error if it also fails. Don't block legitimate email
+      // changes during transient outages.
+      signInMethods = [];
+    }
+    if (signInMethods.length > 0) {
+      throw { code: 'auth/email-change-failed', message: 'Email already in use.' };
+    }
     try {
       await verifyBeforeUpdateEmail(current, newEmail);
     } catch (err) {
       if (err?.code === 'auth/email-already-in-use') {
-        // Don't leak that the requested email is already in use — show a
-        // generic failure so callers can't use this flow to probe whether an
-        // arbitrary address belongs to an account. Registration keeps the
-        // specific message because it isn't authenticated.
+        // Defense-in-depth: in case the pre-check above missed it (e.g.
+        // the email was created between the two calls), still mask the
+        // specific reason with auth/email-change-failed to avoid leaking
+        // account existence. Registration keeps its specific message
+        // because the user is not yet authenticated.
         throw { code: 'auth/email-change-failed', message: err.message };
       }
       throw err;
