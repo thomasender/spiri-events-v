@@ -13,6 +13,10 @@ const navClass = ({ isActive }) => (isActive ? 'nav-link nav-link--active' : 'na
 const getAdminNavClass = (pathname) =>
   pathname === '/admin' ? 'nav-link nav-link--admin nav-link--active' : 'nav-link nav-link--admin';
 
+const HEADER_MOBILE_MAX_QUERY = '(max-width: 800px)';
+const SCROLL_DIRECTION_THRESHOLD = 8;
+const HEADER_TOP_BUFFER = 80;
+
 export default function Header() {
   const { user, logout, role, canCreateEvents } = useAuth();
   const { profile } = useProfile(user?.uid);
@@ -23,6 +27,7 @@ export default function Header() {
   const { count: unreadFeedbackCount } = useUnreadFeedbackCount(isAdmin);
   const [menuOpen, setMenuOpen] = useState(false);
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const menuRef = useRef(null);
   const toggleRef = useRef(null);
 
@@ -75,6 +80,77 @@ export default function Header() {
     return () => {
       document.body.style.overflow = '';
     };
+  }, [menuOpen]);
+
+  // Hide-on-scroll-down / show-on-scroll-up behaviour for the mobile
+  // header (kq5ob4S0). Only runs while the viewport is at or below the
+  // mobile breakpoint so the desktop nav never disappears. We also skip
+  // the hide step entirely while the mobile menu is open — otherwise
+  // tapping the burger would scroll-trigger the header away and the
+  // menu would un-anchor from the top of the page.
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const mql = window.matchMedia?.(HEADER_MOBILE_MAX_QUERY);
+    if (!mql) return undefined;
+
+    let lastScrollY = window.scrollY;
+    let rafHandle = 0;
+    let enabled = mql.matches;
+
+    const update = () => {
+      rafHandle = 0;
+      const currentY = window.scrollY;
+      const delta = currentY - lastScrollY;
+
+      if (currentY <= HEADER_TOP_BUFFER) {
+        setIsHeaderVisible(true);
+      } else if (Math.abs(delta) >= SCROLL_DIRECTION_THRESHOLD) {
+        setIsHeaderVisible(delta < 0);
+      }
+
+      lastScrollY = currentY;
+    };
+
+    const onScroll = () => {
+      if (rafHandle !== 0) return;
+      rafHandle = window.requestAnimationFrame(update);
+    };
+
+    const onMediaChange = (event) => {
+      enabled = event.matches;
+      if (enabled) {
+        lastScrollY = window.scrollY;
+      }
+      setIsHeaderVisible(true);
+    };
+
+    const onScrollGuarded = () => {
+      if (!enabled || menuOpen) return;
+      onScroll();
+    };
+
+    window.addEventListener('scroll', onScrollGuarded, { passive: true });
+    if (typeof mql.addEventListener === 'function') {
+      mql.addEventListener('change', onMediaChange);
+    } else if (typeof mql.addListener === 'function') {
+      mql.addListener(onMediaChange);
+    }
+
+    return () => {
+      window.removeEventListener('scroll', onScrollGuarded);
+      if (rafHandle !== 0) window.cancelAnimationFrame(rafHandle);
+      if (typeof mql.removeEventListener === 'function') {
+        mql.removeEventListener('change', onMediaChange);
+      } else if (typeof mql.removeListener === 'function') {
+        mql.removeListener(onMediaChange);
+      }
+    };
+  }, [menuOpen]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    setIsHeaderVisible(true);
   }, [menuOpen]);
 
   useEffect(() => {
@@ -176,7 +252,12 @@ export default function Header() {
   const profileLabel = user ? 'Mein Profil' : 'Anmelden';
 
   return (
-    <header className={`header${menuOpen ? ' header--menu-open' : ''}`}>
+    <header
+      className={`header${menuOpen ? ' header--menu-open' : ''}${
+        isHeaderVisible ? '' : ' header--hidden'
+      }`}
+      data-header-visible={isHeaderVisible}
+    >
       <nav className="header-container" aria-label="Hauptnavigation">
         <Link to="/" className="logo" onClick={closeMenu}>
           <div className="logo-icon">
