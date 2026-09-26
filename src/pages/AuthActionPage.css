@@ -100,3 +100,9 @@
   color: var(--text-secondary, #555);
   font-size: 14px;
 }
+
+@media (max-width: 640px) {
+  .auth-action-page {
+    padding: 24px 8px;
+  }
+}

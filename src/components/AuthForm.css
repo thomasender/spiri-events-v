@@ -323,6 +323,12 @@
   color: var(--accent-primary);
 }
 
+@media (max-width: 640px) {
+  .auth-page {
+    padding: 48px 8px;
+  }
+}
+
 @media (max-width: 480px) {
   .auth-container {
     padding: 32px 24px;

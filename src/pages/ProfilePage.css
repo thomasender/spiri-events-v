@@ -41,4 +41,8 @@
   .profile-card {
     padding: 24px;
   }
+
+  .profile-page {
+    padding: 48px 8px;
+  }
 }

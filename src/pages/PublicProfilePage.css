@@ -188,7 +188,7 @@
 
 @media (max-width: 640px) {
   .public-profile-page {
-    padding: 16px 16px 32px;
+    padding: 16px 8px 32px;
   }
 
   .public-profile-card {
