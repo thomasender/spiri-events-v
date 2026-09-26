@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { useAuth } from './hooks/useAuth';
 import Header from './components/Header';
@@ -38,6 +39,18 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
+function AdminReviewRedirect() {
+  const navigate = useNavigate();
+  const hash =
+    typeof window !== 'undefined' && typeof window.location.hash === 'string'
+      ? window.location.hash
+      : '';
+  useEffect(() => {
+    navigate(`/admin?tab=review${hash}`, { replace: true });
+  }, [navigate, hash]);
+  return null;
+}
+
 function AppContent() {
   return (
     <div className="app-layout">
@@ -63,6 +76,14 @@ function AppContent() {
               element={
                 <ProtectedRoute>
                   <AdminPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/review"
+              element={
+                <ProtectedRoute>
+                  <AdminReviewRedirect />
                 </ProtectedRoute>
               }
             />
