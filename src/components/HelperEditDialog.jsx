@@ -9,6 +9,21 @@ function clampDescription(value) {
   return value.slice(0, DESCRIPTION_MAX);
 }
 
+// Accept any reasonable URL shape from the admin and store it as a valid
+// `https://` URL. Matches the convention used in ProfileForm.jsx and the
+// RichTextEditor link dialog, and matches what the Firestore rules expect.
+function normalizeUrl(value, { allowProjectPath = false } = {}) {
+  const trimmed = (value || '').trim();
+  if (!trimmed) return null;
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed.replace(/^http:\/\//i, 'https://');
+  }
+  if (allowProjectPath && trimmed.startsWith('/')) {
+    return trimmed;
+  }
+  return `https://${trimmed}`;
+}
+
 function emptyDraft() {
   return {
     name: '',
@@ -80,8 +95,8 @@ export default function HelperEditDialog({ open, mode, initialName, helper, onSa
       await onSave({
         name: trimmedName,
         profileSlug: draft.profileSlug.trim() || null,
-        website: draft.website.trim() || null,
-        photoURL: draft.photoURL.trim() || null,
+        website: normalizeUrl(draft.website),
+        photoURL: normalizeUrl(draft.photoURL, { allowProjectPath: true }),
         description: clampDescription(draft.description).trim() || null,
       });
     } catch (err) {
@@ -165,10 +180,12 @@ export default function HelperEditDialog({ open, mode, initialName, helper, onSa
           <label className="helper-edit-dialog-field">
             <span className="helper-edit-dialog-label">Website</span>
             <input
-              type="url"
+              type="text"
+              inputMode="url"
+              autoComplete="url"
               value={draft.website}
               onChange={(e) => updateField('website', e.target.value)}
-              placeholder="https://…"
+              placeholder="z.B. petermathis.at oder https://…"
               maxLength={300}
               disabled={submitting}
               data-testid="helper-edit-website"

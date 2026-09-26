@@ -113,6 +113,96 @@ describe('HelpersTab', () => {
     });
   });
 
+  it('prepends https:// to a bare website URL', async () => {
+    render(<HelpersTab />);
+    fireEvent.click(screen.getByTestId('helpers-tab-add'));
+    fireEvent.change(screen.getByTestId('helper-edit-name'), {
+      target: { value: 'Carla Costa' },
+    });
+    fireEvent.change(screen.getByTestId('helper-edit-website'), {
+      target: { value: 'carla.example' },
+    });
+    fireEvent.click(screen.getByTestId('helper-edit-save'));
+
+    await waitFor(() => {
+      expect(mockHelpers.addHelper).toHaveBeenCalledWith(
+        expect.objectContaining({ website: 'https://carla.example' })
+      );
+    });
+  });
+
+  it('upgrades http:// to https:// when saving a website URL', async () => {
+    render(<HelpersTab />);
+    fireEvent.click(screen.getByTestId('helpers-tab-add'));
+    fireEvent.change(screen.getByTestId('helper-edit-name'), {
+      target: { value: 'Carla Costa' },
+    });
+    fireEvent.change(screen.getByTestId('helper-edit-website'), {
+      target: { value: 'http://carla.example/about' },
+    });
+    fireEvent.click(screen.getByTestId('helper-edit-save'));
+
+    await waitFor(() => {
+      expect(mockHelpers.addHelper).toHaveBeenCalledWith(
+        expect.objectContaining({ website: 'https://carla.example/about' })
+      );
+    });
+  });
+
+  it('keeps an existing https:// website URL unchanged', async () => {
+    render(<HelpersTab />);
+    fireEvent.click(screen.getByTestId('helpers-tab-add'));
+    fireEvent.change(screen.getByTestId('helper-edit-name'), {
+      target: { value: 'Carla Costa' },
+    });
+    fireEvent.change(screen.getByTestId('helper-edit-website'), {
+      target: { value: 'https://carla.example/about' },
+    });
+    fireEvent.click(screen.getByTestId('helper-edit-save'));
+
+    await waitFor(() => {
+      expect(mockHelpers.addHelper).toHaveBeenCalledWith(
+        expect.objectContaining({ website: 'https://carla.example/about' })
+      );
+    });
+  });
+
+  it('keeps a leading-slash photo URL as a project path', async () => {
+    render(<HelpersTab />);
+    fireEvent.click(screen.getByTestId('helpers-tab-add'));
+    fireEvent.change(screen.getByTestId('helper-edit-name'), {
+      target: { value: 'Carla Costa' },
+    });
+    fireEvent.change(screen.getByTestId('helper-edit-photo'), {
+      target: { value: '/photos/carla.jpg' },
+    });
+    fireEvent.click(screen.getByTestId('helper-edit-save'));
+
+    await waitFor(() => {
+      expect(mockHelpers.addHelper).toHaveBeenCalledWith(
+        expect.objectContaining({ photoURL: '/photos/carla.jpg' })
+      );
+    });
+  });
+
+  it('prepends https:// to a bare photo URL', async () => {
+    render(<HelpersTab />);
+    fireEvent.click(screen.getByTestId('helpers-tab-add'));
+    fireEvent.change(screen.getByTestId('helper-edit-name'), {
+      target: { value: 'Carla Costa' },
+    });
+    fireEvent.change(screen.getByTestId('helper-edit-photo'), {
+      target: { value: 'carla.example/photo.jpg' },
+    });
+    fireEvent.click(screen.getByTestId('helper-edit-save'));
+
+    await waitFor(() => {
+      expect(mockHelpers.addHelper).toHaveBeenCalledWith(
+        expect.objectContaining({ photoURL: 'https://carla.example/photo.jpg' })
+      );
+    });
+  });
+
   it('calls updateHelper when an existing helper is saved', async () => {
     mockHelpers.helpers = SEED;
     render(<HelpersTab />);
