@@ -33,13 +33,14 @@ import { formatEventDateShort } from '../utils/eventFormat';
 import RichTextEditor from './RichTextEditorLazy';
 import RichTextView from './RichTextView';
 import FocalPointPicker from './FocalPointPicker';
-import EventCoverImage from './EventCoverImage';
+import EventCard from './EventCard';
 import { isHtmlEmpty } from '../utils/sanitize';
 import { normalizeLink } from '../utils/link';
 import { DEFAULT_FOCAL_POINT, isDefaultFocalPoint } from '../lib/eventImage';
 import { CURRENCIES, DEFAULT_CURRENCY, formatPriceWithCurrency } from '../utils/currency';
 import { saveWizardDraft, loadWizardDraft, clearWizardDraft } from '../utils/wizardDraftStorage';
 import { normalizeCategoryInput, isValidCategoryInput } from '../utils/categoryInput';
+import { getCategoryColor } from '../utils/categoryColors';
 import './EventForm.css';
 import './EventFormWizard.css';
 
@@ -169,6 +170,7 @@ export default function EventFormWizard() {
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [successState, setSuccessState] = useState(null);
+  const [showFocalPointInSummary, setShowFocalPointInSummary] = useState(false);
   const [currentStep, setCurrentStep] = useState(() =>
     restoredDraft && Number.isInteger(restoredDraft.currentStep)
       ? Math.min(Math.max(restoredDraft.currentStep, 1), STEPS.length)
@@ -1257,16 +1259,56 @@ export default function EventFormWizard() {
 
         <div className="summary-section">
           <h4>Event-Infos</h4>
-          <p>
-            <strong>{formData.title}</strong>
-          </p>
+          {formData.title && (
+            <p>
+              <strong>{formData.title}</strong>
+            </p>
+          )}
           {formData.description && (
             <RichTextView html={formData.description} className="summary-description" />
           )}
           {formData.link && <p>Link: {formData.link}</p>}
           {imagePreview && (
-            <div className="summary-image">
-              <EventCoverImage event={{ imageUrl: imagePreview, imageFocalPoint }} alt="Event" />
+            <div className="summary-image" data-testid="summary-image-preview">
+              <p className="summary-image-label">So sieht das Event in der Kalender-Kachel aus:</p>
+              <EventCard
+                event={{
+                  title: formData.title || 'Event-Vorschau',
+                  date: formData.date || '',
+                  time: formData.time || '',
+                  endDate: formData.endDate || '',
+                  place: formData.isOnline ? '' : formData.place,
+                  bezirk: formData.isOnline ? '' : formData.bezirk,
+                  isOnline: Boolean(formData.isOnline),
+                  category: formData.category,
+                  imageUrl: imagePreview,
+                  imageFocalPoint,
+                  organizer: { firstName: formData.organizer.name, lastName: '' },
+                }}
+                categoryColor={getCategoryColor(formData.category)}
+                onClick={(e) => e.preventDefault()}
+              />
+              <div className="summary-focal-actions">
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setShowFocalPointInSummary((prev) => !prev)}
+                  data-testid="summary-photo-cta"
+                >
+                  {showFocalPointInSummary ? 'Schließen' : 'Foto verschieben'}
+                </button>
+              </div>
+              {showFocalPointInSummary && (
+                <div className="summary-focal-picker">
+                  <FocalPointPicker
+                    imageUrl={imagePreview}
+                    value={imageFocalPoint}
+                    onChange={setImageFocalPoint}
+                    ariaLabel="Fokuspunkt in der Zusammenfassung anpassen"
+                    testId="summary-image-focal-picker"
+                  />
+                </div>
+              )}
             </div>
           )}
         </div>
