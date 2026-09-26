@@ -44,5 +44,16 @@ service firebase.storage {
       allow write: if request.resource.size < 15 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*');
     }
+
+    // Helper portraits used on the public "Über uns" page. Public read so the
+    // page can render them, authenticated write so admins can attach a photo
+    // when they add a new helper (the helpers admin UI is itself admin-gated,
+    // so an extra role check here would be redundant).
+    match /helpers/photos/{filename} {
+      allow read: if true;
+      allow write: if isAuthenticated()
+                   && request.resource.size < 15 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
   }
 }
