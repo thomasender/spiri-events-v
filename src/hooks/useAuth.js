@@ -95,7 +95,7 @@ async function checkFirestoreAdminRole(user) {
   return null;
 }
 
-async function seedProfileDoc(user, displayName, photoURL) {
+async function seedProfileDoc(user, displayName, photoURL, { notifyNewsletter = false } = {}) {
   try {
     const profileRef = doc(db, 'users', user.uid);
     const publicProfileRef = doc(db, 'users', user.uid, 'publicProfile', 'data');
@@ -111,6 +111,7 @@ async function seedProfileDoc(user, displayName, photoURL) {
       contact: user.email || '',
       photoURL: fallbackPhoto,
       slug,
+      notifyNewsletter: Boolean(notifyNewsletter),
       createdAt: now,
       updatedAt: now,
     };
@@ -189,7 +190,7 @@ export function useAuth() {
     [user, role]
   );
 
-  const register = async (email, password, displayName) => {
+  const register = async (email, password, displayName, subscribeNewsletter = false) => {
     const bucket = rateLimitBucket('register', email);
     const preset = RATE_LIMIT_PRESETS.register;
     const status = checkRateLimit({ bucket, ...preset });
@@ -204,7 +205,9 @@ export function useAuth() {
     if (displayName) {
       await updateProfile(credential.user, { displayName });
     }
-    await seedProfileDoc(credential.user, displayName);
+    await seedProfileDoc(credential.user, displayName, null, {
+      notifyNewsletter: Boolean(subscribeNewsletter),
+    });
     try {
       await requestVerificationEmail(credential.user);
     } catch (err) {
