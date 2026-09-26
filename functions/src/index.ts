@@ -9,7 +9,12 @@ import {
   startMolliePaymentCheckout,
   startMollieSubscriptionCheckout,
 } from './mollie';
-import { onEventStatusChanged, onEventCreated, onAdminMessageCreated } from './notifications';
+import {
+  onEventStatusChanged,
+  onEventCreated,
+  onAdminMessageCreated,
+  onFeedbackCreated,
+} from './notifications';
 import { enforceRateLimit, RATE_LIMIT_PRESETS } from './rateLimit';
 
 const REGION = 'europe-west3';
@@ -104,7 +109,12 @@ export const mollieWebhook = onCall(
   }
 );
 
-export { onEventStatusChanged, onEventCreated, onAdminMessageCreated } from './notifications';
+export {
+  onEventStatusChanged,
+  onEventCreated,
+  onAdminMessageCreated,
+  onFeedbackCreated,
+} from './notifications';
 export { onEventWriteTriggerBuild } from './triggerBuild';
 export { scheduledBuildTrigger } from './scheduledBuildTrigger';
 export { sendVerificationEmail } from './sendVerificationEmail';

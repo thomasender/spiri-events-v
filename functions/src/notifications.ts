@@ -34,6 +34,7 @@ import {
   ChangesRequestedPayloadInput,
   PublishedPayloadInput,
   DeletedPayloadInput,
+  ContactMessagePayloadInput,
   EmailPayload,
 } from './emailTemplates';
 import {
@@ -52,6 +53,7 @@ const PREFERENCE_KEY_BY_TYPE: Record<Exclude<NotificationType, 'submitted'>, Pre
   changes_requested: 'notifyOnChangesRequested',
   published: 'notifyOnPublished',
   deleted: 'notifyOnDeleted',
+  contact_message: 'notifyOnContactMessage',
 };
 
 function readString(value: unknown): string | null {
@@ -237,7 +239,8 @@ async function dispatchDecision(
     | SubmittedPayloadInput
     | ChangesRequestedPayloadInput
     | PublishedPayloadInput
-    | DeletedPayloadInput,
+    | DeletedPayloadInput
+    | ContactMessagePayloadInput,
   options: SendOptions
 ): Promise<{ recipients: number; dryRun: boolean }> {
   const resolved = await resolveRecipients(recipient, options.submittedInbox);
@@ -305,7 +308,8 @@ function buildPayloadInputFromDecision(
   | SubmittedPayloadInput
   | ChangesRequestedPayloadInput
   | PublishedPayloadInput
-  | DeletedPayloadInput {
+  | DeletedPayloadInput
+  | ContactMessagePayloadInput {
   if (decision.type === 'submitted') {
     const submitterName =
       [decision.event.organizer?.firstName, decision.event.organizer?.lastName]
@@ -331,9 +335,20 @@ function buildPayloadInputFromDecision(
       recipient: decision.recipient,
     };
   }
+  if (decision.type === 'deleted') {
+    return {
+      event: decision.event,
+      recipient: decision.recipient,
+    };
+  }
+  const contactDecision = decision as unknown as {
+    type: 'contact_message';
+    recipient: string;
+    context: ContactMessagePayloadInput['context'];
+  };
   return {
-    event: decision.event,
-    recipient: decision.recipient,
+    recipient: contactDecision.recipient,
+    context: contactDecision.context,
   };
 }
 
@@ -501,5 +516,49 @@ export const onAdminMessageCreated = onDocumentCreated(
       messageId,
       ...result,
     });
+  }
+);
+
+export const onFeedbackCreated = onDocumentCreated(
+  {
+    region: REGION,
+    document: 'feedback/{feedbackId}',
+    secrets: [MAILGUN_API_KEY, MAILGUN_DOMAIN, MAILGUN_FROM, MAILGUN_REPLY_TO],
+  },
+  async (event) => {
+    const feedbackId = typeof event.params.feedbackId === 'string' ? event.params.feedbackId : '';
+    const data = event.data?.data();
+    if (!data) return;
+
+    const description = readString(data.description);
+    if (!description) {
+      logger.debug('Feedback description missing, skipping notification', { feedbackId });
+      return;
+    }
+
+    const dryRun = isMailgunDryRun(process.env);
+    const secrets = safeSecrets(dryRun);
+    if (!secrets) {
+      logger.error('Mailgun secrets are not configured; skipping send', { feedbackId });
+      return;
+    }
+
+    const input: ContactMessagePayloadInput = {
+      recipient: '',
+      context: {
+        feedbackId,
+        description,
+        name: readString(data.name),
+        email: readString(data.email),
+        pageUrl: readString(data.pageUrl),
+        pageTitle: readString(data.pageTitle),
+      },
+    };
+
+    const result = await dispatchDecision(feedbackId, 'contact_message', ADMINS_RECIPIENT, input, {
+      ...secrets,
+      dryRun,
+    });
+    logger.info('contact_message notification processed', { feedbackId, ...result });
   }
 );

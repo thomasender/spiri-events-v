@@ -8,6 +8,7 @@ const allOn = {
   notifyOnPublished: true,
   notifyOnDeleted: true,
   notifyNewsletter: true,
+  notifyOnContactMessage: true,
 };
 
 describe('NotificationPreferencesCard', () => {
@@ -25,9 +26,12 @@ describe('NotificationPreferencesCard', () => {
     expect(screen.getByTestId('notification-pref-notifyOnDeleted')).toBeInTheDocument();
     expect(screen.getByTestId('notification-pref-notifyNewsletter')).toBeInTheDocument();
     expect(screen.queryByTestId('notification-pref-notifyOnSubmitted')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('notification-pref-notifyOnContactMessage')
+    ).not.toBeInTheDocument();
   });
 
-  it('renders five checkboxes (including the admin-only one) for admins', () => {
+  it('renders six checkboxes (including admin-only ones) for admins', () => {
     render(
       <NotificationPreferencesCard
         preferences={allOn}
@@ -41,6 +45,7 @@ describe('NotificationPreferencesCard', () => {
     expect(screen.getByTestId('notification-pref-notifyOnPublished')).toBeInTheDocument();
     expect(screen.getByTestId('notification-pref-notifyOnDeleted')).toBeInTheDocument();
     expect(screen.getByTestId('notification-pref-notifyNewsletter')).toBeInTheDocument();
+    expect(screen.getByTestId('notification-pref-notifyOnContactMessage')).toBeInTheDocument();
   });
 
   it('reflects the current preference values on the checkboxes', () => {

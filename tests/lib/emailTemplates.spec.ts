@@ -7,6 +7,7 @@ import {
   buildPublishedShareUrls,
   buildDeletedPayload,
   buildPasswordResetPayload,
+  buildContactMessagePayload,
   escapeHtml,
   notificationSettingsUrl,
   APP_BASE_URL,
@@ -418,6 +419,67 @@ describe('buildEmailPayload dispatcher', () => {
     expect(buildEmailPayload('deleted', { event, recipient: 'x@example.com' }).subject).toMatch(
       /^Dein Event wurde gelöscht/
     );
+
+    expect(
+      buildEmailPayload('contact_message', {
+        recipient: 'x@example.com',
+        context: {
+          feedbackId: 'fb-1',
+          description: 'Hallo zusammen!',
+          name: 'Peter',
+          email: 'peter@example.com',
+          pageUrl: 'https://www.thetribe.at/ueber-uns',
+          pageTitle: 'Über uns',
+        },
+      }).subject
+    ).toMatch(/^Neue Kontakt-Nachricht/);
+  });
+});
+
+describe('buildContactMessagePayload', () => {
+  const baseContext = {
+    feedbackId: 'fb-1',
+    description: 'Hallo zusammen, ich hätte eine Frage.',
+    name: 'Peter',
+    email: 'peter@example.com',
+    pageUrl: 'https://www.thetribe.at/ueber-uns',
+    pageTitle: 'Über uns',
+  };
+
+  it('produces a German subject and uses the admin Verwaltung link', () => {
+    const payload = buildContactMessagePayload({
+      recipient: 'admin@thetribe.at',
+      context: baseContext,
+    });
+    expect(payload.subject).toMatch(/^Neue Kontakt-Nachricht/);
+    expect(payload.html).toContain(`${APP_BASE_URL}/admin?tab=feedback`);
+    expect(payload.text).toContain(`${APP_BASE_URL}/admin?tab=feedback`);
+  });
+
+  it('escapes HTML in the description', () => {
+    const payload = buildContactMessagePayload({
+      recipient: 'admin@thetribe.at',
+      context: { ...baseContext, description: '<script>alert(1)</script>' },
+    });
+    expect(payload.html).not.toContain('<script>alert(1)</script>');
+    expect(payload.html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
+  });
+
+  it('falls back to anonymous sender when no name or email is provided', () => {
+    const payload = buildContactMessagePayload({
+      recipient: 'admin@thetribe.at',
+      context: { ...baseContext, name: null, email: null },
+    });
+    expect(payload.html).toContain('Anonyme:r Besucher:in');
+    expect(payload.html).toContain('keine E-Mail hinterlassen');
+  });
+
+  it('omits the page line when no pageUrl is provided', () => {
+    const payload = buildContactMessagePayload({
+      recipient: 'admin@thetribe.at',
+      context: { ...baseContext, pageUrl: null, pageTitle: null },
+    });
+    expect(payload.html).not.toContain('Seite:');
   });
 });
 
@@ -448,6 +510,15 @@ describe('payloads share a common footer', () => {
       }),
       buildEmailPayload('published', { event, recipient: 'a@x.com' }),
       buildEmailPayload('deleted', { event, recipient: 'a@x.com' }),
+      buildEmailPayload('contact_message', {
+        recipient: 'a@x.com',
+        context: {
+          feedbackId: 'fb-1',
+          description: 'Hallo',
+          name: 'Peter',
+          email: 'peter@example.com',
+        },
+      }),
     ];
     for (const p of payloads) {
       expect(p.html).toContain('admin@thetribe.at');
@@ -469,6 +540,15 @@ describe('payloads share a common footer', () => {
       }),
       buildEmailPayload('published', { event, recipient: 'a@x.com' }),
       buildEmailPayload('deleted', { event, recipient: 'a@x.com' }),
+      buildEmailPayload('contact_message', {
+        recipient: 'a@x.com',
+        context: {
+          feedbackId: 'fb-1',
+          description: 'Hallo',
+          name: 'Peter',
+          email: 'peter@example.com',
+        },
+      }),
     ];
     const settingsUrl = notificationSettingsUrl();
     for (const p of payloads) {
@@ -512,6 +592,15 @@ describe('email brand identity', () => {
     }),
     buildEmailPayload('published', { event, recipient: 'a@x.com' }),
     buildEmailPayload('deleted', { event, recipient: 'a@x.com' }),
+    buildEmailPayload('contact_message', {
+      recipient: 'a@x.com',
+      context: {
+        feedbackId: 'fb-1',
+        description: 'Hallo zusammen!',
+        name: 'Peter',
+        email: 'peter@example.com',
+      },
+    }),
   ];
 
   it('uses Nunito Sans as the body font and Cormorant Garamond as the heading font', () => {

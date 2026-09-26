@@ -28,12 +28,25 @@ const mockDonors = vi.hoisted(() => ({
   error: null as string | null,
 }));
 
+const mockAuth = vi.hoisted(() => ({
+  user: null as null | { uid: string; email?: string | null; displayName?: string | null },
+  loading: false,
+}));
+
 vi.mock('../../src/hooks/useHelpers', () => ({
   useHelpers: () => mockHelpers,
 }));
 
 vi.mock('../../src/hooks/useDonors', () => ({
   useDonors: () => mockDonors,
+}));
+
+vi.mock('../../src/hooks/useAuth', () => ({
+  useAuth: () => mockAuth,
+}));
+
+vi.mock('../../src/components/FeedbackModal', () => ({
+  default: () => null,
 }));
 
 function renderAboutPage() {
@@ -55,6 +68,8 @@ beforeEach(() => {
   mockDonors.donors = [];
   mockDonors.loading = false;
   mockDonors.error = null;
+  mockAuth.user = null;
+  mockAuth.loading = false;
 });
 
 describe('AboutPage', () => {
@@ -219,5 +234,43 @@ describe('AboutPage donors list (5dlVbOmf)', () => {
     mockDonors.loading = true;
     renderAboutPage();
     expect(screen.getByTestId('donors-list-loading')).toBeInTheDocument();
+  });
+});
+
+describe('AboutPage contact CTAs (6ab4f6e5)', () => {
+  it('renders the three contact CTAs as mailto links when no user is logged in', () => {
+    renderAboutPage();
+
+    const sayHello = screen.getByTestId('about-say-hello-link');
+    expect(sayHello.tagName).toBe('A');
+    expect(sayHello).toHaveAttribute('href', 'mailto:admin@thetribe.at');
+    expect(sayHello).toHaveTextContent('Sag uns Hallo');
+
+    const joinUs = screen.getByTestId('about-contact-us-link');
+    expect(joinUs.tagName).toBe('A');
+    expect(joinUs).toHaveAttribute('href', 'mailto:admin@thetribe.at');
+    expect(joinUs).toHaveTextContent('melde dich gerne bei uns');
+
+    const getInTouch = screen.getByTestId('about-get-in-touch-link');
+    expect(getInTouch.tagName).toBe('A');
+    expect(getInTouch).toHaveAttribute('href', 'mailto:admin@thetribe.at');
+    expect(getInTouch).toHaveTextContent('Kontakt mit uns auf');
+  });
+
+  it('renders the three contact CTAs as buttons that open the modal when a user is logged in', () => {
+    mockAuth.user = { uid: 'user-1', email: 'peter@example.com', displayName: 'Peter' };
+    renderAboutPage();
+
+    const sayHello = screen.getByTestId('about-say-hello-link');
+    expect(sayHello.tagName).toBe('BUTTON');
+    expect(sayHello).toHaveTextContent('Sag uns Hallo');
+
+    const joinUs = screen.getByTestId('about-contact-us-link');
+    expect(joinUs.tagName).toBe('BUTTON');
+
+    const getInTouch = screen.getByTestId('about-get-in-touch-link');
+    expect(getInTouch.tagName).toBe('BUTTON');
+
+    expect(screen.queryByTestId('feedback-modal')).not.toBeInTheDocument();
   });
 });
