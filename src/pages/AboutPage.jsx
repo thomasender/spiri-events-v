@@ -5,64 +5,23 @@ import SeoMeta from '../components/SeoMeta';
 import DonationBlock from '../components/DonationBlock';
 import HelpersList from '../components/HelpersList';
 import DonorsList from '../components/DonorsList';
-import FeedbackModal from '../components/FeedbackModal';
-import { useAuth } from '../hooks/useAuth';
+import ContactFormModal from '../components/ContactFormModal';
 import './AboutPage.css';
 
-const founders = [
-  {
-    name: 'Peter Mathis',
-    role: 'Mitgründer',
-    bio: 'Peter begleitet Menschen auf dem Weg zu mehr innerer Klarheit, Verbundenheit und Lebendigkeit.',
-    image: '/peter.jpg',
-    imageAlt:
-      'Porträtfoto von Peter Mathis, Mitgründer von tribe Vorarlberg, lächelnd in natürlicher Umgebung.',
-    link: 'https://www.petermathis.at',
-    linkLabel: 'petermathis.at',
-  },
-  {
-    name: 'Thomas Ender',
-    role: 'Mitgründer',
-    bio: 'Thomas unterstützt Kundalini Yoga, Breathwork und Meditation — und steht für einen achtsamen Alltag.',
-    image: '/thomas.jpg',
-    imageAlt:
-      'Porträtfoto von Thomas Ender, Mitgründer von tribe Vorarlberg, in ruhiger, geerdeter Pose.',
-    link: 'https://www.blissofkundalini.yoga',
-    linkLabel: 'blissofkundalini.yoga',
-  },
-  {
-    name: 'Jana Sunjevic',
-    role: 'Mitgründerin',
-    bio: 'Jana verbindet Somatic, Embodiment und bewusste Sprache — Räume, in denen Heilung passieren darf.',
-    image: '/jana.jpg',
-    imageAlt:
-      'Porträtfoto von Jana Sunjevic, Mitgründerin von tribe Vorarlberg, mit offenem, herzlichem Ausdruck.',
-    link: 'https://www.instagram.com/jana.select/',
-    linkLabel: '@jana.select auf Instagram',
-  },
-];
-
 const CONTACT_EMAIL = 'admin@thetribe.at';
+const DEFAULT_CONTACT_SUBJECT = 'Hallo Tribe Vorarlberg';
 
 function ContactCta({ label, className, testId, onOpen }) {
-  if (onOpen) {
-    return (
-      <button type="button" className={className} onClick={onOpen} data-testid={testId}>
-        {label}
-      </button>
-    );
-  }
   return (
-    <a href={`mailto:${CONTACT_EMAIL}`} className={className} data-testid={testId}>
+    <button type="button" className={className} onClick={onOpen} data-testid={testId}>
       {label}
-    </a>
+    </button>
   );
 }
 
 export default function AboutPage() {
-  const { user } = useAuth();
   const [contactOpen, setContactOpen] = useState(false);
-  const openContact = user ? () => setContactOpen(true) : null;
+  const openContact = () => setContactOpen(true);
   const contactClass = 'about-inline-link';
   const sayHello = (
     <ContactCta
@@ -186,35 +145,13 @@ export default function AboutPage() {
         <p>
           tribe Vorarlberg ist ein gemeinnütziger Zusammenschluss vieler Menschen, die miteinander
           wachsen wollen — Yoginis, Atem-Reisende, Sänger:innen, Tänzer:innen, Stille-Suchende,
-          Neugierige, Alte und Junge. Gegründet wurde der Verein von drei Vorarlberger:innen, die
-          einfach keine Lust mehr auf die unterschiedlichsten WhatsApp- und Telegram-Gruppen hatten:
+          Neugierige, Alte und Junge. Gegründet wurde der Verein von{' '}
+          <Link to="/impressum" className="about-inline-link" data-testid="about-founders-link">
+            drei Vorarlberger:innen
+          </Link>
+          , die einfach keine Lust mehr auf die unterschiedlichsten WhatsApp- und Telegram-Gruppen
+          hatten.
         </p>
-
-        <div className="about-founders">
-          {founders.map((founder) => (
-            <article key={founder.name} className="about-founder-card">
-              <img
-                src={founder.image}
-                alt={founder.imageAlt}
-                className="about-founder-photo"
-                loading="lazy"
-              />
-              <div className="about-founder-body">
-                <h3 className="about-founder-name">{founder.name}</h3>
-                <p className="about-founder-role">{founder.role}</p>
-                <p className="about-founder-bio">{founder.bio}</p>
-                <a
-                  href={founder.link}
-                  className="about-founder-link"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {founder.linkLabel}
-                </a>
-              </div>
-            </article>
-          ))}
-        </div>
 
         <div className="about-section-callout">
           <h3 className="about-section-callout-title">Du gehörst dazu.</h3>
@@ -270,13 +207,13 @@ export default function AboutPage() {
         </Link>
       </div>
 
-      {user && (
-        <FeedbackModal
-          open={contactOpen}
-          onClose={() => setContactOpen(false)}
-          pageUrl="/ueber-uns"
-        />
-      )}
+      <ContactFormModal
+        open={contactOpen}
+        onClose={() => setContactOpen(false)}
+        defaultSubject={DEFAULT_CONTACT_SUBJECT}
+        recipientEmail={CONTACT_EMAIL}
+        pageUrl="/ueber-uns"
+      />
     </div>
   );
 }
