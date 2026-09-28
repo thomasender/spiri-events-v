@@ -348,6 +348,20 @@ describe('prerender.mjs helpers', () => {
       expect(html).not.toContain('class="prerender-loading"');
       expect(html).toContain('class="event-detail-page"');
     });
+
+    it('injects the service-worker registration script on prerendered event pages (eB4vzplD)', async () => {
+      // vite-plugin-pwa writes /registerSW.js and /sw.js during build, but it
+      // only injects the matching <script> tag into HTMLs that flow through
+      // Vite's own HTML transform. Our prerender runs after build and rewrites
+      // /event/<slug>/index.html from scratch — so we have to emit the
+      // registration snippet ourselves, otherwise the installed PWA never
+      // works for users arriving from a messenger preview. We reference the
+      // external file rather than inlining so the CSP in firebase.json
+      // (script-src 'self' https://apis.google.com) doesn't strip it.
+      const { generateEventHtml } = await importPrerender();
+      const html = generateEventHtml(sampleEvents[0]);
+      expect(html).toContain('<script src="/registerSW.js"></script>');
+    });
   });
 
   describe('generateCalendarPageHtml', () => {
@@ -380,6 +394,15 @@ describe('prerender.mjs helpers', () => {
       // And the events list must NOT appear in the visible body — only inside <noscript>.
       const visibleBody = html.split('<noscript>')[0];
       expect(visibleBody).not.toContain('class="events-list"');
+    });
+
+    it('injects the service-worker registration script on the prerendered calendar page (eB4vzplD)', async () => {
+      // Same rationale as the matching event-page test — without this, the
+      // workbox-precached PWA install UX never registers on the prerendered
+      // HTMLs, and the "App installieren" affordance silently does nothing.
+      const { generateCalendarPageHtml } = await importPrerender();
+      const html = generateCalendarPageHtml([sampleEvents[0]], '/assets/x.js', '/assets/x.css');
+      expect(html).toContain('<script src="/registerSW.js"></script>');
     });
   });
 

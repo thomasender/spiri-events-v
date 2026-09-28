@@ -23,21 +23,87 @@
 
 .footer-nav {
   display: flex;
-  gap: 24px;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  align-items: center;
 }
 
-.footer-nav a {
+.footer-nav a,
+.footer-install-link {
   font-size: 0.85rem;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  text-decoration: none;
+}
+
+.footer-nav a:hover,
+.footer-install-link:hover {
+  color: var(--accent-primary);
+}
+
+.footer-install-link:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/*
+ * Desktop doesn't benefit from an install link — Chrome shows its own
+ * mini-infobar and iOS users on desktop Safari won't have a Home Screen.
+ * The link is still in the DOM for measurement but visually hidden so
+ * responsive layouts don't reflow when crossing the breakpoint.
+ */
+@media (min-width: 801px) {
+  .footer-install-link {
+    display: none;
+  }
+}
+
+.footer-ios-help {
+  background-color: var(--bg-secondary, #f9f7f5);
+  border-top: 1px solid var(--border);
+}
+
+.footer-ios-help-inner {
+  max-width: var(--page-max-width);
+  margin: 0 auto;
+  padding: 16px 24px 20px;
+}
+
+.footer-ios-help-title {
+  margin: 0 0 8px 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary, #1a1a1a);
+}
+
+.footer-ios-help-steps {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 0.85rem;
+  line-height: 1.55;
   color: var(--text-secondary);
 }
 
-.footer-nav a:hover {
-  color: var(--accent-primary);
+.footer-ios-help-steps li {
+  margin-bottom: 4px;
+}
+
+.footer-ios-help-steps li:last-child {
+  margin-bottom: 0;
 }
 
 @media (max-width: 480px) {
   .footer-container {
     flex-direction: column;
     text-align: center;
+  }
+
+  .footer-nav {
+    justify-content: center;
   }
 }
