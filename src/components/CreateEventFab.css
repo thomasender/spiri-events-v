@@ -1,11 +1,11 @@
-/* Floating action button that surfaces "Event erstellen" on phone-sized
-   viewports. It replaces the inline `.create-event-cta` block on the
-   CalendarPage so the action stays reachable while the user scrolls
-   the events list. Positioned below the FeedbackButton FAB on the
-   right edge. Hidden on tablet+ where the inline CTA / nav already
-   exposes the same action. The mustard yellow (#E5A72E) distinguishes
-   it from the terracotta feedback FAB so the two actions read as
-   different controls (zh4jJzje). */
+/* Floating action button that surfaces "Event erstellen". Positioned
+   below the FeedbackButton FAB on the right edge so the two actions
+   read as a stack. The mustard yellow (#E5A72E) distinguishes it
+   from the terracotta feedback FAB so the two read as different
+   controls (zh4jJzje). On phone-sized viewports the label collapses
+   to an icon-only FAB; on tablet+ the same FAB expands with the
+   "Event erstellen" label so it stays reachable while the user
+   scrolls the events list (zdGkcLck). */
 
 .create-event-fab {
   position: fixed;
@@ -52,15 +52,9 @@
   display: inline;
 }
 
-/* Only show on phone-sized viewports — on tablet+ the inline CTA on
-   the CalendarPage and the "Event erstellen" nav link in the desktop
-   nav already expose the action. */
-@media (min-width: 641px) {
-  .create-event-fab {
-    display: none;
-  }
-}
-
+/* On phone-sized viewports the FAB collapses to an icon-only pill so
+   it doesn't crowd the bottom edge; on tablet+ the "Event erstellen"
+   label becomes visible (zdGkcLck). */
 @media (max-width: 640px) {
   .create-event-fab {
     /* Match the feedback FAB's mobile corner inset. */
