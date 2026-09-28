@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node scripts/prerender.mjs",
+    "build": "node scripts/compress-public-assets.mjs && vite build && node scripts/prerender.mjs",
     "preview": "vite preview",
     "prerender": "node scripts/prerender.mjs",
     "test": "vitest run",
@@ -24,6 +24,7 @@
     "export:prod": "node scripts/export-prod-data.mjs",
     "prerender:refresh": "node scripts/refresh-prerender-data.mjs",
     "assets:render-sender-logo": "node scripts/render-email-sender-logo.mjs",
+    "assets:compress": "node scripts/compress-public-assets.mjs",
     "firestore:rules:pull": "firebase firestore:rules:get > firestore.rules",
     "firestore:rules:push": "firebase deploy --only firestore:rules",
     "storage:rules:pull": "firebase storage:rules:get > storage.rules",
@@ -75,6 +76,7 @@
     "lint-staged": "^15.5.2",
     "playwright": "^1.61.1",
     "prettier": "^3.9.6",
+    "sharp": "^0.35.5",
     "typescript": "^7.0.2",
     "vite": "^6.4.3",
     "vitest": "^4.1.10"

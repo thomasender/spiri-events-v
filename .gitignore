@@ -58,3 +58,6 @@ data-export/*
 !data-export/firestore-export/events.json
 !data-export/firestore-export/manifest.json
 tests/.auth/
+
+# Build-time public asset compression cache (regenerated on each build)
+.compression-cache.json
