@@ -9,7 +9,6 @@ import {
   updateProfile,
   updateEmail,
   verifyBeforeUpdateEmail,
-  fetchSignInMethodsForEmail,
   deleteUser,
   reauthenticateWithCredential,
   reauthenticateWithPopup,
@@ -315,43 +314,54 @@ export function useAuth() {
   const changeEmail = async (newEmail, password) => {
     await reauthenticateCurrent(password);
     const current = auth.currentUser;
-    if (!current) {
+    if (!current?.email) {
       throw { code: 'auth/no-current-user', message: 'Kein angemeldeter Benutzer.' };
     }
-    // Check upfront whether the new email is already associated with an
-    // account. verifyBeforeUpdateEmail does NOT synchronously throw
-    // auth/email-already-in-use for taken addresses — it sends a
-    // verification email regardless and only fails later when the user
-    // clicks the link — so without this pre-check the form would show a
-    // confusing "success" message while nothing actually happens.
-    // We still throw auth/email-change-failed (not the original code) so
-    // the UI shows the generic retry message and never reveals that the
-    // address is taken.
-    let signInMethods = [];
+
+    let availabilityChecked = false;
     try {
-      signInMethods = await fetchSignInMethodsForEmail(auth, newEmail);
-    } catch {
-      // Transient failure (network, rate limit, etc.) — let
-      // verifyBeforeUpdateEmail try anyway; its own catch will surface a
-      // generic error if it also fails. Don't block legitimate email
-      // changes during transient outages.
-      signInMethods = [];
+      const fn = httpsCallable(functions, 'checkEmailAvailability');
+      const result = await fn({ email: newEmail, currentEmail: current.email });
+      availabilityChecked = true;
+      if (result?.data?.available === false) {
+        throw { code: 'auth/email-change-failed', message: 'Email already in use.' };
+      }
+    } catch (err) {
+      const code = err?.code || err?.details?.code;
+      if (code === 'auth/email-change-failed') throw err;
+      if (code === 'functions/resource-exhausted') {
+        const retryAfterMs = err?.details?.retryAfterMs;
+        const wrapped = new Error(formatRetryAfter(retryAfterMs || 60_000));
+        wrapped.code = 'auth/too-many-requests';
+        wrapped.retryAfterMs = retryAfterMs;
+        throw wrapped;
+      }
+      if (
+        code === 'functions/not-found' ||
+        code === 'functions/unavailable' ||
+        code === 'functions/internal'
+      ) {
+        console.warn(
+          'checkEmailAvailability unavailable; falling back to verifyBeforeUpdateEmail',
+          code
+        );
+      } else {
+        throw err;
+      }
     }
-    if (signInMethods.length > 0) {
-      throw { code: 'auth/email-change-failed', message: 'Email already in use.' };
-    }
+
     try {
       await verifyBeforeUpdateEmail(current, newEmail);
     } catch (err) {
       if (err?.code === 'auth/email-already-in-use') {
-        // Defense-in-depth: in case the pre-check above missed it (e.g.
-        // the email was created between the two calls), still mask the
-        // specific reason with auth/email-change-failed to avoid leaking
-        // account existence. Registration keeps its specific message
-        // because the user is not yet authenticated.
         throw { code: 'auth/email-change-failed', message: err.message };
       }
       throw err;
+    }
+    if (!availabilityChecked) {
+      console.warn(
+        'changeEmail completed without server-side availability check; verifyBeforeUpdateEmail is the only guard'
+      );
     }
     return current;
   };

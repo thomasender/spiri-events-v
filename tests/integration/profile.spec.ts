@@ -343,6 +343,51 @@ test.describe.serial('Profile Management @smoke', () => {
     }
   });
 
+  test('change email rejects an address already registered with another account', async ({
+    page,
+  }) => {
+    // The target email must exist as a separate Auth user *before* we try to
+    // change into it — otherwise the cloud function would (correctly) report
+    // it as available. Two throwaway accounts keep this test hermetic.
+    const originalEmail = `change-email-target-${Date.now()}@example.com`;
+    const password = 'changepassword123';
+    const targetUid = await createAuthUser(originalEmail, password);
+
+    const otherEmail = `change-email-other-${Date.now()}@example.com`;
+    const otherUid = await createAuthUser(otherEmail, password);
+
+    try {
+      await signInWithEmailAndPassword(page, otherEmail, password);
+      await page.goto(PROFILE_PATH);
+      await page
+        .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+        .catch(() => {});
+
+      await page.getByTestId('change-email-new').fill(originalEmail);
+      await page.getByTestId('change-email-password').fill(password);
+      await page.getByTestId('change-email-submit').click();
+
+      // The form must show a German error, NOT the misleading success message.
+      // The exact text is masked — we deliberately don't reveal that the
+      // address is taken, per the comment in useAuth.changeEmail.
+      await expect(page.getByTestId('change-email-error')).toBeVisible({ timeout: 15000 });
+      const text = (await page.getByTestId('change-email-error').textContent()) ?? '';
+      expect(text).toMatch(/nicht geändert|geändert werden/i);
+      expect(text).not.toMatch(/bereits verwendet|already/i);
+      await expect(page.getByTestId('change-email-success')).toHaveCount(0);
+
+      // The user's email on Auth must remain unchanged.
+      await page.reload();
+      await page
+        .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+        .catch(() => {});
+      await expect(page.getByTestId('current-email')).toHaveText(otherEmail);
+    } finally {
+      await deleteAuthUser(targetUid).catch(() => {});
+      await deleteAuthUser(otherUid).catch(() => {});
+    }
+  });
+
   test('deleting an account removes the Auth user and the users/{uid} doc', async ({ page }) => {
     // Use a dedicated throwaway account so this destructive test cannot
     // affect admin@test.com used by other tests.
