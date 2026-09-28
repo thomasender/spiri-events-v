@@ -38,7 +38,9 @@ function draftFromDonor(donor) {
 // Admin dialog: a donor entry on the "Über uns" page. Admins can mark a
 // donor as anonymous (no name shown), with or without an amount, and tag
 // the donation as either one-time or monthly. Currency formatting on save
-// mirrors what the public list shows.
+// mirrors what the public list shows. Donor entries written by the
+// Mollie webhook carry a `source: 'mollie'` flag and are shown read-only
+// metadata here.
 export default function DonorEditDialog({ open, mode, donor, onSave, onClose }) {
   const [draft, setDraft] = useState(emptyDraft());
   const [error, setError] = useState(null);
@@ -139,6 +141,21 @@ export default function DonorEditDialog({ open, mode, donor, onSave, onClose }) 
             <X size={18} aria-hidden="true" />
           </button>
         </header>
+
+        {!isCreate && donor?.source === 'mollie' && (
+          <p className="donor-edit-dialog-source-note" data-testid="donor-edit-source-note">
+            Automatisch durch eine Mollie-Spende angelegt — kann jederzeit bearbeitet oder gelöscht
+            werden.
+            {donor.molliePaymentId ? (
+              <>
+                {' '}
+                <span className="donor-edit-dialog-source-meta">
+                  Mollie-ID: <code>{donor.molliePaymentId}</code>
+                </span>
+              </>
+            ) : null}
+          </p>
+        )}
 
         <form className="donor-edit-dialog-form" onSubmit={handleSubmit}>
           <label className="donor-edit-dialog-field donor-edit-dialog-field--checkbox">

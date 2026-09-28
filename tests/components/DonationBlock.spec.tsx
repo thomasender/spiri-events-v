@@ -127,7 +127,10 @@ describe('DonationBlock', () => {
     submit();
 
     await waitFor(() => {
-      expect(startOneTimeDonation).toHaveBeenCalledWith(15, 'Anna');
+      expect(startOneTimeDonation).toHaveBeenCalledWith(15, {
+        name: 'Anna',
+        displayOnConsent: false,
+      });
     });
     await waitFor(() => {
       expect(window.location.assign).toHaveBeenCalledWith(
@@ -151,7 +154,10 @@ describe('DonationBlock', () => {
     submit();
 
     await waitFor(() => {
-      expect(startMonthlyDonation).toHaveBeenCalledWith(5, null);
+      expect(startMonthlyDonation).toHaveBeenCalledWith(5, {
+        name: null,
+        displayOnConsent: false,
+      });
     });
     await waitFor(() => {
       expect(window.location.assign).toHaveBeenCalledWith(
@@ -174,7 +180,10 @@ describe('DonationBlock', () => {
     submit();
 
     await waitFor(() => {
-      expect(startOneTimeDonation).toHaveBeenCalledWith(12.5, null);
+      expect(startOneTimeDonation).toHaveBeenCalledWith(12.5, {
+        name: null,
+        displayOnConsent: false,
+      });
     });
   });
 
@@ -218,5 +227,73 @@ describe('DonationBlock', () => {
     expect(screen.getByRole('button', { name: '20 €' })).toBeDisabled();
 
     resolveCheckout({ checkoutUrl: 'https://example.com/checkout' });
+  });
+
+  it('renders the spendenliste consent checkbox unchecked by default', () => {
+    renderBlock();
+
+    const checkbox = screen.getByTestId('donation-consent-checkbox');
+    expect(checkbox).toBeInTheDocument();
+    expect(checkbox).not.toBeChecked();
+  });
+
+  it('submits with displayOnConsent=false when the consent checkbox is left unchecked', async () => {
+    startOneTimeDonation.mockResolvedValue({
+      checkoutUrl: 'https://www.mollie.com/checkout/one-time',
+      paymentId: 'tr_test',
+    });
+
+    renderBlock();
+
+    selectOneTime();
+    fireEvent.click(screen.getByRole('button', { name: '20 €' }));
+    submit();
+
+    await waitFor(() => {
+      expect(startOneTimeDonation).toHaveBeenCalledWith(20, {
+        name: null,
+        displayOnConsent: false,
+      });
+    });
+  });
+
+  it('submits with displayOnConsent=true and the typed name when the checkbox is ticked', async () => {
+    startMonthlyDonation.mockResolvedValue({
+      checkoutUrl: 'https://www.mollie.com/checkout/monthly',
+      customerId: 'cst_test',
+      subscriptionId: 'sub_test',
+    });
+
+    renderBlock();
+
+    selectMonthly();
+    fireEvent.change(screen.getByPlaceholderText(/anna musterfrau/i), {
+      target: { value: 'Anna Musterfrau' },
+    });
+    fireEvent.click(screen.getByTestId('donation-consent-checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: '10 €' }));
+    submit();
+
+    await waitFor(() => {
+      expect(startMonthlyDonation).toHaveBeenCalledWith(10, {
+        name: 'Anna Musterfrau',
+        displayOnConsent: true,
+      });
+    });
+  });
+
+  it('blocks submit and shows an inline error when the checkbox is ticked but no name is entered', async () => {
+    renderBlock();
+
+    selectOneTime();
+    fireEvent.click(screen.getByTestId('donation-consent-checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: '20 €' }));
+    submit();
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent(/deaktiviere die Checkbox/i);
+    });
+    expect(startOneTimeDonation).not.toHaveBeenCalled();
+    expect(startMonthlyDonation).not.toHaveBeenCalled();
   });
 });

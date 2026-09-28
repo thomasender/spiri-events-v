@@ -23,6 +23,7 @@ const ALLOWED_ORIGINS = ['https://www.thetribe.at', 'https://thetribe.at'];
 interface CreateDonationRequest {
   amount: number;
   name?: string | null;
+  displayOnConsent?: boolean;
 }
 
 function assertValidAmount(amount: unknown): asserts amount is number {
@@ -56,7 +57,10 @@ export const createMollieSubscription = onCall(
     assertApiKey(apiKey);
 
     try {
-      const customer = await createMollieCustomer(apiKey, data.name ?? null);
+      const customer = await createMollieCustomer(apiKey, {
+        name: data.name ?? null,
+        displayOnConsent: Boolean(data.displayOnConsent),
+      });
       const checkout = await startMollieSubscriptionCheckout(apiKey, {
         customerId: customer.id,
         amount: data.amount,
@@ -89,6 +93,7 @@ export const createMolliePayment = onCall(
         amount: data.amount,
         appBaseUrl: resolveAppBaseUrl(request),
         name: data.name ?? null,
+        displayOnConsent: Boolean(data.displayOnConsent),
       });
       return checkout;
     } catch (err) {
@@ -98,16 +103,8 @@ export const createMolliePayment = onCall(
   }
 );
 
-export const mollieWebhook = onCall(
-  {
-    region: REGION,
-    secrets: [MOLLIE_API_KEY],
-  },
-  async (request) => {
-    logger.info('Mollie webhook payload', { data: request.data });
-    return { received: true };
-  }
-);
+export { mollieWebhook } from './mollieWebhook';
+export { processMollieWebhook, handlePaidPayment } from './mollieWebhook';
 
 export {
   onEventStatusChanged,
