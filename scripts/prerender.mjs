@@ -14,6 +14,26 @@ export const SITE_NAME = 'tribe Vorarlberg'
 export const DEFAULT_DESCRIPTION =
   'Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg - Bregenz, Dornbirn, Feldkirch, Bludenz'
 
+export const THEME_COLOR_LIGHT = '#f4f2f0'
+export const THEME_COLOR_DARK = '#1a1a1a'
+
+// Shared <head> tags for the PWA install surface: favicon, apple-touch-icon,
+// manifest, MS tile config. Kept in one place so the calendar index and the
+// per-event pages stay in lockstep with index.html.
+export function pwaHeadTags() {
+  return [
+    `<meta name="theme-color" content="${THEME_COLOR_LIGHT}" media="(prefers-color-scheme: light)" />`,
+    `<meta name="theme-color" content="${THEME_COLOR_DARK}" media="(prefers-color-scheme: dark)" />`,
+    `<link rel="icon" type="image/svg+xml" href="/favicon.svg" />`,
+    `<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />`,
+    `<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />`,
+    `<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />`,
+    `<link rel="manifest" href="/site.webmanifest" />`,
+    `<meta name="msapplication-config" content="/browserconfig.xml" />`,
+    `<meta name="msapplication-TileColor" content="${THEME_COLOR_LIGHT}" />`,
+  ].join('\n  ')
+}
+
 export function toAbsoluteUrl(pathOrUrl, baseUrl = BASE_URL) {
   if (!pathOrUrl) return DEFAULT_OG_IMAGE_URL
   if (typeof pathOrUrl !== 'string') return DEFAULT_OG_IMAGE_URL
@@ -336,7 +356,7 @@ export function generateEventHtml(
 
   <script type="application/ld+json">${escapeJson(jsonLd)}</script>
 
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  ${pwaHeadTags()}
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Nunito+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />${cssLink}
@@ -438,7 +458,7 @@ export function generateCalendarPageHtml(events, jsBundlePath, cssBundlePath, th
   <meta name="twitter:image" content="${escapeHtml(DEFAULT_OG_IMAGE_URL)}" />
   <meta name="twitter:image:alt" content="${escapeHtml(SITE_NAME)}" />
 
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  ${pwaHeadTags()}
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Nunito+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
