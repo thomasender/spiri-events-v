@@ -532,13 +532,6 @@ textarea {
   color: var(--text-secondary);
 }
 
-.summary-image img {
-  max-width: 200px;
-  max-height: 120px;
-  border-radius: var(--radius-sm);
-  object-fit: cover;
-}
-
 .summary-image .event-tile {
   max-width: 320px;
 }
