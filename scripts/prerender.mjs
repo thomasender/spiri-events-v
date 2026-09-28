@@ -19,7 +19,12 @@ export const THEME_COLOR_DARK = '#1a1a1a'
 
 // Shared <head> tags for the PWA install surface: favicon, apple-touch-icon,
 // manifest, MS tile config. Kept in one place so the calendar index and the
-// per-event pages stay in lockstep with index.html.
+// per-event pages stay in lockstep with index.html. Also includes the
+// service-worker registration snippet — vite-plugin-pwa writes /registerSW.js
+// during build, but it only injects the matching <script> tag into HTMLs that
+// flow through Vite's own HTML transform. Our prerender runs after build and
+// rewrites index.html / event/<slug>/index.html from scratch, so we have to
+// emit the registration tag ourselves.
 export function pwaHeadTags() {
   return [
     `<meta name="theme-color" content="${THEME_COLOR_LIGHT}" media="(prefers-color-scheme: light)" />`,
@@ -32,6 +37,16 @@ export function pwaHeadTags() {
     `<meta name="msapplication-config" content="/browserconfig.xml" />`,
     `<meta name="msapplication-TileColor" content="${THEME_COLOR_LIGHT}" />`,
   ].join('\n  ')
+}
+
+export function pwaRegisterScript() {
+  // vite-plugin-pwa emits /registerSW.js during the Vite build phase — it
+  // contains a tiny self-contained snippet that calls
+  // navigator.serviceWorker.register('/sw.js'). We reference it via an
+  // external <script src> rather than inlining so the CSP in firebase.json
+  // (script-src 'self' https://apis.google.com, no 'unsafe-inline') lets it
+  // through on the prerendered HTMLs.
+  return `<script src="/registerSW.js"></script>`
 }
 
 export function toAbsoluteUrl(pathOrUrl, baseUrl = BASE_URL) {
@@ -401,7 +416,9 @@ export function generateEventHtml(
     .back-link { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 24px; font-size: 0.9rem; }
   </style>
 </head>
-<body>${body}</body>
+<body>${body}
+  ${pwaRegisterScript()}
+</body>
 </html>`
 }
 
@@ -527,6 +544,7 @@ export function generateCalendarPageHtml(events, jsBundlePath, cssBundlePath, th
     </div>
   </noscript>
   <script type="module" src="${escapeHtml(jsBundlePath)}"></script>
+  ${pwaRegisterScript()}
 </body>
 </html>`
 }

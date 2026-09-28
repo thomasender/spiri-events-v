@@ -24,6 +24,7 @@ import ThemeApplier from './components/ThemeApplier';
 import ScrollToTop from './components/ScrollToTop';
 import ErrorBoundary from './components/ErrorBoundary';
 import ErrorPage from './pages/ErrorPage';
+import PwaInstallPrompt from './components/PwaInstallPrompt';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -127,6 +128,7 @@ function AppContent() {
       <Footer />
       <FeedbackButton />
       <CreateEventFab />
+      <PwaInstallPrompt />
     </div>
   );
 }
