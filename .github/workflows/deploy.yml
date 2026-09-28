@@ -55,6 +55,15 @@ jobs:
           GOOGLE_APPLICATION_CREDENTIALS: scripts/service-account.json
         run: npx -y firebase-tools@latest deploy --only firestore:rules,firestore:indexes --project spirieventsvbg --non-interactive
 
+      - name: Deploy Cloud Functions
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: scripts/service-account.json
+        # Note: changing a function's trigger type (e.g. onCall → onRequest)
+        # is not allowed by Firebase. If you ever flip a function between
+        # callable and HTTPS, run `firebase functions:delete <name>` first
+        # and commit the deletion before this step runs again.
+        run: npx -y firebase-tools@latest deploy --only functions --project spirieventsvbg --non-interactive
+
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
