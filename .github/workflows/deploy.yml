@@ -55,6 +55,10 @@ jobs:
           GOOGLE_APPLICATION_CREDENTIALS: scripts/service-account.json
         run: npx -y firebase-tools@latest deploy --only firestore:rules,firestore:indexes --project spirieventsvbg --non-interactive
 
+      - name: Install Cloud Functions dependencies
+        working-directory: functions
+        run: npm ci
+
       - name: Deploy Cloud Functions
         env:
           GOOGLE_APPLICATION_CREDENTIALS: scripts/service-account.json
