@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -28,11 +28,6 @@ const mockDonors = vi.hoisted(() => ({
   error: null as string | null,
 }));
 
-const mockAuth = vi.hoisted(() => ({
-  user: null as null | { uid: string; email?: string | null; displayName?: string | null },
-  loading: false,
-}));
-
 vi.mock('../../src/hooks/useHelpers', () => ({
   useHelpers: () => mockHelpers,
 }));
@@ -41,12 +36,14 @@ vi.mock('../../src/hooks/useDonors', () => ({
   useDonors: () => mockDonors,
 }));
 
-vi.mock('../../src/hooks/useAuth', () => ({
-  useAuth: () => mockAuth,
-}));
-
-vi.mock('../../src/components/FeedbackModal', () => ({
-  default: () => null,
+vi.mock('../../src/components/ContactFormModal', () => ({
+  default: ({ open, defaultSubject, recipientEmail } = {}) =>
+    open ? (
+      <div data-testid="contact-modal">
+        <span data-testid="contact-modal-default-subject">{defaultSubject}</span>
+        {recipientEmail && <span data-testid="contact-modal-recipient">{recipientEmail}</span>}
+      </div>
+    ) : null,
 }));
 
 function renderAboutPage() {
@@ -55,6 +52,7 @@ function renderAboutPage() {
       <MemoryRouter initialEntries={['/ueber-uns']}>
         <Routes>
           <Route path="/ueber-uns" element={<AboutPage />} />
+          <Route path="/impressum" element={<div>Impressum page</div>} />
         </Routes>
       </MemoryRouter>
     </HelmetProvider>
@@ -68,8 +66,6 @@ beforeEach(() => {
   mockDonors.donors = [];
   mockDonors.loading = false;
   mockDonors.error = null;
-  mockAuth.user = null;
-  mockAuth.loading = false;
 });
 
 describe('AboutPage', () => {
@@ -95,23 +91,21 @@ describe('AboutPage', () => {
     expect(screen.getByRole('heading', { name: /Spende — damit tribe/ })).toBeInTheDocument();
   });
 
-  it('renders the founders with photos and links', () => {
+  it('does not render the founder photo cards on the About page', () => {
     renderAboutPage();
+    expect(document.querySelector('.about-founders')).toBeNull();
+    expect(document.querySelector('.about-founder-card')).toBeNull();
+    expect(screen.queryByAltText(/Peter Mathis/)).not.toBeInTheDocument();
+    expect(screen.queryByAltText(/Thomas Ender/)).not.toBeInTheDocument();
+    expect(screen.queryByAltText(/Jana Sunjevic/)).not.toBeInTheDocument();
+  });
 
-    const peterImg = screen.getByAltText(/Peter Mathis/);
-    expect(peterImg).toHaveAttribute('src', '/peter.jpg');
-
-    const thomasImg = screen.getByAltText(/Thomas Ender/);
-    expect(thomasImg).toHaveAttribute('src', '/thomas.jpg');
-
-    const janaImg = screen.getByAltText(/Jana Sunjevic/);
-    expect(janaImg).toHaveAttribute('src', '/jana.jpg');
-
-    const links = document.querySelectorAll('.about-founder-link');
-    const hrefs = Array.from(links).map((link) => link.getAttribute('href'));
-    expect(hrefs).toContain('https://www.petermathis.at');
-    expect(hrefs).toContain('https://www.blissofkundalini.yoga');
-    expect(hrefs).toContain('https://www.instagram.com/jana.select/');
+  it('links "drei Vorarlberger:innen" to the Impressum page', () => {
+    renderAboutPage();
+    const foundersLink = screen.getByTestId('about-founders-link');
+    expect(foundersLink.tagName).toBe('A');
+    expect(foundersLink).toHaveAttribute('href', '/impressum');
+    expect(foundersLink).toHaveTextContent('drei Vorarlberger:innen');
   });
 
   it('embeds the donation block on the support section', () => {
@@ -237,28 +231,8 @@ describe('AboutPage donors list (5dlVbOmf)', () => {
   });
 });
 
-describe('AboutPage contact CTAs (6ab4f6e5)', () => {
-  it('renders the three contact CTAs as mailto links when no user is logged in', () => {
-    renderAboutPage();
-
-    const sayHello = screen.getByTestId('about-say-hello-link');
-    expect(sayHello.tagName).toBe('A');
-    expect(sayHello).toHaveAttribute('href', 'mailto:admin@thetribe.at');
-    expect(sayHello).toHaveTextContent('Sag uns Hallo');
-
-    const joinUs = screen.getByTestId('about-contact-us-link');
-    expect(joinUs.tagName).toBe('A');
-    expect(joinUs).toHaveAttribute('href', 'mailto:admin@thetribe.at');
-    expect(joinUs).toHaveTextContent('melde dich gerne bei uns');
-
-    const getInTouch = screen.getByTestId('about-get-in-touch-link');
-    expect(getInTouch.tagName).toBe('A');
-    expect(getInTouch).toHaveAttribute('href', 'mailto:admin@thetribe.at');
-    expect(getInTouch).toHaveTextContent('Kontakt mit uns auf');
-  });
-
-  it('renders the three contact CTAs as buttons that open the modal when a user is logged in', () => {
-    mockAuth.user = { uid: 'user-1', email: 'peter@example.com', displayName: 'Peter' };
+describe('AboutPage contact CTAs (6ab4f6e5 + VHzOoH6Y)', () => {
+  it('renders the three contact CTAs as buttons (no mailto fallback)', () => {
     renderAboutPage();
 
     const sayHello = screen.getByTestId('about-say-hello-link');
@@ -267,10 +241,24 @@ describe('AboutPage contact CTAs (6ab4f6e5)', () => {
 
     const joinUs = screen.getByTestId('about-contact-us-link');
     expect(joinUs.tagName).toBe('BUTTON');
+    expect(joinUs).toHaveTextContent('melde dich gerne bei uns');
 
     const getInTouch = screen.getByTestId('about-get-in-touch-link');
     expect(getInTouch.tagName).toBe('BUTTON');
+    expect(getInTouch).toHaveTextContent('Kontakt mit uns auf');
+  });
 
-    expect(screen.queryByTestId('feedback-modal')).not.toBeInTheDocument();
+  it('opens the contact modal with the default subject when a CTA is clicked', () => {
+    renderAboutPage();
+    expect(screen.queryByTestId('contact-modal')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('about-say-hello-link'));
+
+    const modal = screen.getByTestId('contact-modal');
+    expect(modal).toBeInTheDocument();
+    expect(screen.getByTestId('contact-modal-default-subject')).toHaveTextContent(
+      'Hallo Tribe Vorarlberg'
+    );
+    expect(screen.getByTestId('contact-modal-recipient')).toHaveTextContent('admin@thetribe.at');
   });
 });
