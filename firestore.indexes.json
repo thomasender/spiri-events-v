@@ -21,9 +21,12 @@
     {
       "collectionGroup": "publicProfile",
       "fieldPath": "slug",
-      "indexes": [
-        { "queryScope": "COLLECTION_GROUP", "order": "ASCENDING" }
-      ]
+      "indexes": [{ "queryScope": "COLLECTION_GROUP", "order": "ASCENDING" }]
+    },
+    {
+      "collectionGroup": "publicProfile",
+      "fieldPath": "username",
+      "indexes": [{ "queryScope": "COLLECTION_GROUP", "order": "ASCENDING" }]
     }
   ]
 }
