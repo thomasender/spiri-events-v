@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route, useNavigate } from 'react-router-dom';
-import PwaInstallPrompt from '../../src/components/PwaInstallPrompt';
+import PwaInstallPrompt, { PWA_OPEN_REQUEST_EVENT } from '../../src/components/PwaInstallPrompt';
 import Footer from '../../src/components/Footer';
 import { _resetPwaInstallStateForTests } from '../../src/hooks/usePwaInstall';
 
@@ -269,6 +269,41 @@ describe('PwaInstallPrompt', () => {
     });
     expect(screen.queryByTestId('pwa-install-sheet')).not.toBeInTheDocument();
   });
+
+  it('opens the iOS instructions in the popup when pwa-install-open-requested fires', () => {
+    setIOS(true);
+    renderWithRouter(<PwaInstallPrompt />);
+    act(() => {
+      window.dispatchEvent(new CustomEvent(PWA_OPEN_REQUEST_EVENT, { detail: { mode: 'ios' } }));
+    });
+    const sheet = screen.getByTestId('pwa-install-sheet');
+    expect(sheet).toBeInTheDocument();
+    expect(sheet).toHaveAttribute('data-mode', 'ios');
+    expect(screen.getByTestId('pwa-install-ios-steps')).toBeInTheDocument();
+    expect(screen.queryByTestId('pwa-install-install')).not.toBeInTheDocument();
+  });
+
+  it('ignores pwa-install-open-requested when the mode is not ios', () => {
+    setIOS(true);
+    renderWithRouter(<PwaInstallPrompt />);
+    act(() => {
+      window.dispatchEvent(new CustomEvent(PWA_OPEN_REQUEST_EVENT, { detail: { mode: 'native' } }));
+    });
+    expect(screen.queryByTestId('pwa-install-sheet')).not.toBeInTheDocument();
+  });
+
+  it('does not persist dismissed when the iOS popup is closed via Escape', () => {
+    setIOS(true);
+    renderWithRouter(<PwaInstallPrompt />);
+    act(() => {
+      window.dispatchEvent(new CustomEvent(PWA_OPEN_REQUEST_EVENT, { detail: { mode: 'ios' } }));
+    });
+    expect(screen.getByTestId('pwa-install-sheet')).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByTestId('pwa-install-sheet')).not.toBeInTheDocument();
+    // iOS has no programmatic install — closing shouldn't burn the pref.
+    expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+  });
 });
 
 describe('Footer install link', () => {
@@ -312,24 +347,36 @@ describe('Footer install link', () => {
     }
   });
 
-  it('shows the iOS instructions block when the link is clicked on iOS', () => {
+  it('opens the iOS instructions in the popup when the link is clicked on iOS', () => {
     setIOS(true);
-    renderWithRouter(<Footer />);
+    renderWithRouter(
+      <>
+        <Footer />
+        <PwaInstallPrompt />
+      </>
+    );
     fireEvent.click(screen.getByTestId('footer-install-link'));
-    expect(screen.getByText(/So installierst du die App auf deinem iPhone/i)).toBeInTheDocument();
-    expect(screen.getByTestId('footer-install-link')).toHaveAttribute('aria-expanded', 'true');
+    const sheet = screen.getByTestId('pwa-install-sheet');
+    expect(sheet).toBeInTheDocument();
+    expect(sheet).toHaveAttribute('data-mode', 'ios');
+    expect(screen.getByTestId('pwa-install-ios-steps')).toBeInTheDocument();
   });
 
-  it('toggles the iOS instructions block on repeated clicks', () => {
-    setIOS(true);
+  it('does nothing on non-iOS when clicked before beforeinstallprompt has fired', () => {
+    renderWithRouter(
+      <>
+        <Footer />
+        <PwaInstallPrompt />
+      </>
+    );
+    fireEvent.click(screen.getByTestId('footer-install-link'));
+    // No popup should open — the auto-popup will handle the ask later.
+    expect(screen.queryByTestId('pwa-install-sheet')).not.toBeInTheDocument();
+  });
+
+  it('marks the link as opening a dialog for assistive tech', () => {
     renderWithRouter(<Footer />);
-    fireEvent.click(screen.getByTestId('footer-install-link'));
-    fireEvent.click(screen.getByTestId('footer-install-link'));
-    expect(
-      screen.queryByText(/So installierst du die App auf deinem iPhone/i)
-    ).not.toBeInTheDocument();
-    fireEvent.click(screen.getByTestId('footer-install-link'));
-    expect(screen.getByText(/So installierst du die App auf deinem iPhone/i)).toBeInTheDocument();
+    expect(screen.getByTestId('footer-install-link')).toHaveAttribute('aria-haspopup', 'dialog');
   });
 
   it('hides the link when the app is already running standalone', () => {

@@ -1,15 +1,11 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usePwaInstall, isIOSDevice } from '../hooks/usePwaInstall';
+import { PWA_OPEN_REQUEST_EVENT } from './PwaInstallPrompt';
 import './Footer.css';
 
 export default function Footer() {
   const { installAvailable, isStandalone, isMobileViewport, requestInstall } = usePwaInstall();
   const isIOS = isIOSDevice();
-  // On iOS Safari the browser never exposes the native install prompt, so
-  // there's no programmatic way to trigger installation. Instead we surface
-  // a disclosure block under the link with the manual Share-menu steps.
-  const [showIOSHelp, setShowIOSHelp] = useState(false);
 
   // The link is removed from the DOM (not just visually hidden) on desktop
   // and on standalone runs. On desktop, Chrome shows its own install UI and
@@ -20,7 +16,10 @@ export default function Footer() {
   const handleInstallClick = (event) => {
     // If we have a captured beforeinstallprompt event, fire the native prompt
     // and let the browser handle the rest. Otherwise (iOS, or the event was
-    // already consumed), fall through to the disclosure behaviour below.
+    // already consumed), open the popup dialog with the iOS Share-menu
+    // instructions — on non-iOS without an installable prompt yet, we let
+    // the auto-popup timer handle the ask instead of showing the iOS steps
+    // to a non-iOS user.
     if (installAvailable) {
       event.preventDefault();
       requestInstall();
@@ -28,7 +27,7 @@ export default function Footer() {
     }
     if (isIOS) {
       event.preventDefault();
-      setShowIOSHelp((value) => !value);
+      window.dispatchEvent(new CustomEvent(PWA_OPEN_REQUEST_EVENT, { detail: { mode: 'ios' } }));
     }
   };
 
@@ -43,8 +42,7 @@ export default function Footer() {
               type="button"
               className="footer-install-link"
               onClick={handleInstallClick}
-              aria-expanded={isIOS ? showIOSHelp : undefined}
-              aria-controls={isIOS ? 'pwa-install-ios-help' : undefined}
+              aria-haspopup="dialog"
               data-testid="footer-install-link"
             >
               App installieren
@@ -54,26 +52,6 @@ export default function Footer() {
           <Link to="/datenschutz">Datenschutz</Link>
         </nav>
       </div>
-      {showInstallLink && isIOS && showIOSHelp && (
-        <div className="footer-ios-help" id="pwa-install-ios-help">
-          <div className="footer-ios-help-inner">
-            <p className="footer-ios-help-title">So installierst du die App auf deinem iPhone:</p>
-            <ol className="footer-ios-help-steps">
-              <li>
-                Tippe unten in Safari auf das <strong>Teilen-Symbol</strong> (Quadrat mit Pfeil nach
-                oben).
-              </li>
-              <li>
-                Scrolle nach unten und wähle <strong>„Zum Home-Bildschirm“</strong>.
-              </li>
-              <li>
-                Bestätige mit <strong>„Hinzufügen“</strong>. tribe erscheint dann als App-Icon auf
-                deinem Startbildschirm.
-              </li>
-            </ol>
-          </div>
-        </div>
-      )}
     </footer>
   );
 }
