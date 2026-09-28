@@ -27,22 +27,24 @@ function assertValidAmount(amount) {
 
 /**
  * @param {number} amount donation amount in EUR (≥ MIN_DONATION_AMOUNT)
- * @param {string|null} [name] optional donor name
+ * @param {{ name?: string|null, displayOnConsent?: boolean }} [options]
  * @returns {Promise<{checkoutUrl: string, paymentId: string}>}
  */
-export async function startOneTimeDonation(amount, name = null) {
+export async function startOneTimeDonation(amount, options = {}) {
   assertValidAmount(amount);
-  const result = await createPayment({ amount, name });
+  const { name = null, displayOnConsent = false } = options;
+  const result = await createPayment({ amount, name, displayOnConsent });
   return result.data;
 }
 
 /**
  * @param {number} amount donation amount in EUR (≥ MIN_DONATION_AMOUNT)
- * @param {string|null} [name] optional donor name
+ * @param {{ name?: string|null, displayOnConsent?: boolean }} [options]
  * @returns {Promise<{checkoutUrl: string, customerId: string, subscriptionId: string}>}
  */
-export async function startMonthlyDonation(amount, name = null) {
+export async function startMonthlyDonation(amount, options = {}) {
   assertValidAmount(amount);
-  const result = await createSubscription({ amount, name });
+  const { name = null, displayOnConsent = false } = options;
+  const result = await createSubscription({ amount, name, displayOnConsent });
   return result.data;
 }

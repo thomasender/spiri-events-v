@@ -153,12 +153,13 @@ export interface MolliePaymentCheckoutResult {
 
 export async function createMollieCustomer(
   apiKey: string,
-  name: string | null
+  params: { name: string | null; displayOnConsent: boolean }
 ): Promise<MollieCustomerResponse> {
   const body: Record<string, unknown> = {};
-  if (name && name.trim().length > 0) {
-    body.name = name.trim();
+  if (params.name && params.name.trim().length > 0) {
+    body.name = params.name.trim();
   }
+  body.metadata = { displayOnConsent: params.displayOnConsent };
   return mollieRequest<MollieCustomerResponse>(apiKey, '/customers', {
     method: 'POST',
     body,
@@ -217,6 +218,7 @@ export async function startMolliePaymentCheckout(
     amount: number;
     appBaseUrl: string;
     name?: string | null;
+    displayOnConsent?: boolean;
   }
 ): Promise<MolliePaymentCheckoutResult> {
   const body: Record<string, unknown> = {
@@ -229,9 +231,13 @@ export async function startMolliePaymentCheckout(
     webhookUrl: `${params.appBaseUrl}/mollieWebhook`,
     locale: 'de_AT',
   };
+  const metadata: Record<string, unknown> = {
+    displayOnConsent: Boolean(params.displayOnConsent),
+  };
   if (params.name && params.name.trim().length > 0) {
-    body.metadata = { donorName: params.name.trim() };
+    metadata.donorName = params.name.trim();
   }
+  body.metadata = metadata;
 
   const payment = await mollieRequest<MolliePaymentResponse>(apiKey, '/payments', {
     method: 'POST',

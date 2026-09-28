@@ -25,6 +25,7 @@ function formatPreset(amount) {
 export default function DonationBlock() {
   const [frequency, setFrequency] = useState('monthly');
   const [name, setName] = useState('');
+  const [displayOnConsent, setDisplayOnConsent] = useState(false);
   const [amountInput, setAmountInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -32,6 +33,7 @@ export default function DonationBlock() {
   const parsedAmount = parseDonationAmount(amountInput);
   const isAmountValid = isValidDonationAmount(parsedAmount);
   const isMonthly = frequency === 'monthly';
+  const trimmedName = name.trim();
 
   function handlePresetClick(preset) {
     setAmountInput(formatPreset(preset));
@@ -46,11 +48,18 @@ export default function DonationBlock() {
       );
       return;
     }
+    if (displayOnConsent && !trimmedName) {
+      setError('Bitte gib einen Namen an oder deaktiviere die Checkbox für die Spenderliste.');
+      return;
+    }
     setError(null);
     setSubmitting(true);
     try {
       const start = isMonthly ? startMonthlyDonation : startOneTimeDonation;
-      const { checkoutUrl } = await start(parsedAmount, name.trim() || null);
+      const { checkoutUrl } = await start(parsedAmount, {
+        name: trimmedName || null,
+        displayOnConsent,
+      });
       window.location.assign(checkoutUrl);
     } catch (err) {
       setSubmitting(false);
@@ -99,6 +108,26 @@ export default function DonationBlock() {
             disabled={submitting}
           />
         </label>
+
+        <label className="donation-consent-field">
+          <input
+            type="checkbox"
+            checked={displayOnConsent}
+            onChange={(e) => {
+              setDisplayOnConsent(e.target.checked);
+              setError(null);
+            }}
+            disabled={submitting}
+            data-testid="donation-consent-checkbox"
+          />
+          <span className="donation-consent-label">
+            Ich möchte namentlich auf der „Über uns&ldquo;-Seite erscheinen.
+          </span>
+        </label>
+        <p className="donation-consent-hint">
+          Du kannst deinen Eintrag jederzeit formlos per E-Mail an{' '}
+          <a href="mailto:office@tribevorarlberg.at">office@tribevorarlberg.at</a> entfernen lassen.
+        </p>
 
         <label className="donation-amount-field">
           <span className="donation-amount-label">Betrag in Euro</span>

@@ -1,0 +1,309 @@
+/**
+ * Pure logic for the Mollie webhook handler. Lives in src/lib/ so it can
+ * be unit-tested with Vitest from the project root, and so the Cloud
+ * Function in functions/src/mollieWebhook.ts can re-use it without
+ * duplicating the rules.
+ *
+ * The Cloud Function imports this module, wires up the live Firestore
+ * admin SDK and real Mollie fetchers, and forwards HTTP requests to
+ * `processMollieWebhook`. Tests inject fake fetchers + a fake db.
+ *
+ * Supports Mollie's Next-gen webhook format (current, since 2024):
+ *   Headers: Content-Type: application/json, X-Mollie-Signature: sha256=<hex>
+ *   Body: { resource: 'event', id, type: 'payment.paid', entityId, _embedded: { entity: <payment> } }
+ *
+ * Falls back to the legacy Classic webhook format:
+ *   Content-Type: application/x-www-form-urlencoded
+ *   Body: id=tr_xxx   (then the handler fetches via API)
+ */
+
+import { createHmac, timingSafeEqual } from 'node:crypto';
+
+export const DONOR_NEXT_ORDER_STEP = 100;
+export const MOLLIE_DONATION_CURRENCY = 'EUR';
+export const NEXT_GEN_SIGNATURE_HEADER = 'x-mollie-signature';
+
+function asMetadata(input) {
+  if (input && typeof input === 'object') return input;
+  return {};
+}
+
+function parseEuroAmount(input) {
+  if (!input || typeof input !== 'object') return null;
+  const value = input.value;
+  if (typeof value !== 'string') return null;
+  const parsed = Number(value.replace(',', '.'));
+  if (!Number.isFinite(parsed)) return null;
+  return Math.round(parsed * 100) / 100;
+}
+
+export function donorIdForPayment(paymentId, subscriptionId) {
+  if (subscriptionId) {
+    return `donor_mollie_sub_${subscriptionId}`;
+  }
+  return `donor_mollie_${paymentId}`;
+}
+
+/**
+ * Verify a Mollie HMAC-SHA256 signature.
+ *
+ * @param {object} params
+ * @param {string|Buffer} params.rawBody - exact bytes Mollie signed
+ * @param {string|null} params.signature - the `X-Mollie-Signature` header value
+ * @param {string|null} params.secret - signing secret configured in Mollie
+ * @returns {{ valid: boolean, skipped: boolean, reason?: string }}
+ */
+export function verifyMollieSignature({ rawBody, signature, secret }) {
+  if (!secret) {
+    return { valid: true, skipped: true, reason: 'no-secret-configured' };
+  }
+  if (!signature) {
+    return { valid: false, skipped: false, reason: 'missing-signature' };
+  }
+  const expected = signature.startsWith('sha256=') ? signature.slice(7) : signature;
+  const computed = createHmac('sha256', secret).update(rawBody).digest('hex');
+  if (expected.length !== computed.length) {
+    return { valid: false, skipped: false, reason: 'length-mismatch' };
+  }
+  const a = Buffer.from(expected, 'hex');
+  const b = Buffer.from(computed, 'hex');
+  if (a.length !== b.length) {
+    return { valid: false, skipped: false, reason: 'length-mismatch' };
+  }
+  const ok = timingSafeEqual(a, b);
+  return { valid: ok, skipped: false, reason: ok ? undefined : 'signature-mismatch' };
+}
+
+/**
+ * Normalise a parsed body to the union shape the rest of the handler
+ * works with. Returns:
+ *   { format: 'next-gen', type, eventId, payment }   when the body is a Next-gen event we care about
+ *   { format: 'classic', id }                        when the body is the legacy id=<tr_xxx> form
+ *   { format: 'unknown', reason }                    otherwise
+ *
+ * Classic webhooks always ship a single payment id — subscription events
+ * are not exposed via the classic webhook either, so the resource type is
+ * implicit. Next-gen wraps every event in `{ resource: 'event', type,
+ * _embedded: { entity: <payment> } }`.
+ */
+export function parseWebhookBody(rawBody) {
+  // Classic: a string like 'id=tr_xxx' (form-urlencoded) — or the same
+  // parsed as JSON (some senders / proxies attach the JSON form too).
+  if (typeof rawBody === 'string') {
+    const text = rawBody.trim();
+    if (text.startsWith('{')) {
+      try {
+        return parseWebhookBody(JSON.parse(text));
+      } catch {
+        // fall through to URLSearchParams below
+      }
+    }
+    const params = new URLSearchParams(text);
+    const id = params.get('id');
+    if (!id) return { format: 'unknown', reason: 'missing-id' };
+    return {
+      format: 'classic',
+      id,
+    };
+  }
+
+  if (rawBody && typeof rawBody === 'object') {
+    // Legacy JSON form: only the payment resource is ever sent by the
+    // classic webhook, so a `resource: 'payment'` envelope still means
+    // we need to fetch the payment by id.
+    if (rawBody.resource === 'payment' && typeof rawBody.id === 'string') {
+      return {
+        format: 'classic',
+        id: rawBody.id,
+      };
+    }
+
+    // Next-gen webhook envelope.
+    if (rawBody.resource === 'event') {
+      const type = typeof rawBody.type === 'string' ? rawBody.type : null;
+      const eventId = typeof rawBody.id === 'string' ? rawBody.id : null;
+      const entity = rawBody._embedded?.entity;
+      let payment = null;
+      if (type === 'payment.paid' && entity && typeof entity === 'object') {
+        payment = entity;
+      }
+      return {
+        format: 'next-gen',
+        type,
+        eventId,
+        payment,
+      };
+    }
+  }
+
+  return { format: 'unknown', reason: 'unrecognised-body' };
+}
+
+/**
+ * Pure handler: persists the donor record for a paid Mollie payment.
+ *
+ * @param {object} deps
+ * @param {object} deps.db - duck-typed Firestore: must expose
+ *   .collection(name).doc(id).get() / .set(data, { merge }) /
+ *   .collection(name).orderBy().limit().get()
+ * @param {object} deps.payment - Mollie payment resource
+ * @param {() => Date} [deps.now] - clock injection for tests
+ * @returns {Promise<{written: boolean, reason?: string}>}
+ */
+export async function handlePaidPayment({ db, payment, now = () => new Date() }) {
+  const metadata = asMetadata(payment.metadata);
+  if (!metadata.displayOnConsent) {
+    return { written: false, reason: 'no-consent' };
+  }
+  if (payment.status !== 'paid' && payment.status !== 'authorized') {
+    return { written: false, reason: `status:${payment.status}` };
+  }
+  if (payment.amount?.currency && payment.amount.currency !== MOLLIE_DONATION_CURRENCY) {
+    return { written: false, reason: 'wrong-currency' };
+  }
+  const donorName = typeof metadata.donorName === 'string' ? metadata.donorName.trim() : '';
+  const isAnonymous = donorName.length === 0;
+  const amount = parseEuroAmount(payment.amount);
+
+  const donorId = donorIdForPayment(payment.id, payment.subscriptionId);
+  const ref = db.collection('donors').doc(donorId);
+  const existing = await ref.get();
+  const existingCreatedAt = existing.exists ? existing.get('createdAt') : undefined;
+
+  let order;
+  if (existing.exists && typeof existing.get('order') === 'number') {
+    order = existing.get('order');
+  } else {
+    const snapshot = await db.collection('donors').orderBy('order', 'desc').limit(1).get();
+    const docs = snapshot.docs || [];
+    const maxOrder = docs.reduce((max, doc) => {
+      const value = doc.get('order');
+      return typeof value === 'number' && value > max ? value : max;
+    }, -1);
+    order = maxOrder < 0 ? 0 : maxOrder + DONOR_NEXT_ORDER_STEP;
+  }
+
+  const isSubscriptionPayment = Boolean(payment.subscriptionId);
+  const isRecurring =
+    payment.sequenceType === 'recurring' ||
+    (isSubscriptionPayment && payment.sequenceType === 'first');
+  const frequency = isRecurring ? 'monthly' : 'one-time';
+
+  const data = {
+    name: isAnonymous ? null : donorName,
+    amount,
+    frequency,
+    note: null,
+    order,
+    source: 'mollie',
+    mollieConsent: true,
+    molliePaymentId: payment.id,
+    mollieSubscriptionId: payment.subscriptionId ?? null,
+    createdAt: existingCreatedAt ?? { __serverTimestamp: true },
+    updatedAt: { __serverTimestamp: true },
+  };
+
+  await ref.set(data, { merge: false });
+  return { written: true };
+}
+
+/**
+ * Top-level webhook handler. Looks up the resource mentioned in the
+ * webhook body, verifies state==='paid', and writes the donor record.
+ *
+ * @param {object} deps
+ * @param {object} deps.body - parsed { format, ... }
+ * @param {(id: string) => Promise<object>} [deps.fetchPayment]
+ * @param {(id: string) => Promise<object>} [deps.fetchCustomer]
+ * @param {object} deps.db - Firestore duck type, see handlePaidPayment
+ * @param {() => Date} [deps.now]
+ */
+export async function processMollieWebhook({
+  body,
+  fetchPayment,
+  fetchCustomer,
+  db,
+  now = () => new Date(),
+}) {
+  if (body.format === 'unknown') {
+    return { status: 400, body: { error: 'unrecognised webhook body', reason: body.reason } };
+  }
+
+  // Next-gen: the full payment object is embedded in the event payload,
+  // no fetch needed.
+  if (body.format === 'next-gen') {
+    if (!body.payment) {
+      return { status: 200, body: { received: true, action: 'ignored', reason: body.type } };
+    }
+    const payment = body.payment;
+    if (payment.status !== 'paid') {
+      return {
+        status: 200,
+        body: { received: true, action: 'ignored', reason: payment.status },
+      };
+    }
+    if (payment.subscriptionId && payment.sequenceType && payment.sequenceType !== 'first') {
+      return { status: 200, body: { received: true, action: 'skip-recurring' } };
+    }
+    await enrichPaymentFromCustomerIfNeeded({ payment, fetchCustomer });
+    const result = await handlePaidPayment({ db, payment, now });
+    return { status: 200, body: { received: true, ...result } };
+  }
+
+  // Classic: only the id is shipped; fetch the full payment from Mollie.
+  if (body.format === 'classic') {
+    if (!body.id || !fetchPayment) {
+      return { status: 400, body: { error: 'missing-id' } };
+    }
+    try {
+      const payment = await fetchPayment(body.id);
+      if (payment.status !== 'paid') {
+        return {
+          status: 200,
+          body: { received: true, action: 'ignored', reason: payment.status },
+        };
+      }
+      if (payment.subscriptionId && payment.sequenceType && payment.sequenceType !== 'first') {
+        return { status: 200, body: { received: true, action: 'skip-recurring' } };
+      }
+      await enrichPaymentFromCustomerIfNeeded({ payment, fetchCustomer });
+      const result = await handlePaidPayment({ db, payment, now });
+      return { status: 200, body: { received: true, ...result } };
+    } catch (err) {
+      return {
+        status: 500,
+        body: { error: 'fetch-failed', message: err?.message ?? 'unknown' },
+      };
+    }
+  }
+
+  return { status: 400, body: { error: 'unsupported format' } };
+}
+
+/**
+ * When the payment carries no donor metadata — typical for the first
+ * payment of a subscription, which Mollie creates automatically — pull
+ * `displayOnConsent` and the donor name from the underlying customer.
+ */
+async function enrichPaymentFromCustomerIfNeeded({ payment, fetchCustomer }) {
+  if (!fetchCustomer) return;
+  const metadata = asMetadata(payment.metadata);
+  const hasConsent = metadata.displayOnConsent === true;
+  const hasName = typeof metadata.donorName === 'string' && metadata.donorName.trim().length > 0;
+  if (hasConsent && hasName) return;
+  if (!payment.customerId) return;
+  const customer = await fetchCustomer(payment.customerId).catch(() => null);
+  if (!customer) return;
+  const customerMeta = asMetadata(customer.metadata);
+  payment.metadata = {
+    ...customerMeta,
+    ...metadata,
+    displayOnConsent: hasConsent ? metadata.displayOnConsent : customerMeta.displayOnConsent,
+    donorName: hasName
+      ? metadata.donorName
+      : typeof customer.name === 'string' && customer.name.trim().length > 0
+        ? customer.name.trim()
+        : metadata.donorName,
+  };
+  if (!payment.customerId && customer.id) payment.customerId = customer.id;
+}

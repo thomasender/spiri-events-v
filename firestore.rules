@@ -484,6 +484,9 @@ service cloud.firestore {
     // `amount` may be null when the donor chose to hide it, and
     // `frequency` is informational (`one-time` | `monthly`) — donors who
     // pick "anonymous + amount shown" still appear by amount only.
+    // Entries with `source == 'mollie'` are written by the Cloud Function
+    // mollieWebhook via the Admin SDK (which bypasses these rules) after a
+    // successful payment, then become visible/editable like any other entry.
     match /donors/{donorId} {
       allow read: if true;
 
@@ -503,16 +506,37 @@ service cloud.firestore {
         return note == null
           || (note is string && note.size() <= 120);
       }
+      function isValidDonorSource(source) {
+        return source == null
+          || (source is string && source in ['manual', 'mollie']);
+      }
+      function isValidDonorConsent(consent) {
+        return consent == null || consent is bool;
+      }
+      function isValidMolliePaymentId(id) {
+        return id == null
+          || (id is string && id.size() > 0 && id.size() <= 80);
+      }
+      function isValidMollieSubscriptionId(id) {
+        return id == null
+          || (id is string && id.size() > 0 && id.size() <= 80);
+      }
 
       allow create: if isAdminOrEmulatorAdmin()
                     && request.resource.data.keys().hasOnly([
                       'name', 'amount', 'frequency', 'note',
                       'order', 'createdAt', 'updatedAt', 'createdBy',
+                      'source', 'mollieConsent',
+                      'molliePaymentId', 'mollieSubscriptionId',
                     ])
                     && isValidDonorName(request.resource.data.name)
                     && isValidDonorAmount(request.resource.data.amount)
                     && isValidDonorFrequency(request.resource.data.frequency)
-                    && isValidDonorNote(request.resource.data.note);
+                    && isValidDonorNote(request.resource.data.note)
+                    && isValidDonorSource(request.resource.data.source)
+                    && isValidDonorConsent(request.resource.data.mollieConsent)
+                    && isValidMolliePaymentId(request.resource.data.molliePaymentId)
+                    && isValidMollieSubscriptionId(request.resource.data.mollieSubscriptionId);
 
       allow update: if isAdminOrEmulatorAdmin()
                     && request.resource.data.diff(resource.data).affectedKeys()
