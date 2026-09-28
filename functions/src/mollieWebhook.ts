@@ -1,23 +1,32 @@
 import { onRequest } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions';
-import { defineSecret } from 'firebase-functions/params';
 import { MOLLIE_API_KEY, mollieRequest } from './mollie';
 import { getFirestore } from 'firebase-admin/firestore';
+import type { FirestoreLikeDb } from './mollieWebhookLogic';
 import {
+  canonicalBodyBytes,
   NEXT_GEN_SIGNATURE_HEADER,
   parseWebhookBody,
   processMollieWebhook as runWebhook,
   verifyMollieSignature,
-  FirestoreLikeDb,
-} from '../../src/lib/mollieWebhook';
+} from './mollieWebhookLogic';
 
 const REGION = 'europe-west3';
-const MOLLIE_WEBHOOK_SIGNING_SECRET = defineSecret('MOLLIE_WEBHOOK_SIGNING_SECRET');
+
+/**
+ * Read the webhook signing secret. Falls back to the
+ * MOLLIE_WEBHOOK_SIGNING_SECRET environment variable so the function
+ * works in the local emulator out-of-the-box; in production this is set
+ * via `firebase functions:secrets:set`.
+ */
+function getWebhookSigningSecret(): string | null {
+  return process.env.MOLLIE_WEBHOOK_SIGNING_SECRET ?? null;
+}
 
 export const mollieWebhook = onRequest(
   {
     region: REGION,
-    secrets: [MOLLIE_API_KEY, MOLLIE_WEBHOOK_SIGNING_SECRET],
+    secrets: [MOLLIE_API_KEY],
   },
   async (req, res) => {
     const apiKey = MOLLIE_API_KEY.value();
@@ -27,24 +36,30 @@ export const mollieWebhook = onRequest(
       return;
     }
 
-    // Signature verification: Next-gen webhooks carry an HMAC-SHA256
-    // signature of the raw body. Verifying it confirms the payload really
-    // originated from Mollie. When the secret isn't configured (e.g. local
-    // emulator running the classic flow), we accept unsigned requests.
-    const secret = MOLLIE_WEBHOOK_SIGNING_SECRET.value() || null;
-    const rawBody =
-      req.rawBody ??
-      Buffer.from(typeof req.body === 'string' ? req.body : JSON.stringify(req.body ?? null));
-    const signature =
-      typeof req.get === 'function' ? (req.get(NEXT_GEN_SIGNATURE_HEADER) ?? null) : null;
-    const sigCheck = verifyMollieSignature({ rawBody, signature, secret });
+    const rawBody = canonicalBodyBytes(req);
+
+    const secret = getWebhookSigningSecret();
+    const signatureHeader =
+      typeof req.headers[NEXT_GEN_SIGNATURE_HEADER] === 'string'
+        ? (req.headers[NEXT_GEN_SIGNATURE_HEADER] as string)
+        : null;
+    const sigCheck = verifyMollieSignature({
+      rawBody,
+      signature: signatureHeader,
+      secret,
+    });
     if (!sigCheck.valid) {
-      logger.warn('mollieWebhook signature rejected', { reason: sigCheck.reason });
+      logger.warn('mollieWebhook signature rejected', {
+        reason: sigCheck.reason,
+        rawBodyLength: rawBody.length,
+        signaturePrefix: signatureHeader ? signatureHeader.slice(0, 24) : null,
+      });
       res.status(401).json({ error: 'invalid-signature', reason: sigCheck.reason });
       return;
     }
 
-    const body = parseWebhookBody(req.body);
+    const bodyText = rawBody.toString('utf8');
+    const body = parseWebhookBody(bodyText);
     const db = getFirestore() as unknown as FirestoreLikeDb;
 
     const result = await runWebhook({
@@ -68,4 +83,4 @@ export {
   processMollieWebhook,
   handlePaidPayment,
   verifyMollieSignature,
-} from '../../src/lib/mollieWebhook';
+} from './mollieWebhookLogic';

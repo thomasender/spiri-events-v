@@ -6,13 +6,13 @@ event-lifecycle notification emails.
 
 ## Endpoints
 
-| Name                       | Type              | Purpose                                                                          |
-| -------------------------- | ----------------- | -------------------------------------------------------------------------------- |
-| `createMolliePayment`      | HTTPS callable    | Creates a one-time Mollie payment and returns its checkout URL.                  |
-| `createMollieSubscription` | HTTPS callable    | Creates a Mollie customer + monthly subscription and returns its checkout URL.   |
-| `mollieWebhook`            | HTTPS request     | Receives `payment.paid` webhooks (Next-gen + Classic) and writes the donor list. |
-| `onEventStatusChanged`     | Firestore trigger | Sends a notification email when an event transitions status.                     |
-| `onAdminMessageCreated`    | Firestore trigger | Sends a notification email when an admin writes a change-request message.        |
+| Name                       | Type              | Purpose                                                                                                                                                                                    |
+| -------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `createMolliePayment`      | HTTPS callable    | Creates a one-time Mollie payment and returns its checkout URL.                                                                                                                            |
+| `createMollieSubscription` | HTTPS callable    | Creates a Mollie customer + monthly subscription and returns its checkout URL.                                                                                                             |
+| `mollieWebhook`            | HTTPS request     | Receives `payment.paid` webhooks (Next-gen + Classic) and writes the donor list. Reads `MOLLIE_WEBHOOK_SIGNING_SECRET` from env / Firebase Functions secrets for HMAC-SHA256 verification. |
+| `onEventStatusChanged`     | Firestore trigger | Sends a notification email when an event transitions status.                                                                                                                               |
+| `onAdminMessageCreated`    | Firestore trigger | Sends a notification email when an admin writes a change-request message.                                                                                                                  |
 
 The Mollie callables accept `{ amount: number, name?: string | null, displayOnConsent?: boolean }`.
 `amount` must be a number of at least `5.00` EUR; larger values are accepted.
@@ -113,7 +113,10 @@ Firebase Functions secrets and resolved at runtime:
 
 ```bash
 firebase functions:secrets:set MOLLIE_API_KEY
-firebase functions:secrets:set MOLLIE_WEBHOOK_SIGNING_SECRET   # recommended, see Donor automation section
+# MOLLIE_WEBHOOK_SIGNING_SECRET is read from the environment. In production
+# it must be set either via `firebase functions:secrets:set` (and re-exported
+# as env) or as a Functions v2 secret referenced from the function config.
+# For local emulator use a plain `MOLLIE_WEBHOOK_SIGNING_SECRET=...` env var.
 firebase functions:secrets:set MAILGUN_API_KEY
 firebase functions:secrets:set MAILGUN_DOMAIN
 firebase functions:secrets:set MAILGUN_FROM

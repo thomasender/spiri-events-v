@@ -6,7 +6,8 @@ import {
   handlePaidPayment,
   processMollieWebhook,
   verifyMollieSignature,
-} from '../../src/lib/mollieWebhook';
+  canonicalBodyBytes,
+} from '../../functions/src/mollieWebhookLogic';
 
 function makeSnapshot(exists, fields = {}, docs = []) {
   return {
@@ -110,6 +111,33 @@ describe('verifyMollieSignature', () => {
     const hex = createHmac('sha256', SECRET).update(body).digest('hex');
     const r = verifyMollieSignature({ rawBody: body, signature: hex, secret: SECRET });
     expect(r.valid).toBe(true);
+  });
+});
+
+describe('canonicalBodyBytes', () => {
+  it('prefers a rawBody buffer when available', () => {
+    const raw = Buffer.from('{"hello":"world"}');
+    expect(canonicalBodyBytes({ rawBody: raw }).equals(raw)).toBe(true);
+  });
+
+  it('utf-8-encodes a string rawBody', () => {
+    expect(canonicalBodyBytes({ rawBody: '{"foo":"bar"}' }).toString('utf8')).toBe('{"foo":"bar"}');
+  });
+
+  it('stringifies an object body (Firebase v2 default after body-parser)', () => {
+    const obj = { resource: 'event', type: 'payment.paid', id: 'x' };
+    expect(canonicalBodyBytes({ body: obj }).toString('utf8')).toBe(
+      '{"resource":"event","type":"payment.paid","id":"x"}'
+    );
+  });
+
+  it('passes a string body through verbatim', () => {
+    expect(canonicalBodyBytes({ body: 'id=tr_123' }).toString('utf8')).toBe('id=tr_123');
+  });
+
+  it('returns an empty buffer when both body and rawBody are missing', () => {
+    expect(canonicalBodyBytes({}).length).toBe(0);
+    expect(canonicalBodyBytes({ body: null }).length).toBe(0);
   });
 });
 

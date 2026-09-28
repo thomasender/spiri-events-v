@@ -1,12 +1,13 @@
 /**
- * Pure logic for the Mollie webhook handler. Lives in src/lib/ so it can
- * be unit-tested with Vitest from the project root, and so the Cloud
- * Function in functions/src/mollieWebhook.ts can re-use it without
- * duplicating the rules.
+ * Pure logic for the Mollie webhook handler. Lives in functions/src/ so
+ * both the Cloud Function in functions/src/mollieWebhook.ts and the
+ * Vitest specs in tests/lib/ can import it from a single source of
+ * truth. tsc compiles this file into functions/lib/ as CommonJS; vitest
+ * reads it as TS directly.
  *
- * The Cloud Function imports this module, wires up the live Firestore
- * admin SDK and real Mollie fetchers, and forwards HTTP requests to
- * `processMollieWebhook`. Tests inject fake fetchers + a fake db.
+ * The Cloud Function wires up the live Firestore admin SDK and real
+ * Mollie fetchers, and forwards HTTP requests to `processMollieWebhook`.
+ * Tests inject fake fetchers + a fake db.
  *
  * Supports Mollie's Next-gen webhook format (current, since 2024):
  *   Headers: Content-Type: application/json, X-Mollie-Signature: sha256=<hex>
@@ -23,37 +24,46 @@ export const DONOR_NEXT_ORDER_STEP = 100;
 export const MOLLIE_DONATION_CURRENCY = 'EUR';
 export const NEXT_GEN_SIGNATURE_HEADER = 'x-mollie-signature';
 
-function asMetadata(input) {
-  if (input && typeof input === 'object') return input;
+function asMetadata(input: unknown): Record<string, unknown> {
+  if (input && typeof input === 'object') return input as Record<string, unknown>;
   return {};
 }
 
-function parseEuroAmount(input) {
+function parseEuroAmount(input: unknown): number | null {
   if (!input || typeof input !== 'object') return null;
-  const value = input.value;
+  const value = (input as { value?: unknown }).value;
   if (typeof value !== 'string') return null;
   const parsed = Number(value.replace(',', '.'));
   if (!Number.isFinite(parsed)) return null;
   return Math.round(parsed * 100) / 100;
 }
 
-export function donorIdForPayment(paymentId, subscriptionId) {
+export function donorIdForPayment(paymentId: string, subscriptionId?: string | null): string {
   if (subscriptionId) {
     return `donor_mollie_sub_${subscriptionId}`;
   }
   return `donor_mollie_${paymentId}`;
 }
 
-/**
- * Verify a Mollie HMAC-SHA256 signature.
- *
- * @param {object} params
- * @param {string|Buffer} params.rawBody - exact bytes Mollie signed
- * @param {string|null} params.signature - the `X-Mollie-Signature` header value
- * @param {string|null} params.secret - signing secret configured in Mollie
- * @returns {{ valid: boolean, skipped: boolean, reason?: string }}
- */
-export function verifyMollieSignature({ rawBody, signature, secret }) {
+async function nextOrderForNewDonor(db: FirestoreLikeDb): Promise<number> {
+  const snapshot = await db.collection('donors').orderBy('order', 'desc').limit(1).get();
+  const docs = snapshot.docs ?? [];
+  const maxOrder = docs.reduce((max: number, doc) => {
+    const value = doc.get('order');
+    return typeof value === 'number' && value > max ? value : max;
+  }, -1);
+  return maxOrder < 0 ? 0 : maxOrder + DONOR_NEXT_ORDER_STEP;
+}
+
+export function verifyMollieSignature({
+  rawBody,
+  signature,
+  secret,
+}: {
+  rawBody: string | Buffer;
+  signature: string | null;
+  secret: string | null;
+}): { valid: boolean; skipped: boolean; reason?: string } {
   if (!secret) {
     return { valid: true, skipped: true, reason: 'no-secret-configured' };
   }
@@ -75,6 +85,31 @@ export function verifyMollieSignature({ rawBody, signature, secret }) {
 }
 
 /**
+ * Returns the body bytes that the signature should be verified against.
+ *
+ * Firebase Functions v2 (and the local emulator) parses JSON bodies via
+ * Express `body-parser`, populating `req.body` and consuming the raw
+ * stream. The stream is therefore typically empty by the time the
+ * handler runs, so `req.rawBody` is not populated.
+ *
+ * For signature verification to work reliably across deployments we need
+ * the EXACT bytes Mollie signed. We accept that `req.body` already parsed
+ * the JSON, and re-serialise it back to a canonical string. As long as
+ * both sides agree on the canonical form this works — and for Mollie's
+ * Next-gen event payload (a deterministic JSON shape with no
+ * whitespace), `JSON.stringify(parsedBody)` is byte-equivalent to the
+ * wire payload.
+ */
+export function canonicalBodyBytes(req: { body?: unknown; rawBody?: Buffer | string }): Buffer {
+  if (req.rawBody) {
+    return Buffer.isBuffer(req.rawBody) ? req.rawBody : Buffer.from(req.rawBody, 'utf8');
+  }
+  if (req.body === undefined || req.body === null) return Buffer.alloc(0);
+  if (typeof req.body === 'string') return Buffer.from(req.body, 'utf8');
+  return Buffer.from(JSON.stringify(req.body), 'utf8');
+}
+
+/**
  * Normalise a parsed body to the union shape the rest of the handler
  * works with. Returns:
  *   { format: 'next-gen', type, eventId, payment }   when the body is a Next-gen event we care about
@@ -86,7 +121,7 @@ export function verifyMollieSignature({ rawBody, signature, secret }) {
  * implicit. Next-gen wraps every event in `{ resource: 'event', type,
  * _embedded: { entity: <payment> } }`.
  */
-export function parseWebhookBody(rawBody) {
+export function parseWebhookBody(rawBody: unknown): ParsedWebhookBody {
   // Classic: a string like 'id=tr_xxx' (form-urlencoded) — or the same
   // parsed as JSON (some senders / proxies attach the JSON form too).
   if (typeof rawBody === 'string') {
@@ -111,21 +146,22 @@ export function parseWebhookBody(rawBody) {
     // Legacy JSON form: only the payment resource is ever sent by the
     // classic webhook, so a `resource: 'payment'` envelope still means
     // we need to fetch the payment by id.
-    if (rawBody.resource === 'payment' && typeof rawBody.id === 'string') {
+    const obj = rawBody as Record<string, unknown>;
+    if (obj.resource === 'payment' && typeof obj.id === 'string') {
       return {
         format: 'classic',
-        id: rawBody.id,
+        id: obj.id,
       };
     }
 
     // Next-gen webhook envelope.
-    if (rawBody.resource === 'event') {
-      const type = typeof rawBody.type === 'string' ? rawBody.type : null;
-      const eventId = typeof rawBody.id === 'string' ? rawBody.id : null;
-      const entity = rawBody._embedded?.entity;
-      let payment = null;
+    if (obj.resource === 'event') {
+      const type = typeof obj.type === 'string' ? obj.type : null;
+      const eventId = typeof obj.id === 'string' ? obj.id : null;
+      const entity = (obj._embedded as { entity?: unknown } | undefined)?.entity;
+      let payment: MolliePaymentResource | null = null;
       if (type === 'payment.paid' && entity && typeof entity === 'object') {
-        payment = entity;
+        payment = entity as MolliePaymentResource;
       }
       return {
         format: 'next-gen',
@@ -141,16 +177,12 @@ export function parseWebhookBody(rawBody) {
 
 /**
  * Pure handler: persists the donor record for a paid Mollie payment.
- *
- * @param {object} deps
- * @param {object} deps.db - duck-typed Firestore: must expose
- *   .collection(name).doc(id).get() / .set(data, { merge }) /
- *   .collection(name).orderBy().limit().get()
- * @param {object} deps.payment - Mollie payment resource
- * @param {() => Date} [deps.now] - clock injection for tests
- * @returns {Promise<{written: boolean, reason?: string}>}
  */
-export async function handlePaidPayment({ db, payment, now = () => new Date() }) {
+export async function handlePaidPayment({
+  db,
+  payment,
+  now = () => new Date(),
+}: HandlePaidPaymentDeps): Promise<HandlePaidPaymentResult> {
   const metadata = asMetadata(payment.metadata);
   if (!metadata.displayOnConsent) {
     return { written: false, reason: 'no-consent' };
@@ -170,17 +202,16 @@ export async function handlePaidPayment({ db, payment, now = () => new Date() })
   const existing = await ref.get();
   const existingCreatedAt = existing.exists ? existing.get('createdAt') : undefined;
 
-  let order;
-  if (existing.exists && typeof existing.get('order') === 'number') {
-    order = existing.get('order');
+  let order: number;
+  if (existing.exists) {
+    const existingOrder = existing.get('order');
+    if (typeof existingOrder === 'number') {
+      order = existingOrder;
+    } else {
+      order = await nextOrderForNewDonor(db);
+    }
   } else {
-    const snapshot = await db.collection('donors').orderBy('order', 'desc').limit(1).get();
-    const docs = snapshot.docs || [];
-    const maxOrder = docs.reduce((max, doc) => {
-      const value = doc.get('order');
-      return typeof value === 'number' && value > max ? value : max;
-    }, -1);
-    order = maxOrder < 0 ? 0 : maxOrder + DONOR_NEXT_ORDER_STEP;
+    order = await nextOrderForNewDonor(db);
   }
 
   const isSubscriptionPayment = Boolean(payment.subscriptionId);
@@ -189,7 +220,7 @@ export async function handlePaidPayment({ db, payment, now = () => new Date() })
     (isSubscriptionPayment && payment.sequenceType === 'first');
   const frequency = isRecurring ? 'monthly' : 'one-time';
 
-  const data = {
+  const data: Record<string, unknown> = {
     name: isAnonymous ? null : donorName,
     amount,
     frequency,
@@ -210,13 +241,6 @@ export async function handlePaidPayment({ db, payment, now = () => new Date() })
 /**
  * Top-level webhook handler. Looks up the resource mentioned in the
  * webhook body, verifies state==='paid', and writes the donor record.
- *
- * @param {object} deps
- * @param {object} deps.body - parsed { format, ... }
- * @param {(id: string) => Promise<object>} [deps.fetchPayment]
- * @param {(id: string) => Promise<object>} [deps.fetchCustomer]
- * @param {object} deps.db - Firestore duck type, see handlePaidPayment
- * @param {() => Date} [deps.now]
  */
 export async function processMollieWebhook({
   body,
@@ -224,16 +248,22 @@ export async function processMollieWebhook({
   fetchCustomer,
   db,
   now = () => new Date(),
-}) {
+}: ProcessMollieWebhookDeps): Promise<ProcessMollieWebhookResult> {
   if (body.format === 'unknown') {
-    return { status: 400, body: { error: 'unrecognised webhook body', reason: body.reason } };
+    return {
+      status: 400,
+      body: { error: 'unrecognised webhook body', reason: body.reason },
+    };
   }
 
   // Next-gen: the full payment object is embedded in the event payload,
   // no fetch needed.
   if (body.format === 'next-gen') {
     if (!body.payment) {
-      return { status: 200, body: { received: true, action: 'ignored', reason: body.type } };
+      return {
+        status: 200,
+        body: { received: true, action: 'ignored', reason: body.type },
+      };
     }
     const payment = body.payment;
     if (payment.status !== 'paid') {
@@ -272,7 +302,7 @@ export async function processMollieWebhook({
     } catch (err) {
       return {
         status: 500,
-        body: { error: 'fetch-failed', message: err?.message ?? 'unknown' },
+        body: { error: 'fetch-failed', message: (err as Error)?.message ?? 'unknown' },
       };
     }
   }
@@ -285,7 +315,13 @@ export async function processMollieWebhook({
  * payment of a subscription, which Mollie creates automatically — pull
  * `displayOnConsent` and the donor name from the underlying customer.
  */
-async function enrichPaymentFromCustomerIfNeeded({ payment, fetchCustomer }) {
+async function enrichPaymentFromCustomerIfNeeded({
+  payment,
+  fetchCustomer,
+}: {
+  payment: MolliePaymentResource;
+  fetchCustomer?: CustomerFetcher;
+}): Promise<void> {
   if (!fetchCustomer) return;
   const metadata = asMetadata(payment.metadata);
   const hasConsent = metadata.displayOnConsent === true;
@@ -306,4 +342,104 @@ async function enrichPaymentFromCustomerIfNeeded({ payment, fetchCustomer }) {
         : metadata.donorName,
   };
   if (!payment.customerId && customer.id) payment.customerId = customer.id;
+}
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export interface MolliePaymentResource {
+  id: string;
+  status: string;
+  amount?: { value?: string; currency?: string };
+  metadata?: Record<string, unknown> | null;
+  customerId?: string | null;
+  subscriptionId?: string | null;
+  sequenceType?: string | null;
+}
+
+export interface MollieCustomerResource {
+  id: string;
+  name?: string;
+  metadata?: Record<string, unknown> | null;
+}
+
+export type PaymentFetcher = (id: string) => Promise<MolliePaymentResource>;
+export type CustomerFetcher = (id: string) => Promise<MollieCustomerResource | null>;
+
+export type NextGenEventType = string;
+
+export interface NextGenEventBody {
+  format: 'next-gen';
+  type: NextGenEventType | null;
+  eventId: string | null;
+  payment: MolliePaymentResource | null;
+}
+
+export interface ClassicWebhookBody {
+  format: 'classic';
+  id: string;
+}
+
+export interface UnknownWebhookBody {
+  format: 'unknown';
+  reason: string;
+}
+
+export type ParsedWebhookBody = NextGenEventBody | ClassicWebhookBody | UnknownWebhookBody;
+
+export interface FirestoreLikeTimestamp {
+  seconds?: number;
+  nanoseconds?: number;
+  toDate?: () => Date;
+  __serverTimestamp?: boolean;
+}
+
+export interface FirestoreLikeRef {
+  get: () => Promise<FirestoreLikeSnapshot>;
+  set: (data: Record<string, unknown>, options?: { merge?: boolean }) => Promise<void>;
+}
+
+export interface FirestoreLikeSnapshot {
+  exists: boolean;
+  docs?: Array<{ get: (field: string) => unknown }>;
+  get: (field: string) => unknown;
+}
+
+export interface FirestoreLikeQuery {
+  get: () => Promise<FirestoreLikeSnapshot>;
+  limit: (count: number) => FirestoreLikeQuery;
+}
+
+export interface FirestoreLikeCollection {
+  doc: (id: string) => FirestoreLikeRef;
+  orderBy: (field: string, direction?: 'asc' | 'desc') => FirestoreLikeQuery;
+}
+
+export interface FirestoreLikeDb {
+  collection: (name: string) => FirestoreLikeCollection;
+}
+
+export interface HandlePaidPaymentDeps {
+  db: FirestoreLikeDb;
+  payment: MolliePaymentResource;
+  now?: () => Date;
+}
+
+export interface HandlePaidPaymentResult {
+  written: boolean;
+  reason?: string;
+}
+
+export interface ProcessMollieWebhookDeps {
+  body: ParsedWebhookBody;
+  fetchPayment?: PaymentFetcher;
+  fetchCustomer?: CustomerFetcher;
+  db: FirestoreLikeDb;
+  now?: () => Date;
+}
+
+export interface ProcessMollieWebhookResult {
+  status: number;
+  body: unknown;
 }
