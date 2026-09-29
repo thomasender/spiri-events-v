@@ -209,7 +209,7 @@ export default function AuthForm() {
               <h1>{isLogin ? 'Willkommen beim Tribe' : 'Konto erstellen'}</h1>
               <p>
                 {isLogin
-                  ? 'Melde dich an, um Events zu veröffentlichen und zu vewalten.'
+                  ? 'Melde dich an, um Events zu veröffentlichen und zu verwalten.'
                   : 'Registriere dich, um eigene Events zu erstellen.'}
               </p>
             </>
