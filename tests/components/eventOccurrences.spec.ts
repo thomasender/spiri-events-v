@@ -245,22 +245,46 @@ describe('Past events are hidden', () => {
   });
 
   it('keeps a multi-day event that is still ongoing (today is within the span)', () => {
+    // Anchor the 5-day span inside the current month so it never crosses a
+    // month boundary on the day the suite runs. The previous `dateStr(-2)` /
+    // `dateStr(2)` form spanned two months when today was near month-end,
+    // which makes `getEventOccurrences` correctly return multiple month-
+    // entries in list mode.
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const day = today.getDate();
+    const lastOfMonth = new Date(year, month + 1, 0).getDate();
+    const span = 5;
+    let startDay;
+    let endDay;
+    if (day + 2 > lastOfMonth) {
+      endDay = lastOfMonth;
+      startDay = lastOfMonth - span + 1;
+    } else {
+      endDay = day + 2;
+      startDay = endDay - span + 1;
+    }
+    const fmt = (d) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const start = new Date(year, month, startDay);
+    const end = new Date(year, month, endDay);
     const event = {
       id: '1',
-      date: dateStr(-2),
-      endDate: dateStr(2),
+      date: fmt(start),
+      endDate: fmt(end),
       recurrence: 'none',
     };
     const list = getEventOccurrences(event);
     expect(list).toHaveLength(1);
-    expect(list[0].date).toBe(dateStr(-2));
+    expect(list[0].date).toBe(fmt(start));
     expect(list[0].isMultiDayStart).toBe(true);
     expect(list[0].isMultiDayEnd).toBe(true);
 
     const cal = getEventOccurrences(event, { mode: 'calendar' });
     expect(cal).toHaveLength(5);
-    expect(cal[0].date).toBe(dateStr(-2));
-    expect(cal[4].date).toBe(dateStr(2));
+    expect(cal[0].date).toBe(fmt(start));
+    expect(cal[4].date).toBe(fmt(end));
   });
 
   it('keeps a multi-day event whose last day is today', () => {
