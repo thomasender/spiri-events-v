@@ -145,14 +145,18 @@ describe('PwaInstallPrompt', () => {
     expect(screen.queryByTestId('pwa-install-sheet')).not.toBeInTheDocument();
   });
 
-  it('does not render on iOS even after the delay', () => {
+  it('renders iOS instructions in the popup after the delay on iOS', () => {
     setIOS(true);
     renderWithRouter(<PwaInstallPrompt />);
-    fireBeforeInstallPrompt();
+    // No beforeinstallprompt on iOS — the timer should still fire and open
+    // the popup with manual Share-menu steps after the engagement delay.
     act(() => {
       vi.advanceTimersByTime(DELAY);
     });
-    expect(screen.queryByTestId('pwa-install-sheet')).not.toBeInTheDocument();
+    const sheet = screen.getByTestId('pwa-install-sheet');
+    expect(sheet).toBeInTheDocument();
+    expect(sheet).toHaveAttribute('data-mode', 'ios');
+    expect(screen.getByTestId('pwa-install-ios-steps')).toBeInTheDocument();
   });
 
   it('does not render on desktop viewport', () => {
@@ -292,7 +296,7 @@ describe('PwaInstallPrompt', () => {
     expect(screen.queryByTestId('pwa-install-sheet')).not.toBeInTheDocument();
   });
 
-  it('does not persist dismissed when the iOS popup is closed via Escape', () => {
+  it('persists dismissed when the iOS popup is closed via Escape', () => {
     setIOS(true);
     renderWithRouter(<PwaInstallPrompt />);
     act(() => {
@@ -301,8 +305,32 @@ describe('PwaInstallPrompt', () => {
     expect(screen.getByTestId('pwa-install-sheet')).toBeInTheDocument();
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByTestId('pwa-install-sheet')).not.toBeInTheDocument();
-    // iOS has no programmatic install — closing shouldn't burn the pref.
-    expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+    expect(localStorage.getItem(STORAGE_KEY)).toBe('dismissed');
+  });
+
+  it('does not auto-pop the iOS dialog again after dismissal, but the footer link still reopens it', () => {
+    setIOS(true);
+    renderWithRouter(<PwaInstallPrompt />);
+    // First engagement cycle — auto-popup fires.
+    act(() => {
+      vi.advanceTimersByTime(DELAY);
+    });
+    expect(screen.getByTestId('pwa-install-sheet')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('pwa-install-close'));
+    expect(screen.queryByTestId('pwa-install-sheet')).not.toBeInTheDocument();
+    expect(localStorage.getItem(STORAGE_KEY)).toBe('dismissed');
+
+    // Advancing past the delay on the same route must not auto-pop again.
+    act(() => {
+      vi.advanceTimersByTime(DELAY + 5000);
+    });
+    expect(screen.queryByTestId('pwa-install-sheet')).not.toBeInTheDocument();
+
+    // But the external trigger still works for users who changed their mind.
+    act(() => {
+      window.dispatchEvent(new CustomEvent(PWA_OPEN_REQUEST_EVENT, { detail: { mode: 'ios' } }));
+    });
+    expect(screen.getByTestId('pwa-install-sheet')).toBeInTheDocument();
   });
 });
 

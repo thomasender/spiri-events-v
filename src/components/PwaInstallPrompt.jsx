@@ -6,29 +6,30 @@ import './PwaInstallPrompt.css';
 
 // Custom event the Footer (and any other caller) dispatches to ask the popup
 // to open. `detail.mode` picks which UI to render; the only value used today
-// is `'ios'` (manual Share-menu steps). Anything else is ignored — the native
-// install path is owned by the auto-timer below, not by external triggers,
-// because iOS is the only path that can't trigger it itself.
+// is `'ios'` (manual Share-menu steps), letting the footer link re-open the
+// dialog after a previous dismissal. The auto-timer below opens the dialog on
+// its own when the user has been engaged long enough — non-iOS in 'native'
+// mode, iOS in 'ios' mode.
 export const PWA_OPEN_REQUEST_EVENT = 'pwa-install-open-requested';
 
 // PwaInstallPrompt
 //
-// Mobile-only bottom-sheet that surfaces the Chrome-family `beforeinstallprompt`
-// prompt after the user has spent some engaged time on the site. Designed for
-// modern PWA UX (15 s delay, resets on route change, single ask per device):
+// Mobile-only bottom-sheet that surfaces the install affordance after the
+// user has spent some engaged time on the site. Designed for modern PWA UX
+// (15 s delay, resets on route change, single ask per device):
 //
-//   - Non-iOS: after `PWA_POPUP_DELAY_MS` of engaged browsing on a fresh route,
-//     we open the popup with the native install CTA. The browser fires
-//     `beforeinstallprompt`, we capture it in usePwaInstall and replay it from
-//     the "Installieren" button.
-//   - iOS Safari never fires that event, so the popup is reached via the
-//     "App installieren" footer link, which dispatches PWA_OPEN_REQUEST_EVENT
-//     with `{ mode: 'ios' }`. The popup renders the manual Share-menu steps
-//     instead of an install button.
+//   - Non-iOS: after `PWA_POPUP_DELAY_MS` of engaged browsing on a fresh
+//     route, we open the popup with the native install CTA. The browser fires
+//     `beforeinstallprompt`, we capture it in usePwaInstall and replay it
+//     from the "Installieren" button.
+//   - iOS Safari never fires that event, but the same timer still opens the
+//     popup — it just renders the manual Share-menu steps instead of an
+//     install button. The "App installieren" footer link also dispatches
+//     PWA_OPEN_REQUEST_EVENT to re-open the dialog on demand.
 //   - Once the user installs, the `appinstalled` event flips a localStorage
 //     flag and the popup never reappears.
-//   - Once the user dismisses ("Nicht jetzt"), the same flag is set so we
-//     don't bug them again. The footer link stays so they can install later.
+//   - Once the user dismisses, the same flag is set so we don't bug them
+//     again. The footer link stays so they can install later.
 //   - The timer resets on every route change — this is the engagement signal
 //     the user implicitly gives by navigating, and matches what most modern
 //     PWAs (Twitter, Starbucks, Pinterest) do.
@@ -53,12 +54,14 @@ export default function PwaInstallPrompt() {
   const closeButtonRef = useRef(null);
   const previousFocusRef = useRef(null);
 
-  // Auto-eligibility gates the native auto-popup only. External triggers
-  // (the footer link on iOS) open the popup regardless of this flag — iOS
-  // users never have `installAvailable`, so without that exception the iOS
-  // path would be permanently suppressed.
-  const autoPopupEligible =
-    !isStandalone && pref !== 'accepted' && pref !== 'dismissed' && installAvailable;
+  // Shared base conditions for any auto-popup: mobile, not running the
+  // installed app, not already dismissed or accepted.
+  const baseEligible =
+    mobileViewport && !isStandalone && pref !== 'accepted' && pref !== 'dismissed';
+  // Auto-popup eligible when the base conditions hold and we have something
+  // to show: iOS uses the manual steps, everyone else needs the captured
+  // beforeinstallprompt event that backs the native install button.
+  const autoPopupEligible = baseEligible && (isIOS || installAvailable);
 
   const closePopup = useCallback(() => {
     setOpen(false);
@@ -69,12 +72,6 @@ export default function PwaInstallPrompt() {
     closePopup();
     dismissPermanently();
   }, [closePopup, dismissPermanently]);
-
-  const handleIOSClose = useCallback(() => {
-    // iOS has no programmatic install — closing the dialog shouldn't burn
-    // the dismissed pref. The footer link stays so the user can re-open it.
-    closePopup();
-  }, [closePopup]);
 
   const handleInstall = useCallback(async () => {
     closePopup();
@@ -87,10 +84,9 @@ export default function PwaInstallPrompt() {
     }
   }, [requestInstall, dismissPermanently, closePopup]);
 
-  // External trigger: the footer "App installieren" link dispatches this when
-  // the browser-native prompt isn't available (iOS, or before
-  // beforeinstallprompt has fired on non-iOS — though on non-iOS we let the
-  // auto-popup handle that case and the footer is a no-op).
+  // External trigger: the footer "App installieren" link dispatches this so
+  // users can re-open the dialog after dismissing it. The auto-timer handles
+  // first-time prompts on its own.
   useEffect(() => {
     const onOpenRequested = (event) => {
       if (event.detail?.mode === 'ios') {
@@ -106,21 +102,20 @@ export default function PwaInstallPrompt() {
   // a fresh route is the right time to ask — they're clearly browsing, not
   // bouncing. The effect dependency on autoPopupEligible ensures we don't
   // queue a timer once the user has accepted, dismissed or left mobile
-  // viewport, and isIOS excludes iOS (handled via the footer link instead).
+  // viewport, and the isIOS dependency picks the right UI mode.
   useEffect(() => {
-    if (!mobileViewport || !autoPopupEligible || isIOS) return undefined;
+    if (!autoPopupEligible) return undefined;
 
     const timer = window.setTimeout(() => {
-      setMode('native');
+      setMode(isIOS ? 'ios' : 'native');
       setOpen(true);
     }, PWA_POPUP_DELAY_MS);
     return () => window.clearTimeout(timer);
-  }, [location.pathname, mobileViewport, autoPopupEligible, isIOS]);
+  }, [location.pathname, autoPopupEligible, isIOS]);
 
-  // Re-evaluate the eligibility gate: if the user accepts the install via
-  // the footer link while this component is mounted, pref flips to 'accepted'
-  // and we should not also show our own native popup. Only the native mode
-  // auto-closes — the iOS mode is user-driven and stays open until dismissed.
+  // Close the native popup if eligibility flips to false mid-display (e.g.
+  // the user accepts via the footer link). iOS mode is user-driven and stays
+  // open until dismissed.
   useEffect(() => {
     if (!autoPopupEligible && open && mode === 'native') {
       closePopup();
@@ -138,8 +133,7 @@ export default function PwaInstallPrompt() {
     const onKey = (event) => {
       if (event.key === 'Escape') {
         event.preventDefault();
-        if (mode === 'ios') handleIOSClose();
-        else handleDismiss();
+        handleDismiss();
       }
     };
     document.addEventListener('keydown', onKey);
@@ -148,7 +142,7 @@ export default function PwaInstallPrompt() {
       const previous = previousFocusRef.current;
       if (previous && typeof previous.focus === 'function') previous.focus();
     };
-  }, [open, mode, handleDismiss, handleIOSClose]);
+  }, [open, handleDismiss]);
 
   if (!open) return null;
 
@@ -156,7 +150,7 @@ export default function PwaInstallPrompt() {
     <div
       className="pwa-install-overlay"
       role="presentation"
-      onClick={mode === 'ios' ? handleIOSClose : handleDismiss}
+      onClick={handleDismiss}
       data-testid="pwa-install-overlay"
     >
       <div
@@ -174,7 +168,7 @@ export default function PwaInstallPrompt() {
           type="button"
           className="pwa-install-close"
           aria-label="Schließen"
-          onClick={mode === 'ios' ? handleIOSClose : handleDismiss}
+          onClick={handleDismiss}
           data-testid="pwa-install-close"
         >
           <X size={20} aria-hidden="true" />
