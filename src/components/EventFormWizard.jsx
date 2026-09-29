@@ -41,6 +41,7 @@ import { CURRENCIES, DEFAULT_CURRENCY, formatPriceWithCurrency } from '../utils/
 import { saveWizardDraft, loadWizardDraft, clearWizardDraft } from '../utils/wizardDraftStorage';
 import { normalizeCategoryInput, isValidCategoryInput } from '../utils/categoryInput';
 import { getCategoryColor } from '../utils/categoryColors';
+import { getMissingProfileFields } from '../utils/profile';
 import './EventForm.css';
 import './EventFormWizard.css';
 
@@ -1509,7 +1510,7 @@ export default function EventFormWizard() {
           'Da die Prüfung durch eine Person erfolgt, kann es etwas dauern, bis dein Event öffentlich sichtbar wird. Du kannst den Status jederzeit in deiner Verwaltung einsehen.'
         }
         cta={
-          successState && !profile?.slug
+          successState && getMissingProfileFields(profile).length > 0
             ? {
                 text: 'Lege jetzt dein Profil an, damit andere dich als Veranstalter:in finden können.',
                 label: 'Profil ausfüllen',
