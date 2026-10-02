@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { doc, getFirestore, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { getApp } from 'firebase/app';
-import { ClipboardCheck, Inbox, MessageCircle, CheckCircle2 } from 'lucide-react';
+import { ClipboardCheck, Inbox, MessageCircle, CheckCircle2, ChevronDown } from 'lucide-react';
 import { usePendingEvents, useAllEvents } from '../hooks/useEvents';
 import { useEventsWithMessages } from '../hooks/useEventsWithMessages';
 import { useUserDisplayNames } from '../hooks/useUserDisplayNames';
@@ -26,20 +26,44 @@ function getApprovedAtMillis(value) {
   return Number.isNaN(d.getTime()) ? null : d.getTime();
 }
 
+function CollapseToggle({ id, open, onToggle, testId, children }) {
+  return (
+    <button
+      type="button"
+      className="review-toggle"
+      aria-expanded={open}
+      aria-controls={id}
+      onClick={onToggle}
+      data-testid={testId}
+    >
+      {children}
+      <ChevronDown
+        size={18}
+        aria-hidden="true"
+        className={`review-toggle-chevron${open ? ' is-open' : ''}`}
+      />
+    </button>
+  );
+}
+
 export default function ReviewTab() {
   const { pendingEvents, loading: pendingLoading, approveEvent } = usePendingEvents();
   const { events: allApprovedEvents, loading: approvedLoading } = useAllEvents();
-  const {
-    unreadCountByEvent,
-    hasMessagesByEvent,
-    inKlaerungAuthorNameByEvent,
-  } = useEventsWithMessages();
+  const { unreadCountByEvent, hasMessagesByEvent, inKlaerungAuthorNameByEvent } =
+    useEventsWithMessages();
 
   const [approvingId, setApprovingId] = useState(null);
   const [revertTarget, setRevertTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [approveSuccess, setApproveSuccess] = useState(null);
   const [mutating, setMutating] = useState(false);
+  // Pending (needs action) and "In Klärung" start open; the approved history starts closed.
+  const [openSections, setOpenSections] = useState({
+    pending: true,
+    klaerung: true,
+    approved: false,
+  });
+  const toggleSection = (key) => setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const handleApprove = async (eventId) => {
     const target = pendingEvents.find((e) => e.id === eventId);
@@ -174,103 +198,117 @@ export default function ReviewTab() {
         >
           <div className="review-section-header">
             <h2 className="review-section-title">
-              <Inbox size={20} aria-hidden="true" />
-              <span>Wartend auf Genehmigung</span>
-              <span
-                className="review-section-count"
-                data-testid="review-section-pending-count"
+              <CollapseToggle
+                id="review-section-pending-body"
+                open={openSections.pending}
+                onToggle={() => toggleSection('pending')}
+                testId="review-toggle-pending"
               >
-                {pendingEvents.length}
-              </span>
+                <Inbox size={20} aria-hidden="true" />
+                <span>Wartend auf Genehmigung</span>
+                <span className="review-section-count" data-testid="review-section-pending-count">
+                  {pendingEvents.length}
+                </span>
+              </CollapseToggle>
             </h2>
-            <p className="review-section-hint">
-              Events, die das Team noch entscheiden muss.
-            </p>
+            <p className="review-section-hint">Events, die das Team noch entscheiden muss.</p>
           </div>
 
-          <div className="review-subsection" data-testid="review-subsection-neu-block">
-            <h3 className="review-subsection-title" data-testid="review-subsection-neu">
-              Neu eingereicht
-              <span
-                className="review-subsection-count"
-                data-testid="review-subsection-neu-count"
-              >
-                {pendingNeu.length}
-              </span>
-            </h3>
-            {pendingNeu.length === 0 ? (
-              <p className="review-subsection-empty">Aktuell keine neuen Einreichungen.</p>
-            ) : (
-              <div className="event-list-rows">
-                {pendingNeu.map((event) => (
-                  <div key={event.id}>
-                    <EventAdminListRow
-                      event={event}
-                      showStatus
-                      showApprove
-                      showRevert
-                      showDuplicate={false}
-                      showSubmittedAt
-                      fromPath="/admin?tab=review"
-                      isAdmin
-                      approving={approvingId}
-                      unreadCount={unreadCountByEvent[event.id] || 0}
-                      hasMessages={Boolean(hasMessagesByEvent[event.id])}
-                      onApprove={handleApprove}
-                      onRevert={(evt) => setRevertTarget({ id: evt.id, eventTitle: evt.title })}
-                      onDeleteClick={(evt) => setDeleteTarget({ id: evt.id, eventTitle: evt.title })}
-                    />
+          <div id="review-section-pending-body" hidden={!openSections.pending}>
+            <div className="review-subsection" data-testid="review-subsection-neu-block">
+              <h3 className="review-subsection-title" data-testid="review-subsection-neu">
+                Neu eingereicht
+                <span className="review-subsection-count" data-testid="review-subsection-neu-count">
+                  {pendingNeu.length}
+                </span>
+              </h3>
+              {pendingNeu.length === 0 ? (
+                <p className="review-subsection-empty">Aktuell keine neuen Einreichungen.</p>
+              ) : (
+                <div className="event-list-rows">
+                  {pendingNeu.map((event) => (
+                    <div key={event.id}>
+                      <EventAdminListRow
+                        event={event}
+                        showStatus
+                        showApprove
+                        showRevert
+                        showDuplicate={false}
+                        showSubmittedAt
+                        fromPath="/admin?tab=review"
+                        isAdmin
+                        approving={approvingId}
+                        unreadCount={unreadCountByEvent[event.id] || 0}
+                        hasMessages={Boolean(hasMessagesByEvent[event.id])}
+                        onApprove={handleApprove}
+                        onRevert={(evt) => setRevertTarget({ id: evt.id, eventTitle: evt.title })}
+                        onDeleteClick={(evt) =>
+                          setDeleteTarget({ id: evt.id, eventTitle: evt.title })
+                        }
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {pendingInKlaerung.length > 0 && (
+              <div className="review-subsection" data-testid="review-subsection-klaerung-block">
+                <h3
+                  className="review-subsection-title review-subsection-title--klaerung"
+                  data-testid="review-subsection-klaerung"
+                >
+                  <CollapseToggle
+                    id="review-subsection-klaerung-body"
+                    open={openSections.klaerung}
+                    onToggle={() => toggleSection('klaerung')}
+                    testId="review-toggle-klaerung"
+                  >
+                    <MessageCircle size={16} aria-hidden="true" />
+                    <span>In Klärung</span>
+                    <span
+                      className="review-subsection-count"
+                      data-testid="review-subsection-klaerung-count"
+                    >
+                      {pendingInKlaerung.length}
+                    </span>
+                  </CollapseToggle>
+                </h3>
+                <div id="review-subsection-klaerung-body" hidden={!openSections.klaerung}>
+                  <p className="review-subsection-hint">
+                    Hier hat das Team dem Ersteller schon eine Rückfrage geschickt. Bitte nicht ohne
+                    Rücksprache erneut entscheiden.
+                  </p>
+                  <div className="event-list-rows">
+                    {pendingInKlaerung.map((event) => (
+                      <div key={event.id}>
+                        <EventAdminListRow
+                          event={event}
+                          showStatus
+                          showApprove
+                          showRevert
+                          showDuplicate={false}
+                          showSubmittedAt
+                          showInKlaerungBy
+                          inKlaerungByName={inKlaerungAuthorNameByEvent[event.id] || null}
+                          fromPath="/admin?tab=review"
+                          isAdmin
+                          approving={approvingId}
+                          unreadCount={unreadCountByEvent[event.id] || 0}
+                          hasMessages={Boolean(hasMessagesByEvent[event.id])}
+                          onApprove={handleApprove}
+                          onRevert={(evt) => setRevertTarget({ id: evt.id, eventTitle: evt.title })}
+                          onDeleteClick={(evt) =>
+                            setDeleteTarget({ id: evt.id, eventTitle: evt.title })
+                          }
+                        />
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
               </div>
             )}
           </div>
-
-          {pendingInKlaerung.length > 0 && (
-            <div className="review-subsection" data-testid="review-subsection-klaerung-block">
-              <h3
-                className="review-subsection-title review-subsection-title--klaerung"
-                data-testid="review-subsection-klaerung"
-              >
-                <MessageCircle size={16} aria-hidden="true" />
-                <span>In Klärung</span>
-                <span
-                  className="review-subsection-count"
-                  data-testid="review-subsection-klaerung-count"
-                >
-                  {pendingInKlaerung.length}
-                </span>
-              </h3>
-              <p className="review-subsection-hint">
-                Hier hat das Team dem Ersteller schon eine Rückfrage geschickt. Bitte nicht ohne
-                Rücksprache erneut entscheiden.
-              </p>
-              <div className="event-list-rows">
-                {pendingInKlaerung.map((event) => (
-                  <div key={event.id}>
-                    <EventAdminListRow
-                      event={event}
-                      showStatus
-                      showApprove
-                      showRevert
-                      showDuplicate={false}
-                      showSubmittedAt
-                      showInKlaerungBy
-                      inKlaerungByName={inKlaerungAuthorNameByEvent[event.id] || null}
-                      fromPath="/admin?tab=review"
-                      isAdmin
-                      approving={approvingId}
-                      unreadCount={unreadCountByEvent[event.id] || 0}
-                      hasMessages={Boolean(hasMessagesByEvent[event.id])}
-                      onApprove={handleApprove}
-                      onRevert={(evt) => setRevertTarget({ id: evt.id, eventTitle: evt.title })}
-                      onDeleteClick={(evt) => setDeleteTarget({ id: evt.id, eventTitle: evt.title })}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </section>
       )}
 
@@ -281,20 +319,28 @@ export default function ReviewTab() {
         >
           <div className="review-section-header">
             <h2 className="review-section-title">
-              <CheckCircle2 size={20} aria-hidden="true" />
-              <span>{`Genehmigt in den letzten ${APPROVED_WINDOW_DAYS} Tagen`}</span>
-              <span
-                className="review-section-count"
-                data-testid="review-section-approved-count"
+              <CollapseToggle
+                id="review-section-approved-body"
+                open={openSections.approved}
+                onToggle={() => toggleSection('approved')}
+                testId="review-toggle-approved"
               >
-                {recentlyApproved.length}
-              </span>
+                <CheckCircle2 size={20} aria-hidden="true" />
+                <span>{`Genehmigt in den letzten ${APPROVED_WINDOW_DAYS} Tagen`}</span>
+                <span className="review-section-count" data-testid="review-section-approved-count">
+                  {recentlyApproved.length}
+                </span>
+              </CollapseToggle>
             </h2>
             <p className="review-section-hint">
               Zur Übersicht, wer im Team was wann freigegeben hat.
             </p>
           </div>
-          <div className="event-list-rows">
+          <div
+            id="review-section-approved-body"
+            className="event-list-rows"
+            hidden={!openSections.approved}
+          >
             {recentlyApproved.map((event) => (
               <div key={event.id}>
                 <EventAdminListRow

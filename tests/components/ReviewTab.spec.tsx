@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import ReviewTab from '../../src/components/ReviewTab';
 
@@ -171,9 +171,7 @@ describe('ReviewTab — three sections (j67qz6b2)', () => {
   });
 
   it('hides the approved section when approved events have no approvedAt timestamp', () => {
-    mockUseAllEvents.events = [
-      { id: 'a1', title: 'Legacy Approved', status: 'approved' },
-    ];
+    mockUseAllEvents.events = [{ id: 'a1', title: 'Legacy Approved', status: 'approved' }];
     renderReviewTab();
     expect(screen.queryByTestId('review-section-approved')).not.toBeInTheDocument();
   });
@@ -192,6 +190,36 @@ describe('ReviewTab — three sections (j67qz6b2)', () => {
     renderReviewTab();
     expect(screen.getByTestId('review-section-pending')).toBeInTheDocument();
     expect(screen.getByTestId('review-section-approved')).toBeInTheDocument();
+  });
+});
+
+describe('ReviewTab — collapsible sections (rnp10LBx)', () => {
+  it('keeps pending open and approved closed by default, and toggles with aria-expanded', () => {
+    const now = Date.now();
+    mockUsePendingEvents.pendingEvents = [{ id: 'p1', title: 'Pending Now', status: 'pending' }];
+    mockUseAllEvents.events = [
+      {
+        id: 'a1',
+        title: 'Recent Approved',
+        status: 'approved',
+        approvedAt: { toDate: () => new Date(now - 24 * 60 * 60 * 1000) },
+      },
+    ];
+    renderReviewTab();
+    const pendingToggle = screen.getByTestId('review-toggle-pending');
+    const approvedToggle = screen.getByTestId('review-toggle-approved');
+    expect(pendingToggle).toHaveAttribute('aria-expanded', 'true');
+    expect(approvedToggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByText('Pending Now')).toBeVisible();
+    expect(screen.getByText('Recent Approved')).not.toBeVisible();
+
+    fireEvent.click(approvedToggle);
+    expect(approvedToggle).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText('Recent Approved')).toBeVisible();
+
+    fireEvent.click(pendingToggle);
+    expect(screen.getByText('Pending Now')).not.toBeVisible();
+    expect(screen.getByTestId('review-section-pending-count')).toHaveTextContent('1');
   });
 });
 
@@ -244,9 +272,7 @@ describe('ReviewTab — rich metadata on each row (j67qz6b2)', () => {
   });
 
   it('shows "In Klärung mit [admin-name]" on rows where messages are present', () => {
-    mockUsePendingEvents.pendingEvents = [
-      { id: 'p1', title: 'Klärung Event', status: 'pending' },
-    ];
+    mockUsePendingEvents.pendingEvents = [{ id: 'p1', title: 'Klärung Event', status: 'pending' }];
     mockUseEventsWithMessages.hasMessagesByEvent = { p1: true };
     mockUseEventsWithMessages.inKlaerungAuthorNameByEvent = { p1: 'Anna Schmidt' };
     renderReviewTab();
@@ -255,9 +281,7 @@ describe('ReviewTab — rich metadata on each row (j67qz6b2)', () => {
   });
 
   it('renders the full-width "KLÄRUNG LÄUFT" ribbon when hasMessages is true', () => {
-    mockUsePendingEvents.pendingEvents = [
-      { id: 'p1', title: 'Klärung Event', status: 'pending' },
-    ];
+    mockUsePendingEvents.pendingEvents = [{ id: 'p1', title: 'Klärung Event', status: 'pending' }];
     mockUseEventsWithMessages.hasMessagesByEvent = { p1: true };
     renderReviewTab();
     expect(screen.getByTestId('event-card-clarification-ribbon')).toHaveTextContent(
@@ -269,9 +293,7 @@ describe('ReviewTab — rich metadata on each row (j67qz6b2)', () => {
   });
 
   it('does not render the clarification ribbon when the event has no messages', () => {
-    mockUsePendingEvents.pendingEvents = [
-      { id: 'p1', title: 'Plain Event', status: 'pending' },
-    ];
+    mockUsePendingEvents.pendingEvents = [{ id: 'p1', title: 'Plain Event', status: 'pending' }];
     renderReviewTab();
     expect(screen.queryByTestId('event-card-clarification-ribbon')).not.toBeInTheDocument();
   });
