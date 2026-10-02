@@ -244,4 +244,59 @@ describe('FocalPointPicker', () => {
     render(<FocalPointPicker imageUrl={IMAGE_URL} />);
     expect(screen.queryByTestId('focal-point-picker-crop-frame')).toBeNull();
   });
+
+  it('does not render the replace button when no onReplace is provided (6abf8283)', () => {
+    renderWithImageLoaded(<FocalPointPicker imageUrl={IMAGE_URL} />);
+    expect(screen.queryByTestId('focal-point-picker-replace')).toBeNull();
+  });
+
+  it('renders the replace button next to the preview label when onReplace is provided (6abf8283)', () => {
+    const onReplace = vi.fn();
+    renderWithImageLoaded(<FocalPointPicker imageUrl={IMAGE_URL} onReplace={onReplace} />);
+    const replace = screen.getByTestId('focal-point-picker-replace');
+    expect(replace).toBeInTheDocument();
+    expect(replace).toHaveAttribute('aria-label', 'Foto ersetzen');
+    fireEvent.click(replace);
+    expect(onReplace).toHaveBeenCalledTimes(1);
+  });
+
+  it('drags the handle to reposition the focal point (6abf8283)', () => {
+    stubCanvasRect(300, 200);
+    const onChange = vi.fn();
+    renderWithImageLoaded(
+      <FocalPointPicker imageUrl={IMAGE_URL} value={{ x: 0.5, y: 0.5 }} onChange={onChange} />,
+      { naturalWidth: 300, naturalHeight: 200 }
+    );
+
+    // pointer-down on the handle bubbles to the canvas, which captures the
+    // pointer. Subsequent pointer-move events (even on the handle) update
+    // the focal point to the cursor position.
+    fireEvent.pointerDown(getHandle(), { clientX: 150, clientY: 100, pointerId: 1, button: 0 });
+    expect(onChange).toHaveBeenLastCalledWith({ x: 0.5, y: 0.5 });
+
+    fireEvent.pointerMove(getCanvas(), { clientX: 60, clientY: 40, pointerId: 1 });
+    expect(onChange).toHaveBeenLastCalledWith({ x: 0.2, y: 0.2 });
+
+    fireEvent.pointerMove(getCanvas(), { clientX: 240, clientY: 180, pointerId: 1 });
+    expect(onChange).toHaveBeenLastCalledWith({ x: 0.8, y: 0.9 });
+
+    fireEvent.pointerUp(getCanvas(), { clientX: 240, clientY: 180, pointerId: 1 });
+  });
+
+  it('does not stop propagation on the handle so pointer-move reaches the canvas (6abf8283)', () => {
+    // Before the fix the handle called `e.stopPropagation()` on pointerDown,
+    // which prevented the canvas from setting pointer capture. The user could
+    // not drag the handle — only click somewhere else on the canvas.
+    stubCanvasRect(300, 200);
+    const onChange = vi.fn();
+    renderWithImageLoaded(
+      <FocalPointPicker imageUrl={IMAGE_URL} value={{ x: 0.5, y: 0.5 }} onChange={onChange} />,
+      { naturalWidth: 300, naturalHeight: 200 }
+    );
+    fireEvent.pointerDown(getHandle(), { clientX: 150, clientY: 100, pointerId: 7, button: 0 });
+    // If the handle had stopped propagation, the canvas would not have
+    // captured the pointer and this move would not change the focal point.
+    fireEvent.pointerMove(getCanvas(), { clientX: 30, clientY: 60, pointerId: 7 });
+    expect(onChange).toHaveBeenLastCalledWith({ x: 0.1, y: 0.3 });
+  });
 });
