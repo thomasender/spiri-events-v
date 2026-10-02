@@ -19,10 +19,14 @@ const MONTHS_DE = [
 const FIRESTORE_EMULATOR = 'http://127.0.0.1:8181';
 const PROJECT_ID = 'spirieventsvbg';
 
+// Local calendar date (YYYY-MM-DD). toISOString() would give the UTC date,
+// which is a day behind in Vorarlberg shortly after midnight.
 function isoDate(offsetDays: number): string {
   const d = new Date();
   d.setDate(d.getDate() + offsetDays);
-  return d.toISOString().split('T')[0];
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mm}-${dd}`;
 }
 
 async function seedEventViaFirestoreApi(
@@ -153,12 +157,12 @@ test.describe('Calendar hides past events (nUoA0Wbx) @smoke', () => {
   });
 
   test('an ongoing multi-day event that started 2 days ago is visible', async ({ page }) => {
+    // Assert in the current month, which is the month users land on and the
+    // earliest one they can reach. On the 1st/2nd of a month the event started
+    // in the previous (unreachable) month, so this also covers an ongoing event
+    // carried over across a month boundary.
     const today = new Date();
-    today.setDate(today.getDate() - 2);
-    const year = today.getFullYear();
-    const month = today.getMonth();
-
-    await navigateToMonth(page, year, month, 'forward');
+    await navigateToMonth(page, today.getFullYear(), today.getMonth(), 'forward');
 
     const ongoing = page
       .locator('.event-row, .event-tile', { hasText: 'Laufendes Mehrtagesretreat' })
