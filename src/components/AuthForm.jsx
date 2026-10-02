@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth, authErrorMessage, MIN_PASSWORD_LENGTH } from '../hooks/useAuth';
 import { Mail, Lock, User } from 'lucide-react';
 import './AuthForm.css';
+import PasswordInput from './PasswordInput';
 
 function GoogleIcon() {
   return (
@@ -329,9 +330,8 @@ export default function AuthForm() {
                 <label htmlFor="password">Passwort</label>
                 <div className="input-wrapper">
                   <Lock size={18} className="input-icon" />
-                  <input
+                  <PasswordInput
                     id="password"
-                    type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
@@ -346,9 +346,8 @@ export default function AuthForm() {
                   <label htmlFor="confirmPassword">Passwort bestätigen</label>
                   <div className="input-wrapper">
                     <Lock size={18} className="input-icon" />
-                    <input
+                    <PasswordInput
                       id="confirmPassword"
-                      type="password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="••••••••"

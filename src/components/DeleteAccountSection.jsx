@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { authErrorMessage } from '../hooks/useAuth';
 import ConfirmDialog from './ConfirmDialog';
 import './ProfileForm.css';
+import PasswordInput from './PasswordInput';
 
 export default function DeleteAccountSection({ onDelete, isGoogleUser = false }) {
   const [password, setPassword] = useState('');
@@ -73,9 +74,8 @@ export default function DeleteAccountSection({ onDelete, isGoogleUser = false })
             {!isGoogleUser && (
               <div className="form-group">
                 <label htmlFor="delete-account-password">Aktuelles Passwort</label>
-                <input
+                <PasswordInput
                   id="delete-account-password"
-                  type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"

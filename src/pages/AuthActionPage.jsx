@@ -6,6 +6,7 @@ import { httpsCallable } from 'firebase/functions';
 import { useAuth, MIN_PASSWORD_LENGTH } from '../hooks/useAuth';
 import SeoMeta from '../components/SeoMeta';
 import './AuthActionPage.css';
+import PasswordInput from '../components/PasswordInput';
 
 const STATUS = {
   APPLYING: 'applying',
@@ -252,10 +253,10 @@ export default function AuthActionPage() {
                     Vergib ein neues Passwort für <strong>{resetEmail}</strong>.
                   </p>
                   <form className="auth-action-form" onSubmit={handleResetSubmit}>
-                    <label>
-                      Neues Passwort
-                      <input
-                        type="password"
+                    <div className="auth-action-field">
+                      <label htmlFor="auth-action-password">Neues Passwort</label>
+                      <PasswordInput
+                        id="auth-action-password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         autoComplete="new-password"
@@ -263,11 +264,11 @@ export default function AuthActionPage() {
                         required
                         disabled={submitting}
                       />
-                    </label>
-                    <label>
-                      Passwort bestätigen
-                      <input
-                        type="password"
+                    </div>
+                    <div className="auth-action-field">
+                      <label htmlFor="auth-action-confirm">Passwort bestätigen</label>
+                      <PasswordInput
+                        id="auth-action-confirm"
                         value={confirm}
                         onChange={(e) => setConfirm(e.target.value)}
                         autoComplete="new-password"
@@ -275,7 +276,7 @@ export default function AuthActionPage() {
                         required
                         disabled={submitting}
                       />
-                    </label>
+                    </div>
                     {formError && <p className="auth-action-error">{formError}</p>}
                     <button type="submit" disabled={submitting}>
                       {submitting ? 'Wird gespeichert …' : 'Passwort speichern'}
