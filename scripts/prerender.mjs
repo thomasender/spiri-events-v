@@ -735,6 +735,21 @@ export function loadThemeFromExport(exportPath) {
   }
 }
 
+// Trashed events must never reach `generateEventHtml`. The Admin SDK / REST /
+// client SDK reads return every event in the collection, including ones an
+// admin has deleted via the Papierkorb tab. If a trashed event happens to
+// share a slug with an approved event, `mergeEventsByIdentity` would later
+// overwrite the approved version with the trashed copy — losing fields that
+// only exist on the approved doc (typically `imageUrl`, set on the original
+// publish but absent from the older draft that got thrown away). The result:
+// the prerendered HTML ships the fallback image and the original photo
+// never makes it into the messenger preview. SPA reads everywhere use
+// `where('status', '==', 'approved')`, so filtering trashed events here is
+// the matching server-side rule.
+function isIncludedInPrerender(event) {
+  return event && event.status !== 'trashed'
+}
+
 export async function loadEventsFromFirestore(firebaseConfig) {
   try {
     const { initializeApp } = await import('firebase/app')
@@ -742,7 +757,9 @@ export async function loadEventsFromFirestore(firebaseConfig) {
     const app = initializeApp(firebaseConfig)
     const db = getFirestore(app)
     const snapshot = await getDocs(collection(db, 'events'))
-    const events = snapshot.docs.map(doc => normalizeEvent({ id: doc.id, ...doc.data() }))
+    const events = snapshot.docs
+      .map(doc => normalizeEvent({ id: doc.id, ...doc.data() }))
+      .filter(isIncludedInPrerender)
     return { events, source: 'firestore', error: null }
   } catch (err) {
     return { events: [], source: null, error: `Live Firestore SDK read threw: ${err.message}` }
@@ -821,7 +838,9 @@ export async function loadEventsFromFirestoreAdmin({
     try {
       const db = getFirestore(app)
       const snapshot = await db.collection('events').get()
-      const events = snapshot.docs.map(doc => normalizeEvent({ id: doc.id, ...doc.data() }))
+      const events = snapshot.docs
+        .map(doc => normalizeEvent({ id: doc.id, ...doc.data() }))
+        .filter(isIncludedInPrerender)
       return { events, source: `firestore-admin:${credentialSource}`, error: null }
     } finally {
       app.delete().catch(() => {})
@@ -851,11 +870,13 @@ export async function loadEventsFromFirestoreRest({
     }
     const payload = await res.json()
     const docs = Array.isArray(payload?.documents) ? payload.documents : []
-    const events = docs.map(doc => {
-      const id = doc.name?.split('/').pop()
-      const fields = unfirestore(doc.fields || {})
-      return normalizeEvent({ id, ...fields })
-    })
+    const events = docs
+      .map(doc => {
+        const id = doc.name?.split('/').pop()
+        const fields = unfirestore(doc.fields || {})
+        return normalizeEvent({ id, ...fields })
+      })
+      .filter(isIncludedInPrerender)
     return { events, source: `firestore-rest:${projectId}`, error: null }
   } catch (err) {
     return { events: [], source: null, error: `Firestore REST fetch threw: ${err.message}` }
