@@ -20,6 +20,7 @@ import { db } from '../lib/firebase';
 import { findUniqueSlug } from '../lib/slug';
 import { normalizeCurrency } from '../utils/currency';
 import { deleteImageByUrl } from '../lib/imageUpload';
+import { compareEventsByDateTime } from '../utils/eventSort';
 import { useAuth } from './useAuth';
 import { auth } from '../lib/firebase';
 import { getApp } from 'firebase/app';
@@ -87,7 +88,7 @@ export function useEvents(user) {
           ...doc.data(),
         }));
         const normalized = normalizeEvents(eventData);
-        normalized.sort((a, b) => (a.date > b.date ? 1 : -1));
+        normalized.sort(compareEventsByDateTime);
         setEvents(normalized);
         setLoading(false);
         setError(null);
@@ -285,7 +286,7 @@ export function usePendingEvents() {
           ...doc.data(),
         }));
         const normalized = normalizeEvents(eventData);
-        normalized.sort((a, b) => (a.date > b.date ? 1 : -1));
+        normalized.sort(compareEventsByDateTime);
         setPendingEvents(normalized);
         setLoading(false);
         setError(null);
@@ -354,7 +355,7 @@ export function useAllEvents() {
           ...doc.data(),
         }));
         const normalized = normalizeEvents(eventData);
-        normalized.sort((a, b) => (a.date > b.date ? 1 : -1));
+        normalized.sort(compareEventsByDateTime);
         setEvents(normalized);
         setLoading(false);
         setError(null);
