@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { initializeApp } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { generateEventSlug } from '../src/lib/slug-helpers.js';
 
 const FIRESTORE_EMULATOR = '127.0.0.1:8181';
@@ -382,13 +382,26 @@ async function createUser(user) {
   return uid;
 }
 
-async function seedEvent(event, createdBy) {
+async function seedEvent(event, createdBy, adminUid) {
   const ref = db.collection('events').doc(event.id);
 
   const messagesSnapshot = await ref.collection('messages').get();
   await Promise.all(messagesSnapshot.docs.map((docSnap) => docSnap.ref.delete()));
 
-  await ref.set({ ...event, createdBy });
+  // Stamp approvedBy/approvedAt on approved events so the "Genehmigt in den
+  // letzten 7 Tagen" section in the Review tab has data to render during
+  // integration tests. The actual values don't matter — the section filters
+  // on `approvedAt >= now - 7d`, and a Timestamp.now() at seed time falls
+  // inside that window. Production approvals go through usePendingEvents and
+  // carry the real admin UID; this seed path only ever runs against the
+  // emulator.
+  const seedData = { ...event, createdBy };
+  if (event.status === 'approved') {
+    seedData.approvedBy = adminUid || createdBy;
+    seedData.approvedAt = Timestamp.now();
+  }
+
+  await ref.set(seedData);
   console.log(`  Seeded: ${event.title} (${event.date}) [${event.id}] slug: ${event.slug}`);
 }
 
@@ -465,7 +478,8 @@ async function main() {
         ...event,
         organizer: { ...event.organizer, photoURL: organizerPhotoURL },
       },
-      createdBy
+      createdBy,
+      adminUid
     );
   }
 

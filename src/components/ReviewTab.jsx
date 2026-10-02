@@ -1,16 +1,40 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { doc, getFirestore, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { getApp } from 'firebase/app';
-import { ClipboardCheck } from 'lucide-react';
-import { usePendingEvents } from '../hooks/useEvents';
+import { ClipboardCheck, Inbox, MessageCircle, CheckCircle2 } from 'lucide-react';
+import { usePendingEvents, useAllEvents } from '../hooks/useEvents';
 import { useEventsWithMessages } from '../hooks/useEventsWithMessages';
+import { useUserDisplayNames } from '../hooks/useUserDisplayNames';
 import EventAdminListRow from './EventAdminListRow';
 import ConfirmDialog from './ConfirmDialog';
 import SuccessDialog from './SuccessDialog';
+import './ReviewTab.css';
+
+const APPROVED_WINDOW_DAYS = 7;
+
+function getApprovedAtMillis(value) {
+  if (!value) return null;
+  if (typeof value === 'object' && typeof value.toDate === 'function') {
+    const d = value.toDate();
+    return Number.isNaN(d.getTime()) ? null : d.getTime();
+  }
+  if (typeof value === 'object' && typeof value.seconds === 'number') {
+    return value.seconds * 1000 + Math.floor((value.nanoseconds || 0) / 1e6);
+  }
+  if (typeof value === 'number') return value;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d.getTime();
+}
 
 export default function ReviewTab() {
-  const { pendingEvents, loading, approveEvent } = usePendingEvents();
-  const { unreadCountByEvent, hasMessagesByEvent } = useEventsWithMessages();
+  const { pendingEvents, loading: pendingLoading, approveEvent } = usePendingEvents();
+  const { events: allApprovedEvents, loading: approvedLoading } = useAllEvents();
+  const {
+    unreadCountByEvent,
+    hasMessagesByEvent,
+    inKlaerungAuthorNameByEvent,
+  } = useEventsWithMessages();
+
   const [approvingId, setApprovingId] = useState(null);
   const [revertTarget, setRevertTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -67,11 +91,50 @@ export default function ReviewTab() {
     }
   };
 
-  if (loading) {
+  const recentlyApproved = useMemo(() => {
+    // Reading Date.now() during render is intentional — we want the rolling
+    // 7-day window to track real time, not a value captured at mount. The
+    // review tab refreshes whenever the approved-events snapshot does, so
+    // the cutoff stays current without any state plumbing.
+    // eslint-disable-next-line react-hooks/purity
+    const cutoff = Date.now() - APPROVED_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+    return allApprovedEvents
+      .map((event) => ({ event, approvedAtMs: getApprovedAtMillis(event.approvedAt) }))
+      .filter(({ approvedAtMs }) => approvedAtMs != null && approvedAtMs >= cutoff)
+      .sort((a, b) => b.approvedAtMs - a.approvedAtMs)
+      .map(({ event }) => event);
+  }, [allApprovedEvents]);
+
+  const { pendingInKlaerung, pendingNeu } = useMemo(() => {
+    const inK = [];
+    const neu = [];
+    pendingEvents.forEach((event) => {
+      if (hasMessagesByEvent[event.id]) {
+        inK.push(event);
+      } else {
+        neu.push(event);
+      }
+    });
+    return { pendingInKlaerung: inK, pendingNeu: neu };
+  }, [pendingEvents, hasMessagesByEvent]);
+
+  const reviewerUids = useMemo(() => {
+    const uids = new Set();
+    recentlyApproved.forEach((event) => {
+      if (event.approvedBy) uids.add(event.approvedBy);
+    });
+    return Array.from(uids);
+  }, [recentlyApproved]);
+
+  const { namesByUid } = useUserDisplayNames(reviewerUids);
+
+  if (pendingLoading || approvedLoading) {
     return <div className="loading-spinner"></div>;
   }
 
-  if (pendingEvents.length === 0) {
+  const hasAnyContent = pendingEvents.length > 0 || recentlyApproved.length > 0;
+
+  if (!hasAnyContent) {
     return (
       <div className="event-list-page">
         <div className="event-list-header">
@@ -104,36 +167,151 @@ export default function ReviewTab() {
         </div>
       </div>
 
-      <section className="event-list-section">
-        <div className="event-list-section-header">
-          <h2>
-            {pendingEvents.length === 1
-              ? '1 ausstehende Genehmigung'
-              : `${pendingEvents.length} ausstehende Genehmigungen`}
-          </h2>
-        </div>
-        <div className="event-list-rows">
-          {pendingEvents.map((event) => (
-            <div key={event.id}>
-              <EventAdminListRow
-                event={event}
-                showStatus
-                showApprove
-                showRevert
-                showDuplicate={false}
-                fromPath="/admin?tab=review"
-                isAdmin
-                approving={approvingId}
-                unreadCount={unreadCountByEvent[event.id] || 0}
-                hasMessages={Boolean(hasMessagesByEvent[event.id])}
-                onApprove={handleApprove}
-                onRevert={(evt) => setRevertTarget({ id: evt.id, eventTitle: evt.title })}
-                onDeleteClick={(evt) => setDeleteTarget({ id: evt.id, eventTitle: evt.title })}
-              />
+      {pendingEvents.length > 0 && (
+        <section
+          className="review-section review-section--pending"
+          data-testid="review-section-pending"
+        >
+          <div className="review-section-header">
+            <h2 className="review-section-title">
+              <Inbox size={20} aria-hidden="true" />
+              <span>Wartend auf Genehmigung</span>
+              <span
+                className="review-section-count"
+                data-testid="review-section-pending-count"
+              >
+                {pendingEvents.length}
+              </span>
+            </h2>
+            <p className="review-section-hint">
+              Events, die das Team noch entscheiden muss.
+            </p>
+          </div>
+
+          <div className="review-subsection" data-testid="review-subsection-neu-block">
+            <h3 className="review-subsection-title" data-testid="review-subsection-neu">
+              Neu eingereicht
+              <span
+                className="review-subsection-count"
+                data-testid="review-subsection-neu-count"
+              >
+                {pendingNeu.length}
+              </span>
+            </h3>
+            {pendingNeu.length === 0 ? (
+              <p className="review-subsection-empty">Aktuell keine neuen Einreichungen.</p>
+            ) : (
+              <div className="event-list-rows">
+                {pendingNeu.map((event) => (
+                  <div key={event.id}>
+                    <EventAdminListRow
+                      event={event}
+                      showStatus
+                      showApprove
+                      showRevert
+                      showDuplicate={false}
+                      showSubmittedAt
+                      fromPath="/admin?tab=review"
+                      isAdmin
+                      approving={approvingId}
+                      unreadCount={unreadCountByEvent[event.id] || 0}
+                      hasMessages={Boolean(hasMessagesByEvent[event.id])}
+                      onApprove={handleApprove}
+                      onRevert={(evt) => setRevertTarget({ id: evt.id, eventTitle: evt.title })}
+                      onDeleteClick={(evt) => setDeleteTarget({ id: evt.id, eventTitle: evt.title })}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {pendingInKlaerung.length > 0 && (
+            <div className="review-subsection" data-testid="review-subsection-klaerung-block">
+              <h3
+                className="review-subsection-title review-subsection-title--klaerung"
+                data-testid="review-subsection-klaerung"
+              >
+                <MessageCircle size={16} aria-hidden="true" />
+                <span>In Klärung</span>
+                <span
+                  className="review-subsection-count"
+                  data-testid="review-subsection-klaerung-count"
+                >
+                  {pendingInKlaerung.length}
+                </span>
+              </h3>
+              <p className="review-subsection-hint">
+                Hier hat das Team dem Ersteller schon eine Rückfrage geschickt. Bitte nicht ohne
+                Rücksprache erneut entscheiden.
+              </p>
+              <div className="event-list-rows">
+                {pendingInKlaerung.map((event) => (
+                  <div key={event.id}>
+                    <EventAdminListRow
+                      event={event}
+                      showStatus
+                      showApprove
+                      showRevert
+                      showDuplicate={false}
+                      showSubmittedAt
+                      showInKlaerungBy
+                      inKlaerungByName={inKlaerungAuthorNameByEvent[event.id] || null}
+                      fromPath="/admin?tab=review"
+                      isAdmin
+                      approving={approvingId}
+                      unreadCount={unreadCountByEvent[event.id] || 0}
+                      hasMessages={Boolean(hasMessagesByEvent[event.id])}
+                      onApprove={handleApprove}
+                      onRevert={(evt) => setRevertTarget({ id: evt.id, eventTitle: evt.title })}
+                      onDeleteClick={(evt) => setDeleteTarget({ id: evt.id, eventTitle: evt.title })}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
-          ))}
-        </div>
-      </section>
+          )}
+        </section>
+      )}
+
+      {recentlyApproved.length > 0 && (
+        <section
+          className="review-section review-section--approved"
+          data-testid="review-section-approved"
+        >
+          <div className="review-section-header">
+            <h2 className="review-section-title">
+              <CheckCircle2 size={20} aria-hidden="true" />
+              <span>{`Genehmigt in den letzten ${APPROVED_WINDOW_DAYS} Tagen`}</span>
+              <span
+                className="review-section-count"
+                data-testid="review-section-approved-count"
+              >
+                {recentlyApproved.length}
+              </span>
+            </h2>
+            <p className="review-section-hint">
+              Zur Übersicht, wer im Team was wann freigegeben hat.
+            </p>
+          </div>
+          <div className="event-list-rows">
+            {recentlyApproved.map((event) => (
+              <div key={event.id}>
+                <EventAdminListRow
+                  event={event}
+                  showStatus
+                  showDuplicate={false}
+                  showApprovedBy
+                  approvedByName={namesByUid[event.approvedBy] || null}
+                  fromPath="/admin?tab=review"
+                  isAdmin
+                  onDeleteClick={(evt) => setDeleteTarget({ id: evt.id, eventTitle: evt.title })}
+                />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <ConfirmDialog
         isOpen={Boolean(revertTarget)}

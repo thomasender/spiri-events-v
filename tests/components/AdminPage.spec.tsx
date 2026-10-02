@@ -18,6 +18,8 @@ const mockUseUnread = vi.hoisted(() => ({
 const mockUseEventsWithMessages = vi.hoisted(() => ({
   events: [] as Array<{ id: string; title: string; date: string; slug?: string }>,
   unreadCountByEvent: {} as Record<string, number>,
+  hasMessagesByEvent: {} as Record<string, boolean>,
+  inKlaerungAuthorNameByEvent: {} as Record<string, string | null>,
   loading: false,
 }));
 
@@ -79,6 +81,12 @@ const mockUsePendingEvents = vi.hoisted(() => ({
   approveEvent: vi.fn(),
 }));
 
+const mockUseAllEvents = vi.hoisted(() => ({
+  events: [] as Array<{ id: string; title: string; status?: string }>,
+  loading: false,
+  error: null as string | null,
+}));
+
 const mockUseEventById = vi.hoisted(() => ({
   event: null as null | {
     id: string;
@@ -103,6 +111,7 @@ vi.mock('../../src/hooks/useEvents', () => ({
   useEvents: () => mockUseEvents,
   usePendingEvents: () => mockUsePendingEvents,
   useEventById: () => mockUseEventById,
+  useAllEvents: () => mockUseAllEvents,
 }));
 vi.mock('../../src/hooks/useEventsWithMessages', () => ({
   useEventsWithMessages: () => mockUseEventsWithMessages,
@@ -143,6 +152,8 @@ beforeEach(() => {
   mockUseHasMessages.loading = false;
   mockUseEventsWithMessages.events = [];
   mockUseEventsWithMessages.unreadCountByEvent = {};
+  mockUseEventsWithMessages.hasMessagesByEvent = {};
+  mockUseEventsWithMessages.inKlaerungAuthorNameByEvent = {};
   mockUseEventsWithMessages.loading = false;
   mockUseUnreadFeedbackCount.count = 0;
   mockUseUnreadFeedbackCount.loading = false;
@@ -157,6 +168,9 @@ beforeEach(() => {
   mockUseEventById.event = null;
   mockUseEventById.loading = false;
   mockUseEventById.error = null;
+  mockUseAllEvents.events = [];
+  mockUseAllEvents.loading = false;
+  mockUseAllEvents.error = null;
   mockUseHelpers.helpers = [];
   mockUseHelpers.loading = false;
   mockUseHelpers.error = null;
