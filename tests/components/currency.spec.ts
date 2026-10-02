@@ -109,4 +109,46 @@ describe('formatPriceWithCurrency', () => {
     expect(formatPriceWithCurrency(10, 'USD')).toBe('10 €');
     expect(formatPriceWithCurrency(10, undefined)).toBe('10 €');
   });
+
+  describe('price range (UGSVxljS)', () => {
+    it('keeps backwards-compatible single-value formatting without feeMax', () => {
+      expect(formatPriceWithCurrency(300, 'EUR')).toBe('300 €');
+    });
+
+    it('renders "300-450 €" when feeMax is strictly greater than fee', () => {
+      expect(formatPriceWithCurrency(300, 'EUR', 450)).toBe('300-450 €');
+    });
+
+    it('does not render a range when feeMax equals fee', () => {
+      expect(formatPriceWithCurrency(300, 'EUR', 300)).toBe('300 €');
+    });
+
+    it('treats null feeMax as no range', () => {
+      expect(formatPriceWithCurrency(300, 'EUR', null)).toBe('300 €');
+    });
+
+    it('treats undefined feeMax as no range', () => {
+      expect(formatPriceWithCurrency(300, 'EUR', undefined)).toBe('300 €');
+    });
+
+    it('treats 0 feeMax as no range', () => {
+      expect(formatPriceWithCurrency(300, 'EUR', 0)).toBe('300 €');
+    });
+
+    it('treats empty-string feeMax as no range', () => {
+      expect(formatPriceWithCurrency(300, 'EUR', '')).toBe('300 €');
+    });
+
+    it('formats a decimal range without dropping precision', () => {
+      expect(formatPriceWithCurrency(15.5, 'EUR', 20.25)).toBe('15.50-20.25 €');
+    });
+
+    it('does not render a range when feeMax is smaller than fee (invalid)', () => {
+      expect(formatPriceWithCurrency(300, 'EUR', 100)).toBe('300 €');
+    });
+
+    it('honours the currency when feeMax is provided', () => {
+      expect(formatPriceWithCurrency(40, 'CHF', 80)).toBe('40-80 CHF');
+    });
+  });
 });

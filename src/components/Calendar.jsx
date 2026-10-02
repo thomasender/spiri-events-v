@@ -237,7 +237,7 @@ export default function Calendar({
                                 : event.contribution === 'donation'
                                   ? 'Spende'
                                   : event.fee
-                                    ? `${formatPriceWithCurrency(event.fee, event.priceCurrency)}${
+                                    ? `${formatPriceWithCurrency(event.fee, event.priceCurrency, event.feeMax)}${
                                         event.feeNote ? ` / ${event.feeNote}` : ''
                                       }`
                                     : event.feeNote || 'Gebühr'}
@@ -360,7 +360,7 @@ export default function Calendar({
                           : event.contribution === 'donation'
                             ? 'Spende'
                             : event.fee
-                              ? `${formatPriceWithCurrency(event.fee, event.priceCurrency)}${
+                              ? `${formatPriceWithCurrency(event.fee, event.priceCurrency, event.feeMax)}${
                                   event.feeNote ? ` / ${event.feeNote}` : ''
                                 }`
                               : event.feeNote || 'Gebühr'}

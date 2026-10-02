@@ -128,7 +128,7 @@ export default function EventModal({ event, onClose }) {
                   : isDonation
                     ? 'Freie Spende'
                     : event.fee
-                      ? `${formatPriceWithCurrency(event.fee, event.priceCurrency)}${
+                      ? `${formatPriceWithCurrency(event.fee, event.priceCurrency, event.feeMax)}${
                           event.feeNote ? ` / ${event.feeNote}` : ''
                         }`
                       : event.feeNote || 'Kostenpflichtig'}

@@ -39,6 +39,7 @@ const INITIAL_STATE = {
   place: '',
   contribution: 'free',
   fee: '',
+  feeMax: '',
   priceCurrency: DEFAULT_CURRENCY,
   feeNote: '',
   description: '',
@@ -126,6 +127,7 @@ export default function EventForm({ event }) {
         place: event.place || '',
         contribution: event.contribution || 'free',
         fee: event.fee || '',
+        feeMax: event.feeMax ?? '',
         priceCurrency: event.priceCurrency || DEFAULT_CURRENCY,
         feeNote: event.feeNote || '',
         description: event.description || '',
@@ -258,6 +260,16 @@ export default function EventForm({ event }) {
     }
     if (formData.contribution === 'fee' && formData.fee && Number(formData.fee) < 0) {
       newErrors.fee = 'Bitte gib einen gültigen Betrag ein';
+    }
+    if (
+      formData.contribution === 'fee' &&
+      formData.feeMax !== '' &&
+      formData.feeMax != null &&
+      (!formData.fee ||
+        !Number.isFinite(Number(formData.feeMax)) ||
+        Number(formData.feeMax) < Number(formData.fee))
+    ) {
+      newErrors.feeMax = 'Maximalbetrag muss ≥ Betrag sein';
     }
     if (formData.recurrence !== 'none' && formData.recurrenceEndDate && recurrenceMaxDate) {
       const endRecurrenceDate = new Date(formData.recurrenceEndDate + 'T12:00:00');
@@ -492,6 +504,14 @@ export default function EventForm({ event }) {
     place: formData.isOnline ? '' : formData.place.trim(),
     contribution: formData.contribution,
     fee: formData.contribution === 'fee' ? parseFloat(formData.fee) : null,
+    feeMax:
+      formData.contribution === 'fee' &&
+      formData.feeMax !== '' &&
+      formData.feeMax != null &&
+      Number.isFinite(Number(formData.feeMax)) &&
+      Number(formData.feeMax) >= Number(formData.fee)
+        ? Number(formData.feeMax)
+        : null,
     priceCurrency: formData.contribution === 'fee' ? formData.priceCurrency : null,
     feeNote: formData.contribution === 'fee' ? formData.feeNote.trim().slice(0, 12) : '',
     description: formData.description,
@@ -951,6 +971,28 @@ export default function EventForm({ event }) {
                   data-testid="fee-input"
                 />
                 {errors.fee && <span className="error-text">{errors.fee}</span>}
+              </div>
+              <div className="form-group">
+                <label htmlFor="feeMax">
+                  Betrag bis
+                  <span className="input-info">
+                    <Info size={14} />
+                    <span>Optional. Wenn leer, gilt nur der Betrag oben.</span>
+                  </span>
+                </label>
+                <input
+                  id="feeMax"
+                  name="feeMax"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={formData.feeMax}
+                  onChange={handleChange}
+                  placeholder="z.B. 25.00"
+                  className={errors.feeMax ? 'input-error' : ''}
+                  data-testid="fee-max-input"
+                />
+                {errors.feeMax && <span className="error-text">{errors.feeMax}</span>}
               </div>
               <div className="form-group">
                 <label htmlFor="priceCurrency">Währung</label>

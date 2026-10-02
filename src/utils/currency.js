@@ -28,7 +28,11 @@ export function getCurrencyLabel(code) {
   return currency.label;
 }
 
-export function formatPriceWithCurrency(fee, code) {
+function formatAmount(amount) {
+  return Number.isInteger(amount) ? amount.toString() : amount.toFixed(2);
+}
+
+export function formatPriceWithCurrency(fee, code, feeMax) {
   const normalized = normalizeCurrency(code);
   const symbol = CURRENCY_BY_CODE[normalized].symbol;
   const amount = typeof fee === 'number' ? fee : Number(fee);
@@ -37,7 +41,18 @@ export function formatPriceWithCurrency(fee, code) {
     return '';
   }
 
-  const formattedAmount = Number.isInteger(amount) ? amount.toString() : amount.toFixed(2);
+  const formattedAmount = formatAmount(amount);
+
+  // Treat 0, null, undefined, NaN, '' as "no upper bound" — anything other
+  // than a strictly larger positive number means the user did not intend a
+  // range, so we render the single price to stay backwards-compatible.
+  const hasMax = feeMax !== null && feeMax !== undefined && feeMax !== '' && feeMax !== 0;
+  if (hasMax) {
+    const maxAmount = typeof feeMax === 'number' ? feeMax : Number(feeMax);
+    if (Number.isFinite(maxAmount) && maxAmount > amount) {
+      return `${formattedAmount}-${formatAmount(maxAmount)} ${symbol}`;
+    }
+  }
 
   return `${formattedAmount} ${symbol}`;
 }

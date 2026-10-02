@@ -171,13 +171,25 @@ function generateEventJsonLd(event) {
             description: 'Freie Spende',
           }
         : event.fee
-          ? {
-              '@type': 'Offer',
-              price: event.fee.toString(),
-              priceCurrency: event.priceCurrency || DEFAULT_CURRENCY,
-              availability: 'https://schema.org/InStock',
-              ...(event.feeNote && { description: event.feeNote }),
-            }
+          ? event.feeMax != null && Number(event.feeMax) > Number(event.fee)
+            ? {
+                '@type': 'Offer',
+                priceSpecification: {
+                  '@type': 'PriceSpecification',
+                  minPrice: event.fee.toString(),
+                  maxPrice: Number(event.feeMax).toString(),
+                  priceCurrency: event.priceCurrency || DEFAULT_CURRENCY,
+                },
+                availability: 'https://schema.org/InStock',
+                ...(event.feeNote && { description: event.feeNote }),
+              }
+            : {
+                '@type': 'Offer',
+                price: event.fee.toString(),
+                priceCurrency: event.priceCurrency || DEFAULT_CURRENCY,
+                availability: 'https://schema.org/InStock',
+                ...(event.feeNote && { description: event.feeNote }),
+              }
           : {
               '@type': 'Offer',
               price: '0',
@@ -542,7 +554,7 @@ export default function EventDetailPage() {
                 : isDonation
                   ? 'Freie Spende'
                   : event.fee
-                    ? `${formatPriceWithCurrency(event.fee, event.priceCurrency)}${
+                    ? `${formatPriceWithCurrency(event.fee, event.priceCurrency, event.feeMax)}${
                         event.feeNote ? ` / ${event.feeNote}` : ''
                       }`
                     : event.feeNote || 'Kostenpflichtig'}

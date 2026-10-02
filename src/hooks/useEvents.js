@@ -219,6 +219,7 @@ export function useEvents(user) {
       place: source.place || '',
       contribution: source.contribution || 'free',
       fee: source.fee ?? null,
+      feeMax: source.feeMax ?? null,
       priceCurrency: normalizeCurrency(source.priceCurrency),
       description: source.description || '',
       link: source.link || '',
