@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { authErrorMessage } from '../hooks/useAuth';
 import './ProfileForm.css';
+import PasswordInput from './PasswordInput';
 
 const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((email || '').trim());
 
@@ -106,9 +107,8 @@ export default function ChangeEmailForm({ currentEmail, onChangeEmail, isGoogleU
         ) : (
           <div className="form-group">
             <label htmlFor="change-email-password">Aktuelles Passwort</label>
-            <input
+            <PasswordInput
               id="change-email-password"
-              type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"

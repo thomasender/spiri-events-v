@@ -106,3 +106,11 @@
     padding: 24px 8px;
   }
 }
+
+.auth-action-field {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+}
