@@ -59,7 +59,17 @@ export default function EventCard({ event, categoryColor, onClick }) {
         )}
         {organizerName && (
           <div className="event-tile-organizer">
-            <span className="event-tile-organizer-avatar">{organizerName.charAt(0)}</span>
+            {event.organizer && event.organizer.photoURL ? (
+              <img
+                src={event.organizer.photoURL}
+                alt=""
+                className="event-tile-organizer-photo"
+                data-testid="event-tile-organizer-photo"
+                loading="lazy"
+              />
+            ) : (
+              <span className="event-tile-organizer-avatar">{organizerName.charAt(0)}</span>
+            )}
             <span>{organizerName}</span>
           </div>
         )}

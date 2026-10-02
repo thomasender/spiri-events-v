@@ -119,6 +119,15 @@
   flex-shrink: 0;
 }
 
+.event-row-organizer-photo {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
 .event-row-time {
   font-size: 0.9rem;
   font-weight: 500;
