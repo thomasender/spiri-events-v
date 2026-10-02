@@ -220,26 +220,27 @@ export function buildChangesRequestedPayload({
 }: ChangesRequestedPayloadInput): EmailPayload {
   const link = eventUrl(event.slug);
   const messageText = context.text.trim();
-  const author = (context.authorName ?? '').trim() || 'Das tribe-Team';
   const greetingName = organizerDisplayName(event.organizer);
   const greeting = greetingName ? `Hallo ${escapeHtml(greetingName)},` : 'Hallo,';
-  const subject = `Änderungen gewünscht: ${event.title}`;
+  const subject = `✏️ Aktion nötig: Bitte ändere dein Event „${event.title}“`;
   const htmlBody = `
-    <h1 style="${headingStyle(1)}">Änderungen gewünscht</h1>
+    <h1 style="${headingStyle(1)}">Aktion nötig: Bitte ändere dein Event</h1>
     <p style="${paragraphStyle()}">${greeting}</p>
     <p style="${paragraphStyle()}">
-      ${escapeHtml(author)} hat sich dein Event angesehen und wünscht folgende Änderung:
+      Ein Admin hat sich dein Event angesehen und wünscht folgende Änderung,
+      bevor wir es veröffentlichen können:
     </p>
     <blockquote style="margin:0 0 20px 0;padding:14px 18px;border-left:3px solid ${COLOR_PRIMARY};background:${COLOR_BG_SOFT};border-radius:0 6px 6px 0;font-family:${BODY_FONT};font-size:15px;line-height:1.6;color:${COLOR_TEXT};white-space:pre-wrap;">${escapeHtml(messageText)}</blockquote>
     <p style="${paragraphStyle()}">
-      Du kannst das Event direkt öffnen und die Änderungen vornehmen:
+      Bitte nimm die gewünschte Änderung vor, damit wir deinen Event veröffentlichen können:
     </p>
     <p style="margin:8px 0 24px 0;">
       <a href="${link}" style="${brandButtonStyle()}">Event bearbeiten</a>
     </p>`;
   const textBody =
     `${greetingName ? `Hallo ${greetingName},\n\n` : 'Hallo,\n\n'}` +
-    `${author} hat sich dein Event angesehen und wünscht folgende Änderung:\n\n` +
+    `Ein Admin hat sich dein Event angesehen und wünscht folgende Änderung, ` +
+    `bevor wir es veröffentlichen können:\n\n` +
     `${messageText}\n\n` +
     `Event bearbeiten: ${link}`;
   return {

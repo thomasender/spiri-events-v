@@ -154,18 +154,35 @@ describe('buildChangesRequestedPayload', () => {
       context: { messageId: 'msg1', authorName: 'Anna', text: 'Bitte anpassen.' },
       recipient: 'peter@example.com',
     });
-    expect(payload.subject).toBe('Änderungen gewünscht: Yogaklasse');
+    expect(payload.subject).toBe('✏️ Aktion nötig: Bitte ändere dein Event „Yogaklasse“');
     expect(payload.html).toContain(`${APP_BASE_URL}/event/yogaklasse`);
     expect(payload.html).toContain('Event bearbeiten');
   });
 
-  it('falls back to "Das tribe-Team" when the author name is missing', () => {
+  it('does not expose the admin author by name', () => {
+    const payload = buildChangesRequestedPayload({
+      event: baseEvent,
+      context: {
+        messageId: 'msg1',
+        authorName: 'Carla Costa',
+        text: 'Bitte anpassen.',
+      },
+      recipient: 'peter@example.com',
+    });
+    expect(payload.html).not.toContain('Carla Costa');
+    expect(payload.text).not.toContain('Carla Costa');
+    expect(payload.html).toContain('Ein Admin');
+    expect(payload.text).toContain('Ein Admin');
+  });
+
+  it('falls back to the generic "Ein Admin" copy when the author name is missing', () => {
     const payload = buildChangesRequestedPayload({
       event: baseEvent,
       context: { messageId: 'msg1', authorName: '', text: 'Bitte anpassen.' },
       recipient: 'peter@example.com',
     });
-    expect(payload.html).toContain('Das tribe-Team');
+    expect(payload.html).toContain('Ein Admin');
+    expect(payload.text).toContain('Ein Admin');
   });
 });
 
@@ -410,7 +427,7 @@ describe('buildEmailPayload dispatcher', () => {
         recipient: 'x@example.com',
         context: { messageId: 'm', authorName: 'A', text: 'hi' },
       }).subject
-    ).toMatch(/^Änderungen gewünscht/);
+    ).toMatch(/^✏️ Aktion nötig/);
 
     expect(buildEmailPayload('published', { event, recipient: 'x@example.com' }).subject).toMatch(
       /^Dein Event ist live/
