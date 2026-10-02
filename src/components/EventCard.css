@@ -99,3 +99,12 @@
   font-weight: 600;
   flex-shrink: 0;
 }
+
+.event-tile-organizer-photo {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}

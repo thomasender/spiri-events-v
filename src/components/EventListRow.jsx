@@ -63,7 +63,17 @@ export default function EventListRow({ event, categoryColor, linkState, onClick 
         )}
         {organizerName && (
           <div className="event-row-organizer">
-            <span className="event-row-organizer-avatar">{organizerName.charAt(0)}</span>
+            {event.organizer && event.organizer.photoURL ? (
+              <img
+                src={event.organizer.photoURL}
+                alt=""
+                className="event-row-organizer-photo"
+                data-testid="event-row-organizer-photo"
+                loading="lazy"
+              />
+            ) : (
+              <span className="event-row-organizer-avatar">{organizerName.charAt(0)}</span>
+            )}
             <span>{organizerName}</span>
           </div>
         )}
