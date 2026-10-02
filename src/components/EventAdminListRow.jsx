@@ -49,6 +49,7 @@ export default function EventAdminListRow({
   showRevert = false,
   showDuplicate = false,
   unreadCount = 0,
+  hasMessages = false,
   isAdmin = false,
   approving = null,
   duplicating = false,
@@ -66,6 +67,7 @@ export default function EventAdminListRow({
   const recurrenceLabel = getRecurrenceLabel(event);
   const nextOccurrence = isRecurring ? getNextUpcomingOccurrence(event) : null;
   const hasUnread = unreadCount > 0;
+  const showConversationHighlight = hasMessages;
   const locationLabel = getEventLocationLabel(event);
   const multiDay = isMultiDayEvent(event);
   const fallbackImage = getEventFallbackImage(event);
@@ -75,7 +77,11 @@ export default function EventAdminListRow({
   const eventLinkTarget = `/event/${event.slug || event.id}`;
 
   return (
-    <div className={`event-card${hasUnread ? ' event-card--has-unread' : ''}`}>
+    <div
+      className={`event-card${hasUnread ? ' event-card--has-unread' : ''}${
+        showConversationHighlight ? ' event-card--has-conversation' : ''
+      }`}
+    >
       <Link to={eventLinkTarget} state={{ from: fromPath }} className="event-card-content">
         {eventDate ? (
           <div className="event-card-date">
@@ -109,6 +115,16 @@ export default function EventAdminListRow({
                   aria-label={`${unreadCount} ungelesene Nachricht${unreadCount > 1 ? 'en' : ''}`}
                   title={`${unreadCount} ungelesene Nachricht${unreadCount > 1 ? 'en' : ''}`}
                 />
+              )}
+              {showConversationHighlight && (
+                <span
+                  className="event-card-conversation-bubble"
+                  data-testid="event-card-conversation-bubble"
+                  role="img"
+                  aria-label="Klärung mit dem Ersteller läuft"
+                >
+                  Klärung läuft
+                </span>
               )}
             </h3>
             <div className="event-card-badges">

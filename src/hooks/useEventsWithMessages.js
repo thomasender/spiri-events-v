@@ -7,12 +7,14 @@ export function useEventsWithMessages() {
   const { user, role } = useAuth();
   const [events, setEvents] = useState([]);
   const [unreadCountByEvent, setUnreadCountByEvent] = useState({});
+  const [hasMessagesByEvent, setHasMessagesByEvent] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) {
       setEvents([]);
       setUnreadCountByEvent({});
+      setHasMessagesByEvent({});
       setLoading(false);
       return undefined;
     }
@@ -53,15 +55,16 @@ export function useEventsWithMessages() {
         if (docs.length === 0) {
           setEvents([]);
           setUnreadCountByEvent({});
+          setHasMessagesByEvent({});
           setLoading(false);
           return;
         }
 
         const perEventUnread = {};
-        const perEventHasAny = {};
+        const perEventHasMessages = {};
         const recompute = () => {
           const list = docs
-            .filter((e) => perEventHasAny[e.id])
+            .filter((e) => perEventHasMessages[e.id])
             .sort((a, b) => {
               const aUnread = perEventUnread[a.id] || 0;
               const bUnread = perEventUnread[b.id] || 0;
@@ -70,6 +73,7 @@ export function useEventsWithMessages() {
             });
           setEvents(list);
           setUnreadCountByEvent({ ...perEventUnread });
+          setHasMessagesByEvent({ ...perEventHasMessages });
           setLoading(false);
         };
 
@@ -88,12 +92,12 @@ export function useEventsWithMessages() {
                 }
               });
               perEventUnread[event.id] = unread;
-              perEventHasAny[event.id] = hasAny;
+              perEventHasMessages[event.id] = hasAny;
               recompute();
             },
             () => {
               perEventUnread[event.id] = 0;
-              perEventHasAny[event.id] = false;
+              perEventHasMessages[event.id] = false;
               recompute();
             }
           );
@@ -104,6 +108,7 @@ export function useEventsWithMessages() {
         console.warn('useEventsWithMessages events error:', err);
         setEvents([]);
         setUnreadCountByEvent({});
+        setHasMessagesByEvent({});
         setLoading(false);
       }
     );
@@ -124,5 +129,5 @@ export function useEventsWithMessages() {
     };
   }, [user, role]);
 
-  return { events, unreadCountByEvent, loading };
+  return { events, unreadCountByEvent, hasMessagesByEvent, loading };
 }
