@@ -150,6 +150,60 @@ describe('useProfile.save — notification preferences', () => {
     expect(mockBatchSet.mock.calls[0][0].path).toEqual(['users', 'user-2']);
   });
 
+  it('persists notifyOnContactMessage when an admin toggles the contact-message preference', async () => {
+    mockOnSnapshot.mockImplementation((_ref, onNext) => {
+      onNext(
+        makeSnapshot({
+          displayName: 'Anna Beispiel',
+          bio: '',
+          website: '',
+          photoURL: null,
+          slug: 'anna-beispiel',
+        })
+      );
+      return () => {};
+    });
+
+    const { result } = renderHook(() => useProfile('user-1'));
+
+    await waitFor(() => expect(result.current.profile).not.toBeNull());
+
+    await act(async () => {
+      await result.current.save({ notifyOnContactMessage: true });
+    });
+
+    expect(mockFindUniqueProfileSlug).not.toHaveBeenCalled();
+    expect(mockBatchSet).toHaveBeenCalledTimes(1);
+    const profilePayload = mockBatchSet.mock.calls.find(([ref]) => ref.path?.[0] === 'users')?.[1];
+    expect(profilePayload).toMatchObject({
+      notifyOnContactMessage: true,
+      slug: 'anna-beispiel',
+    });
+  });
+
+  it('hydrates notifyOnContactMessage from the user doc so the toggle reflects the saved value', async () => {
+    mockOnSnapshot.mockImplementation((_ref, onNext) => {
+      onNext(
+        makeSnapshot({
+          displayName: 'Anna Beispiel',
+          bio: '',
+          website: '',
+          photoURL: null,
+          slug: 'anna-beispiel',
+          notifyOnContactMessage: false,
+        })
+      );
+      return () => {};
+    });
+
+    const { result } = renderHook(() => useProfile('user-1'));
+
+    await waitFor(() => expect(result.current.profile).not.toBeNull());
+    expect(result.current.notificationPreferences).toMatchObject({
+      notifyOnContactMessage: false,
+    });
+  });
+
   it('still recomputes the slug and writes the publicProfile when displayName changes', async () => {
     mockOnSnapshot.mockImplementation((_ref, onNext) => {
       onNext(

@@ -137,6 +137,7 @@ service cloud.firestore {
                        'slug', 'username', 'socialMedia',
                        'notifyOnSubmitted', 'notifyOnChangesRequested',
                        'notifyOnPublished', 'notifyOnDeleted',
+                       'notifyOnContactMessage',
                        'notifyNewsletter',
                        'createdAt', 'updatedAt']
                     )
@@ -158,6 +159,7 @@ service cloud.firestore {
                                   'slug', 'username', 'socialMedia',
                                   'notifyOnSubmitted', 'notifyOnChangesRequested',
                                   'notifyOnPublished', 'notifyOnDeleted',
+                                  'notifyOnContactMessage',
                                   'notifyNewsletter',
                                   'updatedAt']);
 
