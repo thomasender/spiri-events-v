@@ -37,7 +37,7 @@ test.describe('Event detail page access (hSONxMKJ)', () => {
     await expect(page.locator('.event-title')).toContainText('Yoga heute', { timeout: 10000 });
   });
 
-  test('guest sees Event nicht gefunden for a non-existent slug', async ({ page }) => {
+  test('guest sees friendly awaiting-review message for a non-existent slug', async ({ page }) => {
     await page.goto('/event/this-slug-does-not-exist-20991231');
 
     await page
@@ -45,6 +45,9 @@ test.describe('Event detail page access (hSONxMKJ)', () => {
       .catch(() => {});
 
     await expect(page.locator('.event-not-found')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.event-not-found h2')).toContainText(
+      'wird gerade von den Admins geprüft'
+    );
   });
 
   test('logged-in user can view their own approved event via slug URL', async ({ page }) => {
@@ -77,7 +80,9 @@ test.describe('Event detail page access (hSONxMKJ)', () => {
     });
   });
 
-  test('guest sees Event nicht gefunden for another users pending event', async ({ page }) => {
+  test('guest sees friendly awaiting-review message for another users pending event (H8dgvGlD)', async ({
+    page,
+  }) => {
     await page.goto(`/event/${USER_PENDING_SLUG}`);
 
     await page
@@ -85,6 +90,9 @@ test.describe('Event detail page access (hSONxMKJ)', () => {
       .catch(() => {});
 
     await expect(page.locator('.event-not-found')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.event-not-found h2')).toContainText(
+      'wird gerade von den Admins geprüft'
+    );
   });
 });
 

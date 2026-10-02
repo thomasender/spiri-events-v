@@ -806,3 +806,17 @@ describe('EventDetailPage — contribution badge (VtFz800s)', () => {
     expect(screen.getByText('Einzelstunde')).toBeInTheDocument();
   });
 });
+
+describe('EventDetailPage — friendly awaiting-review message (H8dgvGlD)', () => {
+  it('shows the awaiting-review message when a guest opens a slug that cannot be resolved', async () => {
+    mockFirestoreDoc.getDocResult = null;
+
+    renderPage();
+
+    const heading = await screen.findByRole('heading', {
+      name: /wird gerade von den admins geprüft/i,
+    });
+    expect(heading).toBeInTheDocument();
+    expect(screen.queryByText(/event nicht gefunden/i)).toBeNull();
+  });
+});
