@@ -17,6 +17,7 @@ export const NOTIFICATION_PREFERENCE_KEYS = [
   'notifyOnChangesRequested',
   'notifyOnPublished',
   'notifyOnDeleted',
+  'notifyOnContactMessage',
   'notifyNewsletter',
 ];
 
@@ -25,6 +26,7 @@ const DEFAULT_NOTIFICATION_PREFERENCES = {
   notifyOnChangesRequested: true,
   notifyOnPublished: true,
   notifyOnDeleted: true,
+  notifyOnContactMessage: true,
   notifyNewsletter: false,
 };
 
