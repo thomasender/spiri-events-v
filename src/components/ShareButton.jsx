@@ -105,7 +105,10 @@ export default function ShareButton(props) {
 
   const handleChannelClick = async (channelId) => {
     const builder = SHARE_URL_BUILDERS[channelId];
-    if (builder) {
+    // wa.me / t.me redirect into the native app; opened via window.open they leave an
+    // empty tab behind (especially in the PWA). Use the native share sheet when present.
+    const prefersNativeShare = channelId === 'whatsapp' || channelId === 'telegram';
+    if (builder && !(prefersNativeShare && navigator.share)) {
       window.open(builder(shareUrl, shareTitle), '_blank', 'noopener,noreferrer');
       setIsOpen(false);
       return;
