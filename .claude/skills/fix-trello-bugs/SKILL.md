@@ -135,3 +135,22 @@ report in your context.
 - Never touch production data, secrets or Firebase console settings.
 - Never write to Peter in English or technical language, and never leave out `@petermathis1`.
 - Don't move skipped cards and don't comment on them unless the user asks.
+
+## Known issues (from past runs)
+
+- **Forgot-password smoke test fails on back-to-back runs.** The
+  `email-verification-required` test uses an in-memory rate limit in the
+  Functions emulator (3 resets per 15 min). If it is the only failure, run
+  `npm run emulators:restart` (in the background, it never exits by itself) and
+  push again. Don't edit the test.
+- **Trello screenshots can't be downloaded.** Attachment URLs need Trello auth,
+  so subagents can't see them. Tell the subagent to follow the written text, state
+  its guesses in the comment to Peter, and ask him to check against his screenshot.
+- **Pushes race.** If a push is rejected because main moved, the subagent should
+  `git pull --rebase origin main` and push again. Only one ticket subagent runs
+  at a time, but the orchestrator's own skill commits also land on main.
+- **Date-dependent tests.** Fixtures built from "today ± N days" break on the
+  1st or 2nd of a month. Pin the clock or compute relative to the viewed month.
+- **CI cancels superseded deploys** (`cancel-in-progress`). A cancelled run for an
+  earlier push is normal when several tickets are pushed in a row; only the last
+  run has to be green. Check it with `gh run list --workflow=deploy.yml --limit 3`.
