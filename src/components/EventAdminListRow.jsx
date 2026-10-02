@@ -11,6 +11,7 @@ import {
   FileText,
   Copy,
   RefreshCw,
+  MessageCircle,
 } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 import { formatDayNumber, formatMonthShort, formatWeekdayShort } from '../utils/eventFormat';
@@ -41,6 +42,17 @@ function formatDate(dateStr) {
   });
 }
 
+function formatTimestamp(ts) {
+  if (!ts) return '';
+  const date = typeof ts === 'object' && typeof ts.toDate === 'function' ? ts.toDate() : new Date(ts);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString('de-DE', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
 export default function EventAdminListRow({
   event,
   showStatus = false,
@@ -55,6 +67,11 @@ export default function EventAdminListRow({
   duplicating = false,
   fromPath = '/admin',
   showTrashedAt = false,
+  showSubmittedAt = false,
+  showApprovedBy = false,
+  approvedByName = null,
+  showInKlaerungBy = false,
+  inKlaerungByName = null,
   onApprove,
   onSubmit,
   onRevert,
@@ -82,6 +99,16 @@ export default function EventAdminListRow({
         showConversationHighlight ? ' event-card--has-conversation' : ''
       }`}
     >
+      {showConversationHighlight && (
+        <div
+          className="event-card-clarification-ribbon"
+          data-testid="event-card-clarification-ribbon"
+          title="Ein Admin hat den Ersteller um Änderungen gebeten. Bitte nicht erneut bearbeiten ohne Rücksprache."
+        >
+          <MessageCircle size={14} aria-hidden="true" />
+          <span>Klärung läuft</span>
+        </div>
+      )}
       <Link to={eventLinkTarget} state={{ from: fromPath }} className="event-card-content">
         {eventDate ? (
           <div className="event-card-date">
@@ -166,6 +193,34 @@ export default function EventAdminListRow({
                 data-testid={`trash-event-trashed-at-${event.id}`}
               >
                 Gelöscht am {formatDate(event.trashedAt)}
+              </span>
+            )}
+            {showSubmittedAt && event.createdAt && (
+              <span
+                className="event-card-meta-item"
+                data-testid={`event-card-submitted-at-${event.id}`}
+                title="Wurde zur Review eingereicht am"
+              >
+                Eingereicht am {formatTimestamp(event.createdAt)}
+              </span>
+            )}
+            {showApprovedBy && event.approvedBy && (
+              <span
+                className="event-card-meta-item"
+                data-testid={`event-card-approved-by-${event.id}`}
+                title="Genehmigt von"
+              >
+                Genehmigt von {approvedByName || 'einem Admin'}
+                {event.approvedAt ? ` am ${formatTimestamp(event.approvedAt)}` : ''}
+              </span>
+            )}
+            {showInKlaerungBy && hasMessages && (
+              <span
+                className="event-card-meta-item"
+                data-testid={`event-card-in-klaerung-by-${event.id}`}
+                title="Ein Admin hat den Ersteller um Änderungen gebeten"
+              >
+                In Klärung mit {inKlaerungByName || 'einem Admin'}
               </span>
             )}
           </div>

@@ -33,6 +33,20 @@ async function createThrowawayPendingEvent(eventId: string): Promise<void> {
   });
 }
 
+async function createThrowawayApprovedEvent(eventId: string): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const proc = spawn('node', ['scripts/create-throwaway-approved-event.mjs', eventId], {
+      cwd: process.cwd(),
+      stdio: 'ignore',
+      shell: true,
+    });
+    proc.on('close', (code) =>
+      code === 0 ? resolve() : reject(new Error(`throwaway approved create exit ${code}`))
+    );
+    proc.on('error', reject);
+  });
+}
+
 async function deleteEventById(eventId: string): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     const proc = spawn('node', ['scripts/delete-event-by-id.mjs', eventId], {
@@ -135,7 +149,8 @@ test.describe('Review tab for admins (dUWoE5vu) @smoke', () => {
         .catch(() => {});
 
       const reviewPanel = page.locator('#admin-tab-review');
-      const pendingCard = reviewPanel.locator('.event-card', { hasText: throwawayTitle });
+      const pendingSection = reviewPanel.getByTestId('review-section-pending');
+      const pendingCard = pendingSection.locator('.event-card', { hasText: throwawayTitle });
       await expect(pendingCard).toBeVisible({ timeout: 10000 });
       await expect(pendingCard.locator('.status-badge--pending')).toBeVisible();
 
@@ -148,9 +163,12 @@ test.describe('Review tab for admins (dUWoE5vu) @smoke', () => {
       await successDialog.getByTestId('success-dialog-confirm').click();
       await expect(successDialog).toBeHidden();
 
-      await expect(reviewPanel.locator('.event-card', { hasText: throwawayTitle })).toHaveCount(0, {
-        timeout: 10000,
-      });
+      // After approval the event leaves the pending section (its card may now
+      // appear in the "Genehmigt in den letzten 7 Tagen" section below, since
+      // approvedAt was just stamped — that's the new design).
+      await expect(
+        pendingSection.locator('.event-card', { hasText: throwawayTitle })
+      ).toHaveCount(0, { timeout: 10000 });
     } finally {
       await deleteEventById(throwawayId);
     }
@@ -185,6 +203,120 @@ test.describe('Review tab for admins (dUWoE5vu) @smoke', () => {
       });
     } finally {
       await deleteEventById(throwawayId);
+    }
+  });
+
+  test('admin sees three labelled sections on the Review tab (j67qz6b2) @smoke', async ({
+    page,
+  }) => {
+    const throwawayId = `test-review-sections-${Date.now()}`;
+    const throwawayTitle = `Throwaway Approved ${throwawayId}`;
+    await createThrowawayApprovedEvent(throwawayId);
+
+    try {
+      await page.goto('/admin?tab=review');
+
+      await page
+        .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+        .catch(() => {});
+
+      // The seeded test-event-foreign-pending event (and any throwaways) make
+      // the "Wartend auf Genehmigung" section visible. Our just-created
+      // throwaway approved event makes the "Genehmigt in den letzten 7 Tagen"
+      // section visible. The "In Klärung" subsection only shows up when an
+      // admin has asked the creator for changes — covered in the next test.
+      const reviewPanel = page.locator('#admin-tab-review');
+      await expect(reviewPanel).toBeVisible();
+
+      await expect(reviewPanel.getByTestId('review-section-pending')).toBeVisible();
+      await expect(reviewPanel.getByTestId('review-section-pending')).toContainText(
+        'Wartend auf Genehmigung'
+      );
+      await expect(reviewPanel.getByTestId('review-subsection-neu')).toBeVisible();
+      await expect(reviewPanel.getByTestId('review-subsection-neu')).toContainText(
+        'Neu eingereicht'
+      );
+
+      await expect(reviewPanel.getByTestId('review-section-approved')).toBeVisible();
+      await expect(reviewPanel.getByTestId('review-section-approved')).toContainText(
+        'Genehmigt in den letzten 7 Tagen'
+      );
+
+      // The throwaway approved event must appear inside the approved section
+      // and surface the new "Genehmigt von" meta line.
+      const approvedCard = reviewPanel
+        .getByTestId('review-section-approved')
+        .locator('.event-card', { hasText: throwawayTitle });
+      await expect(approvedCard).toBeVisible({ timeout: 10000 });
+      const approvedByLine = approvedCard.getByTestId(
+        `event-card-approved-by-${throwawayId}`
+      );
+      await expect(approvedByLine).toBeVisible();
+      await expect(approvedByLine).toContainText(/Genehmigt von/);
+    } finally {
+      await deleteEventById(throwawayId);
+    }
+  });
+
+  test('In Klärung subsection appears once the creator has a message from an admin (j67qz6b2) @smoke', async ({
+    page,
+  }) => {
+    // scripts/reset-message-fixtures.mjs seeds test-event-with-messages with
+    // an admin-authored message; the messages subcollection is what the
+    // "In Klärung" detection reads.
+    await new Promise<void>((resolve, reject) => {
+      const proc = spawn('node', ['scripts/reset-message-fixtures.mjs'], {
+        cwd: process.cwd(),
+        stdio: 'ignore',
+        shell: true,
+      });
+      proc.on('close', (code) =>
+        code === 0 ? resolve() : reject(new Error(`reset exit ${code}`))
+      );
+      proc.on('error', reject);
+    });
+
+    try {
+      await page.goto('/admin?tab=review');
+
+      await page
+        .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+        .catch(() => {});
+
+      const reviewPanel = page.locator('#admin-tab-review');
+      await expect(reviewPanel).toBeVisible();
+      await expect(reviewPanel.getByTestId('review-subsection-klaerung')).toBeVisible({
+        timeout: 10000,
+      });
+
+      const clarificationCard = reviewPanel.locator('.event-card', {
+        hasText: 'Test Event With Messages',
+      });
+      await expect(clarificationCard).toBeVisible({ timeout: 10000 });
+
+      // The new full-width "KLÄRUNG LÄUFT" ribbon must be present.
+      await expect(
+        clarificationCard.getByTestId('event-card-clarification-ribbon')
+      ).toBeVisible();
+
+      // And the rich "In Klärung mit …" meta line, with the admin's display name.
+      const inKlaerungLine = clarificationCard.getByTestId(
+        'event-card-in-klaerung-by-test-event-with-messages'
+      );
+      await expect(inKlaerungLine).toBeVisible();
+      await expect(inKlaerungLine).toContainText(/In Klärung mit Test Admin/);
+    } finally {
+      // Restore the pending event to a clean state so other specs don't trip
+      // over leftover admin messages.
+      await new Promise<void>((resolve, reject) => {
+        const proc = spawn('node', ['scripts/reset-message-fixtures.mjs'], {
+          cwd: process.cwd(),
+          stdio: 'ignore',
+          shell: true,
+        });
+        proc.on('close', () => resolve());
+        proc.on('error', reject);
+      });
     }
   });
 });

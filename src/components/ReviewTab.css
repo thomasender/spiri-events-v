@@ -1,0 +1,108 @@
+.review-section {
+  margin-bottom: 40px;
+}
+
+.review-section-header {
+  margin-bottom: 16px;
+}
+
+.review-section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 4px;
+  font-family: var(--font-heading);
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.review-section-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.review-section--pending .review-section-count {
+  background-color: var(--pending-bg);
+  color: var(--pending-text);
+}
+
+.review-section--approved .review-section-count {
+  background-color: var(--free-bg);
+  color: var(--free-text);
+}
+
+.review-section-hint {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.review-subsection {
+  margin-top: 16px;
+}
+
+.review-subsection-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.review-subsection-title--klaerung {
+  color: var(--accent-primary);
+}
+
+.review-subsection-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background-color: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.review-subsection-title--klaerung .review-subsection-count {
+  background-color: var(--accent-primary);
+  color: #fff;
+}
+
+.review-subsection-hint {
+  margin: -4px 0 12px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.review-subsection-empty {
+  margin: 0 0 12px;
+  padding: 12px 16px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 600px) {
+  .review-section-title {
+    font-size: 1.2rem;
+  }
+}

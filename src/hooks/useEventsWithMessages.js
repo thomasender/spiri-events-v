@@ -8,6 +8,11 @@ export function useEventsWithMessages() {
   const [events, setEvents] = useState([]);
   const [unreadCountByEvent, setUnreadCountByEvent] = useState({});
   const [hasMessagesByEvent, setHasMessagesByEvent] = useState({});
+  // For each pending event with messages, the display name of the admin who
+  // first wrote into the thread (so the Review tab can show
+  // "In Klärung mit Anna Schmidt"). Falls back to null when no admin message
+  // exists yet (which can happen if the creator spoke first).
+  const [inKlaerungAuthorNameByEvent, setInKlaerungAuthorNameByEvent] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -15,6 +20,7 @@ export function useEventsWithMessages() {
       setEvents([]);
       setUnreadCountByEvent({});
       setHasMessagesByEvent({});
+      setInKlaerungAuthorNameByEvent({});
       setLoading(false);
       return undefined;
     }
@@ -56,12 +62,14 @@ export function useEventsWithMessages() {
           setEvents([]);
           setUnreadCountByEvent({});
           setHasMessagesByEvent({});
+          setInKlaerungAuthorNameByEvent({});
           setLoading(false);
           return;
         }
 
         const perEventUnread = {};
         const perEventHasMessages = {};
+        const perEventFirstAdmin = {};
         const recompute = () => {
           const list = docs
             .filter((e) => perEventHasMessages[e.id])
@@ -74,6 +82,7 @@ export function useEventsWithMessages() {
           setEvents(list);
           setUnreadCountByEvent({ ...perEventUnread });
           setHasMessagesByEvent({ ...perEventHasMessages });
+          setInKlaerungAuthorNameByEvent({ ...perEventFirstAdmin });
           setLoading(false);
         };
 
@@ -84,20 +93,30 @@ export function useEventsWithMessages() {
             (snap) => {
               let unread = 0;
               let hasAny = false;
+              let firstAdminName = null;
               snap.docs.forEach((docSnap) => {
                 hasAny = true;
                 const data = docSnap.data();
                 if (data.authorUid !== user.uid && data.readByRecipient !== true) {
                   unread += 1;
                 }
+                // Remember the first admin message so the review tab can
+                // show "In Klärung mit [Name]". We only care about the
+                // first occurrence — additional admins joining later still
+                // show the originator.
+                if (data.authorRole === 'Admin' && firstAdminName == null) {
+                  firstAdminName = data.authorName || null;
+                }
               });
               perEventUnread[event.id] = unread;
               perEventHasMessages[event.id] = hasAny;
+              perEventFirstAdmin[event.id] = firstAdminName;
               recompute();
             },
             () => {
               perEventUnread[event.id] = 0;
               perEventHasMessages[event.id] = false;
+              perEventFirstAdmin[event.id] = null;
               recompute();
             }
           );
@@ -109,6 +128,7 @@ export function useEventsWithMessages() {
         setEvents([]);
         setUnreadCountByEvent({});
         setHasMessagesByEvent({});
+        setInKlaerungAuthorNameByEvent({});
         setLoading(false);
       }
     );
@@ -129,5 +149,11 @@ export function useEventsWithMessages() {
     };
   }, [user, role]);
 
-  return { events, unreadCountByEvent, hasMessagesByEvent, loading };
+  return {
+    events,
+    unreadCountByEvent,
+    hasMessagesByEvent,
+    inKlaerungAuthorNameByEvent,
+    loading,
+  };
 }
