@@ -78,6 +78,20 @@ describe('ShareButton', () => {
     expect(url).toContain(encodeURIComponent('/event/mindful-yoga-flow-bregenz-20260815'));
   });
 
+  it('uses the native share sheet instead of window.open for WhatsApp when available', async () => {
+    const share = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'share', { value: share, configurable: true });
+    try {
+      render(<ShareButton event={mockEvent} />);
+      fireEvent.click(screen.getByTestId('share-event-button'));
+      fireEvent.click(screen.getByTestId('share-channel-whatsapp'));
+      await waitFor(() => expect(share).toHaveBeenCalledTimes(1));
+      expect(window.open).not.toHaveBeenCalled();
+    } finally {
+      delete (navigator as { share?: unknown }).share;
+    }
+  });
+
   it('opens the Telegram share endpoint with title and event URL', () => {
     render(<ShareButton event={mockEvent} />);
     fireEvent.click(screen.getByTestId('share-event-button'));
