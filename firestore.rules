@@ -533,10 +533,14 @@ service cloud.firestore {
                     && isValidDonorAmount(request.resource.data.amount)
                     && isValidDonorFrequency(request.resource.data.frequency)
                     && isValidDonorNote(request.resource.data.note)
-                    && isValidDonorSource(request.resource.data.source)
-                    && isValidDonorConsent(request.resource.data.mollieConsent)
-                    && isValidMolliePaymentId(request.resource.data.molliePaymentId)
-                    && isValidMollieSubscriptionId(request.resource.data.mollieSubscriptionId);
+                    && (!('source' in request.resource.data)
+                        || isValidDonorSource(request.resource.data.source))
+                    && (!('mollieConsent' in request.resource.data)
+                        || isValidDonorConsent(request.resource.data.mollieConsent))
+                    && (!('molliePaymentId' in request.resource.data)
+                        || isValidMolliePaymentId(request.resource.data.molliePaymentId))
+                    && (!('mollieSubscriptionId' in request.resource.data)
+                        || isValidMollieSubscriptionId(request.resource.data.mollieSubscriptionId));
 
       allow update: if isAdminOrEmulatorAdmin()
                     && request.resource.data.diff(resource.data).affectedKeys()
