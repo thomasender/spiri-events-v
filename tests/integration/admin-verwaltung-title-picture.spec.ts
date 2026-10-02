@@ -61,7 +61,11 @@ test.describe('Verwaltung lists — title picture (TnMMKIc7)', () => {
       const image = card.getByTestId('event-card-image');
       await expect(image).toBeVisible();
       const src = await image.getAttribute('src');
-      expect(src).toMatch(/^\/event-fallbacks\//);
+      // Each card gets either its category image under /event-fallbacks/ or,
+      // for Sonstiges, the shared /hero.jpeg (mgtOZVYz).
+      expect(
+        src === '/hero.jpeg' || (src ?? '').startsWith('/event-fallbacks/')
+      ).toBe(true);
     }
   });
 
@@ -75,7 +79,7 @@ test.describe('Verwaltung lists — title picture (TnMMKIc7)', () => {
 
     const image = card.getByTestId('event-card-image');
     await expect(image).toBeVisible();
-    await expect(image).toHaveAttribute('src', '/event-fallbacks/sonstiges.jpg');
+    await expect(image).toHaveAttribute('src', '/hero.jpeg');
   });
 
   test('Entwürfe: each draft card shows the title picture with the category fallback', async ({
@@ -86,7 +90,7 @@ test.describe('Verwaltung lists — title picture (TnMMKIc7)', () => {
     await waitForAdminTabs(page);
 
     const draftCards = [
-      { title: 'Admin Draft Event', fallback: '/event-fallbacks/sonstiges.jpg' },
+      { title: 'Admin Draft Event', fallback: '/hero.jpeg' },
       { title: 'Second Admin Draft', fallback: '/event-fallbacks/yoga.jpg' },
     ];
 
@@ -117,7 +121,11 @@ test.describe('Verwaltung lists — title picture (TnMMKIc7)', () => {
       const image = items.nth(i).getByTestId('messages-tab-item-image');
       await expect(image).toBeVisible();
       const src = await image.getAttribute('src');
-      expect(src).toMatch(/^\/event-fallbacks\//);
+      // Each card gets either its category image under /event-fallbacks/ or,
+      // for Sonstiges, the shared /hero.jpeg (mgtOZVYz).
+      expect(
+        src === '/hero.jpeg' || (src ?? '').startsWith('/event-fallbacks/')
+      ).toBe(true);
     }
 
     const fixtureItem = page
@@ -126,7 +134,7 @@ test.describe('Verwaltung lists — title picture (TnMMKIc7)', () => {
     await expect(fixtureItem).toBeVisible({ timeout: 10000 });
     const fixtureImage = fixtureItem.getByTestId('messages-tab-item-image');
     await expect(fixtureImage).toBeVisible();
-    await expect(fixtureImage).toHaveAttribute('src', '/event-fallbacks/sonstiges.jpg');
+    await expect(fixtureImage).toHaveAttribute('src', '/hero.jpeg');
   });
 
   test('Meine Events: title picture sits left of the card content, not on top (ASWJkYMY)', async ({

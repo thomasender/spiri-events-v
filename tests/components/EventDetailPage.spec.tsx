@@ -119,7 +119,7 @@ vi.mock('../../src/lib/slug', () => ({
 }));
 
 vi.mock('../../src/utils/eventFallbacks', () => ({
-  getEventFallbackImage: () => '/event-fallbacks/sonstiges.jpg',
+  getEventFallbackImage: () => '/hero.jpeg',
 }));
 
 const mockGetEventOccurrences = vi.hoisted(() => vi.fn());
