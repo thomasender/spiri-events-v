@@ -67,7 +67,16 @@ Before each dispatch, make sure the tree is clean and up to date:
 `git checkout main && git pull --ff-only origin main && git status --short`
 (untracked local scripts or `.firebase/` are fine; uncommitted tracked changes are not).
 
-Spawn a `general-purpose` subagent with a self-contained prompt. Template:
+Spawn a `general-purpose` subagent and set `model` to fit the task. Don't
+default to Opus:
+
+| Model      | Use for                                                                                                                                                     |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **sonnet** | The default. Clear, well-scoped tickets: UI/CSS tweaks, copy changes, adding a dialog or validation, small component refactors, fixing stale test fixtures  |
+| **opus**   | Vague or investigative tickets (root cause unknown, "weiß nicht was los ist"), auth/permission/Firestore-rules bugs, data-loss risks, cross-cutting changes |
+| **haiku**  | Purely mechanical work: a text-only change, renaming a label, answering a question comment                                                                  |
+
+Prompt template (self-contained):
 
 ```
 You are fixing one Trello bug in /Users/thomasender/Desktop/playground/spiri-events-v.
