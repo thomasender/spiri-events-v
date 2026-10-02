@@ -9,6 +9,7 @@ import EventsSection from '../components/EventsSection';
 import EmailVerificationModal from '../components/EmailVerificationModal';
 import SeoMeta from '../components/SeoMeta';
 import { getEventOccurrences } from '../utils/eventOccurrences';
+import { compareEventsByDateTime } from '../utils/eventSort';
 import { resolveEventColor } from '../utils/categoryColors';
 import { monthKeyToDate, dateToMonthKey } from '../utils/calendarFilterState';
 import {
@@ -250,7 +251,7 @@ export default function CalendarPage() {
         const [eventYear, eventMonth] = event.date.split('-').map(Number);
         return eventYear === year && eventMonth - 1 === month;
       })
-      .sort((a, b) => (a.date > b.date ? 1 : -1));
+      .sort(compareEventsByDateTime);
   }, [filteredEvents, currentMonth]);
 
   const visibleEvents = useMemo(() => {
