@@ -9,6 +9,18 @@ const STORAGE_KEY = 'pwa-install-pref';
 const MOBILE_QUERY = '(max-width: 800px)';
 const DELAY = 15000;
 
+// Fake only the timer APIs the component uses. Vitest 4's default
+// vi.useFakeTimers() also fakes `performance`, whose clock Vitest's runner
+// uses to time hooks. The afterEach below starts under fake timers and ends
+// after vi.useRealTimers(), so its measured duration jumps by the gap between
+// the fake and real clocks (roughly the machine's uptime) and it fails with
+// "Hook timed out in 10000ms" plus a huge negative suite duration.
+function useFakeTimers() {
+  vi.useFakeTimers({
+    toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'],
+  });
+}
+
 function setMobileViewport(matches) {
   // happy-dom's matchMedia returns a static, query-independent stub by
   // default, which would falsely satisfy `(display-mode: standalone)` checks
@@ -101,7 +113,7 @@ describe('PwaInstallPrompt', () => {
     localStorage.clear();
     setMobileViewport(true);
     setIOS(false);
-    vi.useFakeTimers();
+    useFakeTimers();
   });
 
   afterEach(() => {
@@ -235,7 +247,7 @@ describe('PwaInstallPrompt', () => {
         expect(localStorage.getItem(STORAGE_KEY)).toBe('accepted');
       });
     } finally {
-      vi.useFakeTimers();
+      useFakeTimers();
     }
   });
 
@@ -371,7 +383,7 @@ describe('Footer install link', () => {
         expect(localStorage.getItem(STORAGE_KEY)).toBe('accepted');
       });
     } finally {
-      vi.useFakeTimers();
+      useFakeTimers();
     }
   });
 

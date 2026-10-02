@@ -73,7 +73,8 @@ describe('CalendarPage — category filter initial state (wkzZei1s)', () => {
     // Anchor to the last day of the current month so the events stay in
     // `monthEvents` (and therefore the rendered agenda) regardless of when
     // the tests run.
-    const lastOfMonth = new Date(2026, 8, 30); // 2026-09-30
+    const now = new Date();
+    const lastOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     const isoDate = `${lastOfMonth.getFullYear()}-${String(lastOfMonth.getMonth() + 1).padStart(
       2,
       '0'
