@@ -4,9 +4,9 @@ export const SITE_NAME = 'tribe Vorarlberg';
 export const DEFAULT_DESCRIPTION =
   'Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg - Bregenz, Dornbirn, Feldkirch, Bludenz';
 
-export const DEFAULT_OG_IMAGE_PATH = '/og-default.jpg';
-export const OG_IMAGE_WIDTH = 1200;
-export const OG_IMAGE_HEIGHT = 630;
+export const DEFAULT_OG_IMAGE_PATH = '/hero.jpeg';
+export const OG_IMAGE_WIDTH = 1389;
+export const OG_IMAGE_HEIGHT = 768;
 
 export const DEFAULT_OG_IMAGE_URL = `${SITE_URL}${DEFAULT_OG_IMAGE_PATH}`;
 
