@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Crosshair, Info, RotateCcw } from 'lucide-react';
+import { Crosshair, Info, RotateCcw, X } from 'lucide-react';
 import {
   DEFAULT_FOCAL_POINT,
   clamp01,
@@ -31,6 +31,7 @@ export default function FocalPointPicker({
   imageUrl,
   value,
   onChange,
+  onReplace,
   ariaLabel = 'Fokuspunkt des Titelbilds festlegen',
   testId = 'focal-point-picker',
 }) {
@@ -217,16 +218,30 @@ export default function FocalPointPicker({
             role="slider"
             data-testid={`${testId}-handle-x`}
             onKeyDown={(e) => onKeyDown('x', e)}
-            onPointerDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.preventDefault()}
           >
             <Crosshair size={14} aria-hidden="true" />
           </button>
         </div>
 
         <div className="focal-point-picker-preview-wrapper">
-          <span className="focal-point-picker-preview-label">
-            So sieht es nach dem Zuschneiden aus:
-          </span>
+          <div className="focal-point-picker-preview-header">
+            <span className="focal-point-picker-preview-label">
+              So sieht es nach dem Zuschneiden aus:
+            </span>
+            {onReplace && (
+              <button
+                type="button"
+                className="focal-point-picker-replace"
+                onClick={onReplace}
+                aria-label="Foto ersetzen"
+                title="Foto ersetzen"
+                data-testid={`${testId}-replace`}
+              >
+                <X size={14} aria-hidden="true" />
+              </button>
+            )}
+          </div>
           <div
             className="focal-point-picker-preview"
             aria-hidden="true"

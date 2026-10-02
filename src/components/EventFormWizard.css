@@ -369,27 +369,6 @@ textarea {
   object-fit: cover;
 }
 
-.image-remove-btn {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  padding: 4px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border);
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-secondary);
-}
-
-.image-remove-btn:hover {
-  background: var(--error);
-  color: white;
-  border-color: var(--error);
-}
-
 .upload-progress {
   margin-top: 10px;
 }

@@ -113,25 +113,6 @@ describe('EventForm — image preservation on edit (6bs5MvXI)', () => {
     expect(payload.imageUrl).toBe(EXISTING_IMAGE_URL);
   });
 
-  it('sets imageUrl to null when the user removes the picture and saves', async () => {
-    render(
-      <MemoryRouter>
-        <EventForm event={baseEvent} />
-      </MemoryRouter>
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: /bild entfernen/i }));
-
-    fireEvent.click(screen.getByRole('button', { name: /änderungen speichern/i }));
-
-    await vi.waitFor(() => {
-      expect(mockEvents.updateEvent).toHaveBeenCalledTimes(1);
-    });
-
-    const payload = mockEvents.updateEvent.mock.calls[0][1];
-    expect(payload.imageUrl).toBeNull();
-  });
-
   it('preserves the existing imageFocalPoint when editing without touching the picture (hGQ6ogl7)', async () => {
     render(
       <MemoryRouter>
@@ -157,24 +138,6 @@ describe('EventForm — image preservation on edit (6bs5MvXI)', () => {
       </MemoryRouter>
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /änderungen speichern/i }));
-
-    await vi.waitFor(() => {
-      expect(mockEvents.updateEvent).toHaveBeenCalledTimes(1);
-    });
-
-    const payload = mockEvents.updateEvent.mock.calls[0][1];
-    expect(payload.imageFocalPoint).toBeNull();
-  });
-
-  it('clears imageFocalPoint when the user removes the picture', async () => {
-    render(
-      <MemoryRouter>
-        <EventForm event={baseEvent} />
-      </MemoryRouter>
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: /bild entfernen/i }));
     fireEvent.click(screen.getByRole('button', { name: /änderungen speichern/i }));
 
     await vi.waitFor(() => {
