@@ -339,6 +339,28 @@ describe('EventList', () => {
     expect(screen.getByTestId('revert-to-draft-button')).toBeInTheDocument();
   });
 
+  it('Papierkorb status filter points to the trash tab instead of a dead end', () => {
+    mockAuth.role = null;
+    mockUseEvents.events = [
+      singleEvent,
+      { ...draftEvent, id: 'trashed-1', title: 'Trashed Yoga Class', status: 'trashed' },
+    ];
+
+    render(
+      <MemoryRouter>
+        <EventList />
+      </MemoryRouter>
+    );
+
+    fireEvent.change(screen.getByTestId('status-filter'), { target: { value: 'trashed' } });
+
+    expect(screen.queryByText('Keine Events mit diesem Status')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /zum papierkorb/i })).toHaveAttribute(
+      'href',
+      '/admin?tab=trash'
+    );
+  });
+
   it('clicking submit-draft-button opens the submit confirmation dialog', () => {
     mockUseEvents.events = [draftEvent];
 
