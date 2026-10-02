@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -8,6 +8,25 @@ type PrerenderModule = typeof import('../../scripts/prerender.mjs');
 async function importPrerender(): Promise<PrerenderModule> {
   return import('../../scripts/prerender.mjs');
 }
+
+// Hoisted mocks for firebase-admin — see loadEventsFromFirestoreAdmin
+// describe block below. `vi.hoisted` lets the mocks see variables that are
+// initialised inside the mock body itself (which runs before beforeAll).
+const { mockInitializeApp, mockAppDelete, mockGetFirestore, mockCollection } = vi.hoisted(() => ({
+  mockInitializeApp: vi.fn(),
+  mockAppDelete: vi.fn(),
+  mockGetFirestore: vi.fn(),
+  mockCollection: vi.fn(),
+}));
+
+vi.mock('firebase-admin/app', () => ({
+  initializeApp: (...args) => mockInitializeApp(...args),
+  cert: (cred) => ({ _cred: cred }),
+}));
+
+vi.mock('firebase-admin/firestore', () => ({
+  getFirestore: (...args) => mockGetFirestore(...args),
+}));
 
 async function makeFixtureDir(prefix: string): Promise<string> {
   return fs.mkdtempSync(path.join(os.tmpdir(), prefix));
@@ -868,6 +887,7 @@ describe('loadEventsFromFirestoreAdmin (UIWI8kWx)', () => {
     };
     delete process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
     delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
@@ -910,6 +930,82 @@ describe('loadEventsFromFirestoreAdmin (UIWI8kWx)', () => {
     expect(result.events).toEqual([]);
     expect(result.source).toBeNull();
     expect(result.error).toMatch(/Failed to read GOOGLE_APPLICATION_CREDENTIALS/);
+  });
+
+  it('drops trashed events so they cannot overwrite an approved twin by slug (GMeDNcIx)', async () => {
+    // Repro for the OG-preview regression: when two events share a slug —
+    // one approved with imageUrl, one trashed without — the merge logic in
+    // `mergeEventsByIdentity` keeps the LAST event processed. Without the
+    // filter, the trashed twin wins, the approved `imageUrl` is lost, and
+    // the prerendered HTML ships the category fallback image to messenger
+    // previews instead of the original photo. We assert the live Admin SDK
+    // read filters trashed events out so this race never reaches the merge.
+    process.env.FIREBASE_SERVICE_ACCOUNT_JSON = JSON.stringify({
+      type: 'service_account',
+      project_id: 'spirieventsvbg',
+    });
+    const sharedSlug = 'ecstatic-dance-tanz-in-feldkirch-20261013';
+    const docs = [
+      {
+        id: 'approved-event',
+        data: () => ({
+          title: 'Ecstatic Dance',
+          slug: sharedSlug,
+          status: 'approved',
+          imageUrl: 'https://storage.googleapis.com/bucket/approved.jpg',
+          date: '2026-10-13',
+          category: 'Tanz',
+          bezirk: 'Feldkirch',
+          place: 'Ender Saal',
+        }),
+      },
+      {
+        id: 'trashed-event',
+        data: () => ({
+          title: 'Ecstatic Dance',
+          slug: sharedSlug,
+          status: 'trashed',
+          imageUrl: null,
+          date: '2026-10-13',
+          category: 'Tanz',
+          bezirk: 'Feldkirch',
+          place: 'Ender Saal',
+        }),
+      },
+      {
+        id: 'unrelated-approved',
+        data: () => ({
+          title: 'Yoga Stunde',
+          slug: 'yoga-stunde-dornbirn-20261115',
+          status: 'approved',
+          imageUrl: null,
+          date: '2026-11-15',
+          category: 'Yoga',
+          bezirk: 'Dornbirn',
+          place: 'Studio',
+        }),
+      },
+    ];
+    mockInitializeApp.mockReturnValue({
+      _name: 'prerender-admin-test',
+      delete: mockAppDelete,
+    });
+    mockAppDelete.mockResolvedValue(undefined);
+    const fakeCollection = { get: vi.fn().mockResolvedValue({ docs }) };
+    mockCollection.mockReturnValue(fakeCollection);
+    const fakeDb = { collection: mockCollection };
+    mockGetFirestore.mockReturnValue(fakeDb);
+    const { loadEventsFromFirestoreAdmin } = await importPrerender();
+    const result = await loadEventsFromFirestoreAdmin({
+      projectId: 'spirieventsvbg',
+      fallbackPath: '',
+    });
+    expect(result.error).toBeNull();
+    const ids = result.events.map((e) => e.id).sort();
+    expect(ids).toEqual(['approved-event', 'unrelated-approved']);
+    const approved = result.events.find((e) => e.id === 'approved-event');
+    expect(approved.imageUrl).toBe('https://storage.googleapis.com/bucket/approved.jpg');
+    expect(result.events.find((e) => e.id === 'trashed-event')).toBeUndefined();
   });
 });
 
