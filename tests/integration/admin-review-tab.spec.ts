@@ -166,9 +166,10 @@ test.describe('Review tab for admins (dUWoE5vu) @smoke', () => {
       // After approval the event leaves the pending section (its card may now
       // appear in the "Genehmigt in den letzten 7 Tagen" section below, since
       // approvedAt was just stamped — that's the new design).
-      await expect(
-        pendingSection.locator('.event-card', { hasText: throwawayTitle })
-      ).toHaveCount(0, { timeout: 10000 });
+      await expect(pendingSection.locator('.event-card', { hasText: throwawayTitle })).toHaveCount(
+        0,
+        { timeout: 10000 }
+      );
     } finally {
       await deleteEventById(throwawayId);
     }
@@ -242,15 +243,16 @@ test.describe('Review tab for admins (dUWoE5vu) @smoke', () => {
         'Genehmigt in den letzten 7 Tagen'
       );
 
+      // The approved section starts collapsed; open it first.
+      await reviewPanel.getByTestId('review-toggle-approved').click();
+
       // The throwaway approved event must appear inside the approved section
       // and surface the new "Genehmigt von" meta line.
       const approvedCard = reviewPanel
         .getByTestId('review-section-approved')
         .locator('.event-card', { hasText: throwawayTitle });
       await expect(approvedCard).toBeVisible({ timeout: 10000 });
-      const approvedByLine = approvedCard.getByTestId(
-        `event-card-approved-by-${throwawayId}`
-      );
+      const approvedByLine = approvedCard.getByTestId(`event-card-approved-by-${throwawayId}`);
       await expect(approvedByLine).toBeVisible();
       await expect(approvedByLine).toContainText(/Genehmigt von/);
     } finally {
@@ -295,9 +297,7 @@ test.describe('Review tab for admins (dUWoE5vu) @smoke', () => {
       await expect(clarificationCard).toBeVisible({ timeout: 10000 });
 
       // The new full-width "KLÄRUNG LÄUFT" ribbon must be present.
-      await expect(
-        clarificationCard.getByTestId('event-card-clarification-ribbon')
-      ).toBeVisible();
+      await expect(clarificationCard.getByTestId('event-card-clarification-ribbon')).toBeVisible();
 
       // And the rich "In Klärung mit …" meta line, with the admin's display name.
       const inKlaerungLine = clarificationCard.getByTestId(

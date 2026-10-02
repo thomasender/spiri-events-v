@@ -106,3 +106,35 @@
     font-size: 1.2rem;
   }
 }
+
+.review-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: inherit;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.review-toggle:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 4px;
+  border-radius: var(--radius-md);
+}
+
+.review-toggle-chevron {
+  transition: transform 0.15s ease;
+  transform: rotate(-90deg);
+}
+
+.review-toggle-chevron.is-open {
+  transform: rotate(0deg);
+}
+
+.review-section [hidden] {
+  display: none;
+}
