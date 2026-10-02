@@ -91,7 +91,7 @@ function makeDraft(overrides = {}) {
       kontakt: 'user@test.local',
       ...(overrides.formData || {}),
     },
-    currentStep: 4,
+    currentStep: overrides.currentStep ?? 3,
     rightsConfirmed: true,
   };
 }
@@ -123,77 +123,94 @@ beforeEach(() => {
   localStorage.clear();
 });
 
-describe('EventFormWizard — multi-day + recurrence confirmation (6abf99cb)', () => {
-  // The wizard page heading and the standard submit dialog title share the
-  // text "Event zur Genehmigung einreichen", so target the dialog itself via
-  // its CSS class + content rather than the visible text alone.
+describe('EventFormWizard — multi-day + recurrence confirmation (naTXj8Oa)', () => {
+  const WARNING = 'Enddatum und Wiederholung kombiniert';
+
   function visibleDialogTitles() {
     return Array.from(document.querySelectorAll('.confirm-dialog h2')).map((h) => h.textContent);
   }
 
-  it('prompts the user when endDate is set AND recurrence is enabled', async () => {
+  const clickNext = () => fireEvent.click(screen.getByTestId('continue-button'));
+  const onSummaryStep = () => screen.queryByTestId('submit-event-button') !== null;
+
+  it('prompts on Weiter (step 3) and marks both fields red', async () => {
     seedDraft();
     renderWizard();
+    clickNext();
 
+    await waitFor(() => expect(visibleDialogTitles()).toContain(WARNING));
+    expect(onSummaryStep()).toBe(false);
+    expect(document.getElementById('endDate')).toHaveClass('input-error');
+    expect(document.getElementById('recurrenceEndDate')).toHaveClass('input-error');
+  });
+
+  it('confirming advances to the summary step without a second prompt', async () => {
+    seedDraft();
+    renderWizard();
+    clickNext();
+    await waitFor(() => expect(visibleDialogTitles()).toContain(WARNING));
+
+    const dialog = document.querySelector('.confirm-dialog') as HTMLElement;
+    fireEvent.click(within(dialog).getByRole('button', { name: /beides ist korrekt/i }));
+
+    await waitFor(() => expect(onSummaryStep()).toBe(true));
+    expect(visibleDialogTitles()).not.toContain(WARNING);
+
+    // Final submit does not prompt about the combination again
     fireEvent.click(screen.getByTestId('submit-event-button'));
-
-    await waitFor(() => {
-      expect(visibleDialogTitles()).toContain('Enddatum und Wiederholung kombiniert');
-    });
-
-    // Only the warning dialog should be open — the standard submit dialog
-    // (titled "Event zur Genehmigung einreichen") must not appear yet.
-    expect(visibleDialogTitles()).not.toContain('Event zur Genehmigung einreichen');
-
-    // Confirming the warning advances to the standard submit dialog
-    const warningDialog = document.querySelector('.confirm-dialog');
-    fireEvent.click(within(warningDialog).getByRole('button', { name: /beides ist korrekt/i }));
-
     await waitFor(() => {
       expect(visibleDialogTitles()).toContain('Event zur Genehmigung einreichen');
     });
+    expect(visibleDialogTitles()).not.toContain(WARNING);
+  });
+
+  it('cancelling stays on step 3 and keeps the red marking', async () => {
+    seedDraft();
+    renderWizard();
+    clickNext();
+    await waitFor(() => expect(visibleDialogTitles()).toContain(WARNING));
+
+    const dialog = document.querySelector('.confirm-dialog') as HTMLElement;
+    fireEvent.click(within(dialog).getByRole('button', { name: /abbrechen und korrigieren/i }));
+
+    await waitFor(() => expect(visibleDialogTitles()).not.toContain(WARNING));
+    expect(onSummaryStep()).toBe(false);
+    expect(screen.getByTestId('continue-button')).toBeInTheDocument();
+    expect(document.getElementById('endDate')).toHaveClass('input-error');
+    expect(document.getElementById('recurrenceEndDate')).toHaveClass('input-error');
+    expect(mockEvents.addEvent).not.toHaveBeenCalled();
+  });
+
+  it('clears the red marking once the conflict is resolved', async () => {
+    seedDraft();
+    renderWizard();
+    clickNext();
+    await waitFor(() => expect(visibleDialogTitles()).toContain(WARNING));
+    const dialog = document.querySelector('.confirm-dialog') as HTMLElement;
+    fireEvent.click(within(dialog).getByRole('button', { name: /abbrechen und korrigieren/i }));
+    await waitFor(() => expect(visibleDialogTitles()).not.toContain(WARNING));
+
+    fireEvent.change(document.getElementById('endDate') as HTMLElement, { target: { value: '' } });
+
+    expect(document.getElementById('endDate')).not.toHaveClass('input-error');
+    expect(document.getElementById('recurrenceEndDate')).not.toHaveClass('input-error');
   });
 
   it('does not prompt when endDate is empty', async () => {
     seedDraft({ formData: { endDate: '', recurrence: 'weekly' } });
     renderWizard();
+    clickNext();
 
-    fireEvent.click(screen.getByTestId('submit-event-button'));
-
-    await waitFor(() => {
-      expect(visibleDialogTitles()).toContain('Event zur Genehmigung einreichen');
-    });
-    expect(visibleDialogTitles()).not.toContain('Enddatum und Wiederholung kombiniert');
+    await waitFor(() => expect(onSummaryStep()).toBe(true));
+    expect(visibleDialogTitles()).not.toContain(WARNING);
   });
 
   it('does not prompt when recurrence is none', async () => {
     seedDraft({ formData: { recurrence: 'none' } });
     renderWizard();
+    clickNext();
 
-    fireEvent.click(screen.getByTestId('submit-event-button'));
-
-    await waitFor(() => {
-      expect(visibleDialogTitles()).toContain('Event zur Genehmigung einreichen');
-    });
-    expect(visibleDialogTitles()).not.toContain('Enddatum und Wiederholung kombiniert');
-  });
-
-  it('cancelling the warning stops submission and does not show the submit dialog', async () => {
-    seedDraft();
-    renderWizard();
-
-    fireEvent.click(screen.getByTestId('submit-event-button'));
-
-    await waitFor(() => {
-      expect(visibleDialogTitles()).toContain('Enddatum und Wiederholung kombiniert');
-    });
-    const warningDialog = document.querySelector('.confirm-dialog');
-    fireEvent.click(within(warningDialog).getByRole('button', { name: /abbrechen und korrigieren/i }));
-
-    await waitFor(() => {
-      expect(visibleDialogTitles()).not.toContain('Enddatum und Wiederholung kombiniert');
-    });
-    expect(visibleDialogTitles()).not.toContain('Event zur Genehmigung einreichen');
-    expect(mockEvents.addEvent).not.toHaveBeenCalled();
+    await waitFor(() => expect(onSummaryStep()).toBe(true));
+    expect(visibleDialogTitles()).not.toContain(WARNING);
   });
 });

@@ -172,6 +172,7 @@ export default function EventFormWizard() {
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showMultiDayRecurrenceConfirm, setShowMultiDayRecurrenceConfirm] = useState(false);
+  const [endDateConflictMarked, setEndDateConflictMarked] = useState(false);
   const [successState, setSuccessState] = useState(null);
   const [showFocalPointInSummary, setShowFocalPointInSummary] = useState(false);
   const [currentStep, setCurrentStep] = useState(() =>
@@ -213,6 +214,9 @@ export default function EventFormWizard() {
   const isAdmin = role === 'Admin';
 
   const hasRecurrence = formData.recurrence !== 'none';
+  const hasEndDateRecurrenceConflict = Boolean(formData.endDate) && hasRecurrence;
+  // Red marking only while the conflict still exists (clears once resolved).
+  const showEndDateConflict = endDateConflictMarked && hasEndDateRecurrenceConflict;
 
   const handleRecurrenceToggle = (value) => {
     if (value === 'yes') {
@@ -545,6 +549,17 @@ export default function EventFormWizard() {
       triggerWobble('next');
       return;
     }
+    // The endDate field is meant for multi-day events (Retreats, Festivals).
+    // Combining it with a recurrence (e.g. "Jeden Donnerstag") is almost
+    // always a mistake — the recurrence would re-apply the multi-day span
+    // every week. Ask the user to confirm before leaving the Details step.
+    if (currentStep === 3 && hasEndDateRecurrenceConflict) {
+      setErrors({});
+      setValidationError('');
+      setEndDateConflictMarked(true);
+      setShowMultiDayRecurrenceConfirm(true);
+      return;
+    }
     setErrors({});
     setValidationError('');
     setCurrentStep((prev) => Math.min(prev + 1, 4));
@@ -623,15 +638,6 @@ export default function EventFormWizard() {
         setValidationError('Bitte fülle alle Pflichtfelder aus.');
       }
       triggerWobble('submit');
-      return;
-    }
-
-    // The endDate field is meant for multi-day events (Retreats, Festivals).
-    // Combining it with a recurrence (e.g. "Jeden Donnerstag") is almost
-    // always a mistake — the recurrence would re-apply the multi-day span
-    // every week. Ask the user to confirm before we accept the combination.
-    if (formData.endDate && formData.recurrence !== 'none') {
-      setShowMultiDayRecurrenceConfirm(true);
       return;
     }
 
@@ -940,6 +946,7 @@ export default function EventFormWizard() {
           type="date"
           value={formData.endDate}
           onChange={handleChange}
+          className={showEndDateConflict ? 'input-error' : ''}
         />
       </div>
 
@@ -1277,6 +1284,7 @@ export default function EventFormWizard() {
             onChange={handleChange}
             min={recurrenceMinDate}
             max={recurrenceMaxDate}
+            className={showEndDateConflict || errors.recurrenceEndDate ? 'input-error' : ''}
           />
           {errors.recurrenceEndDate && (
             <span className="error-text">{errors.recurrenceEndDate}</span>
@@ -1550,7 +1558,8 @@ export default function EventFormWizard() {
         cancelLabel="Abbrechen und korrigieren"
         onConfirm={() => {
           setShowMultiDayRecurrenceConfirm(false);
-          setShowConfirmModal(true);
+          setEndDateConflictMarked(false);
+          setCurrentStep(4);
         }}
         onCancel={() => setShowMultiDayRecurrenceConfirm(false)}
       />
