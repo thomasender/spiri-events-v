@@ -55,7 +55,15 @@ service cloud.firestore {
       // either form. Used by the calendar tile, list row, and modal hero
       // via object-position to keep the chosen region visible after cropping.
       function isValidFocalPoint() {
+        // Either the field is absent (no focal point set), explicitly null
+        // (form layer reset it because the image was removed/replaced), or
+        // a valid {x, y} map with both values in [0, 1]. The form layer
+        // emits `null` instead of omitting the field on the second case so
+        // re-saving the doc clears any stale focal point from a previous
+        // image — treating null as "no focal point" lets those updates
+        // pass without forcing the form to use deleteField().
         return !('imageFocalPoint' in request.resource.data)
+               || request.resource.data.imageFocalPoint == null
                || (
                  request.resource.data.imageFocalPoint.keys().hasOnly(['x', 'y'])
                  && request.resource.data.imageFocalPoint.x is number

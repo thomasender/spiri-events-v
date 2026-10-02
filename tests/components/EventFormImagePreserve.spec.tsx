@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 const mockAuth = vi.hoisted(() => ({
@@ -183,6 +183,43 @@ describe('EventForm — image preservation on edit (6bs5MvXI)', () => {
 
     const payload = mockEvents.updateEvent.mock.calls[0][1];
     expect(payload.imageFocalPoint).toBeNull();
+  });
+
+  it('clears imageFocalPoint when the user replaces the picture (regression: 6abf85a2)', async () => {
+    // When the owner replaces the cover image on a pending/draft event, the
+    // form sends `imageFocalPoint: null` on the first updateEvent (to wipe
+    // the old focal point) before uploading the new file and patching it on a
+    // second updateEvent. Firestore rules used to reject the first update
+    // because isValidFocalPoint called `.keys()` on a null value, surfacing
+    // as "Missing or insufficient permissions" to the user. The form still
+    // sends null; the rule was loosened to accept it.
+    render(
+      <MemoryRouter>
+        <EventForm event={baseEvent} />
+      </MemoryRouter>
+    );
+
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    expect(fileInput).toBeTruthy();
+    const file = new File(['fake-bytes'], 'new-cover.jpg', { type: 'image/jpeg' });
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    // handleImageSelect is async (awaits getImageDimensions before setImageFile);
+    // wait for the preview to swap to the new object URL before saving.
+    await waitFor(() => {
+      const preview = screen.getByTestId('title-image-focal-picker-image') as HTMLImageElement;
+      expect(preview.src).not.toBe(EXISTING_IMAGE_URL);
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /änderungen speichern/i }));
+
+    await waitFor(() => {
+      expect(mockEvents.updateEvent).toHaveBeenCalled();
+    });
+
+    const firstPayload = mockEvents.updateEvent.mock.calls[0][1];
+    expect(firstPayload.imageUrl).toBeNull();
+    expect(firstPayload.imageFocalPoint).toBeNull();
   });
 
   it('shows the focal point picker when an image is loaded, seeded with the saved point', () => {
