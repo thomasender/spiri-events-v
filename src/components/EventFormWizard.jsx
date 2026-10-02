@@ -170,6 +170,7 @@ export default function EventFormWizard() {
   const [imageProgress, setImageProgress] = useState(0);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showMultiDayRecurrenceConfirm, setShowMultiDayRecurrenceConfirm] = useState(false);
   const [successState, setSuccessState] = useState(null);
   const [showFocalPointInSummary, setShowFocalPointInSummary] = useState(false);
   const [currentStep, setCurrentStep] = useState(() =>
@@ -603,6 +604,15 @@ export default function EventFormWizard() {
         setValidationError('Bitte fülle alle Pflichtfelder aus.');
       }
       triggerWobble('submit');
+      return;
+    }
+
+    // The endDate field is meant for multi-day events (Retreats, Festivals).
+    // Combining it with a recurrence (e.g. "Jeden Donnerstag") is almost
+    // always a mistake — the recurrence would re-apply the multi-day span
+    // every week. Ask the user to confirm before we accept the combination.
+    if (formData.endDate && formData.recurrence !== 'none') {
+      setShowMultiDayRecurrenceConfirm(true);
       return;
     }
 
@@ -1496,6 +1506,19 @@ export default function EventFormWizard() {
         onConfirm={confirmSubmit}
         onCancel={() => setShowConfirmModal(false)}
         loading={loading}
+      />
+
+      <ConfirmDialog
+        isOpen={showMultiDayRecurrenceConfirm}
+        title="Enddatum und Wiederholung kombiniert"
+        message="Du hast sowohl ein Enddatum (mehrtägiges Event) als auch eine Wiederholung angegeben. Bist du sicher, dass das beabsichtigt ist? Für mehrtägige Events wie Retreats oder Festivals ist normalerweise keine Wiederholung nötig."
+        confirmLabel="Ja, beides ist korrekt"
+        cancelLabel="Abbrechen und korrigieren"
+        onConfirm={() => {
+          setShowMultiDayRecurrenceConfirm(false);
+          setShowConfirmModal(true);
+        }}
+        onCancel={() => setShowMultiDayRecurrenceConfirm(false)}
       />
 
       <SuccessDialog
