@@ -78,6 +78,9 @@ function OrganizerLine({ event }) {
   );
 }
 
+const PENDING_REVIEW_MESSAGE =
+  'Dieses Event wird gerade von den Admins geprüft und ist bald verfügbar.';
+
 function formatDate(dateStr) {
   if (!dateStr) return '';
   const [year, month, day] = dateStr.split('-');
@@ -240,7 +243,7 @@ export default function EventDetailPage() {
   useEffect(() => {
     async function fetchEvent() {
       if (!slug) {
-        setError('Event nicht gefunden');
+        setError(PENDING_REVIEW_MESSAGE);
         setLoading(false);
         return;
       }
@@ -291,12 +294,12 @@ export default function EventDetailPage() {
           setError(null);
         } else {
           setEvent(null);
-          setError('Event nicht gefunden');
+          setError(PENDING_REVIEW_MESSAGE);
         }
       } catch (err) {
         console.error('Error fetching event:', err);
         if (err.code === 'permission-denied' || err.message?.includes('permission-denied')) {
-          setError('Du hast keine Berechtigung dieses Event anzusehen');
+          setError(PENDING_REVIEW_MESSAGE);
         } else {
           setError('Event konnte nicht geladen werden');
         }
@@ -365,7 +368,7 @@ export default function EventDetailPage() {
     return (
       <div className="event-detail-page">
         <div className="event-not-found">
-          <h2>{error || 'Event nicht gefunden'}</h2>
+          <h2>{error || PENDING_REVIEW_MESSAGE}</h2>
           <Link to="/" className="btn btn-primary">
             <ArrowLeft size={16} />
             <span>Zurück zum Kalender</span>
