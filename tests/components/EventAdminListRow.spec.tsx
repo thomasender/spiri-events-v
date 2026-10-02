@@ -104,3 +104,30 @@ describe('EventAdminListRow — Gelöscht am meta (oSwjBKM3)', () => {
     expect(meta).toHaveTextContent(/Gelöscht am/);
   });
 });
+
+describe('EventAdminListRow — conversation indicator (6abf6022)', () => {
+  it('does not render the conversation bubble or highlight border by default', () => {
+    renderRow();
+    expect(screen.queryByTestId('event-card-conversation-bubble')).not.toBeInTheDocument();
+    const card = document.querySelector('.event-card');
+    expect(card).not.toHaveClass('event-card--has-conversation');
+  });
+
+  it('renders the conversation bubble and highlight border when hasMessages is true', () => {
+    renderRow({ hasMessages: true });
+    expect(screen.getByTestId('event-card-conversation-bubble')).toHaveTextContent(
+      /Klärung läuft/i
+    );
+    const card = document.querySelector('.event-card');
+    expect(card).toHaveClass('event-card--has-conversation');
+  });
+
+  it('keeps the unread highlight priority when both hasMessages and unreadCount are set', () => {
+    renderRow({ hasMessages: true, unreadCount: 2 });
+    const card = document.querySelector('.event-card');
+    expect(card).toHaveClass('event-card--has-unread');
+    expect(card).toHaveClass('event-card--has-conversation');
+    expect(screen.getByTestId('event-card-unread-indicator')).toBeInTheDocument();
+    expect(screen.getByTestId('event-card-conversation-bubble')).toBeInTheDocument();
+  });
+});

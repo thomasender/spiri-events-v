@@ -3,12 +3,14 @@ import { doc, getFirestore, serverTimestamp, updateDoc } from 'firebase/firestor
 import { getApp } from 'firebase/app';
 import { ClipboardCheck } from 'lucide-react';
 import { usePendingEvents } from '../hooks/useEvents';
+import { useEventsWithMessages } from '../hooks/useEventsWithMessages';
 import EventAdminListRow from './EventAdminListRow';
 import ConfirmDialog from './ConfirmDialog';
 import SuccessDialog from './SuccessDialog';
 
 export default function ReviewTab() {
   const { pendingEvents, loading, approveEvent } = usePendingEvents();
+  const { unreadCountByEvent, hasMessagesByEvent } = useEventsWithMessages();
   const [approvingId, setApprovingId] = useState(null);
   const [revertTarget, setRevertTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -122,7 +124,8 @@ export default function ReviewTab() {
                 fromPath="/admin?tab=review"
                 isAdmin
                 approving={approvingId}
-                unreadCount={0}
+                unreadCount={unreadCountByEvent[event.id] || 0}
+                hasMessages={Boolean(hasMessagesByEvent[event.id])}
                 onApprove={handleApprove}
                 onRevert={(evt) => setRevertTarget({ id: evt.id, eventTitle: evt.title })}
                 onDeleteClick={(evt) => setDeleteTarget({ id: evt.id, eventTitle: evt.title })}

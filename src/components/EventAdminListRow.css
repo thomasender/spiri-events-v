@@ -20,6 +20,19 @@
     var(--shadow-sm);
 }
 
+.event-card--has-conversation {
+  box-shadow:
+    0 0 0 2px var(--accent-primary),
+    var(--shadow-sm);
+}
+
+.event-card--has-unread.event-card--has-conversation {
+  box-shadow:
+    0 0 0 2px var(--error),
+    0 0 0 4px var(--accent-primary),
+    var(--shadow-sm);
+}
+
 .event-card-unread-indicator {
   display: inline-block;
   width: 8px;
@@ -29,6 +42,22 @@
   margin-left: 8px;
   vertical-align: middle;
   flex-shrink: 0;
+}
+
+.event-card-conversation-bubble {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent-primary);
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--accent-primary);
+  border-radius: 999px;
+  flex-shrink: 0;
+  vertical-align: middle;
 }
 
 .event-card-content {
