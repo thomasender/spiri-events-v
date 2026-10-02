@@ -47,6 +47,13 @@
   min-width: 0;
 }
 
+@media (min-width: 641px) {
+  .form-row.fee-row {
+    grid-template-columns: 110px 110px minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px 12px;
+  }
+}
+
 .form-section-divider {
   margin-top: 24px;
   padding-top: 24px;

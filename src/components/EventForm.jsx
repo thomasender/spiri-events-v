@@ -955,7 +955,7 @@ export default function EventForm({ event }) {
           </div>
 
           {formData.contribution === 'fee' && (
-            <div className="form-row">
+            <div className="form-row fee-row">
               <div className="form-group">
                 <label htmlFor="fee">Betrag</label>
                 <input
@@ -977,7 +977,7 @@ export default function EventForm({ event }) {
                   Betrag bis
                   <span className="input-info">
                     <Info size={14} />
-                    <span>Optional. Wenn leer, gilt nur der Betrag oben.</span>
+                    <span>Optional: Wenn leer gilt der Betrag</span>
                   </span>
                 </label>
                 <input
@@ -993,22 +993,6 @@ export default function EventForm({ event }) {
                   data-testid="fee-max-input"
                 />
                 {errors.feeMax && <span className="error-text">{errors.feeMax}</span>}
-              </div>
-              <div className="form-group">
-                <label htmlFor="priceCurrency">Währung</label>
-                <select
-                  id="priceCurrency"
-                  name="priceCurrency"
-                  value={formData.priceCurrency}
-                  onChange={handleChange}
-                  data-testid="price-currency-select"
-                >
-                  {CURRENCIES.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
               </div>
               <div className="form-group">
                 <label htmlFor="feeNote">
@@ -1028,6 +1012,22 @@ export default function EventForm({ event }) {
                   placeholder="z.B. Einzelstunde"
                   data-testid="fee-note-input"
                 />
+              </div>
+              <div className="form-group">
+                <label htmlFor="priceCurrency">Währung</label>
+                <select
+                  id="priceCurrency"
+                  name="priceCurrency"
+                  value={formData.priceCurrency}
+                  onChange={handleChange}
+                  data-testid="price-currency-select"
+                >
+                  {CURRENCIES.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
           )}
