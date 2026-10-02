@@ -69,9 +69,9 @@ const CATEGORY_FALLBACKS = {
   Tanz: '/event-fallbacks/tanz.jpg',
   Singen: '/event-fallbacks/singen.jpg',
   Soundhealing: '/event-fallbacks/soundhealing.jpeg',
-  Sonstiges: '/event-fallbacks/sonstiges.jpg',
+  Sonstiges: '/hero.jpeg',
 }
-const DEFAULT_EVENT_FALLBACK = '/event-fallbacks/sonstiges.jpg'
+const DEFAULT_EVENT_FALLBACK = '/hero.jpeg'
 
 // Hardcoded fallback for the theme snapshot. Mirrors `src/utils/themeDefaults.js`
 // and is only used when `data-export/firestore-export/theme.json` is

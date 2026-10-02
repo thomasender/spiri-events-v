@@ -137,8 +137,8 @@ describe('prerender.mjs helpers', () => {
 
     it('returns the Sonstiges fallback for unknown or missing categories', async () => {
       const { getEventFallbackImage } = await importPrerender();
-      expect(getEventFallbackImage({})).toBe('/event-fallbacks/sonstiges.jpg');
-      expect(getEventFallbackImage({ category: 'Wandern' })).toBe('/event-fallbacks/sonstiges.jpg');
+      expect(getEventFallbackImage({})).toBe('/hero.jpeg');
+      expect(getEventFallbackImage({ category: 'Wandern' })).toBe('/hero.jpeg');
     });
   });
 

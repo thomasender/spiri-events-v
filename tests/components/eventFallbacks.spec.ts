@@ -20,8 +20,12 @@ describe('eventFallbacks', () => {
       ];
       for (const cat of kategorien) {
         expect(CATEGORY_FALLBACKS[cat]).toBeTruthy();
-        expect(CATEGORY_FALLBACKS[cat]).toMatch(/^\/event-fallbacks\//);
       }
+      // Every dedicated category keeps its own image under /event-fallbacks/.
+      // Sonstiges intentionally reuses /hero.jpeg (same as the About page) so
+      // there is a single canonical hero asset.
+      expect(CATEGORY_FALLBACKS.Sonstiges).toBe('/hero.jpeg');
+      expect(CATEGORY_FALLBACKS.Yoga).toMatch(/^\/event-fallbacks\//);
     });
   });
 
@@ -33,7 +37,7 @@ describe('eventFallbacks', () => {
       expect(getCategoryFallbackImage('Tanz')).toBe('/event-fallbacks/tanz.jpg');
       expect(getCategoryFallbackImage('Singen')).toBe('/event-fallbacks/singen.jpg');
       expect(getCategoryFallbackImage('Soundhealing')).toBe('/event-fallbacks/soundhealing.jpeg');
-      expect(getCategoryFallbackImage('Sonstiges')).toBe('/event-fallbacks/sonstiges.jpg');
+      expect(getCategoryFallbackImage('Sonstiges')).toBe('/hero.jpeg');
     });
 
     it('falls back to the default for unknown categories', () => {

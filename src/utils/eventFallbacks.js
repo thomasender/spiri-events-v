@@ -5,10 +5,10 @@ export const CATEGORY_FALLBACKS = {
   Tanz: '/event-fallbacks/tanz.jpg',
   Singen: '/event-fallbacks/singen.jpg',
   Soundhealing: '/event-fallbacks/soundhealing.jpeg',
-  Sonstiges: '/event-fallbacks/sonstiges.jpg',
+  Sonstiges: '/hero.jpeg',
 };
 
-export const DEFAULT_EVENT_FALLBACK = '/event-fallbacks/sonstiges.jpg';
+export const DEFAULT_EVENT_FALLBACK = '/hero.jpeg';
 
 export function getCategoryFallbackImage(category) {
   if (!category) return DEFAULT_EVENT_FALLBACK;
