@@ -25,13 +25,13 @@ describe('seo constants', () => {
   });
 
   it('points the default OG image at an absolute URL under the site', () => {
-    expect(DEFAULT_OG_IMAGE_URL).toBe('https://www.thetribe.at/og-default.jpg');
+    expect(DEFAULT_OG_IMAGE_URL).toBe('https://www.thetribe.at/hero.jpeg');
     expect(DEFAULT_OG_IMAGE_URL.startsWith('http')).toBe(true);
   });
 
-  it('uses the standard 1200x630 OG image dimensions', () => {
-    expect(OG_IMAGE_WIDTH).toBe(1200);
-    expect(OG_IMAGE_HEIGHT).toBe(630);
+  it('uses the OG image dimensions of the hero asset (1389x768)', () => {
+    expect(OG_IMAGE_WIDTH).toBe(1389);
+    expect(OG_IMAGE_HEIGHT).toBe(768);
   });
 
   it('uses summary_large_image for Twitter cards', () => {
@@ -69,7 +69,7 @@ describe('toAbsoluteUrl', () => {
   });
 
   it('prepends the site URL with a slash for paths without a leading slash', () => {
-    expect(toAbsoluteUrl('og-default.jpg')).toBe('https://www.thetribe.at/og-default.jpg');
+    expect(toAbsoluteUrl('hero.jpeg')).toBe('https://www.thetribe.at/hero.jpeg');
   });
 
   it('returns the default OG image when given a falsy value', () => {
@@ -161,7 +161,7 @@ describe('getEventOgImage', () => {
 });
 
 describe('default OG image asset', () => {
-  it('points to the og-default.jpg asset', () => {
-    expect(DEFAULT_OG_IMAGE_PATH).toBe('/og-default.jpg');
+  it('points to the hero.jpeg asset', () => {
+    expect(DEFAULT_OG_IMAGE_PATH).toBe('/hero.jpeg');
   });
 });

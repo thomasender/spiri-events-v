@@ -7,9 +7,9 @@ const ROOT_DIR = path.resolve(__dirname, '..')
 const DIST_PATH = path.resolve(ROOT_DIR, 'dist')
 
 export const BASE_URL = 'https://www.thetribe.at'
-export const DEFAULT_OG_IMAGE_URL = `${BASE_URL}/og-default.jpg`
-export const OG_IMAGE_WIDTH = 1200
-export const OG_IMAGE_HEIGHT = 630
+export const DEFAULT_OG_IMAGE_URL = `${BASE_URL}/hero.jpeg`
+export const OG_IMAGE_WIDTH = 1389
+export const OG_IMAGE_HEIGHT = 768
 export const SITE_NAME = 'tribe Vorarlberg'
 export const DEFAULT_DESCRIPTION =
   'Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg - Bregenz, Dornbirn, Feldkirch, Bludenz'
@@ -964,7 +964,7 @@ export async function prerender({
   // every other field on the page, but it makes the OG image wrong:
   // events that were never in the snapshot never get a prerendered
   // /event/<slug>/index.html, so the SPA fallback at /index.html
-  // (og:image = og-default.jpg) is what crawlers actually see when
+  // (og:image = hero.jpeg) is what crawlers actually see when
   // someone shares the link. Same story for events whose imageUrl
   // changed in Firestore but is still null/old in the snapshot.
   //

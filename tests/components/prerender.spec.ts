@@ -488,13 +488,13 @@ describe('static index.html (production safety net)', () => {
     expect(html).toContain('<meta property="og:site_name" content="tribe Vorarlberg" />');
     expect(html).toContain('<meta property="og:url" content="https://www.thetribe.at/" />');
     expect(html).toContain(
-      '<meta property="og:image" content="https://www.thetribe.at/og-default.jpg" />'
+      '<meta property="og:image" content="https://www.thetribe.at/hero.jpeg" />'
     );
-    expect(html).toContain('<meta property="og:image:width" content="1200" />');
-    expect(html).toContain('<meta property="og:image:height" content="630" />');
+    expect(html).toContain('<meta property="og:image:width" content="1389" />');
+    expect(html).toContain('<meta property="og:image:height" content="768" />');
     expect(html).toContain('<meta name="twitter:card" content="summary_large_image" />');
     expect(html).toContain(
-      '<meta name="twitter:image" content="https://www.thetribe.at/og-default.jpg" />'
+      '<meta name="twitter:image" content="https://www.thetribe.at/hero.jpeg" />'
     );
     expect(html).toContain('<link rel="canonical" href="https://www.thetribe.at/" />');
   });
@@ -556,8 +556,8 @@ describe('prerender() end-to-end', () => {
       `<meta property="og:url" content="https://www.thetribe.at/event/${event.slug}" />`
     );
     expect(html).toContain('<meta property="og:type" content="event" />');
-    expect(html).toMatch(/<meta property="og:image:width" content="1200" \/>/);
-    expect(html).toMatch(/<meta property="og:image:height" content="630" \/>/);
+    expect(html).toMatch(/<meta property="og:image:width" content="1389" \/>/);
+    expect(html).toMatch(/<meta property="og:image:height" content="768" \/>/);
     expect(html).toContain('<meta name="twitter:card" content="summary_large_image" />');
     expect(html).toContain('<link rel="canonical"');
   });
@@ -581,7 +581,7 @@ describe('prerender() end-to-end', () => {
     const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf8');
     expect(indexHtml).toContain('<meta property="og:type" content="website" />');
     expect(indexHtml).toContain(
-      '<meta property="og:image" content="https://www.thetribe.at/og-default.jpg" />'
+      '<meta property="og:image" content="https://www.thetribe.at/hero.jpeg" />'
     );
     expect(indexHtml).not.toContain('old placeholder');
   });
