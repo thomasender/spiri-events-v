@@ -139,6 +139,7 @@ export function useDonors() {
       await setDoc(doc(db, 'donors', id), {
         ...fields,
         order,
+        source: 'manual',
         createdBy: user.uid,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
