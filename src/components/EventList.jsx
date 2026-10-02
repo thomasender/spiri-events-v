@@ -270,6 +270,38 @@ export default function EventList() {
     </div>
   );
 
+  // Trashed events never appear in this list — they live in the separate
+  // Papierkorb tab. Without this hint the "Papierkorb" filter option was a
+  // dead end that always said "Keine Events mit diesem Status", even when
+  // the user's freshly deleted event was sitting in the trash.
+  const renderFilteredEmptyState = () => {
+    if (statusFilter !== 'trashed') {
+      return (
+        <div className="event-list-empty-small">
+          <p>Keine Events mit diesem Status</p>
+        </div>
+      );
+    }
+    const hasTrashed = events.some((e) => e.status === 'trashed');
+    return (
+      <div className="event-list-empty-small" data-testid="trash-filter-hint">
+        {hasTrashed ? (
+          <>
+            <p>
+              Gelöschte Events findest du im Papierkorb. Dort kannst du sie innerhalb von 30 Tagen
+              wiederherstellen.
+            </p>
+            <Link to="/admin?tab=trash" className="btn btn-secondary">
+              Zum Papierkorb
+            </Link>
+          </>
+        ) : (
+          <p>Dein Papierkorb ist leer.</p>
+        )}
+      </div>
+    );
+  };
+
   const renderStatusFilter = () => (
     <div className="event-list-filters">
       <label htmlFor="status-filter" className="event-list-filter-label">
@@ -313,20 +345,14 @@ export default function EventList() {
             <h2>Meine Events</h2>
             {renderStatusFilter()}
           </div>
-          {sortedEvents.length === 0 ? (
-            statusFilter === 'all' ? (
-              renderEmptyState(
-                'Noch keine Events',
-                'Erstelle dein erstes Event und teile es mit der Community.'
-              )
-            ) : (
-              <div className="event-list-empty-small">
-                <p>Keine Events mit diesem Status</p>
-              </div>
-            )
-          ) : (
-            renderEventsList(sortedEvents, true)
-          )}
+          {sortedEvents.length === 0
+            ? statusFilter === 'all'
+              ? renderEmptyState(
+                  'Noch keine Events',
+                  'Erstelle dein erstes Event und teile es mit der Community.'
+                )
+              : renderFilteredEmptyState()
+            : renderEventsList(sortedEvents, true)}
         </section>
 
         <ConfirmDialog
@@ -415,20 +441,14 @@ export default function EventList() {
           <h2>Events</h2>
           {renderStatusFilter()}
         </div>
-        {sortedEvents.length === 0 ? (
-          statusFilter === 'all' ? (
-            renderEmptyState(
-              'Noch keine Events',
-              'Erstelle dein erstes Event und teile es mit der Community.'
-            )
-          ) : (
-            <div className="event-list-empty-small">
-              <p>Keine Events mit diesem Status</p>
-            </div>
-          )
-        ) : (
-          renderEventsList(sortedEvents, true)
-        )}
+        {sortedEvents.length === 0
+          ? statusFilter === 'all'
+            ? renderEmptyState(
+                'Noch keine Events',
+                'Erstelle dein erstes Event und teile es mit der Community.'
+              )
+            : renderFilteredEmptyState()
+          : renderEventsList(sortedEvents, true)}
       </section>
 
       <ConfirmDialog
