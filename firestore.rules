@@ -443,12 +443,19 @@ service cloud.firestore {
       }
       function isValidHelperWebsite(website) {
         return website == null
-          || (website is string && website.size() <= 300 && website.matches('^https?://'));
+          || (website is string && website.size() <= 300 && website.matches('^https?://.+$'));
       }
+      // Firestore's `matches()` is RE2 and effectively anchored at both ends,
+      // so `^https?://` alone only matches the literal strings "http://" or
+      // "https://" — anything past the protocol (host, query, etc.) was
+      // rejected with "Missing or insufficient permissions" when admins saved
+      // a helper with a real URL. `.+$` requires at least one character
+      // after the protocol so the value has to look like a URL, not just a
+      // prefix.
       function isValidHelperPhotoUrl(url) {
         return url == null
           || (url is string && url.size() <= 500
-              && (url.matches('^https?://') || url.matches('^/[^/].*')));
+              && (url.matches('^https?://.+$') || url.matches('^/[^/].*')));
       }
       function isValidHelperDescription(description) {
         return description == null
