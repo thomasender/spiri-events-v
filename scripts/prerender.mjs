@@ -179,7 +179,18 @@ export function generateEventJsonLd(event) {
   const offer = event.contribution === 'free'
     ? { '@type': 'Offer', price: '0', priceCurrency: 'EUR', availability: 'https://schema.org/InStock' }
     : event.fee != null && event.fee !== ''
-      ? { '@type': 'Offer', price: String(event.fee), priceCurrency: 'EUR', availability: 'https://schema.org/InStock' }
+      ? event.feeMax != null && event.feeMax !== '' && Number(event.feeMax) > Number(event.fee)
+        ? {
+            '@type': 'Offer',
+            priceSpecification: {
+              '@type': 'PriceSpecification',
+              minPrice: String(event.fee),
+              maxPrice: String(event.feeMax),
+              priceCurrency: 'EUR',
+            },
+            availability: 'https://schema.org/InStock',
+          }
+        : { '@type': 'Offer', price: String(event.fee), priceCurrency: 'EUR', availability: 'https://schema.org/InStock' }
       : null
 
   return {
@@ -245,7 +256,7 @@ function buildEventStaticBody(event, isFree, category, formattedDate) {
         <div class="event-meta-row">
           <span class="category-chip">${escapeHtml(category)}</span>
           <span class="event-badge ${isFree ? 'badge--free' : 'badge--fee'}">
-            ${isFree ? 'Kostenlos' : event.fee != null && event.fee !== '' ? `${escapeHtml(event.fee)} €${event.feeNote ? ` / ${escapeHtml(event.feeNote)}` : ''}` : event.feeNote ? escapeHtml(event.feeNote) : 'Kostenpflichtig'}
+            ${isFree ? 'Kostenlos' : event.fee != null && event.fee !== '' ? `${escapeHtml(event.fee)}${event.feeMax != null && event.feeMax !== '' && Number(event.feeMax) > Number(event.fee) ? `-${escapeHtml(event.feeMax)}` : ''} €${event.feeNote ? ` / ${escapeHtml(event.feeNote)}` : ''}` : event.feeNote ? escapeHtml(event.feeNote) : 'Kostenpflichtig'}
           </span>
         </div>
       </header>
