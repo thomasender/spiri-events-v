@@ -99,7 +99,7 @@ export default function HelpersTab() {
   const moveHelper = useCallback(
     async (id, direction) => {
       if (reordering) return;
-      const currentOrder = (pendingOrder || helpers).map((h) => h.id);
+      const currentOrder = pendingOrder || helpers.map((h) => h.id);
       const idx = currentOrder.indexOf(id);
       if (idx === -1) return;
       const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
@@ -145,7 +145,7 @@ export default function HelpersTab() {
       draggedIdRef.current = null;
       setDropTargetId(null);
       if (!draggedId || draggedId === targetId || reordering) return;
-      const currentOrder = (pendingOrder || helpers).map((h) => h.id);
+      const currentOrder = pendingOrder || helpers.map((h) => h.id);
       const fromIdx = currentOrder.indexOf(draggedId);
       const toIdx = currentOrder.indexOf(targetId);
       if (fromIdx === -1 || toIdx === -1) return;

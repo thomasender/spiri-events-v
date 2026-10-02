@@ -278,6 +278,34 @@ describe('HelpersTab', () => {
     });
   });
 
+  it('keeps responding to arrow buttons after the first reorder (regression: OAqOiqyJ)', async () => {
+    mockHelpers.helpers = [
+      { id: 'h1', name: 'Anna', order: 0 },
+      { id: 'h2', name: 'Bernd', order: 100 },
+      { id: 'h3', name: 'Carla', order: 200 },
+    ];
+    render(<HelpersTab />);
+
+    // First down click moves h1 below h2. The mock updates mockHelpers.helpers
+    // synchronously, matching what Firestore would do once the batch commits.
+    fireEvent.click(screen.getAllByTestId('helper-row-down')[0]);
+    await waitFor(() => {
+      expect(mockHelpers.reorderHelpers).toHaveBeenLastCalledWith(['h2', 'h1', 'h3']);
+    });
+
+    // Second down click — the row that is now first (Bernd) — must also
+    // trigger a reorder. Before the fix, the second click silently no-op'd
+    // because pendingOrder is an array of ids, not helper objects.
+    await waitFor(() => {
+      const names = screen.getAllByTestId('helper-row-name').map((el) => el.textContent);
+      expect(names[0]).toContain('Bernd');
+    });
+    fireEvent.click(screen.getAllByTestId('helper-row-down')[0]);
+    await waitFor(() => {
+      expect(mockHelpers.reorderHelpers).toHaveBeenLastCalledWith(['h1', 'h2', 'h3']);
+    });
+  });
+
   it('shows the user search field only when creating a new helper', () => {
     render(<HelpersTab />);
     fireEvent.click(screen.getByTestId('helpers-tab-add'));
