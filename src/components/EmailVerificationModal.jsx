@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { Mail, X } from 'lucide-react';
-import { useAuth, authErrorMessage } from '../hooks/useAuth';
+import { useAuth, verificationEmailErrorMessage } from '../hooks/useAuth';
 import './EmailVerificationModal.css';
 
 export default function EmailVerificationModal({ open, onClose }) {
@@ -41,7 +41,7 @@ export default function EmailVerificationModal({ open, onClose }) {
       await resendVerificationEmail();
       setSentMessage('Verifizierungs-E-Mail wurde erneut gesendet.');
     } catch (err) {
-      setError(authErrorMessage(err));
+      setError(verificationEmailErrorMessage(err));
     } finally {
       setSending(false);
     }
