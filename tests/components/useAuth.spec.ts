@@ -3,7 +3,28 @@ import {
   authErrorMessage,
   isGoogleProviderUser,
   isPasswordProviderUser,
+  verificationEmailErrorMessage,
 } from '../../src/hooks/useAuth';
+
+describe('verificationEmailErrorMessage', () => {
+  it('explains a failed verification email send in German instead of the generic error', () => {
+    expect(verificationEmailErrorMessage({ code: 'functions/resource-exhausted' })).toMatch(
+      /zu viele E-Mails/
+    );
+    expect(verificationEmailErrorMessage({ code: 'functions/unavailable' })).toMatch(
+      /Bestätigungs-E-Mail konnte gerade nicht verschickt/
+    );
+    expect(verificationEmailErrorMessage({ code: 'functions/internal' })).toMatch(
+      /Bestätigungs-E-Mail konnte gerade nicht verschickt/
+    );
+  });
+
+  it('falls back to the auth error messages for auth codes', () => {
+    expect(verificationEmailErrorMessage({ code: 'auth/network-request-failed' })).toMatch(
+      /Netzwerk/
+    );
+  });
+});
 
 describe('authErrorMessage', () => {
   it('maps known Firebase auth error codes to German messages', () => {

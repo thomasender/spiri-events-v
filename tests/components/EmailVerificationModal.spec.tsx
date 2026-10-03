@@ -14,7 +14,9 @@ const mockAuth = vi.hoisted(() => ({
   refreshEmailVerified: mocks.refreshEmailVerified,
 }));
 
-vi.mock('../../src/hooks/useAuth', () => ({
+vi.mock('../../src/hooks/useAuth', async (importOriginal) => ({
+  verificationEmailErrorMessage: (await importOriginal<typeof import('../../src/hooks/useAuth')>())
+    .verificationEmailErrorMessage,
   useAuth: () => mockAuth,
   authErrorMessage: (err: { code?: string } | null | undefined) => {
     if (!err) return 'Ein Fehler ist aufgetreten.';
@@ -120,9 +122,20 @@ describe('EmailVerificationModal', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('email-verification-modal-feedback')).toHaveTextContent(
-        'Zu viele Anfragen.'
+        /Zu viele Versuche/
       );
     });
+  });
+
+  it('explains a mail quota failure instead of showing the generic error', async () => {
+    mocks.resendVerificationEmail.mockRejectedValueOnce({ code: 'functions/resource-exhausted' });
+    renderModal();
+
+    fireEvent.click(screen.getByTestId('email-verification-modal-resend'));
+
+    const feedback = await screen.findByTestId('email-verification-modal-feedback');
+    expect(feedback).toHaveTextContent(/Bestätigungs-E-Mail kann im Moment nicht verschickt/);
+    expect(feedback).not.toHaveTextContent(/Ein Fehler ist aufgetreten/);
   });
 
   it('triggers refreshEmailVerified when the check-again button is clicked', async () => {

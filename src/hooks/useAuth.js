@@ -77,6 +77,31 @@ export function authErrorMessage(err) {
   return AUTH_ERROR_MESSAGES[err.code] || 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.';
 }
 
+const VERIFICATION_EMAIL_ERROR_MESSAGES = {
+  'functions/resource-exhausted':
+    'Die Bestätigungs-E-Mail kann im Moment nicht verschickt werden, weil gerade zu viele E-Mails angefordert wurden. Bitte versuche es in ein paar Stunden erneut.',
+  'functions/unavailable':
+    'Die Bestätigungs-E-Mail konnte gerade nicht verschickt werden. Bitte versuche es später erneut.',
+  'functions/internal':
+    'Die Bestätigungs-E-Mail konnte gerade nicht verschickt werden. Bitte versuche es später erneut.',
+  'functions/deadline-exceeded':
+    'Die Bestätigungs-E-Mail konnte gerade nicht verschickt werden. Bitte versuche es später erneut.',
+};
+
+/**
+ * German message for a failed (re)send of the verification email. The
+ * callable reports quota / provider problems as `functions/*` codes, which
+ * authErrorMessage() does not know and would turn into the generic
+ * "Ein Fehler ist aufgetreten".
+ */
+export function verificationEmailErrorMessage(err) {
+  const code = err?.code;
+  if (code && VERIFICATION_EMAIL_ERROR_MESSAGES[code]) {
+    return VERIFICATION_EMAIL_ERROR_MESSAGES[code];
+  }
+  return authErrorMessage(err);
+}
+
 async function checkFirestoreAdminRole(user) {
   if (!user?.email) return null;
   try {
@@ -150,6 +175,12 @@ export function useAuth() {
     if (!current) return;
     try {
       await current.reload();
+      if (current.emailVerified) {
+        // Firestore rules read `email_verified` from the ID token, which is
+        // cached for up to an hour. Without a forced refresh the UI unlocks
+        // event creation while the create itself is still rejected.
+        await current.getIdToken(true);
+      }
       setEmailVerified(Boolean(current.emailVerified));
     } catch (err) {
       console.warn('Error reloading user to refresh emailVerified:', err);

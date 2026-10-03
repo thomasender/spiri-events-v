@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail } from 'lucide-react';
-import { useAuth } from '../hooks/useAuth';
-import { authErrorMessage } from '../hooks/useAuth';
+import { useAuth, verificationEmailErrorMessage } from '../hooks/useAuth';
 import './EmailVerificationBanner.css';
 
 export default function EmailVerificationBanner() {
@@ -22,7 +21,7 @@ export default function EmailVerificationBanner() {
       await resendVerificationEmail();
       setSentMessage('Verifizierungs-E-Mail wurde erneut gesendet.');
     } catch (err) {
-      setError(authErrorMessage(err));
+      setError(verificationEmailErrorMessage(err));
     } finally {
       setSending(false);
     }

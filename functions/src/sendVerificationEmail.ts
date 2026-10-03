@@ -7,6 +7,8 @@ import {
   MAILGUN_FROM,
   MAILGUN_REPLY_TO,
   MAILGUN_EU_BASE,
+  MailgunError,
+  isMailgunDryRun,
   sendMailgunMessage,
 } from './mailgun';
 
@@ -54,6 +56,43 @@ function renderEmail(args: { displayName: string; buttonUrl: string; appName: st
   return { subject, html, text };
 }
 
+function isFirebaseRateLimit(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false;
+  const e = err as { code?: unknown; message?: unknown; cause?: unknown };
+  if (e.code === 'auth/too-many-requests') return true;
+  const haystack = [e.message, (e.cause as { response?: { text?: unknown } })?.response?.text]
+    .filter((v) => typeof v === 'string')
+    .join(' ');
+  return haystack.includes('TOO_MANY_ATTEMPTS_TRY_LATER');
+}
+
+/**
+ * Translate failures from link generation / Mailgun into callable errors the
+ * client can tell apart. Without this every failure surfaced as `internal`
+ * and the user only saw "Ein Fehler ist aufgetreten" — e.g. when the Mailgun
+ * daily sending quota was exhausted (HTTP 429) or Firebase throttled link
+ * generation (TOO_MANY_ATTEMPTS_TRY_LATER).
+ */
+export function toVerificationEmailHttpsError(err: unknown): HttpsError {
+  if (err instanceof HttpsError) return err;
+  if (err instanceof MailgunError) {
+    if (err.status === 429) {
+      return new HttpsError('resource-exhausted', 'Email sending quota exceeded.', {
+        reason: 'mail-quota',
+      });
+    }
+    return new HttpsError('unavailable', 'Email provider rejected the message.', {
+      reason: 'mail-provider',
+    });
+  }
+  if (isFirebaseRateLimit(err)) {
+    return new HttpsError('resource-exhausted', 'Too many verification requests.', {
+      reason: 'link-throttled',
+    });
+  }
+  return new HttpsError('internal', 'Could not send verification email.');
+}
+
 export const sendVerificationEmail = onCall(
   {
     region: 'europe-west3',
@@ -79,9 +118,15 @@ export const sendVerificationEmail = onCall(
       throw new HttpsError('failed-precondition', 'User has no email address.');
     }
 
-    const magicLink = await auth.generateEmailVerificationLink(user.email, {
-      url: `${APP_URL}/auth-action?mode=verifyEmail`,
-    });
+    let magicLink: string;
+    try {
+      magicLink = await auth.generateEmailVerificationLink(user.email, {
+        url: `${APP_URL}/auth-action?mode=verifyEmail`,
+      });
+    } catch (err) {
+      logger.error('Failed to generate verification link', { userId, err });
+      throw toVerificationEmailHttpsError(err);
+    }
     const oobCode = parseOobCode(magicLink);
     if (!oobCode) {
       throw new HttpsError('internal', 'Could not generate verification link.');
@@ -96,20 +141,35 @@ export const sendVerificationEmail = onCall(
     const domain = MAILGUN_DOMAIN.value();
     const from = MAILGUN_FROM.value();
     const replyTo = MAILGUN_REPLY_TO.value();
-    if (!apiKey || !domain || !from) {
+    const dryRun = isMailgunDryRun(process.env);
+    if (!dryRun && (!apiKey || !domain || !from)) {
       throw new HttpsError('internal', 'Mailgun credentials are not configured.');
     }
 
-    await sendMailgunMessage(MAILGUN_EU_BASE, {
-      apiKey,
-      domain,
-      from,
-      to: user.email,
-      subject,
-      text,
-      html,
-      replyTo: replyTo ?? undefined,
-    });
+    if (dryRun) {
+      logger.info('MAILGUN dry-run: would send verification email', {
+        to: user.email,
+        subject,
+        buttonUrl,
+      });
+      return { sent: true };
+    }
+
+    try {
+      await sendMailgunMessage(MAILGUN_EU_BASE, {
+        apiKey: apiKey ?? '',
+        domain: domain ?? '',
+        from: from ?? '',
+        to: user.email,
+        subject,
+        text,
+        html,
+        replyTo: replyTo ?? undefined,
+      });
+    } catch (err) {
+      logger.error('Failed to send verification email', { userId, err });
+      throw toVerificationEmailHttpsError(err);
+    }
     logger.info('Sent verification email', { userId, email: user.email });
     return { sent: true };
   }
