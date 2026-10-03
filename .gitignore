@@ -61,3 +61,11 @@ tests/.auth/
 
 # Build-time public asset compression cache (regenerated on each build)
 .compression-cache.json
+
+# Firebase CLI hosting cache
+.firebase/
+
+# One-off local debugging scripts (use the prod service account / read secrets)
+scripts/check-user.mjs
+scripts/manual-verify-email.mjs
+scripts/read-mailgun-secrets.mjs
