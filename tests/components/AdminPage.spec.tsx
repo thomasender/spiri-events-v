@@ -408,11 +408,12 @@ describe('AdminPage Review tab (dUWoE5vu)', () => {
     expect(screen.queryByTestId('admin-tab-review')).not.toBeInTheDocument();
   });
 
-  it('hides the Review tab for admins when there are no pending events', () => {
+  it('shows the Review tab for admins even when there are no pending events', () => {
     mockAuth.role = 'Admin';
     mockUsePendingEvents.pendingEvents = [];
     renderAdmin();
-    expect(screen.queryByTestId('admin-tab-review')).not.toBeInTheDocument();
+    expect(screen.getByTestId('admin-tab-review')).toBeInTheDocument();
+    expect(screen.queryByTestId('admin-tab-review-badge')).not.toBeInTheDocument();
   });
 
   it('shows the Review tab for admins when there are pending events', () => {
@@ -458,13 +459,13 @@ describe('AdminPage Review tab (dUWoE5vu)', () => {
     expect(screen.getByTestId('admin-tab-events')).toHaveAttribute('aria-selected', 'false');
   });
 
-  it('falls back to the Events tab when ?tab=review is requested but no pending events exist', () => {
+  it('activates the Review tab when ?tab=review is requested but no pending events exist', () => {
     mockAuth.role = 'Admin';
     mockUsePendingEvents.pendingEvents = [];
     renderAdmin(['/admin?tab=review']);
     const eventsPanel = document.getElementById('admin-tab-events');
-    expect(eventsPanel).not.toHaveAttribute('hidden');
-    expect(screen.getByTestId('admin-tab-events')).toHaveAttribute('aria-selected', 'true');
+    expect(eventsPanel).toHaveAttribute('hidden');
+    expect(screen.getByTestId('admin-tab-review')).toHaveAttribute('aria-selected', 'true');
   });
 });
 
