@@ -1066,79 +1066,74 @@ export default function EventFormWizard() {
       </div>
 
       {formData.contribution === 'fee' && (
-        <div className="form-row fee-row">
-          <div className="form-group">
-            <label htmlFor="fee">Betrag</label>
-            <input
-              id="fee"
-              name="fee"
-              type="number"
-              min="0"
-              step="0.01"
-              value={formData.fee}
-              onChange={handleChange}
-              placeholder="z.B. 15.00"
-              className={errors.fee ? 'input-error' : ''}
-              data-testid="fee-input"
-            />
-            {errors.fee && <span className="error-text">{errors.fee}</span>}
+        <div className="fee-section">
+          <div className="fee-amount-row">
+            <div className="form-group">
+              <label htmlFor="fee">Betrag</label>
+              <input
+                id="fee"
+                name="fee"
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.fee}
+                onChange={handleChange}
+                placeholder="z.B. 15.00"
+                className={errors.fee ? 'input-error' : ''}
+                data-testid="fee-input"
+              />
+              {errors.fee && <span className="error-text">{errors.fee}</span>}
+            </div>
+            <div className="form-group">
+              <label htmlFor="feeMax">Betrag bis</label>
+              <input
+                id="feeMax"
+                name="feeMax"
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.feeMax}
+                onChange={handleChange}
+                placeholder="z.B. 25.00"
+                className={errors.feeMax ? 'input-error' : ''}
+                data-testid="fee-max-input"
+              />
+              {errors.feeMax && <span className="error-text">{errors.feeMax}</span>}
+            </div>
+            <p className="fee-hint">Optional. Wenn leer, gilt nur der Betrag.</p>
           </div>
-          <div className="form-group">
-            <label htmlFor="feeMax">
-              Betrag bis
-              <span className="input-info">
-                <Info size={14} />
-                <span>Optional: Wenn leer gilt der Betrag</span>
-              </span>
-            </label>
-            <input
-              id="feeMax"
-              name="feeMax"
-              type="number"
-              min="0"
-              step="0.01"
-              value={formData.feeMax}
-              onChange={handleChange}
-              placeholder="z.B. 25.00"
-              className={errors.feeMax ? 'input-error' : ''}
-              data-testid="fee-max-input"
-            />
-            {errors.feeMax && <span className="error-text">{errors.feeMax}</span>}
-          </div>
-          <div className="form-group">
-            <label htmlFor="feeNote">
-              Einheit
-              <span className="input-info">
-                <Info size={14} />
-                <span>z.B. Einzelstunde, 10er-Block, ganzer Kurs</span>
-              </span>
-            </label>
-            <input
-              id="feeNote"
-              name="feeNote"
-              type="text"
-              maxLength={12}
-              value={formData.feeNote}
-              onChange={handleChange}
-              placeholder="z.B. Einzelstunde"
-              data-testid="fee-note-input"
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="priceCurrency">Währung</label>
-            <select
-              id="priceCurrency"
-              name="priceCurrency"
-              value={formData.priceCurrency}
-              onChange={handleChange}
-              data-testid="price-currency-select"
-            >
-              {CURRENCIES.map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
+          <div className="fee-unit-block">
+            <label htmlFor="feeNote">Einheit</label>
+            <span className="input-info">
+              <Info size={18} />
+              <span>z.B. Einzelstunde, 10er-Block, ganzer Kurs</span>
+            </span>
+            <div className="fee-unit-row">
+              <input
+                id="feeNote"
+                name="feeNote"
+                type="text"
+                maxLength={12}
+                value={formData.feeNote}
+                onChange={handleChange}
+                placeholder="z.B. Einzelstunde"
+                data-testid="fee-note-input"
+              />
+              <select
+                id="priceCurrency"
+                name="priceCurrency"
+                aria-label="Währung"
+                value={formData.priceCurrency}
+                onChange={handleChange}
+                data-testid="price-currency-select"
+              >
+                {CURRENCIES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       )}

@@ -129,10 +129,81 @@
   min-width: 0;
 }
 
+/* Beitrag / Betrag redesign — spacious, calm inputs using the wizard's own tokens */
+.fee-section {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  margin-bottom: 24px;
+}
+
+.fee-section .form-group {
+  margin-bottom: 0;
+}
+
+.fee-section input,
+.fee-section select {
+  width: 100%;
+  min-height: 56px;
+  padding: 0 16px;
+  font-size: 1.05rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: #fff;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.fee-section input:hover,
+.fee-section select:hover {
+  border-color: var(--accent-primary);
+}
+
+.fee-section input:focus,
+.fee-section select:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(196, 142, 106, 0.25);
+}
+
+.fee-section label {
+  font-weight: 500;
+}
+
+.fee-amount-row,
+.fee-unit-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+.fee-hint {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.fee-unit-block .input-info {
+  margin-bottom: 12px;
+  font-size: 0.95rem;
+}
+
 @media (min-width: 641px) {
-  .form-row.fee-row {
-    grid-template-columns: 110px 110px minmax(0, 1fr) minmax(0, 1fr);
-    gap: 8px 12px;
+  .fee-amount-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+    gap: 24px;
+    align-items: end;
+  }
+
+  .fee-hint {
+    padding-bottom: 14px;
+  }
+
+  .fee-unit-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 24px;
   }
 }
 
