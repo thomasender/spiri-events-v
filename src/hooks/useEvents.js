@@ -17,7 +17,7 @@ import {
   getDoc,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { findUniqueSlug } from '../lib/slug';
+import { findUniqueSlug, resolveSlugForApproval } from '../lib/slug';
 import { normalizeCurrency } from '../utils/currency';
 import { deleteImageByUrl } from '../lib/imageUpload';
 import { compareEventsByDateTime } from '../utils/eventSort';
@@ -108,7 +108,8 @@ export function useEvents(user) {
       eventData.title,
       eventData.category,
       eventData.bezirk,
-      eventData.date
+      eventData.date,
+      user.uid
     );
     return addDoc(collection(db, 'events'), {
       ...eventData,
@@ -208,7 +209,8 @@ export function useEvents(user) {
       duplicatedTitle,
       source.category || 'Sonstiges',
       source.bezirk || '',
-      source.date
+      source.date,
+      user.uid
     );
     const duplicateData = {
       title: duplicatedTitle,
@@ -319,7 +321,12 @@ export function usePendingEvents() {
     const eventSnap = await getDoc(ref);
     const eventData = eventSnap.exists() ? eventSnap.data() : null;
 
+    // Two events must never share a public URL: if another approved event
+    // already owns this slug, the newly approved one gets a free variant.
+    const slug = await resolveSlugForApproval(eventId, eventData?.slug);
+
     await updateDoc(ref, {
+      ...(slug && slug !== eventData?.slug ? { slug } : {}),
       status: 'approved',
       approvedBy: user.uid,
       approvedAt: serverTimestamp(),

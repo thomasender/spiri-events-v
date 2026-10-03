@@ -1,11 +1,20 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+// In-memory "events collection" the mocked Firestore queries run against.
+type FakeEvent = { id: string; slug: string; status: string; createdBy: string };
+let fakeEvents: FakeEvent[] = [];
 
 vi.mock('firebase/firestore', () => ({
   collection: vi.fn((_, name) => ({ name })),
   collectionGroup: vi.fn((_, name) => ({ name })),
-  query: vi.fn(),
-  where: vi.fn(),
-  getDocs: vi.fn(async () => ({ docs: [] })),
+  query: vi.fn((_col, ...filters) => filters),
+  where: vi.fn((field, _op, value) => ({ field, value })),
+  getDocs: vi.fn(async (filters: { field: keyof FakeEvent; value: string }[] = []) => {
+    const docs = fakeEvents
+      .filter((e) => filters.every((f) => e[f.field] === f.value))
+      .map((e) => ({ id: e.id, data: () => e }));
+    return { docs, empty: docs.length === 0 };
+  }),
 }));
 
 vi.mock('../../src/lib/firebase', () => ({
@@ -13,6 +22,8 @@ vi.mock('../../src/lib/firebase', () => ({
 }));
 
 import { generateEventSlug } from '../../src/lib/slug-helpers';
+import { findUniqueSlug, resolveSlugForApproval } from '../../src/lib/slug';
+import { findFreeSlug, slugBase } from '../../functions/src/eventSlug';
 
 describe('generateEventSlug', () => {
   it('joins title, category, "in", bezirk, and date with hyphens', () => {
@@ -70,5 +81,54 @@ describe('generateEventSlug', () => {
     expect(generateEventSlug('Workshop!', 'Yoga', 'Bregenz', '2026-09-15')).toBe(
       'workshop-yoga-in-bregenz-20260915'
     );
+  });
+});
+
+describe('event slug uniqueness', () => {
+  const BASE = 'yoga-yoga-in-bregenz-20260915';
+
+  beforeEach(() => {
+    fakeEvents = [];
+  });
+
+  it("does not reuse the slug of the creator's own draft", async () => {
+    fakeEvents = [{ id: 'd1', slug: BASE, status: 'draft', createdBy: 'u1' }];
+    expect(await findUniqueSlug('Yoga', 'Yoga', 'Bregenz', '2026-09-15', 'u1')).toBe(`${BASE}-2`);
+  });
+
+  it('skips slugs used by approved events and by own pending submissions', async () => {
+    fakeEvents = [
+      { id: 'a1', slug: BASE, status: 'approved', createdBy: 'other' },
+      { id: 'p1', slug: `${BASE}-2`, status: 'pending', createdBy: 'u1' },
+    ];
+    expect(await findUniqueSlug('Yoga', 'Yoga', 'Bregenz', '2026-09-15', 'u1')).toBe(`${BASE}-3`);
+  });
+
+  it('keeps the slug on approval when no other approved event owns it', async () => {
+    fakeEvents = [
+      { id: 'e1', slug: BASE, status: 'pending', createdBy: 'u1' },
+      { id: 'e2', slug: BASE, status: 'draft', createdBy: 'u2' },
+    ];
+    expect(await resolveSlugForApproval('e1', BASE)).toBe(BASE);
+  });
+
+  it('gives an event a free slug on approval when an approved event already owns it', async () => {
+    fakeEvents = [
+      { id: 'a1', slug: BASE, status: 'approved', createdBy: 'u2' },
+      { id: 'x1', slug: `${BASE}-2`, status: 'draft', createdBy: 'u3' },
+      { id: 'e1', slug: BASE, status: 'pending', createdBy: 'u1' },
+    ];
+    expect(await resolveSlugForApproval('e1', BASE)).toBe(`${BASE}-3`);
+  });
+
+  it('server-side: keeps a free slug and renames a taken one after the date suffix', async () => {
+    const taken = new Set([BASE, `${BASE}-2`]);
+    const isTaken = async (s: string) => taken.has(s);
+    expect(await findFreeSlug('frei-yoga-in-bregenz-20260915', isTaken)).toBe(
+      'frei-yoga-in-bregenz-20260915'
+    );
+    expect(await findFreeSlug(`${BASE}-2`, isTaken)).toBe(`${BASE}-3`);
+    expect(slugBase(`${BASE}-12`)).toBe(BASE);
+    expect(slugBase(BASE)).toBe(BASE);
   });
 });

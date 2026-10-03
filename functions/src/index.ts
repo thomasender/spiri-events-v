@@ -113,6 +113,7 @@ export {
   onFeedbackCreated,
 } from './notifications';
 export { onEventWriteTriggerBuild } from './triggerBuild';
+export { onEventCreatedEnsureUniqueSlug } from './eventSlugUniqueness';
 export { scheduledBuildTrigger } from './scheduledBuildTrigger';
 export { sendVerificationEmail } from './sendVerificationEmail';
 export { sendPasswordResetEmailFn } from './sendPasswordResetEmail';
