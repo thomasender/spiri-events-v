@@ -73,7 +73,7 @@ export default function AdminPage() {
     return {
       events: true,
       drafts: draftCount > 0,
-      review: reviewCount > 0,
+      review: isAdmin,
       messages: hasMessages,
       feedback: isAdmin && hasFeedback,
       trash: trashedCount > 0,
@@ -82,7 +82,7 @@ export default function AdminPage() {
       helpers: isAdmin,
       donors: isAdmin,
     };
-  }, [draftCount, reviewCount, hasMessages, isAdmin, hasFeedback, trashedCount]);
+  }, [draftCount, hasMessages, isAdmin, hasFeedback, trashedCount]);
 
   const rawTab = searchParams.get('tab');
   const activeTab = useMemo(() => {
