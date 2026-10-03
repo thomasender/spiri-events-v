@@ -22,6 +22,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useEvents } from '../hooks/useEvents';
 import { useOrganizerProfile } from '../hooks/useOrganizerProfile';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
+import { pickEventDoc } from '../utils/pickEventDoc';
 import { getOrganizerName } from '../utils/eventFormat';
 import { resolveOrganizerProfilePath } from '../utils/profile';
 import { canEditEvent, canDeleteEvent } from '../utils/eventPermissions';
@@ -274,7 +275,7 @@ export default function EventDetailPage() {
             const anyQuery = query(collection(db, 'events'), where('slug', '==', slug));
             const anySnapshot = await getDocs(anyQuery);
             if (!anySnapshot.empty) {
-              docSnap = anySnapshot.docs[0];
+              docSnap = pickEventDoc(anySnapshot.docs);
             }
           } else if (user) {
             const ownQuery = query(
@@ -284,7 +285,7 @@ export default function EventDetailPage() {
             );
             const ownSnapshot = await getDocs(ownQuery);
             if (!ownSnapshot.empty) {
-              docSnap = ownSnapshot.docs[0];
+              docSnap = pickEventDoc(ownSnapshot.docs);
             }
           }
         }
