@@ -1139,7 +1139,7 @@ export default function EventFormWizard() {
       )}
 
       <div className="form-group">
-        <label>Wiederholung</label>
+        <label>Wiederholt sich dein Event oder ist es einmalig?</label>
         <div className="radio-group">
           <label className={`radio-label ${!hasRecurrence ? 'active' : ''}`}>
             <input
@@ -1150,7 +1150,7 @@ export default function EventFormWizard() {
               onChange={() => handleRecurrenceToggle('no')}
               data-testid="recurrence-no-radio"
             />
-            <span>Nein</span>
+            <span>Einmalig</span>
           </label>
           <label className={`radio-label ${hasRecurrence ? 'active' : ''}`}>
             <input
@@ -1161,7 +1161,7 @@ export default function EventFormWizard() {
               onChange={() => handleRecurrenceToggle('yes')}
               data-testid="recurrence-yes-radio"
             />
-            <span>Ja</span>
+            <span>Wiederholung</span>
           </label>
         </div>
       </div>

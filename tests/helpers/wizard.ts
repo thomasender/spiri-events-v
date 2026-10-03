@@ -162,7 +162,7 @@ export async function enableRecurrence(page: Page) {
   const yesRadio = page.getByTestId('recurrence-yes-radio');
   if ((await yesRadio.count()) === 0) return;
   if (await yesRadio.isChecked()) return;
-  await page.locator('.radio-label:has-text("Ja")').first().click();
+  await page.locator('.radio-label:has-text("Wiederholung")').first().click();
   await expect(yesRadio).toBeChecked();
 }
 

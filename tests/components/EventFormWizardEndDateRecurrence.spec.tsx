@@ -214,3 +214,19 @@ describe('EventFormWizard — multi-day + recurrence confirmation (naTXj8Oa)', (
     expect(visibleDialogTitles()).not.toContain(WARNING);
   });
 });
+
+describe('EventFormWizard — recurrence question labels (kZAYjgbF)', () => {
+  it('asks "Wiederholt sich dein Event oder ist es einmalig?" with Einmalig / Wiederholung options', () => {
+    seedDraft();
+    renderWizard();
+    expect(
+      screen.getByText('Wiederholt sich dein Event oder ist es einmalig?')
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('recurrence-no-radio').closest('label')).toHaveTextContent(
+      'Einmalig'
+    );
+    expect(screen.getByTestId('recurrence-yes-radio').closest('label')).toHaveTextContent(
+      'Wiederholung'
+    );
+  });
+});
