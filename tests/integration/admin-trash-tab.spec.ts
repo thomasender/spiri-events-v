@@ -223,9 +223,15 @@ test.describe('Papierkorb tab', () => {
 
         await expect(card).toHaveCount(0, { timeout: 5000 });
 
-        await page.goto('/admin?tab=trash');
-        await waitForAdminTabs(page);
-        await expect(page.locator('.event-card', { hasText: DELETE_FIXTURE_TITLE })).toBeVisible();
+        // The move to the trash is an async write; reload until it has landed
+        // instead of racing it with a single goto.
+        await expect(async () => {
+          await page.goto('/admin?tab=trash');
+          await waitForAdminTabs(page);
+          await expect(page.locator('.event-card', { hasText: DELETE_FIXTURE_TITLE })).toBeVisible({
+            timeout: 3000,
+          });
+        }).toPass({ timeout: 20000 });
       } finally {
         await deleteEventById(DELETE_FIXTURE_ID);
       }
