@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { waitForCalendarToLoad } from '../helpers/auth';
 
-test.describe('Calendar: Datum quick filter (8aHT1FUG)', () => {
+test.describe('Calendar: Datum quick filter', () => {
   test.describe('Datum section renders', () => {
     test.beforeEach(async ({ page }) => {
       await page.goto('/');
@@ -124,29 +124,34 @@ test.describe('Calendar: Datum quick filter (8aHT1FUG)', () => {
     });
 
     test('activating "Heute" jumps the calendar sidebar to the current month', async ({ page }) => {
-      // Seed a different month so we can detect the jump.
-      await page.evaluate(() => {
+      // Seed a *future* month: the calendar never shows months before the
+      // current one, so a hard-coded past month silently falls back to today.
+      const now = new Date();
+      const future = new Date(now.getFullYear(), now.getMonth() + 2, 1);
+      const futureKey = `${future.getFullYear()}-${String(future.getMonth() + 1).padStart(2, '0')}`;
+      const monthName = (d: Date) => d.toLocaleString('de-DE', { month: 'long' });
+
+      await page.evaluate((key) => {
         localStorage.setItem(
           'calendarFilterState',
           JSON.stringify({
-            currentMonth: '2026-03',
+            currentMonth: key,
             selectedCategories: [],
             selectedOrte: [],
             dateFilter: null,
             viewMode: 'card',
           })
         );
-      });
+      }, futureKey);
       await page.goto('/');
       await waitForCalendarToLoad(page);
 
-      const headerBefore = await page.locator('.events-section h2').first().textContent();
-      expect(headerBefore).toMatch(/März/);
+      const header = page.locator('.events-section h2').first();
+      await expect(header).toContainText(monthName(future));
 
       await page.getByTestId('filter-chip-date-heute').click();
 
-      const headerAfter = await page.locator('.events-section h2').first().textContent();
-      expect(headerAfter).not.toMatch(/März/);
+      await expect(header).toContainText(monthName(now));
     });
 
     test('activating a date filter persists the new month key in localStorage', async ({

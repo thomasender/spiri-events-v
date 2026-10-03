@@ -43,7 +43,7 @@ async function fillWizardAndSubmit(page, title) {
   );
 }
 
-test.describe('Event erstellen success message more obvious (NyC8Ui2W)', () => {
+test.describe('Event erstellen success message more obvious', () => {
   // The wizard specs create real events; remove them so they do not
   // accumulate in the emulator across runs.
   test.afterAll(async () => {
@@ -150,7 +150,7 @@ test.describe('Event erstellen success message more obvious (NyC8Ui2W)', () => {
     await page.waitForURL('/admin', { timeout: 10000 });
   });
 
-  test('prompts the user to fill out their profile when they have no public profile (EkrMNDkO)', async ({
+  test('prompts the user to fill out their profile when they have no public profile', async ({
     page,
   }) => {
     await signInWithEmailAndPassword(page, 'user@test.local', 'testpassword123');

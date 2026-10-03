@@ -138,9 +138,7 @@ describe('getEventOgImage', () => {
     expect(getEventOgImage({ category: 'Tanz' })).toBe(
       'https://www.thetribe.at/event-fallbacks/tanz.jpg'
     );
-    expect(getEventOgImage({ category: 'Sonstiges' })).toBe(
-      'https://www.thetribe.at/hero.jpeg'
-    );
+    expect(getEventOgImage({ category: 'Sonstiges' })).toBe('https://www.thetribe.at/hero.jpeg');
   });
 
   it('returns the Sonstiges category fallback when the event has no category', () => {
@@ -148,9 +146,7 @@ describe('getEventOgImage', () => {
     // resolve to the generic "Sonstiges" fallback used everywhere else.
     expect(getEventOgImage({})).toBe('https://www.thetribe.at/hero.jpeg');
     expect(getEventOgImage(null)).toBe('https://www.thetribe.at/hero.jpeg');
-    expect(getEventOgImage(undefined)).toBe(
-      'https://www.thetribe.at/hero.jpeg'
-    );
+    expect(getEventOgImage(undefined)).toBe('https://www.thetribe.at/hero.jpeg');
   });
 
   it('keeps already-absolute image URLs intact', () => {

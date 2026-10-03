@@ -451,45 +451,4 @@ describe('Calendar', () => {
       expect(screen.getByText('Februar 2023')).toBeInTheDocument();
     });
   });
-
-  describe('Event contribution display', () => {
-    it.skip('shows "Frei" badge for free events - badges only in mobile agenda', () => {
-      const futureDate = getFutureDate(15);
-      const freeEvent = createEvent({
-        id: '1',
-        title: 'Free Yoga',
-        date: futureDate,
-        contribution: 'free',
-      });
-      render(
-        <Calendar
-          events={[freeEvent]}
-          onEventClick={onEventClick}
-          currentMonth={currentMonth}
-          onMonthChange={onMonthChange}
-        />
-      );
-      expect(screen.getAllByText('Frei').length).toBeGreaterThan(0);
-    });
-
-    it.skip('shows fee amount for paid events - badges only in mobile agenda', () => {
-      const futureDate = getFutureDate(15);
-      const paidEvent = createEvent({
-        id: '1',
-        title: 'Paid Workshop',
-        date: futureDate,
-        contribution: 'fee',
-        fee: 25,
-      });
-      render(
-        <Calendar
-          events={[paidEvent]}
-          onEventClick={onEventClick}
-          currentMonth={currentMonth}
-          onMonthChange={onMonthChange}
-        />
-      );
-      expect(screen.getAllByText('25€').length).toBeGreaterThan(0);
-    });
-  });
 });

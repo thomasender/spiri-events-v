@@ -30,12 +30,12 @@ async function deleteAuthUser(uid: string): Promise<void> {
   });
 }
 
-test.describe.serial('Profile Management @smoke', () => {
+test.describe.serial('Profile Management', () => {
   test.beforeAll(async () => {
     await clearEmulatorStorage();
   });
 
-  test('unauthenticated visit redirects to /login', async ({ page }) => {
+  test('unauthenticated visit redirects to /login', { tag: '@smoke' }, async ({ page }) => {
     await page.goto(PROFILE_PATH);
     await page.waitForURL(/\/login/, { timeout: 10000 });
   });
@@ -91,42 +91,46 @@ test.describe.serial('Profile Management @smoke', () => {
     await expect(page.getByTestId('profile-displayName')).toBeVisible();
   });
 
-  test('user can edit name, bio, website, contact and save to Firestore', async ({ page }) => {
-    await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
-    await page.goto(PROFILE_PATH);
-    await page
-      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
-      .catch(() => {});
+  test(
+    'user can edit name, bio, website, contact and save to Firestore',
+    { tag: '@smoke' },
+    async ({ page }) => {
+      await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+      await page.goto(PROFILE_PATH);
+      await page
+        .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+        .catch(() => {});
 
-    await page.getByTestId('profile-displayName').fill('Admin Tester');
-    await page.waitForSelector('[data-testid="profile-bio-editor"] .rte-content', {
-      timeout: 15000,
-    });
-    const bioEditor = page.locator('[data-testid="profile-bio-editor"] .rte-content');
-    await bioEditor.click();
-    await bioEditor.fill('Bearbeitet durch Playwright-Test.');
-    await page.getByTestId('profile-website').fill('www.example.com');
-    await page.getByTestId('profile-contact').fill('tester@example.com');
+      await page.getByTestId('profile-displayName').fill('Admin Tester');
+      await page.waitForSelector('[data-testid="profile-bio-editor"] .rte-content', {
+        timeout: 15000,
+      });
+      const bioEditor = page.locator('[data-testid="profile-bio-editor"] .rte-content');
+      await bioEditor.click();
+      await bioEditor.fill('Bearbeitet durch Playwright-Test.');
+      await page.getByTestId('profile-website').fill('www.example.com');
+      await page.getByTestId('profile-contact').fill('tester@example.com');
 
-    await page.getByTestId('profile-save').click();
+      await page.getByTestId('profile-save').click();
 
-    await expect(page.getByTestId('profile-save-success')).toBeVisible({ timeout: 10000 });
+      await expect(page.getByTestId('profile-save-success')).toBeVisible({ timeout: 10000 });
 
-    // Verify the data persisted by reloading the page
-    await page.reload();
-    await page
-      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
-      .catch(() => {});
-    await page.waitForSelector('[data-testid="profile-bio-editor"] .rte-content', {
-      timeout: 15000,
-    });
+      // Verify the data persisted by reloading the page
+      await page.reload();
+      await page
+        .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+        .catch(() => {});
+      await page.waitForSelector('[data-testid="profile-bio-editor"] .rte-content', {
+        timeout: 15000,
+      });
 
-    await expect(page.getByTestId('profile-displayName')).toHaveValue('Admin Tester');
-    await expect(page.locator('[data-testid="profile-bio-editor"] .rte-content')).toHaveText(
-      'Bearbeitet durch Playwright-Test.'
-    );
-    await expect(page.getByTestId('profile-website')).toHaveValue('https://www.example.com');
-  });
+      await expect(page.getByTestId('profile-displayName')).toHaveValue('Admin Tester');
+      await expect(page.locator('[data-testid="profile-bio-editor"] .rte-content')).toHaveText(
+        'Bearbeitet durch Playwright-Test.'
+      );
+      await expect(page.getByTestId('profile-website')).toHaveValue('https://www.example.com');
+    }
+  );
 
   test('bio longer than 500 characters is rejected', async ({ page }) => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');

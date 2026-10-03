@@ -23,7 +23,7 @@ async function resetSharedPendingFixture(): Promise<void> {
 
 test.describe.configure({ mode: 'serial' });
 
-test.describe('Description image upload & title-image hint (b94MmbeY)', () => {
+test.describe('Description image upload & title-image hint', () => {
   test.beforeEach(async () => {
     await resetSharedPendingFixture();
   });
@@ -73,7 +73,9 @@ test.describe('Description image upload & title-image hint (b94MmbeY)', () => {
     const imageInput = page.locator('input[data-testid="description-image-input"]');
     await imageInput.setInputFiles('public/event-fallbacks/yoga.jpg');
 
-    const insertedImg = page.locator('[data-testid="description-editor"] .rte-content img');
+    const insertedImg = page.locator(
+      '[data-testid="description-editor"] .rte-content img.rte-embedded-image'
+    );
     await expect(insertedImg).toBeVisible({ timeout: 15000 });
 
     const src = await insertedImg.getAttribute('src');

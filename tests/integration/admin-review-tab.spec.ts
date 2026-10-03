@@ -63,7 +63,7 @@ test.describe.configure({ mode: 'serial' });
 
 const FOREIGN_PENDING_TITLE = 'User Pending Event';
 
-test.describe('Review tab for admins (dUWoE5vu) @smoke', () => {
+test.describe('Review tab for admins', () => {
   test.beforeEach(async () => {
     await resetDraftFixtures();
   });
@@ -136,44 +136,47 @@ test.describe('Review tab for admins (dUWoE5vu) @smoke', () => {
     await expect(pendingHeader).toHaveCount(0);
   });
 
-  test('admin can approve a pending event from the Review tab', async ({ page }) => {
-    const throwawayId = `test-review-approve-${Date.now()}`;
-    const throwawayTitle = `Throwaway Pending ${throwawayId}`;
-    await createThrowawayPendingEvent(throwawayId);
+  test(
+    'admin can approve a pending event from the Review tab',
+    { tag: '@smoke' },
+    async ({ page }) => {
+      const throwawayId = `test-review-approve-${Date.now()}`;
+      const throwawayTitle = `Throwaway Pending ${throwawayId}`;
+      await createThrowawayPendingEvent(throwawayId);
 
-    try {
-      await page.goto('/admin?tab=review');
+      try {
+        await page.goto('/admin?tab=review');
 
-      await page
-        .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
-        .catch(() => {});
+        await page
+          .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+          .catch(() => {});
 
-      const reviewPanel = page.locator('#admin-tab-review');
-      const pendingSection = reviewPanel.getByTestId('review-section-pending');
-      const pendingCard = pendingSection.locator('.event-card', { hasText: throwawayTitle });
-      await expect(pendingCard).toBeVisible({ timeout: 10000 });
-      await expect(pendingCard.locator('.status-badge--pending')).toBeVisible();
+        const reviewPanel = page.locator('#admin-tab-review');
+        const pendingSection = reviewPanel.getByTestId('review-section-pending');
+        const pendingCard = pendingSection.locator('.event-card', { hasText: throwawayTitle });
+        await expect(pendingCard).toBeVisible({ timeout: 10000 });
+        await expect(pendingCard.locator('.status-badge--pending')).toBeVisible();
 
-      await pendingCard.getByRole('button', { name: /genehmigen/i }).click();
+        await pendingCard.getByRole('button', { name: /genehmigen/i }).click();
 
-      const successDialog = page.getByTestId('success-dialog');
-      await expect(successDialog).toBeVisible({ timeout: 10000 });
-      await expect(successDialog).toContainText('Event genehmigt');
+        const successDialog = page.getByTestId('success-dialog');
+        await expect(successDialog).toBeVisible({ timeout: 10000 });
+        await expect(successDialog).toContainText('Event genehmigt');
 
-      await successDialog.getByTestId('success-dialog-confirm').click();
-      await expect(successDialog).toBeHidden();
+        await successDialog.getByTestId('success-dialog-confirm').click();
+        await expect(successDialog).toBeHidden();
 
-      // After approval the event leaves the pending section (its card may now
-      // appear in the "Genehmigt in den letzten 7 Tagen" section below, since
-      // approvedAt was just stamped — that's the new design).
-      await expect(pendingSection.locator('.event-card', { hasText: throwawayTitle })).toHaveCount(
-        0,
-        { timeout: 10000 }
-      );
-    } finally {
-      await deleteEventById(throwawayId);
+        // After approval the event leaves the pending section (its card may now
+        // appear in the "Genehmigt in den letzten 7 Tagen" section below, since
+        // approvedAt was just stamped — that's the new design).
+        await expect(
+          pendingSection.locator('.event-card', { hasText: throwawayTitle })
+        ).toHaveCount(0, { timeout: 10000 });
+      } finally {
+        await deleteEventById(throwawayId);
+      }
     }
-  });
+  );
 
   test('admin can revert a pending event to draft from the Review tab', async ({ page }) => {
     const throwawayId = `test-review-revert-${Date.now()}`;

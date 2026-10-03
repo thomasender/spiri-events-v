@@ -21,7 +21,7 @@ async function resetDraftFixtures(): Promise<void> {
 
 test.describe.configure({ mode: 'serial' });
 
-test.describe('Entwurf Tab navigation (wFCSgPls)', () => {
+test.describe('Entwurf Tab navigation', () => {
   test.beforeEach(async () => {
     await resetDraftFixtures();
   });

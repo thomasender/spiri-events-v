@@ -4,7 +4,8 @@
 # Running all of it on every push is what made pushing take hours and pushed
 # everyone onto --no-verify.
 #
-# Fail fast and legibly when the emulators are not usable, instead of letting
-# the suite grind against a dead backend.
-bash scripts/check-emulators.sh || exit 1
+# Start or restart the emulators if they are down or degraded, instead of
+# letting the suite grind against a dead backend (or failing the push for
+# something a restart fixes). Fails only if they cannot be brought up.
+bash scripts/ensure-emulators.sh || exit 1
 npm run test:e2e:smoke

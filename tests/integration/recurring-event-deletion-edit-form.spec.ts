@@ -24,7 +24,7 @@ async function resetRecurringEventFixture(): Promise<void> {
 
 test.describe.configure({ mode: 'serial' });
 
-test.describe('Recurring event deletion from EventForm @smoke', () => {
+test.describe('Recurring event deletion from EventForm', () => {
   // This is the single shared fixture doc other specs (e.g.
   // recurring-events-card-list.spec.ts) also read, and this file's last test deletes
   // it entirely — reset before each test so ordering relative to other spec files
@@ -82,19 +82,23 @@ test.describe('Recurring event deletion from EventForm @smoke', () => {
     await expect(page.locator('h1')).toContainText('Event bearbeiten', { timeout: 10000 });
   });
 
-  test('"Nur dieses Event" from edit form adds date to exceptionDates', async ({ page }) => {
-    await page.goto(`/admin/edit/${RECURRING_EVENT_ID}`);
-    await page.waitForURL(/\/admin\/edit\//);
-    await page
-      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
-      .catch(() => {});
+  test(
+    '"Nur dieses Event" from edit form adds date to exceptionDates',
+    { tag: '@smoke' },
+    async ({ page }) => {
+      await page.goto(`/admin/edit/${RECURRING_EVENT_ID}`);
+      await page.waitForURL(/\/admin\/edit\//);
+      await page
+        .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+        .catch(() => {});
 
-    await page.getByTestId('delete-event-from-form-button').click();
+      await page.getByTestId('delete-event-from-form-button').click();
 
-    await page.getByText('Nur diesen Termin löschen').click();
+      await page.getByText('Nur diesen Termin löschen').click();
 
-    await page.waitForURL((url) => url.pathname === '/', { timeout: 10000 });
-  });
+      await page.waitForURL((url) => url.pathname === '/', { timeout: 10000 });
+    }
+  );
 
   test('"Dieses und alle zukünftigen Events" from edit form sets recurrenceEndDate', async ({
     page,
@@ -112,9 +116,7 @@ test.describe('Recurring event deletion from EventForm @smoke', () => {
     await page.waitForURL((url) => url.pathname === '/', { timeout: 10000 });
   });
 
-  test('"Gesamte Serie löschen" from edit form moves the event to the trash (SS79oSci)', async ({
-    page,
-  }) => {
+  test('"Gesamte Serie löschen" from edit form moves the event to the trash', async ({ page }) => {
     await page.goto(`/admin/edit/${RECURRING_EVENT_ID}`);
     await page.waitForURL(/\/admin\/edit\//);
     await page

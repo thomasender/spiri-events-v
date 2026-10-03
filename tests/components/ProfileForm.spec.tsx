@@ -329,9 +329,9 @@ describe('ProfileForm — Speichern & Profil anzeigen button (WBFFzVcm)', () => 
 
     fireEvent.click(screen.getByTestId('profile-save'));
 
-    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(await screen.findByTestId('profile-save-success')).toBeInTheDocument();
+    expect(onSave).toHaveBeenCalled();
     expect(mockNavigate).not.toHaveBeenCalled();
-    expect(screen.getByTestId('profile-save-success')).toBeInTheDocument();
   });
 
   it('navigates to the public profile after saving when the profile is complete', async () => {

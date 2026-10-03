@@ -14,6 +14,10 @@ const DESTRUCTIVE_SPECS = [
   '**/integration/admin-trash-tab.spec.ts',
   '**/integration/recurring-event-deletion-edit-form.spec.ts',
   '**/integration/recurring-event-list-link-no-occurrence.spec.ts',
+  // Mark the shared `test-event-with-messages` fixture's messages as read and
+  // assert on the unread badge. admin-review-tab and admin-verwaltung-title-picture
+  // re-seed that same fixture (two unread messages) in their own hooks.
+  '**/integration/messages-tab-read-scroll-and-indicator.spec.ts',
   // Publish a theme to the global `theme` document, which every page — including
   // the public calendar every other spec loads — renders its CSS variables from.
   '**/integration/admin-theme-tab.spec.ts',

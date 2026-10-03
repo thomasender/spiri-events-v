@@ -25,7 +25,7 @@ async function resetUserApprovedEventFixture(): Promise<void> {
   await runScript('scripts/reset-user-approved-event-fixture.mjs');
 }
 
-test.describe('Event draft status — read-only (AzGFKWfV) @smoke', () => {
+test.describe('Event draft status — read-only', () => {
   test.beforeEach(async () => {
     await resetUserApprovedEventFixture();
   });
@@ -91,7 +91,7 @@ test.describe('Event draft status — read-only (AzGFKWfV) @smoke', () => {
     await expect(page.locator('.event-card', { hasText: 'User Pending Event' })).toHaveCount(0);
   });
 
-  test('guest cannot view a draft event via slug URL', async ({ page }) => {
+  test('guest cannot view a draft event via slug URL', { tag: '@smoke' }, async ({ page }) => {
     await page.goto(`/event/${USER_DRAFT_SLUG}`);
 
     await page
@@ -116,24 +116,28 @@ test.describe('Event draft status — read-only (AzGFKWfV) @smoke', () => {
     });
   });
 
-  test('draft never appears on the public events list (CalendarPage)', async ({ page }) => {
-    await page.goto('/');
+  test(
+    'draft never appears on the public events list (CalendarPage)',
+    { tag: '@smoke' },
+    async ({ page }) => {
+      await page.goto('/');
 
-    await waitForCalendarToLoad(page);
+      await waitForCalendarToLoad(page);
 
-    const eventCards = page.locator('.event-card-public, .event-row');
-    const count = await eventCards.count();
+      const eventCards = page.locator('.event-card-public, .event-row');
+      const count = await eventCards.count();
 
-    for (let i = 0; i < count; i += 1) {
-      const text = await eventCards.nth(i).innerText();
-      expect(text).not.toContain('User Draft Event');
+      for (let i = 0; i < count; i += 1) {
+        const text = await eventCards.nth(i).innerText();
+        expect(text).not.toContain('User Draft Event');
+      }
     }
-  });
+  );
 });
 
 test.describe.configure({ mode: 'serial' });
 
-test.describe('Event draft status — state transitions (AzGFKWfV)', () => {
+test.describe('Event draft status — state transitions', () => {
   test.beforeEach(async () => {
     await resetDraftFixtures();
   });

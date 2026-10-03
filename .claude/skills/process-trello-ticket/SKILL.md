@@ -80,10 +80,11 @@ Make the code change following project conventions:
 
 **Read the "Testing" section in `AGENTS.md` before writing any test.** The short
 version: the default is _no new Playwright test_. Logic and component behaviour
-belong in Vitest (`tests/components/`), which runs in about 5 seconds. Only
+belong in Vitest (`tests/components/`), which runs in about 7 seconds. Only
 reach for Playwright when the behaviour genuinely requires a real browser with
 real Firebase — and then add to an existing spec file rather than creating a new
-one per ticket.
+one per ticket. Do not test styling/layout at all. After writing a Vitest test,
+run `npm run test:shuffle` once to make sure it does not depend on test order.
 
 Start emulators (if not running):
 

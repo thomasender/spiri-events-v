@@ -56,7 +56,9 @@ describe('compareEventsByDateTime', () => {
 
   it('does not throw when given null or undefined entries', () => {
     expect(() => compareEventsByDateTime(null, null)).not.toThrow();
-    expect(() => compareEventsByDateTime(undefined, { date: '2026-10-15', time: '08:00' })).not.toThrow();
+    expect(() =>
+      compareEventsByDateTime(undefined, { date: '2026-10-15', time: '08:00' })
+    ).not.toThrow();
     expect(compareEventsByDateTime(null, { date: '2026-10-15', time: '08:00' })).toBeGreaterThan(0);
     expect(compareEventsByDateTime({ date: '2026-10-15', time: '08:00' }, null)).toBeLessThan(0);
   });

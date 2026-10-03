@@ -51,6 +51,17 @@ trap cleanup SIGINT SIGTERM
 EMULATOR_LOG_DIR="${TMPDIR:-/tmp}/spiri-events-emulators"
 mkdir -p "$EMULATOR_LOG_DIR"
 
+# firebase-tools hardcodes the Firestore emulator's JVM to debug_log_level=FINE
+# and writes it to ./firestore-debug.log, regardless of --log-verbosity. Under a
+# test run that file grows by gigabytes (2.6 GB in one work session), and the
+# logging I/O is what drives the emulator into its CPU/GC death spiral. Point
+# every *-debug.log at /dev/null so it is written nowhere. (They are
+# gitignored; delete any real file first so the symlink can take its place.)
+for log in firestore-debug.log database-debug.log ui-debug.log pubsub-debug.log; do
+  rm -f "$log"
+  ln -s /dev/null "$log"
+done
+
 firebase emulators:start \
   --import "$IMPORT_PATH" \
   --project spirieventsvbg \

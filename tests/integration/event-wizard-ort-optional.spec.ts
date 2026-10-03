@@ -109,7 +109,7 @@ test.describe('Event wizard: "Ort / Adresse" is optional (ZPiZqKrG) @mobile', ()
 // reset+read of the same doc.
 test.describe.configure({ mode: 'serial' });
 
-test.describe('Event edit form: "Ort / Adresse" is optional (8BzdB9xp)', () => {
+test.describe('Event edit form: "Ort / Adresse" is optional', () => {
   test.beforeEach(async () => {
     await resetSharedPendingFixture();
   });

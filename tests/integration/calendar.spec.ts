@@ -8,7 +8,7 @@ test.describe('Calendar Integration @mobile', () => {
   });
 
   test.describe('Calendar Page Loading', () => {
-    test('calendar page loads successfully', async ({ page }) => {
+    test('calendar page loads successfully', { tag: '@smoke' }, async ({ page }) => {
       await expect(page.locator('.calendar')).toBeVisible();
       await expect(page.locator('.calendar-header')).toBeVisible();
     });
@@ -24,8 +24,9 @@ test.describe('Calendar Integration @mobile', () => {
 
     test('shows navigation controls', async ({ page }) => {
       await expect(page.locator('.btn-today')).toBeVisible();
-      await expect(page.locator('button[title="Vorheriger Monat"]')).toBeVisible();
-      await expect(page.locator('button[title="Nächster Monat"]')).toBeVisible();
+      const nav = page.locator('.calendar-header');
+      await expect(nav.getByRole('button', { name: 'Vorheriger Monat' })).toBeVisible();
+      await expect(nav.getByRole('button', { name: 'Nächster Monat' })).toBeVisible();
     });
   });
 
@@ -50,21 +51,25 @@ test.describe('Calendar Integration @mobile', () => {
     });
 
     test('"Alle" button selects all categories', async ({ page }) => {
-      const firstChip = page.locator('.filter-chip--category').first();
-      await firstChip.click();
-      await expect(firstChip).toHaveAttribute('aria-pressed', 'false');
+      // No chip is pressed initially: an empty selection means "no category filter".
+      const chips = page.locator('.filter-chip--category');
+      await chips.first().click();
+      await expect(chips.first()).toHaveAttribute('aria-pressed', 'true');
+      await expect(chips.nth(1)).toHaveAttribute('aria-pressed', 'false');
+
       await page.locator('.filter-panel button:has-text("Alle")').first().click();
-      const firstChipAfter = page.locator('.filter-chip--category').first();
-      await expect(firstChipAfter).toHaveAttribute('aria-pressed', 'true');
+      await expect(chips.nth(1)).toHaveAttribute('aria-pressed', 'true');
+      await expect(chips.last()).toHaveAttribute('aria-pressed', 'true');
     });
 
     test('"Keine" button deselects all categories', async ({ page }) => {
-      await page.locator('.filter-panel button:has-text("Keine")').first().click();
       const chips = page.locator('.filter-chip--category');
-      const allUnpressed = await chips.evaluateAll((els) =>
-        els.every((el) => el.getAttribute('aria-pressed') !== 'true')
-      );
-      expect(allUnpressed).toBe(true);
+      await page.locator('.filter-panel button:has-text("Alle")').first().click();
+      await expect(chips.first()).toHaveAttribute('aria-pressed', 'true');
+
+      await page.locator('.filter-panel button:has-text("Keine")').first().click();
+      await expect(chips.first()).toHaveAttribute('aria-pressed', 'false');
+      await expect(chips.last()).toHaveAttribute('aria-pressed', 'false');
     });
   });
 
@@ -205,10 +210,11 @@ test.describe('Calendar Integration @mobile', () => {
       const header = page.locator('.calendar-header h2');
       const initialMonth = await header.textContent();
 
-      await page.locator('button[title="Nächster Monat"]').click();
+      const nav = page.locator('.calendar-header');
+      await nav.getByRole('button', { name: 'Nächster Monat' }).click();
       await expect(header).not.toHaveText(initialMonth ?? '');
 
-      await page.locator('button[title="Vorheriger Monat"]').click();
+      await nav.getByRole('button', { name: 'Vorheriger Monat' }).click();
       await expect(header).toHaveText(initialMonth ?? '');
     });
   });

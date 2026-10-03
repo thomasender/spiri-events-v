@@ -55,24 +55,27 @@ it degrades: CPU pegs at 300–900%, memory balloons, requests hang. Dozens of
 unrelated tests then fail with "element not found" for content that is always
 present.
 
-`npm run emulators:check` detects this directly — it probes Auth _and_ a real
-Firestore query, and tells you which one is dead. The pre-push hook runs it
-first, so you should see a clear message rather than a wall of failures.
+You normally never have to deal with this by hand any more:
 
-Fix:
+- `npm run emulators:ensure` (run automatically before every `test:e2e:*`
+  command and by the pre-push hook) starts the emulators if they are down and
+  **restarts them if they are degraded or have grown past 2.5 GB RSS**
+  (`EMULATOR_MAX_RSS_MB` overrides). The emulator leaks memory across runs — it
+  passed 9 GB after a handful of full-suite runs, and the same suite went from
+  ~1.5 min to ~5 min with timing-related failures. A restart costs ~13 s.
+- `npm run emulators:check` only _diagnoses_ (probes Auth and a real Firestore
+  query). `npm run emulators:restart` forces a restart.
 
-```bash
-pkill -f cloud-firestore-emulator
-npm run emulators:start
-```
+Do **not** debug or rewrite tests based on a run where the emulator was
+degraded. Restart, re-run, and only chase a failure that reproduces against a
+fresh emulator.
 
-Do **not** debug or rewrite tests based on a run where this is happening.
-Restart the emulator, re-run, and only chase a failure that reproduces against
-a freshly-restarted emulator.
-
-Emulator debug logs are written to `$TMPDIR/spiri-events-emulators/` at QUIET
-verbosity. They used to land in the repo root at debug level and reached 10 GB
-within a work session, which was itself a cause of the degradation above.
+`firebase-tools` hardcodes the Firestore JVM to debug-level logging and writes
+`firestore-debug.log` into the working directory regardless of
+`--log-verbosity` (it reached 2.6 GB in one session). `scripts/start-emulators.sh`
+symlinks the `*-debug.log` files to `/dev/null`; do not start the emulators any
+other way if you care about speed. The quiet logs go to
+`$TMPDIR/spiri-events-emulators/`.
 
 ## Testing
 
@@ -86,8 +89,8 @@ keep that from happening again.
 | Command                   | What runs                                          | When                            | Budget                    |
 | ------------------------- | -------------------------------------------------- | ------------------------------- | ------------------------- |
 | `npm run test`            | Vitest, all component/unit tests                   | every commit (pre-commit hook)  | ~8 s (incl. lint + types) |
-| `npm run test:e2e:smoke`  | Playwright, `@smoke`-tagged flows, Chromium only   | every push (pre-push hook)      | ~1:30 on a fresh emulator |
-| `npm run test:e2e:full`   | Playwright, everything, Chromium                   | manually, before a release      | ~3–5 min                  |
+| `npm run test:e2e:smoke`  | Playwright, `@smoke`-tagged flows, Chromium only   | every push (pre-push hook)      | ~20 s on a fresh emulator |
+| `npm run test:e2e:full`   | Playwright, everything, Chromium                   | manually, before a release      | ~4–5 min                  |
 | `npm run test:e2e:mobile` | Playwright, `@mobile`-tagged specs, WebKit @ 390px | manually, for iOS Safari issues | short                     |
 
 ### The emulator is the bottleneck, not the browsers
@@ -149,6 +152,36 @@ below). `npm run emulators:check` tells you in ~3 s whether that has happened.
 The pre-push hook runs it first, so a dead emulator fails immediately with
 instructions instead of after 30 s of silence.
 
+### Which tool for which problem
+
+| The question the test answers                                                                   | Tool                        |
+| ----------------------------------------------------------------------------------------------- | --------------------------- |
+| Does this function return the right thing? (dates, parsing, permissions)                        | Vitest, `tests/components/` |
+| Does this component show / hide / validate / call X when the user does Y?                       | Vitest + Testing Library    |
+| Does the data really end up in Firestore / Storage, or does auth/rules let the right person in? | Playwright                  |
+| Does it span several pages, a reload, or a real browser API?                                    | Playwright                  |
+| Does it look right? (spacing, colour, alignment)                                                | **Nothing** — look at it    |
+
+Rule of thumb: if you can write the assertion without a running emulator, it is
+a Vitest test. Playwright proves the _integration_; Vitest proves the _logic_.
+Never test the same behaviour at both tiers.
+
+### Vitest hygiene (enforced by `vitest.config.ts` / `tests/vitest.setup.ts`)
+
+- **No real network.** `fetch` is stubbed to reject in every test. Stub the
+  response you need with `vi.stubGlobal('fetch', ...)`.
+- **Mocks and globals are restored after each test** (`restoreMocks`,
+  `unstubGlobals`, `unstubEnvs`; `navigator`/`window` overrides are snapshotted
+  and restored). Tests must not rely on running before or after another test.
+  `vi.fn().mockReturnValue(...)` is _not_ reset by `clearAllMocks` — reset it
+  yourself in `afterEach` if you configure it per test.
+- **Run `npm run test:shuffle` after writing a test.** It runs in random order
+  and flushes out order dependence (that is how the PWA and prerender tests
+  turned out to be flaky).
+- Use `vi.useFakeTimers()` for timers; never `setTimeout`-wait in a test.
+- Don't mock the unit under test (a hand-written fake of a sanitiser proves
+  nothing about the sanitiser).
+
 ### Default: do NOT write a new E2E test
 
 Writing a Playwright test is the expensive choice. It costs a browser, a dev
@@ -171,14 +204,31 @@ fail before the fix. A bug in date maths gets a unit test, not a browser.
 
 - **Put it in an existing spec file.** Find the thematic file that covers the
   area and add to it. Do not create a new file per ticket.
-- **No ticket IDs in `describe` titles.** Name the behaviour, not the ticket.
+- **No ticket IDs in `describe` or `test` titles.** Name the behaviour, not the
+  ticket.
 - **At most one new `test()` block per ticket.** A new spec file needs explicit
   approval from the user.
 - **Use the storageState fixtures, never a UI login.** `tests/auth.setup.ts`
   signs in once per role; specs get the session via
   `test.use({ storageState: STORAGE_STATE.admin })` (see `tests/helpers/roles.ts`).
-- **Tag it `@smoke` only if it is a critical user flow.** The smoke set is a
-  budget, not a collection.
+- **Tag it `@smoke` only if it is a critical user flow**, and tag the _single
+  test_ — `test('title', { tag: '@smoke' }, async ...)` — never a whole
+  `describe`. The smoke set is one test per critical flow (create → review →
+  publish, drafts stay private, auth gating, profile save, trash/restore, …),
+  currently ~25 tests. It is a budget, not a collection: when you add one,
+  consider which one it replaces.
+- **Shared fixtures are shared.** If your spec mutates a fixture another spec
+  also reads (`test-event-with-messages`, the trash, categories, theme), either
+  create your own uniquely-named fixture or add the spec to `DESTRUCTIVE_SPECS`.
+  A spec that passes alone and fails in the full run is almost always this.
+- **Selectors:** `getByRole` / `getByTestId`, scoped to the region you mean
+  (`page.locator('.calendar-header').getByRole(...)`). A strict-mode violation
+  means the selector is too broad, not that the test is flaky.
+- **Dates:** derive them from `new Date()`. A hard-coded month silently becomes
+  "the past" and the app clamps it.
+- **Waiting for a write:** if a test leaves a page and then checks the effect of
+  an async write the page made, use `expect(async () => {...}).toPass()` — don't
+  race it with one `goto`.
 
 ### Never test these
 

@@ -27,7 +27,7 @@ async function navigateToStep3(page) {
 
 test.describe.configure({ mode: 'serial' });
 
-test.describe('Custom dates recurrence (O54F3kAx)', () => {
+test.describe('Custom dates recurrence', () => {
   test.afterEach(async ({ page }) => {});
 
   test('wizard offers "Benutzerdefinierte Termine" radio option', async ({ page }) => {

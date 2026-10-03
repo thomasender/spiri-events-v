@@ -23,7 +23,7 @@ async function waitForAdminTabs(page): Promise<void> {
 
 test.describe.configure({ mode: 'serial' });
 
-test.describe('Papierkorb tab (SS79oSci) @smoke', () => {
+test.describe('Papierkorb tab', () => {
   test.beforeEach(async () => {
     await resetTrashFixtures();
   });
@@ -88,42 +88,47 @@ test.describe('Papierkorb tab (SS79oSci) @smoke', () => {
     );
   });
 
-  test('Restore moves the event back to Entwürfe and removes it from Papierkorb', async ({
-    page,
-  }) => {
-    await signInWithEmailAndPassword(page, 'user@test.local', 'testpassword123');
-    await page.goto('/admin?tab=trash');
-    await waitForAdminTabs(page);
+  test(
+    'Restore moves the event back to Entwürfe and removes it from Papierkorb',
+    { tag: '@smoke' },
+    async ({ page }) => {
+      await signInWithEmailAndPassword(page, 'user@test.local', 'testpassword123');
+      await page.goto('/admin?tab=trash');
+      await waitForAdminTabs(page);
 
-    // First permanent-delete the older fixture so only user-trashed remains.
-    await page.getByTestId('trash-permanent-delete-button-test-event-user-trashed-old').click();
-    await page
-      .locator('.confirm-dialog')
-      .getByRole('button', { name: /endgültig löschen/i })
-      .click();
-    await expect(page.getByTestId('trash-event-card-test-event-user-trashed-old')).toHaveCount(0, {
-      timeout: 5000,
-    });
+      // First permanent-delete the older fixture so only user-trashed remains.
+      await page.getByTestId('trash-permanent-delete-button-test-event-user-trashed-old').click();
+      await page
+        .locator('.confirm-dialog')
+        .getByRole('button', { name: /endgültig löschen/i })
+        .click();
+      await expect(page.getByTestId('trash-event-card-test-event-user-trashed-old')).toHaveCount(
+        0,
+        {
+          timeout: 5000,
+        }
+      );
 
-    const card = page.getByTestId('trash-event-card-test-event-user-trashed');
-    await expect(card).toBeVisible();
+      const card = page.getByTestId('trash-event-card-test-event-user-trashed');
+      await expect(card).toBeVisible();
 
-    await page.getByTestId('trash-restore-button-test-event-user-trashed').click();
+      await page.getByTestId('trash-restore-button-test-event-user-trashed').click();
 
-    await expect(page.getByText(/wieder als Entwurf/i)).toBeVisible();
-    await page
-      .locator('.confirm-dialog')
-      .getByRole('button', { name: /wiederherstellen/i })
-      .click();
+      await expect(page.getByText(/wieder als Entwurf/i)).toBeVisible();
+      await page
+        .locator('.confirm-dialog')
+        .getByRole('button', { name: /wiederherstellen/i })
+        .click();
 
-    await expect(card).toHaveCount(0, { timeout: 5000 });
+      await expect(card).toHaveCount(0, { timeout: 5000 });
 
-    await expect(page.getByTestId('admin-tab-trash')).toHaveCount(0, { timeout: 5000 });
+      await expect(page.getByTestId('admin-tab-trash')).toHaveCount(0, { timeout: 5000 });
 
-    await page.goto('/admin?tab=drafts');
-    await waitForAdminTabs(page);
-    await expect(page.locator('.event-card', { hasText: 'User Trashed Event' })).toBeVisible();
-  });
+      await page.goto('/admin?tab=drafts');
+      await waitForAdminTabs(page);
+      await expect(page.locator('.event-card', { hasText: 'User Trashed Event' })).toBeVisible();
+    }
+  );
 
   test('Endgültig löschen removes the event from Firestore', async ({ page }) => {
     await signInWithEmailAndPassword(page, 'user@test.local', 'testpassword123');
@@ -194,32 +199,36 @@ test.describe('Papierkorb tab (SS79oSci) @smoke', () => {
   const DELETE_FIXTURE_ID = 'test-event-trash-from-list';
   const DELETE_FIXTURE_TITLE = 'Trash From List Fixture';
 
-  test('Deleting from EventList moves the event to Papierkorb', async ({ page }) => {
-    await createApprovedEvent({
-      id: DELETE_FIXTURE_ID,
-      title: DELETE_FIXTURE_TITLE,
-      ownerEmail: 'admin@test.com',
-    });
+  test(
+    'Deleting from EventList moves the event to Papierkorb',
+    { tag: '@smoke' },
+    async ({ page }) => {
+      await createApprovedEvent({
+        id: DELETE_FIXTURE_ID,
+        title: DELETE_FIXTURE_TITLE,
+        ownerEmail: 'admin@test.com',
+      });
 
-    try {
-      await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
-      await page.goto('/admin');
-      await waitForAdminTabs(page);
+      try {
+        await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
+        await page.goto('/admin');
+        await waitForAdminTabs(page);
 
-      const card = page.locator('.event-card', { hasText: DELETE_FIXTURE_TITLE }).first();
-      await expect(card).toBeVisible();
-      await card.getByRole('button', { name: /event löschen/i }).click();
+        const card = page.locator('.event-card', { hasText: DELETE_FIXTURE_TITLE }).first();
+        await expect(card).toBeVisible();
+        await card.getByRole('button', { name: /event löschen/i }).click();
 
-      await expect(page.getByText(/in den Papierkorb verschoben/i)).toBeVisible();
-      await page.getByRole('button', { name: /papierkorb/i }).click();
+        await expect(page.getByText(/in den Papierkorb verschoben/i)).toBeVisible();
+        await page.getByRole('button', { name: /papierkorb/i }).click();
 
-      await expect(card).toHaveCount(0, { timeout: 5000 });
+        await expect(card).toHaveCount(0, { timeout: 5000 });
 
-      await page.goto('/admin?tab=trash');
-      await waitForAdminTabs(page);
-      await expect(page.locator('.event-card', { hasText: DELETE_FIXTURE_TITLE })).toBeVisible();
-    } finally {
-      await deleteEventById(DELETE_FIXTURE_ID);
+        await page.goto('/admin?tab=trash');
+        await waitForAdminTabs(page);
+        await expect(page.locator('.event-card', { hasText: DELETE_FIXTURE_TITLE })).toBeVisible();
+      } finally {
+        await deleteEventById(DELETE_FIXTURE_ID);
+      }
     }
-  });
+  );
 });

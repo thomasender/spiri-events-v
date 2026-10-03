@@ -76,7 +76,7 @@ async function seedThemeDoc(): Promise<void> {
   });
 }
 
-test.describe('Admin Theme Editor v2 (U2Bcb7jJ)', () => {
+test.describe('Admin Theme Editor v2', () => {
   test.describe.configure({ mode: 'serial' });
 
   test.beforeEach(async () => {

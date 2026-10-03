@@ -3,7 +3,7 @@ import { generateSlug } from '../helpers/slug';
 
 const YOGA_APPROVED_SLUG = generateSlug('Yoga heute', 'Yoga', 'Dornbirn', 0);
 
-test.describe('Share Event Feature (u0fvkYae)', () => {
+test.describe('Share Event Feature', () => {
   test('share button is visible on the event detail page header', async ({ page }) => {
     await page.goto(`/event/${YOGA_APPROVED_SLUG}`);
 
@@ -15,23 +15,6 @@ test.describe('Share Event Feature (u0fvkYae)', () => {
 
     const shareButton = page.locator('[data-testid="share-event-button"]');
     await expect(shareButton).toBeVisible();
-  });
-
-  test('share button is positioned right of the event title', async ({ page }) => {
-    await page.goto(`/event/${YOGA_APPROVED_SLUG}`);
-
-    await page
-      .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
-      .catch(() => {});
-
-    await expect(page.locator('.event-title')).toContainText('Yoga heute', { timeout: 10000 });
-
-    const titleBox = await page.locator('.event-title').boundingBox();
-    const shareBox = await page.locator('[data-testid="share-event-button"]').boundingBox();
-
-    expect(titleBox).not.toBeNull();
-    expect(shareBox).not.toBeNull();
-    expect(shareBox.x).toBeGreaterThan(titleBox.x + titleBox.width - 1);
   });
 
   test('clicking the share button opens the share overlay', async ({ page }) => {

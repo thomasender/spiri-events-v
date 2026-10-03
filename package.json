@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "prerender": "node scripts/prerender.mjs",
     "test": "vitest run",
+    "test:shuffle": "SHUFFLE=1 vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:integration": "playwright test --project=chromium && playwright test --project=destructive --workers=1",
@@ -31,10 +32,14 @@
     "storage:rules:push": "firebase deploy --only storage",
     "prepare": "husky",
     "test:e2e": "playwright test --project=chromium && playwright test --project=destructive --workers=1",
+    "pretest:e2e:smoke": "bash scripts/ensure-emulators.sh",
     "test:e2e:smoke": "playwright test --project=chromium --grep @smoke && playwright test --project=destructive --workers=1 --grep @smoke",
+    "pretest:e2e:full": "bash scripts/ensure-emulators.sh",
     "test:e2e:full": "playwright test --project=chromium && playwright test --project=destructive --workers=1",
+    "pretest:e2e:mobile": "bash scripts/ensure-emulators.sh",
     "test:e2e:mobile": "playwright test --project=webkit",
     "emulators:check": "bash scripts/check-emulators.sh",
+    "emulators:ensure": "bash scripts/ensure-emulators.sh",
     "emulators:restart": "pkill -f cloud-firestore-emulator; pkill -f \"firebase.*emulators\"; sleep 3; bash scripts/start-emulators.sh"
   },
   "dependencies": {

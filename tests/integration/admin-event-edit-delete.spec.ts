@@ -36,7 +36,7 @@ test.beforeEach(async () => {
   await resetSharedEventFixtures();
 });
 
-test.describe('Event detail page — edit/delete button visibility (kf8i6vqj)', () => {
+test.describe('Event detail page — edit/delete button visibility', () => {
   test('guest sees no edit or delete buttons on an approved event', async ({ page }) => {
     await page.goto(`/event/${ADMIN_OWNED_APPROVED_SLUG}`);
 
@@ -217,7 +217,7 @@ test.describe('Event detail page — edit/delete button visibility (kf8i6vqj)', 
   });
 });
 
-test.describe('Admin delete workflow (kf8i6vqj)', () => {
+test.describe('Admin delete workflow', () => {
   test('canceling the trash dialog does NOT move the event to trash', async ({ page }) => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
 
@@ -294,9 +294,7 @@ test.describe('Admin delete workflow (kf8i6vqj)', () => {
     }
   });
 
-  test('admin can trash a user-owned approved event from the detail page (SS79oSci)', async ({
-    page,
-  }) => {
+  test('admin can trash a user-owned approved event from the detail page', async ({ page }) => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
 
     await page.goto(`/event/${USER_OWNED_APPROVED_SLUG}`);
@@ -334,7 +332,7 @@ test.describe('Admin delete workflow (kf8i6vqj)', () => {
     ).toBeVisible({ timeout: 10000 });
   });
 
-  test('admin editing pending event does not auto-approve it (jdfLnD7p)', async ({ page }) => {
+  test('admin editing pending event does not auto-approve it', async ({ page }) => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
 
     await page.goto(`/admin/edit/test-event-foreign-pending`);
@@ -362,9 +360,7 @@ test.describe('Admin delete workflow (kf8i6vqj)', () => {
     await expect(page.getByTestId('event-messages')).toBeVisible();
   });
 
-  test('edit form Beschreibung is marked required and blocks save when empty (uvquhhJS)', async ({
-    page,
-  }) => {
+  test('edit form Beschreibung is marked required and blocks save when empty', async ({ page }) => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
 
     await page.goto(`/admin/edit/test-event-foreign-pending`);
@@ -378,8 +374,14 @@ test.describe('Admin delete workflow (kf8i6vqj)', () => {
     await expect(descriptionLabel).toContainText('*');
 
     const emptyDescEditor = page.locator('[data-testid="description-editor"] .rte-content');
+    // The editor is filled asynchronously from the loaded event. Clearing it
+    // before that lands is a silent no-op, so wait for the real content first,
+    // then delete it with real key presses and confirm it is empty.
+    await expect(emptyDescEditor).not.toBeEmpty();
     await emptyDescEditor.click();
-    await emptyDescEditor.fill('');
+    await page.keyboard.press('ControlOrMeta+A');
+    await page.keyboard.press('Backspace');
+    await expect(emptyDescEditor).toHaveText('');
 
     await page.getByRole('button', { name: /änderungen speichern/i }).click();
 

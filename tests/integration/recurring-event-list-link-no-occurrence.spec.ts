@@ -49,7 +49,7 @@ async function navigateToMonth(page: Page, year: number, month: number): Promise
   throw new Error(`Failed to navigate to ${target}`);
 }
 
-test.describe('Recurring event list links do not pin to a specific occurrence (4bVW6i7o) @smoke', () => {
+test.describe('Recurring event list links do not pin to a specific occurrence', () => {
   const start = startMonthInfo();
   test.describe.configure({ timeout: 60000 });
 
@@ -60,17 +60,19 @@ test.describe('Recurring event list links do not pin to a specific occurrence (4
     await navigateToMonth(page, start.year, start.month);
   });
 
-  test('card view tile for a recurring event links to the event without occurrenceDate', async ({
-    page,
-  }) => {
-    const tile = page.locator('.event-tile', { hasText: RECURRING_EVENT_TITLE }).first();
-    await expect(tile).toBeVisible();
+  test(
+    'card view tile for a recurring event links to the event without occurrenceDate',
+    { tag: '@smoke' },
+    async ({ page }) => {
+      const tile = page.locator('.event-tile', { hasText: RECURRING_EVENT_TITLE }).first();
+      await expect(tile).toBeVisible();
 
-    const href = await tile.getAttribute('href');
-    expect(href).toBeTruthy();
-    expect(href).toMatch(/^\/event\/[^/?]+$/);
-    expect(href).not.toContain('occurrenceDate=');
-  });
+      const href = await tile.getAttribute('href');
+      expect(href).toBeTruthy();
+      expect(href).toMatch(/^\/event\/[^/?]+$/);
+      expect(href).not.toContain('occurrenceDate=');
+    }
+  );
 
   test('list view row for a recurring event links to the event without occurrenceDate', async ({
     page,
@@ -174,7 +176,7 @@ test.describe('Recurring event list links do not pin to a specific occurrence (4
     expect(page.url()).not.toContain('occurrenceDate=');
   });
 
-  test('detail page does not link individual recurring dates back to the same page (4bVW6i7o)', async ({
+  test('detail page does not link individual recurring dates back to the same page', async ({
     page,
   }) => {
     const tile = page.locator('.event-tile', { hasText: RECURRING_EVENT_TITLE }).first();

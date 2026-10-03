@@ -34,7 +34,7 @@ async function waitForAdminTabs(page: Page): Promise<void> {
 
 test.describe.configure({ mode: 'serial' });
 
-test.describe('Verwaltung lists — title picture (TnMMKIc7)', () => {
+test.describe('Verwaltung lists — title picture', () => {
   test.beforeEach(async () => {
     await resetDraftFixtures();
     await resetMessageFixtures();
@@ -63,9 +63,7 @@ test.describe('Verwaltung lists — title picture (TnMMKIc7)', () => {
       const src = await image.getAttribute('src');
       // Each card gets either its category image under /event-fallbacks/ or,
       // for Sonstiges, the shared /hero.jpeg (mgtOZVYz).
-      expect(
-        src === '/hero.jpeg' || (src ?? '').startsWith('/event-fallbacks/')
-      ).toBe(true);
+      expect(src === '/hero.jpeg' || (src ?? '').startsWith('/event-fallbacks/')).toBe(true);
     }
   });
 
@@ -123,9 +121,7 @@ test.describe('Verwaltung lists — title picture (TnMMKIc7)', () => {
       const src = await image.getAttribute('src');
       // Each card gets either its category image under /event-fallbacks/ or,
       // for Sonstiges, the shared /hero.jpeg (mgtOZVYz).
-      expect(
-        src === '/hero.jpeg' || (src ?? '').startsWith('/event-fallbacks/')
-      ).toBe(true);
+      expect(src === '/hero.jpeg' || (src ?? '').startsWith('/event-fallbacks/')).toBe(true);
     }
 
     const fixtureItem = page
@@ -135,39 +131,5 @@ test.describe('Verwaltung lists — title picture (TnMMKIc7)', () => {
     const fixtureImage = fixtureItem.getByTestId('messages-tab-item-image');
     await expect(fixtureImage).toBeVisible();
     await expect(fixtureImage).toHaveAttribute('src', '/hero.jpeg');
-  });
-
-  test('Meine Events: title picture sits left of the card content, not on top (ASWJkYMY)', async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 1280, height: 900 });
-    await signInWithEmailAndPassword(page, 'user@test.local', 'testpassword123');
-    await page.goto('/admin');
-    await waitForAdminTabs(page);
-
-    const card = page.locator('.event-card').first();
-    await expect(card).toBeVisible({ timeout: 10000 });
-    const image = card.getByTestId('event-card-image');
-    await expect(image).toBeVisible();
-
-    const cardBox = await card.boundingBox();
-    const imageBox = await image.boundingBox();
-    expect(cardBox).not.toBeNull();
-    expect(imageBox).not.toBeNull();
-
-    // The picture is a left-aligned thumbnail next to the card body, not a
-    // full-width hero stacked above it. It must be noticeably narrower than
-    // the card so the bug from ticket ASWJkYMY (image bleeding out of the
-    // container / cut off on the right) cannot return.
-    expect(imageBox!.width).toBeLessThan(cardBox!.width / 2);
-
-    // The picture sits on the left side of the card (inside the padded content
-    // area), not pinned to the card's right edge.
-    expect(imageBox!.x).toBeLessThan(cardBox!.x + cardBox!.width / 2);
-
-    // The picture is much shorter than the card: the title/body text and the
-    // actions bar live beside / below it, so the image should not stretch the
-    // full height of the card.
-    expect(imageBox!.height).toBeLessThan(cardBox!.height);
   });
 });

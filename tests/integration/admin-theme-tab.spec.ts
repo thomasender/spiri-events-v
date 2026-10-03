@@ -79,7 +79,7 @@ async function seedThemeDoc(): Promise<void> {
   });
 }
 
-test.describe('Admin Theme tab (DfcpNYBw)', () => {
+test.describe('Admin Theme tab', () => {
   // Run serially: tests leave saved themes in the registry, and parallel
   // worker collisions produce flaky assertions on the theme-library rows.
   test.describe.configure({ mode: 'serial' });

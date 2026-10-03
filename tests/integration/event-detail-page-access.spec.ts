@@ -25,8 +25,8 @@ test.beforeEach(async () => {
   ]);
 });
 
-test.describe('Event detail page access (hSONxMKJ)', () => {
-  test('guest can view an approved event via slug URL', async ({ page }) => {
+test.describe('Event detail page access', () => {
+  test('guest can view an approved event via slug URL', { tag: '@smoke' }, async ({ page }) => {
     await page.goto(`/event/${YOGA_APPROVED_SLUG}`);
 
     await page
@@ -80,7 +80,7 @@ test.describe('Event detail page access (hSONxMKJ)', () => {
     });
   });
 
-  test('guest sees friendly awaiting-review message for another users pending event (H8dgvGlD)', async ({
+  test('guest sees friendly awaiting-review message for another users pending event', async ({
     page,
   }) => {
     await page.goto(`/event/${USER_PENDING_SLUG}`);

@@ -14,7 +14,7 @@ async function openEventAndWaitForSimilarEvents(page, slug) {
   await expect(page.locator('.event-title')).toBeVisible({ timeout: 10000 });
 }
 
-test.describe('Similar events on event detail page (SNKCKBob)', () => {
+test.describe('Similar events on event detail page', () => {
   // Webkit (iPhone 13 viewport) is much slower than chromium at Firestore
   // network ops — the secondary query for similar events routinely takes
   // 30–50s on webkit under load. Generous timeout so both engines pass.
@@ -107,9 +107,7 @@ test.describe('Similar events on event detail page (SNKCKBob)', () => {
     }
   });
 
-  test('prioritizes events from the same district before other districts (P4ujxIxF)', async ({
-    page,
-  }) => {
+  test('prioritizes events from the same district before other districts', async ({ page }) => {
     await openEventAndWaitForSimilarEvents(page, YOGA_HEUTE_SLUG);
 
     const slider = page.getByTestId('similar-events-slider');

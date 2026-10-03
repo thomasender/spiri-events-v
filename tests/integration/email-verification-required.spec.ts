@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { signInWithEmailAndPassword } from '../helpers/auth';
 
-test.describe('Email verification required for event creation @smoke', () => {
+test.describe('Email verification required for event creation', () => {
   test('verified user sees the "Neues Event" button on /admin and can open the form', async ({
     page,
   }) => {
@@ -20,29 +20,31 @@ test.describe('Email verification required for event creation @smoke', () => {
     await expect(page.getByTestId('event-create-blocked')).toHaveCount(0);
   });
 
-  test('unverified user sees the verification banner and a locked "Neues Event" on /admin', async ({
-    page,
-  }) => {
-    await signInWithEmailAndPassword(page, 'unverified@test.local', 'testpassword123');
-    await page.goto('/admin');
+  test(
+    'unverified user sees the verification banner and a locked "Neues Event" on /admin',
+    { tag: '@smoke' },
+    async ({ page }) => {
+      await signInWithEmailAndPassword(page, 'unverified@test.local', 'testpassword123');
+      await page.goto('/admin');
 
-    await expect(page.getByTestId('email-verification-banner')).toBeVisible();
-    await expect(page.getByTestId('email-verification-banner-email')).toContainText(
-      'unverified@test.local'
-    );
+      await expect(page.getByTestId('email-verification-banner')).toBeVisible();
+      await expect(page.getByTestId('email-verification-banner-email')).toContainText(
+        'unverified@test.local'
+      );
 
-    const lockedButton = page.getByTestId('new-event-locked');
-    await expect(lockedButton).toBeVisible();
-    await expect(lockedButton).toHaveAttribute(
-      'title',
-      'Bitte bestätige zuerst deine E-Mail-Adresse.'
-    );
+      const lockedButton = page.getByTestId('new-event-locked');
+      await expect(lockedButton).toBeVisible();
+      await expect(lockedButton).toHaveAttribute(
+        'title',
+        'Bitte bestätige zuerst deine E-Mail-Adresse.'
+      );
 
-    const realLink = page.locator('.admin-page-header a.btn-primary', {
-      hasText: 'Neues Event',
-    });
-    await expect(realLink).toHaveCount(0);
-  });
+      const realLink = page.locator('.admin-page-header a.btn-primary', {
+        hasText: 'Neues Event',
+      });
+      await expect(realLink).toHaveCount(0);
+    }
+  );
 
   test('unverified user sees a locked "Event erstellen" link in the header', async ({ page }) => {
     await signInWithEmailAndPassword(page, 'unverified@test.local', 'testpassword123');

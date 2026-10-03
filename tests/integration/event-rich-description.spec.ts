@@ -2,15 +2,12 @@ import { test, expect } from '@playwright/test';
 import { spawn } from 'child_process';
 
 import { waitForWizardToLoad } from '../helpers/wizard';
-import { generateSlug } from '../helpers/slug';
 
 import { STORAGE_STATE } from '../helpers/roles';
 
 // Signed in as `admin` via the session captured once by tests/auth.setup.ts,
 // instead of driving the login form in every test.
 test.use({ storageState: STORAGE_STATE.admin });
-
-const FOREIGN_PENDING_SLUG = generateSlug('User Pending Event', 'Sonstiges', 'Bludenz', 8);
 
 // admin-event-edit-delete.spec.ts permanently deletes this shared seed fixture as
 // part of its delete-flow tests; reset it here so this file passes regardless of
@@ -30,6 +27,16 @@ async function resetSharedPendingFixture(): Promise<void> {
 // The last test in this file edits and saves the shared test-event-foreign-pending
 // fixture, then reads it back; serialize so other tests' beforeEach reset can't
 // race that edit-then-verify sequence.
+function runScript(script: string, arg: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const proc = spawn('node', [script, arg], { cwd: process.cwd(), stdio: 'ignore' });
+    proc.on('close', (code) =>
+      code === 0 ? resolve() : reject(new Error(`${script} exit ${code}`))
+    );
+    proc.on('error', reject);
+  });
+}
+
 test.describe.configure({ mode: 'serial' });
 
 test.describe('Rich-text event description', () => {
@@ -109,40 +116,34 @@ test.describe('Rich-text event description', () => {
   });
 
   test('formatted description (bold) roundtrips to the event detail page', async ({ page }) => {
-    await page.goto('/admin/edit/test-event-foreign-pending');
-    await page.waitForURL(/\/admin\/edit\//);
+    // Own throwaway event: the shared pending fixture is rewritten by other
+    // specs running in parallel, which made this edit-then-read-back flaky.
+    const eventId = `throwaway-rich-description-${Date.now()}`;
+    await runScript('scripts/create-throwaway-pending-event.mjs', eventId);
 
-    await page.waitForSelector('[data-testid="description-editor"] .rte-content', {
-      timeout: 10000,
-    });
+    try {
+      await page.goto(`/admin/edit/${eventId}`);
+      const editor = page.locator('[data-testid="description-editor"] .rte-content');
+      // The editor is filled asynchronously from the loaded event; clearing it
+      // earlier is a silent no-op.
+      await expect(editor).not.toBeEmpty();
+      await editor.click();
+      await page.keyboard.press('ControlOrMeta+A');
+      await page.keyboard.press('Backspace');
+      await page.keyboard.type('Mit fettem Text');
 
-    const editor = page.locator('[data-testid="description-editor"] .rte-content');
-    await editor.click();
-    await editor.fill('');
-    await editor.type('Mit fettem Text');
+      await page.keyboard.press('ControlOrMeta+A');
+      await page.getByLabel('Fett (Strg+B)').click();
+      await expect(editor.locator('strong, b')).toContainText('Mit fettem Text');
 
-    await page.evaluate(() => {
-      const el = document.querySelector('[data-testid="description-editor"] .rte-content');
-      const range = document.createRange();
-      range.selectNodeContents(el);
-      const sel = window.getSelection();
-      sel.removeAllRanges();
-      sel.addRange(range);
-    });
+      await page.getByRole('button', { name: /änderungen speichern/i }).click();
+      await page.waitForURL('/admin', { timeout: 10000 });
 
-    await page.getByLabel('Fett (Strg+B)').click();
-
-    const htmlAfterBold = await editor.innerHTML();
-    expect(htmlAfterBold).toMatch(/<(strong|b)>/i);
-
-    await page.getByRole('button', { name: /änderungen speichern/i }).click();
-    await page.waitForURL('/admin', { timeout: 10000 });
-
-    await page.goto(`/event/${FOREIGN_PENDING_SLUG}`);
-    await page.waitForSelector('.event-description', { timeout: 10000 });
-
-    const detailDescription = page.locator('.event-description .rich-text-view');
-    await expect(detailDescription).toBeVisible();
-    await expect(detailDescription.locator('strong, b')).toContainText('Mit fettem Text');
+      await page.goto(`/event/${eventId}`);
+      const detailDescription = page.locator('.event-description .rich-text-view');
+      await expect(detailDescription.locator('strong, b')).toContainText('Mit fettem Text');
+    } finally {
+      await runScript('scripts/delete-event-by-id.mjs', eventId);
+    }
   });
 });

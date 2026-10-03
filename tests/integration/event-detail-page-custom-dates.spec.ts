@@ -33,7 +33,7 @@ function formatDe(isoDate: string): string {
   });
 }
 
-test.describe('Event detail page shows all individual dates for custom-dates series (cXLyTMkj) @smoke', () => {
+test.describe('Event detail page shows all individual dates for custom-dates series', () => {
   test('lists every date of a custom-dates series on the public event detail page', async ({
     page,
   }) => {

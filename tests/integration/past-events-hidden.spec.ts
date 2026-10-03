@@ -85,7 +85,7 @@ const PAST_SINGLE_DAY_ID = 'test-past-single-day-nUoA0Wbx';
 const PAST_MULTI_DAY_ID = 'test-past-multi-day-nUoA0Wbx';
 const ONGOING_MULTI_DAY_ID = 'test-ongoing-multi-day-nUoA0Wbx';
 
-test.describe('Calendar hides past events (nUoA0Wbx) @smoke', () => {
+test.describe('Calendar hides past events', () => {
   test.beforeAll(async ({ playwright }) => {
     const apiContext = await request.newContext({
       baseURL: FIRESTORE_EMULATOR,
@@ -145,7 +145,7 @@ test.describe('Calendar hides past events (nUoA0Wbx) @smoke', () => {
     await waitForCalendarToLoad(page);
   });
 
-  test('past months are not navigable from the calendar (QveMKnvt)', async ({ page }) => {
+  test('past months are not navigable from the calendar', async ({ page }) => {
     // The events-section prev button is disabled at the current month — users
     // cannot navigate to past months in the first place. Asserting that the
     // button is locked at the current month is the new contract; the old
@@ -170,23 +170,25 @@ test.describe('Calendar hides past events (nUoA0Wbx) @smoke', () => {
     await expect(ongoing).toBeVisible();
   });
 
-  test('the past single-day and past multi-day events are not in the events list', async ({
-    page,
-  }) => {
-    // Even when navigating to the month in which they ended, the past
-    // events must not appear.
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = today.getMonth();
-    await navigateToMonth(page, year, month, 'forward');
+  test(
+    'the past single-day and past multi-day events are not in the events list',
+    { tag: '@smoke' },
+    async ({ page }) => {
+      // Even when navigating to the month in which they ended, the past
+      // events must not appear.
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = today.getMonth();
+      await navigateToMonth(page, year, month, 'forward');
 
-    const pastSingle = page.locator('.event-row, .event-tile', {
-      hasText: 'Vergangenes Einzelevent',
-    });
-    const pastMulti = page.locator('.event-row, .event-tile', {
-      hasText: 'Vergangenes Mehrtagesretreat',
-    });
-    await expect(pastSingle).toHaveCount(0);
-    await expect(pastMulti).toHaveCount(0);
-  });
+      const pastSingle = page.locator('.event-row, .event-tile', {
+        hasText: 'Vergangenes Einzelevent',
+      });
+      const pastMulti = page.locator('.event-row, .event-tile', {
+        hasText: 'Vergangenes Mehrtagesretreat',
+      });
+      await expect(pastSingle).toHaveCount(0);
+      await expect(pastMulti).toHaveCount(0);
+    }
+  );
 });

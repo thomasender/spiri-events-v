@@ -25,7 +25,7 @@ async function resetUserApprovedEventFixture(): Promise<void> {
 
 test.describe.configure({ mode: 'serial' });
 
-test.describe('Duplizieren von bereits veröffentlichten Events (wgC6f0pK)', () => {
+test.describe('Duplizieren von bereits veröffentlichten Events', () => {
   test.beforeEach(async () => {
     await resetDraftFixtures();
     await resetUserApprovedEventFixture();

@@ -5,7 +5,8 @@ in this repo. It is the single source of truth for both Claude Code and opencode
 
 Two things that catch people out, called out here so they are not missed:
 
-- **Testing policy** (`AGENTS.md` → Testing). The default is _not_ to write a new
+- **Testing policy** (`AGENTS.md` → Testing, incl. "Which tool for which
+  problem"). The default is _not_ to write a new
   Playwright test. Logic and component behaviour go into Vitest
   (`tests/components/`, ~5 s for the whole suite). Playwright is reserved for
   behaviour that genuinely needs a real browser and real Firebase, and new tests

@@ -28,6 +28,15 @@ vi.mock('firebase-admin/firestore', () => ({
   getFirestore: (...args) => mockGetFirestore(...args),
 }));
 
+// mockReturnValue/mockResolvedValue survive vi.clearAllMocks(), so a test that
+// configures the admin SDK would otherwise leak into whichever test runs next.
+afterEach(() => {
+  mockInitializeApp.mockReset();
+  mockAppDelete.mockReset();
+  mockGetFirestore.mockReset();
+  mockCollection.mockReset();
+});
+
 async function makeFixtureDir(prefix: string): Promise<string> {
   return fs.mkdtempSync(path.join(os.tmpdir(), prefix));
 }
@@ -515,6 +524,7 @@ describe('prerender() end-to-end', () => {
 
   afterEach(() => {
     fs.rmSync(tmpRoot, { recursive: true, force: true });
+    vi.unstubAllGlobals();
   });
 
   it('generates one HTML file per event under dist/event/<slug>/index.html', async () => {
@@ -844,6 +854,7 @@ describe('prerender() end-to-end', () => {
   });
 
   it('still works with an empty snapshot when both live sources fail (BKtuzVC2)', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('denied', { status: 403 })));
     writeJson(path.join(exportPath, 'events.json'), []);
     const { prerender } = await importPrerender();
     const result = await prerender({
@@ -851,6 +862,8 @@ describe('prerender() end-to-end', () => {
       distPath,
       exportPath,
       firebaseConfig: { projectId: 'no-such-project', apiKey: 'invalid' },
+      skipFirestore: true,
+      skipAdmin: true,
     });
     expect(result.manifest.eventCount).toBe(0);
     expect(result.manifest.prerenderedPages).toBe(2);
@@ -858,6 +871,7 @@ describe('prerender() end-to-end', () => {
   });
 
   it('keeps using the committed snapshot when the live REST read fails (BKtuzVC2)', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('denied', { status: 403 })));
     writeJson(path.join(exportPath, 'events.json'), sampleEvents);
     const { prerender } = await importPrerender();
     const result = await prerender({
@@ -865,6 +879,8 @@ describe('prerender() end-to-end', () => {
       distPath,
       exportPath,
       firebaseConfig: { projectId: 'no-such-project', apiKey: 'invalid' },
+      skipFirestore: true,
+      skipAdmin: true,
     });
     expect(result.manifest.eventCount).toBe(3);
     const html = fs.readFileSync(

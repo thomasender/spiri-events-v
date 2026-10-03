@@ -17,7 +17,7 @@ async function resetDraftFixtures(): Promise<void> {
 
 test.describe.configure({ mode: 'serial' });
 
-test.describe('Entwürfe tab — admin (Bslx5TQW)', () => {
+test.describe('Entwürfe tab — admin', () => {
   test.beforeEach(async () => {
     await resetDraftFixtures();
   });
@@ -189,7 +189,7 @@ test.describe('Entwürfe tab — admin (Bslx5TQW)', () => {
   });
 });
 
-test.describe('Entwürfe tab — regular user (Bslx5TQW)', () => {
+test.describe('Entwürfe tab — regular user', () => {
   test.beforeEach(async () => {
     await resetDraftFixtures();
   });

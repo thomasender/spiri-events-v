@@ -94,39 +94,43 @@ async function createCustomDatesEvent(page, title: string) {
 
 test.describe.configure({ mode: 'serial' });
 
-test.describe('Custom dates series includes the initial event date (DbtucPK2) @smoke', () => {
+test.describe('Custom dates series includes the initial event date', () => {
   // The wizard specs create real events; remove them so they do not
   // accumulate in the emulator across runs.
   test.afterAll(async () => {
     await deleteEventsByTitlePrefix('Custom Dates Initial Date Event');
   });
 
-  test('all three dates (initial + 2 custom) belong to the published series', async ({ page }) => {
-    await page.goto('/admin/new');
-    const { initialDate, second, third } = await createCustomDatesEvent(page, EVENT_TITLE);
+  test(
+    'all three dates (initial + 2 custom) belong to the published series',
+    { tag: '@smoke' },
+    async ({ page }) => {
+      await page.goto('/admin/new');
+      const { initialDate, second, third } = await createCustomDatesEvent(page, EVENT_TITLE);
 
-    // Admin-created events start as `pending` (ticket hGxrS6gp) and pending
-    // events deliberately do NOT show under "Meine Events" — see
-    // admin-review-tab.spec.ts. They land in the Review tab.
-    const panel = await openReviewTab(page);
-    const card = panel.locator('.event-card', { hasText: EVENT_TITLE }).first();
-    await expect(card).toBeVisible({ timeout: 15000 });
-    await expect(card).toContainText('An einzelnen Terminen');
+      // Admin-created events start as `pending` (ticket hGxrS6gp) and pending
+      // events deliberately do NOT show under "Meine Events" — see
+      // admin-review-tab.spec.ts. They land in the Review tab.
+      const panel = await openReviewTab(page);
+      const card = panel.locator('.event-card', { hasText: EVENT_TITLE }).first();
+      await expect(card).toBeVisible({ timeout: 15000 });
+      await expect(card).toContainText('An einzelnen Terminen');
 
-    // The point of this test: the date the event was created with is part of
-    // the series, not silently dropped in favour of the two added dates.
-    await card.locator('a').first().click();
-    const datesList = page.getByTestId('event-detail-dates-list');
-    await expect(datesList).toBeVisible({ timeout: 15000 });
+      // The point of this test: the date the event was created with is part of
+      // the series, not silently dropped in favour of the two added dates.
+      await card.locator('a').first().click();
+      const datesList = page.getByTestId('event-detail-dates-list');
+      await expect(datesList).toBeVisible({ timeout: 15000 });
 
-    for (const iso of [initialDate, second, third]) {
-      await expect(
-        datesList
-          .locator('[data-testid="event-detail-date-item"]')
-          .filter({ hasText: formatDe(iso) })
-      ).toHaveCount(1);
+      for (const iso of [initialDate, second, third]) {
+        await expect(
+          datesList
+            .locator('[data-testid="event-detail-date-item"]')
+            .filter({ hasText: formatDe(iso) })
+        ).toHaveCount(1);
+      }
     }
-  });
+  );
 
   test('editing the event shows the initial date among the custom dates', async ({ page }) => {
     // Same as above: the event created in the previous test is pending, so it

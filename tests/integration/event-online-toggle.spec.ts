@@ -34,7 +34,7 @@ function runScript(scriptPath: string): Promise<void> {
 // Run the suite serially so resets do not race other tests reading the doc.
 test.describe.configure({ mode: 'serial' });
 
-test.describe('Event wizard: "Online-Event" checkbox (1e9YUHCh) @smoke', () => {
+test.describe('Event wizard: "Online-Event" checkbox', () => {
   // The wizard specs create real events; remove them so they do not
   // accumulate in the emulator across runs.
   test.afterAll(async () => {
@@ -132,56 +132,62 @@ test.describe('Event wizard: "Online-Event" checkbox (1e9YUHCh) @smoke', () => {
     await expect(page.locator('.error-text', { hasText: 'Bezirk auswählen' })).toHaveCount(1);
   });
 
-  test('an Online event can be created through the wizard without Bezirk', async ({ page }) => {
-    await page.goto('/admin/new');
-    await waitForWizardToLoad(page);
+  test(
+    'an Online event can be created through the wizard without Bezirk',
+    { tag: '@smoke' },
+    async ({ page }) => {
+      await page.goto('/admin/new');
+      await waitForWizardToLoad(page);
 
-    await clickWeiter(page);
-    await fillStep2EventInfo(page, {
-      title: ONLINE_EVENT_TITLE,
-      description: 'Eine reine Online-Session ohne physischen Ort.',
-    });
-    await clickWeiter(page);
+      await clickWeiter(page);
+      await fillStep2EventInfo(page, {
+        title: ONLINE_EVENT_TITLE,
+        description: 'Eine reine Online-Session ohne physischen Ort.',
+      });
+      await clickWeiter(page);
 
-    const future = new Date();
-    future.setDate(future.getDate() + 30);
-    const futureIso = future.toISOString().split('T')[0];
+      const future = new Date();
+      future.setDate(future.getDate() + 30);
+      const futureIso = future.toISOString().split('T')[0];
 
-    await page.fill('#date', futureIso);
-    await page.fill('#time', '18:00');
+      await page.fill('#date', futureIso);
+      await page.fill('#time', '18:00');
 
-    // The kategorie react-select opens with a click and the options are plain
-    // <div> elements. Wait briefly so the menu is in the DOM before clicking.
-    await page.click('.kategorie-select');
-    await page.getByText('Yoga', { exact: true }).click();
+      // The kategorie react-select opens with a click and the options are plain
+      // <div> elements. Wait briefly so the menu is in the DOM before clicking.
+      await page.click('.kategorie-select');
+      await page.getByText('Yoga', { exact: true }).click();
 
-    await page.click('.radio-label:has-text("Kostenlos")');
+      await page.click('.radio-label:has-text("Kostenlos")');
 
-    await page.getByTestId('is-online-checkbox').check();
+      await page.getByTestId('is-online-checkbox').check();
 
-    // Bezirk dropdown is disabled and empty because the event is online.
-    await expect(page.locator('#bezirk')).toBeDisabled();
-    await expect(page.locator('#bezirk')).toHaveValue('');
+      // Bezirk dropdown is disabled and empty because the event is online.
+      await expect(page.locator('#bezirk')).toBeDisabled();
+      await expect(page.locator('#bezirk')).toHaveValue('');
 
-    await clickWeiter(page);
+      await clickWeiter(page);
 
-    // Step 4 (summary) — confirm "Online" appears and no Bezirk is shown.
-    await expect(page.locator('.summary-section', { hasText: 'Details' })).toContainText('Online');
+      // Step 4 (summary) — confirm "Online" appears and no Bezirk is shown.
+      await expect(page.locator('.summary-section', { hasText: 'Details' })).toContainText(
+        'Online'
+      );
 
-    await confirmCopyrightCheckbox(page);
+      await confirmCopyrightCheckbox(page);
 
-    await submitWizard(page);
-    await confirmSubmission(page);
+      await submitWizard(page);
+      await confirmSubmission(page);
 
-    await completeSubmissionAndReturnToAdmin(page);
+      await completeSubmissionAndReturnToAdmin(page);
 
-    const panel = await openReviewTab(page);
-    const card = panel.locator('.event-card', { hasText: ONLINE_EVENT_TITLE }).first();
-    await expect(card).toBeVisible({ timeout: 15000 });
-  });
+      const panel = await openReviewTab(page);
+      const card = panel.locator('.event-card', { hasText: ONLINE_EVENT_TITLE }).first();
+      await expect(card).toBeVisible({ timeout: 15000 });
+    }
+  );
 });
 
-test.describe('Event edit form: "Online-Event" support (1e9YUHCh)', () => {
+test.describe('Event edit form: "Online-Event" support', () => {
   test.beforeEach(async () => {
     await runScript('scripts/reset-draft-fixtures.mjs');
   });
