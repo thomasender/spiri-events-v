@@ -8,6 +8,7 @@ import RichTextView from '../components/RichTextView';
 import { usePublicProfile } from '../hooks/usePublicProfile';
 import { useAuth } from '../hooks/useAuth';
 import { stripHtml } from '../utils/sanitize';
+import AvatarImage from '../components/AvatarImage';
 import './PublicProfilePage.css';
 
 function normalizeWebsite(url) {
@@ -170,8 +171,10 @@ export default function PublicProfilePage() {
           <span className="public-profile-eyebrow">Veranstalter</span>
 
           {profile.photoURL ? (
-            <img
+            <AvatarImage
               src={profile.photoURL}
+              focalPoint={profile.photoFocalPoint}
+              zoom={profile.photoZoom}
               alt={profile.displayName}
               className="public-profile-photo"
               data-testid="public-profile-photo"

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { collectionGroup, onSnapshot, query, where, limit } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { normalizeFocalPoint } from '../lib/eventImage';
+import { normalizePhotoZoom } from '../components/AvatarImage';
 
 const EMPTY_PROFILE = {
   displayName: '',
@@ -8,6 +10,8 @@ const EMPTY_PROFILE = {
   bioHtml: '',
   website: '',
   photoURL: null,
+  photoFocalPoint: null,
+  photoZoom: 1,
   slug: '',
   socialMedia: { facebook: '', instagram: '', sharePublicly: false },
   directoryCategories: [],
@@ -24,6 +28,8 @@ function normalize(data) {
     bioHtml: data.bioHtml || '',
     website: data.website || '',
     photoURL: data.photoURL || null,
+    photoFocalPoint: normalizeFocalPoint(data.photoFocalPoint),
+    photoZoom: normalizePhotoZoom(data.photoZoom),
     slug: data.slug || '',
     socialMedia: {
       facebook: typeof sm.facebook === 'string' ? sm.facebook : '',

@@ -6,6 +6,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useDirectory } from '../hooks/useDirectory';
 import { useCategoryRegistry } from '../hooks/useCategoryRegistry';
 import { getCategoryColor } from '../utils/categoryColors';
+import AvatarImage from '../components/AvatarImage';
 import {
   DIRECTORY_REGIONS,
   buildDirectoryParams,
@@ -27,7 +28,13 @@ function DirectoryCard({ entry, colorByName, isAdmin, onToggleHidden, busy }) {
     >
       <Link to={`/${entry.slug}`} className="directory-card-link">
         {entry.photoURL ? (
-          <img src={entry.photoURL} alt="" className="directory-card-photo" />
+          <AvatarImage
+            src={entry.photoURL}
+            alt=""
+            className="directory-card-photo"
+            focalPoint={entry.photoFocalPoint}
+            zoom={entry.photoZoom}
+          />
         ) : (
           <div
             className="directory-card-photo directory-card-photo--placeholder"

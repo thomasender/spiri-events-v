@@ -5,6 +5,7 @@ import { useProfile } from '../hooks/useProfile';
 import { useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
 import { useUnreadFeedbackCount } from '../hooks/useFeedbackList';
 import EmailVerificationModal from './EmailVerificationModal';
+import AvatarImage from './AvatarImage';
 import { Users, Calendar, LogOut, User, PlusCircle, UserCircle, Pen, Menu, X } from 'lucide-react';
 import './Header.css';
 
@@ -197,8 +198,10 @@ export default function Header() {
           {renderAdminLink()}
           <NavLink to="/profil" className={navClass} onClick={closeMenu}>
             {profile?.photoURL || user?.photoURL ? (
-              <img
+              <AvatarImage
                 src={profile?.photoURL || user?.photoURL}
+                focalPoint={profile?.photoURL ? profile.photoFocalPoint : null}
+                zoom={profile?.photoURL ? profile.photoZoom : 1}
                 alt=""
                 className="nav-link-avatar"
                 aria-hidden="true"
@@ -287,8 +290,10 @@ export default function Header() {
           onClick={closeMenu}
         >
           {profilePhotoURL ? (
-            <img
+            <AvatarImage
               src={profilePhotoURL}
+              focalPoint={profile?.photoURL ? profile.photoFocalPoint : null}
+              zoom={profile?.photoURL ? profile.photoZoom : 1}
               alt=""
               className="header-profile-avatar"
               aria-hidden="true"

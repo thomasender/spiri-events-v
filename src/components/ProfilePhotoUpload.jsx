@@ -1,11 +1,22 @@
 import { useRef, useState } from 'react';
 import { User } from 'lucide-react';
+import FocalPointPicker from './FocalPointPicker';
+import { MAX_PHOTO_ZOOM, MIN_PHOTO_ZOOM, photoZoomStyle } from './AvatarImage';
 import { uploadProfileImage, MAX_INPUT_SIZE_BYTES } from '../lib/imageUpload';
 import './ProfileForm.css';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
-export default function ProfilePhotoUpload({ uid, photoURL, onUploaded, onRemoved }) {
+export default function ProfilePhotoUpload({
+  uid,
+  photoURL,
+  focalPoint,
+  onFocalPointChange,
+  zoom = 1,
+  onZoomChange,
+  onUploaded,
+  onRemoved,
+}) {
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -47,7 +58,11 @@ export default function ProfilePhotoUpload({ uid, photoURL, onUploaded, onRemove
   return (
     <div className="profile-photo-upload" data-testid="profile-photo-upload">
       <div className="profile-photo-preview">
-        {photoURL ? <img src={photoURL} alt="Profilfoto" /> : <User size={40} aria-hidden="true" />}
+        {photoURL ? (
+          <img src={photoURL} alt="Profilfoto" style={photoZoomStyle(focalPoint, zoom)} />
+        ) : (
+          <User size={40} aria-hidden="true" />
+        )}
       </div>
 
       <div className="profile-photo-controls">
@@ -87,6 +102,36 @@ export default function ProfilePhotoUpload({ uid, photoURL, onUploaded, onRemove
           </span>
         )}
       </div>
+
+      {photoURL && onFocalPointChange && (
+        <FocalPointPicker
+          imageUrl={photoURL}
+          value={focalPoint}
+          onChange={onFocalPointChange}
+          cropAspect={1}
+          zoom={zoom}
+          round
+          ariaLabel="Fokuspunkt des Profilfotos festlegen"
+          testId="profile-focal-point-picker"
+        />
+      )}
+
+      {photoURL && onZoomChange && (
+        <div className="profile-photo-zoom">
+          <label htmlFor="profile-photo-zoom">Hineinzoomen</label>
+          <input
+            id="profile-photo-zoom"
+            type="range"
+            min={MIN_PHOTO_ZOOM}
+            max={MAX_PHOTO_ZOOM}
+            step={0.05}
+            value={zoom}
+            onChange={(e) => onZoomChange(Number(e.target.value))}
+            data-testid="profile-photo-zoom"
+          />
+          <span aria-live="polite">{Math.round(zoom * 100)} %</span>
+        </div>
+      )}
     </div>
   );
 }
