@@ -14,6 +14,7 @@ import {
   ArrowLeft,
   Edit2,
   Trash2,
+  CheckCircle,
   User,
   Mail,
   Phone,
@@ -223,7 +224,7 @@ export default function EventDetailPage() {
   const [searchParams] = useSearchParams();
   const occurrenceDate = searchParams.get('occurrenceDate');
   const { user, loading: authLoading, role } = useAuth();
-  const { deleteEvent, updateEvent } = useEvents(user);
+  const { deleteEvent, updateEvent, approveEvent } = useEvents(user);
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -234,6 +235,7 @@ export default function EventDetailPage() {
   const [pendingRecurringDelete, setPendingRecurringDelete] = useState(null);
   const [selectedOccurrenceDate, setSelectedOccurrenceDate] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [approving, setApproving] = useState(false);
   const isAdmin = role === 'Admin';
   const showMessagesForHash =
     event &&
@@ -370,6 +372,19 @@ export default function EventDetailPage() {
       <div className="event-detail-page">
         <div className="event-not-found">
           <h2>{error || PENDING_REVIEW_MESSAGE}</h2>
+          {!user && (
+            <>
+              <p>Hast du dieses Event erstellt? Melde dich an, um es zu sehen und zu bearbeiten.</p>
+              <Link
+                to="/login"
+                state={{ from: `${location.pathname}${location.search}${location.hash}` }}
+                className="btn btn-primary"
+                data-testid="event-login-prompt"
+              >
+                <span>Anmelden</span>
+              </Link>
+            </>
+          )}
           <Link to="/" className="btn btn-primary">
             <ArrowLeft size={16} />
             <span>Zurück zum Kalender</span>
@@ -388,6 +403,20 @@ export default function EventDetailPage() {
   const fallbackImage = getEventFallbackImage(event);
   const showRemoteImage = Boolean(event.imageUrl) && !imageError;
   const imageSrc = showRemoteImage ? event.imageUrl : fallbackImage;
+
+  const showApproveButton = isAdmin && event.status === 'pending';
+
+  const handleApprove = async () => {
+    setApproving(true);
+    try {
+      await approveEvent(event.id);
+      setEvent((prev) => (prev ? { ...prev, status: 'approved' } : prev));
+    } catch (err) {
+      console.error('Approve failed:', err);
+    } finally {
+      setApproving(false);
+    }
+  };
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -497,13 +526,25 @@ export default function EventDetailPage() {
         <span>{backLabel}</span>
       </Link>
 
-      {(showEditButton || showDeleteButton) && (
+      {(showEditButton || showDeleteButton || showApproveButton) && (
         <div className="owner-actions">
           {showEditButton && (
             <Link to={`/admin/edit/${event.id}`} className="btn btn-secondary">
               <Edit2 size={16} />
               <span>Event bearbeiten</span>
             </Link>
+          )}
+          {showApproveButton && (
+            <button
+              type="button"
+              onClick={handleApprove}
+              disabled={approving}
+              className="btn btn-success"
+              data-testid="approve-event-button"
+            >
+              <CheckCircle size={16} />
+              <span>{approving ? 'Genehmige…' : 'Event genehmigen'}</span>
+            </button>
           )}
           {showDeleteButton && (
             <button
