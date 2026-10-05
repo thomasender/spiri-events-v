@@ -5,7 +5,7 @@ description: Process a Trello ticket from analysis through implementation, testi
 
 # Process Trello Ticket
 
-End-to-end workflow for processing a Trello ticket: analyze, plan, implement, test, commit, push, and move ticket to Testing.
+End-to-end workflow for processing a Trello ticket: analyze, plan, implement, test, commit, push, wait for the deployment, and move ticket to Testing.
 
 ## Prerequisites
 
@@ -136,7 +136,28 @@ git branch -d <branch-name>
 git push origin --delete <branch-name>
 ```
 
-### 8. Move Ticket to Testing
+### 8. Wait for the Deployment
+
+**Do not move the card or comment before the deployment of your push has finished
+successfully.** Peter tests on production; if the card is in Testing while the old
+code is still live, he tests the wrong version and wastes time.
+
+Pushing to `main` starts the workflow `deploy.yml` (hosting, functions, Firestore
+rules). Find the run for your commit SHA and wait until it has `conclusion: success`:
+
+```bash
+gh run list --workflow=deploy.yml --limit 5   # or the GitHub MCP actions_list tool
+gh run watch <run-id> --exit-status           # block until done
+```
+
+- A run **cancelled** by a newer push (`cancel-in-progress`) is normal: wait for the
+  newest run on `main`, which contains your commit too.
+- Run **failed**: fix it first (see the failing job's log). The card stays where it is.
+- Storage rules are not deployed by CI; deploy them manually before moving the card.
+- If you cannot watch the run (no `gh`, no network), tell the user the card was NOT
+  moved yet and why, rather than moving it anyway.
+
+### 9. Move Ticket to Testing
 
 Use `trello_get_lists` to find the "Testing" list ID (board ID: `rebumcT4`).
 
@@ -146,9 +167,11 @@ Move card:
 trello_move_card with idList = Testing list ID
 ```
 
-### 9. Comment for Peter
+### 10. Comment for Peter
 
-Add comment with testing instructions:
+Post this together with the move, only after step 8 succeeded.
+
+Add comment with testing instructions (the change is already live, so say so; no "nach dem Update in ca. 5 Minuten"):
 
 **In German, non-technical language.**
 

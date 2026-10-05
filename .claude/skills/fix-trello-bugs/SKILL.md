@@ -49,14 +49,14 @@ subagents don't all fall back to `--no-verify`. Start the emulators
 
 Sort each ticket into one bucket:
 
-| Bucket                | Signal                                                                                                                                                      | Action                                                                                                     |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| **New**               | No commits, no comments from us                                                                                                                             | Fix it                                                                                                     |
-| **Returned**          | Commits exist, and Peter left a **newer** comment after our last "fertig" comment                                                                           | Fix what the **latest** comment asks. The original fix is the baseline. Do not redo it blindly             |
-| **Question only**     | Latest comment is a question that needs no code                                                                                                             | Answer it in a comment (German, `@petermathis1`) and move the card to Testing only if it was already fixed |
-| **Skip: unclear**     | You can't tell what is wrong or what "fixed" looks like                                                                                                     | Skip it. Do not comment unless asked                                                                       |
-| **Skip: needs human** | Needs credentials, payment or DNS or console settings, third-party accounts, content decisions, production data edits, or anything the user must do by hand | Skip it                                                                                                    |
-| **Already done**      | Commits exist, no newer comment, and the code already behaves as asked                                                                                      | Leave it alone and report it                                                                               |
+| Bucket                | Signal                                                                                                                                                      | Action                                                                                                                  |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| **New**               | No commits, no comments from us                                                                                                                             | Fix it                                                                                                                  |
+| **Returned**          | Commits exist, and Peter left a **newer** comment after our last "fertig" comment                                                                           | Fix what the **latest** comment asks. The original fix is the baseline. Do not redo it blindly                          |
+| **Question only**     | Latest comment is a question that needs no code                                                                                                             | Answer it in a comment (German, `@petermathis1`) and move the card to Testing only if it was already fixed and deployed |
+| **Skip: unclear**     | You can't tell what is wrong or what "fixed" looks like                                                                                                     | Skip it. Do not comment unless asked                                                                                    |
+| **Skip: needs human** | Needs credentials, payment or DNS or console settings, third-party accounts, content decisions, production data edits, or anything the user must do by hand | Skip it                                                                                                                 |
+| **Already done**      | Commits exist, no newer comment, and the code already behaves as asked                                                                                      | Leave it alone and report it                                                                                            |
 
 Only **clear and solvable** tickets get a subagent. When in doubt, skip it and
 report why. Guessing is worse than skipping.
@@ -106,8 +106,10 @@ Rules:
   firestore.rules or firestore.indexes.json, also run
   `firebase deploy --only firestore:rules,firestore:indexes --project spirieventsvbg`
   so the rules are live right away.
-- Move the card to the "Testing" list and post the German @petermathis1 comment
-  (template in process-trello-ticket).
+- Push, then wait until the deploy.yml run for your push has finished successfully
+  (process-trello-ticket, step 8). Only then move the card to the "Testing" list and
+  post the German @petermathis1 comment (template in process-trello-ticket). Never
+  move a card while the old code is still live: Peter tests on production.
 - If you find the ticket is NOT solvable after all (needs manual action, unclear),
   stop, change nothing on main or Trello, and report back why.
 
@@ -126,7 +128,9 @@ report in your context.
    `firebase deploy --only firestore:rules,firestore:indexes,storage --project spirieventsvbg`.
    Deploying unchanged rules is harmless, so when unsure, deploy them.
 3. Check the CI run for the last push: `gh run list --workflow=deploy.yml --limit 3`.
-   Report failures. Don't wait for a long run if the user didn't ask.
+   Report failures. Cards only move to Testing after the deploy run succeeded, so
+   wait for the last run here and move any card a subagent left in "Bugs to Fix"
+   because its deploy was still running.
 4. Give the user a summary table: ticket, bucket, outcome, commit, notes (why skipped).
 
 ## Guardrails
