@@ -193,17 +193,6 @@ export default function PublicProfilePage() {
             {profile.displayName}
           </h1>
 
-          {hasRichBio && (
-            <div className="public-profile-bio" data-testid="public-profile-bio">
-              <RichTextView html={profile.bioHtml} className="public-profile-bio-content" />
-            </div>
-          )}
-          {hasPlainBio && (
-            <p className="public-profile-bio" data-testid="public-profile-bio">
-              {profile.bio}
-            </p>
-          )}
-
           {directoryCategories.length > 0 && (
             <ul className="public-profile-categories" data-testid="public-profile-categories">
               {directoryCategories.map((name) => (
@@ -277,6 +266,17 @@ export default function PublicProfilePage() {
                 </a>
               )}
             </div>
+          )}
+
+          {hasRichBio && (
+            <div className="public-profile-bio" data-testid="public-profile-bio">
+              <RichTextView html={profile.bioHtml} className="public-profile-bio-content" />
+            </div>
+          )}
+          {hasPlainBio && (
+            <p className="public-profile-bio" data-testid="public-profile-bio">
+              {profile.bio}
+            </p>
           )}
         </article>
 
