@@ -9,6 +9,7 @@ import EventsSection from '../components/EventsSection';
 import EmailVerificationModal from '../components/EmailVerificationModal';
 import SeoMeta from '../components/SeoMeta';
 import { getEventOccurrences } from '../utils/eventOccurrences';
+import { getCalendarCategories } from '../utils/calendarCategories';
 import { compareEventsByDateTime } from '../utils/eventSort';
 import { resolveEventColor } from '../utils/categoryColors';
 import { monthKeyToDate, dateToMonthKey } from '../utils/calendarFilterState';
@@ -119,7 +120,7 @@ export default function CalendarPage() {
   // would create a new object reference on every render and trip downstream
   // effects into re-doing work that depends on the initial values.
   const [savedState] = useState(() => loadFilterState());
-  const categories = useCategories();
+  const registryCategories = useCategories();
   const [currentMonth, setCurrentMonth] = useState(
     monthKeyToDate(savedState?.currentMonth) || new Date()
   );
@@ -140,6 +141,11 @@ export default function CalendarPage() {
   );
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
   const { events, loading, error } = useAllEvents();
+  // Only offer categories that currently have events (see calendarCategories.js).
+  const categories = useMemo(
+    () => getCalendarCategories(registryCategories, events, selectedCategories),
+    [registryCategories, events, selectedCategories]
+  );
 
   const [activeHeroPair, setActiveHeroPair] = useState(0);
   const heroSliderRef = useRef(null);

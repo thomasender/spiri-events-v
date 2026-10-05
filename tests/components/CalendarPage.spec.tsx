@@ -126,7 +126,19 @@ describe('CalendarPage — category filter initial state (wkzZei1s)', () => {
   });
 
   it('keeps a deselected category off across unrelated re-renders', async () => {
-    // The user previously had a subset of categories selected.
+    // The user previously had a subset of categories selected. The calendar
+    // only offers categories that have upcoming events, so give every
+    // category one.
+    const future = new Date();
+    future.setDate(future.getDate() + 3);
+    const date = `${future.getFullYear()}-${String(future.getMonth() + 1).padStart(2, '0')}-${String(future.getDate()).padStart(2, '0')}`;
+    mockUseAllEvents.events = mockUseCategories.value.map((category) => ({
+      id: `evt-${category}`,
+      title: category,
+      category,
+      date,
+      time: '18:00',
+    }));
     setStoredCategories(['Yoga', 'Meditation', 'Tanz']);
 
     renderPage();

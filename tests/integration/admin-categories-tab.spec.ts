@@ -20,6 +20,9 @@ const SEED_NAMES = [
   'Sonstiges',
 ];
 
+// Added for the directory; seeded alongside the original seven.
+const DIRECTORY_SEED_NAMES = ['Coaching', 'Körperarbeit', 'Ernährung', 'Therapie'];
+
 const SEED_CATEGORIES = [
   { id: 'breathwork', name: 'Breathwork', color: '#bf5b4e', order: 100 },
   { id: 'meditation', name: 'Meditation', color: '#5c6b3f', order: 200 },
@@ -121,17 +124,20 @@ test.describe('Admin Kategorien tab', () => {
 
   test.afterEach(async ({ page }) => {});
 
-  test('seeds the 7 canonical categories on first visit when the collection is empty', async ({
+  test('seeds the canonical categories on first visit when the collection is empty', async ({
     page,
   }) => {
     await clearCollection('categories');
     await page.goto('/');
     await waitForCalendarToLoad(page);
 
-    for (const name of SEED_NAMES) {
-      await expect(page.locator(`.filter-chip--category:has-text("${name}")`)).toBeVisible({
-        timeout: 15000,
-      });
+    // The calendar only shows categories that have events, so verify the seed
+    // on the admin side, where every registry category is listed.
+    await page.goto('/admin?tab=categories');
+    for (const name of [...SEED_NAMES, ...DIRECTORY_SEED_NAMES]) {
+      await expect(
+        page.locator('[data-testid="category-row"]').filter({ hasText: name })
+      ).toBeVisible({ timeout: 15000 });
     }
   });
 
@@ -148,7 +154,9 @@ test.describe('Admin Kategorien tab', () => {
     }
   });
 
-  test('admin can create a new category via the dialog', async ({ page }) => {
+  test('admin can create a new category via the dialog; the calendar hides it until it has events', async ({
+    page,
+  }) => {
     const name = newCategoryName('create');
     await page.goto('/admin?tab=categories');
 
@@ -165,9 +173,10 @@ test.describe('Admin Kategorien tab', () => {
       page.locator(`[data-testid="category-row"]`).filter({ hasText: name })
     ).toBeVisible();
 
+    // A category without events is not offered as a calendar filter.
     await page.goto('/');
     await waitForCalendarToLoad(page);
-    await expect(page.locator(`.filter-chip--category:has-text("${name}")`)).toBeVisible();
+    await expect(page.locator(`.filter-chip--category:has-text("${name}")`)).toHaveCount(0);
   });
 
   test('admin can recolor an existing category and the calendar updates', async ({ page }) => {
