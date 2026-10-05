@@ -37,9 +37,14 @@ export default function FocalPointPicker({
   cropAspect = CROP_ASPECT,
   round = false,
   zoom = 1,
+  onZoomChange,
+  minZoom = 1,
+  maxZoom = 3,
 }) {
   const containerRef = useRef(null);
   const dragStateRef = useRef(null);
+  const pointersRef = useRef(new Map());
+  const pinchRef = useRef(null);
   const [point, setPoint] = useState(() =>
     clampPoint(normalizeFocalPoint(value) ?? DEFAULT_FOCAL_POINT)
   );
@@ -98,29 +103,61 @@ export default function FocalPointPicker({
     return clampPoint({ x, y });
   }, []);
 
+  const pinchDistance = () => {
+    const [a, b] = [...pointersRef.current.values()];
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  };
+
   const onPointerDown = useCallback(
     (e) => {
       if (e.button !== undefined && e.button !== 0) return;
       const target = e.currentTarget;
       target.setPointerCapture?.(e.pointerId);
+      pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      e.preventDefault();
+      // Second finger: switch from moving the focal point to pinch-resizing
+      // the crop frame (the frame shrinks as the zoom grows).
+      if (pointersRef.current.size === 2 && onZoomChange) {
+        dragStateRef.current = null;
+        const distance = pinchDistance();
+        if (distance > 0) pinchRef.current = { distance, zoom };
+        return;
+      }
+      if (pointersRef.current.size > 1) return;
       dragStateRef.current = { pointerId: e.pointerId };
       const next = pointFromClient(e.clientX, e.clientY);
       if (next) commit(next);
-      e.preventDefault();
     },
-    [pointFromClient, commit]
+    [pointFromClient, commit, onZoomChange, zoom]
   );
 
   const onPointerMove = useCallback(
     (e) => {
+      if (pointersRef.current.has(e.pointerId)) {
+        pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      }
+      if (pinchRef.current) {
+        if (pointersRef.current.size < 2) return;
+        const distance = pinchDistance();
+        if (distance <= 0) return;
+        // Fingers apart = bigger frame = less zoom, like resizing the circle.
+        const next = pinchRef.current.zoom * (pinchRef.current.distance / distance);
+        onZoomChange?.(Math.min(maxZoom, Math.max(minZoom, Math.round(next * 100) / 100)));
+        return;
+      }
       if (!dragStateRef.current || dragStateRef.current.pointerId !== e.pointerId) return;
       const next = pointFromClient(e.clientX, e.clientY);
       if (next) commit(next);
     },
-    [pointFromClient, commit]
+    [pointFromClient, commit, onZoomChange, minZoom, maxZoom]
   );
 
   const onPointerUp = useCallback((e) => {
+    pointersRef.current.delete(e.pointerId);
+    if (pinchRef.current) {
+      if (pointersRef.current.size < 2) pinchRef.current = null;
+      return;
+    }
     if (!dragStateRef.current || dragStateRef.current.pointerId !== e.pointerId) return;
     const target = e.currentTarget;
     target.releasePointerCapture?.(e.pointerId);

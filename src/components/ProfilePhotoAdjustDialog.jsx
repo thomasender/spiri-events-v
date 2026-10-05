@@ -73,17 +73,6 @@ export default function ProfilePhotoAdjustDialog({
           und zoome bei Bedarf hinein.
         </p>
 
-        <FocalPointPicker
-          imageUrl={photoURL}
-          value={draftFocal}
-          onChange={setDraftFocal}
-          cropAspect={1}
-          zoom={draftZoom}
-          round
-          ariaLabel="Fokuspunkt des Profilfotos festlegen"
-          testId="profile-focal-point-picker"
-        />
-
         <div className="photo-adjust-zoom">
           <label htmlFor="profile-photo-zoom">Hineinzoomen</label>
           <input
@@ -98,6 +87,20 @@ export default function ProfilePhotoAdjustDialog({
           />
           <output htmlFor="profile-photo-zoom">{Math.round(draftZoom * 100)} %</output>
         </div>
+
+        <FocalPointPicker
+          imageUrl={photoURL}
+          value={draftFocal}
+          onChange={setDraftFocal}
+          cropAspect={1}
+          zoom={draftZoom}
+          onZoomChange={setDraftZoom}
+          minZoom={MIN_PHOTO_ZOOM}
+          maxZoom={MAX_PHOTO_ZOOM}
+          round
+          ariaLabel="Fokuspunkt des Profilfotos festlegen"
+          testId="profile-focal-point-picker"
+        />
       </div>
 
       <div className="photo-adjust-footer">

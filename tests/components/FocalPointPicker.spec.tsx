@@ -315,4 +315,34 @@ describe('FocalPointPicker', () => {
     expect(frame.style.width).toBe('50%');
     expect(frame.style.height).toBe('100%');
   });
+
+  it('resizes the crop frame with a two-finger pinch without moving the focal point', () => {
+    stubCanvasRect(300, 200);
+    const onChange = vi.fn();
+    const onZoomChange = vi.fn();
+    renderWithImageLoaded(
+      <FocalPointPicker
+        imageUrl={IMAGE_URL}
+        value={{ x: 0.5, y: 0.5 }}
+        onChange={onChange}
+        zoom={2}
+        onZoomChange={onZoomChange}
+        minZoom={1}
+        maxZoom={3}
+      />
+    );
+    const canvas = getCanvas();
+    fireEvent.pointerDown(canvas, { clientX: 100, clientY: 100, pointerId: 1, button: 0 });
+    fireEvent.pointerDown(canvas, { clientX: 200, clientY: 100, pointerId: 2, button: 0 });
+    onChange.mockClear();
+
+    // Fingers twice as far apart -> frame twice as big -> half the zoom.
+    fireEvent.pointerMove(canvas, { clientX: 300, clientY: 100, pointerId: 2 });
+    expect(onZoomChange).toHaveBeenLastCalledWith(1);
+
+    // Fingers closer together -> smaller frame -> more zoom, capped at maxZoom.
+    fireEvent.pointerMove(canvas, { clientX: 110, clientY: 100, pointerId: 2 });
+    expect(onZoomChange).toHaveBeenLastCalledWith(3);
+    expect(onChange).not.toHaveBeenCalled();
+  });
 });
