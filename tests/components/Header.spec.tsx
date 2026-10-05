@@ -638,6 +638,20 @@ describe('Header profile/login shortcut button (zh4jJzje)', () => {
     expect(container.querySelector('.header-profile-button')).not.toBeNull();
   });
 
+  it('shows a directory shortcut in the mobile header', () => {
+    mockAuth.user = null;
+
+    render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    const button = screen.getByTestId('header-directory-button');
+    expect(button.getAttribute('href')).toBe('/verzeichnis');
+    expect(button.getAttribute('aria-label')).toBe('Verzeichnis');
+  });
+
   it('points the shortcut button at /profil and labels it "Mein Profil" when signed in', () => {
     mockAuth.user = { uid: 'test-uid' };
 
@@ -675,7 +689,7 @@ describe('Header profile/login shortcut button (zh4jJzje)', () => {
 
     // Sanity: no lucide UserCircle fallback should render inside the
     // shortcut when the user has a photo.
-    const firstButton = container.querySelectorAll('.header-profile-button')[0];
+    const firstButton = container.querySelectorAll('[data-testid="header-profile-button"]')[0];
     expect(firstButton?.querySelector('svg')).toBeNull();
   });
 

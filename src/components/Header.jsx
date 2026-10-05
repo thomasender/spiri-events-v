@@ -283,6 +283,16 @@ export default function Header() {
             (or to reach their profile when already signed in). Hidden on
             desktop where the nav already exposes the same actions. */}
         <Link
+          to="/verzeichnis"
+          className="header-profile-button header-directory-button"
+          aria-label="Verzeichnis"
+          data-testid="header-directory-button"
+          onClick={closeMenu}
+        >
+          <Users size={24} aria-hidden="true" />
+        </Link>
+
+        <Link
           to={profileTarget}
           className="header-profile-button"
           aria-label={profileLabel}

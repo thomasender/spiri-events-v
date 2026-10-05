@@ -218,7 +218,7 @@
   .header-container {
     height: 64px;
     padding: 0 16px;
-    gap: 4px;
+    gap: 0;
   }
 
   .nav-desktop {
@@ -229,7 +229,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 44px;
+    width: 40px;
     height: 44px;
     border-radius: var(--radius-sm);
     color: var(--text-primary);
