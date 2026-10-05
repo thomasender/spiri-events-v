@@ -11,6 +11,7 @@ const EMPTY_PROFILE = {
   slug: '',
   socialMedia: { facebook: '', instagram: '', sharePublicly: false },
   directoryCategories: [],
+  directoryRegions: [],
   updatedAt: null,
 };
 
@@ -36,6 +37,12 @@ function normalize(data) {
       data.directoryHidden !== true &&
       Array.isArray(data.directoryCategories)
         ? data.directoryCategories.filter((item) => typeof item === 'string')
+        : [],
+    directoryRegions:
+      data.listedInDirectory === true &&
+      data.directoryHidden !== true &&
+      Array.isArray(data.directoryRegions)
+        ? data.directoryRegions.filter((item) => typeof item === 'string')
         : [],
     updatedAt: data.updatedAt || null,
   };

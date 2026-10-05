@@ -373,8 +373,12 @@ export default function EventDetailPage() {
         <div className="event-not-found">
           <h2>{error || PENDING_REVIEW_MESSAGE}</h2>
           {!user && (
-            <>
-              <p>Hast du dieses Event erstellt? Melde dich an, um es zu sehen und zu bearbeiten.</p>
+            <p className="event-not-found-hint">
+              Hast du dieses Event erstellt? Melde dich an, um es zu sehen und zu bearbeiten.
+            </p>
+          )}
+          <div className="event-not-found-actions">
+            {!user && (
               <Link
                 to="/login"
                 state={{ from: `${location.pathname}${location.search}${location.hash}` }}
@@ -383,12 +387,12 @@ export default function EventDetailPage() {
               >
                 <span>Anmelden</span>
               </Link>
-            </>
-          )}
-          <Link to="/" className="btn btn-primary">
-            <ArrowLeft size={16} />
-            <span>Zurück zum Kalender</span>
-          </Link>
+            )}
+            <Link to="/" className={user ? 'btn btn-primary' : 'btn btn-secondary'}>
+              <ArrowLeft size={16} />
+              <span>Zurück zum Kalender</span>
+            </Link>
+          </div>
         </div>
       </div>
     );

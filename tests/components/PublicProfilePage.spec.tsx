@@ -415,4 +415,26 @@ describe('PublicProfilePage — social media links (gIVugxij)', () => {
       '/verzeichnis?kategorie=K%C3%B6rperarbeit'
     );
   });
+
+  it('shows the regions as links into the filtered directory', () => {
+    mockPublicProfile.loading = false;
+    mockPublicProfile.exists = true;
+    mockPublicProfile.uid = 'u1';
+    mockPublicProfile.profile = {
+      displayName: 'Anna Schmidt',
+      bio: '',
+      bioHtml: '',
+      website: '',
+      photoURL: null,
+      slug: 'anna-schmidt',
+      socialMedia: { facebook: '', instagram: '', sharePublicly: false },
+      directoryCategories: ['Körperarbeit'],
+      directoryRegions: ['Bregenz'],
+    };
+    renderPage();
+    expect(screen.getByRole('link', { name: 'Bregenz' })).toHaveAttribute(
+      'href',
+      '/verzeichnis?region=Bregenz'
+    );
+  });
 });
