@@ -118,3 +118,4 @@ export { scheduledBuildTrigger } from './scheduledBuildTrigger';
 export { sendVerificationEmail } from './sendVerificationEmail';
 export { sendPasswordResetEmailFn } from './sendPasswordResetEmail';
 export { checkEmailAvailability } from './checkEmailAvailability';
+export { adminListMembers, adminUpdateMember } from './adminMembers';
