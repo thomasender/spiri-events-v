@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { ExternalLink, Facebook, Instagram, Save } from 'lucide-react';
 import ProfilePhotoUpload from './ProfilePhotoUpload';
 import ProfileIncompleteDialog from './ProfileIncompleteDialog';
+import DirectoryListingFields from './DirectoryListingFields';
+import { useCategoryRegistry } from '../hooks/useCategoryRegistry';
+import { validateDirectoryListing } from '../utils/directory';
 import RichTextEditorLazy from './RichTextEditorLazy';
 import { uploadProfileDescriptionImage } from '../lib/imageUpload';
 import { getPlainTextLength, stripHtml } from '../utils/sanitize';
@@ -60,6 +63,12 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
   const [facebook, setFacebook] = useState(profile?.socialMedia?.facebook || '');
   const [instagram, setInstagram] = useState(profile?.socialMedia?.instagram || '');
   const [sharePublicly, setSharePublicly] = useState(profile?.socialMedia?.sharePublicly === true);
+  const [listedInDirectory, setListedInDirectory] = useState(profile?.listedInDirectory === true);
+  const [directoryCategories, setDirectoryCategories] = useState(
+    profile?.directoryCategories || []
+  );
+  const [directoryRegions, setDirectoryRegions] = useState(profile?.directoryRegions || []);
+  const { categories: registryCategories } = useCategoryRegistry();
 
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -73,6 +82,12 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
   });
 
   const navigate = useNavigate();
+  // Offer the registry's categories, plus any already-saved one an admin has
+  // since renamed/removed so the user can still see and deselect it.
+  const directoryCategoryOptions = [
+    ...registryCategories.map((cat) => cat.name),
+    ...directoryCategories.filter((name) => !registryCategories.some((cat) => cat.name === name)),
+  ];
   const plainBioLength = getPlainTextLength(bioHtml);
   const bioOverLimit = plainBioLength > BIO_MAX;
 
@@ -88,6 +103,9 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
     setFacebook(profile.socialMedia?.facebook || '');
     setInstagram(profile.socialMedia?.instagram || '');
     setSharePublicly(profile.socialMedia?.sharePublicly === true);
+    setListedInDirectory(profile.listedInDirectory === true);
+    setDirectoryCategories(profile.directoryCategories || []);
+    setDirectoryRegions(profile.directoryRegions || []);
   }, [profile]);
 
   const usernameCheckSeqRef = useRef(0);
@@ -175,6 +193,15 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
     if (!isValidWebsite(website)) {
       newErrors.website = 'Bitte gib eine gültige URL ein.';
     }
+    const directoryErrors = validateDirectoryListing({
+      listed: listedInDirectory,
+      categories: directoryCategories,
+      regions: directoryRegions,
+      hasBio: getPlainTextLength(bioHtml) > 0,
+    });
+    if (directoryErrors.categories) newErrors.directoryCategories = directoryErrors.categories;
+    if (directoryErrors.regions) newErrors.directoryRegions = directoryErrors.regions;
+    if (directoryErrors.bio && !newErrors.bio) newErrors.bio = directoryErrors.bio;
     return newErrors;
   };
 
@@ -191,6 +218,9 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
       instagram: instagram.trim(),
       sharePublicly,
     },
+    listedInDirectory,
+    directoryCategories,
+    directoryRegions,
   });
 
   const handleSubmit = async (e) => {
@@ -460,6 +490,17 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
             <span>Meine Social Media Links auch öffentlich auf meinem Profil anzeigen.</span>
           </label>
         </div>
+
+        <DirectoryListingFields
+          listed={listedInDirectory}
+          onListedChange={setListedInDirectory}
+          categories={directoryCategories}
+          onCategoriesChange={setDirectoryCategories}
+          regions={directoryRegions}
+          onRegionsChange={setDirectoryRegions}
+          availableCategories={directoryCategoryOptions}
+          errors={{ categories: errors.directoryCategories, regions: errors.directoryRegions }}
+        />
 
         {submitError && <p className="submit-error">{submitError}</p>}
         {success && (

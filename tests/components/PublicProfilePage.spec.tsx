@@ -394,4 +394,25 @@ describe('PublicProfilePage — social media links (gIVugxij)', () => {
     expect(screen.getByTestId('public-profile-facebook')).toBeInTheDocument();
     expect(screen.queryByTestId('public-profile-instagram')).toBeNull();
   });
+
+  it('shows the offered categories as links into the filtered directory', () => {
+    mockPublicProfile.loading = false;
+    mockPublicProfile.exists = true;
+    mockPublicProfile.uid = 'u1';
+    mockPublicProfile.profile = {
+      displayName: 'Anna Schmidt',
+      bio: '',
+      bioHtml: '',
+      website: '',
+      photoURL: null,
+      slug: 'anna-schmidt',
+      socialMedia: { facebook: '', instagram: '', sharePublicly: false },
+      directoryCategories: ['Körperarbeit'],
+    };
+    renderPage();
+    expect(screen.getByRole('link', { name: 'Körperarbeit' })).toHaveAttribute(
+      'href',
+      '/verzeichnis?kategorie=K%C3%B6rperarbeit'
+    );
+  });
 });

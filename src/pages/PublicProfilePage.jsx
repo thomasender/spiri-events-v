@@ -124,6 +124,7 @@ export default function PublicProfilePage() {
     : '';
   const hasSocialLinks = Boolean(facebookUrl || instagramUrl);
   const shareUrl = buildProfileShareUrl(slug);
+  const directoryCategories = profile.directoryCategories || [];
 
   return (
     <>
@@ -197,6 +198,21 @@ export default function PublicProfilePage() {
             <p className="public-profile-bio" data-testid="public-profile-bio">
               {profile.bio}
             </p>
+          )}
+
+          {directoryCategories.length > 0 && (
+            <ul className="public-profile-categories" data-testid="public-profile-categories">
+              {directoryCategories.map((name) => (
+                <li key={name}>
+                  <Link
+                    to={`/verzeichnis?kategorie=${encodeURIComponent(name)}`}
+                    className="public-profile-category"
+                  >
+                    {name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           )}
 
           {hasWebsite && (

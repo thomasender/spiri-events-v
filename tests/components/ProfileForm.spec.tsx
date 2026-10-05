@@ -17,6 +17,15 @@ vi.mock('../../src/lib/imageUpload', () => ({
   MAX_INPUT_SIZE_BYTES: 15 * 1024 * 1024,
 }));
 
+vi.mock('../../src/hooks/useCategoryRegistry', () => ({
+  useCategoryRegistry: () => ({
+    categories: [
+      { id: 'yoga', name: 'Yoga' },
+      { id: 'coaching', name: 'Coaching' },
+    ],
+  }),
+}));
+
 vi.mock('../../src/components/RichTextEditorLazy', () => ({
   default: ({ value, onChange, testId, hasError, maxLength }) => {
     const text = (value || '').replace(/<[^>]*>/g, '');
@@ -663,5 +672,73 @@ describe('ProfileForm — Benutzername (LtBHuNes)', () => {
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     // Empty username is sent through and the hook decides what to do with it.
     expect(onSave.mock.calls[0][0].username).toBe('');
+  });
+
+  describe('directory listing', () => {
+    it('hides the category picker and requires nothing while not listed', async () => {
+      const onSave = vi.fn().mockResolvedValue(undefined);
+      renderForm(baseProfile, { onSave });
+
+      expect(screen.queryByTestId('profile-directory-categories')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('profile-save'));
+
+      await waitFor(() => expect(onSave).toHaveBeenCalled());
+      expect(onSave.mock.calls[0][0].listedInDirectory).toBe(false);
+    });
+
+    it('blocks saving when listed without a category', async () => {
+      const onSave = vi.fn();
+      renderForm(baseProfile, { onSave });
+
+      fireEvent.click(screen.getByTestId('profile-directory-toggle'));
+      fireEvent.click(screen.getByTestId('profile-save'));
+
+      expect(await screen.findByTestId('profile-directory-categories-error')).toBeInTheDocument();
+      expect(onSave).not.toHaveBeenCalled();
+    });
+
+    it('saves the chosen categories and regions when listed', async () => {
+      const onSave = vi.fn().mockResolvedValue(undefined);
+      renderForm(baseProfile, { onSave });
+
+      fireEvent.click(screen.getByTestId('profile-directory-toggle'));
+      fireEvent.click(screen.getByTestId('profile-directory-category-Coaching'));
+      fireEvent.click(screen.getByTestId('profile-directory-region-Dornbirn'));
+      fireEvent.click(screen.getByTestId('profile-save'));
+
+      await waitFor(() => expect(onSave).toHaveBeenCalled());
+      expect(onSave.mock.calls[0][0]).toMatchObject({
+        listedInDirectory: true,
+        directoryCategories: ['Coaching'],
+        directoryRegions: ['Dornbirn'],
+      });
+    });
+
+    it('blocks listing without a bio', async () => {
+      const onSave = vi.fn();
+      renderForm(
+        {
+          ...baseProfile,
+          bio: '',
+          bioHtml: '',
+          listedInDirectory: true,
+          directoryCategories: ['Yoga'],
+        },
+        { onSave }
+      );
+
+      fireEvent.click(screen.getByTestId('profile-save'));
+
+      expect(await screen.findByText(/Kurzbeschreibung/)).toBeInTheDocument();
+      expect(onSave).not.toHaveBeenCalled();
+    });
+
+    it('keeps a category an admin has since removed visible so it can be deselected', () => {
+      renderForm({ ...baseProfile, listedInDirectory: true, directoryCategories: ['Alt'] });
+      expect(screen.getByTestId('profile-directory-category-Alt')).toHaveAttribute(
+        'aria-pressed',
+        'true'
+      );
+    });
   });
 });

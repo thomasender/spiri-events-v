@@ -40,6 +40,9 @@ const EMPTY_PROFILE = {
   slug: '',
   username: '',
   socialMedia: { facebook: '', instagram: '', sharePublicly: false },
+  listedInDirectory: false,
+  directoryCategories: [],
+  directoryRegions: [],
   createdAt: null,
   updatedAt: null,
 };
@@ -52,6 +55,10 @@ function normalizePreferences(data) {
     }
   }
   return prefs;
+}
+
+function stringArray(value) {
+  return Array.isArray(value) ? value.filter((item) => typeof item === 'string') : [];
 }
 
 function normalizeSocialMedia(raw) {
@@ -75,6 +82,9 @@ function normalize(data) {
     slug: data.slug || '',
     username: normalizeUsername(data.username || ''),
     socialMedia: normalizeSocialMedia(data.socialMedia),
+    listedInDirectory: data.listedInDirectory === true,
+    directoryCategories: stringArray(data.directoryCategories),
+    directoryRegions: stringArray(data.directoryRegions),
     createdAt: data.createdAt || null,
     updatedAt: data.updatedAt || null,
   };

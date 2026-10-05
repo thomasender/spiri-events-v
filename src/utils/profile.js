@@ -7,6 +7,9 @@ export const PUBLIC_PROFILE_FIELDS = [
   'slug',
   'username',
   'socialMedia',
+  'listedInDirectory',
+  'directoryCategories',
+  'directoryRegions',
 ];
 
 export const BIO_MAX = 500;

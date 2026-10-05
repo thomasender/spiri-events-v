@@ -118,7 +118,24 @@ Weitere Informationen finden Sie in der Datenschutzerklärung von Google: https:
 Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich teilen würden, und keine sensiblen personenbezogenen Daten (z.B. Gesichter unkenntlich machen) in den Bildern zu zeigen.`,
       },
       {
-        heading: '11. Änderungen dieser Datenschutzerklärung',
+        heading: '11. Verzeichnis (freiwillig)',
+        text: `Auf der Seite „Verzeichnis“ können sich Nutzer:innen freiwillig eintragen, um mit ihren Angeboten gefunden zu werden, auch wenn sie keine Events veranstalten.
+
+*Was wird veröffentlicht?*
+- Nur wenn Sie in Ihrem Profil ausdrücklich zustimmen („Ich möchte im Verzeichnis gelistet werden“), erscheinen Ihr Name, Ihr Profilfoto, Ihre Kurzbeschreibung, die von Ihnen gewählten Kategorien und optional Ihre Region im Verzeichnis
+- Kontaktdaten und weitere Details sind nicht im Verzeichnis, sondern nur auf Ihrem öffentlichen Profil sichtbar
+- Die Einträge sind öffentlich und können von jedem eingesehen und durchsucht werden
+
+*Rechtsgrundlage:* Ihre Einwilligung (Art. 6 Abs. 1 lit. a DSGVO). Ohne Ihre Zustimmung werden Sie nicht gelistet.
+
+*Widerruf und Löschung:*
+- Sie können die Eintragung jederzeit in Ihrem Profil wieder ausschalten; Sie verschwinden dann sofort aus dem Verzeichnis
+- Beim Löschen Ihres Kontos wird auch Ihr Verzeichniseintrag entfernt
+
+*Moderation:* Das Team von The Tribe kann einzelne Einträge aus dem Verzeichnis ausblenden, etwa bei unpassenden oder rechtswidrigen Inhalten. Ihr Profil bleibt davon unberührt.`,
+      },
+      {
+        heading: '12. Änderungen dieser Datenschutzerklärung',
         text: `Wir behalten uns vor, diese Datenschutzerklärung bei Änderungen der App oder der Rechtslage anzupassen. Die jeweils aktuelle Version finden Sie immer auf dieser Seite.`,
       },
     ],

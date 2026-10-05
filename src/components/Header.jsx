@@ -5,7 +5,7 @@ import { useProfile } from '../hooks/useProfile';
 import { useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
 import { useUnreadFeedbackCount } from '../hooks/useFeedbackList';
 import EmailVerificationModal from './EmailVerificationModal';
-import { Calendar, LogOut, User, PlusCircle, UserCircle, Pen, Menu, X } from 'lucide-react';
+import { Users, Calendar, LogOut, User, PlusCircle, UserCircle, Pen, Menu, X } from 'lucide-react';
 import './Header.css';
 
 const navClass = ({ isActive }) => (isActive ? 'nav-link nav-link--active' : 'nav-link');
@@ -187,6 +187,10 @@ export default function Header() {
       <NavLink to="/" className={navClass} end onClick={closeMenu}>
         <Calendar size={18} />
         <span>Kalender</span>
+      </NavLink>
+      <NavLink to="/verzeichnis" className={navClass} onClick={closeMenu}>
+        <Users size={18} />
+        <span>Verzeichnis</span>
       </NavLink>
       {user ? (
         <>

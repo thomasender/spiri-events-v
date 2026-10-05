@@ -10,6 +10,7 @@ const EMPTY_PROFILE = {
   photoURL: null,
   slug: '',
   socialMedia: { facebook: '', instagram: '', sharePublicly: false },
+  directoryCategories: [],
   updatedAt: null,
 };
 
@@ -28,6 +29,14 @@ function normalize(data) {
       instagram: typeof sm.instagram === 'string' ? sm.instagram : '',
       sharePublicly: sm.sharePublicly === true,
     },
+    // Only expose the categories when the profile is actually listed (and
+    // not hidden by an admin), so unlisted users show no offering chips.
+    directoryCategories:
+      data.listedInDirectory === true &&
+      data.directoryHidden !== true &&
+      Array.isArray(data.directoryCategories)
+        ? data.directoryCategories.filter((item) => typeof item === 'string')
+        : [],
     updatedAt: data.updatedAt || null,
   };
 }
