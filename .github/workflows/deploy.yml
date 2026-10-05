@@ -9,6 +9,10 @@ on:
 
 jobs:
   build-deploy:
+    # workflow_dispatch can be started on any branch from the Actions tab;
+    # this job deploys to production (hosting, rules, functions), so it only
+    # ever runs from main. Feature branches are tested via emulators/previews.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     concurrency:
       group: hosting-deploy
