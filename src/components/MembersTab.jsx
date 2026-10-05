@@ -73,8 +73,8 @@ function MemberEditDialog({ member, categories, onSave, onClose }) {
     try {
       await onSave(draft);
     } catch (err) {
-      console.error('Member update failed:', err);
-      setError('Speichern fehlgeschlagen. Bitte erneut versuchen.');
+      console.error('Member update failed:', err?.code, err?.message, err);
+      setError(`Speichern fehlgeschlagen (${err?.code || 'unbekannt'}). Bitte erneut versuchen.`);
       setSaving(false);
     }
   };
