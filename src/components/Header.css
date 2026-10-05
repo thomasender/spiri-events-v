@@ -330,3 +330,17 @@
     line-height: 1.15;
   }
 }
+
+/* Very narrow phones (320–379px): the logo tagline, directory shortcut,
+   profile shortcut and burger no longer fit side by side and the burger
+   was pushed off-screen. The directory stays reachable via the burger menu. */
+@media (max-width: 379px) {
+  .header-directory-button {
+    display: none;
+  }
+
+  .logo-title,
+  .logo-subtitle {
+    font-size: 0.8rem;
+  }
+}
