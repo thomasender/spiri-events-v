@@ -1,0 +1,116 @@
+.photo-adjust-dialog {
+  width: min(480px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  overflow: hidden;
+}
+
+.photo-adjust-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.photo-adjust-dialog::backdrop {
+  background-color: rgba(0, 0, 0, 0.45);
+}
+
+.photo-adjust-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.photo-adjust-header h3 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.photo-adjust-close {
+  background: transparent;
+  border: 0;
+  padding: 6px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+}
+
+.photo-adjust-close:hover {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.photo-adjust-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px 20px;
+  overflow-y: auto;
+}
+
+.photo-adjust-hint {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.photo-adjust-zoom {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.9rem;
+}
+
+.photo-adjust-zoom input[type='range'] {
+  flex: 1;
+  min-width: 0;
+}
+
+.photo-adjust-zoom output {
+  min-width: 3.5em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.photo-adjust-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--border);
+}
+
+/* The picker's own explainer and layout are tuned for the event form; inside
+   this dialog we show one centred canvas, then the round preview below it. */
+.photo-adjust-dialog .focal-point-picker {
+  max-width: none;
+  align-items: center;
+}
+
+.photo-adjust-dialog .focal-point-picker-info {
+  display: none;
+}
+
+.photo-adjust-dialog .focal-point-picker-body {
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.photo-adjust-dialog .focal-point-picker-canvas {
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: 320px;
+  max-height: 50vh;
+}
+
+.photo-adjust-dialog .focal-point-picker-preview-wrapper {
+  align-items: center;
+  max-width: none;
+  min-width: 0;
+}

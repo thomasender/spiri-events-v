@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { User } from 'lucide-react';
-import FocalPointPicker from './FocalPointPicker';
-import { MAX_PHOTO_ZOOM, MIN_PHOTO_ZOOM, photoZoomStyle } from './AvatarImage';
+import ProfilePhotoAdjustDialog from './ProfilePhotoAdjustDialog';
+import { photoZoomStyle } from './AvatarImage';
 import { uploadProfileImage, MAX_INPUT_SIZE_BYTES } from '../lib/imageUpload';
 import './ProfileForm.css';
 
@@ -21,6 +21,7 @@ export default function ProfilePhotoUpload({
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
+  const [adjustOpen, setAdjustOpen] = useState(false);
 
   const handleSelect = async (file) => {
     if (!file) return;
@@ -81,6 +82,16 @@ export default function ProfilePhotoUpload({
           onChange={(e) => handleSelect(e.target.files?.[0])}
           data-testid="profile-photo-input"
         />
+        {photoURL && !uploading && onFocalPointChange && (
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => setAdjustOpen(true)}
+            data-testid="profile-photo-adjust"
+          >
+            Ausschnitt anpassen
+          </button>
+        )}
         {photoURL && !uploading && (
           <button
             type="button"
@@ -103,35 +114,18 @@ export default function ProfilePhotoUpload({
         )}
       </div>
 
-      {photoURL && onFocalPointChange && (
-        <FocalPointPicker
-          imageUrl={photoURL}
-          value={focalPoint}
-          onChange={onFocalPointChange}
-          cropAspect={1}
-          zoom={zoom}
-          round
-          ariaLabel="Fokuspunkt des Profilfotos festlegen"
-          testId="profile-focal-point-picker"
-        />
-      )}
-
-      {photoURL && onZoomChange && (
-        <div className="profile-photo-zoom">
-          <label htmlFor="profile-photo-zoom">Hineinzoomen</label>
-          <input
-            id="profile-photo-zoom"
-            type="range"
-            min={MIN_PHOTO_ZOOM}
-            max={MAX_PHOTO_ZOOM}
-            step={0.05}
-            value={zoom}
-            onChange={(e) => onZoomChange(Number(e.target.value))}
-            data-testid="profile-photo-zoom"
-          />
-          <span aria-live="polite">{Math.round(zoom * 100)} %</span>
-        </div>
-      )}
+      <ProfilePhotoAdjustDialog
+        open={adjustOpen}
+        photoURL={photoURL}
+        focalPoint={focalPoint}
+        zoom={zoom}
+        onApply={({ focalPoint: nextFocal, zoom: nextZoom }) => {
+          onFocalPointChange?.(nextFocal);
+          onZoomChange?.(nextZoom);
+          setAdjustOpen(false);
+        }}
+        onClose={() => setAdjustOpen(false)}
+      />
     </div>
   );
 }
