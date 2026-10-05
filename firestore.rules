@@ -637,5 +637,18 @@ service cloud.firestore {
 
       allow update, delete: if isAdminOrEmulatorAdmin();
     }
+
+    // Admin-defined groups of members (Mitgliedermanagement). Only admins can
+    // read or write; the arrays hold user ids, no personal data.
+    match /member_lists/{listId} {
+      allow read, delete: if isAdminOrEmulatorAdmin();
+      allow create, update: if isAdminOrEmulatorAdmin()
+                            && request.resource.data.keys().hasOnly(['name', 'memberUids', 'createdAt', 'updatedAt'])
+                            && request.resource.data.name is string
+                            && request.resource.data.name.size() > 0
+                            && request.resource.data.name.size() <= 60
+                            && request.resource.data.memberUids is list
+                            && request.resource.data.memberUids.size() <= 5000;
+    }
   }
 }

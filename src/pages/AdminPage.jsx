@@ -12,6 +12,7 @@ import {
   Palette,
   Users,
   Heart,
+  Contact,
 } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
 import EventList from '../components/EventList';
@@ -24,6 +25,7 @@ import CategoriesTab from '../components/CategoriesTab';
 import ThemeTab from '../components/ThemeTab';
 import HelpersTab from '../components/HelpersTab';
 import DonorsTab from '../components/DonorsTab';
+import MembersTab from '../components/MembersTab';
 import EmailVerificationBanner from '../components/EmailVerificationBanner';
 import EmailVerificationModal from '../components/EmailVerificationModal';
 import EventStatusMismatchBanner from '../components/EventStatusMismatchBanner';
@@ -45,6 +47,7 @@ const VALID_TABS = new Set([
   'theme',
   'helpers',
   'donors',
+  'members',
 ]);
 
 export default function AdminPage() {
@@ -81,6 +84,7 @@ export default function AdminPage() {
       theme: isAdmin,
       helpers: isAdmin,
       donors: isAdmin,
+      members: isAdmin,
     };
   }, [draftCount, hasMessages, isAdmin, hasFeedback, trashedCount]);
 
@@ -316,6 +320,21 @@ export default function AdminPage() {
             <span>Spender</span>
           </button>
         )}
+        {visibleTabs.members && (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'members'}
+            aria-controls="admin-tab-members"
+            id="admin-tab-members-btn"
+            className={`admin-page-tab${activeTab === 'members' ? ' admin-page-tab--active' : ''}`}
+            onClick={() => setTab('members')}
+            data-testid="admin-tab-members"
+          >
+            <Contact size={16} aria-hidden="true" />
+            <span>Mitglieder</span>
+          </button>
+        )}
       </div>
 
       <div
@@ -414,6 +433,16 @@ export default function AdminPage() {
           hidden={activeTab !== 'donors'}
         >
           {activeTab === 'donors' && <DonorsTab />}
+        </div>
+      )}
+      {visibleTabs.members && (
+        <div
+          role="tabpanel"
+          id="admin-tab-members"
+          aria-labelledby="admin-tab-members-btn"
+          hidden={activeTab !== 'members'}
+        >
+          {activeTab === 'members' && <MembersTab />}
         </div>
       )}
 
