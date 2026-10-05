@@ -105,6 +105,9 @@ describe('validateMemberPatch', () => {
       displayName: 'Anna',
       directoryRegions: ['Dornbirn'],
     });
+    expect(validateMemberPatch({ directoryRegions: ['Online'] })).toEqual({
+      directoryRegions: ['Online'],
+    });
     expect(() => validateMemberPatch({ email: 'x@y.at' })).toThrow();
     expect(() => validateMemberPatch({ directoryRegions: ['Wien'] })).toThrow();
     expect(() => validateMemberPatch({ displayName: '' })).toThrow();

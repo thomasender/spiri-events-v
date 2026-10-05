@@ -15,7 +15,8 @@ const ALLOWED_ORIGINS = [
   'http://localhost:5180',
 ];
 
-const BEZIRKE = ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe'];
+// Mirrors DIRECTORY_REGIONS in src/utils/directory.js (Bezirke + Online).
+const DIRECTORY_REGIONS = ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe', 'Online'];
 const DISPLAY_NAME_MAX = 80;
 const USERNAME_MAX = 40;
 const MAX_CATEGORIES = 5;
@@ -127,7 +128,7 @@ export function validateMemberPatch(raw: unknown): MemberPatch {
   }
   if ('directoryRegions' in input) {
     const list = strList(input.directoryRegions);
-    if (list.some((r) => !BEZIRKE.includes(r))) {
+    if (list.some((r) => !DIRECTORY_REGIONS.includes(r))) {
       throw new HttpsError('invalid-argument', 'Unknown region.');
     }
     patch.directoryRegions = Array.from(new Set(list));

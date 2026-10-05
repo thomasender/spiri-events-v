@@ -16,7 +16,7 @@ import { useAdminMembers } from '../hooks/useAdminMembers';
 import { useMemberLists } from '../hooks/useMemberLists';
 import { useCategories } from '../hooks/useCategories';
 import { useAuth } from '../hooks/useAuth';
-import { BEZIRKE } from '../utils/regions';
+import { DIRECTORY_REGIONS } from '../utils/directory';
 import {
   filterMembers,
   sortMembers,
@@ -113,7 +113,7 @@ function MemberEditDialog({ member, categories, onSave, onClose }) {
         </label>
         <fieldset>
           <legend>Bezirke</legend>
-          {BEZIRKE.map((b) => (
+          {DIRECTORY_REGIONS.map((b) => (
             <label key={b} className="members-check">
               <input
                 type="checkbox"
@@ -292,7 +292,7 @@ export default function MembersTab() {
           onChange={(e) => setRegion(e.target.value)}
         >
           <option value="">Alle Bezirke</option>
-          {BEZIRKE.map((b) => (
+          {DIRECTORY_REGIONS.map((b) => (
             <option key={b} value={b}>
               {b}
             </option>
