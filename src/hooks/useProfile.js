@@ -9,6 +9,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { splitProfileData } from '../utils/profile';
+import { normalizeFocalPoint } from '../lib/eventImage';
 import { findUniqueProfileSlug, slugifyName } from '../lib/slug';
 import { normalizeUsername } from '../utils/username';
 
@@ -37,6 +38,7 @@ const EMPTY_PROFILE = {
   website: '',
   contact: '',
   photoURL: null,
+  photoFocalPoint: null,
   slug: '',
   username: '',
   socialMedia: { facebook: '', instagram: '', sharePublicly: false },
@@ -79,6 +81,7 @@ function normalize(data) {
     website: data.website || '',
     contact: data.contact || '',
     photoURL: data.photoURL || null,
+    photoFocalPoint: normalizeFocalPoint(data.photoFocalPoint),
     slug: data.slug || '',
     username: normalizeUsername(data.username || ''),
     socialMedia: normalizeSocialMedia(data.socialMedia),

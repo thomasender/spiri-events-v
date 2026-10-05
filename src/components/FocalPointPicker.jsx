@@ -34,6 +34,8 @@ export default function FocalPointPicker({
   onRemove,
   ariaLabel = 'Fokuspunkt des Titelbilds festlegen',
   testId = 'focal-point-picker',
+  cropAspect = CROP_ASPECT,
+  round = false,
 }) {
   const containerRef = useRef(null);
   const dragStateRef = useRef(null);
@@ -57,11 +59,11 @@ export default function FocalPointPicker({
     if (!imageSize) return null;
     const { width: w, height: h } = imageSize;
     if (w <= 0 || h <= 0) return null;
-    if (w / h > CROP_ASPECT) {
-      return { width: h * CROP_ASPECT, height: h };
+    if (w / h > cropAspect) {
+      return { width: h * cropAspect, height: h };
     }
-    return { width: w, height: w / CROP_ASPECT };
-  }, [imageSize]);
+    return { width: w, height: w / cropAspect };
+  }, [imageSize, cropAspect]);
 
   const cropFrame = useMemo(() => {
     if (!cropInImage || !imageSize) return null;
@@ -161,7 +163,7 @@ export default function FocalPointPicker({
   const previewStyle = { objectPosition: `${point.x * 100}% ${point.y * 100}%` };
 
   return (
-    <div className="focal-point-picker" data-testid={testId}>
+    <div className={`focal-point-picker${round ? ' focal-point-picker--round' : ''}`} data-testid={testId}>
       <p className="focal-point-picker-info" data-testid={`${testId}-info`}>
         <Info size={14} aria-hidden="true" />
         <span>

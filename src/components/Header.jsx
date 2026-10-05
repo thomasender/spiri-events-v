@@ -5,6 +5,7 @@ import { useProfile } from '../hooks/useProfile';
 import { useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
 import { useUnreadFeedbackCount } from '../hooks/useFeedbackList';
 import EmailVerificationModal from './EmailVerificationModal';
+import { focalPointToStyle } from '../lib/eventImage';
 import { Users, Calendar, LogOut, User, PlusCircle, UserCircle, Pen, Menu, X } from 'lucide-react';
 import './Header.css';
 
@@ -199,6 +200,7 @@ export default function Header() {
             {profile?.photoURL || user?.photoURL ? (
               <img
                 src={profile?.photoURL || user?.photoURL}
+                style={profile?.photoURL ? focalPointToStyle(profile.photoFocalPoint) : undefined}
                 alt=""
                 className="nav-link-avatar"
                 aria-hidden="true"
@@ -289,6 +291,7 @@ export default function Header() {
           {profilePhotoURL ? (
             <img
               src={profilePhotoURL}
+              style={profile?.photoURL ? focalPointToStyle(profile.photoFocalPoint) : undefined}
               alt=""
               className="header-profile-avatar"
               aria-hidden="true"

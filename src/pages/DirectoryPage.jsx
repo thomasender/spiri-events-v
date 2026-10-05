@@ -6,6 +6,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useDirectory } from '../hooks/useDirectory';
 import { useCategoryRegistry } from '../hooks/useCategoryRegistry';
 import { getCategoryColor } from '../utils/categoryColors';
+import { focalPointToStyle } from '../lib/eventImage';
 import {
   DIRECTORY_REGIONS,
   buildDirectoryParams,
@@ -27,7 +28,12 @@ function DirectoryCard({ entry, colorByName, isAdmin, onToggleHidden, busy }) {
     >
       <Link to={`/${entry.slug}`} className="directory-card-link">
         {entry.photoURL ? (
-          <img src={entry.photoURL} alt="" className="directory-card-photo" />
+          <img
+            src={entry.photoURL}
+            alt=""
+            className="directory-card-photo"
+            style={focalPointToStyle(entry.photoFocalPoint)}
+          />
         ) : (
           <div
             className="directory-card-photo directory-card-photo--placeholder"

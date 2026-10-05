@@ -1,11 +1,20 @@
 import { useRef, useState } from 'react';
 import { User } from 'lucide-react';
+import FocalPointPicker from './FocalPointPicker';
+import { focalPointToStyle } from '../lib/eventImage';
 import { uploadProfileImage, MAX_INPUT_SIZE_BYTES } from '../lib/imageUpload';
 import './ProfileForm.css';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
-export default function ProfilePhotoUpload({ uid, photoURL, onUploaded, onRemoved }) {
+export default function ProfilePhotoUpload({
+  uid,
+  photoURL,
+  focalPoint,
+  onFocalPointChange,
+  onUploaded,
+  onRemoved,
+}) {
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -47,7 +56,11 @@ export default function ProfilePhotoUpload({ uid, photoURL, onUploaded, onRemove
   return (
     <div className="profile-photo-upload" data-testid="profile-photo-upload">
       <div className="profile-photo-preview">
-        {photoURL ? <img src={photoURL} alt="Profilfoto" /> : <User size={40} aria-hidden="true" />}
+        {photoURL ? (
+          <img src={photoURL} alt="Profilfoto" style={focalPointToStyle(focalPoint)} />
+        ) : (
+          <User size={40} aria-hidden="true" />
+        )}
       </div>
 
       <div className="profile-photo-controls">
@@ -87,6 +100,18 @@ export default function ProfilePhotoUpload({ uid, photoURL, onUploaded, onRemove
           </span>
         )}
       </div>
+
+      {photoURL && onFocalPointChange && (
+        <FocalPointPicker
+          imageUrl={photoURL}
+          value={focalPoint}
+          onChange={onFocalPointChange}
+          cropAspect={1}
+          round
+          ariaLabel="Fokuspunkt des Profilfotos festlegen"
+          testId="profile-focal-point-picker"
+        />
+      )}
     </div>
   );
 }

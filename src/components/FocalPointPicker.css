@@ -246,3 +246,14 @@
     transition: none;
   }
 }
+
+/* Round (1:1) variant used for profile photos */
+.focal-point-picker--round .focal-point-picker-preview {
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  max-width: 140px;
+}
+
+.focal-point-picker--round .focal-point-picker-crop-frame {
+  border-radius: 50%;
+}

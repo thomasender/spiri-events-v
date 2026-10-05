@@ -60,6 +60,7 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
   const [website, setWebsite] = useState(profile?.website || '');
   const [contact, setContact] = useState(profile?.contact || '');
   const [photoURL, setPhotoURL] = useState(profile?.photoURL || null);
+  const [photoFocalPoint, setPhotoFocalPoint] = useState(profile?.photoFocalPoint || null);
   const [facebook, setFacebook] = useState(profile?.socialMedia?.facebook || '');
   const [instagram, setInstagram] = useState(profile?.socialMedia?.instagram || '');
   const [sharePublicly, setSharePublicly] = useState(profile?.socialMedia?.sharePublicly === true);
@@ -100,6 +101,7 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
     setWebsite(profile.website || '');
     setContact(profile.contact || '');
     setPhotoURL(profile.photoURL || null);
+    setPhotoFocalPoint(profile.photoFocalPoint || null);
     setFacebook(profile.socialMedia?.facebook || '');
     setInstagram(profile.socialMedia?.instagram || '');
     setSharePublicly(profile.socialMedia?.sharePublicly === true);
@@ -213,6 +215,7 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
     website: normalizeWebsite(website),
     contact: contact.trim(),
     photoURL: photoURL || null,
+    photoFocalPoint: photoURL ? photoFocalPoint : null,
     socialMedia: {
       facebook: facebook.trim(),
       instagram: instagram.trim(),
@@ -322,8 +325,16 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
       <ProfilePhotoUpload
         uid={uid}
         photoURL={photoURL}
-        onUploaded={(url) => setPhotoURL(url)}
-        onRemoved={() => setPhotoURL(null)}
+        focalPoint={photoFocalPoint}
+        onFocalPointChange={setPhotoFocalPoint}
+        onUploaded={(url) => {
+          setPhotoURL(url);
+          setPhotoFocalPoint(null);
+        }}
+        onRemoved={() => {
+          setPhotoURL(null);
+          setPhotoFocalPoint(null);
+        }}
       />
 
       <form onSubmit={handleSubmit} className="profile-form" data-testid="profile-form">

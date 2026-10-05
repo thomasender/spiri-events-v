@@ -4,6 +4,7 @@ export const PUBLIC_PROFILE_FIELDS = [
   'bioHtml',
   'website',
   'photoURL',
+  'photoFocalPoint',
   'slug',
   'username',
   'socialMedia',

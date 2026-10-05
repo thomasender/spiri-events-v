@@ -8,6 +8,7 @@ import RichTextView from '../components/RichTextView';
 import { usePublicProfile } from '../hooks/usePublicProfile';
 import { useAuth } from '../hooks/useAuth';
 import { stripHtml } from '../utils/sanitize';
+import { focalPointToStyle } from '../lib/eventImage';
 import './PublicProfilePage.css';
 
 function normalizeWebsite(url) {
@@ -172,6 +173,7 @@ export default function PublicProfilePage() {
           {profile.photoURL ? (
             <img
               src={profile.photoURL}
+              style={focalPointToStyle(profile.photoFocalPoint)}
               alt={profile.displayName}
               className="public-profile-photo"
               data-testid="public-profile-photo"

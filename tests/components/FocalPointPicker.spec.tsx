@@ -299,4 +299,20 @@ describe('FocalPointPicker', () => {
     fireEvent.pointerMove(getCanvas(), { clientX: 30, clientY: 60, pointerId: 7 });
     expect(onChange).toHaveBeenLastCalledWith({ x: 0.1, y: 0.3 });
   });
+
+  it('sizes the crop frame as a square when cropAspect is 1', () => {
+    renderWithImageLoaded(
+      <FocalPointPicker
+        imageUrl={IMAGE_URL}
+        value={{ x: 0.5, y: 0.5 }}
+        onChange={vi.fn()}
+        cropAspect={1}
+      />,
+      { naturalWidth: 400, naturalHeight: 200 }
+    );
+    const frame = screen.getByTestId('focal-point-picker-crop-frame');
+    // 200x200 square inside a 400x200 image -> 50% wide, 100% high
+    expect(frame.style.width).toBe('50%');
+    expect(frame.style.height).toBe('100%');
+  });
 });
