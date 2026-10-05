@@ -843,7 +843,7 @@ export default function EventFormWizard() {
               imageUrl={imagePreview}
               value={imageFocalPoint}
               onChange={setImageFocalPoint}
-              onReplace={() => fileInputRef.current?.click()}
+              onRemove={removeImage}
               ariaLabel="Fokuspunkt für das Titelbild festlegen"
               testId="title-image-focal-picker"
             />

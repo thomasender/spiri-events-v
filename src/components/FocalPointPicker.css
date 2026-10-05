@@ -127,7 +127,7 @@
   letter-spacing: 0.04em;
 }
 
-.focal-point-picker-replace {
+.focal-point-picker-remove {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -137,23 +137,23 @@
   background: transparent;
   border: 1px solid var(--border);
   border-radius: 50%;
-  color: var(--text-secondary);
+  color: #d32f2f;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
-.focal-point-picker-replace:hover {
+.focal-point-picker-remove:hover {
   background: var(--bg-secondary);
-  color: var(--accent-primary);
-  border-color: var(--accent-primary);
+  color: #b71c1c;
+  border-color: #d32f2f;
 }
 
-.focal-point-picker-replace:focus-visible {
+.focal-point-picker-remove:focus-visible {
   outline: none;
-  border-color: var(--accent-primary);
+  border-color: #d32f2f;
   box-shadow:
     0 0 0 2px var(--bg-primary),
-    0 0 0 4px var(--accent-primary);
+    0 0 0 4px #d32f2f;
 }
 
 .focal-point-picker-preview {

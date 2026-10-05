@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Crosshair, Info, RotateCcw, X } from 'lucide-react';
+import { Crosshair, Info, RotateCcw, Trash2 } from 'lucide-react';
 import {
   DEFAULT_FOCAL_POINT,
   clamp01,
@@ -31,7 +31,7 @@ export default function FocalPointPicker({
   imageUrl,
   value,
   onChange,
-  onReplace,
+  onRemove,
   ariaLabel = 'Fokuspunkt des Titelbilds festlegen',
   testId = 'focal-point-picker',
 }) {
@@ -229,16 +229,16 @@ export default function FocalPointPicker({
             <span className="focal-point-picker-preview-label">
               So sieht es nach dem Zuschneiden aus:
             </span>
-            {onReplace && (
+            {onRemove && (
               <button
                 type="button"
-                className="focal-point-picker-replace"
-                onClick={onReplace}
-                aria-label="Foto ersetzen"
-                title="Foto ersetzen"
-                data-testid={`${testId}-replace`}
+                className="focal-point-picker-remove"
+                onClick={onRemove}
+                aria-label="Foto löschen"
+                title="Foto löschen"
+                data-testid={`${testId}-remove`}
               >
-                <X size={14} aria-hidden="true" />
+                <Trash2 size={14} aria-hidden="true" />
               </button>
             )}
           </div>

@@ -245,19 +245,19 @@ describe('FocalPointPicker', () => {
     expect(screen.queryByTestId('focal-point-picker-crop-frame')).toBeNull();
   });
 
-  it('does not render the replace button when no onReplace is provided (6abf8283)', () => {
+  it('does not render the remove button when no onRemove is provided', () => {
     renderWithImageLoaded(<FocalPointPicker imageUrl={IMAGE_URL} />);
-    expect(screen.queryByTestId('focal-point-picker-replace')).toBeNull();
+    expect(screen.queryByTestId('focal-point-picker-remove')).toBeNull();
   });
 
-  it('renders the replace button next to the preview label when onReplace is provided (6abf8283)', () => {
-    const onReplace = vi.fn();
-    renderWithImageLoaded(<FocalPointPicker imageUrl={IMAGE_URL} onReplace={onReplace} />);
-    const replace = screen.getByTestId('focal-point-picker-replace');
+  it('renders a remove button next to the preview label that calls onRemove', () => {
+    const onRemove = vi.fn();
+    renderWithImageLoaded(<FocalPointPicker imageUrl={IMAGE_URL} onRemove={onRemove} />);
+    const replace = screen.getByTestId('focal-point-picker-remove');
     expect(replace).toBeInTheDocument();
-    expect(replace).toHaveAttribute('aria-label', 'Foto ersetzen');
+    expect(replace).toHaveAttribute('aria-label', 'Foto löschen');
     fireEvent.click(replace);
-    expect(onReplace).toHaveBeenCalledTimes(1);
+    expect(onRemove).toHaveBeenCalledTimes(1);
   });
 
   it('drags the handle to reposition the focal point (6abf8283)', () => {
