@@ -176,9 +176,8 @@ export default function DirectoryPage() {
           <span className="directory-eyebrow">Verzeichnis</span>
           <h1 className="directory-title">Angebote &amp; Menschen finden</h1>
           <p className="directory-intro">
-            Hier findest du Menschen mit bewussten Angeboten in Vorarlberg, auch wenn sie keine
-            Events veranstalten. Alle Details und Kontaktmöglichkeiten findest du auf dem jeweiligen
-            Profil.
+            Hier findest du Menschen mit bewussten Angeboten in Vorarlberg. Alle Details und
+            Kontaktmöglichkeiten findest du auf dem jeweiligen Profil.
           </p>
         </header>
 
