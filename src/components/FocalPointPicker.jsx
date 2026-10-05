@@ -36,6 +36,7 @@ export default function FocalPointPicker({
   testId = 'focal-point-picker',
   cropAspect = CROP_ASPECT,
   round = false,
+  zoom = 1,
 }) {
   const containerRef = useRef(null);
   const dragStateRef = useRef(null);
@@ -59,11 +60,12 @@ export default function FocalPointPicker({
     if (!imageSize) return null;
     const { width: w, height: h } = imageSize;
     if (w <= 0 || h <= 0) return null;
+    const z = Math.max(1, zoom);
     if (w / h > cropAspect) {
-      return { width: h * cropAspect, height: h };
+      return { width: (h * cropAspect) / z, height: h / z };
     }
-    return { width: w, height: w / cropAspect };
-  }, [imageSize, cropAspect]);
+    return { width: w / z, height: w / cropAspect / z };
+  }, [imageSize, cropAspect, zoom]);
 
   const cropFrame = useMemo(() => {
     if (!cropInImage || !imageSize) return null;
@@ -160,10 +162,18 @@ export default function FocalPointPicker({
 
   const percentText = focalPointToPercentString(point);
   const canvasAspect = aspectRatioStyle(imageSize?.width, imageSize?.height);
-  const previewStyle = { objectPosition: `${point.x * 100}% ${point.y * 100}%` };
+  const previewStyle = {
+    objectPosition: `${point.x * 100}% ${point.y * 100}%`,
+    ...(zoom > 1
+      ? { transform: `scale(${zoom})`, transformOrigin: `${point.x * 100}% ${point.y * 100}%` }
+      : {}),
+  };
 
   return (
-    <div className={`focal-point-picker${round ? ' focal-point-picker--round' : ''}`} data-testid={testId}>
+    <div
+      className={`focal-point-picker${round ? ' focal-point-picker--round' : ''}`}
+      data-testid={testId}
+    >
       <p className="focal-point-picker-info" data-testid={`${testId}-info`}>
         <Info size={14} aria-hidden="true" />
         <span>

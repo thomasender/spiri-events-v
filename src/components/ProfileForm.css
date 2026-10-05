@@ -512,3 +512,15 @@
   color: var(--free-text);
   margin-top: 2px;
 }
+
+.profile-photo-zoom {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+}
+
+.profile-photo-zoom input[type='range'] {
+  flex: 1;
+  max-width: 260px;
+}

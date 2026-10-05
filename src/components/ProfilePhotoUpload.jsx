@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { User } from 'lucide-react';
 import FocalPointPicker from './FocalPointPicker';
-import { focalPointToStyle } from '../lib/eventImage';
+import { MAX_PHOTO_ZOOM, MIN_PHOTO_ZOOM, photoZoomStyle } from './AvatarImage';
 import { uploadProfileImage, MAX_INPUT_SIZE_BYTES } from '../lib/imageUpload';
 import './ProfileForm.css';
 
@@ -12,6 +12,8 @@ export default function ProfilePhotoUpload({
   photoURL,
   focalPoint,
   onFocalPointChange,
+  zoom = 1,
+  onZoomChange,
   onUploaded,
   onRemoved,
 }) {
@@ -57,7 +59,7 @@ export default function ProfilePhotoUpload({
     <div className="profile-photo-upload" data-testid="profile-photo-upload">
       <div className="profile-photo-preview">
         {photoURL ? (
-          <img src={photoURL} alt="Profilfoto" style={focalPointToStyle(focalPoint)} />
+          <img src={photoURL} alt="Profilfoto" style={photoZoomStyle(focalPoint, zoom)} />
         ) : (
           <User size={40} aria-hidden="true" />
         )}
@@ -107,10 +109,28 @@ export default function ProfilePhotoUpload({
           value={focalPoint}
           onChange={onFocalPointChange}
           cropAspect={1}
+          zoom={zoom}
           round
           ariaLabel="Fokuspunkt des Profilfotos festlegen"
           testId="profile-focal-point-picker"
         />
+      )}
+
+      {photoURL && onZoomChange && (
+        <div className="profile-photo-zoom">
+          <label htmlFor="profile-photo-zoom">Hineinzoomen</label>
+          <input
+            id="profile-photo-zoom"
+            type="range"
+            min={MIN_PHOTO_ZOOM}
+            max={MAX_PHOTO_ZOOM}
+            step={0.05}
+            value={zoom}
+            onChange={(e) => onZoomChange(Number(e.target.value))}
+            data-testid="profile-photo-zoom"
+          />
+          <span aria-live="polite">{Math.round(zoom * 100)} %</span>
+        </div>
       )}
     </div>
   );

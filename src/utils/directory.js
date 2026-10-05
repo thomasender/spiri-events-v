@@ -1,5 +1,6 @@
 import { BEZIRKE, ONLINE_LOCATION } from './regions';
 import { normalizeFocalPoint } from '../lib/eventImage';
+import { normalizePhotoZoom } from '../components/AvatarImage';
 
 // Pure helpers for the directory ("Verzeichnis"): validating a profile's
 // listing choice, normalising directory docs and filtering/sorting/counting
@@ -49,6 +50,7 @@ export function normalizeDirectoryEntry(uid, data) {
     bio: typeof d.bio === 'string' ? d.bio : '',
     photoURL: d.photoURL || null,
     photoFocalPoint: normalizeFocalPoint(d.photoFocalPoint),
+    photoZoom: normalizePhotoZoom(d.photoZoom),
     categories: stringList(d.directoryCategories),
     regions: stringList(d.directoryRegions),
     hidden: d.directoryHidden === true,

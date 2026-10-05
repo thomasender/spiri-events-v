@@ -61,6 +61,7 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
   const [contact, setContact] = useState(profile?.contact || '');
   const [photoURL, setPhotoURL] = useState(profile?.photoURL || null);
   const [photoFocalPoint, setPhotoFocalPoint] = useState(profile?.photoFocalPoint || null);
+  const [photoZoom, setPhotoZoom] = useState(profile?.photoZoom || 1);
   const [facebook, setFacebook] = useState(profile?.socialMedia?.facebook || '');
   const [instagram, setInstagram] = useState(profile?.socialMedia?.instagram || '');
   const [sharePublicly, setSharePublicly] = useState(profile?.socialMedia?.sharePublicly === true);
@@ -102,6 +103,7 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
     setContact(profile.contact || '');
     setPhotoURL(profile.photoURL || null);
     setPhotoFocalPoint(profile.photoFocalPoint || null);
+    setPhotoZoom(profile.photoZoom || 1);
     setFacebook(profile.socialMedia?.facebook || '');
     setInstagram(profile.socialMedia?.instagram || '');
     setSharePublicly(profile.socialMedia?.sharePublicly === true);
@@ -216,6 +218,7 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
     contact: contact.trim(),
     photoURL: photoURL || null,
     photoFocalPoint: photoURL ? photoFocalPoint : null,
+    photoZoom: photoURL && photoZoom > 1 ? photoZoom : null,
     socialMedia: {
       facebook: facebook.trim(),
       instagram: instagram.trim(),
@@ -327,13 +330,17 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
         photoURL={photoURL}
         focalPoint={photoFocalPoint}
         onFocalPointChange={setPhotoFocalPoint}
+        zoom={photoZoom}
+        onZoomChange={setPhotoZoom}
         onUploaded={(url) => {
           setPhotoURL(url);
           setPhotoFocalPoint(null);
+          setPhotoZoom(1);
         }}
         onRemoved={() => {
           setPhotoURL(null);
           setPhotoFocalPoint(null);
+          setPhotoZoom(1);
         }}
       />
 

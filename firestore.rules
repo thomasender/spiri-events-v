@@ -149,7 +149,7 @@ service cloud.firestore {
       allow create: if isAuthenticated()
                     && request.auth.uid == uid
                     && request.resource.data.keys().hasOnly(
-                      ['displayName', 'bio', 'bioHtml', 'website', 'contact', 'photoURL', 'photoFocalPoint',
+                      ['displayName', 'bio', 'bioHtml', 'website', 'contact', 'photoURL', 'photoFocalPoint', 'photoZoom',
                        'slug', 'username', 'socialMedia',
                        'listedInDirectory', 'directoryCategories', 'directoryRegions',
                        'notifyOnSubmitted', 'notifyOnChangesRequested',
@@ -174,7 +174,7 @@ service cloud.firestore {
                         || (request.resource.data.bioHtml is string
                             && request.resource.data.bioHtml.size() <= 20000))
                     && request.resource.data.diff(resource.data).affectedKeys()
-                        .hasOnly(['displayName', 'bio', 'bioHtml', 'website', 'contact', 'photoURL', 'photoFocalPoint',
+                        .hasOnly(['displayName', 'bio', 'bioHtml', 'website', 'contact', 'photoURL', 'photoFocalPoint', 'photoZoom',
                                   'slug', 'username', 'socialMedia',
                                   'listedInDirectory', 'directoryCategories', 'directoryRegions',
                                   'notifyOnSubmitted', 'notifyOnChangesRequested',
@@ -197,7 +197,7 @@ service cloud.firestore {
         allow create: if isAuthenticated()
                       && request.auth.uid == uid
                       && request.resource.data.keys().hasOnly(
-                        ['displayName', 'bio', 'bioHtml', 'website', 'photoURL', 'photoFocalPoint', 'slug', 'username', 'socialMedia',
+                        ['displayName', 'bio', 'bioHtml', 'website', 'photoURL', 'photoFocalPoint', 'photoZoom', 'slug', 'username', 'socialMedia',
                          'listedInDirectory', 'directoryCategories', 'directoryRegions',
                          'updatedAt']
                       )
@@ -217,7 +217,7 @@ service cloud.firestore {
                           || (request.resource.data.bioHtml is string
                               && request.resource.data.bioHtml.size() <= 20000))
                       && request.resource.data.diff(resource.data).affectedKeys()
-                          .hasOnly(['displayName', 'bio', 'bioHtml', 'website', 'photoURL', 'photoFocalPoint', 'slug', 'username', 'socialMedia',
+                          .hasOnly(['displayName', 'bio', 'bioHtml', 'website', 'photoURL', 'photoFocalPoint', 'photoZoom', 'slug', 'username', 'socialMedia',
                                     'listedInDirectory', 'directoryCategories', 'directoryRegions',
                                     'updatedAt']);
 
