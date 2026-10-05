@@ -158,21 +158,21 @@ service cloud.firestore {
                        'notifyNewsletter',
                        'createdAt', 'updatedAt']
                     )
-                    && request.resource.data.bio.size() <= 500
+                    && request.resource.data.bio.size() <= 2000
                     && request.resource.data.displayName.size() <= 80
                     && isValidDirectoryData(request.resource.data)
                     && (!('bioHtml' in request.resource.data)
                         || (request.resource.data.bioHtml is string
-                            && request.resource.data.bioHtml.size() <= 5000));
+                            && request.resource.data.bioHtml.size() <= 20000));
 
       allow update: if isAuthenticated()
                     && request.auth.uid == uid
-                    && request.resource.data.bio.size() <= 500
+                    && request.resource.data.bio.size() <= 2000
                     && request.resource.data.displayName.size() <= 80
                     && isValidDirectoryData(request.resource.data)
                     && (!('bioHtml' in request.resource.data)
                         || (request.resource.data.bioHtml is string
-                            && request.resource.data.bioHtml.size() <= 5000))
+                            && request.resource.data.bioHtml.size() <= 20000))
                     && request.resource.data.diff(resource.data).affectedKeys()
                         .hasOnly(['displayName', 'bio', 'bioHtml', 'website', 'contact', 'photoURL',
                                   'slug', 'username', 'socialMedia',
@@ -201,21 +201,21 @@ service cloud.firestore {
                          'listedInDirectory', 'directoryCategories', 'directoryRegions',
                          'updatedAt']
                       )
-                      && request.resource.data.bio.size() <= 500
+                      && request.resource.data.bio.size() <= 2000
                       && request.resource.data.displayName.size() <= 80
                       && isValidDirectoryData(request.resource.data)
                       && (!('bioHtml' in request.resource.data)
                           || (request.resource.data.bioHtml is string
-                              && request.resource.data.bioHtml.size() <= 5000));
+                              && request.resource.data.bioHtml.size() <= 20000));
 
         allow update: if isAuthenticated()
                       && request.auth.uid == uid
-                      && request.resource.data.bio.size() <= 500
+                      && request.resource.data.bio.size() <= 2000
                       && request.resource.data.displayName.size() <= 80
                       && isValidDirectoryData(request.resource.data)
                       && (!('bioHtml' in request.resource.data)
                           || (request.resource.data.bioHtml is string
-                              && request.resource.data.bioHtml.size() <= 5000))
+                              && request.resource.data.bioHtml.size() <= 20000))
                       && request.resource.data.diff(resource.data).affectedKeys()
                           .hasOnly(['displayName', 'bio', 'bioHtml', 'website', 'photoURL', 'slug', 'username', 'socialMedia',
                                     'listedInDirectory', 'directoryCategories', 'directoryRegions',

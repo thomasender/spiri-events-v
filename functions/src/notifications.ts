@@ -46,6 +46,10 @@ import {
 
 const REGION = 'europe-west3';
 const ADMINS_RECIPIENT = 'admins' as const;
+
+// Temporarily switched off to save Mailgun quota (Trello 8ioEr9T1): admin-facing
+// emails about events ("new event submitted"). Flip to true to re-enable.
+export const ADMIN_EVENT_EMAILS_ENABLED = false;
 type UserRecipient = { email: string; uid?: string | null };
 type RecipientMarker = UserRecipient | typeof ADMINS_RECIPIENT;
 
@@ -243,6 +247,10 @@ async function dispatchDecision(
     | ContactMessagePayloadInput,
   options: SendOptions
 ): Promise<{ recipients: number; dryRun: boolean }> {
+  if (recipient === ADMINS_RECIPIENT && type === 'submitted' && !ADMIN_EVENT_EMAILS_ENABLED) {
+    logger.info('Admin event emails are disabled, skipping', { eventId, type });
+    return { recipients: 0, dryRun: options.dryRun };
+  }
   const resolved = await resolveRecipients(recipient, options.submittedInbox);
   const filtered = await filterRecipientsByPreferences(type, resolved);
   if (filtered.length === 0) {

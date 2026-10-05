@@ -12,7 +12,7 @@ export const PUBLIC_PROFILE_FIELDS = [
   'directoryRegions',
 ];
 
-export const BIO_MAX = 500;
+export const BIO_MAX = 2000;
 export const DISPLAY_NAME_MAX = 80;
 
 // Fields required for a public profile to feel "worth viewing". Without these,

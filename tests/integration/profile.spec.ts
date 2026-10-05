@@ -132,7 +132,7 @@ test.describe.serial('Profile Management', () => {
     }
   );
 
-  test('bio longer than 500 characters is rejected', async ({ page }) => {
+  test('bio longer than 2000 characters is rejected', async ({ page }) => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto(PROFILE_PATH);
     await page
@@ -145,8 +145,8 @@ test.describe.serial('Profile Management', () => {
     const bioEditor = page.locator('[data-testid="profile-bio-editor"] .rte-content');
 
     // The TipTap editor accepts arbitrary input, so we can type well over the
-    // 500-character cap and check the form validation surfaces an error.
-    const longBio = 'x'.repeat(600);
+    // 2000-character cap and check the form validation surfaces an error.
+    const longBio = 'x'.repeat(2100);
     await bioEditor.click();
     await bioEditor.fill(longBio);
 
@@ -156,7 +156,7 @@ test.describe.serial('Profile Management', () => {
 
     await page.getByTestId('profile-save').click();
 
-    await expect(page.getByText(/Bio darf maximal 500 Zeichen/)).toBeVisible();
+    await expect(page.getByText(/Bio darf maximal 2000 Zeichen/)).toBeVisible();
   });
 
   test('user can upload a profile photo and the file lands in users/{uid}/avatar/', async ({

@@ -89,7 +89,7 @@ describe('ProfileForm', () => {
     const editor = screen.getByTestId('profile-bio-editor');
     await waitFor(() => expect(editor.querySelector('.rte-counter')).toBeInTheDocument());
     const counter = editor.querySelector('.rte-counter');
-    expect(counter.textContent).toContain(` / 500`);
+    expect(counter.textContent).toContain(` / 2000`);
     expect(counter.textContent).toContain('29');
   });
 
