@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { getReturnPath } from '../utils/returnPath';
 import { useAuth, authErrorMessage, MIN_PASSWORD_LENGTH } from '../hooks/useAuth';
 import { Mail, Lock, User } from 'lucide-react';
 import './AuthForm.css';
@@ -53,6 +54,7 @@ export default function AuthForm() {
   const wobbleTimerRef = useRef(null);
   const { login, register, loginWithGoogle, resetPassword } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const isLogin = mode === 'login';
 
@@ -91,7 +93,7 @@ export default function AuthForm() {
     setGoogleLoading(true);
     try {
       await loginWithGoogle();
-      navigate('/');
+      navigate(getReturnPath(location.state));
     } catch (err) {
       console.error('Google sign-in failed:', err);
       setError(authErrorMessage(err));
@@ -132,7 +134,7 @@ export default function AuthForm() {
       } else {
         await register(email, password, displayName, subscribeNewsletter);
       }
-      navigate('/');
+      navigate(getReturnPath(location.state));
     } catch (err) {
       const errorMessages = {
         'auth/email-already-in-use': 'Diese E-Mail-Adresse wird bereits verwendet.',

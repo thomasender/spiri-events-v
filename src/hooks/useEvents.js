@@ -256,7 +256,48 @@ export function useEvents(user) {
     duplicateEvent,
     submitForReview,
     revertToDraft,
+    approveEvent: (eventId) => approveEventAsAdmin(eventId, user.uid),
   };
+}
+
+async function approveEventAsAdmin(eventId, adminUid) {
+  if (auth.currentUser) {
+    await auth.currentUser.getIdToken(true);
+  }
+  const freshDb = getFirestore(getApp());
+  const ref = doc(freshDb, 'events', eventId);
+
+  const messagesRef = collection(freshDb, 'events', eventId, 'messages');
+  const messagesSnapshot = await getDocs(messagesRef);
+  await Promise.all(messagesSnapshot.docs.map((docSnap) => deleteDoc(docSnap.ref)));
+
+  // Read the event first so we can ensure its category exists in the
+  // registry before marking it approved. Done outside the update so a
+  // missing/renamed category can't fail the approval transaction.
+  const eventSnap = await getDoc(ref);
+  const eventData = eventSnap.exists() ? eventSnap.data() : null;
+
+  // Two events must never share a public URL: if another approved event
+  // already owns this slug, the newly approved one gets a free variant.
+  const slug = await resolveSlugForApproval(eventId, eventData?.slug);
+
+  await updateDoc(ref, {
+    ...(slug && slug !== eventData?.slug ? { slug } : {}),
+    status: 'approved',
+    approvedBy: adminUid,
+    approvedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+
+  if (eventData?.category) {
+    try {
+      await ensureCategoryExists(eventData.category);
+    } catch (err) {
+      // Don't block approval on category seed failure — admin can
+      // create it manually via the Kategorien tab.
+      console.warn('ensureCategoryExists failed during approval:', err);
+    }
+  }
 }
 
 export function usePendingEvents() {
@@ -303,45 +344,7 @@ export function usePendingEvents() {
     return unsubscribe;
   }, [user, role]);
 
-  const approveEvent = async (eventId) => {
-    if (auth.currentUser) {
-      await auth.currentUser.getIdToken(true);
-    }
-    const freshDb = getFirestore(getApp());
-    const ref = doc(freshDb, 'events', eventId);
-
-    const messagesRef = collection(freshDb, 'events', eventId, 'messages');
-    const messagesSnapshot = await getDocs(messagesRef);
-    await Promise.all(messagesSnapshot.docs.map((docSnap) => deleteDoc(docSnap.ref)));
-
-    // Read the event first so we can ensure its category exists in the
-    // registry before marking it approved. Done outside the update so a
-    // missing/renamed category can't fail the approval transaction.
-    const eventSnap = await getDoc(ref);
-    const eventData = eventSnap.exists() ? eventSnap.data() : null;
-
-    // Two events must never share a public URL: if another approved event
-    // already owns this slug, the newly approved one gets a free variant.
-    const slug = await resolveSlugForApproval(eventId, eventData?.slug);
-
-    await updateDoc(ref, {
-      ...(slug && slug !== eventData?.slug ? { slug } : {}),
-      status: 'approved',
-      approvedBy: user.uid,
-      approvedAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-
-    if (eventData?.category) {
-      try {
-        await ensureCategoryExists(eventData.category);
-      } catch (err) {
-        // Don't block approval on category seed failure — admin can
-        // create it manually via the Kategorien tab.
-        console.warn('ensureCategoryExists failed during approval:', err);
-      }
-    }
-  };
+  const approveEvent = (eventId) => approveEventAsAdmin(eventId, user.uid);
 
   return { pendingEvents, loading, approveEvent };
 }

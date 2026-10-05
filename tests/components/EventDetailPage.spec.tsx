@@ -12,6 +12,7 @@ const mockAuth = vi.hoisted(() => ({
 const mockEvents = vi.hoisted(() => ({
   deleteEvent: vi.fn(async () => {}),
   updateEvent: vi.fn(async () => {}),
+  approveEvent: vi.fn(async () => {}),
 }));
 
 const mockFirestoreDoc = vi.hoisted(() => ({
@@ -103,6 +104,10 @@ vi.mock('firebase/firestore', async () => {
     }),
   };
 });
+
+vi.mock('../../src/components/EventMessages', () => ({
+  default: () => null,
+}));
 
 vi.mock('react-helmet-async', () => ({
   Helmet: ({ children }: { children: React.ReactNode }) => (
@@ -257,6 +262,7 @@ beforeEach(() => {
   };
   mockOrganizerProfile.profileByUid.clear();
   mockEvents.deleteEvent.mockClear();
+  mockEvents.approveEvent.mockClear();
   mockGetRecurrenceDatesForDetail.mockReset();
   mockGetRecurrenceDatesForDetail.mockReturnValue([]);
 });
@@ -302,6 +308,69 @@ describe('EventDetailPage — edit/delete visibility', () => {
 
     expect(screen.queryByRole('link', { name: /event bearbeiten/i })).toBeNull();
     expect(screen.queryByTestId('delete-event-button')).toBeNull();
+  });
+});
+
+describe('EventDetailPage — unavailable event for guests', () => {
+  it('offers a login link back to the event when a guest cannot see it', async () => {
+    mockFirestoreDoc.getDocResult = null;
+
+    renderPage();
+    const login = await screen.findByTestId('event-login-prompt');
+    expect(login).toHaveAttribute('href', '/login');
+    expect(screen.getByText(/wird gerade von den Admins geprüft/)).toBeInTheDocument();
+  });
+
+  it('does not show the login prompt to a logged-in user', async () => {
+    mockAuth.user = { uid: 'random-user-uid' };
+    mockFirestoreDoc.getDocResult = null;
+
+    renderPage();
+    expect(await screen.findByText(/wird gerade von den Admins geprüft/)).toBeInTheDocument();
+    expect(screen.queryByTestId('event-login-prompt')).toBeNull();
+  });
+});
+
+describe('EventDetailPage — admin approve button', () => {
+  const setStatus = (status: string) => {
+    mockFirestoreDoc.getDocResult = {
+      id: foreignEvent.id,
+      data: { ...foreignEvent, status },
+    };
+  };
+
+  it('lets an admin approve a pending event and hides the button afterwards', async () => {
+    mockAuth.user = { uid: 'admin-uid' };
+    mockAuth.role = 'Admin';
+    setStatus('pending');
+
+    renderPage();
+    const button = await screen.findByTestId('approve-event-button');
+    await act(async () => {
+      fireEvent.click(button);
+    });
+
+    expect(mockEvents.approveEvent).toHaveBeenCalledWith('remote-event-id');
+    expect(screen.queryByTestId('approve-event-button')).toBeNull();
+  });
+
+  it('does not offer approval to the event owner', async () => {
+    mockAuth.user = { uid: 'other-user-uid' };
+    setStatus('pending');
+
+    renderPage();
+    expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
+    expect(screen.queryByTestId('approve-event-button')).toBeNull();
+  });
+
+  it('does not offer approval for an already approved event', async () => {
+    mockAuth.user = { uid: 'admin-uid' };
+    mockAuth.role = 'Admin';
+    setStatus('approved');
+
+    renderPage();
+    expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
+    expect(screen.queryByTestId('approve-event-button')).toBeNull();
   });
 });
 

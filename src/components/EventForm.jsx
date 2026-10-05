@@ -5,6 +5,7 @@ import { useEvents, BEZIRKE } from '../hooks/useEvents';
 import { useCategories } from '../hooks/useCategories';
 import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
+import { resolveOrganizerPhotoURL } from '../utils/organizerPhoto';
 import {
   uploadImage,
   deleteImageByUrl,
@@ -536,7 +537,7 @@ export default function EventForm({ event }) {
       firstName: splitOrganizerName(formData.organizer.name).firstName,
       lastName: splitOrganizerName(formData.organizer.name).lastName,
       email: isEdit ? event.organizer.email : formData.organizer.email.trim(),
-      photoURL: profile?.photoURL || null,
+      photoURL: resolveOrganizerPhotoURL({ isEdit, event, user, profile }),
     },
     kontakt: formData.kontakt.trim(),
     imageUrl: imageFile || imageRemoved ? null : originalImageUrl || null,
@@ -1276,7 +1277,7 @@ export default function EventForm({ event }) {
                   imageUrl={imagePreview}
                   value={imageFocalPoint}
                   onChange={setImageFocalPoint}
-                  onReplace={() => fileInputRef.current?.click()}
+                  onRemove={removeImage}
                   ariaLabel="Fokuspunkt für das Titelbild festlegen"
                   testId="title-image-focal-picker"
                 />
