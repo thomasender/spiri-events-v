@@ -285,6 +285,63 @@ test.describe.serial('Profile Management', () => {
     }
   });
 
+  test('opting into the directory lists the profile there; opting out removes it', async ({
+    page,
+  }) => {
+    const email = `directory-${Date.now()}@example.com`;
+    const password = 'testpassword123';
+    const displayName = `Verzeichnis Test ${Date.now()}`;
+    const uid = await createAuthUser(email, password);
+
+    const openProfile = async () => {
+      await page.goto(PROFILE_PATH);
+      await page
+        .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
+        .catch(() => {});
+      await page.waitForSelector('[data-testid="profile-bio-editor"] .rte-content', {
+        timeout: 15000,
+      });
+    };
+
+    try {
+      await signInWithEmailAndPassword(page, email, password);
+      await openProfile();
+
+      await page.getByTestId('profile-displayName').fill(displayName);
+      const bioEditor = page.locator('[data-testid="profile-bio-editor"] .rte-content');
+      await bioEditor.click();
+      await bioEditor.fill('Ich biete Yogastunden an.');
+
+      // Listing without a category is rejected.
+      await page.getByTestId('profile-directory-toggle').check();
+      await page.getByTestId('profile-save').click();
+      await expect(page.getByTestId('profile-directory-categories-error')).toBeVisible();
+
+      await page.getByTestId('profile-directory-category-Yoga').click();
+      await page.getByTestId('profile-save').click();
+      await expect(page.getByTestId('profile-save-success')).toBeVisible({ timeout: 10000 });
+
+      await page.goto('/verzeichnis?kategorie=Yoga');
+      await expect(page.getByTestId('directory-card').filter({ hasText: displayName })).toBeVisible(
+        { timeout: 15000 }
+      );
+
+      // Opting out takes the entry out of the directory again.
+      await openProfile();
+      await page.getByTestId('profile-directory-toggle').uncheck();
+      await page.getByTestId('profile-save').click();
+      await expect(page.getByTestId('profile-save-success')).toBeVisible({ timeout: 10000 });
+
+      await page.goto('/verzeichnis?kategorie=Yoga');
+      await expect(page.getByTestId('directory-page')).toBeVisible();
+      await expect(page.getByTestId('directory-card').filter({ hasText: displayName })).toHaveCount(
+        0
+      );
+    } finally {
+      await deleteAuthUser(uid);
+    }
+  });
+
   test('change email requires the current password and sends a confirmation email', async ({
     page,
   }) => {

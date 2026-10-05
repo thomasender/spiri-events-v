@@ -1,0 +1,127 @@
+.directory-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+
+.directory-fields-title {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.directory-fields-hint {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.directory-fields-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-primary);
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  transition: border-color 0.15s ease;
+}
+
+.directory-fields-toggle:hover {
+  border-color: var(--accent-primary);
+}
+
+.directory-fields-toggle input[type='checkbox'] {
+  margin-top: 3px;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent-primary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.directory-fields-group {
+  border: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.directory-fields-group legend {
+  padding: 0;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.directory-fields-group legend span {
+  font-weight: 400;
+  color: var(--text-light);
+  font-size: 0.85rem;
+}
+
+/* Shared chip look for the profile form and the directory filter bar. */
+.directory-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.directory-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background-color: var(--bg-calendar);
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: var(--fs-badge);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.directory-chip:hover:not(:disabled) {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary-strong);
+}
+
+.directory-chip:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  border-color: var(--accent-primary);
+}
+
+.directory-chip--selected,
+.directory-chip--selected:hover:not(:disabled) {
+  background-color: var(--accent-primary-hover);
+  border-color: var(--accent-primary-hover);
+  color: #fff;
+}
+
+.directory-chip--selected .directory-chip-count {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.directory-chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.directory-chip-count {
+  font-size: var(--fs-eyebrow);
+  color: var(--text-light);
+}

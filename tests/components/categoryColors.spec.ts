@@ -6,6 +6,7 @@ import {
   getCategoryColor,
   resolveEventColor,
 } from '../../src/utils/categoryColors';
+import { slugify } from '../../src/lib/slug-helpers';
 
 describe('CATEGORY_COLORS', () => {
   it('keeps existing seed entries for backward compatibility', () => {
@@ -34,7 +35,7 @@ describe('SEED_CATEGORIES', () => {
 
   it('uses a lowercase slug for the id so admins and the seed write to the same doc', () => {
     for (const entry of SEED_CATEGORIES) {
-      expect(entry.id).toBe(entry.name.toLowerCase());
+      expect(entry.id).toBe(slugify(entry.name));
     }
   });
 });

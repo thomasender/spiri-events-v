@@ -46,6 +46,22 @@ service cloud.firestore {
       return order is int && order >= 0;
     }
 
+    // Directory listing fields on the profile docs. A profile may only be
+    // listed (`listedInDirectory == true`) when it names at least one
+    // category; categories/regions are capped so the doc stays small.
+    // `request.resource.data` is the merged document, so this also holds
+    // for partial updates.
+    function isValidDirectoryData(d) {
+      return (!('listedInDirectory' in d) || d.listedInDirectory is bool)
+        && (!('directoryCategories' in d)
+            || (d.directoryCategories is list && d.directoryCategories.size() <= 5))
+        && (!('directoryRegions' in d)
+            || (d.directoryRegions is list && d.directoryRegions.size() <= 6))
+        && (!('listedInDirectory' in d)
+            || d.listedInDirectory != true
+            || ('directoryCategories' in d && d.directoryCategories.size() >= 1));
+    }
+
     match /events/{eventId} {
       allow read: if isApproved() || isOwner() || isAdminOrEmulatorAdmin();
 
@@ -135,6 +151,7 @@ service cloud.firestore {
                     && request.resource.data.keys().hasOnly(
                       ['displayName', 'bio', 'bioHtml', 'website', 'contact', 'photoURL',
                        'slug', 'username', 'socialMedia',
+                       'listedInDirectory', 'directoryCategories', 'directoryRegions',
                        'notifyOnSubmitted', 'notifyOnChangesRequested',
                        'notifyOnPublished', 'notifyOnDeleted',
                        'notifyOnContactMessage',
@@ -143,6 +160,7 @@ service cloud.firestore {
                     )
                     && request.resource.data.bio.size() <= 500
                     && request.resource.data.displayName.size() <= 80
+                    && isValidDirectoryData(request.resource.data)
                     && (!('bioHtml' in request.resource.data)
                         || (request.resource.data.bioHtml is string
                             && request.resource.data.bioHtml.size() <= 5000));
@@ -151,12 +169,14 @@ service cloud.firestore {
                     && request.auth.uid == uid
                     && request.resource.data.bio.size() <= 500
                     && request.resource.data.displayName.size() <= 80
+                    && isValidDirectoryData(request.resource.data)
                     && (!('bioHtml' in request.resource.data)
                         || (request.resource.data.bioHtml is string
                             && request.resource.data.bioHtml.size() <= 5000))
                     && request.resource.data.diff(resource.data).affectedKeys()
                         .hasOnly(['displayName', 'bio', 'bioHtml', 'website', 'contact', 'photoURL',
                                   'slug', 'username', 'socialMedia',
+                                  'listedInDirectory', 'directoryCategories', 'directoryRegions',
                                   'notifyOnSubmitted', 'notifyOnChangesRequested',
                                   'notifyOnPublished', 'notifyOnDeleted',
                                   'notifyOnContactMessage',
@@ -178,10 +198,12 @@ service cloud.firestore {
                       && request.auth.uid == uid
                       && request.resource.data.keys().hasOnly(
                         ['displayName', 'bio', 'bioHtml', 'website', 'photoURL', 'slug', 'username', 'socialMedia',
+                         'listedInDirectory', 'directoryCategories', 'directoryRegions',
                          'updatedAt']
                       )
                       && request.resource.data.bio.size() <= 500
                       && request.resource.data.displayName.size() <= 80
+                      && isValidDirectoryData(request.resource.data)
                       && (!('bioHtml' in request.resource.data)
                           || (request.resource.data.bioHtml is string
                               && request.resource.data.bioHtml.size() <= 5000));
@@ -190,12 +212,23 @@ service cloud.firestore {
                       && request.auth.uid == uid
                       && request.resource.data.bio.size() <= 500
                       && request.resource.data.displayName.size() <= 80
+                      && isValidDirectoryData(request.resource.data)
                       && (!('bioHtml' in request.resource.data)
                           || (request.resource.data.bioHtml is string
                               && request.resource.data.bioHtml.size() <= 5000))
                       && request.resource.data.diff(resource.data).affectedKeys()
                           .hasOnly(['displayName', 'bio', 'bioHtml', 'website', 'photoURL', 'slug', 'username', 'socialMedia',
+                                    'listedInDirectory', 'directoryCategories', 'directoryRegions',
                                     'updatedAt']);
+
+        // Moderation: admins can hide a listing from the directory (and
+        // undo that) via `directoryHidden`. The owner's allowed-key lists
+        // above deliberately exclude it, so a hidden user cannot re-show
+        // themselves; the merge-writes from the profile form never touch it.
+        allow update: if isAdminOrEmulatorAdmin()
+                      && request.resource.data.diff(resource.data).affectedKeys()
+                          .hasOnly(['directoryHidden'])
+                      && request.resource.data.directoryHidden is bool;
 
         allow delete: if isAuthenticated() && request.auth.uid == uid;
       }
@@ -239,6 +272,10 @@ service cloud.firestore {
                            'Tanz',
                            'Singen',
                            'Soundhealing',
+                           'Coaching',
+                           'Körperarbeit',
+                           'Ernährung',
+                           'Therapie',
                            'Sonstiges',
                          ]
                          && request.resource.data.color is string

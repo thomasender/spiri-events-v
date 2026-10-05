@@ -27,6 +27,11 @@
       "collectionGroup": "publicProfile",
       "fieldPath": "username",
       "indexes": [{ "queryScope": "COLLECTION_GROUP", "order": "ASCENDING" }]
+    },
+    {
+      "collectionGroup": "publicProfile",
+      "fieldPath": "listedInDirectory",
+      "indexes": [{ "queryScope": "COLLECTION_GROUP", "order": "ASCENDING" }]
     }
   ]
 }

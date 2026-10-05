@@ -11,9 +11,11 @@
 //      do not carry `categoryColor`; they read their color from the
 //      registry via the `useCategoryRegistry` hook.
 
+import { slugify } from '../lib/slug-helpers';
+
 export const FALLBACK_CATEGORY_COLOR = '#605e5e';
 
-// Canonical 7 seed categories. Identical to the legacy `CATEGORY_COLORS`
+// Canonical 11 seed categories. Identical to the legacy `CATEGORY_COLORS`
 // map so the registry, once seeded, produces the same display colors that
 // the old hardcoded map produced.
 export const CATEGORY_COLORS = {
@@ -23,6 +25,10 @@ export const CATEGORY_COLORS = {
   Tanz: '#8a6d2f',
   Singen: '#9a5f38',
   Soundhealing: '#6b568b',
+  Coaching: '#4a7572',
+  Körperarbeit: '#8c5a6e',
+  Ernährung: '#6f8f4e',
+  Therapie: '#5b7389',
   Sonstiges: '#605e5e',
 };
 
@@ -31,7 +37,7 @@ export const CATEGORY_COLORS = {
 // produce in the UI, so the seed writes to the same ids admins would have
 // chosen.
 export const SEED_CATEGORIES = Object.entries(CATEGORY_COLORS).map(([name, color]) => ({
-  id: name.toLowerCase(),
+  id: slugify(name),
   name,
   color,
 }));

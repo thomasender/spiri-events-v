@@ -18,6 +18,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { findUniqueSlug, resolveSlugForApproval } from '../lib/slug';
+import { BEZIRKE, ONLINE_LOCATION } from '../utils/regions';
 import { normalizeCurrency } from '../utils/currency';
 import { deleteImageByUrl } from '../lib/imageUpload';
 import { compareEventsByDateTime } from '../utils/eventSort';
@@ -36,9 +37,7 @@ export const KATEGORIEN = [
   'Sonstiges',
 ];
 
-export const BEZIRKE = ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe'];
-
-export const ONLINE_LOCATION = 'Online';
+export { BEZIRKE, ONLINE_LOCATION };
 
 function normalizeCategory(event) {
   if (event.category) return event.category;
