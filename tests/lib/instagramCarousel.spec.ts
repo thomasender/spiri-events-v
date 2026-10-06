@@ -384,3 +384,97 @@ describe('runWeeklyCarousels', () => {
     expect(out).toMatchObject({ results: [{ outcome: 'published' }] });
   });
 });
+
+describe('carousel collaborators', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+    vi.setSystemTime(SUNDAY);
+  });
+  afterEach(() => vi.useRealTimers());
+
+  const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
+
+  function run(handles: Record<string, string | null>, parentResponses: Response[] = []) {
+    const queue = [...parentResponses];
+    const list = ['a', 'b', 'c', 'd', 'e'].map((id, i) =>
+      ev({ id, createdBy: `u_${id}`, time: `1${i}:00` } as Partial<CarouselEvent>)
+    );
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      const body = new URLSearchParams(String(init?.body ?? ''));
+      if (url.endsWith('/media') && init?.method === 'POST') {
+        if (body.get('media_type') === 'CAROUSEL') return queue.shift() ?? json({ id: 'parent1' });
+        return json({ id: `child-${body.get('image_url')}` });
+      }
+      if (url.includes('?fields=status_code')) return json({ status_code: 'FINISHED' });
+      if (url.endsWith('/media_publish')) return json({ id: 'media1' });
+      return json({ permalink: 'https://instagram.com/p/abc/' });
+    });
+    const posts = new Map<string, Record<string, unknown>>();
+    const deps: CarouselDeps = {
+      fetch: fetchMock as unknown as typeof fetch,
+      accessToken: TOKEN,
+      userId: 'IGUSER',
+      isEnabled: async () => true,
+      listEvents: async () => list,
+      async createPost(id, record: CarouselPostRecord) {
+        posts.set(id, { ...record });
+        return true;
+      },
+      async updatePost(id, patch) {
+        posts.set(id, { ...posts.get(id), ...patch });
+      },
+      getOrganizerHandle: async (event) => handles[String(event.createdBy)] ?? null,
+      generateCoverImage: async (name) => `https://img/${name}.jpg`,
+      generateEventImage: async (name) => `https://img/${name}.jpg`,
+      notifyAdmins: async () => undefined,
+    };
+    const parents = () =>
+      fetchMock.mock.calls
+        .map(([, init]) => new URLSearchParams(String(init?.body ?? '')))
+        .filter((b) => b.get('media_type') === 'CAROUSEL');
+    return { deps, parents, posts };
+  }
+
+  it('sends at most 3 distinct collaborators, no user_tags, and mentions all handles', async () => {
+    const h = run({ u_a: '@one', u_b: '@two', u_c: '@one', u_d: '@three', u_e: '@four' });
+    await runWeeklyCarousels(h.deps);
+    const [parent] = h.parents();
+    expect(JSON.parse(parent.get('collaborators') as string)).toEqual(['one', 'two', 'three']);
+    expect(parent.has('user_tags')).toBe(false);
+    expect(parent.get('caption')).toContain('Mit @one @two @three @four');
+    expect(parent.get('caption')?.length).toBeLessThanOrEqual(2200);
+    expect(h.posts.values().next().value).toMatchObject({ collaboratorInvited: true });
+  });
+
+  it('sends no collaborators when nobody has a handle', async () => {
+    const h = run({});
+    await runWeeklyCarousels(h.deps);
+    const [parent] = h.parents();
+    expect(parent.has('collaborators')).toBe(false);
+    expect(parent.get('caption')).not.toContain('Mit @');
+  });
+
+  it('retries the parent once without collaborators on 110/2207018', async () => {
+    const h = run({ u_a: '@one' }, [
+      json({ error: { message: 'Invalid user id', code: 110, error_subcode: 2207018 } }, 400),
+    ]);
+    const result = await runWeeklyCarousels(h.deps);
+    expect(result).toMatchObject({ results: [{ outcome: 'published' }] });
+    const parents = h.parents();
+    expect(parents).toHaveLength(2);
+    expect(parents[0].has('collaborators')).toBe(true);
+    expect(parents[1].has('collaborators')).toBe(false);
+    expect(parents[1].get('caption')).toContain('Mit @one');
+    expect(h.posts.values().next().value).toMatchObject({
+      collaboratorInvited: false,
+      inviteFallbackReason: expect.stringContaining('110/2207018'),
+    });
+  });
+
+  it('does not retry on other errors', async () => {
+    const h = run({ u_a: '@one' }, [json({ error: { message: 'x', code: 1 } }, 500)]);
+    const result = await runWeeklyCarousels(h.deps);
+    expect(result).toMatchObject({ results: [{ outcome: 'failed' }] });
+    expect(h.parents()).toHaveLength(1);
+  });
+});

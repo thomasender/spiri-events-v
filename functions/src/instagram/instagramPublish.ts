@@ -23,6 +23,10 @@ export interface PostRecord {
   igMediaId: string | null;
   permalink: string | null;
   error: string | null;
+  /** True when the organizer was tagged and invited as collaborator on the container. */
+  collaboratorInvited: boolean;
+  /** Why the invite/tag was dropped (container retried without it); null otherwise. */
+  inviteFallbackReason: string | null;
 }
 
 /** The subset of PublishDeps the Graph API helpers need (shared with the carousel flow). */
@@ -119,6 +123,95 @@ function apiErrorMessage(step: string, response: Response, body: Record<string, 
   return `Instagram ${step} failed (HTTP ${response.status}): ${detail}`;
 }
 
+/** Graph API error carrying the machine-readable code/subcode of the error body. */
+export class GraphApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly code: number | null,
+    readonly subcode: number | null,
+    readonly userMessage: string | null
+  ) {
+    super(message);
+    this.name = 'GraphApiError';
+  }
+}
+
+function numberOrNull(value: unknown): number | null {
+  return typeof value === 'number' ? value : null;
+}
+
+function toGraphApiError(step: string, response: Response, body: Record<string, unknown>) {
+  const err =
+    body.error && typeof body.error === 'object' ? (body.error as Record<string, unknown>) : {};
+  return new GraphApiError(
+    apiErrorMessage(step, response, body),
+    response.status,
+    numberOrNull(err.code),
+    numberOrNull(err.error_subcode),
+    typeof err.error_user_msg === 'string' ? err.error_user_msg : null
+  );
+}
+
+export const COLLAB_TAG_X = 0.2;
+export const COLLAB_TAG_Y = 0.93;
+/** Instagram's documented maximum number of collaborators per post. */
+export const MAX_COLLABORATORS = 3;
+
+/** Graph usernames are sent without the leading "@". */
+export function bareUsername(handle: string): string {
+  return handle.replace(/^@+/, '');
+}
+
+/**
+ * Invalid/private/nonexistent username (110/2207018) or user_tags on a carousel
+ * parent (100/2207065): the container can be created again without the invite.
+ */
+export function isInviteRejection(err: unknown): err is GraphApiError {
+  return (
+    err instanceof GraphApiError &&
+    ((err.code === 110 && err.subcode === 2207018) || (err.code === 100 && err.subcode === 2207065))
+  );
+}
+
+/**
+ * Creates a media container with the invite params (collaborators/user_tags).
+ * If Instagram rejects the invite, retries exactly once with the plain params.
+ */
+export async function createContainerWithInvite(
+  deps: GraphDeps,
+  path: string,
+  params: Record<string, string>,
+  inviteParams: Record<string, string> | null,
+  step: string,
+  log: (message: string, data?: Record<string, unknown>) => void = () => undefined
+): Promise<{ json: Record<string, unknown>; invited: boolean; fallbackReason: string | null }> {
+  if (!inviteParams || Object.keys(inviteParams).length === 0) {
+    return {
+      json: await graphPost(deps, path, params, step),
+      invited: false,
+      fallbackReason: null,
+    };
+  }
+  try {
+    const json = await graphPost(deps, path, { ...params, ...inviteParams }, step);
+    log('Instagram container created with collaborator invite', { step });
+    return { json, invited: true, fallbackReason: null };
+  } catch (err) {
+    if (!isInviteRejection(err)) throw err;
+    const fallbackReason = sanitizeError(
+      `${err.code}/${err.subcode}${err.userMessage ? `: ${err.userMessage}` : ''}`,
+      [deps.accessToken]
+    );
+    log('Instagram rejected collaborator invite; retrying container without it', {
+      step,
+      reason: fallbackReason,
+    });
+    const json = await graphPost(deps, path, params, step);
+    return { json, invited: false, fallbackReason };
+  }
+}
+
 export async function graphPost(
   deps: GraphDeps,
   path: string,
@@ -132,7 +225,7 @@ export async function graphPost(
     body: body.toString(),
   });
   const json = await readJson(response);
-  if (!response.ok) throw new Error(apiErrorMessage(step, response, json));
+  if (!response.ok) throw toGraphApiError(step, response, json);
   return json;
 }
 
@@ -213,6 +306,8 @@ export async function publishApprovedEvent(
     igMediaId: null,
     permalink: null,
     error: null,
+    collaboratorInvited: false,
+    inviteFallbackReason: null,
   };
 
   const past = isEventPast(event, (deps.now ?? (() => new Date()))());
@@ -226,6 +321,8 @@ export async function publishApprovedEvent(
     return 'skipped';
   }
 
+  let collaboratorInvited = false;
+  let inviteFallbackReason: string | null = null;
   try {
     let handle: string | null = null;
     if (deps.getOrganizerHandle) {
@@ -239,12 +336,24 @@ export async function publishApprovedEvent(
       }
     }
     const imageUrl = await deps.generateImage(eventId, event);
-    const container = await graphPost(
+    const username = handle ? bareUsername(handle) : '';
+    const invite = username
+      ? {
+          collaborators: JSON.stringify([username]),
+          user_tags: JSON.stringify([{ username, x: COLLAB_TAG_X, y: COLLAB_TAG_Y }]),
+        }
+      : null;
+    const created2 = await createContainerWithInvite(
       deps,
       `${deps.userId}/media`,
       { image_url: imageUrl, caption: buildCaption(event, handle) },
-      'media container creation'
+      invite,
+      'media container creation',
+      log
     );
+    const container = created2.json;
+    collaboratorInvited = created2.invited;
+    inviteFallbackReason = created2.fallbackReason;
     const containerId = idOf(container, 'media container creation');
     await waitForContainer(deps, containerId);
     const published = await graphPost(
@@ -262,12 +371,23 @@ export async function publishApprovedEvent(
     } catch (err) {
       log('Permalink lookup failed', { eventId, error: sanitizeError(err, [deps.accessToken]) });
     }
-    await deps.updatePost(postId, { status: 'published', igMediaId: mediaId, permalink });
+    await deps.updatePost(postId, {
+      status: 'published',
+      igMediaId: mediaId,
+      permalink,
+      collaboratorInvited,
+      inviteFallbackReason,
+    });
     return 'published';
   } catch (err) {
     const message = sanitizeError(err, [deps.accessToken]);
     try {
-      await deps.updatePost(postId, { status: 'failed', error: message });
+      await deps.updatePost(postId, {
+        status: 'failed',
+        error: message,
+        collaboratorInvited,
+        inviteFallbackReason,
+      });
     } catch (updateErr) {
       log('Could not record Instagram failure', {
         eventId,

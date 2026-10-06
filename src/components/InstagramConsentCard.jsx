@@ -33,8 +33,9 @@ export default function InstagramConsentCard({ checked, onSave }) {
       <h2 className="profile-card-title">Instagram</h2>
       <p className="profile-card-hint">
         Mit deiner Einwilligung dürfen wir deine Events auf dem Instagram-Kanal @tribevorarlberg_
-        veröffentlichen und dein Instagram-Profil (siehe Feld „Instagram“ oben) verlinken.
-        Änderungen werden sofort gespeichert.
+        veröffentlichen. Dein Instagram-Profil (siehe Feld „Instagram“ oben) dürfen wir dabei
+        markieren und als Co-Autor (Collab) zum Beitrag einladen. Änderungen werden sofort
+        gespeichert.
       </p>
       <label className="notification-preference-label">
         <input
