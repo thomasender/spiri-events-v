@@ -5,17 +5,14 @@ import { initializeApp, getApps } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import { generateAndStoreEventImage } from './instagram/instagramImage';
-import { publishApprovedEvent, type PublishDeps } from './instagram/instagramPublish';
-import { getAdminEmails } from './adminEmails';
 import {
-  MAILGUN_API_KEY,
-  MAILGUN_DOMAIN,
-  MAILGUN_FROM,
-  MAILGUN_REPLY_TO,
-  MAILGUN_EU_BASE,
-  sendMailgunMessage,
-  isMailgunDryRun,
-} from './mailgun';
+  publishApprovedEvent,
+  isApprovalTransition,
+  type PublishDeps,
+} from './instagram/instagramPublish';
+import { getInstagramAccessToken } from './instagram/instagramToken';
+import { readStoredInstagramToken } from './instagramTokenStore';
+import { notifyAdmins, ADMIN_MAIL_SECRETS } from './adminNotify';
 
 if (getApps().length === 0) {
   initializeApp();
@@ -26,52 +23,13 @@ const IG_USER_ID = defineSecret('IG_USER_ID');
 
 const REGION = 'europe-west3';
 
-function escapeHtml(text: string): string {
-  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-async function notifyAdmins(subject: string, text: string): Promise<void> {
-  if (isMailgunDryRun(process.env)) {
-    logger.info('MAILGUN dry-run: would send Instagram failure mail', { subject });
-    return;
-  }
-  const apiKey = MAILGUN_API_KEY.value();
-  const domain = MAILGUN_DOMAIN.value();
-  const from = MAILGUN_FROM.value();
-  if (!apiKey || !domain || !from) {
-    logger.error('Mailgun secrets are not configured; Instagram failure mail not sent');
-    return;
-  }
-  const recipients = await getAdminEmails();
-  const html = `<p>${escapeHtml(text).replace(/\n/g, '<br>')}</p>`;
-  for (const to of recipients) {
-    await sendMailgunMessage(MAILGUN_EU_BASE, {
-      apiKey,
-      domain,
-      from,
-      to,
-      subject,
-      text,
-      html,
-      replyTo: MAILGUN_REPLY_TO.value() || undefined,
-    });
-  }
-}
-
 export const onEventApprovedPostToInstagram = onDocumentWritten(
   {
     region: REGION,
     document: 'events/{eventId}',
     timeoutSeconds: 540,
     memory: '1GiB',
-    secrets: [
-      IG_ACCESS_TOKEN,
-      IG_USER_ID,
-      MAILGUN_API_KEY,
-      MAILGUN_DOMAIN,
-      MAILGUN_FROM,
-      MAILGUN_REPLY_TO,
-    ],
+    secrets: [IG_ACCESS_TOKEN, IG_USER_ID, ...ADMIN_MAIL_SECRETS],
   },
   async (event) => {
     const eventId = typeof event.params.eventId === 'string' ? event.params.eventId : '';
@@ -81,7 +39,7 @@ export const onEventApprovedPostToInstagram = onDocumentWritten(
 
     const deps: PublishDeps = {
       fetch,
-      accessToken: IG_ACCESS_TOKEN.value(),
+      accessToken: '',
       userId: IG_USER_ID.value(),
       async isEnabled() {
         const snap = await db.doc('app_settings/instagram').get();
@@ -135,6 +93,15 @@ export const onEventApprovedPostToInstagram = onDocumentWritten(
     // Cheap gates first so unrelated event writes never touch secrets or the
     // network; the full decision (kill switch, dedupe, date) lives in the
     // tested logic module.
+    if (!isApprovalTransition(before, after)) return;
+
+    // The secret stays the fallback until the refresh job has stored a newer
+    // token in instagram_private/token.
+    deps.accessToken = await getInstagramAccessToken({
+      secretToken: IG_ACCESS_TOKEN.value(),
+      readStoredToken: () => readStoredInstagramToken(db),
+      log: (message, data) => logger.info(message, data),
+    });
     if (!deps.accessToken || !deps.userId) {
       logger.warn('IG_ACCESS_TOKEN or IG_USER_ID is not configured; skipping Instagram post', {
         eventId,
