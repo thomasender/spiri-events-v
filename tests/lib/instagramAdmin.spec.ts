@@ -9,7 +9,13 @@ import {
 } from '../../functions/src/instagram/instagramAdminLogic';
 import type { PublishDeps } from '../../functions/src/instagram/instagramPublish';
 
-const future = { status: 'approved', title: 'Kakao', date: '2999-01-01', slug: 'kakao' };
+const future = {
+  status: 'approved',
+  title: 'Kakao',
+  date: '2999-01-01',
+  slug: 'kakao',
+  instagramConsent: true,
+};
 
 function retryHarness(
   opts: { status?: string | null; event?: Record<string, unknown> | null; enabled?: boolean } = {}

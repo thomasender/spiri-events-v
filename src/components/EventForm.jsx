@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import CreatableSelect from 'react-select/creatable';
 import { useEvents, BEZIRKE } from '../hooks/useEvents';
@@ -29,6 +29,7 @@ import {
 } from '../utils/customSeriesUpdates';
 import { CURRENCIES, DEFAULT_CURRENCY } from '../utils/currency';
 import { normalizeCategoryInput, isValidCategoryInput } from '../utils/categoryInput';
+import InstagramConsentField from './InstagramConsentField';
 import './EventForm.css';
 
 const INITIAL_STATE = {
@@ -158,6 +159,16 @@ export default function EventForm({ event }) {
   };
 
   const [formData, setFormData] = useState(buildInitialState);
+  // Edit: the stored value (absent == no consent). New: the profile default,
+  // which may load after the first render, until the user touches the box.
+  const [instagramConsent, setInstagramConsent] = useState(
+    event ? event.instagramConsent === true : profile?.instagramConsentDefault === true
+  );
+  const instagramConsentTouched = useRef(Boolean(event));
+  const profileInstagramDefault = profile?.instagramConsentDefault === true;
+  useEffect(() => {
+    if (!instagramConsentTouched.current) setInstagramConsent(profileInstagramDefault);
+  }, [profileInstagramDefault]);
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -540,6 +551,7 @@ export default function EventForm({ event }) {
       photoURL: resolveOrganizerPhotoURL({ isEdit, event, user, profile }),
     },
     kontakt: formData.kontakt.trim(),
+    instagramConsent,
     imageUrl: imageFile || imageRemoved ? null : originalImageUrl || null,
     imageFocalPoint:
       imageFile || imageRemoved || isDefaultFocalPoint(imageFocalPoint) ? null : imageFocalPoint,
@@ -1337,6 +1349,15 @@ export default function EventForm({ event }) {
               </p>
             </div>
           )}
+
+          <InstagramConsentField
+            checked={instagramConsent}
+            onChange={(value) => {
+              instagramConsentTouched.current = true;
+              setInstagramConsent(value);
+            }}
+            instagramHandle={profile?.socialMedia?.instagram}
+          />
 
           {validationError && <p className="error-text submit-error">{validationError}</p>}
 

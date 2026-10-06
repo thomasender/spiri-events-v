@@ -40,6 +40,15 @@ export const onEventApprovedPostToInstagram = onDocumentWritten(
     // network; the full decision (kill switch, dedupe, date) lives in the
     // tested logic module.
     if (!isApprovalTransition(before, after)) return;
+    // No consent: skip before touching secrets. Writes no instagram_posts doc,
+    // so approving again after the organizer opted in can still post.
+    if (after?.instagramConsent !== true) {
+      logger.info('Instagram feed post skipped: no organizer consent', {
+        eventId,
+        outcome: 'no-consent',
+      });
+      return;
+    }
 
     // The secret stays the fallback until the refresh job has stored a newer
     // token in instagram_private/token.

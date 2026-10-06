@@ -44,6 +44,8 @@ export interface InstagramEventInput {
   description?: unknown;
   imageUrl?: unknown;
   slug?: unknown;
+  instagramConsent?: unknown;
+  createdBy?: unknown;
 }
 
 export interface EventImageModel {
@@ -189,21 +191,40 @@ function categoryHashtag(category: string): string {
   return tag ? `#${tag.toLowerCase()}` : '';
 }
 
+const INSTAGRAM_HANDLE_PATTERN = /^[A-Za-z0-9._]{1,30}$/;
+
+/**
+ * Turns whatever an organizer typed into their profile ("@name", "name",
+ * "instagram.com/name/", "https://www.instagram.com/name?igsh=...") into a
+ * mention like "@name". Returns null when no valid handle can be derived.
+ */
+export function normalizeInstagramHandle(input: unknown): string | null {
+  let value = asString(input);
+  if (!value) return null;
+  const urlMatch = /^(?:https?:\/\/)?(?:[\w-]+\.)?instagram\.com\/([^/?#\s]+)/i.exec(value);
+  if (urlMatch) value = urlMatch[1];
+  else if (/[/\s]/.test(value)) return null;
+  value = value.replace(/^@+/, '');
+  return INSTAGRAM_HANDLE_PATTERN.test(value) ? `@${value}` : null;
+}
+
 /**
  * Feed caption: headline facts first, a short description, then the link and
  * hashtags. Always <= CAPTION_MAX_LENGTH (Instagram's hard limit); the
  * description is what gets shortened when the budget runs out.
  */
-export function buildCaption(event: InstagramEventInput): string {
+export function buildCaption(event: InstagramEventInput, organizerHandle?: string | null): string {
   const model = buildEventImageModel(event);
   // The caption is rendered by Instagram, which supports emoji, so it uses the
   // raw title/location rather than the image-safe ones from the model.
   const title = truncateTitle(event.title);
   const location = formatLocation(event);
   const when = [model.dateLabel, model.timeLabel].filter(Boolean).join(' · ');
+  const handle = normalizeInstagramHandle(organizerHandle);
   const header = [
     title,
     [when && `📅 ${when}`, location && `📍 ${location}`].filter(Boolean).join('\n'),
+    handle ? `Mit ${handle}` : '',
   ]
     .filter(Boolean)
     .join('\n\n');

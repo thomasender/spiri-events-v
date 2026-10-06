@@ -5,6 +5,7 @@ import {
   FORMAT_DIMENSIONS,
   buildCaption,
   buildEventImageModel,
+  normalizeInstagramHandle,
   formatEventDate,
   formatEventTime,
   formatLocation,
@@ -162,4 +163,53 @@ describe('instagram image rendering', () => {
       }
     }
   );
+});
+
+describe('normalizeInstagramHandle', () => {
+  it.each([
+    ['@kakao.maria', '@kakao.maria'],
+    ['kakao_maria', '@kakao_maria'],
+    ['  @@Maria ', '@Maria'],
+    ['instagram.com/maria', '@maria'],
+    ['https://www.instagram.com/maria/', '@maria'],
+    ['https://instagram.com/maria.yoga?igsh=abc123', '@maria.yoga'],
+  ])('normalises %s', (input, expected) => {
+    expect(normalizeInstagramHandle(input)).toBe(expected);
+  });
+
+  it.each([
+    '',
+    '   ',
+    '@',
+    'maria yoga',
+    'maria!',
+    'a'.repeat(31),
+    'https://facebook.com/maria',
+    'https://www.instagram.com/',
+    null,
+    undefined,
+    42,
+  ])('rejects %s', (input) => {
+    expect(normalizeInstagramHandle(input)).toBeNull();
+  });
+});
+
+describe('buildCaption organizer tag', () => {
+  const ev = { title: 'Kakao', date: '2026-10-17', slug: 'kakao' };
+
+  it('adds a mention when a handle is given', () => {
+    expect(buildCaption(ev, 'maria')).toContain('@maria');
+  });
+
+  it('adds no mention without a handle or with an invalid one', () => {
+    expect(buildCaption(ev)).not.toContain('@');
+    expect(buildCaption(ev, null)).not.toContain('@');
+    expect(buildCaption(ev, 'not valid!')).not.toContain('@');
+  });
+
+  it('stays within the caption limit with a handle', () => {
+    const long = { ...ev, description: 'x '.repeat(5000) };
+    expect(buildCaption(long, '@maria').length).toBeLessThanOrEqual(CAPTION_MAX_LENGTH);
+    expect(buildCaption(long, '@maria')).toContain('@maria');
+  });
 });

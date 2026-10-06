@@ -2,6 +2,7 @@ import { logger } from 'firebase-functions';
 import { getStorage } from 'firebase-admin/storage';
 import { FieldValue, type Firestore } from 'firebase-admin/firestore';
 import { generateAndStoreEventImage } from './instagram/instagramImage';
+import { normalizeInstagramHandle } from './instagram/instagramContent';
 import type { PublishDeps } from './instagram/instagramPublish';
 import { getInstagramAccessToken } from './instagram/instagramToken';
 import { readStoredInstagramToken } from './instagramTokenStore';
@@ -43,6 +44,12 @@ export function buildPublishDeps(db: Firestore, userId: string): PublishDeps {
         .collection('instagram_posts')
         .doc(id)
         .update({ ...patch, updatedAt: FieldValue.serverTimestamp() });
+    },
+    async getOrganizerHandle(ev) {
+      const uid = typeof ev.createdBy === 'string' ? ev.createdBy : '';
+      if (!uid) return null;
+      const snap = await db.doc(`users/${uid}`).get();
+      return normalizeInstagramHandle(snap.get('socialMedia.instagram'));
     },
     async generateImage(id, ev) {
       const colors: Record<string, string> = {};
