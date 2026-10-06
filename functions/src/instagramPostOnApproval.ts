@@ -10,6 +10,7 @@ import {
   isApprovalTransition,
   type PublishDeps,
 } from './instagram/instagramPublish';
+import { normalizeInstagramHandle } from './instagram/instagramContent';
 import { getInstagramAccessToken } from './instagram/instagramToken';
 import { readStoredInstagramToken } from './instagramTokenStore';
 import { notifyAdmins, ADMIN_MAIL_SECRETS } from './adminNotify';
@@ -68,6 +69,12 @@ export const onEventApprovedPostToInstagram = onDocumentWritten(
           .doc(id)
           .update({ ...patch, updatedAt: FieldValue.serverTimestamp() });
       },
+      async getOrganizerHandle(ev) {
+        const uid = typeof ev.createdBy === 'string' ? ev.createdBy : '';
+        if (!uid) return null;
+        const snap = await db.doc(`users/${uid}`).get();
+        return normalizeInstagramHandle(snap.get('socialMedia.instagram'));
+      },
       async generateImage(id, ev) {
         const colors: Record<string, string> = {};
         const categories = await db.collection('categories').get();
@@ -94,6 +101,15 @@ export const onEventApprovedPostToInstagram = onDocumentWritten(
     // network; the full decision (kill switch, dedupe, date) lives in the
     // tested logic module.
     if (!isApprovalTransition(before, after)) return;
+    // No consent: skip before touching secrets. Writes no instagram_posts doc,
+    // so approving again after the organizer opted in can still post.
+    if (after?.instagramConsent !== true) {
+      logger.info('Instagram feed post skipped: no organizer consent', {
+        eventId,
+        outcome: 'no-consent',
+      });
+      return;
+    }
 
     // The secret stays the fallback until the refresh job has stored a newer
     // token in instagram_private/token.

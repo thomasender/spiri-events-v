@@ -47,6 +47,7 @@ const EMPTY_PROFILE = {
   listedInDirectory: false,
   directoryCategories: [],
   directoryRegions: [],
+  instagramConsentDefault: false,
   createdAt: null,
   updatedAt: null,
 };
@@ -91,6 +92,7 @@ function normalize(data) {
     listedInDirectory: data.listedInDirectory === true,
     directoryCategories: stringArray(data.directoryCategories),
     directoryRegions: stringArray(data.directoryRegions),
+    instagramConsentDefault: data.instagramConsentDefault === true,
     createdAt: data.createdAt || null,
     updatedAt: data.updatedAt || null,
   };

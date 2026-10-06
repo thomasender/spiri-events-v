@@ -1,0 +1,200 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
+
+const mockAuth = vi.hoisted(() => ({
+  user: { uid: 'user-uid', email: 'user@test.local', emailVerified: true },
+  role: null,
+}));
+
+const mockProfile = vi.hoisted(() => ({ value: null }));
+
+const mockEvents = vi.hoisted(() => ({
+  addEvent: vi.fn(async () => ({ id: 'new-event-id' })),
+  updateEvent: vi.fn(async () => {}),
+}));
+
+const mockNavigate = vi.fn();
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+    useParams: () => ({}),
+  };
+});
+
+vi.mock('../../src/hooks/useAuth', () => ({
+  useAuth: () => mockAuth,
+}));
+
+vi.mock('../../src/hooks/useProfile', () => ({
+  useProfile: () => ({ profile: mockProfile.value }),
+}));
+
+vi.mock('../../src/hooks/useEvents', () => ({
+  useEvents: () => mockEvents,
+  useAllEvents: () => ({ events: [], loading: false, error: null }),
+  KATEGORIEN: ['Yoga', 'Breathwork', 'Meditation', 'Tanz', 'Singen', 'Soundhealing', 'Sonstiges'],
+  BEZIRKE: ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe'],
+}));
+
+vi.mock('../../src/hooks/useCategories', () => ({
+  useCategories: () => [
+    'Yoga',
+    'Breathwork',
+    'Meditation',
+    'Tanz',
+    'Singen',
+    'Soundhealing',
+    'Sonstiges',
+  ],
+}));
+
+vi.mock('../../src/lib/imageUpload', () => ({
+  uploadImage: vi.fn(async () => 'https://example.com/test.jpg'),
+  deleteImageByUrl: vi.fn(async () => {}),
+  getImageDimensions: vi.fn(async () => ({ width: 1200, height: 800 })),
+  getAspectRatioRecommendation: vi.fn(() => ({ isRecommended: true })),
+  MAX_INPUT_SIZE_BYTES: 5 * 1024 * 1024,
+}));
+
+import EventFormWizard from '../../src/components/EventFormWizard';
+
+const FUTURE_DATE = (() => {
+  const d = new Date();
+  d.setDate(d.getDate() + 30);
+  return d.toISOString().split('T')[0];
+})();
+
+const COMPLETE_DRAFT = {
+  formData: {
+    title: 'Instagram Consent Test Event',
+    date: FUTURE_DATE,
+    time: '10:00',
+    endDate: '',
+    place: 'Test Place',
+    contribution: 'free',
+    fee: '',
+    priceCurrency: 'EUR',
+    feeNote: '',
+    description: '<p>Beschreibung</p>',
+    link: '',
+    recurrence: 'none',
+    recurrenceEndDate: '',
+    customDates: [],
+    category: 'Yoga',
+    bezirk: 'Bregenz',
+    isOnline: false,
+    organizer: { name: 'Test User', email: 'user@test.local' },
+    kontakt: 'user@test.local',
+  },
+  currentStep: 4,
+  rightsConfirmed: true,
+};
+
+function seedDraft() {
+  localStorage.setItem(
+    'eventWizardDraft:user-uid',
+    JSON.stringify({ version: 1, savedAt: Date.now(), draft: COMPLETE_DRAFT })
+  );
+}
+
+function renderWizard() {
+  return render(
+    <HelmetProvider>
+      <MemoryRouter initialEntries={['/admin/new']}>
+        <EventFormWizard />
+      </MemoryRouter>
+    </HelmetProvider>
+  );
+}
+
+beforeEach(() => {
+  localStorage.clear();
+  mockAuth.user = { uid: 'user-uid', email: 'user@test.local', emailVerified: true };
+  mockAuth.role = null;
+  mockProfile.value = null;
+  mockEvents.addEvent.mockClear();
+  mockEvents.updateEvent.mockClear();
+  mockNavigate.mockClear();
+});
+
+async function submitAndGetSavedEvent() {
+  fireEvent.click(screen.getByTestId('submit-event-button'));
+  const confirmDialog = document.querySelector('.confirm-dialog') as HTMLElement;
+  await waitFor(() => expect(confirmDialog).toBeTruthy());
+  fireEvent.click(within(confirmDialog).getByRole('button', { name: /^einreichen$/i }));
+  await waitFor(() => expect(mockEvents.addEvent).toHaveBeenCalled());
+  return (mockEvents.addEvent.mock.calls[0] as unknown[])[0] as Record<string, unknown>;
+}
+
+const profileWith = (extra: Record<string, unknown>) => ({
+  displayName: 'Test User',
+  bio: 'Bio',
+  slug: 'test-user',
+  photoURL: null,
+  socialMedia: { facebook: '', instagram: '', sharePublicly: false },
+  ...extra,
+});
+
+describe('EventFormWizard Instagram consent', () => {
+  it('is off by default and saved as false', async () => {
+    mockProfile.value = profileWith({});
+    seedDraft();
+    renderWizard();
+    expect(screen.getByTestId('instagram-consent-checkbox')).not.toBeChecked();
+    const saved = await submitAndGetSavedEvent();
+    expect(saved.instagramConsent).toBe(false);
+  });
+
+  it('takes the default from the profile setting', async () => {
+    mockProfile.value = profileWith({ instagramConsentDefault: true });
+    seedDraft();
+    renderWizard();
+    expect(screen.getByTestId('instagram-consent-checkbox')).toBeChecked();
+    const saved = await submitAndGetSavedEvent();
+    expect(saved.instagramConsent).toBe(true);
+  });
+
+  it('can be overridden per event and the chosen value is saved', async () => {
+    mockProfile.value = profileWith({ instagramConsentDefault: true });
+    seedDraft();
+    renderWizard();
+    fireEvent.click(screen.getByTestId('instagram-consent-checkbox'));
+    expect(screen.getByTestId('instagram-consent-checkbox')).not.toBeChecked();
+    const saved = await submitAndGetSavedEvent();
+    expect(saved.instagramConsent).toBe(false);
+  });
+
+  it('can be ticked when the profile default is off', async () => {
+    mockProfile.value = profileWith({});
+    seedDraft();
+    renderWizard();
+    fireEvent.click(screen.getByTestId('instagram-consent-checkbox'));
+    const saved = await submitAndGetSavedEvent();
+    expect(saved.instagramConsent).toBe(true);
+  });
+
+  it('shows the profile handle for tagging, or a hint to add one', () => {
+    mockProfile.value = profileWith({
+      socialMedia: {
+        facebook: '',
+        instagram: 'https://instagram.com/maria.yoga',
+        sharePublicly: false,
+      },
+    });
+    seedDraft();
+    const { unmount } = renderWizard();
+    expect(screen.getByTestId('instagram-consent-hint')).toHaveTextContent('@maria.yoga');
+    unmount();
+
+    mockProfile.value = profileWith({});
+    renderWizard();
+    expect(screen.getByTestId('instagram-consent-hint')).toHaveTextContent(
+      /Trage in deinem Profil/
+    );
+  });
+});
