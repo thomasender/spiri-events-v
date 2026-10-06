@@ -446,13 +446,31 @@ service cloud.firestore {
 
     // Instagram automation kill switch. Default OFF: a missing doc or
     // enabled != true means the Cloud Function does nothing. Admin only.
+    //
+    // The Cloud Functions token-refresh job also stores NON-SECRET metadata
+    // here via the Admin SDK (tokenExpiresAt, tokenRefreshedAt,
+    // tokenRefreshError). Clients may still only write the three fields
+    // below: updates are checked on affectedKeys() so the server-owned
+    // fields already in the doc do not block the admin toggle.
     match /app_settings/instagram {
-      allow create, update: if isAdminOrEmulatorAdmin()
-                            && request.resource.data.keys().hasOnly([
-                              'enabled', 'updatedAt', 'updatedBy',
-                            ])
-                            && request.resource.data.enabled is bool;
+      allow create: if isAdminOrEmulatorAdmin()
+                    && request.resource.data.keys().hasOnly([
+                      'enabled', 'updatedAt', 'updatedBy',
+                    ])
+                    && request.resource.data.enabled is bool;
+      allow update: if isAdminOrEmulatorAdmin()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                      'enabled', 'updatedAt', 'updatedBy',
+                    ])
+                    && request.resource.data.enabled is bool;
       allow delete: if isAdminOrEmulatorAdmin();
+    }
+
+    // Refreshed Instagram access token (secret!). Written and read only by
+    // the Cloud Functions (Admin SDK bypasses rules). No client may ever read
+    // or write it, not even admins.
+    match /instagram_private/{docId} {
+      allow read, write: if false;
     }
 
     // Idempotency/audit records of Instagram posts. Written only by the

@@ -120,3 +120,4 @@ export { sendPasswordResetEmailFn } from './sendPasswordResetEmail';
 export { checkEmailAvailability } from './checkEmailAvailability';
 export { adminListMembers, adminUpdateMember } from './adminMembers';
 export { onEventApprovedPostToInstagram } from './instagramPostOnApproval';
+export { refreshInstagramTokenJob } from './instagramTokenRefresh';
