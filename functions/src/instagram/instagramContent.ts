@@ -48,6 +48,16 @@ export interface InstagramEventInput {
   createdBy?: unknown;
 }
 
+/** Text of the first slide of a weekly carousel (already image-safe). */
+export interface CoverModel {
+  heading: string;
+  bezirk: string;
+  dateRange: string;
+  /** "Teil 1 von 2"; empty for a single-part carousel. */
+  partLabel: string;
+  eventCount: number;
+}
+
 export interface EventImageModel {
   title: string;
   dateLabel: string;

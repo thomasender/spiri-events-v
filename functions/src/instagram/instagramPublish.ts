@@ -25,6 +25,14 @@ export interface PostRecord {
   error: string | null;
 }
 
+/** The subset of PublishDeps the Graph API helpers need (shared with the carousel flow). */
+export interface GraphDeps {
+  fetch: typeof fetch;
+  accessToken: string;
+  userId: string;
+  now?(): Date;
+}
+
 export interface PublishDeps {
   fetch: typeof fetch;
   accessToken: string;
@@ -111,8 +119,8 @@ function apiErrorMessage(step: string, response: Response, body: Record<string, 
   return `Instagram ${step} failed (HTTP ${response.status}): ${detail}`;
 }
 
-async function graphPost(
-  deps: PublishDeps,
+export async function graphPost(
+  deps: GraphDeps,
   path: string,
   params: Record<string, string>,
   step: string
@@ -128,8 +136,8 @@ async function graphPost(
   return json;
 }
 
-async function graphGet(
-  deps: PublishDeps,
+export async function graphGet(
+  deps: GraphDeps,
   path: string,
   params: Record<string, string>,
   step: string
@@ -141,7 +149,7 @@ async function graphGet(
   return json;
 }
 
-function idOf(json: Record<string, unknown>, step: string): string {
+export function idOf(json: Record<string, unknown>, step: string): string {
   const id = json.id;
   if (typeof id !== 'string' || !id) throw new Error(`Instagram ${step} returned no id`);
   return id;
@@ -149,7 +157,7 @@ function idOf(json: Record<string, unknown>, step: string): string {
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-async function waitForContainer(deps: PublishDeps, containerId: string): Promise<void> {
+export async function waitForContainer(deps: GraphDeps, containerId: string): Promise<void> {
   const clock = deps.now ?? (() => new Date());
   const deadline = clock().getTime() + POLL_TIMEOUT_MS;
   for (;;) {

@@ -20,6 +20,7 @@ import sharp from 'sharp';
 import {
   FORMAT_DIMENSIONS,
   buildEventImageModel,
+  type CoverModel,
   type EventImageModel,
   type InstagramEventInput,
   type InstagramFormat,
@@ -255,6 +256,76 @@ export async function uploadInstagramImage(
   return `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(
     path
   )}?alt=media&token=${token}`;
+}
+
+function buildCoverLayout(cover: CoverModel, format: InstagramFormat): Node {
+  const { width, height } = FORMAT_DIMENSIONS[format];
+  const pad = 90;
+  return el(
+    'div',
+    {
+      width,
+      height,
+      flexDirection: 'column',
+      justifyContent: 'space-between',
+      padding: `${pad}px`,
+      background: 'linear-gradient(160deg, #5c6b3f 0%, #1d1a1a 100%)',
+      color: '#ffffff',
+      fontFamily: 'Inter',
+    },
+    [
+      el(
+        'div',
+        {
+          fontSize: 36,
+          fontWeight: 700,
+          letterSpacing: 3,
+          textTransform: 'uppercase',
+          opacity: 0.85,
+        },
+        'thetribe.at'
+      ),
+      el('div', { flexDirection: 'column' }, [
+        el(
+          'div',
+          { fontFamily: 'Cormorant Garamond', fontWeight: 700, fontSize: 124, lineHeight: 1.02 },
+          cover.heading
+        ),
+        el('div', { fontSize: 64, fontWeight: 700, marginTop: 56 }, cover.bezirk),
+        el('div', { fontSize: 52, fontWeight: 400, marginTop: 20, opacity: 0.95 }, cover.dateRange),
+        cover.partLabel
+          ? el(
+              'div',
+              { fontSize: 44, fontWeight: 400, marginTop: 14, opacity: 0.85 },
+              cover.partLabel
+            )
+          : null,
+      ]),
+      el(
+        'div',
+        { fontSize: 40, fontWeight: 400, opacity: 0.9 },
+        `${cover.eventCount} ${cover.eventCount === 1 ? 'Event' : 'Events'} - weiter wischen`
+      ),
+    ]
+  );
+}
+
+/** Renders the cover slide of a weekly carousel as a JPEG buffer. */
+export async function renderCoverImage(
+  cover: CoverModel,
+  format: InstagramFormat = 'carousel'
+): Promise<Buffer> {
+  const { width, height } = FORMAT_DIMENSIONS[format];
+  const svg = await satori(buildCoverLayout(cover, format) as never, {
+    width,
+    height,
+    fonts: loadFonts(),
+  });
+  const overlay = new Resvg(svg, { fitTo: { mode: 'width', value: width } }).render().asPng();
+  return sharp({ create: { width, height, channels: 3, background: '#1d1a1a' } })
+    .composite([{ input: overlay }])
+    .jpeg({ quality: JPEG_QUALITY, mozjpeg: true })
+    .toBuffer();
 }
 
 /** Render + upload in one step; `name` should be deterministic, e.g. `feed_<eventId>`. */
