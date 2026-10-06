@@ -31,6 +31,32 @@ export const DEFAULT_CATEGORY_COLORS: Record<string, string> = {
   Sonstiges: '#605e5e',
 };
 
+// Mirrors CATEGORY_FALLBACKS in src/utils/eventFallbacks.js (the photo the
+// website shows on an event detail page without an own image). functions/
+// cannot import from src/; tests/lib/instagramFallbacks.spec.ts asserts both
+// maps stay identical. The files are fetched from the public site.
+export const SITE_ORIGIN = 'https://www.thetribe.at';
+export const DEFAULT_EVENT_FALLBACK = '/hero.jpeg';
+export const CATEGORY_FALLBACKS: Record<string, string> = {
+  Yoga: '/event-fallbacks/yoga.jpg',
+  Breathwork: '/event-fallbacks/breathwork.jpg',
+  Meditation: '/event-fallbacks/meditation.jpg',
+  Tanz: '/event-fallbacks/tanz.jpg',
+  Singen: '/event-fallbacks/singen.jpg',
+  Soundhealing: '/event-fallbacks/soundhealing.jpeg',
+  Sonstiges: '/hero.jpeg',
+};
+
+/** Absolute URL of the category fallback photo (default for unknown/empty). */
+export function getCategoryFallbackUrl(category: unknown): string {
+  const path =
+    typeof category === 'string' &&
+    Object.prototype.hasOwnProperty.call(CATEGORY_FALLBACKS, category)
+      ? CATEGORY_FALLBACKS[category]
+      : DEFAULT_EVENT_FALLBACK;
+  return `${SITE_ORIGIN}${path}`;
+}
+
 export interface InstagramEventInput {
   title?: unknown;
   date?: unknown;
