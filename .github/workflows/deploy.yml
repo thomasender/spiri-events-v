@@ -10,8 +10,12 @@ on:
 jobs:
   build-deploy:
     # workflow_dispatch can be started on any branch from the Actions tab;
-    # this job deploys to production (hosting, rules, functions), so it only
-    # ever runs from main. Feature branches are tested via emulators/previews.
+    # this job deploys to production, so it only ever runs from main. Feature
+    # branches are tested via emulators/previews.
+    # Scope per trigger: repository_dispatch / workflow_dispatch only refresh
+    # content (migrate slugs + build + Hosting). Rules, indexes and Cloud
+    # Functions are deployed only on push to main, and only if backend files
+    # changed in that push.
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     concurrency:
@@ -20,6 +24,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -44,35 +50,73 @@ jobs:
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
 
+      - name: Detect whether backend (rules/indexes/functions) needs deploying
+        id: scope
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
+        run: |
+          set -uo pipefail
+          deploy=false
+          if [ "$EVENT_NAME" = "push" ]; then
+            if [ -z "$BEFORE_SHA" ] || [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ]; then
+              echo "No usable 'before' commit; deploying backend."
+              deploy=true
+            elif ! changed=$(git diff --name-only "$BEFORE_SHA" "$AFTER_SHA"); then
+              echo "git diff failed (e.g. force-push); deploying backend."
+              deploy=true
+            else
+              echo "Changed files:"; echo "$changed"
+              if echo "$changed" | grep -Eq '^(firestore\.rules|firestore\.indexes\.json|firebase\.json|functions/)'; then
+                deploy=true
+              fi
+            fi
+          fi
+          echo "Backend deploy: $deploy"
+          echo "backend=$deploy" >> "$GITHUB_OUTPUT"
+
       - name: Migrate existing event slugs to the new format
         env:
           GOOGLE_APPLICATION_CREDENTIALS: scripts/service-account.json
         run: node scripts/migrate-event-slugs.mjs
 
       - name: Build (Vite + prerender)
+        id: build
         env:
           GOOGLE_APPLICATION_CREDENTIALS: scripts/service-account.json
         run: npm run build
 
       - name: Deploy Firestore rules and indexes
+        if: steps.scope.outputs.backend == 'true'
         env:
           GOOGLE_APPLICATION_CREDENTIALS: scripts/service-account.json
         run: npx -y firebase-tools@latest deploy --only firestore:rules,firestore:indexes --project spirieventsvbg --non-interactive
 
       - name: Install Cloud Functions dependencies
+        if: steps.scope.outputs.backend == 'true'
         working-directory: functions
         run: npm ci
 
       - name: Deploy Cloud Functions
+        if: steps.scope.outputs.backend == 'true'
         env:
           GOOGLE_APPLICATION_CREDENTIALS: scripts/service-account.json
         # Note: changing a function's trigger type (e.g. onCall → onRequest)
         # is not allowed by Firebase. If you ever flip a function between
         # callable and HTTPS, run `firebase functions:delete <name>` first
         # and commit the deletion before this step runs again.
+        # Manual-deploy pitfall: if a function was deployed by hand from a
+        # branch, always use `--only functions:<name>` and merge that branch
+        # soon. A function that exists in the cloud but not in main makes this
+        # non-interactive deploy abort (we never use --force, it would delete
+        # it). Hosting still deploys below, but the job stays red.
         run: npx -y firebase-tools@latest deploy --only functions --project spirieventsvbg --non-interactive
 
+      # Runs even if the rules/functions steps failed, so content refreshes are
+      # never blocked by a backend problem; the job still ends red in that case.
       - name: Deploy to Firebase Hosting
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
