@@ -54,7 +54,7 @@ Diese Daten werden in Firestore (Firebase) gespeichert. Event-Bilder werden in F
       },
       {
         heading: '4. Keine Weitergabe an Dritte',
-        text: `Wir geben Ihre personenbezogenen Daten nicht an Dritte weiter. Ihre Daten werden nicht verkauft, vermietet oder in sonstiger Weise an externe Unternehmen oder Organisationen übermittelt.
+        text: `Wir geben Ihre personenbezogenen Daten nicht an Dritte weiter (Ausnahme: die freiwillige Veröffentlichung Ihrer Events auf Instagram mit Ihrer Einwilligung, siehe Abschnitt 12). Ihre Daten werden nicht verkauft, vermietet oder in sonstiger Weise an externe Unternehmen oder Organisationen übermittelt.
 
 Firebase (Google) fungiert als Auftragsverarbeiter und erhält Ihre Daten nur insoweit, als dies für die Bereitstellung der Authentifizierungs- und Datenbankdienste erforderlich ist.`,
       },
