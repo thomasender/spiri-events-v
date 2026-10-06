@@ -196,9 +196,67 @@ export function buildEventImageModel(
   };
 }
 
-function categoryHashtag(category: string): string {
-  const tag = category.replace(/[^\p{L}\p{N}]/gu, '');
-  return tag ? `#${tag.toLowerCase()}` : '';
+const UMLAUT_MAP: Record<string, string> = { ä: 'ae', ö: 'oe', ü: 'ue', ß: 'ss' };
+
+/**
+ * "Yoga & Bewegung" -> "#yogabewegung", "Feldkirch-Süd" -> "#feldkirchsued".
+ * Lowercase, umlauts transliterated, other diacritics stripped, everything but
+ * a-z0-9 removed. Returns null when nothing is left.
+ */
+export function toHashtag(text: unknown): string | null {
+  if (typeof text !== 'string') return null;
+  const tag = text
+    .toLowerCase()
+    .replace(/[äöüß]/g, (c) => UMLAUT_MAP[c])
+    .normalize('NFD')
+    .replace(/[^a-z0-9]/g, '');
+  return tag ? `#${tag}` : null;
+}
+
+// Extra descriptive tags for the categories in src/utils/categoryColors.js.
+// Kept deliberately small: the category itself is always tagged separately.
+export const CATEGORY_EXTRA_HASHTAGS: Record<string, string[]> = {
+  Yoga: ['#yoga', '#yogavorarlberg'],
+  Breathwork: ['#atemarbeit'],
+  Meditation: ['#meditation'],
+  Tanz: ['#tanz', '#ecstaticdance'],
+  Singen: ['#mantras', '#singen'],
+  Soundhealing: ['#klangreise', '#klangschalen'],
+  Coaching: ['#persoenlichkeitsentwicklung'],
+  Körperarbeit: ['#koerperarbeit'],
+  Ernährung: ['#gesundeernaehrung'],
+  Therapie: ['#ganzheitlich'],
+};
+
+export const BASE_HASHTAGS = ['#vorarlberg', '#thetribe', '#bewusstsein', '#veranstaltung'];
+export const MAX_HASHTAGS = 12;
+
+/**
+ * Hashtags for a feed post, most specific first: Bezirk (or #online), the
+ * category, curated extras, then the fixed base set. De-duplicated
+ * case-insensitively and capped at `max`.
+ */
+export function buildHashtags(event: InstagramEventInput, max = MAX_HASHTAGS): string[] {
+  const bezirk = asString(event.bezirk);
+  const online = isOnlineEvent(event.isOnline) || !bezirk || bezirk.toLowerCase() === 'online';
+  const category = asString(event.category);
+  const candidates = [
+    online ? '#online' : toHashtag(bezirk),
+    toHashtag(category),
+    ...(CATEGORY_EXTRA_HASHTAGS[category] ?? []),
+    ...BASE_HASHTAGS,
+  ];
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const tag of candidates) {
+    if (!tag) continue;
+    const key = tag.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(tag);
+    if (result.length >= max) break;
+  }
+  return result;
 }
 
 const INSTAGRAM_HANDLE_PATTERN = /^[A-Za-z0-9._]{1,30}$/;
@@ -241,9 +299,7 @@ export function buildCaption(event: InstagramEventInput, organizerHandle?: strin
 
   const footer = [
     `Alle Infos und Anmeldung: ${eventPageUrl(event.slug)}`,
-    ['#vorarlberg', categoryHashtag(model.category), '#thetribe', '#bewusstsein']
-      .filter(Boolean)
-      .join(' '),
+    buildHashtags(event).join(' '),
   ].join('\n\n');
 
   const description = stripHtml(event.description);

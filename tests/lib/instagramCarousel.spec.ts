@@ -148,6 +148,7 @@ describe('buildCarouselCaption', () => {
     expect(caption).toContain('• Mi, 7 Okt · 18:00 Uhr – Kakao Zeremonie (Studio Eins)');
     expect(caption).toContain('https://www.thetribe.at');
     expect(caption).toContain('#vorarlberg');
+    expect(caption).toContain('#dornbirn');
   });
 
   it('never exceeds 2200 chars and ends the list with the "more" line', () => {
