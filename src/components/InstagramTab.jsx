@@ -76,7 +76,9 @@ export default function InstagramTab() {
     setError(null);
     setMessage(null);
     try {
-      const result = await httpsCallable(functions, callableName)({ eventId: post.eventId });
+      const result = await httpsCallable(functions, callableName, { timeout: 540000 })({
+        eventId: post.eventId,
+      });
       const outcome = result?.data?.outcome;
       setMessage(OUTCOME_MESSAGES[outcome] || 'Erledigt.');
     } catch (err) {
