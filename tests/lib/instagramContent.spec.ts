@@ -3,7 +3,10 @@ import sharp from '../../functions/node_modules/sharp';
 import {
   CAPTION_MAX_LENGTH,
   FORMAT_DIMENSIONS,
+  BASE_HASHTAGS,
   buildCaption,
+  buildHashtags,
+  toHashtag,
   buildEventImageModel,
   normalizeInstagramHandle,
   formatEventDate,
@@ -211,5 +214,85 @@ describe('buildCaption organizer tag', () => {
     const long = { ...ev, description: 'x '.repeat(5000) };
     expect(buildCaption(long, '@maria').length).toBeLessThanOrEqual(CAPTION_MAX_LENGTH);
     expect(buildCaption(long, '@maria')).toContain('@maria');
+  });
+});
+
+describe('toHashtag', () => {
+  it.each([
+    ['Dornbirn', '#dornbirn'],
+    ['Soundhealing', '#soundhealing'],
+    ['Körperarbeit', '#koerperarbeit'],
+    ['Straße Übung Ärger Öl', '#strasseuebungaergeroel'],
+    ['Café Crème', '#cafecreme'],
+    ['Yoga & Bewegung', '#yogabewegung'],
+  ])('%s -> %s', (input, expected) => {
+    expect(toHashtag(input)).toBe(expected);
+  });
+
+  it('returns null for empty or symbol-only input', () => {
+    expect(toHashtag('')).toBeNull();
+    expect(toHashtag('  & - ✨ ')).toBeNull();
+    expect(toHashtag(undefined)).toBeNull();
+  });
+});
+
+describe('buildHashtags / caption hashtags', () => {
+  it('puts Bezirk, category, curated extras and the base set in that order', () => {
+    expect(buildHashtags({ bezirk: 'Dornbirn', category: 'Soundhealing' })).toEqual([
+      '#dornbirn',
+      '#soundhealing',
+      '#klangreise',
+      '#klangschalen',
+      ...BASE_HASHTAGS,
+    ]);
+  });
+
+  it('uses #online instead of a Bezirk for online events', () => {
+    for (const ev of [
+      { isOnline: true, bezirk: 'Bregenz', category: 'Yoga' },
+      { bezirk: '', category: 'Yoga' },
+      { bezirk: 'Online', category: 'Yoga' },
+    ]) {
+      const tags = buildHashtags(ev);
+      expect(tags[0]).toBe('#online');
+      expect(tags).not.toContain('#bregenz');
+    }
+  });
+
+  it('de-duplicates case-insensitively', () => {
+    const tags = buildHashtags({ bezirk: 'Vorarlberg', category: 'Meditation' });
+    const lower = tags.map((t) => t.toLowerCase());
+    expect(new Set(lower).size).toBe(lower.length);
+    expect(tags.filter((t) => t === '#vorarlberg')).toHaveLength(1);
+    expect(tags.filter((t) => t === '#meditation')).toHaveLength(1);
+  });
+
+  it('caps the number of hashtags', () => {
+    expect(buildHashtags({ bezirk: 'Dornbirn', category: 'Yoga' }, 3)).toEqual([
+      '#dornbirn',
+      '#yoga',
+      '#yogavorarlberg',
+    ]);
+    expect(buildHashtags({ bezirk: 'Dornbirn', category: 'Tanz' }).length).toBeLessThanOrEqual(12);
+  });
+
+  it('skips missing category and works for unknown categories', () => {
+    expect(buildHashtags({ bezirk: 'Bludenz' })).toEqual(['#bludenz', ...BASE_HASHTAGS]);
+    expect(buildHashtags({ bezirk: 'Bludenz', category: 'Neu & Anders' })).toContain('#neuanders');
+  });
+
+  it('ends the caption with the full hashtag line even with a huge description', () => {
+    const ev = {
+      title: 'Cacao',
+      date: '2026-10-17',
+      bezirk: 'Feldkirch',
+      category: 'Soundhealing',
+      slug: 'cacao',
+      description: `<p>${'Langer Text. '.repeat(600)}</p>`,
+    };
+    const caption = buildCaption(ev);
+    expect(caption.length).toBeLessThanOrEqual(CAPTION_MAX_LENGTH);
+    expect(caption.endsWith(buildHashtags(ev).join(' '))).toBe(true);
+    expect(caption).toContain('#feldkirch #soundhealing #klangreise');
   });
 });

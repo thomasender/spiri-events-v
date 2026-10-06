@@ -8,11 +8,13 @@
  */
 
 import {
+  BASE_HASHTAGS,
   CAPTION_MAX_LENGTH,
   SITE_URL,
   formatEventDate,
   formatEventTime,
   stripImageUnsafeChars,
+  toHashtag,
   truncateTitle,
   type CoverModel,
   type InstagramEventInput,
@@ -167,14 +169,16 @@ export function buildCoverModel(group: CarouselGroup, window: WeekWindow): Cover
   };
 }
 
-const HASHTAGS = '#vorarlberg #thetribe #bewusstsein #events';
 const MORE_LINE = `…und mehr auf thetribe.at`;
 
 /** Always <= CAPTION_MAX_LENGTH; the event list is shortened gracefully when needed. */
 export function buildCarouselCaption(group: CarouselGroup, window: WeekWindow): string {
   const part = group.parts > 1 ? ` (Teil ${group.part} von ${group.parts})` : '';
   const heading = `Events nächste Woche in ${group.bezirk}${part}\n${formatWeekRange(window)}`;
-  const footer = `Alle Infos und Anmeldung: ${SITE_URL}\n\n${HASHTAGS}`;
+  const hashtags = [
+    ...new Set([toHashtag(group.bezirk), ...BASE_HASHTAGS, '#events'].filter(Boolean)),
+  ].join(' ');
+  const footer = `Alle Infos und Anmeldung: ${SITE_URL}\n\n${hashtags}`;
 
   const lines = group.events.map((event) => {
     const when = [
