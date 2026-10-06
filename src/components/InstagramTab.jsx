@@ -194,6 +194,11 @@ export default function InstagramTab() {
                       </a>
                     )}
                   </div>
+                  {post.status === 'published' && post.inviteFallbackReason && (
+                    <span className="instagram-muted" data-testid="instagram-post-no-invite">
+                      ohne Einladung
+                    </span>
+                  )}
                   {post.error && (
                     <p className="instagram-post-error" data-testid="instagram-post-error">
                       {post.error}

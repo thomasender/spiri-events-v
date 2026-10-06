@@ -20,14 +20,15 @@ export default function InstagramConsentField({ checked, onChange, instagramHand
           data-testid="instagram-consent-checkbox"
         />
         <span>
-          Mein Event darf auf dem Instagram-Kanal {INSTAGRAM_ACCOUNT} veröffentlicht werden und mein
-          Instagram-Profil darf dabei verlinkt werden.
+          Mein Event darf auf dem Instagram-Kanal {INSTAGRAM_ACCOUNT} veröffentlicht werden. Mein
+          Instagram-Profil darf dabei markiert und als Co-Autor (Collab) zum Beitrag eingeladen
+          werden.
         </span>
       </label>
       <p className="instagram-consent-hint" data-testid="instagram-consent-hint">
         {handle
-          ? `Zum Verlinken verwenden wir deinen Instagram-Namen aus deinem Profil (${handle}).`
-          : 'Tipp: Trage in deinem Profil deinen Instagram-Namen ein, dann können wir dich im Beitrag verlinken.'}
+          ? `Zum Markieren und Einladen verwenden wir deinen Instagram-Namen aus deinem Profil (${handle}). Du musst die Collab-Einladung in Instagram noch annehmen.`
+          : 'Tipp: Trage in deinem Profil deinen Instagram-Namen ein, dann können wir dich markieren und als Co-Autor einladen.'}
       </p>
     </div>
   );

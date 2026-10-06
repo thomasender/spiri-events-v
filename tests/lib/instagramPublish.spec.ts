@@ -352,3 +352,101 @@ describe('publishApprovedEvent', () => {
     });
   });
 });
+
+describe('collaborator invite and user tag', () => {
+  const ERR_110 = {
+    error: { message: 'Invalid user id', code: 110, error_subcode: 2207018, error_user_msg: 'bad' },
+  };
+  const ERR_2207065 = { error: { message: 'user_tags', code: 100, error_subcode: 2207065 } };
+
+  function harnessWithContainerResponses(handle: string | null, responses: Response[]) {
+    const queue = [...responses];
+    return makeHarness({
+      handle,
+      fetchImpl: (url, init) => {
+        if (url.endsWith('/media') && init?.method === 'POST') {
+          return queue.shift() ?? json({ id: 'container1' });
+        }
+        if (url.includes('/container1?')) return json({ status_code: 'FINISHED' });
+        if (url.endsWith('/media_publish')) return json({ id: 'media1' });
+        if (url.includes('/media1?')) return json({ permalink: 'https://instagram.com/p/abc/' });
+        return json({ error: { message: 'unexpected' } }, 500);
+      },
+    });
+  }
+
+  const containerBodies = (h: Harness) =>
+    h.fetchMock.mock.calls
+      .filter(([url]) => String(url).endsWith('/media'))
+      .map(([, init]) => new URLSearchParams(String((init as RequestInit).body)));
+
+  it('sends collaborators and user_tags without "@" when a handle exists', async () => {
+    const h = harnessWithContainerResponses('@kakao.maria', []);
+    expect(await publishApprovedEvent(h.deps, 'e1', { status: 'pending' }, futureEvent)).toBe(
+      'published'
+    );
+    const [body] = containerBodies(h);
+    expect(body.get('collaborators')).toBe('["kakao.maria"]');
+    expect(JSON.parse(body.get('user_tags') as string)).toEqual([
+      { username: 'kakao.maria', x: 0.2, y: 0.93 },
+    ]);
+    expect(body.get('caption')).toContain('Mit @kakao.maria');
+    expect(h.posts.get('feed_e1')).toMatchObject({
+      collaboratorInvited: true,
+      inviteFallbackReason: null,
+    });
+  });
+
+  it('sends neither param without a handle', async () => {
+    const h = harnessWithContainerResponses(null, []);
+    await publishApprovedEvent(h.deps, 'e1', { status: 'pending' }, futureEvent);
+    const [body] = containerBodies(h);
+    expect(body.has('collaborators')).toBe(false);
+    expect(body.has('user_tags')).toBe(false);
+    expect(h.posts.get('feed_e1')).toMatchObject({
+      collaboratorInvited: false,
+      inviteFallbackReason: null,
+    });
+  });
+
+  it.each([
+    ['110/2207018', ERR_110],
+    ['100/2207065', ERR_2207065],
+  ])('retries once without invite params on %s and still publishes', async (code, err) => {
+    const h = harnessWithContainerResponses('@kakao.maria', [json(err, 400)]);
+    expect(await publishApprovedEvent(h.deps, 'e1', { status: 'pending' }, futureEvent)).toBe(
+      'published'
+    );
+    const bodies = containerBodies(h);
+    expect(bodies).toHaveLength(2);
+    expect(bodies[0].has('collaborators')).toBe(true);
+    expect(bodies[1].has('collaborators')).toBe(false);
+    expect(bodies[1].has('user_tags')).toBe(false);
+    expect(bodies[1].get('caption')).toContain('Mit @kakao.maria');
+    const post = h.posts.get('feed_e1');
+    expect(post).toMatchObject({ status: 'published', collaboratorInvited: false });
+    expect(String(post?.inviteFallbackReason)).toContain(code);
+  });
+
+  it('does not retry on other errors and records the failure', async () => {
+    const h = harnessWithContainerResponses('@kakao.maria', [
+      json({ error: { message: 'boom', code: 1, error_subcode: 99 } }, 500),
+    ]);
+    expect(await publishApprovedEvent(h.deps, 'e1', { status: 'pending' }, futureEvent)).toBe(
+      'failed'
+    );
+    expect(containerBodies(h)).toHaveLength(1);
+    expect(h.posts.get('feed_e1')).toMatchObject({ status: 'failed' });
+  });
+
+  it('retries only once: a second invite error fails the post', async () => {
+    const h = harnessWithContainerResponses('@kakao.maria', [
+      json(ERR_110, 400),
+      json(ERR_110, 400),
+    ]);
+    expect(await publishApprovedEvent(h.deps, 'e1', { status: 'pending' }, futureEvent)).toBe(
+      'failed'
+    );
+    expect(containerBodies(h)).toHaveLength(2);
+  });
+});

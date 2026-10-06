@@ -141,10 +141,10 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
 *Was wird veröffentlicht?*
 - Nur wenn Sie beim Erstellen oder Bearbeiten eines Events ausdrücklich zustimmen, wird Ihr Event auf unserem Instagram-Kanal veröffentlicht (als Beitrag und in wöchentlichen Übersichten je Bezirk)
 - Veröffentlicht werden die Angaben zum Event (Titel, Datum, Uhrzeit, Ort, Beschreibung, Bild und ein Link zur Event-Seite)
-- Wenn Sie in Ihrem Profil einen Instagram-Namen angegeben haben, erwähnen wir Ihr Instagram-Profil im Beitrag („@name“)
+- Wenn Sie in Ihrem Profil einen Instagram-Namen angegeben haben, markieren wir Ihr Instagram-Profil im Bild des Beitrags, laden es als Co-Autor (Collab) zum Beitrag ein und erwähnen es in der Beschreibung („@name“). Die Einladung müssen Sie in Instagram selbst annehmen; kann sie nicht gesendet werden, wird der Beitrag ohne Einladung veröffentlicht
 - Sie können in Ihrem Profil festlegen, ob die Zustimmung für neue Events standardmäßig gesetzt sein soll; sie ist standardmäßig ausgeschaltet. Pro Event können Sie diese Einstellung ändern
 
-*Rechtsgrundlage:* Ihre Einwilligung (Art. 6 Abs. 1 lit. a DSGVO). Ohne Ihre Zustimmung wird Ihr Event nicht auf Instagram veröffentlicht und Ihr Profil nicht erwähnt.
+*Rechtsgrundlage:* Ihre Einwilligung (Art. 6 Abs. 1 lit. a DSGVO). Ohne Ihre Zustimmung wird Ihr Event nicht auf Instagram veröffentlicht und Ihr Profil weder markiert noch eingeladen noch erwähnt.
 
 *Weitergabe:* Mit der Veröffentlichung werden die genannten Inhalte an Instagram (Meta) übermittelt und sind dort öffentlich sichtbar. Für die Verarbeitung durch Instagram gilt die Datenschutzerklärung von Meta.
 
