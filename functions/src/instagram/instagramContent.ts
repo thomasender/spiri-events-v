@@ -74,6 +74,20 @@ export function truncateTitle(title: unknown, max = TITLE_MAX_LENGTH): string {
   return truncateText(asString(title), max);
 }
 
+// The bundled image fonts (Inter, Cormorant Garamond Latin) have no emoji or
+// symbol glyphs, which render as "NO GLYPH" boxes. Covers pictographs, flags,
+// keycaps, skin tones, variation selectors, ZWJ and tag characters.
+const IMAGE_UNSAFE_CHARS =
+  /[\p{Extended_Pictographic}\p{Emoji_Modifier}\u{1F1E6}-\u{1F1FF}\u{E0020}-\u{E007F}\u200D\u20E3\uFE0E\uFE0F]|(?![\u00A0-\u00FF])\p{So}/gu;
+
+/** Removes emoji/symbols the image fonts cannot draw and tidies whitespace. */
+export function stripImageUnsafeChars(input: string): string {
+  return input.replace(IMAGE_UNSAFE_CHARS, ' ').replace(/\s+/g, ' ').trim();
+}
+
+/** Used when a title consists of nothing but emoji, so the image is never blank. */
+export const IMAGE_TITLE_FALLBACK = 'Event';
+
 /** Minimal HTML -> plain text for the rich-text event description. */
 export function stripHtml(html: unknown): string {
   return asString(html)
@@ -160,10 +174,10 @@ export function buildEventImageModel(
 ): EventImageModel {
   const imageUrl = asString(event.imageUrl);
   return {
-    title: truncateTitle(event.title),
+    title: truncateTitle(stripImageUnsafeChars(asString(event.title))) || IMAGE_TITLE_FALLBACK,
     dateLabel: formatEventDate(event.date, event.endDate),
     timeLabel: formatEventTime(event.time, event.endTime),
-    location: formatLocation(event),
+    location: stripImageUnsafeChars(formatLocation(event)),
     category: asString(event.category),
     color: resolveCategoryColor(event.category, registry),
     imageUrl: imageUrl || null,
@@ -182,10 +196,14 @@ function categoryHashtag(category: string): string {
  */
 export function buildCaption(event: InstagramEventInput): string {
   const model = buildEventImageModel(event);
+  // The caption is rendered by Instagram, which supports emoji, so it uses the
+  // raw title/location rather than the image-safe ones from the model.
+  const title = truncateTitle(event.title);
+  const location = formatLocation(event);
   const when = [model.dateLabel, model.timeLabel].filter(Boolean).join(' · ');
   const header = [
-    model.title,
-    [when && `📅 ${when}`, model.location && `📍 ${model.location}`].filter(Boolean).join('\n'),
+    title,
+    [when && `📅 ${when}`, location && `📍 ${location}`].filter(Boolean).join('\n'),
   ]
     .filter(Boolean)
     .join('\n\n');
