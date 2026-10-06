@@ -8,6 +8,7 @@ import {
   formatEventDate,
   formatEventTime,
   formatLocation,
+  IMAGE_TITLE_FALLBACK,
   resolveCategoryColor,
   stripHtml,
   truncateTitle,
@@ -15,6 +16,41 @@ import {
 import { renderEventImage } from '../../functions/src/instagram/instagramImage';
 
 describe('instagram content', () => {
+  const imageTitle = (title: string) => buildEventImageModel({ title }).title;
+
+  it('strips leading and mid-title emoji from the image title', () => {
+    expect(imageTitle('✨ Traumasensible Yogalehrer Ausbildung')).toBe(
+      'Traumasensible Yogalehrer Ausbildung'
+    );
+    expect(imageTitle('Kakao 🌿 Zeremonie ❤️ Abend')).toBe('Kakao Zeremonie Abend');
+    expect(imageTitle('Heilkreis 🇦🇹 1️⃣ 👍🏽')).toBe('Heilkreis 1');
+  });
+
+  it('strips ZWJ sequences completely', () => {
+    expect(imageTitle('Paare 👩‍❤️‍👨 Retreat')).toBe('Paare Retreat');
+    expect(imageTitle('👨‍👩‍👧‍👦 Familientag')).toBe('Familientag');
+  });
+
+  it('falls back to a non-empty title when only emoji are given', () => {
+    expect(imageTitle('✨🌿')).toBe(IMAGE_TITLE_FALLBACK);
+  });
+
+  it('strips emoji from the image location but keeps place text', () => {
+    const model = buildEventImageModel({ title: 'X', place: '📍 Café Süß', bezirk: 'Bregenz' });
+    expect(model.location).toBe('Café Süß, Bregenz');
+  });
+
+  it('keeps umlauts, ß, digits and punctuation intact', () => {
+    const t = 'Schöne Grüße – Fußbad & Tanz: 3x, 10-12 Uhr. Äpfel Öl Über';
+    expect(imageTitle(t)).toBe(t);
+  });
+
+  it('keeps emoji in the caption', () => {
+    const caption = buildCaption({ title: '✨ Kakao', date: '2026-10-17', place: 'Café 🌿' });
+    expect(caption).toContain('✨ Kakao');
+    expect(caption).toContain('📍 Café 🌿');
+  });
+
   it('shortens long titles at a word boundary and leaves short ones alone', () => {
     expect(truncateTitle('Yoga am Morgen')).toBe('Yoga am Morgen');
     const long = 'Cacao Zeremonie und Soundhealing Abend im Rheintal mit Live Musik und Tanz';
@@ -63,9 +99,9 @@ describe('instagram content', () => {
   });
 
   it('strips HTML from rich-text descriptions', () => {
-    expect(stripHtml('<p>Hallo <strong>Welt</strong></p><p>Zweiter&nbsp;Absatz &amp; mehr</p>')).toBe(
-      'Hallo Welt\nZweiter Absatz & mehr'
-    );
+    expect(
+      stripHtml('<p>Hallo <strong>Welt</strong></p><p>Zweiter&nbsp;Absatz &amp; mehr</p>')
+    ).toBe('Hallo Welt\nZweiter Absatz & mehr');
   });
 
   it('keeps captions within Instagram’s 2200 character limit, even for huge descriptions', () => {
@@ -98,24 +134,32 @@ describe('instagram image rendering', () => {
     ['feed', 1080, 1350],
     ['story', 1080, 1920],
     ['carousel', 1080, 1350],
-  ] as const)('renders a %s as a %ix%i JPEG, with and without a source image', async (format, w, h) => {
-    expect(FORMAT_DIMENSIONS[format]).toEqual({ width: w, height: h });
-    const event = { title: 'Kakao', date: '2026-10-17', category: 'Yoga', imageUrl: 'https://x/y' };
-    const photo = await sharp({
-      create: { width: 900, height: 1600, channels: 3, background: '#336699' },
-    })
-      .png()
-      .toBuffer();
+  ] as const)(
+    'renders a %s as a %ix%i JPEG, with and without a source image',
+    async (format, w, h) => {
+      expect(FORMAT_DIMENSIONS[format]).toEqual({ width: w, height: h });
+      const event = {
+        title: 'Kakao',
+        date: '2026-10-17',
+        category: 'Yoga',
+        imageUrl: 'https://x/y',
+      };
+      const photo = await sharp({
+        create: { width: 900, height: 1600, channels: 3, background: '#336699' },
+      })
+        .png()
+        .toBuffer();
 
-    for (const fetchImage of [
-      async () => photo,
-      async () => {
-        throw new Error('404'); // broken upload -> fallback layout, not a failure
-      },
-    ]) {
-      const jpeg = await renderEventImage(event, format, { fetchImage });
-      const meta = await sharp(jpeg).metadata();
-      expect([meta.format, meta.width, meta.height]).toEqual(['jpeg', w, h]);
+      for (const fetchImage of [
+        async () => photo,
+        async () => {
+          throw new Error('404'); // broken upload -> fallback layout, not a failure
+        },
+      ]) {
+        const jpeg = await renderEventImage(event, format, { fetchImage });
+        const meta = await sharp(jpeg).metadata();
+        expect([meta.format, meta.width, meta.height]).toEqual(['jpeg', w, h]);
+      }
     }
-  });
+  );
 });
