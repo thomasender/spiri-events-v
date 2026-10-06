@@ -289,11 +289,19 @@ write to `events/{eventId}`. It skips drafts and pending submissions (they
 don't appear in OG previews anyway) and POSTs to the GitHub
 `repository_dispatch` API for every write where the event was, is, or
 becomes `status === 'approved'`. The matching GitHub Actions workflow
-(`.github/workflows/deploy.yml`) then runs `npm run build` and
-`firebase deploy --only hosting`, which includes the Admin SDK live read
+(`.github/workflows/deploy.yml`) then runs slug migration, `npm run build`
+and the Hosting deploy, which includes the Admin SDK live read
 described above, so a freshly approved event gets its own
 `/event/<slug>/index.html` within one build cycle (≈3–5 min) without
 anyone manually refreshing the snapshot.
+
+Which event deploys what: `repository_dispatch` and `workflow_dispatch` only
+refresh content (migrate + build + Hosting). Firestore rules/indexes and Cloud
+Functions deploy only on `push` to main, and only if `firestore.rules`,
+`firestore.indexes.json`, `firebase.json` or `functions/**` changed. Hosting
+runs even if that backend deploy fails (the job then ends red). Manual
+function deploys: use `--only functions:<name>` and merge soon, otherwise the
+next push deploy aborts on the cloud-only function.
 
 A **5-minute debounce window** is enforced via a `buildAt` timestamp on
 `app_settings/last_build`: only the first event write inside the window
