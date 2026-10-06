@@ -18,6 +18,7 @@ const futureEvent = {
   time: '18:00',
   place: 'Dornbirn',
   slug: 'kakao-zeremonie',
+  instagramConsent: true,
 };
 
 function json(body: unknown, status = 200): Response {
@@ -35,6 +36,7 @@ interface Harness {
 function makeHarness(
   opts: {
     enabled?: boolean;
+    handle?: string | null | Error;
     fetchImpl?: (url: string, init?: RequestInit) => Response | Promise<Response>;
   } = {}
 ): Harness {
@@ -63,6 +65,10 @@ function makeHarness(
     },
     updatePost: async (id, patch) => {
       posts.set(id, { ...posts.get(id), ...patch });
+    },
+    getOrganizerHandle: async () => {
+      if (opts.handle instanceof Error) throw opts.handle;
+      return opts.handle ?? null;
     },
     generateImage,
     notifyAdmins: notify,
@@ -279,6 +285,70 @@ describe('publishApprovedEvent', () => {
       status: 'published',
       igMediaId: 'media1',
       permalink: null,
+    });
+  });
+
+  describe('Instagram consent gate', () => {
+    const { instagramConsent: _ignored, ...withoutConsent } = futureEvent;
+    void _ignored;
+
+    it.each([
+      ['false', { ...futureEvent, instagramConsent: false }],
+      ['absent', withoutConsent],
+      ['non-boolean', { ...futureEvent, instagramConsent: 'true' }],
+    ])('does not post and writes no dedupe doc when consent is %s', async (_label, ev) => {
+      const h = makeHarness();
+      const outcome = await publishApprovedEvent(h.deps, 'e1', { status: 'pending' }, ev);
+      expect(outcome).toBe('no-consent');
+      expect(h.posts.size).toBe(0);
+      expect(h.fetchMock).not.toHaveBeenCalled();
+      expect(h.generateImage).not.toHaveBeenCalled();
+    });
+
+    it('still posts on a later re-approval once consent was given', async () => {
+      const h = makeHarness();
+      expect(await publishApprovedEvent(h.deps, 'e1', { status: 'pending' }, withoutConsent)).toBe(
+        'no-consent'
+      );
+      expect(await publishApprovedEvent(h.deps, 'e1', { status: 'pending' }, futureEvent)).toBe(
+        'published'
+      );
+    });
+
+    it('keeps the disabled outcome when the kill switch is off', async () => {
+      const h = makeHarness({ enabled: false });
+      expect(await publishApprovedEvent(h.deps, 'e1', { status: 'pending' }, futureEvent)).toBe(
+        'disabled'
+      );
+    });
+  });
+
+  describe('organizer tag', () => {
+    const captionOf = (h: Harness) =>
+      new URLSearchParams(String((h.fetchMock.mock.calls[0] as [string, RequestInit])[1].body)).get(
+        'caption'
+      ) ?? '';
+
+    it('adds the organizer handle to the caption', async () => {
+      const h = makeHarness({ handle: '@kakao.maria' });
+      await publishApprovedEvent(h.deps, 'e1', { status: 'pending' }, futureEvent);
+      expect(captionOf(h)).toContain('@kakao.maria');
+    });
+
+    it('posts without a tag when the organizer has no handle', async () => {
+      const h = makeHarness({ handle: null });
+      expect(await publishApprovedEvent(h.deps, 'e1', { status: 'pending' }, futureEvent)).toBe(
+        'published'
+      );
+      expect(captionOf(h)).not.toContain('@');
+    });
+
+    it('posts without a tag when the handle lookup throws', async () => {
+      const h = makeHarness({ handle: new Error('firestore down') });
+      expect(await publishApprovedEvent(h.deps, 'e1', { status: 'pending' }, futureEvent)).toBe(
+        'published'
+      );
+      expect(captionOf(h)).not.toContain('@');
     });
   });
 });

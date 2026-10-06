@@ -42,6 +42,7 @@ import { saveWizardDraft, loadWizardDraft, clearWizardDraft } from '../utils/wiz
 import { normalizeCategoryInput, isValidCategoryInput } from '../utils/categoryInput';
 import { getCategoryColor } from '../utils/categoryColors';
 import { getMissingProfileFields } from '../utils/profile';
+import InstagramConsentField from './InstagramConsentField';
 import './EventForm.css';
 import './EventFormWizard.css';
 
@@ -183,6 +184,20 @@ export default function EventFormWizard() {
   const [rightsConfirmed, setRightsConfirmed] = useState(
     Boolean(restoredDraft && restoredDraft.rightsConfirmed)
   );
+  // Default comes from the profile (which may load after the first render);
+  // once the user clicks the box or a draft supplies a value, it is theirs.
+  const [instagramConsent, setInstagramConsent] = useState(
+    restoredDraft && typeof restoredDraft.instagramConsent === 'boolean'
+      ? restoredDraft.instagramConsent
+      : profile?.instagramConsentDefault === true
+  );
+  const instagramConsentTouched = useRef(
+    Boolean(restoredDraft && typeof restoredDraft.instagramConsent === 'boolean')
+  );
+  const profileInstagramDefault = profile?.instagramConsentDefault === true;
+  useEffect(() => {
+    if (!instagramConsentTouched.current) setInstagramConsent(profileInstagramDefault);
+  }, [profileInstagramDefault]);
   const fileInputRef = useRef(null);
   const wizardContainerRef = useRef(null);
   const isInitialStepMount = useRef(true);
@@ -206,10 +221,11 @@ export default function EventFormWizard() {
         formData,
         currentStep,
         rightsConfirmed,
+        instagramConsent,
       });
     }, 300);
     return () => clearTimeout(timeoutId);
-  }, [user, formData, currentStep, rightsConfirmed, loading]);
+  }, [user, formData, currentStep, rightsConfirmed, instagramConsent, loading]);
 
   const isAdmin = role === 'Admin';
 
@@ -617,6 +633,7 @@ export default function EventFormWizard() {
     status,
     rightsConfirmed,
     rightsConfirmedAt: rightsConfirmed ? serverTimestamp() : null,
+    instagramConsent,
   });
 
   const handleSubmit = async (e) => {
@@ -1424,6 +1441,15 @@ export default function EventFormWizard() {
           </span>
         )}
       </div>
+
+      <InstagramConsentField
+        checked={instagramConsent}
+        onChange={(value) => {
+          instagramConsentTouched.current = true;
+          setInstagramConsent(value);
+        }}
+        instagramHandle={profile?.socialMedia?.instagram}
+      />
 
       {submitError && <p className="error-text submit-error">{submitError}</p>}
     </div>

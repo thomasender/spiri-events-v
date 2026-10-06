@@ -42,6 +42,11 @@ export interface PublishDeps {
   /** Firestore create(): resolves false when the doc already exists. */
   createPost(id: string, record: PostRecord): Promise<boolean>;
   updatePost(id: string, patch: Partial<PostRecord>): Promise<void>;
+  /**
+   * Instagram mention (e.g. "@name") of the organizer, or null when the
+   * creator has no valid handle in their profile. Optional: no tag without it.
+   */
+  getOrganizerHandle?(event: InstagramEventInput): Promise<string | null>;
   generateImage(eventId: string, event: InstagramEventInput): Promise<string>;
   notifyAdmins(subject: string, text: string): Promise<void>;
   now?(): Date;
@@ -49,7 +54,7 @@ export interface PublishDeps {
 }
 
 export type TriggerOutcome =
-  'ignored' | 'disabled' | 'duplicate' | 'skipped' | 'published' | 'failed';
+  'ignored' | 'disabled' | 'no-consent' | 'duplicate' | 'skipped' | 'published' | 'failed';
 
 function statusOf(data: unknown): string | null {
   if (!data || typeof data !== 'object') return null;
@@ -192,6 +197,13 @@ export async function publishApprovedEvent(
   }
 
   const event = (after ?? {}) as InstagramEventInput;
+  // Opt-in by the organizer. Deliberately before createPost: no dedupe doc is
+  // written, so a later re-approval after consent was given can still post.
+  if (event.instagramConsent !== true) {
+    log('Organizer has not consented to Instagram posting; skipping', { eventId });
+    return 'no-consent';
+  }
+
   const postId = `feed_${eventId}`;
   const base: PostRecord = {
     type: 'feed',
@@ -215,11 +227,22 @@ export async function publishApprovedEvent(
   }
 
   try {
+    let handle: string | null = null;
+    if (deps.getOrganizerHandle) {
+      try {
+        handle = await deps.getOrganizerHandle(event);
+      } catch (err) {
+        log('Organizer handle lookup failed; posting without tag', {
+          eventId,
+          error: sanitizeError(err, [deps.accessToken]),
+        });
+      }
+    }
     const imageUrl = await deps.generateImage(eventId, event);
     const container = await graphPost(
       deps,
       `${deps.userId}/media`,
-      { image_url: imageUrl, caption: buildCaption(event) },
+      { image_url: imageUrl, caption: buildCaption(event, handle) },
       'media container creation'
     );
     const containerId = idOf(container, 'media container creation');

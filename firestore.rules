@@ -63,6 +63,12 @@ service cloud.firestore {
     }
 
     match /events/{eventId} {
+      // Organizer opt-in for posting on Instagram; absent == no consent.
+      function isValidInstagramConsent() {
+        return !('instagramConsent' in request.resource.data)
+               || request.resource.data.instagramConsent is bool;
+      }
+
       allow read: if isApproved() || isOwner() || isAdminOrEmulatorAdmin();
 
       // imageFocalPoint, if present, must be a {x, y} map with both values
@@ -103,6 +109,7 @@ service cloud.firestore {
                     && (!('category' in request.resource.data)
                         || (request.resource.data.category is string
                             && request.resource.data.category.size() <= 40))
+                    && isValidInstagramConsent()
                     && isValidFocalPoint();
 
       // Owners and admins can move events to/from the trash (status='trashed'),
@@ -114,6 +121,7 @@ service cloud.firestore {
                     && (!('category' in request.resource.data)
                         || (request.resource.data.category is string
                             && request.resource.data.category.size() <= 40))
+                    && isValidInstagramConsent()
                     && isValidFocalPoint();
       allow delete: if isOwner() || isAdminOrEmulatorAdmin();
 
@@ -155,12 +163,14 @@ service cloud.firestore {
                        'notifyOnSubmitted', 'notifyOnChangesRequested',
                        'notifyOnPublished', 'notifyOnDeleted',
                        'notifyOnContactMessage',
-                       'notifyNewsletter',
+                       'notifyNewsletter', 'instagramConsentDefault',
                        'createdAt', 'updatedAt']
                     )
                     && request.resource.data.bio.size() <= 2000
                     && request.resource.data.displayName.size() <= 80
                     && isValidDirectoryData(request.resource.data)
+                    && (!('instagramConsentDefault' in request.resource.data)
+                        || request.resource.data.instagramConsentDefault is bool)
                     && (!('bioHtml' in request.resource.data)
                         || (request.resource.data.bioHtml is string
                             && request.resource.data.bioHtml.size() <= 20000));
@@ -170,6 +180,8 @@ service cloud.firestore {
                     && request.resource.data.bio.size() <= 2000
                     && request.resource.data.displayName.size() <= 80
                     && isValidDirectoryData(request.resource.data)
+                    && (!('instagramConsentDefault' in request.resource.data)
+                        || request.resource.data.instagramConsentDefault is bool)
                     && (!('bioHtml' in request.resource.data)
                         || (request.resource.data.bioHtml is string
                             && request.resource.data.bioHtml.size() <= 20000))
@@ -180,7 +192,7 @@ service cloud.firestore {
                                   'notifyOnSubmitted', 'notifyOnChangesRequested',
                                   'notifyOnPublished', 'notifyOnDeleted',
                                   'notifyOnContactMessage',
-                                  'notifyNewsletter',
+                                  'notifyNewsletter', 'instagramConsentDefault',
                                   'updatedAt']);
 
       allow delete: if isAuthenticated() && request.auth.uid == uid;

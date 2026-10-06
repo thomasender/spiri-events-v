@@ -3,6 +3,7 @@ import { useProfile } from '../hooks/useProfile';
 import ProfileForm from '../components/ProfileForm';
 import ChangeEmailForm from '../components/ChangeEmailForm';
 import NotificationPreferencesCard from '../components/NotificationPreferencesCard';
+import InstagramConsentCard from '../components/InstagramConsentCard';
 import DeleteAccountSection from '../components/DeleteAccountSection';
 import SeoMeta from '../components/SeoMeta';
 import './ProfilePage.css';
@@ -53,6 +54,11 @@ export default function ProfilePage() {
         <NotificationPreferencesCard
           preferences={notificationPreferences}
           isAdmin={isAdmin}
+          onSave={handlePreferencesSave}
+        />
+
+        <InstagramConsentCard
+          checked={profile?.instagramConsentDefault === true}
           onSave={handlePreferencesSave}
         />
 
