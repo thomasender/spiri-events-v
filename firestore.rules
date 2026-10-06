@@ -306,7 +306,9 @@ service cloud.firestore {
     // (anonymous write gated on `createdBy == 'system'`), mirroring the
     // categories bootstrap pattern.
     match /app_settings/{docId} {
-      allow read: if true;
+      // `instagram` holds the automation kill switch: admin-only, unlike the
+      // rest of this collection.
+      allow read: if docId != 'instagram' || isAdminOrEmulatorAdmin();
 
       // Two create paths so an admin is never locked out if the system
       // seeder fails to run:
@@ -440,6 +442,24 @@ service cloud.firestore {
                         || isValidThemeValues(request.resource.data.values));
 
       allow delete: if isAdminOrEmulatorAdmin();
+    }
+
+    // Instagram automation kill switch. Default OFF: a missing doc or
+    // enabled != true means the Cloud Function does nothing. Admin only.
+    match /app_settings/instagram {
+      allow create, update: if isAdminOrEmulatorAdmin()
+                            && request.resource.data.keys().hasOnly([
+                              'enabled', 'updatedAt', 'updatedBy',
+                            ])
+                            && request.resource.data.enabled is bool;
+      allow delete: if isAdminOrEmulatorAdmin();
+    }
+
+    // Idempotency/audit records of Instagram posts. Written only by the
+    // Cloud Function (Admin SDK bypasses rules); admins may read them.
+    match /instagram_posts/{postId} {
+      allow read: if isAdminOrEmulatorAdmin();
+      allow write: if false;
     }
 
     // Pointer doc that names which saved theme is currently active on the
