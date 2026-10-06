@@ -13,6 +13,7 @@ import {
   Users,
   Heart,
   Contact,
+  Instagram,
 } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
 import EventList from '../components/EventList';
@@ -26,6 +27,7 @@ import ThemeTab from '../components/ThemeTab';
 import HelpersTab from '../components/HelpersTab';
 import DonorsTab from '../components/DonorsTab';
 import MembersTab from '../components/MembersTab';
+import InstagramTab from '../components/InstagramTab';
 import EmailVerificationBanner from '../components/EmailVerificationBanner';
 import EmailVerificationModal from '../components/EmailVerificationModal';
 import EventStatusMismatchBanner from '../components/EventStatusMismatchBanner';
@@ -48,6 +50,7 @@ const VALID_TABS = new Set([
   'helpers',
   'donors',
   'members',
+  'instagram',
 ]);
 
 export default function AdminPage() {
@@ -85,6 +88,7 @@ export default function AdminPage() {
       helpers: isAdmin,
       donors: isAdmin,
       members: isAdmin,
+      instagram: isAdmin,
     };
   }, [draftCount, hasMessages, isAdmin, hasFeedback, trashedCount]);
 
@@ -335,6 +339,21 @@ export default function AdminPage() {
             <span>Mitglieder</span>
           </button>
         )}
+        {visibleTabs.instagram && (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'instagram'}
+            aria-controls="admin-tab-instagram"
+            id="admin-tab-instagram-btn"
+            className={`admin-page-tab${activeTab === 'instagram' ? ' admin-page-tab--active' : ''}`}
+            onClick={() => setTab('instagram')}
+            data-testid="admin-tab-instagram"
+          >
+            <Instagram size={16} aria-hidden="true" />
+            <span>Instagram</span>
+          </button>
+        )}
       </div>
 
       <div
@@ -443,6 +462,17 @@ export default function AdminPage() {
           hidden={activeTab !== 'members'}
         >
           {activeTab === 'members' && <MembersTab />}
+        </div>
+      )}
+
+      {visibleTabs.instagram && (
+        <div
+          role="tabpanel"
+          id="admin-tab-instagram"
+          aria-labelledby="admin-tab-instagram-btn"
+          hidden={activeTab !== 'instagram'}
+        >
+          {activeTab === 'instagram' && <InstagramTab />}
         </div>
       )}
 
