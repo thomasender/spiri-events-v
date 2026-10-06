@@ -7,7 +7,7 @@ const content = {
     title: 'Datenschutzerklärung',
     description:
       'Datenschutzerklärung von tribe Vorarlberg: welche Daten wir erheben, wie wir sie schützen und welche Rechte du hast.',
-    lastUpdated: 'September 2026',
+    lastUpdated: 'Oktober 2026',
     sections: [
       {
         heading: '1. Verantwortlicher',
@@ -54,7 +54,7 @@ Diese Daten werden in Firestore (Firebase) gespeichert. Event-Bilder werden in F
       },
       {
         heading: '4. Keine Weitergabe an Dritte',
-        text: `Wir geben Ihre personenbezogenen Daten nicht an Dritte weiter. Ihre Daten werden nicht verkauft, vermietet oder in sonstiger Weise an externe Unternehmen oder Organisationen übermittelt.
+        text: `Wir geben Ihre personenbezogenen Daten nicht an Dritte weiter (Ausnahme: die freiwillige Veröffentlichung Ihrer Events auf Instagram mit Ihrer Einwilligung, siehe Abschnitt 12). Ihre Daten werden nicht verkauft, vermietet oder in sonstiger Weise an externe Unternehmen oder Organisationen übermittelt.
 
 Firebase (Google) fungiert als Auftragsverarbeiter und erhält Ihre Daten nur insoweit, als dies für die Bereitstellung der Authentifizierungs- und Datenbankdienste erforderlich ist.`,
       },
@@ -135,7 +135,25 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
 *Moderation:* Das Team von The Tribe kann einzelne Einträge aus dem Verzeichnis ausblenden, etwa bei unpassenden oder rechtswidrigen Inhalten. Ihr Profil bleibt davon unberührt.`,
       },
       {
-        heading: '12. Änderungen dieser Datenschutzerklärung',
+        heading: '12. Veröffentlichung auf Instagram (freiwillig)',
+        text: `Wir betreiben den Instagram-Kanal @tribevorarlberg_, auf dem wir Veranstaltungen bewerben. Instagram ist ein Dienst von Meta Platforms Ireland Limited.
+
+*Was wird veröffentlicht?*
+- Nur wenn Sie beim Erstellen oder Bearbeiten eines Events ausdrücklich zustimmen, wird Ihr Event auf unserem Instagram-Kanal veröffentlicht (als Beitrag und in wöchentlichen Übersichten je Bezirk)
+- Veröffentlicht werden die Angaben zum Event (Titel, Datum, Uhrzeit, Ort, Beschreibung, Bild und ein Link zur Event-Seite)
+- Wenn Sie in Ihrem Profil einen Instagram-Namen angegeben haben, erwähnen wir Ihr Instagram-Profil im Beitrag („@name“)
+- Sie können in Ihrem Profil festlegen, ob die Zustimmung für neue Events standardmäßig gesetzt sein soll; sie ist standardmäßig ausgeschaltet. Pro Event können Sie diese Einstellung ändern
+
+*Rechtsgrundlage:* Ihre Einwilligung (Art. 6 Abs. 1 lit. a DSGVO). Ohne Ihre Zustimmung wird Ihr Event nicht auf Instagram veröffentlicht und Ihr Profil nicht erwähnt.
+
+*Weitergabe:* Mit der Veröffentlichung werden die genannten Inhalte an Instagram (Meta) übermittelt und sind dort öffentlich sichtbar. Für die Verarbeitung durch Instagram gilt die Datenschutzerklärung von Meta.
+
+*Widerruf und Löschung:*
+- Sie können Ihre Zustimmung jederzeit für künftige Events ausschalten
+- Möchten Sie, dass ein bereits veröffentlichter Beitrag entfernt wird, senden Sie uns eine E-Mail an admin@thetribe.at; wir löschen den Beitrag in angemessener Frist`,
+      },
+      {
+        heading: '13. Änderungen dieser Datenschutzerklärung',
         text: `Wir behalten uns vor, diese Datenschutzerklärung bei Änderungen der App oder der Rechtslage anzupassen. Die jeweils aktuelle Version finden Sie immer auf dieser Seite.`,
       },
     ],

@@ -138,3 +138,25 @@ are only required if `MAILGUN_DRY_RUN` is unset or `false`.
 Both Mollie callable endpoints declare `cors: ['https://www.thetribe.at', 'https://thetribe.at']`
 so they can be invoked from the production origin. The Firebase Functions
 emulator bypasses CORS locally. The Firestore triggers do not need CORS.
+
+## Instagram image generation (`src/instagram/`)
+
+Building block for the Instagram automation (Trello ticket 5). Not wired to a
+trigger yet — the queue (ticket 4) and worker (ticket 7) call it.
+
+- `instagramContent.ts` — pure logic: formats (feed/carousel 1080x1350 = 4:5,
+  story 1080x1920 = 9:16), title shortening, German date/time/location labels,
+  category colour (live `categories` registry first, bundled defaults second),
+  caption builder (hard-capped at Instagram's 2200 characters).
+- `instagramImage.ts` — `renderEventImage(event, format, options)` returns a
+  JPEG buffer: the uploaded event image is the background (cover-cropped), a
+  category-coloured overlay carries title/date/place. No image, or a broken
+  one, falls back to a plain category-coloured layout.
+  `generateAndStoreEventImage(bucket, name, ...)` also stores it under
+  `instagram/<name>.jpg` in Storage and returns a public download-token URL
+  (written via the Admin SDK, so `storage.rules` stay closed to clients).
+
+Pipeline: satori (element tree -> SVG) -> @resvg/resvg-js (-> PNG) -> sharp
+(composite + JPEG). Fonts come from `@fontsource/*` (Cormorant Garamond +
+Inter, same as the site). Use deterministic names like `feed_<eventId>`.
+Logic is covered by `tests/lib/instagramContent.spec.ts`; the look is checked by eye.

@@ -119,3 +119,7 @@ export { sendVerificationEmail } from './sendVerificationEmail';
 export { sendPasswordResetEmailFn } from './sendPasswordResetEmail';
 export { checkEmailAvailability } from './checkEmailAvailability';
 export { adminListMembers, adminUpdateMember } from './adminMembers';
+export { onEventApprovedPostToInstagram } from './instagramPostOnApproval';
+export { instagramWeeklyCarousel } from './instagramWeeklyCarousel';
+export { refreshInstagramTokenJob } from './instagramTokenRefresh';
+export { adminRetryInstagramPost, adminSkipInstagramPost } from './instagramAdmin';
