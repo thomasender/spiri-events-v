@@ -9,6 +9,7 @@ import {
   renderEventImage,
   uploadInstagramImage,
 } from './instagram/instagramImage';
+import { normalizeInstagramHandle } from './instagram/instagramContent';
 import { runWeeklyCarousels, type CarouselDeps } from './instagram/instagramCarousel';
 import { getInstagramAccessToken } from './instagram/instagramToken';
 import { readStoredInstagramToken } from './instagramTokenStore';
@@ -103,6 +104,12 @@ export const instagramWeeklyCarousel = onSchedule(
           .collection('instagram_posts')
           .doc(id)
           .update({ ...patch, updatedAt: FieldValue.serverTimestamp() });
+      },
+      async getOrganizerHandle(ev) {
+        const uid = typeof ev.createdBy === 'string' ? ev.createdBy : '';
+        if (!uid) return null;
+        const snap = await db.doc(`users/${uid}`).get();
+        return normalizeInstagramHandle(snap.get('socialMedia.instagram'));
       },
       async generateCoverImage(name, cover) {
         return uploadInstagramImage(bucket, name, await renderCoverImage(cover, 'carousel'));

@@ -76,6 +76,8 @@ export async function skipInstagramPost(deps: SkipDeps, eventId: string): Promis
       igMediaId: null,
       permalink: null,
       error: null,
+      collaboratorInvited: false,
+      inviteFallbackReason: null,
     });
   } else {
     await deps.setSkipped(postId);

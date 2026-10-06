@@ -20,6 +20,9 @@ import {
   type InstagramEventInput,
 } from './instagramContent';
 import {
+  MAX_COLLABORATORS,
+  bareUsername,
+  createContainerWithInvite,
   graphGet,
   graphPost,
   idOf,
@@ -171,8 +174,27 @@ export function buildCoverModel(group: CarouselGroup, window: WeekWindow): Cover
 
 const MORE_LINE = `…und mehr auf thetribe.at`;
 
+const MAX_MENTION_LINE = 400;
+
+/** "Mit @a @b", dropping trailing handles that would exceed the mention budget. */
+export function buildMentionLine(handles: string[]): string {
+  let line = 'Mit';
+  let count = 0;
+  for (const handle of handles) {
+    const next = `${line} ${handle}`;
+    if (next.length > MAX_MENTION_LINE) break;
+    line = next;
+    count += 1;
+  }
+  return count > 0 ? line : '';
+}
+
 /** Always <= CAPTION_MAX_LENGTH; the event list is shortened gracefully when needed. */
-export function buildCarouselCaption(group: CarouselGroup, window: WeekWindow): string {
+export function buildCarouselCaption(
+  group: CarouselGroup,
+  window: WeekWindow,
+  handles: string[] = []
+): string {
   const part = group.parts > 1 ? ` (Teil ${group.part} von ${group.parts})` : '';
   const heading = `Events nächste Woche in ${group.bezirk}${part}\n${formatWeekRange(window)}`;
   const hashtags = [
@@ -192,7 +214,9 @@ export function buildCarouselCaption(group: CarouselGroup, window: WeekWindow): 
     return `• ${when ? `${when} – ` : ''}${title}${place ? ` (${place})` : ''}`;
   });
 
-  const fixed = (list: string[]) => [heading, list.join('\n'), footer].filter(Boolean).join('\n\n');
+  const mentions = buildMentionLine(handles);
+  const fixed = (list: string[]) =>
+    [heading, list.join('\n'), mentions, footer].filter(Boolean).join('\n\n');
   if (fixed(lines).length <= CAPTION_MAX_LENGTH) return fixed(lines);
 
   const kept: string[] = [];
@@ -216,6 +240,8 @@ export interface CarouselPostRecord {
   igMediaId: string | null;
   permalink: string | null;
   error: string | null;
+  collaboratorInvited: boolean;
+  inviteFallbackReason: string | null;
 }
 
 export interface CarouselDeps {
@@ -229,6 +255,8 @@ export interface CarouselDeps {
   /** Firestore create(): resolves false when the doc already exists. */
   createPost(id: string, record: CarouselPostRecord): Promise<boolean>;
   updatePost(id: string, patch: Partial<CarouselPostRecord>): Promise<void>;
+  /** Instagram mention ("@name") of the event's organizer, or null. Optional: no collab without it. */
+  getOrganizerHandle?(event: CarouselEvent): Promise<string | null>;
   generateCoverImage(name: string, cover: CoverModel): Promise<string>;
   generateEventImage(name: string, event: CarouselEvent): Promise<string>;
   notifyAdmins(subject: string, text: string): Promise<void>;
@@ -270,6 +298,25 @@ async function publishCarousel(
     imageUrls.push(await deps.generateEventImage(`${imageBase}_${i + 1}`, group.events[i]));
   }
 
+  // Distinct organizer handles in event order (events are consented already).
+  const handles: string[] = [];
+  if (deps.getOrganizerHandle) {
+    for (const event of group.events) {
+      try {
+        const handle = await deps.getOrganizerHandle(event);
+        if (handle && !handles.some((h) => h.toLowerCase() === handle.toLowerCase())) {
+          handles.push(handle);
+        }
+      } catch (err) {
+        log('Organizer handle lookup failed; skipping mention', {
+          postId,
+          error: sanitizeError(err, [deps.accessToken]),
+        });
+      }
+    }
+  }
+  const collaborators = handles.slice(0, MAX_COLLABORATORS).map(bareUsername);
+
   const childIds: string[] = [];
   for (const imageUrl of imageUrls) {
     const child = await graphPost(
@@ -282,16 +329,20 @@ async function publishCarousel(
   }
   for (const childId of childIds) await waitForContainer(deps, childId);
 
-  const parent = await graphPost(
+  // user_tags are rejected on a carousel parent, so only collaborators go along.
+  const created = await createContainerWithInvite(
     deps,
     `${deps.userId}/media`,
     {
       media_type: 'CAROUSEL',
       children: childIds.join(','),
-      caption: buildCarouselCaption(group, window),
+      caption: buildCarouselCaption(group, window, handles),
     },
-    'carousel container creation'
+    collaborators.length > 0 ? { collaborators: JSON.stringify(collaborators) } : null,
+    'carousel container creation',
+    log
   );
+  const parent = created.json;
   const parentId = idOf(parent, 'carousel container creation');
   await waitForContainer(deps, parentId);
 
@@ -310,7 +361,13 @@ async function publishCarousel(
   } catch (err) {
     log('Permalink lookup failed', { postId, error: sanitizeError(err, [deps.accessToken]) });
   }
-  await deps.updatePost(postId, { status: 'published', igMediaId: mediaId, permalink });
+  await deps.updatePost(postId, {
+    status: 'published',
+    igMediaId: mediaId,
+    permalink,
+    collaboratorInvited: created.invited,
+    inviteFallbackReason: created.fallbackReason,
+  });
   return mediaId;
 }
 
@@ -339,6 +396,8 @@ export async function runWeeklyCarousels(deps: CarouselDeps): Promise<CarouselRu
       igMediaId: null,
       permalink: null,
       error: null,
+      collaboratorInvited: false,
+      inviteFallbackReason: null,
     });
     if (!created) {
       log('Carousel already exists; not posting again', { postId });
