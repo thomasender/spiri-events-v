@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "prerender": "node scripts/prerender.mjs",
     "test": "vitest run",
+    "test:rules": "firebase emulators:exec --config firebase.rules-test.json --only firestore --project demo-rules \"vitest run -c vitest.rules.config.ts\"",
     "test:shuffle": "SHUFFLE=1 vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
@@ -62,6 +63,7 @@
     "react-select": "^5.10.2"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^3.0.4",
     "@playwright/experimental-ct-react": "^1.61.1",
     "@playwright/test": "^1.61.1",
     "@testing-library/jest-dom": "^6.9.1",

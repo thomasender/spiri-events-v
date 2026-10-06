@@ -86,12 +86,18 @@ keep that from happening again.
 
 ### The three tiers
 
-| Command                   | What runs                                          | When                            | Budget                    |
-| ------------------------- | -------------------------------------------------- | ------------------------------- | ------------------------- |
-| `npm run test`            | Vitest, all component/unit tests                   | every commit (pre-commit hook)  | ~8 s (incl. lint + types) |
-| `npm run test:e2e:smoke`  | Playwright, `@smoke`-tagged flows, Chromium only   | every push (pre-push hook)      | ~20 s on a fresh emulator |
-| `npm run test:e2e:full`   | Playwright, everything, Chromium                   | manually, before a release      | ~4–5 min                  |
-| `npm run test:e2e:mobile` | Playwright, `@mobile`-tagged specs, WebKit @ 390px | manually, for iOS Safari issues | short                     |
+| Command                   | What runs                                                         | When                                                                         | Budget                    |
+| ------------------------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------- |
+| `npm run test`            | Vitest, all component/unit tests                                  | every commit (pre-commit hook)                                               | ~8 s (incl. lint + types) |
+| `npm run test:e2e:smoke`  | Playwright, `@smoke`-tagged flows, Chromium only                  | every push (pre-push hook)                                                   | ~20 s on a fresh emulator |
+| `npm run test:e2e:full`   | Playwright, everything, Chromium                                  | manually, before a release                                                   | ~4–5 min                  |
+| `npm run test:e2e:mobile` | Playwright, `@mobile`-tagged specs, WebKit @ 390px                | manually, for iOS Safari issues                                              | short                     |
+| `npm run test:rules`      | Vitest + `@firebase/rules-unit-testing` against `firestore.rules` | manually, when touching `firestore.rules`; not part of the commit/push hooks | ~8 s incl. emulator start |
+
+`test:rules` starts its own throwaway Firestore emulator (`firebase.rules-test.json`,
+port 8782, project `demo-rules`), so it does not collide with the dev emulator on 8181. Specs live in `tests/rules/*.rules.spec.ts` and run through
+`vitest.rules.config.ts`; the normal `npm run test` does not pick them up and needs
+no emulator. Add new rules cases to the existing spec files there.
 
 ### The emulator is the bottleneck, not the browsers
 
