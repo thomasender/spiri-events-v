@@ -1,8 +1,9 @@
 /**
- * Renders Instagram images (feed 4:5, story 9:16, carousel slide 4:5) for an
- * event: the uploaded event image becomes the background, a category-coloured
- * overlay carries title / date / place. Events without an image get a plain
- * category-coloured layout.
+ * Renders Instagram images for an event. Feed (4:5): the event image itself,
+ * no text layer (all info is in the caption); without an image the category
+ * fallback photo of the website. Story 9:16 and carousel slides 4:5: image or
+ * fallback photo as background with a category-coloured text overlay. If no
+ * image can be loaded at all: plain category-coloured layout.
  *
  * Pipeline: satori (element tree -> SVG) -> resvg (SVG -> transparent PNG)
  * -> sharp (composite over the background, encode JPEG, which is the only
@@ -20,6 +21,7 @@ import sharp from 'sharp';
 import {
   FORMAT_DIMENSIONS,
   buildEventImageModel,
+  getCategoryFallbackUrl,
   type CoverModel,
   type EventImageModel,
   type InstagramEventInput,
@@ -171,23 +173,54 @@ const defaultFetchImage: ImageFetcher = async (url) => {
   return Buffer.from(await response.arrayBuffer());
 };
 
-async function renderBackground(
-  model: EventImageModel,
-  width: number,
-  height: number,
-  fetchImage: ImageFetcher
-): Promise<Buffer | null> {
-  if (!model.imageUrl) return null;
-  try {
-    const source = await fetchImage(model.imageUrl);
-    return await sharp(source)
-      .rotate() // honour EXIF orientation of phone photos
+/** Aspect ratios (w/h) treated as "already 4:5": cropped to fill, not letterboxed. */
+const PORTRAIT_MIN_RATIO = 0.75;
+const PORTRAIT_MAX_RATIO = 0.85;
+
+/** Event photo/flyer fitted to the target size without cutting off content. */
+async function fitEventImage(source: Buffer, width: number, height: number): Promise<Buffer> {
+  // rotate(): honour EXIF orientation of phone photos
+  const { data, info } = await sharp(source).rotate().toBuffer({ resolveWithObject: true });
+  const ratio = info.width / info.height;
+  if (ratio >= PORTRAIT_MIN_RATIO && ratio <= PORTRAIT_MAX_RATIO) {
+    return sharp(data)
       .resize(width, height, { fit: 'cover', position: 'attention' })
       .jpeg({ quality: JPEG_QUALITY })
       .toBuffer();
+  }
+  // Flyers, landscape, square: show the whole image (no text cut off) centred
+  // over a blurred, darkened copy of itself.
+  const backdrop = await sharp(data)
+    .resize(width, height, { fit: 'cover' })
+    .blur(40)
+    .modulate({ brightness: 0.55 })
+    .toBuffer();
+  const foreground = await sharp(data).resize(width, height, { fit: 'inside' }).png().toBuffer();
+  return sharp(backdrop)
+    .composite([{ input: foreground, gravity: 'centre' }])
+    .jpeg({ quality: JPEG_QUALITY })
+    .toBuffer();
+}
+
+/** Category fallback photo (landscape) cropped to fill the target size. */
+async function coverImage(source: Buffer, width: number, height: number): Promise<Buffer> {
+  return sharp(source)
+    .rotate()
+    .resize(width, height, { fit: 'cover', position: 'attention' })
+    .jpeg({ quality: JPEG_QUALITY })
+    .toBuffer();
+}
+
+async function tryRender(
+  url: string | null,
+  fetchImage: ImageFetcher,
+  render: (source: Buffer) => Promise<Buffer>
+): Promise<Buffer | null> {
+  if (!url) return null;
+  try {
+    return await render(await fetchImage(url));
   } catch {
-    // A broken or unsupported upload must not block the post: fall back to
-    // the plain layout.
+    // A broken or unsupported image must not block the post.
     return null;
   }
 }
@@ -198,7 +231,13 @@ export interface RenderOptions {
   categoryColors?: Record<string, string> | null;
 }
 
-/** Renders one event as a JPEG buffer in the requested Instagram format. */
+/**
+ * Renders one event as a JPEG buffer in the requested Instagram format.
+ *
+ * feed: the event image itself (fitted, no text layer), else the category
+ * fallback photo, else a plain category-coloured layout. carousel/story: same
+ * background choice, but with the text overlay on top.
+ */
 export async function renderEventImage(
   event: InstagramEventInput,
   format: InstagramFormat,
@@ -206,12 +245,17 @@ export async function renderEventImage(
 ): Promise<Buffer> {
   const { width, height } = FORMAT_DIMENSIONS[format];
   const model = buildEventImageModel(event, options.categoryColors);
-  const background = await renderBackground(
-    model,
-    width,
-    height,
-    options.fetchImage ?? defaultFetchImage
+  const fetchImage = options.fetchImage ?? defaultFetchImage;
+  const fallbackUrl = getCategoryFallbackUrl(event.category);
+  const isFeed = format === 'feed';
+
+  const ownImage = await tryRender(model.imageUrl, fetchImage, (src) =>
+    isFeed ? fitEventImage(src, width, height) : coverImage(src, width, height)
   );
+  const background =
+    ownImage ?? (await tryRender(fallbackUrl, fetchImage, (src) => coverImage(src, width, height)));
+
+  if (isFeed && background) return background;
 
   const svg = await satori(buildLayout(model, format, background !== null) as never, {
     width,
