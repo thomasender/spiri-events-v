@@ -10,7 +10,7 @@
 import {
   BASE_HASHTAGS,
   CAPTION_MAX_LENGTH,
-  SITE_URL,
+  buildCaptionFooter,
   formatEventDate,
   formatEventTime,
   stripImageUnsafeChars,
@@ -200,7 +200,7 @@ export function buildCarouselCaption(
   const hashtags = [
     ...new Set([toHashtag(group.bezirk), ...BASE_HASHTAGS, '#events'].filter(Boolean)),
   ].join(' ');
-  const footer = `Alle Infos und Anmeldung: ${SITE_URL}\n\n${hashtags}`;
+  const footer = buildCaptionFooter(hashtags);
 
   const lines = group.events.map((event) => {
     const when = [

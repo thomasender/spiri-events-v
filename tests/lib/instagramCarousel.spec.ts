@@ -11,7 +11,11 @@ import {
   type CarouselEvent,
   type CarouselPostRecord,
 } from '../../functions/src/instagram/instagramCarousel';
-import { CAPTION_MAX_LENGTH } from '../../functions/src/instagram/instagramContent';
+import {
+  BIO_LINK_LINE,
+  CAPTION_CTA,
+  CAPTION_MAX_LENGTH,
+} from '../../functions/src/instagram/instagramContent';
 
 const TOKEN = 'SECRET_TOKEN_123';
 // Sunday 2026-10-04 10:00 Vienna (CEST, UTC+2)
@@ -142,11 +146,12 @@ describe('buildCarouselCaption', () => {
     events,
   });
 
-  it('lists events with date, time, title and place plus link and hashtags', () => {
+  it('lists events with date, time, title and place plus call to action, bio hint and hashtags', () => {
     const caption = buildCarouselCaption(group([ev()]), WINDOW);
     expect(caption).toContain('Events nächste Woche in Dornbirn');
     expect(caption).toContain('• Mi, 7 Okt · 18:00 Uhr – Kakao Zeremonie (Studio Eins)');
-    expect(caption).toContain('https://www.thetribe.at');
+    expect(caption).toContain(CAPTION_CTA);
+    expect(caption).toContain(BIO_LINK_LINE);
     expect(caption).toContain('#vorarlberg');
     expect(caption).toContain('#dornbirn');
   });
@@ -162,6 +167,9 @@ describe('buildCarouselCaption', () => {
     const caption = buildCarouselCaption(group(events), WINDOW);
     expect(caption.length).toBeLessThanOrEqual(CAPTION_MAX_LENGTH);
     expect(caption).toContain('…und mehr auf thetribe.at');
+    // The call to action is never what gets cut when the list is too long.
+    expect(caption).toContain(CAPTION_CTA);
+    expect(caption).toContain(BIO_LINK_LINE);
     expect(caption).toContain('#vorarlberg');
   });
 });

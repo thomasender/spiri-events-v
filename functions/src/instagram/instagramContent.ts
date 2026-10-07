@@ -376,9 +376,29 @@ export function normalizeInstagramHandle(input: unknown): string | null {
   return INSTAGRAM_HANDLE_PATTERN.test(value) ? `@${value}` : null;
 }
 
+/** Call to action that closes every caption (feed posts and weekly carousels). */
+export const CAPTION_CTA = [
+  '💬 Schreib uns in die Kommentare, was dich daran begeistert',
+  '❤️ Lass ein Like da, wenn dir das Event gefällt',
+  '📤 Teile den Beitrag mit Freund:innen, die das interessieren könnte',
+  '🔖 Speichere ihn, damit du den Termin nicht verpasst',
+].join('\n');
+
 /**
- * Feed caption: headline facts first, a short description, then the link and
- * hashtags. Always <= CAPTION_MAX_LENGTH (Instagram's hard limit); the
+ * Instagram does not make URLs in captions clickable, so the caption points to
+ * the one link that is: the one in the bio, which leads to the site.
+ */
+export const BIO_LINK_LINE =
+  '🔗 Alle Events und Infos auf thetribe.at – den Link findest du in unserer Bio.';
+
+/** CTA, bio-link hint and hashtags: the tail of every caption. */
+export function buildCaptionFooter(hashtags: string): string {
+  return [CAPTION_CTA, BIO_LINK_LINE, hashtags].filter(Boolean).join('\n\n');
+}
+
+/**
+ * Feed caption: headline facts first, a short description, then the call to
+ * action, the bio-link hint and the hashtags. Always <= CAPTION_MAX_LENGTH (Instagram's hard limit); the
  * description is what gets shortened when the budget runs out.
  */
 export function buildCaption(event: InstagramEventInput, organizerHandle?: string | null): string {
@@ -397,10 +417,7 @@ export function buildCaption(event: InstagramEventInput, organizerHandle?: strin
     .filter(Boolean)
     .join('\n\n');
 
-  const footer = [
-    `Alle Infos und Anmeldung: ${eventPageUrl(event.slug)}`,
-    buildHashtags(event).join(' '),
-  ].join('\n\n');
+  const footer = buildCaptionFooter(buildHashtags(event).join(' '));
 
   const description = stripHtml(event.description);
   // Two blank-line separators sit between header, description and footer.
