@@ -125,6 +125,15 @@ describe('instagram content', () => {
     expect(caption).toContain('#soundhealing');
   });
 
+  it('keeps the line breaks of the description in the caption', () => {
+    const caption = buildCaption({
+      title: 'Kakao',
+      date: '2026-10-17',
+      description: '<p>Erste Zeile<br>Zweite Zeile</p><p>Neuer Absatz</p>',
+    });
+    expect(caption).toContain('Erste Zeile\nZweite Zeile\nNeuer Absatz');
+  });
+
   it('builds a caption for a bare-minimum event without empty sections', () => {
     const caption = buildCaption({ title: 'Kakao', date: '2026-10-17' });
     expect(caption).toContain('Kakao');

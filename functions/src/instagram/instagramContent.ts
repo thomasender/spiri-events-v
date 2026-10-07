@@ -98,8 +98,13 @@ function asString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-export function truncateText(input: string, max: number): string {
-  const text = input.replace(/\s+/g, ' ').trim();
+export function truncateText(input: string, max: number, keepNewlines = false): string {
+  const text = keepNewlines
+    ? input
+        .replace(/[^\S\n]+/g, ' ')
+        .replace(/ ?\n ?/g, '\n')
+        .trim()
+    : input.replace(/\s+/g, ' ').trim();
   if (text.length <= max) return text;
   const cut = text.slice(0, max - 1);
   const lastSpace = cut.lastIndexOf(' ');
@@ -331,7 +336,7 @@ export function buildCaption(event: InstagramEventInput, organizerHandle?: strin
   const description = stripHtml(event.description);
   // Two blank-line separators sit between header, description and footer.
   const budget = CAPTION_MAX_LENGTH - header.length - footer.length - 4;
-  const body = description && budget > 20 ? truncateText(description, budget) : '';
+  const body = description && budget > 20 ? truncateText(description, budget, true) : '';
 
   return [header, body, footer].filter(Boolean).join('\n\n').slice(0, CAPTION_MAX_LENGTH);
 }
