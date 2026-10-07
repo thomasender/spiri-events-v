@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import sharp from '../../functions/node_modules/sharp';
 import {
+  BIO_LINK_LINE,
+  CAPTION_CTA,
   CAPTION_MAX_LENGTH,
   FORMAT_DIMENSIONS,
   BASE_HASHTAGS,
@@ -121,7 +123,9 @@ describe('instagram content', () => {
     });
     expect(caption.length).toBeLessThanOrEqual(CAPTION_MAX_LENGTH);
     expect(caption).toContain('Cacao Zeremonie');
-    expect(caption).toContain('https://www.thetribe.at/event/cacao-zeremonie');
+    // The description is what gets shortened, never the call to action or the bio hint.
+    expect(caption).toContain(CAPTION_CTA);
+    expect(caption).toContain(BIO_LINK_LINE);
     expect(caption).toContain('#soundhealing');
   });
 
