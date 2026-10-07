@@ -16,6 +16,46 @@
   gap: 8px;
 }
 
+.directory-top-cta {
+  align-self: flex-start;
+  margin-top: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--accent-secondary);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+.directory-top-cta strong {
+  color: var(--accent-secondary);
+  font-weight: 600;
+}
+
+.directory-top-cta:hover {
+  background-color: var(--bg-calendar);
+}
+
+@media (min-width: 769px) {
+  .directory-header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    column-gap: 24px;
+  }
+
+  .directory-header > * {
+    grid-column: 1;
+  }
+
+  .directory-header > .directory-top-cta {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: center;
+    justify-self: end;
+    margin-top: 0;
+  }
+}
+
 .directory-eyebrow {
   font-size: var(--fs-eyebrow);
   letter-spacing: 0.08em;
