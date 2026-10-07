@@ -4,7 +4,11 @@ import { httpsCallable } from 'firebase/functions';
 import { AlertTriangle, ExternalLink, RefreshCw, SkipForward } from 'lucide-react';
 import { db, functions } from '../lib/firebase';
 import { useAuth } from '../hooks/useAuth';
-import { useInstagramSettings, useInstagramPosts } from '../hooks/useInstagramAdmin';
+import {
+  useInstagramSettings,
+  useInstagramPosts,
+  useUnpostedConsentEvents,
+} from '../hooks/useInstagramAdmin';
 import './InstagramTab.css';
 
 export const TOKEN_WARNING_DAYS = 14;
@@ -21,6 +25,7 @@ const OUTCOME_MESSAGES = {
   failed: 'Der Versuch ist erneut fehlgeschlagen. Details stehen in der Liste.',
   skipped: 'Das Event liegt in der Vergangenheit und wurde übersprungen.',
   disabled: 'Die Automatik ist ausgeschaltet. Bitte zuerst einschalten.',
+  'no-consent': 'Der Veranstalter hat der Veröffentlichung auf Instagram nicht zugestimmt.',
   duplicate: 'Es existiert bereits ein Eintrag für dieses Event.',
 };
 
@@ -45,6 +50,7 @@ export default function InstagramTab() {
     error: settingsError,
   } = useInstagramSettings(isAdmin);
   const { posts, titles, loading: postsLoading, error: postsError } = useInstagramPosts(isAdmin);
+  const { events: unposted, error: unpostedError } = useUnpostedConsentEvents(isAdmin, posts);
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState(null);
   const [message, setMessage] = useState(null);
@@ -100,7 +106,7 @@ export default function InstagramTab() {
         eingeschaltet ist.
       </p>
 
-      {(settingsError || postsError) && (
+      {(settingsError || postsError || unpostedError) && (
         <p className="instagram-error" role="alert">
           Daten konnten nicht geladen werden.
         </p>
@@ -163,6 +169,45 @@ export default function InstagramTab() {
           <dd data-testid="instagram-token-error">{settings?.tokenRefreshError || 'Keiner'}</dd>
         </dl>
       </div>
+
+      {unposted.length > 0 && (
+        <div className="instagram-card" data-testid="instagram-unposted">
+          <h2>Genehmigt, aber noch nicht gepostet</h2>
+          <p className="instagram-muted">
+            Der Veranstalter hat zugestimmt, es gibt aber noch keinen Beitrag (z. B. weil die
+            Automatik beim Genehmigen ausgeschaltet war).
+          </p>
+          <ul className="instagram-posts">
+            {unposted.map((event) => (
+              <li
+                key={event.eventId}
+                className="instagram-post"
+                data-testid="instagram-unposted-event"
+              >
+                <div className="instagram-post-main">
+                  <strong>{event.title}</strong>
+                  <span className="instagram-muted">{event.date || ''}</span>
+                </div>
+                <div className="instagram-post-actions">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled={busyId === event.eventId}
+                    onClick={() =>
+                      runAction(
+                        { id: event.eventId, eventId: event.eventId },
+                        'adminRetryInstagramPost'
+                      )
+                    }
+                  >
+                    <RefreshCw size={14} aria-hidden="true" /> Jetzt posten
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="instagram-card">
         <h2>Beiträge</h2>

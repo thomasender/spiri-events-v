@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { collection, doc, getDoc, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { collection, doc, getDoc, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 function toDate(value) {
@@ -101,4 +101,47 @@ export function useInstagramPosts(enabled) {
   }, [posts, titles]);
 
   return { posts, titles, loading, error };
+}
+
+// Approved events whose organizer consented to Instagram but that have no
+// instagram_posts record (e.g. approved while the automation was switched
+// off). `posts` is the live list from useInstagramPosts; an event drops out
+// of the result as soon as a record exists for it, whatever its status.
+export function useUnpostedConsentEvents(enabled, posts) {
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(Boolean(enabled));
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!enabled) return undefined;
+    const q = query(
+      collection(db, 'events'),
+      where('status', '==', 'approved'),
+      where('instagramConsent', '==', true)
+    );
+    return onSnapshot(
+      q,
+      (snap) => {
+        setEvents(
+          snap.docs.map((d) => {
+            const data = d.data();
+            return { eventId: d.id, title: data.title || d.id, date: data.date || null };
+          })
+        );
+        setLoading(false);
+      },
+      (err) => {
+        console.error('useUnpostedConsentEvents error:', err);
+        setError(err);
+        setLoading(false);
+      }
+    );
+  }, [enabled]);
+
+  const posted = new Set(posts.map((p) => p.eventId));
+  return {
+    events: events.filter((e) => !posted.has(e.eventId)),
+    loading,
+    error,
+  };
 }

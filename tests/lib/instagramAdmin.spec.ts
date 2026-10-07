@@ -69,7 +69,7 @@ describe('retryInstagramPost', () => {
     expect(outcome).toBe('failed'); // generateImage stub throws
   });
 
-  it.each(['published', 'publishing', 'skipped', null])(
+  it.each(['published', 'publishing', 'skipped'])(
     'refuses to retry a post with status %s',
     async (status) => {
       const h = retryHarness({ status });
@@ -79,6 +79,14 @@ describe('retryInstagramPost', () => {
       expect(h.deps.deletePost).not.toHaveBeenCalled();
     }
   );
+
+  it('posts an approved event that has no record yet, without deleting anything', async () => {
+    const h = retryHarness({ status: null });
+    const outcome = await retryInstagramPost(h.deps, 'e1');
+    expect(h.deps.deletePost).not.toHaveBeenCalled();
+    expect(h.order).toEqual(['create']);
+    expect(outcome).toBe('failed'); // generateImage stub throws
+  });
 
   it('respects the kill switch and keeps the failed record', async () => {
     const h = retryHarness({ enabled: false });
