@@ -107,6 +107,7 @@ export default function EventModal({ event, onClose }) {
               event={event}
               fallbackSrc={fallbackImage}
               alt={event.title}
+              loading="eager"
               className={`modal-image ${imageLoaded || !hasRemoteImage ? 'loaded' : ''}`}
               onLoad={() => setImageLoaded(true)}
             />

@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { focalPointToStyle, normalizeFocalPoint } from '../lib/eventImage';
 
+// Lazy by default: calendar lists render every event's cover at once and most
+// sit below the fold. All wrappers have fixed dimensions, so there is no layout
+// shift. Callers showing a hero image pass loading="eager" (rest overrides).
 export default function EventCoverImage({
   event,
   fallbackSrc,
@@ -24,6 +27,8 @@ export default function EventCoverImage({
       className={className}
       style={style}
       draggable={draggable}
+      loading="lazy"
+      decoding="async"
       onError={() => {
         setErrored(true);
         rest.onError?.();

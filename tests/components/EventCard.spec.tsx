@@ -55,4 +55,11 @@ describe('EventCard', () => {
     const photo = screen.getByTestId('event-tile-organizer-photo');
     expect(photo.parentElement?.tagName).not.toBe('A');
   });
+
+  it('loads the cover image lazily', () => {
+    const { container } = renderCard({ ...baseEvent, imageUrl: 'https://example.com/cover.jpg' });
+    const cover = container.querySelector('img.event-tile-image');
+    expect(cover).toHaveAttribute('loading', 'lazy');
+    expect(cover).toHaveAttribute('decoding', 'async');
+  });
 });
