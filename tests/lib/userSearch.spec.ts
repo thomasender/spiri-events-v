@@ -97,6 +97,7 @@ describe('searchUsersByUsernamePrefix', () => {
         displayName: 'Anna Schmidt',
         photoURL: 'https://example.com/anna.jpg',
         slug: 'anna-schmidt',
+        website: '',
       },
     ]);
   });

@@ -274,3 +274,24 @@
   font-size: 0.8rem;
   color: var(--text-light);
 }
+
+.helper-user-search-row {
+  display: flex;
+  gap: 8px;
+}
+
+.helper-user-search-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.helper-user-search-apply {
+  white-space: nowrap;
+  padding: 0 12px;
+  cursor: pointer;
+}
+
+.helper-user-search-apply:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
