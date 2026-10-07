@@ -186,6 +186,13 @@ export default function DirectoryPage() {
             Hier findest du Menschen mit bewussten Angeboten in Vorarlberg. Alle Details und
             Kontaktmöglichkeiten findest du auf dem jeweiligen Profil.
           </p>
+          <Link
+            to="/profil#verzeichnis"
+            className="directory-top-cta"
+            data-testid="directory-top-cta"
+          >
+            Du bietest etwas an? <strong>Trag dich in deinem Profil ein.</strong>
+          </Link>
         </header>
 
         <section className="directory-controls" aria-label="Suche und Filter">

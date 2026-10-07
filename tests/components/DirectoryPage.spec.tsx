@@ -114,4 +114,10 @@ describe('DirectoryPage', () => {
     fireEvent.click(within(card).getByTestId('directory-toggle-hidden'));
     await waitFor(() => expect(mocks.directory.setHidden).toHaveBeenCalledWith('geheim', false));
   });
+
+  it('shows a CTA at the top linking to the profile directory section', () => {
+    renderPage();
+    const cta = screen.getByTestId('directory-top-cta');
+    expect(cta.getAttribute('href')).toBe('/profil#verzeichnis');
+  });
 });
