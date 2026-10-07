@@ -308,7 +308,7 @@ export default function DirectoryPage() {
         )}
 
         <p className="directory-cta">
-          Du bietest etwas an? <Link to="/profil">Trag dich in deinem Profil ein.</Link>
+          Du bietest etwas an? <Link to="/profil#verzeichnis">Trag dich in deinem Profil ein.</Link>
         </p>
       </div>
     </>

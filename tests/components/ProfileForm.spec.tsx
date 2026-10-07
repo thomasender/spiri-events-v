@@ -742,3 +742,17 @@ describe('ProfileForm — Benutzername (LtBHuNes)', () => {
     });
   });
 });
+
+describe('ProfileForm directory deep link', () => {
+  it('scrolls to the directory section for /profil#verzeichnis', () => {
+    const scroll = vi.fn();
+    Element.prototype.scrollIntoView = scroll;
+    render(
+      <MemoryRouter initialEntries={['/profil#verzeichnis']}>
+        <ProfileForm profile={null} uid="user-123" onSave={vi.fn()} />
+      </MemoryRouter>
+    );
+    expect(scroll).toHaveBeenCalled();
+    expect(scroll.mock.contexts[0]).toBe(screen.getByTestId('profile-directory-section'));
+  });
+});
