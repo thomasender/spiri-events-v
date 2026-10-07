@@ -72,6 +72,75 @@ export interface InstagramEventInput {
   slug?: unknown;
   instagramConsent?: unknown;
   createdBy?: unknown;
+  /** Organizer's pick for the post: { url, focalPoint: { x, y }, zoom }. */
+  instagramImage?: unknown;
+}
+
+/** Validated organizer pick of photo + 4:5 crop for the Instagram post. */
+export interface InstagramImageChoice {
+  url: string;
+  focalX: number;
+  focalY: number;
+  zoom: number;
+}
+
+export const MAX_INSTAGRAM_ZOOM = 3;
+
+function clampUnit(value: unknown): number {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 0.5;
+  return Math.min(1, Math.max(0, n));
+}
+
+/** Reads `event.instagramImage`; null when absent or unusable (old events). */
+export function parseInstagramImageChoice(value: unknown): InstagramImageChoice | null {
+  if (!value || typeof value !== 'object') return null;
+  const raw = value as { url?: unknown; focalPoint?: unknown; zoom?: unknown };
+  const url = asString(raw.url);
+  if (!/^https:\/\//i.test(url)) return null;
+  const focal =
+    raw.focalPoint && typeof raw.focalPoint === 'object'
+      ? (raw.focalPoint as { x?: unknown; y?: unknown })
+      : {};
+  const zoom = Number(raw.zoom);
+  return {
+    url,
+    focalX: clampUnit(focal.x),
+    focalY: clampUnit(focal.y),
+    zoom: Number.isFinite(zoom) ? Math.min(MAX_INSTAGRAM_ZOOM, Math.max(1, zoom)) : 1,
+  };
+}
+
+export interface CropRect {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * The region of a `imageWidth` x `imageHeight` image that the organizer saw in
+ * the wizard preview: the largest `aspect` (w/h) rectangle, shrunk by `zoom`,
+ * positioned like CSS `object-position: x% y%` + `scale(zoom)` around the
+ * focal point, i.e. left = focalX * (imageWidth - cropWidth). Always inside
+ * the image.
+ */
+export function computeCropRect(
+  imageWidth: number,
+  imageHeight: number,
+  choice: Pick<InstagramImageChoice, 'focalX' | 'focalY' | 'zoom'>,
+  aspect: number
+): CropRect {
+  const zoom = Math.max(1, choice.zoom);
+  const fullWidth = imageWidth / imageHeight > aspect ? imageHeight * aspect : imageWidth;
+  const width = Math.max(1, Math.min(imageWidth, Math.round(fullWidth / zoom)));
+  const height = Math.max(1, Math.min(imageHeight, Math.round(fullWidth / aspect / zoom)));
+  return {
+    left: Math.round(clampUnit(choice.focalX) * (imageWidth - width)),
+    top: Math.round(clampUnit(choice.focalY) * (imageHeight - height)),
+    width,
+    height,
+  };
 }
 
 /** Text of the first slide of a weekly carousel (already image-safe). */

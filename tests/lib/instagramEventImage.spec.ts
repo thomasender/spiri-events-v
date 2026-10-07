@@ -4,7 +4,9 @@ import {
   CATEGORY_FALLBACKS as FUNCTIONS_FALLBACKS,
   DEFAULT_EVENT_FALLBACK as FUNCTIONS_DEFAULT,
   SITE_ORIGIN,
+  computeCropRect,
   getCategoryFallbackUrl,
+  parseInstagramImageChoice,
 } from '../../functions/src/instagram/instagramContent';
 import { renderEventImage } from '../../functions/src/instagram/instagramImage';
 import {
@@ -142,6 +144,90 @@ describe('instagram feed image (no text layer)', () => {
     // gradient: category colour (Yoga #c48e6a) top-left, near-black bottom-right
     expect(close(await pixel(jpeg, 3, 3), [196, 142, 106], 40)).toBe(true);
     expect((await pixel(jpeg, 1076, 1346)).every((v) => v < 60)).toBe(true);
+  });
+});
+
+describe('organizer-picked instagram crop (4:5, focal point + zoom)', () => {
+  const base = { title: 'Kakao', date: '2026-10-17', category: 'Yoga' };
+  const PICKED_URL = 'https://firebasestorage/description-image.png';
+
+  it('computes the crop like the wizard preview (object-position + zoom)', () => {
+    // 2000x1000 landscape: full 4:5 crop is 800x1000
+    expect(computeCropRect(2000, 1000, { focalX: 0.5, focalY: 0.5, zoom: 1 }, 0.8)).toEqual({
+      left: 600,
+      top: 0,
+      width: 800,
+      height: 1000,
+    });
+    expect(computeCropRect(2000, 1000, { focalX: 0, focalY: 0.5, zoom: 1 }, 0.8).left).toBe(0);
+    expect(computeCropRect(2000, 1000, { focalX: 1, focalY: 0.5, zoom: 1 }, 0.8).left).toBe(1200);
+    // zoom 2 halves the crop and keeps it inside the image
+    expect(computeCropRect(2000, 1000, { focalX: 1, focalY: 1, zoom: 2 }, 0.8)).toEqual({
+      left: 1600,
+      top: 500,
+      width: 400,
+      height: 500,
+    });
+    // tall image: width-bound
+    expect(computeCropRect(800, 2000, { focalX: 0.5, focalY: 0, zoom: 1 }, 0.8)).toEqual({
+      left: 0,
+      top: 0,
+      width: 800,
+      height: 1000,
+    });
+  });
+
+  it('ignores missing or invalid choices and clamps values', () => {
+    expect(parseInstagramImageChoice(undefined)).toBeNull();
+    expect(parseInstagramImageChoice(null)).toBeNull();
+    expect(parseInstagramImageChoice({ url: 'blob:abc' })).toBeNull();
+    expect(
+      parseInstagramImageChoice({ url: PICKED_URL, focalPoint: { x: 2, y: -1 }, zoom: 9 })
+    ).toEqual({ url: PICKED_URL, focalX: 1, focalY: 0, zoom: 3 });
+    expect(parseInstagramImageChoice({ url: PICKED_URL })).toEqual({
+      url: PICKED_URL,
+      focalX: 0.5,
+      focalY: 0.5,
+      zoom: 1,
+    });
+  });
+
+  it('uses the picked image and region instead of the cover image', async () => {
+    // 2000x1000: left half red, right half blue
+    const picked = await sharp({
+      create: { width: 2000, height: 1000, channels: 3, background: { r: 255, g: 0, b: 0 } },
+    })
+      .composite([{ input: await solid(1000, 1000, [0, 0, 255]), left: 1000, top: 0 }])
+      .png()
+      .toBuffer();
+    const calls: string[] = [];
+    const jpeg = await renderEventImage(
+      {
+        ...base,
+        imageUrl: EVENT_URL,
+        instagramImage: { url: PICKED_URL, focalPoint: { x: 1, y: 0.5 }, zoom: 1 },
+      },
+      'feed',
+      { fetchImage: stubFetch({ [PICKED_URL]: picked }, calls) }
+    );
+    expect(calls).toEqual([PICKED_URL]);
+    const meta = await sharp(jpeg).metadata();
+    expect([meta.width, meta.height]).toEqual([1080, 1350]);
+    // focal point far right: the whole post is the blue half, edge to edge
+    expect(close(await pixel(jpeg, 3, 675), [0, 0, 255])).toBe(true);
+    expect(close(await pixel(jpeg, 1076, 675), [0, 0, 255])).toBe(true);
+  });
+
+  it('falls back to the cover image when the picked image cannot be loaded', async () => {
+    const color: Rgb = [200, 100, 50];
+    const calls: string[] = [];
+    const jpeg = await renderEventImage(
+      { ...base, imageUrl: EVENT_URL, instagramImage: { url: PICKED_URL, zoom: 1 } },
+      'feed',
+      { fetchImage: stubFetch({ [EVENT_URL]: await solid(760, 1000, color) }, calls) }
+    );
+    expect(calls).toEqual([PICKED_URL, EVENT_URL]);
+    expect(close(await pixel(jpeg, 540, 675), color)).toBe(true);
   });
 });
 

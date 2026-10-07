@@ -198,3 +198,68 @@ describe('EventFormWizard Instagram consent', () => {
     );
   });
 });
+
+describe('EventFormWizard Instagram image crop', () => {
+  const IMG_A = 'https://firebasestorage.googleapis.com/a.jpg';
+  const IMG_B = 'https://firebasestorage.googleapis.com/b.jpg';
+
+  function seedDraftWithDescription(description: string) {
+    localStorage.setItem(
+      'eventWizardDraft:user-uid',
+      JSON.stringify({
+        version: 1,
+        savedAt: Date.now(),
+        draft: { ...COMPLETE_DRAFT, formData: { ...COMPLETE_DRAFT.formData, description } },
+      })
+    );
+  }
+
+  it('opens the crop section only once Instagram is allowed', () => {
+    mockProfile.value = profileWith({});
+    seedDraftWithDescription(`<p>Text</p><img src="${IMG_A}">`);
+    renderWizard();
+    expect(screen.queryByTestId('instagram-image-accordion')).toBeNull();
+    fireEvent.click(screen.getByTestId('instagram-consent-checkbox'));
+    expect(screen.getByTestId('instagram-image-accordion')).toBeInTheDocument();
+    expect(screen.getByTestId('instagram-image-picker')).toHaveTextContent(
+      /sehr vielen Menschen gezeigt/
+    );
+  });
+
+  it('tells the user a mood picture is used when there is no photo', () => {
+    mockProfile.value = profileWith({ instagramConsentDefault: true });
+    seedDraft();
+    renderWizard();
+    expect(screen.getByTestId('instagram-image-picker-empty')).toBeInTheDocument();
+  });
+
+  it('saves the picked photo with zoom and focal point', async () => {
+    mockProfile.value = profileWith({ instagramConsentDefault: true });
+    seedDraftWithDescription(`<p>Text</p><img src="${IMG_A}"><img src="${IMG_B}">`);
+    renderWizard();
+    const options = screen.getAllByTestId('instagram-image-option');
+    expect(options).toHaveLength(2);
+    fireEvent.click(options[1]);
+    expect(options[1]).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.change(screen.getByTestId('instagram-image-zoom'), { target: { value: '2' } });
+    fireEvent.keyDown(screen.getByTestId('instagram-focal-picker-handle-x'), { key: 'Home' });
+    const saved = await submitAndGetSavedEvent();
+    expect(saved.instagramImage).toEqual({ url: IMG_B, focalPoint: { x: 0, y: 0.5 }, zoom: 2 });
+  });
+
+  it('defaults to the first photo, centred, and stores nothing without consent', async () => {
+    mockProfile.value = profileWith({ instagramConsentDefault: true });
+    seedDraftWithDescription(`<img src="${IMG_A}">`);
+    const { unmount } = renderWizard();
+    const saved = await submitAndGetSavedEvent();
+    expect(saved.instagramImage).toEqual({ url: IMG_A, focalPoint: { x: 0.5, y: 0.5 }, zoom: 1 });
+    unmount();
+
+    mockEvents.addEvent.mockClear();
+    mockProfile.value = profileWith({});
+    seedDraftWithDescription(`<img src="${IMG_A}">`);
+    renderWizard();
+    const savedWithout = await submitAndGetSavedEvent();
+    expect(savedWithout).not.toHaveProperty('instagramImage');
+  });
+});
