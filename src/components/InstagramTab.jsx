@@ -174,8 +174,8 @@ export default function InstagramTab() {
         <div className="instagram-card" data-testid="instagram-unposted">
           <h2>Genehmigt, aber noch nicht gepostet</h2>
           <p className="instagram-muted">
-            Der Veranstalter hat zugestimmt, es gibt aber noch keinen Beitrag (z. B. weil die
-            Automatik beim Genehmigen ausgeschaltet war).
+            Der Veranstalter hat zugestimmt und das Event liegt noch in der Zukunft, ein Beitrag
+            wurde aber noch nicht veröffentlicht (nie versucht, übersprungen oder fehlgeschlagen).
           </p>
           <ul className="instagram-posts">
             {unposted.map((event) => (
@@ -187,6 +187,9 @@ export default function InstagramTab() {
                 <div className="instagram-post-main">
                   <strong>{event.title}</strong>
                   <span className="instagram-muted">{event.date || ''}</span>
+                  <span className="instagram-muted" data-testid="instagram-unposted-status">
+                    {event.postStatus ? STATUS_LABELS[event.postStatus] : 'Noch nicht versucht'}
+                  </span>
                 </div>
                 <div className="instagram-post-actions">
                   <button
