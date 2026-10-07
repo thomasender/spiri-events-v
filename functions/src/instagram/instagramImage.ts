@@ -21,7 +21,10 @@ import sharp from 'sharp';
 import {
   FORMAT_DIMENSIONS,
   buildEventImageModel,
+  computeCropRect,
   getCategoryFallbackUrl,
+  parseInstagramImageChoice,
+  type InstagramImageChoice,
   type CoverModel,
   type EventImageModel,
   type InstagramEventInput,
@@ -211,6 +214,22 @@ async function coverImage(source: Buffer, width: number, height: number): Promis
     .toBuffer();
 }
 
+/** The organizer's own crop (picked in the wizard), scaled to the target size. */
+async function cropToChoice(
+  source: Buffer,
+  width: number,
+  height: number,
+  choice: InstagramImageChoice
+): Promise<Buffer> {
+  const { data, info } = await sharp(source).rotate().toBuffer({ resolveWithObject: true });
+  const rect = computeCropRect(info.width, info.height, choice, width / height);
+  return sharp(data)
+    .extract(rect)
+    .resize(width, height, { fit: 'fill' })
+    .jpeg({ quality: JPEG_QUALITY })
+    .toBuffer();
+}
+
 async function tryRender(
   url: string | null,
   fetchImage: ImageFetcher,
@@ -248,10 +267,17 @@ export async function renderEventImage(
   const fetchImage = options.fetchImage ?? defaultFetchImage;
   const fallbackUrl = getCategoryFallbackUrl(event.category);
   const isFeed = format === 'feed';
+  // The organizer's crop is 4:5, so it applies to feed and carousel, not story.
+  const choice = format === 'story' ? null : parseInstagramImageChoice(event.instagramImage);
 
-  const ownImage = await tryRender(model.imageUrl, fetchImage, (src) =>
-    isFeed ? fitEventImage(src, width, height) : coverImage(src, width, height)
-  );
+  const chosenImage = choice
+    ? await tryRender(choice.url, fetchImage, (src) => cropToChoice(src, width, height, choice))
+    : null;
+  const ownImage =
+    chosenImage ??
+    (await tryRender(model.imageUrl, fetchImage, (src) =>
+      isFeed ? fitEventImage(src, width, height) : coverImage(src, width, height)
+    ));
   const background =
     ownImage ?? (await tryRender(fallbackUrl, fetchImage, (src) => coverImage(src, width, height)));
 

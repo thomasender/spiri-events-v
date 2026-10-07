@@ -40,6 +40,7 @@ export default function FocalPointPicker({
   onZoomChange,
   minZoom = 1,
   maxZoom = 3,
+  info,
 }) {
   const containerRef = useRef(null);
   const dragStateRef = useRef(null);
@@ -214,10 +215,8 @@ export default function FocalPointPicker({
       <p className="focal-point-picker-info" data-testid={`${testId}-info`}>
         <Info size={14} aria-hidden="true" />
         <span>
-          Lege mit dem Fokuspunkt fest, welcher Bildausschnitt sichtbar bleibt, wenn das Foto
-          zugeschnitten wird (zum Beispiel in der Kalender-Kachel). Verschiebe das Fadenkreuz auf
-          den Bereich, der wichtig ist – etwa ein Gesicht oder ein Logo. Das Vorschau-Bild rechts
-          zeigt, wie das Foto später aussehen wird.
+          {info ??
+            'Lege mit dem Fokuspunkt fest, welcher Bildausschnitt sichtbar bleibt, wenn das Foto zugeschnitten wird (zum Beispiel in der Kalender-Kachel). Verschiebe das Fadenkreuz auf den Bereich, der wichtig ist – etwa ein Gesicht oder ein Logo. Das Vorschau-Bild rechts zeigt, wie das Foto später aussehen wird.'}
         </span>
       </p>
 
@@ -293,6 +292,7 @@ export default function FocalPointPicker({
           </div>
           <div
             className="focal-point-picker-preview"
+            style={{ aspectRatio: String(cropAspect) }}
             aria-hidden="true"
             data-testid={`${testId}-preview`}
           >

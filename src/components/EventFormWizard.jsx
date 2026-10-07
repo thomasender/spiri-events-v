@@ -43,6 +43,12 @@ import { normalizeCategoryInput, isValidCategoryInput } from '../utils/categoryI
 import { getCategoryColor } from '../utils/categoryColors';
 import { getMissingProfileFields } from '../utils/profile';
 import InstagramConsentField from './InstagramConsentField';
+import InstagramImagePicker from './InstagramImagePicker';
+import {
+  COVER_SOURCE,
+  buildInstagramImageCandidates,
+  resolveInstagramImage,
+} from '../utils/instagramImageChoice';
 import './EventForm.css';
 import './EventFormWizard.css';
 
@@ -198,6 +204,26 @@ export default function EventFormWizard() {
   useEffect(() => {
     if (!instagramConsentTouched.current) setInstagramConsent(profileInstagramDefault);
   }, [profileInstagramDefault]);
+  // Which photo + 4:5 crop the Instagram post uses ({ source, focalPoint, zoom }).
+  const [instagramImageChoice, setInstagramImageChoice] = useState(null);
+  const instagramImageCandidates = useMemo(
+    () =>
+      buildInstagramImageCandidates({
+        coverPreview: imagePreview,
+        description: formData.description,
+      }),
+    [imagePreview, formData.description]
+  );
+  // The choice in effect: the stored one while its image still exists, else
+  // the first candidate centred and unzoomed.
+  const effectiveInstagramImageChoice = useMemo(() => {
+    const stillThere = instagramImageCandidates.some(
+      (c) => c.source === instagramImageChoice?.source
+    );
+    if (stillThere) return instagramImageChoice;
+    const first = instagramImageCandidates[0];
+    return first ? { source: first.source, focalPoint: { ...DEFAULT_FOCAL_POINT }, zoom: 1 } : null;
+  }, [instagramImageCandidates, instagramImageChoice]);
   const fileInputRef = useRef(null);
   const wizardContainerRef = useRef(null);
   const isInitialStepMount = useRef(true);
@@ -358,6 +384,7 @@ export default function EventFormWizard() {
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
     setImageFocalPoint(DEFAULT_FOCAL_POINT);
+    setInstagramImageChoice((prev) => (prev?.source === COVER_SOURCE ? null : prev));
   };
 
   const handleImageSelectFromInput = (e) => {
@@ -634,6 +661,11 @@ export default function EventFormWizard() {
     rightsConfirmed,
     rightsConfirmedAt: rightsConfirmed ? serverTimestamp() : null,
     instagramConsent,
+    // Description images already have their final URL; a picked cover photo
+    // is added after its upload in saveEvent().
+    ...(instagramConsent && effectiveInstagramImageChoice?.source !== COVER_SOURCE
+      ? { instagramImage: resolveInstagramImage(effectiveInstagramImageChoice) }
+      : {}),
   });
 
   const handleSubmit = async (e) => {
@@ -694,6 +726,11 @@ export default function EventFormWizard() {
         const patch = { imageUrl: newImageUrl };
         if (!isDefaultFocalPoint(imageFocalPoint)) {
           patch.imageFocalPoint = imageFocalPoint;
+        }
+        if (eventData.instagramConsent && effectiveInstagramImageChoice?.source === COVER_SOURCE) {
+          patch.instagramImage = resolveInstagramImage(effectiveInstagramImageChoice, {
+            coverUrl: newImageUrl,
+          });
         }
         await updateEvent(docRef.id, patch);
       }
@@ -1450,6 +1487,17 @@ export default function EventFormWizard() {
         }}
         instagramHandle={profile?.socialMedia?.instagram}
       />
+
+      {instagramConsent && (
+        <details className="instagram-image-accordion" open data-testid="instagram-image-accordion">
+          <summary>Bildausschnitt für Instagram wählen</summary>
+          <InstagramImagePicker
+            candidates={instagramImageCandidates}
+            value={effectiveInstagramImageChoice}
+            onChange={setInstagramImageChoice}
+          />
+        </details>
+      )}
 
       {submitError && <p className="error-text submit-error">{submitError}</p>}
     </div>
