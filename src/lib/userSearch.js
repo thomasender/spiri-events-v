@@ -39,6 +39,7 @@ export async function searchUsersByUsernamePrefix(rawPrefix, options = {}) {
         displayName,
         photoURL,
         slug: data.slug || '',
+        website: typeof data.website === 'string' ? data.website : '',
       };
     });
   } catch (err) {

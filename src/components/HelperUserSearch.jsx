@@ -36,8 +36,18 @@ export default function HelperUserSearch({ disabled, onSelect }) {
   const showResults = open && query.trim().length >= 2;
   const hasMatches = results.length > 0;
 
+  const applyTyped = () => {
+    const typed = query.trim().replace(/^@/, '').toLowerCase();
+    if (!typed || results.length === 0) return;
+    const exact = results.find((u) => (u.username || '').toLowerCase() === typed);
+    handleSelect(exact || results[0]);
+  };
+
   const handleKeyDown = (e) => {
-    if (!showResults || !hasMatches) return;
+    if (!showResults || !hasMatches) {
+      if (e.key === 'Enter') e.preventDefault();
+      return;
+    }
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       setHighlighted((h) => (h + 1) % results.length);
@@ -45,9 +55,11 @@ export default function HelperUserSearch({ disabled, onSelect }) {
       e.preventDefault();
       setHighlighted((h) => (h <= 0 ? results.length - 1 : h - 1));
     } else if (e.key === 'Enter') {
+      e.preventDefault();
       if (highlighted >= 0 && highlighted < results.length) {
-        e.preventDefault();
         handleSelect(results[highlighted]);
+      } else {
+        applyTyped();
       }
     } else if (e.key === 'Escape') {
       setOpen(false);
@@ -56,24 +68,35 @@ export default function HelperUserSearch({ disabled, onSelect }) {
 
   return (
     <div className="helper-user-search" ref={containerRef} data-testid="helper-user-search">
-      <input
-        type="text"
-        value={query}
-        placeholder="Benutzername suchen, z.B. @anna.schmidt"
-        onChange={(e) => {
-          setQuery(e.target.value);
-          setOpen(true);
-          setHighlighted(-1);
-        }}
-        onFocus={() => setOpen(true)}
-        onKeyDown={handleKeyDown}
-        disabled={disabled}
-        data-testid="helper-user-search-input"
-        autoComplete="off"
-        spellCheck={false}
-        autoCapitalize="none"
-        autoCorrect="off"
-      />
+      <div className="helper-user-search-row">
+        <input
+          type="text"
+          value={query}
+          placeholder="Benutzername suchen, z.B. @anna.schmidt"
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+            setHighlighted(-1);
+          }}
+          onFocus={() => setOpen(true)}
+          onKeyDown={handleKeyDown}
+          disabled={disabled}
+          data-testid="helper-user-search-input"
+          autoComplete="off"
+          spellCheck={false}
+          autoCapitalize="none"
+          autoCorrect="off"
+        />
+        <button
+          type="button"
+          className="helper-user-search-apply"
+          onClick={applyTyped}
+          disabled={disabled || !hasMatches}
+          data-testid="helper-user-search-apply"
+        >
+          Übernehmen
+        </button>
+      </div>
       {showResults && (
         <ul
           className="helper-user-search-results"

@@ -306,7 +306,7 @@ describe('HelpersTab', () => {
     });
   });
 
-  it('shows the user search field only when creating a new helper', () => {
+  it('shows the user search field when creating and when editing a helper', () => {
     render(<HelpersTab />);
     fireEvent.click(screen.getByTestId('helpers-tab-add'));
     expect(screen.getByTestId('helper-user-search')).toBeInTheDocument();
@@ -317,7 +317,38 @@ describe('HelpersTab', () => {
     mockHelpers.helpers = SEED;
     render(<HelpersTab />);
     fireEvent.click(screen.getAllByTestId('helper-row-edit')[0]);
-    expect(screen.queryByTestId('helper-user-search')).not.toBeInTheDocument();
+    expect(screen.getByTestId('helper-user-search')).toBeInTheDocument();
+  });
+
+  it('fills name, link, photo and website when the typed username is applied via the button', () => {
+    mockUserSearch.query = 'anna.schmidt';
+    mockUserSearch.results = [
+      {
+        uid: 'u0',
+        username: 'anna.schmidt2',
+        displayName: 'Falsch',
+        photoURL: null,
+        slug: 'x',
+        website: '',
+      },
+      {
+        uid: 'user-1',
+        username: 'anna.schmidt',
+        displayName: 'Anna Schmidt',
+        photoURL: 'https://example.com/anna.jpg',
+        slug: 'anna-schmidt',
+        website: 'https://anna.example',
+      },
+    ];
+    mockHelpers.helpers = SEED;
+    render(<HelpersTab />);
+    fireEvent.click(screen.getAllByTestId('helper-row-edit')[1]);
+    fireEvent.click(screen.getByTestId('helper-user-search-apply'));
+
+    expect(screen.getByTestId('helper-edit-name')).toHaveValue('Anna Schmidt');
+    expect(screen.getByTestId('helper-edit-profile-slug')).toHaveValue('/anna-schmidt');
+    expect(screen.getByTestId('helper-edit-photo')).toHaveValue('https://example.com/anna.jpg');
+    expect(screen.getByTestId('helper-edit-website')).toHaveValue('https://anna.example');
   });
 
   it('prefills the draft from the selected user search result', () => {

@@ -81,6 +81,7 @@ export default function HelperEditDialog({ open, mode, initialName, helper, onSa
       if (user.displayName) next.name = user.displayName;
       if (user.slug) next.profileSlug = `/${user.slug}`;
       if (user.photoURL) next.photoURL = user.photoURL;
+      if (user.website) next.website = user.website;
       return next;
     });
   }
@@ -160,16 +161,16 @@ export default function HelperEditDialog({ open, mode, initialName, helper, onSa
         </header>
 
         <form className="helper-edit-dialog-form" onSubmit={handleSubmit}>
-          {isCreate && (
+          {
             <div className="helper-edit-dialog-field" data-testid="helper-edit-user-search-field">
               <span className="helper-edit-dialog-label">Aus Benutzerkonto übernehmen</span>
               <HelperUserSearch disabled={submitting} onSelect={applyUserSnapshot} />
               <span className="helper-edit-dialog-hint">
-                Optional. Benutzername eingeben — Name, Profil-Link und Foto werden automatisch
-                ausgefüllt, falls das Konto ein Profilfoto hat.
+                Optional. Benutzername eingeben und auf „Übernehmen“ klicken — Name, Profil-Link,
+                Foto und Website werden automatisch ausgefüllt.
               </span>
             </div>
-          )}
+          }
 
           <label className="helper-edit-dialog-field">
             <span className="helper-edit-dialog-label">Name *</span>
