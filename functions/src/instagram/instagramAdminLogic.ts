@@ -38,18 +38,23 @@ export async function retryInstagramPost(
 ): Promise<TriggerOutcome> {
   const postId = postIdFor(eventId);
   const status = await deps.getPostStatus(postId);
-  if (status !== 'failed') {
-    throw new AdminActionError('failed-precondition', 'Only failed posts can be retried.');
+  // No record at all means the approval trigger never got as far as creating
+  // one (automation was off at approval time), so posting it now is allowed.
+  if (status !== null && status !== 'failed') {
+    throw new AdminActionError(
+      'failed-precondition',
+      'Only failed or not-yet-posted events can be retried.'
+    );
   }
   const event = await deps.getEvent(eventId);
   if (!event) throw new AdminActionError('not-found', 'Event not found.');
   if (event.status !== 'approved') {
     throw new AdminActionError('failed-precondition', 'Event is not approved.');
   }
-  // Kill switch first so a disabled automation leaves the failed record intact.
+  // Kill switch first so a disabled automation leaves any failed record intact.
   if (!(await deps.publishDeps.isEnabled())) return 'disabled';
 
-  await deps.deletePost(postId);
+  if (status === 'failed') await deps.deletePost(postId);
   // Same flow as the approval trigger: past events end up as `skipped`.
   return publishApprovedEvent(deps.publishDeps, eventId, null, event);
 }

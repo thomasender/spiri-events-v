@@ -9,6 +9,7 @@ const state = vi.hoisted(() => ({
   settings: null as Record<string, unknown> | null,
   posts: [] as Record<string, unknown>[],
   titles: {} as Record<string, string | null>,
+  unposted: [] as Record<string, unknown>[],
   setDoc: vi.fn(),
   callable: vi.fn(),
   httpsCallable: vi.fn(),
@@ -25,6 +26,7 @@ vi.mock('../../src/hooks/useInstagramAdmin', () => ({
     loading: false,
     error: null,
   }),
+  useUnpostedConsentEvents: () => ({ events: state.unposted, loading: false, error: null }),
 }));
 vi.mock('../../src/lib/firebase', () => ({ db: {}, functions: {} }));
 vi.mock('firebase/firestore', () => ({
@@ -60,6 +62,7 @@ beforeEach(() => {
   };
   state.posts = [];
   state.titles = {};
+  state.unposted = [];
   state.setDoc.mockReset().mockResolvedValue(undefined);
   state.callable.mockReset().mockResolvedValue({ data: { outcome: 'published' } });
   state.httpsCallable.mockReset();
@@ -211,5 +214,22 @@ describe('InstagramTab', () => {
     render(<InstagramTab />);
     fireEvent.click(screen.getByRole('button', { name: /Erneut versuchen/ }));
     expect(await screen.findByText(/Aktion fehlgeschlagen/)).toBeInTheDocument();
+  });
+
+  it('lists consented events without a post and posts them via the retry callable', async () => {
+    state.unposted = [{ eventId: 'ev1', title: 'Yoga & Breathwork', date: '2026-10-16' }];
+    render(<InstagramTab />);
+    const row = within(screen.getByTestId('instagram-unposted')).getByTestId(
+      'instagram-unposted-event'
+    );
+    expect(row).toHaveTextContent('Yoga & Breathwork');
+    fireEvent.click(within(row).getByRole('button', { name: /Jetzt posten/ }));
+    await waitFor(() => expect(state.callable).toHaveBeenCalledWith({ eventId: 'ev1' }));
+    expect(state.httpsCallable).toHaveBeenCalledWith('adminRetryInstagramPost');
+  });
+
+  it('hides the unposted card when every consented event has a post', () => {
+    render(<InstagramTab />);
+    expect(screen.queryByTestId('instagram-unposted')).not.toBeInTheDocument();
   });
 });
