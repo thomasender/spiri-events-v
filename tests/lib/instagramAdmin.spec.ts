@@ -69,16 +69,21 @@ describe('retryInstagramPost', () => {
     expect(outcome).toBe('failed'); // generateImage stub throws
   });
 
-  it.each(['published', 'publishing', 'skipped'])(
-    'refuses to retry a post with status %s',
-    async (status) => {
-      const h = retryHarness({ status });
-      await expect(retryInstagramPost(h.deps, 'e1')).rejects.toMatchObject({
-        code: 'failed-precondition',
-      });
-      expect(h.deps.deletePost).not.toHaveBeenCalled();
-    }
-  );
+  it.each(['published', 'publishing'])('refuses to retry a post with status %s', async (status) => {
+    const h = retryHarness({ status });
+    await expect(retryInstagramPost(h.deps, 'e1')).rejects.toMatchObject({
+      code: 'failed-precondition',
+    });
+    expect(h.deps.deletePost).not.toHaveBeenCalled();
+  });
+
+  it('re-posts a skipped record: deletes it first, then publishes', async () => {
+    const h = retryHarness({ status: 'skipped' });
+    const outcome = await retryInstagramPost(h.deps, 'e1');
+    expect(h.deps.deletePost).toHaveBeenCalledWith('feed_e1');
+    expect(h.order).toEqual(['delete', 'create']);
+    expect(outcome).toBe('failed'); // generateImage stub throws
+  });
 
   it('posts an approved event that has no record yet, without deleting anything', async () => {
     const h = retryHarness({ status: null });

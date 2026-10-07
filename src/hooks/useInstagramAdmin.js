@@ -103,11 +103,33 @@ export function useInstagramPosts(enabled) {
   return { posts, titles, loading, error };
 }
 
-// Approved events whose organizer consented to Instagram but that have no
-// instagram_posts record (e.g. approved while the automation was switched
-// off). `posts` is the live list from useInstagramPosts; an event drops out
-// of the result as soon as a record exists for it, whatever its status.
-export function useUnpostedConsentEvents(enabled, posts) {
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+function viennaToday(now) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Vienna',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now);
+}
+
+// Mirrors isEventPast in functions: past once the last day (endDate, else
+// date) is before today in Vienna. Events without a parseable date count as
+// upcoming, like on the server.
+function isPastEvent(event, now) {
+  const date = typeof event.date === 'string' ? event.date.trim() : '';
+  const end = typeof event.endDate === 'string' ? event.endDate.trim() : '';
+  const last = ISO_DAY.test(end) && end > date ? end : date;
+  return ISO_DAY.test(last) && last < viennaToday(now);
+}
+
+// Upcoming approved events whose organizer consented to Instagram but that
+// are not published yet: no record, a failed one or a skipped one. Events
+// that are published or currently publishing drop out, as do past events
+// (the server would only skip them again). `posts` is the live list from
+// useInstagramPosts; `now` is injectable for tests.
+export function useUnpostedConsentEvents(enabled, posts, now = new Date()) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(Boolean(enabled));
   const [error, setError] = useState(null);
@@ -125,7 +147,12 @@ export function useUnpostedConsentEvents(enabled, posts) {
         setEvents(
           snap.docs.map((d) => {
             const data = d.data();
-            return { eventId: d.id, title: data.title || d.id, date: data.date || null };
+            return {
+              eventId: d.id,
+              title: data.title || d.id,
+              date: data.date || null,
+              endDate: data.endDate || null,
+            };
           })
         );
         setLoading(false);
@@ -138,9 +165,14 @@ export function useUnpostedConsentEvents(enabled, posts) {
     );
   }, [enabled]);
 
-  const posted = new Set(posts.map((p) => p.eventId));
+  const statusByEvent = new Map(posts.map((p) => [p.eventId, p.status]));
   return {
-    events: events.filter((e) => !posted.has(e.eventId)),
+    events: events
+      .filter((e) => {
+        const status = statusByEvent.get(e.eventId) ?? null;
+        return status !== 'published' && status !== 'publishing' && !isPastEvent(e, now);
+      })
+      .map((e) => ({ ...e, postStatus: statusByEvent.get(e.eventId) ?? null })),
     loading,
     error,
   };
