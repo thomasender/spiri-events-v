@@ -50,7 +50,8 @@ export default function DirectoryListingFields({
         />
         <span>
           Ich möchte im Verzeichnis gelistet werden. Dann sind mein Name, Foto, meine Beschreibung
-          und meine Kategorien für alle sichtbar. Ich kann das jederzeit wieder ausschalten.
+          und meine Kategorien zusätzlich auch im Verzeichnis für alle sichtbar. Ich kann das
+          jederzeit wieder ausschalten.
         </span>
       </label>
 
