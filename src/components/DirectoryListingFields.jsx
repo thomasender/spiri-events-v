@@ -1,3 +1,5 @@
+import { useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { DIRECTORY_MAX_CATEGORIES, DIRECTORY_REGIONS, toggleValue } from '../utils/directory';
 import './DirectoryListingFields.css';
 
@@ -15,9 +17,24 @@ export default function DirectoryListingFields({
   errors = {},
 }) {
   const atLimit = categories.length >= DIRECTORY_MAX_CATEGORIES;
+  const sectionRef = useRef(null);
+  const { hash } = useLocation();
+
+  // Deep link /profil#verzeichnis (from the directory page, also after login)
+  // scrolls straight to this section.
+  useEffect(() => {
+    if (hash === '#verzeichnis') {
+      sectionRef.current?.scrollIntoView?.({ block: 'start' });
+    }
+  }, [hash]);
 
   return (
-    <div className="directory-fields" data-testid="profile-directory-section">
+    <div
+      className="directory-fields"
+      id="verzeichnis"
+      ref={sectionRef}
+      data-testid="profile-directory-section"
+    >
       <h3 className="directory-fields-title">Verzeichnis</h3>
       <p className="directory-fields-hint">
         Im Verzeichnis können Besucher:innen dich und dein Angebot finden, auch wenn du keine Events
