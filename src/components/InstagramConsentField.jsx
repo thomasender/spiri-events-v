@@ -1,7 +1,7 @@
 import './InstagramConsentField.css';
 import { normalizeInstagramHandle } from '../utils/instagramHandle';
 
-export const INSTAGRAM_ACCOUNT = '@tribevorarlberg_';
+export const INSTAGRAM_ACCOUNT = '@tribevorarlberg';
 
 /**
  * Opt-in checkbox for posting an event on the Instagram channel and tagging
