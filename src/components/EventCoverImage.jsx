@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { focalPointToStyle, normalizeFocalPoint } from '../lib/eventImage';
+import { coverImageStyle, normalizeFocalPoint } from '../lib/eventImage';
 
 // Lazy by default: calendar lists render every event's cover at once and most
 // sit below the fold. All wrappers have fixed dimensions, so there is no layout
@@ -13,7 +13,7 @@ export default function EventCoverImage({
   ...rest
 }) {
   const focal = normalizeFocalPoint(event?.imageFocalPoint);
-  const style = focalPointToStyle(focal);
+  const style = coverImageStyle(focal, event?.imageZoom);
   const resolvedAlt = alt ?? event?.title ?? '';
   const primarySrc = event?.imageUrl;
   const [errored, setErrored] = useState(false);
