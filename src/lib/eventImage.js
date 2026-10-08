@@ -33,3 +33,26 @@ export function focalPointToPercentString(point) {
   if (!normalized) return '';
   return `${Math.round(normalized.x * 100)}% / ${Math.round(normalized.y * 100)}%`;
 }
+
+export const MIN_IMAGE_ZOOM = 1;
+export const MAX_IMAGE_ZOOM = 3;
+
+export function normalizeImageZoom(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return MIN_IMAGE_ZOOM;
+  return Math.min(MAX_IMAGE_ZOOM, Math.max(MIN_IMAGE_ZOOM, n));
+}
+
+// Cover style: focal point via object-position, zoom as a scale about that
+// same point so the chosen spot stays put. The wrappers clip the overflow.
+export function coverImageStyle(point, zoom) {
+  const base = focalPointToStyle(point);
+  const z = normalizeImageZoom(zoom);
+  if (z <= MIN_IMAGE_ZOOM) return base;
+  const focal = normalizeFocalPoint(point) ?? DEFAULT_FOCAL_POINT;
+  return {
+    ...base,
+    transform: `scale(${z})`,
+    transformOrigin: `${focal.x * 100}% ${focal.y * 100}%`,
+  };
+}

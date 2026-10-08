@@ -36,7 +36,12 @@ import FocalPointPicker from './FocalPointPicker';
 import EventCard from './EventCard';
 import { isHtmlEmpty } from '../utils/sanitize';
 import { normalizeLink } from '../utils/link';
-import { DEFAULT_FOCAL_POINT, isDefaultFocalPoint } from '../lib/eventImage';
+import {
+  DEFAULT_FOCAL_POINT,
+  MAX_IMAGE_ZOOM,
+  MIN_IMAGE_ZOOM,
+  isDefaultFocalPoint,
+} from '../lib/eventImage';
 import { CURRENCIES, DEFAULT_CURRENCY, formatPriceWithCurrency } from '../utils/currency';
 import { saveWizardDraft, loadWizardDraft, clearWizardDraft } from '../utils/wizardDraftStorage';
 import { normalizeCategoryInput, isValidCategoryInput } from '../utils/categoryInput';
@@ -174,6 +179,7 @@ export default function EventFormWizard() {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
   const [imageFocalPoint, setImageFocalPoint] = useState(DEFAULT_FOCAL_POINT);
+  const [imageZoom, setImageZoom] = useState(MIN_IMAGE_ZOOM);
   const [imageUploading, setImageUploading] = useState(false);
   const [imageProgress, setImageProgress] = useState(0);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
@@ -384,6 +390,7 @@ export default function EventFormWizard() {
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
     setImageFocalPoint(DEFAULT_FOCAL_POINT);
+    setImageZoom(MIN_IMAGE_ZOOM);
     setInstagramImageChoice((prev) => (prev?.source === COVER_SOURCE ? null : prev));
   };
 
@@ -417,6 +424,7 @@ export default function EventFormWizard() {
     setImageFile(null);
     setImagePreview('');
     setImageFocalPoint(DEFAULT_FOCAL_POINT);
+    setImageZoom(MIN_IMAGE_ZOOM);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -727,6 +735,9 @@ export default function EventFormWizard() {
         if (!isDefaultFocalPoint(imageFocalPoint)) {
           patch.imageFocalPoint = imageFocalPoint;
         }
+        if (imageZoom > MIN_IMAGE_ZOOM) {
+          patch.imageZoom = imageZoom;
+        }
         if (eventData.instagramConsent && effectiveInstagramImageChoice?.source === COVER_SOURCE) {
           patch.instagramImage = resolveInstagramImage(effectiveInstagramImageChoice, {
             coverUrl: newImageUrl,
@@ -891,12 +902,21 @@ export default function EventFormWizard() {
 
       <div className="form-group">
         <label>Bild (optional)</label>
+        <p className="image-hint" data-testid="title-image-hint">
+          Das Titelbild sollte ein ausdrucksstarkes Symbolfoto sein. Flyer eignen sich dafür weniger
+          – lade sie lieber in die Beschreibung hoch.
+        </p>
         {imagePreview ? (
           <div className="image-preview-container">
             <FocalPointPicker
               imageUrl={imagePreview}
               value={imageFocalPoint}
               onChange={setImageFocalPoint}
+              zoom={imageZoom}
+              onZoomChange={setImageZoom}
+              showZoomSlider
+              minZoom={MIN_IMAGE_ZOOM}
+              maxZoom={MAX_IMAGE_ZOOM}
               onRemove={removeImage}
               ariaLabel="Fokuspunkt für das Titelbild festlegen"
               testId="title-image-focal-picker"
@@ -1385,6 +1405,7 @@ export default function EventFormWizard() {
                   category: formData.category,
                   imageUrl: imagePreview,
                   imageFocalPoint,
+                  imageZoom,
                   organizer: { firstName: formData.organizer.name, lastName: '' },
                 }}
                 categoryColor={getCategoryColor(formData.category)}
@@ -1406,6 +1427,11 @@ export default function EventFormWizard() {
                     imageUrl={imagePreview}
                     value={imageFocalPoint}
                     onChange={setImageFocalPoint}
+                    zoom={imageZoom}
+                    onZoomChange={setImageZoom}
+                    showZoomSlider
+                    minZoom={MIN_IMAGE_ZOOM}
+                    maxZoom={MAX_IMAGE_ZOOM}
                     ariaLabel="Fokuspunkt in der Zusammenfassung anpassen"
                     testId="summary-image-focal-picker"
                   />

@@ -257,3 +257,22 @@
 .focal-point-picker--round .focal-point-picker-crop-frame {
   border-radius: 50%;
 }
+
+.focal-point-picker-zoom {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  font-size: 0.9rem;
+}
+
+.focal-point-picker-zoom input[type='range'] {
+  flex: 1;
+  min-width: 0;
+}
+
+.focal-point-picker-zoom output {
+  min-width: 3.5em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

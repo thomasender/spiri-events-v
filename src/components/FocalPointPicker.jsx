@@ -41,6 +41,7 @@ export default function FocalPointPicker({
   minZoom = 1,
   maxZoom = 3,
   info,
+  showZoomSlider = false,
 }) {
   const containerRef = useRef(null);
   const dragStateRef = useRef(null);
@@ -219,6 +220,23 @@ export default function FocalPointPicker({
             'Lege mit dem Fokuspunkt fest, welcher Bildausschnitt sichtbar bleibt, wenn das Foto zugeschnitten wird (zum Beispiel in der Kalender-Kachel). Verschiebe das Fadenkreuz auf den Bereich, der wichtig ist – etwa ein Gesicht oder ein Logo. Das Vorschau-Bild rechts zeigt, wie das Foto später aussehen wird.'}
         </span>
       </p>
+
+      {showZoomSlider && onZoomChange && (
+        <div className="focal-point-picker-zoom">
+          <label htmlFor={`${testId}-zoom`}>Hineinzoomen</label>
+          <input
+            id={`${testId}-zoom`}
+            type="range"
+            min={minZoom}
+            max={maxZoom}
+            step="any"
+            value={zoom}
+            onChange={(e) => onZoomChange(Number(e.target.value))}
+            data-testid={`${testId}-zoom`}
+          />
+          <output htmlFor={`${testId}-zoom`}>{Math.round(zoom * 100)} %</output>
+        </div>
+      )}
 
       <div className="focal-point-picker-body">
         <div

@@ -22,7 +22,14 @@ import RichTextEditor from './RichTextEditorLazy';
 import FocalPointPicker from './FocalPointPicker';
 import { isHtmlEmpty } from '../utils/sanitize';
 import { normalizeLink } from '../utils/link';
-import { DEFAULT_FOCAL_POINT, isDefaultFocalPoint, normalizeFocalPoint } from '../lib/eventImage';
+import {
+  DEFAULT_FOCAL_POINT,
+  MAX_IMAGE_ZOOM,
+  MIN_IMAGE_ZOOM,
+  isDefaultFocalPoint,
+  normalizeFocalPoint,
+  normalizeImageZoom,
+} from '../lib/eventImage';
 import {
   buildCustomDeleteOccurrenceUpdate,
   buildCustomDeleteFromDateUpdate,
@@ -179,6 +186,7 @@ export default function EventForm({ event }) {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(event?.imageUrl || '');
   const [originalImageUrl] = useState(event?.imageUrl || '');
+  const [imageZoom, setImageZoom] = useState(normalizeImageZoom(event?.imageZoom));
   const [imageFocalPoint, setImageFocalPoint] = useState(
     normalizeFocalPoint(event?.imageFocalPoint) ?? DEFAULT_FOCAL_POINT
   );
@@ -344,6 +352,7 @@ export default function EventForm({ event }) {
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
     setImageFocalPoint(DEFAULT_FOCAL_POINT);
+    setImageZoom(MIN_IMAGE_ZOOM);
     setImageRemoved(false);
   };
 
@@ -378,6 +387,7 @@ export default function EventForm({ event }) {
     setImageFile(null);
     setImagePreview('');
     setImageFocalPoint(DEFAULT_FOCAL_POINT);
+    setImageZoom(MIN_IMAGE_ZOOM);
     setImageRemoved(true);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -555,6 +565,7 @@ export default function EventForm({ event }) {
     imageUrl: imageFile || imageRemoved ? null : originalImageUrl || null,
     imageFocalPoint:
       imageFile || imageRemoved || isDefaultFocalPoint(imageFocalPoint) ? null : imageFocalPoint,
+    imageZoom: imageFile || imageRemoved || imageZoom <= MIN_IMAGE_ZOOM ? null : imageZoom,
     status,
   });
 
@@ -632,6 +643,9 @@ export default function EventForm({ event }) {
         const patch = { imageUrl: newImageUrl };
         if (!isDefaultFocalPoint(imageFocalPoint)) {
           patch.imageFocalPoint = imageFocalPoint;
+        }
+        if (imageZoom > MIN_IMAGE_ZOOM) {
+          patch.imageZoom = imageZoom;
         }
         await updateEvent(docRef.id, patch);
         if (originalImageUrl && originalImageUrl !== newImageUrl) {
@@ -1283,12 +1297,21 @@ export default function EventForm({ event }) {
 
           <div className="form-group">
             <label>Bild (optional)</label>
+            <p className="image-hint" data-testid="title-image-hint">
+              Das Titelbild sollte ein ausdrucksstarkes Symbolfoto sein. Flyer eignen sich dafür
+              weniger – lade sie lieber in die Beschreibung hoch.
+            </p>
             {imagePreview ? (
               <div className="image-preview-container">
                 <FocalPointPicker
                   imageUrl={imagePreview}
                   value={imageFocalPoint}
                   onChange={setImageFocalPoint}
+                  zoom={imageZoom}
+                  onZoomChange={setImageZoom}
+                  showZoomSlider
+                  minZoom={MIN_IMAGE_ZOOM}
+                  maxZoom={MAX_IMAGE_ZOOM}
                   onRemove={removeImage}
                   ariaLabel="Fokuspunkt für das Titelbild festlegen"
                   testId="title-image-focal-picker"
