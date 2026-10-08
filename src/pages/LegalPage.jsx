@@ -136,7 +136,7 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
       },
       {
         heading: '12. Veröffentlichung auf Instagram (freiwillig)',
-        text: `Wir betreiben den Instagram-Kanal @tribevorarlberg_, auf dem wir Veranstaltungen bewerben. Instagram ist ein Dienst von Meta Platforms Ireland Limited.
+        text: `Wir betreiben den Instagram-Kanal @tribevorarlberg, auf dem wir Veranstaltungen bewerben. Instagram ist ein Dienst von Meta Platforms Ireland Limited.
 
 *Was wird veröffentlicht?*
 - Nur wenn Sie beim Erstellen oder Bearbeiten eines Events ausdrücklich zustimmen, wird Ihr Event auf unserem Instagram-Kanal veröffentlicht (als Beitrag und in wöchentlichen Übersichten je Bezirk)
