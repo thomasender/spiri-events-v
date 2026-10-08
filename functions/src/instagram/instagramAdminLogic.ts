@@ -52,9 +52,8 @@ export async function retryInstagramPost(
   if (event.status !== 'approved') {
     throw new AdminActionError('failed-precondition', 'Event is not approved.');
   }
-  // Kill switch first so a disabled automation leaves any existing record intact.
-  if (!(await deps.publishDeps.isEnabled())) return 'disabled';
-
+  // Deliberately no kill-switch check: an explicit admin click posts even when
+  // automatic posting is off (the callable passes deps with isEnabled => true).
   if (status !== null) await deps.deletePost(postId);
   // Same flow as the approval trigger: past events end up as `skipped`.
   return publishApprovedEvent(deps.publishDeps, eventId, null, event);

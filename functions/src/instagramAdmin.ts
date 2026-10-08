@@ -67,6 +67,8 @@ export const adminRetryInstagramPost = onCall(
       if (!publishDeps.accessToken || !publishDeps.userId) {
         throw new HttpsError('failed-precondition', 'Instagram is not configured.');
       }
+      // Manual "Jetzt posten" ignores the automation kill switch.
+      publishDeps.isEnabled = async () => true;
       const outcome = await retryInstagramPost(
         {
           publishDeps,

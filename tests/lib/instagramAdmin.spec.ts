@@ -18,7 +18,7 @@ const future = {
 };
 
 function retryHarness(
-  opts: { status?: string | null; event?: Record<string, unknown> | null; enabled?: boolean } = {}
+  opts: { status?: string | null; event?: Record<string, unknown> | null } = {}
 ) {
   const order: string[] = [];
   const created: Array<{ id: string; status: string }> = [];
@@ -26,7 +26,7 @@ function retryHarness(
     fetch: vi.fn(),
     accessToken: 'tok',
     userId: 'u1',
-    isEnabled: vi.fn(async () => opts.enabled ?? true),
+    isEnabled: vi.fn(async () => true),
     createPost: vi.fn(async (id: string, rec: { status: string }) => {
       order.push('create');
       created.push({ id, status: rec.status });
@@ -91,12 +91,6 @@ describe('retryInstagramPost', () => {
     expect(h.deps.deletePost).not.toHaveBeenCalled();
     expect(h.order).toEqual(['create']);
     expect(outcome).toBe('failed'); // generateImage stub throws
-  });
-
-  it('respects the kill switch and keeps the failed record', async () => {
-    const h = retryHarness({ enabled: false });
-    expect(await retryInstagramPost(h.deps, 'e1')).toBe('disabled');
-    expect(h.deps.deletePost).not.toHaveBeenCalled();
   });
 
   it('does not bypass the past-event rule', async () => {
