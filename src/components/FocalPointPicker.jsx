@@ -78,11 +78,15 @@ export default function FocalPointPicker({
     if (!cropInImage || !imageSize) return null;
     const widthPct = (cropInImage.width / imageSize.width) * 100;
     const heightPct = (cropInImage.height / imageSize.height) * 100;
+    // Same placement as the preview (`object-position: x% y%` + scale around
+    // that point) and the server-side Instagram crop: left = x * (100 - width).
+    // Centering the frame on the focal point instead let it drift off the
+    // image and disagree with the preview (YxPrjuOT).
     return {
       widthPct,
       heightPct,
-      leftPct: (point.x - widthPct / 200) * 100,
-      topPct: (point.y - heightPct / 200) * 100,
+      leftPct: point.x * (100 - widthPct),
+      topPct: point.y * (100 - heightPct),
     };
   }, [cropInImage, imageSize, point.x, point.y]);
 
