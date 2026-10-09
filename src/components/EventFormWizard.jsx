@@ -63,6 +63,7 @@ const INITIAL_STATE = {
   title: '',
   date: '',
   time: '',
+  endTime: '',
   endDate: '',
   place: '',
   contribution: 'free',
@@ -326,6 +327,14 @@ export default function EventFormWizard() {
     } else if (step === 3) {
       if (!formData.date) newErrors.date = 'Datum ist erforderlich';
       if (!formData.time) newErrors.time = 'Uhrzeit ist erforderlich';
+      if (
+        formData.time &&
+        formData.endTime &&
+        (!formData.endDate || formData.endDate === formData.date) &&
+        formData.endTime <= formData.time
+      ) {
+        newErrors.endTime = 'Die Endzeit muss nach der Startzeit liegen';
+      }
       if (!formData.isOnline && !formData.bezirk) {
         newErrors.bezirk = 'Bitte Bezirk auswählen oder als Online-Event markieren';
       }
@@ -659,7 +668,7 @@ export default function EventFormWizard() {
     title: formData.title.trim(),
     date: formData.date,
     time: formData.time || '',
-    endTime: '',
+    endTime: formData.endTime || '',
     endDate: formData.endDate || '',
     place: formData.isOnline ? '' : formData.place.trim(),
     contribution: formData.contribution,
@@ -1050,6 +1059,19 @@ export default function EventFormWizard() {
             required
           />
           {errors.time && <span className="error-text">{errors.time}</span>}
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="endTime">Bis (optional)</label>
+          <input
+            id="endTime"
+            name="endTime"
+            type="time"
+            value={formData.endTime}
+            onChange={handleChange}
+            className={errors.endTime ? 'input-error' : ''}
+          />
+          {errors.endTime && <span className="error-text">{errors.endTime}</span>}
         </div>
       </div>
 
@@ -1496,6 +1518,7 @@ export default function EventFormWizard() {
           {!formData.isOnline && formData.place && <p>📍 {formData.place}</p>}
           <p>
             📅 {formatEventDateShort(formData.date)} um {formData.time}
+            {formData.endTime ? ` — ${formData.endTime}` : ''}
           </p>
           {formData.endDate && <p>Bis: {formatEventDateShort(formData.endDate)}</p>}
           {formData.recurrence !== 'none' && (

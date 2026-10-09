@@ -172,3 +172,32 @@ describe('EventFormWizard — fee range (UGSVxljS)', () => {
     expect(screen.queryByText('Maximalbetrag muss ≥ Betrag sein')).not.toBeInTheDocument();
   });
 });
+
+describe('EventFormWizard — optional end time', () => {
+  it('shows an error when the end time is not after the start time', () => {
+    seedDraft({ formData: { time: '10:00', endTime: '09:00' } });
+    renderWizard();
+
+    expect(screen.getByLabelText(/Bis \(optional\)/)).toHaveValue('09:00');
+    fireEvent.click(screen.getByRole('button', { name: /weiter/i }));
+
+    expect(screen.getByText('Die Endzeit muss nach der Startzeit liegen')).toBeInTheDocument();
+  });
+
+  it('accepts an empty end time and a later end time without error', () => {
+    seedDraft({ formData: { time: '09:00', endTime: '' } });
+    const { unmount } = renderWizard();
+    fireEvent.click(screen.getByRole('button', { name: /weiter/i }));
+    expect(
+      screen.queryByText('Die Endzeit muss nach der Startzeit liegen')
+    ).not.toBeInTheDocument();
+    unmount();
+
+    seedDraft({ formData: { time: '09:00', endTime: '17:00' } });
+    renderWizard();
+    fireEvent.click(screen.getByRole('button', { name: /weiter/i }));
+    expect(
+      screen.queryByText('Die Endzeit muss nach der Startzeit liegen')
+    ).not.toBeInTheDocument();
+  });
+});
