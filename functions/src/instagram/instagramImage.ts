@@ -32,6 +32,13 @@ import {
 } from './instagramContent';
 
 const JPEG_QUALITY = 90;
+
+// The Tribe logo mark (public/logo-mark.svg without its background) and the
+// page colour it sits on. Inlined so it ships with the function bundle.
+const COVER_BACKGROUND = '#f4f2f0';
+const COVER_TEXT = '#161819';
+const COVER_ACCENT = '#c48e6a';
+const LOGO_MARK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180"><circle cx="90" cy="70" r="36" fill="${COVER_ACCENT}"/><path d="M 2 74 A 88 72 0 0 0 178 74" fill="none" stroke="${COVER_TEXT}" stroke-width="1.5" stroke-linecap="round"/></svg>`;
 const STORAGE_PREFIX = 'instagram';
 
 type FontWeight = 400 | 700;
@@ -337,10 +344,8 @@ function buildCoverLayout(cover: CoverModel, format: InstagramFormat): Node {
       width,
       height,
       flexDirection: 'column',
-      justifyContent: 'space-between',
       padding: `${pad}px`,
-      background: 'linear-gradient(160deg, #5c6b3f 0%, #1d1a1a 100%)',
-      color: '#ffffff',
+      color: COVER_TEXT,
       fontFamily: 'Inter',
     },
     [
@@ -355,13 +360,19 @@ function buildCoverLayout(cover: CoverModel, format: InstagramFormat): Node {
         },
         'thetribe.at'
       ),
+      // Spacer keeps the text block at the bottom, clear of the logo mark above.
+      el('div', { flexGrow: 1 }, ''),
       el('div', { flexDirection: 'column' }, [
         el(
           'div',
-          { fontFamily: 'Cormorant Garamond', fontWeight: 700, fontSize: 124, lineHeight: 1.02 },
+          { fontFamily: 'Cormorant Garamond', fontWeight: 700, fontSize: 108, lineHeight: 1.02 },
           cover.heading
         ),
-        el('div', { fontSize: 64, fontWeight: 700, marginTop: 56 }, cover.bezirk),
+        el(
+          'div',
+          { fontSize: 64, fontWeight: 700, marginTop: 56, color: COVER_ACCENT },
+          cover.bezirk
+        ),
         el('div', { fontSize: 52, fontWeight: 400, marginTop: 20, opacity: 0.95 }, cover.dateRange),
         cover.partLabel
           ? el(
@@ -373,7 +384,7 @@ function buildCoverLayout(cover: CoverModel, format: InstagramFormat): Node {
       ]),
       el(
         'div',
-        { fontSize: 40, fontWeight: 400, opacity: 0.9 },
+        { fontSize: 40, fontWeight: 400, opacity: 0.9, marginTop: 40 },
         `${cover.eventCount} ${cover.eventCount === 1 ? 'Event' : 'Events'} - weiter wischen`
       ),
     ]
@@ -392,8 +403,16 @@ export async function renderCoverImage(
     fonts: loadFonts(),
   });
   const overlay = new Resvg(svg, { fitTo: { mode: 'width', value: width } }).render().asPng();
-  return sharp({ create: { width, height, channels: 3, background: '#1d1a1a' } })
-    .composite([{ input: overlay }])
+  const logoSize = Math.round(width * 0.69);
+  const logo = await sharp(Buffer.from(LOGO_MARK_SVG), { density: 300 })
+    .resize(logoSize, logoSize)
+    .png()
+    .toBuffer();
+  return sharp({ create: { width, height, channels: 3, background: COVER_BACKGROUND } })
+    .composite([
+      { input: logo, left: Math.round((width - logoSize) / 2), top: Math.round(height * 0.03) },
+      { input: overlay },
+    ])
     .jpeg({ quality: JPEG_QUALITY, mozjpeg: true })
     .toBuffer();
 }
