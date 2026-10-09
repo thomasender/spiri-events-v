@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   getNextWeekWindow,
   isCarouselEligible,
+  expandOccurrencesInWindow,
   groupCarousels,
   buildCarouselCaption,
   formatWeekRange,
@@ -131,6 +132,89 @@ describe('groupCarousels', () => {
   });
 });
 
+describe('expandOccurrencesInWindow', () => {
+  const dates = (event: CarouselEvent) =>
+    expandOccurrencesInWindow(event, WINDOW).map((e) => e.date);
+
+  it('keeps a single event inside the window and drops one outside', () => {
+    const inside = ev({ date: '2026-10-07' });
+    expect(expandOccurrencesInWindow(inside, WINDOW)).toEqual([inside]);
+    expect(dates(ev({ date: '2026-10-12' }))).toEqual([]);
+    expect(dates(ev({ date: 'kaputt' }))).toEqual([]);
+  });
+
+  it('finds the occurrence of a weekly series that started weeks earlier', () => {
+    expect(
+      dates(ev({ date: '2026-09-16', recurrence: 'weekly', recurrenceEndDate: '2026-12-02' }))
+    ).toEqual(['2026-10-07']);
+  });
+
+  it('respects the end date of a series, and the 3 month default horizon', () => {
+    expect(
+      dates(ev({ date: '2026-09-16', recurrence: 'weekly', recurrenceEndDate: '2026-09-30' }))
+    ).toEqual([]);
+    expect(dates(ev({ date: '2026-06-03', recurrence: 'weekly' }))).toEqual([]);
+    expect(dates(ev({ date: '2026-08-12', recurrence: 'weekly' }))).toEqual(['2026-10-07']);
+  });
+
+  it('follows the biweekly rhythm from the first date', () => {
+    expect(
+      dates(ev({ date: '2026-09-23', recurrence: 'biweekly', recurrenceEndDate: '2027-01-01' }))
+    ).toEqual(['2026-10-07']);
+    expect(
+      dates(ev({ date: '2026-09-30', recurrence: 'biweekly', recurrenceEndDate: '2027-01-01' }))
+    ).toEqual([]);
+  });
+
+  it('steps monthly on the same day of the month', () => {
+    expect(
+      dates(ev({ date: '2026-09-07', recurrence: 'monthly', recurrenceEndDate: '2026-12-06' }))
+    ).toEqual(['2026-10-07']);
+  });
+
+  it('uses custom dates plus the first date, and skips exception dates', () => {
+    const custom = ev({
+      date: '2026-09-02',
+      recurrence: 'custom',
+      customDates: ['2026-10-05', '2026-10-09', '2026-11-04'],
+    });
+    expect(dates(custom)).toEqual(['2026-10-05', '2026-10-09']);
+    expect(dates({ ...custom, exceptionDates: ['2026-10-05'] })).toEqual(['2026-10-09']);
+    expect(dates(ev({ date: '2026-10-06', recurrence: 'custom', customDates: [] }))).toEqual([
+      '2026-10-06',
+    ]);
+  });
+
+  it('returns two entries when a series hits the window twice, and keeps multi-day length', () => {
+    const twice = ev({
+      date: '2026-09-28',
+      recurrence: 'custom',
+      customDates: ['2026-10-05', '2026-10-09'],
+    });
+    expect(dates(twice)).toEqual(['2026-10-05', '2026-10-09']);
+    const multi = expandOccurrencesInWindow(
+      ev({
+        date: '2026-09-28',
+        endDate: '2026-09-29',
+        recurrence: 'custom',
+        customDates: ['2026-10-09'],
+      }),
+      WINDOW
+    );
+    expect(multi).toMatchObject([{ date: '2026-10-09', endDate: '2026-10-10' }]);
+  });
+
+  it('does not mutate the stored event', () => {
+    const series = ev({
+      date: '2026-09-16',
+      recurrence: 'weekly',
+      recurrenceEndDate: '2026-12-02',
+    });
+    expandOccurrencesInWindow(series, WINDOW);
+    expect(series.date).toBe('2026-09-16');
+  });
+});
+
 describe('carouselPostId', () => {
   it('has no suffix for part 1 and _p<n> afterwards', () => {
     expect(carouselPostId('Dornbirn', '2026-10-05', 1)).toBe('carousel_dornbirn_2026-10-05');
@@ -256,6 +340,22 @@ describe('runWeeklyCarousels', () => {
     const out = await runWeeklyCarousels(h.deps);
     expect(out).toMatchObject({ status: 'done', results: [] });
     expect(h.fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('includes an occurrence of a recurring event that started before the window', async () => {
+    const h = makeHarness({
+      events: [
+        ev({
+          id: 'series',
+          date: '2026-09-16',
+          recurrence: 'weekly',
+          recurrenceEndDate: '2026-12-02',
+        }),
+      ],
+    });
+    const out = await runWeeklyCarousels(h.deps);
+    expect(out).toMatchObject({ status: 'done', results: [{ outcome: 'published' }] });
+    expect(h.posts.get('carousel_dornbirn_2026-10-05')).toMatchObject({ eventIds: ['series'] });
   });
 
   it('runs children -> poll children -> parent -> poll parent -> publish in order', async () => {

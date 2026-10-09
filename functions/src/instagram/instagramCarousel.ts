@@ -47,6 +47,11 @@ export interface CarouselEvent extends InstagramEventInput {
    * so isCarouselEligible() excludes everything and nothing is posted.
    */
   instagramConsent?: unknown;
+  /** 'none' | 'weekly' | 'biweekly' | 'monthly' | 'custom' (absent = none) */
+  recurrence?: unknown;
+  recurrenceEndDate?: unknown;
+  customDates?: unknown;
+  exceptionDates?: unknown;
 }
 
 export interface WeekWindow {
@@ -97,6 +102,85 @@ export function isCarouselEligible(event: CarouselEvent, window: WeekWindow): bo
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date < window.start || date > window.end) return false;
   if (event.isOnline === true || event.isOnline === 'true') return false;
   return (CAROUSEL_BEZIRKE as readonly string[]).includes(asString(event.bezirk));
+}
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+function addDaysIso(iso: string, days: number): string {
+  return toIso(new Date(parseIso(iso).getTime() + days * 86_400_000));
+}
+
+function addMonthIso(iso: string): string {
+  const d = parseIso(iso);
+  d.setUTCMonth(d.getUTCMonth() + 1);
+  return toIso(d);
+}
+
+function stringList(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : [];
+}
+
+/** Start dates of every occurrence of `event` inside the window (mirrors src/utils/eventOccurrences.js). */
+function occurrenceDatesInWindow(event: CarouselEvent, window: WeekWindow): string[] {
+  const date = asString(event.date);
+  if (!ISO_DATE.test(date)) return [];
+  const recurrence = asString(event.recurrence) || 'none';
+  const exceptions = stringList(event.exceptionDates);
+
+  let dates: string[];
+  if (recurrence === 'custom') {
+    dates = [date, ...stringList(event.customDates)];
+  } else if (recurrence === 'weekly' || recurrence === 'biweekly' || recurrence === 'monthly') {
+    // Same horizon as the site: the end date, else 3 months (1 year for monthly).
+    const endDate = asString(event.recurrenceEndDate);
+    const end = ISO_DATE.test(endDate)
+      ? endDate
+      : recurrence === 'monthly'
+        ? addDaysIso(date, 365)
+        : addDaysIso(date, 92);
+    dates = [];
+    for (
+      let cur = date;
+      cur <= end && cur <= window.end;
+      cur =
+        recurrence === 'monthly'
+          ? addMonthIso(cur)
+          : addDaysIso(cur, recurrence === 'weekly' ? 7 : 14)
+    ) {
+      dates.push(cur);
+    }
+  } else {
+    dates = [date];
+  }
+
+  return [...new Set(dates)]
+    .filter(
+      (d) => ISO_DATE.test(d) && d >= window.start && d <= window.end && !exceptions.includes(d)
+    )
+    .sort();
+}
+
+/**
+ * One entry per occurrence that starts inside the window. Recurring events
+ * (weekly, biweekly, monthly, custom dates) carry their first date in `date`,
+ * so the Firestore range query alone would miss every later occurrence.
+ * A multi-day occurrence keeps its length (`endDate` is shifted along).
+ */
+export function expandOccurrencesInWindow(
+  event: CarouselEvent,
+  window: WeekWindow
+): CarouselEvent[] {
+  const baseDate = asString(event.date);
+  const baseEnd = asString(event.endDate);
+  const length =
+    ISO_DATE.test(baseEnd) && ISO_DATE.test(baseDate)
+      ? Math.round((parseIso(baseEnd).getTime() - parseIso(baseDate).getTime()) / 86_400_000)
+      : 0;
+  return occurrenceDatesInWindow(event, window).map((date) =>
+    date === baseDate
+      ? event
+      : { ...event, date, ...(length > 0 ? { endDate: addDaysIso(date, length) } : {}) }
+  );
 }
 
 function compareEvents(a: CarouselEvent, b: CarouselEvent): number {
@@ -250,7 +334,11 @@ export interface CarouselDeps {
   userId: string;
   /** app_settings/instagram.enabled === true */
   isEnabled(): Promise<boolean>;
-  /** Events whose start date lies in [start, end]; eligibility is checked by the logic. */
+  /**
+   * Events that may occur in [start, end], including recurring series whose first
+   * date lies before the window. Occurrences are expanded and eligibility is
+   * checked by the logic.
+   */
   listEvents(window: WeekWindow): Promise<CarouselEvent[]>;
   /** Firestore create(): resolves false when the doc already exists. */
   createPost(id: string, record: CarouselPostRecord): Promise<boolean>;
@@ -379,7 +467,9 @@ export async function runWeeklyCarousels(deps: CarouselDeps): Promise<CarouselRu
   }
 
   const window = getNextWeekWindow((deps.now ?? (() => new Date()))());
-  const events = await deps.listEvents(window);
+  const events = (await deps.listEvents(window)).flatMap((e) =>
+    expandOccurrencesInWindow(e, window)
+  );
   const groups = groupCarousels(events, window);
   const results: CarouselResult[] = [];
 

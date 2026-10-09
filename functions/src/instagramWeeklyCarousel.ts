@@ -72,14 +72,12 @@ export const instagramWeeklyCarousel = onSchedule(
       accessToken,
       userId,
       isEnabled: async () => true,
-      async listEvents(window) {
-        // Single-field range query (no composite index); status, consent and
-        // Bezirk are filtered by isCarouselEligible().
-        const snap = await db
-          .collection('events')
-          .where('date', '>=', window.start)
-          .where('date', '<=', window.end)
-          .get();
+      async listEvents() {
+        // A date-range query would miss recurring series, which store only their
+        // first date. Load all approved events (single-field query, no composite
+        // index); runWeeklyCarousels() expands the occurrences inside the window
+        // and isCarouselEligible() filters consent and Bezirk.
+        const snap = await db.collection('events').where('status', '==', 'approved').get();
         return snap.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
       },
       async createPost(id, record) {
