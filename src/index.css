@@ -263,6 +263,15 @@ input[type='time'] {
      Tapping the field still opens the native date/time picker. */
   -webkit-appearance: none;
   appearance: none;
+  /* With appearance stripped, an EMPTY date/time input on iOS Safari has no
+     content and collapses to a thin bar; keep the same height as filled. */
+  min-height: 48px;
+}
+
+input[type='date']::-webkit-date-and-time-value,
+input[type='time']::-webkit-date-and-time-value {
+  min-height: 1.5em;
+  text-align: left;
 }
 
 input:focus,
