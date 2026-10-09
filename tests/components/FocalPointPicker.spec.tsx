@@ -228,16 +228,36 @@ describe('FocalPointPicker', () => {
     expect(parseFloat(frame.style.height)).toBeCloseTo(28.13, 1);
   });
 
-  it('positions the crop frame so that its center matches the focal point', () => {
+  it('places the crop frame where the preview crops (object-position semantics), inside the image', () => {
     renderWithImageLoaded(<FocalPointPicker imageUrl={IMAGE_URL} value={{ x: 0.2, y: 0.8 }} />, {
       naturalWidth: 600,
       naturalHeight: 300,
     });
     const frame = getCropFrame();
-    // width = 88.89% (533/600), so left = (0.2 - 88.89/200) * 100 = (0.2 - 0.4444) * 100 = -24.44%
-    expect(parseFloat(frame.style.left)).toBeCloseTo(-24.44, 1);
-    // top = (0.8 - 100/200) * 100 = (0.8 - 0.5) * 100 = 30%
-    expect(parseFloat(frame.style.top)).toBeCloseTo(30, 1);
+    // width = 88.89% (533/600): left = 0.2 * (100 - 88.89) = 2.22%
+    expect(parseFloat(frame.style.left)).toBeCloseTo(2.22, 1);
+    // full height: nothing to move vertically
+    expect(parseFloat(frame.style.top)).toBeCloseTo(0, 5);
+  });
+
+  it('matches the saved Instagram crop for a zoomed 4:5 frame near the edge', () => {
+    // 1000×800 image, 4:5 crop, zoom 2, focal point (0.9, 0.1).
+    // Server crop (computeCropRect): width = 640/2 = 320, height = 400,
+    // left = 0.9 * (1000 - 320) = 612, top = 0.1 * (800 - 400) = 40.
+    renderWithImageLoaded(
+      <FocalPointPicker
+        imageUrl={IMAGE_URL}
+        value={{ x: 0.9, y: 0.1 }}
+        cropAspect={4 / 5}
+        zoom={2}
+      />,
+      { naturalWidth: 1000, naturalHeight: 800 }
+    );
+    const frame = getCropFrame();
+    expect(parseFloat(frame.style.width)).toBeCloseTo(32, 5);
+    expect(parseFloat(frame.style.height)).toBeCloseTo(50, 5);
+    expect(parseFloat(frame.style.left)).toBeCloseTo(61.2, 5);
+    expect(parseFloat(frame.style.top)).toBeCloseTo(5, 5);
   });
 
   it('does not render the crop frame before the image dimensions are known', () => {
