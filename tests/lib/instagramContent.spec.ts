@@ -46,6 +46,17 @@ describe('instagram content', () => {
     expect(model.location).toBe('Café Süß, Bregenz');
   });
 
+  it('uses the organizer name for the slide footer', () => {
+    expect(
+      buildEventImageModel({ title: 'X', organizer: { firstName: 'Anna', lastName: 'Müller' } })
+        .organizerName
+    ).toBe('Anna Müller');
+    expect(
+      buildEventImageModel({ title: 'X', organizer: { name: 'Studio Eins' } }).organizerName
+    ).toBe('Studio Eins');
+    expect(buildEventImageModel({ title: 'X' }).organizerName).toBe('');
+  });
+
   it('keeps umlauts, ß, digits and punctuation intact', () => {
     const t = 'Schöne Grüße – Fußbad & Tanz: 3x, 10-12 Uhr. Äpfel Öl Über';
     expect(imageTitle(t)).toBe(t);
@@ -68,9 +79,9 @@ describe('instagram content', () => {
   });
 
   it('formats single-day, multi-day and invalid dates in German', () => {
-    expect(formatEventDate('2026-10-17')).toBe('Sa, 17 Okt');
-    expect(formatEventDate('2026-10-17', '2026-10-18')).toBe('Sa, 17 Okt – So, 18 Okt');
-    expect(formatEventDate('2026-10-17', '2026-10-17')).toBe('Sa, 17 Okt');
+    expect(formatEventDate('2026-10-17')).toBe('Sa, 17. Okt');
+    expect(formatEventDate('2026-10-17', '2026-10-18')).toBe('Sa, 17. Okt – So, 18. Okt');
+    expect(formatEventDate('2026-10-17', '2026-10-17')).toBe('Sa, 17. Okt');
     expect(formatEventDate('kaputt')).toBe('');
     expect(formatEventDate(undefined)).toBe('');
   });

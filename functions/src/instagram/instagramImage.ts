@@ -151,18 +151,39 @@ function buildLayout(model: EventImageModel, format: InstagramFormat, hasImage: 
         ...info.map((line) =>
           el('div', { fontSize: 48, fontWeight: 400, marginBottom: 14, opacity: 0.95 }, line)
         ),
-        el(
-          'div',
-          {
-            marginTop: 40,
-            fontSize: 34,
-            fontWeight: 700,
-            letterSpacing: 3,
-            textTransform: 'uppercase',
-            opacity: 0.85,
-          },
-          'thetribe.at'
-        ),
+        format === 'carousel'
+          ? el(
+              'div',
+              {
+                marginTop: 40,
+                justifyContent: 'space-between',
+                alignItems: 'flex-end',
+              },
+              [
+                el(
+                  'div',
+                  { fontSize: 34, fontWeight: 700, opacity: 0.9, maxWidth: 640 },
+                  model.organizerName ?? ''
+                ),
+                el(
+                  'div',
+                  { fontSize: 26, fontWeight: 400, letterSpacing: 1, opacity: 0.6 },
+                  'www.thetribe.at'
+                ),
+              ]
+            )
+          : el(
+              'div',
+              {
+                marginTop: 40,
+                fontSize: 34,
+                fontWeight: 700,
+                letterSpacing: 3,
+                textTransform: 'uppercase',
+                opacity: 0.85,
+              },
+              'thetribe.at'
+            ),
       ]),
     ]
   );
