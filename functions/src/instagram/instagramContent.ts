@@ -72,6 +72,8 @@ export interface InstagramEventInput {
   slug?: unknown;
   instagramConsent?: unknown;
   createdBy?: unknown;
+  /** { firstName, lastName } (or name) as saved by the event form. */
+  organizer?: unknown;
   /** Organizer's pick for the post: { url, focalPoint: { x, y }, zoom }. */
   instagramImage?: unknown;
 }
@@ -161,6 +163,8 @@ export interface EventImageModel {
   category: string;
   color: string;
   imageUrl: string | null;
+  /** Carousel slides show the organizer instead of the site URL at the bottom. */
+  organizerName?: string;
 }
 
 function asString(value: unknown): string {
@@ -225,17 +229,18 @@ function parseIsoDate(value: string): Date | null {
 
 function formatShortDate(date: Date): string {
   // Fixed UTC so the label never depends on the server's timezone.
-  return date
-    .toLocaleDateString('de-AT', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-      timeZone: 'UTC',
-    })
-    .replace(/\./g, '');
+  const parts = new Intl.DateTimeFormat('de-AT', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  }).formatToParts(date);
+  const get = (type: string) =>
+    (parts.find((p) => p.type === type)?.value ?? '').replace(/\./g, '');
+  return `${get('weekday')}, ${get('day')}. ${get('month')}`;
 }
 
-/** "Sa, 17 Okt" or, for multi-day events, "Sa, 17 Okt – So, 18 Okt". */
+/** "Sa, 17. Okt" or, for multi-day events, "Sa, 17. Okt – So, 18. Okt". */
 export function formatEventDate(date: unknown, endDate?: unknown): string {
   const start = parseIsoDate(asString(date));
   if (!start) return '';
@@ -280,6 +285,16 @@ export function eventPageUrl(slug: unknown): string {
   return clean ? `${SITE_URL}/event/${clean}` : SITE_URL;
 }
 
+/** Organizer's display name for the slide footer; '' when unknown. */
+export function formatOrganizerName(event: InstagramEventInput): string {
+  const o = event.organizer;
+  if (!o || typeof o !== 'object') return '';
+  const { name, firstName, lastName } = o as Record<string, unknown>;
+  const full =
+    asString(name) || [asString(firstName), asString(lastName)].filter(Boolean).join(' ');
+  return truncateTitle(stripImageUnsafeChars(full), 40);
+}
+
 export function buildEventImageModel(
   event: InstagramEventInput,
   registry?: Record<string, string> | null
@@ -293,6 +308,7 @@ export function buildEventImageModel(
     category: asString(event.category),
     color: resolveCategoryColor(event.category, registry),
     imageUrl: imageUrl || null,
+    organizerName: formatOrganizerName(event),
   };
 }
 

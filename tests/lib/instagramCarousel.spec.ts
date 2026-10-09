@@ -149,7 +149,7 @@ describe('buildCarouselCaption', () => {
   it('lists events with date, time, title and place plus call to action, bio hint and hashtags', () => {
     const caption = buildCarouselCaption(group([ev()]), WINDOW);
     expect(caption).toContain('Events nächste Woche in Dornbirn');
-    expect(caption).toContain('• Mi, 7 Okt · 18:00 Uhr – Kakao Zeremonie (Studio Eins)');
+    expect(caption).toContain('• Mi, 7. Okt · 18:00 Uhr – Kakao Zeremonie (Studio Eins)');
     expect(caption).toContain(CAPTION_CTA);
     expect(caption).toContain(BIO_LINK_LINE);
     expect(caption).toContain('#vorarlberg');
@@ -436,11 +436,15 @@ describe('carousel collaborators', () => {
       generateEventImage: async (name) => `https://img/${name}.jpg`,
       notifyAdmins: async () => undefined,
     };
+    const children = () =>
+      fetchMock.mock.calls
+        .map(([, init]) => new URLSearchParams(String(init?.body ?? '')))
+        .filter((b) => b.get('is_carousel_item') === 'true');
     const parents = () =>
       fetchMock.mock.calls
         .map(([, init]) => new URLSearchParams(String(init?.body ?? '')))
         .filter((b) => b.get('media_type') === 'CAROUSEL');
-    return { deps, parents, posts };
+    return { deps, parents, children, posts };
   }
 
   it('sends at most 3 distinct collaborators, no user_tags, and mentions all handles', async () => {
@@ -452,6 +456,36 @@ describe('carousel collaborators', () => {
     expect(parent.get('caption')).toContain('Mit @one @two @three @four');
     expect(parent.get('caption')?.length).toBeLessThanOrEqual(2200);
     expect(h.posts.values().next().value).toMatchObject({ collaboratorInvited: true });
+  });
+
+  it('tags each organizer on their own slide, never on the cover', async () => {
+    const h = run({ u_a: '@one', u_c: '@three' });
+    await runWeeklyCarousels(h.deps);
+    const kids = h.children();
+    expect(kids).toHaveLength(6);
+    const tags = kids.map((k) =>
+      k.has('user_tags') ? JSON.parse(k.get('user_tags') as string) : null
+    );
+    expect(tags[0]).toBeNull();
+    expect(tags[1]).toEqual([expect.objectContaining({ username: 'one' })]);
+    expect(tags[2]).toBeNull();
+    expect(tags[3]).toEqual([expect.objectContaining({ username: 'three' })]);
+    expect(tags.slice(4)).toEqual([null, null]);
+  });
+
+  it('retries a slide without the tag when Instagram rejects the username', async () => {
+    const h = run({ u_a: '@one' });
+    const real = h.deps.fetch;
+    let rejected = false;
+    h.deps.fetch = (async (url: string, init?: RequestInit) => {
+      if (!rejected && String(init?.body ?? '').includes('user_tags')) {
+        rejected = true;
+        return json({ error: { message: 'bad', code: 110, error_subcode: 2207018 } }, 400);
+      }
+      return real(url, init);
+    }) as unknown as typeof fetch;
+    const result = await runWeeklyCarousels(h.deps);
+    expect(result).toMatchObject({ results: [{ outcome: 'published' }] });
   });
 
   it('sends no collaborators when nobody has a handle', async () => {

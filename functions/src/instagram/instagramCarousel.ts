@@ -20,6 +20,8 @@ import {
   type InstagramEventInput,
 } from './instagramContent';
 import {
+  COLLAB_TAG_X,
+  COLLAB_TAG_Y,
   MAX_COLLABORATORS,
   bareUsername,
   createContainerWithInvite,
@@ -298,15 +300,13 @@ async function publishCarousel(
     imageUrls.push(await deps.generateEventImage(`${imageBase}_${i + 1}`, group.events[i]));
   }
 
-  // Distinct organizer handles in event order (events are consented already).
-  const handles: string[] = [];
-  if (deps.getOrganizerHandle) {
-    for (const event of group.events) {
+  // Organizer handle per event slide (events are consented already).
+  const eventHandles: Array<string | null> = [];
+  for (const event of group.events) {
+    let handle: string | null = null;
+    if (deps.getOrganizerHandle) {
       try {
-        const handle = await deps.getOrganizerHandle(event);
-        if (handle && !handles.some((h) => h.toLowerCase() === handle.toLowerCase())) {
-          handles.push(handle);
-        }
+        handle = await deps.getOrganizerHandle(event);
       } catch (err) {
         log('Organizer handle lookup failed; skipping mention', {
           postId,
@@ -314,22 +314,38 @@ async function publishCarousel(
         });
       }
     }
+    eventHandles.push(handle);
+  }
+  // Distinct handles in event order.
+  const handles: string[] = [];
+  for (const handle of eventHandles) {
+    if (handle && !handles.some((h) => h.toLowerCase() === handle.toLowerCase())) {
+      handles.push(handle);
+    }
   }
   const collaborators = handles.slice(0, MAX_COLLABORATORS).map(bareUsername);
 
   const childIds: string[] = [];
-  for (const imageUrl of imageUrls) {
-    const child = await graphPost(
+  for (let i = 0; i < imageUrls.length; i += 1) {
+    // Slide 0 is the cover; slide i shows event i-1. user_tags are allowed on
+    // carousel items (not on the parent), so tag the organizer on their slide.
+    const handle = i > 0 ? eventHandles[i - 1] : null;
+    const username = handle ? bareUsername(handle) : '';
+    const child = await createContainerWithInvite(
       deps,
       `${deps.userId}/media`,
-      { image_url: imageUrl, is_carousel_item: 'true' },
-      'carousel item creation'
+      { image_url: imageUrls[i], is_carousel_item: 'true' },
+      username
+        ? { user_tags: JSON.stringify([{ username, x: COLLAB_TAG_X, y: COLLAB_TAG_Y }]) }
+        : null,
+      'carousel item creation',
+      log
     );
-    childIds.push(idOf(child, 'carousel item creation'));
+    childIds.push(idOf(child.json, 'carousel item creation'));
   }
   for (const childId of childIds) await waitForContainer(deps, childId);
 
-  // user_tags are rejected on a carousel parent, so only collaborators go along.
+  // user_tags are rejected on a carousel parent (they sit on the items), so only collaborators go along.
   const created = await createContainerWithInvite(
     deps,
     `${deps.userId}/media`,
