@@ -6,6 +6,8 @@ export const MAX_INSTAGRAM_ZOOM = 3;
 
 /** Marker for "the event's cover photo", whose final URL exists only after upload. */
 export const COVER_SOURCE = 'cover';
+/** Marker for the extra photo uploaded only for Instagram (e.g. portrait). */
+export const INSTAGRAM_UPLOAD_SOURCE = 'instagram-upload';
 
 function isWebUrl(value) {
   return typeof value === 'string' && /^https?:\/\//i.test(value.trim());
@@ -23,9 +25,10 @@ export function extractDescriptionImageUrls(html) {
 
 /**
  * Images the organizer can pick for the Instagram post: the cover photo first
- * (previewed from its local blob URL), then the description images.
+ * (previewed from its local blob URL), then the description images, then the
+ * extra photo uploaded only for Instagram.
  */
-export function buildInstagramImageCandidates({ coverPreview, description }) {
+export function buildInstagramImageCandidates({ coverPreview, description, instagramPreview }) {
   const candidates = [];
   if (coverPreview) {
     candidates.push({ source: COVER_SOURCE, previewUrl: coverPreview, label: 'Titelbild' });
@@ -33,7 +36,19 @@ export function buildInstagramImageCandidates({ coverPreview, description }) {
   extractDescriptionImageUrls(description).forEach((url, i) => {
     candidates.push({ source: url, previewUrl: url, label: `Bild ${i + 1} aus der Beschreibung` });
   });
+  if (instagramPreview) {
+    candidates.push({
+      source: INSTAGRAM_UPLOAD_SOURCE,
+      previewUrl: instagramPreview,
+      label: 'Extra-Foto für Instagram',
+    });
+  }
   return candidates;
+}
+
+/** True when the picked image only gets its final URL after an upload. */
+export function needsUploadedUrl(choice) {
+  return choice?.source === COVER_SOURCE || choice?.source === INSTAGRAM_UPLOAD_SOURCE;
 }
 
 export function clampInstagramZoom(value) {
@@ -48,9 +63,14 @@ export function clampInstagramZoom(value) {
  * the cover was picked but not uploaded), so the post falls back to the
  * automatic image.
  */
-export function resolveInstagramImage(choice, { coverUrl } = {}) {
+export function resolveInstagramImage(choice, { coverUrl, instagramUploadUrl } = {}) {
   if (!choice || !choice.source) return null;
-  const url = choice.source === COVER_SOURCE ? coverUrl : choice.source;
+  const url =
+    choice.source === COVER_SOURCE
+      ? coverUrl
+      : choice.source === INSTAGRAM_UPLOAD_SOURCE
+        ? instagramUploadUrl
+        : choice.source;
   if (!isWebUrl(url)) return null;
   return {
     url: url.trim(),

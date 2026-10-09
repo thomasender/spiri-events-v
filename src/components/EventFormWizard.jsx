@@ -51,7 +51,9 @@ import InstagramConsentField from './InstagramConsentField';
 import InstagramImagePicker from './InstagramImagePicker';
 import {
   COVER_SOURCE,
+  INSTAGRAM_UPLOAD_SOURCE,
   buildInstagramImageCandidates,
+  needsUploadedUrl,
   resolveInstagramImage,
 } from '../utils/instagramImageChoice';
 import './EventForm.css';
@@ -212,13 +214,18 @@ export default function EventFormWizard() {
   }, [profileInstagramDefault]);
   // Which photo + 4:5 crop the Instagram post uses ({ source, focalPoint, zoom }).
   const [instagramImageChoice, setInstagramImageChoice] = useState(null);
+  // Extra photo uploaded only for Instagram (e.g. portrait format).
+  const [instagramFile, setInstagramFile] = useState(null);
+  const [instagramPreview, setInstagramPreview] = useState('');
+  const [instagramUploadError, setInstagramUploadError] = useState('');
   const instagramImageCandidates = useMemo(
     () =>
       buildInstagramImageCandidates({
         coverPreview: imagePreview,
         description: formData.description,
+        instagramPreview,
       }),
-    [imagePreview, formData.description]
+    [imagePreview, formData.description, instagramPreview]
   );
   // The choice in effect: the stored one while its image still exists, else
   // the first candidate centred and unzoomed.
@@ -428,6 +435,34 @@ export default function EventFormWizard() {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+  };
+
+  const handleInstagramImageSelect = (file) => {
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setInstagramUploadError('Nur JPEG, PNG und WebP erlaubt');
+      return;
+    }
+    if (file.size > MAX_INPUT_SIZE_BYTES) {
+      setInstagramUploadError(
+        `Bild ist zu groß (max. ${Math.round(MAX_INPUT_SIZE_BYTES / 1024 / 1024)}MB)`
+      );
+      return;
+    }
+    setInstagramUploadError('');
+    setInstagramFile(file);
+    setInstagramPreview(URL.createObjectURL(file));
+    setInstagramImageChoice({
+      source: INSTAGRAM_UPLOAD_SOURCE,
+      focalPoint: { ...DEFAULT_FOCAL_POINT },
+      zoom: 1,
+    });
+  };
+
+  const removeInstagramImage = () => {
+    setInstagramFile(null);
+    setInstagramPreview('');
+    setInstagramUploadError('');
+    setInstagramImageChoice((prev) => (prev?.source === INSTAGRAM_UPLOAD_SOURCE ? null : prev));
   };
 
   const handleImageUpload = async (eventId) => {
@@ -670,8 +705,8 @@ export default function EventFormWizard() {
     rightsConfirmedAt: rightsConfirmed ? serverTimestamp() : null,
     instagramConsent,
     // Description images already have their final URL; a picked cover photo
-    // is added after its upload in saveEvent().
-    ...(instagramConsent && effectiveInstagramImageChoice?.source !== COVER_SOURCE
+    // or extra Instagram photo is added after its upload in saveEvent().
+    ...(instagramConsent && !needsUploadedUrl(effectiveInstagramImageChoice)
       ? { instagramImage: resolveInstagramImage(effectiveInstagramImageChoice) }
       : {}),
   });
@@ -728,6 +763,18 @@ export default function EventFormWizard() {
 
     try {
       const docRef = await addEvent(eventData, eventData.status || 'pending');
+      const instagramSource = eventData.instagramConsent
+        ? effectiveInstagramImageChoice?.source
+        : null;
+
+      if (instagramSource === INSTAGRAM_UPLOAD_SOURCE && instagramFile) {
+        const instagramUploadUrl = await uploadImage(instagramFile, { eventId: docRef.id });
+        await updateEvent(docRef.id, {
+          instagramImage: resolveInstagramImage(effectiveInstagramImageChoice, {
+            instagramUploadUrl,
+          }),
+        });
+      }
 
       if (imageFile) {
         const newImageUrl = await handleImageUpload(docRef.id);
@@ -738,7 +785,7 @@ export default function EventFormWizard() {
         if (imageZoom > MIN_IMAGE_ZOOM) {
           patch.imageZoom = imageZoom;
         }
-        if (eventData.instagramConsent && effectiveInstagramImageChoice?.source === COVER_SOURCE) {
+        if (instagramSource === COVER_SOURCE) {
           patch.instagramImage = resolveInstagramImage(effectiveInstagramImageChoice, {
             coverUrl: newImageUrl,
           });
@@ -1516,11 +1563,14 @@ export default function EventFormWizard() {
 
       {instagramConsent && (
         <details className="instagram-image-accordion" open data-testid="instagram-image-accordion">
-          <summary>Bildausschnitt für Instagram wählen</summary>
+          <summary>Foto und Bildausschnitt für Instagram wählen</summary>
           <InstagramImagePicker
             candidates={instagramImageCandidates}
             value={effectiveInstagramImageChoice}
             onChange={setInstagramImageChoice}
+            onUpload={handleInstagramImageSelect}
+            onRemoveUpload={removeInstagramImage}
+            uploadError={instagramUploadError}
           />
         </details>
       )}

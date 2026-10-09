@@ -1,7 +1,9 @@
-import { AlertTriangle } from 'lucide-react';
+import { useRef } from 'react';
+import { AlertTriangle, ImagePlus, X } from 'lucide-react';
 import FocalPointPicker from './FocalPointPicker';
 import {
   INSTAGRAM_CROP_ASPECT,
+  INSTAGRAM_UPLOAD_SOURCE,
   MAX_INSTAGRAM_ZOOM,
   MIN_INSTAGRAM_ZOOM,
 } from '../utils/instagramImageChoice';
@@ -11,15 +13,77 @@ import './InstagramImagePicker.css';
  * Lets the organizer pick which of their photos is used for the Instagram
  * post and the 4:5 crop (focal point + zoom). Controlled: `value` is
  * `{ source, focalPoint, zoom }`, `candidates` comes from
- * buildInstagramImageCandidates().
+ * buildInstagramImageCandidates(). `onUpload(file)` / `onRemoveUpload()`
+ * manage an extra photo uploaded only for Instagram (e.g. portrait format).
  */
-export default function InstagramImagePicker({ candidates, value, onChange }) {
+export default function InstagramImagePicker({
+  candidates,
+  value,
+  onChange,
+  onUpload,
+  onRemoveUpload,
+  uploadError,
+}) {
+  const fileInputRef = useRef(null);
+  const hasUpload = candidates?.some((c) => c.source === INSTAGRAM_UPLOAD_SOURCE);
+
+  const uploadControl = onUpload && (
+    <div className="instagram-image-picker-upload">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        hidden
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) onUpload(file);
+          e.target.value = '';
+        }}
+        data-testid="instagram-upload-input"
+      />
+      <button
+        type="button"
+        className="btn btn-secondary"
+        onClick={() => fileInputRef.current?.click()}
+        data-testid="instagram-upload-button"
+      >
+        <ImagePlus size={16} aria-hidden="true" />
+        <span>
+          {hasUpload ? 'Anderes Extra-Foto wählen' : 'Extra-Foto für Instagram hochladen'}
+        </span>
+      </button>
+      {hasUpload && onRemoveUpload && (
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={onRemoveUpload}
+          data-testid="instagram-upload-remove"
+        >
+          <X size={16} aria-hidden="true" />
+          <span>Extra-Foto entfernen</span>
+        </button>
+      )}
+      <p className="instagram-image-picker-hint">
+        Optional: Hier kannst du ein zusätzliches Foto nur für Instagram hochladen, am besten im
+        Hochformat (4:5).
+      </p>
+      {uploadError && (
+        <p className="error-text" data-testid="instagram-upload-error">
+          {uploadError}
+        </p>
+      )}
+    </div>
+  );
+
   if (!candidates || candidates.length === 0) {
     return (
-      <p className="instagram-image-picker-empty" data-testid="instagram-image-picker-empty">
-        Du hast kein Foto hochgeladen. Für den Instagram-Beitrag verwenden wir dann ein passendes
-        Stimmungsbild.
-      </p>
+      <div className="instagram-image-picker" data-testid="instagram-image-picker">
+        <p className="instagram-image-picker-empty" data-testid="instagram-image-picker-empty">
+          Du hast kein Foto hochgeladen. Für den Instagram-Beitrag verwenden wir dann ein passendes
+          Stimmungsbild.
+        </p>
+        {uploadControl}
+      </div>
     );
   }
 
@@ -37,6 +101,8 @@ export default function InstagramImagePicker({ candidates, value, onChange }) {
           zeigt.
         </span>
       </p>
+
+      {uploadControl}
 
       {candidates.length > 1 && (
         <fieldset className="instagram-image-picker-choices">

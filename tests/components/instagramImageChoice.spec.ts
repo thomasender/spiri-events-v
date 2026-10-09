@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   COVER_SOURCE,
+  INSTAGRAM_UPLOAD_SOURCE,
   buildInstagramImageCandidates,
   extractDescriptionImageUrls,
   resolveInstagramImage,
@@ -32,6 +33,18 @@ describe('buildInstagramImageCandidates', () => {
       [COVER_SOURCE, 'blob:cover'],
       [A, A],
     ]);
+  });
+
+  it('adds the extra Instagram photo after the other photos', () => {
+    const candidates = buildInstagramImageCandidates({
+      coverPreview: 'blob:cover',
+      description: `<img src="${A}">`,
+      instagramPreview: 'blob:insta',
+    });
+    expect(candidates.map((c) => c.source)).toEqual([COVER_SOURCE, A, INSTAGRAM_UPLOAD_SOURCE]);
+    expect(
+      resolveInstagramImage({ source: INSTAGRAM_UPLOAD_SOURCE }, { instagramUploadUrl: B })?.url
+    ).toBe(B);
   });
 
   it('is empty without any photo', () => {
