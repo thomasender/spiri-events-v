@@ -118,3 +118,14 @@
     display: none;
   }
 }
+
+.events-section-reset {
+  margin-top: 12px;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent-primary-hover);
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}

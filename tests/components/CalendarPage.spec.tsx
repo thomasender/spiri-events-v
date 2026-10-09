@@ -38,7 +38,7 @@ function getPressedChips() {
   const chips = document.querySelectorAll('.filter-chip--category');
   return Array.from(chips)
     .filter((c) => c.getAttribute('aria-pressed') === 'true')
-    .map((c) => c.textContent.trim());
+    .map((c) => c.getAttribute('data-category'));
 }
 
 function setStoredOrte(selectedOrte: string[]) {
@@ -153,7 +153,7 @@ describe('CalendarPage — category filter initial state (wkzZei1s)', () => {
     await act(async () => {
       fireEvent.click(screen.getAllByRole('button', { name: 'Alle' })[0]);
     });
-    const soundhealing = screen.getByRole('button', { name: 'Soundhealing' });
+    const soundhealing = screen.getByRole('button', { name: /^Soundhealing/ });
     await act(async () => {
       fireEvent.click(soundhealing);
     });
@@ -226,7 +226,7 @@ describe('CalendarPage — "Mehr Filter" accordion auto-expand (W3OspPxk)', () =
     expect(accordion.open).toBe(true);
     // The active filter chip inside the accordion must be visible so the user
     // sees which filter is in effect.
-    expect(screen.getByRole('button', { name: 'Feldkirch' })).toBeVisible();
+    expect(screen.getByRole('button', { name: /^Feldkirch/ })).toBeVisible();
   });
 
   it('lets the user collapse the accordion manually even when a filter is active', () => {
@@ -257,7 +257,7 @@ describe('CalendarPage — "Mehr Filter" accordion auto-expand (W3OspPxk)', () =
 
     // Now they open it and toggle on another Ort filter.
     fireEvent.click(accordion.querySelector('.filter-accordion-summary')!);
-    const dornbirn = screen.getByRole('button', { name: 'Dornbirn' });
+    const dornbirn = screen.getByRole('button', { name: /^Dornbirn/ });
     fireEvent.click(dornbirn);
 
     // User-driven state must win — collapsing again still collapses.
@@ -281,82 +281,101 @@ describe('CalendarPage — empty events hint (DWz8EwMO)', () => {
   });
 });
 
-describe('CalendarPage — few-events hint with active filters', () => {
-  function makeEvents(count: number) {
+describe('CalendarPage — facet counts and reset', () => {
+  function makeEvents(specs: { category: string; bezirk: string }[]) {
     const now = new Date();
     const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     const date = `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, '0')}-${String(
       last.getDate()
     ).padStart(2, '0')}`;
-    return Array.from({ length: count }, (_, i) => ({
+    return specs.map((s, i) => ({
       id: `e${i}`,
       title: `Event ${i}`,
       date,
       time: '18:00',
-      category: 'Yoga',
-      bezirk: 'Dornbirn',
       status: 'approved',
+      ...s,
     }));
   }
 
-  function storeFilter(selectedCategories: string[]) {
+  function storeFilter(selectedCategories: string[], selectedOrte: string[] = []) {
     const now = new Date();
     window.localStorage.setItem(
       'calendarFilterState',
       JSON.stringify({
         currentMonth: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`,
         selectedCategories,
-        selectedOrte: [],
+        selectedOrte,
         viewMode: 'card',
       })
     );
   }
 
+  function countOf(selector: string) {
+    return document.querySelector(`${selector} [data-testid="filter-chip-count"]`)?.textContent;
+  }
+
   beforeEach(() => {
     window.localStorage.clear();
     mockUseCategories.value = ['Yoga', 'Meditation'];
+    mockUseAllEvents.events = makeEvents([
+      { category: 'Yoga', bezirk: 'Dornbirn' },
+      { category: 'Yoga', bezirk: 'Bregenz' },
+      { category: 'Meditation', bezirk: 'Dornbirn' },
+    ]);
   });
 
-  it('warns when a filter is active and only five events remain', () => {
-    mockUseAllEvents.events = makeEvents(5);
+  it('shows per-category counts without any filter set', () => {
+    renderPage();
+
+    expect(countOf('[data-category="Yoga"]')).toBe('2');
+    expect(countOf('[data-category="Meditation"]')).toBe('1');
+  });
+
+  it('does not zero out other categories when one is selected', () => {
     storeFilter(['Yoga']);
     renderPage();
 
-    expect(screen.getByTestId('few-events-hint')).toHaveTextContent(/nur 5 Events/);
+    expect(countOf('[data-category="Yoga"]')).toBe('2');
+    expect(countOf('[data-category="Meditation"]')).toBe('1');
   });
 
-  it('warns when a filter is active and nothing matches', () => {
-    mockUseAllEvents.events = makeEvents(3);
-    storeFilter(['Meditation']);
+  it('narrows category counts by the selected Bezirk', () => {
+    storeFilter([], ['Dornbirn']);
     renderPage();
 
-    expect(screen.getByTestId('few-events-hint')).toHaveTextContent(/keine Events/);
+    expect(countOf('[data-category="Yoga"]')).toBe('1');
+    expect(countOf('[data-category="Meditation"]')).toBe('1');
   });
 
-  it('stays silent with six events or more', () => {
-    mockUseAllEvents.events = makeEvents(6);
+  it('narrows Bezirk counts by the selected category', () => {
     storeFilter(['Yoga']);
     renderPage();
+    fireEvent.click(screen.getByText('Mehr Filter'));
 
-    expect(screen.queryByTestId('few-events-hint')).toBeNull();
+    const ortCount = (name: string) =>
+      screen
+        .getByRole('button', { name: new RegExp('^' + name) })
+        ?.querySelector('[data-testid="filter-chip-count"]')?.textContent;
+    expect(ortCount('Dornbirn')).toBe('1');
+    expect(ortCount('Feldkirch')).toBe('0');
   });
 
-  it('stays silent without an active filter, even with few events', () => {
-    mockUseAllEvents.events = makeEvents(2);
-    renderPage();
-
-    expect(screen.queryByTestId('few-events-hint')).toBeNull();
-  });
-
-  it('clears all filters via the reset button', () => {
-    mockUseAllEvents.events = makeEvents(2);
-    storeFilter(['Yoga']);
+  it('offers a reset button in the empty state only while a filter is active', () => {
+    storeFilter(['Meditation'], ['Bregenz']);
     renderPage();
 
     fireEvent.click(screen.getByRole('button', { name: 'Filter zurücksetzen' }));
 
-    expect(screen.queryByTestId('few-events-hint')).toBeNull();
     expect(getPressedChips()).toEqual([]);
+    expect(screen.queryByRole('button', { name: 'Filter zurücksetzen' })).toBeNull();
+  });
+
+  it('shows no reset button when nothing is filtered', () => {
+    mockUseAllEvents.events = [];
+    renderPage();
+
+    expect(screen.queryByRole('button', { name: 'Filter zurücksetzen' })).toBeNull();
   });
 });
 

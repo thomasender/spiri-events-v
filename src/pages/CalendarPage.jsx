@@ -11,6 +11,7 @@ import SeoMeta from '../components/SeoMeta';
 import { getEventOccurrences } from '../utils/eventOccurrences';
 import { getCalendarCategories } from '../utils/calendarCategories';
 import { compareEventsByDateTime } from '../utils/eventSort';
+import { computeFacetCounts } from '../utils/filterFacetCounts';
 import { resolveEventColor } from '../utils/categoryColors';
 import { monthKeyToDate, dateToMonthKey } from '../utils/calendarFilterState';
 import {
@@ -31,9 +32,6 @@ import {
 import './CalendarPage.css';
 
 const STORAGE_KEY = 'calendarFilterState';
-// At or below this many events in the visible month we tell the user that
-// their filters are probably the reason the list looks empty.
-const FEW_EVENTS_THRESHOLD = 5;
 
 const HERO_FEATURES = [
   {
@@ -114,6 +112,16 @@ function saveFilterState(state) {
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
   } catch {}
+}
+
+// Number of events a filter chip would show. Chips at 0 are dimmed via CSS
+// (data-empty, see CalendarPage.css) but stay clickable so a stale filter can be undone.
+function FacetCount({ value }) {
+  return (
+    <span className="filter-chip-count" data-testid="filter-chip-count" data-empty={value === 0}>
+      {value}
+    </span>
+  );
 }
 
 export default function CalendarPage() {
@@ -268,11 +276,20 @@ export default function CalendarPage() {
     return applyDateFilter(monthEvents, dateFilter);
   }, [monthEvents, dateFilter]);
 
-  // Warn when the user's own filters leave (almost) nothing to see, so they
-  // do not mistake a narrow filter for a quiet calendar.
   const hasActiveFilter = selectedCategories.length > 0 || selectedOrte.length > 0 || !!dateFilter;
-  const showFewEventsHint =
-    hasActiveFilter && !loading && !error && visibleEvents.length <= FEW_EVENTS_THRESHOLD;
+
+  const facetCounts = useMemo(
+    () =>
+      computeFacetCounts({
+        occurrences: events.flatMap((event) => getEventOccurrences(event)),
+        monthKey: dateToMonthKey(currentMonth),
+        selectedCategories,
+        selectedOrte,
+        dateFilter,
+        onlineLocation: ONLINE_LOCATION,
+      }),
+    [events, currentMonth, selectedCategories, selectedOrte, dateFilter]
+  );
 
   const resetAllFilters = () => {
     setSelectedCategories([]);
@@ -403,6 +420,7 @@ export default function CalendarPage() {
                 >
                   <Check size={14} className="filter-chip-icon" aria-hidden="true" />
                   <span>{label}</span>
+                  <FacetCount value={facetCounts.date[id]} />
                 </button>
               ))}
             </div>
@@ -433,6 +451,7 @@ export default function CalendarPage() {
                 >
                   <Check size={14} className="filter-chip-icon" aria-hidden="true" />
                   <span>{category}</span>
+                  <FacetCount value={facetCounts.category[category] || 0} />
                 </button>
               ))}
             </div>
@@ -476,6 +495,7 @@ export default function CalendarPage() {
                     >
                       <Check size={14} className="filter-chip-icon" aria-hidden="true" />
                       <span>{bezirk}</span>
+                      <FacetCount value={facetCounts.ort[bezirk] || 0} />
                     </button>
                   ))}
                   <button
@@ -487,6 +507,7 @@ export default function CalendarPage() {
                   >
                     <Check size={14} className="filter-chip-icon" aria-hidden="true" />
                     <span>{ONLINE_LOCATION}</span>
+                    <FacetCount value={facetCounts.ort[ONLINE_LOCATION] || 0} />
                   </button>
                 </div>
               </div>
@@ -505,31 +526,15 @@ export default function CalendarPage() {
               <p className="error-detail">{error}</p>
             </div>
           ) : (
-            <>
-              {showFewEventsHint && (
-                <div className="filter-few-events-hint" role="status" data-testid="few-events-hint">
-                  <p>
-                    {visibleEvents.length === 0
-                      ? 'Mit deinen Filtern werden aktuell keine Events angezeigt.'
-                      : visibleEvents.length === 1
-                        ? 'Mit deinen Filtern wird aktuell nur 1 Event angezeigt.'
-                        : `Mit deinen Filtern werden aktuell nur ${visibleEvents.length} Events angezeigt.`}{' '}
-                    Es gibt vielleicht mehr, wenn du die Filter lockerst.
-                  </p>
-                  <button type="button" onClick={resetAllFilters}>
-                    Filter zurücksetzen
-                  </button>
-                </div>
-              )}
-              <EventsSection
-                events={visibleEvents}
-                currentMonth={currentMonth}
-                onMonthChange={setCurrentMonth}
-                viewMode={viewMode}
-                onViewModeChange={setViewMode}
-                categoryColorByName={categoryColorByName}
-              />
-            </>
+            <EventsSection
+              events={visibleEvents}
+              currentMonth={currentMonth}
+              onMonthChange={setCurrentMonth}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+              categoryColorByName={categoryColorByName}
+              onResetFilters={hasActiveFilter ? resetAllFilters : undefined}
+            />
           )}
         </div>
 

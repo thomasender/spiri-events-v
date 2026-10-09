@@ -31,6 +31,7 @@ export default function EventsSection({
   onViewModeChange,
   categoryColorByName,
   onCardClick,
+  onResetFilters,
 }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < MOBILE_BREAKPOINT);
 
@@ -109,6 +110,11 @@ export default function EventsSection({
       {events.length === 0 ? (
         <div className="events-section-empty">
           <p>Keine Events mit dieser Auswahl gefunden. Bitte passe deine Filter an.</p>
+          {onResetFilters && (
+            <button type="button" className="events-section-reset" onClick={onResetFilters}>
+              Filter zurücksetzen
+            </button>
+          )}
         </div>
       ) : effectiveViewMode === 'card' ? (
         <div className="events-section-grid">

@@ -20,9 +20,11 @@ test.describe('Calendar: Datum quick filter', () => {
     });
 
     test('exposes all three quick filter chips with German labels', async ({ page }) => {
-      await expect(page.getByTestId('filter-chip-date-heute')).toHaveText('Heute');
-      await expect(page.getByTestId('filter-chip-date-wochenende')).toHaveText('Wochenende');
-      await expect(page.getByTestId('filter-chip-date-aktuelleWoche')).toHaveText('Aktuelle Woche');
+      await expect(page.getByTestId('filter-chip-date-heute')).toHaveText(/^Heute/);
+      await expect(page.getByTestId('filter-chip-date-wochenende')).toHaveText(/^Wochenende/);
+      await expect(page.getByTestId('filter-chip-date-aktuelleWoche')).toHaveText(
+        /^Aktuelle Woche/
+      );
     });
 
     test('sits above the category chips and the "Mehr Filter" accordion', async ({ page }) => {
