@@ -205,6 +205,8 @@ export default function FocalPointPicker({
 
   const percentText = focalPointToPercentString(point);
   const canvasAspect = aspectRatioStyle(imageSize?.width, imageSize?.height);
+  const canvasStyle = { aspectRatio: canvasAspect };
+  if (imageSize) canvasStyle['--image-aspect'] = imageSize.width / imageSize.height;
   const previewStyle = {
     objectPosition: `${point.x * 100}% ${point.y * 100}%`,
     ...(zoom > 1
@@ -246,7 +248,7 @@ export default function FocalPointPicker({
         <div
           ref={containerRef}
           className="focal-point-picker-canvas"
-          style={{ aspectRatio: canvasAspect }}
+          style={canvasStyle}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}

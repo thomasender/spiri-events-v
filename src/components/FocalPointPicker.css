@@ -37,8 +37,10 @@
   position: relative;
   flex: 1 1 280px;
   min-width: 0;
-  max-width: 360px;
-  max-height: 320px;
+  /* Cap the height through the width: a max-height would squash the canvas
+     below the photo's aspect ratio, letterbox the image inside it and leave
+     the crop frame (sized in % of the canvas) at the wrong ratio. */
+  max-width: min(360px, calc(320px * var(--image-aspect, 1.333)));
   background-color: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
