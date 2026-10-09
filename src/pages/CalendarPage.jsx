@@ -31,6 +31,9 @@ import {
 import './CalendarPage.css';
 
 const STORAGE_KEY = 'calendarFilterState';
+// At or below this many events in the visible month we tell the user that
+// their filters are probably the reason the list looks empty.
+const FEW_EVENTS_THRESHOLD = 5;
 
 const HERO_FEATURES = [
   {
@@ -265,6 +268,18 @@ export default function CalendarPage() {
     return applyDateFilter(monthEvents, dateFilter);
   }, [monthEvents, dateFilter]);
 
+  // Warn when the user's own filters leave (almost) nothing to see, so they
+  // do not mistake a narrow filter for a quiet calendar.
+  const hasActiveFilter = selectedCategories.length > 0 || selectedOrte.length > 0 || !!dateFilter;
+  const showFewEventsHint =
+    hasActiveFilter && !loading && !error && visibleEvents.length <= FEW_EVENTS_THRESHOLD;
+
+  const resetAllFilters = () => {
+    setSelectedCategories([]);
+    setSelectedOrte([]);
+    setDateFilter(null);
+  };
+
   // Color resolution is now driven by the categories registry. Legacy
   // events that still carry an `event.categoryColor` override win over the
   // registry; everyone else uses the registry color for their category name.
@@ -490,14 +505,31 @@ export default function CalendarPage() {
               <p className="error-detail">{error}</p>
             </div>
           ) : (
-            <EventsSection
-              events={visibleEvents}
-              currentMonth={currentMonth}
-              onMonthChange={setCurrentMonth}
-              viewMode={viewMode}
-              onViewModeChange={setViewMode}
-              categoryColorByName={categoryColorByName}
-            />
+            <>
+              {showFewEventsHint && (
+                <div className="filter-few-events-hint" role="status" data-testid="few-events-hint">
+                  <p>
+                    {visibleEvents.length === 0
+                      ? 'Mit deinen Filtern werden aktuell keine Events angezeigt.'
+                      : visibleEvents.length === 1
+                        ? 'Mit deinen Filtern wird aktuell nur 1 Event angezeigt.'
+                        : `Mit deinen Filtern werden aktuell nur ${visibleEvents.length} Events angezeigt.`}{' '}
+                    Es gibt vielleicht mehr, wenn du die Filter lockerst.
+                  </p>
+                  <button type="button" onClick={resetAllFilters}>
+                    Filter zurücksetzen
+                  </button>
+                </div>
+              )}
+              <EventsSection
+                events={visibleEvents}
+                currentMonth={currentMonth}
+                onMonthChange={setCurrentMonth}
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
+                categoryColorByName={categoryColorByName}
+              />
+            </>
           )}
         </div>
 

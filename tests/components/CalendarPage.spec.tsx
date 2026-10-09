@@ -281,6 +281,85 @@ describe('CalendarPage — empty events hint (DWz8EwMO)', () => {
   });
 });
 
+describe('CalendarPage — few-events hint with active filters', () => {
+  function makeEvents(count: number) {
+    const now = new Date();
+    const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const date = `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, '0')}-${String(
+      last.getDate()
+    ).padStart(2, '0')}`;
+    return Array.from({ length: count }, (_, i) => ({
+      id: `e${i}`,
+      title: `Event ${i}`,
+      date,
+      time: '18:00',
+      category: 'Yoga',
+      bezirk: 'Dornbirn',
+      status: 'approved',
+    }));
+  }
+
+  function storeFilter(selectedCategories: string[]) {
+    const now = new Date();
+    window.localStorage.setItem(
+      'calendarFilterState',
+      JSON.stringify({
+        currentMonth: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`,
+        selectedCategories,
+        selectedOrte: [],
+        viewMode: 'card',
+      })
+    );
+  }
+
+  beforeEach(() => {
+    window.localStorage.clear();
+    mockUseCategories.value = ['Yoga', 'Meditation'];
+  });
+
+  it('warns when a filter is active and only five events remain', () => {
+    mockUseAllEvents.events = makeEvents(5);
+    storeFilter(['Yoga']);
+    renderPage();
+
+    expect(screen.getByTestId('few-events-hint')).toHaveTextContent(/nur 5 Events/);
+  });
+
+  it('warns when a filter is active and nothing matches', () => {
+    mockUseAllEvents.events = makeEvents(3);
+    storeFilter(['Meditation']);
+    renderPage();
+
+    expect(screen.getByTestId('few-events-hint')).toHaveTextContent(/keine Events/);
+  });
+
+  it('stays silent with six events or more', () => {
+    mockUseAllEvents.events = makeEvents(6);
+    storeFilter(['Yoga']);
+    renderPage();
+
+    expect(screen.queryByTestId('few-events-hint')).toBeNull();
+  });
+
+  it('stays silent without an active filter, even with few events', () => {
+    mockUseAllEvents.events = makeEvents(2);
+    renderPage();
+
+    expect(screen.queryByTestId('few-events-hint')).toBeNull();
+  });
+
+  it('clears all filters via the reset button', () => {
+    mockUseAllEvents.events = makeEvents(2);
+    storeFilter(['Yoga']);
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Filter zurücksetzen' }));
+
+    expect(screen.queryByTestId('few-events-hint')).toBeNull();
+    expect(getPressedChips()).toEqual([]);
+  });
+});
+
 describe('CalendarPage — past-month navigation disabled (QveMKnvt)', () => {
   beforeEach(() => {
     window.localStorage.clear();
