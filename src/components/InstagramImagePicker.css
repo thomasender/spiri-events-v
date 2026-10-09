@@ -109,3 +109,28 @@
   font-size: 0.85rem;
   color: var(--text-secondary);
 }
+
+.instagram-image-picker-upload {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.instagram-image-picker-upload .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.instagram-image-picker-hint {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.instagram-image-picker-upload .error-text {
+  flex-basis: 100%;
+  margin: 0;
+}

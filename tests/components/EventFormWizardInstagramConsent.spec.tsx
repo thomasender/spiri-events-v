@@ -262,4 +262,35 @@ describe('EventFormWizard Instagram image crop', () => {
     const savedWithout = await submitAndGetSavedEvent();
     expect(savedWithout).not.toHaveProperty('instagramImage');
   });
+
+  it('offers an extra photo upload just for Instagram and stores it once uploaded', async () => {
+    const originalCreate = URL.createObjectURL;
+    URL.createObjectURL = vi.fn(() => 'blob:instagram-extra');
+    try {
+      mockProfile.value = profileWith({ instagramConsentDefault: true });
+      seedDraftWithDescription(`<img src="${IMG_A}">`);
+      renderWizard();
+      const file = new File(['x'], 'hochformat.jpg', { type: 'image/jpeg' });
+      fireEvent.change(screen.getByTestId('instagram-upload-input'), {
+        target: { files: [file] },
+      });
+      const options = screen.getAllByTestId('instagram-image-option');
+      expect(options).toHaveLength(2);
+      expect(options[1]).toHaveAttribute('aria-pressed', 'true');
+
+      const saved = await submitAndGetSavedEvent();
+      expect(saved).not.toHaveProperty('instagramImage');
+      await waitFor(() =>
+        expect(mockEvents.updateEvent).toHaveBeenCalledWith(expect.any(String), {
+          instagramImage: {
+            url: 'https://example.com/test.jpg',
+            focalPoint: { x: 0.5, y: 0.5 },
+            zoom: 1,
+          },
+        })
+      );
+    } finally {
+      URL.createObjectURL = originalCreate;
+    }
+  });
 });
