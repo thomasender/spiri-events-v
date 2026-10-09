@@ -1,6 +1,11 @@
 {
   "permissions": {
-    "allow": ["Bash(npm run:*)", "Bash(grep -E '\\\\.\\(jsx|js|css|html|svg\\)$')", "Bash(node *)"]
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(grep -E '\\\\.\\(jsx|js|css|html|svg\\)$')",
+      "Bash(node *)",
+      "Bash(git switch *)"
+    ]
   },
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": ["trello"]
