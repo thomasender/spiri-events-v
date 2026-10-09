@@ -37,6 +37,14 @@ import {
 import { CURRENCIES, DEFAULT_CURRENCY } from '../utils/currency';
 import { normalizeCategoryInput, isValidCategoryInput } from '../utils/categoryInput';
 import InstagramConsentField from './InstagramConsentField';
+import InstagramImagePicker from './InstagramImagePicker';
+import {
+  COVER_SOURCE,
+  INSTAGRAM_UPLOAD_SOURCE,
+  buildInstagramImageCandidates,
+  extractDescriptionImageUrls,
+  resolveInstagramImage,
+} from '../utils/instagramImageChoice';
 import './EventForm.css';
 
 const INITIAL_STATE = {
@@ -191,6 +199,55 @@ export default function EventForm({ event }) {
     normalizeFocalPoint(event?.imageFocalPoint) ?? DEFAULT_FOCAL_POINT
   );
   const [imageRemoved, setImageRemoved] = useState(false);
+  // Baseline for "did the user change anything besides the Instagram settings?"
+  const [initialFormData] = useState(() => JSON.stringify(formData));
+  const [initialImageCrop] = useState(() => JSON.stringify([imageFocalPoint, imageZoom]));
+
+  // Instagram photo + 4:5 crop. Works for every event, including old ones
+  // that have no `instagramImage` yet; a stored URL that is neither the cover
+  // nor a description image is the earlier "extra photo for Instagram".
+  const storedInstagramImage =
+    event?.instagramImage && typeof event.instagramImage.url === 'string'
+      ? event.instagramImage
+      : null;
+  const storedInstagramSource = (() => {
+    if (!storedInstagramImage) return null;
+    const url = storedInstagramImage.url;
+    if (url === event?.imageUrl) return COVER_SOURCE;
+    if (extractDescriptionImageUrls(event?.description).includes(url)) return url;
+    return INSTAGRAM_UPLOAD_SOURCE;
+  })();
+  const [instagramImageChoice, setInstagramImageChoice] = useState(() =>
+    storedInstagramSource
+      ? {
+          source: storedInstagramSource,
+          focalPoint: storedInstagramImage.focalPoint,
+          zoom: storedInstagramImage.zoom,
+        }
+      : null
+  );
+  const [instagramFile, setInstagramFile] = useState(null);
+  const [instagramPreview, setInstagramPreview] = useState(
+    storedInstagramSource === INSTAGRAM_UPLOAD_SOURCE ? storedInstagramImage.url : ''
+  );
+  const [instagramUploadError, setInstagramUploadError] = useState('');
+  const instagramImageCandidates = useMemo(
+    () =>
+      buildInstagramImageCandidates({
+        coverPreview: imagePreview,
+        description: formData.description,
+        instagramPreview,
+      }),
+    [imagePreview, formData.description, instagramPreview]
+  );
+  const effectiveInstagramImageChoice = useMemo(() => {
+    const stillThere = instagramImageCandidates.some(
+      (c) => c.source === instagramImageChoice?.source
+    );
+    if (stillThere) return instagramImageChoice;
+    const first = instagramImageCandidates[0];
+    return first ? { source: first.source, focalPoint: { ...DEFAULT_FOCAL_POINT }, zoom: 1 } : null;
+  }, [instagramImageCandidates, instagramImageChoice]);
   const [imageUploading, setImageUploading] = useState(false);
   const [imageProgress, setImageProgress] = useState(0);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
@@ -211,6 +268,15 @@ export default function EventForm({ event }) {
   const isDraft = event?.status === 'draft';
   const isPending = event?.status === 'pending';
   const canDelete = isEdit && canDeleteEvent(user, event, role);
+  // Changing only the Instagram consent / photo of an approved event needs
+  // no new admin approval (product decision 52M1ujwr): it stays approved.
+  const onlyInstagramChanged =
+    isEdit &&
+    !imageFile &&
+    !imageRemoved &&
+    JSON.stringify(formData) === initialFormData &&
+    JSON.stringify([imageFocalPoint, imageZoom]) === initialImageCrop;
+  const needsReapproval = isEdit && wasApproved && !isAdmin && !onlyInstagramChanged;
 
   const getFormTitle = () => {
     if (isEdit) return 'Event bearbeiten';
@@ -220,7 +286,7 @@ export default function EventForm({ event }) {
   const getSubmitButtonText = () => {
     if (imageUploading) return `Wird hochgeladen… (${imageProgress}%)`;
     if (loading) return 'Speichern...';
-    if (isEdit) return wasApproved && !isAdmin ? 'Erneut einreichen' : 'Änderungen speichern';
+    if (isEdit) return needsReapproval ? 'Erneut einreichen' : 'Änderungen speichern';
     return isAdmin ? 'Event erstellen' : 'Einreichen zur Genehmigung';
   };
 
@@ -517,6 +583,42 @@ export default function EventForm({ event }) {
     }
   };
 
+  const instagramImageNeedsUpload = () => {
+    const source = effectiveInstagramImageChoice?.source;
+    return (
+      (source === COVER_SOURCE && Boolean(imageFile)) ||
+      (source === INSTAGRAM_UPLOAD_SOURCE && Boolean(instagramFile))
+    );
+  };
+
+  const handleInstagramImageSelect = (file) => {
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setInstagramUploadError('Nur JPEG, PNG und WebP erlaubt');
+      return;
+    }
+    if (file.size > MAX_INPUT_SIZE_BYTES) {
+      setInstagramUploadError(
+        `Bild ist zu groß (max. ${Math.round(MAX_INPUT_SIZE_BYTES / 1024 / 1024)}MB)`
+      );
+      return;
+    }
+    setInstagramUploadError('');
+    setInstagramFile(file);
+    setInstagramPreview(URL.createObjectURL(file));
+    setInstagramImageChoice({
+      source: INSTAGRAM_UPLOAD_SOURCE,
+      focalPoint: { ...DEFAULT_FOCAL_POINT },
+      zoom: 1,
+    });
+  };
+
+  const removeInstagramImage = () => {
+    setInstagramFile(null);
+    setInstagramPreview('');
+    setInstagramUploadError('');
+    setInstagramImageChoice((prev) => (prev?.source === INSTAGRAM_UPLOAD_SOURCE ? null : prev));
+  };
+
   const buildEventData = (status) => ({
     title: formData.title.trim(),
     date: formData.date,
@@ -562,6 +664,16 @@ export default function EventForm({ event }) {
     },
     kontakt: formData.kontakt.trim(),
     instagramConsent,
+    // A newly picked cover / extra photo gets its URL after the upload in
+    // saveEvent(); everything else can be resolved right away.
+    ...(instagramConsent && !instagramImageNeedsUpload()
+      ? {
+          instagramImage: resolveInstagramImage(effectiveInstagramImageChoice, {
+            coverUrl: imageFile || imageRemoved ? null : originalImageUrl,
+            instagramUploadUrl: instagramFile ? null : instagramPreview,
+          }),
+        }
+      : {}),
     imageUrl: imageFile || imageRemoved ? null : originalImageUrl || null,
     imageFocalPoint:
       imageFile || imageRemoved || isDefaultFocalPoint(imageFocalPoint) ? null : imageFocalPoint,
@@ -595,11 +707,9 @@ export default function EventForm({ event }) {
       return;
     }
 
-    if (!isAdmin) {
-      if (isEdit && wasApproved) {
-        setShowResubmitConfirmModal(true);
-        return;
-      }
+    if (needsReapproval) {
+      setShowResubmitConfirmModal(true);
+      return;
     }
     if (!isEdit) {
       setShowConfirmModal(true);
@@ -638,6 +748,18 @@ export default function EventForm({ event }) {
         docRef = await addEvent(eventData, eventData.status || 'pending');
       }
 
+      const instagramSource = eventData.instagramConsent
+        ? effectiveInstagramImageChoice?.source
+        : null;
+      if (instagramSource === INSTAGRAM_UPLOAD_SOURCE && instagramFile) {
+        const instagramUploadUrl = await uploadImage(instagramFile, { eventId: docRef.id });
+        await updateEvent(docRef.id, {
+          instagramImage: resolveInstagramImage(effectiveInstagramImageChoice, {
+            instagramUploadUrl,
+          }),
+        });
+      }
+
       if (imageFile) {
         const newImageUrl = await handleImageUpload(docRef.id);
         const patch = { imageUrl: newImageUrl };
@@ -646,6 +768,11 @@ export default function EventForm({ event }) {
         }
         if (imageZoom > MIN_IMAGE_ZOOM) {
           patch.imageZoom = imageZoom;
+        }
+        if (instagramSource === COVER_SOURCE) {
+          patch.instagramImage = resolveInstagramImage(effectiveInstagramImageChoice, {
+            coverUrl: newImageUrl,
+          });
         }
         await updateEvent(docRef.id, patch);
         if (originalImageUrl && originalImageUrl !== newImageUrl) {
@@ -1381,6 +1508,24 @@ export default function EventForm({ event }) {
             }}
             instagramHandle={profile?.socialMedia?.instagram}
           />
+
+          {instagramConsent && (
+            <details
+              className="instagram-image-accordion"
+              open
+              data-testid="instagram-image-accordion"
+            >
+              <summary>Foto und Bildausschnitt für Instagram wählen</summary>
+              <InstagramImagePicker
+                candidates={instagramImageCandidates}
+                value={effectiveInstagramImageChoice}
+                onChange={setInstagramImageChoice}
+                onUpload={handleInstagramImageSelect}
+                onRemoveUpload={removeInstagramImage}
+                uploadError={instagramUploadError}
+              />
+            </details>
+          )}
 
           {validationError && <p className="error-text submit-error">{validationError}</p>}
 
