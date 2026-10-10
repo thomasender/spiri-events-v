@@ -83,13 +83,11 @@ function combineOrganizerName(organizer) {
 // Resolves the public profile path for an event's organizer. The profile is
 // strictly tied to the user account (keyed by uid via the live
 // `users/{createdBy}/publicProfile/data` doc), not to the organizer display
-// name. A link is only shown when the event's organizer name matches the
-// profile's displayName — otherwise we hide it, since linking to a profile
-// with a mismatched name would be confusing for users. (TYz5kp0d)
+// name. The displayed organizer name links to the owner's profile even when
+// the user entered a different organizer name for this event (UBexELod).
 export function resolveOrganizerProfilePath(event, profile) {
   if (!event || !profile || !profile.slug) return null;
   if (!event.createdBy) return null;
-  const organizerName = combineOrganizerName(event.organizer);
-  if (!organizerName || organizerName !== profile.displayName) return null;
+  if (!combineOrganizerName(event.organizer)) return null;
   return getOrganizerProfilePath(profile.slug);
 }

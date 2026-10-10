@@ -8,8 +8,7 @@ const PUBLIC_PROFILE_DOC_ID = 'data';
 // public profile data. Used by the event detail page to gate the
 // organizer-name-to-profile-link (TYz5kp0d): profiles are strictly tied to
 // the user account, not to the organizer display name, so we look the profile
-// up by the event's `createdBy` uid and only show the link when the displayed
-// organizer name actually matches the profile's displayName.
+// up by the event's `createdBy` uid, whatever organizer name the event shows.
 export function useOrganizerProfile(uid) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(Boolean(uid));

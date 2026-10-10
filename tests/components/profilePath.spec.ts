@@ -52,13 +52,13 @@ describe('resolveOrganizerProfilePath (TYz5kp0d)', () => {
     expect(resolveOrganizerProfilePath(annaEvent, profile)).toBe('/anna-schmidt');
   });
 
-  it('returns null when the organizer name differs from the profile displayName', () => {
+  it('still returns the owner profile path when the organizer name was changed on the event (UBexELod)', () => {
     const profile = { displayName: 'Anna Schmidt', slug: 'anna-schmidt' };
-    const mismatchedEvent = {
+    const renamedEvent = {
       ...annaEvent,
       organizer: { ...annaEvent.organizer, name: 'Yoga Studio Dornbirn' },
     };
-    expect(resolveOrganizerProfilePath(mismatchedEvent, profile)).toBeNull();
+    expect(resolveOrganizerProfilePath(renamedEvent, profile)).toBe('/anna-schmidt');
   });
 
   it('matches via firstName + lastName when organizer.name is not set', () => {
