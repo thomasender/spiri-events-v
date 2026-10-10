@@ -49,6 +49,8 @@ export interface CarouselEvent extends InstagramEventInput {
    * so isCarouselEligible() excludes everything and nothing is posted.
    */
   instagramConsent?: unknown;
+  /** Handle for tag/collab on this event only; wins over the profile handle. */
+  instagramHandleOverride?: unknown;
 }
 
 export interface WeekWindow {

@@ -71,6 +71,8 @@ export interface InstagramEventInput {
   imageUrl?: unknown;
   slug?: unknown;
   instagramConsent?: unknown;
+  /** Handle for tag/collab on this event only; wins over the profile handle. */
+  instagramHandleOverride?: unknown;
   createdBy?: unknown;
   /** { firstName, lastName } (or name) as saved by the event form. */
   organizer?: unknown;

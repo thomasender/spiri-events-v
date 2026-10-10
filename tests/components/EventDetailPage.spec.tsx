@@ -75,7 +75,7 @@ vi.mock('firebase/firestore', async () => {
       // The default profile mirrors foreignEvent (Anna Schmidt) so the
       // organizer-link tests behave the way they used to. Tests that need a
       // missing profile seed `mockOrganizerProfile.profileByUid.set(uid, null)`;
-      // tests that need a mismatched displayName set a different profile.
+      // tests that need a different profile set one.
       const path = ref?.path || '';
       const match = path.match(/^users\/([^/]+)\/publicProfile\/(.+)$/);
       if (match) {
@@ -605,7 +605,7 @@ describe('EventDetailPage — organizer link to public profile (TYz5kp0d)', () =
     expect(link).toHaveTextContent('Anna Schmidt');
   });
 
-  it('renders organizer as plain text when the organizer name differs from the profile displayName', async () => {
+  it('links a custom organizer name to the owner profile (UBexELod)', async () => {
     mockFirestoreDoc.getDocResult = {
       id: foreignEvent.id,
       data: {
@@ -621,9 +621,9 @@ describe('EventDetailPage — organizer link to public profile (TYz5kp0d)', () =
     renderPage();
     expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
 
-    expect(screen.getByTestId('event-organizer')).toBeInTheDocument();
-    expect(screen.queryByTestId('organizer-link')).toBeNull();
-    expect(screen.getByTestId('organizer-text')).toHaveTextContent('Yoga Studio Dornbirn');
+    const link = screen.getByTestId('organizer-link');
+    expect(link).toHaveAttribute('href', '/anna-schmidt');
+    expect(link).toHaveTextContent('Yoga Studio Dornbirn');
   });
 
   it('does not render an organizer block at all when the organizer name is missing', async () => {

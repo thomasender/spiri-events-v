@@ -35,3 +35,22 @@
   color: var(--text-secondary);
   line-height: 1.4;
 }
+
+.instagram-consent-handle-edit {
+  border: none;
+  background: none;
+  padding: 0 4px;
+  color: var(--accent-primary);
+  cursor: pointer;
+  font: inherit;
+}
+
+.instagram-consent-handle-input {
+  font: inherit;
+  padding: 0 2px;
+  border: none;
+  border-bottom: 1px solid var(--accent-primary);
+  background: transparent;
+  color: inherit;
+  min-width: 6ch;
+}

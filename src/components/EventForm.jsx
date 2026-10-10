@@ -37,6 +37,7 @@ import {
 import { CURRENCIES, DEFAULT_CURRENCY } from '../utils/currency';
 import { normalizeCategoryInput, isValidCategoryInput } from '../utils/categoryInput';
 import InstagramConsentField from './InstagramConsentField';
+import { resolveInstagramHandleOverride } from '../utils/instagramHandle';
 import InstagramImagePicker from './InstagramImagePicker';
 import {
   COVER_SOURCE,
@@ -180,6 +181,9 @@ export default function EventForm({ event }) {
     event ? event.instagramConsent === true : profile?.instagramConsentDefault === true
   );
   const instagramConsentTouched = useRef(Boolean(event));
+  const [instagramHandleOverride, setInstagramHandleOverride] = useState(
+    typeof event?.instagramHandleOverride === 'string' ? event.instagramHandleOverride : ''
+  );
   const profileInstagramDefault = profile?.instagramConsentDefault === true;
   useEffect(() => {
     if (!instagramConsentTouched.current) setInstagramConsent(profileInstagramDefault);
@@ -1507,6 +1511,8 @@ export default function EventForm({ event }) {
               setInstagramConsent(value);
             }}
             instagramHandle={profile?.socialMedia?.instagram}
+            handleOverride={instagramHandleOverride}
+            onHandleOverrideChange={setInstagramHandleOverride}
           />
 
           {instagramConsent && (

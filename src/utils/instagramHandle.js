@@ -14,3 +14,14 @@ export function normalizeInstagramHandle(input) {
   value = value.replace(/^@+/, '');
   return HANDLE_PATTERN.test(value) ? `@${value}` : null;
 }
+
+/**
+ * Event-level handle override typed by the organizer: returns "@name" when it
+ * is valid AND differs from the profile handle, else null (= use the profile).
+ */
+export function resolveInstagramHandleOverride(input, profileHandle) {
+  const override = normalizeInstagramHandle(input);
+  if (!override) return null;
+  const profile = normalizeInstagramHandle(profileHandle);
+  return profile && profile.toLowerCase() === override.toLowerCase() ? null : override;
+}

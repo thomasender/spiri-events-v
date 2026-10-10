@@ -48,6 +48,7 @@ import { normalizeCategoryInput, isValidCategoryInput } from '../utils/categoryI
 import { getCategoryColor } from '../utils/categoryColors';
 import { getMissingProfileFields } from '../utils/profile';
 import InstagramConsentField from './InstagramConsentField';
+import { resolveInstagramHandleOverride } from '../utils/instagramHandle';
 import InstagramImagePicker from './InstagramImagePicker';
 import {
   COVER_SOURCE,
@@ -209,6 +210,12 @@ export default function EventFormWizard() {
   const instagramConsentTouched = useRef(
     Boolean(restoredDraft && typeof restoredDraft.instagramConsent === 'boolean')
   );
+  // Handle used for tag/collab on this event only; the profile stays unchanged.
+  const [instagramHandleOverride, setInstagramHandleOverride] = useState(
+    typeof restoredDraft?.instagramHandleOverride === 'string'
+      ? restoredDraft.instagramHandleOverride
+      : ''
+  );
   const profileInstagramDefault = profile?.instagramConsentDefault === true;
   useEffect(() => {
     if (!instagramConsentTouched.current) setInstagramConsent(profileInstagramDefault);
@@ -262,10 +269,19 @@ export default function EventFormWizard() {
         currentStep,
         rightsConfirmed,
         instagramConsent,
+        instagramHandleOverride,
       });
     }, 300);
     return () => clearTimeout(timeoutId);
-  }, [user, formData, currentStep, rightsConfirmed, instagramConsent, loading]);
+  }, [
+    user,
+    formData,
+    currentStep,
+    rightsConfirmed,
+    instagramConsent,
+    instagramHandleOverride,
+    loading,
+  ]);
 
   const isAdmin = role === 'Admin';
 
@@ -713,6 +729,15 @@ export default function EventFormWizard() {
     rightsConfirmed,
     rightsConfirmedAt: rightsConfirmed ? serverTimestamp() : null,
     instagramConsent,
+    ...(instagramConsent &&
+    resolveInstagramHandleOverride(instagramHandleOverride, profile?.socialMedia?.instagram)
+      ? {
+          instagramHandleOverride: resolveInstagramHandleOverride(
+            instagramHandleOverride,
+            profile?.socialMedia?.instagram
+          ),
+        }
+      : {}),
     // Description images already have their final URL; a picked cover photo
     // or extra Instagram photo is added after its upload in saveEvent().
     ...(instagramConsent && !needsUploadedUrl(effectiveInstagramImageChoice)
@@ -1582,6 +1607,8 @@ export default function EventFormWizard() {
           setInstagramConsent(value);
         }}
         instagramHandle={profile?.socialMedia?.instagram}
+        handleOverride={instagramHandleOverride}
+        onHandleOverrideChange={setInstagramHandleOverride}
       />
 
       {instagramConsent && (
