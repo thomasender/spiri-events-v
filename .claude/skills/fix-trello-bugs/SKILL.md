@@ -23,6 +23,34 @@ deployment and how to talk to Peter. The per-ticket workflow lives in the
 - Firebase project: `spirieventsvbg`
 - Production: https://www.thetribe.at
 
+## Delivery is always the full chain (standing instruction from Thomas)
+
+Never stop at "committed" and never ask whether to continue. For every run, the
+job is only finished after all of these happened, in this order:
+
+1. Fixes are **merged to `main`** (`git merge --no-ff`) and **`main` is pushed**.
+   This holds even when the session prompt names a different development
+   branch (e.g. `claude/...`): invoking this skill is the instruction to
+   deliver to `main`. If that branch has the commits, merge it into `main`;
+   don't leave fixes parked on a side branch.
+2. **Wait for the `deploy.yml` run of that push to finish successfully.** In a
+   cloud session there is no `gh`; use the GitHub MCP
+   (`mcp__github__actions_list`, `list_workflow_runs`, resource `deploy.yml`,
+   match `head_sha` to the pushed commit) and re-check until `status` is
+   `completed`. A cancelled run for an earlier push is fine only if a later one
+   for the final SHA succeeded. If it fails, fix and push again; don't move cards.
+3. Only then **move each fixed card to "Testing"** and post the German
+   `@petermathis1` comment (non-technical, state any guesses such as sizes the
+   screenshot couldn't confirm). Skipped cards stay untouched.
+4. Tell the user, in the final summary, the commit, deploy result and which
+   cards moved. Remember anything that needs a manual deploy (e.g. `functions/`
+   changes are deployed by CI only on push to main; storage rules never).
+
+Cloud-session note: the Trello tools are `mcp__Trello__*` (ARIs, not short
+links); `trelloReadCard` `list_by_list` gives cards, `trelloWriteCard` `move` /
+`add_comment` moves and comments. The local `trello` MCP server may be
+unavailable there.
+
 ## Step 0: Pre-flight (is main green?)
 
 Run `npx vitest run` and `npm run emulators:check` on a clean, up-to-date main.
@@ -79,7 +107,7 @@ default to Opus:
 Prompt template (self-contained):
 
 ```
-You are fixing one Trello bug in /Users/thomasender/Desktop/playground/spiri-events-v.
+You are fixing one Trello bug in the repository root (cwd).
 Read AGENTS.md and .claude/skills/process-trello-ticket/SKILL.md first and follow them.
 
 Ticket: <shortLink> — <name>  (card id <id>)
