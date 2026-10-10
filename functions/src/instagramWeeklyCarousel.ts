@@ -106,6 +106,9 @@ export const instagramWeeklyCarousel = onSchedule(
           .update({ ...patch, updatedAt: FieldValue.serverTimestamp() });
       },
       async getOrganizerHandle(ev) {
+        // Event-level override typed in the create form wins over the profile.
+        const override = normalizeInstagramHandle(ev.instagramHandleOverride);
+        if (override) return override;
         const uid = typeof ev.createdBy === 'string' ? ev.createdBy : '';
         if (!uid) return null;
         const snap = await db.doc(`users/${uid}`).get();
