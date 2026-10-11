@@ -97,8 +97,8 @@ export default function InstagramConsentField({
         {handle || editing ? (
           <>
             Zum Markieren und Einladen verwenden wir{' '}
-            {overrideHandle ? 'diesen Instagram-Namen' : 'deinen Instagram-Namen aus deinem Profil'} (
-            {handleControl}). Du musst die Collab-Einladung in Instagram noch annehmen.
+            {overrideHandle ? 'diesen Instagram-Namen' : 'deinen Instagram-Namen aus deinem Profil'}{' '}
+            ({handleControl}). Du musst die Collab-Einladung in Instagram noch annehmen.
           </>
         ) : (
           <>

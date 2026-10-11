@@ -44,7 +44,8 @@ function formatDate(dateStr) {
 
 function formatTimestamp(ts) {
   if (!ts) return '';
-  const date = typeof ts === 'object' && typeof ts.toDate === 'function' ? ts.toDate() : new Date(ts);
+  const date =
+    typeof ts === 'object' && typeof ts.toDate === 'function' ? ts.toDate() : new Date(ts);
   if (Number.isNaN(date.getTime())) return '';
   return date.toLocaleDateString('de-DE', {
     day: 'numeric',
