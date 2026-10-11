@@ -1,7 +1,16 @@
 import { useState } from 'react';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
-import { AlertTriangle, Eye, ExternalLink, RefreshCw, Send, SkipForward } from 'lucide-react';
+import {
+  AlertTriangle,
+  ChevronDown,
+  ChevronRight,
+  Eye,
+  ExternalLink,
+  RefreshCw,
+  Send,
+  SkipForward,
+} from 'lucide-react';
 import { db, functions } from '../lib/firebase';
 import { useAuth } from '../hooks/useAuth';
 import ConfirmDialog from './ConfirmDialog';
@@ -98,6 +107,7 @@ export default function InstagramTab() {
   const [preview, setPreview] = useState(null);
   const [carouselBusy, setCarouselBusy] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [postsOpen, setPostsOpen] = useState(false);
 
   if (!isAdmin) return null;
 
@@ -439,71 +449,92 @@ export default function InstagramTab() {
       )}
 
       <div className="instagram-card">
-        <h2>Beiträge</h2>
-        {postsLoading ? (
-          <p className="instagram-muted">Lade …</p>
-        ) : posts.length === 0 ? (
-          <p className="instagram-muted" data-testid="instagram-empty">
-            Noch keine Instagram-Beiträge.
-          </p>
-        ) : (
-          <ul className="instagram-posts">
-            {posts.map((post) => {
-              const title = titles[post.eventId] || post.eventId;
-              const busy = busyId === post.id;
-              return (
-                <li key={post.id} className="instagram-post" data-testid="instagram-post">
-                  <div className="instagram-post-main">
-                    <strong>{title}</strong>
-                    <span
-                      className={`instagram-badge instagram-badge--${post.status}`}
-                      data-testid="instagram-post-status"
-                    >
-                      {STATUS_LABELS[post.status] || post.status}
-                    </span>
-                    <span className="instagram-muted">Versuche: {post.attempts}</span>
-                    {post.permalink && (
-                      <a href={post.permalink} target="_blank" rel="noopener noreferrer">
-                        Auf Instagram ansehen <ExternalLink size={14} aria-hidden="true" />
-                      </a>
-                    )}
-                  </div>
-                  {post.status === 'published' && post.inviteFallbackReason && (
-                    <span className="instagram-muted" data-testid="instagram-post-no-invite">
-                      ohne Einladung
-                    </span>
-                  )}
-                  {post.error && (
-                    <p className="instagram-post-error" data-testid="instagram-post-error">
-                      {post.error}
-                    </p>
-                  )}
-                  {(post.status === 'failed' || post.status === 'publishing') && (
-                    <div className="instagram-post-actions">
-                      {post.status === 'failed' && (
-                        <button
-                          type="button"
-                          className="btn btn-secondary"
-                          disabled={busy}
-                          onClick={() => runAction(post, 'adminRetryInstagramPost')}
+        <h2 className="instagram-collapsible-heading">
+          <button
+            type="button"
+            className="instagram-collapsible-toggle"
+            aria-expanded={postsOpen}
+            aria-controls="instagram-posts-panel"
+            data-testid="instagram-posts-toggle"
+            onClick={() => setPostsOpen((open) => !open)}
+          >
+            {postsOpen ? (
+              <ChevronDown size={18} aria-hidden="true" />
+            ) : (
+              <ChevronRight size={18} aria-hidden="true" />
+            )}
+            Bereits veröffentlichte Beiträge
+            {!postsLoading && <span className="instagram-muted"> ({posts.length})</span>}
+          </button>
+        </h2>
+        {postsOpen && (
+          <div id="instagram-posts-panel">
+            {postsLoading ? (
+              <p className="instagram-muted">Lade …</p>
+            ) : posts.length === 0 ? (
+              <p className="instagram-muted" data-testid="instagram-empty">
+                Noch keine Instagram-Beiträge.
+              </p>
+            ) : (
+              <ul className="instagram-posts">
+                {posts.map((post) => {
+                  const title = titles[post.eventId] || post.eventId;
+                  const busy = busyId === post.id;
+                  return (
+                    <li key={post.id} className="instagram-post" data-testid="instagram-post">
+                      <div className="instagram-post-main">
+                        <strong>{title}</strong>
+                        <span
+                          className={`instagram-badge instagram-badge--${post.status}`}
+                          data-testid="instagram-post-status"
                         >
-                          <RefreshCw size={14} aria-hidden="true" /> Erneut versuchen
-                        </button>
+                          {STATUS_LABELS[post.status] || post.status}
+                        </span>
+                        <span className="instagram-muted">Versuche: {post.attempts}</span>
+                        {post.permalink && (
+                          <a href={post.permalink} target="_blank" rel="noopener noreferrer">
+                            Auf Instagram ansehen <ExternalLink size={14} aria-hidden="true" />
+                          </a>
+                        )}
+                      </div>
+                      {post.status === 'published' && post.inviteFallbackReason && (
+                        <span className="instagram-muted" data-testid="instagram-post-no-invite">
+                          ohne Einladung
+                        </span>
                       )}
-                      <button
-                        type="button"
-                        className="btn btn-secondary"
-                        disabled={busy}
-                        onClick={() => runAction(post, 'adminSkipInstagramPost')}
-                      >
-                        <SkipForward size={14} aria-hidden="true" /> Überspringen
-                      </button>
-                    </div>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+                      {post.error && (
+                        <p className="instagram-post-error" data-testid="instagram-post-error">
+                          {post.error}
+                        </p>
+                      )}
+                      {(post.status === 'failed' || post.status === 'publishing') && (
+                        <div className="instagram-post-actions">
+                          {post.status === 'failed' && (
+                            <button
+                              type="button"
+                              className="btn btn-secondary"
+                              disabled={busy}
+                              onClick={() => runAction(post, 'adminRetryInstagramPost')}
+                            >
+                              <RefreshCw size={14} aria-hidden="true" /> Erneut versuchen
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            disabled={busy}
+                            onClick={() => runAction(post, 'adminSkipInstagramPost')}
+                          >
+                            <SkipForward size={14} aria-hidden="true" /> Überspringen
+                          </button>
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
         )}
       </div>
     </section>

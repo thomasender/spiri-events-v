@@ -139,8 +139,20 @@ describe('InstagramTab', () => {
     );
   });
 
+  it('keeps the published posts collapsed by default and expands on click', () => {
+    state.posts = [post('e1', 'published')];
+    render(<InstagramTab />);
+    const toggle = screen.getByTestId('instagram-posts-toggle');
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByTestId('instagram-post')).not.toBeInTheDocument();
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getAllByTestId('instagram-post')).toHaveLength(1);
+  });
+
   it('shows an empty state without posts', () => {
     render(<InstagramTab />);
+    fireEvent.click(screen.getByTestId('instagram-posts-toggle'));
     expect(screen.getByTestId('instagram-empty')).toBeInTheDocument();
   });
 
@@ -151,6 +163,7 @@ describe('InstagramTab', () => {
       post('e2', 'failed', { attempts: 2, error: 'Instagram media publish failed (HTTP 400)' }),
     ];
     render(<InstagramTab />);
+    fireEvent.click(screen.getByTestId('instagram-posts-toggle'));
     const rows = screen.getAllByTestId('instagram-post');
     expect(rows).toHaveLength(2);
     expect(within(rows[0]).getByText('Kakao Zeremonie')).toBeInTheDocument();
@@ -177,6 +190,7 @@ describe('InstagramTab', () => {
       post('skip', 'skipped'),
     ];
     render(<InstagramTab />);
+    fireEvent.click(screen.getByTestId('instagram-posts-toggle'));
     const [pub, fail, pend, skip] = screen.getAllByTestId('instagram-post');
     for (const row of [pub, skip]) {
       expect(within(row).queryByRole('button')).not.toBeInTheDocument();
@@ -192,6 +206,7 @@ describe('InstagramTab', () => {
   it('retry calls adminRetryInstagramPost with the eventId and shows the outcome', async () => {
     state.posts = [post('fail', 'failed')];
     render(<InstagramTab />);
+    fireEvent.click(screen.getByTestId('instagram-posts-toggle'));
     fireEvent.click(screen.getByRole('button', { name: /Erneut versuchen/ }));
     await waitFor(() => expect(state.callable).toHaveBeenCalledWith({ eventId: 'fail' }));
     expect(state.httpsCallable).toHaveBeenCalledWith('adminRetryInstagramPost');
@@ -202,6 +217,7 @@ describe('InstagramTab', () => {
     state.posts = [post('pend', 'publishing')];
     state.callable.mockResolvedValue({ data: { outcome: 'skipped' } });
     render(<InstagramTab />);
+    fireEvent.click(screen.getByTestId('instagram-posts-toggle'));
     fireEvent.click(screen.getByRole('button', { name: /Überspringen/ }));
     await waitFor(() => expect(state.callable).toHaveBeenCalledWith({ eventId: 'pend' }));
     expect(state.httpsCallable).toHaveBeenCalledWith('adminSkipInstagramPost');
@@ -212,6 +228,7 @@ describe('InstagramTab', () => {
     state.callable.mockRejectedValue({ code: 'functions/permission-denied' });
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     render(<InstagramTab />);
+    fireEvent.click(screen.getByTestId('instagram-posts-toggle'));
     fireEvent.click(screen.getByRole('button', { name: /Erneut versuchen/ }));
     expect(await screen.findByText(/Aktion fehlgeschlagen/)).toBeInTheDocument();
   });
