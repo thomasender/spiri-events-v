@@ -122,4 +122,9 @@ export { adminListMembers, adminUpdateMember } from './adminMembers';
 export { onEventApprovedPostToInstagram } from './instagramPostOnApproval';
 export { instagramWeeklyCarousel } from './instagramWeeklyCarousel';
 export { refreshInstagramTokenJob } from './instagramTokenRefresh';
-export { adminRetryInstagramPost, adminSkipInstagramPost } from './instagramAdmin';
+export {
+  adminRetryInstagramPost,
+  adminSkipInstagramPost,
+  adminPreviewWeeklyCarousels,
+  adminPostWeeklyCarousels,
+} from './instagramAdmin';

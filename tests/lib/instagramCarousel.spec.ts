@@ -7,6 +7,7 @@ import {
   formatWeekRange,
   carouselPostId,
   runWeeklyCarousels,
+  previewWeeklyCarousels,
   type CarouselDeps,
   type CarouselEvent,
   type CarouselPostRecord,
@@ -518,5 +519,51 @@ describe('carousel collaborators', () => {
     const result = await runWeeklyCarousels(h.deps);
     expect(result).toMatchObject({ results: [{ outcome: 'failed' }] });
     expect(h.parents()).toHaveLength(1);
+  });
+});
+
+describe('previewWeeklyCarousels', () => {
+  const base = (events: CarouselEvent[], over: Record<string, unknown> = {}) => ({
+    listEvents: vi.fn(async () => events),
+    getPostStatus: vi.fn(async () => null as string | null),
+    now: () => SUNDAY,
+    ...over,
+  });
+
+  it('shows the groups, caption and handles without any side effects', async () => {
+    const deps = base([ev(), ev({ id: 'e2', bezirk: 'Feldkirch', title: 'Yoga' })], {
+      getOrganizerHandle: vi.fn(async (e: CarouselEvent) => (e.id === 'e1' ? '@kakao' : null)),
+    });
+    const preview = await previewWeeklyCarousels(deps);
+
+    expect(preview.window).toEqual(WINDOW);
+    expect(preview.groups.map((g) => g.bezirk)).toEqual(['Dornbirn', 'Feldkirch']);
+    const dornbirn = preview.groups[0];
+    expect(dornbirn.postId).toBe(carouselPostId('Dornbirn', WINDOW.start, 1));
+    expect(dornbirn.events[0]).toMatchObject({ id: 'e1', organizerHandle: '@kakao' });
+    expect(dornbirn.caption).toContain('Kakao Zeremonie');
+    expect(dornbirn.caption).toContain('@kakao');
+    expect(dornbirn.cover.eventCount).toBe(1);
+  });
+
+  it('reports an existing post record so it is not offered again', async () => {
+    const deps = base([ev()], { getPostStatus: vi.fn(async () => 'failed') });
+    const preview = await previewWeeklyCarousels(deps);
+    expect(preview.groups[0].existingStatus).toBe('failed');
+  });
+
+  it('skips events without consent and returns no groups', async () => {
+    const preview = await previewWeeklyCarousels(base([ev({ instagramConsent: false })]));
+    expect(preview.groups).toEqual([]);
+  });
+
+  it('does not fail when a handle lookup throws', async () => {
+    const deps = base([ev()], {
+      getOrganizerHandle: vi.fn(async () => {
+        throw new Error('boom');
+      }),
+    });
+    const preview = await previewWeeklyCarousels(deps);
+    expect(preview.groups[0].events[0].organizerHandle).toBeNull();
   });
 });

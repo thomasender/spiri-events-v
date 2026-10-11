@@ -4,7 +4,19 @@ import { logger } from 'firebase-functions';
 import { initializeApp, getApps } from 'firebase-admin/app';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { ADMIN_MAIL_SECRETS } from './adminNotify';
-import { buildPublishDeps, resolveInstagramAccessToken } from './instagramDeps';
+import {
+  buildCarouselDeps,
+  buildPublishDeps,
+  listCarouselEvents,
+  lookupOrganizerHandle,
+  resolveInstagramAccessToken,
+} from './instagramDeps';
+import {
+  previewWeeklyCarousels,
+  runWeeklyCarousels,
+  type CarouselPreview,
+  type CarouselRunOutcome,
+} from './instagram/instagramCarousel';
 import {
   AdminActionError,
   assertEventId,
@@ -121,5 +133,45 @@ export const adminSkipInstagramPost = onCall(
     } catch (err) {
       return toHttpsError(err);
     }
+  }
+);
+
+// Dry run of the weekly carousels: same window, eligibility and caption as the
+// Sunday job, but nothing is rendered, written or posted. No secrets needed.
+export const adminPreviewWeeklyCarousels = onCall(
+  { region: 'europe-west3', cors: ALLOWED_ORIGINS },
+  async (request): Promise<CarouselPreview> => {
+    await assertAdmin(request.auth?.uid);
+    const db = getFirestore();
+    return previewWeeklyCarousels({
+      listEvents: (window) => listCarouselEvents(db, window),
+      getOrganizerHandle: (ev) => lookupOrganizerHandle(db, ev),
+      getPostStatus: readStatus,
+    });
+  }
+);
+
+// Posts the weekly carousels now instead of waiting for Sunday. Respects the
+// kill switch and the one-post-per-Bezirk-and-week guard, so the Sunday job
+// afterwards skips whatever was posted here.
+export const adminPostWeeklyCarousels = onCall(
+  {
+    region: 'europe-west3',
+    cors: ALLOWED_ORIGINS,
+    timeoutSeconds: 540,
+    memory: '1GiB',
+    secrets: [IG_ACCESS_TOKEN, IG_USER_ID, ...ADMIN_MAIL_SECRETS],
+  },
+  async (request): Promise<CarouselRunOutcome> => {
+    await assertAdmin(request.auth?.uid);
+    const db = getFirestore();
+    const accessToken = await resolveInstagramAccessToken(db, IG_ACCESS_TOKEN.value());
+    const userId = IG_USER_ID.value();
+    if (!accessToken || !userId) {
+      throw new HttpsError('failed-precondition', 'Instagram is not configured.');
+    }
+    const outcome = await runWeeklyCarousels(buildCarouselDeps(db, accessToken, userId));
+    logger.info('Instagram weekly carousels posted by admin', outcome);
+    return outcome;
   }
 );

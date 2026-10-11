@@ -174,3 +174,21 @@
   background: var(--border);
   color: var(--text-secondary);
 }
+
+.instagram-carousel-slides {
+  margin: 8px 0;
+  padding-left: 20px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.instagram-caption {
+  margin: 8px 0 0;
+  padding: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+  font-size: 0.85rem;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+}

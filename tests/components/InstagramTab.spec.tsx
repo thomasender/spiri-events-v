@@ -233,3 +233,96 @@ describe('InstagramTab', () => {
     expect(screen.queryByTestId('instagram-unposted')).not.toBeInTheDocument();
   });
 });
+
+describe('InstagramTab weekly carousels', () => {
+  const group = (over: Record<string, unknown> = {}) => ({
+    postId: 'carousel_dornbirn_2026-10-12',
+    bezirk: 'Dornbirn',
+    part: 1,
+    parts: 1,
+    cover: {
+      heading: 'Events nächste Woche',
+      bezirk: 'in Dornbirn',
+      dateRange: '12. – 18. Okt 2026',
+    },
+    caption: 'Events nächste Woche in Dornbirn\n\n• Kakao Zeremonie',
+    events: [
+      {
+        id: 'e1',
+        title: 'Kakao Zeremonie',
+        date: '2026-10-14',
+        time: '18:00',
+        place: 'Studio',
+        organizerHandle: '@kakao',
+      },
+    ],
+    existingStatus: null,
+    ...over,
+  });
+
+  const withPreview = (groups: unknown[]) =>
+    state.callable.mockResolvedValue({ data: { weekLabel: '12. – 18. Okt 2026', groups } });
+
+  const runPreview = async () => {
+    render(<InstagramTab />);
+    fireEvent.click(screen.getByTestId('instagram-carousel-preview'));
+    await screen.findByTestId('instagram-carousel-result');
+  };
+
+  it('shows the dry run with slides and caption and posts nothing', async () => {
+    withPreview([group()]);
+    await runPreview();
+
+    expect(state.httpsCallable).toHaveBeenCalledWith('adminPreviewWeeklyCarousels');
+    expect(state.httpsCallable).not.toHaveBeenCalledWith('adminPostWeeklyCarousels');
+    expect(screen.getByTestId('instagram-carousel-caption')).toHaveTextContent('Kakao Zeremonie');
+    expect(screen.getByText(/Kakao Zeremonie \(Studio\) · @kakao/)).toBeInTheDocument();
+  });
+
+  it('keeps the post button disabled while the automation is off', async () => {
+    withPreview([group()]);
+    await runPreview();
+
+    expect(screen.getByTestId('instagram-carousel-post')).toBeDisabled();
+    expect(screen.getByTestId('instagram-carousel-off')).toBeInTheDocument();
+  });
+
+  it('posts only after the confirmation when the automation is on', async () => {
+    state.settings = { ...state.settings, enabled: true };
+    withPreview([group()]);
+    await runPreview();
+
+    fireEvent.click(screen.getByTestId('instagram-carousel-post'));
+    expect(state.httpsCallable).not.toHaveBeenCalledWith('adminPostWeeklyCarousels');
+
+    state.callable.mockResolvedValue({
+      data: {
+        status: 'done',
+        results: [{ id: 'carousel_dornbirn_2026-10-12', outcome: 'published' }],
+      },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Jetzt veröffentlichen' }));
+
+    await waitFor(() =>
+      expect(state.httpsCallable).toHaveBeenCalledWith('adminPostWeeklyCarousels')
+    );
+    expect(await screen.findByRole('status')).toHaveTextContent('veröffentlicht');
+  });
+
+  it('does not offer carousels that already have a record', async () => {
+    state.settings = { ...state.settings, enabled: true };
+    withPreview([group({ existingStatus: 'published' })]);
+    await runPreview();
+
+    expect(screen.getByTestId('instagram-carousel-existing')).toBeInTheDocument();
+    expect(screen.getByTestId('instagram-carousel-post')).toBeDisabled();
+  });
+
+  it('says so when there is nothing to post', async () => {
+    withPreview([]);
+    await runPreview();
+
+    expect(screen.getByTestId('instagram-carousel-empty')).toBeInTheDocument();
+    expect(screen.queryByTestId('instagram-carousel-post')).toBeNull();
+  });
+});

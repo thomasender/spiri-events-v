@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
-import { AlertTriangle, ExternalLink, RefreshCw, SkipForward } from 'lucide-react';
+import { AlertTriangle, Eye, ExternalLink, RefreshCw, Send, SkipForward } from 'lucide-react';
 import { db, functions } from '../lib/firebase';
 import { useAuth } from '../hooks/useAuth';
+import ConfirmDialog from './ConfirmDialog';
 import {
   useInstagramSettings,
   useInstagramPosts,
@@ -28,6 +29,18 @@ const OUTCOME_MESSAGES = {
   'no-consent': 'Der Veranstalter hat der Veröffentlichung auf Instagram nicht zugestimmt.',
   duplicate: 'Es existiert bereits ein Eintrag für dieses Event.',
 };
+
+const CAROUSEL_RESULT_LABELS = {
+  published: 'veröffentlicht',
+  failed: 'fehlgeschlagen',
+  duplicate: 'bereits vorhanden, nicht erneut gepostet',
+};
+
+// Groups of the dry run that would really be posted: a record in any status
+// (even failed) blocks a second post for the same Bezirk and week.
+export function postableCarouselGroups(preview) {
+  return (preview?.groups ?? []).filter((g) => !g.existingStatus);
+}
 
 function formatDate(date) {
   return date ? date.toLocaleDateString('de-AT') : '–';
@@ -55,6 +68,9 @@ export default function InstagramTab() {
   const [busyId, setBusyId] = useState(null);
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [carouselBusy, setCarouselBusy] = useState(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   if (!isAdmin) return null;
 
@@ -94,6 +110,51 @@ export default function InstagramTab() {
       setBusyId(null);
     }
   };
+
+  const loadPreview = async () => {
+    setCarouselBusy('preview');
+    setError(null);
+    setMessage(null);
+    try {
+      const result = await httpsCallable(functions, 'adminPreviewWeeklyCarousels')();
+      setPreview(result?.data ?? null);
+    } catch (err) {
+      console.error('adminPreviewWeeklyCarousels failed:', err?.code, err?.message);
+      setError(`Vorschau fehlgeschlagen (${err?.code || 'unbekannt'}). Bitte erneut versuchen.`);
+    } finally {
+      setCarouselBusy(null);
+    }
+  };
+
+  const postCarousels = async () => {
+    setCarouselBusy('post');
+    setError(null);
+    setMessage(null);
+    try {
+      const result = await httpsCallable(functions, 'adminPostWeeklyCarousels', {
+        timeout: 540000,
+      })();
+      const data = result?.data;
+      if (data?.status === 'disabled') {
+        setMessage(OUTCOME_MESSAGES.disabled);
+      } else {
+        const summary = (data?.results ?? [])
+          .map((r) => `${r.id}: ${CAROUSEL_RESULT_LABELS[r.outcome] || r.outcome}`)
+          .join(' · ');
+        setMessage(summary ? `Karussells: ${summary}` : 'Es gab keine Karussells zu posten.');
+      }
+      setConfirmOpen(false);
+      setPreview(null);
+    } catch (err) {
+      console.error('adminPostWeeklyCarousels failed:', err?.code, err?.message);
+      setError(`Posten fehlgeschlagen (${err?.code || 'unbekannt'}). Bitte Liste prüfen.`);
+      setConfirmOpen(false);
+    } finally {
+      setCarouselBusy(null);
+    }
+  };
+
+  const postable = postableCarouselGroups(preview);
 
   const expiresAt = settings?.tokenExpiresAt ?? null;
   const daysLeft = expiresAt ? daysUntil(expiresAt) : null;
@@ -147,6 +208,120 @@ export default function InstagramTab() {
           </button>
         </div>
       </div>
+
+      <div className="instagram-card" data-testid="instagram-carousel">
+        <h2>Wöchentliche Karussells</h2>
+        <p className="instagram-muted">
+          Jeden Sonntag um 10:00 Uhr entsteht pro Bezirk ein Karussell mit den Events der nächsten
+          Woche. Hier siehst du vorab, was gepostet würde, und kannst es sofort veröffentlichen. Was
+          schon gepostet wurde, wird am Sonntag nicht noch einmal gepostet.
+        </p>
+        <div className="instagram-post-actions">
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={loadPreview}
+            disabled={carouselBusy !== null}
+            data-testid="instagram-carousel-preview"
+          >
+            <Eye size={14} aria-hidden="true" />{' '}
+            {carouselBusy === 'preview' ? 'Lade …' : 'Vorschau (Trockenlauf)'}
+          </button>
+        </div>
+
+        {preview && (
+          <div data-testid="instagram-carousel-result">
+            <p className="instagram-muted">
+              Woche {preview.weekLabel}. Es wird noch nichts gepostet.
+            </p>
+            {preview.groups.length === 0 ? (
+              <p className="instagram-muted" data-testid="instagram-carousel-empty">
+                Für diese Woche gibt es keine Events, die gepostet würden (genehmigt, mit Zustimmung
+                zu Instagram, in Dornbirn, Feldkirch, Bregenz oder Bludenz).
+              </p>
+            ) : (
+              <ul className="instagram-posts">
+                {preview.groups.map((group) => (
+                  <li
+                    key={group.postId}
+                    className="instagram-post"
+                    data-testid="instagram-carousel-group"
+                  >
+                    <div className="instagram-post-main">
+                      <strong>
+                        {group.bezirk}
+                        {group.parts > 1 ? ` (Teil ${group.part} von ${group.parts})` : ''}
+                      </strong>
+                      <span className="instagram-muted">
+                        {group.events.length} {group.events.length === 1 ? 'Event' : 'Events'}
+                      </span>
+                      {group.existingStatus && (
+                        <span
+                          className={`instagram-badge instagram-badge--${group.existingStatus}`}
+                          data-testid="instagram-carousel-existing"
+                        >
+                          {STATUS_LABELS[group.existingStatus] || group.existingStatus} (wird nicht
+                          erneut gepostet)
+                        </span>
+                      )}
+                    </div>
+                    <ol className="instagram-carousel-slides">
+                      <li>
+                        Titelfolie: {group.cover.heading} {group.cover.bezirk},{' '}
+                        {group.cover.dateRange}
+                      </li>
+                      {group.events.map((event) => (
+                        <li key={event.id}>
+                          {event.date} {event.time} – {event.title}
+                          {event.place ? ` (${event.place})` : ''}
+                          {event.organizerHandle ? ` · ${event.organizerHandle}` : ''}
+                        </li>
+                      ))}
+                    </ol>
+                    <pre className="instagram-caption" data-testid="instagram-carousel-caption">
+                      {group.caption}
+                    </pre>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {preview.groups.length > 0 && (
+              <div className="instagram-post-actions">
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => setConfirmOpen(true)}
+                  disabled={!enabled || postable.length === 0 || carouselBusy !== null}
+                  data-testid="instagram-carousel-post"
+                >
+                  <Send size={14} aria-hidden="true" /> Jetzt veröffentlichen ({postable.length})
+                </button>
+                {!enabled && (
+                  <span className="instagram-muted" data-testid="instagram-carousel-off">
+                    Zum Veröffentlichen muss das automatische Posten eingeschaltet sein.
+                  </span>
+                )}
+                {enabled && postable.length === 0 && (
+                  <span className="instagram-muted">Alles ist bereits gepostet.</span>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <ConfirmDialog
+        isOpen={confirmOpen}
+        title="Karussells jetzt veröffentlichen?"
+        message={`${postable.length} ${
+          postable.length === 1 ? 'Karussell wird' : 'Karussells werden'
+        } auf dem Instagram-Kanal veröffentlicht. Das lässt sich nicht rückgängig machen.`}
+        confirmLabel="Jetzt veröffentlichen"
+        onConfirm={postCarousels}
+        onCancel={() => setConfirmOpen(false)}
+        loading={carouselBusy === 'post'}
+        danger
+      />
 
       <div className="instagram-card" data-testid="instagram-token">
         <h2>Zugangs-Token</h2>

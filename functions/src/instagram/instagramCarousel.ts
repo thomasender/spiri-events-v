@@ -284,6 +284,17 @@ export function carouselPostId(bezirk: string, weekStart: string, part: number):
   return `carousel_${bezirkSlug(bezirk)}_${weekStart}${part > 1 ? `_p${part}` : ''}`;
 }
 
+/** Distinct (case-insensitive) organizer handles in event order. */
+function distinctHandles(eventHandles: Array<string | null>): string[] {
+  const handles: string[] = [];
+  for (const handle of eventHandles) {
+    if (handle && !handles.some((h) => h.toLowerCase() === handle.toLowerCase())) {
+      handles.push(handle);
+    }
+  }
+  return handles;
+}
+
 async function publishCarousel(
   deps: CarouselDeps,
   group: CarouselGroup,
@@ -318,13 +329,7 @@ async function publishCarousel(
     }
     eventHandles.push(handle);
   }
-  // Distinct handles in event order.
-  const handles: string[] = [];
-  for (const handle of eventHandles) {
-    if (handle && !handles.some((h) => h.toLowerCase() === handle.toLowerCase())) {
-      handles.push(handle);
-    }
-  }
+  const handles = distinctHandles(eventHandles);
   const collaborators = handles.slice(0, MAX_COLLABORATORS).map(bareUsername);
 
   const childIds: string[] = [];
@@ -451,4 +456,83 @@ export async function runWeeklyCarousels(deps: CarouselDeps): Promise<CarouselRu
     }
   }
   return { status: 'done', window, results };
+}
+
+export interface CarouselPreviewDeps {
+  listEvents(window: WeekWindow): Promise<CarouselEvent[]>;
+  getOrganizerHandle?(event: CarouselEvent): Promise<string | null>;
+  /** instagram_posts/<id>.status, or null when no record exists yet. */
+  getPostStatus(id: string): Promise<string | null>;
+  now?(): Date;
+}
+
+export interface CarouselPreviewEvent {
+  id: string;
+  title: string;
+  date: string;
+  time: string;
+  place: string;
+  organizerHandle: string | null;
+}
+
+export interface CarouselPreviewGroup {
+  postId: string;
+  bezirk: CarouselBezirk;
+  part: number;
+  parts: number;
+  cover: CoverModel;
+  caption: string;
+  events: CarouselPreviewEvent[];
+  /** Status of an existing post record; a record (even failed) blocks posting again. */
+  existingStatus: string | null;
+}
+
+export interface CarouselPreview {
+  window: WeekWindow;
+  weekLabel: string;
+  groups: CarouselPreviewGroup[];
+}
+
+/**
+ * Dry run of runWeeklyCarousels: the same window, eligibility, grouping and
+ * caption, but nothing is rendered, uploaded, written or posted.
+ */
+export async function previewWeeklyCarousels(deps: CarouselPreviewDeps): Promise<CarouselPreview> {
+  const window = getNextWeekWindow((deps.now ?? (() => new Date()))());
+  const events = await deps.listEvents(window);
+  const groups: CarouselPreviewGroup[] = [];
+
+  for (const group of groupCarousels(events, window)) {
+    const eventHandles: Array<string | null> = [];
+    for (const event of group.events) {
+      let handle: string | null = null;
+      if (deps.getOrganizerHandle) {
+        try {
+          handle = await deps.getOrganizerHandle(event);
+        } catch {
+          handle = null;
+        }
+      }
+      eventHandles.push(handle);
+    }
+    const postId = carouselPostId(group.bezirk, window.start, group.part);
+    groups.push({
+      postId,
+      bezirk: group.bezirk,
+      part: group.part,
+      parts: group.parts,
+      cover: buildCoverModel(group, window),
+      caption: buildCarouselCaption(group, window, distinctHandles(eventHandles)),
+      events: group.events.map((event, i) => ({
+        id: event.id ?? '',
+        title: asString(event.title),
+        date: asString(event.date),
+        time: asString(event.time),
+        place: asString(event.place),
+        organizerHandle: eventHandles[i],
+      })),
+      existingStatus: await deps.getPostStatus(postId),
+    });
+  }
+  return { window, weekLabel: formatWeekRange(window), groups };
 }
