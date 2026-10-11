@@ -42,30 +42,31 @@ export function postableCarouselGroups(preview) {
   return (preview?.groups ?? []).filter((g) => !g.existingStatus);
 }
 
-// Plain-language reasons why events of the week are not in the carousels.
+// Plain-language reasons why events of the week are not in the carousels,
+// each with the events behind it (title, date, Bezirk).
 export function describeCarouselSummary(summary) {
   if (!summary) return [];
+  const details = summary.details ?? {};
   const count = (n, one, many) => `${n} ${n === 1 ? one : many}`;
-  const lines = [];
-  if (summary.withoutConsent > 0) {
-    lines.push(
-      `${count(summary.withoutConsent, 'Termin', 'Termine')} ohne Zustimmung des Veranstalters zu Instagram`
-    );
-  }
-  if (summary.online > 0) {
-    lines.push(
-      `${count(summary.online, 'Online-Termin', 'Online-Termine')} (kommt nicht ins Karussell)`
-    );
-  }
-  if (summary.otherRegion > 0) {
-    lines.push(
-      `${count(summary.otherRegion, 'Termin', 'Termine')} außerhalb von Dornbirn, Feldkirch, Bregenz und Bludenz (z. B. Grenznahe)`
-    );
-  }
-  if (summary.notApproved > 0) {
-    lines.push(`${count(summary.notApproved, 'Termin', 'Termine')} noch nicht genehmigt`);
-  }
-  return lines;
+  const reasons = [
+    [
+      'withoutConsent',
+      (n) => `${count(n, 'Termin', 'Termine')} ohne Zustimmung des Veranstalters zu Instagram`,
+    ],
+    ['online', (n) => `${count(n, 'Online-Termin', 'Online-Termine')} (kommt nicht ins Karussell)`],
+    ['otherRegion', (n) => `${count(n, 'Termin', 'Termine')} ohne passenden Bezirk`],
+    ['notApproved', (n) => `${count(n, 'Termin', 'Termine')} noch nicht genehmigt`],
+  ];
+  return reasons
+    .filter(([key]) => summary[key] > 0)
+    .map(([key, label]) => ({
+      key,
+      text: label(summary[key]),
+      events: (details[key] ?? []).map((e) => ({
+        id: e.id,
+        text: `${e.date} · ${e.title}${e.bezirk ? ` (${e.bezirk})` : ''}`,
+      })),
+    }));
 }
 
 function formatDate(date) {
@@ -269,8 +270,17 @@ export default function InstagramTab() {
                   {preview.summary.eligible === 1 ? 'kommt' : 'kommen'} ins Karussell.
                 </p>
                 <ul className="instagram-carousel-slides">
-                  {describeCarouselSummary(preview.summary).map((line) => (
-                    <li key={line}>{line}</li>
+                  {describeCarouselSummary(preview.summary).map((reason) => (
+                    <li key={reason.key}>
+                      <details>
+                        <summary>{reason.text}</summary>
+                        <ul>
+                          {reason.events.map((event, i) => (
+                            <li key={`${event.id}-${i}`}>{event.text}</li>
+                          ))}
+                        </ul>
+                      </details>
+                    </li>
                   ))}
                 </ul>
               </div>
@@ -278,8 +288,7 @@ export default function InstagramTab() {
             {preview.groups.length === 0 ? (
               <p className="instagram-muted" data-testid="instagram-carousel-empty">
                 Für diese Woche wird kein Karussell gepostet. Ein Termin kommt ins Karussell, wenn
-                er genehmigt ist, der Veranstalter Instagram zugestimmt hat und er in Dornbirn,
-                Feldkirch, Bregenz oder Bludenz stattfindet.
+                er genehmigt ist, der Veranstalter Instagram zugestimmt hat und er nicht online ist.
               </p>
             ) : (
               <ul className="instagram-posts">
@@ -291,7 +300,7 @@ export default function InstagramTab() {
                   >
                     <div className="instagram-post-main">
                       <strong>
-                        {group.bezirk}
+                        {group.label || group.bezirk}
                         {group.parts > 1 ? ` (Teil ${group.part} von ${group.parts})` : ''}
                       </strong>
                       <span className="instagram-muted">

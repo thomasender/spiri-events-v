@@ -34,9 +34,25 @@ import {
   type PostStatus,
 } from './instagramPublish';
 
-/** Bezirke that get a weekly carousel. "Grenznahe" and online events are excluded. */
-export const CAROUSEL_BEZIRKE = ['Dornbirn', 'Feldkirch', 'Bregenz', 'Bludenz'] as const;
+/** Bezirke that get a weekly carousel. Online events are excluded. */
+export const CAROUSEL_BEZIRKE = [
+  'Dornbirn',
+  'Feldkirch',
+  'Bregenz',
+  'Bludenz',
+  'Grenznahe',
+] as const;
 export type CarouselBezirk = (typeof CAROUSEL_BEZIRKE)[number];
+
+/** Human-readable name of a carousel region ("Grenznahe" is written "Grenznähe"). */
+export function bezirkLabel(bezirk: string): string {
+  return bezirk === 'Grenznahe' ? 'Grenznähe' : bezirk;
+}
+
+/** "in Dornbirn", "in der Grenznähe". */
+export function bezirkInPhrase(bezirk: string): string {
+  return bezirk === 'Grenznahe' ? 'in der Grenznähe' : `in ${bezirk}`;
+}
 
 /** Instagram allows 10 items per carousel: 1 cover + 9 events. */
 export const MAX_EVENTS_PER_CAROUSEL = 9;
@@ -169,7 +185,7 @@ export function formatWeekRange(window: WeekWindow): string {
 export function buildCoverModel(group: CarouselGroup, window: WeekWindow): CoverModel {
   return {
     heading: 'Events nächste Woche',
-    bezirk: stripImageUnsafeChars(`in ${group.bezirk}`),
+    bezirk: stripImageUnsafeChars(bezirkInPhrase(group.bezirk)),
     dateRange: formatWeekRange(window),
     partLabel: group.parts > 1 ? `Teil ${group.part} von ${group.parts}` : '',
     eventCount: group.events.length,
@@ -200,7 +216,7 @@ export function buildCarouselCaption(
   handles: string[] = []
 ): string {
   const part = group.parts > 1 ? ` (Teil ${group.part} von ${group.parts})` : '';
-  const heading = `Events nächste Woche in ${group.bezirk}${part}\n${formatWeekRange(window)}`;
+  const heading = `Events nächste Woche ${bezirkInPhrase(group.bezirk)}${part}\n${formatWeekRange(window)}`;
   const hashtags = [
     ...new Set([toHashtag(group.bezirk), ...BASE_HASHTAGS, '#events'].filter(Boolean)),
   ].join(' ');
@@ -444,8 +460,8 @@ export async function runWeeklyCarousels(deps: CarouselDeps): Promise<CarouselRu
       }
       try {
         await deps.notifyAdmins(
-          `Instagram-Karussell fehlgeschlagen: ${group.bezirk} ${window.start}`,
-          `Das wöchentliche Instagram-Karussell für ${group.bezirk} (Woche ab ${window.start}, Teil ${group.part} von ${group.parts}, ${postId}) konnte nicht veröffentlicht werden.\n\nFehler: ${message}\n\nEs wird nicht automatisch erneut versucht.`
+          `Instagram-Karussell fehlgeschlagen: ${bezirkLabel(group.bezirk)} ${window.start}`,
+          `Das wöchentliche Instagram-Karussell für ${bezirkLabel(group.bezirk)} (Woche ab ${window.start}, Teil ${group.part} von ${group.parts}, ${postId}) konnte nicht veröffentlicht werden.\n\nFehler: ${message}\n\nEs wird nicht automatisch erneut versucht.`
         );
       } catch (mailErr) {
         log('Could not mail admins about carousel failure', {
@@ -478,6 +494,8 @@ export interface CarouselPreviewEvent {
 export interface CarouselPreviewGroup {
   postId: string;
   bezirk: CarouselBezirk;
+  /** Display name, e.g. "Grenznähe". */
+  label: string;
   part: number;
   parts: number;
   cover: CoverModel;
@@ -495,9 +513,26 @@ export interface CarouselCandidateSummary {
   notApproved: number;
   withoutConsent: number;
   online: number;
-  /** Bezirk is not one of the four carousel Bezirke (e.g. Grenznahe) or missing. */
+  /** No Bezirk or one that gets no carousel. */
   otherRegion: number;
+  /** The events behind the counts, so the admin can see which ones to follow up. */
+  details: {
+    notApproved: CandidateInfo[];
+    withoutConsent: CandidateInfo[];
+    online: CandidateInfo[];
+    otherRegion: CandidateInfo[];
+  };
 }
+
+export interface CandidateInfo {
+  id: string;
+  title: string;
+  date: string;
+  bezirk: string;
+}
+
+/** Keeps the callable response small when a week has very many events. */
+const MAX_DETAILS_PER_REASON = 50;
 
 export interface CarouselPreview {
   window: WeekWindow;
@@ -518,16 +553,28 @@ export function summarizeCandidates(
     withoutConsent: 0,
     online: 0,
     otherRegion: 0,
+    details: { notApproved: [], withoutConsent: [], online: [], otherRegion: [] },
+  };
+  const note = (reason: keyof CarouselCandidateSummary['details'], event: CarouselEvent) => {
+    summary[reason] += 1;
+    if (summary.details[reason].length < MAX_DETAILS_PER_REASON) {
+      summary.details[reason].push({
+        id: event.id ?? '',
+        title: asString(event.title) || 'Ohne Titel',
+        date: asString(event.date),
+        bezirk: asString(event.bezirk),
+      });
+    }
   };
   for (const event of events) {
     const date = asString(event.date);
     if (date < window.start || date > window.end) continue;
     summary.total += 1;
     if (isCarouselEligible(event, window)) summary.eligible += 1;
-    else if (event.status !== 'approved') summary.notApproved += 1;
-    else if (event.instagramConsent !== true) summary.withoutConsent += 1;
-    else if (event.isOnline === true || event.isOnline === 'true') summary.online += 1;
-    else summary.otherRegion += 1;
+    else if (event.status !== 'approved') note('notApproved', event);
+    else if (event.instagramConsent !== true) note('withoutConsent', event);
+    else if (event.isOnline === true || event.isOnline === 'true') note('online', event);
+    else note('otherRegion', event);
   }
   return summary;
 }
@@ -558,6 +605,7 @@ export async function previewWeeklyCarousels(deps: CarouselPreviewDeps): Promise
     groups.push({
       postId,
       bezirk: group.bezirk,
+      label: bezirkLabel(group.bezirk),
       part: group.part,
       parts: group.parts,
       cover: buildCoverModel(group, window),

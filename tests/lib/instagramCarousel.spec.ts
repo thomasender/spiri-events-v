@@ -100,7 +100,8 @@ describe('isCarouselEligible', () => {
     expect(isCarouselEligible(ev({ date: '2026-10-12' }), WINDOW)).toBe(false);
     expect(isCarouselEligible(ev({ bezirk: '' }), WINDOW)).toBe(false);
     expect(isCarouselEligible(ev({ bezirk: undefined }), WINDOW)).toBe(false);
-    expect(isCarouselEligible(ev({ bezirk: 'Grenznahe' }), WINDOW)).toBe(false);
+    expect(isCarouselEligible(ev({ bezirk: 'Grenznahe' }), WINDOW)).toBe(true);
+    expect(isCarouselEligible(ev({ bezirk: 'Wien' }), WINDOW)).toBe(false);
     expect(isCarouselEligible(ev({ isOnline: true, bezirk: 'Dornbirn' }), WINDOW)).toBe(false);
   });
 });
@@ -576,14 +577,14 @@ describe('summarizeCandidates', () => {
         ev({ id: 'ok' }),
         ev({ id: 'no-consent', instagramConsent: undefined }),
         ev({ id: 'online', isOnline: true }),
-        ev({ id: 'grenznahe', bezirk: 'Grenznahe' }),
+        ev({ id: 'wien', bezirk: 'Wien', title: 'Wiener Event' }),
         ev({ id: 'draft', status: 'draft' }),
         ev({ id: 'next-week', date: '2026-10-14' }), // outside the window
         ev({ id: 'outside', date: '2026-11-20' }),
       ],
       WINDOW
     );
-    expect(summary).toEqual({
+    expect(summary).toMatchObject({
       total: 5,
       eligible: 1,
       notApproved: 1,
@@ -591,5 +592,34 @@ describe('summarizeCandidates', () => {
       online: 1,
       otherRegion: 1,
     });
+    expect(summary.details.otherRegion).toEqual([
+      { id: 'wien', title: 'Wiener Event', date: '2026-10-07', bezirk: 'Wien' },
+    ]);
+    expect(summary.details.withoutConsent.map((e) => e.id)).toEqual(['no-consent']);
+  });
+});
+
+describe('Grenznahe carousel', () => {
+  it('gets its own carousel with a readable name', () => {
+    const groups = groupCarousels(
+      [ev({ id: 'g1', bezirk: 'Grenznahe' }), ev({ id: 'd1', bezirk: 'Dornbirn' })],
+      WINDOW
+    );
+    expect(groups.map((g) => g.bezirk)).toEqual(['Dornbirn', 'Grenznahe']);
+    const grenznahe = groups[1];
+    expect(buildCarouselCaption(grenznahe, WINDOW)).toContain(
+      'Events nächste Woche in der Grenznähe'
+    );
+    expect(carouselPostId('Grenznahe', WINDOW.start, 1)).toBe('carousel_grenznahe_2026-10-05');
+  });
+
+  it('shows the readable name in the dry run', async () => {
+    const preview = await previewWeeklyCarousels({
+      listEvents: vi.fn(async () => [ev({ bezirk: 'Grenznahe' })]),
+      getPostStatus: vi.fn(async () => null),
+      now: () => SUNDAY,
+    });
+    expect(preview.groups[0].label).toBe('Grenznähe');
+    expect(preview.groups[0].cover.bezirk).toBe('in der Grenznähe');
   });
 });

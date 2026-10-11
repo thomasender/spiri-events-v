@@ -329,6 +329,14 @@ describe('InstagramTab weekly carousels', () => {
           withoutConsent: 4,
           online: 1,
           otherRegion: 1,
+          details: {
+            withoutConsent: [
+              { id: 'a', title: 'Kakao Abend', date: '2026-10-14', bezirk: 'Dornbirn' },
+            ],
+            online: [],
+            otherRegion: [{ id: 'b', title: 'Yoga in Wien', date: '2026-10-15', bezirk: 'Wien' }],
+            notApproved: [],
+          },
         },
         groups: [],
       },
@@ -339,7 +347,9 @@ describe('InstagramTab weekly carousels', () => {
     expect(summary).toHaveTextContent('6 Termine');
     expect(summary).toHaveTextContent('4 Termine ohne Zustimmung');
     expect(summary).toHaveTextContent('1 Online-Termin');
-    expect(summary).toHaveTextContent('1 Termin außerhalb');
+    expect(summary).toHaveTextContent('1 Termin ohne passenden Bezirk');
+    expect(summary).toHaveTextContent('2026-10-14 · Kakao Abend (Dornbirn)');
+    expect(summary).toHaveTextContent('2026-10-15 · Yoga in Wien (Wien)');
   });
 
   it('says so when there is nothing to post', async () => {
