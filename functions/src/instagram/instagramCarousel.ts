@@ -487,10 +487,49 @@ export interface CarouselPreviewGroup {
   existingStatus: string | null;
 }
 
+/** Why events of the week are (not) part of the carousels. Counts are occurrences. */
+export interface CarouselCandidateSummary {
+  /** Events found for the week (approved ones from the live query). */
+  total: number;
+  eligible: number;
+  notApproved: number;
+  withoutConsent: number;
+  online: number;
+  /** Bezirk is not one of the four carousel Bezirke (e.g. Grenznahe) or missing. */
+  otherRegion: number;
+}
+
 export interface CarouselPreview {
   window: WeekWindow;
   weekLabel: string;
+  summary: CarouselCandidateSummary;
   groups: CarouselPreviewGroup[];
+}
+
+/** Counts each event of the week under the first rule that excludes it. */
+export function summarizeCandidates(
+  events: CarouselEvent[],
+  window: WeekWindow
+): CarouselCandidateSummary {
+  const summary: CarouselCandidateSummary = {
+    total: 0,
+    eligible: 0,
+    notApproved: 0,
+    withoutConsent: 0,
+    online: 0,
+    otherRegion: 0,
+  };
+  for (const event of events) {
+    const date = asString(event.date);
+    if (date < window.start || date > window.end) continue;
+    summary.total += 1;
+    if (isCarouselEligible(event, window)) summary.eligible += 1;
+    else if (event.status !== 'approved') summary.notApproved += 1;
+    else if (event.instagramConsent !== true) summary.withoutConsent += 1;
+    else if (event.isOnline === true || event.isOnline === 'true') summary.online += 1;
+    else summary.otherRegion += 1;
+  }
+  return summary;
 }
 
 /**
@@ -534,5 +573,10 @@ export async function previewWeeklyCarousels(deps: CarouselPreviewDeps): Promise
       existingStatus: await deps.getPostStatus(postId),
     });
   }
-  return { window, weekLabel: formatWeekRange(window), groups };
+  return {
+    window,
+    weekLabel: formatWeekRange(window),
+    summary: summarizeCandidates(events, window),
+    groups,
+  };
 }

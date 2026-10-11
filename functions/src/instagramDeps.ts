@@ -8,6 +8,7 @@ import {
   uploadInstagramImage,
 } from './instagram/instagramImage';
 import type { CarouselDeps } from './instagram/instagramCarousel';
+import { expandOccurrencesInWindow, type SeriesFields } from './instagram/instagramOccurrences';
 import { normalizeInstagramHandle } from './instagram/instagramContent';
 import type { PublishDeps } from './instagram/instagramPublish';
 import { getInstagramAccessToken } from './instagram/instagramToken';
@@ -110,16 +111,18 @@ export async function lookupOrganizerHandle(
   return normalizeInstagramHandle(snap.get('socialMedia.instagram'));
 }
 
-/** Events whose start date lies in the window; eligibility is checked by the logic. */
+/**
+ * One entry per occurrence that starts inside the window, so recurring events
+ * and custom dates are found like on the calendar page. Eligibility (consent,
+ * Bezirk, ...) is checked by the carousel logic.
+ */
 export async function listCarouselEvents(db: Firestore, window: { start: string; end: string }) {
-  // Single-field range query (no composite index); status, consent and
-  // Bezirk are filtered by isCarouselEligible().
-  const snap = await db
-    .collection('events')
-    .where('date', '>=', window.start)
-    .where('date', '<=', window.end)
-    .get();
-  return snap.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
+  // Equality on a single field needs no composite index; the window is applied
+  // per occurrence because a series' first date can lie long before it.
+  const snap = await db.collection('events').where('status', '==', 'approved').get();
+  return snap.docs.flatMap((doc) =>
+    expandOccurrencesInWindow<SeriesFields & { id: string }>({ ...doc.data(), id: doc.id }, window)
+  );
 }
 
 /**

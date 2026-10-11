@@ -318,6 +318,30 @@ describe('InstagramTab weekly carousels', () => {
     expect(screen.getByTestId('instagram-carousel-post')).toBeDisabled();
   });
 
+  it('explains why events of the week are left out', async () => {
+    state.callable.mockResolvedValue({
+      data: {
+        weekLabel: '12. – 18. Okt 2026',
+        summary: {
+          total: 6,
+          eligible: 0,
+          notApproved: 0,
+          withoutConsent: 4,
+          online: 1,
+          otherRegion: 1,
+        },
+        groups: [],
+      },
+    });
+    await runPreview();
+
+    const summary = screen.getByTestId('instagram-carousel-summary');
+    expect(summary).toHaveTextContent('6 Termine');
+    expect(summary).toHaveTextContent('4 Termine ohne Zustimmung');
+    expect(summary).toHaveTextContent('1 Online-Termin');
+    expect(summary).toHaveTextContent('1 Termin außerhalb');
+  });
+
   it('says so when there is nothing to post', async () => {
     withPreview([]);
     await runPreview();

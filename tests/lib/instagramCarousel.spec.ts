@@ -8,6 +8,7 @@ import {
   carouselPostId,
   runWeeklyCarousels,
   previewWeeklyCarousels,
+  summarizeCandidates,
   type CarouselDeps,
   type CarouselEvent,
   type CarouselPostRecord,
@@ -565,5 +566,30 @@ describe('previewWeeklyCarousels', () => {
     });
     const preview = await previewWeeklyCarousels(deps);
     expect(preview.groups[0].events[0].organizerHandle).toBeNull();
+  });
+});
+
+describe('summarizeCandidates', () => {
+  it('counts each event of the week under the first rule that excludes it', () => {
+    const summary = summarizeCandidates(
+      [
+        ev({ id: 'ok' }),
+        ev({ id: 'no-consent', instagramConsent: undefined }),
+        ev({ id: 'online', isOnline: true }),
+        ev({ id: 'grenznahe', bezirk: 'Grenznahe' }),
+        ev({ id: 'draft', status: 'draft' }),
+        ev({ id: 'next-week', date: '2026-10-14' }), // outside the window
+        ev({ id: 'outside', date: '2026-11-20' }),
+      ],
+      WINDOW
+    );
+    expect(summary).toEqual({
+      total: 5,
+      eligible: 1,
+      notApproved: 1,
+      withoutConsent: 1,
+      online: 1,
+      otherRegion: 1,
+    });
   });
 });

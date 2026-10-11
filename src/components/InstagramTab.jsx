@@ -42,6 +42,32 @@ export function postableCarouselGroups(preview) {
   return (preview?.groups ?? []).filter((g) => !g.existingStatus);
 }
 
+// Plain-language reasons why events of the week are not in the carousels.
+export function describeCarouselSummary(summary) {
+  if (!summary) return [];
+  const count = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+  const lines = [];
+  if (summary.withoutConsent > 0) {
+    lines.push(
+      `${count(summary.withoutConsent, 'Termin', 'Termine')} ohne Zustimmung des Veranstalters zu Instagram`
+    );
+  }
+  if (summary.online > 0) {
+    lines.push(
+      `${count(summary.online, 'Online-Termin', 'Online-Termine')} (kommt nicht ins Karussell)`
+    );
+  }
+  if (summary.otherRegion > 0) {
+    lines.push(
+      `${count(summary.otherRegion, 'Termin', 'Termine')} außerhalb von Dornbirn, Feldkirch, Bregenz und Bludenz (z. B. Grenznahe)`
+    );
+  }
+  if (summary.notApproved > 0) {
+    lines.push(`${count(summary.notApproved, 'Termin', 'Termine')} noch nicht genehmigt`);
+  }
+  return lines;
+}
+
 function formatDate(date) {
   return date ? date.toLocaleDateString('de-AT') : '–';
 }
@@ -234,10 +260,26 @@ export default function InstagramTab() {
             <p className="instagram-muted">
               Woche {preview.weekLabel}. Es wird noch nichts gepostet.
             </p>
+            {preview.summary && (
+              <div data-testid="instagram-carousel-summary">
+                <p className="instagram-muted">
+                  In dieser Woche gibt es{' '}
+                  {preview.summary.total === 1 ? '1 Termin' : `${preview.summary.total} Termine`},{' '}
+                  {preview.summary.eligible} davon{' '}
+                  {preview.summary.eligible === 1 ? 'kommt' : 'kommen'} ins Karussell.
+                </p>
+                <ul className="instagram-carousel-slides">
+                  {describeCarouselSummary(preview.summary).map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
             {preview.groups.length === 0 ? (
               <p className="instagram-muted" data-testid="instagram-carousel-empty">
-                Für diese Woche gibt es keine Events, die gepostet würden (genehmigt, mit Zustimmung
-                zu Instagram, in Dornbirn, Feldkirch, Bregenz oder Bludenz).
+                Für diese Woche wird kein Karussell gepostet. Ein Termin kommt ins Karussell, wenn
+                er genehmigt ist, der Veranstalter Instagram zugestimmt hat und er in Dornbirn,
+                Feldkirch, Bregenz oder Bludenz stattfindet.
               </p>
             ) : (
               <ul className="instagram-posts">
