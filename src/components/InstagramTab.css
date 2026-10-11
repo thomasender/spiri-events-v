@@ -211,6 +211,20 @@
   cursor: pointer;
 }
 
-#instagram-posts-panel {
+.instagram-collapsible-panel {
   margin-top: 12px;
+}
+
+.instagram-count-pill {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 1px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-secondary, transparent);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: center;
 }

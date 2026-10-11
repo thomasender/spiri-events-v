@@ -90,6 +90,65 @@ export function daysUntil(date, now = new Date()) {
   return Math.floor((date.getTime() - now.getTime()) / 86400000);
 }
 
+const POST_SECTIONS = [
+  {
+    id: 'failed',
+    title: 'Fehlgeschlagen',
+    statuses: ['failed', 'publishing'],
+    empty: 'Keine fehlgeschlagenen Beiträge.',
+  },
+  {
+    id: 'skipped',
+    title: 'Übersprungen',
+    statuses: ['skipped'],
+    empty: 'Keine übersprungenen Beiträge.',
+  },
+  {
+    id: 'published',
+    title: 'Bereits veröffentlichte Beiträge',
+    statuses: ['published'],
+    empty: 'Noch keine veröffentlichten Beiträge.',
+  },
+];
+
+// Card whose body is hidden until the heading is clicked; the count sits in a
+// pill next to the title (same look as the filter chips).
+function CollapsibleSection({ id, title, count, testId, children }) {
+  const [open, setOpen] = useState(false);
+  const panelId = `instagram-panel-${id}`;
+  return (
+    <div className="instagram-card" data-testid={testId}>
+      <h2 className="instagram-collapsible-heading">
+        <button
+          type="button"
+          className="instagram-collapsible-toggle"
+          aria-expanded={open}
+          aria-controls={panelId}
+          data-testid={`instagram-toggle-${id}`}
+          onClick={() => setOpen((o) => !o)}
+        >
+          {open ? (
+            <ChevronDown size={18} aria-hidden="true" />
+          ) : (
+            <ChevronRight size={18} aria-hidden="true" />
+          )}
+          {title}
+          {count !== null && count !== undefined && (
+            <span className="instagram-count-pill" data-testid={`instagram-count-${id}`}>
+              {count}
+            </span>
+          )}
+        </button>
+      </h2>
+      {open && (
+        <div id={panelId} className="instagram-collapsible-panel">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function InstagramTab() {
   const { user, role } = useAuth();
   const isAdmin = role === 'Admin';
@@ -107,7 +166,6 @@ export default function InstagramTab() {
   const [preview, setPreview] = useState(null);
   const [carouselBusy, setCarouselBusy] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [postsOpen, setPostsOpen] = useState(false);
 
   if (!isAdmin) return null;
 
@@ -406,13 +464,17 @@ export default function InstagramTab() {
         </dl>
       </div>
 
-      {unposted.length > 0 && (
-        <div className="instagram-card" data-testid="instagram-unposted">
-          <h2>Genehmigt, aber noch nicht gepostet</h2>
-          <p className="instagram-muted">
-            Der Veranstalter hat zugestimmt und das Event liegt noch in der Zukunft, ein Beitrag
-            wurde aber noch nicht veröffentlicht (nie versucht, übersprungen oder fehlgeschlagen).
-          </p>
+      <CollapsibleSection
+        id="unposted"
+        title="Genehmigt, aber noch nicht gepostet"
+        count={unposted.length}
+        testId="instagram-unposted"
+      >
+        <p className="instagram-muted">
+          Der Veranstalter hat zugestimmt und das Event liegt noch in der Zukunft, ein Beitrag wurde
+          aber noch nicht veröffentlicht (nie versucht, übersprungen oder fehlgeschlagen).
+        </p>
+        {unposted.length > 0 && (
           <ul className="instagram-posts">
             {unposted.map((event) => (
               <li
@@ -445,45 +507,34 @@ export default function InstagramTab() {
               </li>
             ))}
           </ul>
-        </div>
-      )}
+        )}
+      </CollapsibleSection>
 
-      <div className="instagram-card">
-        <h2 className="instagram-collapsible-heading">
-          <button
-            type="button"
-            className="instagram-collapsible-toggle"
-            aria-expanded={postsOpen}
-            aria-controls="instagram-posts-panel"
-            data-testid="instagram-posts-toggle"
-            onClick={() => setPostsOpen((open) => !open)}
+      {POST_SECTIONS.map(({ id, title, statuses, empty }) => {
+        const sectionPosts = posts.filter((post) => statuses.includes(post.status));
+        return (
+          <CollapsibleSection
+            key={id}
+            id={id}
+            title={title}
+            count={postsLoading ? null : sectionPosts.length}
+            testId={`instagram-section-${id}`}
           >
-            {postsOpen ? (
-              <ChevronDown size={18} aria-hidden="true" />
-            ) : (
-              <ChevronRight size={18} aria-hidden="true" />
-            )}
-            Bereits veröffentlichte Beiträge
-            {!postsLoading && <span className="instagram-muted"> ({posts.length})</span>}
-          </button>
-        </h2>
-        {postsOpen && (
-          <div id="instagram-posts-panel">
             {postsLoading ? (
               <p className="instagram-muted">Lade …</p>
-            ) : posts.length === 0 ? (
-              <p className="instagram-muted" data-testid="instagram-empty">
-                Noch keine Instagram-Beiträge.
+            ) : sectionPosts.length === 0 ? (
+              <p className="instagram-muted" data-testid={`instagram-empty-${id}`}>
+                {empty}
               </p>
             ) : (
               <ul className="instagram-posts">
-                {posts.map((post) => {
-                  const title = titles[post.eventId] || post.eventId;
+                {sectionPosts.map((post) => {
+                  const postTitle = titles[post.eventId] || post.eventId;
                   const busy = busyId === post.id;
                   return (
                     <li key={post.id} className="instagram-post" data-testid="instagram-post">
                       <div className="instagram-post-main">
-                        <strong>{title}</strong>
+                        <strong>{postTitle}</strong>
                         <span
                           className={`instagram-badge instagram-badge--${post.status}`}
                           data-testid="instagram-post-status"
@@ -534,9 +585,9 @@ export default function InstagramTab() {
                 })}
               </ul>
             )}
-          </div>
-        )}
-      </div>
+          </CollapsibleSection>
+        );
+      })}
     </section>
   );
 }
