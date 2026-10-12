@@ -18,6 +18,7 @@ import { formatDayNumber, formatMonthShort, formatWeekdayShort } from '../utils/
 import { getNextUpcomingOccurrence, getRecurrenceLabel } from '../utils/eventOccurrences';
 import { getEventLocationLabel, isMultiDayEvent } from '../utils/eventFormat';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
+import { getExpiryHint } from '../utils/eventExpiry';
 import EventCoverImage from './EventCoverImage';
 import './EventAdminListRow.css';
 
@@ -91,6 +92,8 @@ export default function EventAdminListRow({
   const fallbackImage = getEventFallbackImage(event);
 
   const eventDate = isRecurring && nextOccurrence ? nextOccurrence : event.date;
+
+  const expiryHint = event.status === 'trashed' ? null : getExpiryHint(event);
 
   const eventLinkTarget = `/event/${event.slug || event.id}`;
 
@@ -186,6 +189,11 @@ export default function EventAdminListRow({
               <span className="event-card-meta-item event-card-meta-item--email">
                 <Mail size={12} />
                 {event.organizer.email}
+              </span>
+            )}
+            {expiryHint && (
+              <span className="event-card-meta-item" data-testid={`event-card-expiry-${event.id}`}>
+                {expiryHint}
               </span>
             )}
             {showTrashedAt && event.trashedAt && (

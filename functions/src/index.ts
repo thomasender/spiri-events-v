@@ -130,3 +130,4 @@ export {
   adminPreviewWeeklyCarousels,
   adminPostWeeklyCarousels,
 } from './instagramAdmin';
+export { purgeExpiredEvents } from './purgeExpiredEvents';

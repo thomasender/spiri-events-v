@@ -345,6 +345,10 @@ export default function EventList() {
             <h2>Meine Events</h2>
             {renderStatusFilter()}
           </div>
+          <p className="event-list-retention-note" data-testid="event-retention-note">
+            Vergangene Events werden 30 Tage nach dem Termin automatisch gelöscht. Serien 30 Tage
+            nach dem letzten Termin.
+          </p>
           {sortedEvents.length === 0
             ? statusFilter === 'all'
               ? renderEmptyState(
@@ -441,6 +445,10 @@ export default function EventList() {
           <h2>Events</h2>
           {renderStatusFilter()}
         </div>
+        <p className="event-list-retention-note" data-testid="event-retention-note">
+          Vergangene Events werden 30 Tage nach dem Termin automatisch gelöscht. Serien 30 Tage nach
+          dem letzten Termin.
+        </p>
         {sortedEvents.length === 0
           ? statusFilter === 'all'
             ? renderEmptyState(
