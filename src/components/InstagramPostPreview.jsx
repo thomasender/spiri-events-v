@@ -86,3 +86,27 @@ export default function InstagramPostPreview({ imageUrl, focalPoint, zoom = 1, e
     </div>
   );
 }
+
+/**
+ * Review aid on the event page: admins see the Instagram post preview for
+ * events in review (pending) whose organizer enabled the Instagram post.
+ * Uses the chosen Instagram image, falling back to the cover photo.
+ */
+export function AdminInstagramPreview({ event, isAdmin }) {
+  if (!isAdmin || event?.status !== 'pending' || event.instagramConsent !== true) return null;
+  const chosen = event.instagramImage;
+  return (
+    <InstagramPostPreview
+      imageUrl={chosen?.url || event.imageUrl}
+      focalPoint={chosen?.focalPoint}
+      zoom={chosen?.zoom}
+      event={{
+        title: event.title,
+        category: event.category,
+        date: event.date,
+        time: event.time,
+        place: event.isOnline ? 'Online' : event.place,
+      }}
+    />
+  );
+}
