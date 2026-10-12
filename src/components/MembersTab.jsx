@@ -179,7 +179,7 @@ export default function MembersTab() {
   const [region, setRegion] = useState('');
   const [category, setCategory] = useState('');
   const [activeListId, setActiveListId] = useState('');
-  const [sort, setSort] = useState({ key: 'displayName', direction: 'asc' });
+  const [sort, setSort] = useState({ key: 'createdAt', direction: 'desc' });
   const [selected, setSelected] = useState(() => new Set());
   const [editing, setEditing] = useState(null);
   const [deletingList, setDeletingList] = useState(false);
@@ -445,9 +445,9 @@ export default function MembersTab() {
                       </th>
                     ))}
                     <th>Profil</th>
-                    <th>Bezirke</th>
-                    <th>Kategorien</th>
                     <th>Verzeichnis</th>
+                    <th>Instagram teilen</th>
+                    <th>Instagram-Name</th>
                     <th />
                   </tr>
                 </thead>
@@ -486,11 +486,11 @@ export default function MembersTab() {
                             '–'
                           )}
                         </td>
-                        <td>{m.directoryRegions.join(', ') || '–'}</td>
-                        <td>{m.directoryCategories.join(', ') || '–'}</td>
                         <td>
                           {m.listedInDirectory ? (m.directoryHidden ? 'Versteckt' : 'Ja') : 'Nein'}
                         </td>
+                        <td>{m.instagramConsent ? 'Ja' : 'Nein'}</td>
+                        <td>{m.instagramHandle || '–'}</td>
                         <td className="members-actions">
                           <button
                             type="button"
