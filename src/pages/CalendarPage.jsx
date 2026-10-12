@@ -422,6 +422,26 @@ export default function CalendarPage() {
               <h2 className="filter-section-title">Hier kannst du filtern</h2>
             </div>
 
+            {isSignedIn && (
+              <>
+                <div className="filter-header filter-header--section">
+                  <span className="filter-label">Meine Events</span>
+                </div>
+                <div className="filter-options" data-testid="filter-options-favorites">
+                  <button
+                    type="button"
+                    className="filter-chip filter-chip--date"
+                    data-testid="filter-chip-favorites"
+                    onClick={() => setOnlyFavorites((prev) => !prev)}
+                    aria-pressed={onlyFavorites}
+                  >
+                    <Heart size={14} className="filter-chip-icon" aria-hidden="true" />
+                    <span>Meine Favoriten</span>
+                  </button>
+                </div>
+              </>
+            )}
+
             <div className="filter-header filter-header--section">
               <span className="filter-label">Datum</span>
             </div>
@@ -442,21 +462,6 @@ export default function CalendarPage() {
                 </button>
               ))}
             </div>
-
-            {isSignedIn && (
-              <div className="filter-options" data-testid="filter-options-favorites">
-                <button
-                  type="button"
-                  className="filter-chip filter-chip--date"
-                  data-testid="filter-chip-favorites"
-                  onClick={() => setOnlyFavorites((prev) => !prev)}
-                  aria-pressed={onlyFavorites}
-                >
-                  <Heart size={14} className="filter-chip-icon" aria-hidden="true" />
-                  <span>Meine Favoriten</span>
-                </button>
-              </div>
-            )}
 
             <div className="filter-header filter-header--section">
               <span className="filter-label">Kategorie</span>
