@@ -33,6 +33,7 @@ import {
   SlidersHorizontal,
   CalendarPlus,
   Copy,
+  Share,
 } from 'lucide-react';
 import './CalendarPage.css';
 import { trackEventOpen, trackFilter } from '../lib/analyticsEvents';
@@ -593,6 +594,47 @@ export default function CalendarPage() {
                     <FacetCount value={facetCounts.ort[ONLINE_LOCATION] || 0} />
                   </button>
                 </div>
+                <details className="calendar-export" data-testid="calendar-subscribe">
+                  <summary className="calendar-export-summary">
+                    <Share size={14} aria-hidden="true" />
+                    <span>im eigenen Kalender speichern</span>
+                  </summary>
+                  <div className="calendar-export-panel">
+                    <a
+                      className="btn btn-primary calendar-export-cta"
+                      href={webcalUrl}
+                      data-testid="calendar-subscribe-link"
+                    >
+                      <CalendarPlus size={16} aria-hidden="true" />
+                      <span>Abonnieren</span>
+                    </a>
+                    <a
+                      className="btn btn-secondary"
+                      href={googleCalendarUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      data-testid="calendar-subscribe-google"
+                    >
+                      Google Kalender
+                    </a>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={copyFeedUrl}
+                      data-testid="calendar-subscribe-copy"
+                    >
+                      {feedCopied ? (
+                        <Check size={14} aria-hidden="true" />
+                      ) : (
+                        <Copy size={14} aria-hidden="true" />
+                      )}
+                      <span>{feedCopied ? 'Adresse kopiert' : 'Adresse kopieren'}</span>
+                    </button>
+                    <code className="calendar-subscribe-url" data-testid="calendar-subscribe-url">
+                      {feedUrl}
+                    </code>
+                  </div>
+                </details>
               </div>
             </details>
           </section>
@@ -618,50 +660,6 @@ export default function CalendarPage() {
               categoryColorByName={categoryColorByName}
               onResetFilters={hasActiveFilter ? resetAllFilters : undefined}
             />
-          )}
-
-          {!loading && !error && (
-            <section className="calendar-subscribe" data-testid="calendar-subscribe">
-              <h2 className="calendar-subscribe-title">Alle Events im eigenen Kalender</h2>
-              <p className="calendar-subscribe-text">
-                Neue Events erscheinen automatisch in deiner Kalender-App.
-              </p>
-              <a
-                className="btn btn-primary calendar-subscribe-cta"
-                href={webcalUrl}
-                data-testid="calendar-subscribe-link"
-              >
-                <CalendarPlus size={18} aria-hidden="true" />
-                <span>Events im eigenen Kalender abonnieren</span>
-              </a>
-              <div className="calendar-subscribe-secondary">
-                <a
-                  className="btn btn-secondary"
-                  href={googleCalendarUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  data-testid="calendar-subscribe-google"
-                >
-                  Zu Google Kalender hinzufügen
-                </a>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={copyFeedUrl}
-                  data-testid="calendar-subscribe-copy"
-                >
-                  {feedCopied ? (
-                    <Check size={14} aria-hidden="true" />
-                  ) : (
-                    <Copy size={14} aria-hidden="true" />
-                  )}
-                  <span>{feedCopied ? 'Adresse kopiert' : 'Adresse kopieren'}</span>
-                </button>
-              </div>
-              <code className="calendar-subscribe-url" data-testid="calendar-subscribe-url">
-                {feedUrl}
-              </code>
-            </section>
           )}
         </div>
 
