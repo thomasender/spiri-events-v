@@ -148,7 +148,9 @@ service cloud.firestore {
                         ['text', 'authorUid', 'authorRole', 'authorName', 'createdAt', 'readByRecipient']
                       )
                       && request.resource.data.text.size() > 0
-                      && request.resource.data.text.size() <= 2000
+                      // Rich-text HTML: plain-text length (2000) is enforced client-side,
+                      // the stored HTML is longer because of tags.
+                      && request.resource.data.text.size() <= 20000
                       && request.resource.data.authorRole in ['Admin', 'User'];
 
         allow update: if (isEventOwner(eventId) || isAdminOrEmulatorAdmin())

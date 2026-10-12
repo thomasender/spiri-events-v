@@ -43,6 +43,30 @@ export interface EmailPayload {
 
 export const APP_BASE_URL = 'https://www.thetribe.at';
 
+/**
+ * Admin messages are stored as rich-text HTML (older ones as plain text).
+ * Emails only render plain text, so flatten the HTML into readable lines.
+ * Plain-text messages (not starting with a block tag) pass through unchanged.
+ */
+export function messageToPlainText(value: string): string {
+  const input = (value || '').trim();
+  if (!/^<(p|ul|ol)\b/i.test(input)) return input;
+  return input
+    .replace(/<img\b[^>]*>/gi, '[Bild]')
+    .replace(/<li\b[^>]*>/gi, '• ')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|li|ul|ol)>/gi, '\n')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 export function escapeHtml(value: string): string {
   return value
     .replace(/&/g, '&amp;')
@@ -219,7 +243,7 @@ export function buildChangesRequestedPayload({
   recipient,
 }: ChangesRequestedPayloadInput): EmailPayload {
   const link = eventUrl(event.slug);
-  const messageText = context.text.trim();
+  const messageText = messageToPlainText(context.text);
   const greetingName = organizerDisplayName(event.organizer);
   const greeting = greetingName ? `Hallo ${escapeHtml(greetingName)},` : 'Hallo,';
   const subject = `✏️ Aktion nötig: Bitte ändere dein Event „${event.title}“`;
