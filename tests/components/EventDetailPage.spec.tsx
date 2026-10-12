@@ -13,6 +13,7 @@ const mockEvents = vi.hoisted(() => ({
   deleteEvent: vi.fn(async () => {}),
   updateEvent: vi.fn(async () => {}),
   approveEvent: vi.fn(async () => {}),
+  unpublishEvent: vi.fn(async () => {}),
 }));
 
 const mockFirestoreDoc = vi.hoisted(() => ({
@@ -263,6 +264,7 @@ beforeEach(() => {
   mockOrganizerProfile.profileByUid.clear();
   mockEvents.deleteEvent.mockClear();
   mockEvents.approveEvent.mockClear();
+  mockEvents.unpublishEvent.mockClear();
   mockGetRecurrenceDatesForDetail.mockReset();
   mockGetRecurrenceDatesForDetail.mockReturnValue([]);
 });
@@ -371,6 +373,49 @@ describe('EventDetailPage — admin approve button', () => {
     renderPage();
     expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
     expect(screen.queryByTestId('approve-event-button')).toBeNull();
+  });
+});
+
+describe('EventDetailPage — admin back-to-draft button', () => {
+  const setStatus = (status: string) => {
+    mockFirestoreDoc.getDocResult = {
+      id: foreignEvent.id,
+      data: { ...foreignEvent, status },
+    };
+  };
+
+  it('lets an admin set an approved event back to draft after confirming', async () => {
+    mockAuth.user = { uid: 'admin-uid' };
+    mockAuth.role = 'Admin';
+    setStatus('approved');
+
+    renderPage();
+    fireEvent.click(await screen.findByTestId('unpublish-event-button'));
+    expect(mockEvents.unpublishEvent).not.toHaveBeenCalled();
+
+    const dialog = screen.getByRole('heading', { name: 'Zurück zu Entwurf' }).parentElement!;
+    await act(async () => {
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Zurück zu Entwurf' }));
+    });
+
+    expect(mockEvents.unpublishEvent).toHaveBeenCalledWith('remote-event-id');
+    expect(screen.queryByTestId('unpublish-event-button')).toBeNull();
+  });
+
+  it('does not offer it to the owner or for events that are not approved', async () => {
+    mockAuth.user = { uid: 'other-user-uid' };
+    setStatus('approved');
+    const { unmount } = renderPage();
+    expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
+    expect(screen.queryByTestId('unpublish-event-button')).toBeNull();
+    unmount();
+
+    mockAuth.user = { uid: 'admin-uid' };
+    mockAuth.role = 'Admin';
+    setStatus('pending');
+    renderPage();
+    expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
+    expect(screen.queryByTestId('unpublish-event-button')).toBeNull();
   });
 });
 

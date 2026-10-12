@@ -437,6 +437,12 @@ describe('buildEmailPayload dispatcher', () => {
       /^Dein Event wurde gelöscht/
     );
 
+    const unpublished = buildEmailPayload('unpublished', { event, recipient: 'x@example.com' });
+    expect(unpublished.subject).toMatch(/^Dein Event ist wieder ein Entwurf/);
+    expect(unpublished.to).toBe('x@example.com');
+    expect(unpublished.text).toContain('nicht mehr öffentlich sichtbar');
+    expect(unpublished.html).toContain(`${APP_BASE_URL}/event/${event.slug}`);
+
     expect(
       buildEmailPayload('contact_message', {
         recipient: 'x@example.com',
@@ -527,6 +533,7 @@ describe('payloads share a common footer', () => {
       }),
       buildEmailPayload('published', { event, recipient: 'a@x.com' }),
       buildEmailPayload('deleted', { event, recipient: 'a@x.com' }),
+      buildEmailPayload('unpublished', { event, recipient: 'a@x.com' }),
       buildEmailPayload('contact_message', {
         recipient: 'a@x.com',
         context: {
@@ -557,6 +564,7 @@ describe('payloads share a common footer', () => {
       }),
       buildEmailPayload('published', { event, recipient: 'a@x.com' }),
       buildEmailPayload('deleted', { event, recipient: 'a@x.com' }),
+      buildEmailPayload('unpublished', { event, recipient: 'a@x.com' }),
       buildEmailPayload('contact_message', {
         recipient: 'a@x.com',
         context: {
@@ -609,6 +617,7 @@ describe('email brand identity', () => {
     }),
     buildEmailPayload('published', { event, recipient: 'a@x.com' }),
     buildEmailPayload('deleted', { event, recipient: 'a@x.com' }),
+    buildEmailPayload('unpublished', { event, recipient: 'a@x.com' }),
     buildEmailPayload('contact_message', {
       recipient: 'a@x.com',
       context: {

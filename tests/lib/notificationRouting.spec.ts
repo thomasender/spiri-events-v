@@ -86,6 +86,31 @@ describe('decideEventStatusNotification', () => {
     expect(decideEventStatusNotification('evt1', before, after)?.type).toBe('submitted');
   });
 
+  it('emits an "unpublished" decision to the owner when an admin sets an approved event back to draft', () => {
+    const before: EventSnapshot = { status: 'approved', organizer: organizer(), createdBy: 'u1' };
+    const after: EventSnapshot = {
+      status: 'draft',
+      organizer: organizer(),
+      createdBy: 'u1',
+      unpublishedBy: 'admin1',
+    };
+    const decision = decideEventStatusNotification('evt1', before, after, 'Titel', 'slug');
+    expect(decision?.type).toBe('unpublished');
+    expect(decision?.recipient).toBe('owner@example.com');
+    expect(decision?.event.slug).toBe('slug');
+  });
+
+  it('skips the "unpublished" email when the admin unpublished their own event', () => {
+    const before: EventSnapshot = { status: 'approved', organizer: organizer(), createdBy: 'a1' };
+    const after: EventSnapshot = {
+      status: 'draft',
+      organizer: organizer(),
+      createdBy: 'a1',
+      unpublishedBy: 'a1',
+    };
+    expect(decideEventStatusNotification('evt1', before, after)).toBeNull();
+  });
+
   it('returns null when transitioning from a lifecycle status to draft', () => {
     const before: EventSnapshot = { status: 'pending', organizer: organizer() };
     const after: EventSnapshot = { status: 'draft', organizer: organizer() };
