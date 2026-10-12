@@ -283,6 +283,17 @@ no key file). Your gcloud user needs `roles/iam.serviceAccountTokenCreator` on i
 Plain `gcloud auth application-default login` with analytics scopes is blocked by Google.
 The check uses a normal browser user agent because GA drops "HeadlessChrome" traffic.
 
+### Admin tab "Statistik"
+
+The admin tab reads GA through the callable `adminAnalyticsReport`
+(`functions/src/adminAnalytics.ts`, pure logic in `analyticsReport.ts`). It runs as the
+functions' default service account `54424804895-compute@developer.gserviceaccount.com`,
+which must be a **Betrachter** of the GA property (Verwalten → Zugriffsverwaltung für
+Property). Without that the tab shows "Kein Zugriff auf Google Analytics". Standard GA
+reports lag 24–48 h, so fresh data shows up in the tab a day late (use the GA realtime
+view or `npm run analytics:realtime` for live checks). Results are cached 10 minutes per
+range in the function instance.
+
 ## Prerender (Open Graph / Social Media Preview)
 
 `npm run build` runs `vite build && node scripts/prerender.mjs`. The prerender
