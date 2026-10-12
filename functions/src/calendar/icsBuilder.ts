@@ -44,7 +44,7 @@ function str(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-/** RFC 5545 TEXT escaping. */
+/** RFC 5545 TEXT escaping: backslash, semicolon, comma and line breaks (as \n). */
 export function escapeText(value: string): string {
   return value
     .replace(/\\/g, '\\\\')
