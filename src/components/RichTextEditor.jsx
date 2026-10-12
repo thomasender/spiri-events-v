@@ -144,7 +144,7 @@ function RichTextEditor({
   eventId = 'temp',
   uploadImage,
   onImageError,
-  enableEmoji = false,
+  enableEmoji = true,
 }) {
   const [linkOpen, setLinkOpen] = useState(false);
   const [linkInitial, setLinkInitial] = useState('');

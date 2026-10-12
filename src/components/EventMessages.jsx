@@ -145,7 +145,6 @@ export default function EventMessages({ eventId, onReady }) {
           maxLength={MAX_MESSAGE_LENGTH}
           testId="event-message-input"
           eventId={eventId}
-          enableEmoji
         />
         <div className="event-messages-composer-footer">
           {error && <span className="event-messages-error">{error}</span>}
