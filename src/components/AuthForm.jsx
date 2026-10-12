@@ -1,8 +1,10 @@
 import { useState, useRef } from 'react';
+import { getAdditionalUserInfo } from 'firebase/auth';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { getReturnPath } from '../utils/returnPath';
 import { useAuth, authErrorMessage, MIN_PASSWORD_LENGTH } from '../hooks/useAuth';
 import { Mail, Lock, User } from 'lucide-react';
+import { EVENTS, trackEvent } from '../lib/analytics';
 import './AuthForm.css';
 import PasswordInput from './PasswordInput';
 
@@ -92,7 +94,14 @@ export default function AuthForm() {
     setErrorCode('');
     setGoogleLoading(true);
     try {
-      await loginWithGoogle();
+      const credential = await loginWithGoogle();
+      let isNew = false;
+      try {
+        isNew = getAdditionalUserInfo(credential)?.isNewUser === true;
+      } catch {
+        /* ignore */
+      }
+      trackEvent(isNew ? EVENTS.SIGN_UP : EVENTS.LOGIN, { method: 'google' });
       navigate(getReturnPath(location.state));
     } catch (err) {
       console.error('Google sign-in failed:', err);
@@ -134,6 +143,7 @@ export default function AuthForm() {
       } else {
         await register(email, password, displayName, subscribeNewsletter);
       }
+      trackEvent(isLogin ? EVENTS.LOGIN : EVENTS.SIGN_UP, { method: 'password' });
       navigate(getReturnPath(location.state));
     } catch (err) {
       const errorMessages = {

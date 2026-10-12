@@ -1,3 +1,4 @@
+import { EVENTS } from '../../src/lib/analytics';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route, useNavigate } from 'react-router-dom';
@@ -423,5 +424,53 @@ describe('Footer install link', () => {
     Object.defineProperty(window.navigator, 'standalone', { value: true, configurable: true });
     renderWithRouter(<Footer />);
     expect(screen.queryByTestId('footer-install-link')).not.toBeInTheDocument();
+  });
+});
+
+const track = vi.hoisted(() => vi.fn());
+vi.mock('../../src/lib/analytics', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../src/lib/analytics')>()),
+  trackEvent: track,
+}));
+
+describe('PwaInstallPrompt analytics', () => {
+  beforeEach(() => {
+    track.mockClear();
+    _resetPwaInstallStateForTests();
+    localStorage.clear();
+    setMobileViewport(true);
+    setIOS(false);
+    useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function openPrompt() {
+    renderWithRouter(<PwaInstallPrompt />);
+    fireBeforeInstallPrompt();
+    act(() => {
+      vi.advanceTimersByTime(DELAY);
+    });
+  }
+
+  it('reports shown when the prompt opens', () => {
+    openPrompt();
+    expect(track).toHaveBeenCalledWith(EVENTS.PWA_INSTALL_PROMPT, { result: 'shown' });
+  });
+
+  it('reports dismissed when the visitor declines', () => {
+    openPrompt();
+    fireEvent.click(screen.getByTestId('pwa-install-later'));
+    expect(track).toHaveBeenCalledWith(EVENTS.PWA_INSTALL_PROMPT, { result: 'dismissed' });
+  });
+
+  it('reports accepted when the visitor installs', async () => {
+    openPrompt();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('pwa-install-install'));
+    });
+    expect(track).toHaveBeenCalledWith(EVENTS.PWA_INSTALL_PROMPT, { result: 'accepted' });
   });
 });

@@ -1,3 +1,4 @@
+import { EVENTS } from '../../src/lib/analytics';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -295,5 +296,42 @@ describe('DonationBlock', () => {
     });
     expect(startOneTimeDonation).not.toHaveBeenCalled();
     expect(startMonthlyDonation).not.toHaveBeenCalled();
+  });
+});
+
+const track = vi.hoisted(() => vi.fn());
+vi.mock('../../src/lib/analytics', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../src/lib/analytics')>()),
+  trackEvent: track,
+}));
+
+describe('DonationBlock analytics', () => {
+  it('reports donate_click with placement and frequency on a valid submit', async () => {
+    track.mockClear();
+    startMonthlyDonation.mockResolvedValue({ checkoutUrl: 'https://mollie.test/checkout' });
+    render(
+      <MemoryRouter>
+        <DonationBlock placement="about_page" />
+      </MemoryRouter>
+    );
+    fireEvent.change(screen.getByLabelText(/betrag in euro/i), { target: { value: '10' } });
+    fireEvent.click(screen.getByRole('button', { name: /monatlich spenden$/ }));
+    await waitFor(() =>
+      expect(track).toHaveBeenCalledWith(EVENTS.DONATE_CLICK, {
+        placement: 'about_page',
+        frequency: 'monthly',
+      })
+    );
+  });
+
+  it('does not report when the amount is invalid', () => {
+    track.mockClear();
+    render(
+      <MemoryRouter>
+        <DonationBlock placement="about_page" />
+      </MemoryRouter>
+    );
+    fireEvent.submit(screen.getByLabelText(/betrag in euro/i).closest('form')!);
+    expect(track).not.toHaveBeenCalled();
   });
 });

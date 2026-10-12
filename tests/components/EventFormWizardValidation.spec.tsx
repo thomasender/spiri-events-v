@@ -1,5 +1,6 @@
+import { EVENTS } from '../../src/lib/analytics';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 
@@ -186,5 +187,43 @@ describe('EventFormWizard copyright confirmation', () => {
     fireEvent.click(screen.getByTestId('submit-event-button'));
 
     await waitFor(() => expect(document.querySelector('.confirm-dialog')).not.toBeNull());
+  });
+});
+
+const track = vi.hoisted(() => vi.fn());
+vi.mock('../../src/lib/analytics', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../src/lib/analytics')>()),
+  trackEvent: track,
+}));
+
+describe('EventFormWizard analytics', () => {
+  beforeEach(() => track.mockClear());
+
+  it('reports event_create_start when opened, without personal data', () => {
+    seedDraft({ currentStep: 1 });
+    renderWizard();
+    expect(track).toHaveBeenCalledTimes(1);
+    expect(track).toHaveBeenCalledWith(EVENTS.EVENT_CREATE_START);
+  });
+
+  it('reports event_create_submit only after the event was saved, not for drafts', async () => {
+    seedDraft({ currentStep: 4, rightsConfirmed: true });
+    renderWizard();
+    fireEvent.click(screen.getByTestId('save-as-draft-button'));
+    await waitFor(() => expect(mockEvents.addEvent).toHaveBeenCalledTimes(1));
+    expect(track).not.toHaveBeenCalledWith(EVENTS.EVENT_CREATE_SUBMIT);
+  });
+
+  it('reports event_create_submit when the confirmation is accepted', async () => {
+    seedDraft({ currentStep: 4, rightsConfirmed: true });
+    renderWizard();
+    fireEvent.click(screen.getByTestId('submit-event-button'));
+    const dialog = await waitFor(() => {
+      const el = document.querySelector('.confirm-dialog') as HTMLElement | null;
+      if (!el) throw new Error('no dialog');
+      return el;
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: /^einreichen$/i }));
+    await waitFor(() => expect(track).toHaveBeenCalledWith(EVENTS.EVENT_CREATE_SUBMIT));
   });
 });

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Share2, Facebook, Instagram, Send, Copy, Check, X } from 'lucide-react';
 import { SiWhatsapp, SiSignal } from 'react-icons/si';
+import { EVENTS, trackEvent } from '../lib/analytics';
 import './ShareButton.css';
 
 const SHARE_URL_BUILDERS = {
@@ -103,6 +104,9 @@ export default function ShareButton(props) {
 
   const closeOverlay = () => setIsOpen(false);
 
+  const shareItemId = props.event ? props.event.slug || props.event.id : undefined;
+  const trackShare = (method) => trackEvent(EVENTS.SHARE, { method, item_id: shareItemId });
+
   const handleChannelClick = async (channelId) => {
     const builder = SHARE_URL_BUILDERS[channelId];
     // wa.me / t.me redirect into the native app; opened via window.open they leave an
@@ -110,6 +114,7 @@ export default function ShareButton(props) {
     const prefersNativeShare = channelId === 'whatsapp' || channelId === 'telegram';
     if (builder && !(prefersNativeShare && navigator.share)) {
       window.open(builder(shareUrl, shareTitle), '_blank', 'noopener,noreferrer');
+      trackShare(channelId);
       setIsOpen(false);
       return;
     }
@@ -117,6 +122,7 @@ export default function ShareButton(props) {
     if (navigator.share) {
       try {
         await navigator.share({ title: shareTitle, url: shareUrl });
+        trackShare(channelId);
         setIsOpen(false);
         return;
       } catch (err) {
@@ -127,12 +133,14 @@ export default function ShareButton(props) {
     }
 
     const copied = await copyToClipboard(shareUrl);
+    if (copied) trackShare('copy');
     setCopyState(copied ? 'copied' : 'error');
     window.setTimeout(() => setCopyState('idle'), 2000);
   };
 
   const handleCopyLink = async () => {
     const copied = await copyToClipboard(shareUrl);
+    if (copied) trackShare('copy');
     setCopyState(copied ? 'copied' : 'error');
     window.setTimeout(() => setCopyState('idle'), 2000);
   };

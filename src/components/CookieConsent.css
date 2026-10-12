@@ -1,0 +1,92 @@
+/* Sits above the FABs (z-index 900) but below the PWA install sheet (1100).
+   Both buttons share one style on purpose: no highlighted "accept". */
+.cookie-consent {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 1000;
+  width: min(520px, calc(100vw - 32px));
+  box-sizing: border-box;
+  padding: 16px 20px;
+  background-color: var(--bg-calendar, #fff);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 6px 24px rgba(22, 24, 25, 0.18);
+}
+
+.cookie-consent:focus-visible {
+  outline: 3px solid var(--accent-secondary);
+  outline-offset: 2px;
+}
+
+.cookie-consent-title {
+  margin: 0 0 6px;
+  font-size: 1rem;
+}
+
+.cookie-consent-text {
+  margin: 0 0 12px;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.cookie-consent-text a {
+  color: var(--accent-primary-strong);
+  text-decoration: underline;
+}
+
+.cookie-consent-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.cookie-consent-btn {
+  flex: 1;
+  min-height: 44px;
+  padding: 10px 16px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--text-primary);
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--text-light);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.cookie-consent-btn:hover {
+  background-color: var(--accent-soft);
+}
+
+.cookie-consent-btn:focus-visible,
+.cookie-consent-text a:focus-visible {
+  outline: 3px solid var(--accent-secondary);
+  outline-offset: 2px;
+}
+
+/* Keep the floating buttons clear of the banner while it is open. */
+body.cookie-banner-open .feedback-fab {
+  bottom: calc(88px + var(--cookie-banner-offset, 0px) + 16px);
+}
+
+body.cookie-banner-open .create-event-fab {
+  bottom: calc(24px + var(--cookie-banner-offset, 0px) + 16px);
+}
+
+@media (max-width: 640px) {
+  .cookie-consent {
+    left: 8px;
+    bottom: 8px;
+    width: calc(100vw - 16px);
+    padding: 14px 16px;
+  }
+
+  body.cookie-banner-open .feedback-fab {
+    bottom: calc(80px + var(--cookie-banner-offset, 0px) + 8px);
+  }
+
+  body.cookie-banner-open .create-event-fab {
+    bottom: calc(16px + var(--cookie-banner-offset, 0px) + 8px);
+  }
+}

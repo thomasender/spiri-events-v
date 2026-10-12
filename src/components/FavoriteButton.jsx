@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Heart } from 'lucide-react';
 import { useFavorites } from '../hooks/useFavorites';
+import { EVENTS, trackEvent } from '../lib/analytics';
 import { setPendingFavorite } from '../lib/favoritesStore';
 import LoginPromptModal from './LoginPromptModal';
 import './FavoriteButton.css';
@@ -22,7 +23,12 @@ export default function FavoriteButton({ eventId, className = '' }) {
       setPromptOpen(true);
       return;
     }
-    toggleFavorite(eventId).catch(() => {});
+    const adding = !active;
+    toggleFavorite(eventId)
+      .then(() =>
+        trackEvent(adding ? EVENTS.FAVORITE_ADD : EVENTS.FAVORITE_REMOVE, { item_id: eventId })
+      )
+      .catch(() => {});
   };
 
   return (

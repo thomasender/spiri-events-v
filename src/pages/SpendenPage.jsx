@@ -22,7 +22,7 @@ export default function SpendenPage() {
         </p>
       </header>
 
-      <DonationBlock />
+      <DonationBlock placement="spenden_page" />
 
       <p className="spenden-back-link">
         <Link to="/ueber-uns" className="btn btn-secondary">

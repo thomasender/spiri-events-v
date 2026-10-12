@@ -185,7 +185,7 @@ export default function AboutPage() {
           möchtest, nimm gerne {getInTouch}.
         </p>
 
-        <DonationBlock />
+        <DonationBlock placement="about_page" />
 
         <div className="about-donors-block" data-testid="about-donors-block">
           <h3 className="about-donors-title">

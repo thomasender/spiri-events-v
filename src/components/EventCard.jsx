@@ -9,6 +9,7 @@ import {
   isMultiDayEvent,
 } from '../utils/eventFormat';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
+import { trackEventOpen } from '../lib/analyticsEvents';
 import EventCoverImage from './EventCoverImage';
 import FavoriteButton from './FavoriteButton';
 import './EventCard.css';
@@ -22,7 +23,14 @@ export default function EventCard({ event, categoryColor, onClick }) {
   const locationLabel = getEventLocationLabel(event);
 
   return (
-    <Link to={`/event/${event.slug || event.id}`} className="event-tile" onClick={onClick}>
+    <Link
+      to={`/event/${event.slug || event.id}`}
+      className="event-tile"
+      onClick={(e) => {
+        trackEventOpen(event);
+        onClick?.(e);
+      }}
+    >
       <div className="event-tile-image-wrapper">
         <EventCoverImage
           event={event}

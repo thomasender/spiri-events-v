@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { usePwaInstall, isIOSDevice } from '../hooks/usePwaInstall';
 import { PWA_OPEN_REQUEST_EVENT } from './PwaInstallPrompt';
+import { requestConsentBanner } from '../lib/analyticsConsent';
 import './Footer.css';
 
 export default function Footer() {
@@ -50,6 +51,14 @@ export default function Footer() {
           )}
           <Link to="/impressum">Impressum</Link>
           <Link to="/datenschutz">Datenschutz</Link>
+          <button
+            type="button"
+            className="footer-install-link"
+            onClick={requestConsentBanner}
+            data-testid="footer-cookie-settings"
+          >
+            Cookie-Einstellungen
+          </button>
         </nav>
       </div>
     </footer>

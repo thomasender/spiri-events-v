@@ -1,7 +1,8 @@
+import { EVENTS } from '../../src/lib/analytics';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import SpendenDankePage from '../../src/pages/SpendenDankePage';
 
 function renderDankePage() {
@@ -37,5 +38,20 @@ describe('SpendenDankePage', () => {
       'href',
       'mailto:office@tribevorarlberg.at'
     );
+  });
+});
+
+const track = vi.hoisted(() => vi.fn());
+vi.mock('../../src/lib/analytics', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../src/lib/analytics')>()),
+  trackEvent: track,
+}));
+
+describe('SpendenDankePage analytics', () => {
+  it('reports donate_complete once on arrival', () => {
+    track.mockClear();
+    renderDankePage();
+    expect(track).toHaveBeenCalledTimes(1);
+    expect(track).toHaveBeenCalledWith(EVENTS.DONATE_COMPLETE);
   });
 });

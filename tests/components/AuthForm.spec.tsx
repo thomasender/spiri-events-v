@@ -1,3 +1,4 @@
+import { EVENTS } from '../../src/lib/analytics';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
@@ -316,5 +317,80 @@ describe('AuthForm password reset', () => {
     await waitFor(() => {
       expect(screen.getByText(/Ein Fehler ist aufgetreten/i)).toBeInTheDocument();
     });
+  });
+});
+
+const track = vi.hoisted(() => vi.fn());
+vi.mock('../../src/lib/analytics', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../src/lib/analytics')>()),
+  trackEvent: track,
+}));
+
+const authSdk = vi.hoisted(() => ({ isNewUser: false }));
+vi.mock('firebase/auth', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('firebase/auth')>()),
+  getAdditionalUserInfo: () => ({ isNewUser: authSdk.isNewUser }),
+}));
+
+describe('AuthForm analytics', () => {
+  beforeEach(() => {
+    track.mockClear();
+    authSdk.isNewUser = false;
+  });
+
+  it('reports login with method password', async () => {
+    mocks.login.mockResolvedValueOnce({ user: { uid: 'u1' } });
+    renderForm();
+    fireEvent.change(screen.getByLabelText('E-Mail'), { target: { value: 'a@example.com' } });
+    fireEvent.change(screen.getByLabelText('Passwort', { exact: true }), {
+      target: { value: 'supergeheim123' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Anmelden' }));
+    await waitFor(() => expect(track).toHaveBeenCalledWith(EVENTS.LOGIN, { method: 'password' }));
+    expect(track.mock.calls[0][1]).not.toHaveProperty('email');
+  });
+
+  it('reports sign_up with method password after registering', async () => {
+    mocks.register.mockResolvedValueOnce({ user: { uid: 'u2' } });
+    renderForm();
+    fireEvent.click(screen.getByTestId('auth-tab-register'));
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Peter' } });
+    fireEvent.change(screen.getByLabelText('E-Mail'), { target: { value: 'p@example.com' } });
+    fireEvent.change(screen.getByLabelText('Passwort', { exact: true }), {
+      target: { value: 'supergeheim123' },
+    });
+    fireEvent.change(screen.getByLabelText('Passwort bestätigen'), {
+      target: { value: 'supergeheim123' },
+    });
+    fireEvent.click(screen.getAllByRole('checkbox')[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'Registrieren' }));
+    await waitFor(() => expect(track).toHaveBeenCalledWith(EVENTS.SIGN_UP, { method: 'password' }));
+  });
+
+  it('reports login with method google for a returning Google user', async () => {
+    mocks.loginWithGoogle.mockResolvedValueOnce({ user: { uid: 'g1' } });
+    renderForm();
+    fireEvent.click(screen.getByTestId('auth-google-signin'));
+    await waitFor(() => expect(track).toHaveBeenCalledWith(EVENTS.LOGIN, { method: 'google' }));
+  });
+
+  it('reports sign_up with method google for a new Google user', async () => {
+    authSdk.isNewUser = true;
+    mocks.loginWithGoogle.mockResolvedValueOnce({ user: { uid: 'g2' } });
+    renderForm();
+    fireEvent.click(screen.getByTestId('auth-google-signin'));
+    await waitFor(() => expect(track).toHaveBeenCalledWith(EVENTS.SIGN_UP, { method: 'google' }));
+  });
+
+  it('reports nothing when the login fails', async () => {
+    mocks.login.mockRejectedValueOnce({ code: 'auth/invalid-credential' });
+    renderForm();
+    fireEvent.change(screen.getByLabelText('E-Mail'), { target: { value: 'a@example.com' } });
+    fireEvent.change(screen.getByLabelText('Passwort', { exact: true }), {
+      target: { value: 'falsch' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Anmelden' }));
+    await waitFor(() => expect(mocks.login).toHaveBeenCalled());
+    expect(track).not.toHaveBeenCalled();
   });
 });

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { EVENTS, trackEvent } from '../lib/analytics';
 import { ChevronLeft, ChevronRight, LayoutGrid, List } from 'lucide-react';
 import EventCard from './EventCard';
 import EventListRow from './EventListRow';
@@ -44,6 +45,10 @@ export default function EventsSection({
   }, []);
 
   const effectiveViewMode = isMobile ? 'card' : viewMode;
+  const changeView = (mode) => {
+    if (mode !== effectiveViewMode) trackEvent(EVENTS.CALENDAR_VIEW_CHANGE, { view: mode });
+    onViewModeChange(mode);
+  };
   const monthLabel = `${MONTHS[currentMonth.getMonth()]} ${currentMonth.getFullYear()}`;
   // Past months are hidden from the public view, so navigating back from the
   // current month would just land users on an empty month. Disable the back
@@ -90,7 +95,7 @@ export default function EventsSection({
             <button
               type="button"
               className={`view-toggle-list ${effectiveViewMode === 'list' ? 'active' : ''}`}
-              onClick={() => onViewModeChange('list')}
+              onClick={() => changeView('list')}
             >
               <List size={16} />
               <span>Listenansicht</span>
@@ -98,7 +103,7 @@ export default function EventsSection({
             <button
               type="button"
               className={effectiveViewMode === 'card' ? 'active' : ''}
-              onClick={() => onViewModeChange('card')}
+              onClick={() => changeView('card')}
             >
               <LayoutGrid size={16} />
               <span>Kartenansicht</span>

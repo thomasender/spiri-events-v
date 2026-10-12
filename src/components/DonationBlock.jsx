@@ -7,6 +7,7 @@ import {
   startMonthlyDonation,
   startOneTimeDonation,
 } from '../lib/mollieClient';
+import { EVENTS, trackEvent } from '../lib/analytics';
 import './DonationBlock.css';
 
 const FREQUENCIES = [
@@ -22,7 +23,7 @@ function formatPreset(amount) {
   return Number.isInteger(amount) ? `${amount}` : formatAmount(amount);
 }
 
-export default function DonationBlock() {
+export default function DonationBlock({ placement = 'unknown' }) {
   const [frequency, setFrequency] = useState('monthly');
   const [name, setName] = useState('');
   const [displayOnConsent, setDisplayOnConsent] = useState(false);
@@ -53,6 +54,7 @@ export default function DonationBlock() {
       return;
     }
     setError(null);
+    trackEvent(EVENTS.DONATE_CLICK, { placement, frequency });
     setSubmitting(true);
     try {
       const start = isMonthly ? startMonthlyDonation : startOneTimeDonation;

@@ -1,3 +1,4 @@
+import { EVENTS } from '../../src/lib/analytics';
 import { Component } from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
@@ -80,5 +81,45 @@ describe('ErrorBoundary', () => {
     );
 
     expect(screen.queryByRole('button', { name: /erneut versuchen/i })).not.toBeInTheDocument();
+  });
+});
+
+const track = vi.hoisted(() => vi.fn());
+vi.mock('../../src/lib/analytics', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../src/lib/analytics')>()),
+  trackEvent: track,
+}));
+
+describe('ErrorBoundary analytics', () => {
+  it('reports a truncated exception without e-mail addresses', () => {
+    track.mockClear();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    function Leaky() {
+      throw new Error(`${'x'.repeat(200)} anna@example.com`);
+    }
+    renderWithRouter(
+      <ErrorBoundary>
+        <Leaky />
+      </ErrorBoundary>
+    );
+    expect(track).toHaveBeenCalledTimes(1);
+    const [name, params] = track.mock.calls[0];
+    expect(name).toBe(EVENTS.EXCEPTION);
+    expect(params.description.length).toBeLessThanOrEqual(100);
+    expect(params.description).not.toContain('@');
+  });
+
+  it('replaces e-mail addresses in short messages', () => {
+    track.mockClear();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    function Leaky() {
+      throw new Error('failed for anna@example.com');
+    }
+    renderWithRouter(
+      <ErrorBoundary>
+        <Leaky />
+      </ErrorBoundary>
+    );
+    expect(track.mock.calls[0][1].description).toBe('failed for [email]');
   });
 });

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { X, Smartphone } from 'lucide-react';
+import { EVENTS, trackEvent } from '../lib/analytics';
 import { usePwaInstall, PWA_POPUP_DELAY_MS, isIOSDevice } from '../hooks/usePwaInstall';
 import './PwaInstallPrompt.css';
 
@@ -69,6 +70,7 @@ export default function PwaInstallPrompt() {
   }, []);
 
   const handleDismiss = useCallback(() => {
+    trackEvent(EVENTS.PWA_INSTALL_PROMPT, { result: 'dismissed' });
     closePopup();
     dismissPermanently();
   }, [closePopup, dismissPermanently]);
@@ -76,6 +78,9 @@ export default function PwaInstallPrompt() {
   const handleInstall = useCallback(async () => {
     closePopup();
     const choice = await requestInstall();
+    trackEvent(EVENTS.PWA_INSTALL_PROMPT, {
+      result: choice?.outcome === 'accepted' ? 'accepted' : choice?.outcome || 'dismissed',
+    });
     if (choice?.outcome === 'unavailable') {
       // The browser-native prompt was lost between capture and click (tab
       // suspended, another component consumed it, etc.). Fall back to the
@@ -121,6 +126,12 @@ export default function PwaInstallPrompt() {
       closePopup();
     }
   }, [autoPopupEligible, open, mode, closePopup]);
+
+  // Report each time the prompt is shown.
+  const isOpen = open;
+  useEffect(() => {
+    if (isOpen) trackEvent(EVENTS.PWA_INSTALL_PROMPT, { result: 'shown' });
+  }, [isOpen]);
 
   // Focus management: remember what had focus before we opened, jump focus
   // into the close button on open, restore on close. Without this, the

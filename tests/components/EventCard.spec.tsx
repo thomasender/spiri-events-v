@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { EVENTS } from '../../src/lib/analytics';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import EventCard from '../../src/components/EventCard';
 
@@ -61,5 +62,30 @@ describe('EventCard', () => {
     const cover = container.querySelector('img.event-tile-image');
     expect(cover).toHaveAttribute('loading', 'lazy');
     expect(cover).toHaveAttribute('decoding', 'async');
+  });
+});
+
+const track = vi.hoisted(() => vi.fn());
+vi.mock('../../src/lib/analytics', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../src/lib/analytics')>()),
+  trackEvent: track,
+}));
+
+describe('EventCard analytics', () => {
+  it('reports select_content with slug and category when opened', () => {
+    track.mockClear();
+    const onClick = vi.fn();
+    render(
+      <MemoryRouter>
+        <EventCard event={baseEvent} categoryColor="#abc" onClick={onClick} />
+      </MemoryRouter>
+    );
+    fireEvent.click(screen.getByRole('link'));
+    expect(track).toHaveBeenCalledWith(EVENTS.SELECT_CONTENT, {
+      content_type: 'event',
+      item_id: 'sample-event',
+      category: 'Yoga',
+    });
+    expect(onClick).toHaveBeenCalled();
   });
 });

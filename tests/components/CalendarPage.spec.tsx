@@ -1,3 +1,4 @@
+import { EVENTS } from '../../src/lib/analytics';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
@@ -535,5 +536,67 @@ describe('CalendarPage — "Mehr Filter" summary (zh4jJzje)', () => {
 
     fireEvent.click(accordion.querySelector('.filter-accordion-summary')!);
     expect(accordion.open).toBe(false);
+  });
+});
+
+const track = vi.hoisted(() => vi.fn());
+vi.mock('../../src/lib/analytics', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../src/lib/analytics')>()),
+  trackEvent: track,
+}));
+
+describe('CalendarPage analytics', () => {
+  beforeEach(() => {
+    track.mockClear();
+    window.localStorage.clear();
+    const future = new Date();
+    future.setDate(future.getDate() + 3);
+    const date = `${future.getFullYear()}-${String(future.getMonth() + 1).padStart(2, '0')}-${String(future.getDate()).padStart(2, '0')}`;
+    mockUseCategories.value = ['Yoga', 'Meditation'];
+    mockUseAllEvents.events = ['Yoga', 'Meditation'].map((category) => ({
+      id: `evt-${category}`,
+      slug: `slug-${category}`,
+      title: category,
+      category,
+      date,
+      time: '18:00',
+    }));
+  });
+
+  it('reports filter_apply with the category name when a chip is switched on', async () => {
+    renderPage();
+    const chip = await screen.findByRole('button', { name: /^Yoga/ });
+    fireEvent.click(chip);
+    expect(track).toHaveBeenCalledWith(EVENTS.FILTER_APPLY, {
+      filter_type: 'category',
+      value: 'Yoga',
+    });
+    track.mockClear();
+    fireEvent.click(chip);
+    expect(track).not.toHaveBeenCalled();
+  });
+
+  it('reports calendar_view_change when the view is switched, not when re-selected', async () => {
+    renderPage();
+    const list = await screen.findByRole('button', { name: /Listenansicht/ });
+    fireEvent.click(list);
+    expect(track).toHaveBeenCalledWith(EVENTS.CALENDAR_VIEW_CHANGE, { view: 'list' });
+    track.mockClear();
+    fireEvent.click(list);
+    expect(track).not.toHaveBeenCalled();
+  });
+
+  it('reports select_content when an event card is opened', async () => {
+    renderPage();
+    const card = await waitFor(() => {
+      const el = document.querySelector('a.event-tile');
+      if (!el) throw new Error('no card');
+      return el as HTMLElement;
+    });
+    fireEvent.click(card);
+    expect(track).toHaveBeenCalledWith(
+      EVENTS.SELECT_CONTENT,
+      expect.objectContaining({ content_type: 'event', item_id: expect.stringMatching(/^slug-/) })
+    );
   });
 });
