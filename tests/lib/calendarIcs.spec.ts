@@ -29,7 +29,25 @@ const lines = (event: IcsEvent) => buildVEvent(event, NOW);
 
 describe('escapeText', () => {
   it('escapes backslash, semicolon, comma and newlines', () => {
-    expect(escapeText('a,b;c\\d\ne')).toBe('a\\,b\;c\\\\d\\ne');
+    expect(escapeText('a,b;c\\d\ne')).toBe('a\\,b\\;c\\\\d\\ne');
+  });
+});
+
+describe('organizer and contact', () => {
+  const unfold = (event: IcsEvent) => buildCalendar([event], 'x', NOW).replace(/\r\n /g, '');
+
+  it('puts organizer name and contact into the description of feed and single downloads', () => {
+    const out = unfold(
+      ev({
+        organizer: { firstName: 'Anna', lastName: 'Muster', email: 'secret@example.com' },
+        kontakt: 'anna@example.com; Tel 0664 123',
+        description: '<p>Zeile eins</p><p>Zeile zwei</p>',
+      })
+    );
+    expect(out).toContain('Veranstalter: Anna Muster');
+    expect(out).toContain('Kontakt: anna@example.com\\; Tel 0664 123');
+    expect(out).toContain('Zeile eins\\nZeile zwei\\n\\nVeranstalter');
+    expect(out).not.toContain('secret@example.com');
   });
 });
 
@@ -104,15 +122,14 @@ describe('buildVEvent', () => {
 });
 
 describe('buildCalendar', () => {
-  it('produces a CRLF calendar with header, events and no private fields', () => {
+  it('produces a CRLF calendar with header, events and no private account fields', () => {
     const text = buildCalendar(
       [
         {
           ...ev(),
           // Fields that must never end up in the output
           ...({
-            organizer: { firstName: 'Anna', lastName: 'Muster', email: 'anna@example.com' },
-            kontakt: 'anna@example.com',
+            organizer: { firstName: 'Anna', lastName: 'Muster', email: 'owner@example.com' },
             createdBy: 'uid-123',
           } as object),
         },
@@ -124,7 +141,7 @@ describe('buildCalendar', () => {
     expect(text.endsWith('END:VCALENDAR\r\n')).toBe(true);
     expect(text).toContain('X-WR-TIMEZONE:Europe/Vienna');
     expect(text).toContain('DTSTAMP:20261012T100000Z');
-    expect(text).not.toMatch(/anna|uid-123|example\.com/i);
+    expect(text).not.toMatch(/uid-123|owner@example\.com/i);
     expect(text.split('\n').every((l) => l === '' || l.endsWith('\r'))).toBe(true);
   });
 });
