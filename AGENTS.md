@@ -265,6 +265,24 @@ no signal. For these, `git push --no-verify` is fine. Any commit that touches
 `src/`, `functions/`, `tests/`, `firestore.rules`, `firebase.json`, or any
 other executable code or config still goes through the hooks normally.
 
+## Analytics (GA4) check against production
+
+`npm run analytics:verify` drives the **live** site (`--url=` to override) in a real
+browser: banner, "Ablehnen" sends nothing, "Akzeptieren" sends `page_view` /
+`select_content` without PII, footer "Cookie-Einstellungen" revokes, and the
+event counts are cross-checked against the GA realtime report. `npm run
+analytics:realtime` prints the last 30 minutes of events (`--dimension=eventName,unifiedScreenName`).
+
+It is deliberately **not** part of `npm run test`: it hits production, counts as
+real traffic in GA, takes ~1 min and needs network plus gcloud. Run it after a
+GA-related deploy, not on every commit. `--no-ga` skips the GA API cross-check.
+
+GA API access uses impersonation of the read-only service account
+`ga-reader@spirieventsvbg.iam.gserviceaccount.com` (Betrachter on the GA property,
+no key file). Your gcloud user needs `roles/iam.serviceAccountTokenCreator` on it.
+Plain `gcloud auth application-default login` with analytics scopes is blocked by Google.
+The check uses a normal browser user agent because GA drops "HeadlessChrome" traffic.
+
 ## Prerender (Open Graph / Social Media Preview)
 
 `npm run build` runs `vite build && node scripts/prerender.mjs`. The prerender

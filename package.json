@@ -16,6 +16,8 @@
     "test:integration": "playwright test --project=chromium && playwright test --project=destructive --workers=1",
     "test:all": "npm run test && npm run test:e2e:full",
     "lint": "eslint src --ext js,jsx",
+    "analytics:verify": "node scripts/ga-live-check.mjs",
+    "analytics:realtime": "node scripts/ga-realtime.mjs",
     "style": "prettier --check src tests",
     "types": "tsc --noEmit --skipLibCheck && tsc --noEmit --skipLibCheck -p tests/tsconfig.json",
     "dev:emulator": "VITE_USE_EMULATORS=true npm run dev",
