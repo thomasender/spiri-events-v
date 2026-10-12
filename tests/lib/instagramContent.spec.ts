@@ -149,6 +149,42 @@ describe('instagram content', () => {
     expect(caption).toContain('Erste Zeile\nZweite Zeile\nNeuer Absatz');
   });
 
+  describe('further dates of recurring events', () => {
+    const now = new Date('2026-10-12T08:00:00Z');
+    const base = { title: 'Yoga', date: '2026-10-14', time: '18:00' };
+
+    it('lists the next dates of a weekly series', () => {
+      const caption = buildCaption(
+        { ...base, recurrence: 'weekly', recurrenceEndDate: '2026-10-28' },
+        null,
+        now
+      );
+      expect(caption).toContain('Weitere Termine');
+      expect(caption).toContain('• Mi, 21. Okt');
+      expect(caption).toContain('• Mi, 28. Okt');
+    });
+
+    it('lists custom dates, skips exception dates, and caps long lists', () => {
+      const customDates = Array.from(
+        { length: 9 },
+        (_, i) => `2026-11-${String(i + 1).padStart(2, '0')}`
+      );
+      const caption = buildCaption(
+        { ...base, recurrence: 'custom', customDates, exceptionDates: ['2026-11-02'] },
+        null,
+        now
+      );
+      expect(caption).not.toContain('2. Nov');
+      expect(caption.match(/^• /gm)).toHaveLength(5);
+      expect(caption).toContain('… und 3 weitere Termine');
+      expect(caption.length).toBeLessThanOrEqual(CAPTION_MAX_LENGTH);
+    });
+
+    it('adds nothing for a single event', () => {
+      expect(buildCaption(base, null, now)).not.toContain('Weitere Termine');
+    });
+  });
+
   it('builds a caption for a bare-minimum event without empty sections', () => {
     const caption = buildCaption({ title: 'Kakao', date: '2026-10-17' });
     expect(caption).toContain('Kakao');

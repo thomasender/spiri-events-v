@@ -5,6 +5,8 @@
  * The rendering itself lives in ./instagramImage.ts.
  */
 
+import { expandOccurrencesInWindow } from './instagramOccurrences';
+
 export type InstagramFormat = 'feed' | 'story' | 'carousel';
 
 export const FORMAT_DIMENSIONS: Record<InstagramFormat, { width: number; height: number }> = {
@@ -414,12 +416,40 @@ export function buildCaptionFooter(hashtags: string): string {
   return [CAPTION_CTA, BIO_LINK_LINE, hashtags].filter(Boolean).join('\n\n');
 }
 
+/** Max number of further dates listed in a caption; the rest is summarised. */
+export const MAX_CAPTION_DATES = 5;
+
+/**
+ * "Weitere Termine" block for series / custom-date events, so a recurring
+ * event does not look like a one-off. Lists the upcoming dates after the main
+ * one (first MAX_CAPTION_DATES, then "… und N weitere Termine"). '' for
+ * single events or when nothing else is upcoming.
+ */
+export function buildFurtherDatesBlock(event: InstagramEventInput, now: Date = new Date()): string {
+  const main = asString(event.date);
+  const today = now.toISOString().slice(0, 10);
+  const dates = expandOccurrencesInWindow(event, { start: today, end: '9999-12-31' }).filter(
+    (o) => asString(o.date) !== main
+  );
+  if (dates.length === 0) return '';
+  const lines = dates
+    .slice(0, MAX_CAPTION_DATES)
+    .map((o) => `• ${formatEventDate(o.date, o.endDate)}`);
+  const rest = dates.length - MAX_CAPTION_DATES;
+  if (rest > 0) lines.push(`… und ${rest} weitere Termin${rest === 1 ? '' : 'e'}`);
+  return ['🗓 Weitere Termine:', ...lines].join('\n');
+}
+
 /**
  * Feed caption: headline facts first, a short description, then the call to
  * action, the bio-link hint and the hashtags. Always <= CAPTION_MAX_LENGTH (Instagram's hard limit); the
  * description is what gets shortened when the budget runs out.
  */
-export function buildCaption(event: InstagramEventInput, organizerHandle?: string | null): string {
+export function buildCaption(
+  event: InstagramEventInput,
+  organizerHandle?: string | null,
+  now: Date = new Date()
+): string {
   const model = buildEventImageModel(event);
   // The caption is rendered by Instagram, which supports emoji, so it uses the
   // raw title/location rather than the image-safe ones from the model.
@@ -430,6 +460,7 @@ export function buildCaption(event: InstagramEventInput, organizerHandle?: strin
   const header = [
     title,
     [when && `📅 ${when}`, location && `📍 ${location}`].filter(Boolean).join('\n'),
+    buildFurtherDatesBlock(event, now),
     handle ? `Mit ${handle}` : '',
   ]
     .filter(Boolean)
