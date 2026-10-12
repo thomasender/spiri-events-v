@@ -51,6 +51,7 @@ import { getMissingProfileFields } from '../utils/profile';
 import InstagramConsentField from './InstagramConsentField';
 import { resolveInstagramHandleOverride } from '../utils/instagramHandle';
 import InstagramImagePicker from './InstagramImagePicker';
+import InstagramPostPreview from './InstagramPostPreview';
 import {
   COVER_SOURCE,
   INSTAGRAM_UPLOAD_SOURCE,
@@ -1627,6 +1628,22 @@ export default function EventFormWizard() {
             onUpload={handleInstagramImageSelect}
             onRemoveUpload={removeInstagramImage}
             uploadError={instagramUploadError}
+          />
+          <InstagramPostPreview
+            imageUrl={
+              instagramImageCandidates.find(
+                (c) => c.source === effectiveInstagramImageChoice?.source
+              )?.previewUrl
+            }
+            focalPoint={effectiveInstagramImageChoice?.focalPoint}
+            zoom={effectiveInstagramImageChoice?.zoom}
+            event={{
+              title: formData.title.trim(),
+              category: formData.category,
+              date: formData.date,
+              time: formData.time,
+              place: formData.isOnline ? 'Online' : formData.place.trim(),
+            }}
           />
         </details>
       )}
