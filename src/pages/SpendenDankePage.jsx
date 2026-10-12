@@ -1,8 +1,14 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { EVENTS, trackEvent } from '../lib/analytics';
 import SeoMeta from '../components/SeoMeta';
 import './SpendenDankePage.css';
 
 export default function SpendenDankePage() {
+  useEffect(() => {
+    trackEvent(EVENTS.DONATE_COMPLETE);
+  }, []);
+
   return (
     <div className="page-container spenden-danke-page fade-enter">
       <SeoMeta

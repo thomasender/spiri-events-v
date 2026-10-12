@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
+import { EVENTS } from '../../src/lib/analytics';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 const mocks = vi.hoisted(() => ({
@@ -119,5 +120,44 @@ describe('DirectoryPage', () => {
     renderPage();
     const cta = screen.getByTestId('directory-top-cta');
     expect(cta.getAttribute('href')).toBe('/profil#verzeichnis');
+  });
+});
+
+const track = vi.hoisted(() => vi.fn());
+vi.mock('../../src/lib/analytics', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../src/lib/analytics')>()),
+  trackEvent: track,
+}));
+
+describe('DirectoryPage analytics', () => {
+  beforeEach(() => {
+    track.mockClear();
+    mocks.directory.entries = [e('anna')];
+  });
+
+  it('reports filter_apply with the category name when a chip is selected', () => {
+    renderPage();
+    fireEvent.click(screen.getByTestId('directory-category-Yoga'));
+    expect(track).toHaveBeenCalledWith(EVENTS.FILTER_APPLY, {
+      filter_type: 'category',
+      value: 'Yoga',
+    });
+  });
+
+  it('reports only the length of the search term, after typing pauses', () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      renderPage();
+      fireEvent.change(screen.getByTestId('directory-search'), { target: { value: 'Anna' } });
+      fireEvent.change(screen.getByTestId('directory-search'), { target: { value: 'Annabel' } });
+      expect(track).not.toHaveBeenCalled();
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenCalledWith(EVENTS.SEARCH, { search_term_length: 7 });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

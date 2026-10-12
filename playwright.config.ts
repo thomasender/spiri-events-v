@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import { CONSENT_STORAGE_STATE } from './tests/helpers/consent';
 
 // Specs that mutate globally shared state — the `categories` registry, the
 // whole `events` collection, the Storage bucket. They cannot run alongside
@@ -52,6 +53,8 @@ export default defineConfig({
 
   use: {
     baseURL: 'http://localhost:5180',
+    // analytics-consent=denied pre-seeded so the cookie banner never blocks a test.
+    storageState: CONSENT_STORAGE_STATE,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },

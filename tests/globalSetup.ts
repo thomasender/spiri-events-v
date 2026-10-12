@@ -1,4 +1,5 @@
 import { spawn } from 'child_process';
+import { writeConsentStorageState } from './helpers/consent';
 
 const AUTH_URL = 'http://127.0.0.1:9199';
 const FIRESTORE_PROBE =
@@ -25,6 +26,7 @@ function runScript(script: string): Promise<void> {
 }
 
 export default async function globalSetup() {
+  writeConsentStorageState();
   // Probe Auth *and* Firestore. The old version only checked Auth, so a
   // degraded Firestore emulator (alive as a process, not answering queries)
   // meant a 30s wait followed by a confusing cascade of failures. Both probes

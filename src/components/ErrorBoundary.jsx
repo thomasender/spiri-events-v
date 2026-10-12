@@ -1,4 +1,6 @@
 import { Component } from 'react';
+import { EVENTS, trackEvent } from '../lib/analytics';
+import { safeErrorDescription } from '../lib/analyticsEvents';
 import ErrorPage from '../pages/ErrorPage';
 
 export default class ErrorBoundary extends Component {
@@ -15,6 +17,7 @@ export default class ErrorBoundary extends Component {
     if (typeof console !== 'undefined' && console.error) {
       console.error('ErrorBoundary caught an error:', error, info?.componentStack);
     }
+    trackEvent(EVENTS.EXCEPTION, { description: safeErrorDescription(error), fatal: true });
   }
 
   reset = () => {

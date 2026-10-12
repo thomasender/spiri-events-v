@@ -1,3 +1,4 @@
+import { EVENTS } from '../../src/lib/analytics';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import ShareButton from '../../src/components/ShareButton';
@@ -192,5 +193,38 @@ describe('ShareButton', () => {
       expect(p.getAttribute('d')).toBeTruthy();
       expect(p.getAttribute('d').length).toBeGreaterThan(50);
     });
+  });
+});
+
+const track = vi.hoisted(() => vi.fn());
+vi.mock('../../src/lib/analytics', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../src/lib/analytics')>()),
+  trackEvent: track,
+}));
+
+describe('ShareButton analytics', () => {
+  beforeEach(() => {
+    track.mockClear();
+    setClipboardMock();
+    window.open = vi.fn();
+  });
+
+  it('reports share with the channel and the event slug', () => {
+    render(<ShareButton event={mockEvent} />);
+    fireEvent.click(screen.getByTestId('share-event-button'));
+    fireEvent.click(screen.getByTestId('share-channel-facebook'));
+    expect(track).toHaveBeenCalledWith(EVENTS.SHARE, {
+      method: 'facebook',
+      item_id: mockEvent.slug,
+    });
+  });
+
+  it('reports share with method copy after copying the link', async () => {
+    render(<ShareButton event={mockEvent} />);
+    fireEvent.click(screen.getByTestId('share-event-button'));
+    fireEvent.click(screen.getByTestId('share-copy-link'));
+    await waitFor(() =>
+      expect(track).toHaveBeenCalledWith(EVENTS.SHARE, { method: 'copy', item_id: mockEvent.slug })
+    );
   });
 });

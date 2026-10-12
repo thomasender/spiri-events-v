@@ -32,6 +32,7 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 import './CalendarPage.css';
+import { trackEventOpen, trackFilter } from '../lib/analyticsEvents';
 
 const STORAGE_KEY = 'calendarFilterState';
 
@@ -207,10 +208,12 @@ export default function CalendarPage() {
 
   const handleEventClick = (event) => {
     const slugOrId = event.slug || event.id;
+    trackEventOpen(event);
     navigate(`/event/${slugOrId}`);
   };
 
   const toggleCategory = (category) => {
+    if (!selectedCategories.includes(category)) trackFilter('category', category);
     setSelectedCategories((prev) =>
       prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category]
     );
@@ -225,6 +228,7 @@ export default function CalendarPage() {
   };
 
   const toggleOrt = (ort) => {
+    if (!selectedOrte.includes(ort)) trackFilter('region', ort);
     setSelectedOrte((prev) =>
       prev.includes(ort) ? prev.filter((o) => o !== ort) : [...prev, ort]
     );
@@ -239,6 +243,7 @@ export default function CalendarPage() {
   };
 
   const toggleDateFilter = (filterId) => {
+    if (dateFilter !== filterId) trackFilter('date', filterId);
     setDateFilter((prev) => {
       const next = prev === filterId ? null : filterId;
       // When activating a date filter, jump the calendar sidebar to the month
@@ -432,7 +437,10 @@ export default function CalendarPage() {
                     type="button"
                     className="filter-chip filter-chip--date"
                     data-testid="filter-chip-favorites"
-                    onClick={() => setOnlyFavorites((prev) => !prev)}
+                    onClick={() => {
+                      if (!onlyFavorites) trackFilter('favorites', 'on');
+                      setOnlyFavorites((prev) => !prev);
+                    }}
                     aria-pressed={onlyFavorites}
                   >
                     <Heart size={14} className="filter-chip-icon" aria-hidden="true" />

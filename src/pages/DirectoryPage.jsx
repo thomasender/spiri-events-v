@@ -1,4 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { EVENTS, trackEvent } from '../lib/analytics';
+import { trackFilter } from '../lib/analyticsEvents';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Eye, EyeOff, Search, SlidersHorizontal, X } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
@@ -102,6 +104,17 @@ export default function DirectoryPage() {
   const [moderationError, setModerationError] = useState('');
 
   const filters = useMemo(() => parseDirectoryParams(searchParams), [searchParams]);
+  // search: only the length of the term is reported, after typing pauses.
+  const queryLength = filters.query.trim().length;
+  useEffect(() => {
+    if (queryLength === 0) return undefined;
+    const timer = window.setTimeout(
+      () => trackEvent(EVENTS.SEARCH, { search_term_length: queryLength }),
+      1000
+    );
+    return () => window.clearTimeout(timer);
+  }, [queryLength]);
+
   const countFilters = { ...filters, includeHidden: isAdmin };
 
   const updateFilters = (next) => {
@@ -232,7 +245,10 @@ export default function DirectoryPage() {
                     name,
                     filters.categories.includes(name),
                     categoryCounts.get(name) || 0,
-                    () => updateFilters({ categories: toggleValue(filters.categories, name) }),
+                    () => {
+                      if (!filters.categories.includes(name)) trackFilter('category', name);
+                      updateFilters({ categories: toggleValue(filters.categories, name) });
+                    },
                     `directory-category-${name}`
                   )
                 )}
@@ -247,7 +263,10 @@ export default function DirectoryPage() {
                       region,
                       filters.regions.includes(region),
                       regionCounts.get(region) || 0,
-                      () => updateFilters({ regions: toggleValue(filters.regions, region) }),
+                      () => {
+                        if (!filters.regions.includes(region)) trackFilter('region', region);
+                        updateFilters({ regions: toggleValue(filters.regions, region) });
+                      },
                       `directory-region-${region}`
                     )
                   )}

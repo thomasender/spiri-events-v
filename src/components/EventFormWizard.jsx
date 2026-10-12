@@ -1,3 +1,4 @@
+import { EVENTS, trackEvent } from '../lib/analytics';
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CreatableSelect from 'react-select/creatable';
@@ -249,6 +250,10 @@ export default function EventFormWizard() {
   const wizardContainerRef = useRef(null);
   const isInitialStepMount = useRef(true);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    trackEvent(EVENTS.EVENT_CREATE_START);
+  }, []);
 
   useEffect(() => {
     if (isInitialStepMount.current) {
@@ -797,6 +802,7 @@ export default function EventFormWizard() {
 
     try {
       const docRef = await addEvent(eventData, eventData.status || 'pending');
+      if (eventData.status !== 'draft') trackEvent(EVENTS.EVENT_CREATE_SUBMIT);
       const instagramSource = eventData.instagramConsent
         ? effectiveInstagramImageChoice?.source
         : null;

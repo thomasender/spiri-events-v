@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { useAuth } from './hooks/useAuth';
@@ -27,6 +27,49 @@ import ScrollToTop from './components/ScrollToTop';
 import ErrorBoundary from './components/ErrorBoundary';
 import ErrorPage from './pages/ErrorPage';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
+import CookieConsent from './components/CookieConsent';
+import OutboundLinkTracker from './components/OutboundLinkTracker';
+import { setAnalyticsAdminUser, trackPageView } from './lib/analytics';
+import { CONSENT_CHANGE_EVENT, readConsent } from './lib/analyticsConsent';
+
+// Helmet updates document.title on the next animation frame; wait a moment so
+// page_view carries the new page's title rather than the previous one.
+export const PAGE_VIEW_TITLE_DELAY_MS = 150;
+
+// Sends one page_view per navigation (path only, never query or hash) and keeps
+// admins out of the statistics.
+export function AnalyticsRouteTracker() {
+  const { pathname } = useLocation();
+  const { role, loading } = useAuth();
+  const [consented, setConsented] = useState(() => readConsent() === 'granted');
+  const lastSent = useRef(null);
+
+  // Treat the visitor as an admin until the auth role is known, so an admin's
+  // first page view is never sent.
+  useEffect(() => {
+    setAnalyticsAdminUser(loading || Boolean(role));
+  }, [loading, role]);
+
+  useEffect(() => {
+    const onChange = (event) => {
+      setConsented(event.detail?.granted === true);
+      if (event.detail?.granted !== true) lastSent.current = null;
+    };
+    window.addEventListener(CONSENT_CHANGE_EVENT, onChange);
+    return () => window.removeEventListener(CONSENT_CHANGE_EVENT, onChange);
+  }, []);
+
+  useEffect(() => {
+    if (!consented || loading || role || lastSent.current === pathname) return undefined;
+    const timer = setTimeout(() => {
+      lastSent.current = pathname;
+      trackPageView(pathname, document.title);
+    }, PAGE_VIEW_TITLE_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [pathname, consented, loading, role]);
+
+  return null;
+}
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -67,6 +110,7 @@ function AppContent() {
       <SeedBootstrap />
       <ThemeApplier />
       <ScrollToTop />
+      <AnalyticsRouteTracker />
       <Header />
       <main className="main-content">
         <ErrorBoundary>
@@ -140,6 +184,8 @@ function AppContent() {
       <FeedbackButton />
       <CreateEventFab />
       <PwaInstallPrompt />
+      <CookieConsent />
+      <OutboundLinkTracker />
     </div>
   );
 }

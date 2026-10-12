@@ -11,6 +11,7 @@ import {
   isMultiDayEvent,
 } from '../utils/eventFormat';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
+import { trackEventOpen } from '../lib/analyticsEvents';
 import EventCoverImage from './EventCoverImage';
 import FavoriteButton from './FavoriteButton';
 import './EventListRow.css';
@@ -28,7 +29,10 @@ export default function EventListRow({ event, categoryColor, linkState, onClick 
       to={`/event/${event.slug || event.id}`}
       state={linkState}
       className="event-row"
-      onClick={onClick}
+      onClick={(e) => {
+        trackEventOpen(event);
+        onClick?.(e);
+      }}
     >
       <div className="event-row-date">
         <span className="event-row-weekday">{formatWeekdayShort(event.date)}</span>
