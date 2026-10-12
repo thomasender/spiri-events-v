@@ -41,6 +41,8 @@ const member = (uid: string, over: Record<string, unknown> = {}) => ({
   directoryHidden: false,
   directoryCategories: [],
   directoryRegions: [],
+  instagramConsent: false,
+  instagramHandle: '',
   createdAt: '2026-01-01T00:00:00.000Z',
   lastSignInAt: null,
   disabled: false,
@@ -98,5 +100,33 @@ describe('MembersTab', () => {
         expect.objectContaining({ listedInDirectory: true, directoryCategories: ['Tanz'] })
       )
     );
+  });
+
+  it('sorts newest members first by default', () => {
+    state.members = [
+      member('alt', { createdAt: '2025-01-01T00:00:00.000Z' }),
+      member('neu', { createdAt: '2026-06-01T00:00:00.000Z' }),
+      member('mitte', { createdAt: '2025-12-01T00:00:00.000Z' }),
+    ];
+    render(<MembersTab />);
+    const rows = screen.getAllByTestId('member-row');
+    expect(rows.map((r) => within(r).getByText(/@x\.at/).textContent)).toEqual([
+      'neu@x.at',
+      'mitte@x.at',
+      'alt@x.at',
+    ]);
+  });
+
+  it('shows Instagram sharing and handle instead of Bezirke and Kategorien', () => {
+    state.members = [member('anna', { instagramConsent: true, instagramHandle: '@anna.yoga' })];
+    render(<MembersTab />);
+    const headers = screen.getAllByRole('columnheader').map((h) => h.textContent);
+    expect(headers).toContain('Instagram teilen');
+    expect(headers).toContain('Instagram-Name');
+    expect(headers).not.toContain('Bezirke');
+    expect(headers).not.toContain('Kategorien');
+    const row = screen.getByTestId('member-row');
+    expect(within(row).getByText('@anna.yoga')).toBeInTheDocument();
+    expect(within(row).getByText('Ja')).toBeInTheDocument();
   });
 });

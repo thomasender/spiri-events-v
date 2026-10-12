@@ -99,6 +99,21 @@ describe('buildMemberRow', () => {
   });
 });
 
+describe('buildMemberRow instagram', () => {
+  it('reads consent and handle from the private profile', () => {
+    const row = buildMemberRow(
+      { uid: 'u1' },
+      {},
+      { instagramConsentDefault: true, socialMedia: { instagram: ' @anna ' } }
+    );
+    expect(row.instagramConsent).toBe(true);
+    expect(row.instagramHandle).toBe('@anna');
+    const empty = buildMemberRow({ uid: 'u2' });
+    expect(empty.instagramConsent).toBe(false);
+    expect(empty.instagramHandle).toBe('');
+  });
+});
+
 describe('validateMemberPatch', () => {
   it('accepts whitelisted fields only', () => {
     expect(validateMemberPatch({ displayName: ' Anna ', directoryRegions: ['Dornbirn'] })).toEqual({

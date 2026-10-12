@@ -34,6 +34,8 @@ export interface MemberRow {
   directoryHidden: boolean;
   directoryCategories: string[];
   directoryRegions: string[];
+  instagramConsent: boolean;
+  instagramHandle: string;
   createdAt: string | null;
   lastSignInAt: string | null;
   disabled: boolean;
@@ -65,7 +67,14 @@ function toIso(value: string | undefined): string | null {
 
 // Merges an Auth record with the (optional) public profile document into the
 // flat row the admin table shows.
-export function buildMemberRow(user: AuthRecord, profile: Record<string, unknown> = {}): MemberRow {
+export function buildMemberRow(
+  user: AuthRecord,
+  profile: Record<string, unknown> = {},
+  privateProfile: Record<string, unknown> = {}
+): MemberRow {
+  const social = privateProfile.socialMedia;
+  const instagram =
+    social && typeof social === 'object' ? str((social as Record<string, unknown>).instagram) : '';
   return {
     uid: user.uid,
     email: user.email ?? null,
@@ -78,6 +87,8 @@ export function buildMemberRow(user: AuthRecord, profile: Record<string, unknown
     directoryHidden: profile.directoryHidden === true,
     directoryCategories: strList(profile.directoryCategories),
     directoryRegions: strList(profile.directoryRegions),
+    instagramConsent: privateProfile.instagramConsentDefault === true,
+    instagramHandle: instagram.trim(),
     createdAt: toIso(user.metadata?.creationTime),
     lastSignInAt: toIso(user.metadata?.lastSignInTime),
     disabled: user.disabled === true,
@@ -193,7 +204,19 @@ export const adminListMembers = onCall(
       });
     }
 
-    return { members: users.map((u) => buildMemberRow(u, profiles.get(u.uid))) };
+    // Instagram consent + handle live in the private users/{uid} doc.
+    const privates = new Map<string, Record<string, unknown>>();
+    const privateRefs = users.map((u) => db.doc(`users/${u.uid}`));
+    for (let i = 0; i < privateRefs.length; i += 300) {
+      const snaps = await db.getAll(...privateRefs.slice(i, i + 300));
+      snaps.forEach((snap, idx) => {
+        if (snap.exists) privates.set(users[i + idx].uid, snap.data() ?? {});
+      });
+    }
+
+    return {
+      members: users.map((u) => buildMemberRow(u, profiles.get(u.uid), privates.get(u.uid))),
+    };
   }
 );
 
