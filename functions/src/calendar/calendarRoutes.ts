@@ -25,13 +25,18 @@ const SLUG = /^[A-Za-z0-9][A-Za-z0-9_-]{0,159}$/;
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 export type CalendarRoute =
-  | { kind: 'feed'; bezirk: string | null; kategorie: string | null }
+  | { kind: 'feed'; bezirk: string[]; kategorie: string[] }
   | { kind: 'event'; slug: string }
   | { kind: 'error'; status: 400 | 404; message: string };
 
-function one(value: unknown): string | null {
-  if (typeof value === 'string') return value;
-  return null;
+export const MAX_FILTER_VALUES = 20;
+
+/** A query parameter as list: absent -> [], repeated -> all values, any non-string -> null. */
+function many(value: unknown): string[] | null {
+  if (value === undefined) return [];
+  const list = Array.isArray(value) ? value : [value];
+  if (list.length > MAX_FILTER_VALUES || !list.every((v) => typeof v === 'string')) return null;
+  return [...new Set(list as string[])];
 }
 
 export function parseCalendarRequest(
@@ -45,12 +50,12 @@ export function parseCalendarRequest(
     const unknown = Object.keys(query).filter((k) => k !== 'bezirk' && k !== 'kategorie');
     if (unknown.length > 0) return { kind: 'error', status: 400, message: 'Unknown parameter' };
 
-    const bezirk = query.bezirk === undefined ? null : one(query.bezirk);
-    if (query.bezirk !== undefined && (bezirk === null || !REGION_FILTERS.includes(bezirk))) {
+    const bezirk = many(query.bezirk);
+    if (bezirk === null || !bezirk.every((b) => REGION_FILTERS.includes(b))) {
       return { kind: 'error', status: 400, message: 'Unknown bezirk' };
     }
-    const kategorie = query.kategorie === undefined ? null : one(query.kategorie);
-    if (query.kategorie !== undefined && (kategorie === null || !knownCategories.has(kategorie))) {
+    const kategorie = many(query.kategorie);
+    if (kategorie === null || !kategorie.every((k) => knownCategories.has(k))) {
       return { kind: 'error', status: 400, message: 'Unknown kategorie' };
     }
     return { kind: 'feed', bezirk, kategorie };
@@ -130,9 +135,10 @@ function sortKey(event: PublicEvent & { date: string }): string {
   return `${date} ${time}`;
 }
 
+/** Empty list = no restriction; several values match if any one of them matches. */
 export interface FeedFilters {
-  bezirk: string | null;
-  kategorie: string | null;
+  bezirk: string[];
+  kategorie: string[];
 }
 
 /** The feed: approved, upcoming, filtered, sorted, capped at MAX_FEED_EVENTS. */
@@ -142,12 +148,15 @@ export function selectFeedEvents<T extends PublicEvent>(
   filters: FeedFilters
 ): T[] {
   const matches = (event: T) => {
-    if (filters.bezirk === ONLINE) {
-      if (!isOnline(event)) return false;
-    } else if (filters.bezirk) {
-      if (isOnline(event) || event.bezirk !== filters.bezirk) return false;
+    if (filters.bezirk.length > 0) {
+      const inRegion = filters.bezirk.some((b) =>
+        b === ONLINE ? isOnline(event) : !isOnline(event) && event.bezirk === b
+      );
+      if (!inRegion) return false;
     }
-    if (filters.kategorie && event.category !== filters.kategorie) return false;
+    if (filters.kategorie.length > 0 && !filters.kategorie.includes(event.category as string)) {
+      return false;
+    }
     return true;
   };
 
