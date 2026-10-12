@@ -608,12 +608,24 @@ describe('CalendarPage — calendar feed subscription', () => {
     mockUseCategories.value = ['Yoga', 'Meditation'];
   });
 
-  it('offers the feed as a prominent webcal button and shows the https address', () => {
+  it('puts the export inside the "Mehr Filter" area, not as a standalone section', () => {
+    renderPage();
+
+    const accordion = document.querySelector('details.filter-accordion') as HTMLElement;
+    const exportBox = screen.getByTestId('calendar-subscribe');
+    expect(accordion.contains(exportBox)).toBe(true);
+    expect(exportBox).toHaveTextContent('im eigenen Kalender speichern');
+    expect(screen.queryByText('Alle Events im eigenen Kalender')).not.toBeInTheDocument();
+    for (const id of ['link', 'google', 'copy', 'url']) {
+      expect(accordion.contains(screen.getByTestId(`calendar-subscribe-${id}`))).toBe(true);
+    }
+  });
+
+  it('offers the feed as a webcal button and shows the https address', () => {
     renderPage();
 
     const cta = screen.getByTestId('calendar-subscribe-link');
     expect(cta.getAttribute('href')).toBe(`webcal://${window.location.host}/calendar/feed.ics`);
-    expect(cta).toHaveClass('btn', 'btn-primary');
     expect(screen.getByTestId('calendar-subscribe-url')).toHaveTextContent(
       `${window.location.origin}/calendar/feed.ics`
     );
