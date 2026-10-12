@@ -13,8 +13,12 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from './useAuth';
-
-const MAX_MESSAGE_LENGTH = 2000;
+import {
+  sanitizeHtml,
+  isHtmlEmpty,
+  getPlainTextLength,
+  MAX_MESSAGE_LENGTH,
+} from '../utils/sanitize';
 
 export function useEventMessages(eventId) {
   const { user, role } = useAuth();
@@ -61,11 +65,11 @@ export function useEventMessages(eventId) {
       if (!user || !eventId) {
         throw new Error('Nicht angemeldet oder Event fehlt.');
       }
-      const trimmed = (text || '').trim();
-      if (!trimmed) {
+      const clean = sanitizeHtml(text || '');
+      if (isHtmlEmpty(clean)) {
         throw new Error('Nachricht darf nicht leer sein.');
       }
-      if (trimmed.length > MAX_MESSAGE_LENGTH) {
+      if (getPlainTextLength(clean) > MAX_MESSAGE_LENGTH) {
         throw new Error(`Nachricht darf maximal ${MAX_MESSAGE_LENGTH} Zeichen lang sein.`);
       }
 
@@ -73,7 +77,7 @@ export function useEventMessages(eventId) {
       try {
         const messagesRef = collection(db, 'events', eventId, 'messages');
         await addDoc(messagesRef, {
-          text: trimmed,
+          text: clean,
           authorUid: user.uid,
           authorRole: role || 'User',
           authorName: user.displayName || user.email || 'Unbekannt',

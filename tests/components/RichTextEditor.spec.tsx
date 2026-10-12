@@ -47,6 +47,21 @@ describe('RichTextEditor', () => {
     expect(screen.getByLabelText(/link/i)).toBeInTheDocument();
   });
 
+  it('shows the emoji picker by default, inserts the emoji and can be disabled', async () => {
+    const onChange = vi.fn();
+    const { unmount } = render(<RichTextEditor value="" onChange={() => {}} enableEmoji={false} />);
+    expect(screen.queryByLabelText('Emoji einfügen')).not.toBeInTheDocument();
+    unmount();
+
+    render(<RichTextEditor value="" onChange={onChange} />);
+    await waitForEditor();
+    fireEvent.click(screen.getByLabelText('Emoji einfügen'));
+    fireEvent.click(screen.getByLabelText('Emoji 🙏'));
+    await waitFor(() => {
+      expect(onChange).toHaveBeenLastCalledWith(expect.stringContaining('🙏'));
+    });
+  });
+
   it('renders initial content from value prop', async () => {
     render(<RichTextEditor value="<p>Hallo Welt</p>" onChange={() => {}} />);
     await waitForEditor();

@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
@@ -10,6 +11,18 @@ const markAsReadMock = vi.fn();
 
 vi.mock('../../src/hooks/useEventMessages', () => ({
   useEventMessages: vi.fn(),
+}));
+
+vi.mock('../../src/components/RichTextEditorLazy', () => ({
+  default: ({ onChange, testId }) => (
+    <div
+      role="textbox"
+      data-testid={testId}
+      contentEditable
+      suppressContentEditableWarning
+      onInput={(e) => onChange(`<p>${e.currentTarget.textContent || ''}</p>`)}
+    />
+  ),
 }));
 
 import EventMessages from '../../src/components/EventMessages';
@@ -75,27 +88,60 @@ describe('EventMessages', () => {
     expect(screen.getByText('Admin')).toBeInTheDocument();
   });
 
-  it('sends a message when the user submits the composer', async () => {
+  it('sends the composed rich-text message when the user submits', async () => {
     sendMessageMock.mockResolvedValue();
     render(<EventMessages eventId="event-1" />);
 
-    const input = screen.getByTestId('event-message-input');
-    fireEvent.change(input, { target: { value: 'Ich überarbeite das Event.' } });
+    const editor = await screen.findByRole('textbox');
+    fireEvent.input(editor, { target: { textContent: 'Ich überarbeite das Event 🙏' } });
+    await waitFor(() => expect(screen.getByTestId('event-message-send')).not.toBeDisabled());
     fireEvent.click(screen.getByTestId('event-message-send'));
 
     await waitFor(() => {
-      expect(sendMessageMock).toHaveBeenCalledWith('Ich überarbeite das Event.');
+      expect(sendMessageMock).toHaveBeenCalledTimes(1);
     });
+    expect(sendMessageMock.mock.calls[0][0]).toContain('Ich überarbeite das Event 🙏');
   });
 
-  it('does not call sendMessage when only whitespace is entered', async () => {
+  it('keeps the send button disabled while the editor is empty', async () => {
     render(<EventMessages eventId="event-1" />);
-
-    const input = screen.getByTestId('event-message-input');
-    fireEvent.change(input, { target: { value: '   ' } });
-    fireEvent.click(screen.getByTestId('event-message-send'));
-
+    await screen.findByRole('textbox');
+    expect(screen.getByTestId('event-message-send')).toBeDisabled();
     expect(sendMessageMock).not.toHaveBeenCalled();
+  });
+
+  it('renders legacy plain-text messages with line breaks and rich-text safely', () => {
+    const ts = { toDate: () => new Date('2026-08-01T10:00:00Z') };
+    useEventMessages.mockReturnValue({
+      messages: [
+        {
+          id: 'm1',
+          text: 'Zeile 1\nZeile 2 <b>',
+          authorUid: 'a',
+          authorRole: 'Admin',
+          createdAt: ts,
+        },
+        {
+          id: 'm2',
+          text: '<p>Hallo <strong>fett</strong> 🙏<img src="x" onerror="alert(1)"></p>',
+          authorUid: 'a',
+          authorRole: 'Admin',
+          createdAt: ts,
+        },
+      ],
+      loading: false,
+      sending: false,
+      sendMessage: sendMessageMock,
+      markAsRead: markAsReadMock,
+    });
+    const { container } = render(<EventMessages eventId="event-1" />);
+    const texts = container.querySelectorAll('.event-message-text');
+    expect(texts[0].innerHTML).toContain('<br>');
+    expect(texts[0].textContent).toContain('Zeile 2 <b>');
+    expect(texts[1].querySelector('strong')?.textContent).toBe('fett');
+    expect(texts[1].textContent).toContain('🙏');
+    expect(texts[1].innerHTML).not.toContain('onerror');
+    expect(texts[1].querySelector('img')).toBeNull();
   });
 
   it('marks incoming messages as read once they are visible', () => {

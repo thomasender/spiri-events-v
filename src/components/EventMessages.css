@@ -97,7 +97,6 @@
 
 .event-message-text {
   margin: 0;
-  white-space: pre-wrap;
   word-wrap: break-word;
   font-size: 0.95rem;
   line-height: 1.4;
@@ -148,4 +147,18 @@
 .event-messages-error {
   color: var(--error, #c17a7a);
   font-size: 0.85rem;
+}
+
+.event-message-text p {
+  margin: 0 0 0.5em;
+}
+
+.event-message-text p:last-child {
+  margin-bottom: 0;
+}
+
+.event-message-text img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
 }

@@ -248,3 +248,28 @@
   color: var(--text-light);
   font-size: 0.9rem;
 }
+
+.rte-emoji-popover {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-calendar, #fff);
+}
+
+.rte-emoji-btn {
+  border: none;
+  background: transparent;
+  font-size: 1.25rem;
+  line-height: 1;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.rte-emoji-btn:hover,
+.rte-emoji-btn:focus-visible {
+  background: rgba(139, 115, 85, 0.15);
+}
