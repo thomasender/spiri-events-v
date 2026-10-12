@@ -40,6 +40,7 @@ import OccurrencePickerDialog from '../components/OccurrencePickerDialog';
 import EventMessages from '../components/EventMessages';
 import FavoriteButton from '../components/FavoriteButton';
 import ShareButton from '../components/ShareButton';
+import { AdminInstagramPreview } from '../components/InstagramPostPreview';
 import RichTextView from '../components/RichTextView';
 import SimilarEvents from '../components/SimilarEvents';
 import { stripHtml, truncateHtmlText } from '../utils/sanitize';
@@ -823,6 +824,8 @@ export default function EventDetailPage() {
           <RichTextView html={event.description} />
         </div>
       )}
+
+      <AdminInstagramPreview event={event} isAdmin={isAdmin} />
 
       {(event.status === 'pending' || event.status === 'draft') && user && (isAdmin || isOwner) && (
         <EventMessages eventId={event.id} onReady={() => setEventMessagesReady(true)} />
