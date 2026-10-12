@@ -279,19 +279,37 @@ Die Rechte an von Nutzer:innen bereitgestellten Inhalten verbleiben bei den jewe
 
 Sollte trotz sorgfältiger Prüfung ein Inhalt ohne entsprechende Berechtigung veröffentlicht worden sein, bitten wir um einen entsprechenden Hinweis. Nach Kenntniserlangung wird The Tribe den betreffenden Inhalt prüfen und, sofern erforderlich, entfernen oder die weitere Veröffentlichung unterbinden.
 
-### 5. Änderungen des Online-Angebots
+### 5. Nutzung der Inhalte und Datenbank
+
+Die Inhalte von The Tribe dürfen ausschließlich für private, nicht-kommerzielle Zwecke genutzt werden, etwa um sich über Veranstaltungen zu informieren, einzelne Termine im eigenen Kalender zu speichern oder Veranstaltungen im persönlichen Umfeld weiterzuempfehlen.
+
+Ohne vorherige ausdrückliche schriftliche Zustimmung von The Tribe ist es nicht gestattet,
+
+- Inhalte, insbesondere die Veranstaltungsdaten, Texte, Bilder und Veranstalterinformationen, ganz oder in wesentlichen Teilen zu kommerziellen Zwecken zu vervielfältigen, zu verbreiten, öffentlich zugänglich zu machen, zu verkaufen oder auf andere Weise weiterzuverwenden;
+- die auf The Tribe veröffentlichten Daten systematisch oder automatisiert auszulesen, zu kopieren oder zu sammeln (z. B. durch Web-Scraping, Crawler, Bots, das Abrufen von Datenschnittstellen oder das Auswerten von Kalender-Feeds und Kalenderdateien);
+- Inhalte von The Tribe in andere Plattformen, Datenbanken, Verzeichnisse, Kalender, Apps oder Dienste zu übernehmen oder dort automatisiert zu spiegeln;
+- Inhalte von The Tribe zum Training, zur Weiterentwicklung oder zum Betrieb von KI-Systemen oder anderen automatisierten Verfahren der Datenanalyse zu verwenden;
+- Schutzmechanismen, Zugangs- oder Nutzungsbeschränkungen von The Tribe zu umgehen.
+
+Diese Einschränkungen gelten unabhängig davon, ob die Inhalte frei zugänglich sind. Die Zusammenstellung und Aufbereitung der Veranstaltungsdaten auf The Tribe kann als Datenbank bzw. Datenbankwerk nach dem österreichischen Urheberrechtsgesetz (§§ 40f und 76c ff. UrhG) geschützt sein. Die allgemeine Auffindbarkeit über Suchmaschinen im üblichen Umfang bleibt davon unberührt. Gesetzlich zwingend erlaubte Nutzungen (z. B. Vervielfältigungen zum privaten Gebrauch) bleiben ebenfalls unberührt.
+
+Hinweis: Die Rechte an den von Veranstalter:innen bereitgestellten Inhalten verbleiben bei diesen. Auch aus diesem Grund kann The Tribe Dritten keine Weiterverwendungsrechte an solchen Inhalten einräumen. Eine Weiterverwendung von Veranstaltungsdaten bedarf daher gegebenenfalls zusätzlich der Zustimmung der jeweiligen Rechteinhaber:innen. Personenbezogene Angaben von Veranstalter:innen und Nutzer:innen dürfen nicht für Werbe- oder Adressierungszwecke gesammelt oder weiterverarbeitet werden.
+
+Bei Verstößen behält sich The Tribe vor, Zugriffe zu sperren und zivil- und urheberrechtliche Schritte einzuleiten, insbesondere auf Unterlassung, Beseitigung, Auskunft, Schadenersatz und Herausgabe des Gewinns. Anfragen zu einer Nutzung der Inhalte richten Sie bitte an [admin@thetribe.at](mailto:admin@thetribe.at).
+
+### 6. Änderungen des Online-Angebots
 
 The Tribe behält sich ausdrücklich vor, Teile der Website oder das gesamte Online-Angebot jederzeit ohne gesonderte Ankündigung zu verändern, zu ergänzen, zu löschen oder die Veröffentlichung zeitweise oder dauerhaft einzustellen.
 
 Für die Verfügbarkeit einzelner Inhalte, Veranstaltungen, Profile oder Funktionen kann keine Gewähr übernommen werden.
 
-### 6. Haftung
+### 7. Haftung
 
 The Tribe haftet nicht für Schäden materieller oder ideeller Art, die aus der Nutzung oder Nichtnutzung der auf der Plattform veröffentlichten Informationen, Veranstaltungen, Angebote oder extern verlinkten Websites entstehen, soweit gesetzlich zulässig und sofern kein vorsätzliches oder grob fahrlässiges Verhalten von The Tribe vorliegt.
 
 Zwingende gesetzliche Haftungsbestimmungen bleiben unberührt.
 
-### 7. Rechtswirksamkeit dieses Haftungsausschlusses
+### 8. Rechtswirksamkeit dieses Haftungsausschlusses
 
 Sollten einzelne Bestimmungen dieses Haftungsausschlusses der geltenden Rechtslage nicht, nicht mehr oder nicht vollständig entsprechen, bleibt die Gültigkeit der übrigen Bestimmungen davon unberührt. An die Stelle der unwirksamen oder nicht anwendbaren Bestimmung tritt eine Regelung, die dem wirtschaftlichen und rechtlichen Zweck der ursprünglichen Bestimmung möglichst nahekommt.`,
       },
