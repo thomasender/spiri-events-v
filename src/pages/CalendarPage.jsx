@@ -178,7 +178,7 @@ export default function CalendarPage() {
   // active. We seed once at mount and then defer to the user — collapsing or
   // expanding the accordion after load is always under their control.
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(
-    (savedState?.selectedOrte?.length ?? 0) > 0
+    (savedState?.selectedOrte?.length ?? 0) > 0 || savedState?.onlyFavorites === true
   );
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
   const { events, loading, error } = useAllEvents();
@@ -465,29 +465,6 @@ export default function CalendarPage() {
               <h2 className="filter-section-title">Hier kannst du filtern</h2>
             </div>
 
-            {isSignedIn && (
-              <>
-                <div className="filter-header filter-header--section">
-                  <span className="filter-label">Meine Events</span>
-                </div>
-                <div className="filter-options" data-testid="filter-options-favorites">
-                  <button
-                    type="button"
-                    className="filter-chip filter-chip--date"
-                    data-testid="filter-chip-favorites"
-                    onClick={() => {
-                      if (!onlyFavorites) trackFilter('favorites', 'on');
-                      setOnlyFavorites((prev) => !prev);
-                    }}
-                    aria-pressed={onlyFavorites}
-                  >
-                    <Heart size={14} className="filter-chip-icon" aria-hidden="true" />
-                    <span>Meine Favoriten</span>
-                  </button>
-                </div>
-              </>
-            )}
-
             <div className="filter-header filter-header--section">
               <span className="filter-label">Datum</span>
             </div>
@@ -594,6 +571,28 @@ export default function CalendarPage() {
                     <FacetCount value={facetCounts.ort[ONLINE_LOCATION] || 0} />
                   </button>
                 </div>
+                {isSignedIn && (
+                  <>
+                    <div className="filter-header filter-header--section">
+                      <span className="filter-label">Meine Events</span>
+                    </div>
+                    <div className="filter-options" data-testid="filter-options-favorites">
+                      <button
+                        type="button"
+                        className="filter-chip filter-chip--date"
+                        data-testid="filter-chip-favorites"
+                        onClick={() => {
+                          if (!onlyFavorites) trackFilter('favorites', 'on');
+                          setOnlyFavorites((prev) => !prev);
+                        }}
+                        aria-pressed={onlyFavorites}
+                      >
+                        <Heart size={14} className="filter-chip-icon" aria-hidden="true" />
+                        <span>Meine Favoriten</span>
+                      </button>
+                    </div>
+                  </>
+                )}
                 <details className="calendar-export" data-testid="calendar-subscribe">
                   <summary className="calendar-export-summary">
                     <Share size={14} aria-hidden="true" />

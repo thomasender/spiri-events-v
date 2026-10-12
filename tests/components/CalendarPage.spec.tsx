@@ -1,5 +1,5 @@
 import { EVENTS } from '../../src/lib/analytics';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
@@ -17,6 +17,18 @@ vi.mock('../../src/hooks/useEvents', () => ({
 
 vi.mock('../../src/hooks/useCategories', () => ({
   useCategories: () => mockUseCategories.value,
+}));
+
+const mockUseFavorites = vi.hoisted(() => ({ isSignedIn: false }));
+
+vi.mock('../../src/hooks/useFavorites', () => ({
+  useFavorites: () => ({
+    ready: true,
+    isSignedIn: mockUseFavorites.isSignedIn,
+    favoriteIds: new Set<string>(),
+    isFavorite: () => false,
+    toggleFavorite: vi.fn(),
+  }),
 }));
 
 vi.mock('../../src/hooks/useAuth', () => ({
@@ -198,6 +210,37 @@ describe('CalendarPage — category filter initial state (wkzZei1s)', () => {
       expect(getPressedChips()).toEqual([]);
     });
     expect(document.querySelectorAll('.event-tile, .event-row').length).toBe(baseline);
+  });
+});
+
+describe('CalendarPage — "Meine Favoriten" placement', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    mockUseAllEvents.events = [];
+    mockUseCategories.value = ['Yoga', 'Meditation'];
+    mockUseFavorites.isSignedIn = true;
+  });
+  afterEach(() => {
+    mockUseFavorites.isSignedIn = false;
+  });
+
+  it('lives inside the collapsed "Mehr Filter" accordion, after the Bezirke chips', () => {
+    renderPage();
+
+    const chip = screen.getByTestId('filter-chip-favorites');
+    const accordion = getAccordion();
+    expect(accordion.open).toBe(false);
+    expect(accordion.contains(chip)).toBe(true);
+
+    const online = screen.getByTestId('filter-chip-online');
+    expect(online.compareDocumentPosition(chip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('is hidden for visitors who are not signed in', () => {
+    mockUseFavorites.isSignedIn = false;
+    renderPage();
+
+    expect(screen.queryByTestId('filter-chip-favorites')).toBeNull();
   });
 });
 
