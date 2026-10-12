@@ -17,6 +17,15 @@ vi.mock('../src/lib/favoritesStore', () => {
   };
 });
 
+// App Check would talk to reCAPTCHA. Specs that test it mock this module
+// themselves; everything else gets inert stand-ins and never touches the network.
+vi.mock('firebase/app-check', () => ({
+  initializeAppCheck: vi.fn(() => ({})),
+  getToken: vi.fn(async () => ({ token: 'test-token' })),
+  ReCaptchaEnterpriseProvider: vi.fn(),
+  ReCaptchaV3Provider: vi.fn(),
+}));
+
 function createMemoryStorage() {
   const store = new Map();
   return {

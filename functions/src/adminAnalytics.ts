@@ -1,4 +1,5 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { appCheckOptions, logMissingAppCheck } from './appCheck';
 import { logger } from 'firebase-functions';
 import { GoogleAuth } from 'google-auth-library';
 import { assertAdmin } from './adminMembers';
@@ -43,8 +44,9 @@ async function runReport(token: string, body: unknown): Promise<GaResponse> {
 }
 
 export const adminAnalyticsReport = onCall(
-  { region: 'europe-west3', cors: ALLOWED_ORIGINS },
+  { region: 'europe-west3', cors: ALLOWED_ORIGINS, ...appCheckOptions() },
   async (request): Promise<AnalyticsReport> => {
+    logMissingAppCheck('adminAnalyticsReport', request);
     await assertAdmin(request.auth?.uid);
     const days = parseRange((request.data as { days?: unknown } | undefined)?.days);
 

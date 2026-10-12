@@ -1,4 +1,5 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { appCheckOptions, logMissingAppCheck } from './appCheck';
 import { defineSecret } from 'firebase-functions/params';
 import { logger } from 'firebase-functions';
 import { initializeApp, getApps } from 'firebase-admin/app';
@@ -68,8 +69,10 @@ export const adminRetryInstagramPost = onCall(
     timeoutSeconds: 540,
     memory: '1GiB',
     secrets: [IG_ACCESS_TOKEN, IG_USER_ID, ...ADMIN_MAIL_SECRETS],
+    ...appCheckOptions(),
   },
   async (request): Promise<{ outcome: TriggerOutcome }> => {
+    logMissingAppCheck('adminRetryInstagramPost', request);
     await assertAdmin(request.auth?.uid);
     try {
       const eventId = assertEventId((request.data as { eventId?: unknown } | null)?.eventId);
@@ -104,8 +107,9 @@ export const adminRetryInstagramPost = onCall(
 );
 
 export const adminSkipInstagramPost = onCall(
-  { region: 'europe-west3', cors: ALLOWED_ORIGINS },
+  { region: 'europe-west3', cors: ALLOWED_ORIGINS, ...appCheckOptions() },
   async (request): Promise<{ outcome: 'skipped' }> => {
+    logMissingAppCheck('adminSkipInstagramPost', request);
     await assertAdmin(request.auth?.uid);
     try {
       const eventId = assertEventId((request.data as { eventId?: unknown } | null)?.eventId);
@@ -139,8 +143,9 @@ export const adminSkipInstagramPost = onCall(
 // Dry run of the weekly carousels: same window, eligibility and caption as the
 // Sunday job, but nothing is rendered, written or posted. No secrets needed.
 export const adminPreviewWeeklyCarousels = onCall(
-  { region: 'europe-west3', cors: ALLOWED_ORIGINS },
+  { region: 'europe-west3', cors: ALLOWED_ORIGINS, ...appCheckOptions() },
   async (request): Promise<CarouselPreview> => {
+    logMissingAppCheck('adminPreviewWeeklyCarousels', request);
     await assertAdmin(request.auth?.uid);
     const db = getFirestore();
     return previewWeeklyCarousels({
@@ -161,8 +166,10 @@ export const adminPostWeeklyCarousels = onCall(
     timeoutSeconds: 540,
     memory: '1GiB',
     secrets: [IG_ACCESS_TOKEN, IG_USER_ID, ...ADMIN_MAIL_SECRETS],
+    ...appCheckOptions(),
   },
   async (request): Promise<CarouselRunOutcome> => {
+    logMissingAppCheck('adminPostWeeklyCarousels', request);
     await assertAdmin(request.auth?.uid);
     const db = getFirestore();
     const accessToken = await resolveInstagramAccessToken(db, IG_ACCESS_TOKEN.value());

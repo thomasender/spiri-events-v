@@ -1,4 +1,5 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { appCheckOptions, logMissingAppCheck } from './appCheck';
 import { logger } from 'firebase-functions';
 import { getAuth } from 'firebase-admin/auth';
 import {
@@ -35,8 +36,10 @@ export const sendPasswordResetEmailFn = onCall(
     region: 'europe-west3',
     secrets: [MAILGUN_API_KEY, MAILGUN_DOMAIN, MAILGUN_FROM, MAILGUN_REPLY_TO],
     cors: ['https://www.thetribe.at', 'https://thetribe.at', 'https://spirieventsvbg.web.app'],
+    ...appCheckOptions(),
   },
   async (request) => {
+    logMissingAppCheck('sendPasswordResetEmailFn', request);
     enforceRateLimit(request, 'passwordReset', RATE_LIMIT_PRESETS.passwordReset);
 
     const payload = (request.data ?? {}) as { email?: unknown };

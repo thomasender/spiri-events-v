@@ -1,4 +1,5 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { appCheckOptions, logMissingAppCheck } from './appCheck';
 import { logger } from 'firebase-functions';
 import { initializeApp, getApps } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
@@ -180,8 +181,9 @@ export async function assertAdmin(uid: string | undefined): Promise<void> {
 }
 
 export const adminListMembers = onCall(
-  { region: 'europe-west3', cors: ALLOWED_ORIGINS },
+  { region: 'europe-west3', cors: ALLOWED_ORIGINS, ...appCheckOptions() },
   async (request): Promise<{ members: MemberRow[] }> => {
+    logMissingAppCheck('adminListMembers', request);
     await assertAdmin(request.auth?.uid);
 
     const auth = getAuth();
@@ -221,8 +223,9 @@ export const adminListMembers = onCall(
 );
 
 export const adminUpdateMember = onCall(
-  { region: 'europe-west3', cors: ALLOWED_ORIGINS },
+  { region: 'europe-west3', cors: ALLOWED_ORIGINS, ...appCheckOptions() },
   async (request): Promise<{ ok: true }> => {
+    logMissingAppCheck('adminUpdateMember', request);
     await assertAdmin(request.auth?.uid);
     const data = (request.data ?? {}) as { uid?: unknown; changes?: unknown };
     if (typeof data.uid !== 'string' || !data.uid) {

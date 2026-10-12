@@ -1,4 +1,5 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { appCheckOptions, logMissingAppCheck } from './appCheck';
 import { getAuth, type Auth } from 'firebase-admin/auth';
 import { enforceRateLimit, RATE_LIMIT_PRESETS } from './rateLimit';
 
@@ -69,6 +70,10 @@ export const checkEmailAvailability = onCall(
   {
     region: 'europe-west3',
     cors: ALLOWED_ORIGINS,
+    ...appCheckOptions(),
   },
-  (request) => checkEmailAvailabilityHandler(request)
+  (request) => {
+    logMissingAppCheck('checkEmailAvailability', request);
+    return checkEmailAvailabilityHandler(request);
+  }
 );

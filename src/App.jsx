@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { useAuth } from './hooks/useAuth';
+import AppCheckBanner from './components/AppCheckBanner';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import CalendarPage from './pages/CalendarPage';
@@ -112,6 +113,7 @@ function AppContent() {
       <ScrollToTop />
       <AnalyticsRouteTracker />
       <Header />
+      <AppCheckBanner />
       <main className="main-content">
         <ErrorBoundary>
           <Routes>

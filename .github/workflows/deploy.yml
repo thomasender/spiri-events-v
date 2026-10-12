@@ -85,6 +85,11 @@ jobs:
         id: build
         env:
           GOOGLE_APPLICATION_CREDENTIALS: scripts/service-account.json
+          # Public reCAPTCHA site key for Firebase App Check. Set it as a GitHub
+          # *variable* (Settings > Secrets and variables > Actions > Variables).
+          # While it is empty, App Check stays off and the app behaves as before.
+          VITE_RECAPTCHA_SITE_KEY: ${{ vars.VITE_RECAPTCHA_SITE_KEY }}
+          VITE_RECAPTCHA_PROVIDER: ${{ vars.VITE_RECAPTCHA_PROVIDER }}
         run: npm run build
 
       - name: Deploy Firestore rules and indexes

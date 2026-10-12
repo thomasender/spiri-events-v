@@ -1,4 +1,5 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { appCheckOptions, logMissingAppCheck } from './appCheck';
 import { logger } from 'firebase-functions';
 import {
   MOLLIE_API_KEY,
@@ -47,8 +48,10 @@ export const createMollieSubscription = onCall(
     region: REGION,
     secrets: [MOLLIE_API_KEY],
     cors: ALLOWED_ORIGINS,
+    ...appCheckOptions(),
   },
   async (request) => {
+    logMissingAppCheck('createMollieSubscription', request);
     enforceRateLimit(request, 'donation', RATE_LIMIT_PRESETS.donation);
     const data = (request.data ?? {}) as CreateDonationRequest;
     assertValidAmount(data.amount);
@@ -79,8 +82,10 @@ export const createMolliePayment = onCall(
     region: REGION,
     secrets: [MOLLIE_API_KEY],
     cors: ALLOWED_ORIGINS,
+    ...appCheckOptions(),
   },
   async (request) => {
+    logMissingAppCheck('createMolliePayment', request);
     enforceRateLimit(request, 'donation', RATE_LIMIT_PRESETS.donation);
     const data = (request.data ?? {}) as CreateDonationRequest;
     assertValidAmount(data.amount);

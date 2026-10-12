@@ -3,6 +3,7 @@ import { getAuth, connectAuthEmulator } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
+import { setupAppCheck } from './appCheck';
 
 const prodConfig = {
   apiKey: 'AIzaSyCMvCOUD27daEjYO2TKE5CB32fuMXRt0RA',
@@ -27,6 +28,8 @@ const devConfig = {
 
 const useEmulators = import.meta.env.VITE_USE_EMULATORS === 'true';
 const app = initializeApp(useEmulators ? devConfig : prodConfig);
+// Must run before Firestore, Storage and Functions are used (inert without a site key).
+setupAppCheck(app);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
