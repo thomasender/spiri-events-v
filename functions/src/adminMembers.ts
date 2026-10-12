@@ -169,7 +169,7 @@ export function validateMemberPatch(raw: unknown): MemberPatch {
   return patch;
 }
 
-async function assertAdmin(uid: string | undefined): Promise<void> {
+export async function assertAdmin(uid: string | undefined): Promise<void> {
   if (!uid) {
     throw new HttpsError('unauthenticated', 'Must be signed in.');
   }

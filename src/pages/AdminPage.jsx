@@ -14,6 +14,7 @@ import {
   Heart,
   Contact,
   Instagram,
+  BarChart3,
 } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
 import EventList from '../components/EventList';
@@ -28,6 +29,7 @@ import HelpersTab from '../components/HelpersTab';
 import DonorsTab from '../components/DonorsTab';
 import MembersTab from '../components/MembersTab';
 import InstagramTab from '../components/InstagramTab';
+import AnalyticsTab from '../components/AnalyticsTab';
 import EmailVerificationBanner from '../components/EmailVerificationBanner';
 import EmailVerificationModal from '../components/EmailVerificationModal';
 import EventStatusMismatchBanner from '../components/EventStatusMismatchBanner';
@@ -51,6 +53,7 @@ const VALID_TABS = new Set([
   'donors',
   'members',
   'instagram',
+  'analytics',
 ]);
 
 export default function AdminPage() {
@@ -89,6 +92,7 @@ export default function AdminPage() {
       donors: isAdmin,
       members: isAdmin,
       instagram: isAdmin,
+      analytics: isAdmin,
     };
   }, [draftCount, hasMessages, isAdmin, hasFeedback, trashedCount]);
 
@@ -354,6 +358,21 @@ export default function AdminPage() {
             <span>Instagram</span>
           </button>
         )}
+        {visibleTabs.analytics && (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'analytics'}
+            aria-controls="admin-tab-analytics"
+            id="admin-tab-analytics-btn"
+            className={`admin-page-tab${activeTab === 'analytics' ? ' admin-page-tab--active' : ''}`}
+            onClick={() => setTab('analytics')}
+            data-testid="admin-tab-analytics"
+          >
+            <BarChart3 size={16} aria-hidden="true" />
+            <span>Statistik</span>
+          </button>
+        )}
       </div>
 
       <div
@@ -473,6 +492,17 @@ export default function AdminPage() {
           hidden={activeTab !== 'instagram'}
         >
           {activeTab === 'instagram' && <InstagramTab />}
+        </div>
+      )}
+
+      {visibleTabs.analytics && (
+        <div
+          role="tabpanel"
+          id="admin-tab-analytics"
+          aria-labelledby="admin-tab-analytics-btn"
+          hidden={activeTab !== 'analytics'}
+        >
+          {activeTab === 'analytics' && <AnalyticsTab />}
         </div>
       )}
 
