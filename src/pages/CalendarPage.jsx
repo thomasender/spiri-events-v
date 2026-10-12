@@ -10,6 +10,7 @@ import EventsSection from '../components/EventsSection';
 import EmailVerificationModal from '../components/EmailVerificationModal';
 import SeoMeta from '../components/SeoMeta';
 import { getEventOccurrences } from '../utils/eventOccurrences';
+import { copyToClipboard } from '../utils/copyToClipboard';
 import { getCalendarCategories } from '../utils/calendarCategories';
 import { compareEventsByDateTime } from '../utils/eventSort';
 import { computeFacetCounts } from '../utils/filterFacetCounts';
@@ -31,6 +32,7 @@ import {
   PlusCircle,
   SlidersHorizontal,
   CalendarPlus,
+  Copy,
 } from 'lucide-react';
 import './CalendarPage.css';
 import { trackEventOpen, trackFilter } from '../lib/analyticsEvents';
@@ -80,6 +82,11 @@ export function buildFeedUrl(origin, selectedOrte, selectedCategories) {
   if (selectedCategories.length === 1) params.set('kategorie', selectedCategories[0]);
   const query = params.toString();
   return `${origin}/calendar/feed.ics${query ? `?${query}` : ''}`;
+}
+
+// Opens Google Calendar's "add by URL" dialog with the feed prefilled.
+export function buildGoogleCalendarUrl(webcalUrl) {
+  return `https://calendar.google.com/calendar/render?cid=${encodeURIComponent(webcalUrl)}`;
 }
 
 function loadFilterState() {
@@ -332,6 +339,16 @@ export default function CalendarPage() {
     selectedOrte,
     selectedCategories
   );
+
+  const webcalUrl = feedUrl.replace(/^https?:/, 'webcal:');
+  const googleCalendarUrl = buildGoogleCalendarUrl(webcalUrl);
+  const [feedCopied, setFeedCopied] = useState(false);
+  const copyFeedUrl = async () => {
+    if (await copyToClipboard(feedUrl)) {
+      setFeedCopied(true);
+      window.setTimeout(() => setFeedCopied(false), 2500);
+    }
+  };
 
   const resetAllFilters = () => {
     setSelectedCategories([]);
@@ -604,19 +621,47 @@ export default function CalendarPage() {
           )}
 
           {!loading && !error && (
-            <p className="calendar-subscribe" data-testid="calendar-subscribe">
-              <CalendarPlus size={16} aria-hidden="true" />{' '}
+            <section className="calendar-subscribe" data-testid="calendar-subscribe">
+              <h2 className="calendar-subscribe-title">Alle Events im eigenen Kalender</h2>
+              <p className="calendar-subscribe-text">
+                Neue Events erscheinen automatisch in deiner Kalender-App.
+              </p>
               <a
-                href={feedUrl.replace(/^https?:/, 'webcal:')}
+                className="btn btn-primary calendar-subscribe-cta"
+                href={webcalUrl}
                 data-testid="calendar-subscribe-link"
               >
-                Events im eigenen Kalender abonnieren
+                <CalendarPlus size={18} aria-hidden="true" />
+                <span>Events im eigenen Kalender abonnieren</span>
               </a>
-              <span className="calendar-subscribe-hint">
-                {' '}
-                Für Google Kalender die Adresse kopieren: <code>{feedUrl}</code>
-              </span>
-            </p>
+              <div className="calendar-subscribe-secondary">
+                <a
+                  className="btn btn-secondary"
+                  href={googleCalendarUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-testid="calendar-subscribe-google"
+                >
+                  Zu Google Kalender hinzufügen
+                </a>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={copyFeedUrl}
+                  data-testid="calendar-subscribe-copy"
+                >
+                  {feedCopied ? (
+                    <Check size={14} aria-hidden="true" />
+                  ) : (
+                    <Copy size={14} aria-hidden="true" />
+                  )}
+                  <span>{feedCopied ? 'Adresse kopiert' : 'Adresse kopieren'}</span>
+                </button>
+              </div>
+              <code className="calendar-subscribe-url" data-testid="calendar-subscribe-url">
+                {feedUrl}
+              </code>
+            </section>
           )}
         </div>
 

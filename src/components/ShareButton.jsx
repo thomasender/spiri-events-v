@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Share2, Facebook, Instagram, Send, Copy, Check, X } from 'lucide-react';
 import { SiWhatsapp, SiSignal } from 'react-icons/si';
 import { EVENTS, trackEvent } from '../lib/analytics';
+import { copyToClipboard } from '../utils/copyToClipboard';
 import './ShareButton.css';
 
 const SHARE_URL_BUILDERS = {
@@ -42,31 +43,6 @@ function resolveShareProps(props) {
     ariaLabel: props.ariaLabel || 'Profil teilen',
     testId: props.testId || 'share-profile-button',
   };
-}
-
-async function copyToClipboard(text) {
-  if (navigator.clipboard?.writeText) {
-    try {
-      await navigator.clipboard.writeText(text);
-      return true;
-    } catch {
-      // Fall through to legacy fallback.
-    }
-  }
-  try {
-    const textarea = document.createElement('textarea');
-    textarea.value = text;
-    textarea.setAttribute('readonly', '');
-    textarea.style.position = 'absolute';
-    textarea.style.left = '-9999px';
-    document.body.appendChild(textarea);
-    textarea.select();
-    const succeeded = document.execCommand('copy');
-    document.body.removeChild(textarea);
-    return succeeded;
-  } catch {
-    return false;
-  }
 }
 
 export default function ShareButton(props) {

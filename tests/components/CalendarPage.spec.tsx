@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
-import CalendarPage, { buildFeedUrl } from '../../src/pages/CalendarPage';
+import CalendarPage, { buildFeedUrl, buildGoogleCalendarUrl } from '../../src/pages/CalendarPage';
 
 const mockUseAllEvents = vi.hoisted(() => ({ events: [], loading: false, error: null }));
 const mockUseCategories = vi.hoisted(() => ({ value: [] }));
@@ -608,14 +608,41 @@ describe('CalendarPage — calendar feed subscription', () => {
     mockUseCategories.value = ['Yoga', 'Meditation'];
   });
 
-  it('offers the public feed as a webcal link with the https address next to it', () => {
+  it('offers the feed as a prominent webcal button and shows the https address', () => {
     renderPage();
 
-    const link = screen.getByTestId('calendar-subscribe-link');
-    expect(link.getAttribute('href')).toBe(`webcal://${window.location.host}/calendar/feed.ics`);
-    expect(screen.getByTestId('calendar-subscribe')).toHaveTextContent(
+    const cta = screen.getByTestId('calendar-subscribe-link');
+    expect(cta.getAttribute('href')).toBe(`webcal://${window.location.host}/calendar/feed.ics`);
+    expect(cta).toHaveClass('btn', 'btn-primary');
+    expect(screen.getByTestId('calendar-subscribe-url')).toHaveTextContent(
       `${window.location.origin}/calendar/feed.ics`
     );
+  });
+
+  it('links to Google Calendar with the feed prefilled', () => {
+    renderPage();
+
+    const href = screen.getByTestId('calendar-subscribe-google').getAttribute('href')!;
+    expect(href.startsWith('https://calendar.google.com/calendar/render?cid=')).toBe(true);
+    expect(decodeURIComponent(href.split('cid=')[1])).toBe(
+      `webcal://${window.location.host}/calendar/feed.ics`
+    );
+    expect(buildGoogleCalendarUrl('webcal://x.at/f.ics?bezirk=Online')).toBe(
+      'https://calendar.google.com/calendar/render?cid=webcal%3A%2F%2Fx.at%2Ff.ics%3Fbezirk%3DOnline'
+    );
+  });
+
+  it('copies the feed address and confirms it', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    renderPage();
+
+    fireEvent.click(screen.getByTestId('calendar-subscribe-copy'));
+
+    await waitFor(() =>
+      expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/calendar/feed.ics`)
+    );
+    expect(await screen.findByText('Adresse kopiert')).toBeInTheDocument();
   });
 
   it('narrows the feed to a single selected Ort and Kategorie', () => {
