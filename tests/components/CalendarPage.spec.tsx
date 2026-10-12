@@ -700,7 +700,7 @@ describe('CalendarPage — calendar feed subscription', () => {
     expect(await screen.findByText('Adresse kopiert')).toBeInTheDocument();
   });
 
-  it('narrows the feed to a single selected Ort and Kategorie', () => {
+  it('narrows the feed to the selected Orte and Kategorien', () => {
     const origin = 'https://www.thetribe.at';
     expect(buildFeedUrl(origin, [], [])).toBe(`${origin}/calendar/feed.ics`);
     expect(buildFeedUrl(origin, ['Dornbirn'], [])).toBe(
@@ -709,9 +709,9 @@ describe('CalendarPage — calendar feed subscription', () => {
     expect(buildFeedUrl(origin, ['Online'], ['Yoga'])).toBe(
       `${origin}/calendar/feed.ics?bezirk=Online&kategorie=Yoga`
     );
-    // More than one selection, or an unknown value: stay on the general feed.
+    // Several selections are all passed on; an unknown Ort is left out.
     expect(buildFeedUrl(origin, ['Dornbirn', 'Bregenz'], ['Yoga', 'Tanz'])).toBe(
-      `${origin}/calendar/feed.ics`
+      `${origin}/calendar/feed.ics?bezirk=Dornbirn&bezirk=Bregenz&kategorie=Yoga&kategorie=Tanz`
     );
     expect(buildFeedUrl(origin, ['Wien'], [])).toBe(`${origin}/calendar/feed.ics`);
   });

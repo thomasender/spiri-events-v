@@ -72,15 +72,13 @@ const HERO_SLIDER_INTERVAL_MS = 4000;
 // rotation cycles every 8 s.
 const HERO_FEATURE_PAIRS = [HERO_FEATURES.slice(0, 2), HERO_FEATURES.slice(2, 4)];
 
-// Address of the public iCal feed. A single selected Ort / Kategorie narrows it
-// (the server only accepts known values, so anything else is left out).
+// Address of the public iCal feed. Every selected Ort / Kategorie narrows it
+// (repeated parameters; the server only accepts known values, so unknown Orte are left out).
 export function buildFeedUrl(origin, selectedOrte, selectedCategories) {
   const params = new URLSearchParams();
   const knownOrte = [...BEZIRKE, ONLINE_LOCATION];
-  if (selectedOrte.length === 1 && knownOrte.includes(selectedOrte[0])) {
-    params.set('bezirk', selectedOrte[0]);
-  }
-  if (selectedCategories.length === 1) params.set('kategorie', selectedCategories[0]);
+  selectedOrte.filter((o) => knownOrte.includes(o)).forEach((o) => params.append('bezirk', o));
+  selectedCategories.forEach((c) => params.append('kategorie', c));
   const query = params.toString();
   return `${origin}/calendar/feed.ics${query ? `?${query}` : ''}`;
 }

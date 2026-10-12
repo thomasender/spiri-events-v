@@ -28,11 +28,24 @@ function ev(over: Partial<PublicEvent> = {}): PublicEvent {
 
 describe('parseCalendarRequest', () => {
   it('accepts the feed with and without known filters', () => {
-    expect(parse('/calendar/feed.ics')).toEqual({ kind: 'feed', bezirk: null, kategorie: null });
+    expect(parse('/calendar/feed.ics')).toEqual({ kind: 'feed', bezirk: [], kategorie: [] });
     expect(parse('/calendar/feed.ics', { bezirk: 'Online', kategorie: 'Tanz' })).toEqual({
       kind: 'feed',
-      bezirk: 'Online',
-      kategorie: 'Tanz',
+      bezirk: ['Online'],
+      kategorie: ['Tanz'],
+    });
+  });
+
+  it('accepts several bezirke and categories at once', () => {
+    expect(
+      parse('/calendar/feed.ics', { bezirk: ['Dornbirn', 'Bregenz'], kategorie: ['Yoga', 'Tanz'] })
+    ).toEqual({
+      kind: 'feed',
+      bezirk: ['Dornbirn', 'Bregenz'],
+      kategorie: ['Yoga', 'Tanz'],
+    });
+    expect(parse('/calendar/feed.ics', { bezirk: ['Dornbirn', 'Wien'] })).toMatchObject({
+      status: 400,
     });
   });
 
@@ -40,9 +53,7 @@ describe('parseCalendarRequest', () => {
     expect(parse('/calendar/feed.ics', { x: '1' })).toMatchObject({ kind: 'error', status: 400 });
     expect(parse('/calendar/feed.ics', { bezirk: 'Wien' })).toMatchObject({ status: 400 });
     expect(parse('/calendar/feed.ics', { kategorie: 'Zufall123' })).toMatchObject({ status: 400 });
-    expect(parse('/calendar/feed.ics', { bezirk: ['Dornbirn', 'Bregenz'] })).toMatchObject({
-      status: 400,
-    });
+    expect(parse('/calendar/feed.ics', { bezirk: [{}] })).toMatchObject({ status: 400 });
   });
 
   it('accepts a single event by slug and rejects odd input', () => {
@@ -58,7 +69,7 @@ describe('parseCalendarRequest', () => {
 });
 
 describe('selectFeedEvents', () => {
-  const none = { bezirk: null, kategorie: null };
+  const none = { bezirk: [], kategorie: [] };
 
   it('includes only approved, upcoming events inside the horizon, sorted', () => {
     const out = selectFeedEvents(
@@ -105,14 +116,26 @@ describe('selectFeedEvents', () => {
       ev({ id: 'o', isOnline: true, bezirk: '' }),
     ];
     expect(
-      selectFeedEvents(events, TODAY, { bezirk: 'Bregenz', kategorie: null }).map((e) => e.id)
+      selectFeedEvents(events, TODAY, { bezirk: ['Bregenz'], kategorie: [] }).map((e) => e.id)
     ).toEqual(['b']);
     expect(
-      selectFeedEvents(events, TODAY, { bezirk: 'Online', kategorie: null }).map((e) => e.id)
+      selectFeedEvents(events, TODAY, { bezirk: ['Online'], kategorie: [] }).map((e) => e.id)
     ).toEqual(['o']);
     expect(
-      selectFeedEvents(events, TODAY, { bezirk: null, kategorie: 'Tanz' }).map((e) => e.id)
+      selectFeedEvents(events, TODAY, { bezirk: [], kategorie: ['Tanz'] }).map((e) => e.id)
     ).toEqual(['b']);
+    expect(
+      selectFeedEvents(events, TODAY, {
+        bezirk: ['Dornbirn', 'Online'],
+        kategorie: ['Yoga', 'Tanz'],
+      })
+        .map((e) => e.id)
+        .sort()
+    ).toEqual(['d', 'o']);
+    expect(
+      selectFeedEvents(events, TODAY, { bezirk: [], kategorie: ['Yoga', 'Tanz'] }).map((e) => e.id)
+        .length
+    ).toBe(3);
   });
 
   it('caps the feed', () => {
