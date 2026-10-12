@@ -194,3 +194,30 @@ describe('users.instagramConsentDefault', () => {
     await assertFails(updateDoc(doc(db, 'users/owner'), { instagramConsentDefault: true }));
   });
 });
+
+describe('users/{uid}/favorites', () => {
+  const fav = (uid: string) =>
+    doc(env.authenticatedContext(uid).firestore(), `users/owner/favorites/ev1`);
+
+  it('owner can add, read and remove a favorite', async () => {
+    const ref = fav('owner');
+    await assertSucceeds(setDoc(ref, { createdAt: 1 }));
+    await assertSucceeds(getDoc(ref));
+    await assertSucceeds(deleteDoc(ref));
+  });
+
+  it('only a createdAt field is accepted', async () => {
+    await assertFails(setDoc(fav('owner'), { createdAt: 1, note: 'x' }));
+  });
+
+  it('other users and visitors cannot read or write', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'users/owner/favorites/ev1'), { createdAt: 1 });
+    });
+    await assertFails(getDoc(fav('mallory')));
+    await assertFails(setDoc(fav('mallory'), { createdAt: 1 }));
+    await assertFails(deleteDoc(fav('mallory')));
+    const anonRef = doc(env.unauthenticatedContext().firestore(), 'users/owner/favorites/ev1');
+    await assertFails(getDoc(anonRef));
+  });
+});

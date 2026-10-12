@@ -12,6 +12,7 @@ import {
 } from '../utils/eventFormat';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
 import EventCoverImage from './EventCoverImage';
+import FavoriteButton from './FavoriteButton';
 import './EventListRow.css';
 
 export default function EventListRow({ event, categoryColor, linkState, onClick }) {
@@ -94,6 +95,7 @@ export default function EventListRow({ event, categoryColor, linkState, onClick 
           </div>
         )
       )}
+      <FavoriteButton eventId={event.id} />
     </Link>
   );
 }

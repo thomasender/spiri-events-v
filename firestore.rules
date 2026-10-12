@@ -211,6 +211,16 @@ service cloud.firestore {
 
       allow delete: if isAuthenticated() && request.auth.uid == uid;
 
+      // Private favorites: one doc per favorited event series (doc id = event id).
+      // Owner-only; no update, a favorite is either present or absent.
+      match /favorites/{eventId} {
+        allow read: if isAuthenticated() && request.auth.uid == uid;
+        allow create: if isAuthenticated()
+                      && request.auth.uid == uid
+                      && request.resource.data.keys().hasOnly(['createdAt']);
+        allow delete: if isAuthenticated() && request.auth.uid == uid;
+      }
+
       // Public profile subdoc: mirrors only the public-safe fields
       // (displayName, bio, website, photoURL, slug) so anyone can render a
       // organizer's public profile page via the `/:slug` route without

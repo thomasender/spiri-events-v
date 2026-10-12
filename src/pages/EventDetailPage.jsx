@@ -37,6 +37,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import RecurringDeleteDialog from '../components/RecurringDeleteDialog';
 import OccurrencePickerDialog from '../components/OccurrencePickerDialog';
 import EventMessages from '../components/EventMessages';
+import FavoriteButton from '../components/FavoriteButton';
 import ShareButton from '../components/ShareButton';
 import RichTextView from '../components/RichTextView';
 import SimilarEvents from '../components/SimilarEvents';
@@ -585,6 +586,7 @@ export default function EventDetailPage() {
         </div>
         <div className="event-title-row">
           <h1 className="event-title">{event.title}</h1>
+          <FavoriteButton eventId={event.id} />
           <ShareButton event={event} />
         </div>
         <div className="event-meta-row">

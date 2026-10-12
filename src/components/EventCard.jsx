@@ -10,6 +10,7 @@ import {
 } from '../utils/eventFormat';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
 import EventCoverImage from './EventCoverImage';
+import FavoriteButton from './FavoriteButton';
 import './EventCard.css';
 
 export default function EventCard({ event, categoryColor, onClick }) {
@@ -34,6 +35,7 @@ export default function EventCard({ event, categoryColor, onClick }) {
             {category}
           </span>
         )}
+        <FavoriteButton eventId={event.id} />
       </div>
 
       <div className="event-tile-body">

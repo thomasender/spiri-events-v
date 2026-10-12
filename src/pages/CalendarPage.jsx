@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAllEvents, BEZIRKE, ONLINE_LOCATION } from '../hooks/useEvents';
 import { useCategories } from '../hooks/useCategories';
 import { useCategoryRegistry } from '../hooks/useCategoryRegistry';
+import { useFavorites } from '../hooks/useFavorites';
 import { useAuth } from '../hooks/useAuth';
 import Calendar from '../components/Calendar';
 import EventsSection from '../components/EventsSection';
@@ -26,6 +27,7 @@ import {
   Users,
   ChevronDown,
   Check,
+  Heart,
   PlusCircle,
   SlidersHorizontal,
 } from 'lucide-react';
@@ -140,6 +142,11 @@ export default function CalendarPage() {
   );
   const [selectedOrte, setSelectedOrte] = useState(savedState?.selectedOrte || []);
   const [dateFilter, setDateFilter] = useState(savedState?.dateFilter || null);
+  const [onlyFavorites, setOnlyFavorites] = useState(savedState?.onlyFavorites === true);
+  const { isSignedIn, favoriteIds } = useFavorites();
+  // The filter only means something for signed-in users; for visitors it is
+  // neither shown nor applied (a persisted flag must not hide every event).
+  const favoritesFilterActive = onlyFavorites && isSignedIn;
   const { colorByName } = useCategoryRegistry();
   const [viewMode, setViewMode] = useState(savedState?.viewMode || 'card');
   // Auto-expand the "Mehr Filter" accordion when one of its inner filters is
@@ -193,9 +200,10 @@ export default function CalendarPage() {
       selectedCategories,
       selectedOrte,
       dateFilter,
+      onlyFavorites,
       viewMode,
     });
-  }, [currentMonth, selectedCategories, selectedOrte, dateFilter, viewMode]);
+  }, [currentMonth, selectedCategories, selectedOrte, dateFilter, onlyFavorites, viewMode]);
 
   const handleEventClick = (event) => {
     const slugOrId = event.slug || event.id;
@@ -247,8 +255,13 @@ export default function CalendarPage() {
     });
   };
 
+  const baseEvents = useMemo(
+    () => (favoritesFilterActive ? events.filter((e) => favoriteIds.has(e.id)) : events),
+    [events, favoritesFilterActive, favoriteIds]
+  );
+
   const filteredEvents = useMemo(() => {
-    return events.filter((event) => {
+    return baseEvents.filter((event) => {
       const categoryMatch =
         selectedCategories.length === 0 ||
         (event.category && selectedCategories.includes(event.category));
@@ -257,7 +270,7 @@ export default function CalendarPage() {
       const ortMatch = selectedOrte.includes(eventOrtKey);
       return categoryMatch && ortMatch;
     });
-  }, [events, selectedCategories, selectedOrte]);
+  }, [baseEvents, selectedCategories, selectedOrte]);
 
   const monthEvents = useMemo(() => {
     const year = currentMonth.getFullYear();
@@ -276,25 +289,30 @@ export default function CalendarPage() {
     return applyDateFilter(monthEvents, dateFilter);
   }, [monthEvents, dateFilter]);
 
-  const hasActiveFilter = selectedCategories.length > 0 || selectedOrte.length > 0 || !!dateFilter;
+  const hasActiveFilter =
+    selectedCategories.length > 0 ||
+    selectedOrte.length > 0 ||
+    !!dateFilter ||
+    favoritesFilterActive;
 
   const facetCounts = useMemo(
     () =>
       computeFacetCounts({
-        occurrences: events.flatMap((event) => getEventOccurrences(event)),
+        occurrences: baseEvents.flatMap((event) => getEventOccurrences(event)),
         monthKey: dateToMonthKey(currentMonth),
         selectedCategories,
         selectedOrte,
         dateFilter,
         onlineLocation: ONLINE_LOCATION,
       }),
-    [events, currentMonth, selectedCategories, selectedOrte, dateFilter]
+    [baseEvents, currentMonth, selectedCategories, selectedOrte, dateFilter]
   );
 
   const resetAllFilters = () => {
     setSelectedCategories([]);
     setSelectedOrte([]);
     setDateFilter(null);
+    setOnlyFavorites(false);
   };
 
   // Color resolution is now driven by the categories registry. Legacy
@@ -424,6 +442,21 @@ export default function CalendarPage() {
                 </button>
               ))}
             </div>
+
+            {isSignedIn && (
+              <div className="filter-options" data-testid="filter-options-favorites">
+                <button
+                  type="button"
+                  className="filter-chip filter-chip--date"
+                  data-testid="filter-chip-favorites"
+                  onClick={() => setOnlyFavorites((prev) => !prev)}
+                  aria-pressed={onlyFavorites}
+                >
+                  <Heart size={14} className="filter-chip-icon" aria-hidden="true" />
+                  <span>Meine Favoriten</span>
+                </button>
+              </div>
+            )}
 
             <div className="filter-header filter-header--section">
               <span className="filter-label">Kategorie</span>

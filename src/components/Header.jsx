@@ -6,7 +6,18 @@ import { useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
 import { useUnreadFeedbackCount } from '../hooks/useFeedbackList';
 import EmailVerificationModal from './EmailVerificationModal';
 import AvatarImage from './AvatarImage';
-import { Users, Calendar, LogOut, User, PlusCircle, UserCircle, Pen, Menu, X } from 'lucide-react';
+import {
+  Users,
+  Calendar,
+  Heart,
+  LogOut,
+  User,
+  PlusCircle,
+  UserCircle,
+  Pen,
+  Menu,
+  X,
+} from 'lucide-react';
 import './Header.css';
 
 const navClass = ({ isActive }) => (isActive ? 'nav-link nav-link--active' : 'nav-link');
@@ -195,6 +206,10 @@ export default function Header() {
       </NavLink>
       {user ? (
         <>
+          <NavLink to="/favoriten" className={navClass} onClick={closeMenu}>
+            <Heart size={18} aria-hidden="true" />
+            <span>Meine Favoriten</span>
+          </NavLink>
           {renderAdminLink()}
           <NavLink to="/profil" className={navClass} onClick={closeMenu}>
             {profile?.photoURL || user?.photoURL ? (

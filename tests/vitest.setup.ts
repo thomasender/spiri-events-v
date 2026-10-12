@@ -4,6 +4,19 @@ import * as matchers from '@testing-library/jest-dom/matchers';
 
 expect.extend(matchers);
 
+// The favorites store opens a real Firebase auth/Firestore listener. Component
+// tests (which often mock '../lib/firebase' only partially) get an inert,
+// signed-out store; specs that care mock the useFavorites hook themselves.
+vi.mock('../src/lib/favoritesStore', () => {
+  const state = { ready: true, uid: null, ids: new Set() };
+  return {
+    subscribe: () => () => {},
+    getSnapshot: () => state,
+    setFavorite: async () => {},
+    setPendingFavorite: () => {},
+  };
+});
+
 function createMemoryStorage() {
   const store = new Map();
   return {

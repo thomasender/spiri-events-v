@@ -16,7 +16,16 @@ import {
   getIdTokenResult,
 } from 'firebase/auth';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { doc, getDoc, setDoc, serverTimestamp, deleteDoc, writeBatch } from 'firebase/firestore';
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  serverTimestamp,
+  deleteDoc,
+  writeBatch,
+} from 'firebase/firestore';
 import { splitProfileData } from '../utils/profile';
 import { findUniqueProfileSlug } from '../lib/slug';
 import { ref as storageRef, listAll, deleteObject } from 'firebase/storage';
@@ -418,6 +427,9 @@ export function useAuth() {
 
     try {
       const batch = writeBatch(db);
+      // Deleting the parent doc does not delete subcollections.
+      const favorites = await getDocs(collection(db, 'users', uid, 'favorites'));
+      favorites.forEach((fav) => batch.delete(fav.ref));
       batch.delete(doc(db, 'users', uid, 'publicProfile', 'data'));
       batch.delete(doc(db, 'users', uid));
       await batch.commit();
