@@ -1,18 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Calendar, AlertTriangle } from 'lucide-react';
+import DeleteReasonField from './DeleteReasonField';
 import './RecurringDeleteDialog.css';
 
-export default function RecurringDeleteDialog({
-  isOpen,
-  eventTitle,
-  occurrenceDate,
-  onDeleteThisOnly,
-  onDeleteThisAndFuture,
-  onDeleteAll,
-  onCancel,
-  onChangeOccurrence,
-  loading = false,
-}) {
+export default function RecurringDeleteDialog(props) {
+  const { isOpen } = props;
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -23,6 +15,39 @@ export default function RecurringDeleteDialog({
   }, [isOpen]);
 
   if (!isOpen) return null;
+
+  // Mounted only while open, so the reason resets every time the dialog opens.
+  return <RecurringDeleteDialogContent {...props} />;
+}
+
+/**
+ * With `reasonRequired` (admin deletes another user's series) a reason must be
+ * entered before "Gesamte Serie löschen" is enabled; `onDeleteAll` receives it.
+ * Removing single dates does not trash the event and needs no reason.
+ */
+function RecurringDeleteDialogContent({
+  eventTitle,
+  occurrenceDate,
+  onDeleteThisOnly,
+  onDeleteThisAndFuture,
+  onDeleteAll,
+  onCancel,
+  onChangeOccurrence,
+  loading = false,
+  reasonRequired = false,
+}) {
+  const [reason, setReason] = useState('');
+  const trimmedReason = reason.trim();
+  const deleteAllDisabled = loading || (reasonRequired && trimmedReason.length === 0);
+
+  const handleDeleteAll = () => {
+    if (deleteAllDisabled) return;
+    if (reasonRequired) {
+      onDeleteAll(trimmedReason);
+    } else {
+      onDeleteAll();
+    }
+  };
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
@@ -74,6 +99,10 @@ export default function RecurringDeleteDialog({
           </div>
         )}
 
+        {reasonRequired && (
+          <DeleteReasonField value={reason} onChange={setReason} disabled={loading} />
+        )}
+
         <div className="delete-options">
           <button className="delete-option-btn" onClick={onDeleteThisOnly} disabled={loading}>
             <div className="option-title">Nur diesen Termin löschen</div>
@@ -95,8 +124,8 @@ export default function RecurringDeleteDialog({
 
           <button
             className="delete-option-btn delete-option-btn--danger"
-            onClick={onDeleteAll}
-            disabled={loading}
+            onClick={handleDeleteAll}
+            disabled={deleteAllDisabled}
           >
             <div className="option-title">Gesamte Serie löschen</div>
             <div className="option-desc">

@@ -14,3 +14,9 @@ export function canEditEvent(user, event, role) {
 export function canDeleteEvent(user, event, role) {
   return Boolean(user) && (isEventOwner(user, event) || isAdmin(role));
 }
+
+// An admin deleting someone else's event must give a reason, which is emailed
+// to the owner. Owners (admins included) deleting their own event need none.
+export function requiresDeleteReason(user, event, role) {
+  return Boolean(user) && isAdmin(role) && Boolean(event?.createdBy) && !isEventOwner(user, event);
+}

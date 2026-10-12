@@ -5,6 +5,9 @@ import { ClipboardCheck, Inbox, MessageCircle, CheckCircle2, ChevronDown } from 
 import { usePendingEvents, useAllEvents } from '../hooks/useEvents';
 import { useEventsWithMessages } from '../hooks/useEventsWithMessages';
 import { useUserDisplayNames } from '../hooks/useUserDisplayNames';
+import { useAuth } from '../hooks/useAuth';
+import { requiresDeleteReason } from '../utils/eventPermissions';
+import { buildTrashUpdate } from '../utils/trashUpdates';
 import EventAdminListRow from './EventAdminListRow';
 import ConfirmDialog from './ConfirmDialog';
 import SuccessDialog from './SuccessDialog';
@@ -47,6 +50,7 @@ function CollapseToggle({ id, open, onToggle, testId, children }) {
 }
 
 export default function ReviewTab() {
+  const { user, role } = useAuth();
   const { pendingEvents, loading: pendingLoading, approveEvent } = usePendingEvents();
   const { events: allApprovedEvents, loading: approvedLoading } = useAllEvents();
   const { unreadCountByEvent, hasMessagesByEvent, inKlaerungAuthorNameByEvent } =
@@ -96,17 +100,13 @@ export default function ReviewTab() {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = async (reason) => {
     if (!deleteTarget) return;
     setMutating(true);
     try {
       const db = getFirestore(getApp());
       const ref = doc(db, 'events', deleteTarget.id);
-      await updateDoc(ref, {
-        status: 'trashed',
-        trashedAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
+      await updateDoc(ref, buildTrashUpdate(user?.uid, reason));
       setDeleteTarget(null);
     } catch (err) {
       console.error('Delete failed:', err);
@@ -114,6 +114,13 @@ export default function ReviewTab() {
       setMutating(false);
     }
   };
+
+  const openDelete = (evt) =>
+    setDeleteTarget({
+      id: evt.id,
+      eventTitle: evt.title,
+      reasonRequired: requiresDeleteReason(user, evt, role),
+    });
 
   const recentlyApproved = useMemo(() => {
     // Reading Date.now() during render is intentional — we want the rolling
@@ -242,9 +249,7 @@ export default function ReviewTab() {
                         hasMessages={Boolean(hasMessagesByEvent[event.id])}
                         onApprove={handleApprove}
                         onRevert={(evt) => setRevertTarget({ id: evt.id, eventTitle: evt.title })}
-                        onDeleteClick={(evt) =>
-                          setDeleteTarget({ id: evt.id, eventTitle: evt.title })
-                        }
+                        onDeleteClick={(evt) => openDelete(evt)}
                       />
                     </div>
                   ))}
@@ -298,9 +303,7 @@ export default function ReviewTab() {
                           hasMessages={Boolean(hasMessagesByEvent[event.id])}
                           onApprove={handleApprove}
                           onRevert={(evt) => setRevertTarget({ id: evt.id, eventTitle: evt.title })}
-                          onDeleteClick={(evt) =>
-                            setDeleteTarget({ id: evt.id, eventTitle: evt.title })
-                          }
+                          onDeleteClick={(evt) => openDelete(evt)}
                         />
                       </div>
                     ))}
@@ -351,7 +354,7 @@ export default function ReviewTab() {
                   approvedByName={namesByUid[event.approvedBy] || null}
                   fromPath="/admin?tab=review"
                   isAdmin
-                  onDeleteClick={(evt) => setDeleteTarget({ id: evt.id, eventTitle: evt.title })}
+                  onDeleteClick={(evt) => openDelete(evt)}
                 />
               </div>
             ))}
@@ -387,6 +390,7 @@ export default function ReviewTab() {
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
         loading={mutating}
+        reasonRequired={Boolean(deleteTarget?.reasonRequired)}
       />
 
       <SuccessDialog

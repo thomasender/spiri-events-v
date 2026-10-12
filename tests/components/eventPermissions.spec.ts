@@ -4,6 +4,7 @@ import {
   isEventOwner,
   canEditEvent,
   canDeleteEvent,
+  requiresDeleteReason,
 } from '../../src/utils/eventPermissions';
 
 describe('eventPermissions', () => {
@@ -68,6 +69,23 @@ describe('eventPermissions', () => {
       expect(canDeleteEvent({ uid: 'u1' }, { createdBy: 'u1' }, null)).toBe(true);
       expect(canDeleteEvent({ uid: 'admin-1' }, { createdBy: 'user-2' }, 'Admin')).toBe(true);
       expect(canDeleteEvent({ uid: 'user-3' }, { createdBy: 'user-2' }, null)).toBe(false);
+    });
+  });
+
+  describe('requiresDeleteReason', () => {
+    const event = { createdBy: 'owner' };
+
+    it("is true when an admin deletes another user's event", () => {
+      expect(requiresDeleteReason({ uid: 'admin' }, event, 'Admin')).toBe(true);
+    });
+
+    it('is false when an admin deletes their own event', () => {
+      expect(requiresDeleteReason({ uid: 'owner' }, event, 'Admin')).toBe(false);
+    });
+
+    it('is false for owners who are not admins and without a user', () => {
+      expect(requiresDeleteReason({ uid: 'owner' }, event, 'User')).toBe(false);
+      expect(requiresDeleteReason(null, event, 'Admin')).toBe(false);
     });
   });
 });

@@ -1,0 +1,30 @@
+.delete-reason-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.delete-reason-field label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.delete-reason-field textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font: inherit;
+  resize: vertical;
+}
+
+.confirm-dialog .delete-reason-field .delete-reason-hint,
+.delete-reason-field .delete-reason-hint {
+  font-size: 0.8rem;
+  color: var(--text-light);
+  margin: 0;
+}

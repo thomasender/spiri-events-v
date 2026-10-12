@@ -99,6 +99,7 @@ function snapshotToEventSnapshot(data: FirebaseFirestore.DocumentData | undefine
     trashedAt: data.trashedAt ?? null,
     lastNotifiedStatus: readStatus(data.lastNotifiedStatus),
     unpublishedBy: readString(data.unpublishedBy),
+    trashReason: readString(data.trashReason),
   };
 }
 
@@ -350,6 +351,7 @@ function buildPayloadInputFromDecision(
     return {
       event: decision.event,
       recipient: decision.recipient,
+      reason: decision.reason ?? null,
     };
   }
   const contactDecision = decision as unknown as {

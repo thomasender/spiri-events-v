@@ -26,6 +26,7 @@ import { useAuth } from './useAuth';
 import { auth } from '../lib/firebase';
 import { getApp } from 'firebase/app';
 import { ensureCategoryExists } from '../utils/ensureCategoryExists';
+import { buildTrashUpdate, buildRestoreUpdate } from '../utils/trashUpdates';
 
 export const KATEGORIEN = [
   'Yoga',
@@ -165,16 +166,15 @@ export function useEvents(user) {
     });
   };
 
-  const deleteEvent = async (id) => {
+  // Moves the event to the trash. `reason` is set when an admin deletes
+  // another user's event; the notification function puts it in the owner's
+  // "Dein Event wurde gelöscht" email.
+  const deleteEvent = async (id, { reason } = {}) => {
     if (auth.currentUser) {
       await auth.currentUser.getIdToken(true);
     }
     const ref = doc(db, 'events', id);
-    return updateDoc(ref, {
-      status: 'trashed',
-      trashedAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
+    return updateDoc(ref, buildTrashUpdate(user?.uid, reason));
   };
 
   const restoreEvent = async (id) => {
@@ -182,11 +182,7 @@ export function useEvents(user) {
       await auth.currentUser.getIdToken(true);
     }
     const ref = doc(db, 'events', id);
-    return updateDoc(ref, {
-      status: 'draft',
-      trashedAt: null,
-      updatedAt: serverTimestamp(),
-    });
+    return updateDoc(ref, buildRestoreUpdate());
   };
 
   const permanentDeleteEvent = async (id) => {

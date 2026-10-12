@@ -282,6 +282,7 @@ test.describe('Admin delete workflow', () => {
 
       await expect(page.getByText(/in den Papierkorb verschoben/i)).toBeVisible();
 
+      await page.getByLabel(/Grund für das Löschen/).fill('Test-Grund');
       const confirmButton = page.getByRole('button', { name: /papierkorb/i });
       await confirmButton.click();
 
@@ -311,10 +312,13 @@ test.describe('Admin delete workflow', () => {
 
     await expect(page.getByText(/in den Papierkorb verschoben/i)).toBeVisible();
 
-    await page
+    // Deleting someone else's event requires a reason for the owner's email.
+    const trashButton = page
       .locator('.confirm-dialog')
-      .getByRole('button', { name: /papierkorb/i })
-      .click();
+      .getByRole('button', { name: /papierkorb/i });
+    await expect(trashButton).toBeDisabled();
+    await page.getByLabel(/Grund für das Löschen/).fill('Doppelt eingetragen');
+    await trashButton.click();
 
     // Detail-page delete just sends the user back where they came from
     // (the calendar, since we navigated directly to /event/...). The event
@@ -415,10 +419,13 @@ test.describe('Admin delete workflow', () => {
 
     await expect(page.getByText(/in den Papierkorb verschoben/i)).toBeVisible();
 
-    await page
+    // Deleting someone else's event requires a reason for the owner's email.
+    const trashButton = page
       .locator('.confirm-dialog')
-      .getByRole('button', { name: /papierkorb/i })
-      .click();
+      .getByRole('button', { name: /papierkorb/i });
+    await expect(trashButton).toBeDisabled();
+    await page.getByLabel(/Grund für das Löschen/).fill('Doppelt eingetragen');
+    await trashButton.click();
 
     // Edit-form delete sends the user back where they came from. With no
     // explicit `from` we fall back to /admin (Meine Events).

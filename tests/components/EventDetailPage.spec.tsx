@@ -458,12 +458,19 @@ describe('EventDetailPage — trash flow', () => {
 
     expect(await screen.findByText(/in den Papierkorb verschoben/i)).toBeInTheDocument();
 
+    // An admin deleting someone else's event must give a reason for the owner.
     const confirmButton = screen.getByRole('button', { name: /papierkorb/i });
+    expect(confirmButton).toBeDisabled();
+    fireEvent.change(screen.getByLabelText(/Grund für das Löschen/), {
+      target: { value: 'Doppelt eingetragen' },
+    });
     await act(async () => {
       fireEvent.click(confirmButton);
     });
 
-    expect(mockEvents.deleteEvent).toHaveBeenCalledWith('remote-event-id');
+    expect(mockEvents.deleteEvent).toHaveBeenCalledWith('remote-event-id', {
+      reason: 'Doppelt eingetragen',
+    });
   });
 });
 
@@ -603,10 +610,17 @@ describe('EventDetailPage — recurring event delete flow', () => {
 
     await screen.findByRole('heading', { name: /termin löschen/i });
 
+    fireEvent.change(screen.getByLabelText(/Grund für das Löschen/), {
+      target: { value: 'Serie abgesagt' },
+    });
     const deleteAllBtn = screen.getByText('Gesamte Serie löschen');
-    await deleteAllBtn.click();
+    await act(async () => {
+      fireEvent.click(deleteAllBtn);
+    });
 
-    expect(mockEvents.deleteEvent).toHaveBeenCalledWith('recurring-event-id');
+    expect(mockEvents.deleteEvent).toHaveBeenCalledWith('recurring-event-id', {
+      reason: 'Serie abgesagt',
+    });
   });
 });
 

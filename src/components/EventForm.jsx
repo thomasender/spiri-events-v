@@ -17,7 +17,7 @@ import { ArrowLeft, Save, Image, X, Info, Trash2, Plus } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
 import RecurringDeleteDialog from './RecurringDeleteDialog';
 import { arrayUnion } from 'firebase/firestore';
-import { canDeleteEvent } from '../utils/eventPermissions';
+import { canDeleteEvent, requiresDeleteReason } from '../utils/eventPermissions';
 import RichTextEditor from './RichTextEditorLazy';
 import FocalPointPicker from './FocalPointPicker';
 import { isHtmlEmpty } from '../utils/sanitize';
@@ -272,6 +272,7 @@ export default function EventForm({ event }) {
   const isDraft = event?.status === 'draft';
   const isPending = event?.status === 'pending';
   const canDelete = isEdit && canDeleteEvent(user, event, role);
+  const deleteReasonRequired = isEdit && requiresDeleteReason(user, event, role);
   // Changing only the Instagram consent / photo of an approved event needs
   // no new admin approval (product decision 52M1ujwr): it stays approved.
   const onlyInstagramChanged =
@@ -803,11 +804,11 @@ export default function EventForm({ event }) {
     saveEvent(buildEventData('pending'));
   };
 
-  const handleDelete = async () => {
+  const handleDelete = async (reason) => {
     if (!event?.id) return;
     setDeleting(true);
     try {
-      await deleteEvent(event.id);
+      await deleteEvent(event.id, { reason });
       setShowDeleteModal(false);
       navigate(cancelTarget);
     } catch (err) {
@@ -858,10 +859,10 @@ export default function EventForm({ event }) {
     }
   };
 
-  const handleDeleteAll = async () => {
+  const handleDeleteAll = async (reason) => {
     setDeleting(true);
     try {
-      await deleteEvent(event.id);
+      await deleteEvent(event.id, { reason });
       setShowRecurringDeleteDialog(false);
       navigate(cancelTarget);
     } catch (err) {
@@ -1626,6 +1627,7 @@ export default function EventForm({ event }) {
         onConfirm={handleDelete}
         onCancel={() => setShowDeleteModal(false)}
         loading={deleting}
+        reasonRequired={deleteReasonRequired}
       />
 
       <RecurringDeleteDialog
@@ -1637,6 +1639,7 @@ export default function EventForm({ event }) {
         onDeleteAll={handleDeleteAll}
         onCancel={() => setShowRecurringDeleteDialog(false)}
         loading={deleting}
+        reasonRequired={deleteReasonRequired}
       />
     </div>
   );
