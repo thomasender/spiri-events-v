@@ -7,12 +7,12 @@ import {
   collection,
   getDocs,
   getDoc,
-  serverTimestamp,
   arrayUnion,
 } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import { deleteImageByUrl } from '../lib/imageUpload';
 import { useTrashedEvents } from '../hooks/useTrashedEvents';
+import { buildRestoreUpdate } from '../utils/trashUpdates';
 import { useAuth } from '../hooks/useAuth';
 import ConfirmDialog from './ConfirmDialog';
 import RecurringDeleteDialog from './RecurringDeleteDialog';
@@ -33,11 +33,7 @@ async function refreshToken() {
 async function restoreEventById(id) {
   await refreshToken();
   const ref = doc(db, 'events', id);
-  await updateDoc(ref, {
-    status: 'draft',
-    trashedAt: null,
-    updatedAt: serverTimestamp(),
-  });
+  await updateDoc(ref, buildRestoreUpdate());
 }
 
 async function permanentDeleteEventById(id) {

@@ -27,7 +27,7 @@ import { getEventFallbackImage } from '../utils/eventFallbacks';
 import { pickEventDoc } from '../utils/pickEventDoc';
 import { getOrganizerName } from '../utils/eventFormat';
 import { resolveOrganizerProfilePath } from '../utils/profile';
-import { canEditEvent, canDeleteEvent } from '../utils/eventPermissions';
+import { canEditEvent, canDeleteEvent, requiresDeleteReason } from '../utils/eventPermissions';
 import { parseContactText } from '../utils/contactFormat';
 import { getNextUpcomingOccurrence, getRecurrenceDatesForDetail } from '../utils/eventOccurrences';
 import {
@@ -409,6 +409,7 @@ export default function EventDetailPage() {
   const isOwner = user && event.createdBy === user.uid;
   const showEditButton = canEditEvent(user, event, role);
   const showDeleteButton = canDeleteEvent(user, event, role);
+  const deleteReasonRequired = requiresDeleteReason(user, event, role);
   const fallbackImage = getEventFallbackImage(event);
   const showRemoteImage = Boolean(event.imageUrl) && !imageError;
   const imageSrc = showRemoteImage ? event.imageUrl : fallbackImage;
@@ -442,10 +443,10 @@ export default function EventDetailPage() {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = async (reason) => {
     setDeleting(true);
     try {
-      await deleteEvent(event.id);
+      await deleteEvent(event.id, { reason });
       setShowDeleteDialog(false);
       navigate(backPath);
     } catch (err) {
@@ -496,10 +497,10 @@ export default function EventDetailPage() {
     }
   };
 
-  const handleDeleteAll = async () => {
+  const handleDeleteAll = async (reason) => {
     setDeleting(true);
     try {
-      await deleteEvent(event.id);
+      await deleteEvent(event.id, { reason });
       setShowRecurringDeleteDialog(false);
       navigate('/');
     } catch (err) {
@@ -854,6 +855,7 @@ export default function EventDetailPage() {
         onConfirm={handleDelete}
         onCancel={() => setShowDeleteDialog(false)}
         loading={deleting}
+        reasonRequired={deleteReasonRequired}
       />
 
       <ConfirmDialog
@@ -877,6 +879,7 @@ export default function EventDetailPage() {
         onCancel={() => setShowRecurringDeleteDialog(false)}
         onChangeOccurrence={handleRecurringDeleteChangeOccurrence}
         loading={deleting}
+        reasonRequired={deleteReasonRequired}
       />
 
       <OccurrencePickerDialog

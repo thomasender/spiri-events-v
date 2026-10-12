@@ -65,6 +65,20 @@ describe('decideEventStatusNotification', () => {
     }
   });
 
+  it('carries the admin delete reason on the "deleted" decision', () => {
+    const before: EventSnapshot = { status: 'approved', organizer: organizer() };
+    const withReason: EventSnapshot = {
+      status: 'trashed',
+      organizer: organizer(),
+      trashReason: '  Doppelt eingetragen ',
+    };
+    expect(decideEventStatusNotification('evt1', before, withReason)?.reason).toBe(
+      'Doppelt eingetragen'
+    );
+    const withoutReason: EventSnapshot = { status: 'trashed', organizer: organizer() };
+    expect(decideEventStatusNotification('evt1', before, withoutReason)?.reason).toBeNull();
+  });
+
   it('returns null when the after status is unrecognized', () => {
     const before: EventSnapshot = { status: 'pending', organizer: organizer() };
     const after: EventSnapshot = {

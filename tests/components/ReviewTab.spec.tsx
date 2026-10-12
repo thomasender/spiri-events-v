@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import ReviewTab from '../../src/components/ReviewTab';
 
@@ -39,11 +39,19 @@ vi.mock('../../src/hooks/useUserDisplayNames', () => ({
   useUserDisplayNames: () => mockUserDisplayNames,
 }));
 
+const mockUpdateDoc = vi.hoisted(() => vi.fn());
+
+vi.mock('../../src/hooks/useAuth', () => ({
+  useAuth: () => ({ user: { uid: 'admin-uid' }, role: 'Admin' }),
+}));
+
+vi.mock('firebase/app', () => ({ getApp: vi.fn() }));
+
 vi.mock('firebase/firestore', () => ({
   doc: vi.fn(),
   getFirestore: vi.fn(),
   serverTimestamp: vi.fn(),
-  updateDoc: vi.fn(),
+  updateDoc: mockUpdateDoc,
 }));
 
 function renderReviewTab() {
@@ -56,6 +64,8 @@ function renderReviewTab() {
 
 beforeEach(() => {
   mockApproveEvent.mockReset();
+  mockUpdateDoc.mockReset();
+  mockUpdateDoc.mockResolvedValue(undefined);
   mockUsePendingEvents.pendingEvents = [];
   mockUsePendingEvents.loading = false;
   mockUseAllEvents.events = [];
@@ -296,5 +306,38 @@ describe('ReviewTab — rich metadata on each row (j67qz6b2)', () => {
     mockUsePendingEvents.pendingEvents = [{ id: 'p1', title: 'Plain Event', status: 'pending' }];
     renderReviewTab();
     expect(screen.queryByTestId('event-card-clarification-ribbon')).not.toBeInTheDocument();
+  });
+});
+
+describe("ReviewTab — deleting another user's event", () => {
+  it('requires a reason and stores it on the trashed event', async () => {
+    mockUsePendingEvents.pendingEvents = [
+      { id: 'p1', title: 'Fremdes Event', status: 'pending', createdBy: 'user-uid' },
+    ];
+    renderReviewTab();
+    fireEvent.click(screen.getByRole('button', { name: 'Event löschen' }));
+    const confirm = screen.getByRole('button', { name: 'In Papierkorb' });
+    expect(confirm).toBeDisabled();
+    fireEvent.change(screen.getByLabelText(/Grund für das Löschen/), {
+      target: { value: '  Doppelt eingetragen ' },
+    });
+    expect(confirm).toBeEnabled();
+    fireEvent.click(confirm);
+    await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledTimes(1));
+    expect(mockUpdateDoc.mock.calls[0][1]).toMatchObject({
+      status: 'trashed',
+      trashedBy: 'admin-uid',
+      trashReason: 'Doppelt eingetragen',
+    });
+  });
+
+  it('asks for no reason when the admin deletes their own event', () => {
+    mockUsePendingEvents.pendingEvents = [
+      { id: 'p1', title: 'Eigenes Event', status: 'pending', createdBy: 'admin-uid' },
+    ];
+    renderReviewTab();
+    fireEvent.click(screen.getByRole('button', { name: 'Event löschen' }));
+    expect(screen.queryByLabelText(/Grund für das Löschen/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'In Papierkorb' })).toBeEnabled();
   });
 });

@@ -355,6 +355,39 @@ describe('buildDeletedPayload', () => {
     });
     expect(payload.html).toContain('Hallo,');
   });
+
+  it('includes the admin reason (escaped) when an admin deleted the event', () => {
+    const payload = buildDeletedPayload({
+      event: baseEvent,
+      recipient: 'lukas@example.com',
+      reason: '  Kein spiritueller Bezug <b>erkennbar</b>  ',
+    });
+    expect(payload.html).toContain('Ein Admin hat dein Event');
+    expect(payload.html).toContain('Kein spiritueller Bezug &lt;b&gt;erkennbar&lt;/b&gt;');
+    expect(payload.html).not.toContain('<b>erkennbar</b>');
+    expect(payload.text).toContain(
+      'Der Grund dafür:\n\nKein spiritueller Bezug <b>erkennbar</b>\n'
+    );
+  });
+
+  it('omits the admin wording when no reason is given', () => {
+    const payload = buildDeletedPayload({
+      event: baseEvent,
+      recipient: 'lukas@example.com',
+      reason: '   ',
+    });
+    expect(payload.html).not.toContain('Ein Admin');
+    expect(payload.text).not.toContain('Grund');
+  });
+
+  it('passes the reason through the dispatcher', () => {
+    const payload = buildEmailPayload('deleted', {
+      event: baseEvent,
+      recipient: 'lukas@example.com',
+      reason: 'Doppelt eingetragen',
+    });
+    expect(payload.text).toContain('Doppelt eingetragen');
+  });
 });
 
 describe('buildPasswordResetPayload', () => {

@@ -150,9 +150,15 @@ describe('EventForm — delete flow', () => {
     expect(await screen.findByText(/in den Papierkorb verschoben/i)).toBeInTheDocument();
 
     const confirmButton = screen.getByRole('button', { name: /papierkorb/i });
+    expect(confirmButton).toBeDisabled();
+    fireEvent.change(screen.getByLabelText(/Grund für das Löschen/), {
+      target: { value: 'Kein spiritueller Bezug' },
+    });
     await fireEvent.click(confirmButton);
 
-    expect(mockEvents.deleteEvent).toHaveBeenCalledWith('event-x');
+    expect(mockEvents.deleteEvent).toHaveBeenCalledWith('event-x', {
+      reason: 'Kein spiritueller Bezug',
+    });
     expect(mockEvents.updateEvent).not.toHaveBeenCalled();
   });
 });

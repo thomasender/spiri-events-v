@@ -9,6 +9,7 @@ export interface EventSnapshot {
   lastNotifiedStatus?: EventLifecycleStatus | null;
   createdBy?: string | null;
   unpublishedBy?: string | null;
+  trashReason?: string | null;
 }
 
 export type AdminMessageRole = 'Admin' | 'User';
@@ -28,6 +29,8 @@ export interface EventNotificationDecision {
   type: Exclude<NotificationType, 'changes_requested'>;
   event: NotificationEvent;
   recipient: string | 'admins';
+  /** Only for 'deleted': why an admin deleted the owner's event. */
+  reason?: string | null;
 }
 
 export interface ChangesRequestedDecision {
@@ -84,10 +87,12 @@ export function decideEventStatusNotification(
   if (afterStatus === 'trashed') {
     const ownerEmail = safeOwnerEmail(after.organizer);
     if (!ownerEmail) return null;
+    const reason = typeof after.trashReason === 'string' ? after.trashReason.trim() : '';
     return {
       type: 'deleted',
       event: buildEventFor(eventId, after, eventTitle, slug),
       recipient: ownerEmail,
+      reason: reason || null,
     };
   }
 

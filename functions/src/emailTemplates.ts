@@ -407,21 +407,45 @@ export function buildUnpublishedPayload({
 export interface DeletedPayloadInput {
   event: NotificationEvent;
   recipient: string;
+  /** Set when an admin deleted the owner's event and had to give a reason. */
+  reason?: string | null;
 }
 
-export function buildDeletedPayload({ event, recipient }: DeletedPayloadInput): EmailPayload {
+export function buildDeletedPayload({
+  event,
+  recipient,
+  reason,
+}: DeletedPayloadInput): EmailPayload {
   const greetingName = organizerDisplayName(event.organizer);
   const greeting = greetingName ? `Hallo ${escapeHtml(greetingName)},` : 'Hallo,';
   const subject = `Dein Event wurde gelöscht: ${event.title}`;
-  const htmlBody = `
+  const adminReason = typeof reason === 'string' ? reason.trim() : '';
+  const restoreHtml = `Falls du es wiederherstellen möchtest, findest du es im Verwaltungs-Bereich unter „Papierkorb".`;
+  const restoreText = `Falls du es wiederherstellen möchtest, findest du es im Verwaltungs-Bereich unter "Papierkorb".`;
+  const htmlBody = adminReason
+    ? `
     <h1 style="${headingStyle(1)}">Dein Event wurde gelöscht</h1>
     <p style="${paragraphStyle()}">${greeting}</p>
     <p style="${paragraphStyle()}">
-      Dein Event <strong>${escapeHtml(event.title)}</strong> wurde in den Papierkorb verschoben. Falls du es wiederherstellen möchtest, findest du es im Verwaltungs-Bereich unter „Papierkorb".
+      Ein Admin hat dein Event <strong>${escapeHtml(event.title)}</strong> gelöscht und in den Papierkorb verschoben. Der Grund dafür:
+    </p>
+    <blockquote style="margin:0 0 20px 0;padding:14px 18px;border-left:3px solid ${COLOR_PRIMARY};background:${COLOR_BG_SOFT};border-radius:0 6px 6px 0;font-family:${BODY_FONT};font-size:15px;line-height:1.6;color:${COLOR_TEXT};white-space:pre-wrap;">${escapeHtml(adminReason)}</blockquote>
+    <p style="${paragraphStyle()}">
+      ${restoreHtml}
+    </p>`
+    : `
+    <h1 style="${headingStyle(1)}">Dein Event wurde gelöscht</h1>
+    <p style="${paragraphStyle()}">${greeting}</p>
+    <p style="${paragraphStyle()}">
+      Dein Event <strong>${escapeHtml(event.title)}</strong> wurde in den Papierkorb verschoben. ${restoreHtml}
     </p>`;
-  const textBody =
-    `${greetingName ? `Hallo ${greetingName},\n\n` : 'Hallo,\n\n'}` +
-    `Dein Event "${event.title}" wurde in den Papierkorb verschoben. Falls du es wiederherstellen möchtest, findest du es im Verwaltungs-Bereich unter "Papierkorb".`;
+  const textBody = adminReason
+    ? `${greetingName ? `Hallo ${greetingName},\n\n` : 'Hallo,\n\n'}` +
+      `Ein Admin hat dein Event "${event.title}" gelöscht und in den Papierkorb verschoben. Der Grund dafür:\n\n` +
+      `${adminReason}\n\n` +
+      `${restoreText}`
+    : `${greetingName ? `Hallo ${greetingName},\n\n` : 'Hallo,\n\n'}` +
+      `Dein Event "${event.title}" wurde in den Papierkorb verschoben. ${restoreText}`;
   return {
     to: recipient,
     subject,
