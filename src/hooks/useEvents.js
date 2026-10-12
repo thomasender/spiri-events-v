@@ -149,6 +149,22 @@ export function useEvents(user) {
     });
   };
 
+  // Admin takes an approved event offline again: it goes back to the owner's
+  // drafts. `unpublishedBy` lets the notification function skip the owner
+  // email when an admin unpublishes their own event.
+  const unpublishEvent = async (id) => {
+    if (auth.currentUser) {
+      await auth.currentUser.getIdToken(true);
+    }
+    const ref = doc(db, 'events', id);
+    return updateDoc(ref, {
+      status: 'draft',
+      unpublishedBy: user.uid,
+      unpublishedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  };
+
   const deleteEvent = async (id) => {
     if (auth.currentUser) {
       await auth.currentUser.getIdToken(true);
@@ -256,6 +272,7 @@ export function useEvents(user) {
     duplicateEvent,
     submitForReview,
     revertToDraft,
+    unpublishEvent,
     approveEvent: (eventId) => approveEventAsAdmin(eventId, user.uid),
   };
 }

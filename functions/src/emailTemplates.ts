@@ -1,5 +1,5 @@
 export type NotificationType =
-  'submitted' | 'changes_requested' | 'published' | 'deleted' | 'contact_message';
+  'submitted' | 'changes_requested' | 'published' | 'unpublished' | 'deleted' | 'contact_message';
 
 export interface ContactMessageContext {
   feedbackId: string;
@@ -342,6 +342,44 @@ export function buildPublishedPayload({ event, recipient }: PublishedPayloadInpu
   };
 }
 
+export interface UnpublishedPayloadInput {
+  event: NotificationEvent;
+  recipient: string;
+}
+
+export function buildUnpublishedPayload({
+  event,
+  recipient,
+}: UnpublishedPayloadInput): EmailPayload {
+  const link = eventUrl(event.slug);
+  const greetingName = organizerDisplayName(event.organizer);
+  const greeting = greetingName ? `Hallo ${escapeHtml(greetingName)},` : 'Hallo,';
+  const subject = `Dein Event ist wieder ein Entwurf: ${event.title}`;
+  const htmlBody = `
+    <h1 style="${headingStyle(1)}">Dein Event ist wieder ein Entwurf</h1>
+    <p style="${paragraphStyle()}">${greeting}</p>
+    <p style="${paragraphStyle()}">
+      Ein Admin hat dein Event <strong>${escapeHtml(event.title)}</strong> vorübergehend offline genommen, weil es noch Änderungen braucht. Es ist jetzt nicht mehr öffentlich sichtbar und liegt als Entwurf in deinem Verwaltungs-Bereich.
+    </p>
+    <p style="${paragraphStyle()}">
+      Bitte überarbeite dein Event und reiche es danach erneut ein, damit wir es wieder veröffentlichen können. Falls dir ein Admin eine Nachricht hinterlassen hat, findest du sie direkt beim Event.
+    </p>
+    <p style="margin:8px 0 24px 0;">
+      <a href="${link}" style="${brandButtonStyle()}">Event ansehen</a>
+    </p>`;
+  const textBody =
+    `${greetingName ? `Hallo ${greetingName},\n\n` : 'Hallo,\n\n'}` +
+    `Ein Admin hat dein Event "${event.title}" vorübergehend offline genommen, weil es noch Änderungen braucht. Es ist jetzt nicht mehr öffentlich sichtbar und liegt als Entwurf in deinem Verwaltungs-Bereich.\n\n` +
+    `Bitte überarbeite dein Event und reiche es danach erneut ein, damit wir es wieder veröffentlichen können. Falls dir ein Admin eine Nachricht hinterlassen hat, findest du sie direkt beim Event.\n\n` +
+    `Event ansehen: ${link}`;
+  return {
+    to: recipient,
+    subject,
+    html: wrapHtml(htmlBody),
+    text: textBody + footerText(),
+  };
+}
+
 export interface DeletedPayloadInput {
   event: NotificationEvent;
   recipient: string;
@@ -463,6 +501,7 @@ export function buildEmailPayload(
     | SubmittedPayloadInput
     | ChangesRequestedPayloadInput
     | PublishedPayloadInput
+    | UnpublishedPayloadInput
     | DeletedPayloadInput
     | ContactMessagePayloadInput
 ): EmailPayload {
@@ -473,6 +512,8 @@ export function buildEmailPayload(
       return buildChangesRequestedPayload(input as ChangesRequestedPayloadInput);
     case 'published':
       return buildPublishedPayload(input as PublishedPayloadInput);
+    case 'unpublished':
+      return buildUnpublishedPayload(input as UnpublishedPayloadInput);
     case 'deleted':
       return buildDeletedPayload(input as DeletedPayloadInput);
     case 'contact_message':

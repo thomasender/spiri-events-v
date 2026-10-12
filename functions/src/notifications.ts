@@ -56,6 +56,8 @@ type RecipientMarker = UserRecipient | typeof ADMINS_RECIPIENT;
 const PREFERENCE_KEY_BY_TYPE: Record<Exclude<NotificationType, 'submitted'>, PreferenceKey> = {
   changes_requested: 'notifyOnChangesRequested',
   published: 'notifyOnPublished',
+  // "Back to draft" asks the owner to rework the event, like a change request.
+  unpublished: 'notifyOnChangesRequested',
   deleted: 'notifyOnDeleted',
   contact_message: 'notifyOnContactMessage',
 };
@@ -96,6 +98,7 @@ function snapshotToEventSnapshot(data: FirebaseFirestore.DocumentData | undefine
     createdBy: readString(data.createdBy),
     trashedAt: data.trashedAt ?? null,
     lastNotifiedStatus: readStatus(data.lastNotifiedStatus),
+    unpublishedBy: readString(data.unpublishedBy),
   };
 }
 
@@ -337,7 +340,7 @@ function buildPayloadInputFromDecision(
       context: decision.context,
     };
   }
-  if (decision.type === 'published') {
+  if (decision.type === 'published' || decision.type === 'unpublished') {
     return {
       event: decision.event,
       recipient: decision.recipient,

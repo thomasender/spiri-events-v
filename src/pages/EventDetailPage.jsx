@@ -15,6 +15,7 @@ import {
   Edit2,
   Trash2,
   CheckCircle,
+  Undo2,
   User,
   Mail,
   Phone,
@@ -225,7 +226,7 @@ export default function EventDetailPage() {
   const [searchParams] = useSearchParams();
   const occurrenceDate = searchParams.get('occurrenceDate');
   const { user, loading: authLoading, role } = useAuth();
-  const { deleteEvent, updateEvent, approveEvent } = useEvents(user);
+  const { deleteEvent, updateEvent, approveEvent, unpublishEvent } = useEvents(user);
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -237,6 +238,8 @@ export default function EventDetailPage() {
   const [selectedOccurrenceDate, setSelectedOccurrenceDate] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [approving, setApproving] = useState(false);
+  const [showUnpublishDialog, setShowUnpublishDialog] = useState(false);
+  const [unpublishing, setUnpublishing] = useState(false);
   const isAdmin = role === 'Admin';
   const showMessagesForHash =
     event &&
@@ -423,6 +426,21 @@ export default function EventDetailPage() {
     }
   };
 
+  const showUnpublishButton = isAdmin && event.status === 'approved';
+
+  const handleUnpublish = async () => {
+    setUnpublishing(true);
+    try {
+      await unpublishEvent(event.id);
+      setEvent((prev) => (prev ? { ...prev, status: 'draft' } : prev));
+      setShowUnpublishDialog(false);
+    } catch (err) {
+      console.error('Unpublish failed:', err);
+    } finally {
+      setUnpublishing(false);
+    }
+  };
+
   const handleDelete = async () => {
     setDeleting(true);
     try {
@@ -531,7 +549,7 @@ export default function EventDetailPage() {
         <span>{backLabel}</span>
       </Link>
 
-      {(showEditButton || showDeleteButton || showApproveButton) && (
+      {(showEditButton || showDeleteButton || showApproveButton || showUnpublishButton) && (
         <div className="owner-actions">
           {showEditButton && (
             <Link to={`/admin/edit/${event.id}`} className="btn btn-secondary">
@@ -549,6 +567,17 @@ export default function EventDetailPage() {
             >
               <CheckCircle size={16} />
               <span>{approving ? 'Genehmige…' : 'Event genehmigen'}</span>
+            </button>
+          )}
+          {showUnpublishButton && (
+            <button
+              type="button"
+              onClick={() => setShowUnpublishDialog(true)}
+              className="btn btn-secondary"
+              data-testid="unpublish-event-button"
+            >
+              <Undo2 size={16} />
+              <span>Zurück zu Entwurf</span>
             </button>
           )}
           {showDeleteButton && (
@@ -811,6 +840,17 @@ export default function EventDetailPage() {
         onConfirm={handleDelete}
         onCancel={() => setShowDeleteDialog(false)}
         loading={deleting}
+      />
+
+      <ConfirmDialog
+        isOpen={showUnpublishDialog}
+        title="Zurück zu Entwurf"
+        message="Das Event wird offline genommen und ist nicht mehr öffentlich sichtbar. Es erscheint wieder als Entwurf beim Veranstalter, der per E-Mail darüber informiert wird und es überarbeiten und erneut einreichen kann."
+        confirmLabel="Zurück zu Entwurf"
+        cancelLabel="Abbrechen"
+        onConfirm={handleUnpublish}
+        onCancel={() => setShowUnpublishDialog(false)}
+        loading={unpublishing}
       />
 
       <RecurringDeleteDialog

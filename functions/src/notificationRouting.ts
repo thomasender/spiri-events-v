@@ -8,6 +8,7 @@ export interface EventSnapshot {
   trashedAt?: unknown;
   lastNotifiedStatus?: EventLifecycleStatus | null;
   createdBy?: string | null;
+  unpublishedBy?: string | null;
 }
 
 export type AdminMessageRole = 'Admin' | 'User';
@@ -21,7 +22,7 @@ export interface AdminMessageSnapshot {
 }
 
 export type NotificationType =
-  'submitted' | 'changes_requested' | 'published' | 'deleted' | 'contact_message';
+  'submitted' | 'changes_requested' | 'published' | 'unpublished' | 'deleted' | 'contact_message';
 
 export interface EventNotificationDecision {
   type: Exclude<NotificationType, 'changes_requested'>;
@@ -95,6 +96,19 @@ export function decideEventStatusNotification(
     if (!ownerEmail) return null;
     return {
       type: 'published',
+      event: buildEventFor(eventId, after, eventTitle, slug),
+      recipient: ownerEmail,
+    };
+  }
+
+  // An admin took an approved event offline again (back to draft) so the
+  // owner can rework it. Skip when the admin unpublished their own event.
+  if (beforeStatus === 'approved' && afterStatus === 'draft') {
+    const ownerEmail = safeOwnerEmail(after.organizer);
+    if (!ownerEmail) return null;
+    if (after.unpublishedBy && after.unpublishedBy === after.createdBy) return null;
+    return {
+      type: 'unpublished',
       event: buildEventFor(eventId, after, eventTitle, slug),
       recipient: ownerEmail,
     };
