@@ -29,7 +29,8 @@
 }
 
 .footer-nav a,
-.footer-install-link {
+.footer-install-link,
+.footer-cookie-link {
   font-size: 0.85rem;
   color: var(--text-secondary);
   background: none;
@@ -41,11 +42,13 @@
 }
 
 .footer-nav a:hover,
-.footer-install-link:hover {
+.footer-install-link:hover,
+.footer-cookie-link:hover {
   color: var(--accent-primary);
 }
 
-.footer-install-link:focus-visible {
+.footer-install-link:focus-visible,
+.footer-cookie-link:focus-visible {
   outline: 2px solid var(--accent-primary);
   outline-offset: 3px;
   border-radius: 4px;

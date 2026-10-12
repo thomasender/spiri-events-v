@@ -53,7 +53,7 @@ export default function Footer() {
           <Link to="/datenschutz">Datenschutz</Link>
           <button
             type="button"
-            className="footer-install-link"
+            className="footer-cookie-link"
             onClick={requestConsentBanner}
             data-testid="footer-cookie-settings"
           >
