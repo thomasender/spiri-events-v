@@ -184,3 +184,20 @@
     justify-content: center;
   }
 }
+
+.event-list-accordion {
+  margin-bottom: var(--space-4, 1rem);
+}
+
+.event-list-accordion > summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1.1rem;
+  padding: 0.5rem 0;
+}
+
+.event-list-retention-note {
+  margin: 0.25rem 0 0.75rem;
+  font-size: 0.9rem;
+  opacity: 0.75;
+}

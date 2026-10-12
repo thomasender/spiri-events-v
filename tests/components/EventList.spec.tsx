@@ -246,6 +246,27 @@ describe('EventList', () => {
     mockAuth.user = { uid: 'test-uid' };
   });
 
+  it('splits events into an open active and a closed past section with retention note', () => {
+    mockAuth.role = null;
+    mockUseEvents.events = [
+      { ...singleEvent, id: 'past-1', title: 'Old Event', date: '2020-01-01' },
+      singleEvent,
+    ];
+
+    render(
+      <MemoryRouter>
+        <EventList />
+      </MemoryRouter>
+    );
+
+    const active = screen.getByTestId('active-events-section') as HTMLDetailsElement;
+    const past = screen.getByTestId('past-events-section') as HTMLDetailsElement;
+    expect(active.open).toBe(true);
+    expect(past.open).toBe(false);
+    expect(past).toHaveTextContent('Old Event');
+    expect(past).toHaveTextContent('30 Tage');
+  });
+
   it('shows status filter dropdown for non-admin user', () => {
     mockAuth.role = null;
     mockUseEvents.events = [singleEvent];

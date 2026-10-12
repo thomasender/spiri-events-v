@@ -10,6 +10,7 @@ import SuccessDialog from './SuccessDialog';
 import EventAdminListRow from './EventAdminListRow';
 import { useState, useMemo } from 'react';
 import { arrayUnion } from 'firebase/firestore';
+import { getEventLastDate } from '../utils/eventExpiry';
 import { getNextUpcomingOccurrence } from '../utils/eventOccurrences';
 import {
   buildCustomDeleteOccurrenceUpdate,
@@ -254,6 +255,36 @@ export default function EventList() {
     </div>
   );
 
+  const renderEventSections = (eventsList) => {
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const isPast = (e) => {
+      const last = getEventLastDate(e);
+      return Boolean(last) && last < todayIso;
+    };
+    const active = eventsList.filter((e) => !isPast(e));
+    const past = eventsList.filter(isPast);
+    return (
+      <>
+        {active.length > 0 && (
+          <details className="event-list-accordion" open data-testid="active-events-section">
+            <summary>Aktive Events ({active.length})</summary>
+            {renderEventsList(active, true)}
+          </details>
+        )}
+        {past.length > 0 && (
+          <details className="event-list-accordion" data-testid="past-events-section">
+            <summary>Vergangene Events ({past.length})</summary>
+            <p className="event-list-retention-note" data-testid="event-retention-note">
+              Vergangene Events werden 30 Tage nach dem Termin automatisch gelöscht. Serien werden
+              30 Tage nach dem letzten Termin gelöscht.
+            </p>
+            {renderEventsList(past, true)}
+          </details>
+        )}
+      </>
+    );
+  };
+
   const renderEmptyState = (title, message, showCreateButton = true) => (
     <div className="event-list-empty">
       <div className="empty-icon">
@@ -345,10 +376,6 @@ export default function EventList() {
             <h2>Meine Events</h2>
             {renderStatusFilter()}
           </div>
-          <p className="event-list-retention-note" data-testid="event-retention-note">
-            Vergangene Events werden 30 Tage nach dem Termin automatisch gelöscht. Serien 30 Tage
-            nach dem letzten Termin.
-          </p>
           {sortedEvents.length === 0
             ? statusFilter === 'all'
               ? renderEmptyState(
@@ -356,7 +383,7 @@ export default function EventList() {
                   'Erstelle dein erstes Event und teile es mit der Community.'
                 )
               : renderFilteredEmptyState()
-            : renderEventsList(sortedEvents, true)}
+            : renderEventSections(sortedEvents)}
         </section>
 
         <ConfirmDialog
@@ -445,10 +472,6 @@ export default function EventList() {
           <h2>Events</h2>
           {renderStatusFilter()}
         </div>
-        <p className="event-list-retention-note" data-testid="event-retention-note">
-          Vergangene Events werden 30 Tage nach dem Termin automatisch gelöscht. Serien 30 Tage nach
-          dem letzten Termin.
-        </p>
         {sortedEvents.length === 0
           ? statusFilter === 'all'
             ? renderEmptyState(
@@ -456,7 +479,7 @@ export default function EventList() {
                 'Erstelle dein erstes Event und teile es mit der Community.'
               )
             : renderFilteredEmptyState()
-          : renderEventsList(sortedEvents, true)}
+          : renderEventSections(sortedEvents)}
       </section>
 
       <ConfirmDialog
