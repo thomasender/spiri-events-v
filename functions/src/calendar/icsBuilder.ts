@@ -2,8 +2,9 @@
  * iCalendar (RFC 5545) output for the public calendar feed and the "add to
  * calendar" download. Pure functions, no Firebase imports.
  *
- * Only public event fields are used (title, time, place, description, link
- * back to the event page). Organizer and contact data never go in here.
+ * Only public event fields are used (title, time, place, description, the
+ * organizer's display name, the public contact text `kontakt`, link back to
+ * the event page). The organizer's account e-mail never goes in here.
  *
  * Times are written as floating local times (no TZID) together with
  * X-WR-TIMEZONE: the events are in-person events in Vorarlberg, so a start
@@ -32,6 +33,8 @@ export interface IcsEvent {
   isOnline?: unknown;
   category?: unknown;
   description?: unknown;
+  organizer?: unknown;
+  kontakt?: unknown;
 }
 
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
@@ -45,7 +48,7 @@ function str(value: unknown): string {
 export function escapeText(value: string): string {
   return value
     .replace(/\\/g, '\\\\')
-    .replace(/;/g, '\;')
+    .replace(/;/g, '\\;')
     .replace(/,/g, '\\,')
     .replace(/\r\n|\r|\n/g, '\\n');
 }
@@ -149,14 +152,27 @@ function location(event: IcsEvent): string {
   return place || bezirk;
 }
 
+function organizerName(event: IcsEvent): string {
+  const o = event.organizer;
+  if (!o || typeof o !== 'object') return '';
+  const { name, firstName, lastName } = o as Record<string, unknown>;
+  return str(name) || [str(firstName), str(lastName)].filter(Boolean).join(' ');
+}
+
 function description(event: IcsEvent): string {
   const text = stripHtml(event.description)
     .replace(/\n{3,}/g, '\n\n')
     .trim();
   const clipped =
     text.length > MAX_DESCRIPTION ? `${text.slice(0, MAX_DESCRIPTION - 1).trimEnd()}…` : text;
+  const parts = [clipped];
+  const organizer = organizerName(event);
+  if (organizer) parts.push(`Veranstalter: ${organizer}`);
+  const kontakt = stripHtml(event.kontakt).trim();
+  if (kontakt) parts.push(`Kontakt: ${kontakt}`);
   const link = `Mehr Infos: ${eventPageUrl(event)}`;
-  return clipped ? `${clipped}\n\n${link}` : link;
+  parts.push(link);
+  return parts.filter(Boolean).join('\n\n');
 }
 
 function utcStamp(now: Date): string {

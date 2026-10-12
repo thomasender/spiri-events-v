@@ -85,6 +85,8 @@ export interface PublicEvent extends SeriesFields {
   title?: unknown;
   place?: unknown;
   description?: unknown;
+  organizer?: unknown;
+  kontakt?: unknown;
 }
 
 function addDays(iso: string, days: number): string {
