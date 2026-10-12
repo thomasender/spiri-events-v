@@ -320,6 +320,7 @@
    begins. The 16px gap matches the rest of the filter panel rhythm. */
 .filter-header--section ~ .filter-header--section {
   margin-top: 16px;
+  padding-top: 8px;
   border-top: 1px solid var(--border);
 }
 
