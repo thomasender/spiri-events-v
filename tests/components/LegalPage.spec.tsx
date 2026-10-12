@@ -61,6 +61,15 @@ describe('LegalPage formatting', () => {
     expect(container.textContent).toContain('Auskunftsrecht');
   });
 
+  it('describes Google Analytics (consent only) and no longer claims "no tracking"', () => {
+    const { container } = renderLegalPage('datenschutz');
+    const text = container.textContent ?? '';
+    expect(text).toContain('7. Statistik mit Google Analytics (nur mit Einwilligung)');
+    expect(text).toContain('Cookie-Einstellungen');
+    expect(text).not.toContain('Kein Tracking');
+    expect(text).not.toContain('keine Tracking-Dienste');
+  });
+
   it('renders the Impressum content', () => {
     const { container } = renderLegalPage('impressum');
     expect(screen.getByText('Impressum')).toBeInTheDocument();

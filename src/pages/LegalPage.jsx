@@ -48,13 +48,17 @@ Diese Daten werden in Firestore (Firebase) gespeichert. Event-Bilder werden in F
 - Registrierung und Authentifizierung
 - Verwaltung Ihrer Events
 
+*Einwilligung (Art. 6 Abs. 1 lit. a DSGVO):*
+- Statistik mit Google Analytics (siehe Abschnitt 7)
+- Veröffentlichung im Verzeichnis und auf Instagram (siehe Abschnitte 11 und 12)
+
 *Berechtigte Interessen (Art. 6 Abs. 1 lit. f DSGVO):*
 - Bereitstellung der App-Funktionalität
 - Sicherstellung des ordnungsgemäßen Betriebs`,
       },
       {
         heading: '4. Keine Weitergabe an Dritte',
-        text: `Wir geben Ihre personenbezogenen Daten nicht an Dritte weiter (Ausnahme: die freiwillige Veröffentlichung Ihrer Events auf Instagram mit Ihrer Einwilligung, siehe Abschnitt 12). Ihre Daten werden nicht verkauft, vermietet oder in sonstiger Weise an externe Unternehmen oder Organisationen übermittelt.
+        text: `Wir geben Ihre personenbezogenen Daten nicht an Dritte weiter (Ausnahmen: die freiwillige Veröffentlichung Ihrer Events auf Instagram mit Ihrer Einwilligung, siehe Abschnitt 12, sowie die Nutzungsstatistik mit Google Analytics, die nur mit Ihrer Einwilligung erfolgt, siehe Abschnitt 7). Ihre Daten werden nicht verkauft, vermietet oder in sonstiger Weise an externe Unternehmen oder Organisationen übermittelt.
 
 Firebase (Google) fungiert als Auftragsverarbeiter und erhält Ihre Daten nur insoweit, als dies für die Bereitstellung der Authentifizierungs- und Datenbankdienste erforderlich ist.`,
       },
@@ -81,8 +85,32 @@ Nach einer Löschunganfrage werden die Daten innerhalb von 30 Tagen entfernt.`,
 Um Ihre Rechte auszuüben, senden Sie eine E-Mail an kontakt@spirituelle-events-vorarlberg.at`,
       },
       {
-        heading: '7. Kein Tracking oder Analytics',
-        text: `Diese App verwendet keine Tracking-Dienste, Cookies zu Werbezwecken oder Analyse-Tools. Es werden keine Daten über Ihr Nutzungsverhalten erhoben oder gespeichert.`,
+        heading: '7. Statistik mit Google Analytics (nur mit Einwilligung)',
+        text: `Wir möchten verstehen, wie diese Website genutzt wird, um sie zu verbessern und mehr Menschen zu erreichen. Dafür verwenden wir Google Analytics 4, einen Dienst der Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Irland. Google Analytics wird über Firebase eingebunden.
+
+*Nur mit Ihrer Einwilligung:*
+- Google Analytics wird erst aktiv, wenn Sie im Hinweis beim ersten Besuch auf „Akzeptieren“ klicken. Wenn Sie „Ablehnen“ wählen oder keine Auswahl treffen, wird Google Analytics nicht geladen, es werden keine Daten an Google gesendet und es wird kein Analyse-Cookie gesetzt
+- Die Seite können Sie in beiden Fällen uneingeschränkt nutzen
+
+*Rechtsgrundlage:* Ihre Einwilligung (Art. 6 Abs. 1 lit. a DSGVO) sowie § 165 Abs. 3 TKG 2021 für das Speichern und Auslesen von Informationen auf Ihrem Endgerät (Cookies).
+
+*Welche Daten werden verarbeitet?*
+- Gekürzte (anonymisierte) IP-Adresse
+- Geräte- und Browserinformationen (z.B. Gerätetyp, Betriebssystem, Browser, Sprache)
+- Aufgerufene Seiten und Ihre Interaktionen auf der Website (z.B. Klicks, Favoriten, Teilen, Filter)
+- Eine pseudonyme Kennung, die in Cookies gespeichert wird (Cookies mit dem Namen „_ga“ bzw. „_ga_“ und der Mess-ID)
+
+Wir erfassen in der Statistik keine E-Mail-Adressen, Namen oder Freitext-Eingaben und führen keine Daten mit Ihrem Benutzerkonto zusammen. Besuche von Administrator:innen werden nicht gezählt.
+
+*Speicherdauer:* Die Ereignisdaten werden bei Google Analytics nach 2 Monaten automatisch gelöscht. Die Cookies bleiben bis zu 2 Jahre auf Ihrem Gerät gespeichert, sofern Sie sie nicht vorher löschen.
+
+*Keine Werbenutzung:* Wir verwenden keine Google-Signale und keine Werbepersonalisierung. Es werden keine Werbeprofile erstellt, und die Daten werden nicht mit Werbediensten von Google verknüpft. Die Datenfreigabe an Google für eigene Zwecke (z.B. Benchmarking, Produktverbesserung) haben wir deaktiviert.
+
+*Übermittlung in Drittländer:* Google kann Daten auch in die USA übermitteln. Google LLC ist unter dem EU-US Data Privacy Framework zertifiziert, für das die Europäische Kommission ein angemessenes Datenschutzniveau festgestellt hat. Zusätzlich besteht ein Auftragsverarbeitungsvertrag gemäß Art. 28 DSGVO mit Google.
+
+*Widerruf:* Sie können Ihre Einwilligung jederzeit mit Wirkung für die Zukunft widerrufen, indem Sie im Seitenende (Footer) auf „Cookie-Einstellungen“ klicken und „Ablehnen“ wählen. Danach werden keine weiteren Daten mehr gesendet. Die Rechtmäßigkeit der bis dahin erfolgten Verarbeitung bleibt unberührt. Bereits gesetzte Cookies können Sie zusätzlich in Ihrem Browser löschen.
+
+Weitere Informationen finden Sie in der Datenschutzerklärung von Google: [https://policies.google.com/privacy](https://policies.google.com/privacy)`,
       },
       {
         heading: '8. Datensicherheit',
@@ -97,6 +125,7 @@ Um Ihre Rechte auszuüben, senden Sie eine E-Mail an kontakt@spirituelle-events-
         text: `Wir nutzen Firebase (ein Dienst von Google Ireland Limited) für:
 - Authentifizierung (Firebase Authentication)
 - Datenspeicherung (Cloud Firestore)
+- Nutzungsstatistik (Google Analytics, nur mit Ihrer Einwilligung, siehe Abschnitt 7)
 
 Die Datenverarbeitung durch Firebase erfolgt auf Grundlage eines Auftragsverarbeitungsvertrags gemäß Art. 28 DSGVO. Google verarbeitet Daten ausschließlich nach unserer Weisung und nicht für eigene Zwecke.
 
