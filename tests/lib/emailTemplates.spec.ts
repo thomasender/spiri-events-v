@@ -9,6 +9,7 @@ import {
   buildPasswordResetPayload,
   buildContactMessagePayload,
   escapeHtml,
+  messageToPlainText,
   notificationSettingsUrl,
   APP_BASE_URL,
 } from '../../functions/src/emailTemplates';
@@ -119,6 +120,22 @@ describe('buildChangesRequestedPayload', () => {
     });
     expect(payload.html).toContain('Hallo Peter Mathis,');
     expect(payload.text).toContain('Hallo Peter Mathis,');
+  });
+
+  it('flattens rich-text messages to readable plain text and keeps emojis', () => {
+    const payload = buildChangesRequestedPayload({
+      event: baseEvent,
+      context: {
+        messageId: 'msg1',
+        authorName: 'Anna',
+        text: '<p>Bitte <strong>Ort</strong> ergänzen 🙏</p><ul><li>Adresse</li><li>PLZ</li></ul>',
+      },
+      recipient: 'peter@example.com',
+    });
+    expect(payload.text).toContain('Bitte Ort ergänzen 🙏');
+    expect(payload.text).toContain('• Adresse');
+    expect(payload.html).not.toContain('<strong>Ort');
+    expect(payload.html).toContain('🙏');
   });
 
   it('falls back to a generic greeting when the organizer name is missing', () => {
@@ -683,5 +700,15 @@ describe('email brand identity', () => {
     expect(payload.html).toMatch(
       /<h1[^>]*font-family:'Cormorant Garamond'[^>]*>Dein Event ist live<\/h1>/
     );
+  });
+});
+
+describe('messageToPlainText', () => {
+  it('passes legacy plain-text messages through unchanged', () => {
+    expect(messageToPlainText('  a < b & c\nZeile 2 ')).toBe('a < b & c\nZeile 2');
+  });
+
+  it('converts breaks, images and entities', () => {
+    expect(messageToPlainText('<p>A&amp;B<br>C</p><p><img src="x"></p>')).toBe('A&B\nC\n[Bild]');
   });
 });

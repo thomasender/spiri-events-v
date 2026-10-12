@@ -2,6 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { Send, MessageSquare, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useEventMessages } from '../hooks/useEventMessages';
+import RichTextEditorLazy from './RichTextEditorLazy';
+import RichTextView from './RichTextView';
+import { isHtmlEmpty, messageToHtml, MAX_MESSAGE_LENGTH } from '../utils/sanitize';
 import './EventMessages.css';
 
 function formatTime(timestamp) {
@@ -65,10 +68,9 @@ export default function EventMessages({ eventId, onReady }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    const trimmed = text.trim();
-    if (!trimmed) return;
+    if (isHtmlEmpty(text)) return;
     try {
-      await sendMessage(trimmed);
+      await sendMessage(text);
       setText('');
     } catch (err) {
       setError(err.message || 'Nachricht konnte nicht gesendet werden.');
@@ -123,7 +125,7 @@ export default function EventMessages({ eventId, onReady }) {
                     </span>
                     <span className="event-message-time">{formatTime(msg.createdAt)}</span>
                   </div>
-                  <p className="event-message-text">{msg.text}</p>
+                  <RichTextView html={messageToHtml(msg.text)} className="event-message-text" />
                 </li>
               );
             })}
@@ -132,26 +134,25 @@ export default function EventMessages({ eventId, onReady }) {
       </div>
 
       <form className="event-messages-composer" onSubmit={handleSubmit}>
-        <textarea
+        <RichTextEditorLazy
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={setText}
           placeholder={
             role === 'Admin'
               ? 'Beschreibe, was am Event geändert werden soll…'
               : 'Schreibe eine Antwort an das Admin-Team…'
           }
-          rows={3}
-          disabled={sending}
-          data-testid="event-message-input"
-          maxLength={2000}
+          maxLength={MAX_MESSAGE_LENGTH}
+          testId="event-message-input"
+          eventId={eventId}
+          enableEmoji
         />
         <div className="event-messages-composer-footer">
-          <span className="event-messages-count">{text.length} / 2000</span>
           {error && <span className="event-messages-error">{error}</span>}
           <button
             type="submit"
             className="btn btn-primary btn-sm"
-            disabled={sending || !text.trim()}
+            disabled={sending || isHtmlEmpty(text)}
             data-testid="event-message-send"
           >
             <Send size={16} aria-hidden="true" />

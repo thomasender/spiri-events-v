@@ -12,10 +12,62 @@ import {
   Check,
   X,
   ImagePlus,
+  Smile,
 } from 'lucide-react';
 import { sanitizeHtml, getPlainTextLength, MAX_DESCRIPTION_LENGTH } from '../utils/sanitize';
 import { uploadDescriptionImage, MAX_INPUT_SIZE_BYTES } from '../lib/imageUpload';
 import './RichTextEditor.css';
+
+const EMOJIS = [
+  '😊',
+  '😀',
+  '😁',
+  '😂',
+  '🥰',
+  '😍',
+  '😘',
+  '🙂',
+  '😉',
+  '😌',
+  '🤗',
+  '🤔',
+  '😅',
+  '😢',
+  '🙏',
+  '🙌',
+  '👍',
+  '👏',
+  '💪',
+  '👋',
+  '❤️',
+  '🧡',
+  '💛',
+  '💚',
+  '💙',
+  '💜',
+  '✨',
+  '🌟',
+  '🔥',
+  '🌈',
+  '☀️',
+  '🌙',
+  '🌿',
+  '🌸',
+  '🌻',
+  '🍀',
+  '🌍',
+  '🕉️',
+  '🧘',
+  '🕯️',
+  '🎶',
+  '🎉',
+  '📅',
+  '📍',
+  '✅',
+  '⚠️',
+  '❗',
+  '❓',
+];
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
@@ -92,10 +144,12 @@ function RichTextEditor({
   eventId = 'temp',
   uploadImage,
   onImageError,
+  enableEmoji = false,
 }) {
   const [linkOpen, setLinkOpen] = useState(false);
   const [linkInitial, setLinkInitial] = useState('');
   const [plainLength, setPlainLength] = useState(() => getPlainTextLength(value));
+  const [emojiOpen, setEmojiOpen] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
   const [imageError, setImageError] = useState(null);
   const fileInputRef = useRef(null);
@@ -317,7 +371,35 @@ function RichTextEditor({
         >
           <ImagePlus size={16} />
         </ToolbarButton>
+        {enableEmoji && (
+          <ToolbarButton
+            label="Emoji einfügen"
+            active={emojiOpen}
+            onClick={() => setEmojiOpen((open) => !open)}
+          >
+            <Smile size={16} />
+          </ToolbarButton>
+        )}
       </div>
+
+      {enableEmoji && emojiOpen && (
+        <div className="rte-emoji-popover" role="dialog" aria-label="Emoji auswählen">
+          {EMOJIS.map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              className="rte-emoji-btn"
+              aria-label={`Emoji ${emoji}`}
+              onClick={() => {
+                editor.chain().focus().insertContent(emoji).run();
+                setEmojiOpen(false);
+              }}
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+      )}
 
       {linkOpen && (
         <LinkPopover

@@ -82,4 +82,20 @@ export function truncateHtmlText(html, maxChars) {
   return text.slice(0, maxChars).trimEnd() + '…';
 }
 
+/**
+ * Messages used to be stored as plain text with line breaks. Wrap such legacy
+ * text into HTML so it renders the same way as newer rich-text messages.
+ */
+export function messageToHtml(text) {
+  if (!text || typeof text !== 'string') return '';
+  if (/^\s*<(p|ul|ol)\b/i.test(text)) return text;
+  const escaped = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\n/g, '<br>');
+  return `<p>${escaped}</p>`;
+}
+
 export const MAX_DESCRIPTION_LENGTH = 5000;
+export const MAX_MESSAGE_LENGTH = 2000;
