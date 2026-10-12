@@ -703,3 +703,23 @@
 .filter-chip[aria-pressed='false']:has(.filter-chip-count[data-empty='true']) {
   opacity: 0.5;
 }
+
+.calendar-subscribe {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  margin: 24px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.calendar-subscribe a {
+  color: var(--accent-primary-hover);
+  font-weight: 600;
+}
+
+.calendar-subscribe-hint code {
+  overflow-wrap: anywhere;
+  font-size: 0.8rem;
+}

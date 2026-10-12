@@ -29,6 +29,9 @@ export default defineConfig({
         // Matches the `rewrites: [{ source: '**', destination: '/index.html' }]`
         // block in firebase.json — the SW won't ever serve a real 404 page.
         navigateFallback: '/index.html',
+        // The calendar downloads are served by a Cloud Function (firebase.json
+        // rewrites); the SW must not answer them with the app shell.
+        navigateFallbackDenylist: [/^\/calendar\/(feed|event\/)/],
         // Don't precache index.html itself: every prerendered route already
         // lives at /event/<slug>/index.html and we don't want the SW to short-
         // circuit a fresh navigation to the shell with a stale copy.

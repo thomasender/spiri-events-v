@@ -122,6 +122,7 @@ export { adminListMembers, adminUpdateMember } from './adminMembers';
 export { adminAnalyticsReport } from './adminAnalytics';
 export { onEventApprovedPostToInstagram } from './instagramPostOnApproval';
 export { instagramWeeklyCarousel } from './instagramWeeklyCarousel';
+export { calendarFeed } from './calendarFeed';
 export { refreshInstagramTokenJob } from './instagramTokenRefresh';
 export {
   adminRetryInstagramPost,

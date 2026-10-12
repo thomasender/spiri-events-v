@@ -674,6 +674,17 @@ export default function EventDetailPage() {
                   ` — ${formatEndDate(occurrenceDate || event.date, event.endDate)}`}
               </span>
             )}
+            {event.status === 'approved' && (
+              <a
+                className="detail-link"
+                href={`/calendar/event/${encodeURIComponent(event.slug || event.id)}.ics`}
+                data-testid="add-to-calendar-link"
+              >
+                {showRecurrenceDatesList
+                  ? 'Alle Termine zum Kalender hinzufügen'
+                  : 'Zum Kalender hinzufügen'}
+              </a>
+            )}
           </div>
         </div>
 

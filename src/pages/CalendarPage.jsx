@@ -30,6 +30,7 @@ import {
   Heart,
   PlusCircle,
   SlidersHorizontal,
+  CalendarPlus,
 } from 'lucide-react';
 import './CalendarPage.css';
 import { trackEventOpen, trackFilter } from '../lib/analyticsEvents';
@@ -67,6 +68,19 @@ const HERO_SLIDER_INTERVAL_MS = 4000;
 // each slide, collapsing the row to a single fact. With two slides the
 // rotation cycles every 8 s.
 const HERO_FEATURE_PAIRS = [HERO_FEATURES.slice(0, 2), HERO_FEATURES.slice(2, 4)];
+
+// Address of the public iCal feed. A single selected Ort / Kategorie narrows it
+// (the server only accepts known values, so anything else is left out).
+export function buildFeedUrl(origin, selectedOrte, selectedCategories) {
+  const params = new URLSearchParams();
+  const knownOrte = [...BEZIRKE, ONLINE_LOCATION];
+  if (selectedOrte.length === 1 && knownOrte.includes(selectedOrte[0])) {
+    params.set('bezirk', selectedOrte[0]);
+  }
+  if (selectedCategories.length === 1) params.set('kategorie', selectedCategories[0]);
+  const query = params.toString();
+  return `${origin}/calendar/feed.ics${query ? `?${query}` : ''}`;
+}
 
 function loadFilterState() {
   try {
@@ -311,6 +325,12 @@ export default function CalendarPage() {
         onlineLocation: ONLINE_LOCATION,
       }),
     [baseEvents, currentMonth, selectedCategories, selectedOrte, dateFilter]
+  );
+
+  const feedUrl = buildFeedUrl(
+    typeof window !== 'undefined' ? window.location.origin : 'https://www.thetribe.at',
+    selectedOrte,
+    selectedCategories
   );
 
   const resetAllFilters = () => {
@@ -581,6 +601,22 @@ export default function CalendarPage() {
               categoryColorByName={categoryColorByName}
               onResetFilters={hasActiveFilter ? resetAllFilters : undefined}
             />
+          )}
+
+          {!loading && !error && (
+            <p className="calendar-subscribe" data-testid="calendar-subscribe">
+              <CalendarPlus size={16} aria-hidden="true" />{' '}
+              <a
+                href={feedUrl.replace(/^https?:/, 'webcal:')}
+                data-testid="calendar-subscribe-link"
+              >
+                Events im eigenen Kalender abonnieren
+              </a>
+              <span className="calendar-subscribe-hint">
+                {' '}
+                Für Google Kalender die Adresse kopieren: <code>{feedUrl}</code>
+              </span>
+            </p>
           )}
         </div>
 

@@ -313,6 +313,30 @@ describe('EventDetailPage — edit/delete visibility', () => {
   });
 });
 
+describe('EventDetailPage — add to calendar', () => {
+  it('links an approved event to its calendar download', async () => {
+    renderPage();
+    expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
+
+    expect(screen.getByTestId('add-to-calendar-link')).toHaveAttribute(
+      'href',
+      '/calendar/event/yoga-heute-yogastudio-dornbirn-20260804.ics'
+    );
+  });
+
+  it('offers no calendar download for an event that is not approved yet', async () => {
+    mockAuth.user = { uid: 'other-user-uid' };
+    mockFirestoreDoc.getDocResult = {
+      id: foreignEvent.id,
+      data: { ...foreignEvent, status: 'draft' },
+    };
+
+    renderPage();
+    expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
+    expect(screen.queryByTestId('add-to-calendar-link')).toBeNull();
+  });
+});
+
 describe('EventDetailPage — unavailable event for guests', () => {
   it('offers a login link back to the event when a guest cannot see it', async () => {
     mockFirestoreDoc.getDocResult = null;

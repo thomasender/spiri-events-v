@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
-import CalendarPage from '../../src/pages/CalendarPage';
+import CalendarPage, { buildFeedUrl } from '../../src/pages/CalendarPage';
 
 const mockUseAllEvents = vi.hoisted(() => ({ events: [], loading: false, error: null }));
 const mockUseCategories = vi.hoisted(() => ({ value: [] }));
@@ -598,5 +598,39 @@ describe('CalendarPage analytics', () => {
       EVENTS.SELECT_CONTENT,
       expect.objectContaining({ content_type: 'event', item_id: expect.stringMatching(/^slug-/) })
     );
+  });
+});
+
+describe('CalendarPage — calendar feed subscription', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    mockUseAllEvents.events = [];
+    mockUseCategories.value = ['Yoga', 'Meditation'];
+  });
+
+  it('offers the public feed as a webcal link with the https address next to it', () => {
+    renderPage();
+
+    const link = screen.getByTestId('calendar-subscribe-link');
+    expect(link.getAttribute('href')).toBe(`webcal://${window.location.host}/calendar/feed.ics`);
+    expect(screen.getByTestId('calendar-subscribe')).toHaveTextContent(
+      `${window.location.origin}/calendar/feed.ics`
+    );
+  });
+
+  it('narrows the feed to a single selected Ort and Kategorie', () => {
+    const origin = 'https://www.thetribe.at';
+    expect(buildFeedUrl(origin, [], [])).toBe(`${origin}/calendar/feed.ics`);
+    expect(buildFeedUrl(origin, ['Dornbirn'], [])).toBe(
+      `${origin}/calendar/feed.ics?bezirk=Dornbirn`
+    );
+    expect(buildFeedUrl(origin, ['Online'], ['Yoga'])).toBe(
+      `${origin}/calendar/feed.ics?bezirk=Online&kategorie=Yoga`
+    );
+    // More than one selection, or an unknown value: stay on the general feed.
+    expect(buildFeedUrl(origin, ['Dornbirn', 'Bregenz'], ['Yoga', 'Tanz'])).toBe(
+      `${origin}/calendar/feed.ics`
+    );
+    expect(buildFeedUrl(origin, ['Wien'], [])).toBe(`${origin}/calendar/feed.ics`);
   });
 });

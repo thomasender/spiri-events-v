@@ -11,6 +11,14 @@
     ],
     "rewrites": [
       {
+        "source": "/calendar/feed.ics",
+        "function": { "functionId": "calendarFeed", "region": "europe-west3" }
+      },
+      {
+        "source": "/calendar/event/*.ics",
+        "function": { "functionId": "calendarFeed", "region": "europe-west3" }
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
