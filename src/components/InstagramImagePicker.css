@@ -134,3 +134,85 @@
   flex-basis: 100%;
   margin: 0;
 }
+
+.instagram-post-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.instagram-post-preview > .btn {
+  align-self: flex-start;
+}
+
+.instagram-post-preview-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 200px));
+  gap: 12px;
+}
+
+.instagram-post-preview-tiles figure {
+  margin: 0;
+}
+
+.instagram-post-preview-tiles figcaption {
+  margin-top: 4px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.instagram-post-preview-tile {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: #1d1a1a;
+}
+
+.instagram-post-preview-tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.instagram-post-preview-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 8%;
+  color: #fff;
+  font-size: 0.7rem;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.45) 0%,
+    rgba(0, 0, 0, 0.05) 35%,
+    rgba(0, 0, 0, 0.8) 100%
+  );
+}
+
+.instagram-post-preview-chip {
+  align-self: flex-start;
+  padding: 2px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 999px;
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.instagram-post-preview-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.instagram-post-preview-text strong {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.15rem;
+  line-height: 1.05;
+  margin-bottom: 4px;
+}
