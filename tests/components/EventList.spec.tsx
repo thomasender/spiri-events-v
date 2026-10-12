@@ -267,6 +267,24 @@ describe('EventList', () => {
     expect(past).toHaveTextContent('30 Tage');
   });
 
+  it('lists drafts in their own open section', () => {
+    mockAuth.role = null;
+    mockUseEvents.events = [draftEvent, singleEvent];
+
+    render(
+      <MemoryRouter>
+        <EventList />
+      </MemoryRouter>
+    );
+
+    const drafts = screen.getByTestId('draft-events-section') as HTMLDetailsElement;
+    expect(drafts.open).toBe(true);
+    expect(drafts).toContainElement(screen.getByTestId('submit-draft-button'));
+    expect(screen.getByTestId('active-events-section')).not.toContainElement(
+      screen.getByTestId('submit-draft-button')
+    );
+  });
+
   it('shows status filter dropdown for non-admin user', () => {
     mockAuth.role = null;
     mockUseEvents.events = [singleEvent];

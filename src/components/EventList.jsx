@@ -261,8 +261,16 @@ export default function EventList() {
       const last = getEventLastDate(e);
       return Boolean(last) && last < todayIso;
     };
-    const active = eventsList.filter((e) => !isPast(e));
-    const past = eventsList.filter(isPast);
+    const drafts = eventsList.filter((e) => e.status === 'draft');
+    const rest = eventsList.filter((e) => e.status !== 'draft');
+    const active = rest.filter((e) => !isPast(e));
+    const past = rest.filter(isPast);
+    const retentionNote = (
+      <p className="event-list-retention-note" data-testid="event-retention-note">
+        Vergangene Events werden 30 Tage nach dem Termin gelöscht. Serien werden 30 Tage nach dem
+        letzten Termin gelöscht.
+      </p>
+    );
     return (
       <>
         {active.length > 0 && (
@@ -271,13 +279,17 @@ export default function EventList() {
             {renderEventsList(active, true)}
           </details>
         )}
+        {drafts.length > 0 && (
+          <details className="event-list-accordion" open data-testid="draft-events-section">
+            <summary>Entwürfe ({drafts.length})</summary>
+            {drafts.some(isPast) && retentionNote}
+            {renderEventsList(drafts, true)}
+          </details>
+        )}
         {past.length > 0 && (
           <details className="event-list-accordion" data-testid="past-events-section">
             <summary>Vergangene Events ({past.length})</summary>
-            <p className="event-list-retention-note" data-testid="event-retention-note">
-              Vergangene Events werden 30 Tage nach dem Termin automatisch gelöscht. Serien werden
-              30 Tage nach dem letzten Termin gelöscht.
-            </p>
+            {retentionNote}
             {renderEventsList(past, true)}
           </details>
         )}
