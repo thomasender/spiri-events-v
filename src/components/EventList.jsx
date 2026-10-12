@@ -263,8 +263,13 @@ export default function EventList() {
     };
     const drafts = eventsList.filter((e) => e.status === 'draft');
     const rest = eventsList.filter((e) => e.status !== 'draft');
-    const active = rest.filter((e) => !isPast(e));
-    const past = rest.filter(isPast);
+    const nextDate = (e) => getNextUpcomingOccurrence(e) || e.date || '';
+    const active = rest
+      .filter((e) => !isPast(e))
+      .sort((a, b) => nextDate(a).localeCompare(nextDate(b)));
+    const past = rest
+      .filter(isPast)
+      .sort((a, b) => getEventLastDate(b).localeCompare(getEventLastDate(a)));
     const retentionNote = (
       <p className="event-list-retention-note" data-testid="event-retention-note">
         Vergangene Events werden 30 Tage nach dem Termin gelöscht. Serien werden 30 Tage nach dem

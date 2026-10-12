@@ -267,6 +267,30 @@ describe('EventList', () => {
     expect(past).toHaveTextContent('30 Tage');
   });
 
+  it('sorts active events soonest first and past events most recently past first', () => {
+    mockAuth.role = null;
+    mockGetNextUpcomingOccurrence.mockImplementation((e) => e.date);
+    mockUseEvents.events = [
+      { ...singleEvent, id: 'a-far', title: 'Active Far', date: '2099-12-01' },
+      { ...singleEvent, id: 'p-old', title: 'Past Old', date: '2020-01-01' },
+      { ...singleEvent, id: 'a-near', title: 'Active Near', date: '2099-01-01' },
+      { ...singleEvent, id: 'p-recent', title: 'Past Recent', date: '2021-06-01' },
+    ];
+
+    render(
+      <MemoryRouter>
+        <EventList />
+      </MemoryRouter>
+    );
+
+    const order = (id: string, a: string, b: string) => {
+      const text = screen.getByTestId(id).textContent || '';
+      return text.indexOf(a) - text.indexOf(b);
+    };
+    expect(order('active-events-section', 'Active Near', 'Active Far')).toBeLessThan(0);
+    expect(order('past-events-section', 'Past Recent', 'Past Old')).toBeLessThan(0);
+  });
+
   it('lists drafts in their own open section', () => {
     mockAuth.role = null;
     mockUseEvents.events = [draftEvent, singleEvent];
