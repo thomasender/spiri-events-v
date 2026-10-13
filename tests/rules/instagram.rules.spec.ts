@@ -190,6 +190,242 @@ describe('events.instagramConsent', () => {
   });
 });
 
+// Moderation: an owner (any user with a verified e-mail) must not be able to
+// publish their own event with a direct write. Each allowed case mirrors a
+// write the app makes (src/hooks/useEvents.js, EventForm, utils/trashUpdates,
+// utils/customSeriesUpdates).
+describe('events: owners cannot approve their own events', () => {
+  const owner = () => env.authenticatedContext('owner', { email_verified: true });
+  const seed = (id: string, data: Record<string, unknown>) =>
+    env.withSecurityRulesDisabled((ctx) =>
+      setDoc(doc(ctx.firestore(), `events/${id}`), {
+        createdBy: 'owner',
+        description: 'd',
+        title: 'T',
+        slug: 't-sonstiges-20261101',
+        ...data,
+      })
+    );
+  const ownerRef = (id: string) => doc(owner().firestore(), `events/${id}`);
+
+  describe('attack: denied', () => {
+    it.each(['draft', 'pending', 'trashed'])('%s -> approved', async (from) => {
+      await seed('e', { status: from });
+      await assertFails(updateDoc(ownerRef('e'), { status: 'approved' }));
+    });
+
+    it('pending -> approved with the bookkeeping the admin flow writes', async () => {
+      await seed('e', { status: 'pending' });
+      await assertFails(
+        updateDoc(ownerRef('e'), { status: 'approved', approvedBy: 'owner', approvedAt: 1 })
+      );
+    });
+
+    it('creating an event directly as approved', async () => {
+      await assertFails(
+        setDoc(ownerRef('new'), { createdBy: 'owner', description: 'd', status: 'approved' })
+      );
+    });
+
+    it('faking review fields, also on an already approved event', async () => {
+      for (const status of ['pending', 'approved']) {
+        await seed('e', { status, approvedBy: 'adminDoc', approvedAt: 1 });
+        for (const patch of [
+          { approvedBy: 'owner' },
+          { approvedAt: 2 },
+          { unpublishedBy: 'owner' },
+          { unpublishedAt: 2 },
+          { slug: 'someone-elses-event' },
+          { createdBy: 'mallory' },
+          { trashReason: 'fake admin reason' },
+          { trashedBy: 'adminDoc' },
+        ]) {
+          await assertFails(updateDoc(ownerRef('e'), patch));
+        }
+      }
+    });
+
+    it('trashing with a fake admin reason', async () => {
+      await seed('e', { status: 'pending' });
+      await assertFails(
+        updateDoc(ownerRef('e'), {
+          status: 'trashed',
+          trashedAt: 1,
+          trashedBy: 'owner',
+          trashReason: 'Spam',
+        })
+      );
+    });
+
+    it('other verified users cannot touch the event at all', async () => {
+      await seed('e', { status: 'pending' });
+      const db = env.authenticatedContext('mallory', { email_verified: true }).firestore();
+      await assertFails(updateDoc(doc(db, 'events/e'), { status: 'draft' }));
+    });
+  });
+
+  describe('legitimate owner writes: allowed', () => {
+    it('creates as draft or pending', async () => {
+      const base = { createdBy: 'owner', description: 'd' };
+      await assertSucceeds(setDoc(ownerRef('n1'), { ...base, status: 'draft' }));
+      await assertSucceeds(setDoc(ownerRef('n2'), { ...base, status: 'pending' }));
+    });
+
+    it('submits a draft for review and takes it back (draft <-> pending)', async () => {
+      await seed('e', { status: 'draft' });
+      await assertSucceeds(updateDoc(ownerRef('e'), { status: 'pending', updatedAt: 1 }));
+      await assertSucceeds(updateDoc(ownerRef('e'), { status: 'draft', updatedAt: 2 }));
+    });
+
+    it('edits a draft / pending event and keeps its status', async () => {
+      for (const status of ['draft', 'pending']) {
+        await seed('e', { status });
+        await assertSucceeds(
+          updateDoc(ownerRef('e'), { title: 'New', description: 'x', status, updatedAt: 1 })
+        );
+      }
+    });
+
+    it('re-submits an edited approved event (approved -> pending), or saves it as draft', async () => {
+      for (const target of ['pending', 'draft']) {
+        await seed('e', { status: 'approved', approvedBy: 'adminDoc', approvedAt: 1 });
+        await assertSucceeds(
+          updateDoc(ownerRef('e'), { title: 'New', status: target, updatedAt: 1 })
+        );
+      }
+    });
+
+    it('keeps an approved event approved for Instagram-only edits (full form payload)', async () => {
+      await seed('e', { status: 'approved', approvedBy: 'adminDoc', approvedAt: 1 });
+      await assertSucceeds(
+        updateDoc(ownerRef('e'), {
+          title: 'T',
+          description: 'd',
+          status: 'approved',
+          instagramConsent: true,
+          instagramHandleOverride: 'my_handle',
+          instagramImage: { url: 'https://x/y.jpg', focalPoint: { x: 0.5, y: 0.5 }, zoom: 1 },
+          updatedAt: 1,
+        })
+      );
+    });
+
+    it('patches series exceptions and images on an approved event without touching status', async () => {
+      await seed('e', {
+        status: 'approved',
+        recurrence: 'custom',
+        customDates: ['2026-11-01', '2026-11-08'],
+      });
+      await assertSucceeds(
+        updateDoc(ownerRef('e'), {
+          customDates: ['2026-11-01'],
+          exceptionDates: ['2026-11-08'],
+          updatedAt: 1,
+        })
+      );
+      await assertSucceeds(updateDoc(ownerRef('e'), { imageUrl: 'https://x/new.jpg' }));
+      await assertSucceeds(
+        updateDoc(ownerRef('e'), { instagramImage: { url: 'https://x/ig.jpg' } })
+      );
+    });
+
+    it('trashes (from any status) and restores to draft', async () => {
+      for (const status of ['draft', 'pending', 'approved']) {
+        await seed('e', { status });
+        await assertSucceeds(
+          updateDoc(ownerRef('e'), {
+            status: 'trashed',
+            trashedAt: 1,
+            trashedBy: 'owner',
+            trashReason: null,
+            updatedAt: 1,
+          })
+        );
+        await assertSucceeds(
+          updateDoc(ownerRef('e'), {
+            status: 'draft',
+            trashedAt: null,
+            trashedBy: null,
+            trashReason: null,
+            updatedAt: 2,
+          })
+        );
+      }
+    });
+
+    it('restores an event an admin trashed with a reason (reason is cleared)', async () => {
+      await seed('e', {
+        status: 'trashed',
+        trashedBy: 'adminDoc',
+        trashReason: 'Spam',
+        trashedAt: 1,
+      });
+      await assertSucceeds(
+        updateDoc(ownerRef('e'), {
+          status: 'draft',
+          trashedAt: null,
+          trashedBy: null,
+          trashReason: null,
+          updatedAt: 2,
+        })
+      );
+    });
+
+    it('deletes the event permanently', async () => {
+      await seed('e', { status: 'trashed' });
+      await assertSucceeds(deleteDoc(ownerRef('e')));
+    });
+  });
+
+  describe.each(Object.entries(adminVariants))('%s (unchanged)', (_n, make) => {
+    const adminRef = (id: string) => doc(make().firestore(), `events/${id}`);
+
+    it('approves a pending event of another user, with bookkeeping and slug variant', async () => {
+      await seed('e', { status: 'pending' });
+      await assertSucceeds(
+        updateDoc(adminRef('e'), {
+          status: 'approved',
+          approvedBy: 'adminDoc',
+          approvedAt: 1,
+          slug: 't-sonstiges-20261101-2',
+          updatedAt: 1,
+        })
+      );
+    });
+
+    it('unpublishes, trashes with a reason and restores', async () => {
+      await seed('e', { status: 'approved' });
+      await assertSucceeds(
+        updateDoc(adminRef('e'), { status: 'draft', unpublishedBy: 'adminDoc', unpublishedAt: 1 })
+      );
+      await assertSucceeds(
+        updateDoc(adminRef('e'), {
+          status: 'trashed',
+          trashedBy: 'adminDoc',
+          trashedAt: 1,
+          trashReason: 'Spam',
+        })
+      );
+      await assertSucceeds(
+        updateDoc(adminRef('e'), { status: 'draft', trashedBy: null, trashReason: null })
+      );
+    });
+
+    it('approves an event the admin created themselves', async () => {
+      await env.withSecurityRulesDisabled((ctx) =>
+        setDoc(doc(ctx.firestore(), 'events/own'), {
+          createdBy: 'adminDoc',
+          description: 'd',
+          status: 'pending',
+        })
+      );
+      await assertSucceeds(
+        updateDoc(adminRef('own'), { status: 'approved', approvedBy: 'adminDoc', approvedAt: 1 })
+      );
+    });
+  });
+});
+
 describe('users.instagramConsentDefault', () => {
   it('owner can set a bool, not a non-bool', async () => {
     const db = env.authenticatedContext('owner').firestore();
