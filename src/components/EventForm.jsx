@@ -1490,10 +1490,6 @@ export default function EventForm({ event }) {
 
           <div className="form-group">
             <label>Bild (optional)</label>
-            <p className="image-hint" data-testid="title-image-hint">
-              Das Titelbild sollte ein ausdrucksstarkes Symbolfoto sein. Flyer eignen sich dafür
-              weniger – lade sie lieber in die Beschreibung hoch.
-            </p>
             {imagePreview ? (
               <div className="image-preview-container">
                 <FocalPointPicker
