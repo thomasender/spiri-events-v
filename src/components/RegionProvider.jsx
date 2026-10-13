@@ -41,15 +41,15 @@ export default function RegionProvider({ children }) {
   }, [urlSlug, urlRegionIsActive]);
 
   const setRegion = useCallback(
-    (slug) => {
+    (slug, path = '/') => {
       if (slug === ALL_REGIONS_SLUG) {
-        navigate(`/${ALL_REGIONS_SLUG}`);
+        navigate(regionPath(ALL_REGIONS_SLUG, path));
         return;
       }
       if (!isRegionSlug(slug)) return;
       writeLastRegion(slug);
       setStoredSlug(slug);
-      navigate(regionPath(slug));
+      navigate(regionPath(slug, path));
     },
     [navigate]
   );

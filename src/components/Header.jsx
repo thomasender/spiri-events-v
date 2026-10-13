@@ -6,6 +6,7 @@ import { useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
 import { useUnreadFeedbackCount } from '../hooks/useFeedbackList';
 import EmailVerificationModal from './EmailVerificationModal';
 import AvatarImage from './AvatarImage';
+import RegionSwitcher from './RegionSwitcher';
 import {
   Users,
   Calendar,
@@ -290,6 +291,8 @@ export default function Header() {
             <span className="logo-subtitle">für bewusste Events</span>
           </div>
         </Link>
+
+        <RegionSwitcher />
 
         <div className="nav-desktop">{renderNavLinks()}</div>
 

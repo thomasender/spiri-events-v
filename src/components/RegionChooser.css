@@ -1,0 +1,103 @@
+/* Top card under the header: the bottom right belongs to the feedback / create
+   buttons and the PWA install prompt. Not modal, the page stays usable. */
+.region-chooser {
+  position: fixed;
+  top: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(420px, calc(100vw - 32px));
+  padding: 20px 20px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 12px);
+  background-color: var(--bg-primary);
+  box-shadow: 0 12px 32px rgba(22, 24, 25, 0.18);
+  z-index: 950;
+}
+
+.region-chooser:focus {
+  outline: none;
+}
+
+.region-chooser-close {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.region-chooser-title {
+  margin: 0 40px 4px 0;
+  font-family: var(--font-heading);
+  font-size: 1.3rem;
+  color: var(--text-primary);
+}
+
+.region-chooser-hint {
+  margin: 0 0 14px;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.region-chooser-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.region-chooser-option {
+  min-height: 48px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.region-chooser-option:hover {
+  border-color: var(--accent-primary);
+}
+
+.region-chooser-option--all {
+  grid-column: 1 / -1;
+}
+
+.region-chooser-skip {
+  display: block;
+  min-height: 44px;
+  margin: 6px auto 0;
+  padding: 0 12px;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.region-chooser-close:focus-visible,
+.region-chooser-option:focus-visible,
+.region-chooser-skip:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .region-chooser {
+    top: 72px;
+    padding: 16px 16px 8px;
+  }
+}

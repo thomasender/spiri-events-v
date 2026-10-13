@@ -27,6 +27,7 @@ import ScrollToTop from './components/ScrollToTop';
 import ErrorBoundary from './components/ErrorBoundary';
 import ErrorPage from './pages/ErrorPage';
 import RegionProvider from './components/RegionProvider';
+import RegionChooser from './components/RegionChooser';
 import { RegionDirectoryRoute, RegionOrProfileRoute } from './components/RegionRoutes';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
 import CookieConsent from './components/CookieConsent';
@@ -122,6 +123,7 @@ function AppLayout() {
       <ScrollToTop />
       <AnalyticsRouteTracker />
       <Header />
+      <RegionChooser />
       <AppCheckBanner />
       <main className="main-content">
         <ErrorBoundary>

@@ -94,6 +94,38 @@ export function regionLocative(region) {
   return region?.slug === 'steiermark' ? `in der ${name}` : `in ${name}`;
 }
 
+/**
+ * Area a region switch keeps: `/verzeichnis` for the directory (with or
+ * without region prefix), `/` for everything else (calendar, events, profiles).
+ */
+export function regionSwitchSubpath(pathname) {
+  const segments = typeof pathname === 'string' ? pathname.split('/').filter(Boolean) : [];
+  const first = segments[0]?.toLowerCase();
+  const hasRegion = first && (isRegionSlug(first) || first === ALL_REGIONS_SLUG);
+  const rest = hasRegion ? segments.slice(1) : segments;
+  return rest.length === 1 && rest[0] === 'verzeichnis' ? '/verzeichnis' : '/';
+}
+
+export const REGION_CHOOSER_SEEN_KEY = 'tribe:regionChooserSeen';
+
+export function readRegionChooserSeen(storage) {
+  try {
+    const store = storage ?? (typeof window !== 'undefined' ? window.localStorage : null);
+    return store?.getItem(REGION_CHOOSER_SEEN_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function writeRegionChooserSeen(storage) {
+  try {
+    const store = storage ?? (typeof window !== 'undefined' ? window.localStorage : null);
+    store?.setItem(REGION_CHOOSER_SEEN_KEY, '1');
+  } catch {
+    // ignore: the chooser may then show again next visit
+  }
+}
+
 // localStorage can be missing or throw (private mode, blocked storage): both
 // helpers swallow errors, the region then simply comes from the URL/default.
 export function readLastRegion(storage) {
