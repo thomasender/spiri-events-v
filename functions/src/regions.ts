@@ -8,6 +8,26 @@
 export const DEFAULT_REGION_ID = 'vorarlberg';
 
 /**
+ * The nine Bundeslaender, same order as REGION_SLUGS in src/utils/regions.js
+ * and regionIds() in firestore.rules (guarded by tests/lib/functionsRegions.spec.ts).
+ */
+export const REGION_IDS: readonly string[] = [
+  'vorarlberg',
+  'tirol',
+  'salzburg',
+  'kaernten',
+  'steiermark',
+  'oberoesterreich',
+  'niederoesterreich',
+  'wien',
+  'burgenland',
+];
+
+export function isRegionId(value: unknown): value is string {
+  return typeof value === 'string' && REGION_IDS.includes(value);
+}
+
+/**
  * Regions whose events the Instagram automation (feed post on approval, weekly
  * carousel, preview, manual post) may publish. The Instagram account belongs to
  * Vorarlberg. To support another region later, add its id here AND make sure it

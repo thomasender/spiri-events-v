@@ -13,7 +13,9 @@ import {
   doc,
   getDoc,
   getDocs,
+  query,
   serverTimestamp,
+  where,
   setDoc,
   updateDoc,
   deleteDoc,
@@ -1049,5 +1051,624 @@ describe('users / publicProfile directoryRegionIds', () => {
         { merge: true }
       )
     );
+  });
+});
+
+// ─── Region moderators (role 'RegionModerator' in admin_users) ─────────────
+// A narrow extra right next to the Super-Admin: review actions on events of
+// their own regions, the conversation on those events and hiding directory
+// listings that lie entirely in their regions. Nothing else.
+describe('region moderators', () => {
+  const MOD_DOCS: Record<string, string[]> = {
+    modTirol: ['tirol'],
+    modSteiermark: ['steiermark'],
+    modVorarlberg: ['vorarlberg'],
+    modTwo: ['tirol', 'steiermark'],
+  };
+  const dbFor = (uid: string) =>
+    env.authenticatedContext(uid, { email_verified: true }).firestore();
+
+  // Actors of the ticket's matrix. `uid` is what the actor stamps into
+  // approvedBy/trashedBy, so each payload is valid for its actor.
+  const ACTORS = {
+    'Super-Admin (admin_users doc)': { uid: 'adminDoc', db: () => dbFor('adminDoc') },
+    'Super-Admin (token claim)': {
+      uid: 'adminTok',
+      db: () => env.authenticatedContext('adminTok', { role: 'Admin' }).firestore(),
+    },
+    'Moderator Tirol': { uid: 'modTirol', db: () => dbFor('modTirol') },
+    'Moderator Steiermark': { uid: 'modSteiermark', db: () => dbFor('modSteiermark') },
+    'Moderator Vorarlberg': { uid: 'modVorarlberg', db: () => dbFor('modVorarlberg') },
+    'Moderator Tirol + Steiermark': { uid: 'modTwo', db: () => dbFor('modTwo') },
+    'Veranstalter:in (not the owner)': { uid: 'organizer', db: () => dbFor('organizer') },
+    anonym: { uid: 'anon', db: () => env.unauthenticatedContext().firestore() },
+  } as const;
+  type Actor = keyof typeof ACTORS;
+
+  const eventBase = {
+    title: 'T',
+    description: 'd',
+    slug: 'yoga-20261102',
+    category: 'Yoga',
+    createdBy: 'owner',
+    isOnline: false,
+  };
+  const EVENTS: Record<string, Record<string, unknown>> = {
+    tirolPending: { ...eventBase, status: 'pending', regionId: 'tirol' },
+    vbPending: { ...eventBase, status: 'pending', regionId: 'vorarlberg' },
+    legacyPending: { ...eventBase, status: 'pending' },
+    stPending: { ...eventBase, status: 'pending', regionId: 'steiermark' },
+    onlineTirol: { ...eventBase, status: 'pending', regionId: 'tirol', isOnline: true },
+    tirolDraft: { ...eventBase, status: 'draft', regionId: 'tirol' },
+    tirolApproved: { ...eventBase, status: 'approved', regionId: 'tirol', approvedBy: 'adminDoc' },
+    tirolTrashed: {
+      ...eventBase,
+      status: 'trashed',
+      regionId: 'tirol',
+      trashedBy: 'adminDoc',
+      trashedAt: 1,
+      trashReason: 'x',
+    },
+    oddRegion: { ...eventBase, status: 'pending', regionId: 'bayern' },
+  };
+
+  const approve = (uid: string, extra: Record<string, unknown> = {}) => ({
+    status: 'approved',
+    approvedBy: uid,
+    approvedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    ...extra,
+  });
+  const requestChanges = () => ({ status: 'draft', updatedAt: serverTimestamp() });
+  const unpublish = (uid: string) => ({
+    status: 'draft',
+    unpublishedBy: uid,
+    unpublishedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+  const trash = (uid: string, reason: unknown = 'Passt nicht') => ({
+    status: 'trashed',
+    trashedAt: serverTimestamp(),
+    trashedBy: uid,
+    trashReason: reason,
+    updatedAt: serverTimestamp(),
+  });
+  const restore = () => ({
+    status: 'draft',
+    trashedAt: null,
+    trashedBy: null,
+    trashReason: null,
+    updatedAt: serverTimestamp(),
+  });
+  const message = (uid: string, authorRole = 'Admin') => ({
+    text: '<p>Bitte Ort ergänzen</p>',
+    authorUid: uid,
+    authorRole,
+    authorName: 'Mod',
+    createdAt: serverTimestamp(),
+    readByRecipient: false,
+  });
+
+  const PROFILES: Record<string, Record<string, unknown>> = {
+    pTirol: { directoryRegionIds: ['tirol'] },
+    pTirolWien: { directoryRegionIds: ['tirol', 'wien'] },
+    pTirolSt: { directoryRegionIds: ['tirol', 'steiermark'] },
+    pLegacy: {},
+    pEmpty: { directoryRegionIds: [] },
+    staffTirol: { directoryRegionIds: ['tirol'] },
+  };
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      for (const [uid, regionIds] of Object.entries(MOD_DOCS)) {
+        await setDoc(doc(db, `admin_users/${uid}`), { role: 'RegionModerator', regionIds });
+      }
+      // Malformed or look-alike role docs must grant nothing.
+      await setDoc(doc(db, 'admin_users/modString'), {
+        role: 'RegionModerator',
+        regionIds: 'tirol',
+      });
+      await setDoc(doc(db, 'admin_users/modCase'), {
+        role: 'regionmoderator',
+        regionIds: ['tirol'],
+      });
+      await setDoc(doc(db, 'admin_users/modBogus'), {
+        role: 'RegionModerator',
+        regionIds: ['bayern'],
+      });
+      // A staff member (moderator elsewhere) who is listed in Tirol.
+      await setDoc(doc(db, 'admin_users/staffTirol'), {
+        role: 'RegionModerator',
+        regionIds: ['wien'],
+      });
+      for (const [id, data] of Object.entries(EVENTS)) {
+        await setDoc(doc(db, `events/${id}`), data);
+        await setDoc(doc(db, `events/${id}/messages/m1`), {
+          ...message('owner', 'User'),
+          createdAt: 1,
+        });
+      }
+      for (const [uid, data] of Object.entries(PROFILES)) {
+        await setDoc(doc(db, `users/${uid}`), { displayName: uid, bio: '', contact: 'secret' });
+        await setDoc(doc(db, `users/${uid}/publicProfile/data`), {
+          displayName: uid,
+          bio: '',
+          slug: uid.toLowerCase(),
+          listedInDirectory: true,
+          directoryCategories: ['Yoga'],
+          ...data,
+        });
+      }
+      await setDoc(doc(db, 'categories/yoga'), { name: 'Yoga', color: '#123456', order: 0 });
+      await setDoc(doc(db, 'feedback/f1'), { description: 'x', status: 'new' });
+      await setDoc(doc(db, 'member_lists/l1'), { name: 'L', memberUids: [] });
+      await setDoc(doc(db, 'donors/d1'), { name: 'D', amount: 5 });
+      await setDoc(doc(db, 'helpers/h1'), { name: 'H' });
+      await setDoc(doc(db, 'regions/tirol'), {
+        name: 'Tirol',
+        slug: 'tirol',
+        order: 1,
+        active: true,
+        contactEmail: '',
+      });
+      await setDoc(doc(db, 'admin_audit_log/a1'), { action: 'setRegionModerator' });
+    });
+  });
+
+  // ── The ticket's decision matrix ──────────────────────────────────────
+  type Op = (a: (typeof ACTORS)[Actor]) => Promise<unknown>;
+  const OPS: [string, Op][] = [
+    ['approve a Tirol event', (a) => updateDoc(doc(a.db(), 'events/tirolPending'), approve(a.uid))],
+    [
+      'approve a Vorarlberg event',
+      (a) => updateDoc(doc(a.db(), 'events/vbPending'), approve(a.uid)),
+    ],
+    [
+      'approve a Steiermark event',
+      (a) => updateDoc(doc(a.db(), 'events/stPending'), approve(a.uid)),
+    ],
+    [
+      "change a Tirol event's region",
+      (a) =>
+        updateDoc(doc(a.db(), 'events/tirolPending'), {
+          regionId: 'vorarlberg',
+          updatedAt: serverTimestamp(),
+        }),
+    ],
+    [
+      'write a category',
+      (a) =>
+        updateDoc(doc(a.db(), 'categories/yoga'), {
+          color: '#654321',
+          updatedAt: serverTimestamp(),
+        }),
+    ],
+    [
+      'write the theme',
+      (a) => updateDoc(doc(a.db(), 'app_settings/theme'), { '--bg-primary': '#ffffff' }),
+    ],
+    [
+      'write its own admin_users doc',
+      (a) => setDoc(doc(a.db(), `admin_users/${a.uid}`), { role: 'Admin' }),
+    ],
+    [
+      'approve an online event (moderation region Tirol)',
+      (a) => updateDoc(doc(a.db(), 'events/onlineTirol'), approve(a.uid)),
+    ],
+    ["read someone else's Tirol draft", (a) => getDoc(doc(a.db(), 'events/tirolDraft'))],
+  ];
+
+  const Y = true;
+  const N = false;
+  // One column per OPS entry, in order.
+  const MATRIX: Record<Actor, boolean[]> = {
+    'Super-Admin (admin_users doc)': [Y, Y, Y, Y, Y, Y, N, Y, Y],
+    'Super-Admin (token claim)': [Y, Y, Y, Y, Y, Y, N, Y, Y],
+    'Moderator Tirol': [Y, N, N, N, N, N, N, Y, N],
+    'Moderator Steiermark': [N, N, Y, N, N, N, N, N, N],
+    'Moderator Vorarlberg': [N, Y, N, N, N, N, N, N, N],
+    'Moderator Tirol + Steiermark': [Y, N, Y, N, N, N, N, Y, N],
+    'Veranstalter:in (not the owner)': [N, N, N, N, N, N, N, N, N],
+    anonym: [N, N, N, N, N, N, N, N, N],
+  };
+
+  describe.each(Object.keys(MATRIX) as Actor[])('%s', (actor) => {
+    it.each(OPS.map(([name, op], i) => [name, op, MATRIX[actor][i]] as const))(
+      '%s',
+      async (_name, op, allowed) => {
+        const attempt = op(ACTORS[actor]);
+        await (allowed ? assertSucceeds(attempt) : assertFails(attempt));
+      }
+    );
+  });
+
+  // ── Events: what exactly a moderator may do in her region ─────────────
+  describe('events in her own region (Moderator Tirol)', () => {
+    const mod = () => dbFor('modTirol');
+    const ev = (id: string) => doc(mod(), `events/${id}`);
+
+    it('reads pending, approved, trashed and online events of Tirol', async () => {
+      for (const id of ['tirolPending', 'tirolApproved', 'tirolTrashed', 'onlineTirol']) {
+        await assertSucceeds(getDoc(ev(id)));
+      }
+    });
+
+    it('cannot read other regions, legacy (= Vorarlberg) or unknown-region events', async () => {
+      for (const id of ['vbPending', 'legacyPending', 'stPending', 'oddRegion']) {
+        await assertFails(getDoc(ev(id)));
+      }
+    });
+
+    it('lists only with a query restricted to her region and non-draft statuses', async () => {
+      const events = collection(mod(), 'events');
+      await assertSucceeds(
+        getDocs(query(events, where('regionId', '==', 'tirol'), where('status', '==', 'pending')))
+      );
+      await assertSucceeds(
+        getDocs(
+          query(
+            events,
+            where('regionId', 'in', ['tirol']),
+            where('status', 'in', ['pending', 'approved', 'trashed'])
+          )
+        )
+      );
+      // No region filter, a foreign region, or drafts possibly included.
+      await assertFails(getDocs(query(events, where('status', '==', 'pending'))));
+      await assertFails(
+        getDocs(
+          query(events, where('regionId', '==', 'vorarlberg'), where('status', '==', 'pending'))
+        )
+      );
+      await assertFails(getDocs(query(events, where('regionId', '==', 'tirol'))));
+    });
+
+    it('approves (also with a collision slug) and requests changes on pending events', async () => {
+      await assertSucceeds(
+        updateDoc(ev('tirolPending'), approve('modTirol', { slug: 'yoga-20261102-2' }))
+      );
+      await assertSucceeds(updateDoc(ev('onlineTirol'), requestChanges()));
+    });
+
+    it('may only change the slug to its collision variant on approval', async () => {
+      await env.withSecurityRulesDisabled((ctx) =>
+        updateDoc(doc(ctx.firestore(), 'events/tirolPending'), { slug: 'yoga-20261102-2' })
+      );
+      // "-2" taken too: resolveSlugForApproval moves on to "-3".
+      await assertSucceeds(
+        updateDoc(ev('tirolPending'), approve('modTirol', { slug: 'yoga-20261102-3' }))
+      );
+      for (const slug of [
+        'foreign-event-20261102',
+        'yoga-20261103',
+        'yoga-20261102-2x',
+        'xyoga-20261102-2',
+        '',
+      ]) {
+        await assertFails(updateDoc(ev('onlineTirol'), approve('modTirol', { slug })));
+      }
+    });
+
+    it('unpublishes approved events', async () => {
+      await assertSucceeds(updateDoc(ev('tirolApproved'), unpublish('modTirol')));
+    });
+
+    it('moves pending and approved events to the trash (reject) and restores them', async () => {
+      await assertSucceeds(updateDoc(ev('tirolPending'), trash('modTirol')));
+      await assertSucceeds(updateDoc(ev('tirolApproved'), trash('modTirol', null)));
+      await assertSucceeds(updateDoc(ev('tirolTrashed'), restore()));
+    });
+
+    it('cannot stamp somebody else as approver/unpublisher/trasher', async () => {
+      await assertFails(updateDoc(ev('tirolPending'), approve('adminDoc')));
+      await assertFails(updateDoc(ev('tirolApproved'), unpublish('adminDoc')));
+      await assertFails(updateDoc(ev('tirolPending'), trash('adminDoc')));
+    });
+
+    it('cannot use client timestamps for the review fields', async () => {
+      await assertFails(
+        updateDoc(ev('tirolPending'), { ...approve('modTirol'), approvedAt: new Date(0) })
+      );
+      await assertFails(
+        updateDoc(ev('tirolPending'), { ...trash('modTirol'), trashedAt: new Date(0) })
+      );
+    });
+
+    it('cannot edit content, category, owner or region along with a review action', async () => {
+      for (const extra of [
+        { title: 'Neu' },
+        { description: 'x' },
+        { category: 'Tanz' },
+        { createdBy: 'modTirol' },
+        { regionId: 'vorarlberg' },
+        { regionId: deleteField() },
+        { instagramConsent: true },
+        { slug: 'Evil Slug!' },
+      ]) {
+        await assertFails(updateDoc(ev('tirolPending'), approve('modTirol', extra)));
+      }
+      await assertFails(updateDoc(ev('tirolPending'), { title: 'Neu' }));
+      await assertFails(updateDoc(ev('tirolApproved'), { slug: 'other-slug' }));
+      await assertFails(updateDoc(ev('tirolPending'), { ...requestChanges(), slug: 'x-2' }));
+    });
+
+    it('cannot make transitions the review flow does not have', async () => {
+      await assertFails(updateDoc(ev('tirolTrashed'), approve('modTirol')));
+      await assertFails(
+        updateDoc(ev('tirolApproved'), { status: 'pending', updatedAt: serverTimestamp() })
+      );
+      await assertFails(
+        updateDoc(ev('tirolTrashed'), { status: 'pending', updatedAt: serverTimestamp() })
+      );
+      // A no-op status write is not a review action either.
+      await assertFails(updateDoc(ev('tirolPending'), { updatedAt: serverTimestamp() }));
+      // Restore must clear the trash fields.
+      await assertFails(
+        updateDoc(ev('tirolTrashed'), { status: 'draft', updatedAt: serverTimestamp() })
+      );
+      // Overlong rejection reason.
+      await assertFails(updateDoc(ev('tirolPending'), trash('modTirol', 'x'.repeat(2001))));
+      await assertFails(updateDoc(ev('tirolPending'), trash('modTirol', 5)));
+    });
+
+    it('cannot touch drafts of other people (no read, approve or submit)', async () => {
+      await assertFails(updateDoc(ev('tirolDraft'), approve('modTirol')));
+      await assertFails(
+        updateDoc(ev('tirolDraft'), { status: 'pending', updatedAt: serverTimestamp() })
+      );
+      await assertFails(updateDoc(ev('tirolDraft'), trash('modTirol')));
+    });
+
+    it('cannot delete permanently (Super-Admin only)', async () => {
+      for (const id of ['tirolPending', 'tirolTrashed', 'tirolApproved']) {
+        await assertFails(deleteDoc(ev(id)));
+      }
+      await assertSucceeds(deleteDoc(doc(dbFor('adminDoc'), 'events/tirolTrashed')));
+    });
+
+    it('cannot act on events of foreign, legacy or unknown regions', async () => {
+      for (const id of ['vbPending', 'legacyPending', 'stPending', 'oddRegion']) {
+        await assertFails(updateDoc(ev(id), approve('modTirol')));
+        await assertFails(updateDoc(ev(id), trash('modTirol')));
+      }
+    });
+
+    it('creates events only like any verified organizer (pending/draft, own uid)', async () => {
+      await assertSucceeds(
+        setDoc(ev('modOwn'), {
+          ...eventBase,
+          createdBy: 'modTirol',
+          status: 'pending',
+          regionId: 'tirol',
+        })
+      );
+      await assertFails(
+        setDoc(ev('modApproved'), {
+          ...eventBase,
+          createdBy: 'modTirol',
+          status: 'approved',
+          regionId: 'tirol',
+        })
+      );
+    });
+  });
+
+  it('legacy events without regionId are moderated by Vorarlberg', async () => {
+    const db = dbFor('modVorarlberg');
+    await assertSucceeds(getDoc(doc(db, 'events/legacyPending')));
+    await assertSucceeds(updateDoc(doc(db, 'events/legacyPending'), approve('modVorarlberg')));
+    // Approving does not let her write a region onto it.
+    await assertFails(
+      updateDoc(doc(db, 'events/legacyPending'), {
+        regionId: 'vorarlberg',
+        updatedAt: serverTimestamp(),
+      })
+    );
+  });
+
+  it('malformed or look-alike moderator docs and a bare token claim grant nothing', async () => {
+    const ctxs = [
+      dbFor('modString'),
+      dbFor('modCase'),
+      dbFor('modBogus'),
+      env.authenticatedContext('noDoc', { role: 'RegionModerator' }).firestore(),
+    ];
+    for (const db of ctxs) {
+      await assertFails(getDoc(doc(db, 'events/tirolPending')));
+      await assertFails(updateDoc(doc(db, 'events/tirolPending'), approve('x')));
+      await assertFails(getDoc(doc(db, 'events/oddRegion')));
+    }
+  });
+
+  it('a revoked moderator (doc deleted) loses access immediately', async () => {
+    await env.withSecurityRulesDisabled((ctx) =>
+      deleteDoc(doc(ctx.firestore(), 'admin_users/modTirol'))
+    );
+    await assertFails(getDoc(doc(dbFor('modTirol'), 'events/tirolPending')));
+  });
+
+  // ── Event messages ───────────────────────────────────────────────────
+  describe('event messages', () => {
+    const msgs = (uid: string, id: string) => collection(dbFor(uid), `events/${id}/messages`);
+
+    it('Moderator Tirol reads, writes (as staff), marks read and clears Tirol conversations', async () => {
+      await assertSucceeds(getDocs(msgs('modTirol', 'tirolPending')));
+      await assertSucceeds(setDoc(doc(msgs('modTirol', 'tirolPending')), message('modTirol')));
+      await assertSucceeds(
+        updateDoc(doc(msgs('modTirol', 'tirolPending'), 'm1'), { readByRecipient: true })
+      );
+      await assertSucceeds(deleteDoc(doc(msgs('modTirol', 'tirolPending'), 'm1')));
+      await assertSucceeds(getDocs(msgs('modTirol', 'onlineTirol')));
+    });
+
+    it("cannot write in the organizer's name or as someone else", async () => {
+      await assertFails(setDoc(doc(msgs('modTirol', 'tirolPending')), message('modTirol', 'User')));
+      await assertFails(setDoc(doc(msgs('modTirol', 'tirolPending')), message('owner')));
+      await assertFails(
+        updateDoc(doc(msgs('modTirol', 'tirolPending'), 'm1'), { text: 'changed' })
+      );
+    });
+
+    it('no access to conversations of foreign regions or of drafts', async () => {
+      for (const id of ['vbPending', 'stPending', 'legacyPending', 'tirolDraft']) {
+        await assertFails(getDocs(msgs('modTirol', id)));
+        await assertFails(setDoc(doc(msgs('modTirol', id)), message('modTirol')));
+        await assertFails(deleteDoc(doc(msgs('modTirol', id), 'm1')));
+      }
+    });
+
+    it('the organizer and the Super-Admin keep their access', async () => {
+      await assertSucceeds(getDocs(msgs('owner', 'tirolDraft')));
+      await assertSucceeds(setDoc(doc(msgs('owner', 'tirolPending')), message('owner', 'User')));
+      await assertSucceeds(getDocs(msgs('adminDoc', 'vbPending')));
+      await assertSucceeds(deleteDoc(doc(msgs('adminDoc', 'vbPending'), 'm1')));
+    });
+  });
+
+  // ── Directory listings ───────────────────────────────────────────────
+  describe('directory listings', () => {
+    const hide = (uid: string, profile: string, value = true) =>
+      updateDoc(doc(dbFor(uid), `users/${profile}/publicProfile/data`), {
+        directoryHidden: value,
+      });
+
+    it('hide/unhide only when every listed region is hers', async () => {
+      await assertSucceeds(hide('modTirol', 'pTirol'));
+      await assertSucceeds(hide('modTirol', 'pTirol', false));
+      await assertSucceeds(hide('modTwo', 'pTirol'));
+      await assertSucceeds(hide('modTwo', 'pTirolSt'));
+      await assertSucceeds(hide('modVorarlberg', 'pLegacy'));
+
+      await assertFails(hide('modTirol', 'pTirolWien'));
+      await assertFails(hide('modTwo', 'pTirolWien'));
+      await assertFails(hide('modTirol', 'pTirolSt'));
+      await assertFails(hide('modVorarlberg', 'pTirol'));
+      await assertFails(hide('modTirol', 'pLegacy'));
+    });
+
+    it('listings with an empty region list and staff accounts are off limits', async () => {
+      for (const mod of Object.keys(MOD_DOCS)) {
+        await assertFails(hide(mod, 'pEmpty'));
+      }
+      await assertFails(hide('modTirol', 'staffTirol'));
+      await assertSucceeds(hide('adminDoc', 'staffTirol'));
+    });
+
+    it('reads public listings but no private profile docs, and changes nothing else', async () => {
+      const db = dbFor('modTirol');
+      await assertSucceeds(getDoc(doc(db, 'users/pTirolWien/publicProfile/data')));
+      await assertFails(getDoc(doc(db, 'users/pTirol')));
+      for (const change of [
+        { directoryRegionIds: ['tirol', 'wien'] },
+        { displayName: 'x' },
+        { listedInDirectory: false },
+        { directoryHidden: 'yes' },
+      ]) {
+        await assertFails(updateDoc(doc(db, 'users/pTirol/publicProfile/data'), change));
+      }
+      await assertFails(updateDoc(doc(db, 'users/pTirol'), { displayName: 'x' }));
+      await assertFails(deleteDoc(doc(db, 'users/pTirol/publicProfile/data')));
+    });
+  });
+
+  // ── Explicitly NOT allowed (ticket task 3) ───────────────────────────
+  describe('everything else stays Super-Admin only', () => {
+    const allMods = () => Object.keys(MOD_DOCS).map(dbFor);
+
+    it('categories, theme, saved themes, active theme', async () => {
+      for (const db of allMods()) {
+        await assertFails(
+          setDoc(doc(db, 'categories/tanz'), { name: 'Tanz', color: '#123456', createdBy: 'm' })
+        );
+        await assertFails(deleteDoc(doc(db, 'categories/yoga')));
+        await assertFails(updateDoc(doc(db, 'app_settings/theme'), { '--border': '#000000' }));
+        await assertFails(
+          setDoc(doc(db, 'app_settings/activeTheme'), { themeId: 't1', activatedBy: 'modTirol' })
+        );
+        await assertFails(deleteDoc(doc(db, 'themes/t1')));
+      }
+    });
+
+    it('instagram settings, posts and token', async () => {
+      for (const db of allMods()) {
+        await assertFails(getDoc(doc(db, 'app_settings/instagram')));
+        await assertFails(updateDoc(doc(db, 'app_settings/instagram'), { enabled: true }));
+        await assertFails(getDoc(doc(db, 'instagram_posts/p1')));
+        await assertFails(getDoc(doc(db, 'instagram_private/token')));
+      }
+    });
+
+    it('donations, helpers, feedback, member lists', async () => {
+      for (const db of allMods()) {
+        await assertFails(setDoc(doc(db, 'donors/d2'), { name: 'X', amount: 1 }));
+        await assertFails(updateDoc(doc(db, 'donors/d1'), { amount: 1000 }));
+        await assertFails(updateDoc(doc(db, 'helpers/h1'), { name: 'X' }));
+        await assertFails(getDoc(doc(db, 'feedback/f1')));
+        await assertFails(getDocs(collection(db, 'feedback')));
+        await assertFails(updateDoc(doc(db, 'feedback/f1'), { status: 'done' }));
+        await assertFails(getDoc(doc(db, 'member_lists/l1')));
+        await assertFails(setDoc(doc(db, 'member_lists/l2'), { name: 'L', memberUids: [] }));
+      }
+    });
+
+    it('region config, also contactEmail/seo of her own region', async () => {
+      const db = dbFor('modTirol');
+      await assertFails(updateDoc(doc(db, 'regions/tirol'), { contactEmail: 'a@b.at' }));
+      await assertFails(updateDoc(doc(db, 'regions/tirol'), { seo: { title: 't' } }));
+      await assertFails(deleteDoc(doc(db, 'regions/tirol')));
+    });
+
+    it('admin_users: own doc read-only, nothing else readable or writable', async () => {
+      const db = dbFor('modTirol');
+      await assertSucceeds(getDoc(doc(db, 'admin_users/modTirol')));
+      await assertFails(getDoc(doc(db, 'admin_users/adminDoc')));
+      await assertFails(getDoc(doc(db, 'admin_users/modVorarlberg')));
+      await assertFails(getDocs(collection(db, 'admin_users')));
+      await assertFails(
+        updateDoc(doc(db, 'admin_users/modTirol'), { regionIds: ['tirol', 'wien'] })
+      );
+      await assertFails(updateDoc(doc(db, 'admin_users/modTirol'), { role: 'Admin' }));
+      await assertFails(deleteDoc(doc(db, 'admin_users/modTirol')));
+      await assertFails(
+        setDoc(doc(db, 'admin_users/organizer'), { role: 'RegionModerator', regionIds: ['tirol'] })
+      );
+    });
+
+    it('the audit log: Super-Admins read, nobody writes', async () => {
+      for (const db of allMods()) {
+        await assertFails(getDoc(doc(db, 'admin_audit_log/a1')));
+        await assertFails(getDocs(collection(db, 'admin_audit_log')));
+      }
+      for (const make of Object.values(adminVariants)) {
+        const db = make().firestore();
+        await assertSucceeds(getDoc(doc(db, 'admin_audit_log/a1')));
+        await assertSucceeds(getDocs(collection(db, 'admin_audit_log')));
+        await assertFails(setDoc(doc(db, 'admin_audit_log/a2'), { action: 'x' }));
+        await assertFails(updateDoc(doc(db, 'admin_audit_log/a1'), { action: 'y' }));
+        await assertFails(deleteDoc(doc(db, 'admin_audit_log/a1')));
+      }
+      await assertFails(getDoc(doc(user().firestore(), 'admin_audit_log/a1')));
+      await assertFails(getDoc(doc(anon().firestore(), 'admin_audit_log/a1')));
+    });
+  });
+
+  // ── Super-Admins keep every right they had ───────────────────────────
+  describe('Super-Admin behaviour is unchanged', () => {
+    it.each(Object.keys(adminVariants))('%s', async (name) => {
+      const db = adminVariants[name as keyof typeof adminVariants]().firestore();
+      for (const id of Object.keys(EVENTS)) {
+        await assertSucceeds(getDoc(doc(db, `events/${id}`)));
+      }
+      await assertSucceeds(
+        getDocs(query(collection(db, 'events'), where('status', '==', 'pending')))
+      );
+      await assertSucceeds(getDocs(collection(db, 'events')));
+      await assertSucceeds(updateDoc(doc(db, 'events/tirolDraft'), { title: 'Admin edit' }));
+      await assertSucceeds(updateDoc(doc(db, 'events/oddRegion'), { regionId: 'wien' }));
+      await assertSucceeds(getDocs(collection(db, 'feedback')));
+      await assertSucceeds(getDoc(doc(db, 'member_lists/l1')));
+      await assertSucceeds(deleteDoc(doc(db, 'events/tirolApproved')));
+    });
   });
 });

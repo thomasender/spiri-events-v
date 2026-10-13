@@ -12,7 +12,7 @@ const db = getFirestore();
 const MESSAGE_EVENT_ID = 'test-event-with-messages';
 
 async function findAdminUid() {
-  const adminDoc = await db.collection('admin_users').limit(1).get();
+  const adminDoc = await db.collection('admin_users').where('role', '==', 'Admin').limit(1).get();
   if (adminDoc.empty) return null;
   return adminDoc.docs[0].id;
 }

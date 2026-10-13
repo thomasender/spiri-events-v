@@ -59,6 +59,52 @@ service cloud.firestore {
       return id is string && id in regionIds();
     }
 
+    // ── Regions-Moderator:innen ────────────────────────────────────────
+    // `admin_users/{uid}` = { role: 'RegionModerator', regionIds: [...] },
+    // written only by the Admin SDK (adminSetRegionModerator callable,
+    // scripts/promote-admin.mjs). This is a NARROW extra right next to the
+    // Super-Admin (`role: 'Admin'`): isAdminOrEmulatorAdmin() is deliberately
+    // untouched, so a moderator never passes any of the many admin-only
+    // rules below (categories, theme, instagram, donors, helpers, feedback,
+    // member_lists, regions, admin_users, audit log, permanent deletes).
+    // Token claims are NOT consulted for moderators: the doc is the only
+    // source, so revoking (deleting the doc) takes effect immediately.
+    function staffDoc() {
+      return get(/databases/$(database)/documents/admin_users/$(request.auth.uid));
+    }
+
+    function isRegionModerator() {
+      return isAuthenticated()
+        && exists(/databases/$(database)/documents/admin_users/$(request.auth.uid))
+        && staffDoc().data.role == 'RegionModerator'
+        && staffDoc().data.regionIds is list;
+    }
+
+    function isRegionModeratorFor(regionId) {
+      return isValidRegionId(regionId)
+        && isRegionModerator()
+        && regionId in staffDoc().data.regionIds;
+    }
+
+    // Every id in `ids` is one of the moderator's regions (and there is at
+    // least one): entries that are also listed in a foreign region stay
+    // read-only for her.
+    function isRegionModeratorForAll(ids) {
+      return ids is list
+        && ids.size() > 0
+        && ids.hasOnly(regionIds())
+        && isRegionModerator()
+        && ids.hasOnly(staffDoc().data.regionIds);
+    }
+
+    // Moderation region of an event: the stored regionId, or Vorarlberg for
+    // events written before regions existed (same fallback as
+    // resolveRegionId in src/utils/regions.js). Online events are moderated
+    // by the region in their regionId like every other event.
+    function eventRegionId(data) {
+      return data.get('regionId', 'vorarlberg');
+    }
+
     // Directory listing fields on the profile docs. A profile may only be
     // listed (`listedInDirectory == true`) when it names at least one
     // category; categories/regions are capped so the doc stays small.
@@ -88,7 +134,11 @@ service cloud.firestore {
                || request.resource.data.instagramConsent is bool;
       }
 
-      allow read: if isApproved() || isOwner() || isAdminOrEmulatorAdmin();
+      // Region moderators read pending/approved/trashed events of their
+      // regions; drafts of other people stay private (owner + Super-Admin).
+      allow read: if isApproved() || isOwner() || isAdminOrEmulatorAdmin()
+                  || (resource.data.status in ['pending', 'approved', 'trashed']
+                      && isRegionModeratorFor(eventRegionId(resource.data)));
 
       // imageFocalPoint, if present, must be a {x, y} map with both values
       // being numbers in [0, 1]. The form layer treats {0.5, 0.5} as "no
@@ -236,12 +286,86 @@ service cloud.firestore {
                     && isValidImageZoom()
                     && isValidCancellation()
                     && isValidEventRegionOnUpdate();
+
+      // Review actions of a region moderator on a (non-draft) event of one
+      // of her regions. Only the status change and its bookkeeping fields
+      // may change: no content edits, no regionId change (so no moving an
+      // event into another region), no category. Each action mirrors what
+      // the admin UI writes:
+      //   approve         pending  -> approved (approvedBy/At, maybe slug)
+      //   request changes pending  -> draft
+      //   unpublish       approved -> draft    (unpublishedBy/At)
+      //   reject / trash  pending|approved -> trashed (trashedBy/At/Reason)
+      //   restore         trashed  -> draft    (trash fields nulled)
+      // Permanent delete stays Super-Admin only (delete rule below).
+      function isModeratorReviewUpdate() {
+        let before = resource.data;
+        let after = request.resource.data;
+        let changed = after.diff(before).affectedKeys();
+        return before.status in ['pending', 'approved', 'trashed']
+          && isRegionModeratorFor(eventRegionId(before))
+          && changed.hasAll(['status'])
+          && changed.hasOnly(['status', 'updatedAt', 'approvedBy', 'approvedAt', 'slug',
+                              'unpublishedBy', 'unpublishedAt',
+                              'trashedAt', 'trashedBy', 'trashReason'])
+          && (!changed.hasAny(['updatedAt']) || after.updatedAt == request.time)
+          // Slug: only the collision variant resolveSlugForApproval makes
+          // ("<slug>-N", or for "<...-yyyymmdd>-N" also "<...-yyyymmdd>-M"), so a moderator
+          // cannot point an event at an arbitrary (foreign) public URL.
+          && (!changed.hasAny(['slug'])
+              || (after.status == 'approved'
+                  && before.slug is string
+                  && before.slug.matches('^[a-z0-9]+(-[a-z0-9]+)*$')
+                  && after.slug is string
+                  && after.slug.size() <= 200
+                  && (after.slug.matches(before.slug + '-[0-9]+')
+                      || (before.slug.matches('^.*-[0-9]{8}-[0-9]+$')
+                          && after.slug.matches(before.slug.replace('-[0-9]+$', '') + '-[0-9]+')))))
+          && (
+            (before.status == 'pending' && after.status == 'approved'
+              && changed.hasOnly(['status', 'updatedAt', 'approvedBy', 'approvedAt', 'slug'])
+              && after.approvedBy == request.auth.uid
+              && after.approvedAt == request.time)
+            || (before.status == 'pending' && after.status == 'draft'
+              && changed.hasOnly(['status', 'updatedAt']))
+            || (before.status == 'approved' && after.status == 'draft'
+              && changed.hasOnly(['status', 'updatedAt', 'unpublishedBy', 'unpublishedAt'])
+              && after.unpublishedBy == request.auth.uid
+              && after.unpublishedAt == request.time)
+            || (before.status in ['pending', 'approved'] && after.status == 'trashed'
+              && changed.hasOnly(['status', 'updatedAt', 'trashedAt', 'trashedBy', 'trashReason'])
+              && after.trashedBy == request.auth.uid
+              && after.trashedAt == request.time
+              && (!('trashReason' in after) || after.trashReason == null
+                  || (after.trashReason is string && after.trashReason.size() <= 2000)))
+            || (before.status == 'trashed' && after.status == 'draft'
+              && changed.hasOnly(['status', 'updatedAt', 'trashedAt', 'trashedBy', 'trashReason'])
+              && after.get('trashedAt', null) == null
+              && after.get('trashedBy', null) == null
+              && after.get('trashReason', null) == null)
+          );
+      }
+
+      allow update: if isModeratorReviewUpdate();
+
       allow delete: if isOwner() || isAdminOrEmulatorAdmin();
 
       match /messages/{messageId} {
-        allow read: if isEventOwner(eventId) || isAdminOrEmulatorAdmin();
+        // Region moderators: messages of non-draft events of their regions.
+        function isRegionModeratorForEvent() {
+          let ev = get(/databases/$(database)/documents/events/$(eventId)).data;
+          return ev.status in ['pending', 'approved', 'trashed']
+            && isRegionModeratorFor(eventRegionId(ev));
+        }
 
-        allow create: if (isEventOwner(eventId) || isAdminOrEmulatorAdmin())
+        allow read: if isEventOwner(eventId) || isAdminOrEmulatorAdmin()
+                    || isRegionModeratorForEvent();
+
+        // A moderator who is not the event owner writes as staff
+        // (authorRole 'Admin'), never in the organizer's name.
+        allow create: if (isEventOwner(eventId) || isAdminOrEmulatorAdmin()
+                          || (isRegionModeratorForEvent()
+                              && request.resource.data.authorRole == 'Admin'))
                       && request.resource.data.authorUid == request.auth.uid
                       && request.resource.data.keys().hasOnly(
                         ['text', 'authorUid', 'authorRole', 'authorName', 'createdAt', 'readByRecipient']
@@ -252,18 +376,33 @@ service cloud.firestore {
                       && request.resource.data.text.size() <= 20000
                       && request.resource.data.authorRole in ['Admin', 'User'];
 
-        allow update: if (isEventOwner(eventId) || isAdminOrEmulatorAdmin())
+        allow update: if (isEventOwner(eventId) || isAdminOrEmulatorAdmin()
+                          || isRegionModeratorForEvent())
                       && request.resource.data.diff(resource.data).affectedKeys()
                           .hasOnly(['readByRecipient']);
 
         // Owners can permanently delete their own event's messages via the
-        // Papierkorb. Admins can always delete messages.
-        allow delete: if isAdminOrEmulatorAdmin() || isEventOwner(eventId);
+        // Papierkorb. Admins can always delete messages. Region moderators
+        // can delete messages of their regions' events because approving an
+        // event clears its conversation (approveEventAsAdmin).
+        allow delete: if isAdminOrEmulatorAdmin() || isEventOwner(eventId)
+                      || isRegionModeratorForEvent();
       }
     }
 
+    // Role docs ({ role: 'Admin' } or { role: 'RegionModerator', regionIds }).
+    // Written ONLY via the Admin SDK (adminSetRegionModerator callable,
+    // scripts/promote-admin.mjs): no client, not even a Super-Admin, may
+    // write here, and a moderator can never touch her own doc.
     match /admin_users/{uid} {
       allow read: if isAuthenticated() && request.auth.uid == uid;
+    }
+
+    // Audit trail of role changes (adminSetRegionModerator). Written only by
+    // the Admin SDK; readable by Super-Admins only, never by moderators.
+    match /admin_audit_log/{entryId} {
+      allow read: if isAdminOrEmulatorAdmin();
+      allow write: if false;
     }
 
     match /users/{uid} {
@@ -363,6 +502,18 @@ service cloud.firestore {
         // above deliberately exclude it, so a hidden user cannot re-show
         // themselves; the merge-writes from the profile form never touch it.
         allow update: if isAdminOrEmulatorAdmin()
+                      && request.resource.data.diff(resource.data).affectedKeys()
+                          .hasOnly(['directoryHidden'])
+                      && request.resource.data.directoryHidden is bool;
+
+        // Region moderators may hide/unhide a listing only when ALL its
+        // regions are hers (profiles saved before regions existed count as
+        // Vorarlberg); listings that also appear in a foreign region stay
+        // read-only for her. Staff accounts (any admin_users doc) are off
+        // limits.
+        allow update: if isRegionModeratorForAll(
+                           resource.data.get('directoryRegionIds', ['vorarlberg']))
+                      && !exists(/databases/$(database)/documents/admin_users/$(uid))
                       && request.resource.data.diff(resource.data).affectedKeys()
                           .hasOnly(['directoryHidden'])
                       && request.resource.data.directoryHidden is bool;

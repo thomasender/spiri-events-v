@@ -38,13 +38,15 @@ const TEST_USERS = [
     role: 'Admin',
     emailVerified: true,
   },
-  // Account for the future "Regions-Moderator Tirol" role (ticket 18). It has no
-  // role claim and no admin_users entry yet; ticket 18 defines both.
+  // Regions-Moderator Tirol. Like in production the role lives only in
+  // admin_users (role RegionModerator, regionIds ['tirol'], written by
+  // seed-region-fixtures.mjs), never in a token claim: role null clears any
+  // claim an older run of this script set.
   {
     email: 'tirol-mod@test.local',
     password: 'testpassword123',
     displayName: 'Test Regions-Moderator Tirol',
-    role: 'User',
+    role: null,
     emailVerified: true,
   },
   {
@@ -89,7 +91,11 @@ async function createUser(user) {
 async function updateUserFlags(user, uid) {
   const url = `${AUTH_EMULATOR}/identitytoolkit.googleapis.com/v1/projects/${PROJECT_ID}/accounts:update`;
 
-  const customAttributes = user.role ? JSON.stringify({ role: user.role }) : undefined;
+  const customAttributes = user.role
+    ? JSON.stringify({ role: user.role })
+    : user.role === null
+      ? '{}'
+      : undefined;
 
   const payload = { localId: uid };
   if (typeof user.emailVerified === 'boolean') {

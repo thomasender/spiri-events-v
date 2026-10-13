@@ -13,6 +13,10 @@
 // shared calendar. A dedicated spec loads them through
 // `loadRegionEventFixtures()` in tests/helpers/regionFixtures.ts.
 //
+// The admin_users entry of the region moderator test account
+// (tirol-mod@test.local: role RegionModerator, regionIds ['tirol']) is
+// reconciled on every run as well.
+//
 // Everything is written with set() in ONE batch (reconcile, never delete and
 // re-create), so concurrent readers never see a half-populated state.
 import { initializeApp } from 'firebase-admin/app';
@@ -117,8 +121,45 @@ async function findAdminUid() {
   return snap.empty ? 'test-admin-uid' : snap.docs[0].id;
 }
 
+// Region moderator test account (created by import-test-users.mjs, which
+// globalSetup runs first). Resolved through the Auth emulator REST API.
+const REGION_MODERATOR_FIXTURE = { email: 'tirol-mod@test.local', regionIds: ['tirol'] };
+
+async function findAuthUid(email) {
+  try {
+    const res = await fetch(
+      'http://127.0.0.1:9199/identitytoolkit.googleapis.com/v1/projects/spirieventsvbg/accounts:lookup',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer owner' },
+        body: JSON.stringify({ email: [email] }),
+      }
+    );
+    if (!res.ok) return null;
+    return (await res.json())?.users?.[0]?.localId ?? null;
+  } catch {
+    return null;
+  }
+}
+
 const withEvents = process.argv.includes('--events');
 const batch = db.batch();
+
+// admin_users entry of the moderator (role RegionModerator, Tirol). Scripts
+// that need "the" admin filter admin_users by role == 'Admin'.
+const moderatorUid = await findAuthUid(REGION_MODERATOR_FIXTURE.email);
+if (moderatorUid) {
+  batch.set(db.collection('admin_users').doc(moderatorUid), {
+    role: 'RegionModerator',
+    regionIds: REGION_MODERATOR_FIXTURE.regionIds,
+    email: REGION_MODERATOR_FIXTURE.email,
+  });
+} else {
+  console.warn(
+    `region fixtures: ${REGION_MODERATOR_FIXTURE.email} not in the Auth emulator, ` +
+      'no moderator entry (run scripts/import-test-users.mjs first)'
+  );
+}
 
 for (const { id, ...region } of REGION_FIXTURES) {
   batch.set(
@@ -151,5 +192,6 @@ if (withEvents) {
 await batch.commit();
 console.log(
   `region fixtures: ${REGION_FIXTURES.length} regions` +
+    (moderatorUid ? `, moderator ${REGION_MODERATOR_FIXTURE.email}` : '') +
     (withEvents ? `, ${REGION_EVENT_FIXTURES.length} events` : ', events skipped (--events)')
 );

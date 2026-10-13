@@ -1,9 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import {
   INSTAGRAM_REGION_IDS,
+  REGION_IDS,
   isInstagramRegion,
   resolveRegionId,
 } from '../../functions/src/regions';
+import { REGION_SLUGS } from '../../src/utils/regions';
 import { expandOccurrencesInWindow } from '../../functions/src/instagram/instagramOccurrences';
 import { selectFeedEvents } from '../../functions/src/calendar/calendarRoutes';
 
@@ -22,6 +24,12 @@ const RESOLVE_REGION_CASES: Array<[unknown, string]> = [
 describe('functions resolveRegionId', () => {
   it.each(RESOLVE_REGION_CASES)('%j -> %s', (doc, expected) => {
     expect(resolveRegionId(doc)).toBe(expected);
+  });
+});
+
+describe('functions REGION_IDS', () => {
+  it('matches REGION_SLUGS in src/utils/regions.js (moderator region validation)', () => {
+    expect([...REGION_IDS]).toEqual(REGION_SLUGS);
   });
 });
 

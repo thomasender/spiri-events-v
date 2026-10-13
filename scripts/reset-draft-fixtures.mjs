@@ -9,7 +9,7 @@ initializeApp({ projectId: 'spirieventsvbg' });
 const db = getFirestore();
 
 async function getAdminUid() {
-  const adminDoc = await db.collection('admin_users').limit(1).get();
+  const adminDoc = await db.collection('admin_users').where('role', '==', 'Admin').limit(1).get();
   if (adminDoc.empty) return null;
   return adminDoc.docs[0].id;
 }

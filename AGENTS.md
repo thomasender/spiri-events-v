@@ -177,11 +177,28 @@ second region next to Vorarlberg, emulator only. Source of truth:
   `node scripts/seed-region-fixtures.mjs --events`. Once the calendar filters by
   region (ticket 11) they can move into globalSetup. The existing seed events
   have no `regionId` and fall back to Vorarlberg.
-- **Account** `tirol-mod@test.local` / `testpassword123` exists in the Auth
-  emulator (`import-test-users.mjs`) but has no role and no `admin_users` entry
-  yet. Ticket 18 defines the role and adds it to `tests/helpers/roles.ts` and
-  `tests/auth.setup.ts`. (Do not add an `admin_users` doc before that:
-  `reset-draft-fixtures.mjs` picks "the" admin with `admin_users.limit(1)`.)
+- **Account** `tirol-mod@test.local` / `testpassword123` is a Regions-Moderator:in
+  for Tirol: no token claim, `admin_users/{uid}` =
+  `{ role: 'RegionModerator', regionIds: ['tirol'] }` (reconciled by
+  `seed-region-fixtures.mjs`). Playwright
+  session: `STORAGE_STATE.regionModerator`. Scripts that need "the" admin filter
+  `admin_users` by `role == 'Admin'`; never use a bare `admin_users.limit(1)`.
+
+### Roles (Super-Admin, Regions-Moderator:in)
+
+- **Super-Admin** = `admin_users/{uid}.role == 'Admin'` (or token claim
+  `role: 'Admin'`), unchanged. **Regions-Moderator:in** = `role: 'RegionModerator'`
+  with `regionIds` (1–9 Bundesländer). The rules give moderators a narrow extra
+  right via `isRegionModeratorFor()` (review actions, messages and trash of their
+  regions' events, hiding directory listings that lie only in their regions);
+  `isAdminOrEmulatorAdmin()` is untouched, so every other admin-only rule stays
+  Super-Admin only. Matrix: `tests/rules/instagram.rules.spec.ts` ("region moderators").
+- `admin_users` is written only via the Admin SDK: callables
+  `adminSetRegionModerator` / `adminListRegionModerators` (Super-Admin only,
+  audit entries in `admin_audit_log`) or
+  `node scripts/promote-admin.mjs <email> --role RegionModerator --regions tirol,steiermark`
+  (`--emulator` for the local emulators).
+- Admin mails (submissions, feedback, Instagram alerts) go to Super-Admins only.
 
 ### Which tool for which problem
 

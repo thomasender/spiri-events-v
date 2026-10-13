@@ -124,6 +124,7 @@ export { sendVerificationEmail } from './sendVerificationEmail';
 export { sendPasswordResetEmailFn } from './sendPasswordResetEmail';
 export { checkEmailAvailability } from './checkEmailAvailability';
 export { adminListMembers, adminUpdateMember } from './adminMembers';
+export { adminSetRegionModerator, adminListRegionModerators } from './adminModerators';
 export { adminAnalyticsReport } from './adminAnalytics';
 export { onEventApprovedPostToInstagram } from './instagramPostOnApproval';
 export { instagramWeeklyCarousel } from './instagramWeeklyCarousel';
