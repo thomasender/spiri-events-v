@@ -6,6 +6,7 @@ import EventCard from './EventCard';
 import { resolveEventColor } from '../utils/categoryColors';
 import { useCategoryRegistry } from '../hooks/useCategoryRegistry';
 import { getPrimaryCategory } from '../utils/eventFormat';
+import { resolveRegionId } from '../utils/regions';
 import './SimilarEvents.css';
 
 const ORGANIZER_EVENTS_LIMIT = 5;
@@ -20,6 +21,7 @@ function normalizeOrganizerEvent(event) {
     category,
     bezirk: isOnline ? '' : event.bezirk || '',
     isOnline,
+    regionId: resolveRegionId(event),
     status: event.status || 'approved',
     organizer: event.organizer || { name: '', email: '' },
     kontakt: event.kontakt || '',

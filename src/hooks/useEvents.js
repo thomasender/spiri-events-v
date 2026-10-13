@@ -18,7 +18,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { findUniqueSlug, resolveSlugForApproval } from '../lib/slug';
-import { BEZIRKE, ONLINE_LOCATION } from '../utils/regions';
+import { BEZIRKE, ONLINE_LOCATION, pickEventRegionId, resolveRegionId } from '../utils/regions';
 import { normalizeCurrency } from '../utils/currency';
 import { deleteImageByUrl } from '../lib/imageUpload';
 import { compareEventsByDateTime } from '../utils/eventSort';
@@ -56,6 +56,7 @@ function normalizeEvents(events) {
       category: normalizeCategory(event),
       bezirk: isOnline ? '' : event.bezirk || '',
       isOnline,
+      regionId: resolveRegionId(event),
       status: event.status || 'pending',
       organizer: event.organizer || { name: '', email: '' },
       kontakt: event.kontakt || '',
@@ -113,6 +114,8 @@ export function useEvents(user) {
     );
     return addDoc(collection(db, 'events'), {
       ...eventData,
+      // Every new event carries its region (form value or the default).
+      regionId: pickEventRegionId(eventData.regionId),
       slug,
       status,
       createdBy: user.uid,
@@ -245,6 +248,7 @@ export function useEvents(user) {
       category: source.category || 'Sonstiges',
       bezirk: source.bezirk || '',
       isOnline: Boolean(source.isOnline),
+      regionId: pickEventRegionId(null, source),
       organizer: source.organizer
         ? { ...source.organizer }
         : { name: '', email: '', photoURL: null },
@@ -422,6 +426,7 @@ export function useEventById(eventId) {
             category: normalizeCategory(data),
             bezirk: isOnline ? '' : data.bezirk || '',
             isOnline,
+            regionId: resolveRegionId(data),
             status: data.status || 'pending',
             organizer: data.organizer || { name: '', email: '' },
             kontakt: data.kontakt || '',

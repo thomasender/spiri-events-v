@@ -4,6 +4,8 @@ import {
   isInstagramRegion,
   resolveRegionId,
 } from '../../functions/src/regions';
+import { expandOccurrencesInWindow } from '../../functions/src/instagram/instagramOccurrences';
+import { selectFeedEvents } from '../../functions/src/calendar/calendarRoutes';
 
 // Same cases as "resolveRegionId shared cases" in tests/components/regions.spec.ts.
 // functions/src/regions.ts is a synced copy of src/utils/regions.js.
@@ -31,5 +33,30 @@ describe('isInstagramRegion', () => {
     expect(isInstagramRegion({ regionId: 'tirol' })).toBe(false);
     expect(isInstagramRegion({ regionId: 'tirol', isOnline: true })).toBe(false);
     expect(isInstagramRegion({ regionId: 'vorarlberg', isOnline: true })).toBe(true);
+  });
+});
+
+// Functions that expand or copy events must hand regionId through, otherwise
+// the Instagram region check (and later region filters) see the default.
+describe('regionId survives event expansion in functions', () => {
+  const series = {
+    id: 'e1',
+    status: 'approved',
+    date: '2026-11-02',
+    recurrence: 'weekly',
+    recurrenceEndDate: '2026-11-30',
+    regionId: 'tirol',
+  };
+
+  it('instagram expandOccurrencesInWindow (weekly carousel source)', () => {
+    const occ = expandOccurrencesInWindow(series, { start: '2026-11-01', end: '2026-11-20' });
+    expect(occ.length).toBeGreaterThan(1);
+    expect(occ.every((e) => e.regionId === 'tirol')).toBe(true);
+  });
+
+  it('calendar selectFeedEvents (ICS feed source)', () => {
+    const feed = selectFeedEvents([series], '2026-11-01', { bezirk: [], kategorie: [] });
+    expect(feed.length).toBeGreaterThan(1);
+    expect(feed.every((e) => e.regionId === 'tirol')).toBe(true);
   });
 });

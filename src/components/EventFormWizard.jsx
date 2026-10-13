@@ -46,6 +46,7 @@ import {
   isDefaultFocalPoint,
 } from '../lib/eventImage';
 import { CURRENCIES, DEFAULT_CURRENCY, formatPriceWithCurrency } from '../utils/currency';
+import { pickEventRegionId } from '../utils/regions';
 import { saveWizardDraft, loadWizardDraft, clearWizardDraft } from '../utils/wizardDraftStorage';
 import { normalizeCategoryInput, isValidCategoryInput } from '../utils/categoryInput';
 import { getCategoryColor } from '../utils/categoryColors';
@@ -725,6 +726,7 @@ export default function EventFormWizard() {
     category: formData.category || 'Sonstiges',
     bezirk: formData.isOnline ? '' : formData.bezirk,
     isOnline: Boolean(formData.isOnline),
+    regionId: pickEventRegionId(formData.regionId),
     organizer: {
       firstName: splitOrganizerName(formData.organizer.name).firstName,
       lastName: splitOrganizerName(formData.organizer.name).lastName,

@@ -9,12 +9,15 @@ import {
 import {
   arrayUnion,
   collection,
+  deleteField,
   doc,
   getDoc,
   getDocs,
+  serverTimestamp,
   setDoc,
   updateDoc,
   deleteDoc,
+  writeBatch,
 } from 'firebase/firestore';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 
@@ -705,5 +708,350 @@ describe('regions', () => {
       await assertFails(setDoc(doc(db, 'regions/tirol'), { ...validRegion, extra: 1 }));
       await assertFails(updateDoc(doc(db, 'regions/vorarlberg'), { extra: 1 }));
     });
+  });
+});
+
+describe('events.regionId', () => {
+  const owner = () => env.authenticatedContext('owner', { email_verified: true });
+  // What EventForm / the wizard send on create and on a full edit.
+  const formPayload = {
+    title: 'T',
+    date: '2026-11-02',
+    time: '10:00',
+    endTime: '',
+    endDate: '',
+    place: 'P',
+    contribution: 'free',
+    fee: null,
+    feeMax: null,
+    priceCurrency: null,
+    feeNote: '',
+    description: 'd',
+    link: '',
+    recurrence: 'weekly',
+    recurrenceEndDate: '2026-12-31',
+    customDates: [],
+    category: 'Yoga',
+    bezirk: 'Bregenz',
+    isOnline: false,
+    organizer: { firstName: 'A', lastName: 'B', email: 'a@b.c', photoURL: null },
+    kontakt: 'k',
+    instagramConsent: false,
+    imageUrl: null,
+    imageFocalPoint: null,
+    imageZoom: null,
+  };
+  const createPayload = (extra: Record<string, unknown> = {}) => ({
+    ...formPayload,
+    slug: 's',
+    status: 'pending',
+    createdBy: 'owner',
+    createdAt: serverTimestamp(),
+    ...extra,
+  });
+
+  // Every partial update the app sends to an existing event.
+  const partialUpdates: Record<string, () => Record<string, unknown>> = {
+    'submit for review': () => ({ status: 'pending', updatedAt: serverTimestamp() }),
+    'revert to draft': () => ({ status: 'draft', updatedAt: serverTimestamp() }),
+    trash: () => ({
+      status: 'trashed',
+      trashedAt: serverTimestamp(),
+      trashedBy: 'owner',
+      trashReason: null,
+      updatedAt: serverTimestamp(),
+    }),
+    restore: () => ({
+      status: 'draft',
+      trashedAt: null,
+      trashedBy: null,
+      trashReason: null,
+      updatedAt: serverTimestamp(),
+    }),
+    'series exception': () => ({ exceptionDates: arrayUnion('2026-11-09') }),
+    'series end': () => ({ recurrenceEndDate: '2026-11-20' }),
+    'custom series dates': () => ({ customDates: ['2026-11-02'], exceptionDates: [] }),
+    'image patch': () => ({ imageUrl: 'https://x/y.jpg', imageFocalPoint: { x: 0.2, y: 0.3 } }),
+    'instagram image patch': () => ({ instagramImage: { url: 'https://x/y.jpg', zoom: 1 } }),
+  };
+  const adminOnlyUpdates: Record<string, () => Record<string, unknown>> = {
+    approve: () => ({
+      slug: 's-2',
+      status: 'approved',
+      approvedBy: 'adminDoc',
+      approvedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    }),
+    unpublish: () => ({
+      status: 'draft',
+      unpublishedBy: 'adminDoc',
+      unpublishedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    }),
+    'category rename': () => ({ category: 'Yoga Neu', updatedAt: serverTimestamp() }),
+  };
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      const stored = { ...formPayload, slug: 's', status: 'approved', createdBy: 'owner' };
+      await setDoc(doc(db, 'events/legacy'), stored);
+      await setDoc(doc(db, 'events/tirolEv'), { ...stored, regionId: 'tirol' });
+      // Written by the Admin SDK with a value the rules would not accept.
+      await setDoc(doc(db, 'events/oddRegion'), { ...stored, regionId: 'bayern' });
+    });
+  });
+
+  it('create: valid region or none accepted (wizard, form, duplicate as draft)', async () => {
+    const db = owner().firestore();
+    await assertSucceeds(setDoc(doc(db, 'events/c1'), createPayload({ regionId: 'vorarlberg' })));
+    await assertSucceeds(
+      setDoc(doc(db, 'events/c2'), createPayload({ regionId: 'tirol', isOnline: true }))
+    );
+    await assertSucceeds(
+      setDoc(doc(db, 'events/c3'), createPayload({ status: 'draft', regionId: 'oesterreich' }))
+    );
+    // Clients cached before this change send no regionId.
+    await assertSucceeds(setDoc(doc(db, 'events/c4'), createPayload()));
+  });
+
+  it('create: unknown or non-string region rejected', async () => {
+    const db = owner().firestore();
+    for (const regionId of ['bayern', '', 'Vorarlberg', 5, null, ['tirol']]) {
+      await assertFails(setDoc(doc(db, 'events/bad'), createPayload({ regionId })));
+    }
+  });
+
+  it('admin create with a region accepted', async () => {
+    const adminUids = { 'admin (token claim)': 'adminTok', 'admin (admin_users doc)': 'adminDoc' };
+    for (const [name, make] of Object.entries(adminVariants)) {
+      const createdBy = adminUids[name as keyof typeof adminUids];
+      await assertSucceeds(
+        setDoc(
+          doc(make().firestore(), `events/a-${createdBy}`),
+          createPayload({ createdBy, regionId: 'wien' })
+        )
+      );
+    }
+  });
+
+  it('full edit: legacy event gets a region, existing region kept or changed', async () => {
+    const db = owner().firestore();
+    await assertSucceeds(
+      updateDoc(doc(db, 'events/legacy'), {
+        ...formPayload,
+        regionId: 'vorarlberg',
+        status: 'pending',
+        updatedAt: serverTimestamp(),
+      })
+    );
+    await assertSucceeds(
+      updateDoc(doc(db, 'events/tirolEv'), { ...formPayload, regionId: 'tirol', status: 'pending' })
+    );
+    await assertSucceeds(updateDoc(doc(db, 'events/tirolEv'), { regionId: 'salzburg' }));
+  });
+
+  it('full edit: changing to an unknown region rejected', async () => {
+    const db = owner().firestore();
+    await assertFails(updateDoc(doc(db, 'events/legacy'), { ...formPayload, regionId: 'bayern' }));
+    await assertFails(updateDoc(doc(db, 'events/tirolEv'), { regionId: 7 }));
+    await assertFails(updateDoc(doc(db, 'events/tirolEv'), { regionId: null }));
+  });
+
+  it('removing the region is allowed (falls back to Vorarlberg on read)', async () => {
+    await assertSucceeds(
+      updateDoc(doc(owner().firestore(), 'events/tirolEv'), { regionId: deleteField() })
+    );
+  });
+
+  describe.each(['legacy', 'tirolEv', 'oddRegion'])('stored event %s', (id) => {
+    it.each(Object.keys(partialUpdates))('owner: %s still works', async (name) => {
+      await assertSucceeds(
+        updateDoc(doc(owner().firestore(), `events/${id}`), partialUpdates[name]())
+      );
+    });
+
+    it.each(Object.keys({ ...partialUpdates, ...adminOnlyUpdates }))(
+      'admin: %s still works',
+      async (name) => {
+        const all = { ...partialUpdates, ...adminOnlyUpdates };
+        for (const make of Object.values(adminVariants)) {
+          await assertSucceeds(updateDoc(doc(make().firestore(), `events/${id}`), all[name]()));
+        }
+      }
+    );
+
+    it('admin full edit keeps working', async () => {
+      for (const make of Object.values(adminVariants)) {
+        await assertSucceeds(
+          updateDoc(doc(make().firestore(), `events/${id}`), {
+            ...formPayload,
+            regionId: 'vorarlberg',
+            status: 'approved',
+          })
+        );
+      }
+    });
+  });
+
+  it('other users still cannot write a region onto foreign events', async () => {
+    await assertFails(updateDoc(doc(user().firestore(), 'events/legacy'), { regionId: 'tirol' }));
+  });
+});
+
+describe('users / publicProfile directoryRegionIds', () => {
+  const ownerDb = () => env.authenticatedContext('owner').firestore();
+  // What ProfileForm sends through useProfile.save (merge writes in one batch).
+  const privateSave = (extra: Record<string, unknown> = {}) => ({
+    displayName: 'Owner',
+    username: 'owner',
+    bio: 'b',
+    bioHtml: '<p>b</p>',
+    website: '',
+    contact: '',
+    photoURL: null,
+    photoFocalPoint: null,
+    photoZoom: null,
+    socialMedia: { facebook: '', instagram: '', sharePublicly: false },
+    listedInDirectory: true,
+    directoryCategories: ['Yoga'],
+    directoryRegions: ['Dornbirn'],
+    directoryRegionIds: ['vorarlberg'],
+    slug: 'owner',
+    updatedAt: serverTimestamp(),
+    ...extra,
+  });
+  const publicSave = (extra: Record<string, unknown> = {}) => {
+    const { contact: _c, socialMedia: _s, ...pub } = privateSave(extra);
+    return pub;
+  };
+
+  async function saveProfile(db: ReturnType<typeof ownerDb>, extra: Record<string, unknown> = {}) {
+    const batch = writeBatch(db);
+    batch.set(doc(db, 'users/owner'), privateSave(extra), { merge: true });
+    batch.set(doc(db, 'users/owner/publicProfile/data'), publicSave(extra), { merge: true });
+    return batch.commit();
+  }
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      // Legacy profile without directoryRegionIds (users/owner from the outer beforeEach).
+      await setDoc(doc(ctx.firestore(), 'users/owner/publicProfile/data'), {
+        displayName: 'Owner',
+        bio: 'b',
+        slug: 'owner',
+        listedInDirectory: true,
+        directoryCategories: ['Yoga'],
+        directoryRegions: ['Dornbirn'],
+      });
+    });
+  });
+
+  it('profile save on a legacy profile adds directoryRegionIds to both docs', async () => {
+    await assertSucceeds(saveProfile(ownerDb()));
+    await assertSucceeds(saveProfile(ownerDb(), { directoryRegionIds: ['tirol', 'wien'] }));
+  });
+
+  it('first save of a brand-new profile (create) accepts directoryRegionIds', async () => {
+    const db = env.authenticatedContext('fresh').firestore();
+    const batch = writeBatch(db);
+    batch.set(doc(db, 'users/fresh'), privateSave({ createdAt: serverTimestamp() }), {
+      merge: true,
+    });
+    batch.set(doc(db, 'users/fresh/publicProfile/data'), publicSave(), { merge: true });
+    await assertSucceeds(batch.commit());
+  });
+
+  it('rejects unknown ids, non-lists and more than 9 entries', async () => {
+    const all10 = [
+      'vorarlberg',
+      'tirol',
+      'salzburg',
+      'kaernten',
+      'steiermark',
+      'oberoesterreich',
+      'niederoesterreich',
+      'wien',
+      'burgenland',
+      'oesterreich',
+    ];
+    for (const directoryRegionIds of [
+      ['bayern'],
+      ['vorarlberg', 'Dornbirn'],
+      'vorarlberg',
+      all10,
+    ]) {
+      const db = ownerDb();
+      await assertFails(setDoc(doc(db, 'users/owner'), { directoryRegionIds }, { merge: true }));
+      await assertFails(
+        setDoc(doc(db, 'users/owner/publicProfile/data'), { directoryRegionIds }, { merge: true })
+      );
+    }
+    await assertSucceeds(
+      setDoc(
+        doc(ownerDb(), 'users/owner'),
+        { directoryRegionIds: all10.slice(0, 9) },
+        { merge: true }
+      )
+    );
+  });
+
+  it('legacy profiles stay updatable through every other path', async () => {
+    const db = ownerDb();
+    // Notification preferences, Instagram default, Google-login seed merge.
+    await assertSucceeds(updateDoc(doc(db, 'users/owner'), { notifyOnPublished: false }));
+    await assertSucceeds(updateDoc(doc(db, 'users/owner'), { instagramConsentDefault: true }));
+    await assertSucceeds(
+      setDoc(
+        doc(db, 'users/owner'),
+        { displayName: 'Owner', bio: '', website: '', contact: '', photoURL: null, slug: 'owner' },
+        { merge: true }
+      )
+    );
+    await assertSucceeds(
+      setDoc(
+        doc(db, 'users/owner/publicProfile/data'),
+        { displayName: 'Owner', bio: '', website: '', photoURL: null, slug: 'owner' },
+        { merge: true }
+      )
+    );
+  });
+
+  it('admin hide/unhide works with and without directoryRegionIds', async () => {
+    for (const make of Object.values(adminVariants)) {
+      const db = make().firestore();
+      await assertSucceeds(
+        updateDoc(doc(db, 'users/owner/publicProfile/data'), { directoryHidden: true })
+      );
+      await assertFails(
+        updateDoc(doc(db, 'users/owner/publicProfile/data'), { directoryRegionIds: ['tirol'] })
+      );
+    }
+    await saveProfile(ownerDb());
+    await assertSucceeds(
+      updateDoc(
+        doc(
+          adminVariants['admin (admin_users doc)']().firestore(),
+          'users/owner/publicProfile/data'
+        ),
+        {
+          directoryHidden: false,
+        }
+      )
+    );
+  });
+
+  it('other users cannot write directoryRegionIds', async () => {
+    const db = env.authenticatedContext('mallory').firestore();
+    await assertFails(
+      setDoc(doc(db, 'users/owner'), { directoryRegionIds: ['tirol'] }, { merge: true })
+    );
+    await assertFails(
+      setDoc(
+        doc(db, 'users/owner/publicProfile/data'),
+        { directoryRegionIds: ['tirol'] },
+        { merge: true }
+      )
+    );
   });
 });

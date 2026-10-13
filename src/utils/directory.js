@@ -1,4 +1,4 @@
-import { BEZIRKE, ONLINE_LOCATION } from './regions';
+import { BEZIRKE, ONLINE_LOCATION, resolveDirectoryRegionIds } from './regions';
 import { normalizeFocalPoint } from '../lib/eventImage';
 import { normalizePhotoZoom } from '../components/AvatarImage';
 
@@ -53,6 +53,8 @@ export function normalizeDirectoryEntry(uid, data) {
     photoZoom: normalizePhotoZoom(d.photoZoom),
     categories: stringList(d.directoryCategories),
     regions: stringList(d.directoryRegions),
+    // Read-side preparation only: the directory does not filter by it yet.
+    regionIds: resolveDirectoryRegionIds(d),
     hidden: d.directoryHidden === true,
   };
 }

@@ -46,17 +46,36 @@ service cloud.firestore {
       return order is int && order >= 0;
     }
 
+    // Region ids (== slugs) of the region registry. KEEP IN SYNC with
+    // ALL_REGION_SLUGS in src/utils/regions.js (guarded by
+    // tests/components/regions.spec.ts).
+    function regionIds() {
+      return ['vorarlberg', 'tirol', 'salzburg', 'kaernten', 'steiermark',
+              'oberoesterreich', 'niederoesterreich', 'wien', 'burgenland',
+              'oesterreich'];
+    }
+
+    function isValidRegionId(id) {
+      return id is string && id in regionIds();
+    }
+
     // Directory listing fields on the profile docs. A profile may only be
     // listed (`listedInDirectory == true`) when it names at least one
     // category; categories/regions are capped so the doc stays small.
-    // `request.resource.data` is the merged document, so this also holds
-    // for partial updates.
+    // `directoryRegionIds` (region ids, next to the Bezirk names in
+    // `directoryRegions`) is optional so profiles saved before regions
+    // existed stay valid. `request.resource.data` is the merged document,
+    // so this also holds for partial updates.
     function isValidDirectoryData(d) {
       return (!('listedInDirectory' in d) || d.listedInDirectory is bool)
         && (!('directoryCategories' in d)
             || (d.directoryCategories is list && d.directoryCategories.size() <= 5))
         && (!('directoryRegions' in d)
             || (d.directoryRegions is list && d.directoryRegions.size() <= 6))
+        && (!('directoryRegionIds' in d)
+            || (d.directoryRegionIds is list
+                && d.directoryRegionIds.size() <= 9
+                && d.directoryRegionIds.hasOnly(regionIds())))
         && (!('listedInDirectory' in d)
             || d.listedInDirectory != true
             || ('directoryCategories' in d && d.directoryCategories.size() >= 1));
@@ -122,6 +141,23 @@ service cloud.firestore {
                                && data.cancelledDates[data.cancelledDates.size() - 1] is string))));
       }
 
+      // regionId (moderation region, also for online events) is optional:
+      // events written before regions existed have none and fall back to
+      // Vorarlberg on read. When present it must be a known region id.
+      function isValidEventRegionOnCreate() {
+        return !('regionId' in request.resource.data)
+               || isValidRegionId(request.resource.data.regionId);
+      }
+
+      // On update only a changed regionId is checked, so every existing
+      // path (status changes, trash/restore, series exceptions, image
+      // patches) keeps working on any stored document.
+      function isValidEventRegionOnUpdate() {
+        return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['regionId'])
+               || !('regionId' in request.resource.data)
+               || isValidRegionId(request.resource.data.regionId);
+      }
+
       // Anyone creating an event (including admins) must start it as
       // 'pending' or 'draft'. Approval happens via update. Non-admins
       // additionally need a confirmed email address.
@@ -136,7 +172,8 @@ service cloud.firestore {
                             && request.resource.data.category.size() <= 40))
                     && isValidInstagramConsent()
                     && isValidFocalPoint()
-                    && isValidImageZoom();
+                    && isValidImageZoom()
+                    && isValidEventRegionOnCreate();
 
       // Moderation guard for owners who are not admins (a direct write
       // bypasses the UI): an owner may keep an ALREADY approved event
@@ -197,7 +234,8 @@ service cloud.firestore {
                     && isValidInstagramConsent()
                     && isValidFocalPoint()
                     && isValidImageZoom()
-                    && isValidCancellation();
+                    && isValidCancellation()
+                    && isValidEventRegionOnUpdate();
       allow delete: if isOwner() || isAdminOrEmulatorAdmin();
 
       match /messages/{messageId} {
@@ -236,7 +274,7 @@ service cloud.firestore {
                     && request.resource.data.keys().hasOnly(
                       ['displayName', 'bio', 'bioHtml', 'website', 'contact', 'photoURL', 'photoFocalPoint', 'photoZoom',
                        'slug', 'username', 'socialMedia',
-                       'listedInDirectory', 'directoryCategories', 'directoryRegions',
+                       'listedInDirectory', 'directoryCategories', 'directoryRegions', 'directoryRegionIds',
                        'notifyOnSubmitted', 'notifyOnChangesRequested',
                        'notifyOnPublished', 'notifyOnDeleted',
                        'notifyOnContactMessage', 'notifyOnFavoriteCancelled',
@@ -265,7 +303,7 @@ service cloud.firestore {
                     && request.resource.data.diff(resource.data).affectedKeys()
                         .hasOnly(['displayName', 'bio', 'bioHtml', 'website', 'contact', 'photoURL', 'photoFocalPoint', 'photoZoom',
                                   'slug', 'username', 'socialMedia',
-                                  'listedInDirectory', 'directoryCategories', 'directoryRegions',
+                                  'listedInDirectory', 'directoryCategories', 'directoryRegions', 'directoryRegionIds',
                                   'notifyOnSubmitted', 'notifyOnChangesRequested',
                                   'notifyOnPublished', 'notifyOnDeleted',
                                   'notifyOnContactMessage', 'notifyOnFavoriteCancelled',
@@ -297,7 +335,7 @@ service cloud.firestore {
                       && request.auth.uid == uid
                       && request.resource.data.keys().hasOnly(
                         ['displayName', 'bio', 'bioHtml', 'website', 'photoURL', 'photoFocalPoint', 'photoZoom', 'slug', 'username', 'socialMedia',
-                         'listedInDirectory', 'directoryCategories', 'directoryRegions',
+                         'listedInDirectory', 'directoryCategories', 'directoryRegions', 'directoryRegionIds',
                          'updatedAt']
                       )
                       && request.resource.data.bio.size() <= 2000
@@ -317,7 +355,7 @@ service cloud.firestore {
                               && request.resource.data.bioHtml.size() <= 20000))
                       && request.resource.data.diff(resource.data).affectedKeys()
                           .hasOnly(['displayName', 'bio', 'bioHtml', 'website', 'photoURL', 'photoFocalPoint', 'photoZoom', 'slug', 'username', 'socialMedia',
-                                    'listedInDirectory', 'directoryCategories', 'directoryRegions',
+                                    'listedInDirectory', 'directoryCategories', 'directoryRegions', 'directoryRegionIds',
                                     'updatedAt']);
 
         // Moderation: admins can hide a listing from the directory (and
@@ -404,9 +442,7 @@ service cloud.firestore {
                   'timezone', 'createdAt', 'updatedAt'])
           && d.slug is string
           && d.slug == regionId
-          && d.slug in ['vorarlberg', 'tirol', 'salzburg', 'kaernten', 'steiermark',
-                        'oberoesterreich', 'niederoesterreich', 'wien', 'burgenland',
-                        'oesterreich']
+          && d.slug in regionIds()
           && d.name is string && d.name.size() > 0 && d.name.size() <= 100
           && (!('order' in d) || d.order is number)
           && (!('active' in d) || d.active is bool)

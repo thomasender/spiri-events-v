@@ -37,6 +37,7 @@ import {
   buildCustomDeleteFromDateUpdate,
 } from '../utils/customSeriesUpdates';
 import { CURRENCIES, DEFAULT_CURRENCY } from '../utils/currency';
+import { pickEventRegionId } from '../utils/regions';
 import { normalizeCategoryInput, isValidCategoryInput } from '../utils/categoryInput';
 import InstagramConsentField from './InstagramConsentField';
 import {
@@ -165,6 +166,9 @@ export default function EventForm({ event }) {
         category: event.category || '',
         bezirk: event.isOnline ? '' : event.bezirk || '',
         isOnline: Boolean(event.isOnline),
+        // No region picker yet: carried through so an edit keeps the stored
+        // region instead of resetting it.
+        regionId: event.regionId || '',
         organizer: {
           name: combineOrganizerName(storedOrganizer),
           email: storedOrganizer.email || '',
@@ -703,6 +707,7 @@ export default function EventForm({ event }) {
     category: formData.category || 'Sonstiges',
     bezirk: formData.isOnline ? '' : formData.bezirk,
     isOnline: Boolean(formData.isOnline),
+    regionId: pickEventRegionId(formData.regionId, isEdit ? event : null),
     organizer: {
       firstName: splitOrganizerName(formData.organizer.name).firstName,
       lastName: splitOrganizerName(formData.organizer.name).lastName,

@@ -13,6 +13,7 @@ import { getMissingProfileFields, BIO_MAX } from '../utils/profile';
 import { slugifyName } from '../lib/slug';
 import { validateUsername, normalizeUsername, USERNAME_MIN, USERNAME_MAX } from '../utils/username';
 import { isUsernameAvailable } from '../lib/slug';
+import { resolveDirectoryRegionIds } from '../utils/regions';
 import './ProfileForm.css';
 
 const NAME_MAX = 80;
@@ -227,6 +228,8 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
     listedInDirectory,
     directoryCategories,
     directoryRegions,
+    // No region picker yet: keeps the stored region ids, default Vorarlberg.
+    directoryRegionIds: resolveDirectoryRegionIds(profile),
   });
 
   const handleSubmit = async (e) => {

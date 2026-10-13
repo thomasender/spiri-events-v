@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import {
+  ALL_REGION_SLUGS,
   BEZIRKE,
   DEFAULT_REGION_ID,
   REGION_SLUGS,
@@ -10,6 +13,8 @@ import {
   isRegionSlug,
   mergeRegions,
   bezirkLabel,
+  pickEventRegionId,
+  resolveDirectoryRegionIds,
   resolveRegionId,
 } from '../../src/utils/regions.js';
 import { getEventLocationLabel } from '../../src/utils/eventFormat';
@@ -104,5 +109,48 @@ const RESOLVE_REGION_CASES: Array<[unknown, string]> = [
 describe('resolveRegionId shared cases', () => {
   it.each(RESOLVE_REGION_CASES)('%j -> %s', (doc, expected) => {
     expect(resolveRegionId(doc)).toBe(expected);
+  });
+});
+
+describe('pickEventRegionId', () => {
+  it('uses a valid region from the form', () => {
+    expect(pickEventRegionId('tirol')).toBe('tirol');
+    expect(pickEventRegionId('tirol', { regionId: 'wien' })).toBe('tirol');
+  });
+
+  it('keeps the stored region on edit when the form has none', () => {
+    expect(pickEventRegionId('', { regionId: 'tirol' })).toBe('tirol');
+    expect(pickEventRegionId(undefined, { regionId: 'tirol' })).toBe('tirol');
+  });
+
+  it('falls back to the default for new events, old events and unknown ids', () => {
+    expect(pickEventRegionId(undefined)).toBe(DEFAULT_REGION_ID);
+    expect(pickEventRegionId(null, {})).toBe(DEFAULT_REGION_ID);
+    expect(pickEventRegionId('bayern', { regionId: 'bayern' })).toBe(DEFAULT_REGION_ID);
+  });
+});
+
+describe('resolveDirectoryRegionIds', () => {
+  it('defaults to Vorarlberg for profiles without the field', () => {
+    expect(resolveDirectoryRegionIds({})).toEqual(['vorarlberg']);
+    expect(resolveDirectoryRegionIds(null)).toEqual(['vorarlberg']);
+    expect(resolveDirectoryRegionIds({ directoryRegionIds: [] })).toEqual(['vorarlberg']);
+  });
+
+  it('keeps valid ids, drops unknown ones and duplicates, caps at 9', () => {
+    expect(
+      resolveDirectoryRegionIds({ directoryRegionIds: ['tirol', 'bayern', 'tirol', 5, 'wien'] })
+    ).toEqual(['tirol', 'wien']);
+    expect(resolveDirectoryRegionIds({ directoryRegionIds: ALL_REGION_SLUGS })).toHaveLength(9);
+  });
+});
+
+describe('firestore.rules region list', () => {
+  it('matches ALL_REGION_SLUGS', () => {
+    const rules = readFileSync(resolve(process.cwd(), 'firestore.rules'), 'utf8');
+    const body = rules.match(/function regionIds\(\) \{\s*return \[([^\]]*)\]/);
+    expect(body).not.toBeNull();
+    const ids = [...(body?.[1] ?? '').matchAll(/'([a-z]+)'/g)].map((m) => m[1]);
+    expect(ids).toEqual(ALL_REGION_SLUGS);
   });
 });

@@ -73,6 +73,28 @@ export const getRegionBySlug = (slug, regions = STATIC_REGIONS) =>
 export const resolveRegionId = (doc) =>
   doc && typeof doc.regionId === 'string' && doc.regionId ? doc.regionId : DEFAULT_REGION_ID;
 
+// regionId for an event write. A valid id from the form wins; otherwise an
+// existing event keeps its stored region (edits never reset it); new events
+// get the default. Online events use the same rule (moderation region).
+export function pickEventRegionId(formRegionId, existingEvent = null) {
+  if (isRegionSlug(formRegionId)) return formRegionId;
+  if (existingEvent && isRegionSlug(existingEvent.regionId)) return existingEvent.regionId;
+  return DEFAULT_REGION_ID;
+}
+
+// Max entries of a profile's `directoryRegionIds` (also enforced in
+// firestore.rules).
+export const MAX_DIRECTORY_REGION_IDS = REGION_SLUGS.length;
+
+// Region ids a directory profile is listed in. Profiles saved before regions
+// existed have none and count as Vorarlberg. Unknown ids and duplicates are
+// dropped so the result always passes firestore.rules.
+export function resolveDirectoryRegionIds(doc) {
+  const raw = doc && Array.isArray(doc.directoryRegionIds) ? doc.directoryRegionIds : [];
+  const ids = [...new Set(raw.filter(isRegionSlug))].slice(0, MAX_DIRECTORY_REGION_IDS);
+  return ids.length > 0 ? ids : [DEFAULT_REGION_ID];
+}
+
 export const getBezirke = (regionId, regions = STATIC_REGIONS) =>
   getRegionBySlug(regionId, regions)?.bezirke ?? [];
 

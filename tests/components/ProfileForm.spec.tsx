@@ -711,7 +711,16 @@ describe('ProfileForm — Benutzername (LtBHuNes)', () => {
         listedInDirectory: true,
         directoryCategories: ['Coaching'],
         directoryRegions: ['Dornbirn'],
+        directoryRegionIds: ['vorarlberg'],
       });
+    });
+
+    it('keeps stored directoryRegionIds on save', async () => {
+      const onSave = vi.fn().mockResolvedValue(undefined);
+      renderForm({ ...baseProfile, directoryRegionIds: ['tirol'] }, { onSave });
+      fireEvent.click(screen.getByTestId('profile-save'));
+      await waitFor(() => expect(onSave).toHaveBeenCalled());
+      expect(onSave.mock.calls[0][0].directoryRegionIds).toEqual(['tirol']);
     });
 
     it('blocks listing without a bio', async () => {
