@@ -482,6 +482,30 @@ git commit -m "chore: refresh prerender event snapshot"
 The refresh script reads from the emulator (preferred) or production
 Firestore (via `scripts/service-account.json`).
 
+## Firestore backup (before production migrations)
+
+`scripts/export-firestore.mjs` is a read-only backup, separate from the prerender
+snapshot (`data-export/firestore-export/`, which it never touches). Logic and
+tests: `src/utils/firestoreBackup.js`, `tests/lib/firestoreBackup.spec.ts`.
+
+```bash
+node scripts/export-firestore.mjs                            # emulator (default) -> backups/firestore-emulator-<date>/
+node scripts/export-firestore.mjs --project spirieventsvbg   # PRODUCTION, read only (ADC credentials) -> backups/firestore-<date>/
+node scripts/export-firestore.mjs --verify backups/firestore-<date>   # restore check
+```
+
+- Covers every top-level collection and every subcollection found by traversal
+  (events/messages, users/favorites, users/publicProfile, admin_users, regions,
+  instagram_posts, ...), paged past 1000 docs. Each collection is compared with a
+  server-side count; any error or mismatch means exit 1 and **no** `exportedAt`.
+- `manifest.json` has `exportedAt`, per-collection counts and a SHA-256 per file.
+  `migrate-region-ids.mjs --project spirieventsvbg --apply` requires a production
+  manifest with `exportedAt` from today (emulator backups do not count).
+- `--verify` re-reads the files and checks hashes and counts. A real restore check:
+  load the typed JSON (`{stringValue: ...}`) into a throwaway emulator and compare counts.
+- `backups/` is git-ignored: it contains personal data (and `instagram_private`).
+  Keep it local and delete it when the migration is done.
+
 ## Communicating with Peter
 
 Peter is the product owner and tester. He tests directly on production at https://www.thetribe.at (NOT locally).

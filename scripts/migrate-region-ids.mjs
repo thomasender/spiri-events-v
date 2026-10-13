@@ -8,8 +8,8 @@
 // Emulator, write:              node scripts/migrate-region-ids.mjs --apply
 // Production, dry-run:          node scripts/migrate-region-ids.mjs --project spirieventsvbg
 // Production, write (ticket 9): node scripts/migrate-region-ids.mjs --project spirieventsvbg --apply
-//     needs a Firestore export from today (node scripts/export-firestore.mjs,
-//     checked via data-export/firestore-export/manifest.json exportedAt) or --force.
+//     needs a production backup from today (node scripts/export-firestore.mjs
+//     --project spirieventsvbg, checked via backups/*/manifest.json exportedAt) or --force.
 //     Credentials: Application Default Credentials / GOOGLE_APPLICATION_CREDENTIALS.
 // Snapshot files only (no Firestore):
 //                               node scripts/migrate-region-ids.mjs --snapshot [--snapshot-dir <dir>] [--apply]
@@ -20,9 +20,10 @@
 // no other field (updatedAt included) is touched, and a doc changed by
 // someone else in the meantime makes the batch fail instead of being
 // overwritten. The script stops at the first error; re-running is safe.
-import { existsSync, readFileSync, writeFileSync } from 'fs';
+import { existsSync, readFileSync, readdirSync, writeFileSync } from 'fs';
 import { dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';
+import { MANIFEST_NAME, latestProductionExportedAt } from '../src/utils/firestoreBackup.js';
 import {
   MAX_BATCH_SIZE,
   PROD_PROJECT_ID,
@@ -34,20 +35,27 @@ import {
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const EXPORT_DIR = join(ROOT, 'data-export', 'firestore-export');
+const BACKUP_DIR = join(ROOT, 'backups');
 const TAG = '[migrate-region-ids]';
 
 function readJson(path) {
   return JSON.parse(readFileSync(path, 'utf8'));
 }
 
+// Newest complete PRODUCTION backup under backups/*/manifest.json (written by
+// scripts/export-firestore.mjs only after every collection was read and counted).
 function readBackupExportedAt() {
-  const manifest = join(EXPORT_DIR, 'manifest.json');
-  if (!existsSync(manifest)) return null;
-  try {
-    return readJson(manifest).exportedAt ?? null;
-  } catch {
-    return null;
+  if (!existsSync(BACKUP_DIR)) return null;
+  const manifests = [];
+  for (const entry of readdirSync(BACKUP_DIR, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    try {
+      manifests.push(readJson(join(BACKUP_DIR, entry.name, MANIFEST_NAME)));
+    } catch {
+      // unreadable / partial backup dir: ignore
+    }
   }
+  return latestProductionExportedAt(manifests);
 }
 
 const TRIGGER_NOTE = `
@@ -81,7 +89,7 @@ function printBanner(opts) {
   if (opts.target !== 'snapshot') {
     console.log(
       `${TAG} Backup: vor dem Schreiben auf Produktion einen Export von heute anlegen ` +
-        '(node scripts/export-firestore.mjs).'
+        '(node scripts/export-firestore.mjs --project spirieventsvbg).'
     );
   }
   if (opts.target === 'production') {

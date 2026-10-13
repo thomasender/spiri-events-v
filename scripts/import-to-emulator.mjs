@@ -54,7 +54,7 @@ async function main() {
   const exportDir = join(ROOT, 'data-export/firestore-export');
 
   if (!existsSync(join(exportDir, 'events.json'))) {
-    console.error('No export found. Run: node scripts/export-firestore.mjs');
+    console.error('No snapshot found in data-export/firestore-export (events.json). Note: scripts/export-firestore.mjs now writes backups to backups/, not here.');
     process.exit(1);
   }
 

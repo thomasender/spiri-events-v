@@ -144,8 +144,8 @@ export function resolveOptions(argv, { env = {}, backupExportedAt = null, now = 
   const backupOk = isBackupFromToday(backupExportedAt, now);
   if (opts.apply && !backupOk && !opts.force) {
     throw new Error(
-      'Kein Export von heute gefunden (data-export/firestore-export/manifest.json exportedAt). ' +
-        'Erst `node scripts/export-firestore.mjs` ausfuehren oder bewusst --force setzen.'
+      'Kein Produktions-Backup von heute gefunden (backups/*/manifest.json exportedAt). ' +
+        'Erst `node scripts/export-firestore.mjs --project spirieventsvbg` ausfuehren oder bewusst --force setzen.'
     );
   }
   return { ...opts, target: 'production', dryRun: !opts.apply, backupOk };
@@ -154,7 +154,7 @@ export function resolveOptions(argv, { env = {}, backupExportedAt = null, now = 
 // --- Snapshot files (data-export/firestore-export/*.json) -------------------
 // Two shapes exist: typed values ({ stringValue: 'x' }, written by
 // scripts/refresh-prerender-data.mjs; arrays stay plain arrays of typed values)
-// and plain values (written by scripts/export-firestore.mjs). New fields follow
+// and plain values (older exports). New fields follow
 // the shape of the doc they are added to.
 
 const TYPED_KEYS = [

@@ -201,11 +201,11 @@ describe('production guard (resolveOptions)', () => {
   it('production --apply needs a backup from today, or --force', () => {
     const prodApply = ['--project', 'spirieventsvbg', '--apply'];
     expect(() => resolveOptions(prodApply, { env: {}, backupExportedAt: null, now: NOW })).toThrow(
-      /Kein Export von heute/
+      /Kein Produktions-Backup von heute/
     );
     expect(() =>
       resolveOptions(prodApply, { env: {}, backupExportedAt: YESTERDAY, now: NOW })
-    ).toThrow(/Kein Export von heute/);
+    ).toThrow(/Kein Produktions-Backup von heute/);
     expect(resolveOptions(prodApply, { env: {}, backupExportedAt: TODAY, now: NOW })).toMatchObject(
       { target: 'production', dryRun: false, backupOk: true }
     );
