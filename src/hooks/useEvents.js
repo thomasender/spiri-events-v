@@ -27,6 +27,8 @@ import { auth } from '../lib/firebase';
 import { getApp } from 'firebase/app';
 import { ensureCategoryExists } from '../utils/ensureCategoryExists';
 import { buildTrashUpdate, buildRestoreUpdate } from '../utils/trashUpdates';
+import { getStaffAccess } from '../utils/staffRoles';
+import { staffEventQuerySpecs, subscribeEventQueries } from '../lib/staffEventQueries';
 
 export const KATEGORIEN = [
   'Yoga',
@@ -320,34 +322,30 @@ async function approveEventAsAdmin(eventId, adminUid) {
   }
 }
 
+// Review queue: Super-Admin all pending events, a Regions-Moderator:in the
+// pending events of her regions, everyone else their own.
 export function usePendingEvents() {
-  const { user, role } = useAuth();
+  const { user, role, staffRegionIds } = useAuth();
   const [pendingEvents, setPendingEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const regionKey = Array.isArray(staffRegionIds) ? staffRegionIds.join(',') : '';
 
   useEffect(() => {
     setLoading(true);
     setPendingEvents([]);
 
-    let q;
-    if (role === 'Admin') {
-      q = query(collection(db, 'events'), where('status', '==', 'pending'));
-    } else {
-      q = query(
-        collection(db, 'events'),
-        where('status', '==', 'pending'),
-        where('createdBy', '==', user.uid)
-      );
-    }
+    const access = getStaffAccess(role, regionKey ? regionKey.split(',') : []);
+    const specs = staffEventQuerySpecs({
+      access,
+      uid: user?.uid,
+      status: 'pending',
+      includeOwn: false,
+    });
 
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const eventData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
+    return subscribeEventQueries(
+      specs,
+      (eventData) => {
         const normalized = normalizeEvents(eventData);
         normalized.sort(compareEventsByDateTime);
         setPendingEvents(normalized);
@@ -360,9 +358,7 @@ export function usePendingEvents() {
         setLoading(false);
       }
     );
-
-    return unsubscribe;
-  }, [user, role]);
+  }, [user, role, regionKey]);
 
   const approveEvent = (eventId) => approveEventAsAdmin(eventId, user.uid);
 

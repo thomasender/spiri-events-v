@@ -7,6 +7,8 @@ import { useEventsWithMessages } from '../hooks/useEventsWithMessages';
 import { useUserDisplayNames } from '../hooks/useUserDisplayNames';
 import { useAuth } from '../hooks/useAuth';
 import { requiresDeleteReason } from '../utils/eventPermissions';
+import { getStaffAccess } from '../utils/staffRoles';
+import { STATIC_REGIONS, resolveRegionId } from '../utils/regions';
 import { buildTrashUpdate } from '../utils/trashUpdates';
 import EventAdminListRow from './EventAdminListRow';
 import ConfirmDialog from './ConfirmDialog';
@@ -14,6 +16,12 @@ import SuccessDialog from './SuccessDialog';
 import './ReviewTab.css';
 
 const APPROVED_WINDOW_DAYS = 7;
+
+function regionNames(ids) {
+  const names = ids.map((id) => STATIC_REGIONS.find((r) => r.id === id)?.name || id);
+  if (names.length <= 1) return names.join('');
+  return `${names.slice(0, -1).join(', ')} und ${names[names.length - 1]}`;
+}
 
 function getApprovedAtMillis(value) {
   if (!value) return null;
@@ -50,7 +58,13 @@ function CollapseToggle({ id, open, onToggle, testId, children }) {
 }
 
 export default function ReviewTab() {
-  const { user, role } = useAuth();
+  const { user, role, staffRegionIds } = useAuth();
+  const access = useMemo(() => getStaffAccess(role, staffRegionIds), [role, staffRegionIds]);
+  const moderatorRegionKey = access.isRegionModerator ? access.moderatorRegionIds.join(',') : '';
+  // Super-Admins may edit any event; a Regions-Moderator:in only reviews
+  // (the rules forbid her content edits), so she gets no edit link on
+  // other people's events.
+  const canEdit = (evt) => access.isSuperAdmin || evt.createdBy === user?.uid;
   const { pendingEvents, loading: pendingLoading, approveEvent } = usePendingEvents();
   const { events: allApprovedEvents, loading: approvedLoading } = useAllEvents();
   const { unreadCountByEvent, hasMessagesByEvent, inKlaerungAuthorNameByEvent } =
@@ -119,7 +133,7 @@ export default function ReviewTab() {
     setDeleteTarget({
       id: evt.id,
       eventTitle: evt.title,
-      reasonRequired: requiresDeleteReason(user, evt, role),
+      reasonRequired: requiresDeleteReason(user, evt, role, staffRegionIds),
     });
 
   const recentlyApproved = useMemo(() => {
@@ -129,12 +143,14 @@ export default function ReviewTab() {
     // the cutoff stays current without any state plumbing.
     // eslint-disable-next-line react-hooks/purity
     const cutoff = Date.now() - APPROVED_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+    const regionIds = moderatorRegionKey ? moderatorRegionKey.split(',') : null;
     return allApprovedEvents
+      .filter((event) => !regionIds || regionIds.includes(resolveRegionId(event)))
       .map((event) => ({ event, approvedAtMs: getApprovedAtMillis(event.approvedAt) }))
       .filter(({ approvedAtMs }) => approvedAtMs != null && approvedAtMs >= cutoff)
       .sort((a, b) => b.approvedAtMs - a.approvedAtMs)
       .map(({ event }) => event);
-  }, [allApprovedEvents]);
+  }, [allApprovedEvents, moderatorRegionKey]);
 
   const { pendingInKlaerung, pendingNeu } = useMemo(() => {
     const inK = [];
@@ -163,6 +179,10 @@ export default function ReviewTab() {
     return <div className="loading-spinner"></div>;
   }
 
+  const subtitle = access.isRegionModerator
+    ? `Hier landen die Events aus ${regionNames(access.moderatorRegionIds)}, die auf deine Freigabe warten`
+    : 'Hier landen alle Events, die auf deine Freigabe warten';
+
   const hasAnyContent = pendingEvents.length > 0 || recentlyApproved.length > 0;
 
   if (!hasAnyContent) {
@@ -171,7 +191,7 @@ export default function ReviewTab() {
         <div className="event-list-header">
           <div>
             <h1>Review</h1>
-            <p>Hier landen alle Events, die auf deine Freigabe warten</p>
+            <p>{subtitle}</p>
           </div>
         </div>
 
@@ -194,7 +214,7 @@ export default function ReviewTab() {
       <div className="event-list-header">
         <div>
           <h1>Review</h1>
-          <p>Hier landen alle Events, die auf deine Freigabe warten</p>
+          <p>{subtitle}</p>
         </div>
       </div>
 
@@ -245,6 +265,7 @@ export default function ReviewTab() {
                         showRevisionHint
                         fromPath="/admin?tab=review"
                         isAdmin
+                        showEdit={canEdit(event)}
                         approving={approvingId}
                         unreadCount={unreadCountByEvent[event.id] || 0}
                         hasMessages={Boolean(hasMessagesByEvent[event.id])}
@@ -300,6 +321,7 @@ export default function ReviewTab() {
                           inKlaerungByName={inKlaerungAuthorNameByEvent[event.id] || null}
                           fromPath="/admin?tab=review"
                           isAdmin
+                          showEdit={canEdit(event)}
                           approving={approvingId}
                           unreadCount={unreadCountByEvent[event.id] || 0}
                           hasMessages={Boolean(hasMessagesByEvent[event.id])}
@@ -356,6 +378,7 @@ export default function ReviewTab() {
                   approvedByName={namesByUid[event.approvedBy] || null}
                   fromPath="/admin?tab=review"
                   isAdmin
+                  showEdit={canEdit(event)}
                   onDeleteClick={(evt) => openDelete(evt)}
                 />
               </div>

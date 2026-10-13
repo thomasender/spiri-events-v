@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from './useAuth';
+import { getStaffAccess, messageAuthorRole } from '../utils/staffRoles';
 import {
   sanitizeHtml,
   isHtmlEmpty,
@@ -20,8 +21,14 @@ import {
   MAX_MESSAGE_LENGTH,
 } from '../utils/sanitize';
 
-export function useEventMessages(eventId) {
-  const { user, role } = useAuth();
+// `ownerUid` (the event's createdBy) decides whether a Regions-Moderator:in
+// writes as staff ('Admin') or, on her own event, as the organizer.
+export function useEventMessages(eventId, { ownerUid = null } = {}) {
+  const { user, role, staffRegionIds } = useAuth();
+  const authorRole = messageAuthorRole(
+    getStaffAccess(role, staffRegionIds),
+    Boolean(user && ownerUid && ownerUid === user.uid)
+  );
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -79,7 +86,7 @@ export function useEventMessages(eventId) {
         await addDoc(messagesRef, {
           text: clean,
           authorUid: user.uid,
-          authorRole: role || 'User',
+          authorRole,
           authorName: user.displayName || user.email || 'Unbekannt',
           createdAt: serverTimestamp(),
           readByRecipient: false,
@@ -88,7 +95,7 @@ export function useEventMessages(eventId) {
         setSending(false);
       }
     },
-    [user, role, eventId]
+    [user, authorRole, eventId]
   );
 
   const markAsRead = useCallback(

@@ -26,6 +26,7 @@ import ThemeApplier from './components/ThemeApplier';
 import ScrollToTop from './components/ScrollToTop';
 import ErrorBoundary from './components/ErrorBoundary';
 import ErrorPage from './pages/ErrorPage';
+import NoAccess from './components/NoAccess';
 import RegionProvider from './components/RegionProvider';
 import RegionChooser from './components/RegionChooser';
 import { RegionDirectoryRoute, RegionOrProfileRoute } from './components/RegionRoutes';
@@ -95,6 +96,24 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
+// Areas only Super-Admins may open (e.g. the Theme editor). Everyone else,
+// Regions-Moderator:innen included, gets a clear "Kein Zugriff" page instead
+// of a half-working editor; the data itself is protected by the rules.
+export function SuperAdminRoute({ children }) {
+  const { role, loading } = useAuth();
+  if (loading) {
+    return <div className="loading-spinner"></div>;
+  }
+  if (role !== 'Admin') {
+    return (
+      <div className="admin-page">
+        <NoAccess />
+      </div>
+    );
+  }
+  return children;
+}
+
 function AdminReviewRedirect() {
   const navigate = useNavigate();
   const hash =
@@ -160,7 +179,9 @@ function AppLayout() {
               path="/admin/theme-editor"
               element={
                 <ProtectedRoute>
-                  <ThemeEditorPage />
+                  <SuperAdminRoute>
+                    <ThemeEditorPage />
+                  </SuperAdminRoute>
                 </ProtectedRoute>
               }
             />

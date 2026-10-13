@@ -7,6 +7,7 @@ import AdminPage from '../../src/pages/AdminPage';
 const mockAuth = vi.hoisted(() => ({
   user: { uid: 'test-uid' } as { uid: string } | null,
   role: 'User',
+  staffRegionIds: [] as string[],
   loading: false,
 }));
 
@@ -129,6 +130,12 @@ vi.mock('../../src/hooks/useHelpers', () => ({
 vi.mock('../../src/hooks/useDonors', () => ({
   useDonors: () => mockUseDonors,
 }));
+vi.mock('../../src/components/ModerationTab', () => ({
+  default: () => <div data-testid="moderation-tab-stub">Moderation</div>,
+}));
+vi.mock('../../src/components/MembersTab', () => ({
+  default: () => <div data-testid="members-tab-stub">Mitglieder</div>,
+}));
 
 function renderAdmin(initialEntries: string[] = ['/admin']) {
   return render(
@@ -146,6 +153,8 @@ function renderAdmin(initialEntries: string[] = ['/admin']) {
 beforeEach(() => {
   mockAuth.user = { uid: 'test-uid' };
   mockAuth.role = 'User';
+  mockAuth.staffRegionIds = [];
+  mockAuth.loading = false;
   mockUseUnread.count = 0;
   mockUseUnread.loading = false;
   mockUseHasMessages.hasMessages = false;
@@ -583,5 +592,113 @@ describe('AdminPage EventStatusMismatchBanner (hehX4tTc)', () => {
     const dismiss = screen.getByTestId('event-status-mismatch-banner-dismiss');
     await dismiss.click();
     expect(screen.queryByTestId('event-status-mismatch-banner')).not.toBeInTheDocument();
+  });
+});
+
+describe('AdminPage access per role', () => {
+  const SUPER_ADMIN_ONLY = [
+    'admin-tab-categories',
+    'admin-tab-theme',
+    'admin-tab-helpers',
+    'admin-tab-donors',
+    'admin-tab-instagram',
+    'admin-tab-analytics',
+    'admin-tab-moderation',
+  ];
+
+  function asModerator(regionIds = ['tirol']) {
+    mockAuth.role = 'RegionModerator';
+    mockAuth.staffRegionIds = regionIds;
+  }
+
+  it('Super-Admin sees every area including the Moderation tab', () => {
+    mockAuth.role = 'Admin';
+    mockUseHasFeedback.hasFeedback = true;
+    renderAdmin();
+    for (const id of [
+      ...SUPER_ADMIN_ONLY,
+      'admin-tab-review',
+      'admin-tab-members',
+      'admin-tab-feedback',
+    ]) {
+      expect(screen.getByTestId(id)).toBeInTheDocument();
+    }
+  });
+
+  it('Super-Admin opens the Moderation tab by URL', () => {
+    mockAuth.role = 'Admin';
+    renderAdmin(['/admin?tab=moderation']);
+    expect(screen.getByTestId('admin-tab-moderation')).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByTestId('moderation-tab-stub')).toBeInTheDocument();
+  });
+
+  it('moderator sees Review and Mitglieder but none of the Super-Admin areas', () => {
+    asModerator();
+    mockUseHasFeedback.hasFeedback = true;
+    mockUseHasMessages.hasMessages = true;
+    mockUseTrashedCount.count = 1;
+    renderAdmin();
+    for (const id of [
+      'admin-tab-events',
+      'admin-tab-review',
+      'admin-tab-members',
+      'admin-tab-messages',
+      'admin-tab-trash',
+    ]) {
+      expect(screen.getByTestId(id)).toBeInTheDocument();
+    }
+    for (const id of [...SUPER_ADMIN_ONLY, 'admin-tab-feedback']) {
+      expect(screen.queryByTestId(id)).not.toBeInTheDocument();
+    }
+  });
+
+  it('moderator gets the pending count of her queue on the Review tab', () => {
+    asModerator();
+    mockUsePendingEvents.pendingEvents = [{ id: 'p1', title: 'Yoga Innsbruck' }];
+    renderAdmin();
+    expect(screen.getByTestId('admin-tab-review-badge')).toHaveTextContent('1');
+  });
+
+  it.each([
+    'categories',
+    'theme',
+    'instagram',
+    'analytics',
+    'feedback',
+    'donors',
+    'helpers',
+    'moderation',
+  ])('moderator opening ?tab=%s directly gets "Kein Zugriff", not the content', (tab) => {
+    asModerator();
+    mockUseHasFeedback.hasFeedback = true;
+    renderAdmin([`/admin?tab=${tab}`]);
+    expect(screen.getByTestId('no-access')).toHaveTextContent('Kein Zugriff');
+    expect(document.getElementById('admin-tab-events')).toHaveAttribute('hidden');
+    expect(screen.queryByTestId('moderation-tab-stub')).not.toBeInTheDocument();
+  });
+
+  it('a moderator doc without a valid region grants nothing', () => {
+    asModerator(['atlantis']);
+    renderAdmin(['/admin?tab=review']);
+    expect(screen.queryByTestId('admin-tab-review')).not.toBeInTheDocument();
+    expect(screen.getByTestId('no-access')).toBeInTheDocument();
+  });
+
+  it('organizer sees only her own areas and is blocked from staff tabs by URL', () => {
+    mockAuth.role = 'User';
+    renderAdmin(['/admin?tab=members']);
+    expect(screen.queryByTestId('admin-tab-review')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('admin-tab-members')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('admin-tab-moderation')).not.toBeInTheDocument();
+    expect(screen.getByTestId('no-access')).toBeInTheDocument();
+    expect(screen.queryByTestId('members-tab-stub')).not.toBeInTheDocument();
+  });
+
+  it('waits for the role before deciding about a blocked tab', () => {
+    mockAuth.role = null as unknown as string;
+    mockAuth.loading = true;
+    renderAdmin(['/admin?tab=categories']);
+    expect(screen.queryByTestId('no-access')).not.toBeInTheDocument();
+    expect(document.querySelector('.loading-spinner')).toBeTruthy();
   });
 });

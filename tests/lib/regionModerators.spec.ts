@@ -356,6 +356,8 @@ describe('adminListMembers by role', () => {
     },
     'users/legacy/publicProfile/data': { displayName: 'L' },
     'users/wien/publicProfile/data': { displayName: 'W', directoryRegionIds: ['wien'] },
+    'admin_users/wien': { role: 'RegionModerator', regionIds: ['wien'] },
+    'admin_users/legacy': { role: 'Admin' },
   };
   const roles: Record<string, Doc> = {
     admin: ADMIN,
@@ -381,6 +383,27 @@ describe('adminListMembers by role', () => {
       instagramConsent: true,
       instagramHandle: '@t',
       directoryRegionIds: ['tirol'],
+    });
+  });
+
+  it('Super-Admin: each member carries the existing staff role (for the Moderation tab)', async () => {
+    const withClaim = {
+      ...deps,
+      listAuthUsers: async () =>
+        authUsers.map((u) =>
+          u.uid === 'noProfile' ? { ...u, customClaims: { role: 'Admin' } } : u
+        ),
+    };
+    const res = await listMembersHandler(call('admin', {}), withClaim);
+    const roles = Object.fromEntries(
+      res.members.map((m) => [m.uid, (m as { staffRole?: unknown }).staffRole])
+    );
+    expect(roles).toEqual({
+      tirol: null,
+      tirolWien: null,
+      legacy: 'Admin',
+      noProfile: 'Admin',
+      wien: 'RegionModerator',
     });
   });
 

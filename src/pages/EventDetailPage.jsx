@@ -41,6 +41,7 @@ import { pickEventDoc } from '../utils/pickEventDoc';
 import { getOrganizerName } from '../utils/eventFormat';
 import { resolveOrganizerProfilePath } from '../utils/profile';
 import { canEditEvent, canDeleteEvent, requiresDeleteReason } from '../utils/eventPermissions';
+import { getStaffAccess, isModeratorForEvent } from '../utils/staffRoles';
 import { parseContactText } from '../utils/contactFormat';
 import { getNextUpcomingOccurrence, getRecurrenceDatesForDetail } from '../utils/eventOccurrences';
 import { isEventCancelled, isOccurrenceCancelled } from '../utils/eventCancellation';
@@ -176,7 +177,9 @@ export default function EventDetailPage() {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const occurrenceDate = searchParams.get('occurrenceDate');
-  const { user, loading: authLoading, role } = useAuth();
+  const { user, loading: authLoading, role, staffRegionIds } = useAuth();
+  const moderatorRegionKey = Array.isArray(staffRegionIds) ? staffRegionIds.join(',') : '';
+  const staffAccess = getStaffAccess(role, staffRegionIds);
   const { deleteEvent, updateEvent, approveEvent, unpublishEvent } = useEvents(user);
   const [event, setEvent] = useState(null);
   useEventRegionContext(event);
@@ -199,11 +202,14 @@ export default function EventDetailPage() {
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState('');
   const isAdmin = role === 'Admin';
+  // A Regions-Moderator:in reviews pending/approved events of her regions
+  // (approve, unpublish, messages) but never edits their content.
+  const isEventModerator = isModeratorForEvent(staffAccess, event);
   const showMessagesForHash =
     event &&
     user &&
     (event.status === 'pending' || event.status === 'draft') &&
-    (isAdmin || event.createdBy === user.uid);
+    (isAdmin || event.createdBy === user.uid || isEventModerator);
 
   useEffect(() => {
     async function fetchEvent() {
@@ -242,6 +248,27 @@ export default function EventDetailPage() {
               docSnap = pickEventDoc(anySnapshot.docs);
             }
           } else if (user) {
+            // A Regions-Moderator:in may read non-draft events of her regions,
+            // but only with a region filter (firestore.rules).
+            const moderatorRegionIds = getStaffAccess(
+              role,
+              moderatorRegionKey ? moderatorRegionKey.split(',') : []
+            ).moderatorRegionIds;
+            if (moderatorRegionIds.length > 0) {
+              const regionSnapshot = await getDocs(
+                query(
+                  collection(db, 'events'),
+                  where('slug', '==', slug),
+                  where('status', '==', 'pending'),
+                  where('regionId', 'in', moderatorRegionIds)
+                )
+              );
+              if (!regionSnapshot.empty) {
+                docSnap = pickEventDoc(regionSnapshot.docs);
+              }
+            }
+          }
+          if (!docSnap && user && role !== 'Admin') {
             const ownQuery = query(
               collection(db, 'events'),
               where('slug', '==', slug),
@@ -274,7 +301,7 @@ export default function EventDetailPage() {
     }
 
     fetchEvent();
-  }, [slug, user, role, authLoading]);
+  }, [slug, user, role, moderatorRegionKey, authLoading]);
 
   const eventMessagesReadyRef = useRef(false);
   const [eventMessagesReady, setEventMessagesReady] = useState(false);
@@ -366,12 +393,12 @@ export default function EventDetailPage() {
   const isOwner = user && event.createdBy === user.uid;
   const showEditButton = canEditEvent(user, event, role);
   const showDeleteButton = canDeleteEvent(user, event, role);
-  const deleteReasonRequired = requiresDeleteReason(user, event, role);
+  const deleteReasonRequired = requiresDeleteReason(user, event, role, staffRegionIds);
   const fallbackImage = getEventFallbackImage(event);
   const showRemoteImage = Boolean(event.imageUrl) && !imageError;
   const imageSrc = showRemoteImage ? event.imageUrl : fallbackImage;
 
-  const showApproveButton = isAdmin && event.status === 'pending';
+  const showApproveButton = (isAdmin || isEventModerator) && event.status === 'pending';
 
   const handleApprove = async () => {
     setApproving(true);
@@ -385,7 +412,7 @@ export default function EventDetailPage() {
     }
   };
 
-  const showUnpublishButton = isAdmin && event.status === 'approved';
+  const showUnpublishButton = (isAdmin || isEventModerator) && event.status === 'approved';
 
   const handleUnpublish = async () => {
     setUnpublishing(true);
@@ -945,9 +972,15 @@ export default function EventDetailPage() {
         </a>
       )}
 
-      {(event.status === 'pending' || event.status === 'draft') && user && (isAdmin || isOwner) && (
-        <EventMessages eventId={event.id} onReady={() => setEventMessagesReady(true)} />
-      )}
+      {(event.status === 'pending' || event.status === 'draft') &&
+        user &&
+        (isAdmin || isOwner || isEventModerator) && (
+          <EventMessages
+            eventId={event.id}
+            eventOwnerUid={event.createdBy || null}
+            onReady={() => setEventMessagesReady(true)}
+          />
+        )}
 
       <SimilarEvents currentEvent={event} />
 

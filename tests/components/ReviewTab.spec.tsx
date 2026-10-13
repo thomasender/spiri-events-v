@@ -41,8 +41,12 @@ vi.mock('../../src/hooks/useUserDisplayNames', () => ({
 
 const mockUpdateDoc = vi.hoisted(() => vi.fn());
 
+const mockAuth = vi.hoisted(() => ({
+  current: { user: { uid: 'admin-uid' }, role: 'Admin' } as Record<string, unknown>,
+}));
+
 vi.mock('../../src/hooks/useAuth', () => ({
-  useAuth: () => ({ user: { uid: 'admin-uid' }, role: 'Admin' }),
+  useAuth: () => mockAuth.current,
 }));
 
 vi.mock('firebase/app', () => ({ getApp: vi.fn() }));
@@ -63,6 +67,7 @@ function renderReviewTab() {
 }
 
 beforeEach(() => {
+  mockAuth.current = { user: { uid: 'admin-uid' }, role: 'Admin' };
   mockApproveEvent.mockReset();
   mockUpdateDoc.mockReset();
   mockUpdateDoc.mockResolvedValue(undefined);
@@ -339,5 +344,36 @@ describe("ReviewTab — deleting another user's event", () => {
     fireEvent.click(screen.getByRole('button', { name: 'Event löschen' }));
     expect(screen.queryByLabelText(/Grund für das Löschen/)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'In Papierkorb' })).toBeEnabled();
+  });
+});
+
+describe('ReviewTab for a Regions-Moderator:in', () => {
+  beforeEach(() => {
+    mockAuth.current = {
+      user: { uid: 'mod-uid' },
+      role: 'RegionModerator',
+      staffRegionIds: ['tirol'],
+    };
+  });
+
+  it('names her region, offers approve but no edit link on other people’s events', () => {
+    mockUsePendingEvents.pendingEvents = [
+      { id: 'p1', title: 'Yoga Innsbruck', status: 'pending', regionId: 'tirol', createdBy: 'o' },
+    ];
+    renderReviewTab();
+    expect(screen.getByText(/Events aus Tirol, die auf deine Freigabe warten/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Genehmigen' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Bearbeiten' })).not.toBeInTheDocument();
+  });
+
+  it('shows only recently approved events of her regions', () => {
+    const approvedAt = new Date().toISOString();
+    mockUseAllEvents.events = [
+      { id: 'a1', title: 'Tirol Event', status: 'approved', regionId: 'tirol', approvedAt },
+      { id: 'a2', title: 'Vorarlberg Event', status: 'approved', approvedAt },
+    ];
+    renderReviewTab();
+    expect(screen.getByText('Tirol Event')).toBeInTheDocument();
+    expect(screen.queryByText('Vorarlberg Event')).not.toBeInTheDocument();
   });
 });

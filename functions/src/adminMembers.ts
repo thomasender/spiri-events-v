@@ -5,6 +5,8 @@ import { initializeApp, getApps } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import {
+  REGION_MODERATOR_ROLE,
+  SUPER_ADMIN_ROLE,
   assertStaff,
   assertSuperAdmin,
   profileEditableByModerator,
@@ -50,6 +52,8 @@ export interface MemberRow {
   createdAt: string | null;
   lastSignInAt: string | null;
   disabled: boolean;
+  // Super-Admin scope only (listMembersHandler): existing staff role.
+  staffRole?: 'Admin' | 'RegionModerator' | null;
 }
 
 export interface AuthRecord {
@@ -60,6 +64,7 @@ export interface AuthRecord {
   displayName?: string;
   photoURL?: string;
   metadata?: { creationTime?: string; lastSignInTime?: string };
+  customClaims?: Record<string, unknown>;
 }
 
 function str(value: unknown): string {
@@ -272,9 +277,39 @@ export async function listMembersHandler(
   const profiles = await byUid((uid) => `users/${uid}/publicProfile/data`);
   // Instagram consent + handle live in the private users/{uid} doc; a
   // moderator never gets them, so they are not even read for her.
-  const privates =
-    role.kind === 'superAdmin' ? await byUid((uid) => `users/${uid}`) : new Map<string, Doc>();
-  return membersForRole(role, users, profiles, privates);
+  if (role.kind !== 'superAdmin') {
+    return membersForRole(role, users, profiles, new Map<string, Doc>());
+  }
+  const privates = await byUid((uid) => `users/${uid}`);
+  // Super-Admins also see who already has a staff role, so the Moderation tab
+  // can show Super-Admins as such instead of offering them as moderators.
+  const staffDocs = await byUid((uid) => `admin_users/${uid}`);
+  const claimsByUid = new Map(users.map((u) => [u.uid, u.customClaims]));
+  const result = membersForRole(role, users, profiles, privates) as {
+    scope: { role: 'Admin' };
+    members: MemberRow[];
+  };
+  return {
+    ...result,
+    members: result.members.map((m) => ({
+      ...m,
+      staffRole: memberStaffRole(staffDocs.get(m.uid) ?? null, claimsByUid.get(m.uid)),
+    })),
+  };
+}
+
+/**
+ * Staff role of a member as the role callables see it: token claim 'Admin'
+ * or any admin_users doc that is not a moderator doc counts as Super-Admin
+ * (adminSetRegionModerator refuses to touch those).
+ */
+export function memberStaffRole(
+  doc: Doc | null,
+  claims: Record<string, unknown> | undefined
+): 'Admin' | 'RegionModerator' | null {
+  if (claims?.role === SUPER_ADMIN_ROLE) return 'Admin';
+  if (!doc) return null;
+  return doc.role === REGION_MODERATOR_ROLE ? 'RegionModerator' : 'Admin';
 }
 
 // Fields a region moderator may change on a member of her region(s):

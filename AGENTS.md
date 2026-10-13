@@ -199,6 +199,14 @@ second region next to Vorarlberg, emulator only. Source of truth:
   `node scripts/promote-admin.mjs <email> --role RegionModerator --regions tirol,steiermark`
   (`--emulator` for the local emulators).
 - Admin mails (submissions, feedback, Instagram alerts) go to Super-Admins only.
+- **Client:** `useAuth()` exposes `role` and `staffRegionIds` (own `admin_users` doc);
+  `getStaffAccess(role, regionIds)` / `useStaffRole()` give `isSuperAdmin`,
+  `isRegionModerator`, `moderatorRegionIds`, `canModerateRegion(id)`. Admin tabs per
+  role: `allowedAdminTabs()` in `src/utils/staffRoles.js`; a tab outside the list shows
+  "Kein Zugriff" (`NoAccess`) also by URL, `/admin/theme-editor` is Super-Admin only
+  (`SuperAdminRoute`). Moderator event lists must filter by region
+  (`staffEventQuerySpecs` in `src/lib/staffEventQueries.js`), or the rules reject the
+  query. The "Moderation" tab (Super-Admins) manages moderators via the callables.
 
 ### Which tool for which problem
 

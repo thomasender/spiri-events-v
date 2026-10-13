@@ -6,12 +6,14 @@ import EventForm from '../components/EventForm';
 import EventFormWizard from '../components/EventFormWizard';
 import EmailVerificationBanner from '../components/EmailVerificationBanner';
 import SeoMeta from '../components/SeoMeta';
+import NoAccess from '../components/NoAccess';
+import { canEditEvent } from '../utils/eventPermissions';
 import '../components/EventFormWizard.css';
 
 export default function EventFormPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, canCreateEvents } = useAuth();
+  const { user, role, loading: authLoading, canCreateEvents } = useAuth();
   const { event, loading: eventLoading, error } = useEventById(id);
   const [checkedAuth, setCheckedAuth] = useState(false);
 
@@ -27,7 +29,7 @@ export default function EventFormPage() {
     }
   }, [user, checkedAuth, navigate]);
 
-  if (!checkedAuth || eventLoading) {
+  if (!checkedAuth || eventLoading || (isEdit && authLoading)) {
     return <div className="loading-spinner"></div>;
   }
 
@@ -53,6 +55,18 @@ export default function EventFormPage() {
             </button>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  // Content edits: owner or Super-Admin only. A Regions-Moderator:in can
+  // read events of her region but only review them, so a direct link to the
+  // form gets a clear "Kein Zugriff" instead of a form that cannot save.
+  if (isEdit && !canEditEvent(user, event, role)) {
+    return (
+      <div className="event-form-page" data-testid="event-edit-blocked">
+        <SeoMeta title="Event bearbeiten" path={`/admin/edit/${id}`} noindex />
+        <NoAccess message="Dieses Event kann nur die Person bearbeiten, die es erstellt hat, oder ein Super-Admin. Freigeben, zurückschicken oder löschen kannst du es im Bereich „Review“." />
       </div>
     );
   }

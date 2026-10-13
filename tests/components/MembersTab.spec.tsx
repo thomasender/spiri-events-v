@@ -4,11 +4,14 @@ import MembersTab from '../../src/components/MembersTab';
 
 const state = vi.hoisted(() => ({
   role: 'Admin',
+  staffRegionIds: [] as string[],
   members: [] as Record<string, unknown>[],
   updateMember: vi.fn(),
 }));
 
-vi.mock('../../src/hooks/useAuth', () => ({ useAuth: () => ({ role: state.role }) }));
+vi.mock('../../src/hooks/useAuth', () => ({
+  useAuth: () => ({ role: state.role, staffRegionIds: state.staffRegionIds }),
+}));
 vi.mock('../../src/hooks/useAdminMembers', () => ({
   useAdminMembers: () => ({
     members: state.members,
@@ -51,6 +54,7 @@ const member = (uid: string, over: Record<string, unknown> = {}) => ({
 
 beforeEach(() => {
   state.role = 'Admin';
+  state.staffRegionIds = [];
   state.updateMember.mockReset();
   state.members = [
     member('anna', { directoryRegions: ['Dornbirn'], directoryCategories: ['Yoga'] }),
@@ -128,5 +132,55 @@ describe('MembersTab', () => {
     const row = screen.getByTestId('member-row');
     expect(within(row).getByText('@anna.yoga')).toBeInTheDocument();
     expect(within(row).getByText('Ja')).toBeInTheDocument();
+  });
+});
+
+describe('MembersTab for a Regions-Moderator:in', () => {
+  beforeEach(() => {
+    state.role = 'RegionModerator';
+    state.staffRegionIds = ['tirol'];
+    // The callable already filters to her regions and strips private fields.
+    state.members = [
+      {
+        uid: 'tina',
+        displayName: 'Tina',
+        username: 'tina',
+        slug: 'tina',
+        photoURL: '',
+        listedInDirectory: true,
+        directoryHidden: false,
+        directoryCategories: ['Yoga'],
+        directoryRegions: [],
+        directoryRegionIds: ['tirol'],
+      },
+    ];
+  });
+
+  it('shows the member list of her region without e-mail, Instagram, lists or exports', () => {
+    render(<MembersTab />);
+    expect(screen.getAllByTestId('member-row')).toHaveLength(1);
+    const headers = screen.getAllByRole('columnheader').map((h) => h.textContent);
+    expect(headers).not.toContain('E-Mail');
+    expect(headers).not.toContain('Instagram teilen');
+    expect(screen.queryByLabelText('Liste wählen')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('members-export-csv')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Neue Liste/)).not.toBeInTheDocument();
+  });
+
+  it('saves only the directory fields and explains a refused change', async () => {
+    state.updateMember.mockRejectedValueOnce({ code: 'functions/permission-denied' });
+    render(<MembersTab />);
+    fireEvent.click(screen.getByLabelText('Tina bearbeiten'));
+    const dialog = screen.getByTestId('member-edit-dialog');
+    expect(within(dialog).getByLabelText('Name')).toHaveAttribute('readonly');
+    fireEvent.click(within(dialog).getByText('Speichern'));
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent(
+      'auch in einer anderen Region'
+    );
+    expect(state.updateMember).toHaveBeenCalledWith('tina', {
+      listedInDirectory: true,
+      directoryCategories: ['Yoga'],
+      directoryRegions: [],
+    });
   });
 });
