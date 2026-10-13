@@ -233,6 +233,17 @@ describe('EventFormWizard Instagram image crop', () => {
     expect(screen.getByTestId('instagram-image-picker-empty')).toBeInTheDocument();
   });
 
+  it('shows the carousel preview inside the crop preview, with a toggle and the disclaimer', () => {
+    mockProfile.value = profileWith({ instagramConsentDefault: true });
+    seedDraftWithDescription(`<p>Text</p><img src="${IMG_A}">`);
+    renderWizard();
+    const preview = screen.getByTestId('instagram-focal-picker-preview');
+    expect(within(preview).getByTestId('instagram-preview-overlay')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('instagram-preview-mode-post'));
+    expect(within(preview).queryByTestId('instagram-preview-overlay')).toBeNull();
+    expect(screen.getByTestId('instagram-preview-disclaimer')).toHaveTextContent(/nicht zu posten/);
+  });
+
   it('saves the picked photo with zoom and focal point', async () => {
     mockProfile.value = profileWith({ instagramConsentDefault: true });
     seedDraftWithDescription(`<p>Text</p><img src="${IMG_A}"><img src="${IMG_B}">`);

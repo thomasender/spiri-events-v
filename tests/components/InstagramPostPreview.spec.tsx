@@ -19,7 +19,7 @@ describe('InstagramPostPreview', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('is collapsed until toggled, then shows feed and carousel tiles with the event text', () => {
+  it('shows the carousel text by default and switches to the plain post with the toggle', () => {
     render(
       <InstagramPostPreview
         imageUrl="blob:x"
@@ -28,17 +28,23 @@ describe('InstagramPostPreview', () => {
         event={event}
       />
     );
-    expect(screen.queryByTestId('instagram-preview-overlay')).toBeNull();
-    fireEvent.click(screen.getByTestId('instagram-post-preview-toggle'));
     const overlay = screen.getByTestId('instagram-preview-overlay');
     expect(overlay).toHaveTextContent('Morgen-Yoga');
     expect(overlay).toHaveTextContent('12.10.2026');
     expect(overlay).toHaveTextContent('Dornbirn');
-    const imgs = document.querySelectorAll('img');
-    expect(imgs).toHaveLength(2);
-    expect(imgs[0]).toHaveStyle({ objectPosition: '20% 80%' });
-    fireEvent.click(screen.getByTestId('instagram-post-preview-toggle'));
+    expect(document.querySelector('img')).toHaveStyle({ objectPosition: '20% 80%' });
+    fireEvent.click(screen.getByTestId('instagram-preview-mode-post'));
     expect(screen.queryByTestId('instagram-preview-overlay')).toBeNull();
+    fireEvent.click(screen.getByTestId('instagram-preview-mode-carousel'));
+    expect(screen.getByTestId('instagram-preview-overlay')).toBeInTheDocument();
+  });
+
+  it('shows the hint and the not-posted disclaimer', () => {
+    render(<InstagramPostPreview imageUrl="blob:x" event={event} />);
+    expect(screen.getByTestId('instagram-preview-notes')).toHaveTextContent('Ungefähre Vorschau');
+    expect(screen.getByTestId('instagram-preview-disclaimer')).toHaveTextContent(
+      'Wir behalten uns vor, den Beitrag nicht zu posten'
+    );
   });
 
   it('formats ISO dates', () => {
@@ -58,7 +64,6 @@ describe('AdminInstagramPreview', () => {
 
   it('shows for admins on pending events with Instagram enabled, using the chosen image', () => {
     render(<AdminInstagramPreview event={base} isAdmin />);
-    fireEvent.click(screen.getByTestId('instagram-post-preview-toggle'));
     const imgs = document.querySelectorAll('img');
     expect(imgs[0]).toHaveAttribute('src', 'https://x/ig.jpg');
     expect(imgs[0]).toHaveStyle({ objectPosition: '10% 90%' });
@@ -66,7 +71,6 @@ describe('AdminInstagramPreview', () => {
 
   it('falls back to the cover photo when no Instagram image is stored', () => {
     render(<AdminInstagramPreview event={{ ...base, instagramImage: null }} isAdmin />);
-    fireEvent.click(screen.getByTestId('instagram-post-preview-toggle'));
     expect(document.querySelector('img')).toHaveAttribute('src', 'https://x/cover.jpg');
   });
 

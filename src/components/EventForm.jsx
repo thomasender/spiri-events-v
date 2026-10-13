@@ -1530,6 +1530,13 @@ export default function EventForm({ event }) {
                 onUpload={handleInstagramImageSelect}
                 onRemoveUpload={removeInstagramImage}
                 uploadError={instagramUploadError}
+                event={{
+                  title: (formData.title || '').trim(),
+                  category: formData.category,
+                  date: formData.date,
+                  time: formData.time,
+                  place: formData.isOnline ? 'Online' : (formData.place || '').trim(),
+                }}
               />
             </details>
           )}

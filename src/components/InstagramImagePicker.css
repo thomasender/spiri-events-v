@@ -140,26 +140,40 @@
   flex-direction: column;
   gap: 10px;
   margin-top: 12px;
+  max-width: 220px;
 }
 
-.instagram-post-preview > .btn {
-  align-self: flex-start;
+.instagram-preview-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
 }
 
-.instagram-post-preview-tiles {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 200px));
-  gap: 12px;
-}
-
-.instagram-post-preview-tiles figure {
+.instagram-preview-notes .instagram-image-picker-hint {
   margin: 0;
 }
 
-.instagram-post-preview-tiles figcaption {
-  margin-top: 4px;
-  font-size: 0.8rem;
+.instagram-preview-mode {
+  display: flex;
+  gap: 4px;
+}
+
+.instagram-preview-mode-btn {
+  flex: 1 1 0;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: transparent;
   color: var(--text-secondary);
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.instagram-preview-mode-btn.is-active {
+  background: var(--text-primary);
+  border-color: var(--text-primary);
+  color: var(--bg-primary);
 }
 
 .instagram-post-preview-tile {

@@ -159,6 +159,7 @@
 }
 
 .focal-point-picker-preview {
+  position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
   background-color: var(--bg-secondary);

@@ -1,6 +1,12 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { AlertTriangle, ImagePlus, X } from 'lucide-react';
 import FocalPointPicker from './FocalPointPicker';
+import {
+  InstagramPreviewModeToggle,
+  InstagramPreviewNotes,
+  InstagramPreviewOverlay,
+  PREVIEW_MODE_CAROUSEL,
+} from './InstagramPostPreview';
 import {
   INSTAGRAM_CROP_ASPECT,
   INSTAGRAM_UPLOAD_SOURCE,
@@ -23,8 +29,10 @@ export default function InstagramImagePicker({
   onUpload,
   onRemoveUpload,
   uploadError,
+  event,
 }) {
   const fileInputRef = useRef(null);
+  const [previewMode, setPreviewMode] = useState(PREVIEW_MODE_CAROUSEL);
   const hasUpload = candidates?.some((c) => c.source === INSTAGRAM_UPLOAD_SOURCE);
 
   const uploadControl = onUpload && (
@@ -159,7 +167,15 @@ export default function InstagramImagePicker({
         ariaLabel="Bildausschnitt für Instagram festlegen"
         testId="instagram-focal-picker"
         info="Tippe oder ziehe auf das Foto, um den wichtigsten Bereich zu wählen, und zoome bei Bedarf hinein. Die Vorschau zeigt genau den Ausschnitt (Hochformat 4:5), der auf Instagram erscheint."
+        previewControls={
+          event && <InstagramPreviewModeToggle mode={previewMode} onChange={setPreviewMode} />
+        }
+        previewOverlay={
+          event &&
+          previewMode === PREVIEW_MODE_CAROUSEL && <InstagramPreviewOverlay event={event} />
+        }
       />
+      {event && <InstagramPreviewNotes />}
     </div>
   );
 }
