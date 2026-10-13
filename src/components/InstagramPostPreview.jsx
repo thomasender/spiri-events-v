@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Eye } from 'lucide-react';
 
 /** "2026-10-12" -> "12.10.2026"; anything else is passed through. */
 export function formatPreviewDate(date) {
@@ -7,82 +6,101 @@ export function formatPreviewDate(date) {
   return m ? `${m[3]}.${m[2]}.${m[1]}` : (date ?? '');
 }
 
-function CropTile({ imageUrl, focalPoint, zoom, children }) {
-  const pos = `${focalPoint.x * 100}% ${focalPoint.y * 100}%`;
+export const PREVIEW_MODE_CAROUSEL = 'carousel';
+export const PREVIEW_MODE_POST = 'post';
+
+/**
+ * Toggle between the weekly-carousel slide (event text over the photo) and the
+ * plain feed post (the photo only).
+ */
+export function InstagramPreviewModeToggle({ mode, onChange }) {
+  const options = [
+    { value: PREVIEW_MODE_CAROUSEL, label: 'Karussell (mit Text)' },
+    { value: PREVIEW_MODE_POST, label: 'Nur Beitrag' },
+  ];
   return (
-    <div className="instagram-post-preview-tile">
-      <img
-        src={imageUrl}
-        alt=""
-        draggable={false}
-        style={{
-          objectPosition: pos,
-          ...(zoom > 1 ? { transform: `scale(${zoom})`, transformOrigin: pos } : {}),
-        }}
-      />
-      {children}
+    <div
+      className="instagram-preview-mode"
+      role="group"
+      aria-label="Vorschau-Ansicht"
+      data-testid="instagram-preview-mode"
+    >
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          className={`instagram-preview-mode-btn${mode === o.value ? ' is-active' : ''}`}
+          aria-pressed={mode === o.value}
+          onClick={() => onChange(o.value)}
+          data-testid={`instagram-preview-mode-${o.value}`}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Dark gradient and the event text, as the weekly-carousel slide draws it. */
+export function InstagramPreviewOverlay({ event = {} }) {
+  const info = [formatPreviewDate(event.date), event.time, event.place].filter(Boolean);
+  return (
+    <div className="instagram-post-preview-overlay" data-testid="instagram-preview-overlay">
+      {event.category && <span className="instagram-post-preview-chip">{event.category}</span>}
+      <div className="instagram-post-preview-text">
+        <strong>{event.title || 'Titel des Events'}</strong>
+        {info.map((line) => (
+          <span key={line}>{line}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Hint and disclaimer shown under the preview. */
+export function InstagramPreviewNotes() {
+  return (
+    <div className="instagram-preview-notes" data-testid="instagram-preview-notes">
+      <p className="instagram-image-picker-hint">
+        Ungefähre Vorschau. Beim Wochen-Karussell liegt der Text des Events über dem Foto. Enthält
+        dein Foto selbst Text (z.B. ein Flyer), kann das unruhig wirken. Wähle dann einen Ausschnitt
+        ohne Text.
+      </p>
+      <p className="instagram-image-picker-hint" data-testid="instagram-preview-disclaimer">
+        Wir behalten uns vor, den Beitrag nicht zu posten, wenn das Foto nicht passt (z.B. wenn nur
+        ein Flyer verwendet wird).
+      </p>
     </div>
   );
 }
 
 /**
- * Approximate preview of the Instagram post: the single feed post (the chosen
- * 4:5 crop, no text) and a weekly-carousel slide (same crop, dark gradient and
- * the event text on top, as functions/src/instagram/instagramImage.ts draws
- * it). Client-side CSS approximation; the real image is rendered server-side.
+ * Standalone approximate preview of the Instagram post (used as the admin
+ * review aid; the organizer sees the same preview inside the crop picker).
+ * Client-side CSS approximation; the real image is rendered server-side.
  */
 export default function InstagramPostPreview({ imageUrl, focalPoint, zoom = 1, event = {} }) {
-  const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState(PREVIEW_MODE_CAROUSEL);
   if (!imageUrl) return null;
   const point = focalPoint ?? { x: 0.5, y: 0.5 };
-  const info = [formatPreviewDate(event.date), event.time, event.place].filter(Boolean);
+  const pos = `${point.x * 100}% ${point.y * 100}%`;
 
   return (
     <div className="instagram-post-preview" data-testid="instagram-post-preview">
-      <button
-        type="button"
-        className="btn btn-secondary"
-        aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
-        data-testid="instagram-post-preview-toggle"
-      >
-        <Eye size={16} aria-hidden="true" />
-        <span>{open ? 'Vorschau ausblenden' : 'Vorschau des Instagram-Beitrags'}</span>
-      </button>
-      {open && (
-        <>
-          <div className="instagram-post-preview-tiles">
-            <figure>
-              <CropTile imageUrl={imageUrl} focalPoint={point} zoom={zoom} />
-              <figcaption>Einzelner Beitrag</figcaption>
-            </figure>
-            <figure>
-              <CropTile imageUrl={imageUrl} focalPoint={point} zoom={zoom}>
-                <div
-                  className="instagram-post-preview-overlay"
-                  data-testid="instagram-preview-overlay"
-                >
-                  {event.category && (
-                    <span className="instagram-post-preview-chip">{event.category}</span>
-                  )}
-                  <div className="instagram-post-preview-text">
-                    <strong>{event.title || 'Titel des Events'}</strong>
-                    {info.map((line) => (
-                      <span key={line}>{line}</span>
-                    ))}
-                  </div>
-                </div>
-              </CropTile>
-              <figcaption>Wochen-Karussell</figcaption>
-            </figure>
-          </div>
-          <p className="instagram-image-picker-hint">
-            Ungefähre Vorschau. Beim Wochen-Karussell liegt der Text des Events über dem Foto. Wenn
-            dein Foto selbst Text enthält (z.B. ein Flyer), kann das unruhig wirken. Wähle dann
-            einen Ausschnitt ohne Text.
-          </p>
-        </>
-      )}
+      <InstagramPreviewModeToggle mode={mode} onChange={setMode} />
+      <div className="instagram-post-preview-tile">
+        <img
+          src={imageUrl}
+          alt=""
+          draggable={false}
+          style={{
+            objectPosition: pos,
+            ...(zoom > 1 ? { transform: `scale(${zoom})`, transformOrigin: pos } : {}),
+          }}
+        />
+        {mode === PREVIEW_MODE_CAROUSEL && <InstagramPreviewOverlay event={event} />}
+      </div>
+      <InstagramPreviewNotes />
     </div>
   );
 }

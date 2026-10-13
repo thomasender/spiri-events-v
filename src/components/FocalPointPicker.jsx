@@ -42,6 +42,8 @@ export default function FocalPointPicker({
   maxZoom = 3,
   info,
   showZoomSlider = false,
+  previewControls = null,
+  previewOverlay = null,
 }) {
   const containerRef = useRef(null);
   const dragStateRef = useRef(null);
@@ -314,6 +316,7 @@ export default function FocalPointPicker({
               </button>
             )}
           </div>
+          {previewControls}
           <div
             className="focal-point-picker-preview"
             style={{ aspectRatio: String(cropAspect) }}
@@ -327,6 +330,7 @@ export default function FocalPointPicker({
               style={previewStyle}
               draggable={false}
             />
+            {previewOverlay}
           </div>
         </div>
       </div>
