@@ -38,6 +38,15 @@ const TEST_USERS = [
     role: 'Admin',
     emailVerified: true,
   },
+  // Account for the future "Regions-Moderator Tirol" role (ticket 18). It has no
+  // role claim and no admin_users entry yet; ticket 18 defines both.
+  {
+    email: 'tirol-mod@test.local',
+    password: 'testpassword123',
+    displayName: 'Test Regions-Moderator Tirol',
+    role: 'User',
+    emailVerified: true,
+  },
   {
     email: 'unverified@test.local',
     password: 'testpassword123',

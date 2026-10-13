@@ -55,4 +55,6 @@ export default async function globalSetup() {
   console.log('Emulators are up. Seeding test data...');
   await runScript('scripts/seed-test-events.mjs');
   await runScript('scripts/import-test-users.mjs');
+  // Regions only; the [Region-Test] events are opt-in (see AGENTS.md, Region fixtures).
+  await runScript('scripts/seed-region-fixtures.mjs');
 }

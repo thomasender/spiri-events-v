@@ -158,6 +158,31 @@ below). `npm run emulators:check` tells you in ~3 s whether that has happened.
 The pre-push hook runs it first, so a dead emulator fails immediately with
 instructions instead of after 30 s of silence.
 
+### Region fixtures (second test region)
+
+For everything region related (filters, switcher, overall view) there is a
+second region next to Vorarlberg, emulator only. Source of truth:
+`scripts/seed-region-fixtures.mjs`.
+
+- **Regions** `regions/vorarlberg` (active), `regions/tirol` (active, Bezirke
+  Innsbruck, Kufstein, Imst, Lienz) and `regions/wien` (inactive, for visibility
+  tests). `tests/globalSetup.ts` reconciles them on every Playwright run with
+  `set(..., { merge: true })` in one batch.
+- **Events** are _not_ loaded by globalSetup, so no existing count/order
+  assertion sees them (all titles start with `[Region-Test]`): Yoga Innsbruck,
+  Meditation Kufstein, Online Atemreise Tirol (`isOnline`, `regionId: 'tirol'`)
+  and Yoga Dornbirn (explicit `regionId: 'vorarlberg'`). Ids are in `REGION_EVENT_IDS`
+  (`tests/helpers/regionFixtures.ts`). A dedicated spec loads them with
+  `loadRegionEventFixtures()` in `beforeAll`, or by hand:
+  `node scripts/seed-region-fixtures.mjs --events`. Once the calendar filters by
+  region (ticket 11) they can move into globalSetup. The existing seed events
+  have no `regionId` and fall back to Vorarlberg.
+- **Account** `tirol-mod@test.local` / `testpassword123` exists in the Auth
+  emulator (`import-test-users.mjs`) but has no role and no `admin_users` entry
+  yet. Ticket 18 defines the role and adds it to `tests/helpers/roles.ts` and
+  `tests/auth.setup.ts`. (Do not add an `admin_users` doc before that:
+  `reset-draft-fixtures.mjs` picks "the" admin with `admin_users.limit(1)`.)
+
 ### Which tool for which problem
 
 | The question the test answers                                                                   | Tool                        |
