@@ -50,6 +50,11 @@ describe('planEventUpdate', () => {
   it('reports unknown values instead of overwriting them', () => {
     expect(planEventUpdate({ regionId: 'mars' })).toEqual({ kind: 'invalid', value: 'mars' });
     expect(planEventUpdate({ regionId: 5 })).toEqual({ kind: 'invalid', value: 5 });
+    // "Österreich" is a combined view, not a region.
+    expect(planEventUpdate({ regionId: 'oesterreich' })).toEqual({
+      kind: 'invalid',
+      value: 'oesterreich',
+    });
   });
 });
 
@@ -75,6 +80,9 @@ describe('planProfileUpdate', () => {
 
   it('reports invalid lists', () => {
     expect(planProfileUpdate({ directoryRegionIds: ['mars'] }).kind).toBe('invalid');
+    expect(planProfileUpdate({ directoryRegionIds: ['vorarlberg', 'oesterreich'] }).kind).toBe(
+      'invalid'
+    );
     expect(planProfileUpdate({ directoryRegionIds: 'vorarlberg' }).kind).toBe('invalid');
   });
 

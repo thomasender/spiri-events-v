@@ -684,8 +684,8 @@ describe('regions', () => {
       await assertSucceeds(deleteDoc(doc(db, 'regions/tirol')));
     });
 
-    it('can create the national region', async () => {
-      await assertSucceeds(
+    it('cannot create oesterreich (a combined view, not a region)', async () => {
+      await assertFails(
         setDoc(doc(make().firestore(), 'regions/oesterreich'), {
           ...validRegion,
           name: 'Österreich',
@@ -809,7 +809,7 @@ describe('events.regionId', () => {
       setDoc(doc(db, 'events/c2'), createPayload({ regionId: 'tirol', isOnline: true }))
     );
     await assertSucceeds(
-      setDoc(doc(db, 'events/c3'), createPayload({ status: 'draft', regionId: 'oesterreich' }))
+      setDoc(doc(db, 'events/c3'), createPayload({ status: 'draft', regionId: 'steiermark' }))
     );
     // Clients cached before this change send no regionId.
     await assertSucceeds(setDoc(doc(db, 'events/c4'), createPayload()));
@@ -817,7 +817,7 @@ describe('events.regionId', () => {
 
   it('create: unknown or non-string region rejected', async () => {
     const db = owner().firestore();
-    for (const regionId of ['bayern', '', 'Vorarlberg', 5, null, ['tirol']]) {
+    for (const regionId of ['bayern', 'oesterreich', '', 'Vorarlberg', 5, null, ['tirol']]) {
       await assertFails(setDoc(doc(db, 'events/bad'), createPayload({ regionId })));
     }
   });
@@ -963,7 +963,7 @@ describe('users / publicProfile directoryRegionIds', () => {
   });
 
   it('rejects unknown ids, non-lists and more than 9 entries', async () => {
-    const all10 = [
+    const all9 = [
       'vorarlberg',
       'tirol',
       'salzburg',
@@ -973,13 +973,13 @@ describe('users / publicProfile directoryRegionIds', () => {
       'niederoesterreich',
       'wien',
       'burgenland',
-      'oesterreich',
     ];
     for (const directoryRegionIds of [
       ['bayern'],
+      ['oesterreich'],
       ['vorarlberg', 'Dornbirn'],
       'vorarlberg',
-      all10,
+      [...all9, 'vorarlberg'],
     ]) {
       const db = ownerDb();
       await assertFails(setDoc(doc(db, 'users/owner'), { directoryRegionIds }, { merge: true }));
@@ -988,11 +988,7 @@ describe('users / publicProfile directoryRegionIds', () => {
       );
     }
     await assertSucceeds(
-      setDoc(
-        doc(ownerDb(), 'users/owner'),
-        { directoryRegionIds: all10.slice(0, 9) },
-        { merge: true }
-      )
+      setDoc(doc(ownerDb(), 'users/owner'), { directoryRegionIds: all9 }, { merge: true })
     );
   });
 

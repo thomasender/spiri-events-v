@@ -46,13 +46,13 @@ service cloud.firestore {
       return order is int && order >= 0;
     }
 
-    // Region ids (== slugs) of the region registry. KEEP IN SYNC with
-    // ALL_REGION_SLUGS in src/utils/regions.js (guarded by
+    // Region ids (== slugs) of the region registry: the nine Bundeslaender.
+    // "Österreich" is a combined view in the UI, not a region. KEEP IN SYNC
+    // with REGION_SLUGS in src/utils/regions.js (guarded by
     // tests/components/regions.spec.ts).
     function regionIds() {
       return ['vorarlberg', 'tirol', 'salzburg', 'kaernten', 'steiermark',
-              'oberoesterreich', 'niederoesterreich', 'wien', 'burgenland',
-              'oesterreich'];
+              'oberoesterreich', 'niederoesterreich', 'wien', 'burgenland'];
     }
 
     function isValidRegionId(id) {
@@ -433,7 +433,7 @@ service cloud.firestore {
       allow delete: if isAdminOrEmulatorAdmin();
     }
 
-    // Region registry (one doc per Bundesland + `oesterreich`, doc id == slug).
+    // Region registry (one doc per Bundesland, doc id == slug).
     // Public read, admin-only write, closed field list, slug from the fixed list.
     match /regions/{regionId} {
       function isValidRegion(d) {

@@ -45,8 +45,9 @@ export const RESERVED_USERNAMES = new Set([
   'static',
   'public',
   'assets',
-  // Future region addresses (`/tirol`, `/oesterreich`, ...) share the same
-  // top-level path space as profiles.
+  // Region addresses (`/tirol`, ...) and the combined all-regions view
+  // (`/oesterreich`, not a region itself) share the top-level path space with
+  // profiles.
   ...REGION_SLUGS,
   'oesterreich',
   'austria',

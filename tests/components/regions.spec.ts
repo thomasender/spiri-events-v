@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
-  ALL_REGION_SLUGS,
   BEZIRKE,
   DEFAULT_REGION_ID,
   REGION_SLUGS,
@@ -20,8 +19,9 @@ import {
 import { getEventLocationLabel } from '../../src/utils/eventFormat';
 
 describe('static register', () => {
-  it('covers all Bundeslaender plus oesterreich, only Vorarlberg active', () => {
-    expect(STATIC_REGIONS.map((r) => r.slug)).toEqual([...REGION_SLUGS, 'oesterreich']);
+  it('covers exactly the nine Bundeslaender (no oesterreich), only Vorarlberg active', () => {
+    expect(STATIC_REGIONS.map((r) => r.slug)).toEqual(REGION_SLUGS);
+    expect(STATIC_REGIONS.some((r) => r.id === 'oesterreich')).toBe(false);
     expect(STATIC_REGIONS.filter((r) => r.active).map((r) => r.id)).toEqual(['vorarlberg']);
   });
   it('keeps BEZIRKE as the Vorarlberg Bezirke', () => {
@@ -40,7 +40,7 @@ describe('helpers', () => {
   it('getRegionBySlug / isRegionSlug', () => {
     expect(getRegionBySlug('wien')?.name).toBe('Wien');
     expect(getRegionBySlug('bayern')).toBeNull();
-    expect(isRegionSlug('oesterreich')).toBe(true);
+    expect(isRegionSlug('oesterreich')).toBe(false);
     expect(isRegionSlug('bayern')).toBe(false);
     expect(isRegionSlug(undefined)).toBe(false);
   });
@@ -54,7 +54,9 @@ describe('helpers', () => {
     expect(eventVisibleInRegion({}, 'vorarlberg')).toBe(true);
     expect(eventVisibleInRegion({}, 'tirol')).toBe(false);
     expect(eventVisibleInRegion({ regionId: 'tirol', isOnline: true }, 'wien')).toBe(true);
-    expect(eventVisibleInRegion({ regionId: 'tirol' }, 'oesterreich')).toBe(true);
+    expect(eventVisibleInRegion({ regionId: 'tirol', isOnline: true }, 'vorarlberg')).toBe(true);
+    // No national case any more: oesterreich is not a region.
+    expect(eventVisibleInRegion({ regionId: 'tirol' }, 'oesterreich')).toBe(false);
   });
 });
 
@@ -67,6 +69,8 @@ describe('mergeRegions', () => {
     const merged = mergeRegions([
       { id: 'tirol', active: true, contactEmail: 'a@b.at' },
       { id: 'bayern', active: true },
+      // A stale doc from before "Österreich" stopped being a region.
+      { id: 'oesterreich', active: true, name: 'Österreich' },
     ]);
     expect(merged).toHaveLength(STATIC_REGIONS.length);
     expect(merged.find((r) => r.id === 'tirol')).toMatchObject({
@@ -127,6 +131,7 @@ describe('pickEventRegionId', () => {
     expect(pickEventRegionId(undefined)).toBe(DEFAULT_REGION_ID);
     expect(pickEventRegionId(null, {})).toBe(DEFAULT_REGION_ID);
     expect(pickEventRegionId('bayern', { regionId: 'bayern' })).toBe(DEFAULT_REGION_ID);
+    expect(pickEventRegionId('oesterreich', { regionId: 'oesterreich' })).toBe(DEFAULT_REGION_ID);
   });
 });
 
@@ -141,16 +146,18 @@ describe('resolveDirectoryRegionIds', () => {
     expect(
       resolveDirectoryRegionIds({ directoryRegionIds: ['tirol', 'bayern', 'tirol', 5, 'wien'] })
     ).toEqual(['tirol', 'wien']);
-    expect(resolveDirectoryRegionIds({ directoryRegionIds: ALL_REGION_SLUGS })).toHaveLength(9);
+    expect(
+      resolveDirectoryRegionIds({ directoryRegionIds: [...REGION_SLUGS, 'oesterreich'] })
+    ).toHaveLength(9);
   });
 });
 
 describe('firestore.rules region list', () => {
-  it('matches ALL_REGION_SLUGS', () => {
+  it('matches REGION_SLUGS', () => {
     const rules = readFileSync(resolve(process.cwd(), 'firestore.rules'), 'utf8');
     const body = rules.match(/function regionIds\(\) \{\s*return \[([^\]]*)\]/);
     expect(body).not.toBeNull();
     const ids = [...(body?.[1] ?? '').matchAll(/'([a-z]+)'/g)].map((m) => m[1]);
-    expect(ids).toEqual(ALL_REGION_SLUGS);
+    expect(ids).toEqual(REGION_SLUGS);
   });
 });

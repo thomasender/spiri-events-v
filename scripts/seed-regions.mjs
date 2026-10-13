@@ -2,7 +2,8 @@
 // Idempotent seed for the `regions` collection. Reconciles to the desired
 // state in ONE batch: vorarlberg active, every other region inactive. Existing
 // admin edits (name, bezirke, contactEmail, seo, active) are kept; only missing
-// fields are filled in.
+// fields are filled in. A leftover `regions/oesterreich` doc (from before
+// "Österreich" became a combined view instead of a region) is removed.
 //
 // Emulator (default):  node scripts/seed-regions.mjs
 // Production (admin runs this deliberately, see ticket 9):
@@ -22,10 +23,13 @@ initializeApp({ projectId: PROJECT_ID });
 const db = getFirestore();
 
 const refs = STATIC_REGIONS.map((r) => db.collection('regions').doc(r.id));
-const existing = await db.getAll(...refs);
+const staleRef = db.collection('regions').doc('oesterreich');
+const [stale, ...existing] = await db.getAll(staleRef, ...refs);
 const batch = db.batch();
 let created = 0;
 let completed = 0;
+const removed = stale.exists ? 1 : 0;
+if (stale.exists) batch.delete(staleRef);
 
 STATIC_REGIONS.forEach((r, i) => {
   const snap = existing[i];
@@ -56,8 +60,8 @@ STATIC_REGIONS.forEach((r, i) => {
   }
 });
 
-if (created || completed) await batch.commit();
+if (created || completed || removed) await batch.commit();
 const unchanged = STATIC_REGIONS.length - created - completed;
 console.log(
-  `regions: ${created} created, ${completed} completed, ${unchanged} unchanged (${prod ? 'production' : 'emulator'})`
+  `regions: ${created} created, ${completed} completed, ${unchanged} unchanged, ${removed} removed (${prod ? 'production' : 'emulator'})`
 );

@@ -13,6 +13,8 @@ export function bezirkLabel(bezirk) {
 
 
 // URL slugs of the nine Austrian Bundeslaender (ASCII, umlauts transliterated).
+// These are the only regions: "Österreich" is not a region but a combined view
+// over all of them (UI only, never stored on an event or profile).
 // Single source: username.js reserves them so no profile can shadow a future
 // region address (`/tirol`, `/wien`, ...).
 export const REGION_SLUGS = [
@@ -26,12 +28,6 @@ export const REGION_SLUGS = [
   'wien',
   'burgenland',
 ];
-
-// Pseudo region covering all of Austria (no own Bezirke).
-export const NATIONAL_REGION_ID = 'oesterreich';
-
-// Every slug a `regions/{id}` doc may carry (also enforced in firestore.rules).
-export const ALL_REGION_SLUGS = [...REGION_SLUGS, NATIONAL_REGION_ID];
 
 export const DEFAULT_REGION_ID = 'vorarlberg';
 
@@ -47,12 +43,13 @@ const REGION_NAMES = {
   niederoesterreich: 'Niederösterreich',
   wien: 'Wien',
   burgenland: 'Burgenland',
-  [NATIONAL_REGION_ID]: 'Österreich',
 };
 
-// Static register: the fallback whenever Firestore delivers nothing. Only
-// Vorarlberg is active by default.
-export const STATIC_REGIONS = ALL_REGION_SLUGS.map((slug, order) => ({
+// Static register (one entry per Bundesland, doc id == slug; also enforced in
+// firestore.rules): the fallback whenever Firestore delivers nothing. Only
+// Vorarlberg is active by default. Every region has its own Bezirke; the other
+// Bundeslaender get theirs from their `regions/{id}` doc.
+export const STATIC_REGIONS = REGION_SLUGS.map((slug, order) => ({
   id: slug,
   slug,
   name: REGION_NAMES[slug],
@@ -64,7 +61,7 @@ export const STATIC_REGIONS = ALL_REGION_SLUGS.map((slug, order) => ({
 // Backwards compatible: Bezirke of Vorarlberg (cleanup in a later ticket).
 export const BEZIRKE = VORARLBERG_BEZIRKE;
 
-export const isRegionSlug = (slug) => typeof slug === 'string' && ALL_REGION_SLUGS.includes(slug);
+export const isRegionSlug = (slug) => typeof slug === 'string' && REGION_SLUGS.includes(slug);
 
 export const getRegionBySlug = (slug, regions = STATIC_REGIONS) =>
   regions.find((r) => r.slug === slug) ?? null;
@@ -98,10 +95,9 @@ export function resolveDirectoryRegionIds(doc) {
 export const getBezirke = (regionId, regions = STATIC_REGIONS) =>
   getRegionBySlug(regionId, regions)?.bezirke ?? [];
 
-// A region page shows events of that region plus online events; the national
-// view shows everything.
+// A region page shows events of that region plus online events (online events
+// are visible in every region).
 export function eventVisibleInRegion(event, regionId) {
-  if (regionId === NATIONAL_REGION_ID) return true;
   if (event?.isOnline) return true;
   return resolveRegionId(event) === regionId;
 }
