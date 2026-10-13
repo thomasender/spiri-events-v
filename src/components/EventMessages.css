@@ -1,5 +1,5 @@
 .event-messages {
-  margin-top: 32px;
+  margin-top: 16px;
   background: var(--bg-secondary, #f5f0e8);
   border: 1px solid var(--border, #e8e0d5);
   border-radius: 12px;
