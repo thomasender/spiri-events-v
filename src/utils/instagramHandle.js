@@ -25,3 +25,37 @@ export function resolveInstagramHandleOverride(input, profileHandle) {
   const profile = normalizeInstagramHandle(profileHandle);
   return profile && profile.toLowerCase() === override.toLowerCase() ? null : override;
 }
+
+/**
+ * True when the signed-in user edits an event someone else created (e.g. an
+ * admin editing an organizer's event).
+ */
+export function isEditingForeignEvent(event, user) {
+  return Boolean(event?.createdBy) && event.createdBy !== user?.uid;
+}
+
+/**
+ * The profile Instagram handle the consent field shows and the override is
+ * compared against: always the event creator's, never the editor's. New
+ * events and the editor's own events use the editor's (private) profile; for
+ * someone else's event only the creator's public profile is readable, so it
+ * is the publicly shared handle there or '' (the server still falls back to
+ * the creator's private profile, see functions/src/instagramDeps.ts).
+ */
+export function resolveOrganizerProfileHandle({ event, user, ownProfile, organizerPublicProfile }) {
+  const source = isEditingForeignEvent(event, user) ? organizerPublicProfile : ownProfile;
+  const handle = source?.socialMedia?.instagram;
+  return typeof handle === 'string' ? handle : '';
+}
+
+/**
+ * Update patch for an existing event's `instagramHandleOverride`: {} when it
+ * is unchanged (or consent is off, which leaves the stored value alone), else
+ * the new "@name" or null (= use the creator's profile handle).
+ */
+export function buildInstagramHandleOverridePatch({ consent, input, organizerHandle, stored }) {
+  if (!consent) return {};
+  const next = resolveInstagramHandleOverride(input, organizerHandle);
+  const previous = normalizeInstagramHandle(stored);
+  return next === previous ? {} : { instagramHandleOverride: next };
+}

@@ -23,8 +23,23 @@ vi.mock('../../src/hooks/useAuth', () => ({
   useAuth: () => ({ user: mockAuth.user, role: mockAuth.role }),
 }));
 
+// The signed-in user's own (private) profile and the creator's public profile
+// (the only one an admin can read for someone else's event).
+const mockProfiles = vi.hoisted(() => ({
+  own: null as Record<string, unknown> | null,
+  organizerPublic: null as Record<string, unknown> | null,
+  organizerUids: [] as Array<string | null>,
+}));
+
 vi.mock('../../src/hooks/useProfile', () => ({
-  useProfile: () => ({ profile: null }),
+  useProfile: () => ({ profile: mockProfiles.own }),
+}));
+
+vi.mock('../../src/hooks/useOrganizerProfile', () => ({
+  useOrganizerProfile: (uid: string | null) => {
+    mockProfiles.organizerUids.push(uid);
+    return { profile: uid ? mockProfiles.organizerPublic : null };
+  },
 }));
 
 vi.mock('../../src/hooks/useEvents', () => ({
@@ -93,6 +108,90 @@ beforeEach(() => {
   mockAuth.user = { uid: 'owner-uid', email: 'owner@test.local' };
   mockAuth.role = null;
   mockEvents.updateEvent.mockClear();
+  mockProfiles.own = null;
+  mockProfiles.organizerPublic = null;
+  mockProfiles.organizerUids = [];
+});
+
+describe("EventForm — Instagram handle belongs to the event's creator", () => {
+  const consentedEvent = { ...oldApprovedEvent, instagramConsent: true };
+  const signInAsAdmin = () => {
+    mockAuth.user = { uid: 'admin-uid', email: 'admin@test.local' };
+    mockAuth.role = 'Admin';
+    mockProfiles.own = { socialMedia: { instagram: '@the_admin' } };
+  };
+
+  async function savedPayload() {
+    submitForm();
+    await waitFor(() => expect(mockEvents.updateEvent).toHaveBeenCalledTimes(1));
+    return (mockEvents.updateEvent.mock.calls[0] as unknown as unknown[])[1] as Record<
+      string,
+      unknown
+    >;
+  }
+
+  it("admin editing a user's event sees the organizer's handle, not their own", async () => {
+    signInAsAdmin();
+    mockProfiles.organizerPublic = { socialMedia: { instagram: '@the_organizer' } };
+    renderForm(consentedEvent);
+
+    expect(mockProfiles.organizerUids).toContain('owner-uid');
+    expect(screen.getByTestId('instagram-handle-text').textContent).toBe('@the_organizer');
+    expect(screen.getByTestId('instagram-consent').textContent).not.toContain('@the_admin');
+
+    const payload = await savedPayload();
+    expect(payload.instagramConsent).toBe(true);
+    expect(payload).not.toHaveProperty('instagramHandleOverride');
+  });
+
+  it("admin never sees their own handle, even when the organizer's is private", async () => {
+    signInAsAdmin();
+    renderForm(consentedEvent);
+
+    expect(screen.queryByTestId('instagram-handle-text')).toBeNull();
+    const hint = screen.getByTestId('instagram-consent-hint').textContent;
+    expect(hint).toContain('aus dem Profil des Veranstalters');
+    expect(hint).not.toContain('@the_admin');
+
+    const payload = await savedPayload();
+    expect(payload).not.toHaveProperty('instagramHandleOverride');
+  });
+
+  it("admin edit keeps the organizer's per-event handle", async () => {
+    signInAsAdmin();
+    renderForm({ ...consentedEvent, instagramHandleOverride: '@event_handle' });
+
+    expect(screen.getByTestId('instagram-handle-text').textContent).toBe('@event_handle');
+    const payload = await savedPayload();
+    expect(payload).not.toHaveProperty('instagramHandleOverride');
+  });
+
+  it('admin editing their own event keeps using their own profile handle', async () => {
+    signInAsAdmin();
+    mockProfiles.organizerPublic = { socialMedia: { instagram: '@someone_else' } };
+    renderForm({ ...consentedEvent, createdBy: 'admin-uid' });
+
+    expect(mockProfiles.organizerUids.every((uid) => uid === null)).toBe(true);
+    expect(screen.getByTestId('instagram-handle-text').textContent).toBe('@the_admin');
+    expect(screen.getByTestId('instagram-consent-hint').textContent).toContain(
+      'deinen Instagram-Namen aus deinem Profil'
+    );
+  });
+
+  it('a per-event handle typed in the edit form is saved', async () => {
+    mockProfiles.own = { socialMedia: { instagram: '@owner_profile' } };
+    renderForm(consentedEvent);
+
+    fireEvent.click(screen.getByTestId('instagram-handle-edit'));
+    const input = screen.getByTestId('instagram-handle-input');
+    fireEvent.change(input, { target: { value: '@for_this_event' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    const payload = await savedPayload();
+    expect(payload.instagramHandleOverride).toBe('@for_this_event');
+    // Only Instagram settings changed: no re-approval.
+    expect(payload.status).toBe('approved');
+  });
 });
 
 describe('EventForm — Instagram settings on existing events', () => {

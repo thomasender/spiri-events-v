@@ -37,7 +37,12 @@ import {
 import { CURRENCIES, DEFAULT_CURRENCY } from '../utils/currency';
 import { normalizeCategoryInput, isValidCategoryInput } from '../utils/categoryInput';
 import InstagramConsentField from './InstagramConsentField';
-import { resolveInstagramHandleOverride } from '../utils/instagramHandle';
+import {
+  buildInstagramHandleOverridePatch,
+  isEditingForeignEvent,
+  resolveOrganizerProfileHandle,
+} from '../utils/instagramHandle';
+import { useOrganizerProfile } from '../hooks/useOrganizerProfile';
 import InstagramImagePicker from './InstagramImagePicker';
 import {
   COVER_SOURCE,
@@ -184,6 +189,18 @@ export default function EventForm({ event }) {
   const [instagramHandleOverride, setInstagramHandleOverride] = useState(
     typeof event?.instagramHandleOverride === 'string' ? event.instagramHandleOverride : ''
   );
+  // The Instagram name belongs to the event's creator: when an admin edits
+  // someone else's event, never fall back to the admin's own profile handle.
+  const editsForeignEvent = isEditingForeignEvent(event, user);
+  const { profile: organizerPublicProfile } = useOrganizerProfile(
+    editsForeignEvent ? event.createdBy : null
+  );
+  const organizerInstagramHandle = resolveOrganizerProfileHandle({
+    event,
+    user,
+    ownProfile: profile,
+    organizerPublicProfile,
+  });
   const profileInstagramDefault = profile?.instagramConsentDefault === true;
   useEffect(() => {
     if (!instagramConsentTouched.current) setInstagramConsent(profileInstagramDefault);
@@ -669,6 +686,12 @@ export default function EventForm({ event }) {
     },
     kontakt: formData.kontakt.trim(),
     instagramConsent,
+    ...buildInstagramHandleOverridePatch({
+      consent: instagramConsent,
+      input: instagramHandleOverride,
+      organizerHandle: organizerInstagramHandle,
+      stored: event?.instagramHandleOverride,
+    }),
     // A newly picked cover / extra photo gets its URL after the upload in
     // saveEvent(); everything else can be resolved right away.
     ...(instagramConsent && !instagramImageNeedsUpload()
@@ -1511,7 +1534,8 @@ export default function EventForm({ event }) {
               instagramConsentTouched.current = true;
               setInstagramConsent(value);
             }}
-            instagramHandle={profile?.socialMedia?.instagram}
+            instagramHandle={organizerInstagramHandle}
+            forOrganizer={editsForeignEvent}
             handleOverride={instagramHandleOverride}
             onHandleOverrideChange={setInstagramHandleOverride}
           />
