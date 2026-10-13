@@ -511,6 +511,15 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Personal calendar feed tokens (secret!), doc id = uid. Issued, replaced
+    // and deleted only by the getCalendarFeedToken callable and checked by
+    // calendarFeed (Admin SDK bypasses rules). No client may read or write
+    // them, not even the owner or admins: a readable token would open the
+    // owner's calendar links to anyone.
+    match /calendarFeedTokens/{uid} {
+      allow read, write: if false;
+    }
+
     // Idempotency/audit records of Instagram posts. Written only by the
     // Cloud Function (Admin SDK bypasses rules); admins may read them.
     match /instagram_posts/{postId} {

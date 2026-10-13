@@ -749,3 +749,11 @@
   color: var(--text-secondary);
   font-size: 0.8rem;
 }
+
+.calendar-subscribe-hint {
+  flex-basis: 100%;
+  margin: 0;
+  text-align: right;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}

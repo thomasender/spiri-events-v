@@ -35,6 +35,13 @@ vi.mock('../../src/hooks/useAuth', () => ({
   }),
 }));
 
+const mockCalendar = vi.hoisted(() => ({
+  requestCalendarFeedToken: vi.fn(async () => 'tok-1'),
+  startCalendarDownload: vi.fn(),
+}));
+
+vi.mock('../../src/hooks/useCalendarFeedToken', () => mockCalendar);
+
 vi.mock('../../src/hooks/useEvents', () => ({
   useEvents: () => mockEvents,
 }));
@@ -314,14 +321,52 @@ describe('EventDetailPage — edit/delete visibility', () => {
 });
 
 describe('EventDetailPage — add to calendar', () => {
-  it('links an approved event to its calendar download', async () => {
+  beforeEach(() => {
+    mockCalendar.requestCalendarFeedToken.mockReset();
+    mockCalendar.requestCalendarFeedToken.mockResolvedValue('tok-1');
+    mockCalendar.startCalendarDownload.mockReset();
+  });
+
+  it('asks visitors to log in instead of downloading', async () => {
     renderPage();
     expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
 
-    expect(screen.getByTestId('add-to-calendar-link')).toHaveAttribute(
-      'href',
-      '/calendar/event/yoga-heute-yogastudio-dornbirn-20260804.ics'
+    const button = screen.getByTestId('add-to-calendar-link');
+    expect(button).not.toHaveAttribute('href');
+    fireEvent.click(button);
+
+    expect(await screen.findByTestId('login-prompt-modal')).toHaveTextContent('Kalender');
+    expect(mockCalendar.requestCalendarFeedToken).not.toHaveBeenCalled();
+    expect(mockCalendar.startCalendarDownload).not.toHaveBeenCalled();
+  });
+
+  it('downloads the event with the personal token for a signed-in user', async () => {
+    mockAuth.user = { uid: 'random-user-uid' };
+    renderPage();
+    expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
+    // No token anywhere in the page before the click.
+    expect(document.body.innerHTML).not.toContain('tok-1');
+    expect(mockCalendar.requestCalendarFeedToken).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByTestId('add-to-calendar-link'));
+
+    await vi.waitFor(() =>
+      expect(mockCalendar.startCalendarDownload).toHaveBeenCalledWith(
+        '/calendar/event/yoga-heute-yogastudio-dornbirn-20260804.ics?token=tok-1'
+      )
     );
+    expect(screen.queryByTestId('login-prompt-modal')).toBeNull();
+  });
+
+  it('tells a signed-in user when the download could not start', async () => {
+    mockAuth.user = { uid: 'random-user-uid' };
+    mockCalendar.requestCalendarFeedToken.mockRejectedValue(new Error('offline'));
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    renderPage();
+    fireEvent.click(await screen.findByTestId('add-to-calendar-link'));
+
+    expect(await screen.findByTestId('add-to-calendar-error')).toBeInTheDocument();
+    expect(mockCalendar.startCalendarDownload).not.toHaveBeenCalled();
   });
 
   it('offers no calendar download for an event that is not approved yet', async () => {

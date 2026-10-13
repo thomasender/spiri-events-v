@@ -27,6 +27,7 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import { splitProfileData } from '../utils/profile';
+import { revokeCalendarFeedToken } from './useCalendarFeedToken';
 import { findUniqueProfileSlug } from '../lib/slug';
 import { ref as storageRef, listAll, deleteObject } from 'firebase/storage';
 import { auth, db, storage, functions } from '../lib/firebase';
@@ -423,6 +424,14 @@ export function useAuth() {
       if (err?.code !== 'storage/object-not-found') {
         console.warn('Failed to delete profile storage:', err);
       }
+    }
+
+    try {
+      // Server-only collection: the callable deletes calendarFeedTokens/{uid}.
+      // calendarFeed also refuses tokens of deleted accounts if this fails.
+      await revokeCalendarFeedToken();
+    } catch (err) {
+      console.warn('Failed to delete calendar feed token:', err);
     }
 
     try {

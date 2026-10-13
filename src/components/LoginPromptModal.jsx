@@ -1,10 +1,31 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
-import { Heart, X } from 'lucide-react';
+import { CalendarPlus, Heart, X } from 'lucide-react';
 import './LoginPromptModal.css';
 
-export default function LoginPromptModal({ open, onClose, returnTo, onLogin }) {
+// Features that are only available with an account; each gets its own wording.
+const VARIANTS = {
+  favorites: {
+    Icon: Heart,
+    title: 'Melde dich an, um Favoriten zu speichern',
+    text: 'Mit einem kostenlosen Konto kannst du Events als Favoriten merken und jederzeit unter „Meine Favoriten“ wiederfinden.',
+  },
+  calendar: {
+    Icon: CalendarPlus,
+    title: 'Melde dich an, um Events in deinen Kalender zu übernehmen',
+    text: 'Mit einem kostenlosen Konto kannst du einzelne Events herunterladen oder den ganzen Kalender in deiner Kalender-App (z. B. Google, Apple oder Outlook) abonnieren.',
+  },
+};
+
+export default function LoginPromptModal({
+  open,
+  onClose,
+  returnTo,
+  onLogin,
+  variant = 'favorites',
+}) {
+  const { Icon, title, text } = VARIANTS[variant] ?? VARIANTS.favorites;
   useEffect(() => {
     if (!open) return undefined;
     const handleEscape = (e) => {
@@ -34,13 +55,10 @@ export default function LoginPromptModal({ open, onClose, returnTo, onLogin }) {
           <X size={24} />
         </button>
         <header className="login-prompt-header">
-          <Heart size={24} className="login-prompt-icon" aria-hidden="true" />
-          <h2 id="login-prompt-title">Melde dich an, um Favoriten zu speichern</h2>
+          <Icon size={24} className="login-prompt-icon" aria-hidden="true" />
+          <h2 id="login-prompt-title">{title}</h2>
         </header>
-        <p className="login-prompt-text">
-          Mit einem kostenlosen Konto kannst du Events als Favoriten merken und jederzeit unter
-          „Meine Favoriten“ wiederfinden.
-        </p>
+        <p className="login-prompt-text">{text}</p>
         <div className="login-prompt-actions">
           <Link
             to="/login"

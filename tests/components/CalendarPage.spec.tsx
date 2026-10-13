@@ -31,9 +31,25 @@ vi.mock('../../src/hooks/useFavorites', () => ({
   }),
 }));
 
+const mockAuthUser = vi.hoisted(() => ({ user: null as { uid: string } | null }));
+
 vi.mock('../../src/hooks/useAuth', () => ({
-  useAuth: () => ({ user: null, canCreateEvents: false }),
+  useAuth: () => ({ user: mockAuthUser.user, canCreateEvents: false }),
 }));
+
+// The calendar export asks the getCalendarFeedToken callable for the user's token.
+const mockCallable = vi.hoisted(() => ({ calls: [] as unknown[], token: 'tok-1' }));
+
+vi.mock('firebase/functions', async () => {
+  const actual = await vi.importActual<object>('firebase/functions');
+  return {
+    ...actual,
+    httpsCallable: (_fns: unknown, name: string) => async (data: unknown) => {
+      mockCallable.calls.push({ name, data });
+      return { data: { token: mockCallable.token } };
+    },
+  };
+});
 
 function setStoredCategories(categories) {
   window.localStorage.setItem(
@@ -649,10 +665,71 @@ describe('CalendarPage — calendar feed subscription', () => {
     window.localStorage.clear();
     mockUseAllEvents.events = [];
     mockUseCategories.value = ['Yoga', 'Meditation'];
+    mockAuthUser.user = { uid: 'u1' };
+    mockCallable.calls = [];
+    mockCallable.token = 'tok-1';
+  });
+  afterEach(() => {
+    mockAuthUser.user = null;
   });
 
-  it('puts the export inside the "Mehr Filter" area, not as a standalone section', () => {
+  // Opens "im eigenen Kalender speichern" and waits for the personal link.
+  async function openExport() {
+    fireEvent.click(screen.getByText('im eigenen Kalender speichern'));
+    await screen.findByTestId('calendar-subscribe-url');
+  }
+
+  it('shows visitors a login prompt instead of the export options', async () => {
+    mockAuthUser.user = null;
     renderPage();
+
+    expect(screen.getByTestId('calendar-subscribe')).toHaveTextContent(
+      'im eigenen Kalender speichern'
+    );
+    fireEvent.click(screen.getByText('im eigenen Kalender speichern'));
+
+    const prompt = await screen.findByTestId('login-prompt-modal');
+    expect(prompt).toHaveTextContent('Kalender');
+    expect(screen.getByTestId('calendar-subscribe')).not.toHaveAttribute('open');
+    expect(screen.queryByTestId('calendar-subscribe-link')).toBeNull();
+    expect(screen.queryByTestId('calendar-subscribe-url')).toBeNull();
+    expect(mockCallable.calls).toEqual([]);
+  });
+
+  it('asks for the personal token only when a signed-in user opens the section', async () => {
+    renderPage();
+    expect(mockCallable.calls).toEqual([]);
+    expect(screen.queryByTestId('calendar-subscribe-url')).toBeNull();
+
+    await openExport();
+    expect(mockCallable.calls).toEqual([{ name: 'getCalendarFeedToken', data: {} }]);
+    expect(screen.getByTestId('calendar-subscribe-url')).toHaveTextContent(
+      `${window.location.origin}/calendar/feed.ics?token=tok-1`
+    );
+  });
+
+  it('replaces the link after confirming "Neuen Link erzeugen"', async () => {
+    renderPage();
+    await openExport();
+
+    mockCallable.token = 'tok-2';
+    fireEvent.click(screen.getByTestId('calendar-subscribe-regenerate'));
+    const confirm = await screen.findByText('Neuen Kalender-Link erzeugen?');
+    fireEvent.click(
+      confirm.closest('.confirm-dialog')!.querySelector('.confirm-confirm') as HTMLElement
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('calendar-subscribe-url')).toHaveTextContent('token=tok-2')
+    );
+    expect(mockCallable.calls).toContainEqual({
+      name: 'getCalendarFeedToken',
+      data: { regenerate: true },
+    });
+  });
+
+  it('puts the export inside the "Mehr Filter" area, not as a standalone section', async () => {
+    renderPage();
+    await openExport();
 
     const accordion = document.querySelector('details.filter-accordion') as HTMLElement;
     const exportBox = screen.getByTestId('calendar-subscribe');
@@ -664,23 +741,27 @@ describe('CalendarPage — calendar feed subscription', () => {
     }
   });
 
-  it('offers the feed as a webcal button and shows the https address', () => {
+  it('offers the feed as a webcal button and shows the https address', async () => {
     renderPage();
+    await openExport();
 
     const cta = screen.getByTestId('calendar-subscribe-link');
-    expect(cta.getAttribute('href')).toBe(`webcal://${window.location.host}/calendar/feed.ics`);
+    expect(cta.getAttribute('href')).toBe(
+      `webcal://${window.location.host}/calendar/feed.ics?token=tok-1`
+    );
     expect(screen.getByTestId('calendar-subscribe-url')).toHaveTextContent(
-      `${window.location.origin}/calendar/feed.ics`
+      `${window.location.origin}/calendar/feed.ics?token=tok-1`
     );
   });
 
-  it('links to Google Calendar with the feed prefilled', () => {
+  it('links to Google Calendar with the feed prefilled', async () => {
     renderPage();
+    await openExport();
 
     const href = screen.getByTestId('calendar-subscribe-google').getAttribute('href')!;
     expect(href.startsWith('https://calendar.google.com/calendar/render?cid=')).toBe(true);
     expect(decodeURIComponent(href.split('cid=')[1])).toBe(
-      `webcal://${window.location.host}/calendar/feed.ics`
+      `webcal://${window.location.host}/calendar/feed.ics?token=tok-1`
     );
     expect(buildGoogleCalendarUrl('webcal://x.at/f.ics?bezirk=Online')).toBe(
       'https://calendar.google.com/calendar/render?cid=webcal%3A%2F%2Fx.at%2Ff.ics%3Fbezirk%3DOnline'
@@ -691,11 +772,14 @@ describe('CalendarPage — calendar feed subscription', () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
     renderPage();
+    await openExport();
 
     fireEvent.click(screen.getByTestId('calendar-subscribe-copy'));
 
     await waitFor(() =>
-      expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/calendar/feed.ics`)
+      expect(writeText).toHaveBeenCalledWith(
+        `${window.location.origin}/calendar/feed.ics?token=tok-1`
+      )
     );
     expect(await screen.findByText('Adresse kopiert')).toBeInTheDocument();
   });
@@ -714,5 +798,10 @@ describe('CalendarPage — calendar feed subscription', () => {
       `${origin}/calendar/feed.ics?bezirk=Dornbirn&bezirk=Bregenz&kategorie=Yoga&kategorie=Tanz`
     );
     expect(buildFeedUrl(origin, ['Wien'], [])).toBe(`${origin}/calendar/feed.ics`);
+    // The personal token always comes last.
+    expect(buildFeedUrl(origin, ['Dornbirn'], ['Yoga'], 'a_b-C')).toBe(
+      `${origin}/calendar/feed.ics?bezirk=Dornbirn&kategorie=Yoga&token=a_b-C`
+    );
+    expect(buildFeedUrl(origin, [], [], 'a_b-C')).toBe(`${origin}/calendar/feed.ics?token=a_b-C`);
   });
 });

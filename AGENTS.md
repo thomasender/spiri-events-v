@@ -317,8 +317,8 @@ console.
   `logMissingAppCheck(name, request)` first. Requests without a token are logged
   as "callable without app check". `ENFORCE_APP_CHECK` is `false`; setting it to
   `true` and deploying makes all of them reject requests without a valid token.
-- **Never enforce** `mollieWebhook` (called by Mollie) or `calendarFeed` (public
-  iCalendar feed for calendar apps). `tests/lib/appCheck.spec.ts` guards this and
+- **Never enforce** `mollieWebhook` (called by Mollie) or `calendarFeed`
+  (token-protected iCalendar feed fetched by calendar apps, see below). `tests/lib/appCheck.spec.ts` guards this and
   fails if a new `onCall` forgets the helpers.
 - **If the CSP changes:** reCAPTCHA needs `https://www.google.com/recaptcha/` and
   `https://www.gstatic.com/recaptcha/` in `script-src` and
@@ -329,6 +329,30 @@ console.
 - **Rollback:** Firebase console → App Check → APIs → the product → "Not enforced"
   (takes effect in about 15 minutes). For functions, set `ENFORCE_APP_CHECK` back
   to `false` and deploy.
+
+## Kalender-Export (.ics download and subscription)
+
+Only for signed-in users, like Favoriten (no verified e-mail needed). Calendar
+apps cannot send a Firebase login or App Check token, so every calendar URL
+carries the user's personal secret: `?token=` on `/calendar/feed.ics` and
+`/calendar/event/<slug>.ics`.
+
+- **Token:** `calendarFeedTokens/{uid}` = `{ token, createdAt }`, 32 random bytes
+  base64url. Server-only collection (`firestore.rules` denies every client
+  access). Issued by the callable `getCalendarFeedToken`
+  (`functions/src/calendarFeedToken.ts`): `{}` returns/creates it,
+  `{ regenerate: true }` replaces it ("Neuen Link erzeugen" in the calendar),
+  `{ revoke: true }` deletes it (called by account deletion in `useAuth`).
+- **Check:** `calendarFeed` validates the format first (`calendarRoutes.ts`),
+  then looks the token up (5 min in-memory cache) and also refuses tokens of
+  deleted or disabled accounts. Missing/unknown token: `401`, `no-store`.
+- **Caching:** valid responses stay `public, s-maxage=3600`; the Hosting CDN
+  keys on the full URL including the token. A revoked token can therefore
+  still be served from the CDN for about an hour.
+- **Revoke by hand:** delete `calendarFeedTokens/{uid}` in the Firestore console
+  (the user gets a new token the next time they open the export).
+- The frontend asks for the token only when the user opens "im eigenen Kalender
+  speichern" or clicks "Zum Kalender hinzufügen" (`useCalendarFeedToken`).
 
 ## Prerender (Open Graph / Social Media Preview)
 
