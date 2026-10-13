@@ -1,4 +1,14 @@
 import { useState } from 'react';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import FocalPointPicker from './FocalPointPicker';
+import {
+  INSTAGRAM_CROP_ASPECT,
+  MAX_INSTAGRAM_ZOOM,
+  MIN_INSTAGRAM_ZOOM,
+  clampInstagramZoom,
+} from '../utils/instagramImageChoice';
+import { DEFAULT_FOCAL_POINT, normalizeFocalPoint } from '../lib/eventImage';
 
 /** "2026-10-12" -> "12.10.2026"; anything else is passed through. */
 export function formatPreviewDate(date) {
@@ -106,25 +116,146 @@ export default function InstagramPostPreview({ imageUrl, focalPoint, zoom = 1, e
 }
 
 /**
+ * Admin editor for the Instagram crop (focal point + zoom), same controls as
+ * the organizer has in the edit form. Saves to the event's `instagramImage`.
+ */
+function AdminInstagramCropEditor({ event, imageUrl, initial, previewEvent, onSaved, onCancel }) {
+  const [focalPoint, setFocalPoint] = useState(
+    normalizeFocalPoint(initial?.focalPoint) ?? { ...DEFAULT_FOCAL_POINT }
+  );
+  const [zoom, setZoom] = useState(clampInstagramZoom(initial?.zoom ?? 1));
+  const [mode, setMode] = useState(PREVIEW_MODE_CAROUSEL);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const save = async () => {
+    setSaving(true);
+    setError('');
+    const instagramImage = { url: imageUrl, focalPoint, zoom: clampInstagramZoom(zoom) };
+    try {
+      await updateDoc(doc(db, 'events', event.id), { instagramImage });
+      onSaved(instagramImage);
+    } catch {
+      setError('Der Ausschnitt konnte nicht gespeichert werden. Bitte versuche es erneut.');
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="instagram-post-preview" data-testid="instagram-crop-editor">
+      <div className="instagram-image-picker-zoom">
+        <label htmlFor="admin-instagram-zoom">Hineinzoomen</label>
+        <input
+          id="admin-instagram-zoom"
+          type="range"
+          min={MIN_INSTAGRAM_ZOOM}
+          max={MAX_INSTAGRAM_ZOOM}
+          step={0.05}
+          value={zoom}
+          onChange={(e) => setZoom(Number(e.target.value))}
+          data-testid="admin-instagram-zoom"
+        />
+        <output htmlFor="admin-instagram-zoom">{Math.round(zoom * 100)} %</output>
+      </div>
+      <FocalPointPicker
+        imageUrl={imageUrl}
+        value={focalPoint}
+        onChange={setFocalPoint}
+        cropAspect={INSTAGRAM_CROP_ASPECT}
+        zoom={zoom}
+        onZoomChange={setZoom}
+        minZoom={MIN_INSTAGRAM_ZOOM}
+        maxZoom={MAX_INSTAGRAM_ZOOM}
+        ariaLabel="Bildausschnitt für Instagram festlegen"
+        testId="admin-instagram-focal-picker"
+        info="Tippe oder ziehe auf das Foto, um den wichtigsten Bereich zu wählen, und zoome bei Bedarf hinein."
+        previewControls={<InstagramPreviewModeToggle mode={mode} onChange={setMode} />}
+        previewOverlay={
+          mode === PREVIEW_MODE_CAROUSEL && <InstagramPreviewOverlay event={previewEvent} />
+        }
+      />
+      {error && (
+        <p className="error-text" data-testid="admin-instagram-crop-error">
+          {error}
+        </p>
+      )}
+      <div className="instagram-image-picker-upload">
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={save}
+          disabled={saving}
+          data-testid="admin-instagram-crop-save"
+        >
+          {saving ? 'Speichern…' : 'Ausschnitt speichern'}
+        </button>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={onCancel}
+          disabled={saving}
+          data-testid="admin-instagram-crop-cancel"
+        >
+          Abbrechen
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/**
  * Review aid on the event page: admins see the Instagram post preview for
- * events in review (pending) whose organizer enabled the Instagram post.
+ * events in review (pending) whose organizer enabled the Instagram post, and
+ * can adjust the crop (move, zoom) right there.
  * Uses the chosen Instagram image, falling back to the cover photo.
  */
-export function AdminInstagramPreview({ event, isAdmin }) {
+export function AdminInstagramPreview({ event, isAdmin, onCropSaved }) {
+  const [editing, setEditing] = useState(false);
   if (!isAdmin || event?.status !== 'pending' || event.instagramConsent !== true) return null;
   const chosen = event.instagramImage;
+  const imageUrl = chosen?.url || event.imageUrl;
+  const previewEvent = {
+    title: event.title,
+    category: event.category,
+    date: event.date,
+    time: event.time,
+    place: event.isOnline ? 'Online' : event.place,
+  };
+
+  if (editing && imageUrl) {
+    return (
+      <AdminInstagramCropEditor
+        event={event}
+        imageUrl={imageUrl}
+        initial={chosen}
+        previewEvent={previewEvent}
+        onSaved={(instagramImage) => {
+          onCropSaved?.(instagramImage);
+          setEditing(false);
+        }}
+        onCancel={() => setEditing(false)}
+      />
+    );
+  }
+
   return (
-    <InstagramPostPreview
-      imageUrl={chosen?.url || event.imageUrl}
-      focalPoint={chosen?.focalPoint}
-      zoom={chosen?.zoom}
-      event={{
-        title: event.title,
-        category: event.category,
-        date: event.date,
-        time: event.time,
-        place: event.isOnline ? 'Online' : event.place,
-      }}
-    />
+    <>
+      <InstagramPostPreview
+        imageUrl={imageUrl}
+        focalPoint={chosen?.focalPoint}
+        zoom={chosen?.zoom}
+        event={previewEvent}
+      />
+      {imageUrl && (
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => setEditing(true)}
+          data-testid="admin-instagram-crop-edit"
+        >
+          Bildausschnitt bearbeiten
+        </button>
+      )}
+    </>
   );
 }

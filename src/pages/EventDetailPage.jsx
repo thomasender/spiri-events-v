@@ -859,7 +859,13 @@ export default function EventDetailPage() {
         </div>
       )}
 
-      <AdminInstagramPreview event={event} isAdmin={isAdmin} />
+      <AdminInstagramPreview
+        event={event}
+        isAdmin={isAdmin}
+        onCropSaved={(instagramImage) =>
+          setEvent((prev) => (prev ? { ...prev, instagramImage } : prev))
+        }
+      />
 
       {event.link && (
         <a
