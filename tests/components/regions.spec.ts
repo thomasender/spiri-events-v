@@ -89,3 +89,20 @@ describe('bezirkLabel', () => {
     expect(bezirkLabel(undefined as unknown as string)).toBeUndefined();
   });
 });
+
+// Same cases as tests/lib/functionsRegions.spec.ts (functions/src/regions.ts is a synced copy).
+const RESOLVE_REGION_CASES: Array<[unknown, string]> = [
+  [{ regionId: 'tirol' }, 'tirol'],
+  [{ regionId: 'vorarlberg' }, 'vorarlberg'],
+  [{}, 'vorarlberg'],
+  [{ regionId: '' }, 'vorarlberg'],
+  [{ regionId: 5 }, 'vorarlberg'],
+  [null, 'vorarlberg'],
+  [undefined, 'vorarlberg'],
+];
+
+describe('resolveRegionId shared cases', () => {
+  it.each(RESOLVE_REGION_CASES)('%j -> %s', (doc, expected) => {
+    expect(resolveRegionId(doc)).toBe(expected);
+  });
+});

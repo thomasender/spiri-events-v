@@ -10,6 +10,7 @@ import {
 } from './instagram/instagramPublish';
 import { buildPublishDeps, resolveInstagramAccessToken } from './instagramDeps';
 import { ADMIN_MAIL_SECRETS } from './adminNotify';
+import { isInstagramRegion } from './regions';
 
 if (getApps().length === 0) {
   initializeApp();
@@ -40,6 +41,12 @@ export const onEventApprovedPostToInstagram = onDocumentWritten(
     // network; the full decision (kill switch, dedupe, date) lives in the
     // tested logic module.
     if (!isApprovalTransition(before, after)) return;
+    // The Instagram account belongs to Vorarlberg; other regions are skipped
+    // quietly (no instagram_posts doc, no error, no admin mail).
+    if (!isInstagramRegion(after)) {
+      logger.info('instagram skipped: region', { eventId, outcome: 'region' });
+      return;
+    }
     // No consent: skip before touching secrets. Writes no instagram_posts doc,
     // so approving again after the organizer opted in can still post.
     if (after?.instagramConsent !== true) {

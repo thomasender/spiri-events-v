@@ -40,6 +40,7 @@ const OUTCOME_MESSAGES = {
   skipped: 'Das Event liegt in der Vergangenheit und wurde übersprungen.',
   disabled: 'Die Automatik ist ausgeschaltet. Bitte zuerst einschalten.',
   'no-consent': 'Der Veranstalter hat der Veröffentlichung auf Instagram nicht zugestimmt.',
+  region: 'Es werden nur Events aus Vorarlberg auf Instagram gepostet.',
   duplicate: 'Es existiert bereits ein Eintrag für dieses Event.',
 };
 
@@ -75,6 +76,11 @@ export function describeCarouselSummary(summary) {
     [
       'withoutConsent',
       (n) => `${count(n, 'Termin', 'Termine')} ohne Zustimmung des Veranstalters zu Instagram`,
+    ],
+    [
+      'regionExcluded',
+      (n) =>
+        `${count(n, 'Termin', 'Termine')} aus einer anderen Region (nur Vorarlberg wird gepostet)`,
     ],
     ['online', (n) => `${count(n, 'Online-Termin', 'Online-Termine')} (kommt nicht ins Karussell)`],
     ['otherRegion', (n) => `${count(n, 'Termin', 'Termine')} ohne passenden Bezirk`],
@@ -302,6 +308,10 @@ export default function InstagramTab() {
           {message}
         </p>
       )}
+
+      <p className="instagram-muted" data-testid="instagram-region-note">
+        Es werden nur Events aus Vorarlberg gepostet.
+      </p>
 
       <div className="instagram-card">
         <div className="instagram-switch-row">

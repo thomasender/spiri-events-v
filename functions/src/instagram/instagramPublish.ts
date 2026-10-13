@@ -6,6 +6,7 @@
  * ../instagramPostOnApproval.ts.
  */
 
+import { isInstagramRegion } from '../regions';
 import { buildCaption, type InstagramEventInput } from './instagramContent';
 
 export const GRAPH_BASE = 'https://graph.instagram.com/v23.0';
@@ -63,7 +64,14 @@ export interface PublishDeps {
 }
 
 export type TriggerOutcome =
-  'ignored' | 'disabled' | 'no-consent' | 'duplicate' | 'skipped' | 'published' | 'failed';
+  | 'ignored'
+  | 'disabled'
+  | 'region'
+  | 'no-consent'
+  | 'duplicate'
+  | 'skipped'
+  | 'published'
+  | 'failed';
 
 function statusOf(data: unknown): string | null {
   if (!data || typeof data !== 'object') return null;
@@ -289,6 +297,13 @@ export async function publishApprovedEvent(
 ): Promise<TriggerOutcome> {
   const log = deps.log ?? (() => undefined);
   if (!isApprovalTransition(before, after)) return 'ignored';
+
+  // The Instagram account belongs to Vorarlberg. Not an error: no dedupe doc,
+  // no admin mail, the event simply is not posted.
+  if (!isInstagramRegion(after)) {
+    log('instagram skipped: region', { eventId });
+    return 'region';
+  }
 
   if (!(await deps.isEnabled())) {
     log('Instagram posting disabled via app_settings/instagram; skipping', { eventId });

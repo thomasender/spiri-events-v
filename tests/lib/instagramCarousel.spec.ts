@@ -639,3 +639,24 @@ describe('Grenznahe carousel', () => {
     expect(preview.groups[0].cover.bezirk).toBe('in der Umgebung');
   });
 });
+
+describe('region gate (Vorarlberg only)', () => {
+  it('includes Vorarlberg and legacy events, excludes other regions', () => {
+    expect(
+      isCarouselEligible(ev({ regionId: 'vorarlberg' } as Partial<CarouselEvent>), WINDOW)
+    ).toBe(true);
+    expect(isCarouselEligible(ev(), WINDOW)).toBe(true);
+    expect(isCarouselEligible(ev({ regionId: 'tirol' } as Partial<CarouselEvent>), WINDOW)).toBe(
+      false
+    );
+  });
+
+  it('keeps Tirol events out of the groups and reports them as region exclusion', () => {
+    const events = [ev({ id: 'v' }), ev({ id: 't', regionId: 'tirol' } as Partial<CarouselEvent>)];
+    const groups = groupCarousels(events, WINDOW);
+    expect(groups.flatMap((g) => g.events.map((e) => e.id))).toEqual(['v']);
+    const summary = summarizeCandidates(events, WINDOW);
+    expect(summary).toMatchObject({ total: 2, eligible: 1, regionExcluded: 1, otherRegion: 0 });
+    expect(summary.details.regionExcluded.map((e) => e.id)).toEqual(['t']);
+  });
+});
