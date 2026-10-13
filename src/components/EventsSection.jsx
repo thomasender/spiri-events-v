@@ -24,6 +24,10 @@ const MONTHS = [
 
 const MOBILE_BREAKPOINT = 768;
 
+// Only this many events are rendered at first; "Mehr laden" adds another page.
+// Keeps the first paint light when a month has dozens of events.
+export const EVENTS_PAGE_SIZE = 25;
+
 export default function EventsSection({
   events,
   currentMonth,
@@ -35,6 +39,15 @@ export default function EventsSection({
   onResetFilters,
 }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < MOBILE_BREAKPOINT);
+  const [visibleCount, setVisibleCount] = useState(EVENTS_PAGE_SIZE);
+  // A new list (other month, filter, date quick filter) starts at page one again.
+  const [prevEvents, setPrevEvents] = useState(events);
+  if (prevEvents !== events) {
+    setPrevEvents(events);
+    setVisibleCount(EVENTS_PAGE_SIZE);
+  }
+  const shownEvents = events.slice(0, visibleCount);
+  const remaining = events.length - shownEvents.length;
 
   useEffect(() => {
     const handleResize = () => {
@@ -123,7 +136,7 @@ export default function EventsSection({
         </div>
       ) : effectiveViewMode === 'card' ? (
         <div className="events-section-grid">
-          {events.map((event) => (
+          {shownEvents.map((event) => (
             <EventCard
               key={`${event.id}-${event.date}`}
               event={event}
@@ -137,7 +150,7 @@ export default function EventsSection({
         </div>
       ) : (
         <div className="events-section-list">
-          {events.map((event) => (
+          {shownEvents.map((event) => (
             <EventListRow
               key={`${event.id}-${event.date}`}
               event={event}
@@ -148,6 +161,19 @@ export default function EventsSection({
               onClick={onCardClick}
             />
           ))}
+        </div>
+      )}
+
+      {remaining > 0 && (
+        <div className="events-section-more">
+          <button
+            type="button"
+            className="btn btn-secondary events-section-more-button"
+            data-testid="events-load-more"
+            onClick={() => setVisibleCount((count) => count + EVENTS_PAGE_SIZE)}
+          >
+            Mehr laden ({shownEvents.length} von {events.length})
+          </button>
         </div>
       )}
     </section>
