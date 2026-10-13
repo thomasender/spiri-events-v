@@ -6,7 +6,9 @@ export const INSTAGRAM_ACCOUNT = '@tribevorarlberg';
 
 /**
  * Opt-in checkbox for posting an event on the Instagram channel and tagging
- * the organizer. Controlled; the parent owns the value.
+ * the organizer. Controlled; the parent owns the value. `instagramHandle` is
+ * the event creator's profile handle; `forOrganizer` marks an edit of someone
+ * else's event (admin), which words the hint for the organizer.
  */
 export default function InstagramConsentField({
   checked,
@@ -14,6 +16,7 @@ export default function InstagramConsentField({
   instagramHandle,
   handleOverride,
   onHandleOverrideChange,
+  forOrganizer = false,
 }) {
   const profileHandle = normalizeInstagramHandle(instagramHandle);
   const overrideHandle = normalizeInstagramHandle(handleOverride);
@@ -94,7 +97,18 @@ export default function InstagramConsentField({
         </span>
       </label>
       <p className="instagram-consent-hint" data-testid="instagram-consent-hint">
-        {handle || editing ? (
+        {forOrganizer ? (
+          // Someone else's event (admin edit): the handle is the creator's,
+          // never the editor's. The creator's handle may be private, then the
+          // server reads it from their profile when posting.
+          <>
+            Zum Markieren und Einladen verwenden wir{' '}
+            {overrideHandle
+              ? 'diesen Instagram-Namen'
+              : 'den Instagram-Namen aus dem Profil des Veranstalters'}{' '}
+            {handle || editing ? <>({handleControl})</> : <>(falls eingetragen) {editButton}</>}.
+          </>
+        ) : handle || editing ? (
           <>
             Zum Markieren und Einladen verwenden wir{' '}
             {overrideHandle ? 'diesen Instagram-Namen' : 'deinen Instagram-Namen aus deinem Profil'}{' '}

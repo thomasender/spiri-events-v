@@ -3,8 +3,10 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { useState } from 'react';
 import InstagramConsentField from '../../src/components/InstagramConsentField';
 import {
+  buildInstagramHandleOverridePatch,
   normalizeInstagramHandle,
   resolveInstagramHandleOverride,
+  resolveOrganizerProfileHandle,
 } from '../../src/utils/instagramHandle';
 
 describe('normalizeInstagramHandle', () => {
@@ -33,6 +35,116 @@ describe('resolveInstagramHandleOverride', () => {
     expect(resolveInstagramHandleOverride('', '@mine')).toBeNull();
     expect(resolveInstagramHandleOverride('no good!', '@mine')).toBeNull();
     expect(resolveInstagramHandleOverride('@MINE', 'mine')).toBeNull();
+  });
+});
+
+describe('resolveOrganizerProfileHandle: the creator, never the editor', () => {
+  const admin = { uid: 'admin' };
+  const adminProfile = { socialMedia: { instagram: '@the_admin' } };
+  const organizerPublic = { socialMedia: { instagram: '@the_organizer' } };
+
+  it("admin editing a user's event gets the creator's public handle", () => {
+    const event = { createdBy: 'organizer' };
+    expect(
+      resolveOrganizerProfileHandle({
+        event,
+        user: admin,
+        ownProfile: adminProfile,
+        organizerPublicProfile: organizerPublic,
+      })
+    ).toBe('@the_organizer');
+    // Creator does not share the handle publicly: empty, not the admin's.
+    expect(
+      resolveOrganizerProfileHandle({
+        event,
+        user: admin,
+        ownProfile: adminProfile,
+        organizerPublicProfile: null,
+      })
+    ).toBe('');
+  });
+
+  it("admin's own event and a new event use the admin's profile", () => {
+    for (const event of [{ createdBy: 'admin' }, null]) {
+      expect(
+        resolveOrganizerProfileHandle({
+          event,
+          user: admin,
+          ownProfile: adminProfile,
+          organizerPublicProfile: organizerPublic,
+        })
+      ).toBe('@the_admin');
+    }
+  });
+});
+
+describe('buildInstagramHandleOverridePatch', () => {
+  it('leaves an unchanged override alone, also when the creator handle is unknown', () => {
+    expect(
+      buildInstagramHandleOverridePatch({
+        consent: true,
+        input: '@event_name',
+        organizerHandle: '',
+        stored: '@event_name',
+      })
+    ).toEqual({});
+    expect(
+      buildInstagramHandleOverridePatch({
+        consent: true,
+        input: '',
+        organizerHandle: '@org',
+        stored: undefined,
+      })
+    ).toEqual({});
+  });
+
+  it('writes a changed override, or null when reset to the profile handle', () => {
+    expect(
+      buildInstagramHandleOverridePatch({
+        consent: true,
+        input: '@neu',
+        organizerHandle: '@org',
+        stored: '@alt',
+      })
+    ).toEqual({ instagramHandleOverride: '@neu' });
+    expect(
+      buildInstagramHandleOverridePatch({
+        consent: true,
+        input: '',
+        organizerHandle: '@org',
+        stored: '@alt',
+      })
+    ).toEqual({ instagramHandleOverride: null });
+  });
+
+  it('does not touch the stored value without consent', () => {
+    expect(
+      buildInstagramHandleOverridePatch({
+        consent: false,
+        input: '',
+        organizerHandle: '',
+        stored: '@alt',
+      })
+    ).toEqual({});
+  });
+});
+
+describe('InstagramConsentField for an organizer (admin edit)', () => {
+  it('names the organizer profile and offers editing when no handle is known', () => {
+    render(
+      <InstagramConsentField
+        checked
+        onChange={() => {}}
+        instagramHandle=""
+        forOrganizer
+        handleOverride=""
+        onHandleOverrideChange={() => {}}
+      />
+    );
+    const hint = screen.getByTestId('instagram-consent-hint').textContent;
+    expect(hint).toContain('aus dem Profil des Veranstalters');
+    expect(hint).not.toContain('deinem Profil');
+    expect(screen.getByTestId('instagram-handle-edit')).toBeTruthy();
   });
 });
 
