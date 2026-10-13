@@ -65,6 +65,7 @@ async function exportFirestore(accessToken) {
 
   const collections = ['events', 'users'];
   const data = {};
+  let failed = false;
 
   for (const coll of collections) {
     try {
@@ -82,6 +83,7 @@ async function exportFirestore(accessToken) {
         console.log(`  ${coll}: ${data[coll].length} documents`);
       } else if (result.error) {
         console.error(`  ${coll}: API error - ${result.error.message}`);
+        failed = true;
         data[coll] = [];
       } else {
         data[coll] = [];
@@ -89,11 +91,12 @@ async function exportFirestore(accessToken) {
       }
     } catch (e) {
       console.error(`  Error fetching ${coll}:`, e.message);
+      failed = true;
       data[coll] = [];
     }
   }
 
-  return data;
+  return { data, failed };
 }
 
 function convertValues(fields) {
@@ -129,7 +132,7 @@ async function main() {
   console.log(`Exporting Firestore from ${PROJECT_ID}...\n`);
 
   const accessToken = await getAccessToken();
-  const data = await exportFirestore(accessToken);
+  const { data, failed } = await exportFirestore(accessToken);
 
   const outPath = join(outDir, 'firestore-export');
   mkdirSync(outPath, { recursive: true });
@@ -140,7 +143,10 @@ async function main() {
 
   const manifest = {
     version: 'emulator-data',
-    collections: Object.keys(data)
+    collections: Object.keys(data),
+    // Read by scripts/migrate-region-ids.mjs: production writes need a complete
+    // export from today, so a failed collection leaves the stamp out.
+    ...(failed ? {} : { exportedAt: new Date().toISOString() }),
   };
   writeFileSync(join(outPath, 'manifest.json'), JSON.stringify(manifest, null, 2));
 
