@@ -828,10 +828,6 @@ export default function EventDetailPage() {
 
       <AdminInstagramPreview event={event} isAdmin={isAdmin} />
 
-      {(event.status === 'pending' || event.status === 'draft') && user && (isAdmin || isOwner) && (
-        <EventMessages eventId={event.id} onReady={() => setEventMessagesReady(true)} />
-      )}
-
       {event.link && (
         <a
           href={normalizeLink(event.link)}
@@ -842,6 +838,10 @@ export default function EventDetailPage() {
           <span>Mehr Infos & Tickets</span>
           <ExternalLink size={16} />
         </a>
+      )}
+
+      {(event.status === 'pending' || event.status === 'draft') && user && (isAdmin || isOwner) && (
+        <EventMessages eventId={event.id} onReady={() => setEventMessagesReady(true)} />
       )}
 
       <SimilarEvents currentEvent={event} />
