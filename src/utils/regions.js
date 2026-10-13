@@ -12,3 +12,18 @@ export function bezirkLabel(bezirk) {
   return BEZIRK_LABELS[bezirk] || bezirk;
 }
 
+
+// URL slugs of the nine Austrian Bundeslaender (ASCII, umlauts transliterated).
+// Single source: username.js reserves them so no profile can shadow a future
+// region address (`/tirol`, `/wien`, ...).
+export const REGION_SLUGS = [
+  'vorarlberg',
+  'tirol',
+  'salzburg',
+  'kaernten',
+  'steiermark',
+  'oberoesterreich',
+  'niederoesterreich',
+  'wien',
+  'burgenland',
+];

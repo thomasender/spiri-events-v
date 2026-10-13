@@ -7,6 +7,8 @@
 //
 // Pure: no Firebase, no DOM, no env. Safe to import from Node scripts.
 
+import { REGION_SLUGS } from './regions.js';
+
 export const USERNAME_MIN = 3;
 export const USERNAME_MAX = 30;
 
@@ -43,7 +45,21 @@ export const RESERVED_USERNAMES = new Set([
   'static',
   'public',
   'assets',
+  // Future region addresses (`/tirol`, `/oesterreich`, ...) share the same
+  // top-level path space as profiles.
+  ...REGION_SLUGS,
+  'oesterreich',
+  'austria',
+  'online',
+  'regionen',
+  'region',
 ]);
+
+// Fold umlauts so spellings like "Kärnten" or "Österreich" hit the ASCII
+// reserved slugs. Only used for the reserved check.
+function foldUmlauts(s) {
+  return s.replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss');
+}
 
 // Normalise a user-typed string into the canonical username form:
 // trim, strip a leading "@", lowercase. Returns '' for empty/null.
@@ -68,16 +84,18 @@ export function validateUsername(raw, { currentUsername } = {}) {
   if (!USERNAME_RE.test(normalized)) {
     return { valid: false, error: 'INVALID_CHARS', normalized };
   }
-  if (RESERVED_USERNAMES.has(normalized)) {
-    return { valid: false, error: 'RESERVED', normalized };
-  }
+  // An existing user keeps their current handle even if it became reserved
+  // later (e.g. a Bundesland name); only new/changed handles are blocked.
   if (currentUsername && normalizeUsername(currentUsername) === normalized) {
     return { valid: true, normalized };
+  }
+  if (isReservedUsername(normalized)) {
+    return { valid: false, error: 'RESERVED', normalized };
   }
   return { valid: true, normalized };
 }
 
 export function isReservedUsername(slug) {
   if (!slug) return false;
-  return RESERVED_USERNAMES.has(normalizeUsername(slug));
+  return RESERVED_USERNAMES.has(foldUmlauts(normalizeUsername(slug)));
 }

@@ -7,6 +7,7 @@ import {
   USERNAME_MIN,
   USERNAME_MAX,
 } from '../../src/utils/username';
+import { REGION_SLUGS } from '../../src/utils/regions';
 
 describe('normalizeUsername', () => {
   it('lowercases, trims, and strips a leading @', () => {
@@ -110,5 +111,51 @@ describe('isReservedUsername', () => {
     }
     expect(RESERVED_USERNAMES.has('admin')).toBe(true);
     expect(RESERVED_USERNAMES.has('profil')).toBe(true);
+  });
+});
+
+describe('reserved region names', () => {
+  const extra = ['oesterreich', 'austria', 'online', 'regionen', 'region'];
+
+  it('REGION_SLUGS lists all nine Bundeslaender in ASCII', () => {
+    expect(REGION_SLUGS).toHaveLength(9);
+    for (const slug of REGION_SLUGS) expect(slug).toMatch(/^[a-z]+$/);
+  });
+
+  it('reserves every region slug and the extra names', () => {
+    for (const name of [...REGION_SLUGS, ...extra]) {
+      expect(RESERVED_USERNAMES.has(name)).toBe(true);
+      expect(validateUsername(name)).toMatchObject({ valid: false, error: 'RESERVED' });
+    }
+  });
+
+  it('ignores case, whitespace and a leading @', () => {
+    expect(validateUsername('Tirol').error).toBe('RESERVED');
+    expect(validateUsername('  @WIEN ').error).toBe('RESERVED');
+    expect(isReservedUsername('OberOesterreich')).toBe(true);
+  });
+
+  it('treats umlaut spellings as reserved', () => {
+    for (const name of ['kärnten', 'Kärnten', 'oberösterreich', 'niederösterreich', 'österreich']) {
+      expect(isReservedUsername(name)).toBe(true);
+      // umlauts are not valid username characters anyway
+      expect(validateUsername(name).valid).toBe(false);
+    }
+  });
+
+  it('still allows ordinary names that merely contain a region name', () => {
+    for (const name of ['tirol.anna', 'wiener', 'anna-wien', 'salzburger', 'regionale']) {
+      expect(validateUsername(name).valid).toBe(true);
+    }
+  });
+
+  it('lets an existing user with a now-reserved username keep saving', () => {
+    expect(validateUsername('tirol', { currentUsername: 'tirol' })).toEqual({
+      valid: true,
+      normalized: 'tirol',
+    });
+    expect(validateUsername('Tirol', { currentUsername: 'tirol' }).valid).toBe(true);
+    // ...but cannot switch to another reserved name
+    expect(validateUsername('wien', { currentUsername: 'tirol' }).error).toBe('RESERVED');
   });
 });
