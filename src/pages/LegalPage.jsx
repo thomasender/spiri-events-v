@@ -37,8 +37,18 @@ Tel: +43 68181828713`,
 - Beitrag (kostenlos, gegen Gebühr oder freie Spende)
 - Link (optional)
 - Bild (optional, max. 15MB; wird automatisch für die Anzeige komprimiert)
+- Name der Veranstalterin bzw. des Veranstalters
+- Kontaktangaben zum Event (optional, z.B. Telefonnummer, E-Mail-Adresse oder Website, so wie Sie sie eingeben)
 
-Diese Daten werden in Firestore (Firebase) gespeichert. Event-Bilder werden in Firebase Cloud Storage gespeichert.`,
+Diese Daten werden in Firestore (Firebase) gespeichert. Event-Bilder werden in Firebase Cloud Storage gespeichert.
+
+Nach der Freigabe sind die Angaben zum Event, einschließlich Veranstalter-Name und Kontaktangaben, öffentlich auf der Website sichtbar. Sie erscheinen außerdem in den Kalenderdateien und im Kalender-Abo, die angemeldete Nutzer:innen herunterladen bzw. abonnieren können (siehe Abschnitt 13). Die E-Mail-Adresse Ihres Kontos wird dabei nicht veröffentlicht.
+
+*Bei Nutzung des Kalender-Exports:*
+- Ein zufällig erzeugter, persönlicher Kalender-Schlüssel, der Ihrem Konto zugeordnet ist (siehe Abschnitt 13)
+
+*Beim Aufruf der Website:*
+- Technische Zugriffsdaten in Server-Protokollen (siehe Abschnitt 9)`,
       },
       {
         heading: '3. Zweck und Rechtsgrundlage der Verarbeitung',
@@ -47,6 +57,7 @@ Diese Daten werden in Firestore (Firebase) gespeichert. Event-Bilder werden in F
 *Vertragserfüllung (Art. 6 Abs. 1 lit. b DSGVO):*
 - Registrierung und Authentifizierung
 - Verwaltung Ihrer Events
+- Kalender-Export und Kalender-Abo, wenn Sie diese Funktion nutzen (siehe Abschnitt 13)
 
 *Einwilligung (Art. 6 Abs. 1 lit. a DSGVO):*
 - Statistik mit Google Analytics (siehe Abschnitt 7)
@@ -54,13 +65,16 @@ Diese Daten werden in Firestore (Firebase) gespeichert. Event-Bilder werden in F
 
 *Berechtigte Interessen (Art. 6 Abs. 1 lit. f DSGVO):*
 - Bereitstellung der App-Funktionalität
-- Sicherstellung des ordnungsgemäßen Betriebs`,
+- Sicherstellung des ordnungsgemäßen Betriebs und der Sicherheit, einschließlich der Server-Protokolle (siehe Abschnitt 9)
+- Veröffentlichung der freigegebenen Event-Angaben, auch in Kalenderdateien und im Kalender-Abo (siehe Abschnitt 13)`,
       },
       {
         heading: '4. Keine Weitergabe an Dritte',
         text: `Wir geben Ihre personenbezogenen Daten nicht an Dritte weiter (Ausnahmen: die freiwillige Veröffentlichung Ihrer Events auf Instagram mit Ihrer Einwilligung, siehe Abschnitt 12, sowie die Nutzungsstatistik mit Google Analytics, die nur mit Ihrer Einwilligung erfolgt, siehe Abschnitt 7). Ihre Daten werden nicht verkauft, vermietet oder in sonstiger Weise an externe Unternehmen oder Organisationen übermittelt.
 
-Firebase (Google) fungiert als Auftragsverarbeiter und erhält Ihre Daten nur insoweit, als dies für die Bereitstellung der Authentifizierungs- und Datenbankdienste erforderlich ist.`,
+Firebase (Google) fungiert als Auftragsverarbeiter und erhält Ihre Daten nur insoweit, als dies für die Bereitstellung der Authentifizierungs-, Datenbank- und Hosting-Dienste erforderlich ist.
+
+Wenn Sie den Kalender in einer Kalender-App oder bei einem Kalenderdienst (z.B. Google Kalender) abonnieren, ruft dieser Dienst die öffentlichen Event-Daten auf Ihre Veranlassung bei uns ab (siehe Abschnitt 13).`,
       },
       {
         heading: '5. Speicherdauer',
@@ -68,6 +82,8 @@ Firebase (Google) fungiert als Auftragsverarbeiter und erhält Ihre Daten nur in
 
 - *Account-Daten:* Werden gelöscht, sobald Sie Ihr Konto löschen
 - *Events:* Werden gelöscht, wenn Sie diese löschen oder Ihr Konto entfernen lassen
+- *Kalender-Schlüssel:* Wird gelöscht, sobald Sie Ihr Konto löschen; wenn Sie einen neuen Kalender-Link erzeugen, wird der alte Schlüssel ersetzt
+- *Server-Protokolle:* Siehe Abschnitt 9
 
 Nach einer Löschunganfrage werden die Daten innerhalb von 30 Tagen entfernt.`,
       },
@@ -125,9 +141,12 @@ Weitere Informationen finden Sie in der Datenschutzerklärung von Google: [https
         text: `Wir nutzen Firebase (ein Dienst von Google Ireland Limited) für:
 - Authentifizierung (Firebase Authentication)
 - Datenspeicherung (Cloud Firestore)
+- Bereitstellung der Website und der Server-Funktionen (Firebase Hosting, Cloud Functions), z.B. für den Kalender-Export
 - Nutzungsstatistik (Google Analytics, nur mit Ihrer Einwilligung, siehe Abschnitt 7)
 
 Die Datenverarbeitung durch Firebase erfolgt auf Grundlage eines Auftragsverarbeitungsvertrags gemäß Art. 28 DSGVO. Google verarbeitet Daten ausschließlich nach unserer Weisung und nicht für eigene Zwecke.
+
+*Server-Protokolle:* Bei jedem Aufruf der Website und ihrer Server-Funktionen (z.B. beim Abruf einer Kalenderdatei oder des Kalender-Abos) werden technisch bedingt Zugriffsdaten protokolliert: Ihre IP-Adresse, Datum und Uhrzeit, die aufgerufene Adresse sowie die Angaben Ihres Browsers bzw. Ihrer Kalender-App (User-Agent). Diese Protokolle werden von Google als Auftragsverarbeiter erstellt und gespeichert. Wir nutzen sie ausschließlich, um den Betrieb und die Sicherheit der Website zu gewährleisten und Fehler oder Missbrauch zu erkennen, und führen sie nicht mit anderen Daten zusammen. Rechtsgrundlage ist unser berechtigtes Interesse an einem sicheren und funktionsfähigen Betrieb (Art. 6 Abs. 1 lit. f DSGVO). Die Protokolle werden nur so lange gespeichert, wie es für Betrieb und Sicherheit erforderlich ist, und danach automatisch gelöscht.
 
 Weitere Informationen finden Sie in der Datenschutzerklärung von Google: https://policies.google.com/privacy`,
       },
@@ -182,7 +201,28 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
 - Möchten Sie, dass ein bereits veröffentlichter Beitrag entfernt wird, senden Sie uns eine E-Mail an admin@thetribe.at; wir löschen den Beitrag in angemessener Frist`,
       },
       {
-        heading: '13. Änderungen dieser Datenschutzerklärung',
+        heading: '13. Kalender-Export und Kalender-Abo (nur mit Login)',
+        text: `Angemeldete Nutzer:innen können einzelne Events als Kalenderdatei (.ics) herunterladen oder den Veranstaltungskalender (auf Wunsch nach Ort und Kategorie gefiltert) in ihrer Kalender-App abonnieren, z.B. in Apple Kalender, Outlook oder Google Kalender. Diese Funktion steht nur mit Login zur Verfügung.
+
+*Persönlicher Kalender-Link:*
+- Kalender-Apps können sich nicht bei uns anmelden. Deshalb erzeugen wir beim ersten Aufruf der Funktion einen zufälligen, persönlichen Schlüssel, der mit Ihrem Konto gespeichert wird (Cloud Firestore) und Teil Ihrer Kalender-Links ist. Nur mit einem gültigen Schlüssel liefern wir die Kalenderdaten aus
+- Jede Person, die Ihren Link kennt, kann damit die darin enthaltenen öffentlichen Event-Daten abrufen. Behandeln Sie den Link deshalb wie ein Passwort und geben Sie ihn nicht weiter
+- Unter „im eigenen Kalender speichern“ können Sie jederzeit einen neuen Link erzeugen; der alte Link funktioniert danach nicht mehr. Bereits zwischengespeicherte Kalenderdaten können über den alten Link noch etwa eine Stunde lang abrufbar sein
+- Beim Löschen Ihres Kontos wird der Schlüssel gelöscht, Ihre Kalender-Links funktionieren danach nicht mehr
+
+*Was enthält die Kalenderdatei bzw. das Abo?*
+- Nur freigegebene, öffentliche Events: Titel, Datum, Uhrzeit, Ort, Beschreibung, Name der Veranstalterin bzw. des Veranstalters, die Kontaktangaben zum Event und einen Link zur Event-Seite
+- Keine E-Mail-Adressen von Benutzerkonten und keine Angaben über Sie als Abonnent:in
+
+*Abruf durch Kalender-Apps:*
+- Wenn Sie den Kalender abonnieren, ruft Ihre Kalender-App bzw. Ihr Kalenderdienst den Link regelmäßig selbstständig ab, bei Online-Kalendern wie Google Kalender von den Servern des jeweiligen Anbieters aus. Dabei entstehen die in Abschnitt 9 beschriebenen Server-Protokolle
+- Heruntergeladene oder abonnierte Termine werden in Ihrer Kalender-App gespeichert. Kopien bleiben dort, bis Sie sie löschen bzw. bis zur nächsten Aktualisierung des Abos; darauf haben wir keinen Einfluss
+- Wenn Sie den Link „Google Kalender“ verwenden, wird das Abo bei Google (Google Ireland Limited) eingerichtet und von Google verarbeitet. Dafür gilt die Datenschutzerklärung von Google: [https://policies.google.com/privacy](https://policies.google.com/privacy)
+
+*Rechtsgrundlage:* Die Erzeugung und Speicherung des Schlüssels und die Bereitstellung der Kalenderdaten erfolgen, weil Sie diese Funktion nutzen (Art. 6 Abs. 1 lit. b DSGVO). Die Veröffentlichung der Event-Angaben, einschließlich Veranstalter-Name und Kontaktangaben, in Kalenderdateien und im Abo beruht auf unserem berechtigten Interesse, die freigegebenen Events möglichst gut auffindbar zu machen, sowie dem Interesse der Veranstalter:innen an der Bewerbung ihrer Events (Art. 6 Abs. 1 lit. f DSGVO).`,
+      },
+      {
+        heading: '14. Änderungen dieser Datenschutzerklärung',
         text: `Wir behalten uns vor, diese Datenschutzerklärung bei Änderungen der App oder der Rechtslage anzupassen. Die jeweils aktuelle Version finden Sie immer auf dieser Seite.`,
       },
     ],

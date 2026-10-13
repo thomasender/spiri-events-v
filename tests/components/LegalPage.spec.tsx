@@ -70,6 +70,25 @@ describe('LegalPage formatting', () => {
     expect(text).not.toContain('keine Tracking-Dienste');
   });
 
+  it('numbers the sections consecutively and every "Abschnitt N" points to one of them', () => {
+    const { container } = renderLegalPage('datenschutz');
+    const numbers = Array.from(container.querySelectorAll('h2')).map((h) =>
+      Number(/^(\d+)\./.exec(h.textContent ?? '')?.[1])
+    );
+    expect(numbers).toEqual(numbers.map((_n, i) => i + 1));
+
+    const text = container.textContent ?? '';
+    const refs = [...text.matchAll(/Abschnitte? (\d+)(?: und (\d+))?/g)].flatMap((m) =>
+      [m[1], m[2]].filter(Boolean).map(Number)
+    );
+    expect(refs.length).toBeGreaterThan(0);
+    for (const ref of refs) expect(numbers).toContain(ref);
+    // The calendar export section is where the cross references say it is.
+    const headings = Array.from(container.querySelectorAll('h2')).map((h) => h.textContent);
+    expect(headings[12]).toMatch(/^13\. Kalender-Export/);
+    expect(headings[8]).toMatch(/^9\. Firebase/);
+  });
+
   it('renders the Impressum content', () => {
     const { container } = renderLegalPage('impressum');
     expect(screen.getByText('Impressum')).toBeInTheDocument();
