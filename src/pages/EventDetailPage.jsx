@@ -39,6 +39,8 @@ import RecurringDeleteDialog from '../components/RecurringDeleteDialog';
 import OccurrencePickerDialog from '../components/OccurrencePickerDialog';
 import EventMessages from '../components/EventMessages';
 import FavoriteButton from '../components/FavoriteButton';
+import LoginPromptModal from '../components/LoginPromptModal';
+import { requestCalendarFeedToken, startCalendarDownload } from '../hooks/useCalendarFeedToken';
 import ShareButton from '../components/ShareButton';
 import { AdminInstagramPreview } from '../components/InstagramPostPreview';
 import RichTextView from '../components/RichTextView';
@@ -241,6 +243,8 @@ export default function EventDetailPage() {
   const [approving, setApproving] = useState(false);
   const [showUnpublishDialog, setShowUnpublishDialog] = useState(false);
   const [unpublishing, setUnpublishing] = useState(false);
+  const [calendarLoginPromptOpen, setCalendarLoginPromptOpen] = useState(false);
+  const [calendarDownloadState, setCalendarDownloadState] = useState('idle');
   const isAdmin = role === 'Admin';
   const showMessagesForHash =
     event &&
@@ -520,6 +524,26 @@ export default function EventDetailPage() {
     setPendingRecurringDelete({ event });
   };
 
+  // The .ics download is for signed-in users only (like Favoriten). The URL needs
+  // the user's personal calendar token, which is fetched on click, so it never
+  // sits in the page for visitors.
+  const handleAddToCalendar = async () => {
+    if (!user) {
+      setCalendarLoginPromptOpen(true);
+      return;
+    }
+    setCalendarDownloadState('loading');
+    try {
+      const token = await requestCalendarFeedToken();
+      const slug = encodeURIComponent(event.slug || event.id);
+      startCalendarDownload(`/calendar/event/${slug}.ics?token=${encodeURIComponent(token)}`);
+      setCalendarDownloadState('idle');
+    } catch (err) {
+      console.warn('Calendar download failed:', err);
+      setCalendarDownloadState('error');
+    }
+  };
+
   const backPath = location.state?.from || '/';
   const backLabel =
     backPath === '/admin' || backPath.startsWith('/admin?')
@@ -677,15 +701,24 @@ export default function EventDetailPage() {
               </span>
             )}
             {event.status === 'approved' && (
-              <a
-                className="detail-link"
-                href={`/calendar/event/${encodeURIComponent(event.slug || event.id)}.ics`}
-                data-testid="add-to-calendar-link"
-              >
-                {showRecurrenceDatesList
-                  ? 'Alle Termine zum Kalender hinzufügen'
-                  : 'Zum Kalender hinzufügen'}
-              </a>
+              <>
+                <button
+                  type="button"
+                  className="detail-link detail-link--button"
+                  onClick={handleAddToCalendar}
+                  disabled={calendarDownloadState === 'loading'}
+                  data-testid="add-to-calendar-link"
+                >
+                  {showRecurrenceDatesList
+                    ? 'Alle Termine zum Kalender hinzufügen'
+                    : 'Zum Kalender hinzufügen'}
+                </button>
+                {calendarDownloadState === 'error' && (
+                  <span className="detail-value" role="alert" data-testid="add-to-calendar-error">
+                    Der Kalender-Download hat nicht geklappt. Bitte versuche es noch einmal.
+                  </span>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -845,6 +878,14 @@ export default function EventDetailPage() {
       )}
 
       <SimilarEvents currentEvent={event} />
+
+      <LoginPromptModal
+        open={calendarLoginPromptOpen}
+        variant="calendar"
+        onClose={() => setCalendarLoginPromptOpen(false)}
+        returnTo={`${location.pathname}${location.search}${location.hash}`}
+        onLogin={() => setCalendarLoginPromptOpen(false)}
+      />
 
       <ConfirmDialog
         isOpen={showDeleteDialog}

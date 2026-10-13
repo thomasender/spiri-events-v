@@ -8,8 +8,8 @@
  * callables then reject requests without a valid token.
  *
  * Deliberately NOT covered, because their callers cannot send App Check
- * tokens: mollieWebhook (called by Mollie) and calendarFeed (public iCalendar
- * feed fetched by calendar apps). Do not add them here.
+ * tokens: mollieWebhook (called by Mollie) and calendarFeed (iCalendar feed
+ * fetched by calendar apps; protected by a personal token in the URL instead). Do not add them here.
  */
 import { logger } from 'firebase-functions';
 

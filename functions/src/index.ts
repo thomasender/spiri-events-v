@@ -128,6 +128,7 @@ export { adminAnalyticsReport } from './adminAnalytics';
 export { onEventApprovedPostToInstagram } from './instagramPostOnApproval';
 export { instagramWeeklyCarousel } from './instagramWeeklyCarousel';
 export { calendarFeed } from './calendarFeed';
+export { getCalendarFeedToken } from './calendarFeedToken';
 export { refreshInstagramTokenJob } from './instagramTokenRefresh';
 export {
   adminRetryInstagramPost,

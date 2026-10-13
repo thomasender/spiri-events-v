@@ -6,7 +6,7 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 
 let env: RulesTestEnvironment;
@@ -34,6 +34,7 @@ beforeEach(async () => {
     await setDoc(doc(db, 'admin_users/adminDoc'), { role: 'Admin' });
     await setDoc(doc(db, 'instagram_posts/p1'), { eventId: 'e1' });
     await setDoc(doc(db, 'instagram_private/token'), { accessToken: 'secret' });
+    await setDoc(doc(db, 'calendarFeedTokens/owner'), { token: 'secret', createdAt: 1 });
     await setDoc(doc(db, 'app_settings/instagram'), {
       enabled: false,
       updatedAt: 1,
@@ -142,6 +143,22 @@ describe('instagram_private', () => {
       await assertFails(getDoc(doc(db, 'instagram_private/token')));
       await assertFails(setDoc(doc(db, 'instagram_private/token'), { accessToken: 'x' }));
       await assertFails(setDoc(doc(db, 'instagram_private/new'), { accessToken: 'x' }));
+    }
+  });
+});
+
+describe('calendarFeedTokens', () => {
+  it('nobody can read, list or write, not even the owner or admins', async () => {
+    const owner = env.authenticatedContext('owner', { email_verified: true });
+    const ctxs = [anon(), user(), owner, ...Object.values(adminVariants).map((m) => m())];
+    for (const ctx of ctxs) {
+      const db = ctx.firestore();
+      const ref = doc(db, 'calendarFeedTokens/owner');
+      await assertFails(getDoc(ref));
+      await assertFails(getDocs(collection(db, 'calendarFeedTokens')));
+      await assertFails(setDoc(ref, { token: 'x' }));
+      await assertFails(updateDoc(ref, { token: 'x' }));
+      await assertFails(deleteDoc(ref));
     }
   });
 });

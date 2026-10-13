@@ -1,13 +1,16 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAllEvents, BEZIRKE, ONLINE_LOCATION } from '../hooks/useEvents';
 import { useCategories } from '../hooks/useCategories';
 import { useCategoryRegistry } from '../hooks/useCategoryRegistry';
 import { useFavorites } from '../hooks/useFavorites';
 import { useAuth } from '../hooks/useAuth';
+import { useCalendarFeedToken } from '../hooks/useCalendarFeedToken';
 import Calendar from '../components/Calendar';
 import EventsSection from '../components/EventsSection';
 import EmailVerificationModal from '../components/EmailVerificationModal';
+import LoginPromptModal from '../components/LoginPromptModal';
+import ConfirmDialog from '../components/ConfirmDialog';
 import SeoMeta from '../components/SeoMeta';
 import { getEventOccurrences } from '../utils/eventOccurrences';
 import { copyToClipboard } from '../utils/copyToClipboard';
@@ -33,6 +36,7 @@ import {
   SlidersHorizontal,
   CalendarPlus,
   Copy,
+  RefreshCw,
   Share,
 } from 'lucide-react';
 import './CalendarPage.css';
@@ -72,13 +76,16 @@ const HERO_SLIDER_INTERVAL_MS = 4000;
 // rotation cycles every 8 s.
 const HERO_FEATURE_PAIRS = [HERO_FEATURES.slice(0, 2), HERO_FEATURES.slice(2, 4)];
 
-// Address of the public iCal feed. Every selected Ort / Kategorie narrows it
+// Address of the user's personal iCal feed. Every selected Ort / Kategorie narrows it
 // (repeated parameters; the server only accepts known values, so unknown Orte are left out).
-export function buildFeedUrl(origin, selectedOrte, selectedCategories) {
+// `token` is the user's secret calendar token: the feed is for signed-in users only and
+// calendar apps cannot log in, so the server checks this instead (useCalendarFeedToken).
+export function buildFeedUrl(origin, selectedOrte, selectedCategories, token) {
   const params = new URLSearchParams();
   const knownOrte = [...BEZIRKE, ONLINE_LOCATION];
   selectedOrte.filter((o) => knownOrte.includes(o)).forEach((o) => params.append('bezirk', o));
   selectedCategories.forEach((c) => params.append('kategorie', c));
+  if (token) params.append('token', token);
   const query = params.toString();
   return `${origin}/calendar/feed.ics${query ? `?${query}` : ''}`;
 }
@@ -149,6 +156,7 @@ function FacetCount({ value }) {
 
 export default function CalendarPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, canCreateEvents } = useAuth();
   // Load saved state exactly once per mount. Reading it inside the render body
   // would create a new object reference on every render and trip downstream
@@ -333,10 +341,41 @@ export default function CalendarPage() {
     [baseEvents, currentMonth, selectedCategories, selectedOrte, dateFilter]
   );
 
+  // Calendar export: signed-in users only (like Favoriten). The personal token
+  // is requested when the user opens the section, not on page load.
+  const calendarUid = user?.uid ?? null;
+  const calendarToken = useCalendarFeedToken(calendarUid);
+  const [calendarLoginPromptOpen, setCalendarLoginPromptOpen] = useState(false);
+  const [calendarExportOpen, setCalendarExportOpen] = useState(false);
+  const [regenerateConfirmOpen, setRegenerateConfirmOpen] = useState(false);
+  const exportVisible = Boolean(calendarUid) && calendarExportOpen;
+  const loadCalendarToken = calendarToken.load;
+  const hasCalendarToken = Boolean(calendarToken.token);
+  const calendarTokenLoading = calendarToken.loading;
+  const calendarTokenFailed = Boolean(calendarToken.error);
+  useEffect(() => {
+    if (exportVisible && !hasCalendarToken && !calendarTokenLoading && !calendarTokenFailed) {
+      loadCalendarToken();
+    }
+  }, [
+    exportVisible,
+    hasCalendarToken,
+    calendarTokenLoading,
+    calendarTokenFailed,
+    loadCalendarToken,
+  ]);
+
+  const handleCalendarExportSummaryClick = (event) => {
+    if (calendarUid) return;
+    event.preventDefault();
+    setCalendarLoginPromptOpen(true);
+  };
+
   const feedUrl = buildFeedUrl(
     typeof window !== 'undefined' ? window.location.origin : 'https://www.thetribe.at',
     selectedOrte,
-    selectedCategories
+    selectedCategories,
+    calendarToken.token
   );
 
   const webcalUrl = feedUrl.replace(/^https?:/, 'webcal:');
@@ -591,46 +630,96 @@ export default function CalendarPage() {
                     </div>
                   </>
                 )}
-                <details className="calendar-export" data-testid="calendar-subscribe">
-                  <summary className="calendar-export-summary">
+                <details
+                  className="calendar-export"
+                  data-testid="calendar-subscribe"
+                  open={exportVisible}
+                  onToggle={(event) => {
+                    // Visitors never get the options, even where the summary
+                    // click could not be prevented.
+                    if (!calendarUid && event.currentTarget.open) {
+                      event.currentTarget.open = false;
+                      return;
+                    }
+                    setCalendarExportOpen(event.currentTarget.open);
+                  }}
+                >
+                  <summary
+                    className="calendar-export-summary"
+                    onClick={handleCalendarExportSummaryClick}
+                  >
                     <Share size={14} aria-hidden="true" />
                     <span>im eigenen Kalender speichern</span>
                   </summary>
-                  <div className="calendar-export-panel">
-                    <a
-                      className="btn btn-primary calendar-export-cta"
-                      href={webcalUrl}
-                      data-testid="calendar-subscribe-link"
-                    >
-                      <CalendarPlus size={16} aria-hidden="true" />
-                      <span>Abonnieren</span>
-                    </a>
-                    <a
-                      className="btn btn-secondary"
-                      href={googleCalendarUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      data-testid="calendar-subscribe-google"
-                    >
-                      Google Kalender
-                    </a>
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={copyFeedUrl}
-                      data-testid="calendar-subscribe-copy"
-                    >
-                      {feedCopied ? (
-                        <Check size={14} aria-hidden="true" />
+                  {exportVisible && !calendarToken.token && (
+                    <div className="calendar-export-panel" data-testid="calendar-subscribe-status">
+                      {calendarToken.error ? (
+                        <>
+                          <span>Dein persönlicher Kalender-Link konnte nicht geladen werden.</span>
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            onClick={() => calendarToken.load()}
+                            data-testid="calendar-subscribe-retry"
+                          >
+                            Erneut versuchen
+                          </button>
+                        </>
                       ) : (
-                        <Copy size={14} aria-hidden="true" />
+                        <span>Dein persönlicher Kalender-Link wird erstellt …</span>
                       )}
-                      <span>{feedCopied ? 'Adresse kopiert' : 'Adresse kopieren'}</span>
-                    </button>
-                    <code className="calendar-subscribe-url" data-testid="calendar-subscribe-url">
-                      {feedUrl}
-                    </code>
-                  </div>
+                    </div>
+                  )}
+                  {exportVisible && calendarToken.token && (
+                    <div className="calendar-export-panel">
+                      <a
+                        className="btn btn-primary calendar-export-cta"
+                        href={webcalUrl}
+                        data-testid="calendar-subscribe-link"
+                      >
+                        <CalendarPlus size={16} aria-hidden="true" />
+                        <span>Abonnieren</span>
+                      </a>
+                      <a
+                        className="btn btn-secondary"
+                        href={googleCalendarUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        data-testid="calendar-subscribe-google"
+                      >
+                        Google Kalender
+                      </a>
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={copyFeedUrl}
+                        data-testid="calendar-subscribe-copy"
+                      >
+                        {feedCopied ? (
+                          <Check size={14} aria-hidden="true" />
+                        ) : (
+                          <Copy size={14} aria-hidden="true" />
+                        )}
+                        <span>{feedCopied ? 'Adresse kopiert' : 'Adresse kopieren'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => setRegenerateConfirmOpen(true)}
+                        disabled={calendarToken.loading}
+                        data-testid="calendar-subscribe-regenerate"
+                      >
+                        <RefreshCw size={14} aria-hidden="true" />
+                        <span>Neuen Link erzeugen</span>
+                      </button>
+                      <code className="calendar-subscribe-url" data-testid="calendar-subscribe-url">
+                        {feedUrl}
+                      </code>
+                      <p className="calendar-subscribe-hint">
+                        Dieser Link ist persönlich. Bitte gib ihn nicht weiter.
+                      </p>
+                    </div>
+                  )}
                 </details>
               </div>
             </details>
@@ -675,6 +764,24 @@ export default function CalendarPage() {
       <EmailVerificationModal
         open={verificationModalOpen}
         onClose={() => setVerificationModalOpen(false)}
+      />
+      <LoginPromptModal
+        open={calendarLoginPromptOpen}
+        variant="calendar"
+        onClose={() => setCalendarLoginPromptOpen(false)}
+        returnTo={`${location.pathname}${location.search}${location.hash}`}
+        onLogin={() => setCalendarLoginPromptOpen(false)}
+      />
+      <ConfirmDialog
+        isOpen={regenerateConfirmOpen}
+        title="Neuen Kalender-Link erzeugen?"
+        message="Der bisherige Link funktioniert danach nicht mehr. Kalender, die ihn abonniert haben, bekommen keine neuen Events mehr, bis du dort den neuen Link einträgst."
+        confirmLabel="Neuen Link erzeugen"
+        onCancel={() => setRegenerateConfirmOpen(false)}
+        onConfirm={() => {
+          setRegenerateConfirmOpen(false);
+          calendarToken.regenerate();
+        }}
       />
     </div>
   );

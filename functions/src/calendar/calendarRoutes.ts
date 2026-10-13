@@ -1,14 +1,19 @@
 /**
- * Request parsing and event selection for the public calendar endpoints
+ * Request parsing and event selection for the calendar endpoints
  * (functions/src/calendarFeed.ts). Pure, so every limit is unit-tested.
  *
- *   /calendar/feed.ics?bezirk=Dornbirn&kategorie=Yoga   subscribable feed
- *   /calendar/event/<slug>.ics                          one event (download)
+ *   /calendar/feed.ics?bezirk=Dornbirn&kategorie=Yoga&token=…   subscribable feed
+ *   /calendar/event/<slug>.ics?token=…                          one event (download)
  *
- * The limits exist because the feed is public and cannot use App Check
- * (calendar apps fetch it without a browser): only approved upcoming events,
- * a fixed horizon, a hard cap, no unknown query parameters (they would be
- * cheap cache-busters) and filter values that must come from a known list.
+ * Both are for signed-in users only. Calendar apps cannot send a Firebase
+ * login, so every URL carries the user's secret feed token
+ * (calendarFeedTokens/{uid}, issued by the getCalendarFeedToken callable);
+ * the token format is checked here, its existence in calendarFeed.ts.
+ *
+ * The other limits exist because calendar apps fetch without a browser, so
+ * App Check cannot be used: only approved upcoming events, a fixed horizon,
+ * a hard cap, no unknown query parameters (they would be cheap
+ * cache-busters) and filter values that must come from a known list.
  */
 
 import { expandOccurrencesInWindow, type SeriesFields } from '../instagram/instagramOccurrences';
@@ -25,9 +30,19 @@ const SLUG = /^[A-Za-z0-9][A-Za-z0-9_-]{0,159}$/;
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 export type CalendarRoute =
-  | { kind: 'feed'; bezirk: string[]; kategorie: string[] }
-  | { kind: 'event'; slug: string }
-  | { kind: 'error'; status: 400 | 404; message: string };
+  | { kind: 'feed'; token: string; bezirk: string[]; kategorie: string[] }
+  | { kind: 'event'; token: string; slug: string }
+  | { kind: 'error'; status: 400 | 401 | 404; message: string };
+
+/** 32 random bytes as base64url (43 characters), see generateCalendarFeedToken. */
+export const CALENDAR_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
+
+/** Format check only, so garbage never reaches Firestore. */
+export function isValidCalendarToken(value: unknown): value is string {
+  return typeof value === 'string' && CALENDAR_TOKEN_PATTERN.test(value);
+}
+
+const UNAUTHORIZED = { kind: 'error', status: 401, message: 'Unauthorized' } as const;
 
 export const MAX_FILTER_VALUES = 20;
 
@@ -47,7 +62,11 @@ export function parseCalendarRequest(
   const clean = path.replace(/\/+$/, '');
 
   if (clean === '/calendar/feed.ics') {
-    const unknown = Object.keys(query).filter((k) => k !== 'bezirk' && k !== 'kategorie');
+    const token = query.token;
+    if (!isValidCalendarToken(token)) return UNAUTHORIZED;
+    const unknown = Object.keys(query).filter(
+      (k) => k !== 'bezirk' && k !== 'kategorie' && k !== 'token'
+    );
     if (unknown.length > 0) return { kind: 'error', status: 400, message: 'Unknown parameter' };
 
     const bezirk = many(query.bezirk);
@@ -58,12 +77,14 @@ export function parseCalendarRequest(
     if (kategorie === null || !kategorie.every((k) => knownCategories.has(k))) {
       return { kind: 'error', status: 400, message: 'Unknown kategorie' };
     }
-    return { kind: 'feed', bezirk, kategorie };
+    return { kind: 'feed', token, bezirk, kategorie };
   }
 
   const single = /^\/calendar\/event\/([^/]+)\.ics$/.exec(clean);
   if (single) {
-    if (Object.keys(query).length > 0) {
+    const token = query.token;
+    if (!isValidCalendarToken(token)) return UNAUTHORIZED;
+    if (Object.keys(query).some((k) => k !== 'token')) {
       return { kind: 'error', status: 400, message: 'Unknown parameter' };
     }
     let slug = single[1];
@@ -73,7 +94,7 @@ export function parseCalendarRequest(
       return { kind: 'error', status: 404, message: 'Not found' };
     }
     if (!SLUG.test(slug)) return { kind: 'error', status: 404, message: 'Not found' };
-    return { kind: 'event', slug };
+    return { kind: 'event', token, slug };
   }
 
   return { kind: 'error', status: 404, message: 'Not found' };

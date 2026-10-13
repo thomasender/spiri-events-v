@@ -307,3 +307,18 @@
     padding: 24px 8px;
   }
 }
+
+.detail-link--button {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.detail-link--button:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
