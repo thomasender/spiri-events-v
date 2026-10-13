@@ -13,7 +13,6 @@ import LegalPage from './pages/LegalPage';
 import EventDetailPage from './pages/EventDetailPage';
 import ProfilePage from './pages/ProfilePage';
 import ThemeEditorPage from './pages/ThemeEditorPage';
-import PublicProfilePage from './pages/PublicProfilePage';
 import AboutPage from './pages/AboutPage';
 import DirectoryPage from './pages/DirectoryPage';
 import FavoritesPage from './pages/FavoritesPage';
@@ -27,6 +26,8 @@ import ThemeApplier from './components/ThemeApplier';
 import ScrollToTop from './components/ScrollToTop';
 import ErrorBoundary from './components/ErrorBoundary';
 import ErrorPage from './pages/ErrorPage';
+import RegionProvider from './components/RegionProvider';
+import { RegionDirectoryRoute, RegionOrProfileRoute } from './components/RegionRoutes';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
 import CookieConsent from './components/CookieConsent';
 import OutboundLinkTracker from './components/OutboundLinkTracker';
@@ -107,6 +108,14 @@ function AdminReviewRedirect() {
 
 function AppContent() {
   return (
+    <RegionProvider>
+      <AppLayout />
+    </RegionProvider>
+  );
+}
+
+function AppLayout() {
+  return (
     <div className="app-layout">
       <SeedBootstrap />
       <ThemeApplier />
@@ -177,7 +186,11 @@ function AppContent() {
                 </ProtectedRoute>
               }
             />
-            <Route path="/:slug" element={<PublicProfilePage />} />
+            {/* Region addresses share the top level with profiles: `/tirol` is a
+                region, `/<username>` a profile (region slugs are reserved
+                usernames). `/` and `/verzeichnis` stay valid. */}
+            <Route path="/:regionSlug/verzeichnis" element={<RegionDirectoryRoute />} />
+            <Route path="/:slug" element={<RegionOrProfileRoute />} />
             <Route path="*" element={<ErrorPage type="not-found" />} />
           </Routes>
         </ErrorBoundary>

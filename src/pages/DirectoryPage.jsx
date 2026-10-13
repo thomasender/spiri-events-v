@@ -6,6 +6,7 @@ import { Eye, EyeOff, Search, SlidersHorizontal, X } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
 import { useAuth } from '../hooks/useAuth';
 import { useDirectory } from '../hooks/useDirectory';
+import { useRegionCanonicalPath } from '../hooks/useRegion';
 import { useCategoryRegistry } from '../hooks/useCategoryRegistry';
 import { getCategoryColor } from '../utils/categoryColors';
 import AvatarImage from '../components/AvatarImage';
@@ -95,6 +96,7 @@ function DirectoryCard({ entry, colorByName, isAdmin, onToggleHidden, busy }) {
 
 export default function DirectoryPage() {
   const { role } = useAuth();
+  const canonicalPath = useRegionCanonicalPath('/verzeichnis');
   const isAdmin = role === 'Admin';
   const { entries, loading, error, setHidden } = useDirectory();
   const { categories: registry, colorByName } = useCategoryRegistry();
@@ -191,7 +193,7 @@ export default function DirectoryPage() {
       <SeoMeta
         title="Verzeichnis – Angebote in Vorarlberg"
         description="Finde Menschen mit bewussten Angeboten in Vorarlberg: nach Kategorie, Region oder Name durchsuchbar."
-        path="/verzeichnis"
+        path={canonicalPath}
       />
       <div className="page-container directory-page" data-testid="directory-page">
         <header className="directory-header">

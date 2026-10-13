@@ -7,6 +7,7 @@ import { useCategoryRegistry } from '../hooks/useCategoryRegistry';
 import { useFavorites } from '../hooks/useFavorites';
 import { useAuth } from '../hooks/useAuth';
 import { useCalendarFeedToken } from '../hooks/useCalendarFeedToken';
+import { useRegionCanonicalPath } from '../hooks/useRegion';
 import Calendar from '../components/Calendar';
 import EventsSection from '../components/EventsSection';
 import EmailVerificationModal from '../components/EmailVerificationModal';
@@ -159,6 +160,7 @@ export default function CalendarPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, canCreateEvents } = useAuth();
+  const canonicalPath = useRegionCanonicalPath('/');
   // Load saved state exactly once per mount. Reading it inside the render body
   // would create a new object reference on every render and trip downstream
   // effects into re-doing work that depends on the initial values.
@@ -406,7 +408,7 @@ export default function CalendarPage() {
       <SeoMeta
         title="Kalender"
         description="Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg - Bregenz, Dornbirn, Feldkirch, Bludenz, Umgebung"
-        path="/"
+        path={canonicalPath}
       />
 
       <section className="hero">

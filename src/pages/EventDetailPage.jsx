@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useEvents } from '../hooks/useEvents';
+import { useEventRegionContext } from '../hooks/useRegion';
 import { useOrganizerProfile } from '../hooks/useOrganizerProfile';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
 import { buildEventJsonLd } from '../utils/eventJsonLd';
@@ -178,6 +179,7 @@ export default function EventDetailPage() {
   const { user, loading: authLoading, role } = useAuth();
   const { deleteEvent, updateEvent, approveEvent, unpublishEvent } = useEvents(user);
   const [event, setEvent] = useState(null);
+  useEventRegionContext(event);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [imageLoaded, setImageLoaded] = useState(false);
