@@ -1,6 +1,5 @@
 // Regions an event or a directory listing can be assigned to. Kept free of
 // Firebase imports so pure helpers (and their unit tests) can use it.
-export const BEZIRKE = ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe'];
 
 export const ONLINE_LOCATION = 'Online';
 
@@ -27,3 +26,83 @@ export const REGION_SLUGS = [
   'wien',
   'burgenland',
 ];
+
+// Pseudo region covering all of Austria (no own Bezirke).
+export const NATIONAL_REGION_ID = 'oesterreich';
+
+// Every slug a `regions/{id}` doc may carry (also enforced in firestore.rules).
+export const ALL_REGION_SLUGS = [...REGION_SLUGS, NATIONAL_REGION_ID];
+
+export const DEFAULT_REGION_ID = 'vorarlberg';
+
+const VORARLBERG_BEZIRKE = ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe'];
+
+const REGION_NAMES = {
+  vorarlberg: 'Vorarlberg',
+  tirol: 'Tirol',
+  salzburg: 'Salzburg',
+  kaernten: 'Kärnten',
+  steiermark: 'Steiermark',
+  oberoesterreich: 'Oberösterreich',
+  niederoesterreich: 'Niederösterreich',
+  wien: 'Wien',
+  burgenland: 'Burgenland',
+  [NATIONAL_REGION_ID]: 'Österreich',
+};
+
+// Static register: the fallback whenever Firestore delivers nothing. Only
+// Vorarlberg is active by default.
+export const STATIC_REGIONS = ALL_REGION_SLUGS.map((slug, order) => ({
+  id: slug,
+  slug,
+  name: REGION_NAMES[slug],
+  order,
+  active: slug === DEFAULT_REGION_ID,
+  bezirke: slug === 'vorarlberg' ? [...VORARLBERG_BEZIRKE] : [],
+}));
+
+// Backwards compatible: Bezirke of Vorarlberg (cleanup in a later ticket).
+export const BEZIRKE = VORARLBERG_BEZIRKE;
+
+export const isRegionSlug = (slug) => typeof slug === 'string' && ALL_REGION_SLUGS.includes(slug);
+
+export const getRegionBySlug = (slug, regions = STATIC_REGIONS) =>
+  regions.find((r) => r.slug === slug) ?? null;
+
+// Read fallback for documents written before regions existed.
+export const resolveRegionId = (doc) =>
+  doc && typeof doc.regionId === 'string' && doc.regionId ? doc.regionId : DEFAULT_REGION_ID;
+
+export const getBezirke = (regionId, regions = STATIC_REGIONS) =>
+  getRegionBySlug(regionId, regions)?.bezirke ?? [];
+
+// A region page shows events of that region plus online events; the national
+// view shows everything.
+export function eventVisibleInRegion(event, regionId) {
+  if (regionId === NATIONAL_REGION_ID) return true;
+  if (event?.isOnline) return true;
+  return resolveRegionId(event) === regionId;
+}
+
+// Lays Firestore region docs ({ id, ...data }) over the static register.
+// Unknown ids are ignored; an empty/invalid input yields the static register.
+export function mergeRegions(docs, base = STATIC_REGIONS) {
+  if (!Array.isArray(docs) || docs.length === 0) return base;
+  const byId = new Map(docs.filter((d) => d && isRegionSlug(d.id)).map((d) => [d.id, d]));
+  return base
+    .map((r) => {
+      const d = byId.get(r.id);
+      if (!d) return r;
+      return {
+        ...r,
+        ...(typeof d.name === 'string' && d.name ? { name: d.name } : {}),
+        ...(typeof d.order === 'number' ? { order: d.order } : {}),
+        ...(typeof d.active === 'boolean' ? { active: d.active } : {}),
+        ...(Array.isArray(d.bezirke) && d.bezirke.length ? { bezirke: d.bezirke } : {}),
+        ...(typeof d.contactEmail === 'string' ? { contactEmail: d.contactEmail } : {}),
+        ...(d.seo && typeof d.seo === 'object' ? { seo: d.seo } : {}),
+        ...(typeof d.timezone === 'string' ? { timezone: d.timezone } : {}),
+      };
+    })
+    .sort((a, b) => a.order - b.order);
+}

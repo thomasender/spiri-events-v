@@ -635,3 +635,75 @@ describe('users/{uid}/favorites', () => {
     await assertFails(getDoc(anonRef));
   });
 });
+
+describe('regions', () => {
+  const validRegion = {
+    name: 'Tirol',
+    slug: 'tirol',
+    order: 1,
+    active: false,
+    bezirke: [],
+    contactEmail: '',
+    seo: { title: 't', description: 'd' },
+    timezone: 'Europe/Vienna',
+    createdAt: 1,
+    updatedAt: 1,
+  };
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'regions/vorarlberg'), {
+        ...validRegion,
+        slug: 'vorarlberg',
+      });
+    });
+  });
+
+  it('anonymous visitors can read', async () => {
+    await assertSucceeds(getDoc(doc(anon().firestore(), 'regions/vorarlberg')));
+    await assertSucceeds(getDocs(collection(anon().firestore(), 'regions')));
+  });
+
+  it('non-admins cannot write or delete', async () => {
+    for (const ctx of [anon(), user()]) {
+      const db = ctx.firestore();
+      await assertFails(setDoc(doc(db, 'regions/tirol'), validRegion));
+      await assertFails(updateDoc(doc(db, 'regions/vorarlberg'), { active: false }));
+      await assertFails(deleteDoc(doc(db, 'regions/vorarlberg')));
+    }
+  });
+
+  describe.each(Object.entries(adminVariants))('%s', (_n, make) => {
+    it('can create, update and delete a valid region', async () => {
+      const db = make().firestore();
+      await assertSucceeds(setDoc(doc(db, 'regions/tirol'), validRegion));
+      await assertSucceeds(updateDoc(doc(db, 'regions/tirol'), { active: true }));
+      await assertSucceeds(deleteDoc(doc(db, 'regions/tirol')));
+    });
+
+    it('can create the national region', async () => {
+      await assertSucceeds(
+        setDoc(doc(make().firestore(), 'regions/oesterreich'), {
+          ...validRegion,
+          name: 'Österreich',
+          slug: 'oesterreich',
+        })
+      );
+    });
+
+    it('rejects a slug outside the fixed list', async () => {
+      const db = make().firestore();
+      await assertFails(setDoc(doc(db, 'regions/bayern'), { ...validRegion, slug: 'bayern' }));
+    });
+
+    it('rejects a slug that differs from the doc id', async () => {
+      await assertFails(setDoc(doc(make().firestore(), 'regions/wien'), validRegion));
+    });
+
+    it('rejects unknown fields', async () => {
+      const db = make().firestore();
+      await assertFails(setDoc(doc(db, 'regions/tirol'), { ...validRegion, extra: 1 }));
+      await assertFails(updateDoc(doc(db, 'regions/vorarlberg'), { extra: 1 }));
+    });
+  });
+});

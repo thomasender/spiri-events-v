@@ -395,6 +395,31 @@ service cloud.firestore {
       allow delete: if isAdminOrEmulatorAdmin();
     }
 
+    // Region registry (one doc per Bundesland + `oesterreich`, doc id == slug).
+    // Public read, admin-only write, closed field list, slug from the fixed list.
+    match /regions/{regionId} {
+      function isValidRegion(d) {
+        return d.keys().hasOnly(
+                 ['name', 'slug', 'order', 'active', 'bezirke', 'contactEmail', 'seo',
+                  'timezone', 'createdAt', 'updatedAt'])
+          && d.slug is string
+          && d.slug == regionId
+          && d.slug in ['vorarlberg', 'tirol', 'salzburg', 'kaernten', 'steiermark',
+                        'oberoesterreich', 'niederoesterreich', 'wien', 'burgenland',
+                        'oesterreich']
+          && d.name is string && d.name.size() > 0 && d.name.size() <= 100
+          && (!('order' in d) || d.order is number)
+          && (!('active' in d) || d.active is bool)
+          && (!('bezirke' in d) || (d.bezirke is list && d.bezirke.size() <= 30))
+          && (!('contactEmail' in d) || (d.contactEmail is string && d.contactEmail.size() <= 200))
+          && (!('seo' in d) || d.seo is map)
+          && (!('timezone' in d) || d.timezone is string);
+      }
+      allow read: if true;
+      allow create, update: if isAdminOrEmulatorAdmin() && isValidRegion(request.resource.data);
+      allow delete: if isAdminOrEmulatorAdmin();
+    }
+
     // App-level settings — currently a single `theme` doc that holds the
     // admin-managed CSS color variables. Public read (clients need to
     // resolve the live values to paint `:root`), admin-only write. The
