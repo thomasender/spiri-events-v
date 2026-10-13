@@ -129,3 +129,9 @@
   text-decoration: underline;
   cursor: pointer;
 }
+
+.events-section-more {
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
+}
