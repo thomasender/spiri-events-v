@@ -198,7 +198,9 @@ second region next to Vorarlberg, emulator only. Source of truth:
   audit entries in `admin_audit_log`) or
   `node scripts/promote-admin.mjs <email> --role RegionModerator --regions tirol,steiermark`
   (`--emulator` for the local emulators).
-- Admin mails (submissions, feedback, Instagram alerts) go to Super-Admins only.
+- Admin mails (feedback, Instagram alerts) go to Super-Admins only. Submission
+  mails are region-aware (and currently switched off), see "Admin event emails
+  and regions" below.
 - **Client:** `useAuth()` exposes `role` and `staffRegionIds` (own `admin_users` doc);
   `getStaffAccess(role, regionIds)` / `useStaffRole()` give `isSuperAdmin`,
   `isRegionModerator`, `moderatorRegionIds`, `canModerateRegion(id)`. Admin tabs per
@@ -207,6 +209,30 @@ second region next to Vorarlberg, emulator only. Source of truth:
   (`SuperAdminRoute`). Moderator event lists must filter by region
   (`staffEventQuerySpecs` in `src/lib/staffEventQueries.js`), or the rules reject the
   query. The "Moderation" tab (Super-Admins) manages moderators via the callables.
+
+### Admin event emails and regions
+
+- **Switched off:** `ADMIN_EVENT_EMAILS_ENABLED = false` in
+  `functions/src/notifications.ts` (Trello 8ioEr9T1, saves Mailgun quota). While
+  it is false the "new event submitted" mail to staff is not sent at all: no
+  Firestore/Auth reads, no Mailgun call (guarded by
+  `tests/lib/adminEventRouting.spec.ts`). Keep it false unless the product owners
+  decide otherwise; re-enabling = set it to `true` and deploy the functions.
+- **Not affected by the flag:** mails to organizers (published, change request,
+  back to draft, deleted) and the feedback/contact mail (Super-Admins only) keep
+  working.
+- **Routing once re-enabled** (`functions/src/adminEventRouting.ts`, pure, wired
+  up in `notifications.ts`): for an event of region R the recipients are the
+  Super-Admins and the shared `SUBMITTED_NOTIFICATION_INBOX` (as before), the
+  Regions-Moderator:innen whose `regionIds` contain R (email from Auth; disabled
+  or email-less accounts are skipped) and `regions/{R}.contactEmail` if set.
+  Deduplicated case-insensitively; no `regionId` = Vorarlberg; online events go
+  by their `regionId`; moderators never get mail about other regions. If
+  moderators or regions cannot be read, the mail still goes to the Super-Admins.
+  Unsubscribe (`notifyOnSubmitted`) applies to everyone with an account.
+- **Dark launch:** the region name appears in subject and body only while more
+  than one region is active (`regions/*.active`); with one active region the mail
+  is byte-identical to the old one.
 
 ### Which tool for which problem
 

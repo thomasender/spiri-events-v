@@ -32,6 +32,12 @@ export interface AdminMessageContext {
 
 export interface SubmittedContext {
   submitterName?: string | null;
+  /**
+   * Region of the event, set only while more than one region is active
+   * (adminEventRouting.mailRegionLabel). Unset = the mail is byte-identical to
+   * the single-region version.
+   */
+  regionName?: string | null;
 }
 
 export interface EmailPayload {
@@ -218,21 +224,30 @@ export function buildSubmittedPayload({
 }: SubmittedPayloadInput): EmailPayload {
   const link = adminReviewUrl(event.id);
   const submitter = (context.submitterName ?? '').trim() || 'Ein Mitglied';
-  const subject = `Neuer Event-Vorschlag: ${event.title}`;
+  const regionName = (context.regionName ?? '').trim();
+  const subject = regionName
+    ? `Neuer Event-Vorschlag (${regionName}): ${event.title}`
+    : `Neuer Event-Vorschlag: ${event.title}`;
+  const regionHtml = regionName
+    ? `
+    <p style="${paragraphStyle()}">Region: ${escapeHtml(regionName)}</p>`
+    : '';
   const htmlBody = `
     <h1 style="${headingStyle(1)}">Neuer Event-Vorschlag</h1>
     <p style="${paragraphStyle()}">Hallo,</p>
     <p style="${paragraphStyle()}">
       <strong>${escapeHtml(submitter)}</strong> hat ein neues Event zur Prüfung eingereicht:
     </p>
-    <p style="${paragraphStyle()}"><strong>${escapeHtml(event.title)}</strong></p>
+    <p style="${paragraphStyle()}"><strong>${escapeHtml(event.title)}</strong></p>${regionHtml}
     <p style="margin:8px 0 24px 0;">
       <a href="${link}" style="${brandButtonStyle()}">Im Review ansehen</a>
     </p>`;
   const textBody =
     `Hallo,\n\n` +
     `${submitter} hat ein neues Event zur Prüfung eingereicht:\n` +
-    `${event.title}\n\n` +
+    `${event.title}\n` +
+    (regionName ? `Region: ${regionName}\n` : '') +
+    `\n` +
     `Im Review ansehen: ${link}`;
   return {
     to: recipient,

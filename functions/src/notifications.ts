@@ -2,6 +2,7 @@ import { logger } from 'firebase-functions';
 import { onDocumentUpdated, onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { initializeApp, getApps } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { getAuth } from 'firebase-admin/auth';
 
 if (getApps().length === 0) {
   initializeApp();
@@ -28,6 +29,13 @@ import {
 } from './notificationRouting';
 import { getAdminAccounts, AdminAccount } from './adminEmails';
 import {
+  AuthUserLike,
+  RegionInfo,
+  StaffDocEntry,
+  sendSubmittedAdminMail,
+} from './adminEventRouting';
+import { REGION_MODERATOR_ROLE } from './staffRoles';
+import {
   buildEmailPayload,
   NotificationType,
   SubmittedPayloadInput,
@@ -49,6 +57,9 @@ const ADMINS_RECIPIENT = 'admins' as const;
 
 // Temporarily switched off to save Mailgun quota (Trello 8ioEr9T1): admin-facing
 // emails about events ("new event submitted"). Flip to true to re-enable.
+// Routing once enabled (Super-Admins + moderators of the event's region +
+// the region's contactEmail): adminEventRouting.ts, see AGENTS.md
+// "Admin event emails and regions". Owner mails do not depend on this flag.
 export const ADMIN_EVENT_EMAILS_ENABLED = false;
 type UserRecipient = { email: string; uid?: string | null };
 type RecipientMarker = UserRecipient | typeof ADMINS_RECIPIENT;
@@ -276,6 +287,93 @@ async function dispatchDecision(
   return { recipients: sent, dryRun: options.dryRun };
 }
 
+const AUTH_GET_USERS_LIMIT = 100;
+
+async function loadAuthUsers(uids: string[]): Promise<AuthUserLike[]> {
+  const out: AuthUserLike[] = [];
+  for (let i = 0; i < uids.length; i += AUTH_GET_USERS_LIMIT) {
+    const chunk = uids.slice(i, i + AUTH_GET_USERS_LIMIT).map((uid) => ({ uid }));
+    const result = await getAuth().getUsers(chunk);
+    for (const user of result.users) {
+      out.push({ uid: user.uid, email: user.email ?? null, disabled: user.disabled });
+    }
+  }
+  return out;
+}
+
+async function loadModeratorDocs(): Promise<StaffDocEntry[]> {
+  const snap = await getFirestore()
+    .collection('admin_users')
+    .where('role', '==', REGION_MODERATOR_ROLE)
+    .get();
+  return snap.docs.map((doc) => ({ uid: doc.id, data: doc.data() }));
+}
+
+async function loadRegionInfos(): Promise<RegionInfo[]> {
+  const snap = await getFirestore().collection('regions').get();
+  return snap.docs.map((doc) => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      name: typeof data.name === 'string' ? data.name : null,
+      active: data.active === true,
+      contactEmail: typeof data.contactEmail === 'string' ? data.contactEmail : null,
+    };
+  });
+}
+
+/**
+ * "New event submitted" to the staff of the event's region. Does nothing while
+ * ADMIN_EVENT_EMAILS_ENABLED is false (sendSubmittedAdminMail returns before
+ * any read or send).
+ */
+async function dispatchSubmittedAdminMail(
+  eventId: string,
+  eventData: unknown,
+  payloadInput: SubmittedPayloadInput,
+  options: SendOptions
+): Promise<{ recipients: number; dryRun: boolean }> {
+  const result = await sendSubmittedAdminMail({
+    enabled: ADMIN_EVENT_EMAILS_ENABLED,
+    eventData,
+    submittedInbox: options.submittedInbox,
+    deps: {
+      loadSuperAdmins: getAdminAccounts,
+      loadModeratorDocs,
+      loadAuthUsers,
+      loadRegions: loadRegionInfos,
+      filterByPreferences: (recipients) => filterRecipientsByPreferences('submitted', recipients),
+      send: async (to, regionLabel) => {
+        const payload = buildEmailPayload('submitted', {
+          ...payloadInput,
+          recipient: to,
+          context: regionLabel
+            ? { ...payloadInput.context, regionName: regionLabel }
+            : payloadInput.context,
+        });
+        const sent = await sendPayload(payload, options).catch((err) => {
+          logger.error('Mailgun send failed', { eventId, type: 'submitted', recipient: to, err });
+          return { delivered: false as const };
+        });
+        return sent.delivered;
+      },
+      warn: (message, data) => logger.warn(message, { eventId, ...data }),
+    },
+  });
+  if (!result.enabled) {
+    logger.info('Admin event emails are disabled, skipping', { eventId, type: 'submitted' });
+    return { recipients: 0, dryRun: options.dryRun };
+  }
+  if (result.recipients.length === 0) {
+    logger.warn('No recipients resolved after preference filter, skipping email', {
+      eventId,
+      type: 'submitted',
+      regionId: result.regionId,
+    });
+  }
+  return { recipients: result.sent, dryRun: options.dryRun };
+}
+
 function markNotified(eventId: string, status: EventSnapshot['status']): Promise<void> {
   const db = getFirestore();
   return db
@@ -397,14 +495,21 @@ export const onEventCreated = onDocumentCreated(
     }
 
     const payloadInput = buildPayloadInputFromDecision(decision);
-    const recipientMarker: RecipientMarker =
+    const result =
       decision.type === 'submitted'
-        ? ADMINS_RECIPIENT
-        : { email: decision.recipient as string, uid: after.createdBy ?? null };
-    const result = await dispatchDecision(eventId, decision.type, recipientMarker, payloadInput, {
-      ...secrets,
-      dryRun,
-    });
+        ? await dispatchSubmittedAdminMail(
+            eventId,
+            event.data?.data(),
+            payloadInput as SubmittedPayloadInput,
+            { ...secrets, dryRun }
+          )
+        : await dispatchDecision(
+            eventId,
+            decision.type,
+            { email: decision.recipient as string, uid: after.createdBy ?? null },
+            payloadInput,
+            { ...secrets, dryRun }
+          );
     logger.info(`${decision.type} notification processed`, { eventId, ...result });
     if (result.recipients > 0 || result.dryRun) {
       await markNotified(eventId, after.status);
@@ -445,14 +550,21 @@ export const onEventStatusChanged = onDocumentUpdated(
     }
 
     const payloadInput = buildPayloadInputFromDecision(decision);
-    const recipientMarker: RecipientMarker =
+    const result =
       decision.type === 'submitted'
-        ? ADMINS_RECIPIENT
-        : { email: decision.recipient as string, uid: after.createdBy ?? null };
-    const result = await dispatchDecision(eventId, decision.type, recipientMarker, payloadInput, {
-      ...secrets,
-      dryRun,
-    });
+        ? await dispatchSubmittedAdminMail(
+            eventId,
+            event.data?.after.data(),
+            payloadInput as SubmittedPayloadInput,
+            { ...secrets, dryRun }
+          )
+        : await dispatchDecision(
+            eventId,
+            decision.type,
+            { email: decision.recipient as string, uid: after.createdBy ?? null },
+            payloadInput,
+            { ...secrets, dryRun }
+          );
     logger.info(`${decision.type} notification processed`, { eventId, ...result });
     if (result.recipients > 0 || result.dryRun) {
       await markNotified(eventId, after.status);
