@@ -109,6 +109,7 @@ export const ADMIN_TABS = [
   'instagram',
   'analytics',
   'moderation',
+  'regions',
 ];
 const MODERATOR_TABS = ['events', 'drafts', 'review', 'messages', 'trash', 'members'];
 const ORGANIZER_TABS = ['events', 'drafts', 'messages', 'trash'];

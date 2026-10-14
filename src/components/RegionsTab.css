@@ -1,0 +1,36 @@
+/* "Regionen" admin tab; cards, notices and buttons reuse ModerationTab.css. */
+
+.regions-status {
+  align-self: flex-start;
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+.regions-status--active {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.regions-facts {
+  flex: 2 1 320px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px 16px;
+  margin: 0;
+  min-width: 0;
+}
+
+.regions-facts dt {
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+}
+
+.regions-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}

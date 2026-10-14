@@ -133,6 +133,9 @@ vi.mock('../../src/hooks/useDonors', () => ({
 vi.mock('../../src/components/ModerationTab', () => ({
   default: () => <div data-testid="moderation-tab-stub">Moderation</div>,
 }));
+vi.mock('../../src/components/RegionsTab', () => ({
+  default: () => <div data-testid="regions-tab-stub">Regionen</div>,
+}));
 vi.mock('../../src/components/MembersTab', () => ({
   default: () => <div data-testid="members-tab-stub">Mitglieder</div>,
 }));
@@ -604,6 +607,7 @@ describe('AdminPage access per role', () => {
     'admin-tab-instagram',
     'admin-tab-analytics',
     'admin-tab-moderation',
+    'admin-tab-regions',
   ];
 
   function asModerator(regionIds = ['tirol']) {
@@ -668,6 +672,7 @@ describe('AdminPage access per role', () => {
     'donors',
     'helpers',
     'moderation',
+    'regions',
   ])('moderator opening ?tab=%s directly gets "Kein Zugriff", not the content', (tab) => {
     asModerator();
     mockUseHasFeedback.hasFeedback = true;
@@ -675,6 +680,14 @@ describe('AdminPage access per role', () => {
     expect(screen.getByTestId('no-access')).toHaveTextContent('Kein Zugriff');
     expect(document.getElementById('admin-tab-events')).toHaveAttribute('hidden');
     expect(screen.queryByTestId('moderation-tab-stub')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('regions-tab-stub')).not.toBeInTheDocument();
+  });
+
+  it('Super-Admin opens the Regionen tab by URL', () => {
+    mockAuth.role = 'Admin';
+    renderAdmin(['/admin?tab=regions']);
+    expect(screen.getByTestId('admin-tab-regions')).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByTestId('regions-tab-stub')).toBeInTheDocument();
   });
 
   it('a moderator doc without a valid region grants nothing', () => {
@@ -690,6 +703,7 @@ describe('AdminPage access per role', () => {
     expect(screen.queryByTestId('admin-tab-review')).not.toBeInTheDocument();
     expect(screen.queryByTestId('admin-tab-members')).not.toBeInTheDocument();
     expect(screen.queryByTestId('admin-tab-moderation')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('admin-tab-regions')).not.toBeInTheDocument();
     expect(screen.getByTestId('no-access')).toBeInTheDocument();
     expect(screen.queryByTestId('members-tab-stub')).not.toBeInTheDocument();
   });

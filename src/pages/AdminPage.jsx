@@ -16,6 +16,7 @@ import {
   Instagram,
   BarChart3,
   ShieldCheck,
+  MapPin,
 } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
 import EventList from '../components/EventList';
@@ -32,6 +33,7 @@ import MembersTab from '../components/MembersTab';
 import InstagramTab from '../components/InstagramTab';
 import AnalyticsTab from '../components/AnalyticsTab';
 import ModerationTab from '../components/ModerationTab';
+import RegionsTab from '../components/RegionsTab';
 import NoAccess from '../components/NoAccess';
 import EmailVerificationBanner from '../components/EmailVerificationBanner';
 import EmailVerificationModal from '../components/EmailVerificationModal';
@@ -97,6 +99,7 @@ export default function AdminPage() {
       instagram: isAdmin,
       analytics: isAdmin,
       moderation: isAdmin,
+      regions: isAdmin,
     };
   }, [draftCount, hasMessages, isAdmin, canReview, allowedTabs, hasFeedback, trashedCount]);
 
@@ -395,6 +398,21 @@ export default function AdminPage() {
             <span>Moderation</span>
           </button>
         )}
+        {visibleTabs.regions && (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'regions'}
+            aria-controls="admin-tab-regions"
+            id="admin-tab-regions-btn"
+            className={`admin-page-tab${activeTab === 'regions' ? ' admin-page-tab--active' : ''}`}
+            onClick={() => setTab('regions')}
+            data-testid="admin-tab-regions"
+          >
+            <MapPin size={16} aria-hidden="true" />
+            <span>Regionen</span>
+          </button>
+        )}
       </div>
 
       {activeTab === 'loading' && <div className="loading-spinner"></div>}
@@ -541,6 +559,17 @@ export default function AdminPage() {
           hidden={activeTab !== 'moderation'}
         >
           {activeTab === 'moderation' && <ModerationTab />}
+        </div>
+      )}
+
+      {visibleTabs.regions && (
+        <div
+          role="tabpanel"
+          id="admin-tab-regions"
+          aria-labelledby="admin-tab-regions-btn"
+          hidden={activeTab !== 'regions'}
+        >
+          {activeTab === 'regions' && <RegionsTab />}
         </div>
       )}
 

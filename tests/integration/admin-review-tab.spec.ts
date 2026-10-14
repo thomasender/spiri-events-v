@@ -334,7 +334,7 @@ test.describe('Admin area for a Regions-Moderator:in', () => {
     const tabs = page.locator('.admin-page-tabs');
     await expect(tabs.getByTestId('admin-tab-review')).toBeVisible();
     await expect(tabs.getByTestId('admin-tab-members')).toBeVisible();
-    for (const id of ['categories', 'theme', 'instagram', 'analytics', 'moderation']) {
+    for (const id of ['categories', 'theme', 'instagram', 'analytics', 'moderation', 'regions']) {
       await expect(tabs.getByTestId(`admin-tab-${id}`)).toHaveCount(0);
     }
 

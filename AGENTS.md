@@ -217,6 +217,27 @@ second region next to Vorarlberg, emulator only. Source of truth:
   (`SuperAdminRoute`). Moderator event lists must filter by region
   (`staffEventQuerySpecs` in `src/lib/staffEventQueries.js`), or the rules reject the
   query. The "Moderation" tab (Super-Admins) manages moderators via the callables.
+- **Activating a region** (no more hand-editing `regions/{id}.active`): Verwaltung →
+  tab "Regionen" (Super-Admin only, `RegionsTab.jsx`; moderators get "Kein Zugriff").
+  It lists every region with status, moderators, upcoming events, Bezirke count and
+  `contactEmail`, plus "Freischalten" / "Deaktivieren". Everything goes through the
+  callables `adminListRegionActivation` and
+  `adminSetRegionActive({ regionId, active, override })`
+  (`functions/src/adminRegions.ts`; pure rules in
+  `functions/src/regionActivation.ts`, tests `tests/lib/regionActivation.spec.ts`). The
+  server re-checks Super-Admin and the conditions: ≥ 1 Regions-Moderator:in
+  (`admin_users` with the region in `regionIds`) and ≥ 15 upcoming approved,
+  non-online events (`regionId`, missing = Vorarlberg; a series counts once, "upcoming"
+  = last date ≥ today in Vienna). Unmet → `failed-precondition` with
+  `details.reason: 'conditions-unmet'` and the counts, unless `override: true` (the UI
+  asks "Trotzdem freischalten" first). Vorarlberg can never be deactivated. The flag
+  (+ `updatedAt`) and an `admin_audit_log` entry (`activateRegion` / `deactivateRegion`,
+  override flag, counts) are written in one transaction; a missing region doc is
+  refused (create it with `scripts/seed-regions.mjs`). Afterwards the client calls
+  `refreshRegions()` (`src/hooks/useRegions.js`), which reloads the shared region cache
+  for every mounted `useRegions()` caller. `firestore.rules` for `regions` are
+  unchanged: Super-Admins can still write the doc directly (console / client SDK),
+  which skips the conditions and the audit entry — they are allowed to override anyway.
 
 ### Admin event emails and regions
 
