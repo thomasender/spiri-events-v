@@ -386,9 +386,12 @@ fail before the fix. A bug in date maths gets a unit test, not a browser.
   means the selector is too broad, not that the test is flaky.
 - **Dates:** derive them from `new Date()`. A hard-coded month silently becomes
   "the past" and the app clamps it.
-- **Waiting for a write:** if a test leaves a page and then checks the effect of
-  an async write the page made, use `expect(async () => {...}).toPass()` — don't
-  race it with one `goto`.
+- **Waiting for a write:** the UI updates optimistically, so a card disappearing
+  does not mean the server has the write. Before leaving the page wait for the
+  server ack (the `ConfirmDialog` closes only after the write resolved, or
+  `expect.poll` on the emulator); a `goto` drops unacknowledged writes and no
+  `toPass` reload loop can bring them back. Use `toPass` only to wait for effects
+  that arrive on their own (triggers, listeners).
 
 ### Never test these
 
