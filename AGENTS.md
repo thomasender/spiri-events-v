@@ -233,6 +233,11 @@ second region next to Vorarlberg, emulator only. Source of truth:
 - **Dark launch:** the region name appears in subject and body only while more
   than one region is active (`regions/*.active`); with one active region the mail
   is byte-identical to the old one.
+- **Owner mails** (published, changes requested, back to draft, deleted) get the line
+  "Rückfragen zu dieser Region: <contactEmail>" from `regions/{regionId}.contactEmail`,
+  also only while more than one region is active and the address is valid
+  (`resolveOwnerRegionContact`); otherwise byte-identical (pinned in
+  `tests/lib/emailTemplates.spec.ts`).
 
 ### Which tool for which problem
 

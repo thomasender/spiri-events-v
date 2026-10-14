@@ -10,6 +10,7 @@ import {
   mailRegionLabel,
   moderatorUidsForRegion,
   regionContactEmail,
+  resolveOwnerRegionContact,
   sendSubmittedAdminMail,
 } from '../../functions/src/adminEventRouting';
 import {
@@ -325,5 +326,54 @@ describe('"new event submitted" mail text', () => {
     expect(p.subject).toBe('Neuer Event-Vorschlag (Allgäu): Yoga am See');
     expect(p.text).toContain('Yoga am See\nRegion: Allgäu\n\nIm Review ansehen:');
     expect(p.html).toContain('Region: Allgäu');
+  });
+});
+
+describe('resolveOwnerRegionContact (owner mails)', () => {
+  const tirol = { regionId: 'tirol' };
+
+  it('is null with one active region, without even using the contact', async () => {
+    expect(await resolveOwnerRegionContact(tirol, async () => ONE_ACTIVE)).toBeNull();
+  });
+
+  it('returns the contact address of the event region when several are active', async () => {
+    expect(await resolveOwnerRegionContact(tirol, async () => TWO_ACTIVE)).toBe(
+      'tirol@thetribe.at'
+    );
+    expect(await resolveOwnerRegionContact({ regionId: 'allgaeu' }, async () => TWO_ACTIVE)).toBe(
+      'ALLGAEU@mod.de'
+    );
+  });
+
+  it('treats events without regionId as Vorarlberg (no contact set there)', async () => {
+    expect(await resolveOwnerRegionContact({}, async () => TWO_ACTIVE)).toBeNull();
+  });
+
+  it('is null for a region without contactEmail or with an invalid address', async () => {
+    expect(
+      await resolveOwnerRegionContact({ regionId: 'vorarlberg' }, async () => TWO_ACTIVE)
+    ).toBeNull();
+    expect(
+      await resolveOwnerRegionContact({ regionId: 'steiermark' }, async () => TWO_ACTIVE)
+    ).toBeNull();
+  });
+
+  it('is null when the region doc is missing', async () => {
+    expect(
+      await resolveOwnerRegionContact({ regionId: 'wien' }, async () => TWO_ACTIVE)
+    ).toBeNull();
+  });
+
+  it('never throws when regions cannot be read', async () => {
+    const warn = vi.fn();
+    const result = await resolveOwnerRegionContact(
+      tirol,
+      async () => {
+        throw new Error('boom');
+      },
+      warn
+    );
+    expect(result).toBeNull();
+    expect(warn).toHaveBeenCalledOnce();
   });
 });

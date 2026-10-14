@@ -33,6 +33,7 @@ import {
   RegionInfo,
   StaffDocEntry,
   sendSubmittedAdminMail,
+  resolveOwnerRegionContact,
 } from './adminEventRouting';
 import { REGION_MODERATOR_ROLE } from './staffRoles';
 import {
@@ -260,7 +261,8 @@ async function dispatchDecision(
     | PublishedPayloadInput
     | DeletedPayloadInput
     | ContactMessagePayloadInput,
-  options: SendOptions
+  options: SendOptions,
+  eventData?: unknown
 ): Promise<{ recipients: number; dryRun: boolean }> {
   if (recipient === ADMINS_RECIPIENT && type === 'submitted' && !ADMIN_EVENT_EMAILS_ENABLED) {
     logger.info('Admin event emails are disabled, skipping', { eventId, type });
@@ -275,9 +277,21 @@ async function dispatchDecision(
     });
     return { recipients: 0, dryRun: options.dryRun };
   }
+  // Owner mails only: "Rückfragen zu dieser Region" (multi-region only, see
+  // resolveOwnerRegionContact). Feedback mails to admins have no event.
+  const regionContactEmail =
+    eventData !== undefined && recipient !== ADMINS_RECIPIENT && type !== 'contact_message'
+      ? await resolveOwnerRegionContact(eventData, loadRegionInfos, (message, data) =>
+          logger.warn(message, { eventId, ...data })
+        )
+      : null;
   let sent = 0;
   for (const { email: to } of filtered) {
-    const payload = buildEmailPayload(type, { ...payloadInput, recipient: to });
+    const payload = buildEmailPayload(type, {
+      ...payloadInput,
+      recipient: to,
+      ...(regionContactEmail ? { regionContactEmail } : {}),
+    });
     const result = await sendPayload(payload, options).catch((err) => {
       logger.error('Mailgun send failed', { eventId, type, recipient: to, err });
       return { delivered: false as const };
@@ -508,7 +522,8 @@ export const onEventCreated = onDocumentCreated(
             decision.type,
             { email: decision.recipient as string, uid: after.createdBy ?? null },
             payloadInput,
-            { ...secrets, dryRun }
+            { ...secrets, dryRun },
+            event.data?.data()
           );
     logger.info(`${decision.type} notification processed`, { eventId, ...result });
     if (result.recipients > 0 || result.dryRun) {
@@ -563,7 +578,8 @@ export const onEventStatusChanged = onDocumentUpdated(
             decision.type,
             { email: decision.recipient as string, uid: after.createdBy ?? null },
             payloadInput,
-            { ...secrets, dryRun }
+            { ...secrets, dryRun },
+            event.data?.after.data()
           );
     logger.info(`${decision.type} notification processed`, { eventId, ...result });
     if (result.recipients > 0 || result.dryRun) {
@@ -634,7 +650,8 @@ export const onAdminMessageCreated = onDocumentCreated(
       {
         ...secrets,
         dryRun,
-      }
+      },
+      eventData
     );
     logger.info('changes_requested notification processed', {
       eventId,

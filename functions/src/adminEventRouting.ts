@@ -88,16 +88,43 @@ export function regionContactEmail(region: RegionInfo | null | undefined): strin
   return raw && PLAUSIBLE_EMAIL.test(raw) ? raw : null;
 }
 
+/** Dark-launch switch shared by all region additions to mails. */
+export function multipleRegionsActive(regions: RegionInfo[]): boolean {
+  return regions.filter((r) => r.active === true).length > 1;
+}
+
 /**
  * Region name for subject/body, only when more than one region is active.
  * With a single active region (today: Vorarlberg) the mail stays exactly as
  * before (dark launch).
  */
 export function mailRegionLabel(regions: RegionInfo[], regionId: string): string | null {
-  const activeCount = regions.filter((r) => r.active === true).length;
-  if (activeCount <= 1) return null;
+  if (!multipleRegionsActive(regions)) return null;
   const name = regions.find((r) => r.id === regionId)?.name;
   return typeof name === 'string' && name.trim() ? name.trim() : null;
+}
+
+/**
+ * Contact address of the event's region for mails to the EVENT OWNER ("Rückfragen
+ * zu dieser Region"). Null (= the mail stays exactly as before) unless more than
+ * one region is active and the region has a plausible `contactEmail`. A failing
+ * region read never fails the mail.
+ */
+export async function resolveOwnerRegionContact(
+  eventData: unknown,
+  loadRegions: () => Promise<RegionInfo[]>,
+  warn: (message: string, data?: Record<string, unknown>) => void = () => undefined
+): Promise<string | null> {
+  const regionId = eventMailRegionId(eventData);
+  let regions: RegionInfo[];
+  try {
+    regions = await loadRegions();
+  } catch (err) {
+    warn('Could not read regions; owner mail without region contact', { regionId, err });
+    return null;
+  }
+  if (!multipleRegionsActive(regions)) return null;
+  return regionContactEmail(regions.find((r) => r.id === regionId) ?? null);
 }
 
 /**
