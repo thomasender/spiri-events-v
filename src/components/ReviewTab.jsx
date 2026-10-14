@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { doc, getFirestore, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { getApp } from 'firebase/app';
 import { ClipboardCheck, Inbox, MessageCircle, CheckCircle2, ChevronDown } from 'lucide-react';
+import { useRegionLabels } from '../hooks/useRegionLabels';
 import { usePendingEvents, useAllEvents } from '../hooks/useEvents';
 import { useEventsWithMessages } from '../hooks/useEventsWithMessages';
 import { useUserDisplayNames } from '../hooks/useUserDisplayNames';
@@ -57,8 +58,20 @@ function CollapseToggle({ id, open, onToggle, testId, children }) {
   );
 }
 
+const REGION_FILTER_KEY = 'review:regionFilter';
+
+function readStoredRegionFilter() {
+  try {
+    return sessionStorage.getItem(REGION_FILTER_KEY) || 'all';
+  } catch {
+    return 'all';
+  }
+}
+
 export default function ReviewTab() {
   const { user, role, staffRegionIds } = useAuth();
+  const { labelFor, nameOf, regions } = useRegionLabels();
+  const [storedRegionFilter, setStoredRegionFilter] = useState(readStoredRegionFilter);
   const access = useMemo(() => getStaffAccess(role, staffRegionIds), [role, staffRegionIds]);
   const moderatorRegionKey = access.isRegionModerator ? access.moderatorRegionIds.join(',') : '';
   // Super-Admins may edit any event; a Regions-Moderator:in only reviews
@@ -69,6 +82,44 @@ export default function ReviewTab() {
   const { events: allApprovedEvents, loading: approvedLoading } = useAllEvents();
   const { unreadCountByEvent, hasMessagesByEvent, inKlaerungAuthorNameByEvent } =
     useEventsWithMessages();
+
+  // Region filter: only for staff who can see more than one region (a
+  // Super-Admin: every region that is active or has items; a moderator: hers).
+  const regionOptions = useMemo(() => {
+    const counts = {};
+    pendingEvents.forEach((event) => {
+      const id = resolveRegionId(event);
+      counts[id] = (counts[id] || 0) + 1;
+    });
+    let ids;
+    if (access.isRegionModerator) {
+      ids = access.moderatorRegionIds;
+    } else {
+      const withItems = new Set([
+        ...Object.keys(counts),
+        ...allApprovedEvents.map((e) => resolveRegionId(e)),
+      ]);
+      ids = regions.filter((r) => r.active || withItems.has(r.id)).map((r) => r.id);
+      withItems.forEach((id) => {
+        if (!ids.includes(id)) ids.push(id);
+      });
+    }
+    return ids.map((id) => ({ id, name: nameOf(id), count: counts[id] || 0 }));
+  }, [access, pendingEvents, allApprovedEvents, regions, nameOf]);
+  const showRegionFilter = regionOptions.length > 1;
+  const regionFilter =
+    showRegionFilter && regionOptions.some((o) => o.id === storedRegionFilter)
+      ? storedRegionFilter
+      : 'all';
+  const onRegionFilterChange = (value) => {
+    setStoredRegionFilter(value);
+    try {
+      sessionStorage.setItem(REGION_FILTER_KEY, value);
+    } catch {
+      // storage unavailable: the choice just is not remembered
+    }
+  };
+  const inFilter = (event) => regionFilter === 'all' || resolveRegionId(event) === regionFilter;
 
   const [approvingId, setApprovingId] = useState(null);
   const [revertTarget, setRevertTarget] = useState(null);
@@ -146,16 +197,18 @@ export default function ReviewTab() {
     const regionIds = moderatorRegionKey ? moderatorRegionKey.split(',') : null;
     return allApprovedEvents
       .filter((event) => !regionIds || regionIds.includes(resolveRegionId(event)))
+      .filter(inFilter)
       .map((event) => ({ event, approvedAtMs: getApprovedAtMillis(event.approvedAt) }))
       .filter(({ approvedAtMs }) => approvedAtMs != null && approvedAtMs >= cutoff)
       .sort((a, b) => b.approvedAtMs - a.approvedAtMs)
       .map(({ event }) => event);
-  }, [allApprovedEvents, moderatorRegionKey]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allApprovedEvents, moderatorRegionKey, regionFilter]);
 
   const { pendingInKlaerung, pendingNeu } = useMemo(() => {
     const inK = [];
     const neu = [];
-    pendingEvents.forEach((event) => {
+    pendingEvents.filter(inFilter).forEach((event) => {
       if (hasMessagesByEvent[event.id]) {
         inK.push(event);
       } else {
@@ -163,7 +216,8 @@ export default function ReviewTab() {
       }
     });
     return { pendingInKlaerung: inK, pendingNeu: neu };
-  }, [pendingEvents, hasMessagesByEvent]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingEvents, hasMessagesByEvent, regionFilter]);
 
   const reviewerUids = useMemo(() => {
     const uids = new Set();
@@ -183,7 +237,9 @@ export default function ReviewTab() {
     ? `Hier landen die Events aus ${regionNames(access.moderatorRegionIds)}, die auf deine Freigabe warten`
     : 'Hier landen alle Events, die auf deine Freigabe warten';
 
-  const hasAnyContent = pendingEvents.length > 0 || recentlyApproved.length > 0;
+  const pendingShown = pendingInKlaerung.length + pendingNeu.length;
+  const hasAnyContent =
+    pendingEvents.length > 0 || recentlyApproved.length > 0 || regionFilter !== 'all';
 
   if (!hasAnyContent) {
     return (
@@ -218,7 +274,30 @@ export default function ReviewTab() {
         </div>
       </div>
 
-      {pendingEvents.length > 0 && (
+      {showRegionFilter && (
+        <div className="review-region-filter">
+          <label htmlFor="review-region-filter">Region</label>
+          <select
+            id="review-region-filter"
+            data-testid="review-region-filter"
+            value={regionFilter}
+            onChange={(e) => onRegionFilterChange(e.target.value)}
+          >
+            <option value="all">{`Alle (${pendingEvents.length})`}</option>
+            {regionOptions.map((o) => (
+              <option key={o.id} value={o.id}>{`${o.name} (${o.count})`}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {pendingShown === 0 && recentlyApproved.length === 0 && (
+        <p className="review-subsection-empty" data-testid="review-region-empty">
+          Für diese Region gibt es aktuell nichts zu prüfen.
+        </p>
+      )}
+
+      {pendingShown > 0 && (
         <section
           className="review-section review-section--pending"
           data-testid="review-section-pending"
@@ -234,7 +313,7 @@ export default function ReviewTab() {
                 <Inbox size={20} aria-hidden="true" />
                 <span>Wartend auf Genehmigung</span>
                 <span className="review-section-count" data-testid="review-section-pending-count">
-                  {pendingEvents.length}
+                  {pendingShown}
                 </span>
               </CollapseToggle>
             </h2>
@@ -257,6 +336,7 @@ export default function ReviewTab() {
                     <div key={event.id}>
                       <EventAdminListRow
                         event={event}
+                        regionLabel={labelFor(event)}
                         showStatus
                         showApprove
                         showRevert
@@ -311,6 +391,7 @@ export default function ReviewTab() {
                       <div key={event.id}>
                         <EventAdminListRow
                           event={event}
+                          regionLabel={labelFor(event)}
                           showStatus
                           showApprove
                           showRevert
@@ -372,6 +453,7 @@ export default function ReviewTab() {
               <div key={event.id}>
                 <EventAdminListRow
                   event={event}
+                  regionLabel={labelFor(event)}
                   showStatus
                   showDuplicate={false}
                   showApprovedBy

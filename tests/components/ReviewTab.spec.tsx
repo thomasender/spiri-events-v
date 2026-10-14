@@ -35,6 +35,18 @@ vi.mock('../../src/hooks/useEventsWithMessages', () => ({
   useEventsWithMessages: () => mockUseEventsWithMessages,
 }));
 
+const mockRegions = vi.hoisted(() => ({
+  current: [
+    { id: 'vorarlberg', slug: 'vorarlberg', name: 'Vorarlberg', active: true },
+    { id: 'tirol', slug: 'tirol', name: 'Tirol', active: false },
+    { id: 'steiermark', slug: 'steiermark', name: 'Steiermark', active: false },
+  ] as Array<Record<string, unknown>>,
+}));
+
+vi.mock('../../src/hooks/useRegions', () => ({
+  useRegions: () => ({ regions: mockRegions.current, loading: false }),
+}));
+
 vi.mock('../../src/hooks/useUserDisplayNames', () => ({
   useUserDisplayNames: () => mockUserDisplayNames,
 }));
@@ -67,6 +79,8 @@ function renderReviewTab() {
 }
 
 beforeEach(() => {
+  sessionStorage.clear();
+  mockRegions.current = mockRegions.current.map((r) => ({ ...r, active: r.id === 'vorarlberg' }));
   mockAuth.current = { user: { uid: 'admin-uid' }, role: 'Admin' };
   mockApproveEvent.mockReset();
   mockUpdateDoc.mockReset();
@@ -375,5 +389,112 @@ describe('ReviewTab for a Regions-Moderator:in', () => {
     renderReviewTab();
     expect(screen.getByText('Tirol Event')).toBeInTheDocument();
     expect(screen.queryByText('Vorarlberg Event')).not.toBeInTheDocument();
+  });
+});
+
+describe('ReviewTab - regions', () => {
+  const pendingEvent = (id: string, regionId?: string, bezirk = 'Bregenz') => ({
+    id,
+    title: `Event ${id}`,
+    date: '2026-12-01',
+    status: 'pending',
+    bezirk,
+    ...(regionId ? { regionId } : {}),
+  });
+
+  const activate = (...ids: string[]) => {
+    mockRegions.current = mockRegions.current.map((r) => ({
+      ...r,
+      active: ids.includes(r.id as string),
+    }));
+  };
+
+  beforeEach(() => {
+    mockUsePendingEvents.pendingEvents = [
+      pendingEvent('a'),
+      pendingEvent('b', 'tirol', 'Innsbruck'),
+      pendingEvent('c', 'tirol', 'Imst'),
+    ];
+  });
+
+  it('shows no region badge, location suffix or filter with one active region', () => {
+    mockUsePendingEvents.pendingEvents = [pendingEvent('a'), pendingEvent('x')];
+    renderReviewTab();
+    expect(screen.queryByTestId('event-card-region-badge-a')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('review-region-filter')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Bregenz ·/)).not.toBeInTheDocument();
+  });
+
+  it('shows the region badge and "Bezirk · Region" with two active regions', () => {
+    activate('vorarlberg', 'tirol');
+    renderReviewTab();
+    expect(screen.getByTestId('event-card-region-badge-a')).toHaveTextContent('Vorarlberg');
+    expect(screen.getByTestId('event-card-region-badge-b')).toHaveTextContent('Tirol');
+    expect(screen.getByText('Innsbruck · Tirol')).toBeInTheDocument();
+  });
+
+  it('Super-Admin gets a filter with pending counts per region that narrows lists and counts', () => {
+    activate('vorarlberg', 'tirol');
+    renderReviewTab();
+    const select = screen.getByTestId('review-region-filter') as HTMLSelectElement;
+    const labels = Array.from(select.options).map((o) => o.textContent);
+    expect(labels).toEqual(['Alle (3)', 'Vorarlberg (1)', 'Tirol (2)']);
+    expect(screen.getByTestId('review-section-pending-count')).toHaveTextContent('3');
+
+    fireEvent.change(select, { target: { value: 'tirol' } });
+    expect(screen.getByTestId('review-section-pending-count')).toHaveTextContent('2');
+    expect(screen.queryByText('Event a')).not.toBeInTheDocument();
+    expect(screen.getByText('Event b')).toBeInTheDocument();
+    expect(sessionStorage.getItem('review:regionFilter')).toBe('tirol');
+  });
+
+  it('restores the remembered filter choice', () => {
+    activate('vorarlberg', 'tirol');
+    sessionStorage.setItem('review:regionFilter', 'vorarlberg');
+    renderReviewTab();
+    expect(screen.getByTestId('review-section-pending-count')).toHaveTextContent('1');
+  });
+
+  it('offers a Super-Admin an inactive region that has items', () => {
+    activate('vorarlberg');
+    renderReviewTab();
+    const select = screen.getByTestId('review-region-filter') as HTMLSelectElement;
+    expect(Array.from(select.options).map((o) => o.textContent)).toEqual([
+      'Alle (3)',
+      'Vorarlberg (1)',
+      'Tirol (2)',
+    ]);
+  });
+
+  it('a moderator of two regions sees only her regions in the filter', () => {
+    activate('vorarlberg', 'tirol', 'steiermark');
+    mockAuth.current = {
+      user: { uid: 'mod' },
+      role: 'RegionModerator',
+      staffRegionIds: ['tirol', 'steiermark'],
+    };
+    mockUsePendingEvents.pendingEvents = [
+      pendingEvent('b', 'tirol', 'Innsbruck'),
+      pendingEvent('s', 'steiermark', 'Graz'),
+    ];
+    renderReviewTab();
+    const select = screen.getByTestId('review-region-filter') as HTMLSelectElement;
+    expect(Array.from(select.options).map((o) => o.textContent)).toEqual([
+      'Alle (2)',
+      'Tirol (1)',
+      'Steiermark (1)',
+    ]);
+  });
+
+  it('a moderator of one region gets no filter', () => {
+    activate('vorarlberg', 'tirol');
+    mockAuth.current = {
+      user: { uid: 'mod' },
+      role: 'RegionModerator',
+      staffRegionIds: ['tirol'],
+    };
+    mockUsePendingEvents.pendingEvents = [pendingEvent('b', 'tirol', 'Innsbruck')];
+    renderReviewTab();
+    expect(screen.queryByTestId('review-region-filter')).not.toBeInTheDocument();
   });
 });

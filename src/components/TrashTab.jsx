@@ -19,6 +19,7 @@ import ConfirmDialog from './ConfirmDialog';
 import RecurringDeleteDialog from './RecurringDeleteDialog';
 import OccurrencePickerDialog from './OccurrencePickerDialog';
 import EventAdminListRow from './EventAdminListRow';
+import { useRegionLabels } from '../hooks/useRegionLabels';
 import { getNextUpcomingOccurrence } from '../utils/eventOccurrences';
 import {
   buildCustomDeleteOccurrenceUpdate,
@@ -54,6 +55,7 @@ async function permanentDeleteEventById(id) {
 }
 
 export default function TrashTab() {
+  const { labelFor: regionLabelFor } = useRegionLabels();
   const { user, role, staffRegionIds } = useAuth();
   const access = getStaffAccess(role, staffRegionIds);
   const isAdmin = access.isSuperAdmin;
@@ -242,6 +244,7 @@ export default function TrashTab() {
               <div key={event.id} data-testid={`trash-event-card-${event.id}`}>
                 <EventAdminListRow
                   event={event}
+                  regionLabel={regionLabelFor(event)}
                   showStatus
                   showTrashedAt
                   fromPath="/admin?tab=trash"

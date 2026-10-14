@@ -3,6 +3,7 @@ import { bezirkLabel } from '../utils/regions';
 import { Mail } from 'lucide-react';
 import { useEventsWithMessages } from '../hooks/useEventsWithMessages';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
+import { useRegionLabels } from '../hooks/useRegionLabels';
 import EventCoverImage from './EventCoverImage';
 import './MessagesTab.css';
 
@@ -18,7 +19,7 @@ function formatDate(dateStr) {
   });
 }
 
-function MessagesTabItem({ event, unreadCount }) {
+function MessagesTabItem({ event, unreadCount, regionLabel }) {
   const fallbackImage = getEventFallbackImage(event);
   const hasUnread = unreadCount > 0;
   return (
@@ -46,6 +47,7 @@ function MessagesTabItem({ event, unreadCount }) {
         <span className="messages-tab-item-meta">
           {formatDate(event.date)}
           {event.isOnline ? ' • Online' : event.bezirk ? ` • ${bezirkLabel(event.bezirk)}` : ''}
+          {regionLabel ? ` • ${regionLabel}` : ''}
         </span>
       </span>
       {hasUnread && (
@@ -63,6 +65,7 @@ function MessagesTabItem({ event, unreadCount }) {
 
 export default function MessagesTab() {
   const { events, unreadCountByEvent, loading } = useEventsWithMessages();
+  const { labelFor } = useRegionLabels();
 
   if (loading) {
     return <div className="loading-spinner" data-testid="messages-tab-loading"></div>;
@@ -82,7 +85,11 @@ export default function MessagesTab() {
     <ul className="messages-tab-list" data-testid="messages-tab-list">
       {events.map((event) => (
         <li key={event.id}>
-          <MessagesTabItem event={event} unreadCount={unreadCountByEvent[event.id] || 0} />
+          <MessagesTabItem
+            event={event}
+            unreadCount={unreadCountByEvent[event.id] || 0}
+            regionLabel={labelFor(event)}
+          />
         </li>
       ))}
     </ul>

@@ -77,6 +77,7 @@ export default function EventAdminListRow({
   approvedByName = null,
   showInKlaerungBy = false,
   inKlaerungByName = null,
+  regionLabel = null,
   onApprove,
   onSubmit,
   onRevert,
@@ -163,6 +164,15 @@ export default function EventAdminListRow({
             </h3>
             <div className="event-card-badges">
               {showStatus && <StatusBadge status={event.status} />}
+              {regionLabel && (
+                <span
+                  className="badge badge--region"
+                  data-testid={`event-card-region-badge-${event.id}`}
+                  title="Region"
+                >
+                  {regionLabel}
+                </span>
+              )}
               {isRecurring && (
                 <span className="badge badge--recurring" title="Wiederholende Veranstaltung">
                   <Repeat size={12} />
@@ -185,7 +195,9 @@ export default function EventAdminListRow({
             {locationLabel && (
               <span className="event-card-meta-item">
                 <MapPin size={12} />
-                {locationLabel}
+                {regionLabel && !event.isOnline
+                  ? `${locationLabel} · ${regionLabel}`
+                  : locationLabel}
               </span>
             )}
             {event.organizer && event.organizer.email && (
