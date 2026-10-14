@@ -161,11 +161,15 @@ if (moderatorUid) {
   );
 }
 
+// Two active regions make the required "Wo suchst du?" dialog block every page,
+// so Tirol is only active while the dedicated region spec runs (--events);
+// removeRegionEventFixtures() switches it off again.
 for (const { id, ...region } of REGION_FIXTURES) {
   batch.set(
     db.collection('regions').doc(id),
     {
       ...region,
+      ...(id === 'tirol' ? { active: withEvents } : {}),
       slug: id,
       contactEmail: '',
       seo: { title: '', description: '' },

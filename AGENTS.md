@@ -170,7 +170,9 @@ second region next to Vorarlberg, emulator only. Source of truth:
   `/verzeichnis`. No close button, no Escape/backdrop dismissal. Opening a region
   URL counts as a choice. Invisible with fewer than two active regions (so
   never in the default emulator state). Page content stays rendered behind it.
-- **Regions** `regions/vorarlberg` (active), `regions/tirol` (active, Bezirke
+- **Regions** `regions/vorarlberg` (active), `regions/tirol` (inactive by default, active
+  only while `region-calendar-filtering.spec.ts` runs in the `destructive` project, because
+  two active regions show the required region dialog on every page; Bezirke
   Innsbruck, Kufstein, Imst, Lienz) and `regions/wien` (inactive, for visibility
   tests). `tests/globalSetup.ts` reconciles them on every Playwright run with
   `set(..., { merge: true })` in one batch.

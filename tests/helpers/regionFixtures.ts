@@ -24,6 +24,15 @@ export function loadRegionEventFixtures(): void {
  * spec that loaded them does not change counts for the specs running after it.
  */
 export async function removeRegionEventFixtures(): Promise<void> {
+  // Tirol is only active while the fixtures are loaded (see seed-region-fixtures.mjs).
+  await fetch(
+    'http://127.0.0.1:8181/v1/projects/spirieventsvbg/databases/(default)/documents/regions/tirol?updateMask.fieldPaths=active',
+    {
+      method: 'PATCH',
+      headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: { active: { booleanValue: false } } }),
+    }
+  ).catch(() => {});
   await Promise.all(
     Object.values(REGION_EVENT_IDS).map((id) =>
       fetch(
