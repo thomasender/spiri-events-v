@@ -6,6 +6,7 @@ import { Eye, EyeOff, Search, SlidersHorizontal, X } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
 import { useAuth } from '../hooks/useAuth';
 import { useDirectory } from '../hooks/useDirectory';
+import { useRegionTexts } from '../hooks/useRegionTexts';
 import { useRegionCanonicalPath } from '../hooks/useRegion';
 import { useCategoryRegistry } from '../hooks/useCategoryRegistry';
 import { getCategoryColor } from '../utils/categoryColors';
@@ -97,6 +98,7 @@ function DirectoryCard({ entry, colorByName, isAdmin, onToggleHidden, busy }) {
 export default function DirectoryPage() {
   const { role } = useAuth();
   const canonicalPath = useRegionCanonicalPath('/verzeichnis');
+  const regionTexts = useRegionTexts();
   const isAdmin = role === 'Admin';
   const { entries, loading, error, setHidden } = useDirectory();
   const { categories: registry, colorByName } = useCategoryRegistry();
@@ -191,8 +193,8 @@ export default function DirectoryPage() {
   return (
     <>
       <SeoMeta
-        title="Verzeichnis – Angebote in Vorarlberg"
-        description="Finde Menschen mit bewussten Angeboten in Vorarlberg: nach Kategorie, Region oder Name durchsuchbar."
+        title={regionTexts.directoryTitle}
+        description={regionTexts.directoryDescription}
         path={canonicalPath}
       />
       <div className="page-container directory-page" data-testid="directory-page">
@@ -200,8 +202,8 @@ export default function DirectoryPage() {
           <span className="directory-eyebrow">Verzeichnis</span>
           <h1 className="directory-title">Angebote &amp; Menschen finden</h1>
           <p className="directory-intro">
-            Hier findest du Menschen mit bewussten Angeboten in Vorarlberg. Alle Details und
-            Kontaktmöglichkeiten findest du auf dem jeweiligen Profil.
+            Hier findest du Menschen mit bewussten Angeboten {regionTexts.locationPhrase}. Alle
+            Details und Kontaktmöglichkeiten findest du auf dem jeweiligen Profil.
           </p>
           <Link
             to="/profil#verzeichnis"

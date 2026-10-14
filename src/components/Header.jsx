@@ -7,6 +7,7 @@ import { useUnreadFeedbackCount } from '../hooks/useFeedbackList';
 import EmailVerificationModal from './EmailVerificationModal';
 import AvatarImage from './AvatarImage';
 import RegionSwitcher from './RegionSwitcher';
+import { useRegionTexts } from '../hooks/useRegionTexts';
 import {
   Users,
   Calendar,
@@ -33,6 +34,7 @@ const HEADER_TOP_BUFFER = 80;
 export default function Header() {
   const { user, logout, role, canCreateEvents } = useAuth();
   const { profile } = useProfile(user?.uid);
+  const regionTexts = useRegionTexts();
   const isAdmin = role === 'Admin';
   const navigate = useNavigate();
   const location = useLocation();
@@ -287,7 +289,7 @@ export default function Header() {
             <img src="/logo-mark.svg" alt="" aria-hidden="true" />
           </div>
           <div className="logo-text">
-            <span className="logo-title">Dein Vorarlberger Kalender</span>
+            <span className="logo-title">{regionTexts.headerTitle}</span>
             <span className="logo-subtitle">für bewusste Events</span>
           </div>
         </Link>

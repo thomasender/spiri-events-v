@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import SeoMeta from '../components/SeoMeta';
+import { BRAND_NAME } from '../config/brand';
 import { useRegion } from '../hooks/useRegion';
 import {
   ALL_REGIONS_NAME,
@@ -33,13 +34,15 @@ export default function RegionComingSoonPage({ region = null, canPreview = false
     <div className="page-container error-page fade-enter">
       <SeoMeta
         title={`${name} kommt bald`}
-        description={`The Tribe ${region ? regionLocative(region) : 'für ganz Österreich'} ist in Vorbereitung.`}
+        description={`${BRAND_NAME} ${region ? regionLocative(region) : 'für ganz Österreich'} ist in Vorbereitung.`}
         path={path}
         noindex
       />
       <div className="error-page-card" data-testid="region-coming-soon">
         <span className="eyebrow">Bald auch hier</span>
-        <h1 className="error-page-title">The Tribe – {name} kommt bald</h1>
+        <h1 className="error-page-title">
+          {BRAND_NAME} – {name} kommt bald
+        </h1>
         <p className="error-page-message">{text}</p>
         <p className="error-page-message">Schau bald wieder vorbei!</p>
         {canPreview && region && (

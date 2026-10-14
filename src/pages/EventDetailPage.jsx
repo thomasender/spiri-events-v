@@ -37,6 +37,7 @@ import { useEventRegionContext } from '../hooks/useRegion';
 import { useOrganizerProfile } from '../hooks/useOrganizerProfile';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
 import { buildEventJsonLd } from '../utils/eventJsonLd';
+import { getRegionBySlug, resolveRegionId } from '../utils/regions';
 import { pickEventDoc } from '../utils/pickEventDoc';
 import { getOrganizerName } from '../utils/eventFormat';
 import { resolveOrganizerProfilePath } from '../utils/profile';
@@ -161,6 +162,11 @@ function formatRecurrence(recurrence, recurrenceEndDate, eventDate) {
     label += ` bis ${endDate.toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })}`;
   }
   return label;
+}
+
+// Name of the event's region (Vorarlberg for events without regionId, so unchanged).
+function eventRegionName(event) {
+  return getRegionBySlug(resolveRegionId(event))?.name ?? 'Vorarlberg';
 }
 
 function generateEventJsonLd(event) {
@@ -849,7 +855,7 @@ export default function EventDetailPage() {
               className="detail-value"
               data-testid={event.isOnline ? 'event-detail-location-online' : undefined}
             >
-              {event.isOnline ? 'Online' : bezirkLabel(event.bezirk) || 'Vorarlberg'}
+              {event.isOnline ? 'Online' : bezirkLabel(event.bezirk) || eventRegionName(event)}
             </span>
           </div>
         </div>

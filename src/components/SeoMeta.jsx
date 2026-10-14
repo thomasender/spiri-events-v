@@ -1,7 +1,6 @@
 import { Helmet } from 'react-helmet-async';
 import {
   SITE_URL,
-  SITE_NAME,
   DEFAULT_DESCRIPTION,
   DEFAULT_OG_IMAGE_URL,
   OG_IMAGE_WIDTH,
@@ -12,6 +11,7 @@ import {
   buildPageUrl,
 } from '../utils/seo';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
+import { useRegionTexts } from '../hooks/useRegionTexts';
 
 export function getEventOgImage(event) {
   if (event?.imageUrl) {
@@ -20,14 +20,15 @@ export function getEventOgImage(event) {
   return toAbsoluteUrl(getEventFallbackImage(event));
 }
 
-function defaultTitle(value) {
-  if (value && value !== SITE_NAME) return `${value} | ${SITE_NAME}`;
-  return SITE_NAME;
+function defaultTitle(value, siteName, exact) {
+  if (exact && value) return value;
+  if (value && value !== siteName) return `${value} | ${siteName}`;
+  return siteName;
 }
 
-function buildDescription(value) {
+function buildDescription(value, fallback) {
   if (value) return value;
-  return DEFAULT_DESCRIPTION;
+  return fallback;
 }
 
 export default function SeoMeta({
@@ -39,12 +40,15 @@ export default function SeoMeta({
   type = 'website',
   noindex = false,
   event,
+  exactTitle = false,
 }) {
+  // Site name and default description follow the region (unchanged for Vorarlberg).
+  const texts = useRegionTexts();
   const resolvedImageUrl = imageUrl || (event ? getEventOgImage(event) : DEFAULT_OG_IMAGE_URL);
   const absoluteImageUrl = toAbsoluteUrl(resolvedImageUrl);
   const url = buildPageUrl(path);
-  const finalTitle = defaultTitle(title);
-  const finalDescription = buildDescription(description);
+  const finalTitle = defaultTitle(title, texts.siteName, exactTitle);
+  const finalDescription = buildDescription(description, texts.defaultDescription);
 
   return (
     <Helmet>
@@ -53,7 +57,7 @@ export default function SeoMeta({
       <link rel="canonical" href={url} />
       <meta name="robots" content={noindex ? 'noindex, nofollow' : 'index, follow'} />
 
-      <meta property="og:site_name" content={SITE_NAME} />
+      <meta property="og:site_name" content={texts.siteName} />
       <meta property="og:type" content={type} />
       <meta property="og:title" content={finalTitle} />
       <meta property="og:description" content={finalDescription} />

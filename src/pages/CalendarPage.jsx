@@ -41,6 +41,7 @@ import {
   RefreshCw,
   Share,
 } from 'lucide-react';
+import { useRegionTexts } from '../hooks/useRegionTexts';
 import './CalendarPage.css';
 import { trackEventOpen, trackFilter } from '../lib/analyticsEvents';
 
@@ -51,6 +52,7 @@ const HERO_FEATURES = [
     icon: MapPin,
     title: 'In deiner Umgebung',
     description: 'Für Vorarlberg und Umkreis',
+    nearby: true,
   },
   {
     icon: Users,
@@ -161,6 +163,7 @@ export default function CalendarPage() {
   const location = useLocation();
   const { user, canCreateEvents } = useAuth();
   const canonicalPath = useRegionCanonicalPath('/');
+  const regionTexts = useRegionTexts();
   // Load saved state exactly once per mount. Reading it inside the render body
   // would create a new object reference on every render and trip downstream
   // effects into re-doing work that depends on the initial values.
@@ -406,8 +409,9 @@ export default function CalendarPage() {
   return (
     <div className="calendar-page">
       <SeoMeta
-        title="Kalender"
-        description="Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg - Bregenz, Dornbirn, Feldkirch, Bludenz, Umgebung"
+        title={regionTexts.calendarTitle}
+        exactTitle={regionTexts.calendarTitleExact}
+        description={regionTexts.calendarDescription}
         path={canonicalPath}
       />
 
@@ -423,7 +427,7 @@ export default function CalendarPage() {
             <br />
             Tanz, Singen, Soundhealing und viele
             <br />
-            weitere Veranstaltungen in Vorarlberg.
+            weitere Veranstaltungen {regionTexts.locationPhrase}.
           </p>
           <div
             className="hero-features-slider"
@@ -445,12 +449,14 @@ export default function CalendarPage() {
                   data-testid="hero-feature-slide"
                   data-slide-index={pairIndex}
                 >
-                  {pair.map(({ icon: Icon, title, description }) => (
+                  {pair.map(({ icon: Icon, title, description, nearby }) => (
                     <div key={title} className="hero-feature-item">
                       <Icon size={20} aria-hidden="true" />
                       <div>
                         <span className="hero-feature-title">{title}</span>
-                        <span className="hero-feature-description">{description}</span>
+                        <span className="hero-feature-description">
+                          {nearby ? regionTexts.nearbyText : description}
+                        </span>
                       </div>
                     </div>
                   ))}
