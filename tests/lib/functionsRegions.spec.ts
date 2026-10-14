@@ -1,11 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import {
+  DIRECTORY_REGIONS,
   INSTAGRAM_REGION_IDS,
   REGION_IDS,
   isInstagramRegion,
   resolveRegionId,
 } from '../../functions/src/regions';
 import { REGION_SLUGS } from '../../src/utils/regions';
+import { DIRECTORY_REGIONS as SRC_DIRECTORY_REGIONS } from '../../src/utils/directory';
 import { expandOccurrencesInWindow } from '../../functions/src/instagram/instagramOccurrences';
 import { selectFeedEvents } from '../../functions/src/calendar/calendarRoutes';
 
@@ -30,6 +32,12 @@ describe('functions resolveRegionId', () => {
 describe('functions REGION_IDS', () => {
   it('matches REGION_SLUGS in src/utils/regions.js (moderator region validation)', () => {
     expect([...REGION_IDS]).toEqual(REGION_SLUGS);
+  });
+});
+
+describe('functions DIRECTORY_REGIONS', () => {
+  it('matches DIRECTORY_REGIONS in src/utils/directory.js (member profile validation)', () => {
+    expect([...DIRECTORY_REGIONS]).toEqual(SRC_DIRECTORY_REGIONS);
   });
 });
 

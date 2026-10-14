@@ -47,6 +47,9 @@ import {
 } from '../lib/eventImage';
 import { CURRENCIES, DEFAULT_CURRENCY, formatPriceWithCurrency } from '../utils/currency';
 import { pickEventRegionId } from '../utils/regions';
+import { useRegionChoices } from '../hooks/useRegionChoices';
+import { keepIfInRegion, selectedRegionId, subdivisionFor } from '../utils/regionChoices';
+import EventRegionField from './EventRegionField';
 import { saveWizardDraft, loadWizardDraft, clearWizardDraft } from '../utils/wizardDraftStorage';
 import { normalizeCategoryInput, isValidCategoryInput } from '../utils/categoryInput';
 import { getCategoryColor } from '../utils/categoryColors';
@@ -178,6 +181,18 @@ export default function EventFormWizard() {
       ...profileDefaults,
     };
   });
+
+  // Region field: only with two or more active regions (otherwise nothing
+  // changes). The preselection is the current region.
+  const regionChoices = useRegionChoices();
+  const selectedRegion = regionChoices.enabled
+    ? selectedRegionId(formData.regionId, regionChoices)
+    : '';
+  const subdivision = subdivisionFor(selectedRegion, regionChoices);
+  const subdivisionLabel = subdivision.label;
+  const bezirkOptions = subdivision.options ?? BEZIRKE;
+  // A region without any Bezirk / Landkreis in its register cannot require one.
+  const bezirkRequired = bezirkOptions.length > 0;
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -360,8 +375,8 @@ export default function EventFormWizard() {
       ) {
         newErrors.endTime = 'Die Endzeit muss nach der Startzeit liegen';
       }
-      if (!formData.isOnline && !formData.bezirk) {
-        newErrors.bezirk = 'Bitte Bezirk auswählen oder als Online-Event markieren';
+      if (bezirkRequired && !formData.isOnline && !formData.bezirk) {
+        newErrors.bezirk = `Bitte ${subdivisionLabel} auswählen oder als Online-Event markieren`;
       }
       if (!formData.category) {
         newErrors.category = 'Kategorie ist erforderlich';
@@ -537,6 +552,8 @@ export default function EventFormWizard() {
       ...prev,
       [name]: value,
       ...(name === 'bezirk' && value ? { isOnline: false } : {}),
+      // A new region has its own Bezirke / Landkreise: drop a no longer fitting one.
+      ...(name === 'regionId' ? { bezirk: keepIfInRegion(prev.bezirk, value, regionChoices) } : {}),
     }));
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: null }));
@@ -726,7 +743,7 @@ export default function EventFormWizard() {
     category: formData.category || 'Sonstiges',
     bezirk: formData.isOnline ? '' : formData.bezirk,
     isOnline: Boolean(formData.isOnline),
-    regionId: pickEventRegionId(formData.regionId),
+    regionId: pickEventRegionId(regionChoices.enabled ? selectedRegion : formData.regionId),
     organizer: {
       firstName: splitOrganizerName(formData.organizer.name).firstName,
       lastName: splitOrganizerName(formData.organizer.name).lastName,
@@ -1125,9 +1142,18 @@ export default function EventFormWizard() {
         />
       </div>
 
+      {regionChoices.enabled && (
+        <EventRegionField
+          value={selectedRegion}
+          options={regionChoices.options}
+          onChange={handleChange}
+          isOnline={formData.isOnline}
+        />
+      )}
+
       <div className="form-row">
         <div className="form-group">
-          <label htmlFor="bezirk">Bezirk *</label>
+          <label htmlFor="bezirk">{subdivisionLabel} *</label>
           <select
             id="bezirk"
             name="bezirk"
@@ -1136,8 +1162,8 @@ export default function EventFormWizard() {
             disabled={formData.isOnline}
             className={errors.bezirk ? 'input-error' : ''}
           >
-            <option value="">Bezirk auswählen...</option>
-            {BEZIRKE.map((b) => (
+            <option value="">{subdivisionLabel} auswählen...</option>
+            {bezirkOptions.map((b) => (
               <option key={b} value={b}>
                 {bezirkLabel(b)}
               </option>
@@ -1175,7 +1201,7 @@ export default function EventFormWizard() {
             onChange={handleChange}
             data-testid="is-online-checkbox"
           />
-          <span>Online-Event (kein Bezirk und keine Adresse nötig)</span>
+          <span>Online-Event (kein {subdivisionLabel} und keine Adresse nötig)</span>
         </label>
       </div>
 

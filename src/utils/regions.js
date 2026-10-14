@@ -166,6 +166,13 @@ export const getSubdivisionLabel = (regionId, regions = STATIC_REGIONS) =>
   getRegionBySlug(regionId, regions)?.subdivisionLabel ?? DEFAULT_SUBDIVISION_LABEL;
 
 // "Bezirke" / "Landkreise".
+// Every district of every region (Vorarlberg first), without duplicates: what
+// a directory profile may name in `directoryRegions`. Pass the merged register
+// to include districts that only exist in Firestore (e.g. Tirol).
+export const getAllDistricts = (regions = STATIC_REGIONS) => [
+  ...new Set(regions.flatMap((r) => r.bezirke ?? [])),
+];
+
 export const getSubdivisionLabelPlural = (regionId, regions = STATIC_REGIONS) => {
   const label = getSubdivisionLabel(regionId, regions);
   return SUBDIVISION_PLURALS[label] ?? `${label}e`;

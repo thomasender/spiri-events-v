@@ -25,6 +25,43 @@ export const REGION_IDS: readonly string[] = [
   'allgaeu',
 ];
 
+/**
+ * Districts (Bezirke / Landkreise) known without Firestore, in the order of
+ * DIRECTORY_REGIONS in src/utils/directory.js (all districts of all regions,
+ * Vorarlberg first, then "Online"). A directory profile may only name these
+ * (plus districts stored in `regions/{id}.bezirke`). Synced copy, guarded by
+ * tests/lib/functionsRegions.spec.ts.
+ */
+export const DIRECTORY_REGIONS: readonly string[] = [
+  'Bregenz',
+  'Dornbirn',
+  'Feldkirch',
+  'Bludenz',
+  'Grenznahe',
+  'Graz',
+  'Graz-Umgebung',
+  'Bruck-Mürzzuschlag',
+  'Deutschlandsberg',
+  'Hartberg-Fürstenfeld',
+  'Leibnitz',
+  'Leoben',
+  'Liezen',
+  'Murau',
+  'Murtal',
+  'Südoststeiermark',
+  'Voitsberg',
+  'Weiz',
+  'Oberallgäu',
+  'Ostallgäu',
+  'Unterallgäu',
+  'Lindau (Bodensee)',
+  'Ravensburg (Württembergisches Allgäu)',
+  'Kempten (Allgäu)',
+  'Kaufbeuren',
+  'Memmingen',
+  'Online',
+];
+
 export function isRegionId(value: unknown): value is string {
   return typeof value === 'string' && REGION_IDS.includes(value);
 }

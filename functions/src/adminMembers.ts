@@ -14,7 +14,7 @@ import {
   profileVisibleToModerator,
   type StaffRole,
 } from './staffRoles';
-import { isRegionId } from './regions';
+import { DIRECTORY_REGIONS, isRegionId } from './regions';
 
 if (getApps().length === 0) {
   initializeApp();
@@ -27,8 +27,6 @@ const ALLOWED_ORIGINS = [
   'http://localhost:5180',
 ];
 
-// Mirrors DIRECTORY_REGIONS in src/utils/directory.js (Bezirke + Online).
-const DIRECTORY_REGIONS = ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe', 'Online'];
 const DISPLAY_NAME_MAX = 80;
 const USERNAME_MAX = 40;
 const MAX_CATEGORIES = 5;
@@ -122,7 +120,10 @@ export interface MemberPatch {
 
 // Validates an admin edit. Only the whitelisted public-profile fields are
 // accepted; the e-mail address (login) is deliberately not editable here.
-export function validateMemberPatch(raw: unknown): MemberPatch {
+export function validateMemberPatch(
+  raw: unknown,
+  extraDistricts: readonly string[] = []
+): MemberPatch {
   if (!raw || typeof raw !== 'object') {
     throw new HttpsError('invalid-argument', 'changes must be an object.');
   }
@@ -156,7 +157,7 @@ export function validateMemberPatch(raw: unknown): MemberPatch {
   }
   if ('directoryRegions' in input) {
     const list = strList(input.directoryRegions);
-    if (list.some((r) => !DIRECTORY_REGIONS.includes(r))) {
+    if (list.some((r) => !DIRECTORY_REGIONS.includes(r) && !extraDistricts.includes(r))) {
       throw new HttpsError('invalid-argument', 'Unknown region.');
     }
     patch.directoryRegions = Array.from(new Set(list));
@@ -323,6 +324,9 @@ export const MODERATOR_MEMBER_FIELDS: readonly (keyof MemberPatch)[] = [
 export interface UpdateMemberDeps {
   readRoleDoc: (uid: string) => Promise<Doc | null>;
   readProfiles: (uid: string) => Promise<{ publicData: Doc | null; privateData: Doc | null }>;
+  // Districts stored in regions/{id}.bezirke (e.g. Tirol), valid next to the
+  // built-in DIRECTORY_REGIONS. Optional: without it only the built-in list counts.
+  readRegionDistricts?: () => Promise<string[]>;
   writeProfiles: (
     uid: string,
     update: Doc,
@@ -340,7 +344,12 @@ export async function updateMemberHandler(
     throw new HttpsError('invalid-argument', 'uid is required.');
   }
   const uid = data.uid;
-  const patch = validateMemberPatch(data.changes);
+  const changes = data.changes as Record<string, unknown> | null | undefined;
+  const extraDistricts =
+    changes && typeof changes === 'object' && 'directoryRegions' in changes
+      ? ((await deps.readRegionDistricts?.()) ?? [])
+      : [];
+  const patch = validateMemberPatch(data.changes, extraDistricts);
 
   const { publicData, privateData } = await deps.readProfiles(uid);
   if (role.kind === 'regionModerator') {
@@ -419,6 +428,10 @@ const updateMemberDeps: UpdateMemberDeps = {
       publicData: publicSnap.exists ? (publicSnap.data() ?? {}) : null,
       privateData: privateSnap.exists ? (privateSnap.data() ?? {}) : null,
     };
+  },
+  async readRegionDistricts() {
+    const snap = await getFirestore().collection('regions').get();
+    return snap.docs.flatMap((d) => strList(d.data().bezirke));
   },
   async writeProfiles(uid, update, targets) {
     const db = getFirestore();

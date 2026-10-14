@@ -109,7 +109,8 @@ service cloud.firestore {
 
     // Directory listing fields on the profile docs. A profile may only be
     // listed (`listedInDirectory == true`) when it names at least one
-    // category; categories/regions are capped so the doc stays small.
+    // category; categories/regions are capped so the doc stays small (up to
+    // 120 Bezirk/Landkreis names: one profile may list in several regions).
     // `directoryRegionIds` (region ids, next to the Bezirk names in
     // `directoryRegions`) is optional so profiles saved before regions
     // existed stay valid. `request.resource.data` is the merged document,
@@ -119,7 +120,7 @@ service cloud.firestore {
         && (!('directoryCategories' in d)
             || (d.directoryCategories is list && d.directoryCategories.size() <= 5))
         && (!('directoryRegions' in d)
-            || (d.directoryRegions is list && d.directoryRegions.size() <= 6))
+            || (d.directoryRegions is list && d.directoryRegions.size() <= 120))
         && (!('directoryRegionIds' in d)
             || (d.directoryRegionIds is list
                 && d.directoryRegionIds.size() <= 10

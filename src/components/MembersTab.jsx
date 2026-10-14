@@ -17,7 +17,9 @@ import { useMemberLists } from '../hooks/useMemberLists';
 import { useCategories } from '../hooks/useCategories';
 import { useAuth } from '../hooks/useAuth';
 import { getStaffAccess } from '../utils/staffRoles';
-import { DIRECTORY_REGIONS } from '../utils/directory';
+import { BEZIRKE, ONLINE_LOCATION } from '../utils/regions';
+import { useRegionChoices } from '../hooks/useRegionChoices';
+import { directoryDistrictGroups } from '../utils/regionChoices';
 import {
   filterMembers,
   sortMembers,
@@ -61,6 +63,13 @@ function MemberEditDialog({ member, categories, onSave, onClose, moderatorMode =
   });
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
+  const regionChoices = useRegionChoices();
+  const districtGroups = regionChoices.enabled
+    ? directoryDistrictGroups(
+        regionChoices.options.map((r) => r.id),
+        regionChoices
+      )
+    : [];
 
   const toggle = (field, value) =>
     setDraft((d) => ({
@@ -132,19 +141,52 @@ function MemberEditDialog({ member, categories, onSave, onClose, moderatorMode =
             onChange={(e) => setDraft({ ...draft, username: e.target.value })}
           />
         </label>
-        <fieldset>
-          <legend>Bezirke</legend>
-          {DIRECTORY_REGIONS.map((b) => (
-            <label key={b} className="members-check">
-              <input
-                type="checkbox"
-                checked={draft.directoryRegions.includes(b)}
-                onChange={() => toggle('directoryRegions', b)}
-              />
-              {b}
-            </label>
-          ))}
-        </fieldset>
+        {regionChoices.enabled ? (
+          <>
+            {districtGroups.map((group) => (
+              <fieldset key={group.regionId}>
+                <legend>
+                  {group.label} {group.regionName}
+                </legend>
+                {group.districts.map((b) => (
+                  <label key={b} className="members-check">
+                    <input
+                      type="checkbox"
+                      checked={draft.directoryRegions.includes(b)}
+                      onChange={() => toggle('directoryRegions', b)}
+                    />
+                    {b}
+                  </label>
+                ))}
+              </fieldset>
+            ))}
+            <fieldset>
+              <legend>Online</legend>
+              <label className="members-check">
+                <input
+                  type="checkbox"
+                  checked={draft.directoryRegions.includes(ONLINE_LOCATION)}
+                  onChange={() => toggle('directoryRegions', ONLINE_LOCATION)}
+                />
+                {ONLINE_LOCATION}
+              </label>
+            </fieldset>
+          </>
+        ) : (
+          <fieldset>
+            <legend>Bezirke</legend>
+            {[...BEZIRKE, ONLINE_LOCATION].map((b) => (
+              <label key={b} className="members-check">
+                <input
+                  type="checkbox"
+                  checked={draft.directoryRegions.includes(b)}
+                  onChange={() => toggle('directoryRegions', b)}
+                />
+                {b}
+              </label>
+            ))}
+          </fieldset>
+        )}
         <fieldset>
           <legend>Kategorien (max. 5)</legend>
           {categories.map((c) => (
@@ -203,6 +245,14 @@ export default function MembersTab() {
 
   const [search, setSearch] = useState('');
   const [region, setRegion] = useState('');
+  const [regionId, setRegionId] = useState('');
+  const regionChoices = useRegionChoices();
+  const districtGroups = regionChoices.enabled
+    ? directoryDistrictGroups(
+        regionChoices.options.map((r) => r.id),
+        regionChoices
+      )
+    : [];
   const [category, setCategory] = useState('');
   const [activeListId, setActiveListId] = useState('');
   const [sort, setSort] = useState({ key: 'createdAt', direction: 'desc' });
@@ -217,11 +267,12 @@ export default function MembersTab() {
     const filtered = filterMembers(members, {
       search,
       region,
+      regionId,
       category,
       listUids: activeList ? new Set(activeList.memberUids || []) : null,
     });
     return sortMembers(filtered, sort.key, sort.direction);
-  }, [members, search, region, category, activeList, sort]);
+  }, [members, search, region, regionId, category, activeList, sort]);
 
   const toggleSort = (key) =>
     setSort((s) =>
@@ -320,17 +371,51 @@ export default function MembersTab() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </label>
+        {regionChoices.enabled && (
+          <select
+            aria-label="Nach Region filtern"
+            value={regionId}
+            onChange={(e) => setRegionId(e.target.value)}
+            data-testid="members-region-filter"
+          >
+            <option value="">Alle Regionen</option>
+            {regionChoices.options.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+        )}
         <select
-          aria-label="Nach Bezirk filtern"
+          aria-label={
+            regionChoices.enabled ? 'Nach Bezirk oder Landkreis filtern' : 'Nach Bezirk filtern'
+          }
           value={region}
           onChange={(e) => setRegion(e.target.value)}
         >
-          <option value="">Alle Bezirke</option>
-          {DIRECTORY_REGIONS.map((b) => (
-            <option key={b} value={b}>
-              {b}
-            </option>
-          ))}
+          <option value="">
+            {regionChoices.enabled ? 'Alle Bezirke und Landkreise' : 'Alle Bezirke'}
+          </option>
+          {regionChoices.enabled ? (
+            <>
+              {districtGroups.map((group) => (
+                <optgroup key={group.regionId} label={`${group.label} ${group.regionName}`}>
+                  {group.districts.map((b) => (
+                    <option key={b} value={b}>
+                      {b}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+              <option value={ONLINE_LOCATION}>{ONLINE_LOCATION}</option>
+            </>
+          ) : (
+            [...BEZIRKE, ONLINE_LOCATION].map((b) => (
+              <option key={b} value={b}>
+                {b}
+              </option>
+            ))
+          )}
         </select>
         <select
           aria-label="Nach Kategorie filtern"

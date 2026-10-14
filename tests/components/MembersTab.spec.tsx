@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import MembersTab from '../../src/components/MembersTab';
+import { RegionContext, DEFAULT_REGION_CONTEXT } from '../../src/hooks/useRegion';
+import { STATIC_REGIONS, mergeRegions } from '../../src/utils/regions';
 
 const state = vi.hoisted(() => ({
   role: 'Admin',
@@ -182,5 +184,65 @@ describe('MembersTab for a Regions-Moderator:in', () => {
       directoryCategories: ['Yoga'],
       directoryRegions: [],
     });
+  });
+});
+
+describe('MembersTab with several active regions', () => {
+  const allRegions = mergeRegions(
+    STATIC_REGIONS.map((r) => ({ id: r.id, active: ['vorarlberg', 'allgaeu'].includes(r.id) }))
+  );
+  const renderMulti = () =>
+    render(
+      <RegionContext.Provider
+        value={
+          {
+            ...DEFAULT_REGION_CONTEXT,
+            allRegions,
+            regions: allRegions.filter((r) => r.active),
+          } as never
+        }
+      >
+        <MembersTab />
+      </RegionContext.Provider>
+    );
+
+  it('has no region filter with a single active region', () => {
+    render(<MembersTab />);
+    expect(screen.queryByTestId('members-region-filter')).not.toBeInTheDocument();
+  });
+
+  it('filters by region (members without region ids count as Vorarlberg) and offers Landkreise', () => {
+    state.members = [
+      member('anna', { directoryRegions: ['Dornbirn'] }),
+      member('carla', { directoryRegions: ['Oberallgäu'], directoryRegionIds: ['allgaeu'] }),
+    ];
+    renderMulti();
+    expect(screen.getAllByTestId('member-row')).toHaveLength(2);
+
+    fireEvent.change(screen.getByTestId('members-region-filter'), { target: { value: 'allgaeu' } });
+    const rows = screen.getAllByTestId('member-row');
+    expect(rows).toHaveLength(1);
+    expect(within(rows[0]).getByText('carla@x.at')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByTestId('members-region-filter'), {
+      target: { value: 'vorarlberg' },
+    });
+    expect(
+      within(screen.getAllByTestId('member-row')[0]).getByText('anna@x.at')
+    ).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Nach Bezirk oder Landkreis filtern'), {
+      target: { value: 'Oberallgäu' },
+    });
+    expect(screen.queryAllByTestId('member-row')).toHaveLength(0);
+  });
+
+  it('the edit dialog groups districts per region with the right label', () => {
+    renderMulti();
+    fireEvent.click(screen.getByLabelText('bernd bearbeiten'));
+    const dialog = screen.getByTestId('member-edit-dialog');
+    expect(within(dialog).getByText('Bezirke Vorarlberg')).toBeInTheDocument();
+    expect(within(dialog).getByText('Landkreise Allgäu')).toBeInTheDocument();
+    expect(within(dialog).getByLabelText('Oberallgäu')).toBeInTheDocument();
   });
 });

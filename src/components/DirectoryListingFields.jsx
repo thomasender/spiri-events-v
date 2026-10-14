@@ -1,7 +1,23 @@
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { DIRECTORY_MAX_CATEGORIES, DIRECTORY_REGIONS, toggleValue } from '../utils/directory';
+import { DIRECTORY_MAX_CATEGORIES, toggleValue } from '../utils/directory';
+import { BEZIRKE, ONLINE_LOCATION } from '../utils/regions';
+import { directoryDistrictGroups } from '../utils/regionChoices';
 import './DirectoryListingFields.css';
+
+function RegionChip({ name, selected, onToggle }) {
+  return (
+    <button
+      type="button"
+      className={`directory-chip${selected ? ' directory-chip--selected' : ''}`}
+      aria-pressed={selected}
+      onClick={onToggle}
+      data-testid={`profile-directory-region-${name}`}
+    >
+      {name}
+    </button>
+  );
+}
 
 // Profile-form section: opt in to the directory, then pick what you offer
 // (required once listed) and where (optional). Purely controlled — the
@@ -15,7 +31,14 @@ export default function DirectoryListingFields({
   onRegionsChange,
   availableCategories,
   errors = {},
+  // Region choice (useRegionChoices): only with two or more active regions the
+  // person first picks the regions and then the districts of those regions.
+  regionChoices = null,
+  regionIds = [],
+  onRegionIdsChange = () => {},
 }) {
+  const multiRegion = Boolean(regionChoices?.enabled);
+  const districtGroups = multiRegion ? directoryDistrictGroups(regionIds, regionChoices) : [];
   const atLimit = categories.length >= DIRECTORY_MAX_CATEGORIES;
   const sectionRef = useRef(null);
   const { hash } = useLocation();
@@ -86,29 +109,89 @@ export default function DirectoryListingFields({
             )}
           </fieldset>
 
-          <fieldset className="directory-fields-group" data-testid="profile-directory-regions">
-            <legend>
-              Wo findet man dich? <span>(optional)</span>
-            </legend>
-            <div className="directory-chip-row">
-              {DIRECTORY_REGIONS.map((region) => {
-                const selected = regions.includes(region);
-                return (
-                  <button
+          {multiRegion && (
+            <fieldset className="directory-fields-group" data-testid="profile-directory-region-ids">
+              <legend>In welchen Regionen bist du aktiv? *</legend>
+              <div className="directory-chip-row">
+                {regionChoices.options.map((r) => {
+                  const selected = regionIds.includes(r.id);
+                  return (
+                    <button
+                      key={r.id}
+                      type="button"
+                      className={`directory-chip${selected ? ' directory-chip--selected' : ''}`}
+                      aria-pressed={selected}
+                      onClick={() => onRegionIdsChange(toggleValue(regionIds, r.id))}
+                      data-testid={`profile-directory-region-id-${r.id}`}
+                    >
+                      {r.name}
+                    </button>
+                  );
+                })}
+              </div>
+              {errors.regionIds && (
+                <span className="error-text" data-testid="profile-directory-region-ids-error">
+                  {errors.regionIds}
+                </span>
+              )}
+            </fieldset>
+          )}
+
+          {multiRegion ? (
+            <>
+              {districtGroups.map((group) => (
+                <fieldset
+                  key={group.regionId}
+                  className="directory-fields-group"
+                  data-testid={`profile-directory-regions-${group.regionId}`}
+                >
+                  <legend>
+                    {group.label} in {group.regionName} <span>(optional)</span>
+                  </legend>
+                  <div className="directory-chip-row">
+                    {group.districts.map((region) => (
+                      <RegionChip
+                        key={region}
+                        name={region}
+                        selected={regions.includes(region)}
+                        onToggle={() => onRegionsChange(toggleValue(regions, region))}
+                      />
+                    ))}
+                  </div>
+                </fieldset>
+              ))}
+              <fieldset className="directory-fields-group" data-testid="profile-directory-regions">
+                <legend>
+                  Online <span>(optional)</span>
+                </legend>
+                <div className="directory-chip-row">
+                  <RegionChip
+                    name={ONLINE_LOCATION}
+                    selected={regions.includes(ONLINE_LOCATION)}
+                    onToggle={() => onRegionsChange(toggleValue(regions, ONLINE_LOCATION))}
+                  />
+                </div>
+                {errors.regions && <span className="error-text">{errors.regions}</span>}
+              </fieldset>
+            </>
+          ) : (
+            <fieldset className="directory-fields-group" data-testid="profile-directory-regions">
+              <legend>
+                Wo findet man dich? <span>(optional)</span>
+              </legend>
+              <div className="directory-chip-row">
+                {[...BEZIRKE, ONLINE_LOCATION].map((region) => (
+                  <RegionChip
                     key={region}
-                    type="button"
-                    className={`directory-chip${selected ? ' directory-chip--selected' : ''}`}
-                    aria-pressed={selected}
-                    onClick={() => onRegionsChange(toggleValue(regions, region))}
-                    data-testid={`profile-directory-region-${region}`}
-                  >
-                    {region}
-                  </button>
-                );
-              })}
-            </div>
-            {errors.regions && <span className="error-text">{errors.regions}</span>}
-          </fieldset>
+                    name={region}
+                    selected={regions.includes(region)}
+                    onToggle={() => onRegionsChange(toggleValue(regions, region))}
+                  />
+                ))}
+              </div>
+              {errors.regions && <span className="error-text">{errors.regions}</span>}
+            </fieldset>
+          )}
         </>
       )}
     </div>

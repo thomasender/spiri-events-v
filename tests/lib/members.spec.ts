@@ -125,6 +125,15 @@ describe('validateMemberPatch', () => {
     });
     expect(() => validateMemberPatch({ email: 'x@y.at' })).toThrow();
     expect(() => validateMemberPatch({ directoryRegions: ['Wien'] })).toThrow();
+    // Districts of other regions (Steiermark, Allgäu) are valid too.
+    expect(
+      validateMemberPatch({ directoryRegions: ['Leibnitz', 'Oberallgäu', 'Dornbirn'] })
+    ).toEqual({ directoryRegions: ['Leibnitz', 'Oberallgäu', 'Dornbirn'] });
+    // Districts that only live in Firestore (regions/{id}.bezirke) via extraDistricts.
+    expect(() => validateMemberPatch({ directoryRegions: ['Innsbruck'] })).toThrow();
+    expect(validateMemberPatch({ directoryRegions: ['Innsbruck'] }, ['Innsbruck'])).toEqual({
+      directoryRegions: ['Innsbruck'],
+    });
     expect(() => validateMemberPatch({ displayName: '' })).toThrow();
     expect(() => validateMemberPatch({})).toThrow();
   });
