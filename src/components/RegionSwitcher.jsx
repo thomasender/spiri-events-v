@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { ChevronDown, MapPin } from 'lucide-react';
 import { useRegion } from '../hooks/useRegion';
 import { trackFilter } from '../lib/analyticsEvents';
-import { ALL_REGIONS_NAME, ALL_REGIONS_SLUG, regionSwitchSubpath } from '../utils/regionRouting';
+import { regionSwitchSubpath } from '../utils/regionRouting';
 import './RegionSwitcher.css';
 
 /**
@@ -11,7 +11,7 @@ import './RegionSwitcher.css';
  * fewer than two regions are active, so Vorarlberg-only visitors see no change.
  */
 export default function RegionSwitcher() {
-  const { regions, regionId, isNational, setRegion } = useRegion();
+  const { regions, regionId, combinedView, combinedViews, setRegion } = useRegion();
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
@@ -20,9 +20,9 @@ export default function RegionSwitcher() {
 
   const entries = [
     ...[...regions].sort((a, b) => a.order - b.order).map((r) => ({ slug: r.slug, name: r.name })),
-    { slug: ALL_REGIONS_SLUG, name: ALL_REGIONS_NAME },
+    ...combinedViews.map((v) => ({ slug: v.slug, name: v.name, combined: true })),
   ];
-  const currentSlug = isNational ? ALL_REGIONS_SLUG : regionId;
+  const currentSlug = combinedView ? combinedView.slug : regionId;
   const current = entries.find((e) => e.slug === currentSlug) ?? entries[0];
   const visible = regions.length >= 2;
 
@@ -134,7 +134,7 @@ export default function RegionSwitcher() {
               aria-checked={entry.slug === currentSlug}
               className={`region-switcher-item${
                 entry.slug === currentSlug ? ' region-switcher-item--active' : ''
-              }${entry.slug === ALL_REGIONS_SLUG ? ' region-switcher-item--all' : ''}`}
+              }${entry.combined ? ' region-switcher-item--all' : ''}`}
               onClick={() => choose(entry.slug)}
             >
               {entry.name}

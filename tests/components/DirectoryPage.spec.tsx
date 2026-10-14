@@ -183,6 +183,7 @@ describe('DirectoryPage — regions (ticket 14)', () => {
             regions: allRegions.filter((r) => r.active),
             allRegions,
             isNational,
+            combinedRegions: isNational ? allRegions.filter((r) => r.active) : [],
           }}
         >
           <DirectoryPage />

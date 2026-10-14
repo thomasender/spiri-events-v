@@ -9,12 +9,7 @@ import {
   getRegionBySlug,
   resolveRegionId,
 } from '../utils/regions';
-import {
-  ALL_REGIONS_SLUG,
-  activeRegions,
-  regionCanonicalPath,
-  regionPath,
-} from '../utils/regionRouting';
+import { activeRegions, regionCanonicalPath, regionPath } from '../utils/regionRouting';
 
 const noop = () => {};
 
@@ -26,6 +21,9 @@ export const DEFAULT_REGION_CONTEXT = Object.freeze({
   regions: activeRegions(STATIC_REGIONS),
   allRegions: STATIC_REGIONS,
   isNational: false,
+  combinedView: null,
+  combinedRegions: [],
+  combinedViews: [],
   loading: false,
   setRegion: noop,
   setEventRegion: noop,
@@ -60,8 +58,8 @@ export function useEventRegionContext(event) {
  * region. Unchanged addresses while Vorarlberg is the only active region.
  */
 export function useRegionCanonicalPath(path = '/') {
-  const { regionId, allRegions, isNational } = useRegion();
-  if (isNational) return regionPath(ALL_REGIONS_SLUG, path);
+  const { regionId, allRegions, combinedView } = useRegion();
+  if (combinedView) return regionPath(combinedView.slug, path);
   return regionCanonicalPath(regionId, path, allRegions);
 }
 
@@ -72,8 +70,10 @@ export function useRegionCanonicalPath(path = '/') {
  * keeps the inactive-region rule.
  */
 export function useRegionEvents(events, { allActive = false } = {}) {
-  const { regionId, regions, isNational } = useRegion();
-  const activeKey = regions.map((r) => r.id).join(',');
+  const { regionId, regions, combinedRegions, isNational } = useRegion();
+  // Combined view: the regions it covers; favourites (`allActive`): every active region.
+  const scope = isNational && !allActive ? combinedRegions : regions;
+  const activeKey = scope.map((r) => r.id).join(',');
   return useMemo(
     () =>
       filterEventsForRegion(events, {
@@ -87,8 +87,8 @@ export function useRegionEvents(events, { allActive = false } = {}) {
 
 /** Directory profiles listed in the current region (combined view: any active region). */
 export function useRegionDirectoryEntries(entries) {
-  const { regionId, regions, isNational } = useRegion();
-  const activeKey = regions.map((r) => r.id).join(',');
+  const { regionId, regions, combinedRegions, isNational } = useRegion();
+  const activeKey = (isNational ? combinedRegions : regions).map((r) => r.id).join(',');
   return useMemo(
     () =>
       filterDirectoryForRegion(entries, {
@@ -102,9 +102,9 @@ export function useRegionDirectoryEntries(entries) {
 
 /** Bezirke / Landkreise of the current region (combined view: those of all active regions). */
 export function useRegionBezirke() {
-  const { regionId, regions, allRegions, isNational } = useRegion();
+  const { regionId, combinedRegions, allRegions, isNational } = useRegion();
   return useMemo(
-    () => (isNational ? getAllDistricts(regions) : getBezirke(regionId, allRegions)),
-    [isNational, regionId, regions, allRegions]
+    () => (isNational ? getAllDistricts(combinedRegions) : getBezirke(regionId, allRegions)),
+    [isNational, regionId, combinedRegions, allRegions]
   );
 }

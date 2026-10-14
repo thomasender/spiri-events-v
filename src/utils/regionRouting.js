@@ -2,41 +2,100 @@
 // `/oesterreich`). The URL is the source of truth for the region; the last
 // chosen region in localStorage only fills in where the URL names none (`/`).
 // No Firebase imports, so Vitest covers it without an emulator.
-import { DEFAULT_REGION_ID, STATIC_REGIONS, getRegionBySlug, isRegionSlug } from './regions.js';
+import {
+  COMBINED_VIEWS,
+  DEFAULT_REGION_ID,
+  STATIC_REGIONS,
+  getRegionBySlug,
+  isCombinedViewSlug,
+  isRegionSlug,
+} from './regions.js';
 
-// Slug of the combined "all regions" view. Not a region: never stored on an
-// event or profile, reserved as a username (username.js).
-// OPEN POINT (product owners): the view covers every active region, so once
-// the Allgäu (Bavaria, not Austria) is active it shows up under "Ganz
-// Österreich" too. Whether it belongs there (or the view gets another name or
-// excludes it) is not decided yet; nothing here filters it out on purpose.
+// Combined views (`/oesterreich`, `/deutschland`, `/schweiz`, `/alle-tribes`)
+// are not regions: never stored on an event or profile, reserved as usernames
+// (username.js). A country view covers the ACTIVE regions of that country,
+// "Alle Tribes" all active regions of all countries (definitions: COMBINED_VIEWS
+// in regions.js).
+// "Ganz Österreich" is only the Austrian regions (the Allgäu is German and
+// appears under "Ganz Deutschland").
+export { COMBINED_VIEWS };
 export const ALL_REGIONS_SLUG = 'oesterreich';
 export const ALL_REGIONS_NAME = 'Ganz Österreich';
+export const GLOBAL_VIEW_SLUG = 'alle-tribes';
 
 export const LAST_REGION_STORAGE_KEY = 'tribe:lastRegion';
 
 export const activeRegions = (regions = STATIC_REGIONS) => regions.filter((r) => r.active);
 
-// The combined view only makes sense with at least two active regions. Until
-// then `/oesterreich` shows the coming-soon page.
+export const getCombinedView = (slug) => COMBINED_VIEWS.find((v) => v.slug === slug) ?? null;
+
+/** Active regions a combined view covers (country view: that country; global: all). */
+export function combinedViewRegions(view, regions = STATIC_REGIONS) {
+  const v = typeof view === 'string' ? getCombinedView(view) : view;
+  if (!v) return [];
+  return activeRegions(regions).filter((r) => !v.country || r.country === v.country);
+}
+
+/**
+ * Availability of a combined view. Country view: at least two active regions of
+ * that country. "Alle Tribes": at least two active regions in total AND at
+ * least two countries with an active region (otherwise it equals one country
+ * view).
+ */
+export function isCombinedViewAvailable(view, regions = STATIC_REGIONS) {
+  const v = typeof view === 'string' ? getCombinedView(view) : view;
+  if (!v) return false;
+  const included = combinedViewRegions(v, regions);
+  if (v.country) return included.length >= 2;
+  return included.length >= 2 && new Set(included.map((r) => r.country)).size >= 2;
+}
+
+/** Combined views offered in chooser and switcher (available ones, in fixed order). */
+export const availableCombinedViews = (regions = STATIC_REGIONS) =>
+  COMBINED_VIEWS.filter((v) => isCombinedViewAvailable(v, regions));
+
+// Kept for the Austrian view: it only makes sense with at least two active
+// Austrian regions.
 export const isAllRegionsViewAvailable = (regions = STATIC_REGIONS) =>
-  activeRegions(regions).length > 1;
+  isCombinedViewAvailable(ALL_REGIONS_SLUG, regions);
+
+/**
+ * What an unavailable combined view shows: with exactly one active region in
+ * scope its page (`{ region }`), for "Alle Tribes" with several regions in one
+ * country that country's view (`{ view }`), otherwise null (coming soon).
+ */
+export function combinedViewFallback(view, regions = STATIC_REGIONS) {
+  const v = typeof view === 'string' ? getCombinedView(view) : view;
+  const included = combinedViewRegions(v, regions);
+  if (included.length === 1) return { region: included[0] };
+  if (included.length > 1 && !v.country) {
+    const countryView = COMBINED_VIEWS.find((c) => c.country === included[0].country);
+    if (countryView && isCombinedViewAvailable(countryView, regions)) return { view: countryView };
+  }
+  return null;
+}
 
 /**
  * Decides synchronously (no waiting for Firestore) what a top-level path
  * segment `/:slug` shows:
  *  - `region`        an active region -> its calendar
- *  - `coming-soon`   a region that is not active (yet) -> friendly hint page
- *  - `all-regions`   `/oesterreich` while at least two regions are active
+ *  - `coming-soon`   a region that is not active (yet) -> friendly hint page;
+ *                    also an unavailable combined view without any active
+ *                    region in scope (`view` set, `region` null)
+ *  - `all-regions`   an available combined view (`view`)
+ *  - `redirect`      an unavailable combined view with a fallback: `redirect`
+ *                    is `{ region }` (the single active region) or `{ view }`
  *  - `profile`       anything else -> public profile (usernames never collide
  *                    with region slugs, username.js reserves them)
- * `region` is null for the combined view and for profiles.
+ * `region` is null for combined views and for profiles.
  */
 export function resolveTopLevelSlug(slug, regions = STATIC_REGIONS) {
-  if (slug === ALL_REGIONS_SLUG) {
-    return isAllRegionsViewAvailable(regions)
-      ? { kind: 'all-regions', region: null }
-      : { kind: 'coming-soon', region: null };
+  if (isCombinedViewSlug(slug)) {
+    const view = getCombinedView(slug);
+    if (isCombinedViewAvailable(view, regions)) return { kind: 'all-regions', region: null, view };
+    const fallback = combinedViewFallback(view, regions);
+    if (fallback) return { kind: 'redirect', region: null, view, redirect: fallback };
+    return { kind: 'coming-soon', region: null, view };
   }
   if (isRegionSlug(slug)) {
     const region = getRegionBySlug(slug, regions);
@@ -46,13 +105,20 @@ export function resolveTopLevelSlug(slug, regions = STATIC_REGIONS) {
   return { kind: 'profile', region: null };
 }
 
-/** Region slug (or the all-regions slug) named by the first path segment, else null. */
+/** Region slug (or combined-view slug) named by the first path segment, else null. */
 export function regionSlugFromPath(pathname) {
   if (typeof pathname !== 'string') return null;
   const first = pathname.split('/').filter(Boolean)[0];
   if (!first) return null;
   const slug = first.toLowerCase();
-  return isRegionSlug(slug) || slug === ALL_REGIONS_SLUG ? slug : null;
+  return isRegionSlug(slug) || isCombinedViewSlug(slug) ? slug : null;
+}
+
+/** Path a redirect fallback points to (`path` is kept, e.g. `/verzeichnis`). */
+export function redirectTargetPath(fallback, path = '/', regions = STATIC_REGIONS) {
+  if (fallback?.region) return regionCanonicalPath(fallback.region.id, path, regions);
+  if (fallback?.view) return regionPath(fallback.view.slug, path);
+  return '/';
 }
 
 /**
@@ -74,7 +140,7 @@ export function resolveCurrentRegionId({ urlSlug, storedSlug, regions = STATIC_R
  */
 export function regionPath(region, path = '/') {
   const slug = typeof region === 'string' ? region : region?.slug;
-  const safeSlug = isRegionSlug(slug) || slug === ALL_REGIONS_SLUG ? slug : DEFAULT_REGION_ID;
+  const safeSlug = isRegionSlug(slug) || isCombinedViewSlug(slug) ? slug : DEFAULT_REGION_ID;
   const suffix = !path || path === '/' ? '' : path.startsWith('/') ? path : `/${path}`;
   return `/${safeSlug}${suffix}`;
 }
@@ -110,7 +176,7 @@ export function regionLocative(region) {
 export function regionSwitchSubpath(pathname) {
   const segments = typeof pathname === 'string' ? pathname.split('/').filter(Boolean) : [];
   const first = segments[0]?.toLowerCase();
-  const hasRegion = first && (isRegionSlug(first) || first === ALL_REGIONS_SLUG);
+  const hasRegion = first && (isRegionSlug(first) || isCombinedViewSlug(first));
   const rest = hasRegion ? segments.slice(1) : segments;
   return rest.length === 1 && rest[0] === 'verzeichnis' ? '/verzeichnis' : '/';
 }

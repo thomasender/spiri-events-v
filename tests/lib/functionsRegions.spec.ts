@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  COMBINED_VIEWS,
   DIRECTORY_REGIONS,
   INSTAGRAM_REGION_IDS,
   REGION_IDS,
@@ -10,6 +11,7 @@ import {
   resolveRegionId,
 } from '../../functions/src/regions';
 import {
+  COMBINED_VIEWS as SRC_COMBINED_VIEWS,
   REGION_SLUGS,
   STATIC_REGIONS,
   filterEventsForRegion as srcFilterEventsForRegion,
@@ -92,10 +94,17 @@ describe('functions feed region register', () => {
       STATIC_REGIONS.map((r) => ({
         id: r.id,
         name: r.name,
+        country: r.country,
         active: r.active,
         bezirke: r.bezirke,
         timezone: r.timezone,
       }))
+    );
+  });
+
+  it('matches COMBINED_VIEWS (slug, label, country) of src/utils/regions.js', () => {
+    expect(COMBINED_VIEWS).toEqual(
+      SRC_COMBINED_VIEWS.map((v) => ({ slug: v.slug, label: v.label, country: v.country }))
     );
   });
 

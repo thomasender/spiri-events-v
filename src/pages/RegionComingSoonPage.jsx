@@ -2,27 +2,25 @@ import { Link } from 'react-router-dom';
 import SeoMeta from '../components/SeoMeta';
 import { BRAND_NAME } from '../config/brand';
 import { useRegion } from '../hooks/useRegion';
-import {
-  ALL_REGIONS_NAME,
-  ALL_REGIONS_SLUG,
-  regionLocative,
-  regionPath,
-} from '../utils/regionRouting';
+import { regionLocative, regionPath } from '../utils/regionRouting';
+import { combinedViewTexts } from '../utils/regionTexts';
 import './ErrorPage.css';
 
 /**
  * Friendly page for a region address that is not open yet (`/steiermark`
- * while `active=false`) and for the combined view `/oesterreich` while only one
- * region is active. Never a 404, never an empty calendar.
- * `region` is null for the combined view.
+ * while `active=false`) and for a combined view (`/oesterreich`, `/deutschland`,
+ * `/schweiz`, `/alle-tribes`) without any active region in scope. Never a 404,
+ * never an empty calendar. `region` is null for a combined view (`view`, default
+ * the Austrian one).
  */
-export default function RegionComingSoonPage({ region = null, canPreview = false }) {
+export default function RegionComingSoonPage({ region = null, view = null, canPreview = false }) {
   const { regions } = useRegion();
-  const name = region ? region.name : ALL_REGIONS_NAME;
-  const path = region ? regionPath(region) : `/${ALL_REGIONS_SLUG}`;
+  const viewTexts = combinedViewTexts(view);
+  const name = region ? region.name : (view?.label ?? 'Österreich');
+  const path = region ? regionPath(region) : regionPath(view?.slug ?? 'oesterreich');
   const text = region
     ? `Wir bereiten gerade einen Kalender für bewusste Events und Menschen ${regionLocative(region)} vor.`
-    : 'Bald findest du hier die Events aus allen Bundesländern auf einen Blick.';
+    : viewTexts.comingSoon;
 
   // While Vorarlberg is the only active region, its calendar stays at `/`.
   const onlyDefault = regions.length <= 1;
@@ -34,7 +32,7 @@ export default function RegionComingSoonPage({ region = null, canPreview = false
     <div className="page-container error-page fade-enter">
       <SeoMeta
         title={`${name} kommt bald`}
-        description={`${BRAND_NAME} ${region ? regionLocative(region) : 'für ganz Österreich'} ist in Vorbereitung.`}
+        description={`${BRAND_NAME} ${region ? regionLocative(region) : viewTexts.comingSoonSubject} ist in Vorbereitung.`}
         path={path}
         noindex
       />

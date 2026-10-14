@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { DEFAULT_REGION_CONTEXT, RegionContext } from '../../src/hooks/useRegion';
 import { STATIC_REGIONS } from '../../src/utils/regions.js';
+import { getCombinedView } from '../../src/utils/regionRouting.js';
 import CalendarPage, { buildFeedUrl, buildGoogleCalendarUrl } from '../../src/pages/CalendarPage';
 
 const mockUseAllEvents = vi.hoisted(() => ({ events: [], loading: false, error: null }));
@@ -820,10 +821,20 @@ describe('CalendarPage — calendar feed subscription', () => {
     expect(buildFeedUrl(origin, [], [], undefined, stmk)).toBe(
       `${origin}/calendar/feed.ics?region=steiermark`
     );
-    // The combined view has no region of its own: same as the default feed.
-    expect(buildFeedUrl(origin, [], [], undefined, { ...stmk, isNational: true })).toBe(
-      `${origin}/calendar/feed.ics`
-    );
+    // A combined view asks for its own slug and the union of its Bezirke.
+    const de = { regionId: 'vorarlberg', bezirke: ['Oberallgäu', 'Graz'], isNational: true };
+    expect(
+      buildFeedUrl(origin, ['Oberallgäu', 'Dornbirn'], [], 'tok', {
+        ...de,
+        combinedView: { slug: 'deutschland' },
+      })
+    ).toBe(`${origin}/calendar/feed.ics?region=deutschland&bezirk=Oberallg%C3%A4u&token=tok`);
+    expect(
+      buildFeedUrl(origin, [], [], undefined, { ...de, combinedView: { slug: 'alle-tribes' } })
+    ).toBe(`${origin}/calendar/feed.ics?region=alle-tribes`);
+    expect(
+      buildFeedUrl(origin, [], [], undefined, { ...de, combinedView: { slug: 'oesterreich' } })
+    ).toBe(`${origin}/calendar/feed.ics?region=oesterreich`);
   });
 });
 
@@ -840,6 +851,7 @@ describe('CalendarPage — regions (ticket 14)', () => {
   ];
 
   function renderInRegion(regionId: string, isNational = false) {
+    const combinedView = isNational ? getCombinedView('alle-tribes') : null;
     const value = {
       ...DEFAULT_REGION_CONTEXT,
       region: allRegions.find((r) => r.id === regionId)!,
@@ -847,6 +859,8 @@ describe('CalendarPage — regions (ticket 14)', () => {
       regions: allRegions.filter((r) => r.active),
       allRegions,
       isNational,
+      combinedView,
+      combinedRegions: isNational ? allRegions.filter((r) => r.active) : [],
     };
     return render(
       <MemoryRouter>

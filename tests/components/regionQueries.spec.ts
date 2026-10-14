@@ -80,6 +80,23 @@ describe('buildPublicEventQueryPlan', () => {
     });
   });
 
+  it('country view / Alle Tribes: `in` over exactly the regions of the view', () => {
+    const plan = (ids: string[]) =>
+      buildPublicEventQueryPlan({
+        markerComplete: true,
+        isNational: true,
+        activeRegionIds: ids,
+      });
+    expect(plan(['allgaeu', 'vorarlberg']).queries[0].constraints[1]).toEqual([
+      'regionId',
+      'in',
+      ['allgaeu', 'vorarlberg'],
+    ]);
+    expect(plan(['allgaeu']).queries[0].constraints[1]).toEqual(['regionId', 'in', ['allgaeu']]);
+    // A country without active region (Switzerland): no query.
+    expect(plan([])).toEqual({ mode: 'national', queries: [] });
+  });
+
   it('combined view with no active region: no query at all', () => {
     expect(
       buildPublicEventQueryPlan({ markerComplete: true, isNational: true, activeRegionIds: [] })

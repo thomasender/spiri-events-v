@@ -12,7 +12,14 @@ import {
   selectSingleEvent,
   type PublicEvent,
 } from './calendar/calendarRoutes';
-import { DEFAULT_REGION_ID, mergeFeedRegions, type FeedRegion } from './regions';
+import {
+  DEFAULT_REGION_ID,
+  combinedViewBezirke,
+  combinedViewRegionIds,
+  getCombinedView,
+  mergeFeedRegions,
+  type FeedRegion,
+} from './regions';
 import { CALENDAR_TOKENS_COLLECTION } from './calendarFeedToken';
 
 if (getApps().length === 0) {
@@ -132,7 +139,10 @@ export const calendarFeed = onRequest(
         req.path,
         req.query as Record<string, unknown>,
         isFeed ? await loadCategoryNames() : new Set<string>(),
-        Object.fromEntries(regions.map((r) => [r.id, r.bezirke]))
+        {
+          ...Object.fromEntries(regions.map((r) => [r.id, r.bezirke])),
+          ...combinedViewBezirke(regions),
+        }
       );
       if (route.kind === 'error') {
         res
@@ -150,16 +160,22 @@ export const calendarFeed = onRequest(
       let calendarOptions: CalendarOptions = {};
 
       if (route.kind === 'feed') {
+        const view = getCombinedView(route.region);
         const region = regions.find((r) => r.id === route.region);
-        if (region && region.id !== DEFAULT_REGION_ID) {
+        if (view) {
+          feedName = `Events ${view.label} – thetribe.at`;
+          calendarOptions = { productName: view.label };
+        } else if (region && region.id !== DEFAULT_REGION_ID) {
           feedName = `Events ${region.name} – thetribe.at`;
           calendarOptions = { productName: region.name, timezone: region.timezone };
         }
         // An inactive region has no public events: selectFeedEvents returns [].
+        // A combined view lists the active regions of its scope (possibly none).
         events = selectFeedEvents(await loadApprovedEvents(), today, {
           ...route,
           regionId: route.region,
           activeRegionIds: regions.filter((r) => r.active).map((r) => r.id),
+          ...(view ? { combinedRegionIds: combinedViewRegionIds(view, regions) } : {}),
         }) as never;
         filename = 'events.ics';
         disposition = 'inline';

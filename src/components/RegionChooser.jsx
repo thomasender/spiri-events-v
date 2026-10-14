@@ -3,9 +3,8 @@ import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { useRegion } from '../hooks/useRegion';
 import { trackFilter } from '../lib/analyticsEvents';
+import { isCombinedViewSlug } from '../utils/regions';
 import {
-  ALL_REGIONS_NAME,
-  ALL_REGIONS_SLUG,
   readLastRegion,
   readRegionChooserSeen,
   regionSlugFromPath,
@@ -27,15 +26,15 @@ const FOCUSABLE = 'button:not([disabled])';
  * The page stays rendered behind it (only made inert while the dialog is open).
  */
 export default function RegionChooser() {
-  const { regions, loading, setRegion } = useRegion();
+  const { regions, combinedViews, loading, setRegion } = useRegion();
   const { pathname } = useLocation();
   const dialogRef = useRef(null);
 
-  // Opening "Ganz Österreich" by address is a choice as well (active regions are
-  // remembered by RegionProvider).
+  // Opening a combined view ("Ganz Österreich", ...) by address is a choice as
+  // well (active regions are remembered by RegionProvider).
   const urlSlug = regionSlugFromPath(pathname);
   useEffect(() => {
-    if (urlSlug === ALL_REGIONS_SLUG && !loading && regions.length >= 2) writeRegionChooserSeen();
+    if (isCombinedViewSlug(urlSlug) && !loading && regions.length >= 2) writeRegionChooserSeen();
   }, [urlSlug, loading, regions.length]);
 
   const stored = readLastRegion();
@@ -85,7 +84,7 @@ export default function RegionChooser() {
   if (!show) return null;
 
   const choose = (slug) => {
-    if (slug === ALL_REGIONS_SLUG) writeRegionChooserSeen();
+    if (isCombinedViewSlug(slug)) writeRegionChooserSeen();
     trackFilter('region', slug);
     // setRegion remembers a concrete region itself (tribe:lastRegion).
     setRegion(slug, pathname === '/verzeichnis' ? '/verzeichnis' : '/');
@@ -122,13 +121,16 @@ export default function RegionChooser() {
                 {r.name}
               </button>
             ))}
-          <button
-            type="button"
-            className="region-chooser-option region-chooser-option--all"
-            onClick={() => choose(ALL_REGIONS_SLUG)}
-          >
-            {ALL_REGIONS_NAME}
-          </button>
+          {combinedViews.map((v) => (
+            <button
+              key={v.slug}
+              type="button"
+              className="region-chooser-option region-chooser-option--all"
+              onClick={() => choose(v.slug)}
+            >
+              {v.name}
+            </button>
+          ))}
         </div>
       </section>
     </div>,

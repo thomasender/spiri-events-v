@@ -7,6 +7,9 @@ import {
   REGION_SLUGS,
   STATIC_REGIONS,
   eventVisibleInRegion,
+  filterDirectoryForRegion,
+  filterEventsForRegion,
+  getAllDistricts,
   getBezirke,
   getSubdivisionLabel,
   getSubdivisionLabelPlural,
@@ -35,6 +38,7 @@ describe('static register', () => {
       demonym: 'Allgäuer',
       forPhrase: 'das Allgäu',
       order: 9,
+      country: 'DE',
       active: false,
       bezirke: getBezirke('allgaeu'),
       subdivisionLabel: 'Landkreis',
@@ -236,5 +240,42 @@ describe('firestore.rules region list', () => {
     expect(body).not.toBeNull();
     const ids = [...(body?.[1] ?? '').matchAll(/'([a-z]+)'/g)].map((m) => m[1]);
     expect(ids).toEqual(REGION_SLUGS);
+  });
+});
+
+describe('filters with a country view (ticket 33)', () => {
+  const events = [
+    { id: 'vbg' },
+    { id: 'tirol', regionId: 'tirol' },
+    { id: 'allgaeu', regionId: 'allgaeu' },
+    { id: 'wien', regionId: 'wien' },
+  ];
+  const ids = (list: Array<{ id: string }>) => list.map((e) => e.id);
+
+  it('national mode with a region-id list shows exactly those regions', () => {
+    const at = filterEventsForRegion(events, {
+      isNational: true,
+      activeRegionIds: ['vorarlberg', 'tirol'],
+    });
+    expect(ids(at)).toEqual(['vbg', 'tirol']);
+    const de = filterEventsForRegion(events, { isNational: true, activeRegionIds: ['allgaeu'] });
+    expect(ids(de)).toEqual(['allgaeu']);
+    expect(filterEventsForRegion(events, { isNational: true, activeRegionIds: [] })).toEqual([]);
+  });
+
+  it('directory entries and Bezirke follow the same list', () => {
+    const entries = [
+      { uid: 'a', regionIds: ['vorarlberg'] },
+      { uid: 'b', regionIds: ['allgaeu'] },
+      { uid: 'c', regionIds: ['tirol', 'allgaeu'] },
+    ];
+    const de = filterDirectoryForRegion(entries, {
+      isNational: true,
+      activeRegionIds: ['allgaeu'],
+    });
+    expect(de.map((e) => e.uid)).toEqual(['b', 'c']);
+    const regions = STATIC_REGIONS.filter((r) => r.id === 'allgaeu');
+    expect(getAllDistricts(regions)).toEqual(getBezirke('allgaeu'));
+    expect(getAllDistricts(STATIC_REGIONS.filter((r) => r.country === 'CH'))).toEqual([]);
   });
 });

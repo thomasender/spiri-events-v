@@ -93,12 +93,15 @@ const HERO_FEATURE_PAIRS = [HERO_FEATURES.slice(0, 2), HERO_FEATURES.slice(2, 4)
 // `region` = { regionId, bezirke }: the region's feed (`region=<slug>`, Orte checked against its
 // own Bezirke). Absent, the default region (Vorarlberg) or the combined view: no `region`
 // parameter and the Vorarlberg Bezirke, i.e. exactly the URL from before regions existed.
+// Combined view (`region.combinedView`, e.g. { slug: 'deutschland' }): `region=<view slug>`
+// and the union of the Bezirke of the included regions.
 export function buildFeedUrl(origin, selectedOrte, selectedCategories, token, region = null) {
   const params = new URLSearchParams();
   const regionId = region?.regionId;
-  const useRegion = Boolean(regionId) && regionId !== DEFAULT_REGION_ID && !region?.isNational;
+  const viewSlug = region?.isNational ? region?.combinedView?.slug : null;
+  const useRegion = Boolean(viewSlug) || (Boolean(regionId) && regionId !== DEFAULT_REGION_ID);
   const knownOrte = [...(useRegion ? (region.bezirke ?? []) : BEZIRKE), ONLINE_LOCATION];
-  if (useRegion) params.append('region', regionId);
+  if (useRegion) params.append('region', viewSlug || regionId);
   selectedOrte.filter((o) => knownOrte.includes(o)).forEach((o) => params.append('bezirk', o));
   selectedCategories.forEach((c) => params.append('kategorie', c));
   if (token) params.append('token', token);
@@ -176,7 +179,7 @@ export default function CalendarPage() {
   const { user, canCreateEvents } = useAuth();
   const canonicalPath = useRegionCanonicalPath('/');
   const regionTexts = useRegionTexts();
-  const { regionId, isNational } = useRegion();
+  const { regionId, isNational, combinedView } = useRegion();
   // Load saved state exactly once per mount. Reading it inside the render body
   // would create a new object reference on every render and trip downstream
   // effects into re-doing work that depends on the initial values.
@@ -408,7 +411,7 @@ export default function CalendarPage() {
     selectedOrte,
     selectedCategories,
     calendarToken.token,
-    { regionId, bezirke: regionBezirke, isNational }
+    { regionId, bezirke: regionBezirke, isNational, combinedView }
   );
 
   const webcalUrl = feedUrl.replace(/^https?:/, 'webcal:');

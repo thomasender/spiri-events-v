@@ -21,6 +21,13 @@ import RegionSwitcher from '../../src/components/RegionSwitcher';
 import RegionChooser from '../../src/components/RegionChooser';
 
 const TWO_ACTIVE = mergeRegions([{ id: 'tirol', active: true }]);
+// Vorarlberg (AT) + Allgäu (DE): "Alle Tribes" is available, the country views are not.
+const AT_AND_DE = mergeRegions([{ id: 'allgaeu', active: true }]);
+// Vorarlberg + Tirol (AT) + Allgäu (DE): "Ganz Österreich" and "Alle Tribes".
+const THREE_ACTIVE = mergeRegions([
+  { id: 'tirol', active: true },
+  { id: 'allgaeu', active: true },
+]);
 
 function Where() {
   return <output data-testid="where">{useLocation().pathname}</output>;
@@ -149,6 +156,86 @@ describe('RegionSwitcher with two active regions', () => {
     fireEvent.click(screen.getByRole('button', { name: /Region wählen/ }));
     fireEvent.click(screen.getByRole('menuitemradio', { name: 'Tirol' }));
     expect(where()).toBe('/tirol');
+  });
+});
+
+describe('combined views in switcher and chooser (ticket 33)', () => {
+  beforeEach(() => {
+    window.localStorage.setItem(REGION_CHOOSER_SEEN_KEY, '1');
+  });
+
+  it('offers only the available combined views below the regions', () => {
+    mocks.regions = { regions: AT_AND_DE, loading: false };
+    renderAt('/');
+    fireEvent.click(screen.getByRole('button', { name: /Region wählen/ }));
+    expect(screen.getAllByRole('menuitemradio').map((i) => i.textContent)).toEqual([
+      'Vorarlberg',
+      'Allgäu',
+      'Alle Tribes',
+    ]);
+  });
+
+  it('offers Ganz Österreich and Alle Tribes with Austria + Germany, and navigates there', () => {
+    mocks.regions = { regions: THREE_ACTIVE, loading: false };
+    renderAt('/');
+    fireEvent.click(screen.getByRole('button', { name: /Region wählen/ }));
+    expect(screen.getAllByRole('menuitemradio').map((i) => i.textContent)).toEqual([
+      'Vorarlberg',
+      'Tirol',
+      'Allgäu',
+      'Ganz Österreich',
+      'Alle Tribes',
+    ]);
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Alle Tribes' }));
+    expect(where()).toBe('/alle-tribes');
+    expect(screen.getByRole('button', { name: /aktuell Alle Tribes/ })).toBeInTheDocument();
+  });
+
+  it('shows the current combined view as selected after opening its address', () => {
+    mocks.regions = { regions: THREE_ACTIVE, loading: false };
+    renderAt('/alle-tribes');
+    fireEvent.click(screen.getByRole('button', { name: /aktuell Alle Tribes/ }));
+    expect(screen.getByRole('menuitemradio', { name: 'Alle Tribes' })).toHaveAttribute(
+      'aria-checked',
+      'true'
+    );
+  });
+
+  it('an unavailable combined view address does not become the current view', () => {
+    mocks.regions = { regions: TWO_ACTIVE, loading: false };
+    renderAt('/deutschland');
+    expect(screen.getByRole('button', { name: /aktuell Vorarlberg/ })).toBeInTheDocument();
+  });
+
+  it('chooser lists the available combined views; choosing one counts as a choice', () => {
+    window.localStorage.clear();
+    mocks.regions = { regions: THREE_ACTIVE, loading: false };
+    const { unmount } = renderAt('/');
+    const labels = Array.from(document.querySelectorAll('.region-chooser-option')).map(
+      (b) => b.textContent
+    );
+    expect(labels).toEqual(['Vorarlberg', 'Tirol', 'Allgäu', 'Ganz Österreich', 'Alle Tribes']);
+    fireEvent.click(screen.getByRole('button', { name: 'Alle Tribes' }));
+    expect(where()).toBe('/alle-tribes');
+    expect(window.localStorage.getItem(REGION_CHOOSER_SEEN_KEY)).toBe('1');
+    unmount();
+    renderAt('/');
+    expect(screen.queryByTestId('region-chooser')).toBeNull();
+  });
+
+  it('opening a combined view address counts as a choice', () => {
+    window.localStorage.clear();
+    mocks.regions = { regions: AT_AND_DE, loading: false };
+    renderAt('/alle-tribes');
+    expect(window.localStorage.getItem(REGION_CHOOSER_SEEN_KEY)).toBe('1');
+  });
+
+  it('stays invisible with only Vorarlberg active (dark launch)', () => {
+    window.localStorage.clear();
+    mocks.regions = { regions: STATIC_REGIONS, loading: false };
+    renderAt('/');
+    expect(screen.queryByTestId('region-switcher')).toBeNull();
+    expect(screen.queryByTestId('region-chooser')).toBeNull();
   });
 });
 

@@ -275,6 +275,54 @@ describe('selectFeedEvents by region', () => {
   });
 });
 
+describe('combined view feeds (ticket 33)', () => {
+  it('accepts the combined view slugs as region', () => {
+    for (const region of ['oesterreich', 'deutschland', 'schweiz', 'alle-tribes']) {
+      expect(parse('/calendar/feed.ics', { region })).toMatchObject({ kind: 'feed', region });
+    }
+    expect(parse('/calendar/feed.ics', { region: 'Deutschland' })).toMatchObject({ status: 400 });
+    expect(parse('/calendar/feed.ics', { region: 'europa' })).toMatchObject({ status: 400 });
+  });
+
+  it('checks bezirk against the union of the view scope (country, all)', () => {
+    const q = (region: string, bezirk: string) => parse('/calendar/feed.ics', { region, bezirk });
+    expect(q('deutschland', 'Oberallgäu')).toMatchObject({ kind: 'feed', bezirk: ['Oberallgäu'] });
+    expect(q('deutschland', 'Dornbirn')).toMatchObject({ status: 400 });
+    expect(q('oesterreich', 'Dornbirn')).toMatchObject({ kind: 'feed' });
+    expect(q('oesterreich', 'Oberallgäu')).toMatchObject({ status: 400 });
+    expect(q('alle-tribes', 'Graz')).toMatchObject({ kind: 'feed' });
+    expect(q('alle-tribes', 'Oberallgäu')).toMatchObject({ kind: 'feed' });
+    expect(q('schweiz', 'Graz')).toMatchObject({ status: 400 });
+    expect(q('schweiz', 'Online')).toMatchObject({ kind: 'feed' });
+  });
+
+  const none = { bezirk: [], kategorie: [] };
+  const events = [
+    ev({ id: 'vbg' }),
+    ev({ id: 'tirol', regionId: 'tirol' } as never),
+    ev({ id: 'allgaeu', regionId: 'allgaeu' } as never),
+    ev({ id: 'online-allgaeu', regionId: 'allgaeu', isOnline: true } as never),
+    ev({ id: 'wien-inactive', regionId: 'wien' } as never),
+  ];
+  const ids = (combinedRegionIds: string[]) =>
+    selectFeedEvents(events, TODAY, { ...none, combinedRegionIds }).map((e) => e.id);
+
+  it('lists every event of the regions in scope, online events by their own region', () => {
+    expect(ids(['vorarlberg', 'tirol'])).toEqual(['vbg', 'tirol']);
+    expect(ids(['allgaeu'])).toEqual(['allgaeu', 'online-allgaeu']);
+    expect(ids(['vorarlberg', 'tirol', 'allgaeu'])).toEqual([
+      'vbg',
+      'tirol',
+      'allgaeu',
+      'online-allgaeu',
+    ]);
+  });
+
+  it('is empty when no region is in scope (e.g. Switzerland)', () => {
+    expect(ids([])).toEqual([]);
+  });
+});
+
 describe('selectSingleEvent', () => {
   it('returns nothing for events that are not public', () => {
     expect(selectSingleEvent(ev({ status: 'draft' }), TODAY)).toEqual([]);

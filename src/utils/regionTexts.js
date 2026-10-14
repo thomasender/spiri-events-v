@@ -13,8 +13,10 @@
 //   page title    "Kalender | The Tribe <Region>"    (legacy: "Kalender | tribe Vorarlberg")
 //   directory     "Verzeichnis – Angebote <inPhrase>"
 // The brand in region mode is "The Tribe"; the legal entity "tribe Vorarlberg"
-// (footer, LEGACY_SITE_NAME) is never replaced. Combined view: "österreichischer",
-// "Für Österreich und Umkreis".
+// (footer, LEGACY_SITE_NAME) is never replaced. Combined views (COMBINED_VIEW_TEXTS):
+// "österreichischer" / "deutscher" / "Schweizer", "Für Österreich und Umkreis";
+// "Alle Tribes" has no place or adjective ("Dein Kalender für bewusste Events",
+// "in allen Regionen", title "Kalender | The Tribe").
 //
 // Config wins: `region.seo.title` / `region.seo.description` (from
 // `regions/{id}`) replace the generated texts, but only in region-specific
@@ -22,7 +24,7 @@
 // at all -> today's texts.
 // Explicit .js extensions: scripts/prerender.mjs imports this file in plain Node.
 import { BRAND_NAME, LEGACY_SITE_NAME } from '../config/brand.js';
-import { ALL_REGIONS_NAME } from './regionRouting.js';
+import { getCombinedView } from './regionRouting.js';
 import { DEFAULT_REGION_ID } from './regions.js';
 
 export const LEGACY_DEFAULT_DESCRIPTION =
@@ -36,6 +38,51 @@ export function isRegionSpecific(region, { activeCount = 1, national = false } =
   if (activeCount > 1) return true;
   if (national || !region) return false;
   return region.id !== DEFAULT_REGION_ID;
+}
+
+// Wording of the combined views (plus the coming-soon page texts). `label` ends up in the page title ("Kalender |
+// The Tribe <label>"; empty = just the brand), `demonym` in the header (empty =
+// "Dein Kalender für bewusste Events"), `forPhrase` in "Für <forPhrase> und
+// Umkreis" (empty = "Für alle Regionen").
+const COMBINED_VIEW_TEXTS = {
+  oesterreich: {
+    label: 'Österreich',
+    demonym: 'österreichischer',
+    locationPhrase: 'in Österreich',
+    forPhrase: 'Österreich',
+    comingSoon: 'Bald findest du hier die Events aus allen Bundesländern auf einen Blick.',
+    comingSoonSubject: 'für ganz Österreich',
+  },
+  deutschland: {
+    label: 'Deutschland',
+    demonym: 'deutscher',
+    locationPhrase: 'in Deutschland',
+    forPhrase: 'Deutschland',
+    comingSoon: 'Bald findest du hier die Events aus ganz Deutschland auf einen Blick.',
+    comingSoonSubject: 'für ganz Deutschland',
+  },
+  schweiz: {
+    label: 'Schweiz',
+    demonym: 'Schweizer',
+    locationPhrase: 'in der Schweiz',
+    forPhrase: 'die Schweiz',
+    comingSoon: 'Bald findest du hier die Events aus der ganzen Schweiz auf einen Blick.',
+    comingSoonSubject: 'für die ganze Schweiz',
+  },
+  'alle-tribes': {
+    label: '',
+    demonym: '',
+    locationPhrase: 'in allen Regionen',
+    forPhrase: '',
+    comingSoon: 'Bald findest du hier die Events aus allen Regionen auf einen Blick.',
+    comingSoonSubject: 'für alle Regionen',
+  },
+};
+
+/** Wording of one combined view (slug or view object); the Austrian one if unknown. */
+export function combinedViewTexts(view) {
+  const slug = typeof view === 'string' ? view : view?.slug;
+  return COMBINED_VIEW_TEXTS[slug] ?? COMBINED_VIEW_TEXTS.oesterreich;
 }
 
 function legacyTexts() {
@@ -59,28 +106,35 @@ function legacyTexts() {
  * Texts for a region. `region` is a register entry ({id, name, inPhrase, seo}),
  * `activeCount` the number of active regions, `national` the combined view.
  */
-export function regionTexts(region, { activeCount = 1, national = false } = {}) {
+export function regionTexts(region, { activeCount = 1, national = false, view = null } = {}) {
   if (!isRegionSpecific(region, { activeCount, national })) return legacyTexts();
 
   const combined = national || !region;
-  const name = combined ? ALL_REGIONS_NAME : str(region.name);
-  const locationPhrase = combined ? 'in Österreich' : str(region.inPhrase) || `in ${name}`;
-  const label = combined ? 'Österreich' : name;
+  // `view`: the combined view (object or slug); without one the Austrian view.
+  const viewSlug = (typeof view === 'string' ? view : view?.slug) ?? 'oesterreich';
+  const viewTexts = COMBINED_VIEW_TEXTS[viewSlug] ?? COMBINED_VIEW_TEXTS.oesterreich;
+  const name = combined ? (getCombinedView(viewSlug)?.name ?? '') : str(region.name);
+  const locationPhrase = combined ? viewTexts.locationPhrase : str(region.inPhrase) || `in ${name}`;
+  const label = combined ? viewTexts.label : name;
   const seo = !combined && region.seo ? region.seo : {};
   const seoTitle = str(seo.title);
   const seoDescription = str(seo.description);
   const generated = `Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr ${locationPhrase}.`;
 
-  const demonym = combined ? 'österreichischer' : str(region.demonym);
-  const forPhrase = combined ? 'Österreich' : str(region.forPhrase) || name;
+  const demonym = combined ? viewTexts.demonym : str(region.demonym);
+  const forPhrase = combined ? viewTexts.forPhrase : str(region.forPhrase) || name;
 
   return {
     regionSpecific: true,
     siteName: BRAND_NAME,
-    headerTitle: demonym ? `Dein ${demonym} Kalender` : `Dein Kalender ${locationPhrase}`,
+    headerTitle: demonym
+      ? `Dein ${demonym} Kalender`
+      : combined
+        ? 'Dein Kalender für bewusste Events'
+        : `Dein Kalender ${locationPhrase}`,
     locationPhrase,
-    nearbyText: `Für ${forPhrase} und Umkreis`,
-    calendarTitle: seoTitle || `Kalender | ${BRAND_NAME} ${label}`,
+    nearbyText: forPhrase || !combined ? `Für ${forPhrase} und Umkreis` : 'Für alle Regionen',
+    calendarTitle: seoTitle || `Kalender | ${[BRAND_NAME, label].filter(Boolean).join(' ')}`,
     calendarTitleExact: true,
     calendarDescription: seoDescription || generated,
     defaultDescription: seoDescription || generated,

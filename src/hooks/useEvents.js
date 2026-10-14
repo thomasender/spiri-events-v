@@ -390,9 +390,12 @@ export function usePendingEvents() {
  * change when it arrives, and a resubscribe would read a region twice).
  */
 export function useRegionEventQueryPlan({ regionScoped = false, allActive = false } = {}) {
-  const { regionId, regions, isNational, loading: regionsLoading } = useRegion();
+  const { regionId, regions, combinedRegions, isNational, loading: regionsLoading } = useRegion();
   const markerComplete = useRegionMigrationComplete({ enabled: regionScoped });
-  const activeKey = regions.map((r) => r.id).join(',');
+  // Combined view: the regions it covers; favourites (`allActive`): every active region.
+  const activeKey = (isNational && !allActive ? combinedRegions : regions)
+    .map((r) => r.id)
+    .join(',');
   const waitForRegions = regionScoped && markerComplete === true && regionsLoading;
   const plan = useMemo(
     () =>

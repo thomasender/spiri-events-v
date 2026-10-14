@@ -33,6 +33,26 @@ export const REGION_SLUGS = [
 
 export const DEFAULT_REGION_ID = 'vorarlberg';
 
+// Country of each region (static only; deliberately NOT stored in
+// `regions/{id}` docs, firestore.rules does not whitelist it). Drives the
+// combined country views. All regions are Austrian except the Allgäu.
+export const COUNTRIES = ['AT', 'DE', 'CH'];
+const REGION_COUNTRIES = { allgaeu: 'DE' };
+export const DEFAULT_COUNTRY = 'AT';
+
+// Combined views ("Ganz Österreich", "Ganz Deutschland", "Ganz Schweiz", "Alle
+// Tribes"): not regions, only UI views over the active regions of one country
+// (`country`) or of all countries (`country: null`). Never stored on an event or
+// profile. Their slugs share the top-level path space with profiles, so
+// username.js reserves them next to REGION_SLUGS.
+export const COMBINED_VIEWS = Object.freeze([
+  { slug: 'oesterreich', name: 'Ganz Österreich', label: 'Österreich', country: 'AT' },
+  { slug: 'deutschland', name: 'Ganz Deutschland', label: 'Deutschland', country: 'DE' },
+  { slug: 'schweiz', name: 'Ganz Schweiz', label: 'Schweiz', country: 'CH' },
+  { slug: 'alle-tribes', name: 'Alle Tribes', label: 'Alle Tribes', country: null },
+]);
+export const COMBINED_VIEW_SLUGS = COMBINED_VIEWS.map((v) => v.slug);
+
 const VORARLBERG_BEZIRKE = ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe'];
 
 // Steiermark: the 13 Bezirke (since the 2015 reform).
@@ -145,6 +165,7 @@ export const STATIC_REGIONS = REGION_SLUGS.map((slug, order) => ({
   demonym: REGION_DEMONYMS[slug],
   forPhrase: REGION_FOR_PHRASES[slug] ?? REGION_NAMES[slug],
   order,
+  country: REGION_COUNTRIES[slug] ?? DEFAULT_COUNTRY,
   active: slug === DEFAULT_REGION_ID,
   bezirke: [...(REGION_BEZIRKE[slug] ?? [])],
   subdivisionLabel: REGION_SUBDIVISION_LABELS[slug] ?? DEFAULT_SUBDIVISION_LABEL,
@@ -155,6 +176,9 @@ export const STATIC_REGIONS = REGION_SLUGS.map((slug, order) => ({
 export const BEZIRKE = VORARLBERG_BEZIRKE;
 
 export const isRegionSlug = (slug) => typeof slug === 'string' && REGION_SLUGS.includes(slug);
+
+export const isCombinedViewSlug = (slug) =>
+  typeof slug === 'string' && COMBINED_VIEW_SLUGS.includes(slug);
 
 export const getRegionBySlug = (slug, regions = STATIC_REGIONS) =>
   regions.find((r) => r.slug === slug) ?? null;

@@ -19,7 +19,9 @@
 import { expandOccurrencesInWindow, type SeriesFields } from '../instagram/instagramOccurrences';
 import {
   DEFAULT_REGION_ID,
+  combinedViewBezirke,
   filterEventsForRegion,
+  getCombinedView,
   isRegionId,
   STATIC_REGION_BEZIRKE,
 } from '../regions';
@@ -32,6 +34,11 @@ export const MAX_SINGLE_EVENT_OCCURRENCES = 60;
 const ONLINE = 'Online';
 const SLUG = /^[A-Za-z0-9][A-Za-z0-9_-]{0,159}$/;
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+const DEFAULT_FEED_BEZIRKE: Readonly<Record<string, readonly string[]>> = {
+  ...STATIC_REGION_BEZIRKE,
+  ...combinedViewBezirke(),
+};
 
 export type CalendarRoute =
   | { kind: 'feed'; token: string; region: string; bezirk: string[]; kategorie: string[] }
@@ -60,16 +67,17 @@ function many(value: unknown): string[] | null {
 
 /**
  * `regionBezirke`: Bezirke per region id (the handler passes the merged
- * register); defaults to the static register. `?region=<slug>` is optional,
- * absent = Vorarlberg. A slug that is not one of the ten region ids is a 400
- * (like an unknown bezirk); a known but inactive region is valid (the handler
- * answers with an empty feed).
+ * register, plus entries for the combined-view slugs); defaults to the static
+ * register. `?region=<slug>` is optional, absent = Vorarlberg. A slug that is
+ * neither one of the ten region ids nor a combined view (`oesterreich`,
+ * `deutschland`, `schweiz`, `alle-tribes`) is a 400 (like an unknown bezirk); a
+ * known but inactive region is valid (the handler answers with an empty feed).
  */
 export function parseCalendarRequest(
   path: string,
   query: Record<string, unknown>,
   knownCategories: ReadonlySet<string>,
-  regionBezirke: Readonly<Record<string, readonly string[]>> = STATIC_REGION_BEZIRKE
+  regionBezirke: Readonly<Record<string, readonly string[]>> = DEFAULT_FEED_BEZIRKE
 ): CalendarRoute {
   const clean = path.replace(/\/+$/, '');
 
@@ -82,7 +90,9 @@ export function parseCalendarRequest(
     if (unknown.length > 0) return { kind: 'error', status: 400, message: 'Unknown parameter' };
 
     const region = query.region === undefined ? DEFAULT_REGION_ID : query.region;
-    if (!isRegionId(region)) return { kind: 'error', status: 400, message: 'Unknown region' };
+    if (typeof region !== 'string' || (!isRegionId(region) && !getCombinedView(region))) {
+      return { kind: 'error', status: 400, message: 'Unknown region' };
+    }
     const allowedOrte: readonly string[] = [...(regionBezirke[region] ?? []), ONLINE];
 
     const bezirk = many(query.bezirk);
@@ -183,6 +193,11 @@ export interface FeedFilters {
    */
   regionId?: string;
   activeRegionIds?: readonly string[];
+  /**
+   * Combined view feed: every event of these (active) regions, online events
+   * included via their own regionId. Wins over `regionId`; an empty list = empty feed.
+   */
+  combinedRegionIds?: readonly string[];
 }
 
 /** The feed: approved, upcoming, filtered, sorted, capped at MAX_FEED_EVENTS. */
@@ -205,7 +220,12 @@ export function selectFeedEvents<T extends PublicEvent>(
   };
 
   let inRegion: T[] = events;
-  if (filters.regionId) {
+  if (filters.combinedRegionIds) {
+    inRegion = filterEventsForRegion(events, {
+      isNational: true,
+      activeRegionIds: filters.combinedRegionIds,
+    });
+  } else if (filters.regionId) {
     inRegion = filters.activeRegionIds?.includes(filters.regionId)
       ? filterEventsForRegion(events, {
           regionId: filters.regionId,

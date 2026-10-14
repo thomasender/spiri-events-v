@@ -122,6 +122,47 @@ describe('regionTexts: region-specific mode', () => {
     expect(t.nearbyText).toBe('Für Österreich und Umkreis');
   });
 
+  it('combined views: Germany, Switzerland and Alle Tribes (ticket 33)', () => {
+    const de = regionTexts(reg('vorarlberg'), {
+      activeCount: 3,
+      national: true,
+      view: 'deutschland',
+    });
+    expect(de.headerTitle).toBe('Dein deutscher Kalender');
+    expect(de.calendarTitle).toBe('Kalender | The Tribe Deutschland');
+    expect(de.nearbyText).toBe('Für Deutschland und Umkreis');
+    expect(de.locationPhrase).toBe('in Deutschland');
+    expect(de.siteName).toBe('The Tribe');
+
+    const ch = regionTexts(reg('vorarlberg'), {
+      activeCount: 3,
+      national: true,
+      view: { slug: 'schweiz' },
+    });
+    expect(ch.headerTitle).toBe('Dein Schweizer Kalender');
+    expect(ch.calendarTitle).toBe('Kalender | The Tribe Schweiz');
+    expect(ch.nearbyText).toBe('Für die Schweiz und Umkreis');
+    expect(ch.locationPhrase).toBe('in der Schweiz');
+
+    const all = regionTexts(reg('vorarlberg'), {
+      activeCount: 3,
+      national: true,
+      view: 'alle-tribes',
+    });
+    expect(all.headerTitle).toBe('Dein Kalender für bewusste Events');
+    expect(all.calendarTitle).toBe('Kalender | The Tribe');
+    expect(all.nearbyText).toBe('Für alle Regionen');
+    expect(all.locationPhrase).toBe('in allen Regionen');
+    expect(all.calendarDescription).toBe(
+      'Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in allen Regionen.'
+    );
+    for (const t of [de, ch, all]) expect(JSON.stringify(t)).not.toMatch(/Vorarlberg/);
+    // The Austrian view is unchanged and the default when no view is named.
+    expect(
+      regionTexts(reg('vorarlberg'), { activeCount: 2, national: true, view: 'oesterreich' })
+    ).toEqual(regionTexts(reg('vorarlberg'), { activeCount: 2, national: true }));
+  });
+
   it('region texts of another region never mention Vorarlberg', () => {
     const t = regionTexts(reg('steiermark'), { activeCount: 2 });
     expect(JSON.stringify(t)).not.toMatch(/Vorarlberg/);

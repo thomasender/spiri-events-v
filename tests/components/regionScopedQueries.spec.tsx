@@ -112,6 +112,7 @@ const NATIONAL = {
   regionId: 'vorarlberg',
   isNational: true,
   regions: active('vorarlberg', 'tirol'),
+  combinedRegions: active('vorarlberg', 'tirol'),
 };
 
 const ids = (events: Array<{ id: string }>) => events.map((e) => e.id).sort();

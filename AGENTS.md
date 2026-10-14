@@ -166,10 +166,48 @@ second region next to Vorarlberg, emulator only. Source of truth:
 
 - **Region chooser** (`RegionChooser.jsx`): a required modal "Wo suchst du?",
   shown once when no active region is remembered (`tribe:lastRegion`, or
-  `tribe:regionChooserSeen` for "Ganz Österreich") and the visitor is on `/` or
+  `tribe:regionChooserSeen` for any combined view) and the visitor is on `/` or
   `/verzeichnis`. No close button, no Escape/backdrop dismissal. Opening a region
   URL counts as a choice. Invisible with fewer than two active regions (so
   never in the default emulator state). Page content stays rendered behind it.
+  Below the regions it offers every AVAILABLE combined view (see "Combined
+  views" below); the header switcher lists the same options.
+- **Combined views** (ticket 33): "Ganz Österreich" `/oesterreich`, "Ganz Deutschland"
+  `/deutschland`, "Ganz Schweiz" `/schweiz` and the global "Alle Tribes"
+  `/alle-tribes` are NOT regions, only views (never stored on events/profiles).
+  Definitions: `COMBINED_VIEWS` in `src/utils/regions.js`; logic in
+  `regionRouting.js` (`isCombinedViewAvailable`, `combinedViewRegions`,
+  `availableCombinedViews`, `resolveTopLevelSlug`). Each region has a static
+  `country` (`'AT'`, Allgäu `'DE'`; static only, NOT in `regions/{id}` docs, the
+  rules whitelist does not include it; `functions/src/regions.ts` has a synced
+  copy, checked by `tests/lib/functionsRegions.spec.ts`).
+  - **Availability:** country view = at least 2 ACTIVE regions of that country.
+    "Alle Tribes" = at least 2 active regions in total AND at least 2 countries
+    (otherwise it equals one country view). Chooser/switcher only offer available
+    views, so with only Vorarlberg active nothing changes.
+  - **Unavailable view at its URL:** exactly one active region in scope -> `replace`
+    redirect to that region's page (`/` while it is Vorarlberg; `/verzeichnis` is
+    kept); "Alle Tribes" with several regions of one country -> redirect to that
+    country view; none -> coming-soon page ("The Tribe – Deutschland kommt bald",
+    `noindex`). The routes wait for the region config (`loading`) before they
+    redirect. (Before ticket 33 `/oesterreich` with only Vorarlberg showed the
+    coming-soon page; now it redirects.)
+  - **Data:** `RegionProvider` exposes `combinedView`, `combinedRegions` (active
+    regions in scope) and `combinedViews` (available ones). Calendar, directory and
+    query plans use `isNational` mode with `combinedRegions` as the id list
+    (`regionId in [...]`, `array-contains-any`, limit 30); Bezirke/Orte chips are the
+    union of those regions. Favourites (`allActive`) still use every active region.
+  - **Texts:** `COMBINED_VIEW_TEXTS` in `regionTexts.js`: "Dein österreichischer /
+    deutscher / Schweizer Kalender", "Für Österreich / Deutschland / die Schweiz und
+    Umkreis", title "Kalender | The Tribe <Land>"; "Alle Tribes": "Dein Kalender
+    für bewusste Events", "in allen Regionen", "Für alle Regionen", title
+    "Kalender | The Tribe". Footer stays "tribe Vorarlberg".
+  - **Reserved:** the four slugs are reserved usernames (`username.js`);
+    `scripts/check-reserved-usernames.mjs` prints and checks them (run it READ-ONLY
+    against production before a merge that adds names).
+  - **SEO:** combined views are not prerendered or in the sitemap; unavailable
+    ones are `noindex` (coming soon). Create-event/profile forms offer only
+    concrete regions.
 - **Regions** `regions/vorarlberg` (active), `regions/tirol` (inactive by default, active
   only while `region-calendar-filtering.spec.ts` runs in the `destructive` project, because
   two active regions show the required region dialog on every page; Bezirke
@@ -475,9 +513,15 @@ carries the user's personal secret: `?token=` on `/calendar/feed.ics` and
   Bezirke (`regions/{id}.bezirke` over the static register, 5 min cache,
   `functions/src/regions.ts`). Unknown slug: `400`. Known but inactive region:
   valid empty feed (`200`, cached like others). Name/PRODID/X-WR-TIMEZONE follow
-  the region ("Events Steiermark – thetribe.at"); Vorarlberg unchanged. The
-  combined "Österreich" view and favourites use the default feed. The single
-  event `.ics` ignores regions.
+  the region ("Events Steiermark – thetribe.at"); Vorarlberg unchanged.
+  Combined views: `region=oesterreich|deutschland|schweiz|alle-tribes` (the
+  client sends them in a combined view). Events of the ACTIVE regions of that
+  country (all for `alle-tribes`), online events by their own region; no
+  availability check (a view without active region is a valid empty feed);
+  `bezirk=` is checked against the Bezirke of all regions in scope; name
+  "Events Deutschland – thetribe.at" (`Alle Tribes`, `Österreich`, `Schweiz`
+  alike), default time zone. Favourites use the default feed. The single event
+  `.ics` ignores regions.
 - The frontend asks for the token only when the user opens "im eigenen Kalender
   speichern" or clicks "Zum Kalender hinzufügen" (`useCalendarFeedToken`).
 
@@ -524,7 +568,8 @@ Only public fields are kept (never `contactEmail`).
   `/<slug>/verzeichnis` of active non-default regions. Events of non-Vorarlberg
   regions get `| The Tribe <Region>` in `<title>` (canonical stays `/event/<slug>`).
 - Inactive regions get no page and no sitemap entry; the SPA coming-soon page is
-  `noindex`. `/` stays the Vorarlberg page (not region-neutral yet).
+  `noindex`. Combined views (`/oesterreich`, `/deutschland`, `/schweiz`,
+  `/alle-tribes`) are not prerendered and not in the sitemap. `/` stays the Vorarlberg page (not region-neutral yet).
 
 ### Auto-trigger on event changes (UIWI8kWx)
 

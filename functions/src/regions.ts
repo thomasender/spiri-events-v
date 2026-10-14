@@ -67,6 +67,33 @@ export function isRegionId(value: unknown): value is string {
 }
 
 /**
+ * Combined views ("Ganz Österreich", "Ganz Deutschland", "Ganz Schweiz", "Alle
+ * Tribes"): UI views over the active regions of one country (`country`) or of
+ * all countries (`country: null`), never stored on an event. Synced copy of
+ * COMBINED_VIEWS in src/utils/regions.js (guarded by tests/lib/functionsRegions.spec.ts);
+ * the feed accepts their slugs as `region=`.
+ */
+export interface CombinedView {
+  slug: string;
+  label: string;
+  country: string | null;
+}
+export const COMBINED_VIEWS: readonly CombinedView[] = [
+  { slug: 'oesterreich', label: 'Österreich', country: 'AT' },
+  { slug: 'deutschland', label: 'Deutschland', country: 'DE' },
+  { slug: 'schweiz', label: 'Schweiz', country: 'CH' },
+  { slug: 'alle-tribes', label: 'Alle Tribes', country: null },
+];
+
+export function getCombinedView(value: unknown): CombinedView | null {
+  return COMBINED_VIEWS.find((v) => v.slug === value) ?? null;
+}
+
+/** Country of each region (copy of REGION_COUNTRIES in src/utils/regions.js; default AT). */
+export const STATIC_COUNTRIES: Record<string, string> = { allgaeu: 'DE' };
+export const DEFAULT_COUNTRY = 'AT';
+
+/**
  * Regions whose events the Instagram automation (feed post on approval, weekly
  * carousel, preview, manual post) may publish. The Instagram account belongs to
  * Vorarlberg. To support another region later, add its id here AND make sure it
@@ -116,6 +143,7 @@ export function filterEventsForRegion<T>(
 export interface FeedRegion {
   id: string;
   name: string;
+  country: string;
   active: boolean;
   bezirke: string[];
   timezone: string;
@@ -150,10 +178,37 @@ const TIMEZONE_PATTERN = /^[A-Za-z]+(?:\/[A-Za-z0-9_+-]+){1,2}$/;
 export const STATIC_FEED_REGIONS: FeedRegion[] = REGION_IDS.map((id) => ({
   id,
   name: STATIC_NAMES[id],
+  country: STATIC_COUNTRIES[id] ?? DEFAULT_COUNTRY,
   active: id === DEFAULT_REGION_ID,
   bezirke: [...(STATIC_REGION_BEZIRKE[id] ?? [])],
   timezone: STATIC_TIMEZONES[id] ?? DEFAULT_REGION_TIMEZONE,
 }));
+
+/** Region ids a combined view covers: its country's regions (`activeOnly`: the active ones only). */
+export function combinedViewRegionIds(
+  view: CombinedView,
+  regions: readonly FeedRegion[] = STATIC_FEED_REGIONS,
+  activeOnly = true
+): string[] {
+  return regions
+    .filter((r) => (!activeOnly || r.active) && (!view.country || r.country === view.country))
+    .map((r) => r.id);
+}
+
+/**
+ * Bezirke accepted by `bezirk=` per combined view slug: the union over all
+ * regions of the view's scope (active or not).
+ */
+export function combinedViewBezirke(
+  regions: readonly FeedRegion[] = STATIC_FEED_REGIONS
+): Record<string, string[]> {
+  return Object.fromEntries(
+    COMBINED_VIEWS.map((v) => {
+      const ids = new Set(combinedViewRegionIds(v, regions, false));
+      return [v.slug, [...new Set(regions.filter((r) => ids.has(r.id)).flatMap((r) => r.bezirke))]];
+    })
+  );
+}
 
 /** Lays `regions/{id}` docs ({ id, ...data }) over the static register (copy of mergeRegions). */
 export function mergeFeedRegions(docs: unknown[]): FeedRegion[] {

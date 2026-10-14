@@ -2,11 +2,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useRegions } from '../hooks/useRegions';
 import { RegionContext } from '../hooks/useRegion';
-import { getRegionBySlug, isRegionSlug } from '../utils/regions';
+import { getRegionBySlug, isCombinedViewSlug, isRegionSlug } from '../utils/regions';
 import {
-  ALL_REGIONS_SLUG,
   activeRegions,
-  isAllRegionsViewAvailable,
+  availableCombinedViews,
+  combinedViewRegions,
+  getCombinedView,
+  isCombinedViewAvailable,
   readLastRegion,
   regionPath,
   regionSlugFromPath,
@@ -42,8 +44,8 @@ export default function RegionProvider({ children }) {
 
   const setRegion = useCallback(
     (slug, path = '/') => {
-      if (slug === ALL_REGIONS_SLUG) {
-        navigate(regionPath(ALL_REGIONS_SLUG, path));
+      if (isCombinedViewSlug(slug)) {
+        navigate(regionPath(slug, path));
         return;
       }
       if (!isRegionSlug(slug)) return;
@@ -59,7 +61,11 @@ export default function RegionProvider({ children }) {
   }, []);
 
   const value = useMemo(() => {
-    const isNational = urlSlug === ALL_REGIONS_SLUG && isAllRegionsViewAvailable(allRegions);
+    // Combined view named by the URL, only while it is available (otherwise the
+    // route redirects or shows the coming-soon page).
+    const urlView = urlSlug ? getCombinedView(urlSlug) : null;
+    const combinedView = urlView && isCombinedViewAvailable(urlView, allRegions) ? urlView : null;
+    const isNational = Boolean(combinedView);
     const regionId =
       !urlSlug && eventRegionId
         ? eventRegionId
@@ -70,6 +76,11 @@ export default function RegionProvider({ children }) {
       regions: activeRegions(allRegions),
       allRegions,
       isNational,
+      combinedView,
+      // Active regions the current combined view covers ([] outside one).
+      combinedRegions: combinedView ? combinedViewRegions(combinedView, allRegions) : [],
+      // Combined views offered in chooser and switcher.
+      combinedViews: availableCombinedViews(allRegions),
       loading,
       setRegion,
       setEventRegion,

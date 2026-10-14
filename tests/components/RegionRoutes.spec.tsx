@@ -30,6 +30,14 @@ import { RegionDirectoryRoute, RegionOrProfileRoute } from '../../src/components
 import { useEventRegionContext, useRegion } from '../../src/hooks/useRegion';
 
 const WITH_TIROL = mergeRegions([{ id: 'tirol', active: true }]);
+const WITH_ALLGAEU = mergeRegions([
+  { id: 'vorarlberg', active: false },
+  { id: 'allgaeu', active: true },
+]);
+const WITH_ALLGAEU_AND_TIROL = mergeRegions([
+  { id: 'tirol', active: true },
+  { id: 'allgaeu', active: true },
+]);
 
 function RegionProbe() {
   const { regionId, isNational } = useRegion();
@@ -120,11 +128,73 @@ describe('region or profile at /:slug', () => {
     expect(screen.getByTestId('region-preview-note')).toBeInTheDocument();
   });
 
-  it('/oesterreich is coming soon while only Vorarlberg is active', () => {
+  it('/oesterreich redirects to the only active region (Vorarlberg: the home calendar)', () => {
     renderAt('/oesterreich');
+    expect(screen.getByTestId('home-calendar')).toBeInTheDocument();
+    expect(screen.queryByTestId('region-coming-soon')).toBeNull();
+  });
+
+  it('/oesterreich/verzeichnis redirects to the directory of the only active region', () => {
+    mocks.regions = {
+      regions: mergeRegions([
+        { id: 'vorarlberg', active: false },
+        { id: 'tirol', active: true },
+      ]),
+      loading: false,
+    };
+    renderAt('/oesterreich/verzeichnis');
+    expect(screen.getByTestId('directory-page')).toBeInTheDocument();
+  });
+
+  it('waits for the region config before redirecting a combined view', () => {
+    mocks.regions = { regions: STATIC_REGIONS, loading: true };
+    renderAt('/deutschland');
+    expect(screen.getByTestId('region-loading')).toBeInTheDocument();
+  });
+
+  it('/deutschland is coming soon without an active German region', () => {
+    renderAt('/deutschland');
     expect(screen.getByTestId('region-coming-soon')).toHaveTextContent(
-      'The Tribe – Ganz Österreich kommt bald'
+      'The Tribe – Deutschland kommt bald'
     );
+  });
+
+  it('/schweiz is coming soon (no Swiss region exists)', () => {
+    mocks.regions = { regions: WITH_TIROL, loading: false };
+    renderAt('/schweiz');
+    expect(screen.getByTestId('region-coming-soon')).toHaveTextContent(
+      'The Tribe – Schweiz kommt bald'
+    );
+  });
+
+  it('/deutschland redirects to the only active German region', () => {
+    mocks.regions = { regions: WITH_ALLGAEU, loading: false };
+    renderAt('/deutschland');
+    expect(screen.queryByTestId('region-coming-soon')).toBeNull();
+    expect(screen.getByTestId('calendar-page')).toBeInTheDocument();
+    expect(probe()).toBe('allgaeu');
+  });
+
+  it('/alle-tribes is the combined view with regions of two countries', () => {
+    mocks.regions = { regions: WITH_ALLGAEU_AND_TIROL, loading: false };
+    renderAt('/alle-tribes');
+    expect(screen.getByTestId('calendar-page')).toBeInTheDocument();
+    expect(probe()).toBe('vorarlberg national');
+  });
+
+  it('/alle-tribes with several regions of one country shows that country view', () => {
+    mocks.regions = { regions: WITH_TIROL, loading: false };
+    renderAt('/alle-tribes');
+    expect(probe()).toBe('vorarlberg national');
+  });
+
+  it('/deutschland is the combined view with two German regions', () => {
+    mocks.regions = {
+      regions: WITH_ALLGAEU_AND_TIROL.map((r) => (r.id === 'tirol' ? { ...r, country: 'DE' } : r)),
+      loading: false,
+    };
+    renderAt('/deutschland');
+    expect(probe()).toBe('vorarlberg national');
   });
 
   it('/oesterreich is the combined view once two regions are active', () => {

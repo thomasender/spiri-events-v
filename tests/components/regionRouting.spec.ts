@@ -1,14 +1,21 @@
 import { describe, it, expect } from 'vitest';
-import { STATIC_REGIONS, mergeRegions } from '../../src/utils/regions.js';
+import { STATIC_REGIONS, isRegionSlug, mergeRegions } from '../../src/utils/regions.js';
 import {
   ALL_REGIONS_SLUG,
+  COMBINED_VIEWS,
   LAST_REGION_STORAGE_KEY,
+  availableCombinedViews,
+  combinedViewRegions,
+  getCombinedView,
   isAllRegionsViewAvailable,
+  isCombinedViewAvailable,
   readLastRegion,
+  redirectTargetPath,
   regionCanonicalPath,
   regionLocative,
   regionPath,
   regionSlugFromPath,
+  regionSwitchSubpath,
   resolveCurrentRegionId,
   resolveTopLevelSlug,
   writeLastRegion,
@@ -57,13 +64,153 @@ describe('resolveTopLevelSlug', () => {
     expect(resolveTopLevelSlug(undefined).kind).toBe('profile');
   });
 
-  it('oesterreich is the combined view, coming soon while only one region is active', () => {
-    expect(resolveTopLevelSlug(ALL_REGIONS_SLUG)).toEqual({ kind: 'coming-soon', region: null });
-    expect(resolveTopLevelSlug(ALL_REGIONS_SLUG, WITH_TIROL)).toEqual({
+  it('oesterreich is the combined view, a redirect to the only active region otherwise', () => {
+    expect(resolveTopLevelSlug(ALL_REGIONS_SLUG)).toMatchObject({
+      kind: 'redirect',
+      redirect: { region: { id: 'vorarlberg' } },
+    });
+    expect(resolveTopLevelSlug(ALL_REGIONS_SLUG, WITH_TIROL)).toMatchObject({
       kind: 'all-regions',
       region: null,
+      view: { slug: 'oesterreich' },
     });
     expect(isAllRegionsViewAvailable(STATIC_REGIONS)).toBe(false);
+    expect(resolveTopLevelSlug(ALL_REGIONS_SLUG, regionsWith())).toMatchObject({
+      kind: 'coming-soon',
+      view: { slug: 'oesterreich' },
+    });
+  });
+});
+
+// Regions with exactly the given ids active (all others inactive).
+function regionsWith(...ids: string[]) {
+  return STATIC_REGIONS.map((r) => ({ ...r, active: ids.includes(r.id) }));
+}
+
+describe('combined views (ticket 33)', () => {
+  const available = (slug: string, regions: typeof STATIC_REGIONS) =>
+    isCombinedViewAvailable(slug, regions);
+
+  it('every region has a country; only the Allgäu is German', () => {
+    expect(STATIC_REGIONS.filter((r) => r.country === 'DE').map((r) => r.id)).toEqual(['allgaeu']);
+    expect(STATIC_REGIONS.filter((r) => r.country === 'AT')).toHaveLength(9);
+  });
+
+  it('the four slugs are fixed and keep the order of the chooser', () => {
+    expect(COMBINED_VIEWS.map((v) => v.slug)).toEqual([
+      'oesterreich',
+      'deutschland',
+      'schweiz',
+      'alle-tribes',
+    ]);
+    expect(COMBINED_VIEWS.map((v) => v.name)).toEqual([
+      'Ganz Österreich',
+      'Ganz Deutschland',
+      'Ganz Schweiz',
+      'Alle Tribes',
+    ]);
+  });
+
+  it('country view: needs at least two active regions of that country', () => {
+    expect(available('oesterreich', regionsWith())).toBe(false);
+    expect(available('oesterreich', regionsWith('vorarlberg'))).toBe(false);
+    expect(available('oesterreich', regionsWith('vorarlberg', 'tirol'))).toBe(true);
+    // The Allgäu is not Austrian.
+    expect(available('oesterreich', regionsWith('vorarlberg', 'allgaeu'))).toBe(false);
+    expect(available('deutschland', regionsWith('allgaeu'))).toBe(false);
+    expect(available('deutschland', regionsWith('vorarlberg', 'tirol'))).toBe(false);
+    expect(available('schweiz', regionsWith('vorarlberg', 'tirol', 'allgaeu'))).toBe(false);
+    // Two German regions (none is registered yet): simulate with a second one.
+    const twoDe = regionsWith('allgaeu', 'tirol').map((r) =>
+      r.id === 'tirol' ? { ...r, country: 'DE' } : r
+    );
+    expect(available('deutschland', twoDe)).toBe(true);
+  });
+
+  it('Alle Tribes: two active regions in total AND two countries', () => {
+    expect(available('alle-tribes', regionsWith('vorarlberg'))).toBe(false);
+    expect(available('alle-tribes', regionsWith('vorarlberg', 'tirol'))).toBe(false);
+    expect(available('alle-tribes', regionsWith('allgaeu'))).toBe(false);
+    expect(available('alle-tribes', regionsWith('vorarlberg', 'allgaeu'))).toBe(true);
+    expect(available('alle-tribes', regionsWith('vorarlberg', 'tirol', 'allgaeu'))).toBe(true);
+  });
+
+  it('availableCombinedViews lists only available views in fixed order', () => {
+    expect(availableCombinedViews(STATIC_REGIONS)).toEqual([]);
+    expect(availableCombinedViews(regionsWith('vorarlberg', 'tirol')).map((v) => v.slug)).toEqual([
+      'oesterreich',
+    ]);
+    expect(
+      availableCombinedViews(regionsWith('vorarlberg', 'tirol', 'allgaeu')).map((v) => v.slug)
+    ).toEqual(['oesterreich', 'alle-tribes']);
+  });
+
+  it('combinedViewRegions: country view and global view cover active regions only', () => {
+    const regions = regionsWith('vorarlberg', 'tirol', 'allgaeu');
+    expect(combinedViewRegions('oesterreich', regions).map((r) => r.id)).toEqual([
+      'vorarlberg',
+      'tirol',
+    ]);
+    expect(combinedViewRegions('deutschland', regions).map((r) => r.id)).toEqual(['allgaeu']);
+    expect(combinedViewRegions('schweiz', regions)).toEqual([]);
+    expect(combinedViewRegions('alle-tribes', regions).map((r) => r.id)).toEqual([
+      'vorarlberg',
+      'tirol',
+      'allgaeu',
+    ]);
+  });
+
+  it('resolveTopLevelSlug: available -> view, one region -> redirect, none -> coming soon', () => {
+    const at2 = regionsWith('vorarlberg', 'tirol');
+    expect(resolveTopLevelSlug('deutschland', regionsWith('allgaeu'))).toMatchObject({
+      kind: 'redirect',
+      region: null,
+      redirect: { region: { id: 'allgaeu' } },
+    });
+    expect(resolveTopLevelSlug('deutschland', at2)).toMatchObject({
+      kind: 'coming-soon',
+      region: null,
+      view: { slug: 'deutschland' },
+    });
+    expect(resolveTopLevelSlug('schweiz', at2)).toMatchObject({ kind: 'coming-soon' });
+    expect(resolveTopLevelSlug('alle-tribes', regionsWith('vorarlberg', 'allgaeu'))).toMatchObject({
+      kind: 'all-regions',
+      view: { slug: 'alle-tribes' },
+    });
+    // One active region only: its page. Two regions of one country: that country view.
+    expect(resolveTopLevelSlug('alle-tribes', regionsWith('tirol'))).toMatchObject({
+      kind: 'redirect',
+      redirect: { region: { id: 'tirol' } },
+    });
+    expect(resolveTopLevelSlug('alle-tribes', at2)).toMatchObject({
+      kind: 'redirect',
+      redirect: { view: { slug: 'oesterreich' } },
+    });
+    expect(resolveTopLevelSlug('alle-tribes', regionsWith())).toMatchObject({
+      kind: 'coming-soon',
+    });
+  });
+
+  it('redirectTargetPath keeps the area and uses the old addresses for Vorarlberg only', () => {
+    const only = regionsWith('vorarlberg');
+    expect(redirectTargetPath({ region: only[0] }, '/', only)).toBe('/');
+    expect(redirectTargetPath({ region: only[0] }, '/verzeichnis', only)).toBe('/verzeichnis');
+    const tirol = regionsWith('tirol');
+    expect(redirectTargetPath({ region: tirol[1] }, '/verzeichnis', tirol)).toBe(
+      '/tirol/verzeichnis'
+    );
+    expect(redirectTargetPath({ view: getCombinedView('oesterreich') }, '/', tirol)).toBe(
+      '/oesterreich'
+    );
+  });
+
+  it('every combined slug is a valid first path segment, region slugs stay separate', () => {
+    for (const slug of ['oesterreich', 'deutschland', 'schweiz', 'alle-tribes']) {
+      expect(regionSlugFromPath(`/${slug}/verzeichnis`)).toBe(slug);
+      expect(regionPath(slug, '/verzeichnis')).toBe(`/${slug}/verzeichnis`);
+      expect(regionSwitchSubpath(`/${slug}/verzeichnis`)).toBe('/verzeichnis');
+    }
+    expect(isRegionSlug('deutschland')).toBe(false);
   });
 });
 

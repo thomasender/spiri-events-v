@@ -19,13 +19,13 @@ export function useDirectory({ regionScoped = false } = {}) {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { regionId, regions, isNational, loading: regionsLoading } = useRegion();
+  const { regionId, regions, combinedRegions, isNational, loading: regionsLoading } = useRegion();
   // A failing region query (e.g. an index still building) falls back to the
   // full query for the rest of the page load.
   const [scopedFailed, setScopedFailed] = useState(false);
   const scoped = regionScoped && !scopedFailed;
   const markerComplete = useRegionMigrationComplete({ enabled: scoped });
-  const activeKey = regions.map((r) => r.id).join(',');
+  const activeKey = (isNational ? combinedRegions : regions).map((r) => r.id).join(',');
   const waitForRegions = scoped && markerComplete === true && regionsLoading;
   const planKey = queryPlanKey(
     useMemo(

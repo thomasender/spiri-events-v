@@ -123,6 +123,13 @@ describe('reserved region names', () => {
     for (const slug of REGION_SLUGS) expect(slug).toMatch(/^[a-z]+$/);
   });
 
+  it('reserves the combined view addresses', () => {
+    for (const name of ['oesterreich', 'deutschland', 'schweiz', 'alle-tribes']) {
+      expect(validateUsername(name)).toMatchObject({ valid: false, error: 'RESERVED' });
+    }
+    expect(validateUsername('Ganz-Schweiz').valid).toBe(true);
+  });
+
   it('reserves every region slug and the extra names', () => {
     for (const name of [...REGION_SLUGS, ...extra]) {
       expect(RESERVED_USERNAMES.has(name)).toBe(true);
