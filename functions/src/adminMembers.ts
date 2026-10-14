@@ -14,7 +14,7 @@ import {
   profileVisibleToModerator,
   type StaffRole,
 } from './staffRoles';
-import { DIRECTORY_REGIONS, isRegionId } from './regions';
+import { DEFAULT_REGION_ID, DIRECTORY_REGIONS, isRegionId } from './regions';
 import { ALLOWED_ORIGINS } from './allowedOrigins';
 
 if (getApps().length === 0) {
@@ -328,6 +328,11 @@ export interface UpdateMemberDeps {
   ) => Promise<void>;
 }
 
+function hasDirectoryRegionIds(profile: Doc | null): boolean {
+  const ids = profile?.directoryRegionIds;
+  return Array.isArray(ids) && ids.length > 0;
+}
+
 export async function updateMemberHandler(
   request: { auth?: { uid?: string } | null; data?: unknown },
   deps: UpdateMemberDeps
@@ -372,7 +377,14 @@ export async function updateMemberHandler(
     throw new HttpsError('failed-precondition', 'A directory listing needs at least one category.');
   }
 
-  const update = { ...patch, updatedAt: FieldValue.serverTimestamp() };
+  const update: Doc = { ...patch, updatedAt: FieldValue.serverTimestamp() };
+  // A listing must carry its regions, or the region-scoped directory query
+  // (array-contains on directoryRegionIds, used once the regionId migration is
+  // marked complete) would miss it. Profiles that never saved the form (e.g.
+  // fresh sign-ups) have none: give them the region they are read as.
+  if (merged.listedInDirectory === true && !hasDirectoryRegionIds(publicData)) {
+    update.directoryRegionIds = [DEFAULT_REGION_ID];
+  }
   try {
     await deps.writeProfiles(uid, update, { public: !!publicData, private: !!privateData });
   } catch (err) {

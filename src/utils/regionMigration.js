@@ -2,6 +2,7 @@
 // document needs which update, and checks the production guard. No Firebase
 // imports, so Vitest can cover it without an emulator.
 import { DEFAULT_REGION_ID, isRegionSlug } from './regions.js';
+import { REGION_MIGRATION_MARKER } from './regionQueries.js';
 import {
   PROD_PROJECT_ID,
   STAGING_PROJECT_ID,
@@ -9,7 +10,7 @@ import {
   realTargetFor,
 } from './projectTargets.js';
 
-export { PROD_PROJECT_ID, STAGING_PROJECT_ID };
+export { PROD_PROJECT_ID, STAGING_PROJECT_ID, REGION_MIGRATION_MARKER };
 export const DEFAULT_EMULATOR_HOST = '127.0.0.1:8181';
 export const MAX_BATCH_SIZE = 400;
 
@@ -62,6 +63,41 @@ export function planMigration(docs) {
     else invalid.push({ path: doc.path, type: doc.type, value: plan.value });
   }
   return { total: docs.length, already, updates, invalid };
+}
+
+// --- Completion marker (app_settings/regionMigration) -----------------------
+// The app switches its public lists to region-scoped Firestore queries only
+// while this doc says `complete: true` (src/utils/regionQueries.js). It is
+// written at the end of a successful --apply, and only when the control read
+// finds nothing left: a doc without the field, or with a value the app reads
+// differently from what a query matches (invalid), would be missing from the
+// region queries. --revert deletes it before touching any field.
+
+/** Firestore path of the marker doc. */
+export const REGION_MIGRATION_MARKER_PATH = `${REGION_MIGRATION_MARKER.collection}/${REGION_MIGRATION_MARKER.id}`;
+
+/**
+ * Decides from a control-read plan (planMigration result) whether the marker
+ * may be written. `reason` is a short German text for the script output.
+ */
+export function decideMigrationMarker(plan) {
+  const open = plan?.updates?.length ?? 0;
+  const invalid = plan?.invalid?.length ?? 0;
+  if (!plan || !Array.isArray(plan.updates) || !Array.isArray(plan.invalid)) {
+    return { write: false, reason: 'kein Kontroll-Lesen' };
+  }
+  if (open > 0 || invalid > 0) {
+    return {
+      write: false,
+      reason: `noch offen ${open}, ungueltig ${invalid} (erst beheben, dann erneut --apply)`,
+    };
+  }
+  return { write: true, reason: `alle ${plan.total} Dokumente haben das Feld` };
+}
+
+/** Marker doc content; `completedAt` is a server timestamp in the script. */
+export function buildMigrationMarker(plan, completedAt) {
+  return { complete: true, completedAt, checkedDocs: plan.total };
 }
 
 // --- Revert (--revert) -------------------------------------------------------

@@ -1,4 +1,4 @@
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, getDocs, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from './firebase';
 import { REGION_SLUGS } from '../utils/regions';
 
@@ -24,6 +24,17 @@ export function staffEventQuerySpecs({ access, uid, status, includeOwn = true })
   return includeOwn ? [region, ...own] : [region];
 }
 
+const toQuery = (spec) =>
+  query(collection(db, 'events'), ...spec.constraints.map(([f, op, v]) => where(f, op, v)));
+
+/** One-off read of several event queries, merged and deduplicated by id. */
+export async function getEventQueries(specs) {
+  const snaps = await Promise.all(specs.map((spec) => getDocs(toQuery(spec))));
+  const byId = new Map();
+  snaps.forEach((snap) => snap.docs.forEach((d) => byId.set(d.id, { id: d.id, ...d.data() })));
+  return Array.from(byId.values());
+}
+
 /**
  * Subscribes to several event queries and reports the merged documents
  * (deduplicated by id) once every query has answered. `onError` is called
@@ -37,7 +48,7 @@ export function subscribeEventQueries(specs, onDocs, onError) {
   const results = new Map();
   const unsubs = specs.map((spec) =>
     onSnapshot(
-      query(collection(db, 'events'), ...spec.constraints.map(([f, op, v]) => where(f, op, v))),
+      toQuery(spec),
       (snapshot) => {
         results.set(
           spec.key,

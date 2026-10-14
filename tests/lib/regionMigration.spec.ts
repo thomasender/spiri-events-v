@@ -2,7 +2,10 @@ import { describe, it, expect } from 'vitest';
 import {
   DEFAULT_EMULATOR_HOST,
   MAX_BATCH_SIZE,
+  REGION_MIGRATION_MARKER_PATH,
+  buildMigrationMarker,
   chunk,
+  decideMigrationMarker,
   isBackupFromToday,
   migrateSnapshotDocs,
   planEventUpdate,
@@ -150,6 +153,72 @@ describe('planMigration', () => {
     expect(second.updates).toEqual([]);
     expect(second.already).toBe(docs.length - 1);
     expect(second.invalid).toHaveLength(1);
+  });
+});
+
+describe('completion marker (app_settings/regionMigration)', () => {
+  const event = (id: string, data: Record<string, unknown>) => ({
+    path: `events/${id}`,
+    type: 'event' as const,
+    data,
+  });
+  const profile = (id: string, data: Record<string, unknown>) => ({
+    path: `users/${id}/publicProfile/data`,
+    type: 'profile' as const,
+    data,
+  });
+
+  it('lives where the app reads it', () => {
+    expect(REGION_MIGRATION_MARKER_PATH).toBe('app_settings/regionMigration');
+  });
+
+  it('is written only when the control read finds nothing open and nothing invalid', () => {
+    const done = planMigration([
+      event('a', { regionId: 'vorarlberg' }),
+      event('b', { regionId: 'tirol', isOnline: true }),
+      profile('u', { directoryRegionIds: ['vorarlberg'] }),
+    ]);
+    expect(decideMigrationMarker(done)).toMatchObject({ write: true });
+
+    // one event still without regionId (e.g. created in between): no marker
+    const open = planMigration([event('a', { regionId: 'vorarlberg' }), event('new', {})]);
+    expect(decideMigrationMarker(open)).toMatchObject({ write: false });
+
+    // a profile without ids would be missing from the directory query
+    expect(
+      decideMigrationMarker(planMigration([profile('u', { listedInDirectory: true })]))
+    ).toMatchObject({ write: false });
+
+    // invalid values: the app reads them differently from what a query matches
+    for (const bad of [{ regionId: 'mars' }, { regionId: 7 }]) {
+      expect(decideMigrationMarker(planMigration([event('x', bad)]))).toMatchObject({
+        write: false,
+      });
+    }
+    expect(
+      decideMigrationMarker(planMigration([profile('u', { directoryRegionIds: ['mars'] })]))
+    ).toMatchObject({ write: false });
+  });
+
+  it('a migration run followed by its control read allows the marker', () => {
+    const docs = [event('a', { status: 'approved' }), profile('u', { listedInDirectory: true })];
+    const first = planMigration(docs);
+    expect(decideMigrationMarker(first).write).toBe(false);
+    expect(decideMigrationMarker(planMigration(applyPlan(docs, first.updates))).write).toBe(true);
+  });
+
+  it('no plan, no marker', () => {
+    expect(decideMigrationMarker(null).write).toBe(false);
+    expect(decideMigrationMarker({}).write).toBe(false);
+  });
+
+  it('marker content: complete flag, timestamp, number of checked docs', () => {
+    const plan = planMigration([event('a', { regionId: 'vorarlberg' })]);
+    expect(buildMigrationMarker(plan, 'TS')).toEqual({
+      complete: true,
+      completedAt: 'TS',
+      checkedDocs: 1,
+    });
   });
 });
 

@@ -15,7 +15,7 @@ import './FavoritesPage.css';
 
 export default function FavoritesPage() {
   const { ready, isSignedIn, favoriteIds } = useFavorites();
-  const { events: allEvents, loading } = useAllEvents();
+  const { events: allEvents, loading } = useAllEvents({ regionScoped: true, allActive: true });
   // Favourites of every active region; events of inactive regions stay hidden.
   const events = useRegionEvents(allEvents, { allActive: true });
   const { colorByName } = useCategoryRegistry();

@@ -105,7 +105,7 @@ export default function DirectoryPage() {
   const canonicalPath = useRegionCanonicalPath('/verzeichnis');
   const regionTexts = useRegionTexts();
   const isAdmin = role === 'Admin';
-  const { entries: allEntries, loading, error, setHidden } = useDirectory();
+  const { entries: allEntries, loading, error, setHidden } = useDirectory({ regionScoped: true });
   // Profiles listed in the current region (directoryRegionIds; missing = Vorarlberg).
   const entries = useRegionDirectoryEntries(allEntries);
   const { regionId, regions, allRegions, isNational } = useRegion();

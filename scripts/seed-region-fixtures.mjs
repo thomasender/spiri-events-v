@@ -114,6 +114,20 @@ const REGION_EVENT_FIXTURES = [
     bezirk: 'Dornbirn',
     regionId: 'vorarlberg',
   },
+  {
+    // Written "before the migration": no regionId, read as Vorarlberg. Shows
+    // whether the region-scoped queries (marker app_settings/regionMigration)
+    // are in use: without the marker it appears on /vorarlberg, with it not.
+    ...base,
+    id: 'region-test-vorarlberg-legacy',
+    title: '[Region-Test] Yoga Bregenz ohne Region',
+    date: day(12),
+    time: '08:00',
+    endTime: '09:00',
+    place: 'Yogaraum Bregenz',
+    description: 'Fixture-Event ohne regionId (alte Daten).',
+    bezirk: 'Bregenz',
+  },
 ];
 
 async function findAdminUid() {

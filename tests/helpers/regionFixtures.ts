@@ -6,7 +6,29 @@ export const REGION_EVENT_IDS = {
   tirolKufstein: 'region-test-tirol-kufstein',
   tirolOnline: 'region-test-tirol-online',
   vorarlbergDornbirn: 'region-test-vorarlberg-dornbirn',
+  // no regionId ("before the migration")
+  vorarlbergLegacy: 'region-test-vorarlberg-legacy',
 } as const;
+
+const MARKER_URL =
+  'http://127.0.0.1:8181/v1/projects/spirieventsvbg/databases/(default)/documents/app_settings/regionMigration';
+
+/**
+ * Sets (`true`) or deletes (`false`) the regionId-migration marker that
+ * switches the public lists to region-scoped queries. Only for specs in the
+ * `destructive` project: while it is set, events without regionId (all seed
+ * events) are missing from the calendar.
+ */
+export async function setRegionMigrationMarker(complete: boolean): Promise<void> {
+  const res = complete
+    ? await fetch(MARKER_URL, {
+        method: 'PATCH',
+        headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields: { complete: { booleanValue: true } } }),
+      })
+    : await fetch(MARKER_URL, { method: 'DELETE', headers: { Authorization: 'Bearer owner' } });
+  if (!res.ok) throw new Error(`regionMigration marker: HTTP ${res.status}`);
+}
 
 export const REGION_EVENT_TITLE_PREFIX = '[Region-Test]';
 

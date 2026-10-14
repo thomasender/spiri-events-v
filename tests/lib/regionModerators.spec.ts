@@ -498,6 +498,34 @@ describe('adminUpdateMember by role', () => {
     expect(writes).toEqual([]);
   });
 
+  it('listing a profile without directoryRegionIds gives it the default region (region queries)', async () => {
+    const { deps, writes } = harness();
+    profiles.fresh = { displayName: 'Neu' };
+    try {
+      await updateMemberHandler(
+        call('admin', {
+          uid: 'fresh',
+          changes: { listedInDirectory: true, directoryCategories: ['Yoga'] },
+        }),
+        deps
+      );
+      await updateMemberHandler(
+        call('admin', { uid: 'tirol', changes: { listedInDirectory: true } }),
+        deps
+      );
+      await updateMemberHandler(
+        call('admin', { uid: 'fresh', changes: { listedInDirectory: false } }),
+        deps
+      );
+    } finally {
+      delete profiles.fresh;
+    }
+    expect(writes[0].update.directoryRegionIds).toEqual(['vorarlberg']);
+    // existing ids stay, unlisting adds nothing
+    expect(writes[1].update).not.toHaveProperty('directoryRegionIds');
+    expect(writes[2].update).not.toHaveProperty('directoryRegionIds');
+  });
+
   it('Super-Admin keeps full access; others are rejected; path-like uids refused', async () => {
     const { deps, writes } = harness();
     await updateMemberHandler(

@@ -178,13 +178,17 @@ second region next to Vorarlberg, emulator only. Source of truth:
   `set(..., { merge: true })` in one batch.
 - **Events** are _not_ loaded by globalSetup, so no existing count/order
   assertion sees them (all titles start with `[Region-Test]`): Yoga Innsbruck,
-  Meditation Kufstein, Online Atemreise Tirol (`isOnline`, `regionId: 'tirol'`)
-  and Yoga Dornbirn (explicit `regionId: 'vorarlberg'`). Ids are in `REGION_EVENT_IDS`
+  Meditation Kufstein, Online Atemreise Tirol (`isOnline`, `regionId: 'tirol'`),
+  Yoga Dornbirn (explicit `regionId: 'vorarlberg'`) and Yoga Bregenz ohne Region
+  (no `regionId`, i.e. "before the migration"). Ids are in `REGION_EVENT_IDS`
   (`tests/helpers/regionFixtures.ts`). A dedicated spec loads them with
   `loadRegionEventFixtures()` in `beforeAll`, or by hand:
-  `node scripts/seed-region-fixtures.mjs --events`. Once the calendar filters by
-  region (ticket 11) they can move into globalSetup. The existing seed events
-  have no `regionId` and fall back to Vorarlberg.
+  `node scripts/seed-region-fixtures.mjs --events`. The existing seed events
+  have no `regionId` and fall back to Vorarlberg, so the emulator never has the
+  migration marker (see "Server-side region queries" below);
+  `setRegionMigrationMarker(true|false)` in the same helper sets/deletes it, only
+  in `destructive` specs and always removed again (while it is set every seed
+  event is missing from the calendar).
 - **Account** `tirol-mod@test.local` / `testpassword123` is a Regions-Moderator:in
   for Tirol: no token claim, `admin_users/{uid}` =
   `{ role: 'RegionModerator', regionIds: ['tirol'] }` (reconciled by
@@ -713,7 +717,7 @@ sanitized copy of production data. Project id `tribe-vbg-staging` (alias
 node scripts/mirror-prod-to-staging.mjs --apply                          # fresh sanitized copy
 node scripts/seed-regions.mjs --project tribe-vbg-staging                # regions collection
 node scripts/migrate-region-ids.mjs --project tribe-vbg-staging          # dry-run: check counts
-node scripts/migrate-region-ids.mjs --project tribe-vbg-staging --apply  # write (no backup needed on staging)
+node scripts/migrate-region-ids.mjs --project tribe-vbg-staging --apply  # write + marker (no backup needed on staging)
 node scripts/migrate-region-ids.mjs --project tribe-vbg-staging          # second run: 0 to migrate
 node scripts/migrate-region-ids.mjs --project tribe-vbg-staging --revert # revert dry-run: counts match the apply
 ```
@@ -733,6 +737,53 @@ happens to equal the migration's value (e.g. a new Vorarlberg event) is removed 
 the app reads a missing field as Vorarlberg, so nothing moves. A field that was
 `null`/`''` before the migration comes back as missing. Pure planner:
 `planRevert` in `src/utils/regionMigration.js`, tests in `tests/lib/regionMigration.spec.ts`.
+`--revert --apply` deletes the marker (below) **first**, waits 10 s on real
+projects so open tabs switch back to the full query, then removes the fields.
+
+### Server-side region queries and the migration marker
+
+Firestore cannot query for a missing field, and docs from before the migration
+have no `regionId` / `directoryRegionIds` (read as Vorarlberg). So the public lists
+use region-scoped queries only while `app_settings/regionMigration` says
+`{ complete: true }`; without it they load everything exactly as before.
+
+- **Order:** deploy the code (and `firestore.indexes.json`; wait until the new
+  indexes show "Enabled" in the console) → `migrate-region-ids.mjs --apply` → the
+  script writes the marker at the end → every open page switches live (the app
+  listens to the marker). No second deploy.
+- **The marker is written** only by `--apply`, only when the control read after the
+  writes finds 0 docs without the field and 0 invalid values (`decideMigrationMarker`).
+  A re-run with nothing to migrate writes it too; a run that finds open/invalid docs
+  deletes an existing marker. The dry-run prints the marker state and warns when a
+  marker exists but docs are missing the field (use it as a health check).
+- **Switching back:** `migrate-region-ids.mjs --revert --apply`, or just delete the
+  doc (Super-Admins may delete it from a client; nobody can create or change it
+  from a client, only the Admin SDK; anyone can read it, see
+  `tests/rules/instagram.rules.spec.ts`). Deleting is always safe.
+- **Queries** (`src/utils/regionQueries.js`, pure, tests
+  `tests/components/regionQueries.spec.ts`; hooks
+  `tests/components/regionScopedQueries.spec.tsx`):
+  calendar / similar events: `status == approved` + `regionId == R`, plus
+  `status == approved` + `isOnline == true` (online events are visible in every
+  region); combined view `/oesterreich` and favourites: `regionId in [active
+regions]` (≤ 30); directory: `listedInDirectory == true` +
+  `directoryRegionIds array-contains R` (combined: `array-contains-any`). The
+  client filter (`useRegionEvents` / `useRegionDirectoryEntries`) stays on top. A
+  failing region query (e.g. index still building) falls back to the full query.
+  Admin tabs (`useAllEvents()` without options), OrganizerEvents (`createdBy`) and
+  staff lists (`staffEventQueries.js`, already by region for moderators) do not use it.
+- **Indexes** (`firestore.indexes.json`, deployed by `deploy.yml` when the file
+  changes): events `status+regionId`, events `status+isOnline`, collection group
+  `publicProfile` `listedInDirectory+directoryRegionIds(CONTAINS)`. The emulator
+  ignores missing indexes, so a new query shape needs its index added by hand.
+- **Keeping it true:** every write path sets the fields (event form/wizard/duplicate:
+  `pickEventRegionId`; profile form; `adminUpdateMember` adds
+  `directoryRegionIds: ['vorarlberg']` when listing a profile without one; approving
+  an event without `regionId` adds it, Super-Admins only). Something that writes
+  events or listings outside the app (scripts, console) must set them too, or the
+  doc is invisible while the marker is set — re-run the dry-run to check.
+- The marker is not mirrored to staging (`app_settings` allowlist): after
+  `mirror-prod-to-staging.mjs` run the migration on staging to get it.
 
 ## Communicating with Peter
 

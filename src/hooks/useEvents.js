@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   collection,
   addDoc,
@@ -29,6 +29,9 @@ import { ensureCategoryExists } from '../utils/ensureCategoryExists';
 import { buildTrashUpdate, buildRestoreUpdate } from '../utils/trashUpdates';
 import { getStaffAccess } from '../utils/staffRoles';
 import { staffEventQuerySpecs, subscribeEventQueries } from '../lib/staffEventQueries';
+import { buildPublicEventQueryPlan, queryPlanKey } from '../utils/regionQueries';
+import { useRegion } from './useRegion';
+import { useRegionMigrationComplete } from './useRegionMigrationMarker';
 
 export const KATEGORIEN = [
   'Yoga',
@@ -282,6 +285,8 @@ export function useEvents(user) {
   };
 }
 
+const isMissingRegionId = (value) => value === undefined || value === null || value === '';
+
 async function approveEventAsAdmin(eventId, adminUid) {
   if (auth.currentUser) {
     await auth.currentUser.getIdToken(true);
@@ -310,6 +315,19 @@ async function approveEventAsAdmin(eventId, adminUid) {
     approvedAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
+
+  // An event without regionId (written by an app version from before regions,
+  // e.g. a stale cached bundle) would be missing from the region-scoped public
+  // queries once the migration marker is set. Give it the region it is read
+  // as anyway. Separate and best-effort: the rules let only Super-Admins add
+  // a regionId, and approval must not depend on it.
+  if (eventData && isMissingRegionId(eventData.regionId)) {
+    try {
+      await updateDoc(ref, { regionId: resolveRegionId(eventData) });
+    } catch (err) {
+      console.warn('Setting the default regionId during approval failed:', err);
+    }
+  }
 
   if (eventData?.category) {
     try {
@@ -365,21 +383,66 @@ export function usePendingEvents() {
   return { pendingEvents, loading, approveEvent };
 }
 
-export function useAllEvents() {
+/**
+ * The query plan for the current region (see utils/regionQueries.js), or the
+ * full query when `regionScoped` is off. `null` = wait (marker or, once the
+ * marker is set, the region register not loaded yet; the region on `/` can
+ * change when it arrives, and a resubscribe would read a region twice).
+ */
+export function useRegionEventQueryPlan({ regionScoped = false, allActive = false } = {}) {
+  const { regionId, regions, isNational, loading: regionsLoading } = useRegion();
+  const markerComplete = useRegionMigrationComplete({ enabled: regionScoped });
+  const activeKey = regions.map((r) => r.id).join(',');
+  const waitForRegions = regionScoped && markerComplete === true && regionsLoading;
+  const plan = useMemo(
+    () =>
+      waitForRegions
+        ? null
+        : buildPublicEventQueryPlan({
+            markerComplete: regionScoped ? markerComplete : false,
+            regionId,
+            isNational: isNational || allActive,
+            activeRegionIds: activeKey ? activeKey.split(',') : [],
+          }),
+    [waitForRegions, regionScoped, markerComplete, regionId, isNational, allActive, activeKey]
+  );
+  return plan;
+}
+
+/**
+ * Approved events. Without options: every approved event (admin tabs).
+ * `{ regionScoped: true }` (public lists): only the current region's events
+ * plus online events, or with `allActive` / in the combined view those of the
+ * active regions, once the regionId migration is marked complete; before that
+ * the same full query as always. Callers keep filtering with useRegionEvents.
+ */
+export function useAllEvents({ regionScoped = false, allActive = false } = {}) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // A failing region query (e.g. an index still building) falls back to the
+  // full query for the rest of the page load instead of an empty calendar.
+  const [scopedFailed, setScopedFailed] = useState(false);
+  const plan = useRegionEventQueryPlan({ regionScoped: regionScoped && !scopedFailed, allActive });
+  const planKey = queryPlanKey(plan);
+  const lastModeRef = useRef(null);
 
   useEffect(() => {
-    const q = query(collection(db, 'events'), where('status', '==', 'approved'));
+    if (planKey === 'pending') return undefined;
+    const { mode, queries } = JSON.parse(planKey);
+    // Switching from one region's queries to another's: don't show the old
+    // region's list meanwhile. After the full query the old list is a
+    // superset (the client filter still applies), so it may stay until the
+    // new answer arrives.
+    if (lastModeRef.current !== null && lastModeRef.current !== 'all') {
+      setLoading(true);
+      setEvents([]);
+    }
+    lastModeRef.current = mode;
 
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const eventData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
+    return subscribeEventQueries(
+      queries,
+      (eventData) => {
         const normalized = normalizeEvents(eventData);
         normalized.sort(compareEventsByDateTime);
         setEvents(normalized);
@@ -387,13 +450,16 @@ export function useAllEvents() {
         setError(null);
       },
       (err) => {
+        if (mode !== 'all') {
+          console.warn('Region query failed, loading all events instead:', err);
+          setScopedFailed(true);
+          return;
+        }
         setError(err.message);
         setLoading(false);
       }
     );
-
-    return unsubscribe;
-  }, []);
+  }, [planKey]);
 
   return { events, loading, error };
 }

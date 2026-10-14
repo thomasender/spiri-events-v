@@ -185,6 +185,41 @@ describe('other app_settings stay public', () => {
   });
 });
 
+// Written only by scripts/migrate-region-ids.mjs (Admin SDK). Every visitor
+// reads it to decide between region-scoped and full queries; no client may
+// create or change it. Deleting is the safe direction (back to the full
+// query) and stays possible for Super-Admins like every app_settings doc.
+describe('app_settings/regionMigration (migration marker)', () => {
+  const MARKER = 'app_settings/regionMigration';
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled((ctx) =>
+      setDoc(doc(ctx.firestore(), MARKER), { complete: true, completedAt: 1, checkedDocs: 3 })
+    );
+  });
+
+  it('anyone can read it, nobody can create or change it from a client', async () => {
+    await assertSucceeds(getDoc(doc(anon().firestore(), MARKER)));
+    const ctxs = [anon(), user(), ...Object.values(adminVariants).map((m) => m())];
+    for (const ctx of ctxs) {
+      const db = ctx.firestore();
+      await assertFails(updateDoc(doc(db, MARKER), { complete: false }));
+      await assertFails(setDoc(doc(db, MARKER), { complete: true }));
+    }
+    for (const ctx of [anon(), user()]) {
+      await assertFails(deleteDoc(doc(ctx.firestore(), MARKER)));
+    }
+  });
+
+  it('a Super-Admin can delete it (switches the app back to full queries)', async () => {
+    await assertSucceeds(
+      deleteDoc(doc(adminVariants['admin (admin_users doc)']().firestore(), MARKER))
+    );
+    await assertFails(
+      setDoc(doc(adminVariants['admin (token claim)']().firestore(), MARKER), { complete: true })
+    );
+  });
+});
+
 describe('events.instagramConsent', () => {
   const base = { createdBy: 'owner', status: 'draft', description: 'd' };
   const owner = () => env.authenticatedContext('owner', { email_verified: true });

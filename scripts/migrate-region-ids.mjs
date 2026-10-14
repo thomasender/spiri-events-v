@@ -39,6 +39,16 @@
 //   show up in the same place. A field that was null or '' before the
 //   migration comes back as missing, not as null/''.
 //
+// Completion marker (ticket 11): at the end of a successful --apply, and only
+// when the control read finds 0 docs left to migrate and 0 invalid values, the
+// script writes app_settings/regionMigration = { complete: true, completedAt,
+// checkedDocs }. Only then does the app load the public lists with
+// region-scoped queries (src/utils/regionQueries.js); without it the app loads
+// everything as before. A re-run of --apply with nothing to migrate still
+// writes it (e.g. after fixing an invalid value by hand). --revert --apply
+// deletes the marker FIRST (open tabs switch back to the full query live),
+// waits a few seconds on real projects, and only then removes the fields.
+//
 // Writes use update() with a lastUpdateTime precondition, in batches of <= 400:
 // no other field (updatedAt included) is touched, and a doc changed by
 // someone else in the meantime makes the batch fail instead of being
@@ -50,8 +60,11 @@ import { MANIFEST_NAME, latestProductionExportedAt } from '../src/utils/firestor
 import {
   MAX_BATCH_SIZE,
   PROD_PROJECT_ID,
+  REGION_MIGRATION_MARKER_PATH,
   STAGING_PROJECT_ID,
+  buildMigrationMarker,
   chunk,
+  decideMigrationMarker,
   migrateSnapshotDocs,
   planMigration,
   planRevert,
@@ -194,6 +207,48 @@ function readCredentialsFile(path) {
   }
 }
 
+async function readMarker(db) {
+  const snap = await db.doc(REGION_MIGRATION_MARKER_PATH).get();
+  return snap.exists ? snap.data() : null;
+}
+
+function printMarker(marker) {
+  console.log(
+    `${TAG} Marker ${REGION_MIGRATION_MARKER_PATH}: ` +
+      (marker
+        ? JSON.stringify({ complete: marker.complete, checkedDocs: marker.checkedDocs })
+        : 'nicht vorhanden')
+  );
+}
+
+// Writes the completion marker when the control-read plan allows it. If it
+// does not, an existing marker is deleted: it would claim something false.
+async function writeMarkerIfComplete({ db, app, opts, FieldValue, plan, marker }) {
+  const decision = decideMigrationMarker(plan);
+  if (!decision.write) {
+    if (marker) {
+      assertInitializedProject(app.options.projectId, opts.projectId);
+      await db.doc(REGION_MIGRATION_MARKER_PATH).delete();
+      console.log(`${TAG} Vorhandener Marker GELOESCHT: ${decision.reason}.`);
+    }
+    console.log(`${TAG} Marker NICHT gesetzt: ${decision.reason}. Die App laedt weiter alles.`);
+    return false;
+  }
+  assertInitializedProject(app.options.projectId, opts.projectId);
+  await db
+    .doc(REGION_MIGRATION_MARKER_PATH)
+    .set(buildMigrationMarker(plan, FieldValue.serverTimestamp()));
+  console.log(
+    `${TAG} Marker gesetzt (${REGION_MIGRATION_MARKER_PATH}, ${decision.reason}). ` +
+      'Die App laedt ab jetzt nur noch die Events/Profile der aktuellen Region.'
+  );
+  return true;
+}
+
+// Seconds between deleting the marker and removing fields on a real project,
+// so open tabs (live listener on the marker) switch to the full query first.
+const REVERT_MARKER_GRACE_MS = 10_000;
+
 async function initDb(opts) {
   if (opts.target === 'emulator') {
     process.env.FIRESTORE_EMULATOR_HOST = opts.emulatorHost;
@@ -244,40 +299,55 @@ async function writeBatches({ db, app, opts, docs, items, toUpdate, verb }) {
 }
 
 async function runMigration(opts) {
-  const { db, app } = await initDb(opts);
+  const { db, app, FieldValue } = await initDb(opts);
 
+  const marker = await readMarker(db);
+  printMarker(marker);
   const docs = await loadDocs(db);
   const plan = planMigration(docs);
   printPlan(plan);
+  if (marker && !decideMigrationMarker(plan).write) {
+    console.log(
+      `${TAG} WARNUNG: Marker gesetzt, aber ${plan.updates.length} Dokumente ohne Feld / ` +
+        `${plan.invalid.length} ungueltig: die App findet diese nicht. --apply behebt das ` +
+        '(oder loescht den Marker, wenn ungueltige Werte bleiben).'
+    );
+  }
 
   if (opts.dryRun) {
     for (const u of plan.updates.slice(0, 20))
       console.log(`${TAG}   wuerde setzen: ${u.path} ${JSON.stringify(u.update)}`);
     if (plan.updates.length > 20)
       console.log(`${TAG}   ... und ${plan.updates.length - 20} weitere`);
+    console.log(
+      `${TAG} Marker: wuerde mit --apply gesetzt, wenn danach 0 offen und 0 ungueltig sind ` +
+        `(jetzt ungueltig: ${plan.invalid.length}).`
+    );
     console.log(`${TAG} DRY-RUN: nichts geschrieben.`);
     return;
   }
+
+  let migrated = 0;
+  let after = plan;
   if (plan.updates.length === 0) {
-    console.log(`${TAG} Nichts zu tun.`);
-    return;
+    console.log(`${TAG} Nichts zu migrieren.`);
+  } else {
+    migrated = await writeBatches({
+      db,
+      app,
+      opts,
+      docs,
+      items: plan.updates,
+      toUpdate: (u) => u.update,
+      verb: 'migriert',
+    });
+    after = planMigration(await loadDocs(db));
   }
-
-  const migrated = await writeBatches({
-    db,
-    app,
-    opts,
-    docs,
-    items: plan.updates,
-    toUpdate: (u) => u.update,
-    verb: 'migriert',
-  });
-
-  const after = planMigration(await loadDocs(db));
   console.log(
     `${TAG} Fertig. gesamt ${plan.total} | bereits gesetzt ${plan.already} | migriert ${migrated} | Fehler 0 | ` +
-      `noch offen nach Kontroll-Lesen: ${after.updates.length}`
+      `noch offen nach Kontroll-Lesen: ${after.updates.length} | ungueltig: ${after.invalid.length}`
   );
+  await writeMarkerIfComplete({ db, app, opts, FieldValue, plan: after, marker });
   if (opts.target === 'production') {
     console.log(
       `${TAG} Danach Snapshot-Dateien nachziehen: node scripts/migrate-region-ids.mjs --snapshot --apply`
@@ -304,11 +374,15 @@ function printRevertPlan(plan) {
 async function runRevert(opts) {
   const { db, app, FieldValue } = await initDb(opts);
 
+  const marker = await readMarker(db);
+  printMarker(marker);
   const docs = await loadDocs(db);
   const plan = planRevert(docs);
   printRevertPlan(plan);
 
   if (opts.dryRun) {
+    if (marker)
+      console.log(`${TAG}   wuerde zuerst den Marker ${REGION_MIGRATION_MARKER_PATH} loeschen`);
     for (const r of plan.reverts.slice(0, 20))
       console.log(`${TAG}   wuerde entfernen: ${r.path} ${r.field}`);
     if (plan.reverts.length > 20)
@@ -316,8 +390,23 @@ async function runRevert(opts) {
     console.log(`${TAG} DRY-RUN: nichts geschrieben.`);
     return;
   }
+
+  // Marker first: from now on the app loads everything again (open tabs too,
+  // they listen to the marker), so no event vanishes while fields go away.
+  if (marker) {
+    assertInitializedProject(app.options.projectId, opts.projectId);
+    await db.doc(REGION_MIGRATION_MARKER_PATH).delete();
+    console.log(`${TAG} Marker ${REGION_MIGRATION_MARKER_PATH} geloescht.`);
+    if (plan.reverts.length > 0 && opts.target !== 'emulator') {
+      console.log(
+        `${TAG} Warte ${REVERT_MARKER_GRACE_MS / 1000}s, bis offene Seiten umgeschaltet haben ...`
+      );
+      await new Promise((r) => setTimeout(r, REVERT_MARKER_GRACE_MS));
+    }
+  }
+
   if (plan.reverts.length === 0) {
-    console.log(`${TAG} Nichts zu tun.`);
+    console.log(`${TAG} Nichts zurueckzusetzen.`);
     return;
   }
 

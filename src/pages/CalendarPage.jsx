@@ -206,7 +206,10 @@ export default function CalendarPage() {
     (savedState?.selectedOrte?.length ?? 0) > 0 || savedState?.onlyFavorites === true
   );
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
-  const { events: allEvents, loading, error } = useAllEvents();
+  // Region-scoped Firestore queries once the regionId migration is marked
+  // complete (utils/regionQueries.js); the client filter below stays as a
+  // second safety layer.
+  const { events: allEvents, loading, error } = useAllEvents({ regionScoped: true });
   // One central filter: everything below (lists, counts, chips) derives from this.
   const events = useRegionEvents(allEvents);
   const regionBezirke = useRegionBezirke();

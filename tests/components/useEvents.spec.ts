@@ -41,6 +41,7 @@ vi.mock('../../src/lib/imageUpload', () => ({ deleteImageByUrl: vi.fn(async () =
 vi.mock('../../src/hooks/useAuth', () => ({ useAuth: () => ({ user: null, role: null }) }));
 vi.mock('../../src/utils/ensureCategoryExists', () => ({ ensureCategoryExists: vi.fn() }));
 
+import { updateDoc } from 'firebase/firestore';
 import { useEvents } from '../../src/hooks/useEvents';
 
 const user = { uid: 'owner' };
@@ -98,5 +99,43 @@ describe('useEvents regionId', () => {
     await waitFor(() => expect(result.current.events).toHaveLength(2));
     const byId = Object.fromEntries(result.current.events.map((e) => [e.id, e.regionId]));
     expect(byId).toEqual({ old: 'vorarlberg', new: 'tirol' });
+  });
+});
+
+describe('approveEvent and regionId', () => {
+  const updates = () =>
+    (vi.mocked(updateDoc).mock.calls as unknown as Array<[unknown, Record<string, unknown>]>).map(
+      (c) => c[1]
+    );
+
+  beforeEach(() => vi.mocked(updateDoc).mockClear());
+
+  it('gives an event without regionId the region it is read as (region queries find it)', async () => {
+    mockStore.sourceDoc = { title: 'Alt', status: 'pending' };
+    const { result } = renderHook(() => useEvents(user));
+    await result.current.approveEvent('e1');
+    expect(updates()[0]).toMatchObject({ status: 'approved' });
+    expect(updates()).toContainEqual({ regionId: 'vorarlberg' });
+  });
+
+  it('leaves an existing regionId alone', async () => {
+    mockStore.sourceDoc = { title: 'Neu', status: 'pending', regionId: 'tirol' };
+    const { result } = renderHook(() => useEvents(user));
+    await result.current.approveEvent('e1');
+    expect(updates()).toHaveLength(1);
+    expect(updates()[0]).not.toHaveProperty('regionId');
+  });
+
+  it('approval still succeeds when the region write is rejected (moderator)', async () => {
+    mockStore.sourceDoc = { title: 'Alt', status: 'pending' };
+    vi.mocked(updateDoc)
+      .mockImplementationOnce(async () => {})
+      .mockImplementationOnce(async () => {
+        throw new Error('permission-denied');
+      });
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { result } = renderHook(() => useEvents(user));
+    await expect(result.current.approveEvent('e1')).resolves.toBeUndefined();
+    expect(warn).toHaveBeenCalled();
   });
 });
