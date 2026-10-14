@@ -67,14 +67,21 @@ const fixtures = [
   },
 ];
 
+// Everything below is written in ONE batch. afterEach runs while the test's
+// page is still open and listening to the trash, and a reset written doc by
+// doc let it (and the next test) see half-reset states: one fixture back in the
+// trash, another still restored or deleted, stale docs not yet removed. Each
+// fixture is written in full with set() (reconcile, not patch), so a field a
+// previous test changed cannot survive the reset.
+const batch = db.batch();
+
 for (const fx of fixtures) {
   const ref = db.collection('events').doc(fx.id);
-  const existing = await ref.get();
   const ownerUid = fx.ownerRole === 'admin' ? adminUid : userUid;
   const date = makeDate(fx.dateOffset);
   const slug = generateEventSlug(fx.title, fx.category, fx.bezirk, date);
   const trashedAtMillis = Date.now() - fx.trashedDaysAgo * 24 * 60 * 60 * 1000;
-  const baseData = {
+  batch.set(ref, {
     title: fx.title,
     date,
     endDate: null,
@@ -89,24 +96,10 @@ for (const fx of fixtures) {
     status: fx.status,
     trashedAt: Timestamp.fromMillis(trashedAtMillis),
     slug,
-    bezirk: 'Bregenz',
     isOnline: false,
     createdBy: ownerUid || fx.id,
     createdAt: Timestamp.now(),
-  };
-
-  if (!existing.exists) {
-    await ref.set(baseData);
-    console.log(`Created ${fx.id} (status=${fx.status}, trashedDaysAgo=${fx.trashedDaysAgo})`);
-  } else {
-    await ref.update({
-      status: fx.status,
-      trashedAt: Timestamp.fromMillis(trashedAtMillis),
-      place: fx.place,
-      bezirk: 'Bregenz',
-    });
-    console.log(`Reset ${fx.id} (status=${fx.status}, trashedDaysAgo=${fx.trashedDaysAgo})`);
-  }
+  });
 }
 
 // Documents this script must never delete. Besides its own three fixtures it
@@ -121,7 +114,8 @@ const protectedIds = new Set([
   'test-event-recurring-weekly',
 ]);
 
-for (const [role, ownerUid] of Object.entries({ admin: adminUid, user: userUid })) {
+let staleCount = 0;
+for (const ownerUid of [adminUid, userUid]) {
   if (!ownerUid) continue;
   const ownerEvents = await db
     .collection('events')
@@ -130,7 +124,10 @@ for (const [role, ownerUid] of Object.entries({ admin: adminUid, user: userUid }
     .get();
   for (const doc of ownerEvents.docs) {
     if (protectedIds.has(doc.id)) continue;
-    await doc.ref.delete();
-    console.log(`Cleaned stale trash doc ${doc.id}`);
+    batch.delete(doc.ref);
+    staleCount += 1;
   }
 }
+
+await batch.commit();
+console.log(`Reset ${fixtures.length} trash fixtures, removed ${staleCount} stale trash docs.`);
