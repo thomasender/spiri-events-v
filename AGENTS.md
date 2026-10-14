@@ -562,6 +562,43 @@ node scripts/export-firestore.mjs --verify backups/firestore-<date>   # restore 
 - `backups/` is git-ignored: it contains personal data (and `instagram_private`).
   Keep it local and delete it when the migration is done.
 
+## Mirror production into staging (sanitized)
+
+`scripts/mirror-prod-to-staging.mjs` copies the production Firestore
+(`spirieventsvbg`, read only) into the staging project `tribe-vbg-staging` with
+personal data sanitized, to rehearse the regionId migration on realistic data.
+Logic and tests: `src/utils/stagingMirror.js`, `tests/lib/stagingMirror.spec.ts`.
+
+```bash
+node scripts/mirror-prod-to-staging.mjs           # dry-run: reads, sanitizes, prints counts/drops/leak scan, writes nothing
+node scripts/mirror-prod-to-staging.mjs --apply   # empties the mirrored collections in STAGING, then writes the sanitized docs
+node scripts/mirror-prod-to-staging.mjs --emulator [host] [--apply]   # tests: source and target both in the emulator
+```
+
+- Credentials: Application Default Credentials (read on prod, write on staging).
+  Source and target are hard-coded, there is no `--project`. The write target is
+  checked twice (option resolution and with the initialized app's projectId before
+  the first write, and before every batch); anything but `tribe-vbg-staging` aborts.
+- ALLOWLIST (`MIRROR_POLICY`): only listed schema paths are copied. Dropped and
+  unknown collections are never read (only counted and printed). Dropped:
+  `admin_users`, `admin_audit_log`, `calendarFeedTokens`, `instagram_private`,
+  `instagram_posts`, `feedback`, `member_lists`, `donors`, `events/{}/messages`,
+  and every `app_settings` doc except `theme` / `activeTheme`. A new collection
+  needs an explicit policy before it shows up in staging.
+- Sanitizing: e-mails become `user-<sha256 10>@example.invalid`, phones
+  `+43 000 0000000`, person names `Testperson <4 hex>` (all deterministic);
+  e-mails/phones in free text are regex-scrubbed; token/ip/mollie/payment keys are
+  removed. Titles, descriptions, dates, slugs, regionId, bezirk, status and all ids
+  stay, old-format and missing fields survive. Slugs and usernames are NOT
+  pseudonymised, so a person's name can still appear there.
+- Leak scan: any remaining foreign e-mail or phone number in any field aborts
+  with exit 1 (doc path + field, never the value), also in dry-run.
+- `--apply` only clears the mirrored collections (`events` incl. messages,
+  `users`, `categories`, `regions`, `themes`, `helpers`, `app_settings/theme`,
+  `app_settings/activeTheme`); other staging data such as `admin_users` is kept.
+- Not mirrored: Auth users and Storage files (image URLs keep pointing at
+  production's public URLs).
+
 ## Communicating with Peter
 
 Peter is the product owner and tester. He tests directly on production at https://www.thetribe.at (NOT locally).
