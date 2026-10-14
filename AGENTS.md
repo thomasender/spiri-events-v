@@ -500,6 +500,28 @@ When more than one source succeeds, the build **merges** them: events matched
 by `id`/`slug` get their live field values (so a freshly changed `imageUrl`
 wins immediately), and events that exist only in Firestore are appended.
 
+### Regions (ticket 22)
+
+The prerender also reads the `regions` collection (optional snapshot
+`data-export/firestore-export/regions.json`, then Admin SDK / REST / client SDK
+on top, written by `prerender:refresh`), merged over the static register with
+`mergeRegions`. Missing/empty/unreadable means static register = Vorarlberg only.
+Only public fields are kept (never `contactEmail`).
+
+- **Dark launch:** with fewer than two active regions nothing changes: `/`,
+  event pages and `sitemap.xml` are byte-identical (golden hashes in
+  `tests/components/prerenderRegions.spec.tsx`), no region page is written.
+  `/verzeichnis` was never prerendered (it is served by the SPA fallback).
+- **Two or more active regions:** `dist/<slug>/index.html` and
+  `dist/<slug>/verzeichnis/index.html` for every active region (Hosting serves
+  them before the `**` rewrite, no `firebase.json` change). Texts come from
+  `regionTexts()` (title `Kalender | The Tribe <Region>`, canonical
+  `/<slug>`, JSON-LD only on the calendar page). Sitemap adds `/<slug>` and
+  `/<slug>/verzeichnis` of active non-default regions. Events of non-Vorarlberg
+  regions get `| The Tribe <Region>` in `<title>` (canonical stays `/event/<slug>`).
+- Inactive regions get no page and no sitemap entry; the SPA coming-soon page is
+  `noindex`. `/` stays the Vorarlberg page (not region-neutral yet).
+
 ### Auto-trigger on event changes (UIWI8kWx)
 
 The `onEventWriteTriggerBuild` Cloud Function fires on every Firestore

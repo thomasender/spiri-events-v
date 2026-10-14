@@ -20,9 +20,10 @@
 // `regions/{id}`) replace the generated texts, but only in region-specific
 // mode. Fallbacks: missing config -> generated from `name`/`inPhrase`; no region
 // at all -> today's texts.
-import { BRAND_NAME, LEGACY_SITE_NAME } from '../config/brand';
-import { ALL_REGIONS_NAME } from './regionRouting';
-import { DEFAULT_REGION_ID } from './regions';
+// Explicit .js extensions: scripts/prerender.mjs imports this file in plain Node.
+import { BRAND_NAME, LEGACY_SITE_NAME } from '../config/brand.js';
+import { ALL_REGIONS_NAME } from './regionRouting.js';
+import { DEFAULT_REGION_ID } from './regions.js';
 
 export const LEGACY_DEFAULT_DESCRIPTION =
   'Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg - Bregenz, Dornbirn, Feldkirch, Bludenz';
