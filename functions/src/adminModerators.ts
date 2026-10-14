@@ -36,17 +36,11 @@ import {
   type RoleDocReader,
 } from './staffRoles';
 import { REGION_IDS } from './regions';
+import { ALLOWED_ORIGINS } from './allowedOrigins';
 
 if (getApps().length === 0) {
   initializeApp();
 }
-
-const ALLOWED_ORIGINS = [
-  'https://www.thetribe.at',
-  'https://thetribe.at',
-  'https://spirieventsvbg.web.app',
-  'http://localhost:5180',
-];
 
 export const AUDIT_LOG_COLLECTION = 'admin_audit_log';
 

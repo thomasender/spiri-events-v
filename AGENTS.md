@@ -628,6 +628,12 @@ sanitized copy of production data. Project id `tribe-vbg-staging` (alias
   npx vite build --mode staging   # reads the git-ignored .env.staging.local
   firebase deploy --only firestore:rules,firestore:indexes,storage,hosting,functions --project tribe-vbg-staging
   ```
+  `.env.staging.local` must contain the staging Firebase keys **and
+  `VITE_FIREBASE_TARGET=staging`**: without it `src/lib/firebase.js` falls back to the
+  production config and the staging site would talk to production (login, Firestore).
+  Check the bundle: `grep -c spirieventsvbg dist/assets/index-*.js` must print 0.
+  Functions allow the staging origin for CORS only when running in the staging
+  project (`functions/src/allowedOrigins.ts`).
   The staging build deliberately skips the prerender step (`npm run build` runs
   `scripts/prerender.mjs`, which reads production). Secrets in staging (Mollie,
   Mailgun, Instagram, GitHub dispatch, ...) are dummies: payments, mails, posts

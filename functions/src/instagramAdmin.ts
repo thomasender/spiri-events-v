@@ -26,6 +26,7 @@ import {
   skipInstagramPost,
 } from './instagram/instagramAdminLogic';
 import type { TriggerOutcome } from './instagram/instagramPublish';
+import { ALLOWED_ORIGINS } from './allowedOrigins';
 
 if (getApps().length === 0) {
   initializeApp();
@@ -33,13 +34,6 @@ if (getApps().length === 0) {
 
 const IG_ACCESS_TOKEN = defineSecret('IG_ACCESS_TOKEN');
 const IG_USER_ID = defineSecret('IG_USER_ID');
-
-const ALLOWED_ORIGINS = [
-  'https://www.thetribe.at',
-  'https://thetribe.at',
-  'https://spirieventsvbg.web.app',
-  'http://localhost:5180',
-];
 
 async function assertAdmin(uid: string | undefined): Promise<void> {
   if (!uid) {

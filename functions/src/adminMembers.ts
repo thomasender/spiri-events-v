@@ -15,17 +15,11 @@ import {
   type StaffRole,
 } from './staffRoles';
 import { DIRECTORY_REGIONS, isRegionId } from './regions';
+import { ALLOWED_ORIGINS } from './allowedOrigins';
 
 if (getApps().length === 0) {
   initializeApp();
 }
-
-const ALLOWED_ORIGINS = [
-  'https://www.thetribe.at',
-  'https://thetribe.at',
-  'https://spirieventsvbg.web.app',
-  'http://localhost:5180',
-];
 
 const DISPLAY_NAME_MAX = 80;
 const USERNAME_MAX = 40;

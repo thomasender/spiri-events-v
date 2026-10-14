@@ -11,13 +11,7 @@ import {
   type GaResponse,
   type RangeDays,
 } from './analyticsReport';
-
-const ALLOWED_ORIGINS = [
-  'https://www.thetribe.at',
-  'https://thetribe.at',
-  'https://spirieventsvbg.web.app',
-  'http://localhost:5180',
-];
+import { ALLOWED_ORIGINS } from './allowedOrigins';
 
 // GA4 property of the web stream G-34TNY65VBC. The function's runtime service
 // account must be a "Betrachter" of this property (see AGENTS.md → Analytics).

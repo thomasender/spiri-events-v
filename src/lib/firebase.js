@@ -27,7 +27,11 @@ const devConfig = {
 };
 
 const useEmulators = import.meta.env.VITE_USE_EMULATORS === 'true';
-const app = initializeApp(useEmulators ? devConfig : prodConfig);
+// The staging build (`vite build --mode staging`, see AGENTS.md) sets this so it
+// talks to tribe-vbg-staging instead of production. The production build never
+// sets it and keeps using prodConfig.
+const useStaging = import.meta.env.VITE_FIREBASE_TARGET === 'staging';
+const app = initializeApp(useEmulators || useStaging ? devConfig : prodConfig);
 // Must run before Firestore, Storage and Functions are used (inert without a site key).
 setupAppCheck(app);
 export const auth = getAuth(app);
