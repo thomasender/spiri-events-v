@@ -463,6 +463,17 @@ carries the user's personal secret: `?token=` on `/calendar/feed.ics` and
   still be served from the CDN for about an hour.
 - **Revoke by hand:** delete `calendarFeedTokens/{uid}` in the Firestore console
   (the user gets a new token the next time they open the export).
+- **Regions:** `/calendar/feed.ics?region=<slug>` (default and absent =
+  `vorarlberg`; the client never adds `region=vorarlberg`, so the URL and output
+  of the Vorarlberg feed stay byte-identical). Events by `filterEventsForRegion`
+  (own region, events without `regionId` = Vorarlberg, online events in every
+  region, active regions only). `bezirk=` is checked against the region's own
+  Bezirke (`regions/{id}.bezirke` over the static register, 5 min cache,
+  `functions/src/regions.ts`). Unknown slug: `400`. Known but inactive region:
+  valid empty feed (`200`, cached like others). Name/PRODID/X-WR-TIMEZONE follow
+  the region ("Events Steiermark – thetribe.at"); Vorarlberg unchanged. The
+  combined "Österreich" view and favourites use the default feed. The single
+  event `.ics` ignores regions.
 - The frontend asks for the token only when the user opens "im eigenen Kalender
   speichern" or clicks "Zum Kalender hinzufügen" (`useCalendarFeedToken`).
 

@@ -3,10 +3,18 @@ import {
   DIRECTORY_REGIONS,
   INSTAGRAM_REGION_IDS,
   REGION_IDS,
+  STATIC_FEED_REGIONS,
+  filterEventsForRegion,
   isInstagramRegion,
+  mergeFeedRegions,
   resolveRegionId,
 } from '../../functions/src/regions';
-import { REGION_SLUGS } from '../../src/utils/regions';
+import {
+  REGION_SLUGS,
+  STATIC_REGIONS,
+  filterEventsForRegion as srcFilterEventsForRegion,
+  mergeRegions,
+} from '../../src/utils/regions';
 import { DIRECTORY_REGIONS as SRC_DIRECTORY_REGIONS } from '../../src/utils/directory';
 import { expandOccurrencesInWindow } from '../../functions/src/instagram/instagramOccurrences';
 import { selectFeedEvents } from '../../functions/src/calendar/calendarRoutes';
@@ -74,5 +82,59 @@ describe('regionId survives event expansion in functions', () => {
     const feed = selectFeedEvents([series], '2026-11-01', { bezirk: [], kategorie: [] });
     expect(feed.length).toBeGreaterThan(1);
     expect(feed.every((e) => e.regionId === 'tirol')).toBe(true);
+  });
+});
+
+// functions/src/regions.ts copies the register and the event filter of src/utils/regions.js.
+describe('functions feed region register', () => {
+  it('matches STATIC_REGIONS (name, active, bezirke, timezone)', () => {
+    expect(STATIC_FEED_REGIONS).toEqual(
+      STATIC_REGIONS.map((r) => ({
+        id: r.id,
+        name: r.name,
+        active: r.active,
+        bezirke: r.bezirke,
+        timezone: r.timezone,
+      }))
+    );
+  });
+
+  it('merges region docs like mergeRegions', () => {
+    const docs = [
+      { id: 'tirol', active: true, bezirke: ['Imst', 'Lienz'], name: 'Tirol' },
+      { id: 'allgaeu', timezone: 'Europe/Berlin', active: false },
+      { id: 'nowhere', active: true },
+      { id: 'wien', timezone: 'x\r\nEVIL:1' },
+    ];
+    const merged = mergeFeedRegions(docs);
+    const expected = mergeRegions(docs);
+    for (const r of merged) {
+      const e = expected.find((x: { id: string }) => x.id === r.id);
+      expect(r.active).toBe(e.active);
+      expect(r.bezirke).toEqual(e.bezirke);
+    }
+    // Unlike the client copy, a malformed timezone never reaches the ICS file.
+    expect(merged.find((r) => r.id === 'wien')?.timezone).toBe('Europe/Vienna');
+  });
+});
+
+describe('functions filterEventsForRegion', () => {
+  const events = [
+    { id: 'a' },
+    { id: 'b', regionId: 'tirol' },
+    { id: 'c', regionId: 'tirol', isOnline: true },
+    { id: 'd', regionId: 'steiermark' },
+    { id: 'e', regionId: 'wien', isOnline: true },
+  ];
+  const cases = [
+    { regionId: 'vorarlberg', activeRegionIds: ['vorarlberg'] },
+    { regionId: 'tirol', activeRegionIds: ['vorarlberg', 'tirol'] },
+    { regionId: 'tirol', activeRegionIds: ['vorarlberg'] },
+    { regionId: 'steiermark', activeRegionIds: ['vorarlberg', 'steiermark', 'wien'] },
+    { isNational: true, activeRegionIds: ['vorarlberg', 'tirol'] },
+    { activeRegionIds: ['vorarlberg'] },
+  ];
+  it.each(cases)('same result as the client copy: %j', (opts) => {
+    expect(filterEventsForRegion(events, opts)).toEqual(srcFilterEventsForRegion(events, opts));
   });
 });

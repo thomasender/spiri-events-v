@@ -806,6 +806,25 @@ describe('CalendarPage — calendar feed subscription', () => {
     );
     expect(buildFeedUrl(origin, [], [], 'a_b-C')).toBe(`${origin}/calendar/feed.ics?token=a_b-C`);
   });
+
+  it('adds the region only when it is not Vorarlberg (dark launch: URL unchanged)', () => {
+    const origin = 'https://www.thetribe.at';
+    const vbg = { regionId: 'vorarlberg', bezirke: ['Bregenz', 'Dornbirn'], isNational: false };
+    expect(buildFeedUrl(origin, ['Dornbirn'], ['Yoga'], 'tok', vbg)).toBe(
+      buildFeedUrl(origin, ['Dornbirn'], ['Yoga'], 'tok')
+    );
+    const stmk = { regionId: 'steiermark', bezirke: ['Graz', 'Leoben'], isNational: false };
+    expect(buildFeedUrl(origin, ['Graz', 'Dornbirn', 'Online'], ['Yoga'], 'tok', stmk)).toBe(
+      `${origin}/calendar/feed.ics?region=steiermark&bezirk=Graz&bezirk=Online&kategorie=Yoga&token=tok`
+    );
+    expect(buildFeedUrl(origin, [], [], undefined, stmk)).toBe(
+      `${origin}/calendar/feed.ics?region=steiermark`
+    );
+    // The combined view has no region of its own: same as the default feed.
+    expect(buildFeedUrl(origin, [], [], undefined, { ...stmk, isNational: true })).toBe(
+      `${origin}/calendar/feed.ics`
+    );
+  });
 });
 
 describe('CalendarPage — regions (ticket 14)', () => {

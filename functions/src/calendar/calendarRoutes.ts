@@ -17,20 +17,24 @@
  */
 
 import { expandOccurrencesInWindow, type SeriesFields } from '../instagram/instagramOccurrences';
+import {
+  DEFAULT_REGION_ID,
+  filterEventsForRegion,
+  isRegionId,
+  STATIC_REGION_BEZIRKE,
+} from '../regions';
 
 export const FEED_HORIZON_DAYS = 180;
 export const SINGLE_EVENT_HORIZON_DAYS = 365;
 export const MAX_FEED_EVENTS = 300;
 export const MAX_SINGLE_EVENT_OCCURRENCES = 60;
 
-const BEZIRKE = ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe'] as const;
 const ONLINE = 'Online';
-const REGION_FILTERS: readonly string[] = [...BEZIRKE, ONLINE];
 const SLUG = /^[A-Za-z0-9][A-Za-z0-9_-]{0,159}$/;
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 export type CalendarRoute =
-  | { kind: 'feed'; token: string; bezirk: string[]; kategorie: string[] }
+  | { kind: 'feed'; token: string; region: string; bezirk: string[]; kategorie: string[] }
   | { kind: 'event'; token: string; slug: string }
   | { kind: 'error'; status: 400 | 401 | 404; message: string };
 
@@ -54,10 +58,18 @@ function many(value: unknown): string[] | null {
   return [...new Set(list as string[])];
 }
 
+/**
+ * `regionBezirke`: Bezirke per region id (the handler passes the merged
+ * register); defaults to the static register. `?region=<slug>` is optional,
+ * absent = Vorarlberg. A slug that is not one of the ten region ids is a 400
+ * (like an unknown bezirk); a known but inactive region is valid (the handler
+ * answers with an empty feed).
+ */
 export function parseCalendarRequest(
   path: string,
   query: Record<string, unknown>,
-  knownCategories: ReadonlySet<string>
+  knownCategories: ReadonlySet<string>,
+  regionBezirke: Readonly<Record<string, readonly string[]>> = STATIC_REGION_BEZIRKE
 ): CalendarRoute {
   const clean = path.replace(/\/+$/, '');
 
@@ -65,19 +77,23 @@ export function parseCalendarRequest(
     const token = query.token;
     if (!isValidCalendarToken(token)) return UNAUTHORIZED;
     const unknown = Object.keys(query).filter(
-      (k) => k !== 'bezirk' && k !== 'kategorie' && k !== 'token'
+      (k) => k !== 'bezirk' && k !== 'kategorie' && k !== 'token' && k !== 'region'
     );
     if (unknown.length > 0) return { kind: 'error', status: 400, message: 'Unknown parameter' };
 
+    const region = query.region === undefined ? DEFAULT_REGION_ID : query.region;
+    if (!isRegionId(region)) return { kind: 'error', status: 400, message: 'Unknown region' };
+    const allowedOrte: readonly string[] = [...(regionBezirke[region] ?? []), ONLINE];
+
     const bezirk = many(query.bezirk);
-    if (bezirk === null || !bezirk.every((b) => REGION_FILTERS.includes(b))) {
+    if (bezirk === null || !bezirk.every((b) => allowedOrte.includes(b))) {
       return { kind: 'error', status: 400, message: 'Unknown bezirk' };
     }
     const kategorie = many(query.kategorie);
     if (kategorie === null || !kategorie.every((k) => knownCategories.has(k))) {
       return { kind: 'error', status: 400, message: 'Unknown kategorie' };
     }
-    return { kind: 'feed', token, bezirk, kategorie };
+    return { kind: 'feed', token, region, bezirk, kategorie };
   }
 
   const single = /^\/calendar\/event\/([^/]+)\.ics$/.exec(clean);
@@ -160,6 +176,13 @@ function sortKey(event: PublicEvent & { date: string }): string {
 export interface FeedFilters {
   bezirk: string[];
   kategorie: string[];
+  /**
+   * Region feed: only events visible there (own region + online) and only if
+   * the region is active (`activeRegionIds`), otherwise empty. Omitted = no
+   * region restriction.
+   */
+  regionId?: string;
+  activeRegionIds?: readonly string[];
 }
 
 /** The feed: approved, upcoming, filtered, sorted, capped at MAX_FEED_EVENTS. */
@@ -181,7 +204,17 @@ export function selectFeedEvents<T extends PublicEvent>(
     return true;
   };
 
-  return events
+  let inRegion: T[] = events;
+  if (filters.regionId) {
+    inRegion = filters.activeRegionIds?.includes(filters.regionId)
+      ? filterEventsForRegion(events, {
+          regionId: filters.regionId,
+          activeRegionIds: filters.activeRegionIds,
+        })
+      : [];
+  }
+
+  return inRegion
     .filter(matches)
     .flatMap((event) => upcomingOccurrences(event, today, FEED_HORIZON_DAYS))
     .sort((a, b) => (sortKey(a as never) < sortKey(b as never) ? -1 : 1))

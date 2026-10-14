@@ -7,7 +7,13 @@ import { useCategoryRegistry } from '../hooks/useCategoryRegistry';
 import { useFavorites } from '../hooks/useFavorites';
 import { useAuth } from '../hooks/useAuth';
 import { useCalendarFeedToken } from '../hooks/useCalendarFeedToken';
-import { useRegionCanonicalPath, useRegionEvents, useRegionBezirke } from '../hooks/useRegion';
+import {
+  useRegion,
+  useRegionCanonicalPath,
+  useRegionEvents,
+  useRegionBezirke,
+} from '../hooks/useRegion';
+import { DEFAULT_REGION_ID } from '../utils/regions';
 import Calendar from '../components/Calendar';
 import EventsSection from '../components/EventsSection';
 import EmailVerificationModal from '../components/EmailVerificationModal';
@@ -84,9 +90,15 @@ const HERO_FEATURE_PAIRS = [HERO_FEATURES.slice(0, 2), HERO_FEATURES.slice(2, 4)
 // (repeated parameters; the server only accepts known values, so unknown Orte are left out).
 // `token` is the user's secret calendar token: the feed is for signed-in users only and
 // calendar apps cannot log in, so the server checks this instead (useCalendarFeedToken).
-export function buildFeedUrl(origin, selectedOrte, selectedCategories, token) {
+// `region` = { regionId, bezirke }: the region's feed (`region=<slug>`, Orte checked against its
+// own Bezirke). Absent, the default region (Vorarlberg) or the combined view: no `region`
+// parameter and the Vorarlberg Bezirke, i.e. exactly the URL from before regions existed.
+export function buildFeedUrl(origin, selectedOrte, selectedCategories, token, region = null) {
   const params = new URLSearchParams();
-  const knownOrte = [...BEZIRKE, ONLINE_LOCATION];
+  const regionId = region?.regionId;
+  const useRegion = Boolean(regionId) && regionId !== DEFAULT_REGION_ID && !region?.isNational;
+  const knownOrte = [...(useRegion ? (region.bezirke ?? []) : BEZIRKE), ONLINE_LOCATION];
+  if (useRegion) params.append('region', regionId);
   selectedOrte.filter((o) => knownOrte.includes(o)).forEach((o) => params.append('bezirk', o));
   selectedCategories.forEach((c) => params.append('kategorie', c));
   if (token) params.append('token', token);
@@ -164,6 +176,7 @@ export default function CalendarPage() {
   const { user, canCreateEvents } = useAuth();
   const canonicalPath = useRegionCanonicalPath('/');
   const regionTexts = useRegionTexts();
+  const { regionId, isNational } = useRegion();
   // Load saved state exactly once per mount. Reading it inside the render body
   // would create a new object reference on every render and trip downstream
   // effects into re-doing work that depends on the initial values.
@@ -391,7 +404,8 @@ export default function CalendarPage() {
     typeof window !== 'undefined' ? window.location.origin : 'https://www.thetribe.at',
     selectedOrte,
     selectedCategories,
-    calendarToken.token
+    calendarToken.token,
+    { regionId, bezirke: regionBezirke, isNational }
   );
 
   const webcalUrl = feedUrl.replace(/^https?:/, 'webcal:');

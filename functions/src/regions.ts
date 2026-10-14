@@ -85,3 +85,97 @@ export function resolveRegionId(doc: unknown): string {
 export function isInstagramRegion(event: unknown): boolean {
   return INSTAGRAM_REGION_IDS.includes(resolveRegionId(event));
 }
+
+/** Online events are visible in every region (copy of eventVisibleInRegion). */
+export function eventVisibleInRegion(event: unknown, regionId: string): boolean {
+  const online =
+    event && typeof event === 'object' ? (event as { isOnline?: unknown }).isOnline : null;
+  if (online) return true;
+  return resolveRegionId(event) === regionId;
+}
+
+/**
+ * Copy of filterEventsForRegion in src/utils/regions.js: events of active
+ * regions only; with `regionId` additionally that region's events plus online
+ * events. No `regionId` or `isNational`: every event of an active region.
+ */
+export function filterEventsForRegion<T>(
+  events: T[],
+  opts: { regionId?: string | null; isNational?: boolean; activeRegionIds?: readonly string[] } = {}
+): T[] {
+  const { regionId = null, isNational = false, activeRegionIds = [DEFAULT_REGION_ID] } = opts;
+  if (!Array.isArray(events)) return [];
+  const active = new Set(activeRegionIds);
+  const all = isNational || !regionId;
+  return events.filter(
+    (event) =>
+      active.has(resolveRegionId(event)) && (all || eventVisibleInRegion(event, regionId as string))
+  );
+}
+
+export interface FeedRegion {
+  id: string;
+  name: string;
+  active: boolean;
+  bezirke: string[];
+  timezone: string;
+}
+
+export const DEFAULT_REGION_TIMEZONE = 'Europe/Vienna';
+
+const STATIC_NAMES: Record<string, string> = {
+  vorarlberg: 'Vorarlberg',
+  tirol: 'Tirol',
+  salzburg: 'Salzburg',
+  kaernten: 'Kärnten',
+  steiermark: 'Steiermark',
+  oberoesterreich: 'Oberösterreich',
+  niederoesterreich: 'Niederösterreich',
+  wien: 'Wien',
+  burgenland: 'Burgenland',
+  allgaeu: 'Allgäu',
+};
+
+/** Bezirke known without Firestore (copy of REGION_BEZIRKE in src/utils/regions.js). */
+export const STATIC_REGION_BEZIRKE: Record<string, readonly string[]> = {
+  vorarlberg: DIRECTORY_REGIONS.slice(0, 5),
+  steiermark: DIRECTORY_REGIONS.slice(5, 18),
+  allgaeu: DIRECTORY_REGIONS.slice(18, 26),
+};
+
+const STATIC_TIMEZONES: Record<string, string> = { allgaeu: 'Europe/Berlin' };
+const TIMEZONE_PATTERN = /^[A-Za-z]+(?:\/[A-Za-z0-9_+-]+){1,2}$/;
+
+/** Static register (only Vorarlberg active), as in STATIC_REGIONS of src/utils/regions.js. */
+export const STATIC_FEED_REGIONS: FeedRegion[] = REGION_IDS.map((id) => ({
+  id,
+  name: STATIC_NAMES[id],
+  active: id === DEFAULT_REGION_ID,
+  bezirke: [...(STATIC_REGION_BEZIRKE[id] ?? [])],
+  timezone: STATIC_TIMEZONES[id] ?? DEFAULT_REGION_TIMEZONE,
+}));
+
+/** Lays `regions/{id}` docs ({ id, ...data }) over the static register (copy of mergeRegions). */
+export function mergeFeedRegions(docs: unknown[]): FeedRegion[] {
+  const byId = new Map<string, Record<string, unknown>>();
+  for (const d of docs) {
+    const doc = d as Record<string, unknown> | null;
+    if (doc && isRegionId(doc.id)) byId.set(doc.id as string, doc);
+  }
+  return STATIC_FEED_REGIONS.map((r) => {
+    const d = byId.get(r.id);
+    if (!d) return r;
+    const bezirke = Array.isArray(d.bezirke)
+      ? d.bezirke.filter((b): b is string => typeof b === 'string' && b !== '')
+      : [];
+    return {
+      ...r,
+      ...(typeof d.name === 'string' && d.name ? { name: d.name } : {}),
+      ...(typeof d.active === 'boolean' ? { active: d.active } : {}),
+      ...(bezirke.length ? { bezirke } : {}),
+      ...(typeof d.timezone === 'string' && TIMEZONE_PATTERN.test(d.timezone)
+        ? { timezone: d.timezone }
+        : {}),
+    };
+  });
+}
