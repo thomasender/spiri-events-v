@@ -164,6 +164,12 @@ For everything region related (filters, switcher, overall view) there is a
 second region next to Vorarlberg, emulator only. Source of truth:
 `scripts/seed-region-fixtures.mjs`.
 
+- **Region chooser** (`RegionChooser.jsx`): a required modal "Wo suchst du?",
+  shown once when no active region is remembered (`tribe:lastRegion`, or
+  `tribe:regionChooserSeen` for "Ganz Österreich") and the visitor is on `/` or
+  `/verzeichnis`. No close button, no Escape/backdrop dismissal. Opening a region
+  URL counts as a choice. Invisible with fewer than two active regions (so
+  never in the default emulator state). Page content stays rendered behind it.
 - **Regions** `regions/vorarlberg` (active), `regions/tirol` (active, Bezirke
   Innsbruck, Kufstein, Imst, Lienz) and `regions/wien` (inactive, for visibility
   tests). `tests/globalSetup.ts` reconciles them on every Playwright run with

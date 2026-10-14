@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { STATIC_REGIONS, mergeRegions } from '../../src/utils/regions';
@@ -157,14 +157,22 @@ describe('RegionChooser', () => {
     mocks.regions = { regions: TWO_ACTIVE, loading: false };
   });
 
-  it('shows on the first visit, with focus inside, and lists the regions', () => {
+  it('shows on the first visit as a modal dialog with focus inside and lists the regions', () => {
     renderAt('/');
     const dialog = screen.getByRole('dialog', { name: 'Wo suchst du?' });
+    expect(dialog).toHaveAttribute('aria-modal', 'true');
     expect(dialog).toHaveFocus();
+    expect(dialog.querySelector('.region-chooser-close, .region-chooser-skip')).toBeNull();
     const labels = Array.from(dialog.querySelectorAll('.region-chooser-option')).map(
       (b) => b.textContent
     );
     expect(labels).toEqual(['Vorarlberg', 'Tirol', 'Ganz Österreich']);
+  });
+
+  it('shows nothing while the region data is loading', () => {
+    mocks.regions = { regions: TWO_ACTIVE, loading: true };
+    renderAt('/');
+    expect(screen.queryByTestId('region-chooser')).toBeNull();
   });
 
   it('a choice navigates, is remembered and the chooser does not come back', () => {
@@ -178,22 +186,46 @@ describe('RegionChooser', () => {
     expect(screen.queryByTestId('region-chooser')).toBeNull();
   });
 
-  it('Escape and skip dismiss it once for good', () => {
-    const { unmount } = renderAt('/');
-    key('Escape');
-    expect(screen.queryByTestId('region-chooser')).toBeNull();
-    expect(where()).toBe('/');
+  it('Ganz Österreich counts as a choice too', () => {
+    const { unmount } = renderAt('/verzeichnis');
+    fireEvent.click(screen.getByRole('button', { name: 'Ganz Österreich' }));
+    expect(where()).toBe('/oesterreich/verzeichnis');
     unmount();
     renderAt('/');
     expect(screen.queryByTestId('region-chooser')).toBeNull();
   });
 
-  it('skip button dismisses without changing the region', () => {
+  it('cannot be dismissed with Escape or a backdrop click', () => {
     renderAt('/');
-    fireEvent.click(screen.getByRole('button', { name: 'Später entscheiden' }));
-    expect(screen.queryByTestId('region-chooser')).toBeNull();
+    key('Escape');
+    fireEvent.click(document.querySelector('.region-chooser-backdrop')!);
+    expect(screen.getByTestId('region-chooser')).toBeInTheDocument();
+    expect(where()).toBe('/');
     expect(window.localStorage.getItem(LAST_REGION_STORAGE_KEY)).toBeNull();
-    expect(window.localStorage.getItem(REGION_CHOOSER_SEEN_KEY)).toBe('1');
+  });
+
+  it('keeps Tab focus inside the dialog', () => {
+    renderAt('/');
+    const options = within(screen.getByRole('dialog')).getAllByRole('button');
+    options[options.length - 1].focus();
+    key('Tab');
+    expect(options[0]).toHaveFocus();
+    key('Tab'); // from the dialog itself / first button stays inside
+    expect(screen.getByRole('dialog')).toContainElement(document.activeElement as HTMLElement);
+  });
+
+  it('visiting a region address counts as a choice and the chooser never shows afterwards', () => {
+    const { unmount } = renderAt('/tirol');
+    expect(window.localStorage.getItem(LAST_REGION_STORAGE_KEY)).toBe('tirol');
+    unmount();
+    renderAt('/');
+    expect(screen.queryByTestId('region-chooser')).toBeNull();
+  });
+
+  it('shows again when the remembered region is no longer active', () => {
+    window.localStorage.setItem(LAST_REGION_STORAGE_KEY, 'wien');
+    renderAt('/');
+    expect(screen.getByTestId('region-chooser')).toBeInTheDocument();
   });
 
   it('stays away with a remembered region or on region, event and profile addresses', () => {
