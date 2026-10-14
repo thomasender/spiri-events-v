@@ -8,6 +8,8 @@ import {
   planEventUpdate,
   planMigration,
   planProfileUpdate,
+  planRevert,
+  planRevertDoc,
   resolveOptions,
 } from '../../src/utils/regionMigration.js';
 import {
@@ -240,6 +242,192 @@ describe('production guard (resolveOptions)', () => {
       resolveOptions(['--snapshot', '--project', 'spirieventsvbg'], { env: {} })
     ).toThrow();
     expect(() => resolveOptions(['--snapshot-dir', '/tmp/x'], { env: {} })).toThrow();
+  });
+});
+
+describe('staging target (resolveOptions)', () => {
+  const NOW = new Date('2026-10-13T10:00:00Z');
+
+  it('accepts tribe-vbg-staging as the second real project, dry-run by default', () => {
+    expect(resolveOptions(['--project', 'tribe-vbg-staging'], { env: {}, now: NOW })).toMatchObject(
+      { target: 'staging', projectId: 'tribe-vbg-staging', dryRun: true }
+    );
+  });
+
+  it('staging --apply needs no backup and no --force', () => {
+    const o = resolveOptions(['--project', 'tribe-vbg-staging', '--apply'], {
+      env: {},
+      backupExportedAt: null,
+      now: NOW,
+    });
+    expect(o).toMatchObject({ target: 'staging', dryRun: false });
+    expect(o).not.toHaveProperty('backupOk');
+  });
+
+  it('refuses everything that is neither production nor staging', () => {
+    for (const id of ['tribe-vbg', 'tribe-vbg-staging2', 'demo-test', 'SPIRIEVENTSVBG']) {
+      expect(() => resolveOptions(['--project', id], { env: {} })).toThrow(/Unbekanntes Projekt/);
+    }
+  });
+
+  it('refuses an ambiguous environment for staging too', () => {
+    const staging = ['--project', 'tribe-vbg-staging'];
+    expect(() =>
+      resolveOptions(staging, { env: { FIRESTORE_EMULATOR_HOST: '127.0.0.1:8181' } })
+    ).toThrow(/unklares Ziel/);
+    expect(() => resolveOptions(staging, { env: { GCLOUD_PROJECT: 'spirieventsvbg' } })).toThrow(
+      /unklares Ziel/
+    );
+    expect(() =>
+      resolveOptions(['--project', 'spirieventsvbg'], {
+        env: { GOOGLE_CLOUD_PROJECT: 'tribe-vbg-staging' },
+      })
+    ).toThrow(/unklares Ziel/);
+    expect(resolveOptions(staging, { env: { GCLOUD_PROJECT: 'tribe-vbg-staging' } }).target).toBe(
+      'staging'
+    );
+  });
+
+  it('production keeps its project id and backup guard', () => {
+    expect(resolveOptions(['--project', 'spirieventsvbg'], { env: {}, now: NOW }).projectId).toBe(
+      'spirieventsvbg'
+    );
+    expect(resolveOptions([], { env: {} }).projectId).toBe('spirieventsvbg');
+  });
+});
+
+describe('--revert (resolveOptions)', () => {
+  const NOW = new Date('2026-10-13T10:00:00Z');
+  const TODAY = '2026-10-13T06:00:00.000Z';
+
+  it('is dry-run by default on every target', () => {
+    expect(resolveOptions(['--revert'], { env: {} })).toMatchObject({
+      target: 'emulator',
+      revert: true,
+      dryRun: true,
+    });
+    expect(
+      resolveOptions(['--revert', '--project', 'tribe-vbg-staging'], { env: {} })
+    ).toMatchObject({ target: 'staging', revert: true, dryRun: true });
+    expect(
+      resolveOptions(['--revert', '--project', 'spirieventsvbg'], { env: {}, now: NOW })
+    ).toMatchObject({ target: 'production', revert: true, dryRun: true });
+  });
+
+  it('has the same production backup guard as the migration', () => {
+    const args = ['--revert', '--project', 'spirieventsvbg', '--apply'];
+    expect(() => resolveOptions(args, { env: {}, backupExportedAt: null, now: NOW })).toThrow(
+      /Kein Produktions-Backup von heute/
+    );
+    expect(resolveOptions(args, { env: {}, backupExportedAt: TODAY, now: NOW })).toMatchObject({
+      revert: true,
+      dryRun: false,
+    });
+    expect(
+      resolveOptions(['--revert', '--project', 'tribe-vbg-staging', '--apply'], { env: {} })
+    ).toMatchObject({ target: 'staging', revert: true, dryRun: false });
+  });
+
+  it('is not available for snapshot files', () => {
+    expect(() => resolveOptions(['--revert', '--snapshot'], { env: {} })).toThrow(/--revert/);
+  });
+});
+
+describe('planRevertDoc / planRevert', () => {
+  it('reverts exactly the migration values', () => {
+    expect(planRevertDoc('event', { status: 'approved', regionId: 'vorarlberg' })).toEqual({
+      kind: 'revert',
+      field: 'regionId',
+    });
+    expect(planRevertDoc('profile', { directoryRegionIds: ['vorarlberg'] })).toEqual({
+      kind: 'revert',
+      field: 'directoryRegionIds',
+    });
+  });
+
+  it('leaves any other value alone and reports it', () => {
+    const different: Array<['event' | 'profile', Record<string, unknown>]> = [
+      ['event', { regionId: 'tirol' }],
+      ['event', { regionId: 'Vorarlberg' }],
+      ['event', { regionId: null }],
+      ['event', { regionId: '' }],
+      ['event', { regionId: ['vorarlberg'] }],
+      ['profile', { directoryRegionIds: ['vorarlberg', 'tirol'] }],
+      ['profile', { directoryRegionIds: ['tirol', 'vorarlberg'] }],
+      ['profile', { directoryRegionIds: ['tirol'] }],
+      ['profile', { directoryRegionIds: [] }],
+      ['profile', { directoryRegionIds: 'vorarlberg' }],
+      ['profile', { directoryRegionIds: null }],
+    ];
+    for (const [type, data] of different) {
+      const plan = planRevertDoc(type, data);
+      expect(plan.kind).toBe('different');
+    }
+  });
+
+  it('counts docs without the field as already reverted', () => {
+    expect(planRevertDoc('event', { status: 'draft' })).toEqual({ kind: 'missing' });
+    expect(planRevertDoc('profile', { directoryRegions: ['Bregenz'] })).toEqual({
+      kind: 'missing',
+    });
+    expect(planRevertDoc('event', undefined)).toEqual({ kind: 'missing' });
+  });
+
+  it('plans a mixed set: reverted / different / missing', () => {
+    const docs = [
+      { path: 'events/a', type: 'event' as const, data: { regionId: 'vorarlberg' } },
+      { path: 'events/b', type: 'event' as const, data: { regionId: 'tirol' } },
+      { path: 'events/c', type: 'event' as const, data: { status: 'approved' } },
+      { path: 'users/u1', type: 'profile' as const, data: { directoryRegionIds: ['vorarlberg'] } },
+      {
+        path: 'users/u1/publicProfile/data',
+        type: 'profile' as const,
+        data: { directoryRegionIds: ['vorarlberg'] },
+      },
+      { path: 'users/u2', type: 'profile' as const, data: { directoryRegionIds: ['wien'] } },
+      { path: 'users/u3', type: 'profile' as const, data: {} },
+    ];
+    const plan = planRevert(docs);
+    expect(plan.total).toBe(7);
+    expect(plan.reverts).toEqual([
+      { path: 'events/a', type: 'event', field: 'regionId' },
+      { path: 'users/u1', type: 'profile', field: 'directoryRegionIds' },
+      { path: 'users/u1/publicProfile/data', type: 'profile', field: 'directoryRegionIds' },
+    ]);
+    expect(plan.different).toEqual([
+      { path: 'events/b', type: 'event', value: 'tirol' },
+      { path: 'users/u2', type: 'profile', value: ['wien'] },
+    ]);
+    expect(plan.missing).toBe(2);
+  });
+
+  it('migrate -> revert restores the original docs and is idempotent', () => {
+    const original = [
+      ...EVENT_SHAPES.map(([label, data], i) => ({
+        path: `events/e${i}`,
+        type: 'event' as const,
+        data: { ...data, title: label },
+      })),
+      { path: 'events/t', type: 'event' as const, data: { status: 'approved', regionId: 'tirol' } },
+      { path: 'users/u1', type: 'profile' as const, data: { listedInDirectory: true } },
+      { path: 'users/u2', type: 'profile' as const, data: { directoryRegionIds: ['wien'] } },
+    ];
+    const migrated = applyPlan(original, planMigration(original).updates);
+    const plan = planRevert(migrated);
+    expect(plan.reverts).toHaveLength(EVENT_SHAPES.length + 1);
+    const removed = new Map(plan.reverts.map((r) => [r.path, r.field]));
+    const reverted = migrated.map((d) => {
+      const field = removed.get(d.path);
+      if (!field) return d;
+      const data = { ...d.data };
+      delete data[field];
+      return { ...d, data };
+    });
+    expect(reverted).toEqual(original);
+    const second = planRevert(reverted);
+    expect(second.reverts).toEqual([]);
+    expect(second.missing).toBe(EVENT_SHAPES.length + 1);
+    expect(second.different).toHaveLength(2);
   });
 });
 

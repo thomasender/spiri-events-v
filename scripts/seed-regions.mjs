@@ -9,19 +9,30 @@
 // Emulator (default):  node scripts/seed-regions.mjs
 // Production (admin runs this deliberately, see ticket 9):
 //                      node scripts/seed-regions.mjs --prod
+//                      (same as --project spirieventsvbg)
+// Staging (rehearsal): node scripts/seed-regions.mjs --project tribe-vbg-staging
+//                      (Application Default Credentials of the user)
+// Any other project id is refused (src/utils/projectTargets.js).
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { STATIC_REGIONS } from '../src/utils/regions.js';
+import { assertInitializedProject, resolveSeedRegionsTarget } from '../src/utils/projectTargets.js';
 
-const PROJECT_ID = 'spirieventsvbg';
-const prod = process.argv.includes('--prod');
-if (!prod) {
+let target;
+try {
+  target = resolveSeedRegionsTarget(process.argv.slice(2), process.env);
+} catch (err) {
+  console.error(`seed-regions: ${err.message}`);
+  process.exit(1);
+}
+if (target.target === 'emulator') {
   process.env.FIRESTORE_EMULATOR_HOST ??= '127.0.0.1:8181';
-  process.env.GCLOUD_PROJECT = PROJECT_ID;
+  process.env.GCLOUD_PROJECT = target.projectId;
 }
 
-initializeApp({ projectId: PROJECT_ID });
-const db = getFirestore();
+const app = initializeApp({ projectId: target.projectId });
+assertInitializedProject(app.options.projectId, target.projectId);
+const db = getFirestore(app);
 
 const refs = STATIC_REGIONS.map((r) => db.collection('regions').doc(r.id));
 const staleRef = db.collection('regions').doc('oesterreich');
@@ -69,5 +80,5 @@ STATIC_REGIONS.forEach((r, i) => {
 if (created || completed || removed) await batch.commit();
 const unchanged = STATIC_REGIONS.length - created - completed;
 console.log(
-  `regions: ${created} created, ${completed} completed, ${unchanged} unchanged, ${removed} removed (${prod ? 'production' : 'emulator'})`
+  `regions: ${created} created, ${completed} completed, ${unchanged} unchanged, ${removed} removed (${target.target}, ${target.projectId})`
 );

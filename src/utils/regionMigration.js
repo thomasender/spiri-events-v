@@ -2,8 +2,14 @@
 // document needs which update, and checks the production guard. No Firebase
 // imports, so Vitest can cover it without an emulator.
 import { DEFAULT_REGION_ID, isRegionSlug } from './regions.js';
+import {
+  PROD_PROJECT_ID,
+  STAGING_PROJECT_ID,
+  assertUnambiguousEnv,
+  realTargetFor,
+} from './projectTargets.js';
 
-export const PROD_PROJECT_ID = 'spirieventsvbg';
+export { PROD_PROJECT_ID, STAGING_PROJECT_ID };
 export const DEFAULT_EMULATOR_HOST = '127.0.0.1:8181';
 export const MAX_BATCH_SIZE = 400;
 
@@ -58,6 +64,55 @@ export function planMigration(docs) {
   return { total: docs.length, already, updates, invalid };
 }
 
+// --- Revert (--revert) -------------------------------------------------------
+// Undoes exactly what the migration writes and nothing else: a field is
+// removed only when it still holds the migration's value. Anything else was
+// set by someone after the migration and stays.
+
+/** The field the migration writes per doc type, and the exact value it writes. */
+export const MIGRATION_FIELDS = Object.freeze({
+  event: { field: 'regionId', value: DEFAULT_REGION_ID },
+  profile: { field: 'directoryRegionIds', value: [DEFAULT_REGION_ID] },
+});
+
+const hasOwn = (obj, key) =>
+  obj !== null && typeof obj === 'object' && Object.prototype.hasOwnProperty.call(obj, key);
+
+function isMigrationValue(type, value) {
+  if (type === 'event') return value === MIGRATION_FIELDS.event.value;
+  return Array.isArray(value) && value.length === 1 && value[0] === DEFAULT_REGION_ID;
+}
+
+/**
+ * Revert decision for one doc.
+ * @returns {{ kind: 'revert', field: string } | { kind: 'missing' } | { kind: 'different', value: unknown }}
+ */
+export function planRevertDoc(type, data) {
+  const { field } = MIGRATION_FIELDS[type === 'event' ? 'event' : 'profile'];
+  if (!hasOwn(data, field)) return { kind: 'missing' };
+  const value = data[field];
+  if (isMigrationValue(type, value)) return { kind: 'revert', field };
+  return { kind: 'different', value };
+}
+
+/**
+ * Plans the revert of the whole migration. `reverts` lists the field to
+ * delete per doc; `different` docs are reported and left untouched.
+ * @param {Array<{ path: string, data: object, type: 'event' | 'profile' }>} docs
+ */
+export function planRevert(docs) {
+  const reverts = [];
+  const different = [];
+  let missing = 0;
+  for (const doc of docs) {
+    const plan = planRevertDoc(doc.type, doc.data);
+    if (plan.kind === 'revert') reverts.push({ path: doc.path, type: doc.type, field: plan.field });
+    else if (plan.kind === 'missing') missing++;
+    else different.push({ path: doc.path, type: doc.type, value: plan.value });
+  }
+  return { total: docs.length, reverts, different, missing };
+}
+
 export function chunk(items, size = MAX_BATCH_SIZE) {
   if (!(size > 0)) throw new Error('chunk size must be positive');
   const out = [];
@@ -84,10 +139,13 @@ export function isBackupFromToday(exportedAt, now = new Date()) {
  * Parses argv and decides the target. Throws on anything ambiguous, so the
  * script never reaches production by accident.
  *  - default: emulator, dry-run
- *  - production only with `--project spirieventsvbg`, and never while
- *    FIRESTORE_EMULATOR_HOST is set (that would be ambiguous)
+ *  - real projects only with `--project spirieventsvbg` (production) or
+ *    `--project tribe-vbg-staging` (staging); any other id is refused, and so
+ *    is an emulator host or a different GCLOUD_PROJECT in the environment
  *  - writes only with `--apply`
- *  - production + `--apply` needs a backup from today, or `--force`
+ *  - production + `--apply` needs a backup from today, or `--force`;
+ *    staging is disposable and needs none
+ *  - `--revert` undoes the migration (same targets, guards and dry-run default)
  *  - `--snapshot` works on the JSON snapshot files only (no Firestore)
  */
 export function resolveOptions(argv, { env = {}, backupExportedAt = null, now = new Date() } = {}) {
@@ -95,12 +153,20 @@ export function resolveOptions(argv, { env = {}, backupExportedAt = null, now = 
     '--apply',
     '--dry-run',
     '--force',
+    '--revert',
     '--snapshot',
     '--project',
     '--snapshot-dir',
   ]);
   const args = [...argv];
-  const opts = { apply: false, force: false, snapshot: false, project: null, snapshotDir: null };
+  const opts = {
+    apply: false,
+    force: false,
+    revert: false,
+    snapshot: false,
+    project: null,
+    snapshotDir: null,
+  };
   let dryRunFlag = false;
   while (args.length) {
     const arg = args.shift();
@@ -108,6 +174,7 @@ export function resolveOptions(argv, { env = {}, backupExportedAt = null, now = 
     if (arg === '--apply') opts.apply = true;
     else if (arg === '--dry-run') dryRunFlag = true;
     else if (arg === '--force') opts.force = true;
+    else if (arg === '--revert') opts.revert = true;
     else if (arg === '--snapshot') opts.snapshot = true;
     else {
       const value = args.shift();
@@ -122,24 +189,24 @@ export function resolveOptions(argv, { env = {}, backupExportedAt = null, now = 
 
   if (opts.snapshot) {
     if (opts.project) throw new Error('--snapshot arbeitet nur mit Dateien, ohne --project');
+    if (opts.revert) throw new Error('--revert gibt es nur fuer Firestore, nicht mit --snapshot');
     return { ...opts, target: 'snapshot', dryRun: !opts.apply };
   }
 
-  if (opts.project !== null && opts.project !== PROD_PROJECT_ID) {
-    throw new Error(`Unbekanntes Projekt "${opts.project}" (nur ${PROD_PROJECT_ID} erlaubt)`);
-  }
   if (opts.project === null) {
     return {
       ...opts,
       target: 'emulator',
+      projectId: PROD_PROJECT_ID,
       dryRun: !opts.apply,
       emulatorHost: env.FIRESTORE_EMULATOR_HOST || DEFAULT_EMULATOR_HOST,
     };
   }
-  if (env.FIRESTORE_EMULATOR_HOST) {
-    throw new Error(
-      'FIRESTORE_EMULATOR_HOST ist gesetzt, aber --project spirieventsvbg verlangt: unklares Ziel, Abbruch'
-    );
+  const target = realTargetFor(opts.project);
+  assertUnambiguousEnv(opts.project, env);
+  if (target === 'staging') {
+    // Staging is disposable: no backup needed, --force has no meaning.
+    return { ...opts, target, projectId: STAGING_PROJECT_ID, dryRun: !opts.apply };
   }
   const backupOk = isBackupFromToday(backupExportedAt, now);
   if (opts.apply && !backupOk && !opts.force) {
@@ -148,7 +215,13 @@ export function resolveOptions(argv, { env = {}, backupExportedAt = null, now = 
         'Erst `node scripts/export-firestore.mjs --project spirieventsvbg` ausfuehren oder bewusst --force setzen.'
     );
   }
-  return { ...opts, target: 'production', dryRun: !opts.apply, backupOk };
+  return {
+    ...opts,
+    target: 'production',
+    projectId: PROD_PROJECT_ID,
+    dryRun: !opts.apply,
+    backupOk,
+  };
 }
 
 // --- Snapshot files (data-export/firestore-export/*.json) -------------------

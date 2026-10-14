@@ -22,8 +22,9 @@ import {
 } from './regionMigration.js';
 import { fetchCollection, schemaPathOf } from './firestoreBackup.js';
 
-export const STAGING_PROJECT_ID = 'tribe-vbg-staging';
-export { PROD_PROJECT_ID, MAX_BATCH_SIZE };
+import { STAGING_PROJECT_ID } from './projectTargets.js';
+
+export { PROD_PROJECT_ID, STAGING_PROJECT_ID, MAX_BATCH_SIZE };
 
 export const FAKE_EMAIL_DOMAIN = 'example.invalid';
 export const FAKE_PHONE = '+43 000 0000000';

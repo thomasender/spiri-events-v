@@ -203,7 +203,9 @@ second region next to Vorarlberg, emulator only. Source of truth:
   `adminSetRegionModerator` / `adminListRegionModerators` (Super-Admin only,
   audit entries in `admin_audit_log`) or
   `node scripts/promote-admin.mjs <email> --role RegionModerator --regions tirol,steiermark`
-  (`--emulator` for the local emulators).
+  (`--emulator` for the local emulators, `--project tribe-vbg-staging` for staging
+  with ADC; no flag = production via `scripts/service-account.json`, any other
+  `--project` is refused).
 - Admin mails (feedback, Instagram alerts) go to Super-Admins only. Submission
   mails are region-aware (and currently switched off), see "Admin event emails
   and regions" below.
@@ -562,7 +564,8 @@ node scripts/export-firestore.mjs --verify backups/firestore-<date>   # restore 
   server-side count; any error or mismatch means exit 1 and **no** `exportedAt`.
 - `manifest.json` has `exportedAt`, per-collection counts and a SHA-256 per file.
   `migrate-region-ids.mjs --project spirieventsvbg --apply` requires a production
-  manifest with `exportedAt` from today (emulator backups do not count).
+  manifest with `exportedAt` from today (emulator backups do not count); so does
+  `--revert --apply` on production. Staging (`--project tribe-vbg-staging`) needs none.
 - `--verify` re-reads the files and checks hashes and counts. A real restore check:
   load the typed JSON (`{stringValue: ...}`) into a throwaway emulator and compare counts.
 - `backups/` is git-ignored: it contains personal data (and `instagram_private`).
@@ -604,6 +607,70 @@ node scripts/mirror-prod-to-staging.mjs --emulator [host] [--apply]   # tests: s
   `app_settings/activeTheme`); other staging data such as `admin_users` is kept.
 - Not mirrored: Auth users and Storage files (image URLs keep pointing at
   production's public URLs).
+
+## Staging (`tribe-vbg-staging`)
+
+A separate, disposable Firebase project to rehearse production changes on a
+sanitized copy of production data. Project id `tribe-vbg-staging` (alias
+`staging` in `.firebaserc`), URL https://tribe-vbg-staging.web.app.
+
+- **Credentials:** the user's Application Default Credentials
+  (`gcloud auth application-default login`). Never `scripts/service-account.json`
+  (that is the production key): the staging scripts abort if
+  `GOOGLE_APPLICATION_CREDENTIALS` points at it or at any non-staging service account.
+- **Project allowlist** (`src/utils/projectTargets.js`): the scripts that write to
+  a real project accept exactly `spirieventsvbg` and `tribe-vbg-staging`; any other
+  `--project` is refused, and so is `FIRESTORE_EMULATOR_HOST` /
+  `FIREBASE_AUTH_EMULATOR_HOST` or a different `GCLOUD_PROJECT` next to `--project`.
+  Before writing, the initialized project id is checked again.
+- **Build and deploy:**
+  ```bash
+  npx vite build --mode staging   # reads the git-ignored .env.staging.local
+  firebase deploy --only firestore:rules,firestore:indexes,storage,hosting,functions --project tribe-vbg-staging
+  ```
+  The staging build deliberately skips the prerender step (`npm run build` runs
+  `scripts/prerender.mjs`, which reads production). Secrets in staging (Mollie,
+  Mailgun, Instagram, GitHub dispatch, ...) are dummies: payments, mails, posts
+  and rebuild triggers fail there, which is intended.
+- **Data:** `node scripts/mirror-prod-to-staging.mjs --apply` (see above).
+- **Test accounts:** `node scripts/seed-staging-users.mjs` creates or resets
+  `admin@staging.test` (Super-Admin: claim + `admin_users`), `moderator@staging.test`
+  (Regions-Moderator:in for `steiermark` and `allgaeu`, `admin_users` only) and
+  `user@staging.test` (normal user with `users/{uid}` + `publicProfile/data`). All are
+  email-verified and share one random password per run, printed once to stdout and
+  never stored (or set it with `--password`). Hard-coded to staging, `--emulator`
+  for tests. Idempotent: re-running resets the password and updates the docs.
+- **Other scripts:** `seed-regions.mjs --project tribe-vbg-staging`,
+  `migrate-region-ids.mjs --project tribe-vbg-staging [--revert] [--apply]`,
+  `promote-admin.mjs <email> --project tribe-vbg-staging`.
+  `export-firestore.mjs` only knows emulator and production (staging needs no backup).
+
+### Rehearsing the regionId migration
+
+```bash
+node scripts/mirror-prod-to-staging.mjs --apply                          # fresh sanitized copy
+node scripts/seed-regions.mjs --project tribe-vbg-staging                # regions collection
+node scripts/migrate-region-ids.mjs --project tribe-vbg-staging          # dry-run: check counts
+node scripts/migrate-region-ids.mjs --project tribe-vbg-staging --apply  # write (no backup needed on staging)
+node scripts/migrate-region-ids.mjs --project tribe-vbg-staging          # second run: 0 to migrate
+node scripts/migrate-region-ids.mjs --project tribe-vbg-staging --revert # revert dry-run: counts match the apply
+```
+
+### Reverting the migration (`--revert`)
+
+`migrate-region-ids.mjs --revert` undoes ONLY what the migration wrote: it deletes
+`regionId` from events where it is exactly `'vorarlberg'`, and `directoryRegionIds`
+from `users/{uid}` and `users/{uid}/publicProfile/data` where it is exactly
+`['vorarlberg']` (`FieldValue.delete()`, same lastUpdateTime-precondition batches as
+the forward run, nothing else touched). Any other value (set by users or moderators
+after launch) stays and is listed as "abweichend". It prints reverted /
+skipped-because-different / already-without-field, is a dry-run without `--apply`,
+and has the same guards (production: `--apply` plus a backup of today or `--force`;
+staging: none). A second run reverts 0. Limits: a value a person chose later that
+happens to equal the migration's value (e.g. a new Vorarlberg event) is removed too;
+the app reads a missing field as Vorarlberg, so nothing moves. A field that was
+`null`/`''` before the migration comes back as missing. Pure planner:
+`planRevert` in `src/utils/regionMigration.js`, tests in `tests/lib/regionMigration.spec.ts`.
 
 ## Communicating with Peter
 
