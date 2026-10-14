@@ -701,6 +701,20 @@ describe('regions', () => {
       await assertFails(setDoc(doc(db, 'regions/bayern'), { ...validRegion, slug: 'bayern' }));
     });
 
+    it('accepts the Allgäu pilot region (outside Austria)', async () => {
+      const db = make().firestore();
+      await assertSucceeds(
+        setDoc(doc(db, 'regions/allgaeu'), {
+          ...validRegion,
+          name: 'Allgäu',
+          slug: 'allgaeu',
+          order: 9,
+          timezone: 'Europe/Berlin',
+        })
+      );
+      await assertSucceeds(deleteDoc(doc(db, 'regions/allgaeu')));
+    });
+
     it('rejects a slug that differs from the doc id', async () => {
       await assertFails(setDoc(doc(make().firestore(), 'regions/wien'), validRegion));
     });
@@ -964,8 +978,8 @@ describe('users / publicProfile directoryRegionIds', () => {
     await assertSucceeds(batch.commit());
   });
 
-  it('rejects unknown ids, non-lists and more than 9 entries', async () => {
-    const all9 = [
+  it('rejects unknown ids, non-lists and more than 10 entries', async () => {
+    const all10 = [
       'vorarlberg',
       'tirol',
       'salzburg',
@@ -975,13 +989,14 @@ describe('users / publicProfile directoryRegionIds', () => {
       'niederoesterreich',
       'wien',
       'burgenland',
+      'allgaeu',
     ];
     for (const directoryRegionIds of [
       ['bayern'],
       ['oesterreich'],
       ['vorarlberg', 'Dornbirn'],
       'vorarlberg',
-      [...all9, 'vorarlberg'],
+      [...all10, 'vorarlberg'],
     ]) {
       const db = ownerDb();
       await assertFails(setDoc(doc(db, 'users/owner'), { directoryRegionIds }, { merge: true }));
@@ -990,7 +1005,7 @@ describe('users / publicProfile directoryRegionIds', () => {
       );
     }
     await assertSucceeds(
-      setDoc(doc(ownerDb(), 'users/owner'), { directoryRegionIds: all9 }, { merge: true })
+      setDoc(doc(ownerDb(), 'users/owner'), { directoryRegionIds: all10 }, { merge: true })
     );
   });
 

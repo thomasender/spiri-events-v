@@ -6,6 +6,10 @@ import { DEFAULT_REGION_ID, STATIC_REGIONS, getRegionBySlug, isRegionSlug } from
 
 // Slug of the combined "all regions" view. Not a region: never stored on an
 // event or profile, reserved as a username (username.js).
+// OPEN POINT (product owners): the view covers every active region, so once
+// the Allgäu (Bavaria, not Austria) is active it shows up under "Ganz
+// Österreich" too. Whether it belongs there (or the view gets another name or
+// excludes it) is not decided yet; nothing here filters it out on purpose.
 export const ALL_REGIONS_SLUG = 'oesterreich';
 export const ALL_REGIONS_NAME = 'Ganz Österreich';
 
@@ -88,10 +92,15 @@ export function regionCanonicalPath(regionId, path = '/', regions = STATIC_REGIO
   return regionPath(regionId, path);
 }
 
-/** "in der Steiermark", "in Tirol": for running text on region pages. */
+/**
+ * "in der Steiermark", "im Allgäu", "in Tirol": for running text on region
+ * pages. Uses the register's `inPhrase` (src/utils/regions.js); a region
+ * object without one falls back to "in <Name>".
+ */
 export function regionLocative(region) {
-  const name = region?.name ?? '';
-  return region?.slug === 'steiermark' ? `in der ${name}` : `in ${name}`;
+  if (typeof region?.inPhrase === 'string' && region.inPhrase) return region.inPhrase;
+  const known = getRegionBySlug(region?.slug)?.inPhrase;
+  return known || `in ${region?.name ?? ''}`;
 }
 
 /**

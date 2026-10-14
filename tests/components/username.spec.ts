@@ -117,8 +117,9 @@ describe('isReservedUsername', () => {
 describe('reserved region names', () => {
   const extra = ['oesterreich', 'austria', 'online', 'regionen', 'region'];
 
-  it('REGION_SLUGS lists all nine Bundeslaender in ASCII', () => {
-    expect(REGION_SLUGS).toHaveLength(9);
+  it('REGION_SLUGS lists the nine Bundeslaender plus the Allgäu in ASCII', () => {
+    expect(REGION_SLUGS).toHaveLength(10);
+    expect(REGION_SLUGS).toContain('allgaeu');
     for (const slug of REGION_SLUGS) expect(slug).toMatch(/^[a-z]+$/);
   });
 
@@ -136,7 +137,15 @@ describe('reserved region names', () => {
   });
 
   it('treats umlaut spellings as reserved', () => {
-    for (const name of ['kärnten', 'Kärnten', 'oberösterreich', 'niederösterreich', 'österreich']) {
+    for (const name of [
+      'kärnten',
+      'Kärnten',
+      'oberösterreich',
+      'niederösterreich',
+      'österreich',
+      'allgäu',
+      'Allgaeu',
+    ]) {
       expect(isReservedUsername(name)).toBe(true);
       // umlauts are not valid username characters anyway
       expect(validateUsername(name).valid).toBe(false);

@@ -137,7 +137,7 @@ export function moderatorErrorMessage(err) {
       if (/uid/i.test(message)) {
         return 'Diese Person konnte nicht gefunden werden. Bitte wähle sie erneut aus.';
       }
-      return 'Bitte wähle nur gültige Bundesländer aus, jedes höchstens einmal.';
+      return 'Bitte wähle nur gültige Regionen aus, jede höchstens einmal.';
     case 'not-found':
       return 'Dieses Konto gibt es nicht mehr.';
     case 'permission-denied':

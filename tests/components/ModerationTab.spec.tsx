@@ -122,7 +122,7 @@ describe('ModerationTab', () => {
     expect(chips.map((c) => c.textContent)).toEqual(['Tirol', 'Steiermark']);
   });
 
-  it('adds a moderator: pick a member, choose Bundesländer, save', async () => {
+  it('adds a moderator: pick a member, choose regions, save', async () => {
     const dialog = await openAddDialog();
     fireEvent.change(within(dialog).getByRole('searchbox'), { target: { value: 'ann' } });
     fireEvent.click(await within(dialog).findByRole('button', { name: /anna/ }));
@@ -131,7 +131,11 @@ describe('ModerationTab', () => {
     const save = within(dialog).getByRole('button', { name: 'Speichern' });
     expect(save).toBeDisabled();
     // Inactive regions can be assigned too (moderation before the launch).
-    expect(within(dialog).getAllByRole('checkbox')).toHaveLength(9);
+    expect(within(dialog).getAllByRole('checkbox')).toHaveLength(10);
+    expect(
+      within(dialog).getByRole('checkbox', { name: /Allgäu \(noch nicht freigeschaltet\)/ })
+    ).toBeEnabled();
+    expect(within(dialog).getByRole('group', { name: 'Regionen' })).toBeInTheDocument();
     expect(
       within(dialog).getByRole('checkbox', { name: /Tirol \(noch nicht freigeschaltet\)/ })
     ).toBeEnabled();
@@ -164,7 +168,7 @@ describe('ModerationTab', () => {
       { code: 'functions/failed-precondition', message: 'You cannot change your own role.' },
       'Deine eigene Rolle kannst du hier nicht ändern',
     ],
-    [{ code: 'functions/invalid-argument', message: 'Unknown region.' }, 'gültige Bundesländer'],
+    [{ code: 'functions/invalid-argument', message: 'Unknown region.' }, 'gültige Regionen'],
     [{ code: 'functions/permission-denied', message: 'Admins only.' }, 'Nur Super-Admins'],
   ])('explains server error %o in plain German', async (err, text) => {
     state.setError = err;

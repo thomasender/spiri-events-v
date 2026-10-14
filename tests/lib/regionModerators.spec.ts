@@ -90,9 +90,13 @@ describe('parseStaffRole', () => {
 });
 
 describe('validateModeratorRegionIds', () => {
-  it('accepts up to the nine Bundeslaender in canonical order, [] = revoke', () => {
+  it('accepts up to all ten regions in canonical order, [] = revoke', () => {
     expect(validateModeratorRegionIds(['wien', 'tirol'])).toEqual(['tirol', 'wien']);
     expect(validateModeratorRegionIds([])).toEqual([]);
+    expect(validateModeratorRegionIds(['allgaeu', 'steiermark'])).toEqual([
+      'steiermark',
+      'allgaeu',
+    ]);
   });
   it('rejects unknown ids, duplicates, non-lists and too many entries', () => {
     for (const bad of [
@@ -103,7 +107,7 @@ describe('validateModeratorRegionIds', () => {
       ['Tirol'],
       ['tirol', 'tirol'],
       [5],
-      Array(10).fill('tirol'),
+      Array(11).fill('tirol'),
     ]) {
       expect(() => validateModeratorRegionIds(bad)).toThrow();
     }

@@ -131,6 +131,31 @@ describe('regionLocative', () => {
     expect(regionLocative({ slug: 'steiermark', name: 'Steiermark' })).toBe('in der Steiermark');
     expect(regionLocative({ slug: 'tirol', name: 'Tirol' })).toBe('in Tirol');
   });
+  it('has the right preposition for every region of the register', () => {
+    const phrases = Object.fromEntries(STATIC_REGIONS.map((r) => [r.id, regionLocative(r)]));
+    expect(phrases).toEqual({
+      vorarlberg: 'in Vorarlberg',
+      tirol: 'in Tirol',
+      salzburg: 'in Salzburg',
+      kaernten: 'in Kärnten',
+      steiermark: 'in der Steiermark',
+      oberoesterreich: 'in Oberösterreich',
+      niederoesterreich: 'in Niederösterreich',
+      wien: 'in Wien',
+      burgenland: 'im Burgenland',
+      allgaeu: 'im Allgäu',
+    });
+    // Firestore-merged regions keep the phrase; bare objects fall back by slug.
+    expect(regionLocative(mergeRegions([{ id: 'allgaeu', active: true }])[9])).toBe('im Allgäu');
+    expect(regionLocative({ slug: 'allgaeu', name: 'Allgäu' })).toBe('im Allgäu');
+    expect(regionLocative({ name: 'Irgendwo' })).toBe('in Irgendwo');
+  });
+  it('an inactive Allgäu shows the coming-soon page', () => {
+    expect(resolveTopLevelSlug('allgaeu')).toMatchObject({
+      kind: 'coming-soon',
+      region: { id: 'allgaeu', name: 'Allgäu' },
+    });
+  });
 });
 
 describe('last region in localStorage', () => {

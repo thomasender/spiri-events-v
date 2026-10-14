@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-// Idempotent seed for the `regions` collection. Reconciles to the desired
-// state in ONE batch: vorarlberg active, every other region inactive. Existing
+// Idempotent seed for the `regions` collection (the nine Bundeslaender plus the
+// Allgäu, from STATIC_REGIONS). Reconciles to the desired state in ONE batch:
+// vorarlberg active, every other region inactive. Existing
 // admin edits (name, bezirke, contactEmail, seo, active) are kept; only missing
 // fields are filled in. A leftover `regions/oesterreich` doc (from before
 // "Österreich" became a combined view instead of a region) is removed.
@@ -41,7 +42,8 @@ STATIC_REGIONS.forEach((r, i) => {
     bezirke: r.bezirke,
     contactEmail: '',
     seo: { title: '', description: '' },
-    timezone: 'Europe/Vienna',
+    // Europe/Vienna, Europe/Berlin for the Allgäu (same offset all year).
+    timezone: r.timezone,
   };
   if (!snap.exists) {
     batch.set(refs[i], {

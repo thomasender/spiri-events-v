@@ -178,7 +178,7 @@ function ModeratorDialog({ mode, moderator, moderatorUids, currentUid, onSave, o
         )}
 
         <fieldset className="moderation-regions">
-          <legend>Bundesländer</legend>
+          <legend>Regionen</legend>
           {REGION_SLUGS.map((id, index) => (
             <label key={id} className="moderation-check">
               <input
@@ -199,8 +199,8 @@ function ModeratorDialog({ mode, moderator, moderatorUids, currentUid, onSave, o
         {regionIds.length === 0 && (
           <p className="moderation-hint">
             {isAdd
-              ? 'Wähle mindestens ein Bundesland.'
-              : 'Mindestens ein Bundesland muss ausgewählt bleiben. Um die Rolle ganz wegzunehmen, nutze „Rolle entziehen“.'}
+              ? 'Wähle mindestens eine Region.'
+              : 'Mindestens eine Region muss ausgewählt bleiben. Um die Rolle ganz wegzunehmen, nutze „Rolle entziehen“.'}
           </p>
         )}
 
@@ -223,7 +223,7 @@ function ModeratorDialog({ mode, moderator, moderatorUids, currentUid, onSave, o
   );
 }
 
-// Super-Admin tab: who moderates which Bundesland. Changes go through the
+// Super-Admin tab: who moderates which region. Changes go through the
 // callables adminSetRegionModerator / adminListRegionModerators, which check
 // the role again on the server and keep an audit log.
 export default function ModerationTab() {
@@ -269,8 +269,8 @@ export default function ModerationTab() {
     <div className="moderation-tab" data-testid="moderation-tab">
       <div className="moderation-header">
         <p className="moderation-intro">
-          Regions-Moderator:innen prüfen die Events, Nachrichten und Verzeichnis-Einträge ihres
-          Bundeslandes. Einstellungen der Seite (Kategorien, Theme, Instagram, Statistik) sehen sie
+          Regions-Moderator:innen prüfen die Events, Nachrichten und Verzeichnis-Einträge ihrer
+          Regionen. Einstellungen der Seite (Kategorien, Theme, Instagram, Statistik) sehen sie
           nicht.
         </p>
         <button

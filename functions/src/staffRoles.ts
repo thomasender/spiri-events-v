@@ -39,9 +39,10 @@ export function parseStaffRole(doc: unknown): StaffRole | null {
 }
 
 /**
- * Validates the region list for a moderator: only the nine Bundeslaender, no
- * duplicates, at most nine. `[]` is allowed (= revoke). Returns the ids in the
- * canonical REGION_IDS order so equal sets compare equal.
+ * Validates the region list for a moderator: only ids from REGION_IDS (the
+ * nine Bundeslaender plus the Allgäu), no duplicates. `[]` is allowed
+ * (= revoke). Returns the ids in the canonical REGION_IDS order so equal sets
+ * compare equal.
  */
 export function validateModeratorRegionIds(raw: unknown): string[] {
   if (!Array.isArray(raw)) {

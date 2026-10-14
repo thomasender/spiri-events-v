@@ -8,8 +8,9 @@
 export const DEFAULT_REGION_ID = 'vorarlberg';
 
 /**
- * The nine Bundeslaender, same order as REGION_SLUGS in src/utils/regions.js
- * and regionIds() in firestore.rules (guarded by tests/lib/functionsRegions.spec.ts).
+ * The nine Bundeslaender plus the Allgäu (pilot region in Bavaria), same
+ * order as REGION_SLUGS in src/utils/regions.js and regionIds() in
+ * firestore.rules (guarded by tests/lib/functionsRegions.spec.ts).
  */
 export const REGION_IDS: readonly string[] = [
   'vorarlberg',
@@ -21,6 +22,7 @@ export const REGION_IDS: readonly string[] = [
   'niederoesterreich',
   'wien',
   'burgenland',
+  'allgaeu',
 ];
 
 export function isRegionId(value: unknown): value is string {

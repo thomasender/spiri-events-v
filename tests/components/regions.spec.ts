@@ -19,10 +19,23 @@ import {
 import { getEventLocationLabel } from '../../src/utils/eventFormat';
 
 describe('static register', () => {
-  it('covers exactly the nine Bundeslaender (no oesterreich), only Vorarlberg active', () => {
+  it('covers the nine Bundeslaender plus the Allgäu (no oesterreich), only Vorarlberg active', () => {
     expect(STATIC_REGIONS.map((r) => r.slug)).toEqual(REGION_SLUGS);
     expect(STATIC_REGIONS.some((r) => r.id === 'oesterreich')).toBe(false);
     expect(STATIC_REGIONS.filter((r) => r.active).map((r) => r.id)).toEqual(['vorarlberg']);
+  });
+  it('has the Allgäu as an inactive pilot region, last in the order, without Bezirke', () => {
+    expect(STATIC_REGIONS.at(-1)).toEqual({
+      id: 'allgaeu',
+      slug: 'allgaeu',
+      name: 'Allgäu',
+      inPhrase: 'im Allgäu',
+      order: 9,
+      active: false,
+      bezirke: [],
+      timezone: 'Europe/Berlin',
+    });
+    expect(getRegionBySlug('steiermark')?.timezone).toBe('Europe/Vienna');
   });
   it('keeps BEZIRKE as the Vorarlberg Bezirke', () => {
     expect(BEZIRKE).toEqual(['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe']);
@@ -142,13 +155,13 @@ describe('resolveDirectoryRegionIds', () => {
     expect(resolveDirectoryRegionIds({ directoryRegionIds: [] })).toEqual(['vorarlberg']);
   });
 
-  it('keeps valid ids, drops unknown ones and duplicates, caps at 9', () => {
+  it('keeps valid ids, drops unknown ones and duplicates, caps at 10', () => {
     expect(
       resolveDirectoryRegionIds({ directoryRegionIds: ['tirol', 'bayern', 'tirol', 5, 'wien'] })
     ).toEqual(['tirol', 'wien']);
     expect(
       resolveDirectoryRegionIds({ directoryRegionIds: [...REGION_SLUGS, 'oesterreich'] })
-    ).toHaveLength(9);
+    ).toHaveLength(10);
   });
 });
 

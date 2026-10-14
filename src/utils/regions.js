@@ -11,12 +11,13 @@ export function bezirkLabel(bezirk) {
   return BEZIRK_LABELS[bezirk] || bezirk;
 }
 
-
-// URL slugs of the nine Austrian Bundeslaender (ASCII, umlauts transliterated).
-// These are the only regions: "Österreich" is not a region but a combined view
-// over all of them (UI only, never stored on an event or profile).
+// URL slugs of the regions (ASCII, umlauts transliterated): the nine Austrian
+// Bundeslaender plus the Allgäu (Bavaria, Germany; pilot region next to the
+// Steiermark). Order = switcher order, Allgäu last. These are the only regions:
+// "Österreich" is not a region but a combined view over them (UI only, never
+// stored on an event or profile).
 // Single source: username.js reserves them so no profile can shadow a future
-// region address (`/tirol`, `/wien`, ...).
+// region address (`/tirol`, `/wien`, `/allgaeu`, ...).
 export const REGION_SLUGS = [
   'vorarlberg',
   'tirol',
@@ -27,6 +28,7 @@ export const REGION_SLUGS = [
   'niederoesterreich',
   'wien',
   'burgenland',
+  'allgaeu',
 ];
 
 export const DEFAULT_REGION_ID = 'vorarlberg';
@@ -43,19 +45,36 @@ const REGION_NAMES = {
   niederoesterreich: 'Niederösterreich',
   wien: 'Wien',
   burgenland: 'Burgenland',
+  allgaeu: 'Allgäu',
 };
 
-// Static register (one entry per Bundesland, doc id == slug; also enforced in
+// "in <Region>" for running text ("Events in der Steiermark", "im Allgäu").
+// Regions not listed here use "in <Name>".
+const REGION_IN_PHRASES = {
+  steiermark: 'in der Steiermark',
+  burgenland: 'im Burgenland',
+  allgaeu: 'im Allgäu',
+};
+
+// IANA time zone stored on the region doc (`regions/{id}.timezone`). Today it
+// is informational only (all date maths uses Europe/Vienna; Berlin has the
+// same offset all year).
+const REGION_TIMEZONES = { allgaeu: 'Europe/Berlin' };
+export const DEFAULT_REGION_TIMEZONE = 'Europe/Vienna';
+
+// Static register (one entry per region, doc id == slug; also enforced in
 // firestore.rules): the fallback whenever Firestore delivers nothing. Only
 // Vorarlberg is active by default. Every region has its own Bezirke; the other
-// Bundeslaender get theirs from their `regions/{id}` doc.
+// regions get theirs from their `regions/{id}` doc.
 export const STATIC_REGIONS = REGION_SLUGS.map((slug, order) => ({
   id: slug,
   slug,
   name: REGION_NAMES[slug],
+  inPhrase: REGION_IN_PHRASES[slug] ?? `in ${REGION_NAMES[slug]}`,
   order,
   active: slug === DEFAULT_REGION_ID,
   bezirke: slug === 'vorarlberg' ? [...VORARLBERG_BEZIRKE] : [],
+  timezone: REGION_TIMEZONES[slug] ?? DEFAULT_REGION_TIMEZONE,
 }));
 
 // Backwards compatible: Bezirke of Vorarlberg (cleanup in a later ticket).

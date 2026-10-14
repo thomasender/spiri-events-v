@@ -188,7 +188,7 @@ second region next to Vorarlberg, emulator only. Source of truth:
 
 - **Super-Admin** = `admin_users/{uid}.role == 'Admin'` (or token claim
   `role: 'Admin'`), unchanged. **Regions-Moderator:in** = `role: 'RegionModerator'`
-  with `regionIds` (1–9 Bundesländer). The rules give moderators a narrow extra
+  with `regionIds` (1–10 regions: the nine Bundesländer plus the Allgäu). The rules give moderators a narrow extra
   right via `isRegionModeratorFor()` (review actions, messages and trash of their
   regions' events, hiding directory listings that lie only in their regions);
   `isAdminOrEmulatorAdmin()` is untouched, so every other admin-only rule stays
