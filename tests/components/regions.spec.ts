@@ -8,6 +8,8 @@ import {
   STATIC_REGIONS,
   eventVisibleInRegion,
   getBezirke,
+  getSubdivisionLabel,
+  getSubdivisionLabelPlural,
   getRegionBySlug,
   isRegionSlug,
   mergeRegions,
@@ -24,7 +26,7 @@ describe('static register', () => {
     expect(STATIC_REGIONS.some((r) => r.id === 'oesterreich')).toBe(false);
     expect(STATIC_REGIONS.filter((r) => r.active).map((r) => r.id)).toEqual(['vorarlberg']);
   });
-  it('has the Allgäu as an inactive pilot region, last in the order, without Bezirke', () => {
+  it('has the Allgäu as an inactive pilot region, last in the order, with Landkreise', () => {
     expect(STATIC_REGIONS.at(-1)).toEqual({
       id: 'allgaeu',
       slug: 'allgaeu',
@@ -32,7 +34,8 @@ describe('static register', () => {
       inPhrase: 'im Allgäu',
       order: 9,
       active: false,
-      bezirke: [],
+      bezirke: getBezirke('allgaeu'),
+      subdivisionLabel: 'Landkreis',
       timezone: 'Europe/Berlin',
     });
     expect(getRegionBySlug('steiermark')?.timezone).toBe('Europe/Vienna');
@@ -40,6 +43,65 @@ describe('static register', () => {
   it('keeps BEZIRKE as the Vorarlberg Bezirke', () => {
     expect(BEZIRKE).toEqual(['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe']);
     expect(getBezirke('vorarlberg')).toEqual(BEZIRKE);
+  });
+});
+
+describe('districts per region', () => {
+  it('Steiermark has its 13 Bezirke', () => {
+    const list = getBezirke('steiermark');
+    expect(list).toHaveLength(13);
+    expect(list).toContain('Graz-Umgebung');
+    expect(list).toContain('Südoststeiermark');
+  });
+  it('Allgäu has its 8 Landkreise and kreisfreie Städte', () => {
+    expect(getBezirke('allgaeu')).toEqual([
+      'Oberallgäu',
+      'Ostallgäu',
+      'Unterallgäu',
+      'Lindau (Bodensee)',
+      'Ravensburg (Württembergisches Allgäu)',
+      'Kempten (Allgäu)',
+      'Kaufbeuren',
+      'Memmingen',
+    ]);
+  });
+  it('has no duplicates or blanks in any list', () => {
+    for (const r of STATIC_REGIONS) {
+      expect(new Set(r.bezirke).size).toBe(r.bezirke.length);
+      expect(r.bezirke.every((b: string) => b.trim() === b && b.length > 0)).toBe(true);
+    }
+  });
+  it('other regions get no invented lists', () => {
+    for (const id of [
+      'tirol',
+      'salzburg',
+      'kaernten',
+      'oberoesterreich',
+      'niederoesterreich',
+      'wien',
+      'burgenland',
+    ]) {
+      expect(getBezirke(id)).toEqual([]);
+    }
+    expect(getBezirke('unknown')).toEqual([]);
+  });
+  it('labels: Bezirk for Austria, Landkreis for the Allgäu', () => {
+    expect(getSubdivisionLabel('vorarlberg')).toBe('Bezirk');
+    expect(getSubdivisionLabel('steiermark')).toBe('Bezirk');
+    expect(getSubdivisionLabel('allgaeu')).toBe('Landkreis');
+    expect(getSubdivisionLabel('unknown')).toBe('Bezirk');
+    expect(getSubdivisionLabelPlural('wien')).toBe('Bezirke');
+    expect(getSubdivisionLabelPlural('allgaeu')).toBe('Landkreise');
+    for (const r of STATIC_REGIONS) {
+      expect(r.subdivisionLabel).toBe(r.id === 'allgaeu' ? 'Landkreis' : 'Bezirk');
+    }
+  });
+  it('mergeRegions keeps the static list and label unless the doc has its own list', () => {
+    const merged = mergeRegions([{ id: 'allgaeu', active: true, bezirke: [] }]);
+    expect(merged.find((r) => r.id === 'allgaeu')?.bezirke).toHaveLength(8);
+    expect(getSubdivisionLabel('allgaeu', merged)).toBe('Landkreis');
+    const own = mergeRegions([{ id: 'steiermark', bezirke: ['Graz'] }]);
+    expect(getBezirke('steiermark', own)).toEqual(['Graz']);
   });
 });
 

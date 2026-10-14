@@ -3,7 +3,7 @@
 // Allgäu, from STATIC_REGIONS). Reconciles to the desired state in ONE batch:
 // vorarlberg active, every other region inactive. Existing
 // admin edits (name, bezirke, contactEmail, seo, active) are kept; only missing
-// fields are filled in. A leftover `regions/oesterreich` doc (from before
+// fields (and an empty `bezirke` list) are filled in from the register. A leftover `regions/oesterreich` doc (from before
 // "Österreich" became a combined view instead of a region) is removed.
 //
 // Emulator (default):  node scripts/seed-regions.mjs
@@ -56,6 +56,10 @@ STATIC_REGIONS.forEach((r, i) => {
   }
   const data = snap.data();
   const missing = Object.fromEntries(Object.entries(desired).filter(([k]) => !(k in data)));
+  // Docs seeded before the register had Bezirke for this region carry `bezirke: []`.
+  if (Array.isArray(data.bezirke) && data.bezirke.length === 0 && r.bezirke.length > 0) {
+    missing.bezirke = r.bezirke;
+  }
   if (Object.keys(missing).length) {
     batch.set(refs[i], { ...missing, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
     completed++;

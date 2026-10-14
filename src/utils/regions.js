@@ -35,6 +35,52 @@ export const DEFAULT_REGION_ID = 'vorarlberg';
 
 const VORARLBERG_BEZIRKE = ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe'];
 
+// Steiermark: the 13 Bezirke (since the 2015 reform).
+const STEIERMARK_BEZIRKE = [
+  'Graz',
+  'Graz-Umgebung',
+  'Bruck-Mürzzuschlag',
+  'Deutschlandsberg',
+  'Hartberg-Fürstenfeld',
+  'Leibnitz',
+  'Leoben',
+  'Liezen',
+  'Murau',
+  'Murtal',
+  'Südoststeiermark',
+  'Voitsberg',
+  'Weiz',
+];
+
+// Allgäu: Landkreise and kreisfreie Städte. PRODUCT DECISION: which areas count
+// as "Allgäu" is not a hard fact (Unterallgäu and Ravensburg lie only partly in
+// the Allgäu); the list is easy to change here (or per region in
+// `regions/allgaeu.bezirke`, which wins once present).
+const ALLGAEU_BEZIRKE = [
+  'Oberallgäu',
+  'Ostallgäu',
+  'Unterallgäu',
+  'Lindau (Bodensee)',
+  'Ravensburg (Württembergisches Allgäu)',
+  'Kempten (Allgäu)',
+  'Kaufbeuren',
+  'Memmingen',
+];
+
+// Bezirke known without Firestore. Other regions get theirs from their
+// `regions/{id}.bezirke` doc (no invented lists).
+const REGION_BEZIRKE = {
+  vorarlberg: VORARLBERG_BEZIRKE,
+  steiermark: STEIERMARK_BEZIRKE,
+  allgaeu: ALLGAEU_BEZIRKE,
+};
+
+// What the sub-areas of a region are called: "Bezirk" in Austria, "Landkreis"
+// in Germany (the Allgäu list also holds kreisfreie Städte).
+export const DEFAULT_SUBDIVISION_LABEL = 'Bezirk';
+const REGION_SUBDIVISION_LABELS = { allgaeu: 'Landkreis' };
+const SUBDIVISION_PLURALS = { Bezirk: 'Bezirke', Landkreis: 'Landkreise' };
+
 const REGION_NAMES = {
   vorarlberg: 'Vorarlberg',
   tirol: 'Tirol',
@@ -64,8 +110,8 @@ export const DEFAULT_REGION_TIMEZONE = 'Europe/Vienna';
 
 // Static register (one entry per region, doc id == slug; also enforced in
 // firestore.rules): the fallback whenever Firestore delivers nothing. Only
-// Vorarlberg is active by default. Every region has its own Bezirke; the other
-// regions get theirs from their `regions/{id}` doc.
+// Vorarlberg is active by default. Vorarlberg, Steiermark and Allgäu ship their
+// Bezirke; the other regions get theirs from their `regions/{id}` doc.
 export const STATIC_REGIONS = REGION_SLUGS.map((slug, order) => ({
   id: slug,
   slug,
@@ -73,7 +119,8 @@ export const STATIC_REGIONS = REGION_SLUGS.map((slug, order) => ({
   inPhrase: REGION_IN_PHRASES[slug] ?? `in ${REGION_NAMES[slug]}`,
   order,
   active: slug === DEFAULT_REGION_ID,
-  bezirke: slug === 'vorarlberg' ? [...VORARLBERG_BEZIRKE] : [],
+  bezirke: [...(REGION_BEZIRKE[slug] ?? [])],
+  subdivisionLabel: REGION_SUBDIVISION_LABELS[slug] ?? DEFAULT_SUBDIVISION_LABEL,
   timezone: REGION_TIMEZONES[slug] ?? DEFAULT_REGION_TIMEZONE,
 }));
 
@@ -113,6 +160,16 @@ export function resolveDirectoryRegionIds(doc) {
 
 export const getBezirke = (regionId, regions = STATIC_REGIONS) =>
   getRegionBySlug(regionId, regions)?.bezirke ?? [];
+
+// "Bezirk" / "Landkreis" for a region; unknown ids use "Bezirk".
+export const getSubdivisionLabel = (regionId, regions = STATIC_REGIONS) =>
+  getRegionBySlug(regionId, regions)?.subdivisionLabel ?? DEFAULT_SUBDIVISION_LABEL;
+
+// "Bezirke" / "Landkreise".
+export const getSubdivisionLabelPlural = (regionId, regions = STATIC_REGIONS) => {
+  const label = getSubdivisionLabel(regionId, regions);
+  return SUBDIVISION_PLURALS[label] ?? `${label}e`;
+};
 
 // A region page shows events of that region plus online events (online events
 // are visible in every region).
