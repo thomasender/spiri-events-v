@@ -149,7 +149,7 @@ describe('regionTexts: region-specific mode', () => {
       national: true,
       view: 'alle-tribes',
     });
-    expect(all.headerTitle).toBe('Dein Kalender für bewusste Events');
+    expect(all.headerTitle).toBe('Dein Kalender');
     expect(all.calendarTitle).toBe('Kalender | The Tribe');
     expect(all.nearbyText).toBe('Für alle Regionen');
     expect(all.locationPhrase).toBe('in allen Regionen');

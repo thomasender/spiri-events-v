@@ -15,7 +15,7 @@
 // The brand in region mode is "The Tribe"; the legal entity "tribe Vorarlberg"
 // (footer, LEGACY_SITE_NAME) is never replaced. Combined views (COMBINED_VIEW_TEXTS):
 // "österreichischer" / "deutscher" / "Schweizer", "Für Österreich und Umkreis";
-// "Alle Tribes" has no place or adjective ("Dein Kalender für bewusste Events",
+// "Alle Tribes" has no place or adjective ("Dein Kalender",
 // "in allen Regionen", title "Kalender | The Tribe").
 //
 // Config wins: `region.seo.title` / `region.seo.description` (from
@@ -42,7 +42,7 @@ export function isRegionSpecific(region, { activeCount = 1, national = false } =
 
 // Wording of the combined views (plus the coming-soon page texts). `label` ends up in the page title ("Kalender |
 // The Tribe <label>"; empty = just the brand), `demonym` in the header (empty =
-// "Dein Kalender für bewusste Events"), `forPhrase` in "Für <forPhrase> und
+// "Dein Kalender"), `forPhrase` in "Für <forPhrase> und
 // Umkreis" (empty = "Für alle Regionen").
 const COMBINED_VIEW_TEXTS = {
   oesterreich: {
@@ -130,7 +130,7 @@ export function regionTexts(region, { activeCount = 1, national = false, view = 
     headerTitle: demonym
       ? `Dein ${demonym} Kalender`
       : combined
-        ? 'Dein Kalender für bewusste Events'
+        ? 'Dein Kalender'
         : `Dein Kalender ${locationPhrase}`,
     locationPhrase,
     nearbyText: forPhrase || !combined ? `Für ${forPhrase} und Umkreis` : 'Für alle Regionen',
