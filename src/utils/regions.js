@@ -102,6 +102,31 @@ const REGION_IN_PHRASES = {
   allgaeu: 'im Allgäu',
 };
 
+// Adjective for the header "Dein <demonym> Kalender": capitalised for -er forms
+// derived from place names (Vorarlberger, Tiroler, Wiener, Allgäuer), lower
+// case for -isch adjectives (steirischer, burgenländischer). The complete
+// token is stored so no grammar is computed at runtime.
+const REGION_DEMONYMS = {
+  vorarlberg: 'Vorarlberger',
+  tirol: 'Tiroler',
+  salzburg: 'Salzburger',
+  kaernten: 'Kärntner',
+  steiermark: 'steirischer',
+  oberoesterreich: 'oberösterreichischer',
+  niederoesterreich: 'niederösterreichischer',
+  wien: 'Wiener',
+  burgenland: 'burgenländischer',
+  allgaeu: 'Allgäuer',
+};
+
+// Accusative phrase for "Für <forPhrase> und Umkreis" (with article where the
+// region name takes one).
+const REGION_FOR_PHRASES = {
+  steiermark: 'die Steiermark',
+  burgenland: 'das Burgenland',
+  allgaeu: 'das Allgäu',
+};
+
 // IANA time zone stored on the region doc (`regions/{id}.timezone`). Today it
 // is informational only (all date maths uses Europe/Vienna; Berlin has the
 // same offset all year).
@@ -117,6 +142,8 @@ export const STATIC_REGIONS = REGION_SLUGS.map((slug, order) => ({
   slug,
   name: REGION_NAMES[slug],
   inPhrase: REGION_IN_PHRASES[slug] ?? `in ${REGION_NAMES[slug]}`,
+  demonym: REGION_DEMONYMS[slug],
+  forPhrase: REGION_FOR_PHRASES[slug] ?? REGION_NAMES[slug],
   order,
   active: slug === DEFAULT_REGION_ID,
   bezirke: [...(REGION_BEZIRKE[slug] ?? [])],

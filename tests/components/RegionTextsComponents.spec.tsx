@@ -61,16 +61,16 @@ describe('Header subtitle and footer follow the region', () => {
     expect(screen.getByText('© 2026 tribe Vorarlberg')).toBeInTheDocument();
   });
 
-  it('Steiermark: region subtitle, brand The Tribe, no hard "Vorarlberg" left', () => {
+  it('Steiermark: region subtitle, footer keeps the association name', () => {
     const { container } = render(
       <Wrap value={STEIERMARK_CONTEXT}>
         <Header />
         <Footer />
       </Wrap>
     );
-    expect(screen.getByText('Dein Kalender in der Steiermark')).toBeInTheDocument();
-    expect(screen.getByText('© 2026 The Tribe')).toBeInTheDocument();
-    expect(container.textContent).not.toMatch(/Vorarlberg/);
+    expect(screen.getByText('Dein steirischer Kalender')).toBeInTheDocument();
+    // The footer names the legal entity in every region.
+    expect(screen.getByText('© 2026 tribe Vorarlberg')).toBeInTheDocument();
   });
 });
 

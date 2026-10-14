@@ -6,6 +6,16 @@
 // active. With Vorarlberg as the only active region every text is exactly
 // today's text (same bytes), so nothing changes for visitors or crawlers.
 //
+// PATTERNS (region mode mirrors the Vorarlberg wording, region swapped in):
+//   header        "Dein <demonym> Kalender"          (Vorarlberger / Tiroler / steirischer ...)
+//   hero          "... weitere Veranstaltungen <inPhrase>."   (locationPhrase)
+//   feature       "Für <forPhrase> und Umkreis"
+//   page title    "Kalender | The Tribe <Region>"    (legacy: "Kalender | tribe Vorarlberg")
+//   directory     "Verzeichnis – Angebote <inPhrase>"
+// The brand in region mode is "The Tribe"; the legal entity "tribe Vorarlberg"
+// (footer, LEGACY_SITE_NAME) is never replaced. Combined view: "österreichischer",
+// "Für Österreich und Umkreis".
+//
 // Config wins: `region.seo.title` / `region.seo.description` (from
 // `regions/{id}`) replace the generated texts, but only in region-specific
 // mode. Fallbacks: missing config -> generated from `name`/`inPhrase`; no region
@@ -60,13 +70,16 @@ export function regionTexts(region, { activeCount = 1, national = false } = {}) 
   const seoDescription = str(seo.description);
   const generated = `Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr ${locationPhrase}.`;
 
+  const demonym = combined ? 'österreichischer' : str(region.demonym);
+  const forPhrase = combined ? 'Österreich' : str(region.forPhrase) || name;
+
   return {
     regionSpecific: true,
     siteName: BRAND_NAME,
-    headerTitle: combined ? 'Dein Kalender für Österreich' : `Dein Kalender ${locationPhrase}`,
+    headerTitle: demonym ? `Dein ${demonym} Kalender` : `Dein Kalender ${locationPhrase}`,
     locationPhrase,
-    nearbyText: `Events ${locationPhrase} und Umgebung`,
-    calendarTitle: seoTitle || `Spirituelle Events ${label} – ${BRAND_NAME}`,
+    nearbyText: `Für ${forPhrase} und Umkreis`,
+    calendarTitle: seoTitle || `Kalender | ${BRAND_NAME} ${label}`,
     calendarTitleExact: true,
     calendarDescription: seoDescription || generated,
     defaultDescription: seoDescription || generated,

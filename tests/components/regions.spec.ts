@@ -32,6 +32,8 @@ describe('static register', () => {
       slug: 'allgaeu',
       name: 'Allgäu',
       inPhrase: 'im Allgäu',
+      demonym: 'Allgäuer',
+      forPhrase: 'das Allgäu',
       order: 9,
       active: false,
       bezirke: getBezirke('allgaeu'),
