@@ -6,7 +6,8 @@ import EventCard from './EventCard';
 import { resolveEventColor } from '../utils/categoryColors';
 import { useCategoryRegistry } from '../hooks/useCategoryRegistry';
 import { getPrimaryCategory } from '../utils/eventFormat';
-import { resolveRegionId } from '../utils/regions';
+import { filterEventsForRegion, resolveRegionId } from '../utils/regions';
+import { useRegion } from '../hooks/useRegion';
 import './SimilarEvents.css';
 
 const ORGANIZER_EVENTS_LIMIT = 5;
@@ -31,6 +32,8 @@ function normalizeOrganizerEvent(event) {
 export default function OrganizerEvents({ organizerUid, organizerName }) {
   const sliderRef = useRef(null);
   const { colorByName } = useCategoryRegistry();
+  const { regions } = useRegion();
+  const activeKey = regions.map((r) => r.id).join(',');
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -59,8 +62,14 @@ export default function OrganizerEvents({ organizerUid, organizerName }) {
         today.setHours(0, 0, 0, 0);
         const todayIso = today.toISOString().split('T')[0];
 
-        const normalized = snapshot.docs
-          .map((docSnap) => normalizeOrganizerEvent({ id: docSnap.id, ...docSnap.data() }))
+        // All active regions (the profile is reachable from anywhere); never inactive ones.
+        const candidates = filterEventsForRegion(
+          snapshot.docs.map((docSnap) =>
+            normalizeOrganizerEvent({ id: docSnap.id, ...docSnap.data() })
+          ),
+          { activeRegionIds: activeKey ? activeKey.split(',') : [] }
+        );
+        const normalized = candidates
           .filter((event) => {
             const referenceDate = event.endDate || event.date;
             return referenceDate && referenceDate >= todayIso;
@@ -81,7 +90,7 @@ export default function OrganizerEvents({ organizerUid, organizerName }) {
     return () => {
       cancelled = true;
     };
-  }, [organizerUid]);
+  }, [organizerUid, activeKey]);
 
   useEffect(() => {
     const node = sliderRef.current;

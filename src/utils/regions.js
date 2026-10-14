@@ -212,6 +212,42 @@ export function eventVisibleInRegion(event, regionId) {
   return resolveRegionId(event) === regionId;
 }
 
+// Events a visitor may see in the public lists. `activeRegionIds`: ids of the
+// active regions (events of any other region never show, online events
+// included: they belong to their region's moderation). `isNational` or no
+// `regionId`: the combined view, every event of an active region. Otherwise
+// `eventVisibleInRegion` decides (own region + online events). Missing
+// regionId counts as Vorarlberg.
+export function filterEventsForRegion(
+  events,
+  { regionId = null, isNational = false, activeRegionIds = [DEFAULT_REGION_ID] } = {}
+) {
+  if (!Array.isArray(events)) return [];
+  const active = new Set(activeRegionIds);
+  const all = isNational || !regionId;
+  return events.filter(
+    (event) => active.has(resolveRegionId(event)) && (all || eventVisibleInRegion(event, regionId))
+  );
+}
+
+// Directory profiles listed in a region (`directoryRegionIds`, missing =
+// Vorarlberg). Entries are `normalizeDirectoryEntry` results (`regionIds`) or
+// raw docs. Combined view: listed in at least one active region.
+export function filterDirectoryForRegion(
+  entries,
+  { regionId = null, isNational = false, activeRegionIds = [DEFAULT_REGION_ID] } = {}
+) {
+  if (!Array.isArray(entries)) return [];
+  const active = new Set(activeRegionIds);
+  const all = isNational || !regionId;
+  return entries.filter((entry) => {
+    const ids = Array.isArray(entry?.regionIds)
+      ? entry.regionIds
+      : resolveDirectoryRegionIds(entry);
+    return all ? ids.some((id) => active.has(id)) : ids.includes(regionId) && active.has(regionId);
+  });
+}
+
 // Lays Firestore region docs ({ id, ...data }) over the static register.
 // Unknown ids are ignored; an empty/invalid input yields the static register.
 export function mergeRegions(docs, base = STATIC_REGIONS) {

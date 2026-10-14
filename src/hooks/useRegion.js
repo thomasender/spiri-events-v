@@ -1,7 +1,11 @@
-import { createContext, useContext, useEffect } from 'react';
+import { createContext, useContext, useEffect, useMemo } from 'react';
 import {
   DEFAULT_REGION_ID,
   STATIC_REGIONS,
+  filterDirectoryForRegion,
+  filterEventsForRegion,
+  getAllDistricts,
+  getBezirke,
   getRegionBySlug,
   resolveRegionId,
 } from '../utils/regions';
@@ -59,4 +63,48 @@ export function useRegionCanonicalPath(path = '/') {
   const { regionId, allRegions, isNational } = useRegion();
   if (isNational) return regionPath(ALL_REGIONS_SLUG, path);
   return regionCanonicalPath(regionId, path, allRegions);
+}
+
+/**
+ * Public event lists: events of the current region plus online events; in the
+ * combined view all events of active regions. Events of inactive regions never
+ * pass. `{ allActive: true }` skips the region restriction (favourites) but
+ * keeps the inactive-region rule.
+ */
+export function useRegionEvents(events, { allActive = false } = {}) {
+  const { regionId, regions, isNational } = useRegion();
+  const activeKey = regions.map((r) => r.id).join(',');
+  return useMemo(
+    () =>
+      filterEventsForRegion(events, {
+        regionId,
+        isNational: isNational || allActive,
+        activeRegionIds: activeKey ? activeKey.split(',') : [],
+      }),
+    [events, regionId, isNational, allActive, activeKey]
+  );
+}
+
+/** Directory profiles listed in the current region (combined view: any active region). */
+export function useRegionDirectoryEntries(entries) {
+  const { regionId, regions, isNational } = useRegion();
+  const activeKey = regions.map((r) => r.id).join(',');
+  return useMemo(
+    () =>
+      filterDirectoryForRegion(entries, {
+        regionId,
+        isNational,
+        activeRegionIds: activeKey ? activeKey.split(',') : [],
+      }),
+    [entries, regionId, isNational, activeKey]
+  );
+}
+
+/** Bezirke / Landkreise of the current region (combined view: those of all active regions). */
+export function useRegionBezirke() {
+  const { regionId, regions, allRegions, isNational } = useRegion();
+  return useMemo(
+    () => (isNational ? getAllDistricts(regions) : getBezirke(regionId, allRegions)),
+    [isNational, regionId, regions, allRegions]
+  );
 }

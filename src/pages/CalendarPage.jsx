@@ -7,7 +7,7 @@ import { useCategoryRegistry } from '../hooks/useCategoryRegistry';
 import { useFavorites } from '../hooks/useFavorites';
 import { useAuth } from '../hooks/useAuth';
 import { useCalendarFeedToken } from '../hooks/useCalendarFeedToken';
-import { useRegionCanonicalPath } from '../hooks/useRegion';
+import { useRegionCanonicalPath, useRegionEvents, useRegionBezirke } from '../hooks/useRegion';
 import Calendar from '../components/Calendar';
 import EventsSection from '../components/EventsSection';
 import EmailVerificationModal from '../components/EmailVerificationModal';
@@ -193,7 +193,17 @@ export default function CalendarPage() {
     (savedState?.selectedOrte?.length ?? 0) > 0 || savedState?.onlyFavorites === true
   );
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
-  const { events, loading, error } = useAllEvents();
+  const { events: allEvents, loading, error } = useAllEvents();
+  // One central filter: everything below (lists, counts, chips) derives from this.
+  const events = useRegionEvents(allEvents);
+  const regionBezirke = useRegionBezirke();
+  // A remembered Ort filter from another region would hide everything here.
+  useEffect(() => {
+    setSelectedOrte((prev) => {
+      const next = prev.filter((o) => o === ONLINE_LOCATION || regionBezirke.includes(o));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [regionBezirke]);
   // Only offer categories that currently have events (see calendarCategories.js).
   const categories = useMemo(
     () => getCalendarCategories(registryCategories, events, selectedCategories),
@@ -269,7 +279,7 @@ export default function CalendarPage() {
   };
 
   const selectAllOrte = () => {
-    setSelectedOrte([...BEZIRKE, ONLINE_LOCATION]);
+    setSelectedOrte([...regionBezirke, ONLINE_LOCATION]);
   };
 
   const selectNoneOrte = () => {
@@ -592,7 +602,7 @@ export default function CalendarPage() {
                   </div>
                 </div>
                 <div className="filter-options">
-                  {BEZIRKE.map((bezirk) => (
+                  {regionBezirke.map((bezirk) => (
                     <button
                       key={bezirk}
                       type="button"

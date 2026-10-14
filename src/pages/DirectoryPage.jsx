@@ -7,12 +7,17 @@ import SeoMeta from '../components/SeoMeta';
 import { useAuth } from '../hooks/useAuth';
 import { useDirectory } from '../hooks/useDirectory';
 import { useRegionTexts } from '../hooks/useRegionTexts';
-import { useRegionCanonicalPath } from '../hooks/useRegion';
+import {
+  useRegion,
+  useRegionBezirke,
+  useRegionCanonicalPath,
+  useRegionDirectoryEntries,
+} from '../hooks/useRegion';
+import { ONLINE_LOCATION, getSubdivisionLabel } from '../utils/regions';
 import { useCategoryRegistry } from '../hooks/useCategoryRegistry';
 import { getCategoryColor } from '../utils/categoryColors';
 import AvatarImage from '../components/AvatarImage';
 import {
-  DIRECTORY_REGIONS,
   buildDirectoryParams,
   countFacet,
   filterDirectoryEntries,
@@ -100,7 +105,14 @@ export default function DirectoryPage() {
   const canonicalPath = useRegionCanonicalPath('/verzeichnis');
   const regionTexts = useRegionTexts();
   const isAdmin = role === 'Admin';
-  const { entries, loading, error, setHidden } = useDirectory();
+  const { entries: allEntries, loading, error, setHidden } = useDirectory();
+  // Profiles listed in the current region (directoryRegionIds; missing = Vorarlberg).
+  const entries = useRegionDirectoryEntries(allEntries);
+  const { regionId, regions, allRegions, isNational } = useRegion();
+  const regionBezirke = useRegionBezirke();
+  // Unchanged "Region" while only one region is active; afterwards Bezirk/Landkreis.
+  const regionFilterTitle =
+    isNational || regions.length < 2 ? 'Region' : getSubdivisionLabel(regionId, allRegions);
   const { categories: registry, colorByName } = useCategoryRegistry();
   const [searchParams, setSearchParams] = useSearchParams();
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -147,7 +159,7 @@ export default function DirectoryPage() {
     return ordered.filter((name) => categoryCounts.has(name) || filters.categories.includes(name));
   }, [registry, categoryCounts, filters.categories]);
 
-  const regionOptions = DIRECTORY_REGIONS.filter(
+  const regionOptions = [...regionBezirke, ONLINE_LOCATION].filter(
     (region) => regionCounts.has(region) || filters.regions.includes(region)
   );
 
@@ -262,7 +274,7 @@ export default function DirectoryPage() {
             </div>
             {regionOptions.length > 0 && (
               <div className="directory-filter-group" data-testid="directory-region-filters">
-                <h2 className="directory-filter-title">Region</h2>
+                <h2 className="directory-filter-title">{regionFilterTitle}</h2>
                 <div className="directory-chip-row">
                   {regionOptions.map((region) =>
                     renderChip(

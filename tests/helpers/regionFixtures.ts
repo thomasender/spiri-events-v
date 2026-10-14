@@ -18,3 +18,18 @@ export const REGION_EVENT_TITLE_PREFIX = '[Region-Test]';
 export function loadRegionEventFixtures(): void {
   execFileSync('node', ['scripts/seed-region-fixtures.mjs', '--events'], { stdio: 'inherit' });
 }
+
+/**
+ * Deletes the `[Region-Test]` events again (emulator REST, owner token), so a
+ * spec that loaded them does not change counts for the specs running after it.
+ */
+export async function removeRegionEventFixtures(): Promise<void> {
+  await Promise.all(
+    Object.values(REGION_EVENT_IDS).map((id) =>
+      fetch(
+        `http://127.0.0.1:8181/v1/projects/spirieventsvbg/databases/(default)/documents/events/${id}`,
+        { method: 'DELETE', headers: { Authorization: 'Bearer owner' } }
+      ).catch(() => {})
+    )
+  );
+}
