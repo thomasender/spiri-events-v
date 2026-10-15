@@ -65,6 +65,7 @@ export function useInstagramPosts(enabled) {
               attempts: data.attempts ?? 0,
               permalink: data.permalink || null,
               error: data.error || null,
+              skipReason: data.skipReason || null,
               createdAt: toDate(data.createdAt),
             };
           })

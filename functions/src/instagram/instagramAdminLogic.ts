@@ -2,7 +2,7 @@
  * Pure logic behind the admin callables (retry / skip). I/O is injected so
  * tests/lib/instagramAdmin.spec.ts can cover it without Firebase.
  */
-import type { PostRecord, PublishDeps, TriggerOutcome } from './instagramPublish';
+import type { PostRecord, PublishDeps, SkipReason, TriggerOutcome } from './instagramPublish';
 import { publishApprovedEvent } from './instagramPublish';
 
 export class AdminActionError extends Error {
@@ -61,7 +61,7 @@ export async function retryInstagramPost(
 
 export interface SkipDeps {
   getPostStatus(postId: string): Promise<string | null>;
-  setSkipped(postId: string): Promise<void>;
+  setSkipped(postId: string, skipReason: SkipReason): Promise<void>;
   createSkipped(postId: string, record: PostRecord): Promise<void>;
 }
 
@@ -83,9 +83,10 @@ export async function skipInstagramPost(deps: SkipDeps, eventId: string): Promis
       error: null,
       collaboratorInvited: false,
       inviteFallbackReason: null,
+      skipReason: 'admin',
     });
   } else {
-    await deps.setSkipped(postId);
+    await deps.setSkipped(postId, 'admin');
   }
   return 'skipped';
 }

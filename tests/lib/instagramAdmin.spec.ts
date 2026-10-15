@@ -126,7 +126,7 @@ describe('skipInstagramPost', () => {
   it.each(['failed', 'publishing', 'skipped'])('sets an existing %s post to skipped', async (s) => {
     const deps = skipHarness(s);
     expect(await skipInstagramPost(deps, 'e1')).toBe('skipped');
-    expect(deps.setSkipped).toHaveBeenCalledWith('feed_e1');
+    expect(deps.setSkipped).toHaveBeenCalledWith('feed_e1', 'admin');
     expect(deps.createSkipped).not.toHaveBeenCalled();
   });
 
@@ -135,7 +135,13 @@ describe('skipInstagramPost', () => {
     await skipInstagramPost(deps, 'e1');
     expect(deps.createSkipped).toHaveBeenCalledWith(
       'feed_e1',
-      expect.objectContaining({ type: 'feed', eventId: 'e1', status: 'skipped', attempts: 0 })
+      expect.objectContaining({
+        type: 'feed',
+        eventId: 'e1',
+        status: 'skipped',
+        attempts: 0,
+        skipReason: 'admin',
+      })
     );
     expect(deps.setSkipped).not.toHaveBeenCalled();
   });

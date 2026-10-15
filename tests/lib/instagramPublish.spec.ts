@@ -180,7 +180,7 @@ describe('publishApprovedEvent', () => {
       { ...futureEvent, date: '2026-10-01' }
     );
     expect(outcome).toBe('skipped');
-    expect(h.posts.get('feed_e1')).toMatchObject({ status: 'skipped' });
+    expect(h.posts.get('feed_e1')).toMatchObject({ status: 'skipped', skipReason: 'past-event' });
     expect(h.fetchMock).not.toHaveBeenCalled();
     expect(h.generateImage).not.toHaveBeenCalled();
   });

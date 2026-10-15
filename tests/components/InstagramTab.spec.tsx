@@ -225,9 +225,10 @@ describe('InstagramTab', () => {
       within(screen.getByTestId(`instagram-section-${section}`)).getAllByTestId('instagram-post')[
         index
       ];
-    for (const row of [rowIn('published'), rowIn('skipped')]) {
-      expect(within(row).queryByRole('button')).not.toBeInTheDocument();
-    }
+    expect(within(rowIn('published')).queryByRole('button')).not.toBeInTheDocument();
+    const skipped = rowIn('skipped');
+    expect(within(skipped).getByRole('button', { name: /Erneut versuchen/ })).toBeInTheDocument();
+    expect(within(skipped).queryByRole('button', { name: /Überspringen/ })).not.toBeInTheDocument();
     const fail = rowIn('failed', 0);
     const pend = rowIn('failed', 1);
     expect(within(fail).getByRole('button', { name: /Erneut versuchen/ })).toBeInTheDocument();
@@ -246,6 +247,42 @@ describe('InstagramTab', () => {
     await waitFor(() => expect(state.callable).toHaveBeenCalledWith({ eventId: 'fail' }));
     expect(state.httpsCallable).toHaveBeenCalledWith('adminRetryInstagramPost');
     expect(await screen.findByText('Der Beitrag wurde veröffentlicht.')).toBeInTheDocument();
+  });
+
+  it('shows why a post was skipped', () => {
+    state.posts = [
+      post('a', 'skipped', { skipReason: 'past-event' }),
+      post('b', 'skipped', { skipReason: 'admin' }),
+      post('c', 'skipped'),
+    ];
+    render(<InstagramTab />);
+    open('skipped');
+    const reasons = screen.getAllByTestId('instagram-post-skip-reason').map((r) => r.textContent);
+    expect(reasons).toEqual([
+      'Das Event lag beim Genehmigen bereits in der Vergangenheit.',
+      'Ein Admin hat den Beitrag übersprungen.',
+      'Grund unbekannt (älterer Eintrag).',
+    ]);
+  });
+
+  it('retries a skipped post via adminRetryInstagramPost', async () => {
+    state.posts = [post('skip', 'skipped', { skipReason: 'admin' })];
+    render(<InstagramTab />);
+    open('skipped');
+    fireEvent.click(screen.getByRole('button', { name: /Erneut versuchen/ }));
+    await waitFor(() => expect(state.callable).toHaveBeenCalledWith({ eventId: 'skip' }));
+    expect(state.httpsCallable).toHaveBeenCalledWith('adminRetryInstagramPost');
+    expect(await screen.findByText('Der Beitrag wurde veröffentlicht.')).toBeInTheDocument();
+  });
+
+  it('explains a refused retry in plain words', async () => {
+    state.posts = [post('skip', 'skipped')];
+    state.callable.mockRejectedValue({ code: 'functions/failed-precondition' });
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    render(<InstagramTab />);
+    open('skipped');
+    fireEvent.click(screen.getByRole('button', { name: /Erneut versuchen/ }));
+    expect(await screen.findByText(/nicht \(mehr\) genehmigt/)).toBeInTheDocument();
   });
 
   it('skip calls adminSkipInstagramPost with the eventId', async () => {
