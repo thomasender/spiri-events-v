@@ -109,6 +109,16 @@ export function sortDirectoryEntries(entries) {
   return [...entries].sort((a, b) => a.displayName.localeCompare(b.displayName, 'de'));
 }
 
+// Random order, so the same people are not always on top. `ranks` is a Map
+// (uid -> random number) owned by the caller: it keeps the order stable while
+// filters change within one page load, and a new load starts with a new map.
+export function shuffleDirectoryEntries(entries, ranks, random = Math.random) {
+  for (const entry of entries) {
+    if (!ranks.has(entry.uid)) ranks.set(entry.uid, random());
+  }
+  return [...entries].sort((a, b) => ranks.get(a.uid) - ranks.get(b.uid));
+}
+
 // URL <-> filter state, so a filtered directory can be shared and survives
 // the back button. Unknown categories are dropped later by the page (it
 // knows the registry); here we only parse.
