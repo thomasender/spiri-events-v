@@ -76,7 +76,9 @@ export const adminRetryInstagramPost = onCall(
     logMissingAppCheck('adminRetryInstagramPost', request);
     await assertAdmin(request.auth?.uid);
     try {
-      const eventId = assertEventId((request.data as { eventId?: unknown } | null)?.eventId);
+      const data = request.data as { eventId?: unknown; force?: unknown } | null;
+      const eventId = assertEventId(data?.eventId);
+      const force = data?.force === true;
       const db = getFirestore();
       const publishDeps = buildPublishDeps(db, IG_USER_ID.value());
       publishDeps.accessToken = await resolveInstagramAccessToken(db, IG_ACCESS_TOKEN.value());
@@ -97,9 +99,10 @@ export const adminRetryInstagramPost = onCall(
             return snap.exists ? (snap.data() ?? null) : null;
           },
         },
-        eventId
+        eventId,
+        { force }
       );
-      logger.info('Instagram post retried by admin', { eventId, outcome });
+      logger.info('Instagram post retried by admin', { eventId, force, outcome });
       return { outcome };
     } catch (err) {
       return toHttpsError(err);

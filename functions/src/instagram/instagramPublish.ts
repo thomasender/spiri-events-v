@@ -284,7 +284,8 @@ export async function publishApprovedEvent(
   deps: PublishDeps,
   eventId: string,
   before: unknown,
-  after: unknown
+  after: unknown,
+  options: { force?: boolean } = {}
 ): Promise<TriggerOutcome> {
   const log = deps.log ?? (() => undefined);
   if (!isApprovalTransition(before, after)) return 'ignored';
@@ -315,7 +316,8 @@ export async function publishApprovedEvent(
     inviteFallbackReason: null,
   };
 
-  const past = isEventPast(event, (deps.now ?? (() => new Date()))());
+  // An admin can force the post although the event is already over.
+  const past = !options.force && isEventPast(event, (deps.now ?? (() => new Date()))());
   const created = await deps.createPost(
     postId,
     past ? { ...base, status: 'skipped', skipReason: 'past-event' } : base
