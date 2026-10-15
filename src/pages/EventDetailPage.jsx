@@ -694,6 +694,11 @@ export default function EventDetailPage() {
                     : event.feeNote || 'Kostenpflichtig'}
             </span>
           </div>
+          {event.firstSessionFree && !isFree && !isDonation && (
+            <div className="event-badge badge--free" data-testid="first-session-free-badge">
+              <span>1. Einheit gratis</span>
+            </div>
+          )}
         </div>
       </header>
 

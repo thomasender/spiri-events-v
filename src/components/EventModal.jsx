@@ -135,6 +135,11 @@ export default function EventModal({ event, onClose }) {
                       : event.feeNote || 'Kostenpflichtig'}
               </span>
             </div>
+            {event.firstSessionFree && !isFree && !isDonation && (
+              <div className="modal-badge badge--free" data-testid="first-session-free-badge">
+                <span>1. Einheit gratis</span>
+              </div>
+            )}
           </div>
         </div>
 

@@ -234,6 +234,7 @@ export function useEvents(user) {
       fee: source.fee ?? null,
       feeMax: source.feeMax ?? null,
       priceCurrency: normalizeCurrency(source.priceCurrency),
+      firstSessionFree: source.firstSessionFree === true,
       description: source.description || '',
       link: source.link || '',
       recurrence: source.recurrence || 'none',

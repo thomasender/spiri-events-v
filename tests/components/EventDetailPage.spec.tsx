@@ -1002,6 +1002,26 @@ describe('EventDetailPage — contribution badge (VtFz800s)', () => {
     expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
     expect(screen.getByText('Einzelstunde')).toBeInTheDocument();
   });
+
+  it('shows the "1. Einheit gratis" badge for fee events with firstSessionFree', async () => {
+    mockFirestoreDoc.getDocResult = {
+      id: baseEvent.id,
+      data: { ...baseEvent, contribution: 'fee', fee: 20, firstSessionFree: true },
+    };
+    renderPage();
+    expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
+    expect(screen.getByTestId('first-session-free-badge')).toHaveTextContent('1. Einheit gratis');
+  });
+
+  it('hides the "1. Einheit gratis" badge when firstSessionFree is not set', async () => {
+    mockFirestoreDoc.getDocResult = {
+      id: baseEvent.id,
+      data: { ...baseEvent, contribution: 'fee', fee: 20 },
+    };
+    renderPage();
+    expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
+    expect(screen.queryByTestId('first-session-free-badge')).not.toBeInTheDocument();
+  });
 });
 
 describe('EventDetailPage — friendly awaiting-review message (H8dgvGlD)', () => {
