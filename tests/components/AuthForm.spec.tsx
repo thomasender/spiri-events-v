@@ -393,4 +393,17 @@ describe('AuthForm analytics', () => {
     await waitFor(() => expect(mocks.login).toHaveBeenCalled());
     expect(track).not.toHaveBeenCalled();
   });
+
+  it('keeps the "Passwort vergessen?" link visible after a wrong-password error', async () => {
+    mocks.login.mockRejectedValueOnce({ code: 'auth/invalid-credential' });
+    renderForm();
+    fireEvent.change(screen.getByLabelText('E-Mail'), { target: { value: 'a@example.com' } });
+    fireEvent.change(screen.getByLabelText('Passwort', { exact: true }), {
+      target: { value: 'falsch' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Anmelden' }));
+    await screen.findByTestId('auth-create-cta');
+    fireEvent.click(screen.getByText(/Passwort vergessen\?/i));
+    expect(screen.getByRole('heading', { name: 'Passwort vergessen' })).toBeTruthy();
+  });
 });
