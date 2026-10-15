@@ -21,6 +21,7 @@ describe('normalizePreferences', () => {
       notifyOnDeleted: true,
       notifyNewsletter: false,
       notifyOnContactMessage: true,
+      notifyOnFavoriteCancelled: true,
     });
   });
 
@@ -38,6 +39,7 @@ describe('normalizePreferences', () => {
       notifyOnDeleted: true,
       notifyNewsletter: false,
       notifyOnContactMessage: true,
+      notifyOnFavoriteCancelled: true,
     });
   });
 
@@ -50,6 +52,7 @@ describe('normalizePreferences', () => {
         notifyOnDeleted: false,
         notifyNewsletter: true,
         notifyOnContactMessage: false,
+        notifyOnFavoriteCancelled: false,
       })
     ).toEqual({
       notifyOnSubmitted: false,
@@ -58,6 +61,7 @@ describe('normalizePreferences', () => {
       notifyOnDeleted: false,
       notifyNewsletter: true,
       notifyOnContactMessage: false,
+      notifyOnFavoriteCancelled: false,
     });
   });
 

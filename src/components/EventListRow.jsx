@@ -14,6 +14,8 @@ import { getEventFallbackImage } from '../utils/eventFallbacks';
 import { trackEventOpen } from '../lib/analyticsEvents';
 import EventCoverImage from './EventCoverImage';
 import FavoriteButton from './FavoriteButton';
+import CancelledBadge from './CancelledBadge';
+import { isEntryCancelled } from '../utils/eventCancellation';
 import './EventListRow.css';
 
 export default function EventListRow({ event, categoryColor, linkState, onClick }) {
@@ -23,6 +25,7 @@ export default function EventListRow({ event, categoryColor, linkState, onClick 
   const multiDay = isMultiDayEvent(event);
   const dateRangeLabel = multiDay ? formatEventDateRangeLabel(event.date, event.endDate) : null;
   const locationLabel = getEventLocationLabel(event);
+  const cancelled = isEntryCancelled(event);
 
   return (
     <Link
@@ -50,6 +53,7 @@ export default function EventListRow({ event, categoryColor, linkState, onClick 
       </div>
 
       <div className="event-row-body">
+        {cancelled && <CancelledBadge />}
         {category && (
           <span className="event-row-category" style={{ backgroundColor: categoryColor }}>
             {category}

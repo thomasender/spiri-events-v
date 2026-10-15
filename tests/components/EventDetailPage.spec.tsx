@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act, within } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import { arrayUnion } from 'firebase/firestore';
+import { arrayUnion, arrayRemove } from 'firebase/firestore';
 
 const mockAuth = vi.hoisted(() => ({
   user: null as { uid: string } | null,
@@ -1015,5 +1015,98 @@ describe('EventDetailPage — friendly awaiting-review message (H8dgvGlD)', () =
     });
     expect(heading).toBeInTheDocument();
     expect(screen.queryByText(/event nicht gefunden/i)).toBeNull();
+  });
+});
+
+describe('EventDetailPage — cancelling an event or a single date', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-01T10:00:00'));
+    mockEvents.updateEvent.mockClear();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const confirmIn = async (heading: string, button: string) => {
+    const dialog = screen.getByRole('heading', { name: heading }).parentElement!;
+    await act(async () => {
+      fireEvent.click(within(dialog).getByRole('button', { name: button }));
+    });
+  };
+
+  it('lets the owner cancel a published event and take the cancellation back', async () => {
+    mockAuth.user = { uid: 'other-user-uid' };
+    renderPage();
+
+    fireEvent.click(await screen.findByTestId('cancel-event-button'));
+    expect(mockEvents.updateEvent).not.toHaveBeenCalled();
+    await confirmIn('Event absagen', 'Event absagen');
+
+    expect(mockEvents.updateEvent).toHaveBeenCalledWith('remote-event-id', { cancelled: true });
+    expect(screen.getByTestId('event-cancelled-banner')).toHaveTextContent(
+      'Dieses Event wurde abgesagt'
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('uncancel-event-button'));
+    });
+    expect(mockEvents.updateEvent).toHaveBeenLastCalledWith('remote-event-id', {
+      cancelled: false,
+    });
+    expect(screen.queryByTestId('event-cancelled-banner')).toBeNull();
+  });
+
+  it('lets the owner cancel one date of a series; only that date is labelled', async () => {
+    mockAuth.user = { uid: 'other-user-uid' };
+    mockFirestoreDoc.getDocResult = { id: recurringEvent.id, data: recurringEvent };
+    mockGetRecurrenceDatesForDetail.mockReturnValue(['2026-09-07', '2026-09-14', '2026-09-21']);
+    renderRecurringEventPage(null);
+
+    await screen.findByText('Wochen-Yoga');
+    const items = screen.getAllByTestId('event-detail-date-item');
+    fireEvent.click(within(items[1]).getByTestId('cancel-date-button'));
+    await confirmIn('Termin absagen', 'Termin absagen');
+
+    expect(mockEvents.updateEvent).toHaveBeenCalledWith('recurring-event-id', {
+      cancelledDates: arrayUnion('2026-09-14'),
+    });
+    const after = screen.getAllByTestId('event-detail-date-item');
+    expect(within(after[1]).getByTestId('cancelled-badge')).toBeInTheDocument();
+    expect(within(after[0]).queryByTestId('cancelled-badge')).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(within(after[1]).getByTestId('uncancel-date-button'));
+    });
+    expect(mockEvents.updateEvent).toHaveBeenLastCalledWith('recurring-event-id', {
+      cancelledDates: arrayRemove('2026-09-14'),
+    });
+  });
+
+  it('shows visitors the cancelled date of a series without any cancel controls', async () => {
+    mockFirestoreDoc.getDocResult = {
+      id: recurringEvent.id,
+      data: { ...recurringEvent, cancelledDates: ['2026-09-14'] },
+    };
+    mockGetRecurrenceDatesForDetail.mockReturnValue(['2026-09-07', '2026-09-14', '2026-09-21']);
+    renderRecurringEventPage('2026-09-14');
+
+    expect(await screen.findByTestId('event-cancelled-banner')).toHaveTextContent(
+      'Der Termin am Montag, 14. September 2026 wurde abgesagt'
+    );
+    expect(screen.getAllByTestId('cancelled-badge')).toHaveLength(2); // banner + list entry
+    expect(screen.queryByTestId('cancel-date-button')).toBeNull();
+    expect(screen.queryByTestId('cancel-event-button')).toBeNull();
+  });
+
+  it('offers no cancelling for events that are not published', async () => {
+    mockAuth.user = { uid: 'other-user-uid' };
+    mockFirestoreDoc.getDocResult = {
+      id: foreignEvent.id,
+      data: { ...foreignEvent, status: 'pending' },
+    };
+    renderPage();
+    await screen.findByText('Yoga heute');
+    expect(screen.queryByTestId('cancel-event-button')).toBeNull();
   });
 });

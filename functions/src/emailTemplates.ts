@@ -146,9 +146,17 @@ function brandHeader(): string {
     </table>`;
 }
 
-type FooterKind = 'notification' | 'auth';
+type FooterKind = 'notification' | 'auth' | 'favorite';
 
 function footerHtml(kind: FooterKind = 'notification'): string {
+  if (kind === 'favorite') {
+    return `
+      <p style="margin-top:32px;padding-top:16px;border-top:1px solid ${COLOR_BORDER};font-family:${BODY_FONT};font-size:12px;line-height:1.5;color:${COLOR_MUTED};">
+        Du erhältst diese E-Mail, weil du dieses Event auf tribe Events als Favorit gespeichert hast.
+        <a href="${notificationSettingsUrl()}" style="color:${COLOR_MUTED};text-decoration:underline;">Benachrichtigungseinstellungen anpassen</a>.
+        Bei Fragen wende dich an <a href="mailto:admin@thetribe.at" style="color:${COLOR_MUTED};text-decoration:underline;">admin@thetribe.at</a>.
+      </p>`;
+  }
   if (kind === 'auth') {
     return `
       <p style="margin-top:32px;padding-top:16px;border-top:1px solid ${COLOR_BORDER};font-family:${BODY_FONT};font-size:12px;line-height:1.5;color:${COLOR_MUTED};">
@@ -164,6 +172,9 @@ function footerHtml(kind: FooterKind = 'notification'): string {
 }
 
 function footerText(kind: FooterKind = 'notification'): string {
+  if (kind === 'favorite') {
+    return `\n--\nDu erhältst diese E-Mail, weil du dieses Event auf tribe Events als Favorit gespeichert hast.\nBenachrichtigungseinstellungen anpassen: ${notificationSettingsUrl()}\nBei Fragen wende dich an admin@thetribe.at.`;
+  }
   if (kind === 'auth') {
     return `\n--\nBei Fragen wende dich an admin@thetribe.at.`;
   }
@@ -451,6 +462,87 @@ export function buildDeletedPayload({
     subject,
     html: wrapHtml(htmlBody),
     text: textBody + footerText(),
+  };
+}
+
+/** "Samstag, 8. November 2026" for an ISO date (YYYY-MM-DD). */
+export function formatGermanDate(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  if (!y || !m || !d) return iso;
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('de-DE', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+}
+
+export interface FavoriteCancelledPayloadInput {
+  event: NotificationEvent;
+  recipient: string;
+  recipientName?: string | null;
+  /** Cancelled dates (YYYY-MM-DD). Empty when every date of a series is cancelled. */
+  dates: string[];
+  wholeEvent: boolean;
+}
+
+export function buildFavoriteCancelledPayload({
+  event,
+  recipient,
+  recipientName,
+  dates,
+  wholeEvent,
+}: FavoriteCancelledPayloadInput): EmailPayload {
+  const name = typeof recipientName === 'string' ? recipientName.trim() : '';
+  const greetingHtml = name ? `Hallo ${escapeHtml(name)},` : 'Hallo,';
+  const greetingText = name ? `Hallo ${name},` : 'Hallo,';
+  const title = event.title || 'Ein Event';
+  const formatted = dates.map(formatGermanDate);
+  const url = eventUrl(event.slug);
+
+  let subject: string;
+  let sentenceHtml: string;
+  let sentenceText: string;
+  if (formatted.length === 0) {
+    subject = `Abgesagt: ${title}`;
+    sentenceHtml = `leider wurden alle Termine von <strong>${escapeHtml(title)}</strong> abgesagt. Das Event findet nicht statt.`;
+    sentenceText = `leider wurden alle Termine von "${title}" abgesagt. Das Event findet nicht statt.`;
+  } else if (formatted.length === 1) {
+    subject = `Abgesagt: ${title} am ${formatted[0]}`;
+    const which = wholeEvent ? 'das Event' : 'der Termin von';
+    sentenceHtml = `leider wurde ${which} <strong>${escapeHtml(title)}</strong> am <strong>${escapeHtml(formatted[0])}</strong> abgesagt. Dieser Termin findet nicht statt.`;
+    sentenceText = `leider wurde ${which} "${title}" am ${formatted[0]} abgesagt. Dieser Termin findet nicht statt.`;
+  } else {
+    subject = `Abgesagt: ${formatted.length} Termine von ${title}`;
+    sentenceHtml = `leider wurden folgende Termine von <strong>${escapeHtml(title)}</strong> abgesagt:</p>
+    <ul style="${paragraphStyle()}padding-left:20px;">${formatted
+      .map((d) => `<li>${escapeHtml(d)}</li>`)
+      .join('')}</ul>
+    <p style="${paragraphStyle()}">Diese Termine finden nicht statt.`;
+    sentenceText = `leider wurden folgende Termine von "${title}" abgesagt:\n${formatted
+      .map((d) => `• ${d}`)
+      .join('\n')}\nDiese Termine finden nicht statt.`;
+  }
+
+  const htmlBody = `
+    <h1 style="${headingStyle(1)}">Leider abgesagt</h1>
+    <p style="${paragraphStyle()}">${greetingHtml}</p>
+    <p style="${paragraphStyle()}">${sentenceHtml}</p>
+    <p style="${paragraphStyle()}">Du bekommst diese Nachricht, weil du das Event als Favorit gespeichert hast.</p>
+    <p style="margin:8px 0 24px 0;">
+      <a href="${url}" style="${brandButtonStyle()}">Event ansehen</a>
+    </p>`;
+  const textBody =
+    `${greetingText}\n\n` +
+    `${sentenceText}\n\n` +
+    `Du bekommst diese Nachricht, weil du das Event als Favorit gespeichert hast.\n\n` +
+    `Event ansehen: ${url}`;
+  return {
+    to: recipient,
+    subject,
+    html: wrapHtml(htmlBody, 'favorite'),
+    text: textBody + footerText('favorite'),
   };
 }
 

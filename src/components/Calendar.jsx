@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, CalendarDays, MapPin } from 'lucide-react';
 import { getEventOccurrences } from '../utils/eventOccurrences';
+import { isEntryCancelled } from '../utils/eventCancellation';
+import CancelledBadge from './CancelledBadge';
 import { formatPriceWithCurrency } from '../utils/currency';
 import { resolveEventColor } from '../utils/categoryColors';
 import './Calendar.css';
@@ -214,6 +216,7 @@ export default function Calendar({
                         <div className="agenda-event-main">
                           <span className="agenda-event-time">{event.time || '—'}</span>
                           <span className="agenda-event-title">{event.title}</span>
+                          {isEntryCancelled(event) && <CancelledBadge />}
                         </div>
                         <div className="agenda-event-meta">
                           <span className="agenda-event-place">
@@ -342,6 +345,7 @@ export default function Calendar({
                     <span className="day-popover-event-info">
                       <span className="day-popover-event-time">{event.time || '—'}</span>
                       <span className="day-popover-event-name">{event.title}</span>
+                      {isEntryCancelled(event) && <CancelledBadge />}
                     </span>
                     {(event.contribution === 'free' ||
                       event.contribution === 'donation' ||
