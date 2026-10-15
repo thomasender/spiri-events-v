@@ -462,7 +462,7 @@ export default function AuthForm() {
               </div>
             )}
 
-            {!showCreateAccountCta && (
+            {(!showCreateAccountCta || isLogin) && (
               <div className="auth-footer">
                 {isLogin && (
                   <p className="forgot-password">
