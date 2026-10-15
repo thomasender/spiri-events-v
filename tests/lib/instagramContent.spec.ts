@@ -180,6 +180,24 @@ describe('instagram content', () => {
       expect(caption.length).toBeLessThanOrEqual(CAPTION_MAX_LENGTH);
     });
 
+    it('states the recurrence pattern when too many dates to list', () => {
+      const caption = buildCaption(
+        { ...base, recurrence: 'weekly', recurrenceEndDate: '2027-03-31' },
+        null,
+        now
+      );
+      expect(caption).toContain('wiederholt sich wöchentlich am Mittwoch');
+    });
+
+    it('does not add the pattern line when all dates fit', () => {
+      const caption = buildCaption(
+        { ...base, recurrence: 'weekly', recurrenceEndDate: '2026-10-28' },
+        null,
+        now
+      );
+      expect(caption).not.toContain('wiederholt sich');
+    });
+
     it('adds nothing for a single event', () => {
       expect(buildCaption(base, null, now)).not.toContain('Weitere Termine');
     });
