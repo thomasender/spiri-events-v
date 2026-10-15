@@ -1,7 +1,7 @@
 // Pure core of scripts/migrate-region-ids.mjs (ticket 8): decides which
 // document needs which update, and checks the production guard. No Firebase
 // imports, so Vitest can cover it without an emulator.
-import { DEFAULT_REGION_ID, isRegionSlug } from './regions.js';
+import { DEFAULT_REGION_ID, LEGACY_REGION_ALIASES, isRegionSlug } from './regions.js';
 import { REGION_MIGRATION_MARKER } from './regionQueries.js';
 import {
   PROD_PROJECT_ID,
@@ -19,7 +19,8 @@ const isMissing = (value) => value === undefined || value === null || value === 
 /**
  * Update for one `events/{id}` doc. Every status (approved, pending, draft,
  * rejected, trashed) and every series doc is treated the same: only a missing
- * `regionId` is filled in. A present but unknown value is left alone and
+ * `regionId` is filled in. The id of a retired region (the Allgäu pilot) is
+ * replaced by its successor (Bayern). Any other unknown value is left alone and
  * reported, never silently overwritten.
  * @returns {{ kind: 'migrate', update: { regionId: string } } | { kind: 'already' } | { kind: 'invalid', value: unknown }}
  */
@@ -27,6 +28,9 @@ export function planEventUpdate(data) {
   const value = data?.regionId;
   if (isMissing(value)) return { kind: 'migrate', update: { regionId: DEFAULT_REGION_ID } };
   if (isRegionSlug(value)) return { kind: 'already' };
+  if (Object.hasOwn(LEGACY_REGION_ALIASES, value)) {
+    return { kind: 'migrate', update: { regionId: LEGACY_REGION_ALIASES[value] } };
+  }
   return { kind: 'invalid', value };
 }
 
@@ -43,6 +47,11 @@ export function planProfileUpdate(data) {
   }
   if (Array.isArray(value) && value.length > 0 && value.every(isRegionSlug)) {
     return { kind: 'already' };
+  }
+  // Retired ids (Allgäu) become their successor; everything else must be valid.
+  const mapped = Array.isArray(value) ? value.map((id) => LEGACY_REGION_ALIASES[id] ?? id) : null;
+  if (mapped && mapped.length > 0 && mapped.every(isRegionSlug)) {
+    return { kind: 'migrate', update: { directoryRegionIds: [...new Set(mapped)] } };
   }
   return { kind: 'invalid', value };
 }

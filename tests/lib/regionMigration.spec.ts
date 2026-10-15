@@ -54,6 +54,15 @@ describe('planEventUpdate', () => {
 
   it('reports unknown values instead of overwriting them', () => {
     expect(planEventUpdate({ regionId: 'mars' })).toEqual({ kind: 'invalid', value: 'mars' });
+    // The retired Allgäu pilot becomes Bayern.
+    expect(planEventUpdate({ regionId: 'allgaeu' })).toEqual({
+      kind: 'migrate',
+      update: { regionId: 'bayern' },
+    });
+    expect(planProfileUpdate({ directoryRegionIds: ['allgaeu', 'bayern', 'tirol'] })).toEqual({
+      kind: 'migrate',
+      update: { directoryRegionIds: ['bayern', 'tirol'] },
+    });
     expect(planEventUpdate({ regionId: 5 })).toEqual({ kind: 'invalid', value: 5 });
     // "Österreich" is a combined view, not a region.
     expect(planEventUpdate({ regionId: 'oesterreich' })).toEqual({
