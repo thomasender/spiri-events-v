@@ -171,7 +171,12 @@ export function useUnpostedConsentEvents(enabled, posts, now = new Date()) {
     events: events
       .filter((e) => {
         const status = statusByEvent.get(e.eventId) ?? null;
-        return status !== 'published' && status !== 'publishing' && !isPastEvent(e, now);
+        return (
+          status !== 'published' &&
+          status !== 'publishing' &&
+          status !== 'archived' &&
+          !isPastEvent(e, now)
+        );
       })
       .map((e) => ({ ...e, postStatus: statusByEvent.get(e.eventId) ?? null })),
     loading,

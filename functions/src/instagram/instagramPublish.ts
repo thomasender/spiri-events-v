@@ -13,7 +13,7 @@ export const POLL_INTERVAL_MS = 5000;
 export const POLL_TIMEOUT_MS = 5 * 60 * 1000;
 export const VIENNA_TZ = 'Europe/Vienna';
 
-export type PostStatus = 'publishing' | 'published' | 'failed' | 'skipped';
+export type PostStatus = 'publishing' | 'published' | 'failed' | 'skipped' | 'archived';
 
 /** Why a post is `skipped`: the event was already over, or an admin skipped it. */
 export type SkipReason = 'past-event' | 'admin';

@@ -65,6 +65,26 @@ export interface SkipDeps {
   createSkipped(postId: string, record: PostRecord): Promise<void>;
 }
 
+export interface ArchiveDeps {
+  getPostStatus(postId: string): Promise<string | null>;
+  setArchived(postId: string): Promise<void>;
+}
+
+/** Moves a skipped post into the archive: the admin decided it is never to be posted. */
+export async function archiveInstagramPost(
+  deps: ArchiveDeps,
+  eventId: string
+): Promise<'archived'> {
+  const postId = postIdFor(eventId);
+  const status = await deps.getPostStatus(postId);
+  if (status === 'archived') return 'archived';
+  if (status !== 'skipped') {
+    throw new AdminActionError('failed-precondition', 'Only skipped posts can be archived.');
+  }
+  await deps.setArchived(postId);
+  return 'archived';
+}
+
 /** Marks a post skipped; creates the record when none exists so it stays blocked. */
 export async function skipInstagramPost(deps: SkipDeps, eventId: string): Promise<'skipped'> {
   const postId = postIdFor(eventId);

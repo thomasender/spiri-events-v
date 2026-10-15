@@ -133,6 +133,7 @@ export { refreshInstagramTokenJob } from './instagramTokenRefresh';
 export {
   adminRetryInstagramPost,
   adminSkipInstagramPost,
+  adminArchiveInstagramPost,
   adminPreviewWeeklyCarousels,
   adminPostWeeklyCarousels,
 } from './instagramAdmin';
