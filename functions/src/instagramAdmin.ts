@@ -141,6 +141,9 @@ export const adminSkipInstagramPost = onCall(
   }
 );
 
+// Moves a skipped post into the archive. The record stays in `instagram_posts`,
+// and posting only creates a record when none exists, so an archived event is
+// never posted again.
 export const adminArchiveInstagramPost = onCall(
   { region: 'europe-west3', cors: ALLOWED_ORIGINS, ...appCheckOptions() },
   async (request): Promise<{ outcome: 'archived' }> => {
