@@ -34,6 +34,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useEvents } from '../hooks/useEvents';
 import { useOrganizerProfile } from '../hooks/useOrganizerProfile';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
+import { buildEventJsonLd } from '../utils/eventJsonLd';
 import { pickEventDoc } from '../utils/pickEventDoc';
 import { getOrganizerName } from '../utils/eventFormat';
 import { resolveOrganizerProfilePath } from '../utils/profile';
@@ -59,7 +60,7 @@ import RichTextView from '../components/RichTextView';
 import SimilarEvents from '../components/SimilarEvents';
 import { stripHtml, truncateHtmlText } from '../utils/sanitize';
 import { normalizeLink } from '../utils/link';
-import { DEFAULT_CURRENCY, formatPriceWithCurrency } from '../utils/currency';
+import { formatPriceWithCurrency } from '../utils/currency';
 import './EventDetailPage.css';
 
 function OrganizerLine({ event }) {
@@ -160,80 +161,11 @@ function formatRecurrence(recurrence, recurrenceEndDate, eventDate) {
 }
 
 function generateEventJsonLd(event) {
-  const location = event.isOnline
-    ? {
-        '@type': 'VirtualLocation',
-        url: event.link || undefined,
-      }
-    : {
-        '@type': 'Place',
-        name: event.place || event.bezirk,
-        address: {
-          '@type': 'PostalAddress',
-          addressLocality: event.bezirk || 'Vorarlberg',
-          addressRegion: 'Vorarlberg',
-          addressCountry: 'AT',
-        },
-      };
-
-  const offer =
-    event.contribution === 'free'
-      ? {
-          '@type': 'Offer',
-          price: '0',
-          priceCurrency: DEFAULT_CURRENCY,
-          availability: 'https://schema.org/InStock',
-        }
-      : event.contribution === 'donation'
-        ? {
-            '@type': 'Offer',
-            price: '0',
-            priceCurrency: DEFAULT_CURRENCY,
-            availability: 'https://schema.org/InStock',
-            description: 'Freie Spende',
-          }
-        : event.fee
-          ? event.feeMax != null && Number(event.feeMax) > Number(event.fee)
-            ? {
-                '@type': 'Offer',
-                priceSpecification: {
-                  '@type': 'PriceSpecification',
-                  minPrice: event.fee.toString(),
-                  maxPrice: Number(event.feeMax).toString(),
-                  priceCurrency: event.priceCurrency || DEFAULT_CURRENCY,
-                },
-                availability: 'https://schema.org/InStock',
-                ...(event.feeNote && { description: event.feeNote }),
-              }
-            : {
-                '@type': 'Offer',
-                price: event.fee.toString(),
-                priceCurrency: event.priceCurrency || DEFAULT_CURRENCY,
-                availability: 'https://schema.org/InStock',
-                ...(event.feeNote && { description: event.feeNote }),
-              }
-          : {
-              '@type': 'Offer',
-              price: '0',
-              priceCurrency: DEFAULT_CURRENCY,
-              availability: 'https://schema.org/InStock',
-              description: event.feeNote || 'Kostenpflichtig',
-            };
-
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'Event',
-    name: event.title,
-    startDate: event.date,
-    endDate: event.endDate || event.date,
-    location,
+  const image = event.imageUrl || getEventFallbackImage(event);
+  return buildEventJsonLd(event, {
+    image: /^https?:\/\//i.test(image) ? image : `https://www.thetribe.at${image}`,
     description: stripHtml(event.description || ''),
-    image: event.imageUrl || getEventFallbackImage(event),
-    eventStatus: isEventCancelled(event)
-      ? 'https://schema.org/EventCancelled'
-      : 'https://schema.org/EventScheduled',
-    ...(offer && { offer }),
-  };
+  });
 }
 
 export default function EventDetailPage() {
