@@ -419,6 +419,25 @@ export function buildCaptionFooter(hashtags: string): string {
 /** Max number of further dates listed in a caption; the rest is summarised. */
 export const MAX_CAPTION_DATES = 5;
 
+/** "wöchentlich am Dienstag" etc. for regular series; '' for custom dates. */
+function describeRecurrencePattern(event: InstagramEventInput): string {
+  const start = parseIsoDate(asString(event.date));
+  if (!start) return '';
+  const weekday = new Intl.DateTimeFormat('de-AT', { weekday: 'long', timeZone: 'UTC' }).format(
+    start
+  );
+  switch (event.recurrence) {
+    case 'weekly':
+      return `wöchentlich am ${weekday}`;
+    case 'biweekly':
+      return `alle zwei Wochen am ${weekday}`;
+    case 'monthly':
+      return `monatlich am ${start.getUTCDate()}.`;
+    default:
+      return '';
+  }
+}
+
 /**
  * "Weitere Termine" block for series / custom-date events, so a recurring
  * event does not look like a one-off. Lists the upcoming dates after the main
@@ -436,7 +455,11 @@ export function buildFurtherDatesBlock(event: InstagramEventInput, now: Date = n
     .slice(0, MAX_CAPTION_DATES)
     .map((o) => `• ${formatEventDate(o.date, o.endDate)}`);
   const rest = dates.length - MAX_CAPTION_DATES;
-  if (rest > 0) lines.push(`… und ${rest} weitere Termin${rest === 1 ? '' : 'e'}`);
+  if (rest > 0) {
+    lines.push(`… und ${rest} weitere Termin${rest === 1 ? '' : 'e'}`);
+    const pattern = describeRecurrencePattern(event);
+    if (pattern) lines.push(`🔁 Der Event wiederholt sich ${pattern}.`);
+  }
   return ['🗓 Weitere Termine:', ...lines].join('\n');
 }
 
