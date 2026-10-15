@@ -323,7 +323,7 @@ export default function EventFormWizard() {
   const recurrenceMaxDate = useMemo(() => {
     if (!formData.date) return '';
     const eventDate = new Date(formData.date + 'T12:00:00');
-    eventDate.setFullYear(eventDate.getFullYear() + 1);
+    eventDate.setDate(eventDate.getDate() + 180);
     return eventDate.toISOString().split('T')[0];
   }, [formData.date]);
 
@@ -379,7 +379,7 @@ export default function EventFormWizard() {
         const endRecurrenceDate = new Date(formData.recurrenceEndDate + 'T12:00:00');
         const maxDate = new Date(recurrenceMaxDate + 'T12:00:00');
         if (endRecurrenceDate > maxDate) {
-          newErrors.recurrenceEndDate = 'Wiederholung darf maximal 1 Jahr betragen';
+          newErrors.recurrenceEndDate = 'Wiederholung darf maximal 180 Tage betragen';
         }
       }
       if (
@@ -1442,7 +1442,7 @@ export default function EventFormWizard() {
             <label htmlFor="recurrenceEndDate">Wiederholung bis</label>
             <span className="input-info">
               <Info size={14} />
-              <span>Max. 1 Jahr</span>
+              <span>Max. 180 Tage</span>
             </span>
           </div>
           <input
