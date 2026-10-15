@@ -129,6 +129,8 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
   Super-Admin only (`SuperAdminRoute`). Moderator event lists must filter by
   region (`staffEventQuerySpecs` in `src/lib/staffEventQueries.js`), or the rules
   reject the query.
+- **Members tab for moderators:** per member of her regions name, username, registration date, Instagram handle and sharing consent, directory state; never the e-mail (`toModeratorMemberRow`).
+- **Coming-soon page** (`RegionComingSoonPage`): progress bar in percent of `REGION_EVENT_GOAL` (30, internal, never shown as a number; approved events of the region via `useRegionEventCount`), "Event eintragen" (events entered there get that region), invite button (share sheet or copied link), a quiet "Andere Regionen erkunden" link; no links to the active regions.
 - Staff may see an inactive region's coming-soon page with a one-line note
   (`useCanPreviewRegion`); a real preview banner is a follow-up.
 - Admin mails (feedback, Instagram alerts) go to Super-Admins only. Submission

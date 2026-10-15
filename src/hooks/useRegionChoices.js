@@ -12,7 +12,7 @@ import { buildRegionChoices } from '../utils/regionChoices';
  * an event already has) always stays selectable so an edit never loses it.
  */
 export function useRegionChoices({ keepRegionId = '' } = {}) {
-  const { regionId, regions, allRegions } = useRegion();
+  const { regionId, regions, allRegions, comingSoon } = useRegion();
   const { role, staffRegionIds } = useAuth();
   return useMemo(
     () =>
@@ -21,8 +21,9 @@ export function useRegionChoices({ keepRegionId = '' } = {}) {
         allRegions,
         access: getStaffAccess(role, staffRegionIds),
         currentRegionId: regionId,
-        keepRegionId,
+        // Events entered from a coming-soon page belong to that region.
+        keepRegionId: comingSoon ? [].concat(keepRegionId || [], regionId) : keepRegionId,
       }),
-    [regions, allRegions, role, staffRegionIds, regionId, keepRegionId]
+    [regions, allRegions, role, staffRegionIds, regionId, keepRegionId, comingSoon]
   );
 }

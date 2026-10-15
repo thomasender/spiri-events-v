@@ -7,8 +7,12 @@ import { LAST_REGION_STORAGE_KEY } from '../../src/utils/regionRouting';
 const mocks = vi.hoisted(() => ({
   regions: { regions: [] as unknown[], loading: false },
   auth: { role: null as string | null, user: null },
+  count: null as number | null,
 }));
 
+vi.mock('../../src/hooks/useRegionEventCount', () => ({
+  useRegionEventCount: () => mocks.count,
+}));
 vi.mock('../../src/hooks/useRegions', () => ({ useRegions: () => mocks.regions }));
 vi.mock('../../src/hooks/useAuth', () => ({ useAuth: () => mocks.auth }));
 vi.mock('react-helmet-async', () => ({
@@ -92,20 +96,31 @@ describe('region or profile at /:slug', () => {
     expect(screen.queryByTestId('region-coming-soon')).not.toBeInTheDocument();
   });
 
-  it('an inactive region shows the coming-soon page with a link to the Vorarlberg calendar', () => {
+  it('an inactive region shows the coming-soon page without links to other regions', () => {
     renderAt('/steiermark');
     const page = screen.getByTestId('region-coming-soon');
     expect(page).toHaveTextContent('The Tribe – Steiermark kommt bald');
     expect(page).toHaveTextContent('in der Steiermark');
-    expect(screen.getByRole('link', { name: 'Zum Kalender Vorarlberg' })).toHaveAttribute(
-      'href',
-      '/'
-    );
+    expect(screen.queryByRole('link', { name: /Zum Kalender/ })).not.toBeInTheDocument();
+    expect(screen.getByTestId('region-explore')).toHaveTextContent('Andere Regionen erkunden');
+    expect(screen.getByTestId('region-explore')).toHaveAttribute('href', '/');
     expect(screen.queryByTestId('profile-page')).not.toBeInTheDocument();
     expect(screen.queryByTestId('calendar-page')).not.toBeInTheDocument();
     expect(screen.queryByTestId('region-preview-note')).not.toBeInTheDocument();
     // An inactive region in the URL does not become the context.
     expect(probe()).toBe('vorarlberg');
+  });
+
+  it('coming-soon page: progress in percent (no absolute number), add-event and invite CTAs', () => {
+    mocks.count = 15;
+    renderAt('/steiermark');
+    const bar = screen.getByRole('progressbar');
+    expect(bar).toHaveAttribute('aria-valuenow', '50');
+    expect(screen.getByTestId('region-progress')).toHaveTextContent('50 %');
+    expect(screen.getByTestId('region-progress')).not.toHaveTextContent('15');
+    expect(screen.getByTestId('region-add-event')).toHaveAttribute('href', '/login');
+    expect(screen.getByTestId('region-invite')).toBeInTheDocument();
+    mocks.count = null;
   });
 
   it('waits for the region config instead of flashing the coming-soon page', () => {
