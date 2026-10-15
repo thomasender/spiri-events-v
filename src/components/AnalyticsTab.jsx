@@ -202,7 +202,7 @@ export default function AnalyticsTab() {
       {report?.regionDimension === 'unavailable' && (
         <p className="analytics-hint" role="status" data-testid="analytics-region-unavailable">
           Für die Auswertung pro Region muss in Google Analytics einmalig die benutzerdefinierte
-          Dimension „region“ angelegt werden (Anleitung in AGENTS.md).
+          Dimension „region“ angelegt werden (Anleitung: docs/regions.md).
         </p>
       )}
 

@@ -199,7 +199,7 @@ describe('AnalyticsTab', () => {
       state.report = { ...report, regionDimension: 'unavailable' };
       render(<AnalyticsTab />);
       expect(screen.getByTestId('analytics-region-unavailable')).toHaveTextContent(
-        'Für die Auswertung pro Region muss in Google Analytics einmalig die benutzerdefinierte Dimension „region“ angelegt werden (Anleitung in AGENTS.md).'
+        'Für die Auswertung pro Region muss in Google Analytics einmalig die benutzerdefinierte Dimension „region“ angelegt werden (Anleitung: docs/regions.md).'
       );
     });
   });

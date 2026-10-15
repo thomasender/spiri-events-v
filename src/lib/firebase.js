@@ -27,7 +27,7 @@ const devConfig = {
 };
 
 const useEmulators = import.meta.env.VITE_USE_EMULATORS === 'true';
-// The staging build (`vite build --mode staging`, see AGENTS.md) sets this so it
+// The staging build (`vite build --mode staging`, see docs/staging-migration.md) sets this so it
 // talks to tribe-vbg-staging instead of production. The production build never
 // sets it and keeps using prodConfig.
 const useStaging = import.meta.env.VITE_FIREBASE_TARGET === 'staging';
