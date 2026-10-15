@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect, useRef } from 'react';
+import { X } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useRegion } from '../hooks/useRegion';
 import { trackFilter } from '../lib/analyticsEvents';
 import { COUNTRY_LABELS, COUNTRIES, isCombinedViewSlug } from '../utils/regions';
@@ -18,6 +19,8 @@ const RegionMap = lazy(() => import('./RegionMap'));
 // Only the two entry pages without a region in the address: never on a region
 // address, event page or profile, so crawlers and link previews are unaffected.
 const CHOOSER_PATHS = ['/', '/verzeichnis'];
+// Opened on purpose (switcher, burger menu): always shown, and it can be closed.
+export const REGIONS_PAGE_PATH = '/regionen';
 
 const FOCUSABLE = 'button:not([disabled])';
 
@@ -33,8 +36,10 @@ const FOCUSABLE = 'button:not([disabled])';
  */
 export default function RegionChooser() {
   const { regions, allRegions, combinedViews, loading, setRegion } = useRegion();
-  const { pathname } = useLocation();
+  const { pathname, key } = useLocation();
+  const navigate = useNavigate();
   const dialogRef = useRef(null);
+  const onRegionsPage = pathname === REGIONS_PAGE_PATH;
 
   // Opening a combined view ("Ganz Österreich", ...) by address is a choice as
   // well (active regions are remembered by RegionProvider).
@@ -46,7 +51,12 @@ export default function RegionChooser() {
   const stored = readLastRegion();
   const remembered =
     readRegionChooserSeen() || Boolean(stored && regions.some((r) => r.slug === stored));
-  const show = !loading && regions.length >= 2 && !remembered && CHOOSER_PATHS.includes(pathname);
+  const show =
+    !loading &&
+    regions.length >= 2 &&
+    (onRegionsPage || (!remembered && CHOOSER_PATHS.includes(pathname)));
+  // Only the on-purpose page can be left without choosing.
+  const close = () => navigate(key !== 'default' ? -1 : '/');
 
   useEffect(() => {
     if (!show) return undefined;
@@ -59,6 +69,7 @@ export default function RegionChooser() {
       if (e.key === 'Escape') {
         e.preventDefault();
         e.stopPropagation();
+        if (onRegionsPage) close();
         return;
       }
       if (e.key !== 'Tab') return;
@@ -85,7 +96,9 @@ export default function RegionChooser() {
       app?.removeAttribute('inert');
       app?.removeAttribute('aria-hidden');
     };
-  }, [show]);
+    // `close` only depends on navigate and the location key.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [show, onRegionsPage, key]);
 
   if (!show) return null;
 
@@ -111,6 +124,16 @@ export default function RegionChooser() {
         data-testid="region-chooser"
       >
         <header className="region-chooser-header">
+          {onRegionsPage && (
+            <button
+              type="button"
+              className="region-chooser-close"
+              onClick={close}
+              data-testid="region-chooser-close"
+            >
+              <X size={18} aria-hidden="true" /> Schließen
+            </button>
+          )}
           <h2 id="region-chooser-title" className="region-chooser-title">
             Wo suchst du?
           </h2>

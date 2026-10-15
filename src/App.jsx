@@ -30,6 +30,7 @@ import NoAccess from './components/NoAccess';
 import RegionProvider from './components/RegionProvider';
 import RegionChooser from './components/RegionChooser';
 import { RegionDirectoryRoute, RegionOrProfileRoute } from './components/RegionRoutes';
+import RegionsPage from './pages/RegionsPage';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
 import CookieConsent from './components/CookieConsent';
 import OutboundLinkTracker from './components/OutboundLinkTracker';
@@ -160,6 +161,7 @@ function AppLayout() {
             <Route path="/calendar" element={<Navigate to="/" replace />} />
             <Route path="/event/:slug" element={<EventDetailPage />} />
             <Route path="/verzeichnis" element={<DirectoryPage />} />
+            <Route path="/regionen" element={<RegionsPage />} />
             <Route path="/favoriten" element={<FavoritesPage />} />
             <Route path="/ueber-uns" element={<AboutPage />} />
             <Route path="/spenden" element={<SpendenPage />} />

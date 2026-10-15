@@ -111,3 +111,29 @@
   outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
 }
+
+.region-chooser-close {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  margin: 0 0 8px auto;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.region-chooser-header:has(.region-chooser-close) {
+  display: flex;
+  flex-direction: column;
+}
+
+.region-chooser-close:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}

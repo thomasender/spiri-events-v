@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronDown, MapPin } from 'lucide-react';
 import { useRegion } from '../hooks/useRegion';
 import { trackFilter } from '../lib/analyticsEvents';
@@ -27,6 +27,7 @@ function useRegionEntries() {
 export function RegionMenuList({ onNavigate }) {
   const { setRegion } = useRegion();
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const { entries, currentSlug, visible } = useRegionEntries();
   if (!visible) return null;
 
@@ -60,6 +61,16 @@ export function RegionMenuList({ onNavigate }) {
           {entry.name}
         </button>
       ))}
+      <button
+        type="button"
+        className="region-menu-list-item region-menu-list-item--all-regions"
+        onClick={() => {
+          onNavigate?.();
+          navigate('/regionen');
+        }}
+      >
+        Alle Regionen ansehen
+      </button>
     </div>
   );
 }
@@ -67,6 +78,7 @@ export function RegionMenuList({ onNavigate }) {
 export default function RegionSwitcher() {
   const { setRegion } = useRegion();
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
   const triggerRef = useRef(null);
@@ -115,6 +127,11 @@ export default function RegionSwitcher() {
     if (slug === currentSlug) return;
     trackFilter('region', slug);
     setRegion(slug, regionSwitchSubpath(pathname));
+  };
+
+  const openAllRegions = () => {
+    close(false);
+    navigate('/regionen');
   };
 
   const onMenuKeyDown = (e) => {
@@ -189,6 +206,17 @@ export default function RegionSwitcher() {
               {entry.name}
             </button>
           ))}
+          <button
+            ref={(el) => {
+              itemRefs.current[entries.length] = el;
+            }}
+            type="button"
+            role="menuitem"
+            className="region-switcher-item region-switcher-item--all"
+            onClick={openAllRegions}
+          >
+            Alle Regionen ansehen
+          </button>
         </div>
       )}
     </div>

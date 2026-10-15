@@ -100,6 +100,16 @@ describe('RegionSwitcher with two active regions', () => {
     expect(items[1]).toHaveAttribute('aria-checked', 'false');
   });
 
+  it('offers "Alle Regionen ansehen" last, which opens the map page', () => {
+    renderAt('/');
+    fireEvent.click(screen.getByRole('button', { name: /Region wählen/ }));
+    const items = screen.getAllByRole('menuitem');
+    expect(items.map((i) => i.textContent)).toEqual(['Alle Regionen ansehen']);
+    fireEvent.click(items[0]);
+    expect(where()).toBe('/regionen');
+    expect(screen.queryByRole('menu')).toBeNull();
+  });
+
   it('navigates to the region, keeps the area and remembers the choice', () => {
     renderAt('/vorarlberg/verzeichnis');
     fireEvent.click(screen.getByTestId('region-switcher').querySelector('button')!);
@@ -133,6 +143,7 @@ describe('RegionSwitcher with two active regions', () => {
     expect(screen.getByRole('menuitemradio', { name: 'Vorarlberg' })).toHaveFocus();
     key('ArrowDown');
     expect(screen.getByRole('menuitemradio', { name: 'Tirol' })).toHaveFocus();
+    key('ArrowDown');
     key('ArrowDown');
     key('ArrowDown');
     expect(screen.getByRole('menuitemradio', { name: 'Vorarlberg' })).toHaveFocus();
@@ -183,6 +194,13 @@ describe('RegionMenuList (burger menu on the phone)', () => {
     fireEvent.click(within(list).getByRole('button', { name: 'Tirol' }));
     expect(onNavigate).toHaveBeenCalled();
     expect(where()).toBe('/tirol');
+  });
+
+  it('ends with "Alle Regionen ansehen", which opens the map page and closes the menu', () => {
+    const onNavigate = renderList();
+    fireEvent.click(screen.getByRole('button', { name: 'Alle Regionen ansehen' }));
+    expect(onNavigate).toHaveBeenCalled();
+    expect(where()).toBe('/regionen');
   });
 
   it('renders nothing with only Vorarlberg active (dark launch)', () => {
@@ -275,6 +293,41 @@ describe('combined views in switcher and chooser (ticket 33)', () => {
     renderAt('/');
     expect(screen.queryByTestId('region-switcher')).toBeNull();
     expect(screen.queryByTestId('region-chooser')).toBeNull();
+  });
+});
+
+describe('region chooser opened on purpose (/regionen)', () => {
+  beforeEach(() => {
+    mocks.regions = { regions: TWO_ACTIVE, loading: false };
+    // A region is remembered: the first-visit chooser would stay away.
+    window.localStorage.setItem(LAST_REGION_STORAGE_KEY, 'vorarlberg');
+  });
+
+  it('shows the map page although a region is remembered, and can be closed', () => {
+    renderAt('/regionen');
+    expect(screen.getByTestId('region-chooser')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('region-chooser-close'));
+    expect(where()).toBe('/');
+    expect(screen.queryByTestId('region-chooser')).toBeNull();
+  });
+
+  it('closes with Escape', () => {
+    renderAt('/regionen');
+    key('Escape');
+    expect(where()).toBe('/');
+  });
+
+  it('choosing a region (also a closed one) leaves the page', () => {
+    renderAt('/regionen');
+    fireEvent.click(screen.getByRole('button', { name: /^Schwyz/ }));
+    expect(where()).toBe('/schwyz');
+    expect(screen.queryByTestId('region-chooser')).toBeNull();
+  });
+
+  it('is not required on the first-visit path: no close button there', () => {
+    window.localStorage.clear();
+    renderAt('/');
+    expect(screen.queryByTestId('region-chooser-close')).toBeNull();
   });
 });
 
