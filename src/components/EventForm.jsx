@@ -641,6 +641,26 @@ export default function EventForm({ event }) {
     setInstagramImageChoice((prev) => (prev?.source === INSTAGRAM_UPLOAD_SOURCE ? null : prev));
   };
 
+  const buildInstagramData = () => ({
+    instagramConsent,
+    ...buildInstagramHandleOverridePatch({
+      consent: instagramConsent,
+      input: instagramHandleOverride,
+      organizerHandle: organizerInstagramHandle,
+      stored: event?.instagramHandleOverride,
+    }),
+    // A newly picked cover / extra photo gets its URL after the upload in
+    // saveEvent(); everything else can be resolved right away.
+    ...(instagramConsent && !instagramImageNeedsUpload()
+      ? {
+          instagramImage: resolveInstagramImage(effectiveInstagramImageChoice, {
+            coverUrl: imageFile || imageRemoved ? null : originalImageUrl,
+            instagramUploadUrl: instagramFile ? null : instagramPreview,
+          }),
+        }
+      : {}),
+  });
+
   const buildEventData = (status) => ({
     title: formData.title.trim(),
     date: formData.date,
@@ -685,23 +705,7 @@ export default function EventForm({ event }) {
       photoURL: resolveOrganizerPhotoURL({ isEdit, event, user, profile }),
     },
     kontakt: formData.kontakt.trim(),
-    instagramConsent,
-    ...buildInstagramHandleOverridePatch({
-      consent: instagramConsent,
-      input: instagramHandleOverride,
-      organizerHandle: organizerInstagramHandle,
-      stored: event?.instagramHandleOverride,
-    }),
-    // A newly picked cover / extra photo gets its URL after the upload in
-    // saveEvent(); everything else can be resolved right away.
-    ...(instagramConsent && !instagramImageNeedsUpload()
-      ? {
-          instagramImage: resolveInstagramImage(effectiveInstagramImageChoice, {
-            coverUrl: imageFile || imageRemoved ? null : originalImageUrl,
-            instagramUploadUrl: instagramFile ? null : instagramPreview,
-          }),
-        }
-      : {}),
+    ...buildInstagramData(),
     imageUrl: imageFile || imageRemoved ? null : originalImageUrl || null,
     imageFocalPoint:
       imageFile || imageRemoved || isDefaultFocalPoint(imageFocalPoint) ? null : imageFocalPoint,
@@ -744,6 +748,14 @@ export default function EventForm({ event }) {
       return;
     }
 
+    // An owner's approved event stays approved only for Instagram-only edits.
+    // Send just those fields: the security rules reject any other field change
+    // on an approved event, and the full form payload normalises fields (e.g.
+    // empty defaults on old events) that would count as changes.
+    if (wasApproved && !isAdmin) {
+      await saveEvent({ ...buildInstagramData(), status: 'approved' });
+      return;
+    }
     await saveEvent(buildEventData(event.status));
   };
 

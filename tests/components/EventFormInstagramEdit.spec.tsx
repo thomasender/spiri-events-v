@@ -216,6 +216,11 @@ describe('EventForm — Instagram settings on existing events', () => {
     expect(payload.instagramConsent).toBe(true);
     expect(payload).not.toHaveProperty('slug');
     expect((payload.instagramImage as { url: string }).url).toBe(COVER_URL);
+    // The rules freeze an approved event's content for its owner, so only the
+    // Instagram fields may be sent (no normalised defaults of the old event).
+    expect(Object.keys(payload).sort()).toEqual(
+      ['instagramConsent', 'instagramImage', 'status'].sort()
+    );
   });
 
   it('keeps a previously uploaded extra Instagram photo when saving', async () => {
