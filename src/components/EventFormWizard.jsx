@@ -342,7 +342,10 @@ export default function EventFormWizard() {
   const recurrenceMaxDate = useMemo(() => {
     if (!formData.date) return '';
     const eventDate = new Date(formData.date + 'T12:00:00');
+    // An unexpected year (e.g. 5 digits) gives an invalid date; toISOString() would throw.
+    if (Number.isNaN(eventDate.getTime())) return '';
     eventDate.setDate(eventDate.getDate() + 180);
+    if (Number.isNaN(eventDate.getTime())) return '';
     return eventDate.toISOString().split('T')[0];
   }, [formData.date]);
 
@@ -611,7 +614,7 @@ export default function EventFormWizard() {
       if (baseDate) {
         const d = new Date(baseDate + 'T12:00:00');
         d.setDate(d.getDate() + 7);
-        nextDate = d.toISOString().split('T')[0];
+        if (!Number.isNaN(d.getTime())) nextDate = d.toISOString().split('T')[0];
       }
       return { ...prev, customDates: [...existing, nextDate] };
     });

@@ -66,6 +66,11 @@ export default function RegionProvider({ children }) {
     const urlView = urlSlug ? getCombinedView(urlSlug) : null;
     const combinedView = urlView && isCombinedViewAvailable(urlView, allRegions) ? urlView : null;
     const isNational = Boolean(combinedView);
+    const comingSoon = Boolean(
+      urlSlug &&
+      ((urlView && !combinedView) ||
+        (isRegionSlug(urlSlug) && !getRegionBySlug(urlSlug, allRegions)?.active))
+    );
     const regionId =
       !urlSlug && eventRegionId
         ? eventRegionId
@@ -77,6 +82,8 @@ export default function RegionProvider({ children }) {
       allRegions,
       isNational,
       combinedView,
+      // True on the coming-soon page of a region/view that is not open yet.
+      comingSoon,
       // Active regions the current combined view covers ([] outside one).
       combinedRegions: combinedView ? combinedViewRegions(combinedView, allRegions) : [],
       // Combined views offered in chooser and switcher.
