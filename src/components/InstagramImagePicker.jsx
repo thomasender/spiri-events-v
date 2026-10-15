@@ -3,8 +3,8 @@ import { AlertTriangle, ImagePlus, X } from 'lucide-react';
 import FocalPointPicker from './FocalPointPicker';
 import {
   InstagramPreviewModeToggle,
+  InstagramPreviewModeOverlay,
   InstagramPreviewNotes,
-  InstagramPreviewOverlay,
   PREVIEW_MODE_CAROUSEL,
 } from './InstagramPostPreview';
 import {
@@ -170,10 +170,7 @@ export default function InstagramImagePicker({
         previewControls={
           event && <InstagramPreviewModeToggle mode={previewMode} onChange={setPreviewMode} />
         }
-        previewOverlay={
-          event &&
-          previewMode === PREVIEW_MODE_CAROUSEL && <InstagramPreviewOverlay event={event} />
-        }
+        previewOverlay={event && <InstagramPreviewModeOverlay mode={previewMode} event={event} />}
       />
       {event && <InstagramPreviewNotes />}
     </div>

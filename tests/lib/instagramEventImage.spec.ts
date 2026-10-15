@@ -62,7 +62,7 @@ describe('category fallback map', () => {
   });
 });
 
-describe('instagram feed image (no text layer)', () => {
+describe('instagram feed image (title + organizer text layer)', () => {
   const base = { title: 'Kakao', date: '2026-10-17', category: 'Yoga' };
 
   it('uses a near-4:5 image with cover (fills the whole frame)', async () => {
@@ -112,7 +112,19 @@ describe('instagram feed image (no text layer)', () => {
     });
     expect(calls).toEqual([YOGA_URL]);
     expect(close(await pixel(jpeg, 540, 675), FALLBACK_COLOR)).toBe(true);
-    expect(close(await pixel(jpeg, 20, 20), FALLBACK_COLOR)).toBe(true); // no overlay
+    expect(close(await pixel(jpeg, 20, 20), FALLBACK_COLOR)).toBe(true); // top half untouched
+  });
+
+  it('lays a text layer over the bottom of the photo, keeping the top clear', async () => {
+    const color: Rgb = [220, 220, 220];
+    const jpeg = await renderEventImage(
+      { ...base, imageUrl: EVENT_URL, organizer: { firstName: 'Anna', lastName: 'Muster' } },
+      'feed',
+      { fetchImage: stubFetch({ [EVENT_URL]: await solid(800, 1000, color) }) }
+    );
+    expect(close(await pixel(jpeg, 540, 100), color)).toBe(true);
+    // bottom corner is darkened by the gradient behind title and organizer
+    expect(close(await pixel(jpeg, 1076, 1346), color)).toBe(false);
   });
 
   it('uses the category fallback when the event image download throws', async () => {

@@ -1,7 +1,8 @@
 /**
- * Renders Instagram images for an event. Feed (4:5): the event image itself,
- * no text layer (all info is in the caption); without an image the category
- * fallback photo of the website. Story 9:16 and carousel slides 4:5: image or
+ * Renders Instagram images for an event. Feed (4:5): the event image itself
+ * (without an image the category fallback photo of the website) with a small
+ * text layer: only the event title and the organizer's name (everything else
+ * is in the caption). Story 9:16 and carousel slides 4:5: image or
  * fallback photo as background with a category-coloured text overlay. If no
  * image can be loaded at all: plain category-coloured layout.
  *
@@ -189,6 +190,48 @@ function buildLayout(model: EventImageModel, format: InstagramFormat, hasImage: 
   );
 }
 
+/** Feed post: only title and organizer over a dark bottom gradient. */
+function buildFeedLayout(model: EventImageModel, hasImage: boolean): Node {
+  const { width, height } = FORMAT_DIMENSIONS.feed;
+  const pad = 80;
+  const titleSize = model.title.length > 45 ? 72 : model.title.length > 28 ? 84 : 96;
+  return el(
+    'div',
+    {
+      width,
+      height,
+      flexDirection: 'column',
+      justifyContent: 'flex-end',
+      padding: `${pad}px`,
+      // Top half stays untouched so the photo is fully visible.
+      background: hasImage
+        ? 'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 50%, rgba(0,0,0,0.80) 100%)'
+        : `linear-gradient(160deg, ${model.color} 0%, #1d1a1a 100%)`,
+      color: '#ffffff',
+      fontFamily: 'Inter',
+    },
+    [
+      el(
+        'div',
+        {
+          fontFamily: 'Cormorant Garamond',
+          fontWeight: 700,
+          fontSize: titleSize,
+          lineHeight: 1.05,
+        },
+        model.title
+      ),
+      model.organizerName
+        ? el(
+            'div',
+            { marginTop: 28, fontSize: 40, fontWeight: 700, opacity: 0.9 },
+            model.organizerName
+          )
+        : null,
+    ]
+  );
+}
+
 export type ImageFetcher = (url: string) => Promise<Buffer>;
 
 const defaultFetchImage: ImageFetcher = async (url) => {
@@ -274,9 +317,9 @@ export interface RenderOptions {
 /**
  * Renders one event as a JPEG buffer in the requested Instagram format.
  *
- * feed: the event image itself (fitted, no text layer), else the category
- * fallback photo, else a plain category-coloured layout. carousel/story: same
- * background choice, but with the text overlay on top.
+ * feed: the event image itself (fitted), else the category fallback photo,
+ * else a plain category-coloured background, with only title and organizer
+ * on top. carousel/story: same background choice, with the full text overlay.
  */
 export async function renderEventImage(
   event: InstagramEventInput,
@@ -302,9 +345,9 @@ export async function renderEventImage(
   const background =
     ownImage ?? (await tryRender(fallbackUrl, fetchImage, (src) => coverImage(src, width, height)));
 
-  if (isFeed && background) return background;
-
-  const svg = await satori(buildLayout(model, format, background !== null) as never, {
+  const hasImage = background !== null;
+  const layout = isFeed ? buildFeedLayout(model, hasImage) : buildLayout(model, format, hasImage);
+  const svg = await satori(layout as never, {
     width,
     height,
     fonts: loadFonts(),
