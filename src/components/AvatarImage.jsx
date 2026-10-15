@@ -30,13 +30,22 @@ export default function AvatarImage({ src, alt = '', className, focalPoint, zoom
         alt={alt}
         className={className}
         style={focalPointToStyle(focalPoint)}
+        loading="lazy"
+        decoding="async"
         {...rest}
       />
     );
   }
   return (
     <span className={`${className || ''} avatar-zoom`}>
-      <img src={src} alt={alt} style={photoZoomStyle(focalPoint, zoom)} {...rest} />
+      <img
+        src={src}
+        alt={alt}
+        style={photoZoomStyle(focalPoint, zoom)}
+        loading="lazy"
+        decoding="async"
+        {...rest}
+      />
     </span>
   );
 }

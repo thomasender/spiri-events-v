@@ -28,4 +28,13 @@ describe('AvatarImage', () => {
     expect(img.style.transform).toBe('scale(2)');
     expect(img.style.transformOrigin).toBe('25% 75%');
   });
+
+  it('loads lazily and decodes off the main thread (directory shows many avatars)', () => {
+    for (const zoom of [1, 2]) {
+      const { container } = render(<AvatarImage src="a.jpg" className="x" zoom={zoom} />);
+      const img = container.querySelector('img') as HTMLImageElement;
+      expect(img).toHaveAttribute('loading', 'lazy');
+      expect(img).toHaveAttribute('decoding', 'async');
+    }
+  });
 });

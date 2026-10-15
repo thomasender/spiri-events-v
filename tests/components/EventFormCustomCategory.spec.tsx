@@ -50,6 +50,7 @@ vi.mock('../../src/hooks/useCategories', () => ({
 
 vi.mock('../../src/lib/imageUpload', () => ({
   uploadImage: vi.fn(async () => ''),
+  uploadEventCover: vi.fn(async () => ({ url: '', thumbUrl: null })),
   deleteImageByUrl: vi.fn(async () => {}),
   getImageDimensions: vi.fn(async () => ({ width: 1200, height: 800 })),
   getAspectRatioRecommendation: vi.fn(() => ({ isRecommended: true })),

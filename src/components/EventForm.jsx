@@ -9,6 +9,7 @@ import { useProfile } from '../hooks/useProfile';
 import { resolveOrganizerPhotoURL } from '../utils/organizerPhoto';
 import {
   uploadImage,
+  uploadEventCover,
   deleteImageByUrl,
   getImageDimensions,
   getAspectRatioRecommendation,
@@ -218,6 +219,7 @@ export default function EventForm({ event }) {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(event?.imageUrl || '');
   const [originalImageUrl] = useState(event?.imageUrl || '');
+  const [originalImageThumbUrl] = useState(event?.imageThumbUrl || '');
   const [imageZoom, setImageZoom] = useState(normalizeImageZoom(event?.imageZoom));
   const [imageFocalPoint, setImageFocalPoint] = useState(
     normalizeFocalPoint(event?.imageFocalPoint) ?? DEFAULT_FOCAL_POINT
@@ -491,11 +493,10 @@ export default function EventForm({ event }) {
     setImageUploading(true);
     setImageProgress(0);
     try {
-      const url = await uploadImage(imageFile, {
+      return await uploadEventCover(imageFile, {
         eventId,
         onProgress: setImageProgress,
       });
-      return url;
     } catch (err) {
       console.error('Image upload failed:', err);
       throw new Error('Bild-Upload fehlgeschlagen');
@@ -711,6 +712,7 @@ export default function EventForm({ event }) {
     kontakt: formData.kontakt.trim(),
     ...buildInstagramData(),
     imageUrl: imageFile || imageRemoved ? null : originalImageUrl || null,
+    imageThumbUrl: imageFile || imageRemoved ? null : originalImageThumbUrl || null,
     imageFocalPoint:
       imageFile || imageRemoved || isDefaultFocalPoint(imageFocalPoint) ? null : imageFocalPoint,
     imageZoom: imageFile || imageRemoved || imageZoom <= MIN_IMAGE_ZOOM ? null : imageZoom,
@@ -805,8 +807,8 @@ export default function EventForm({ event }) {
       }
 
       if (imageFile) {
-        const newImageUrl = await handleImageUpload(docRef.id);
-        const patch = { imageUrl: newImageUrl };
+        const { url: newImageUrl, thumbUrl: newThumbUrl } = await handleImageUpload(docRef.id);
+        const patch = { imageUrl: newImageUrl, imageThumbUrl: newThumbUrl };
         if (!isDefaultFocalPoint(imageFocalPoint)) {
           patch.imageFocalPoint = imageFocalPoint;
         }
@@ -821,9 +823,11 @@ export default function EventForm({ event }) {
         await updateEvent(docRef.id, patch);
         if (originalImageUrl && originalImageUrl !== newImageUrl) {
           await deleteImageByUrl(originalImageUrl);
+          await deleteImageByUrl(originalImageThumbUrl);
         }
       } else if (imageRemoved && originalImageUrl) {
         await deleteImageByUrl(originalImageUrl);
+        await deleteImageByUrl(originalImageThumbUrl);
       }
       navigate(cancelTarget);
     } catch (err) {

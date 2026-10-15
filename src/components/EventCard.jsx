@@ -36,6 +36,7 @@ export default function EventCard({ event, categoryColor, onClick }) {
     >
       <div className="event-tile-image-wrapper">
         <EventCoverImage
+          thumbnail
           event={event}
           fallbackSrc={fallbackImage}
           className="event-tile-image"

@@ -45,6 +45,7 @@ export default function EventListRow({ event, categoryColor, linkState, onClick 
 
       <div className="event-row-image-wrapper">
         <EventCoverImage
+          thumbnail
           event={event}
           fallbackSrc={fallbackImage}
           className="event-row-image"

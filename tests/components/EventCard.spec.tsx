@@ -65,6 +65,39 @@ describe('EventCard', () => {
   });
 });
 
+describe('EventCard cover thumbnail', () => {
+  const withThumb = {
+    ...baseEvent,
+    imageUrl: 'https://example.com/full.jpg',
+    imageThumbUrl: 'https://example.com/thumb.webp',
+  };
+
+  it('loads the small thumbnail instead of the full image', () => {
+    const { container } = renderCard(withThumb);
+    expect(container.querySelector('img.event-tile-image')).toHaveAttribute(
+      'src',
+      'https://example.com/thumb.webp'
+    );
+  });
+
+  it('uses the full image for events without a thumbnail (older uploads)', () => {
+    const { container } = renderCard({ ...withThumb, imageThumbUrl: undefined });
+    expect(container.querySelector('img.event-tile-image')).toHaveAttribute(
+      'src',
+      'https://example.com/full.jpg'
+    );
+  });
+
+  it('falls back thumbnail -> full image -> generic fallback when loading fails', () => {
+    const { container } = renderCard(withThumb);
+    const img = () => container.querySelector('img.event-tile-image') as HTMLImageElement;
+    fireEvent.error(img());
+    expect(img()).toHaveAttribute('src', 'https://example.com/full.jpg');
+    fireEvent.error(img());
+    expect(img().getAttribute('src')).not.toMatch(/example\.com/);
+  });
+});
+
 const track = vi.hoisted(() => vi.fn());
 vi.mock('../../src/lib/analytics', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../src/lib/analytics')>()),

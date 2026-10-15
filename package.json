@@ -28,6 +28,7 @@
     "export:prod": "node scripts/export-prod-data.mjs",
     "prerender:refresh": "node scripts/refresh-prerender-data.mjs",
     "assets:render-sender-logo": "node scripts/render-email-sender-logo.mjs",
+    "images:backfill": "node scripts/backfill-image-optimization.mjs",
     "assets:compress": "node scripts/compress-public-assets.mjs",
     "firestore:rules:pull": "firebase firestore:rules:get > firestore.rules",
     "firestore:rules:push": "firebase deploy --only firestore:rules",

@@ -196,6 +196,7 @@ export function useEvents(user) {
     const eventData = snap.data();
     if (eventData.imageUrl) {
       await deleteImageByUrl(eventData.imageUrl);
+      await deleteImageByUrl(eventData.imageThumbUrl);
     }
 
     const messagesRef = collection(db, 'events', id, 'messages');
@@ -249,6 +250,7 @@ export function useEvents(user) {
         : { name: '', email: '', photoURL: null },
       kontakt: source.kontakt || '',
       imageUrl: source.imageUrl || null,
+      imageThumbUrl: source.imageThumbUrl || null,
       status: 'draft',
       slug,
       createdBy: user.uid,
