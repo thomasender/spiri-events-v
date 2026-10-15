@@ -21,7 +21,9 @@
  */
 import { randomUUID } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
-import admin from 'firebase-admin';
+import { initializeApp, cert } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+import { getStorage } from 'firebase-admin/storage';
 import sharp from 'sharp';
 
 const args = process.argv.slice(2);
@@ -34,15 +36,15 @@ const AVATAR_MAX = 720;
 const THUMB_MAX = 720;
 
 const SERVICE_ACCOUNT_PATH = 'scripts/service-account.json';
-admin.initializeApp({
+initializeApp({
   projectId,
   storageBucket: `${projectId}.firebasestorage.app`,
   ...(existsSync(SERVICE_ACCOUNT_PATH) && {
-    credential: admin.credential.cert(JSON.parse(readFileSync(SERVICE_ACCOUNT_PATH, 'utf8'))),
+    credential: cert(JSON.parse(readFileSync(SERVICE_ACCOUNT_PATH, 'utf8'))),
   }),
 });
-const db = admin.firestore();
-const bucket = admin.storage().bucket();
+const db = getFirestore();
+const bucket = getStorage().bucket();
 
 const stats = { thumbs: 0, resized: 0, cacheHeaders: 0, savedBytes: 0, errors: 0 };
 
