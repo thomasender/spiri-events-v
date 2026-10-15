@@ -70,6 +70,7 @@ export default function EventAdminListRow({
   fromPath = '/admin',
   showTrashedAt = false,
   showSubmittedAt = false,
+  showRevisionHint = false,
   showApprovedBy = false,
   approvedByName = null,
   showInKlaerungBy = false,
@@ -202,6 +203,23 @@ export default function EventAdminListRow({
                 data-testid={`trash-event-trashed-at-${event.id}`}
               >
                 Gelöscht am {formatDate(event.trashedAt)}
+              </span>
+            )}
+            {showRevisionHint && (
+              <span
+                className={`event-card-meta-item event-card-revision-hint${
+                  event.approvedAt ? ' event-card-revision-hint--edited' : ''
+                }`}
+                data-testid={`event-card-revision-hint-${event.id}`}
+                title={
+                  event.approvedAt
+                    ? 'Dieses Event war schon einmal veröffentlicht und wurde danach bearbeitet'
+                    : 'Dieses Event wurde noch nie veröffentlicht'
+                }
+              >
+                {event.approvedAt
+                  ? `Bearbeitet (zuletzt genehmigt am ${formatTimestamp(event.approvedAt)})`
+                  : 'Neues Event'}
               </span>
             )}
             {showSubmittedAt && event.createdAt && (

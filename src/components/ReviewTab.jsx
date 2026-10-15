@@ -242,6 +242,7 @@ export default function ReviewTab() {
                         showRevert
                         showDuplicate={false}
                         showSubmittedAt
+                        showRevisionHint
                         fromPath="/admin?tab=review"
                         isAdmin
                         approving={approvingId}
@@ -294,6 +295,7 @@ export default function ReviewTab() {
                           showRevert
                           showDuplicate={false}
                           showSubmittedAt
+                          showRevisionHint
                           showInKlaerungBy
                           inKlaerungByName={inKlaerungAuthorNameByEvent[event.id] || null}
                           fromPath="/admin?tab=review"

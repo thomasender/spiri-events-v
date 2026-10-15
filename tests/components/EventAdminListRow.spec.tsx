@@ -131,3 +131,36 @@ describe('EventAdminListRow — conversation indicator (6abf6022)', () => {
     expect(screen.getByTestId('event-card-conversation-bubble')).toBeInTheDocument();
   });
 });
+
+describe('EventAdminListRow — revision hint', () => {
+  const base = {
+    id: 'e1',
+    title: 'Test Event',
+    date: '2026-09-15',
+    time: '18:00',
+    place: 'Test Place',
+    category: 'Yoga',
+    status: 'pending',
+    recurrence: 'none',
+  };
+
+  it('marks a pending event that was never approved as new', () => {
+    renderRow({ event: base, showRevisionHint: true });
+    expect(screen.getByTestId('event-card-revision-hint-e1')).toHaveTextContent('Neues Event');
+  });
+
+  it('marks a pending event with an earlier approval as edited', () => {
+    renderRow({
+      event: { ...base, approvedAt: { toDate: () => new Date('2026-08-01T10:00:00Z') } },
+      showRevisionHint: true,
+    });
+    expect(screen.getByTestId('event-card-revision-hint-e1')).toHaveTextContent(
+      /Bearbeitet \(zuletzt genehmigt am/
+    );
+  });
+
+  it('shows nothing unless showRevisionHint is set', () => {
+    renderRow({ event: base });
+    expect(screen.queryByTestId('event-card-revision-hint-e1')).not.toBeInTheDocument();
+  });
+});
