@@ -2,6 +2,7 @@ import { useState, useRef, useMemo, useEffect } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import CreatableSelect from 'react-select/creatable';
 import { useEvents, BEZIRKE } from '../hooks/useEvents';
+import { bezirkLabel } from '../utils/regions';
 import { useCategories } from '../hooks/useCategories';
 import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
@@ -1073,7 +1074,7 @@ export default function EventForm({ event }) {
                 <option value="">Bezirk auswählen...</option>
                 {BEZIRKE.map((b) => (
                   <option key={b} value={b}>
-                    {b}
+                    {bezirkLabel(b)}
                   </option>
                 ))}
               </select>

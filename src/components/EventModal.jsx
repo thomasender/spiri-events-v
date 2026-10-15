@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { bezirkLabel } from '../utils/regions';
 import { X, Calendar, Clock, MapPin, Ticket, ExternalLink, User, Mail, Phone } from 'lucide-react';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
 import { getOrganizerName } from '../utils/eventFormat';
@@ -189,7 +190,7 @@ export default function EventModal({ event, onClose }) {
                 className="detail-value"
                 data-testid={event.isOnline ? 'event-modal-location-online' : undefined}
               >
-                {event.isOnline ? 'Online' : event.bezirk}
+                {event.isOnline ? 'Online' : bezirkLabel(event.bezirk)}
               </span>
             </div>
           </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { bezirkLabel } from '../utils/regions';
 import { useParams, Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import SeoMeta from '../components/SeoMeta';
@@ -537,7 +538,7 @@ export default function EventDetailPage() {
 
   const eventDescription = event.description
     ? truncateHtmlText(event.description, 160)
-    : `${event.title} - ${event.category || 'Event'}${event.isOnline ? ' (Online)' : event.bezirk ? ` in ${event.bezirk}` : ''}`;
+    : `${event.title} - ${event.category || 'Event'}${event.isOnline ? ' (Online)' : event.bezirk ? ` in ${bezirkLabel(event.bezirk)}` : ''}`;
   const eventPath = `/event/${event.slug || event.id}`;
   const recurrenceDates = getRecurrenceDatesForDetail(event);
   const showRecurrenceDatesList = recurrenceDates.length > 0;
@@ -819,7 +820,7 @@ export default function EventDetailPage() {
               className="detail-value"
               data-testid={event.isOnline ? 'event-detail-location-online' : undefined}
             >
-              {event.isOnline ? 'Online' : event.bezirk || 'Vorarlberg'}
+              {event.isOnline ? 'Online' : bezirkLabel(event.bezirk) || 'Vorarlberg'}
             </span>
           </div>
         </div>

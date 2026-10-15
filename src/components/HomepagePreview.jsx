@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useRef } from 'react';
+import { bezirkLabel } from '../utils/regions';
 import { Check, ChevronDown, MapPin, PlusCircle, Sparkles, Users } from 'lucide-react';
 import Calendar from './Calendar';
 import EventsSection from './EventsSection';
@@ -290,7 +291,7 @@ export default function HomepagePreview({
                         aria-pressed={selectedOrte.includes(bezirk)}
                       >
                         <Check size={14} className="filter-chip-icon" aria-hidden="true" />
-                        <span>{bezirk}</span>
+                        <span>{bezirkLabel(bezirk)}</span>
                       </button>
                     ))}
                     <button

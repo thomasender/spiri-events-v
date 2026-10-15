@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { bezirkLabel } from '../utils/regions';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import {
@@ -86,7 +87,7 @@ export function describeCarouselSummary(summary) {
       text: label(summary[key]),
       events: (details[key] ?? []).map((e) => ({
         id: e.id,
-        text: `${e.date} · ${e.title}${e.bezirk ? ` (${e.bezirk})` : ''}`,
+        text: `${e.date} · ${e.title}${e.bezirk ? ` (${bezirkLabel(e.bezirk)})` : ''}`,
       })),
     }));
 }

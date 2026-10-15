@@ -183,7 +183,7 @@ export function buildEventDescription(event) {
     return `${(lastSpace > 100 ? cut.slice(0, lastSpace) : cut).replace(/[\s,;:.\-–]+$/, '')}…`
   }
   const category = event.category || 'Sonstiges'
-  return `${event.title} - ${category} in ${event.bezirk || 'Vorarlberg'}`
+  return `${event.title} - ${category} in ${(event.bezirk === 'Grenznahe' ? 'Umgebung' : event.bezirk) || 'Vorarlberg'}`
 }
 
 // Renders the static event content (title, date, place, description, link)
@@ -254,7 +254,7 @@ function buildEventStaticBody(event, isFree, category, formattedDate) {
           <svg class="detail-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
           <div>
             <span class="detail-label">Bezirk</span>
-            <span class="detail-value">${escapeHtml(event.bezirk || 'Vorarlberg')}</span>
+            <span class="detail-value">${escapeHtml((event.bezirk === 'Grenznahe' ? 'Umgebung' : event.bezirk) || 'Vorarlberg')}</span>
           </div>
         </div>
 
@@ -422,7 +422,7 @@ export function generateCalendarPageHtml(events, jsBundlePath, cssBundlePath, th
         <li>
           <a href="/event/${escapeHtml(eventPath)}">
             <strong>${escapeHtml(event.title)}</strong>
-            <span>${escapeHtml(formatDate(event.date))} - ${escapeHtml(event.bezirk || 'Vorarlberg')}</span>
+            <span>${escapeHtml(formatDate(event.date))} - ${escapeHtml((event.bezirk === 'Grenznahe' ? 'Umgebung' : event.bezirk) || 'Vorarlberg')}</span>
           </a>
         </li>`
       }).join('')}</ul>`

@@ -44,14 +44,14 @@ export const CAROUSEL_BEZIRKE = [
 ] as const;
 export type CarouselBezirk = (typeof CAROUSEL_BEZIRKE)[number];
 
-/** Human-readable name of a carousel region ("Grenznahe" is written "Grenznähe"). */
+/** Human-readable name of a carousel region ("Grenznahe" is written "Umgebung"). */
 export function bezirkLabel(bezirk: string): string {
-  return bezirk === 'Grenznahe' ? 'Grenznähe' : bezirk;
+  return bezirk === 'Grenznahe' ? 'Umgebung' : bezirk;
 }
 
-/** "in Dornbirn", "in der Grenznähe". */
+/** "in Dornbirn", "in der Umgebung". */
 export function bezirkInPhrase(bezirk: string): string {
-  return bezirk === 'Grenznahe' ? 'in der Grenznähe' : `in ${bezirk}`;
+  return bezirk === 'Grenznahe' ? 'in der Umgebung' : `in ${bezirk}`;
 }
 
 /** Instagram allows 10 items per carousel: 1 cover + 9 events. */
@@ -499,7 +499,7 @@ export interface CarouselPreviewEvent {
 export interface CarouselPreviewGroup {
   postId: string;
   bezirk: CarouselBezirk;
-  /** Display name, e.g. "Grenznähe". */
+  /** Display name, e.g. "Umgebung". */
   label: string;
   part: number;
   parts: number;
