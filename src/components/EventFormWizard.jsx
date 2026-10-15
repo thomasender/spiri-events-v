@@ -73,6 +73,7 @@ const INITIAL_STATE = {
   feeMax: '',
   priceCurrency: DEFAULT_CURRENCY,
   feeNote: '',
+  firstSessionFree: false,
   description: '',
   link: '',
   recurrence: 'none',
@@ -704,6 +705,7 @@ export default function EventFormWizard() {
         : null,
     priceCurrency: formData.contribution === 'fee' ? formData.priceCurrency : null,
     feeNote: formData.contribution === 'fee' ? formData.feeNote.trim().slice(0, 12) : '',
+    firstSessionFree: formData.contribution === 'fee' && formData.firstSessionFree === true,
     description: formData.description,
     link: normalizeLink(formData.link),
     recurrence: formData.recurrence || 'none',
@@ -1309,6 +1311,17 @@ export default function EventFormWizard() {
               </select>
             </div>
           </div>
+          <label className="checkbox-label checkbox-label--inline" htmlFor="firstSessionFree">
+            <input
+              id="firstSessionFree"
+              name="firstSessionFree"
+              type="checkbox"
+              checked={formData.firstSessionFree}
+              onChange={handleChange}
+              data-testid="first-session-free-checkbox"
+            />
+            <span>1. Einheit gratis</span>
+          </label>
         </div>
       )}
 
@@ -1577,6 +1590,7 @@ export default function EventFormWizard() {
                     ? `Gebühr: ${formData.feeNote}`
                     : 'Kostenpflichtig'}
           </p>
+          {formData.contribution === 'fee' && formData.firstSessionFree && <p>1. Einheit gratis</p>}
         </div>
       </div>
 
