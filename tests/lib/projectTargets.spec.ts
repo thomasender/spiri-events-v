@@ -185,7 +185,7 @@ describe('seed-staging-users accounts', () => {
       ['moderator@staging.test', 'RegionModerator'],
       ['user@staging.test', null],
     ]);
-    expect(STAGING_SEED_USERS[1].regionIds).toEqual(['steiermark', 'allgaeu']);
+    expect(STAGING_SEED_USERS[1].regionIds).toEqual(['steiermark', 'bayern']);
   });
 
   it('builds the sign-up shaped profile docs, createdAt only for new accounts', () => {

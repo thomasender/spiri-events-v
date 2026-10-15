@@ -131,9 +131,9 @@ describe('ModerationTab', () => {
     const save = within(dialog).getByRole('button', { name: 'Speichern' });
     expect(save).toBeDisabled();
     // Inactive regions can be assigned too (moderation before the launch).
-    expect(within(dialog).getAllByRole('checkbox')).toHaveLength(10);
+    expect(within(dialog).getAllByRole('checkbox')).toHaveLength(51);
     expect(
-      within(dialog).getByRole('checkbox', { name: /Allgäu \(noch nicht freigeschaltet\)/ })
+      within(dialog).getByRole('checkbox', { name: /Bayern \(noch nicht freigeschaltet\)/ })
     ).toBeEnabled();
     expect(within(dialog).getByRole('group', { name: 'Regionen' })).toBeInTheDocument();
     expect(

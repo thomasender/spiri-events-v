@@ -34,3 +34,8 @@
   margin: 0;
   overflow-wrap: anywhere;
 }
+
+.regions-country {
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+}

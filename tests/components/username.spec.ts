@@ -117,10 +117,11 @@ describe('isReservedUsername', () => {
 describe('reserved region names', () => {
   const extra = ['oesterreich', 'austria', 'online', 'regionen', 'region'];
 
-  it('REGION_SLUGS lists the nine Bundeslaender plus the Allgäu in ASCII', () => {
-    expect(REGION_SLUGS).toHaveLength(10);
-    expect(REGION_SLUGS).toContain('allgaeu');
-    for (const slug of REGION_SLUGS) expect(slug).toMatch(/^[a-z]+$/);
+  it('REGION_SLUGS lists all 51 regions in ASCII', () => {
+    expect(REGION_SLUGS).toHaveLength(51);
+    expect(REGION_SLUGS).toContain('bayern');
+    expect(REGION_SLUGS).toContain('zuerich');
+    for (const slug of REGION_SLUGS) expect(slug).toMatch(/^[a-z]+(-[a-z]+)*$/);
   });
 
   it('reserves the combined view addresses', () => {

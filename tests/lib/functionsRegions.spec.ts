@@ -18,6 +18,8 @@ import {
   mergeRegions,
 } from '../../src/utils/regions';
 import { DIRECTORY_REGIONS as SRC_DIRECTORY_REGIONS } from '../../src/utils/directory';
+import { REGION_DATA as SRC_REGION_DATA } from '../../src/data/regionData';
+import { REGION_DATA as FN_REGION_DATA } from '../../functions/src/regionData';
 import { expandOccurrencesInWindow } from '../../functions/src/instagram/instagramOccurrences';
 import { selectFeedEvents } from '../../functions/src/calendar/calendarRoutes';
 
@@ -32,6 +34,16 @@ const RESOLVE_REGION_CASES: Array<[unknown, string]> = [
   [null, 'vorarlberg'],
   [undefined, 'vorarlberg'],
 ];
+
+describe('generated region data (scripts/build-region-data.mjs)', () => {
+  it('src/data/regionData.js and functions/src/regionData.ts are identical', () => {
+    expect(FN_REGION_DATA).toEqual(SRC_REGION_DATA);
+  });
+
+  it('the old Allgäu pilot id is read as Bavaria in both copies', () => {
+    expect(resolveRegionId({ regionId: 'allgaeu' })).toBe('bayern');
+  });
+});
 
 describe('functions resolveRegionId', () => {
   it.each(RESOLVE_REGION_CASES)('%j -> %s', (doc, expected) => {
@@ -111,7 +123,7 @@ describe('functions feed region register', () => {
   it('merges region docs like mergeRegions', () => {
     const docs = [
       { id: 'tirol', active: true, bezirke: ['Imst', 'Lienz'], name: 'Tirol' },
-      { id: 'allgaeu', timezone: 'Europe/Berlin', active: false },
+      { id: 'bayern', timezone: 'Europe/Berlin', active: false },
       { id: 'nowhere', active: true },
       { id: 'wien', timezone: 'x\r\nEVIL:1' },
     ];

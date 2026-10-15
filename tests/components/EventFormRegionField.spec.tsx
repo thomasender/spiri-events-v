@@ -196,15 +196,15 @@ describe('EventFormWizard region field', () => {
     expect(optionTexts(document.getElementById('bezirk') as HTMLElement)).toContain('Innsbruck');
   });
 
-  it('uses "Landkreis" for the Allgäu and resets a Bezirk that no longer fits when the region changes', () => {
+  it('uses "Landkreis" for the Bayern and resets a Bezirk that no longer fits when the region changes', () => {
     seedWizardDraft({ bezirk: 'Dornbirn', regionId: 'vorarlberg' });
-    render(withRegions(regionContext(['vorarlberg', 'allgaeu']), <EventFormWizard />));
+    render(withRegions(regionContext(['vorarlberg', 'bayern']), <EventFormWizard />));
 
     const bezirk = () => document.getElementById('bezirk') as HTMLSelectElement;
     expect(bezirk().value).toBe('Dornbirn');
     expect(screen.getByLabelText('Bezirk *')).toBeInTheDocument();
 
-    changeRegionViaDialog('allgaeu');
+    changeRegionViaDialog('bayern');
 
     expect(screen.getByLabelText('Landkreis *')).toBeInTheDocument();
     expect(bezirk().value).toBe('');
@@ -214,8 +214,8 @@ describe('EventFormWizard region field', () => {
   });
 
   it('asks for the Landkreis when none is chosen', () => {
-    seedWizardDraft({ regionId: 'allgaeu' });
-    render(withRegions(regionContext(['vorarlberg', 'allgaeu']), <EventFormWizard />));
+    seedWizardDraft({ regionId: 'bayern' });
+    render(withRegions(regionContext(['vorarlberg', 'bayern']), <EventFormWizard />));
 
     fireEvent.click(screen.getByRole('button', { name: /^weiter$/i }));
 

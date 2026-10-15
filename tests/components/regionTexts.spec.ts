@@ -77,9 +77,9 @@ describe('regionTexts: region-specific mode', () => {
     expect(t.directoryTitle).toBe('Verzeichnis – Angebote in der Steiermark');
   });
 
-  it('Allgäu uses "im Allgäu"', () => {
-    expect(regionTexts(reg('allgaeu'), { activeCount: 1 }).headerTitle).toBe(
-      'Dein Allgäuer Kalender'
+  it('Bayern uses "in Bayern"', () => {
+    expect(regionTexts(reg('bayern'), { activeCount: 1 }).headerTitle).toBe(
+      'Dein bayerischer Kalender'
     );
   });
 
@@ -166,7 +166,7 @@ describe('regionTexts: region-specific mode', () => {
   it('region texts of another region never mention Vorarlberg', () => {
     const t = regionTexts(reg('steiermark'), { activeCount: 2 });
     expect(JSON.stringify(t)).not.toMatch(/Vorarlberg/);
-    expect(STATIC_REGIONS.length).toBe(10);
+    expect(STATIC_REGIONS.length).toBe(51);
   });
 });
 
@@ -236,11 +236,11 @@ describe('regionTexts: wording per region (two regions active)', () => {
       'Kalender | The Tribe Burgenland',
     ],
     [
-      'allgaeu',
-      'Dein Allgäuer Kalender',
-      'im Allgäu',
-      'Für das Allgäu und Umkreis',
-      'Kalender | The Tribe Allgäu',
+      'bayern',
+      'Dein bayerischer Kalender',
+      'in Bayern',
+      'Für Bayern und Umkreis',
+      'Kalender | The Tribe Bayern',
     ],
   ];
   it.each(table)('%s', (id, header, loc, feature, title) => {
@@ -251,7 +251,18 @@ describe('regionTexts: wording per region (two regions active)', () => {
     expect(t.calendarTitle).toBe(title);
   });
 
-  it('covers every region of the register', () => {
-    expect(table.map((r) => r[0])).toEqual(STATIC_REGIONS.map((r) => r.id));
+  it('spot-checked regions are part of the register, in register order', () => {
+    const ids = STATIC_REGIONS.map((r) => r.id);
+    expect(table.map((r) => r[0])).toEqual(ids.filter((id) => table.some((r) => r[0] === id)));
+  });
+
+  it('every other region gets generated wording with its own name', () => {
+    for (const r of STATIC_REGIONS) {
+      const t = regionTexts(reg(r.id), { activeCount: 2 });
+      expect(t.headerTitle).toBe(`Dein ${r.demonym} Kalender`);
+      expect(t.locationPhrase).toBe(r.inPhrase);
+      expect(t.calendarTitle).toBe(`Kalender | The Tribe ${r.name}`);
+      expect(JSON.stringify(t)).not.toMatch(r.id === 'vorarlberg' ? /^$/ : /Vorarlberg/);
+    }
   });
 });

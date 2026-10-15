@@ -131,7 +131,7 @@ other executable code or config still goes through the hooks normally.
 
 ## Regions
 
-The platform supports several regions (the nine Bundesländer plus the Allgäu) behind
+The platform supports several regions (all Bundesländer / Kantone of Austria, Germany and Switzerland, 51 in total) behind
 a **dark launch**: only Vorarlberg is active, and with fewer than two active regions
 nothing visible may change (no chooser, no region names in mails, no GA `region`,
 byte-identical prerender and Vorarlberg ICS feed). A missing `regionId` /

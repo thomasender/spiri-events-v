@@ -1,3 +1,5 @@
+import { REGION_DATA } from '../data/regionData.js';
+
 // Regions an event or a directory listing can be assigned to. Kept free of
 // Firebase imports so pure helpers (and their unit tests) can use it.
 
@@ -12,33 +14,27 @@ export function bezirkLabel(bezirk) {
 }
 
 // URL slugs of the regions (ASCII, umlauts transliterated): the nine Austrian
-// Bundeslaender plus the Allgäu (Bavaria, Germany; pilot region next to the
-// Steiermark). Order = switcher order, Allgäu last. These are the only regions:
-// "Österreich" is not a region but a combined view over them (UI only, never
-// stored on an event or profile).
-// Single source: username.js reserves them so no profile can shadow a future
-// region address (`/tirol`, `/wien`, `/allgaeu`, ...).
-export const REGION_SLUGS = [
-  'vorarlberg',
-  'tirol',
-  'salzburg',
-  'kaernten',
-  'steiermark',
-  'oberoesterreich',
-  'niederoesterreich',
-  'wien',
-  'burgenland',
-  'allgaeu',
-];
+// Bundeslaender, the sixteen German Bundeslaender and the 26 Swiss cantons.
+// Order = switcher order (Austria, Germany, Switzerland). The data (names,
+// wording, Bezirke / Landkreise) is generated into src/data/regionData.js by
+// scripts/build-region-data.mjs. "Österreich" etc. are not regions but combined
+// views over them (UI only, never stored on an event or profile).
+// Single source: username.js reserves the slugs so no profile can shadow a
+// region address (`/tirol`, `/bayern`, `/zuerich`, ...).
+export const REGION_SLUGS = REGION_DATA.map((r) => r.slug);
+
+// The Allgäu was a region once (pilot); Bavaria replaced it. Stored ids of the
+// old region are read as Bavaria.
+export const LEGACY_REGION_ALIASES = Object.freeze({ allgaeu: 'bayern' });
 
 export const DEFAULT_REGION_ID = 'vorarlberg';
 
 // Country of each region (static only; deliberately NOT stored in
 // `regions/{id}` docs, firestore.rules does not whitelist it). Drives the
-// combined country views. All regions are Austrian except the Allgäu.
+// combined country views.
 export const COUNTRIES = ['AT', 'DE', 'CH'];
-const REGION_COUNTRIES = { allgaeu: 'DE' };
 export const DEFAULT_COUNTRY = 'AT';
+export const COUNTRY_LABELS = Object.freeze({ AT: 'Österreich', DE: 'Deutschland', CH: 'Schweiz' });
 
 // Combined views ("Ganz Österreich", "Ganz Deutschland", "Ganz Schweiz", "Alle
 // Tribes"): not regions, only UI views over the active regions of one country
@@ -53,123 +49,32 @@ export const COMBINED_VIEWS = Object.freeze([
 ]);
 export const COMBINED_VIEW_SLUGS = COMBINED_VIEWS.map((v) => v.slug);
 
-const VORARLBERG_BEZIRKE = ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe'];
+const VORARLBERG_BEZIRKE = REGION_DATA.find((r) => r.slug === DEFAULT_REGION_ID).bezirke;
 
-// Steiermark: the 13 Bezirke (since the 2015 reform).
-const STEIERMARK_BEZIRKE = [
-  'Graz',
-  'Graz-Umgebung',
-  'Bruck-Mürzzuschlag',
-  'Deutschlandsberg',
-  'Hartberg-Fürstenfeld',
-  'Leibnitz',
-  'Leoben',
-  'Liezen',
-  'Murau',
-  'Murtal',
-  'Südoststeiermark',
-  'Voitsberg',
-  'Weiz',
-];
-
-// Allgäu: Landkreise and kreisfreie Städte. PRODUCT DECISION: which areas count
-// as "Allgäu" is not a hard fact (Unterallgäu and Ravensburg lie only partly in
-// the Allgäu); the list is easy to change here (or per region in
-// `regions/allgaeu.bezirke`, which wins once present).
-const ALLGAEU_BEZIRKE = [
-  'Oberallgäu',
-  'Ostallgäu',
-  'Unterallgäu',
-  'Lindau (Bodensee)',
-  'Ravensburg (Württembergisches Allgäu)',
-  'Kempten (Allgäu)',
-  'Kaufbeuren',
-  'Memmingen',
-];
-
-// Bezirke known without Firestore. Other regions get theirs from their
-// `regions/{id}.bezirke` doc (no invented lists).
-const REGION_BEZIRKE = {
-  vorarlberg: VORARLBERG_BEZIRKE,
-  steiermark: STEIERMARK_BEZIRKE,
-  allgaeu: ALLGAEU_BEZIRKE,
-};
-
-// What the sub-areas of a region are called: "Bezirk" in Austria, "Landkreis"
-// in Germany (the Allgäu list also holds kreisfreie Städte).
+// What the sub-areas of a region are called: "Bezirk" in Austria and
+// Switzerland, "Landkreis" in Germany (kreisfreie Staedte are listed there too).
 export const DEFAULT_SUBDIVISION_LABEL = 'Bezirk';
-const REGION_SUBDIVISION_LABELS = { allgaeu: 'Landkreis' };
 const SUBDIVISION_PLURALS = { Bezirk: 'Bezirke', Landkreis: 'Landkreise' };
 
-const REGION_NAMES = {
-  vorarlberg: 'Vorarlberg',
-  tirol: 'Tirol',
-  salzburg: 'Salzburg',
-  kaernten: 'Kärnten',
-  steiermark: 'Steiermark',
-  oberoesterreich: 'Oberösterreich',
-  niederoesterreich: 'Niederösterreich',
-  wien: 'Wien',
-  burgenland: 'Burgenland',
-  allgaeu: 'Allgäu',
-};
-
-// "in <Region>" for running text ("Events in der Steiermark", "im Allgäu").
-// Regions not listed here use "in <Name>".
-const REGION_IN_PHRASES = {
-  steiermark: 'in der Steiermark',
-  burgenland: 'im Burgenland',
-  allgaeu: 'im Allgäu',
-};
-
-// Adjective for the header "Dein <demonym> Kalender": capitalised for -er forms
-// derived from place names (Vorarlberger, Tiroler, Wiener, Allgäuer), lower
-// case for -isch adjectives (steirischer, burgenländischer). The complete
-// token is stored so no grammar is computed at runtime.
-const REGION_DEMONYMS = {
-  vorarlberg: 'Vorarlberger',
-  tirol: 'Tiroler',
-  salzburg: 'Salzburger',
-  kaernten: 'Kärntner',
-  steiermark: 'steirischer',
-  oberoesterreich: 'oberösterreichischer',
-  niederoesterreich: 'niederösterreichischer',
-  wien: 'Wiener',
-  burgenland: 'burgenländischer',
-  allgaeu: 'Allgäuer',
-};
-
-// Accusative phrase for "Für <forPhrase> und Umkreis" (with article where the
-// region name takes one).
-const REGION_FOR_PHRASES = {
-  steiermark: 'die Steiermark',
-  burgenland: 'das Burgenland',
-  allgaeu: 'das Allgäu',
-};
-
-// IANA time zone stored on the region doc (`regions/{id}.timezone`). Today it
-// is informational only (all date maths uses Europe/Vienna; Berlin has the
-// same offset all year).
-const REGION_TIMEZONES = { allgaeu: 'Europe/Berlin' };
 export const DEFAULT_REGION_TIMEZONE = 'Europe/Vienna';
 
 // Static register (one entry per region, doc id == slug; also enforced in
 // firestore.rules): the fallback whenever Firestore delivers nothing. Only
-// Vorarlberg is active by default. Vorarlberg, Steiermark and Allgäu ship their
-// Bezirke; the other regions get theirs from their `regions/{id}` doc.
-export const STATIC_REGIONS = REGION_SLUGS.map((slug, order) => ({
-  id: slug,
-  slug,
-  name: REGION_NAMES[slug],
-  inPhrase: REGION_IN_PHRASES[slug] ?? `in ${REGION_NAMES[slug]}`,
-  demonym: REGION_DEMONYMS[slug],
-  forPhrase: REGION_FOR_PHRASES[slug] ?? REGION_NAMES[slug],
+// Vorarlberg is active by default. Every region ships its Bezirke / Landkreise;
+// `regions/{id}.bezirke` overrides them.
+export const STATIC_REGIONS = REGION_DATA.map((r, order) => ({
+  id: r.slug,
+  slug: r.slug,
+  name: r.name,
+  inPhrase: r.inPhrase,
+  demonym: r.demonym,
+  forPhrase: r.forPhrase,
   order,
-  country: REGION_COUNTRIES[slug] ?? DEFAULT_COUNTRY,
-  active: slug === DEFAULT_REGION_ID,
-  bezirke: [...(REGION_BEZIRKE[slug] ?? [])],
-  subdivisionLabel: REGION_SUBDIVISION_LABELS[slug] ?? DEFAULT_SUBDIVISION_LABEL,
-  timezone: REGION_TIMEZONES[slug] ?? DEFAULT_REGION_TIMEZONE,
+  country: r.country,
+  active: r.slug === DEFAULT_REGION_ID,
+  bezirke: [...r.bezirke],
+  subdivisionLabel: r.subdivisionLabel,
+  timezone: r.timezone,
 }));
 
 // Bezirke of Vorarlberg only. Still used as fallback (event form, directory
@@ -186,27 +91,32 @@ export const getRegionBySlug = (slug, regions = STATIC_REGIONS) =>
 
 // Read fallback for documents written before regions existed.
 export const resolveRegionId = (doc) =>
-  doc && typeof doc.regionId === 'string' && doc.regionId ? doc.regionId : DEFAULT_REGION_ID;
+  doc && typeof doc.regionId === 'string' && doc.regionId
+    ? (LEGACY_REGION_ALIASES[doc.regionId] ?? doc.regionId)
+    : DEFAULT_REGION_ID;
 
 // regionId for an event write. A valid id from the form wins; otherwise an
 // existing event keeps its stored region (edits never reset it); new events
 // get the default. Online events use the same rule (moderation region).
 export function pickEventRegionId(formRegionId, existingEvent = null) {
   if (isRegionSlug(formRegionId)) return formRegionId;
-  if (existingEvent && isRegionSlug(existingEvent.regionId)) return existingEvent.regionId;
+  const stored = LEGACY_REGION_ALIASES[existingEvent?.regionId] ?? existingEvent?.regionId;
+  if (existingEvent && isRegionSlug(stored)) return stored;
   return DEFAULT_REGION_ID;
 }
 
 // Max entries of a profile's `directoryRegionIds` (also enforced in
 // firestore.rules).
-export const MAX_DIRECTORY_REGION_IDS = REGION_SLUGS.length;
+export const MAX_DIRECTORY_REGION_IDS = 10;
 
 // Region ids a directory profile is listed in. Profiles saved before regions
 // existed have none and count as Vorarlberg. Unknown ids and duplicates are
 // dropped so the result always passes firestore.rules.
 export function resolveDirectoryRegionIds(doc) {
   const raw = doc && Array.isArray(doc.directoryRegionIds) ? doc.directoryRegionIds : [];
-  const ids = [...new Set(raw.filter(isRegionSlug))].slice(0, MAX_DIRECTORY_REGION_IDS);
+  const ids = [
+    ...new Set(raw.map((id) => LEGACY_REGION_ALIASES[id] ?? id).filter(isRegionSlug)),
+  ].slice(0, MAX_DIRECTORY_REGION_IDS);
   return ids.length > 0 ? ids : [DEFAULT_REGION_ID];
 }
 

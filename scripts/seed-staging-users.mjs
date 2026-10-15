@@ -10,7 +10,7 @@
 //
 // Accounts (all e-mail verified, all with the same password of this run):
 //   admin@staging.test      Super-Admin: claim role=Admin + admin_users/{uid} (as promote-admin.mjs)
-//   moderator@staging.test  RegionModerator for steiermark + allgaeu: admin_users/{uid}
+//   moderator@staging.test  RegionModerator for steiermark + bayern: admin_users/{uid}
 //                           (+ admin_audit_log entry), no claim
 //   user@staging.test       normal user: users/{uid} + users/{uid}/publicProfile/data in the
 //                           sign-up shape (src/hooks/useAuth.js seedProfileDoc), no claim,

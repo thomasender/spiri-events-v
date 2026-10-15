@@ -46,15 +46,25 @@ service cloud.firestore {
       return order is int && order >= 0;
     }
 
-    // Region ids (== slugs) of the region registry: the nine Bundeslaender
-    // plus the Allgäu (pilot region in Bavaria).
-    // "Österreich" is a combined view in the UI, not a region. KEEP IN SYNC
+    // Region ids (== slugs) of the region registry: the nine Austrian and
+    // sixteen German Bundeslaender and the 26 Swiss cantons.
+    // "Österreich" etc. are combined views in the UI, not regions. KEEP IN SYNC
     // with REGION_SLUGS in src/utils/regions.js (guarded by
-    // tests/components/regions.spec.ts).
+    // tests/components/regions.spec.ts); generated order, see
+    // scripts/build-region-data.mjs.
     function regionIds() {
       return ['vorarlberg', 'tirol', 'salzburg', 'kaernten', 'steiermark',
               'oberoesterreich', 'niederoesterreich', 'wien', 'burgenland',
-              'allgaeu'];
+              'baden-wuerttemberg', 'bayern', 'berlin', 'brandenburg',
+              'bremen', 'hamburg', 'hessen', 'mecklenburg-vorpommern',
+              'niedersachsen', 'nordrhein-westfalen', 'rheinland-pfalz',
+              'saarland', 'sachsen', 'sachsen-anhalt', 'schleswig-holstein',
+              'thueringen', 'zuerich', 'bern', 'luzern', 'uri', 'schwyz',
+              'obwalden', 'nidwalden', 'glarus', 'zug', 'freiburg',
+              'solothurn', 'basel-stadt', 'basel-landschaft', 'schaffhausen',
+              'appenzell-ausserrhoden', 'appenzell-innerrhoden', 'st-gallen',
+              'graubuenden', 'aargau', 'thurgau', 'tessin', 'waadt',
+              'wallis', 'neuenburg', 'genf', 'jura'];
     }
 
     function isValidRegionId(id) {

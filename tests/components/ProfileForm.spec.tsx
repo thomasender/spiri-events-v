@@ -773,7 +773,7 @@ describe('ProfileForm directory with several active regions', () => {
   const allRegions = mergeRegions([
     ...STATIC_REGIONS.map((r) => ({
       id: r.id,
-      active: ['vorarlberg', 'tirol', 'allgaeu'].includes(r.id),
+      active: ['vorarlberg', 'tirol', 'bayern'].includes(r.id),
     })),
     { id: 'tirol', active: true, bezirke: ['Innsbruck', 'Kufstein'] },
   ]);
@@ -823,16 +823,16 @@ describe('ProfileForm directory with several active regions', () => {
     expect(screen.getByTestId('profile-directory-region-Innsbruck')).toBeInTheDocument();
     expect(screen.queryByTestId('profile-directory-region-Dornbirn')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByTestId('profile-directory-region-id-allgaeu'));
+    fireEvent.click(screen.getByTestId('profile-directory-region-id-bayern'));
     expect(screen.getByTestId('profile-directory-region-Oberallgäu')).toBeInTheDocument();
-    expect(screen.getByText(/Landkreise in Allgäu/)).toBeInTheDocument();
+    expect(screen.getByText(/Landkreise in Bayern/)).toBeInTheDocument();
   });
 
   it('drops districts of a region that is deselected and saves regionIds + districts', async () => {
     const onSave = renderMulti(profile);
     fireEvent.click(screen.getByTestId('profile-directory-toggle'));
     fireEvent.click(screen.getByTestId('profile-directory-category-Yoga'));
-    fireEvent.click(screen.getByTestId('profile-directory-region-id-allgaeu'));
+    fireEvent.click(screen.getByTestId('profile-directory-region-id-bayern'));
     fireEvent.click(screen.getByTestId('profile-directory-region-Innsbruck'));
     fireEvent.click(screen.getByTestId('profile-directory-region-Oberallgäu'));
     fireEvent.click(screen.getByTestId('profile-directory-region-id-tirol'));
@@ -843,7 +843,7 @@ describe('ProfileForm directory with several active regions', () => {
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     expect(onSave.mock.calls[0][0]).toMatchObject({
       listedInDirectory: true,
-      directoryRegionIds: ['allgaeu'],
+      directoryRegionIds: ['bayern'],
       directoryRegions: ['Oberallgäu'],
     });
   });

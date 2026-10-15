@@ -147,12 +147,12 @@ describe('buildCalendar', () => {
   });
 
   it('names the calendar after the region and uses its time zone', () => {
-    const text = buildCalendar([ev()], 'Events Allgäu – thetribe.at', NOW, {
-      productName: 'Allgäu',
+    const text = buildCalendar([ev()], 'Events Bayern – thetribe.at', NOW, {
+      productName: 'Bayern',
       timezone: 'Europe/Berlin',
     });
-    expect(text).toContain('PRODID:-//thetribe.at//Events Allgäu//DE');
-    expect(text).toContain('X-WR-CALNAME:Events Allgäu – thetribe.at');
+    expect(text).toContain('PRODID:-//thetribe.at//Events Bayern//DE');
+    expect(text).toContain('X-WR-CALNAME:Events Bayern – thetribe.at');
     expect(text).toContain('X-WR-TIMEZONE:Europe/Berlin');
   });
 });

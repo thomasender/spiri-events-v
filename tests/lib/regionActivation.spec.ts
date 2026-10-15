@@ -59,7 +59,7 @@ describe('countUpcomingEventsByRegion', () => {
         ev({ regionId: 'vorarlberg' }),
         ev({ regionId: 'tirol' }),
         ev({ regionId: 'tirol', isOnline: true }),
-        ev({ regionId: 'bayern' }),
+        ev({ regionId: 'mars' }),
         ev({ regionId: 'wien', date: '2025-01-01' }),
       ],
       TODAY
@@ -67,7 +67,7 @@ describe('countUpcomingEventsByRegion', () => {
     expect(counts.vorarlberg).toBe(2);
     expect(counts.tirol).toBe(1);
     expect(counts.wien).toBe(0);
-    expect(counts).not.toHaveProperty('bayern');
+    expect(counts).not.toHaveProperty('mars');
   });
 });
 
@@ -75,13 +75,13 @@ describe('countModeratorsByRegion', () => {
   it('counts moderators per region, ignoring Super-Admins and malformed docs', () => {
     const counts = countModeratorsByRegion([
       { role: 'RegionModerator', regionIds: ['tirol', 'wien'] },
-      { role: 'RegionModerator', regionIds: ['tirol', 'tirol', 'bayern'] },
+      { role: 'RegionModerator', regionIds: ['tirol', 'tirol', 'mars'] },
       { role: 'Admin', regionIds: ['salzburg'] },
       { role: 'RegionModerator', regionIds: 'salzburg' },
       { role: 'RegionModerator' },
     ]);
     expect(counts).toMatchObject({ tirol: 2, wien: 1, salzburg: 0, vorarlberg: 0 });
-    expect(counts).not.toHaveProperty('bayern');
+    expect(counts).not.toHaveProperty('mars');
   });
 });
 
@@ -105,7 +105,7 @@ describe('evaluateRegionActivation / regionActivationStatuses', () => {
       TODAY
     );
     expect(statuses.map((s) => s.regionId)[0]).toBe('vorarlberg');
-    expect(statuses).toHaveLength(10);
+    expect(statuses).toHaveLength(51);
     expect(statuses.find((s) => s.regionId === 'tirol')?.unmet).toEqual([]);
   });
 });
@@ -172,7 +172,7 @@ describe('parseSetRegionActiveInput', () => {
     for (const bad of [
       null,
       {},
-      { regionId: 'bayern', active: true },
+      { regionId: 'mars', active: true },
       { regionId: 'tirol' },
       { regionId: 'tirol', active: 'true' },
       { regionId: 'tirol', active: true, override: 'yes' },
@@ -352,7 +352,7 @@ describe('setRegionActiveHandler', () => {
   it('validates the input', async () => {
     const w = makeWorld({ roles: { admin: ADMIN } });
     await expect(
-      setRegionActiveHandler(call('admin', { regionId: 'bayern', active: true }), w.deps)
+      setRegionActiveHandler(call('admin', { regionId: 'mars', active: true }), w.deps)
     ).rejects.toMatchObject({ code: 'invalid-argument' });
   });
 });

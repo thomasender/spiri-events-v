@@ -4,9 +4,11 @@
 region activation, region emails, SEO/ICS/analytics per region, or add a region.
 Linked from `AGENTS.md`. Production migration and staging: [staging-migration.md](./staging-migration.md).
 
-The platform started as "tribe Vorarlberg"; the regions epic prepares the other
-Bundeslaender and the Allgäu without changing what visitors see until a second
-region is switched on.
+The platform started as "tribe Vorarlberg"; the regions epic prepares all 51
+regions of Austria (9 Bundesländer), Germany (16 Bundesländer) and Switzerland
+(26 Kantone) without changing what visitors see until a second region is switched
+on. Structure everywhere: country -> region (Bundesland / Kanton) -> Bezirk
+(Austria, Switzerland) or Landkreis (Germany, incl. kreisfreie Städte).
 
 Contents: 1 Concept · 2 Data model · 3 Roles · 4 Activation · 5 Queries and the
 migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed ·
@@ -19,21 +21,33 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
   `regions/{id}` docs (id == slug, also enforced by `firestore.rules`) override
   name, `bezirke`, `contactEmail`, `seo`, `active`, `timezone`. Only Vorarlberg is
   active in the register. `functions/src/regions.ts` has a synced copy of the
-  register data the functions need (slugs, countries, districts), guarded by
-  `tests/lib/functionsRegions.spec.ts`.
-- **Region ids.** The id is the ASCII slug: `vorarlberg`, `tirol`, `salzburg`,
-  `kaernten`, `steiermark`, `oberoesterreich`, `niederoesterreich`, `wien`,
-  `burgenland`, `allgaeu` (order = switcher order, Allgäu last). Each region has
-  a static `country` (`'AT'`; Allgäu `'DE'`). Country is static only: it is NOT
-  in `regions/{id}` docs (the rules whitelist does not include it). Register
-  fields per region: `name`, `inPhrase` ("in der Steiermark"), `forPhrase`
-  ("die Steiermark", used in "Für … und Umkreis"), `demonym` (complete token, e.g.
-  "Vorarlberger", "steirischer"), `order`, `country`, `bezirke`,
-  `subdivisionLabel` ("Bezirk"; "Landkreis" for the Allgäu), `timezone`
-  (`Europe/Vienna`, Allgäu `Europe/Berlin`; informational, all date maths uses
-  Europe/Vienna). Bezirke ship statically for Vorarlberg, Steiermark and Allgäu
-  (which Allgäu areas count is a product decision); the other regions get theirs
-  from their `regions/{id}` doc.
+  register data the functions need, guarded by `tests/lib/functionsRegions.spec.ts`.
+- **Register data is generated.** `scripts/build-region-data.mjs` reads
+  `scripts/data/regions-countries.csv` (the product owner's list: country, region,
+  Bezirk; Austria and Switzerland as given) and `scripts/data/de-kreise.json`
+  (German Landkreise and kreisfreie Städte, status 31.12.2018 from the Destatis
+  GV-ISys via the npm package `landkreise-deutschland`, CC-BY-4.0, Eisenach removed
+  because it merged into the Wartburgkreis in 2021) and writes
+  `src/data/regionData.js` and `functions/src/regionData.ts`. Wording per region
+  (`inPhrase`, `forPhrase`, `demonym`) lives in the `META` table of that script.
+  Re-run it after changing a CSV or the table; never edit the generated files.
+  Names inside Germany that exist as city and Landkreis become "X (Stadt)" /
+  "X (Landkreis)". The CSV lists only cities for Germany, so the German Bezirk
+  level comes from the Kreis list instead. Vorarlberg keeps "Grenznahe" (existing
+  events; to be retired once South Germany / East Switzerland are live).
+  District names are one namespace for the directory (`directoryRegions`): two
+  regions with a district of the same name (e.g. "Baden" in Niederösterreich and
+  Aargau) share one filter chip.
+- **Region ids.** The id is the ASCII slug (`vorarlberg`, `tirol`, `bayern`,
+  `zuerich`, `graubuenden`, `freiburg` for the Swiss canton, ...). Order = switcher
+  order: Austria, Germany, Switzerland. Each region has a static `country`
+  (`AT` / `DE` / `CH`, not in `regions/{id}` docs: the rules whitelist does not
+  include it), `name`, `inPhrase`, `forPhrase`, `demonym`, `order`, `bezirke`,
+  `subdivisionLabel` ("Bezirk"; "Landkreis" in Germany) and `timezone`
+  (`Europe/Vienna`, `Europe/Berlin`, `Europe/Zurich`; informational, all date
+  maths uses Europe/Vienna). The old pilot region `allgaeu` no longer exists:
+  stored `allgaeu` ids are read as `bayern` (`LEGACY_REGION_ALIASES`, the name
+  stays reserved); the Allgäu Landkreise are Bavarian Landkreise now.
 - **Dark launch rule.** With only Vorarlberg active nothing visible changes:
   no chooser, no switcher, no region name in mails, no GA `region` parameter, no
   region pages in the prerender, byte-identical Vorarlberg ICS feed. Every new
@@ -108,7 +122,7 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
 
 - **Super-Admin** = `admin_users/{uid}.role == 'Admin'` (or token claim
   `role: 'Admin'`), unchanged. **Regions-Moderator:in** = `role: 'RegionModerator'`
-  with `regionIds` (1–10 regions: the nine Bundesländer plus the Allgäu).
+  with `regionIds` (any of the regions).
 - **Rules:** moderators get a narrow extra right via `isRegionModeratorFor()`
   (review actions, messages and trash of their regions' events, hiding directory
   listings that lie only in their regions); `isAdminOrEmulatorAdmin()` is
@@ -395,14 +409,15 @@ regionIds: ['tirol'] }` (reconciled by `seed-region-fixtures.mjs`). Playwright
   (`staffEventQuerySpecs`).
 - **Legal texts** (Impressum, Datenschutz, AGB in `LegalPage.jsx`) still describe
   tribe Vorarlberg only.
-- **Bezirke of other regions** (Tirol, Salzburg, ...) are not in the register yet;
-  they must come from the `regions/{id}` doc before such a region goes live.
+- **District data** is only as good as the lists in `scripts/data/`: German Landkreise are
+  from 2018 (re-check before going live in Germany), Swiss cantons with one entry list
+  the canton itself as its only "Bezirk".
 
 ## 13. How to add a new region
 
-For a region that already exists in the register (everything except new
-countries), most steps are data work. A region that is not yet listed needs a
-code change first.
+All 51 regions of AT/DE/CH exist in the register, so adding one is data work
+(steps 2-9). A region outside these countries needs the generator table
+(`scripts/build-region-data.mjs`) and a `COMBINED_VIEWS` entry first.
 
 1. **Register entry** (`src/utils/regions.js`, only if the slug is new): add the
    slug to `REGION_SLUGS` (this also reserves the URL via `username.js`), and fill

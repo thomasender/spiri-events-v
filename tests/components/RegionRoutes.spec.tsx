@@ -36,11 +36,11 @@ import { useEventRegionContext, useRegion } from '../../src/hooks/useRegion';
 const WITH_TIROL = mergeRegions([{ id: 'tirol', active: true }]);
 const WITH_ALLGAEU = mergeRegions([
   { id: 'vorarlberg', active: false },
-  { id: 'allgaeu', active: true },
+  { id: 'bayern', active: true },
 ]);
 const WITH_ALLGAEU_AND_TIROL = mergeRegions([
   { id: 'tirol', active: true },
-  { id: 'allgaeu', active: true },
+  { id: 'bayern', active: true },
 ]);
 
 function RegionProbe() {
@@ -187,7 +187,7 @@ describe('region or profile at /:slug', () => {
     renderAt('/deutschland');
     expect(screen.queryByTestId('region-coming-soon')).toBeNull();
     expect(screen.getByTestId('calendar-page')).toBeInTheDocument();
-    expect(probe()).toBe('allgaeu');
+    expect(probe()).toBe('bayern');
   });
 
   it('/alle-tribes is the combined view with regions of two countries', () => {

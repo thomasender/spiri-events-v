@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { Pencil, Search, ShieldCheck, UserMinus, UserPlus } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useAdminMembers } from '../hooks/useAdminMembers';
 import { useRegionModerators } from '../hooks/useRegionModerators';
 import { useRegions } from '../hooks/useRegions';
 import { filterMembers, sortMembers } from '../utils/members';
-import { REGION_SLUGS, STATIC_REGIONS } from '../utils/regions';
+import { COUNTRY_LABELS, REGION_SLUGS, STATIC_REGIONS } from '../utils/regions';
 import { getStaffAccess, moderatorErrorMessage } from '../utils/staffRoles';
 import ConfirmDialog from './ConfirmDialog';
 import './ModerationTab.css';
@@ -179,22 +179,31 @@ function ModeratorDialog({ mode, moderator, moderatorUids, currentUid, onSave, o
 
         <fieldset className="moderation-regions">
           <legend>Regionen</legend>
-          {REGION_SLUGS.map((id, index) => (
-            <label key={id} className="moderation-check">
-              <input
-                ref={!isAdd && index === 0 ? firstFieldRef : undefined}
-                type="checkbox"
-                checked={regionIds.includes(id)}
-                onChange={() => toggleRegion(id)}
-              />
-              <span>
-                {regionName(id)}
-                {activeById.get(id) === false && (
-                  <span className="moderation-inactive"> (noch nicht freigeschaltet)</span>
+          {REGION_SLUGS.map((id, index) => {
+            const country = STATIC_REGIONS.find((r) => r.id === id)?.country;
+            const prevCountry = STATIC_REGIONS[index - 1]?.country;
+            return (
+              <Fragment key={id}>
+                {country !== prevCountry && (
+                  <span className="moderation-country">{COUNTRY_LABELS[country]}</span>
                 )}
-              </span>
-            </label>
-          ))}
+                <label className="moderation-check">
+                  <input
+                    ref={!isAdd && index === 0 ? firstFieldRef : undefined}
+                    type="checkbox"
+                    checked={regionIds.includes(id)}
+                    onChange={() => toggleRegion(id)}
+                  />
+                  <span>
+                    {regionName(id)}
+                    {activeById.get(id) === false && (
+                      <span className="moderation-inactive"> (noch nicht freigeschaltet)</span>
+                    )}
+                  </span>
+                </label>
+              </Fragment>
+            );
+          })}
         </fieldset>
         {regionIds.length === 0 && (
           <p className="moderation-hint">

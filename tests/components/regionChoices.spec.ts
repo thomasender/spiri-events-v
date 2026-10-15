@@ -76,32 +76,32 @@ describe('buildRegionChoices', () => {
 });
 
 describe('sub-area helpers', () => {
-  const c = choices(['vorarlberg', 'steiermark', 'allgaeu']);
+  const c = choices(['vorarlberg', 'steiermark', 'bayern']);
 
   it('label and options follow the region', () => {
-    expect(subdivisionFor('allgaeu', c).label).toBe('Landkreis');
+    expect(subdivisionFor('bayern', c).label).toBe('Landkreis');
     expect(subdivisionFor('steiermark', c).label).toBe('Bezirk');
     expect(subdivisionFor('vorarlberg', c).options).toContain('Dornbirn');
   });
 
   it('keepIfInRegion resets a district of another region', () => {
     expect(keepIfInRegion('Dornbirn', 'vorarlberg', c)).toBe('Dornbirn');
-    expect(keepIfInRegion('Dornbirn', 'allgaeu', c)).toBe('');
-    expect(keepIfInRegion('', 'allgaeu', c)).toBe('');
+    expect(keepIfInRegion('Dornbirn', 'bayern', c)).toBe('');
+    expect(keepIfInRegion('', 'bayern', c)).toBe('');
   });
 
   it('selectedRegionId falls back to the default for unknown or unavailable ids', () => {
-    expect(selectedRegionId('allgaeu', c)).toBe('allgaeu');
+    expect(selectedRegionId('bayern', c)).toBe('bayern');
     expect(selectedRegionId('wien', c)).toBe('vorarlberg');
     expect(selectedRegionId('', c)).toBe('vorarlberg');
   });
 
   it('directory groups and cleanup follow the chosen regions', () => {
-    const groups = directoryDistrictGroups(['vorarlberg', 'allgaeu'], c);
+    const groups = directoryDistrictGroups(['vorarlberg', 'bayern'], c);
     expect(groups.map((g) => g.label)).toEqual(['Bezirke', 'Landkreise']);
-    expect(
-      districtsAfterRegionChange(['Dornbirn', 'Oberallgäu', 'Online'], ['allgaeu'], c)
-    ).toEqual(['Oberallgäu', 'Online']);
+    expect(districtsAfterRegionChange(['Dornbirn', 'Oberallgäu', 'Online'], ['bayern'], c)).toEqual(
+      ['Oberallgäu', 'Online']
+    );
   });
 });
 
@@ -117,14 +117,16 @@ describe('directory district list', () => {
     expect(DIRECTORY_REGIONS).toEqual([...getAllDistricts(), 'Online']);
     expect(DIRECTORY_REGIONS).toContain('Leibnitz');
     expect(DIRECTORY_REGIONS).toContain('Oberallgäu');
+    expect(DIRECTORY_REGIONS).toContain('Zürich');
+    expect(DIRECTORY_REGIONS.at(-1)).toBe('Online');
   });
 
   it('validateDirectoryListing accepts known districts and Firestore-only ones via extraRegions', () => {
     const base = { listed: true, categories: ['Yoga'], hasBio: true };
     expect(validateDirectoryListing({ ...base, regions: ['Leibnitz'] })).toEqual({});
-    expect(validateDirectoryListing({ ...base, regions: ['Innsbruck'] }).regions).toBeTruthy();
+    expect(validateDirectoryListing({ ...base, regions: ['Nirgendwo'] }).regions).toBeTruthy();
     expect(
-      validateDirectoryListing({ ...base, regions: ['Innsbruck'], extraRegions: ['Innsbruck'] })
+      validateDirectoryListing({ ...base, regions: ['Nirgendwo'], extraRegions: ['Nirgendwo'] })
     ).toEqual({});
   });
 });

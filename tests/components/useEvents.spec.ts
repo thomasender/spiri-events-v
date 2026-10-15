@@ -72,7 +72,7 @@ describe('useEvents regionId', () => {
 
   it('addEvent replaces an unknown region with the default', async () => {
     const { result } = renderHook(() => useEvents(user));
-    await result.current.addEvent({ title: 'T', regionId: 'bayern' });
+    await result.current.addEvent({ title: 'T', regionId: 'mars' });
     expect(lastAddPayload().regionId).toBe('vorarlberg');
   });
 

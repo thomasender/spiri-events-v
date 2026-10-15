@@ -136,7 +136,7 @@ sanitized copy of production data. Project id `tribe-vbg-staging` (alias
     production's public URLs).
 - **Test accounts:** `node scripts/seed-staging-users.mjs` creates or resets
   `admin@staging.test` (Super-Admin: claim + `admin_users`),
-  `moderator@staging.test` (Regions-Moderator:in for `steiermark` and `allgaeu`,
+  `moderator@staging.test` (Regions-Moderator:in for `steiermark` and `bayern`,
   `admin_users` only) and `user@staging.test` (normal user with `users/{uid}` +
   `publicProfile/data`). All are email-verified and share one random password per
   run, printed once to stdout and never stored (or set it with `--password`).

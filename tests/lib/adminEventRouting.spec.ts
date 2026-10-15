@@ -19,13 +19,13 @@ import {
 } from '../../functions/src/notifications';
 import { buildSubmittedPayload } from '../../functions/src/emailTemplates';
 
-// Staff of the fake project: two Super-Admins, moderators for Tirol, Allgäu,
+// Staff of the fake project: two Super-Admins, moderators for Tirol, Bayern,
 // Tirol+Wien, a disabled Tirol moderator, one without email, a doc without
 // Auth account, and one malformed moderator doc.
 const STAFF: StaffDocEntry[] = [
   { uid: 'mod-tirol', data: { role: 'RegionModerator', regionIds: ['tirol'] } },
   { uid: 'mod-tirol-wien', data: { role: 'RegionModerator', regionIds: ['wien', 'tirol'] } },
-  { uid: 'mod-allgaeu', data: { role: 'RegionModerator', regionIds: ['allgaeu'] } },
+  { uid: 'mod-bayern', data: { role: 'RegionModerator', regionIds: ['bayern'] } },
   { uid: 'mod-vbg', data: { role: 'RegionModerator', regionIds: ['vorarlberg'] } },
   { uid: 'mod-disabled', data: { role: 'RegionModerator', regionIds: ['steiermark'] } },
   { uid: 'mod-noemail', data: { role: 'RegionModerator', regionIds: ['steiermark'] } },
@@ -36,7 +36,7 @@ const STAFF: StaffDocEntry[] = [
 const AUTH: Record<string, AuthUserLike> = {
   'mod-tirol': { uid: 'mod-tirol', email: 'tirol@mod.at' },
   'mod-tirol-wien': { uid: 'mod-tirol-wien', email: 'tw@mod.at' },
-  'mod-allgaeu': { uid: 'mod-allgaeu', email: 'allgaeu@mod.de' },
+  'mod-bayern': { uid: 'mod-bayern', email: 'bayern@mod.de' },
   'mod-vbg': { uid: 'mod-vbg', email: 'vbg@mod.at' },
   'mod-disabled': { uid: 'mod-disabled', email: 'off@mod.at', disabled: true },
   'mod-noemail': { uid: 'mod-noemail', email: null },
@@ -52,11 +52,11 @@ const ONE_ACTIVE: RegionInfo[] = [
   { id: 'vorarlberg', name: 'Vorarlberg', active: true, contactEmail: '' },
   { id: 'tirol', name: 'Tirol', active: false, contactEmail: 'tirol@thetribe.at' },
   { id: 'steiermark', name: 'Steiermark', active: false, contactEmail: 'not an address' },
-  { id: 'allgaeu', name: 'Allgäu', active: false, contactEmail: 'ALLGAEU@mod.de' },
+  { id: 'bayern', name: 'Bayern', active: false, contactEmail: 'BAYERN@mod.de' },
 ];
 
 const TWO_ACTIVE: RegionInfo[] = ONE_ACTIVE.map((r) =>
-  r.id === 'allgaeu' ? { ...r, active: true } : r
+  r.id === 'bayern' ? { ...r, active: true } : r
 );
 
 const INBOX = 'admin@thetribe.at';
@@ -102,7 +102,7 @@ describe('admin event emails are switched off (Trello 8ioEr9T1)', () => {
   });
 
   it('with the flag off nothing is read and nothing is sent, for any region', async () => {
-    for (const eventData of [{}, { regionId: 'tirol' }, { regionId: 'allgaeu', isOnline: true }]) {
+    for (const eventData of [{}, { regionId: 'tirol' }, { regionId: 'bayern', isOnline: true }]) {
       const { deps } = makeDeps();
       const result = await sendSubmittedAdminMail({
         enabled: ADMIN_EVENT_EMAILS_ENABLED,
@@ -159,10 +159,10 @@ describe('recipients of "new event submitted" once re-enabled', () => {
     expect(emails).not.toContain('vbg@mod.at');
   });
 
-  it('Allgäu: its moderator, contact address deduplicated case-insensitively', async () => {
-    const { emails } = await recipientsFor({ regionId: 'allgaeu' });
-    // contactEmail ALLGAEU@mod.de == the moderator's address.
-    expect(emails).toEqual(['peter@thetribe.at', 'thomas@thetribe.at', 'allgaeu@mod.de']);
+  it('Bayern: its moderator, contact address deduplicated case-insensitively', async () => {
+    const { emails } = await recipientsFor({ regionId: 'bayern' });
+    // contactEmail BAYERN@mod.de == the moderator's address.
+    expect(emails).toEqual(['peter@thetribe.at', 'thomas@thetribe.at', 'bayern@mod.de']);
   });
 
   it('a moderator who is also a Super-Admin or the inbox gets one mail and keeps the admin uid', async () => {
@@ -238,13 +238,13 @@ describe('recipients of "new event submitted" once re-enabled', () => {
   });
 
   it('names the region only while more than one region is active', async () => {
-    const single = await recipientsFor({ regionId: 'allgaeu' });
+    const single = await recipientsFor({ regionId: 'bayern' });
     expect(single.sent.every((s) => s.regionLabel === null)).toBe(true);
     const multi = await recipientsFor(
-      { regionId: 'allgaeu' },
+      { regionId: 'bayern' },
       { loadRegions: vi.fn(async () => TWO_ACTIVE) }
     );
-    expect(multi.sent.every((s) => s.regionLabel === 'Allgäu')).toBe(true);
+    expect(multi.sent.every((s) => s.regionLabel === 'Bayern')).toBe(true);
   });
 });
 
@@ -256,7 +256,7 @@ describe('pure helpers', () => {
       { uid: 'legacy', data: {} },
     ];
     expect(moderatorUidsForRegion(docs, 'tirol')).toEqual(['mod-tirol', 'mod-tirol-wien']);
-    expect(moderatorUidsForRegion(docs, 'bayern')).toEqual([]);
+    expect(moderatorUidsForRegion(docs, 'mars')).toEqual([]);
     expect(moderatorUidsForRegion(docs, 'oesterreich')).toEqual([]);
   });
 
@@ -320,12 +320,12 @@ describe('"new event submitted" mail text', () => {
   it('with several active regions names the region in subject and body', () => {
     const p = buildSubmittedPayload({
       event,
-      context: { submitterName: 'Anna', regionName: 'Allgäu' },
+      context: { submitterName: 'Anna', regionName: 'Bayern' },
       recipient: 'a@b.at',
     });
-    expect(p.subject).toBe('Neuer Event-Vorschlag (Allgäu): Yoga am See');
-    expect(p.text).toContain('Yoga am See\nRegion: Allgäu\n\nIm Review ansehen:');
-    expect(p.html).toContain('Region: Allgäu');
+    expect(p.subject).toBe('Neuer Event-Vorschlag (Bayern): Yoga am See');
+    expect(p.text).toContain('Yoga am See\nRegion: Bayern\n\nIm Review ansehen:');
+    expect(p.html).toContain('Region: Bayern');
   });
 });
 
@@ -340,8 +340,8 @@ describe('resolveOwnerRegionContact (owner mails)', () => {
     expect(await resolveOwnerRegionContact(tirol, async () => TWO_ACTIVE)).toBe(
       'tirol@thetribe.at'
     );
-    expect(await resolveOwnerRegionContact({ regionId: 'allgaeu' }, async () => TWO_ACTIVE)).toBe(
-      'ALLGAEU@mod.de'
+    expect(await resolveOwnerRegionContact({ regionId: 'bayern' }, async () => TWO_ACTIVE)).toBe(
+      'BAYERN@mod.de'
     );
   });
 

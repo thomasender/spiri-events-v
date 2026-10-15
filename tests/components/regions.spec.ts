@@ -24,27 +24,31 @@ import {
 import { getEventLocationLabel } from '../../src/utils/eventFormat';
 
 describe('static register', () => {
-  it('covers the nine Bundeslaender plus the Allgäu (no oesterreich), only Vorarlberg active', () => {
+  it('covers 9 Austrian + 16 German Bundeslaender + 26 Swiss cantons (no oesterreich), only Vorarlberg active', () => {
     expect(STATIC_REGIONS.map((r) => r.slug)).toEqual(REGION_SLUGS);
+    const perCountry = (c: string) => STATIC_REGIONS.filter((r) => r.country === c).length;
+    expect([perCountry('AT'), perCountry('DE'), perCountry('CH')]).toEqual([9, 16, 26]);
+    expect(isRegionSlug('allgaeu')).toBe(false);
     expect(STATIC_REGIONS.some((r) => r.id === 'oesterreich')).toBe(false);
     expect(STATIC_REGIONS.filter((r) => r.active).map((r) => r.id)).toEqual(['vorarlberg']);
   });
-  it('has the Allgäu as an inactive pilot region, last in the order, with Landkreise', () => {
-    expect(STATIC_REGIONS.at(-1)).toEqual({
-      id: 'allgaeu',
-      slug: 'allgaeu',
-      name: 'Allgäu',
-      inPhrase: 'im Allgäu',
-      demonym: 'Allgäuer',
-      forPhrase: 'das Allgäu',
-      order: 9,
+  it('has Bayern as an inactive German region with Landkreise and kreisfreie Städte', () => {
+    expect(getRegionBySlug('bayern')).toEqual({
+      id: 'bayern',
+      slug: 'bayern',
+      name: 'Bayern',
+      inPhrase: 'in Bayern',
+      demonym: 'bayerischer',
+      forPhrase: 'Bayern',
+      order: REGION_SLUGS.indexOf('bayern'),
       country: 'DE',
       active: false,
-      bezirke: getBezirke('allgaeu'),
+      bezirke: getBezirke('bayern'),
       subdivisionLabel: 'Landkreis',
       timezone: 'Europe/Berlin',
     });
     expect(getRegionBySlug('steiermark')?.timezone).toBe('Europe/Vienna');
+    expect(getRegionBySlug('zuerich')?.timezone).toBe('Europe/Zurich');
   });
   it('keeps BEZIRKE as the Vorarlberg Bezirke', () => {
     expect(BEZIRKE).toEqual(['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe']);
@@ -59,17 +63,32 @@ describe('districts per region', () => {
     expect(list).toContain('Graz-Umgebung');
     expect(list).toContain('Südoststeiermark');
   });
-  it('Allgäu has its 8 Landkreise and kreisfreie Städte', () => {
-    expect(getBezirke('allgaeu')).toEqual([
+  it('Bayern lists its 71 Landkreise and 25 kreisfreie Städte (the old Allgäu areas included)', () => {
+    const list = getBezirke('bayern');
+    expect(list).toHaveLength(96);
+    for (const d of [
       'Oberallgäu',
       'Ostallgäu',
       'Unterallgäu',
       'Lindau (Bodensee)',
-      'Ravensburg (Württembergisches Allgäu)',
       'Kempten (Allgäu)',
-      'Kaufbeuren',
-      'Memmingen',
-    ]);
+    ]) {
+      expect(list).toContain(d);
+    }
+    // A city and a Landkreis with the same name are told apart.
+    expect(list).toContain('Ansbach (Stadt)');
+    expect(list).toContain('Ansbach (Landkreis)');
+    expect(list).not.toContain('Ansbach');
+  });
+  it('Austria and Switzerland come from the product owner list', () => {
+    expect(getBezirke('tirol')).toHaveLength(9);
+    expect(getBezirke('wien')).toEqual(['Wien']);
+    expect(getBezirke('vorarlberg')).toContain('Grenznahe');
+    expect(getBezirke('aargau')).toContain('Aarau');
+    expect(getBezirke('genf')).toHaveLength(1);
+  });
+  it('every region ships at least one Bezirk / Landkreis', () => {
+    for (const r of STATIC_REGIONS) expect(r.bezirke.length).toBeGreaterThan(0);
   });
   it('has no duplicates or blanks in any list', () => {
     for (const r of STATIC_REGIONS) {
@@ -77,35 +96,21 @@ describe('districts per region', () => {
       expect(r.bezirke.every((b: string) => b.trim() === b && b.length > 0)).toBe(true);
     }
   });
-  it('other regions get no invented lists', () => {
-    for (const id of [
-      'tirol',
-      'salzburg',
-      'kaernten',
-      'oberoesterreich',
-      'niederoesterreich',
-      'wien',
-      'burgenland',
-    ]) {
-      expect(getBezirke(id)).toEqual([]);
-    }
-    expect(getBezirke('unknown')).toEqual([]);
-  });
-  it('labels: Bezirk for Austria, Landkreis for the Allgäu', () => {
+  it('labels: Bezirk in Austria and Switzerland, Landkreis in Germany', () => {
     expect(getSubdivisionLabel('vorarlberg')).toBe('Bezirk');
     expect(getSubdivisionLabel('steiermark')).toBe('Bezirk');
-    expect(getSubdivisionLabel('allgaeu')).toBe('Landkreis');
+    expect(getSubdivisionLabel('bayern')).toBe('Landkreis');
     expect(getSubdivisionLabel('unknown')).toBe('Bezirk');
     expect(getSubdivisionLabelPlural('wien')).toBe('Bezirke');
-    expect(getSubdivisionLabelPlural('allgaeu')).toBe('Landkreise');
+    expect(getSubdivisionLabelPlural('bayern')).toBe('Landkreise');
     for (const r of STATIC_REGIONS) {
-      expect(r.subdivisionLabel).toBe(r.id === 'allgaeu' ? 'Landkreis' : 'Bezirk');
+      expect(r.subdivisionLabel).toBe(r.country === 'DE' ? 'Landkreis' : 'Bezirk');
     }
   });
   it('mergeRegions keeps the static list and label unless the doc has its own list', () => {
-    const merged = mergeRegions([{ id: 'allgaeu', active: true, bezirke: [] }]);
-    expect(merged.find((r) => r.id === 'allgaeu')?.bezirke).toHaveLength(8);
-    expect(getSubdivisionLabel('allgaeu', merged)).toBe('Landkreis');
+    const merged = mergeRegions([{ id: 'bayern', active: true, bezirke: [] }]);
+    expect(merged.find((r) => r.id === 'bayern')?.bezirke).toHaveLength(96);
+    expect(getSubdivisionLabel('bayern', merged)).toBe('Landkreis');
     const own = mergeRegions([{ id: 'steiermark', bezirke: ['Graz'] }]);
     expect(getBezirke('steiermark', own)).toEqual(['Graz']);
   });
@@ -120,14 +125,20 @@ describe('helpers', () => {
   });
   it('getRegionBySlug / isRegionSlug', () => {
     expect(getRegionBySlug('wien')?.name).toBe('Wien');
-    expect(getRegionBySlug('bayern')).toBeNull();
+    expect(getRegionBySlug('allgaeu')).toBeNull();
     expect(isRegionSlug('oesterreich')).toBe(false);
-    expect(isRegionSlug('bayern')).toBe(false);
+    expect(isRegionSlug('deutschland')).toBe(false);
     expect(isRegionSlug(undefined)).toBe(false);
   });
-  it('getBezirke is empty for other or unknown regions', () => {
-    expect(getBezirke('tirol')).toEqual([]);
+  it('getBezirke is empty for unknown regions', () => {
     expect(getBezirke('nope')).toEqual([]);
+  });
+  it('the retired Allgäu region is read as Bayern', () => {
+    expect(resolveRegionId({ regionId: 'allgaeu' })).toBe('bayern');
+    expect(pickEventRegionId(undefined, { regionId: 'allgaeu' })).toBe('bayern');
+    expect(resolveDirectoryRegionIds({ directoryRegionIds: ['allgaeu', 'bayern'] })).toEqual([
+      'bayern',
+    ]);
   });
   it('eventVisibleInRegion', () => {
     expect(eventVisibleInRegion({ regionId: 'tirol' }, 'tirol')).toBe(true);
@@ -211,7 +222,7 @@ describe('pickEventRegionId', () => {
   it('falls back to the default for new events, old events and unknown ids', () => {
     expect(pickEventRegionId(undefined)).toBe(DEFAULT_REGION_ID);
     expect(pickEventRegionId(null, {})).toBe(DEFAULT_REGION_ID);
-    expect(pickEventRegionId('bayern', { regionId: 'bayern' })).toBe(DEFAULT_REGION_ID);
+    expect(pickEventRegionId('allgaeu', { regionId: 'nope' })).toBe(DEFAULT_REGION_ID);
     expect(pickEventRegionId('oesterreich', { regionId: 'oesterreich' })).toBe(DEFAULT_REGION_ID);
   });
 });
@@ -225,7 +236,7 @@ describe('resolveDirectoryRegionIds', () => {
 
   it('keeps valid ids, drops unknown ones and duplicates, caps at 10', () => {
     expect(
-      resolveDirectoryRegionIds({ directoryRegionIds: ['tirol', 'bayern', 'tirol', 5, 'wien'] })
+      resolveDirectoryRegionIds({ directoryRegionIds: ['tirol', 'nope', 'tirol', 5, 'wien'] })
     ).toEqual(['tirol', 'wien']);
     expect(
       resolveDirectoryRegionIds({ directoryRegionIds: [...REGION_SLUGS, 'oesterreich'] })
@@ -238,7 +249,7 @@ describe('firestore.rules region list', () => {
     const rules = readFileSync(resolve(process.cwd(), 'firestore.rules'), 'utf8');
     const body = rules.match(/function regionIds\(\) \{\s*return \[([^\]]*)\]/);
     expect(body).not.toBeNull();
-    const ids = [...(body?.[1] ?? '').matchAll(/'([a-z]+)'/g)].map((m) => m[1]);
+    const ids = [...(body?.[1] ?? '').matchAll(/'([a-z-]+)'/g)].map((m) => m[1]);
     expect(ids).toEqual(REGION_SLUGS);
   });
 });
@@ -247,7 +258,7 @@ describe('filters with a country view (ticket 33)', () => {
   const events = [
     { id: 'vbg' },
     { id: 'tirol', regionId: 'tirol' },
-    { id: 'allgaeu', regionId: 'allgaeu' },
+    { id: 'bayern', regionId: 'bayern' },
     { id: 'wien', regionId: 'wien' },
   ];
   const ids = (list: Array<{ id: string }>) => list.map((e) => e.id);
@@ -258,24 +269,24 @@ describe('filters with a country view (ticket 33)', () => {
       activeRegionIds: ['vorarlberg', 'tirol'],
     });
     expect(ids(at)).toEqual(['vbg', 'tirol']);
-    const de = filterEventsForRegion(events, { isNational: true, activeRegionIds: ['allgaeu'] });
-    expect(ids(de)).toEqual(['allgaeu']);
+    const de = filterEventsForRegion(events, { isNational: true, activeRegionIds: ['bayern'] });
+    expect(ids(de)).toEqual(['bayern']);
     expect(filterEventsForRegion(events, { isNational: true, activeRegionIds: [] })).toEqual([]);
   });
 
   it('directory entries and Bezirke follow the same list', () => {
     const entries = [
       { uid: 'a', regionIds: ['vorarlberg'] },
-      { uid: 'b', regionIds: ['allgaeu'] },
-      { uid: 'c', regionIds: ['tirol', 'allgaeu'] },
+      { uid: 'b', regionIds: ['bayern'] },
+      { uid: 'c', regionIds: ['tirol', 'bayern'] },
     ];
     const de = filterDirectoryForRegion(entries, {
       isNational: true,
-      activeRegionIds: ['allgaeu'],
+      activeRegionIds: ['bayern'],
     });
     expect(de.map((e) => e.uid)).toEqual(['b', 'c']);
-    const regions = STATIC_REGIONS.filter((r) => r.id === 'allgaeu');
-    expect(getAllDistricts(regions)).toEqual(getBezirke('allgaeu'));
-    expect(getAllDistricts(STATIC_REGIONS.filter((r) => r.country === 'CH'))).toEqual([]);
+    const regions = STATIC_REGIONS.filter((r) => r.id === 'bayern');
+    expect(getAllDistricts(regions)).toEqual(getBezirke('bayern'));
+    expect(getAllDistricts(STATIC_REGIONS.filter((r) => r.id === 'genf'))).toEqual(['Genf']);
   });
 });

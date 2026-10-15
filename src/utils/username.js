@@ -7,7 +7,7 @@
 //
 // Pure: no Firebase, no DOM, no env. Safe to import from Node scripts.
 
-import { COMBINED_VIEW_SLUGS, REGION_SLUGS } from './regions.js';
+import { COMBINED_VIEW_SLUGS, LEGACY_REGION_ALIASES, REGION_SLUGS } from './regions.js';
 
 export const USERNAME_MIN = 3;
 export const USERNAME_MAX = 30;
@@ -49,6 +49,7 @@ export const RESERVED_USERNAMES = new Set([
   // `/deutschland`, `/schweiz`, `/alle-tribes`, not regions themselves) share
   // the top-level path space with profiles.
   ...REGION_SLUGS,
+  ...Object.keys(LEGACY_REGION_ALIASES),
   ...COMBINED_VIEW_SLUGS,
   'austria',
   'online',

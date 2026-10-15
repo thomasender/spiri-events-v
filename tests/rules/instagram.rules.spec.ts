@@ -733,21 +733,21 @@ describe('regions', () => {
 
     it('rejects a slug outside the fixed list', async () => {
       const db = make().firestore();
-      await assertFails(setDoc(doc(db, 'regions/bayern'), { ...validRegion, slug: 'bayern' }));
+      await assertFails(setDoc(doc(db, 'regions/mars'), { ...validRegion, slug: 'mars' }));
     });
 
-    it('accepts the Allgäu pilot region (outside Austria)', async () => {
+    it('accepts the Bayern pilot region (outside Austria)', async () => {
       const db = make().firestore();
       await assertSucceeds(
-        setDoc(doc(db, 'regions/allgaeu'), {
+        setDoc(doc(db, 'regions/bayern'), {
           ...validRegion,
-          name: 'Allgäu',
-          slug: 'allgaeu',
+          name: 'Bayern',
+          slug: 'bayern',
           order: 9,
           timezone: 'Europe/Berlin',
         })
       );
-      await assertSucceeds(deleteDoc(doc(db, 'regions/allgaeu')));
+      await assertSucceeds(deleteDoc(doc(db, 'regions/bayern')));
     });
 
     it('rejects a slug that differs from the doc id', async () => {
@@ -849,7 +849,7 @@ describe('events.regionId', () => {
       await setDoc(doc(db, 'events/legacy'), stored);
       await setDoc(doc(db, 'events/tirolEv'), { ...stored, regionId: 'tirol' });
       // Written by the Admin SDK with a value the rules would not accept.
-      await setDoc(doc(db, 'events/oddRegion'), { ...stored, regionId: 'bayern' });
+      await setDoc(doc(db, 'events/oddRegion'), { ...stored, regionId: 'mars' });
     });
   });
 
@@ -868,7 +868,7 @@ describe('events.regionId', () => {
 
   it('create: unknown or non-string region rejected', async () => {
     const db = owner().firestore();
-    for (const regionId of ['bayern', 'oesterreich', '', 'Vorarlberg', 5, null, ['tirol']]) {
+    for (const regionId of ['mars', 'oesterreich', '', 'Vorarlberg', 5, null, ['tirol']]) {
       await assertFails(setDoc(doc(db, 'events/bad'), createPayload({ regionId })));
     }
   });
@@ -904,7 +904,7 @@ describe('events.regionId', () => {
 
   it('full edit: changing to an unknown region rejected', async () => {
     const db = owner().firestore();
-    await assertFails(updateDoc(doc(db, 'events/legacy'), { ...formPayload, regionId: 'bayern' }));
+    await assertFails(updateDoc(doc(db, 'events/legacy'), { ...formPayload, regionId: 'mars' }));
     await assertFails(updateDoc(doc(db, 'events/tirolEv'), { regionId: 7 }));
     await assertFails(updateDoc(doc(db, 'events/tirolEv'), { regionId: null }));
   });
@@ -1024,10 +1024,10 @@ describe('users / publicProfile directoryRegionIds', () => {
       'niederoesterreich',
       'wien',
       'burgenland',
-      'allgaeu',
+      'bayern',
     ];
     for (const directoryRegionIds of [
-      ['bayern'],
+      ['mars'],
       ['oesterreich'],
       ['vorarlberg', 'Dornbirn'],
       'vorarlberg',
@@ -1159,7 +1159,7 @@ describe('region moderators', () => {
       trashedAt: 1,
       trashReason: 'x',
     },
-    oddRegion: { ...eventBase, status: 'pending', regionId: 'bayern' },
+    oddRegion: { ...eventBase, status: 'pending', regionId: 'mars' },
   };
 
   const approve = (uid: string, extra: Record<string, unknown> = {}) => ({
@@ -1225,7 +1225,7 @@ describe('region moderators', () => {
       });
       await setDoc(doc(db, 'admin_users/modBogus'), {
         role: 'RegionModerator',
-        regionIds: ['bayern'],
+        regionIds: ['mars'],
       });
       // A staff member (moderator elsewhere) who is listed in Tirol.
       await setDoc(doc(db, 'admin_users/staffTirol'), {

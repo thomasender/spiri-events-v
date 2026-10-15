@@ -4,6 +4,7 @@ import { useRegions } from '../hooks/useRegions';
 import { useRegionModerators } from '../hooks/useRegionModerators';
 import { useRegionActivation } from '../hooks/useRegionActivation';
 import {
+  COUNTRY_LABELS,
   DEFAULT_REGION_ID,
   getSubdivisionLabel,
   getSubdivisionLabelPlural,
@@ -129,6 +130,9 @@ export default function RegionsTab() {
             >
               <div className="moderation-card-person">
                 <span className="moderation-card-name">{region.name}</span>
+                <span className="regions-country" data-testid="region-country">
+                  {COUNTRY_LABELS[region.country] ?? region.country}
+                </span>
                 <span
                   className={`regions-status${region.active ? ' regions-status--active' : ''}`}
                   data-testid="region-status"

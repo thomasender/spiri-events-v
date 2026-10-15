@@ -60,7 +60,7 @@ describe('resolveTopLevelSlug', () => {
 
   it('usernames and unknown slugs are profiles', () => {
     expect(resolveTopLevelSlug('maria-muster')).toEqual({ kind: 'profile', region: null });
-    expect(resolveTopLevelSlug('bayern').kind).toBe('profile');
+    expect(resolveTopLevelSlug('mars').kind).toBe('profile');
     expect(resolveTopLevelSlug(undefined).kind).toBe('profile');
   });
 
@@ -91,9 +91,10 @@ describe('combined views (ticket 33)', () => {
   const available = (slug: string, regions: typeof STATIC_REGIONS) =>
     isCombinedViewAvailable(slug, regions);
 
-  it('every region has a country; only the Allgäu is German', () => {
-    expect(STATIC_REGIONS.filter((r) => r.country === 'DE').map((r) => r.id)).toEqual(['allgaeu']);
+  it('every region has a country: 9 Austrian, 16 German, 26 Swiss', () => {
+    expect(STATIC_REGIONS.filter((r) => r.country === 'DE')).toHaveLength(16);
     expect(STATIC_REGIONS.filter((r) => r.country === 'AT')).toHaveLength(9);
+    expect(STATIC_REGIONS.filter((r) => r.country === 'CH')).toHaveLength(26);
   });
 
   it('the four slugs are fixed and keep the order of the chooser', () => {
@@ -115,13 +116,13 @@ describe('combined views (ticket 33)', () => {
     expect(available('oesterreich', regionsWith())).toBe(false);
     expect(available('oesterreich', regionsWith('vorarlberg'))).toBe(false);
     expect(available('oesterreich', regionsWith('vorarlberg', 'tirol'))).toBe(true);
-    // The Allgäu is not Austrian.
-    expect(available('oesterreich', regionsWith('vorarlberg', 'allgaeu'))).toBe(false);
-    expect(available('deutschland', regionsWith('allgaeu'))).toBe(false);
+    // The Bayern is not Austrian.
+    expect(available('oesterreich', regionsWith('vorarlberg', 'bayern'))).toBe(false);
+    expect(available('deutschland', regionsWith('bayern'))).toBe(false);
     expect(available('deutschland', regionsWith('vorarlberg', 'tirol'))).toBe(false);
-    expect(available('schweiz', regionsWith('vorarlberg', 'tirol', 'allgaeu'))).toBe(false);
+    expect(available('schweiz', regionsWith('vorarlberg', 'tirol', 'bayern'))).toBe(false);
     // Two German regions (none is registered yet): simulate with a second one.
-    const twoDe = regionsWith('allgaeu', 'tirol').map((r) =>
+    const twoDe = regionsWith('bayern', 'tirol').map((r) =>
       r.id === 'tirol' ? { ...r, country: 'DE' } : r
     );
     expect(available('deutschland', twoDe)).toBe(true);
@@ -130,9 +131,9 @@ describe('combined views (ticket 33)', () => {
   it('Alle Tribes: two active regions in total AND two countries', () => {
     expect(available('alle-tribes', regionsWith('vorarlberg'))).toBe(false);
     expect(available('alle-tribes', regionsWith('vorarlberg', 'tirol'))).toBe(false);
-    expect(available('alle-tribes', regionsWith('allgaeu'))).toBe(false);
-    expect(available('alle-tribes', regionsWith('vorarlberg', 'allgaeu'))).toBe(true);
-    expect(available('alle-tribes', regionsWith('vorarlberg', 'tirol', 'allgaeu'))).toBe(true);
+    expect(available('alle-tribes', regionsWith('bayern'))).toBe(false);
+    expect(available('alle-tribes', regionsWith('vorarlberg', 'bayern'))).toBe(true);
+    expect(available('alle-tribes', regionsWith('vorarlberg', 'tirol', 'bayern'))).toBe(true);
   });
 
   it('availableCombinedViews lists only available views in fixed order', () => {
@@ -141,31 +142,31 @@ describe('combined views (ticket 33)', () => {
       'oesterreich',
     ]);
     expect(
-      availableCombinedViews(regionsWith('vorarlberg', 'tirol', 'allgaeu')).map((v) => v.slug)
+      availableCombinedViews(regionsWith('vorarlberg', 'tirol', 'bayern')).map((v) => v.slug)
     ).toEqual(['oesterreich', 'alle-tribes']);
   });
 
   it('combinedViewRegions: country view and global view cover active regions only', () => {
-    const regions = regionsWith('vorarlberg', 'tirol', 'allgaeu');
+    const regions = regionsWith('vorarlberg', 'tirol', 'bayern');
     expect(combinedViewRegions('oesterreich', regions).map((r) => r.id)).toEqual([
       'vorarlberg',
       'tirol',
     ]);
-    expect(combinedViewRegions('deutschland', regions).map((r) => r.id)).toEqual(['allgaeu']);
+    expect(combinedViewRegions('deutschland', regions).map((r) => r.id)).toEqual(['bayern']);
     expect(combinedViewRegions('schweiz', regions)).toEqual([]);
     expect(combinedViewRegions('alle-tribes', regions).map((r) => r.id)).toEqual([
       'vorarlberg',
       'tirol',
-      'allgaeu',
+      'bayern',
     ]);
   });
 
   it('resolveTopLevelSlug: available -> view, one region -> redirect, none -> coming soon', () => {
     const at2 = regionsWith('vorarlberg', 'tirol');
-    expect(resolveTopLevelSlug('deutschland', regionsWith('allgaeu'))).toMatchObject({
+    expect(resolveTopLevelSlug('deutschland', regionsWith('bayern'))).toMatchObject({
       kind: 'redirect',
       region: null,
-      redirect: { region: { id: 'allgaeu' } },
+      redirect: { region: { id: 'bayern' } },
     });
     expect(resolveTopLevelSlug('deutschland', at2)).toMatchObject({
       kind: 'coming-soon',
@@ -173,7 +174,7 @@ describe('combined views (ticket 33)', () => {
       view: { slug: 'deutschland' },
     });
     expect(resolveTopLevelSlug('schweiz', at2)).toMatchObject({ kind: 'coming-soon' });
-    expect(resolveTopLevelSlug('alle-tribes', regionsWith('vorarlberg', 'allgaeu'))).toMatchObject({
+    expect(resolveTopLevelSlug('alle-tribes', regionsWith('vorarlberg', 'bayern'))).toMatchObject({
       kind: 'all-regions',
       view: { slug: 'alle-tribes' },
     });
@@ -257,7 +258,7 @@ describe('regionPath', () => {
     expect(regionPath(ALL_REGIONS_SLUG)).toBe('/oesterreich');
   });
   it('falls back to vorarlberg for unknown slugs', () => {
-    expect(regionPath('bayern')).toBe('/vorarlberg');
+    expect(regionPath('mars')).toBe('/vorarlberg');
     expect(regionPath(null, '/verzeichnis')).toBe('/vorarlberg/verzeichnis');
   });
 });
@@ -280,7 +281,7 @@ describe('regionLocative', () => {
   });
   it('has the right preposition for every region of the register', () => {
     const phrases = Object.fromEntries(STATIC_REGIONS.map((r) => [r.id, regionLocative(r)]));
-    expect(phrases).toEqual({
+    expect(phrases).toMatchObject({
       vorarlberg: 'in Vorarlberg',
       tirol: 'in Tirol',
       salzburg: 'in Salzburg',
@@ -290,17 +291,23 @@ describe('regionLocative', () => {
       niederoesterreich: 'in Niederösterreich',
       wien: 'in Wien',
       burgenland: 'im Burgenland',
-      allgaeu: 'im Allgäu',
+      bayern: 'in Bayern',
+      saarland: 'im Saarland',
+      wallis: 'im Wallis',
+      waadt: 'in der Waadt',
     });
+    expect(Object.keys(phrases)).toEqual(STATIC_REGIONS.map((r) => r.id));
     // Firestore-merged regions keep the phrase; bare objects fall back by slug.
-    expect(regionLocative(mergeRegions([{ id: 'allgaeu', active: true }])[9])).toBe('im Allgäu');
-    expect(regionLocative({ slug: 'allgaeu', name: 'Allgäu' })).toBe('im Allgäu');
+    expect(
+      regionLocative(mergeRegions([{ id: 'bayern', active: true }]).find((r) => r.id === 'bayern'))
+    ).toBe('in Bayern');
+    expect(regionLocative({ slug: 'bayern', name: 'Bayern' })).toBe('in Bayern');
     expect(regionLocative({ name: 'Irgendwo' })).toBe('in Irgendwo');
   });
-  it('an inactive Allgäu shows the coming-soon page', () => {
-    expect(resolveTopLevelSlug('allgaeu')).toMatchObject({
+  it('an inactive Bayern shows the coming-soon page', () => {
+    expect(resolveTopLevelSlug('bayern')).toMatchObject({
       kind: 'coming-soon',
-      region: { id: 'allgaeu', name: 'Allgäu' },
+      region: { id: 'bayern', name: 'Bayern' },
     });
   });
 });
@@ -312,9 +319,9 @@ describe('last region in localStorage', () => {
     expect(store.data.get(LAST_REGION_STORAGE_KEY)).toBe('tirol');
     expect(readLastRegion(store)).toBe('tirol');
     writeLastRegion('oesterreich', store);
-    writeLastRegion('bayern', store);
+    writeLastRegion('mars', store);
     expect(readLastRegion(store)).toBe('tirol');
-    expect(readLastRegion(memoryStorage({ [LAST_REGION_STORAGE_KEY]: 'bayern' }))).toBeNull();
+    expect(readLastRegion(memoryStorage({ [LAST_REGION_STORAGE_KEY]: 'mars' }))).toBeNull();
   });
   it('a throwing localStorage does not crash', () => {
     expect(readLastRegion(throwingStorage)).toBeNull();

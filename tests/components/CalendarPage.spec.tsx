@@ -846,7 +846,7 @@ describe('CalendarPage — regions (ticket 14)', () => {
   const allRegions = [
     regionOf('vorarlberg'),
     regionOf('steiermark'),
-    regionOf('allgaeu'),
+    regionOf('bayern'),
     regionOf('wien', false),
   ];
 

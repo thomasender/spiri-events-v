@@ -300,8 +300,8 @@ describe('combined view feeds (ticket 33)', () => {
   const events = [
     ev({ id: 'vbg' }),
     ev({ id: 'tirol', regionId: 'tirol' } as never),
-    ev({ id: 'allgaeu', regionId: 'allgaeu' } as never),
-    ev({ id: 'online-allgaeu', regionId: 'allgaeu', isOnline: true } as never),
+    ev({ id: 'bayern', regionId: 'bayern' } as never),
+    ev({ id: 'online-bayern', regionId: 'bayern', isOnline: true } as never),
     ev({ id: 'wien-inactive', regionId: 'wien' } as never),
   ];
   const ids = (combinedRegionIds: string[]) =>
@@ -309,12 +309,12 @@ describe('combined view feeds (ticket 33)', () => {
 
   it('lists every event of the regions in scope, online events by their own region', () => {
     expect(ids(['vorarlberg', 'tirol'])).toEqual(['vbg', 'tirol']);
-    expect(ids(['allgaeu'])).toEqual(['allgaeu', 'online-allgaeu']);
-    expect(ids(['vorarlberg', 'tirol', 'allgaeu'])).toEqual([
+    expect(ids(['bayern'])).toEqual(['bayern', 'online-bayern']);
+    expect(ids(['vorarlberg', 'tirol', 'bayern'])).toEqual([
       'vbg',
       'tirol',
-      'allgaeu',
-      'online-allgaeu',
+      'bayern',
+      'online-bayern',
     ]);
   });
 

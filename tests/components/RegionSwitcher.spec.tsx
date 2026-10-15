@@ -21,12 +21,12 @@ import RegionSwitcher, { RegionMenuList } from '../../src/components/RegionSwitc
 import RegionChooser from '../../src/components/RegionChooser';
 
 const TWO_ACTIVE = mergeRegions([{ id: 'tirol', active: true }]);
-// Vorarlberg (AT) + Allgäu (DE): "Alle Tribes" is available, the country views are not.
-const AT_AND_DE = mergeRegions([{ id: 'allgaeu', active: true }]);
-// Vorarlberg + Tirol (AT) + Allgäu (DE): "Ganz Österreich" and "Alle Tribes".
+// Vorarlberg (AT) + Bayern (DE): "Alle Tribes" is available, the country views are not.
+const AT_AND_DE = mergeRegions([{ id: 'bayern', active: true }]);
+// Vorarlberg + Tirol (AT) + Bayern (DE): "Ganz Österreich" and "Alle Tribes".
 const THREE_ACTIVE = mergeRegions([
   { id: 'tirol', active: true },
-  { id: 'allgaeu', active: true },
+  { id: 'bayern', active: true },
 ]);
 
 function Where() {
@@ -209,7 +209,7 @@ describe('combined views in switcher and chooser (ticket 33)', () => {
     fireEvent.click(screen.getByRole('button', { name: /Region wählen/ }));
     expect(screen.getAllByRole('menuitemradio').map((i) => i.textContent)).toEqual([
       'Vorarlberg',
-      'Allgäu',
+      'Bayern',
       'Alle Tribes',
     ]);
   });
@@ -221,7 +221,7 @@ describe('combined views in switcher and chooser (ticket 33)', () => {
     expect(screen.getAllByRole('menuitemradio').map((i) => i.textContent)).toEqual([
       'Vorarlberg',
       'Tirol',
-      'Allgäu',
+      'Bayern',
       'Ganz Österreich',
       'Alle Tribes',
     ]);
@@ -253,7 +253,7 @@ describe('combined views in switcher and chooser (ticket 33)', () => {
     const labels = Array.from(document.querySelectorAll('.region-chooser-option')).map(
       (b) => b.textContent
     );
-    expect(labels).toEqual(['Vorarlberg', 'Tirol', 'Allgäu', 'Ganz Österreich', 'Alle Tribes']);
+    expect(labels).toEqual(['Vorarlberg', 'Tirol', 'Bayern', 'Ganz Österreich', 'Alle Tribes']);
     fireEvent.click(screen.getByRole('button', { name: 'Alle Tribes' }));
     expect(where()).toBe('/alle-tribes');
     expect(window.localStorage.getItem(REGION_CHOOSER_SEEN_KEY)).toBe('1');

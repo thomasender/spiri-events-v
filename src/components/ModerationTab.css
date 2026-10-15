@@ -267,3 +267,18 @@
   justify-content: flex-end;
   gap: 8px;
 }
+
+/* Country heading inside the region list (spans the whole grid row). */
+.moderation-country {
+  grid-column: 1 / -1;
+  margin-top: 6px;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.moderation-country:first-child {
+  margin-top: 0;
+}
