@@ -73,7 +73,12 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
     Kalender für bewusste Events", "in allen Regionen", "Für alle Regionen", title
     "Kalender | The Tribe". The footer stays "tribe Vorarlberg". Per-region texts
     come from `regionTexts()`; the Vorarlberg header is "Dein Vorarlberger Kalender".
-  - **Create-event / profile forms** offer only concrete regions.
+  - **Create-event / profile forms** offer only concrete regions. The event forms show no
+    Region field: the region is the current one, and the extra Bezirk option "Finde meinen
+    Bezirk nicht" opens `EventRegionDialog` to change it.
+  - **Phone:** the header dropdown is hidden below 800px; the region list sits in the burger
+    menu (`RegionMenuList`). A not-yet-open region/view shows the neutral header "Dein
+    Kalender für bewusste Veranstaltungen" (`comingSoon` in the region context).
 - **Reserved names.** The region slugs and the four combined-view slugs share the
   top-level URL space with profiles, so `username.js` reserves them.
   `scripts/check-reserved-usernames.mjs` prints and checks them (run it READ-ONLY
