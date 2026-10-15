@@ -35,7 +35,7 @@ export const REGION_EVENT_TITLE_PREFIX = '[Region-Test]';
 /**
  * Reconciles the regions (vorarlberg, tirol, wien) and writes the
  * `[Region-Test]` events. Idempotent; call from a dedicated spec's beforeAll.
- * globalSetup already loads the regions, but NOT the events (see AGENTS.md).
+ * globalSetup already loads the regions, but NOT the events (see docs/regions.md, Tests).
  */
 export function loadRegionEventFixtures(): void {
   execFileSync('node', ['scripts/seed-region-fixtures.mjs', '--events'], { stdio: 'inherit' });

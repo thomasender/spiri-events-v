@@ -172,7 +172,8 @@ export const STATIC_REGIONS = REGION_SLUGS.map((slug, order) => ({
   timezone: REGION_TIMEZONES[slug] ?? DEFAULT_REGION_TIMEZONE,
 }));
 
-// Backwards compatible: Bezirke of Vorarlberg (cleanup in a later ticket).
+// Bezirke of Vorarlberg only. Still used as fallback (event form, directory
+// listing fields, re-exported by useEvents); region-aware code uses the region's own list.
 export const BEZIRKE = VORARLBERG_BEZIRKE;
 
 export const isRegionSlug = (slug) => typeof slug === 'string' && REGION_SLUGS.includes(slug);

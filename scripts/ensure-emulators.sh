@@ -1,7 +1,7 @@
 #!/bin/bash
 # Make sure usable Firebase emulators are running, starting or restarting them
 # if needed. Used by the pre-push hook so that a push is never blocked by an
-# emulator that merely needs a restart (see AGENTS.md -> "The emulator is the
+# emulator that merely needs a restart (see docs/testing.md -> "The emulator is the
 # bottleneck"). A degraded emulator is the single biggest cause of slow and
 # flaky Playwright runs: the same smoke suite takes ~25s on a fresh emulator
 # and several minutes on a degraded one.

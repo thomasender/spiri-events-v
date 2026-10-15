@@ -59,8 +59,8 @@ const ADMINS_RECIPIENT = 'admins' as const;
 // Temporarily switched off to save Mailgun quota (Trello 8ioEr9T1): admin-facing
 // emails about events ("new event submitted"). Flip to true to re-enable.
 // Routing once enabled (Super-Admins + moderators of the event's region +
-// the region's contactEmail): adminEventRouting.ts, see AGENTS.md
-// "Admin event emails and regions". Owner mails do not depend on this flag.
+// the region's contactEmail): adminEventRouting.ts, see docs/regions.md
+// section "Emails". Owner mails do not depend on this flag.
 export const ADMIN_EVENT_EMAILS_ENABLED = false;
 type UserRecipient = { email: string; uid?: string | null };
 type RecipientMarker = UserRecipient | typeof ADMINS_RECIPIENT;

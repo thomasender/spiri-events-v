@@ -18,7 +18,7 @@ import {
 import { ALLOWED_ORIGINS } from './allowedOrigins';
 
 // GA4 property of the web stream G-34TNY65VBC. The function's runtime service
-// account must be a "Betrachter" of this property (see AGENTS.md → Analytics).
+// account must be a "Betrachter" of this property (see docs/analytics.md).
 const GA_PROPERTY_ID = '529962266';
 const CACHE_MS = 10 * 60 * 1000;
 

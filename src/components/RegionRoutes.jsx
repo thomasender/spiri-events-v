@@ -12,9 +12,8 @@ import { redirectTargetPath, resolveTopLevelSlug } from '../utils/regionRouting'
 // (pilot): wait for the config instead of flashing the coming-soon page.
 function ComingSoonOrWait({ region, view = null }) {
   const { loading } = useRegion();
-  // Preview seam (ticket 27): admins / regional moderators will later see the
-  // region itself with a preview banner. Until then they get the same page
-  // plus a one-line note.
+  // Preview seam: staff who may moderate the region get a one-line note on the
+  // coming-soon page. Follow-up: show the region itself with a preview banner.
   const canPreview = useCanPreviewRegion(region?.id ?? null);
   if (loading) return <div className="loading-spinner" data-testid="region-loading" />;
   return <RegionComingSoonPage region={region} view={view} canPreview={canPreview} />;

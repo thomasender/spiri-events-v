@@ -1,6 +1,6 @@
 /**
- * Super-Admin callables to manage Regions-Moderator:innen (ticket 18; the UI
- * follows in ticket 19).
+ * Super-Admin callables to manage Regions-Moderator:innen (ticket 18; UI: the
+ * "Moderation" tab in the Verwaltung).
  *
  *   adminSetRegionModerator({ uid, regionIds })  grant / change / revoke ([])
  *   adminListRegionModerators()                  current moderators

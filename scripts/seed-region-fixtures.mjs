@@ -5,11 +5,11 @@
 //   node scripts/seed-region-fixtures.mjs --events   regions + [Region-Test] events
 //
 // Regions (`regions/vorarlberg`, `regions/tirol`, `regions/wien`) are loaded on
-// every Playwright run by tests/globalSetup.ts; nothing reads them yet, so they
-// cannot disturb existing specs.
+// every Playwright run by tests/globalSetup.ts. Only `vorarlberg` is active, so
+// they cannot disturb existing specs.
 //
 // The [Region-Test] events are opt-in (--events): once the calendar filters by
-// region (ticket 11) they would otherwise change counts in specs that read the
+// region they would otherwise change counts in specs that read the
 // shared calendar. A dedicated spec loads them through
 // `loadRegionEventFixtures()` in tests/helpers/regionFixtures.ts.
 //

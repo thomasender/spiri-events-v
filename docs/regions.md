@@ -1,0 +1,428 @@
+# Regions (multi-region epic)
+
+**Read this when** you touch regions, region texts/routing, roles for regions,
+region activation, region emails, SEO/ICS/analytics per region, or add a region.
+Linked from `AGENTS.md`. Production migration and staging: [staging-migration.md](./staging-migration.md).
+
+The platform started as "tribe Vorarlberg"; the regions epic prepares the other
+Bundeslaender and the Allgäu without changing what visitors see until a second
+region is switched on.
+
+Contents: 1 Concept · 2 Data model · 3 Roles · 4 Activation · 5 Queries and the
+migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed ·
+10 Analytics per region · 11 Tests · 12 Known limitations · 13 How to add a region
+
+## 1. Concept
+
+- **Static register + `regions/{id}` docs.** `STATIC_REGIONS` in
+  `src/utils/regions.js` is the fallback whenever Firestore delivers nothing;
+  `regions/{id}` docs (id == slug, also enforced by `firestore.rules`) override
+  name, `bezirke`, `contactEmail`, `seo`, `active`, `timezone`. Only Vorarlberg is
+  active in the register. `functions/src/regions.ts` has a synced copy of the
+  register data the functions need (slugs, countries, districts), guarded by
+  `tests/lib/functionsRegions.spec.ts`.
+- **Region ids.** The id is the ASCII slug: `vorarlberg`, `tirol`, `salzburg`,
+  `kaernten`, `steiermark`, `oberoesterreich`, `niederoesterreich`, `wien`,
+  `burgenland`, `allgaeu` (order = switcher order, Allgäu last). Each region has
+  a static `country` (`'AT'`; Allgäu `'DE'`). Country is static only: it is NOT
+  in `regions/{id}` docs (the rules whitelist does not include it). Register
+  fields per region: `name`, `inPhrase` ("in der Steiermark"), `forPhrase`
+  ("die Steiermark", used in "Für … und Umkreis"), `demonym` (complete token, e.g.
+  "Vorarlberger", "steirischer"), `order`, `country`, `bezirke`,
+  `subdivisionLabel` ("Bezirk"; "Landkreis" for the Allgäu), `timezone`
+  (`Europe/Vienna`, Allgäu `Europe/Berlin`; informational, all date maths uses
+  Europe/Vienna). Bezirke ship statically for Vorarlberg, Steiermark and Allgäu
+  (which Allgäu areas count is a product decision); the other regions get theirs
+  from their `regions/{id}` doc.
+- **Dark launch rule.** With only Vorarlberg active nothing visible changes:
+  no chooser, no switcher, no region name in mails, no GA `region` parameter, no
+  region pages in the prerender, byte-identical Vorarlberg ICS feed. Every new
+  region-aware feature must keep that property (golden/byte-identical tests exist
+  for prerender, mails and ICS).
+- **Region chooser** (`RegionChooser.jsx`): a required modal "Wo suchst du?",
+  shown once when no active region is remembered (`tribe:lastRegion`, or
+  `tribe:regionChooserSeen` for any combined view) and the visitor is on `/` or
+  `/verzeichnis`. No close button, no Escape/backdrop dismissal. Opening a region
+  URL counts as a choice. Invisible with fewer than two active regions. Page
+  content stays rendered behind it. Below the regions it offers every available
+  combined view; the header switcher lists the same options.
+- **Combined views** "Ganz Österreich" `/oesterreich`, "Ganz Deutschland"
+  `/deutschland`, "Ganz Schweiz" `/schweiz` and the global "Alle Tribes"
+  `/alle-tribes` are NOT regions, only views (never stored on events/profiles).
+  Definitions: `COMBINED_VIEWS` in `src/utils/regions.js`; logic in
+  `regionRouting.js` (`isCombinedViewAvailable`, `combinedViewRegions`,
+  `availableCombinedViews`, `resolveTopLevelSlug`).
+  - **Availability:** country view = at least 2 ACTIVE regions of that country.
+    "Alle Tribes" = at least 2 active regions in total AND at least 2 countries
+    (otherwise it equals one country view). Chooser/switcher only offer available
+    views.
+  - **Unavailable view at its URL:** exactly one active region in scope ->
+    `replace` redirect to that region's page (`/` while it is Vorarlberg;
+    `/verzeichnis` is kept); "Alle Tribes" with several regions of one country ->
+    redirect to that country view; none -> coming-soon page ("The Tribe –
+    Deutschland kommt bald", `noindex`). Routes wait for the region config
+    (`loading`) before they redirect.
+  - **Data:** `RegionProvider` exposes `combinedView`, `combinedRegions` (active
+    regions in scope) and `combinedViews` (available ones). Calendar, directory
+    and query plans use `isNational` mode with `combinedRegions` as id list
+    (`regionId in [...]`, `array-contains-any`, limit 30); Bezirke/Orte chips are
+    the union of those regions. Favourites (`allActive`) use every active region.
+  - **Texts:** `COMBINED_VIEW_TEXTS` in `regionTexts.js`: "Dein österreichischer /
+    deutscher / Schweizer Kalender", "Für Österreich / Deutschland / die Schweiz
+    und Umkreis", title "Kalender | The Tribe <Land>"; "Alle Tribes": "Dein
+    Kalender für bewusste Events", "in allen Regionen", "Für alle Regionen", title
+    "Kalender | The Tribe". The footer stays "tribe Vorarlberg". Per-region texts
+    come from `regionTexts()`; the Vorarlberg header is "Dein Vorarlberger Kalender".
+  - **Create-event / profile forms** offer only concrete regions.
+- **Reserved names.** The region slugs and the four combined-view slugs share the
+  top-level URL space with profiles, so `username.js` reserves them.
+  `scripts/check-reserved-usernames.mjs` prints and checks them (run it READ-ONLY
+  against production before a merge that adds names).
+
+## 2. Data model
+
+- `events/{id}.regionId` and `users/{uid}/publicProfile/data.directoryRegionIds`
+  (array; `users/{uid}.directoryRegionIds` mirrors it for the migration). A
+  **missing** field means `vorarlberg` everywhere (`resolveRegionId`), so
+  pre-migration docs keep working. The server-side queries (section 5) need the
+  fields to exist, hence the migration.
+- `regions/{id}`: `name`, `slug`, `order`, `active`, `bezirke`, `contactEmail`,
+  `seo: { title, description }`, `timezone`, `createdAt`, `updatedAt` (rules
+  whitelist; no `country`).
+- `app_settings/regionMigration` = `{ complete: true }` is the migration marker.
+- Online events (`isOnline`) are visible in every region but keep their own
+  `regionId`.
+- Write paths that must set the fields: event form/wizard/duplicate
+  (`pickEventRegionId`), profile form, `adminUpdateMember` (adds
+  `directoryRegionIds: ['vorarlberg']` when listing a profile without one),
+  approving an event without `regionId` (adds it; Super-Admins only). Anything
+  that writes events or listings outside the app (scripts, console) must set
+  them too, or the doc is invisible while the marker is set.
+
+## 3. Roles
+
+- **Super-Admin** = `admin_users/{uid}.role == 'Admin'` (or token claim
+  `role: 'Admin'`), unchanged. **Regions-Moderator:in** = `role: 'RegionModerator'`
+  with `regionIds` (1–10 regions: the nine Bundesländer plus the Allgäu).
+- **Rules:** moderators get a narrow extra right via `isRegionModeratorFor()`
+  (review actions, messages and trash of their regions' events, hiding directory
+  listings that lie only in their regions); `isAdminOrEmulatorAdmin()` is
+  untouched, so every other admin-only rule stays Super-Admin only. Matrix:
+  `tests/rules/instagram.rules.spec.ts` ("region moderators").
+- `admin_users` is written only via the Admin SDK: callables
+  `adminSetRegionModerator` / `adminListRegionModerators` (Super-Admin only,
+  audit entries in `admin_audit_log`; UI: tab "Moderation") or
+  `node scripts/promote-admin.mjs <email> --role RegionModerator --regions tirol,steiermark`
+  (`--emulator` for local emulators, `--project tribe-vbg-staging` for staging
+  with ADC; no flag = production via `scripts/service-account.json`; any other
+  `--project` is refused).
+- **Client:** `useAuth()` exposes `role` and `staffRegionIds` (own `admin_users`
+  doc); `getStaffAccess(role, regionIds)` / `useStaffRole()` give `isSuperAdmin`,
+  `isRegionModerator`, `moderatorRegionIds`, `canModerateRegion(id)`. Admin tabs
+  per role: `allowedAdminTabs()` in `src/utils/staffRoles.js`; a tab outside the
+  list shows "Kein Zugriff" (`NoAccess`) also by URL; `/admin/theme-editor` is
+  Super-Admin only (`SuperAdminRoute`). Moderator event lists must filter by
+  region (`staffEventQuerySpecs` in `src/lib/staffEventQueries.js`), or the rules
+  reject the query.
+- Staff may see an inactive region's coming-soon page with a one-line note
+  (`useCanPreviewRegion`); a real preview banner is a follow-up.
+- Admin mails (feedback, Instagram alerts) go to Super-Admins only. Submission
+  mails are region-aware but currently switched off (section 7).
+
+## 4. Activation
+
+Do not hand-edit `regions/{id}.active`. Verwaltung -> tab "Regionen"
+(`RegionsTab.jsx`, Super-Admin only; moderators get "Kein Zugriff") lists every
+region with status, moderators, upcoming events, Bezirke count and `contactEmail`,
+plus "Freischalten" / "Deaktivieren". Everything goes through the callables
+`adminListRegionActivation` and `adminSetRegionActive({ regionId, active,
+override })` (`functions/src/adminRegions.ts`; pure rules in
+`functions/src/regionActivation.ts`, tests `tests/lib/regionActivation.spec.ts`).
+
+- **Conditions** (re-checked server side): at least 1 Regions-Moderator:in
+  (`admin_users` with the region in `regionIds`) and at least 15 upcoming
+  approved, non-online events (`regionId`, missing = Vorarlberg; a series counts
+  once; "upcoming" = last date >= today in Vienna). Unmet ->
+  `failed-precondition` with `details.reason: 'conditions-unmet'` and the counts,
+  unless `override: true` (the UI asks "Trotzdem freischalten" first).
+- Vorarlberg can never be deactivated.
+- The flag (+ `updatedAt`) and an `admin_audit_log` entry (`activateRegion` /
+  `deactivateRegion`, override flag, counts) are written in one transaction. A
+  missing region doc is refused (create it with `scripts/seed-regions.mjs`).
+- Afterwards the client calls `refreshRegions()` (`src/hooks/useRegions.js`),
+  which reloads the shared region cache for every mounted `useRegions()` caller.
+- `firestore.rules` for `regions` are unchanged: Super-Admins can still write the
+  doc directly (console / client SDK), which skips the conditions and the audit
+  entry.
+- **Switching on a second region changes the whole site** (chooser, switcher,
+  region names in mails, GA `region`, region pages in the next prerender, new
+  sitemap entries). Do it deliberately and after the migration ([staging-migration.md](./staging-migration.md)).
+
+## 5. Queries and the migration marker
+
+Firestore cannot query for a missing field, and docs from before the migration
+have no `regionId` / `directoryRegionIds` (read as Vorarlberg). So:
+
+- **Client filter always on.** `useRegionEvents` / `useRegionDirectoryEntries`
+  filter on top of whatever was loaded (missing = Vorarlberg).
+- **Server-side queries only with the marker.** The public lists use
+  region-scoped queries only while `app_settings/regionMigration` says
+  `{ complete: true }`; without it they load everything as before. The app
+  listens to the marker, so open pages switch live.
+- **Queries** (`src/utils/regionQueries.js`, pure; tests
+  `tests/components/regionQueries.spec.ts`, hooks
+  `tests/components/regionScopedQueries.spec.tsx`): calendar / similar events:
+  `status == approved` + `regionId == R`, plus `status == approved` +
+  `isOnline == true`; combined views and favourites: `regionId in [active
+regions]` (<= 30); directory: `listedInDirectory == true` +
+  `directoryRegionIds array-contains R` (combined: `array-contains-any`). A
+  failing region query (e.g. index still building) falls back to the full query.
+  Admin tabs (`useAllEvents()` without options), OrganizerEvents (`createdBy`) and
+  staff lists (`staffEventQueries.js`, already by region for moderators) do not
+  use it.
+- **Indexes** (`firestore.indexes.json`, deployed by `deploy.yml` when the file
+  changes): events `status+regionId`, events `status+isOnline`, collection group
+  `publicProfile` `listedInDirectory+directoryRegionIds(CONTAINS)`. The emulator
+  ignores missing indexes, so a new query shape needs its index added by hand.
+- **Marker is written** only by `migrate-region-ids.mjs --apply`, and only when the
+  control read after the writes finds 0 docs without the field and 0 invalid
+  values (`decideMigrationMarker`). A re-run with nothing to migrate writes it
+  too; a run that finds open/invalid docs deletes an existing marker. The dry-run
+  prints the marker state and warns when a marker exists but docs miss the field
+  (use it as a health check).
+- **Switching back:** `migrate-region-ids.mjs --revert --apply`, or delete the
+  doc (Super-Admins may delete it from a client; nobody can create or change it
+  from a client, only the Admin SDK; anyone can read it, see
+  `tests/rules/instagram.rules.spec.ts`). Deleting is always safe.
+- The marker is not mirrored to staging (`app_settings` allowlist): after
+  `mirror-prod-to-staging.mjs` run the migration on staging to get it.
+
+## 6. Production runbook and staging
+
+Moved to [staging-migration.md](./staging-migration.md) (migration order, backup,
+revert, staging project, mirror, test accounts). Read it before touching the
+production migration or deploying to staging.
+
+## 7. Emails
+
+- **Switched off:** `ADMIN_EVENT_EMAILS_ENABLED = false` in
+  `functions/src/notifications.ts` (Trello 8ioEr9T1, saves Mailgun quota). While
+  false, the "new event submitted" mail to staff is not sent at all: no
+  Firestore/Auth reads, no Mailgun call (guarded by
+  `tests/lib/adminEventRouting.spec.ts`). Keep it false unless the product owners
+  decide otherwise; re-enabling = set it to `true` and deploy the functions.
+- **Not affected by the flag:** mails to organizers (published, change request,
+  back to draft, deleted) and the feedback/contact mail (Super-Admins only).
+- **Routing once re-enabled** (`functions/src/adminEventRouting.ts`, pure, wired
+  up in `notifications.ts`): for an event of region R the recipients are the
+  Super-Admins and the shared `SUBMITTED_NOTIFICATION_INBOX`, the
+  Regions-Moderator:innen whose `regionIds` contain R (email from Auth; disabled
+  or email-less accounts are skipped) and `regions/{R}.contactEmail` if set.
+  Deduplicated case-insensitively; no `regionId` = Vorarlberg; online events go
+  by their `regionId`; moderators never get mail about other regions. If
+  moderators or regions cannot be read, the mail still goes to the Super-Admins.
+  Unsubscribe (`notifyOnSubmitted`) applies to everyone with an account.
+- **Dark launch:** the region name appears in subject and body only while more
+  than one region is active; with one active region the mail is byte-identical to
+  the old one.
+- **Owner mails** get the line "Rückfragen zu dieser Region: <contactEmail>" from
+  `regions/{regionId}.contactEmail`, also only while more than one region is
+  active and the address is valid (`resolveOwnerRegionContact`); otherwise
+  byte-identical (pinned in `tests/lib/emailTemplates.spec.ts`).
+
+## 8. SEO and prerender
+
+The prerender (`scripts/prerender.mjs`, see [seo-prerender.md](./seo-prerender.md)) also reads the
+`regions` collection (optional snapshot
+`data-export/firestore-export/regions.json`, then Admin SDK / REST / client SDK on
+top, written by `prerender:refresh`), merged over the static register with
+`mergeRegions`. Missing/empty/unreadable means static register = Vorarlberg
+only. Only public fields are kept (never `contactEmail`).
+
+- **Dark launch:** with fewer than two active regions `/`, event pages and
+  `sitemap.xml` are byte-identical (golden hashes in
+  `tests/components/prerenderRegions.spec.tsx`), no region page is written.
+  `/verzeichnis` was never prerendered (SPA fallback).
+- **Two or more active regions:** `dist/<slug>/index.html` and
+  `dist/<slug>/verzeichnis/index.html` for every active region (Hosting serves
+  them before the `**` rewrite, no `firebase.json` change). Texts come from
+  `regionTexts()` (title `Kalender | The Tribe <Region>`, canonical `/<slug>`,
+  JSON-LD only on the calendar page). The sitemap adds `/<slug>` and
+  `/<slug>/verzeichnis` of active non-default regions. Events of non-Vorarlberg
+  regions get `| The Tribe <Region>` in `<title>` (canonical stays
+  `/event/<slug>`).
+- Inactive regions get no page and no sitemap entry; the SPA coming-soon page is
+  `noindex`. Combined views are not prerendered or in the sitemap; unavailable
+  ones are `noindex` (coming soon). `/` stays the Vorarlberg page (not
+  region-neutral yet).
+- A region only shows up in the prerender after the next build; activation
+  triggers no rebuild by itself (the 6-hour scheduled rebuild or any event change
+  does).
+
+## 9. ICS feed
+
+`/calendar/feed.ics?region=<slug>` (tokens: [calendar-feed.md](./calendar-feed.md)).
+Default and absent = `vorarlberg`; the client never adds `region=vorarlberg`, so
+the URL and output of the Vorarlberg feed stay byte-identical. Events by
+`filterEventsForRegion` (own region, events without `regionId` = Vorarlberg,
+online events in every region, active regions only). `bezirk=` is checked against
+the region's own Bezirke (`regions/{id}.bezirke` over the static register, 5 min
+cache, `functions/src/regions.ts`). Unknown slug: `400`. Known but inactive
+region: valid empty feed (`200`, cached like others). Name/PRODID/X-WR-TIMEZONE
+follow the region ("Events Steiermark – thetribe.at"); Vorarlberg unchanged.
+
+Combined views: `region=oesterreich|deutschland|schweiz|alle-tribes` (the client
+sends them in a combined view). Events of the ACTIVE regions of that country (all
+for `alle-tribes`), online events by their own region; no availability check (a
+view without active region is a valid empty feed); `bezirk=` is checked against
+the Bezirke of all regions in scope; name "Events Deutschland – thetribe.at"
+(`Alle Tribes`, `Österreich`, `Schweiz` alike), default time zone. Favourites use
+the default feed. The single-event `.ics` ignores regions.
+
+## 10. Analytics per region
+
+- **Client:** `setAnalyticsRegion()` in `src/lib/analytics.js`, driven by
+  `AnalyticsRouteTracker` in `src/App.jsx`. Every event (incl. `page_view`) gets
+  the event parameter `region` (slug, e.g. `steiermark`; combined views send their
+  own slug, e.g. `oesterreich`). Event pages use the event's region
+  (`useEventRegionContext`). **Dark launch:** only sent while at least two regions
+  are active; with only Vorarlberg active the payloads are unchanged. Admins send
+  nothing (existing rule). The `page_view` of an event page can still carry the
+  previous region if the event loads later than the 150 ms title delay.
+- **Report:** `adminAnalyticsReport` takes an optional `region` (region id or
+  combined-view slug, anything else counts as "all"). With it every GA request
+  gets an EXACT `dimensionFilter` on `customEvent:region`. A combined-view slug
+  matches only events that were sent with that slug (not the included regions).
+  Without a region the extra block `regions` (users / pageViews / sessions per
+  `customEvent:region`) is added, so every region that shows up in the data
+  appears in the comparison table by itself. `regions` is omitted while GA has no
+  region data. Cache key `days:region`.
+- **If the dimension is missing** GA answers 400 for `customEvent:region`. The
+  function does not fail: the normal report is returned with `regionDimension:
+'unavailable'`; with a region filter the data is empty plus
+  `regionDimension: 'unavailable'`. The tab then shows the hint to create the
+  dimension.
+
+**Einmalig einrichten (Property-Bearbeiter:in in Google Analytics, nicht das
+Dienstkonto):**
+
+1. analytics.google.com öffnen, die Property der Seite (Stream `G-34TNY65VBC`) wählen.
+2. Unten links _Verwalten_ (Zahnrad) → _Datenanzeige_ → _Benutzerdefinierte Definitionen_.
+3. Tab _Benutzerdefinierte Dimensionen_ → _Benutzerdefinierte Dimension erstellen_.
+4. Dimensionsname: `Region`. Bereich: **Ereignis**. Ereignisparameter: `region`
+   (klein geschrieben, genau so). Speichern.
+5. Ab jetzt zählt GA die Region mit. Das gilt **nicht rückwirkend**: ältere Daten
+   haben keine Region. Bis die ersten Zahlen im Tab erscheinen, kann es bis zu 24
+   Stunden dauern.
+6. Neue Regionen müssen nicht extra eingerichtet werden: sobald eine Region aktiv
+   ist und Besucher:innen hat, erscheint sie automatisch in „Regionen im
+   Vergleich“ und im Region-Filter (Dropdown listet die aktiven Regionen).
+
+**Annahme, bitte bestätigen:** Cookie-/Datenschutztext braucht keine Änderung.
+`region` ist eine Seiten-Eigenschaft (welcher Regionsbereich der Seite angezeigt
+wird), keine personenbezogene Angabe, und die Einwilligung und die Admin-Ausnahme
+bleiben unverändert.
+
+## 11. Tests
+
+Fixtures for a second region, emulator only. Source of truth:
+`scripts/seed-region-fixtures.mjs`.
+
+- **Regions** `regions/vorarlberg` (active), `regions/tirol` (inactive by
+  default; Bezirke Innsbruck, Kufstein, Imst, Lienz) and `regions/wien`
+  (inactive, for visibility tests). `tests/globalSetup.ts` reconciles them on
+  every Playwright run with `set(..., { merge: true })` in one batch.
+- **Destructive-project rule:** two active regions show the required region
+  dialog on every page, so Tirol is active only while
+  `region-calendar-filtering.spec.ts` runs in the `destructive` Playwright
+  project. Any spec that activates a second region must be added to
+  `DESTRUCTIVE_SPECS` in `playwright.config.ts` and deactivate it again.
+- **Events** are _not_ loaded by globalSetup, so no existing count/order
+  assertion sees them (all titles start with `[Region-Test]`): Yoga Innsbruck,
+  Meditation Kufstein, Online Atemreise Tirol (`isOnline`, `regionId: 'tirol'`),
+  Yoga Dornbirn (explicit `regionId: 'vorarlberg'`) and Yoga Bregenz ohne Region
+  (no `regionId`, i.e. "before the migration"). Ids are in `REGION_EVENT_IDS`
+  (`tests/helpers/regionFixtures.ts`). A dedicated spec loads them with
+  `loadRegionEventFixtures()` in `beforeAll`, or by hand:
+  `node scripts/seed-region-fixtures.mjs --events`.
+- **Migration marker in tests:** the existing seed events have no `regionId` and
+  fall back to Vorarlberg, so the emulator never has the marker.
+  `setRegionMigrationMarker(true|false)` in the same helper sets/deletes it, only
+  in `destructive` specs and always removed again (while it is set every seed
+  event is missing from the calendar).
+- **Account** `tirol-mod@test.local` / `testpassword123` is a Regions-Moderator:in
+  for Tirol: no token claim, `admin_users/{uid}` = `{ role: 'RegionModerator',
+regionIds: ['tirol'] }` (reconciled by `seed-region-fixtures.mjs`). Playwright
+  session: `STORAGE_STATE.regionModerator`. Scripts that need "the" admin filter
+  `admin_users` by `role == 'Admin'`; never use a bare `admin_users.limit(1)`.
+- **Sync test:** `tests/lib/functionsRegions.spec.ts` keeps
+  `functions/src/regions.ts` (slugs, countries, `DIRECTORY_REGIONS`) in step with
+  `src/utils/regions.js` / `src/utils/directory.js`. Rules matrix:
+  `tests/rules/instagram.rules.spec.ts`.
+- Logic belongs in Vitest (`tests/components/`, `tests/lib/`); see [testing.md](./testing.md)
+  and AGENTS.md "Testing" for the tier policy.
+
+## 12. Known limitations and follow-ups
+
+- **Profile editor Bezirke:** `DirectoryListingFields` still offers the
+  Vorarlberg-only `BEZIRKE` plus "Online"; profiles cannot yet pick Bezirke of
+  other regions in the editor.
+- **HomepagePreview** (`src/components/HomepagePreview.jsx`) has its own
+  Vorarlberg-only `BEZIRKE` constant.
+- **`/` is not region-neutral:** it stays the Vorarlberg page (prerender, texts,
+  footer "tribe Vorarlberg").
+- **`useAuth` forced token refresh** runs once per mounted instance instead of
+  once per session.
+- **Preview for staff:** inactive regions show only a note on the coming-soon page
+  (`useCanPreviewRegion`); the preview banner (former ticket 27) is not built.
+- **Admin submission mails** are off (`ADMIN_EVENT_EMAILS_ENABLED = false`);
+  routing is prepared and tested.
+- **Analytics:** the first `page_view` of an event page may carry the previous
+  region; GA dimension `region` must be registered once (section 10), data is not
+  retroactive.
+- **Prerender:** activation does not trigger a rebuild; region pages appear with
+  the next build.
+- **Parallel worktrees:** the dev server / Playwright port 5180 is shared, so two
+  worktrees cannot run Playwright at the same time.
+- **Moderator lists** must always filter by region, else rules reject the query
+  (`staffEventQuerySpecs`).
+- **Legal texts** (Impressum, Datenschutz, AGB in `LegalPage.jsx`) still describe
+  tribe Vorarlberg only.
+- **Bezirke of other regions** (Tirol, Salzburg, ...) are not in the register yet;
+  they must come from the `regions/{id}` doc before such a region goes live.
+
+## 13. How to add a new region
+
+For a region that already exists in the register (everything except new
+countries), most steps are data work. A region that is not yet listed needs a
+code change first.
+
+1. **Register entry** (`src/utils/regions.js`, only if the slug is new): add the
+   slug to `REGION_SLUGS` (this also reserves the URL via `username.js`), and fill
+   `REGION_NAMES`, `REGION_IN_PHRASES` ("in der …" when the name takes an
+   article), `REGION_FOR_PHRASES` ("die …" accusative), `REGION_DEMONYMS` (the
+   complete adjective token), `REGION_COUNTRIES` (when not `AT`),
+   `REGION_BEZIRKE` and `REGION_SUBDIVISION_LABELS` (if different),
+   `REGION_TIMEZONES`. A new country also needs a `COMBINED_VIEWS` entry. Mirror
+   slugs/country/districts in `functions/src/regions.ts` and in `firestore.rules`
+   (region id list); `tests/lib/functionsRegions.spec.ts` and
+   `tests/components/regions.spec.ts` catch drift. Adding a slug also requires
+   running `check-reserved-usernames.mjs` read-only against production.
+2. **Seed script:** `node scripts/seed-regions.mjs --prod` (idempotent; creates
+   the doc inactive, keeps admin edits). Test it on staging first.
+3. **Moderator:** appoint a Regions-Moderator:in (admin tab "Moderation" or
+   `promote-admin.mjs --role RegionModerator --regions <slug>`).
+4. **Contact email:** set `regions/{id}.contactEmail` (Regionen/Console); used for
+   owner mails and, once re-enabled, submission mails.
+5. **Content:** at least 15 upcoming approved, non-online events in the region
+   (the activation condition). Check the Bezirke list with the moderator.
+6. **Activation:** Verwaltung -> Regionen -> "Freischalten" (section 4). Consider
+   that this turns on the chooser/switcher and region names for everyone.
+7. **GA dimension:** already exists once `region` is registered (section 10);
+   nothing to do per region.
+8. **SEO check:** after the next build, check `dist/<slug>/index.html` (title,
+   canonical, JSON-LD), the sitemap entries and that the page is indexable; check
+   `/<slug>/verzeichnis`.
+9. **Legal texts:** confirm Impressum / Datenschutz / AGB / footer wording with the
+   product owner for the new region or country (they are Vorarlberg-specific
+   today).

@@ -45,7 +45,7 @@ export interface AnalyticsReport {
   regions?: { name: string; users: number; pageViews: number; sessions: number }[];
   /** Echo of the region filter (only when one was requested). */
   region?: string;
-  /** The GA custom dimension `region` is not registered (yet), see AGENTS.md. */
+  /** The GA custom dimension `region` is not registered (yet), see docs/regions.md. */
   regionDimension?: 'unavailable';
 }
 
@@ -67,7 +67,7 @@ export function parseRange(value: unknown): RangeDays {
 
 /**
  * Optional `region` argument of the callable: a region id or a combined-view
- * slug (exact slug, see AGENTS.md). Absent or unknown = null = all regions.
+ * slug (exact slug, see docs/regions.md). Absent or unknown = null = all regions.
  */
 export function parseRegion(value: unknown): string | null {
   if (typeof value !== 'string') return null;
