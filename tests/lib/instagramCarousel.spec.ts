@@ -123,14 +123,30 @@ describe('groupCarousels', () => {
     expect(groups[0].parts).toBe(1);
   });
 
-  it('chunks into carousels of 9 events', () => {
+  it('splits into as many carousels as needed, spreading events evenly', () => {
     const many = Array.from({ length: 19 }, (_, i) =>
       ev({ id: `e${i}`, time: `${String(8 + (i % 12)).padStart(2, '0')}:00` })
     );
     const groups = groupCarousels(many, WINDOW);
-    expect(groups.map((g) => g.events.length)).toEqual([9, 9, 1]);
+    expect(groups.map((g) => g.events.length)).toEqual([7, 6, 6]);
     expect(groups.map((g) => g.part)).toEqual([1, 2, 3]);
     expect(groups.every((g) => g.parts === 3)).toBe(true);
+  });
+
+  it('does not leave a nearly empty second carousel for 10 events', () => {
+    const ten = Array.from({ length: 10 }, (_, i) => ev({ id: `e${i}` }));
+    expect(groupCarousels(ten, WINDOW).map((g) => g.events.length)).toEqual([5, 5]);
+  });
+
+  it('keeps chronological order across the parts', () => {
+    const ten = Array.from({ length: 10 }, (_, i) =>
+      ev({ id: `e${i}`, time: `${String(8 + i).padStart(2, '0')}:00` })
+    );
+    expect(
+      groupCarousels(ten, WINDOW)
+        .flatMap((g) => g.events)
+        .map((e) => e.id)
+    ).toEqual(ten.map((e) => e.id));
   });
 });
 
