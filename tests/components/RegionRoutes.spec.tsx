@@ -174,6 +174,18 @@ describe('region or profile at /:slug', () => {
     );
   });
 
+  it('coming-soon pages of Deutschland and Schweiz say what is needed to go live; Österreich needs none', () => {
+    const { unmount } = renderAt('/deutschland');
+    expect(screen.getByTestId('view-live-hint')).toHaveTextContent(
+      'Wir suchen gerade Events für die Landkreise in Deutschland. Wir können erst mit Deutschland live gehen, sobald mindestens ein Landkreis genügend Events hat.'
+    );
+    unmount();
+    renderAt('/schweiz');
+    expect(screen.getByTestId('view-live-hint')).toHaveTextContent(
+      'Wir suchen gerade Events für die Bezirke in der Schweiz. Wir können erst mit der Schweiz live gehen, sobald mindestens ein Bezirk genügend Events hat.'
+    );
+  });
+
   it('/schweiz is coming soon (no Swiss region exists)', () => {
     mocks.regions = { regions: WITH_TIROL, loading: false };
     renderAt('/schweiz');

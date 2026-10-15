@@ -37,17 +37,15 @@ export function combinedViewRegions(view, regions = STATIC_REGIONS) {
 }
 
 /**
- * Availability of a combined view. Country view: at least two active regions of
- * that country. "Alle Tribes": at least two active regions in total AND at
- * least two countries with an active region (otherwise it equals one country
- * view).
+ * Availability of a combined view: at least two active regions in its scope
+ * (a country view: that country's regions; "Alle Tribes": all regions of all
+ * countries, even when they all lie in one country). With one region in scope
+ * the view would only repeat that region.
  */
 export function isCombinedViewAvailable(view, regions = STATIC_REGIONS) {
   const v = typeof view === 'string' ? getCombinedView(view) : view;
   if (!v) return false;
-  const included = combinedViewRegions(v, regions);
-  if (v.country) return included.length >= 2;
-  return included.length >= 2 && new Set(included.map((r) => r.country)).size >= 2;
+  return combinedViewRegions(v, regions).length >= 2;
 }
 
 /** Combined views offered in chooser and switcher (available ones, in fixed order). */
@@ -61,17 +59,12 @@ export const isAllRegionsViewAvailable = (regions = STATIC_REGIONS) =>
 
 /**
  * What an unavailable combined view shows: with exactly one active region in
- * scope its page (`{ region }`), for "Alle Tribes" with several regions in one
- * country that country's view (`{ view }`), otherwise null (coming soon).
+ * scope its page (`{ region }`), otherwise null (coming soon).
  */
 export function combinedViewFallback(view, regions = STATIC_REGIONS) {
   const v = typeof view === 'string' ? getCombinedView(view) : view;
   const included = combinedViewRegions(v, regions);
   if (included.length === 1) return { region: included[0] };
-  if (included.length > 1 && !v.country) {
-    const countryView = COMBINED_VIEWS.find((c) => c.country === included[0].country);
-    if (countryView && isCombinedViewAvailable(countryView, regions)) return { view: countryView };
-  }
   return null;
 }
 
@@ -84,7 +77,7 @@ export function combinedViewFallback(view, regions = STATIC_REGIONS) {
  *                    region in scope (`view` set, `region` null)
  *  - `all-regions`   an available combined view (`view`)
  *  - `redirect`      an unavailable combined view with a fallback: `redirect`
- *                    is `{ region }` (the single active region) or `{ view }`
+ *                    is `{ region }` (the single active region)
  *  - `profile`       anything else -> public profile (usernames never collide
  *                    with region slugs, username.js reserves them)
  * `region` is null for combined views and for profiles.
@@ -117,7 +110,6 @@ export function regionSlugFromPath(pathname) {
 /** Path a redirect fallback points to (`path` is kept, e.g. `/verzeichnis`). */
 export function redirectTargetPath(fallback, path = '/', regions = STATIC_REGIONS) {
   if (fallback?.region) return regionCanonicalPath(fallback.region.id, path, regions);
-  if (fallback?.view) return regionPath(fallback.view.slug, path);
   return '/';
 }
 

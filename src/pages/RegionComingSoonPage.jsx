@@ -62,6 +62,11 @@ export default function RegionComingSoonPage({ region = null, view = null, canPr
           {BRAND_NAME} – {name} kommt bald
         </h1>
         <p className="error-page-message">{text}</p>
+        {!region && viewTexts.liveHint && (
+          <p className="error-page-message" data-testid="view-live-hint">
+            {viewTexts.liveHint}
+          </p>
+        )}
         {region && (
           <>
             <div className="coming-soon-progress" data-testid="region-progress">

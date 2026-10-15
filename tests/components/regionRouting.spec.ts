@@ -128,9 +128,9 @@ describe('combined views (ticket 33)', () => {
     expect(available('deutschland', twoDe)).toBe(true);
   });
 
-  it('Alle Tribes: two active regions in total AND two countries', () => {
+  it('Alle Tribes: at least two active regions in total, one country is enough', () => {
     expect(available('alle-tribes', regionsWith('vorarlberg'))).toBe(false);
-    expect(available('alle-tribes', regionsWith('vorarlberg', 'tirol'))).toBe(false);
+    expect(available('alle-tribes', regionsWith('vorarlberg', 'tirol'))).toBe(true);
     expect(available('alle-tribes', regionsWith('bayern'))).toBe(false);
     expect(available('alle-tribes', regionsWith('vorarlberg', 'bayern'))).toBe(true);
     expect(available('alle-tribes', regionsWith('vorarlberg', 'tirol', 'bayern'))).toBe(true);
@@ -140,6 +140,7 @@ describe('combined views (ticket 33)', () => {
     expect(availableCombinedViews(STATIC_REGIONS)).toEqual([]);
     expect(availableCombinedViews(regionsWith('vorarlberg', 'tirol')).map((v) => v.slug)).toEqual([
       'oesterreich',
+      'alle-tribes',
     ]);
     expect(
       availableCombinedViews(regionsWith('vorarlberg', 'tirol', 'bayern')).map((v) => v.slug)
@@ -178,14 +179,14 @@ describe('combined views (ticket 33)', () => {
       kind: 'all-regions',
       view: { slug: 'alle-tribes' },
     });
-    // One active region only: its page. Two regions of one country: that country view.
+    // One active region only: its page. Two regions of one country: the view itself.
     expect(resolveTopLevelSlug('alle-tribes', regionsWith('tirol'))).toMatchObject({
       kind: 'redirect',
       redirect: { region: { id: 'tirol' } },
     });
     expect(resolveTopLevelSlug('alle-tribes', at2)).toMatchObject({
-      kind: 'redirect',
-      redirect: { view: { slug: 'oesterreich' } },
+      kind: 'all-regions',
+      view: { slug: 'alle-tribes' },
     });
     expect(resolveTopLevelSlug('alle-tribes', regionsWith())).toMatchObject({
       kind: 'coming-soon',
@@ -200,9 +201,8 @@ describe('combined views (ticket 33)', () => {
     expect(redirectTargetPath({ region: tirol[1] }, '/verzeichnis', tirol)).toBe(
       '/tirol/verzeichnis'
     );
-    expect(redirectTargetPath({ view: getCombinedView('oesterreich') }, '/', tirol)).toBe(
-      '/oesterreich'
-    );
+    // Nothing to redirect to (coming soon, or an unknown fallback): the start page.
+    expect(redirectTargetPath(null, '/', tirol)).toBe('/');
   });
 
   it('every combined slug is a valid first path segment, region slugs stay separate', () => {

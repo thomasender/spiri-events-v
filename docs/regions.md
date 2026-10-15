@@ -79,16 +79,17 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
   Definitions: `COMBINED_VIEWS` in `src/utils/regions.js`; logic in
   `regionRouting.js` (`isCombinedViewAvailable`, `combinedViewRegions`,
   `availableCombinedViews`, `resolveTopLevelSlug`).
-  - **Availability:** country view = at least 2 ACTIVE regions of that country.
-    "Alle Tribes" = at least 2 active regions in total AND at least 2 countries
-    (otherwise it equals one country view). Chooser/switcher only offer available
-    views.
-  - **Unavailable view at its URL:** exactly one active region in scope ->
-    `replace` redirect to that region's page (`/` while it is Vorarlberg;
-    `/verzeichnis` is kept); "Alle Tribes" with several regions of one country ->
-    redirect to that country view; none -> coming-soon page ("The Tribe –
-    Deutschland kommt bald", `noindex`). Routes wait for the region config
-    (`loading`) before they redirect.
+  - **Availability:** a view is available with at least 2 ACTIVE regions in its scope: a
+    country view those of that country, "Alle Tribes" all active regions in total (also when
+    they all lie in one country). Chooser/switcher offer available views in the switcher; the
+    map page always lists all four, the unavailable ones marked "(bald)".
+  - **Unavailable view at its URL:** exactly one active region in scope -> `replace`
+    redirect to that region's page (`/` while it is Vorarlberg; `/verzeichnis` is kept);
+    none -> coming-soon page ("The Tribe – Deutschland kommt bald", `noindex`). The
+    coming-soon pages of Deutschland and Schweiz add a hint what is needed to go live
+    ("Wir suchen gerade Events für die Landkreise / Bezirke ... sobald mindestens ein
+    Landkreis / Bezirk genügend Events hat", `liveHint` in `regionTexts.js`); Österreich has
+    none. Routes wait for the region config (`loading`) before they redirect.
   - **Data:** `RegionProvider` exposes `combinedView`, `combinedRegions` (active
     regions in scope) and `combinedViews` (available ones). Calendar, directory
     and query plans use `isNational` mode with `combinedRegions` as id list

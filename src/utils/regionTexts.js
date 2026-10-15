@@ -40,7 +40,8 @@ export function isRegionSpecific(region, { activeCount = 1, national = false } =
   return region.id !== DEFAULT_REGION_ID;
 }
 
-// Wording of the combined views (plus the coming-soon page texts). `label` ends up in the page title ("Kalender |
+// Wording of the combined views (plus the coming-soon page texts; `liveHint` only for
+// countries that are not live yet: what has to happen before they can go live). `label` ends up in the page title ("Kalender |
 // The Tribe <label>"; empty = just the brand), `demonym` in the header (empty =
 // "Dein Kalender"), `forPhrase` in "Für <forPhrase> und
 // Umkreis" (empty = "Für alle Regionen").
@@ -60,6 +61,8 @@ const COMBINED_VIEW_TEXTS = {
     forPhrase: 'Deutschland',
     comingSoon: 'Bald findest du hier die Events aus ganz Deutschland auf einen Blick.',
     comingSoonSubject: 'für ganz Deutschland',
+    liveHint:
+      'Wir suchen gerade Events für die Landkreise in Deutschland. Wir können erst mit Deutschland live gehen, sobald mindestens ein Landkreis genügend Events hat.',
   },
   schweiz: {
     label: 'Schweiz',
@@ -68,6 +71,8 @@ const COMBINED_VIEW_TEXTS = {
     forPhrase: 'die Schweiz',
     comingSoon: 'Bald findest du hier die Events aus der ganzen Schweiz auf einen Blick.',
     comingSoonSubject: 'für die ganze Schweiz',
+    liveHint:
+      'Wir suchen gerade Events für die Bezirke in der Schweiz. Wir können erst mit der Schweiz live gehen, sobald mindestens ein Bezirk genügend Events hat.',
   },
   'alle-tribes': {
     label: '',

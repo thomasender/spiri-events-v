@@ -95,7 +95,12 @@ describe('RegionSwitcher with two active regions', () => {
     fireEvent.click(trigger);
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
     const items = screen.getAllByRole('menuitemradio');
-    expect(items.map((i) => i.textContent)).toEqual(['Vorarlberg', 'Tirol', 'Ganz Österreich']);
+    expect(items.map((i) => i.textContent)).toEqual([
+      'Vorarlberg',
+      'Tirol',
+      'Ganz Österreich',
+      'Alle Tribes',
+    ]);
     expect(items[0]).toHaveAttribute('aria-checked', 'true');
     expect(items[1]).toHaveAttribute('aria-checked', 'false');
   });
@@ -143,6 +148,7 @@ describe('RegionSwitcher with two active regions', () => {
     expect(screen.getByRole('menuitemradio', { name: 'Vorarlberg' })).toHaveFocus();
     key('ArrowDown');
     expect(screen.getByRole('menuitemradio', { name: 'Tirol' })).toHaveFocus();
+    key('ArrowDown');
     key('ArrowDown');
     key('ArrowDown');
     key('ArrowDown');
@@ -364,7 +370,7 @@ describe('RegionChooser', () => {
       'Ganz Österreich',
       'Ganz Deutschland (bald)',
       'Ganz Schweiz (bald)',
-      'Alle Tribes (bald)',
+      'Alle Tribes',
     ]);
     expect(labels).toHaveLength(4 + 51);
     expect(labels).toContain('Vorarlberg');
