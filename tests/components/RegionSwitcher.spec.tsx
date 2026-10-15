@@ -250,10 +250,10 @@ describe('combined views in switcher and chooser (ticket 33)', () => {
     window.localStorage.clear();
     mocks.regions = { regions: THREE_ACTIVE, loading: false };
     const { unmount } = renderAt('/');
-    const labels = Array.from(document.querySelectorAll('.region-chooser-option')).map(
-      (b) => b.textContent
-    );
-    expect(labels).toEqual(['Vorarlberg', 'Tirol', 'Bayern', 'Ganz Österreich', 'Alle Tribes']);
+    const labels = Array.from(
+      document.querySelectorAll('.region-chooser-options--views .region-chooser-option')
+    ).map((b) => b.textContent);
+    expect(labels).toEqual(['Ganz Österreich', 'Alle Tribes']);
     fireEvent.click(screen.getByRole('button', { name: 'Alle Tribes' }));
     expect(where()).toBe('/alle-tribes');
     expect(window.localStorage.getItem(REGION_CHOOSER_SEEN_KEY)).toBe('1');
@@ -292,7 +292,29 @@ describe('RegionChooser', () => {
     const labels = Array.from(dialog.querySelectorAll('.region-chooser-option')).map(
       (b) => b.textContent
     );
-    expect(labels).toEqual(['Vorarlberg', 'Tirol', 'Ganz Österreich']);
+    // Combined views first, then every region grouped by country: open regions
+    // plain, the others marked "(bald)".
+    expect(labels.slice(0, 1)).toEqual(['Ganz Österreich']);
+    expect(labels).toHaveLength(1 + 51);
+    expect(labels).toContain('Vorarlberg');
+    expect(labels).toContain('Tirol');
+    expect(labels).toContain('Bayern (bald)');
+    expect(labels).not.toContain('Steiermark');
+    expect(dialog.querySelectorAll('.region-chooser-country-name')).toHaveLength(3);
+  });
+
+  it('shows the silent map; clicking a region on it is a choice, closed regions go to coming soon', async () => {
+    renderAt('/');
+    const map = await screen.findByTestId('region-map');
+    expect(map).toHaveAttribute('data-testid', 'region-map');
+    expect(map.querySelectorAll('path[data-region]')).toHaveLength(51);
+    // The map is a pointer shortcut; the list is the accessible equivalent.
+    expect(map.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+    fireEvent.mouseEnter(map.querySelector('path[data-region="bayern"]')!);
+    expect(screen.getByTestId('region-map-caption')).toHaveTextContent('Bayern (bald)');
+    fireEvent.click(map.querySelector('path[data-region="steiermark"]')!);
+    expect(where()).toBe('/steiermark');
+    expect(window.localStorage.getItem(LAST_REGION_STORAGE_KEY)).toBe('steiermark');
   });
 
   it('shows nothing while the region data is loading', () => {

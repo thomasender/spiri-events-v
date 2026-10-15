@@ -1,9 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { Suspense, lazy, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { useRegion } from '../hooks/useRegion';
 import { trackFilter } from '../lib/analyticsEvents';
-import { isCombinedViewSlug } from '../utils/regions';
+import { COUNTRY_LABELS, COUNTRIES, isCombinedViewSlug } from '../utils/regions';
 import {
   readLastRegion,
   readRegionChooserSeen,
@@ -12,6 +12,9 @@ import {
 } from '../utils/regionRouting';
 import './RegionChooser.css';
 
+// The map data is only needed by first-time visitors.
+const RegionMap = lazy(() => import('./RegionMap'));
+
 // Only the two entry pages without a region in the address: never on a region
 // address, event page or profile, so crawlers and link previews are unaffected.
 const CHOOSER_PATHS = ['/', '/verzeichnis'];
@@ -19,14 +22,17 @@ const CHOOSER_PATHS = ['/', '/verzeichnis'];
 const FOCUSABLE = 'button:not([disabled])';
 
 /**
- * "Wo suchst du?" when we do not know yet where a visitor wants to search.
- * Dark launch: needs at least two active regions. Modal and required: no close
- * button, no Escape or backdrop dismissal. Not shown once a region is
- * remembered (localStorage), and opening a region address counts as a choice.
- * The page stays rendered behind it (only made inert while the dialog is open).
+ * "Wo suchst du?" when we do not know yet where a visitor wants to search: a
+ * full page (not a small pop-up) with a silent map of Germany, Austria and
+ * Switzerland plus the same choice as a list (the accessible equivalent).
+ * Dark launch: needs at least two active regions. Required: no close button, no
+ * Escape dismissal. Not shown once a region is remembered (localStorage), and
+ * opening a region address counts as a choice. The page stays rendered behind it
+ * (only made inert while the chooser is open). A region that is not open yet
+ * leads to its coming-soon page.
  */
 export default function RegionChooser() {
-  const { regions, combinedViews, loading, setRegion } = useRegion();
+  const { regions, allRegions, combinedViews, loading, setRegion } = useRegion();
   const { pathname } = useLocation();
   const dialogRef = useRef(null);
 
@@ -90,6 +96,9 @@ export default function RegionChooser() {
     setRegion(slug, pathname === '/verzeichnis' ? '/verzeichnis' : '/');
   };
 
+  const activeSlugs = new Set(regions.map((r) => r.slug));
+  const sorted = [...allRegions].sort((a, b) => a.order - b.order);
+
   return createPortal(
     <div className="region-chooser-backdrop">
       <section
@@ -101,36 +110,61 @@ export default function RegionChooser() {
         className="region-chooser"
         data-testid="region-chooser"
       >
-        <h2 id="region-chooser-title" className="region-chooser-title">
-          Wo suchst du?
-        </h2>
-        <p className="region-chooser-hint">
-          Wähle deine Region, damit wir dir passende Events zeigen. Du kannst sie jederzeit oben
-          wechseln.
-        </p>
-        <div className="region-chooser-options">
-          {[...regions]
-            .sort((a, b) => a.order - b.order)
-            .map((r) => (
-              <button
-                key={r.slug}
-                type="button"
-                className="region-chooser-option"
-                onClick={() => choose(r.slug)}
-              >
-                {r.name}
-              </button>
-            ))}
-          {combinedViews.map((v) => (
-            <button
-              key={v.slug}
-              type="button"
-              className="region-chooser-option region-chooser-option--all"
-              onClick={() => choose(v.slug)}
-            >
-              {v.name}
-            </button>
-          ))}
+        <header className="region-chooser-header">
+          <h2 id="region-chooser-title" className="region-chooser-title">
+            Wo suchst du?
+          </h2>
+          <p className="region-chooser-hint">
+            Wähle deine Region, damit wir dir passende Events zeigen. Du kannst sie jederzeit im
+            Menü wechseln.
+          </p>
+        </header>
+        <div className="region-chooser-layout">
+          <Suspense fallback={null}>
+            <RegionMap regions={sorted} activeSlugs={activeSlugs} onChoose={choose} />
+          </Suspense>
+          <div className="region-chooser-lists">
+            {combinedViews.length > 0 && (
+              <div className="region-chooser-options region-chooser-options--views">
+                {combinedViews.map((v) => (
+                  <button
+                    key={v.slug}
+                    type="button"
+                    className="region-chooser-option region-chooser-option--all"
+                    onClick={() => choose(v.slug)}
+                  >
+                    {v.name}
+                  </button>
+                ))}
+              </div>
+            )}
+            {COUNTRIES.map((country) => {
+              const inCountry = sorted.filter((r) => r.country === country);
+              if (inCountry.length === 0) return null;
+              return (
+                <div key={country} className="region-chooser-country">
+                  <h3 className="region-chooser-country-name">{COUNTRY_LABELS[country]}</h3>
+                  <div className="region-chooser-options">
+                    {inCountry.map((r) => (
+                      <button
+                        key={r.slug}
+                        type="button"
+                        className={`region-chooser-option${
+                          activeSlugs.has(r.slug) ? '' : ' region-chooser-option--soon'
+                        }`}
+                        onClick={() => choose(r.slug)}
+                      >
+                        {r.name}
+                        {!activeSlugs.has(r.slug) && (
+                          <span className="region-chooser-soon"> (bald)</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </section>
     </div>,
