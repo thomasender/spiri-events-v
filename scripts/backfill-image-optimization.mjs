@@ -64,7 +64,11 @@ async function tokenOf(file) {
 }
 
 /** Re-encode in place (same path + token) when larger than maxDimension. */
+const processed = new Set();
 async function shrinkInPlace(path, maxDimension) {
+  // Duplicated events share one image; handle each object only once.
+  if (processed.has(path)) return;
+  processed.add(path);
   const file = bucket.file(path);
   const [exists] = await file.exists();
   if (!exists) return;
@@ -76,6 +80,8 @@ async function shrinkInPlace(path, maxDimension) {
   if (needsResize) {
     const out = await img
       .resize({ width: maxDimension, height: maxDimension, fit: 'inside', withoutEnlargement: true })
+      // JPEG has no alpha: transparent PNG areas would turn black.
+      .flatten({ background: '#ffffff' })
       .jpeg({ quality: 82, mozjpeg: true })
       .toBuffer();
     if (out.length < buf.length) {
@@ -101,10 +107,22 @@ async function shrinkInPlace(path, maxDimension) {
   }
 }
 
+// Duplicated events point at the same cover. Writing the thumbnail again would
+// replace its download token and invalidate the URL stored on the first event,
+// so every thumbnail is created once and its URL reused.
+const thumbUrls = new Map();
 async function createThumbnail(eventId, coverPath) {
   const dir = coverPath.slice(0, coverPath.lastIndexOf('/') + 1);
   const name = coverPath.slice(dir.length);
   const thumbPath = `${dir}thumb_${name}`;
+  if (thumbUrls.has(thumbPath)) return thumbUrls.get(thumbPath);
+  const existing = bucket.file(thumbPath);
+  if ((await existing.exists())[0]) {
+    const { token } = await tokenOf(existing);
+    const url = downloadUrl(thumbPath, token);
+    thumbUrls.set(thumbPath, url);
+    return url;
+  }
   const [buf] = await bucket.file(coverPath).download();
   const out = await sharp(buf, { failOn: 'none' })
     .rotate()
@@ -113,7 +131,10 @@ async function createThumbnail(eventId, coverPath) {
     .toBuffer();
   console.log(`  thumb ${thumbPath}: ${buf.length} -> ${out.length} bytes`);
   stats.thumbs++;
-  if (!apply) return null;
+  if (!apply) {
+    thumbUrls.set(thumbPath, null);
+    return null;
+  }
   const token = randomUUID();
   await bucket.file(thumbPath).save(out, {
     resumable: false,
@@ -123,7 +144,9 @@ async function createThumbnail(eventId, coverPath) {
       metadata: { firebaseStorageDownloadTokens: token },
     },
   });
-  return downloadUrl(thumbPath, token);
+  const url = downloadUrl(thumbPath, token);
+  thumbUrls.set(thumbPath, url);
+  return url;
 }
 
 async function run(label, fn) {
