@@ -346,7 +346,9 @@ export default function MembersTab() {
 
   const columns = isAdmin
     ? COLUMNS
-    : COLUMNS.filter((c) => c.key === 'displayName' || c.key === 'username');
+    : COLUMNS.filter(
+        (c) => c.key === 'displayName' || c.key === 'username' || c.key === 'createdAt'
+      );
 
   const exportTitle = activeList ? `Mitglieder – ${activeList.name}` : 'Mitglieder';
 
@@ -571,8 +573,8 @@ export default function MembersTab() {
                     ))}
                     <th>Profil</th>
                     <th>Verzeichnis</th>
-                    {isAdmin && <th>Instagram teilen</th>}
-                    {isAdmin && <th>Instagram-Name</th>}
+                    <th>Instagram teilen</th>
+                    <th>Instagram-Name</th>
                     <th />
                   </tr>
                 </thead>
@@ -605,7 +607,7 @@ export default function MembersTab() {
                             )}
                           </td>
                         )}
-                        {isAdmin && <td>{formatDate(m.createdAt)}</td>}
+                        <td>{formatDate(m.createdAt)}</td>
                         <td>
                           {profilePath ? (
                             <a href={profilePath} target="_blank" rel="noreferrer">
@@ -618,8 +620,8 @@ export default function MembersTab() {
                         <td>
                           {m.listedInDirectory ? (m.directoryHidden ? 'Versteckt' : 'Ja') : 'Nein'}
                         </td>
-                        {isAdmin && <td>{m.instagramConsent ? 'Ja' : 'Nein'}</td>}
-                        {isAdmin && <td>{m.instagramHandle || '–'}</td>}
+                        <td>{m.instagramConsent ? 'Ja' : 'Nein'}</td>
+                        <td>{m.instagramHandle || '–'}</td>
                         <td className="members-actions">
                           <button
                             type="button"

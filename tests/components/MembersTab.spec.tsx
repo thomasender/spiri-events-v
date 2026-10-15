@@ -154,16 +154,21 @@ describe('MembersTab for a Regions-Moderator:in', () => {
         directoryCategories: ['Yoga'],
         directoryRegions: [],
         directoryRegionIds: ['tirol'],
+        instagramConsent: true,
+        instagramHandle: '@tina.yoga',
+        createdAt: '2026-01-01T00:00:00.000Z',
       },
     ];
   });
 
-  it('shows the member list of her region without e-mail, Instagram, lists or exports', () => {
+  it('shows the member list of her region without e-mail, lists or exports', () => {
     render(<MembersTab />);
     expect(screen.getAllByTestId('member-row')).toHaveLength(1);
     const headers = screen.getAllByRole('columnheader').map((h) => h.textContent);
     expect(headers).not.toContain('E-Mail');
-    expect(headers).not.toContain('Instagram teilen');
+    expect(headers).toEqual(expect.arrayContaining(['Name', 'Benutzername', 'Registriert']));
+    expect(headers).toEqual(expect.arrayContaining(['Instagram teilen', 'Instagram-Name']));
+    expect(screen.getByText('@tina.yoga')).toBeInTheDocument();
     expect(screen.queryByLabelText('Liste wählen')).not.toBeInTheDocument();
     expect(screen.queryByTestId('members-export-csv')).not.toBeInTheDocument();
     expect(screen.queryByText(/Neue Liste/)).not.toBeInTheDocument();

@@ -411,7 +411,7 @@ describe('adminListMembers by role', () => {
     });
   });
 
-  it('moderator: only members of her regions, no sensitive fields, no private reads', async () => {
+  it('moderator: only members of her regions, no e-mail, private reads only for them', async () => {
     readPaths.length = 0;
     const res = await listMembersHandler(call('modTirol', {}), deps);
     expect(res.scope).toEqual({ role: 'RegionModerator', regionIds: ['tirol'] });
@@ -429,10 +429,20 @@ describe('adminListMembers by role', () => {
           'directoryCategories',
           'directoryRegions',
           'directoryRegionIds',
+          'instagramConsent',
+          'instagramHandle',
+          'createdAt',
         ].sort()
       );
     }
-    expect(readPaths.flat().some((p) => !p.endsWith('/publicProfile/data'))).toBe(false);
+    // Private docs are read only for members of her regions.
+    expect(
+      readPaths
+        .flat()
+        .filter((p) => !p.endsWith('/publicProfile/data'))
+        .sort()
+    ).toEqual(['users/tirol', 'users/tirolWien']);
+    expect(res.members[0]).toMatchObject({ instagramConsent: true, instagramHandle: '@t' });
 
     const vb = await listMembersHandler(call('modVb', {}), deps);
     expect(vb.members.map((m) => m.uid)).toEqual(['legacy']);

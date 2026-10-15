@@ -187,9 +187,9 @@ export function assertAdmin(uid: string | undefined): Promise<void> {
   return assertSuperAdmin(uid);
 }
 
-// What a region moderator gets per member: only what the public profile shows
-// anyway (users/{uid}/publicProfile is public-read). No e-mail, sign-in
-// metadata, account state or private-profile data (Instagram handle/consent).
+// What a region moderator gets per member: what the public profile shows plus
+// registration date and the Instagram handle/sharing consent (product owner
+// decision). No e-mail, sign-in metadata or account state.
 export interface ModeratorMemberRow {
   uid: string;
   displayName: string;
@@ -201,6 +201,9 @@ export interface ModeratorMemberRow {
   directoryCategories: string[];
   directoryRegions: string[];
   directoryRegionIds: string[];
+  instagramConsent: boolean;
+  instagramHandle: string;
+  createdAt: string | null;
 }
 
 export function toModeratorMemberRow(row: MemberRow): ModeratorMemberRow {
@@ -215,6 +218,9 @@ export function toModeratorMemberRow(row: MemberRow): ModeratorMemberRow {
     directoryCategories: row.directoryCategories,
     directoryRegions: row.directoryRegions,
     directoryRegionIds: row.directoryRegionIds,
+    instagramConsent: row.instagramConsent,
+    instagramHandle: row.instagramHandle,
+    createdAt: row.createdAt,
   };
 }
 
@@ -244,7 +250,9 @@ export function membersForRole(
     scope: { role: 'RegionModerator', regionIds: [...role.regionIds] },
     members: users
       .filter((u) => profileVisibleToModerator(profiles.get(u.uid), role.regionIds))
-      .map((u) => toModeratorMemberRow(buildMemberRow(u, profiles.get(u.uid), {}))),
+      .map((u) =>
+        toModeratorMemberRow(buildMemberRow(u, profiles.get(u.uid), privates.get(u.uid) ?? {}))
+      ),
   };
 }
 
@@ -270,10 +278,19 @@ export async function listMembersHandler(
     return map;
   };
   const profiles = await byUid((uid) => `users/${uid}/publicProfile/data`);
-  // Instagram consent + handle live in the private users/{uid} doc; a
-  // moderator never gets them, so they are not even read for her.
+  // Instagram consent + handle live in the private users/{uid} doc. A
+  // moderator gets them only for members of her regions, so only those are read.
   if (role.kind !== 'superAdmin') {
-    return membersForRole(role, users, profiles, new Map<string, Doc>());
+    const visible = users.filter((u) =>
+      profileVisibleToModerator(profiles.get(u.uid), role.regionIds)
+    );
+    const docs = await deps.readDocs(visible.map((u) => `users/${u.uid}`));
+    const visiblePrivates = new Map<string, Doc>();
+    for (const u of visible) {
+      const d = docs.get(`users/${u.uid}`);
+      if (d) visiblePrivates.set(u.uid, d);
+    }
+    return membersForRole(role, users, profiles, visiblePrivates);
   }
   const privates = await byUid((uid) => `users/${uid}`);
   // Super-Admins also see who already has a staff role, so the Moderation tab
