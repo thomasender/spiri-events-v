@@ -133,7 +133,12 @@ export interface CarouselGroup {
   events: CarouselEvent[];
 }
 
-/** Eligible events grouped per Bezirk, sorted by date/time, chunked by 9. Empty Bezirke are skipped. */
+/**
+ * Eligible events grouped per Bezirk and sorted by date/time. A Bezirk with more
+ * than 9 events gets as many carousels as needed, with the events spread evenly
+ * (sizes differ by at most one; earlier parts get the extra event) instead of
+ * filling the first ones and leaving a nearly empty last one. Empty Bezirke are skipped.
+ */
 export function groupCarousels(events: CarouselEvent[], window: WeekWindow): CarouselGroup[] {
   const groups: CarouselGroup[] = [];
   for (const bezirk of CAROUSEL_BEZIRKE) {
@@ -142,13 +147,13 @@ export function groupCarousels(events: CarouselEvent[], window: WeekWindow): Car
       .sort(compareEvents);
     if (list.length === 0) continue;
     const parts = Math.ceil(list.length / MAX_EVENTS_PER_CAROUSEL);
+    const base = Math.floor(list.length / parts);
+    const extra = list.length % parts;
+    let offset = 0;
     for (let i = 0; i < parts; i += 1) {
-      groups.push({
-        bezirk,
-        part: i + 1,
-        parts,
-        events: list.slice(i * MAX_EVENTS_PER_CAROUSEL, (i + 1) * MAX_EVENTS_PER_CAROUSEL),
-      });
+      const size = base + (i < extra ? 1 : 0);
+      groups.push({ bezirk, part: i + 1, parts, events: list.slice(offset, offset + size) });
+      offset += size;
     }
   }
   return groups;
