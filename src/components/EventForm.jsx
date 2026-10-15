@@ -1572,6 +1572,7 @@ export default function EventForm({ event }) {
                   date: formData.date,
                   time: formData.time,
                   place: formData.isOnline ? 'Online' : (formData.place || '').trim(),
+                  organizer: combineOrganizerName(formData.organizer),
                 }}
               />
             </details>

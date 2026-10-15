@@ -11,6 +11,7 @@ vi.mock('../../src/lib/firebase', () => ({ db: {} }));
 import InstagramPostPreview, {
   AdminInstagramPreview,
   formatPreviewDate,
+  formatPreviewOrganizer,
 } from '../../src/components/InstagramPostPreview';
 
 const event = {
@@ -19,6 +20,7 @@ const event = {
   date: '2026-10-12',
   time: '09:00',
   place: 'Dornbirn',
+  organizer: 'Anna Muster',
 };
 
 describe('InstagramPostPreview', () => {
@@ -45,6 +47,25 @@ describe('InstagramPostPreview', () => {
     expect(screen.queryByTestId('instagram-preview-overlay')).toBeNull();
     fireEvent.click(screen.getByTestId('instagram-preview-mode-carousel'));
     expect(screen.getByTestId('instagram-preview-overlay')).toBeInTheDocument();
+    expect(screen.queryByTestId('instagram-preview-post-overlay')).toBeNull();
+  });
+
+  it('shows only title and organizer in the single-post preview', () => {
+    render(<InstagramPostPreview imageUrl="blob:x" event={event} />);
+    fireEvent.click(screen.getByTestId('instagram-preview-mode-post'));
+    const overlay = screen.getByTestId('instagram-preview-post-overlay');
+    expect(overlay).toHaveTextContent('Morgen-Yoga');
+    expect(overlay).toHaveTextContent('Anna Muster');
+    expect(overlay.querySelector('.instagram-post-preview-chip')).toBeNull();
+    expect(overlay).not.toHaveTextContent('12.10.2026');
+    expect(overlay).not.toHaveTextContent('09:00');
+    expect(overlay).not.toHaveTextContent('Dornbirn');
+  });
+
+  it('formats the organizer name from name or first/last name', () => {
+    expect(formatPreviewOrganizer({ name: ' Studio Om ' })).toBe('Studio Om');
+    expect(formatPreviewOrganizer({ firstName: 'Anna', lastName: 'Muster' })).toBe('Anna Muster');
+    expect(formatPreviewOrganizer(null)).toBe('');
   });
 
   it('shows the hint and the not-posted disclaimer', () => {
@@ -75,6 +96,17 @@ describe('AdminInstagramPreview', () => {
     const imgs = document.querySelectorAll('img');
     expect(imgs[0]).toHaveAttribute('src', 'https://x/ig.jpg');
     expect(imgs[0]).toHaveStyle({ objectPosition: '10% 90%' });
+  });
+
+  it('shows the organizer name in the single-post preview', () => {
+    render(
+      <AdminInstagramPreview
+        event={{ ...base, organizer: { firstName: 'Anna', lastName: 'Muster' } }}
+        isAdmin
+      />
+    );
+    fireEvent.click(screen.getByTestId('instagram-preview-mode-post'));
+    expect(screen.getByTestId('instagram-preview-post-overlay')).toHaveTextContent('Anna Muster');
   });
 
   it('falls back to the cover photo when no Instagram image is stored', () => {

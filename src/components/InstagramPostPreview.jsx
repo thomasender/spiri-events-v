@@ -16,17 +16,28 @@ export function formatPreviewDate(date) {
   return m ? `${m[3]}.${m[2]}.${m[1]}` : (date ?? '');
 }
 
+/** Organizer display name from `{ name }` or `{ firstName, lastName }`. */
+export function formatPreviewOrganizer(organizer) {
+  if (!organizer || typeof organizer !== 'object') return '';
+  const name = typeof organizer.name === 'string' ? organizer.name.trim() : '';
+  if (name) return name;
+  return [organizer.firstName, organizer.lastName]
+    .map((v) => (typeof v === 'string' ? v.trim() : ''))
+    .filter(Boolean)
+    .join(' ');
+}
+
 export const PREVIEW_MODE_CAROUSEL = 'carousel';
 export const PREVIEW_MODE_POST = 'post';
 
 /**
  * Toggle between the weekly-carousel slide (event text over the photo) and the
- * plain feed post (the photo only).
+ * single feed post (only title and organizer over the photo).
  */
 export function InstagramPreviewModeToggle({ mode, onChange }) {
   const options = [
     { value: PREVIEW_MODE_CAROUSEL, label: 'Karussell (mit Text)' },
-    { value: PREVIEW_MODE_POST, label: 'Nur Beitrag' },
+    { value: PREVIEW_MODE_POST, label: 'Einzelbeitrag' },
   ];
   return (
     <div
@@ -67,14 +78,38 @@ export function InstagramPreviewOverlay({ event = {} }) {
   );
 }
 
+/** Single feed post: only the event title and the organizer's name. */
+export function InstagramPreviewPostOverlay({ event = {} }) {
+  return (
+    <div
+      className="instagram-post-preview-overlay instagram-post-preview-overlay--post"
+      data-testid="instagram-preview-post-overlay"
+    >
+      <div className="instagram-post-preview-text">
+        <strong>{event.title || 'Titel des Events'}</strong>
+        {event.organizer && <span>{event.organizer}</span>}
+      </div>
+    </div>
+  );
+}
+
+/** The overlay matching the selected preview mode. */
+export function InstagramPreviewModeOverlay({ mode, event }) {
+  return mode === PREVIEW_MODE_CAROUSEL ? (
+    <InstagramPreviewOverlay event={event} />
+  ) : (
+    <InstagramPreviewPostOverlay event={event} />
+  );
+}
+
 /** Hint and disclaimer shown under the preview. */
 export function InstagramPreviewNotes() {
   return (
     <div className="instagram-preview-notes" data-testid="instagram-preview-notes">
       <p className="instagram-image-picker-hint">
-        Ungefähre Vorschau. Beim Wochen-Karussell liegt der Text des Events über dem Foto. Enthält
-        dein Foto selbst Text (z.B. ein Flyer), kann das unruhig wirken. Wähle dann einen Ausschnitt
-        ohne Text.
+        Ungefähre Vorschau. Beim Wochen-Karussell liegt der Text des Events über dem Foto, beim
+        Einzelbeitrag nur der Titel und der Name des Veranstalters. Enthält dein Foto selbst Text
+        (z.B. ein Flyer), kann das unruhig wirken. Wähle dann einen Ausschnitt ohne Text.
       </p>
       <p className="instagram-image-picker-hint" data-testid="instagram-preview-disclaimer">
         Wir behalten uns vor, den Beitrag nicht zu posten, wenn das Foto nicht passt (z.B. wenn nur
@@ -108,7 +143,7 @@ export default function InstagramPostPreview({ imageUrl, focalPoint, zoom = 1, e
             ...(zoom > 1 ? { transform: `scale(${zoom})`, transformOrigin: pos } : {}),
           }}
         />
-        {mode === PREVIEW_MODE_CAROUSEL && <InstagramPreviewOverlay event={event} />}
+        <InstagramPreviewModeOverlay mode={mode} event={event} />
       </div>
       <InstagramPreviewNotes />
     </div>
@@ -170,9 +205,7 @@ function AdminInstagramCropEditor({ event, imageUrl, initial, previewEvent, onSa
         testId="admin-instagram-focal-picker"
         info="Tippe oder ziehe auf das Foto, um den wichtigsten Bereich zu wählen, und zoome bei Bedarf hinein."
         previewControls={<InstagramPreviewModeToggle mode={mode} onChange={setMode} />}
-        previewOverlay={
-          mode === PREVIEW_MODE_CAROUSEL && <InstagramPreviewOverlay event={previewEvent} />
-        }
+        previewOverlay={<InstagramPreviewModeOverlay mode={mode} event={previewEvent} />}
       />
       {error && (
         <p className="error-text" data-testid="admin-instagram-crop-error">
@@ -220,6 +253,7 @@ export function AdminInstagramPreview({ event, isAdmin, onCropSaved }) {
     date: event.date,
     time: event.time,
     place: event.isOnline ? 'Online' : event.place,
+    organizer: formatPreviewOrganizer(event.organizer),
   };
 
   if (editing && imageUrl) {

@@ -1633,6 +1633,7 @@ export default function EventFormWizard() {
               date: formData.date,
               time: formData.time,
               place: formData.isOnline ? 'Online' : formData.place.trim(),
+              organizer: formData.organizer.name.trim(),
             }}
           />
         </details>

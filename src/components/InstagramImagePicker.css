@@ -208,6 +208,11 @@
   );
 }
 
+.instagram-post-preview-overlay--post {
+  justify-content: flex-end;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0.8) 100%);
+}
+
 .instagram-post-preview-chip {
   align-self: flex-start;
   padding: 2px 8px;

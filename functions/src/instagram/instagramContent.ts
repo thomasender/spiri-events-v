@@ -171,7 +171,7 @@ export interface EventImageModel {
   category: string;
   color: string;
   imageUrl: string | null;
-  /** Carousel slides show the organizer instead of the site URL at the bottom. */
+  /** Carousel slides and feed posts show the organizer at the bottom. */
   organizerName?: string;
 }
 

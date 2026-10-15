@@ -241,6 +241,7 @@ describe('EventFormWizard Instagram image crop', () => {
     expect(within(preview).getByTestId('instagram-preview-overlay')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('instagram-preview-mode-post'));
     expect(within(preview).queryByTestId('instagram-preview-overlay')).toBeNull();
+    expect(within(preview).getByTestId('instagram-preview-post-overlay')).toBeInTheDocument();
     expect(screen.getByTestId('instagram-preview-disclaimer')).toHaveTextContent(/nicht zu posten/);
   });
 
