@@ -197,6 +197,41 @@
 
 .event-detail-dates-list li {
   margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.event-detail-date-badge {
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.event-detail-dates-list .event-detail-date-badge {
+  margin-left: 0;
+}
+
+.event-detail-date-action {
+  font-size: 0.85rem;
+}
+
+.event-cancelled-banner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin: 0 0 16px 0;
+  padding: 12px 16px;
+  border: 1px solid #b42318;
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.event-cancel-error {
+  margin: 0 0 16px 0;
+  color: #b42318;
 }
 
 .event-detail-date-current {

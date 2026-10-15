@@ -12,6 +12,8 @@ import { getEventFallbackImage } from '../utils/eventFallbacks';
 import { trackEventOpen } from '../lib/analyticsEvents';
 import EventCoverImage from './EventCoverImage';
 import FavoriteButton from './FavoriteButton';
+import CancelledBadge from './CancelledBadge';
+import { isEntryCancelled } from '../utils/eventCancellation';
 import './EventCard.css';
 
 export default function EventCard({ event, categoryColor, onClick }) {
@@ -21,6 +23,7 @@ export default function EventCard({ event, categoryColor, onClick }) {
   const multiDay = isMultiDayEvent(event);
   const dateRangeLabel = multiDay ? formatEventDateRangeLabel(event.date, event.endDate) : null;
   const locationLabel = getEventLocationLabel(event);
+  const cancelled = isEntryCancelled(event);
 
   return (
     <Link
@@ -47,6 +50,7 @@ export default function EventCard({ event, categoryColor, onClick }) {
       </div>
 
       <div className="event-tile-body">
+        {cancelled && <CancelledBadge />}
         <span className="event-tile-date">
           {multiDay ? (
             <span data-testid="event-tile-date-range">{dateRangeLabel}</span>

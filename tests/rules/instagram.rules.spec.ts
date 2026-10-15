@@ -510,6 +510,83 @@ describe('events: owners cannot approve their own events', () => {
   });
 });
 
+describe('events: cancelling an event or single dates (Abgesagt)', () => {
+  const owner = () => env.authenticatedContext('owner', { email_verified: true });
+  const seed = (data: Record<string, unknown>) =>
+    env.withSecurityRulesDisabled((ctx) =>
+      setDoc(doc(ctx.firestore(), 'events/c'), {
+        createdBy: 'owner',
+        description: 'd',
+        title: 'T',
+        slug: 't-sonstiges-20261101',
+        status: 'approved',
+        approvedBy: 'adminDoc',
+        approvedAt: 1,
+        recurrence: 'weekly',
+        date: '2026-11-01',
+        ...data,
+      })
+    );
+  const ref = (ctx = owner()) => doc(ctx.firestore(), 'events/c');
+
+  it('owner cancels and un-cancels the whole approved event, which stays approved', async () => {
+    await seed({});
+    await assertSucceeds(updateDoc(ref(), { cancelled: true, updatedAt: 1 }));
+    await assertSucceeds(updateDoc(ref(), { cancelled: false, updatedAt: 2 }));
+  });
+
+  it('owner cancels and un-cancels single dates of an approved series', async () => {
+    await seed({});
+    await assertSucceeds(
+      updateDoc(ref(), { cancelledDates: arrayUnion('2026-11-08'), updatedAt: 1 })
+    );
+    await assertSucceeds(
+      updateDoc(ref(), { cancelledDates: arrayUnion('2026-11-15'), updatedAt: 2 })
+    );
+    await assertSucceeds(updateDoc(ref(), { cancelledDates: ['2026-11-15'], updatedAt: 3 }));
+  });
+
+  it('rejects malformed cancellation fields', async () => {
+    await seed({});
+    await assertFails(updateDoc(ref(), { cancelled: 'yes' }));
+    await assertFails(updateDoc(ref(), { cancelledDates: '2026-11-08' }));
+    await assertFails(updateDoc(ref(), { cancelledDates: [42] }));
+  });
+
+  it('attack: cancelling does not open the door to content changes', async () => {
+    await seed({});
+    await assertFails(updateDoc(ref(), { cancelled: true, title: 'Neuer Titel' }));
+    await assertFails(
+      updateDoc(ref(), { cancelledDates: ['2026-11-08'], date: '2026-12-24', updatedAt: 1 })
+    );
+  });
+
+  it('attack: other users and visitors cannot cancel', async () => {
+    await seed({});
+    await assertFails(
+      updateDoc(ref(env.authenticatedContext('mallory', { email_verified: true })), {
+        cancelled: true,
+      })
+    );
+    await assertFails(updateDoc(ref(anon()), { cancelledDates: ['2026-11-08'] }));
+  });
+
+  it('admins can cancel too', async () => {
+    await seed({});
+    for (const make of Object.values(adminVariants)) {
+      await assertSucceeds(updateDoc(ref(make()), { cancelled: true }));
+    }
+  });
+});
+
+describe('users.notifyOnFavoriteCancelled', () => {
+  it('owner can switch the favorite-cancelled e-mail off and on', async () => {
+    const db = env.authenticatedContext('owner').firestore();
+    await assertSucceeds(updateDoc(doc(db, 'users/owner'), { notifyOnFavoriteCancelled: false }));
+    await assertSucceeds(updateDoc(doc(db, 'users/owner'), { notifyOnFavoriteCancelled: true }));
+  });
+});
+
 describe('users.instagramConsentDefault', () => {
   it('owner can set a bool, not a non-bool', async () => {
     const db = env.authenticatedContext('owner').firestore();

@@ -89,3 +89,20 @@ describe('EventCard analytics', () => {
     expect(onClick).toHaveBeenCalled();
   });
 });
+
+describe('EventCard — cancelled ("Abgesagt")', () => {
+  it('labels a cancelled date of a series', () => {
+    renderCard({ ...baseEvent, cancelledDates: ['2026-09-15'] });
+    expect(screen.getByTestId('cancelled-badge')).toHaveTextContent('Abgesagt');
+  });
+
+  it('does not label other dates of the same series', () => {
+    renderCard({ ...baseEvent, cancelledDates: ['2026-09-22'] });
+    expect(screen.queryByTestId('cancelled-badge')).toBeNull();
+  });
+
+  it('labels every entry of a whole cancelled event', () => {
+    renderCard({ ...baseEvent, cancelled: true });
+    expect(screen.getByTestId('cancelled-badge')).toBeInTheDocument();
+  });
+});

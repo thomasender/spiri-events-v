@@ -23,6 +23,13 @@ const PREFERENCE_DEFINITIONS = [
     adminOnly: false,
   },
   {
+    key: 'notifyOnFavoriteCancelled',
+    label: 'Favorit abgesagt',
+    description:
+      'Du erhältst eine E-Mail, wenn ein Event oder ein Termin, den du als Favorit gespeichert hast, abgesagt wird.',
+    adminOnly: false,
+  },
+  {
     key: 'notifyOnSubmitted',
     label: 'Neue Event-Einreichungen',
     description:

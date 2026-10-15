@@ -109,6 +109,19 @@ service cloud.firestore {
                );
       }
 
+      // Cancellation ("Abgesagt"): `cancelled` is a bool for the whole event,
+      // `cancelledDates` a list of the series' cancelled dates (YYYY-MM-DD).
+      function isValidCancellation() {
+        let data = request.resource.data;
+        return (!('cancelled' in data) || data.cancelled is bool)
+               && (!('cancelledDates' in data)
+                   || (data.cancelledDates is list
+                       && data.cancelledDates.size() <= 400
+                       && (data.cancelledDates.size() == 0
+                           || (data.cancelledDates[0] is string
+                               && data.cancelledDates[data.cancelledDates.size() - 1] is string))));
+      }
+
       // Anyone creating an event (including admins) must start it as
       // 'pending' or 'draft'. Approval happens via update. Non-admins
       // additionally need a confirmed email address.
@@ -151,13 +164,15 @@ service cloud.firestore {
       // Allowed: Instagram settings (EventForm Instagram-only save, Instagram
       // photo upload), cover image / focal point / zoom patches, and series
       // exceptions (utils/customSeriesUpdates, exceptionDates arrayUnion,
-      // recurrenceEndDate cut-off). `customDates` may only shrink, so no new
+      // recurrenceEndDate cut-off) and cancelling / un-cancelling the event or
+      // single dates (cancelled, cancelledDates) without a new review. `customDates` may only shrink, so no new
       // dates are published without review. Any other change has to move the
       // event to draft / pending / trashed first.
       function isOwnerApprovedPatch(before, after, changed) {
         return changed.hasOnly(['instagramConsent', 'instagramHandleOverride', 'instagramImage',
                                 'imageUrl', 'imageFocalPoint', 'imageZoom',
                                 'customDates', 'exceptionDates', 'recurrenceEndDate',
+                                'cancelled', 'cancelledDates',
                                 'updatedAt'])
           && (!changed.hasAny(['customDates'])
               || (after.customDates is list
@@ -181,7 +196,8 @@ service cloud.firestore {
                             && request.resource.data.category.size() <= 40))
                     && isValidInstagramConsent()
                     && isValidFocalPoint()
-                    && isValidImageZoom();
+                    && isValidImageZoom()
+                    && isValidCancellation();
       allow delete: if isOwner() || isAdminOrEmulatorAdmin();
 
       match /messages/{messageId} {
@@ -223,7 +239,7 @@ service cloud.firestore {
                        'listedInDirectory', 'directoryCategories', 'directoryRegions',
                        'notifyOnSubmitted', 'notifyOnChangesRequested',
                        'notifyOnPublished', 'notifyOnDeleted',
-                       'notifyOnContactMessage',
+                       'notifyOnContactMessage', 'notifyOnFavoriteCancelled',
                        'notifyNewsletter', 'instagramConsentDefault',
                        'createdAt', 'updatedAt']
                     )
@@ -252,7 +268,7 @@ service cloud.firestore {
                                   'listedInDirectory', 'directoryCategories', 'directoryRegions',
                                   'notifyOnSubmitted', 'notifyOnChangesRequested',
                                   'notifyOnPublished', 'notifyOnDeleted',
-                                  'notifyOnContactMessage',
+                                  'notifyOnContactMessage', 'notifyOnFavoriteCancelled',
                                   'notifyNewsletter', 'instagramConsentDefault',
                                   'updatedAt']);
 

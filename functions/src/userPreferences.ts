@@ -12,7 +12,8 @@ export type PreferenceKey =
   | 'notifyOnPublished'
   | 'notifyOnDeleted'
   | 'notifyNewsletter'
-  | 'notifyOnContactMessage';
+  | 'notifyOnContactMessage'
+  | 'notifyOnFavoriteCancelled';
 
 export type NotificationPreferenceMap = Record<PreferenceKey, boolean>;
 
@@ -23,6 +24,7 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferenceMap = {
   notifyOnDeleted: true,
   notifyNewsletter: false,
   notifyOnContactMessage: true,
+  notifyOnFavoriteCancelled: true,
 };
 
 function readBool(value: unknown): boolean | null {

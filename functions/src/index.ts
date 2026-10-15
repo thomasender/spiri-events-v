@@ -137,3 +137,4 @@ export {
   adminPostWeeklyCarousels,
 } from './instagramAdmin';
 export { purgeExpiredEvents } from './purgeExpiredEvents';
+export { onEventCancelledNotifyFavorites } from './eventCancellationNotify';

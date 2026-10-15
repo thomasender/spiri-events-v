@@ -20,6 +20,7 @@ export const NOTIFICATION_PREFERENCE_KEYS = [
   'notifyOnPublished',
   'notifyOnDeleted',
   'notifyOnContactMessage',
+  'notifyOnFavoriteCancelled',
   'notifyNewsletter',
 ];
 
@@ -29,6 +30,7 @@ const DEFAULT_NOTIFICATION_PREFERENCES = {
   notifyOnPublished: true,
   notifyOnDeleted: true,
   notifyOnContactMessage: true,
+  notifyOnFavoriteCancelled: true,
   notifyNewsletter: false,
 };
 

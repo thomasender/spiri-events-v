@@ -2,7 +2,16 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import SeoMeta from '../components/SeoMeta';
-import { collection, doc, getDoc, query, where, getDocs, arrayUnion } from 'firebase/firestore';
+import {
+  collection,
+  doc,
+  getDoc,
+  query,
+  where,
+  getDocs,
+  arrayUnion,
+  arrayRemove,
+} from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { isLegacyId } from '../lib/slug';
 import {
@@ -19,6 +28,7 @@ import {
   User,
   Mail,
   Phone,
+  Ban,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useEvents } from '../hooks/useEvents';
@@ -30,6 +40,8 @@ import { resolveOrganizerProfilePath } from '../utils/profile';
 import { canEditEvent, canDeleteEvent, requiresDeleteReason } from '../utils/eventPermissions';
 import { parseContactText } from '../utils/contactFormat';
 import { getNextUpcomingOccurrence, getRecurrenceDatesForDetail } from '../utils/eventOccurrences';
+import { isEventCancelled, isOccurrenceCancelled } from '../utils/eventCancellation';
+import CancelledBadge from '../components/CancelledBadge';
 import {
   buildCustomDeleteOccurrenceUpdate,
   buildCustomDeleteFromDateUpdate,
@@ -217,7 +229,9 @@ function generateEventJsonLd(event) {
     location,
     description: stripHtml(event.description || ''),
     image: event.imageUrl || getEventFallbackImage(event),
-    eventStatus: 'https://schema.org/EventScheduled',
+    eventStatus: isEventCancelled(event)
+      ? 'https://schema.org/EventCancelled'
+      : 'https://schema.org/EventScheduled',
     ...(offer && { offer }),
   };
 }
@@ -245,6 +259,10 @@ export default function EventDetailPage() {
   const [unpublishing, setUnpublishing] = useState(false);
   const [calendarLoginPromptOpen, setCalendarLoginPromptOpen] = useState(false);
   const [calendarDownloadState, setCalendarDownloadState] = useState('idle');
+  // null | { date: null } (whole event) | { date: 'YYYY-MM-DD' } (one date of a series)
+  const [cancelTarget, setCancelTarget] = useState(null);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState('');
   const isAdmin = role === 'Admin';
   const showMessagesForHash =
     event &&
@@ -544,6 +562,41 @@ export default function EventDetailPage() {
     }
   };
 
+  // Owners (and admins) can call off a published event or single dates of a
+  // series. The event stays visible with an "Abgesagt" label; people who saved
+  // it as a favorite get an e-mail (Cloud Function on the event update).
+  const canManageCancellation = showEditButton && event.status === 'approved';
+  const eventCancelled = isEventCancelled(event);
+
+  const applyCancellation = async (date, cancel) => {
+    setCancelling(true);
+    setCancelError('');
+    try {
+      const patch = date
+        ? { cancelledDates: cancel ? arrayUnion(date) : arrayRemove(date) }
+        : { cancelled: cancel };
+      await updateEvent(event.id, patch);
+      setEvent((prev) => {
+        if (!prev) return prev;
+        if (!date) return { ...prev, cancelled: cancel };
+        const current = Array.isArray(prev.cancelledDates) ? prev.cancelledDates : [];
+        const next = cancel ? [...new Set([...current, date])] : current.filter((d) => d !== date);
+        return { ...prev, cancelledDates: next };
+      });
+      setCancelTarget(null);
+    } catch (err) {
+      console.error('Cancellation update failed:', err);
+      setCancelError('Das hat leider nicht geklappt. Bitte versuche es noch einmal.');
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const todayIso = (() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  })();
+
   const backPath = location.state?.from || '/';
   const backLabel =
     backPath === '/admin' || backPath.startsWith('/admin?')
@@ -575,7 +628,11 @@ export default function EventDetailPage() {
         <span>{backLabel}</span>
       </Link>
 
-      {(showEditButton || showDeleteButton || showApproveButton || showUnpublishButton) && (
+      {(showEditButton ||
+        showDeleteButton ||
+        showApproveButton ||
+        showUnpublishButton ||
+        canManageCancellation) && (
         <div className="owner-actions">
           {showEditButton && (
             <Link to={`/admin/edit/${event.id}`} className="btn btn-secondary">
@@ -606,6 +663,29 @@ export default function EventDetailPage() {
               <span>Zurück zu Entwurf</span>
             </button>
           )}
+          {canManageCancellation &&
+            (eventCancelled ? (
+              <button
+                type="button"
+                onClick={() => applyCancellation(null, false)}
+                disabled={cancelling}
+                className="btn btn-secondary"
+                data-testid="uncancel-event-button"
+              >
+                <Undo2 size={16} />
+                <span>Absage zurücknehmen</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setCancelTarget({ date: null })}
+                className="btn btn-secondary"
+                data-testid="cancel-event-button"
+              >
+                <Ban size={16} />
+                <span>{showRecurrenceDatesList ? 'Alle Termine absagen' : 'Event absagen'}</span>
+              </button>
+            ))}
           {showDeleteButton && (
             <button
               type="button"
@@ -626,6 +706,22 @@ export default function EventDetailPage() {
             </button>
           )}
         </div>
+      )}
+
+      {(eventCancelled || (occurrenceDate && isOccurrenceCancelled(event, occurrenceDate))) && (
+        <div className="event-cancelled-banner" role="status" data-testid="event-cancelled-banner">
+          <CancelledBadge />
+          <span>
+            {eventCancelled
+              ? 'Dieses Event wurde abgesagt und findet nicht statt.'
+              : `Der Termin am ${formatDate(occurrenceDate)} wurde abgesagt und findet nicht statt.`}
+          </span>
+        </div>
+      )}
+      {cancelError && (
+        <p className="event-cancel-error" role="alert">
+          {cancelError}
+        </p>
       )}
 
       <header className="event-header">
@@ -681,6 +777,11 @@ export default function EventDetailPage() {
               >
                 {recurrenceDates.map((date) => {
                   const isCurrent = date === occurrenceDate;
+                  const dateCancelled = isOccurrenceCancelled(event, date);
+                  const dateIsCancelledSingly =
+                    Array.isArray(event.cancelledDates) && event.cancelledDates.includes(date);
+                  const showDateToggle =
+                    canManageCancellation && !eventCancelled && date >= todayIso;
                   return (
                     <li key={date} data-testid="event-detail-date-item">
                       <span
@@ -689,6 +790,28 @@ export default function EventDetailPage() {
                       >
                         {formatDate(date)}
                       </span>
+                      {dateCancelled && <CancelledBadge className="event-detail-date-badge" />}
+                      {showDateToggle &&
+                        (dateIsCancelledSingly ? (
+                          <button
+                            type="button"
+                            className="detail-link detail-link--button event-detail-date-action"
+                            onClick={() => applyCancellation(date, false)}
+                            disabled={cancelling}
+                            data-testid="uncancel-date-button"
+                          >
+                            Absage zurücknehmen
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="detail-link detail-link--button event-detail-date-action"
+                            onClick={() => setCancelTarget({ date })}
+                            data-testid="cancel-date-button"
+                          >
+                            Termin absagen
+                          </button>
+                        ))}
                     </li>
                   );
                 })}
@@ -698,6 +821,9 @@ export default function EventDetailPage() {
                 {formatDate(occurrenceDate || event.date)}
                 {formatEndDate(occurrenceDate || event.date, event.endDate) &&
                   ` — ${formatEndDate(occurrenceDate || event.date, event.endDate)}`}
+                {isOccurrenceCancelled(event, occurrenceDate || event.date) && (
+                  <CancelledBadge className="event-detail-date-badge" />
+                )}
               </span>
             )}
             {event.status === 'approved' && (
@@ -914,6 +1040,22 @@ export default function EventDetailPage() {
         onConfirm={handleUnpublish}
         onCancel={() => setShowUnpublishDialog(false)}
         loading={unpublishing}
+      />
+
+      <ConfirmDialog
+        isOpen={Boolean(cancelTarget)}
+        title={cancelTarget?.date ? 'Termin absagen' : 'Event absagen'}
+        message={
+          cancelTarget?.date
+            ? `Der Termin am ${formatDate(cancelTarget.date)} bleibt sichtbar, wird aber als „Abgesagt" markiert. Alle, die dieses Event als Favorit gespeichert haben, bekommen eine E-Mail.`
+            : 'Das Event bleibt sichtbar, wird aber als „Abgesagt" markiert. Alle, die es als Favorit gespeichert haben, bekommen eine E-Mail. Du kannst die Absage später zurücknehmen.'
+        }
+        confirmLabel={cancelTarget?.date ? 'Termin absagen' : 'Event absagen'}
+        cancelLabel="Abbrechen"
+        onConfirm={() => applyCancellation(cancelTarget?.date ?? null, true)}
+        onCancel={() => setCancelTarget(null)}
+        loading={cancelling}
+        danger
       />
 
       <RecurringDeleteDialog

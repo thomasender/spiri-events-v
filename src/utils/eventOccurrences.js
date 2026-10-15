@@ -1,3 +1,5 @@
+import { isOccurrenceCancelled } from './eventCancellation';
+
 // For events with `recurrence: 'custom'` the initial event date is part of the
 // series as well, even if it was never added to `customDates` explicitly.
 // Returns a sorted, de-duplicated list of all dates of the series with
@@ -118,6 +120,10 @@ function formatDate(year, month, day) {
 
 function collapseToMonthEntries(event, start, end) {
   const entries = [];
+  const isCancelled = isOccurrenceCancelled(
+    event,
+    formatDate(start.getFullYear(), start.getMonth(), start.getDate())
+  );
   const monthCursor = new Date(start.getFullYear(), start.getMonth(), 1);
   const lastMonthStart = new Date(end.getFullYear(), end.getMonth(), 1);
   let cursor = new Date(monthCursor);
@@ -135,6 +141,7 @@ function collapseToMonthEntries(event, start, end) {
       date: formatDate(entryStart.getFullYear(), entryStart.getMonth(), entryStart.getDate()),
       isMultiDayStart: entryStart.getTime() === start.getTime(),
       isMultiDayEnd: entryEnd.getTime() === end.getTime(),
+      isCancelled,
     });
     cursor.setMonth(cursor.getMonth() + 1);
   }
@@ -153,6 +160,7 @@ function expandNonRecurring(event, mode) {
   // so this is equivalent to `event.date < today`. Multi-day events stay
   // visible until their last day ends.
   if (end < today) return [];
+  const isCancelled = isOccurrenceCancelled(event, event.date);
 
   if (mode === 'calendar') {
     const days = [];
@@ -164,6 +172,7 @@ function expandNonRecurring(event, mode) {
         date: dateStr,
         isMultiDayStart: current.getTime() === start.getTime(),
         isMultiDayEnd: current.getTime() === end.getTime(),
+        isCancelled,
       });
       current.setDate(current.getDate() + 1);
     }
@@ -178,6 +187,7 @@ function expandNonRecurring(event, mode) {
         date: event.date,
         isMultiDayStart: true,
         isMultiDayEnd: true,
+        isCancelled,
       },
     ];
   }
@@ -207,6 +217,7 @@ function expandCustom(event, mode) {
     const lastDay =
       eventDays > 1 ? new Date(occDate.getTime() + (eventDays - 1) * 86400000) : occDate;
     if (lastDay < today) continue;
+    const isCancelled = isOccurrenceCancelled(event, occurrenceStart);
 
     if (mode === 'calendar' && eventDays > 1) {
       for (let d = 0; d < eventDays; d++) {
@@ -217,6 +228,7 @@ function expandCustom(event, mode) {
           date: formatDate(dayDate.getFullYear(), dayDate.getMonth(), dayDate.getDate()),
           isMultiDayStart: d === 0,
           isMultiDayEnd: d === eventDays - 1,
+          isCancelled,
         });
       }
     } else {
@@ -225,6 +237,7 @@ function expandCustom(event, mode) {
         date: occurrenceStart,
         isMultiDayStart: true,
         isMultiDayEnd: true,
+        isCancelled,
       });
     }
   }
@@ -291,6 +304,7 @@ function expandRecurring(event, mode) {
         }
         continue;
       }
+      const isCancelled = isOccurrenceCancelled(event, occurrenceStart);
 
       if (mode === 'calendar') {
         if (event.endDate) {
@@ -302,6 +316,7 @@ function expandRecurring(event, mode) {
               date: formatDate(dayDate.getFullYear(), dayDate.getMonth(), dayDate.getDate()),
               isMultiDayStart: d === 0,
               isMultiDayEnd: d === eventDays - 1,
+              isCancelled,
             });
           }
         } else {
@@ -310,6 +325,7 @@ function expandRecurring(event, mode) {
             date: occurrenceStart,
             isMultiDayStart: true,
             isMultiDayEnd: true,
+            isCancelled,
           });
         }
       } else {
@@ -327,6 +343,7 @@ function expandRecurring(event, mode) {
             date: occurrenceStart,
             isMultiDayStart: true,
             isMultiDayEnd: true,
+            isCancelled,
           });
         }
       }

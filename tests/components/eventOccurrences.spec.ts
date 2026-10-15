@@ -540,3 +540,74 @@ describe('getRecurrenceLabel (custom)', () => {
     expect(getRecurrenceLabel(event)).toBe('An einzelnen Terminen');
   });
 });
+
+describe('getEventOccurrences — cancelled dates stay visible and are flagged', () => {
+  it('flags only the cancelled date of a weekly series and keeps it in the list', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-01T10:00:00'));
+    try {
+      const event = {
+        id: 'w',
+        date: '2026-09-07',
+        recurrence: 'weekly',
+        recurrenceEndDate: '2026-09-28',
+        cancelledDates: ['2026-09-14'],
+        exceptionDates: ['2026-09-21'],
+      };
+      const result = getEventOccurrences(event).map((o) => [o.date, o.isCancelled]);
+      expect(result).toEqual([
+        ['2026-09-07', false],
+        ['2026-09-14', true],
+        ['2026-09-28', false],
+      ]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('flags every day of a cancelled multi-day custom date in calendar mode', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-01T10:00:00'));
+    try {
+      const event = {
+        id: 'c',
+        date: '2026-09-05',
+        endDate: '2026-09-06',
+        recurrence: 'custom',
+        customDates: ['2026-09-05', '2026-09-12'],
+        cancelledDates: ['2026-09-12'],
+      };
+      const result = getEventOccurrences(event, { mode: 'calendar' }).map((o) => [
+        o.date,
+        o.isCancelled,
+      ]);
+      expect(result).toEqual([
+        ['2026-09-05', false],
+        ['2026-09-06', false],
+        ['2026-09-12', true],
+        ['2026-09-13', true],
+      ]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('flags all occurrences when the whole event is cancelled', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-01T10:00:00'));
+    try {
+      const single = getEventOccurrences({ id: 's', date: '2026-09-10', cancelled: true });
+      expect(single.map((o) => o.isCancelled)).toEqual([true]);
+      const series = getEventOccurrences({
+        id: 'm',
+        date: '2026-09-10',
+        recurrence: 'monthly',
+        recurrenceEndDate: '2026-11-30',
+        cancelled: true,
+      });
+      expect(series.map((o) => o.isCancelled)).toEqual([true, true, true]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
