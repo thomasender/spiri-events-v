@@ -163,7 +163,7 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
 
 Do not hand-edit `regions/{id}.active`. Verwaltung -> tab "Regionen"
 (`RegionsTab.jsx`, Super-Admin only; moderators get "Kein Zugriff") lists every
-region with status, moderators, upcoming events, Bezirke count and `contactEmail`,
+region (grouped by country in foldable accordion sections; countries with an active region start open) with status, moderators, upcoming events, Bezirke count and `contactEmail`,
 plus "Freischalten" / "Deaktivieren". Everything goes through the callables
 `adminListRegionActivation` and `adminSetRegionActive({ regionId, active,
 override })` (`functions/src/adminRegions.ts`; pure rules in

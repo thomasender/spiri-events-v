@@ -112,6 +112,10 @@ describe('RegionsTab', () => {
   it('lists every region with status, moderators, events, districts and contact', async () => {
     state.contact = { tirol: 'tirol@example.at' };
     render(<RegionsTab />);
+    // Accordion: the country with an active region (Austria) starts open, the rest folded.
+    expect(screen.getAllByTestId(/^region-row-/)).toHaveLength(9);
+    fireEvent.click(screen.getByRole('button', { name: /Deutschland/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Schweiz/ }));
     expect(screen.getAllByTestId(/^region-row-/)).toHaveLength(STATIC_REGIONS.length);
     const tirol = await row('tirol');
     expect(within(tirol).getByTestId('region-status')).toHaveTextContent('noch nicht aktiv');
@@ -122,6 +126,24 @@ describe('RegionsTab', () => {
     expect(within(vbg).getByTestId('region-status')).toHaveTextContent('aktiv');
     expect(vbg).toHaveTextContent('Bezirke');
     expect(within(vbg).getByTestId('region-contact')).toHaveTextContent('–');
+  });
+
+  it('groups the regions by country in foldable sections with a count', async () => {
+    render(<RegionsTab />);
+    const at = screen.getByRole('button', { name: /Österreich/ });
+    const de = screen.getByRole('button', { name: /Deutschland/ });
+    expect(at).toHaveAttribute('aria-expanded', 'true');
+    expect(de).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByTestId('regions-group-count-AT')).toHaveTextContent('9 Regionen, 1 aktiv');
+    expect(screen.getByTestId('regions-group-count-DE')).toHaveTextContent('16 Regionen, 0 aktiv');
+    expect(screen.getByTestId('regions-group-count-CH')).toHaveTextContent('26 Regionen, 0 aktiv');
+    expect(screen.queryByTestId('region-row-bayern')).not.toBeInTheDocument();
+    fireEvent.click(de);
+    expect(de).toHaveAttribute('aria-expanded', 'true');
+    expect(await screen.findByTestId('region-row-bayern')).toBeInTheDocument();
+    fireEvent.click(at);
+    expect(at).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByTestId('region-row-tirol')).not.toBeInTheDocument();
   });
 
   it('activates a region that meets the conditions and refreshes the regions', async () => {

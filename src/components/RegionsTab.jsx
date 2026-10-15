@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useRegions } from '../hooks/useRegions';
 import { useRegionModerators } from '../hooks/useRegionModerators';
 import { useRegionActivation } from '../hooks/useRegionActivation';
 import {
+  COUNTRIES,
   COUNTRY_LABELS,
   DEFAULT_REGION_ID,
   getSubdivisionLabel,
@@ -37,6 +39,17 @@ export default function RegionsTab() {
   const [confirm, setConfirm] = useState(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState(null);
+  // Accordion per country: countries with an active region start open.
+  const [openCountries, setOpenCountries] = useState(
+    () => new Set(COUNTRIES.filter((c) => regions.some((r) => r.country === c && r.active)))
+  );
+  const toggleCountry = (country) =>
+    setOpenCountries((prev) => {
+      const next = new Set(prev);
+      if (next.has(country)) next.delete(country);
+      else next.add(country);
+      return next;
+    });
 
   const statusById = useMemo(() => new Map(statuses.map((s) => [s.regionId, s])), [statuses]);
 
@@ -112,89 +125,136 @@ export default function RegionsTab() {
         </div>
       )}
 
-      <ul className="moderation-list" aria-label="Regionen">
-        {regions.map((region) => {
-          const status = statusById.get(region.id);
-          const regionModerators = moderators.filter((m) => m.regionIds?.includes(region.id));
-          const bezirkeCount = region.bezirke?.length ?? 0;
-          const bezirkeLabel =
-            bezirkeCount === 1
-              ? getSubdivisionLabel(region.id, regions)
-              : getSubdivisionLabelPlural(region.id, regions);
-          const isPermanent = region.id === DEFAULT_REGION_ID;
+      <div className="regions-groups">
+        {COUNTRIES.map((country) => {
+          const inCountry = regions.filter((r) => r.country === country);
+          if (inCountry.length === 0) return null;
+          const isOpen = openCountries.has(country);
+          const activeCount = inCountry.filter((r) => r.active).length;
+          const panelId = `regions-group-${country}`;
           return (
-            <li
-              key={region.id}
-              className="moderation-card regions-card"
-              data-testid={`region-row-${region.id}`}
+            <section
+              key={country}
+              className="regions-group"
+              data-testid={`regions-group-${country}`}
             >
-              <div className="moderation-card-person">
-                <span className="moderation-card-name">{region.name}</span>
-                <span className="regions-country" data-testid="region-country">
-                  {COUNTRY_LABELS[region.country] ?? region.country}
-                </span>
-                <span
-                  className={`regions-status${region.active ? ' regions-status--active' : ''}`}
-                  data-testid="region-status"
+              <h3 className="regions-group-heading">
+                <button
+                  type="button"
+                  className="regions-group-toggle"
+                  aria-expanded={isOpen}
+                  aria-controls={panelId}
+                  onClick={() => toggleCountry(country)}
                 >
-                  {region.active ? 'aktiv' : 'noch nicht aktiv'}
-                </span>
-              </div>
-              <dl className="regions-facts">
-                <div>
-                  <dt>Moderator:innen</dt>
-                  <dd data-testid="region-moderators">
-                    {regionModerators.length}
-                    {regionModerators.length > 0 &&
-                      ` (${regionModerators.map(personLabel).join(', ')})`}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Kommende Events</dt>
-                  <dd data-testid="region-upcoming">
-                    {status ? status.upcomingEventCount : loading ? '…' : '–'}
-                  </dd>
-                </div>
-                <div>
-                  <dt>{bezirkeLabel}</dt>
-                  <dd>{bezirkeCount}</dd>
-                </div>
-                <div>
-                  <dt>Kontakt</dt>
-                  <dd data-testid="region-contact">{region.contactEmail || '–'}</dd>
-                </div>
-              </dl>
-              <div className="moderation-card-actions">
-                {region.active ? (
-                  <button
-                    type="button"
-                    className="btn btn-subtle-danger btn-sm"
-                    disabled={isPermanent || busy}
-                    title={isPermanent ? 'Vorarlberg bleibt immer aktiv.' : undefined}
-                    onClick={() => {
-                      setNotice(null);
-                      setConfirm({ kind: 'deactivate', region });
-                    }}
-                    aria-label={`${region.name} deaktivieren`}
+                  <ChevronDown
+                    size={18}
+                    aria-hidden="true"
+                    className={`regions-group-chevron${isOpen ? ' regions-group-chevron--open' : ''}`}
+                  />
+                  <span className="regions-group-name">{COUNTRY_LABELS[country]}</span>
+                  <span
+                    className="regions-group-count"
+                    data-testid={`regions-group-count-${country}`}
                   >
-                    Deaktivieren
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="btn btn-primary btn-sm"
-                    disabled={busy}
-                    onClick={() => activate(region)}
-                    aria-label={`${region.name} freischalten`}
-                  >
-                    Freischalten
-                  </button>
-                )}
-              </div>
-            </li>
+                    {inCountry.length} Regionen, {activeCount} aktiv
+                  </span>
+                </button>
+              </h3>
+              {isOpen && (
+                <ul
+                  id={panelId}
+                  className="moderation-list"
+                  aria-label={`Regionen ${COUNTRY_LABELS[country]}`}
+                >
+                  {inCountry.map((region) => {
+                    const status = statusById.get(region.id);
+                    const regionModerators = moderators.filter((m) =>
+                      m.regionIds?.includes(region.id)
+                    );
+                    const bezirkeCount = region.bezirke?.length ?? 0;
+                    const bezirkeLabel =
+                      bezirkeCount === 1
+                        ? getSubdivisionLabel(region.id, regions)
+                        : getSubdivisionLabelPlural(region.id, regions);
+                    const isPermanent = region.id === DEFAULT_REGION_ID;
+                    return (
+                      <li
+                        key={region.id}
+                        className="moderation-card regions-card"
+                        data-testid={`region-row-${region.id}`}
+                      >
+                        <div className="moderation-card-person">
+                          <span className="moderation-card-name">{region.name}</span>
+                          <span className="regions-country" data-testid="region-country">
+                            {COUNTRY_LABELS[region.country] ?? region.country}
+                          </span>
+                          <span
+                            className={`regions-status${region.active ? ' regions-status--active' : ''}`}
+                            data-testid="region-status"
+                          >
+                            {region.active ? 'aktiv' : 'noch nicht aktiv'}
+                          </span>
+                        </div>
+                        <dl className="regions-facts">
+                          <div>
+                            <dt>Moderator:innen</dt>
+                            <dd data-testid="region-moderators">
+                              {regionModerators.length}
+                              {regionModerators.length > 0 &&
+                                ` (${regionModerators.map(personLabel).join(', ')})`}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt>Kommende Events</dt>
+                            <dd data-testid="region-upcoming">
+                              {status ? status.upcomingEventCount : loading ? '…' : '–'}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt>{bezirkeLabel}</dt>
+                            <dd>{bezirkeCount}</dd>
+                          </div>
+                          <div>
+                            <dt>Kontakt</dt>
+                            <dd data-testid="region-contact">{region.contactEmail || '–'}</dd>
+                          </div>
+                        </dl>
+                        <div className="moderation-card-actions">
+                          {region.active ? (
+                            <button
+                              type="button"
+                              className="btn btn-subtle-danger btn-sm"
+                              disabled={isPermanent || busy}
+                              title={isPermanent ? 'Vorarlberg bleibt immer aktiv.' : undefined}
+                              onClick={() => {
+                                setNotice(null);
+                                setConfirm({ kind: 'deactivate', region });
+                              }}
+                              aria-label={`${region.name} deaktivieren`}
+                            >
+                              Deaktivieren
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="btn btn-primary btn-sm"
+                              disabled={busy}
+                              onClick={() => activate(region)}
+                              aria-label={`${region.name} freischalten`}
+                            >
+                              Freischalten
+                            </button>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
           );
         })}
-      </ul>
+      </div>
 
       <ConfirmDialog
         isOpen={confirm?.kind === 'unmet'}
