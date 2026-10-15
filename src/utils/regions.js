@@ -3,3 +3,12 @@
 export const BEZIRKE = ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe'];
 
 export const ONLINE_LOCATION = 'Online';
+
+// The stored value 'Grenznahe' stays as is (existing events, filters and URLs
+// depend on it); only what users read is "Umgebung".
+const BEZIRK_LABELS = { Grenznahe: 'Umgebung' };
+
+export function bezirkLabel(bezirk) {
+  return BEZIRK_LABELS[bezirk] || bezirk;
+}
+

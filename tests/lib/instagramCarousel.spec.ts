@@ -624,7 +624,7 @@ describe('Grenznahe carousel', () => {
     expect(groups.map((g) => g.bezirk)).toEqual(['Dornbirn', 'Grenznahe']);
     const grenznahe = groups[1];
     expect(buildCarouselCaption(grenznahe, WINDOW)).toContain(
-      'Events nächste Woche in der Grenznähe'
+      'Events nächste Woche in der Umgebung'
     );
     expect(carouselPostId('Grenznahe', WINDOW.start, 1)).toBe('carousel_grenznahe_2026-10-05');
   });
@@ -635,7 +635,7 @@ describe('Grenznahe carousel', () => {
       getPostStatus: vi.fn(async () => null),
       now: () => SUNDAY,
     });
-    expect(preview.groups[0].label).toBe('Grenznähe');
-    expect(preview.groups[0].cover.bezirk).toBe('in der Grenznähe');
+    expect(preview.groups[0].label).toBe('Umgebung');
+    expect(preview.groups[0].cover.bezirk).toBe('in der Umgebung');
   });
 });

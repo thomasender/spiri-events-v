@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { bezirkLabel } from '../utils/regions';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAllEvents, BEZIRKE, ONLINE_LOCATION } from '../hooks/useEvents';
 import { useCategories } from '../hooks/useCategories';
@@ -404,7 +405,7 @@ export default function CalendarPage() {
     <div className="calendar-page">
       <SeoMeta
         title="Kalender"
-        description="Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg - Bregenz, Dornbirn, Feldkirch, Bludenz, Grenznahe"
+        description="Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg - Bregenz, Dornbirn, Feldkirch, Bludenz, Umgebung"
         path="/"
       />
 
@@ -592,7 +593,7 @@ export default function CalendarPage() {
                       aria-pressed={selectedOrte.includes(bezirk)}
                     >
                       <Check size={14} className="filter-chip-icon" aria-hidden="true" />
-                      <span>{bezirk}</span>
+                      <span>{bezirkLabel(bezirk)}</span>
                       <FacetCount value={facetCounts.ort[bezirk] || 0} />
                     </button>
                   ))}

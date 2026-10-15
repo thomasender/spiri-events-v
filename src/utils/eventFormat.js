@@ -1,3 +1,4 @@
+import { bezirkLabel } from './regions';
 export function parseEventDate(dateStr) {
   const [year, month, day] = dateStr.split('-');
   return new Date(year, month - 1, day);
@@ -66,5 +67,5 @@ export function getPrimaryCategory(event) {
 export function getEventLocationLabel(event) {
   if (!event) return '';
   if (event.isOnline) return 'Online';
-  return event.bezirk || '';
+  return bezirkLabel(event.bezirk) || '';
 }
