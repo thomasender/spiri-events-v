@@ -116,6 +116,16 @@ function seedWizardDraft(formData: Record<string, unknown> = {}, currentStep = 3
   );
 }
 
+// The region field is gone; the region changes via "Finde meinen Bezirk nicht".
+function changeRegionViaDialog(regionId: string) {
+  fireEvent.change(document.getElementById('bezirk') as HTMLElement, {
+    target: { value: '__bezirk-not-found__' },
+  });
+  const dialog = screen.getByTestId('event-region-dialog');
+  fireEvent.change(within(dialog).getByLabelText('Region'), { target: { value: regionId } });
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Region ändern' }));
+}
+
 const optionTexts = (select: HTMLElement) =>
   within(select)
     .getAllByRole('option')
@@ -156,17 +166,34 @@ describe('EventFormWizard region field', () => {
     ]);
   });
 
-  it('with two active regions: region first, preselected with the current region, Bezirke follow it', () => {
+  it('with two active regions: no region field, Bezirke of the current region, extra option', () => {
     seedWizardDraft();
     render(withRegions(regionContext(['vorarlberg', 'tirol'], 'tirol'), <EventFormWizard />));
 
-    const region = screen.getByLabelText('Region *') as HTMLSelectElement;
-    expect(region.value).toBe('tirol');
-    expect(optionTexts(region)).toEqual(['Vorarlberg', 'Tirol']);
-    // Region comes before the Bezirk field in the page.
-    const bezirk = document.getElementById('bezirk') as HTMLSelectElement;
-    expect(region.compareDocumentPosition(bezirk) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(optionTexts(bezirk)).toEqual(['Bezirk auswählen...', 'Innsbruck', 'Kufstein']);
+    expect(screen.queryByTestId('event-region-field')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Region *')).not.toBeInTheDocument();
+    expect(optionTexts(document.getElementById('bezirk') as HTMLElement)).toEqual([
+      'Bezirk auswählen...',
+      'Innsbruck',
+      'Kufstein',
+      'Finde meinen Bezirk nicht',
+    ]);
+  });
+
+  it('"Finde meinen Bezirk nicht" names the current region and cancelling changes nothing', () => {
+    seedWizardDraft();
+    render(withRegions(regionContext(['vorarlberg', 'tirol'], 'tirol'), <EventFormWizard />));
+
+    fireEvent.change(document.getElementById('bezirk') as HTMLElement, {
+      target: { value: '__bezirk-not-found__' },
+    });
+    const dialog = screen.getByTestId('event-region-dialog');
+    expect(dialog).toHaveTextContent('Du bist gerade in der Region Tirol');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Nein, hier bleiben' }));
+
+    expect(screen.queryByTestId('event-region-dialog')).not.toBeInTheDocument();
+    expect((document.getElementById('bezirk') as HTMLSelectElement).value).toBe('');
+    expect(optionTexts(document.getElementById('bezirk') as HTMLElement)).toContain('Innsbruck');
   });
 
   it('uses "Landkreis" for the Allgäu and resets a Bezirk that no longer fits when the region changes', () => {
@@ -177,7 +204,7 @@ describe('EventFormWizard region field', () => {
     expect(bezirk().value).toBe('Dornbirn');
     expect(screen.getByLabelText('Bezirk *')).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText('Region *'), { target: { value: 'allgaeu' } });
+    changeRegionViaDialog('allgaeu');
 
     expect(screen.getByLabelText('Landkreis *')).toBeInTheDocument();
     expect(bezirk().value).toBe('');
@@ -214,15 +241,11 @@ describe('EventFormWizard region field', () => {
     expect(saved.regionId).toBe('tirol');
   });
 
-  it('online event: no Bezirk, the region still counts and a plain hint explains why', async () => {
+  it('online event: no Bezirk, the region still counts', async () => {
     seedWizardDraft({ isOnline: true, bezirk: '', regionId: 'tirol' }, 3);
     render(withRegions(regionContext(['vorarlberg', 'tirol']), <EventFormWizard />));
 
-    expect(screen.getByTestId('event-region-online-hint')).toHaveTextContent(
-      'Online-Events sehen alle Besucher:innen. Bitte wähle die Region, aus der du kommst.'
-    );
     expect(document.getElementById('bezirk')).toBeDisabled();
-    expect((screen.getByLabelText('Region *') as HTMLSelectElement).disabled).toBe(false);
 
     fireEvent.click(screen.getByRole('button', { name: /^weiter$/i }));
     await waitFor(() => expect(screen.getByTestId('submit-event-button')).toBeInTheDocument());
@@ -233,18 +256,22 @@ describe('EventFormWizard region field', () => {
   it('ordinary organizers cannot pick inactive regions, moderators can pick their own', () => {
     seedWizardDraft();
     const ctx = regionContext(['vorarlberg', 'tirol']);
+    const regionOptions = () => {
+      fireEvent.change(document.getElementById('bezirk') as HTMLElement, {
+        target: { value: '__bezirk-not-found__' },
+      });
+      return optionTexts(
+        within(screen.getByTestId('event-region-dialog')).getByLabelText('Region')
+      );
+    };
     const { unmount } = render(withRegions(ctx, <EventFormWizard />));
-    expect(optionTexts(screen.getByLabelText('Region *'))).toEqual(['Vorarlberg', 'Tirol']);
+    expect(regionOptions()).toEqual(['Vorarlberg', 'Tirol']);
     unmount();
 
     mockAuth.role = 'RegionModerator';
     mockAuth.staffRegionIds = ['wien'];
     render(withRegions(ctx, <EventFormWizard />));
-    expect(optionTexts(screen.getByLabelText('Region *'))).toEqual([
-      'Vorarlberg',
-      'Tirol',
-      'Wien (noch nicht freigeschaltet)',
-    ]);
+    expect(regionOptions()).toEqual(['Vorarlberg', 'Tirol', 'Wien (noch nicht freigeschaltet)']);
   });
 });
 
@@ -287,7 +314,7 @@ describe('EventForm (edit) region field', () => {
       )
     );
 
-    expect((screen.getByLabelText('Region *') as HTMLSelectElement).value).toBe('tirol');
+    expect(screen.queryByLabelText('Region *')).not.toBeInTheDocument();
     expect((document.getElementById('bezirk') as HTMLSelectElement).value).toBe('Innsbruck');
 
     submitForm();
@@ -302,9 +329,13 @@ describe('EventForm (edit) region field', () => {
       )
     );
 
-    expect(optionTexts(screen.getByLabelText('Region *'))).toContain(
-      'Tirol (noch nicht freigeschaltet)'
-    );
+    fireEvent.change(document.getElementById('bezirk') as HTMLElement, {
+      target: { value: '__bezirk-not-found__' },
+    });
+    expect(
+      optionTexts(within(screen.getByTestId('event-region-dialog')).getByLabelText('Region'))
+    ).toContain('Tirol (noch nicht freigeschaltet)');
+    fireEvent.click(screen.getByRole('button', { name: 'Nein, hier bleiben' }));
     submitForm();
     expect((await savedPayload()).regionId).toBe('tirol');
   });
@@ -317,7 +348,11 @@ describe('EventForm (edit) region field', () => {
       )
     );
 
-    expect((screen.getByLabelText('Region *') as HTMLSelectElement).value).toBe('vorarlberg');
+    fireEvent.change(document.getElementById('bezirk') as HTMLElement, {
+      target: { value: '__bezirk-not-found__' },
+    });
+    expect(screen.getByTestId('event-region-dialog')).toHaveTextContent('Region Vorarlberg');
+    fireEvent.click(screen.getByRole('button', { name: 'Nein, hier bleiben' }));
     submitForm();
     expect(await savedPayload()).toMatchObject({ regionId: 'vorarlberg', bezirk: 'Dornbirn' });
   });
@@ -325,7 +360,7 @@ describe('EventForm (edit) region field', () => {
   it('changing the region saves the new region and clears the old Bezirk', async () => {
     render(withRegions(regionContext(['vorarlberg', 'tirol']), <EventForm event={storedEvent} />));
 
-    fireEvent.change(screen.getByLabelText('Region *'), { target: { value: 'vorarlberg' } });
+    changeRegionViaDialog('vorarlberg');
     expect((document.getElementById('bezirk') as HTMLSelectElement).value).toBe('');
     fireEvent.change(document.getElementById('bezirk') as HTMLElement, {
       target: { value: 'Dornbirn' },

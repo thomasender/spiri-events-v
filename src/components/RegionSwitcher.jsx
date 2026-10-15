@@ -10,21 +10,70 @@ import './RegionSwitcher.css';
  * Header dropdown to change the region. Dark launch: renders nothing while
  * fewer than two regions are active, so Vorarlberg-only visitors see no change.
  */
+function useRegionEntries() {
+  const { regions, regionId, combinedView, combinedViews } = useRegion();
+  const entries = [
+    ...[...regions].sort((a, b) => a.order - b.order).map((r) => ({ slug: r.slug, name: r.name })),
+    ...combinedViews.map((v) => ({ slug: v.slug, name: v.name, combined: true })),
+  ];
+  const currentSlug = combinedView ? combinedView.slug : regionId;
+  return { entries, currentSlug, visible: regions.length >= 2 };
+}
+
+/**
+ * Phone: the region choice lives in the burger menu as a plain list (the
+ * dropdown above is hidden below 800px). Same dark launch rule as the dropdown.
+ */
+export function RegionMenuList({ onNavigate }) {
+  const { setRegion } = useRegion();
+  const { pathname } = useLocation();
+  const { entries, currentSlug, visible } = useRegionEntries();
+  if (!visible) return null;
+
+  const choose = (slug) => {
+    onNavigate?.();
+    if (slug === currentSlug) return;
+    trackFilter('region', slug);
+    setRegion(slug, regionSwitchSubpath(pathname));
+  };
+
+  return (
+    <div
+      className="region-menu-list"
+      role="group"
+      aria-label="Region wählen"
+      data-testid="region-menu-list"
+    >
+      <span className="region-menu-list-heading">
+        <MapPin size={16} aria-hidden="true" /> Region
+      </span>
+      {entries.map((entry) => (
+        <button
+          key={entry.slug}
+          type="button"
+          className={`region-menu-list-item${
+            entry.slug === currentSlug ? ' region-menu-list-item--active' : ''
+          }`}
+          aria-pressed={entry.slug === currentSlug}
+          onClick={() => choose(entry.slug)}
+        >
+          {entry.name}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function RegionSwitcher() {
-  const { regions, regionId, combinedView, combinedViews, setRegion } = useRegion();
+  const { setRegion } = useRegion();
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
   const triggerRef = useRef(null);
   const itemRefs = useRef([]);
 
-  const entries = [
-    ...[...regions].sort((a, b) => a.order - b.order).map((r) => ({ slug: r.slug, name: r.name })),
-    ...combinedViews.map((v) => ({ slug: v.slug, name: v.name, combined: true })),
-  ];
-  const currentSlug = combinedView ? combinedView.slug : regionId;
+  const { entries, currentSlug, visible } = useRegionEntries();
   const current = entries.find((e) => e.slug === currentSlug) ?? entries[0];
-  const visible = regions.length >= 2;
 
   useEffect(() => {
     if (!open) return undefined;

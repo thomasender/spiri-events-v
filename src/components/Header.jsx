@@ -6,7 +6,7 @@ import { useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
 import { useUnreadFeedbackCount } from '../hooks/useFeedbackList';
 import EmailVerificationModal from './EmailVerificationModal';
 import AvatarImage from './AvatarImage';
-import RegionSwitcher from './RegionSwitcher';
+import RegionSwitcher, { RegionMenuList } from './RegionSwitcher';
 import { useRegionTexts } from '../hooks/useRegionTexts';
 import {
   Users,
@@ -353,6 +353,7 @@ export default function Header() {
         className={`nav-mobile${menuOpen ? ' nav-mobile--open' : ''}`}
         aria-hidden={!menuOpen}
       >
+        <RegionMenuList onNavigate={closeMenu} />
         {renderNavLinks()}
       </div>
 

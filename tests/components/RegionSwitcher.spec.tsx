@@ -17,7 +17,7 @@ vi.mock('../../src/hooks/useRegions', () => ({ useRegions: () => mocks.regions }
 vi.mock('../../src/lib/analyticsEvents', () => ({ trackFilter: mocks.trackFilter }));
 
 import RegionProvider from '../../src/components/RegionProvider';
-import RegionSwitcher from '../../src/components/RegionSwitcher';
+import RegionSwitcher, { RegionMenuList } from '../../src/components/RegionSwitcher';
 import RegionChooser from '../../src/components/RegionChooser';
 
 const TWO_ACTIVE = mergeRegions([{ id: 'tirol', active: true }]);
@@ -156,6 +156,45 @@ describe('RegionSwitcher with two active regions', () => {
     fireEvent.click(screen.getByRole('button', { name: /Region wählen/ }));
     fireEvent.click(screen.getByRole('menuitemradio', { name: 'Tirol' }));
     expect(where()).toBe('/tirol');
+  });
+});
+
+describe('RegionMenuList (burger menu on the phone)', () => {
+  function renderList(onNavigate = vi.fn()) {
+    mocks.regions = { regions: TWO_ACTIVE, loading: false };
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <RegionProvider>
+          <RegionMenuList onNavigate={onNavigate} />
+          <Where />
+        </RegionProvider>
+      </MemoryRouter>
+    );
+    return onNavigate;
+  }
+
+  it('lists the regions, marks the current one and closes the menu on choice', () => {
+    const onNavigate = renderList();
+    const list = screen.getByTestId('region-menu-list');
+    expect(within(list).getByRole('button', { name: 'Vorarlberg' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    fireEvent.click(within(list).getByRole('button', { name: 'Tirol' }));
+    expect(onNavigate).toHaveBeenCalled();
+    expect(where()).toBe('/tirol');
+  });
+
+  it('renders nothing with only Vorarlberg active (dark launch)', () => {
+    mocks.regions = { regions: STATIC_REGIONS, loading: false };
+    render(
+      <MemoryRouter>
+        <RegionProvider>
+          <RegionMenuList />
+        </RegionProvider>
+      </MemoryRouter>
+    );
+    expect(screen.queryByTestId('region-menu-list')).toBeNull();
   });
 });
 

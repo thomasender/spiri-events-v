@@ -36,6 +36,7 @@ function ConfirmDialogContent({
   loading = false,
   danger = false,
   reasonRequired = false,
+  hideActions = false,
 }) {
   const [reason, setReason] = useState('');
   const trimmedReason = reason.trim();
@@ -64,26 +65,28 @@ function ConfirmDialogContent({
           <DeleteReasonField value={reason} onChange={setReason} disabled={loading} />
         )}
 
-        <div className="confirm-actions">
-          <button onClick={onCancel} className="btn btn-secondary" disabled={loading}>
-            {cancelLabel}
-          </button>
-          <button
-            onClick={handleConfirm}
-            className={`btn ${danger ? 'btn-danger' : 'btn-primary'} confirm-confirm`}
-            disabled={confirmDisabled}
-          >
-            {loading && (
-              <Loader2
-                size={16}
-                className="spin"
-                aria-hidden="true"
-                data-testid="confirm-dialog-spinner"
-              />
-            )}
-            <span>{confirmLabel}</span>
-          </button>
-        </div>
+        {!hideActions && (
+          <div className="confirm-actions">
+            <button onClick={onCancel} className="btn btn-secondary" disabled={loading}>
+              {cancelLabel}
+            </button>
+            <button
+              onClick={handleConfirm}
+              className={`btn ${danger ? 'btn-danger' : 'btn-primary'} confirm-confirm`}
+              disabled={confirmDisabled}
+            >
+              {loading && (
+                <Loader2
+                  size={16}
+                  className="spin"
+                  aria-hidden="true"
+                  data-testid="confirm-dialog-spinner"
+                />
+              )}
+              <span>{confirmLabel}</span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -40,7 +40,7 @@ import { CURRENCIES, DEFAULT_CURRENCY } from '../utils/currency';
 import { pickEventRegionId, resolveRegionId } from '../utils/regions';
 import { useRegionChoices } from '../hooks/useRegionChoices';
 import { keepIfInRegion, selectedRegionId, subdivisionFor } from '../utils/regionChoices';
-import EventRegionField from './EventRegionField';
+import EventRegionDialog, { BEZIRK_NOT_FOUND } from './EventRegionDialog';
 import { normalizeCategoryInput, isValidCategoryInput } from '../utils/categoryInput';
 import InstagramConsentField from './InstagramConsentField';
 import {
@@ -526,6 +526,16 @@ export default function EventForm({ event }) {
     } finally {
       setImageUploading(false);
     }
+  };
+
+  const [regionDialogOpen, setRegionDialogOpen] = useState(false);
+  // "Finde meinen Bezirk nicht" opens the region dialog instead of setting a value.
+  const handleBezirkChange = (e) => {
+    if (e.target.value === BEZIRK_NOT_FOUND) {
+      setRegionDialogOpen(true);
+      return;
+    }
+    handleChange(e);
   };
 
   const handleChange = (e) => {
@@ -1093,15 +1103,6 @@ export default function EventForm({ event }) {
             {errors.date && <span className="error-text">{errors.date}</span>}
           </div>
 
-          {regionChoices.enabled && (
-            <EventRegionField
-              value={selectedRegion}
-              options={regionChoices.options}
-              onChange={handleChange}
-              isOnline={formData.isOnline}
-            />
-          )}
-
           <div className="form-row">
             <div className="form-group">
               <label htmlFor="bezirk">
@@ -1111,7 +1112,7 @@ export default function EventForm({ event }) {
                 id="bezirk"
                 name="bezirk"
                 value={formData.bezirk}
-                onChange={handleChange}
+                onChange={handleBezirkChange}
                 disabled={formData.isOnline}
                 className={errors.bezirk ? 'input-error' : ''}
               >
@@ -1121,8 +1122,23 @@ export default function EventForm({ event }) {
                     {bezirkLabel(b)}
                   </option>
                 ))}
+                {regionChoices.enabled && (
+                  <option value={BEZIRK_NOT_FOUND}>Finde meinen {subdivisionLabel} nicht</option>
+                )}
               </select>
               {errors.bezirk && <span className="error-text">{errors.bezirk}</span>}
+              {regionChoices.enabled && (
+                <EventRegionDialog
+                  isOpen={regionDialogOpen}
+                  regionName={
+                    regionChoices.options.find((r) => r.id === selectedRegion)?.name ?? ''
+                  }
+                  value={selectedRegion}
+                  options={regionChoices.options}
+                  onChange={handleChange}
+                  onClose={() => setRegionDialogOpen(false)}
+                />
+              )}
             </div>
 
             <div className="form-group">

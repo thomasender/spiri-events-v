@@ -84,35 +84,59 @@
   overflow-x: visible;
 }
 
-/* Phone: the header row is already full, so the switcher gets its own slim row
-   below logo and buttons (only when it renders at all, i.e. 2+ active regions).
-   The menu then spans the full header width. */
+/* Phone: the region choice moves into the burger menu (RegionMenuList), the
+   dropdown is hidden. */
+.region-menu-list {
+  display: none;
+}
+
 @media (max-width: 800px) {
-  .header:has(.region-switcher) {
-    padding-bottom: 54px;
-  }
-
   .region-switcher {
-    position: absolute;
-    left: 8px;
-    right: 8px;
-    bottom: 6px;
-    margin: 0;
+    display: none;
   }
 
-  .region-switcher-trigger {
-    width: 100%;
-    justify-content: flex-start;
-    background-color: var(--bg-secondary);
+  .region-menu-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
   }
 
-  .region-switcher-trigger svg:last-child {
-    margin-left: auto;
+  .region-menu-list-heading {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 16px;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
   }
 
-  .region-switcher-menu {
-    left: 0;
-    right: 0;
-    min-width: 0;
+  .region-menu-list-item {
+    min-height: 44px;
+    padding: 0 16px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--text-secondary);
+    font-family: var(--font-body);
+    font-size: 1rem;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .region-menu-list-item--active {
+    color: var(--text-primary);
+    font-weight: 600;
+    box-shadow: inset 3px 0 0 0 var(--accent-primary);
+  }
+
+  .region-menu-list-item:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: -2px;
   }
 }
