@@ -1,0 +1,19 @@
+# tribe Vorarlberg
+
+> Der Veranstaltungskalender für spirituelle und bewusste Events in Vorarlberg (Österreich): Yoga, Meditation, Breathwork, Tanz, Singen, Soundhealing, Workshops und mehr – in Bregenz, Dornbirn, Feldkirch, Bludenz und Umgebung. Die Events werden von Veranstaltern selbst eingetragen und vom Team geprüft, bevor sie veröffentlicht werden.
+
+Website: https://www.thetribe.at
+
+## Wichtige Seiten
+
+- [Kalender mit allen kommenden Events](https://www.thetribe.at/): Übersicht nach Datum, filterbar nach Kategorie und Bezirk
+- [Verzeichnis der Veranstalter](https://www.thetribe.at/verzeichnis): Anbieter und Orte der Community
+- [Über uns](https://www.thetribe.at/ueber-uns): Wer hinter tribe Vorarlberg steht
+- [Sitemap mit allen Event-Seiten](https://www.thetribe.at/sitemap.xml)
+
+## Hinweise zu den Event-Seiten
+
+- Jedes Event hat eine eigene Seite unter https://www.thetribe.at/event/<name>.
+- Datum, Uhrzeit, Ort (Bezirk), Preis bzw. freier Beitrag, Veranstalter und Beschreibung stehen im Seitentext und als schema.org-Daten (JSON-LD, Typ Event).
+- Abgesagte Events sind als abgesagt markiert (eventStatus: EventCancelled).
+- Zeiten gelten für die Zeitzone Europe/Vienna.

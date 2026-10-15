@@ -1132,3 +1132,116 @@ describe('prerender() with skipAdmin (UIWI8kWx)', () => {
     }
   });
 });
+
+describe('prerender SEO structured data', () => {
+  const base = {
+    id: 'e1',
+    slug: 'yoga-im-park',
+    title: 'Yoga im Park',
+    description: '<p>Sanfter Flow &amp; Meditation</p>',
+    date: '2026-07-10',
+    time: '18:30',
+    endTime: '20:00',
+    place: 'Stadtpark',
+    bezirk: 'Dornbirn',
+    category: 'Yoga',
+    contribution: 'fee',
+    fee: 15,
+    organizer: { name: 'Anna Beispiel', email: 'anna@example.com' },
+  };
+
+  it('writes start and end as date-times with the Vienna offset (summer and winter)', async () => {
+    const { generateEventJsonLd } = await importPrerender();
+    const summer = generateEventJsonLd(base);
+    expect(summer.startDate).toBe('2026-07-10T18:30:00+02:00');
+    expect(summer.endDate).toBe('2026-07-10T20:00:00+02:00');
+    const winter = generateEventJsonLd({ ...base, date: '2026-01-10' });
+    expect(winter.startDate).toBe('2026-01-10T18:30:00+01:00');
+  });
+
+  it('falls back to the bare date without a start time and omits a same-day end', async () => {
+    const { generateEventJsonLd } = await importPrerender();
+    const ld = generateEventJsonLd({ ...base, time: '', endTime: '' });
+    expect(ld.startDate).toBe('2026-07-10');
+    expect(ld).not.toHaveProperty('endDate');
+  });
+
+  it('uses "offers" (the schema.org property), not "offer"', async () => {
+    const { generateEventJsonLd } = await importPrerender();
+    const ld = generateEventJsonLd(base);
+    expect(ld).not.toHaveProperty('offer');
+    expect(ld.offers).toMatchObject({ '@type': 'Offer', price: '15', priceCurrency: 'EUR' });
+    const range = generateEventJsonLd({ ...base, fee: 10, feeMax: 20 });
+    expect(range.offers).toMatchObject({
+      '@type': 'AggregateOffer',
+      lowPrice: '10',
+      highPrice: '20',
+    });
+  });
+
+  it('marks cancelled events as cancelled', async () => {
+    const { generateEventJsonLd } = await importPrerender();
+    expect(generateEventJsonLd(base).eventStatus).toBe('https://schema.org/EventScheduled');
+    expect(generateEventJsonLd({ ...base, cancelled: true }).eventStatus).toBe(
+      'https://schema.org/EventCancelled'
+    );
+  });
+
+  it('describes online events with a VirtualLocation and the online attendance mode', async () => {
+    const { generateEventJsonLd } = await importPrerender();
+    const ld = generateEventJsonLd({ ...base, isOnline: true, link: 'https://zoom.example/x' });
+    expect(ld.location).toEqual({ '@type': 'VirtualLocation', url: 'https://zoom.example/x' });
+    expect(ld.eventAttendanceMode).toBe('https://schema.org/OnlineEventAttendanceMode');
+    expect(generateEventJsonLd(base).eventAttendanceMode).toBe(
+      'https://schema.org/OfflineEventAttendanceMode'
+    );
+  });
+
+  it('adds url and organizer name, but never the organizer email', async () => {
+    const { generateEventJsonLd, BASE_URL } = await importPrerender();
+    const ld = generateEventJsonLd(base);
+    expect(ld.url).toBe(`${BASE_URL}/event/yoga-im-park`);
+    expect(ld.organizer).toEqual({ '@type': 'Organization', name: 'Anna Beispiel' });
+    expect(JSON.stringify(ld)).not.toContain('anna@example.com');
+    expect(ld.description).toBe('Sanfter Flow & Meditation');
+  });
+
+  it('cuts long meta descriptions on a word boundary with an ellipsis', async () => {
+    const { buildEventDescription } = await importPrerender();
+    const long = 'Wort '.repeat(60);
+    const out = buildEventDescription({ ...base, description: long });
+    expect(out.length).toBeLessThanOrEqual(160);
+    expect(out.endsWith('Wort…')).toBe(true);
+    expect(buildEventDescription({ ...base, description: 'Kurz.' })).toBe('Kurz.');
+  });
+
+  it('puts the real change date in the sitemap and invents none', async () => {
+    const { generateSitemap, toLastmod } = await importPrerender();
+    const future = '2099-01-01';
+    const xml = generateSitemap([
+      { ...base, id: 'a', slug: 'a', date: future, updatedAt: '2026-05-02T10:00:00.000Z' },
+      { ...base, id: 'b', slug: 'b', date: future, updatedAt: { seconds: 1780000000 } },
+      { ...base, id: 'c', slug: 'c', date: future },
+    ]);
+    expect(xml).toContain('<loc>https://www.thetribe.at/event/a</loc>');
+    expect(xml).toContain('<lastmod>2026-05-02</lastmod>');
+    expect(xml).toContain(`<lastmod>${toLastmod({ seconds: 1780000000 })}</lastmod>`);
+    const entryC = xml.split('<url>').find((chunk) => chunk.includes('/event/c<'));
+    expect(entryC).not.toContain('<lastmod>');
+    expect(xml).toContain('/ueber-uns');
+    expect(xml).toContain('/verzeichnis');
+    expect(toLastmod('not a date')).toBeNull();
+  });
+
+  it('adds Organization data next to WebSite on the calendar page', async () => {
+    const { generateCalendarPageHtml } = await importPrerender();
+    const html = generateCalendarPageHtml([base], '/assets/a.js', '/assets/a.css');
+    const json = html.match(/<script type="application\/ld\+json">(.*?)<\/script>/s)?.[1] ?? '';
+    const graph = JSON.parse(json)['@graph'];
+    expect(graph.map((n: { '@type': string }) => n['@type'])).toEqual(['WebSite', 'Organization']);
+    expect(graph[1]).toMatchObject({
+      name: 'tribe Vorarlberg',
+      logo: expect.stringContaining('/icon-512.png'),
+    });
+  });
+});

@@ -1,6 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { buildEventJsonLd, stripHtmlToText } from '../src/utils/eventJsonLd.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT_DIR = path.resolve(__dirname, '..')
@@ -165,52 +166,21 @@ function formatDate(dateStr) {
 }
 
 export function generateEventJsonLd(event) {
-  const location = {
-    '@type': 'Place',
-    name: event.place || event.bezirk,
-    address: {
-      '@type': 'PostalAddress',
-      addressLocality: event.bezirk || 'Vorarlberg',
-      addressRegion: 'Vorarlberg',
-      addressCountry: 'AT',
-    },
-  }
-
-  const offer = event.contribution === 'free'
-    ? { '@type': 'Offer', price: '0', priceCurrency: 'EUR', availability: 'https://schema.org/InStock' }
-    : event.fee != null && event.fee !== ''
-      ? event.feeMax != null && event.feeMax !== '' && Number(event.feeMax) > Number(event.fee)
-        ? {
-            '@type': 'Offer',
-            priceSpecification: {
-              '@type': 'PriceSpecification',
-              minPrice: String(event.fee),
-              maxPrice: String(event.feeMax),
-              priceCurrency: 'EUR',
-            },
-            availability: 'https://schema.org/InStock',
-          }
-        : { '@type': 'Offer', price: String(event.fee), priceCurrency: 'EUR', availability: 'https://schema.org/InStock' }
-      : null
-
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'Event',
-    name: event.title,
-    startDate: event.date,
-    endDate: event.endDate || event.date,
-    location,
-    description: event.description || '',
+  return buildEventJsonLd(event, {
     image: getEventOgImage(event),
-    eventStatus: 'https://schema.org/EventScheduled',
-    ...(offer && { offer }),
-  }
+    description: stripHtmlToText(event.description),
+  })
 }
 
+// Meta descriptions are cut at ~160 characters (what search results show), on a
+// word boundary with an ellipsis rather than mid-word.
 export function buildEventDescription(event) {
-  if (event.description) {
-    const stripped = String(event.description).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
-    return stripped.substring(0, 160)
+  const text = stripHtmlToText(event.description)
+  if (text) {
+    if (text.length <= 160) return text
+    const cut = text.slice(0, 157)
+    const lastSpace = cut.lastIndexOf(' ')
+    return `${(lastSpace > 100 ? cut.slice(0, lastSpace) : cut).replace(/[\s,;:.\-–]+$/, '')}…`
   }
   const category = event.category || 'Sonstiges'
   return `${event.title} - ${category} in ${event.bezirk || 'Vorarlberg'}`
@@ -494,10 +464,26 @@ export function generateCalendarPageHtml(events, jsBundlePath, cssBundlePath, th
 
   <script type="application/ld+json">${escapeJson({
     '@context': 'https://schema.org',
-    '@type': 'WebSite',
-    name: SITE_NAME,
-    description: DEFAULT_DESCRIPTION,
-    url: BASE_URL,
+    '@graph': [
+      {
+        '@type': 'WebSite',
+        '@id': `${BASE_URL}/#website`,
+        name: SITE_NAME,
+        description: DEFAULT_DESCRIPTION,
+        url: BASE_URL,
+        inLanguage: 'de-AT',
+        publisher: { '@id': `${BASE_URL}/#organization` },
+      },
+      {
+        '@type': 'Organization',
+        '@id': `${BASE_URL}/#organization`,
+        name: SITE_NAME,
+        url: BASE_URL,
+        logo: `${BASE_URL}/icon-512.png`,
+        description: DEFAULT_DESCRIPTION,
+        areaServed: { '@type': 'AdministrativeArea', name: 'Vorarlberg' },
+      },
+    ],
   })}</script>
 
   <style>
@@ -560,10 +546,29 @@ export function generateCalendarPageHtml(events, jsBundlePath, cssBundlePath, th
 </html>`
 }
 
+// Firestore timestamps reach the prerender as ISO strings (snapshot), Date or
+// {seconds}/{_seconds} objects (live reads). Returns 'YYYY-MM-DD' or null.
+export function toLastmod(value) {
+  if (!value) return null
+  let date = null
+  if (value instanceof Date) date = value
+  else if (typeof value === 'string' || typeof value === 'number') date = new Date(value)
+  else if (typeof value.toDate === 'function') date = value.toDate()
+  else {
+    const seconds = value.seconds ?? value._seconds
+    if (typeof seconds === 'number') date = new Date(seconds * 1000)
+  }
+  if (!date || Number.isNaN(date.getTime())) return null
+  return date.toISOString().split('T')[0]
+}
+
 export function generateSitemap(events) {
   const today = new Date().toISOString().split('T')[0]
+  // No lastmod for static pages: a made-up date teaches Google to ignore the field.
   const staticPages = [
     { url: '/', priority: '1.0', changefreq: 'daily' },
+    { url: '/verzeichnis', priority: '0.6', changefreq: 'weekly' },
+    { url: '/ueber-uns', priority: '0.5', changefreq: 'monthly' },
     { url: '/datenschutz', priority: '0.3', changefreq: 'monthly' },
     { url: '/impressum', priority: '0.3', changefreq: 'monthly' },
     { url: '/nutzungsbedingungen', priority: '0.3', changefreq: 'monthly' },
@@ -575,7 +580,7 @@ export function generateSitemap(events) {
       url: `/event/${getEventPath(event)}`,
       priority: '0.8',
       changefreq: 'weekly',
-      lastmod: today,
+      lastmod: toLastmod(event.updatedAt) || toLastmod(event.approvedAt) || toLastmod(event.createdAt),
     }))
 
   const allPages = [...staticPages, ...eventPages]
