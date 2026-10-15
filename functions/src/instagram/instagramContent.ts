@@ -65,6 +65,10 @@ export interface InstagramEventInput {
   endDate?: unknown;
   time?: unknown;
   endTime?: unknown;
+  recurrence?: unknown;
+  recurrenceEndDate?: unknown;
+  customDates?: unknown;
+  exceptionDates?: unknown;
   place?: unknown;
   bezirk?: unknown;
   isOnline?: unknown;
