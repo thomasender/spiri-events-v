@@ -230,3 +230,30 @@ describe('EventFormWizard — recurrence question labels (kZAYjgbF)', () => {
     );
   });
 });
+
+describe('EventFormWizard — recurrence limited to 180 days (cTfN9wqQ)', () => {
+  const isoDaysFromToday = (days: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    return d.toISOString().split('T')[0];
+  };
+
+  it('blocks a recurrence end date beyond 180 days after the event date', async () => {
+    seedDraft({ formData: { endDate: '', recurrenceEndDate: isoDaysFromToday(30 + 200) } });
+    renderWizard();
+    fireEvent.click(screen.getByTestId('continue-button'));
+
+    await waitFor(() =>
+      expect(screen.getByText('Wiederholung darf maximal 180 Tage betragen')).toBeInTheDocument()
+    );
+    expect(screen.queryByTestId('submit-event-button')).toBeNull();
+  });
+
+  it('allows a recurrence end date within 180 days', async () => {
+    seedDraft({ formData: { endDate: '', recurrenceEndDate: isoDaysFromToday(30 + 170) } });
+    renderWizard();
+    fireEvent.click(screen.getByTestId('continue-button'));
+
+    await waitFor(() => expect(screen.queryByTestId('submit-event-button')).not.toBeNull());
+  });
+});
