@@ -2,7 +2,11 @@ import { describe, it, expect } from 'vitest';
 import {
   ACTION_EVENTS,
   buildReport,
+  buildRegionsRequest,
   buildRequests,
+  buildUnavailableReport,
+  isUnknownRegionDimensionError,
+  parseRegion,
   cleanTitle,
   fillDays,
   isoDay,
@@ -126,5 +130,107 @@ describe('buildRequests', () => {
   it('only asks GA for the listed action events', () => {
     const filter = buildRequests(7).actions.dimensionFilter.filter;
     expect(filter.inListFilter.values).toEqual([...ACTION_EVENTS]);
+  });
+});
+
+describe('parseRegion', () => {
+  it('accepts region ids and combined-view slugs, everything else means all', () => {
+    expect(parseRegion('steiermark')).toBe('steiermark');
+    expect(parseRegion('oesterreich')).toBe('oesterreich');
+    expect(parseRegion('alle-tribes')).toBe('alle-tribes');
+    expect(parseRegion('narnia')).toBeNull();
+    expect(parseRegion('')).toBeNull();
+    expect(parseRegion(undefined)).toBeNull();
+    expect(parseRegion({ $ne: 1 })).toBeNull();
+  });
+});
+
+describe('buildRequests with a region', () => {
+  const REGION_FILTER = {
+    filter: {
+      fieldName: 'customEvent:region',
+      stringFilter: { matchType: 'EXACT', value: 'steiermark' },
+    },
+  };
+
+  it('is byte-identical without a region', () => {
+    expect(JSON.stringify(buildRequests(7, null))).toBe(JSON.stringify(buildRequests(7)));
+    expect(JSON.stringify(buildRequests(7))).not.toContain('customEvent');
+  });
+
+  it('adds an EXACT filter to every request', () => {
+    const q = buildRequests(7, 'steiermark') as Record<string, Record<string, unknown>>;
+    for (const key of ['totals', 'daily', 'pages', 'channels', 'devices']) {
+      expect(q[key].dimensionFilter).toEqual(REGION_FILTER);
+    }
+  });
+
+  it('combines the action filter with the region filter', () => {
+    const q = buildRequests(7, 'steiermark');
+    const group = (q.actions.dimensionFilter as { andGroup: { expressions: unknown[] } }).andGroup;
+    expect(group.expressions).toEqual([buildRequests(7).actions.dimensionFilter, REGION_FILTER]);
+  });
+
+  it('builds the regions comparison request', () => {
+    const r = buildRegionsRequest(30);
+    expect(r.dateRanges[0].startDate).toBe('29daysAgo');
+    expect(r.dimensions).toEqual([{ name: 'customEvent:region' }]);
+    expect(r.metrics.map((m) => m.name)).toEqual(['activeUsers', 'screenPageViews', 'sessions']);
+  });
+});
+
+describe('buildReport regions block', () => {
+  const now = new Date('2026-10-12T10:00:00Z');
+
+  it('omits regions without data so the output stays as before', () => {
+    const plain = buildReport(empty, 7, now);
+    expect('regions' in plain).toBe(false);
+    expect(buildReport({ ...empty, regions: {} }, 7, now)).toEqual(plain);
+    const onlyUnset = { ...empty, regions: { rows: [row(['(not set)'], [1, 2, 3])] } };
+    expect('regions' in buildReport(onlyUnset, 7, now)).toBe(false);
+  });
+
+  it('lists every region found in the data, busiest first, ignoring (not set)', () => {
+    const report = buildReport(
+      {
+        ...empty,
+        regions: {
+          rows: [
+            row(['(not set)'], [9, 9, 9]),
+            row(['vorarlberg'], [10, 50, 20]),
+            row(['steiermark'], [4, 80, 6]),
+            row(['neue-region'], [1, 2, 1]),
+          ],
+        },
+      },
+      7,
+      now
+    );
+    expect(report.regions).toEqual([
+      { name: 'steiermark', users: 4, pageViews: 80, sessions: 6 },
+      { name: 'vorarlberg', users: 10, pageViews: 50, sessions: 20 },
+      { name: 'neue-region', users: 1, pageViews: 2, sessions: 1 },
+    ]);
+  });
+});
+
+describe('missing custom dimension', () => {
+  it('recognises the GA error', () => {
+    expect(
+      isUnknownRegionDimensionError(
+        'GA Data API 400: Field customEvent:region is not a valid dimension.'
+      )
+    ).toBe(true);
+    expect(isUnknownRegionDimensionError('GA Data API 403: permission denied')).toBe(false);
+    expect(isUnknownRegionDimensionError('GA Data API 400: other field broken')).toBe(false);
+  });
+
+  it('builds an empty report flagged as unavailable', () => {
+    const r = buildUnavailableReport(7, 'steiermark', new Date('2026-10-12T10:00:00Z'));
+    expect(r.regionDimension).toBe('unavailable');
+    expect(r.region).toBe('steiermark');
+    expect(r.totals).toEqual({ users: 0, newUsers: 0, sessions: 0, pageViews: 0 });
+    expect(r.daily).toHaveLength(7);
+    expect(r.regions).toBeUndefined();
   });
 });

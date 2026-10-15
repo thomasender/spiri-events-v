@@ -197,3 +197,37 @@
   font-variant-numeric: tabular-nums;
   color: var(--text-secondary);
 }
+
+.analytics-region-select {
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.analytics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.analytics-table th,
+.analytics-table td {
+  padding: 6px 8px;
+  text-align: right;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+.analytics-table th:first-child {
+  text-align: left;
+  font-weight: 500;
+}
+
+.analytics-table thead th {
+  font-weight: 600;
+  color: var(--text-secondary);
+}

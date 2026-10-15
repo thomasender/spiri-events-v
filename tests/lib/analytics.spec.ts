@@ -201,3 +201,80 @@ describe('EVENTS', () => {
     expect(a.EVENTS.SELECT_CONTENT).toBe('select_content');
   });
 });
+
+describe('region parameter', () => {
+  it('is added to every event once set, never overrides an explicit one', async () => {
+    const a = await load();
+    await a.setAnalyticsConsent(true);
+    a.setAnalyticsRegion('steiermark');
+    await a.trackEvent(a.EVENTS.SHARE, { method: 'copy' });
+    expect(sdk.logEvent).toHaveBeenLastCalledWith({ id: 'ga' }, 'share', {
+      method: 'copy',
+      region: 'steiermark',
+    });
+    await a.trackPageView('/steiermark?x=1', 'T');
+    expect(sdk.logEvent).toHaveBeenLastCalledWith({ id: 'ga' }, 'page_view', {
+      page_path: '/steiermark',
+      page_title: 'T',
+      region: 'steiermark',
+    });
+    await a.trackEvent('filter_apply', { region: 'tirol' });
+    expect(sdk.logEvent).toHaveBeenLastCalledWith({ id: 'ga' }, 'filter_apply', {
+      region: 'tirol',
+    });
+  });
+
+  it('adds nothing when unset, cleared or malformed (payload as before)', async () => {
+    const a = await load();
+    await a.setAnalyticsConsent(true);
+    await a.trackEvent('share', { method: 'copy' });
+    expect(sdk.logEvent).toHaveBeenLastCalledWith({ id: 'ga' }, 'share', { method: 'copy' });
+    a.setAnalyticsRegion('steiermark');
+    a.setAnalyticsRegion(null);
+    await a.trackEvent('share', { method: 'copy' });
+    expect(sdk.logEvent).toHaveBeenLastCalledWith({ id: 'ga' }, 'share', { method: 'copy' });
+    a.setAnalyticsRegion('a@b.at');
+    await a.trackEvent('share', { method: 'copy' });
+    expect(sdk.logEvent).toHaveBeenLastCalledWith({ id: 'ga' }, 'share', { method: 'copy' });
+  });
+
+  it('is never sent for admins and keeps stripping PII', async () => {
+    const a = await load();
+    await a.setAnalyticsConsent(true);
+    a.setAnalyticsRegion('steiermark');
+    await a.trackEvent('login', { method: 'google', email: 'a@b.at' });
+    expect(sdk.logEvent).toHaveBeenLastCalledWith({ id: 'ga' }, 'login', {
+      method: 'google',
+      region: 'steiermark',
+    });
+    sdk.logEvent.mockClear();
+    await a.setAnalyticsAdminUser(true);
+    await a.trackEvent('login', { method: 'google' });
+    expect(sdk.logEvent).not.toHaveBeenCalled();
+  });
+});
+
+describe('analyticsRegionLabel', () => {
+  it('is null with fewer than two active regions (dark launch)', async () => {
+    const { analyticsRegionLabel } = await import('../../src/lib/analyticsEvents');
+    expect(analyticsRegionLabel()).toBeNull();
+    expect(
+      analyticsRegionLabel({ regions: [{ id: 'vorarlberg' }], regionId: 'vorarlberg' })
+    ).toBeNull();
+  });
+
+  it('uses the region, or the combined view slug, with two or more', async () => {
+    const { analyticsRegionLabel } = await import('../../src/lib/analyticsEvents');
+    const regions = [{ id: 'vorarlberg' }, { id: 'steiermark' }];
+    expect(analyticsRegionLabel({ regions, regionId: 'steiermark', combinedView: null })).toBe(
+      'steiermark'
+    );
+    expect(
+      analyticsRegionLabel({
+        regions,
+        regionId: 'steiermark',
+        combinedView: { slug: 'oesterreich' },
+      })
+    ).toBe('oesterreich');
+  });
+});

@@ -451,6 +451,46 @@ reports lag 24–48 h, so fresh data shows up in the tab a day late (use the GA 
 view or `npm run analytics:realtime` for live checks). Results are cached 10 minutes per
 range in the function instance.
 
+#### Statistik pro Region (Ticket 23)
+
+- **Client:** `setAnalyticsRegion()` in `src/lib/analytics.js`, driven by
+  `AnalyticsRouteTracker` in `src/App.jsx`. Every event (incl. `page_view`) gets the
+  event parameter `region` (slug, e.g. `steiermark`; combined views send their own
+  slug, e.g. `oesterreich`). Event pages use the event's region
+  (`useEventRegionContext`). **Dark launch:** it is only sent while at least two
+  regions are active; with only Vorarlberg active the payloads are unchanged.
+  Admins send nothing (existing rule). The `page_view` of an event page can still carry
+  the previous region if the event loads later than the 150 ms title delay.
+- **Report:** `adminAnalyticsReport` takes an optional `region` (region id or combined-view
+  slug, anything else counts as "all"). With it every GA request gets an EXACT
+  `dimensionFilter` on `customEvent:region`. A combined-view slug matches only events
+  that were sent with that slug (not the included regions). Without a region the
+  extra block `regions` (users / pageViews / sessions per `customEvent:region`) is added,
+  so every region that shows up in the data appears in the comparison table by itself.
+  `regions` is omitted while GA has no region data, so the output stays as before.
+  The cache key is `days:region`.
+- **If the dimension is missing** GA answers 400 for `customEvent:region`. The function does
+  not fail: the normal report is returned with `regionDimension: 'unavailable'`; with a
+  region filter the data is empty plus `regionDimension: 'unavailable'`. The tab then
+  shows the hint to create the dimension.
+
+**Einmalig einrichten (Property-Bearbeiter:in in Google Analytics, nicht das Dienstkonto):**
+
+1. analytics.google.com öffnen, die Property der Seite (Stream `G-34TNY65VBC`) wählen.
+2. Unten links _Verwalten_ (Zahnrad) → _Datenanzeige_ → _Benutzerdefinierte Definitionen_.
+3. Tab _Benutzerdefinierte Dimensionen_ → _Benutzerdefinierte Dimension erstellen_.
+4. Dimensionsname: `Region`. Bereich: **Ereignis**. Ereignisparameter: `region`
+   (klein geschrieben, genau so). Speichern.
+5. Ab jetzt zählt GA die Region mit. Das gilt **nicht rückwirkend**: ältere Daten haben keine
+   Region. Bis die ersten Zahlen im Tab erscheinen, kann es bis zu 24 Stunden dauern.
+6. Neue Regionen müssen nicht extra eingerichtet werden: sobald eine Region aktiv ist und
+   Besucher:innen hat, erscheint sie automatisch in „Regionen im Vergleich“ und im
+   Region-Filter (Dropdown listet die aktiven Regionen).
+
+**Annahme, bitte bestätigen:** Cookie-/Datenschutztext braucht keine Änderung. `region` ist
+eine Seiten-Eigenschaft (welcher Regionsbereich der Seite angezeigt wird), keine
+personenbezogene Angabe, und die Einwilligung und die Admin-Ausnahme bleiben unverändert.
+
 ## App Check (reCAPTCHA)
 
 Firebase App Check lets Firestore, Storage and the callable Cloud Functions tell

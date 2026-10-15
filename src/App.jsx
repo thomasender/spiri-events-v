@@ -33,7 +33,9 @@ import { RegionDirectoryRoute, RegionOrProfileRoute } from './components/RegionR
 import PwaInstallPrompt from './components/PwaInstallPrompt';
 import CookieConsent from './components/CookieConsent';
 import OutboundLinkTracker from './components/OutboundLinkTracker';
-import { setAnalyticsAdminUser, trackPageView } from './lib/analytics';
+import { setAnalyticsAdminUser, setAnalyticsRegion, trackPageView } from './lib/analytics';
+import { analyticsRegionLabel } from './lib/analyticsEvents';
+import { useRegion } from './hooks/useRegion';
 import { CONSENT_CHANGE_EVENT, readConsent } from './lib/analyticsConsent';
 
 // Helmet updates document.title on the next animation frame; wait a moment so
@@ -47,6 +49,13 @@ export function AnalyticsRouteTracker() {
   const { role, loading } = useAuth();
   const [consented, setConsented] = useState(() => readConsent() === 'granted');
   const lastSent = useRef(null);
+  const { regions, regionId, combinedView } = useRegion();
+  const regionLabel = analyticsRegionLabel({ regions, regionId, combinedView });
+
+  // Every event carries the region (only with two or more active regions).
+  useEffect(() => {
+    setAnalyticsRegion(regionLabel);
+  }, [regionLabel]);
 
   // Treat the visitor as an admin until the auth role is known, so an admin's
   // first page view is never sent.

@@ -35,3 +35,13 @@ export function safeErrorDescription(error) {
   const raw = String(error?.message ?? error ?? 'unknown');
   return raw.replace(/[^\s@]+@[^\s@]+/g, '[email]').slice(0, 100);
 }
+
+/**
+ * Slug sent as the `region` event parameter: the combined view's slug or the
+ * current region. null while fewer than two regions are active (dark launch:
+ * payloads stay exactly as before).
+ */
+export function analyticsRegionLabel({ regions, regionId, combinedView } = {}) {
+  if ((regions?.length ?? 0) < 2) return null;
+  return combinedView?.slug || regionId || null;
+}
