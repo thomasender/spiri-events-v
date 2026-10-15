@@ -5,9 +5,11 @@
  *   node scripts/backfill-image-optimization.mjs [projectId]            # dry run
  *   node scripts/backfill-image-optimization.mjs [projectId] --apply    # write
  *
- * Needs Application Default Credentials with access to the project
- * (`gcloud auth application-default login`). Safe to re-run: every step skips
- * what is already optimised.
+ * Credentials: scripts/service-account.json if present (what the GitHub
+ * workflow "Backfill image optimization" writes from the repo secret),
+ * otherwise Application Default Credentials (`gcloud auth application-default
+ * login`). Normally run via that workflow: Actions tab -> Run workflow.
+ * Safe to re-run: every step skips what is already optimised.
  *
  *  1. Events: creates events/{id}/thumb_{name} (720 px WebP) for each cover
  *     and stores its URL in `imageThumbUrl`.
@@ -18,6 +20,7 @@
  *  3. Sets `Cache-Control: public, max-age=31536000, immutable` on all of them.
  */
 import { randomUUID } from 'node:crypto';
+import { existsSync, readFileSync } from 'node:fs';
 import admin from 'firebase-admin';
 import sharp from 'sharp';
 
@@ -30,7 +33,14 @@ const COVER_MAX = 1600;
 const AVATAR_MAX = 720;
 const THUMB_MAX = 720;
 
-admin.initializeApp({ projectId, storageBucket: `${projectId}.firebasestorage.app` });
+const SERVICE_ACCOUNT_PATH = 'scripts/service-account.json';
+admin.initializeApp({
+  projectId,
+  storageBucket: `${projectId}.firebasestorage.app`,
+  ...(existsSync(SERVICE_ACCOUNT_PATH) && {
+    credential: admin.credential.cert(JSON.parse(readFileSync(SERVICE_ACCOUNT_PATH, 'utf8'))),
+  }),
+});
 const db = admin.firestore();
 const bucket = admin.storage().bucket();
 
