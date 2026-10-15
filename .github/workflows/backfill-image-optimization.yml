@@ -1,0 +1,57 @@
+name: Backfill image optimization
+
+# One-off job for images uploaded before thumbnails existed: creates thumbnails
+# for event covers, shrinks oversized covers / avatars / helper photos in place
+# (same URLs) and sets long-lived cache headers. See
+# scripts/backfill-image-optimization.mjs. Safe to re-run.
+#
+# Start it from the Actions tab. Run once with "apply" off (dry run, writes
+# nothing, the log shows what would change), then again with "apply" on.
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'Write changes to production (off = dry run)'
+        type: boolean
+        default: false
+
+jobs:
+  backfill:
+    # Touches production data: only ever from main.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    concurrency:
+      group: image-backfill
+      cancel-in-progress: false
+    env:
+      APPLY: ${{ inputs.apply }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Restore Firebase Admin service account
+        run: |
+          set -euo pipefail
+          printf '%s' "${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON_B64 }}" | base64 -d > scripts/service-account.json
+          chmod 600 scripts/service-account.json
+
+      - name: Run backfill
+        run: |
+          if [ "$APPLY" = "true" ]; then
+            node scripts/backfill-image-optimization.mjs spirieventsvbg --apply
+          else
+            node scripts/backfill-image-optimization.mjs spirieventsvbg
+          fi
+
+      - name: Remove service account
+        if: always()
+        run: rm -f scripts/service-account.json
