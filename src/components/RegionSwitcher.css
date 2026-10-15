@@ -25,67 +25,13 @@
   background-color: var(--bg-secondary);
 }
 
-.region-switcher-trigger:focus-visible,
-.region-switcher-item:focus-visible {
+.region-switcher-trigger:focus-visible {
   outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
 }
 
-.region-switcher-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  min-width: 220px;
-  display: flex;
-  flex-direction: column;
-  padding: 6px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background-color: var(--bg-primary);
-  box-shadow: 0 8px 24px rgba(22, 24, 25, 0.14);
-  z-index: 200;
-}
-
-.region-switcher-item {
-  display: flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 0 14px;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: none;
-  color: var(--text-secondary);
-  font-family: var(--font-body);
-  font-size: 0.95rem;
-  text-align: left;
-  cursor: pointer;
-}
-
-.region-switcher-item:hover {
-  background-color: var(--bg-secondary);
-  color: var(--text-primary);
-}
-
-.region-switcher-item--active {
-  color: var(--text-primary);
-  font-weight: 600;
-  box-shadow: inset 3px 0 0 0 var(--accent-primary);
-}
-
-.region-switcher-item--all {
-  margin-top: 4px;
-  border-top: 1px solid var(--border);
-  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
-}
-
-/* The header clips horizontal overflow (overflow-x: clip), which also cuts the
-   hit area of a dropdown below it. While the menu is open the clip is lifted. */
-.header:has(.region-switcher-menu) {
-  overflow-x: visible;
-}
-
-/* Phone: the region choice moves into the burger menu (RegionMenuList), the
-   dropdown is hidden. */
+/* Phone: the region choice moves into the burger menu (RegionMenuList: one button
+   that opens the same pop-up); the header button is hidden. */
 .region-menu-list {
   display: none;
 }
@@ -96,47 +42,36 @@
   }
 
   .region-menu-list {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+    display: block;
     padding: 8px 0;
     border-bottom: 1px solid var(--border);
     margin-bottom: 4px;
   }
 
-  .region-menu-list-heading {
+  .region-menu-list-button {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 4px 16px;
-    color: var(--text-secondary);
-    font-size: 0.8rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-
-  .region-menu-list-item {
-    min-height: 44px;
+    gap: 8px;
+    width: 100%;
+    min-height: 48px;
     padding: 0 16px;
-    border: none;
+    border: 1px solid var(--border);
     border-radius: var(--radius-sm);
-    background: none;
-    color: var(--text-secondary);
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
     font-family: var(--font-body);
     font-size: 1rem;
+    font-weight: 500;
     text-align: left;
     cursor: pointer;
   }
 
-  .region-menu-list-item--active {
-    color: var(--text-primary);
-    font-weight: 600;
-    box-shadow: inset 3px 0 0 0 var(--accent-primary);
+  .region-menu-list-label {
+    flex: 1;
   }
 
-  .region-menu-list-item:focus-visible {
+  .region-menu-list-button:focus-visible {
     outline: 2px solid var(--accent-primary);
-    outline-offset: -2px;
+    outline-offset: 2px;
   }
 }

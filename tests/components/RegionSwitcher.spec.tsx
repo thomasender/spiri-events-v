@@ -48,7 +48,8 @@ function renderAt(path: string) {
   );
 }
 
-const key = (k: string) => fireEvent.keyDown(document.activeElement as HTMLElement, { key: k });
+const key = (k: string, shiftKey = false) =>
+  fireEvent.keyDown(document.activeElement as HTMLElement, { key: k, shiftKey });
 const where = () => screen.getByTestId('where').textContent;
 
 beforeEach(() => {
@@ -81,85 +82,131 @@ describe('with one active region', () => {
   });
 });
 
+const openPicker = () => {
+  fireEvent.click(screen.getByRole('button', { name: /Region wählen, aktuell/ }));
+  return screen.getByTestId('region-picker');
+};
+const chipNames = (scope: HTMLElement) =>
+  within(scope)
+    .getAllByRole('button', { pressed: undefined })
+    .filter((b) => b.classList.contains('region-chip'))
+    .map((b) => b.textContent);
+
 describe('RegionSwitcher with two active regions', () => {
   beforeEach(() => {
     mocks.regions = { regions: TWO_ACTIVE, loading: false };
     window.localStorage.setItem(REGION_CHOOSER_SEEN_KEY, '1');
   });
 
-  it('lists only active regions plus Ganz Österreich and marks the current one', () => {
+  it('opens a pop-up with chips grouped by country and marks the current region', () => {
     renderAt('/');
     const trigger = screen.getByRole('button', { name: /Region wählen, aktuell Vorarlberg/ });
-    expect(trigger).toHaveAttribute('aria-haspopup', 'menu');
+    expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
-    fireEvent.click(trigger);
+    expect(screen.queryByTestId('region-picker')).toBeNull();
+    const dialog = openPicker();
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
-    const items = screen.getAllByRole('menuitemradio');
-    expect(items.map((i) => i.textContent)).toEqual([
-      'Vorarlberg',
-      'Tirol',
+    expect(dialog).toHaveAttribute('aria-modal', 'true');
+    expect(dialog).toHaveFocus();
+    expect(
+      within(dialog)
+        .getAllByRole('heading', { level: 3 })
+        .map((h) => h.textContent)
+    ).toEqual(['Ansichten', 'Österreich', 'Deutschland', 'Schweiz']);
+    const names = chipNames(dialog);
+    expect(names.slice(0, 4)).toEqual([
       'Ganz Österreich',
+      'Ganz Deutschland (bald)',
+      'Ganz Schweiz (bald)',
       'Alle Tribes',
     ]);
-    expect(items[0]).toHaveAttribute('aria-checked', 'true');
-    expect(items[1]).toHaveAttribute('aria-checked', 'false');
+    // 4 views + all 51 regions; open regions plain, the others marked "(bald)".
+    expect(names).toHaveLength(4 + 51);
+    expect(names).toContain('Tirol');
+    expect(names).toContain('Salzburg (bald)');
+    expect(names).toContain('Bayern (bald)');
+    expect(within(dialog).getByRole('button', { name: 'Vorarlberg' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    expect(within(dialog).getByRole('button', { name: 'Tirol' })).toHaveAttribute(
+      'aria-pressed',
+      'false'
+    );
   });
 
-  it('offers "Alle Regionen ansehen" last, which opens the map page', () => {
+  it('"Auf der Karte wählen" closes the pop-up and opens the map page', () => {
     renderAt('/');
-    fireEvent.click(screen.getByRole('button', { name: /Region wählen/ }));
-    const items = screen.getAllByRole('menuitem');
-    expect(items.map((i) => i.textContent)).toEqual(['Alle Regionen ansehen']);
-    fireEvent.click(items[0]);
+    const dialog = openPicker();
+    fireEvent.click(within(dialog).getByRole('button', { name: /Auf der Karte wählen/ }));
     expect(where()).toBe('/regionen');
-    expect(screen.queryByRole('menu')).toBeNull();
+    expect(screen.queryByTestId('region-picker')).toBeNull();
   });
 
   it('navigates to the region, keeps the area and remembers the choice', () => {
     renderAt('/vorarlberg/verzeichnis');
-    fireEvent.click(screen.getByTestId('region-switcher').querySelector('button')!);
-    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Tirol' }));
+    fireEvent.click(within(openPicker()).getByRole('button', { name: 'Tirol' }));
     expect(where()).toBe('/tirol/verzeichnis');
     expect(window.localStorage.getItem(LAST_REGION_STORAGE_KEY)).toBe('tirol');
     expect(mocks.trackFilter).toHaveBeenCalledWith('region', 'tirol');
+    expect(screen.queryByTestId('region-picker')).toBeNull();
     expect(screen.getByRole('button', { name: /aktuell Tirol/ })).toBeInTheDocument();
+  });
+
+  it('a region that is not open yet leads to its coming-soon address', () => {
+    renderAt('/');
+    fireEvent.click(within(openPicker()).getByRole('button', { name: /^Zürich/ }));
+    expect(where()).toBe('/zuerich');
   });
 
   it('Ganz Österreich opens the combined view', () => {
     renderAt('/tirol');
-    fireEvent.click(screen.getByRole('button', { name: /aktuell Tirol/ }));
-    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Ganz Österreich' }));
+    fireEvent.click(within(openPicker()).getByRole('button', { name: 'Ganz Österreich' }));
     expect(where()).toBe('/oesterreich');
     expect(screen.getByRole('button', { name: /aktuell Ganz Österreich/ })).toBeInTheDocument();
   });
 
   it('from an event page the switch leads to the region calendar', () => {
     renderAt('/event/some-event');
-    fireEvent.click(screen.getByRole('button', { name: /Region wählen/ }));
-    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Tirol' }));
+    fireEvent.click(within(openPicker()).getByRole('button', { name: 'Tirol' }));
     expect(where()).toBe('/tirol');
   });
 
-  it('works with the keyboard: arrows, Enter, Escape returns focus', () => {
+  it('choosing the current region only closes the pop-up', () => {
     renderAt('/');
-    const trigger = screen.getByRole('button', { name: /Region wählen/ });
-    trigger.focus();
-    key('ArrowDown');
-    expect(screen.getByRole('menuitemradio', { name: 'Vorarlberg' })).toHaveFocus();
-    key('ArrowDown');
-    expect(screen.getByRole('menuitemradio', { name: 'Tirol' })).toHaveFocus();
-    key('ArrowDown');
-    key('ArrowDown');
-    key('ArrowDown');
-    key('ArrowDown');
-    expect(screen.getByRole('menuitemradio', { name: 'Vorarlberg' })).toHaveFocus();
-    key('Escape');
-    expect(screen.queryByRole('menu')).toBeNull();
+    fireEvent.click(within(openPicker()).getByRole('button', { name: 'Vorarlberg' }));
+    expect(where()).toBe('/');
+    expect(screen.queryByTestId('region-picker')).toBeNull();
+  });
+
+  it('closes with the X, Escape or a click next to it, and focus returns to the button', () => {
+    renderAt('/');
+    const trigger = screen.getByRole('button', { name: /Region wählen, aktuell/ });
+    fireEvent.click(within(openPicker()).getByRole('button', { name: 'Schließen' }));
+    expect(screen.queryByTestId('region-picker')).toBeNull();
     expect(trigger).toHaveFocus();
-    key('ArrowDown');
-    key('ArrowDown');
-    fireEvent.click(document.activeElement as HTMLElement); // Enter on a button clicks it
-    expect(where()).toBe('/tirol');
+    openPicker();
+    key('Escape');
+    expect(screen.queryByTestId('region-picker')).toBeNull();
+    expect(trigger).toHaveFocus();
+    openPicker();
+    fireEvent.mouseDown(document.querySelector('.region-picker-backdrop')!);
+    expect(screen.queryByTestId('region-picker')).toBeNull();
+    // a click inside the dialog keeps it open
+    const dialog = openPicker();
+    fireEvent.mouseDown(dialog);
+    expect(screen.getByTestId('region-picker')).toBeInTheDocument();
+  });
+
+  it('keeps Tab focus inside the pop-up', () => {
+    renderAt('/');
+    const dialog = openPicker();
+    const buttons = within(dialog).getAllByRole('button');
+    buttons[buttons.length - 1].focus();
+    key('Tab');
+    expect(buttons[0]).toHaveFocus();
+    key('Tab', true);
+    expect(buttons[buttons.length - 1]).toHaveFocus();
   });
 
   it('does not crash when localStorage throws', () => {
@@ -170,8 +217,7 @@ describe('RegionSwitcher with two active regions', () => {
       throw new Error('blocked');
     });
     renderAt('/');
-    fireEvent.click(screen.getByRole('button', { name: /Region wählen/ }));
-    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Tirol' }));
+    fireEvent.click(within(openPicker()).getByRole('button', { name: 'Tirol' }));
     expect(where()).toBe('/tirol');
   });
 });
@@ -190,23 +236,16 @@ describe('RegionMenuList (burger menu on the phone)', () => {
     return onNavigate;
   }
 
-  it('lists the regions, marks the current one and closes the menu on choice', () => {
+  it('is one button naming the region; it closes the menu and opens the same pop-up', () => {
     const onNavigate = renderList();
-    const list = screen.getByTestId('region-menu-list');
-    expect(within(list).getByRole('button', { name: 'Vorarlberg' })).toHaveAttribute(
-      'aria-pressed',
-      'true'
-    );
-    fireEvent.click(within(list).getByRole('button', { name: 'Tirol' }));
+    const button = screen.getByRole('button', { name: /Region: Vorarlberg/ });
+    expect(button).toHaveAttribute('aria-haspopup', 'dialog');
+    fireEvent.click(button);
     expect(onNavigate).toHaveBeenCalled();
+    const dialog = screen.getByTestId('region-picker');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Tirol' }));
     expect(where()).toBe('/tirol');
-  });
-
-  it('ends with "Alle Regionen ansehen", which opens the map page and closes the menu', () => {
-    const onNavigate = renderList();
-    fireEvent.click(screen.getByRole('button', { name: 'Alle Regionen ansehen' }));
-    expect(onNavigate).toHaveBeenCalled();
-    expect(where()).toBe('/regionen');
+    expect(screen.queryByTestId('region-picker')).toBeNull();
   });
 
   it('renders nothing with only Vorarlberg active (dark launch)', () => {
@@ -227,13 +266,15 @@ describe('combined views in switcher and chooser (ticket 33)', () => {
     window.localStorage.setItem(REGION_CHOOSER_SEEN_KEY, '1');
   });
 
-  it('offers only the available combined views below the regions', () => {
+  const viewChips = (dialog: HTMLElement) => chipNames(dialog).slice(0, 4);
+
+  it('marks the views without enough open regions "(bald)"', () => {
     mocks.regions = { regions: AT_AND_DE, loading: false };
     renderAt('/');
-    fireEvent.click(screen.getByRole('button', { name: /Region wählen/ }));
-    expect(screen.getAllByRole('menuitemradio').map((i) => i.textContent)).toEqual([
-      'Vorarlberg',
-      'Bayern',
+    expect(viewChips(openPicker())).toEqual([
+      'Ganz Österreich (bald)',
+      'Ganz Deutschland (bald)',
+      'Ganz Schweiz (bald)',
       'Alle Tribes',
     ]);
   });
@@ -241,15 +282,14 @@ describe('combined views in switcher and chooser (ticket 33)', () => {
   it('offers Ganz Österreich and Alle Tribes with Austria + Germany, and navigates there', () => {
     mocks.regions = { regions: THREE_ACTIVE, loading: false };
     renderAt('/');
-    fireEvent.click(screen.getByRole('button', { name: /Region wählen/ }));
-    expect(screen.getAllByRole('menuitemradio').map((i) => i.textContent)).toEqual([
-      'Vorarlberg',
-      'Tirol',
-      'Bayern',
+    const dialog = openPicker();
+    expect(viewChips(dialog)).toEqual([
       'Ganz Österreich',
+      'Ganz Deutschland (bald)',
+      'Ganz Schweiz (bald)',
       'Alle Tribes',
     ]);
-    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Alle Tribes' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Alle Tribes' }));
     expect(where()).toBe('/alle-tribes');
     expect(screen.getByRole('button', { name: /aktuell Alle Tribes/ })).toBeInTheDocument();
   });
@@ -257,9 +297,8 @@ describe('combined views in switcher and chooser (ticket 33)', () => {
   it('shows the current combined view as selected after opening its address', () => {
     mocks.regions = { regions: THREE_ACTIVE, loading: false };
     renderAt('/alle-tribes');
-    fireEvent.click(screen.getByRole('button', { name: /aktuell Alle Tribes/ }));
-    expect(screen.getByRole('menuitemradio', { name: 'Alle Tribes' })).toHaveAttribute(
-      'aria-checked',
+    expect(within(openPicker()).getByRole('button', { name: 'Alle Tribes' })).toHaveAttribute(
+      'aria-pressed',
       'true'
     );
   });

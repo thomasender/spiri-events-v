@@ -1,224 +1,81 @@
-import { useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useRef, useState } from 'react';
 import { ChevronDown, MapPin } from 'lucide-react';
 import { useRegion } from '../hooks/useRegion';
-import { trackFilter } from '../lib/analyticsEvents';
-import { regionSwitchSubpath } from '../utils/regionRouting';
+import RegionPickerModal from './RegionPickerModal';
 import './RegionSwitcher.css';
 
-/**
- * Header dropdown to change the region. Dark launch: renders nothing while
- * fewer than two regions are active, so Vorarlberg-only visitors see no change.
- */
-function useRegionEntries() {
-  const { regions, regionId, combinedView, combinedViews } = useRegion();
-  const entries = [
-    ...[...regions].sort((a, b) => a.order - b.order).map((r) => ({ slug: r.slug, name: r.name })),
-    ...combinedViews.map((v) => ({ slug: v.slug, name: v.name, combined: true })),
-  ];
-  const currentSlug = combinedView ? combinedView.slug : regionId;
-  return { entries, currentSlug, visible: regions.length >= 2 };
+// Name shown on the button: the current combined view or region.
+function useCurrentRegionName() {
+  const { regions, allRegions, regionId, combinedView } = useRegion();
+  const region = allRegions.find((r) => r.slug === regionId) ?? regions[0];
+  return {
+    name: combinedView ? combinedView.name : (region?.name ?? ''),
+    // Dark launch: nothing to switch between while fewer than two regions are active.
+    visible: regions.length >= 2,
+  };
 }
 
 /**
- * Phone: the region choice lives in the burger menu as a plain list (the
- * dropdown above is hidden below 800px). Same dark launch rule as the dropdown.
+ * Phone: the region choice lives in the burger menu as one button that opens the
+ * same pop-up as the header (the header button is hidden below 800px). Same
+ * dark launch rule as the header button.
  */
 export function RegionMenuList({ onNavigate }) {
-  const { setRegion } = useRegion();
-  const { pathname } = useLocation();
-  const navigate = useNavigate();
-  const { entries, currentSlug, visible } = useRegionEntries();
+  const { name, visible } = useCurrentRegionName();
+  const [open, setOpen] = useState(false);
   if (!visible) return null;
-
-  const choose = (slug) => {
-    onNavigate?.();
-    if (slug === currentSlug) return;
-    trackFilter('region', slug);
-    setRegion(slug, regionSwitchSubpath(pathname));
-  };
-
   return (
-    <div
-      className="region-menu-list"
-      role="group"
-      aria-label="Region wählen"
-      data-testid="region-menu-list"
-    >
-      <span className="region-menu-list-heading">
-        <MapPin size={16} aria-hidden="true" /> Region
-      </span>
-      {entries.map((entry) => (
-        <button
-          key={entry.slug}
-          type="button"
-          className={`region-menu-list-item${
-            entry.slug === currentSlug ? ' region-menu-list-item--active' : ''
-          }`}
-          aria-pressed={entry.slug === currentSlug}
-          onClick={() => choose(entry.slug)}
-        >
-          {entry.name}
-        </button>
-      ))}
+    <div className="region-menu-list" data-testid="region-menu-list">
       <button
         type="button"
-        className="region-menu-list-item region-menu-list-item--all-regions"
+        className="region-menu-list-button"
+        aria-haspopup="dialog"
         onClick={() => {
           onNavigate?.();
-          navigate('/regionen');
+          setOpen(true);
         }}
       >
-        Alle Regionen ansehen
+        <MapPin size={18} aria-hidden="true" />
+        <span className="region-menu-list-label">Region: {name}</span>
+        <ChevronDown size={16} aria-hidden="true" />
       </button>
+      <RegionPickerModal open={open} onClose={() => setOpen(false)} />
     </div>
   );
 }
 
+/**
+ * Header button that opens the region pop-up (chips by country). Dark launch:
+ * renders nothing while fewer than two regions are active, so Vorarlberg-only
+ * visitors see no change.
+ */
 export default function RegionSwitcher() {
-  const { setRegion } = useRegion();
-  const { pathname } = useLocation();
-  const navigate = useNavigate();
+  const { name, visible } = useCurrentRegionName();
   const [open, setOpen] = useState(false);
-  const rootRef = useRef(null);
   const triggerRef = useRef(null);
-  const itemRefs = useRef([]);
-
-  const { entries, currentSlug, visible } = useRegionEntries();
-  const current = entries.find((e) => e.slug === currentSlug) ?? entries[0];
-
-  useEffect(() => {
-    if (!open) return undefined;
-    const onPointer = (e) => {
-      if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener('mousedown', onPointer);
-    document.addEventListener('touchstart', onPointer);
-    return () => {
-      document.removeEventListener('mousedown', onPointer);
-      document.removeEventListener('touchstart', onPointer);
-    };
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    const idx = Math.max(
-      0,
-      entries.findIndex((e) => e.slug === currentSlug)
-    );
-    itemRefs.current[idx]?.focus();
-    // Only when the menu opens.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
-
-  useEffect(() => {
-    setOpen(false);
-  }, [pathname]);
-
   if (!visible) return null;
 
-  const close = (refocus) => {
+  const close = () => {
     setOpen(false);
-    if (refocus) triggerRef.current?.focus();
-  };
-
-  const choose = (slug) => {
-    close(true);
-    if (slug === currentSlug) return;
-    trackFilter('region', slug);
-    setRegion(slug, regionSwitchSubpath(pathname));
-  };
-
-  const openAllRegions = () => {
-    close(false);
-    navigate('/regionen');
-  };
-
-  const onMenuKeyDown = (e) => {
-    const items = itemRefs.current.filter(Boolean);
-    const i = items.indexOf(document.activeElement);
-    let next = null;
-    if (e.key === 'ArrowDown') next = (i + 1) % items.length;
-    else if (e.key === 'ArrowUp') next = (i - 1 + items.length) % items.length;
-    else if (e.key === 'Home') next = 0;
-    else if (e.key === 'End') next = items.length - 1;
-    else if (e.key === 'Escape') {
-      e.preventDefault();
-      e.stopPropagation();
-      close(true);
-      return;
-    } else if (e.key === 'Tab') {
-      setOpen(false);
-      return;
-    }
-    if (next !== null) {
-      e.preventDefault();
-      items[next]?.focus();
-    }
-  };
-
-  const onTriggerKeyDown = (e) => {
-    if (e.key === 'ArrowDown' && !open) {
-      e.preventDefault();
-      setOpen(true);
-    }
+    triggerRef.current?.focus();
   };
 
   return (
-    <div className="region-switcher" ref={rootRef} data-testid="region-switcher">
+    <div className="region-switcher" data-testid="region-switcher">
       <button
         ref={triggerRef}
         type="button"
         className="region-switcher-trigger"
-        aria-haspopup="menu"
+        aria-haspopup="dialog"
         aria-expanded={open}
-        aria-controls={open ? 'region-switcher-menu' : undefined}
-        aria-label={`Region wählen, aktuell ${current.name}`}
-        onClick={() => setOpen((o) => !o)}
-        onKeyDown={onTriggerKeyDown}
+        aria-label={`Region wählen, aktuell ${name}`}
+        onClick={() => setOpen(true)}
       >
         <MapPin size={16} aria-hidden="true" />
-        <span className="region-switcher-label">{current.name}</span>
+        <span className="region-switcher-label">{name}</span>
         <ChevronDown size={16} aria-hidden="true" />
       </button>
-      {open && (
-        <div
-          id="region-switcher-menu"
-          className="region-switcher-menu"
-          role="menu"
-          aria-label="Region wählen"
-          onKeyDown={onMenuKeyDown}
-        >
-          {entries.map((entry, i) => (
-            <button
-              key={entry.slug}
-              ref={(el) => {
-                itemRefs.current[i] = el;
-              }}
-              type="button"
-              role="menuitemradio"
-              aria-checked={entry.slug === currentSlug}
-              className={`region-switcher-item${
-                entry.slug === currentSlug ? ' region-switcher-item--active' : ''
-              }${entry.combined ? ' region-switcher-item--all' : ''}`}
-              onClick={() => choose(entry.slug)}
-            >
-              {entry.name}
-            </button>
-          ))}
-          <button
-            ref={(el) => {
-              itemRefs.current[entries.length] = el;
-            }}
-            type="button"
-            role="menuitem"
-            className="region-switcher-item region-switcher-item--all"
-            onClick={openAllRegions}
-          >
-            Alle Regionen ansehen
-          </button>
-        </div>
-      )}
+      <RegionPickerModal open={open} onClose={close} />
     </div>
   );
 }
