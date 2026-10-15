@@ -13,6 +13,8 @@ import {
 } from '../utils/regionRouting';
 import './RegionChooser.css';
 
+import ModeratorApplyCard from './ModeratorApplyCard';
+
 // The map data is only needed by first-time visitors.
 const RegionMap = lazy(() => import('./RegionMap'));
 
@@ -22,7 +24,8 @@ const CHOOSER_PATHS = ['/', '/verzeichnis'];
 // Opened on purpose (switcher, burger menu): always shown, and it can be closed.
 export const REGIONS_PAGE_PATH = '/regionen';
 
-const FOCUSABLE = 'button:not([disabled])';
+const FOCUSABLE =
+  'button:not([disabled]), input:not([disabled]):not([tabindex="-1"]), select:not([disabled]), textarea:not([disabled])';
 
 /**
  * "Wo suchst du?" when we do not know yet where a visitor wants to search: a
@@ -195,6 +198,7 @@ export default function RegionChooser() {
             })}
           </div>
         </div>
+        <ModeratorApplyCard className="region-chooser-apply" />
       </section>
     </div>,
     document.body

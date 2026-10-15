@@ -27,6 +27,14 @@ export interface MailgunSendInput {
   text: string;
   html: string;
   replyTo?: string;
+  /** Inline images, referenced in the HTML as `cid:<filename>` (sent as multipart). */
+  inlineImages?: MailgunInlineImage[];
+}
+
+export interface MailgunInlineImage {
+  filename: string;
+  contentType: string;
+  data: Buffer;
 }
 
 export interface MailgunSendResult {
@@ -60,19 +68,36 @@ function formBody(input: MailgunSendInput): URLSearchParams {
   return body;
 }
 
+/** Multipart body, only used when the message carries inline images. */
+function multipartBody(input: MailgunSendInput): FormData {
+  const form = new FormData();
+  for (const [key, value] of formBody(input).entries()) form.append(key, value);
+  for (const image of input.inlineImages ?? []) {
+    form.append(
+      'inline',
+      new Blob([new Uint8Array(image.data)], { type: image.contentType }),
+      image.filename
+    );
+  }
+  return form;
+}
+
 export async function sendMailgunMessage(
   apiBase: string,
   input: MailgunSendInput
 ): Promise<MailgunSendResult> {
   const url = `${apiBase.replace(/\/$/, '')}/${encodeURIComponent(input.domain)}/messages`;
+  const hasImages = (input.inlineImages?.length ?? 0) > 0;
+  const headers: Record<string, string> = {
+    Authorization: `Basic ${Buffer.from(`api:${input.apiKey}`).toString('base64')}`,
+    Accept: 'application/json',
+  };
+  // Plain messages keep the old urlencoded body; multipart sets its own boundary.
+  if (!hasImages) headers['Content-Type'] = 'application/x-www-form-urlencoded';
   const response = await fetch(url, {
     method: 'POST',
-    headers: {
-      Authorization: `Basic ${Buffer.from(`api:${input.apiKey}`).toString('base64')}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-      Accept: 'application/json',
-    },
-    body: formBody(input).toString(),
+    headers,
+    body: hasImages ? multipartBody(input) : formBody(input).toString(),
   });
 
   const text = await response.text();

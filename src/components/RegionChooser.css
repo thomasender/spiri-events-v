@@ -137,3 +137,7 @@
   outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
 }
+
+.region-chooser-apply {
+  margin-top: 32px;
+}

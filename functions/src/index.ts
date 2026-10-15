@@ -124,6 +124,7 @@ export { sendVerificationEmail } from './sendVerificationEmail';
 export { sendPasswordResetEmailFn } from './sendPasswordResetEmail';
 export { checkEmailAvailability } from './checkEmailAvailability';
 export { adminListMembers, adminUpdateMember } from './adminMembers';
+export { submitModeratorApplication } from './moderatorApplication';
 export { adminSetRegionModerator, adminListRegionModerators } from './adminModerators';
 export { adminSetRegionActive, adminListRegionActivation } from './adminRegions';
 export { adminAnalyticsReport } from './adminAnalytics';

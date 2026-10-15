@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarPlus, Check, Share2 } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
+import ModeratorApplyCard from '../components/ModeratorApplyCard';
 import { BRAND_NAME } from '../config/brand';
 import { useAuth } from '../hooks/useAuth';
 import { useRegionEventCount } from '../hooks/useRegionEventCount';
@@ -118,6 +119,7 @@ export default function RegionComingSoonPage({ region = null, view = null, canPr
             Nur für Admins sichtbar: {region.name} ist noch nicht freigeschaltet.
           </p>
         )}
+        <ModeratorApplyCard regionId={region?.id ?? ''} />
         <Link to="/" className="coming-soon-explore" data-testid="region-explore">
           Andere Regionen erkunden
         </Link>
