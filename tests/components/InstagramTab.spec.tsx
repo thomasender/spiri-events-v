@@ -145,7 +145,7 @@ describe('InstagramTab', () => {
   it('keeps every section collapsed by default and expands on click', () => {
     state.posts = [post('e1', 'published')];
     render(<InstagramTab />);
-    for (const id of ['unposted', 'failed', 'skipped', 'published']) {
+    for (const id of ['unposted', 'failed', 'skipped', 'published', 'archived']) {
       expect(screen.getByTestId(`instagram-toggle-${id}`)).toHaveAttribute(
         'aria-expanded',
         'false'
@@ -247,6 +247,26 @@ describe('InstagramTab', () => {
     await waitFor(() => expect(state.callable).toHaveBeenCalledWith({ eventId: 'fail' }));
     expect(state.httpsCallable).toHaveBeenCalledWith('adminRetryInstagramPost');
     expect(await screen.findByText('Der Beitrag wurde veröffentlicht.')).toBeInTheDocument();
+  });
+
+  it('archives a skipped post and lists archived posts in their own section', async () => {
+    state.posts = [post('skip', 'skipped'), post('old', 'archived')];
+    state.callable.mockResolvedValue({ data: { outcome: 'archived' } });
+    render(<InstagramTab />);
+    expect(screen.getByTestId('instagram-count-archived')).toHaveTextContent('1');
+    open('skipped', 'archived');
+    const archived = within(screen.getByTestId('instagram-section-archived')).getByTestId(
+      'instagram-post'
+    );
+    expect(within(archived).getByTestId('instagram-post-status')).toHaveTextContent('Archiviert');
+    expect(within(archived).queryByRole('button')).not.toBeInTheDocument();
+    fireEvent.click(
+      within(screen.getByTestId('instagram-section-skipped')).getByRole('button', {
+        name: /Archivieren/,
+      })
+    );
+    await waitFor(() => expect(state.callable).toHaveBeenCalledWith({ eventId: 'skip' }));
+    expect(state.httpsCallable).toHaveBeenCalledWith('adminArchiveInstagramPost');
   });
 
   it('shows why a post was skipped', () => {

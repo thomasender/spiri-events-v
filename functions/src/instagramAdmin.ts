@@ -20,6 +20,7 @@ import {
 } from './instagram/instagramCarousel';
 import {
   AdminActionError,
+  archiveInstagramPost,
   assertEventId,
   retryInstagramPost,
   skipInstagramPost,
@@ -133,6 +134,33 @@ export const adminSkipInstagramPost = onCall(
         eventId
       );
       logger.info('Instagram post skipped by admin', { eventId });
+      return { outcome };
+    } catch (err) {
+      return toHttpsError(err);
+    }
+  }
+);
+
+export const adminArchiveInstagramPost = onCall(
+  { region: 'europe-west3', cors: ALLOWED_ORIGINS, ...appCheckOptions() },
+  async (request): Promise<{ outcome: 'archived' }> => {
+    logMissingAppCheck('adminArchiveInstagramPost', request);
+    await assertAdmin(request.auth?.uid);
+    try {
+      const eventId = assertEventId((request.data as { eventId?: unknown } | null)?.eventId);
+      const col = getFirestore().collection('instagram_posts');
+      const outcome = await archiveInstagramPost(
+        {
+          getPostStatus: readStatus,
+          async setArchived(postId) {
+            await col
+              .doc(postId)
+              .update({ status: 'archived', updatedAt: FieldValue.serverTimestamp() });
+          },
+        },
+        eventId
+      );
+      logger.info('Instagram post archived by admin', { eventId });
       return { outcome };
     } catch (err) {
       return toHttpsError(err);

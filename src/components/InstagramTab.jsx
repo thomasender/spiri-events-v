@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import {
+  Archive,
   AlertTriangle,
   ChevronDown,
   ChevronRight,
@@ -28,9 +29,11 @@ const STATUS_LABELS = {
   published: 'Veröffentlicht',
   failed: 'Fehlgeschlagen',
   skipped: 'Übersprungen',
+  archived: 'Archiviert',
 };
 
 const OUTCOME_MESSAGES = {
+  archived: 'Der Beitrag wurde ins Archiv verschoben.',
   published: 'Der Beitrag wurde veröffentlicht.',
   failed: 'Der Versuch ist erneut fehlgeschlagen. Details stehen in der Liste.',
   skipped: 'Das Event liegt in der Vergangenheit und wurde übersprungen.',
@@ -118,6 +121,12 @@ const POST_SECTIONS = [
     title: 'Bereits veröffentlichte Beiträge',
     statuses: ['published'],
     empty: 'Noch keine veröffentlichten Beiträge.',
+  },
+  {
+    id: 'archived',
+    title: 'Archiv',
+    statuses: ['archived'],
+    empty: 'Das Archiv ist leer.',
   },
 ];
 
@@ -586,6 +595,14 @@ export default function InstagramTab() {
                             onClick={() => runAction(post, 'adminRetryInstagramPost')}
                           >
                             <RefreshCw size={14} aria-hidden="true" /> Erneut versuchen
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            disabled={busy}
+                            onClick={() => runAction(post, 'adminArchiveInstagramPost')}
+                          >
+                            <Archive size={14} aria-hidden="true" /> Archivieren
                           </button>
                         </div>
                       )}

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
   AdminActionError,
+  archiveInstagramPost,
   assertEventId,
   retryInstagramPost,
   skipInstagramPost,
@@ -151,5 +152,34 @@ describe('skipInstagramPost', () => {
     await expect(skipInstagramPost(deps, 'e1')).rejects.toMatchObject({
       code: 'failed-precondition',
     });
+  });
+});
+
+describe('archiveInstagramPost', () => {
+  function archiveHarness(status: string | null) {
+    return {
+      getPostStatus: vi.fn(async () => status),
+      setArchived: vi.fn(async () => undefined),
+    };
+  }
+
+  it('archives a skipped post', async () => {
+    const deps = archiveHarness('skipped');
+    expect(await archiveInstagramPost(deps, 'e1')).toBe('archived');
+    expect(deps.setArchived).toHaveBeenCalledWith('feed_e1');
+  });
+
+  it('is a no-op for an already archived post', async () => {
+    const deps = archiveHarness('archived');
+    expect(await archiveInstagramPost(deps, 'e1')).toBe('archived');
+    expect(deps.setArchived).not.toHaveBeenCalled();
+  });
+
+  it.each(['published', 'publishing', 'failed', null])('refuses a %s post', async (s) => {
+    const deps = archiveHarness(s);
+    await expect(archiveInstagramPost(deps, 'e1')).rejects.toMatchObject({
+      code: 'failed-precondition',
+    });
+    expect(deps.setArchived).not.toHaveBeenCalled();
   });
 });
