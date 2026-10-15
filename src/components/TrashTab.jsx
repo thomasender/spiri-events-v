@@ -44,6 +44,7 @@ async function permanentDeleteEventById(id) {
   const eventData = snap.data();
   if (eventData.imageUrl) {
     await deleteImageByUrl(eventData.imageUrl);
+    await deleteImageByUrl(eventData.imageThumbUrl);
   }
   const messagesRef = collection(db, 'events', id, 'messages');
   const messagesSnapshot = await getDocs(messagesRef);

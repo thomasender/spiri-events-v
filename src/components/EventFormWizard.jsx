@@ -10,6 +10,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
 import {
   uploadImage,
+  uploadEventCover,
   deleteImageByUrl,
   getImageDimensions,
   getAspectRatioRecommendation,
@@ -503,11 +504,10 @@ export default function EventFormWizard() {
     setImageUploading(true);
     setImageProgress(0);
     try {
-      const url = await uploadImage(imageFile, {
+      return await uploadEventCover(imageFile, {
         eventId,
         onProgress: setImageProgress,
       });
-      return url;
     } catch (err) {
       console.error('Image upload failed:', err);
       throw new Error('Bild-Upload fehlgeschlagen');
@@ -733,6 +733,7 @@ export default function EventFormWizard() {
     },
     kontakt: formData.kontakt.trim(),
     imageUrl: null,
+    imageThumbUrl: null,
     status,
     rightsConfirmed,
     rightsConfirmedAt: rightsConfirmed ? serverTimestamp() : null,
@@ -820,8 +821,8 @@ export default function EventFormWizard() {
       }
 
       if (imageFile) {
-        const newImageUrl = await handleImageUpload(docRef.id);
-        const patch = { imageUrl: newImageUrl };
+        const { url: newImageUrl, thumbUrl: newThumbUrl } = await handleImageUpload(docRef.id);
+        const patch = { imageUrl: newImageUrl, imageThumbUrl: newThumbUrl };
         if (!isDefaultFocalPoint(imageFocalPoint)) {
           patch.imageFocalPoint = imageFocalPoint;
         }
@@ -1558,7 +1559,8 @@ export default function EventFormWizard() {
         <div className="summary-section">
           <h4>Details</h4>
           <p>
-            <strong>{formData.category}</strong> • {formData.isOnline ? 'Online' : bezirkLabel(formData.bezirk)}
+            <strong>{formData.category}</strong> •{' '}
+            {formData.isOnline ? 'Online' : bezirkLabel(formData.bezirk)}
           </p>
           {!formData.isOnline && formData.place && <p>📍 {formData.place}</p>}
           <p>

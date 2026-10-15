@@ -170,7 +170,7 @@ service cloud.firestore {
       // event to draft / pending / trashed first.
       function isOwnerApprovedPatch(before, after, changed) {
         return changed.hasOnly(['instagramConsent', 'instagramHandleOverride', 'instagramImage',
-                                'imageUrl', 'imageFocalPoint', 'imageZoom',
+                                'imageUrl', 'imageThumbUrl', 'imageFocalPoint', 'imageZoom',
                                 'customDates', 'exceptionDates', 'recurrenceEndDate',
                                 'cancelled', 'cancelledDates',
                                 'updatedAt'])

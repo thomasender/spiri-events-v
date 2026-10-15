@@ -1,7 +1,8 @@
 /**
  * Image upload service using Firebase Storage
  * Images are stored at: events/{eventId}/{timestamp}_{filename}
- * Compressed client-side before upload for fast transfers
+ * Compressed client-side before upload for fast transfers. Event covers get a
+ * small WebP thumbnail (events/{eventId}/thumb_{timestamp}_{filename}) for tiles.
  */
 
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
@@ -11,11 +12,26 @@ const LANDSCAPE_RATIO = 16 / 9;
 const PORTRAIT_RATIO = 9 / 16;
 const ASPECT_RATIO_TOLERANCE = 0.1;
 
-const MAX_DIMENSION = 2000;
+// Full-size images (event cover, description images, screenshots). 1600 px is
+// enough for a full-width hero on a 3x phone and for retina desktop layouts.
+const MAX_DIMENSION = 1600;
 const TARGET_MAX_BYTES = 1.5 * 1024 * 1024;
 const INITIAL_QUALITY = 0.85;
 const MIN_QUALITY = 0.5;
 const QUALITY_STEP = 0.05;
+
+// Avatars are shown at <= ~240 px (3x => 720). Anything larger is wasted bytes.
+const AVATAR_MAX_DIMENSION = 720;
+const AVATAR_MAX_BYTES = 250 * 1024;
+
+// Thumbnails for the list/calendar/directory tiles (tile ~350 px wide at 2x).
+const THUMB_MAX_DIMENSION = 720;
+const THUMB_MAX_BYTES = 90 * 1024;
+const THUMB_PREFIX = 'thumb_';
+
+// Uploaded objects get a unique timestamped name and are never overwritten, so
+// browsers and the CDN may keep them for a year.
+const IMMUTABLE_CACHE_CONTROL = 'public, max-age=31536000, immutable';
 
 export const MAX_INPUT_SIZE_BYTES = 15 * 1024 * 1024;
 export const TARGET_COMPRESSED_BYTES = TARGET_MAX_BYTES;
@@ -48,67 +64,82 @@ export function getAspectRatioRecommendation(width, height) {
   return { isRecommended: isLandscape || isPortrait, ratio: width / height };
 }
 
-/**
- * Compress an image client-side to a target size while preserving maximum quality
- * @param {File|Blob} file - The image file
- * @returns {Promise<Blob>} - Compressed image blob
- */
-export function compressImage(file) {
+function loadImage(file) {
   return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
     const img = new Image();
-    img.onerror = () => reject(new Error('Bild konnte nicht geladen werden'));
     img.onload = () => {
-      let { width, height } = img;
-
-      if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
-        if (width > height) {
-          height = Math.round((height / width) * MAX_DIMENSION);
-          width = MAX_DIMENSION;
-        } else {
-          width = Math.round((width / height) * MAX_DIMENSION);
-          height = MAX_DIMENSION;
-        }
-      }
-
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, width, height);
-
-      let quality = INITIAL_QUALITY;
-      let dataUrl = canvas.toDataURL('image/jpeg', quality);
-
-      while (dataUrlToBlobSize(dataUrl) > TARGET_MAX_BYTES && quality > MIN_QUALITY) {
-        quality -= QUALITY_STEP;
-        dataUrl = canvas.toDataURL('image/jpeg', quality);
-      }
-
-      const blob = dataUrlToBlob(dataUrl);
-      URL.revokeObjectURL(img.src);
-      resolve(blob);
+      URL.revokeObjectURL(url);
+      resolve(img);
     };
-    img.src = URL.createObjectURL(file);
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Bild konnte nicht geladen werden'));
+    };
+    img.src = url;
   });
 }
 
-function dataUrlToBlobSize(dataUrl) {
-  const base64 = dataUrl.split(',')[1] || '';
-  return Math.ceil((base64.length * 3) / 4);
+function fitWithin(width, height, maxDimension) {
+  if (width <= maxDimension && height <= maxDimension) return { width, height };
+  if (width > height) {
+    return { width: maxDimension, height: Math.round((height / width) * maxDimension) };
+  }
+  return { width: Math.round((width / height) * maxDimension), height: maxDimension };
 }
 
-function dataUrlToBlob(dataUrl) {
-  const [meta, base64] = dataUrl.split(',');
-  const mimeMatch = meta.match(/data:(.*?);base64/);
-  const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
-  const byteString = atob(base64);
-  const ab = new ArrayBuffer(byteString.length);
-  const ia = new Uint8Array(ab);
-  for (let i = 0; i < byteString.length; i++) {
-    ia[i] = byteString.charCodeAt(i);
-  }
-  return new Blob([ab], { type: mimeType });
+function canvasToBlob(canvas, type, quality) {
+  return new Promise((resolve) => canvas.toBlob(resolve, type, quality));
 }
+
+/**
+ * Draw the image scaled to fit `maxDimension` and encode it, lowering the
+ * quality until it is at most `maxBytes` (or `minQuality` is reached).
+ * Falls back to JPEG when the browser cannot encode `type` (Safari has no
+ * WebP encoder and silently returns PNG instead).
+ */
+async function renderToBlob(img, { maxDimension, maxBytes, type = 'image/jpeg', startQuality }) {
+  const { width, height } = fitWithin(img.width, img.height, maxDimension);
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  // JPEG/WebP-with-alpha would otherwise turn transparent PNG areas black.
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, width, height);
+  ctx.drawImage(img, 0, 0, width, height);
+
+  let quality = startQuality ?? INITIAL_QUALITY;
+  let blob = await canvasToBlob(canvas, type, quality);
+  if (!blob || blob.type !== type) {
+    type = 'image/jpeg';
+    blob = await canvasToBlob(canvas, type, quality);
+  }
+  while (blob && blob.size > maxBytes && quality > MIN_QUALITY) {
+    quality = Math.max(MIN_QUALITY, quality - QUALITY_STEP);
+    blob = await canvasToBlob(canvas, type, quality);
+  }
+  if (!blob) throw new Error('Bild konnte nicht komprimiert werden');
+  return blob;
+}
+
+/**
+ * Compress an image client-side to a target size while preserving maximum quality
+ * @param {File|Blob} file - The image file
+ * @param {Object} [options]
+ * @param {number} [options.maxDimension] - Longest edge in px
+ * @param {number} [options.maxBytes] - Size budget in bytes
+ * @returns {Promise<Blob>} - Compressed JPEG blob
+ */
+export async function compressImage(
+  file,
+  { maxDimension = MAX_DIMENSION, maxBytes = TARGET_MAX_BYTES } = {}
+) {
+  const img = await loadImage(file);
+  return renderToBlob(img, { maxDimension, maxBytes });
+}
+
+const AVATAR_OPTIONS = { maxDimension: AVATAR_MAX_DIMENSION, maxBytes: AVATAR_MAX_BYTES };
 
 /**
  * Extract the storage path from a Firebase Storage download URL.
@@ -176,6 +207,50 @@ export async function uploadImage(file, options = {}) {
 }
 
 /**
+ * Upload an event cover image plus a small thumbnail for list tiles.
+ * The thumbnail sits next to the original as events/{eventId}/thumb_{filename}
+ * (same storage rule as the original). A failing thumbnail never fails the
+ * upload: `thumbUrl` is then null and tiles fall back to the full image.
+ * @param {File} file - The image file to upload
+ * @param {Object} [options]
+ * @param {string} [options.eventId] - Event ID to scope the upload path
+ * @param {(progress: number) => void} [options.onProgress] - Progress callback (0-100)
+ * @returns {Promise<{url: string, thumbUrl: string|null}>}
+ */
+export async function uploadEventCover(file, options = {}) {
+  const { eventId = 'temp', onProgress } = options;
+
+  const img = await loadImage(file);
+  const compressedBlob = await renderToBlob(img, {
+    maxDimension: MAX_DIMENSION,
+    maxBytes: TARGET_MAX_BYTES,
+  });
+  const filename = `${Date.now()}_${sanitizeFilename(file.name)}`;
+  const url = await uploadCompressedBlob(
+    compressedBlob,
+    ref(storage, `events/${eventId}/${filename}`),
+    onProgress
+  );
+
+  let thumbUrl = null;
+  try {
+    const thumbBlob = await renderToBlob(img, {
+      maxDimension: THUMB_MAX_DIMENSION,
+      maxBytes: THUMB_MAX_BYTES,
+      type: 'image/webp',
+      startQuality: 0.8,
+    });
+    thumbUrl = await uploadCompressedBlob(
+      thumbBlob,
+      ref(storage, `events/${eventId}/${THUMB_PREFIX}${filename}`)
+    );
+  } catch (err) {
+    console.warn('Thumbnail upload failed, tiles will use the full image:', err);
+  }
+  return { url, thumbUrl };
+}
+
+/**
  * Upload a profile photo to Firebase Storage under users/{uid}/avatar/.
  * Compresses the image client-side before upload.
  * @param {File} file - The image file to upload
@@ -188,7 +263,7 @@ export async function uploadProfileImage(file, uid, options = {}) {
   if (!uid) throw new Error('User ID is required for profile image upload');
   const { onProgress } = options;
 
-  const compressedBlob = await compressImage(file);
+  const compressedBlob = await compressImage(file, AVATAR_OPTIONS);
   const safeName = sanitizeFilename(file.name);
   const filename = `${Date.now()}_${safeName}`;
   const photoRef = ref(storage, `users/${uid}/avatar/${filename}`);
@@ -207,7 +282,7 @@ export async function uploadProfileImage(file, uid, options = {}) {
 export async function uploadHelperImage(file, options = {}) {
   const { onProgress } = options;
 
-  const compressedBlob = await compressImage(file);
+  const compressedBlob = await compressImage(file, AVATAR_OPTIONS);
   const safeName = sanitizeFilename(file.name);
   const filename = `${Date.now()}_${safeName}`;
   const helperImageRef = ref(storage, `helpers/photos/${filename}`);
@@ -286,7 +361,8 @@ export async function uploadProfileDescriptionImage(file, uid = 'temp', options 
 function uploadCompressedBlob(blob, storageRef, onProgress) {
   return new Promise((resolve, reject) => {
     const uploadTask = uploadBytesResumable(storageRef, blob, {
-      contentType: 'image/jpeg',
+      contentType: blob.type || 'image/jpeg',
+      cacheControl: IMMUTABLE_CACHE_CONTROL,
     });
 
     uploadTask.on(
