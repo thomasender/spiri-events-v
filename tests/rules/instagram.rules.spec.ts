@@ -6,7 +6,16 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import {
+  arrayUnion,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+} from 'firebase/firestore';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 
 let env: RulesTestEnvironment;
@@ -257,6 +266,36 @@ describe('events: owners cannot approve their own events', () => {
       );
     });
 
+    it('changing the content of an event that stays approved', async () => {
+      for (const patch of [
+        { title: 'Neuer Titel' },
+        { description: '<p>anders</p>' },
+        { date: '2026-12-24' },
+        { place: 'Woanders' },
+        { link: 'https://evil.example' },
+        { organizer: { firstName: 'X', lastName: 'Y', email: 'x@y' } },
+        { category: 'Yoga' },
+        { title: 'Neuer Titel', instagramConsent: true },
+        { recurrence: 'weekly' },
+      ]) {
+        await seed('e', { status: 'approved', approvedBy: 'adminDoc', approvedAt: 1 });
+        await assertFails(updateDoc(ownerRef('e'), { ...patch, status: 'approved', updatedAt: 1 }));
+        await assertFails(updateDoc(ownerRef('e'), patch));
+      }
+    });
+
+    it('adding series dates to an approved event', async () => {
+      await seed('e', {
+        status: 'approved',
+        recurrence: 'custom',
+        customDates: ['2026-11-01'],
+        recurrenceEndDate: '2026-12-31',
+      });
+      await assertFails(updateDoc(ownerRef('e'), { customDates: ['2026-11-01', '2026-11-15'] }));
+      await assertFails(updateDoc(ownerRef('e'), { recurrenceEndDate: '2027-06-30' }));
+      await assertFails(updateDoc(ownerRef('e'), { recurrenceEndDate: '' }));
+    });
+
     it('other verified users cannot touch the event at all', async () => {
       await seed('e', { status: 'pending' });
       const db = env.authenticatedContext('mallory', { email_verified: true }).firestore();
@@ -295,16 +334,54 @@ describe('events: owners cannot approve their own events', () => {
       }
     });
 
-    it('keeps an approved event approved for Instagram-only edits (full form payload)', async () => {
+    it('keeps an approved event approved for Instagram-only edits (EventForm payload)', async () => {
       await seed('e', { status: 'approved', approvedBy: 'adminDoc', approvedAt: 1 });
       await assertSucceeds(
         updateDoc(ownerRef('e'), {
-          title: 'T',
-          description: 'd',
           status: 'approved',
           instagramConsent: true,
           instagramHandleOverride: 'my_handle',
           instagramImage: { url: 'https://x/y.jpg', focalPoint: { x: 0.5, y: 0.5 }, zoom: 1 },
+          updatedAt: 1,
+        })
+      );
+      // Unchanged content fields sent along do not count as a change.
+      await assertSucceeds(
+        updateDoc(ownerRef('e'), { title: 'T', description: 'd', instagramConsent: false })
+      );
+      // Instagram photo uploaded after the save, and consent withdrawn.
+      await assertSucceeds(
+        updateDoc(ownerRef('e'), { instagramImage: { url: 'https://x/up.jpg' }, updatedAt: 2 })
+      );
+      await assertSucceeds(
+        updateDoc(ownerRef('e'), { instagramConsent: false, status: 'approved', updatedAt: 3 })
+      );
+    });
+
+    it('cuts a weekly approved series short and adds exception dates', async () => {
+      for (const before of ['', '2026-12-31']) {
+        await seed('e', {
+          status: 'approved',
+          recurrence: 'weekly',
+          date: '2026-11-01',
+          recurrenceEndDate: before,
+        });
+        await assertSucceeds(
+          updateDoc(ownerRef('e'), { exceptionDates: arrayUnion('2026-11-08'), updatedAt: 1 })
+        );
+        await assertSucceeds(
+          updateDoc(ownerRef('e'), { recurrenceEndDate: '2026-11-21', updatedAt: 2 })
+        );
+      }
+    });
+
+    it('sets image focal point and zoom on an approved event', async () => {
+      await seed('e', { status: 'approved', imageUrl: 'https://x/a.jpg' });
+      await assertSucceeds(
+        updateDoc(ownerRef('e'), {
+          imageUrl: 'https://x/b.jpg',
+          imageFocalPoint: { x: 0.2, y: 0.8 },
+          imageZoom: 1.5,
           updatedAt: 1,
         })
       );
@@ -390,6 +467,13 @@ describe('events: owners cannot approve their own events', () => {
           slug: 't-sonstiges-20261101-2',
           updatedAt: 1,
         })
+      );
+    });
+
+    it("edits the content of another user's approved event and keeps it approved", async () => {
+      await seed('e', { status: 'approved' });
+      await assertSucceeds(
+        updateDoc(adminRef('e'), { title: 'Korrigiert', status: 'approved', updatedAt: 1 })
       );
     });
 

@@ -143,7 +143,31 @@ service cloud.firestore {
           && (!changed.hasAny(['trashReason']) || after.get('trashReason', null) == null)
           && (!changed.hasAny(['trashedBy'])
               || after.get('trashedBy', null) == null
-              || after.get('trashedBy', null) == request.auth.uid);
+              || after.get('trashedBy', null) == request.auth.uid)
+          && (after.status != 'approved' || isOwnerApprovedPatch(before, after, changed));
+      }
+
+      // While an owner's event stays approved, its reviewed content is frozen.
+      // Allowed: Instagram settings (EventForm Instagram-only save, Instagram
+      // photo upload), cover image / focal point / zoom patches, and series
+      // exceptions (utils/customSeriesUpdates, exceptionDates arrayUnion,
+      // recurrenceEndDate cut-off). `customDates` may only shrink, so no new
+      // dates are published without review. Any other change has to move the
+      // event to draft / pending / trashed first.
+      function isOwnerApprovedPatch(before, after, changed) {
+        return changed.hasOnly(['instagramConsent', 'instagramHandleOverride', 'instagramImage',
+                                'imageUrl', 'imageFocalPoint', 'imageZoom',
+                                'customDates', 'exceptionDates', 'recurrenceEndDate',
+                                'updatedAt'])
+          && (!changed.hasAny(['customDates'])
+              || (after.customDates is list
+                  && before.get('customDates', []) is list
+                  && before.get('customDates', []).toSet().hasAll(after.customDates)))
+          && (!changed.hasAny(['recurrenceEndDate'])
+              || (after.recurrenceEndDate is string
+                  && after.recurrenceEndDate != ''
+                  && (before.get('recurrenceEndDate', '') in ['', null]
+                      || after.recurrenceEndDate <= before.recurrenceEndDate)));
       }
 
       // Owners and admins can move events to/from the trash (status='trashed'),
