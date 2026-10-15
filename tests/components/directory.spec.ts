@@ -7,6 +7,7 @@ import {
   isRenderableEntry,
   normalizeDirectoryEntry,
   parseDirectoryParams,
+  shuffleDirectoryEntries,
   sortDirectoryEntries,
   toggleValue,
   validateDirectoryListing,
@@ -141,6 +142,18 @@ describe('sortDirectoryEntries', () => {
     ];
     expect(sortDirectoryEntries(list).map((e) => e.displayName)).toEqual(['Änne', 'Bea', 'Zoe']);
     expect(list[0].displayName).toBe('Zoe');
+  });
+});
+
+describe('shuffleDirectoryEntries', () => {
+  it('orders by random rank, keeps the order stable per ranks map and does not mutate', () => {
+    const list = ['A', 'B', 'C'].map((n) => entry({ displayName: n }));
+    const values = [0.9, 0.1, 0.5];
+    const ranks = new Map();
+    const shuffled = shuffleDirectoryEntries(list, ranks, () => values.shift() as number);
+    expect(shuffled.map((e) => e.displayName)).toEqual(['B', 'C', 'A']);
+    expect(list.map((e) => e.displayName)).toEqual(['A', 'B', 'C']);
+    expect(shuffleDirectoryEntries(list, ranks).map((e) => e.displayName)).toEqual(['B', 'C', 'A']);
   });
 });
 

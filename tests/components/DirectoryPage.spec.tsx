@@ -54,7 +54,8 @@ const names = () =>
   screen
     .queryAllByRole('heading', { level: 2 })
     .map((h) => h.textContent)
-    .filter((t) => !['Kategorie', 'Region'].includes(t || ''));
+    .filter((t) => !['Kategorie', 'Region'].includes(t || ''))
+    .sort(); // display order is random
 
 beforeEach(() => {
   mocks.auth.role = 'User';
@@ -69,7 +70,7 @@ beforeEach(() => {
 });
 
 describe('DirectoryPage', () => {
-  it('lists entries alphabetically and hides moderated ones from visitors', () => {
+  it('lists entries in random order and hides moderated ones from visitors', () => {
     renderPage();
     expect(names()).toEqual(['Anna', 'Zoe']);
     expect(screen.getByTestId('directory-count')).toHaveTextContent('2 Einträge');

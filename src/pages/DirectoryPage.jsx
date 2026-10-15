@@ -15,7 +15,7 @@ import {
   countFacet,
   filterDirectoryEntries,
   parseDirectoryParams,
-  sortDirectoryEntries,
+  shuffleDirectoryEntries,
   toggleValue,
 } from '../utils/directory';
 import '../components/DirectoryListingFields.css';
@@ -147,8 +147,10 @@ export default function DirectoryPage() {
     (region) => regionCounts.has(region) || filters.regions.includes(region)
   );
 
+  // New random order on every page load; stable while filtering.
+  const [ranks] = useState(() => new Map());
   const results = useMemo(
-    () => sortDirectoryEntries(filterDirectoryEntries(entries, countFilters)),
+    () => shuffleDirectoryEntries(filterDirectoryEntries(entries, countFilters), ranks),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [entries, filters.query, filters.categories, filters.regions, isAdmin]
   );
