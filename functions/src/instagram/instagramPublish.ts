@@ -15,6 +15,9 @@ export const VIENNA_TZ = 'Europe/Vienna';
 
 export type PostStatus = 'publishing' | 'published' | 'failed' | 'skipped';
 
+/** Why a post is `skipped`: the event was already over, or an admin skipped it. */
+export type SkipReason = 'past-event' | 'admin';
+
 export interface PostRecord {
   type: 'feed';
   eventId: string;
@@ -27,6 +30,8 @@ export interface PostRecord {
   collaboratorInvited: boolean;
   /** Why the invite/tag was dropped (container retried without it); null otherwise. */
   inviteFallbackReason: string | null;
+  /** Set when status is `skipped` (older records have none). */
+  skipReason?: SkipReason | null;
 }
 
 /** The subset of PublishDeps the Graph API helpers need (shared with the carousel flow). */
@@ -311,7 +316,10 @@ export async function publishApprovedEvent(
   };
 
   const past = isEventPast(event, (deps.now ?? (() => new Date()))());
-  const created = await deps.createPost(postId, past ? { ...base, status: 'skipped' } : base);
+  const created = await deps.createPost(
+    postId,
+    past ? { ...base, status: 'skipped', skipReason: 'past-event' } : base
+  );
   if (!created) {
     log('Instagram post already exists; not posting again', { eventId });
     return 'duplicate';

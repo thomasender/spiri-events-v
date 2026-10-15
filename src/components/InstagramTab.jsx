@@ -39,6 +39,16 @@ const OUTCOME_MESSAGES = {
   duplicate: 'Es existiert bereits ein Eintrag für dieses Event.',
 };
 
+// Why a post was skipped, in plain words. Records written before the reason
+// was stored have none.
+export function describeSkipReason(skipReason) {
+  if (skipReason === 'past-event') {
+    return 'Das Event lag beim Genehmigen bereits in der Vergangenheit.';
+  }
+  if (skipReason === 'admin') return 'Ein Admin hat den Beitrag übersprungen.';
+  return 'Grund unbekannt (älterer Eintrag).';
+}
+
 const CAROUSEL_RESULT_LABELS = {
   published: 'veröffentlicht',
   failed: 'fehlgeschlagen',
@@ -200,7 +210,11 @@ export default function InstagramTab() {
       setMessage(OUTCOME_MESSAGES[outcome] || 'Erledigt.');
     } catch (err) {
       console.error(`${callableName} failed:`, err?.code, err?.message);
-      setError(`Aktion fehlgeschlagen (${err?.code || 'unbekannt'}). Bitte erneut versuchen.`);
+      setError(
+        err?.code === 'functions/failed-precondition'
+          ? 'Nicht möglich: Das Event ist nicht (mehr) genehmigt oder der Beitrag ist bereits veröffentlicht.'
+          : `Aktion fehlgeschlagen (${err?.code || 'unbekannt'}). Bitte erneut versuchen.`
+      );
     } finally {
       setBusyId(null);
     }
@@ -553,10 +567,27 @@ export default function InstagramTab() {
                           ohne Einladung
                         </span>
                       )}
+                      {post.status === 'skipped' && (
+                        <p className="instagram-muted" data-testid="instagram-post-skip-reason">
+                          {describeSkipReason(post.skipReason)}
+                        </p>
+                      )}
                       {post.error && (
                         <p className="instagram-post-error" data-testid="instagram-post-error">
                           {post.error}
                         </p>
+                      )}
+                      {post.status === 'skipped' && (
+                        <div className="instagram-post-actions">
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            disabled={busy}
+                            onClick={() => runAction(post, 'adminRetryInstagramPost')}
+                          >
+                            <RefreshCw size={14} aria-hidden="true" /> Erneut versuchen
+                          </button>
+                        </div>
                       )}
                       {(post.status === 'failed' || post.status === 'publishing') && (
                         <div className="instagram-post-actions">

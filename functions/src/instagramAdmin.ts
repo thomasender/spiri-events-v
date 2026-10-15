@@ -117,10 +117,10 @@ export const adminSkipInstagramPost = onCall(
       const outcome = await skipInstagramPost(
         {
           getPostStatus: readStatus,
-          async setSkipped(postId) {
+          async setSkipped(postId, skipReason) {
             await col
               .doc(postId)
-              .update({ status: 'skipped', updatedAt: FieldValue.serverTimestamp() });
+              .update({ status: 'skipped', skipReason, updatedAt: FieldValue.serverTimestamp() });
           },
           async createSkipped(postId, record) {
             await col.doc(postId).set({
