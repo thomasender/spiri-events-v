@@ -35,11 +35,6 @@
   overflow-wrap: anywhere;
 }
 
-.regions-country {
-  color: var(--text-secondary);
-  font-size: 0.8125rem;
-}
-
 /* Accordion: one foldable group per country. */
 .regions-groups {
   display: flex;
@@ -102,4 +97,10 @@
   .regions-group-chevron {
     transition: none;
   }
+}
+
+/* The intro is a flex item of a column here (not of a header row as in the
+   Moderation tab): without this its 320px flex-basis becomes a 320px height. */
+.regions-tab > .moderation-intro {
+  flex: 0 0 auto;
 }
