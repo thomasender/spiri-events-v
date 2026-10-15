@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useRegion } from '../hooks/useRegion';
 import { trackFilter } from '../lib/analyticsEvents';
-import { COUNTRY_LABELS, COUNTRIES, isCombinedViewSlug } from '../utils/regions';
+import { COMBINED_VIEWS, COUNTRY_LABELS, COUNTRIES, isCombinedViewSlug } from '../utils/regions';
 import {
   readLastRegion,
   readRegionChooserSeen,
@@ -110,6 +110,8 @@ export default function RegionChooser() {
   };
 
   const activeSlugs = new Set(regions.map((r) => r.slug));
+  // All four views are offered; the ones without enough open regions lead to "bald".
+  const availableViews = new Set(combinedViews.map((v) => v.slug));
   const sorted = [...allRegions].sort((a, b) => a.order - b.order);
 
   return createPortal(
@@ -147,20 +149,24 @@ export default function RegionChooser() {
             <RegionMap regions={sorted} activeSlugs={activeSlugs} onChoose={choose} />
           </Suspense>
           <div className="region-chooser-lists">
-            {combinedViews.length > 0 && (
-              <div className="region-chooser-options region-chooser-options--views">
-                {combinedViews.map((v) => (
+            <div className="region-chooser-options region-chooser-options--views">
+              {COMBINED_VIEWS.map((v) => {
+                const available = availableViews.has(v.slug);
+                return (
                   <button
                     key={v.slug}
                     type="button"
-                    className="region-chooser-option region-chooser-option--all"
+                    className={`region-chooser-option region-chooser-option--all${
+                      available ? '' : ' region-chooser-option--soon'
+                    }`}
                     onClick={() => choose(v.slug)}
                   >
                     {v.name}
+                    {!available && <span className="region-chooser-soon"> (bald)</span>}
                   </button>
-                ))}
-              </div>
-            )}
+                );
+              })}
+            </div>
             {COUNTRIES.map((country) => {
               const inCountry = sorted.filter((r) => r.country === country);
               if (inCountry.length === 0) return null;

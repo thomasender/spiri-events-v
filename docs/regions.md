@@ -63,7 +63,7 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
   Page content stays rendered (inert) behind it. A region that is not open yet leads to its
   coming-soon page (the visitor sees the chooser again on `/` until an open region is
   remembered). The map is a pointer shortcut (`aria-hidden`); the list is the accessible
-  equivalent. Combined views are offered above the list; the header switcher lists the
+  equivalent. All four combined views are always offered above the list (the ones without enough open regions marked "(bald)"; they lead to the view's coming-soon address); the header switcher lists the
   open regions and ends with "Alle Regionen ansehen" (also in the phone burger menu), which
   opens `/regionen`: the same page on purpose, with a "Schließen" button / Escape, shown
   even when a region is remembered. This is how visitors reach countries without an open

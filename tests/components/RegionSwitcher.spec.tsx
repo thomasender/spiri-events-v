@@ -271,7 +271,13 @@ describe('combined views in switcher and chooser (ticket 33)', () => {
     const labels = Array.from(
       document.querySelectorAll('.region-chooser-options--views .region-chooser-option')
     ).map((b) => b.textContent);
-    expect(labels).toEqual(['Ganz Österreich', 'Alle Tribes']);
+    // All four views are always offered; unavailable ones are marked "(bald)".
+    expect(labels).toEqual([
+      'Ganz Österreich',
+      'Ganz Deutschland (bald)',
+      'Ganz Schweiz (bald)',
+      'Alle Tribes',
+    ]);
     fireEvent.click(screen.getByRole('button', { name: 'Alle Tribes' }));
     expect(where()).toBe('/alle-tribes');
     expect(window.localStorage.getItem(REGION_CHOOSER_SEEN_KEY)).toBe('1');
@@ -317,6 +323,13 @@ describe('region chooser opened on purpose (/regionen)', () => {
     expect(where()).toBe('/');
   });
 
+  it('a view without enough open regions still opens its coming-soon address', () => {
+    renderAt('/regionen');
+    fireEvent.click(screen.getByRole('button', { name: /^Ganz Deutschland/ }));
+    expect(where()).toBe('/deutschland');
+    expect(screen.queryByTestId('region-chooser')).toBeNull();
+  });
+
   it('choosing a region (also a closed one) leaves the page', () => {
     renderAt('/regionen');
     fireEvent.click(screen.getByRole('button', { name: /^Schwyz/ }));
@@ -347,8 +360,13 @@ describe('RegionChooser', () => {
     );
     // Combined views first, then every region grouped by country: open regions
     // plain, the others marked "(bald)".
-    expect(labels.slice(0, 1)).toEqual(['Ganz Österreich']);
-    expect(labels).toHaveLength(1 + 51);
+    expect(labels.slice(0, 4)).toEqual([
+      'Ganz Österreich',
+      'Ganz Deutschland (bald)',
+      'Ganz Schweiz (bald)',
+      'Alle Tribes (bald)',
+    ]);
+    expect(labels).toHaveLength(4 + 51);
     expect(labels).toContain('Vorarlberg');
     expect(labels).toContain('Tirol');
     expect(labels).toContain('Bayern (bald)');
