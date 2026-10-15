@@ -34,7 +34,8 @@ export interface RetryDeps {
 
 export async function retryInstagramPost(
   deps: RetryDeps,
-  eventId: string
+  eventId: string,
+  options: { force?: boolean } = {}
 ): Promise<TriggerOutcome> {
   const postId = postIdFor(eventId);
   const status = await deps.getPostStatus(postId);
@@ -55,8 +56,11 @@ export async function retryInstagramPost(
   // Deliberately no kill-switch check: an explicit admin click posts even when
   // automatic posting is off (the callable passes deps with isEnabled => true).
   if (status !== null) await deps.deletePost(postId);
-  // Same flow as the approval trigger: past events end up as `skipped`.
-  return publishApprovedEvent(deps.publishDeps, eventId, null, event);
+  // Same flow as the approval trigger: past events end up as `skipped`, unless
+  // the admin forces the post.
+  return publishApprovedEvent(deps.publishDeps, eventId, null, event, {
+    force: options.force === true,
+  });
 }
 
 export interface SkipDeps {

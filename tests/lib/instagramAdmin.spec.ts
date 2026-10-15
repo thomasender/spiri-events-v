@@ -100,6 +100,13 @@ describe('retryInstagramPost', () => {
     expect(h.created[0].status).toBe('skipped');
   });
 
+  it('posts a past event anyway when the admin forces it', async () => {
+    const h = retryHarness({ status: 'skipped', event: { ...future, date: '2020-01-01' } });
+    const outcome = await retryInstagramPost(h.deps, 'e1', { force: true });
+    expect(h.created[0].status).toBe('publishing');
+    expect(outcome).toBe('failed'); // generateImage stub throws
+  });
+
   it('rejects missing or unapproved events without deleting', async () => {
     const missing = retryHarness({ event: null });
     await expect(retryInstagramPost(missing.deps, 'e1')).rejects.toMatchObject({

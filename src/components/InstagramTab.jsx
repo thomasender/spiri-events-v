@@ -207,13 +207,14 @@ export default function InstagramTab() {
     }
   };
 
-  const runAction = async (post, callableName) => {
+  const runAction = async (post, callableName, extra = {}) => {
     setBusyId(post.id);
     setError(null);
     setMessage(null);
     try {
       const result = await httpsCallable(functions, callableName, { timeout: 540000 })({
         eventId: post.eventId,
+        ...extra,
       });
       const outcome = result?.data?.outcome;
       setMessage(OUTCOME_MESSAGES[outcome] || 'Erledigt.');
@@ -595,6 +596,22 @@ export default function InstagramTab() {
                             onClick={() => runAction(post, 'adminRetryInstagramPost')}
                           >
                             <RefreshCw size={14} aria-hidden="true" /> Erneut versuchen
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            disabled={busy}
+                            onClick={() => {
+                              if (
+                                window.confirm(
+                                  'Beitrag trotzdem auf Instagram veröffentlichen, auch wenn das Event schon vorbei ist?'
+                                )
+                              ) {
+                                runAction(post, 'adminRetryInstagramPost', { force: true });
+                              }
+                            }}
+                          >
+                            <Send size={14} aria-hidden="true" /> Trotzdem posten
                           </button>
                           <button
                             type="button"
