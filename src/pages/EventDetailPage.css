@@ -27,10 +27,18 @@
 
 .owner-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 24px;
   width: 100%;
+}
+
+.owner-actions .btn:not(.btn-subtle-danger) {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  justify-content: center;
 }
 
 .owner-actions .btn-subtle-danger {
