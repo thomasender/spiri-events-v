@@ -24,7 +24,7 @@ const ALLOWED_ORIGINS = [
 // The Mailgun API does not expose the quota of the booked plan, so it is kept here
 // (messages per month; null = show usage only). A custom limit set in the Mailgun
 // dashboard takes precedence. Update this when the plan changes.
-const PLAN_MONTHLY_LIMIT: number | null = null;
+const PLAN_MONTHLY_LIMIT: number | null = 10_000;
 
 // Account-level API (not per domain); EU region like the sending code in mailgun.ts.
 const MAILGUN_EU_HOST = 'https://api.eu.mailgun.net';
