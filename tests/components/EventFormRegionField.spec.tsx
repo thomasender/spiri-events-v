@@ -162,7 +162,7 @@ describe('EventFormWizard region field', () => {
       'Dornbirn',
       'Feldkirch',
       'Bludenz',
-      'Grenznahe',
+      'Umgebung',
     ]);
   });
 

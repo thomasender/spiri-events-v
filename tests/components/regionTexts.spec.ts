@@ -23,7 +23,7 @@ describe('regionTexts: one active region (dark launch)', () => {
       calendarTitle: 'Kalender',
       calendarTitleExact: false,
       calendarDescription:
-        'Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg - Bregenz, Dornbirn, Feldkirch, Bludenz, Grenznahe',
+        'Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg - Bregenz, Dornbirn, Feldkirch, Bludenz, Umgebung',
       defaultDescription:
         'Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg - Bregenz, Dornbirn, Feldkirch, Bludenz',
       directoryTitle: 'Verzeichnis – Angebote in Vorarlberg',

@@ -30,7 +30,7 @@ import { DEFAULT_REGION_ID } from './regions.js';
 export const LEGACY_DEFAULT_DESCRIPTION =
   'Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg - Bregenz, Dornbirn, Feldkirch, Bludenz';
 export const LEGACY_CALENDAR_DESCRIPTION =
-  'Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg - Bregenz, Dornbirn, Feldkirch, Bludenz, Grenznahe';
+  'Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg - Bregenz, Dornbirn, Feldkirch, Bludenz, Umgebung';
 
 const str = (v) => (typeof v === 'string' && v.trim() ? v.trim() : '');
 

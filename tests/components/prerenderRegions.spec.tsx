@@ -149,16 +149,16 @@ describe('Vorarlberg output is byte-identical (golden hashes of the pre-ticket g
   it('calendar page, sitemap and event pages match the golden hashes', async () => {
     const m = await importPrerender();
     expect(sha(m.generateCalendarPageHtml(fx, '/assets/index-A.js', '/assets/index-A.css'))).toBe(
-      '973583a945522d70296eed711dfe44877b8ee80be18a4254583b2735197177ce'
+      '3b567cb133a297d42db94c11b3b2d9dba50f0252be1b32d8e1e10cbb751af6a2'
     );
     expect(sha(m.generateSitemap(fx))).toBe(
-      '39bb838fc55d6b98f6475e2827dbaa5fe0430605d440d0836c00d81213a24e6f'
+      '614309ed74d4e6182b9f17dbb3ca51c239b52977f9f9e0ae7519b4361f793b7a'
     );
     expect(
       sha(m.generateEventHtml(fx[0], undefined, '/assets/index-A.js', '/assets/index-A.css'))
-    ).toBe('28e62a778231dc3123357fed21aa952c140fb1a991f49d638ba8ec153f03c284');
+    ).toBe('821e8baab7fe6cf7184099a7b7588f5d8b194b42d226ee141ff20582d36357f6');
     expect(sha(m.generateEventHtml(fx[1]))).toBe(
-      '02b3aefd7fc77f2a9ffbd675573afef39f25b5c2c919f2966e85a3ed0212f14e'
+      '04a54c17f379b3a01432ba7d92e381e49736d67acfbf19a872de784a796c3b07'
     );
   });
 

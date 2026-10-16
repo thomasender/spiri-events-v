@@ -916,18 +916,18 @@ describe('CalendarPage — regions (ticket 14)', () => {
     expect(chips).toContain('Graz');
     expect(chips).toContain('Murau');
     expect(chips).not.toContain('Dornbirn');
-    expect(chips).not.toContain('Grenznahe');
+    expect(chips).not.toContain('Umgebung');
     expect(chips[chips.length - 1]).toBe('Online');
   });
 
-  it('keeps the Vorarlberg Ort chips (incl. Grenznahe) unchanged', () => {
+  it('keeps the Vorarlberg Ort chips (incl. Umgebung) unchanged', () => {
     renderInRegion('vorarlberg');
     expect(ortChips()).toEqual([
       'Bregenz',
       'Dornbirn',
       'Feldkirch',
       'Bludenz',
-      'Grenznahe',
+      'Umgebung',
       'Online',
     ]);
   });
