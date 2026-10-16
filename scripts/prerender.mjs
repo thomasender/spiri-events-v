@@ -173,6 +173,7 @@ export function generateEventJsonLd(event) {
   return buildEventJsonLd(event, {
     image: getEventOgImage(event),
     description: stripHtmlToText(event.description),
+    regionName: getRegionBySlug(resolveRegionId(event))?.name,
   })
 }
 

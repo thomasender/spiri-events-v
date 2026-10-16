@@ -174,6 +174,7 @@ function generateEventJsonLd(event) {
   return buildEventJsonLd(event, {
     image: /^https?:\/\//i.test(image) ? image : `https://www.thetribe.at${image}`,
     description: stripHtml(event.description || ''),
+    regionName: eventRegionName(event),
   });
 }
 
