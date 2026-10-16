@@ -9,6 +9,7 @@ vi.mock('../../src/lib/analytics', () => ({
   trackPageView: (...a: unknown[]) => trackPageView(...a),
   setAnalyticsAdminUser: (...a: unknown[]) => setAnalyticsAdminUser(...a),
   setAnalyticsConsent: vi.fn(),
+  setAnalyticsRegion: vi.fn(),
 }));
 
 let auth = { role: null as string | null, loading: false };

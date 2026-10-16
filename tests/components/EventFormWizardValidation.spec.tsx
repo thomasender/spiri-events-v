@@ -119,6 +119,7 @@ beforeEach(() => {
   mockAuth.role = null;
   mockProfile.value = null;
   mockNavigate.mockClear();
+  mockEvents.addEvent.mockClear();
 });
 
 describe('EventFormWizard step validation', () => {

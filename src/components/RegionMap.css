@@ -1,0 +1,61 @@
+.region-map {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.region-map-svg {
+  width: 100%;
+  max-height: 78vh;
+  height: auto;
+}
+
+.region-map-shape {
+  fill: color-mix(in srgb, var(--text-primary) 14%, var(--bg-primary));
+  stroke: var(--bg-primary);
+  stroke-width: 1.5;
+  cursor: pointer;
+  transition: fill 0.15s ease;
+}
+
+.region-map-shape--active {
+  fill: var(--accent-primary);
+}
+
+.region-map-shape--hover {
+  fill: var(--accent-primary-hover, var(--accent-primary));
+  opacity: 0.85;
+}
+
+.region-map-label {
+  display: none;
+  font-family: var(--font-body);
+  font-size: 13px;
+  fill: var(--text-primary);
+  pointer-events: none;
+  paint-order: stroke;
+  stroke: var(--bg-primary);
+  stroke-width: 2px;
+}
+
+.region-map-label--big {
+  display: block;
+}
+
+.region-map-label--big {
+  font-size: 20px;
+}
+
+@media (min-width: 641px) {
+  .region-map-label {
+    display: block;
+  }
+}
+
+.region-map-caption {
+  min-height: 1.5em;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}

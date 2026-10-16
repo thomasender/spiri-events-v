@@ -8,6 +8,7 @@ import RecurringDeleteDialog from './RecurringDeleteDialog';
 import OccurrencePickerDialog from './OccurrencePickerDialog';
 import SuccessDialog from './SuccessDialog';
 import EventAdminListRow from './EventAdminListRow';
+import { useRegionLabels } from '../hooks/useRegionLabels';
 import { useState, useMemo } from 'react';
 import { arrayUnion } from 'firebase/firestore';
 import { getEventLastDate } from '../utils/eventExpiry';
@@ -27,6 +28,7 @@ const STATUS_FILTERS = [
 ];
 
 export default function EventList() {
+  const { labelFor: regionLabelFor } = useRegionLabels();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { role } = useAuth();
@@ -232,6 +234,7 @@ export default function EventList() {
     return (
       <EventAdminListRow
         event={event}
+        regionLabel={regionLabelFor(event)}
         showStatus={showStatus}
         showSubmit={event.status === 'draft'}
         showRevert={event.status === 'pending'}

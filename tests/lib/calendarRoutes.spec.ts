@@ -39,12 +39,14 @@ describe('parseCalendarRequest', () => {
     expect(parse('/calendar/feed.ics')).toEqual({
       kind: 'feed',
       token: TOKEN,
+      region: 'vorarlberg',
       bezirk: [],
       kategorie: [],
     });
     expect(parse('/calendar/feed.ics', { bezirk: 'Online', kategorie: 'Tanz' })).toEqual({
       kind: 'feed',
       token: TOKEN,
+      region: 'vorarlberg',
       bezirk: ['Online'],
       kategorie: ['Tanz'],
     });
@@ -56,6 +58,7 @@ describe('parseCalendarRequest', () => {
     ).toEqual({
       kind: 'feed',
       token: TOKEN,
+      region: 'vorarlberg',
       bezirk: ['Dornbirn', 'Bregenz'],
       kategorie: ['Yoga', 'Tanz'],
     });
@@ -69,6 +72,41 @@ describe('parseCalendarRequest', () => {
     expect(parse('/calendar/feed.ics', { bezirk: 'Wien' })).toMatchObject({ status: 400 });
     expect(parse('/calendar/feed.ics', { kategorie: 'Zufall123' })).toMatchObject({ status: 400 });
     expect(parse('/calendar/feed.ics', { bezirk: [{}] })).toMatchObject({ status: 400 });
+  });
+
+  it('takes an optional region and checks Orte against that region', () => {
+    expect(parse('/calendar/feed.ics', { region: 'vorarlberg' })).toMatchObject({
+      region: 'vorarlberg',
+    });
+    expect(
+      parse('/calendar/feed.ics', { region: 'steiermark', bezirk: ['Graz', 'Online'] })
+    ).toEqual({
+      kind: 'feed',
+      token: TOKEN,
+      region: 'steiermark',
+      bezirk: ['Graz', 'Online'],
+      kategorie: [],
+    });
+    // Vorarlberg Bezirke are not valid in another region and vice versa.
+    expect(parse('/calendar/feed.ics', { region: 'steiermark', bezirk: 'Dornbirn' })).toMatchObject(
+      { status: 400 }
+    );
+    expect(parse('/calendar/feed.ics', { bezirk: 'Graz' })).toMatchObject({ status: 400 });
+    // Tirol has no static Bezirke: they come from the register the handler passes in.
+    expect(
+      parseCalendarRequest(
+        '/calendar/feed.ics',
+        { token: TOKEN, region: 'tirol', bezirk: 'Imst' },
+        CATEGORIES,
+        { tirol: ['Imst'] }
+      )
+    ).toMatchObject({ kind: 'feed', region: 'tirol', bezirk: ['Imst'] });
+    // Unknown slugs and non-strings are a 400; a known (even inactive) region is valid.
+    expect(parse('/calendar/feed.ics', { region: 'atlantis' })).toMatchObject({ status: 400 });
+    expect(parse('/calendar/feed.ics', { region: ['tirol', 'wien'] })).toMatchObject({
+      status: 400,
+    });
+    expect(parse('/calendar/feed.ics', { region: 'wien' })).toMatchObject({ kind: 'feed' });
   });
 
   it('accepts a single event by slug and rejects odd input', () => {
@@ -196,6 +234,92 @@ describe('selectFeedEvents', () => {
   it('caps the feed', () => {
     const many = Array.from({ length: MAX_FEED_EVENTS + 50 }, (_, i) => ev({ id: `e${i}` }));
     expect(selectFeedEvents(many, TODAY, none)).toHaveLength(MAX_FEED_EVENTS);
+  });
+});
+
+describe('selectFeedEvents by region', () => {
+  const none = { bezirk: [], kategorie: [] };
+  const events = [
+    ev({ id: 'vbg' }),
+    ev({ id: 'vbg-old', regionId: 'vorarlberg' } as never),
+    ev({ id: 'stmk', regionId: 'steiermark', bezirk: 'Graz' } as never),
+    ev({ id: 'tirol', regionId: 'tirol', bezirk: 'Imst' } as never),
+    ev({ id: 'online-stmk', regionId: 'steiermark', isOnline: true } as never),
+    ev({ id: 'online-tirol', regionId: 'tirol', isOnline: true } as never),
+  ];
+  const ids = (regionId: string, active: string[]) =>
+    selectFeedEvents(events, TODAY, { ...none, regionId, activeRegionIds: active }).map(
+      (e) => e.id
+    );
+
+  it('keeps events without regionId in Vorarlberg and online events in every active region', () => {
+    expect(ids('vorarlberg', ['vorarlberg'])).toEqual(['vbg', 'vbg-old']);
+    expect(ids('steiermark', ['vorarlberg', 'steiermark'])).toEqual(['stmk', 'online-stmk']);
+  });
+
+  it('shows only events of active regions', () => {
+    expect(ids('steiermark', ['vorarlberg', 'steiermark', 'tirol'])).toEqual([
+      'stmk',
+      'online-stmk',
+      'online-tirol',
+    ]);
+  });
+
+  it('returns an empty feed for an inactive region', () => {
+    expect(ids('tirol', ['vorarlberg'])).toEqual([]);
+    expect(ids('wien', ['vorarlberg', 'steiermark'])).toEqual([]);
+  });
+
+  it('does not restrict by region when none is given', () => {
+    expect(selectFeedEvents(events, TODAY, none)).toHaveLength(events.length);
+  });
+});
+
+describe('combined view feeds (ticket 33)', () => {
+  it('accepts the combined view slugs as region', () => {
+    for (const region of ['oesterreich', 'deutschland', 'schweiz', 'alle-tribes']) {
+      expect(parse('/calendar/feed.ics', { region })).toMatchObject({ kind: 'feed', region });
+    }
+    expect(parse('/calendar/feed.ics', { region: 'Deutschland' })).toMatchObject({ status: 400 });
+    expect(parse('/calendar/feed.ics', { region: 'europa' })).toMatchObject({ status: 400 });
+  });
+
+  it('checks bezirk against the union of the view scope (country, all)', () => {
+    const q = (region: string, bezirk: string) => parse('/calendar/feed.ics', { region, bezirk });
+    expect(q('deutschland', 'Oberallgäu')).toMatchObject({ kind: 'feed', bezirk: ['Oberallgäu'] });
+    expect(q('deutschland', 'Dornbirn')).toMatchObject({ status: 400 });
+    expect(q('oesterreich', 'Dornbirn')).toMatchObject({ kind: 'feed' });
+    expect(q('oesterreich', 'Oberallgäu')).toMatchObject({ status: 400 });
+    expect(q('alle-tribes', 'Graz')).toMatchObject({ kind: 'feed' });
+    expect(q('alle-tribes', 'Oberallgäu')).toMatchObject({ kind: 'feed' });
+    expect(q('schweiz', 'Graz')).toMatchObject({ status: 400 });
+    expect(q('schweiz', 'Online')).toMatchObject({ kind: 'feed' });
+  });
+
+  const none = { bezirk: [], kategorie: [] };
+  const events = [
+    ev({ id: 'vbg' }),
+    ev({ id: 'tirol', regionId: 'tirol' } as never),
+    ev({ id: 'bayern', regionId: 'bayern' } as never),
+    ev({ id: 'online-bayern', regionId: 'bayern', isOnline: true } as never),
+    ev({ id: 'wien-inactive', regionId: 'wien' } as never),
+  ];
+  const ids = (combinedRegionIds: string[]) =>
+    selectFeedEvents(events, TODAY, { ...none, combinedRegionIds }).map((e) => e.id);
+
+  it('lists every event of the regions in scope, online events by their own region', () => {
+    expect(ids(['vorarlberg', 'tirol'])).toEqual(['vbg', 'tirol']);
+    expect(ids(['bayern'])).toEqual(['bayern', 'online-bayern']);
+    expect(ids(['vorarlberg', 'tirol', 'bayern'])).toEqual([
+      'vbg',
+      'tirol',
+      'bayern',
+      'online-bayern',
+    ]);
+  });
+
+  it('is empty when no region is in scope (e.g. Switzerland)', () => {
+    expect(ids([])).toEqual([]);
   });
 });
 

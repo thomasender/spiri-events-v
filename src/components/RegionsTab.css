@@ -1,0 +1,106 @@
+/* "Regionen" admin tab; cards, notices and buttons reuse ModerationTab.css. */
+
+.regions-status {
+  align-self: flex-start;
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+.regions-status--active {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.regions-facts {
+  flex: 2 1 320px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px 16px;
+  margin: 0;
+  min-width: 0;
+}
+
+.regions-facts dt {
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+}
+
+.regions-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Accordion: one foldable group per country. */
+.regions-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.regions-group-heading {
+  margin: 0;
+  font-size: inherit;
+}
+
+.regions-group-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.regions-group-toggle:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.regions-group-name {
+  font-weight: 600;
+}
+
+.regions-group-count {
+  margin-left: auto;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+}
+
+.regions-group-chevron {
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+  transform: rotate(-90deg);
+}
+
+.regions-group-chevron--open {
+  transform: rotate(0deg);
+}
+
+.regions-group .moderation-list {
+  margin-top: 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .regions-group-chevron {
+    transition: none;
+  }
+}
+
+/* The intro is a flex item of a column here (not of a header row as in the
+   Moderation tab): without this its 320px flex-basis becomes a 320px height. */
+.regions-tab > .moderation-intro {
+  flex: 0 0 auto;
+}

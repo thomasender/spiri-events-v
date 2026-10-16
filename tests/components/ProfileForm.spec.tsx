@@ -3,6 +3,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import ProfileForm from '../../src/components/ProfileForm';
+import { RegionContext, DEFAULT_REGION_CONTEXT } from '../../src/hooks/useRegion';
+import { STATIC_REGIONS, mergeRegions } from '../../src/utils/regions';
 
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
@@ -711,7 +713,16 @@ describe('ProfileForm — Benutzername (LtBHuNes)', () => {
         listedInDirectory: true,
         directoryCategories: ['Coaching'],
         directoryRegions: ['Dornbirn'],
+        directoryRegionIds: ['vorarlberg'],
       });
+    });
+
+    it('keeps stored directoryRegionIds on save', async () => {
+      const onSave = vi.fn().mockResolvedValue(undefined);
+      renderForm({ ...baseProfile, directoryRegionIds: ['tirol'] }, { onSave });
+      fireEvent.click(screen.getByTestId('profile-save'));
+      await waitFor(() => expect(onSave).toHaveBeenCalled());
+      expect(onSave.mock.calls[0][0].directoryRegionIds).toEqual(['tirol']);
     });
 
     it('blocks listing without a bio', async () => {
@@ -754,5 +765,108 @@ describe('ProfileForm directory deep link', () => {
     );
     expect(scroll).toHaveBeenCalled();
     expect(scroll.mock.contexts[0]).toBe(screen.getByTestId('profile-directory-section'));
+  });
+});
+
+// Directory region choice: only with two or more active regions.
+describe('ProfileForm directory with several active regions', () => {
+  const allRegions = mergeRegions([
+    ...STATIC_REGIONS.map((r) => ({
+      id: r.id,
+      active: ['vorarlberg', 'tirol', 'bayern'].includes(r.id),
+    })),
+    { id: 'tirol', active: true, bezirke: ['Innsbruck', 'Kufstein'] },
+  ]);
+  const ctx = {
+    ...DEFAULT_REGION_CONTEXT,
+    allRegions,
+    regions: allRegions.filter((r) => r.active),
+    regionId: 'tirol',
+    region: allRegions.find((r) => r.id === 'tirol'),
+  };
+  const profile = {
+    displayName: 'Maria Musterfrau',
+    bio: 'Yoga-Lehrerin.',
+    bioHtml: '<p>Yoga-Lehrerin.</p>',
+    slug: 'maria-musterfrau',
+  };
+
+  function renderMulti(p: Record<string, unknown>, onSave = vi.fn().mockResolvedValue(undefined)) {
+    render(
+      <RegionContext.Provider value={ctx as never}>
+        <MemoryRouter>
+          <ProfileForm profile={p} uid="user-123" onSave={onSave} />
+        </MemoryRouter>
+      </RegionContext.Provider>
+    );
+    return onSave;
+  }
+
+  it('shows a region picker with one chip per selectable region', () => {
+    renderMulti({ ...profile, listedInDirectory: true, directoryCategories: ['Yoga'] });
+
+    expect(screen.getByTestId('profile-directory-region-ids')).toBeInTheDocument();
+    expect(screen.getByTestId('profile-directory-region-id-tirol')).toHaveAttribute(
+      'aria-pressed',
+      'false'
+    );
+  });
+
+  it('preselects the current region for a new listing and offers its districts', () => {
+    renderMulti(profile);
+    fireEvent.click(screen.getByTestId('profile-directory-toggle'));
+
+    expect(screen.getByTestId('profile-directory-region-id-tirol')).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    expect(screen.getByTestId('profile-directory-region-Innsbruck')).toBeInTheDocument();
+    expect(screen.queryByTestId('profile-directory-region-Dornbirn')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('profile-directory-region-id-bayern'));
+    expect(screen.getByTestId('profile-directory-region-Oberallgäu')).toBeInTheDocument();
+    expect(screen.getByText(/Landkreise in Bayern/)).toBeInTheDocument();
+  });
+
+  it('drops districts of a region that is deselected and saves regionIds + districts', async () => {
+    const onSave = renderMulti(profile);
+    fireEvent.click(screen.getByTestId('profile-directory-toggle'));
+    fireEvent.click(screen.getByTestId('profile-directory-category-Yoga'));
+    fireEvent.click(screen.getByTestId('profile-directory-region-id-bayern'));
+    fireEvent.click(screen.getByTestId('profile-directory-region-Innsbruck'));
+    fireEvent.click(screen.getByTestId('profile-directory-region-Oberallgäu'));
+    fireEvent.click(screen.getByTestId('profile-directory-region-id-tirol'));
+
+    expect(screen.queryByTestId('profile-directory-region-Innsbruck')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('profile-save'));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0][0]).toMatchObject({
+      listedInDirectory: true,
+      directoryRegionIds: ['bayern'],
+      directoryRegions: ['Oberallgäu'],
+    });
+  });
+
+  it('requires at least one region while listed', async () => {
+    const onSave = renderMulti(profile);
+    fireEvent.click(screen.getByTestId('profile-directory-toggle'));
+    fireEvent.click(screen.getByTestId('profile-directory-category-Yoga'));
+    fireEvent.click(screen.getByTestId('profile-directory-region-id-tirol'));
+    fireEvent.click(screen.getByTestId('profile-save'));
+
+    expect(await screen.findByTestId('profile-directory-region-ids-error')).toHaveTextContent(
+      'Bitte wähle mindestens eine Region'
+    );
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it('treats a listed profile without stored region ids as Vorarlberg', () => {
+    renderMulti({ ...profile, listedInDirectory: true, directoryCategories: ['Yoga'] });
+    expect(screen.getByTestId('profile-directory-region-id-vorarlberg')).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    expect(screen.getByTestId('profile-directory-region-Dornbirn')).toBeInTheDocument();
   });
 });

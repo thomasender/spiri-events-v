@@ -200,15 +200,27 @@ export function buildVEvent(event: IcsEvent, now: Date): string[] {
   return lines;
 }
 
-export function buildCalendar(events: IcsEvent[], name: string, now: Date = new Date()): string {
+export interface CalendarOptions {
+  /** Region name in PRODID ("Events <name>"); default Vorarlberg. */
+  productName?: string;
+  /** IANA zone for X-WR-TIMEZONE; default Europe/Vienna. */
+  timezone?: string;
+}
+
+export function buildCalendar(
+  events: IcsEvent[],
+  name: string,
+  now: Date = new Date(),
+  options: CalendarOptions = {}
+): string {
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//thetribe.at//Events Vorarlberg//DE',
+    `PRODID:-//thetribe.at//Events ${(options.productName ?? 'Vorarlberg').replace(/[^\p{L}\p{N} .-]/gu, '')}//DE`,
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     `X-WR-CALNAME:${escapeText(name)}`,
-    'X-WR-TIMEZONE:Europe/Vienna',
+    `X-WR-TIMEZONE:${options.timezone ?? 'Europe/Vienna'}`,
     'REFRESH-INTERVAL;VALUE=DURATION:PT6H',
     'X-PUBLISHED-TTL:PT6H',
     ...events.flatMap((event) => buildVEvent(event, now)),

@@ -2,11 +2,19 @@ import { Link } from 'react-router-dom';
 import { usePwaInstall, isIOSDevice } from '../hooks/usePwaInstall';
 import { PWA_OPEN_REQUEST_EVENT } from './PwaInstallPrompt';
 import { requestConsentBanner } from '../lib/analyticsConsent';
+import { LEGACY_SITE_NAME } from '../config/brand';
+import { useRegion } from '../hooks/useRegion';
+import { regionCanonicalPath } from '../utils/regionRouting';
 import './Footer.css';
 
 export default function Footer() {
   const { installAvailable, isStandalone, isMobileViewport, requestInstall } = usePwaInstall();
   const isIOS = isIOSDevice();
+  // Unchanged `/ueber-uns` while Vorarlberg is the only active region; combined views use it too.
+  const { regionId, allRegions, combinedView } = useRegion();
+  const aboutPath = combinedView
+    ? '/ueber-uns'
+    : regionCanonicalPath(regionId, '/ueber-uns', allRegions);
 
   // The link is removed from the DOM (not just visually hidden) on desktop
   // and on standalone runs. On desktop, Chrome shows its own install UI and
@@ -35,9 +43,9 @@ export default function Footer() {
   return (
     <footer className="footer">
       <div className="footer-container">
-        <span className="footer-copy">© 2026 tribe Vorarlberg</span>
+        <span className="footer-copy">© 2026 {LEGACY_SITE_NAME}</span>
         <nav className="footer-nav" aria-label="Footer-Navigation">
-          <Link to="/ueber-uns">Über uns</Link>
+          <Link to={aboutPath}>Über uns</Link>
           {showInstallLink && (
             <button
               type="button"

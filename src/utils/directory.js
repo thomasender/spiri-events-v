@@ -1,4 +1,4 @@
-import { BEZIRKE, ONLINE_LOCATION } from './regions';
+import { ONLINE_LOCATION, getAllDistricts, resolveDirectoryRegionIds } from './regions';
 import { normalizeFocalPoint } from '../lib/eventImage';
 import { normalizePhotoZoom } from '../components/AvatarImage';
 
@@ -7,7 +7,10 @@ import { normalizePhotoZoom } from '../components/AvatarImage';
 // them. No Firebase or DOM imports so everything here is unit-testable.
 
 export const DIRECTORY_MAX_CATEGORIES = 5;
-export const DIRECTORY_REGIONS = [...BEZIRKE, ONLINE_LOCATION];
+// All districts of all regions known without Firestore (Vorarlberg first, so
+// its order is unchanged) plus "Online". Mirrored by DIRECTORY_REGIONS in
+// functions/src/regions.ts (sync test: tests/lib/functionsRegions.spec.ts).
+export const DIRECTORY_REGIONS = [...getAllDistricts(), ONLINE_LOCATION];
 
 const DIRECTORY_REGION_SET = new Set(DIRECTORY_REGIONS);
 
@@ -20,7 +23,14 @@ function stringList(value) {
 // German error messages keyed by field; empty when the choice is valid.
 // Not listed → nothing is required, so users who stay out of the directory
 // never have to name an offering.
-export function validateDirectoryListing({ listed, categories, regions, hasBio }) {
+// `extraRegions`: district names that exist only in Firestore (regions/{id}.bezirke).
+export function validateDirectoryListing({
+  listed,
+  categories,
+  regions,
+  hasBio,
+  extraRegions = [],
+}) {
   const errors = {};
   if (!listed) return errors;
   const cats = stringList(categories);
@@ -30,7 +40,11 @@ export function validateDirectoryListing({ listed, categories, regions, hasBio }
   } else if (cats.length > DIRECTORY_MAX_CATEGORIES) {
     errors.categories = `Bitte wähle höchstens ${DIRECTORY_MAX_CATEGORIES} Kategorien.`;
   }
-  if (stringList(regions).some((region) => !DIRECTORY_REGION_SET.has(region))) {
+  const allowed =
+    extraRegions.length > 0
+      ? new Set([...DIRECTORY_REGIONS, ...extraRegions])
+      : DIRECTORY_REGION_SET;
+  if (stringList(regions).some((region) => !allowed.has(region))) {
     errors.regions = 'Bitte wähle nur Regionen aus der Liste.';
   }
   if (!hasBio) {
@@ -53,6 +67,8 @@ export function normalizeDirectoryEntry(uid, data) {
     photoZoom: normalizePhotoZoom(d.photoZoom),
     categories: stringList(d.directoryCategories),
     regions: stringList(d.directoryRegions),
+    // Read-side preparation only: the directory does not filter by it yet.
+    regionIds: resolveDirectoryRegionIds(d),
     hidden: d.directoryHidden === true,
   };
 }

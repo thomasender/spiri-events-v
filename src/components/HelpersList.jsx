@@ -1,5 +1,6 @@
 import { User } from 'lucide-react';
 import { useHelpers } from '../hooks/useHelpers';
+import { useRegionTexts } from '../hooks/useRegionTexts';
 import './HelpersList.css';
 
 function isExternalUrl(url) {
@@ -9,8 +10,13 @@ function isExternalUrl(url) {
 // Public list of helpers rendered on the "Über uns" page. Live-fetches via
 // useAdmin (admin-only) hooks which manage their own data. Renders an
 // empty-state so the section gracefully hides its helper prompts.
-export default function HelpersList() {
-  const { helpers, loading, error } = useHelpers();
+// `helperIds` (a region's "Über uns" page): only these helpers, in this order.
+export default function HelpersList({ helperIds = null }) {
+  const { siteName } = useRegionTexts();
+  const { helpers: allHelpers, loading, error } = useHelpers();
+  const helpers = Array.isArray(helperIds)
+    ? helperIds.map((id) => allHelpers.find((h) => h.id === id)).filter(Boolean)
+    : allHelpers;
 
   if (loading) {
     return (
@@ -32,8 +38,8 @@ export default function HelpersList() {
     return (
       <div className="helpers-list-empty" data-testid="helpers-list-empty">
         <p>
-          Sobald Admins Helfer:innen hinzufügen, erscheinen sie hier — jede:r, die/der tribe
-          Vorarlberg mitträgt, ist eingeladen, Teil dieser Liste zu werden.
+          Sobald Admins Helfer:innen hinzufügen, erscheinen sie hier — jede:r, die/der {siteName}
+          mitträgt, ist eingeladen, Teil dieser Liste zu werden.
         </p>
       </div>
     );

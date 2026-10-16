@@ -1,151 +1,139 @@
 #!/usr/bin/env node
-import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
-import { join, dirname } from 'path';
+// Trustworthy Firestore BACKUP (read-only). Used before the regionId migration.
+//
+// Emulator (default):    node scripts/export-firestore.mjs
+// Production (explicit): node scripts/export-firestore.mjs --project spirieventsvbg
+//     Credentials: Application Default Credentials / GOOGLE_APPLICATION_CREDENTIALS
+//     (same as scripts/migrate-region-ids.mjs). Reads only, never writes to Firestore.
+// Restore check:         node scripts/export-firestore.mjs --verify backups/firestore-<date>
+//
+// Output: backups/firestore-<YYYY-MM-DD>/ (git-ignored; production) or
+// backups/firestore-emulator-<date>/ (emulator): one typed-JSON file per
+// collection (users.publicProfile.json, events.messages.json, ...) plus
+// manifest.json. The manifest (with `exportedAt`) is written only when every
+// collection, subcollection included, was read completely and matches a
+// separate server-side count; otherwise the script exits 1 and leaves no
+// manifest. It NEVER touches data-export/ (the committed prerender snapshot).
+// Logic: src/utils/firestoreBackup.js
+import { createHash } from 'crypto';
+import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'fs';
+import { dirname, join, relative, resolve } from 'path';
 import { fileURLToPath } from 'url';
-import { createSign, createVerify } from 'crypto';
+import {
+  BACKUP_ROOT_DIR,
+  MANIFEST_NAME,
+  REQUIRED_PRODUCTION_COLLECTIONS,
+  PAGE_SIZE,
+  assertSafeOutDir,
+  backupDirName,
+  resolveExportOptions,
+  runBackup,
+  verifyBackup,
+  writeBackup,
+} from '../src/utils/firestoreBackup.js';
+import { PROD_PROJECT_ID } from '../src/utils/regionMigration.js';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT = join(__dirname, '..');
-const credPath = join(ROOT, 'scripts/service-account.json');
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+const TAG = '[export-firestore]';
+const sha256 = (text) => createHash('sha256').update(text).digest('hex');
 
-if (!existsSync(credPath)) {
-  console.error('Error: service-account.json not found');
-  console.error('Download from: Firebase Console > Project Settings > Service Accounts > Generate new private key');
-  console.error('Save as: scripts/service-account.json');
-  process.exit(1);
+function makeFetcher(db) {
+  return {
+    async listRootCollections() {
+      return (await db.listCollections()).map((c) => c.id);
+    },
+    async listPage(collPath, token) {
+      let q = db.collection(collPath).orderBy('__name__').limit(PAGE_SIZE);
+      if (token) q = q.startAfter(db.doc(token));
+      const snap = await q.get();
+      const docs = snap.docs.map((d) => ({ path: d.ref.path, data: d.data() }));
+      const nextPageToken = snap.docs.length === PAGE_SIZE ? snap.docs.at(-1).ref.path : null;
+      return { docs, nextPageToken };
+    },
+    async listDocumentPaths(collPath) {
+      return (await db.collection(collPath).listDocuments()).map((r) => r.path);
+    },
+    async listSubcollections(docPath) {
+      return (await db.doc(docPath).listCollections()).map((c) => c.id);
+    },
+    async countDocs(collPath) {
+      return (await db.collection(collPath).count().get()).data().count;
+    },
+  };
 }
 
-const cred = JSON.parse(readFileSync(credPath, 'utf8'));
-const PROJECT_ID = cred.project_id;
-
-async function getAccessToken() {
-  const now = Math.floor(Date.now() / 1000);
-  const expiry = now + 3600;
-
-  const header = base64urlEncode(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
-  const payload = base64urlEncode(JSON.stringify({
-    iss: cred.client_email,
-    sub: cred.client_email,
-    aud: 'https://oauth2.googleapis.com/token',
-    scope: 'https://www.googleapis.com/auth/datastore',
-    iat: now,
-    exp: expiry,
-  }));
-
-  const signingInput = `${header}.${payload}`;
-  const signer = createSign('RSA-SHA256');
-  signer.update(signingInput);
-  const sig = signer.sign(cred.private_key);
-  const signature = sig.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-  const jwt = `${signingInput}.${signature}`;
-
-  const response = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-      assertion: jwt,
-    }),
-  });
-
-  const data = await response.json();
-  if (!data.access_token) throw new Error('Failed to get access token: ' + JSON.stringify(data));
-  return data.access_token;
-}
-
-function base64urlEncode(str) {
-  return Buffer.from(str).toString('base64')
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-}
-
-async function exportFirestore(accessToken) {
-  const baseUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)`;
-
-  console.log('Fetching collections...');
-
-  const collections = ['events', 'users'];
-  const data = {};
-
-  for (const coll of collections) {
-    try {
-      const response = await fetch(`${baseUrl}/documents/${coll}?pageSize=1000`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      const result = await response.json();
-
-      if (result.documents) {
-        data[coll] = result.documents.map(doc => {
-          const docPath = doc.name.split('/documents/')[1];
-          const id = docPath.split('/').slice(1).join('/');
-          return { id, ...convertValues(doc.fields) };
-        });
-        console.log(`  ${coll}: ${data[coll].length} documents`);
-      } else if (result.error) {
-        console.error(`  ${coll}: API error - ${result.error.message}`);
-        data[coll] = [];
-      } else {
-        data[coll] = [];
-        console.log(`  ${coll}: 0 documents`);
-      }
-    } catch (e) {
-      console.error(`  Error fetching ${coll}:`, e.message);
-      data[coll] = [];
-    }
+function runVerify(dir) {
+  const abs = resolve(ROOT, dir);
+  const { ok, problems, manifest } = verifyBackup(
+    (name) => readFileSync(join(abs, name), 'utf8'),
+    sha256
+  );
+  if (!ok) {
+    for (const p of problems) console.error(`${TAG} PROBLEM: ${p}`);
+    console.error(`${TAG} Backup ${dir} ist NICHT in Ordnung.`);
+    process.exit(1);
   }
-
-  return data;
-}
-
-function convertValues(fields) {
-  if (!fields) return {};
-  const result = {};
-  for (const [key, value] of Object.entries(fields)) {
-    result[key] = convertValue(value);
-  }
-  return result;
-}
-
-function convertValue(val) {
-  if (!val || typeof val !== 'object') return val;
-
-  const { stringValue, integerValue, doubleValue, booleanValue, timestampValue, referenceValue, arrayValue, mapValue } = val;
-
-  if (stringValue !== undefined) return stringValue;
-  if (integerValue !== undefined) return parseInt(integerValue, 10);
-  if (doubleValue !== undefined) return parseFloat(doubleValue);
-  if (booleanValue !== undefined) return booleanValue;
-  if (timestampValue !== undefined) return timestampValue;
-  if (referenceValue !== undefined) return referenceValue;
-  if (arrayValue?.values) return arrayValue.values.map(convertValue);
-  if (mapValue?.fields) return convertValues(mapValue.fields);
-
-  return val;
+  console.log(`${TAG} Backup ${dir} ok (exportedAt ${manifest.exportedAt}, ${manifest.target}).`);
+  for (const [k, n] of Object.entries(manifest.counts)) console.log(`${TAG}   ${k}: ${n}`);
 }
 
 async function main() {
-  const outDir = join(ROOT, 'data-export');
-  if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
-
-  console.log(`Exporting Firestore from ${PROJECT_ID}...\n`);
-
-  const accessToken = await getAccessToken();
-  const data = await exportFirestore(accessToken);
-
-  const outPath = join(outDir, 'firestore-export');
-  mkdirSync(outPath, { recursive: true });
-
-  for (const [coll, docs] of Object.entries(data)) {
-    writeFileSync(join(outPath, `${coll}.json`), JSON.stringify(docs, null, 2));
+  let opts;
+  try {
+    opts = resolveExportOptions(process.argv.slice(2), { env: process.env });
+  } catch (err) {
+    console.error(`${TAG} ${err.message}`);
+    process.exit(1);
   }
+  if (opts.target === 'verify') return runVerify(opts.verify);
 
-  const manifest = {
-    version: 'emulator-data',
-    collections: Object.keys(data)
+  const now = new Date();
+  const outDir = opts.outDir ?? `${BACKUP_ROOT_DIR}/${backupDirName(opts.target, now)}`;
+  const absOut = resolve(ROOT, outDir);
+  assertSafeOutDir(relative(ROOT, absOut));
+
+  if (opts.target === 'emulator') {
+    process.env.FIRESTORE_EMULATOR_HOST = opts.emulatorHost;
+    process.env.GCLOUD_PROJECT = PROD_PROJECT_ID;
+  }
+  const where =
+    opts.target === 'production'
+      ? `PRODUKTION (${PROD_PROJECT_ID}), nur lesen`
+      : `Emulator ${opts.emulatorHost}`;
+  console.log(`${TAG} Ziel: ${where}`);
+  console.log(`${TAG} Ausgabe: ${outDir}`);
+
+  const { initializeApp } = await import('firebase-admin/app');
+  const { getFirestore } = await import('firebase-admin/firestore');
+  initializeApp({ projectId: PROD_PROJECT_ID });
+  const db = getFirestore();
+
+  const { groups, summary } = await runBackup(makeFetcher(db), {
+    requiredCollections: opts.target === 'production' ? REQUIRED_PRODUCTION_COLLECTIONS : [],
+    onProgress: (path, n) => console.log(`${TAG}   ${path}: ${n}`),
+  });
+
+  const io = {
+    mkdir: (p) => mkdirSync(p, { recursive: true }),
+    writeFile: (p, body) => writeFileSync(p, body),
+    rm: (p) => rmSync(p, { recursive: true, force: true }),
+    rename: renameSync,
+    sha256,
   };
-  writeFileSync(join(outPath, 'manifest.json'), JSON.stringify(manifest, null, 2));
-
-  console.log(`\nExported to ${outPath}/`);
-  console.log('Import with: firebase emulators:import ./data-export');
+  mkdirSync(dirname(absOut), { recursive: true });
+  const manifest = await writeBackup(io, absOut, {
+    groups,
+    summary,
+    target: opts.target,
+    projectId: PROD_PROJECT_ID,
+    now,
+  });
+  console.log(`${TAG} Fertig. Gruppen:`);
+  for (const [k, n] of Object.entries(manifest.counts)) console.log(`${TAG}   ${k}: ${n}`);
+  console.log(`${TAG} exportedAt ${manifest.exportedAt} -> ${outDir}/${MANIFEST_NAME}`);
 }
 
-main().catch(console.error);
+main().catch((err) => {
+  console.error(`${TAG} FEHLER, kein Backup (kein exportedAt):`, err);
+  process.exit(1);
+});

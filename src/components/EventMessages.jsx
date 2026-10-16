@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Send, MessageSquare, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useEventMessages } from '../hooks/useEventMessages';
+import { getStaffAccess, messageAuthorRole } from '../utils/staffRoles';
 import RichTextEditorLazy from './RichTextEditorLazy';
 import RichTextView from './RichTextView';
 import { isHtmlEmpty, messageToHtml, MAX_MESSAGE_LENGTH } from '../utils/sanitize';
@@ -18,9 +19,17 @@ function formatTime(timestamp) {
   });
 }
 
-export default function EventMessages({ eventId, onReady }) {
-  const { user, role } = useAuth();
-  const { messages, loading, sending, sendMessage, markAsRead } = useEventMessages(eventId);
+export default function EventMessages({ eventId, eventOwnerUid = null, onReady }) {
+  const { user, role, staffRegionIds } = useAuth();
+  const { messages, loading, sending, sendMessage, markAsRead } = useEventMessages(eventId, {
+    ownerUid: eventOwnerUid,
+  });
+  // Super-Admins, and moderators on someone else's event, write as the team.
+  const writesAsStaff =
+    messageAuthorRole(
+      getStaffAccess(role, staffRegionIds),
+      Boolean(user && eventOwnerUid && eventOwnerUid === user.uid)
+    ) === 'Admin';
   const [text, setText] = useState('');
   const [error, setError] = useState('');
   const listRef = useRef(null);
@@ -87,7 +96,7 @@ export default function EventMessages({ eventId, onReady }) {
       <header className="event-messages-header">
         <MessageSquare size={20} aria-hidden="true" />
         <h2>Nachrichten</h2>
-        {role === 'Admin' && (
+        {writesAsStaff && (
           <span className="event-messages-hint">
             <ShieldCheck size={14} aria-hidden="true" />
             Admin-Nachricht
@@ -138,7 +147,7 @@ export default function EventMessages({ eventId, onReady }) {
           value={text}
           onChange={setText}
           placeholder={
-            role === 'Admin'
+            writesAsStaff
               ? 'Beschreibe, was am Event geändert werden soll…'
               : 'Schreibe eine Antwort an das Admin-Team…'
           }

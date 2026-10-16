@@ -2,11 +2,14 @@ import { useMemo, useState } from 'react';
 import { doc, getFirestore, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { getApp } from 'firebase/app';
 import { ClipboardCheck, Inbox, MessageCircle, CheckCircle2, ChevronDown } from 'lucide-react';
+import { useRegionLabels } from '../hooks/useRegionLabels';
 import { usePendingEvents, useAllEvents } from '../hooks/useEvents';
 import { useEventsWithMessages } from '../hooks/useEventsWithMessages';
 import { useUserDisplayNames } from '../hooks/useUserDisplayNames';
 import { useAuth } from '../hooks/useAuth';
 import { requiresDeleteReason } from '../utils/eventPermissions';
+import { getStaffAccess } from '../utils/staffRoles';
+import { STATIC_REGIONS, resolveRegionId } from '../utils/regions';
 import { buildTrashUpdate } from '../utils/trashUpdates';
 import EventAdminListRow from './EventAdminListRow';
 import ConfirmDialog from './ConfirmDialog';
@@ -14,6 +17,12 @@ import SuccessDialog from './SuccessDialog';
 import './ReviewTab.css';
 
 const APPROVED_WINDOW_DAYS = 7;
+
+function regionNames(ids) {
+  const names = ids.map((id) => STATIC_REGIONS.find((r) => r.id === id)?.name || id);
+  if (names.length <= 1) return names.join('');
+  return `${names.slice(0, -1).join(', ')} und ${names[names.length - 1]}`;
+}
 
 function getApprovedAtMillis(value) {
   if (!value) return null;
@@ -49,12 +58,68 @@ function CollapseToggle({ id, open, onToggle, testId, children }) {
   );
 }
 
+const REGION_FILTER_KEY = 'review:regionFilter';
+
+function readStoredRegionFilter() {
+  try {
+    return sessionStorage.getItem(REGION_FILTER_KEY) || 'all';
+  } catch {
+    return 'all';
+  }
+}
+
 export default function ReviewTab() {
-  const { user, role } = useAuth();
+  const { user, role, staffRegionIds } = useAuth();
+  const { labelFor, nameOf, regions } = useRegionLabels();
+  const [storedRegionFilter, setStoredRegionFilter] = useState(readStoredRegionFilter);
+  const access = useMemo(() => getStaffAccess(role, staffRegionIds), [role, staffRegionIds]);
+  const moderatorRegionKey = access.isRegionModerator ? access.moderatorRegionIds.join(',') : '';
+  // Super-Admins may edit any event; a Regions-Moderator:in only reviews
+  // (the rules forbid her content edits), so she gets no edit link on
+  // other people's events.
+  const canEdit = (evt) => access.isSuperAdmin || evt.createdBy === user?.uid;
   const { pendingEvents, loading: pendingLoading, approveEvent } = usePendingEvents();
   const { events: allApprovedEvents, loading: approvedLoading } = useAllEvents();
   const { unreadCountByEvent, hasMessagesByEvent, inKlaerungAuthorNameByEvent } =
     useEventsWithMessages();
+
+  // Region filter: only for staff who can see more than one region (a
+  // Super-Admin: every region that is active or has items; a moderator: hers).
+  const regionOptions = useMemo(() => {
+    const counts = {};
+    pendingEvents.forEach((event) => {
+      const id = resolveRegionId(event);
+      counts[id] = (counts[id] || 0) + 1;
+    });
+    let ids;
+    if (access.isRegionModerator) {
+      ids = access.moderatorRegionIds;
+    } else {
+      const withItems = new Set([
+        ...Object.keys(counts),
+        ...allApprovedEvents.map((e) => resolveRegionId(e)),
+      ]);
+      ids = regions.filter((r) => r.active || withItems.has(r.id)).map((r) => r.id);
+      withItems.forEach((id) => {
+        if (!ids.includes(id)) ids.push(id);
+      });
+    }
+    return ids.map((id) => ({ id, name: nameOf(id), count: counts[id] || 0 }));
+  }, [access, pendingEvents, allApprovedEvents, regions, nameOf]);
+  const showRegionFilter = regionOptions.length > 1;
+  const regionFilter =
+    showRegionFilter && regionOptions.some((o) => o.id === storedRegionFilter)
+      ? storedRegionFilter
+      : 'all';
+  const onRegionFilterChange = (value) => {
+    setStoredRegionFilter(value);
+    try {
+      sessionStorage.setItem(REGION_FILTER_KEY, value);
+    } catch {
+      // storage unavailable: the choice just is not remembered
+    }
+  };
+  const inFilter = (event) => regionFilter === 'all' || resolveRegionId(event) === regionFilter;
 
   const [approvingId, setApprovingId] = useState(null);
   const [revertTarget, setRevertTarget] = useState(null);
@@ -119,7 +184,7 @@ export default function ReviewTab() {
     setDeleteTarget({
       id: evt.id,
       eventTitle: evt.title,
-      reasonRequired: requiresDeleteReason(user, evt, role),
+      reasonRequired: requiresDeleteReason(user, evt, role, staffRegionIds),
     });
 
   const recentlyApproved = useMemo(() => {
@@ -129,17 +194,21 @@ export default function ReviewTab() {
     // the cutoff stays current without any state plumbing.
     // eslint-disable-next-line react-hooks/purity
     const cutoff = Date.now() - APPROVED_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+    const regionIds = moderatorRegionKey ? moderatorRegionKey.split(',') : null;
     return allApprovedEvents
+      .filter((event) => !regionIds || regionIds.includes(resolveRegionId(event)))
+      .filter(inFilter)
       .map((event) => ({ event, approvedAtMs: getApprovedAtMillis(event.approvedAt) }))
       .filter(({ approvedAtMs }) => approvedAtMs != null && approvedAtMs >= cutoff)
       .sort((a, b) => b.approvedAtMs - a.approvedAtMs)
       .map(({ event }) => event);
-  }, [allApprovedEvents]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allApprovedEvents, moderatorRegionKey, regionFilter]);
 
   const { pendingInKlaerung, pendingNeu } = useMemo(() => {
     const inK = [];
     const neu = [];
-    pendingEvents.forEach((event) => {
+    pendingEvents.filter(inFilter).forEach((event) => {
       if (hasMessagesByEvent[event.id]) {
         inK.push(event);
       } else {
@@ -147,7 +216,8 @@ export default function ReviewTab() {
       }
     });
     return { pendingInKlaerung: inK, pendingNeu: neu };
-  }, [pendingEvents, hasMessagesByEvent]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingEvents, hasMessagesByEvent, regionFilter]);
 
   const reviewerUids = useMemo(() => {
     const uids = new Set();
@@ -163,7 +233,13 @@ export default function ReviewTab() {
     return <div className="loading-spinner"></div>;
   }
 
-  const hasAnyContent = pendingEvents.length > 0 || recentlyApproved.length > 0;
+  const subtitle = access.isRegionModerator
+    ? `Hier landen die Events aus ${regionNames(access.moderatorRegionIds)}, die auf deine Freigabe warten`
+    : 'Hier landen alle Events, die auf deine Freigabe warten';
+
+  const pendingShown = pendingInKlaerung.length + pendingNeu.length;
+  const hasAnyContent =
+    pendingEvents.length > 0 || recentlyApproved.length > 0 || regionFilter !== 'all';
 
   if (!hasAnyContent) {
     return (
@@ -171,7 +247,7 @@ export default function ReviewTab() {
         <div className="event-list-header">
           <div>
             <h1>Review</h1>
-            <p>Hier landen alle Events, die auf deine Freigabe warten</p>
+            <p>{subtitle}</p>
           </div>
         </div>
 
@@ -194,11 +270,34 @@ export default function ReviewTab() {
       <div className="event-list-header">
         <div>
           <h1>Review</h1>
-          <p>Hier landen alle Events, die auf deine Freigabe warten</p>
+          <p>{subtitle}</p>
         </div>
       </div>
 
-      {pendingEvents.length > 0 && (
+      {showRegionFilter && (
+        <div className="review-region-filter">
+          <label htmlFor="review-region-filter">Region</label>
+          <select
+            id="review-region-filter"
+            data-testid="review-region-filter"
+            value={regionFilter}
+            onChange={(e) => onRegionFilterChange(e.target.value)}
+          >
+            <option value="all">{`Alle (${pendingEvents.length})`}</option>
+            {regionOptions.map((o) => (
+              <option key={o.id} value={o.id}>{`${o.name} (${o.count})`}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {pendingShown === 0 && recentlyApproved.length === 0 && (
+        <p className="review-subsection-empty" data-testid="review-region-empty">
+          Für diese Region gibt es aktuell nichts zu prüfen.
+        </p>
+      )}
+
+      {pendingShown > 0 && (
         <section
           className="review-section review-section--pending"
           data-testid="review-section-pending"
@@ -214,7 +313,7 @@ export default function ReviewTab() {
                 <Inbox size={20} aria-hidden="true" />
                 <span>Wartend auf Genehmigung</span>
                 <span className="review-section-count" data-testid="review-section-pending-count">
-                  {pendingEvents.length}
+                  {pendingShown}
                 </span>
               </CollapseToggle>
             </h2>
@@ -237,6 +336,7 @@ export default function ReviewTab() {
                     <div key={event.id}>
                       <EventAdminListRow
                         event={event}
+                        regionLabel={labelFor(event)}
                         showStatus
                         showApprove
                         showRevert
@@ -245,6 +345,7 @@ export default function ReviewTab() {
                         showRevisionHint
                         fromPath="/admin?tab=review"
                         isAdmin
+                        showEdit={canEdit(event)}
                         approving={approvingId}
                         unreadCount={unreadCountByEvent[event.id] || 0}
                         hasMessages={Boolean(hasMessagesByEvent[event.id])}
@@ -290,6 +391,7 @@ export default function ReviewTab() {
                       <div key={event.id}>
                         <EventAdminListRow
                           event={event}
+                          regionLabel={labelFor(event)}
                           showStatus
                           showApprove
                           showRevert
@@ -300,6 +402,7 @@ export default function ReviewTab() {
                           inKlaerungByName={inKlaerungAuthorNameByEvent[event.id] || null}
                           fromPath="/admin?tab=review"
                           isAdmin
+                          showEdit={canEdit(event)}
                           approving={approvingId}
                           unreadCount={unreadCountByEvent[event.id] || 0}
                           hasMessages={Boolean(hasMessagesByEvent[event.id])}
@@ -350,12 +453,14 @@ export default function ReviewTab() {
               <div key={event.id}>
                 <EventAdminListRow
                   event={event}
+                  regionLabel={labelFor(event)}
                   showStatus
                   showDuplicate={false}
                   showApprovedBy
                   approvedByName={namesByUid[event.approvedBy] || null}
                   fromPath="/admin?tab=review"
                   isAdmin
+                  showEdit={canEdit(event)}
                   onDeleteClick={(evt) => openDelete(evt)}
                 />
               </div>

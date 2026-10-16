@@ -1,6 +1,6 @@
 import { EVENTS, trackEvent } from '../lib/analytics';
 import { useState, useRef, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import CreatableSelect from 'react-select/creatable';
 import { serverTimestamp } from 'firebase/firestore';
 import { useEvents, BEZIRKE } from '../hooks/useEvents';
@@ -46,6 +46,10 @@ import {
   isDefaultFocalPoint,
 } from '../lib/eventImage';
 import { CURRENCIES, DEFAULT_CURRENCY, formatPriceWithCurrency } from '../utils/currency';
+import { isRegionSlug, pickEventRegionId } from '../utils/regions';
+import { useRegionChoices } from '../hooks/useRegionChoices';
+import { keepIfInRegion, selectedRegionId, subdivisionFor } from '../utils/regionChoices';
+import EventRegionDialog, { BEZIRK_NOT_FOUND } from './EventRegionDialog';
 import { saveWizardDraft, loadWizardDraft, clearWizardDraft } from '../utils/wizardDraftStorage';
 import { normalizeCategoryInput, isValidCategoryInput } from '../utils/categoryInput';
 import { getCategoryColor } from '../utils/categoryColors';
@@ -157,12 +161,19 @@ export default function EventFormWizard() {
     kontakt: user?.email || '',
   };
   const restoredDraft = user ? loadWizardDraft(user.uid) : null;
+  // `?region=tirol` (coming-soon page "Event eintragen"): the event is for that
+  // region even though it is not open yet.
+  const [searchParams] = useSearchParams();
+  const requestedRegion = isRegionSlug(searchParams.get('region'))
+    ? searchParams.get('region')
+    : '';
 
   const [formData, setFormData] = useState(() => {
     if (restoredDraft && restoredDraft.formData) {
       return {
         ...INITIAL_STATE,
         ...restoredDraft.formData,
+        ...(requestedRegion && { regionId: requestedRegion }),
         organizer: {
           ...INITIAL_STATE.organizer,
           ...(restoredDraft.formData.organizer || {}),
@@ -175,8 +186,21 @@ export default function EventFormWizard() {
     return {
       ...INITIAL_STATE,
       ...profileDefaults,
+      ...(requestedRegion && { regionId: requestedRegion }),
     };
   });
+
+  // Region field: only with two or more active regions (otherwise nothing
+  // changes). The preselection is the current region.
+  const regionChoices = useRegionChoices({ keepRegionId: requestedRegion });
+  const selectedRegion = regionChoices.enabled
+    ? selectedRegionId(formData.regionId, regionChoices)
+    : '';
+  const subdivision = subdivisionFor(selectedRegion, regionChoices);
+  const subdivisionLabel = subdivision.label;
+  const bezirkOptions = subdivision.options ?? BEZIRKE;
+  // A region without any Bezirk / Landkreis in its register cannot require one.
+  const bezirkRequired = bezirkOptions.length > 0;
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -326,7 +350,10 @@ export default function EventFormWizard() {
   const recurrenceMaxDate = useMemo(() => {
     if (!formData.date) return '';
     const eventDate = new Date(formData.date + 'T12:00:00');
+    // An unexpected year (e.g. 5 digits) gives an invalid date; toISOString() would throw.
+    if (Number.isNaN(eventDate.getTime())) return '';
     eventDate.setDate(eventDate.getDate() + 180);
+    if (Number.isNaN(eventDate.getTime())) return '';
     return eventDate.toISOString().split('T')[0];
   }, [formData.date]);
 
@@ -359,8 +386,8 @@ export default function EventFormWizard() {
       ) {
         newErrors.endTime = 'Die Endzeit muss nach der Startzeit liegen';
       }
-      if (!formData.isOnline && !formData.bezirk) {
-        newErrors.bezirk = 'Bitte Bezirk auswählen oder als Online-Event markieren';
+      if (bezirkRequired && !formData.isOnline && !formData.bezirk) {
+        newErrors.bezirk = `Bitte ${subdivisionLabel} auswählen oder als Online-Event markieren`;
       }
       if (!formData.category) {
         newErrors.category = 'Kategorie ist erforderlich';
@@ -516,6 +543,16 @@ export default function EventFormWizard() {
     }
   };
 
+  const [regionDialogOpen, setRegionDialogOpen] = useState(false);
+  // "Finde meinen Bezirk nicht" opens the region dialog instead of setting a value.
+  const handleBezirkChange = (e) => {
+    if (e.target.value === BEZIRK_NOT_FOUND) {
+      setRegionDialogOpen(true);
+      return;
+    }
+    handleChange(e);
+  };
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     if (type === 'checkbox') {
@@ -536,6 +573,8 @@ export default function EventFormWizard() {
       ...prev,
       [name]: value,
       ...(name === 'bezirk' && value ? { isOnline: false } : {}),
+      // A new region has its own Bezirke / Landkreise: drop a no longer fitting one.
+      ...(name === 'regionId' ? { bezirk: keepIfInRegion(prev.bezirk, value, regionChoices) } : {}),
     }));
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: null }));
@@ -593,7 +632,7 @@ export default function EventFormWizard() {
       if (baseDate) {
         const d = new Date(baseDate + 'T12:00:00');
         d.setDate(d.getDate() + 7);
-        nextDate = d.toISOString().split('T')[0];
+        if (!Number.isNaN(d.getTime())) nextDate = d.toISOString().split('T')[0];
       }
       return { ...prev, customDates: [...existing, nextDate] };
     });
@@ -725,6 +764,7 @@ export default function EventFormWizard() {
     category: formData.category || 'Sonstiges',
     bezirk: formData.isOnline ? '' : formData.bezirk,
     isOnline: Boolean(formData.isOnline),
+    regionId: pickEventRegionId(regionChoices.enabled ? selectedRegion : formData.regionId),
     organizer: {
       firstName: splitOrganizerName(formData.organizer.name).firstName,
       lastName: splitOrganizerName(formData.organizer.name).lastName,
@@ -1038,11 +1078,6 @@ export default function EventFormWizard() {
           onChange={handleImageSelectFromInput}
           style={{ display: 'none' }}
         />
-        <p className="image-hint" data-testid="title-image-hint">
-          Tipp: Verwende als Titelfoto am besten ein schönes Symbolfoto mit wenig Text. Fotos mit
-          viel Text (z.B. ein Flyer) kannst du im Feld „Beschreibung“ zusätzlich zu deinem
-          Beschreibungstext hinzufügen.
-        </p>
         {errors.image && <span className="error-text">{errors.image}</span>}
         {imageUploading && (
           <div className="upload-progress">
@@ -1130,23 +1165,36 @@ export default function EventFormWizard() {
 
       <div className="form-row">
         <div className="form-group">
-          <label htmlFor="bezirk">Bezirk *</label>
+          <label htmlFor="bezirk">{subdivisionLabel} *</label>
           <select
             id="bezirk"
             name="bezirk"
             value={formData.bezirk}
-            onChange={handleChange}
+            onChange={handleBezirkChange}
             disabled={formData.isOnline}
             className={errors.bezirk ? 'input-error' : ''}
           >
-            <option value="">Bezirk auswählen...</option>
-            {BEZIRKE.map((b) => (
+            <option value="">{subdivisionLabel} auswählen...</option>
+            {bezirkOptions.map((b) => (
               <option key={b} value={b}>
                 {bezirkLabel(b)}
               </option>
             ))}
+            {regionChoices.enabled && (
+              <option value={BEZIRK_NOT_FOUND}>Finde meinen {subdivisionLabel} nicht</option>
+            )}
           </select>
           {errors.bezirk && <span className="error-text">{errors.bezirk}</span>}
+          {regionChoices.enabled && (
+            <EventRegionDialog
+              isOpen={regionDialogOpen}
+              regionName={regionChoices.options.find((r) => r.id === selectedRegion)?.name ?? ''}
+              value={selectedRegion}
+              options={regionChoices.options}
+              onChange={handleChange}
+              onClose={() => setRegionDialogOpen(false)}
+            />
+          )}
         </div>
 
         <div className="form-group">
@@ -1178,7 +1226,7 @@ export default function EventFormWizard() {
             onChange={handleChange}
             data-testid="is-online-checkbox"
           />
-          <span>Online-Event (kein Bezirk und keine Adresse nötig)</span>
+          <span>Online-Event (kein {subdivisionLabel} und keine Adresse nötig)</span>
         </label>
       </div>
 

@@ -2,6 +2,11 @@
 // requests and turn the raw responses into the small, flat report the UI draws.
 // No Firebase imports here so it can be unit-tested without the emulator.
 
+import { COMBINED_VIEWS, REGION_IDS } from './regions';
+
+/** GA4 custom dimension (event scope, parameter `region`) the per-region numbers rely on. */
+export const REGION_DIMENSION = 'customEvent:region';
+
 export const ALLOWED_RANGES = [7, 30] as const;
 export type RangeDays = (typeof ALLOWED_RANGES)[number];
 
@@ -36,6 +41,12 @@ export interface AnalyticsReport {
   channels: { name: string; sessions: number }[];
   devices: { name: string; users: number }[];
   actions: { event: string; count: number }[];
+  /** Per-region comparison; only present when GA has region data and no region filter is set. */
+  regions?: { name: string; users: number; pageViews: number; sessions: number }[];
+  /** Echo of the region filter (only when one was requested). */
+  region?: string;
+  /** The GA custom dimension `region` is not registered (yet), see docs/regions.md. */
+  regionDimension?: 'unavailable';
 }
 
 export interface RawReports {
@@ -45,11 +56,28 @@ export interface RawReports {
   channels: GaResponse;
   devices: GaResponse;
   actions: GaResponse;
+  /** Optional; rows of buildRegionsRequest(). */
+  regions?: GaResponse;
 }
 
 export function parseRange(value: unknown): RangeDays {
   const n = Number(value);
   return (ALLOWED_RANGES as readonly number[]).includes(n) ? (n as RangeDays) : 7;
+}
+
+/**
+ * Optional `region` argument of the callable: a region id or a combined-view
+ * slug (exact slug, see docs/regions.md). Absent or unknown = null = all regions.
+ */
+export function parseRegion(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const ok = REGION_IDS.includes(value) || COMBINED_VIEWS.some((v) => v.slug === value);
+  return ok ? value : null;
+}
+
+/** GA answers 400 "Field customEvent:region is not a valid dimension" until the dimension is registered. */
+export function isUnknownRegionDimensionError(message: string): boolean {
+  return /\b400\b/.test(message) && /customEvent:region/i.test(message);
 }
 
 function num(v: string | undefined): number {
@@ -116,6 +144,16 @@ export function buildReport(
   const actionCounts = new Map<string, number>();
   for (const r of raw.actions.rows ?? []) actionCounts.set(dim(r), met(r));
 
+  const regionRows = (raw.regions?.rows ?? [])
+    .map((r) => ({
+      name: dim(r),
+      users: met(r, 0),
+      pageViews: met(r, 1),
+      sessions: met(r, 2),
+    }))
+    .filter((r) => r.name && r.name !== '(not set)')
+    .sort((a, b) => b.pageViews - a.pageViews || a.name.localeCompare(b.name));
+
   return {
     rangeDays,
     generatedAt: now.toISOString(),
@@ -137,13 +175,60 @@ export function buildReport(
       .map((r) => ({ name: dim(r) || 'unbekannt', users: met(r) }))
       .sort((a, b) => b.users - a.users),
     actions: ACTION_EVENTS.map((event) => ({ event, count: actionCounts.get(event) ?? 0 })),
+    ...(regionRows.length ? { regions: regionRows } : {}),
   };
 }
 
-/** The six runReport bodies for a range (end date is "today", GA's own timezone). */
-export function buildRequests(rangeDays: RangeDays) {
-  const dateRanges = [{ startDate: `${rangeDays - 1}daysAgo`, endDate: 'today' }];
+/** Empty report for a region filter whose custom dimension GA does not know yet. */
+export function buildUnavailableReport(
+  rangeDays: RangeDays,
+  region: string | null,
+  now = new Date()
+): AnalyticsReport {
+  const empty: RawReports = {
+    totals: {},
+    daily: {},
+    pages: {},
+    channels: {},
+    devices: {},
+    actions: {},
+  };
   return {
+    ...buildReport(empty, rangeDays, now),
+    ...(region ? { region } : {}),
+    regionDimension: 'unavailable',
+  };
+}
+
+/** The runReport body that compares regions; only requested without a region filter. */
+export function buildRegionsRequest(rangeDays: RangeDays) {
+  return {
+    dateRanges: [{ startDate: `${rangeDays - 1}daysAgo`, endDate: 'today' }],
+    dimensions: [{ name: REGION_DIMENSION }],
+    metrics: [{ name: 'activeUsers' }, { name: 'screenPageViews' }, { name: 'sessions' }],
+    orderBys: [{ metric: { metricName: 'screenPageViews' }, desc: true }],
+    limit: 50,
+  };
+}
+
+/**
+ * The six runReport bodies for a range (end date is "today", GA's own timezone).
+ * With `region` every body also filters on the custom dimension (EXACT match on
+ * the slug; a combined-view slug matches only events sent with that slug).
+ */
+export function buildRequests(rangeDays: RangeDays, region: string | null = null) {
+  const dateRanges = [{ startDate: `${rangeDays - 1}daysAgo`, endDate: 'today' }];
+  const regionFilter = region
+    ? {
+        filter: {
+          fieldName: REGION_DIMENSION,
+          stringFilter: { matchType: 'EXACT', value: region },
+        },
+      }
+    : null;
+  const withRegion = <T extends object>(body: T) =>
+    regionFilter ? { ...body, dimensionFilter: regionFilter } : body;
+  const requests = {
     totals: {
       dateRanges,
       metrics: [
@@ -185,6 +270,20 @@ export function buildRequests(rangeDays: RangeDays) {
           fieldName: 'eventName',
           inListFilter: { values: [...ACTION_EVENTS] },
         },
+      },
+    },
+  };
+  if (!regionFilter) return requests;
+  return {
+    totals: withRegion(requests.totals),
+    daily: withRegion(requests.daily),
+    pages: withRegion(requests.pages),
+    channels: withRegion(requests.channels),
+    devices: withRegion(requests.devices),
+    actions: {
+      ...requests.actions,
+      dimensionFilter: {
+        andGroup: { expressions: [requests.actions.dimensionFilter, regionFilter] },
       },
     },
   };

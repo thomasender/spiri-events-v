@@ -7,6 +7,13 @@ import { useCategoryRegistry } from '../hooks/useCategoryRegistry';
 import { useFavorites } from '../hooks/useFavorites';
 import { useAuth } from '../hooks/useAuth';
 import { useCalendarFeedToken } from '../hooks/useCalendarFeedToken';
+import {
+  useRegion,
+  useRegionCanonicalPath,
+  useRegionEvents,
+  useRegionBezirke,
+} from '../hooks/useRegion';
+import { DEFAULT_REGION_ID } from '../utils/regions';
 import Calendar from '../components/Calendar';
 import EventsSection from '../components/EventsSection';
 import EmailVerificationModal from '../components/EmailVerificationModal';
@@ -40,6 +47,7 @@ import {
   RefreshCw,
   Share,
 } from 'lucide-react';
+import { useRegionTexts } from '../hooks/useRegionTexts';
 import './CalendarPage.css';
 import { trackEventOpen, trackFilter } from '../lib/analyticsEvents';
 
@@ -50,6 +58,7 @@ const HERO_FEATURES = [
     icon: MapPin,
     title: 'In deiner Umgebung',
     description: 'Für Vorarlberg und Umkreis',
+    nearby: true,
   },
   {
     icon: Users,
@@ -81,9 +90,18 @@ const HERO_FEATURE_PAIRS = [HERO_FEATURES.slice(0, 2), HERO_FEATURES.slice(2, 4)
 // (repeated parameters; the server only accepts known values, so unknown Orte are left out).
 // `token` is the user's secret calendar token: the feed is for signed-in users only and
 // calendar apps cannot log in, so the server checks this instead (useCalendarFeedToken).
-export function buildFeedUrl(origin, selectedOrte, selectedCategories, token) {
+// `region` = { regionId, bezirke }: the region's feed (`region=<slug>`, Orte checked against its
+// own Bezirke). Absent, the default region (Vorarlberg) or the combined view: no `region`
+// parameter and the Vorarlberg Bezirke, i.e. exactly the URL from before regions existed.
+// Combined view (`region.combinedView`, e.g. { slug: 'deutschland' }): `region=<view slug>`
+// and the union of the Bezirke of the included regions.
+export function buildFeedUrl(origin, selectedOrte, selectedCategories, token, region = null) {
   const params = new URLSearchParams();
-  const knownOrte = [...BEZIRKE, ONLINE_LOCATION];
+  const regionId = region?.regionId;
+  const viewSlug = region?.isNational ? region?.combinedView?.slug : null;
+  const useRegion = Boolean(viewSlug) || (Boolean(regionId) && regionId !== DEFAULT_REGION_ID);
+  const knownOrte = [...(useRegion ? (region.bezirke ?? []) : BEZIRKE), ONLINE_LOCATION];
+  if (useRegion) params.append('region', viewSlug || regionId);
   selectedOrte.filter((o) => knownOrte.includes(o)).forEach((o) => params.append('bezirk', o));
   selectedCategories.forEach((c) => params.append('kategorie', c));
   if (token) params.append('token', token);
@@ -159,6 +177,9 @@ export default function CalendarPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, canCreateEvents } = useAuth();
+  const canonicalPath = useRegionCanonicalPath('/');
+  const regionTexts = useRegionTexts();
+  const { regionId, isNational, combinedView } = useRegion();
   // Load saved state exactly once per mount. Reading it inside the render body
   // would create a new object reference on every render and trip downstream
   // effects into re-doing work that depends on the initial values.
@@ -188,7 +209,20 @@ export default function CalendarPage() {
     (savedState?.selectedOrte?.length ?? 0) > 0 || savedState?.onlyFavorites === true
   );
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
-  const { events, loading, error } = useAllEvents();
+  // Region-scoped Firestore queries once the regionId migration is marked
+  // complete (utils/regionQueries.js); the client filter below stays as a
+  // second safety layer.
+  const { events: allEvents, loading, error } = useAllEvents({ regionScoped: true });
+  // One central filter: everything below (lists, counts, chips) derives from this.
+  const events = useRegionEvents(allEvents);
+  const regionBezirke = useRegionBezirke();
+  // A remembered Ort filter from another region would hide everything here.
+  useEffect(() => {
+    setSelectedOrte((prev) => {
+      const next = prev.filter((o) => o === ONLINE_LOCATION || regionBezirke.includes(o));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [regionBezirke]);
   // Only offer categories that currently have events (see calendarCategories.js).
   const categories = useMemo(
     () => getCalendarCategories(registryCategories, events, selectedCategories),
@@ -264,7 +298,7 @@ export default function CalendarPage() {
   };
 
   const selectAllOrte = () => {
-    setSelectedOrte([...BEZIRKE, ONLINE_LOCATION]);
+    setSelectedOrte([...regionBezirke, ONLINE_LOCATION]);
   };
 
   const selectNoneOrte = () => {
@@ -376,7 +410,8 @@ export default function CalendarPage() {
     typeof window !== 'undefined' ? window.location.origin : 'https://www.thetribe.at',
     selectedOrte,
     selectedCategories,
-    calendarToken.token
+    calendarToken.token,
+    { regionId, bezirke: regionBezirke, isNational, combinedView }
   );
 
   const webcalUrl = feedUrl.replace(/^https?:/, 'webcal:');
@@ -404,9 +439,10 @@ export default function CalendarPage() {
   return (
     <div className="calendar-page">
       <SeoMeta
-        title="Kalender"
-        description="Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg - Bregenz, Dornbirn, Feldkirch, Bludenz, Umgebung"
-        path="/"
+        title={regionTexts.calendarTitle}
+        exactTitle={regionTexts.calendarTitleExact}
+        description={regionTexts.calendarDescription}
+        path={canonicalPath}
       />
 
       <section className="hero">
@@ -421,7 +457,7 @@ export default function CalendarPage() {
             <br />
             Tanz, Singen, Soundhealing und viele
             <br />
-            weitere Veranstaltungen in Vorarlberg.
+            weitere Veranstaltungen {regionTexts.locationPhrase}.
           </p>
           <div
             className="hero-features-slider"
@@ -443,12 +479,14 @@ export default function CalendarPage() {
                   data-testid="hero-feature-slide"
                   data-slide-index={pairIndex}
                 >
-                  {pair.map(({ icon: Icon, title, description }) => (
+                  {pair.map(({ icon: Icon, title, description, nearby }) => (
                     <div key={title} className="hero-feature-item">
                       <Icon size={20} aria-hidden="true" />
                       <div>
                         <span className="hero-feature-title">{title}</span>
-                        <span className="hero-feature-description">{description}</span>
+                        <span className="hero-feature-description">
+                          {nearby ? regionTexts.nearbyText : description}
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -584,7 +622,7 @@ export default function CalendarPage() {
                   </div>
                 </div>
                 <div className="filter-options">
-                  {BEZIRKE.map((bezirk) => (
+                  {regionBezirke.map((bezirk) => (
                     <button
                       key={bezirk}
                       type="button"

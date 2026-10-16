@@ -450,3 +450,30 @@ describe('collaborator invite and user tag', () => {
     expect(containerBodies(h)).toHaveLength(2);
   });
 });
+
+describe('Instagram region gate (Vorarlberg only)', () => {
+  it.each([
+    ['vorarlberg', { ...futureEvent, regionId: 'vorarlberg' }, 'published'],
+    ['no regionId (legacy)', futureEvent, 'published'],
+    ['tirol', { ...futureEvent, regionId: 'tirol' }, 'region'],
+    [
+      'online event moderated in tirol',
+      { ...futureEvent, isOnline: true, regionId: 'tirol' },
+      'region',
+    ],
+    [
+      'online event moderated in vorarlberg',
+      { ...futureEvent, isOnline: true, regionId: 'vorarlberg' },
+      'published',
+    ],
+  ])('%s -> %s', async (_label, ev, expected) => {
+    const h = makeHarness();
+    const outcome = await publishApprovedEvent(h.deps, 'e1', { status: 'pending' }, ev);
+    expect(outcome).toBe(expected);
+    if (expected === 'region') {
+      expect(h.posts.size).toBe(0);
+      expect(h.fetchMock).not.toHaveBeenCalled();
+      expect(h.generateImage).not.toHaveBeenCalled();
+    }
+  });
+});

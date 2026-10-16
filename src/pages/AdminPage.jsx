@@ -15,6 +15,9 @@ import {
   Contact,
   Instagram,
   BarChart3,
+  ShieldCheck,
+  Info,
+  MapPin,
 } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
 import EventList from '../components/EventList';
@@ -30,6 +33,10 @@ import DonorsTab from '../components/DonorsTab';
 import MembersTab from '../components/MembersTab';
 import InstagramTab from '../components/InstagramTab';
 import AnalyticsTab from '../components/AnalyticsTab';
+import ModerationTab from '../components/ModerationTab';
+import RegionsTab from '../components/RegionsTab';
+import RegionAboutTab from '../components/RegionAboutTab';
+import NoAccess from '../components/NoAccess';
 import EmailVerificationBanner from '../components/EmailVerificationBanner';
 import EmailVerificationModal from '../components/EmailVerificationModal';
 import EventStatusMismatchBanner from '../components/EventStatusMismatchBanner';
@@ -38,35 +45,31 @@ import { useEvents, usePendingEvents } from '../hooks/useEvents';
 import { useHasMessages, useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
 import { useUnreadFeedbackCount, useHasFeedback } from '../hooks/useFeedbackList';
 import { useTrashedEventsCount } from '../hooks/useTrashedEventsCount';
+import { ADMIN_TABS, allowedAdminTabs, getStaffAccess } from '../utils/staffRoles';
 import './AdminPage.css';
 
-const VALID_TABS = new Set([
-  'events',
-  'drafts',
-  'review',
-  'messages',
-  'feedback',
-  'trash',
-  'categories',
-  'theme',
-  'helpers',
-  'donors',
-  'members',
-  'instagram',
-  'analytics',
-]);
+const VALID_TABS = new Set(ADMIN_TABS);
 
 export default function AdminPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, role, canCreateEvents } = useAuth();
-  const isAdmin = role === 'Admin';
+  const { user, role, staffRegionIds, loading: authLoading, canCreateEvents } = useAuth();
+  // Super-Admin: every tab. Regions-Moderator:in: Review, Nachrichten,
+  // Papierkorb and Mitglieder of her regions (plus her own events). Everyone
+  // else: their own events. A tab outside the list is blocked for the URL
+  // too, with a "Kein Zugriff" state instead of the content.
+  const access = getStaffAccess(role, staffRegionIds);
+  const isAdmin = access.isSuperAdmin;
+  const allowedTabs = useMemo(
+    () => allowedAdminTabs({ isSuperAdmin: isAdmin, isRegionModerator: access.isRegionModerator }),
+    [isAdmin, access.isRegionModerator]
+  );
   const { count: unreadCount } = useUnreadMessageCount();
   const { hasMessages } = useHasMessages();
   const { count: unreadFeedbackCount } = useUnreadFeedbackCount(isAdmin);
   const { hasFeedback } = useHasFeedback(isAdmin);
-  const { count: trashedCount } = useTrashedEventsCount(isAdmin);
+  const { count: trashedCount } = useTrashedEventsCount();
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
   const { events } = useEvents(user);
   const { pendingEvents } = usePendingEvents();
@@ -76,13 +79,17 @@ export default function AdminPage() {
     const hash = location.hash.replace(/^#/, '').trim();
     return hash || null;
   }, [location.hash]);
-  const reviewCount = useMemo(() => (isAdmin ? pendingEvents.length : 0), [isAdmin, pendingEvents]);
+  const canReview = allowedTabs.has('review');
+  const reviewCount = useMemo(
+    () => (canReview ? pendingEvents.length : 0),
+    [canReview, pendingEvents]
+  );
 
   const visibleTabs = useMemo(() => {
     return {
       events: true,
       drafts: draftCount > 0,
-      review: isAdmin,
+      review: canReview,
       messages: hasMessages,
       feedback: isAdmin && hasFeedback,
       trash: trashedCount > 0,
@@ -90,17 +97,23 @@ export default function AdminPage() {
       theme: isAdmin,
       helpers: isAdmin,
       donors: isAdmin,
-      members: isAdmin,
+      members: allowedTabs.has('members'),
       instagram: isAdmin,
       analytics: isAdmin,
+      moderation: isAdmin,
+      regions: isAdmin,
+      about: allowedTabs.has('about'),
     };
-  }, [draftCount, hasMessages, isAdmin, hasFeedback, trashedCount]);
+  }, [draftCount, hasMessages, isAdmin, canReview, allowedTabs, hasFeedback, trashedCount]);
 
   const rawTab = searchParams.get('tab');
+  // A known tab this role may not open: wait for the role, then say so.
+  const forbiddenTab = Boolean(rawTab && VALID_TABS.has(rawTab) && !allowedTabs.has(rawTab));
   const activeTab = useMemo(() => {
+    if (forbiddenTab) return authLoading ? 'loading' : 'no-access';
     if (rawTab && VALID_TABS.has(rawTab) && visibleTabs[rawTab]) return rawTab;
     return 'events';
-  }, [rawTab, visibleTabs]);
+  }, [rawTab, visibleTabs, forbiddenTab, authLoading]);
 
   const setTab = (tab) => {
     const next = new URLSearchParams(searchParams);
@@ -373,7 +386,57 @@ export default function AdminPage() {
             <span>Statistik</span>
           </button>
         )}
+        {visibleTabs.moderation && (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'moderation'}
+            aria-controls="admin-tab-moderation"
+            id="admin-tab-moderation-btn"
+            className={`admin-page-tab${activeTab === 'moderation' ? ' admin-page-tab--active' : ''}`}
+            onClick={() => setTab('moderation')}
+            data-testid="admin-tab-moderation"
+          >
+            <ShieldCheck size={16} aria-hidden="true" />
+            <span>Moderation</span>
+          </button>
+        )}
+        {visibleTabs.regions && (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'regions'}
+            aria-controls="admin-tab-regions"
+            id="admin-tab-regions-btn"
+            className={`admin-page-tab${activeTab === 'regions' ? ' admin-page-tab--active' : ''}`}
+            onClick={() => setTab('regions')}
+            data-testid="admin-tab-regions"
+          >
+            <MapPin size={16} aria-hidden="true" />
+            <span>Regionen</span>
+          </button>
+        )}
+        {visibleTabs.about && (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'about'}
+            aria-controls="admin-tab-about"
+            id="admin-tab-about-btn"
+            className={`admin-page-tab${activeTab === 'about' ? ' admin-page-tab--active' : ''}`}
+            onClick={() => setTab('about')}
+            data-testid="admin-tab-about"
+          >
+            <Info size={16} aria-hidden="true" />
+            <span>Über uns</span>
+          </button>
+        )}
       </div>
+
+      {activeTab === 'loading' && <div className="loading-spinner"></div>}
+      {activeTab === 'no-access' && (
+        <NoAccess message="Diesen Bereich der Verwaltung kannst du mit deinem Konto nicht öffnen. Wenn du glaubst, dass das ein Fehler ist, melde dich bitte beim Team." />
+      )}
 
       <div
         role="tabpanel"
@@ -503,6 +566,39 @@ export default function AdminPage() {
           hidden={activeTab !== 'analytics'}
         >
           {activeTab === 'analytics' && <AnalyticsTab />}
+        </div>
+      )}
+
+      {visibleTabs.moderation && (
+        <div
+          role="tabpanel"
+          id="admin-tab-moderation"
+          aria-labelledby="admin-tab-moderation-btn"
+          hidden={activeTab !== 'moderation'}
+        >
+          {activeTab === 'moderation' && <ModerationTab />}
+        </div>
+      )}
+
+      {visibleTabs.regions && (
+        <div
+          role="tabpanel"
+          id="admin-tab-regions"
+          aria-labelledby="admin-tab-regions-btn"
+          hidden={activeTab !== 'regions'}
+        >
+          {activeTab === 'regions' && <RegionsTab />}
+        </div>
+      )}
+
+      {visibleTabs.about && (
+        <div
+          role="tabpanel"
+          id="admin-tab-about"
+          aria-labelledby="admin-tab-about-btn"
+          hidden={activeTab !== 'about'}
+        >
+          {activeTab === 'about' && <RegionAboutTab />}
         </div>
       )}
 

@@ -4,6 +4,7 @@ import { Heart } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
 import EventCard from '../components/EventCard';
 import { useAllEvents } from '../hooks/useEvents';
+import { useRegionEvents } from '../hooks/useRegion';
 import { useFavorites } from '../hooks/useFavorites';
 import { useCategoryRegistry } from '../hooks/useCategoryRegistry';
 import { resolveEventColor } from '../utils/categoryColors';
@@ -14,7 +15,9 @@ import './FavoritesPage.css';
 
 export default function FavoritesPage() {
   const { ready, isSignedIn, favoriteIds } = useFavorites();
-  const { events, loading } = useAllEvents();
+  const { events: allEvents, loading } = useAllEvents({ regionScoped: true, allActive: true });
+  // Favourites of every active region; events of inactive regions stay hidden.
+  const events = useRegionEvents(allEvents, { allActive: true });
   const { colorByName } = useCategoryRegistry();
   const favoriteEvents = useMemo(
     () => buildFavoriteEvents(events, favoriteIds),

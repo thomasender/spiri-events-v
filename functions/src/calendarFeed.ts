@@ -4,7 +4,7 @@ import { initializeApp, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 import { viennaToday } from './instagram/instagramPublish';
-import { buildCalendar, type IcsEvent } from './calendar/icsBuilder';
+import { buildCalendar, type CalendarOptions, type IcsEvent } from './calendar/icsBuilder';
 import {
   isValidCalendarToken,
   parseCalendarRequest,
@@ -12,6 +12,14 @@ import {
   selectSingleEvent,
   type PublicEvent,
 } from './calendar/calendarRoutes';
+import {
+  DEFAULT_REGION_ID,
+  combinedViewBezirke,
+  combinedViewRegionIds,
+  getCombinedView,
+  mergeFeedRegions,
+  type FeedRegion,
+} from './regions';
 import { CALENDAR_TOKENS_COLLECTION } from './calendarFeedToken';
 
 if (getApps().length === 0) {
@@ -28,6 +36,7 @@ const CACHE_DENIED = 'no-store';
 const MEMORY_TTL_MS = 5 * 60 * 1000;
 
 let eventsCache: { at: number; events: PublicEvent[] } | null = null;
+let regionsCache: { at: number; regions: FeedRegion[] } | null = null;
 let categoriesCache: { at: number; names: Set<string> } | null = null;
 // token -> time it was confirmed. Positive results only; bounded so a flood
 // of different valid tokens cannot grow the instance's memory.
@@ -73,6 +82,14 @@ async function loadApprovedEvents(): Promise<PublicEvent[]> {
   return events;
 }
 
+async function loadFeedRegions(): Promise<FeedRegion[]> {
+  if (regionsCache && Date.now() - regionsCache.at < MEMORY_TTL_MS) return regionsCache.regions;
+  const snap = await getFirestore().collection('regions').get();
+  const regions = mergeFeedRegions(snap.docs.map((doc) => ({ ...doc.data(), id: doc.id })));
+  regionsCache = { at: Date.now(), regions };
+  return regions;
+}
+
 async function loadCategoryNames(): Promise<Set<string>> {
   if (categoriesCache && Date.now() - categoriesCache.at < MEMORY_TTL_MS) {
     return categoriesCache.names;
@@ -116,10 +133,16 @@ export const calendarFeed = onRequest(
         return;
       }
 
+      const isFeed = req.path.endsWith('feed.ics');
+      const regions = isFeed ? await loadFeedRegions() : [];
       const route = parseCalendarRequest(
         req.path,
         req.query as Record<string, unknown>,
-        req.path.endsWith('feed.ics') ? await loadCategoryNames() : new Set<string>()
+        isFeed ? await loadCategoryNames() : new Set<string>(),
+        {
+          ...Object.fromEntries(regions.map((r) => [r.id, r.bezirke])),
+          ...combinedViewBezirke(regions),
+        }
       );
       if (route.kind === 'error') {
         res
@@ -133,9 +156,27 @@ export const calendarFeed = onRequest(
       let events: IcsEvent[];
       let filename: string;
       let disposition: string;
+      let feedName = FEED_NAME;
+      let calendarOptions: CalendarOptions = {};
 
       if (route.kind === 'feed') {
-        events = selectFeedEvents(await loadApprovedEvents(), today, route) as never;
+        const view = getCombinedView(route.region);
+        const region = regions.find((r) => r.id === route.region);
+        if (view) {
+          feedName = `Events ${view.label} – thetribe.at`;
+          calendarOptions = { productName: view.label };
+        } else if (region && region.id !== DEFAULT_REGION_ID) {
+          feedName = `Events ${region.name} – thetribe.at`;
+          calendarOptions = { productName: region.name, timezone: region.timezone };
+        }
+        // An inactive region has no public events: selectFeedEvents returns [].
+        // A combined view lists the active regions of its scope (possibly none).
+        events = selectFeedEvents(await loadApprovedEvents(), today, {
+          ...route,
+          regionId: route.region,
+          activeRegionIds: regions.filter((r) => r.active).map((r) => r.id),
+          ...(view ? { combinedRegionIds: combinedViewRegionIds(view, regions) } : {}),
+        }) as never;
         filename = 'events.ics';
         disposition = 'inline';
       } else {
@@ -156,7 +197,11 @@ export const calendarFeed = onRequest(
         .set('Content-Disposition', `${disposition}; filename="${filename}"`)
         .set('Cache-Control', CACHE_OK)
         .status(200)
-        .send(req.method === 'HEAD' ? undefined : buildCalendar(events, FEED_NAME));
+        .send(
+          req.method === 'HEAD'
+            ? undefined
+            : buildCalendar(events, feedName, new Date(), calendarOptions)
+        );
     } catch (err) {
       logger.error('calendarFeed failed', err);
       res.set('Cache-Control', 'no-store').status(500).send('Internal error');

@@ -143,5 +143,16 @@ describe('buildCalendar', () => {
     expect(text).toContain('DTSTAMP:20261012T100000Z');
     expect(text).not.toMatch(/uid-123|owner@example\.com/i);
     expect(text.split('\n').every((l) => l === '' || l.endsWith('\r'))).toBe(true);
+    expect(text).toContain('PRODID:-//thetribe.at//Events Vorarlberg//DE\r\n');
+  });
+
+  it('names the calendar after the region and uses its time zone', () => {
+    const text = buildCalendar([ev()], 'Events Bayern – thetribe.at', NOW, {
+      productName: 'Bayern',
+      timezone: 'Europe/Berlin',
+    });
+    expect(text).toContain('PRODID:-//thetribe.at//Events Bayern//DE');
+    expect(text).toContain('X-WR-CALNAME:Events Bayern – thetribe.at');
+    expect(text).toContain('X-WR-TIMEZONE:Europe/Berlin');
   });
 });

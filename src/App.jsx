@@ -13,7 +13,6 @@ import LegalPage from './pages/LegalPage';
 import EventDetailPage from './pages/EventDetailPage';
 import ProfilePage from './pages/ProfilePage';
 import ThemeEditorPage from './pages/ThemeEditorPage';
-import PublicProfilePage from './pages/PublicProfilePage';
 import AboutPage from './pages/AboutPage';
 import DirectoryPage from './pages/DirectoryPage';
 import FavoritesPage from './pages/FavoritesPage';
@@ -27,10 +26,21 @@ import ThemeApplier from './components/ThemeApplier';
 import ScrollToTop from './components/ScrollToTop';
 import ErrorBoundary from './components/ErrorBoundary';
 import ErrorPage from './pages/ErrorPage';
+import NoAccess from './components/NoAccess';
+import RegionProvider from './components/RegionProvider';
+import RegionChooser from './components/RegionChooser';
+import {
+  RegionAboutRoute,
+  RegionDirectoryRoute,
+  RegionOrProfileRoute,
+} from './components/RegionRoutes';
+import RegionsPage from './pages/RegionsPage';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
 import CookieConsent from './components/CookieConsent';
 import OutboundLinkTracker from './components/OutboundLinkTracker';
-import { setAnalyticsAdminUser, trackPageView } from './lib/analytics';
+import { setAnalyticsAdminUser, setAnalyticsRegion, trackPageView } from './lib/analytics';
+import { analyticsRegionLabel } from './lib/analyticsEvents';
+import { useRegion } from './hooks/useRegion';
 import { CONSENT_CHANGE_EVENT, readConsent } from './lib/analyticsConsent';
 
 // Helmet updates document.title on the next animation frame; wait a moment so
@@ -44,6 +54,13 @@ export function AnalyticsRouteTracker() {
   const { role, loading } = useAuth();
   const [consented, setConsented] = useState(() => readConsent() === 'granted');
   const lastSent = useRef(null);
+  const { regions, regionId, combinedView } = useRegion();
+  const regionLabel = analyticsRegionLabel({ regions, regionId, combinedView });
+
+  // Every event carries the region (only with two or more active regions).
+  useEffect(() => {
+    setAnalyticsRegion(regionLabel);
+  }, [regionLabel]);
 
   // Treat the visitor as an admin until the auth role is known, so an admin's
   // first page view is never sent.
@@ -93,6 +110,24 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
+// Areas only Super-Admins may open (e.g. the Theme editor). Everyone else,
+// Regions-Moderator:innen included, gets a clear "Kein Zugriff" page instead
+// of a half-working editor; the data itself is protected by the rules.
+export function SuperAdminRoute({ children }) {
+  const { role, loading } = useAuth();
+  if (loading) {
+    return <div className="loading-spinner"></div>;
+  }
+  if (role !== 'Admin') {
+    return (
+      <div className="admin-page">
+        <NoAccess />
+      </div>
+    );
+  }
+  return children;
+}
+
 function AdminReviewRedirect() {
   const navigate = useNavigate();
   const hash =
@@ -107,12 +142,21 @@ function AdminReviewRedirect() {
 
 function AppContent() {
   return (
+    <RegionProvider>
+      <AppLayout />
+    </RegionProvider>
+  );
+}
+
+function AppLayout() {
+  return (
     <div className="app-layout">
       <SeedBootstrap />
       <ThemeApplier />
       <ScrollToTop />
       <AnalyticsRouteTracker />
       <Header />
+      <RegionChooser />
       <AppCheckBanner />
       <main className="main-content">
         <ErrorBoundary>
@@ -121,6 +165,7 @@ function AppContent() {
             <Route path="/calendar" element={<Navigate to="/" replace />} />
             <Route path="/event/:slug" element={<EventDetailPage />} />
             <Route path="/verzeichnis" element={<DirectoryPage />} />
+            <Route path="/regionen" element={<RegionsPage />} />
             <Route path="/favoriten" element={<FavoritesPage />} />
             <Route path="/ueber-uns" element={<AboutPage />} />
             <Route path="/spenden" element={<SpendenPage />} />
@@ -149,7 +194,9 @@ function AppContent() {
               path="/admin/theme-editor"
               element={
                 <ProtectedRoute>
-                  <ThemeEditorPage />
+                  <SuperAdminRoute>
+                    <ThemeEditorPage />
+                  </SuperAdminRoute>
                 </ProtectedRoute>
               }
             />
@@ -177,7 +224,12 @@ function AppContent() {
                 </ProtectedRoute>
               }
             />
-            <Route path="/:slug" element={<PublicProfilePage />} />
+            {/* Region addresses share the top level with profiles: `/tirol` is a
+                region, `/<username>` a profile (region slugs are reserved
+                usernames). `/` and `/verzeichnis` stay valid. */}
+            <Route path="/:regionSlug/verzeichnis" element={<RegionDirectoryRoute />} />
+            <Route path="/:regionSlug/ueber-uns" element={<RegionAboutRoute />} />
+            <Route path="/:slug" element={<RegionOrProfileRoute />} />
             <Route path="*" element={<ErrorPage type="not-found" />} />
           </Routes>
         </ErrorBoundary>

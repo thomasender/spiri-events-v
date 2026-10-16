@@ -45,6 +45,15 @@ service firebase.storage {
                    && request.resource.contentType.matches('image/.*');
     }
 
+    // Header photos of the region-specific "Über uns" pages. Same access
+    // pattern as the helper portraits (the editing UI is staff-gated).
+    match /regions/{regionId}/{filename} {
+      allow read: if true;
+      allow write: if isAuthenticated()
+                   && request.resource.size < 15 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+
     // Helper portraits used on the public "Über uns" page. Public read so the
     // page can render them, authenticated write so admins can attach a photo
     // when they add a new helper (the helpers admin UI is itself admin-gated,

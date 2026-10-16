@@ -14,10 +14,12 @@ import { deleteImageByUrl } from '../lib/imageUpload';
 import { useTrashedEvents } from '../hooks/useTrashedEvents';
 import { buildRestoreUpdate } from '../utils/trashUpdates';
 import { useAuth } from '../hooks/useAuth';
+import { getStaffAccess } from '../utils/staffRoles';
 import ConfirmDialog from './ConfirmDialog';
 import RecurringDeleteDialog from './RecurringDeleteDialog';
 import OccurrencePickerDialog from './OccurrencePickerDialog';
 import EventAdminListRow from './EventAdminListRow';
+import { useRegionLabels } from '../hooks/useRegionLabels';
 import { getNextUpcomingOccurrence } from '../utils/eventOccurrences';
 import {
   buildCustomDeleteOccurrenceUpdate,
@@ -53,9 +55,14 @@ async function permanentDeleteEventById(id) {
 }
 
 export default function TrashTab() {
-  const { user, role } = useAuth();
-  const isAdmin = role === 'Admin';
-  const { events: trashedEvents, loading } = useTrashedEvents(isAdmin);
+  const { labelFor: regionLabelFor } = useRegionLabels();
+  const { user, role, staffRegionIds } = useAuth();
+  const access = getStaffAccess(role, staffRegionIds);
+  const isAdmin = access.isSuperAdmin;
+  const { events: trashedEvents, loading } = useTrashedEvents();
+  // Permanent delete stays with the owner and Super-Admins; a
+  // Regions-Moderator:in may only restore events of her regions.
+  const canDeleteForever = (evt) => isAdmin || evt.createdBy === user?.uid;
 
   const [restoreId, setRestoreId] = useState(null);
   const [restoring, setRestoring] = useState(false);
@@ -208,7 +215,9 @@ export default function TrashTab() {
           <p>
             {isAdmin
               ? 'Alle gelöschten Events. Sie werden nach 30 Tagen endgültig entfernt.'
-              : 'Deine gelöschten Events. Sie werden nach 30 Tagen endgültig entfernt.'}
+              : access.isRegionModerator
+                ? 'Gelöschte Events deiner Region und deine eigenen. Sie werden nach 30 Tagen endgültig entfernt.'
+                : 'Deine gelöschten Events. Sie werden nach 30 Tagen endgültig entfernt.'}
           </p>
         </div>
       </div>
@@ -235,11 +244,13 @@ export default function TrashTab() {
               <div key={event.id} data-testid={`trash-event-card-${event.id}`}>
                 <EventAdminListRow
                   event={event}
+                  regionLabel={regionLabelFor(event)}
                   showStatus
                   showTrashedAt
                   fromPath="/admin?tab=trash"
                   onRestore={(evt) => setRestoreId(evt.id)}
                   onPermanentDelete={onPermanentDeleteClick}
+                  showDelete={canDeleteForever(event)}
                 />
               </div>
             );
@@ -250,7 +261,12 @@ export default function TrashTab() {
       <ConfirmDialog
         isOpen={Boolean(restoreId)}
         title="Event wiederherstellen"
-        message="Das Event wird wieder als Entwurf in deiner Verwaltung angezeigt. Du kannst es danach bearbeiten und erneut einreichen."
+        message={
+          access.isRegionModerator &&
+          (trashedEvents.find((e) => e.id === restoreId)?.createdBy ?? user?.uid) !== user?.uid
+            ? 'Das Event wird wieder ein Entwurf der Person, die es erstellt hat. Sie kann es danach bearbeiten und erneut einreichen.'
+            : 'Das Event wird wieder als Entwurf in deiner Verwaltung angezeigt. Du kannst es danach bearbeiten und erneut einreichen.'
+        }
         confirmLabel="Wiederherstellen"
         cancelLabel="Abbrechen"
         onConfirm={handleRestore}

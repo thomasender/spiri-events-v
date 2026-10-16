@@ -35,14 +35,30 @@ vi.mock('../../src/hooks/useEventsWithMessages', () => ({
   useEventsWithMessages: () => mockUseEventsWithMessages,
 }));
 
+const mockRegions = vi.hoisted(() => ({
+  current: [
+    { id: 'vorarlberg', slug: 'vorarlberg', name: 'Vorarlberg', active: true },
+    { id: 'tirol', slug: 'tirol', name: 'Tirol', active: false },
+    { id: 'steiermark', slug: 'steiermark', name: 'Steiermark', active: false },
+  ] as Array<Record<string, unknown>>,
+}));
+
+vi.mock('../../src/hooks/useRegions', () => ({
+  useRegions: () => ({ regions: mockRegions.current, loading: false }),
+}));
+
 vi.mock('../../src/hooks/useUserDisplayNames', () => ({
   useUserDisplayNames: () => mockUserDisplayNames,
 }));
 
 const mockUpdateDoc = vi.hoisted(() => vi.fn());
 
+const mockAuth = vi.hoisted(() => ({
+  current: { user: { uid: 'admin-uid' }, role: 'Admin' } as Record<string, unknown>,
+}));
+
 vi.mock('../../src/hooks/useAuth', () => ({
-  useAuth: () => ({ user: { uid: 'admin-uid' }, role: 'Admin' }),
+  useAuth: () => mockAuth.current,
 }));
 
 vi.mock('firebase/app', () => ({ getApp: vi.fn() }));
@@ -63,6 +79,9 @@ function renderReviewTab() {
 }
 
 beforeEach(() => {
+  sessionStorage.clear();
+  mockRegions.current = mockRegions.current.map((r) => ({ ...r, active: r.id === 'vorarlberg' }));
+  mockAuth.current = { user: { uid: 'admin-uid' }, role: 'Admin' };
   mockApproveEvent.mockReset();
   mockUpdateDoc.mockReset();
   mockUpdateDoc.mockResolvedValue(undefined);
@@ -339,5 +358,143 @@ describe("ReviewTab — deleting another user's event", () => {
     fireEvent.click(screen.getByRole('button', { name: 'Event löschen' }));
     expect(screen.queryByLabelText(/Grund für das Löschen/)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'In Papierkorb' })).toBeEnabled();
+  });
+});
+
+describe('ReviewTab for a Regions-Moderator:in', () => {
+  beforeEach(() => {
+    mockAuth.current = {
+      user: { uid: 'mod-uid' },
+      role: 'RegionModerator',
+      staffRegionIds: ['tirol'],
+    };
+  });
+
+  it('names her region, offers approve but no edit link on other people’s events', () => {
+    mockUsePendingEvents.pendingEvents = [
+      { id: 'p1', title: 'Yoga Innsbruck', status: 'pending', regionId: 'tirol', createdBy: 'o' },
+    ];
+    renderReviewTab();
+    expect(screen.getByText(/Events aus Tirol, die auf deine Freigabe warten/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Genehmigen' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Bearbeiten' })).not.toBeInTheDocument();
+  });
+
+  it('shows only recently approved events of her regions', () => {
+    const approvedAt = new Date().toISOString();
+    mockUseAllEvents.events = [
+      { id: 'a1', title: 'Tirol Event', status: 'approved', regionId: 'tirol', approvedAt },
+      { id: 'a2', title: 'Vorarlberg Event', status: 'approved', approvedAt },
+    ];
+    renderReviewTab();
+    expect(screen.getByText('Tirol Event')).toBeInTheDocument();
+    expect(screen.queryByText('Vorarlberg Event')).not.toBeInTheDocument();
+  });
+});
+
+describe('ReviewTab - regions', () => {
+  const pendingEvent = (id: string, regionId?: string, bezirk = 'Bregenz') => ({
+    id,
+    title: `Event ${id}`,
+    date: '2026-12-01',
+    status: 'pending',
+    bezirk,
+    ...(regionId ? { regionId } : {}),
+  });
+
+  const activate = (...ids: string[]) => {
+    mockRegions.current = mockRegions.current.map((r) => ({
+      ...r,
+      active: ids.includes(r.id as string),
+    }));
+  };
+
+  beforeEach(() => {
+    mockUsePendingEvents.pendingEvents = [
+      pendingEvent('a'),
+      pendingEvent('b', 'tirol', 'Innsbruck'),
+      pendingEvent('c', 'tirol', 'Imst'),
+    ];
+  });
+
+  it('shows no region badge, location suffix or filter with one active region', () => {
+    mockUsePendingEvents.pendingEvents = [pendingEvent('a'), pendingEvent('x')];
+    renderReviewTab();
+    expect(screen.queryByTestId('event-card-region-badge-a')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('review-region-filter')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Bregenz ·/)).not.toBeInTheDocument();
+  });
+
+  it('shows the region badge and "Bezirk · Region" with two active regions', () => {
+    activate('vorarlberg', 'tirol');
+    renderReviewTab();
+    expect(screen.getByTestId('event-card-region-badge-a')).toHaveTextContent('Vorarlberg');
+    expect(screen.getByTestId('event-card-region-badge-b')).toHaveTextContent('Tirol');
+    expect(screen.getByText('Innsbruck · Tirol')).toBeInTheDocument();
+  });
+
+  it('Super-Admin gets a filter with pending counts per region that narrows lists and counts', () => {
+    activate('vorarlberg', 'tirol');
+    renderReviewTab();
+    const select = screen.getByTestId('review-region-filter') as HTMLSelectElement;
+    const labels = Array.from(select.options).map((o) => o.textContent);
+    expect(labels).toEqual(['Alle (3)', 'Vorarlberg (1)', 'Tirol (2)']);
+    expect(screen.getByTestId('review-section-pending-count')).toHaveTextContent('3');
+
+    fireEvent.change(select, { target: { value: 'tirol' } });
+    expect(screen.getByTestId('review-section-pending-count')).toHaveTextContent('2');
+    expect(screen.queryByText('Event a')).not.toBeInTheDocument();
+    expect(screen.getByText('Event b')).toBeInTheDocument();
+    expect(sessionStorage.getItem('review:regionFilter')).toBe('tirol');
+  });
+
+  it('restores the remembered filter choice', () => {
+    activate('vorarlberg', 'tirol');
+    sessionStorage.setItem('review:regionFilter', 'vorarlberg');
+    renderReviewTab();
+    expect(screen.getByTestId('review-section-pending-count')).toHaveTextContent('1');
+  });
+
+  it('offers a Super-Admin an inactive region that has items', () => {
+    activate('vorarlberg');
+    renderReviewTab();
+    const select = screen.getByTestId('review-region-filter') as HTMLSelectElement;
+    expect(Array.from(select.options).map((o) => o.textContent)).toEqual([
+      'Alle (3)',
+      'Vorarlberg (1)',
+      'Tirol (2)',
+    ]);
+  });
+
+  it('a moderator of two regions sees only her regions in the filter', () => {
+    activate('vorarlberg', 'tirol', 'steiermark');
+    mockAuth.current = {
+      user: { uid: 'mod' },
+      role: 'RegionModerator',
+      staffRegionIds: ['tirol', 'steiermark'],
+    };
+    mockUsePendingEvents.pendingEvents = [
+      pendingEvent('b', 'tirol', 'Innsbruck'),
+      pendingEvent('s', 'steiermark', 'Graz'),
+    ];
+    renderReviewTab();
+    const select = screen.getByTestId('review-region-filter') as HTMLSelectElement;
+    expect(Array.from(select.options).map((o) => o.textContent)).toEqual([
+      'Alle (2)',
+      'Tirol (1)',
+      'Steiermark (1)',
+    ]);
+  });
+
+  it('a moderator of one region gets no filter', () => {
+    activate('vorarlberg', 'tirol');
+    mockAuth.current = {
+      user: { uid: 'mod' },
+      role: 'RegionModerator',
+      staffRegionIds: ['tirol'],
+    };
+    mockUsePendingEvents.pendingEvents = [pendingEvent('b', 'tirol', 'Innsbruck')];
+    renderReviewTab();
+    expect(screen.queryByTestId('review-region-filter')).not.toBeInTheDocument();
   });
 });

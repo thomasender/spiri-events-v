@@ -37,6 +37,10 @@ import {
   buildCustomDeleteFromDateUpdate,
 } from '../utils/customSeriesUpdates';
 import { CURRENCIES, DEFAULT_CURRENCY } from '../utils/currency';
+import { pickEventRegionId, resolveRegionId } from '../utils/regions';
+import { useRegionChoices } from '../hooks/useRegionChoices';
+import { keepIfInRegion, selectedRegionId, subdivisionFor } from '../utils/regionChoices';
+import EventRegionDialog, { BEZIRK_NOT_FOUND } from './EventRegionDialog';
 import { normalizeCategoryInput, isValidCategoryInput } from '../utils/categoryInput';
 import InstagramConsentField from './InstagramConsentField';
 import {
@@ -165,6 +169,9 @@ export default function EventForm({ event }) {
         category: event.category || '',
         bezirk: event.isOnline ? '' : event.bezirk || '',
         isOnline: Boolean(event.isOnline),
+        // Carried through so an edit keeps the stored region (the region field
+        // only exists with two or more active regions).
+        regionId: event.regionId || '',
         organizer: {
           name: combineOrganizerName(storedOrganizer),
           email: storedOrganizer.email || '',
@@ -184,6 +191,19 @@ export default function EventForm({ event }) {
   };
 
   const [formData, setFormData] = useState(buildInitialState);
+  // Region field: only with two or more active regions (otherwise nothing
+  // changes). An existing event keeps its stored region unless the user picks
+  // another one; events without regionId count as Vorarlberg.
+  const storedRegionId = event ? resolveRegionId(event) : '';
+  const regionChoices = useRegionChoices({ keepRegionId: storedRegionId });
+  const selectedRegion = regionChoices.enabled
+    ? selectedRegionId(formData.regionId || storedRegionId, regionChoices)
+    : '';
+  const subdivision = subdivisionFor(selectedRegion, regionChoices);
+  const subdivisionLabel = subdivision.label;
+  const bezirkOptions = subdivision.options ?? BEZIRKE;
+  // A region without any Bezirk / Landkreis in its register cannot require one.
+  const bezirkRequired = bezirkOptions.length > 0;
   // Edit: the stored value (absent == no consent). New: the profile default,
   // which may load after the first render, until the user touches the box.
   const [instagramConsent, setInstagramConsent] = useState(
@@ -356,7 +376,10 @@ export default function EventForm({ event }) {
   const recurrenceMaxDate = useMemo(() => {
     if (!formData.date) return '';
     const eventDate = new Date(formData.date + 'T12:00:00');
+    // An unexpected year (e.g. 5 digits) gives an invalid date; toISOString() would throw.
+    if (Number.isNaN(eventDate.getTime())) return '';
     eventDate.setDate(eventDate.getDate() + 180);
+    if (Number.isNaN(eventDate.getTime())) return '';
     return eventDate.toISOString().split('T')[0];
   }, [formData.date]);
 
@@ -365,8 +388,8 @@ export default function EventForm({ event }) {
     if (!formData.title.trim()) newErrors.title = 'Titel ist erforderlich';
     if (isHtmlEmpty(formData.description)) newErrors.description = 'Beschreibung ist erforderlich';
     if (!formData.date) newErrors.date = 'Datum ist erforderlich';
-    if (!formData.isOnline && !formData.bezirk) {
-      newErrors.bezirk = 'Bitte Bezirk auswählen oder als Online-Event markieren';
+    if (bezirkRequired && !formData.isOnline && !formData.bezirk) {
+      newErrors.bezirk = `Bitte ${subdivisionLabel} auswählen oder als Online-Event markieren`;
     }
     if (!formData.category) {
       newErrors.category = 'Kategorie ist erforderlich';
@@ -505,6 +528,16 @@ export default function EventForm({ event }) {
     }
   };
 
+  const [regionDialogOpen, setRegionDialogOpen] = useState(false);
+  // "Finde meinen Bezirk nicht" opens the region dialog instead of setting a value.
+  const handleBezirkChange = (e) => {
+    if (e.target.value === BEZIRK_NOT_FOUND) {
+      setRegionDialogOpen(true);
+      return;
+    }
+    handleChange(e);
+  };
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     if (type === 'checkbox') {
@@ -526,6 +559,8 @@ export default function EventForm({ event }) {
       ...prev,
       [name]: value,
       ...(name === 'bezirk' && value ? { isOnline: false } : {}),
+      // A new region has its own Bezirke / Landkreise: drop a no longer fitting one.
+      ...(name === 'regionId' ? { bezirk: keepIfInRegion(prev.bezirk, value, regionChoices) } : {}),
     }));
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: null }));
@@ -703,6 +738,10 @@ export default function EventForm({ event }) {
     category: formData.category || 'Sonstiges',
     bezirk: formData.isOnline ? '' : formData.bezirk,
     isOnline: Boolean(formData.isOnline),
+    regionId: pickEventRegionId(
+      regionChoices.enabled ? selectedRegion : formData.regionId,
+      isEdit ? event : null
+    ),
     organizer: {
       firstName: splitOrganizerName(formData.organizer.name).firstName,
       lastName: splitOrganizerName(formData.organizer.name).lastName,
@@ -1066,23 +1105,40 @@ export default function EventForm({ event }) {
 
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="bezirk">Ort *</label>
+              <label htmlFor="bezirk">
+                {regionChoices.enabled ? `${subdivisionLabel} *` : 'Ort *'}
+              </label>
               <select
                 id="bezirk"
                 name="bezirk"
                 value={formData.bezirk}
-                onChange={handleChange}
+                onChange={handleBezirkChange}
                 disabled={formData.isOnline}
                 className={errors.bezirk ? 'input-error' : ''}
               >
-                <option value="">Bezirk auswählen...</option>
-                {BEZIRKE.map((b) => (
+                <option value="">{subdivisionLabel} auswählen...</option>
+                {bezirkOptions.map((b) => (
                   <option key={b} value={b}>
                     {bezirkLabel(b)}
                   </option>
                 ))}
+                {regionChoices.enabled && (
+                  <option value={BEZIRK_NOT_FOUND}>Finde meinen {subdivisionLabel} nicht</option>
+                )}
               </select>
               {errors.bezirk && <span className="error-text">{errors.bezirk}</span>}
+              {regionChoices.enabled && (
+                <EventRegionDialog
+                  isOpen={regionDialogOpen}
+                  regionName={
+                    regionChoices.options.find((r) => r.id === selectedRegion)?.name ?? ''
+                  }
+                  value={selectedRegion}
+                  options={regionChoices.options}
+                  onChange={handleChange}
+                  onClose={() => setRegionDialogOpen(false)}
+                />
+              )}
             </div>
 
             <div className="form-group">
@@ -1114,7 +1170,7 @@ export default function EventForm({ event }) {
                 onChange={handleChange}
                 data-testid="is-online-checkbox"
               />
-              <span>Online-Event (kein Bezirk und keine Adresse nötig)</span>
+              <span>Online-Event (kein {subdivisionLabel} und keine Adresse nötig)</span>
             </label>
           </div>
 
@@ -1530,10 +1586,6 @@ export default function EventForm({ event }) {
               onChange={handleImageSelectFromInput}
               style={{ display: 'none' }}
             />
-            <p className="image-hint" data-testid="title-image-hint">
-              Tipp: Verwende als Titelfoto am besten ein schönes Symbolfoto mit wenig Text. Fotos
-              mit viel Text (z.B. ein Flyer) kannst du im Feld „Beschreibung“ weiter unten einfügen.
-            </p>
             {errors.image && <span className="error-text">{errors.image}</span>}
             {imageUploading && (
               <div className="upload-progress">

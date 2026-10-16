@@ -1,0 +1,263 @@
+Land_Code,Land_Name,Region,Bezirk
+AT,Österreich,Burgenland,Eisenstadt
+AT,Österreich,Burgenland,Rust
+AT,Österreich,Burgenland,Eisenstadt-Umgebung
+AT,Österreich,Burgenland,Güssing
+AT,Österreich,Burgenland,Jennersdorf
+AT,Österreich,Burgenland,Mattersburg
+AT,Österreich,Burgenland,Neusiedl am See
+AT,Österreich,Burgenland,Oberpullendorf
+AT,Österreich,Burgenland,Oberwart
+AT,Österreich,Kärnten,Klagenfurt am Wörthersee
+AT,Österreich,Kärnten,Villach
+AT,Österreich,Kärnten,Hermagor
+AT,Österreich,Kärnten,Klagenfurt-Land
+AT,Österreich,Kärnten,Sankt Veit an der Glan
+AT,Österreich,Kärnten,Spittal an der Drau
+AT,Österreich,Kärnten,Villach-Land
+AT,Österreich,Kärnten,Völkermarkt
+AT,Österreich,Kärnten,Wolfsberg
+AT,Österreich,Kärnten,Feldkirchen
+AT,Österreich,Niederösterreich,Krems an der Donau
+AT,Österreich,Niederösterreich,St. Pölten
+AT,Österreich,Niederösterreich,Waidhofen an der Ybbs
+AT,Österreich,Niederösterreich,Wiener Neustadt
+AT,Österreich,Niederösterreich,Amstetten
+AT,Österreich,Niederösterreich,Baden
+AT,Österreich,Niederösterreich,Bruck an der Leitha
+AT,Österreich,Niederösterreich,Gänserndorf
+AT,Österreich,Niederösterreich,Gmünd
+AT,Österreich,Niederösterreich,Hollabrunn
+AT,Österreich,Niederösterreich,Horn
+AT,Österreich,Niederösterreich,Korneuburg
+AT,Österreich,Niederösterreich,Krems-Land
+AT,Österreich,Niederösterreich,Lilienfeld
+AT,Österreich,Niederösterreich,Melk
+AT,Österreich,Niederösterreich,Mistelbach
+AT,Österreich,Niederösterreich,Mödling
+AT,Österreich,Niederösterreich,Neunkirchen
+AT,Österreich,Niederösterreich,St. Pölten-Land
+AT,Österreich,Niederösterreich,Scheibbs
+AT,Österreich,Niederösterreich,Tulln
+AT,Österreich,Niederösterreich,Waidhofen an der Thaya
+AT,Österreich,Niederösterreich,Wiener Neustadt-Land
+AT,Österreich,Niederösterreich,Zwettl
+AT,Österreich,Oberösterreich,Linz
+AT,Österreich,Oberösterreich,Steyr
+AT,Österreich,Oberösterreich,Wels
+AT,Österreich,Oberösterreich,Braunau am Inn
+AT,Österreich,Oberösterreich,Eferding
+AT,Österreich,Oberösterreich,Freistadt
+AT,Österreich,Oberösterreich,Gmunden
+AT,Österreich,Oberösterreich,Grieskirchen
+AT,Österreich,Oberösterreich,Kirchdorf an der Krems
+AT,Österreich,Oberösterreich,Linz-Land
+AT,Österreich,Oberösterreich,Perg
+AT,Österreich,Oberösterreich,Ried im Innkreis
+AT,Österreich,Oberösterreich,Rohrbach
+AT,Österreich,Oberösterreich,Schärding
+AT,Österreich,Oberösterreich,Steyr-Land
+AT,Österreich,Oberösterreich,Urfahr-Umgebung
+AT,Österreich,Oberösterreich,Vöcklabruck
+AT,Österreich,Oberösterreich,Wels-Land
+AT,Österreich,Salzburg,Salzburg
+AT,Österreich,Salzburg,Hallein
+AT,Österreich,Salzburg,Salzburg-Umgebung
+AT,Österreich,Salzburg,St. Johann im Pongau
+AT,Österreich,Salzburg,Tamsweg
+AT,Österreich,Salzburg,Zell am See
+AT,Österreich,Steiermark,Graz
+AT,Österreich,Steiermark,Bruck-Mürzzuschlag
+AT,Österreich,Steiermark,Deutschlandsberg
+AT,Österreich,Steiermark,Graz-Umgebung
+AT,Österreich,Steiermark,Hartberg-Fürstenfeld
+AT,Österreich,Steiermark,Leibnitz
+AT,Österreich,Steiermark,Leoben
+AT,Österreich,Steiermark,Liezen
+AT,Österreich,Steiermark,Murau
+AT,Österreich,Steiermark,Murtal
+AT,Österreich,Steiermark,Südoststeiermark
+AT,Österreich,Steiermark,Voitsberg
+AT,Österreich,Steiermark,Weiz
+AT,Österreich,Tirol,Innsbruck
+AT,Österreich,Tirol,Imst
+AT,Österreich,Tirol,Innsbruck-Land
+AT,Österreich,Tirol,Kitzbühel
+AT,Österreich,Tirol,Kufstein
+AT,Österreich,Tirol,Landeck
+AT,Österreich,Tirol,Reutte
+AT,Österreich,Tirol,Schwaz
+AT,Österreich,Tirol,Lienz
+AT,Österreich,Vorarlberg,Bludenz
+AT,Österreich,Vorarlberg,Bregenz
+AT,Österreich,Vorarlberg,Dornbirn
+AT,Österreich,Vorarlberg,Feldkirch
+AT,Österreich,Wien,Wien
+CH,Schweiz,Zürich,Affoltern
+CH,Schweiz,Zürich,Andelfingen
+CH,Schweiz,Zürich,Bülach
+CH,Schweiz,Zürich,Dielsdorf
+CH,Schweiz,Zürich,Dietikon
+CH,Schweiz,Zürich,Hinwil
+CH,Schweiz,Zürich,Horgen
+CH,Schweiz,Zürich,Meilen
+CH,Schweiz,Zürich,Pfäffikon
+CH,Schweiz,Zürich,Uster
+CH,Schweiz,Zürich,Winterthur
+CH,Schweiz,Zürich,Zürich
+CH,Schweiz,Bern,Bern-Mittelland
+CH,Schweiz,Bern,Biel/Bienne
+CH,Schweiz,Bern,Emmental
+CH,Schweiz,Bern,Jura bernois
+CH,Schweiz,Bern,Oberaargau
+CH,Schweiz,Bern,Oberland
+CH,Schweiz,Bern,Obersimmental-Saanen
+CH,Schweiz,Bern,Seeland
+CH,Schweiz,Bern,Thun
+CH,Schweiz,Luzern,Entlebuch
+CH,Schweiz,Luzern,Hochdorf
+CH,Schweiz,Luzern,Luzern-Land
+CH,Schweiz,Luzern,Luzern-Stadt
+CH,Schweiz,Luzern,Sursee
+CH,Schweiz,Luzern,Willisau
+CH,Schweiz,Uri,Uri
+CH,Schweiz,Schwyz,Einsiedeln
+CH,Schweiz,Schwyz,Gersau
+CH,Schweiz,Schwyz,March
+CH,Schweiz,Schwyz,Schwyz
+CH,Schweiz,Schwyz,Höfe
+CH,Schweiz,Obwalden,Obwalden
+CH,Schweiz,Nidwalden,Nidwalden
+CH,Schweiz,Glarus,Glarus
+CH,Schweiz,Zug,Zug
+CH,Schweiz,Freiburg,Broye
+CH,Schweiz,Freiburg,Glane
+CH,Schweiz,Freiburg,Greyerz
+CH,Schweiz,Freiburg,Saane
+CH,Schweiz,Freiburg,See
+CH,Schweiz,Freiburg,Sense
+CH,Schweiz,Solothurn,Bucheggberg
+CH,Schweiz,Solothurn,Gäu
+CH,Schweiz,Solothurn,Gösgen
+CH,Schweiz,Solothurn,Lebern
+CH,Schweiz,Solothurn,Olten
+CH,Schweiz,Solothurn,Thal
+CH,Schweiz,Solothurn,Thierstein
+CH,Schweiz,Solothurn,Wasseramt
+CH,Schweiz,Basel-Stadt,Basel
+CH,Schweiz,Basel-Landschaft,Arlesheim
+CH,Schweiz,Basel-Landschaft,Laufen
+CH,Schweiz,Basel-Landschaft,Liestal
+CH,Schweiz,Basel-Landschaft,Sissach
+CH,Schweiz,Basel-Landschaft,Waldenburg
+CH,Schweiz,Schaffhausen,Schaffhausen
+CH,Schweiz,Appenzell Ausserrhoden,Hinterland
+CH,Schweiz,Appenzell Ausserrhoden,Mittelland
+CH,Schweiz,Appenzell Ausserrhoden,Vorderland
+CH,Schweiz,Appenzell Innerrhoden,Appenzell Innerrhoden
+CH,Schweiz,St. Gallen,Rheintal
+CH,Schweiz,St. Gallen,Rorschach
+CH,Schweiz,St. Gallen,Sarganserland
+CH,Schweiz,St. Gallen,See-Gaster
+CH,Schweiz,St. Gallen,St. Gallen
+CH,Schweiz,St. Gallen,Toggenburg
+CH,Schweiz,St. Gallen,Werdenberg
+CH,Schweiz,St. Gallen,Wil
+CH,Schweiz,Graubünden,Albula
+CH,Schweiz,Graubünden,Bernina
+CH,Schweiz,Graubünden,Engiadina Bassa/Val Müstair
+CH,Schweiz,Graubünden,Imboden
+CH,Schweiz,Graubünden,Landquart
+CH,Schweiz,Graubünden,Maloja
+CH,Schweiz,Graubünden,Moesa
+CH,Schweiz,Graubünden,Plessur
+CH,Schweiz,Graubünden,Prättigau/Davos
+CH,Schweiz,Graubünden,Surselva
+CH,Schweiz,Graubünden,Viamala
+CH,Schweiz,Aargau,Aarau
+CH,Schweiz,Aargau,Baden
+CH,Schweiz,Aargau,Bremgarten
+CH,Schweiz,Aargau,Brugg
+CH,Schweiz,Aargau,Kulm
+CH,Schweiz,Aargau,Laufenburg
+CH,Schweiz,Aargau,Lenzburg
+CH,Schweiz,Aargau,Muri
+CH,Schweiz,Aargau,Rheinfelden
+CH,Schweiz,Aargau,Zofingen
+CH,Schweiz,Aargau,Zurzach
+CH,Schweiz,Thurgau,Arbon
+CH,Schweiz,Thurgau,Frauenfeld
+CH,Schweiz,Thurgau,Kreuzlingen
+CH,Schweiz,Thurgau,Münchwilen
+CH,Schweiz,Thurgau,Weinfelden
+CH,Schweiz,Tessin,Bellinzona
+CH,Schweiz,Tessin,Blenio
+CH,Schweiz,Tessin,Leventina
+CH,Schweiz,Tessin,Locarno
+CH,Schweiz,Tessin,Lugano
+CH,Schweiz,Tessin,Mendrisio
+CH,Schweiz,Tessin,Riviera
+CH,Schweiz,Tessin,Vallemaggia
+CH,Schweiz,Waadt,Aigle
+CH,Schweiz,Waadt,Broye-Vully
+CH,Schweiz,Waadt,Gros-de-Vaud
+CH,Schweiz,Waadt,Jura-Nord vaudois
+CH,Schweiz,Waadt,Lausanne
+CH,Schweiz,Waadt,Lavaux-Oron
+CH,Schweiz,Waadt,Morges
+CH,Schweiz,Waadt,Nyon
+CH,Schweiz,Waadt,Ouest lausannois
+CH,Schweiz,Waadt,Riviera-Pays-d'Enhaut
+CH,Schweiz,Wallis,Brig
+CH,Schweiz,Wallis,Conthey
+CH,Schweiz,Wallis,Entremont
+CH,Schweiz,Wallis,Goms
+CH,Schweiz,Wallis,Hérens
+CH,Schweiz,Wallis,Leuk
+CH,Schweiz,Wallis,Martigny
+CH,Schweiz,Wallis,Monthey
+CH,Schweiz,Wallis,Raron
+CH,Schweiz,Wallis,Saint-Maurice
+CH,Schweiz,Wallis,Sierre
+CH,Schweiz,Wallis,Sion
+CH,Schweiz,Wallis,Visp
+CH,Schweiz,Neuenburg,Neuenburg
+CH,Schweiz,Genf,Genf
+CH,Schweiz,Jura,Delémont
+CH,Schweiz,Jura,Porrentruy
+CH,Schweiz,Jura,Franches-Montagnes
+DE,Deutschland,Baden-Württemberg,Stuttgart
+DE,Deutschland,Baden-Württemberg,Karlsruhe
+DE,Deutschland,Baden-Württemberg,Freiburg im Breisgau
+DE,Deutschland,Baden-Württemberg,Mannheim
+DE,Deutschland,Baden-Württemberg,Heidelberg
+DE,Deutschland,Bayern,München
+DE,Deutschland,Bayern,Nürnberg
+DE,Deutschland,Bayern,Augsburg
+DE,Deutschland,Bayern,Regensburg
+DE,Deutschland,Berlin,Berlin
+DE,Deutschland,Brandenburg,Potsdam
+DE,Deutschland,Brandenburg,Cottbus
+DE,Deutschland,Bremen,Bremen
+DE,Deutschland,Hamburg,Hamburg
+DE,Deutschland,Hessen,Frankfurt am Main
+DE,Deutschland,Hessen,Wiesbaden
+DE,Deutschland,Hessen,Kassel
+DE,Deutschland,Mecklenburg-Vorpommern,Rostock
+DE,Deutschland,Mecklenburg-Vorpommern,Schwerin
+DE,Deutschland,Niedersachsen,Hannover
+DE,Deutschland,Niedersachsen,Braunschweig
+DE,Deutschland,Nordrhein-Westfalen,Köln
+DE,Deutschland,Nordrhein-Westfalen,Düsseldorf
+DE,Deutschland,Nordrhein-Westfalen,Dortmund
+DE,Deutschland,Rheinland-Pfalz,Mainz
+DE,Deutschland,Rheinland-Pfalz,Koblenz
+DE,Deutschland,Saarland,Saarbrücken
+DE,Deutschland,Sachsen,Dresden
+DE,Deutschland,Sachsen,Leipzig
+DE,Deutschland,Sachsen-Anhalt,Magdeburg
+DE,Deutschland,Sachsen-Anhalt,Halle (Saale)
+DE,Deutschland,Schleswig-Holstein,Kiel
+DE,Deutschland,Schleswig-Holstein,Lübeck
+DE,Deutschland,Thüringen,Erfurt
+DE,Deutschland,Thüringen,Jena
