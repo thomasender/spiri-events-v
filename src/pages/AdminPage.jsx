@@ -16,6 +16,7 @@ import {
   Instagram,
   BarChart3,
   ShieldCheck,
+  Info,
   MapPin,
 } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
@@ -34,6 +35,7 @@ import InstagramTab from '../components/InstagramTab';
 import AnalyticsTab from '../components/AnalyticsTab';
 import ModerationTab from '../components/ModerationTab';
 import RegionsTab from '../components/RegionsTab';
+import RegionAboutTab from '../components/RegionAboutTab';
 import NoAccess from '../components/NoAccess';
 import EmailVerificationBanner from '../components/EmailVerificationBanner';
 import EmailVerificationModal from '../components/EmailVerificationModal';
@@ -100,6 +102,7 @@ export default function AdminPage() {
       analytics: isAdmin,
       moderation: isAdmin,
       regions: isAdmin,
+      about: allowedTabs.has('about'),
     };
   }, [draftCount, hasMessages, isAdmin, canReview, allowedTabs, hasFeedback, trashedCount]);
 
@@ -413,6 +416,21 @@ export default function AdminPage() {
             <span>Regionen</span>
           </button>
         )}
+        {visibleTabs.about && (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'about'}
+            aria-controls="admin-tab-about"
+            id="admin-tab-about-btn"
+            className={`admin-page-tab${activeTab === 'about' ? ' admin-page-tab--active' : ''}`}
+            onClick={() => setTab('about')}
+            data-testid="admin-tab-about"
+          >
+            <Info size={16} aria-hidden="true" />
+            <span>Über uns</span>
+          </button>
+        )}
       </div>
 
       {activeTab === 'loading' && <div className="loading-spinner"></div>}
@@ -570,6 +588,17 @@ export default function AdminPage() {
           hidden={activeTab !== 'regions'}
         >
           {activeTab === 'regions' && <RegionsTab />}
+        </div>
+      )}
+
+      {visibleTabs.about && (
+        <div
+          role="tabpanel"
+          id="admin-tab-about"
+          aria-labelledby="admin-tab-about-btn"
+          hidden={activeTab !== 'about'}
+        >
+          {activeTab === 'about' && <RegionAboutTab />}
         </div>
       )}
 

@@ -821,7 +821,8 @@ describe('events.regionId', () => {
     }),
     'series exception': () => ({ exceptionDates: arrayUnion('2026-11-09') }),
     'series end': () => ({ recurrenceEndDate: '2026-11-20' }),
-    'custom series dates': () => ({ customDates: ['2026-11-02'], exceptionDates: [] }),
+    // customDates may only shrink while an event stays approved.
+    'custom series dates': () => ({ customDates: [], exceptionDates: [] }),
     'image patch': () => ({ imageUrl: 'https://x/y.jpg', imageFocalPoint: { x: 0.2, y: 0.3 } }),
     'instagram image patch': () => ({ instagramImage: { url: 'https://x/y.jpg', zoom: 1 } }),
   };
@@ -910,6 +911,10 @@ describe('events.regionId', () => {
   });
 
   it('removing the region is allowed (falls back to Vorarlberg on read)', async () => {
+    // An owner may not touch the region of an approved event (review guard).
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), 'events/tirolEv'), { status: 'draft' });
+    });
     await assertSucceeds(
       updateDoc(doc(owner().firestore(), 'events/tirolEv'), { regionId: deleteField() })
     );
@@ -1720,5 +1725,70 @@ describe('region moderators', () => {
       await assertSucceeds(getDoc(doc(db, 'member_lists/l1')));
       await assertSucceeds(deleteDoc(doc(db, 'events/tirolApproved')));
     });
+  });
+});
+
+// "Über uns" page of a region: its moderators pick the helpers and the header
+// photo of their own region, nothing else on the region doc.
+describe('region about page (moderators)', () => {
+  const region = {
+    name: 'Tirol',
+    slug: 'tirol',
+    order: 1,
+    active: false,
+    bezirke: [],
+    updatedAt: 1,
+  };
+  const dbFor = (uid: string) =>
+    env.authenticatedContext(uid, { email_verified: true }).firestore();
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'regions/tirol'), region);
+      await setDoc(doc(db, 'regions/wien'), { ...region, name: 'Wien', slug: 'wien' });
+      await setDoc(doc(db, 'admin_users/modTirol'), {
+        role: 'RegionModerator',
+        regionIds: ['tirol'],
+      });
+    });
+  });
+
+  it('a moderator sets helpers and header photo of her own region', async () => {
+    const db = dbFor('modTirol');
+    await assertSucceeds(
+      updateDoc(doc(db, 'regions/tirol'), {
+        aboutHelperIds: ['h1', 'h2'],
+        aboutHeaderImage: 'https://example.com/header.jpg',
+        updatedAt: 2,
+      })
+    );
+  });
+
+  it('a moderator cannot touch another region or other fields', async () => {
+    const db = dbFor('modTirol');
+    await assertFails(updateDoc(doc(db, 'regions/wien'), { aboutHelperIds: ['h1'], updatedAt: 2 }));
+    await assertFails(updateDoc(doc(db, 'regions/tirol'), { active: true, updatedAt: 2 }));
+    await assertFails(updateDoc(doc(db, 'regions/tirol'), { name: 'Tirol 2', updatedAt: 2 }));
+    await assertFails(deleteDoc(doc(db, 'regions/tirol')));
+  });
+
+  it('rejects an invalid header photo or a too long helper list', async () => {
+    const db = dbFor('modTirol');
+    await assertFails(
+      updateDoc(doc(db, 'regions/tirol'), { aboutHeaderImage: 'javascript:alert(1)', updatedAt: 2 })
+    );
+    await assertFails(
+      updateDoc(doc(db, 'regions/tirol'), {
+        aboutHelperIds: Array.from({ length: 61 }, (_, i) => `h${i}`),
+        updatedAt: 2,
+      })
+    );
+  });
+
+  it('ordinary users cannot set them', async () => {
+    await assertFails(
+      updateDoc(doc(dbFor('someone'), 'regions/tirol'), { aboutHelperIds: ['h1'], updatedAt: 2 })
+    );
   });
 });

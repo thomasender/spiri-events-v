@@ -1,4 +1,5 @@
 import { Navigate, useParams } from 'react-router-dom';
+import AboutPage from '../pages/AboutPage';
 import CalendarPage from '../pages/CalendarPage';
 import DirectoryPage from '../pages/DirectoryPage';
 import PublicProfilePage from '../pages/PublicProfilePage';
@@ -55,4 +56,19 @@ export function RegionDirectoryRoute() {
   if (kind === 'redirect') return <RedirectOrWait redirect={redirect} path="/verzeichnis" />;
   if (kind === 'coming-soon') return <ComingSoonOrWait region={region} view={view} />;
   return <DirectoryPage />;
+}
+
+/** `/:regionSlug/ueber-uns`: "Über uns" of a region; combined views use the general page. */
+export function RegionAboutRoute() {
+  const { regionSlug } = useParams();
+  const { allRegions } = useRegion();
+  const { kind, region, view, redirect } = resolveTopLevelSlug(
+    regionSlug?.toLowerCase(),
+    allRegions
+  );
+  if (kind === 'profile') return <ErrorPage type="not-found" />;
+  if (kind === 'redirect') return <RedirectOrWait redirect={redirect} path="/ueber-uns" />;
+  if (kind === 'all-regions') return <Navigate to="/ueber-uns" replace />;
+  if (kind === 'coming-soon') return <ComingSoonOrWait region={region} view={view} />;
+  return <AboutPage />;
 }

@@ -603,7 +603,7 @@ service cloud.firestore {
       function isValidRegion(d) {
         return d.keys().hasOnly(
                  ['name', 'slug', 'order', 'active', 'bezirke', 'contactEmail', 'seo',
-                  'timezone', 'createdAt', 'updatedAt'])
+                  'timezone', 'aboutHelperIds', 'aboutHeaderImage', 'createdAt', 'updatedAt'])
           && d.slug is string
           && d.slug == regionId
           && d.slug in regionIds()
@@ -613,10 +613,22 @@ service cloud.firestore {
           && (!('bezirke' in d) || (d.bezirke is list && d.bezirke.size() <= 30))
           && (!('contactEmail' in d) || (d.contactEmail is string && d.contactEmail.size() <= 200))
           && (!('seo' in d) || d.seo is map)
-          && (!('timezone' in d) || d.timezone is string);
+          && (!('timezone' in d) || d.timezone is string)
+          && (!('aboutHelperIds' in d)
+              || (d.aboutHelperIds is list && d.aboutHelperIds.size() <= 60))
+          && (!('aboutHeaderImage' in d)
+              || d.aboutHeaderImage == null
+              || (d.aboutHeaderImage is string && d.aboutHeaderImage.size() <= 500
+                  && d.aboutHeaderImage.matches('^https?://.+$')));
       }
       allow read: if true;
       allow create, update: if isAdminOrEmulatorAdmin() && isValidRegion(request.resource.data);
+      // Regions-Moderator:innen maintain the "Über uns" page of their own
+      // regions (helpers shown, header photo) and nothing else of the doc.
+      allow update: if isRegionModeratorFor(regionId)
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['aboutHelperIds', 'aboutHeaderImage', 'updatedAt'])
+                    && isValidRegion(request.resource.data);
       allow delete: if isAdminOrEmulatorAdmin();
     }
 

@@ -143,6 +143,14 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
   listings that lie only in their regions); `isAdminOrEmulatorAdmin()` is
   untouched, so every other admin-only rule stays Super-Admin only. Matrix:
   `tests/rules/instagram.rules.spec.ts` ("region moderators").
+- **"Über uns" per region:** `/<slug>/ueber-uns` (`RegionAboutRoute`; `/ueber-uns` stays
+  Vorarlberg's page, the footer link follows the current region). Texts switch with the
+  usual dark-launch rule (`AboutPage`). Moderators (and Super-Admins) maintain it in the
+  admin tab "Über uns" (`RegionAboutTab`): header photo (`regions/{id}/` in Storage) and the
+  helpers shown, saved as `aboutHeaderImage` / `aboutHelperIds` on `regions/{id}`. The rule
+  lets a moderator update exactly those two fields (+ `updatedAt`) of her own regions.
+  A region without a selection shows no helpers (Vorarlberg: all, until chosen). Not in
+  the prerender/sitemap yet.
 - `admin_users` is written only via the Admin SDK: callables
   `adminSetRegionModerator` / `adminListRegionModerators` (Super-Admin only,
   audit entries in `admin_audit_log`; UI: tab "Moderation") or

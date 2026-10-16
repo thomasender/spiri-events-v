@@ -110,8 +110,9 @@ export const ADMIN_TABS = [
   'analytics',
   'moderation',
   'regions',
+  'about',
 ];
-const MODERATOR_TABS = ['events', 'drafts', 'review', 'messages', 'trash', 'members'];
+const MODERATOR_TABS = ['events', 'drafts', 'review', 'messages', 'trash', 'members', 'about'];
 const ORGANIZER_TABS = ['events', 'drafts', 'messages', 'trash'];
 
 export function allowedAdminTabs(access) {

@@ -10,9 +10,13 @@ function isExternalUrl(url) {
 // Public list of helpers rendered on the "Über uns" page. Live-fetches via
 // useAdmin (admin-only) hooks which manage their own data. Renders an
 // empty-state so the section gracefully hides its helper prompts.
-export default function HelpersList() {
+// `helperIds` (a region's "Über uns" page): only these helpers, in this order.
+export default function HelpersList({ helperIds = null }) {
   const { siteName } = useRegionTexts();
-  const { helpers, loading, error } = useHelpers();
+  const { helpers: allHelpers, loading, error } = useHelpers();
+  const helpers = Array.isArray(helperIds)
+    ? helperIds.map((id) => allHelpers.find((h) => h.id === id)).filter(Boolean)
+    : allHelpers;
 
   if (loading) {
     return (

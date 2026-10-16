@@ -201,6 +201,11 @@ export function mergeRegions(docs, base = STATIC_REGIONS) {
         ...(typeof d.contactEmail === 'string' ? { contactEmail: d.contactEmail } : {}),
         ...(d.seo && typeof d.seo === 'object' ? { seo: d.seo } : {}),
         ...(typeof d.timezone === 'string' ? { timezone: d.timezone } : {}),
+        // "Über uns" page of the region (set by its moderators).
+        ...(Array.isArray(d.aboutHelperIds) ? { aboutHelperIds: d.aboutHelperIds } : {}),
+        ...(typeof d.aboutHeaderImage === 'string' && d.aboutHeaderImage
+          ? { aboutHeaderImage: d.aboutHeaderImage }
+          : {}),
       };
     })
     .sort((a, b) => a.order - b.order);

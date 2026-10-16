@@ -29,7 +29,11 @@ import ErrorPage from './pages/ErrorPage';
 import NoAccess from './components/NoAccess';
 import RegionProvider from './components/RegionProvider';
 import RegionChooser from './components/RegionChooser';
-import { RegionDirectoryRoute, RegionOrProfileRoute } from './components/RegionRoutes';
+import {
+  RegionAboutRoute,
+  RegionDirectoryRoute,
+  RegionOrProfileRoute,
+} from './components/RegionRoutes';
 import RegionsPage from './pages/RegionsPage';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
 import CookieConsent from './components/CookieConsent';
@@ -224,6 +228,7 @@ function AppLayout() {
                 region, `/<username>` a profile (region slugs are reserved
                 usernames). `/` and `/verzeichnis` stay valid. */}
             <Route path="/:regionSlug/verzeichnis" element={<RegionDirectoryRoute />} />
+            <Route path="/:regionSlug/ueber-uns" element={<RegionAboutRoute />} />
             <Route path="/:slug" element={<RegionOrProfileRoute />} />
             <Route path="*" element={<ErrorPage type="not-found" />} />
           </Routes>

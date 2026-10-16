@@ -44,8 +44,9 @@ describe('getStaffAccess', () => {
 describe('allowedAdminTabs', () => {
   it('per role', () => {
     expect([...allowedAdminTabs(superAdmin)]).toContain('moderation');
+    expect([...allowedAdminTabs(superAdmin)]).toContain('about');
     expect([...allowedAdminTabs(tirolMod)].sort()).toEqual(
-      ['drafts', 'events', 'members', 'messages', 'review', 'trash'].sort()
+      ['about', 'drafts', 'events', 'members', 'messages', 'review', 'trash'].sort()
     );
     expect([...allowedAdminTabs(organizer)].sort()).toEqual(
       ['drafts', 'events', 'messages', 'trash'].sort()

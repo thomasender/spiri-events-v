@@ -3,6 +3,8 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import AboutPage from '../../src/pages/AboutPage';
+import { RegionContext, DEFAULT_REGION_CONTEXT } from '../../src/hooks/useRegion';
+import { STATIC_REGIONS, mergeRegions } from '../../src/utils/regions';
 
 const mockHelpers = vi.hoisted(() => ({
   helpers: [] as Array<{
@@ -260,5 +262,69 @@ describe('AboutPage contact CTAs (6ab4f6e5 + VHzOoH6Y)', () => {
       'Hallo Tribe Vorarlberg'
     );
     expect(screen.getByTestId('contact-modal-recipient')).toHaveTextContent('admin@thetribe.at');
+  });
+});
+
+describe('AboutPage — region mode', () => {
+  beforeEach(() => {
+    mockHelpers.helpers = [
+      { id: 'h1', name: 'Anna Alpha' },
+      { id: 'h2', name: 'Berta Beta' },
+    ];
+    mockHelpers.loading = false;
+    mockHelpers.error = null;
+  });
+
+  function renderRegion(aboutDoc: Record<string, unknown>, activeIds = ['vorarlberg', 'tirol']) {
+    const allRegions = mergeRegions(
+      STATIC_REGIONS.map((r) => ({
+        id: r.id,
+        active: activeIds.includes(r.id),
+        ...(r.id === 'tirol' ? aboutDoc : {}),
+      }))
+    );
+    const ctx = {
+      ...DEFAULT_REGION_CONTEXT,
+      allRegions,
+      regions: allRegions.filter((r) => r.active),
+      regionId: 'tirol',
+      region: allRegions.find((r) => r.id === 'tirol'),
+    };
+    return render(
+      <HelmetProvider>
+        <RegionContext.Provider value={ctx as never}>
+          <MemoryRouter initialEntries={['/tirol/ueber-uns']}>
+            <Routes>
+              <Route path="/tirol/ueber-uns" element={<AboutPage />} />
+            </Routes>
+          </MemoryRouter>
+        </RegionContext.Provider>
+      </HelmetProvider>
+    );
+  }
+
+  it('names the region and shows only the helpers its moderators picked, with their header photo', () => {
+    renderRegion({
+      aboutHelperIds: ['h2'],
+      aboutHeaderImage: 'https://example.com/tirol-header.jpg',
+    });
+
+    expect(
+      screen.getByRole('heading', { name: /Deine Heimat Tirol ruft dich/ })
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Anna Alpha')).not.toBeInTheDocument();
+    expect(screen.getByText('Berta Beta')).toBeInTheDocument();
+    expect(document.querySelector('.about-hero-image')).toHaveAttribute(
+      'src',
+      'https://example.com/tirol-header.jpg'
+    );
+  });
+
+  it('a region without a selection shows no helpers of other regions and the default photo', () => {
+    renderRegion({});
+
+    expect(screen.queryByText('Anna Alpha')).not.toBeInTheDocument();
+    expect(screen.getByTestId('helpers-list-empty')).toBeInTheDocument();
+    expect(document.querySelector('.about-hero-image')).toHaveAttribute('src', '/hero.jpeg');
   });
 });
