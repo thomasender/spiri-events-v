@@ -139,3 +139,4 @@ export {
 } from './instagramAdmin';
 export { purgeExpiredEvents } from './purgeExpiredEvents';
 export { onEventCancelledNotifyFavorites } from './eventCancellationNotify';
+export { getEventFavoriteCount } from './eventFavoriteCount';

@@ -30,10 +30,12 @@ import {
   Mail,
   Phone,
   Ban,
+  Heart,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useEvents } from '../hooks/useEvents';
 import { useOrganizerProfile } from '../hooks/useOrganizerProfile';
+import { useEventFavoriteCount } from '../hooks/useEventFavoriteCount';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
 import { buildEventJsonLd } from '../utils/eventJsonLd';
 import { pickEventDoc } from '../utils/pickEventDoc';
@@ -197,6 +199,11 @@ export default function EventDetailPage() {
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState('');
   const isAdmin = role === 'Admin';
+  const canSeeFavoriteCount =
+    Boolean(event && user) &&
+    event.status === 'approved' &&
+    (isAdmin || event.createdBy === user.uid);
+  const favoriteCount = useEventFavoriteCount(event?.id, canSeeFavoriteCount);
   const showMessagesForHash =
     event &&
     user &&
@@ -695,6 +702,12 @@ export default function EventDetailPage() {
                     : event.feeNote || 'Kostenpflichtig'}
             </span>
           </div>
+          {canSeeFavoriteCount && favoriteCount !== null && (
+            <div className="event-badge badge--favorites" data-testid="favorite-count">
+              <Heart size={14} />
+              <span>{favoriteCount === 1 ? '1 Favorit' : `${favoriteCount} Favoriten`}</span>
+            </div>
+          )}
           {event.firstSessionFree && !isFree && !isDonation && (
             <div className="event-badge badge--free" data-testid="first-session-free-badge">
               <span>1. Einheit gratis</span>
