@@ -1,0 +1,31 @@
+.mailgun-quota-figures {
+  margin: 0 0 10px;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.mailgun-quota-track {
+  height: 10px;
+  margin-bottom: 10px;
+  background: var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.mailgun-quota-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+
+.mailgun-quota-fill--ok {
+  background: var(--accent-primary);
+}
+
+.mailgun-quota-fill--warn {
+  background: var(--warning, #d98e04);
+}
+
+.mailgun-quota-fill--danger {
+  background: var(--error);
+}

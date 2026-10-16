@@ -15,6 +15,7 @@ import {
   Contact,
   Instagram,
   BarChart3,
+  MailCheck,
 } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
 import EventList from '../components/EventList';
@@ -30,6 +31,7 @@ import DonorsTab from '../components/DonorsTab';
 import MembersTab from '../components/MembersTab';
 import InstagramTab from '../components/InstagramTab';
 import AnalyticsTab from '../components/AnalyticsTab';
+import MailgunTab from '../components/MailgunTab';
 import EmailVerificationBanner from '../components/EmailVerificationBanner';
 import EmailVerificationModal from '../components/EmailVerificationModal';
 import EventStatusMismatchBanner from '../components/EventStatusMismatchBanner';
@@ -54,6 +56,7 @@ const VALID_TABS = new Set([
   'members',
   'instagram',
   'analytics',
+  'mailgun',
 ]);
 
 export default function AdminPage() {
@@ -93,6 +96,7 @@ export default function AdminPage() {
       members: isAdmin,
       instagram: isAdmin,
       analytics: isAdmin,
+      mailgun: isAdmin,
     };
   }, [draftCount, hasMessages, isAdmin, hasFeedback, trashedCount]);
 
@@ -373,6 +377,21 @@ export default function AdminPage() {
             <span>Statistik</span>
           </button>
         )}
+        {visibleTabs.mailgun && (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'mailgun'}
+            aria-controls="admin-tab-mailgun"
+            id="admin-tab-mailgun-btn"
+            className={`admin-page-tab${activeTab === 'mailgun' ? ' admin-page-tab--active' : ''}`}
+            onClick={() => setTab('mailgun')}
+            data-testid="admin-tab-mailgun"
+          >
+            <MailCheck size={16} aria-hidden="true" />
+            <span>E-Mail-Versand</span>
+          </button>
+        )}
       </div>
 
       <div
@@ -503,6 +522,17 @@ export default function AdminPage() {
           hidden={activeTab !== 'analytics'}
         >
           {activeTab === 'analytics' && <AnalyticsTab />}
+        </div>
+      )}
+
+      {visibleTabs.mailgun && (
+        <div
+          role="tabpanel"
+          id="admin-tab-mailgun"
+          aria-labelledby="admin-tab-mailgun-btn"
+          hidden={activeTab !== 'mailgun'}
+        >
+          {activeTab === 'mailgun' && <MailgunTab />}
         </div>
       )}
 

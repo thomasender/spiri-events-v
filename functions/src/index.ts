@@ -125,6 +125,7 @@ export { sendPasswordResetEmailFn } from './sendPasswordResetEmail';
 export { checkEmailAvailability } from './checkEmailAvailability';
 export { adminListMembers, adminUpdateMember } from './adminMembers';
 export { adminAnalyticsReport } from './adminAnalytics';
+export { adminMailgunUsage } from './adminMailgun';
 export { onEventApprovedPostToInstagram } from './instagramPostOnApproval';
 export { instagramWeeklyCarousel } from './instagramWeeklyCarousel';
 export { calendarFeed } from './calendarFeed';
