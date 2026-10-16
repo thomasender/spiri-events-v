@@ -31,6 +31,8 @@ export default function RegionComingSoonPage({ region = null, view = null, canPr
     ? `Wir bereiten gerade einen Kalender für bewusste Events und Menschen ${regionLocative(region)} vor.`
     : viewTexts.comingSoon;
 
+  const addEventPath = `/admin/new?region=${region?.id ?? ''}`;
+
   const invite = async () => {
     const inviteUrl = `${window.location.origin}${path}`;
     const title = `${BRAND_NAME} – ${name}`;
@@ -91,7 +93,8 @@ export default function RegionComingSoonPage({ region = null, view = null, canPr
             </p>
             <div className="error-page-actions">
               <Link
-                to={user ? '/admin/new' : '/login'}
+                to={user ? addEventPath : '/login'}
+                state={user ? undefined : { from: addEventPath }}
                 className="btn btn-primary"
                 data-testid="region-add-event"
               >

@@ -70,10 +70,14 @@ function regionContext(activeIds: string[], currentId = 'vorarlberg') {
   };
 }
 
-const withRegions = (ctx: ReturnType<typeof regionContext>, ui: ReactNode) => (
+const withRegions = (
+  ctx: ReturnType<typeof regionContext>,
+  ui: ReactNode,
+  entry = '/admin/new'
+) => (
   <HelmetProvider>
     <RegionContext.Provider value={ctx as never}>
-      <MemoryRouter initialEntries={['/admin/new']}>{ui}</MemoryRouter>
+      <MemoryRouter initialEntries={[entry]}>{ui}</MemoryRouter>
     </RegionContext.Provider>
   </HelmetProvider>
 );
@@ -178,6 +182,21 @@ describe('EventFormWizard region field', () => {
       'Kufstein',
       'Finde meinen Bezirk nicht',
     ]);
+  });
+
+  it('?region=tirol (coming-soon page) enters the event for a region that is not open yet', async () => {
+    seedWizardDraft({ bezirk: 'Innsbruck' }, 4);
+    render(
+      withRegions(
+        regionContext(['vorarlberg', 'bayern']),
+        <EventFormWizard />,
+        '/admin/new?region=tirol'
+      )
+    );
+
+    const saved = await submitWizardAndGetEvent();
+    expect(saved.regionId).toBe('tirol');
+    expect(saved.bezirk).toBe('Innsbruck');
   });
 
   it('"Finde meinen Bezirk nicht" names the current region and cancelling changes nothing', () => {
