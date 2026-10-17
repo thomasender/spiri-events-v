@@ -26,8 +26,6 @@ import {
   type CarouselBezirk,
 } from './instagramCarousel';
 import {
-  bareUsername,
-  createContainerWithInvite,
   graphGet,
   graphPost,
   idOf,
@@ -173,9 +171,6 @@ export interface StoryPostRecord {
   igMediaId: string | null;
   permalink: string | null;
   error: string | null;
-  /** Organizer handles tagged on the story ([] when none or Instagram rejected the tags). */
-  taggedHandles?: string[];
-  tagFallbackReason?: string | null;
 }
 
 export interface StoryDeps {
@@ -208,31 +203,22 @@ export interface StoryResult {
 export type StoryRunOutcome =
   { status: 'disabled' } | { status: 'done'; day: string; results: StoryResult[] };
 
-export interface StoryTag {
-  username: string;
-  /** 0..1 from the left / top of the image */
-  x: number;
-  y: number;
-}
-
-/** Container for a story image, then publish; returns the media id. */
+/**
+ * Container for a story image, then publish; returns the media id. Stories
+ * cannot carry a clickable mention (Instagram accepts user_tags but never shows
+ * them), so organizers are named as text in the image instead.
+ */
 export async function publishStoryImage(
-  deps: Pick<StoryDeps, 'fetch' | 'accessToken' | 'userId' | 'now' | 'log'>,
-  imageUrl: string,
-  tags: StoryTag[] = []
-): Promise<{ mediaId: string; tagged: boolean; tagFallbackReason: string | null }> {
-  const created = await createContainerWithInvite(
+  deps: Pick<StoryDeps, 'fetch' | 'accessToken' | 'userId' | 'now'>,
+  imageUrl: string
+): Promise<string> {
+  const created = await graphPost(
     deps,
     `${deps.userId}/media`,
     { media_type: 'STORIES', image_url: imageUrl },
-    tags.length > 0 ? { user_tags: JSON.stringify(tags) } : null,
-    'story container creation',
-    deps.log,
-    // Stories are not documented to accept user_tags, so any client error on the
-    // tagged attempt falls back to the plain story instead of losing the post.
-    true
+    'story container creation'
   );
-  const containerId = idOf(created.json, 'story container creation');
+  const containerId = idOf(created, 'story container creation');
   await waitForContainer(deps, containerId);
   const published = await graphPost(
     deps,
@@ -240,18 +226,8 @@ export async function publishStoryImage(
     { creation_id: containerId },
     'story publish'
   );
-  return {
-    mediaId: idOf(published, 'story publish'),
-    tagged: created.invited,
-    tagFallbackReason: created.fallbackReason,
-  };
+  return idOf(published, 'story publish');
 }
-
-/** First tag row and spacing: tags sit next to the event rows of the story image. */
-const TAG_X = 0.3;
-const TAG_Y_START = 0.55;
-const TAG_Y_STEP = 0.07;
-export const MAX_STORY_TAGS = 10;
 
 /** Organizer handle per event of the group (null when unknown or the lookup failed). */
 async function lookupHandles(
@@ -276,18 +252,6 @@ async function lookupHandles(
     handles.push(handle);
   }
   return handles;
-}
-
-/** One user_tags entry per distinct organizer handle (Instagram may accept but not show them). */
-function tagsFor(handles: Array<string | null>): StoryTag[] {
-  const tags: StoryTag[] = [];
-  handles.forEach((handle, i) => {
-    const username = handle ? bareUsername(handle) : '';
-    if (!username || tags.some((t) => t.username.toLowerCase() === username.toLowerCase())) return;
-    if (tags.length >= MAX_STORY_TAGS) return;
-    tags.push({ username, x: TAG_X, y: Math.min(0.9, TAG_Y_START + i * TAG_Y_STEP) });
-  });
-  return tags;
 }
 
 export interface PostGroupOptions {
@@ -335,8 +299,7 @@ export async function postStoryGroup(
       postId,
       buildStoryModel(group, day, null, options.heading, handles)
     );
-    const tags = tagsFor(handles);
-    const { mediaId, tagged, tagFallbackReason } = await publishStoryImage(deps, imageUrl, tags);
+    const mediaId = await publishStoryImage(deps, imageUrl);
     // The story is live now; a missing permalink must not fail it.
     let permalink: string | null = null;
     try {
@@ -345,13 +308,7 @@ export async function postStoryGroup(
     } catch (err) {
       log('Permalink lookup failed', { postId, error: sanitizeError(err, [deps.accessToken]) });
     }
-    await deps.updatePost(postId, {
-      status: 'published',
-      igMediaId: mediaId,
-      permalink,
-      taggedHandles: tagged ? tags.map((t) => t.username) : [],
-      tagFallbackReason,
-    });
+    await deps.updatePost(postId, { status: 'published', igMediaId: mediaId, permalink });
     return { id: postId, outcome: 'published' };
   } catch (err) {
     const message = sanitizeError(err, [deps.accessToken]);

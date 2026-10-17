@@ -80,5 +80,4 @@ const outcome = await runDailyStory(
 console.log(JSON.stringify(outcome, null, 2));
 for (const [id, rec] of posts) {
   console.log(id, rec.status, rec.permalink ?? '', rec.error ?? '');
-  console.log('  getaggt:', rec.taggedHandles ?? [], '| Fallback:', rec.tagFallbackReason ?? '-');
 }

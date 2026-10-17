@@ -188,7 +188,7 @@ describe('runEventStories', () => {
     return { deps, posts, models, bodies, fetchMock };
   }
 
-  it('posts a due event with heading, organizer tag and a record for the cap', async () => {
+  it('posts a due event with heading and the organizer as text, without user_tags', async () => {
     const h = makeHarness();
     const outcome = await runEventStories(h.deps);
     expect(outcome).toEqual({
@@ -196,18 +196,15 @@ describe('runEventStories', () => {
       results: [{ id: 'story_event_e1_2026-10-18', outcome: 'published' }],
     });
     expect(h.models[0]).toMatchObject({ heading: 'Heute', bezirk: 'in Bregenz' });
-    expect(h.models[0].items).toHaveLength(1);
+    expect(h.models[0].items).toMatchObject([{ organizer: '@maitri.roots' }]);
     expect(h.bodies[0].get('media_type')).toBe('STORIES');
-    expect(JSON.parse(h.bodies[0].get('user_tags')!)[0]).toMatchObject({
-      username: 'maitri.roots',
-    });
+    expect(h.bodies[0].get('user_tags')).toBeNull();
     expect(h.posts.get('story_event_e1_2026-10-18')).toMatchObject({
       type: 'story',
       kind: 'event',
       day: '2026-10-18',
       postedDay: '2026-10-18',
       status: 'published',
-      taggedHandles: ['maitri.roots'],
     });
   });
 
@@ -224,10 +221,10 @@ describe('runEventStories', () => {
     });
   });
 
-  it('posts without a tag when the organizer has no handle', async () => {
+  it('posts without an organizer line when the organizer has no handle', async () => {
     const h = makeHarness({ handle: null });
     await runEventStories(h.deps);
-    expect(h.bodies[0].get('user_tags')).toBeNull();
+    expect(h.models[0].items).toMatchObject([{ organizer: '' }]);
   });
 
   it('does not post the same event twice', async () => {
