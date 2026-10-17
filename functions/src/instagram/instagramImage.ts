@@ -392,6 +392,21 @@ export async function uploadInstagramImage(
   )}?alt=media&token=${token}`;
 }
 
+const COVER_PAPER = '#f4f2f0';
+const COVER_INK = '#161819';
+const COVER_TERRACOTTA = '#c48e6a';
+
+/** The website logo (terracotta circle over a thin arc) as the cover background. */
+function coverBackgroundSvg(width: number, height: number): Buffer {
+  return Buffer.from(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">` +
+      `<rect width="${width}" height="${height}" fill="${COVER_PAPER}"/>` +
+      `<circle cx="${width / 2}" cy="330" r="150" fill="${COVER_TERRACOTTA}"/>` +
+      `<path d="M 70 360 A 470 300 0 0 0 ${width - 70} 360" fill="none" stroke="${COVER_INK}" stroke-width="5" stroke-linecap="round"/>` +
+      `</svg>`
+  );
+}
+
 function buildCoverLayout(cover: CoverModel, format: InstagramFormat): Node {
   const { width, height } = FORMAT_DIMENSIONS[format];
   const pad = 90;
@@ -401,10 +416,8 @@ function buildCoverLayout(cover: CoverModel, format: InstagramFormat): Node {
       width,
       height,
       flexDirection: 'column',
-      justifyContent: 'space-between',
       padding: `${pad}px`,
-      background: 'linear-gradient(160deg, #5c6b3f 0%, #1d1a1a 100%)',
-      color: '#ffffff',
+      color: COVER_INK,
       fontFamily: 'Inter',
     },
     [
@@ -419,10 +432,12 @@ function buildCoverLayout(cover: CoverModel, format: InstagramFormat): Node {
         },
         'thetribe.at'
       ),
+      // Keeps the text block below the logo drawn by coverBackgroundSvg().
+      el('div', { height: 530 }),
       el('div', { flexDirection: 'column' }, [
         el(
           'div',
-          { fontFamily: 'Cormorant Garamond', fontWeight: 700, fontSize: 124, lineHeight: 1.02 },
+          { fontFamily: 'Cormorant Garamond', fontWeight: 700, fontSize: 112, lineHeight: 1.02 },
           cover.heading
         ),
         el('div', { fontSize: 64, fontWeight: 700, marginTop: 56 }, cover.bezirk),
@@ -435,6 +450,7 @@ function buildCoverLayout(cover: CoverModel, format: InstagramFormat): Node {
             )
           : null,
       ]),
+      el('div', { flexGrow: 1 }),
       el(
         'div',
         { fontSize: 40, fontWeight: 400, opacity: 0.9 },
@@ -456,7 +472,7 @@ export async function renderCoverImage(
     fonts: loadFonts(),
   });
   const overlay = new Resvg(svg, { fitTo: { mode: 'width', value: width } }).render().asPng();
-  return sharp({ create: { width, height, channels: 3, background: '#1d1a1a' } })
+  return sharp(coverBackgroundSvg(width, height))
     .composite([{ input: overlay }])
     .jpeg({ quality: JPEG_QUALITY, mozjpeg: true })
     .toBuffer();
