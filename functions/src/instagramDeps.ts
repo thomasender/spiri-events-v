@@ -5,9 +5,11 @@ import {
   generateAndStoreEventImage,
   renderCoverImage,
   renderEventImage,
+  renderStoryImage,
   uploadInstagramImage,
 } from './instagram/instagramImage';
 import type { CarouselDeps } from './instagram/instagramCarousel';
+import type { StoryDeps } from './instagram/instagramStory';
 import { expandOccurrencesInWindow, type SeriesFields } from './instagram/instagramOccurrences';
 import { normalizeInstagramHandle } from './instagram/instagramContent';
 import type { PublishDeps } from './instagram/instagramPublish';
@@ -177,6 +179,35 @@ export function buildCarouselDeps(
     async generateEventImage(name, ev) {
       const jpeg = await renderEventImage(ev, 'carousel', { categoryColors: await loadColors() });
       return uploadInstagramImage(bucket, name, jpeg);
+    },
+    notifyAdmins,
+    log: (message, data) => logger.info(message, data),
+  };
+}
+
+/** StoryDeps for the admin "post today's story" callable; same wiring as the carousel. */
+export function buildStoryDeps(db: Firestore, accessToken: string, userId: string): StoryDeps {
+  const bucket = getStorage().bucket() as never;
+  const carousel = buildCarouselDeps(db, accessToken, userId);
+  return {
+    fetch,
+    accessToken,
+    userId,
+    isEnabled: carousel.isEnabled,
+    listEvents: carousel.listEvents,
+    getOrganizerHandle: carousel.getOrganizerHandle,
+    async countStoriesPostedOn(postedDay) {
+      const snap = await db
+        .collection('instagram_posts')
+        .where('type', '==', 'story')
+        .where('postedDay', '==', postedDay)
+        .get();
+      return snap.size;
+    },
+    createPost: (id, record) => carousel.createPost(id, record as never),
+    updatePost: (id, patch) => carousel.updatePost(id, patch as never),
+    async generateStoryImage(name, model) {
+      return uploadInstagramImage(bucket, name, await renderStoryImage(model));
     },
     notifyAdmins,
     log: (message, data) => logger.info(message, data),

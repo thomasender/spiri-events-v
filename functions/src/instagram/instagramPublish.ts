@@ -189,7 +189,9 @@ export async function createContainerWithInvite(
   params: Record<string, string>,
   inviteParams: Record<string, string> | null,
   step: string,
-  log: (message: string, data?: Record<string, unknown>) => void = () => undefined
+  log: (message: string, data?: Record<string, unknown>) => void = () => undefined,
+  /** Retry without the invite on any 4xx, not only the known rejection codes. */
+  anyClientError = false
 ): Promise<{ json: Record<string, unknown>; invited: boolean; fallbackReason: string | null }> {
   if (!inviteParams || Object.keys(inviteParams).length === 0) {
     return {
@@ -203,7 +205,11 @@ export async function createContainerWithInvite(
     log('Instagram container created with collaborator invite', { step });
     return { json, invited: true, fallbackReason: null };
   } catch (err) {
-    if (!isInviteRejection(err)) throw err;
+    const retryable =
+      isInviteRejection(err) ||
+      (anyClientError && err instanceof GraphApiError && err.status >= 400 && err.status < 500);
+    if (!retryable) throw err;
+    if (!(err instanceof GraphApiError)) throw err;
     const fallbackReason = sanitizeError(
       `${err.code}/${err.subcode}${err.userMessage ? `: ${err.userMessage}` : ''}`,
       [deps.accessToken]

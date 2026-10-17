@@ -31,6 +31,7 @@ import {
   type InstagramEventInput,
   type InstagramFormat,
 } from './instagramContent';
+import type { StoryModel } from './instagramStory';
 
 const JPEG_QUALITY = 90;
 const STORAGE_PREFIX = 'instagram';
@@ -488,4 +489,124 @@ export async function generateAndStoreEventImage(
 ): Promise<string> {
   const jpeg = await renderEventImage(event, format, options);
   return uploadInstagramImage(bucket, name, jpeg);
+}
+
+// Logo mark of the site (public/logo-mark.svg: sun above an arc), cropped to the
+// mark itself so it can sit on any background. Same look as the carousel cover.
+const LOGO_VIEWBOX = { x: 0, y: 30, width: 180, height: 120 };
+const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${LOGO_VIEWBOX.x} ${LOGO_VIEWBOX.y} ${LOGO_VIEWBOX.width} ${LOGO_VIEWBOX.height}"><circle cx="90" cy="70" r="36" fill="#c48e6a"/><path d="M 2 74 A 88 72 0 0 0 178 74" fill="none" stroke="#161819" stroke-width="1.5" stroke-linecap="round"/></svg>`;
+const LOGO_DATA_URI = `data:image/svg+xml;base64,${Buffer.from(LOGO_SVG).toString('base64')}`;
+
+function logoNode(width: number): Node {
+  const height = Math.round((width * LOGO_VIEWBOX.height) / LOGO_VIEWBOX.width);
+  return {
+    type: 'img',
+    props: { src: LOGO_DATA_URI, width, height, style: { display: 'flex' } },
+  };
+}
+
+/** Story 9:16 with the day's events as a list; top/bottom stay clear of Instagram's UI. */
+function buildStoryListLayout(story: StoryModel): Node {
+  const { width, height } = FORMAT_DIMENSIONS.story;
+  const pad = 90;
+  const compact = story.items.length > 2;
+  return el(
+    'div',
+    {
+      width,
+      height,
+      flexDirection: 'column',
+      justifyContent: 'space-between',
+      padding: `250px ${pad}px 280px`,
+      background: '#f4f2f0',
+      color: '#1d1a1a',
+      fontFamily: 'Inter',
+    },
+    [
+      el('div', { flexDirection: 'column' }, [
+        el('div', { alignSelf: 'center', marginBottom: compact ? 30 : 50 }, [
+          logoNode(compact ? 420 : 600),
+        ]),
+        el(
+          'div',
+          { fontFamily: 'Cormorant Garamond', fontWeight: 700, fontSize: 150, lineHeight: 1 },
+          story.heading
+        ),
+        el('div', { fontSize: 64, fontWeight: 700, marginTop: 18 }, story.bezirk),
+        el(
+          'div',
+          { fontSize: 44, fontWeight: 400, marginTop: 12, opacity: 0.8 },
+          [story.dateLabel, story.partLabel].filter(Boolean).join('  ·  ')
+        ),
+      ]),
+      el(
+        'div',
+        { flexDirection: 'column' },
+        story.items.map((item) =>
+          el(
+            'div',
+            {
+              alignItems: 'stretch',
+              marginTop: compact ? 24 : 40,
+              borderLeft: `10px solid ${item.color}`,
+              paddingLeft: 28,
+            },
+            [
+              el('div', { flexDirection: 'column' }, [
+                el(
+                  'div',
+                  { fontSize: 34, fontWeight: 700, letterSpacing: 1, opacity: 0.7 },
+                  [item.time && `${item.time} Uhr`, item.location].filter(Boolean).join('  ·  ')
+                ),
+                el(
+                  'div',
+                  {
+                    fontFamily: 'Cormorant Garamond',
+                    fontWeight: 700,
+                    fontSize: compact ? 52 : 62,
+                    lineHeight: 1.05,
+                    marginTop: 4,
+                  },
+                  item.title
+                ),
+                item.organizer
+                  ? el(
+                      'div',
+                      { fontSize: 34, fontWeight: 400, marginTop: 10, opacity: 0.7 },
+                      `mit ${item.organizer}`
+                    )
+                  : null,
+              ]),
+            ]
+          )
+        )
+      ),
+      el(
+        'div',
+        {
+          fontSize: 34,
+          fontWeight: 700,
+          letterSpacing: 3,
+          textTransform: 'uppercase',
+          opacity: 0.7,
+        },
+        'Mehr auf thetribe.at'
+      ),
+    ]
+  );
+}
+
+/** Renders one "Heute in <Bezirk>" story as a JPEG buffer. */
+export async function renderStoryImage(story: StoryModel): Promise<Buffer> {
+  const { width, height } = FORMAT_DIMENSIONS.story;
+  const svg = await satori(buildStoryListLayout(story) as never, {
+    width,
+    height,
+    fonts: loadFonts(),
+  });
+  const overlay = new Resvg(svg, { fitTo: { mode: 'width', value: width } }).render().asPng();
+  return sharp({ create: { width, height, channels: 3, background: '#f4f2f0' } })
+    .composite([{ input: overlay }])
+    .jpeg({ quality: JPEG_QUALITY, mozjpeg: true })
+    .toBuffer();
 }
