@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, MessageSquare, ShieldCheck, Pencil } from 'lucide-react';
+import { Send, MessageSquare, ShieldCheck, Pencil, Trash2 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useEventMessages } from '../hooks/useEventMessages';
 import RichTextEditorLazy from './RichTextEditorLazy';
@@ -20,7 +20,7 @@ function formatTime(timestamp) {
 
 export default function EventMessages({ eventId, onReady }) {
   const { user, role } = useAuth();
-  const { messages, loading, sending, sendMessage, editMessage, markAsRead } =
+  const { messages, loading, sending, sendMessage, editMessage, deleteMessage, markAsRead } =
     useEventMessages(eventId);
   const [text, setText] = useState('');
   const [error, setError] = useState('');
@@ -94,6 +94,17 @@ export default function EventMessages({ eventId, onReady }) {
     setEditError('');
   };
 
+  const handleDelete = async (msg) => {
+    if (!window.confirm('Diese Nachricht wirklich löschen?')) return;
+    setError('');
+    try {
+      await deleteMessage(msg.id);
+      if (editingId === msg.id) cancelEdit();
+    } catch (err) {
+      setError(err.message || 'Nachricht konnte nicht gelöscht werden.');
+    }
+  };
+
   const handleSaveEdit = async (e) => {
     e.preventDefault();
     if (isHtmlEmpty(editText)) return;
@@ -139,6 +150,7 @@ export default function EventMessages({ eventId, onReady }) {
             {messages.map((msg) => {
               const isMine = msg.authorUid === user?.uid;
               const isAdmin = msg.authorRole === 'Admin';
+              const canDelete = isMine || (role === 'Admin' && isAdmin);
               return (
                 <li
                   key={msg.id}
@@ -189,7 +201,7 @@ export default function EventMessages({ eventId, onReady }) {
                   ) : (
                     <>
                       <RichTextView html={messageToHtml(msg.text)} className="event-message-text" />
-                      {(msg.editedAt || isMine) && (
+                      {(msg.editedAt || isMine || canDelete) && (
                         <div className="event-message-footer">
                           {msg.editedAt && (
                             <span
@@ -208,6 +220,17 @@ export default function EventMessages({ eventId, onReady }) {
                             >
                               <Pencil size={12} aria-hidden="true" />
                               Bearbeiten
+                            </button>
+                          )}
+                          {canDelete && (
+                            <button
+                              type="button"
+                              className="event-message-edit-btn"
+                              onClick={() => handleDelete(msg)}
+                              data-testid="event-message-delete"
+                            >
+                              <Trash2 size={12} aria-hidden="true" />
+                              Löschen
                             </button>
                           )}
                         </div>
