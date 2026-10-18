@@ -46,6 +46,7 @@ function makeHarness(
     if (url.endsWith('/media') && init?.method === 'POST') return json({ id: 'container1' });
     if (url.includes('/container1?')) return json({ status_code: 'FINISHED' });
     if (url.endsWith('/media_publish')) return json({ id: 'media1' });
+    if (url.endsWith('/media1/comments')) return json({ id: 'comment1' });
     if (url.includes('/media1?')) return json({ permalink: 'https://instagram.com/p/abc/' });
     return json({ error: { message: 'unexpected' } }, 500);
   });
@@ -268,6 +269,31 @@ describe('publishApprovedEvent', () => {
     expect(h.notify).toHaveBeenCalled();
     // never published
     expect(h.fetchMock.mock.calls.some(([u]) => String(u).endsWith('/media_publish'))).toBe(false);
+  });
+
+  it('posts the first comment on the new media after publishing', async () => {
+    const h = makeHarness();
+    await publishApprovedEvent(h.deps, 'e1', { status: 'pending' }, futureEvent);
+    const call = h.fetchMock.mock.calls.find(([u]) => String(u).endsWith('/media1/comments'));
+    expect(call).toBeDefined();
+    const params = new URLSearchParams(String((call![1] as RequestInit).body));
+    expect(params.get('message')).toContain('thetribe.at');
+  });
+
+  it('keeps status published when the first comment is rejected', async () => {
+    const h = makeHarness({
+      fetchImpl: (url, init) => {
+        if (url.endsWith('/media') && init?.method === 'POST') return json({ id: 'container1' });
+        if (url.includes('/container1?')) return json({ status_code: 'FINISHED' });
+        if (url.endsWith('/media_publish')) return json({ id: 'media1' });
+        if (url.endsWith('/media1/comments')) return json({ error: { message: 'no perm' } }, 403);
+        return json({ permalink: 'https://instagram.com/p/abc/' });
+      },
+    });
+    const outcome = await publishApprovedEvent(h.deps, 'e1', { status: 'pending' }, futureEvent);
+    expect(outcome).toBe('published');
+    expect(h.posts.get('feed_e1')).toMatchObject({ status: 'published', igMediaId: 'media1' });
+    expect(h.notify).not.toHaveBeenCalled();
   });
 
   it('keeps status published when only the permalink lookup fails', async () => {

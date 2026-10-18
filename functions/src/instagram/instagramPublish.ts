@@ -6,7 +6,7 @@
  * ../instagramPostOnApproval.ts.
  */
 
-import { buildCaption, type InstagramEventInput } from './instagramContent';
+import { buildCaption, buildFirstComment, type InstagramEventInput } from './instagramContent';
 
 export const GRAPH_BASE = 'https://graph.instagram.com/v23.0';
 export const POLL_INTERVAL_MS = 5000;
@@ -384,6 +384,18 @@ export async function publishApprovedEvent(
       permalink = typeof info.permalink === 'string' ? info.permalink : null;
     } catch (err) {
       log('Permalink lookup failed', { eventId, error: sanitizeError(err, [deps.accessToken]) });
+    }
+    // Best effort like the permalink: the post is live, so a rejected comment
+    // (e.g. missing comment permission on the token) must not fail it.
+    try {
+      await graphPost(
+        deps,
+        `${mediaId}/comments`,
+        { message: buildFirstComment(event) },
+        'first comment'
+      );
+    } catch (err) {
+      log('First comment failed', { eventId, error: sanitizeError(err, [deps.accessToken]) });
     }
     await deps.updatePost(postId, {
       status: 'published',

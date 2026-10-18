@@ -446,6 +446,15 @@ export function buildCaptionFooter(hashtags: string): string {
   return [CAPTION_CTA, BIO_LINK_LINE, hashtags].filter(Boolean).join('\n\n');
 }
 
+/**
+ * First comment under a feed post, written by the account itself right after
+ * publishing. Points to the event page; Instagram does not make URLs clickable
+ * in comments, but they are easy to copy.
+ */
+export function buildFirstComment(event: InstagramEventInput): string {
+  return `ℹ️ Alle Infos zum Event: ${eventPageUrl(event.slug)}`;
+}
+
 /** Max number of further dates listed in a caption; the rest is summarised. */
 export const MAX_CAPTION_DATES = 5;
 
