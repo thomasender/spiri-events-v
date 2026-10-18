@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, MessageSquare, ShieldCheck, Pencil, Trash2 } from 'lucide-react';
+import { Send, MessageSquare, ShieldCheck, Pencil, Trash2, ImageOff } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useEventMessages } from '../hooks/useEventMessages';
 import RichTextEditorLazy from './RichTextEditorLazy';
@@ -18,7 +18,20 @@ function formatTime(timestamp) {
   });
 }
 
-export default function EventMessages({ eventId, onReady }) {
+const escapeHtml = (s) =>
+  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+export function instagramNoTextTemplate(name) {
+  const greeting = name ? `Hallo ${escapeHtml(name)},` : 'Hallo,';
+  return [
+    `<p>${greeting}</p>`,
+    '<p>damit wir dein Event auf Instagram posten können, lade bitte für Instagram ein separates Bild hoch, das keinen Text beinhaltet. Der Grund hierfür ist, dass wir beim Instagram-Post bereits Text über dein Bild legen. Du kannst die Vorschau für den Instagram-Post oben sehen.</p>',
+    '<p>Bei Fragen wende dich gerne direkt über diesen Chat an uns.</p>',
+    '<p>Liebe Grüße,<br>Dein Admin-Team</p>',
+  ].join('');
+}
+
+export default function EventMessages({ eventId, organizerName, onReady }) {
   const { user, role } = useAuth();
   const { messages, loading, sending, sendMessage, editMessage, deleteMessage, markAsRead } =
     useEventMessages(eventId);
@@ -261,6 +274,17 @@ export default function EventMessages({ eventId, onReady }) {
         />
         <div className="event-messages-composer-footer">
           {error && <span className="event-messages-error">{error}</span>}
+          {role === 'Admin' && (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm event-messages-template-btn"
+              onClick={() => setText(instagramNoTextTemplate(organizerName))}
+              data-testid="event-message-template-instagram"
+            >
+              <ImageOff size={16} aria-hidden="true" />
+              <span>Vorlage: Instagram-Bild ohne Text</span>
+            </button>
+          )}
           <button
             type="submit"
             className="btn btn-primary btn-sm"

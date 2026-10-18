@@ -957,7 +957,11 @@ export default function EventDetailPage() {
       )}
 
       {(event.status === 'pending' || event.status === 'draft') && user && (isAdmin || isOwner) && (
-        <EventMessages eventId={event.id} onReady={() => setEventMessagesReady(true)} />
+        <EventMessages
+          eventId={event.id}
+          organizerName={event.organizer?.firstName?.trim() || getOrganizerName(event)}
+          onReady={() => setEventMessagesReady(true)}
+        />
       )}
 
       <SimilarEvents currentEvent={event} />

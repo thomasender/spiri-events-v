@@ -94,6 +94,20 @@ describe('EventMessages', () => {
     expect(screen.getByText('Admin')).toBeInTheDocument();
   });
 
+  it('offers admins an Instagram template that fills the editor with the organizer name', () => {
+    useAuth.mockReturnValue({ user: { uid: 'admin-1' }, role: 'Admin' });
+    render(<EventMessages eventId="event-1" organizerName="Lars" />);
+    fireEvent.click(screen.getByTestId('event-message-template-instagram'));
+    const initial = screen.getByTestId('event-message-input').getAttribute('data-initial');
+    expect(initial).toContain('Hallo Lars,');
+    expect(initial).toContain('keinen Text beinhaltet');
+  });
+
+  it('does not show the Instagram template button to non-admins', () => {
+    render(<EventMessages eventId="event-1" organizerName="Lars" />);
+    expect(screen.queryByTestId('event-message-template-instagram')).not.toBeInTheDocument();
+  });
+
   it('sends the composed rich-text message when the user submits', async () => {
     sendMessageMock.mockResolvedValue();
     render(<EventMessages eventId="event-1" />);
