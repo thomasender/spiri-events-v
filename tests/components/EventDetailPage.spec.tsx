@@ -126,6 +126,10 @@ vi.mock('../../src/components/EventMessages', () => ({
   default: () => null,
 }));
 
+vi.mock('../../src/components/EventHistory', () => ({
+  default: () => null,
+}));
+
 vi.mock('react-helmet-async', () => ({
   Helmet: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="helmet">{children}</div>

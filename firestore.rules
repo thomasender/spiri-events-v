@@ -237,6 +237,13 @@ service cloud.firestore {
         // Papierkorb. Admins can always delete messages.
         allow delete: if isAdminOrEmulatorAdmin() || isEventOwner(eventId);
       }
+
+      // Change history, written only by the onEventUpdatedWriteRevision
+      // function (Admin SDK). Admins read it; nobody writes from the client.
+      match /revisions/{revisionId} {
+        allow read: if isAdminOrEmulatorAdmin();
+        allow write: if false;
+      }
     }
 
     match /admin_users/{uid} {
