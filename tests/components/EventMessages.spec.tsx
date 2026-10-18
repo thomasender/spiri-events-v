@@ -9,6 +9,7 @@ vi.mock('../../src/hooks/useAuth', () => ({
 const sendMessageMock = vi.fn();
 const markAsReadMock = vi.fn();
 const editMessageMock = vi.fn();
+const deleteMessageMock = vi.fn();
 
 vi.mock('../../src/hooks/useEventMessages', () => ({
   useEventMessages: vi.fn(),
@@ -36,6 +37,7 @@ describe('EventMessages', () => {
     sendMessageMock.mockReset();
     markAsReadMock.mockReset();
     editMessageMock.mockReset();
+    deleteMessageMock.mockReset();
     useAuth.mockReturnValue({
       user: { uid: 'user-1', displayName: 'Anna' },
       role: 'User',
@@ -260,6 +262,36 @@ describe('EventMessages', () => {
       fireEvent.click(screen.getByTestId('event-message-edit-save'));
       await waitFor(() => expect(editMessageMock).toHaveBeenCalledWith('mine', '<p>Neu</p>'));
       await waitFor(() => expect(screen.queryByTestId('event-message-edit-input')).toBeNull());
+    });
+
+    it('lets users delete only their own messages', () => {
+      mockMessages();
+      render(<EventMessages eventId="event-1" />);
+      expect(screen.getAllByTestId('event-message-delete')).toHaveLength(1);
+    });
+
+    it('lets admins delete all admin messages but not user messages', () => {
+      useAuth.mockReturnValue({ user: { uid: 'admin-2' }, role: 'Admin' });
+      mockMessages();
+      render(<EventMessages eventId="event-1" />);
+      expect(screen.getAllByTestId('event-message-delete')).toHaveLength(1);
+    });
+
+    it('deletes a message after confirmation', async () => {
+      deleteMessageMock.mockResolvedValue(undefined);
+      window.confirm = vi.fn().mockReturnValue(true);
+      useEventMessages.mockReturnValue({
+        messages: [{ id: 'mine', text: '<p>Meine</p>', authorUid: 'user-1', authorRole: 'User' }],
+        loading: false,
+        sending: false,
+        sendMessage: sendMessageMock,
+        editMessage: editMessageMock,
+        deleteMessage: deleteMessageMock,
+        markAsRead: markAsReadMock,
+      });
+      render(<EventMessages eventId="event-1" />);
+      fireEvent.click(screen.getByTestId('event-message-delete'));
+      await waitFor(() => expect(deleteMessageMock).toHaveBeenCalledWith('mine'));
     });
 
     it('cancels editing without saving', async () => {

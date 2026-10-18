@@ -122,6 +122,16 @@ export function useEventMessages(eventId) {
     [user, eventId]
   );
 
+  const deleteMessage = useCallback(
+    async (messageId) => {
+      if (!user || !eventId) {
+        throw new Error('Nicht angemeldet oder Event fehlt.');
+      }
+      await deleteDoc(doc(db, 'events', eventId, 'messages', messageId));
+    },
+    [user, eventId]
+  );
+
   return {
     messages,
     loading,
@@ -129,6 +139,7 @@ export function useEventMessages(eventId) {
     sending,
     sendMessage,
     editMessage,
+    deleteMessage,
     markAsRead,
     MAX_MESSAGE_LENGTH,
   };
