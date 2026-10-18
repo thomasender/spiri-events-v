@@ -171,11 +171,15 @@ export function bareUsername(handle: string): string {
 /**
  * Invalid/private/nonexistent username (110/2207018) or user_tags on a carousel
  * parent (100/2207065): the container can be created again without the invite.
+ * "User not visible" (HTTP 400, private or untaggable account) is matched by
+ * message because its code/subcode is not documented.
  */
 export function isInviteRejection(err: unknown): err is GraphApiError {
   return (
     err instanceof GraphApiError &&
-    ((err.code === 110 && err.subcode === 2207018) || (err.code === 100 && err.subcode === 2207065))
+    ((err.code === 110 && err.subcode === 2207018) ||
+      (err.code === 100 && err.subcode === 2207065) ||
+      /user not visible/i.test(err.message))
   );
 }
 
