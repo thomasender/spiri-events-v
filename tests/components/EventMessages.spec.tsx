@@ -8,15 +8,17 @@ vi.mock('../../src/hooks/useAuth', () => ({
 
 const sendMessageMock = vi.fn();
 const markAsReadMock = vi.fn();
+const editMessageMock = vi.fn();
 
 vi.mock('../../src/hooks/useEventMessages', () => ({
   useEventMessages: vi.fn(),
 }));
 
 vi.mock('../../src/components/RichTextEditorLazy', () => ({
-  default: ({ onChange, testId }) => (
+  default: ({ onChange, testId, value }) => (
     <div
       role="textbox"
+      data-initial={value}
       data-testid={testId}
       contentEditable
       suppressContentEditableWarning
@@ -33,6 +35,7 @@ describe('EventMessages', () => {
   beforeEach(() => {
     sendMessageMock.mockReset();
     markAsReadMock.mockReset();
+    editMessageMock.mockReset();
     useAuth.mockReturnValue({
       user: { uid: 'user-1', displayName: 'Anna' },
       role: 'User',
@@ -43,6 +46,7 @@ describe('EventMessages', () => {
       sending: false,
       sendMessage: sendMessageMock,
       markAsRead: markAsReadMock,
+      editMessage: editMessageMock,
     });
   });
 
@@ -196,5 +200,67 @@ describe('EventMessages', () => {
     render(<EventMessages eventId="event-1" />);
 
     expect(markAsReadMock).not.toHaveBeenCalled();
+  });
+
+  describe('editing', () => {
+    const ts = { toDate: () => new Date('2026-08-01T10:00:00Z') };
+    const mockMessages = () =>
+      useEventMessages.mockReturnValue({
+        messages: [
+          {
+            id: 'mine',
+            text: '<p>Meine</p>',
+            authorUid: 'user-1',
+            authorRole: 'User',
+            createdAt: ts,
+          },
+          {
+            id: 'theirs',
+            text: '<p>Fremde</p>',
+            authorUid: 'admin-1',
+            authorRole: 'Admin',
+            createdAt: ts,
+            editedAt: ts,
+          },
+        ],
+        loading: false,
+        sending: false,
+        sendMessage: sendMessageMock,
+        editMessage: editMessageMock,
+        markAsRead: markAsReadMock,
+      });
+
+    it('offers editing only on own messages', () => {
+      mockMessages();
+      render(<EventMessages eventId="event-1" />);
+      expect(screen.getAllByTestId('event-message-edit')).toHaveLength(1);
+    });
+
+    it('shows "(bearbeitet)" for edited messages', () => {
+      mockMessages();
+      render(<EventMessages eventId="event-1" />);
+      expect(screen.getAllByTestId('event-message-edited')).toHaveLength(1);
+    });
+
+    it('saves an edited message and closes the editor', async () => {
+      editMessageMock.mockResolvedValue(undefined);
+      mockMessages();
+      render(<EventMessages eventId="event-1" />);
+      fireEvent.click(screen.getByTestId('event-message-edit'));
+      const editor = await screen.findByTestId('event-message-edit-input');
+      fireEvent.input(editor, { target: { textContent: 'Neu' } });
+      fireEvent.click(screen.getByTestId('event-message-edit-save'));
+      await waitFor(() => expect(editMessageMock).toHaveBeenCalledWith('mine', '<p>Neu</p>'));
+      await waitFor(() => expect(screen.queryByTestId('event-message-edit-input')).toBeNull());
+    });
+
+    it('cancels editing without saving', async () => {
+      mockMessages();
+      render(<EventMessages eventId="event-1" />);
+      fireEvent.click(screen.getByTestId('event-message-edit'));
+      fireEvent.click(screen.getByTestId('event-message-edit-cancel'));
+      expect(screen.queryByTestId('event-message-edit-input')).toBeNull();
+      expect(editMessageMock).not.toHaveBeenCalled();
+    });
   });
 });

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, MessageSquare, ShieldCheck } from 'lucide-react';
+import { Send, MessageSquare, ShieldCheck, Pencil } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useEventMessages } from '../hooks/useEventMessages';
 import RichTextEditorLazy from './RichTextEditorLazy';
@@ -20,9 +20,14 @@ function formatTime(timestamp) {
 
 export default function EventMessages({ eventId, onReady }) {
   const { user, role } = useAuth();
-  const { messages, loading, sending, sendMessage, markAsRead } = useEventMessages(eventId);
+  const { messages, loading, sending, sendMessage, editMessage, markAsRead } =
+    useEventMessages(eventId);
   const [text, setText] = useState('');
   const [error, setError] = useState('');
+  const [editingId, setEditingId] = useState(null);
+  const [editText, setEditText] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editError, setEditError] = useState('');
   const listRef = useRef(null);
   const markedRef = useRef(new Set());
   const wasLoadingRef = useRef(true);
@@ -77,6 +82,33 @@ export default function EventMessages({ eventId, onReady }) {
     }
   };
 
+  const startEdit = (msg) => {
+    setEditingId(msg.id);
+    setEditText(messageToHtml(msg.text));
+    setEditError('');
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditText('');
+    setEditError('');
+  };
+
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    if (isHtmlEmpty(editText)) return;
+    setSavingEdit(true);
+    setEditError('');
+    try {
+      await editMessage(editingId, editText);
+      cancelEdit();
+    } catch (err) {
+      setEditError(err.message || 'Nachricht konnte nicht gespeichert werden.');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   return (
     <section
       className="event-messages"
@@ -125,7 +157,63 @@ export default function EventMessages({ eventId, onReady }) {
                     </span>
                     <span className="event-message-time">{formatTime(msg.createdAt)}</span>
                   </div>
-                  <RichTextView html={messageToHtml(msg.text)} className="event-message-text" />
+                  {editingId === msg.id ? (
+                    <form className="event-message-edit" onSubmit={handleSaveEdit}>
+                      <RichTextEditorLazy
+                        value={editText}
+                        onChange={setEditText}
+                        maxLength={MAX_MESSAGE_LENGTH}
+                        testId="event-message-edit-input"
+                        eventId={eventId}
+                      />
+                      <div className="event-messages-composer-footer">
+                        {editError && <span className="event-messages-error">{editError}</span>}
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={cancelEdit}
+                          data-testid="event-message-edit-cancel"
+                        >
+                          Abbrechen
+                        </button>
+                        <button
+                          type="submit"
+                          className="btn btn-primary btn-sm"
+                          disabled={savingEdit || isHtmlEmpty(editText)}
+                          data-testid="event-message-edit-save"
+                        >
+                          {savingEdit ? 'Wird gespeichert…' : 'Speichern'}
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <>
+                      <RichTextView html={messageToHtml(msg.text)} className="event-message-text" />
+                      {(msg.editedAt || isMine) && (
+                        <div className="event-message-footer">
+                          {msg.editedAt && (
+                            <span
+                              className="event-message-edited"
+                              data-testid="event-message-edited"
+                            >
+                              (bearbeitet)
+                            </span>
+                          )}
+                          {isMine && (
+                            <button
+                              type="button"
+                              className="event-message-edit-btn"
+                              onClick={() => startEdit(msg)}
+                              data-testid="event-message-edit"
+                            >
+                              <Pencil size={12} aria-hidden="true" />
+                              Bearbeiten
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
                 </li>
               );
             })}

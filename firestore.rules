@@ -218,6 +218,16 @@ service cloud.firestore {
                       && request.resource.data.diff(resource.data).affectedKeys()
                           .hasOnly(['readByRecipient']);
 
+        // Authors can edit their own messages at any time (no one else's).
+        allow update: if (isEventOwner(eventId) || isAdminOrEmulatorAdmin())
+                      && resource.data.authorUid == request.auth.uid
+                      && request.resource.data.diff(resource.data).affectedKeys()
+                          .hasOnly(['text', 'editedAt'])
+                      && request.resource.data.text is string
+                      && request.resource.data.text.size() > 0
+                      && request.resource.data.text.size() <= 20000
+                      && request.resource.data.editedAt == request.time;
+
         // Owners can permanently delete their own event's messages via the
         // Papierkorb. Admins can always delete messages.
         allow delete: if isAdminOrEmulatorAdmin() || isEventOwner(eventId);
