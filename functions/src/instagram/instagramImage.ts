@@ -616,9 +616,12 @@ function buildStoryListLayout(story: StoryModel, imageDataUri: string | null): N
 const STORY_IMAGE_SIZE = { width: 900, height: 560 };
 
 /** The event picture as a data URI for the story layout; null when missing or unreadable. */
-async function storyPicture(url: string, fetchImage: ImageFetcher): Promise<string | null> {
-  const jpeg = await tryRender(url, fetchImage, (src) =>
-    coverImage(src, STORY_IMAGE_SIZE.width, STORY_IMAGE_SIZE.height)
+async function storyPicture(
+  choice: InstagramImageChoice,
+  fetchImage: ImageFetcher
+): Promise<string | null> {
+  const jpeg = await tryRender(choice.url, fetchImage, (src) =>
+    cropToChoice(src, STORY_IMAGE_SIZE.width, STORY_IMAGE_SIZE.height, choice)
   );
   return jpeg ? `data:image/jpeg;base64,${jpeg.toString('base64')}` : null;
 }
@@ -629,8 +632,8 @@ export async function renderStoryImage(
   options: Pick<RenderOptions, 'fetchImage'> = {}
 ): Promise<Buffer> {
   const { width, height } = FORMAT_DIMENSIONS.story;
-  const picture = story.imageUrl
-    ? await storyPicture(story.imageUrl, options.fetchImage ?? defaultFetchImage)
+  const picture = story.image
+    ? await storyPicture(story.image, options.fetchImage ?? defaultFetchImage)
     : null;
   const svg = await satori(buildStoryListLayout(story, picture) as never, {
     width,

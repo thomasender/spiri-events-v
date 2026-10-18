@@ -102,16 +102,38 @@ describe('story content', () => {
     ).toEqual(['', '', '']);
   });
 
-  it('carries the event picture only for a story about a single event', () => {
-    const withImage = (id: string) => ev({ id, imageUrl: ` https://img/${id}.jpg ` });
+  it('carries the event picture and its crop only for a story about a single event', () => {
     const single = { bezirk: 'Feldkirch', part: 1, parts: 1 } as const;
-    expect(buildStoryModel({ ...single, events: [withImage('a')] }, DAY).imageUrl).toBe(
-      'https://img/a.jpg'
-    );
+    const own = ev({
+      id: 'a',
+      imageUrl: ' https://img/a.jpg ',
+      imageFocalPoint: { x: 0.4, y: 0.7 },
+      imageZoom: 1.5,
+    });
+    expect(buildStoryModel({ ...single, events: [own] }, DAY).image).toEqual({
+      url: 'https://img/a.jpg',
+      focalX: 0.4,
+      focalY: 0.7,
+      zoom: 1.5,
+    });
     expect(
-      buildStoryModel({ ...single, events: [withImage('a'), withImage('b')] }, DAY).imageUrl
-    ).toBe('');
-    expect(buildStoryModel({ ...single, events: [ev()] }, DAY).imageUrl).toBe('');
+      buildStoryModel(
+        { ...single, events: [own, ev({ id: 'b', imageUrl: 'https://img/b.jpg' })] },
+        DAY
+      ).image
+    ).toBeNull();
+    expect(buildStoryModel({ ...single, events: [ev()] }, DAY).image).toBeNull();
+  });
+
+  it('prefers the organizer pick for Instagram over the event crop', () => {
+    const picked = ev({
+      imageUrl: 'https://img/a.jpg',
+      imageFocalPoint: { x: 0.4, y: 0.7 },
+      instagramImage: { url: 'https://img/ig.jpg', focalPoint: { x: 0.1, y: 0.2 }, zoom: 2 },
+    });
+    expect(
+      buildStoryModel({ bezirk: 'Feldkirch', part: 1, parts: 1, events: [picked] }, DAY).image
+    ).toEqual({ url: 'https://img/ig.jpg', focalX: 0.1, focalY: 0.2, zoom: 2 });
   });
 
   it('has no suffix for part 1 and _p<n> afterwards', () => {

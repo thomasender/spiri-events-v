@@ -84,6 +84,9 @@ export interface InstagramEventInput {
   organizer?: unknown;
   /** Organizer's pick for the post: { url, focalPoint: { x, y }, zoom }. */
   instagramImage?: unknown;
+  /** Crop of the event's own picture as set in the event form: { x, y } and imageZoom. */
+  imageFocalPoint?: unknown;
+  imageZoom?: unknown;
 }
 
 /** Validated organizer pick of photo + 4:5 crop for the Instagram post. */
@@ -113,6 +116,29 @@ export function parseInstagramImageChoice(value: unknown): InstagramImageChoice 
       ? (raw.focalPoint as { x?: unknown; y?: unknown })
       : {};
   const zoom = Number(raw.zoom);
+  return {
+    url,
+    focalX: clampUnit(focal.x),
+    focalY: clampUnit(focal.y),
+    zoom: Number.isFinite(zoom) ? Math.min(MAX_INSTAGRAM_ZOOM, Math.max(1, zoom)) : 1,
+  };
+}
+
+/**
+ * Picture and crop for a story about one event: the organizer's Instagram pick
+ * if there is one, otherwise the event picture with the crop (focal point and
+ * zoom) the organizer set in the event form. Null without a usable picture.
+ */
+export function resolveEventImageChoice(event: InstagramEventInput): InstagramImageChoice | null {
+  const picked = parseInstagramImageChoice(event.instagramImage);
+  if (picked) return picked;
+  const url = asString(event.imageUrl);
+  if (!/^https:\/\//i.test(url)) return null;
+  const focal =
+    event.imageFocalPoint && typeof event.imageFocalPoint === 'object'
+      ? (event.imageFocalPoint as { x?: unknown; y?: unknown })
+      : {};
+  const zoom = Number(event.imageZoom);
   return {
     url,
     focalX: clampUnit(focal.x),

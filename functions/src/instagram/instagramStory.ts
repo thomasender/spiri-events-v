@@ -12,10 +12,12 @@ import {
   formatEventDate,
   formatEventTime,
   resolveCategoryColor,
+  resolveEventImageChoice,
   stripImageUnsafeChars,
   truncateText,
   truncateTitle,
   type InstagramEventInput,
+  type InstagramImageChoice,
 } from './instagramContent';
 import {
   CAROUSEL_BEZIRKE,
@@ -62,8 +64,8 @@ export interface StoryModel {
   /** "Teil 1 von 2"; empty for a single story */
   partLabel: string;
   items: StoryItem[];
-  /** The event's own picture, only for a story about a single event; '' otherwise. */
-  imageUrl: string;
+  /** The event's own picture and crop, only for a story about a single event. */
+  image: InstagramImageChoice | null;
 }
 
 export interface StoryGroup {
@@ -140,7 +142,7 @@ export function buildStoryModel(
     bezirk: stripImageUnsafeChars(bezirkInPhrase(group.bezirk)),
     dateLabel: formatEventDate(day),
     partLabel: group.parts > 1 ? `Teil ${group.part} von ${group.parts}` : '',
-    imageUrl: group.events.length === 1 ? asString(group.events[0].imageUrl) : '',
+    image: group.events.length === 1 ? resolveEventImageChoice(group.events[0]) : null,
     // Only short stories have room for the organizer line.
     items: group.events.map((e, i) =>
       buildStoryItem(
