@@ -62,6 +62,8 @@ export interface StoryModel {
   /** "Teil 1 von 2"; empty for a single story */
   partLabel: string;
   items: StoryItem[];
+  /** The event's own picture, only for a story about a single event; '' otherwise. */
+  imageUrl: string;
 }
 
 export interface StoryGroup {
@@ -138,6 +140,7 @@ export function buildStoryModel(
     bezirk: stripImageUnsafeChars(bezirkInPhrase(group.bezirk)),
     dateLabel: formatEventDate(day),
     partLabel: group.parts > 1 ? `Teil ${group.part} von ${group.parts}` : '',
+    imageUrl: group.events.length === 1 ? asString(group.events[0].imageUrl) : '',
     // Only short stories have room for the organizer line.
     items: group.events.map((e, i) =>
       buildStoryItem(

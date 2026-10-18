@@ -102,6 +102,18 @@ describe('story content', () => {
     ).toEqual(['', '', '']);
   });
 
+  it('carries the event picture only for a story about a single event', () => {
+    const withImage = (id: string) => ev({ id, imageUrl: ` https://img/${id}.jpg ` });
+    const single = { bezirk: 'Feldkirch', part: 1, parts: 1 } as const;
+    expect(buildStoryModel({ ...single, events: [withImage('a')] }, DAY).imageUrl).toBe(
+      'https://img/a.jpg'
+    );
+    expect(
+      buildStoryModel({ ...single, events: [withImage('a'), withImage('b')] }, DAY).imageUrl
+    ).toBe('');
+    expect(buildStoryModel({ ...single, events: [ev()] }, DAY).imageUrl).toBe('');
+  });
+
   it('has no suffix for part 1 and _p<n> afterwards', () => {
     expect(storyPostId('Feldkirch', DAY, 1)).toBe('story_feldkirch_2026-10-17');
     expect(storyPostId('Feldkirch', DAY, 2)).toBe('story_feldkirch_2026-10-17_p2');

@@ -506,10 +506,10 @@ function logoNode(width: number): Node {
 }
 
 /** Story 9:16 with the day's events as a list; top/bottom stay clear of Instagram's UI. */
-function buildStoryListLayout(story: StoryModel): Node {
+function buildStoryListLayout(story: StoryModel, imageDataUri: string | null): Node {
   const { width, height } = FORMAT_DIMENSIONS.story;
   const pad = 90;
-  const compact = story.items.length > 2;
+  const compact = story.items.length > 2 || imageDataUri !== null;
   return el(
     'div',
     {
@@ -525,11 +525,16 @@ function buildStoryListLayout(story: StoryModel): Node {
     [
       el('div', { flexDirection: 'column' }, [
         el('div', { alignSelf: 'center', marginBottom: compact ? 30 : 50 }, [
-          logoNode(compact ? 420 : 600),
+          logoNode(imageDataUri ? 300 : compact ? 420 : 600),
         ]),
         el(
           'div',
-          { fontFamily: 'Cormorant Garamond', fontWeight: 700, fontSize: 150, lineHeight: 1 },
+          {
+            fontFamily: 'Cormorant Garamond',
+            fontWeight: 700,
+            fontSize: imageDataUri ? 120 : 150,
+            lineHeight: 1,
+          },
           story.heading
         ),
         el('div', { fontSize: 64, fontWeight: 700, marginTop: 18 }, story.bezirk),
@@ -539,6 +544,17 @@ function buildStoryListLayout(story: StoryModel): Node {
           [story.dateLabel, story.partLabel].filter(Boolean).join('  ·  ')
         ),
       ]),
+      imageDataUri
+        ? {
+            type: 'img',
+            props: {
+              src: imageDataUri,
+              width: STORY_IMAGE_SIZE.width,
+              height: STORY_IMAGE_SIZE.height,
+              style: { display: 'flex', borderRadius: 28 },
+            },
+          }
+        : null,
       el(
         'div',
         { flexDirection: 'column' },
@@ -596,10 +612,27 @@ function buildStoryListLayout(story: StoryModel): Node {
   );
 }
 
-/** Renders one "Heute in <Bezirk>" story as a JPEG buffer. */
-export async function renderStoryImage(story: StoryModel): Promise<Buffer> {
+/** Slot for the event picture in a single-event story (story width minus 2 x 90px padding). */
+const STORY_IMAGE_SIZE = { width: 900, height: 560 };
+
+/** The event picture as a data URI for the story layout; null when missing or unreadable. */
+async function storyPicture(url: string, fetchImage: ImageFetcher): Promise<string | null> {
+  const jpeg = await tryRender(url, fetchImage, (src) =>
+    coverImage(src, STORY_IMAGE_SIZE.width, STORY_IMAGE_SIZE.height)
+  );
+  return jpeg ? `data:image/jpeg;base64,${jpeg.toString('base64')}` : null;
+}
+
+/** Renders one story (overview list or single event) as a JPEG buffer. */
+export async function renderStoryImage(
+  story: StoryModel,
+  options: Pick<RenderOptions, 'fetchImage'> = {}
+): Promise<Buffer> {
   const { width, height } = FORMAT_DIMENSIONS.story;
-  const svg = await satori(buildStoryListLayout(story) as never, {
+  const picture = story.imageUrl
+    ? await storyPicture(story.imageUrl, options.fetchImage ?? defaultFetchImage)
+    : null;
+  const svg = await satori(buildStoryListLayout(story, picture) as never, {
     width,
     height,
     fonts: loadFonts(),
