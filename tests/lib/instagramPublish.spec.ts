@@ -412,6 +412,7 @@ describe('collaborator invite and user tag', () => {
   it.each([
     ['110/2207018', ERR_110],
     ['100/2207065', ERR_2207065],
+    ['100/', { error: { message: 'User not visible', code: 100 } }],
   ])('retries once without invite params on %s and still publishes', async (code, err) => {
     const h = harnessWithContainerResponses('@kakao.maria', [json(err, 400)]);
     expect(await publishApprovedEvent(h.deps, 'e1', { status: 'pending' }, futureEvent)).toBe(
