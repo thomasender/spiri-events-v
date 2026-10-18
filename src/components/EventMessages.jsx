@@ -138,6 +138,8 @@ export default function EventMessages({ eventId, onReady }) {
           <ul className="event-messages-list">
             {messages.map((msg) => {
               const isMine = msg.authorUid === user?.uid;
+              // Admins may edit every admin message, whoever wrote it.
+              const canEdit = isMine || (role === 'Admin' && msg.authorRole === 'Admin');
               const isAdmin = msg.authorRole === 'Admin';
               return (
                 <li
@@ -189,7 +191,7 @@ export default function EventMessages({ eventId, onReady }) {
                   ) : (
                     <>
                       <RichTextView html={messageToHtml(msg.text)} className="event-message-text" />
-                      {(msg.editedAt || isMine) && (
+                      {(msg.editedAt || canEdit) && (
                         <div className="event-message-footer">
                           {msg.editedAt && (
                             <span
@@ -199,7 +201,7 @@ export default function EventMessages({ eventId, onReady }) {
                               (bearbeitet)
                             </span>
                           )}
-                          {isMine && (
+                          {canEdit && (
                             <button
                               type="button"
                               className="event-message-edit-btn"

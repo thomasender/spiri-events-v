@@ -218,9 +218,14 @@ service cloud.firestore {
                       && request.resource.data.diff(resource.data).affectedKeys()
                           .hasOnly(['readByRecipient']);
 
-        // Authors can edit their own messages at any time (no one else's).
-        allow update: if (isEventOwner(eventId) || isAdminOrEmulatorAdmin())
-                      && resource.data.authorUid == request.auth.uid
+        // Authors can edit their own messages at any time. Admins can edit every
+        // admin message, whichever admin account wrote it (the role counts, not
+        // the owner). They cannot edit a user's messages.
+        allow update: if (
+                        ((isEventOwner(eventId) || isAdminOrEmulatorAdmin())
+                          && resource.data.authorUid == request.auth.uid)
+                        || (isAdminOrEmulatorAdmin() && resource.data.authorRole == 'Admin')
+                      )
                       && request.resource.data.diff(resource.data).affectedKeys()
                           .hasOnly(['text', 'editedAt'])
                       && request.resource.data.text is string

@@ -236,6 +236,14 @@ describe('EventMessages', () => {
       expect(screen.getAllByTestId('event-message-edit')).toHaveLength(1);
     });
 
+    it('lets an admin edit messages of other admins, but not of users', () => {
+      useAuth.mockReturnValue({ user: { uid: 'admin-2', displayName: 'Zweiter' }, role: 'Admin' });
+      mockMessages();
+      render(<EventMessages eventId="event-1" />);
+      // only the message written by admin-1; the user's message stays read-only
+      expect(screen.getAllByTestId('event-message-edit')).toHaveLength(1);
+    });
+
     it('shows "(bearbeitet)" for edited messages', () => {
       mockMessages();
       render(<EventMessages eventId="event-1" />);
