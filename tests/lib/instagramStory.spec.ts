@@ -3,6 +3,8 @@ import {
   MAX_EVENTS_PER_STORY,
   buildStoryItem,
   buildStoryModel,
+  formatStoryDate,
+  overviewStoryTitle,
   groupStories,
   runDailyStory,
   storyPostId,
@@ -15,6 +17,8 @@ const TOKEN = 'SECRET_TOKEN_123';
 // Saturday 2026-10-17, 09:00 Vienna (CEST, UTC+2)
 const NOW = new Date('2026-10-17T07:00:00Z');
 const DAY = '2026-10-17';
+// runDailyStory posts the day before, so with NOW on the 17th it covers the 18th.
+const TOMORROW = '2026-10-18';
 
 function ev(over: Partial<CarouselEvent> = {}): CarouselEvent {
   return {
@@ -84,7 +88,7 @@ describe('story content', () => {
     expect(model).toMatchObject({
       heading: 'Heute',
       bezirk: 'in Feldkirch',
-      dateLabel: 'Sa, 17. Okt',
+      dateLabel: 'Samstag, 17. Oktober',
       partLabel: '',
     });
     expect(model.items).toHaveLength(1);
@@ -202,31 +206,31 @@ describe('runDailyStory', () => {
   }
 
   it('posts one story with media_type STORIES and records it', async () => {
-    const h = makeHarness();
+    const h = makeHarness({ events: [ev({ date: TOMORROW })] });
     const outcome = await runDailyStory(h.deps, 'Feldkirch');
     expect(outcome).toEqual({
       status: 'done',
-      day: DAY,
-      results: [{ id: 'story_feldkirch_2026-10-17', outcome: 'published' }],
+      day: TOMORROW,
+      results: [{ id: 'story_feldkirch_2026-10-18', outcome: 'published' }],
     });
     expect(h.bodies[0].get('media_type')).toBe('STORIES');
-    expect(h.bodies[0].get('image_url')).toBe('https://img/story_feldkirch_2026-10-17.jpg');
+    expect(h.bodies[0].get('image_url')).toBe('https://img/story_feldkirch_2026-10-18.jpg');
     expect(h.bodies[1].get('creation_id')).toBe('container1');
-    expect(h.posts.get('story_feldkirch_2026-10-17')).toMatchObject({
+    expect(h.posts.get('story_feldkirch_2026-10-18')).toMatchObject({
       type: 'story',
       status: 'published',
       igMediaId: 'media1',
       permalink: 'https://instagram.com/stories/x/1/',
       eventIds: ['e1'],
     });
-    expect(h.deps.listEvents).toHaveBeenCalledWith({ start: DAY, end: DAY });
+    expect(h.deps.listEvents).toHaveBeenCalledWith({ start: TOMORROW, end: TOMORROW });
   });
 
   it('uses the Vienna day, not UTC (00:30 Vienna is still the day before in UTC)', async () => {
-    const h = makeHarness({ events: [ev({ date: '2026-10-18' })] });
+    const h = makeHarness({ events: [ev({ date: '2026-10-19' })] });
     vi.setSystemTime(new Date('2026-10-17T22:30:00Z'));
     const outcome = await runDailyStory(h.deps, 'Feldkirch');
-    expect(outcome).toMatchObject({ day: '2026-10-18' });
+    expect(outcome).toMatchObject({ day: '2026-10-19' });
   });
 
   it('does nothing when posting is disabled', async () => {
@@ -239,30 +243,34 @@ describe('runDailyStory', () => {
     const h = makeHarness({ events: [] });
     expect(await runDailyStory(h.deps, 'Feldkirch')).toEqual({
       status: 'done',
-      day: DAY,
+      day: TOMORROW,
       results: [],
     });
     expect(h.fetchMock).not.toHaveBeenCalled();
   });
 
   it('does not post twice for the same Bezirk and day', async () => {
-    const h = makeHarness({ existing: ['story_feldkirch_2026-10-17'] });
+    const h = makeHarness({
+      events: [ev({ date: TOMORROW })],
+      existing: ['story_feldkirch_2026-10-18'],
+    });
     const outcome = await runDailyStory(h.deps, 'Feldkirch');
     expect(outcome).toMatchObject({
-      results: [{ id: 'story_feldkirch_2026-10-17', outcome: 'duplicate' }],
+      results: [{ id: 'story_feldkirch_2026-10-18', outcome: 'duplicate' }],
     });
     expect(h.fetchMock).not.toHaveBeenCalled();
   });
 
   it('records the failure, mails the admins and never leaks the token', async () => {
     const h = makeHarness({
+      events: [ev({ date: TOMORROW })],
       fetchImpl: () => json({ error: { message: `bad token ${TOKEN}` } }, 400),
     });
     const outcome = await runDailyStory(h.deps, 'Feldkirch');
     expect(outcome).toMatchObject({
-      results: [{ id: 'story_feldkirch_2026-10-17', outcome: 'failed' }],
+      results: [{ id: 'story_feldkirch_2026-10-18', outcome: 'failed' }],
     });
-    const record = h.posts.get('story_feldkirch_2026-10-17');
+    const record = h.posts.get('story_feldkirch_2026-10-18');
     expect(record?.status).toBe('failed');
     expect(String(record?.error)).not.toContain(TOKEN);
     expect(h.notify).toHaveBeenCalledTimes(1);
@@ -271,6 +279,7 @@ describe('runDailyStory', () => {
 
   it('still counts the story as published when the permalink lookup fails', async () => {
     const h = makeHarness({
+      events: [ev({ date: TOMORROW })],
       fetchImpl: (url, init) => {
         if (url.includes('/media1?')) return json({ error: { message: 'nope' } }, 500);
         if (url.endsWith('/media') && init?.method === 'POST') return json({ id: 'container1' });
@@ -280,9 +289,24 @@ describe('runDailyStory', () => {
     });
     const outcome = await runDailyStory(h.deps, 'Feldkirch');
     expect(outcome).toMatchObject({ results: [{ outcome: 'published' }] });
-    expect(h.posts.get('story_feldkirch_2026-10-17')).toMatchObject({
+    expect(h.posts.get('story_feldkirch_2026-10-18')).toMatchObject({
       status: 'published',
       permalink: null,
     });
+  });
+});
+
+describe('story title and date', () => {
+  it('titles the overview "Morgen in <Bezirk>"', () => {
+    expect(overviewStoryTitle('Dornbirn')).toBe('Morgen in Dornbirn');
+    expect(overviewStoryTitle('Grenznahe')).toBe('Morgen in der Umgebung');
+    expect(overviewStoryTitle('Dornbirn', 'Morgen Abend')).toBe('Morgen Abend in Dornbirn');
+  });
+
+  it('writes weekday and date out in full', () => {
+    expect(formatStoryDate('2026-10-18')).toBe('Sonntag, 18. Oktober');
+    expect(formatStoryDate('kaputt')).toBe('');
+    const [group] = groupStories([ev({ date: TOMORROW })], TOMORROW, 'Feldkirch');
+    expect(buildStoryModel(group, TOMORROW, null, 'Morgen').dateLabel).toBe('Sonntag, 18. Oktober');
   });
 });

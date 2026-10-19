@@ -540,7 +540,7 @@ function buildStoryListLayout(story: StoryModel, imageDataUri: string | null): N
         el('div', { fontSize: 64, fontWeight: 700, marginTop: 18 }, story.bezirk),
         el(
           'div',
-          { fontSize: 44, fontWeight: 400, marginTop: 12, opacity: 0.8 },
+          { fontSize: 56, fontWeight: 700, marginTop: 12 },
           [story.dateLabel, story.partLabel].filter(Boolean).join('  ·  ')
         ),
       ]),

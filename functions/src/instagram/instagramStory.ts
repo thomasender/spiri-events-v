@@ -1,6 +1,6 @@
 /**
- * Pure logic for the daily Instagram story: "Heute in <Bezirk>" with the
- * events that start today (Europe/Vienna). Same shape as the weekly carousel:
+ * Pure logic for the daily Instagram story: "Morgen in <Bezirk>" (posted the day
+ * before) with the events that start tomorrow (Europe/Vienna). Same shape as the weekly carousel:
  * all I/O is injected through StoryDeps so tests/lib/instagramStory.spec.ts can
  * drive every branch without Firebase or the real Instagram API.
  *
@@ -9,7 +9,6 @@
  */
 
 import {
-  formatEventDate,
   formatEventTime,
   resolveCategoryColor,
   resolveEventImageChoice,
@@ -34,9 +33,35 @@ import {
   sanitizeError,
   describeInstagramError,
   viennaToday,
+  viennaTomorrow,
   waitForContainer,
   type PostStatus,
 } from './instagramPublish';
+
+/** Heading of the overview story: it is posted the day before and shows tomorrow's events. */
+export const OVERVIEW_STORY_HEADING = 'Morgen';
+
+/** "Samstag, 17. Oktober" - weekday and date written out so they are easy to read in a story. */
+export function formatStoryDate(day: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
+  if (!match) return '';
+  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+  if (Number.isNaN(date.getTime())) return '';
+  const weekday = new Intl.DateTimeFormat('de-AT', { weekday: 'long', timeZone: 'UTC' }).format(
+    date
+  );
+  const dayMonth = new Intl.DateTimeFormat('de-AT', {
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'UTC',
+  }).format(date);
+  return `${weekday}, ${dayMonth}`;
+}
+
+/** "Morgen in Dornbirn" - the full title of an overview story. */
+export function overviewStoryTitle(bezirk: string, heading = OVERVIEW_STORY_HEADING): string {
+  return `${heading} ${stripImageUnsafeChars(bezirkInPhrase(bezirk))}`.trim();
+}
 
 /** Events per story image; more events are spread over several stories. */
 export const MAX_EVENTS_PER_STORY = 4;
@@ -141,7 +166,7 @@ export function buildStoryModel(
   return {
     heading,
     bezirk: stripImageUnsafeChars(bezirkInPhrase(group.bezirk)),
-    dateLabel: formatEventDate(day),
+    dateLabel: formatStoryDate(day),
     partLabel: group.parts > 1 ? `Teil ${group.part} von ${group.parts}` : '',
     image: group.events.length === 1 ? resolveEventImageChoice(group.events[0]) : null,
     // Only short stories have room for the organizer line.
@@ -353,7 +378,8 @@ export async function runDailyStories(
     return { status: 'disabled' };
   }
 
-  const day = viennaToday((deps.now ?? (() => new Date()))());
+  // Posted the day before (15:00 Vienna): the story is about tomorrow's events.
+  const day = viennaTomorrow((deps.now ?? (() => new Date()))());
   const events = await deps.listEvents({ start: day, end: day });
   const results: StoryResult[] = [];
 
@@ -365,7 +391,8 @@ export async function runDailyStories(
       results.push(
         await postStoryGroup(deps, group, day, storyPostId(group.bezirk, day, group.part), {
           kind: 'overview',
-          postedDay: day,
+          postedDay: viennaToday((deps.now ?? (() => new Date()))()),
+          heading: OVERVIEW_STORY_HEADING,
         })
       );
     }
@@ -374,7 +401,7 @@ export async function runDailyStories(
 }
 
 /**
- * Posts today's story/stories for one Bezirk. One post per Bezirk, day and
+ * Posts tomorrow's story/stories for one Bezirk. One post per Bezirk, day and
  * part (instagram_posts doc id), so a second run the same day posts nothing.
  */
 export function runDailyStory(deps: StoryDeps, bezirk: string): Promise<StoryRunOutcome> {
