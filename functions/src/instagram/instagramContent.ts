@@ -502,6 +502,16 @@ export function buildFurtherDatesBlock(event: InstagramEventInput, now: Date = n
   return ['🗓 Weitere Termine:', ...lines].join('\n');
 }
 
+/** "Soundhealing in Dornbirn:" (second line of the caption); '' without a category. */
+function buildCategoryLine(event: InstagramEventInput): string {
+  const category = asString(event.category);
+  if (!category) return '';
+  const bezirk = asString(event.bezirk);
+  if (isOnlineEvent(event.isOnline) || bezirk.toLowerCase() === 'online')
+    return `${category} online:`;
+  return bezirk ? `${category} in ${bezirk}:` : `${category}:`;
+}
+
 /**
  * Feed caption: headline facts first, a short description, then the call to
  * action, the bio-link hint and the hashtags. Always <= CAPTION_MAX_LENGTH (Instagram's hard limit); the
@@ -520,10 +530,12 @@ export function buildCaption(
   const when = [model.dateLabel, model.timeLabel].filter(Boolean).join(' · ');
   const handle = normalizeInstagramHandle(organizerHandle);
   const header = [
-    title,
-    [when && `📅 ${when}`, location && `📍 ${location}`].filter(Boolean).join('\n'),
+    [when && `📅 ${when}`, buildCategoryLine(event), location && `📍 ${location}`]
+      .filter(Boolean)
+      .join('\n'),
     buildFurtherDatesBlock(event, now),
     handle ? `Mit ${handle}` : '',
+    title,
   ]
     .filter(Boolean)
     .join('\n\n');

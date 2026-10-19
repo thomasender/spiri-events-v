@@ -203,6 +203,26 @@ describe('instagram content', () => {
     });
   });
 
+  it('starts with date, category in district, address, organizer, title, then description', () => {
+    const caption = buildCaption(
+      {
+        title: 'Floating Gongbath',
+        date: '2026-10-18',
+        time: '19:00',
+        category: 'Soundhealing',
+        place: 'Le studio, Steinebach 7',
+        bezirk: 'Dornbirn',
+        description: '<p>Beschreibung</p>',
+      },
+      '@cosmic.klang_'
+    );
+    expect(
+      caption.startsWith(
+        '📅 So, 18. Okt · 19:00 Uhr\nSoundhealing in Dornbirn:\n📍 Le studio, Steinebach 7, Dornbirn\n\nMit @cosmic.klang_\n\nFloating Gongbath\n\nBeschreibung\n\n'
+      )
+    ).toBe(true);
+  });
+
   it('builds a caption for a bare-minimum event without empty sections', () => {
     const caption = buildCaption({ title: 'Kakao', date: '2026-10-17' });
     expect(caption).toContain('Kakao');
