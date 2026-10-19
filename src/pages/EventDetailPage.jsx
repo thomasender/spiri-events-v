@@ -15,6 +15,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { isLegacyId } from '../lib/slug';
+import { trackCalendarAdd, trackOrganizerLinkClick } from '../lib/analyticsEvents';
 import {
   Calendar,
   Clock,
@@ -496,6 +497,7 @@ export default function EventDetailPage() {
       const token = await requestCalendarFeedToken();
       const slug = encodeURIComponent(event.slug || event.id);
       startCalendarDownload(`/calendar/event/${slug}.ics?token=${encodeURIComponent(token)}`);
+      trackCalendarAdd(event);
       setCalendarDownloadState('idle');
     } catch (err) {
       console.warn('Calendar download failed:', err);
@@ -951,6 +953,7 @@ export default function EventDetailPage() {
           target="_blank"
           rel="noopener noreferrer"
           className="btn btn-primary event-link"
+          onClick={() => trackOrganizerLinkClick(event, normalizeLink(event.link))}
         >
           <span>Mehr Infos & Tickets</span>
           <ExternalLink size={16} />

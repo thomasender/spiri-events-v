@@ -12,6 +12,8 @@ export const EVENTS = Object.freeze({
   FAVORITE_REMOVE: 'favorite_remove',
   SHARE: 'share',
   OUTBOUND_CLICK: 'outbound_click',
+  ORGANIZER_LINK_CLICK: 'organizer_link_click',
+  CALENDAR_ADD: 'calendar_add',
   CALENDAR_VIEW_CHANGE: 'calendar_view_change',
   DONATE_CLICK: 'donate_click',
   DONATE_COMPLETE: 'donate_complete',
@@ -40,6 +42,7 @@ let consent = false;
 let adminUser = false;
 let sdk = null; // { mod, instance }
 let initPromise = null;
+let lastPageLocation = null; // previous in-app page, sent as page_referrer
 
 function envAllowed() {
   try {
@@ -127,8 +130,21 @@ export async function setAnalyticsAdminUser(isAdmin) {
   applyState();
 }
 
+/** Current page URL without query string or hash (no tokens, no search terms). */
+function currentPageLocation() {
+  try {
+    const { origin, pathname } = window.location;
+    return origin && pathname ? `${origin}${pathname}` : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function cleanParams(params) {
-  const out = {};
+  // page_location ties every event to the page it happened on, so the admin
+  // statistics can count e.g. "Mehr Infos" clicks per event page.
+  const out = { page_location: currentPageLocation() };
+  if (out.page_location === undefined) delete out.page_location;
   for (const [k, v] of Object.entries(params || {})) {
     if (v === undefined || v === null || PII_KEYS.has(k.toLowerCase())) continue;
     out[k] = v;
@@ -147,8 +163,20 @@ export async function trackEvent(name, params) {
   }
 }
 
-/** Sends page_view; query string and hash are always dropped. */
+/**
+ * Sends page_view; query string and hash are always dropped. From the second
+ * page view on, page_referrer is the previous page of this site, so the admin
+ * statistics can show "came from Kalender / Verzeichnis …". The first one keeps
+ * GA's default (the external referrer, e.g. Instagram).
+ */
 export async function trackPageView(path, title) {
   const clean = String(path ?? '').split(/[?#]/)[0];
-  return trackEvent(EVENTS.PAGE_VIEW, { page_path: clean, page_title: title });
+  const location = currentPageLocation();
+  const referrer = lastPageLocation && lastPageLocation !== location ? lastPageLocation : undefined;
+  if (collecting() && envAllowed()) lastPageLocation = location ?? null;
+  return trackEvent(EVENTS.PAGE_VIEW, {
+    page_path: clean,
+    page_title: title,
+    page_referrer: referrer,
+  });
 }

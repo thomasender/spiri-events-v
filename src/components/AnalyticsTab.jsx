@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { AlertTriangle, ExternalLink, RefreshCw } from 'lucide-react';
 import { useAdminAnalytics } from '../hooks/useAdminAnalytics';
 import './AnalyticsTab.css';
 
@@ -10,6 +10,8 @@ export const ACTION_LABELS = {
   favorite_add: 'Favorit gesetzt',
   share: 'Event geteilt',
   outbound_click: 'Externer Link geklickt',
+  organizer_link_click: '„Mehr Infos“ beim Event geklickt',
+  calendar_add: 'Event in Kalender gespeichert',
   donate_click: 'Spenden-Klick',
   donate_complete: 'Spende abgeschlossen',
   sign_up: 'Registrierung',
@@ -97,6 +99,126 @@ function DailyChart({ daily }) {
   );
 }
 
+/** 75 -> "1:15 Min", 42 -> "42 Sek". */
+export function formatDuration(seconds) {
+  const s = Math.max(0, Math.round(Number(seconds) || 0));
+  if (s < 60) return `${s} Sek`;
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} Min`;
+}
+
+export function formatPercent(part, total) {
+  if (!total) return '0 %';
+  return `${Math.round((part / total) * 100)} %`;
+}
+
+const toItems = (list, labels = {}) =>
+  (list ?? []).map((x) => ({ label: labels[x.label] ?? x.label, value: x.count }));
+
+function MiniStat({ label, value, note }) {
+  return (
+    <div className="analytics-mini" data-testid="analytics-mini">
+      <span className="analytics-mini-value">{value}</span>
+      <span className="analytics-mini-label">{label}</span>
+      {note && <span className="analytics-mini-note">{note}</span>}
+    </div>
+  );
+}
+
+function TopEventDetails({ event, actionsSince }) {
+  const since = `gezählt seit ${formatDay(actionsSince)}${String(actionsSince).slice(0, 4)}`;
+  return (
+    <div className="analytics-event-details">
+      <div className="analytics-minis">
+        <MiniStat
+          label="Ø Verweildauer pro Person"
+          value={formatDuration(event.avgEngagementSec)}
+        />
+        <MiniStat
+          label="„Mehr Infos“-Klicks"
+          value={formatNumber(event.organizerClicks)}
+          note={`${formatPercent(event.organizerClicks, event.views)} der Aufrufe · ${since}`}
+        />
+        <MiniStat label="Als Favorit gemerkt" value={formatNumber(event.favorites)} />
+        <MiniStat label="Geteilt" value={formatNumber(event.shares)} />
+        <MiniStat
+          label="In Kalender gespeichert"
+          value={formatNumber(event.calendarAdds)}
+          note={since}
+        />
+        <MiniStat
+          label="Wiederkehrende Besucher:innen"
+          value={formatNumber(event.returningUsers)}
+          note={`${formatNumber(event.newUsers)} zum ersten Mal da`}
+        />
+      </div>
+      <div className="analytics-event-grid">
+        <section>
+          <h3>Woher kommen die Besucher?</h3>
+          <BarList items={toItems(event.sources)} />
+        </section>
+        <section>
+          <h3>Von welcher Seite kamen sie?</h3>
+          <BarList items={toItems(event.referrers)} />
+        </section>
+        <section>
+          <h3>Aus welchen Orten?</h3>
+          <BarList items={toItems(event.cities)} />
+        </section>
+        <section>
+          <h3>Geräte</h3>
+          <BarList items={toItems(event.devices, DEVICE_LABELS)} />
+        </section>
+      </div>
+      <a
+        className="analytics-event-link"
+        href={`/event/${encodeURIComponent(event.slug)}`}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <span>Event-Seite öffnen</span>
+        <ExternalLink size={14} aria-hidden="true" />
+      </a>
+    </div>
+  );
+}
+
+function TopEvents({ topEvents }) {
+  if (!topEvents) {
+    return (
+      <p className="analytics-empty" data-testid="analytics-top-events-error">
+        Die Event-Statistik konnte gerade nicht geladen werden. Bitte später nochmal versuchen.
+      </p>
+    );
+  }
+  if (!topEvents.events?.length) {
+    return (
+      <p className="analytics-empty">
+        Noch keine Daten zu Event-Seiten in den letzten {topEvents.rangeDays} Tagen.
+      </p>
+    );
+  }
+  return (
+    <ol className="analytics-top-events" data-testid="analytics-top-events">
+      {topEvents.events.map((event, i) => (
+        <li key={event.slug}>
+          <details className="analytics-event" data-testid="analytics-top-event">
+            <summary>
+              <span className="analytics-event-rank">{i + 1}.</span>
+              <span className="analytics-event-title" title={event.title}>
+                {event.title}
+              </span>
+              <span className="analytics-event-meta">
+                {formatNumber(event.views)} Aufrufe · {formatNumber(event.users)} Personen
+              </span>
+            </summary>
+            <TopEventDetails event={event} actionsSince={topEvents.actionsSince} />
+          </details>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 function errorMessage(error) {
   const message = error?.message;
   return typeof message === 'string' && message
@@ -181,6 +303,15 @@ export default function AnalyticsTab() {
           <section className="analytics-card">
             <h2>Seitenaufrufe pro Tag</h2>
             <DailyChart daily={report.daily} />
+          </section>
+
+          <section className="analytics-card" data-testid="analytics-top-events-card">
+            <h2>Top 10 Events (letzte {report.topEvents?.rangeDays ?? 14} Tage)</h2>
+            <p className="analytics-hint">
+              Die meistbesuchten Event-Seiten. Auf ein Event klicken für Details. Dieser Block zeigt
+              immer die letzten 14 Tage, unabhängig vom gewählten Zeitraum oben.
+            </p>
+            <TopEvents topEvents={report.topEvents} />
           </section>
 
           <div className="analytics-grid">
