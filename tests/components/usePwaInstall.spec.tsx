@@ -9,6 +9,13 @@ import {
   writeStoredPref,
   _resetPwaInstallStateForTests,
 } from '../../src/hooks/usePwaInstall';
+import { EVENTS } from '../../src/lib/analytics';
+
+const track = vi.hoisted(() => vi.fn());
+vi.mock('../../src/lib/analytics', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../src/lib/analytics')>()),
+  trackEvent: track,
+}));
 
 const STORAGE_KEY = 'pwa-install-pref';
 
@@ -146,6 +153,25 @@ describe('usePwaInstall', () => {
     expect(result.current.installAvailable).toBe(false);
     expect(result.current.pref).toBe('accepted');
     expect(localStorage.getItem(STORAGE_KEY)).toBe('accepted');
+  });
+
+  // aHgp2jzl: the admin "App-Installationen" statistic must count real
+  // installs only, so pwa_install is sent on appinstalled and never on a
+  // mere prompt/click.
+  it('reports pwa_install only when the browser confirms the install', async () => {
+    track.mockClear();
+    const { result } = renderHook(() => usePwaInstall());
+    act(() => {
+      fireBeforeInstallPrompt({ userChoice: Promise.resolve({ outcome: 'dismissed' }) });
+    });
+    await act(async () => {
+      await result.current.requestInstall();
+    });
+    expect(track).not.toHaveBeenCalled();
+    act(() => {
+      fireAppInstalled();
+    });
+    expect(track).toHaveBeenCalledWith(EVENTS.PWA_INSTALL);
   });
 
   it('records pref=dismissed when requestInstall resolves with declined outcome', async () => {

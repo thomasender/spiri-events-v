@@ -15,7 +15,7 @@ export const ACTION_LABELS = {
   sign_up: 'Registrierung',
   event_create_start: 'Event-Erstellung begonnen',
   event_create_submit: 'Event eingereicht',
-  pwa_install_prompt: 'App-Installation angeboten',
+  pwa_install: 'App installiert',
 };
 
 const CHANNEL_LABELS = {

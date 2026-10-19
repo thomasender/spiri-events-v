@@ -20,6 +20,7 @@ export const EVENTS = Object.freeze({
   EVENT_CREATE_START: 'event_create_start',
   EVENT_CREATE_SUBMIT: 'event_create_submit',
   PWA_INSTALL_PROMPT: 'pwa_install_prompt',
+  PWA_INSTALL: 'pwa_install',
   EXCEPTION: 'exception',
 });
 

@@ -16,7 +16,9 @@ export const ACTION_EVENTS = [
   'sign_up',
   'event_create_start',
   'event_create_submit',
-  'pwa_install_prompt',
+  // Real installs only (browser `appinstalled`). `pwa_install_prompt` is sent
+  // for every popup view/click, so it must not be shown as installs.
+  'pwa_install',
 ] as const;
 
 export interface GaRow {
