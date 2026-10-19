@@ -33,11 +33,11 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useEvents } from '../hooks/useEvents';
-import { useEventRegionContext } from '../hooks/useRegion';
+import { useEventRegionContext, useRegion } from '../hooks/useRegion';
 import { useOrganizerProfile } from '../hooks/useOrganizerProfile';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
 import { buildEventJsonLd } from '../utils/eventJsonLd';
-import { getRegionBySlug, resolveRegionId } from '../utils/regions';
+import { getRegionBySlug, getSubdivisionLabel, resolveRegionId } from '../utils/regions';
 import { pickEventDoc } from '../utils/pickEventDoc';
 import { getOrganizerName } from '../utils/eventFormat';
 import { resolveOrganizerProfilePath } from '../utils/profile';
@@ -190,6 +190,7 @@ export default function EventDetailPage() {
   const { deleteEvent, updateEvent, approveEvent, unpublishEvent } = useEvents(user);
   const [event, setEvent] = useState(null);
   useEventRegionContext(event);
+  const { allRegions } = useRegion();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -851,7 +852,9 @@ export default function EventDetailPage() {
         <div className="detail-item">
           <MapPin size={18} className="detail-icon" />
           <div>
-            <span className="detail-label">Bezirk</span>
+            <span className="detail-label">
+              {getSubdivisionLabel(resolveRegionId(event), allRegions)}
+            </span>
             <span
               className="detail-value"
               data-testid={event.isOnline ? 'event-detail-location-online' : undefined}

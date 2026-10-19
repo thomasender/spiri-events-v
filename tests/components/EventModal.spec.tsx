@@ -156,3 +156,18 @@ describe('EventModal', () => {
     });
   });
 });
+
+describe('EventModal district label', () => {
+  it('says Bezirk for Vorarlberg and Landkreis for Germany', () => {
+    const { unmount } = render(<EventModal event={mockEvent} onClose={() => {}} />);
+    expect(screen.getByText('Bezirk')).toBeInTheDocument();
+    unmount();
+    render(
+      <EventModal
+        event={{ ...mockEvent, regionId: 'bayern', bezirk: 'München' }}
+        onClose={() => {}}
+      />
+    );
+    expect(screen.getByText('Landkreis')).toBeInTheDocument();
+  });
+});

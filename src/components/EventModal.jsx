@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { bezirkLabel } from '../utils/regions';
+import { bezirkLabel, getSubdivisionLabel, resolveRegionId } from '../utils/regions';
+import { useRegion } from '../hooks/useRegion';
 import { X, Calendar, Clock, MapPin, Ticket, ExternalLink, User, Mail, Phone } from 'lucide-react';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
 import { getOrganizerName } from '../utils/eventFormat';
@@ -69,6 +70,7 @@ function formatRecurrence(recurrence, recurrenceEndDate, eventDate) {
 }
 
 export default function EventModal({ event, onClose }) {
+  const { allRegions } = useRegion();
   const [imageLoaded, setImageLoaded] = useState(false);
   const fallbackImage = getEventFallbackImage(event);
 
@@ -185,7 +187,9 @@ export default function EventModal({ event, onClose }) {
           <div className="detail-item">
             <MapPin size={18} className="detail-icon" />
             <div>
-              <span className="detail-label">Bezirk</span>
+              <span className="detail-label">
+                {getSubdivisionLabel(resolveRegionId(event), allRegions)}
+              </span>
               <span
                 className="detail-value"
                 data-testid={event.isOnline ? 'event-modal-location-online' : undefined}
