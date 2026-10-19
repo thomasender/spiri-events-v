@@ -214,7 +214,7 @@ describe('runEventStories', () => {
       events: [ev({ time: '07:30' })],
     });
     await runEventStories(h.deps);
-    expect(h.models[0]).toMatchObject({ heading: 'Morgen', dateLabel: 'So, 18. Okt' });
+    expect(h.models[0]).toMatchObject({ heading: 'Morgen', dateLabel: 'Sonntag, 18. Oktober' });
     expect(h.posts.get('story_event_e1_2026-10-18')).toMatchObject({
       day: '2026-10-18',
       postedDay: '2026-10-17',

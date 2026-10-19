@@ -220,7 +220,7 @@ export const adminPostWeeklyCarousels = onCall(
   }
 );
 
-// Posts today's "Heute in <Bezirk>" story now. Respects the kill switch and the
+// Posts tomorrow's "Morgen in <Bezirk>" story now. Respects the kill switch and the
 // one-story-per-Bezirk-day-and-part guard, so calling it twice posts once.
 export const adminPostDailyStory = onCall(
   {

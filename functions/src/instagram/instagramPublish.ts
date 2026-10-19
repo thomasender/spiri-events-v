@@ -86,6 +86,12 @@ export function viennaToday(now: Date): string {
   }).format(now);
 }
 
+/** Tomorrow's calendar date in Vienna as YYYY-MM-DD (calendar arithmetic, DST-safe). */
+export function viennaTomorrow(now: Date): string {
+  const [y, m, d] = viennaToday(now).split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
+}
+
 /**
  * An event is past when its last day (endDate, else date) is before today in
  * Vienna. Events without a parseable date are not treated as past.
