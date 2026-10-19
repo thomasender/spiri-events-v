@@ -1,5 +1,6 @@
-import { useId, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { HeartHandshake } from 'lucide-react';
+import HelperPhotoUpload from './HelperPhotoUpload';
 import { useRegion } from '../hooks/useRegion';
 import { COUNTRIES, COUNTRY_LABELS } from '../utils/regions';
 import {
@@ -24,6 +25,17 @@ export default function ModeratorApplyCard({ regionId = '', className = '' }) {
   const [photo, setPhoto] = useState(null);
   const [errors, setErrors] = useState({});
   const [status, setStatus] = useState('idle'); // idle | sending | sent | failed
+
+  const [photoPreview, setPhotoPreview] = useState('');
+  useEffect(() => {
+    if (!photo || typeof URL.createObjectURL !== 'function') {
+      setPhotoPreview('');
+      return undefined;
+    }
+    const url = URL.createObjectURL(photo);
+    setPhotoPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [photo]);
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
@@ -86,6 +98,7 @@ export default function ModeratorApplyCard({ regionId = '', className = '' }) {
             <label htmlFor={`${uid}-name`}>Dein Name *</label>
             <input
               id={`${uid}-name`}
+              type="text"
               value={form.name}
               onChange={set('name')}
               autoComplete="name"
@@ -135,11 +148,13 @@ export default function ModeratorApplyCard({ regionId = '', className = '' }) {
           </div>
           <div className="form-group">
             <label htmlFor={`${uid}-photo`}>Foto (optional)</label>
-            <input
-              id={`${uid}-photo`}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={(e) => setPhoto(e.target.files?.[0] ?? null)}
+            <HelperPhotoUpload
+              photoURL={photoPreview}
+              alt="Dein Foto"
+              inputId={`${uid}-photo`}
+              onFileSelected={setPhoto}
+              onRemoved={() => setPhoto(null)}
+              disabled={status === 'sending'}
             />
           </div>
           {/* Honeypot: invisible for people, bots fill it in. */}

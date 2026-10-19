@@ -1,14 +1,28 @@
 import { useRef, useState } from 'react';
 import { Upload } from 'lucide-react';
-import { uploadHelperImage, MAX_INPUT_SIZE_BYTES } from '../lib/imageUpload';
+import { uploadHelperImage } from '../lib/imageUpload';
+import './HelperPhotoUpload.css';
 
+// Photo size cap shared by the selection check below.
+const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 // Upload control for the helper edit dialog. Mirrors ProfilePhotoUpload but
 // stores the image under helpers/photos/ (the admin-only storage path; the
 // per-user avatar bucket is owner-only and cannot be written by an admin on
 // someone else's behalf).
-export default function HelperPhotoUpload({ photoURL, onUploaded, onRemoved, disabled }) {
+//
+// With `onFileSelected` the control only validates (JPEG/PNG/WebP, max 2 MB) and
+// hands the File to the parent (no upload), e.g. for the moderator application.
+export default function HelperPhotoUpload({
+  photoURL,
+  onUploaded,
+  onRemoved,
+  onFileSelected,
+  disabled,
+  alt = 'Helfer-Foto',
+  inputId,
+}) {
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
@@ -20,8 +34,12 @@ export default function HelperPhotoUpload({ photoURL, onUploaded, onRemoved, dis
       setError('Nur JPEG, PNG und WebP sind erlaubt.');
       return;
     }
-    if (file.size > MAX_INPUT_SIZE_BYTES) {
-      setError(`Bild ist zu groß (max. ${Math.round(MAX_INPUT_SIZE_BYTES / 1024 / 1024)} MB).`);
+    if (file.size > MAX_PHOTO_BYTES) {
+      setError(`Bild ist zu groß (max. ${Math.round(MAX_PHOTO_BYTES / 1024 / 1024)} MB).`);
+      return;
+    }
+    if (onFileSelected) {
+      onFileSelected(file);
       return;
     }
     setUploading(true);
@@ -46,7 +64,7 @@ export default function HelperPhotoUpload({ photoURL, onUploaded, onRemoved, dis
     <div className="helper-photo-upload" data-testid="helper-photo-upload">
       <div className="helper-photo-preview">
         {photoURL ? (
-          <img src={photoURL} alt="Helfer-Foto" data-testid="helper-photo-preview" />
+          <img src={photoURL} alt={alt} data-testid="helper-photo-preview" />
         ) : (
           <span className="helper-photo-preview-empty" data-testid="helper-photo-placeholder-empty">
             Kein Foto
@@ -68,9 +86,13 @@ export default function HelperPhotoUpload({ photoURL, onUploaded, onRemoved, dis
         </button>
         <input
           ref={fileInputRef}
+          id={inputId}
           type="file"
           accept="image/jpeg,image/png,image/webp"
-          onChange={(e) => handleSelect(e.target.files?.[0])}
+          onChange={(e) => {
+            handleSelect(e.target.files?.[0]);
+            e.target.value = '';
+          }}
           style={{ display: 'none' }}
           data-testid="helper-photo-upload-input"
         />

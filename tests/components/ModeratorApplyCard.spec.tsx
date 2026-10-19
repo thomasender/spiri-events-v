@@ -89,4 +89,31 @@ describe('ModeratorApplyCard', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('nicht geklappt');
     expect(screen.getByLabelText('Dein Name *')).toHaveValue('Maria Muster');
   });
+
+  it('styles the name input like the other inputs and uses the shared photo upload', () => {
+    const { container } = render(<ModeratorApplyCard />);
+    open();
+    expect(screen.getByLabelText('Dein Name *')).toHaveAttribute('type', 'text');
+    expect(screen.getByLabelText(/Deine E-Mail-Adresse/)).toHaveAttribute('type', 'email');
+    expect(container.querySelector('[data-testid="helper-photo-upload"]')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Foto hochladen/ })).toBeInTheDocument();
+  });
+
+  it('rejects wrong file types and files over 2 MB, accepts a valid photo', () => {
+    render(<ModeratorApplyCard />);
+    open();
+    const input = screen.getByLabelText('Foto (optional)') as HTMLInputElement;
+    fireEvent.change(input, {
+      target: { files: [new File(['x'], 'a.gif', { type: 'image/gif' })] },
+    });
+    expect(screen.getByRole('alert')).toHaveTextContent('Nur JPEG, PNG und WebP');
+    const big = new File(['x'], 'b.png', { type: 'image/png' });
+    Object.defineProperty(big, 'size', { value: 3 * 1024 * 1024 });
+    fireEvent.change(input, { target: { files: [big] } });
+    expect(screen.getByRole('alert')).toHaveTextContent('zu groß');
+    fireEvent.change(input, {
+      target: { files: [new File(['x'], 'c.png', { type: 'image/png' })] },
+    });
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
 });

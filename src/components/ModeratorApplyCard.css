@@ -51,7 +51,7 @@
   gap: 4px;
 }
 
-.moderator-apply-form input:not([type='file']),
+.moderator-apply-form input,
 .moderator-apply-form select,
 .moderator-apply-form textarea {
   width: 100%;
