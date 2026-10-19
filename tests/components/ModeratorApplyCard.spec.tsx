@@ -116,4 +116,21 @@ describe('ModeratorApplyCard', () => {
     });
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
+
+  it('accepts a photo dropped onto the upload area and validates it like a picked one', () => {
+    const { container } = render(<ModeratorApplyCard />);
+    open();
+    const area = container.querySelector('[data-testid="helper-photo-upload"]') as HTMLElement;
+    fireEvent.dragOver(area);
+    expect(area).toHaveClass('drag-over');
+    fireEvent.drop(area, {
+      dataTransfer: { files: [new File(['x'], 'a.gif', { type: 'image/gif' })] },
+    });
+    expect(area).not.toHaveClass('drag-over');
+    expect(screen.getByRole('alert')).toHaveTextContent('Nur JPEG, PNG und WebP');
+    fireEvent.drop(area, {
+      dataTransfer: { files: [new File(['x'], 'c.png', { type: 'image/png' })] },
+    });
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
 });
