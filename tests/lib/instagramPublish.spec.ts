@@ -3,6 +3,7 @@ import {
   publishApprovedEvent,
   isApprovalTransition,
   isEventPast,
+  describeInstagramError,
   POLL_TIMEOUT_MS,
   type PublishDeps,
   type PostRecord,
@@ -475,5 +476,31 @@ describe('collaborator invite and user tag', () => {
       'failed'
     );
     expect(containerBodies(h)).toHaveLength(2);
+  });
+});
+
+describe('describeInstagramError', () => {
+  it('gives moderators a German instruction for a known failure and keeps the technical text', async () => {
+    const h = makeHarness({
+      fetchImpl: () => json({ error: { message: 'Invalid OAuth access token', code: 190 } }, 400),
+    });
+    await publishApprovedEvent(h.deps, 'e1', { status: 'pending' }, futureEvent);
+    const error = String(h.posts.get('feed_e1')?.error);
+    expect(error).toContain('Admin');
+    expect(error).toContain('Technisch: Instagram media container creation failed (HTTP 400)');
+    expect(h.notify.mock.calls[0][1]).toContain('Verwaltung > Instagram');
+  });
+
+  it('explains "User not visible" and never leaks the token', () => {
+    const text = describeInstagramError(
+      new Error(`Instagram media container creation failed (HTTP 400): User not visible ${TOKEN}`),
+      [TOKEN]
+    );
+    expect(text).toContain('privat');
+    expect(text).not.toContain(TOKEN);
+  });
+
+  it('leaves unknown errors unchanged', () => {
+    expect(describeInstagramError(new Error('boom'))).toBe('boom');
   });
 });

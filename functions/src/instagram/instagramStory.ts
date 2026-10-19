@@ -32,6 +32,7 @@ import {
   graphPost,
   idOf,
   sanitizeError,
+  describeInstagramError,
   viennaToday,
   waitForContainer,
   type PostStatus,
@@ -316,7 +317,7 @@ export async function postStoryGroup(
     await deps.updatePost(postId, { status: 'published', igMediaId: mediaId, permalink });
     return { id: postId, outcome: 'published' };
   } catch (err) {
-    const message = sanitizeError(err, [deps.accessToken]);
+    const message = describeInstagramError(err, [deps.accessToken]);
     try {
       await deps.updatePost(postId, { status: 'failed', error: message });
     } catch (updateErr) {
