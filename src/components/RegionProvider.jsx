@@ -10,6 +10,7 @@ import {
   getCombinedView,
   isCombinedViewAvailable,
   readLastRegion,
+  readRegionChooserSeen,
   regionPath,
   regionSlugFromPath,
   resolveCurrentRegionId,
@@ -71,6 +72,19 @@ export default function RegionProvider({ children }) {
       ((urlView && !combinedView) ||
         (isRegionSlug(urlSlug) && !getRegionBySlug(urlSlug, allRegions)?.active))
     );
+    const eventRegionComingSoon = Boolean(
+      !urlSlug && eventRegionId && !getRegionBySlug(eventRegionId, allRegions)?.active
+    );
+    // Neutral header ("Dein Kalender"): region chooser (/regionen and first visit),
+    // coming-soon pages and the event form for a region that is not open yet.
+    const stored = readLastRegion();
+    const firstVisitChooser =
+      !loading &&
+      activeRegions(allRegions).length >= 2 &&
+      ['/', '/verzeichnis'].includes(pathname) &&
+      !(readRegionChooserSeen() || Boolean(stored && getRegionBySlug(stored, allRegions)?.active));
+    const neutralHeader =
+      comingSoon || eventRegionComingSoon || pathname === '/regionen' || firstVisitChooser;
     const regionId =
       !urlSlug && eventRegionId
         ? eventRegionId
@@ -84,6 +98,7 @@ export default function RegionProvider({ children }) {
       combinedView,
       // True on the coming-soon page of a region/view that is not open yet.
       comingSoon,
+      neutralHeader,
       // Active regions the current combined view covers ([] outside one).
       combinedRegions: combinedView ? combinedViewRegions(combinedView, allRegions) : [],
       // Combined views offered in chooser and switcher.
@@ -92,7 +107,16 @@ export default function RegionProvider({ children }) {
       setRegion,
       setEventRegion,
     };
-  }, [urlSlug, eventRegionId, storedSlug, allRegions, loading, setRegion, setEventRegion]);
+  }, [
+    urlSlug,
+    pathname,
+    eventRegionId,
+    storedSlug,
+    allRegions,
+    loading,
+    setRegion,
+    setEventRegion,
+  ]);
 
   return <RegionContext.Provider value={value}>{children}</RegionContext.Provider>;
 }
