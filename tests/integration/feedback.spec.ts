@@ -1,6 +1,7 @@
 import { test, expect, request } from '@playwright/test';
 import { spawn } from 'child_process';
 import { signInWithEmailAndPassword } from '../helpers/auth';
+import { openAdminTab } from '../helpers/admin';
 
 const STORAGE_EMULATOR_URL = 'http://localhost:9299';
 const PROJECT_ID = 'spirieventsvbg';
@@ -99,7 +100,9 @@ test.describe('Feedback feature', () => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin');
 
+    await openAdminTab(page, 'feedback');
     await expect(page.getByTestId('admin-tab-feedback')).toBeVisible();
+    await openAdminTab(page, 'feedback');
     await expect(page.getByTestId('admin-tab-feedback')).toContainText('Feedback');
   });
 
@@ -111,7 +114,9 @@ test.describe('Feedback feature', () => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin');
 
+    await openAdminTab(page, 'feedback');
     await expect(page.getByTestId('admin-tab-feedback-badge')).toBeVisible({ timeout: 10000 });
+    await openAdminTab(page, 'feedback');
     await expect(page.getByTestId('admin-tab-feedback-badge')).toHaveText('3');
   });
 
@@ -146,6 +151,7 @@ test.describe('Feedback feature', () => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin');
 
+    await openAdminTab(page, 'feedback');
     await page.getByTestId('admin-tab-feedback').click();
 
     await expect(page.getByTestId('admin-tab-feedback')).toHaveAttribute('aria-selected', 'true');
@@ -158,6 +164,7 @@ test.describe('Feedback feature', () => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin?tab=feedback');
 
+    await openAdminTab(page, 'events');
     await page.getByTestId('admin-tab-events').click();
     expect(page.url()).not.toContain('tab=feedback');
   });

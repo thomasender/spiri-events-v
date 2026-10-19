@@ -4,6 +4,7 @@ import { spawn } from 'child_process';
 import { waitForWizardToLoad, clickWeiter, confirmCopyrightCheckbox } from '../helpers/wizard';
 
 import { STORAGE_STATE } from '../helpers/roles';
+import { openAdminTab } from '../helpers/admin';
 
 // Signed in as `admin` via the session captured once by tests/auth.setup.ts,
 // instead of driving the login form in every test.
@@ -88,6 +89,7 @@ test.describe('Event wizard: Copyright confirmation', () => {
 
     // Admin-created events are pending (ticket hGxrS6gp) and pending events do
     // not appear under "Meine Events" — they live in the Review tab.
+    await openAdminTab(page, 'review');
     await page.getByTestId('admin-tab-review').click();
     const panel = page.locator('#admin-tab-review');
     await expect(panel).toBeVisible();

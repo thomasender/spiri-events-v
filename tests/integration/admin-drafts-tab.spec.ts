@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import { spawn } from 'child_process';
 import { signInWithEmailAndPassword } from '../helpers/auth';
 import { generateSlug } from '../helpers/slug';
+import { openAdminTab } from '../helpers/admin';
 
 async function resetDraftFixtures(): Promise<void> {
   await new Promise<void>((resolve, reject) => {
@@ -30,6 +31,7 @@ test.describe('Entwürfe tab — admin', () => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
     await page.goto('/admin');
 
+    await openAdminTab(page, 'drafts');
     const draftsTab = page.getByTestId('admin-tab-drafts');
     await expect(draftsTab).toBeVisible();
     await expect(draftsTab).toContainText('Entwürfe');
@@ -83,6 +85,7 @@ test.describe('Entwürfe tab — admin', () => {
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
       .catch(() => {});
 
+    await openAdminTab(page, 'drafts');
     const badge = page.getByTestId('admin-tab-drafts-badge');
     await expect(badge).toBeVisible();
     await expect(badge).toHaveText('2');

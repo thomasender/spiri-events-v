@@ -32,7 +32,64 @@
   gap: 4px;
   border-bottom: 1px solid var(--border);
   margin-bottom: 24px;
-  overflow-x: auto;
+  flex-wrap: wrap;
+}
+
+.admin-page-group {
+  position: relative;
+}
+
+.admin-page-group-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 20;
+  min-width: 220px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 8px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.admin-page-group-menu[hidden] {
+  display: none;
+}
+
+.admin-page-group-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  color: var(--text-secondary);
+  font: inherit;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.admin-page-group-item > span:not(.admin-page-tab-badge) {
+  flex: 1;
+}
+
+.admin-page-group-item:hover {
+  background: var(--bg-hover, rgba(0, 0, 0, 0.05));
+  color: var(--text-primary);
+}
+
+.admin-page-group-item--active {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.admin-page-group-item:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: -2px;
 }
 
 .admin-page-tab {
