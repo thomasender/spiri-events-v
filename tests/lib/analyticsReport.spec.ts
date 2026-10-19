@@ -127,4 +127,10 @@ describe('buildRequests', () => {
     const filter = buildRequests(7).actions.dimensionFilter.filter;
     expect(filter.inListFilter.values).toEqual([...ACTION_EVENTS]);
   });
+
+  // aHgp2jzl: "App-Installationen" counts real installs, not popup views/clicks.
+  it('reports real app installs and not install-prompt views', () => {
+    expect(ACTION_EVENTS).toContain('pwa_install');
+    expect(ACTION_EVENTS).not.toContain('pwa_install_prompt');
+  });
 });

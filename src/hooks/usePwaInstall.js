@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { trackEvent, EVENTS } from '../lib/analytics';
 
 const STORAGE_KEY = 'pwa-install-pref';
 export const PWA_POPUP_DELAY_MS = 15000;
@@ -27,6 +28,10 @@ function attachPromptBridge() {
 
   window.addEventListener('appinstalled', () => {
     deferredPrompt = null;
+    // The browser fires this only once the app is really on the home screen
+    // (via our button or the browser menu). This is the event the admin
+    // "App-Installationen" statistic counts — not prompt views or clicks.
+    trackEvent(EVENTS.PWA_INSTALL);
     try {
       localStorage.setItem(STORAGE_KEY, 'accepted');
     } catch {
