@@ -8,6 +8,7 @@ import {
   groupStories,
   runDailyStory,
   storyPostId,
+  storyHeading,
   type StoryDeps,
   type StoryPostRecord,
 } from '../../functions/src/instagram/instagramStory';
@@ -60,13 +61,46 @@ describe('groupStories', () => {
     expect(groupStories([ev({ bezirk: 'Wien' })], DAY, 'Wien')).toEqual([]);
   });
 
-  it('spreads more than one story worth of events evenly', () => {
-    const many = Array.from({ length: MAX_EVENTS_PER_STORY + 1 }, (_, i) =>
+  it('keeps up to 7 events in one story', () => {
+    const seven = Array.from({ length: MAX_EVENTS_PER_STORY }, (_, i) =>
       ev({ id: `e${i}`, time: `${String(8 + i).padStart(2, '0')}:00` })
     );
+    const groups = groupStories(seven, DAY, 'Feldkirch');
+    expect(MAX_EVENTS_PER_STORY).toBe(7);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].section).toBeUndefined();
+    expect(storyHeading(groups[0])).toBe('Morgen');
+  });
+
+  it('splits a day with more than 7 events into Früh and Abend by start time', () => {
+    const times = ['08:00', '09:00', '10:00', '11:00', '13:59', '14:00', '19:00', '20:00'];
+    const many = times.map((time, i) => ev({ id: `e${i}`, time }));
     const groups = groupStories(many, DAY, 'Feldkirch');
-    expect(groups.map((g) => g.events.length)).toEqual([3, 2]);
-    expect(groups.flatMap((g) => g.events.map((e) => e.id))).toEqual(many.map((e) => e.id));
+    expect(groups.map((g) => [g.section, g.events.length])).toEqual([
+      ['frueh', 5],
+      ['abend', 3],
+    ]);
+    expect(groups.map((g) => storyHeading(g))).toEqual(['Morgen Früh', 'Morgen Abend']);
+    expect(buildStoryModel(groups[0], DAY).partLabel).toBe('');
+    const ids = groups.map((g) => storyPostId(g.bezirk, DAY, g.part, g.section));
+    expect(ids).toEqual(['story_feldkirch_2026-10-17_frueh', 'story_feldkirch_2026-10-17_abend']);
+  });
+
+  it('spreads a half that still has more than 7 events evenly', () => {
+    const morning = Array.from({ length: 8 }, (_, i) => ev({ id: `m${i}`, time: `0${i}:30` }));
+    const evening = [ev({ id: 'a', time: '19:00' })];
+    const groups = groupStories([...morning, ...evening], DAY, 'Feldkirch');
+    expect(groups.map((g) => [g.section, g.part, g.events.length])).toEqual([
+      ['frueh', 1, 4],
+      ['frueh', 2, 4],
+      ['abend', 1, 1],
+    ]);
+  });
+
+  it('does not split by time when all events are in one half of the day', () => {
+    const evening = Array.from({ length: 8 }, (_, i) => ev({ id: `a${i}`, time: `${15 + i}:00` }));
+    const groups = groupStories(evening, DAY, 'Feldkirch');
+    expect(groups.map((g) => g.section)).toEqual([undefined, undefined]);
   });
 });
 
