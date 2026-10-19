@@ -147,3 +147,14 @@ export function buildDirectoryParams({ query = '', categories = [], regions = []
 export function toggleValue(list, value) {
   return list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
 }
+
+// Card preview: line breaks become ". " (no extra period after . ! ? : ;).
+export function formatBioPreview(bio) {
+  if (typeof bio !== 'string') return '';
+  return bio
+    .split(/\r?\n|\r/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .reduce((out, line) => (out ? `${out}${/[.!?:;]$/.test(out) ? '' : '.'} ${line}` : line), '')
+    .replace(/[ \t]{2,}/g, ' ');
+}
