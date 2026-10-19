@@ -5,7 +5,7 @@ import DirectoryPage from '../pages/DirectoryPage';
 import PublicProfilePage from '../pages/PublicProfilePage';
 import RegionComingSoonPage from '../pages/RegionComingSoonPage';
 import ErrorPage from '../pages/ErrorPage';
-import { useRegion } from '../hooks/useRegion';
+import { RegionContext, useRegion } from '../hooks/useRegion';
 import { useCanPreviewRegion } from '../hooks/useCanPreviewRegion';
 import { redirectTargetPath, resolveTopLevelSlug } from '../utils/regionRouting';
 
@@ -58,6 +58,16 @@ export function RegionDirectoryRoute() {
   return <DirectoryPage />;
 }
 
+function ComingSoonAbout({ region }) {
+  const ctx = useRegion();
+  const value = { ...ctx, region, regionId: region.id, comingSoon: false };
+  return (
+    <RegionContext.Provider value={value}>
+      <AboutPage />
+    </RegionContext.Provider>
+  );
+}
+
 /** `/:regionSlug/ueber-uns`: "Über uns" of a region; combined views use the general page. */
 export function RegionAboutRoute() {
   const { regionSlug } = useParams();
@@ -69,6 +79,8 @@ export function RegionAboutRoute() {
   if (kind === 'profile') return <ErrorPage type="not-found" />;
   if (kind === 'redirect') return <RedirectOrWait redirect={redirect} path="/ueber-uns" />;
   if (kind === 'all-regions') return <Navigate to="/ueber-uns" replace />;
+  // A not-yet-open region still has its own "Über uns" (the footer links to it).
+  if (kind === 'coming-soon' && region) return <ComingSoonAbout region={region} />;
   if (kind === 'coming-soon') return <ComingSoonOrWait region={region} view={view} />;
   return <AboutPage />;
 }
