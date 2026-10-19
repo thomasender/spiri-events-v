@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useSearchParams, Link, useNavigate } from 'react-router-dom';
 import {
   CalendarDays,
@@ -16,6 +16,7 @@ import {
   Instagram,
   BarChart3,
   MailCheck,
+  ChevronDown,
 } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
 import EventList from '../components/EventList';
@@ -41,6 +42,69 @@ import { useHasMessages, useUnreadMessageCount } from '../hooks/useUnreadMessage
 import { useUnreadFeedbackCount, useHasFeedback } from '../hooks/useFeedbackList';
 import { useTrashedEventsCount } from '../hooks/useTrashedEventsCount';
 import './AdminPage.css';
+
+// Tabs are grouped into drop-down menus (QhQJFz04). `id` is the ?tab= value.
+const TAB_GROUPS = [
+  {
+    id: 'events-group',
+    label: 'Events',
+    Icon: CalendarDays,
+    tabs: [
+      { id: 'events', label: 'Meine Events', Icon: CalendarDays },
+      { id: 'drafts', label: 'Entwürfe', Icon: FileText },
+      { id: 'review', label: 'Review', Icon: ClipboardCheck },
+      { id: 'feedback', label: 'Feedback', Icon: MessageSquare },
+    ],
+  },
+  {
+    id: 'community',
+    label: 'Community',
+    Icon: Users,
+    tabs: [
+      { id: 'members', label: 'Mitglieder', Icon: Contact },
+      { id: 'helpers', label: 'Helfer', Icon: Users },
+      { id: 'donors', label: 'Spender', Icon: Heart },
+      { id: 'categories', label: 'Kategorien', Icon: Tag },
+    ],
+  },
+  {
+    id: 'communication',
+    label: 'Kommunikation',
+    Icon: Mail,
+    tabs: [
+      { id: 'messages', label: 'Nachrichten', Icon: Mail },
+      { id: 'instagram', label: 'Instagram', Icon: Instagram },
+      { id: 'mailgun', label: 'E-Mail-Versand', Icon: MailCheck },
+    ],
+  },
+  {
+    id: 'settings',
+    label: 'Dashboard & Einstellungen',
+    Icon: BarChart3,
+    tabs: [
+      { id: 'analytics', label: 'Statistik', Icon: BarChart3 },
+      { id: 'theme', label: 'Theme', Icon: Palette },
+      { id: 'trash', label: 'Papierkorb', Icon: Trash2 },
+    ],
+  },
+];
+
+const PANELS = {
+  events: EventList,
+  drafts: DraftsTab,
+  review: ReviewTab,
+  messages: MessagesTab,
+  feedback: FeedbackTab,
+  trash: TrashTab,
+  categories: CategoriesTab,
+  theme: ThemeTab,
+  helpers: HelpersTab,
+  donors: DonorsTab,
+  members: MembersTab,
+  instagram: InstagramTab,
+  analytics: AnalyticsTab,
+  mailgun: MailgunTab,
+};
 
 const VALID_TABS = new Set([
   'events',
@@ -106,6 +170,37 @@ export default function AdminPage() {
     return 'events';
   }, [rawTab, visibleTabs]);
 
+  const [openGroup, setOpenGroup] = useState(null);
+  const tabsRef = useRef(null);
+
+  useEffect(() => {
+    if (!openGroup) return undefined;
+    const onPointerDown = (e) => {
+      if (tabsRef.current && !tabsRef.current.contains(e.target)) setOpenGroup(null);
+    };
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') setOpenGroup(null);
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [openGroup]);
+
+  // Red signal counts per tab; a group shows the sum of its tabs.
+  const badges = {
+    drafts: { count: draftCount, label: `${draftCount} Entwurf${draftCount > 1 ? 'e' : ''}` },
+    review: { count: reviewCount, label: `${reviewCount} zu prüfende Events` },
+    messages: { count: unreadCount, label: `${unreadCount} ungelesene Nachrichten` },
+    feedback: {
+      count: isAdmin ? unreadFeedbackCount : 0,
+      label: `${unreadFeedbackCount} ungelesenes Feedback`,
+    },
+  };
+  const formatCount = (n) => (n > 9 ? '9+' : n);
+
   const setTab = (tab) => {
     const next = new URLSearchParams(searchParams);
     if (tab === 'events') {
@@ -147,393 +242,92 @@ export default function AdminPage() {
 
       {hashEventId && <EventStatusMismatchBanner key={hashEventId} eventId={hashEventId} />}
 
-      <div className="admin-page-tabs" role="tablist" aria-label="Verwaltungs-Bereiche">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'events'}
-          aria-controls="admin-tab-events"
-          id="admin-tab-events-btn"
-          className={`admin-page-tab${activeTab === 'events' ? ' admin-page-tab--active' : ''}`}
-          onClick={() => setTab('events')}
-          data-testid="admin-tab-events"
-        >
-          <CalendarDays size={16} aria-hidden="true" />
-          <span>Meine Events</span>
-        </button>
-        {visibleTabs.drafts && (
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'drafts'}
-            aria-controls="admin-tab-drafts"
-            id="admin-tab-drafts-btn"
-            className={`admin-page-tab${activeTab === 'drafts' ? ' admin-page-tab--active' : ''}`}
-            onClick={() => setTab('drafts')}
-            data-testid="admin-tab-drafts"
-          >
-            <FileText size={16} aria-hidden="true" />
-            <span>Entwürfe</span>
-            {draftCount > 0 && (
-              <span
-                className="admin-page-tab-badge"
-                data-testid="admin-tab-drafts-badge"
-                aria-label={`${draftCount} Entwurf${draftCount > 1 ? 'e' : ''}`}
-              >
-                {draftCount > 9 ? '9+' : draftCount}
-              </span>
-            )}
-          </button>
-        )}
-        {visibleTabs.review && (
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'review'}
-            aria-controls="admin-tab-review"
-            id="admin-tab-review-btn"
-            className={`admin-page-tab${activeTab === 'review' ? ' admin-page-tab--active' : ''}`}
-            onClick={() => setTab('review')}
-            data-testid="admin-tab-review"
-          >
-            <ClipboardCheck size={16} aria-hidden="true" />
-            <span>Review</span>
-            {reviewCount > 0 && (
-              <span
-                className="admin-page-tab-badge"
-                data-testid="admin-tab-review-badge"
-                aria-label={`${reviewCount} ausstehende Genehmigung${reviewCount > 1 ? 'en' : ''}`}
-              >
-                {reviewCount > 9 ? '9+' : reviewCount}
-              </span>
-            )}
-          </button>
-        )}
-        {visibleTabs.messages && (
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'messages'}
-            aria-controls="admin-tab-messages"
-            id="admin-tab-messages-btn"
-            className={`admin-page-tab${activeTab === 'messages' ? ' admin-page-tab--active' : ''}`}
-            onClick={() => setTab('messages')}
-            data-testid="admin-tab-messages"
-          >
-            <Mail size={16} aria-hidden="true" />
-            <span>Nachrichten</span>
-            {unreadCount > 0 && (
-              <span
-                className="admin-page-tab-badge"
-                data-testid="admin-tab-messages-badge"
-                aria-label={`${unreadCount} ungelesene Nachrichten`}
-              >
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </span>
-            )}
-          </button>
-        )}
-        {visibleTabs.feedback && (
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'feedback'}
-            aria-controls="admin-tab-feedback"
-            id="admin-tab-feedback-btn"
-            className={`admin-page-tab${activeTab === 'feedback' ? ' admin-page-tab--active' : ''}`}
-            onClick={() => setTab('feedback')}
-            data-testid="admin-tab-feedback"
-          >
-            <MessageSquare size={16} aria-hidden="true" />
-            <span>Feedback</span>
-            {unreadFeedbackCount > 0 && (
-              <span
-                className="admin-page-tab-badge"
-                data-testid="admin-tab-feedback-badge"
-                aria-label={`${unreadFeedbackCount} neues Feedback`}
-              >
-                {unreadFeedbackCount > 9 ? '9+' : unreadFeedbackCount}
-              </span>
-            )}
-          </button>
-        )}
-        {visibleTabs.trash && (
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'trash'}
-            aria-controls="admin-tab-trash"
-            id="admin-tab-trash-btn"
-            className={`admin-page-tab${activeTab === 'trash' ? ' admin-page-tab--active' : ''}`}
-            onClick={() => setTab('trash')}
-            data-testid="admin-tab-trash"
-          >
-            <Trash2 size={16} aria-hidden="true" />
-            <span>Papierkorb</span>
-          </button>
-        )}
-        {visibleTabs.categories && (
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'categories'}
-            aria-controls="admin-tab-categories"
-            id="admin-tab-categories-btn"
-            className={`admin-page-tab${activeTab === 'categories' ? ' admin-page-tab--active' : ''}`}
-            onClick={() => setTab('categories')}
-            data-testid="admin-tab-categories"
-          >
-            <Tag size={16} aria-hidden="true" />
-            <span>Kategorien</span>
-          </button>
-        )}
-        {visibleTabs.theme && (
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'theme'}
-            aria-controls="admin-tab-theme"
-            id="admin-tab-theme-btn"
-            className={`admin-page-tab${activeTab === 'theme' ? ' admin-page-tab--active' : ''}`}
-            onClick={() => navigate('/admin/theme-editor')}
-            data-testid="admin-tab-theme"
-          >
-            <Palette size={16} aria-hidden="true" />
-            <span>Theme</span>
-          </button>
-        )}
-        {visibleTabs.helpers && (
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'helpers'}
-            aria-controls="admin-tab-helpers"
-            id="admin-tab-helpers-btn"
-            className={`admin-page-tab${activeTab === 'helpers' ? ' admin-page-tab--active' : ''}`}
-            onClick={() => setTab('helpers')}
-            data-testid="admin-tab-helpers"
-          >
-            <Users size={16} aria-hidden="true" />
-            <span>Helfer</span>
-          </button>
-        )}
-        {visibleTabs.donors && (
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'donors'}
-            aria-controls="admin-tab-donors"
-            id="admin-tab-donors-btn"
-            className={`admin-page-tab${activeTab === 'donors' ? ' admin-page-tab--active' : ''}`}
-            onClick={() => setTab('donors')}
-            data-testid="admin-tab-donors"
-          >
-            <Heart size={16} aria-hidden="true" />
-            <span>Spender</span>
-          </button>
-        )}
-        {visibleTabs.members && (
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'members'}
-            aria-controls="admin-tab-members"
-            id="admin-tab-members-btn"
-            className={`admin-page-tab${activeTab === 'members' ? ' admin-page-tab--active' : ''}`}
-            onClick={() => setTab('members')}
-            data-testid="admin-tab-members"
-          >
-            <Contact size={16} aria-hidden="true" />
-            <span>Mitglieder</span>
-          </button>
-        )}
-        {visibleTabs.instagram && (
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'instagram'}
-            aria-controls="admin-tab-instagram"
-            id="admin-tab-instagram-btn"
-            className={`admin-page-tab${activeTab === 'instagram' ? ' admin-page-tab--active' : ''}`}
-            onClick={() => setTab('instagram')}
-            data-testid="admin-tab-instagram"
-          >
-            <Instagram size={16} aria-hidden="true" />
-            <span>Instagram</span>
-          </button>
-        )}
-        {visibleTabs.analytics && (
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'analytics'}
-            aria-controls="admin-tab-analytics"
-            id="admin-tab-analytics-btn"
-            className={`admin-page-tab${activeTab === 'analytics' ? ' admin-page-tab--active' : ''}`}
-            onClick={() => setTab('analytics')}
-            data-testid="admin-tab-analytics"
-          >
-            <BarChart3 size={16} aria-hidden="true" />
-            <span>Statistik</span>
-          </button>
-        )}
-        {visibleTabs.mailgun && (
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'mailgun'}
-            aria-controls="admin-tab-mailgun"
-            id="admin-tab-mailgun-btn"
-            className={`admin-page-tab${activeTab === 'mailgun' ? ' admin-page-tab--active' : ''}`}
-            onClick={() => setTab('mailgun')}
-            data-testid="admin-tab-mailgun"
-          >
-            <MailCheck size={16} aria-hidden="true" />
-            <span>E-Mail-Versand</span>
-          </button>
-        )}
-      </div>
-
       <div
-        role="tabpanel"
-        id="admin-tab-events"
-        aria-labelledby="admin-tab-events-btn"
-        hidden={activeTab !== 'events'}
+        className="admin-page-tabs"
+        role="tablist"
+        aria-label="Verwaltungs-Bereiche"
+        ref={tabsRef}
       >
-        {activeTab === 'events' && <EventList />}
+        {TAB_GROUPS.map((group) => {
+          const tabs = group.tabs.filter((t) => visibleTabs[t.id]);
+          if (tabs.length === 0) return null;
+          const isOpen = openGroup === group.id;
+          const isActive = tabs.some((t) => t.id === activeTab);
+          const groupCount = tabs.reduce((sum, t) => sum + (badges[t.id]?.count || 0), 0);
+          return (
+            <div key={group.id} className="admin-page-group">
+              <button
+                type="button"
+                className={`admin-page-tab admin-page-group-toggle${isActive ? ' admin-page-tab--active' : ''}`}
+                aria-haspopup="true"
+                aria-expanded={isOpen}
+                onClick={() => setOpenGroup(isOpen ? null : group.id)}
+                data-testid={`admin-group-${group.id}`}
+              >
+                <group.Icon size={16} aria-hidden="true" />
+                <span>{group.label}</span>
+                {groupCount > 0 && (
+                  <span
+                    className="admin-page-tab-badge"
+                    data-testid={`admin-group-${group.id}-badge`}
+                    aria-label={`${groupCount} Hinweise`}
+                  >
+                    {formatCount(groupCount)}
+                  </span>
+                )}
+                <ChevronDown size={14} aria-hidden="true" />
+              </button>
+              <div className="admin-page-group-menu" hidden={!isOpen}>
+                {tabs.map((t) => {
+                  const badge = badges[t.id];
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={activeTab === t.id}
+                      aria-controls={`admin-tab-${t.id}`}
+                      id={`admin-tab-${t.id}-btn`}
+                      className={`admin-page-group-item${activeTab === t.id ? ' admin-page-group-item--active' : ''}`}
+                      onClick={() => {
+                        setOpenGroup(null);
+                        if (t.id === 'theme') navigate('/admin/theme-editor');
+                        else setTab(t.id);
+                      }}
+                      data-testid={`admin-tab-${t.id}`}
+                    >
+                      <t.Icon size={16} aria-hidden="true" />
+                      <span>{t.label}</span>
+                      {badge && badge.count > 0 && (
+                        <span
+                          className="admin-page-tab-badge"
+                          data-testid={`admin-tab-${t.id}-badge`}
+                          aria-label={badge.label}
+                        >
+                          {formatCount(badge.count)}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
       </div>
-      {visibleTabs.drafts && (
-        <div
-          role="tabpanel"
-          id="admin-tab-drafts"
-          aria-labelledby="admin-tab-drafts-btn"
-          hidden={activeTab !== 'drafts'}
-        >
-          {activeTab === 'drafts' && <DraftsTab />}
-        </div>
-      )}
-      {visibleTabs.review && (
-        <div
-          role="tabpanel"
-          id="admin-tab-review"
-          aria-labelledby="admin-tab-review-btn"
-          hidden={activeTab !== 'review'}
-        >
-          {activeTab === 'review' && <ReviewTab />}
-        </div>
-      )}
-      {visibleTabs.messages && (
-        <div
-          role="tabpanel"
-          id="admin-tab-messages"
-          aria-labelledby="admin-tab-messages-btn"
-          hidden={activeTab !== 'messages'}
-        >
-          {activeTab === 'messages' && <MessagesTab />}
-        </div>
-      )}
-      {visibleTabs.feedback && (
-        <div
-          role="tabpanel"
-          id="admin-tab-feedback"
-          aria-labelledby="admin-tab-feedback-btn"
-          hidden={activeTab !== 'feedback'}
-        >
-          {activeTab === 'feedback' && <FeedbackTab />}
-        </div>
-      )}
-      {visibleTabs.trash && (
-        <div
-          role="tabpanel"
-          id="admin-tab-trash"
-          aria-labelledby="admin-tab-trash-btn"
-          hidden={activeTab !== 'trash'}
-        >
-          {activeTab === 'trash' && <TrashTab />}
-        </div>
-      )}
-      {visibleTabs.categories && (
-        <div
-          role="tabpanel"
-          id="admin-tab-categories"
-          aria-labelledby="admin-tab-categories-btn"
-          hidden={activeTab !== 'categories'}
-        >
-          {activeTab === 'categories' && <CategoriesTab />}
-        </div>
-      )}
-      {visibleTabs.theme && (
-        <div
-          role="tabpanel"
-          id="admin-tab-theme"
-          aria-labelledby="admin-tab-theme-btn"
-          hidden={activeTab !== 'theme'}
-        >
-          {activeTab === 'theme' && <ThemeTab />}
-        </div>
-      )}
-      {visibleTabs.helpers && (
-        <div
-          role="tabpanel"
-          id="admin-tab-helpers"
-          aria-labelledby="admin-tab-helpers-btn"
-          hidden={activeTab !== 'helpers'}
-        >
-          {activeTab === 'helpers' && <HelpersTab />}
-        </div>
-      )}
-      {visibleTabs.donors && (
-        <div
-          role="tabpanel"
-          id="admin-tab-donors"
-          aria-labelledby="admin-tab-donors-btn"
-          hidden={activeTab !== 'donors'}
-        >
-          {activeTab === 'donors' && <DonorsTab />}
-        </div>
-      )}
-      {visibleTabs.members && (
-        <div
-          role="tabpanel"
-          id="admin-tab-members"
-          aria-labelledby="admin-tab-members-btn"
-          hidden={activeTab !== 'members'}
-        >
-          {activeTab === 'members' && <MembersTab />}
-        </div>
-      )}
 
-      {visibleTabs.instagram && (
-        <div
-          role="tabpanel"
-          id="admin-tab-instagram"
-          aria-labelledby="admin-tab-instagram-btn"
-          hidden={activeTab !== 'instagram'}
-        >
-          {activeTab === 'instagram' && <InstagramTab />}
-        </div>
-      )}
-
-      {visibleTabs.analytics && (
-        <div
-          role="tabpanel"
-          id="admin-tab-analytics"
-          aria-labelledby="admin-tab-analytics-btn"
-          hidden={activeTab !== 'analytics'}
-        >
-          {activeTab === 'analytics' && <AnalyticsTab />}
-        </div>
-      )}
-
-      {visibleTabs.mailgun && (
-        <div
-          role="tabpanel"
-          id="admin-tab-mailgun"
-          aria-labelledby="admin-tab-mailgun-btn"
-          hidden={activeTab !== 'mailgun'}
-        >
-          {activeTab === 'mailgun' && <MailgunTab />}
-        </div>
+      {Object.entries(PANELS).map(([id, Panel]) =>
+        visibleTabs[id] ? (
+          <div
+            key={id}
+            role="tabpanel"
+            id={`admin-tab-${id}`}
+            aria-labelledby={`admin-tab-${id}-btn`}
+            hidden={activeTab !== id}
+          >
+            {activeTab === id && <Panel />}
+          </div>
+        ) : null
       )}
 
       <EmailVerificationModal

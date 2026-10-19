@@ -5,6 +5,7 @@ import {
   waitForWizardToLoad,
   completeSubmissionAndReturnToAdmin,
 } from '../helpers/wizard';
+import { openAdminTab } from '../helpers/admin';
 
 const EVENT_TITLE = 'Admin Created Test Event';
 
@@ -74,6 +75,7 @@ test.describe('Admin-created events need approval', () => {
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
       .catch(() => {});
 
+    await openAdminTab(page, 'review');
     const reviewTab = page.getByTestId('admin-tab-review');
     await expect(reviewTab).toBeVisible({ timeout: 10000 });
     await reviewTab.click();

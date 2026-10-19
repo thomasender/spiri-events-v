@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import AdminPage from '../../src/pages/AdminPage';
@@ -583,5 +583,54 @@ describe('AdminPage EventStatusMismatchBanner (hehX4tTc)', () => {
     const dismiss = screen.getByTestId('event-status-mismatch-banner-dismiss');
     await dismiss.click();
     expect(screen.queryByTestId('event-status-mismatch-banner')).not.toBeInTheDocument();
+  });
+});
+
+describe('AdminPage tab groups', () => {
+  it('groups the admin tabs into the four drop-down menus', () => {
+    mockAuth.role = 'Admin';
+    renderAdmin();
+    for (const [group, tabs] of Object.entries({
+      'events-group': ['events', 'review'],
+      community: ['members', 'helpers', 'donors', 'categories'],
+      communication: ['instagram', 'mailgun'],
+      settings: ['analytics', 'theme'],
+    })) {
+      const menu = screen.getByTestId(`admin-group-${group}`).nextElementSibling as HTMLElement;
+      for (const tab of tabs) {
+        expect(menu).toContainElement(screen.getByTestId(`admin-tab-${tab}`));
+      }
+    }
+  });
+
+  it('opens a menu on click and closes it after choosing an entry', () => {
+    mockAuth.role = 'Admin';
+    renderAdmin();
+    const toggle = screen.getByTestId('admin-group-community');
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(screen.getByTestId('admin-tab-helpers'));
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByTestId('admin-tab-helpers')).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('shows the red signal on the group as well as on the entry', () => {
+    mockAuth.role = 'Admin';
+    mockUsePendingEvents.pendingEvents = [{ id: 'a', title: 'A' }];
+    mockUseHasMessages.hasMessages = true;
+    mockUseUnread.count = 2;
+    renderAdmin();
+    expect(screen.getByTestId('admin-tab-review-badge')).toHaveTextContent('1');
+    expect(screen.getByTestId('admin-group-events-group-badge')).toHaveTextContent('1');
+    expect(screen.getByTestId('admin-tab-messages-badge')).toHaveTextContent('2');
+    expect(screen.getByTestId('admin-group-communication-badge')).toHaveTextContent('2');
+  });
+
+  it('hides a group whose entries are all hidden', () => {
+    mockAuth.role = 'User';
+    renderAdmin();
+    expect(screen.queryByTestId('admin-group-community')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('admin-group-settings')).not.toBeInTheDocument();
   });
 });

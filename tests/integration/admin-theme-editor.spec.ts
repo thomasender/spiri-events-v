@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 import { STORAGE_STATE } from '../helpers/roles';
+import { openAdminTab } from '../helpers/admin';
 
 // Signed in as `admin` via the session captured once by tests/auth.setup.ts,
 // instead of driving the login form in every test.
@@ -240,6 +241,7 @@ test.describe('Admin Theme Editor v2', () => {
 
   test('the public Theme tab button now navigates to the new editor page', async ({ page }) => {
     await page.goto('/admin');
+    await openAdminTab(page, 'theme');
     const themeTab = page.getByTestId('admin-tab-theme');
     await expect(themeTab).toBeVisible();
     await themeTab.click();
