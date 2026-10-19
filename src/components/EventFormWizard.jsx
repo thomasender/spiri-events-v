@@ -5,6 +5,7 @@ import CreatableSelect from 'react-select/creatable';
 import { serverTimestamp } from 'firebase/firestore';
 import { useEvents, BEZIRKE } from '../hooks/useEvents';
 import { bezirkLabel } from '../utils/regions';
+import { applyAdminPrefill, shouldPrefillForAdmin } from '../utils/adminPrefill';
 import { useCategories } from '../hooks/useCategories';
 import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
@@ -292,6 +293,18 @@ export default function EventFormWizard() {
   ]);
 
   const isAdmin = role === 'Admin';
+
+  // Admins get the mandatory fields pre-filled for testing (new events only;
+  // a restored draft is left untouched). The role may arrive after first render.
+  const adminPrefillDone = useRef(false);
+  useEffect(() => {
+    if (adminPrefillDone.current || restoredDraft || !shouldPrefillForAdmin(role)) return;
+    adminPrefillDone.current = true;
+    setFormData((prev) => applyAdminPrefill(prev, { bezirke: BEZIRKE }));
+    setExtraCategories((prev) => (prev.includes('Sonstiges') ? prev : [...prev, 'Sonstiges']));
+    setRightsConfirmed(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [role]);
 
   const hasRecurrence = formData.recurrence !== 'none';
   const hasEndDateRecurrenceConflict = Boolean(formData.endDate) && hasRecurrence;
