@@ -916,6 +916,25 @@ function pickBundlePath(assetsDir, ext) {
   return `/assets/${chosen}`
 }
 
+// Vite writes the real entry tags into dist/index.html. Reading them from
+// there is reliable now that pages are split into lazy chunks: a shared chunk
+// can also end up named `index-<hash>.js`, and picking the wrong file would
+// ship every prerendered page without the app.
+export function bundlePathsFromIndexHtml(html) {
+  if (typeof html !== 'string') return { js: null, css: null }
+  const js = html.match(/<script[^>]*type="module"[^>]*src="(\/assets\/[^"]+\.js)"/)
+  const css = html.match(/<link[^>]*rel="stylesheet"[^>]*href="(\/assets\/[^"]+\.css)"/)
+  return { js: js ? js[1] : null, css: css ? css[1] : null }
+}
+
+function readEntryFromIndexHtml(distPath) {
+  try {
+    return bundlePathsFromIndexHtml(fs.readFileSync(path.join(distPath, 'index.html'), 'utf8'))
+  } catch {
+    return { js: null, css: null }
+  }
+}
+
 function findJsBundlePath(assetsDir) {
   return pickBundlePath(assetsDir, 'js')
 }
@@ -1073,8 +1092,10 @@ export async function prerender({
   // `generateEventHtml` call below wire React up the same way the calendar
   // page already does.
   const assetsPath = path.join(distPath, 'assets')
-  const jsBundlePath = fs.existsSync(assetsPath) ? findJsBundlePath(assetsPath) : null
-  const cssBundlePath = fs.existsSync(assetsPath) ? findCssBundlePath(assetsPath) : null
+  const entry = readEntryFromIndexHtml(distPath)
+  const hasAssets = fs.existsSync(assetsPath)
+  const jsBundlePath = hasAssets ? entry.js || findJsBundlePath(assetsPath) : null
+  const cssBundlePath = hasAssets ? entry.css || findCssBundlePath(assetsPath) : null
 
   for (const event of events) {
     const eventPath = getEventPath(event)

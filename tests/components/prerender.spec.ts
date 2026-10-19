@@ -614,6 +614,35 @@ describe('prerender() end-to-end', () => {
     expect(indexHtml).not.toContain('RichTextEditor-');
   });
 
+  it('takes the entry chunk from the Vite index.html when a lazy chunk is also named index-*', async () => {
+    writeJson(path.join(exportPath, 'events.json'), sampleEvents);
+    // A shared lazy chunk built from some `index.js` module, sorting before the entry.
+    fs.writeFileSync(path.join(distPath, 'assets', 'index-0Lazy000.js'), '// lazy chunk');
+    fs.writeFileSync(
+      path.join(distPath, 'index.html'),
+      '<html><head><script type="module" crossorigin src="/assets/index-AbCdEfGh.js"></script>' +
+        '<link rel="stylesheet" crossorigin href="/assets/index-AbCdEfGh.css"></head></html>'
+    );
+    const { prerender } = await importPrerender();
+    await prerender({
+      rootDir: tmpRoot,
+      distPath,
+      exportPath,
+      skipFirestore: true,
+      skipRest: true,
+      skipAdmin: true,
+    });
+
+    const indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf8');
+    expect(indexHtml).toContain('src="/assets/index-AbCdEfGh.js"');
+    expect(indexHtml).not.toContain('index-0Lazy000.js');
+    const eventHtml = fs.readFileSync(
+      path.join(distPath, 'event', sampleEvents[0].slug, 'index.html'),
+      'utf8'
+    );
+    expect(eventHtml).toContain('src="/assets/index-AbCdEfGh.js"');
+  });
+
   it('wires the JS+CSS bundle into every event page so React mounts on a direct /event/<slug>/ visit (UDhvTSPq)', async () => {
     writeJson(path.join(exportPath, 'events.json'), sampleEvents);
     const { prerender } = await importPrerender();
