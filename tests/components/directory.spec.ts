@@ -4,6 +4,7 @@ import {
   buildDirectoryParams,
   countFacet,
   filterDirectoryEntries,
+  formatBioPreview,
   isRenderableEntry,
   normalizeDirectoryEntry,
   parseDirectoryParams,
@@ -178,5 +179,24 @@ describe('URL params', () => {
   it('toggles values', () => {
     expect(toggleValue(['a'], 'b')).toEqual(['a', 'b']);
     expect(toggleValue(['a', 'b'], 'a')).toEqual(['b']);
+  });
+});
+
+describe('formatBioPreview', () => {
+  it('turns a line break into ". "', () => {
+    expect(formatBioPreview('hi, ich bin Sandra\nYogalehrerin, Bewegungsmensch')).toBe(
+      'hi, ich bin Sandra. Yogalehrerin, Bewegungsmensch'
+    );
+  });
+  it('adds no period after existing punctuation', () => {
+    expect(formatBioPreview('Hallo.\nWelt!\r\nOk?\nJa:\nNein;\nEnde')).toBe(
+      'Hallo. Welt! Ok? Ja: Nein; Ende'
+    );
+  });
+  it('collapses blank lines and whitespace', () => {
+    expect(formatBioPreview('A  \n\n \nB  \n')).toBe('A. B');
+  });
+  it('handles non-strings', () => {
+    expect(formatBioPreview(undefined)).toBe('');
   });
 });

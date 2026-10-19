@@ -14,6 +14,7 @@ import {
   buildDirectoryParams,
   countFacet,
   filterDirectoryEntries,
+  formatBioPreview,
   parseDirectoryParams,
   shuffleDirectoryEntries,
   toggleValue,
@@ -50,7 +51,7 @@ function DirectoryCard({ entry, colorByName, isAdmin, onToggleHidden, busy }) {
           {entry.regions.length > 0 && (
             <p className="directory-card-regions">{entry.regions.join(' · ')}</p>
           )}
-          {entry.bio && <p className="directory-card-bio">{entry.bio}</p>}
+          {entry.bio && <p className="directory-card-bio">{formatBioPreview(entry.bio)}</p>}
           <ul className="directory-card-categories" aria-label="Kategorien">
             {entry.categories.map((name) => (
               <li key={name} className="directory-card-category">
