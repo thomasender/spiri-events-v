@@ -15,6 +15,16 @@ import {
 } from '../utils/instagramImageChoice';
 import './InstagramImagePicker.css';
 
+const noTextNotice = (
+  <p className="instagram-image-picker-warning" role="note" data-testid="instagram-no-text-notice">
+    <AlertTriangle size={16} aria-hidden="true" />
+    <span>
+      Bitte kein Foto mit Text oder Flyer verwenden – die Event-Beschreibung wird von uns über das
+      Bild gelegt.
+    </span>
+  </p>
+);
+
 /**
  * Lets the organizer pick which of their photos is used for the Instagram
  * post and the 4:5 crop (focal point + zoom). Controlled: `value` is
@@ -86,6 +96,7 @@ export default function InstagramImagePicker({
   if (!candidates || candidates.length === 0) {
     return (
       <div className="instagram-image-picker" data-testid="instagram-image-picker">
+        {noTextNotice}
         <p className="instagram-image-picker-empty" data-testid="instagram-image-picker-empty">
           Du hast kein Foto hochgeladen. Für den Instagram-Beitrag verwenden wir dann ein passendes
           Stimmungsbild.
@@ -109,6 +120,8 @@ export default function InstagramImagePicker({
           zeigt.
         </span>
       </p>
+
+      {noTextNotice}
 
       {uploadControl}
 
