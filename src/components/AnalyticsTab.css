@@ -197,3 +197,117 @@
   font-variant-numeric: tabular-nums;
   color: var(--text-secondary);
 }
+
+.analytics-card > .analytics-hint {
+  margin-bottom: 12px;
+}
+
+.analytics-top-events {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.analytics-event {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+}
+
+.analytics-event summary {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  flex-wrap: wrap;
+}
+
+.analytics-event summary:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: -2px;
+}
+
+.analytics-event-rank {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.analytics-event-title {
+  flex: 1 1 200px;
+  min-width: 0;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.analytics-event-meta {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.analytics-event-details {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px 12px 14px;
+}
+
+.analytics-event-details h3 {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.analytics-minis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.analytics-mini {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.analytics-mini-value {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.analytics-mini-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.analytics-mini-note {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  opacity: 0.85;
+}
+
+.analytics-event-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  font-size: 0.9rem;
+  color: var(--accent-primary);
+}
+
+.analytics-event-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 16px;
+}
