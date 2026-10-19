@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import InstagramImagePicker from '../../src/components/InstagramImagePicker';
 
 describe('InstagramImagePicker', () => {
@@ -20,5 +20,24 @@ describe('InstagramImagePicker', () => {
       />
     );
     expect(screen.getByTestId('instagram-no-text-notice')).toBeInTheDocument();
+  });
+
+  it('asks for a no-text confirmation checkbox when photos exist', () => {
+    const onConfirm = vi.fn();
+    const candidates = [{ source: 'main', label: 'Foto', previewUrl: 'x.jpg' }];
+    render(
+      <InstagramImagePicker
+        candidates={candidates}
+        value={{ source: 'main', focalPoint: { x: 0.5, y: 0.5 }, zoom: 1 }}
+        onChange={() => {}}
+        noTextConfirmed={false}
+        onNoTextConfirmedChange={onConfirm}
+        noTextError="Bitte bestätigen"
+      />
+    );
+    expect(screen.queryByTestId('instagram-no-text-notice')).not.toBeInTheDocument();
+    expect(screen.getByTestId('instagram-no-text-error')).toHaveTextContent('Bitte bestätigen');
+    fireEvent.click(screen.getByTestId('instagram-no-text-checkbox'));
+    expect(onConfirm).toHaveBeenCalledWith(true);
   });
 });

@@ -40,6 +40,9 @@ export default function InstagramImagePicker({
   onRemoveUpload,
   uploadError,
   event,
+  noTextConfirmed,
+  onNoTextConfirmedChange,
+  noTextError,
 }) {
   const fileInputRef = useRef(null);
   const [previewMode, setPreviewMode] = useState(PREVIEW_MODE_CAROUSEL);
@@ -121,7 +124,30 @@ export default function InstagramImagePicker({
         </span>
       </p>
 
-      {noTextNotice}
+      {onNoTextConfirmedChange ? (
+        <div className="instagram-image-picker-no-text">
+          <label className="checkbox-label checkbox-label--block" htmlFor="instagram-no-text">
+            <input
+              id="instagram-no-text"
+              type="checkbox"
+              checked={Boolean(noTextConfirmed)}
+              onChange={(e) => onNoTextConfirmedChange(e.target.checked)}
+              data-testid="instagram-no-text-checkbox"
+            />
+            <span>
+              Ich bestätige, dass mein Foto keinen Text und keinen Flyer enthält – die
+              Event-Beschreibung wird von uns über das Bild gelegt.
+            </span>
+          </label>
+          {noTextError && (
+            <span className="error-text" data-testid="instagram-no-text-error">
+              {noTextError}
+            </span>
+          )}
+        </div>
+      ) : (
+        noTextNotice
+      )}
 
       {uploadControl}
 
