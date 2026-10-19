@@ -215,6 +215,9 @@ export default function EventFormWizard() {
   const instagramConsentTouched = useRef(
     Boolean(restoredDraft && typeof restoredDraft.instagramConsent === 'boolean')
   );
+  const [instagramNoTextConfirmed, setInstagramNoTextConfirmed] = useState(
+    Boolean(restoredDraft && restoredDraft.instagramNoTextConfirmed)
+  );
   // Handle used for tag/collab on this event only; the profile stays unchanged.
   const [instagramHandleOverride, setInstagramHandleOverride] = useState(
     typeof restoredDraft?.instagramHandleOverride === 'string'
@@ -278,6 +281,7 @@ export default function EventFormWizard() {
         currentStep,
         rightsConfirmed,
         instagramConsent,
+        instagramNoTextConfirmed,
         instagramHandleOverride,
       });
     }, 300);
@@ -288,6 +292,7 @@ export default function EventFormWizard() {
     currentStep,
     rightsConfirmed,
     instagramConsent,
+    instagramNoTextConfirmed,
     instagramHandleOverride,
     loading,
   ]);
@@ -407,6 +412,9 @@ export default function EventFormWizard() {
     } else if (step === 4) {
       if (!rightsConfirmed) {
         newErrors.rightsConfirmed = 'Bitte bestätige die Nutzungsrechte';
+      }
+      if (instagramConsent && instagramImageCandidates.length > 0 && !instagramNoTextConfirmed) {
+        newErrors.instagramNoText = 'Bitte bestätige, dass dein Foto keinen Text enthält';
       }
     }
     return newErrors;
@@ -782,6 +790,8 @@ export default function EventFormWizard() {
       setErrors(newErrors);
       if (step4Errors.rightsConfirmed) {
         setValidationError('Bitte bestätige die Nutzungsrechte.');
+      } else if (step4Errors.instagramNoText) {
+        setValidationError(step4Errors.instagramNoText + '.');
       } else {
         setValidationError('Bitte fülle alle Pflichtfelder aus.');
       }
@@ -803,6 +813,8 @@ export default function EventFormWizard() {
       setErrors(newErrors);
       if (step4Errors.rightsConfirmed) {
         setValidationError('Bitte bestätige die Nutzungsrechte.');
+      } else if (step4Errors.instagramNoText) {
+        setValidationError(step4Errors.instagramNoText + '.');
       } else {
         setValidationError('Bitte fülle alle Pflichtfelder aus.');
       }
@@ -1657,6 +1669,14 @@ export default function EventFormWizard() {
             onUpload={handleInstagramImageSelect}
             onRemoveUpload={removeInstagramImage}
             uploadError={instagramUploadError}
+            noTextConfirmed={instagramNoTextConfirmed}
+            onNoTextConfirmedChange={(checked) => {
+              setInstagramNoTextConfirmed(checked);
+              if (checked && errors.instagramNoText) {
+                setErrors((prev) => ({ ...prev, instagramNoText: null }));
+              }
+            }}
+            noTextError={errors.instagramNoText}
             event={{
               title: formData.title.trim(),
               category: formData.category,
