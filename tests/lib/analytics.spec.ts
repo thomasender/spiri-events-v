@@ -21,6 +21,8 @@ vi.mock('firebase/analytics', () => {
 });
 vi.mock('../../src/lib/firebase', () => ({ default: { name: 'app' } }));
 
+const pageLocation = () => `${window.location.origin}${window.location.pathname}`;
+
 async function load() {
   vi.resetModules();
   return await import('../../src/lib/analytics');
@@ -82,21 +84,52 @@ describe('analytics with consent', () => {
     await a.setAnalyticsConsent(true);
     await a.trackEvent(a.EVENTS.SHARE, { method: 'copy', item_id: 'slug' });
     expect(sdk.logEvent).toHaveBeenCalledWith({ id: 'ga' }, 'share', {
+      page_location: pageLocation(),
       method: 'copy',
       item_id: 'slug',
     });
     await a.trackPageView('/auth/action?oobCode=secret#x', 'Auth');
     expect(sdk.logEvent).toHaveBeenLastCalledWith({ id: 'ga' }, 'page_view', {
+      page_location: pageLocation(),
       page_path: '/auth/action',
       page_title: 'Auth',
     });
+  });
+
+  it('never sends the query string or hash in page_location', async () => {
+    window.history.pushState({}, '', '/auth-action?oobCode=secret#x');
+    const a = await load();
+    await a.setAnalyticsConsent(true);
+    await a.trackEvent('share');
+    expect(sdk.logEvent.mock.calls[0][2].page_location).toBe(
+      `${window.location.origin}/auth-action`
+    );
+    window.history.pushState({}, '', '/');
+  });
+
+  it('sends the previous page of the site as page_referrer from the second page view on', async () => {
+    window.history.pushState({}, '', '/verzeichnis');
+    const a = await load();
+    await a.setAnalyticsConsent(true);
+    await a.trackPageView('/verzeichnis', 'Verzeichnis');
+    expect(sdk.logEvent.mock.calls[0][2]).not.toHaveProperty('page_referrer');
+    window.history.pushState({}, '', '/event/morgen-yoga');
+    await a.trackPageView('/event/morgen-yoga', 'Morgen Yoga');
+    expect(sdk.logEvent.mock.calls[1][2]).toMatchObject({
+      page_location: `${window.location.origin}/event/morgen-yoga`,
+      page_referrer: `${window.location.origin}/verzeichnis`,
+    });
+    window.history.pushState({}, '', '/');
   });
 
   it('strips personal-data params and undefined values', async () => {
     const a = await load();
     await a.setAnalyticsConsent(true);
     await a.trackEvent('login', { method: 'google', email: 'a@b.at', userId: '1', x: undefined });
-    expect(sdk.logEvent).toHaveBeenCalledWith({ id: 'ga' }, 'login', { method: 'google' });
+    expect(sdk.logEvent).toHaveBeenCalledWith({ id: 'ga' }, 'login', {
+      page_location: pageLocation(),
+      method: 'google',
+    });
   });
 
   it('revoking consent stops logging', async () => {

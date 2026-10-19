@@ -25,6 +25,21 @@ export function trackEventOpen(event) {
   });
 }
 
+/** organizer_link_click: the organizer's "Mehr Infos & Tickets" link on an event page. */
+export function trackOrganizerLinkClick(event, href) {
+  if (!event) return;
+  trackEvent(EVENTS.ORGANIZER_LINK_CLICK, {
+    item_id: event.slug || event.id,
+    link_domain: (href && externalDomain(href)) || undefined,
+  });
+}
+
+/** calendar_add: the .ics download of one event was started. */
+export function trackCalendarAdd(event) {
+  if (!event) return;
+  trackEvent(EVENTS.CALENDAR_ADD, { item_id: event.slug || event.id });
+}
+
 /** filter_apply; `value` must be a category / region / preset name, never free text. */
 export function trackFilter(filterType, value) {
   trackEvent(EVENTS.FILTER_APPLY, { filter_type: filterType, value });
