@@ -7,6 +7,7 @@ import { useUnreadFeedbackCount } from '../hooks/useFeedbackList';
 import EmailVerificationModal from './EmailVerificationModal';
 import AvatarImage from './AvatarImage';
 import RegionSwitcher, { RegionMenuList } from './RegionSwitcher';
+import { useRegion } from '../hooks/useRegion';
 import { useRegionTexts } from '../hooks/useRegionTexts';
 import {
   Users,
@@ -35,6 +36,9 @@ export default function Header() {
   const { user, logout, role, canCreateEvents } = useAuth();
   const { profile } = useProfile(user?.uid);
   const regionTexts = useRegionTexts();
+  const { comingSoon, regionId } = useRegion();
+  // On a coming-soon region page the event belongs to that region.
+  const addEventPath = comingSoon && regionId ? `/admin/new?region=${regionId}` : '/admin/new';
   const isAdmin = role === 'Admin';
   const navigate = useNavigate();
   const location = useLocation();
@@ -231,7 +235,7 @@ export default function Header() {
             <span>Mein Profil</span>
           </NavLink>
           {canCreateEvents ? (
-            <NavLink to="/admin/new" className={navClass} onClick={closeMenu}>
+            <NavLink to={addEventPath} className={navClass} onClick={closeMenu}>
               <PlusCircle size={18} />
               <span>Event erstellen</span>
             </NavLink>

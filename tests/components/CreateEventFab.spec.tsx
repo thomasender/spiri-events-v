@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import CreateEventFab from '../../src/components/CreateEventFab';
+import { RegionContext, DEFAULT_REGION_CONTEXT } from '../../src/hooks/useRegion';
 
 const mockAuth = vi.hoisted(() => ({
   user: null as { uid: string } | null,
@@ -96,5 +97,26 @@ describe('CreateEventFab (zh4jJzje)', () => {
 
     expect(screen.getByTestId('login-page')).toBeInTheDocument();
     expect(screen.queryByTestId('admin-new-page')).toBeNull();
+  });
+});
+
+describe('CreateEventFab on a coming-soon region page (yA90Y5W1)', () => {
+  it('links to the event form of that region, not the default one', () => {
+    mockAuth.user = { uid: 'test-uid' };
+    mockAuth.canCreateEvents = true;
+    render(
+      <HelmetProvider>
+        <MemoryRouter initialEntries={['/']}>
+          <RegionContext.Provider
+            value={{ ...DEFAULT_REGION_CONTEXT, regionId: 'tirol', comingSoon: true }}
+          >
+            <CreateEventFab />
+          </RegionContext.Provider>
+        </MemoryRouter>
+      </HelmetProvider>
+    );
+    expect(screen.getByTestId('create-event-fab').getAttribute('href')).toBe(
+      '/admin/new?region=tirol'
+    );
   });
 });
