@@ -206,11 +206,7 @@ export default function EventDetailPage() {
     event.status === 'approved' &&
     (isAdmin || event.createdBy === user.uid);
   const favoriteCount = useEventFavoriteCount(event?.id, canSeeFavoriteCount);
-  const showMessagesForHash =
-    event &&
-    user &&
-    (event.status === 'pending' || event.status === 'draft') &&
-    (isAdmin || event.createdBy === user.uid);
+  const showMessagesForHash = Boolean(event && user && (isAdmin || event.createdBy === user.uid));
 
   useEffect(() => {
     async function fetchEvent() {
@@ -960,7 +956,7 @@ export default function EventDetailPage() {
         </a>
       )}
 
-      {(event.status === 'pending' || event.status === 'draft') && user && (isAdmin || isOwner) && (
+      {user && (isAdmin || isOwner) && (
         <EventMessages
           eventId={event.id}
           organizerName={event.organizer?.firstName?.trim() || getOrganizerName(event)}
