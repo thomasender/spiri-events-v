@@ -35,7 +35,9 @@ export default defineConfig({
         // Don't precache index.html itself: every prerendered route already
         // lives at /event/<slug>/index.html and we don't want the SW to short-
         // circuit a fresh navigation to the shell with a stale copy.
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,webp,woff,woff2}'],
+        // woff2 only: every browser with service-worker support reads woff2,
+        // so precaching the .woff fallbacks just downloaded ~1 MB nobody uses.
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,webp,woff2}'],
         globIgnores: ['**/index.html'],
         cleanupOutdatedCaches: true,
         skipWaiting: true,
