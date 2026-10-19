@@ -29,31 +29,6 @@
   opacity: 0.85;
 }
 
-.region-map-label {
-  display: none;
-  font-family: var(--font-body);
-  font-size: 13px;
-  fill: var(--text-primary);
-  pointer-events: none;
-  paint-order: stroke;
-  stroke: var(--bg-primary);
-  stroke-width: 2px;
-}
-
-.region-map-label--big {
-  display: block;
-}
-
-.region-map-label--big {
-  font-size: 20px;
-}
-
-@media (min-width: 641px) {
-  .region-map-label {
-    display: block;
-  }
-}
-
 .region-map-caption {
   min-height: 1.5em;
   font-size: 0.95rem;
