@@ -35,7 +35,13 @@
 }
 
 .moderator-apply-open {
-  margin-top: 14px;
+  display: block;
+  width: 100%;
+  margin-top: 18px;
+  padding: 14px 20px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
 }
 
 .moderator-apply-form {

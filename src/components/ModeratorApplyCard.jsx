@@ -86,7 +86,7 @@ export default function ModeratorApplyCard({ regionId = '', className = '' }) {
       ) : !open ? (
         <button
           type="button"
-          className="btn btn-secondary moderator-apply-open"
+          className="btn btn-primary moderator-apply-open"
           onClick={() => setOpen(true)}
           aria-expanded="false"
         >
