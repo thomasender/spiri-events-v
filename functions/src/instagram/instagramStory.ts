@@ -64,7 +64,9 @@ export function overviewStoryTitle(bezirk: string, heading = OVERVIEW_STORY_HEAD
 }
 
 /** Events per story image; more events are spread over several stories. */
-export const MAX_EVENTS_PER_STORY = 4;
+export const MAX_EVENTS_PER_STORY = 7;
+/** Events starting before this time (HH:MM) go into the "Früh" story, the rest into "Abend". */
+export const STORY_EVENING_FROM = '14:00';
 /** Stories with more events than this skip the organizer line (no room). */
 export const MAX_STORY_ITEMS_WITH_ORGANIZER = 2;
 const STORY_TITLE_MAX = 44;
@@ -87,7 +89,7 @@ export interface StoryModel {
   bezirk: string;
   /** "Sa, 17. Okt" */
   dateLabel: string;
-  /** "Teil 1 von 2"; empty for a single story */
+  /** "Teil 1 von 2" - only when one half of the day still has more events than fit; else empty */
   partLabel: string;
   items: StoryItem[];
   /** The event's own picture and crop, only for a story about a single event. */
@@ -99,7 +101,16 @@ export interface StoryGroup {
   /** 1-based */
   part: number;
   parts: number;
+  /** Set when the day had too many events for one story and was split by start time. */
+  section?: 'frueh' | 'abend';
   events: CarouselEvent[];
+}
+
+/** "Morgen" / "Morgen Früh" / "Morgen Abend" */
+export function storyHeading(group: Pick<StoryGroup, 'section'>, base = OVERVIEW_STORY_HEADING) {
+  if (group.section === 'frueh') return `${base} Früh`;
+  if (group.section === 'abend') return `${base} Abend`;
+  return base;
 }
 
 function asString(value: unknown): string {
@@ -123,22 +134,32 @@ export function groupStories(events: CarouselEvent[], day: string, bezirk: strin
     .filter((e) => isCarouselEligible(e, { start: day, end: day }) && asString(e.bezirk) === bezirk)
     .sort(compareEvents);
   if (list.length === 0) return [];
-  const parts = Math.ceil(list.length / MAX_EVENTS_PER_STORY);
-  const base = Math.floor(list.length / parts);
-  const extra = list.length % parts;
-  const groups: StoryGroup[] = [];
-  let offset = 0;
-  for (let i = 0; i < parts; i += 1) {
-    const size = base + (i < extra ? 1 : 0);
-    groups.push({
-      bezirk: bezirk as CarouselBezirk,
-      part: i + 1,
-      parts,
-      events: list.slice(offset, offset + size),
-    });
-    offset += size;
-  }
-  return groups;
+  const typed = bezirk as CarouselBezirk;
+  const chunk = (items: CarouselEvent[], section?: 'frueh' | 'abend'): StoryGroup[] => {
+    const parts = Math.ceil(items.length / MAX_EVENTS_PER_STORY);
+    const base = Math.floor(items.length / parts);
+    const extra = items.length % parts;
+    const groups: StoryGroup[] = [];
+    let offset = 0;
+    for (let i = 0; i < parts; i += 1) {
+      const size = base + (i < extra ? 1 : 0);
+      groups.push({
+        bezirk: typed,
+        part: i + 1,
+        parts,
+        ...(section ? { section } : {}),
+        events: items.slice(offset, offset + size),
+      });
+      offset += size;
+    }
+    return groups;
+  };
+  if (list.length <= MAX_EVENTS_PER_STORY) return chunk(list);
+  const early = list.filter((e) => asString(e.time).padStart(5, '0') < STORY_EVENING_FROM);
+  const late = list.slice(early.length);
+  // Everything in one half of the day: splitting by time would not help.
+  if (early.length === 0 || late.length === 0) return chunk(list);
+  return [...chunk(early, 'frueh'), ...chunk(late, 'abend')];
 }
 
 export function buildStoryItem(
@@ -182,8 +203,13 @@ export function buildStoryModel(
 
 export type StoryPostId = string;
 
-export function storyPostId(bezirk: string, day: string, part: number): StoryPostId {
-  return `story_${bezirk.toLowerCase().replace(/[^a-z0-9]/g, '')}_${day}${part > 1 ? `_p${part}` : ''}`;
+export function storyPostId(
+  bezirk: string,
+  day: string,
+  part: number,
+  section?: 'frueh' | 'abend'
+): StoryPostId {
+  return `story_${bezirk.toLowerCase().replace(/[^a-z0-9]/g, '')}_${day}${section ? `_${section}` : ''}${part > 1 ? `_p${part}` : ''}`;
 }
 
 export interface StoryPostRecord {
@@ -389,11 +415,17 @@ export async function runDailyStories(
     if (total < (options.minEvents ?? 1)) continue;
     for (const group of groups) {
       results.push(
-        await postStoryGroup(deps, group, day, storyPostId(group.bezirk, day, group.part), {
-          kind: 'overview',
-          postedDay: viennaToday((deps.now ?? (() => new Date()))()),
-          heading: OVERVIEW_STORY_HEADING,
-        })
+        await postStoryGroup(
+          deps,
+          group,
+          day,
+          storyPostId(group.bezirk, day, group.part, group.section),
+          {
+            kind: 'overview',
+            postedDay: viennaToday((deps.now ?? (() => new Date()))()),
+            heading: storyHeading(group),
+          }
+        )
       );
     }
   }

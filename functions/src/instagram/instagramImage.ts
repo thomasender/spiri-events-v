@@ -510,6 +510,8 @@ function buildStoryListLayout(story: StoryModel, imageDataUri: string | null): N
   const { width, height } = FORMAT_DIMENSIONS.story;
   const pad = 90;
   const compact = story.items.length > 2 || imageDataUri !== null;
+  // Up to 7 events: smaller logo, header and rows so everything fits above Instagram's footer area.
+  const dense = story.items.length > 4;
   return el(
     'div',
     {
@@ -524,23 +526,27 @@ function buildStoryListLayout(story: StoryModel, imageDataUri: string | null): N
     },
     [
       el('div', { flexDirection: 'column' }, [
-        el('div', { alignSelf: 'center', marginBottom: compact ? 30 : 50 }, [
-          logoNode(imageDataUri ? 300 : compact ? 420 : 600),
+        el('div', { alignSelf: 'center', marginBottom: dense ? 20 : compact ? 30 : 50 }, [
+          logoNode(imageDataUri ? 300 : dense ? 220 : compact ? 420 : 600),
         ]),
         el(
           'div',
           {
             fontFamily: 'Cormorant Garamond',
             fontWeight: 700,
-            fontSize: imageDataUri ? 120 : 150,
+            fontSize: imageDataUri ? 120 : dense ? 110 : 150,
             lineHeight: 1,
           },
           story.heading
         ),
-        el('div', { fontSize: 64, fontWeight: 700, marginTop: 18 }, story.bezirk),
         el(
           'div',
-          { fontSize: 56, fontWeight: 700, marginTop: 12 },
+          { fontSize: dense ? 56 : 64, fontWeight: 700, marginTop: dense ? 10 : 18 },
+          story.bezirk
+        ),
+        el(
+          'div',
+          { fontSize: dense ? 46 : 56, fontWeight: 700, marginTop: dense ? 8 : 12 },
           [story.dateLabel, story.partLabel].filter(Boolean).join('  ·  ')
         ),
       ]),
@@ -563,7 +569,7 @@ function buildStoryListLayout(story: StoryModel, imageDataUri: string | null): N
             'div',
             {
               alignItems: 'stretch',
-              marginTop: compact ? 24 : 40,
+              marginTop: dense ? 18 : compact ? 24 : 40,
               borderLeft: `10px solid ${item.color}`,
               paddingLeft: 28,
             },
@@ -571,7 +577,7 @@ function buildStoryListLayout(story: StoryModel, imageDataUri: string | null): N
               el('div', { flexDirection: 'column' }, [
                 el(
                   'div',
-                  { fontSize: 34, fontWeight: 700, letterSpacing: 1, opacity: 0.7 },
+                  { fontSize: dense ? 30 : 34, fontWeight: 700, letterSpacing: 1, opacity: 0.7 },
                   [item.time && `${item.time} Uhr`, item.location].filter(Boolean).join('  ·  ')
                 ),
                 el(
@@ -579,7 +585,7 @@ function buildStoryListLayout(story: StoryModel, imageDataUri: string | null): N
                   {
                     fontFamily: 'Cormorant Garamond',
                     fontWeight: 700,
-                    fontSize: compact ? 52 : 62,
+                    fontSize: dense ? 44 : compact ? 52 : 62,
                     lineHeight: 1.05,
                     marginTop: 4,
                   },
