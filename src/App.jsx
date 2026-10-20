@@ -26,6 +26,7 @@ import {
 } from './components/RegionRoutes';
 import RegionsPage from './pages/RegionsPage';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
+import DonationPopup from './components/DonationPopup';
 import CookieConsent from './components/CookieConsent';
 import OutboundLinkTracker from './components/OutboundLinkTracker';
 import { setAnalyticsAdminUser, setAnalyticsRegion, trackPageView } from './lib/analytics';
@@ -247,6 +248,7 @@ function AppLayout() {
       <FeedbackButton />
       <CreateEventFab />
       <PwaInstallPrompt />
+      <DonationPopup />
       <CookieConsent />
       <OutboundLinkTracker />
     </div>
