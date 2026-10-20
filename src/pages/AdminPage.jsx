@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useSearchParams, Link, useNavigate } from 'react-router-dom';
 import {
@@ -190,12 +191,15 @@ export default function AdminPage() {
   useEffect(() => {
     if (!openGroup) return undefined;
     const onPointerDown = (e) => {
+      if (e.target.closest?.('.admin-page-group-menu')) return;
       if (tabsRef.current && !tabsRef.current.contains(e.target)) setOpenGroup(null);
     };
     const onKeyDown = (e) => {
       if (e.key === 'Escape') setOpenGroup(null);
     };
-    const onScroll = () => setOpenGroup(null);
+    const onScroll = (e) => {
+      if (!e.target.closest?.('.admin-page-group-menu')) setOpenGroup(null);
+    };
     document.addEventListener('mousedown', onPointerDown);
     document.addEventListener('keydown', onKeyDown);
     window.addEventListener('scroll', onScroll, true);
@@ -294,44 +298,48 @@ export default function AdminPage() {
                 )}
                 <ChevronDown size={14} aria-hidden="true" />
               </button>
-              <div
-                className="admin-page-group-menu"
-                hidden={!isOpen}
-                style={{ '--menu-top': `${menuPos.top}px`, '--menu-left': `${menuPos.left}px` }}
-              >
-                {tabs.map((t) => {
-                  const badge = badges[t.id];
-                  return (
-                    <button
-                      key={t.id}
-                      type="button"
-                      role="tab"
-                      aria-selected={activeTab === t.id}
-                      aria-controls={`admin-tab-${t.id}`}
-                      id={`admin-tab-${t.id}-btn`}
-                      className={`admin-page-group-item${activeTab === t.id ? ' admin-page-group-item--active' : ''}`}
-                      onClick={() => {
-                        setOpenGroup(null);
-                        if (t.id === 'theme') navigate('/admin/theme-editor');
-                        else setTab(t.id);
-                      }}
-                      data-testid={`admin-tab-${t.id}`}
-                    >
-                      <t.Icon size={16} aria-hidden="true" />
-                      <span>{t.label}</span>
-                      {badge && badge.count > 0 && (
-                        <span
-                          className="admin-page-tab-badge"
-                          data-testid={`admin-tab-${t.id}-badge`}
-                          aria-label={badge.label}
-                        >
-                          {formatCount(badge.count)}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+              {createPortal(
+                <div
+                  className="admin-page-group-menu"
+                  data-testid={`admin-group-menu-${group.id}`}
+                  hidden={!isOpen}
+                  style={{ '--menu-top': `${menuPos.top}px`, '--menu-left': `${menuPos.left}px` }}
+                >
+                  {tabs.map((t) => {
+                    const badge = badges[t.id];
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        role="tab"
+                        aria-selected={activeTab === t.id}
+                        aria-controls={`admin-tab-${t.id}`}
+                        id={`admin-tab-${t.id}-btn`}
+                        className={`admin-page-group-item${activeTab === t.id ? ' admin-page-group-item--active' : ''}`}
+                        onClick={() => {
+                          setOpenGroup(null);
+                          if (t.id === 'theme') navigate('/admin/theme-editor');
+                          else setTab(t.id);
+                        }}
+                        data-testid={`admin-tab-${t.id}`}
+                      >
+                        <t.Icon size={16} aria-hidden="true" />
+                        <span>{t.label}</span>
+                        {badge && badge.count > 0 && (
+                          <span
+                            className="admin-page-tab-badge"
+                            data-testid={`admin-tab-${t.id}-badge`}
+                            aria-label={badge.label}
+                          >
+                            {formatCount(badge.count)}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>,
+                document.body
+              )}
             </div>
           );
         })}

@@ -40,9 +40,10 @@
 }
 
 .admin-page-group-menu {
-  position: absolute;
-  top: 100%;
-  left: 0;
+  /* rendered in a portal on document.body, placed from the toggle's rect */
+  position: fixed;
+  top: var(--menu-top, 0);
+  left: var(--menu-left, 0);
   z-index: 20;
   min-width: 220px;
   padding: 6px;
@@ -172,12 +173,5 @@
   .admin-page-group,
   .admin-page-tab {
     flex-shrink: 0;
-  }
-
-  /* fixed so the open drop-down is not clipped by the scroll container */
-  .admin-page-group-menu {
-    position: fixed;
-    top: var(--menu-top, 0);
-    left: var(--menu-left, 0);
   }
 }
