@@ -40,9 +40,10 @@ function regionGroups(country, regions, countOf) {
   return groups.filter((g) => g.options.length > 0);
 }
 
-// Austria stays Bundesland -> Bezirk: a different grouping makes no sense there, so it is
-// not offered. (The server would accept it; only this tab hides it.)
-const MAPPING_COUNTRIES = COUNTRIES.filter((c) => c !== 'AT');
+// Only Germany is regrouped for now (cultural regions). Austria stays Bundesland -> Bezirk
+// and Switzerland stays Kanton -> Bezirk. (The server would accept them; only this tab
+// hides them.) With more than one country the switcher appears again.
+const MAPPING_COUNTRIES = COUNTRIES.filter((c) => c === 'DE');
 
 /**
  * Super-Admin tab "Zuordnung": which Landkreis / Bezirk belongs to which region.
@@ -222,8 +223,8 @@ export default function RegionMappingTab() {
             </li>
             <li>Landkreise einer Region in einem anderen Land zuordnen.</li>
             <li>
-              Österreich umgruppieren: Dort bleibt es bei Bundesland und Bezirk, deshalb gibt es
-              hier nur Deutschland und die Schweiz.
+              Österreich und die Schweiz umgruppieren: Dort bleibt es bei Bundesland bzw. Kanton und
+              Bezirk. Hier gibt es nur Deutschland.
             </li>
             <li>
               Landkreise mit bestehenden Events verschieben (Schloss-Symbol). Ordne zu, bevor in
@@ -259,20 +260,22 @@ export default function RegionMappingTab() {
         </div>
       )}
 
-      <div className="mapping-countries" role="group" aria-label="Land">
-        {MAPPING_COUNTRIES.map((c) => (
-          <button
-            key={c}
-            type="button"
-            className={`mapping-country${c === country ? ' mapping-country--active' : ''}`}
-            aria-pressed={c === country}
-            onClick={() => changeCountry(c)}
-            data-testid={`mapping-country-${c}`}
-          >
-            {COUNTRY_LABELS[c]}
-          </button>
-        ))}
-      </div>
+      {MAPPING_COUNTRIES.length > 1 && (
+        <div className="mapping-countries" role="group" aria-label="Land">
+          {MAPPING_COUNTRIES.map((c) => (
+            <button
+              key={c}
+              type="button"
+              className={`mapping-country${c === country ? ' mapping-country--active' : ''}`}
+              aria-pressed={c === country}
+              onClick={() => changeCountry(c)}
+              data-testid={`mapping-country-${c}`}
+            >
+              {COUNTRY_LABELS[c]}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="mapping-filters">
         <label className="mapping-field">

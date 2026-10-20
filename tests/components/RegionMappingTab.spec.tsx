@@ -77,7 +77,6 @@ describe('RegionMappingTab', () => {
 
   it('starts on Germany with every Landkreis in its Bundesland (the backend structure)', async () => {
     render(<RegionMappingTab />);
-    expect(screen.getByTestId('mapping-country-DE')).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByTestId('mapping-state-bayern')).toBeInTheDocument();
     expect(regionOf('Roth')).toHaveTextContent('Bayern');
     expect(regionOf('Main-Tauber-Kreis')).toHaveTextContent('Baden-Württemberg');
@@ -92,14 +91,14 @@ describe('RegionMappingTab', () => {
     expect(info).toHaveTextContent('Landkreise mit bestehenden Events verschieben');
   });
 
-  it('offers Germany and Switzerland only (Austria stays Bundesland -> Bezirk) and lists that country', () => {
+  it('offers Germany only (Austria and Switzerland keep their structure): no country switcher', () => {
     render(<RegionMappingTab />);
     expect(screen.queryByTestId('mapping-country-AT')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByTestId('mapping-country-CH'));
-    expect(screen.getByTestId('mapping-state-zuerich')).toBeInTheDocument();
-    expect(screen.queryByTestId('mapping-state-bayern')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByTestId('mapping-country-DE'));
+    expect(screen.queryByTestId('mapping-country-CH')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mapping-country-DE')).not.toBeInTheDocument();
     expect(screen.getByTestId('mapping-state-bayern')).toBeInTheDocument();
+    expect(screen.queryByTestId('mapping-state-tirol')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mapping-state-zuerich')).not.toBeInTheDocument();
   });
 
   it('filters by search text (umlaut tolerant) and by Bundesland', () => {
@@ -221,16 +220,17 @@ describe('RegionMappingTab', () => {
   });
 
   it('does not allow emptying an active region (save disabled, reason shown)', () => {
-    state.active = { vorarlberg: true, zuerich: true };
+    state.active = { vorarlberg: true, saarland: true };
     render(<RegionMappingTab />);
-    fireEvent.click(screen.getByTestId('mapping-country-CH'));
-    fireEvent.change(screen.getByTestId('mapping-state-filter'), { target: { value: 'zuerich' } });
+    fireEvent.change(screen.getByTestId('mapping-state-filter'), { target: { value: 'saarland' } });
     fireEvent.click(screen.getByTestId('mapping-toggle-all'));
-    fireEvent.change(screen.getByTestId('mapping-target'), { target: { value: 'bern' } });
+    fireEvent.change(screen.getByTestId('mapping-target'), {
+      target: { value: 'rheinland-pfalz' },
+    });
     fireEvent.click(screen.getByTestId('mapping-stage'));
     expect(screen.getByTestId('mapping-save')).toBeDisabled();
     expect(screen.getByTestId('mapping-draft')).toHaveTextContent(
-      'Zürich ist aktiv und braucht mindestens einen Landkreis / Bezirk.'
+      'Saarland ist aktiv und braucht mindestens einen Landkreis / Bezirk.'
     );
   });
 
