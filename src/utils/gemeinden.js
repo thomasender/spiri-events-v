@@ -2,7 +2,7 @@
 // organizer pick the Gemeinde; the Bezirk (used for filters, URLs, Instagram)
 // is derived from it so the two can never contradict each other.
 // Source: Wikipedia "Liste der Gemeinden in Vorarlberg" (96 Gemeinden).
-import { bezirkLabel } from './regions';
+import { bezirkLabel } from './regions.js';
 
 const BY_BEZIRK = {
   Bludenz: [
