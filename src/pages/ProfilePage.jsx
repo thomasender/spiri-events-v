@@ -5,6 +5,7 @@ import ChangeEmailForm from '../components/ChangeEmailForm';
 import NotificationPreferencesCard from '../components/NotificationPreferencesCard';
 import InstagramConsentCard from '../components/InstagramConsentCard';
 import DeleteAccountSection from '../components/DeleteAccountSection';
+import { RegionPickButton } from '../components/RegionSwitcher';
 import SeoMeta from '../components/SeoMeta';
 import './ProfilePage.css';
 
@@ -50,6 +51,16 @@ export default function ProfilePage() {
         </div>
 
         <ProfileForm profile={profile} uid={user.uid} onSave={handleProfileSave} />
+
+        {!isAdmin && (
+          <section className="profile-card" data-testid="profile-region">
+            <h2 className="profile-card-title">Region</h2>
+            <p className="profile-card-hint">
+              Wähle, für welche Region du den Kalender sehen möchtest.
+            </p>
+            <RegionPickButton testId="profile-region-pick" />
+          </section>
+        )}
 
         <NotificationPreferencesCard
           preferences={notificationPreferences}

@@ -147,9 +147,12 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
   Vorarlberg's page, the footer link follows the current region). Texts switch with the
   usual dark-launch rule (`AboutPage`). Moderators (and Super-Admins) maintain it in the
   admin tab "Über uns" (`RegionAboutTab`): header photo (`regions/{id}/` in Storage) and the
-  helpers shown, saved as `aboutHeaderImage` / `aboutHelperIds` on `regions/{id}`. The rule
-  lets a moderator update exactly those two fields (+ `updatedAt`) of her own regions.
-  A region without a selection shows no helpers (Vorarlberg: all, until chosen). Not in
+  rich text of the "Deine Heimat <Region> ruft dich." section (heading fixed), saved as
+  `aboutHeaderImage` / `aboutText` on `regions/{id}` (`src/utils/regionAboutText.js`; no
+  `aboutText` = default text). The rule lets a moderator update exactly those fields
+  (+ `updatedAt`) of her own regions. Helpers are global (admin tab "Helfer") and shown in
+  full on every "Über uns" page; `aboutHelperIds` is no longer written or read.
+  Not in
   the prerender/sitemap yet.
 - `admin_users` is written only via the Admin SDK: callables
   `adminSetRegionModerator` / `adminListRegionModerators` (Super-Admin only,
@@ -480,3 +483,10 @@ All 51 regions of AT/DE/CH exist in the register, so adding one is data work
 9. **Legal texts:** confirm Impressum / Datenschutz / AGB / footer wording with the
    product owner for the new region or country (they are Vorarlberg-specific
    today).
+
+- **Where the region is chosen:** visitors without an account use the header button (phone:
+  burger menu); signed-in users and moderators use the card "Region" in the profile;
+  Super-Admins use the footer (`RegionPickButton`). All open the same pop-up and keep the
+  dark launch rule (hidden below two active regions).
+- **Coming-soon page:** the link "Andere Regionen erkunden, z. B. <Region> (<n> Events)"
+  points to the open region with the most approved events (`useLargestRegion`).

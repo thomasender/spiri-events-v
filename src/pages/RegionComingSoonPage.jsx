@@ -5,10 +5,12 @@ import SeoMeta from '../components/SeoMeta';
 import ModeratorApplyCard from '../components/ModeratorApplyCard';
 import { BRAND_NAME } from '../config/brand';
 import { useAuth } from '../hooks/useAuth';
+import { useRegion } from '../hooks/useRegion';
 import { useRegionEventCount } from '../hooks/useRegionEventCount';
+import { useLargestRegion } from '../hooks/useLargestRegion';
 import { copyToClipboard } from '../utils/copyToClipboard';
 import { progressPercent } from '../utils/regionProgress';
-import { regionLocative, regionPath } from '../utils/regionRouting';
+import { regionCanonicalPath, regionLocative, regionPath } from '../utils/regionRouting';
 import { combinedViewTexts } from '../utils/regionTexts';
 import './ErrorPage.css';
 
@@ -21,6 +23,8 @@ import './ErrorPage.css';
  */
 export default function RegionComingSoonPage({ region = null, view = null, canPreview = false }) {
   const { user } = useAuth();
+  const { allRegions } = useRegion();
+  const largest = useLargestRegion();
   const count = useRegionEventCount(region?.id ?? null);
   const [copied, setCopied] = useState(false);
   const percent = progressPercent(count);
@@ -123,8 +127,14 @@ export default function RegionComingSoonPage({ region = null, view = null, canPr
           </p>
         )}
         <ModeratorApplyCard regionId={region?.id ?? ''} />
-        <Link to="/" className="coming-soon-explore" data-testid="region-explore">
-          Andere Regionen erkunden
+        <Link
+          to={largest ? regionCanonicalPath(largest.region.id, '/', allRegions) : '/'}
+          className="coming-soon-explore"
+          data-testid="region-explore"
+        >
+          {largest
+            ? `Andere Regionen erkunden, z. B. ${largest.region.name} (${largest.count} ${largest.count === 1 ? 'Event' : 'Events'})`
+            : 'Andere Regionen erkunden'}
         </Link>
       </div>
     </div>

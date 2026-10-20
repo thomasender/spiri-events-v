@@ -13,6 +13,9 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../../src/hooks/useRegionEventCount', () => ({
   useRegionEventCount: () => mocks.count,
 }));
+vi.mock('../../src/hooks/useLargestRegion', () => ({
+  useLargestRegion: () => mocks.largest,
+}));
 vi.mock('../../src/hooks/useRegions', () => ({ useRegions: () => mocks.regions }));
 vi.mock('../../src/hooks/useAuth', () => ({ useAuth: () => mocks.auth }));
 vi.mock('react-helmet-async', () => ({
@@ -81,6 +84,20 @@ beforeEach(() => {
 
 afterEach(() => {
   window.localStorage.clear();
+});
+
+describe('coming-soon link to the largest region', () => {
+  afterEach(() => {
+    mocks.largest = null;
+  });
+
+  it('names the largest open region and its number of events', () => {
+    mocks.largest = { region: { id: 'vorarlberg', name: 'Vorarlberg' }, count: 256 };
+    renderAt('/steiermark');
+    const link = screen.getByTestId('region-explore');
+    expect(link).toHaveTextContent('Andere Regionen erkunden, z. B. Vorarlberg (256 Events)');
+    expect(link).toHaveAttribute('href', '/');
+  });
 });
 
 describe('region or profile at /:slug', () => {

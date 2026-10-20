@@ -206,6 +206,7 @@ export function mergeRegions(docs, base = STATIC_REGIONS) {
         ...(typeof d.aboutHeaderImage === 'string' && d.aboutHeaderImage
           ? { aboutHeaderImage: d.aboutHeaderImage }
           : {}),
+        ...(typeof d.aboutText === 'string' && d.aboutText ? { aboutText: d.aboutText } : {}),
       };
     })
     .sort((a, b) => a.order - b.order);

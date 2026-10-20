@@ -4,6 +4,8 @@ import { PWA_OPEN_REQUEST_EVENT } from './PwaInstallPrompt';
 import { requestConsentBanner } from '../lib/analyticsConsent';
 import { LEGACY_SITE_NAME } from '../config/brand';
 import { useRegion } from '../hooks/useRegion';
+import { useAuth } from '../hooks/useAuth';
+import { RegionPickButton } from './RegionSwitcher';
 import { regionCanonicalPath, regionPath, regionSlugFromPath } from '../utils/regionRouting';
 import { isRegionSlug } from '../utils/regions';
 import './Footer.css';
@@ -11,6 +13,7 @@ import './Footer.css';
 export default function Footer() {
   const { installAvailable, isStandalone, isMobileViewport, requestInstall } = usePwaInstall();
   const isIOS = isIOSDevice();
+  const { role } = useAuth();
   // Unchanged `/ueber-uns` while Vorarlberg is the only active region; combined views use it too.
   const { regionId, allRegions, combinedView, comingSoon } = useRegion();
   const { pathname } = useLocation();
@@ -64,6 +67,9 @@ export default function Footer() {
             >
               App installieren
             </button>
+          )}
+          {role === 'Admin' && (
+            <RegionPickButton className="region-pick-button--footer" testId="footer-region-pick" />
           )}
           <Link to="/impressum">Impressum</Link>
           <Link to="/datenschutz">Datenschutz</Link>

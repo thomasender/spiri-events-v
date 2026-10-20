@@ -4,23 +4,40 @@ import { Upload } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { uploadRegionImage, MAX_INPUT_SIZE_BYTES } from '../lib/imageUpload';
 import { useAuth } from '../hooks/useAuth';
-import { useHelpers } from '../hooks/useHelpers';
 import { refreshRegions, useRegions } from '../hooks/useRegions';
 import { getStaffAccess } from '../utils/staffRoles';
+import {
+  ABOUT_TEXT_MAX_LENGTH,
+  customAboutText,
+  defaultAboutBodyHtml,
+} from '../utils/regionAboutText';
+import RichTextEditorLazy from './RichTextEditorLazy';
 import './ModerationTab.css';
 import './RegionAboutTab.css';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
-// "Über uns" of a region: its moderators (and Super-Admins) pick which of the
-// helpers appear there and upload the header photo. Saved on `regions/{id}`
-// (aboutHelperIds, aboutHeaderImage); firestore.rules let a moderator write
-// exactly these two fields of her own regions.
+const placePhraseOf = (region) => region?.inPhrase || `in ${region?.name ?? ''}`;
+
+// Parts of the page a moderator cannot change; shown so it is clear what is fixed.
+const FIXED_PARTS = [
+  'Titel „Dein Tribe ruft dich.“ mit Einleitung und Schaltflächen',
+  'Kalender',
+  'Unsere Werte',
+  'Wer wir sind',
+  'Helfer:innen',
+  'Spenden',
+];
+
+// "Über uns" of a region: its moderators (and Super-Admins) upload the header
+// photo and write the text of the "Deine Heimat ... ruft dich" section; the rest
+// of the page is fixed. Helpers are managed in the tab "Helfer". Saved on
+// `regions/{id}` (aboutHeaderImage, aboutText); firestore.rules let a moderator
+// write exactly these fields of her own regions.
 export default function RegionAboutTab() {
   const { role, staffRegionIds } = useAuth();
   const access = getStaffAccess(role, staffRegionIds);
   const { regions } = useRegions();
-  const { helpers, loading: helpersLoading } = useHelpers();
   const options = useMemo(
     () => regions.filter((r) => access.canModerateRegion(r.id)),
     [regions, access]
@@ -28,7 +45,7 @@ export default function RegionAboutTab() {
 
   const [regionId, setRegionId] = useState('');
   const current = options.find((r) => r.id === regionId) ?? options[0] ?? null;
-  const [helperIds, setHelperIds] = useState([]);
+  const [aboutText, setAboutText] = useState('');
   const [headerImage, setHeaderImage] = useState('');
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -39,7 +56,7 @@ export default function RegionAboutTab() {
   const currentId = current?.id ?? '';
   useEffect(() => {
     const region = options.find((r) => r.id === currentId);
-    setHelperIds(Array.isArray(region?.aboutHelperIds) ? region.aboutHelperIds : []);
+    setAboutText(customAboutText(region) || defaultAboutBodyHtml(placePhraseOf(region)));
     setHeaderImage(region?.aboutHeaderImage ?? '');
     setNotice(null);
     // Only on region switch: a refresh after saving must not reset unsaved edits.
@@ -47,9 +64,6 @@ export default function RegionAboutTab() {
   }, [currentId]);
 
   if (!current) return null;
-
-  const toggleHelper = (id) =>
-    setHelperIds((prev) => (prev.includes(id) ? prev.filter((h) => h !== id) : [...prev, id]));
 
   const handleSelectFile = async (file) => {
     if (!file) return;
@@ -80,10 +94,9 @@ export default function RegionAboutTab() {
     setSaving(true);
     setNotice(null);
     try {
-      // In the order of the helpers list, not of the clicks.
-      const ordered = helpers.map((h) => h.id).filter((id) => helperIds.includes(id));
+      const isDefault = aboutText.trim() === defaultAboutBodyHtml(placePhraseOf(current));
       await updateDoc(doc(db, 'regions', current.id), {
-        aboutHelperIds: ordered,
+        aboutText: aboutText.trim() && !isDefault ? aboutText.trim() : null,
         aboutHeaderImage: headerImage || null,
         updatedAt: serverTimestamp(),
       });
@@ -100,8 +113,9 @@ export default function RegionAboutTab() {
   return (
     <div className="moderation-tab region-about-tab" data-testid="region-about-tab">
       <p className="moderation-intro">
-        Hier gestaltest du die „Über uns“-Seite deiner Region: Wähle das Titelbild und die
-        Helfer:innen, die dort gezeigt werden.
+        Hier gestaltest du die „Über uns“-Seite deiner Region. Veränderbar sind das Titelbild und
+        der Text im Abschnitt „Deine Heimat {current.name} ruft dich.“ Alles andere ist fest
+        vorgegeben. Die Helfer:innen pflegst du im Tab „Helfer“.
       </p>
 
       {notice && (
@@ -175,28 +189,37 @@ export default function RegionAboutTab() {
       </section>
 
       <section className="region-about-section">
-        <h3>Helfer:innen</h3>
-        {helpersLoading ? (
-          <p>Lade Helfer:innen…</p>
-        ) : helpers.length === 0 ? (
-          <p>Es sind noch keine Helfer:innen angelegt.</p>
-        ) : (
-          <ul className="region-about-helpers" data-testid="region-about-helpers">
-            {helpers.map((h) => (
-              <li key={h.id}>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={helperIds.includes(h.id)}
-                    onChange={() => toggleHelper(h.id)}
-                    data-testid={`region-about-helper-${h.id}`}
-                  />{' '}
-                  {h.name}
-                </label>
-              </li>
-            ))}
-          </ul>
-        )}
+        <h3>Text „Deine Heimat {current.name} ruft dich.“</h3>
+        <p className="region-about-fixed-note">
+          Die Überschrift bleibt gleich, den Text darunter kannst du frei gestalten.
+        </p>
+        <RichTextEditorLazy
+          value={aboutText}
+          onChange={setAboutText}
+          placeholder="Schreibe hier deinen Text…"
+          maxLength={ABOUT_TEXT_MAX_LENGTH}
+          testId="region-about-text"
+          uploadImage={(file) => uploadRegionImage(file, current.id)}
+        />
+        <button
+          type="button"
+          className="btn btn-secondary region-about-reset"
+          onClick={() => setAboutText(defaultAboutBodyHtml(placePhraseOf(current)))}
+          disabled={saving}
+          data-testid="region-about-reset"
+        >
+          Standardtext wiederherstellen
+        </button>
+      </section>
+
+      <section className="region-about-section">
+        <h3>Fest vorgegeben</h3>
+        <p className="region-about-fixed-note">Diese Teile der Seite sind nicht veränderbar:</p>
+        <ul className="region-about-fixed" data-testid="region-about-fixed">
+          {FIXED_PARTS.map((label) => (
+            <li key={label}>{label}</li>
+          ))}
+        </ul>
       </section>
 
       <button

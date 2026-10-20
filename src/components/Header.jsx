@@ -298,7 +298,8 @@ export default function Header() {
           </div>
         </Link>
 
-        <RegionSwitcher />
+        {/* Signed-in people change the region in their profile (Super-Admins in the footer). */}
+        {!user && <RegionSwitcher />}
 
         <div className="nav-desktop">{renderNavLinks()}</div>
 
@@ -357,7 +358,7 @@ export default function Header() {
         className={`nav-mobile${menuOpen ? ' nav-mobile--open' : ''}`}
         aria-hidden={!menuOpen}
       >
-        <RegionMenuList onNavigate={closeMenu} />
+        {!user && <RegionMenuList onNavigate={closeMenu} />}
         {renderNavLinks()}
       </div>
 

@@ -1765,6 +1765,17 @@ describe('region about page (moderators)', () => {
     );
   });
 
+  it('a moderator sets the text of the "Deine Heimat" section; too long is rejected', async () => {
+    const db = dbFor('modTirol');
+    await assertSucceeds(
+      updateDoc(doc(db, 'regions/tirol'), { aboutText: '<p>Hallo Tirol</p>', updatedAt: 2 })
+    );
+    await assertFails(
+      updateDoc(doc(db, 'regions/tirol'), { aboutText: 'x'.repeat(20001), updatedAt: 3 })
+    );
+    await assertFails(updateDoc(doc(db, 'regions/wien'), { aboutText: '<p>x</p>', updatedAt: 2 }));
+  });
+
   it('a moderator cannot touch another region or other fields', async () => {
     const db = dbFor('modTirol');
     await assertFails(updateDoc(doc(db, 'regions/wien'), { aboutHelperIds: ['h1'], updatedAt: 2 }));

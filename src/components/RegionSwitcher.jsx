@@ -45,6 +45,43 @@ export function RegionMenuList({ onNavigate }) {
 }
 
 /**
+ * Button that opens the region pop-up from the profile page (users and
+ * moderators) and from the footer (Super-Admins). Same dark launch rule as the
+ * header button.
+ */
+export function RegionPickButton({ className = '', testId = 'region-pick-button' }) {
+  const { name, visible } = useCurrentRegionName();
+  const [open, setOpen] = useState(false);
+  const triggerRef = useRef(null);
+  if (!visible) return null;
+
+  const close = () => {
+    setOpen(false);
+    triggerRef.current?.focus();
+  };
+
+  return (
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        className={`region-pick-button ${className}`.trim()}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-label={`Region wählen, aktuell ${name}`}
+        data-testid={testId}
+        onClick={() => setOpen(true)}
+      >
+        <MapPin size={16} aria-hidden="true" />
+        <span>{name}</span>
+        <ChevronDown size={16} aria-hidden="true" />
+      </button>
+      <RegionPickerModal open={open} onClose={close} />
+    </>
+  );
+}
+
+/**
  * Header button that opens the region pop-up (chips by country). Dark launch:
  * renders nothing while fewer than two regions are active, so Vorarlberg-only
  * visitors see no change.

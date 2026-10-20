@@ -75,3 +75,33 @@
     outline-offset: 2px;
   }
 }
+
+.region-pick-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-calendar);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.region-pick-button:hover {
+  border-color: var(--primary);
+}
+
+.region-pick-button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.region-pick-button--footer {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 0.9rem;
+  color: var(--text-light);
+}

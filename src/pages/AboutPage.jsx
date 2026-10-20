@@ -9,7 +9,8 @@ import ContactFormModal from '../components/ContactFormModal';
 import { useRegion } from '../hooks/useRegion';
 import { useRegionTexts } from '../hooks/useRegionTexts';
 import { regionCanonicalPath } from '../utils/regionRouting';
-import { DEFAULT_REGION_ID } from '../utils/regions';
+import { customAboutText } from '../utils/regionAboutText';
+import RichTextView from '../components/RichTextView';
 import './AboutPage.css';
 
 const CONTACT_EMAIL = 'admin@thetribe.at';
@@ -37,11 +38,8 @@ export default function AboutPage() {
     ? regionCanonicalPath(region.id, '/ueber-uns', allRegions)
     : '/ueber-uns';
   const homePath = regionMode ? regionCanonicalPath(region.id, '/', allRegions) : '/';
-  // Helpers: a region shows the ones its moderators picked (none until then);
-  // Vorarlberg shows all of them until its moderators pick.
-  const helperIds = regionMode
-    ? (region.aboutHelperIds ?? (region.id === DEFAULT_REGION_ID ? null : []))
-    : null;
+  // Text of the "Deine Heimat" section written by the region's moderators.
+  const customText = regionMode ? customAboutText(region) : '';
   const headerImage = (regionMode && region.aboutHeaderImage) || '/hero.jpeg';
   const openContact = () => setContactOpen(true);
   const contactClass = 'about-inline-link';
@@ -116,21 +114,27 @@ export default function AboutPage() {
 
       <section className="about-section">
         <h2>Deine Heimat {placeName} ruft dich.</h2>
-        <p>
-          Wir sind der Tribe {placePhrase}, der die gefundenen Methoden praktiziert und sich
-          verbindet. Diese sind meist sehr ganzheitlich (Breathwork, Meditation, Yoga, Singen,
-          Tanzen, Aufstellungsarbeit, …) und haben alle ein gemeinsames Ziel:
-        </p>
-        <p className="about-highlight">Zurück zu uns Selbst zu kommen.</p>
-        <ul className="about-list">
-          <li>Selbsterkenntnis</li>
-          <li>Friede</li>
-          <li>Mitgefühl</li>
-          <li>Erwachen {placePhrase} vergrößern und hier pflegen</li>
-        </ul>
-        <p className="about-cta-line">
-          <strong>Verbinde dich jetzt mit uns!</strong>
-        </p>
+        {customText ? (
+          <RichTextView html={customText} className="about-custom-text" />
+        ) : (
+          <>
+            <p>
+              Wir sind der Tribe {placePhrase}, der die gefundenen Methoden praktiziert und sich
+              verbindet. Diese sind meist sehr ganzheitlich (Breathwork, Meditation, Yoga, Singen,
+              Tanzen, Aufstellungsarbeit, …) und haben alle ein gemeinsames Ziel:
+            </p>
+            <p className="about-highlight">Zurück zu uns Selbst zu kommen.</p>
+            <ul className="about-list">
+              <li>Selbsterkenntnis</li>
+              <li>Friede</li>
+              <li>Mitgefühl</li>
+              <li>Erwachen {placePhrase} vergrößern und hier pflegen</li>
+            </ul>
+            <p className="about-cta-line">
+              <strong>Verbinde dich jetzt mit uns!</strong>
+            </p>
+          </>
+        )}
       </section>
 
       <section className="about-section">
@@ -201,12 +205,12 @@ export default function AboutPage() {
           schenken. Hier sind sie — die Helfer:innen, die {siteName} tragen. Möchtest du auch
           mithelfen? {sayHello}.
         </p>
-        <HelpersList helperIds={helperIds} />
+        <HelpersList />
       </section>
 
       <section className="about-section about-support" id="spenden">
         <span className="eyebrow about-section-eyebrow">Unterstützung</span>
-        <h2>Spende — damit tribe Vorarlberg weiter wachsen kann</h2>
+        <h2>Spende — damit der Tribe weiter wachsen kann</h2>
         <p>
           Viele Stunden ehrenamtlicher Arbeit stecken in dieser Website und in unserem Verein. Falls
           du uns unterstützen möchtest, freuen wir uns sehr über deine Spende. Diese wird aktuell
@@ -223,8 +227,8 @@ export default function AboutPage() {
           </h3>
           <p className="about-donors-intro">
             Jede Spende — ob einmalig oder monatlich, ob mit oder ohne Namen — hilft uns, den Raum
-            für tribe Vorarlberg offen zu halten. Spender:innen können anonym bleiben oder
-            namentlich genannt werden, mit oder ohne Betrag.
+            für den Tribe offen zu halten. Spender:innen können anonym bleiben oder namentlich
+            genannt werden, mit oder ohne Betrag.
           </p>
           <DonorsList />
         </div>

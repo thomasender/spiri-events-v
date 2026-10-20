@@ -603,7 +603,8 @@ service cloud.firestore {
       function isValidRegion(d) {
         return d.keys().hasOnly(
                  ['name', 'slug', 'order', 'active', 'bezirke', 'contactEmail', 'seo',
-                  'timezone', 'aboutHelperIds', 'aboutHeaderImage', 'createdAt', 'updatedAt'])
+                  'timezone', 'aboutHelperIds', 'aboutHeaderImage', 'aboutText', 'createdAt',
+                  'updatedAt'])
           && d.slug is string
           && d.slug == regionId
           && d.slug in regionIds()
@@ -619,15 +620,18 @@ service cloud.firestore {
           && (!('aboutHeaderImage' in d)
               || d.aboutHeaderImage == null
               || (d.aboutHeaderImage is string && d.aboutHeaderImage.size() <= 500
-                  && d.aboutHeaderImage.matches('^https?://.+$')));
+                  && d.aboutHeaderImage.matches('^https?://.+$')))
+          && (!('aboutText' in d)
+              || d.aboutText == null
+              || (d.aboutText is string && d.aboutText.size() <= 20000));
       }
       allow read: if true;
       allow create, update: if isAdminOrEmulatorAdmin() && isValidRegion(request.resource.data);
       // Regions-Moderator:innen maintain the "Über uns" page of their own
-      // regions (helpers shown, header photo) and nothing else of the doc.
+      // regions (header photo, text of the "Deine Heimat" section) and nothing else of the doc.
       allow update: if isRegionModeratorFor(regionId)
                     && request.resource.data.diff(resource.data).affectedKeys()
-                         .hasOnly(['aboutHelperIds', 'aboutHeaderImage', 'updatedAt'])
+                         .hasOnly(['aboutHelperIds', 'aboutHeaderImage', 'aboutText', 'updatedAt'])
                     && isValidRegion(request.resource.data);
       allow delete: if isAdminOrEmulatorAdmin();
     }

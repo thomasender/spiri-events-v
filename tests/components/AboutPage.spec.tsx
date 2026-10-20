@@ -90,7 +90,7 @@ describe('AboutPage', () => {
     expect(screen.getByText('Unsere Werte')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Wer wir sind/ })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Hände hinter tribe/ })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /Spende — damit tribe/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Spende — damit der Tribe/ })).toBeInTheDocument();
   });
 
   it('does not render the founder photo cards on the About page', () => {
@@ -303,16 +303,15 @@ describe('AboutPage — region mode', () => {
     );
   }
 
-  it('names the region and shows only the helpers its moderators picked, with their header photo', () => {
+  it('names the region and shows all helpers, with the header photo of its moderators', () => {
     renderRegion({
-      aboutHelperIds: ['h2'],
       aboutHeaderImage: 'https://example.com/tirol-header.jpg',
     });
 
     expect(
       screen.getByRole('heading', { name: /Deine Heimat Tirol ruft dich/ })
     ).toBeInTheDocument();
-    expect(screen.queryByText('Anna Alpha')).not.toBeInTheDocument();
+    expect(screen.getByText('Anna Alpha')).toBeInTheDocument();
     expect(screen.getByText('Berta Beta')).toBeInTheDocument();
     expect(document.querySelector('.about-hero-image')).toHaveAttribute(
       'src',
@@ -320,11 +319,20 @@ describe('AboutPage — region mode', () => {
     );
   });
 
-  it('a region without a selection shows no helpers of other regions and the default photo', () => {
+  it('shows the text written by the moderators instead of the default text', () => {
+    renderRegion({ aboutText: '<p>Unser eigener Tiroler Text</p>' });
+
+    expect(
+      screen.getByRole('heading', { name: /Deine Heimat Tirol ruft dich/ })
+    ).toBeInTheDocument();
+    expect(screen.getByText('Unser eigener Tiroler Text')).toBeInTheDocument();
+    expect(screen.queryByText('Selbsterkenntnis')).not.toBeInTheDocument();
+  });
+
+  it('a region without own text shows the default text and the default photo', () => {
     renderRegion({});
 
-    expect(screen.queryByText('Anna Alpha')).not.toBeInTheDocument();
-    expect(screen.getByTestId('helpers-list-empty')).toBeInTheDocument();
+    expect(screen.getByText('Selbsterkenntnis')).toBeInTheDocument();
     expect(document.querySelector('.about-hero-image')).toHaveAttribute('src', '/hero.jpeg');
   });
 });
