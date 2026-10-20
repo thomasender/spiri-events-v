@@ -104,3 +104,8 @@
 .regions-tab > .moderation-intro {
   flex: 0 0 auto;
 }
+
+/* Same stretch as in the Zuordnung tab: the intro sits directly in a column here. */
+.regions-tab > .moderation-intro {
+  flex: 0 0 auto;
+}

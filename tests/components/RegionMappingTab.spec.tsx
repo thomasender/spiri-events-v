@@ -84,6 +84,14 @@ describe('RegionMappingTab', () => {
     expect(screen.queryByTestId('mapping-draft')).not.toBeInTheDocument();
   });
 
+  it('explains what works and what does not', () => {
+    render(<RegionMappingTab />);
+    const info = screen.getByTestId('mapping-info');
+    expect(within(info).getByRole('heading', { name: 'Das kannst du' })).toBeInTheDocument();
+    expect(within(info).getByRole('heading', { name: 'Das geht nicht' })).toBeInTheDocument();
+    expect(info).toHaveTextContent('Landkreise mit bestehenden Events verschieben');
+  });
+
   it('switches country and only lists that country', () => {
     render(<RegionMappingTab />);
     fireEvent.click(screen.getByTestId('mapping-country-AT'));

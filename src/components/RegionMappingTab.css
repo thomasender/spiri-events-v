@@ -162,3 +162,37 @@
   text-align: left;
   font-size: 0.9rem;
 }
+
+/* The shared intro has `flex: 1 1 320px`, which would stretch it in this column. */
+.mapping-tab .moderation-intro {
+  flex: 0 0 auto;
+}
+
+.mapping-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.mapping-info-card {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+
+.mapping-info-card h3 {
+  margin: 0 0 6px;
+  font-size: 1rem;
+}
+
+.mapping-info-card ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.mapping-info-card li + li {
+  margin-top: 4px;
+}

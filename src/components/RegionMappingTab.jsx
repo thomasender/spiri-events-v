@@ -167,11 +167,52 @@ export default function RegionMappingTab() {
   return (
     <div className="moderation-tab mapping-tab" data-testid="mapping-tab">
       <p className="moderation-intro">
-        Hier legst du fest, welche Landkreise und Bezirke zu welcher Region gehören. Die Landkreise
-        selbst sind fest vorgegeben, du kannst sie nur den Regionen zuordnen. Jeder Landkreis gehört
-        immer genau zu einer Region. Am Anfang gehört alles zum Bundesland bzw. Kanton. Landkreise,
-        in denen es schon Events gibt, sind gesperrt.
+        Hier legst du fest, welche Landkreise und Bezirke zu welcher Region gehören. Wähle Einträge
+        aus, wähle die Region und merke die Änderung vor. Erst mit „Zuordnung speichern“ gilt sie
+        für alle.
       </p>
+
+      <div className="mapping-info" data-testid="mapping-info">
+        <section className="mapping-info-card">
+          <h3>Das kannst du</h3>
+          <ul>
+            <li>
+              Landkreise und Bezirke einer anderen Region im selben Land zuordnen, auch über
+              Bundesland-Grenzen hinweg (z. B. Tauberfranken).
+            </li>
+            <li>
+              Viele auf einmal verschieben: mit Suche, Filter und „Alle angezeigten auswählen“.
+            </li>
+            <li>Änderungen erst vormerken, prüfen und dann speichern, oder alles verwerfen.</li>
+            <li>Eine Zuordnung später wieder ändern, solange es dort keine Events gibt.</li>
+            <li>Eine Region leer machen: Besucher sehen sie dann nicht mehr.</li>
+          </ul>
+        </section>
+        <section className="mapping-info-card">
+          <h3>Das geht nicht</h3>
+          <ul>
+            <li>Landkreise anlegen, umbenennen oder löschen. Sie sind fest vorgegeben.</li>
+            <li>
+              Einen Landkreis in zwei Regionen oder in gar keine Region stecken. Er gehört immer
+              genau zu einer.
+            </li>
+            <li>Landkreise einer Region in einem anderen Land zuordnen.</li>
+            <li>
+              Landkreise mit bestehenden Events verschieben (Schloss-Symbol). Ordne zu, bevor in
+              einer Region Events angelegt werden.
+            </li>
+            <li>
+              Einer aktiven Region alle Landkreise wegnehmen, oder eine Region ohne Landkreise
+              freischalten.
+            </li>
+            <li>
+              Neue Regionen anlegen oder umbenennen. Das macht das Technik-Team. Die Regionen aus
+              deiner Liste sind schon angelegt.
+            </li>
+            <li>Die Karte zeigt die neuen Regionen noch nicht als eigene Fläche.</li>
+          </ul>
+        </section>
+      </div>
 
       {notice && (
         <p
