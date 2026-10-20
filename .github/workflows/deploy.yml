@@ -76,7 +76,7 @@ jobs:
           echo "Backend deploy: $deploy"
           echo "backend=$deploy" >> "$GITHUB_OUTPUT"
 
-      - name: Migrate existing event slugs to the new format
+      - name: Fill in missing event slugs (existing slugs are never changed)
         env:
           GOOGLE_APPLICATION_CREDENTIALS: scripts/service-account.json
         run: node scripts/migrate-event-slugs.mjs

@@ -1,14 +1,14 @@
 import { collection, collectionGroup, query, where, getDocs } from 'firebase/firestore';
 import { db } from './firebase';
-import { slugify, generateEventSlug, slugifyName } from './slug-helpers';
+import { slugify, generateEventSlug, slugifyName, eventSlugPlace } from './slug-helpers';
 
 // Re-exports so existing callers of `slugify` and `generateSlug` keep working.
 // `generateSlug` is intentionally NOT re-exported: the canonical name is now
-// `generateEventSlug(title, category, bezirk, date)` and takes the new fields.
-export { slugify, generateEventSlug, slugifyName };
+// `generateEventSlug(title, category, place, date)` and takes the new fields.
+export { slugify, generateEventSlug, slugifyName, eventSlugPlace };
 
 // Generates a slug from the new event format:
-//   {titleSlug}-{categorySlug}-in-{bezirkSlug}-{yyyymmdd}
+//   {titleSlug}-{categorySlug}-in-{ortSlug}-{yyyymmdd}
 // Then checks Firestore for collisions and appends a counter (-2, -3, …) when
 // the generated slug is already in use. A slug counts as taken when an
 // approved event uses it (public URL) or when one of the creator's own events
@@ -16,8 +16,8 @@ export { slugify, generateEventSlug, slugifyName };
 // then duplicating it or submitting the same event again cannot produce two
 // events with the same URL. Other users' drafts are not readable from the
 // client; the `onEventCreatedEnsureUniqueSlug` Cloud Function catches those.
-export async function findUniqueSlug(title, category, bezirk, date, ownerUid) {
-  let baseSlug = generateEventSlug(title, category, bezirk, date);
+export async function findUniqueSlug(title, category, place, date, ownerUid) {
+  let baseSlug = generateEventSlug(title, category, place, date);
   if (!baseSlug) {
     throw new Error('Cannot generate slug from empty inputs');
   }

@@ -10,8 +10,8 @@ export function makeSeedDate(dayOffset: number, monthOffset = 0): string {
   return d.toISOString().split('T')[0];
 }
 
-// Mirrors the new event URL format `{titleSlug}-{categorySlug}-in-{bezirkSlug}-{yyyymmdd}`
-// used in the app and seed scripts. Each integration spec calls this with the
+// Mirrors the event URL format `{titleSlug}-{categorySlug}-in-{placeSlug}-{yyyymmdd}`
+// used in the app and seed scripts (the seed scripts pass the Bezirk as place). Each integration spec calls this with the
 // same (title, category, bezirk, dayOffset) the corresponding seed fixture uses,
 // so the resulting constant matches the `slug` field written to Firestore.
 export function generateSlug(

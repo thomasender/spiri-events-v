@@ -18,6 +18,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { findUniqueSlug, resolveSlugForApproval } from '../lib/slug';
+import { eventSlugPlace } from '../lib/slug-helpers';
 import { BEZIRKE, ONLINE_LOCATION } from '../utils/regions';
 import { normalizeCurrency } from '../utils/currency';
 import { deleteImageByUrl } from '../lib/imageUpload';
@@ -107,7 +108,7 @@ export function useEvents(user) {
     const slug = await findUniqueSlug(
       eventData.title,
       eventData.category,
-      eventData.bezirk,
+      eventSlugPlace(eventData),
       eventData.date,
       user.uid
     );
@@ -220,7 +221,7 @@ export function useEvents(user) {
     const slug = await findUniqueSlug(
       duplicatedTitle,
       source.category || 'Sonstiges',
-      source.bezirk || '',
+      eventSlugPlace(source),
       source.date,
       user.uid
     );
