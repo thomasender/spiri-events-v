@@ -366,12 +366,14 @@ export function usePendingEvents() {
   return { pendingEvents, loading, approveEvent };
 }
 
-export function useAllEvents() {
+export function useAllEvents({ enabled = true } = {}) {
   const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (!enabled) return undefined;
+    setLoading(true);
     const q = query(collection(db, 'events'), where('status', '==', 'approved'));
 
     const unsubscribe = onSnapshot(
@@ -394,9 +396,63 @@ export function useAllEvents() {
     );
 
     return unsubscribe;
-  }, []);
+  }, [enabled]);
 
   return { events, loading, error };
+}
+
+const EVENTS_VERSION_PATH = ['app_settings', 'eventsVersion'];
+
+// Approved events for the public pages. Instead of every visitor reading every
+// event from Firestore, the list comes from /api/events.json, which the Hosting
+// CDN caches per version. Only the tiny version doc is watched: when an event
+// is approved or changed, a Cloud Function bumps it and the list is refetched.
+// If the version doc is missing or the fetch fails, it falls back to reading
+// Firestore directly, as before. The local emulators have no such endpoint.
+export function usePublicEvents() {
+  const emulators = import.meta.env.VITE_USE_EMULATORS === 'true';
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [useFallback, setUseFallback] = useState(false);
+  const [version, setVersion] = useState(null);
+
+  useEffect(() => {
+    if (emulators) return undefined;
+    return onSnapshot(
+      doc(db, ...EVENTS_VERSION_PATH),
+      (snap) => {
+        const v = snap.exists() ? snap.data().version : null;
+        if (typeof v === 'number') setVersion(v);
+        else setUseFallback(true);
+      },
+      () => setUseFallback(true)
+    );
+  }, [emulators]);
+
+  useEffect(() => {
+    if (version === null) return undefined;
+    const controller = new AbortController();
+    fetch(`/api/events.json?v=${version}`, { signal: controller.signal })
+      .then((res) => {
+        if (!res.ok) throw new Error(`events.json ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        const normalized = normalizeEvents(data);
+        normalized.sort(compareEventsByDateTime);
+        setEvents(normalized);
+        setLoading(false);
+        setError(null);
+      })
+      .catch((err) => {
+        if (err.name !== 'AbortError') setUseFallback(true);
+      });
+    return () => controller.abort();
+  }, [version]);
+
+  const direct = useAllEvents({ enabled: emulators || useFallback });
+  return emulators || useFallback ? direct : { events, loading, error };
 }
 
 export function useEventById(eventId) {

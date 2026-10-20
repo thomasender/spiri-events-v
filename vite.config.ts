@@ -31,7 +31,7 @@ export default defineConfig({
         navigateFallback: '/index.html',
         // The calendar downloads are served by a Cloud Function (firebase.json
         // rewrites); the SW must not answer them with the app shell.
-        navigateFallbackDenylist: [/^\/calendar\/(feed|event\/)/],
+        navigateFallbackDenylist: [/^\/calendar\/(feed|event\/)/, /^\/api\//],
         // Don't precache index.html itself: every prerendered route already
         // lives at /event/<slug>/index.html and we don't want the SW to short-
         // circuit a fresh navigation to the shell with a stale copy.
