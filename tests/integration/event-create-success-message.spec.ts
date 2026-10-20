@@ -30,6 +30,7 @@ async function fillWizardAndSubmit(page, title) {
   await page.fill('#time', '10:00');
   await page.fill('#place', 'Test Place');
   await page.locator('#city').fill('Bregenz');
+  await page.keyboard.press('Enter');
 
   await page.click('.kategorie-select');
   await page.click('.kategorie__option:has-text("Yoga")');
