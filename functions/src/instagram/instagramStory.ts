@@ -105,6 +105,8 @@ export interface StoryGroup {
   /** Set when the day had too many events for one story and was split by start time. */
   section?: 'frueh' | 'abend';
   events: CarouselEvent[];
+  /** Story about a single event: its Ort, shown instead of the Bezirk line. */
+  city?: string;
 }
 
 /** "Morgen" / "Morgen Früh" / "Morgen Abend" */
@@ -189,7 +191,7 @@ export function buildStoryModel(
 ): StoryModel {
   return {
     heading,
-    bezirk: stripImageUnsafeChars(bezirkInPhrase(group.bezirk)),
+    bezirk: stripImageUnsafeChars(group.city ? `in ${group.city}` : bezirkInPhrase(group.bezirk)),
     dateLabel: formatStoryDate(day),
     partLabel: group.parts > 1 ? `Teil ${group.part} von ${group.parts}` : '',
     image: group.events.length === 1 ? resolveEventImageChoice(group.events[0]) : null,

@@ -155,6 +155,7 @@ export async function runEventStories(deps: StoryDeps): Promise<EventStoryOutcom
       part: 1,
       parts: 1,
       events: [event],
+      city: asString(event.city) || undefined,
     };
     const result = await postStoryGroup(deps, group, date, postId, {
       kind: 'event',

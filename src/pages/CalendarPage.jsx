@@ -576,7 +576,7 @@ export default function CalendarPage() {
               </summary>
               <div className="filter-accordion-body">
                 <div className="filter-header">
-                  <span className="filter-label">Ort</span>
+                  <span className="filter-label">Bezirk</span>
                   <div className="filter-quick-actions">
                     <button type="button" onClick={selectAllOrte}>
                       Alle

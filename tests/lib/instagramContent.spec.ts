@@ -178,6 +178,12 @@ describe('instagram content', () => {
       ).toBe(true);
     });
 
+    it('names the Ort, not the Bezirk, in the headline (kgYQqmUo)', () => {
+      const caption = buildCaption({ ...base, city: 'Hohenems' }, null, now);
+      expect(caption.startsWith('wöchentlich am Montag in Hohenems\n\n')).toBe(true);
+      expect(caption).toContain('\nMeditation in Hohenems\n');
+    });
+
     it('lists custom dates without the repeat sentence and skips exception dates', () => {
       const caption = buildCaption(
         {
@@ -232,6 +238,20 @@ describe('instagram content', () => {
         '📅 So, 18. Okt · 19:00 Uhr\nSoundhealing in Dornbirn:\n📍 Le studio, Steinebach 7, Dornbirn\n\nMit @cosmic.klang_\n\nFloating Gongbath\n\nBeschreibung\n\n'
       )
     ).toBe(true);
+  });
+
+  it('names the Ort, not the Bezirk, in the category line (kgYQqmUo)', () => {
+    const caption = buildCaption({
+      title: 'Floating Gongbath',
+      date: '2026-10-18',
+      time: '19:00',
+      category: 'Soundhealing',
+      place: 'Le studio, Steinebach 7',
+      city: 'Lustenau',
+      bezirk: 'Dornbirn',
+    });
+    expect(caption).toContain('\nSoundhealing in Lustenau:\n');
+    expect(caption).not.toContain('Dornbirn');
   });
 
   it('builds a caption for a bare-minimum event without empty sections', () => {

@@ -1,4 +1,6 @@
 import { formatCityWithBezirk } from './gemeinden';
+import { bezirkLabel } from './regions';
+
 export function parseEventDate(dateStr) {
   const [year, month, day] = dateStr.split('-');
   return new Date(year, month - 1, day);
@@ -69,4 +71,12 @@ export function getEventLocationLabel(event) {
   if (!event) return '';
   if (event.isOnline) return 'Online';
   return formatCityWithBezirk(event.city, event.bezirk);
+}
+
+// Short location for event cards and list rows: just the Ort ("Altach"),
+// without the Bezirk. Older events without a city fall back to the Bezirk.
+export function getEventCityLabel(event) {
+  if (!event) return '';
+  if (event.isOnline) return 'Online';
+  return (event.city || '').trim() || bezirkLabel(event.bezirk) || '';
 }

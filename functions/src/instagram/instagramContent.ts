@@ -506,11 +506,17 @@ function formatDayMonth(iso: string): string {
     .replace(' ', '. ');
 }
 
-/** "in Dornbirn" / "online" / '' for the headline of a recurring event. */
+/** The event's Ort ("Altach"); older events without a city fall back to the Bezirk. */
+function eventPlaceName(event: InstagramEventInput): string {
+  return asString(event.city) || asString(event.bezirk);
+}
+
+/** "in Altach" / "online" / '' for the headline of a recurring event. */
 function inBezirk(event: InstagramEventInput): string {
   const bezirk = asString(event.bezirk);
   if (isOnlineEvent(event.isOnline) || bezirk.toLowerCase() === 'online') return ' online';
-  return bezirk ? ` in ${bezirk}` : '';
+  const place = eventPlaceName(event);
+  return place ? ` in ${place}` : '';
 }
 
 /**
@@ -556,14 +562,15 @@ function buildRecurringHeader(event: InstagramEventInput, location: string, now:
     .join('\n\n');
 }
 
-/** "Soundhealing in Dornbirn:" (second line of the caption); '' without a category. */
+/** "Soundhealing in Altach:" (second line of the caption); '' without a category. */
 function buildCategoryLine(event: InstagramEventInput): string {
   const category = displayCategory(event.category);
   if (!category) return '';
   const bezirk = asString(event.bezirk);
   if (isOnlineEvent(event.isOnline) || bezirk.toLowerCase() === 'online')
     return `${category} online:`;
-  return bezirk ? `${category} in ${bezirk}:` : `${category}:`;
+  const place = eventPlaceName(event);
+  return place ? `${category} in ${place}:` : `${category}:`;
 }
 
 /**

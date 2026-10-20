@@ -5,7 +5,7 @@ import {
   formatMonthShort,
   formatWeekdayShort,
   formatEventDateRangeLabel,
-  getEventLocationLabel,
+  getEventCityLabel,
   getOrganizerName,
   getPrimaryCategory,
   isMultiDayEvent,
@@ -24,7 +24,7 @@ export default function EventListRow({ event, categoryColor, linkState, onClick 
   const fallbackImage = getEventFallbackImage(event);
   const multiDay = isMultiDayEvent(event);
   const dateRangeLabel = multiDay ? formatEventDateRangeLabel(event.date, event.endDate) : null;
-  const locationLabel = getEventLocationLabel(event);
+  const locationLabel = getEventCityLabel(event);
   const cancelled = isEntryCancelled(event);
 
   return (
