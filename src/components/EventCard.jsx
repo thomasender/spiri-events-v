@@ -3,7 +3,7 @@ import { MapPin } from 'lucide-react';
 import {
   formatEventDateLabel,
   formatEventDateRangeLabel,
-  getEventLocationLabel,
+  getEventCityLabel,
   getOrganizerName,
   getPrimaryCategory,
   isMultiDayEvent,
@@ -22,7 +22,7 @@ export default function EventCard({ event, categoryColor, onClick }) {
   const fallbackImage = getEventFallbackImage(event);
   const multiDay = isMultiDayEvent(event);
   const dateRangeLabel = multiDay ? formatEventDateRangeLabel(event.date, event.endDate) : null;
-  const locationLabel = getEventLocationLabel(event);
+  const locationLabel = getEventCityLabel(event);
   const cancelled = isEntryCancelled(event);
 
   return (

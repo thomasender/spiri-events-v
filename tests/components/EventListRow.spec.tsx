@@ -56,3 +56,16 @@ describe('EventListRow', () => {
     expect(photo.parentElement?.tagName).not.toBe('A');
   });
 });
+
+describe('EventListRow location (kgYQqmUo)', () => {
+  it('shows only the Ort, not the Bezirk', () => {
+    renderRow({ ...baseEvent, city: 'Hard', bezirk: 'Bregenz' });
+    expect(screen.getByText('Hard')).toBeInTheDocument();
+    expect(screen.queryByText(/Bez\./)).toBeNull();
+  });
+
+  it('falls back to the Bezirk for older events without an Ort', () => {
+    renderRow({ ...baseEvent, city: undefined, bezirk: 'Grenznahe' });
+    expect(screen.getByText('Umgebung')).toBeInTheDocument();
+  });
+});
