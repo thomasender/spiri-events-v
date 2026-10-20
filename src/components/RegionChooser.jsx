@@ -4,7 +4,13 @@ import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useRegion } from '../hooks/useRegion';
 import { trackFilter } from '../lib/analyticsEvents';
-import { COMBINED_VIEWS, COUNTRY_LABELS, COUNTRIES, isCombinedViewSlug } from '../utils/regions';
+import {
+  COMBINED_VIEWS,
+  COUNTRY_LABELS,
+  COUNTRIES,
+  DEFAULT_COUNTRY,
+  isCombinedViewSlug,
+} from '../utils/regions';
 import {
   readLastRegion,
   readRegionChooserSeen,
@@ -14,6 +20,7 @@ import {
 import './RegionChooser.css';
 
 import ModeratorApplyCard from './ModeratorApplyCard';
+import RegionSearch from './RegionSearch';
 
 // The map data is only needed by first-time visitors.
 const RegionMap = lazy(() => import('./RegionMap'));
@@ -70,6 +77,11 @@ export default function RegionChooser() {
 
     const onKeyDown = (e) => {
       if (e.key === 'Escape') {
+        // The search field first closes its own suggestions / clears itself.
+        const t = e.target;
+        if (t?.getAttribute?.('role') === 'combobox' && t.value) {
+          return;
+        }
         e.preventDefault();
         e.stopPropagation();
         if (onRegionsPage) close();
@@ -146,6 +158,7 @@ export default function RegionChooser() {
             Wähle deine Region, damit wir dir passende Events zeigen. Du kannst sie jederzeit im
             Menü wechseln.
           </p>
+          <RegionSearch regions={sorted} activeSlugs={activeSlugs} onChoose={choose} />
         </header>
         <div className="region-chooser-layout">
           <Suspense fallback={null}>
@@ -174,8 +187,16 @@ export default function RegionChooser() {
               const inCountry = sorted.filter((r) => r.country === country);
               if (inCountry.length === 0) return null;
               return (
-                <div key={country} className="region-chooser-country">
-                  <h3 className="region-chooser-country-name">{COUNTRY_LABELS[country]}</h3>
+                <details
+                  key={country}
+                  className="region-chooser-country"
+                  open={country === DEFAULT_COUNTRY || undefined}
+                  data-testid={`region-chooser-country-${country}`}
+                >
+                  <summary className="region-chooser-country-name">
+                    {COUNTRY_LABELS[country]}
+                    <span className="region-chooser-country-count"> ({inCountry.length})</span>
+                  </summary>
                   <div className="region-chooser-options">
                     {inCountry.map((r) => (
                       <button
@@ -193,7 +214,7 @@ export default function RegionChooser() {
                       </button>
                     ))}
                   </div>
-                </div>
+                </details>
               );
             })}
           </div>

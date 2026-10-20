@@ -54,8 +54,18 @@
   gap: 18px;
 }
 
+.region-chooser-country {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+}
+
 .region-chooser-country-name {
   margin: 0 0 8px;
+  cursor: pointer;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  list-style-position: inside;
   font-family: var(--font-heading);
   font-size: 1rem;
   color: var(--text-secondary);
@@ -140,4 +150,15 @@
 
 .region-chooser-apply {
   margin-top: 32px;
+}
+
+.region-chooser-country-name:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.region-chooser-country-count {
+  margin-left: 6px;
+  font-weight: 400;
+  text-transform: none;
 }

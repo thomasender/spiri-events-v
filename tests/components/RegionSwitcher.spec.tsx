@@ -368,6 +368,19 @@ describe('region chooser opened on purpose (/regionen)', () => {
     expect(where()).toBe('/');
   });
 
+  it('Escape in the search field only closes the suggestions, not the page', () => {
+    renderAt('/regionen');
+    const input = screen.getByTestId('region-search-input');
+    fireEvent.change(input, { target: { value: 'tir' } });
+    fireEvent.keyDown(input, { key: 'Escape' });
+    expect(where()).toBe('/regionen');
+    expect(screen.getByTestId('region-chooser')).toBeInTheDocument();
+    fireEvent.keyDown(input, { key: 'Escape' });
+    expect(screen.getByTestId('region-chooser')).toBeInTheDocument();
+    key('Escape');
+    expect(where()).toBe('/');
+  });
+
   it('a view without enough open regions still opens its coming-soon address', () => {
     renderAt('/regionen');
     fireEvent.click(screen.getByRole('button', { name: /^Ganz Deutschland/ }));
@@ -450,6 +463,22 @@ describe('RegionChooser', () => {
     expect(screen.queryByTestId('region-chooser')).toBeNull();
   });
 
+  it('searching a Landkreis and pressing Enter is a choice of its region', () => {
+    renderAt('/');
+    const input = screen.getByTestId('region-search-input');
+    fireEvent.change(input, { target: { value: 'münchen' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(where()).toBe('/bayern');
+    expect(window.localStorage.getItem(LAST_REGION_STORAGE_KEY)).toBe('bayern');
+  });
+
+  it('offers the countries as accordions, Austria open', () => {
+    renderAt('/');
+    expect(screen.getByTestId('region-chooser-country-AT')).toHaveAttribute('open');
+    expect(screen.getByTestId('region-chooser-country-DE')).not.toHaveAttribute('open');
+    expect(screen.getByTestId('region-chooser-country-CH')).not.toHaveAttribute('open');
+  });
+
   it('Ganz Österreich counts as a choice too', () => {
     const { unmount } = renderAt('/verzeichnis');
     fireEvent.click(screen.getByRole('button', { name: 'Ganz Österreich' }));
@@ -473,7 +502,8 @@ describe('RegionChooser', () => {
     const options = within(screen.getByRole('dialog')).getAllByRole('button');
     options[options.length - 1].focus();
     key('Tab');
-    expect(options[0]).toHaveFocus();
+    // The search field is the first stop of the dialog.
+    expect(screen.getByTestId('region-search-input')).toHaveFocus();
     key('Tab'); // from the dialog itself / first button stays inside
     expect(screen.getByRole('dialog')).toContainElement(document.activeElement as HTMLElement);
   });
