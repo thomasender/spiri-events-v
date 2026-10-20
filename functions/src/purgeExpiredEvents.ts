@@ -4,23 +4,13 @@ import { initializeApp, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import { isEventExpired } from './eventExpiry';
+import { deleteEventAssets } from './eventStorageCleanup';
 
 if (getApps().length === 0) {
   initializeApp();
 }
 
 const REGION = 'europe-west3';
-
-function storagePathFromUrl(url: unknown): string | null {
-  if (typeof url !== 'string') return null;
-  const m = url.match(/^https?:\/\/firebasestorage\.googleapis\.com\/v\d+\/b\/[^/]+\/o\/([^?]+)/);
-  if (!m) return null;
-  try {
-    return decodeURIComponent(m[1]);
-  } catch {
-    return null;
-  }
-}
 
 // Vienna calendar day, so "today" matches what organizers see.
 function viennaToday(): string {
@@ -41,8 +31,7 @@ export const purgeExpiredEvents = onSchedule(
       if (data.status === 'trashed') continue;
       if (!isEventExpired(data, today)) continue;
       try {
-        const path = storagePathFromUrl(data.imageUrl);
-        if (path) await bucket.file(path).delete({ ignoreNotFound: true });
+        await deleteEventAssets(bucket, doc.id);
         await db.recursiveDelete(doc.ref);
         deleted += 1;
       } catch (err) {

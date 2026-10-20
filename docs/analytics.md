@@ -31,3 +31,11 @@ Property). Without that the tab shows "Kein Zugriff auf Google Analytics". Stand
 reports lag 24–48 h, so fresh data shows up in the tab a day late (use the GA realtime
 view or `npm run analytics:realtime` for live checks). Results are cached 10 minutes per
 range in the function instance.
+
+The "Top 10 Events (letzte 14 Tage)" block (`buildEventRequests` / `buildTopEvents`) always
+covers 14 days, uses two `batchRunReports` calls (6 reports) filtered to `pagePath` starting
+with `/event/`, and resolves titles from Firestore by slug (GA page title as fallback). Per-event
+numbers rely on every client event carrying `page_location` (origin + path, no query) and on
+`page_view` carrying `page_referrer` = the previous page of the site (`src/lib/analytics.js`).
+`organizer_link_click` ("Mehr Infos & Tickets") and `calendar_add` exist since 2026-10-19
+(`EVENT_ACTIONS_SINCE`); older days have no data for them.

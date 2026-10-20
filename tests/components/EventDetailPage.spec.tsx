@@ -9,6 +9,15 @@ const mockAuth = vi.hoisted(() => ({
   loading: false,
 }));
 
+const mockFavoriteCount = vi.hoisted(() => ({ count: 3 as number | null, calls: [] as boolean[] }));
+
+vi.mock('../../src/hooks/useEventFavoriteCount', () => ({
+  useEventFavoriteCount: (_id: string, enabled: boolean) => {
+    mockFavoriteCount.calls.push(enabled);
+    return enabled ? mockFavoriteCount.count : null;
+  },
+}));
+
 const mockEvents = vi.hoisted(() => ({
   deleteEvent: vi.fn(async () => {}),
   updateEvent: vi.fn(async () => {}),
@@ -114,6 +123,10 @@ vi.mock('firebase/firestore', async () => {
 });
 
 vi.mock('../../src/components/EventMessages', () => ({
+  default: () => null,
+}));
+
+vi.mock('../../src/components/EventHistory', () => ({
   default: () => null,
 }));
 
@@ -317,6 +330,43 @@ describe('EventDetailPage — edit/delete visibility', () => {
 
     expect(screen.queryByRole('link', { name: /event bearbeiten/i })).toBeNull();
     expect(screen.queryByTestId('delete-event-button')).toBeNull();
+  });
+});
+
+describe('EventDetailPage — anonymous favorite count', () => {
+  beforeEach(() => {
+    mockFavoriteCount.count = 3;
+  });
+
+  it('shows the number of favorites to the event owner', async () => {
+    mockAuth.user = { uid: 'other-user-uid' };
+    renderPage();
+    expect(await screen.findByTestId('favorite-count')).toHaveTextContent('3 Favoriten');
+  });
+
+  it('uses the singular for one favorite and shows 0 as well', async () => {
+    mockAuth.user = { uid: 'other-user-uid' };
+    mockFavoriteCount.count = 1;
+    const { unmount } = renderPage();
+    expect(await screen.findByTestId('favorite-count')).toHaveTextContent('1 Favorit');
+    unmount();
+    mockFavoriteCount.count = 0;
+    renderPage();
+    expect(await screen.findByTestId('favorite-count')).toHaveTextContent('0 Favoriten');
+  });
+
+  it('shows it to an admin but not to guests or other users', async () => {
+    mockAuth.user = { uid: 'admin-uid' };
+    mockAuth.role = 'Admin';
+    const { unmount } = renderPage();
+    expect(await screen.findByTestId('favorite-count')).toBeInTheDocument();
+    unmount();
+
+    mockAuth.role = null;
+    mockAuth.user = { uid: 'random-user-uid' };
+    renderPage();
+    expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
+    expect(screen.queryByTestId('favorite-count')).toBeNull();
   });
 });
 

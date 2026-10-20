@@ -8,15 +8,18 @@ vi.mock('../../src/hooks/useAuth', () => ({
 
 const sendMessageMock = vi.fn();
 const markAsReadMock = vi.fn();
+const editMessageMock = vi.fn();
+const deleteMessageMock = vi.fn();
 
 vi.mock('../../src/hooks/useEventMessages', () => ({
   useEventMessages: vi.fn(),
 }));
 
 vi.mock('../../src/components/RichTextEditorLazy', () => ({
-  default: ({ onChange, testId }) => (
+  default: ({ onChange, testId, value }) => (
     <div
       role="textbox"
+      data-initial={value}
       data-testid={testId}
       contentEditable
       suppressContentEditableWarning
@@ -33,6 +36,8 @@ describe('EventMessages', () => {
   beforeEach(() => {
     sendMessageMock.mockReset();
     markAsReadMock.mockReset();
+    editMessageMock.mockReset();
+    deleteMessageMock.mockReset();
     useAuth.mockReturnValue({
       user: { uid: 'user-1', displayName: 'Anna' },
       role: 'User',
@@ -43,6 +48,7 @@ describe('EventMessages', () => {
       sending: false,
       sendMessage: sendMessageMock,
       markAsRead: markAsReadMock,
+      editMessage: editMessageMock,
     });
   });
 
@@ -86,6 +92,20 @@ describe('EventMessages', () => {
     render(<EventMessages eventId="event-1" />);
     expect(screen.getByText('Bitte Ort präzisieren')).toBeInTheDocument();
     expect(screen.getByText('Admin')).toBeInTheDocument();
+  });
+
+  it('offers admins an Instagram template that fills the editor with the organizer name', () => {
+    useAuth.mockReturnValue({ user: { uid: 'admin-1' }, role: 'Admin' });
+    render(<EventMessages eventId="event-1" organizerName="Lars" />);
+    fireEvent.click(screen.getByTestId('event-message-template-instagram'));
+    const initial = screen.getByTestId('event-message-input').getAttribute('data-initial');
+    expect(initial).toContain('Hallo Lars,');
+    expect(initial).toContain('keinen Text beinhaltet');
+  });
+
+  it('does not show the Instagram template button to non-admins', () => {
+    render(<EventMessages eventId="event-1" organizerName="Lars" />);
+    expect(screen.queryByTestId('event-message-template-instagram')).not.toBeInTheDocument();
   });
 
   it('sends the composed rich-text message when the user submits', async () => {
@@ -196,5 +216,105 @@ describe('EventMessages', () => {
     render(<EventMessages eventId="event-1" />);
 
     expect(markAsReadMock).not.toHaveBeenCalled();
+  });
+
+  describe('editing', () => {
+    const ts = { toDate: () => new Date('2026-08-01T10:00:00Z') };
+    const mockMessages = () =>
+      useEventMessages.mockReturnValue({
+        messages: [
+          {
+            id: 'mine',
+            text: '<p>Meine</p>',
+            authorUid: 'user-1',
+            authorRole: 'User',
+            createdAt: ts,
+          },
+          {
+            id: 'theirs',
+            text: '<p>Fremde</p>',
+            authorUid: 'admin-1',
+            authorRole: 'Admin',
+            createdAt: ts,
+            editedAt: ts,
+          },
+        ],
+        loading: false,
+        sending: false,
+        sendMessage: sendMessageMock,
+        editMessage: editMessageMock,
+        markAsRead: markAsReadMock,
+      });
+
+    it('offers editing only on own messages', () => {
+      mockMessages();
+      render(<EventMessages eventId="event-1" />);
+      expect(screen.getAllByTestId('event-message-edit')).toHaveLength(1);
+    });
+
+    it('lets an admin edit messages of other admins, but not of users', () => {
+      useAuth.mockReturnValue({ user: { uid: 'admin-2', displayName: 'Zweiter' }, role: 'Admin' });
+      mockMessages();
+      render(<EventMessages eventId="event-1" />);
+      // only the message written by admin-1; the user's message stays read-only
+      expect(screen.getAllByTestId('event-message-edit')).toHaveLength(1);
+    });
+
+    it('shows "(bearbeitet)" for edited messages', () => {
+      mockMessages();
+      render(<EventMessages eventId="event-1" />);
+      expect(screen.getAllByTestId('event-message-edited')).toHaveLength(1);
+    });
+
+    it('saves an edited message and closes the editor', async () => {
+      editMessageMock.mockResolvedValue(undefined);
+      mockMessages();
+      render(<EventMessages eventId="event-1" />);
+      fireEvent.click(screen.getByTestId('event-message-edit'));
+      const editor = await screen.findByTestId('event-message-edit-input');
+      fireEvent.input(editor, { target: { textContent: 'Neu' } });
+      fireEvent.click(screen.getByTestId('event-message-edit-save'));
+      await waitFor(() => expect(editMessageMock).toHaveBeenCalledWith('mine', '<p>Neu</p>'));
+      await waitFor(() => expect(screen.queryByTestId('event-message-edit-input')).toBeNull());
+    });
+
+    it('lets users delete only their own messages', () => {
+      mockMessages();
+      render(<EventMessages eventId="event-1" />);
+      expect(screen.getAllByTestId('event-message-delete')).toHaveLength(1);
+    });
+
+    it('lets admins delete all admin messages but not user messages', () => {
+      useAuth.mockReturnValue({ user: { uid: 'admin-2' }, role: 'Admin' });
+      mockMessages();
+      render(<EventMessages eventId="event-1" />);
+      expect(screen.getAllByTestId('event-message-delete')).toHaveLength(1);
+    });
+
+    it('deletes a message after confirmation', async () => {
+      deleteMessageMock.mockResolvedValue(undefined);
+      window.confirm = vi.fn().mockReturnValue(true);
+      useEventMessages.mockReturnValue({
+        messages: [{ id: 'mine', text: '<p>Meine</p>', authorUid: 'user-1', authorRole: 'User' }],
+        loading: false,
+        sending: false,
+        sendMessage: sendMessageMock,
+        editMessage: editMessageMock,
+        deleteMessage: deleteMessageMock,
+        markAsRead: markAsReadMock,
+      });
+      render(<EventMessages eventId="event-1" />);
+      fireEvent.click(screen.getByTestId('event-message-delete'));
+      await waitFor(() => expect(deleteMessageMock).toHaveBeenCalledWith('mine'));
+    });
+
+    it('cancels editing without saving', async () => {
+      mockMessages();
+      render(<EventMessages eventId="event-1" />);
+      fireEvent.click(screen.getByTestId('event-message-edit'));
+      fireEvent.click(screen.getByTestId('event-message-edit-cancel'));
+      expect(screen.queryByTestId('event-message-edit-input')).toBeNull();
+      expect(editMessageMock).not.toHaveBeenCalled();
+    });
   });
 });

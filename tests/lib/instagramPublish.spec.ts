@@ -3,6 +3,7 @@ import {
   publishApprovedEvent,
   isApprovalTransition,
   isEventPast,
+  describeInstagramError,
   POLL_TIMEOUT_MS,
   type PublishDeps,
   type PostRecord,
@@ -46,6 +47,7 @@ function makeHarness(
     if (url.endsWith('/media') && init?.method === 'POST') return json({ id: 'container1' });
     if (url.includes('/container1?')) return json({ status_code: 'FINISHED' });
     if (url.endsWith('/media_publish')) return json({ id: 'media1' });
+    if (url.endsWith('/media1/comments')) return json({ id: 'comment1' });
     if (url.includes('/media1?')) return json({ permalink: 'https://instagram.com/p/abc/' });
     return json({ error: { message: 'unexpected' } }, 500);
   });
@@ -270,6 +272,31 @@ describe('publishApprovedEvent', () => {
     expect(h.fetchMock.mock.calls.some(([u]) => String(u).endsWith('/media_publish'))).toBe(false);
   });
 
+  it('posts the first comment on the new media after publishing', async () => {
+    const h = makeHarness();
+    await publishApprovedEvent(h.deps, 'e1', { status: 'pending' }, futureEvent);
+    const call = h.fetchMock.mock.calls.find(([u]) => String(u).endsWith('/media1/comments'));
+    expect(call).toBeDefined();
+    const params = new URLSearchParams(String((call![1] as RequestInit).body));
+    expect(params.get('message')).toContain('thetribe.at');
+  });
+
+  it('keeps status published when the first comment is rejected', async () => {
+    const h = makeHarness({
+      fetchImpl: (url, init) => {
+        if (url.endsWith('/media') && init?.method === 'POST') return json({ id: 'container1' });
+        if (url.includes('/container1?')) return json({ status_code: 'FINISHED' });
+        if (url.endsWith('/media_publish')) return json({ id: 'media1' });
+        if (url.endsWith('/media1/comments')) return json({ error: { message: 'no perm' } }, 403);
+        return json({ permalink: 'https://instagram.com/p/abc/' });
+      },
+    });
+    const outcome = await publishApprovedEvent(h.deps, 'e1', { status: 'pending' }, futureEvent);
+    expect(outcome).toBe('published');
+    expect(h.posts.get('feed_e1')).toMatchObject({ status: 'published', igMediaId: 'media1' });
+    expect(h.notify).not.toHaveBeenCalled();
+  });
+
   it('keeps status published when only the permalink lookup fails', async () => {
     const h = makeHarness({
       fetchImpl: (url, init) => {
@@ -412,6 +439,7 @@ describe('collaborator invite and user tag', () => {
   it.each([
     ['110/2207018', ERR_110],
     ['100/2207065', ERR_2207065],
+    ['100/', { error: { message: 'User not visible', code: 100 } }],
   ])('retries once without invite params on %s and still publishes', async (code, err) => {
     const h = harnessWithContainerResponses('@kakao.maria', [json(err, 400)]);
     expect(await publishApprovedEvent(h.deps, 'e1', { status: 'pending' }, futureEvent)).toBe(
@@ -475,5 +503,31 @@ describe('Instagram region gate (Vorarlberg only)', () => {
       expect(h.fetchMock).not.toHaveBeenCalled();
       expect(h.generateImage).not.toHaveBeenCalled();
     }
+  });
+});
+
+describe('describeInstagramError', () => {
+  it('gives moderators a German instruction for a known failure and keeps the technical text', async () => {
+    const h = makeHarness({
+      fetchImpl: () => json({ error: { message: 'Invalid OAuth access token', code: 190 } }, 400),
+    });
+    await publishApprovedEvent(h.deps, 'e1', { status: 'pending' }, futureEvent);
+    const error = String(h.posts.get('feed_e1')?.error);
+    expect(error).toContain('Admin');
+    expect(error).toContain('Technisch: Instagram media container creation failed (HTTP 400)');
+    expect(h.notify.mock.calls[0][1]).toContain('Verwaltung > Instagram');
+  });
+
+  it('explains "User not visible" and never leaks the token', () => {
+    const text = describeInstagramError(
+      new Error(`Instagram media container creation failed (HTTP 400): User not visible ${TOKEN}`),
+      [TOKEN]
+    );
+    expect(text).toContain('privat');
+    expect(text).not.toContain(TOKEN);
+  });
+
+  it('leaves unknown errors unchanged', () => {
+    expect(describeInstagramError(new Error('boom'))).toBe('boom');
   });
 });

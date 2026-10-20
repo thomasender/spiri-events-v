@@ -15,6 +15,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { isLegacyId } from '../lib/slug';
+import { trackCalendarAdd, trackOrganizerLinkClick } from '../lib/analyticsEvents';
 import {
   Calendar,
   Clock,
@@ -30,11 +31,13 @@ import {
   Mail,
   Phone,
   Ban,
+  Heart,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useEvents } from '../hooks/useEvents';
 import { useEventRegionContext, useRegion } from '../hooks/useRegion';
 import { useOrganizerProfile } from '../hooks/useOrganizerProfile';
+import { useEventFavoriteCount } from '../hooks/useEventFavoriteCount';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
 import { buildEventJsonLd } from '../utils/eventJsonLd';
 import { getRegionBySlug, getSubdivisionLabel, resolveRegionId } from '../utils/regions';
@@ -55,6 +58,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import RecurringDeleteDialog from '../components/RecurringDeleteDialog';
 import OccurrencePickerDialog from '../components/OccurrencePickerDialog';
 import EventMessages from '../components/EventMessages';
+import EventHistory from '../components/EventHistory';
 import FavoriteButton from '../components/FavoriteButton';
 import LoginPromptModal from '../components/LoginPromptModal';
 import { requestCalendarFeedToken, startCalendarDownload } from '../hooks/useCalendarFeedToken';
@@ -210,14 +214,17 @@ export default function EventDetailPage() {
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState('');
   const isAdmin = role === 'Admin';
-  // A Regions-Moderator:in reviews pending/approved events of her regions
-  // (approve, unpublish, messages) but never edits their content.
+  // A Regions-Moderator:in reviews events of her regions (approve, unpublish,
+  // messages) but never edits their content.
   const isEventModerator = isModeratorForEvent(staffAccess, event);
-  const showMessagesForHash =
-    event &&
-    user &&
-    (event.status === 'pending' || event.status === 'draft') &&
-    (isAdmin || event.createdBy === user.uid || isEventModerator);
+  const canSeeFavoriteCount =
+    Boolean(event && user) &&
+    event.status === 'approved' &&
+    (isAdmin || event.createdBy === user.uid);
+  const favoriteCount = useEventFavoriteCount(event?.id, canSeeFavoriteCount);
+  const showMessagesForHash = Boolean(
+    event && user && (isAdmin || event.createdBy === user.uid || isEventModerator)
+  );
 
   useEffect(() => {
     async function fetchEvent() {
@@ -525,6 +532,7 @@ export default function EventDetailPage() {
       const token = await requestCalendarFeedToken();
       const slug = encodeURIComponent(event.slug || event.id);
       startCalendarDownload(`/calendar/event/${slug}.ics?token=${encodeURIComponent(token)}`);
+      trackCalendarAdd(event);
       setCalendarDownloadState('idle');
     } catch (err) {
       console.warn('Calendar download failed:', err);
@@ -732,6 +740,12 @@ export default function EventDetailPage() {
                     : event.feeNote || 'Kostenpflichtig'}
             </span>
           </div>
+          {canSeeFavoriteCount && favoriteCount !== null && (
+            <div className="event-badge badge--favorites" data-testid="favorite-count">
+              <Heart size={14} />
+              <span>{favoriteCount === 1 ? '1 Favorit' : `${favoriteCount} Favoriten`}</span>
+            </div>
+          )}
           {event.firstSessionFree && !isFree && !isDonation && (
             <div className="event-badge badge--free" data-testid="first-session-free-badge">
               <span>1. Einheit gratis</span>
@@ -976,21 +990,23 @@ export default function EventDetailPage() {
           target="_blank"
           rel="noopener noreferrer"
           className="btn btn-primary event-link"
+          onClick={() => trackOrganizerLinkClick(event, normalizeLink(event.link))}
         >
           <span>Mehr Infos & Tickets</span>
           <ExternalLink size={16} />
         </a>
       )}
 
-      {(event.status === 'pending' || event.status === 'draft') &&
-        user &&
-        (isAdmin || isOwner || isEventModerator) && (
-          <EventMessages
-            eventId={event.id}
-            eventOwnerUid={event.createdBy || null}
-            onReady={() => setEventMessagesReady(true)}
-          />
-        )}
+      {user && (isAdmin || isOwner || isEventModerator) && (
+        <EventMessages
+          eventId={event.id}
+          eventOwnerUid={event.createdBy || null}
+          organizerName={event.organizer?.firstName?.trim() || getOrganizerName(event)}
+          onReady={() => setEventMessagesReady(true)}
+        />
+      )}
+
+      {isAdmin && user && <EventHistory eventId={event.id} />}
 
       <SimilarEvents currentEvent={event} />
 

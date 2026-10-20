@@ -162,6 +162,8 @@ two-line "read this when".
   `getCalendarFeedToken` or `calendarRoutes.ts`.
 - Read `docs/seo-prerender.md` ONLY when you touch `scripts/prerender.mjs`, Open Graph /
   sitemap, the auto-rebuild trigger, `deploy.yml` secrets or `prerender:refresh`.
+- Read `docs/instagram-canva-kit.md` ONLY when you change an Instagram image layout
+  (`instagramImage.ts`) or rebuild the Instagram templates in Canva.
 - Read `docs/email-testing-protocol.md` ONLY when you test or change transactional
   emails; `docs/mailgun-sender-photo.md` ONLY for the Mailgun sender photo.
 

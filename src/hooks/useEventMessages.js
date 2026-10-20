@@ -111,7 +111,45 @@ export function useEventMessages(eventId, { ownerUid = null } = {}) {
     [user, eventId]
   );
 
-  return { messages, loading, error, sending, sendMessage, markAsRead, MAX_MESSAGE_LENGTH };
+  const editMessage = useCallback(
+    async (messageId, text) => {
+      if (!user || !eventId) {
+        throw new Error('Nicht angemeldet oder Event fehlt.');
+      }
+      const clean = sanitizeHtml(text || '');
+      if (isHtmlEmpty(clean)) {
+        throw new Error('Nachricht darf nicht leer sein.');
+      }
+      if (getPlainTextLength(clean) > MAX_MESSAGE_LENGTH) {
+        throw new Error(`Nachricht darf maximal ${MAX_MESSAGE_LENGTH} Zeichen lang sein.`);
+      }
+      const ref = doc(db, 'events', eventId, 'messages', messageId);
+      await updateDoc(ref, { text: clean, editedAt: serverTimestamp() });
+    },
+    [user, eventId]
+  );
+
+  const deleteMessage = useCallback(
+    async (messageId) => {
+      if (!user || !eventId) {
+        throw new Error('Nicht angemeldet oder Event fehlt.');
+      }
+      await deleteDoc(doc(db, 'events', eventId, 'messages', messageId));
+    },
+    [user, eventId]
+  );
+
+  return {
+    messages,
+    loading,
+    error,
+    sending,
+    sendMessage,
+    editMessage,
+    deleteMessage,
+    markAsRead,
+    MAX_MESSAGE_LENGTH,
+  };
 }
 
 export async function deleteAllEventMessages(eventId) {

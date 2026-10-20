@@ -4,6 +4,7 @@ import {
   buildDirectoryParams,
   countFacet,
   filterDirectoryEntries,
+  formatBioPreview,
   isRenderableEntry,
   normalizeDirectoryEntry,
   parseDirectoryParams,
@@ -12,6 +13,7 @@ import {
   toggleValue,
   validateDirectoryListing,
 } from '../../src/utils/directory';
+import { stripHtml } from '../../src/utils/sanitize';
 
 const entry = (over: Record<string, unknown> = {}) =>
   normalizeDirectoryEntry('uid-' + Math.random(), {
@@ -178,5 +180,51 @@ describe('URL params', () => {
   it('toggles values', () => {
     expect(toggleValue(['a'], 'b')).toEqual(['a', 'b']);
     expect(toggleValue(['a', 'b'], 'a')).toEqual(['b']);
+  });
+});
+
+describe('formatBioPreview', () => {
+  it('turns a line break into ". "', () => {
+    expect(formatBioPreview('hi, ich bin Sandra\nYogalehrerin, Bewegungsmensch')).toBe(
+      'hi, ich bin Sandra. Yogalehrerin, Bewegungsmensch'
+    );
+  });
+  it('adds no period after existing punctuation', () => {
+    expect(formatBioPreview('Hallo.\nWelt!\r\nOk?\nJa:\nNein;\nEnde')).toBe(
+      'Hallo. Welt! Ok? Ja: Nein; Ende'
+    );
+  });
+  it('collapses blank lines and whitespace', () => {
+    expect(formatBioPreview('A  \n\n \nB  \n')).toBe('A. B');
+  });
+  it('handles non-strings', () => {
+    expect(formatBioPreview(undefined)).toBe('');
+  });
+});
+
+describe('directory card bio from the saved profile', () => {
+  // The profile editor saves one <p> per line; `bio` is stored as its plain text.
+  const savedProfile = (bioHtml: string) => ({
+    slug: 'sandra',
+    displayName: 'Sandra',
+    directoryCategories: ['Yoga'],
+    bioHtml,
+    bio: stripHtml(bioHtml).trim(),
+  });
+
+  it('keeps paragraph and <br> breaks as ". " in the preview', () => {
+    const e = normalizeDirectoryEntry(
+      'u1',
+      savedProfile(
+        '<p>hi, ich bin Sandra</p><p>Yogalehrerin, Bewegungsmensch und Naturverbundene.</p><p>Tom &amp; Jerry<br>Ende</p>'
+      )
+    );
+    expect(formatBioPreview(e.bio)).toBe(
+      'hi, ich bin Sandra. Yogalehrerin, Bewegungsmensch und Naturverbundene. Tom & Jerry. Ende'
+    );
+  });
+
+  it('falls back to plain bio when there is no bioHtml', () => {
+    expect(normalizeDirectoryEntry('u2', { bio: 'Nur Text' }).bio).toBe('Nur Text');
   });
 });

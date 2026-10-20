@@ -203,7 +203,7 @@ function expandCustom(event, mode) {
   today.setHours(0, 0, 0, 0);
 
   const eventDays = event.endDate
-    ? Math.ceil(
+    ? Math.round(
         (new Date(event.endDate + 'T12:00:00') - new Date(event.date + 'T12:00:00')) /
           (1000 * 60 * 60 * 24)
       ) + 1
@@ -284,7 +284,7 @@ function expandRecurring(event, mode) {
   const current = new Date(startDate);
   const exceptionDates = event.exceptionDates || [];
   const eventDays = event.endDate
-    ? Math.ceil((new Date(event.endDate + 'T12:00:00') - startDate) / (1000 * 60 * 60 * 24)) + 1
+    ? Math.round((new Date(event.endDate + 'T12:00:00') - startDate) / (1000 * 60 * 60 * 24)) + 1
     : 1;
 
   while (current <= effectiveEnd) {

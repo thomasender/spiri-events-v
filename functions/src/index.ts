@@ -128,8 +128,10 @@ export { submitModeratorApplication } from './moderatorApplication';
 export { adminSetRegionModerator, adminListRegionModerators } from './adminModerators';
 export { adminSetRegionActive, adminListRegionActivation } from './adminRegions';
 export { adminAnalyticsReport } from './adminAnalytics';
+export { adminMailgunUsage } from './adminMailgun';
 export { onEventApprovedPostToInstagram } from './instagramPostOnApproval';
 export { instagramWeeklyCarousel } from './instagramWeeklyCarousel';
+export { instagramEventStories, instagramMorningStories } from './instagramStories';
 export { calendarFeed } from './calendarFeed';
 export { getCalendarFeedToken } from './calendarFeedToken';
 export { refreshInstagramTokenJob } from './instagramTokenRefresh';
@@ -139,6 +141,9 @@ export {
   adminArchiveInstagramPost,
   adminPreviewWeeklyCarousels,
   adminPostWeeklyCarousels,
+  adminPostDailyStory,
 } from './instagramAdmin';
 export { purgeExpiredEvents } from './purgeExpiredEvents';
 export { onEventCancelledNotifyFavorites } from './eventCancellationNotify';
+export { getEventFavoriteCount } from './eventFavoriteCount';
+export { onEventUpdatedWriteRevision } from './eventRevisionTrigger';

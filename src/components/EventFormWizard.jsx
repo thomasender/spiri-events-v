@@ -5,6 +5,7 @@ import CreatableSelect from 'react-select/creatable';
 import { serverTimestamp } from 'firebase/firestore';
 import { useEvents, BEZIRKE } from '../hooks/useEvents';
 import { bezirkLabel } from '../utils/regions';
+import { applyAdminPrefill, shouldPrefillForAdmin } from '../utils/adminPrefill';
 import { useCategories } from '../hooks/useCategories';
 import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
@@ -238,6 +239,9 @@ export default function EventFormWizard() {
   const instagramConsentTouched = useRef(
     Boolean(restoredDraft && typeof restoredDraft.instagramConsent === 'boolean')
   );
+  const [instagramNoTextConfirmed, setInstagramNoTextConfirmed] = useState(
+    Boolean(restoredDraft && restoredDraft.instagramNoTextConfirmed)
+  );
   // Handle used for tag/collab on this event only; the profile stays unchanged.
   const [instagramHandleOverride, setInstagramHandleOverride] = useState(
     typeof restoredDraft?.instagramHandleOverride === 'string'
@@ -301,6 +305,7 @@ export default function EventFormWizard() {
         currentStep,
         rightsConfirmed,
         instagramConsent,
+        instagramNoTextConfirmed,
         instagramHandleOverride,
       });
     }, 300);
@@ -311,11 +316,24 @@ export default function EventFormWizard() {
     currentStep,
     rightsConfirmed,
     instagramConsent,
+    instagramNoTextConfirmed,
     instagramHandleOverride,
     loading,
   ]);
 
   const isAdmin = role === 'Admin';
+
+  // Admins get the mandatory fields pre-filled for testing (new events only;
+  // a restored draft is left untouched). The role may arrive after first render.
+  const adminPrefillDone = useRef(false);
+  useEffect(() => {
+    if (adminPrefillDone.current || restoredDraft || !shouldPrefillForAdmin(role)) return;
+    adminPrefillDone.current = true;
+    setFormData((prev) => applyAdminPrefill(prev, { bezirke: BEZIRKE }));
+    setExtraCategories((prev) => (prev.includes('Sonstiges') ? prev : [...prev, 'Sonstiges']));
+    setRightsConfirmed(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [role]);
 
   const hasRecurrence = formData.recurrence !== 'none';
   const hasEndDateRecurrenceConflict = Boolean(formData.endDate) && hasRecurrence;
@@ -421,6 +439,9 @@ export default function EventFormWizard() {
     } else if (step === 4) {
       if (!rightsConfirmed) {
         newErrors.rightsConfirmed = 'Bitte bestätige die Nutzungsrechte';
+      }
+      if (instagramConsent && instagramImageCandidates.length > 0 && !instagramNoTextConfirmed) {
+        newErrors.instagramNoText = 'Bitte bestätige, dass dein Foto keinen Text enthält';
       }
     }
     return newErrors;
@@ -809,6 +830,8 @@ export default function EventFormWizard() {
       setErrors(newErrors);
       if (step4Errors.rightsConfirmed) {
         setValidationError('Bitte bestätige die Nutzungsrechte.');
+      } else if (step4Errors.instagramNoText) {
+        setValidationError(step4Errors.instagramNoText + '.');
       } else {
         setValidationError('Bitte fülle alle Pflichtfelder aus.');
       }
@@ -830,6 +853,8 @@ export default function EventFormWizard() {
       setErrors(newErrors);
       if (step4Errors.rightsConfirmed) {
         setValidationError('Bitte bestätige die Nutzungsrechte.');
+      } else if (step4Errors.instagramNoText) {
+        setValidationError(step4Errors.instagramNoText + '.');
       } else {
         setValidationError('Bitte fülle alle Pflichtfelder aus.');
       }
@@ -1692,6 +1717,14 @@ export default function EventFormWizard() {
             onUpload={handleInstagramImageSelect}
             onRemoveUpload={removeInstagramImage}
             uploadError={instagramUploadError}
+            noTextConfirmed={instagramNoTextConfirmed}
+            onNoTextConfirmedChange={(checked) => {
+              setInstagramNoTextConfirmed(checked);
+              if (checked && errors.instagramNoText) {
+                setErrors((prev) => ({ ...prev, instagramNoText: null }));
+              }
+            }}
+            noTextError={errors.instagramNoText}
             event={{
               title: formData.title.trim(),
               category: formData.category,

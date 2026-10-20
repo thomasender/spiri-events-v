@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, MessageSquare, ShieldCheck } from 'lucide-react';
+import { Send, MessageSquare, ShieldCheck, Pencil, Trash2, ImageOff } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useEventMessages } from '../hooks/useEventMessages';
 import { getStaffAccess, messageAuthorRole } from '../utils/staffRoles';
@@ -19,11 +19,23 @@ function formatTime(timestamp) {
   });
 }
 
-export default function EventMessages({ eventId, eventOwnerUid = null, onReady }) {
+const escapeHtml = (s) =>
+  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+export function instagramNoTextTemplate(name) {
+  const greeting = name ? `Hallo ${escapeHtml(name)},` : 'Hallo,';
+  return [
+    `<p>${greeting}</p>`,
+    '<p>damit wir dein Event auf Instagram posten können, lade bitte für Instagram ein separates Bild hoch, das keinen Text beinhaltet. Der Grund hierfür ist, dass wir beim Instagram-Post bereits Text über dein Bild legen. Du kannst die Vorschau für den Instagram-Post oben sehen.</p>',
+    '<p>Bei Fragen wende dich gerne direkt über diesen Chat an uns.</p>',
+    '<p>Liebe Grüße,<br>Dein Admin-Team</p>',
+  ].join('');
+}
+
+export default function EventMessages({ eventId, eventOwnerUid = null, organizerName, onReady }) {
   const { user, role, staffRegionIds } = useAuth();
-  const { messages, loading, sending, sendMessage, markAsRead } = useEventMessages(eventId, {
-    ownerUid: eventOwnerUid,
-  });
+  const { messages, loading, sending, sendMessage, editMessage, deleteMessage, markAsRead } =
+    useEventMessages(eventId, { ownerUid: eventOwnerUid });
   // Super-Admins, and moderators on someone else's event, write as the team.
   const writesAsStaff =
     messageAuthorRole(
@@ -32,6 +44,10 @@ export default function EventMessages({ eventId, eventOwnerUid = null, onReady }
     ) === 'Admin';
   const [text, setText] = useState('');
   const [error, setError] = useState('');
+  const [editingId, setEditingId] = useState(null);
+  const [editText, setEditText] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editError, setEditError] = useState('');
   const listRef = useRef(null);
   const markedRef = useRef(new Set());
   const wasLoadingRef = useRef(true);
@@ -86,6 +102,44 @@ export default function EventMessages({ eventId, eventOwnerUid = null, onReady }
     }
   };
 
+  const startEdit = (msg) => {
+    setEditingId(msg.id);
+    setEditText(messageToHtml(msg.text));
+    setEditError('');
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditText('');
+    setEditError('');
+  };
+
+  const handleDelete = async (msg) => {
+    if (!window.confirm('Diese Nachricht wirklich löschen?')) return;
+    setError('');
+    try {
+      await deleteMessage(msg.id);
+      if (editingId === msg.id) cancelEdit();
+    } catch (err) {
+      setError(err.message || 'Nachricht konnte nicht gelöscht werden.');
+    }
+  };
+
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    if (isHtmlEmpty(editText)) return;
+    setSavingEdit(true);
+    setEditError('');
+    try {
+      await editMessage(editingId, editText);
+      cancelEdit();
+    } catch (err) {
+      setEditError(err.message || 'Nachricht konnte nicht gespeichert werden.');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   return (
     <section
       className="event-messages"
@@ -115,7 +169,10 @@ export default function EventMessages({ eventId, eventOwnerUid = null, onReady }
           <ul className="event-messages-list">
             {messages.map((msg) => {
               const isMine = msg.authorUid === user?.uid;
+              // Admins may edit every admin message, whoever wrote it.
+              const canEdit = isMine || (role === 'Admin' && msg.authorRole === 'Admin');
               const isAdmin = msg.authorRole === 'Admin';
+              const canDelete = isMine || (role === 'Admin' && isAdmin);
               return (
                 <li
                   key={msg.id}
@@ -134,7 +191,74 @@ export default function EventMessages({ eventId, eventOwnerUid = null, onReady }
                     </span>
                     <span className="event-message-time">{formatTime(msg.createdAt)}</span>
                   </div>
-                  <RichTextView html={messageToHtml(msg.text)} className="event-message-text" />
+                  {editingId === msg.id ? (
+                    <form className="event-message-edit" onSubmit={handleSaveEdit}>
+                      <RichTextEditorLazy
+                        value={editText}
+                        onChange={setEditText}
+                        maxLength={MAX_MESSAGE_LENGTH}
+                        testId="event-message-edit-input"
+                        eventId={eventId}
+                      />
+                      <div className="event-messages-composer-footer">
+                        {editError && <span className="event-messages-error">{editError}</span>}
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={cancelEdit}
+                          data-testid="event-message-edit-cancel"
+                        >
+                          Abbrechen
+                        </button>
+                        <button
+                          type="submit"
+                          className="btn btn-primary btn-sm"
+                          disabled={savingEdit || isHtmlEmpty(editText)}
+                          data-testid="event-message-edit-save"
+                        >
+                          {savingEdit ? 'Wird gespeichert…' : 'Speichern'}
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <>
+                      <RichTextView html={messageToHtml(msg.text)} className="event-message-text" />
+                      {(msg.editedAt || canEdit || canDelete) && (
+                        <div className="event-message-footer">
+                          {msg.editedAt && (
+                            <span
+                              className="event-message-edited"
+                              data-testid="event-message-edited"
+                            >
+                              (bearbeitet)
+                            </span>
+                          )}
+                          {canEdit && (
+                            <button
+                              type="button"
+                              className="event-message-edit-btn"
+                              onClick={() => startEdit(msg)}
+                              data-testid="event-message-edit"
+                            >
+                              <Pencil size={12} aria-hidden="true" />
+                              Bearbeiten
+                            </button>
+                          )}
+                          {canDelete && (
+                            <button
+                              type="button"
+                              className="event-message-edit-btn"
+                              onClick={() => handleDelete(msg)}
+                              data-testid="event-message-delete"
+                            >
+                              <Trash2 size={12} aria-hidden="true" />
+                              Löschen
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
                 </li>
               );
             })}
@@ -157,6 +281,17 @@ export default function EventMessages({ eventId, eventOwnerUid = null, onReady }
         />
         <div className="event-messages-composer-footer">
           {error && <span className="event-messages-error">{error}</span>}
+          {role === 'Admin' && (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm event-messages-template-btn"
+              onClick={() => setText(instagramNoTextTemplate(organizerName))}
+              data-testid="event-message-template-instagram"
+            >
+              <ImageOff size={16} aria-hidden="true" />
+              <span>Vorlage: Instagram-Bild ohne Text</span>
+            </button>
+          )}
           <button
             type="submit"
             className="btn btn-primary btn-sm"

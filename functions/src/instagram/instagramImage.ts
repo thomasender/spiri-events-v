@@ -31,6 +31,7 @@ import {
   type InstagramEventInput,
   type InstagramFormat,
 } from './instagramContent';
+import type { StoryModel } from './instagramStory';
 
 const JPEG_QUALITY = 90;
 const STORAGE_PREFIX = 'instagram';
@@ -48,7 +49,7 @@ let fontCache: LoadedFont[] | null = null;
 // Bundled via the @fontsource packages (same families as the website:
 // Cormorant Garamond for headings, Inter for body). satori reads TTF/OTF/WOFF,
 // not WOFF2.
-function loadFonts(): LoadedFont[] {
+export function loadFonts(): LoadedFont[] {
   if (fontCache) return fontCache;
   const read = (pkg: string, file: string) =>
     readFileSync(require.resolve(`@fontsource/${pkg}/files/${file}`));
@@ -75,7 +76,7 @@ function loadFonts(): LoadedFont[] {
   return fontCache;
 }
 
-type Node = {
+export type Node = {
   type: string;
   props: { style?: Record<string, unknown>; children?: unknown; [key: string]: unknown };
 };
@@ -89,7 +90,11 @@ function el(
   return { type, props: { style: { display: 'flex', ...style }, children: kids ?? undefined } };
 }
 
-function buildLayout(model: EventImageModel, format: InstagramFormat, hasImage: boolean): Node {
+export function buildLayout(
+  model: EventImageModel,
+  format: InstagramFormat,
+  hasImage: boolean
+): Node {
   const { width, height } = FORMAT_DIMENSIONS[format];
   const isStory = format === 'story';
   const pad = 80;
@@ -191,7 +196,7 @@ function buildLayout(model: EventImageModel, format: InstagramFormat, hasImage: 
 }
 
 /** Feed post: only title and organizer over a dark bottom gradient. */
-function buildFeedLayout(model: EventImageModel, hasImage: boolean): Node {
+export function buildFeedLayout(model: EventImageModel, hasImage: boolean): Node {
   const { width, height } = FORMAT_DIMENSIONS.feed;
   const pad = 80;
   const titleSize = model.title.length > 45 ? 72 : model.title.length > 28 ? 84 : 96;
@@ -392,7 +397,22 @@ export async function uploadInstagramImage(
   )}?alt=media&token=${token}`;
 }
 
-function buildCoverLayout(cover: CoverModel, format: InstagramFormat): Node {
+const COVER_PAPER = '#f4f2f0';
+const COVER_INK = '#161819';
+const COVER_TERRACOTTA = '#c48e6a';
+
+/** The website logo (terracotta circle over a thin arc) as the cover background. */
+export function coverBackgroundSvg(width: number, height: number): Buffer {
+  return Buffer.from(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">` +
+      `<rect width="${width}" height="${height}" fill="${COVER_PAPER}"/>` +
+      `<circle cx="${width / 2}" cy="330" r="150" fill="${COVER_TERRACOTTA}"/>` +
+      `<path d="M 70 360 A 470 300 0 0 0 ${width - 70} 360" fill="none" stroke="${COVER_INK}" stroke-width="5" stroke-linecap="round"/>` +
+      `</svg>`
+  );
+}
+
+export function buildCoverLayout(cover: CoverModel, format: InstagramFormat): Node {
   const { width, height } = FORMAT_DIMENSIONS[format];
   const pad = 90;
   return el(
@@ -401,10 +421,8 @@ function buildCoverLayout(cover: CoverModel, format: InstagramFormat): Node {
       width,
       height,
       flexDirection: 'column',
-      justifyContent: 'space-between',
       padding: `${pad}px`,
-      background: 'linear-gradient(160deg, #5c6b3f 0%, #1d1a1a 100%)',
-      color: '#ffffff',
+      color: COVER_INK,
       fontFamily: 'Inter',
     },
     [
@@ -419,10 +437,12 @@ function buildCoverLayout(cover: CoverModel, format: InstagramFormat): Node {
         },
         'thetribe.at'
       ),
+      // Keeps the text block below the logo drawn by coverBackgroundSvg().
+      el('div', { height: 530 }),
       el('div', { flexDirection: 'column' }, [
         el(
           'div',
-          { fontFamily: 'Cormorant Garamond', fontWeight: 700, fontSize: 124, lineHeight: 1.02 },
+          { fontFamily: 'Cormorant Garamond', fontWeight: 700, fontSize: 112, lineHeight: 1.02 },
           cover.heading
         ),
         el('div', { fontSize: 64, fontWeight: 700, marginTop: 56 }, cover.bezirk),
@@ -435,6 +455,7 @@ function buildCoverLayout(cover: CoverModel, format: InstagramFormat): Node {
             )
           : null,
       ]),
+      el('div', { flexGrow: 1 }),
       el(
         'div',
         { fontSize: 40, fontWeight: 400, opacity: 0.9 },
@@ -456,7 +477,7 @@ export async function renderCoverImage(
     fonts: loadFonts(),
   });
   const overlay = new Resvg(svg, { fitTo: { mode: 'width', value: width } }).render().asPng();
-  return sharp({ create: { width, height, channels: 3, background: '#1d1a1a' } })
+  return sharp(coverBackgroundSvg(width, height))
     .composite([{ input: overlay }])
     .jpeg({ quality: JPEG_QUALITY, mozjpeg: true })
     .toBuffer();
@@ -472,4 +493,166 @@ export async function generateAndStoreEventImage(
 ): Promise<string> {
   const jpeg = await renderEventImage(event, format, options);
   return uploadInstagramImage(bucket, name, jpeg);
+}
+
+// Logo mark of the site (public/logo-mark.svg: sun above an arc), cropped to the
+// mark itself so it can sit on any background. Same look as the carousel cover.
+const LOGO_VIEWBOX = { x: 0, y: 30, width: 180, height: 120 };
+const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${LOGO_VIEWBOX.x} ${LOGO_VIEWBOX.y} ${LOGO_VIEWBOX.width} ${LOGO_VIEWBOX.height}"><circle cx="90" cy="70" r="36" fill="#c48e6a"/><path d="M 2 74 A 88 72 0 0 0 178 74" fill="none" stroke="#161819" stroke-width="1.5" stroke-linecap="round"/></svg>`;
+const LOGO_DATA_URI = `data:image/svg+xml;base64,${Buffer.from(LOGO_SVG).toString('base64')}`;
+
+function logoNode(width: number): Node {
+  const height = Math.round((width * LOGO_VIEWBOX.height) / LOGO_VIEWBOX.width);
+  return {
+    type: 'img',
+    props: { src: LOGO_DATA_URI, width, height, style: { display: 'flex' } },
+  };
+}
+
+/** Story 9:16 with the day's events as a list; top/bottom stay clear of Instagram's UI. */
+export function buildStoryListLayout(story: StoryModel, imageDataUri: string | null): Node {
+  const { width, height } = FORMAT_DIMENSIONS.story;
+  const pad = 90;
+  const compact = story.items.length > 2 || imageDataUri !== null;
+  // Up to 7 events: smaller logo, header and rows so everything fits above Instagram's footer area.
+  const dense = story.items.length > 4;
+  return el(
+    'div',
+    {
+      width,
+      height,
+      flexDirection: 'column',
+      justifyContent: 'space-between',
+      padding: `250px ${pad}px 280px`,
+      background: '#f4f2f0',
+      color: '#1d1a1a',
+      fontFamily: 'Inter',
+    },
+    [
+      el('div', { flexDirection: 'column' }, [
+        el('div', { alignSelf: 'center', marginBottom: dense ? 20 : compact ? 30 : 50 }, [
+          logoNode(imageDataUri ? 300 : dense ? 220 : compact ? 420 : 600),
+        ]),
+        el(
+          'div',
+          {
+            fontFamily: 'Cormorant Garamond',
+            fontWeight: 700,
+            fontSize: imageDataUri ? 120 : dense ? 110 : 150,
+            lineHeight: 1,
+          },
+          story.heading
+        ),
+        el(
+          'div',
+          { fontSize: dense ? 56 : 64, fontWeight: 700, marginTop: dense ? 10 : 18 },
+          story.bezirk
+        ),
+        el(
+          'div',
+          { fontSize: dense ? 46 : 56, fontWeight: 700, marginTop: dense ? 8 : 12 },
+          [story.dateLabel, story.partLabel].filter(Boolean).join('  ·  ')
+        ),
+      ]),
+      imageDataUri
+        ? {
+            type: 'img',
+            props: {
+              src: imageDataUri,
+              width: STORY_IMAGE_SIZE.width,
+              height: STORY_IMAGE_SIZE.height,
+              style: { display: 'flex', borderRadius: 28 },
+            },
+          }
+        : null,
+      el(
+        'div',
+        { flexDirection: 'column' },
+        story.items.map((item) =>
+          el(
+            'div',
+            {
+              alignItems: 'stretch',
+              marginTop: dense ? 18 : compact ? 24 : 40,
+              borderLeft: `10px solid ${item.color}`,
+              paddingLeft: 28,
+            },
+            [
+              el('div', { flexDirection: 'column' }, [
+                el(
+                  'div',
+                  { fontSize: dense ? 30 : 34, fontWeight: 700, letterSpacing: 1, opacity: 0.7 },
+                  [item.time && `${item.time} Uhr`, item.location].filter(Boolean).join('  ·  ')
+                ),
+                el(
+                  'div',
+                  {
+                    fontFamily: 'Cormorant Garamond',
+                    fontWeight: 700,
+                    fontSize: dense ? 44 : compact ? 52 : 62,
+                    lineHeight: 1.05,
+                    marginTop: 4,
+                  },
+                  item.title
+                ),
+                item.organizer
+                  ? el(
+                      'div',
+                      { fontSize: 34, fontWeight: 400, marginTop: 10, opacity: 0.7 },
+                      `mit ${item.organizer}`
+                    )
+                  : null,
+              ]),
+            ]
+          )
+        )
+      ),
+      el(
+        'div',
+        {
+          fontSize: 34,
+          fontWeight: 700,
+          letterSpacing: 3,
+          textTransform: 'uppercase',
+          opacity: 0.7,
+        },
+        'Mehr auf thetribe.at'
+      ),
+    ]
+  );
+}
+
+/** Slot for the event picture in a single-event story (story width minus 2 x 90px padding). */
+export const STORY_IMAGE_SIZE = { width: 900, height: 560 };
+
+/** The event picture as a data URI for the story layout; null when missing or unreadable. */
+async function storyPicture(
+  choice: InstagramImageChoice,
+  fetchImage: ImageFetcher
+): Promise<string | null> {
+  const jpeg = await tryRender(choice.url, fetchImage, (src) =>
+    cropToChoice(src, STORY_IMAGE_SIZE.width, STORY_IMAGE_SIZE.height, choice)
+  );
+  return jpeg ? `data:image/jpeg;base64,${jpeg.toString('base64')}` : null;
+}
+
+/** Renders one story (overview list or single event) as a JPEG buffer. */
+export async function renderStoryImage(
+  story: StoryModel,
+  options: Pick<RenderOptions, 'fetchImage'> = {}
+): Promise<Buffer> {
+  const { width, height } = FORMAT_DIMENSIONS.story;
+  const picture = story.image
+    ? await storyPicture(story.image, options.fetchImage ?? defaultFetchImage)
+    : null;
+  const svg = await satori(buildStoryListLayout(story, picture) as never, {
+    width,
+    height,
+    fonts: loadFonts(),
+  });
+  const overlay = new Resvg(svg, { fitTo: { mode: 'width', value: width } }).render().asPng();
+  return sharp({ create: { width, height, channels: 3, background: '#f4f2f0' } })
+    .composite([{ input: overlay }])
+    .jpeg({ quality: JPEG_QUALITY, mozjpeg: true })
+    .toBuffer();
 }

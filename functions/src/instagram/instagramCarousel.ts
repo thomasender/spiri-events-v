@@ -30,6 +30,7 @@ import {
   graphPost,
   idOf,
   sanitizeError,
+  describeInstagramError,
   viennaToday,
   waitForContainer,
   type PostStatus,
@@ -455,7 +456,7 @@ export async function runWeeklyCarousels(deps: CarouselDeps): Promise<CarouselRu
       await publishCarousel(deps, group, window, postId);
       results.push({ id: postId, outcome: 'published' });
     } catch (err) {
-      const message = sanitizeError(err, [deps.accessToken]);
+      const message = describeInstagramError(err, [deps.accessToken]);
       results.push({ id: postId, outcome: 'failed' });
       try {
         await deps.updatePost(postId, { status: 'failed', error: message });

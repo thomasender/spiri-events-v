@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/react';
-import AnalyticsTab from '../../src/components/AnalyticsTab';
+import AnalyticsTab, { formatDuration, formatPercent } from '../../src/components/AnalyticsTab';
 
 const regionCtx = vi.hoisted(() => ({
   value: {
@@ -50,6 +50,47 @@ const report = {
     { event: 'favorite_add', count: 3 },
     { event: 'share', count: 0 },
   ],
+  topEvents: {
+    rangeDays: 14,
+    generatedAt: '2026-10-19T10:00:00.000Z',
+    actionsSince: '2026-10-19',
+    events: [
+      {
+        slug: 'yoga-im-park',
+        title: 'Yoga im Park',
+        views: 40,
+        users: 25,
+        avgEngagementSec: 75,
+        organizerClicks: 10,
+        favorites: 3,
+        shares: 2,
+        calendarAdds: 1,
+        newUsers: 20,
+        returningUsers: 5,
+        sources: [{ label: 'Instagram', count: 30 }],
+        referrers: [{ label: 'Verzeichnis', count: 12 }],
+        cities: [{ label: 'Dornbirn', count: 9 }],
+        devices: [{ label: 'mobile', count: 20 }],
+      },
+      {
+        slug: 'kakao',
+        title: 'Kakaozeremonie',
+        views: 8,
+        users: 6,
+        avgEngagementSec: 30,
+        organizerClicks: 0,
+        favorites: 0,
+        shares: 0,
+        calendarAdds: 0,
+        newUsers: 6,
+        returningUsers: 0,
+        sources: [],
+        referrers: [],
+        cities: [],
+        devices: [],
+      },
+    ],
+  },
 };
 
 describe('AnalyticsTab', () => {
@@ -78,7 +119,8 @@ describe('AnalyticsTab', () => {
     render(<AnalyticsTab />);
     expect(screen.getByText('Social Media (organisch)')).toBeInTheDocument();
     expect(screen.getByText('Weird New Channel')).toBeInTheDocument();
-    expect(screen.getByText('Handy')).toBeInTheDocument();
+    const devicesCard = screen.getByRole('heading', { level: 2, name: 'Geräte' }).parentElement!;
+    expect(within(devicesCard).getByText('Handy')).toBeInTheDocument();
     expect(screen.getByText('Favorit gesetzt')).toBeInTheDocument();
     expect(screen.getByText('Morgen Yoga')).toBeInTheDocument();
   });
@@ -125,8 +167,55 @@ describe('AnalyticsTab', () => {
     expect(screen.getByText(/nur Besucher:innen gezählt/)).toBeInTheDocument();
   });
 
+  it('lists the top events ranked, with details per event', () => {
+    render(<AnalyticsTab />);
+    const items = screen.getAllByTestId('analytics-top-event');
+    expect(items).toHaveLength(2);
+    expect(items[0]).toHaveTextContent('1.');
+    expect(items[0]).toHaveTextContent('Yoga im Park');
+    expect(items[0]).toHaveTextContent('40 Aufrufe');
+    const first = within(items[0]);
+    expect(first.getByText('1:15 Min')).toBeInTheDocument();
+    expect(first.getByText('25 % der Aufrufe · gezählt seit 19.10.2026')).toBeInTheDocument();
+    expect(first.getByText('Instagram')).toBeInTheDocument();
+    expect(first.getByText('Verzeichnis')).toBeInTheDocument();
+    expect(first.getByText('Dornbirn')).toBeInTheDocument();
+    expect(first.getByText('Handy')).toBeInTheDocument();
+    expect(first.getByRole('link', { name: /Event-Seite öffnen/ })).toHaveAttribute(
+      'href',
+      '/event/yoga-im-park'
+    );
+    expect(within(items[1]).getAllByText('Noch keine Daten.')).toHaveLength(4);
+  });
+
+  it('says honestly when there is no event data or it could not be loaded', () => {
+    state.report = { ...report, topEvents: { ...report.topEvents, events: [] } };
+    const { rerender } = render(<AnalyticsTab />);
+    expect(
+      screen.getByText('Noch keine Daten zu Event-Seiten in den letzten 14 Tagen.')
+    ).toBeInTheDocument();
+    state.report = { ...report, topEvents: null };
+    rerender(<AnalyticsTab />);
+    expect(screen.getByTestId('analytics-top-events-error')).toBeInTheDocument();
+  });
+
+  it('formats durations and percentages', () => {
+    expect(formatDuration(42)).toBe('42 Sek');
+    expect(formatDuration(75)).toBe('1:15 Min');
+    expect(formatDuration(undefined)).toBe('0 Sek');
+    expect(formatPercent(1, 3)).toBe('33 %');
+    expect(formatPercent(1, 0)).toBe('0 %');
+  });
+
   it('renders empty lists without crashing', () => {
-    state.report = { ...report, pages: [], channels: [], devices: [], actions: [] };
+    state.report = {
+      ...report,
+      pages: [],
+      channels: [],
+      devices: [],
+      actions: [],
+      topEvents: { ...report.topEvents, events: [] },
+    };
     render(<AnalyticsTab />);
     expect(screen.getAllByText('Noch keine Daten.')).toHaveLength(4);
   });

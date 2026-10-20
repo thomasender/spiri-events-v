@@ -72,8 +72,10 @@ async function deleteMessages(db, eventId) {
 
 async function purgeEvent(db, bucket, eventId) {
   if (!DRY_RUN) {
-    const files = await listFiles(bucket, `events/${eventId}/`);
-    await Promise.all(files.map((file) => file.delete()));
+    for (const prefix of [`events/${eventId}/`, `event-descriptions/${eventId}/`]) {
+      const files = await listFiles(bucket, prefix);
+      await Promise.all(files.map((file) => file.delete()));
+    }
     await deleteMessages(db, eventId);
     await db.collection('events').doc(eventId).delete();
   }

@@ -149,58 +149,88 @@ describe('instagram content', () => {
     expect(caption).toContain('Erste Zeile\nZweite Zeile\nNeuer Absatz');
   });
 
-  describe('further dates of recurring events', () => {
-    const now = new Date('2026-10-12T08:00:00Z');
-    const base = { title: 'Yoga', date: '2026-10-14', time: '18:00' };
+  describe('recurring events', () => {
+    const now = new Date('2026-10-19T08:00:00Z');
+    const base = {
+      title: 'Meditation',
+      date: '2026-10-26',
+      time: '17:00',
+      endTime: '17:20',
+      category: 'Meditation',
+      place: 'Le Studio, Steinebach 7',
+      bezirk: 'Dornbirn',
+      description: '<p>Beschreibung</p>',
+      recurrence: 'weekly',
+      recurrenceEndDate: '2026-11-23',
+    };
 
-    it('lists the next dates of a weekly series', () => {
-      const caption = buildCaption(
-        { ...base, recurrence: 'weekly', recurrenceEndDate: '2026-10-28' },
-        null,
-        now
-      );
-      expect(caption).toContain('Weitere Termine');
-      expect(caption).toContain('• Mi, 21. Okt');
-      expect(caption).toContain('• Mi, 28. Okt');
+    it('uses the recurring layout with all dates and the repeat sentence', () => {
+      const caption = buildCaption(base, '@aureyoga', now);
+      expect(
+        caption.startsWith(
+          'wöchentlich am Montag in Dornbirn\n\n' +
+            '📅 Montags · 17:00 – 17:20 Uhr\nMeditation in Dornbirn\n📍 Le Studio, Steinebach 7, Dornbirn\n\n' +
+            '🗓 die Termine: 26. Okt; 2. Nov; 9. Nov; 16. Nov; 23. Nov\n' +
+            '🔁 Der Event wiederholt sich wöchentlich am Montag.\n\n' +
+            'Mit @aureyoga\n\nBeschreibung\n\n'
+        )
+      ).toBe(true);
     });
 
-    it('lists custom dates, skips exception dates, and caps long lists', () => {
-      const customDates = Array.from(
-        { length: 9 },
-        (_, i) => `2026-11-${String(i + 1).padStart(2, '0')}`
-      );
+    it('lists custom dates without the repeat sentence and skips exception dates', () => {
       const caption = buildCaption(
-        { ...base, recurrence: 'custom', customDates, exceptionDates: ['2026-11-02'] },
+        {
+          ...base,
+          recurrence: 'custom',
+          customDates: ['2026-11-02', '2026-11-09'],
+          exceptionDates: ['2026-11-09'],
+        },
         null,
         now
       );
-      expect(caption).not.toContain('2. Nov');
-      expect(caption.match(/^• /gm)).toHaveLength(5);
-      expect(caption).toContain('… und 3 weitere Termine');
-      expect(caption.length).toBeLessThanOrEqual(CAPTION_MAX_LENGTH);
-    });
-
-    it('states the recurrence pattern when too many dates to list', () => {
-      const caption = buildCaption(
-        { ...base, recurrence: 'weekly', recurrenceEndDate: '2027-03-31' },
-        null,
-        now
-      );
-      expect(caption).toContain('wiederholt sich wöchentlich am Mittwoch');
-    });
-
-    it('does not add the pattern line when all dates fit', () => {
-      const caption = buildCaption(
-        { ...base, recurrence: 'weekly', recurrenceEndDate: '2026-10-28' },
-        null,
-        now
-      );
+      expect(caption).toContain('🗓 die Termine: 26. Okt; 2. Nov\n');
       expect(caption).not.toContain('wiederholt sich');
     });
 
-    it('adds nothing for a single event', () => {
-      expect(buildCaption(base, null, now)).not.toContain('Weitere Termine');
+    it('lists exactly 20 dates but leaves the line out with more than 20', () => {
+      const twenty = buildCaption(
+        { ...base, recurrenceEndDate: '2027-03-08' }, // 20 Mondays
+        null,
+        now
+      );
+      expect(twenty.split('🗓 die Termine: ')[1].split('\n')[0].split('; ')).toHaveLength(20);
+      const more = buildCaption({ ...base, recurrenceEndDate: '2027-03-15' }, null, now);
+      expect(more).not.toContain('die Termine');
+      expect(more).toContain('🔁 Der Event wiederholt sich wöchentlich am Montag.');
     });
+
+    it('keeps the single-event layout for non-recurring events', () => {
+      const caption = buildCaption({ ...base, recurrence: 'none' }, null, now);
+      expect(caption).not.toContain('die Termine');
+      expect(
+        caption.startsWith('📅 Mo, 26. Okt · 17:00 – 17:20 Uhr\nMeditation in Dornbirn:')
+      ).toBe(true);
+    });
+  });
+
+  it('starts with date, category in district, address, organizer, title, then description', () => {
+    const caption = buildCaption(
+      {
+        title: 'Floating Gongbath',
+        date: '2026-10-18',
+        time: '19:00',
+        category: 'Soundhealing',
+        place: 'Le studio, Steinebach 7',
+        bezirk: 'Dornbirn',
+        description: '<p>Beschreibung</p>',
+      },
+      '@cosmic.klang_'
+    );
+    expect(
+      caption.startsWith(
+        '📅 So, 18. Okt · 19:00 Uhr\nSoundhealing in Dornbirn:\n📍 Le studio, Steinebach 7, Dornbirn\n\nMit @cosmic.klang_\n\nFloating Gongbath\n\nBeschreibung\n\n'
+      )
+    ).toBe(true);
   });
 
   it('builds a caption for a bare-minimum event without empty sections', () => {

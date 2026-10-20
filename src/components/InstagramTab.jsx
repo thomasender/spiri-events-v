@@ -564,7 +564,12 @@ export default function InstagramTab() {
             ) : (
               <ul className="instagram-posts">
                 {sectionPosts.map((post) => {
-                  const postTitle = titles[post.eventId] || post.eventId;
+                  const postTitle =
+                    titles[post.eventId] ||
+                    post.eventId ||
+                    (post.type === 'story'
+                      ? `Story ${post.kind === 'event' ? 'Event' : 'Übersicht'} ${post.bezirk} ${post.day}`
+                      : post.id);
                   const busy = busyId === post.id;
                   return (
                     <li key={post.id} className="instagram-post" data-testid="instagram-post">

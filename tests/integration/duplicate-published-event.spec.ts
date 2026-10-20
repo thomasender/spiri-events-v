@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import { spawn } from 'child_process';
 
 import { STORAGE_STATE } from '../helpers/roles';
+import { openAdminTab } from '../helpers/admin';
 
 // Signed in as `user` via the session captured once by tests/auth.setup.ts,
 // instead of driving the login form in every test.
@@ -139,6 +140,7 @@ test.describe('Duplizieren von bereits veröffentlichten Events', () => {
       timeout: 15000,
     });
 
+    await openAdminTab(page, 'events');
     await page.getByTestId('admin-tab-events').click();
     await page
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })

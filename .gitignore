@@ -65,6 +65,9 @@ tests/.auth/
 # Firebase CLI hosting cache
 .firebase/
 
+# Output of scripts/instagram-canva-kit.mjs (default out dir)
+tmp-canva-kit/
+
 # One-off local debugging scripts (use the prod service account / read secrets)
 scripts/check-user.mjs
 scripts/manual-verify-email.mjs

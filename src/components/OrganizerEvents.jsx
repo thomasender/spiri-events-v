@@ -137,15 +137,6 @@ export default function OrganizerEvents({ organizerUid, organizerName }) {
     >
       <div className="similar-events-header">
         <h2>Weitere Events dieses Veranstalters</h2>
-        {firstCategory && (
-          <span
-            className="similar-events-category-badge"
-            style={{ backgroundColor: categoryColor }}
-            data-testid="organizer-events-category-badge"
-          >
-            {firstCategory}
-          </span>
-        )}
       </div>
 
       <div className="similar-events-slider-wrapper">

@@ -1,4 +1,5 @@
 import { expect, Page } from '@playwright/test';
+import { openAdminTab } from './admin';
 
 /**
  * Which wizard step is currently shown (1-based).
@@ -297,6 +298,7 @@ export async function completeSubmissionAndReturnToAdmin(page: Page) {
 export async function openReviewTab(page: Page) {
   await page.goto('/admin');
   await page.waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 });
+  await openAdminTab(page, 'review');
   await page.getByTestId('admin-tab-review').click();
   const panel = page.locator('#admin-tab-review');
   await expect(panel).toBeVisible();

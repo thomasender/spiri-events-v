@@ -124,6 +124,8 @@ beforeEach(() => {
 });
 
 async function submitAndGetSavedEvent() {
+  const noText = screen.queryByTestId('instagram-no-text-checkbox');
+  if (noText && !(noText as HTMLInputElement).checked) fireEvent.click(noText);
   fireEvent.click(screen.getByTestId('submit-event-button'));
   const confirmDialog = document.querySelector('.confirm-dialog') as HTMLElement;
   await waitFor(() => expect(confirmDialog).toBeTruthy());
@@ -268,6 +270,17 @@ describe('EventFormWizard Instagram image crop', () => {
     fireEvent.keyDown(screen.getByTestId('instagram-focal-picker-handle-x'), { key: 'Home' });
     const saved = await submitAndGetSavedEvent();
     expect(saved.instagramImage).toEqual({ url: IMG_B, focalPoint: { x: 0, y: 0.5 }, zoom: 2 });
+  });
+
+  it('blocks submitting until the user confirms the photo has no text', () => {
+    mockProfile.value = profileWith({ instagramConsentDefault: true });
+    seedDraftWithDescription(`<img src="${IMG_A}">`);
+    renderWizard();
+    fireEvent.click(screen.getByTestId('submit-event-button'));
+    expect(screen.getByTestId('instagram-no-text-error')).toBeInTheDocument();
+    expect(document.querySelector('.confirm-dialog')).toBeNull();
+    fireEvent.click(screen.getByTestId('instagram-no-text-checkbox'));
+    expect(screen.queryByTestId('instagram-no-text-error')).not.toBeInTheDocument();
   });
 
   it('defaults to the first photo, centred, and stores nothing without consent', async () => {

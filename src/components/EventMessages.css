@@ -162,3 +162,32 @@
   height: auto;
   border-radius: 8px;
 }
+
+.event-message-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: var(--text-secondary, #7a6f68);
+}
+
+.event-message-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  padding: 2px 0;
+  font: inherit;
+  color: var(--text-secondary, #7a6f68);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.event-message-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}

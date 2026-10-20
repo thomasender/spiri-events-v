@@ -24,6 +24,7 @@ import { getEventOccurrences } from '../utils/eventOccurrences';
 import { copyToClipboard } from '../utils/copyToClipboard';
 import { getCalendarCategories } from '../utils/calendarCategories';
 import { compareEventsByDateTime } from '../utils/eventSort';
+import { isOccurrencePast } from '../utils/pastEvents';
 import { computeFacetCounts } from '../utils/filterFacetCounts';
 import { resolveEventColor } from '../utils/categoryColors';
 import { monthKeyToDate, dateToMonthKey } from '../utils/calendarFilterState';
@@ -343,12 +344,14 @@ export default function CalendarPage() {
   const monthEvents = useMemo(() => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
+    const now = new Date();
     return filteredEvents
       .flatMap((event) => getEventOccurrences(event))
       .filter((event) => {
         const [eventYear, eventMonth] = event.date.split('-').map(Number);
         return eventYear === year && eventMonth - 1 === month;
       })
+      .filter((event) => !isOccurrencePast(event, now))
       .sort(compareEventsByDateTime);
   }, [filteredEvents, currentMonth]);
 

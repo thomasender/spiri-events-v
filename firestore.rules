@@ -394,12 +394,34 @@ service cloud.firestore {
                       && request.resource.data.diff(resource.data).affectedKeys()
                           .hasOnly(['readByRecipient']);
 
+        // Authors can edit their own messages at any time. Admins can edit every
+        // admin message, whichever admin account wrote it (the role counts, not
+        // the owner). They cannot edit a user's messages.
+        allow update: if (
+                        ((isEventOwner(eventId) || isAdminOrEmulatorAdmin())
+                          && resource.data.authorUid == request.auth.uid)
+                        || (isAdminOrEmulatorAdmin() && resource.data.authorRole == 'Admin')
+                      )
+                      && request.resource.data.diff(resource.data).affectedKeys()
+                          .hasOnly(['text', 'editedAt'])
+                      && request.resource.data.text is string
+                      && request.resource.data.text.size() > 0
+                      && request.resource.data.text.size() <= 20000
+                      && request.resource.data.editedAt == request.time;
+
         // Owners can permanently delete their own event's messages via the
         // Papierkorb. Admins can always delete messages. Region moderators
         // can delete messages of their regions' events because approving an
         // event clears its conversation (approveEventAsAdmin).
         allow delete: if isAdminOrEmulatorAdmin() || isEventOwner(eventId)
                       || isRegionModeratorForEvent();
+      }
+
+      // Change history, written only by the onEventUpdatedWriteRevision
+      // function (Admin SDK). Admins read it; nobody writes from the client.
+      match /revisions/{revisionId} {
+        allow read: if isAdminOrEmulatorAdmin();
+        allow write: if false;
       }
     }
 

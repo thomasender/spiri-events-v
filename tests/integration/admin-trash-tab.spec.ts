@@ -2,6 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { spawn } from 'child_process';
 import { STORAGE_STATE } from '../helpers/roles';
 import { createApprovedEvent, deleteEventById } from '../fixtures/events';
+import { openAdminTab } from '../helpers/admin';
 
 async function resetTrashFixtures(): Promise<void> {
   await new Promise<void>((resolve, reject) => {
@@ -56,12 +57,14 @@ test.describe('Papierkorb tab', () => {
       await openAdmin(page, '/admin');
 
       const trashTab = page.getByTestId('admin-tab-trash');
+      await openAdminTab(page, 'trash');
       await expect(trashTab).toBeVisible();
 
       await trashTab.click();
       await page.getByTestId('trash-permanent-delete-button-test-event-user-trashed').click();
       await confirmAndWaitForWrite(page, /endgültig löschen/i);
 
+      await openAdminTab(page, 'trash');
       await expect(trashTab).toBeVisible();
 
       await page.getByTestId('trash-permanent-delete-button-test-event-user-trashed-old').click();
@@ -74,6 +77,7 @@ test.describe('Papierkorb tab', () => {
       await openAdmin(page, '/admin');
 
       const trashTab = page.getByTestId('admin-tab-trash');
+      await openAdminTab(page, 'trash');
       await expect(trashTab).toBeVisible();
       await expect(trashTab).toContainText('Papierkorb');
     });

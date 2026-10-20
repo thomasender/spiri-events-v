@@ -84,6 +84,9 @@ export interface InstagramEventInput {
   organizer?: unknown;
   /** Organizer's pick for the post: { url, focalPoint: { x, y }, zoom }. */
   instagramImage?: unknown;
+  /** Crop of the event's own picture as set in the event form: { x, y } and imageZoom. */
+  imageFocalPoint?: unknown;
+  imageZoom?: unknown;
 }
 
 /** Validated organizer pick of photo + 4:5 crop for the Instagram post. */
@@ -113,6 +116,29 @@ export function parseInstagramImageChoice(value: unknown): InstagramImageChoice 
       ? (raw.focalPoint as { x?: unknown; y?: unknown })
       : {};
   const zoom = Number(raw.zoom);
+  return {
+    url,
+    focalX: clampUnit(focal.x),
+    focalY: clampUnit(focal.y),
+    zoom: Number.isFinite(zoom) ? Math.min(MAX_INSTAGRAM_ZOOM, Math.max(1, zoom)) : 1,
+  };
+}
+
+/**
+ * Picture and crop for a story about one event: the organizer's Instagram pick
+ * if there is one, otherwise the event picture with the crop (focal point and
+ * zoom) the organizer set in the event form. Null without a usable picture.
+ */
+export function resolveEventImageChoice(event: InstagramEventInput): InstagramImageChoice | null {
+  const picked = parseInstagramImageChoice(event.instagramImage);
+  if (picked) return picked;
+  const url = asString(event.imageUrl);
+  if (!/^https:\/\//i.test(url)) return null;
+  const focal =
+    event.imageFocalPoint && typeof event.imageFocalPoint === 'object'
+      ? (event.imageFocalPoint as { x?: unknown; y?: unknown })
+      : {};
+  const zoom = Number(event.imageZoom);
   return {
     url,
     focalX: clampUnit(focal.x),
@@ -420,8 +446,17 @@ export function buildCaptionFooter(hashtags: string): string {
   return [CAPTION_CTA, BIO_LINK_LINE, hashtags].filter(Boolean).join('\n\n');
 }
 
-/** Max number of further dates listed in a caption; the rest is summarised. */
-export const MAX_CAPTION_DATES = 5;
+/**
+ * First comment under a feed post, written by the account itself right after
+ * publishing. Points to the event page; Instagram does not make URLs clickable
+ * in comments, but they are easy to copy.
+ */
+export function buildFirstComment(event: InstagramEventInput): string {
+  return `ℹ️ Alle Infos zum Event: ${eventPageUrl(event.slug)}`;
+}
+
+/** Most dates a caption lists; with more, the "die Termine" line is left out. */
+export const MAX_CAPTION_DATES = 20;
 
 /** "wöchentlich am Dienstag" etc. for regular series; '' for custom dates. */
 function describeRecurrencePattern(event: InstagramEventInput): string {
@@ -442,29 +477,83 @@ function describeRecurrencePattern(event: InstagramEventInput): string {
   }
 }
 
-/**
- * "Weitere Termine" block for series / custom-date events, so a recurring
- * event does not look like a one-off. Lists the upcoming dates after the main
- * one (first MAX_CAPTION_DATES, then "… und N weitere Termine"). '' for
- * single events or when nothing else is upcoming.
- */
-export function buildFurtherDatesBlock(event: InstagramEventInput, now: Date = new Date()): string {
-  const main = asString(event.date);
-  const today = now.toISOString().slice(0, 10);
-  const dates = expandOccurrencesInWindow(event, { start: today, end: '9999-12-31' }).filter(
-    (o) => asString(o.date) !== main
+function isRecurringEvent(event: InstagramEventInput): boolean {
+  return (
+    event.recurrence === 'weekly' ||
+    event.recurrence === 'biweekly' ||
+    event.recurrence === 'monthly' ||
+    event.recurrence === 'custom'
   );
-  if (dates.length === 0) return '';
-  const lines = dates
-    .slice(0, MAX_CAPTION_DATES)
-    .map((o) => `• ${formatEventDate(o.date, o.endDate)}`);
-  const rest = dates.length - MAX_CAPTION_DATES;
-  if (rest > 0) {
-    lines.push(`… und ${rest} weitere Termin${rest === 1 ? '' : 'e'}`);
-    const pattern = describeRecurrencePattern(event);
-    if (pattern) lines.push(`🔁 Der Event wiederholt sich ${pattern}.`);
-  }
-  return ['🗓 Weitere Termine:', ...lines].join('\n');
+}
+
+/** "26. Okt" */
+function formatDayMonth(iso: string): string {
+  const date = parseIsoDate(iso);
+  if (!date) return '';
+  return new Intl.DateTimeFormat('de-AT', { day: 'numeric', month: 'short', timeZone: 'UTC' })
+    .format(date)
+    .replace(/\./g, '')
+    .replace(' ', '. ');
+}
+
+/** "in Dornbirn" / "online" / '' for the headline of a recurring event. */
+function inBezirk(event: InstagramEventInput): string {
+  const bezirk = asString(event.bezirk);
+  if (isOnlineEvent(event.isOnline) || bezirk.toLowerCase() === 'online') return ' online';
+  return bezirk ? ` in ${bezirk}` : '';
+}
+
+/**
+ * Header of a recurring event: "wöchentlich am Montag in Dornbirn", date line
+ * with the weekday in plural ("Montags"), category, address, all upcoming
+ * dates (only up to MAX_CAPTION_DATES, otherwise the line is dropped) and the
+ * repeat sentence.
+ */
+function buildRecurringHeader(event: InstagramEventInput, location: string, now: Date): string {
+  const pattern = describeRecurrencePattern(event);
+  const start = parseIsoDate(asString(event.date));
+  const weekday = start
+    ? new Intl.DateTimeFormat('de-AT', { weekday: 'long', timeZone: 'UTC' }).format(start)
+    : '';
+  const today = now.toISOString().slice(0, 10);
+  const dates = expandOccurrencesInWindow(event, { start: today, end: '9999-12-31' });
+  const time = formatEventTime(event.time, event.endTime);
+  const day =
+    event.recurrence === 'weekly' || event.recurrence === 'biweekly'
+      ? weekday && `${weekday}s`
+      : event.recurrence === 'monthly'
+        ? `Monatlich am ${start?.getUTCDate()}.`
+        : '';
+  const when = [day, time].filter(Boolean).join(' · ');
+  const category = asString(event.category);
+  const place = inBezirk(event);
+  const first = `${pattern || 'Mehrere Termine'}${place}`;
+  return [
+    first,
+    [when && `📅 ${when}`, category && `${category}${place}`, location && `📍 ${location}`]
+      .filter(Boolean)
+      .join('\n'),
+    [
+      dates.length > 0 && dates.length <= MAX_CAPTION_DATES
+        ? `🗓 die Termine: ${dates.map((o) => formatDayMonth(asString(o.date))).join('; ')}`
+        : '',
+      pattern && `🔁 Der Event wiederholt sich ${pattern}.`,
+    ]
+      .filter(Boolean)
+      .join('\n'),
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+}
+
+/** "Soundhealing in Dornbirn:" (second line of the caption); '' without a category. */
+function buildCategoryLine(event: InstagramEventInput): string {
+  const category = asString(event.category);
+  if (!category) return '';
+  const bezirk = asString(event.bezirk);
+  if (isOnlineEvent(event.isOnline) || bezirk.toLowerCase() === 'online')
+    return `${category} online:`;
+  return bezirk ? `${category} in ${bezirk}:` : `${category}:`;
 }
 
 /**
@@ -484,14 +573,20 @@ export function buildCaption(
   const location = formatLocation(event);
   const when = [model.dateLabel, model.timeLabel].filter(Boolean).join(' · ');
   const handle = normalizeInstagramHandle(organizerHandle);
-  const header = [
-    title,
-    [when && `📅 ${when}`, location && `📍 ${location}`].filter(Boolean).join('\n'),
-    buildFurtherDatesBlock(event, now),
-    handle ? `Mit ${handle}` : '',
-  ]
-    .filter(Boolean)
-    .join('\n\n');
+  const recurring = isRecurringEvent(event);
+  const header = recurring
+    ? [buildRecurringHeader(event, location, now), handle ? `Mit ${handle}` : '']
+        .filter(Boolean)
+        .join('\n\n')
+    : [
+        [when && `📅 ${when}`, buildCategoryLine(event), location && `📍 ${location}`]
+          .filter(Boolean)
+          .join('\n'),
+        handle ? `Mit ${handle}` : '',
+        title,
+      ]
+        .filter(Boolean)
+        .join('\n\n');
 
   const footer = buildCaptionFooter(buildHashtags(event).join(' '));
 

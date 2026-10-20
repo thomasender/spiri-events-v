@@ -8,6 +8,7 @@ import { ADMIN_MAIL_SECRETS } from './adminNotify';
 import {
   buildCarouselDeps,
   buildPublishDeps,
+  buildStoryDeps,
   listCarouselEvents,
   lookupOrganizerHandle,
   resolveInstagramAccessToken,
@@ -18,6 +19,8 @@ import {
   type CarouselPreview,
   type CarouselRunOutcome,
 } from './instagram/instagramCarousel';
+import { CAROUSEL_BEZIRKE } from './instagram/instagramCarousel';
+import { runDailyStory, type StoryRunOutcome } from './instagram/instagramStory';
 import {
   AdminActionError,
   archiveInstagramPost,
@@ -207,6 +210,36 @@ export const adminPostWeeklyCarousels = onCall(
     }
     const outcome = await runWeeklyCarousels(buildCarouselDeps(db, accessToken, userId));
     logger.info('Instagram weekly carousels posted by admin', outcome);
+    return outcome;
+  }
+);
+
+// Posts tomorrow's "Morgen in <Bezirk>" story now. Respects the kill switch and the
+// one-story-per-Bezirk-day-and-part guard, so calling it twice posts once.
+export const adminPostDailyStory = onCall(
+  {
+    region: 'europe-west3',
+    cors: ALLOWED_ORIGINS,
+    timeoutSeconds: 540,
+    memory: '1GiB',
+    secrets: [IG_ACCESS_TOKEN, IG_USER_ID, ...ADMIN_MAIL_SECRETS],
+    ...appCheckOptions(),
+  },
+  async (request): Promise<StoryRunOutcome> => {
+    logMissingAppCheck('adminPostDailyStory', request);
+    await assertAdmin(request.auth?.uid);
+    const bezirk = (request.data as { bezirk?: unknown } | undefined)?.bezirk;
+    if (typeof bezirk !== 'string' || !(CAROUSEL_BEZIRKE as readonly string[]).includes(bezirk)) {
+      throw new HttpsError('invalid-argument', 'Unknown Bezirk.');
+    }
+    const db = getFirestore();
+    const accessToken = await resolveInstagramAccessToken(db, IG_ACCESS_TOKEN.value());
+    const userId = IG_USER_ID.value();
+    if (!accessToken || !userId) {
+      throw new HttpsError('failed-precondition', 'Instagram is not configured.');
+    }
+    const outcome = await runDailyStory(buildStoryDeps(db, accessToken, userId), bezirk);
+    logger.info('Instagram daily story posted by admin', { bezirk, outcome });
     return outcome;
   }
 );

@@ -16,12 +16,16 @@ export const ACTION_EVENTS = [
   'favorite_add',
   'share',
   'outbound_click',
+  'organizer_link_click',
+  'calendar_add',
   'donate_click',
   'donate_complete',
   'sign_up',
   'event_create_start',
   'event_create_submit',
-  'pwa_install_prompt',
+  // Real installs only (browser `appinstalled`). `pwa_install_prompt` is sent
+  // for every popup view/click, so it must not be shown as installs.
+  'pwa_install',
 ] as const;
 
 export interface GaRow {
@@ -286,5 +290,313 @@ export function buildRequests(rangeDays: RangeDays, region: string | null = null
         andGroup: { expressions: [requests.actions.dimensionFilter, regionFilter] },
       },
     },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// "Top 10 Events" block: the most viewed event pages of the last 14 days with
+// per-event details (sources, previous page, engagement, organizer link clicks).
+// ---------------------------------------------------------------------------
+
+export const TOP_EVENTS_DAYS = 14;
+export const TOP_EVENTS_LIMIT = 10;
+const TOP_LIST_LIMIT = 5;
+
+/** Event-page actions counted per event (all sent from the event detail page). */
+export const EVENT_PAGE_ACTIONS = [
+  'organizer_link_click',
+  'favorite_add',
+  'share',
+  'calendar_add',
+] as const;
+
+/**
+ * First day the client sends `organizer_link_click` and `calendar_add`. Earlier
+ * clicks were not recorded per event, so the UI says "gezählt seit …".
+ */
+export const EVENT_ACTIONS_SINCE = '2026-10-19';
+
+/** Hostnames of this site; a referrer from one of them is an internal page. */
+export const OWN_HOSTS = [
+  'www.thetribe.at',
+  'thetribe.at',
+  'spirieventsvbg.web.app',
+  'spirieventsvbg.firebaseapp.com',
+  'localhost',
+];
+
+export const DIRECT_LABEL = 'Direkt (Link, App, Lesezeichen)';
+
+export interface LabelCount {
+  label: string;
+  count: number;
+}
+
+export interface TopEvent {
+  slug: string;
+  title: string;
+  views: number;
+  users: number;
+  /** Average engagement time per visitor, in seconds. */
+  avgEngagementSec: number;
+  organizerClicks: number;
+  favorites: number;
+  shares: number;
+  calendarAdds: number;
+  newUsers: number;
+  returningUsers: number;
+  /** Page views by session source (Instagram, Google, Direkt …). */
+  sources: LabelCount[];
+  /** Page views by the page the visitor came from. */
+  referrers: LabelCount[];
+  /** Visitors by city. */
+  cities: LabelCount[];
+  /** Visitors by device category (mobile/desktop/tablet). */
+  devices: LabelCount[];
+}
+
+export interface TopEventsReport {
+  rangeDays: number;
+  generatedAt: string;
+  actionsSince: string;
+  events: TopEvent[];
+}
+
+export interface RawEventReports {
+  top: GaResponse;
+  sources: GaResponse;
+  referrers: GaResponse;
+  actions: GaResponse;
+  audience: GaResponse;
+  cities: GaResponse;
+}
+
+/** "/event/morgen-yoga/" -> "morgen-yoga"; anything that is not an event page -> null. */
+export function eventSlugFromPath(path: string): string | null {
+  const m = /^\/event\/([^/?#]+)\/?$/.exec(String(path ?? '').trim());
+  if (!m) return null;
+  try {
+    return decodeURIComponent(m[1]).toLowerCase();
+  } catch {
+    return m[1].toLowerCase();
+  }
+}
+
+const SOURCE_NAMES: [RegExp, string][] = [
+  [/(^|\.)instagram\.com$|^instagram$|^ig$/, 'Instagram'],
+  [/(^|\.)facebook\.com$|(^|\.)fb\.com$|^facebook$|^fb$/, 'Facebook'],
+  [/(^|\.)whatsapp\.(com|net)$|^whatsapp$/, 'WhatsApp'],
+  [/(^|\.)t\.me$|(^|\.)telegram\.(org|me)$|^telegram$/, 'Telegram'],
+  [/(^|\.)linkedin\.com$|^lnkd\.in$|^linkedin$/, 'LinkedIn'],
+  [/^t\.co$|(^|\.)twitter\.com$|(^|\.)x\.com$/, 'X / Twitter'],
+  [/(^|\.)google\.[a-z.]+$|^google$/, 'Google'],
+  [/(^|\.)bing\.com$|^bing$/, 'Bing'],
+  [/(^|\.)ecosia\.org$|^ecosia$/, 'Ecosia'],
+  [/(^|\.)duckduckgo\.com$|^duckduckgo$/, 'DuckDuckGo'],
+];
+
+/** Readable name for a GA session source or referrer hostname. */
+export function sourceLabel(source: string): string {
+  const s = String(source ?? '')
+    .trim()
+    .toLowerCase();
+  if (!s || s === '(direct)' || s === '(not set)' || s === '(none)') return DIRECT_LABEL;
+  if (OWN_HOSTS.includes(s)) return 'tribe Webseite';
+  for (const [re, name] of SOURCE_NAMES) if (re.test(s)) return name;
+  return s.replace(/^www\./, '');
+}
+
+const INTERNAL_PAGES: Record<string, string> = {
+  '': 'Kalender (Startseite)',
+  calendar: 'Kalender (Startseite)',
+  verzeichnis: 'Verzeichnis',
+  favoriten: 'Favoriten',
+  'ueber-uns': 'Über uns',
+  spenden: 'Spenden',
+};
+const OTHER_INTERNAL = new Set([
+  'profil',
+  'admin',
+  'login',
+  'auth-action',
+  'datenschutz',
+  'impressum',
+]);
+
+/** Readable name for the page a visitor came from (GA `pageReferrer`). */
+export function referrerLabel(referrer: string): string {
+  const raw = String(referrer ?? '').trim();
+  if (!raw || raw === '(not set)') return DIRECT_LABEL;
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    return sourceLabel(raw);
+  }
+  const host = url.hostname.toLowerCase();
+  if (!OWN_HOSTS.includes(host)) return sourceLabel(host);
+  const parts = url.pathname.split('/').filter(Boolean);
+  const first = (parts[0] ?? '').toLowerCase();
+  if (first in INTERNAL_PAGES) return INTERNAL_PAGES[first];
+  if (first === 'event') return 'Andere Event-Seite';
+  if (OTHER_INTERNAL.has(first)) return 'Andere Seite auf tribe';
+  return parts.length === 1 ? 'Profil-Seite (Veranstalter:in)' : 'Andere Seite auf tribe';
+}
+
+function addTo(map: Map<string, Map<string, number>>, slug: string, key: string, n: number) {
+  let inner = map.get(slug);
+  if (!inner) map.set(slug, (inner = new Map()));
+  inner.set(key, (inner.get(key) ?? 0) + n);
+}
+
+function topList(inner: Map<string, number> | undefined, limit = TOP_LIST_LIMIT): LabelCount[] {
+  return [...(inner ?? [])]
+    .filter(([, count]) => count > 0)
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
+    .slice(0, limit);
+}
+
+/** Groups the rows of a pagePath-first report by event slug and a label of the rest. */
+function groupBySlug(res: GaResponse, label: (row: GaRow) => string, metric = 0) {
+  const out = new Map<string, Map<string, number>>();
+  for (const r of res.rows ?? []) {
+    const slug = eventSlugFromPath(dim(r, 0));
+    if (!slug) continue;
+    addTo(out, slug, label(r), met(r, metric));
+  }
+  return out;
+}
+
+/**
+ * Turns the six GA responses into the top-10 list. `titles` maps slug -> event
+ * title from Firestore; without an entry the most viewed GA page title is used.
+ */
+export function buildTopEvents(
+  raw: RawEventReports,
+  titles: Record<string, string> = {},
+  now = new Date()
+): TopEventsReport {
+  const base = new Map<
+    string,
+    { views: number; users: number; engagement: number; titles: Map<string, number> }
+  >();
+  for (const r of raw.top.rows ?? []) {
+    const slug = eventSlugFromPath(dim(r, 0));
+    if (!slug) continue;
+    const entry = base.get(slug) ?? { views: 0, users: 0, engagement: 0, titles: new Map() };
+    const views = met(r, 0);
+    entry.views += views;
+    entry.users += met(r, 1);
+    entry.engagement += met(r, 2);
+    const t = dim(r, 1);
+    if (t && t !== '(not set)') entry.titles.set(t, (entry.titles.get(t) ?? 0) + views);
+    base.set(slug, entry);
+  }
+
+  const ranked = [...base]
+    .filter(([, e]) => e.views > 0)
+    .sort((a, b) => b[1].views - a[1].views || a[0].localeCompare(b[0]))
+    .slice(0, TOP_EVENTS_LIMIT);
+
+  const sources = groupBySlug(raw.sources, (r) => sourceLabel(dim(r, 1)));
+  const referrers = groupBySlug(raw.referrers, (r) => referrerLabel(dim(r, 1)));
+  const cities = groupBySlug(raw.cities, (r) => {
+    const c = dim(r, 1);
+    return !c || c === '(not set)' ? 'Unbekannt' : c;
+  });
+  const actions = groupBySlug(raw.actions, (r) => dim(r, 1));
+  const devices = groupBySlug(raw.audience, (r) => dim(r, 1) || 'unbekannt');
+  const visitorType = groupBySlug(raw.audience, (r) => dim(r, 2));
+
+  const events = ranked.map(([slug, e]): TopEvent => {
+    const gaTitle = [...e.titles].sort((a, b) => b[1] - a[1])[0]?.[0];
+    const a = actions.get(slug);
+    const vt = visitorType.get(slug);
+    return {
+      slug,
+      title: titles[slug] || (gaTitle ? cleanTitle(gaTitle) : slug),
+      views: e.views,
+      users: e.users,
+      avgEngagementSec: e.users > 0 ? Math.round(e.engagement / e.users) : 0,
+      organizerClicks: a?.get('organizer_link_click') ?? 0,
+      favorites: a?.get('favorite_add') ?? 0,
+      shares: a?.get('share') ?? 0,
+      calendarAdds: a?.get('calendar_add') ?? 0,
+      newUsers: vt?.get('new') ?? 0,
+      returningUsers: vt?.get('returning') ?? 0,
+      sources: topList(sources.get(slug)),
+      referrers: topList(referrers.get(slug)),
+      cities: topList(cities.get(slug)),
+      devices: topList(devices.get(slug)),
+    };
+  });
+
+  return {
+    rangeDays: TOP_EVENTS_DAYS,
+    generatedAt: now.toISOString(),
+    actionsSince: EVENT_ACTIONS_SINCE,
+    events,
+  };
+}
+
+/**
+ * The six runReport bodies for the event block, in two groups of three so they
+ * fit GA's batchRunReports (max. 5 per batch) and cost two HTTP round trips.
+ */
+export function buildEventRequests() {
+  const dateRanges = [{ startDate: `${TOP_EVENTS_DAYS - 1}daysAgo`, endDate: 'today' }];
+  const eventPages = {
+    filter: { fieldName: 'pagePath', stringFilter: { matchType: 'BEGINS_WITH', value: '/event/' } },
+  };
+  const limit = 10000;
+  const byPath = (second: string, metric: string) => ({
+    dateRanges,
+    dimensions: [{ name: 'pagePath' }, { name: second }],
+    metrics: [{ name: metric }],
+    dimensionFilter: eventPages,
+    limit,
+  });
+  return {
+    top: {
+      dateRanges,
+      dimensions: [{ name: 'pagePath' }, { name: 'pageTitle' }],
+      metrics: [
+        { name: 'screenPageViews' },
+        { name: 'activeUsers' },
+        { name: 'userEngagementDuration' },
+      ],
+      dimensionFilter: eventPages,
+      limit,
+    },
+    sources: byPath('sessionSource', 'screenPageViews'),
+    referrers: byPath('pageReferrer', 'screenPageViews'),
+    actions: {
+      dateRanges,
+      dimensions: [{ name: 'pagePath' }, { name: 'eventName' }],
+      metrics: [{ name: 'eventCount' }],
+      dimensionFilter: {
+        andGroup: {
+          expressions: [
+            eventPages,
+            {
+              filter: {
+                fieldName: 'eventName',
+                inListFilter: { values: [...EVENT_PAGE_ACTIONS] },
+              },
+            },
+          ],
+        },
+      },
+      limit,
+    },
+    audience: {
+      dateRanges,
+      dimensions: [{ name: 'pagePath' }, { name: 'deviceCategory' }, { name: 'newVsReturning' }],
+      metrics: [{ name: 'activeUsers' }],
+      dimensionFilter: eventPages,
+      limit,
+    },
+    cities: byPath('city', 'activeUsers'),
   };
 }

@@ -7,7 +7,7 @@
  */
 
 import { isInstagramRegion } from '../regions';
-import { buildCaption, type InstagramEventInput } from './instagramContent';
+import { buildCaption, buildFirstComment, type InstagramEventInput } from './instagramContent';
 
 export const GRAPH_BASE = 'https://graph.instagram.com/v23.0';
 export const POLL_INTERVAL_MS = 5000;
@@ -94,6 +94,12 @@ export function viennaToday(now: Date): string {
   }).format(now);
 }
 
+/** Tomorrow's calendar date in Vienna as YYYY-MM-DD (calendar arithmetic, DST-safe). */
+export function viennaTomorrow(now: Date): string {
+  const [y, m, d] = viennaToday(now).split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
+}
+
 /**
  * An event is past when its last day (endDate, else date) is before today in
  * Vienna. Events without a parseable date are not treated as past.
@@ -115,6 +121,53 @@ export function sanitizeError(error: unknown, secrets: string[] = []): string {
   }
   text = text.replace(/access_token=[^&\s"']+/gi, 'access_token=[redacted]');
   return text.slice(0, 1000);
+}
+
+/**
+ * German instruction for moderators/admins: what went wrong and what to do.
+ * Matches on the Graph API code/subcode where known, else on the message.
+ */
+export function instagramErrorHint(err: unknown): string | null {
+  const message = err instanceof Error ? err.message : String(err);
+  const code = err instanceof GraphApiError ? err.code : null;
+  const subcode = err instanceof GraphApiError ? err.subcode : null;
+  if (code === 190 || /access token|session has expired|oauth/i.test(message)) {
+    return 'Die Verbindung zu Instagram ist abgelaufen oder ungültig. Admin: Unter Verwaltung > Instagram den Zugang neu verbinden bzw. das Token erneuern.';
+  }
+  if (code === 10 || code === 200 || /permission/i.test(message)) {
+    return 'Dem Instagram-Zugang fehlt eine Berechtigung. Admin: Unter Verwaltung > Instagram den Zugang neu verbinden und alle Berechtigungen bestätigen.';
+  }
+  if (code === 4 || code === 17 || code === 32 || code === 613 || /rate limit/i.test(message)) {
+    return 'Instagram hat zu viele Anfragen erhalten (Limit erreicht). Bitte in ein bis zwei Stunden erneut versuchen.';
+  }
+  if (/user not visible/i.test(message) || (code === 110 && subcode === 2207018)) {
+    return 'Der Instagram-Account des Veranstalters ist privat, existiert nicht oder kann nicht markiert werden. Moderator: Den Instagram-Namen im Profil des Veranstalters prüfen oder entfernen und den Post erneut anstoßen.';
+  }
+  if (
+    subcode === 2207052 ||
+    subcode === 2207003 ||
+    code === 9004 ||
+    /media uri|download/i.test(message)
+  ) {
+    return 'Instagram konnte das Event-Bild nicht abrufen. Moderator: Das Bild des Events prüfen und ggf. neu hochladen, dann erneut versuchen.';
+  }
+  if (subcode === 2207026 || /media container (error|expired)/i.test(message)) {
+    return 'Instagram hat das Bild abgelehnt (Format oder Größe). Moderator: Ein anderes Bild (JPG/PNG, nicht zu groß) hochladen und erneut versuchen.';
+  }
+  if (/not ready after/i.test(message)) {
+    return 'Instagram hat das Bild nicht rechtzeitig verarbeitet. Bitte später erneut versuchen.';
+  }
+  if (/fetch failed|network|ECONN|ETIMEDOUT/i.test(message)) {
+    return 'Instagram war nicht erreichbar. Bitte später erneut versuchen.';
+  }
+  return null;
+}
+
+/** Sanitised error text for storing/mailing, prefixed with the German hint if known. */
+export function describeInstagramError(error: unknown, secrets: string[] = []): string {
+  const technical = sanitizeError(error, secrets);
+  const hint = instagramErrorHint(error);
+  return hint ? `${hint} (Technisch: ${technical.slice(0, 600)})` : technical;
 }
 
 async function readJson(response: Response): Promise<Record<string, unknown>> {
@@ -179,11 +232,15 @@ export function bareUsername(handle: string): string {
 /**
  * Invalid/private/nonexistent username (110/2207018) or user_tags on a carousel
  * parent (100/2207065): the container can be created again without the invite.
+ * "User not visible" (HTTP 400, private or untaggable account) is matched by
+ * message because its code/subcode is not documented.
  */
 export function isInviteRejection(err: unknown): err is GraphApiError {
   return (
     err instanceof GraphApiError &&
-    ((err.code === 110 && err.subcode === 2207018) || (err.code === 100 && err.subcode === 2207065))
+    ((err.code === 110 && err.subcode === 2207018) ||
+      (err.code === 100 && err.subcode === 2207065) ||
+      /user not visible/i.test(err.message))
   );
 }
 
@@ -396,6 +453,18 @@ export async function publishApprovedEvent(
     } catch (err) {
       log('Permalink lookup failed', { eventId, error: sanitizeError(err, [deps.accessToken]) });
     }
+    // Best effort like the permalink: the post is live, so a rejected comment
+    // (e.g. missing comment permission on the token) must not fail it.
+    try {
+      await graphPost(
+        deps,
+        `${mediaId}/comments`,
+        { message: buildFirstComment(event) },
+        'first comment'
+      );
+    } catch (err) {
+      log('First comment failed', { eventId, error: sanitizeError(err, [deps.accessToken]) });
+    }
     await deps.updatePost(postId, {
       status: 'published',
       igMediaId: mediaId,
@@ -405,7 +474,7 @@ export async function publishApprovedEvent(
     });
     return 'published';
   } catch (err) {
-    const message = sanitizeError(err, [deps.accessToken]);
+    const message = describeInstagramError(err, [deps.accessToken]);
     try {
       await deps.updatePost(postId, {
         status: 'failed',

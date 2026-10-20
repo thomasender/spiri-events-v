@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import { spawn } from 'child_process';
 
 import { STORAGE_STATE } from '../helpers/roles';
+import { openAdminTab } from '../helpers/admin';
 
 // Signed in as `admin` via the session captured once by tests/auth.setup.ts,
 // instead of driving the login form in every test.
@@ -79,6 +80,7 @@ test.describe('Review tab for admins', () => {
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
       .catch(() => {});
 
+    await openAdminTab(page, 'review');
     const reviewTab = page.getByTestId('admin-tab-review');
     await expect(reviewTab).toBeVisible();
     await expect(reviewTab).toContainText('Review');
@@ -91,6 +93,7 @@ test.describe('Review tab for admins', () => {
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
       .catch(() => {});
 
+    await openAdminTab(page, 'review');
     const badge = page.getByTestId('admin-tab-review-badge');
     await expect(badge).toBeVisible();
     // The badge caps at "9+" once there are more than nine pending events, so
@@ -110,6 +113,7 @@ test.describe('Review tab for admins', () => {
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
       .catch(() => {});
 
+    await openAdminTab(page, 'review');
     const reviewTab = page.getByTestId('admin-tab-review');
     await reviewTab.click();
 
@@ -121,6 +125,7 @@ test.describe('Review tab for admins', () => {
     await expect(reviewCard.locator('.status-badge--pending')).toBeVisible();
     await expect(reviewCard.getByRole('button', { name: /genehmigen/i })).toBeVisible();
 
+    await openAdminTab(page, 'events');
     const eventsTab = page.getByTestId('admin-tab-events');
     await eventsTab.click();
 

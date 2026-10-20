@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { useAuth } from './hooks/useAuth';
@@ -6,19 +6,9 @@ import AppCheckBanner from './components/AppCheckBanner';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import CalendarPage from './pages/CalendarPage';
-import LoginPage from './pages/LoginPage';
-import AdminPage from './pages/AdminPage';
-import EventFormPage from './pages/EventFormPage';
-import LegalPage from './pages/LegalPage';
+import './lazyPageStyles/beforeEventDetail';
 import EventDetailPage from './pages/EventDetailPage';
-import ProfilePage from './pages/ProfilePage';
-import ThemeEditorPage from './pages/ThemeEditorPage';
-import AboutPage from './pages/AboutPage';
-import DirectoryPage from './pages/DirectoryPage';
-import FavoritesPage from './pages/FavoritesPage';
-import SpendenPage from './pages/SpendenPage';
-import SpendenDankePage from './pages/SpendenDankePage';
-import AuthActionPage from './pages/AuthActionPage';
+import './lazyPageStyles/afterEventDetail';
 import FeedbackButton from './components/FeedbackButton';
 import CreateEventFab from './components/CreateEventFab';
 import SeedBootstrap from './components/SeedBootstrap';
@@ -42,6 +32,23 @@ import { setAnalyticsAdminUser, setAnalyticsRegion, trackPageView } from './lib/
 import { analyticsRegionLabel } from './lib/analyticsEvents';
 import { useRegion } from './hooks/useRegion';
 import { CONSENT_CHANGE_EVENT, readConsent } from './lib/analyticsConsent';
+import lazyWithReload from './lib/lazyWithReload';
+
+// Landing pages (calendar, event detail) stay in the main bundle; everything
+// else loads on demand so the first visit downloads less JavaScript.
+const LoginPage = lazyWithReload(() => import('./pages/LoginPage'));
+const AdminPage = lazyWithReload(() => import('./pages/AdminPage'));
+const EventFormPage = lazyWithReload(() => import('./pages/EventFormPage'));
+const LegalPage = lazyWithReload(() => import('./pages/LegalPage'));
+const ProfilePage = lazyWithReload(() => import('./pages/ProfilePage'));
+const ThemeEditorPage = lazyWithReload(() => import('./pages/ThemeEditorPage'));
+const PublicProfilePage = lazyWithReload(() => import('./pages/PublicProfilePage'));
+const AboutPage = lazyWithReload(() => import('./pages/AboutPage'));
+const DirectoryPage = lazyWithReload(() => import('./pages/DirectoryPage'));
+const FavoritesPage = lazyWithReload(() => import('./pages/FavoritesPage'));
+const SpendenPage = lazyWithReload(() => import('./pages/SpendenPage'));
+const SpendenDankePage = lazyWithReload(() => import('./pages/SpendenDankePage'));
+const AuthActionPage = lazyWithReload(() => import('./pages/AuthActionPage'));
 
 // Helmet updates document.title on the next animation frame; wait a moment so
 // page_view carries the new page's title rather than the previous one.
@@ -160,78 +167,80 @@ function AppLayout() {
       <AppCheckBanner />
       <main className="main-content">
         <ErrorBoundary>
-          <Routes>
-            <Route path="/" element={<CalendarPage />} />
-            <Route path="/calendar" element={<Navigate to="/" replace />} />
-            <Route path="/event/:slug" element={<EventDetailPage />} />
-            <Route path="/verzeichnis" element={<DirectoryPage />} />
-            <Route path="/regionen" element={<RegionsPage />} />
-            <Route path="/favoriten" element={<FavoritesPage />} />
-            <Route path="/ueber-uns" element={<AboutPage />} />
-            <Route path="/spenden" element={<SpendenPage />} />
-            <Route path="/spenden/danke" element={<SpendenDankePage />} />
-            <Route path="/auth-action" element={<AuthActionPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/datenschutz" element={<LegalPage page="datenschutz" />} />
-            <Route path="/impressum" element={<LegalPage page="impressum" />} />
-            <Route
-              path="/admin"
-              element={
-                <ProtectedRoute>
-                  <AdminPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/review"
-              element={
-                <ProtectedRoute>
-                  <AdminReviewRedirect />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/theme-editor"
-              element={
-                <ProtectedRoute>
-                  <SuperAdminRoute>
-                    <ThemeEditorPage />
-                  </SuperAdminRoute>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/new"
-              element={
-                <ProtectedRoute>
-                  <EventFormPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/edit/:id"
-              element={
-                <ProtectedRoute>
-                  <EventFormPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/profil"
-              element={
-                <ProtectedRoute>
-                  <ProfilePage />
-                </ProtectedRoute>
-              }
-            />
-            {/* Region addresses share the top level with profiles: `/tirol` is a
-                region, `/<username>` a profile (region slugs are reserved
-                usernames). `/` and `/verzeichnis` stay valid. */}
-            <Route path="/:regionSlug/verzeichnis" element={<RegionDirectoryRoute />} />
-            <Route path="/:regionSlug/ueber-uns" element={<RegionAboutRoute />} />
-            <Route path="/:slug" element={<RegionOrProfileRoute />} />
-            <Route path="*" element={<ErrorPage type="not-found" />} />
-          </Routes>
+          <Suspense fallback={<div className="loading-spinner"></div>}>
+            <Routes>
+              <Route path="/" element={<CalendarPage />} />
+              <Route path="/calendar" element={<Navigate to="/" replace />} />
+              <Route path="/event/:slug" element={<EventDetailPage />} />
+              <Route path="/verzeichnis" element={<DirectoryPage />} />
+              <Route path="/regionen" element={<RegionsPage />} />
+              <Route path="/favoriten" element={<FavoritesPage />} />
+              <Route path="/ueber-uns" element={<AboutPage />} />
+              <Route path="/spenden" element={<SpendenPage />} />
+              <Route path="/spenden/danke" element={<SpendenDankePage />} />
+              <Route path="/auth-action" element={<AuthActionPage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/datenschutz" element={<LegalPage page="datenschutz" />} />
+              <Route path="/impressum" element={<LegalPage page="impressum" />} />
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute>
+                    <AdminPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/review"
+                element={
+                  <ProtectedRoute>
+                    <AdminReviewRedirect />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/theme-editor"
+                element={
+                  <ProtectedRoute>
+                    <SuperAdminRoute>
+                      <ThemeEditorPage />
+                    </SuperAdminRoute>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/new"
+                element={
+                  <ProtectedRoute>
+                    <EventFormPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/edit/:id"
+                element={
+                  <ProtectedRoute>
+                    <EventFormPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profil"
+                element={
+                  <ProtectedRoute>
+                    <ProfilePage />
+                  </ProtectedRoute>
+                }
+              />
+              {/* Region addresses share the top level with profiles: `/tirol` is a
+                  region, `/<username>` a profile (region slugs are reserved
+                  usernames). `/` and `/verzeichnis` stay valid. */}
+              <Route path="/:regionSlug/verzeichnis" element={<RegionDirectoryRoute />} />
+              <Route path="/:regionSlug/ueber-uns" element={<RegionAboutRoute />} />
+              <Route path="/:slug" element={<RegionOrProfileRoute />} />
+              <Route path="*" element={<ErrorPage type="not-found" />} />
+            </Routes>
+          </Suspense>
         </ErrorBoundary>
       </main>
       <Footer />
