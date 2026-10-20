@@ -98,7 +98,7 @@ export default function DonationPopup() {
           <Heart size={28} />
         </div>
         <h2 id="donation-popup-title" className="donation-popup-title">
-          Hilf mit, dass tribe online bleibt
+          Hilf mit, dass Tribe Vorarlberg online bleibt
         </h2>
         <p id="donation-popup-text" className="donation-popup-text">
           tribe Vorarlberg wird ehrenamtlich betrieben und lebt allein von Spenden. Mit deinem
