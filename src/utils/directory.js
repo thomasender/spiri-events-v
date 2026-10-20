@@ -40,14 +40,32 @@ export function validateDirectoryListing({ listed, categories, regions, hasBio }
   return errors;
 }
 
+// The stored plain `bio` glues the editor's paragraphs together
+// ("SandraYogalehrerin"), so read the text from `bioHtml` and keep each
+// paragraph / <br> as a line break.
+function bioHtmlToText(html) {
+  return html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|li|div|h[1-6])\s*>/gi, '\n')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, '&')
+    .trim();
+}
+
 // Turns a `publicProfile` doc into the shape the directory page renders.
 export function normalizeDirectoryEntry(uid, data) {
   const d = data || {};
+  const htmlBio = typeof d.bioHtml === 'string' ? bioHtmlToText(d.bioHtml) : '';
   return {
     uid,
     slug: typeof d.slug === 'string' ? d.slug : '',
     displayName: typeof d.displayName === 'string' ? d.displayName : '',
-    bio: typeof d.bio === 'string' ? d.bio : '',
+    bio: htmlBio || (typeof d.bio === 'string' ? d.bio : ''),
     photoURL: d.photoURL || null,
     photoFocalPoint: normalizeFocalPoint(d.photoFocalPoint),
     photoZoom: normalizePhotoZoom(d.photoZoom),
