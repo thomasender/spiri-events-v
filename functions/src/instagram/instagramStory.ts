@@ -172,7 +172,10 @@ export function buildStoryItem(
   return {
     time: start,
     title: truncateTitle(stripImageUnsafeChars(asString(event.title)), STORY_TITLE_MAX) || 'Event',
-    location: truncateText(stripImageUnsafeChars(asString(event.place)), STORY_LOCATION_MAX),
+    location: truncateText(
+      stripImageUnsafeChars(asString(event.city) || asString(event.place)),
+      STORY_LOCATION_MAX
+    ),
     color: resolveCategoryColor(event.category, registry),
     organizer: showOrganizer ? formatOrganizerName(event) : '',
   };

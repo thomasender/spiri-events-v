@@ -13,11 +13,14 @@ export function shouldPrefillForAdmin(role) {
 }
 
 // Returns formData with the empty mandatory fields filled; filled ones are kept.
-export function applyAdminPrefill(formData, { now = new Date(), bezirke = [] } = {}) {
+export function applyAdminPrefill(formData, { now = new Date() } = {}) {
   const next = { ...formData };
   if (!next.date) next.date = getTomorrowIso(now);
   if (!next.time) next.time = '12:00';
   if (!next.category) next.category = 'Sonstiges';
-  if (!next.isOnline && !next.bezirk && bezirke.includes('Bludenz')) next.bezirk = 'Bludenz';
+  if (!next.isOnline && !next.city && !next.bezirk) {
+    next.city = 'Bludenz';
+    next.bezirk = 'Bludenz';
+  }
   return next;
 }

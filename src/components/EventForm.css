@@ -486,3 +486,10 @@ input:disabled {
     align-self: center;
   }
 }
+
+.field-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.85rem;
+  color: var(--text-muted, #6b7280);
+}

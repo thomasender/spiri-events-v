@@ -235,7 +235,7 @@ export function buildCarouselCaption(
     ]
       .filter(Boolean)
       .join(' · ');
-    const place = asString(event.place);
+    const place = asString(event.city) || asString(event.place);
     const title = truncateTitle(event.title, 60) || 'Event';
     return `• ${when ? `${when} – ` : ''}${title}${place ? ` (${place})` : ''}`;
   });
@@ -621,7 +621,7 @@ export async function previewWeeklyCarousels(deps: CarouselPreviewDeps): Promise
         title: asString(event.title),
         date: asString(event.date),
         time: asString(event.time),
-        place: asString(event.place),
+        place: asString(event.city) || asString(event.place),
         organizerHandle: eventHandles[i],
       })),
       existingStatus: await deps.getPostStatus(postId),

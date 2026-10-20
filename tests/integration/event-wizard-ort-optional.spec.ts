@@ -61,11 +61,11 @@ test.describe('Event wizard: "Ort / Adresse" is optional (ZPiZqKrG) @mobile', ()
 
     const placeLabel = page.locator('label[for="place"]');
     await expect(placeLabel).toBeVisible();
-    await expect(placeLabel).toContainText('Ort / Adresse');
+    await expect(placeLabel).toContainText('Adresse / Veranstaltungsort');
     await expect(placeLabel).not.toContainText('*');
   });
 
-  test('event can be submitted through the wizard without an "Ort / Adresse" value', async ({
+  test('event can be submitted through the wizard without an "Adresse / Veranstaltungsort" value', async ({
     page,
   }) => {
     await page.goto('/admin/new');
@@ -79,7 +79,7 @@ test.describe('Event wizard: "Ort / Adresse" is optional (ZPiZqKrG) @mobile', ()
 
     await page.fill('#date', futureIso);
     await page.fill('#time', '10:00');
-    await page.selectOption('#bezirk', 'Bregenz');
+    await page.locator('#city').fill('Bregenz');
     await page.click('.kategorie-select');
     await page.getByText('Yoga', { exact: true }).click();
     await page.click('.radio-label:has-text("Kostenlos")');
@@ -128,7 +128,7 @@ test.describe('Event edit form: "Ort / Adresse" is optional', () => {
 
     const placeLabel = page.locator('label[for="place"]');
     await expect(placeLabel).toBeVisible();
-    await expect(placeLabel).toContainText('Ort / Adresse');
+    await expect(placeLabel).toContainText('Adresse / Veranstaltungsort');
     await expect(placeLabel).not.toContainText('*');
   });
 

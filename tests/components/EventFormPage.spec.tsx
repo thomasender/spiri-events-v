@@ -99,6 +99,7 @@ describe('EventFormPage', () => {
       date: '2026-07-24',
       place: 'Test Place',
       bezirk: 'Bregenz',
+      city: 'Bregenz',
       category: 'Yoga',
       status: 'pending',
     };
