@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { Heart, Sparkles, Users } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
 import DonationBlock from '../components/DonationBlock';
@@ -20,6 +20,14 @@ function ContactCta({ label, className, testId, onOpen }) {
 }
 
 export default function AboutPage() {
+  const { hash } = useLocation();
+
+  // SPA navigation does not jump to #anchors on its own (e.g. the donation pop-in's /ueber-uns#spenden).
+  useEffect(() => {
+    if (!hash) return;
+    document.getElementById(hash.slice(1))?.scrollIntoView?.({ block: 'start' });
+  }, [hash]);
+
   const [contactOpen, setContactOpen] = useState(false);
   const openContact = () => setContactOpen(true);
   const contactClass = 'about-inline-link';

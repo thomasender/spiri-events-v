@@ -107,7 +107,7 @@ export default function DonationPopup() {
         </p>
         <div className="donation-popup-actions">
           <Link
-            to="/spenden"
+            to="/ueber-uns#spenden"
             className="btn btn-primary donation-popup-donate"
             onClick={() => {
               trackEvent(EVENTS.DONATE_CLICK, { placement: 'popup' });
