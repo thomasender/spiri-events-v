@@ -40,6 +40,10 @@ function regionGroups(country, regions, countOf) {
   return groups.filter((g) => g.options.length > 0);
 }
 
+// Austria stays Bundesland -> Bezirk: a different grouping makes no sense there, so it is
+// not offered. (The server would accept it; only this tab hides it.)
+const MAPPING_COUNTRIES = COUNTRIES.filter((c) => c !== 'AT');
+
 /**
  * Super-Admin tab "Zuordnung": which Landkreis / Bezirk belongs to which region.
  * The districts themselves are fixed (the backend structure); only the assignment
@@ -218,6 +222,10 @@ export default function RegionMappingTab() {
             </li>
             <li>Landkreise einer Region in einem anderen Land zuordnen.</li>
             <li>
+              Österreich umgruppieren: Dort bleibt es bei Bundesland und Bezirk, deshalb gibt es
+              hier nur Deutschland und die Schweiz.
+            </li>
+            <li>
               Landkreise mit bestehenden Events verschieben (Schloss-Symbol). Ordne zu, bevor in
               einer Region Events angelegt werden.
             </li>
@@ -252,7 +260,7 @@ export default function RegionMappingTab() {
       )}
 
       <div className="mapping-countries" role="group" aria-label="Land">
-        {COUNTRIES.map((c) => (
+        {MAPPING_COUNTRIES.map((c) => (
           <button
             key={c}
             type="button"

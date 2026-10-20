@@ -153,6 +153,7 @@ one of the six Großregionen) from the product owner's list. Cultural regions st
 (Super-Admin only, `RegionMappingTab.jsx`) the product owner moves districts between the
 regions of one country; the lists are saved in `regions/{id}.bezirke` (+ `mappingUpdatedAt`).
 
+- **Austria is not offered:** the tab only shows Germany and Switzerland; Austria stays Bundesland -> Bezirk (product decision). Only the UI hides it; the callable would still accept Austrian moves.
 - **Fixed vs editable:** the districts themselves (`DISTRICT_CATALOG` in
   `src/utils/regionMapping.js`, built from the `home` regions; key `"<country>|<name>"`,
   names are unique per country) are never editable, nor is the country of a district.

@@ -92,13 +92,14 @@ describe('RegionMappingTab', () => {
     expect(info).toHaveTextContent('Landkreise mit bestehenden Events verschieben');
   });
 
-  it('switches country and only lists that country', () => {
+  it('offers Germany and Switzerland only (Austria stays Bundesland -> Bezirk) and lists that country', () => {
     render(<RegionMappingTab />);
-    fireEvent.click(screen.getByTestId('mapping-country-AT'));
-    expect(screen.getByTestId('mapping-state-tirol')).toBeInTheDocument();
-    expect(screen.queryByTestId('mapping-state-bayern')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mapping-country-AT')).not.toBeInTheDocument();
     fireEvent.click(screen.getByTestId('mapping-country-CH'));
     expect(screen.getByTestId('mapping-state-zuerich')).toBeInTheDocument();
+    expect(screen.queryByTestId('mapping-state-bayern')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('mapping-country-DE'));
+    expect(screen.getByTestId('mapping-state-bayern')).toBeInTheDocument();
   });
 
   it('filters by search text (umlaut tolerant) and by Bundesland', () => {
@@ -220,16 +221,16 @@ describe('RegionMappingTab', () => {
   });
 
   it('does not allow emptying an active region (save disabled, reason shown)', () => {
-    state.active = { vorarlberg: true, tirol: true };
+    state.active = { vorarlberg: true, zuerich: true };
     render(<RegionMappingTab />);
-    fireEvent.click(screen.getByTestId('mapping-country-AT'));
-    fireEvent.change(screen.getByTestId('mapping-state-filter'), { target: { value: 'tirol' } });
+    fireEvent.click(screen.getByTestId('mapping-country-CH'));
+    fireEvent.change(screen.getByTestId('mapping-state-filter'), { target: { value: 'zuerich' } });
     fireEvent.click(screen.getByTestId('mapping-toggle-all'));
-    fireEvent.change(screen.getByTestId('mapping-target'), { target: { value: 'salzburg' } });
+    fireEvent.change(screen.getByTestId('mapping-target'), { target: { value: 'bern' } });
     fireEvent.click(screen.getByTestId('mapping-stage'));
     expect(screen.getByTestId('mapping-save')).toBeDisabled();
     expect(screen.getByTestId('mapping-draft')).toHaveTextContent(
-      'Tirol ist aktiv und braucht mindestens einen Landkreis / Bezirk.'
+      'Zürich ist aktiv und braucht mindestens einen Landkreis / Bezirk.'
     );
   });
 
