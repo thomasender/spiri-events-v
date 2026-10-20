@@ -156,4 +156,28 @@
     padding: 10px 12px;
     font-size: 0.9rem;
   }
+
+  /* 7kMaMoxu: one horizontally scrollable row instead of wrapping */
+  .admin-page-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .admin-page-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .admin-page-group,
+  .admin-page-tab {
+    flex-shrink: 0;
+  }
+
+  /* fixed so the open drop-down is not clipped by the scroll container */
+  .admin-page-group-menu {
+    position: fixed;
+    top: auto;
+    left: auto;
+  }
 }
