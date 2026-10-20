@@ -57,6 +57,7 @@ test.describe('Event wizard: Copyright confirmation', () => {
     await page.fill('#time', '18:00');
     await page.fill('#place', 'Test Place');
     await page.locator('#city').fill('Bregenz');
+    await page.keyboard.press('Enter');
     await page.click('.kategorie-select');
     await page.getByText('Yoga', { exact: true }).click();
     await page.click('.radio-label:has-text("Kostenlos")');

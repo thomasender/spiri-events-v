@@ -120,7 +120,7 @@ test.describe('Event wizard: "Online-Event" checkbox', () => {
     await page.fill('#date', futureIso);
     await page.fill('#time', '10:00');
     // Admins get Bludenz prefilled; clear it so Bezirk and Online are both unset.
-    await page.locator('#city').fill('');
+    await page.locator('.form-group:has(#city) .kategorie__clear-indicator').click();
     await page.click('.kategorie-select');
     await page.getByText('Yoga', { exact: true }).click();
     await page.click('.radio-label:has-text("Kostenlos")');

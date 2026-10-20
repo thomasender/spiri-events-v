@@ -80,6 +80,7 @@ test.describe('Event wizard: "Ort / Adresse" is optional (ZPiZqKrG) @mobile', ()
     await page.fill('#date', futureIso);
     await page.fill('#time', '10:00');
     await page.locator('#city').fill('Bregenz');
+    await page.keyboard.press('Enter');
     await page.click('.kategorie-select');
     await page.getByText('Yoga', { exact: true }).click();
     await page.click('.radio-label:has-text("Kostenlos")');
@@ -140,6 +141,9 @@ test.describe('Event edit form: "Ort / Adresse" is optional', () => {
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
       .catch(() => {});
 
+    // Events from before the Ort field existed have no city yet; it is required on save.
+    await page.locator('#city').fill('Bregenz');
+    await page.keyboard.press('Enter');
     await page.fill('#place', '');
 
     await page.getByRole('button', { name: /änderungen speichern/i }).click();

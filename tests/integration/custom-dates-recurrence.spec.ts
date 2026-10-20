@@ -71,6 +71,7 @@ test.describe('Custom dates recurrence', () => {
     await page.locator('#time').fill('10:00');
 
     await page.locator('#city').fill('Bregenz');
+    await page.keyboard.press('Enter');
     await page.locator('#place').fill('Test Place');
 
     await page.locator('.kategorie-select').click();

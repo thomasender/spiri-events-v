@@ -394,45 +394,45 @@ input:disabled {
   margin-top: 4px;
 }
 
-.kategorie-select {
+:is(.kategorie-select, .city-select) {
   min-height: 44px;
 }
 
-.kategorie-select .kategorie__control {
+:is(.kategorie-select, .city-select) .kategorie__control {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background-color: var(--bg-calendar);
   min-height: 44px;
 }
 
-.kategorie-select .kategorie__control:focus,
-.kategorie-select .kategorie__control--is-focused {
+:is(.kategorie-select, .city-select) .kategorie__control:focus,
+:is(.kategorie-select, .city-select) .kategorie__control--is-focused {
   border-color: var(--accent-primary);
   box-shadow: 0 0 0 3px rgba(196, 142, 106, 0.15);
 }
 
-.kategorie-select .kategorie__placeholder {
+:is(.kategorie-select, .city-select) .kategorie__placeholder {
   color: var(--text-light);
 }
 
-.kategorie-select .kategorie__input {
+:is(.kategorie-select, .city-select) .kategorie__input {
   color: var(--text-primary);
 }
 
-.kategorie-select .kategorie__single-value {
+:is(.kategorie-select, .city-select) .kategorie__single-value {
   color: var(--accent-primary);
   font-size: 0.95rem;
 }
 
-.kategorie-select .kategorie__dropdown-indicator {
+:is(.kategorie-select, .city-select) .kategorie__dropdown-indicator {
   color: var(--text-light);
 }
 
-.kategorie-select .kategorie__clear-indicator {
+:is(.kategorie-select, .city-select) .kategorie__clear-indicator {
   color: var(--text-light);
 }
 
-.kategorie-select .kategorie__menu {
+:is(.kategorie-select, .city-select) .kategorie__menu {
   background-color: var(--bg-calendar);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -440,22 +440,22 @@ input:disabled {
   z-index: 100;
 }
 
-.kategorie-select .kategorie__menu-list {
+:is(.kategorie-select, .city-select) .kategorie__menu-list {
   padding: 4px;
 }
 
-.kategorie-select .kategorie__option {
+:is(.kategorie-select, .city-select) .kategorie__option {
   border-radius: 6px;
   padding: 8px 12px;
   color: var(--text-primary);
 }
 
-.kategorie-select .kategorie__option--is-selected {
+:is(.kategorie-select, .city-select) .kategorie__option--is-selected {
   background-color: rgba(196, 142, 106, 0.12);
   color: var(--accent-primary);
 }
 
-.kategorie-select .kategorie__option--is-focused {
+:is(.kategorie-select, .city-select) .kategorie__option--is-focused {
   background-color: var(--bg-secondary);
 }
 
@@ -492,4 +492,13 @@ input:disabled {
   margin-top: 4px;
   font-size: 0.85rem;
   color: var(--text-muted, #6b7280);
+}
+
+.city-select--error .kategorie__control {
+  border-color: var(--error, #c0392b);
+}
+
+.city-option-bezirk {
+  color: var(--text-light);
+  font-size: 0.85em;
 }

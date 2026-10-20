@@ -3,8 +3,8 @@ import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import CityField from '../../src/components/CityField';
 
-function Harness() {
-  const [state, setState] = useState({ city: '', bezirk: '' });
+function Harness({ initial = { city: '', bezirk: '' } }) {
+  const [state, setState] = useState(initial);
   return (
     <>
       <CityField {...state} onChange={setState} />
@@ -14,37 +14,51 @@ function Harness() {
   );
 }
 
-const type = (value: string) =>
-  fireEvent.change(screen.getByLabelText(/^Ort/), { target: { value } });
+const input = () => screen.getByLabelText(/^Ort/);
+const type = (value: string) => {
+  fireEvent.focus(input());
+  fireEvent.change(input(), { target: { value } });
+};
+const pickFirst = () => fireEvent.keyDown(input(), { key: 'Enter', code: 'Enter' });
 
 describe('CityField', () => {
-  it('sets the Bezirk automatically when a Gemeinde is typed', () => {
+  it('sets the Bezirk automatically when a Gemeinde is picked', () => {
     render(<Harness />);
     type('Altach');
+    pickFirst();
+    expect(screen.getByTestId('city')).toHaveTextContent('Altach');
     expect(screen.getByTestId('bezirk')).toHaveTextContent('Feldkirch');
     expect(screen.getByTestId('city-bezirk-hint')).toHaveTextContent('Bezirk Feldkirch');
   });
 
-  it('corrects the spelling on blur', () => {
+  it('finds a Gemeinde regardless of case', () => {
     render(<Harness />);
     type('lustenau');
-    fireEvent.blur(screen.getByLabelText(/^Ort/));
+    pickFirst();
     expect(screen.getByTestId('city')).toHaveTextContent('Lustenau');
     expect(screen.getByTestId('bezirk')).toHaveTextContent('Dornbirn');
   });
 
-  it('offers "outside Vorarlberg" for unknown names and stores Umgebung', () => {
+  it('offers a place outside Vorarlberg as new option and stores Umgebung', () => {
     render(<Harness />);
     type('Ruggell');
-    expect(screen.getByTestId('bezirk')).toHaveTextContent('');
-    fireEvent.click(screen.getByTestId('city-outside-checkbox'));
+    expect(screen.getByText(/"Ruggell" \(außerhalb von Vorarlberg/)).toBeInTheDocument();
+    pickFirst();
+    expect(screen.getByTestId('city')).toHaveTextContent('Ruggell');
     expect(screen.getByTestId('bezirk')).toHaveTextContent('Grenznahe');
   });
 
-  it('drops the Bezirk again when the name no longer matches', () => {
+  it('does not offer to create a name that is a Gemeinde', () => {
     render(<Harness />);
     type('Altach');
-    type('Altachx');
+    expect(screen.queryByText(/außerhalb von Vorarlberg, Umgebung/)).not.toBeInTheDocument();
+  });
+
+  it('shows an existing city and can be cleared', () => {
+    render(<Harness initial={{ city: 'Hard', bezirk: 'Bregenz' }} />);
+    expect(document.querySelector('.kategorie__single-value')).toHaveTextContent('Hard');
+    fireEvent.mouseDown(document.querySelector('.kategorie__clear-indicator') as Element);
+    expect(screen.getByTestId('city')).toHaveTextContent('');
     expect(screen.getByTestId('bezirk')).toHaveTextContent('');
   });
 });
