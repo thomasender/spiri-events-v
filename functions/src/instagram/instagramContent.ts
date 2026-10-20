@@ -206,6 +206,15 @@ function asString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+/**
+ * The category name to show in images, caption and hashtags. "Sonstiges" says
+ * nothing ("Sonstiges in Dornbirn"), so it is left out completely: ''.
+ */
+export function displayCategory(category: unknown): string {
+  const name = asString(category);
+  return name.toLowerCase() === 'sonstiges' ? '' : name;
+}
+
 export function truncateText(input: string, max: number, keepNewlines = false): string {
   const text = keepNewlines
     ? input
@@ -340,7 +349,7 @@ export function buildEventImageModel(
     dateLabel: formatEventDate(event.date, event.endDate),
     timeLabel: formatEventTime(event.time, event.endTime),
     location: stripImageUnsafeChars(formatLocation(event)),
-    category: asString(event.category),
+    category: displayCategory(event.category),
     color: resolveCategoryColor(event.category, registry),
     imageUrl: imageUrl || null,
     organizerName: formatOrganizerName(event),
@@ -390,7 +399,7 @@ export const MAX_HASHTAGS = 12;
 export function buildHashtags(event: InstagramEventInput, max = MAX_HASHTAGS): string[] {
   const bezirk = asString(event.bezirk);
   const online = isOnlineEvent(event.isOnline) || !bezirk || bezirk.toLowerCase() === 'online';
-  const category = asString(event.category);
+  const category = displayCategory(event.category);
   const candidates = [
     online ? '#online' : toHashtag(bezirk),
     toHashtag(category),
@@ -526,7 +535,7 @@ function buildRecurringHeader(event: InstagramEventInput, location: string, now:
         ? `Monatlich am ${start?.getUTCDate()}.`
         : '';
   const when = [day, time].filter(Boolean).join(' · ');
-  const category = asString(event.category);
+  const category = displayCategory(event.category);
   const place = inBezirk(event);
   const first = `${pattern || 'Mehrere Termine'}${place}`;
   return [
@@ -549,7 +558,7 @@ function buildRecurringHeader(event: InstagramEventInput, location: string, now:
 
 /** "Soundhealing in Dornbirn:" (second line of the caption); '' without a category. */
 function buildCategoryLine(event: InstagramEventInput): string {
-  const category = asString(event.category);
+  const category = displayCategory(event.category);
   if (!category) return '';
   const bezirk = asString(event.bezirk);
   if (isOnlineEvent(event.isOnline) || bezirk.toLowerCase() === 'online')

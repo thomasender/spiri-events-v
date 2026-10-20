@@ -8,6 +8,7 @@ import {
   BASE_HASHTAGS,
   buildCaption,
   buildHashtags,
+  displayCategory,
   toHashtag,
   buildEventImageModel,
   normalizeInstagramHandle,
@@ -402,5 +403,37 @@ describe('buildHashtags / caption hashtags', () => {
     expect(caption.length).toBeLessThanOrEqual(CAPTION_MAX_LENGTH);
     expect(caption.endsWith(buildHashtags(ev).join(' '))).toBe(true);
     expect(caption).toContain('#feldkirch #soundhealing #klangreise');
+  });
+});
+
+describe('category "Sonstiges" is never shown on Instagram', () => {
+  const event = {
+    title: 'Offener Abend',
+    date: '2026-11-07',
+    time: '18:00',
+    bezirk: 'Dornbirn',
+    category: 'Sonstiges',
+  };
+
+  it('drops it from the image model but keeps other categories', () => {
+    expect(displayCategory('Sonstiges')).toBe('');
+    expect(buildEventImageModel(event).category).toBe('');
+    expect(buildEventImageModel({ ...event, category: 'Yoga' }).category).toBe('Yoga');
+  });
+
+  it('leaves it out of caption and hashtags', () => {
+    const caption = buildCaption(event);
+    expect(caption).not.toMatch(/sonstiges/i);
+    expect(caption).toContain('Offener Abend');
+    expect(buildHashtags(event).join(' ')).not.toMatch(/sonstiges/i);
+  });
+
+  it('leaves it out of the caption of recurring events', () => {
+    const caption = buildCaption(
+      { ...event, recurrence: 'weekly' },
+      null,
+      new Date('2026-11-01T00:00:00Z')
+    );
+    expect(caption).not.toMatch(/sonstiges/i);
   });
 });
