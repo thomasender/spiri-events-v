@@ -30,6 +30,7 @@ function ev(over: Partial<CarouselEvent> = {}): CarouselEvent {
     time: '12:00',
     place: 'Studio Eins',
     bezirk: 'Bregenz',
+    organizer: { name: 'Maitri Roots' },
     ...over,
   };
 }
@@ -143,7 +144,6 @@ describe('runEventStories', () => {
       events?: CarouselEvent[];
       existing?: string[];
       postedToday?: number;
-      handle?: string | null;
     } = {}
   ) {
     const now = at(opts.now ?? '2026-10-18T08:30:00Z'); // 10:30 Vienna
@@ -170,7 +170,6 @@ describe('runEventStories', () => {
       isEnabled: async () => opts.enabled ?? true,
       listEvents: vi.fn(async () => opts.events ?? [ev()]),
       countStoriesPostedOn: async () => opts.postedToday ?? 0,
-      getOrganizerHandle: async () => (opts.handle === undefined ? '@maitri.roots' : opts.handle),
       async createPost(id, record: StoryPostRecord) {
         if (posts.has(id)) return false;
         posts.set(id, { ...record });
@@ -188,7 +187,7 @@ describe('runEventStories', () => {
     return { deps, posts, models, bodies, fetchMock };
   }
 
-  it('posts a due event with heading and the organizer as text, without user_tags', async () => {
+  it('posts a due event with heading and the organizer name (not the @handle) as text, without user_tags', async () => {
     const h = makeHarness();
     const outcome = await runEventStories(h.deps);
     expect(outcome).toEqual({
@@ -196,7 +195,7 @@ describe('runEventStories', () => {
       results: [{ id: 'story_event_e1_2026-10-18', outcome: 'published' }],
     });
     expect(h.models[0]).toMatchObject({ heading: 'Heute', bezirk: 'in Bregenz' });
-    expect(h.models[0].items).toMatchObject([{ organizer: '@maitri.roots' }]);
+    expect(h.models[0].items).toMatchObject([{ organizer: 'Maitri Roots' }]);
     expect(h.bodies[0].get('media_type')).toBe('STORIES');
     expect(h.bodies[0].get('user_tags')).toBeNull();
     expect(h.posts.get('story_event_e1_2026-10-18')).toMatchObject({
@@ -221,8 +220,8 @@ describe('runEventStories', () => {
     });
   });
 
-  it('posts without an organizer line when the organizer has no handle', async () => {
-    const h = makeHarness({ handle: null });
+  it('posts without an organizer line when the event has no organizer name', async () => {
+    const h = makeHarness({ events: [ev({ organizer: undefined })] });
     await runEventStories(h.deps);
     expect(h.models[0].items).toMatchObject([{ organizer: '' }]);
   });

@@ -10,6 +10,7 @@
 
 import {
   formatEventTime,
+  formatOrganizerName,
   resolveCategoryColor,
   resolveEventImageChoice,
   stripImageUnsafeChars,
@@ -78,7 +79,7 @@ export interface StoryItem {
   title: string;
   location: string;
   color: string;
-  /** "@name" of the organizer, shown as text (stories cannot carry a clickable mention); '' when unknown. */
+  /** Organizer's name, shown as text (a story @handle is not clickable); '' when unknown. */
   organizer: string;
 }
 
@@ -165,7 +166,7 @@ export function groupStories(events: CarouselEvent[], day: string, bezirk: strin
 export function buildStoryItem(
   event: InstagramEventInput,
   registry?: Record<string, string> | null,
-  handle?: string | null
+  showOrganizer = true
 ): StoryItem {
   const start = formatEventTime(event.time).replace(' Uhr', '');
   return {
@@ -173,7 +174,7 @@ export function buildStoryItem(
     title: truncateTitle(stripImageUnsafeChars(asString(event.title)), STORY_TITLE_MAX) || 'Event',
     location: truncateText(stripImageUnsafeChars(asString(event.place)), STORY_LOCATION_MAX),
     color: resolveCategoryColor(event.category, registry),
-    organizer: handle ? stripImageUnsafeChars(handle) : '',
+    organizer: showOrganizer ? formatOrganizerName(event) : '',
   };
 }
 
@@ -181,8 +182,7 @@ export function buildStoryModel(
   group: StoryGroup,
   day: string,
   registry?: Record<string, string> | null,
-  heading = 'Heute',
-  handles: Array<string | null> = []
+  heading = 'Heute'
 ): StoryModel {
   return {
     heading,
@@ -191,12 +191,8 @@ export function buildStoryModel(
     partLabel: group.parts > 1 ? `Teil ${group.part} von ${group.parts}` : '',
     image: group.events.length === 1 ? resolveEventImageChoice(group.events[0]) : null,
     // Only short stories have room for the organizer line.
-    items: group.events.map((e, i) =>
-      buildStoryItem(
-        e,
-        registry,
-        group.events.length <= MAX_STORY_ITEMS_WITH_ORGANIZER ? handles[i] : null
-      )
+    items: group.events.map((e) =>
+      buildStoryItem(e, registry, group.events.length <= MAX_STORY_ITEMS_WITH_ORGANIZER)
     ),
   };
 }
@@ -263,7 +259,7 @@ export type StoryRunOutcome =
 /**
  * Container for a story image, then publish; returns the media id. Stories
  * cannot carry a clickable mention (Instagram accepts user_tags but never shows
- * them), so organizers are named as text in the image instead.
+ * them), so organizers are named (not their @handle) as text in the image instead.
  */
 export async function publishStoryImage(
   deps: Pick<StoryDeps, 'fetch' | 'accessToken' | 'userId' | 'now'>,
@@ -284,31 +280,6 @@ export async function publishStoryImage(
     'story publish'
   );
   return idOf(published, 'story publish');
-}
-
-/** Organizer handle per event of the group (null when unknown or the lookup failed). */
-async function lookupHandles(
-  deps: StoryDeps,
-  group: StoryGroup,
-  postId: string
-): Promise<Array<string | null>> {
-  const log = deps.log ?? (() => undefined);
-  const handles: Array<string | null> = [];
-  for (const event of group.events) {
-    let handle: string | null = null;
-    if (deps.getOrganizerHandle) {
-      try {
-        handle = await deps.getOrganizerHandle(event);
-      } catch (err) {
-        log('Organizer handle lookup failed; skipping organizer', {
-          postId,
-          error: sanitizeError(err, [deps.accessToken]),
-        });
-      }
-    }
-    handles.push(handle);
-  }
-  return handles;
 }
 
 export interface PostGroupOptions {
@@ -351,10 +322,9 @@ export async function postStoryGroup(
   }
 
   try {
-    const handles = await lookupHandles(deps, group, postId);
     const imageUrl = await deps.generateStoryImage(
       postId,
-      buildStoryModel(group, day, null, options.heading, handles)
+      buildStoryModel(group, day, null, options.heading)
     );
     const mediaId = await publishStoryImage(deps, imageUrl);
     // The story is live now; a missing permalink must not fail it.

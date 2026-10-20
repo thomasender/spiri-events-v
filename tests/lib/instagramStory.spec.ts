@@ -128,16 +128,17 @@ describe('story content', () => {
     expect(model.items).toHaveLength(1);
   });
 
-  it('shows the organizer handle only on short stories', () => {
-    const [short] = groupStories([ev(), ev({ id: 'e2' })], DAY, 'Feldkirch');
-    expect(buildStoryModel(short, DAY, null, 'Heute', ['@maitri.roots', null]).items).toMatchObject(
-      [{ organizer: '@maitri.roots' }, { organizer: '' }]
-    );
-    const many = Array.from({ length: 3 }, (_, i) => ev({ id: `e${i}` }));
+  it('shows the organizer name (never the @handle) only on short stories', () => {
+    const named = (id: string, name?: string) =>
+      ev({ id, organizer: name ? { name, instagramHandle: '@' + id } : undefined });
+    const [short] = groupStories([named('e1', 'Maitri Roots'), named('e2')], DAY, 'Feldkirch');
+    expect(buildStoryModel(short, DAY).items).toMatchObject([
+      { organizer: 'Maitri Roots' },
+      { organizer: '' },
+    ]);
+    const many = ['a', 'b', 'c'].map((id) => named(id, 'Name ' + id));
     const [long] = groupStories(many, DAY, 'Feldkirch');
-    expect(
-      buildStoryModel(long, DAY, null, 'Heute', ['@a', '@b', '@c']).items.map((i) => i.organizer)
-    ).toEqual(['', '', '']);
+    expect(buildStoryModel(long, DAY).items.map((i) => i.organizer)).toEqual(['', '', '']);
   });
 
   it('carries the event picture and its crop only for a story about a single event', () => {
