@@ -61,7 +61,7 @@ const SAMPLE_ITEMS = [
     title: 'Yoga am Morgen',
     location: 'Feldkirch',
     color: '#c48e6a',
-    organizer: '@maria.muster',
+    organizer: 'Maria Muster',
   },
   {
     time: '18:30',
