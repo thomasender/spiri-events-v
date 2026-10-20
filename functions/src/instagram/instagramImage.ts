@@ -49,7 +49,7 @@ let fontCache: LoadedFont[] | null = null;
 // Bundled via the @fontsource packages (same families as the website:
 // Cormorant Garamond for headings, Inter for body). satori reads TTF/OTF/WOFF,
 // not WOFF2.
-function loadFonts(): LoadedFont[] {
+export function loadFonts(): LoadedFont[] {
   if (fontCache) return fontCache;
   const read = (pkg: string, file: string) =>
     readFileSync(require.resolve(`@fontsource/${pkg}/files/${file}`));
@@ -76,7 +76,7 @@ function loadFonts(): LoadedFont[] {
   return fontCache;
 }
 
-type Node = {
+export type Node = {
   type: string;
   props: { style?: Record<string, unknown>; children?: unknown; [key: string]: unknown };
 };
@@ -90,7 +90,11 @@ function el(
   return { type, props: { style: { display: 'flex', ...style }, children: kids ?? undefined } };
 }
 
-function buildLayout(model: EventImageModel, format: InstagramFormat, hasImage: boolean): Node {
+export function buildLayout(
+  model: EventImageModel,
+  format: InstagramFormat,
+  hasImage: boolean
+): Node {
   const { width, height } = FORMAT_DIMENSIONS[format];
   const isStory = format === 'story';
   const pad = 80;
@@ -192,7 +196,7 @@ function buildLayout(model: EventImageModel, format: InstagramFormat, hasImage: 
 }
 
 /** Feed post: only title and organizer over a dark bottom gradient. */
-function buildFeedLayout(model: EventImageModel, hasImage: boolean): Node {
+export function buildFeedLayout(model: EventImageModel, hasImage: boolean): Node {
   const { width, height } = FORMAT_DIMENSIONS.feed;
   const pad = 80;
   const titleSize = model.title.length > 45 ? 72 : model.title.length > 28 ? 84 : 96;
@@ -398,7 +402,7 @@ const COVER_INK = '#161819';
 const COVER_TERRACOTTA = '#c48e6a';
 
 /** The website logo (terracotta circle over a thin arc) as the cover background. */
-function coverBackgroundSvg(width: number, height: number): Buffer {
+export function coverBackgroundSvg(width: number, height: number): Buffer {
   return Buffer.from(
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">` +
       `<rect width="${width}" height="${height}" fill="${COVER_PAPER}"/>` +
@@ -408,7 +412,7 @@ function coverBackgroundSvg(width: number, height: number): Buffer {
   );
 }
 
-function buildCoverLayout(cover: CoverModel, format: InstagramFormat): Node {
+export function buildCoverLayout(cover: CoverModel, format: InstagramFormat): Node {
   const { width, height } = FORMAT_DIMENSIONS[format];
   const pad = 90;
   return el(
@@ -506,7 +510,7 @@ function logoNode(width: number): Node {
 }
 
 /** Story 9:16 with the day's events as a list; top/bottom stay clear of Instagram's UI. */
-function buildStoryListLayout(story: StoryModel, imageDataUri: string | null): Node {
+export function buildStoryListLayout(story: StoryModel, imageDataUri: string | null): Node {
   const { width, height } = FORMAT_DIMENSIONS.story;
   const pad = 90;
   const compact = story.items.length > 2 || imageDataUri !== null;
@@ -619,7 +623,7 @@ function buildStoryListLayout(story: StoryModel, imageDataUri: string | null): N
 }
 
 /** Slot for the event picture in a single-event story (story width minus 2 x 90px padding). */
-const STORY_IMAGE_SIZE = { width: 900, height: 560 };
+export const STORY_IMAGE_SIZE = { width: 900, height: 560 };
 
 /** The event picture as a data URI for the story layout; null when missing or unreadable. */
 async function storyPicture(
