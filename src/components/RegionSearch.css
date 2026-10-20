@@ -26,7 +26,9 @@
   pointer-events: none;
 }
 
-.region-search-input {
+/* Doubled class: the global input[type='text'] rule (padding 12px 16px) is more
+   specific than a single class and would put the text under the icon. */
+.region-search-field .region-search-input {
   width: 100%;
   min-height: 48px;
   padding: 0 44px 0 42px;
@@ -39,7 +41,7 @@
   font-size: 1rem;
 }
 
-.region-search-input:focus-visible {
+.region-search-field .region-search-input:focus-visible {
   outline: 2px solid var(--accent-primary);
   outline-offset: 1px;
 }
