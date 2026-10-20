@@ -63,6 +63,7 @@ export default function RegionMappingTab() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState(null);
+  const [openStates, setOpenStates] = useState(() => new Set());
 
   const baseAssignment = useMemo(() => currentAssignment(regions), [regions]);
   const moves = useMemo(
@@ -113,8 +114,27 @@ export default function RegionMappingTab() {
       else next.add(key);
       return next;
     });
-  const selectVisible = () =>
-    setSelected((prev) => new Set([...prev, ...visible.filter(selectable).map((d) => d.key)]));
+  // One toggle: selects everything shown, or clears it when all of it is selected.
+  const visibleKeys = visible.filter(selectable).map((d) => d.key);
+  const allVisibleSelected = visibleKeys.length > 0 && visibleKeys.every((k) => selected.has(k));
+  const toggleVisible = () =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      for (const k of visibleKeys) {
+        if (allVisibleSelected) next.delete(k);
+        else next.add(k);
+      }
+      return next;
+    });
+  // Bundesland sections are folded; they open on their own while a filter is active.
+  const filtering = Boolean(query || stateFilter || regionFilter);
+  const toggleOpenState = (slug, open) =>
+    setOpenStates((prev) => {
+      const next = new Set(prev);
+      if (open) next.add(slug);
+      else next.delete(slug);
+      return next;
+    });
 
   const changeCountry = (next) => {
     setCountry(next);
@@ -299,16 +319,15 @@ export default function RegionMappingTab() {
         <span className="mapping-selected" data-testid="mapping-selected" aria-live="polite">
           {selected.size} ausgewählt
         </span>
-        <button type="button" className="btn btn-secondary" onClick={selectVisible}>
-          Alle angezeigten auswählen
-        </button>
         <button
           type="button"
           className="btn btn-secondary"
-          onClick={() => setSelected(new Set())}
-          disabled={selected.size === 0}
+          onClick={toggleVisible}
+          disabled={visibleKeys.length === 0}
+          aria-pressed={allVisibleSelected}
+          data-testid="mapping-toggle-all"
         >
-          Auswahl aufheben
+          {allVisibleSelected ? 'Auswahl aufheben' : 'Alle angezeigten auswählen'}
         </button>
         <label className="mapping-field mapping-target">
           <span>Verschieben nach</span>
@@ -377,46 +396,59 @@ export default function RegionMappingTab() {
       )}
 
       {byState.length === 0 && <p className="moderation-hint">Keine passenden Einträge.</p>}
-      {byState.map((group) => (
-        <fieldset
-          key={group.slug}
-          className="mapping-state"
-          data-testid={`mapping-state-${group.slug}`}
-        >
-          <legend>
-            {group.name} <span className="mapping-count">({group.items.length})</span>
-          </legend>
-          <ul className="mapping-list">
-            {group.items.map((d) => {
-              const regionId = effectiveRegionId(d.key);
-              const moved = draft.has(d.key);
-              const locked = Boolean(locks[d.key]);
-              return (
-                <li key={d.key} className={`mapping-item${moved ? ' mapping-item--moved' : ''}`}>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={selected.has(d.key)}
-                      disabled={!selectable(d)}
-                      onChange={() => toggle(d.key)}
-                    />
-                    <span className="mapping-name">{d.name}</span>
-                  </label>
-                  <span className="mapping-region" data-testid="mapping-region">
-                    {regionById.get(regionId)?.name ?? '–'}
-                    {moved && <span className="mapping-badge"> neu</span>}
-                  </span>
-                  {locked && (
-                    <span className="mapping-lock" title="Hier gibt es schon Events">
-                      <Lock size={14} aria-hidden="true" /> {locks[d.key]} Events
+      {byState.map((group) => {
+        const selectedHere = group.items.filter((d) => selected.has(d.key)).length;
+        const movedHere = group.items.filter((d) => draft.has(d.key)).length;
+        return (
+          <details
+            key={group.slug}
+            className="mapping-state"
+            data-testid={`mapping-state-${group.slug}`}
+            open={filtering || openStates.has(group.slug) || undefined}
+            onToggle={(e) => {
+              if (!filtering) toggleOpenState(group.slug, e.currentTarget.open);
+            }}
+          >
+            <summary className="mapping-state-summary">
+              <span className="mapping-state-name">{group.name}</span>
+              <span className="mapping-count">({group.items.length})</span>
+              {selectedHere > 0 && (
+                <span className="mapping-state-note">{selectedHere} ausgewählt</span>
+              )}
+              {movedHere > 0 && <span className="mapping-state-note">{movedHere} neu</span>}
+            </summary>
+            <ul className="mapping-list">
+              {group.items.map((d) => {
+                const regionId = effectiveRegionId(d.key);
+                const moved = draft.has(d.key);
+                const locked = Boolean(locks[d.key]);
+                return (
+                  <li key={d.key} className={`mapping-item${moved ? ' mapping-item--moved' : ''}`}>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={selected.has(d.key)}
+                        disabled={!selectable(d)}
+                        onChange={() => toggle(d.key)}
+                      />
+                      <span className="mapping-name">{d.name}</span>
+                    </label>
+                    <span className="mapping-region" data-testid="mapping-region">
+                      {regionById.get(regionId)?.name ?? '–'}
+                      {moved && <span className="mapping-badge"> neu</span>}
                     </span>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </fieldset>
-      ))}
+                    {locked && (
+                      <span className="mapping-lock" title="Hier gibt es schon Events">
+                        <Lock size={14} aria-hidden="true" /> {locks[d.key]} Events
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </details>
+        );
+      })}
 
       <ConfirmDialog
         isOpen={confirmOpen}

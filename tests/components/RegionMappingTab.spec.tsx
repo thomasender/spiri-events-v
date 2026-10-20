@@ -140,8 +140,36 @@ describe('RegionMappingTab', () => {
   it('"Alle angezeigten auswählen" selects what the filter shows', () => {
     render(<RegionMappingTab />);
     fireEvent.change(screen.getByTestId('mapping-state-filter'), { target: { value: 'saarland' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Alle angezeigten auswählen' }));
+    fireEvent.click(screen.getByTestId('mapping-toggle-all'));
     expect(screen.getByTestId('mapping-selected')).toHaveTextContent(/^6 ausgewählt$/);
+  });
+
+  it('one toggle button selects everything shown and clears it again', () => {
+    render(<RegionMappingTab />);
+    fireEvent.change(screen.getByTestId('mapping-state-filter'), { target: { value: 'saarland' } });
+    const toggle = screen.getByTestId('mapping-toggle-all');
+    expect(toggle).toHaveTextContent('Alle angezeigten auswählen');
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(toggle);
+    expect(screen.getByTestId('mapping-selected')).toHaveTextContent(/^6 ausgewählt$/);
+    expect(toggle).toHaveTextContent('Auswahl aufheben');
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(toggle);
+    expect(screen.getByTestId('mapping-selected')).toHaveTextContent(/^0 ausgewählt$/);
+  });
+
+  it('folds the Bundeslaender, opens them while filtering, and keeps them open by hand', () => {
+    render(<RegionMappingTab />);
+    const bayern = screen.getByTestId('mapping-state-bayern');
+    expect(bayern).not.toHaveAttribute('open');
+    bayern.setAttribute('open', '');
+    fireEvent(bayern, new Event('toggle'));
+    expect(screen.getByTestId('mapping-state-bayern')).toHaveAttribute('open');
+    fireEvent.change(screen.getByTestId('mapping-search'), { target: { value: 'roth' } });
+    expect(screen.getByTestId('mapping-state-bayern')).toHaveAttribute('open');
+    fireEvent.change(screen.getByTestId('mapping-search'), { target: { value: '' } });
+    expect(screen.getByTestId('mapping-state-bayern')).toHaveAttribute('open');
+    expect(screen.getByTestId('mapping-state-hessen')).not.toHaveAttribute('open');
   });
 
   it('locks districts that already have events', async () => {
@@ -153,7 +181,7 @@ describe('RegionMappingTab', () => {
     ).toBeInTheDocument();
     expect(check('Kitzingen')).toBeEnabled();
     fireEvent.change(screen.getByTestId('mapping-state-filter'), { target: { value: 'bayern' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Alle angezeigten auswählen' }));
+    fireEvent.click(screen.getByTestId('mapping-toggle-all'));
     expect(screen.getByTestId('mapping-selected')).toHaveTextContent(/^95 ausgewählt$/);
   });
 
@@ -196,7 +224,7 @@ describe('RegionMappingTab', () => {
     render(<RegionMappingTab />);
     fireEvent.click(screen.getByTestId('mapping-country-AT'));
     fireEvent.change(screen.getByTestId('mapping-state-filter'), { target: { value: 'tirol' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Alle angezeigten auswählen' }));
+    fireEvent.click(screen.getByTestId('mapping-toggle-all'));
     fireEvent.change(screen.getByTestId('mapping-target'), { target: { value: 'salzburg' } });
     fireEvent.click(screen.getByTestId('mapping-stage'));
     expect(screen.getByTestId('mapping-save')).toBeDisabled();

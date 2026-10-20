@@ -84,13 +84,37 @@
 
 .mapping-state {
   margin: 0;
-  padding: 8px 12px 12px;
+  padding: 0 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
 }
 
-.mapping-state legend {
-  padding: 0 6px;
+.mapping-state[open] {
+  padding-bottom: 8px;
+}
+
+.mapping-state-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  min-height: 48px;
+  padding: 10px 0;
+  cursor: pointer;
+}
+
+.mapping-state-summary:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.mapping-state-name {
+  font-weight: 600;
+}
+
+.mapping-state-note {
+  color: var(--accent-primary);
+  font-size: 0.85rem;
   font-weight: 600;
 }
 
