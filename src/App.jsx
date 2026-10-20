@@ -17,6 +17,7 @@ import ScrollToTop from './components/ScrollToTop';
 import ErrorBoundary from './components/ErrorBoundary';
 import ErrorPage from './pages/ErrorPage';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
+import DonationPopup from './components/DonationPopup';
 import CookieConsent from './components/CookieConsent';
 import OutboundLinkTracker from './components/OutboundLinkTracker';
 import { setAnalyticsAdminUser, trackPageView } from './lib/analytics';
@@ -194,6 +195,7 @@ function AppContent() {
       <FeedbackButton />
       <CreateEventFab />
       <PwaInstallPrompt />
+      <DonationPopup />
       <CookieConsent />
       <OutboundLinkTracker />
     </div>
