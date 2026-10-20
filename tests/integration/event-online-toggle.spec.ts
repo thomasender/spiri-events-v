@@ -62,7 +62,7 @@ test.describe('Event wizard: "Online-Event" checkbox', () => {
     await expect(label).toContainText('Online-Event');
   });
 
-  test('wizard step 3 labels the district dropdown as "Bezirk"', async ({ page }) => {
+  test('wizard step 3 labels the city field as "Ort"', async ({ page }) => {
     await page.goto('/admin/new');
     await waitForWizardToLoad(page);
 
@@ -73,13 +73,13 @@ test.describe('Event wizard: "Online-Event" checkbox', () => {
     });
     await clickWeiter(page);
 
-    const bezirkLabel = page.locator('label[for="bezirk"]');
-    await expect(bezirkLabel).toBeVisible();
-    await expect(bezirkLabel).toContainText('Bezirk');
-    await expect(bezirkLabel).toContainText('*');
+    const cityLabel = page.locator('label[for="city"]');
+    await expect(cityLabel).toBeVisible();
+    await expect(cityLabel).toContainText('Ort');
+    await expect(cityLabel).toContainText('*');
   });
 
-  test('checking Online disables the Bezirk dropdown and Ort/Adresse field', async ({ page }) => {
+  test('checking Online disables the Ort field and Ort/Adresse field', async ({ page }) => {
     await page.goto('/admin/new');
     await waitForWizardToLoad(page);
 
@@ -90,15 +90,15 @@ test.describe('Event wizard: "Online-Event" checkbox', () => {
     });
     await clickWeiter(page);
 
-    const bezirk = page.locator('#bezirk');
+    const city = page.locator('#city');
     const place = page.locator('#place');
 
-    await expect(bezirk).toBeEnabled();
+    await expect(city).toBeEnabled();
     await expect(place).toBeEnabled();
 
     await page.getByTestId('is-online-checkbox').check();
 
-    await expect(bezirk).toBeDisabled();
+    await expect(city).toBeDisabled();
     await expect(place).toBeDisabled();
   });
 
@@ -120,7 +120,7 @@ test.describe('Event wizard: "Online-Event" checkbox', () => {
     await page.fill('#date', futureIso);
     await page.fill('#time', '10:00');
     // Admins get Bludenz prefilled; clear it so Bezirk and Online are both unset.
-    await page.selectOption('#bezirk', '');
+    await page.locator('#city').fill('');
     await page.click('.kategorie-select');
     await page.getByText('Yoga', { exact: true }).click();
     await page.click('.radio-label:has-text("Kostenlos")');
@@ -130,7 +130,7 @@ test.describe('Event wizard: "Online-Event" checkbox', () => {
     await expect(page.locator('#description')).toBeHidden();
     const errorTexts = page.locator('.error-text');
     await expect(errorTexts.first()).toBeVisible();
-    await expect(page.locator('.error-text', { hasText: 'Bezirk auswählen' })).toHaveCount(1);
+    await expect(page.locator('.error-text', { hasText: 'Ort angeben' })).toHaveCount(1);
   });
 
   test(
@@ -163,9 +163,9 @@ test.describe('Event wizard: "Online-Event" checkbox', () => {
 
       await page.getByTestId('is-online-checkbox').check();
 
-      // Bezirk dropdown is disabled and empty because the event is online.
-      await expect(page.locator('#bezirk')).toBeDisabled();
-      await expect(page.locator('#bezirk')).toHaveValue('');
+      // Ort field is disabled and empty because the event is online.
+      await expect(page.locator('#city')).toBeDisabled();
+      await expect(page.locator('#city')).toHaveValue('');
 
       await clickWeiter(page);
 
@@ -204,12 +204,12 @@ test.describe('Event edit form: "Online-Event" support', () => {
       .waitForSelector('.loading-spinner', { state: 'hidden', timeout: 15000 })
       .catch(() => {});
 
-    await expect(page.locator('#bezirk')).toBeEnabled();
+    await expect(page.locator('#city')).toBeEnabled();
     await expect(page.getByTestId('is-online-checkbox')).not.toBeChecked();
 
     await page.getByTestId('is-online-checkbox').check();
-    await expect(page.locator('#bezirk')).toBeDisabled();
-    await expect(page.locator('#bezirk')).toHaveValue('');
+    await expect(page.locator('#city')).toBeDisabled();
+    await expect(page.locator('#city')).toHaveValue('');
 
     await page.getByRole('button', { name: /änderungen speichern/i }).click();
 

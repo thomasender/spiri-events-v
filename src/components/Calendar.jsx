@@ -221,7 +221,7 @@ export default function Calendar({
                         <div className="agenda-event-meta">
                           <span className="agenda-event-place">
                             <MapPin size={12} />
-                            {event.isOnline ? 'Online' : event.place?.split(',')[0]}
+                            {event.isOnline ? 'Online' : event.city || event.place?.split(',')[0]}
                           </span>
                           {(event.contribution === 'free' ||
                             event.contribution === 'donation' ||

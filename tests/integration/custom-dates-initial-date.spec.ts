@@ -52,7 +52,7 @@ async function createCustomDatesEvent(page, title: string) {
   await page.fill('#date', initialDate);
   await page.fill('#time', '20:00');
   await page.fill('#place', 'Test Place');
-  await page.selectOption('#bezirk', 'Bregenz');
+  await page.locator('#city').fill('Bregenz');
 
   await page.click('.kategorie-select');
   await page.click('.kategorie__option:has-text("Yoga")');

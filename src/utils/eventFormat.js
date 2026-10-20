@@ -1,4 +1,4 @@
-import { bezirkLabel } from './regions';
+import { formatCityWithBezirk } from './gemeinden';
 export function parseEventDate(dateStr) {
   const [year, month, day] = dateStr.split('-');
   return new Date(year, month - 1, day);
@@ -61,11 +61,12 @@ export function getPrimaryCategory(event) {
   return event.category || null;
 }
 
-// Returns the human-readable location label for an event: the district for
-// in-person events, the literal string "Online" for online events, and an
-// empty string when neither is set.
+// Returns the human-readable location label for an event: "Altach (Bez.
+// Feldkirch)" for in-person events (just the district for older events without
+// a city), the literal string "Online" for online events, and an empty string
+// when neither is set.
 export function getEventLocationLabel(event) {
   if (!event) return '';
   if (event.isOnline) return 'Online';
-  return bezirkLabel(event.bezirk) || '';
+  return formatCityWithBezirk(event.city, event.bezirk);
 }

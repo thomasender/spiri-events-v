@@ -70,6 +70,7 @@ export interface InstagramEventInput {
   customDates?: unknown;
   exceptionDates?: unknown;
   place?: unknown;
+  city?: unknown;
   bezirk?: unknown;
   isOnline?: unknown;
   category?: unknown;
@@ -300,9 +301,9 @@ function isOnlineEvent(value: unknown): boolean {
 export function formatLocation(event: InstagramEventInput): string {
   if (isOnlineEvent(event.isOnline)) return 'Online';
   const place = asString(event.place);
-  const bezirk = asString(event.bezirk);
-  if (place && bezirk && !place.includes(bezirk)) return `${place}, ${bezirk}`;
-  return place || bezirk;
+  const area = asString(event.city) || asString(event.bezirk);
+  if (place && area && !place.includes(area)) return `${place}, ${area}`;
+  return place || area;
 }
 
 export function resolveCategoryColor(

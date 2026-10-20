@@ -19,12 +19,13 @@ describe('adminPrefill', () => {
 
   it('fills empty mandatory fields and keeps existing values', () => {
     const base = { title: '', description: '', date: '', time: '', category: '', bezirk: '' };
-    const out = applyAdminPrefill(base, { now: new Date(2026, 9, 19), bezirke: ['Bludenz'] });
+    const out = applyAdminPrefill(base, { now: new Date(2026, 9, 19) });
     expect(out).toMatchObject({
       date: '2026-10-20',
       time: '12:00',
       category: 'Sonstiges',
       bezirk: 'Bludenz',
+      city: 'Bludenz',
     });
     expect(out.title).toBe('');
     const kept = applyAdminPrefill({ ...base, title: 'Mein Titel', time: '09:00' });
@@ -32,7 +33,8 @@ describe('adminPrefill', () => {
     expect(kept.time).toBe('09:00');
   });
 
-  it('skips Bludenz when unavailable', () => {
-    expect(applyAdminPrefill({ bezirk: '' }, { bezirke: ['Bregenz'] }).bezirk).toBe('');
+  it('keeps an already chosen city', () => {
+    const out = applyAdminPrefill({ bezirk: 'Feldkirch', city: 'Altach' });
+    expect(out).toMatchObject({ bezirk: 'Feldkirch', city: 'Altach' });
   });
 });

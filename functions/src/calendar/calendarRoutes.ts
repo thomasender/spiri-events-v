@@ -110,6 +110,7 @@ export interface PublicEvent extends SeriesFields {
   slug?: unknown;
   title?: unknown;
   place?: unknown;
+  city?: unknown;
   description?: unknown;
   organizer?: unknown;
   kontakt?: unknown;

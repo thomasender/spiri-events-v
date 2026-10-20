@@ -3,8 +3,9 @@ import { useState, useRef, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CreatableSelect from 'react-select/creatable';
 import { serverTimestamp } from 'firebase/firestore';
-import { useEvents, BEZIRKE } from '../hooks/useEvents';
-import { bezirkLabel } from '../utils/regions';
+import { useEvents } from '../hooks/useEvents';
+import CityField from './CityField';
+import { validateCity, canonicalCity, formatCityWithBezirk } from '../utils/gemeinden';
 import { applyAdminPrefill, shouldPrefillForAdmin } from '../utils/adminPrefill';
 import { useCategories } from '../hooks/useCategories';
 import { useAuth } from '../hooks/useAuth';
@@ -84,6 +85,7 @@ const INITIAL_STATE = {
   customDates: [],
   category: '',
   bezirk: '',
+  city: '',
   isOnline: false,
   organizer: { name: '', email: '' },
   kontakt: '',
@@ -305,7 +307,7 @@ export default function EventFormWizard() {
   useEffect(() => {
     if (adminPrefillDone.current || restoredDraft || !shouldPrefillForAdmin(role)) return;
     adminPrefillDone.current = true;
-    setFormData((prev) => applyAdminPrefill(prev, { bezirke: BEZIRKE }));
+    setFormData((prev) => applyAdminPrefill(prev));
     setExtraCategories((prev) => (prev.includes('Sonstiges') ? prev : [...prev, 'Sonstiges']));
     setRightsConfirmed(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -377,8 +379,9 @@ export default function EventFormWizard() {
       ) {
         newErrors.endTime = 'Die Endzeit muss nach der Startzeit liegen';
       }
-      if (!formData.isOnline && !formData.bezirk) {
-        newErrors.bezirk = 'Bitte Bezirk auswählen oder als Online-Event markieren';
+      if (!formData.isOnline) {
+        const cityError = validateCity(formData.city, formData.bezirk);
+        if (cityError) newErrors.city = cityError;
       }
       if (!formData.category) {
         newErrors.category = 'Kategorie ist erforderlich';
@@ -543,27 +546,29 @@ export default function EventFormWizard() {
       setFormData((prev) => ({
         ...prev,
         [name]: checked,
-        ...(name === 'isOnline' && checked ? { bezirk: '' } : {}),
+        ...(name === 'isOnline' && checked ? { bezirk: '', city: '' } : {}),
       }));
       if (errors[name]) {
         setErrors((prev) => ({ ...prev, [name]: null }));
       }
-      if (name === 'isOnline' && errors.bezirk) {
-        setErrors((prev) => ({ ...prev, bezirk: null }));
+      if (name === 'isOnline' && errors.city) {
+        setErrors((prev) => ({ ...prev, city: null }));
       }
       return;
     }
     setFormData((prev) => ({
       ...prev,
       [name]: value,
-      ...(name === 'bezirk' && value ? { isOnline: false } : {}),
     }));
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: null }));
     }
-    if (name === 'bezirk' && errors.isOnline) {
-      setErrors((prev) => ({ ...prev, isOnline: null }));
-    }
+  };
+
+  const handleCityChange = ({ city, bezirk }) => {
+    setFormData((prev) => ({ ...prev, city, bezirk, ...(city.trim() ? { isOnline: false } : {}) }));
+    if (errors.city) setErrors((prev) => ({ ...prev, city: null }));
+    if (errors.isOnline) setErrors((prev) => ({ ...prev, isOnline: null }));
   };
 
   const handleOrganizerChange = (e) => {
@@ -745,6 +750,7 @@ export default function EventFormWizard() {
         : [],
     category: formData.category || 'Sonstiges',
     bezirk: formData.isOnline ? '' : formData.bezirk,
+    city: formData.isOnline ? '' : canonicalCity(formData.city),
     isOnline: Boolean(formData.isOnline),
     organizer: {
       firstName: splitOrganizerName(formData.organizer.name).firstName,
@@ -1154,28 +1160,16 @@ export default function EventFormWizard() {
       </div>
 
       <div className="form-row">
-        <div className="form-group">
-          <label htmlFor="bezirk">Bezirk *</label>
-          <select
-            id="bezirk"
-            name="bezirk"
-            value={formData.bezirk}
-            onChange={handleChange}
-            disabled={formData.isOnline}
-            className={errors.bezirk ? 'input-error' : ''}
-          >
-            <option value="">Bezirk auswählen...</option>
-            {BEZIRKE.map((b) => (
-              <option key={b} value={b}>
-                {bezirkLabel(b)}
-              </option>
-            ))}
-          </select>
-          {errors.bezirk && <span className="error-text">{errors.bezirk}</span>}
-        </div>
+        <CityField
+          city={formData.city}
+          bezirk={formData.bezirk}
+          disabled={formData.isOnline}
+          error={errors.city}
+          onChange={handleCityChange}
+        />
 
         <div className="form-group">
-          <label htmlFor="place">Ort / Adresse</label>
+          <label htmlFor="place">Adresse / Veranstaltungsort</label>
           <input
             id="place"
             name="place"
@@ -1203,7 +1197,7 @@ export default function EventFormWizard() {
             onChange={handleChange}
             data-testid="is-online-checkbox"
           />
-          <span>Online-Event (kein Bezirk und keine Adresse nötig)</span>
+          <span>Online-Event (kein Ort und keine Adresse nötig)</span>
         </label>
       </div>
 
@@ -1541,6 +1535,7 @@ export default function EventFormWizard() {
                   endDate: formData.endDate || '',
                   place: formData.isOnline ? '' : formData.place,
                   bezirk: formData.isOnline ? '' : formData.bezirk,
+                  city: formData.isOnline ? '' : canonicalCity(formData.city),
                   isOnline: Boolean(formData.isOnline),
                   category: formData.category,
                   imageUrl: imagePreview,
@@ -1585,7 +1580,7 @@ export default function EventFormWizard() {
           <h4>Details</h4>
           <p>
             <strong>{formData.category}</strong> •{' '}
-            {formData.isOnline ? 'Online' : bezirkLabel(formData.bezirk)}
+            {formData.isOnline ? 'Online' : formatCityWithBezirk(formData.city, formData.bezirk)}
           </p>
           {!formData.isOnline && formData.place && <p>📍 {formData.place}</p>}
           <p>

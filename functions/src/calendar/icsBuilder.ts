@@ -29,6 +29,7 @@ export interface IcsEvent {
   time?: unknown;
   endTime?: unknown;
   place?: unknown;
+  city?: unknown;
   bezirk?: unknown;
   isOnline?: unknown;
   category?: unknown;
@@ -145,11 +146,11 @@ export function eventPageUrl(event: Pick<IcsEvent, 'id' | 'slug'>): string {
 function location(event: IcsEvent): string {
   if (event.isOnline === true || event.isOnline === 'true') return 'Online';
   const place = str(event.place);
-  const bezirk = str(event.bezirk);
-  if (place && bezirk && !place.toLowerCase().includes(bezirk.toLowerCase())) {
-    return `${place}, ${bezirk}`;
+  const area = str(event.city) || str(event.bezirk);
+  if (place && area && !place.toLowerCase().includes(area.toLowerCase())) {
+    return `${place}, ${area}`;
   }
-  return place || bezirk;
+  return place || area;
 }
 
 function organizerName(event: IcsEvent): string {

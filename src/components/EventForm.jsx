@@ -1,8 +1,9 @@
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import CreatableSelect from 'react-select/creatable';
-import { useEvents, BEZIRKE } from '../hooks/useEvents';
-import { bezirkLabel } from '../utils/regions';
+import { useEvents } from '../hooks/useEvents';
+import CityField from './CityField';
+import { validateCity, canonicalCity } from '../utils/gemeinden';
 import { useCategories } from '../hooks/useCategories';
 import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
@@ -75,6 +76,7 @@ const INITIAL_STATE = {
   customDates: [],
   category: '',
   bezirk: '',
+  city: '',
   isOnline: false,
   organizer: { name: '', email: '' },
   kontakt: '',
@@ -164,6 +166,7 @@ export default function EventForm({ event }) {
         customDates: Array.isArray(event.customDates) ? [...event.customDates] : [],
         category: event.category || '',
         bezirk: event.isOnline ? '' : event.bezirk || '',
+        city: event.isOnline ? '' : event.city || '',
         isOnline: Boolean(event.isOnline),
         organizer: {
           name: combineOrganizerName(storedOrganizer),
@@ -365,8 +368,9 @@ export default function EventForm({ event }) {
     if (!formData.title.trim()) newErrors.title = 'Titel ist erforderlich';
     if (isHtmlEmpty(formData.description)) newErrors.description = 'Beschreibung ist erforderlich';
     if (!formData.date) newErrors.date = 'Datum ist erforderlich';
-    if (!formData.isOnline && !formData.bezirk) {
-      newErrors.bezirk = 'Bitte Bezirk auswählen oder als Online-Event markieren';
+    if (!formData.isOnline) {
+      const cityError = validateCity(formData.city, formData.bezirk);
+      if (cityError) newErrors.city = cityError;
     }
     if (!formData.category) {
       newErrors.category = 'Kategorie ist erforderlich';
@@ -511,28 +515,29 @@ export default function EventForm({ event }) {
       setFormData((prev) => ({
         ...prev,
         [name]: checked,
-        ...(name === 'isOnline' && checked ? { bezirk: '' } : {}),
-        ...(name === 'isOnline' && !checked ? {} : {}),
+        ...(name === 'isOnline' && checked ? { bezirk: '', city: '' } : {}),
       }));
       if (errors[name]) {
         setErrors((prev) => ({ ...prev, [name]: null }));
       }
-      if (name === 'isOnline' && errors.bezirk) {
-        setErrors((prev) => ({ ...prev, bezirk: null }));
+      if (name === 'isOnline' && errors.city) {
+        setErrors((prev) => ({ ...prev, city: null }));
       }
       return;
     }
     setFormData((prev) => ({
       ...prev,
       [name]: value,
-      ...(name === 'bezirk' && value ? { isOnline: false } : {}),
     }));
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: null }));
     }
-    if (name === 'bezirk' && errors.isOnline) {
-      setErrors((prev) => ({ ...prev, isOnline: null }));
-    }
+  };
+
+  const handleCityChange = ({ city, bezirk }) => {
+    setFormData((prev) => ({ ...prev, city, bezirk, ...(city.trim() ? { isOnline: false } : {}) }));
+    if (errors.city) setErrors((prev) => ({ ...prev, city: null }));
+    if (errors.isOnline) setErrors((prev) => ({ ...prev, isOnline: null }));
   };
 
   const handleOrganizerChange = (e) => {
@@ -702,6 +707,7 @@ export default function EventForm({ event }) {
         : [],
     category: formData.category || 'Sonstiges',
     bezirk: formData.isOnline ? '' : formData.bezirk,
+    city: formData.isOnline ? '' : canonicalCity(formData.city),
     isOnline: Boolean(formData.isOnline),
     organizer: {
       firstName: splitOrganizerName(formData.organizer.name).firstName,
@@ -1065,28 +1071,16 @@ export default function EventForm({ event }) {
           </div>
 
           <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="bezirk">Ort *</label>
-              <select
-                id="bezirk"
-                name="bezirk"
-                value={formData.bezirk}
-                onChange={handleChange}
-                disabled={formData.isOnline}
-                className={errors.bezirk ? 'input-error' : ''}
-              >
-                <option value="">Bezirk auswählen...</option>
-                {BEZIRKE.map((b) => (
-                  <option key={b} value={b}>
-                    {bezirkLabel(b)}
-                  </option>
-                ))}
-              </select>
-              {errors.bezirk && <span className="error-text">{errors.bezirk}</span>}
-            </div>
+            <CityField
+              city={formData.city}
+              bezirk={formData.bezirk}
+              disabled={formData.isOnline}
+              error={errors.city}
+              onChange={handleCityChange}
+            />
 
             <div className="form-group">
-              <label htmlFor="place">Ort / Adresse</label>
+              <label htmlFor="place">Adresse / Veranstaltungsort</label>
               <input
                 id="place"
                 name="place"
@@ -1114,7 +1108,7 @@ export default function EventForm({ event }) {
                 onChange={handleChange}
                 data-testid="is-online-checkbox"
               />
-              <span>Online-Event (kein Bezirk und keine Adresse nötig)</span>
+              <span>Online-Event (kein Ort und keine Adresse nötig)</span>
             </label>
           </div>
 

@@ -87,6 +87,7 @@ function makeDraft(overrides = {}) {
       customDates: [],
       category: 'Yoga',
       bezirk: 'Bregenz',
+      city: 'Bregenz',
       isOnline: false,
       organizer: { name: 'Test User', email: 'user@test.local' },
       kontakt: 'user@test.local',

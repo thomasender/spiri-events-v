@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { bezirkLabel } from '../utils/regions';
+import { getEventLocationLabel } from '../utils/eventFormat';
 import { Mail } from 'lucide-react';
 import { useEventsWithMessages } from '../hooks/useEventsWithMessages';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
@@ -45,7 +45,7 @@ function MessagesTabItem({ event, unreadCount }) {
         <span className="messages-tab-item-title">{event.title}</span>
         <span className="messages-tab-item-meta">
           {formatDate(event.date)}
-          {event.isOnline ? ' • Online' : event.bezirk ? ` • ${bezirkLabel(event.bezirk)}` : ''}
+          {event.isOnline ? ' • Online' : event.bezirk ? ` • ${getEventLocationLabel(event)}` : ''}
         </span>
       </span>
       {hasUnread && (
