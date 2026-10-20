@@ -171,7 +171,21 @@ export default function AdminPage() {
   }, [rawTab, visibleTabs]);
 
   const [openGroup, setOpenGroup] = useState(null);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const tabsRef = useRef(null);
+
+  // Mobile: the tab row scrolls and would clip the menu, so the menu is
+  // position:fixed and placed from the toggle's viewport rect.
+  const toggleGroup = (groupId, e) => {
+    if (openGroup === groupId) {
+      setOpenGroup(null);
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const left = Math.max(8, Math.min(rect.left, window.innerWidth - 228));
+    setMenuPos({ top: rect.bottom, left });
+    setOpenGroup(groupId);
+  };
 
   useEffect(() => {
     if (!openGroup) return undefined;
@@ -181,9 +195,12 @@ export default function AdminPage() {
     const onKeyDown = (e) => {
       if (e.key === 'Escape') setOpenGroup(null);
     };
+    const onScroll = () => setOpenGroup(null);
     document.addEventListener('mousedown', onPointerDown);
     document.addEventListener('keydown', onKeyDown);
+    window.addEventListener('scroll', onScroll, true);
     return () => {
+      window.removeEventListener('scroll', onScroll, true);
       document.removeEventListener('mousedown', onPointerDown);
       document.removeEventListener('keydown', onKeyDown);
     };
@@ -261,7 +278,7 @@ export default function AdminPage() {
                 className={`admin-page-tab admin-page-group-toggle${isActive ? ' admin-page-tab--active' : ''}`}
                 aria-haspopup="true"
                 aria-expanded={isOpen}
-                onClick={() => setOpenGroup(isOpen ? null : group.id)}
+                onClick={(e) => toggleGroup(group.id, e)}
                 data-testid={`admin-group-${group.id}`}
               >
                 <group.Icon size={16} aria-hidden="true" />
@@ -277,7 +294,11 @@ export default function AdminPage() {
                 )}
                 <ChevronDown size={14} aria-hidden="true" />
               </button>
-              <div className="admin-page-group-menu" hidden={!isOpen}>
+              <div
+                className="admin-page-group-menu"
+                hidden={!isOpen}
+                style={{ '--menu-top': `${menuPos.top}px`, '--menu-left': `${menuPos.left}px` }}
+              >
                 {tabs.map((t) => {
                   const badge = badges[t.id];
                   return (
