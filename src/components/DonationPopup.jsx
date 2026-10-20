@@ -9,14 +9,16 @@ import {
   DONATION_POPUP_ENABLED,
   isDueThisWeek,
   isExcludedPath,
+  hasClickedDonate,
   isPreviewRequested,
+  markDonateClicked,
   markShown,
   readLastShown,
 } from '../lib/donationPopup';
 import './DonationPopup.css';
 
-// Friendly donation request, shown at most once a week per browser.
-// Off by default (DONATION_POPUP_ENABLED); admins preview it with ?spendenpopup=1.
+// Friendly donation request, shown at most once a week per browser until the
+// visitor clicks "Jetzt unterstützen". Admins preview it with ?spendenpopup=1.
 export default function DonationPopup() {
   const { pathname, search } = useLocation();
   const { role, loading } = useAuth();
@@ -36,6 +38,7 @@ export default function DonationPopup() {
     }
     // Wait until the cookie banner is out of the way, never bother admins.
     if (!DONATION_POPUP_ENABLED || isAdmin || excluded) return undefined;
+    if (hasClickedDonate()) return undefined;
     if (readConsent() === null || !isDueThisWeek(readLastShown())) return undefined;
     const timer = window.setTimeout(() => {
       markShown();
@@ -108,6 +111,7 @@ export default function DonationPopup() {
             className="btn btn-primary donation-popup-donate"
             onClick={() => {
               trackEvent(EVENTS.DONATE_CLICK, { placement: 'popup' });
+              if (!preview) markDonateClicked();
               close();
             }}
             data-testid="donation-popup-donate"

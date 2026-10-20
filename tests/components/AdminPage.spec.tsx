@@ -743,7 +743,7 @@ describe('AdminPage tab groups', () => {
       communication: ['instagram', 'mailgun'],
       settings: ['analytics', 'theme'],
     })) {
-      const menu = screen.getByTestId(`admin-group-${group}`).nextElementSibling as HTMLElement;
+      const menu = screen.getByTestId(`admin-group-menu-${group}`);
       for (const tab of tabs) {
         expect(menu).toContainElement(screen.getByTestId(`admin-tab-${tab}`));
       }

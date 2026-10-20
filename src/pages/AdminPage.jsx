@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useSearchParams, Link, useNavigate } from 'react-router-dom';
 import {
@@ -201,19 +202,39 @@ export default function AdminPage() {
   }, [rawTab, visibleTabs, forbiddenTab, authLoading]);
 
   const [openGroup, setOpenGroup] = useState(null);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const tabsRef = useRef(null);
+
+  // Mobile: the tab row scrolls and would clip the menu, so the menu is
+  // position:fixed and placed from the toggle's viewport rect.
+  const toggleGroup = (groupId, e) => {
+    if (openGroup === groupId) {
+      setOpenGroup(null);
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const left = Math.max(8, Math.min(rect.left, window.innerWidth - 228));
+    setMenuPos({ top: rect.bottom, left });
+    setOpenGroup(groupId);
+  };
 
   useEffect(() => {
     if (!openGroup) return undefined;
     const onPointerDown = (e) => {
+      if (e.target.closest?.('.admin-page-group-menu')) return;
       if (tabsRef.current && !tabsRef.current.contains(e.target)) setOpenGroup(null);
     };
     const onKeyDown = (e) => {
       if (e.key === 'Escape') setOpenGroup(null);
     };
+    const onScroll = (e) => {
+      if (!e.target.closest?.('.admin-page-group-menu')) setOpenGroup(null);
+    };
     document.addEventListener('mousedown', onPointerDown);
     document.addEventListener('keydown', onKeyDown);
+    window.addEventListener('scroll', onScroll, true);
     return () => {
+      window.removeEventListener('scroll', onScroll, true);
       document.removeEventListener('mousedown', onPointerDown);
       document.removeEventListener('keydown', onKeyDown);
     };
@@ -291,7 +312,7 @@ export default function AdminPage() {
                 className={`admin-page-tab admin-page-group-toggle${isActive ? ' admin-page-tab--active' : ''}`}
                 aria-haspopup="true"
                 aria-expanded={isOpen}
-                onClick={() => setOpenGroup(isOpen ? null : group.id)}
+                onClick={(e) => toggleGroup(group.id, e)}
                 data-testid={`admin-group-${group.id}`}
               >
                 <group.Icon size={16} aria-hidden="true" />
@@ -307,40 +328,48 @@ export default function AdminPage() {
                 )}
                 <ChevronDown size={14} aria-hidden="true" />
               </button>
-              <div className="admin-page-group-menu" hidden={!isOpen}>
-                {tabs.map((t) => {
-                  const badge = badges[t.id];
-                  return (
-                    <button
-                      key={t.id}
-                      type="button"
-                      role="tab"
-                      aria-selected={activeTab === t.id}
-                      aria-controls={`admin-tab-${t.id}`}
-                      id={`admin-tab-${t.id}-btn`}
-                      className={`admin-page-group-item${activeTab === t.id ? ' admin-page-group-item--active' : ''}`}
-                      onClick={() => {
-                        setOpenGroup(null);
-                        if (t.id === 'theme') navigate('/admin/theme-editor');
-                        else setTab(t.id);
-                      }}
-                      data-testid={`admin-tab-${t.id}`}
-                    >
-                      <t.Icon size={16} aria-hidden="true" />
-                      <span>{t.label}</span>
-                      {badge && badge.count > 0 && (
-                        <span
-                          className="admin-page-tab-badge"
-                          data-testid={`admin-tab-${t.id}-badge`}
-                          aria-label={badge.label}
-                        >
-                          {formatCount(badge.count)}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+              {createPortal(
+                <div
+                  className="admin-page-group-menu"
+                  data-testid={`admin-group-menu-${group.id}`}
+                  hidden={!isOpen}
+                  style={{ '--menu-top': `${menuPos.top}px`, '--menu-left': `${menuPos.left}px` }}
+                >
+                  {tabs.map((t) => {
+                    const badge = badges[t.id];
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        role="tab"
+                        aria-selected={activeTab === t.id}
+                        aria-controls={`admin-tab-${t.id}`}
+                        id={`admin-tab-${t.id}-btn`}
+                        className={`admin-page-group-item${activeTab === t.id ? ' admin-page-group-item--active' : ''}`}
+                        onClick={() => {
+                          setOpenGroup(null);
+                          if (t.id === 'theme') navigate('/admin/theme-editor');
+                          else setTab(t.id);
+                        }}
+                        data-testid={`admin-tab-${t.id}`}
+                      >
+                        <t.Icon size={16} aria-hidden="true" />
+                        <span>{t.label}</span>
+                        {badge && badge.count > 0 && (
+                          <span
+                            className="admin-page-tab-badge"
+                            data-testid={`admin-tab-${t.id}-badge`}
+                            aria-label={badge.label}
+                          >
+                            {formatCount(badge.count)}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>,
+                document.body
+              )}
             </div>
           );
         })}

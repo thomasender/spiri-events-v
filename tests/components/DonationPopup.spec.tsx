@@ -41,7 +41,7 @@ describe('DonationPopup', () => {
     vi.useRealTimers();
   });
 
-  it('stays hidden while the feature is switched off', () => {
+  it('stays hidden when the feature flag is off', () => {
     renderAt('/');
     act(() => {
       vi.advanceTimersByTime(popup.DONATION_POPUP_DELAY_MS + 1000);
@@ -74,6 +74,47 @@ describe('DonationPopup', () => {
       vi.advanceTimersByTime(popup.DONATION_POPUP_DELAY_MS + 1);
     });
     expect(screen.getByTestId('donation-popup')).toBeTruthy();
+  });
+
+  it('never shows again once "Jetzt unterstützen" was clicked', () => {
+    flags.enabled = true;
+    const first = renderAt('/');
+    act(() => {
+      vi.advanceTimersByTime(popup.DONATION_POPUP_DELAY_MS + 1);
+    });
+    fireEvent.click(screen.getByTestId('donation-popup-donate'));
+    first.unmount();
+
+    popup.markShown(Date.now() - popup.DONATION_POPUP_INTERVAL_MS * 3);
+    renderAt('/');
+    act(() => {
+      vi.advanceTimersByTime(popup.DONATION_POPUP_DELAY_MS + 1);
+    });
+    expect(screen.queryByTestId('donation-popup')).toBeNull();
+  });
+
+  it('keeps asking weekly when the visitor only dismissed it', () => {
+    flags.enabled = true;
+    const first = renderAt('/');
+    act(() => {
+      vi.advanceTimersByTime(popup.DONATION_POPUP_DELAY_MS + 1);
+    });
+    fireEvent.click(screen.getByTestId('donation-popup-later'));
+    first.unmount();
+
+    popup.markShown(Date.now() - popup.DONATION_POPUP_INTERVAL_MS - 1000);
+    renderAt('/');
+    act(() => {
+      vi.advanceTimersByTime(popup.DONATION_POPUP_DELAY_MS + 1);
+    });
+    expect(screen.getByTestId('donation-popup')).toBeTruthy();
+  });
+
+  it('an admin preview click does not count as a donation click', () => {
+    auth.role = 'Admin';
+    renderAt('/?spendenpopup=1');
+    fireEvent.click(screen.getByTestId('donation-popup-donate'));
+    expect(popup.hasClickedDonate()).toBe(false);
   });
 
   it('does not show on the donation page', () => {

@@ -1,8 +1,9 @@
-// Weekly donation pop-in. The feature ships switched off: flip
-// DONATION_POPUP_ENABLED to true to show it to visitors. Admins can always
-// preview it by adding ?spendenpopup=1 to any URL.
-export const DONATION_POPUP_ENABLED = false;
+// Weekly donation pop-in, shown until the visitor clicks "Jetzt unterstützen".
+// Switch it off with DONATION_POPUP_ENABLED. Admins can always preview it by
+// adding ?spendenpopup=1 to any URL.
+export const DONATION_POPUP_ENABLED = true;
 export const DONATION_POPUP_STORAGE_KEY = 'donation-popup-last-shown';
+export const DONATION_POPUP_CLICKED_KEY = 'donation-popup-donate-clicked';
 export const DONATION_POPUP_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
 export const DONATION_POPUP_DELAY_MS = 20000;
 export const DONATION_POPUP_PREVIEW_PARAM = 'spendenpopup';
@@ -34,6 +35,23 @@ export function markShown(now = Date.now()) {
     window.localStorage.setItem(DONATION_POPUP_STORAGE_KEY, String(now));
   } catch {
     /* without storage the pop-in simply shows once per page load */
+  }
+}
+
+export function hasClickedDonate() {
+  try {
+    return window.localStorage.getItem(DONATION_POPUP_CLICKED_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+/** Remembered for good: the visitor is never asked again. */
+export function markDonateClicked() {
+  try {
+    window.localStorage.setItem(DONATION_POPUP_CLICKED_KEY, '1');
+  } catch {
+    /* without storage the weekly cadence still applies per page load */
   }
 }
 
