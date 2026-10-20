@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Heart } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
 import EventCard from '../components/EventCard';
-import { useAllEvents } from '../hooks/useEvents';
+import { usePublicEvents } from '../hooks/useEvents';
 import { useFavorites } from '../hooks/useFavorites';
 import { useCategoryRegistry } from '../hooks/useCategoryRegistry';
 import { resolveEventColor } from '../utils/categoryColors';
@@ -14,7 +14,7 @@ import './FavoritesPage.css';
 
 export default function FavoritesPage() {
   const { ready, isSignedIn, favoriteIds } = useFavorites();
-  const { events, loading } = useAllEvents();
+  const { events, loading } = usePublicEvents();
   const { colorByName } = useCategoryRegistry();
   const favoriteEvents = useMemo(
     () => buildFavoriteEvents(events, favoriteIds),

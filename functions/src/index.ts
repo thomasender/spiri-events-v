@@ -130,6 +130,7 @@ export { onEventApprovedPostToInstagram } from './instagramPostOnApproval';
 export { instagramWeeklyCarousel } from './instagramWeeklyCarousel';
 export { instagramEventStories, instagramMorningStories } from './instagramStories';
 export { calendarFeed } from './calendarFeed';
+export { publicEvents, onEventWriteBumpEventsVersion } from './publicEvents';
 export { getCalendarFeedToken } from './calendarFeedToken';
 export { refreshInstagramTokenJob } from './instagramTokenRefresh';
 export {

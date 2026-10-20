@@ -9,7 +9,7 @@ const mockUseAllEvents = vi.hoisted(() => ({ events: [], loading: false, error: 
 const mockUseCategories = vi.hoisted(() => ({ value: [] }));
 
 vi.mock('../../src/hooks/useEvents', () => ({
-  useAllEvents: () => mockUseAllEvents,
+  usePublicEvents: () => mockUseAllEvents,
   KATEGORIEN: ['Yoga', 'Breathwork', 'Meditation', 'Tanz', 'Singen', 'Soundhealing', 'Sonstiges'],
   BEZIRKE: ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe'],
   ONLINE_LOCATION: 'Online',

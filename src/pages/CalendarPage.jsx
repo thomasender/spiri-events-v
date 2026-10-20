@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { bezirkLabel } from '../utils/regions';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { useAllEvents, BEZIRKE, ONLINE_LOCATION } from '../hooks/useEvents';
+import { usePublicEvents, BEZIRKE, ONLINE_LOCATION } from '../hooks/useEvents';
 import { useCategories } from '../hooks/useCategories';
 import { useCategoryRegistry } from '../hooks/useCategoryRegistry';
 import { useFavorites } from '../hooks/useFavorites';
@@ -189,7 +189,7 @@ export default function CalendarPage() {
     (savedState?.selectedOrte?.length ?? 0) > 0 || savedState?.onlyFavorites === true
   );
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
-  const { events, loading, error } = useAllEvents();
+  const { events, loading, error } = usePublicEvents();
   // Only offer categories that currently have events (see calendarCategories.js).
   const categories = useMemo(
     () => getCalendarCategories(registryCategories, events, selectedCategories),
