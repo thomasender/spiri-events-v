@@ -4,7 +4,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import CreatableSelect from 'react-select/creatable';
 import { serverTimestamp } from 'firebase/firestore';
 import { useEvents, BEZIRKE } from '../hooks/useEvents';
-import { bezirkLabel } from '../utils/regions';
+import CityField from './CityField';
+import { validateCity, canonicalCity, formatCityWithBezirk } from '../utils/gemeinden';
 import { applyAdminPrefill, shouldPrefillForAdmin } from '../utils/adminPrefill';
 import { useCategories } from '../hooks/useCategories';
 import { useAuth } from '../hooks/useAuth';
@@ -47,7 +48,7 @@ import {
   isDefaultFocalPoint,
 } from '../lib/eventImage';
 import { CURRENCIES, DEFAULT_CURRENCY, formatPriceWithCurrency } from '../utils/currency';
-import { isRegionSlug, pickEventRegionId } from '../utils/regions';
+import { bezirkLabel, DEFAULT_REGION_ID, isRegionSlug, pickEventRegionId } from '../utils/regions';
 import { useRegionChoices } from '../hooks/useRegionChoices';
 import { keepIfInRegion, selectedRegionId, subdivisionFor } from '../utils/regionChoices';
 import EventRegionDialog, { BEZIRK_NOT_FOUND } from './EventRegionDialog';
@@ -88,6 +89,7 @@ const INITIAL_STATE = {
   customDates: [],
   category: '',
   bezirk: '',
+  city: '',
   isOnline: false,
   organizer: { name: '', email: '' },
   kontakt: '',
@@ -202,6 +204,9 @@ export default function EventFormWizard() {
   const bezirkOptions = subdivision.options ?? BEZIRKE;
   // A region without any Bezirk / Landkreis in its register cannot require one.
   const bezirkRequired = bezirkOptions.length > 0;
+  // Vorarlberg: pick the Gemeinde, the Bezirk follows. Other regions have no Gemeinde
+  // list: free-text Ort plus the Bezirk / Landkreis select.
+  const useGemeinden = (selectedRegion || DEFAULT_REGION_ID) === DEFAULT_REGION_ID;
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -329,7 +334,7 @@ export default function EventFormWizard() {
   useEffect(() => {
     if (adminPrefillDone.current || restoredDraft || !shouldPrefillForAdmin(role)) return;
     adminPrefillDone.current = true;
-    setFormData((prev) => applyAdminPrefill(prev, { bezirke: BEZIRKE }));
+    setFormData((prev) => applyAdminPrefill(prev));
     setExtraCategories((prev) => (prev.includes('Sonstiges') ? prev : [...prev, 'Sonstiges']));
     setRightsConfirmed(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -404,8 +409,16 @@ export default function EventFormWizard() {
       ) {
         newErrors.endTime = 'Die Endzeit muss nach der Startzeit liegen';
       }
-      if (bezirkRequired && !formData.isOnline && !formData.bezirk) {
-        newErrors.bezirk = `Bitte ${subdivisionLabel} auswählen oder als Online-Event markieren`;
+      if (!formData.isOnline) {
+        const cityError = useGemeinden
+          ? validateCity(formData.city, formData.bezirk)
+          : (formData.city || '').trim()
+            ? null
+            : 'Bitte Ort angeben oder als Online-Event markieren';
+        if (cityError) newErrors.city = cityError;
+        if (!useGemeinden && bezirkRequired && !formData.bezirk) {
+          newErrors.bezirk = `Bitte ${subdivisionLabel} auswählen oder als Online-Event markieren`;
+        }
       }
       if (!formData.category) {
         newErrors.category = 'Kategorie ist erforderlich';
@@ -580,13 +593,13 @@ export default function EventFormWizard() {
       setFormData((prev) => ({
         ...prev,
         [name]: checked,
-        ...(name === 'isOnline' && checked ? { bezirk: '' } : {}),
+        ...(name === 'isOnline' && checked ? { bezirk: '', city: '' } : {}),
       }));
       if (errors[name]) {
         setErrors((prev) => ({ ...prev, [name]: null }));
       }
-      if (name === 'isOnline' && errors.bezirk) {
-        setErrors((prev) => ({ ...prev, bezirk: null }));
+      if (name === 'isOnline' && errors.city) {
+        setErrors((prev) => ({ ...prev, city: null }));
       }
       return;
     }
@@ -594,15 +607,20 @@ export default function EventFormWizard() {
       ...prev,
       [name]: value,
       ...(name === 'bezirk' && value ? { isOnline: false } : {}),
-      // A new region has its own Bezirke / Landkreise: drop a no longer fitting one.
-      ...(name === 'regionId' ? { bezirk: keepIfInRegion(prev.bezirk, value, regionChoices) } : {}),
+      // A new region has its own Bezirke / Landkreise (and Orte): drop what no longer fits.
+      ...(name === 'regionId'
+        ? { bezirk: keepIfInRegion(prev.bezirk, value, regionChoices), city: '' }
+        : {}),
     }));
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: null }));
     }
-    if (name === 'bezirk' && errors.isOnline) {
-      setErrors((prev) => ({ ...prev, isOnline: null }));
-    }
+  };
+
+  const handleCityChange = ({ city, bezirk }) => {
+    setFormData((prev) => ({ ...prev, city, bezirk, ...(city.trim() ? { isOnline: false } : {}) }));
+    if (errors.city) setErrors((prev) => ({ ...prev, city: null }));
+    if (errors.isOnline) setErrors((prev) => ({ ...prev, isOnline: null }));
   };
 
   const handleOrganizerChange = (e) => {
@@ -784,6 +802,7 @@ export default function EventFormWizard() {
         : [],
     category: formData.category || 'Sonstiges',
     bezirk: formData.isOnline ? '' : formData.bezirk,
+    city: formData.isOnline ? '' : canonicalCity(formData.city),
     isOnline: Boolean(formData.isOnline),
     regionId: pickEventRegionId(regionChoices.enabled ? selectedRegion : formData.regionId),
     organizer: {
@@ -1189,41 +1208,60 @@ export default function EventFormWizard() {
       </div>
 
       <div className="form-row">
-        <div className="form-group">
-          <label htmlFor="bezirk">{subdivisionLabel} *</label>
-          <select
-            id="bezirk"
-            name="bezirk"
-            value={formData.bezirk}
-            onChange={handleBezirkChange}
+        {useGemeinden ? (
+          <CityField
+            city={formData.city}
+            bezirk={formData.bezirk}
             disabled={formData.isOnline}
-            className={errors.bezirk ? 'input-error' : ''}
-          >
-            <option value="">{subdivisionLabel} auswählen...</option>
-            {bezirkOptions.map((b) => (
-              <option key={b} value={b}>
-                {bezirkLabel(b)}
-              </option>
-            ))}
-            {regionChoices.enabled && (
-              <option value={BEZIRK_NOT_FOUND}>Finde meinen {subdivisionLabel} nicht</option>
-            )}
-          </select>
-          {errors.bezirk && <span className="error-text">{errors.bezirk}</span>}
-          {regionChoices.enabled && (
-            <EventRegionDialog
-              isOpen={regionDialogOpen}
-              regionName={regionChoices.options.find((r) => r.id === selectedRegion)?.name ?? ''}
-              value={selectedRegion}
-              options={regionChoices.options}
-              onChange={handleChange}
-              onClose={() => setRegionDialogOpen(false)}
+            error={errors.city}
+            onChange={handleCityChange}
+            onOtherRegion={regionChoices.enabled ? () => setRegionDialogOpen(true) : undefined}
+          />
+        ) : (
+          <div>
+            <CityField
+              free
+              city={formData.city}
+              bezirk={formData.bezirk}
+              disabled={formData.isOnline}
+              error={errors.city}
+              onChange={handleCityChange}
             />
-          )}
-        </div>
+            <div className="form-group">
+              <label htmlFor="bezirk">{subdivisionLabel} *</label>
+              <select
+                id="bezirk"
+                name="bezirk"
+                value={formData.bezirk}
+                onChange={handleBezirkChange}
+                disabled={formData.isOnline}
+                className={errors.bezirk ? 'input-error' : ''}
+              >
+                <option value="">{subdivisionLabel} auswählen...</option>
+                {bezirkOptions.map((b) => (
+                  <option key={b} value={b}>
+                    {bezirkLabel(b)}
+                  </option>
+                ))}
+                <option value={BEZIRK_NOT_FOUND}>Finde meinen {subdivisionLabel} nicht</option>
+              </select>
+              {errors.bezirk && <span className="error-text">{errors.bezirk}</span>}
+            </div>
+          </div>
+        )}
+        {regionChoices.enabled && (
+          <EventRegionDialog
+            isOpen={regionDialogOpen}
+            regionName={regionChoices.options.find((r) => r.id === selectedRegion)?.name ?? ''}
+            value={selectedRegion}
+            options={regionChoices.options}
+            onChange={handleChange}
+            onClose={() => setRegionDialogOpen(false)}
+          />
+        )}
 
         <div className="form-group">
-          <label htmlFor="place">Ort / Adresse</label>
+          <label htmlFor="place">Adresse / Veranstaltungsort</label>
           <input
             id="place"
             name="place"
@@ -1251,7 +1289,7 @@ export default function EventFormWizard() {
             onChange={handleChange}
             data-testid="is-online-checkbox"
           />
-          <span>Online-Event (kein {subdivisionLabel} und keine Adresse nötig)</span>
+          <span>Online-Event (kein Ort und keine Adresse nötig)</span>
         </label>
       </div>
 
@@ -1589,6 +1627,7 @@ export default function EventFormWizard() {
                   endDate: formData.endDate || '',
                   place: formData.isOnline ? '' : formData.place,
                   bezirk: formData.isOnline ? '' : formData.bezirk,
+                  city: formData.isOnline ? '' : canonicalCity(formData.city),
                   isOnline: Boolean(formData.isOnline),
                   category: formData.category,
                   imageUrl: imagePreview,
@@ -1633,7 +1672,7 @@ export default function EventFormWizard() {
           <h4>Details</h4>
           <p>
             <strong>{formData.category}</strong> •{' '}
-            {formData.isOnline ? 'Online' : bezirkLabel(formData.bezirk)}
+            {formData.isOnline ? 'Online' : formatCityWithBezirk(formData.city, formData.bezirk)}
           </p>
           {!formData.isOnline && formData.place && <p>📍 {formData.place}</p>}
           <p>

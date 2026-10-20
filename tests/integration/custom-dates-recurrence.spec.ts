@@ -70,7 +70,7 @@ test.describe('Custom dates recurrence', () => {
     await page.locator('#date').fill(ISO_DATE(7));
     await page.locator('#time').fill('10:00');
 
-    await page.locator('select#bezirk').selectOption({ label: 'Bregenz' });
+    await page.locator('#city').fill('Bregenz');
     await page.locator('#place').fill('Test Place');
 
     await page.locator('.kategorie-select').click();

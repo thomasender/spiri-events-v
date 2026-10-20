@@ -86,6 +86,7 @@ const oldApprovedEvent = {
   recurrenceEndDate: '',
   category: 'Yoga',
   bezirk: 'Bregenz',
+  city: 'Bregenz',
   organizer: { firstName: 'A', lastName: 'B', email: 'owner@test.local' },
   kontakt: 'owner@test.local',
   status: 'approved',

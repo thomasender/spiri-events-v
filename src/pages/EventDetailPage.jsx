@@ -40,9 +40,9 @@ import { useOrganizerProfile } from '../hooks/useOrganizerProfile';
 import { useEventFavoriteCount } from '../hooks/useEventFavoriteCount';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
 import { buildEventJsonLd } from '../utils/eventJsonLd';
-import { getRegionBySlug, getSubdivisionLabel, resolveRegionId } from '../utils/regions';
+import { getRegionBySlug, resolveRegionId } from '../utils/regions';
 import { pickEventDoc } from '../utils/pickEventDoc';
-import { getOrganizerName } from '../utils/eventFormat';
+import { getOrganizerName, getEventLocationLabel } from '../utils/eventFormat';
 import { resolveOrganizerProfilePath } from '../utils/profile';
 import { canEditEvent, canDeleteEvent, requiresDeleteReason } from '../utils/eventPermissions';
 import { getStaffAccess, isModeratorForEvent } from '../utils/staffRoles';
@@ -194,7 +194,6 @@ export default function EventDetailPage() {
   const { deleteEvent, updateEvent, approveEvent, unpublishEvent } = useEvents(user);
   const [event, setEvent] = useState(null);
   useEventRegionContext(event);
-  const { allRegions } = useRegion();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -583,7 +582,7 @@ export default function EventDetailPage() {
 
   const eventDescription = event.description
     ? truncateHtmlText(event.description, 160)
-    : `${event.title} - ${event.category || 'Event'}${event.isOnline ? ' (Online)' : event.bezirk ? ` in ${bezirkLabel(event.bezirk)}` : ''}`;
+    : `${event.title} - ${event.category || 'Event'}${event.isOnline ? ' (Online)' : event.bezirk ? ` in ${event.city || bezirkLabel(event.bezirk)}` : ''}`;
   const eventPath = `/event/${event.slug || event.id}`;
   const recurrenceDates = getRecurrenceDatesForDetail(event);
   const showRecurrenceDatesList = recurrenceDates.length > 0;
@@ -866,14 +865,12 @@ export default function EventDetailPage() {
         <div className="detail-item">
           <MapPin size={18} className="detail-icon" />
           <div>
-            <span className="detail-label">
-              {getSubdivisionLabel(resolveRegionId(event), allRegions)}
-            </span>
+            <span className="detail-label">Ort</span>
             <span
               className="detail-value"
               data-testid={event.isOnline ? 'event-detail-location-online' : undefined}
             >
-              {event.isOnline ? 'Online' : bezirkLabel(event.bezirk) || eventRegionName(event)}
+              {getEventLocationLabel(event) || eventRegionName(event)}
             </span>
           </div>
         </div>

@@ -486,3 +486,22 @@ input:disabled {
     align-self: center;
   }
 }
+
+.field-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.85rem;
+  color: var(--text-muted, #6b7280);
+}
+
+.link-button {
+  display: block;
+  margin-top: 6px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--color-primary, #5c6b3f);
+  font-size: 0.85rem;
+  text-decoration: underline;
+  cursor: pointer;
+}

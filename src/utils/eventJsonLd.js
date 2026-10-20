@@ -100,7 +100,7 @@ function buildLocation(event, regionName = 'Vorarlberg') {
     name: event.place || event.bezirk || regionName,
     address: {
       '@type': 'PostalAddress',
-      addressLocality: event.bezirk || regionName,
+      addressLocality: event.city || event.bezirk || regionName,
       addressRegion: regionName,
       addressCountry: 'AT',
     },

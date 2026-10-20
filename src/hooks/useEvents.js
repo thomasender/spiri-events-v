@@ -252,6 +252,7 @@ export function useEvents(user) {
       exceptionDates: [],
       category: source.category || 'Sonstiges',
       bezirk: source.bezirk || '',
+      city: source.city || '',
       isOnline: Boolean(source.isOnline),
       regionId: pickEventRegionId(null, source),
       organizer: source.organizer

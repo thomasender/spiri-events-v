@@ -157,17 +157,28 @@ describe('EventModal', () => {
   });
 });
 
-describe('EventModal district label', () => {
-  it('says Bezirk for Vorarlberg and Landkreis for Germany', () => {
-    const { unmount } = render(<EventModal event={mockEvent} onClose={() => {}} />);
-    expect(screen.getByText('Bezirk')).toBeInTheDocument();
-    unmount();
-    render(
+describe('EventModal location', () => {
+  it('names the Ort with Bezirk for Vorarlberg and Landkreis for Germany', () => {
+    const { unmount } = render(
       <EventModal
-        event={{ ...mockEvent, regionId: 'bayern', bezirk: 'München' }}
+        event={{ ...mockEvent, city: 'Altach', bezirk: 'Feldkirch' }}
         onClose={() => {}}
       />
     );
-    expect(screen.getByText('Landkreis')).toBeInTheDocument();
+    expect(screen.getByText('Ort')).toBeInTheDocument();
+    expect(screen.getByText('Altach (Bez. Feldkirch)')).toBeInTheDocument();
+    unmount();
+    render(
+      <EventModal
+        event={{ ...mockEvent, regionId: 'bayern', city: 'Garching', bezirk: 'München' }}
+        onClose={() => {}}
+      />
+    );
+    expect(screen.getByText('Garching (Lkr. München)')).toBeInTheDocument();
+  });
+
+  it('falls back to the district for events without a city', () => {
+    render(<EventModal event={{ ...mockEvent, bezirk: 'Dornbirn' }} onClose={() => {}} />);
+    expect(screen.getByText('Dornbirn')).toBeInTheDocument();
   });
 });
