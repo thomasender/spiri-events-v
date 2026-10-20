@@ -707,8 +707,8 @@ export default function EventFormWizard() {
     // Enter to confirm the highlighted "create new option" entry. If we let the
     // form's keydown handler fire on Enter too, the wizard would advance to the
     // next step before react-select had a chance to commit the new category.
-    // Skip the advance when the keypress originated inside a CreatableSelect.
-    if (target.closest && target.closest('.kategorie-select')) {
+    // Skip the advance when the keypress originated inside a CreatableSelect (Kategorie, Ort).
+    if (target.closest && target.closest('.kategorie-select, .city-select')) {
       return;
     }
 

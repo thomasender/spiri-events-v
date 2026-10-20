@@ -172,7 +172,8 @@ describe('EventFormWizard region field', () => {
     expect(screen.queryByTestId('event-region-field')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Ort *')).toBeInTheDocument();
     expect(document.getElementById('bezirk')).toBeNull();
-    expect(document.querySelectorAll('#gemeinden-list option')).toHaveLength(96);
+    fireEvent.keyDown(screen.getByLabelText('Ort *'), { key: 'ArrowDown', code: 'ArrowDown' });
+    expect(document.querySelectorAll('.kategorie__option')).toHaveLength(96);
     expect(
       screen.queryByRole('button', { name: 'Der Ort liegt in einer anderen Region' })
     ).not.toBeInTheDocument();
@@ -237,7 +238,7 @@ describe('EventFormWizard region field', () => {
     render(withRegions(regionContext(['vorarlberg', 'bayern']), <EventFormWizard />));
 
     const bezirk = () => document.getElementById('bezirk') as HTMLSelectElement;
-    expect((document.getElementById('city') as HTMLInputElement).value).toBe('Dornbirn');
+    expect(document.querySelector('.kategorie__single-value')).toHaveTextContent('Dornbirn');
     expect(bezirk()).toBeNull();
 
     changeRegionViaDialog('bayern');
@@ -396,9 +397,9 @@ describe('EventForm (edit) region field', () => {
 
     changeRegionViaDialog('vorarlberg');
     expect(document.getElementById('bezirk')).toBeNull();
-    fireEvent.change(document.getElementById('city') as HTMLElement, {
-      target: { value: 'Dornbirn' },
-    });
+    const city = document.getElementById('city') as HTMLElement;
+    fireEvent.change(city, { target: { value: 'Dornbirn' } });
+    fireEvent.keyDown(city, { key: 'Enter', code: 'Enter' });
     submitForm();
 
     expect(await savedPayload()).toMatchObject({ regionId: 'vorarlberg', bezirk: 'Dornbirn' });
