@@ -110,6 +110,17 @@ describe('DonationPopup', () => {
     expect(screen.getByTestId('donation-popup')).toBeTruthy();
   });
 
+  it('links to the donation section of the about page', () => {
+    flags.enabled = true;
+    renderAt('/');
+    act(() => {
+      vi.advanceTimersByTime(popup.DONATION_POPUP_DELAY_MS + 1);
+    });
+    expect(screen.getByTestId('donation-popup-donate').getAttribute('href')).toBe(
+      '/ueber-uns#spenden'
+    );
+  });
+
   it('an admin preview click does not count as a donation click', () => {
     auth.role = 'Admin';
     renderAt('/?spendenpopup=1');

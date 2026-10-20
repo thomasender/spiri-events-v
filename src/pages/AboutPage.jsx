@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { Heart, Sparkles, Users } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
 import DonationBlock from '../components/DonationBlock';
@@ -25,6 +25,14 @@ function ContactCta({ label, className, testId, onOpen }) {
 }
 
 export default function AboutPage() {
+  const { hash } = useLocation();
+
+  // SPA navigation does not jump to #anchors on its own (e.g. the donation pop-in's /ueber-uns#spenden).
+  useEffect(() => {
+    if (!hash) return;
+    document.getElementById(hash.slice(1))?.scrollIntoView?.({ block: 'start' });
+  }, [hash]);
+
   const [contactOpen, setContactOpen] = useState(false);
   // Region mode (same dark-launch rule as every region text): with Vorarlberg as
   // the only active region this page is exactly the Vorarlberg page.
