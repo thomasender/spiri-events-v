@@ -116,7 +116,9 @@ describe('RegionsTab', () => {
     expect(screen.getAllByTestId(/^region-row-/)).toHaveLength(9);
     fireEvent.click(screen.getByRole('button', { name: /Deutschland/ }));
     fireEvent.click(screen.getByRole('button', { name: /Schweiz/ }));
-    expect(screen.getAllByTestId(/^region-row-/)).toHaveLength(STATIC_REGIONS.length);
+    expect(screen.getAllByTestId(/^region-row-/)).toHaveLength(
+      STATIC_REGIONS.filter((r) => r.home).length
+    );
     const tirol = await row('tirol');
     expect(within(tirol).getByTestId('region-status')).toHaveTextContent('noch nicht aktiv');
     expect(within(tirol).getByTestId('region-moderators')).toHaveTextContent('1 (Tina)');

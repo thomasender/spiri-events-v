@@ -144,6 +144,43 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
   that writes events or listings outside the app (scripts, console) must set
   them too, or the doc is invisible while the marker is set.
 
+### 2a. Landkreis / Bezirk -> region mapping ("Zuordnung")
+
+The register has **111 regions**: the 51 Bundesländer / Kantone (`home: true`, the
+**backend structure**) and **60 cultural regions of Germany** (`home: false`, `macro` =
+one of the six Großregionen) from the product owner's list. Cultural regions start
+**empty**; all Landkreise first belong to their Bundesland. In Verwaltung -> "Zuordnung"
+(Super-Admin only, `RegionMappingTab.jsx`) the product owner moves districts between the
+regions of one country; the lists are saved in `regions/{id}.bezirke` (+ `mappingUpdatedAt`).
+
+- **Fixed vs editable:** the districts themselves (`DISTRICT_CATALOG` in
+  `src/utils/regionMapping.js`, built from the `home` regions; key `"<country>|<name>"`,
+  names are unique per country) are never editable, nor is the country of a district.
+  Only the assignment is. Every district belongs to exactly one region of its country
+  (`checkMapping`). The legacy "Grenznahe" of Vorarlberg is not a district and never moves.
+- **Empty regions do not exist for visitors:** `isPopulated(region)` (has districts).
+  `RegionProvider` removes empty ones from `allRegions` (chooser, search, map, routes),
+  `RegionsTab` / `ModerationTab` do not list them, and `adminSetRegionActive` refuses to
+  activate one (`no-districts`). The mapping tab still lists them as targets.
+  An empty `bezirke` list only counts when `mappingUpdatedAt` is set (older docs seeded
+  with `[]` fall back to the register); `seed-regions.mjs` never refills such a list.
+- **Server:** callables `adminGetRegionMappingLocks` and `adminSaveRegionMapping`
+  (`functions/src/adminRegionMapping.ts`, pure logic `functions/src/regionMapping.ts` =
+  synced copy of `regionMapping.js`, guarded by `tests/lib/functionsRegionMapping.spec.ts`).
+  Super-Admin only; validates district keys, country, active-region-keeps-a-district and
+  writes the region docs + an `admin_audit_log` entry (`saveRegionMapping`) in one batch.
+- **No event migration, by design:** events keep their `regionId` and `bezirk`. A district
+  that still has events (counted per region that holds it) is **locked** and cannot leave
+  its region (`events-in-district`); moving INTO a region is always allowed. So the mapping
+  is meant to be arranged BEFORE a region gets events. Directory profiles (`directoryRegionIds`
+  / `directoryRegions`) are not checked; there are none outside Vorarlberg before launch.
+- **Adding or renaming a region** (new slug) is still a developer step: edit the
+  `CULTURE_REGIONS` table in `scripts/build-region-data.mjs`, regenerate, update the id
+  list in `firestore.rules` (guarded by `regions.spec.ts`), seed the doc and run
+  `check-reserved-usernames.mjs` read-only against production (the slugs are reserved).
+- **Map:** `RegionMap` still draws the 51 Bundesland shapes only; cultural regions have no
+  shape yet (needs geodata, ticket 516). They are reachable through search and lists.
+
 ## 3. Roles
 
 - **Super-Admin** = `admin_users/{uid}.role == 'Admin'` (or token claim

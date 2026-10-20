@@ -34,6 +34,15 @@ export const DEFAULT_REGION_ID = 'vorarlberg';
 // combined country views.
 export const COUNTRIES = ['AT', 'DE', 'CH'];
 export const DEFAULT_COUNTRY = 'AT';
+// The six Grossregionen of Germany (map page, ticket 518); `region.macro` names one.
+export const DE_MACRO_REGIONS = Object.freeze([
+  'Norden',
+  'Westen',
+  'Mitte',
+  'Osten',
+  'Südwesten',
+  'Südosten',
+]);
 export const COUNTRY_LABELS = Object.freeze({ AT: 'Österreich', DE: 'Deutschland', CH: 'Schweiz' });
 
 // Combined views ("Ganz Österreich", "Ganz Deutschland", "Ganz Schweiz", "Alle
@@ -75,7 +84,17 @@ export const STATIC_REGIONS = REGION_DATA.map((r, order) => ({
   bezirke: [...r.bezirke],
   subdivisionLabel: r.subdivisionLabel,
   timezone: r.timezone,
+  // true: Bundesland / Kanton = the backend structure; false: a cultural region of
+  // Germany that starts without Landkreise (see regionMapping.js).
+  home: r.home !== false,
+  ...(r.macro ? { macro: r.macro } : {}),
 }));
+
+// A region without Bezirke / Landkreise (a cultural region nobody has assigned
+// districts to yet, or a Bundesland whose districts all moved elsewhere) does not
+// exist for visitors: no chooser entry, no search hit, no map shape. Only the
+// Verwaltung ("Zuordnung") still lists it.
+export const isPopulated = (region) => Array.isArray(region?.bezirke) && region.bezirke.length > 0;
 
 // Bezirke of Vorarlberg only. Still used as fallback (event form, directory
 // listing fields, re-exported by useEvents); region-aware code uses the region's own list.
@@ -197,7 +216,11 @@ export function mergeRegions(docs, base = STATIC_REGIONS) {
         ...(typeof d.name === 'string' && d.name ? { name: d.name } : {}),
         ...(typeof d.order === 'number' ? { order: d.order } : {}),
         ...(typeof d.active === 'boolean' ? { active: d.active } : {}),
-        ...(Array.isArray(d.bezirke) && d.bezirke.length ? { bezirke: d.bezirke } : {}),
+        // An empty list only counts when the mapping tool wrote it (`mappingUpdatedAt`);
+        // older docs seeded before the register had Bezirke carry `bezirke: []`.
+        ...(Array.isArray(d.bezirke) && (d.bezirke.length || d.mappingUpdatedAt)
+          ? { bezirke: d.bezirke }
+          : {}),
         ...(typeof d.contactEmail === 'string' ? { contactEmail: d.contactEmail } : {}),
         ...(d.seo && typeof d.seo === 'object' ? { seo: d.seo } : {}),
         ...(typeof d.timezone === 'string' ? { timezone: d.timezone } : {}),

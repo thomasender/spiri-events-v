@@ -47,7 +47,9 @@ service cloud.firestore {
     }
 
     // Region ids (== slugs) of the region registry: the nine Austrian and
-    // sixteen German Bundeslaender and the 26 Swiss cantons.
+    // sixteen German Bundeslaender, the 26 Swiss cantons and the 60 cultural
+    // regions of Germany (they hold Landkreise only after the product owner
+    // assigned some in Verwaltung -> "Zuordnung").
     // "Österreich" etc. are combined views in the UI, not regions. KEEP IN SYNC
     // with REGION_SLUGS in src/utils/regions.js (guarded by
     // tests/components/regions.spec.ts); generated order, see
@@ -58,13 +60,35 @@ service cloud.firestore {
               'baden-wuerttemberg', 'bayern', 'berlin', 'brandenburg',
               'bremen', 'hamburg', 'hessen', 'mecklenburg-vorpommern',
               'niedersachsen', 'nordrhein-westfalen', 'rheinland-pfalz',
-              'saarland', 'sachsen', 'sachsen-anhalt', 'schleswig-holstein',
-              'thueringen', 'zuerich', 'bern', 'luzern', 'uri', 'schwyz',
-              'obwalden', 'nidwalden', 'glarus', 'zug', 'freiburg',
-              'solothurn', 'basel-stadt', 'basel-landschaft', 'schaffhausen',
-              'appenzell-ausserrhoden', 'appenzell-innerrhoden', 'st-gallen',
-              'graubuenden', 'aargau', 'thurgau', 'tessin', 'waadt',
-              'wallis', 'neuenburg', 'genf', 'jura'];
+              'saarland', 'sachsen', 'sachsen-anhalt',
+              'schleswig-holstein', 'thueringen', 'zuerich', 'bern',
+              'luzern', 'uri', 'schwyz', 'obwalden', 'nidwalden', 'glarus',
+              'zug', 'freiburg', 'solothurn', 'basel-stadt',
+              'basel-landschaft', 'schaffhausen', 'appenzell-ausserrhoden',
+              'appenzell-innerrhoden', 'st-gallen', 'graubuenden',
+              'aargau', 'thurgau', 'tessin', 'waadt', 'wallis',
+              'neuenburg', 'genf', 'jura', 'schwaben-wuerttemberg',
+              'kurpfalz', 'suedbaden-markgraeflerland', 'schwarzwald',
+              'oberschwaben', 'tauberfranken', 'oberbayern',
+              'niederbayern', 'oberpfalz', 'franken',
+              'bayerisch-schwaben-allgaeu', 'niederrhein',
+              'koeln-bonn-eifel', 'bergisches-land', 'ruhrgebiet',
+              'muensterland', 'sauerland-siegerland', 'ostwestfalen-lippe',
+              'ostfriesland', 'oldenburger-land-emsland',
+              'lueneburger-heide', 'weserbergland', 'region-hannover',
+              'braunschweiger-land-harz', 'nordhessen', 'mittelhessen',
+              'odenwald-rhoen', 'rhein-main-gebiet', 'rheingau',
+              'erzgebirge', 'vogtland', 'leipzig-region',
+              'dresden-elbland', 'oberlausitz', 'pfalz', 'rheinhessen',
+              'mosel-saar-ruwer', 'eifel-westerwald', 'hunsrueck',
+              'thueringer-wald-rennsteig', 'suedthueringen',
+              'klassikerregion', 'eichsfeld', 'nordfriesland',
+              'dithmarschen', 'schleswig-angeln', 'holstein',
+              'prignitz-uckermark', 'havelland-potsdam', 'spreewald',
+              'niederlausitz', 'mecklenburg', 'vorpommern', 'altmark',
+              'harz-harzvorland', 'anhalt-dessau', 'saale-unstrut',
+              'saarlouis-umgebung', 'saarbruecken-warndt',
+              'hochwald-bliesgau'];
     }
 
     function isValidRegionId(id) {
@@ -626,14 +650,14 @@ service cloud.firestore {
         return d.keys().hasOnly(
                  ['name', 'slug', 'order', 'active', 'bezirke', 'contactEmail', 'seo',
                   'timezone', 'aboutHelperIds', 'aboutHeaderImage', 'aboutText', 'createdAt',
-                  'updatedAt'])
+                  'updatedAt', 'mappingUpdatedAt'])
           && d.slug is string
           && d.slug == regionId
           && d.slug in regionIds()
           && d.name is string && d.name.size() > 0 && d.name.size() <= 100
           && (!('order' in d) || d.order is number)
           && (!('active' in d) || d.active is bool)
-          && (!('bezirke' in d) || (d.bezirke is list && d.bezirke.size() <= 30))
+          && (!('bezirke' in d) || (d.bezirke is list && d.bezirke.size() <= 250))
           && (!('contactEmail' in d) || (d.contactEmail is string && d.contactEmail.size() <= 200))
           && (!('seo' in d) || d.seo is map)
           && (!('timezone' in d) || d.timezone is string)

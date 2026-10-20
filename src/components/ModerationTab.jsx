@@ -5,7 +5,7 @@ import { useAdminMembers } from '../hooks/useAdminMembers';
 import { useRegionModerators } from '../hooks/useRegionModerators';
 import { useRegions } from '../hooks/useRegions';
 import { filterMembers, sortMembers } from '../utils/members';
-import { COUNTRY_LABELS, REGION_SLUGS, STATIC_REGIONS } from '../utils/regions';
+import { COUNTRY_LABELS, REGION_SLUGS, STATIC_REGIONS, isPopulated } from '../utils/regions';
 import { getStaffAccess, moderatorErrorMessage } from '../utils/staffRoles';
 import ConfirmDialog from './ConfirmDialog';
 import './ModerationTab.css';
@@ -74,6 +74,12 @@ function ModeratorDialog({ mode, moderator, moderatorUids, currentUid, onSave, o
   }, [isAdd, members, search]);
 
   const activeById = useMemo(() => new Map(regions.map((r) => [r.id, r.active])), [regions]);
+  // Regions without Landkreise / Bezirke (cultural regions nobody filled yet) are
+  // not offered; one the person already moderates stays visible so it can be removed.
+  const choiceIds = useMemo(() => {
+    const populated = new Set(regions.filter(isPopulated).map((r) => r.id));
+    return REGION_SLUGS.filter((id) => populated.has(id) || regionIds.includes(id));
+  }, [regions, regionIds]);
 
   const toggleRegion = (id) =>
     setRegionIds((prev) =>
@@ -179,9 +185,9 @@ function ModeratorDialog({ mode, moderator, moderatorUids, currentUid, onSave, o
 
         <fieldset className="moderation-regions">
           <legend>Regionen</legend>
-          {REGION_SLUGS.map((id, index) => {
+          {choiceIds.map((id, index) => {
             const country = STATIC_REGIONS.find((r) => r.id === id)?.country;
-            const prevCountry = STATIC_REGIONS[index - 1]?.country;
+            const prevCountry = STATIC_REGIONS.find((r) => r.id === choiceIds[index - 1])?.country;
             return (
               <Fragment key={id}>
                 {country !== prevCountry && (

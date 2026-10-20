@@ -38,6 +38,9 @@ export function regionActivationErrorMessage(err) {
       if (err?.details?.reason === 'permanent-region') {
         return 'Vorarlberg bleibt immer aktiv und kann nicht deaktiviert werden.';
       }
+      if (err?.details?.reason === 'no-districts') {
+        return 'Diese Region hat noch keine Landkreise / Bezirke. Ordne ihr zuerst im Tab „Zuordnung“ welche zu.';
+      }
       return 'Die Voraussetzungen für diese Region sind nicht erfüllt.';
     case 'not-found':
       return 'Diese Region ist noch nicht eingerichtet. Bitte melde dich beim Technik-Team.';

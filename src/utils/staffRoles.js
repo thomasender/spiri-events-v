@@ -111,6 +111,7 @@ export const ADMIN_TABS = [
   'mailgun',
   'moderation',
   'regions',
+  'mapping',
   'about',
 ];
 const MODERATOR_TABS = ['events', 'drafts', 'review', 'messages', 'trash', 'members', 'about'];

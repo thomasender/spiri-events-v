@@ -8,6 +8,7 @@ import {
   COMBINED_VIEWS,
   COUNTRY_LABELS,
   COUNTRIES,
+  DE_MACRO_REGIONS,
   DEFAULT_COUNTRY,
   isCombinedViewSlug,
 } from '../utils/regions';
@@ -128,6 +129,23 @@ export default function RegionChooser() {
   // All four views are offered; the ones without enough open regions lead to "bald".
   const availableViews = new Set(combinedViews.map((v) => v.slug));
   const sorted = [...allRegions].sort((a, b) => a.order - b.order);
+  const renderOptions = (list) => (
+    <div className="region-chooser-options">
+      {list.map((r) => (
+        <button
+          key={r.slug}
+          type="button"
+          className={`region-chooser-option${
+            activeSlugs.has(r.slug) ? '' : ' region-chooser-option--soon'
+          }`}
+          onClick={() => choose(r.slug)}
+        >
+          {r.name}
+          {!activeSlugs.has(r.slug) && <span className="region-chooser-soon"> (bald)</span>}
+        </button>
+      ))}
+    </div>
+  );
 
   return createPortal(
     <div className="region-chooser-backdrop">
@@ -197,23 +215,29 @@ export default function RegionChooser() {
                     {COUNTRY_LABELS[country]}
                     <span className="region-chooser-country-count"> ({inCountry.length})</span>
                   </summary>
-                  <div className="region-chooser-options">
-                    {inCountry.map((r) => (
-                      <button
-                        key={r.slug}
-                        type="button"
-                        className={`region-chooser-option${
-                          activeSlugs.has(r.slug) ? '' : ' region-chooser-option--soon'
-                        }`}
-                        onClick={() => choose(r.slug)}
-                      >
-                        {r.name}
-                        {!activeSlugs.has(r.slug) && (
-                          <span className="region-chooser-soon"> (bald)</span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
+                  {country === 'DE' && inCountry.some((r) => r.macro)
+                    ? // Germany: first the six Grossregionen, then the regions inside.
+                      DE_MACRO_REGIONS.map((macro) => {
+                        const inMacro = inCountry.filter((r) => r.macro === macro);
+                        if (inMacro.length === 0) return null;
+                        return (
+                          <details
+                            key={macro}
+                            className="region-chooser-macro"
+                            data-testid={`region-chooser-macro-${macro}`}
+                          >
+                            <summary className="region-chooser-macro-name">
+                              {macro}
+                              <span className="region-chooser-country-count">
+                                {' '}
+                                ({inMacro.length})
+                              </span>
+                            </summary>
+                            {renderOptions(inMacro)}
+                          </details>
+                        );
+                      })
+                    : renderOptions(inCountry)}
                 </details>
               );
             })}

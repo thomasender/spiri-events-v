@@ -750,6 +750,31 @@ describe('regions', () => {
       await assertSucceeds(deleteDoc(doc(db, 'regions/bayern')));
     });
 
+    it('accepts a cultural region of Germany and the mapping fields (long Landkreis list)', async () => {
+      const db = make().firestore();
+      const bezirke = Array.from({ length: 96 }, (_, i) => `Landkreis ${i}`);
+      await assertSucceeds(
+        setDoc(doc(db, 'regions/franken'), {
+          ...validRegion,
+          name: 'Franken',
+          slug: 'franken',
+          order: 60,
+          timezone: 'Europe/Berlin',
+          bezirke,
+          mappingUpdatedAt: 1,
+        })
+      );
+      await assertSucceeds(
+        updateDoc(doc(db, 'regions/franken'), { bezirke: [], mappingUpdatedAt: 2 })
+      );
+      await assertFails(
+        updateDoc(doc(db, 'regions/franken'), {
+          bezirke: Array.from({ length: 251 }, (_, i) => `L${i}`),
+        })
+      );
+      await assertSucceeds(deleteDoc(doc(db, 'regions/franken')));
+    });
+
     it('rejects a slug that differs from the doc id', async () => {
       await assertFails(setDoc(doc(make().firestore(), 'regions/wien'), validRegion));
     });

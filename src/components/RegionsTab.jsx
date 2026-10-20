@@ -10,6 +10,7 @@ import {
   DEFAULT_REGION_ID,
   getSubdivisionLabel,
   getSubdivisionLabelPlural,
+  isPopulated,
 } from '../utils/regions';
 import { getStaffAccess } from '../utils/staffRoles';
 import {
@@ -32,7 +33,9 @@ function personLabel(person) {
 export default function RegionsTab() {
   const { role, staffRegionIds } = useAuth();
   const isSuperAdmin = getStaffAccess(role, staffRegionIds).isSuperAdmin;
-  const { regions } = useRegions();
+  const { regions: registry } = useRegions();
+  // Regions without Landkreise / Bezirke cannot go live; they appear once some are assigned.
+  const regions = useMemo(() => registry.filter(isPopulated), [registry]);
   const { moderators } = useRegionModerators(isSuperAdmin);
   const { statuses, minUpcomingEvents, loading, error, reload, setActive } =
     useRegionActivation(isSuperAdmin);

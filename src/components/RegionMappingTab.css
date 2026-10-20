@@ -1,0 +1,164 @@
+/* "Zuordnung" admin tab; cards, notices and buttons reuse ModerationTab.css. */
+.mapping-countries {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mapping-country {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.mapping-country--active {
+  border-color: var(--accent-primary);
+  font-weight: 600;
+}
+
+.mapping-country:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.mapping-filters,
+.mapping-move {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 14px;
+}
+
+.mapping-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 160px;
+  flex: 1 1 180px;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.mapping-field input,
+.mapping-field select {
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 1rem;
+}
+
+.mapping-selected {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  font-weight: 600;
+}
+
+.mapping-draft {
+  padding: 12px 14px;
+  border: 1px solid var(--accent-primary);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+
+.mapping-draft ul {
+  margin: 6px 0;
+  padding-left: 20px;
+}
+
+.mapping-draft-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.mapping-state {
+  margin: 0;
+  padding: 8px 12px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.mapping-state legend {
+  padding: 0 6px;
+  font-weight: 600;
+}
+
+.mapping-count {
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.mapping-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.mapping-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  min-height: 44px;
+  border-bottom: 1px solid var(--border);
+}
+
+.mapping-item:last-child {
+  border-bottom: 0;
+}
+
+.mapping-item label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 220px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.mapping-item input[type='checkbox'] {
+  width: 20px;
+  height: 20px;
+}
+
+.mapping-item--moved {
+  background: var(--bg-secondary);
+}
+
+.mapping-region {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.mapping-badge {
+  color: var(--accent-primary);
+  font-weight: 600;
+}
+
+.mapping-lock {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.mapping-summary {
+  max-height: 50vh;
+  overflow-y: auto;
+  margin: 0 0 12px;
+  padding-left: 18px;
+  text-align: left;
+  font-size: 0.9rem;
+}

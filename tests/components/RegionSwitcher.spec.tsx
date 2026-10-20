@@ -472,6 +472,26 @@ describe('RegionChooser', () => {
     expect(window.localStorage.getItem(LAST_REGION_STORAGE_KEY)).toBe('bayern');
   });
 
+  it('groups the German regions by Grossregion, hides regions without Landkreise', () => {
+    mocks.regions = {
+      regions: TWO_ACTIVE.map((r) =>
+        r.id === 'franken'
+          ? { ...r, bezirke: ['Roth'] }
+          : r.id === 'bayern'
+            ? { ...r, bezirke: [] }
+            : r
+      ),
+      loading: false,
+    };
+    renderAt('/');
+    const south = screen.getByTestId('region-chooser-macro-Südosten');
+    expect(within(south).getByRole('button', { name: /^Franken/ })).toBeInTheDocument();
+    // Bayern lost all its Landkreise: gone for visitors; empty cultural regions never show.
+    expect(screen.queryByRole('button', { name: /^Bayern/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Oberbayern/ })).not.toBeInTheDocument();
+    expect(screen.getByTestId('region-chooser-macro-Norden')).toBeInTheDocument();
+  });
+
   it('offers the countries as accordions, Austria open', () => {
     renderAt('/');
     expect(screen.getByTestId('region-chooser-country-AT')).toHaveAttribute('open');

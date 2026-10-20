@@ -117,8 +117,8 @@ describe('isReservedUsername', () => {
 describe('reserved region names', () => {
   const extra = ['oesterreich', 'austria', 'online', 'regionen', 'region'];
 
-  it('REGION_SLUGS lists all 51 regions in ASCII', () => {
-    expect(REGION_SLUGS).toHaveLength(51);
+  it('REGION_SLUGS lists all 111 regions (51 Bundeslaender / Kantone + 60 cultural) in ASCII', () => {
+    expect(REGION_SLUGS).toHaveLength(111);
     expect(REGION_SLUGS).toContain('bayern');
     expect(REGION_SLUGS).toContain('zuerich');
     for (const slug of REGION_SLUGS) expect(slug).toMatch(/^[a-z]+(-[a-z]+)*$/);

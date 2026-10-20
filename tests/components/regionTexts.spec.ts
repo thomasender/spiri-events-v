@@ -166,7 +166,7 @@ describe('regionTexts: region-specific mode', () => {
   it('region texts of another region never mention Vorarlberg', () => {
     const t = regionTexts(reg('steiermark'), { activeCount: 2 });
     expect(JSON.stringify(t)).not.toMatch(/Vorarlberg/);
-    expect(STATIC_REGIONS.length).toBe(51);
+    expect(STATIC_REGIONS.filter((r) => r.home).length).toBe(51);
   });
 });
 

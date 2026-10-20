@@ -7,6 +7,7 @@ import {
   getAllDistricts,
   getBezirke,
   getRegionBySlug,
+  isPopulated,
   resolveRegionId,
 } from '../utils/regions';
 import { activeRegions, regionCanonicalPath, regionPath } from '../utils/regionRouting';
@@ -19,7 +20,7 @@ export const DEFAULT_REGION_CONTEXT = Object.freeze({
   region: getRegionBySlug(DEFAULT_REGION_ID),
   regionId: DEFAULT_REGION_ID,
   regions: activeRegions(STATIC_REGIONS),
-  allRegions: STATIC_REGIONS,
+  allRegions: STATIC_REGIONS.filter(isPopulated),
   isNational: false,
   combinedView: null,
   combinedRegions: [],

@@ -107,6 +107,106 @@ const META = {
   Jura: { slug: 'jura', demonym: 'Jurassischer', inPhrase: 'im Jura', forPhrase: 'den Jura' },
 };
 
+// Cultural regions of Germany (ticket 516 of the product owner). They start EMPTY:
+// the 16 Bundeslaender above hold all Landkreise at first (the "backend structure",
+// `home: true`), and the product owner moves Landkreise into these regions in
+// Verwaltung -> "Zuordnung". A region without Landkreise is hidden everywhere.
+// `macro` = the six Grossregionen of the map page (ticket 518). The slugs share the
+// top-level URL space with profiles (username.js reserves them).
+const MACRO_OF_STATE = {
+  Berlin: 'Osten',
+  Brandenburg: 'Osten',
+  Bremen: 'Norden',
+  Hamburg: 'Norden',
+  'Mecklenburg-Vorpommern': 'Norden',
+  Niedersachsen: 'Norden',
+  'Schleswig-Holstein': 'Norden',
+  'Nordrhein-Westfalen': 'Westen',
+  Hessen: 'Mitte',
+  Thüringen: 'Mitte',
+  Sachsen: 'Osten',
+  'Sachsen-Anhalt': 'Osten',
+  'Baden-Württemberg': 'Südwesten',
+  'Rheinland-Pfalz': 'Südwesten',
+  Saarland: 'Südwesten',
+  Bayern: 'Südosten',
+};
+const CULTURE_REGIONS = [
+  // Baden-Wuerttemberg
+  { slug: 'schwaben-wuerttemberg', name: 'Schwaben / Württemberg', macro: 'Südwesten', demonym: 'schwäbischer' },
+  { slug: 'kurpfalz', name: 'Kurpfalz', macro: 'Südwesten', demonym: 'Kurpfälzer', inPhrase: 'in der Kurpfalz', forPhrase: 'die Kurpfalz' },
+  { slug: 'suedbaden-markgraeflerland', name: 'Südbaden / Markgräflerland', macro: 'Südwesten', demonym: 'südbadischer' },
+  { slug: 'schwarzwald', name: 'Schwarzwald', macro: 'Südwesten', demonym: 'Schwarzwälder', inPhrase: 'im Schwarzwald', forPhrase: 'den Schwarzwald' },
+  { slug: 'oberschwaben', name: 'Oberschwaben', macro: 'Südwesten', demonym: 'oberschwäbischer' },
+  { slug: 'tauberfranken', name: 'Tauberfranken', macro: 'Südwesten', demonym: 'tauberfränkischer' },
+  // Bayern
+  { slug: 'oberbayern', name: 'Oberbayern', macro: 'Südosten', demonym: 'oberbayerischer' },
+  { slug: 'niederbayern', name: 'Niederbayern', macro: 'Südosten', demonym: 'niederbayerischer' },
+  { slug: 'oberpfalz', name: 'Oberpfalz', macro: 'Südosten', demonym: 'Oberpfälzer', inPhrase: 'in der Oberpfalz', forPhrase: 'die Oberpfalz' },
+  { slug: 'franken', name: 'Franken', macro: 'Südosten', demonym: 'fränkischer' },
+  { slug: 'bayerisch-schwaben-allgaeu', name: 'Bayerisch-Schwaben / Allgäu', macro: 'Südosten', demonym: 'Allgäuer' },
+  // Nordrhein-Westfalen
+  { slug: 'niederrhein', name: 'Niederrhein', macro: 'Westen', demonym: 'niederrheinischer', inPhrase: 'am Niederrhein', forPhrase: 'den Niederrhein' },
+  { slug: 'koeln-bonn-eifel', name: 'Köln/Bonn & Eifel', macro: 'Westen', demonym: 'Köln-Bonner' },
+  { slug: 'bergisches-land', name: 'Bergisches Land', macro: 'Westen', demonym: 'bergischer', inPhrase: 'im Bergischen Land', forPhrase: 'das Bergische Land' },
+  { slug: 'ruhrgebiet', name: 'Ruhrgebiet', macro: 'Westen', demonym: 'Ruhrpott', inPhrase: 'im Ruhrgebiet', forPhrase: 'das Ruhrgebiet' },
+  { slug: 'muensterland', name: 'Münsterland', macro: 'Westen', demonym: 'Münsterländer' },
+  { slug: 'sauerland-siegerland', name: 'Sauerland / Siegerland', macro: 'Westen', demonym: 'Sauerländer' },
+  { slug: 'ostwestfalen-lippe', name: 'Ostwestfalen-Lippe', macro: 'Westen', demonym: 'ostwestfälischer' },
+  // Niedersachsen
+  { slug: 'ostfriesland', name: 'Ostfriesland', macro: 'Norden', demonym: 'ostfriesischer' },
+  { slug: 'oldenburger-land-emsland', name: 'Oldenburger Land / Emsland', macro: 'Norden', demonym: 'Oldenburger' },
+  { slug: 'lueneburger-heide', name: 'Lüneburger Heide', macro: 'Norden', demonym: 'Heide', inPhrase: 'in der Lüneburger Heide', forPhrase: 'die Lüneburger Heide' },
+  { slug: 'weserbergland', name: 'Weserbergland', macro: 'Mitte', demonym: 'Weserbergland' },
+  { slug: 'region-hannover', name: 'Region Hannover', macro: 'Mitte', demonym: 'Hannoveraner', inPhrase: 'in der Region Hannover', forPhrase: 'die Region Hannover' },
+  { slug: 'braunschweiger-land-harz', name: 'Braunschweiger Land & Harz', macro: 'Mitte', demonym: 'Braunschweiger' },
+  // Hessen
+  { slug: 'nordhessen', name: 'Nordhessen', macro: 'Mitte', demonym: 'nordhessischer' },
+  { slug: 'mittelhessen', name: 'Mittelhessen', macro: 'Mitte', demonym: 'mittelhessischer' },
+  { slug: 'odenwald-rhoen', name: 'Odenwald / Rhön', macro: 'Mitte', demonym: 'Odenwald-Rhöner' },
+  { slug: 'rhein-main-gebiet', name: 'Rhein-Main-Gebiet', macro: 'Mitte', demonym: 'Rhein-Main', inPhrase: 'im Rhein-Main-Gebiet', forPhrase: 'das Rhein-Main-Gebiet' },
+  { slug: 'rheingau', name: 'Rheingau', macro: 'Mitte', demonym: 'Rheingauer', inPhrase: 'im Rheingau', forPhrase: 'den Rheingau' },
+  // Sachsen
+  { slug: 'erzgebirge', name: 'Erzgebirge', macro: 'Osten', demonym: 'Erzgebirgs', inPhrase: 'im Erzgebirge', forPhrase: 'das Erzgebirge' },
+  { slug: 'vogtland', name: 'Vogtland', macro: 'Osten', demonym: 'Vogtländer' },
+  { slug: 'leipzig-region', name: 'Leipzig & Region', macro: 'Osten', demonym: 'Leipziger' },
+  { slug: 'dresden-elbland', name: 'Dresden & Elbland', macro: 'Osten', demonym: 'Dresdner' },
+  { slug: 'oberlausitz', name: 'Oberlausitz', macro: 'Osten', demonym: 'Oberlausitzer', inPhrase: 'in der Oberlausitz', forPhrase: 'die Oberlausitz' },
+  // Rheinland-Pfalz
+  { slug: 'pfalz', name: 'Pfalz', macro: 'Südwesten', demonym: 'Pfälzer', inPhrase: 'in der Pfalz', forPhrase: 'die Pfalz' },
+  { slug: 'rheinhessen', name: 'Rheinhessen', macro: 'Südwesten', demonym: 'rheinhessischer' },
+  { slug: 'mosel-saar-ruwer', name: 'Mosel-Saar-Ruwer', macro: 'Südwesten', demonym: 'Mosel' , inPhrase: 'an Mosel, Saar und Ruwer', forPhrase: 'Mosel-Saar-Ruwer' },
+  { slug: 'eifel-westerwald', name: 'Eifel & Westerwald', macro: 'Südwesten', demonym: 'Eifel-Westerwälder' },
+  { slug: 'hunsrueck', name: 'Hunsrück', macro: 'Südwesten', demonym: 'Hunsrücker', inPhrase: 'im Hunsrück', forPhrase: 'den Hunsrück' },
+  // Thueringen
+  { slug: 'thueringer-wald-rennsteig', name: 'Thüringer Wald / Rennsteig', macro: 'Mitte', demonym: 'Thüringer-Wald' },
+  { slug: 'suedthueringen', name: 'Südthüringen', macro: 'Mitte', demonym: 'südthüringer' },
+  { slug: 'klassikerregion', name: 'Klassikerregion', macro: 'Mitte', demonym: 'Klassikerregions', inPhrase: 'in der Klassikerregion', forPhrase: 'die Klassikerregion' },
+  { slug: 'eichsfeld', name: 'Eichsfeld', macro: 'Mitte', demonym: 'Eichsfelder', inPhrase: 'im Eichsfeld', forPhrase: 'das Eichsfeld' },
+  // Schleswig-Holstein
+  { slug: 'nordfriesland', name: 'Nordfriesland', macro: 'Norden', demonym: 'nordfriesischer' },
+  { slug: 'dithmarschen', name: 'Dithmarschen', macro: 'Norden', demonym: 'Dithmarscher' },
+  { slug: 'schleswig-angeln', name: 'Schleswig / Angeln', macro: 'Norden', demonym: 'Schleswiger' },
+  { slug: 'holstein', name: 'Holstein', macro: 'Norden', demonym: 'Holsteiner' },
+  // Brandenburg
+  { slug: 'prignitz-uckermark', name: 'Prignitz & Uckermark', macro: 'Norden', demonym: 'Prignitz-Uckermärker' },
+  { slug: 'havelland-potsdam', name: 'Havelland & Potsdam', macro: 'Osten', demonym: 'Potsdamer' },
+  { slug: 'spreewald', name: 'Spreewald', macro: 'Osten', demonym: 'Spreewälder', inPhrase: 'im Spreewald', forPhrase: 'den Spreewald' },
+  { slug: 'niederlausitz', name: 'Niederlausitz', macro: 'Osten', demonym: 'Niederlausitzer', inPhrase: 'in der Niederlausitz', forPhrase: 'die Niederlausitz' },
+  // Mecklenburg-Vorpommern
+  { slug: 'mecklenburg', name: 'Mecklenburg', macro: 'Norden', demonym: 'mecklenburgischer' },
+  { slug: 'vorpommern', name: 'Vorpommern', macro: 'Norden', demonym: 'vorpommerscher' },
+  // Sachsen-Anhalt
+  { slug: 'altmark', name: 'Altmark', macro: 'Norden', demonym: 'Altmärker', inPhrase: 'in der Altmark', forPhrase: 'die Altmark' },
+  { slug: 'harz-harzvorland', name: 'Harz & Harzvorland', macro: 'Mitte', demonym: 'Harzer' },
+  { slug: 'anhalt-dessau', name: 'Anhalt-Dessau', macro: 'Osten', demonym: 'Anhalter' },
+  { slug: 'saale-unstrut', name: 'Saale-Unstrut', macro: 'Osten', demonym: 'Saale-Unstrut' , inPhrase: 'an Saale und Unstrut', forPhrase: 'Saale-Unstrut' },
+  // Saarland
+  { slug: 'saarlouis-umgebung', name: 'Saarlouis & Umgebung', macro: 'Südwesten', demonym: 'Saarlouiser' },
+  { slug: 'saarbruecken-warndt', name: 'Saarbrücken & Warndt', macro: 'Südwesten', demonym: 'Saarbrücker' },
+  { slug: 'hochwald-bliesgau', name: 'Hochwald / Bliesgau', macro: 'Südwesten', demonym: 'Hochwälder' },
+];
+
 const COUNTRY_SETTINGS = {
   AT: { subdivisionLabel: 'Bezirk', timezone: 'Europe/Vienna' },
   DE: { subdivisionLabel: 'Landkreis', timezone: 'Europe/Berlin' },
@@ -211,12 +311,32 @@ for (const name of order) {
     subdivisionLabel: settings.subdivisionLabel,
     timezone: settings.timezone,
     bezirke,
+    home: true,
+    ...(country === 'DE' ? { macro: MACRO_OF_STATE[name] } : {}),
+  });
+}
+// Cultural regions come last so the `order` (array index) of the 51 above does not change.
+for (const c of CULTURE_REGIONS) {
+  regions.push({
+    slug: c.slug,
+    name: c.name,
+    inPhrase: c.inPhrase ?? `in ${c.name}`,
+    forPhrase: c.forPhrase ?? c.name,
+    demonym: c.demonym,
+    country: 'DE',
+    subdivisionLabel: COUNTRY_SETTINGS.DE.subdivisionLabel,
+    timezone: COUNTRY_SETTINGS.DE.timezone,
+    bezirke: [],
+    home: false,
+    macro: c.macro,
   });
 }
 
 const slugs = regions.map((r) => r.slug);
 if (new Set(slugs).size !== slugs.length) throw new Error('Duplicate region slug');
-if (regions.length !== Object.keys(META).length) throw new Error('Region/META mismatch');
+if (regions.filter((r) => r.home).length !== Object.keys(META).length) {
+  throw new Error('Region/META mismatch');
+}
 
 const json = JSON.stringify(regions, null, 2);
 const header = `// GENERATED by scripts/build-region-data.mjs from scripts/data/*. Do not edit by hand.\n`;
@@ -230,7 +350,7 @@ out(
 );
 out(
   'functions/src/regionData.ts',
-  `${header}export interface RegionDatum {\n  slug: string;\n  name: string;\n  inPhrase: string;\n  forPhrase: string;\n  demonym: string;\n  country: string;\n  subdivisionLabel: string;\n  timezone: string;\n  bezirke: string[];\n}\n\nexport const REGION_DATA: readonly RegionDatum[] = ${json};\n`
+  `${header}export interface RegionDatum {\n  slug: string;\n  name: string;\n  inPhrase: string;\n  forPhrase: string;\n  demonym: string;\n  country: string;\n  subdivisionLabel: string;\n  timezone: string;\n  bezirke: string[];\n  /** true: Bundesland / Kanton (the backend structure); false: cultural region, starts empty. */\n  home: boolean;\n  /** Germany only: one of the six Grossregionen of the map page. */\n  macro?: string;\n}\n\nexport const REGION_DATA: readonly RegionDatum[] = ${json};\n`
 );
 console.log(
   `${regions.length} regions, ${regions.reduce((n, r) => n + r.bezirke.length, 0)} districts`

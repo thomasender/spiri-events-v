@@ -133,6 +133,9 @@ vi.mock('../../src/hooks/useDonors', () => ({
 vi.mock('../../src/components/ModerationTab', () => ({
   default: () => <div data-testid="moderation-tab-stub">Moderation</div>,
 }));
+vi.mock('../../src/components/RegionMappingTab', () => ({
+  default: () => <div data-testid="mapping-tab-stub">Zuordnung</div>,
+}));
 vi.mock('../../src/components/RegionsTab', () => ({
   default: () => <div data-testid="regions-tab-stub">Regionen</div>,
 }));
@@ -608,6 +611,7 @@ describe('AdminPage access per role', () => {
     'admin-tab-analytics',
     'admin-tab-moderation',
     'admin-tab-regions',
+    'admin-tab-mapping',
   ];
 
   function asModerator(regionIds = ['tirol']) {
@@ -688,6 +692,18 @@ describe('AdminPage access per role', () => {
     renderAdmin(['/admin?tab=regions']);
     expect(screen.getByTestId('admin-tab-regions')).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByTestId('regions-tab-stub')).toBeInTheDocument();
+  });
+
+  it('Super-Admin opens the Zuordnung tab by URL; a moderator does not', () => {
+    mockAuth.role = 'Admin';
+    const { unmount } = renderAdmin(['/admin?tab=mapping']);
+    expect(screen.getByTestId('admin-tab-mapping')).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByTestId('mapping-tab-stub')).toBeInTheDocument();
+    unmount();
+    asModerator();
+    renderAdmin(['/admin?tab=mapping']);
+    expect(screen.getByTestId('no-access')).toBeInTheDocument();
+    expect(screen.queryByTestId('mapping-tab-stub')).not.toBeInTheDocument();
   });
 
   it('a moderator doc without a valid region grants nothing', () => {

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useRegions } from '../hooks/useRegions';
 import { RegionContext } from '../hooks/useRegion';
-import { getRegionBySlug, isCombinedViewSlug, isRegionSlug } from '../utils/regions';
+import { getRegionBySlug, isCombinedViewSlug, isPopulated, isRegionSlug } from '../utils/regions';
 import {
   activeRegions,
   availableCombinedViews,
@@ -27,7 +27,9 @@ import {
 export default function RegionProvider({ children }) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { regions: allRegions, loading } = useRegions();
+  const { regions: registry, loading } = useRegions();
+  // A region without Landkreise / Bezirke does not exist for visitors (see isPopulated).
+  const allRegions = useMemo(() => registry.filter(isPopulated), [registry]);
   const [storedSlug, setStoredSlug] = useState(() => readLastRegion());
   const [eventRegionId, setEventRegionId] = useState(null);
 

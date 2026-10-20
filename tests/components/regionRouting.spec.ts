@@ -91,8 +91,8 @@ describe('combined views (ticket 33)', () => {
   const available = (slug: string, regions: typeof STATIC_REGIONS) =>
     isCombinedViewAvailable(slug, regions);
 
-  it('every region has a country: 9 Austrian, 16 German, 26 Swiss', () => {
-    expect(STATIC_REGIONS.filter((r) => r.country === 'DE')).toHaveLength(16);
+  it('every region has a country: 9 Austrian, 16 German (+ 60 cultural regions), 26 Swiss', () => {
+    expect(STATIC_REGIONS.filter((r) => r.country === 'DE' && r.home)).toHaveLength(16);
     expect(STATIC_REGIONS.filter((r) => r.country === 'AT')).toHaveLength(9);
     expect(STATIC_REGIONS.filter((r) => r.country === 'CH')).toHaveLength(26);
   });

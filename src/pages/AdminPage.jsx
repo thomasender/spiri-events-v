@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   Info,
   MapPin,
+  Network,
   MailCheck,
   ChevronDown,
 } from 'lucide-react';
@@ -37,6 +38,7 @@ import InstagramTab from '../components/InstagramTab';
 import AnalyticsTab from '../components/AnalyticsTab';
 import ModerationTab from '../components/ModerationTab';
 import RegionsTab from '../components/RegionsTab';
+import RegionMappingTab from '../components/RegionMappingTab';
 import RegionAboutTab from '../components/RegionAboutTab';
 import NoAccess from '../components/NoAccess';
 import MailgunTab from '../components/MailgunTab';
@@ -102,6 +104,7 @@ const TAB_GROUPS = [
     tabs: [
       { id: 'moderation', label: 'Moderation', Icon: ShieldCheck },
       { id: 'regions', label: 'Regionen', Icon: MapPin },
+      { id: 'mapping', label: 'Zuordnung', Icon: Network },
       { id: 'about', label: 'Über uns', Icon: Info },
     ],
   },
@@ -124,6 +127,7 @@ const PANELS = {
   mailgun: MailgunTab,
   moderation: ModerationTab,
   regions: RegionsTab,
+  mapping: RegionMappingTab,
   about: RegionAboutTab,
 };
 
@@ -181,6 +185,7 @@ export default function AdminPage() {
       analytics: isAdmin,
       moderation: isAdmin,
       regions: isAdmin,
+      mapping: isAdmin,
       about: allowedTabs.has('about'),
       mailgun: isAdmin,
     };

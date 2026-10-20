@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-// Idempotent seed for the `regions` collection (all 51 regions of Austria,
-// Germany and Switzerland, from STATIC_REGIONS). Reconciles to the desired state in ONE batch:
+// Idempotent seed for the `regions` collection (all 111 regions of Austria,
+// Germany and Switzerland, from STATIC_REGIONS: 51 Bundeslaender / Kantone plus 60
+// cultural regions of Germany that start without Landkreise). Reconciles to the desired state in ONE batch:
 // vorarlberg active, every other region inactive. Existing
 // admin edits (name, bezirke, contactEmail, seo, active) are kept; only missing
 // fields (and an empty `bezirke` list) are filled in from the register. Leftover
@@ -71,7 +72,13 @@ STATIC_REGIONS.forEach((r, i) => {
   const data = snap.data();
   const missing = Object.fromEntries(Object.entries(desired).filter(([k]) => !(k in data)));
   // Docs seeded before the register had Bezirke for this region carry `bezirke: []`.
-  if (Array.isArray(data.bezirke) && data.bezirke.length === 0 && r.bezirke.length > 0) {
+  // (An empty list written by the mapping tool, `mappingUpdatedAt`, is deliberate: keep it.)
+  if (
+    Array.isArray(data.bezirke) &&
+    data.bezirke.length === 0 &&
+    r.bezirke.length > 0 &&
+    !data.mappingUpdatedAt
+  ) {
     missing.bezirke = r.bezirke;
   }
   if (Object.keys(missing).length) {

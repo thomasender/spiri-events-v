@@ -24,10 +24,11 @@ import {
 import { getEventLocationLabel } from '../../src/utils/eventFormat';
 
 describe('static register', () => {
-  it('covers 9 Austrian + 16 German Bundeslaender + 26 Swiss cantons (no oesterreich), only Vorarlberg active', () => {
+  it('covers 9 Austrian + 16 German Bundeslaender + 26 Swiss cantons + 60 cultural regions (no oesterreich), only Vorarlberg active', () => {
     expect(STATIC_REGIONS.map((r) => r.slug)).toEqual(REGION_SLUGS);
     const perCountry = (c: string) => STATIC_REGIONS.filter((r) => r.country === c).length;
-    expect([perCountry('AT'), perCountry('DE'), perCountry('CH')]).toEqual([9, 16, 26]);
+    expect([perCountry('AT'), perCountry('DE'), perCountry('CH')]).toEqual([9, 76, 26]);
+    expect(STATIC_REGIONS.filter((r) => r.home)).toHaveLength(51);
     expect(isRegionSlug('allgaeu')).toBe(false);
     expect(STATIC_REGIONS.some((r) => r.id === 'oesterreich')).toBe(false);
     expect(STATIC_REGIONS.filter((r) => r.active).map((r) => r.id)).toEqual(['vorarlberg']);
@@ -46,6 +47,8 @@ describe('static register', () => {
       bezirke: getBezirke('bayern'),
       subdivisionLabel: 'Landkreis',
       timezone: 'Europe/Berlin',
+      home: true,
+      macro: 'Südosten',
     });
     expect(getRegionBySlug('steiermark')?.timezone).toBe('Europe/Vienna');
     expect(getRegionBySlug('zuerich')?.timezone).toBe('Europe/Zurich');
@@ -87,8 +90,11 @@ describe('districts per region', () => {
     expect(getBezirke('aargau')).toContain('Aarau');
     expect(getBezirke('genf')).toHaveLength(1);
   });
-  it('every region ships at least one Bezirk / Landkreis', () => {
-    for (const r of STATIC_REGIONS) expect(r.bezirke.length).toBeGreaterThan(0);
+  it('every Bundesland / Kanton ships at least one Bezirk / Landkreis; cultural regions start empty', () => {
+    for (const r of STATIC_REGIONS) {
+      if (r.home) expect(r.bezirke.length).toBeGreaterThan(0);
+      else expect(r.bezirke).toEqual([]);
+    }
   });
   it('has no duplicates or blanks in any list', () => {
     for (const r of STATIC_REGIONS) {

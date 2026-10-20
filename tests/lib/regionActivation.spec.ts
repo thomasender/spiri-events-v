@@ -105,7 +105,7 @@ describe('evaluateRegionActivation / regionActivationStatuses', () => {
       TODAY
     );
     expect(statuses.map((s) => s.regionId)[0]).toBe('vorarlberg');
-    expect(statuses).toHaveLength(51);
+    expect(statuses).toHaveLength(111);
     expect(statuses.find((s) => s.regionId === 'tirol')?.unmet).toEqual([]);
   });
 });
@@ -375,5 +375,65 @@ describe('listRegionActivationHandler', () => {
     await expect(listRegionActivationHandler(call('mod'), w.deps)).rejects.toMatchObject({
       code: 'permission-denied',
     });
+  });
+});
+
+describe('setRegionActiveHandler: regions without districts', () => {
+  it('refuses to activate a cultural region that has no Landkreise yet', async () => {
+    const w = makeWorld({
+      roles: { admin: ADMIN },
+      regions: { vorarlberg: { active: true }, franken: { active: false } },
+    });
+    await expect(
+      setRegionActiveHandler(
+        call('admin', { regionId: 'franken', active: true, override: true }),
+        w.deps
+      )
+    ).rejects.toMatchObject({
+      code: 'failed-precondition',
+      details: { reason: 'no-districts' },
+    });
+    expect(w.regionDocs.get('franken')?.active).toBe(false);
+  });
+
+  it('activates it once the mapping tool gave it districts, even with an override', async () => {
+    const w = makeWorld({
+      roles: { admin: ADMIN },
+      regions: {
+        vorarlberg: { active: true },
+        franken: { active: false, bezirke: ['Roth'], mappingUpdatedAt: 1 },
+      },
+    });
+    const result = await setRegionActiveHandler(
+      call('admin', { regionId: 'franken', active: true, override: true }),
+      w.deps
+    );
+    expect(result).toMatchObject({ changed: true });
+  });
+
+  it('treats an emptied Bundesland (mapping tool wrote []) as empty, a legacy [] as the register list', async () => {
+    const emptied = makeWorld({
+      roles: { admin: ADMIN },
+      regions: {
+        vorarlberg: { active: true },
+        bayern: { active: false, bezirke: [], mappingUpdatedAt: 1 },
+      },
+    });
+    await expect(
+      setRegionActiveHandler(
+        call('admin', { regionId: 'bayern', active: true, override: true }),
+        emptied.deps
+      )
+    ).rejects.toMatchObject({ details: { reason: 'no-districts' } });
+    const legacy = makeWorld({
+      roles: { admin: ADMIN },
+      regions: { vorarlberg: { active: true }, bayern: { active: false, bezirke: [] } },
+    });
+    await expect(
+      setRegionActiveHandler(
+        call('admin', { regionId: 'bayern', active: true, override: true }),
+        legacy.deps
+      )
+    ).resolves.toMatchObject({ changed: true });
   });
 });
