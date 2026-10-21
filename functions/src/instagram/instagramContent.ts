@@ -127,13 +127,15 @@ export function parseInstagramImageChoice(value: unknown): InstagramImageChoice 
 
 /**
  * Picture and crop for a story about one event: the organizer's Instagram pick
- * if there is one, otherwise the event picture with the crop (focal point and
+ * if it is a different photo than the cover, otherwise the event picture with the crop (focal point and
  * zoom) the organizer set in the event form. Null without a usable picture.
  */
 export function resolveEventImageChoice(event: InstagramEventInput): InstagramImageChoice | null {
   const picked = parseInstagramImageChoice(event.instagramImage);
-  if (picked) return picked;
   const url = asString(event.imageUrl);
+  // Picking the cover photo for Instagram only stores a centred default crop;
+  // the story shows the crop the organizer set for the calendar instead.
+  if (picked && picked.url !== url) return picked;
   if (!/^https:\/\//i.test(url)) return null;
   const focal =
     event.imageFocalPoint && typeof event.imageFocalPoint === 'object'
