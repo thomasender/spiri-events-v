@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Lock } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useRegions } from '../hooks/useRegions';
@@ -15,6 +15,7 @@ import {
   mappingErrorMessage,
   planMappingChange,
 } from '../utils/regionMapping';
+import { suggestedMoves } from '../data/regionSuggestion';
 import { foldSearchText } from '../utils/regionSearch';
 import { getStaffAccess } from '../utils/staffRoles';
 import ConfirmDialog from './ConfirmDialog';
@@ -56,7 +57,7 @@ export default function RegionMappingTab() {
   const { role, staffRegionIds } = useAuth();
   const isSuperAdmin = getStaffAccess(role, staffRegionIds).isSuperAdmin;
   const { regions } = useRegions();
-  const { locks, loading, error, reload, save } = useRegionMapping(isSuperAdmin);
+  const { locks, loading, error, reload, save, rename } = useRegionMapping(isSuperAdmin);
 
   const [country, setCountry] = useState('DE');
   const [search, setSearch] = useState('');
@@ -69,6 +70,9 @@ export default function RegionMappingTab() {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState(null);
   const [openStates, setOpenStates] = useState(() => new Set());
+  const [renameId, setRenameId] = useState('');
+  const [renameName, setRenameName] = useState('');
+  const dragKeys = useRef([]);
 
   const baseAssignment = useMemo(() => currentAssignment(regions), [regions]);
   const moves = useMemo(
@@ -111,6 +115,9 @@ export default function RegionMappingTab() {
     regions
   );
   const groups = regionGroups(country, regions, countOf);
+  // Germany: districts that still sit in their Bundesland, i.e. in no cultural region yet.
+  const unassigned =
+    country === 'DE' ? districts.filter((d) => regionById.get(effectiveRegionId(d.key))?.home) : [];
 
   const toggle = (key) =>
     setSelected((prev) => {
@@ -150,18 +157,63 @@ export default function RegionMappingTab() {
     setTarget('');
   };
 
-  const stage = () => {
-    if (!target || selected.size === 0) return;
+  const stageKeys = (keys, regionId) => {
+    if (!regionId || keys.length === 0) return;
     setNotice(null);
     setDraft((prev) => {
       const next = new Map(prev);
-      for (const key of selected) {
-        if (baseAssignment.get(key) === target) next.delete(key);
-        else next.set(key, target);
+      for (const key of keys) {
+        if (baseAssignment.get(key) === regionId) next.delete(key);
+        else next.set(key, regionId);
       }
       return next;
     });
     setSelected(new Set());
+  };
+  const stage = () => stageKeys([...selected], target);
+
+  // The prepared assignment (src/data/regionSuggestion.js) is only staged, like a manual
+  // move: the admin reviews it, changes what does not fit and saves. Locked districts stay.
+  const loadSuggestion = () => {
+    const moves = suggestedMoves().filter((m) => !locks[m.districtKey]);
+    setNotice(null);
+    setDraft((prev) => {
+      const next = new Map(prev);
+      for (const { districtKey, toRegionId } of moves) {
+        if (baseAssignment.get(districtKey) === toRegionId) next.delete(districtKey);
+        else next.set(districtKey, toRegionId);
+      }
+      return next;
+    });
+    setSelected(new Set());
+  };
+
+  // Drag and drop: a row (or a selected row: the whole selection) onto a region.
+  const onDragStartDistrict = (e, key) => {
+    dragKeys.current = selected.has(key) ? [...selected] : [key];
+    e.dataTransfer?.setData?.('text/plain', dragKeys.current.join(', '));
+    if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+  };
+  const onDropRegion = (e, regionId) => {
+    e.preventDefault();
+    stageKeys(dragKeys.current, regionId);
+    dragKeys.current = [];
+  };
+
+  const doRename = async () => {
+    setBusy(true);
+    setNotice(null);
+    try {
+      await rename(renameId, renameName);
+      setNotice({ kind: 'success', text: 'Der Name ist geändert.' });
+      setRenameId('');
+      setRenameName('');
+    } catch (err) {
+      console.error('Renaming region failed:', err);
+      setNotice({ kind: 'error', text: 'Das Umbenennen hat leider nicht geklappt.' });
+    } finally {
+      setBusy(false);
+    }
   };
 
   const discard = () => {
@@ -203,7 +255,7 @@ export default function RegionMappingTab() {
           <ul>
             <li>
               Landkreise und Bezirke einer anderen Region im selben Land zuordnen, auch über
-              Bundesland-Grenzen hinweg (z. B. Tauberfranken).
+              Bundesland-Grenzen hinweg (z. B. Tauberfranken), per Ziehen oder Auswählen.
             </li>
             <li>
               Viele auf einmal verschieben: mit Suche, Filter und „Alle angezeigten auswählen“.
@@ -235,8 +287,8 @@ export default function RegionMappingTab() {
               freischalten.
             </li>
             <li>
-              Neue Regionen anlegen oder umbenennen. Das macht das Technik-Team. Die Regionen aus
-              deiner Liste sind schon angelegt.
+              Neue Regionen anlegen. Das macht das Technik-Team. Die Regionen aus deiner Liste sind
+              schon angelegt, umbenennen kannst du sie selbst.
             </li>
             <li>Die Karte zeigt die neuen Regionen noch nicht als eigene Fläche.</li>
           </ul>
@@ -276,6 +328,124 @@ export default function RegionMappingTab() {
           ))}
         </div>
       )}
+
+      <div className="mapping-suggestion">
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={loadSuggestion}
+          disabled={busy}
+          data-testid="mapping-suggestion"
+        >
+          Vorschlag laden
+        </button>
+        <span className="moderation-hint">
+          Ordnet die Landkreise und Städte den Regionen zu. Du siehst es zuerst nur als Entwurf,
+          ändern kannst du danach alles.
+        </span>
+      </div>
+
+      {unassigned.length > 0 && (
+        <details className="mapping-unassigned" data-testid="mapping-unassigned" open>
+          <summary>
+            <strong>Noch ohne Region</strong>{' '}
+            <span className="mapping-count">({unassigned.length})</span>
+          </summary>
+          <ul className="mapping-chips">
+            {unassigned.map((d) => (
+              <li
+                key={d.key}
+                className="mapping-chip"
+                draggable={selectable(d)}
+                onDragStart={(e) => onDragStartDistrict(e, d.key)}
+                data-testid="mapping-unassigned-item"
+              >
+                {d.name}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+
+      <details className="mapping-drop" data-testid="mapping-drop" open>
+        <summary>
+          <strong>Regionen</strong>
+          <span className="moderation-hint"> Ziehe Einträge hierher, um sie zuzuordnen.</span>
+        </summary>
+        {groups.map((g) => (
+          <div key={g.label} className="mapping-drop-group">
+            <h4>{g.label}</h4>
+            <div className="mapping-drop-targets">
+              {g.options.map((o) => (
+                <div
+                  key={o.id}
+                  className="mapping-drop-target"
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => onDropRegion(e, o.id)}
+                  data-testid={`mapping-drop-${o.id}`}
+                >
+                  {o.label}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </details>
+
+      <details className="mapping-rename">
+        <summary>
+          <strong>Region umbenennen</strong>
+        </summary>
+        <div className="mapping-move">
+          <label className="mapping-field">
+            <span>Region</span>
+            <select
+              value={renameId}
+              onChange={(e) => {
+                setRenameId(e.target.value);
+                setRenameName(regionById.get(e.target.value)?.name ?? '');
+              }}
+              data-testid="mapping-rename-region"
+            >
+              <option value="">Region wählen …</option>
+              {groups.map((g) => (
+                <optgroup key={g.label} label={g.label}>
+                  {g.options.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {regionById.get(o.id)?.name}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </label>
+          <label className="mapping-field">
+            <span>Neuer Name</span>
+            <input
+              type="text"
+              value={renameName}
+              maxLength={100}
+              onChange={(e) => setRenameName(e.target.value)}
+              disabled={!renameId}
+              data-testid="mapping-rename-name"
+            />
+          </label>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={doRename}
+            disabled={
+              busy ||
+              !renameId ||
+              !renameName.trim() ||
+              renameName.trim() === regionById.get(renameId)?.name
+            }
+            data-testid="mapping-rename-save"
+          >
+            Umbenennen
+          </button>
+        </div>
+      </details>
 
       <div className="mapping-filters">
         <label className="mapping-field">
@@ -434,7 +604,12 @@ export default function RegionMappingTab() {
                 const moved = draft.has(d.key);
                 const locked = Boolean(locks[d.key]);
                 return (
-                  <li key={d.key} className={`mapping-item${moved ? ' mapping-item--moved' : ''}`}>
+                  <li
+                    key={d.key}
+                    className={`mapping-item${moved ? ' mapping-item--moved' : ''}`}
+                    draggable={!locked}
+                    onDragStart={(e) => onDragStartDistrict(e, d.key)}
+                  >
                     <label>
                       <input
                         type="checkbox"

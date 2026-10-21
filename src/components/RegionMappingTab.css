@@ -220,3 +220,65 @@
 .mapping-info-card li + li {
   margin-top: 4px;
 }
+
+.mapping-suggestion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+}
+
+.mapping-unassigned,
+.mapping-drop,
+.mapping-rename {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  padding: 10px 14px;
+}
+
+.mapping-unassigned summary,
+.mapping-drop summary,
+.mapping-rename summary {
+  cursor: pointer;
+}
+
+.mapping-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mapping-chip,
+.mapping-item[draggable='true'] {
+  cursor: grab;
+}
+
+.mapping-chip {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-primary);
+}
+
+.mapping-drop-group h4 {
+  margin: 12px 0 6px;
+  font-size: 0.9rem;
+}
+
+.mapping-drop-targets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mapping-drop-target {
+  padding: 8px 12px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  font-size: 0.9rem;
+}

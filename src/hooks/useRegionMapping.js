@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { httpsCallable } from 'firebase/functions';
-import { functions } from '../lib/firebase';
+import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { db, functions } from '../lib/firebase';
 import { refreshRegions } from './useRegions';
 
 /**
@@ -41,7 +42,18 @@ export function useRegionMapping(enabled) {
     [load]
   );
 
-  return { locks, loading, error, reload: load, save };
+  // Display name only (the slug and the wording tables stay). The region doc may not
+  // exist yet (it is created on the first mapping save), so merge instead of update.
+  const rename = useCallback(async (regionId, name) => {
+    await setDoc(
+      doc(db, 'regions', regionId),
+      { name: name.trim(), slug: regionId, updatedAt: serverTimestamp() },
+      { merge: true }
+    );
+    await refreshRegions();
+  }, []);
+
+  return { locks, loading, error, reload: load, save, rename };
 }
 
 /** Plain German text for a failed adminSaveRegionMapping / adminGetRegionMappingLocks call. */

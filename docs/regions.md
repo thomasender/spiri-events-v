@@ -175,7 +175,13 @@ regions of one country; the lists are saved in `regions/{id}.bezirke` (+ `mappin
   its region (`events-in-district`); moving INTO a region is always allowed. So the mapping
   is meant to be arranged BEFORE a region gets events. Directory profiles (`directoryRegionIds`
   / `directoryRegions`) are not checked; there are none outside Vorarlberg before launch.
-- **Adding or renaming a region** (new slug) is still a developer step: edit the
+- **Prefill, drag and drop, rename:** "Vorschlag laden" stages the prepared assignment
+  `src/data/regionSuggestion.js` (region slug -> Landkreis names, guarded by
+  `regionSuggestion.spec.ts`) as a normal draft, locked districts skipped; rows and the
+  "Noch ohne Region" chips (districts still in their Bundesland) can be dragged onto a region
+  in the "Regionen" panel. "Region umbenennen" writes only `regions/{id}.name` (client `setDoc`
+  merge, allowed by `isValidRegion`); slug and wording tables stay.
+- **Adding a region** (new slug) is still a developer step: edit the
   `CULTURE_REGIONS` table in `scripts/build-region-data.mjs`, regenerate, update the id
   list in `firestore.rules` (guarded by `regions.spec.ts`), seed the doc and run
   `check-reserved-usernames.mjs` read-only against production (the slugs are reserved).

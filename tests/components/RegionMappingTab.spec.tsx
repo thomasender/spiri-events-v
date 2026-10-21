@@ -11,9 +11,17 @@ const state = vi.hoisted(() => ({
   saveError: null as null | { code: string; details?: unknown },
   refreshes: 0,
   active: { vorarlberg: true } as Record<string, boolean>,
+  renames: [] as Array<{ id: string; data: Record<string, unknown> }>,
 }));
 
-vi.mock('../../src/lib/firebase', () => ({ functions: {} }));
+vi.mock('../../src/lib/firebase', () => ({ functions: {}, db: {} }));
+vi.mock('firebase/firestore', () => ({
+  doc: (_db: unknown, _col: string, id: string) => ({ id }),
+  serverTimestamp: () => 'ts',
+  setDoc: async (ref: { id: string }, data: Record<string, unknown>) => {
+    state.renames.push({ id: ref.id, data });
+  },
+}));
 vi.mock('firebase/functions', () => ({
   httpsCallable: (_fns: unknown, name: string) => async (data: unknown) => {
     if (name === 'adminGetRegionMappingLocks') return { data: { locks: state.locks } };
@@ -46,6 +54,7 @@ beforeEach(() => {
   state.saveError = null;
   state.refreshes = 0;
   state.active = { vorarlberg: true };
+  state.renames = [];
 });
 
 const check = (name: string) => screen.getByRole('checkbox', { name });
@@ -59,6 +68,72 @@ async function stageToFranken(names: string[]) {
   fireEvent.change(screen.getByTestId('mapping-target'), { target: { value: 'franken' } });
   fireEvent.click(screen.getByTestId('mapping-stage'));
 }
+
+describe('RegionMappingTab: prefill, drag and drop, rename', () => {
+  it('"Vorschlag laden" stages the prepared assignment as a draft, nothing is saved', () => {
+    render(<RegionMappingTab />);
+    fireEvent.click(screen.getByTestId('mapping-suggestion'));
+    expect(screen.getByTestId('mapping-draft')).toBeInTheDocument();
+    expect(regionOf('Roth')).toHaveTextContent('Franken');
+    expect(regionOf('Main-Tauber-Kreis')).toHaveTextContent('Tauberfranken');
+    expect(state.saves).toHaveLength(0);
+  });
+
+  it('the suggestion skips districts that already have events', async () => {
+    state.locks = { 'DE|Roth': 3 };
+    render(<RegionMappingTab />);
+    fireEvent.click(screen.getByTestId('mapping-state-bayern').querySelector('summary')!);
+    await screen.findByText(/3 Events/);
+    fireEvent.click(screen.getByTestId('mapping-suggestion'));
+    expect(regionOf('Roth')).toHaveTextContent('Bayern');
+    expect(regionOf('Kitzingen')).toHaveTextContent('Franken');
+  });
+
+  it('lists districts without a cultural region separately, also cities without a Landkreis', () => {
+    render(<RegionMappingTab />);
+    const box = screen.getByTestId('mapping-unassigned');
+    expect(box).toHaveTextContent('Berlin');
+    expect(box).toHaveTextContent('Hamburg');
+    expect(box).toHaveTextContent('Stuttgart');
+    fireEvent.click(screen.getByTestId('mapping-suggestion'));
+    const after = screen.getByTestId('mapping-unassigned');
+    expect(after).toHaveTextContent('Berlin');
+    expect(after).not.toHaveTextContent('Stuttgart');
+  });
+
+  it('dragging a district onto a region stages the move', () => {
+    render(<RegionMappingTab />);
+    const row = screen.getByRole('checkbox', { name: 'Roth' }).closest('li') as HTMLElement;
+    fireEvent.dragStart(row);
+    fireEvent.drop(screen.getByTestId('mapping-drop-franken'));
+    expect(regionOf('Roth')).toHaveTextContent('Franken');
+    expect(screen.getByTestId('mapping-draft')).toHaveTextContent('Franken: +1');
+  });
+
+  it('dragging a selected district moves the whole selection', () => {
+    render(<RegionMappingTab />);
+    fireEvent.click(check('Roth'));
+    fireEvent.click(check('Kitzingen'));
+    const row = check('Roth').closest('li') as HTMLElement;
+    fireEvent.dragStart(row);
+    fireEvent.drop(screen.getByTestId('mapping-drop-franken'));
+    expect(regionOf('Kitzingen')).toHaveTextContent('Franken');
+    expect(regionOf('Roth')).toHaveTextContent('Franken');
+  });
+
+  it('renames a region (display name only)', async () => {
+    render(<RegionMappingTab />);
+    fireEvent.change(screen.getByTestId('mapping-rename-region'), { target: { value: 'franken' } });
+    fireEvent.change(screen.getByTestId('mapping-rename-name'), {
+      target: { value: 'Fränkische Lande' },
+    });
+    fireEvent.click(screen.getByTestId('mapping-rename-save'));
+    await waitFor(() => expect(state.renames).toHaveLength(1));
+    expect(state.renames[0].id).toBe('franken');
+    expect(state.renames[0].data).toMatchObject({ name: 'Fränkische Lande', slug: 'franken' });
+    expect(await screen.findByText('Der Name ist geändert.')).toBeInTheDocument();
+  });
+});
 
 describe('RegionMappingTab', () => {
   it('renders nothing for moderators and normal users', () => {
