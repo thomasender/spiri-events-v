@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowDown, Flame, Send, Smile } from 'lucide-react';
+import { ArrowDown, Flame } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
 import ChatMessage from '../components/chat/ChatMessage';
-import EmojiPicker from '../components/chat/EmojiPicker';
+import MessageComposer from '../components/chat/MessageComposer';
+import MemberCard from '../components/messenger/MemberCard';
 import ConfirmDialog from '../components/ConfirmDialog';
 import EmailVerificationModal from '../components/EmailVerificationModal';
 import ErrorPage from './ErrorPage';
@@ -12,22 +13,11 @@ import { useChat } from '../hooks/useChat';
 import { useChatAccess } from '../hooks/useChatSettings';
 import { useChatHeartbeat, useChatPresence } from '../hooks/useChatPresence';
 import {
-  CHAT_MAX_LENGTH,
   CHAT_RETENTION_DAYS,
-  chatTextLength,
   describeOnline,
   describeChatBan,
   isChatBanActive,
 } from '../utils/chat';
-import {
-  MAX_EMOJI_SUGGESTIONS,
-  exactShortcode,
-  findShortcodeToken,
-  loadEmojiIndex,
-  replaceToken,
-  searchEmojis,
-} from '../utils/emojiSearch';
-import { replaceEmoticonBeforeCaret, replaceTrailingEmoticon } from '../utils/emoticons';
 import './ChatPage.css';
 
 const RULES_KEY = 'chatRulesAccepted';
@@ -76,7 +66,7 @@ function ChatRules({ onAccept }) {
 
 const PRESENCE_AVATARS = 10;
 
-function WhoIsHere({ online, selfUid }) {
+function WhoIsHere({ online, selfUid, onOpenMember }) {
   if (online.length === 0) return null;
   const others = online.filter((m) => m.uid !== selfUid);
   const label =
@@ -88,17 +78,36 @@ function WhoIsHere({ online, selfUid }) {
       <ul className="chat-presence-avatars" aria-label="Gerade im Chat">
         {online.slice(0, PRESENCE_AVATARS).map((m) => (
           <li key={m.uid} title={m.name}>
-            {m.photoURL ? (
-              <img className="chat-presence-avatar" src={m.photoURL} alt={m.name} loading="lazy" />
-            ) : (
-              <span
-                className="chat-presence-avatar chat-presence-avatar--fallback"
-                role="img"
-                aria-label={m.name}
-              >
-                {m.name.trim().charAt(0).toUpperCase()}
-              </span>
-            )}
+            {(() => {
+              const avatar = m.photoURL ? (
+                <img
+                  className="chat-presence-avatar"
+                  src={m.photoURL}
+                  alt={m.name}
+                  loading="lazy"
+                />
+              ) : (
+                <span
+                  className="chat-presence-avatar chat-presence-avatar--fallback"
+                  role="img"
+                  aria-label={m.name}
+                >
+                  {m.name.trim().charAt(0).toUpperCase()}
+                </span>
+              );
+              return m.uid === selfUid ? (
+                avatar
+              ) : (
+                <button
+                  type="button"
+                  className="chat-member-button"
+                  onClick={() => onOpenMember({ uid: m.uid, name: m.name, photoURL: m.photoURL })}
+                  aria-label={`${m.name} ansehen`}
+                >
+                  {avatar}
+                </button>
+              );
+            })()}
           </li>
         ))}
         {online.length > PRESENCE_AVATARS && (
@@ -118,43 +127,22 @@ function ChatRoom() {
   const isAdmin = role === 'Admin';
   const { messages, loading, error, sending, ban, canLoadMore, loadOlder, send, remove, report } =
     useChat();
-  const [draft, setDraft] = useState('');
-  const [sendError, setSendError] = useState('');
   const [notice, setNotice] = useState('');
-  const [emojiOpen, setEmojiOpen] = useState(false);
   const [rulesAccepted, setRulesAccepted] = useState(readRulesAccepted);
   const [toDelete, setToDelete] = useState(null);
   const [toReport, setToReport] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [memberCard, setMemberCard] = useState(null);
   const [unseen, setUnseen] = useState(0);
   const listRef = useRef(null);
-  const inputRef = useRef(null);
   const stickToBottom = useRef(true);
   const lastCount = useRef(0);
   const lastId = useRef(null);
   const prependFrom = useRef(null);
-  const emojiWrapRef = useRef(null);
-  const autoReplaced = useRef(null);
   useChatHeartbeat(true);
   const { online } = useChatPresence(true);
-  const [emojiIndex, setEmojiIndex] = useState(null);
-  const [caret, setCaret] = useState(0);
-  const [activeSuggestion, setActiveSuggestion] = useState(0);
-  const [dismissedAt, setDismissedAt] = useState(-1);
 
   const banned = isChatBanActive(ban);
-  const length = chatTextLength(draft);
-  const tooLong = length > CHAT_MAX_LENGTH;
-
-  // ":fire" before the caret offers matching emoji (German names and English
-  // shortcodes); the index loads when the first colon is typed.
-  const token = findShortcodeToken(draft, caret);
-  const suggestions =
-    token && emojiIndex && token.start !== dismissedAt
-      ? searchEmojis(emojiIndex, token.query, MAX_EMOJI_SUGGESTIONS)
-      : [];
-  const suggestionsOpen = suggestions.length > 0;
-
   const scrollToBottom = useCallback(() => {
     const el = listRef.current;
     if (el) el.scrollTop = el.scrollHeight;
@@ -200,37 +188,6 @@ function ChatRoom() {
     return () => clearTimeout(t);
   }, [notice]);
 
-  // Desktop: the cursor is in the message field as soon as it exists. Not on
-  // phones, where it would open the keyboard and cover the conversation.
-  useEffect(() => {
-    if (!rulesAccepted || banned) return;
-    if (window.matchMedia?.('(pointer: fine)').matches) {
-      inputRef.current?.focus({ preventScroll: true });
-    }
-  }, [rulesAccepted, banned]);
-
-  // The emoji finder closes on Escape and on a click or tap outside of it.
-  useEffect(() => {
-    if (!emojiOpen) return undefined;
-    const close = () => setEmojiOpen(false);
-    const onKey = (e) => {
-      if (e.key !== 'Escape') return;
-      close();
-      inputRef.current?.focus({ preventScroll: true });
-    };
-    const onPointer = (e) => {
-      if (!emojiWrapRef.current?.contains(e.target)) close();
-    };
-    document.addEventListener('keydown', onKey);
-    document.addEventListener('mousedown', onPointer);
-    document.addEventListener('touchstart', onPointer);
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.removeEventListener('mousedown', onPointer);
-      document.removeEventListener('touchstart', onPointer);
-    };
-  }, [emojiOpen]);
-
   const acceptRules = () => {
     try {
       window.localStorage.setItem(RULES_KEY, '1');
@@ -238,132 +195,6 @@ function ChatRoom() {
       // Private mode: the rules simply show again next time.
     }
     setRulesAccepted(true);
-  };
-
-  const submit = async (e) => {
-    e?.preventDefault();
-    if (sending || banned || !draft.trim()) return;
-    setSendError('');
-    try {
-      await send(replaceTrailingEmoticon(draft));
-      setDraft('');
-      setEmojiOpen(false);
-      stickToBottom.current = true;
-      inputRef.current?.focus();
-    } catch (err) {
-      setSendError(err?.message || 'Die Nachricht konnte nicht gesendet werden.');
-    }
-  };
-
-  const setCaretFrom = (el) => setCaret(el.selectionStart ?? el.value.length);
-
-  const onDraftChange = (e) => {
-    const el = e.target;
-    let value = el.value;
-    let pos = el.selectionStart ?? value.length;
-    if (value.includes(':') && !emojiIndex)
-      loadEmojiIndex()
-        .then(setEmojiIndex)
-        .catch(() => {});
-    // ":fire:" with the closing colon turns into the emoji right away.
-    const typed = findShortcodeToken(value, pos);
-    if (typed?.closed && emojiIndex) {
-      const exact = exactShortcode(emojiIndex, typed.query);
-      if (exact) {
-        value = replaceToken(value, typed, exact.emoji);
-        pos = typed.start + exact.emoji.length;
-        requestAnimationFrame(() => el.setSelectionRange(pos, pos));
-      }
-    }
-    // ":)" followed by a space becomes the emoji (only while typing, never
-    // when deleting). Backspace right after undoes it.
-    autoReplaced.current = null;
-    if (value.length > draft.length && /\s/.test(value[pos - 1] ?? '')) {
-      const swapped = replaceEmoticonBeforeCaret(value, pos);
-      if (swapped) {
-        autoReplaced.current = {
-          at: swapped.caret,
-          original: swapped.original,
-          replacedLength: swapped.replacedLength,
-        };
-        value = swapped.text;
-        pos = swapped.caret;
-        requestAnimationFrame(() => el.setSelectionRange(pos, pos));
-      }
-    }
-    setDraft(value);
-    setCaret(pos);
-    setActiveSuggestion(0);
-  };
-
-  const pickSuggestion = (emoji) => {
-    if (!token) return;
-    const next = replaceToken(draft, token, emoji);
-    const pos = token.start + emoji.length;
-    setDraft(next);
-    setCaret(pos);
-    setActiveSuggestion(0);
-    requestAnimationFrame(() => {
-      const el = inputRef.current;
-      el?.focus();
-      el?.setSelectionRange(pos, pos);
-    });
-  };
-
-  const onKeyDown = (e) => {
-    const undo = autoReplaced.current;
-    if (
-      e.key === 'Backspace' &&
-      undo &&
-      e.target.selectionStart === undo.at &&
-      e.target.selectionEnd === undo.at
-    ) {
-      e.preventDefault();
-      const from = undo.at - undo.replacedLength;
-      const pos = from + undo.original.length;
-      setDraft(draft.slice(0, from) + undo.original + draft.slice(undo.at));
-      setCaret(pos);
-      autoReplaced.current = null;
-      requestAnimationFrame(() => inputRef.current?.setSelectionRange(pos, pos));
-      return;
-    }
-    if (suggestionsOpen && !e.nativeEvent.isComposing) {
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-        e.preventDefault();
-        const step = e.key === 'ArrowDown' ? 1 : -1;
-        setActiveSuggestion((i) => (i + step + suggestions.length) % suggestions.length);
-        return;
-      }
-      if (e.key === 'Enter' || e.key === 'Tab') {
-        e.preventDefault();
-        pickSuggestion(suggestions[Math.min(activeSuggestion, suggestions.length - 1)].emoji);
-        return;
-      }
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        setDismissedAt(token.start);
-        return;
-      }
-    }
-    // Enter sends, Shift+Enter makes a new line. Never while an IME is composing.
-    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
-      e.preventDefault();
-      submit();
-    }
-  };
-
-  const insertEmoji = (emoji) => {
-    const el = inputRef.current;
-    const start = el?.selectionStart ?? draft.length;
-    const end = el?.selectionEnd ?? draft.length;
-    const next = draft.slice(0, start) + emoji + draft.slice(end);
-    setDraft(next);
-    requestAnimationFrame(() => {
-      if (!el) return;
-      el.focus();
-      const pos = start + emoji.length;
-      el.setSelectionRange(pos, pos);
-    });
   };
 
   const confirmDelete = async () => {
@@ -408,7 +239,7 @@ function ChatRoom() {
 
   return (
     <>
-      <WhoIsHere online={online} selfUid={user?.uid} />
+      <WhoIsHere online={online} selfUid={user?.uid} onOpenMember={setMemberCard} />
       <div className="chat-box">
         <ul
           ref={listRef}
@@ -445,6 +276,13 @@ function ChatRoom() {
               canReport={m.authorUid !== user?.uid}
               onDelete={setToDelete}
               onReport={setToReport}
+              onOpenMember={(msg) =>
+                setMemberCard({
+                  uid: msg.authorUid,
+                  name: msg.authorName,
+                  photoURL: msg.authorPhotoURL,
+                })
+              }
             />
           ))}
         </ul>
@@ -474,95 +312,22 @@ function ChatRoom() {
           {describeChatBan(ban)}
         </p>
       ) : (
-        <form className="chat-form" onSubmit={submit}>
-          {suggestionsOpen && (
-            <ul
-              className="chat-suggestions"
-              id="chat-emoji-suggestions"
-              role="listbox"
-              aria-label="Emoji-Vorschläge"
-              data-testid="chat-suggestions"
-            >
-              {suggestions.map((entry, i) => (
-                <li
-                  key={entry.emoji}
-                  id={`chat-emoji-suggestion-${i}`}
-                  role="option"
-                  aria-selected={i === activeSuggestion}
-                  className={`chat-suggestion${i === activeSuggestion ? ' chat-suggestion--active' : ''}`}
-                  // mousedown keeps the focus in the text field
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    pickSuggestion(entry.emoji);
-                  }}
-                >
-                  <span className="chat-suggestion-emoji">{entry.emoji}</span>
-                  <span className="chat-suggestion-code">:{entry.codes[0] ?? entry.label}</span>
-                  <span className="chat-suggestion-label">{entry.label}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-          <div className="chat-input-row">
-            <div className="chat-emoji-wrap" ref={emojiWrapRef}>
-              <button
-                type="button"
-                className="chat-icon-button"
-                aria-label="Emoji einfügen"
-                aria-expanded={emojiOpen}
-                onClick={() => setEmojiOpen((o) => !o)}
-                data-testid="chat-emoji-toggle"
-              >
-                <Smile size={22} aria-hidden="true" />
-              </button>
-              {emojiOpen && (
-                <EmojiPicker onPick={insertEmoji} onClose={() => setEmojiOpen(false)} />
-              )}
-            </div>
-            <textarea
-              ref={inputRef}
-              className="chat-input"
-              rows={1}
-              value={draft}
-              onChange={onDraftChange}
-              onKeyDown={onKeyDown}
-              onKeyUp={(e) => setCaretFrom(e.target)}
-              onClick={(e) => setCaretFrom(e.target)}
-              role="combobox"
-              aria-expanded={suggestionsOpen}
-              aria-controls="chat-emoji-suggestions"
-              aria-autocomplete="list"
-              aria-activedescendant={
-                suggestionsOpen ? `chat-emoji-suggestion-${activeSuggestion}` : undefined
-              }
-              placeholder="Schreib etwas Nettes…"
-              aria-label="Nachricht"
-              enterKeyHint="send"
-              autoComplete="off"
-              data-testid="chat-input"
-            />
-            <button
-              type="submit"
-              className="btn btn-primary chat-send"
-              disabled={sending || tooLong || !draft.trim()}
-              aria-label="Senden"
-              data-testid="chat-send"
-            >
-              <Send size={18} aria-hidden="true" />
-              <span className="chat-send-label">Senden</span>
-            </button>
-          </div>
-          <div className="chat-form-foot">
-            <span className={`chat-counter${tooLong ? ' chat-counter--over' : ''}`}>
-              {length}/{CHAT_MAX_LENGTH}
-            </span>
-            {sendError && (
-              <span className="chat-send-error" role="alert" data-testid="chat-send-error">
-                {sendError}
-              </span>
-            )}
-          </div>
-        </form>
+        <MessageComposer
+          onSend={send}
+          sending={sending}
+          onSent={() => {
+            stickToBottom.current = true;
+          }}
+        />
+      )}
+
+      {memberCard && (
+        <MemberCard
+          uid={memberCard.uid}
+          fallbackName={memberCard.name}
+          fallbackPhotoURL={memberCard.photoURL}
+          onClose={() => setMemberCard(null)}
+        />
       )}
 
       <ConfirmDialog

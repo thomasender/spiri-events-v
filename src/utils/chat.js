@@ -49,14 +49,14 @@ export function chatTextLength(text) {
 }
 
 // Returns { ok, text, error } for text the user wants to send.
-export function validateChatText(raw) {
+export function validateChatText(raw, max = CHAT_MAX_LENGTH) {
   const text = normalizeChatText(raw);
   if (!text) return { ok: false, text, error: 'Die Nachricht ist leer.' };
-  if (chatTextLength(text) > CHAT_MAX_LENGTH) {
+  if (chatTextLength(text) > max) {
     return {
       ok: false,
       text,
-      error: `Die Nachricht darf höchstens ${CHAT_MAX_LENGTH} Zeichen lang sein.`,
+      error: `Die Nachricht darf höchstens ${max} Zeichen lang sein.`,
     };
   }
   return { ok: true, text, error: null };

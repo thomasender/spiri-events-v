@@ -38,10 +38,15 @@ vi.mock('../../src/hooks/useUnreadMessageCount', () => ({
   useUnreadMessageCount: () => mockUseUnread,
 }));
 
-const mockChat = vi.hoisted(() => ({ available: false, online: 0 }));
+const mockChat = vi.hoisted(() => ({ available: false, online: 0, dm: false, unread: 0 }));
 
 vi.mock('../../src/hooks/useChatSettings', () => ({
   useChatAccess: () => ({ available: mockChat.available, mode: 'off', loading: false }),
+  useMessengerAccess: () => ({ available: mockChat.dm, mode: 'off', loading: false }),
+}));
+
+vi.mock('../../src/hooks/useMessenger', () => ({
+  useThreads: () => ({ threads: [], loading: false, unreadCount: mockChat.unread }),
 }));
 
 vi.mock('../../src/hooks/useChatPresence', () => ({
@@ -57,6 +62,8 @@ beforeEach(() => {
   mockUseUnread.loading = false;
   mockChat.available = false;
   mockChat.online = 0;
+  mockChat.dm = false;
+  mockChat.unread = 0;
 });
 
 describe('Header (logged out)', () => {
@@ -1068,5 +1075,40 @@ describe('Header: Lagerfeuer chat link', () => {
     renderHeader();
     expect(screen.getAllByTestId('nav-chat').length).toBeGreaterThan(0);
     expect(screen.queryByTestId('chat-online-badge')).toBeNull();
+  });
+});
+
+describe('Header: Postfach link', () => {
+  const renderHeader = () =>
+    render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+  it('is hidden while the messenger is closed', () => {
+    mockAuth.user = { uid: 'u1' };
+    renderHeader();
+    expect(screen.queryByTestId('nav-messenger')).toBeNull();
+  });
+
+  it('shows a bubble with the number of unread conversations', () => {
+    mockAuth.user = { uid: 'u1' };
+    mockChat.dm = true;
+    mockChat.unread = 2;
+    renderHeader();
+    expect(screen.getAllByTestId('messenger-unread-badge')[0]).toHaveTextContent('2');
+    expect(screen.getAllByTestId('nav-messenger')[0]).toHaveAttribute(
+      'aria-label',
+      'Postfach (2 ungelesene Unterhaltungen)'
+    );
+  });
+
+  it('shows the link without a bubble when everything is read', () => {
+    mockAuth.user = { uid: 'u1' };
+    mockChat.dm = true;
+    renderHeader();
+    expect(screen.getAllByTestId('nav-messenger').length).toBeGreaterThan(0);
+    expect(screen.queryByTestId('messenger-unread-badge')).toBeNull();
   });
 });

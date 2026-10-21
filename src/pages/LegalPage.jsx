@@ -50,6 +50,9 @@ Nach der Freigabe sind die Angaben zum Event, einschließlich Veranstalter-Name 
 *Bei Nutzung des Community-Chats (nur mit Login und bestätigter E-Mail-Adresse):*
 - Ihre Chat-Nachrichten, Ihr Anzeigename und Ihr Profilfoto sowie Zeitpunkt des Sendens (siehe Abschnitt 14)
 
+*Bei Nutzung der Privatnachrichten (nur mit Login und bestätigter E-Mail-Adresse):*
+- Ihre Privatnachrichten, deren Zeitpunkt, die Konto-Kennungen der beiden Beteiligten sowie Ihre Einstellungen dazu (siehe Abschnitt 15)
+
 *Beim Aufruf der Website:*
 - Technische Zugriffsdaten in Server-Protokollen (siehe Abschnitt 9)`,
       },
@@ -87,6 +90,7 @@ Wenn Sie den Kalender in einer Kalender-App oder bei einem Kalenderdienst (z.B. 
 - *Events:* Werden gelöscht, wenn Sie diese löschen oder Ihr Konto entfernen lassen
 - *Kalender-Schlüssel:* Wird gelöscht, sobald Sie Ihr Konto löschen; wenn Sie einen neuen Kalender-Link erzeugen, wird der alte Schlüssel ersetzt
 - *Chat-Nachrichten:* Werden automatisch nach 10 Tagen gelöscht, beim Löschen Ihres Kontos sofort (siehe Abschnitt 14)
+- *Privatnachrichten:* Werden automatisch nach 90 Tagen gelöscht, beim Löschen Ihres Kontos werden Ihre Nachrichten sofort entfernt (siehe Abschnitt 15)
 - *Server-Protokolle:* Siehe Abschnitt 9
 
 Nach einer Löschunganfrage werden die Daten innerhalb von 30 Tagen entfernt.`,
@@ -256,7 +260,35 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
 *Ihre Rechte:* Sie können jederzeit Auskunft über Ihre Chat-Daten verlangen und der Verarbeitung widersprechen (siehe Abschnitt 6). Möchten Sie, dass eine Nachricht von Ihnen vorzeitig entfernt wird, löschen Sie sie selbst im Chat oder schreiben Sie uns an admin@thetribe.at.`,
       },
       {
-        heading: '15. Änderungen dieser Datenschutzerklärung',
+        heading: '15. Privatnachrichten (Postfach, nur mit Login)',
+        text: `Angemeldete Nutzer:innen mit bestätigter E-Mail-Adresse können anderen Mitgliedern Privatnachrichten schreiben. Die Funktion steht nur mit Login zur Verfügung.
+
+*Welche Daten verarbeiten wir?*
+- Den Text Ihrer Nachrichten (inkl. Emojis), den Zeitpunkt, die Konto-Kennungen der beiden Beteiligten, einen kurzen Ausschnitt der letzten Nachricht für die Übersicht sowie den Zeitpunkt, bis zu dem eine Person die Unterhaltung gelesen hat (für die Anzeige „ungelesen“)
+- Ihre Einstellung, ob Sie Privatnachrichten annehmen, und Ihre Liste blockierter Mitglieder. Diese Liste ist nur für Sie sichtbar
+- Zur Begrenzung von Spam: Zeitpunkt und Anzahl der von Ihnen begonnenen Unterhaltungen pro Tag
+
+*Wer kann die Nachrichten lesen?*
+- Nur die beiden Beteiligten. **Die Administrator:innen können Privatnachrichten nicht lesen.**
+- Melden eine Person eine Unterhaltung, werden die letzten Nachrichten dieser Unterhaltung (bis zu sechs) als Kopie an die Administrator:innen übermittelt, damit diese über Maßnahmen entscheiden können. Nur diese Kopie ist für sie lesbar. Bei einer Meldung erhalten die Administrator:innen eine E-Mail, die keine Nachrichtentexte enthält
+- Bitte schicken Sie keine sensiblen Daten, insbesondere keine Gesundheitsdaten (Art. 9 DSGVO). Die Nachrichten werden zwar nur für die Beteiligten freigegeben, sind aber nicht Ende-zu-Ende-verschlüsselt: Der Betreiber (Google Cloud Firestore) speichert sie in lesbarer Form auf den Servern
+
+*Ihre Kontrolle:*
+- Sie können Privatnachrichten in Ihrem Postfach ausschalten, Mitglieder blockieren (die blockierte Person erfährt das nicht und kann Ihnen nicht mehr schreiben) und eigene Nachrichten jederzeit löschen. Gelöscht ist sie dann bei beiden Beteiligten
+
+*Speicherdauer:*
+- Privatnachrichten werden automatisch nach 90 Tagen gelöscht
+- Beim Löschen Ihres Kontos werden Ihre Nachrichten, Ihre Einstellung und Ihre Blockierliste gelöscht. Nachrichten der anderen Person bleiben für diese bis zur automatischen Löschung bestehen; Ihr Name wird dann durch „Gelöschtes Mitglied“ ersetzt
+- Meldungen werden spätestens nach 30 Tagen gelöscht
+
+*Rechtsgrundlage:* Die Zustellung und Anzeige der Nachrichten erfolgt, weil Sie die Funktion nutzen (Art. 6 Abs. 1 lit. b DSGVO). Spam-Schutz, Moderation und die Bearbeitung von Meldungen beruhen auf unserem berechtigten Interesse, die Funktion sicher und frei von Missbrauch zu halten (Art. 6 Abs. 1 lit. f DSGVO). Ein vom Chat verhängter Ausschluss gilt auch für Privatnachrichten.
+
+*Verarbeitung:* Die Daten werden in Google Cloud Firestore (Firebase) gespeichert (siehe Abschnitt 9). Wir geben sie nicht an Dritte weiter und nutzen sie nicht für Werbung oder Statistik. Wir senden keine E-Mail-Benachrichtigungen über neue Privatnachrichten.
+
+*Ihre Rechte:* Siehe Abschnitt 6. Auskunft über Ihre Privatnachrichten erhalten Sie auf Anfrage an admin@thetribe.at.`,
+      },
+      {
+        heading: '16. Änderungen dieser Datenschutzerklärung',
         text: `Wir behalten uns vor, diese Datenschutzerklärung bei Änderungen der App oder der Rechtslage anzupassen. Die jeweils aktuelle Version finden Sie immer auf dieser Seite.`,
       },
     ],

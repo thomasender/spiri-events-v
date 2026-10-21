@@ -692,6 +692,202 @@ service cloud.firestore {
                     && request.auth.uid == uid;
     }
 
+    // ---- Private messenger "Postfach" (docs/messenger.md) -------------------
+    // Feature flag: app_settings/messenger { mode: 'off' | 'admins' | 'all' },
+    // same semantics as the chat flag. A missing doc means off.
+    match /app_settings/messenger {
+      allow create: if isChatStaff()
+                    && request.resource.data.keys().hasOnly(['mode', 'updatedAt', 'updatedBy'])
+                    && request.resource.data.mode in ['off', 'admins', 'all'];
+      allow update: if isChatStaff()
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['mode', 'updatedAt', 'updatedBy'])
+                    && request.resource.data.mode in ['off', 'admins', 'all'];
+      allow delete: if isChatStaff();
+    }
+
+    function messengerMode() {
+      return exists(/databases/$(database)/documents/app_settings/messenger)
+        ? get(/databases/$(database)/documents/app_settings/messenger).data.get('mode', 'off')
+        : 'off';
+    }
+
+    function messengerAccessible() {
+      return isAuthenticated()
+        && request.auth.token.email_verified == true
+        && (messengerMode() == 'all' || (messengerMode() == 'admins' && isChatStaff()));
+    }
+
+    // Admins can NOT read private messages (no isChatStaff() on reads). They
+    // only see what a participant reports (dm_reports). A thread is 1:1 and its
+    // id is the two uids, sorted and joined by "_", so membership can be read
+    // off the id without a get().
+    match /dm_threads/{threadId} {
+      function isDmMember() {
+        return request.auth.uid in threadId.split('_');
+      }
+
+      allow get: if messengerAccessible() && isDmMember();
+      allow list: if messengerAccessible() && request.auth.uid in resource.data.participants;
+
+      // The first message creates the thread. Starting threads is limited by
+      // dm_starters (written in the same batch).
+      allow create: if messengerAccessible()
+                    && !isChatBanned(request.auth.uid)
+                    && request.resource.data.keys().hasOnly(
+                      ['participants', 'lastMessageText', 'lastMessageAt', 'lastMessageBy',
+                       'readAt', 'createdAt']
+                    )
+                    && request.resource.data.participants is list
+                    && request.resource.data.participants.size() == 2
+                    && request.auth.uid in request.resource.data.participants
+                    && request.resource.data.participants[0] < request.resource.data.participants[1]
+                    && threadId == request.resource.data.participants[0] + '_'
+                                   + request.resource.data.participants[1]
+                    && request.resource.data.lastMessageBy == request.auth.uid
+                    && request.resource.data.lastMessageAt == request.time
+                    && request.resource.data.createdAt == request.time
+                    && request.resource.data.lastMessageText is string
+                    && request.resource.data.lastMessageText.size() <= 140
+                    && request.resource.data.readAt is map
+                    && request.resource.data.readAt.keys().hasOnly([request.auth.uid])
+                    && getAfter(/databases/$(database)/documents/dm_starters/$(request.auth.uid))
+                         .data.lastThreadAt == request.time;
+
+      // A new message updates the summary in the same batch (2 s cooldown per sender).
+      allow update: if messengerAccessible()
+                    && isDmMember()
+                    && !isChatBanned(request.auth.uid)
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['lastMessageText', 'lastMessageAt', 'lastMessageBy'])
+                    && request.resource.data.lastMessageBy == request.auth.uid
+                    && request.resource.data.lastMessageAt == request.time
+                    && request.resource.data.lastMessageText is string
+                    && request.resource.data.lastMessageText.size() <= 140
+                    // The cooldown applies to the same sender writing again; an answer
+                    // right after the other person's message is fine.
+                    && (resource.data.lastMessageBy != request.auth.uid
+                        || request.time > resource.data.lastMessageAt + duration.value(2, 's'));
+
+      // Opening a conversation marks it read: only your own entry of readAt.
+      allow update: if messengerAccessible()
+                    && isDmMember()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readAt'])
+                    && request.resource.data.readAt.diff(resource.data.readAt).affectedKeys()
+                        .hasOnly([request.auth.uid])
+                    && request.resource.data.readAt[request.auth.uid] == request.time;
+
+      match /messages/{messageId} {
+        function dmOther() {
+          return threadId.split('_')[0] == request.auth.uid
+            ? threadId.split('_')[1]
+            : threadId.split('_')[0];
+        }
+
+        allow read: if messengerAccessible() && request.auth.uid in threadId.split('_');
+
+        allow create: if messengerAccessible()
+                      && request.auth.uid in threadId.split('_')
+                      && !isChatBanned(request.auth.uid)
+                      && request.resource.data.keys().hasOnly(['text', 'authorUid', 'createdAt'])
+                      && request.resource.data.authorUid == request.auth.uid
+                      && request.resource.data.text is string
+                      && request.resource.data.text.size() >= 1
+                      && request.resource.data.text.size() <= 4000
+                      && request.resource.data.createdAt == request.time
+                      && getAfter(/databases/$(database)/documents/dm_threads/$(threadId))
+                           .data.lastMessageAt == request.time
+                      && getAfter(/databases/$(database)/documents/dm_threads/$(threadId))
+                           .data.lastMessageBy == request.auth.uid
+                      // Not blocked by the recipient, and the recipient takes messages.
+                      && !exists(/databases/$(database)/documents/dm_blocks/$(dmOther() + '_' + request.auth.uid))
+                      && !(exists(/databases/$(database)/documents/dm_settings/$(dmOther()))
+                           && get(/databases/$(database)/documents/dm_settings/$(dmOther()))
+                                .data.get('allowDirectMessages', true) == false);
+
+        // Your own messages stay deletable, also when the messenger is off.
+        allow delete: if isAuthenticated() && resource.data.authorUid == request.auth.uid;
+      }
+    }
+
+    // Blocks: id is `${blocker}_${blocked}`. Only the blocker sees and manages them.
+    match /dm_blocks/{blockId} {
+      allow get, list: if isAuthenticated() && resource.data.blocker == request.auth.uid;
+      allow create: if messengerAccessible()
+                    && request.resource.data.keys().hasOnly(['blocker', 'blocked', 'createdAt'])
+                    && request.resource.data.blocker == request.auth.uid
+                    && request.resource.data.blocked is string
+                    && request.resource.data.blocked != request.auth.uid
+                    && blockId == request.auth.uid + '_' + request.resource.data.blocked
+                    && request.resource.data.createdAt == request.time;
+      allow delete: if isAuthenticated() && resource.data.blocker == request.auth.uid;
+    }
+
+    // "Keine Privatnachrichten": readable by chat members so a card can say so.
+    match /dm_settings/{uid} {
+      allow read: if messengerAccessible();
+      allow create, update: if messengerAccessible()
+                            && request.auth.uid == uid
+                            && request.resource.data.keys().hasOnly(['allowDirectMessages', 'updatedAt'])
+                            && request.resource.data.allowDirectMessages is bool;
+      allow delete: if isAuthenticated() && request.auth.uid == uid;
+    }
+
+    // Limits starting new conversations: one per 20 s and 30 per day.
+    match /dm_starters/{uid} {
+      function startersDay() {
+        return int(request.time.toMillis() / 86400000);
+      }
+      function isValidStarter() {
+        return request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['lastThreadAt', 'day', 'count'])
+          && request.resource.data.lastThreadAt == request.time
+          && request.resource.data.day == startersDay();
+      }
+
+      allow get: if isAuthenticated() && request.auth.uid == uid;
+      allow create: if messengerAccessible()
+                    && isValidStarter()
+                    && request.resource.data.count == 1;
+      allow update: if messengerAccessible()
+                    && isValidStarter()
+                    && request.time > resource.data.lastThreadAt + duration.value(20, 's')
+                    && ((resource.data.day == request.resource.data.day
+                         && request.resource.data.count == resource.data.count + 1
+                         && request.resource.data.count <= 30)
+                        || (resource.data.day != request.resource.data.day
+                            && request.resource.data.count == 1));
+      allow delete: if isAuthenticated() && request.auth.uid == uid;
+    }
+
+    // Reports of private messages: the reporter (a participant) copies the
+    // last few messages in. The id is `${threadId}_${reporter}`.
+    match /dm_reports/{reportId} {
+      allow read: if isChatStaff();
+      allow create: if messengerAccessible()
+                    && request.resource.data.keys().hasOnly(
+                      ['threadId', 'reportedBy', 'reportedUid', 'reportedName', 'excerpt',
+                       'status', 'createdAt']
+                    )
+                    && request.resource.data.threadId is string
+                    && request.auth.uid in request.resource.data.threadId.split('_')
+                    && reportId == request.resource.data.threadId + '_' + request.auth.uid
+                    && request.resource.data.reportedBy == request.auth.uid
+                    && request.resource.data.reportedUid in request.resource.data.threadId.split('_')
+                    && request.resource.data.reportedUid != request.auth.uid
+                    && request.resource.data.reportedName is string
+                    && request.resource.data.reportedName.size() <= 80
+                    && request.resource.data.excerpt is string
+                    && request.resource.data.excerpt.size() <= 3000
+                    && request.resource.data.status == 'open'
+                    && request.resource.data.createdAt == request.time;
+      allow update: if isChatStaff()
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['status', 'resolvedAt', 'resolvedBy'])
+                    && request.resource.data.status in ['open', 'resolved'];
+      allow delete: if isChatStaff();
+    }
+
     // Presence ("who sits at the fire"): one heartbeat doc per person who has
     // the chat open. Written about once a minute while the tab is visible and
     // deleted on leaving; readers count docs whose lastSeen is under two

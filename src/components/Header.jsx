@@ -4,7 +4,8 @@ import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
 import { useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
 import { useUnreadFeedbackCount } from '../hooks/useFeedbackList';
-import { useChatAccess } from '../hooks/useChatSettings';
+import { useChatAccess, useMessengerAccess } from '../hooks/useChatSettings';
+import { useThreads } from '../hooks/useMessenger';
 import { useChatPresence } from '../hooks/useChatPresence';
 import EmailVerificationModal from './EmailVerificationModal';
 import AvatarImage from './AvatarImage';
@@ -13,6 +14,7 @@ import {
   Calendar,
   Heart,
   Flame,
+  Mail,
   LogOut,
   User,
   PlusCircle,
@@ -42,6 +44,8 @@ export default function Header() {
   const { count: unreadFeedbackCount } = useUnreadFeedbackCount(isAdmin);
   const { available: chatAvailable } = useChatAccess();
   const { count: chatOnline } = useChatPresence(chatAvailable);
+  const { available: messengerAvailable } = useMessengerAccess();
+  const { unreadCount: dmUnread } = useThreads(messengerAvailable);
   const [menuOpen, setMenuOpen] = useState(false);
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
@@ -240,6 +244,33 @@ export default function Header() {
                 )}
               </span>
               <span>Lagerfeuer</span>
+            </NavLink>
+          )}
+          {messengerAvailable && (
+            <NavLink
+              to="/postfach"
+              className={navClass}
+              onClick={closeMenu}
+              data-testid="nav-messenger"
+              aria-label={
+                dmUnread > 0
+                  ? `Postfach (${dmUnread} ungelesene ${dmUnread === 1 ? 'Unterhaltung' : 'Unterhaltungen'})`
+                  : 'Postfach'
+              }
+            >
+              <span className="nav-link-admin-icon">
+                <Mail size={18} aria-hidden="true" />
+                {dmUnread > 0 && (
+                  <span
+                    className="nav-link-badge"
+                    data-testid="messenger-unread-badge"
+                    aria-hidden="true"
+                  >
+                    {dmUnread > 9 ? '9+' : dmUnread}
+                  </span>
+                )}
+              </span>
+              <span>Postfach</span>
             </NavLink>
           )}
           {renderAdminLink()}

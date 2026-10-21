@@ -6,6 +6,8 @@ import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { ADMIN_MAIL_SECRETS, notifyAdmins } from './adminNotify';
 import {
   CHAT_RESOLVED_REPORT_RETENTION_DAYS,
+  DM_RETENTION_DAYS,
+  buildDmReportMail,
   buildReportMail,
   retentionCutoffMs,
   shouldSendReportMail,
@@ -32,6 +34,46 @@ async function deleteQuery(query: FirebaseFirestore.Query): Promise<number> {
     deleted += snap.size;
     if (snap.size < 400) return deleted;
   }
+}
+
+/**
+ * Private messages live for 90 days: conversations whose last message is older
+ * go entirely, others lose their old messages. Walks the threads in pages.
+ */
+async function purgeDirectMessages(
+  cutoff: Timestamp
+): Promise<{ dmThreads: number; dmMessages: number }> {
+  const db = getFirestore();
+  let dmThreads = 0;
+  let dmMessages = 0;
+  let last: FirebaseFirestore.QueryDocumentSnapshot | undefined;
+  for (;;) {
+    let q = db.collection('dm_threads').orderBy('__name__').limit(200);
+    if (last) q = q.startAfter(last);
+    const page = await q.get();
+    if (page.empty) break;
+    for (const thread of page.docs) {
+      const lastAt = thread.get('lastMessageAt') as Timestamp | undefined;
+      try {
+        if (lastAt && lastAt.toMillis() < cutoff.toMillis()) {
+          await db.recursiveDelete(thread.ref);
+          dmThreads += 1;
+        } else {
+          dmMessages += await deleteQuery(
+            thread.ref.collection('messages').where('createdAt', '<', cutoff)
+          );
+        }
+      } catch (err) {
+        logger.error('Failed to purge private messages', {
+          thread: thread.id,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+    last = page.docs[page.docs.length - 1];
+    if (page.size < 200) break;
+  }
+  return { dmThreads, dmMessages };
 }
 
 /**
@@ -63,9 +105,41 @@ export const purgeChatMessages = onSchedule(
     const reports = await deleteQuery(
       db.collection('chat_reports').where('createdAt', '<', reportCutoff)
     );
-    logger.info('Purged chat data', { messages, members, presence, reports });
+    const starters = await deleteQuery(
+      db
+        .collection('dm_starters')
+        .where('lastThreadAt', '<', Timestamp.fromMillis(now - 2 * 24 * 60 * 60 * 1000))
+    );
+    const dmReports = await deleteQuery(
+      db.collection('dm_reports').where('createdAt', '<', reportCutoff)
+    );
+    const dm = await purgeDirectMessages(
+      Timestamp.fromMillis(retentionCutoffMs(now, DM_RETENTION_DAYS))
+    );
+    logger.info('Purged chat data', {
+      messages,
+      members,
+      presence,
+      reports,
+      starters,
+      dmReports,
+      ...dm,
+    });
   }
 );
+
+/** One report mail per 15 minutes in total (chat and private reports share the budget). */
+async function claimReportMailSlot(now: number): Promise<boolean> {
+  const db = getFirestore();
+  const stateRef = db.doc('chat_private/reportMail');
+  return db.runTransaction(async (tx) => {
+    const state = await tx.get(stateRef);
+    const last = state.exists ? (state.data()?.lastSentAt as Timestamp | undefined) : undefined;
+    if (!shouldSendReportMail(last ? last.toMillis() : null, now)) return false;
+    tx.set(stateRef, { lastSentAt: Timestamp.fromMillis(now) });
+    return true;
+  });
+}
 
 /** Tells the admins about a reported message (at most one mail per 15 minutes). */
 export const onChatReportCreated = onDocumentCreated(
@@ -78,16 +152,7 @@ export const onChatReportCreated = onDocumentCreated(
     const data = event.data?.data();
     if (!data) return;
     const db = getFirestore();
-    const stateRef = db.doc('chat_private/reportMail');
-    const now = Date.now();
-
-    const claimed = await db.runTransaction(async (tx) => {
-      const state = await tx.get(stateRef);
-      const last = state.exists ? (state.data()?.lastSentAt as Timestamp | undefined) : undefined;
-      if (!shouldSendReportMail(last ? last.toMillis() : null, now)) return false;
-      tx.set(stateRef, { lastSentAt: Timestamp.fromMillis(now) });
-      return true;
-    });
+    const claimed = await claimReportMailSlot(Date.now());
     if (!claimed) {
       logger.info('Chat report mail throttled', { reportId: event.params.reportId });
       return;
@@ -99,6 +164,33 @@ export const onChatReportCreated = onDocumentCreated(
       await notifyAdmins(mail.subject, mail.text);
     } catch (err) {
       logger.error('Failed to send chat report mail', {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+);
+
+/** Same for a reported private conversation; the mail never contains message text. */
+export const onDmReportCreated = onDocumentCreated(
+  {
+    region: REGION,
+    document: 'dm_reports/{reportId}',
+    secrets: ADMIN_MAIL_SECRETS,
+  },
+  async (event) => {
+    const data = event.data?.data();
+    if (!data) return;
+    if (!(await claimReportMailSlot(Date.now()))) {
+      logger.info('DM report mail throttled', { reportId: event.params.reportId });
+      return;
+    }
+    const db = getFirestore();
+    const open = await db.collection('dm_reports').where('status', '==', 'open').count().get();
+    const mail = buildDmReportMail(data, open.data().count, ADMIN_CHAT_URL);
+    try {
+      await notifyAdmins(mail.subject, mail.text);
+    } catch (err) {
+      logger.error('Failed to send DM report mail', {
         error: err instanceof Error ? err.message : String(err),
       });
     }

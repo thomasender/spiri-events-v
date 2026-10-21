@@ -8,6 +8,7 @@ import {
   CHAT_RETENTION_DAYS,
   formatChatTime,
 } from '../utils/chat';
+import { DM_RETENTION_DAYS } from '../utils/messenger';
 import './ChatTab.css';
 
 const MODES = [
@@ -26,8 +27,22 @@ function describeUntil(untilMs) {
 }
 
 export default function ChatTab() {
-  const { mode, loading, error, reports, bans, setMode, resolveReport, deleteMessage, ban, unban } =
-    useChatAdmin(true);
+  const {
+    mode,
+    messengerMode,
+    dmReports,
+    loading,
+    error,
+    reports,
+    bans,
+    setMode,
+    setMessengerMode,
+    resolveReport,
+    resolveDmReport,
+    deleteMessage,
+    ban,
+    unban,
+  } = useChatAdmin(true);
   const [pending, setPending] = useState(null);
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
@@ -78,6 +93,39 @@ export default function ChatTab() {
         <p className="chat-tab-hint">
           Nachrichten werden nach {CHAT_RETENTION_DAYS} Tagen automatisch gelöscht. Gelöschte
           Nachrichten kannst du im Chat selbst über „Löschen“ entfernen.
+        </p>
+      </section>
+
+      <section className="chat-tab-section" aria-labelledby="chat-tab-messenger">
+        <h3 id="chat-tab-messenger">Privatnachrichten (Postfach)</h3>
+        <div className="chat-tab-modes" role="radiogroup" aria-label="Sichtbarkeit des Postfachs">
+          {MODES.map((m) => (
+            <label
+              key={m.id}
+              className={`chat-tab-mode${messengerMode === m.id ? ' chat-tab-mode--on' : ''}`}
+            >
+              <input
+                type="radio"
+                name="messenger-mode"
+                value={m.id}
+                checked={messengerMode === m.id}
+                disabled={busy || loading}
+                onChange={() => run(() => setMessengerMode(m.id), 'Gespeichert.')}
+              />
+              <span className="chat-tab-mode-label">{m.label}</span>
+              <span className="chat-tab-mode-help">
+                {m.id === 'off'
+                  ? 'Das Postfach ist für niemanden sichtbar.'
+                  : m.id === 'admins'
+                    ? 'Nur Admins sehen das Postfach (zum Testen).'
+                    : 'Alle angemeldeten Mitglieder mit bestätigter E-Mail.'}
+              </span>
+            </label>
+          ))}
+        </div>
+        <p className="chat-tab-hint">
+          Privatnachrichten bleiben {DM_RETENTION_DAYS} Tage. Admins können sie nicht lesen, nur was
+          Mitglieder melden. Stumm Geschaltete können auch keine Privatnachrichten schreiben.
         </p>
       </section>
 
@@ -137,6 +185,45 @@ export default function ChatTab() {
         )}
       </section>
 
+      <section className="chat-tab-section" aria-labelledby="chat-tab-dm-reports">
+        <h3 id="chat-tab-dm-reports">Gemeldete Privatnachrichten ({dmReports.length})</h3>
+        {dmReports.length === 0 ? (
+          <p className="chat-tab-empty" data-testid="chat-tab-no-dm-reports">
+            Keine offenen Meldungen.
+          </p>
+        ) : (
+          <ul className="chat-tab-list">
+            {dmReports.map((r) => (
+              <li key={r.id} className="chat-tab-item" data-testid="dm-report">
+                <div className="chat-tab-item-head">
+                  <strong>Gemeldet: {r.reportedName}</strong>
+                  <span>{formatChatTime(r.createdAtMs)}</span>
+                </div>
+                <blockquote className="chat-tab-quote">{r.excerpt}</blockquote>
+                <div className="chat-tab-actions">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled={busy}
+                    onClick={() => run(() => resolveDmReport(r.id), 'Meldung erledigt.')}
+                  >
+                    Erledigt, nichts tun
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled={busy}
+                    onClick={() => setPending({ type: 'dm-ban', report: r })}
+                  >
+                    Mitglied stumm schalten…
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
       <section className="chat-tab-section" aria-labelledby="chat-tab-bans">
         <h3 id="chat-tab-bans">Stumm geschaltet / ausgeschlossen ({activeBans.length})</h3>
         {activeBans.length === 0 ? (
@@ -181,26 +268,36 @@ export default function ChatTab() {
       />
 
       <ConfirmDialog
-        isOpen={pending?.type === 'ban'}
-        title={`${pending?.report?.messageAuthorName ?? ''} stumm schalten`}
+        isOpen={pending?.type === 'ban' || pending?.type === 'dm-ban'}
+        title={`${pending?.report?.messageAuthorName ?? pending?.report?.reportedName ?? ''} stumm schalten`}
         confirmLabel="Stumm schalten"
         danger
         loading={busy}
         onCancel={() => setPending(null)}
         onConfirm={async () => {
           const report = pending.report;
+          const isDm = pending.type === 'dm-ban';
           const duration =
             CHAT_BAN_DURATIONS.find((d) => d.id === pending.durationId) ?? CHAT_BAN_DURATIONS[0];
-          await run(async () => {
-            await ban({
-              uid: report.messageAuthorUid,
-              userName: report.messageAuthorName,
-              durationMs: duration.ms,
-              reason: `Meldung ${report.id}`,
-            });
-            await deleteMessage(report.messageId);
-            await resolveReport(report.id);
-          }, 'Mitglied stumm geschaltet, Nachricht gelöscht.');
+          await run(
+            async () => {
+              await ban({
+                uid: isDm ? report.reportedUid : report.messageAuthorUid,
+                userName: isDm ? report.reportedName : report.messageAuthorName,
+                durationMs: duration.ms,
+                reason: `Meldung ${report.id}`,
+              });
+              if (isDm) {
+                await resolveDmReport(report.id);
+              } else {
+                await deleteMessage(report.messageId);
+                await resolveReport(report.id);
+              }
+            },
+            isDm
+              ? 'Mitglied stumm geschaltet (Chat und Privatnachrichten).'
+              : 'Mitglied stumm geschaltet, Nachricht gelöscht.'
+          );
           setPending(null);
         }}
       >
@@ -218,7 +315,11 @@ export default function ChatTab() {
             </label>
           ))}
         </fieldset>
-        <p>Die gemeldete Nachricht wird dabei gelöscht.</p>
+        <p>
+          {pending?.type === 'dm-ban'
+            ? 'Die Person kann dann auch keine Privatnachrichten mehr schreiben.'
+            : 'Die gemeldete Nachricht wird dabei gelöscht.'}
+        </p>
       </ConfirmDialog>
     </div>
   );

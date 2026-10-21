@@ -14,8 +14,17 @@ function MessageText({ text }) {
   );
 }
 
-export default function ChatMessage({ message, own, canDelete, canReport, onDelete, onReport }) {
+export default function ChatMessage({
+  message,
+  own,
+  canDelete,
+  canReport,
+  onDelete,
+  onReport,
+  onOpenMember,
+}) {
   const emojiOnly = isEmojiOnly(message.text);
+  const openMember = !own && onOpenMember ? () => onOpenMember(message) : null;
   return (
     <li
       className={`chat-message${own ? ' chat-message--own' : ''}${
@@ -23,16 +32,37 @@ export default function ChatMessage({ message, own, canDelete, canReport, onDele
       }`}
       data-testid="chat-message"
     >
-      {message.authorPhotoURL ? (
-        <AvatarImage src={message.authorPhotoURL} alt="" className="chat-avatar" loading="lazy" />
-      ) : (
-        <span className="chat-avatar chat-avatar--fallback" aria-hidden="true">
-          {(message.authorName || '?').trim().charAt(0).toUpperCase()}
-        </span>
-      )}
+      {(() => {
+        const avatar = message.authorPhotoURL ? (
+          <AvatarImage src={message.authorPhotoURL} alt="" className="chat-avatar" loading="lazy" />
+        ) : (
+          <span className="chat-avatar chat-avatar--fallback" aria-hidden="true">
+            {(message.authorName || '?').trim().charAt(0).toUpperCase()}
+          </span>
+        );
+        return openMember ? (
+          <button
+            type="button"
+            className="chat-member-button"
+            onClick={openMember}
+            aria-label={`${message.authorName} ansehen`}
+            tabIndex={-1}
+          >
+            {avatar}
+          </button>
+        ) : (
+          avatar
+        );
+      })()}
       <div className="chat-bubble-wrap">
         <div className="chat-meta">
-          <span className="chat-author">{message.authorName}</span>
+          {openMember ? (
+            <button type="button" className="chat-author chat-author-button" onClick={openMember}>
+              {message.authorName}
+            </button>
+          ) : (
+            <span className="chat-author">{message.authorName}</span>
+          )}
           <time className="chat-time">{formatChatTime(message.createdAt)}</time>
         </div>
         <div className={`chat-bubble${emojiOnly ? ' chat-bubble--emoji' : ''}`}>

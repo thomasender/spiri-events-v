@@ -13,7 +13,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from './useAuth';
-import { useChatSettings } from './useChatSettings';
+import { useChatSettings, useMessengerSettings } from './useChatSettings';
 import { CHAT_PERMANENT_UNTIL_MS, CHAT_ROOM_ID } from '../utils/chat';
 
 function toMillis(value) {
@@ -24,6 +24,8 @@ function toMillis(value) {
 export function useChatAdmin(enabled) {
   const { user } = useAuth();
   const { mode, loading: modeLoading } = useChatSettings();
+  const { mode: messengerMode } = useMessengerSettings();
+  const [dmReports, setDmReports] = useState([]);
   const [reports, setReports] = useState([]);
   const [bans, setBans] = useState([]);
   const [loading, setLoading] = useState(Boolean(enabled));
@@ -49,6 +51,17 @@ export function useChatAdmin(enabled) {
         setLoading(false);
       }
     );
+    const unsubDmReports = onSnapshot(
+      query(collection(db, 'dm_reports'), where('status', '==', 'open')),
+      (snap) => {
+        setDmReports(
+          snap.docs
+            .map((d) => ({ id: d.id, ...d.data(), createdAtMs: toMillis(d.data().createdAt) }))
+            .sort((a, b) => b.createdAtMs - a.createdAtMs)
+        );
+      },
+      (err) => console.error('useChatAdmin dm reports error:', err)
+    );
     const unsubBans = onSnapshot(
       collection(db, 'chat_bans'),
       (snap) => {
@@ -65,6 +78,7 @@ export function useChatAdmin(enabled) {
     );
     return () => {
       unsubReports();
+      unsubDmReports();
       unsubBans();
     };
   }, [enabled]);
@@ -76,6 +90,28 @@ export function useChatAdmin(enabled) {
         { mode: next, updatedAt: serverTimestamp(), updatedBy: user?.uid ?? null },
         { merge: true }
       );
+    },
+    [user]
+  );
+
+  const setMessengerMode = useCallback(
+    async (next) => {
+      await setDoc(
+        doc(db, 'app_settings', 'messenger'),
+        { mode: next, updatedAt: serverTimestamp(), updatedBy: user?.uid ?? null },
+        { merge: true }
+      );
+    },
+    [user]
+  );
+
+  const resolveDmReport = useCallback(
+    async (reportId) => {
+      await updateDoc(doc(db, 'dm_reports', reportId), {
+        status: 'resolved',
+        resolvedAt: serverTimestamp(),
+        resolvedBy: user?.uid ?? null,
+      });
     },
     [user]
   );
@@ -116,6 +152,10 @@ export function useChatAdmin(enabled) {
 
   return {
     mode,
+    messengerMode,
+    dmReports,
+    setMessengerMode,
+    resolveDmReport,
     loading: loading || modeLoading,
     error,
     reports,

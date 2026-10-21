@@ -31,6 +31,7 @@ export const RESERVED_USERNAMES = new Set([
   'verzeichnis',
   'favoriten',
   'chat',
+  'postfach',
   'kalender',
   'spenden',
   'spenden-danke',

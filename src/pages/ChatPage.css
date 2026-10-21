@@ -430,3 +430,35 @@
   border-radius: 50%;
   background: var(--accent-secondary);
 }
+
+/* Avatar / name that open the member card. */
+.chat-member-button {
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+.chat-member-button:focus-visible,
+.chat-author-button:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.chat-author-button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.chat-author-button:hover {
+  text-decoration: underline;
+}
