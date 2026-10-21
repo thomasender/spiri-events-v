@@ -6,6 +6,15 @@ Read this when you touch the online dot (directory, public profile, member card,
 Green = online, red = offline, **no dot = the person does not share** (default). Only verified,
 logged-in members see dots; logged-out visitors never see one (not even a red one).
 
+## Feature flag
+
+`app_settings/onlineStatus { mode: 'off' | 'admins' | 'all' }` (Verwaltung -> Kommunikation -> Chat,
+third block). **A missing doc means `admins`** (test mode): only admins see the profile option and the
+dots and may write/read `presence`. This is the only flag that does not default to off; set it to
+`all` to open it for every member, to `off` to close it. Enforced in the rules (`onlineStatusOpen()`),
+the UI follows via `useOnlineStatusAccess`. In test mode a non-admin who ticked the option earlier
+cannot beat and shows as red to admins.
+
 ## Data and rules (`tests/rules/presence.rules.spec.ts`)
 
 - The opt-in is `showOnlineStatus` (bool) on `users/{uid}` and `users/{uid}/publicProfile/data`

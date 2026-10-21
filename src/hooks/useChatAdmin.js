@@ -13,7 +13,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from './useAuth';
-import { useChatSettings, useMessengerSettings } from './useChatSettings';
+import { useChatSettings, useMessengerSettings, useOnlineStatusSettings } from './useChatSettings';
 import { CHAT_PERMANENT_UNTIL_MS, CHAT_ROOM_ID } from '../utils/chat';
 
 function toMillis(value) {
@@ -25,6 +25,7 @@ export function useChatAdmin(enabled) {
   const { user } = useAuth();
   const { mode, loading: modeLoading } = useChatSettings();
   const { mode: messengerMode } = useMessengerSettings();
+  const { mode: onlineStatusMode } = useOnlineStatusSettings();
   const [dmReports, setDmReports] = useState([]);
   const [reports, setReports] = useState([]);
   const [bans, setBans] = useState([]);
@@ -105,6 +106,17 @@ export function useChatAdmin(enabled) {
     [user]
   );
 
+  const setOnlineStatusMode = useCallback(
+    async (next) => {
+      await setDoc(
+        doc(db, 'app_settings', 'onlineStatus'),
+        { mode: next, updatedAt: serverTimestamp(), updatedBy: user?.uid ?? null },
+        { merge: true }
+      );
+    },
+    [user]
+  );
+
   const resolveDmReport = useCallback(
     async (reportId) => {
       await updateDoc(doc(db, 'dm_reports', reportId), {
@@ -153,6 +165,8 @@ export function useChatAdmin(enabled) {
   return {
     mode,
     messengerMode,
+    onlineStatusMode,
+    setOnlineStatusMode,
     dmReports,
     setMessengerMode,
     resolveDmReport,

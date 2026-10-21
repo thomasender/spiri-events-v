@@ -14,7 +14,7 @@ let env: RulesTestEnvironment;
 beforeAll(async () => {
   const [host, port] = (process.env.FIRESTORE_EMULATOR_HOST ?? '127.0.0.1:8782').split(':');
   env = await initializeTestEnvironment({
-    projectId: 'demo-rules',
+    projectId: 'demo-rules-revisions',
     firestore: {
       rules: readFileSync(resolve(process.cwd(), 'firestore.rules'), 'utf8'),
       host,

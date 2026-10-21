@@ -37,16 +37,16 @@ export function useChatAccess() {
 }
 
 // Same flag pattern for the private messenger: app_settings/messenger { mode }.
-function useFeatureMode(docId) {
-  const [mode, setMode] = useState('off');
+function useFeatureMode(docId, defaultMode = 'off') {
+  const [mode, setMode] = useState(defaultMode);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     return onSnapshot(
       doc(db, 'app_settings', docId),
       (snap) => {
-        const value = snap.exists() ? snap.data().mode : 'off';
-        setMode(CHAT_MODES.includes(value) ? value : 'off');
+        const value = snap.exists() ? snap.data().mode : defaultMode;
+        setMode(CHAT_MODES.includes(value) ? value : defaultMode);
         setLoading(false);
       },
       () => {
@@ -54,7 +54,7 @@ function useFeatureMode(docId) {
         setLoading(false);
       }
     );
-  }, [docId]);
+  }, [docId, defaultMode]);
 
   return { mode, loading };
 }
@@ -66,6 +66,18 @@ export function useMessengerSettings() {
 export function useMessengerAccess() {
   const { user, role } = useAuth();
   const { mode, loading } = useMessengerSettings();
+  const available = Boolean(user) && canEnterChat({ mode, isAdmin: role === 'Admin' });
+  return { available, mode, loading };
+}
+
+// Online status flag. A missing doc means "admins" (test mode), see firestore.rules.
+export function useOnlineStatusSettings() {
+  return useFeatureMode('onlineStatus', 'admins');
+}
+
+export function useOnlineStatusAccess() {
+  const { user, role } = useAuth();
+  const { mode, loading } = useOnlineStatusSettings();
   const available = Boolean(user) && canEnterChat({ mode, isAdmin: role === 'Admin' });
   return { available, mode, loading };
 }

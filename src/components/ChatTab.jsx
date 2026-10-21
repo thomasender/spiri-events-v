@@ -30,6 +30,8 @@ export default function ChatTab() {
   const {
     mode,
     messengerMode,
+    onlineStatusMode,
+    setOnlineStatusMode,
     dmReports,
     loading,
     error,
@@ -126,6 +128,43 @@ export default function ChatTab() {
         <p className="chat-tab-hint">
           Privatnachrichten bleiben {DM_RETENTION_DAYS} Tage. Admins können sie nicht lesen, nur was
           Mitglieder melden. Stumm Geschaltete können auch keine Privatnachrichten schreiben.
+        </p>
+      </section>
+
+      <section className="chat-tab-section" aria-labelledby="chat-tab-online">
+        <h3 id="chat-tab-online">Online-Status (grüner / roter Punkt)</h3>
+        <div
+          className="chat-tab-modes"
+          role="radiogroup"
+          aria-label="Sichtbarkeit des Online-Status"
+        >
+          {MODES.map((m) => (
+            <label
+              key={m.id}
+              className={`chat-tab-mode${onlineStatusMode === m.id ? ' chat-tab-mode--on' : ''}`}
+            >
+              <input
+                type="radio"
+                name="online-status-mode"
+                value={m.id}
+                checked={onlineStatusMode === m.id}
+                disabled={busy || loading}
+                onChange={() => run(() => setOnlineStatusMode(m.id), 'Gespeichert.')}
+              />
+              <span className="chat-tab-mode-label">{m.label}</span>
+              <span className="chat-tab-mode-help">
+                {m.id === 'off'
+                  ? 'Die Option und die Punkte sind für niemanden da.'
+                  : m.id === 'admins'
+                    ? 'Nur Admins sehen die Option im Profil und die Punkte (zum Testen).'
+                    : 'Alle angemeldeten Mitglieder mit bestätigter E-Mail können die Option nutzen.'}
+              </span>
+            </label>
+          ))}
+        </div>
+        <p className="chat-tab-hint">
+          Auch wenn der Schalter offen ist, zeigt nur einen Punkt, wer die Option in seinem Profil
+          eingeschaltet hat (standardmäßig aus).
         </p>
       </section>
 

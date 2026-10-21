@@ -16,6 +16,7 @@ const fs = vi.hoisted(() => ({
 const state = vi.hoisted(() => ({
   user: { uid: 'me' } as { uid: string } | null,
   shares: true,
+  flagOpen: true,
 }));
 
 vi.mock('firebase/firestore', () => ({
@@ -28,6 +29,9 @@ vi.mock('firebase/firestore', () => ({
 }));
 vi.mock('../../src/lib/firebase', () => ({ db: {} }));
 vi.mock('../../src/hooks/useAuth', () => ({ useAuth: () => ({ user: state.user }) }));
+vi.mock('../../src/hooks/useChatSettings', () => ({
+  useOnlineStatusAccess: () => ({ available: state.flagOpen, mode: 'all', loading: false }),
+}));
 vi.mock('../../src/hooks/useProfile', () => ({
   useProfile: () => ({ profile: { showOnlineStatus: state.shares } }),
 }));
@@ -85,8 +89,10 @@ describe('useOnlineBeacon', () => {
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
     fs.setDoc.mockClear();
     fs.deleteDoc.mockClear();
+    state.flagOpen = true;
     state.user = { uid: 'me' };
     state.shares = true;
+    state.flagOpen = true;
   });
   afterEach(() => vi.useRealTimers());
 
@@ -106,6 +112,13 @@ describe('useOnlineBeacon', () => {
     state.user = null;
     renderHook(() => useOnlineBeacon());
     vi.advanceTimersByTime(ONLINE_BEAT_MS * 3);
+    expect(fs.setDoc).not.toHaveBeenCalled();
+  });
+
+  it('never writes while the feature flag keeps the status closed for this person', () => {
+    state.flagOpen = false;
+    renderHook(() => useOnlineBeacon());
+    vi.advanceTimersByTime(ONLINE_BEAT_MS * 2);
     expect(fs.setDoc).not.toHaveBeenCalled();
   });
 

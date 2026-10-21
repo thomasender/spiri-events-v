@@ -10,6 +10,7 @@ import {
 import { db } from '../lib/firebase';
 import { useAuth } from './useAuth';
 import { useProfile } from './useProfile';
+import { useOnlineStatusAccess } from './useChatSettings';
 import {
   ONLINE_BEAT_MS,
   ONLINE_TICK_MS,
@@ -23,7 +24,8 @@ import {
 // stays empty and no dot is ever shown, not even a red one.
 export function useOnlineStatus() {
   const { user } = useAuth();
-  const viewerCanSee = Boolean(user?.emailVerified);
+  const { available } = useOnlineStatusAccess();
+  const viewerCanSee = Boolean(user?.emailVerified) && available;
   const [entries, setEntries] = useState([]);
   const [ready, setReady] = useState(false);
   const [now, setNow] = useState(() => Date.now());
@@ -75,8 +77,9 @@ export function useOnlineStatus() {
 export function useOnlineBeacon() {
   const { user } = useAuth();
   const { profile } = useProfile(user?.uid);
+  const { available } = useOnlineStatusAccess();
   const uid = user?.uid ?? null;
-  const shares = profile?.showOnlineStatus === true;
+  const shares = available && profile?.showOnlineStatus === true;
 
   useEffect(() => {
     if (!uid || !shares) return undefined;
