@@ -157,6 +157,54 @@ describe('ChatPage', () => {
     expect((screen.getByTestId('chat-input') as HTMLTextAreaElement).value).toBe('😀');
   });
 
+  it('searches emoji by German name in the picker', async () => {
+    renderPage();
+    fireEvent.click(screen.getByTestId('chat-emoji-toggle'));
+    fireEvent.change(screen.getByTestId('emoji-search'), { target: { value: 'feuer' } });
+    const fire = await screen.findByRole('button', { name: /🔥 Feuer/ });
+    fireEvent.click(fire);
+    expect((screen.getByTestId('chat-input') as HTMLTextAreaElement).value).toBe('🔥');
+  });
+
+  it('says so when the emoji search finds nothing', async () => {
+    renderPage();
+    fireEvent.click(screen.getByTestId('chat-emoji-toggle'));
+    fireEvent.change(screen.getByTestId('emoji-search'), { target: { value: 'qqqqzzzz' } });
+    expect(await screen.findByTestId('emoji-no-results')).toBeInTheDocument();
+  });
+
+  it('suggests emoji while typing :fire and inserts the chosen one', async () => {
+    renderPage();
+    const input = screen.getByTestId('chat-input') as HTMLTextAreaElement;
+    fireEvent.change(input, { target: { value: 'Hallo :fire', selectionStart: 11 } });
+    const list = await screen.findByTestId('chat-suggestions');
+    expect(list).toHaveTextContent('🔥');
+    fireEvent.keyDown(input, { key: 'Enter' });
+    await waitFor(() => expect(input.value).toMatch(/^Hallo \p{Extended_Pictographic}/u));
+    expect(screen.queryByTestId('chat-suggestions')).not.toBeInTheDocument();
+  });
+
+  it('does not send on Enter while the suggestions are open, and Escape closes them', async () => {
+    const send = vi.fn(async () => {});
+    setChat({ send });
+    renderPage();
+    const input = screen.getByTestId('chat-input') as HTMLTextAreaElement;
+    fireEvent.change(input, { target: { value: ':herz', selectionStart: 5 } });
+    await screen.findByTestId('chat-suggestions');
+    fireEvent.keyDown(input, { key: 'Escape' });
+    expect(screen.queryByTestId('chat-suggestions')).not.toBeInTheDocument();
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it('turns ":fire:" with the closing colon into the emoji', async () => {
+    renderPage();
+    const input = screen.getByTestId('chat-input') as HTMLTextAreaElement;
+    fireEvent.change(input, { target: { value: ':fire', selectionStart: 5 } });
+    await screen.findByTestId('chat-suggestions');
+    fireEvent.change(input, { target: { value: ':fire:', selectionStart: 6 } });
+    await waitFor(() => expect(input.value).toBe('🔥'));
+  });
+
   it('hides the input and explains the mute for banned users', () => {
     setChat({ ban: { until: { toDate: () => new Date(Date.now() + 3_600_000) } } });
     renderPage();

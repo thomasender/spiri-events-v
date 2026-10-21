@@ -36,6 +36,14 @@ at once for everyone; messages stay until the purge.
   `isAdminOrEmulatorAdmin()` because the latter errors for users without a `role` claim.
   Regions-Moderator:innen exist only on the regions epic; add them here when it merges.
 
+## Emoji picker and `:shortcodes`
+
+The picker has curated tabs plus a search over all ~1900 emoji with German names and keywords.
+Typing `:fire` (or `:feuer`) in the input suggests emoji (arrows + Enter/Tab, Esc closes);
+`:fire:` with the closing colon converts at once. The index `src/data/emojiIndex.json` is generated
+from the `emojibase-data` dev dependency (`npm run emoji:build`, commit the result) and loaded
+lazily on first use (`src/utils/emojiSearch.js`), so it is not in the main bundle.
+
 ## Server (`functions/src/chat.ts`, pure logic in `chatLogic.ts`)
 
 - `purgeChatMessages` (daily 04:10 Vienna): messages and cooldown markers older than **10 days**,

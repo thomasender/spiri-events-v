@@ -17,6 +17,14 @@ import {
   describeChatBan,
   isChatBanActive,
 } from '../utils/chat';
+import {
+  MAX_EMOJI_SUGGESTIONS,
+  exactShortcode,
+  findShortcodeToken,
+  loadEmojiIndex,
+  replaceToken,
+  searchEmojis,
+} from '../utils/emojiSearch';
 import './ChatPage.css';
 
 const RULES_KEY = 'chatRulesAccepted';
@@ -83,10 +91,23 @@ function ChatRoom() {
   const lastCount = useRef(0);
   const lastId = useRef(null);
   const prependFrom = useRef(null);
+  const [emojiIndex, setEmojiIndex] = useState(null);
+  const [caret, setCaret] = useState(0);
+  const [activeSuggestion, setActiveSuggestion] = useState(0);
+  const [dismissedAt, setDismissedAt] = useState(-1);
 
   const banned = isChatBanActive(ban);
   const length = chatTextLength(draft);
   const tooLong = length > CHAT_MAX_LENGTH;
+
+  // ":fire" before the caret offers matching emoji (German names and English
+  // shortcodes); the index loads when the first colon is typed.
+  const token = findShortcodeToken(draft, caret);
+  const suggestions =
+    token && emojiIndex && token.start !== dismissedAt
+      ? searchEmojis(emojiIndex, token.query, MAX_EMOJI_SUGGESTIONS)
+      : [];
+  const suggestionsOpen = suggestions.length > 0;
 
   const scrollToBottom = useCallback(() => {
     const el = listRef.current;
@@ -157,7 +178,64 @@ function ChatRoom() {
     }
   };
 
+  const setCaretFrom = (el) => setCaret(el.selectionStart ?? el.value.length);
+
+  const onDraftChange = (e) => {
+    const el = e.target;
+    let value = el.value;
+    let pos = el.selectionStart ?? value.length;
+    if (value.includes(':') && !emojiIndex)
+      loadEmojiIndex()
+        .then(setEmojiIndex)
+        .catch(() => {});
+    // ":fire:" with the closing colon turns into the emoji right away.
+    const typed = findShortcodeToken(value, pos);
+    if (typed?.closed && emojiIndex) {
+      const exact = exactShortcode(emojiIndex, typed.query);
+      if (exact) {
+        value = replaceToken(value, typed, exact.emoji);
+        pos = typed.start + exact.emoji.length;
+        requestAnimationFrame(() => el.setSelectionRange(pos, pos));
+      }
+    }
+    setDraft(value);
+    setCaret(pos);
+    setActiveSuggestion(0);
+  };
+
+  const pickSuggestion = (emoji) => {
+    if (!token) return;
+    const next = replaceToken(draft, token, emoji);
+    const pos = token.start + emoji.length;
+    setDraft(next);
+    setCaret(pos);
+    setActiveSuggestion(0);
+    requestAnimationFrame(() => {
+      const el = inputRef.current;
+      el?.focus();
+      el?.setSelectionRange(pos, pos);
+    });
+  };
+
   const onKeyDown = (e) => {
+    if (suggestionsOpen && !e.nativeEvent.isComposing) {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        const step = e.key === 'ArrowDown' ? 1 : -1;
+        setActiveSuggestion((i) => (i + step + suggestions.length) % suggestions.length);
+        return;
+      }
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        pickSuggestion(suggestions[Math.min(activeSuggestion, suggestions.length - 1)].emoji);
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setDismissedAt(token.start);
+        return;
+      }
+    }
     // Enter sends, Shift+Enter makes a new line. Never while an IME is composing.
     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
@@ -287,6 +365,34 @@ function ChatRoom() {
         </p>
       ) : (
         <form className="chat-form" onSubmit={submit}>
+          {suggestionsOpen && (
+            <ul
+              className="chat-suggestions"
+              id="chat-emoji-suggestions"
+              role="listbox"
+              aria-label="Emoji-Vorschläge"
+              data-testid="chat-suggestions"
+            >
+              {suggestions.map((entry, i) => (
+                <li
+                  key={entry.emoji}
+                  id={`chat-emoji-suggestion-${i}`}
+                  role="option"
+                  aria-selected={i === activeSuggestion}
+                  className={`chat-suggestion${i === activeSuggestion ? ' chat-suggestion--active' : ''}`}
+                  // mousedown keeps the focus in the text field
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    pickSuggestion(entry.emoji);
+                  }}
+                >
+                  <span className="chat-suggestion-emoji">{entry.emoji}</span>
+                  <span className="chat-suggestion-code">:{entry.codes[0] ?? entry.label}</span>
+                  <span className="chat-suggestion-label">{entry.label}</span>
+                </li>
+              ))}
+            </ul>
+          )}
           <div className="chat-input-row">
             <div className="chat-emoji-wrap">
               <button
@@ -308,8 +414,17 @@ function ChatRoom() {
               className="chat-input"
               rows={1}
               value={draft}
-              onChange={(e) => setDraft(e.target.value)}
+              onChange={onDraftChange}
               onKeyDown={onKeyDown}
+              onKeyUp={(e) => setCaretFrom(e.target)}
+              onClick={(e) => setCaretFrom(e.target)}
+              role="combobox"
+              aria-expanded={suggestionsOpen}
+              aria-controls="chat-emoji-suggestions"
+              aria-autocomplete="list"
+              aria-activedescendant={
+                suggestionsOpen ? `chat-emoji-suggestion-${activeSuggestion}` : undefined
+              }
               placeholder="Schreib etwas Nettes…"
               aria-label="Nachricht"
               enterKeyHint="send"

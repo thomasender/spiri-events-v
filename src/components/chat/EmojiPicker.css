@@ -55,3 +55,32 @@
 .emoji-picker-item:focus-visible {
   background: var(--accent-soft);
 }
+
+.emoji-picker-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-light);
+}
+
+.emoji-picker-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  /* 16px keeps iOS Safari from zooming in on focus. */
+  font-size: 1rem;
+}
+
+.emoji-picker-note {
+  grid-column: 1 / -1;
+  margin: 8px 0;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
