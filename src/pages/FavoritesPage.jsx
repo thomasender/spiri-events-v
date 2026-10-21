@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Heart } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
 import EventCard from '../components/EventCard';
-import { useAllEvents } from '../hooks/useEvents';
+import { usePublicEvents } from '../hooks/useEvents';
 import { useRegionEvents } from '../hooks/useRegion';
 import { useFavorites } from '../hooks/useFavorites';
 import { useCategoryRegistry } from '../hooks/useCategoryRegistry';
@@ -15,7 +15,7 @@ import './FavoritesPage.css';
 
 export default function FavoritesPage() {
   const { ready, isSignedIn, favoriteIds } = useFavorites();
-  const { events: allEvents, loading } = useAllEvents({ regionScoped: true, allActive: true });
+  const { events: allEvents, loading } = usePublicEvents({ regionScoped: true, allActive: true });
   // Favourites of every active region; events of inactive regions stay hidden.
   const events = useRegionEvents(allEvents, { allActive: true });
   const { colorByName } = useCategoryRegistry();

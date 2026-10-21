@@ -139,3 +139,16 @@ describe('EventCard — cancelled ("Abgesagt")', () => {
     expect(screen.getByTestId('cancelled-badge')).toBeInTheDocument();
   });
 });
+
+describe('EventCard location (kgYQqmUo)', () => {
+  it('shows only the Ort, not the Bezirk', () => {
+    renderCard({ ...baseEvent, city: 'Hard', bezirk: 'Bregenz' });
+    expect(screen.getByText('Hard')).toBeInTheDocument();
+    expect(screen.queryByText(/Bez\./)).toBeNull();
+  });
+
+  it('falls back to the Bezirk for older events without an Ort', () => {
+    renderCard({ ...baseEvent, city: undefined, bezirk: 'Grenznahe' });
+    expect(screen.getByText('Umgebung')).toBeInTheDocument();
+  });
+});

@@ -18,6 +18,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { findUniqueSlug, resolveSlugForApproval } from '../lib/slug';
+import { eventSlugPlace } from '../lib/slug-helpers';
 import { BEZIRKE, ONLINE_LOCATION, pickEventRegionId, resolveRegionId } from '../utils/regions';
 import { normalizeCurrency } from '../utils/currency';
 import { deleteImageByUrl } from '../lib/imageUpload';
@@ -113,7 +114,7 @@ export function useEvents(user) {
     const slug = await findUniqueSlug(
       eventData.title,
       eventData.category,
-      eventData.bezirk,
+      eventSlugPlace(eventData),
       eventData.date,
       user.uid
     );
@@ -228,7 +229,7 @@ export function useEvents(user) {
     const slug = await findUniqueSlug(
       duplicatedTitle,
       source.category || 'Sonstiges',
-      source.bezirk || '',
+      eventSlugPlace(source),
       source.date,
       user.uid
     );
@@ -420,9 +421,9 @@ export function useRegionEventQueryPlan({ regionScoped = false, allActive = fals
  * active regions, once the regionId migration is marked complete; before that
  * the same full query as always. Callers keep filtering with useRegionEvents.
  */
-export function useAllEvents({ regionScoped = false, allActive = false } = {}) {
+export function useAllEvents({ regionScoped = false, allActive = false, enabled = true } = {}) {
   const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState(null);
   // A failing region query (e.g. an index still building) falls back to the
   // full query for the rest of the page load instead of an empty calendar.
@@ -432,7 +433,7 @@ export function useAllEvents({ regionScoped = false, allActive = false } = {}) {
   const lastModeRef = useRef(null);
 
   useEffect(() => {
-    if (planKey === 'pending') return undefined;
+    if (!enabled || planKey === 'pending') return undefined;
     const { mode, queries } = JSON.parse(planKey);
     // Switching from one region's queries to another's: don't show the old
     // region's list meanwhile. After the full query the old list is a
@@ -463,9 +464,63 @@ export function useAllEvents({ regionScoped = false, allActive = false } = {}) {
         setLoading(false);
       }
     );
-  }, [planKey]);
+  }, [planKey, enabled]);
 
   return { events, loading, error };
+}
+
+const EVENTS_VERSION_PATH = ['app_settings', 'eventsVersion'];
+
+// Approved events for the public pages. Instead of every visitor reading every
+// event from Firestore, the list comes from /api/events.json, which the Hosting
+// CDN caches per version. Only the tiny version doc is watched: when an event
+// is approved or changed, a Cloud Function bumps it and the list is refetched.
+// If the version doc is missing or the fetch fails, it falls back to reading
+// Firestore directly, as before. The local emulators have no such endpoint.
+export function usePublicEvents({ regionScoped = false, allActive = false } = {}) {
+  const emulators = import.meta.env.VITE_USE_EMULATORS === 'true';
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [useFallback, setUseFallback] = useState(false);
+  const [version, setVersion] = useState(null);
+
+  useEffect(() => {
+    if (emulators) return undefined;
+    return onSnapshot(
+      doc(db, ...EVENTS_VERSION_PATH),
+      (snap) => {
+        const v = snap.exists() ? snap.data().version : null;
+        if (typeof v === 'number') setVersion(v);
+        else setUseFallback(true);
+      },
+      () => setUseFallback(true)
+    );
+  }, [emulators]);
+
+  useEffect(() => {
+    if (version === null) return undefined;
+    const controller = new AbortController();
+    fetch(`/api/events.json?v=${version}`, { signal: controller.signal })
+      .then((res) => {
+        if (!res.ok) throw new Error(`events.json ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        const normalized = normalizeEvents(data);
+        normalized.sort(compareEventsByDateTime);
+        setEvents(normalized);
+        setLoading(false);
+        setError(null);
+      })
+      .catch((err) => {
+        if (err.name !== 'AbortError') setUseFallback(true);
+      });
+    return () => controller.abort();
+  }, [version]);
+
+  const direct = useAllEvents({ regionScoped, allActive, enabled: emulators || useFallback });
+  return emulators || useFallback ? direct : { events, loading, error };
 }
 
 export function useEventById(eventId) {

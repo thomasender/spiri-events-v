@@ -8,6 +8,7 @@ import {
   BASE_HASHTAGS,
   buildCaption,
   buildHashtags,
+  displayCategory,
   toHashtag,
   buildEventImageModel,
   normalizeInstagramHandle,
@@ -177,6 +178,12 @@ describe('instagram content', () => {
       ).toBe(true);
     });
 
+    it('names the Ort, not the Bezirk, in the headline (kgYQqmUo)', () => {
+      const caption = buildCaption({ ...base, city: 'Hohenems' }, null, now);
+      expect(caption.startsWith('wöchentlich am Montag in Hohenems\n\n')).toBe(true);
+      expect(caption).toContain('\nMeditation in Hohenems\n');
+    });
+
     it('lists custom dates without the repeat sentence and skips exception dates', () => {
       const caption = buildCaption(
         {
@@ -231,6 +238,20 @@ describe('instagram content', () => {
         '📅 So, 18. Okt · 19:00 Uhr\nSoundhealing in Dornbirn:\n📍 Le studio, Steinebach 7, Dornbirn\n\nMit @cosmic.klang_\n\nFloating Gongbath\n\nBeschreibung\n\n'
       )
     ).toBe(true);
+  });
+
+  it('names the Ort, not the Bezirk, in the category line (kgYQqmUo)', () => {
+    const caption = buildCaption({
+      title: 'Floating Gongbath',
+      date: '2026-10-18',
+      time: '19:00',
+      category: 'Soundhealing',
+      place: 'Le studio, Steinebach 7',
+      city: 'Lustenau',
+      bezirk: 'Dornbirn',
+    });
+    expect(caption).toContain('\nSoundhealing in Lustenau:\n');
+    expect(caption).not.toContain('Dornbirn');
   });
 
   it('builds a caption for a bare-minimum event without empty sections', () => {
@@ -402,5 +423,37 @@ describe('buildHashtags / caption hashtags', () => {
     expect(caption.length).toBeLessThanOrEqual(CAPTION_MAX_LENGTH);
     expect(caption.endsWith(buildHashtags(ev).join(' '))).toBe(true);
     expect(caption).toContain('#feldkirch #soundhealing #klangreise');
+  });
+});
+
+describe('category "Sonstiges" is never shown on Instagram', () => {
+  const event = {
+    title: 'Offener Abend',
+    date: '2026-11-07',
+    time: '18:00',
+    bezirk: 'Dornbirn',
+    category: 'Sonstiges',
+  };
+
+  it('drops it from the image model but keeps other categories', () => {
+    expect(displayCategory('Sonstiges')).toBe('');
+    expect(buildEventImageModel(event).category).toBe('');
+    expect(buildEventImageModel({ ...event, category: 'Yoga' }).category).toBe('Yoga');
+  });
+
+  it('leaves it out of caption and hashtags', () => {
+    const caption = buildCaption(event);
+    expect(caption).not.toMatch(/sonstiges/i);
+    expect(caption).toContain('Offener Abend');
+    expect(buildHashtags(event).join(' ')).not.toMatch(/sonstiges/i);
+  });
+
+  it('leaves it out of the caption of recurring events', () => {
+    const caption = buildCaption(
+      { ...event, recurrence: 'weekly' },
+      null,
+      new Date('2026-11-01T00:00:00Z')
+    );
+    expect(caption).not.toMatch(/sonstiges/i);
   });
 });

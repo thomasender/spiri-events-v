@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { bezirkLabel } from '../utils/regions';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { useAllEvents, BEZIRKE, ONLINE_LOCATION } from '../hooks/useEvents';
+import { usePublicEvents, BEZIRKE, ONLINE_LOCATION } from '../hooks/useEvents';
 import { useCategories } from '../hooks/useCategories';
 import { useCategoryRegistry } from '../hooks/useCategoryRegistry';
 import { useFavorites } from '../hooks/useFavorites';
@@ -210,10 +210,10 @@ export default function CalendarPage() {
     (savedState?.selectedOrte?.length ?? 0) > 0 || savedState?.onlyFavorites === true
   );
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
-  // Region-scoped Firestore queries once the regionId migration is marked
-  // complete (utils/regionQueries.js); the client filter below stays as a
-  // second safety layer.
-  const { events: allEvents, loading, error } = useAllEvents({ regionScoped: true });
+  // Served from the CDN-cached JSON; only the Firestore fallback is region-scoped
+  // once the regionId migration is marked complete (utils/regionQueries.js). The
+  // client filter below stays as a second safety layer.
+  const { events: allEvents, loading, error } = usePublicEvents({ regionScoped: true });
   // One central filter: everything below (lists, counts, chips) derives from this.
   const events = useRegionEvents(allEvents);
   const regionBezirke = useRegionBezirke();
@@ -614,7 +614,7 @@ export default function CalendarPage() {
               </summary>
               <div className="filter-accordion-body">
                 <div className="filter-header">
-                  <span className="filter-label">Ort</span>
+                  <span className="filter-label">Bezirk</span>
                   <div className="filter-quick-actions">
                     <button type="button" onClick={selectAllOrte}>
                       Alle

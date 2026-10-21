@@ -175,6 +175,18 @@ describe('story content', () => {
     ).toEqual({ url: 'https://img/ig.jpg', focalX: 0.1, focalY: 0.2, zoom: 2 });
   });
 
+  it('uses the calendar crop when the Instagram pick is the cover photo itself', () => {
+    const picked = ev({
+      imageUrl: 'https://img/a.jpg',
+      imageFocalPoint: { x: 0.4, y: 0.7 },
+      imageZoom: 1.5,
+      instagramImage: { url: 'https://img/a.jpg', focalPoint: { x: 0.5, y: 0.5 }, zoom: 1 },
+    });
+    expect(
+      buildStoryModel({ bezirk: 'Feldkirch', part: 1, parts: 1, events: [picked] }, DAY).image
+    ).toEqual({ url: 'https://img/a.jpg', focalX: 0.4, focalY: 0.7, zoom: 1.5 });
+  });
+
   it('has no suffix for part 1 and _p<n> afterwards', () => {
     expect(storyPostId('Feldkirch', DAY, 1)).toBe('story_feldkirch_2026-10-17');
     expect(storyPostId('Feldkirch', DAY, 2)).toBe('story_feldkirch_2026-10-17_p2');

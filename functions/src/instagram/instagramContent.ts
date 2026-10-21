@@ -127,13 +127,15 @@ export function parseInstagramImageChoice(value: unknown): InstagramImageChoice 
 
 /**
  * Picture and crop for a story about one event: the organizer's Instagram pick
- * if there is one, otherwise the event picture with the crop (focal point and
+ * if it is a different photo than the cover, otherwise the event picture with the crop (focal point and
  * zoom) the organizer set in the event form. Null without a usable picture.
  */
 export function resolveEventImageChoice(event: InstagramEventInput): InstagramImageChoice | null {
   const picked = parseInstagramImageChoice(event.instagramImage);
-  if (picked) return picked;
   const url = asString(event.imageUrl);
+  // Picking the cover photo for Instagram only stores a centred default crop;
+  // the story shows the crop the organizer set for the calendar instead.
+  if (picked && picked.url !== url) return picked;
   if (!/^https:\/\//i.test(url)) return null;
   const focal =
     event.imageFocalPoint && typeof event.imageFocalPoint === 'object'
@@ -204,6 +206,15 @@ export interface EventImageModel {
 
 function asString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+/**
+ * The category name to show in images, caption and hashtags. "Sonstiges" says
+ * nothing ("Sonstiges in Dornbirn"), so it is left out completely: ''.
+ */
+export function displayCategory(category: unknown): string {
+  const name = asString(category);
+  return name.toLowerCase() === 'sonstiges' ? '' : name;
 }
 
 export function truncateText(input: string, max: number, keepNewlines = false): string {
@@ -340,7 +351,7 @@ export function buildEventImageModel(
     dateLabel: formatEventDate(event.date, event.endDate),
     timeLabel: formatEventTime(event.time, event.endTime),
     location: stripImageUnsafeChars(formatLocation(event)),
-    category: asString(event.category),
+    category: displayCategory(event.category),
     color: resolveCategoryColor(event.category, registry),
     imageUrl: imageUrl || null,
     organizerName: formatOrganizerName(event),
@@ -390,7 +401,7 @@ export const MAX_HASHTAGS = 12;
 export function buildHashtags(event: InstagramEventInput, max = MAX_HASHTAGS): string[] {
   const bezirk = asString(event.bezirk);
   const online = isOnlineEvent(event.isOnline) || !bezirk || bezirk.toLowerCase() === 'online';
-  const category = asString(event.category);
+  const category = displayCategory(event.category);
   const candidates = [
     online ? '#online' : toHashtag(bezirk),
     toHashtag(category),
@@ -497,11 +508,17 @@ function formatDayMonth(iso: string): string {
     .replace(' ', '. ');
 }
 
-/** "in Dornbirn" / "online" / '' for the headline of a recurring event. */
+/** The event's Ort ("Altach"); older events without a city fall back to the Bezirk. */
+function eventPlaceName(event: InstagramEventInput): string {
+  return asString(event.city) || asString(event.bezirk);
+}
+
+/** "in Altach" / "online" / '' for the headline of a recurring event. */
 function inBezirk(event: InstagramEventInput): string {
   const bezirk = asString(event.bezirk);
   if (isOnlineEvent(event.isOnline) || bezirk.toLowerCase() === 'online') return ' online';
-  return bezirk ? ` in ${bezirk}` : '';
+  const place = eventPlaceName(event);
+  return place ? ` in ${place}` : '';
 }
 
 /**
@@ -526,7 +543,7 @@ function buildRecurringHeader(event: InstagramEventInput, location: string, now:
         ? `Monatlich am ${start?.getUTCDate()}.`
         : '';
   const when = [day, time].filter(Boolean).join(' · ');
-  const category = asString(event.category);
+  const category = displayCategory(event.category);
   const place = inBezirk(event);
   const first = `${pattern || 'Mehrere Termine'}${place}`;
   return [
@@ -547,14 +564,15 @@ function buildRecurringHeader(event: InstagramEventInput, location: string, now:
     .join('\n\n');
 }
 
-/** "Soundhealing in Dornbirn:" (second line of the caption); '' without a category. */
+/** "Soundhealing in Altach:" (second line of the caption); '' without a category. */
 function buildCategoryLine(event: InstagramEventInput): string {
-  const category = asString(event.category);
+  const category = displayCategory(event.category);
   if (!category) return '';
   const bezirk = asString(event.bezirk);
   if (isOnlineEvent(event.isOnline) || bezirk.toLowerCase() === 'online')
     return `${category} online:`;
-  return bezirk ? `${category} in ${bezirk}:` : `${category}:`;
+  const place = eventPlaceName(event);
+  return place ? `${category} in ${place}:` : `${category}:`;
 }
 
 /**

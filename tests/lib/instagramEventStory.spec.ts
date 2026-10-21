@@ -207,6 +207,12 @@ describe('runEventStories', () => {
     });
   });
 
+  it('names the Ort of the event instead of its Bezirk (kgYQqmUo)', async () => {
+    const h = makeHarness({ events: [ev({ city: 'Hard' })] });
+    await runEventStories(h.deps);
+    expect(h.models[0]).toMatchObject({ heading: 'Heute', bezirk: 'in Hard' });
+  });
+
   it('calls tomorrow\'s early event "Morgen" when posting the evening before', async () => {
     const h = makeHarness({
       now: '2026-10-17T16:05:00Z', // 18:05 Vienna

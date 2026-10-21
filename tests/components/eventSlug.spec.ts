@@ -21,20 +21,30 @@ vi.mock('../../src/lib/firebase', () => ({
   db: {},
 }));
 
-import { generateEventSlug } from '../../src/lib/slug-helpers';
+import {
+  generateEventSlug,
+  eventSlugPlace,
+  planMissingEventSlugs,
+} from '../../src/lib/slug-helpers';
 import { findUniqueSlug, resolveSlugForApproval } from '../../src/lib/slug';
 import { findFreeSlug, slugBase } from '../../functions/src/eventSlug';
 
 describe('generateEventSlug', () => {
-  it('joins title, category, "in", bezirk, and date with hyphens', () => {
+  it('joins title, category, "in", place, and date with hyphens', () => {
     expect(generateEventSlug('Lasst uns singen', 'Singkreis', 'Dornbirn', '2026-11-02')).toBe(
       'lasst-uns-singen-singkreis-in-dornbirn-20261102'
     );
   });
 
-  it('falls back to "sonstiges" when category is missing', () => {
+  it('writes "veranstaltung" when category is missing', () => {
     expect(generateEventSlug('Yoga Workshop', '', 'Bregenz', '2026-09-15')).toBe(
-      'yoga-workshop-sonstiges-in-bregenz-20260915'
+      'yoga-workshop-veranstaltung-in-bregenz-20260915'
+    );
+  });
+
+  it('writes "veranstaltung" instead of the category "Sonstiges"', () => {
+    expect(generateEventSlug('Vollmondfeier', 'Sonstiges', 'Hohenems', '2026-09-15')).toBe(
+      'vollmondfeier-veranstaltung-in-hohenems-20260915'
     );
   });
 
@@ -46,7 +56,7 @@ describe('generateEventSlug', () => {
 
   it('uses both fallbacks for events without category and bezirk', () => {
     expect(generateEventSlug('Offene Meditation', '', '', '2026-09-15')).toBe(
-      'offene-meditation-sonstiges-in-online-20260915'
+      'offene-meditation-veranstaltung-in-online-20260915'
     );
   });
 
@@ -81,6 +91,65 @@ describe('generateEventSlug', () => {
     expect(generateEventSlug('Workshop!', 'Yoga', 'Bregenz', '2026-09-15')).toBe(
       'workshop-yoga-in-bregenz-20260915'
     );
+  });
+});
+
+describe('eventSlugPlace', () => {
+  it('uses the Ort (city) rather than the Bezirk', () => {
+    expect(eventSlugPlace({ city: ' Hohenems ', bezirk: 'Dornbirn', isOnline: false })).toBe(
+      'Hohenems'
+    );
+    expect(
+      generateEventSlug(
+        'Yoga',
+        'Yoga',
+        eventSlugPlace({ city: 'Hohenems', bezirk: 'Dornbirn' }),
+        '2026-09-15'
+      )
+    ).toBe('yoga-yoga-in-hohenems-20260915');
+  });
+
+  it('falls back to the Bezirk when the event has no Ort', () => {
+    expect(eventSlugPlace({ city: '', bezirk: 'Dornbirn' })).toBe('Dornbirn');
+  });
+
+  it('gives online events the "online" place, even with a stale city', () => {
+    const place = eventSlugPlace({ isOnline: true, city: 'Hohenems', bezirk: 'Dornbirn' });
+    expect(generateEventSlug('Yoga', 'Yoga', place, '2026-09-15')).toBe(
+      'yoga-yoga-in-online-20260915'
+    );
+  });
+});
+
+describe('planMissingEventSlugs (deploy slug migration)', () => {
+  it('never rewrites an existing slug, even in an older format', () => {
+    const events = [
+      {
+        id: 'old',
+        data: {
+          title: 'Vollmondfeier',
+          category: 'Sonstiges',
+          city: 'Hohenems',
+          bezirk: 'Dornbirn',
+          date: '2026-09-15',
+          slug: 'vollmondfeier-sonstiges-in-dornbirn-20260915',
+        },
+      },
+    ];
+    expect(planMissingEventSlugs(events)).toEqual([]);
+  });
+
+  it('gives events without a slug one in the new format, avoiding taken slugs', () => {
+    const data = { title: 'Yoga', category: 'Yoga', city: 'Hohenems', date: '2026-09-15' };
+    const events = [
+      { id: 'a', data: { ...data, slug: 'yoga-yoga-in-hohenems-20260915' } },
+      { id: 'b', data },
+      { id: 'c', data },
+    ];
+    expect(planMissingEventSlugs(events)).toEqual([
+      { id: 'b', slug: 'yoga-yoga-in-hohenems-20260915-2' },
+      { id: 'c', slug: 'yoga-yoga-in-hohenems-20260915-3' },
+    ]);
   });
 });
 
