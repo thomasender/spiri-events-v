@@ -8,6 +8,26 @@
     border-color 0.15s ease,
     box-shadow 0.15s ease;
   overflow: hidden;
+  position: relative;
+}
+
+.rte-wrapper--dragover {
+  border-style: dashed;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.rte-drop-hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--accent-soft);
+  color: var(--accent-primary);
+  font-weight: 600;
+  pointer-events: none;
+  z-index: 1;
 }
 
 .rte-wrapper:focus-within {
