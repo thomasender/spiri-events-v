@@ -226,6 +226,9 @@ test.describe('Email verification required for event creation', () => {
         await accept.click();
       }
 
+      // On desktop the cursor is already in the message field.
+      await expect(member.page.getByTestId('chat-input')).toBeFocused();
+
       // Both members see each other at the fire (presence) in real time.
       await expect(member.page.getByTestId('chat-presence-count')).toHaveText('2');
       await expect(other.page.getByTestId('chat-presence-count')).toHaveText('2');

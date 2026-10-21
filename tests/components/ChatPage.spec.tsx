@@ -230,6 +230,43 @@ describe('ChatPage', () => {
     expect(screen.getByTestId('chat-presence')).toHaveTextContent('allein');
   });
 
+  it('closes the emoji finder on Escape and on a click outside, but not on a click inside', () => {
+    renderPage();
+    const toggle = screen.getByTestId('chat-emoji-toggle');
+    fireEvent.click(toggle);
+    expect(screen.getByTestId('emoji-picker')).toBeInTheDocument();
+    fireEvent.mouseDown(screen.getByTestId('emoji-search'));
+    expect(screen.getByTestId('emoji-picker')).toBeInTheDocument();
+    fireEvent.mouseDown(document.body);
+    expect(screen.queryByTestId('emoji-picker')).not.toBeInTheDocument();
+
+    fireEvent.click(toggle);
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+    expect(screen.queryByTestId('emoji-picker')).not.toBeInTheDocument();
+  });
+
+  it('turns ":) " into an emoji while typing and undoes it with Backspace', () => {
+    renderPage();
+    const input = screen.getByTestId('chat-input') as HTMLTextAreaElement;
+    fireEvent.change(input, { target: { value: 'Hallo :)', selectionStart: 8 } });
+    expect(input.value).toBe('Hallo :)');
+    fireEvent.change(input, { target: { value: 'Hallo :) ', selectionStart: 9 } });
+    expect(input.value).toBe('Hallo 🙂 ');
+    input.setSelectionRange(input.value.length, input.value.length);
+    fireEvent.keyDown(input, { key: 'Backspace' });
+    expect(input.value).toBe('Hallo :) ');
+  });
+
+  it('sends a trailing emoticon as emoji', async () => {
+    const send = vi.fn(async () => {});
+    setChat({ send });
+    renderPage();
+    const input = screen.getByTestId('chat-input');
+    fireEvent.change(input, { target: { value: 'Danke :)' } });
+    fireEvent.click(screen.getByTestId('chat-send'));
+    await waitFor(() => expect(send).toHaveBeenCalledWith('Danke 🙂'));
+  });
+
   it('hides the input and explains the mute for banned users', () => {
     setChat({ ban: { until: { toDate: () => new Date(Date.now() + 3_600_000) } } });
     renderPage();

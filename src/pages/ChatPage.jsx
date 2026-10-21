@@ -27,6 +27,7 @@ import {
   replaceToken,
   searchEmojis,
 } from '../utils/emojiSearch';
+import { replaceEmoticonBeforeCaret, replaceTrailingEmoticon } from '../utils/emoticons';
 import './ChatPage.css';
 
 const RULES_KEY = 'chatRulesAccepted';
@@ -132,6 +133,8 @@ function ChatRoom() {
   const lastCount = useRef(0);
   const lastId = useRef(null);
   const prependFrom = useRef(null);
+  const emojiWrapRef = useRef(null);
+  const autoReplaced = useRef(null);
   useChatHeartbeat(true);
   const { online } = useChatPresence(true);
   const [emojiIndex, setEmojiIndex] = useState(null);
@@ -197,6 +200,37 @@ function ChatRoom() {
     return () => clearTimeout(t);
   }, [notice]);
 
+  // Desktop: the cursor is in the message field as soon as it exists. Not on
+  // phones, where it would open the keyboard and cover the conversation.
+  useEffect(() => {
+    if (!rulesAccepted || banned) return;
+    if (window.matchMedia?.('(pointer: fine)').matches) {
+      inputRef.current?.focus({ preventScroll: true });
+    }
+  }, [rulesAccepted, banned]);
+
+  // The emoji finder closes on Escape and on a click or tap outside of it.
+  useEffect(() => {
+    if (!emojiOpen) return undefined;
+    const close = () => setEmojiOpen(false);
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return;
+      close();
+      inputRef.current?.focus({ preventScroll: true });
+    };
+    const onPointer = (e) => {
+      if (!emojiWrapRef.current?.contains(e.target)) close();
+    };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('mousedown', onPointer);
+    document.addEventListener('touchstart', onPointer);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('mousedown', onPointer);
+      document.removeEventListener('touchstart', onPointer);
+    };
+  }, [emojiOpen]);
+
   const acceptRules = () => {
     try {
       window.localStorage.setItem(RULES_KEY, '1');
@@ -211,7 +245,7 @@ function ChatRoom() {
     if (sending || banned || !draft.trim()) return;
     setSendError('');
     try {
-      await send(draft);
+      await send(replaceTrailingEmoticon(draft));
       setDraft('');
       setEmojiOpen(false);
       stickToBottom.current = true;
@@ -241,6 +275,22 @@ function ChatRoom() {
         requestAnimationFrame(() => el.setSelectionRange(pos, pos));
       }
     }
+    // ":)" followed by a space becomes the emoji (only while typing, never
+    // when deleting). Backspace right after undoes it.
+    autoReplaced.current = null;
+    if (value.length > draft.length && /\s/.test(value[pos - 1] ?? '')) {
+      const swapped = replaceEmoticonBeforeCaret(value, pos);
+      if (swapped) {
+        autoReplaced.current = {
+          at: swapped.caret,
+          original: swapped.original,
+          replacedLength: swapped.replacedLength,
+        };
+        value = swapped.text;
+        pos = swapped.caret;
+        requestAnimationFrame(() => el.setSelectionRange(pos, pos));
+      }
+    }
     setDraft(value);
     setCaret(pos);
     setActiveSuggestion(0);
@@ -261,6 +311,22 @@ function ChatRoom() {
   };
 
   const onKeyDown = (e) => {
+    const undo = autoReplaced.current;
+    if (
+      e.key === 'Backspace' &&
+      undo &&
+      e.target.selectionStart === undo.at &&
+      e.target.selectionEnd === undo.at
+    ) {
+      e.preventDefault();
+      const from = undo.at - undo.replacedLength;
+      const pos = from + undo.original.length;
+      setDraft(draft.slice(0, from) + undo.original + draft.slice(undo.at));
+      setCaret(pos);
+      autoReplaced.current = null;
+      requestAnimationFrame(() => inputRef.current?.setSelectionRange(pos, pos));
+      return;
+    }
     if (suggestionsOpen && !e.nativeEvent.isComposing) {
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         e.preventDefault();
@@ -438,7 +504,7 @@ function ChatRoom() {
             </ul>
           )}
           <div className="chat-input-row">
-            <div className="chat-emoji-wrap">
+            <div className="chat-emoji-wrap" ref={emojiWrapRef}>
               <button
                 type="button"
                 className="chat-icon-button"

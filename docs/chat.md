@@ -55,6 +55,11 @@ Typing `:fire` (or `:feuer`) in the input suggests emoji (arrows + Enter/Tab, Es
 from the `emojibase-data` dev dependency (`npm run emoji:build`, commit the result) and loaded
 lazily on first use (`src/utils/emojiSearch.js`), so it is not in the main bundle.
 
+Text emoticons (`:)`, `;)`, `<3`, ... see `src/utils/emoticons.js`) turn into emoji when a space is
+typed after them (Backspace right after undoes it) and when a message ends with one. Only whole
+words, so URLs and times are safe. The picker closes on Escape and on a click/tap outside; on
+desktop the message field is focused on entry (not on phones, the keyboard would cover the chat).
+
 ## Server (`functions/src/chat.ts`, pure logic in `chatLogic.ts`)
 
 - `purgeChatMessages` (daily 04:10 Vienna): messages and cooldown markers older than **10 days**,
