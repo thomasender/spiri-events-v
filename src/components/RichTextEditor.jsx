@@ -70,6 +70,13 @@ const EMOJIS = [
 ];
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+// Dropping or pasting a whole folder by accident would otherwise start dozens of uploads.
+const MAX_IMAGES_PER_INSERT = 5;
+
+const hasFiles = (dataTransfer) => Array.from(dataTransfer?.types || []).includes('Files');
+
+const getImageFiles = (dataTransfer) =>
+  Array.from(dataTransfer?.files || []).filter((file) => file.type.startsWith('image/'));
 
 const ToolbarButton = ({ active, onClick, disabled, label, children }) => (
   <button
@@ -150,9 +157,14 @@ function RichTextEditor({
   const [linkInitial, setLinkInitial] = useState('');
   const [plainLength, setPlainLength] = useState(() => getPlainTextLength(value));
   const [emojiOpen, setEmojiOpen] = useState(false);
-  const [imageUploading, setImageUploading] = useState(false);
+  const [uploadCount, setUploadCount] = useState(0);
   const [imageError, setImageError] = useState(null);
+  const [dragOver, setDragOver] = useState(false);
+  const imageUploading = uploadCount > 0;
   const fileInputRef = useRef(null);
+  // useEditor captures editorProps once, so the drop/paste handlers reach the
+  // current props and upload logic through this ref instead of a stale closure.
+  const insertImageFilesRef = useRef(() => {});
   // Tracks the last HTML we forwarded to the parent via onChange, so the
   // `value`-`setContent` effect can distinguish a parent-driven update from
   // the roundtrip of our own onChange. Without this, every keystroke
@@ -188,6 +200,29 @@ function RichTextEditor({
     ],
     content: value || '',
     editorProps: {
+      handleDrop(view, event) {
+        const files = getImageFiles(event.dataTransfer);
+        if (files.length === 0) {
+          // Dropped files that are not images must not navigate away from the page.
+          if (hasFiles(event.dataTransfer)) {
+            event.preventDefault();
+            insertImageFilesRef.current([]);
+            return true;
+          }
+          return false;
+        }
+        event.preventDefault();
+        const coords = view.posAtCoords({ left: event.clientX, top: event.clientY });
+        insertImageFilesRef.current(files, coords?.pos);
+        return true;
+      },
+      handlePaste(view, event) {
+        const files = getImageFiles(event.clipboardData);
+        if (files.length === 0) return false;
+        event.preventDefault();
+        insertImageFilesRef.current(files);
+        return true;
+      },
       attributes: {
         class: `rte-content${hasError ? ' rte-content--error' : ''}`,
         ...(describedBy ? { 'aria-describedby': describedBy } : {}),
@@ -241,6 +276,58 @@ function RichTextEditor({
     };
   }, [editor]);
 
+  const reportImageError = (msg) => {
+    setImageError(msg);
+    onImageError?.(msg);
+  };
+
+  const validateImageFile = (file) => {
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) return 'Nur JPEG, PNG und WebP erlaubt';
+    if (file.size > MAX_INPUT_SIZE_BYTES) {
+      return `Bild ist zu groß (max. ${Math.round(MAX_INPUT_SIZE_BYTES / 1024 / 1024)}MB)`;
+    }
+    return null;
+  };
+
+  const insertImageFiles = async (files, pos) => {
+    if (!editor) return;
+    setImageError(null);
+    const batch = files.slice(0, MAX_IMAGES_PER_INSERT);
+    if (files.length > batch.length) {
+      reportImageError(`Es werden nur die ersten ${MAX_IMAGES_PER_INSERT} Bilder eingefügt`);
+    } else if (files.length === 0) {
+      reportImageError('Nur JPEG, PNG und WebP erlaubt');
+      return;
+    }
+    // Land the first image where it was dropped; later ones follow the cursor.
+    if (pos != null) editor.commands.setTextSelection(pos);
+
+    for (const file of batch) {
+      const validationError = validateImageFile(file);
+      if (validationError) {
+        reportImageError(validationError);
+        continue;
+      }
+      setUploadCount((n) => n + 1);
+      try {
+        const url = uploadImage
+          ? await uploadImage(file)
+          : await uploadDescriptionImage(file, eventId);
+        const alt = file.name.replace(/\.[^.]+$/, '').slice(0, 120) || 'Eingebettetes Bild';
+        editor.chain().focus().setImage({ src: url, alt }).run();
+      } catch (err) {
+        console.error('Description image upload failed:', err);
+        reportImageError('Bild-Upload fehlgeschlagen');
+      } finally {
+        setUploadCount((n) => n - 1);
+      }
+    }
+  };
+  useEffect(() => {
+    // Runs after every render so the drop/paste handlers never see stale props.
+    insertImageFilesRef.current = (files, pos) => insertImageFiles(files, pos);
+  });
+
   if (!editor) {
     return <div className="rte-loading">Editor lädt…</div>;
   }
@@ -270,45 +357,30 @@ function RichTextEditor({
     fileInputRef.current?.click();
   };
 
-  const handleImageFileChange = async (e) => {
-    const file = e.target.files?.[0];
+  const handleImageFileChange = (e) => {
+    const files = Array.from(e.target.files || []);
     if (fileInputRef.current) fileInputRef.current.value = '';
-    if (!file) return;
-
-    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-      const msg = 'Nur JPEG, PNG und WebP erlaubt';
-      setImageError(msg);
-      onImageError?.(msg);
-      return;
-    }
-    if (file.size > MAX_INPUT_SIZE_BYTES) {
-      const msg = `Bild ist zu groß (max. ${Math.round(MAX_INPUT_SIZE_BYTES / 1024 / 1024)}MB)`;
-      setImageError(msg);
-      onImageError?.(msg);
-      return;
-    }
-
-    setImageError(null);
-    setImageUploading(true);
-    try {
-      const url = uploadImage
-        ? await uploadImage(file)
-        : await uploadDescriptionImage(file, eventId);
-      const alt = file.name.replace(/\.[^.]+$/, '').slice(0, 120) || 'Eingebettetes Bild';
-      editor.chain().focus().setImage({ src: url, alt }).run();
-    } catch (err) {
-      console.error('Description image upload failed:', err);
-      const msg = 'Bild-Upload fehlgeschlagen';
-      setImageError(msg);
-      onImageError?.(msg);
-    } finally {
-      setImageUploading(false);
-    }
+    if (files.length > 0) insertImageFiles(files.slice(0, 1));
   };
 
   return (
-    <div className={`rte-wrapper${hasError ? ' rte-wrapper--error' : ''}`} data-testid={testId}>
+    <div
+      className={`rte-wrapper${hasError ? ' rte-wrapper--error' : ''}${dragOver ? ' rte-wrapper--dragover' : ''}`}
+      data-testid={testId}
+      onDragOver={(e) => {
+        if (hasFiles(e.dataTransfer)) setDragOver(true);
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(false);
+      }}
+      onDrop={() => setDragOver(false)}
+    >
       <EditorContent editor={editor} className="rte-editor-surface" />
+      {dragOver && (
+        <div className="rte-drop-hint" aria-hidden="true">
+          Bild hier ablegen
+        </div>
+      )}
 
       <div className={`rte-counter${overLimit ? ' rte-counter--over' : ''}`}>
         {plainLength} / {maxLength} Zeichen

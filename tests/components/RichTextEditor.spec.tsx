@@ -164,6 +164,111 @@ describe('RichTextEditor', () => {
     });
   });
 
+  describe('drag & drop and paste', () => {
+    const IMG_URL = 'https://firebasestorage.googleapis.com/v0/b/x/o/photo.jpg';
+    const pngFile = (name = 'flyer.png') => new File(['fake-bytes'], name, { type: 'image/png' });
+
+    const fire = (type: string, data: Record<string, unknown>) => {
+      const el = document.querySelector('.rte-content') as HTMLElement;
+      const event = new Event(type, { bubbles: true, cancelable: true });
+      Object.assign(event, data);
+      el.dispatchEvent(event);
+      return event;
+    };
+
+    const dt = (files: File[]) => ({
+      files,
+      types: files.length ? ['Files'] : ['text/plain'],
+      getData: () => '',
+    });
+
+    it('uploads an image file that is dropped on the editor and inserts it', async () => {
+      const { uploadDescriptionImage } = await import('../../src/lib/imageUpload');
+      (uploadDescriptionImage as any).mockClear();
+      const onChange = vi.fn();
+      render(<RichTextEditor value="<p>start</p>" onChange={onChange} eventId="evt-7" />);
+      await waitForEditor();
+
+      const file = pngFile();
+      const event = fire('drop', { dataTransfer: dt([file]), clientX: 0, clientY: 0 });
+      expect(event.defaultPrevented).toBe(true);
+
+      await waitFor(() => expect(uploadDescriptionImage).toHaveBeenCalledWith(file, 'evt-7'));
+      await waitFor(() => {
+        const last = onChange.mock.calls[onChange.mock.calls.length - 1][0];
+        expect(last).toContain('<img');
+        expect(last).toContain(IMG_URL);
+      });
+    });
+
+    it('inserts an image pasted from the clipboard', async () => {
+      const onChange = vi.fn();
+      render(<RichTextEditor value="<p>start</p>" onChange={onChange} />);
+      await waitForEditor();
+
+      const event = fire('paste', { clipboardData: dt([pngFile('screenshot.png')]) });
+      expect(event.defaultPrevented).toBe(true);
+
+      await waitFor(() => {
+        const last = onChange.mock.calls[onChange.mock.calls.length - 1][0];
+        expect(last).toContain(IMG_URL);
+      });
+    });
+
+    it('rejects dropped files that are not images without uploading', async () => {
+      const { uploadDescriptionImage } = await import('../../src/lib/imageUpload');
+      (uploadDescriptionImage as any).mockClear();
+      render(<RichTextEditor value="" onChange={() => {}} />);
+      await waitForEditor();
+
+      const pdf = new File(['x'], 'doc.pdf', { type: 'application/pdf' });
+      const event = fire('drop', { dataTransfer: dt([pdf]), clientX: 0, clientY: 0 });
+      expect(event.defaultPrevented).toBe(true);
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(/nur jpeg, png und webp/i);
+      expect(uploadDescriptionImage).not.toHaveBeenCalled();
+    });
+
+    it('rejects oversized dropped images', async () => {
+      const { uploadDescriptionImage } = await import('../../src/lib/imageUpload');
+      (uploadDescriptionImage as any).mockClear();
+      render(<RichTextEditor value="" onChange={() => {}} />);
+      await waitForEditor();
+
+      const big = pngFile('big.png');
+      Object.defineProperty(big, 'size', { value: 20 * 1024 * 1024 });
+      fire('drop', { dataTransfer: dt([big]), clientX: 0, clientY: 0 });
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(/zu groß/i);
+      expect(uploadDescriptionImage).not.toHaveBeenCalled();
+    });
+
+    it('only processes the first 5 images of a multi-file drop and says so', async () => {
+      const { uploadDescriptionImage } = await import('../../src/lib/imageUpload');
+      (uploadDescriptionImage as any).mockClear();
+      render(<RichTextEditor value="" onChange={() => {}} />);
+      await waitForEditor();
+
+      const files = Array.from({ length: 7 }, (_, i) => pngFile(`f${i}.png`));
+      fire('drop', { dataTransfer: dt(files), clientX: 0, clientY: 0 });
+
+      await waitFor(() => expect(uploadDescriptionImage).toHaveBeenCalledTimes(5));
+      expect(await screen.findByRole('alert')).toHaveTextContent(/ersten 5/);
+    });
+
+    it('does not upload anything for text pastes', async () => {
+      const { uploadDescriptionImage } = await import('../../src/lib/imageUpload');
+      (uploadDescriptionImage as any).mockClear();
+      render(<RichTextEditor value="" onChange={() => {}} />);
+      await waitForEditor();
+      fire('paste', {
+        clipboardData: { files: [], types: ['text/plain'], getData: () => 'hi' },
+      });
+      expect(uploadDescriptionImage).not.toHaveBeenCalled();
+      expect(screen.queryByRole('alert')).toBeNull();
+    });
+  });
+
   it('places the editable surface before the toolbar in DOM order so Tab from a preceding field lands in the editor first', async () => {
     const { container } = render(<RichTextEditor value="<p>x</p>" onChange={() => {}} />);
     await waitForEditor();
