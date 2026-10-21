@@ -385,7 +385,8 @@ describe('ProfileForm — Speichern & Profil anzeigen button (WBFFzVcm)', () => 
     fireEvent.click(screen.getByTestId('profile-save-and-view'));
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
-    expect(screen.getByTestId('profile-incomplete-dialog')).toBeInTheDocument();
+    // The dialog opens after the save resolved, so wait for it instead of reading it at once.
+    expect(await screen.findByTestId('profile-incomplete-dialog')).toBeInTheDocument();
   });
 
   it('surfaces inline validation errors when "Speichern & Profil anzeigen" is clicked with an empty name', async () => {
