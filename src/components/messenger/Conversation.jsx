@@ -4,6 +4,8 @@ import { ArrowDown, ArrowLeft, MoreVertical, Trash2 } from 'lucide-react';
 import ConfirmDialog from '../ConfirmDialog';
 import MessageComposer from '../chat/MessageComposer';
 import { MemberAvatar } from './ThreadList';
+import OnlineDot from '../OnlineDot';
+import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import { useAuth } from '../../hooks/useAuth';
 import { useMemberInfo } from '../../hooks/useMemberInfo';
 import {
@@ -21,6 +23,7 @@ export default function Conversation({ other }) {
   const { user } = useAuth();
   const me = user?.uid;
   const info = useMemberInfo(other);
+  const { statusOf } = useOnlineStatus();
   const name = info?.name ?? '…';
   const nameOf = useCallback((uid) => (uid === other ? name : 'Mitglied'), [other, name]);
   const conv = useConversation(other, nameOf);
@@ -164,7 +167,10 @@ export default function Conversation({ other }) {
         <Link to="/postfach" className="messenger-back" aria-label="Zurück zum Postfach">
           <ArrowLeft size={20} aria-hidden="true" />
         </Link>
-        <MemberAvatar info={info} className="messenger-avatar" />
+        <span className="messenger-avatar-wrap">
+          <MemberAvatar info={info} className="messenger-avatar" />
+          <OnlineDot status={statusOf(other, info?.showOnlineStatus)} />
+        </span>
         <div className="messenger-conversation-title">
           {info?.slug ? <Link to={`/${info.slug}`}>{name}</Link> : <span>{name}</span>}
         </div>

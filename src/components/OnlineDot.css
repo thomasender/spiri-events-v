@@ -1,0 +1,19 @@
+.online-dot {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--bg-calendar, #fff);
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.online-dot--online {
+  background: #2e9e57;
+}
+
+.online-dot--offline {
+  background: var(--error);
+}

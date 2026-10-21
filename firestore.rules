@@ -472,7 +472,7 @@ service cloud.firestore {
                     && request.resource.data.keys().hasOnly(
                       ['displayName', 'bio', 'bioHtml', 'website', 'contact', 'photoURL', 'photoFocalPoint', 'photoZoom',
                        'slug', 'username', 'socialMedia',
-                       'listedInDirectory', 'directoryCategories', 'directoryRegions', 'directoryRegionIds',
+                       'listedInDirectory', 'directoryCategories', 'directoryRegions', 'directoryRegionIds', 'showOnlineStatus',
                        'notifyOnSubmitted', 'notifyOnChangesRequested',
                        'notifyOnPublished', 'notifyOnDeleted',
                        'notifyOnContactMessage', 'notifyOnFavoriteCancelled',
@@ -484,6 +484,8 @@ service cloud.firestore {
                     && isValidDirectoryData(request.resource.data)
                     && (!('instagramConsentDefault' in request.resource.data)
                         || request.resource.data.instagramConsentDefault is bool)
+                    && (!('showOnlineStatus' in request.resource.data)
+                        || request.resource.data.showOnlineStatus is bool)
                     && (!('bioHtml' in request.resource.data)
                         || (request.resource.data.bioHtml is string
                             && request.resource.data.bioHtml.size() <= 20000));
@@ -495,13 +497,15 @@ service cloud.firestore {
                     && isValidDirectoryData(request.resource.data)
                     && (!('instagramConsentDefault' in request.resource.data)
                         || request.resource.data.instagramConsentDefault is bool)
+                    && (!('showOnlineStatus' in request.resource.data)
+                        || request.resource.data.showOnlineStatus is bool)
                     && (!('bioHtml' in request.resource.data)
                         || (request.resource.data.bioHtml is string
                             && request.resource.data.bioHtml.size() <= 20000))
                     && request.resource.data.diff(resource.data).affectedKeys()
                         .hasOnly(['displayName', 'bio', 'bioHtml', 'website', 'contact', 'photoURL', 'photoFocalPoint', 'photoZoom',
                                   'slug', 'username', 'socialMedia',
-                                  'listedInDirectory', 'directoryCategories', 'directoryRegions', 'directoryRegionIds',
+                                  'listedInDirectory', 'directoryCategories', 'directoryRegions', 'directoryRegionIds', 'showOnlineStatus',
                                   'notifyOnSubmitted', 'notifyOnChangesRequested',
                                   'notifyOnPublished', 'notifyOnDeleted',
                                   'notifyOnContactMessage', 'notifyOnFavoriteCancelled',
@@ -533,12 +537,14 @@ service cloud.firestore {
                       && request.auth.uid == uid
                       && request.resource.data.keys().hasOnly(
                         ['displayName', 'bio', 'bioHtml', 'website', 'photoURL', 'photoFocalPoint', 'photoZoom', 'slug', 'username', 'socialMedia',
-                         'listedInDirectory', 'directoryCategories', 'directoryRegions', 'directoryRegionIds',
+                         'listedInDirectory', 'directoryCategories', 'directoryRegions', 'directoryRegionIds', 'showOnlineStatus',
                          'updatedAt']
                       )
                       && request.resource.data.bio.size() <= 2000
                       && request.resource.data.displayName.size() <= 80
                       && isValidDirectoryData(request.resource.data)
+                      && (!('showOnlineStatus' in request.resource.data)
+                          || request.resource.data.showOnlineStatus is bool)
                       && (!('bioHtml' in request.resource.data)
                           || (request.resource.data.bioHtml is string
                               && request.resource.data.bioHtml.size() <= 20000));
@@ -548,12 +554,14 @@ service cloud.firestore {
                       && request.resource.data.bio.size() <= 2000
                       && request.resource.data.displayName.size() <= 80
                       && isValidDirectoryData(request.resource.data)
+                      && (!('showOnlineStatus' in request.resource.data)
+                          || request.resource.data.showOnlineStatus is bool)
                       && (!('bioHtml' in request.resource.data)
                           || (request.resource.data.bioHtml is string
                               && request.resource.data.bioHtml.size() <= 20000))
                       && request.resource.data.diff(resource.data).affectedKeys()
                           .hasOnly(['displayName', 'bio', 'bioHtml', 'website', 'photoURL', 'photoFocalPoint', 'photoZoom', 'slug', 'username', 'socialMedia',
-                                    'listedInDirectory', 'directoryCategories', 'directoryRegions', 'directoryRegionIds',
+                                    'listedInDirectory', 'directoryCategories', 'directoryRegions', 'directoryRegionIds', 'showOnlineStatus',
                                     'updatedAt']);
 
         // Moderation: admins can hide a listing from the directory (and
@@ -850,6 +858,29 @@ service cloud.firestore {
                     ])
                     && request.resource.data.enabled is bool;
       allow delete: if isAdminOrEmulatorAdmin();
+    }
+
+    // Online status (opt-in, default off). Only a person who switched
+    // "Online-Status anzeigen" on in the profile (publicProfile.showOnlineStatus)
+    // may write a heartbeat; the browser sends one about once a minute while the
+    // site is open and visible and deletes it on leaving. Viewers count docs
+    // whose lastSeen is under two minutes old and only show the dot for people
+    // whose profile has the opt-in. Readable by verified members only, so
+    // logged-out visitors and throwaway accounts see nothing.
+    match /presence/{uid} {
+      function isValidBeat() {
+        return request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['lastSeen'])
+          && request.resource.data.lastSeen == request.time
+          && get(/databases/$(database)/documents/users/$(uid)/publicProfile/data)
+               .data.get('showOnlineStatus', false) == true;
+      }
+
+      allow read: if isAuthenticated() && request.auth.token.email_verified == true;
+      allow create: if isValidBeat();
+      allow update: if isValidBeat()
+                    && request.time > resource.data.lastSeen + duration.value(20, 's');
+      allow delete: if isAuthenticated() && request.auth.uid == uid;
     }
 
     // ---- Community chat "Lagerfeuer" (docs/chat.md) -----------------------

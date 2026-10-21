@@ -18,6 +18,7 @@ const EMPTY_PROFILE = {
   directoryCategories: [],
   directoryRegions: [],
   directoryRegionIds: [DEFAULT_REGION_ID],
+  showOnlineStatus: false,
   updatedAt: null,
 };
 
@@ -54,6 +55,7 @@ function normalize(data) {
         : [],
     // Read-side preparation only: nothing filters by it yet.
     directoryRegionIds: resolveDirectoryRegionIds(data),
+    showOnlineStatus: data.showOnlineStatus === true,
     updatedAt: data.updatedAt || null,
   };
 }

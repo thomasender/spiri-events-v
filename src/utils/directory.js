@@ -88,6 +88,8 @@ export function normalizeDirectoryEntry(uid, data) {
     // Read-side preparation only: the directory does not filter by it yet.
     regionIds: resolveDirectoryRegionIds(d),
     hidden: d.directoryHidden === true,
+    // Opt-in: only people who share their online status get a dot.
+    showOnlineStatus: d.showOnlineStatus === true,
   };
 }
 

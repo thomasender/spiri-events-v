@@ -242,3 +242,16 @@
   justify-content: center;
   margin: 4px 0 16px;
 }
+
+.public-profile-avatar {
+  position: relative;
+  display: inline-flex;
+}
+
+.public-profile-avatar .online-dot {
+  width: 18px;
+  height: 18px;
+  right: 4px;
+  bottom: 4px;
+  border-color: var(--bg-calendar);
+}

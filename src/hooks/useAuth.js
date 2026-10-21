@@ -472,6 +472,7 @@ export function useAuth() {
       await Promise.all(blocks.docs.map((b) => deleteDoc(b.ref)));
       await deleteDoc(doc(db, 'dm_settings', uid));
       await deleteDoc(doc(db, 'dm_starters', uid));
+      await deleteDoc(doc(db, 'presence', uid));
     } catch (err) {
       console.warn('Failed to delete chat and message data:', err);
     }

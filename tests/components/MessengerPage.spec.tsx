@@ -27,8 +27,11 @@ vi.mock('../../src/hooks/useChatSettings', () => ({
   useMessengerAccess: () => ({ available: state.available, mode: 'all', loading: false }),
   useChatAccess: () => ({ available: false, mode: 'off', loading: false }),
 }));
-vi.mock('../../src/hooks/useChatPresence', () => ({
-  useChatPresence: () => ({ online: [], count: 0, loading: false }),
+vi.mock('../../src/hooks/useOnlineStatus', () => ({
+  useOnlineStatus: () => ({
+    statusOf: (uid: string, shares: boolean) =>
+      shares ? (uid === 'mira-id' ? 'online' : 'offline') : null,
+  }),
 }));
 vi.mock('../../src/hooks/useMemberInfo', () => ({
   useMemberInfo: (uid: string) => state.infos[uid] ?? null,
@@ -46,7 +49,7 @@ vi.mock('../../src/components/EmailVerificationModal', () => ({
   default: ({ open }: { open: boolean }) => (open ? <div data-testid="verify-modal" /> : null),
 }));
 
-const mira = { name: 'Mira', photoURL: null, slug: 'mira', exists: true };
+const mira = { name: 'Mira', photoURL: null, slug: 'mira', exists: true, showOnlineStatus: true };
 
 function setConv(overrides: Record<string, unknown> = {}) {
   state.conv = {
@@ -260,6 +263,40 @@ describe('MessengerPage: conversation', () => {
     };
     renderAt('/postfach/mira-id');
     expect(screen.getByText('Dieses Mitglied gibt es nicht mehr.')).toBeInTheDocument();
+  });
+});
+
+describe('MessengerPage: online status dot', () => {
+  it('shows the dot in the list and the conversation for people who share, none for others', () => {
+    state.threads = [
+      {
+        id: 'mira-id_me',
+        participants: ['me', 'mira-id'],
+        lastMessageText: 'Hi',
+        lastMessageAt: 1,
+        lastMessageBy: 'me',
+        readAt: {},
+      },
+      {
+        id: 'jonas_me',
+        participants: ['jonas', 'me'],
+        lastMessageText: 'Hi',
+        lastMessageAt: 1,
+        lastMessageBy: 'me',
+        readAt: {},
+      },
+    ];
+    state.infos = {
+      'mira-id': mira,
+      jonas: { name: 'Jonas', photoURL: null, slug: '', exists: true, showOnlineStatus: false },
+    };
+    renderAt('/postfach/mira-id');
+    const [first, second] = screen.getAllByTestId('messenger-thread');
+    expect(first.querySelector('[data-status="online"]')).not.toBeNull();
+    expect(second.querySelector('[data-testid="online-dot"]')).toBeNull();
+    expect(
+      screen.getByTestId('messenger-conversation').querySelector('[data-status="online"]')
+    ).not.toBeNull();
   });
 });
 

@@ -70,6 +70,7 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
   const [instagram, setInstagram] = useState(profile?.socialMedia?.instagram || '');
   const [sharePublicly, setSharePublicly] = useState(profile?.socialMedia?.sharePublicly === true);
   const [listedInDirectory, setListedInDirectory] = useState(profile?.listedInDirectory === true);
+  const [showOnlineStatus, setShowOnlineStatus] = useState(profile?.showOnlineStatus === true);
   const [directoryCategories, setDirectoryCategories] = useState(
     profile?.directoryCategories || []
   );
@@ -124,6 +125,7 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
     setInstagram(profile.socialMedia?.instagram || '');
     setSharePublicly(profile.socialMedia?.sharePublicly === true);
     setListedInDirectory(profile.listedInDirectory === true);
+    setShowOnlineStatus(profile.showOnlineStatus === true);
     setDirectoryCategories(profile.directoryCategories || []);
     setDirectoryRegions(profile.directoryRegions || []);
     setDirectoryRegionIds(
@@ -259,6 +261,7 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
     directoryRegionIds: regionChoices.enabled
       ? directoryRegionIds
       : resolveDirectoryRegionIds(profile),
+    showOnlineStatus,
   });
 
   const handleSubmit = async (e) => {
@@ -539,6 +542,27 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
             />
             <span>Meine Social Media Links auch öffentlich auf meinem Profil anzeigen.</span>
           </label>
+        </div>
+
+        <div className="form-group profile-online-status">
+          <label
+            className="profile-social-media-checkbox"
+            data-testid="profile-online-status-label"
+          >
+            <input
+              type="checkbox"
+              checked={showOnlineStatus}
+              onChange={(e) => setShowOnlineStatus(e.target.checked)}
+              data-testid="profile-online-status"
+            />
+            <span>Meinen Online-Status anzeigen</span>
+          </label>
+          <p className="profile-social-media-hint">
+            Andere angemeldete Mitglieder sehen dann neben deinem Foto einen grünen Punkt, wenn du
+            gerade auf der Seite bist, sonst einen roten. Zum Beispiel im Verzeichnis und im
+            Postfach. Ist die Option aus (Standard), gibt es keinen Punkt. Im Lagerfeuer sieht man
+            aber immer, wer gerade im Chat ist.
+          </p>
         </div>
 
         <DirectoryListingFields

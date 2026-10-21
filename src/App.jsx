@@ -28,6 +28,7 @@ import RegionsPage from './pages/RegionsPage';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
 import DonationPopup from './components/DonationPopup';
 import CookieConsent from './components/CookieConsent';
+import OnlineStatusBeacon from './components/OnlineStatusBeacon';
 import OutboundLinkTracker from './components/OutboundLinkTracker';
 import { setAnalyticsAdminUser, setAnalyticsRegion, trackPageView } from './lib/analytics';
 import { analyticsRegionLabel } from './lib/analyticsEvents';
@@ -163,6 +164,7 @@ function AppLayout() {
     <div className="app-layout">
       <SeedBootstrap />
       <ThemeApplier />
+      <OnlineStatusBeacon />
       <ScrollToTop />
       <AnalyticsRouteTracker />
       <Header />

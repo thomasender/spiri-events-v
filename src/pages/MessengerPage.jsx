@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import { Mail } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
@@ -7,8 +7,8 @@ import Conversation from '../components/messenger/Conversation';
 import ThreadList from '../components/messenger/ThreadList';
 import ErrorPage from './ErrorPage';
 import { useAuth } from '../hooks/useAuth';
-import { useChatAccess, useMessengerAccess } from '../hooks/useChatSettings';
-import { useChatPresence } from '../hooks/useChatPresence';
+import { useMessengerAccess } from '../hooks/useChatSettings';
+import { useOnlineStatus } from '../hooks/useOnlineStatus';
 import { useMemberInfos } from '../hooks/useMemberInfo';
 import { useMyDmSetting, useThreads } from '../hooks/useMessenger';
 import { DM_RETENTION_DAYS, otherUid } from '../utils/messenger';
@@ -18,10 +18,8 @@ function Inbox({ activeUid }) {
   const { user } = useAuth();
   const me = user.uid;
   const { threads, loading } = useThreads(true);
-  const { available: chatOpen } = useChatAccess();
-  const { online } = useChatPresence(chatOpen);
+  const { statusOf } = useOnlineStatus();
   const infos = useMemberInfos(threads.map((t) => otherUid(t, me)));
-  const onlineSet = useMemo(() => new Set(online.map((m) => m.uid)), [online]);
   const { allow, loaded, update } = useMyDmSetting();
   const [saving, setSaving] = useState(false);
 
@@ -54,7 +52,7 @@ function Inbox({ activeUid }) {
         infos={infos}
         me={me}
         activeUid={activeUid}
-        online={onlineSet}
+        statusOf={statusOf}
         loading={loading}
       />
       <p className="messenger-hint">
