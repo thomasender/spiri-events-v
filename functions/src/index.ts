@@ -127,6 +127,7 @@ export { adminListMembers, adminUpdateMember } from './adminMembers';
 export { adminAnalyticsReport } from './adminAnalytics';
 export { adminMailgunUsage } from './adminMailgun';
 export { onEventApprovedPostToInstagram } from './instagramPostOnApproval';
+export { onEventApprovedCount } from './approvedEventsCounter';
 export { instagramWeeklyCarousel } from './instagramWeeklyCarousel';
 export { instagramEventStories, instagramMorningStories } from './instagramStories';
 export { calendarFeed } from './calendarFeed';
