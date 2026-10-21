@@ -13,6 +13,7 @@ import { getMissingProfileFields, BIO_MAX } from '../utils/profile';
 import { slugifyName } from '../lib/slug';
 import { validateUsername, normalizeUsername, USERNAME_MIN, USERNAME_MAX } from '../utils/username';
 import { isUsernameAvailable } from '../lib/slug';
+import { useOnlineStatusAccess } from '../hooks/useChatSettings';
 import './ProfileForm.css';
 
 const NAME_MAX = 80;
@@ -72,6 +73,7 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
   );
   const [directoryRegions, setDirectoryRegions] = useState(profile?.directoryRegions || []);
   const { categories: registryCategories } = useCategoryRegistry();
+  const { available: onlineStatusAvailable } = useOnlineStatusAccess();
 
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -512,26 +514,28 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
           </label>
         </div>
 
-        <div className="form-group profile-online-status">
-          <label
-            className="profile-social-media-checkbox"
-            data-testid="profile-online-status-label"
-          >
-            <input
-              type="checkbox"
-              checked={showOnlineStatus}
-              onChange={(e) => setShowOnlineStatus(e.target.checked)}
-              data-testid="profile-online-status"
-            />
-            <span>Meinen Online-Status anzeigen</span>
-          </label>
-          <p className="profile-social-media-hint">
-            Andere angemeldete Mitglieder sehen dann neben deinem Foto einen grünen Punkt, wenn du
-            gerade auf der Seite bist, sonst einen roten. Zum Beispiel im Verzeichnis und im
-            Postfach. Ist die Option aus (Standard), gibt es keinen Punkt. Im Lagerfeuer sieht man
-            aber immer, wer gerade im Chat ist.
-          </p>
-        </div>
+        {onlineStatusAvailable && (
+          <div className="form-group profile-online-status">
+            <label
+              className="profile-social-media-checkbox"
+              data-testid="profile-online-status-label"
+            >
+              <input
+                type="checkbox"
+                checked={showOnlineStatus}
+                onChange={(e) => setShowOnlineStatus(e.target.checked)}
+                data-testid="profile-online-status"
+              />
+              <span>Meinen Online-Status anzeigen</span>
+            </label>
+            <p className="profile-social-media-hint">
+              Andere angemeldete Mitglieder sehen dann neben deinem Foto einen grünen Punkt, wenn du
+              gerade auf der Seite bist, sonst einen roten. Zum Beispiel im Verzeichnis und im
+              Postfach. Ist die Option aus (Standard), gibt es keinen Punkt. Im Lagerfeuer sieht man
+              aber immer, wer gerade im Chat ist.
+            </p>
+          </div>
+        )}
 
         <DirectoryListingFields
           listed={listedInDirectory}

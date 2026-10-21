@@ -38,6 +38,14 @@ afterAll(async () => {
 
 const publicProfile = (uid: string) => `users/${uid}/publicProfile/data`;
 
+async function setMode(mode: string | null) {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    if (mode === null) await deleteDoc(doc(db, 'app_settings/onlineStatus'));
+    else await setDoc(doc(db, 'app_settings/onlineStatus'), { mode });
+  });
+}
+
 // alice shares her status, bob has the default (off), carol has no profile doc.
 beforeEach(async () => {
   await env.clearFirestore();
@@ -46,7 +54,9 @@ beforeEach(async () => {
     await setDoc(doc(db, publicProfile('alice')), { displayName: 'Alice', showOnlineStatus: true });
     await setDoc(doc(db, publicProfile('bob')), { displayName: 'Bob', showOnlineStatus: false });
     await setDoc(doc(db, 'presence/old'), { lastSeen: Timestamp.now() });
+    await setDoc(doc(db, 'admin_users/adminDoc'), { role: 'Admin' });
   });
+  await setMode('all');
 });
 
 const verified = (uid: string) => env.authenticatedContext(uid, { email_verified: true });
@@ -105,6 +115,49 @@ describe('presence: who may write', () => {
       setDoc(doc(ctx.firestore(), 'presence/bob'), { lastSeen: Timestamp.now() })
     );
     await assertSucceeds(deleteDoc(doc(verified('bob').firestore(), 'presence/bob')));
+  });
+});
+
+describe('presence: the feature flag', () => {
+  const adminToken = () =>
+    env.authenticatedContext('adminTok', { role: 'Admin', email_verified: true });
+
+  it('a missing flag doc means "admins": only admins write and read', async () => {
+    await env.withSecurityRulesDisabled((ctx) =>
+      setDoc(doc(ctx.firestore(), publicProfile('adminTok')), {
+        displayName: 'Admin',
+        showOnlineStatus: true,
+      })
+    );
+    await setMode(null);
+    await assertSucceeds(setDoc(doc(adminToken().firestore(), 'presence/adminTok'), beat()));
+    await assertSucceeds(getDocs(collection(adminToken().firestore(), 'presence')));
+    await assertFails(setDoc(doc(verified('alice').firestore(), 'presence/alice'), beat()));
+    await assertFails(getDocs(collection(verified('alice').firestore(), 'presence')));
+  });
+
+  it('"off" closes it for everybody, "all" opens it', async () => {
+    await setMode('off');
+    await assertFails(setDoc(doc(verified('alice').firestore(), 'presence/alice'), beat()));
+    await assertFails(getDocs(collection(adminToken().firestore(), 'presence')));
+    await setMode('all');
+    await assertSucceeds(setDoc(doc(verified('alice').firestore(), 'presence/alice'), beat()));
+  });
+
+  it('only admins write the flag, with a valid mode', async () => {
+    await assertFails(
+      setDoc(doc(verified('alice').firestore(), 'app_settings/onlineStatus'), { mode: 'all' })
+    );
+    await assertSucceeds(
+      setDoc(doc(adminToken().firestore(), 'app_settings/onlineStatus'), {
+        mode: 'admins',
+        updatedAt: serverTimestamp(),
+        updatedBy: 'adminTok',
+      })
+    );
+    await assertFails(
+      setDoc(doc(adminToken().firestore(), 'app_settings/onlineStatus'), { mode: 'everyone' })
+    );
   });
 });
 

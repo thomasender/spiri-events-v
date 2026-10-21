@@ -602,16 +602,45 @@ service cloud.firestore {
     // whose lastSeen is under two minutes old and only show the dot for people
     // whose profile has the opt-in. Readable by verified members only, so
     // logged-out visitors and throwaway accounts see nothing.
+    //
+    // Feature flag app_settings/onlineStatus { mode: 'off' | 'admins' | 'all' }.
+    // A MISSING doc means 'admins' (test mode: only admins write and read presence);
+    // 'all' opens it for everyone, 'off' closes it.
+    match /app_settings/onlineStatus {
+      allow create: if isChatStaff()
+                    && request.resource.data.keys().hasOnly(['mode', 'updatedAt', 'updatedBy'])
+                    && request.resource.data.mode in ['off', 'admins', 'all'];
+      allow update: if isChatStaff()
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['mode', 'updatedAt', 'updatedBy'])
+                    && request.resource.data.mode in ['off', 'admins', 'all'];
+      allow delete: if isChatStaff();
+    }
+
+    function onlineStatusMode() {
+      return exists(/databases/$(database)/documents/app_settings/onlineStatus)
+        ? get(/databases/$(database)/documents/app_settings/onlineStatus).data.get('mode', 'admins')
+        : 'admins';
+    }
+
+    function onlineStatusOpen() {
+      return onlineStatusMode() == 'all'
+        || (onlineStatusMode() == 'admins' && isChatStaff());
+    }
+
     match /presence/{uid} {
       function isValidBeat() {
         return request.auth.uid == uid
+          && onlineStatusOpen()
           && request.resource.data.keys().hasOnly(['lastSeen'])
           && request.resource.data.lastSeen == request.time
           && get(/databases/$(database)/documents/users/$(uid)/publicProfile/data)
                .data.get('showOnlineStatus', false) == true;
       }
 
-      allow read: if isAuthenticated() && request.auth.token.email_verified == true;
+      allow read: if isAuthenticated()
+                  && request.auth.token.email_verified == true
+                  && onlineStatusOpen();
       allow create: if isValidBeat();
       allow update: if isValidBeat()
                     && request.time > resource.data.lastSeen + duration.value(20, 's');
