@@ -375,3 +375,64 @@ describe('app_settings/chat', () => {
     await assertFails(updateDoc(doc(admin, 'app_settings/chat'), { mode: 'all', extra: 1 }));
   });
 });
+
+describe('chat presence', () => {
+  const beat = (uid: string, overrides: Record<string, unknown> = {}) => ({
+    displayName: 'Alice',
+    photoURL: null,
+    lastSeen: serverTimestamp(),
+    ...overrides,
+  });
+  const path = (uid: string) => `chat_rooms/lagerfeuer/presence/${uid}`;
+
+  it('a chat member writes and deletes only their own heartbeat', async () => {
+    const db = verified('alice').firestore();
+    await assertSucceeds(setDoc(doc(db, path('alice')), beat('alice')));
+    await assertFails(setDoc(doc(verified('bob').firestore(), path('alice')), beat('alice')));
+    await assertFails(deleteDoc(doc(verified('bob').firestore(), path('alice'))));
+    await assertSucceeds(deleteDoc(doc(db, path('alice'))));
+  });
+
+  it('is readable by chat members only, and only while the chat is open', async () => {
+    await env.withSecurityRulesDisabled((ctx) =>
+      setDoc(doc(ctx.firestore(), path('alice')), {
+        displayName: 'Alice',
+        lastSeen: Timestamp.now(),
+      })
+    );
+    await assertSucceeds(
+      getDocs(collection(verified('bob').firestore(), 'chat_rooms/lagerfeuer/presence'))
+    );
+    await assertFails(
+      getDocs(collection(unverified('bob').firestore(), 'chat_rooms/lagerfeuer/presence'))
+    );
+    await assertFails(getDocs(collection(anon().firestore(), 'chat_rooms/lagerfeuer/presence')));
+    await setMode('off');
+    await assertFails(
+      getDocs(collection(verified('bob').firestore(), 'chat_rooms/lagerfeuer/presence'))
+    );
+  });
+
+  it('rejects unknown fields, a fake lastSeen and a foreign photo host', async () => {
+    const db = verified('alice').firestore();
+    await assertFails(setDoc(doc(db, path('alice')), beat('alice', { role: 'Admin' })));
+    await assertFails(setDoc(doc(db, path('alice')), beat('alice', { lastSeen: Timestamp.now() })));
+    await assertFails(
+      setDoc(doc(db, path('alice')), beat('alice', { photoURL: 'https://evil.example/x.png' }))
+    );
+    await assertFails(setDoc(doc(db, path('alice')), beat('alice', { displayName: '' })));
+  });
+
+  it('limits heartbeats to one per 20 seconds', async () => {
+    const db = verified('alice').firestore();
+    await assertSucceeds(setDoc(doc(db, path('alice')), beat('alice')));
+    await assertFails(setDoc(doc(db, path('alice')), beat('alice')));
+    await env.withSecurityRulesDisabled((ctx) =>
+      setDoc(doc(ctx.firestore(), path('alice')), {
+        displayName: 'Alice',
+        lastSeen: Timestamp.fromMillis(Date.now() - 60_000),
+      })
+    );
+    await assertSucceeds(setDoc(doc(db, path('alice')), beat('alice')));
+  });
+});

@@ -344,3 +344,8 @@
     font-size: 0.8rem;
   }
 }
+
+/* Presence bubble on "Lagerfeuer": green, not the red of unread counts. */
+.nav-link-badge--presence {
+  background: var(--accent-secondary);
+}

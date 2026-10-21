@@ -5,6 +5,7 @@ import { useProfile } from '../hooks/useProfile';
 import { useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
 import { useUnreadFeedbackCount } from '../hooks/useFeedbackList';
 import { useChatAccess } from '../hooks/useChatSettings';
+import { useChatPresence } from '../hooks/useChatPresence';
 import EmailVerificationModal from './EmailVerificationModal';
 import AvatarImage from './AvatarImage';
 import {
@@ -40,6 +41,7 @@ export default function Header() {
   const { count: unreadMessageCount } = useUnreadMessageCount();
   const { count: unreadFeedbackCount } = useUnreadFeedbackCount(isAdmin);
   const { available: chatAvailable } = useChatAccess();
+  const { count: chatOnline } = useChatPresence(chatAvailable);
   const [menuOpen, setMenuOpen] = useState(false);
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
@@ -214,8 +216,29 @@ export default function Header() {
             <span>Meine Favoriten</span>
           </NavLink>
           {chatAvailable && (
-            <NavLink to="/chat" className={navClass} onClick={closeMenu} data-testid="nav-chat">
-              <Flame size={18} aria-hidden="true" />
+            <NavLink
+              to="/chat"
+              className={navClass}
+              onClick={closeMenu}
+              data-testid="nav-chat"
+              aria-label={
+                chatOnline > 0
+                  ? `Lagerfeuer (${chatOnline} ${chatOnline === 1 ? 'Person' : 'Personen'} online)`
+                  : 'Lagerfeuer'
+              }
+            >
+              <span className="nav-link-admin-icon">
+                <Flame size={18} aria-hidden="true" />
+                {chatOnline > 0 && (
+                  <span
+                    className="nav-link-badge nav-link-badge--presence"
+                    data-testid="chat-online-badge"
+                    aria-hidden="true"
+                  >
+                    {chatOnline > 9 ? '9+' : chatOnline}
+                  </span>
+                )}
+              </span>
               <span>Lagerfeuer</span>
             </NavLink>
           )}

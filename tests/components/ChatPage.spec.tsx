@@ -10,6 +10,7 @@ const state = vi.hoisted(() => ({
   available: true,
   access: { loading: false },
   chat: {} as Record<string, unknown>,
+  online: [] as { uid: string; name: string; photoURL: string | null }[],
 }));
 
 vi.mock('../../src/hooks/useAuth', () => ({
@@ -17,6 +18,10 @@ vi.mock('../../src/hooks/useAuth', () => ({
 }));
 vi.mock('../../src/hooks/useChatSettings', () => ({
   useChatAccess: () => ({ available: state.available, mode: 'all', loading: state.access.loading }),
+}));
+vi.mock('../../src/hooks/useChatPresence', () => ({
+  useChatHeartbeat: () => {},
+  useChatPresence: () => ({ online: state.online, count: state.online.length, loading: false }),
 }));
 vi.mock('../../src/hooks/useChat', () => ({ useChat: () => state.chat }));
 vi.mock('../../src/components/EmailVerificationModal', () => ({
@@ -64,6 +69,7 @@ beforeEach(() => {
   state.role = null;
   state.available = true;
   state.access.loading = false;
+  state.online = [];
   window.localStorage.setItem('chatRulesAccepted', '1');
   setChat();
 });
@@ -203,6 +209,25 @@ describe('ChatPage', () => {
     await screen.findByTestId('chat-suggestions');
     fireEvent.change(input, { target: { value: ':fire:', selectionStart: 6 } });
     await waitFor(() => expect(input.value).toBe('🔥'));
+  });
+
+  it('shows who sits at the fire, without naming yourself', () => {
+    state.online = [
+      { uid: 'me', name: 'Ich', photoURL: null },
+      { uid: 'a', name: 'Mira', photoURL: null },
+      { uid: 'b', name: 'Jonas', photoURL: null },
+    ];
+    renderPage();
+    expect(screen.getByTestId('chat-presence-count')).toHaveTextContent('3');
+    const strip = screen.getByTestId('chat-presence');
+    expect(strip).toHaveTextContent('Am Lagerfeuer: Mira und Jonas');
+    expect(strip).not.toHaveTextContent('Am Lagerfeuer: Ich');
+  });
+
+  it('tells you when you are alone at the fire', () => {
+    state.online = [{ uid: 'me', name: 'Ich', photoURL: null }];
+    renderPage();
+    expect(screen.getByTestId('chat-presence')).toHaveTextContent('allein');
   });
 
   it('hides the input and explains the mute for banned users', () => {

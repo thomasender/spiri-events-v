@@ -54,10 +54,16 @@ export const purgeChatMessages = onSchedule(
     const members = await deleteQuery(
       db.collection(`chat_rooms/${ROOM}/members`).where('lastMessageAt', '<', messageCutoff)
     );
+    // Heartbeats of closed tabs that never got to delete theirs.
+    const presence = await deleteQuery(
+      db
+        .collection(`chat_rooms/${ROOM}/presence`)
+        .where('lastSeen', '<', Timestamp.fromMillis(now - 24 * 60 * 60 * 1000))
+    );
     const reports = await deleteQuery(
       db.collection('chat_reports').where('createdAt', '<', reportCutoff)
     );
-    logger.info('Purged chat data', { messages, members, reports });
+    logger.info('Purged chat data', { messages, members, presence, reports });
   }
 );
 

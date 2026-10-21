@@ -38,8 +38,14 @@ vi.mock('../../src/hooks/useUnreadMessageCount', () => ({
   useUnreadMessageCount: () => mockUseUnread,
 }));
 
+const mockChat = vi.hoisted(() => ({ available: false, online: 0 }));
+
 vi.mock('../../src/hooks/useChatSettings', () => ({
-  useChatAccess: () => ({ available: false, mode: 'off', loading: false }),
+  useChatAccess: () => ({ available: mockChat.available, mode: 'off', loading: false }),
+}));
+
+vi.mock('../../src/hooks/useChatPresence', () => ({
+  useChatPresence: () => ({ online: [], count: mockChat.online, loading: false }),
 }));
 
 beforeEach(() => {
@@ -49,6 +55,8 @@ beforeEach(() => {
   mockProfile.photoURL = null;
   mockUseUnread.count = 0;
   mockUseUnread.loading = false;
+  mockChat.available = false;
+  mockChat.online = 0;
 });
 
 describe('Header (logged out)', () => {
@@ -1025,5 +1033,40 @@ describe('Header mobile hide-on-scroll behaviour (kq5ob4S0)', () => {
     });
     await flushAnimationFrames();
     expect(header?.classList.contains('header--hidden')).toBe(false);
+  });
+});
+
+describe('Header: Lagerfeuer chat link', () => {
+  const renderHeader = () =>
+    render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+  it('is hidden while the chat is closed for this person', () => {
+    mockAuth.user = { uid: 'u1' };
+    renderHeader();
+    expect(screen.queryByTestId('nav-chat')).toBeNull();
+  });
+
+  it('shows a bubble with the number of people at the fire', () => {
+    mockAuth.user = { uid: 'u1' };
+    mockChat.available = true;
+    mockChat.online = 3;
+    renderHeader();
+    expect(screen.getAllByTestId('chat-online-badge')[0]).toHaveTextContent('3');
+    expect(screen.getAllByTestId('nav-chat')[0]).toHaveAttribute(
+      'aria-label',
+      'Lagerfeuer (3 Personen online)'
+    );
+  });
+
+  it('shows no bubble when nobody is there', () => {
+    mockAuth.user = { uid: 'u1' };
+    mockChat.available = true;
+    renderHeader();
+    expect(screen.getAllByTestId('nav-chat').length).toBeGreaterThan(0);
+    expect(screen.queryByTestId('chat-online-badge')).toBeNull();
   });
 });

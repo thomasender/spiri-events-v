@@ -226,6 +226,10 @@ test.describe('Email verification required for event creation', () => {
         await accept.click();
       }
 
+      // Both members see each other at the fire (presence) in real time.
+      await expect(member.page.getByTestId('chat-presence-count')).toHaveText('2');
+      await expect(other.page.getByTestId('chat-presence-count')).toHaveText('2');
+
       const text = `Hallo vom Lagerfeuer ${Date.now()} 🌿`;
       await member.page.getByTestId('chat-input').fill(text);
       await member.page.getByTestId('chat-send').click();

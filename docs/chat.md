@@ -18,6 +18,7 @@ at once for everyone; messages stay until the purge.
 | --------------------------------------- | ------------------------------------------------------------------- |
 | `chat_rooms/lagerfeuer/messages/{id}`   | `text, authorUid, authorName, authorPhotoURL, createdAt`. No edits. |
 | `chat_rooms/lagerfeuer/members/{uid}`   | `lastMessageAt`: the cooldown marker                                |
+| `chat_rooms/lagerfeuer/presence/{uid}`  | heartbeat `displayName, photoURL, lastSeen` (who is at the fire)    |
 | `chat_bans/{uid}`                       | `until` (far future = permanent), `reason`, `bannedBy`, `userName`  |
 | `chat_reports/{messageId}_{reporterId}` | copy of the reported text, `status` open/resolved                   |
 | `chat_private/reportMail`               | server-only throttle for admin mails (no client rule, so denied)    |
@@ -35,6 +36,16 @@ at once for everyone; messages stay until the purge.
 - Admins moderate (delete any message, mute/ban). `isChatStaff()` is used instead of
   `isAdminOrEmulatorAdmin()` because the latter errors for users without a `role` claim.
   Regions-Moderator:innen exist only on the regions epic; add them here when it merges.
+
+## Presence ("who sits at the fire")
+
+The open chat page writes `presence/{uid}` every 60 s while the tab is visible and deletes it on
+leaving (`useChatHeartbeat`). Everyone with chat access listens to the collection
+(`useChatPresence`, also in the Header for the green bubble on "Lagerfeuer") and counts docs with
+`lastSeen` < 2 minutes. Rules allow one write per 20 s per person. Cost scales with
+chatters x listeners (each heartbeat is one read per listening client); fine for a community this
+size, revisit (e.g. aggregate in a function) if it grows to hundreds of concurrent users.
+`purgeChatMessages` removes heartbeats older than a day.
 
 ## Emoji picker and `:shortcodes`
 

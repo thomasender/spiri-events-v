@@ -232,6 +232,7 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
 *Welche Daten verarbeiten wir?*
 - Ihre Nachricht (Text und Emojis), der Zeitpunkt des Sendens, Ihr Anzeigename und Ihr Profilfoto (so wie in Ihrem Profil hinterlegt; ohne Foto wird der Anfangsbuchstabe Ihres Namens angezeigt) sowie eine interne Konto-Kennung
 - Zeitpunkt Ihrer letzten Nachricht (technisch notwendig, um Spam durch zu schnelles Senden zu verhindern)
+- Solange Sie den Chat geöffnet haben, speichern wir kurzzeitig Ihren Anzeigenamen, Ihr Profilfoto und den Zeitpunkt Ihrer letzten Aktivität, damit andere Mitglieder sehen, wer gerade im Chat ist und wie viele Personen es sind. Der Eintrag wird beim Verlassen des Chats gelöscht, spätestens nach einem Tag automatisch. Die Anzeige sehen nur angemeldete Mitglieder mit bestätigter E-Mail-Adresse
 - Bei Meldungen: der gemeldete Nachrichtentext samt Name der verfassenden Person, die meldende Konto-Kennung und der Zeitpunkt der Meldung
 - Bei Sperren: die Dauer der Sperre und der Grund, den die Moderation vermerkt hat
 

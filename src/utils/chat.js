@@ -190,3 +190,24 @@ export function chatPhotoUrl(url) {
   if (typeof url !== 'string' || url.length > 1000) return null;
   return CHAT_PHOTO_URL_RE.test(url) ? url : null;
 }
+
+// Presence: a person counts as "at the fire" while their heartbeat is younger
+// than PRESENCE_ONLINE_MS. The chat page beats every PRESENCE_BEAT_MS while visible.
+export const PRESENCE_BEAT_MS = 60 * 1000;
+export const PRESENCE_ONLINE_MS = 2 * 60 * 1000;
+export const PRESENCE_TICK_MS = 30 * 1000;
+
+export function onlineMembers(entries, nowMs = Date.now()) {
+  return (entries ?? [])
+    .filter((e) => typeof e.lastSeenMs === 'number' && nowMs - e.lastSeenMs < PRESENCE_ONLINE_MS)
+    .sort((a, b) => a.name.localeCompare(b.name, 'de'));
+}
+
+// "Mira", "Mira und Jonas", "Mira, Jonas und 3 weitere"
+export function describeOnline(members, max = 2) {
+  const names = members.map((m) => m.name);
+  if (names.length === 0) return '';
+  if (names.length <= max) return names.join(names.length === 2 ? ' und ' : ', ');
+  const rest = names.length - max;
+  return `${names.slice(0, max).join(', ')} und ${rest} weitere`;
+}

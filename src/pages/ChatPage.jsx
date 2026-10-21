@@ -10,10 +10,12 @@ import ErrorPage from './ErrorPage';
 import { useAuth } from '../hooks/useAuth';
 import { useChat } from '../hooks/useChat';
 import { useChatAccess } from '../hooks/useChatSettings';
+import { useChatHeartbeat, useChatPresence } from '../hooks/useChatPresence';
 import {
   CHAT_MAX_LENGTH,
   CHAT_RETENTION_DAYS,
   chatTextLength,
+  describeOnline,
   describeChatBan,
   isChatBanActive,
 } from '../utils/chat';
@@ -71,6 +73,45 @@ function ChatRules({ onAccept }) {
   );
 }
 
+const PRESENCE_AVATARS = 10;
+
+function WhoIsHere({ online, selfUid }) {
+  if (online.length === 0) return null;
+  const others = online.filter((m) => m.uid !== selfUid);
+  const label =
+    others.length === 0
+      ? 'Du sitzt gerade allein am Lagerfeuer.'
+      : `Am Lagerfeuer: ${describeOnline(others)}`;
+  return (
+    <div className="chat-presence" data-testid="chat-presence" aria-live="polite">
+      <ul className="chat-presence-avatars" aria-label="Gerade im Chat">
+        {online.slice(0, PRESENCE_AVATARS).map((m) => (
+          <li key={m.uid} title={m.name}>
+            {m.photoURL ? (
+              <img className="chat-presence-avatar" src={m.photoURL} alt={m.name} loading="lazy" />
+            ) : (
+              <span
+                className="chat-presence-avatar chat-presence-avatar--fallback"
+                role="img"
+                aria-label={m.name}
+              >
+                {m.name.trim().charAt(0).toUpperCase()}
+              </span>
+            )}
+          </li>
+        ))}
+        {online.length > PRESENCE_AVATARS && (
+          <li className="chat-presence-more">+{online.length - PRESENCE_AVATARS}</li>
+        )}
+      </ul>
+      <span className="chat-presence-text">
+        <strong data-testid="chat-presence-count">{online.length}</strong>{' '}
+        {online.length === 1 ? 'Person' : 'Personen'} online · {label}
+      </span>
+    </div>
+  );
+}
+
 function ChatRoom() {
   const { user, role } = useAuth();
   const isAdmin = role === 'Admin';
@@ -91,6 +132,8 @@ function ChatRoom() {
   const lastCount = useRef(0);
   const lastId = useRef(null);
   const prependFrom = useRef(null);
+  useChatHeartbeat(true);
+  const { online } = useChatPresence(true);
   const [emojiIndex, setEmojiIndex] = useState(null);
   const [caret, setCaret] = useState(0);
   const [activeSuggestion, setActiveSuggestion] = useState(0);
@@ -299,6 +342,7 @@ function ChatRoom() {
 
   return (
     <>
+      <WhoIsHere online={online} selfUid={user?.uid} />
       <div className="chat-box">
         <ul
           ref={listRef}

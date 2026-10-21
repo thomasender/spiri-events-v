@@ -8,6 +8,9 @@ import {
   chatTextLength,
   cooldownRemainingMs,
   describeChatBan,
+  describeOnline,
+  onlineMembers,
+  PRESENCE_ONLINE_MS,
   formatChatTime,
   isChatBanActive,
   isEmojiOnly,
@@ -201,5 +204,33 @@ describe('chatPhotoUrl', () => {
     expect(chatPhotoUrl('https://evil.example/x.png')).toBeNull();
     expect(chatPhotoUrl('https://firebasestorage.googleapis.com.evil.example/x')).toBeNull();
     expect(chatPhotoUrl(null)).toBeNull();
+  });
+});
+
+describe('presence', () => {
+  const now = 1_000_000;
+  const entry = (name: string, ageMs: number | null) => ({
+    uid: name,
+    name,
+    lastSeenMs: ageMs === null ? null : now - ageMs,
+  });
+  it('counts heartbeats younger than two minutes, sorted by name', () => {
+    const list = onlineMembers(
+      [
+        entry('Mira', 1000),
+        entry('Anna', PRESENCE_ONLINE_MS - 1),
+        entry('Alt', PRESENCE_ONLINE_MS),
+        entry('Leer', null),
+      ],
+      now
+    );
+    expect(list.map((m) => m.name)).toEqual(['Anna', 'Mira']);
+  });
+  it('describes who is online', () => {
+    const m = (name: string) => ({ name });
+    expect(describeOnline([])).toBe('');
+    expect(describeOnline([m('Mira')] as never)).toBe('Mira');
+    expect(describeOnline([m('Mira'), m('Jonas')] as never)).toBe('Mira und Jonas');
+    expect(describeOnline([m('A'), m('B'), m('C'), m('D')] as never)).toBe('A, B und 2 weitere');
   });
 });

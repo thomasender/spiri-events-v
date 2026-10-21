@@ -692,6 +692,45 @@ service cloud.firestore {
                     && request.auth.uid == uid;
     }
 
+    // Presence ("who sits at the fire"): one heartbeat doc per person who has
+    // the chat open. Written about once a minute while the tab is visible and
+    // deleted on leaving; readers count docs whose lastSeen is under two
+    // minutes old. The 20 s gap stops a client from flooding the listeners.
+    match /chat_rooms/{roomId}/presence/{uid} {
+      function isValidPresence() {
+        return request.resource.data.keys().hasOnly(['displayName', 'photoURL', 'lastSeen'])
+          && request.resource.data.keys().hasAll(['displayName', 'lastSeen'])
+          && request.resource.data.displayName is string
+          && request.resource.data.displayName.size() >= 1
+          && request.resource.data.displayName.size() <= 80
+          && (!('photoURL' in request.resource.data)
+              || request.resource.data.photoURL == null
+              || (request.resource.data.photoURL is string
+                  && request.resource.data.photoURL.size() <= 1000
+                  && request.resource.data.photoURL.matches(
+                    '^(https://(firebasestorage\\.googleapis\\.com|[a-z0-9-]+\\.googleusercontent\\.com)|http://(127\\.0\\.0\\.1|localhost):[0-9]+)/.*'
+                  )))
+          && request.resource.data.lastSeen == request.time;
+      }
+
+      allow read: if roomId == 'lagerfeuer' && chatAccessible();
+
+      allow create: if roomId == 'lagerfeuer'
+                    && chatAccessible()
+                    && request.auth.uid == uid
+                    && isValidPresence();
+
+      allow update: if roomId == 'lagerfeuer'
+                    && chatAccessible()
+                    && request.auth.uid == uid
+                    && isValidPresence()
+                    && request.time > resource.data.lastSeen + duration.value(20, 's');
+
+      allow delete: if roomId == 'lagerfeuer'
+                    && isAuthenticated()
+                    && request.auth.uid == uid;
+    }
+
     // Mutes and bans. `until` in the far future means permanent. Admins write;
     // the affected user may read their own entry to see why they cannot post.
     match /chat_bans/{uid} {
