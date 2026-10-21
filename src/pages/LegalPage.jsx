@@ -53,6 +53,9 @@ Nach der Freigabe sind die Angaben zum Event, einschließlich Veranstalter-Name 
 *Bei Nutzung der Privatnachrichten (nur mit Login und bestätigter E-Mail-Adresse):*
 - Ihre Privatnachrichten, deren Zeitpunkt, die Konto-Kennungen der beiden Beteiligten sowie Ihre Einstellungen dazu (siehe Abschnitt 15)
 
+*Bei aktiviertem Online-Status (freiwillig, standardmäßig aus):*
+- Ein Zeitstempel Ihrer letzten Aktivität auf der Website (siehe Abschnitt 16)
+
 *Beim Aufruf der Website:*
 - Technische Zugriffsdaten in Server-Protokollen (siehe Abschnitt 9)`,
       },
@@ -91,6 +94,7 @@ Wenn Sie den Kalender in einer Kalender-App oder bei einem Kalenderdienst (z.B. 
 - *Kalender-Schlüssel:* Wird gelöscht, sobald Sie Ihr Konto löschen; wenn Sie einen neuen Kalender-Link erzeugen, wird der alte Schlüssel ersetzt
 - *Chat-Nachrichten:* Werden automatisch nach 10 Tagen gelöscht, beim Löschen Ihres Kontos sofort (siehe Abschnitt 14)
 - *Privatnachrichten:* Werden automatisch nach 90 Tagen gelöscht, beim Löschen Ihres Kontos werden Ihre Nachrichten sofort entfernt (siehe Abschnitt 15)
+- *Online-Status:* Der Zeitstempel wird beim Verlassen der Seite, beim Abmelden und beim Ausschalten der Option gelöscht, spätestens nach einem Tag automatisch (siehe Abschnitt 16)
 - *Server-Protokolle:* Siehe Abschnitt 9
 
 Nach einer Löschunganfrage werden die Daten innerhalb von 30 Tagen entfernt.`,
@@ -288,7 +292,22 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
 *Ihre Rechte:* Siehe Abschnitt 6. Auskunft über Ihre Privatnachrichten erhalten Sie auf Anfrage an admin@thetribe.at.`,
       },
       {
-        heading: '16. Änderungen dieser Datenschutzerklärung',
+        heading: '16. Online-Status (freiwillig)',
+        text: `In Ihrem Profil können Sie die Option „Meinen Online-Status anzeigen“ einschalten. Sie ist **standardmäßig ausgeschaltet**; ohne Ihre Zustimmung wird nichts gespeichert oder angezeigt.
+
+*Was passiert, wenn Sie die Option einschalten?*
+- Solange Sie angemeldet sind und die Website geöffnet und sichtbar ist, speichern wir etwa einmal pro Minute einen Zeitstempel („zuletzt aktiv“) mit Ihrer Konto-Kennung
+- Andere angemeldete Mitglieder mit bestätigter E-Mail-Adresse sehen neben Ihrem Foto, zum Beispiel im Verzeichnis, auf Ihrem Profil und im Postfach, einen grünen Punkt, wenn Sie gerade aktiv sind (Zeitstempel jünger als zwei Minuten), sonst einen roten Punkt. Besucher:innen ohne Anmeldung sehen keinen Status
+- Mit der Einstellung wird außerdem gespeichert, dass Sie sie eingeschaltet haben. Diese Angabe ist Teil Ihres öffentlichen Profils, die Zeitstempel selbst sehen nur angemeldete Mitglieder
+
+*Wenn Sie die Option ausgeschaltet lassen:* Es gibt keinen Punkt bei Ihrem Foto. Beachten Sie: Im Chat „Lagerfeuer“ (Abschnitt 14) sehen angemeldete Mitglieder unabhängig von dieser Option, wer den Chat gerade geöffnet hat.
+
+*Speicherdauer:* Der Zeitstempel wird gelöscht, sobald Sie die Seite verlassen, sich abmelden oder die Option ausschalten, spätestens nach einem Tag automatisch. Beim Löschen Ihres Kontos wird er ebenfalls gelöscht.
+
+*Rechtsgrundlage:* Ihre Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), die Sie jederzeit mit Wirkung für die Zukunft widerrufen können, indem Sie die Option im Profil ausschalten.`,
+      },
+      {
+        heading: '17. Änderungen dieser Datenschutzerklärung',
         text: `Wir behalten uns vor, diese Datenschutzerklärung bei Änderungen der App oder der Rechtslage anzupassen. Die jeweils aktuelle Version finden Sie immer auf dieser Seite.`,
       },
     ],

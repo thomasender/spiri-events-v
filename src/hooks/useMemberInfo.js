@@ -8,7 +8,13 @@ import { chatPhotoUrl } from '../utils/chat';
 const cache = new Map();
 const pending = new Map();
 
-const DELETED = { name: 'Gelöschtes Mitglied', photoURL: null, slug: '', exists: false };
+const DELETED = {
+  name: 'Gelöschtes Mitglied',
+  photoURL: null,
+  slug: '',
+  showOnlineStatus: false,
+  exists: false,
+};
 
 function fetchMember(uid) {
   if (cache.has(uid)) return Promise.resolve(cache.get(uid));
@@ -23,6 +29,7 @@ function fetchMember(uid) {
                 name: (data.displayName || '').trim() || 'Mitglied',
                 photoURL: chatPhotoUrl(data.photoURL),
                 slug: typeof data.slug === 'string' ? data.slug : '',
+                showOnlineStatus: data.showOnlineStatus === true,
                 exists: true,
               }
             : DELETED;

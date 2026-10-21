@@ -72,6 +72,8 @@ export function normalizeDirectoryEntry(uid, data) {
     categories: stringList(d.directoryCategories),
     regions: stringList(d.directoryRegions),
     hidden: d.directoryHidden === true,
+    // Opt-in: only people who share their online status get a dot.
+    showOnlineStatus: d.showOnlineStatus === true,
   };
 }
 

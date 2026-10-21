@@ -105,6 +105,12 @@ export const purgeChatMessages = onSchedule(
     const reports = await deleteQuery(
       db.collection('chat_reports').where('createdAt', '<', reportCutoff)
     );
+    // Online-status heartbeats left behind by closed browsers.
+    const onlinePresence = await deleteQuery(
+      db
+        .collection('presence')
+        .where('lastSeen', '<', Timestamp.fromMillis(now - 24 * 60 * 60 * 1000))
+    );
     const starters = await deleteQuery(
       db
         .collection('dm_starters')
@@ -122,6 +128,7 @@ export const purgeChatMessages = onSchedule(
       presence,
       reports,
       starters,
+      onlinePresence,
       dmReports,
       ...dm,
     });

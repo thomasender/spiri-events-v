@@ -10,6 +10,8 @@ import { useCategoryRegistry } from '../hooks/useCategoryRegistry';
 import { getCategoryColor } from '../utils/categoryColors';
 import AvatarImage from '../components/AvatarImage';
 import DirectMessageLink from '../components/messenger/DirectMessageLink';
+import OnlineDot from '../components/OnlineDot';
+import { useOnlineStatus } from '../hooks/useOnlineStatus';
 import { useMessengerAccess } from '../hooks/useChatSettings';
 import {
   DIRECTORY_REGIONS,
@@ -24,7 +26,7 @@ import {
 import '../components/DirectoryListingFields.css';
 import './DirectoryPage.css';
 
-function DirectoryCard({ entry, colorByName, isAdmin, canMessage, onToggleHidden, busy }) {
+function DirectoryCard({ entry, colorByName, isAdmin, canMessage, status, onToggleHidden, busy }) {
   const initial = (entry.displayName || '?').charAt(0).toUpperCase();
   return (
     <li
@@ -32,22 +34,25 @@ function DirectoryCard({ entry, colorByName, isAdmin, canMessage, onToggleHidden
       data-testid="directory-card"
     >
       <Link to={`/${entry.slug}`} className="directory-card-link">
-        {entry.photoURL ? (
-          <AvatarImage
-            src={entry.photoURL}
-            alt=""
-            className="directory-card-photo"
-            focalPoint={entry.photoFocalPoint}
-            zoom={entry.photoZoom}
-          />
-        ) : (
-          <div
-            className="directory-card-photo directory-card-photo--placeholder"
-            aria-hidden="true"
-          >
-            {initial}
-          </div>
-        )}
+        <div className="directory-card-avatar">
+          {entry.photoURL ? (
+            <AvatarImage
+              src={entry.photoURL}
+              alt=""
+              className="directory-card-photo"
+              focalPoint={entry.photoFocalPoint}
+              zoom={entry.photoZoom}
+            />
+          ) : (
+            <div
+              className="directory-card-photo directory-card-photo--placeholder"
+              aria-hidden="true"
+            >
+              {initial}
+            </div>
+          )}
+          <OnlineDot status={status} />
+        </div>
         <div className="directory-card-body">
           <h2 className="directory-card-name">{entry.displayName}</h2>
           {entry.regions.length > 0 && (
@@ -105,6 +110,7 @@ export default function DirectoryPage() {
   const { user, role } = useAuth();
   const isAdmin = role === 'Admin';
   const { available: messengerOpen } = useMessengerAccess();
+  const { statusOf } = useOnlineStatus();
   const { entries, loading, error, setHidden } = useDirectory();
   const { categories: registry, colorByName } = useCategoryRegistry();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -339,6 +345,7 @@ export default function DirectoryPage() {
                 isAdmin={isAdmin}
                 onToggleHidden={handleToggleHidden}
                 busy={busyUid === entry.uid}
+                status={statusOf(entry.uid, entry.showOnlineStatus)}
                 canMessage={messengerOpen && Boolean(user) && user.uid !== entry.uid}
               />
             ))}

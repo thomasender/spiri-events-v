@@ -19,6 +19,7 @@ import ErrorPage from './pages/ErrorPage';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
 import DonationPopup from './components/DonationPopup';
 import CookieConsent from './components/CookieConsent';
+import OnlineStatusBeacon from './components/OnlineStatusBeacon';
 import OutboundLinkTracker from './components/OutboundLinkTracker';
 import { setAnalyticsAdminUser, trackPageView } from './lib/analytics';
 import { CONSENT_CHANGE_EVENT, readConsent } from './lib/analyticsConsent';
@@ -119,6 +120,7 @@ function AppContent() {
     <div className="app-layout">
       <SeedBootstrap />
       <ThemeApplier />
+      <OnlineStatusBeacon />
       <ScrollToTop />
       <AnalyticsRouteTracker />
       <Header />

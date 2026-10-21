@@ -496,6 +496,8 @@ or the chat section of the privacy policy.
 
 The private messenger ("Postfach", `/postfach`, flag `app_settings/messenger`) lives on top of it;
 read `docs/messenger.md` ONLY when you touch it, its `dm_*` rules or its privacy section.
+The opt-in online dot (green/red next to avatars, `presence/{uid}`) is in `docs/online-status.md`;
+read it ONLY when you touch it.
 
 ## Communicating with Peter
 

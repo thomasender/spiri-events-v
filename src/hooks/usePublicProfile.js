@@ -16,6 +16,7 @@ const EMPTY_PROFILE = {
   socialMedia: { facebook: '', instagram: '', sharePublicly: false },
   directoryCategories: [],
   directoryRegions: [],
+  showOnlineStatus: false,
   updatedAt: null,
 };
 
@@ -50,6 +51,7 @@ function normalize(data) {
       Array.isArray(data.directoryRegions)
         ? data.directoryRegions.filter((item) => typeof item === 'string')
         : [],
+    showOnlineStatus: data.showOnlineStatus === true,
     updatedAt: data.updatedAt || null,
   };
 }

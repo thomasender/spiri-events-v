@@ -47,3 +47,6 @@ import '../components/ChatTab.css';
 // MessengerPage
 import '../components/messenger/MemberCard.css';
 import '../pages/MessengerPage.css';
+
+// OnlineDot (DirectoryPage, PublicProfilePage, MessengerPage)
+import '../components/OnlineDot.css';

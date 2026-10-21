@@ -70,3 +70,15 @@
   color: var(--text-secondary);
   font-size: 0.9rem;
 }
+
+.member-card-avatar-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.member-card-avatar-wrap .online-dot {
+  width: 18px;
+  height: 18px;
+  right: 4px;
+  bottom: 4px;
+}

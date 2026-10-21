@@ -6,6 +6,8 @@ import { useAuth } from '../../hooks/useAuth';
 import { useMemberInfo } from '../../hooks/useMemberInfo';
 import { useMessengerAccess } from '../../hooks/useChatSettings';
 import { useAcceptsDirectMessages } from '../../hooks/useMessenger';
+import { useOnlineStatus } from '../../hooks/useOnlineStatus';
+import OnlineDot from '../OnlineDot';
 import './MemberCard.css';
 
 // Small card for a person in the chat: write them a private message or open their profile.
@@ -14,6 +16,7 @@ export default function MemberCard({ uid, fallbackName, fallbackPhotoURL, onClos
   const info = useMemberInfo(uid);
   const { available: messengerOpen } = useMessengerAccess();
   const accepts = useAcceptsDirectMessages(uid);
+  const { statusOf } = useOnlineStatus();
   const closeRef = useRef(null);
   const name = info?.name || fallbackName || 'Mitglied';
   const photoURL = info?.photoURL || fallbackPhotoURL || null;
@@ -47,13 +50,16 @@ export default function MemberCard({ uid, fallbackName, fallbackPhotoURL, onClos
         >
           <X size={18} aria-hidden="true" />
         </button>
-        {photoURL ? (
-          <AvatarImage src={photoURL} alt="" className="member-card-avatar" />
-        ) : (
-          <span className="member-card-avatar member-card-avatar--fallback" aria-hidden="true">
-            {name.trim().charAt(0).toUpperCase()}
-          </span>
-        )}
+        <div className="member-card-avatar-wrap">
+          {photoURL ? (
+            <AvatarImage src={photoURL} alt="" className="member-card-avatar" />
+          ) : (
+            <span className="member-card-avatar member-card-avatar--fallback" aria-hidden="true">
+              {name.trim().charAt(0).toUpperCase()}
+            </span>
+          )}
+          <OnlineDot status={statusOf(uid, info?.showOnlineStatus)} />
+        </div>
         <h2 className="member-card-name">{name}</h2>
         <div className="member-card-actions">
           {messengerOpen && !isSelf && info?.exists !== false && (

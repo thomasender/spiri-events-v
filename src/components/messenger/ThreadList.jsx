@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import AvatarImage from '../AvatarImage';
+import OnlineDot from '../OnlineDot';
 import { formatChatTime } from '../../utils/chat';
 import { isThreadUnread, otherUid } from '../../utils/messenger';
 
@@ -15,7 +16,7 @@ export function MemberAvatar({ info, className = 'messenger-avatar' }) {
 }
 
 // The inbox: my conversations, newest first. `infos` maps uid -> member info.
-export default function ThreadList({ threads, infos, me, activeUid, online, loading }) {
+export default function ThreadList({ threads, infos, me, activeUid, statusOf, loading }) {
   if (loading) return <p className="messenger-empty">Lade…</p>;
   if (threads.length === 0) {
     return (
@@ -44,11 +45,7 @@ export default function ThreadList({ threads, infos, me, activeUid, online, load
             >
               <span className="messenger-avatar-wrap">
                 <MemberAvatar info={info} />
-                {online?.has(other) && (
-                  <span className="messenger-online" title="Gerade im Chat">
-                    <span className="visually-hidden">online</span>
-                  </span>
-                )}
+                <OnlineDot status={statusOf?.(other, info?.showOnlineStatus)} />
               </span>
               <span className="messenger-thread-body">
                 <span className="messenger-thread-top">

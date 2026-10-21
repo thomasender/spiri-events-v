@@ -427,3 +427,11 @@
     padding: 0 16px 14px;
   }
 }
+
+/* Wrapper so the online dot can sit on the photo. */
+.directory-card-avatar {
+  position: relative;
+  flex-shrink: 0;
+  width: 72px;
+  height: 72px;
+}

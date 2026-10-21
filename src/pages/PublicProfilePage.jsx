@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, ExternalLink, Facebook, Instagram, Pencil } from 'lucide-react';
 import DirectMessageLink from '../components/messenger/DirectMessageLink';
+import OnlineDot from '../components/OnlineDot';
+import { useOnlineStatus } from '../hooks/useOnlineStatus';
 import { useMessengerAccess } from '../hooks/useChatSettings';
 import { useAcceptsDirectMessages } from '../hooks/useMessenger';
 import SeoMeta from '../components/SeoMeta';
@@ -47,6 +49,7 @@ export default function PublicProfilePage() {
 
   const isOwnProfile = Boolean(user && uid && user.uid === uid);
   const { available: messengerOpen } = useMessengerAccess();
+  const { statusOf } = useOnlineStatus();
   const canMessage = Boolean(messengerOpen && user && uid && !isOwnProfile);
   const acceptsDm = useAcceptsDirectMessages(canMessage ? uid : null);
   const showOrganizerEvents = Boolean(exists && uid);
@@ -176,24 +179,27 @@ export default function PublicProfilePage() {
         <article className="public-profile-card">
           <span className="public-profile-eyebrow">Veranstalter</span>
 
-          {profile.photoURL ? (
-            <AvatarImage
-              src={profile.photoURL}
-              focalPoint={profile.photoFocalPoint}
-              zoom={profile.photoZoom}
-              alt={profile.displayName}
-              className="public-profile-photo"
-              data-testid="public-profile-photo"
-            />
-          ) : (
-            <div
-              className="public-profile-photo public-profile-photo--placeholder"
-              data-testid="public-profile-photo-placeholder"
-              aria-hidden="true"
-            >
-              {(profile.displayName || '?').charAt(0).toUpperCase()}
-            </div>
-          )}
+          <div className="public-profile-avatar">
+            {profile.photoURL ? (
+              <AvatarImage
+                src={profile.photoURL}
+                focalPoint={profile.photoFocalPoint}
+                zoom={profile.photoZoom}
+                alt={profile.displayName}
+                className="public-profile-photo"
+                data-testid="public-profile-photo"
+              />
+            ) : (
+              <div
+                className="public-profile-photo public-profile-photo--placeholder"
+                data-testid="public-profile-photo-placeholder"
+                aria-hidden="true"
+              >
+                {(profile.displayName || '?').charAt(0).toUpperCase()}
+              </div>
+            )}
+            <OnlineDot status={statusOf(uid, profile.showOnlineStatus)} />
+          </div>
 
           <h1 className="public-profile-name" data-testid="public-profile-name">
             {profile.displayName}

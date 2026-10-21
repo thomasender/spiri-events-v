@@ -14,6 +14,7 @@ const mockAuth = vi.hoisted(() => ({
 }));
 
 const mockMessenger = vi.hoisted(() => ({ open: false, accepts: true }));
+const mockOnline = vi.hoisted(() => ({ status: null as 'online' | 'offline' | null }));
 
 vi.mock('../../src/hooks/usePublicProfile', () => ({
   usePublicProfile: () => mockPublicProfile,
@@ -25,6 +26,12 @@ vi.mock('../../src/hooks/useAuth', () => ({
 
 vi.mock('../../src/hooks/useChatSettings', () => ({
   useMessengerAccess: () => ({ available: mockMessenger.open, mode: 'all', loading: false }),
+}));
+
+vi.mock('../../src/hooks/useOnlineStatus', () => ({
+  useOnlineStatus: () => ({
+    statusOf: (_uid: string, shares: boolean) => (shares ? mockOnline.status : null),
+  }),
 }));
 
 vi.mock('../../src/hooks/useMessenger', () => ({
@@ -491,5 +498,31 @@ describe('PublicProfilePage: private message', () => {
     mockMessenger.open = false;
     renderPage();
     expect(screen.queryByTestId('public-profile-dm')).toBeNull();
+  });
+});
+
+describe('PublicProfilePage: online status dot', () => {
+  beforeEach(() => {
+    mockPublicProfile.profile = {
+      displayName: 'Anna Schmidt',
+      bio: '',
+      directoryCategories: [],
+      showOnlineStatus: true,
+    } as never;
+    mockPublicProfile.exists = true;
+    mockPublicProfile.uid = 'anna-uid' as never;
+  });
+
+  it('shows the dot of a person who shares their status', () => {
+    mockOnline.status = 'online';
+    renderPage();
+    expect(screen.getByTestId('online-dot')).toHaveAttribute('data-status', 'online');
+  });
+
+  it('shows no dot when the person does not share', () => {
+    (mockPublicProfile.profile as { showOnlineStatus: boolean }).showOnlineStatus = false;
+    mockOnline.status = 'online';
+    renderPage();
+    expect(screen.queryByTestId('online-dot')).toBeNull();
   });
 });

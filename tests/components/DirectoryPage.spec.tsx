@@ -13,10 +13,17 @@ const mocks = vi.hoisted(() => ({
   },
   auth: { role: 'User', user: null as { uid: string } | null },
   messengerOpen: false,
+  statuses: {} as Record<string, 'online' | 'offline' | null>,
 }));
 
 vi.mock('../../src/hooks/useDirectory', () => ({ useDirectory: () => mocks.directory }));
 vi.mock('../../src/hooks/useAuth', () => ({ useAuth: () => mocks.auth }));
+vi.mock('../../src/hooks/useOnlineStatus', () => ({
+  useOnlineStatus: () => ({
+    statusOf: (uid: string, shares: boolean) =>
+      shares ? (mocks.statuses[uid] ?? 'offline') : null,
+  }),
+}));
 vi.mock('../../src/hooks/useChatSettings', () => ({
   useMessengerAccess: () => ({ available: mocks.messengerOpen, mode: 'all', loading: false }),
 }));
@@ -191,5 +198,25 @@ describe('DirectoryPage: private message shortcut', () => {
     mocks.auth.user = null;
     renderPage();
     expect(screen.queryByTestId('dm-link')).toBeNull();
+  });
+});
+
+describe('DirectoryPage: online status dot', () => {
+  beforeEach(() => {
+    mocks.directory.entries = [
+      e('anna', { showOnlineStatus: true }),
+      e('berta', { showOnlineStatus: true }),
+      e('clara'), // does not share (default)
+    ];
+    mocks.directory.loading = false;
+    mocks.statuses = { anna: 'online', berta: 'offline' };
+  });
+
+  it('shows green for online, red for offline and nothing for people who do not share', () => {
+    renderPage();
+    const card = (name: string) => screen.getByRole('heading', { name }).closest('li')!;
+    expect(card('anna').querySelector('[data-status="online"]')).not.toBeNull();
+    expect(card('berta').querySelector('[data-status="offline"]')).not.toBeNull();
+    expect(card('clara').querySelector('[data-testid="online-dot"]')).toBeNull();
   });
 });
