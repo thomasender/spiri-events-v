@@ -36,3 +36,10 @@ import '../pages/SpendenDankePage.css';
 
 // AuthActionPage
 import '../pages/AuthActionPage.css';
+
+// ChatPage
+import '../components/chat/EmojiPicker.css';
+import '../pages/ChatPage.css';
+
+// AdminPage: ChatTab
+import '../components/ChatTab.css';

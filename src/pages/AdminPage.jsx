@@ -17,6 +17,7 @@ import {
   Instagram,
   BarChart3,
   MailCheck,
+  Flame,
   ChevronDown,
 } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
@@ -26,6 +27,7 @@ import ReviewTab from '../components/ReviewTab';
 import TrashTab from '../components/TrashTab';
 import MessagesTab from '../components/MessagesTab';
 import FeedbackTab from '../components/FeedbackTab';
+import ChatTab from '../components/ChatTab';
 import CategoriesTab from '../components/CategoriesTab';
 import ThemeTab from '../components/ThemeTab';
 import HelpersTab from '../components/HelpersTab';
@@ -74,6 +76,7 @@ const TAB_GROUPS = [
     Icon: Mail,
     tabs: [
       { id: 'messages', label: 'Nachrichten', Icon: Mail },
+      { id: 'chat', label: 'Chat', Icon: Flame },
       { id: 'instagram', label: 'Instagram', Icon: Instagram },
       { id: 'mailgun', label: 'E-Mail-Versand', Icon: MailCheck },
     ],
@@ -102,6 +105,7 @@ const PANELS = {
   helpers: HelpersTab,
   donors: DonorsTab,
   members: MembersTab,
+  chat: ChatTab,
   instagram: InstagramTab,
   analytics: AnalyticsTab,
   mailgun: MailgunTab,
@@ -119,6 +123,7 @@ const VALID_TABS = new Set([
   'helpers',
   'donors',
   'members',
+  'chat',
   'instagram',
   'analytics',
   'mailgun',
@@ -159,6 +164,7 @@ export default function AdminPage() {
       helpers: isAdmin,
       donors: isAdmin,
       members: isAdmin,
+      chat: isAdmin,
       instagram: isAdmin,
       analytics: isAdmin,
       mailgun: isAdmin,

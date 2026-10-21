@@ -47,6 +47,9 @@ Nach der Freigabe sind die Angaben zum Event, einschließlich Veranstalter-Name 
 *Bei Nutzung des Kalender-Exports:*
 - Ein zufällig erzeugter, persönlicher Kalender-Schlüssel, der Ihrem Konto zugeordnet ist (siehe Abschnitt 13)
 
+*Bei Nutzung des Community-Chats (nur mit Login und bestätigter E-Mail-Adresse):*
+- Ihre Chat-Nachrichten, Ihr Anzeigename und Ihr Profilfoto sowie Zeitpunkt des Sendens (siehe Abschnitt 14)
+
 *Beim Aufruf der Website:*
 - Technische Zugriffsdaten in Server-Protokollen (siehe Abschnitt 9)`,
       },
@@ -83,6 +86,7 @@ Wenn Sie den Kalender in einer Kalender-App oder bei einem Kalenderdienst (z.B. 
 - *Account-Daten:* Werden gelöscht, sobald Sie Ihr Konto löschen
 - *Events:* Werden gelöscht, wenn Sie diese löschen oder Ihr Konto entfernen lassen
 - *Kalender-Schlüssel:* Wird gelöscht, sobald Sie Ihr Konto löschen; wenn Sie einen neuen Kalender-Link erzeugen, wird der alte Schlüssel ersetzt
+- *Chat-Nachrichten:* Werden automatisch nach 10 Tagen gelöscht, beim Löschen Ihres Kontos sofort (siehe Abschnitt 14)
 - *Server-Protokolle:* Siehe Abschnitt 9
 
 Nach einer Löschunganfrage werden die Daten innerhalb von 30 Tagen entfernt.`,
@@ -222,7 +226,36 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
 *Rechtsgrundlage:* Die Erzeugung und Speicherung des Schlüssels und die Bereitstellung der Kalenderdaten erfolgen, weil Sie diese Funktion nutzen (Art. 6 Abs. 1 lit. b DSGVO). Die Veröffentlichung der Event-Angaben, einschließlich Veranstalter-Name und Kontaktangaben, in Kalenderdateien und im Abo beruht auf unserem berechtigten Interesse, die freigegebenen Events möglichst gut auffindbar zu machen, sowie dem Interesse der Veranstalter:innen an der Bewerbung ihrer Events (Art. 6 Abs. 1 lit. f DSGVO).`,
       },
       {
-        heading: '14. Änderungen dieser Datenschutzerklärung',
+        heading: '14. Community-Chat „Lagerfeuer“ (nur mit Login)',
+        text: `Angemeldete Nutzer:innen mit bestätigter E-Mail-Adresse können im Chat „Lagerfeuer“ mit anderen Mitgliedern schreiben. Der Chat steht nur mit Login zur Verfügung und ist nicht öffentlich im Internet sichtbar.
+
+*Welche Daten verarbeiten wir?*
+- Ihre Nachricht (Text und Emojis), der Zeitpunkt des Sendens, Ihr Anzeigename und Ihr Profilfoto (so wie in Ihrem Profil hinterlegt; ohne Foto wird der Anfangsbuchstabe Ihres Namens angezeigt) sowie eine interne Konto-Kennung
+- Zeitpunkt Ihrer letzten Nachricht (technisch notwendig, um Spam durch zu schnelles Senden zu verhindern)
+- Bei Meldungen: der gemeldete Nachrichtentext samt Name der verfassenden Person, die meldende Konto-Kennung und der Zeitpunkt der Meldung
+- Bei Sperren: die Dauer der Sperre und der Grund, den die Moderation vermerkt hat
+
+*Wer sieht Ihre Nachrichten?*
+- Alle angemeldeten Mitglieder mit bestätigter E-Mail-Adresse sowie die Administrator:innen. Schreiben Sie deshalb nichts, was nicht alle Mitglieder lesen sollen. Verschicken Sie keine sensiblen Daten, insbesondere keine Gesundheitsdaten (Art. 9 DSGVO), und keine personenbezogenen Daten anderer
+- Mitglieder können Nachrichten melden. Gemeldete Nachrichten und die Konto-Kennung der meldenden Person sehen nur die Administrator:innen. Bei einer neuen Meldung erhalten die Administrator:innen eine E-Mail
+
+*Moderation:*
+- Administrator:innen können Nachrichten löschen und Mitglieder für einen Zeitraum stumm schalten oder dauerhaft vom Chat ausschließen, etwa bei Beleidigungen, Spam, Hetze oder anderen Verstößen gegen die Chat-Regeln. Die Chat-Regeln werden beim ersten Betreten des Chats angezeigt; ob Sie sie bestätigt haben, speichern wir nur lokal in Ihrem Browser (Local Storage)
+
+*Speicherdauer:*
+- Chat-Nachrichten werden automatisch nach 10 Tagen gelöscht
+- Sie können Ihre eigenen Nachrichten jederzeit selbst löschen
+- Beim Löschen Ihres Kontos werden Ihre Chat-Nachrichten gelöscht
+- Meldungen werden spätestens nach 30 Tagen gelöscht. Ein Eintrag über eine Sperre bleibt, solange die Sperre gilt
+
+*Rechtsgrundlage:* Die Bereitstellung des Chats und die Anzeige Ihrer Nachrichten erfolgen, weil Sie die Funktion nutzen (Art. 6 Abs. 1 lit. b DSGVO). Moderation, Spam-Schutz und die Bearbeitung von Meldungen beruhen auf unserem berechtigten Interesse, den Chat sicher und frei von Missbrauch zu halten (Art. 6 Abs. 1 lit. f DSGVO).
+
+*Verarbeitung:* Die Daten werden in Google Cloud Firestore (Firebase) gespeichert (siehe Abschnitt 9). Wir geben keine Chat-Inhalte an Dritte weiter und nutzen sie nicht für Werbung oder Statistik.
+
+*Ihre Rechte:* Sie können jederzeit Auskunft über Ihre Chat-Daten verlangen und der Verarbeitung widersprechen (siehe Abschnitt 6). Möchten Sie, dass eine Nachricht von Ihnen vorzeitig entfernt wird, löschen Sie sie selbst im Chat oder schreiben Sie uns an admin@thetribe.at.`,
+      },
+      {
+        heading: '15. Änderungen dieser Datenschutzerklärung',
         text: `Wir behalten uns vor, diese Datenschutzerklärung bei Änderungen der App oder der Rechtslage anzupassen. Die jeweils aktuelle Version finden Sie immer auf dieser Seite.`,
       },
     ],

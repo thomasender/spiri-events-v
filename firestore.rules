@@ -587,6 +587,159 @@ service cloud.firestore {
       allow delete: if isAdminOrEmulatorAdmin();
     }
 
+    // ---- Community chat "Lagerfeuer" (docs/chat.md) -----------------------
+    // Feature flag: app_settings/chat { mode: 'off' | 'admins' | 'all' }.
+    // A missing doc means off. app_settings is publicly readable, so the
+    // header can decide whether to show the nav link.
+    match /app_settings/chat {
+      allow create: if isChatStaff()
+                    && request.resource.data.keys().hasOnly(['mode', 'updatedAt', 'updatedBy'])
+                    && request.resource.data.mode in ['off', 'admins', 'all'];
+      allow update: if isChatStaff()
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['mode', 'updatedAt', 'updatedBy'])
+                    && request.resource.data.mode in ['off', 'admins', 'all'];
+      allow delete: if isChatStaff();
+    }
+
+    // Like isAdminOrEmulatorAdmin(), but a missing `role` claim counts as
+    // "no" instead of an evaluation error (which would also fail the rest
+    // of an `||` chain for ordinary users).
+    function isChatStaff() {
+      return isAuthenticated()
+        && (request.auth.token.get('role', null) == 'Admin' || isAdminViaFirestore());
+    }
+
+    function chatMode() {
+      return exists(/databases/$(database)/documents/app_settings/chat)
+        ? get(/databases/$(database)/documents/app_settings/chat).data.get('mode', 'off')
+        : 'off';
+    }
+
+    // Login and a verified e-mail are mandatory; the flag decides who may
+    // enter at all. Reads and writes are both gated, not only the UI.
+    function chatAccessible() {
+      return isAuthenticated()
+        && request.auth.token.email_verified == true
+        && (chatMode() == 'all' || (chatMode() == 'admins' && isChatStaff()));
+    }
+
+    function isChatBanned(uid) {
+      return exists(/databases/$(database)/documents/chat_bans/$(uid))
+        && get(/databases/$(database)/documents/chat_bans/$(uid)).data.until > request.time;
+    }
+
+    // Plain-text messages only. The author snapshot (name, photo) is copied
+    // from the profile at send time. Messages cannot be edited; the author
+    // or an admin deletes them. A scheduled function purges them after 10
+    // days (functions/src/chat.ts).
+    match /chat_rooms/{roomId}/messages/{messageId} {
+      allow read: if roomId == 'lagerfeuer' && chatAccessible();
+
+      // The cooldown marker (members/{uid}) must be written in the same
+      // batch with the same server time: that is what rate-limits senders.
+      allow create: if roomId == 'lagerfeuer'
+                    && chatAccessible()
+                    && !isChatBanned(request.auth.uid)
+                    && request.resource.data.keys().hasAll(['text', 'authorUid', 'authorName', 'createdAt'])
+                    && request.resource.data.keys().hasOnly(
+                      ['text', 'authorUid', 'authorName', 'authorPhotoURL', 'createdAt']
+                    )
+                    && request.resource.data.authorUid == request.auth.uid
+                    && request.resource.data.text is string
+                    && request.resource.data.text.size() >= 1
+                    // Client limit is 500 characters; emoji count differently
+                    // in rules, so this is only a generous hard ceiling.
+                    && request.resource.data.text.size() <= 2000
+                    && request.resource.data.authorName is string
+                    && request.resource.data.authorName.size() >= 1
+                    && request.resource.data.authorName.size() <= 80
+                    && (!('authorPhotoURL' in request.resource.data)
+                        || request.resource.data.authorPhotoURL == null
+                        || (request.resource.data.authorPhotoURL is string
+                            && request.resource.data.authorPhotoURL.size() <= 1000
+                            && request.resource.data.authorPhotoURL.matches(
+                              '^(https://(firebasestorage\\.googleapis\\.com|[a-z0-9-]+\\.googleusercontent\\.com)|http://(127\\.0\\.0\\.1|localhost):[0-9]+)/.*'
+                            )))
+                    && request.resource.data.createdAt == request.time
+                    && getAfter(/databases/$(database)/documents/chat_rooms/$(roomId)/members/$(request.auth.uid))
+                         .data.lastMessageAt == request.time;
+
+      // Own messages stay deletable even when the chat is switched off or
+      // the author is banned (account deletion removes them too).
+      allow delete: if roomId == 'lagerfeuer'
+                    && isAuthenticated()
+                    && (resource.data.authorUid == request.auth.uid || isChatStaff());
+    }
+
+    // Cooldown marker: one doc per sender holding the time of the last message.
+    match /chat_rooms/{roomId}/members/{uid} {
+      allow create: if roomId == 'lagerfeuer'
+                    && chatAccessible()
+                    && request.auth.uid == uid
+                    && request.resource.data.keys().hasOnly(['lastMessageAt'])
+                    && request.resource.data.lastMessageAt == request.time;
+
+      allow update: if roomId == 'lagerfeuer'
+                    && chatAccessible()
+                    && request.auth.uid == uid
+                    && request.resource.data.keys().hasOnly(['lastMessageAt'])
+                    && request.resource.data.lastMessageAt == request.time
+                    && request.time > resource.data.lastMessageAt + duration.value(3, 's');
+
+      allow delete: if roomId == 'lagerfeuer'
+                    && isAuthenticated()
+                    && request.auth.uid == uid;
+    }
+
+    // Mutes and bans. `until` in the far future means permanent. Admins write;
+    // the affected user may read their own entry to see why they cannot post.
+    match /chat_bans/{uid} {
+      allow read: if isChatStaff()
+                  || (isAuthenticated() && request.auth.uid == uid);
+      allow create, update: if isChatStaff()
+                            && request.resource.data.keys().hasOnly(
+                              ['until', 'reason', 'bannedBy', 'userName', 'createdAt']
+                            )
+                            && request.resource.data.until is timestamp
+                            && request.resource.data.bannedBy == request.auth.uid
+                            && request.resource.data.reason is string
+                            && request.resource.data.reason.size() <= 200
+                            && (!('userName' in request.resource.data)
+                                || (request.resource.data.userName is string
+                                    && request.resource.data.userName.size() <= 80));
+      allow delete: if isChatStaff();
+    }
+
+    // Reports of messages. The id is `${messageId}_${reporterUid}`, so one
+    // person reports a message only once. The text is copied into the report
+    // because the message itself is purged after 10 days.
+    match /chat_reports/{reportId} {
+      allow read: if isChatStaff();
+      allow create: if chatAccessible()
+                    && request.resource.data.keys().hasOnly(
+                      ['messageId', 'messageText', 'messageAuthorUid', 'messageAuthorName',
+                       'reportedBy', 'status', 'createdAt']
+                    )
+                    && request.resource.data.messageId is string
+                    && request.resource.data.messageId.size() > 0
+                    && request.resource.data.messageId.size() <= 40
+                    && reportId == request.resource.data.messageId + '_' + request.auth.uid
+                    && request.resource.data.reportedBy == request.auth.uid
+                    && request.resource.data.messageText is string
+                    && request.resource.data.messageText.size() <= 2000
+                    && request.resource.data.messageAuthorUid is string
+                    && request.resource.data.messageAuthorName is string
+                    && request.resource.data.messageAuthorName.size() <= 80
+                    && request.resource.data.status == 'open'
+                    && request.resource.data.createdAt == request.time;
+      allow update: if isChatStaff()
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['status', 'resolvedAt', 'resolvedBy'])
+                    && request.resource.data.status in ['open', 'resolved'];
+      allow delete: if isChatStaff();
+    }
+
     // Refreshed Instagram access token (secret!). Written and read only by
     // the Cloud Functions (Admin SDK bypasses rules). No client may ever read
     // or write it, not even admins.

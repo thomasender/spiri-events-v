@@ -25,6 +25,8 @@ import {
   serverTimestamp,
   deleteDoc,
   writeBatch,
+  query,
+  where,
 } from 'firebase/firestore';
 import { splitProfileData } from '../utils/profile';
 import { revokeCalendarFeedToken } from './useCalendarFeedToken';
@@ -432,6 +434,18 @@ export function useAuth() {
       await revokeCalendarFeedToken();
     } catch (err) {
       console.warn('Failed to delete calendar feed token:', err);
+    }
+
+    try {
+      // Own chat messages and the cooldown marker (the messages would also be
+      // purged after 10 days, but a deleted account should not linger).
+      const chatMessages = await getDocs(
+        query(collection(db, 'chat_rooms', 'lagerfeuer', 'messages'), where('authorUid', '==', uid))
+      );
+      await Promise.all(chatMessages.docs.map((m) => deleteDoc(m.ref)));
+      await deleteDoc(doc(db, 'chat_rooms', 'lagerfeuer', 'members', uid));
+    } catch (err) {
+      console.warn('Failed to delete chat data:', err);
     }
 
     try {

@@ -1,5 +1,18 @@
 import { test, expect } from '@playwright/test';
 import { signInWithEmailAndPassword } from '../helpers/auth';
+import { STORAGE_STATE } from '../helpers/roles';
+
+const CHAT_FLAG_URL =
+  'http://127.0.0.1:8181/v1/projects/spirieventsvbg/databases/(default)/documents/app_settings/chat';
+
+async function setChatMode(mode: 'off' | 'all'): Promise<void> {
+  const res = await fetch(CHAT_FLAG_URL, {
+    method: 'PATCH',
+    headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields: { mode: { stringValue: mode } } }),
+  });
+  expect(res.ok).toBe(true);
+}
 
 test.describe('Email verification required for event creation', () => {
   test('verified user sees the "Neues Event" button on /admin and can open the form', async ({
@@ -188,5 +201,41 @@ test.describe('Email verification required for event creation', () => {
     await expect(page.getByRole('heading', { name: 'E-Mail gesendet' })).toBeVisible();
     await expect(page.getByText(/überprüfe dein Postfach und folge dem Link/i)).toBeVisible();
     expect(sawCallable).toBe(true);
+  });
+
+  test('Lagerfeuer chat: verified members chat live, unverified users are asked to verify', async ({
+    browser,
+    baseURL,
+  }) => {
+    await setChatMode('all');
+    const open = async (role: 'user' | 'admin' | 'unverified') => {
+      const context = await browser.newContext({ baseURL, storageState: STORAGE_STATE[role] });
+      const page = await context.newPage();
+      await page.goto('/chat');
+      return { context, page };
+    };
+    const member = await open('user');
+    const other = await open('admin');
+    const locked = await open('unverified');
+    try {
+      await expect(locked.page.getByTestId('chat-unverified')).toBeVisible();
+      await expect(locked.page.getByTestId('chat-input')).toHaveCount(0);
+
+      for (const { page } of [member, other]) {
+        const accept = page.getByTestId('chat-rules-accept');
+        await accept.click();
+      }
+
+      const text = `Hallo vom Lagerfeuer ${Date.now()} 🌿`;
+      await member.page.getByTestId('chat-input').fill(text);
+      await member.page.getByTestId('chat-send').click();
+
+      // The second member sees it without reloading.
+      await expect(other.page.getByTestId('chat-message').filter({ hasText: text })).toBeVisible();
+      await expect(member.page.getByTestId('chat-input')).toHaveValue('');
+    } finally {
+      await setChatMode('off');
+      await Promise.all([member, other, locked].map(({ context }) => context.close()));
+    }
   });
 });

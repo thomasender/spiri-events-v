@@ -4,12 +4,14 @@ import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
 import { useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
 import { useUnreadFeedbackCount } from '../hooks/useFeedbackList';
+import { useChatAccess } from '../hooks/useChatSettings';
 import EmailVerificationModal from './EmailVerificationModal';
 import AvatarImage from './AvatarImage';
 import {
   Users,
   Calendar,
   Heart,
+  Flame,
   LogOut,
   User,
   PlusCircle,
@@ -37,6 +39,7 @@ export default function Header() {
   const location = useLocation();
   const { count: unreadMessageCount } = useUnreadMessageCount();
   const { count: unreadFeedbackCount } = useUnreadFeedbackCount(isAdmin);
+  const { available: chatAvailable } = useChatAccess();
   const [menuOpen, setMenuOpen] = useState(false);
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
@@ -210,6 +213,12 @@ export default function Header() {
             <Heart size={18} aria-hidden="true" />
             <span>Meine Favoriten</span>
           </NavLink>
+          {chatAvailable && (
+            <NavLink to="/chat" className={navClass} onClick={closeMenu} data-testid="nav-chat">
+              <Flame size={18} aria-hidden="true" />
+              <span>Lagerfeuer</span>
+            </NavLink>
+          )}
           {renderAdminLink()}
           <NavLink to="/profil" className={navClass} onClick={closeMenu}>
             {profile?.photoURL || user?.photoURL ? (

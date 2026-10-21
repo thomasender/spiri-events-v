@@ -38,6 +38,10 @@ vi.mock('../../src/hooks/useUnreadMessageCount', () => ({
   useUnreadMessageCount: () => mockUseUnread,
 }));
 
+vi.mock('../../src/hooks/useChatSettings', () => ({
+  useChatAccess: () => ({ available: false, mode: 'off', loading: false }),
+}));
+
 beforeEach(() => {
   mockAuth.user = null;
   mockAuth.canCreateEvents = true;

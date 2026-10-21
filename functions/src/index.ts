@@ -145,3 +145,4 @@ export { purgeExpiredEvents } from './purgeExpiredEvents';
 export { onEventCancelledNotifyFavorites } from './eventCancellationNotify';
 export { getEventFavoriteCount } from './eventFavoriteCount';
 export { onEventUpdatedWriteRevision } from './eventRevisionTrigger';
+export { purgeChatMessages, onChatReportCreated } from './chat';

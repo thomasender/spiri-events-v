@@ -487,6 +487,13 @@ update the matching template in `instagramCanvaKit.ts` too, otherwise the Canva
 templates drift from what the app posts. A new template needs an entry in
 `KIT_TEMPLATES`.
 
+## Community chat
+
+Logged-in members with a verified e-mail chat in one room ("Lagerfeuer", `/chat`) behind the
+feature flag `app_settings/chat` (off / admins / all). Messages are deleted after 10 days.
+Read `docs/chat.md` ONLY when you touch the chat, its rules (`chat_*`), `functions/src/chat.ts`
+or the chat section of the privacy policy.
+
 ## Communicating with Peter
 
 Peter is the product owner and tester. He tests directly on production at https://www.thetribe.at (NOT locally).
