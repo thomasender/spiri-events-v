@@ -569,6 +569,8 @@ describe('Header Verwaltung unread badge (zejdjTnm)', () => {
       </MemoryRouter>
     );
 
+    // On desktop Verwaltung lives in the account menu.
+    fireEvent.click(screen.getByTestId('account-menu-toggle'));
     const adminLinks = screen.getAllByRole('link', { name: /Verwaltung/ });
     expect(adminLinks.length).toBeGreaterThan(0);
     adminLinks.forEach((link) => {
@@ -585,6 +587,8 @@ describe('Header Verwaltung unread badge (zejdjTnm)', () => {
         <Header />
       </MemoryRouter>
     );
+
+    fireEvent.click(screen.getByTestId('account-menu-toggle'));
 
     const adminLinks = screen.getAllByRole('link', { name: /Verwaltung/ });
     adminLinks.forEach((link) => {
@@ -1110,5 +1114,85 @@ describe('Header: Postfach link', () => {
     renderHeader();
     expect(screen.getAllByTestId('nav-messenger').length).toBeGreaterThan(0);
     expect(screen.queryByTestId('messenger-unread-badge')).toBeNull();
+  });
+});
+
+describe('Header: desktop account menu', () => {
+  const renderHeader = () =>
+    render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+  it('keeps favorites, profile, Verwaltung and logout out of the main row until it is opened', () => {
+    mockAuth.user = { uid: 'u1' };
+    renderHeader();
+    const toggle = screen.getByTestId('account-menu-toggle');
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(toggle).toHaveAttribute('aria-haspopup', 'menu');
+    const panel = document.getElementById('account-menu-panel') as HTMLElement;
+    expect(panel).toHaveAttribute('hidden');
+    ['Mein Profil', 'Meine Favoriten', 'Verwaltung', 'Abmelden'].forEach((label) => {
+      expect(panel.textContent).toContain(label);
+    });
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(panel).not.toHaveAttribute('hidden');
+  });
+
+  it('closes on Escape and on a click outside', () => {
+    mockAuth.user = { uid: 'u1' };
+    renderHeader();
+    const toggle = screen.getByTestId('account-menu-toggle');
+    fireEvent.click(toggle);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(toggle).toHaveFocus();
+
+    fireEvent.click(toggle);
+    fireEvent.mouseDown(document.body);
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('closes after choosing an entry', () => {
+    mockAuth.user = { uid: 'u1' };
+    renderHeader();
+    const toggle = screen.getByTestId('account-menu-toggle');
+    fireEvent.click(toggle);
+    const panel = document.getElementById('account-menu-panel') as HTMLElement;
+    fireEvent.click(panel.querySelector('a[href="/favoriten"]') as HTMLElement);
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('shows the unread count on the avatar while the menu is closed', () => {
+    mockAuth.user = { uid: 'u1' };
+    mockUseUnread.count = 3;
+    renderHeader();
+    expect(screen.getByTestId('account-unread-badge')).toHaveTextContent('3');
+    expect(screen.getByTestId('account-menu-toggle')).toHaveAttribute(
+      'aria-label',
+      'Mein Konto (3 ungelesene Benachrichtigungen)'
+    );
+    fireEvent.click(screen.getByTestId('account-menu-toggle'));
+    expect(screen.queryByTestId('account-unread-badge')).toBeNull();
+  });
+
+  it('has no account menu when logged out; login and create stay in the row', () => {
+    mockAuth.user = null;
+    renderHeader();
+    expect(screen.queryByTestId('account-menu-toggle')).toBeNull();
+    expect(screen.getAllByTestId('event-create-cta').length).toBeGreaterThan(0);
+  });
+
+  it('keeps the Postfach link as an icon with an accessible name on desktop', () => {
+    mockAuth.user = { uid: 'u1' };
+    mockChat.dm = true;
+    renderHeader();
+    const link = document.querySelector(
+      '.nav-desktop [data-testid="nav-messenger"]'
+    ) as HTMLElement;
+    expect(link.className).toContain('nav-link--icon');
+    expect(link).toHaveAttribute('aria-label', 'Postfach');
   });
 });

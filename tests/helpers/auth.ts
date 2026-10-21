@@ -49,6 +49,12 @@ export async function signOut(page: Page): Promise<void> {
   const desktopLogout = page.locator('.nav-desktop button.nav-link--logout');
   const mobileLogout = page.locator('.nav-mobile:not(.nav-mobile--open) button.nav-link--logout');
 
+  // On desktop the logout button lives in the account menu: open it first.
+  const accountToggle = page.getByTestId('account-menu-toggle');
+  if (await accountToggle.isVisible({ timeout: 2000 }).catch(() => false)) {
+    await accountToggle.click();
+  }
+
   let signedOut = false;
   if (await desktopLogout.isVisible({ timeout: 2000 }).catch(() => false)) {
     await desktopLogout.click();

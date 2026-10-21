@@ -15,6 +15,7 @@ import {
   Heart,
   Flame,
   Mail,
+  ChevronDown,
   LogOut,
   User,
   PlusCircle,
@@ -47,12 +48,18 @@ export default function Header() {
   const { available: messengerAvailable } = useMessengerAccess();
   const { unreadCount: dmUnread } = useThreads(messengerAvailable);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const menuRef = useRef(null);
   const toggleRef = useRef(null);
+  const accountRef = useRef(null);
+  const accountToggleRef = useRef(null);
 
-  const closeMenu = () => setMenuOpen(false);
+  const closeMenu = () => {
+    setMenuOpen(false);
+    setAccountOpen(false);
+  };
 
   const openVerificationModal = () => {
     closeMenu();
@@ -178,10 +185,121 @@ export default function Header() {
     closeMenu();
   }, [location.pathname]);
 
+  // The desktop account menu closes on Escape (focus returns to its button)
+  // and on a click or tap outside of it.
+  useEffect(() => {
+    if (!accountOpen) return undefined;
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        setAccountOpen(false);
+        accountToggleRef.current?.focus();
+      }
+    };
+    const onPointer = (e) => {
+      if (accountRef.current && !accountRef.current.contains(e.target)) setAccountOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('mousedown', onPointer);
+    document.addEventListener('touchstart', onPointer);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('mousedown', onPointer);
+      document.removeEventListener('touchstart', onPointer);
+    };
+  }, [accountOpen]);
+
   const unreadCount = unreadMessageCount + unreadFeedbackCount;
   const hasUnread = unreadCount > 0;
 
-  const renderAdminLink = () => (
+  const profilePhotoURL = profile?.photoURL || user?.photoURL;
+
+  // ---- Nav items. Desktop groups them (primary links, actions, account menu),
+  // the mobile menu lists them flat. -------------------------------------------
+
+  const calendarLink = (
+    <NavLink to="/" className={navClass} end onClick={closeMenu}>
+      <Calendar size={18} />
+      <span>Kalender</span>
+    </NavLink>
+  );
+
+  const directoryLink = (
+    <NavLink to="/verzeichnis" className={navClass} onClick={closeMenu}>
+      <Users size={18} />
+      <span>Verzeichnis</span>
+    </NavLink>
+  );
+
+  const chatLink = chatAvailable && (
+    <NavLink
+      to="/chat"
+      className={navClass}
+      onClick={closeMenu}
+      data-testid="nav-chat"
+      aria-label={
+        chatOnline > 0
+          ? `Lagerfeuer (${chatOnline} ${chatOnline === 1 ? 'Person' : 'Personen'} online)`
+          : 'Lagerfeuer'
+      }
+    >
+      <span className="nav-link-admin-icon">
+        <Flame size={18} aria-hidden="true" />
+        {chatOnline > 0 && (
+          <span
+            className="nav-link-badge nav-link-badge--presence"
+            data-testid="chat-online-badge"
+            aria-hidden="true"
+          >
+            {chatOnline > 9 ? '9+' : chatOnline}
+          </span>
+        )}
+      </span>
+      <span>Lagerfeuer</span>
+    </NavLink>
+  );
+
+  // On desktop the label is visually hidden: an envelope with a bubble is the
+  // familiar pattern and saves space. The text stays for screen readers.
+  const messengerLink = (iconOnly) =>
+    messengerAvailable && (
+      <NavLink
+        to="/postfach"
+        className={({ isActive }) =>
+          `${navClass({ isActive })}${iconOnly ? ' nav-link--icon' : ''}`
+        }
+        onClick={closeMenu}
+        data-testid="nav-messenger"
+        title={iconOnly ? 'Postfach' : undefined}
+        aria-label={
+          dmUnread > 0
+            ? `Postfach (${dmUnread} ungelesene ${dmUnread === 1 ? 'Unterhaltung' : 'Unterhaltungen'})`
+            : 'Postfach'
+        }
+      >
+        <span className="nav-link-admin-icon">
+          <Mail size={18} aria-hidden="true" />
+          {dmUnread > 0 && (
+            <span
+              className="nav-link-badge"
+              data-testid="messenger-unread-badge"
+              aria-hidden="true"
+            >
+              {dmUnread > 9 ? '9+' : dmUnread}
+            </span>
+          )}
+        </span>
+        <span>Postfach</span>
+      </NavLink>
+    );
+
+  const favoritesLink = (
+    <NavLink to="/favoriten" className={navClass} onClick={closeMenu}>
+      <Heart size={18} aria-hidden="true" />
+      <span>Meine Favoriten</span>
+    </NavLink>
+  );
+
+  const adminLink = (
     <NavLink
       to="/admin"
       className={getAdminNavClass(location.pathname)}
@@ -203,136 +321,175 @@ export default function Header() {
     </NavLink>
   );
 
-  const renderNavLinks = () => (
+  const profileLink = (
+    <NavLink to="/profil" className={navClass} onClick={closeMenu}>
+      {profilePhotoURL ? (
+        <AvatarImage
+          src={profilePhotoURL}
+          focalPoint={profile?.photoURL ? profile.photoFocalPoint : null}
+          zoom={profile?.photoURL ? profile.photoZoom : 1}
+          alt=""
+          className="nav-link-avatar"
+          aria-hidden="true"
+          data-testid="profile-nav-avatar"
+        />
+      ) : (
+        <UserCircle size={18} aria-hidden="true" />
+      )}
+      <span>Mein Profil</span>
+    </NavLink>
+  );
+
+  const createLink = (extraClass = '') =>
+    canCreateEvents ? (
+      <NavLink
+        to="/admin/new"
+        className={({ isActive }) => `${navClass({ isActive })}${extraClass}`}
+        onClick={closeMenu}
+      >
+        <PlusCircle size={18} />
+        <span>Event erstellen</span>
+      </NavLink>
+    ) : (
+      <button
+        type="button"
+        className={`nav-link nav-link--disabled${extraClass}`}
+        onClick={openVerificationModal}
+        title="Bitte bestätige zuerst deine E-Mail-Adresse, um Events zu erstellen."
+        data-testid="event-create-locked"
+      >
+        <PlusCircle size={18} aria-hidden="true" />
+        <span>Event erstellen</span>
+      </button>
+    );
+
+  const logoutButton = (
+    <button type="button" onClick={handleLogout} className="nav-link nav-link--logout">
+      <LogOut size={18} />
+      <span>Abmelden</span>
+    </button>
+  );
+
+  const loggedOutLinks = (extraClass = '') => (
     <>
-      <NavLink to="/" className={navClass} end onClick={closeMenu}>
-        <Calendar size={18} />
-        <span>Kalender</span>
+      <NavLink to="/login" className={navClass} onClick={closeMenu}>
+        <User size={18} />
+        <span>Anmelden</span>
       </NavLink>
-      <NavLink to="/verzeichnis" className={navClass} onClick={closeMenu}>
-        <Users size={18} />
-        <span>Verzeichnis</span>
+      <NavLink
+        to="/login"
+        className={({ isActive }) => `${navClass({ isActive })}${extraClass}`}
+        onClick={closeMenu}
+        data-testid="event-create-cta"
+      >
+        <PlusCircle size={18} />
+        <span>Event erstellen</span>
       </NavLink>
+    </>
+  );
+
+  // Phones: one flat list, most used first, account things last.
+  const renderMobileNav = () => (
+    <>
+      {calendarLink}
+      {directoryLink}
       {user ? (
         <>
-          <NavLink to="/favoriten" className={navClass} onClick={closeMenu}>
-            <Heart size={18} aria-hidden="true" />
-            <span>Meine Favoriten</span>
-          </NavLink>
-          {chatAvailable && (
-            <NavLink
-              to="/chat"
-              className={navClass}
-              onClick={closeMenu}
-              data-testid="nav-chat"
-              aria-label={
-                chatOnline > 0
-                  ? `Lagerfeuer (${chatOnline} ${chatOnline === 1 ? 'Person' : 'Personen'} online)`
-                  : 'Lagerfeuer'
-              }
-            >
-              <span className="nav-link-admin-icon">
-                <Flame size={18} aria-hidden="true" />
-                {chatOnline > 0 && (
-                  <span
-                    className="nav-link-badge nav-link-badge--presence"
-                    data-testid="chat-online-badge"
-                    aria-hidden="true"
-                  >
-                    {chatOnline > 9 ? '9+' : chatOnline}
-                  </span>
-                )}
-              </span>
-              <span>Lagerfeuer</span>
-            </NavLink>
-          )}
-          {messengerAvailable && (
-            <NavLink
-              to="/postfach"
-              className={navClass}
-              onClick={closeMenu}
-              data-testid="nav-messenger"
-              aria-label={
-                dmUnread > 0
-                  ? `Postfach (${dmUnread} ungelesene ${dmUnread === 1 ? 'Unterhaltung' : 'Unterhaltungen'})`
-                  : 'Postfach'
-              }
-            >
-              <span className="nav-link-admin-icon">
-                <Mail size={18} aria-hidden="true" />
-                {dmUnread > 0 && (
-                  <span
-                    className="nav-link-badge"
-                    data-testid="messenger-unread-badge"
-                    aria-hidden="true"
-                  >
-                    {dmUnread > 9 ? '9+' : dmUnread}
-                  </span>
-                )}
-              </span>
-              <span>Postfach</span>
-            </NavLink>
-          )}
-          {renderAdminLink()}
-          <NavLink to="/profil" className={navClass} onClick={closeMenu}>
-            {profile?.photoURL || user?.photoURL ? (
-              <AvatarImage
-                src={profile?.photoURL || user?.photoURL}
-                focalPoint={profile?.photoURL ? profile.photoFocalPoint : null}
-                zoom={profile?.photoURL ? profile.photoZoom : 1}
-                alt=""
-                className="nav-link-avatar"
-                aria-hidden="true"
-                data-testid="profile-nav-avatar"
-              />
-            ) : (
-              <UserCircle size={18} aria-hidden="true" />
-            )}
-            <span>Mein Profil</span>
-          </NavLink>
-          {canCreateEvents ? (
-            <NavLink to="/admin/new" className={navClass} onClick={closeMenu}>
-              <PlusCircle size={18} />
-              <span>Event erstellen</span>
-            </NavLink>
-          ) : (
-            <button
-              type="button"
-              className="nav-link nav-link--disabled"
-              onClick={openVerificationModal}
-              title="Bitte bestätige zuerst deine E-Mail-Adresse, um Events zu erstellen."
-              data-testid="event-create-locked"
-            >
-              <PlusCircle size={18} aria-hidden="true" />
-              <span>Event erstellen</span>
-            </button>
-          )}
-          <button type="button" onClick={handleLogout} className="nav-link nav-link--logout">
-            <LogOut size={18} />
-            <span>Abmelden</span>
-          </button>
+          {chatLink}
+          {messengerLink(false)}
+          {createLink()}
+          {favoritesLink}
+          {profileLink}
+          {adminLink}
+          {logoutButton}
         </>
       ) : (
-        <>
-          <NavLink to="/login" className={navClass} onClick={closeMenu}>
-            <User size={18} />
-            <span>Anmelden</span>
-          </NavLink>
-          <NavLink
-            to="/login"
-            className={navClass}
-            onClick={closeMenu}
-            data-testid="event-create-cta"
-          >
-            <PlusCircle size={18} />
-            <span>Event erstellen</span>
-          </NavLink>
-        </>
+        loggedOutLinks()
       )}
     </>
   );
 
-  const profilePhotoURL = profile?.photoURL || user?.photoURL;
+  // Desktop: places to go on the left, actions and the account menu on the
+  // right. Favorites, profile, Verwaltung and logout live in the account menu.
+  const accountActive =
+    ['/profil', '/favoriten', '/admin'].some(
+      (path) => location.pathname === path || location.pathname.startsWith(`${path}/`)
+    ) && !location.pathname.startsWith('/admin/new');
+  const renderDesktopNav = () => (
+    <>
+      <div className="nav-group nav-group--primary">
+        {calendarLink}
+        {directoryLink}
+        {user && chatLink}
+      </div>
+      <div className="nav-group nav-group--actions">
+        {user ? (
+          <>
+            {createLink(' nav-link--create')}
+            {messengerLink(true)}
+            <div className="account-menu" ref={accountRef}>
+              <button
+                ref={accountToggleRef}
+                type="button"
+                className={`account-menu-toggle${accountActive ? ' account-menu-toggle--active' : ''}`}
+                aria-haspopup="menu"
+                aria-expanded={accountOpen}
+                aria-controls="account-menu-panel"
+                aria-label={
+                  hasUnread
+                    ? `Mein Konto (${unreadCount} ungelesene Benachrichtigungen)`
+                    : 'Mein Konto'
+                }
+                onClick={() => setAccountOpen((open) => !open)}
+                data-testid="account-menu-toggle"
+              >
+                <span className="nav-link-admin-icon">
+                  {profilePhotoURL ? (
+                    <AvatarImage
+                      src={profilePhotoURL}
+                      focalPoint={profile?.photoURL ? profile.photoFocalPoint : null}
+                      zoom={profile?.photoURL ? profile.photoZoom : 1}
+                      alt=""
+                      className="account-avatar"
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    <UserCircle size={28} aria-hidden="true" />
+                  )}
+                  {hasUnread && !accountOpen && (
+                    <span
+                      className="nav-link-badge"
+                      data-testid="account-unread-badge"
+                      aria-hidden="true"
+                    >
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </span>
+                <ChevronDown size={16} aria-hidden="true" className="account-menu-chevron" />
+              </button>
+              <div
+                id="account-menu-panel"
+                className="account-menu-panel"
+                role="group"
+                aria-label="Mein Konto"
+                hidden={!accountOpen}
+              >
+                {profileLink}
+                {favoritesLink}
+                {adminLink}
+                <div className="account-menu-divider" role="separator" />
+                {logoutButton}
+              </div>
+            </div>
+          </>
+        ) : (
+          loggedOutLinks(' nav-link--create')
+        )}
+      </div>
+    </>
+  );
+
   const profileTarget = user ? '/profil' : '/login';
   const profileLabel = user ? 'Mein Profil' : 'Anmelden';
 
@@ -354,7 +511,7 @@ export default function Header() {
           </div>
         </Link>
 
-        <div className="nav-desktop">{renderNavLinks()}</div>
+        <div className="nav-desktop">{renderDesktopNav()}</div>
 
         {/* Tablet+phone only — quick login/profile shortcut next to the
             burger so users do not have to open the mobile menu to sign in
@@ -411,7 +568,7 @@ export default function Header() {
         className={`nav-mobile${menuOpen ? ' nav-mobile--open' : ''}`}
         aria-hidden={!menuOpen}
       >
-        {renderNavLinks()}
+        {renderMobileNav()}
       </div>
 
       <EmailVerificationModal
