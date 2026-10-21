@@ -1,6 +1,9 @@
 import { useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, ExternalLink, Facebook, Instagram, Pencil } from 'lucide-react';
+import DirectMessageLink from '../components/messenger/DirectMessageLink';
+import { useMessengerAccess } from '../hooks/useChatSettings';
+import { useAcceptsDirectMessages } from '../hooks/useMessenger';
 import SeoMeta from '../components/SeoMeta';
 import ShareButton from '../components/ShareButton';
 import OrganizerEvents from '../components/OrganizerEvents';
@@ -43,6 +46,9 @@ export default function PublicProfilePage() {
   const { profile, loading, exists, uid } = usePublicProfile(slug);
 
   const isOwnProfile = Boolean(user && uid && user.uid === uid);
+  const { available: messengerOpen } = useMessengerAccess();
+  const canMessage = Boolean(messengerOpen && user && uid && !isOwnProfile);
+  const acceptsDm = useAcceptsDirectMessages(canMessage ? uid : null);
   const showOrganizerEvents = Boolean(exists && uid);
 
   useEffect(() => {
@@ -192,6 +198,17 @@ export default function PublicProfilePage() {
           <h1 className="public-profile-name" data-testid="public-profile-name">
             {profile.displayName}
           </h1>
+
+          {canMessage && (
+            <div className="public-profile-dm" data-testid="public-profile-dm">
+              <DirectMessageLink
+                uid={uid}
+                name={profile.displayName}
+                variant="profile"
+                accepts={acceptsDm}
+              />
+            </div>
+          )}
 
           {directoryCategories.length > 0 && (
             <ul className="public-profile-categories" data-testid="public-profile-categories">

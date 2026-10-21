@@ -35,7 +35,9 @@ block). Independent of the chat flag. Enforced in the rules (`messengerAccessibl
 - Names/photos are NOT stored in threads (they could be spoofed): the client reads the
   counterpart's `users/{uid}/publicProfile/data` (`useMemberInfo`, cached). Deleted accounts show as
   "Gelöschtes Mitglied".
-- Starting a conversation: click an avatar/name in the Lagerfeuer -> `MemberCard` -> `/postfach/<uid>`.
+- Starting a conversation: click an avatar/name in the Lagerfeuer -> `MemberCard` -> `/postfach/<uid>`;
+  directory cards and the public profile page show a "Nachricht" button (`DirectMessageLink`) when the
+  messenger is open for the viewer. Add it wherever else a person is shown the same way.
 
 ## Server (`functions/src/chat.ts`)
 

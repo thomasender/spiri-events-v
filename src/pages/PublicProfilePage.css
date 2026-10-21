@@ -236,3 +236,9 @@
   background-color: var(--accent-soft);
   text-decoration: underline;
 }
+
+.public-profile-dm {
+  display: flex;
+  justify-content: center;
+  margin: 4px 0 16px;
+}

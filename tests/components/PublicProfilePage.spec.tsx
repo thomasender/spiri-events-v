@@ -10,8 +10,10 @@ const mockPublicProfile = vi.hoisted(() => ({
 }));
 
 const mockAuth = vi.hoisted(() => ({
-  user: null,
+  user: null as { uid: string } | null,
 }));
+
+const mockMessenger = vi.hoisted(() => ({ open: false, accepts: true }));
 
 vi.mock('../../src/hooks/usePublicProfile', () => ({
   usePublicProfile: () => mockPublicProfile,
@@ -19,6 +21,14 @@ vi.mock('../../src/hooks/usePublicProfile', () => ({
 
 vi.mock('../../src/hooks/useAuth', () => ({
   useAuth: () => mockAuth,
+}));
+
+vi.mock('../../src/hooks/useChatSettings', () => ({
+  useMessengerAccess: () => ({ available: mockMessenger.open, mode: 'all', loading: false }),
+}));
+
+vi.mock('../../src/hooks/useMessenger', () => ({
+  useAcceptsDirectMessages: () => mockMessenger.accepts,
 }));
 
 vi.mock('react-helmet-async', () => ({
@@ -45,6 +55,8 @@ const renderPage = (slug = 'anna-schmidt') =>
   );
 
 beforeEach(() => {
+  mockMessenger.open = false;
+  mockMessenger.accepts = true;
   mockPublicProfile.profile = null;
   mockPublicProfile.loading = false;
   mockPublicProfile.exists = false;
@@ -436,5 +448,48 @@ describe('PublicProfilePage — social media links (gIVugxij)', () => {
       'href',
       '/verzeichnis?region=Bregenz'
     );
+  });
+});
+
+describe('PublicProfilePage: private message', () => {
+  beforeEach(() => {
+    mockPublicProfile.profile = {
+      displayName: 'Anna Schmidt',
+      bio: '',
+      directoryCategories: [],
+    } as never;
+    mockPublicProfile.exists = true;
+    mockPublicProfile.uid = 'anna-uid' as never;
+    mockAuth.user = { uid: 'me' };
+    mockMessenger.open = true;
+  });
+
+  it('links to the conversation with this person', () => {
+    renderPage();
+    expect(screen.getByTestId('dm-link')).toHaveAttribute('href', '/postfach/anna-uid');
+  });
+
+  it('says so when the person takes no private messages', () => {
+    mockMessenger.accepts = false;
+    renderPage();
+    expect(screen.queryByTestId('dm-link')).toBeNull();
+    expect(screen.getByTestId('dm-link-no-dm')).toHaveTextContent('Anna Schmidt');
+  });
+
+  it('is hidden on your own profile, when logged out and while the messenger is closed', () => {
+    mockAuth.user = { uid: 'anna-uid' };
+    const own = renderPage();
+    expect(screen.queryByTestId('public-profile-dm')).toBeNull();
+    own.unmount();
+
+    mockAuth.user = null;
+    const out = renderPage();
+    expect(screen.queryByTestId('public-profile-dm')).toBeNull();
+    out.unmount();
+
+    mockAuth.user = { uid: 'me' };
+    mockMessenger.open = false;
+    renderPage();
+    expect(screen.queryByTestId('public-profile-dm')).toBeNull();
   });
 });
