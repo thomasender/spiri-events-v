@@ -153,6 +153,7 @@ one of the six Großregionen) from the product owner's list. Cultural regions st
 (Super-Admin only, `RegionMappingTab.jsx`) the product owner moves districts between the
 regions of one country; the lists are saved in `regions/{id}.bezirke` (+ `mappingUpdatedAt`).
 
+- **Phone flow (ticket 559):** drag and drop does not work on phones, so everything also works by tapping: tap entries (checkbox or the chips of "Noch ohne Region"), then tap the target region tile; "Aus der Region nehmen" puts the selection back to its Bundesland. Drag and drop stays for desktop.
 - **Only Germany is offered:** the tab shows Germany only (no country switcher); Austria (Bundesland -> Bezirk) and Switzerland (Kanton -> Bezirk) keep their structure (product decision). Only the UI hides them; the callable would still accept Austrian / Swiss moves. Re-enable by changing `MAPPING_COUNTRIES` in `RegionMappingTab.jsx`.
 - **Fixed vs editable:** the districts themselves (`DISTRICT_CATALOG` in
   `src/utils/regionMapping.js`, built from the `home` regions; key `"<country>|<name>"`,

@@ -69,6 +69,30 @@ async function stageToFranken(names: string[]) {
   fireEvent.click(screen.getByTestId('mapping-stage'));
 }
 
+describe('RegionMappingTab: tap flow (phone, no drag and drop)', () => {
+  it('tapping unassigned entries and then a region stages them there', () => {
+    render(<RegionMappingTab />);
+    const chip = within(screen.getAllByTestId('mapping-unassigned-item')[0]).getByRole('button');
+    const name = chip.textContent as string;
+    expect(screen.getByTestId('mapping-drop-franken')).toBeDisabled();
+    fireEvent.click(chip);
+    expect(chip).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByTestId('mapping-drop-franken'));
+    expect(screen.getByTestId('mapping-draft')).toBeInTheDocument();
+    expect(regionOf(name)).toHaveTextContent('Franken');
+    expect(state.saves).toHaveLength(0);
+  });
+
+  it('"Aus der Region nehmen" moves selected districts back to their Bundesland', () => {
+    render(<RegionMappingTab />);
+    fireEvent.click(screen.getByTestId('mapping-suggestion'));
+    expect(regionOf('Roth')).toHaveTextContent('Franken');
+    fireEvent.click(check('Roth'));
+    fireEvent.click(screen.getByTestId('mapping-unstage'));
+    expect(regionOf('Roth')).toHaveTextContent('Bayern');
+  });
+});
+
 describe('RegionMappingTab: prefill, drag and drop, rename', () => {
   it('"Vorschlag laden" stages the prepared assignment as a draft, nothing is saved', () => {
     render(<RegionMappingTab />);

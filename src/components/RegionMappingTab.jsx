@@ -10,6 +10,7 @@ import {
   getSubdivisionLabelPlural,
 } from '../utils/regions';
 import {
+  CATALOG_BY_KEY,
   DISTRICT_CATALOG,
   currentAssignment,
   mappingErrorMessage,
@@ -171,6 +172,24 @@ export default function RegionMappingTab() {
     setSelected(new Set());
   };
   const stage = () => stageKeys([...selected], target);
+  // "Aus der Region nehmen": every selected district goes back to its Bundesland, i.e. to
+  // "no cultural region yet" (a district always belongs to exactly one region).
+  const unstage = () => {
+    setNotice(null);
+    setDraft((prev) => {
+      const next = new Map(prev);
+      for (const key of selected) {
+        const homeId = CATALOG_BY_KEY.get(key)?.stateSlug;
+        if (!homeId) continue;
+        if (baseAssignment.get(key) === homeId) next.delete(key);
+        else next.set(key, homeId);
+      }
+      return next;
+    });
+    setSelected(new Set());
+  };
+  // Tap flow for phones (drag and drop does not work there): select, then tap a region.
+  const tapRegion = (regionId) => stageKeys([...selected], regionId);
 
   // The prepared assignment (src/data/regionSuggestion.js) is only staged, like a manual
   // move: the admin reviews it, changes what does not fit and saves. Locked districts stay.
@@ -351,16 +370,26 @@ export default function RegionMappingTab() {
             <strong>Noch ohne Region</strong>{' '}
             <span className="mapping-count">({unassigned.length})</span>
           </summary>
+          <p className="moderation-hint">
+            Tippe auf Einträge, um sie auszuwählen, und dann unten auf die passende Region.
+          </p>
           <ul className="mapping-chips">
             {unassigned.map((d) => (
               <li
                 key={d.key}
-                className="mapping-chip"
                 draggable={selectable(d)}
                 onDragStart={(e) => onDragStartDistrict(e, d.key)}
                 data-testid="mapping-unassigned-item"
               >
-                {d.name}
+                <button
+                  type="button"
+                  className={`mapping-chip${selected.has(d.key) ? ' mapping-chip--selected' : ''}`}
+                  aria-pressed={selected.has(d.key)}
+                  disabled={!selectable(d)}
+                  onClick={() => toggle(d.key)}
+                >
+                  {d.name}
+                </button>
               </li>
             ))}
           </ul>
@@ -370,22 +399,41 @@ export default function RegionMappingTab() {
       <details className="mapping-drop" data-testid="mapping-drop" open>
         <summary>
           <strong>Regionen</strong>
-          <span className="moderation-hint"> Ziehe Einträge hierher, um sie zuzuordnen.</span>
+          <span className="moderation-hint">
+            {' '}
+            {selected.size > 0
+              ? `${selected.size} ausgewählt: tippe auf die Region.`
+              : 'Wähle zuerst Einträge aus, dann tippe hier auf die Region (oder ziehe sie hierher).'}
+          </span>
         </summary>
+        <div className="mapping-drop-actions">
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={unstage}
+            disabled={selected.size === 0}
+            data-testid="mapping-unstage"
+          >
+            Aus der Region nehmen
+          </button>
+        </div>
         {groups.map((g) => (
           <div key={g.label} className="mapping-drop-group">
             <h4>{g.label}</h4>
             <div className="mapping-drop-targets">
               {g.options.map((o) => (
-                <div
+                <button
+                  type="button"
                   key={o.id}
                   className="mapping-drop-target"
+                  disabled={selected.size === 0}
+                  onClick={() => tapRegion(o.id)}
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => onDropRegion(e, o.id)}
                   data-testid={`mapping-drop-${o.id}`}
                 >
                   {o.label}
-                </div>
+                </button>
               ))}
             </div>
           </div>
