@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import MembersTab from '../../src/components/MembersTab';
 import { RegionContext, DEFAULT_REGION_CONTEXT } from '../../src/hooks/useRegion';
 import { STATIC_REGIONS, mergeRegions } from '../../src/utils/regions';
@@ -9,6 +10,7 @@ const state = vi.hoisted(() => ({
   staffRegionIds: [] as string[],
   members: [] as Record<string, unknown>[],
   updateMember: vi.fn(),
+  memberEvents: [] as Record<string, unknown>[],
 }));
 
 vi.mock('../../src/hooks/useAuth', () => ({
@@ -31,6 +33,9 @@ vi.mock('../../src/hooks/useMemberLists', () => ({
     renameList: vi.fn(),
     deleteList: vi.fn(),
   }),
+}));
+vi.mock('../../src/hooks/useMemberEvents', () => ({
+  useMemberEvents: () => ({ events: state.memberEvents, loading: false, error: null }),
 }));
 vi.mock('../../src/hooks/useCategories', () => ({ useCategories: () => ['Yoga', 'Tanz'] }));
 
@@ -58,6 +63,7 @@ beforeEach(() => {
   state.role = 'Admin';
   state.staffRegionIds = [];
   state.updateMember.mockReset();
+  state.memberEvents = [];
   state.members = [
     member('anna', { directoryRegions: ['Dornbirn'], directoryCategories: ['Yoga'] }),
     member('bernd', { directoryRegions: ['Bregenz'] }),
@@ -85,6 +91,26 @@ describe('MembersTab', () => {
     const rows = screen.getAllByTestId('member-row');
     expect(rows).toHaveLength(1);
     expect(within(rows[0]).getByText('anna@x.at')).toBeInTheDocument();
+  });
+
+  it('shows all events of a member, drafts included, in a dialog', () => {
+    state.memberEvents = [
+      { id: 'e1', title: 'Yoga am See', date: '2026-12-01', status: 'draft' },
+      { id: 'e2', title: 'Tanzabend', date: '2026-12-05', status: 'approved' },
+    ];
+    render(
+      <MemoryRouter>
+        <MembersTab />
+      </MemoryRouter>
+    );
+    fireEvent.click(screen.getByLabelText('Events von anna ansehen'));
+    const dialog = screen.getByTestId('member-events-dialog');
+    expect(within(dialog).getAllByTestId('member-event-row')).toHaveLength(2);
+    expect(within(dialog).getByText('Yoga am See')).toBeInTheDocument();
+    expect(within(dialog).getByText('Entwurf')).toBeInTheDocument();
+
+    fireEvent.click(within(dialog).getByText('Schließen'));
+    expect(screen.queryByTestId('member-events-dialog')).not.toBeInTheDocument();
   });
 
   it('saves edits through updateMember and blocks a listing without category', async () => {

@@ -11,7 +11,9 @@ import {
   Plus,
   Trash2,
   X,
+  CalendarDays,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useAdminMembers } from '../hooks/useAdminMembers';
 import { useMemberLists } from '../hooks/useMemberLists';
 import { useCategories } from '../hooks/useCategories';
@@ -20,6 +22,7 @@ import { getStaffAccess } from '../utils/staffRoles';
 import { BEZIRKE, ONLINE_LOCATION } from '../utils/regions';
 import { useRegionChoices } from '../hooks/useRegionChoices';
 import { directoryDistrictGroups } from '../utils/regionChoices';
+import { useMemberEvents } from '../hooks/useMemberEvents';
 import {
   filterMembers,
   sortMembers,
@@ -28,6 +31,7 @@ import {
   printMembers,
 } from '../utils/members';
 import ConfirmDialog from './ConfirmDialog';
+import StatusBadge from './StatusBadge';
 import './MembersTab.css';
 
 const COLUMNS = [
@@ -229,6 +233,57 @@ function MemberEditDialog({ member, categories, onSave, onClose, moderatorMode =
   );
 }
 
+function MemberEventsDialog({ member, onClose }) {
+  const { events, loading, error } = useMemberEvents(member.uid);
+
+  return (
+    <div className="members-dialog-backdrop" role="presentation">
+      <div
+        className="members-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Events des Mitglieds"
+        data-testid="member-events-dialog"
+      >
+        <h2>Events von {member.displayName || member.email}</h2>
+        <p className="members-dialog-hint">
+          So sieht das Mitglied „Meine Events“, inklusive Entwürfen und gelöschten Events.
+        </p>
+        {loading && <p>Events werden geladen …</p>}
+        {error && (
+          <p className="members-error" role="alert">
+            Events konnten nicht geladen werden.
+          </p>
+        )}
+        {!loading && !error && events.length === 0 && (
+          <p className="members-empty">Dieses Mitglied hat noch keine Events.</p>
+        )}
+        {events.length > 0 && (
+          <ul className="members-events">
+            {events.map((e) => (
+              <li key={e.id} className="members-events-item" data-testid="member-event-row">
+                <div className="members-events-main">
+                  <strong>{e.title || '(ohne Titel)'}</strong>
+                  <span>{e.date ? formatDate(e.date) : '–'}</span>
+                </div>
+                <StatusBadge status={e.status || 'pending'} />
+                <Link to={`/admin/edit/${e.id}`} state={{ from: '/admin?tab=members' }}>
+                  Öffnen
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="members-dialog-actions">
+          <button type="button" className="btn btn-secondary" onClick={onClose}>
+            Schließen
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Admin tab: member management. Search, filter by Bezirk / Kategorie, edit
 // public profile fields, group members into lists and export CSV / PDF.
 export default function MembersTab() {
@@ -258,6 +313,7 @@ export default function MembersTab() {
   const [sort, setSort] = useState({ key: 'createdAt', direction: 'desc' });
   const [selected, setSelected] = useState(() => new Set());
   const [editing, setEditing] = useState(null);
+  const [viewingEvents, setViewingEvents] = useState(null);
   const [deletingList, setDeletingList] = useState(false);
   const [actionError, setActionError] = useState(null);
 
@@ -626,6 +682,15 @@ export default function MembersTab() {
                           <button
                             type="button"
                             className="btn btn-secondary"
+                            aria-label={`Events von ${m.displayName || m.email} ansehen`}
+                            title="Events ansehen"
+                            onClick={() => setViewingEvents(m)}
+                          >
+                            <CalendarDays size={14} aria-hidden="true" />
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
                             aria-label={`${m.displayName || m.email} bearbeiten`}
                             onClick={() => setEditing(m)}
                           >
@@ -666,6 +731,10 @@ export default function MembersTab() {
             setEditing(null);
           }}
         />
+      )}
+
+      {viewingEvents && (
+        <MemberEventsDialog member={viewingEvents} onClose={() => setViewingEvents(null)} />
       )}
 
       <ConfirmDialog
