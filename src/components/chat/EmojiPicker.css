@@ -1,0 +1,86 @@
+.emoji-picker {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  z-index: 20;
+  width: min(340px, calc(100vw - 32px));
+  background: var(--bg-calendar);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.emoji-picker-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
+}
+
+.emoji-picker-tab {
+  flex: 1;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  font-size: 1.25rem;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+
+.emoji-picker-tab--active {
+  background: var(--bg-calendar);
+  border-bottom-color: var(--accent-primary);
+}
+
+.emoji-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+  padding: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.emoji-picker-item {
+  min-height: 38px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.emoji-picker-item:hover,
+.emoji-picker-item:focus-visible {
+  background: var(--accent-soft);
+}
+
+.emoji-picker-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-light);
+}
+
+.emoji-picker-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  /* 16px keeps iOS Safari from zooming in on focus. */
+  font-size: 1rem;
+}
+
+.emoji-picker-note {
+  grid-column: 1 / -1;
+  margin: 8px 0;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}

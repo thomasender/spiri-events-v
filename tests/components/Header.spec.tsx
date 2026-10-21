@@ -38,6 +38,21 @@ vi.mock('../../src/hooks/useUnreadMessageCount', () => ({
   useUnreadMessageCount: () => mockUseUnread,
 }));
 
+const mockChat = vi.hoisted(() => ({ available: false, online: 0, dm: false, unread: 0 }));
+
+vi.mock('../../src/hooks/useChatSettings', () => ({
+  useChatAccess: () => ({ available: mockChat.available, mode: 'off', loading: false }),
+  useMessengerAccess: () => ({ available: mockChat.dm, mode: 'off', loading: false }),
+}));
+
+vi.mock('../../src/hooks/useMessenger', () => ({
+  useThreads: () => ({ threads: [], loading: false, unreadCount: mockChat.unread }),
+}));
+
+vi.mock('../../src/hooks/useChatPresence', () => ({
+  useChatPresence: () => ({ online: [], count: mockChat.online, loading: false }),
+}));
+
 beforeEach(() => {
   mockAuth.user = null;
   mockAuth.canCreateEvents = true;
@@ -45,6 +60,10 @@ beforeEach(() => {
   mockProfile.photoURL = null;
   mockUseUnread.count = 0;
   mockUseUnread.loading = false;
+  mockChat.available = false;
+  mockChat.online = 0;
+  mockChat.dm = false;
+  mockChat.unread = 0;
 });
 
 describe('Header (logged out)', () => {
@@ -550,6 +569,8 @@ describe('Header Verwaltung unread badge (zejdjTnm)', () => {
       </MemoryRouter>
     );
 
+    // On desktop Verwaltung lives in the account menu.
+    fireEvent.click(screen.getByTestId('account-menu-toggle'));
     const adminLinks = screen.getAllByRole('link', { name: /Verwaltung/ });
     expect(adminLinks.length).toBeGreaterThan(0);
     adminLinks.forEach((link) => {
@@ -566,6 +587,8 @@ describe('Header Verwaltung unread badge (zejdjTnm)', () => {
         <Header />
       </MemoryRouter>
     );
+
+    fireEvent.click(screen.getByTestId('account-menu-toggle'));
 
     const adminLinks = screen.getAllByRole('link', { name: /Verwaltung/ });
     adminLinks.forEach((link) => {
@@ -1021,5 +1044,155 @@ describe('Header mobile hide-on-scroll behaviour (kq5ob4S0)', () => {
     });
     await flushAnimationFrames();
     expect(header?.classList.contains('header--hidden')).toBe(false);
+  });
+});
+
+describe('Header: Lagerfeuer chat link', () => {
+  const renderHeader = () =>
+    render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+  it('is hidden while the chat is closed for this person', () => {
+    mockAuth.user = { uid: 'u1' };
+    renderHeader();
+    expect(screen.queryByTestId('nav-chat')).toBeNull();
+  });
+
+  it('shows a bubble with the number of people at the fire', () => {
+    mockAuth.user = { uid: 'u1' };
+    mockChat.available = true;
+    mockChat.online = 3;
+    renderHeader();
+    expect(screen.getAllByTestId('chat-online-badge')[0]).toHaveTextContent('3');
+    expect(screen.getAllByTestId('nav-chat')[0]).toHaveAttribute(
+      'aria-label',
+      'Lagerfeuer (3 Personen online)'
+    );
+  });
+
+  it('shows no bubble when nobody is there', () => {
+    mockAuth.user = { uid: 'u1' };
+    mockChat.available = true;
+    renderHeader();
+    expect(screen.getAllByTestId('nav-chat').length).toBeGreaterThan(0);
+    expect(screen.queryByTestId('chat-online-badge')).toBeNull();
+  });
+});
+
+describe('Header: Postfach link', () => {
+  const renderHeader = () =>
+    render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+  it('is hidden while the messenger is closed', () => {
+    mockAuth.user = { uid: 'u1' };
+    renderHeader();
+    expect(screen.queryByTestId('nav-messenger')).toBeNull();
+  });
+
+  it('shows a bubble with the number of unread conversations', () => {
+    mockAuth.user = { uid: 'u1' };
+    mockChat.dm = true;
+    mockChat.unread = 2;
+    renderHeader();
+    expect(screen.getAllByTestId('messenger-unread-badge')[0]).toHaveTextContent('2');
+    expect(screen.getAllByTestId('nav-messenger')[0]).toHaveAttribute(
+      'aria-label',
+      'Postfach (2 ungelesene Unterhaltungen)'
+    );
+  });
+
+  it('shows the link without a bubble when everything is read', () => {
+    mockAuth.user = { uid: 'u1' };
+    mockChat.dm = true;
+    renderHeader();
+    expect(screen.getAllByTestId('nav-messenger').length).toBeGreaterThan(0);
+    expect(screen.queryByTestId('messenger-unread-badge')).toBeNull();
+  });
+});
+
+describe('Header: desktop account menu', () => {
+  const renderHeader = () =>
+    render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+  it('keeps favorites, profile, Verwaltung and logout out of the main row until it is opened', () => {
+    mockAuth.user = { uid: 'u1' };
+    renderHeader();
+    const toggle = screen.getByTestId('account-menu-toggle');
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(toggle).toHaveAttribute('aria-haspopup', 'menu');
+    const panel = document.getElementById('account-menu-panel') as HTMLElement;
+    expect(panel).toHaveAttribute('hidden');
+    ['Mein Profil', 'Meine Favoriten', 'Verwaltung', 'Abmelden'].forEach((label) => {
+      expect(panel.textContent).toContain(label);
+    });
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(panel).not.toHaveAttribute('hidden');
+  });
+
+  it('closes on Escape and on a click outside', () => {
+    mockAuth.user = { uid: 'u1' };
+    renderHeader();
+    const toggle = screen.getByTestId('account-menu-toggle');
+    fireEvent.click(toggle);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(toggle).toHaveFocus();
+
+    fireEvent.click(toggle);
+    fireEvent.mouseDown(document.body);
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('closes after choosing an entry', () => {
+    mockAuth.user = { uid: 'u1' };
+    renderHeader();
+    const toggle = screen.getByTestId('account-menu-toggle');
+    fireEvent.click(toggle);
+    const panel = document.getElementById('account-menu-panel') as HTMLElement;
+    fireEvent.click(panel.querySelector('a[href="/favoriten"]') as HTMLElement);
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('shows the unread count on the avatar while the menu is closed', () => {
+    mockAuth.user = { uid: 'u1' };
+    mockUseUnread.count = 3;
+    renderHeader();
+    expect(screen.getByTestId('account-unread-badge')).toHaveTextContent('3');
+    expect(screen.getByTestId('account-menu-toggle')).toHaveAttribute(
+      'aria-label',
+      'Mein Konto (3 ungelesene Benachrichtigungen)'
+    );
+    fireEvent.click(screen.getByTestId('account-menu-toggle'));
+    expect(screen.queryByTestId('account-unread-badge')).toBeNull();
+  });
+
+  it('has no account menu when logged out; login and create stay in the row', () => {
+    mockAuth.user = null;
+    renderHeader();
+    expect(screen.queryByTestId('account-menu-toggle')).toBeNull();
+    expect(screen.getAllByTestId('event-create-cta').length).toBeGreaterThan(0);
+  });
+
+  it('keeps the Postfach link as an icon with an accessible name on desktop', () => {
+    mockAuth.user = { uid: 'u1' };
+    mockChat.dm = true;
+    renderHeader();
+    const link = document.querySelector(
+      '.nav-desktop [data-testid="nav-messenger"]'
+    ) as HTMLElement;
+    expect(link.className).toContain('nav-link--icon');
+    expect(link).toHaveAttribute('aria-label', 'Postfach');
   });
 });

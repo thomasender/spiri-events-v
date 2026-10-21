@@ -50,6 +50,8 @@ const FavoritesPage = lazyWithReload(() => import('./pages/FavoritesPage'));
 const SpendenPage = lazyWithReload(() => import('./pages/SpendenPage'));
 const SpendenDankePage = lazyWithReload(() => import('./pages/SpendenDankePage'));
 const AuthActionPage = lazyWithReload(() => import('./pages/AuthActionPage'));
+const ChatPage = lazyWithReload(() => import('./pages/ChatPage'));
+const MessengerPage = lazyWithReload(() => import('./pages/MessengerPage'));
 
 // Helmet updates document.title on the next animation frame; wait a moment so
 // page_view carries the new page's title rather than the previous one.
@@ -230,6 +232,30 @@ function AppLayout() {
                 element={
                   <ProtectedRoute>
                     <ProfilePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/chat"
+                element={
+                  <ProtectedRoute>
+                    <ChatPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/postfach"
+                element={
+                  <ProtectedRoute>
+                    <MessengerPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/postfach/:uid"
+                element={
+                  <ProtectedRoute>
+                    <MessengerPage />
                   </ProtectedRoute>
                 }
               />

@@ -25,6 +25,8 @@ import {
   serverTimestamp,
   deleteDoc,
   writeBatch,
+  query,
+  where,
 } from 'firebase/firestore';
 import { splitProfileData } from '../utils/profile';
 import { revokeCalendarFeedToken } from './useCalendarFeedToken';
@@ -446,6 +448,32 @@ export function useAuth() {
       await revokeCalendarFeedToken();
     } catch (err) {
       console.warn('Failed to delete calendar feed token:', err);
+    }
+
+    try {
+      // Own chat messages and the cooldown marker (the messages would also be
+      // purged after 10 days, but a deleted account should not linger).
+      const chatMessages = await getDocs(
+        query(collection(db, 'chat_rooms', 'lagerfeuer', 'messages'), where('authorUid', '==', uid))
+      );
+      await Promise.all(chatMessages.docs.map((m) => deleteDoc(m.ref)));
+      await deleteDoc(doc(db, 'chat_rooms', 'lagerfeuer', 'members', uid));
+      // Private messages: own messages in every conversation, blocks, settings.
+      const threads = await getDocs(
+        query(collection(db, 'dm_threads'), where('participants', 'array-contains', uid))
+      );
+      for (const thread of threads.docs) {
+        const own = await getDocs(
+          query(collection(thread.ref, 'messages'), where('authorUid', '==', uid))
+        );
+        await Promise.all(own.docs.map((m) => deleteDoc(m.ref)));
+      }
+      const blocks = await getDocs(query(collection(db, 'dm_blocks'), where('blocker', '==', uid)));
+      await Promise.all(blocks.docs.map((b) => deleteDoc(b.ref)));
+      await deleteDoc(doc(db, 'dm_settings', uid));
+      await deleteDoc(doc(db, 'dm_starters', uid));
+    } catch (err) {
+      console.warn('Failed to delete chat and message data:', err);
     }
 
     try {

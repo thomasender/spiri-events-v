@@ -1,0 +1,72 @@
+.member-card-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: var(--modal-overlay);
+}
+
+.member-card {
+  position: relative;
+  width: min(340px, 100%);
+  padding: 28px 24px 24px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-calendar);
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+}
+
+.member-card-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.member-card-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  object-fit: cover;
+  overflow: hidden;
+}
+
+.member-card-avatar--fallback {
+  background: var(--accent-soft);
+  color: var(--accent-primary-strong);
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+.member-card-name {
+  margin: 12px 0 16px;
+  font-family: var(--font-heading);
+  overflow-wrap: anywhere;
+}
+
+.member-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.member-card-note {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}

@@ -106,6 +106,7 @@ export const ADMIN_TABS = [
   'helpers',
   'donors',
   'members',
+  'chat',
   'instagram',
   'analytics',
   'mailgun',

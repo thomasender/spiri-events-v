@@ -43,6 +43,7 @@ test.describe.serial('Profile Management', () => {
   test('logged-in user can navigate to /profil via the header', async ({ page }) => {
     await signInWithEmailAndPassword(page, 'admin@test.com', 'testpassword123');
 
+    await page.getByTestId('account-menu-toggle').click();
     await page.locator('.nav-desktop a.nav-link', { hasText: 'Mein Profil' }).click();
 
     await page.waitForURL(PROFILE_PATH, { timeout: 10000 });

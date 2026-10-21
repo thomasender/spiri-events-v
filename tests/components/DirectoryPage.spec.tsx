@@ -11,11 +11,15 @@ const mocks = vi.hoisted(() => ({
     error: null as string | null,
     setHidden: vi.fn(),
   },
-  auth: { role: 'User' },
+  auth: { role: 'User', user: null as { uid: string } | null },
+  messengerOpen: false,
 }));
 
 vi.mock('../../src/hooks/useDirectory', () => ({ useDirectory: () => mocks.directory }));
 vi.mock('../../src/hooks/useAuth', () => ({ useAuth: () => mocks.auth }));
+vi.mock('../../src/hooks/useChatSettings', () => ({
+  useMessengerAccess: () => ({ available: mocks.messengerOpen, mode: 'all', loading: false }),
+}));
 vi.mock('../../src/hooks/useCategoryRegistry', () => ({
   useCategoryRegistry: () => ({
     categories: [
@@ -223,5 +227,32 @@ describe('DirectoryPage — regions (ticket 14)', () => {
     renderIn('vorarlberg', true);
     expect(names()).toEqual(['Anna', 'Berta', 'Clara']);
     expect(screen.getByTestId('directory-count')).toHaveTextContent('3 Einträge');
+  });
+});
+
+describe('DirectoryPage: private message shortcut', () => {
+  beforeEach(() => {
+    mocks.directory.entries = [e('anna'), e('me')];
+    mocks.directory.loading = false;
+    mocks.auth.user = { uid: 'me' };
+    mocks.messengerOpen = true;
+  });
+
+  it('offers "Nachricht" on other people\'s listings, not on your own', () => {
+    renderPage();
+    const links = screen.getAllByTestId('dm-link');
+    expect(links).toHaveLength(1);
+    expect(links[0]).toHaveAttribute('href', '/postfach/anna');
+  });
+
+  it('shows nothing while the messenger is closed or when logged out', () => {
+    mocks.messengerOpen = false;
+    const { unmount } = renderPage();
+    expect(screen.queryByTestId('dm-link')).toBeNull();
+    unmount();
+    mocks.messengerOpen = true;
+    mocks.auth.user = null;
+    renderPage();
+    expect(screen.queryByTestId('dm-link')).toBeNull();
   });
 });

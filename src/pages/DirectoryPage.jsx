@@ -17,6 +17,8 @@ import { ONLINE_LOCATION, getSubdivisionLabel } from '../utils/regions';
 import { useCategoryRegistry } from '../hooks/useCategoryRegistry';
 import { getCategoryColor } from '../utils/categoryColors';
 import AvatarImage from '../components/AvatarImage';
+import DirectMessageLink from '../components/messenger/DirectMessageLink';
+import { useMessengerAccess } from '../hooks/useChatSettings';
 import {
   buildDirectoryParams,
   countFacet,
@@ -29,7 +31,7 @@ import {
 import '../components/DirectoryListingFields.css';
 import './DirectoryPage.css';
 
-function DirectoryCard({ entry, colorByName, isAdmin, onToggleHidden, busy }) {
+function DirectoryCard({ entry, colorByName, isAdmin, canMessage, onToggleHidden, busy }) {
   const initial = (entry.displayName || '?').charAt(0).toUpperCase();
   return (
     <li
@@ -73,6 +75,11 @@ function DirectoryCard({ entry, colorByName, isAdmin, onToggleHidden, busy }) {
           </ul>
         </div>
       </Link>
+      {canMessage && (
+        <div className="directory-card-dm">
+          <DirectMessageLink uid={entry.uid} name={entry.displayName} variant="card" />
+        </div>
+      )}
       {isAdmin && (
         <div className="directory-card-admin">
           {entry.hidden && <span className="directory-card-admin-badge">Ausgeblendet</span>}
@@ -102,7 +109,8 @@ function DirectoryCard({ entry, colorByName, isAdmin, onToggleHidden, busy }) {
 }
 
 export default function DirectoryPage() {
-  const { role } = useAuth();
+  const { user, role } = useAuth();
+  const { available: messengerOpen } = useMessengerAccess();
   const canonicalPath = useRegionCanonicalPath('/verzeichnis');
   const regionTexts = useRegionTexts();
   const isAdmin = role === 'Admin';
@@ -347,6 +355,7 @@ export default function DirectoryPage() {
                 isAdmin={isAdmin}
                 onToggleHidden={handleToggleHidden}
                 busy={busyUid === entry.uid}
+                canMessage={messengerOpen && Boolean(user) && user.uid !== entry.uid}
               />
             ))}
           </ul>

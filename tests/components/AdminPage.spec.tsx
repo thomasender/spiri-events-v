@@ -740,7 +740,7 @@ describe('AdminPage tab groups', () => {
     for (const [group, tabs] of Object.entries({
       'events-group': ['events', 'review'],
       community: ['members', 'helpers', 'donors', 'categories'],
-      communication: ['instagram', 'mailgun'],
+      communication: ['chat', 'instagram', 'mailgun'],
       settings: ['analytics', 'theme'],
     })) {
       const menu = screen.getByTestId(`admin-group-menu-${group}`);

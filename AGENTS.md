@@ -167,6 +167,16 @@ two-line "read this when".
 - Read `docs/email-testing-protocol.md` ONLY when you test or change transactional
   emails; `docs/mailgun-sender-photo.md` ONLY for the Mailgun sender photo.
 
+## Community chat
+
+Logged-in members with a verified e-mail chat in one room ("Lagerfeuer", `/chat`) behind the
+feature flag `app_settings/chat` (off / admins / all). Messages are deleted after 10 days.
+Read `docs/chat.md` ONLY when you touch the chat, its rules (`chat_*`), `functions/src/chat.ts`
+or the chat section of the privacy policy.
+
+The private messenger ("Postfach", `/postfach`, flag `app_settings/messenger`) lives on top of it;
+read `docs/messenger.md` ONLY when you touch it, its `dm_*` rules or its privacy section.
+
 ## Communicating with Peter
 
 Peter is the product owner and tester. He tests directly on production at https://www.thetribe.at (NOT locally).
