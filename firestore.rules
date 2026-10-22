@@ -657,7 +657,8 @@ service cloud.firestore {
       function isValidRegion(d) {
         return d.keys().hasOnly(
                  ['name', 'slug', 'order', 'active', 'bezirke', 'contactEmail', 'seo',
-                  'timezone', 'aboutHelperIds', 'aboutHeaderImage', 'aboutText', 'createdAt',
+                  'timezone', 'aboutHelperIds', 'aboutHeaderImage', 'aboutText', 'aboutSlogan1',
+                  'aboutSlogan2', 'aboutSloganLocked', 'createdAt',
                   'updatedAt', 'mappingUpdatedAt'])
           && d.slug is string
           && d.slug == regionId
@@ -677,7 +678,19 @@ service cloud.firestore {
                   && d.aboutHeaderImage.matches('^https?://.+$')))
           && (!('aboutText' in d)
               || d.aboutText == null
-              || (d.aboutText is string && d.aboutText.size() <= 20000));
+              || (d.aboutText is string && d.aboutText.size() <= 20000))
+          && (!('aboutSlogan1' in d)
+              || d.aboutSlogan1 == null
+              || (d.aboutSlogan1 is string && d.aboutSlogan1.size() <= 30))
+          && (!('aboutSlogan2' in d)
+              || d.aboutSlogan2 == null
+              || (d.aboutSlogan2 is string && d.aboutSlogan2.size() <= 30))
+          && (!('aboutSloganLocked' in d) || d.aboutSloganLocked is bool);
+      }
+      // Once a Super-Admin saved the header slogan it is locked for moderators.
+      function sloganTouched() {
+        return request.resource.data.diff(resource.data).affectedKeys()
+                 .hasAny(['aboutSlogan1', 'aboutSlogan2']);
       }
       allow read: if true;
       allow create, update: if isAdminOrEmulatorAdmin() && isValidRegion(request.resource.data);
@@ -685,7 +698,9 @@ service cloud.firestore {
       // regions (header photo, text of the "Deine Heimat" section) and nothing else of the doc.
       allow update: if isRegionModeratorFor(regionId)
                     && request.resource.data.diff(resource.data).affectedKeys()
-                         .hasOnly(['aboutHelperIds', 'aboutHeaderImage', 'aboutText', 'updatedAt'])
+                         .hasOnly(['aboutHelperIds', 'aboutHeaderImage', 'aboutText', 'aboutSlogan1',
+                                   'aboutSlogan2', 'updatedAt'])
+                    && (!sloganTouched() || resource.data.get('aboutSloganLocked', false) != true)
                     && isValidRegion(request.resource.data);
       allow delete: if isAdminOrEmulatorAdmin();
     }

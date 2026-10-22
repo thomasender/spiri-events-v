@@ -9,6 +9,10 @@ import { getStaffAccess } from '../utils/staffRoles';
 import {
   ABOUT_TEXT_MAX_LENGTH,
   customAboutText,
+  customSlogan,
+  DEFAULT_SLOGAN_LINE2,
+  SLOGAN_LINE1_MAX_LENGTH,
+  SLOGAN_LINE2_MAX_LENGTH,
   defaultAboutBodyHtml,
 } from '../utils/regionAboutText';
 import RichTextEditorLazy from './RichTextEditorLazy';
@@ -47,6 +51,9 @@ export default function RegionAboutTab() {
   const current = options.find((r) => r.id === regionId) ?? options[0] ?? null;
   const [aboutText, setAboutText] = useState('');
   const [headerImage, setHeaderImage] = useState('');
+  const [slogan1, setSlogan1] = useState('');
+  const [slogan2, setSlogan2] = useState('');
+  const [unlockSlogan, setUnlockSlogan] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState(null);
@@ -58,12 +65,19 @@ export default function RegionAboutTab() {
     const region = options.find((r) => r.id === currentId);
     setAboutText(customAboutText(region) || defaultAboutBodyHtml(placePhraseOf(region)));
     setHeaderImage(region?.aboutHeaderImage ?? '');
+    const slogan = customSlogan(region);
+    setSlogan1(slogan.line1);
+    setSlogan2(slogan.line2);
+    setUnlockSlogan(false);
     setNotice(null);
     // Only on region switch: a refresh after saving must not reset unsaved edits.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentId]);
 
   if (!current) return null;
+
+  // Once a Super-Admin saved the slogan, a moderator needs a Super-Admin to change it.
+  const sloganLocked = current.aboutSloganLocked === true && !access.isSuperAdmin;
 
   const handleSelectFile = async (file) => {
     if (!file) return;
@@ -98,6 +112,13 @@ export default function RegionAboutTab() {
       await updateDoc(doc(db, 'regions', current.id), {
         aboutText: aboutText.trim() && !isDefault ? aboutText.trim() : null,
         aboutHeaderImage: headerImage || null,
+        ...(sloganLocked
+          ? {}
+          : {
+              aboutSlogan1: slogan1.trim() || null,
+              aboutSlogan2: slogan2.trim() || null,
+              ...(access.isSuperAdmin ? { aboutSloganLocked: !unlockSlogan } : {}),
+            }),
         updatedAt: serverTimestamp(),
       });
       await refreshRegions();
@@ -143,6 +164,56 @@ export default function RegionAboutTab() {
           </select>
         </label>
       )}
+
+      <section className="region-about-section">
+        <h3>Slogan in der Kopfzeile</h3>
+        <p className="region-about-fixed-note">
+          Steht links oben neben dem Logo, in zwei Zeilen. Zeile 1: Name des Kalenders (z. B. „Dein
+          Vorarlberger Kalender“). Zeile 2: Zusatz (z. B. „{DEFAULT_SLOGAN_LINE2}“). Leer lassen für
+          den Standardtext.
+        </p>
+        {sloganLocked && (
+          <p className="region-about-fixed-note" data-testid="region-about-slogan-locked">
+            Der Slogan wurde von einem Admin festgelegt. Zum Ändern braucht es die Freigabe eines
+            Admins.
+          </p>
+        )}
+        <label className="region-about-field">
+          <span>Zeile 1</span>
+          <input
+            type="text"
+            value={slogan1}
+            maxLength={SLOGAN_LINE1_MAX_LENGTH}
+            onChange={(e) => setSlogan1(e.target.value)}
+            disabled={sloganLocked || saving}
+            data-testid="region-about-slogan1"
+          />
+        </label>
+        <label className="region-about-field">
+          <span>Zeile 2</span>
+          <input
+            type="text"
+            value={slogan2}
+            maxLength={SLOGAN_LINE2_MAX_LENGTH}
+            onChange={(e) => setSlogan2(e.target.value)}
+            disabled={sloganLocked || saving}
+            data-testid="region-about-slogan2"
+          />
+        </label>
+        {access.isSuperAdmin && (
+          <label className="region-about-field">
+            <span>
+              <input
+                type="checkbox"
+                checked={unlockSlogan}
+                onChange={(e) => setUnlockSlogan(e.target.checked)}
+                data-testid="region-about-slogan-unlock"
+              />{' '}
+              Moderator:innen dürfen den Slogan ändern (sonst gesperrt, sobald du speicherst)
+            </span>
+          </label>
+        )}
+      </section>
 
       <section className="region-about-section">
         <h3>Titelbild</h3>

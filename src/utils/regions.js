@@ -230,6 +230,13 @@ export function mergeRegions(docs, base = STATIC_REGIONS) {
           ? { aboutHeaderImage: d.aboutHeaderImage }
           : {}),
         ...(typeof d.aboutText === 'string' && d.aboutText ? { aboutText: d.aboutText } : {}),
+        ...(typeof d.aboutSlogan1 === 'string' && d.aboutSlogan1.trim()
+          ? { aboutSlogan1: d.aboutSlogan1 }
+          : {}),
+        ...(typeof d.aboutSlogan2 === 'string' && d.aboutSlogan2.trim()
+          ? { aboutSlogan2: d.aboutSlogan2 }
+          : {}),
+        ...(d.aboutSloganLocked === true ? { aboutSloganLocked: true } : {}),
       };
     })
     .sort((a, b) => a.order - b.order);

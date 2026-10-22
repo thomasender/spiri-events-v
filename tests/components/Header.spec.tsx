@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { RegionContext, DEFAULT_REGION_CONTEXT } from '../../src/hooks/useRegion';
 import Header from '../../src/components/Header';
 
 const mockAuth = vi.hoisted(() => ({
@@ -1194,5 +1195,33 @@ describe('Header: desktop account menu', () => {
     ) as HTMLElement;
     expect(link.className).toContain('nav-link--icon');
     expect(link).toHaveAttribute('aria-label', 'Postfach');
+  });
+});
+
+describe('Header slogan saved in Über uns', () => {
+  const withSlogan = (extra: Record<string, unknown>) => ({
+    ...DEFAULT_REGION_CONTEXT,
+    region: { ...DEFAULT_REGION_CONTEXT.region, ...extra },
+  });
+  const renderWith = (ctx: typeof DEFAULT_REGION_CONTEXT) =>
+    render(
+      <RegionContext.Provider value={ctx}>
+        <MemoryRouter>
+          <Header />
+        </MemoryRouter>
+      </RegionContext.Provider>
+    );
+
+  it('shows the saved two lines instead of the defaults', () => {
+    renderWith(withSlogan({ aboutSlogan1: 'Dein Kalender', aboutSlogan2: 'für Bewusstsein' }));
+    expect(screen.getByText('Dein Kalender')).toBeInTheDocument();
+    expect(screen.getByText('für Bewusstsein')).toBeInTheDocument();
+    expect(screen.queryByText('für bewusste Events')).not.toBeInTheDocument();
+  });
+
+  it("falls back to today's text for a line that is empty", () => {
+    renderWith(withSlogan({ aboutSlogan1: '', aboutSlogan2: 'für Bewusstsein' }));
+    expect(screen.getByText('Dein Vorarlberger Kalender')).toBeInTheDocument();
+    expect(screen.getByText('für Bewusstsein')).toBeInTheDocument();
   });
 });

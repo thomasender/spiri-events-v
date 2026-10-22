@@ -12,6 +12,7 @@ import AvatarImage from './AvatarImage';
 import RegionSwitcher, { RegionMenuList } from './RegionSwitcher';
 import { useRegion } from '../hooks/useRegion';
 import { useRegionTexts } from '../hooks/useRegionTexts';
+import { customSlogan, DEFAULT_SLOGAN_LINE2 } from '../utils/regionAboutText';
 import {
   Users,
   Calendar,
@@ -42,7 +43,8 @@ export default function Header() {
   const { user, logout, role, canCreateEvents } = useAuth();
   const { profile } = useProfile(user?.uid);
   const regionTexts = useRegionTexts();
-  const { comingSoon, regionId } = useRegion();
+  const { comingSoon, regionId, region, isNational, combinedView, neutralHeader } = useRegion();
+  const slogan = !neutralHeader && !isNational && !combinedView ? customSlogan(region) : null;
   // On a coming-soon region page the event belongs to that region.
   const addEventPath = comingSoon && regionId ? `/admin/new?region=${regionId}` : '/admin/new';
   const isAdmin = role === 'Admin';
@@ -513,8 +515,8 @@ export default function Header() {
             <img src="/logo-mark.svg" alt="" aria-hidden="true" />
           </div>
           <div className="logo-text">
-            <span className="logo-title">{regionTexts.headerTitle}</span>
-            <span className="logo-subtitle">für bewusste Events</span>
+            <span className="logo-title">{slogan?.line1 || regionTexts.headerTitle}</span>
+            <span className="logo-subtitle">{slogan?.line2 || DEFAULT_SLOGAN_LINE2}</span>
           </div>
         </Link>
 
