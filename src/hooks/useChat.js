@@ -24,6 +24,7 @@ import {
   chatAuthorName,
   chatPhotoUrl,
   cooldownRemainingMs,
+  isUnsentMessage,
   validateChatText,
 } from '../utils/chat';
 import { sanitizeReactions } from '../utils/reactions';
@@ -79,7 +80,7 @@ export function useChat() {
               authorPhotoURL: data.authorPhotoURL ?? null,
               createdAt: toMillis(data.createdAt),
               reactions: sanitizeReactions(data.reactions),
-              pending: d.metadata.hasPendingWrites,
+              pending: isUnsentMessage(d),
             };
           })
           .reverse();

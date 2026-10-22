@@ -18,7 +18,12 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from './useAuth';
-import { CHAT_COOLDOWN_MS, cooldownRemainingMs, validateChatText } from '../utils/chat';
+import {
+  CHAT_COOLDOWN_MS,
+  cooldownRemainingMs,
+  isUnsentMessage,
+  validateChatText,
+} from '../utils/chat';
 import {
   DM_MAX_LENGTH,
   DM_MAX_LOADED,
@@ -143,7 +148,7 @@ export function useConversation(other, nameOf) {
                 authorUid: data.authorUid ?? '',
                 createdAt: toMillis(data.createdAt),
                 reactions: sanitizeReactions(data.reactions),
-                pending: d.metadata.hasPendingWrites,
+                pending: isUnsentMessage(d),
               };
             })
             .reverse()

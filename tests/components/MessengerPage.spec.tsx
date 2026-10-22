@@ -175,6 +175,16 @@ describe('MessengerPage: conversation', () => {
     expect(state.conv.react).toHaveBeenCalledWith('1', '🙏');
   });
 
+  it('puts own messages on the right with the shared own-bubble style', () => {
+    renderAt('/postfach/mira-id');
+    const [theirs, mine] = screen.getAllByTestId('dm-message');
+    expect(theirs.querySelector('.reactable')).toHaveClass('reactable--start');
+    expect(theirs.querySelector('.chat-bubble')).not.toHaveClass('chat-bubble--own');
+    expect(mine).toHaveClass('messenger-message--own');
+    expect(mine.querySelector('.reactable')).toHaveClass('reactable--end');
+    expect(mine.querySelector('.chat-bubble')).toHaveClass('chat-bubble--own');
+  });
+
   it('offers no reactions when the other person takes no private messages', () => {
     state.accepts = false;
     renderAt('/postfach/mira-id');

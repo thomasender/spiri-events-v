@@ -14,6 +14,7 @@ import {
   formatChatTime,
   isChatBanActive,
   isEmojiOnly,
+  isUnsentMessage,
   normalizeChatText,
   splitChatLinks,
   validateChatText,
@@ -232,5 +233,23 @@ describe('presence', () => {
     expect(describeOnline([m('Mira')] as never)).toBe('Mira');
     expect(describeOnline([m('Mira'), m('Jonas')] as never)).toBe('Mira und Jonas');
     expect(describeOnline([m('A'), m('B'), m('C'), m('D')] as never)).toBe('A, B und 2 weitere');
+  });
+});
+
+describe('isUnsentMessage', () => {
+  // Minimal stand-in for a Firestore DocumentSnapshot.
+  const snap = (hasPendingWrites: boolean, createdAt: unknown) => ({
+    metadata: { hasPendingWrites },
+    get: (field: string, opts?: { serverTimestamps?: string }) =>
+      field === 'createdAt' && opts?.serverTimestamps === 'none' ? createdAt : undefined,
+  });
+
+  it('is true only while the create of the message is unconfirmed', () => {
+    expect(isUnsentMessage(snap(true, null))).toBe(true);
+    expect(isUnsentMessage(snap(false, { seconds: 1 }))).toBe(false);
+  });
+
+  it('a pending reaction on a saved message does not count as unsent', () => {
+    expect(isUnsentMessage(snap(true, { seconds: 1 }))).toBe(false);
   });
 });

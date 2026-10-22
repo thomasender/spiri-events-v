@@ -172,13 +172,55 @@ describe('MessageReactions', () => {
     expect(onReact).not.toHaveBeenCalled();
   });
 
-  it('reports a failed write', async () => {
-    const onReact = vi.fn(async () => {
-      throw Object.assign(new Error('nope'), { code: 'permission-denied' });
-    });
-    const { bubble, onError } = setup({ onReact });
+  it('shows my reaction at once while the write is on its way, and nothing is disabled', () => {
+    const onReact = vi.fn(() => new Promise<void>(() => {}));
+    const { bubble } = setup({ onReact, reactions: { a: '👍' } });
     fireEvent.click(bubble);
     fireEvent.click(bubble);
-    await waitFor(() => expect(onError).toHaveBeenCalled());
+    expect(onReact).toHaveBeenCalledWith('❤️');
+    const heart = screen.getByRole('button', { name: /Herz, 1 Reaktion, deine Reaktion/ });
+    expect(heart).toHaveAttribute('aria-pressed', 'true');
+    expect(heart).toBeEnabled();
+    expect(screen.getByRole('button', { name: /Daumen hoch, 1 Reaktion/ })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Mit Emoji reagieren' })).toBeEnabled();
+    // Still reactable: switching to the thumb shows at once as well.
+    fireEvent.click(screen.getByRole('button', { name: /Daumen hoch, 1 Reaktion/ }));
+    expect(
+      screen.getByRole('button', { name: /Daumen hoch, 2 Reaktionen, deine Reaktion/ })
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Herz/ })).not.toBeInTheDocument();
+  });
+
+  it('one write at a time per message: taps meanwhile are coalesced, the latest wins', async () => {
+    let release: () => void = () => {};
+    const onReact = vi
+      .fn()
+      .mockImplementationOnce(() => new Promise<void>((r) => (release = r)))
+      .mockResolvedValue(undefined);
+    const { bubble } = setup({ onReact });
+    fireEvent.click(bubble);
+    fireEvent.click(bubble); // ❤️, in flight
+    fireEvent.click(screen.getByRole('button', { name: 'Mit Emoji reagieren' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Mit Lachen reagieren' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Mit Emoji reagieren' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Mit Danke reagieren' }));
+    expect(onReact).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: /Danke, 1 Reaktion, deine Reaktion/ })).toBeVisible();
+    await act(async () => release());
+    await waitFor(() => expect(onReact).toHaveBeenCalledTimes(2));
+    expect(onReact).toHaveBeenLastCalledWith('🙏');
+  });
+
+  it('rolls my reaction back and reports it when the write is rejected', async () => {
+    let reject: (e: Error) => void = () => {};
+    const onReact = vi.fn(() => new Promise<void>((_, r) => (reject = r)));
+    const { bubble, onError } = setup({ onReact, reactions: { a: '😂' } });
+    fireEvent.click(bubble);
+    fireEvent.click(bubble);
+    expect(screen.getByRole('button', { name: /Herz, 1 Reaktion, deine Reaktion/ })).toBeVisible();
+    await act(async () => reject(Object.assign(new Error('nope'), { code: 'permission-denied' })));
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('button', { name: /Herz/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Lachen, 1 Reaktion/ })).toBeEnabled();
   });
 });

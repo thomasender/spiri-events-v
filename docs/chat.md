@@ -50,7 +50,8 @@ Why a map and not a `reactions/{uid}` subcollection: zero extra listeners or rea
 message listener carries them live), they vanish with the message (own delete, 10-/90-day purge),
 so no orphans can be read, and no collection-group query/rules are needed. Cost: each reaction
 rewrites the message doc, i.e. one read per listening client, like a new message. There is no rate
-limit in the rules; the client ignores taps while a write is in flight. Account deletion removes own
+limit in the rules; the client sends at most one reaction write per message at a time and coalesces
+taps meanwhile (latest wins). Account deletion removes own
 entries with `where(FieldPath('reactions', uid), 'in', REACTION_EMOJIS)` (automatic single-field
 index on the map subfield, no composite index).
 
@@ -59,6 +60,15 @@ UI: `MessageReactions` wraps the bubble. Double-tap / double-click toggles ‚ù§Ô∏
 smiley button (hover/focus on desktop) or a long-press (touch) opens the bar with the five emoji
 plus "Text kopieren" (on touch screens the bubble has no text selection, hence the copy button).
 Pills under the bubble show emoji + count, own highlighted; tapping a pill toggles/replaces your own.
+
+Your own reaction is optimistic: `MessageReactions` shows it at once and never locks or greys out the
+message; a rejected write rolls it back with a notice (`REACTION_FAILED`). "Pending" (greyed, no
+reactions) means only an unsent message (`isUnsentMessage`: `createdAt` server timestamp still
+unresolved), never `metadata.hasPendingWrites` alone: the ack of a reaction changes no data, so
+Firestore raises no snapshot for it and such a flag would stick until something else changes.
+
+Layout (both views): own messages on the right without avatar (`chat-message--own`,
+`chat-bubble--own`, `MessageReactions align="end"`), others on the left with avatar and name.
 
 ## Presence ("who sits at the fire")
 
