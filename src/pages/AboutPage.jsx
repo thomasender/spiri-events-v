@@ -28,9 +28,25 @@ export default function AboutPage() {
   const { hash } = useLocation();
 
   // SPA navigation does not jump to #anchors on its own (e.g. the donation pop-in's /ueber-uns#spenden).
+  // Sections above the target (helpers list) finish loading after the first jump and push the
+  // target down, so on phones the visitor ended up above it. Re-align while the layout is still
+  // settling, and stop as soon as the visitor scrolls or touches the page themselves.
   useEffect(() => {
-    if (!hash) return;
-    document.getElementById(hash.slice(1))?.scrollIntoView?.({ block: 'start' });
+    if (!hash) return undefined;
+    const jump = () => document.getElementById(hash.slice(1))?.scrollIntoView?.({ block: 'start' });
+    jump();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(jump);
+    observer.observe(document.body);
+    const stop = () => observer.disconnect();
+    const timer = window.setTimeout(stop, 4000);
+    const events = ['wheel', 'touchstart', 'keydown'];
+    events.forEach((name) => window.addEventListener(name, stop, { passive: true, once: true }));
+    return () => {
+      window.clearTimeout(timer);
+      stop();
+      events.forEach((name) => window.removeEventListener(name, stop));
+    };
   }, [hash]);
 
   const [contactOpen, setContactOpen] = useState(false);

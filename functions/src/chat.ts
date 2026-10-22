@@ -77,6 +77,40 @@ async function purgeDirectMessages(
 }
 
 /**
+ * Kerzenraum (one room per event, `event_chats/{eventId}`): same 10 days as the
+ * Lagerfeuer. Rooms without a newer message go entirely, others lose their old
+ * messages and cooldown markers.
+ */
+async function purgeEventChats(
+  cutoff: Timestamp
+): Promise<{ eventRooms: number; eventMessages: number }> {
+  const db = getFirestore();
+  let eventRooms = 0;
+  let eventMessages = 0;
+  const rooms = await db.collection('event_chats').get();
+  for (const room of rooms.docs) {
+    const lastAt = room.get('lastMessageAt') as Timestamp | undefined;
+    try {
+      if (!lastAt || lastAt.toMillis() < cutoff.toMillis()) {
+        await db.recursiveDelete(room.ref);
+        eventRooms += 1;
+      } else {
+        eventMessages += await deleteQuery(
+          room.ref.collection('messages').where('createdAt', '<', cutoff)
+        );
+        await deleteQuery(room.ref.collection('members').where('lastMessageAt', '<', cutoff));
+      }
+    } catch (err) {
+      logger.error('Failed to purge event chat', {
+        room: room.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+  return { eventRooms, eventMessages };
+}
+
+/**
  * Chat messages live for 10 days (privacy). Also drops stale cooldown markers
  * and reports older than 30 days (they hold a copy of the reported text).
  */
@@ -122,6 +156,7 @@ export const purgeChatMessages = onSchedule(
     const dm = await purgeDirectMessages(
       Timestamp.fromMillis(retentionCutoffMs(now, DM_RETENTION_DAYS))
     );
+    const eventChats = await purgeEventChats(messageCutoff);
     logger.info('Purged chat data', {
       messages,
       members,
@@ -131,6 +166,7 @@ export const purgeChatMessages = onSchedule(
       onlinePresence,
       dmReports,
       ...dm,
+      ...eventChats,
     });
   }
 );

@@ -59,6 +59,7 @@ import RecurringDeleteDialog from '../components/RecurringDeleteDialog';
 import OccurrencePickerDialog from '../components/OccurrencePickerDialog';
 import EventMessages from '../components/EventMessages';
 import EventHistory from '../components/EventHistory';
+import CandleRoom from '../components/chat/CandleRoom';
 import FavoriteButton from '../components/FavoriteButton';
 import LoginPromptModal from '../components/LoginPromptModal';
 import { requestCalendarFeedToken, startCalendarDownload } from '../hooks/useCalendarFeedToken';
@@ -1004,6 +1005,8 @@ export default function EventDetailPage() {
       )}
 
       {isAdmin && user && <EventHistory eventId={event.id} />}
+
+      {event.status === 'approved' && <CandleRoom eventId={event.id} />}
 
       <SimilarEvents currentEvent={event} />
 

@@ -93,19 +93,48 @@ typed after them (Backspace right after undoes it) and when a message ends with 
 words, so URLs and times are safe. The picker closes on Escape and on a click/tap outside; on
 desktop the message field is focused on entry (not on phones, the keyboard would cover the chat).
 
+## Kerzenraum (one small room per event)
+
+Working title "Kerzenraum" (Peter does not love it yet): the name lives only in
+`CANDLE_ROOM_NAME` (`src/utils/candleRoom.js`); the privacy text interpolates it. There is still
+exactly **one** Lagerfeuer; per-district fires were discussed and dropped (Trello PaXpbpJe).
+
+- **Where:** a section at the bottom of the event detail page (`CandleRoom`), only for
+  `status == 'approved'` events. One room per event doc, so all dates of a recurring event share it.
+- **Flag:** the same `app_settings/chat`. Reading follows `candleRoomReadable()`: mode `all` =
+  everyone **including visitors without login**, `admins` = admins only, `off` = nobody. Writing
+  needs `chatAccessible()` (login, verified e-mail, flag) and no mute/ban, like the Lagerfeuer.
+- **Data:** `event_chats/{eventId}` = `{ lastMessageAt, lastMessageId }` (the summary the calendar
+  listens to), `event_chats/{eventId}/messages/{id}` (same fields as Lagerfeuer messages, no
+  reactions), `event_chats/{eventId}/members/{uid}` (3 s cooldown marker). The client writes
+  message + marker + summary in one batch; the rules require all three with the same server time,
+  so the summary can never be bumped without a real message, and the event must exist and be
+  approved. Rules tests: `tests/rules/chat.rules.spec.ts` ("Kerzenraum").
+- **Candle indicator:** "seen" is per browser in localStorage (`candleRoomSeen:<eventId>` = ms of
+  the newest message seen). The calendar (`CalendarPage` -> `useCandleRoomNews`) has ONE listener on
+  `event_chats where lastMessageAt > now - 10 days` and shows a flickering candle (`CandleBadge`,
+  hover tooltip) on the card of every room with a newer message. Inside the room the candle next to
+  the title flickers while there are messages by others newer than the last visit (fixed when the
+  room is opened). List view rows get no candle (ticket asked for the card view).
+- **Not built (yet):** reporting messages (admins delete directly), reactions, presence. Adding
+  reports needs an event id on `chat_reports` and the admin tab's delete path.
+- Purge and account deletion include the rooms (see below). Signed-in users may read the summary
+  docs and their own messages even with the flag off, so account deletion always finds them.
+
 ## Server (`functions/src/chat.ts`, pure logic in `chatLogic.ts`)
 
 - `purgeChatMessages` (daily 04:10 Vienna): messages and cooldown markers older than **10 days**,
-  reports older than 30 days.
+  reports older than 30 days. Kerzenraum rooms whose last message is older than 10 days are deleted
+  entirely, others lose their old messages and markers.
 - `onChatReportCreated`: mails the admins about a new report, at most one mail per 15 minutes.
 - Account deletion (`useAuth.deleteAccount`) removes the user's messages, their reactions on other
-  messages and the cooldown marker.
+  messages and the cooldown marker, also in every Kerzenraum.
 
 ## Privacy
 
-Datenschutzerklärung Abschnitt 14 (+ 2 and 5). Change it whenever data, retention or visibility changes.
+Datenschutzerklärung Abschnitt 14 (+ 2 and 5); the Kerzenraum has its own paragraph there (public history!). Change it whenever data, retention or visibility changes.
 
 ## Not built (ideas)
 
-Several rooms / region rooms, online presence, unread badge, @mentions, push. Presence would need a
+Several Lagerfeuer rooms / region rooms, unread badge, @mentions, push. Presence would need a
 heartbeat doc or Realtime Database; Firestore alone is a poor fit.

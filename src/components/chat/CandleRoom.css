@@ -1,0 +1,88 @@
+.candle-room {
+  margin: 32px auto 0;
+  max-width: 820px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.candle-room-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.candle-room-header h2 {
+  margin: 0;
+  font-family: var(--font-heading);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.candle-room-header p {
+  margin: 2px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.candle-room-new-label {
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-primary);
+  color: white;
+}
+
+.candle-room-list.chat-list {
+  height: min(45vh, 420px);
+  min-height: 200px;
+}
+
+.candle-room-hint a {
+  color: var(--accent-primary);
+  font-weight: 600;
+}
+
+/* The candle: still when nothing is new, flickering when there is news. */
+.candle-flame {
+  display: inline-block;
+  font-size: 1.75rem;
+  line-height: 1;
+  flex-shrink: 0;
+  transform-origin: 50% 90%;
+}
+
+.candle-flame--lit {
+  animation: candle-flicker 1.6s ease-in-out infinite;
+  filter: drop-shadow(0 0 6px rgba(255, 170, 60, 0.85));
+}
+
+@keyframes candle-flicker {
+  0%,
+  100% {
+    transform: rotate(-2deg) scale(1);
+    filter: drop-shadow(0 0 4px rgba(255, 170, 60, 0.7));
+  }
+  25% {
+    transform: rotate(2deg) scale(1.06);
+    filter: drop-shadow(0 0 9px rgba(255, 190, 80, 0.95));
+  }
+  50% {
+    transform: rotate(-1deg) scale(0.97);
+    filter: drop-shadow(0 0 5px rgba(255, 160, 50, 0.75));
+  }
+  75% {
+    transform: rotate(1deg) scale(1.04);
+    filter: drop-shadow(0 0 8px rgba(255, 185, 70, 0.9));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .candle-flame--lit {
+    animation: none;
+  }
+}

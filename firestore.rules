@@ -1062,6 +1062,89 @@ service cloud.firestore {
                     && request.auth.uid == uid;
     }
 
+    // ---- "Kerzenraum": one small chat room per event (docs/chat.md) ---------
+    // Same flag as the Lagerfeuer. Reading needs no login (mode 'all': everyone,
+    // 'admins': admins only); writing needs the same as the Lagerfeuer
+    // (login, verified e-mail, not muted/banned). Only approved events get a room.
+    function candleRoomReadable() {
+      return chatMode() == 'all' || (chatMode() == 'admins' && isChatStaff());
+    }
+
+    // event_chats/{eventId} is the room summary the calendar listens to:
+    // { lastMessageAt, lastMessageId }. It is only written together with a new
+    // message (same batch, same server time), so nobody can light the candle
+    // without writing a real message.
+    match /event_chats/{eventId} {
+      // Harmless (two fields); signed-in users may read it so account deletion
+      // finds their rooms even while the flag is off.
+      allow read: if candleRoomReadable() || isAuthenticated();
+
+      allow create, update: if chatAccessible()
+                            && !isChatBanned(request.auth.uid)
+                            && request.resource.data.keys().hasOnly(['lastMessageAt', 'lastMessageId'])
+                            && request.resource.data.lastMessageAt == request.time
+                            && request.resource.data.lastMessageId is string
+                            && getAfter(/databases/$(database)/documents/event_chats/$(eventId)/messages/$(request.resource.data.lastMessageId))
+                                 .data.createdAt == request.time
+                            && getAfter(/databases/$(database)/documents/event_chats/$(eventId)/messages/$(request.resource.data.lastMessageId))
+                                 .data.authorUid == request.auth.uid;
+
+      allow delete: if isChatStaff();
+
+      match /messages/{messageId} {
+        // Own messages stay findable for account deletion even when the room is closed.
+        allow read: if candleRoomReadable()
+                    || (isAuthenticated() && resource.data.authorUid == request.auth.uid);
+
+        allow create: if chatAccessible()
+                      && !isChatBanned(request.auth.uid)
+                      && exists(/databases/$(database)/documents/events/$(eventId))
+                      && get(/databases/$(database)/documents/events/$(eventId)).data.get('status', '') == 'approved'
+                      && request.resource.data.keys().hasAll(['text', 'authorUid', 'authorName', 'createdAt'])
+                      && request.resource.data.keys().hasOnly(
+                        ['text', 'authorUid', 'authorName', 'authorPhotoURL', 'createdAt']
+                      )
+                      && request.resource.data.authorUid == request.auth.uid
+                      && request.resource.data.text is string
+                      && request.resource.data.text.size() >= 1
+                      && request.resource.data.text.size() <= 2000
+                      && request.resource.data.authorName is string
+                      && request.resource.data.authorName.size() >= 1
+                      && request.resource.data.authorName.size() <= 80
+                      && (!('authorPhotoURL' in request.resource.data)
+                          || request.resource.data.authorPhotoURL == null
+                          || (request.resource.data.authorPhotoURL is string
+                              && request.resource.data.authorPhotoURL.size() <= 1000
+                              && request.resource.data.authorPhotoURL.matches(
+                                '^(https://(firebasestorage\\.googleapis\\.com|[a-z0-9-]+\\.googleusercontent\\.com)|http://(127\\.0\\.0\\.1|localhost):[0-9]+)/.*'
+                              )))
+                      && request.resource.data.createdAt == request.time
+                      && getAfter(/databases/$(database)/documents/event_chats/$(eventId)/members/$(request.auth.uid))
+                           .data.lastMessageAt == request.time
+                      && getAfter(/databases/$(database)/documents/event_chats/$(eventId))
+                           .data.lastMessageId == messageId;
+
+        allow delete: if isAuthenticated()
+                      && (resource.data.authorUid == request.auth.uid || isChatStaff());
+      }
+
+      // Cooldown marker per sender, 3 s like the Lagerfeuer.
+      match /members/{uid} {
+        allow create: if chatAccessible()
+                      && request.auth.uid == uid
+                      && request.resource.data.keys().hasOnly(['lastMessageAt'])
+                      && request.resource.data.lastMessageAt == request.time;
+
+        allow update: if chatAccessible()
+                      && request.auth.uid == uid
+                      && request.resource.data.keys().hasOnly(['lastMessageAt'])
+                      && request.resource.data.lastMessageAt == request.time
+                      && request.time > resource.data.lastMessageAt + duration.value(3, 's');
+
+        allow delete: if isAuthenticated() && request.auth.uid == uid;
+      }
+    }
+
     // ---- Private messenger "Postfach" (docs/messenger.md) -------------------
     // Feature flag: app_settings/messenger { mode: 'off' | 'admins' | 'all' },
     // same semantics as the chat flag. A missing doc means off.
