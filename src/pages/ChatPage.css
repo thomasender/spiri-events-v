@@ -484,3 +484,52 @@
 .chat-author-button:hover {
   text-decoration: underline;
 }
+
+.chat-avatar--small {
+  width: 28px;
+  height: 28px;
+  font-size: 0.8rem;
+}
+
+/* @Name in a message; a bubble that mentions you gets a soft frame. */
+.chat-mention {
+  color: var(--accent-primary-strong);
+  font-weight: 600;
+  background: var(--accent-soft);
+  border-radius: 4px;
+  padding: 0 2px;
+}
+
+.chat-mention--me {
+  background: var(--accent-primary);
+  color: #fff;
+}
+
+.chat-message--mentions-me .chat-bubble {
+  box-shadow: inset 3px 0 0 var(--accent-primary);
+}
+
+/* The message a mention notification points at. */
+.chat-message--target .chat-bubble {
+  animation: chat-target-flash 2.4s ease-out;
+}
+
+@keyframes chat-target-flash {
+  0%,
+  40% {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+  }
+  100% {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-message--target .chat-bubble {
+    animation: none;
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+  }
+}

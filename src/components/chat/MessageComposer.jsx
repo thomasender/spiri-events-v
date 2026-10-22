@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Send, Smile } from 'lucide-react';
 import EmojiPicker from './EmojiPicker';
+import AvatarImage from '../AvatarImage';
+import { useMentionSearch } from '../../hooks/useMentionSearch';
 import { CHAT_MAX_LENGTH, chatTextLength } from '../../utils/chat';
 import {
   MAX_EMOJI_SUGGESTIONS,
@@ -11,10 +13,13 @@ import {
   searchEmojis,
 } from '../../utils/emojiSearch';
 import { replaceEmoticonBeforeCaret, replaceTrailingEmoticon } from '../../utils/emoticons';
+import { findMentionToken, mentionsInText, replaceMentionToken } from '../../utils/mentions';
 
 // Message field shared by the Lagerfeuer chat and the private messenger:
 // emoji finder, :shortcode suggestions, text emoticons, Enter to send,
-// focus on desktop. `onSend(text)` rejects with an Error whose message is shown.
+// focus on desktop. `onSend(text, mentions)` rejects with an Error whose message is shown.
+// With `mentionsEnabled` (public rooms only, never the private messenger) "@na" suggests
+// people who allow being mentioned; `mentions` is { [uid]: name } for the names still in the text.
 export default function MessageComposer({
   onSend,
   sending = false,
@@ -24,6 +29,8 @@ export default function MessageComposer({
   testIdPrefix = 'chat',
   onSent,
   autoFocus = true,
+  mentionsEnabled = false,
+  selfUid = null,
 }) {
   const [draft, setDraft] = useState('');
   const [sendError, setSendError] = useState('');
@@ -35,6 +42,7 @@ export default function MessageComposer({
   const inputRef = useRef(null);
   const emojiWrapRef = useRef(null);
   const autoReplaced = useRef(null);
+  const pickedMentions = useRef({});
 
   const length = chatTextLength(draft);
   const tooLong = length > maxLength;
@@ -46,8 +54,24 @@ export default function MessageComposer({
     token && emojiIndex && token.start !== dismissedAt
       ? searchEmojis(emojiIndex, token.query, MAX_EMOJI_SUGGESTIONS)
       : [];
-  const suggestionsOpen = suggestions.length > 0;
-  const listId = `${testIdPrefix}-emoji-suggestions`;
+  const emojiListOpen = suggestions.length > 0;
+
+  // "@ann" before the caret offers people who allow being mentioned.
+  const mentionToken = mentionsEnabled ? findMentionToken(draft, caret) : null;
+  const mentionQuery =
+    mentionToken && mentionToken.start !== dismissedAt ? mentionToken.query : null;
+  const mentionResults = useMentionSearch(mentionQuery, {
+    enabled: mentionsEnabled,
+    excludeUid: selfUid,
+  });
+  const mentionListOpen = Boolean(mentionQuery) && mentionResults.length > 0;
+
+  // Only one list at a time; mentions win.
+  const suggestionsOpen = mentionListOpen || emojiListOpen;
+  const suggestionCount = mentionListOpen ? mentionResults.length : suggestions.length;
+  const listId = mentionListOpen
+    ? `${testIdPrefix}-mention-suggestions`
+    : `${testIdPrefix}-emoji-suggestions`;
 
   // Desktop: the cursor is in the message field as soon as it exists. Not on
   // phones, where it would open the keyboard and cover the conversation.
@@ -84,7 +108,10 @@ export default function MessageComposer({
     if (sending || !draft.trim() || tooLong) return;
     setSendError('');
     try {
-      await onSend(replaceTrailingEmoticon(draft));
+      const text = replaceTrailingEmoticon(draft);
+      if (mentionsEnabled) await onSend(text, mentionsInText(text, pickedMentions.current));
+      else await onSend(text);
+      pickedMentions.current = {};
       setDraft('');
       setEmojiOpen(false);
       onSent?.();
@@ -130,9 +157,28 @@ export default function MessageComposer({
         requestAnimationFrame(() => el.setSelectionRange(pos, pos));
       }
     }
+    // A new "@" or ":" after the old token was left starts afresh (Esc no longer applies).
+    const tokenNow =
+      (mentionsEnabled && findMentionToken(value, pos)) || findShortcodeToken(value, pos);
+    if (!tokenNow) setDismissedAt(-1);
     setDraft(value);
     setCaret(pos);
     setActiveSuggestion(0);
+  };
+
+  const pickMention = (user) => {
+    if (!mentionToken) return;
+    const { text, caret: pos } = replaceMentionToken(draft, mentionToken, user.displayName);
+    pickedMentions.current = { ...pickedMentions.current, [user.uid]: user.displayName };
+    setDraft(text);
+    setCaret(pos);
+    setDismissedAt(mentionToken.start);
+    setActiveSuggestion(0);
+    requestAnimationFrame(() => {
+      const el = inputRef.current;
+      el?.focus();
+      el?.setSelectionRange(pos, pos);
+    });
   };
 
   const pickSuggestion = (emoji) => {
@@ -170,17 +216,19 @@ export default function MessageComposer({
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         e.preventDefault();
         const step = e.key === 'ArrowDown' ? 1 : -1;
-        setActiveSuggestion((i) => (i + step + suggestions.length) % suggestions.length);
+        setActiveSuggestion((i) => (i + step + suggestionCount) % suggestionCount);
         return;
       }
       if (e.key === 'Enter' || e.key === 'Tab') {
         e.preventDefault();
-        pickSuggestion(suggestions[Math.min(activeSuggestion, suggestions.length - 1)].emoji);
+        const index = Math.min(activeSuggestion, suggestionCount - 1);
+        if (mentionListOpen) pickMention(mentionResults[index]);
+        else pickSuggestion(suggestions[index].emoji);
         return;
       }
       if (e.key === 'Escape') {
         e.preventDefault();
-        setDismissedAt(token.start);
+        setDismissedAt(mentionListOpen ? mentionToken.start : token.start);
         return;
       }
     }
@@ -207,7 +255,48 @@ export default function MessageComposer({
 
   return (
     <form className="chat-form" onSubmit={submit}>
-      {suggestionsOpen && (
+      {mentionListOpen && (
+        <ul
+          className="chat-suggestions"
+          id={listId}
+          role="listbox"
+          aria-label="Personen erwähnen"
+          data-testid={`${testIdPrefix}-mention-suggestions`}
+        >
+          {mentionResults.map((user, i) => (
+            <li
+              key={user.uid}
+              id={`${listId}-${i}`}
+              role="option"
+              aria-selected={i === activeSuggestion}
+              className={`chat-suggestion${i === activeSuggestion ? ' chat-suggestion--active' : ''}`}
+              // mousedown keeps the focus in the text field
+              onMouseDown={(e) => {
+                e.preventDefault();
+                pickMention(user);
+              }}
+            >
+              {user.photoURL ? (
+                <AvatarImage
+                  src={user.photoURL}
+                  alt=""
+                  className="chat-avatar chat-avatar--small"
+                />
+              ) : (
+                <span
+                  className="chat-avatar chat-avatar--small chat-avatar--fallback"
+                  aria-hidden="true"
+                >
+                  {user.displayName.charAt(0).toUpperCase()}
+                </span>
+              )}
+              <span className="chat-suggestion-code">{user.displayName}</span>
+              {user.username && <span className="chat-suggestion-label">@{user.username}</span>}
+            </li>
+          ))}
+        </ul>
+      )}
+      {!mentionListOpen && emojiListOpen && (
         <ul
           className="chat-suggestions"
           id={listId}

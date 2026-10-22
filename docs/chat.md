@@ -14,14 +14,14 @@ at once for everyone; messages stay until the purge.
 
 ## Data (all in `firestore.rules`, tests in `tests/rules/chat.rules.spec.ts`)
 
-| Path                                    | What                                                                                               |
-| --------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `chat_rooms/lagerfeuer/messages/{id}`   | `text, authorUid, authorName, authorPhotoURL, createdAt`, optional `reactions`. Text never edited. |
-| `chat_rooms/lagerfeuer/members/{uid}`   | `lastMessageAt`: the cooldown marker                                                               |
-| `chat_rooms/lagerfeuer/presence/{uid}`  | heartbeat `displayName, photoURL, lastSeen` (who is at the fire)                                   |
-| `chat_bans/{uid}`                       | `until` (far future = permanent), `reason`, `bannedBy`, `userName`                                 |
-| `chat_reports/{messageId}_{reporterId}` | copy of the reported text, `status` open/resolved                                                  |
-| `chat_private/reportMail`               | server-only throttle for admin mails (no client rule, so denied)                                   |
+| Path                                    | What                                                                                                           |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `chat_rooms/lagerfeuer/messages/{id}`   | `text, authorUid, authorName, authorPhotoURL, createdAt`, optional `reactions`, `mentions`. Text never edited. |
+| `chat_rooms/lagerfeuer/members/{uid}`   | `lastMessageAt`: the cooldown marker                                                                           |
+| `chat_rooms/lagerfeuer/presence/{uid}`  | heartbeat `displayName, photoURL, lastSeen` (who is at the fire)                                               |
+| `chat_bans/{uid}`                       | `until` (far future = permanent), `reason`, `bannedBy`, `userName`                                             |
+| `chat_reports/{messageId}_{reporterId}` | copy of the reported text, `status` open/resolved                                                              |
+| `chat_private/reportMail`               | server-only throttle for admin mails (no client rule, so denied)                                               |
 
 - **Rate limit (3 s)** lives in the rules: a message may only be created in the same batch that
   updates `members/{uid}.lastMessageAt` to `request.time`, and that update must be > 3 s after the
@@ -121,6 +121,43 @@ exactly **one** Lagerfeuer; per-district fires were discussed and dropped (Trell
 - Purge and account deletion include the rooms (see below). Signed-in users may read the summary
   docs and their own messages even with the flag off, so account deletion always finds them.
 
+## @mentions (Lagerfeuer and Kerzenräume, never the Postfach)
+
+Typing `@` at the start of a word in the composer suggests people; the picked name goes into the text
+as `@Anna Maria` and into `mentions: { [uid]: name }` on the message. The text stays plain text; the
+map says which person a name means, so an `@Name` without an entry is never highlighted
+(`src/utils/mentions.js`, `splitMentions`). The composer only enables this with `mentionsEnabled`
+(the Postfach composer does not pass it). A name that is deleted from the draft drops its entry.
+
+- **Opt-in:** profile option "Andere dürfen mich erwähnen" = `allowMentions` (bool, default off) on
+  `users/{uid}` and `publicProfile/data`. While it is on, `useProfile.save` also keeps `mentionName`
+  (display name lower case, no accents; `foldName`) on the public profile, removed when switched off.
+  Only people with the option on can be found or notified.
+- **Search:** `searchMentionableUsers` (`src/lib/mentionSearch.js`) is a collection-group query on
+  `publicProfile`: `allowMentions == true` + prefix range on `mentionName`. It needs the composite
+  index in `firestore.indexes.json` (without it the dropdown silently stays empty and the console
+  warns). It searches the whole platform, not only the room. Debounced 150 ms, max 6 hits.
+- **Limit:** `MENTION_MAX = 10` per message (`src/utils/mentions.js`, `functions/src/chatLogic.ts`
+  and the rules, keep all three in sync). The number is arbitrary; it only exists so that one
+  message cannot create hundreds of notifications.
+- **Rules:** `mentions` is an optional map of at most 10 entries on both message paths. The rules
+  cannot check the entries, so the server does (below).
+- **Notification:** the functions `onLagerfeuerMention` / `onKerzenraumMention` (`chat.ts`) write
+  `users/{uid}/mentions/{messageId}` `{ kind, eventId, eventSlug, eventTitle, messageId, fromUid,
+fromName, excerpt, read, createdAt }`. Only the server creates them (rules: no client create), per
+  target it re-checks `allowMentions` on the public profile, drops the author, and honours the chat
+  flag (`off`: nobody, `admins`: only admins). The owner reads, sets `read: true` (nothing else may
+  change) and deletes. The document id is the message id, so a retry does not duplicate. No e-mail,
+  by decision of the product owner.
+- **Bell:** `MentionBell` next to the Postfach in the header (row in the phone menu), fed by
+  `useMentionNotifications` (latest 20 + unread count). A click opens `/chat#msg-<id>` or
+  `/event/<slug>#msg-<id>`; `useMessageJump` scrolls to the message and highlights it. A message
+  that mentions you also gets a marked bubble. The Kerzenraum section has the anchor `#kerzenraum`.
+- **Purge:** `purgeChatMessages` deletes mention notifications older than 10 days
+  (`collectionGroup('mentions')`, single-field index override); account deletion removes the
+  `users/{uid}/mentions` subcollection.
+- Not built: e-mail or push for mentions, `@everyone`, mentions in reports.
+
 ## Server (`functions/src/chat.ts`, pure logic in `chatLogic.ts`)
 
 - `purgeChatMessages` (daily 04:10 Vienna): messages and cooldown markers older than **10 days**,
@@ -136,5 +173,5 @@ Datenschutzerklärung Abschnitt 14 (+ 2 and 5); the Kerzenraum has its own parag
 
 ## Not built (ideas)
 
-Several Lagerfeuer rooms / region rooms, unread badge, @mentions, push. Presence would need a
+Several Lagerfeuer rooms / region rooms, unread badge, push. Presence would need a
 heartbeat doc or Realtime Database; Firestore alone is a poor fit.

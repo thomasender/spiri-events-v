@@ -264,6 +264,12 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
 - *Anders als im Lagerfeuer ist der Verlauf öffentlich:* Wenn die Funktion für alle freigeschaltet ist, kann jede Person, die die Event-Seite aufruft, die Nachrichten mit Anzeigename und Profilfoto lesen, auch ohne Login. Schreiben Sie dort deshalb nur, was öffentlich sichtbar sein darf
 - Zusätzlich speichern wir für jeden Raum den Zeitpunkt der letzten Nachricht, damit im Kalender eine Kerze auf neue Nachrichten hinweisen kann. Welche Nachrichten Sie schon gesehen haben, merkt sich nur Ihr Browser (Local Storage)
 
+*Erwähnungen (@Name):*
+- In Lagerfeuer und ${CANDLE_ROOM_NAME} können Mitglieder andere mit @Name erwähnen, nicht jedoch in Privatnachrichten. Erwähnt werden können nur Personen, die in ihrem Profil „Andere dürfen mich erwähnen“ eingeschaltet haben (Standard: aus; Einwilligung, jederzeit im Profil widerrufbar)
+- Ist die Option eingeschaltet, speichern wir in Ihrem öffentlichen Profil zusätzlich Ihren Namen in vereinfachter Schreibweise (Kleinbuchstaben, ohne Akzente), damit Sie bei der Namenssuche nach dem @ gefunden werden. Beim Ausschalten wird dieser Eintrag gelöscht
+- Wird eine Person erwähnt, steht ihre Konto-Kennung zusammen mit dem Namen in der Nachricht. Zusätzlich legen wir für sie eine Benachrichtigung an: Art des Raums, Titel des Events, Name der verfassenden Person, ein kurzer Textauszug der Nachricht und der Zeitpunkt. Sie erscheint nur in der Glocke im Kopfbereich der Seite für die erwähnte Person. Es werden keine E-Mails verschickt
+- Die Benachrichtigung wird nach 10 Tagen automatisch gelöscht (wie die Nachricht), spätestens beim Löschen Ihres Kontos. Sie können sie auch selbst löschen
+
 *Rechtsgrundlage:* Die Bereitstellung des Chats und die Anzeige Ihrer Nachrichten erfolgen, weil Sie die Funktion nutzen (Art. 6 Abs. 1 lit. b DSGVO). Moderation, Spam-Schutz und die Bearbeitung von Meldungen beruhen auf unserem berechtigten Interesse, den Chat sicher und frei von Missbrauch zu halten (Art. 6 Abs. 1 lit. f DSGVO).
 
 *Verarbeitung:* Die Daten werden in Google Cloud Firestore (Firebase) gespeichert (siehe Abschnitt 9). Wir geben keine Chat-Inhalte an Dritte weiter und nutzen sie nicht für Werbung oder Statistik.

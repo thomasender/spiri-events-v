@@ -15,9 +15,22 @@
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "createdBy", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "publicProfile",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "allowMentions", "order": "ASCENDING" },
+        { "fieldPath": "mentionName", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": [
+    {
+      "collectionGroup": "mentions",
+      "fieldPath": "createdAt",
+      "indexes": [{ "queryScope": "COLLECTION_GROUP", "order": "ASCENDING" }]
+    },
     {
       "collectionGroup": "publicProfile",
       "fieldPath": "slug",

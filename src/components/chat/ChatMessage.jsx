@@ -2,17 +2,32 @@ import { Flag, Trash2 } from 'lucide-react';
 import AvatarImage from '../AvatarImage';
 import MessageReactions from './MessageReactions';
 import { formatChatTime, isEmojiOnly, splitChatLinks } from '../../utils/chat';
+import { splitMentions } from '../../utils/mentions';
 
-function MessageText({ text }) {
-  return splitChatLinks(text).map((part, i) =>
-    part.type === 'link' ? (
-      <a key={i} href={part.href} target="_blank" rel="noopener noreferrer nofollow ugc">
-        {part.value}
-      </a>
-    ) : (
-      <span key={i}>{part.value}</span>
-    )
-  );
+// Links first, then "@Name" inside the plain parts (only names listed in `mentions`).
+function MessageText({ text, mentions, me }) {
+  return splitChatLinks(text).map((part, i) => {
+    if (part.type === 'link') {
+      return (
+        <a key={i} href={part.href} target="_blank" rel="noopener noreferrer nofollow ugc">
+          {part.value}
+        </a>
+      );
+    }
+    return splitMentions(part.value, mentions).map((piece, j) =>
+      piece.type === 'mention' ? (
+        <span
+          key={`${i}-${j}`}
+          className={`chat-mention${piece.uid === me ? ' chat-mention--me' : ''}`}
+          data-testid="chat-mention"
+        >
+          {piece.value}
+        </span>
+      ) : (
+        <span key={`${i}-${j}`}>{piece.value}</span>
+      )
+    );
+  });
 }
 
 export default function ChatMessage({
@@ -27,14 +42,17 @@ export default function ChatMessage({
   canReact = false,
   onReact,
   onReactError,
+  isTarget = false,
 }) {
+  const mentionsMe = Boolean(me) && Boolean(message.mentions?.[me]) && !own;
   const emojiOnly = isEmojiOnly(message.text);
   const openMember = !own && onOpenMember ? () => onOpenMember(message) : null;
   return (
     <li
+      id={`msg-${message.id}`}
       className={`chat-message${own ? ' chat-message--own' : ''}${
         message.pending ? ' chat-message--pending' : ''
-      }`}
+      }${mentionsMe ? ' chat-message--mentions-me' : ''}${isTarget ? ' chat-message--target' : ''}`}
       data-testid="chat-message"
     >
       {/* Own messages sit on the right without an avatar, like in common messengers. */}
@@ -91,7 +109,7 @@ export default function ChatMessage({
               emojiOnly ? ' chat-bubble--emoji' : ''
             }`}
           >
-            <MessageText text={message.text} />
+            <MessageText text={message.text} mentions={message.mentions} me={me} />
           </div>
         </MessageReactions>
         {!message.pending && (canReport || canDelete) && (

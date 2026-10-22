@@ -492,7 +492,8 @@ templates drift from what the app posts. A new template needs an entry in
 Logged-in members with a verified e-mail chat in one room ("Lagerfeuer", `/chat`) behind the
 feature flag `app_settings/chat` (off / admins / all). Messages are deleted after 10 days.
 Behind the same flag every approved event has a small "Kerzenraum" room (`event_chats/*`, readable
-without login, candle on calendar cards for new messages).
+without login, candle on calendar cards for new messages). Both support `@mentions` (opt-in
+in the profile, bell in the header; not in the Postfach).
 Read `docs/chat.md` ONLY when you touch the chat or Kerzenraum, its rules (`chat_*`, `event_chats`), `functions/src/chat.ts`
 or the chat section of the privacy policy.
 

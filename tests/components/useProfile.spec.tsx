@@ -638,3 +638,49 @@ describe('useProfile.save — username (LtBHuNes)', () => {
     });
   });
 });
+
+describe('useProfile.save — allowMentions', () => {
+  const base = { displayName: 'Zoë Müller', bio: '', website: '', photoURL: null, slug: 'zoe' };
+
+  async function saveWith(profile: Record<string, unknown>, updates: Record<string, unknown>) {
+    mockOnSnapshot.mockImplementation((_ref, onNext) => {
+      onNext(makeSnapshot(profile));
+      return () => {};
+    });
+    const { result } = renderHook(() => useProfile('user-1'));
+    await waitFor(() => expect(result.current.profile).not.toBeNull());
+    await act(async () => {
+      await result.current.save(updates);
+    });
+    return mockBatchSet.mock.calls.find(
+      ([ref]) => ref.path?.join('/') === 'users/user-1/publicProfile/data'
+    )?.[1];
+  }
+
+  it('writes the folded display name to the public profile when switched on', async () => {
+    const publicPayload = await saveWith(base, { allowMentions: true });
+    expect(publicPayload).toMatchObject({ allowMentions: true, mentionName: 'zoe muller' });
+  });
+
+  it('keeps mentionName in step when the name changes while allowed', async () => {
+    const publicPayload = await saveWith(
+      { ...base, allowMentions: true },
+      { displayName: 'Zoë Åberg' }
+    );
+    expect(publicPayload.mentionName).toBe('zoe aberg');
+  });
+
+  it('removes mentionName when switched off', async () => {
+    const publicPayload = await saveWith(
+      { ...base, allowMentions: true },
+      { allowMentions: false }
+    );
+    expect(publicPayload.allowMentions).toBe(false);
+    expect(publicPayload.mentionName).toMatchObject({ __deleteField: true });
+  });
+
+  it('never writes a search name for somebody who did not allow mentions', async () => {
+    const publicPayload = await saveWith(base, { displayName: 'Zoë Neu' });
+    expect(publicPayload).not.toHaveProperty('mentionName');
+  });
+});

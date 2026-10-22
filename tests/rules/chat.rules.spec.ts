@@ -666,3 +666,139 @@ describe('Kerzenraum (event chat rooms)', () => {
     await assertFails(getDocs(collection(db, msgs())));
   });
 });
+
+describe('@mentions', () => {
+  const publicProfile = (uid: string) => `users/${uid}/publicProfile/data`;
+  const ten = Object.fromEntries(Array.from({ length: 10 }, (_, i) => [`u${i}`, `Name ${i}`]));
+  const eleven = { ...ten, u10: 'Name 10' };
+
+  it('lets a message carry a mentions map of up to 10 people (Lagerfeuer)', async () => {
+    const db = verified('alice').firestore();
+    await assertSucceeds(send(db, 'alice', { mentions: { bob: 'Bob' } }));
+  });
+
+  it('accepts exactly 10 and refuses 11, or something that is not a map', async () => {
+    await setMode('all');
+    await assertSucceeds(send(verified('alice').firestore(), 'alice', { mentions: ten }));
+    await assertFails(send(verified('carol').firestore(), 'carol', { mentions: eleven }));
+    await assertFails(send(verified('dave').firestore(), 'dave', { mentions: ['bob'] }));
+    await assertFails(send(verified('erin').firestore(), 'erin', { mentions: 'bob' }));
+  });
+
+  it('refuses other unknown message fields as before', async () => {
+    await assertFails(send(verified('alice').firestore(), 'alice', { notify: ['bob'] }));
+  });
+
+  it('works in a Kerzenraum, too', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'events/evm'), { title: 'Tanz', status: 'approved' });
+    });
+    const db = verified('alice').firestore();
+    const batch = writeBatch(db);
+    const ref = doc(collection(db, 'event_chats/evm/messages'));
+    batch.set(ref, messageData('alice', { mentions: { bob: 'Bob' } }));
+    batch.set(doc(db, 'event_chats/evm/members/alice'), { lastMessageAt: serverTimestamp() });
+    batch.set(doc(db, 'event_chats/evm'), {
+      lastMessageAt: serverTimestamp(),
+      lastMessageId: ref.id,
+    });
+    await assertSucceeds(batch.commit());
+  });
+
+  describe('profile option', () => {
+    it('the owner sets allowMentions and mentionName; allowMentions must be a boolean', async () => {
+      const db = verified('carol').firestore();
+      const base = { displayName: 'Carol', bio: 'b' };
+      await assertSucceeds(setDoc(doc(db, 'users/carol'), { ...base, allowMentions: true }));
+      await assertSucceeds(
+        setDoc(doc(db, publicProfile('carol')), {
+          ...base,
+          allowMentions: true,
+          mentionName: 'carol',
+        })
+      );
+      await assertFails(setDoc(doc(db, 'users/carol'), { ...base, allowMentions: 'yes' }));
+      await assertFails(updateDoc(doc(db, publicProfile('carol')), { allowMentions: 'yes' }));
+      await assertFails(updateDoc(doc(db, publicProfile('carol')), { mentionName: 5 }));
+      await assertSucceeds(updateDoc(doc(db, publicProfile('carol')), { allowMentions: false }));
+    });
+
+    it('nobody switches it on for somebody else', async () => {
+      await env.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), publicProfile('alice')), {
+          displayName: 'Alice',
+          bio: '',
+        });
+      });
+      await assertFails(
+        updateDoc(doc(verified('bob').firestore(), publicProfile('alice')), {
+          allowMentions: true,
+          mentionName: 'alice',
+        })
+      );
+    });
+
+    it('the name search is open: only people who allow mentions are found', async () => {
+      await env.withSecurityRulesDisabled(async (ctx) => {
+        const db = ctx.firestore();
+        await setDoc(doc(db, publicProfile('p1')), {
+          displayName: 'Anna',
+          allowMentions: true,
+          mentionName: 'anna',
+        });
+        await setDoc(doc(db, publicProfile('p2')), {
+          displayName: 'Anton',
+          allowMentions: false,
+        });
+      });
+      const { collectionGroup, orderBy } = await import('firebase/firestore');
+      const found = await assertSucceeds(
+        getDocs(
+          query(
+            collectionGroup(verified('bob').firestore(), 'publicProfile'),
+            where('allowMentions', '==', true),
+            where('mentionName', '>=', 'an'),
+            where('mentionName', '<=', 'an'),
+            orderBy('mentionName')
+          )
+        )
+      );
+      expect(found.docs.map((d) => d.ref.parent.parent?.id)).toEqual(['p1']);
+    });
+  });
+
+  describe('notifications users/{uid}/mentions', () => {
+    const path = (uid: string, id = 'm1') => `users/${uid}/mentions/${id}`;
+    const notice = { kind: 'lagerfeuer', messageId: 'm1', read: false, fromName: 'Alice' };
+
+    beforeEach(async () => {
+      await env.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), path('bob')), notice);
+      });
+    });
+
+    it('only the owner reads', async () => {
+      await assertSucceeds(getDoc(doc(verified('bob').firestore(), path('bob'))));
+      await assertFails(getDoc(doc(verified('alice').firestore(), path('bob'))));
+      await assertFails(getDoc(doc(anon().firestore(), path('bob'))));
+    });
+
+    it('no client can create one, not even for themselves or from the author', async () => {
+      await assertFails(setDoc(doc(verified('alice').firestore(), path('bob', 'x')), notice));
+      await assertFails(setDoc(doc(verified('bob').firestore(), path('bob', 'x')), notice));
+    });
+
+    it('the owner marks it read, nothing else may change, and read never goes back', async () => {
+      const ref = doc(verified('bob').firestore(), path('bob'));
+      await assertFails(updateDoc(ref, { fromName: 'Mallory' }));
+      await assertFails(updateDoc(ref, { read: false }));
+      await assertSucceeds(updateDoc(ref, { read: true }));
+      await assertFails(updateDoc(doc(verified('alice').firestore(), path('bob')), { read: true }));
+    });
+
+    it('the owner deletes, others do not', async () => {
+      await assertFails(deleteDoc(doc(verified('alice').firestore(), path('bob'))));
+      await assertSucceeds(deleteDoc(doc(verified('bob').firestore(), path('bob'))));
+    });
+  });
+});

@@ -7,6 +7,7 @@ import ConfirmDialog from '../ConfirmDialog';
 import { useAuth } from '../../hooks/useAuth';
 import { useChatSettings } from '../../hooks/useChatSettings';
 import { useCandleRoom } from '../../hooks/useCandleRoom';
+import { useMessageJump } from '../../hooks/useMessageJump';
 import { CHAT_RETENTION_DAYS, describeChatBan, isChatBanActive } from '../../utils/chat';
 import {
   CANDLE_ROOM_NAME,
@@ -41,6 +42,12 @@ function CandleRoomInner({ eventId, mode }) {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
   const listRef = useRef(null);
+  const stickToBottom = useRef(true);
+  const jumpTarget = useMessageJump(messages, {
+    onJump: () => {
+      stickToBottom.current = false;
+    },
+  });
 
   const hasNew = hasNewForeignMessages(messages, user?.uid ?? null, seenAtOpen);
   const banned = isChatBanActive(ban);
@@ -53,7 +60,7 @@ function CandleRoomInner({ eventId, mode }) {
 
   useLayoutEffect(() => {
     const el = listRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
+    if (el && stickToBottom.current) el.scrollTop = el.scrollHeight;
   }, [messages]);
 
   useEffect(() => {
@@ -126,6 +133,8 @@ function CandleRoomInner({ eventId, mode }) {
         onSend={send}
         sending={sending}
         autoFocus={false}
+        mentionsEnabled
+        selfUid={user.uid}
         placeholder="Frag nach einer Mitfahrgelegenheit oder sag Hallo…"
         testIdPrefix="candle-room"
       />
@@ -133,7 +142,12 @@ function CandleRoomInner({ eventId, mode }) {
   }
 
   return (
-    <section className="candle-room" data-testid="candle-room" aria-labelledby="candle-room-title">
+    <section
+      id="kerzenraum"
+      className="candle-room"
+      data-testid="candle-room"
+      aria-labelledby="candle-room-title"
+    >
       <header className="candle-room-header">
         <span
           className={`candle-flame${hasNew ? ' candle-flame--lit' : ''}`}
@@ -184,6 +198,7 @@ function CandleRoomInner({ eventId, mode }) {
               canReport={false}
               onDelete={setToDelete}
               me={user?.uid}
+              isTarget={jumpTarget === m.id}
             />
           ))}
         </ul>

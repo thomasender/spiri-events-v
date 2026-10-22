@@ -51,3 +51,33 @@ export function buildDmReportMail(
     text: `Eine Unterhaltung mit ${who} wurde gemeldet. Den gemeldeten Ausschnitt findest du in der Verwaltung.${others}\n\nZur Moderation: ${adminUrl}`,
   };
 }
+
+// ---- @mentions (docs/chat.md) ------------------------------------------------
+
+// Keep in sync with MENTION_MAX in src/utils/mentions.js and the rules.
+export const MENTION_MAX = 10;
+export const MENTION_EXCERPT_MAX = 140;
+
+/** Who a message mentions: uids only, no duplicates, never the author, at most MENTION_MAX. */
+export function mentionTargets(raw: unknown, authorUid: string): string[] {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return [];
+  const uids: string[] = [];
+  for (const uid of Object.keys(raw as Record<string, unknown>)) {
+    if (uids.length >= MENTION_MAX) break;
+    if (uid && uid.length <= 128 && !uid.includes('/') && uid !== authorUid) uids.push(uid);
+  }
+  return uids;
+}
+
+/** One line of the message for the notification, shortened. */
+export function mentionExcerpt(text: unknown): string {
+  const flat = clean(text, 10_000);
+  return flat.length > MENTION_EXCERPT_MAX ? `${flat.slice(0, MENTION_EXCERPT_MAX - 1)}…` : flat;
+}
+
+/** Whether a person can open the room at all: the chat flag decides (docs/chat.md). */
+export function canReceiveChatMention(mode: unknown, isAdmin: boolean): boolean {
+  if (mode === 'all') return true;
+  if (mode === 'admins') return isAdmin;
+  return false;
+}

@@ -498,6 +498,8 @@ export function useAuth() {
       // Deleting the parent doc does not delete subcollections.
       const favorites = await getDocs(collection(db, 'users', uid, 'favorites'));
       favorites.forEach((fav) => batch.delete(fav.ref));
+      const mentions = await getDocs(collection(db, 'users', uid, 'mentions'));
+      mentions.forEach((mention) => batch.delete(mention.ref));
       batch.delete(doc(db, 'users', uid, 'publicProfile', 'data'));
       batch.delete(doc(db, 'users', uid));
       await batch.commit();

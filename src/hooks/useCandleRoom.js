@@ -14,6 +14,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from './useAuth';
+import { sanitizeMentions } from '../utils/mentions';
 import { useProfile } from './useProfile';
 import { useChatSettings } from './useChatSettings';
 import {
@@ -79,6 +80,7 @@ export function useCandleRoom(eventId, enabled) {
                 authorUid: data.authorUid ?? '',
                 authorName: data.authorName ?? '',
                 authorPhotoURL: data.authorPhotoURL ?? null,
+                mentions: sanitizeMentions(data.mentions),
                 createdAt: toMillis(data.createdAt),
                 reactions: {},
                 pending: isUnsentMessage(d),
@@ -113,9 +115,10 @@ export function useCandleRoom(eventId, enabled) {
   const authorPhotoURL = chatPhotoUrl(profile?.photoURL || user?.photoURL);
 
   const send = useCallback(
-    async (raw) => {
+    async (raw, rawMentions) => {
       if (!user) throw new Error('Bitte melde dich an.');
       const checked = validateChatText(raw);
+      const mentions = sanitizeMentions(rawMentions);
       if (!checked.ok) throw new Error(checked.error);
       const wait = cooldownRemainingMs(lastSentAt.current);
       if (wait > 0) {
@@ -131,6 +134,7 @@ export function useCandleRoom(eventId, enabled) {
           authorUid: user.uid,
           authorName,
           authorPhotoURL,
+          ...(Object.keys(mentions).length > 0 ? { mentions } : {}),
           createdAt: serverTimestamp(),
         });
         batch.set(doc(db, CANDLE_ROOM_COLLECTION, eventId, 'members', user.uid), {

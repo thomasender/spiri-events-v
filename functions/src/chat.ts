@@ -2,13 +2,16 @@ import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { logger } from 'firebase-functions';
 import { initializeApp, getApps } from 'firebase-admin/app';
-import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import { FieldValue, getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { ADMIN_MAIL_SECRETS, notifyAdmins } from './adminNotify';
 import {
   CHAT_RESOLVED_REPORT_RETENTION_DAYS,
   DM_RETENTION_DAYS,
   buildDmReportMail,
   buildReportMail,
+  canReceiveChatMention,
+  mentionExcerpt,
+  mentionTargets,
   retentionCutoffMs,
   shouldSendReportMail,
 } from './chatLogic';
@@ -157,7 +160,12 @@ export const purgeChatMessages = onSchedule(
       Timestamp.fromMillis(retentionCutoffMs(now, DM_RETENTION_DAYS))
     );
     const eventChats = await purgeEventChats(messageCutoff);
+    // Mention notifications go with the messages they point at.
+    const mentionNotices = await deleteQuery(
+      db.collectionGroup('mentions').where('createdAt', '<', messageCutoff)
+    );
     logger.info('Purged chat data', {
+      mentionNotices,
       messages,
       members,
       presence,
@@ -238,4 +246,79 @@ export const onDmReportCreated = onDocumentCreated(
       });
     }
   }
+);
+
+/**
+ * Writes `users/{uid}/mentions/{messageId}` for everyone a new message mentions,
+ * so the bell in the header can show it. Server side on purpose: clients cannot
+ * create these documents, so nobody can fill another person's bell. The client
+ * only names uids; this re-checks that each person allows being mentioned
+ * (public profile `allowMentions`), is not the author and can open the room.
+ * Idempotent (document id = message id), so a retry changes nothing.
+ */
+async function notifyMentions(
+  kind: 'lagerfeuer' | 'event',
+  eventId: string | null,
+  messageId: string,
+  data: FirebaseFirestore.DocumentData | undefined
+): Promise<void> {
+  if (!data) return;
+  const authorUid = typeof data.authorUid === 'string' ? data.authorUid : '';
+  const targets = mentionTargets(data.mentions, authorUid);
+  if (!authorUid || targets.length === 0) return;
+
+  const db = getFirestore();
+  const mode = (await db.doc('app_settings/chat').get()).get('mode');
+  if (mode !== 'all' && mode !== 'admins') return;
+
+  let eventSlug = '';
+  let eventTitle = '';
+  if (kind === 'event' && eventId) {
+    const event = await db.doc(`events/${eventId}`).get();
+    eventSlug = typeof event.get('slug') === 'string' ? event.get('slug') : '';
+    eventTitle = typeof event.get('title') === 'string' ? event.get('title') : '';
+  }
+
+  const base = {
+    kind,
+    eventId,
+    eventSlug,
+    eventTitle: eventTitle.slice(0, 200),
+    messageId,
+    fromUid: authorUid,
+    fromName: typeof data.authorName === 'string' ? data.authorName.slice(0, 80) : '',
+    excerpt: mentionExcerpt(data.text),
+    read: false,
+    createdAt: FieldValue.serverTimestamp(),
+  };
+
+  let sent = 0;
+  for (const uid of targets) {
+    try {
+      const profile = await db.doc(`users/${uid}/publicProfile/data`).get();
+      if (!profile.exists || profile.get('allowMentions') !== true) continue;
+      const isAdmin = mode === 'admins' ? (await db.doc(`admin_users/${uid}`).get()).exists : false;
+      if (!canReceiveChatMention(mode, isAdmin)) continue;
+      await db.doc(`users/${uid}/mentions/${messageId}`).set(base);
+      sent += 1;
+    } catch (err) {
+      logger.error('Failed to write mention notification', {
+        uid,
+        messageId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+  logger.info('Mention notifications written', { kind, messageId, targets: targets.length, sent });
+}
+
+export const onLagerfeuerMention = onDocumentCreated(
+  { region: REGION, document: `chat_rooms/${ROOM}/messages/{messageId}` },
+  async (event) => notifyMentions('lagerfeuer', null, event.params.messageId, event.data?.data())
+);
+
+export const onKerzenraumMention = onDocumentCreated(
+  { region: REGION, document: 'event_chats/{eventId}/messages/{messageId}' },
+  async (event) =>
+    notifyMentions('event', event.params.eventId, event.params.messageId, event.data?.data())
 );

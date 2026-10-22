@@ -146,4 +146,10 @@ export { purgeExpiredEvents } from './purgeExpiredEvents';
 export { onEventCancelledNotifyFavorites } from './eventCancellationNotify';
 export { getEventFavoriteCount } from './eventFavoriteCount';
 export { onEventUpdatedWriteRevision } from './eventRevisionTrigger';
-export { purgeChatMessages, onChatReportCreated, onDmReportCreated } from './chat';
+export {
+  purgeChatMessages,
+  onChatReportCreated,
+  onDmReportCreated,
+  onLagerfeuerMention,
+  onKerzenraumMention,
+} from './chat';

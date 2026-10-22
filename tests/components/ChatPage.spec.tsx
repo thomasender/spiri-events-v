@@ -145,7 +145,7 @@ describe('ChatPage', () => {
     fireEvent.keyDown(input, { key: 'Enter', shiftKey: true });
     expect(send).not.toHaveBeenCalled();
     fireEvent.keyDown(input, { key: 'Enter' });
-    await waitFor(() => expect(send).toHaveBeenCalledWith('Hallo 🌿'));
+    await waitFor(() => expect(send).toHaveBeenCalledWith('Hallo 🌿', {}));
     await waitFor(() => expect(input.value).toBe(''));
   });
 
@@ -278,7 +278,7 @@ describe('ChatPage', () => {
     const input = screen.getByTestId('chat-input');
     fireEvent.change(input, { target: { value: 'Danke :)' } });
     fireEvent.click(screen.getByTestId('chat-send'));
-    await waitFor(() => expect(send).toHaveBeenCalledWith('Danke 🙂'));
+    await waitFor(() => expect(send).toHaveBeenCalledWith('Danke 🙂', {}));
   });
 
   it('hides the input and explains the mute for banned users', () => {

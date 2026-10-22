@@ -258,7 +258,7 @@ service cloud.firestore {
                     && request.resource.data.keys().hasOnly(
                       ['displayName', 'bio', 'bioHtml', 'website', 'contact', 'photoURL', 'photoFocalPoint', 'photoZoom',
                        'slug', 'username', 'socialMedia',
-                       'listedInDirectory', 'directoryCategories', 'directoryRegions', 'showOnlineStatus',
+                       'listedInDirectory', 'directoryCategories', 'directoryRegions', 'showOnlineStatus', 'allowMentions',
                        'notifyOnSubmitted', 'notifyOnChangesRequested',
                        'notifyOnPublished', 'notifyOnDeleted',
                        'notifyOnContactMessage', 'notifyOnFavoriteCancelled',
@@ -272,6 +272,8 @@ service cloud.firestore {
                         || request.resource.data.instagramConsentDefault is bool)
                     && (!('showOnlineStatus' in request.resource.data)
                         || request.resource.data.showOnlineStatus is bool)
+                    && (!('allowMentions' in request.resource.data)
+                        || request.resource.data.allowMentions is bool)
                     && (!('bioHtml' in request.resource.data)
                         || (request.resource.data.bioHtml is string
                             && request.resource.data.bioHtml.size() <= 20000));
@@ -285,13 +287,15 @@ service cloud.firestore {
                         || request.resource.data.instagramConsentDefault is bool)
                     && (!('showOnlineStatus' in request.resource.data)
                         || request.resource.data.showOnlineStatus is bool)
+                    && (!('allowMentions' in request.resource.data)
+                        || request.resource.data.allowMentions is bool)
                     && (!('bioHtml' in request.resource.data)
                         || (request.resource.data.bioHtml is string
                             && request.resource.data.bioHtml.size() <= 20000))
                     && request.resource.data.diff(resource.data).affectedKeys()
                         .hasOnly(['displayName', 'bio', 'bioHtml', 'website', 'contact', 'photoURL', 'photoFocalPoint', 'photoZoom',
                                   'slug', 'username', 'socialMedia',
-                                  'listedInDirectory', 'directoryCategories', 'directoryRegions', 'showOnlineStatus',
+                                  'listedInDirectory', 'directoryCategories', 'directoryRegions', 'showOnlineStatus', 'allowMentions',
                                   'notifyOnSubmitted', 'notifyOnChangesRequested',
                                   'notifyOnPublished', 'notifyOnDeleted',
                                   'notifyOnContactMessage', 'notifyOnFavoriteCancelled',
@@ -310,6 +314,19 @@ service cloud.firestore {
         allow delete: if isAuthenticated() && request.auth.uid == uid;
       }
 
+      // "Someone mentioned you" notifications (docs/chat.md). Created only by the
+      // Cloud Functions `onLagerfeuerMention` and `onKerzenraumMention` (no client create), so nobody can spam
+      // another person's bell. The owner reads, marks as read (only `read`
+      // may change, only to true) and deletes.
+      match /mentions/{mentionId} {
+        allow read: if isAuthenticated() && request.auth.uid == uid;
+        allow update: if isAuthenticated()
+                      && request.auth.uid == uid
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+                      && request.resource.data.read == true;
+        allow delete: if isAuthenticated() && request.auth.uid == uid;
+      }
+
       // Public profile subdoc: mirrors only the public-safe fields
       // (displayName, bio, website, photoURL, slug) so anyone can render a
       // organizer's public profile page via the `/:slug` route without
@@ -324,6 +341,7 @@ service cloud.firestore {
                       && request.resource.data.keys().hasOnly(
                         ['displayName', 'bio', 'bioHtml', 'website', 'photoURL', 'photoFocalPoint', 'photoZoom', 'slug', 'username', 'socialMedia',
                          'listedInDirectory', 'directoryCategories', 'directoryRegions', 'showOnlineStatus',
+                         'allowMentions', 'mentionName',
                          'updatedAt']
                       )
                       && request.resource.data.bio.size() <= 2000
@@ -331,6 +349,11 @@ service cloud.firestore {
                       && isValidDirectoryData(request.resource.data)
                       && (!('showOnlineStatus' in request.resource.data)
                           || request.resource.data.showOnlineStatus is bool)
+                      && (!('allowMentions' in request.resource.data)
+                          || request.resource.data.allowMentions is bool)
+                      && (!('mentionName' in request.resource.data)
+                          || (request.resource.data.mentionName is string
+                              && request.resource.data.mentionName.size() <= 80))
                       && (!('bioHtml' in request.resource.data)
                           || (request.resource.data.bioHtml is string
                               && request.resource.data.bioHtml.size() <= 20000));
@@ -342,12 +365,18 @@ service cloud.firestore {
                       && isValidDirectoryData(request.resource.data)
                       && (!('showOnlineStatus' in request.resource.data)
                           || request.resource.data.showOnlineStatus is bool)
+                      && (!('allowMentions' in request.resource.data)
+                          || request.resource.data.allowMentions is bool)
+                      && (!('mentionName' in request.resource.data)
+                          || (request.resource.data.mentionName is string
+                              && request.resource.data.mentionName.size() <= 80))
                       && (!('bioHtml' in request.resource.data)
                           || (request.resource.data.bioHtml is string
                               && request.resource.data.bioHtml.size() <= 20000))
                       && request.resource.data.diff(resource.data).affectedKeys()
                           .hasOnly(['displayName', 'bio', 'bioHtml', 'website', 'photoURL', 'photoFocalPoint', 'photoZoom', 'slug', 'username', 'socialMedia',
                                     'listedInDirectory', 'directoryCategories', 'directoryRegions', 'showOnlineStatus',
+                                    'allowMentions', 'mentionName',
                                     'updatedAt']);
 
         // Moderation: admins can hide a listing from the directory (and
@@ -723,8 +752,11 @@ service cloud.firestore {
                     && !isChatBanned(request.auth.uid)
                     && request.resource.data.keys().hasAll(['text', 'authorUid', 'authorName', 'createdAt'])
                     && request.resource.data.keys().hasOnly(
-                      ['text', 'authorUid', 'authorName', 'authorPhotoURL', 'createdAt']
+                      ['text', 'authorUid', 'authorName', 'authorPhotoURL', 'mentions', 'createdAt']
                     )
+                    && (!('mentions' in request.resource.data)
+                        || (request.resource.data.mentions is map
+                            && request.resource.data.mentions.size() <= 10))
                     && request.resource.data.authorUid == request.auth.uid
                     && request.resource.data.text is string
                     && request.resource.data.text.size() >= 1
@@ -822,8 +854,11 @@ service cloud.firestore {
                       && get(/databases/$(database)/documents/events/$(eventId)).data.get('status', '') == 'approved'
                       && request.resource.data.keys().hasAll(['text', 'authorUid', 'authorName', 'createdAt'])
                       && request.resource.data.keys().hasOnly(
-                        ['text', 'authorUid', 'authorName', 'authorPhotoURL', 'createdAt']
+                        ['text', 'authorUid', 'authorName', 'authorPhotoURL', 'mentions', 'createdAt']
                       )
+                      && (!('mentions' in request.resource.data)
+                          || (request.resource.data.mentions is map
+                              && request.resource.data.mentions.size() <= 10))
                       && request.resource.data.authorUid == request.auth.uid
                       && request.resource.data.text is string
                       && request.resource.data.text.size() >= 1
