@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from
 import { HelmetProvider } from 'react-helmet-async';
 import { useAuth } from './hooks/useAuth';
 import AppCheckBanner from './components/AppCheckBanner';
+import ProfileOnboardingGate from './components/ProfileOnboardingGate';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import CalendarPage from './pages/CalendarPage';
@@ -125,6 +126,7 @@ function AppContent() {
       <AnalyticsRouteTracker />
       <Header />
       <AppCheckBanner />
+      <ProfileOnboardingGate />
       <main className="main-content">
         <ErrorBoundary>
           <Suspense fallback={<div className="loading-spinner"></div>}>

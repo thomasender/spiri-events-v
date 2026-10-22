@@ -900,6 +900,20 @@ service cloud.firestore {
       }
     }
 
+    // Feature flag for the profile onboarding wizard:
+    // app_settings/onboarding { mode: 'off' | 'admins' | 'all' }. A missing doc
+    // means off.
+    match /app_settings/onboarding {
+      allow create: if isChatStaff()
+                    && request.resource.data.keys().hasOnly(['mode', 'updatedAt', 'updatedBy'])
+                    && request.resource.data.mode in ['off', 'admins', 'all'];
+      allow update: if isChatStaff()
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['mode', 'updatedAt', 'updatedBy'])
+                    && request.resource.data.mode in ['off', 'admins', 'all'];
+      allow delete: if isChatStaff();
+    }
+
     // ---- Private messenger "Postfach" (docs/messenger.md) -------------------
     // Feature flag: app_settings/messenger { mode: 'off' | 'admins' | 'all' },
     // same semantics as the chat flag. A missing doc means off.
