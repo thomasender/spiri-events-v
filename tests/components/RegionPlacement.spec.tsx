@@ -1,5 +1,6 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mergeRegions } from '../../src/utils/regions';
 import { defaultAboutBodyHtml, customAboutText } from '../../src/utils/regionAboutText';
@@ -27,8 +28,21 @@ vi.mock('../../src/components/EmailVerificationModal', () => ({ default: () => n
 import RegionProvider from '../../src/components/RegionProvider';
 import Header from '../../src/components/Header';
 import Footer from '../../src/components/Footer';
+import ProfilePage from '../../src/pages/ProfilePage';
 
 const TWO_ACTIVE = mergeRegions([{ id: 'tirol', active: true }]);
+
+function renderProfile() {
+  return render(
+    <HelmetProvider>
+      <MemoryRouter initialEntries={['/profil']}>
+        <RegionProvider>
+          <ProfilePage />
+        </RegionProvider>
+      </MemoryRouter>
+    </HelmetProvider>
+  );
+}
 
 function renderChrome() {
   return render(
@@ -48,10 +62,27 @@ describe('where the region can be chosen', () => {
     mocks.auth = { role: null, user: null };
   });
 
-  it('visitors without an account choose in the header, not in the footer', () => {
+  it('visitors without an account choose in the header and in the footer', () => {
     renderChrome();
     expect(screen.getByTestId('region-switcher')).toBeInTheDocument();
-    expect(screen.queryByTestId('footer-region-pick')).toBeNull();
+    fireEvent.click(screen.getByTestId('footer-region-pick'));
+    const picker = screen.getByTestId('region-picker');
+    expect(within(picker).getByRole('button', { name: 'Tirol' })).toBeInTheDocument();
+  });
+
+  it('signed-in users change the region from the profile card', () => {
+    mocks.auth = { role: 'User', user: { uid: 'u1' } };
+    renderProfile();
+    fireEvent.click(screen.getByTestId('profile-region-pick'));
+    expect(screen.getByTestId('region-picker')).toBeInTheDocument();
+  });
+
+  it('no empty region card in the profile with only Vorarlberg open (dark launch)', () => {
+    mocks.regions = { regions: mergeRegions([]), loading: false };
+    mocks.auth = { role: 'User', user: { uid: 'u1' } };
+    renderProfile();
+    expect(screen.getByTestId('profile-page')).toBeInTheDocument();
+    expect(screen.queryByTestId('profile-region')).toBeNull();
   });
 
   it('signed-in users and moderators have no region button in header or footer', () => {
@@ -72,6 +103,9 @@ describe('where the region can be chosen', () => {
   it('the footer button stays hidden with only Vorarlberg open (dark launch)', () => {
     mocks.regions = { regions: mergeRegions([]), loading: false };
     mocks.auth = { role: 'Admin', user: { uid: 'a1' } };
+    renderChrome();
+    expect(screen.queryByTestId('footer-region-pick')).toBeNull();
+    mocks.auth = { role: null, user: null };
     renderChrome();
     expect(screen.queryByTestId('footer-region-pick')).toBeNull();
   });
