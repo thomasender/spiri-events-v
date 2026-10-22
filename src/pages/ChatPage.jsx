@@ -12,6 +12,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useChat } from '../hooks/useChat';
 import { useChatAccess } from '../hooks/useChatSettings';
 import { useChatHeartbeat, useChatPresence } from '../hooks/useChatPresence';
+import { useMessageJump } from '../hooks/useMessageJump';
 import {
   CHAT_RETENTION_DAYS,
   describeOnline,
@@ -118,6 +119,11 @@ function ChatRoom() {
   const lastCount = useRef(0);
   const lastId = useRef(null);
   const prependFrom = useRef(null);
+  const jumpTarget = useMessageJump(messages, {
+    onJump: () => {
+      stickToBottom.current = false;
+    },
+  });
   useChatHeartbeat(true);
   const { online } = useChatPresence(true);
 
@@ -256,6 +262,7 @@ function ChatRoom() {
               onDelete={setToDelete}
               onReport={setToReport}
               me={user?.uid}
+              isTarget={jumpTarget === m.id}
               canReact={!banned}
               onReact={(msg, emoji) => react(msg.id, emoji)}
               onReactError={() => setNotice(REACTION_FAILED)}
@@ -298,6 +305,8 @@ function ChatRoom() {
         <MessageComposer
           onSend={send}
           sending={sending}
+          mentionsEnabled
+          selfUid={user?.uid}
           onSent={() => {
             stickToBottom.current = true;
           }}

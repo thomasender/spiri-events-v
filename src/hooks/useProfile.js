@@ -8,7 +8,8 @@ import {
   deleteField,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { splitProfileData } from '../utils/profile';
+import { DISPLAY_NAME_MAX, splitProfileData } from '../utils/profile';
+import { foldName } from '../utils/mentions';
 import { normalizeFocalPoint } from '../lib/eventImage';
 import { normalizePhotoZoom } from '../components/AvatarImage';
 import { findUniqueProfileSlug, slugifyName } from '../lib/slug';
@@ -52,6 +53,7 @@ const EMPTY_PROFILE = {
   directoryRegions: [],
   directoryRegionIds: [DEFAULT_REGION_ID],
   showOnlineStatus: false,
+  allowMentions: false,
   instagramConsentDefault: false,
   createdAt: null,
   updatedAt: null,
@@ -99,6 +101,7 @@ function normalize(data) {
     directoryRegions: stringArray(data.directoryRegions),
     directoryRegionIds: resolveDirectoryRegionIds(data),
     showOnlineStatus: data.showOnlineStatus === true,
+    allowMentions: data.allowMentions === true,
     instagramConsentDefault: data.instagramConsentDefault === true,
     createdAt: data.createdAt || null,
     updatedAt: data.updatedAt || null,
@@ -228,6 +231,20 @@ export function useProfile(uid) {
         publicDoc.socialMedia = deleteField();
       } else {
         delete publicDoc.socialMedia;
+      }
+    }
+
+    // @mention search runs on `mentionName` (folded display name) of the public
+    // profile. It exists only while the person allows being mentioned.
+    if ('allowMentions' in updates || updates.displayName !== undefined) {
+      const allowsMentions =
+        updates.allowMentions !== undefined
+          ? updates.allowMentions === true
+          : profile?.allowMentions === true;
+      if (allowsMentions) {
+        publicDoc.mentionName = foldName(effectiveDisplayName).slice(0, DISPLAY_NAME_MAX);
+      } else if (profile?.allowMentions === true) {
+        publicDoc.mentionName = deleteField();
       }
     }
 

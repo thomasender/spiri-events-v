@@ -39,9 +39,22 @@
         { "fieldPath": "listedInDirectory", "order": "ASCENDING" },
         { "fieldPath": "directoryRegionIds", "arrayConfig": "CONTAINS" }
       ]
+    },
+    {
+      "collectionGroup": "publicProfile",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "allowMentions", "order": "ASCENDING" },
+        { "fieldPath": "mentionName", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": [
+    {
+      "collectionGroup": "mentions",
+      "fieldPath": "createdAt",
+      "indexes": [{ "queryScope": "COLLECTION_GROUP", "order": "ASCENDING" }]
+    },
     {
       "collectionGroup": "publicProfile",
       "fieldPath": "slug",

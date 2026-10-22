@@ -50,6 +50,15 @@ vi.mock('../../src/hooks/useMessenger', () => ({
   useThreads: () => ({ threads: [], loading: false, unreadCount: mockChat.unread }),
 }));
 
+vi.mock('../../src/hooks/useMentionNotifications', () => ({
+  useMentionNotifications: () => ({
+    items: [],
+    unreadCount: 0,
+    markRead: async () => {},
+    markAllRead: async () => {},
+  }),
+}));
+
 vi.mock('../../src/hooks/useChatPresence', () => ({
   useChatPresence: () => ({ online: [], count: mockChat.online, loading: false }),
 }));

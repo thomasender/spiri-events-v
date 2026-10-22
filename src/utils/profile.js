@@ -14,6 +14,7 @@ export const PUBLIC_PROFILE_FIELDS = [
   'directoryRegions',
   'directoryRegionIds',
   'showOnlineStatus',
+  'allowMentions',
 ];
 
 export const BIO_MAX = 2000;

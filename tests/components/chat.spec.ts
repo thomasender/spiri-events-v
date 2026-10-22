@@ -20,8 +20,13 @@ import {
   validateChatText,
 } from '../../src/utils/chat';
 import {
+  MENTION_EXCERPT_MAX,
+  MENTION_MAX,
   REPORT_MAIL_MIN_INTERVAL_MS,
   buildReportMail,
+  canReceiveChatMention,
+  mentionExcerpt,
+  mentionTargets,
   retentionCutoffMs,
   shouldSendReportMail,
 } from '../../functions/src/chatLogic';
@@ -251,5 +256,46 @@ describe('isUnsentMessage', () => {
 
   it('a pending reaction on a saved message does not count as unsent', () => {
     expect(isUnsentMessage(snap(true, { seconds: 1 }))).toBe(false);
+  });
+});
+
+describe('mentionTargets (server side)', () => {
+  it('takes the uids, never the author, no duplicates', () => {
+    expect(mentionTargets({ a: 'Anna', me: 'Ich', b: 'Bob' }, 'me')).toEqual(['a', 'b']);
+  });
+
+  it('caps at MENTION_MAX', () => {
+    const raw = Object.fromEntries(Array.from({ length: 30 }, (_, i) => [`u${i}`, 'x']));
+    expect(mentionTargets(raw, 'me')).toHaveLength(MENTION_MAX);
+  });
+
+  it('ignores garbage and path-like uids', () => {
+    expect(mentionTargets(null, 'me')).toEqual([]);
+    expect(mentionTargets(['a'], 'me')).toEqual([]);
+    expect(mentionTargets('a', 'me')).toEqual([]);
+    expect(mentionTargets({ 'a/b': 'x', ok: 'y' }, 'me')).toEqual(['ok']);
+  });
+});
+
+describe('mentionExcerpt', () => {
+  it('flattens whitespace and shortens', () => {
+    expect(mentionExcerpt('  Hallo\n\n  @Anna   komm ')).toBe('Hallo @Anna komm');
+    const long = mentionExcerpt('x'.repeat(500));
+    expect(long).toHaveLength(MENTION_EXCERPT_MAX);
+    expect(long.endsWith('…')).toBe(true);
+  });
+
+  it('survives non-strings', () => {
+    expect(mentionExcerpt(undefined)).toBe('');
+  });
+});
+
+describe('canReceiveChatMention', () => {
+  it('follows the chat flag', () => {
+    expect(canReceiveChatMention('all', false)).toBe(true);
+    expect(canReceiveChatMention('admins', false)).toBe(false);
+    expect(canReceiveChatMention('admins', true)).toBe(true);
+    expect(canReceiveChatMention('off', true)).toBe(false);
+    expect(canReceiveChatMention(undefined, true)).toBe(false);
   });
 });

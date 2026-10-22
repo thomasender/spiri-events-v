@@ -17,7 +17,7 @@ import { resolveDirectoryRegionIds } from '../utils/regions';
 import { useRegionChoices } from '../hooks/useRegionChoices';
 import { districtsAfterRegionChange } from '../utils/regionChoices';
 import { getAllDistricts } from '../utils/regions';
-import { useOnlineStatusAccess } from '../hooks/useChatSettings';
+import { useChatAccess, useOnlineStatusAccess } from '../hooks/useChatSettings';
 import './ProfileForm.css';
 
 const NAME_MAX = 80;
@@ -72,6 +72,7 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
   const [sharePublicly, setSharePublicly] = useState(profile?.socialMedia?.sharePublicly === true);
   const [listedInDirectory, setListedInDirectory] = useState(profile?.listedInDirectory === true);
   const [showOnlineStatus, setShowOnlineStatus] = useState(profile?.showOnlineStatus === true);
+  const [allowMentions, setAllowMentions] = useState(profile?.allowMentions === true);
   const [directoryCategories, setDirectoryCategories] = useState(
     profile?.directoryCategories || []
   );
@@ -90,6 +91,7 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
   };
   const { categories: registryCategories } = useCategoryRegistry();
   const { available: onlineStatusAvailable } = useOnlineStatusAccess();
+  const { available: chatAvailable } = useChatAccess();
 
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -128,6 +130,7 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
     setSharePublicly(profile.socialMedia?.sharePublicly === true);
     setListedInDirectory(profile.listedInDirectory === true);
     setShowOnlineStatus(profile.showOnlineStatus === true);
+    setAllowMentions(profile.allowMentions === true);
     setDirectoryCategories(profile.directoryCategories || []);
     setDirectoryRegions(profile.directoryRegions || []);
     setDirectoryRegionIds(
@@ -264,6 +267,7 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
       ? directoryRegionIds
       : resolveDirectoryRegionIds(profile),
     showOnlineStatus,
+    allowMentions,
   });
 
   const handleSubmit = async (e) => {
@@ -565,6 +569,30 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
               gerade auf der Seite bist, sonst einen roten. Zum Beispiel im Verzeichnis und im
               Postfach. Ist die Option aus (Standard), gibt es keinen Punkt. Im Lagerfeuer sieht man
               aber immer, wer gerade im Chat ist.
+            </p>
+          </div>
+        )}
+
+        {chatAvailable && (
+          <div className="form-group profile-allow-mentions">
+            <label
+              className="profile-social-media-checkbox"
+              data-testid="profile-allow-mentions-label"
+            >
+              <input
+                type="checkbox"
+                checked={allowMentions}
+                onChange={(e) => setAllowMentions(e.target.checked)}
+                data-testid="profile-allow-mentions"
+              />
+              <span>Andere dürfen mich erwähnen</span>
+            </label>
+            <p className="profile-social-media-hint">
+              Im Lagerfeuer und in den Kerzenräumen können dich andere mit @Name erwähnen. Du siehst
+              das dann oben in der Glocke und kommst mit einem Klick zur Nachricht. Dein Name taucht
+              dafür in der Namenssuche auf. Ist die Option aus (Standard), kann dich niemand
+              erwähnen. Erwähnungen gibt es nur in öffentlichen Räumen, nicht im Postfach, und es
+              werden keine E-Mails verschickt.
             </p>
           </div>
         )}

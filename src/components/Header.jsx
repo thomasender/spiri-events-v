@@ -13,6 +13,7 @@ import RegionSwitcher, { RegionMenuList } from './RegionSwitcher';
 import { useRegion } from '../hooks/useRegion';
 import { useRegionTexts } from '../hooks/useRegionTexts';
 import { customSlogan, DEFAULT_SLOGAN_LINE2 } from '../utils/regionAboutText';
+import MentionBell from './MentionBell';
 import {
   Users,
   Calendar,
@@ -405,6 +406,7 @@ export default function Header() {
       {user ? (
         <>
           {chatLink}
+          {chatAvailable && <MentionBell uid={user.uid} variant="row" onNavigate={closeMenu} />}
           {messengerLink(false)}
           {createLink()}
           {favoritesLink}
@@ -435,6 +437,7 @@ export default function Header() {
         {user ? (
           <>
             {createLink(' nav-link--create')}
+            {chatAvailable && <MentionBell uid={user.uid} />}
             {messengerLink(true)}
             <div className="account-menu" ref={accountRef}>
               <button
