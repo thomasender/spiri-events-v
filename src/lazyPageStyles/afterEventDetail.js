@@ -39,6 +39,7 @@ import '../pages/AuthActionPage.css';
 
 // ChatPage
 import '../components/chat/EmojiPicker.css';
+import '../components/chat/MessageReactions.css';
 import '../pages/ChatPage.css';
 
 // AdminPage: ChatTab

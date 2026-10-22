@@ -125,8 +125,19 @@ function WhoIsHere({ online, selfUid, onOpenMember }) {
 function ChatRoom() {
   const { user, role } = useAuth();
   const isAdmin = role === 'Admin';
-  const { messages, loading, error, sending, ban, canLoadMore, loadOlder, send, remove, report } =
-    useChat();
+  const {
+    messages,
+    loading,
+    error,
+    sending,
+    ban,
+    canLoadMore,
+    loadOlder,
+    send,
+    remove,
+    report,
+    react,
+  } = useChat();
   const [notice, setNotice] = useState('');
   const [rulesAccepted, setRulesAccepted] = useState(readRulesAccepted);
   const [toDelete, setToDelete] = useState(null);
@@ -276,6 +287,10 @@ function ChatRoom() {
               canReport={m.authorUid !== user?.uid}
               onDelete={setToDelete}
               onReport={setToReport}
+              me={user?.uid}
+              canReact={!banned}
+              onReact={(msg, emoji) => react(msg.id, emoji)}
+              onReactError={() => setNotice('Reagieren ist gerade nicht möglich.')}
               onOpenMember={(msg) =>
                 setMemberCard({
                   uid: msg.authorUid,

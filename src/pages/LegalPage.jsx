@@ -48,10 +48,10 @@ Nach der Freigabe sind die Angaben zum Event, einschließlich Veranstalter-Name 
 - Ein zufällig erzeugter, persönlicher Kalender-Schlüssel, der Ihrem Konto zugeordnet ist (siehe Abschnitt 13)
 
 *Bei Nutzung des Community-Chats (nur mit Login und bestätigter E-Mail-Adresse):*
-- Ihre Chat-Nachrichten, Ihr Anzeigename und Ihr Profilfoto sowie Zeitpunkt des Sendens (siehe Abschnitt 14)
+- Ihre Chat-Nachrichten, Ihre Emoji-Reaktionen darauf, Ihr Anzeigename und Ihr Profilfoto sowie Zeitpunkt des Sendens (siehe Abschnitt 14)
 
 *Bei Nutzung der Privatnachrichten (nur mit Login und bestätigter E-Mail-Adresse):*
-- Ihre Privatnachrichten, deren Zeitpunkt, die Konto-Kennungen der beiden Beteiligten sowie Ihre Einstellungen dazu (siehe Abschnitt 15)
+- Ihre Privatnachrichten und Emoji-Reaktionen darauf, deren Zeitpunkt, die Konto-Kennungen der beiden Beteiligten sowie Ihre Einstellungen dazu (siehe Abschnitt 15)
 
 *Bei aktiviertem Online-Status (freiwillig, standardmäßig aus):*
 - Ein Zeitstempel Ihrer letzten Aktivität auf der Website (siehe Abschnitt 16)
@@ -240,6 +240,7 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
 *Welche Daten verarbeiten wir?*
 - Ihre Nachricht (Text und Emojis), der Zeitpunkt des Sendens, Ihr Anzeigename und Ihr Profilfoto (so wie in Ihrem Profil hinterlegt; ohne Foto wird der Anfangsbuchstabe Ihres Namens angezeigt) sowie eine interne Konto-Kennung
 - Zeitpunkt Ihrer letzten Nachricht (technisch notwendig, um Spam durch zu schnelles Senden zu verhindern)
+- Wenn Sie auf eine Nachricht mit einem Emoji reagieren: welches Emoji, zusammen mit Ihrer Konto-Kennung. Die Reaktion ist für alle sichtbar, die die Nachricht sehen, Sie können sie jederzeit zurücknehmen, und sie wird mit der Nachricht gelöscht
 - Solange Sie den Chat geöffnet haben, speichern wir kurzzeitig Ihren Anzeigenamen, Ihr Profilfoto und den Zeitpunkt Ihrer letzten Aktivität, damit andere Mitglieder sehen, wer gerade im Chat ist und wie viele Personen es sind. Der Eintrag wird beim Verlassen des Chats gelöscht, spätestens nach einem Tag automatisch. Die Anzeige sehen nur angemeldete Mitglieder mit bestätigter E-Mail-Adresse
 - Bei Meldungen: der gemeldete Nachrichtentext samt Name der verfassenden Person, die meldende Konto-Kennung und der Zeitpunkt der Meldung
 - Bei Sperren: die Dauer der Sperre und der Grund, den die Moderation vermerkt hat
@@ -254,7 +255,7 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
 *Speicherdauer:*
 - Chat-Nachrichten werden automatisch nach 10 Tagen gelöscht
 - Sie können Ihre eigenen Nachrichten jederzeit selbst löschen
-- Beim Löschen Ihres Kontos werden Ihre Chat-Nachrichten gelöscht
+- Beim Löschen Ihres Kontos werden Ihre Chat-Nachrichten und Ihre Reaktionen gelöscht
 - Meldungen werden spätestens nach 30 Tagen gelöscht. Ein Eintrag über eine Sperre bleibt, solange die Sperre gilt
 
 *Rechtsgrundlage:* Die Bereitstellung des Chats und die Anzeige Ihrer Nachrichten erfolgen, weil Sie die Funktion nutzen (Art. 6 Abs. 1 lit. b DSGVO). Moderation, Spam-Schutz und die Bearbeitung von Meldungen beruhen auf unserem berechtigten Interesse, den Chat sicher und frei von Missbrauch zu halten (Art. 6 Abs. 1 lit. f DSGVO).
@@ -271,6 +272,7 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
 - Den Text Ihrer Nachrichten (inkl. Emojis), den Zeitpunkt, die Konto-Kennungen der beiden Beteiligten, einen kurzen Ausschnitt der letzten Nachricht für die Übersicht sowie den Zeitpunkt, bis zu dem eine Person die Unterhaltung gelesen hat (für die Anzeige „ungelesen“)
 - Ihre Einstellung, ob Sie Privatnachrichten annehmen, und Ihre Liste blockierter Mitglieder. Diese Liste ist nur für Sie sichtbar
 - Zur Begrenzung von Spam: Zeitpunkt und Anzahl der von Ihnen begonnenen Unterhaltungen pro Tag
+- Wenn Sie auf eine Nachricht mit einem Emoji reagieren: welches Emoji, zusammen mit Ihrer Konto-Kennung. Sichtbar nur für die beiden Beteiligten; die Reaktion wird mit der Nachricht gelöscht
 
 *Wer kann die Nachrichten lesen?*
 - Nur die beiden Beteiligten. **Die Administrator:innen können Privatnachrichten nicht lesen.**
@@ -282,7 +284,7 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
 
 *Speicherdauer:*
 - Privatnachrichten werden automatisch nach 90 Tagen gelöscht
-- Beim Löschen Ihres Kontos werden Ihre Nachrichten, Ihre Einstellung und Ihre Blockierliste gelöscht. Nachrichten der anderen Person bleiben für diese bis zur automatischen Löschung bestehen; Ihr Name wird dann durch „Gelöschtes Mitglied“ ersetzt
+- Beim Löschen Ihres Kontos werden Ihre Nachrichten, Ihre Reaktionen, Ihre Einstellung und Ihre Blockierliste gelöscht. Nachrichten der anderen Person bleiben für diese bis zur automatischen Löschung bestehen; Ihr Name wird dann durch „Gelöschtes Mitglied“ ersetzt
 - Meldungen werden spätestens nach 30 Tagen gelöscht
 
 *Rechtsgrundlage:* Die Zustellung und Anzeige der Nachrichten erfolgt, weil Sie die Funktion nutzen (Art. 6 Abs. 1 lit. b DSGVO). Spam-Schutz, Moderation und die Bearbeitung von Meldungen beruhen auf unserem berechtigten Interesse, die Funktion sicher und frei von Missbrauch zu halten (Art. 6 Abs. 1 lit. f DSGVO). Ein vom Chat verhängter Ausschluss gilt auch für Privatnachrichten.

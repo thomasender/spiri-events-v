@@ -50,6 +50,7 @@ function setChat(overrides: Record<string, unknown> = {}) {
     send: vi.fn(async () => {}),
     remove: vi.fn(async () => {}),
     report: vi.fn(async () => {}),
+    react: vi.fn(async () => {}),
     ...overrides,
   };
 }
@@ -272,6 +273,30 @@ describe('ChatPage', () => {
     renderPage();
     expect(screen.getByTestId('chat-banned')).toHaveTextContent('stumm geschaltet');
     expect(screen.queryByTestId('chat-input')).not.toBeInTheDocument();
+  });
+
+  it('double-tapping a message reacts with a heart; muted users cannot react', () => {
+    const react = vi.fn(async () => {});
+    setChat({
+      react,
+      messages: [{ ...msg('1', 'other', 'Hallo Welt'), reactions: { x: '👍' } }],
+    });
+    const { unmount } = renderPage();
+    const bubble = screen.getByTestId('reactable-bubble');
+    fireEvent.click(bubble);
+    fireEvent.click(bubble);
+    expect(react).toHaveBeenCalledWith('1', '❤️');
+    expect(screen.getByRole('button', { name: /Daumen hoch, 1 Reaktion/ })).toBeEnabled();
+    unmount();
+
+    setChat({
+      react,
+      ban: { until: { toDate: () => new Date(Date.now() + 3_600_000) } },
+      messages: [{ ...msg('1', 'other', 'Hallo Welt'), reactions: { x: '👍' } }],
+    });
+    renderPage();
+    expect(screen.getByRole('button', { name: /Daumen hoch, 1 Reaktion/ })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Mit Emoji reagieren' })).not.toBeInTheDocument();
   });
 
   it('shows the rules first and the input only after accepting them', () => {

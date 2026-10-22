@@ -7,9 +7,11 @@ import {
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
 import {
+  FieldPath,
   Timestamp,
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -21,7 +23,7 @@ import {
   writeBatch,
   type Firestore,
 } from 'firebase/firestore';
-import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 let env: RulesTestEnvironment;
 
@@ -380,6 +382,88 @@ describe('reading marks', () => {
       })
     );
     await assertFails(updateDoc(doc(db, 'dm_threads/alice_bob'), { lastMessageText: 'fake' }));
+  });
+});
+
+describe('reactions on private messages', () => {
+  const path = 'dm_threads/alice_bob/messages/m1';
+  const react = (db: Firestore, uid: string, emoji: string | null) =>
+    updateDoc(doc(db, path), new FieldPath('reactions', uid), emoji ?? deleteField());
+
+  beforeEach(async () => {
+    await seedThread('alice', 'bob');
+  });
+
+  it('both participants react, replace and remove their own', async () => {
+    await assertSucceeds(react(verified('bob').firestore(), 'bob', '❤️'));
+    await assertSucceeds(react(verified('bob').firestore(), 'bob', '🙏'));
+    await assertSucceeds(react(verified('alice').firestore(), 'alice', '👍'));
+    const snap = await getDoc(doc(verified('alice').firestore(), path));
+    expect(snap.data()?.reactions).toEqual({ bob: '🙏', alice: '👍' });
+    await assertSucceeds(react(verified('bob').firestore(), 'bob', null));
+  });
+
+  it('outsiders and admins can neither react nor read reactions', async () => {
+    await assertSucceeds(react(verified('bob').firestore(), 'bob', '❤️'));
+    for (const [ctx, uid] of [
+      [verified('carol'), 'carol'],
+      [admin(), 'adminTok'],
+    ] as const) {
+      const db = ctx.firestore();
+      await assertFails(react(db, uid, '❤️'));
+      await assertFails(getDoc(doc(db, path)));
+    }
+    await assertFails(react(anon().firestore(), 'bob', '❤️'));
+  });
+
+  it('only own entry, only the five emoji, text stays untouched', async () => {
+    const db = verified('bob').firestore();
+    await assertFails(react(db, 'alice', '❤️'));
+    await assertFails(react(db, 'bob', '🔥'));
+    await assertFails(updateDoc(doc(db, path), { 'reactions.bob': '❤️', text: 'anders' }));
+    await assertFails(updateDoc(doc(db, path), { text: 'anders' }));
+    await assertSucceeds(react(verified('alice').firestore(), 'alice', '😂'));
+    await assertFails(react(db, 'alice', null));
+  });
+
+  it('not when blocked, when the other takes no messages, when muted or the flag is off', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'dm_blocks/alice_bob'), {
+        blocker: 'alice',
+        blocked: 'bob',
+        createdAt: Timestamp.now(),
+      });
+    });
+    await assertFails(react(verified('bob').firestore(), 'bob', '❤️'));
+    // The blocker's own side is not affected by that block.
+    await assertSucceeds(react(verified('alice').firestore(), 'alice', '❤️'));
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await deleteDoc(doc(db, 'dm_blocks/alice_bob'));
+      await setDoc(doc(db, 'dm_settings/alice'), { allowDirectMessages: false });
+    });
+    await assertFails(react(verified('bob').firestore(), 'bob', '❤️'));
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await deleteDoc(doc(db, 'dm_settings/alice'));
+      await setDoc(doc(db, 'chat_bans/bob'), {
+        until: Timestamp.fromMillis(Date.now() + 3_600_000),
+        reason: 'Spam',
+        bannedBy: 'adminTok',
+      });
+    });
+    await assertFails(react(verified('bob').firestore(), 'bob', '❤️'));
+    await setMode('off');
+    await assertFails(react(verified('alice').firestore(), 'alice', '👍'));
+    // Taking your own back is always possible.
+    await assertSucceeds(react(verified('alice').firestore(), 'alice', null));
+  });
+
+  it('reactions disappear with the message', async () => {
+    await assertSucceeds(react(verified('bob').firestore(), 'bob', '❤️'));
+    await assertSucceeds(deleteDoc(doc(verified('alice').firestore(), path)));
+    const snap = await getDoc(doc(verified('bob').firestore(), path));
+    expect(snap.exists()).toBe(false);
   });
 });
 

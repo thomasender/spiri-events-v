@@ -17,6 +17,7 @@ import {
 } from 'firebase/auth';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import {
+  FieldPath,
   collection,
   doc,
   getDoc,
@@ -24,10 +25,13 @@ import {
   setDoc,
   serverTimestamp,
   deleteDoc,
+  deleteField,
+  updateDoc,
   writeBatch,
   query,
   where,
 } from 'firebase/firestore';
+import { REACTION_EMOJIS } from '../utils/reactions';
 import { splitProfileData } from '../utils/profile';
 import { revokeCalendarFeedToken } from './useCalendarFeedToken';
 import { findUniqueProfileSlug } from '../lib/slug';
@@ -457,6 +461,15 @@ export function useAuth() {
         query(collection(db, 'chat_rooms', 'lagerfeuer', 'messages'), where('authorUid', '==', uid))
       );
       await Promise.all(chatMessages.docs.map((m) => deleteDoc(m.ref)));
+      // Own emoji reactions on other people's messages (chat and private).
+      const myReaction = new FieldPath('reactions', uid);
+      const dropMyReactions = async (messagesRef) => {
+        const reacted = await getDocs(query(messagesRef, where(myReaction, 'in', REACTION_EMOJIS)));
+        await Promise.all(reacted.docs.map((m) => updateDoc(m.ref, myReaction, deleteField())));
+      };
+      await dropMyReactions(collection(db, 'chat_rooms', 'lagerfeuer', 'messages')).catch((err) =>
+        console.warn('Failed to delete chat reactions:', err)
+      );
       await deleteDoc(doc(db, 'chat_rooms', 'lagerfeuer', 'members', uid));
       // Private messages: own messages in every conversation, blocks, settings.
       const threads = await getDocs(
@@ -467,6 +480,9 @@ export function useAuth() {
           query(collection(thread.ref, 'messages'), where('authorUid', '==', uid))
         );
         await Promise.all(own.docs.map((m) => deleteDoc(m.ref)));
+        await dropMyReactions(collection(thread.ref, 'messages')).catch((err) =>
+          console.warn('Failed to delete message reactions:', err)
+        );
       }
       const blocks = await getDocs(query(collection(db, 'dm_blocks'), where('blocker', '==', uid)));
       await Promise.all(blocks.docs.map((b) => deleteDoc(b.ref)));

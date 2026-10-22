@@ -17,7 +17,7 @@ block). Independent of the chat flag. Enforced in the rules (`messengerAccessibl
 | Path                               | What                                                                                   |
 | ---------------------------------- | -------------------------------------------------------------------------------------- |
 | `dm_threads/{uidA_uidB}`           | `participants[2], lastMessageText/At/By, readAt{uid: ts}, createdAt`. Id = sorted uids |
-| `dm_threads/{id}/messages/{id}`    | `text, authorUid, createdAt`. No edits; the author deletes                             |
+| `dm_threads/{id}/messages/{id}`    | `text, authorUid, createdAt`, optional `reactions` (docs/chat.md). Text never edited   |
 | `dm_blocks/{blocker}_{blocked}`    | block; readable only by the blocker                                                    |
 | `dm_settings/{uid}`                | `allowDirectMessages` (default on); readable by members for the member card            |
 | `dm_starters/{uid}`                | `lastThreadAt, day, count`: new conversations 20 s apart, 30 per day                   |
@@ -45,8 +45,8 @@ block). Independent of the chat flag. Enforced in the rules (`messengerAccessibl
   message is older), stale `dm_starters` and reports older than 30 days.
 - `onDmReportCreated` mails the admins (shares the 15-minute throttle with chat reports); the mail
   never contains message text.
-- Account deletion (`useAuth.deleteAccount`) removes the user's messages in all threads, blocks,
-  settings and starter marker. Threads themselves stay for the other person until the purge.
+- Account deletion (`useAuth.deleteAccount`) removes the user's messages and reactions in all
+  threads, blocks, settings and starter marker. Threads themselves stay for the other person until the purge.
 
 ## Privacy
 

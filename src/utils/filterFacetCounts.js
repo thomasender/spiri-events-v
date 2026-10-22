@@ -1,4 +1,5 @@
 import { applyDateFilter, DATE_FILTER_OPTIONS } from './dateQuickFilters';
+import { isOccurrencePast } from './pastEvents';
 
 // Facet counts for the calendar filter chips: how many events a chip would
 // show if the user switched it on, given every *other* active filter. A
@@ -20,7 +21,7 @@ function matchesOrt(occurrence, selected, onlineLocation) {
 }
 
 export function computeFacetCounts({
-  occurrences,
+  occurrences: allOccurrences,
   monthKey,
   selectedCategories,
   selectedOrte,
@@ -28,6 +29,8 @@ export function computeFacetCounts({
   onlineLocation,
   reference = new Date(),
 }) {
+  // The list hides occurrences that already started, so the counts must too.
+  const occurrences = allOccurrences.filter((o) => !isOccurrencePast(o, reference));
   const inMonth = occurrences.filter((o) => o.date.startsWith(monthKey));
 
   const category = {};
