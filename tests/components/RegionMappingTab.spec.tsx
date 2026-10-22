@@ -352,3 +352,50 @@ describe('RegionMappingTab', () => {
     expect(target.getByRole('option', { name: 'Bayern (96)' })).toBeInTheDocument();
   });
 });
+
+describe('RegionMappingTab: culture region map and search', () => {
+  const pickViaSearch = async (text: string, regionName: string) => {
+    fireEvent.change(screen.getByTestId('culture-search'), { target: { value: text } });
+    const option = screen
+      .getAllByRole('option')
+      .find((o) => o.querySelector('strong')?.textContent === regionName)!;
+    fireEvent.mouseDown(option);
+    await screen.findByTestId('culture-panel');
+  };
+
+  it('picks a region on the map and shows its districts', async () => {
+    render(<RegionMappingTab />);
+    expect(screen.queryByTestId('culture-panel')).not.toBeInTheDocument();
+    const shape = await waitFor(() => {
+      const el = document.querySelector('[data-region="franken"]');
+      if (!el) throw new Error('map not loaded');
+      return el;
+    });
+    fireEvent.click(shape);
+    const panel = await screen.findByTestId('culture-panel');
+    expect(within(panel).getByRole('heading', { name: 'Franken' })).toBeInTheDocument();
+  });
+
+  it('finds a region by one of its districts and stages add and remove as a draft', async () => {
+    render(<RegionMappingTab />);
+    fireEvent.click(screen.getByTestId('mapping-suggestion'));
+    await pickViaSearch('Roth', 'Franken');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Roth aus der Region nehmen' }));
+    expect(regionOf('Roth')).toHaveTextContent('Bayern');
+
+    fireEvent.change(screen.getByTestId('culture-add-input'), { target: { value: 'Roth' } });
+    fireEvent.click(screen.getByTestId('culture-add-save'));
+    expect(regionOf('Roth')).toHaveTextContent('Franken');
+    expect(state.saves).toHaveLength(0);
+  });
+
+  it('renames the picked region', async () => {
+    render(<RegionMappingTab />);
+    await pickViaSearch('Tauberfr', 'Tauberfranken');
+    fireEvent.change(screen.getByTestId('culture-rename-name'), { target: { value: 'Taubertal' } });
+    fireEvent.click(screen.getByTestId('culture-rename-save'));
+    await waitFor(() => expect(state.renames[0]?.id).toBe('tauberfranken'));
+    expect(state.renames[0].data.name).toBe('Taubertal');
+  });
+});

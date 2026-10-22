@@ -1,0 +1,191 @@
+.culture-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.culture-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-calendar);
+}
+
+.culture-search:focus-within {
+  border-color: var(--accent-primary);
+}
+
+.culture-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  padding: 10px 0;
+  font: inherit;
+  color: var(--text-primary);
+}
+
+.culture-search input:focus {
+  outline: none;
+}
+
+.culture-search-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  margin: 4px 0 0;
+  padding: 4px;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-calendar);
+  box-shadow: var(--shadow-md);
+}
+
+.culture-search-list li {
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.culture-search-list li strong {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.culture-search-list li.is-active,
+.culture-search-list li:hover {
+  background: var(--accent-soft);
+}
+
+.culture-map {
+  width: 100%;
+  max-width: 520px;
+  height: auto;
+  max-height: 70vh;
+  margin: 0 auto;
+  display: block;
+}
+
+.culture-shape {
+  --s: 42%;
+  --l: 76%;
+  fill: hsl(var(--h) var(--s) var(--l));
+  stroke: var(--bg-primary);
+  stroke-width: 0.7;
+  cursor: pointer;
+}
+
+.culture-shade-0 {
+  --l: 84%;
+}
+.culture-shade-1 {
+  --l: 76%;
+}
+.culture-shade-2 {
+  --l: 68%;
+}
+.culture-shade-3 {
+  --l: 90%;
+}
+.culture-shade-4 {
+  --l: 58%;
+}
+
+.culture-shape--quiet {
+  fill: var(--bg-secondary);
+  cursor: default;
+}
+
+.culture-shape:not(.culture-shape--quiet):hover,
+.culture-shape:focus-visible,
+.culture-shape.is-selected {
+  stroke: var(--text-primary);
+  stroke-width: 2;
+  outline: none;
+}
+
+.culture-line {
+  fill: none;
+  stroke: var(--text-primary);
+  stroke-opacity: 0.5;
+  stroke-width: 1.1;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.culture-line--country {
+  stroke-opacity: 1;
+  stroke-width: 2.2;
+}
+
+.culture-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-calendar);
+}
+
+.culture-panel h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.culture-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 820px) {
+  .culture-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.culture-districts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.culture-districts li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px 4px 10px;
+  border-radius: 999px;
+  background: var(--chip-bg);
+  color: var(--chip-text);
+  font-size: 0.85rem;
+}
+
+.culture-districts button {
+  display: inline-flex;
+  padding: 3px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.culture-districts button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

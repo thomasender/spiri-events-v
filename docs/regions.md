@@ -186,8 +186,16 @@ regions of one country; the lists are saved in `regions/{id}.bezirke` (+ `mappin
   `CULTURE_REGIONS` table in `scripts/build-region-data.mjs`, regenerate, update the id
   list in `firestore.rules` (guarded by `regions.spec.ts`), seed the doc and run
   `check-reserved-usernames.mjs` read-only against production (the slugs are reserved).
-- **Map:** `RegionMap` still draws the 51 Bundesland shapes only; cultural regions have no
-  shape yet (needs geodata, ticket 516). They are reachable through search and lists.
+- **Map and search of the cultural regions:** the top of the "Zuordnung" tab has a map of the
+  60 cultural regions (`CultureRegionPicker.jsx`, outlines in `src/data/cultureRegionMap.json`,
+  keyed by region slug, loaded on demand) and a search with autocomplete (region names and the
+  districts they hold now, `src/utils/cultureRegionSearch.js`). Picking a region (click, tap or
+  search) opens a panel with its name (rename), its districts (take out) and an input to add a
+  district (taken from the region that holds it). Add and remove only stage the move in the
+  normal draft; saving, locks and checks are unchanged. The outlines are fixed (Landkreis
+  geometry of about 2015): moving districts changes the lists, not the drawn areas. Hamburg,
+  Berlin and Bremen are drawn quiet (no cultural region). `RegionMap` (visitors) still draws
+  the 51 Bundesland shapes only.
 
 ## 3. Roles
 
