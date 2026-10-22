@@ -58,4 +58,19 @@ describe('computeFacetCounts', () => {
     expect(c.category).toEqual({ Yoga: 1 });
     expect(c.date.heute).toBe(1);
   });
+
+  it('does not count occurrences that already started today', () => {
+    const now = new Date(2026, 9, 14, 15, 0);
+    const c = computeFacetCounts({
+      ...base,
+      reference: now,
+      occurrences: [
+        { ...occ('2026-10-14', 'Yoga', 'Dornbirn'), time: '09:00' },
+        { ...occ('2026-10-14', 'Tanz', 'Bregenz'), time: '18:00' },
+      ],
+    });
+    expect(c.date.heute).toBe(1);
+    expect(c.date.aktuelleWoche).toBe(1);
+    expect(c.category).toEqual({ Tanz: 1 });
+  });
 });
