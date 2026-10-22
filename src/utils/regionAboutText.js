@@ -26,3 +26,17 @@ export function defaultAboutBodyHtml(placePhrase) {
 export function customAboutText(region) {
   return typeof region?.aboutText === 'string' ? region.aboutText.trim() : '';
 }
+
+// Slogan in the page header (two lines). Line 1 replaces the region title
+// ("Dein Vorarlberger Kalender"), line 2 the subline ("für bewusste Events").
+// `aboutSloganLocked` is set when a Super-Admin saved it: from then on only a
+// Super-Admin may change it (firestore.rules enforce this).
+export const SLOGAN_LINE1_MAX_LENGTH = 30;
+export const SLOGAN_LINE2_MAX_LENGTH = 30;
+export const DEFAULT_SLOGAN_LINE2 = 'für bewusste Events';
+
+/** Saved slogan lines of a region; '' where nothing is saved (header shows today's text). */
+export function customSlogan(region) {
+  const line = (v) => (typeof v === 'string' ? v.trim() : '');
+  return { line1: line(region?.aboutSlogan1), line2: line(region?.aboutSlogan2) };
+}

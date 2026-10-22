@@ -1822,6 +1822,31 @@ describe('region about page (moderators)', () => {
     );
   });
 
+  it('a moderator sets the header slogan until an admin saved it, then it is locked', async () => {
+    const db = dbFor('modTirol');
+    await assertSucceeds(
+      updateDoc(doc(db, 'regions/tirol'), {
+        aboutSlogan1: 'Dein Tiroler Kalender',
+        aboutSlogan2: 'für bewusste Events',
+        updatedAt: 2,
+      })
+    );
+    await assertFails(
+      updateDoc(doc(db, 'regions/tirol'), { aboutSlogan1: 'x'.repeat(31), updatedAt: 3 })
+    );
+    await assertFails(
+      updateDoc(doc(db, 'regions/tirol'), { aboutSloganLocked: true, updatedAt: 3 })
+    );
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), 'regions/tirol'), { aboutSloganLocked: true });
+    });
+    await assertFails(updateDoc(doc(db, 'regions/tirol'), { aboutSlogan2: 'neu', updatedAt: 4 }));
+    // Other About fields stay editable while the slogan is locked.
+    await assertSucceeds(
+      updateDoc(doc(db, 'regions/tirol'), { aboutText: '<p>x</p>', updatedAt: 5 })
+    );
+  });
+
   it('ordinary users cannot set them', async () => {
     await assertFails(
       updateDoc(doc(dbFor('someone'), 'regions/tirol'), { aboutHelperIds: ['h1'], updatedAt: 2 })
