@@ -1,0 +1,49 @@
+.candle-badge {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--shadow-sm);
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.candle-badge .candle-flame {
+  font-size: inherit;
+}
+
+/* Short explanation on hover / keyboard focus of the card. */
+.candle-badge::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  width: max-content;
+  max-width: 220px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm, 6px);
+  background: rgba(30, 30, 30, 0.92);
+  color: white;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  white-space: normal;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(4px);
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+  z-index: 2;
+}
+
+.candle-badge:hover::after,
+.event-tile:focus-visible .candle-badge::after {
+  opacity: 1;
+  transform: translateY(0);
+}
