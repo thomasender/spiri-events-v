@@ -13,7 +13,7 @@ import './Footer.css';
 export default function Footer() {
   const { installAvailable, isStandalone, isMobileViewport, requestInstall } = usePwaInstall();
   const isIOS = isIOSDevice();
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   // Unchanged `/ueber-uns` while Vorarlberg is the only active region; combined views use it too.
   const { regionId, allRegions, combinedView, comingSoon } = useRegion();
   const { pathname } = useLocation();
@@ -68,7 +68,8 @@ export default function Footer() {
               App installieren
             </button>
           )}
-          {role === 'Admin' && (
+          {/* Visitors without an account (also in the header) and Super-Admins. */}
+          {(!user || role === 'Admin') && (
             <RegionPickButton className="region-pick-button--footer" testId="footer-region-pick" />
           )}
           <Link to="/impressum">Impressum</Link>

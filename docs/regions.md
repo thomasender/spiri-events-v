@@ -541,8 +541,9 @@ All 51 regions of AT/DE/CH exist in the register, so adding one is data work
    today).
 
 - **Where the region is chosen:** visitors without an account use the header button (phone:
-  burger menu); signed-in users and moderators use the card "Region" in the profile;
-  Super-Admins use the footer (`RegionPickButton`). All open the same pop-up and keep the
-  dark launch rule (hidden below two active regions).
+  burger menu) and the footer; signed-in users and moderators use the card "Region" in the
+  profile; Super-Admins use the footer (`RegionPickButton`). All open the same pop-up and keep
+  the dark launch rule (hidden below two active regions; the profile card is then left out
+  entirely).
 - **Coming-soon page:** the link "Andere Regionen erkunden, z. B. <Region> (<n> Events)"
   points to the open region with the most approved events (`useLargestRegion`).
