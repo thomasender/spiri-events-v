@@ -1,6 +1,6 @@
 name: Deploy to staging (tribe-vbg-staging)
 
-# Staging only, never production. Runs on every push to feature/regions-epic (hosting, rules, indexes and functions) and can be
+# Staging only, never production. Runs on every push to feature/regions-epic (hosting, rules and indexes) and can be
 # started by hand from the Actions tab (any branch). Needs ONE secret:
 # STAGING_SERVICE_ACCOUNT_JSON = the raw JSON key of a service account of the project
 # tribe-vbg-staging (Settings > Secrets and variables > Actions > New repository secret;
@@ -67,10 +67,16 @@ jobs:
       - name: Deploy Hosting
         run: npx -y firebase-tools@latest deploy --only hosting --project "$PROJECT" --non-interactive
 
-      - name: Deploy rules, indexes and Cloud Functions
+      - name: Deploy rules and indexes
         # Always on pushes (a superseded run is cancelled, so a conditional deploy could skip a
-        # rules change); on manual runs only when the box is ticked.
-        if: ${{ github.event_name == 'push' || inputs.backend }}
+        # rules change).
+        run: npx -y firebase-tools@latest deploy --only firestore:rules,firestore:indexes --project "$PROJECT" --non-interactive
+
+      - name: Deploy Cloud Functions
+        # Manual runs only: the CI service account needs the role "Service Account User" on
+        # tribe-vbg-staging@appspot.gserviceaccount.com first (iam.serviceAccounts.ActAs). Once
+        # granted, change this to also run on push.
+        if: ${{ inputs.backend }}
         run: |
           (cd functions && npm ci)
-          npx -y firebase-tools@latest deploy --only firestore:rules,firestore:indexes,functions --project "$PROJECT" --non-interactive
+          npx -y firebase-tools@latest deploy --only functions --project "$PROJECT" --non-interactive
