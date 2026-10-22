@@ -1,5 +1,6 @@
 import { Flag, Trash2 } from 'lucide-react';
 import AvatarImage from '../AvatarImage';
+import MessageReactions from './MessageReactions';
 import { formatChatTime, isEmojiOnly, splitChatLinks } from '../../utils/chat';
 
 function MessageText({ text }) {
@@ -22,6 +23,10 @@ export default function ChatMessage({
   onDelete,
   onReport,
   onOpenMember,
+  me,
+  canReact = false,
+  onReact,
+  onReactError,
 }) {
   const emojiOnly = isEmojiOnly(message.text);
   const openMember = !own && onOpenMember ? () => onOpenMember(message) : null;
@@ -65,9 +70,18 @@ export default function ChatMessage({
           )}
           <time className="chat-time">{formatChatTime(message.createdAt)}</time>
         </div>
-        <div className={`chat-bubble${emojiOnly ? ' chat-bubble--emoji' : ''}`}>
-          <MessageText text={message.text} />
-        </div>
+        <MessageReactions
+          reactions={message.reactions}
+          me={me}
+          canReact={canReact && !message.pending && Boolean(onReact)}
+          onReact={(emoji) => onReact(message, emoji)}
+          onError={onReactError}
+          text={message.text}
+        >
+          <div className={`chat-bubble${emojiOnly ? ' chat-bubble--emoji' : ''}`}>
+            <MessageText text={message.text} />
+          </div>
+        </MessageReactions>
         {!message.pending && (canReport || canDelete) && (
           <div className="chat-actions">
             {canReport && (

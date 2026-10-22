@@ -266,6 +266,15 @@
   max-width: min(520px, 85%);
 }
 
+/* The reactions wrapper takes the width limit, the bubble fills it. */
+.messenger-message > .reactable {
+  max-width: min(560px, 90%);
+}
+
+.messenger-message > .reactable .messenger-bubble {
+  max-width: 100%;
+}
+
 .messenger-message--own .messenger-bubble {
   background: var(--accent-soft);
   border-radius: var(--radius-md) 4px var(--radius-md) var(--radius-md);

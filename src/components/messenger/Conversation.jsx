@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowDown, ArrowLeft, MoreVertical, Trash2 } from 'lucide-react';
 import ConfirmDialog from '../ConfirmDialog';
 import MessageComposer from '../chat/MessageComposer';
+import MessageReactions from '../chat/MessageReactions';
 import { MemberAvatar } from './ThreadList';
 import OnlineDot from '../OnlineDot';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
@@ -44,6 +45,8 @@ export default function Conversation({ other }) {
   const blockedByMe = blocked.includes(other);
   const banned = isChatBanActive(ownBan);
   const gone = info?.exists === false;
+  // Reactions follow the same gate as writing (the rules also check the other side).
+  const canReact = !banned && !gone && !blockedByMe && accepts;
 
   const scrollToBottom = useCallback(() => {
     const el = listRef.current;
@@ -254,7 +257,17 @@ export default function Conversation({ other }) {
                 }`}
                 data-testid="dm-message"
               >
-                <div className="chat-bubble messenger-bubble">{m.text}</div>
+                <MessageReactions
+                  reactions={m.reactions}
+                  me={me}
+                  canReact={canReact && !m.pending}
+                  onReact={(emoji) => conv.react(m.id, emoji)}
+                  onError={() => setNotice('Reagieren ist gerade nicht möglich.')}
+                  text={m.text}
+                  align={own ? 'end' : 'start'}
+                >
+                  <div className="chat-bubble messenger-bubble">{m.text}</div>
+                </MessageReactions>
                 <div className="messenger-message-meta">
                   <time>{formatChatTime(m.createdAt)}</time>
                   {own && !m.pending && (

@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  FieldPath,
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   limit,
@@ -27,6 +29,7 @@ import {
   isThreadUnread,
   threadIdFor,
 } from '../utils/messenger';
+import { sanitizeReactions } from '../utils/reactions';
 
 function toMillis(value) {
   return value && typeof value.toMillis === 'function' ? value.toMillis() : null;
@@ -139,6 +142,7 @@ export function useConversation(other, nameOf) {
                 text: data.text ?? '',
                 authorUid: data.authorUid ?? '',
                 createdAt: toMillis(data.createdAt),
+                reactions: sanitizeReactions(data.reactions),
                 pending: d.metadata.hasPendingWrites,
               };
             })
@@ -245,6 +249,19 @@ export function useConversation(other, nameOf) {
     [tid]
   );
 
+  // One reaction per person: `emoji` replaces mine, null removes it.
+  const react = useCallback(
+    async (messageId, emoji) => {
+      if (!uid || !tid) throw new Error('Bitte melde dich an.');
+      await updateDoc(
+        doc(db, 'dm_threads', tid, 'messages', messageId),
+        new FieldPath('reactions', uid),
+        emoji ?? deleteField()
+      );
+    },
+    [uid, tid]
+  );
+
   const report = useCallback(
     async (reportedName) => {
       if (!user || !tid) throw new Error('Bitte melde dich an.');
@@ -277,6 +294,7 @@ export function useConversation(other, nameOf) {
     send,
     remove,
     report,
+    react,
   };
 }
 
