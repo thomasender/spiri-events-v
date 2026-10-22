@@ -116,6 +116,37 @@ describe('AboutPage', () => {
     expect(supportSection?.querySelector('.donation-block')).not.toBeNull();
   });
 
+  it('re-aligns to #spenden when the layout above it changes after the first jump', () => {
+    let resizeCb: () => void = () => {};
+    class FakeResizeObserver {
+      constructor(cb: () => void) {
+        resizeCb = cb;
+      }
+      observe() {}
+      disconnect() {}
+    }
+    vi.stubGlobal('ResizeObserver', FakeResizeObserver);
+    const scrollSpy = vi.fn();
+    Element.prototype.scrollIntoView = scrollSpy;
+    try {
+      render(
+        <HelmetProvider>
+          <MemoryRouter initialEntries={['/ueber-uns#spenden']}>
+            <Routes>
+              <Route path="/ueber-uns" element={<AboutPage />} />
+            </Routes>
+          </MemoryRouter>
+        </HelmetProvider>
+      );
+      expect(scrollSpy).toHaveBeenCalledTimes(1);
+      resizeCb();
+      expect(scrollSpy).toHaveBeenCalledTimes(2);
+      expect(scrollSpy.mock.contexts[1]).toBe(document.getElementById('spenden'));
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('highlights the core line "Zurück zu uns Selbst zu kommen"', () => {
     renderAboutPage();
     const highlight = document.querySelector('.about-highlight');
