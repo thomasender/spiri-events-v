@@ -59,11 +59,11 @@ export const instagramEventStories = onSchedule(
   }
 );
 
-// 15:00 every day: one "Morgen in <Bezirk>" overview per Bezirk with at least
-// two events tomorrow (a single event gets its own story anyway).
+// 05:00 every day: one "Heute in <Bezirk>" overview per Bezirk with at least
+// two events today (a single event gets its own story anyway).
 export const instagramMorningStories = onSchedule(
   {
-    schedule: '0 15 * * *',
+    schedule: '0 5 * * *',
     timeZone: 'Europe/Vienna',
     region: 'europe-west3',
     timeoutSeconds: 540,
