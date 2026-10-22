@@ -23,6 +23,7 @@ export default function MessageComposer({
   maxLength = CHAT_MAX_LENGTH,
   testIdPrefix = 'chat',
   onSent,
+  autoFocus = true,
 }) {
   const [draft, setDraft] = useState('');
   const [sendError, setSendError] = useState('');
@@ -51,10 +52,10 @@ export default function MessageComposer({
   // Desktop: the cursor is in the message field as soon as it exists. Not on
   // phones, where it would open the keyboard and cover the conversation.
   useEffect(() => {
-    if (window.matchMedia?.('(pointer: fine)').matches) {
+    if (autoFocus && window.matchMedia?.('(pointer: fine)').matches) {
       inputRef.current?.focus({ preventScroll: true });
     }
-  }, []);
+  }, [autoFocus]);
 
   // The emoji finder closes on Escape and on a click or tap outside of it.
   useEffect(() => {

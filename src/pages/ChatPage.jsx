@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { ArrowDown, Flame } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
 import ChatMessage from '../components/chat/ChatMessage';
+import ChatRules from '../components/chat/ChatRules';
 import MessageComposer from '../components/chat/MessageComposer';
 import MemberCard from '../components/messenger/MemberCard';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -30,39 +30,6 @@ function readRulesAccepted() {
   } catch {
     return false;
   }
-}
-
-function ChatRules({ onAccept }) {
-  return (
-    <section className="chat-rules" data-testid="chat-rules" aria-labelledby="chat-rules-title">
-      <h2 id="chat-rules-title">Chat-Regeln</h2>
-      <ul>
-        <li>Sei freundlich und respektvoll. Keine Beleidigungen, Hetze oder Diskriminierung.</li>
-        <li>Kein Spam, keine Werbung, keine Kettennachrichten.</li>
-        <li>Keine persönlichen Daten anderer, keine Gesundheits- oder Heilversprechen.</li>
-        <li>
-          Alle angemeldeten Mitglieder können deine Nachrichten mit Namen und Foto sehen. Sie werden
-          nach {CHAT_RETENTION_DAYS} Tagen automatisch gelöscht.
-        </li>
-        <li>
-          Verstöße kannst du melden. Die Moderation kann Nachrichten löschen und Mitglieder
-          ausschließen.
-        </li>
-      </ul>
-      <p>
-        Mehr dazu in der <Link to="/datenschutz">Datenschutzerklärung</Link> (Abschnitt
-        Community-Chat).
-      </p>
-      <button
-        type="button"
-        className="btn btn-primary"
-        onClick={onAccept}
-        data-testid="chat-rules-accept"
-      >
-        Verstanden, los geht&apos;s
-      </button>
-    </section>
-  );
 }
 
 const PRESENCE_AVATARS = 10;

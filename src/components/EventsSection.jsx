@@ -37,6 +37,7 @@ export default function EventsSection({
   categoryColorByName,
   onCardClick,
   onResetFilters,
+  candleNews,
 }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < MOBILE_BREAKPOINT);
   const [visibleCount, setVisibleCount] = useState(EVENTS_PAGE_SIZE);
@@ -145,6 +146,7 @@ export default function EventsSection({
                 categoryColorByName
               )}
               onClick={onCardClick}
+              candleNews={Boolean(candleNews?.has(event.id))}
             />
           ))}
         </div>

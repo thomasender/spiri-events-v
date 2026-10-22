@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import SeoMeta from '../components/SeoMeta';
 import './LegalPage.css';
+import { CANDLE_ROOM_NAME } from '../utils/candleRoom';
 
 const content = {
   datenschutz: {
@@ -234,7 +235,7 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
 *Rechtsgrundlage:* Die Erzeugung und Speicherung des Schlüssels und die Bereitstellung der Kalenderdaten erfolgen, weil Sie diese Funktion nutzen (Art. 6 Abs. 1 lit. b DSGVO). Die Veröffentlichung der Event-Angaben, einschließlich Veranstalter-Name und Kontaktangaben, in Kalenderdateien und im Abo beruht auf unserem berechtigten Interesse, die freigegebenen Events möglichst gut auffindbar zu machen, sowie dem Interesse der Veranstalter:innen an der Bewerbung ihrer Events (Art. 6 Abs. 1 lit. f DSGVO).`,
       },
       {
-        heading: '14. Community-Chat „Lagerfeuer“ (nur mit Login)',
+        heading: `14. Community-Chat „Lagerfeuer“ und „${CANDLE_ROOM_NAME}“`,
         text: `Angemeldete Nutzer:innen mit bestätigter E-Mail-Adresse können im Chat „Lagerfeuer“ mit anderen Mitgliedern schreiben. Der Chat steht nur mit Login zur Verfügung und ist nicht öffentlich im Internet sichtbar.
 
 *Welche Daten verarbeiten wir?*
@@ -257,6 +258,11 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
 - Sie können Ihre eigenen Nachrichten jederzeit selbst löschen
 - Beim Löschen Ihres Kontos werden Ihre Chat-Nachrichten und Ihre Reaktionen gelöscht
 - Meldungen werden spätestens nach 30 Tagen gelöscht. Ein Eintrag über eine Sperre bleibt, solange die Sperre gilt
+
+*Chat-Räume zu einzelnen Events („${CANDLE_ROOM_NAME}“):*
+- Auf der Seite eines freigegebenen Events kann es einen kleinen Chat-Raum geben, in dem sich Teilnehmende austauschen, etwa für Mitfahrgelegenheiten. Schreiben können nur angemeldete Mitglieder mit bestätigter E-Mail-Adresse; es gelten dieselben Daten, Chat-Regeln, Sperren, Löschfristen (10 Tage) und Löschung beim Löschen Ihres Kontos wie oben beschrieben
+- *Anders als im Lagerfeuer ist der Verlauf öffentlich:* Wenn die Funktion für alle freigeschaltet ist, kann jede Person, die die Event-Seite aufruft, die Nachrichten mit Anzeigename und Profilfoto lesen, auch ohne Login. Schreiben Sie dort deshalb nur, was öffentlich sichtbar sein darf
+- Zusätzlich speichern wir für jeden Raum den Zeitpunkt der letzten Nachricht, damit im Kalender eine Kerze auf neue Nachrichten hinweisen kann. Welche Nachrichten Sie schon gesehen haben, merkt sich nur Ihr Browser (Local Storage)
 
 *Rechtsgrundlage:* Die Bereitstellung des Chats und die Anzeige Ihrer Nachrichten erfolgen, weil Sie die Funktion nutzen (Art. 6 Abs. 1 lit. b DSGVO). Moderation, Spam-Schutz und die Bearbeitung von Meldungen beruhen auf unserem berechtigten Interesse, den Chat sicher und frei von Missbrauch zu halten (Art. 6 Abs. 1 lit. f DSGVO).
 

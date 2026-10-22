@@ -480,6 +480,20 @@ export function useAuth() {
     }
 
     try {
+      // Kerzenraum (one room per event, docs/chat.md): own messages and cooldown markers.
+      const candleRooms = await getDocs(collection(db, 'event_chats'));
+      for (const room of candleRooms.docs) {
+        const own = await getDocs(
+          query(collection(room.ref, 'messages'), where('authorUid', '==', uid))
+        );
+        await Promise.all(own.docs.map((m) => deleteDoc(m.ref)));
+        await deleteDoc(doc(room.ref, 'members', uid));
+      }
+    } catch (err) {
+      console.warn('Failed to delete Kerzenraum messages:', err);
+    }
+
+    try {
       const batch = writeBatch(db);
       // Deleting the parent doc does not delete subcollections.
       const favorites = await getDocs(collection(db, 'users', uid, 'favorites'));

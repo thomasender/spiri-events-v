@@ -13,10 +13,11 @@ import { trackEventOpen } from '../lib/analyticsEvents';
 import EventCoverImage from './EventCoverImage';
 import FavoriteButton from './FavoriteButton';
 import CancelledBadge from './CancelledBadge';
+import CandleBadge from './CandleBadge';
 import { isEntryCancelled } from '../utils/eventCancellation';
 import './EventCard.css';
 
-export default function EventCard({ event, categoryColor, onClick }) {
+export default function EventCard({ event, categoryColor, onClick, candleNews = false }) {
   const organizerName = getOrganizerName(event);
   const category = getPrimaryCategory(event);
   const fallbackImage = getEventFallbackImage(event);
@@ -48,6 +49,7 @@ export default function EventCard({ event, categoryColor, onClick }) {
           </span>
         )}
         <FavoriteButton eventId={event.id} />
+        {candleNews && <CandleBadge />}
       </div>
 
       <div className="event-tile-body">

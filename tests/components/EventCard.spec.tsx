@@ -151,4 +151,18 @@ describe('EventCard location (kgYQqmUo)', () => {
     renderCard({ ...baseEvent, city: undefined, bezirk: 'Grenznahe' });
     expect(screen.getByText('Umgebung')).toBeInTheDocument();
   });
+
+  it('shows the Kerzenraum candle with an explanation only when there is news', () => {
+    const { unmount } = renderCard(baseEvent);
+    expect(screen.queryByTestId('candle-badge')).toBeNull();
+    unmount();
+    render(
+      <MemoryRouter>
+        <EventCard event={baseEvent} categoryColor="#abc" candleNews />
+      </MemoryRouter>
+    );
+    const badge = screen.getByTestId('candle-badge');
+    expect(badge).toHaveAccessibleName('Neue Nachrichten im Kerzenraum');
+    expect(badge.getAttribute('data-tooltip')).toMatch(/Mitfahrgelegenheiten/);
+  });
 });

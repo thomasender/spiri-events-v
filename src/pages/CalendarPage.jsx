@@ -41,6 +41,7 @@ import {
   RefreshCw,
   Share,
 } from 'lucide-react';
+import { useCandleRoomNews } from '../hooks/useCandleRoom';
 import './CalendarPage.css';
 import { trackEventOpen, trackFilter } from '../lib/analyticsEvents';
 
@@ -160,6 +161,7 @@ export default function CalendarPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, canCreateEvents } = useAuth();
+  const candleNews = useCandleRoomNews();
   // Load saved state exactly once per mount. Reading it inside the render body
   // would create a new object reference on every render and trip downstream
   // effects into re-doing work that depends on the initial values.
@@ -749,6 +751,7 @@ export default function CalendarPage() {
               onViewModeChange={setViewMode}
               categoryColorByName={categoryColorByName}
               onResetFilters={hasActiveFilter ? resetAllFilters : undefined}
+              candleNews={candleNews}
             />
           )}
         </div>

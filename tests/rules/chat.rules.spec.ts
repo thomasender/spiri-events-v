@@ -511,3 +511,158 @@ describe('chat presence', () => {
     await assertSucceeds(setDoc(doc(db, path('alice')), beat('alice')));
   });
 });
+
+describe('Kerzenraum (event chat rooms)', () => {
+  const room = 'ev1';
+  const msgs = (id = room) => `event_chats/${id}/messages`;
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'events/ev1'), { title: 'Kakao-Zeremonie', status: 'approved' });
+      await setDoc(doc(db, 'events/draft1'), { title: 'Entwurf', status: 'draft' });
+      await setDoc(doc(db, `${msgs()}/m1`), {
+        text: 'Wer fährt von Dornbirn?',
+        authorUid: 'alice',
+        authorName: 'Alice',
+        createdAt: Timestamp.now(),
+      });
+      await setDoc(doc(db, `event_chats/${room}`), {
+        lastMessageAt: Timestamp.now(),
+        lastMessageId: 'm1',
+      });
+    });
+  });
+
+  // What the client does: message, cooldown marker and room summary in one batch.
+  async function sendCandle(
+    db: Firestore,
+    uid: string,
+    {
+      eventId = room,
+      overrides = {},
+      marker = true,
+      summary = true,
+    }: {
+      eventId?: string;
+      overrides?: Record<string, unknown>;
+      marker?: boolean;
+      summary?: boolean;
+    } = {}
+  ) {
+    const batch = writeBatch(db);
+    const ref = doc(collection(db, msgs(eventId)));
+    batch.set(ref, messageData(uid, overrides));
+    if (marker) {
+      batch.set(doc(db, `event_chats/${eventId}/members/${uid}`), {
+        lastMessageAt: serverTimestamp(),
+      });
+    }
+    if (summary) {
+      batch.set(doc(db, `event_chats/${eventId}`), {
+        lastMessageAt: serverTimestamp(),
+        lastMessageId: ref.id,
+      });
+    }
+    return batch.commit();
+  }
+
+  it('can be read without login when the chat is open for all', async () => {
+    await assertSucceeds(getDocs(collection(anon().firestore(), msgs())));
+    await assertSucceeds(getDoc(doc(anon().firestore(), `event_chats/${room}`)));
+    await assertSucceeds(
+      getDocs(
+        query(
+          collection(anon().firestore(), 'event_chats'),
+          where('lastMessageAt', '>', Timestamp.fromMillis(Date.now() - 86_400_000))
+        )
+      )
+    );
+  });
+
+  it('is readable only by admins in mode "admins" and by nobody when off', async () => {
+    await setMode('admins');
+    await assertFails(getDocs(collection(anon().firestore(), msgs())));
+    await assertFails(getDocs(collection(verified('bob').firestore(), msgs())));
+    for (const make of Object.values(adminVariants)) {
+      await assertSucceeds(getDocs(collection(make().firestore(), msgs())));
+    }
+    await setMode('off');
+    await assertFails(
+      getDocs(collection(adminVariants['admin (token claim)']().firestore(), msgs()))
+    );
+    await assertFails(getDocs(collection(anon().firestore(), 'event_chats')));
+  });
+
+  it('lets verified members write, with marker and summary in the same batch', async () => {
+    await assertSucceeds(sendCandle(verified('bob').firestore(), 'bob'));
+    await assertFails(sendCandle(unverified('carl').firestore(), 'carl'));
+    await assertFails(sendCandle(verified('dora').firestore(), 'dora', { marker: false }));
+    await assertFails(sendCandle(verified('emil').firestore(), 'emil', { summary: false }));
+  });
+
+  it('refuses rooms of unapproved or missing events and foreign authors', async () => {
+    const db = verified('bob').firestore();
+    await assertFails(sendCandle(db, 'bob', { eventId: 'draft1' }));
+    await assertFails(sendCandle(db, 'bob', { eventId: 'nope' }));
+    await assertFails(sendCandle(db, 'bob', { overrides: { authorUid: 'alice' } }));
+    await assertFails(sendCandle(db, 'bob', { overrides: { role: 'Admin' } }));
+  });
+
+  it('follows the flag and bans for writing', async () => {
+    await setMode('admins');
+    await assertFails(sendCandle(verified('bob').firestore(), 'bob'));
+    await assertSucceeds(
+      sendCandle(adminVariants['admin (token claim)']().firestore(), 'adminTok')
+    );
+    await setMode('all');
+    await env.withSecurityRulesDisabled((ctx) =>
+      setDoc(doc(ctx.firestore(), 'chat_bans/bob'), {
+        until: Timestamp.fromMillis(Date.now() + 86_400_000),
+        reason: 'Spam',
+        bannedBy: 'adminTok',
+      })
+    );
+    await assertFails(sendCandle(verified('bob').firestore(), 'bob'));
+  });
+
+  it('rate-limits a sender to one message per 3 seconds', async () => {
+    const db = verified('bob').firestore();
+    await assertSucceeds(sendCandle(db, 'bob'));
+    await assertFails(sendCandle(db, 'bob'));
+  });
+
+  it('does not let anyone bump the summary without a real message', async () => {
+    const db = verified('bob').firestore();
+    await assertFails(
+      setDoc(doc(db, `event_chats/${room}`), {
+        lastMessageAt: serverTimestamp(),
+        lastMessageId: 'm1',
+      })
+    );
+  });
+
+  it('lets the author or an admin delete a message', async () => {
+    await assertFails(deleteDoc(doc(verified('bob').firestore(), `${msgs()}/m1`)));
+    await assertSucceeds(deleteDoc(doc(verified('alice').firestore(), `${msgs()}/m1`)));
+    await env.withSecurityRulesDisabled((ctx) =>
+      setDoc(doc(ctx.firestore(), `${msgs()}/m2`), {
+        text: 'x',
+        authorUid: 'bob',
+        authorName: 'Bob',
+        createdAt: Timestamp.now(),
+      })
+    );
+    await assertSucceeds(
+      deleteDoc(doc(adminVariants['admin (admin_users doc)']().firestore(), `${msgs()}/m2`))
+    );
+  });
+
+  it('lets members find their own messages even when the chat is off', async () => {
+    await setMode('off');
+    const db = verified('alice').firestore();
+    await assertSucceeds(getDocs(collection(db, 'event_chats')));
+    await assertSucceeds(getDocs(query(collection(db, msgs()), where('authorUid', '==', 'alice'))));
+    await assertFails(getDocs(collection(db, msgs())));
+  });
+});
