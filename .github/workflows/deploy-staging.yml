@@ -1,0 +1,74 @@
+name: Deploy to staging (tribe-vbg-staging)
+
+# Staging only, never production. Runs on every push to feature/regions-epic and can be
+# started by hand from the Actions tab (any branch). Needs ONE secret:
+# STAGING_SERVICE_ACCOUNT_JSON = the raw JSON key of a service account of the project
+# tribe-vbg-staging (Settings > Secrets and variables > Actions > New repository secret;
+# paste the whole file as it is). The web app config is read from the staging project itself.
+on:
+  push:
+    branches: [feature/regions-epic]
+  workflow_dispatch:
+    inputs:
+      backend:
+        description: 'Also deploy Firestore rules, indexes and Cloud Functions'
+        type: boolean
+        default: false
+
+jobs:
+  deploy-staging:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: staging-deploy
+      cancel-in-progress: true
+    env:
+      PROJECT: tribe-vbg-staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Write the staging service account key
+        env:
+          KEY_JSON: ${{ secrets.STAGING_SERVICE_ACCOUNT_JSON }}
+        run: |
+          set -euo pipefail
+          test -n "$KEY_JSON" || { echo "Secret STAGING_SERVICE_ACCOUNT_JSON is missing"; exit 1; }
+          printf '%s' "$KEY_JSON" > "$RUNNER_TEMP/staging-sa.json"
+          chmod 600 "$RUNNER_TEMP/staging-sa.json"
+          # Refuse anything that is not the staging project (never the production key).
+          node -e "const k=require(process.argv[1]); if(k.project_id!==process.env.PROJECT){console.error('Key is for '+k.project_id+', not '+process.env.PROJECT);process.exit(1)}" "$RUNNER_TEMP/staging-sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/staging-sa.json" >> "$GITHUB_ENV"
+
+      - name: Read the staging web app config
+        run: |
+          set -euo pipefail
+          app_id=$(npx -y firebase-tools@latest apps:list WEB --project "$PROJECT" --json | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const a=JSON.parse(s).result;if(!a.length){console.error('No web app in staging');process.exit(1)}console.log(a[0].appId)})")
+          npx -y firebase-tools@latest apps:sdkconfig WEB "$app_id" --project "$PROJECT" --json > "$RUNNER_TEMP/sdkconfig.json"
+          node -e "
+            const c=require(process.argv[1]).result.sdkConfig;
+            const m={VITE_FIREBASE_API_KEY:c.apiKey,VITE_FIREBASE_AUTH_DOMAIN:c.authDomain,VITE_FIREBASE_PROJECT_ID:c.projectId,VITE_FIREBASE_STORAGE_BUCKET:c.storageBucket,VITE_FIREBASE_MESSAGING_SENDER_ID:c.messagingSenderId,VITE_FIREBASE_APP_ID:c.appId};
+            if(c.measurementId)m.VITE_FIREBASE_MEASUREMENT_ID=c.measurementId;
+            for(const [k,v] of Object.entries(m))console.log(k+'='+v);
+            console.log('VITE_FIREBASE_TARGET=staging');
+          " "$RUNNER_TEMP/sdkconfig.json" >> "$GITHUB_ENV"
+
+      - name: Build (staging, no prerender)
+        run: |
+          npx vite build --mode staging
+          # The bundle must not know the production project id.
+          [ "$(cat dist/assets/index-*.js | grep -c spirieventsvbg || true)" = "0" ]
+
+      - name: Deploy Hosting
+        run: npx -y firebase-tools@latest deploy --only hosting --project "$PROJECT" --non-interactive
+
+      - name: Deploy rules, indexes and Cloud Functions
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.backend }}
+        run: |
+          (cd functions && npm ci)
+          npx -y firebase-tools@latest deploy --only firestore:rules,firestore:indexes,functions --project "$PROJECT" --non-interactive
