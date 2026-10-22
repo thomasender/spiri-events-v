@@ -17,6 +17,7 @@ import {
 } from '../../hooks/useMessenger';
 import { describeChatBan, formatChatTime, isChatBanActive } from '../../utils/chat';
 import { DM_MAX_LENGTH, DM_RETENTION_DAYS } from '../../utils/messenger';
+import { REACTION_FAILED } from '../../utils/reactions';
 
 const NEAR_BOTTOM_PX = 120;
 
@@ -262,11 +263,13 @@ export default function Conversation({ other }) {
                   me={me}
                   canReact={canReact && !m.pending}
                   onReact={(emoji) => conv.react(m.id, emoji)}
-                  onError={() => setNotice('Reagieren ist gerade nicht möglich.')}
+                  onError={() => setNotice(REACTION_FAILED)}
                   text={m.text}
                   align={own ? 'end' : 'start'}
                 >
-                  <div className="chat-bubble messenger-bubble">{m.text}</div>
+                  <div className={`chat-bubble messenger-bubble${own ? ' chat-bubble--own' : ''}`}>
+                    {m.text}
+                  </div>
                 </MessageReactions>
                 <div className="messenger-message-meta">
                   <time>{formatChatTime(m.createdAt)}</time>

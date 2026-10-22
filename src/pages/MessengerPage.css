@@ -275,11 +275,6 @@
   max-width: 100%;
 }
 
-.messenger-message--own .messenger-bubble {
-  background: var(--accent-soft);
-  border-radius: var(--radius-md) 4px var(--radius-md) var(--radius-md);
-}
-
 .messenger-message-meta {
   display: flex;
   align-items: center;

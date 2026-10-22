@@ -13,6 +13,14 @@ const DOUBLE_TAP_MS = 350;
 const DOUBLE_TAP_SLOP_PX = 30;
 const LONG_PRESS_MS = 450;
 const MOVE_CANCEL_PX = 10;
+const UNSET = Symbol('unset');
+
+function withMine(reactions, me, emoji) {
+  const out = { ...(reactions ?? {}) };
+  if (emoji) out[me] = emoji;
+  else delete out[me];
+  return out;
+}
 
 function pillLabel({ emoji, count, mine }) {
   const base = `${reactionLabel(emoji)}, ${count} ${count === 1 ? 'Reaktion' : 'Reaktionen'}`;
@@ -22,7 +30,8 @@ function pillLabel({ emoji, count, mine }) {
 // Wraps a message bubble: double-tap / double-click reacts with a heart,
 // long-press (touch) or the smiley button opens the five-emoji bar, and the
 // pills below show the counts. Writing is the parent's job (`onReact`, which
-// gets the new emoji or null to remove); the live listener brings the result.
+// gets the new emoji or null to remove); the own reaction shows at once and
+// the message is never locked while the write is on its way.
 export default function MessageReactions({
   reactions,
   me,
@@ -40,22 +49,48 @@ export default function MessageReactions({
   const pickerRef = useRef(null);
   const lastTap = useRef({ t: 0, x: 0, y: 0 });
   const press = useRef({ timer: null, x: 0, y: 0, fired: false });
-  const busy = useRef(false);
 
-  const mine = me ? (reactions?.[me] ?? null) : null;
-  const pills = summarizeReactions(reactions, me);
+  // Optimistic own reaction: shown at once, until the write has settled.
+  // At most one write per message is in flight; taps meanwhile only update
+  // `queued` (latest wins) and go out afterwards. A rejected write drops the
+  // override (Firestore rolls its local copy back too) and reports the error.
+  const [local, setLocal] = useState(UNSET);
+  const write = useRef({ inFlight: false, queued: UNSET });
+
+  const serverMine = me ? (reactions?.[me] ?? null) : null;
+  const mine = local === UNSET ? serverMine : local;
+  const shown = local === UNSET || !me ? reactions : withMine(reactions, me, local);
+  const pills = summarizeReactions(shown, me);
 
   const react = useCallback(
     async (emoji) => {
-      if (!canReact || busy.current) return;
-      busy.current = true;
-      try {
-        await onReact(nextReaction(mine, emoji));
-      } catch (err) {
-        onError?.(err);
-      } finally {
-        busy.current = false;
+      if (!canReact) return;
+      const value = nextReaction(mine, emoji);
+      setLocal(value);
+      const w = write.current;
+      if (w.inFlight) {
+        w.queued = value;
+        return;
       }
+      w.inFlight = true;
+      let sent = value;
+      for (;;) {
+        try {
+          await onReact(sent);
+        } catch (err) {
+          w.inFlight = false;
+          w.queued = UNSET;
+          setLocal(UNSET);
+          onError?.(err);
+          return;
+        }
+        const next = w.queued;
+        w.queued = UNSET;
+        if (next === UNSET || next === sent) break;
+        sent = next;
+      }
+      w.inFlight = false;
+      setLocal(UNSET);
     },
     [canReact, mine, onReact, onError]
   );

@@ -111,6 +111,19 @@ export function isEmojiOnly(text) {
   return chatTextLength(trimmed.replace(/\s/g, '')) <= 3;
 }
 
+// "Not sent yet" (shown greyed out, no reactions) only while the create of a
+// message is unconfirmed, i.e. its `createdAt` server timestamp is unresolved.
+// Deliberately NOT `metadata.hasPendingWrites` alone: a reaction write also
+// sets that flag, and since its server ack changes no data, Firestore raises
+// no snapshot for it (metadata-only change), so the message would stay grey
+// until something else in the room happened to change.
+export function isUnsentMessage(docSnap) {
+  return (
+    Boolean(docSnap.metadata?.hasPendingWrites) &&
+    docSnap.get('createdAt', { serverTimestamps: 'none' }) == null
+  );
+}
+
 function toDate(value) {
   if (!value) return null;
   if (value instanceof Date) return value;

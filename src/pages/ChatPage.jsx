@@ -18,6 +18,7 @@ import {
   describeChatBan,
   isChatBanActive,
 } from '../utils/chat';
+import { REACTION_FAILED } from '../utils/reactions';
 import './ChatPage.css';
 
 const RULES_KEY = 'chatRulesAccepted';
@@ -290,7 +291,7 @@ function ChatRoom() {
               me={user?.uid}
               canReact={!banned}
               onReact={(msg, emoji) => react(msg.id, emoji)}
-              onReactError={() => setNotice('Reagieren ist gerade nicht möglich.')}
+              onReactError={() => setNotice(REACTION_FAILED)}
               onOpenMember={(msg) =>
                 setMemberCard({
                   uid: msg.authorUid,
