@@ -32,6 +32,8 @@ export default function ChatTab() {
     messengerMode,
     onlineStatusMode,
     setOnlineStatusMode,
+    onboardingMode,
+    setOnboardingMode,
     dmReports,
     loading,
     error,
@@ -165,6 +167,43 @@ export default function ChatTab() {
         <p className="chat-tab-hint">
           Auch wenn der Schalter offen ist, zeigt nur einen Punkt, wer die Option in seinem Profil
           eingeschaltet hat (standardmäßig aus).
+        </p>
+      </section>
+
+      <section className="chat-tab-section" aria-labelledby="chat-tab-onboarding">
+        <h3 id="chat-tab-onboarding">Profil-Onboarding (Einstiegs-Assistent)</h3>
+        <div
+          className="chat-tab-modes"
+          role="radiogroup"
+          aria-label="Sichtbarkeit des Profil-Onboardings"
+        >
+          {MODES.map((m) => (
+            <label
+              key={m.id}
+              className={`chat-tab-mode${onboardingMode === m.id ? ' chat-tab-mode--on' : ''}`}
+            >
+              <input
+                type="radio"
+                name="onboarding-mode"
+                value={m.id}
+                checked={onboardingMode === m.id}
+                disabled={busy || loading}
+                onChange={() => run(() => setOnboardingMode(m.id), 'Gespeichert.')}
+              />
+              <span className="chat-tab-mode-label">{m.label}</span>
+              <span className="chat-tab-mode-help">
+                {m.id === 'off'
+                  ? 'Der Assistent und der Hinweis sind für niemanden da.'
+                  : m.id === 'admins'
+                    ? 'Nur Admins sehen den Assistenten (zum Testen).'
+                    : 'Alle angemeldeten Mitglieder mit bestätigter E-Mail, denen Foto oder Beschreibung fehlt.'}
+              </span>
+            </label>
+          ))}
+        </div>
+        <p className="chat-tab-hint">
+          Der Assistent führt in drei Schritten zu Foto, Beschreibung und Verzeichnis-Eintrag. Jeder
+          Schritt lässt sich überspringen.
         </p>
       </section>
 

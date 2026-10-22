@@ -81,3 +81,15 @@ export function useOnlineStatusAccess() {
   const available = Boolean(user) && canEnterChat({ mode, isAdmin: role === 'Admin' });
   return { available, mode, loading };
 }
+
+// Profile onboarding wizard flag: app_settings/onboarding { mode }. A missing doc means off.
+export function useOnboardingSettings() {
+  return useFeatureMode('onboarding');
+}
+
+export function useOnboardingAccess() {
+  const { user, role } = useAuth();
+  const { mode, loading } = useOnboardingSettings();
+  const available = Boolean(user) && canEnterChat({ mode, isAdmin: role === 'Admin' });
+  return { available, mode, loading };
+}

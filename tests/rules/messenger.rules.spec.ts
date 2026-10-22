@@ -547,3 +547,22 @@ describe('blocks, settings, reports', () => {
     );
   });
 });
+
+describe('app_settings/onboarding', () => {
+  it('is readable by everyone, writable only by admins with a valid mode', async () => {
+    await assertSucceeds(getDoc(doc(anon().firestore(), 'app_settings/onboarding')));
+    await assertFails(
+      setDoc(doc(verified('alice').firestore(), 'app_settings/onboarding'), { mode: 'all' })
+    );
+    const db = admin().firestore();
+    await assertSucceeds(
+      setDoc(doc(db, 'app_settings/onboarding'), {
+        mode: 'admins',
+        updatedAt: serverTimestamp(),
+        updatedBy: 'adminTok',
+      })
+    );
+    await assertFails(setDoc(doc(db, 'app_settings/onboarding'), { mode: 'everyone' }));
+    await assertFails(updateDoc(doc(db, 'app_settings/onboarding'), { mode: 'all', extra: 1 }));
+  });
+});
