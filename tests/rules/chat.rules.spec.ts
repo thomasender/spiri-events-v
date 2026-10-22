@@ -7,15 +7,19 @@ import {
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
 import {
+  FieldPath,
   Timestamp,
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   getDocs,
+  query,
   serverTimestamp,
   setDoc,
   updateDoc,
+  where,
   writeBatch,
   type Firestore,
 } from 'firebase/firestore';
@@ -281,6 +285,77 @@ describe('chat messages: deleting', () => {
     it('deletes any message', async () => {
       await assertSucceeds(deleteDoc(doc(make().firestore(), 'chat_rooms/lagerfeuer/messages/m1')));
     });
+  });
+});
+
+describe('chat messages: reactions', () => {
+  const path = 'chat_rooms/lagerfeuer/messages/m1';
+  const react = (db: Firestore, uid: string, emoji: string | null) =>
+    updateDoc(doc(db, path), new FieldPath('reactions', uid), emoji ?? deleteField());
+
+  it('a member sets, replaces and removes their own reaction', async () => {
+    const db = verified('bob').firestore();
+    await assertSucceeds(react(db, 'bob', '❤️'));
+    await assertSucceeds(react(db, 'bob', '😂'));
+    const snap = await getDoc(doc(db, path));
+    expect(snap.data()?.reactions).toEqual({ bob: '😂' });
+    await assertSucceeds(react(db, 'bob', null));
+    // The author may react to their own message too.
+    await assertSucceeds(react(verified('alice').firestore(), 'alice', '👍'));
+  });
+
+  it('only the five emoji, only your own entry, nothing else on the message', async () => {
+    const db = verified('bob').firestore();
+    await assertFails(react(db, 'bob', '💩'));
+    await assertFails(react(db, 'bob', '❤'));
+    await assertFails(react(db, 'alice', '❤️'));
+    await assertFails(updateDoc(doc(db, path), { reactions: { bob: '❤️', carol: '❤️' } }));
+    await assertFails(updateDoc(doc(db, path), { reactions: ['❤️'] }));
+    await assertFails(updateDoc(doc(db, path), { 'reactions.bob': '❤️', text: 'x' }));
+    await assertFails(updateDoc(doc(db, path), { text: 'geändert' }));
+  });
+
+  it('cannot remove someone else’s reaction', async () => {
+    await assertSucceeds(react(verified('carol').firestore(), 'carol', '🙏'));
+    await assertFails(react(verified('bob').firestore(), 'carol', null));
+    await assertFails(react(adminVariants['admin (token claim)']().firestore(), 'carol', null));
+  });
+
+  it('needs the same access as sending: login, verified e-mail, open flag, no mute', async () => {
+    await assertFails(react(anon().firestore(), 'bob', '❤️'));
+    await assertFails(react(unverified('bob').firestore(), 'bob', '❤️'));
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'chat_bans/bob'), {
+        until: Timestamp.fromMillis(Date.now() + 3_600_000),
+        reason: 'Spam',
+        bannedBy: 'adminTok',
+      });
+    });
+    await assertFails(react(verified('bob').firestore(), 'bob', '❤️'));
+    await assertSucceeds(react(verified('carol').firestore(), 'carol', '❤️'));
+    await setMode('off');
+    await assertFails(react(verified('carol').firestore(), 'carol', '👍'));
+    // Taking a reaction back stays possible (account deletion does that).
+    await assertSucceeds(react(verified('carol').firestore(), 'carol', null));
+  });
+
+  it('account deletion finds own reactions with a query', async () => {
+    const db = verified('bob').firestore();
+    await assertSucceeds(react(db, 'bob', '😮'));
+    const snap = await getDocs(
+      query(
+        collection(db, 'chat_rooms/lagerfeuer/messages'),
+        where(new FieldPath('reactions', 'bob'), 'in', ['👍', '❤️', '😂', '😮', '🙏'])
+      )
+    );
+    expect(snap.docs.map((d) => d.id)).toEqual(['m1']);
+  });
+
+  it('reactions go with the message', async () => {
+    await assertSucceeds(react(verified('bob').firestore(), 'bob', '❤️'));
+    await assertSucceeds(deleteDoc(doc(verified('alice').firestore(), path)));
+    const snap = await getDoc(doc(verified('bob').firestore(), path));
+    expect(snap.exists()).toBe(false);
   });
 });
 

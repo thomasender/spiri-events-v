@@ -1,0 +1,198 @@
+/* Emoji reactions under chat and private message bubbles. */
+
+.reactable {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.reactable--end {
+  align-items: flex-end;
+}
+
+.reactable-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.reactable--end .reactable-row {
+  flex-direction: row-reverse;
+}
+
+.reactable-bubble {
+  min-width: 0;
+  /* No double-tap zoom on iOS, so a double tap can react. */
+  touch-action: manipulation;
+}
+
+.reaction-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-light);
+  cursor: pointer;
+  opacity: 0;
+}
+
+.reactable:hover .reaction-trigger,
+.reactable:focus-within .reaction-trigger,
+.reaction-trigger[aria-expanded='true'] {
+  opacity: 1;
+}
+
+.reaction-trigger:hover,
+.reaction-trigger:focus-visible {
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+}
+
+.reaction-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 4px;
+  padding: 3px 4px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-primary);
+  box-shadow: var(--shadow-md);
+}
+
+.reaction-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.reaction-option:hover,
+.reaction-option:focus-visible {
+  background: var(--bg-secondary);
+}
+
+.reaction-option--mine {
+  background: var(--accent-soft);
+}
+
+.reaction-option--copy {
+  font-size: 0.75rem;
+  border-left: 1px solid var(--border);
+  border-radius: 0 999px 999px 0;
+  padding: 0 8px;
+}
+
+.reaction-copied {
+  white-space: nowrap;
+}
+
+.reaction-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 3px;
+}
+
+.reaction-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  min-height: 26px;
+  padding: 1px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.reaction-pill:disabled {
+  cursor: default;
+}
+
+.reaction-pill:not(:disabled):hover,
+.reaction-pill:focus-visible {
+  border-color: var(--accent-primary);
+}
+
+.reaction-pill--mine {
+  border-color: var(--accent-primary);
+  background: var(--accent-soft);
+  color: var(--accent-primary-strong);
+  font-weight: 600;
+}
+
+.reaction-count {
+  font-size: 0.75rem;
+}
+
+/* Touch screens: long-press opens the emoji bar (with "copy"), so it must not
+   start a text selection or the iOS callout. The smiley stays reachable for
+   screen readers but is not drawn. */
+@media (hover: none) {
+  .reactable-bubble {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  .reactable:hover .reaction-trigger {
+    opacity: 0;
+  }
+
+  .reaction-trigger:focus-visible,
+  .reaction-trigger[aria-expanded='true'] {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .reaction-picker {
+    animation: reaction-pop 140ms ease-out;
+  }
+
+  .reaction-pill {
+    transition:
+      background-color 120ms ease,
+      border-color 120ms ease;
+  }
+
+  .reaction-option:active,
+  .reaction-pill:active {
+    transform: scale(0.92);
+  }
+}
+
+@keyframes reaction-pop {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

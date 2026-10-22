@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import MessengerPage from '../../src/pages/MessengerPage';
@@ -69,6 +69,7 @@ function setConv(overrides: Record<string, unknown> = {}) {
     send: vi.fn(async () => {}),
     remove: vi.fn(async () => {}),
     report: vi.fn(async () => {}),
+    react: vi.fn(async () => {}),
     ...overrides,
   };
 }
@@ -167,6 +168,19 @@ describe('MessengerPage: inbox', () => {
 });
 
 describe('MessengerPage: conversation', () => {
+  it('reacts to a message from the emoji bar', () => {
+    renderAt('/postfach/mira-id');
+    fireEvent.click(screen.getAllByRole('button', { name: 'Mit Emoji reagieren' })[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'Mit Danke reagieren' }));
+    expect(state.conv.react).toHaveBeenCalledWith('1', '🙏');
+  });
+
+  it('offers no reactions when the other person takes no private messages', () => {
+    state.accepts = false;
+    renderAt('/postfach/mira-id');
+    expect(screen.queryByRole('button', { name: 'Mit Emoji reagieren' })).not.toBeInTheDocument();
+  });
+
   it('shows the messages and sends a new one', async () => {
     renderAt('/postfach/mira-id');
     expect(screen.getAllByTestId('dm-message')).toHaveLength(2);
@@ -211,7 +225,7 @@ describe('MessengerPage: conversation', () => {
     renderAt('/postfach/mira-id');
     const [theirs, mine] = screen.getAllByTestId('dm-message');
     expect(theirs).not.toHaveTextContent('Löschen');
-    fireEvent.click(mine.querySelector('button')!);
+    fireEvent.click(within(mine).getByRole('button', { name: 'Nachricht löschen' }));
     fireEvent.click(screen.getByRole('button', { name: 'Löschen' }));
     await waitFor(() =>
       expect(state.conv.remove as ReturnType<typeof vi.fn>).toHaveBeenCalledWith('2')

@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  FieldPath,
   collection,
   deleteDoc,
+  deleteField,
   doc,
   limit,
   onSnapshot,
@@ -9,6 +11,7 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  updateDoc,
   writeBatch,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -23,6 +26,7 @@ import {
   cooldownRemainingMs,
   validateChatText,
 } from '../utils/chat';
+import { sanitizeReactions } from '../utils/reactions';
 
 const messagesPath = ['chat_rooms', CHAT_ROOM_ID, 'messages'];
 
@@ -74,6 +78,7 @@ export function useChat() {
               authorName: data.authorName ?? '',
               authorPhotoURL: data.authorPhotoURL ?? null,
               createdAt: toMillis(data.createdAt),
+              reactions: sanitizeReactions(data.reactions),
               pending: d.metadata.hasPendingWrites,
             };
           })
@@ -167,6 +172,19 @@ export function useChat() {
     await deleteDoc(doc(db, ...messagesPath, messageId));
   }, []);
 
+  // One reaction per person: `emoji` replaces mine, null removes it.
+  const react = useCallback(
+    async (messageId, emoji) => {
+      if (!uid) throw new Error('Bitte melde dich an.');
+      await updateDoc(
+        doc(db, ...messagesPath, messageId),
+        new FieldPath('reactions', uid),
+        emoji ?? deleteField()
+      );
+    },
+    [uid]
+  );
+
   const report = useCallback(
     async (message) => {
       if (!user) throw new Error('Bitte melde dich an.');
@@ -195,7 +213,8 @@ export function useChat() {
       send,
       remove,
       report,
+      react,
     }),
-    [messages, loading, error, sending, ban, canLoadMore, loadOlder, send, remove, report]
+    [messages, loading, error, sending, ban, canLoadMore, loadOlder, send, remove, report, react]
   );
 }

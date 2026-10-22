@@ -14,14 +14,14 @@ at once for everyone; messages stay until the purge.
 
 ## Data (all in `firestore.rules`, tests in `tests/rules/chat.rules.spec.ts`)
 
-| Path                                    | What                                                                |
-| --------------------------------------- | ------------------------------------------------------------------- |
-| `chat_rooms/lagerfeuer/messages/{id}`   | `text, authorUid, authorName, authorPhotoURL, createdAt`. No edits. |
-| `chat_rooms/lagerfeuer/members/{uid}`   | `lastMessageAt`: the cooldown marker                                |
-| `chat_rooms/lagerfeuer/presence/{uid}`  | heartbeat `displayName, photoURL, lastSeen` (who is at the fire)    |
-| `chat_bans/{uid}`                       | `until` (far future = permanent), `reason`, `bannedBy`, `userName`  |
-| `chat_reports/{messageId}_{reporterId}` | copy of the reported text, `status` open/resolved                   |
-| `chat_private/reportMail`               | server-only throttle for admin mails (no client rule, so denied)    |
+| Path                                    | What                                                                                               |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `chat_rooms/lagerfeuer/messages/{id}`   | `text, authorUid, authorName, authorPhotoURL, createdAt`, optional `reactions`. Text never edited. |
+| `chat_rooms/lagerfeuer/members/{uid}`   | `lastMessageAt`: the cooldown marker                                                               |
+| `chat_rooms/lagerfeuer/presence/{uid}`  | heartbeat `displayName, photoURL, lastSeen` (who is at the fire)                                   |
+| `chat_bans/{uid}`                       | `until` (far future = permanent), `reason`, `bannedBy`, `userName`                                 |
+| `chat_reports/{messageId}_{reporterId}` | copy of the reported text, `status` open/resolved                                                  |
+| `chat_private/reportMail`               | server-only throttle for admin mails (no client rule, so denied)                                   |
 
 - **Rate limit (3 s)** lives in the rules: a message may only be created in the same batch that
   updates `members/{uid}.lastMessageAt` to `request.time`, and that update must be > 3 s after the
@@ -36,6 +36,29 @@ at once for everyone; messages stay until the purge.
 - Admins moderate (delete any message, mute/ban). `isChatStaff()` is used instead of
   `isAdminOrEmulatorAdmin()` because the latter errors for users without a `role` claim.
   Regions-Moderator:innen exist only on the regions epic; add them here when it merges.
+
+## Reactions (Lagerfeuer and Postfach)
+
+Five fixed emoji (`src/utils/reactions.js`: 👍 ❤️ 😂 😮 🙏; the same list is in `firestore.rules`,
+keep both in sync). Stored **on the message** as `reactions: { [uid]: emoji }`, so one reaction per
+person and message. The only allowed update of a message changes nothing but your own map entry
+(`isOwnReactionChange()`); setting one needs the same gate as sending (chat: `chatAccessible()`, no
+mute/ban; DM: participants only, not blocked, recipient takes DMs, no mute/ban), taking it back is
+always allowed. Admins get no new access (no read on DMs, no update of other people's entries).
+
+Why a map and not a `reactions/{uid}` subcollection: zero extra listeners or reads (the existing
+message listener carries them live), they vanish with the message (own delete, 10-/90-day purge),
+so no orphans can be read, and no collection-group query/rules are needed. Cost: each reaction
+rewrites the message doc, i.e. one read per listening client, like a new message. There is no rate
+limit in the rules; the client ignores taps while a write is in flight. Account deletion removes own
+entries with `where(FieldPath('reactions', uid), 'in', REACTION_EMOJIS)` (automatic single-field
+index on the map subfield, no composite index).
+
+UI: `MessageReactions` wraps the bubble. Double-tap / double-click toggles ❤️ (two clicks within
+350 ms; the bubble has `touch-action: manipulation`, a double-click does not select a word), the
+smiley button (hover/focus on desktop) or a long-press (touch) opens the bar with the five emoji
+plus "Text kopieren" (on touch screens the bubble has no text selection, hence the copy button).
+Pills under the bubble show emoji + count, own highlighted; tapping a pill toggles/replaces your own.
 
 ## Presence ("who sits at the fire")
 
@@ -65,7 +88,8 @@ desktop the message field is focused on entry (not on phones, the keyboard would
 - `purgeChatMessages` (daily 04:10 Vienna): messages and cooldown markers older than **10 days**,
   reports older than 30 days.
 - `onChatReportCreated`: mails the admins about a new report, at most one mail per 15 minutes.
-- Account deletion (`useAuth.deleteAccount`) removes the user's messages and cooldown marker.
+- Account deletion (`useAuth.deleteAccount`) removes the user's messages, their reactions on other
+  messages and the cooldown marker.
 
 ## Privacy
 
