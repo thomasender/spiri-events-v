@@ -276,6 +276,7 @@ export default function AuthForm() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="deine@email.de"
                     required
+                    name="email"
                     autoComplete="email"
                   />
                 </div>
@@ -312,6 +313,7 @@ export default function AuthForm() {
                     <User size={18} className="input-icon" />
                     <input
                       id="displayName"
+                      name="name"
                       type="text"
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
@@ -333,7 +335,8 @@ export default function AuthForm() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="deine@email.de"
                     required
-                    autoComplete="email"
+                    name="email"
+                    autoComplete="username"
                   />
                 </div>
               </div>
@@ -344,6 +347,7 @@ export default function AuthForm() {
                   <Lock size={18} className="input-icon" />
                   <PasswordInput
                     id="password"
+                    name="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
@@ -360,6 +364,7 @@ export default function AuthForm() {
                     <Lock size={18} className="input-icon" />
                     <PasswordInput
                       id="confirmPassword"
+                      name="confirmPassword"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="••••••••"

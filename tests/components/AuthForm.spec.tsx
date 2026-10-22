@@ -407,3 +407,31 @@ describe('AuthForm analytics', () => {
     expect(screen.getByRole('heading', { name: 'Passwort vergessen' })).toBeTruthy();
   });
 });
+
+describe('AuthForm password manager hints', () => {
+  it('login: username + current-password inside a real form with a submit button', () => {
+    renderForm();
+    const email = screen.getByLabelText('E-Mail');
+    const pw = screen.getByLabelText('Passwort');
+    expect(email).toHaveAttribute('autocomplete', 'username');
+    expect(email).toHaveAttribute('name', 'email');
+    expect(pw).toHaveAttribute('autocomplete', 'current-password');
+    expect(pw).toHaveAttribute('name', 'password');
+    const form = email.closest('form');
+    expect(form).not.toBeNull();
+    expect(form!.querySelector('input[name="password"]')).toBe(pw);
+    expect(form!.querySelector('[data-testid="auth-submit"]')).not.toBeNull();
+    expect(screen.getByTestId('auth-submit')).toHaveAttribute('type', 'submit');
+  });
+
+  it('register: username + new-password', () => {
+    renderForm();
+    fireEvent.click(screen.getByTestId('auth-tab-register'));
+    expect(screen.getByLabelText('E-Mail')).toHaveAttribute('autocomplete', 'username');
+    expect(screen.getByLabelText('Passwort')).toHaveAttribute('autocomplete', 'new-password');
+    expect(screen.getByLabelText('Passwort bestätigen')).toHaveAttribute(
+      'autocomplete',
+      'new-password'
+    );
+  });
+});
