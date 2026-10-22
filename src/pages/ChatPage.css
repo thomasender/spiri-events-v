@@ -142,8 +142,30 @@
   line-height: 1.2;
 }
 
-.chat-message--own .chat-bubble {
+/* Own messages: right-aligned, no avatar, bubble tail on the right. Shared by
+   the Lagerfeuer and the Postfach (MessengerPage.css). */
+.chat-bubble--own {
   background: var(--accent-soft);
+  border-radius: var(--radius-md) 4px var(--radius-md) var(--radius-md);
+}
+
+.chat-bubble--emoji.chat-bubble--own {
+  background: transparent;
+}
+
+.chat-message--own {
+  justify-content: flex-end;
+}
+
+.chat-message--own .chat-bubble-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  max-width: min(560px, 85%);
+}
+
+.chat-message--own .chat-meta {
+  justify-content: flex-end;
 }
 
 .chat-actions {

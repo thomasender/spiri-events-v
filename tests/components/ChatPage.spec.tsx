@@ -116,6 +116,19 @@ describe('ChatPage', () => {
     expect(mine).not.toHaveTextContent('Melden');
   });
 
+  it('puts own messages on the right without avatar, others on the left with avatar', () => {
+    renderPage();
+    const [theirs, mine] = screen.getAllByTestId('chat-message');
+    expect(theirs).not.toHaveClass('chat-message--own');
+    expect(theirs.querySelector('.chat-avatar')).not.toBeNull();
+    expect(theirs.querySelector('.reactable')).toHaveClass('reactable--start');
+    expect(theirs.querySelector('.chat-bubble')).not.toHaveClass('chat-bubble--own');
+    expect(mine).toHaveClass('chat-message--own');
+    expect(mine.querySelector('.chat-avatar')).toBeNull();
+    expect(mine.querySelector('.reactable')).toHaveClass('reactable--end');
+    expect(mine.querySelector('.chat-bubble')).toHaveClass('chat-bubble--own');
+  });
+
   it("lets admins delete other people's messages too", () => {
     state.role = 'Admin';
     renderPage();

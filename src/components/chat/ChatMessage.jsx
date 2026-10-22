@@ -37,28 +37,35 @@ export default function ChatMessage({
       }`}
       data-testid="chat-message"
     >
-      {(() => {
-        const avatar = message.authorPhotoURL ? (
-          <AvatarImage src={message.authorPhotoURL} alt="" className="chat-avatar" loading="lazy" />
-        ) : (
-          <span className="chat-avatar chat-avatar--fallback" aria-hidden="true">
-            {(message.authorName || '?').trim().charAt(0).toUpperCase()}
-          </span>
-        );
-        return openMember ? (
-          <button
-            type="button"
-            className="chat-member-button"
-            onClick={openMember}
-            aria-label={`${message.authorName} ansehen`}
-            tabIndex={-1}
-          >
-            {avatar}
-          </button>
-        ) : (
-          avatar
-        );
-      })()}
+      {/* Own messages sit on the right without an avatar, like in common messengers. */}
+      {!own &&
+        (() => {
+          const avatar = message.authorPhotoURL ? (
+            <AvatarImage
+              src={message.authorPhotoURL}
+              alt=""
+              className="chat-avatar"
+              loading="lazy"
+            />
+          ) : (
+            <span className="chat-avatar chat-avatar--fallback" aria-hidden="true">
+              {(message.authorName || '?').trim().charAt(0).toUpperCase()}
+            </span>
+          );
+          return openMember ? (
+            <button
+              type="button"
+              className="chat-member-button"
+              onClick={openMember}
+              aria-label={`${message.authorName} ansehen`}
+              tabIndex={-1}
+            >
+              {avatar}
+            </button>
+          ) : (
+            avatar
+          );
+        })()}
       <div className="chat-bubble-wrap">
         <div className="chat-meta">
           {openMember ? (
@@ -77,8 +84,13 @@ export default function ChatMessage({
           onReact={(emoji) => onReact(message, emoji)}
           onError={onReactError}
           text={message.text}
+          align={own ? 'end' : 'start'}
         >
-          <div className={`chat-bubble${emojiOnly ? ' chat-bubble--emoji' : ''}`}>
+          <div
+            className={`chat-bubble${own ? ' chat-bubble--own' : ''}${
+              emojiOnly ? ' chat-bubble--emoji' : ''
+            }`}
+          >
             <MessageText text={message.text} />
           </div>
         </MessageReactions>

@@ -48,3 +48,7 @@ export function summarizeReactions(reactions, me) {
 export function nextReaction(current, chosen) {
   return current === chosen ? null : chosen;
 }
+
+// Shown when a reaction write was rejected; the reaction is already rolled back.
+export const REACTION_FAILED =
+  'Deine Reaktion konnte nicht gespeichert werden und wurde zurückgenommen. Versuche es noch einmal.';
