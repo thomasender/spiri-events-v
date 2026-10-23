@@ -4,7 +4,6 @@ import { logger } from 'firebase-functions';
 import { initializeApp, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { CAROUSEL_BEZIRKE } from './instagram/instagramCarousel';
-import { runEventStories } from './instagram/instagramEventStory';
 import { runDailyStories } from './instagram/instagramStory';
 import { buildStoryDeps, resolveInstagramAccessToken } from './instagramDeps';
 import { ADMIN_MAIL_SECRETS } from './adminNotify';
@@ -32,35 +31,27 @@ async function loadCredentials(): Promise<{ accessToken: string; userId: string 
   return { accessToken, userId };
 }
 
-// Every 15 minutes: posts the story of each event that starts in about two
-// hours. The logic itself (time window, daily cap, no duplicates) is in
-// instagram/instagramEventStory.ts, so most runs do nothing.
+// Retired (Trello gOparsqS): the per-event story about two hours before each
+// event is no longer wanted; only the 05:00 overview below posts stories. The
+// export stays as a no-op because the CI deploy runs `--non-interactive`
+// without `--force` and would abort on a function that exists in the cloud but
+// not in main. To remove it for good, run
+// `firebase functions:delete instagramEventStories --region europe-west3`
+// first, then delete this export and the one in index.ts.
 export const instagramEventStories = onSchedule(
   {
-    schedule: 'every 15 minutes',
+    schedule: 'every 24 hours',
     timeZone: 'Europe/Vienna',
     region: 'europe-west3',
-    timeoutSeconds: 540,
-    memory: '1GiB',
-    secrets: [IG_ACCESS_TOKEN, IG_USER_ID, ...ADMIN_MAIL_SECRETS],
   },
   async () => {
-    if (!(await isInstagramEnabled())) {
-      logger.info('Instagram posting disabled via app_settings/instagram; skipping event stories');
-      return;
-    }
-    const credentials = await loadCredentials();
-    if (!credentials) return;
-    const outcome = await runEventStories(
-      buildStoryDeps(getFirestore(), credentials.accessToken, credentials.userId)
-    );
-    if (outcome.status === 'done' && outcome.results.length === 0) return;
-    logger.info('Instagram event stories processed', outcome);
+    logger.debug('instagramEventStories is retired; nothing to do');
   }
 );
 
 // 05:00 every day: one "Heute in <Bezirk>" overview per Bezirk with at least
-// two events today (a single event gets its own story anyway).
+// two events today. Since the per-event story was retired (gOparsqS), a Bezirk
+// with a single event gets no story.
 export const instagramMorningStories = onSchedule(
   {
     schedule: '0 5 * * *',
