@@ -58,6 +58,13 @@ beforeEach(() => {
   state.renames = [];
 });
 
+const district = (key: string) =>
+  waitFor(() => {
+    const el = document.querySelector(`[data-district="${key}"]`);
+    if (!el) throw new Error('map not loaded');
+    return el;
+  });
+
 const pickViaSearch = async (text: string, regionName: string) => {
   fireEvent.change(screen.getByTestId('culture-search'), { target: { value: text } });
   const option = screen
@@ -195,15 +202,11 @@ describe('RegionMappingTab: cleaned-up page (no Bundesland UI)', () => {
 });
 
 describe('RegionMappingTab: culture region map and search', () => {
-  it('picks a region on the map and shows its districts', async () => {
+  it('picks the region of a clicked Landkreis and shows its districts', async () => {
     render(<RegionMappingTab />);
+    fireEvent.click(screen.getByTestId('mapping-suggestion'));
     expect(screen.queryByTestId('culture-panel')).not.toBeInTheDocument();
-    const shape = await waitFor(() => {
-      const el = document.querySelector('[data-region="franken"]');
-      if (!el) throw new Error('map not loaded');
-      return el;
-    });
-    fireEvent.click(shape);
+    fireEvent.click(await district('DE|Roth'));
     const panel = await screen.findByTestId('culture-panel');
     expect(within(panel).getByRole('heading', { name: 'Franken' })).toBeInTheDocument();
   });
@@ -231,23 +234,40 @@ describe('RegionMappingTab: culture region map and search', () => {
     expect(state.renames[0].data.name).toBe('Taubertal');
   });
 
-  it('marks regions with an unsaved change on the map and fades empty ones', async () => {
+  it('colours Landkreise by the draft, marks changes and adds a clicked one', async () => {
     render(<RegionMappingTab />);
-    const shape = (id: string) =>
-      waitFor(() => {
-        const el = document.querySelector(`[data-region="${id}"]`);
-        if (!el) throw new Error('map not loaded');
-        return el;
-      });
-    expect(await shape('tauberfranken')).not.toHaveClass('is-changed');
-    expect(await shape('tauberfranken')).toHaveClass('is-empty');
+    // Nothing assigned yet: every Landkreis is in its Bundesland (neutral, no region group).
+    expect((await district('DE|Roth')).closest('g')).toHaveClass('culture-group--fallback');
     await pickViaSearch('Tauberfr', 'Tauberfranken');
-    fireEvent.change(screen.getByTestId('culture-add-input'), { target: { value: 'Roth' } });
-    fireEvent.click(screen.getByTestId('culture-add-save'));
-    expect(await shape('tauberfranken')).toHaveClass('is-changed');
-    expect(await shape('tauberfranken')).not.toHaveClass('is-empty');
-    expect(await shape('franken')).not.toHaveClass('is-changed');
+    fireEvent.click(await district('DE|Roth'));
+    expect(within(screen.getByTestId('culture-districts')).getByText(/Roth/)).toBeInTheDocument();
+    expect((await district('DE|Roth')).closest('g')).toHaveAttribute(
+      'data-region',
+      'tauberfranken'
+    );
+    expect((await district('DE|Roth')).closest('g')).toHaveClass('is-selected');
+    expect(document.querySelector('[data-changed="DE|Roth"]')).toBeInTheDocument();
+    expect(document.querySelector('[data-changed="DE|Ansbach (Stadt)"]')).not.toBeInTheDocument();
+    expect(state.saves).toHaveLength(0);
     fireEvent.click(screen.getByText('Verwerfen'));
-    expect(await shape('tauberfranken')).not.toHaveClass('is-changed');
+    expect((await district('DE|Roth')).closest('g')).toHaveClass('culture-group--fallback');
+    expect(document.querySelector('[data-changed="DE|Roth"]')).not.toBeInTheDocument();
+  });
+
+  it('does not move a clicked Landkreis that already has events', async () => {
+    state.locks = { 'DE|Roth': 2 };
+    render(<RegionMappingTab />);
+    await pickViaSearch('Tauberfr', 'Tauberfranken');
+    // Locks load asynchronously; the locked chip of "Noch ohne Region" shows when they are in.
+    const chips = within(screen.getByTestId('mapping-unassigned'));
+    await waitFor(() =>
+      expect(chips.getByText(/^Roth/).closest('button')).toHaveAttribute(
+        'title',
+        'Hier gibt es schon Events'
+      )
+    );
+    fireEvent.click(await district('DE|Roth'));
+    expect(screen.getByRole('alert')).toHaveTextContent('Roth hat schon Events');
+    expect(screen.queryByTestId('mapping-draft')).not.toBeInTheDocument();
   });
 });

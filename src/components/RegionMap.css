@@ -68,3 +68,17 @@
   border-color: var(--accent-primary);
   color: var(--accent-contrast, #fff);
 }
+
+/* Germany view: a region is all its Landkreise in one path. No stroke on the fill (it
+   would draw the Landkreis edges); the border path under it leaves only the region edge. */
+.region-map-shape--fill {
+  stroke: none;
+}
+
+.region-map-border {
+  fill: none;
+  stroke: var(--bg-primary);
+  stroke-width: 3;
+  stroke-linejoin: round;
+  pointer-events: none;
+}

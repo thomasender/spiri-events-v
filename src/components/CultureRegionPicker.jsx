@@ -1,21 +1,24 @@
 import { useEffect, useId, useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import { searchCultureRegions } from '../utils/cultureRegionSearch';
+import { CATALOG_BY_KEY } from '../utils/regionMapping';
+import { groupDistrictShapes } from '../utils/landkreisMap';
 
-// Map of the cultural regions of Germany plus a search with autocomplete. Both only pick
-// a region (`onSelect(regionId)`); what is done with it lives in RegionMappingTab. The
-// outlines (src/data/cultureRegionMap.json) are fixed; the three city states have no
-// cultural region and are drawn quiet. Loaded on demand because the file is ~110 kB.
-//
-// The file only holds the outlines of the regions, not of the Landkreise. So the draft is
-// shown on the region shapes: `changedIds` (regions with unsaved changes) get a marked
-// outline, regions without any Landkreis are drawn faded.
+// Map of all Landkreise and kreisfreie Städte of Germany plus a search with autocomplete.
+// Every Landkreis is coloured by the cultural region it belongs to WITH the unsaved draft
+// applied (`holderOf(key)`), so moving one recolours it at once. Landkreise with an unsaved
+// change (`changedKeys`) are marked, the picked region is highlighted, Landkreise without
+// a cultural region (Bundesland fallback) are drawn neutral. A click on a region in the
+// search picks it (`onSelect`); a click on a Landkreis is handed to `onDistrictClick`.
+// Shapes: src/data/landkreisMap.json (scripts/build-landkreis-map.mjs), loaded on demand.
 export default function CultureRegionPicker({
   regions,
   districtsOf,
+  holderOf,
   selectedId,
   onSelect,
-  changedIds,
+  changedKeys,
+  onDistrictClick,
 }) {
   const [mapData, setMapData] = useState(null);
   const [query, setQuery] = useState('');
@@ -24,7 +27,7 @@ export default function CultureRegionPicker({
 
   useEffect(() => {
     let cancelled = false;
-    import('../data/cultureRegionMap.json').then((m) => {
+    import('../data/landkreisMap.json').then((m) => {
       if (!cancelled) setMapData(m.default);
     });
     return () => {
@@ -37,6 +40,17 @@ export default function CultureRegionPicker({
     [regions, districtsOf, query]
   );
   const byId = useMemo(() => new Map(regions.map((r) => [r.id, r])), [regions]);
+  // Only cultural regions colour a Landkreis; anything else is the Bundesland fallback.
+  const groups = useMemo(
+    () =>
+      mapData
+        ? groupDistrictShapes(mapData.districts, (key) => {
+            const id = holderOf(key);
+            return byId.has(id) ? id : null;
+          })
+        : [],
+    [mapData, holderOf, byId]
+  );
 
   const choose = (hit) => {
     onSelect(hit.region.id);
@@ -57,11 +71,16 @@ export default function CultureRegionPicker({
     }
   };
 
-  const shapes = mapData
-    ? Object.entries(mapData.regions)
-        .filter(([id]) => byId.has(id))
-        .sort(([a], [b]) => Number(a === selectedId) - Number(b === selectedId))
-    : [];
+  const regionColour = (id) => {
+    const c = mapData?.regions[id];
+    return c ? { '--h': c.h } : { '--h': 0, '--s': '0%' };
+  };
+  const changed = groups.flatMap((g) => g.keys).filter((key) => changedKeys?.has(key));
+  // The picked region is drawn last, so its (wider) border lies on top of its neighbours.
+  const ordered = [...groups].sort(
+    (a, b) =>
+      Number(Boolean(a.id) && a.id === selectedId) - Number(Boolean(b.id) && b.id === selectedId)
+  );
 
   return (
     <div className="culture-picker" data-testid="culture-picker">
@@ -105,48 +124,55 @@ export default function CultureRegionPicker({
       </div>
 
       {mapData ? (
+        // The panel next to the map (add / remove, search) is the keyboard equivalent, so
+        // the 400 Landkreise are not tab stops.
         <svg
           className="culture-map"
           viewBox={mapData.viewBox}
           role="group"
-          aria-label="Karte der Kulturregionen"
+          aria-label="Karte der Landkreise und Städte nach Kulturregion"
         >
-          {Object.values(mapData.cityStates).map((s) => (
-            <path key={s.name} d={s.d} className="culture-shape culture-shape--quiet">
-              <title>{s.name}</title>
-            </path>
-          ))}
-          {shapes.map(([id, shape]) => (
-            <path
-              key={id}
-              d={shape.d}
-              className={`culture-shape culture-shade-${shape.shade}${
-                id === selectedId ? ' is-selected' : ''
-              }${changedIds?.has(id) ? ' is-changed' : ''}${
-                districtsOf(id).length === 0 ? ' is-empty' : ''
+          {ordered.map((g) => (
+            <g
+              key={g.id ?? `fallback-${g.keys[0]}`}
+              className={`culture-group${g.id ? '' : ' culture-group--fallback'}${
+                g.id && g.id === selectedId ? ' is-selected' : ''
               }`}
-              style={{ '--h': shape.hue }}
-              tabIndex={0}
-              role="button"
-              aria-label={`${byId.get(id).name}${changedIds?.has(id) ? ', geändert' : ''}`}
-              aria-pressed={id === selectedId}
-              data-region={id}
-              onClick={() => onSelect(id)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  onSelect(id);
-                }
-              }}
+              data-region={g.id ?? undefined}
             >
-              <title>
-                {byId.get(id).name}
-                {changedIds?.has(id) ? ' (ungespeicherte Änderung)' : ''}
-              </title>
-            </path>
+              {/* Region border: a wide stroke under the fills, so only the outer edge of
+                  the group stays visible (no region polygons needed). */}
+              <path d={g.d} className="culture-border" />
+              {g.keys.map((key) => {
+                const district = CATALOG_BY_KEY.get(key);
+                const region = g.id ? byId.get(g.id) : null;
+                return (
+                  <path
+                    key={key}
+                    d={mapData.districts[key].d}
+                    className={`culture-shape culture-shade-${
+                      mapData.regions[g.id]?.sh ?? 0
+                    }${g.id ? '' : ' culture-shape--quiet'}`}
+                    style={regionColour(g.id)}
+                    data-district={key}
+                    onClick={() => onDistrictClick(key)}
+                  >
+                    <title>
+                      {district?.name ?? key} · {region ? region.name : 'noch ohne Kulturregion'}
+                      {changedKeys?.has(key) ? ' (ungespeicherte Änderung)' : ''}
+                    </title>
+                  </path>
+                );
+              })}
+            </g>
           ))}
-          {mapData.states.map((d, i) => (
-            <path key={`s${i}`} d={d} className="culture-line" />
+          {changed.map((key) => (
+            <path
+              key={`changed-${key}`}
+              d={mapData.districts[key].d}
+              className="culture-changed"
+              data-changed={key}
+            />
           ))}
           {mapData.country.map((d, i) => (
             <path key={`c${i}`} d={d} className="culture-line culture-line--country" />
@@ -156,8 +182,10 @@ export default function CultureRegionPicker({
         <p className="moderation-hint">Karte wird geladen …</p>
       )}
       <p className="moderation-hint" data-testid="culture-map-legend">
-        Orange umrandet: Region mit ungespeicherter Änderung. Blass: Region ohne Landkreis. Die
-        Karte zeigt die Regionen als Ganzes, einzelne Landkreise sind darin nicht eingezeichnet.
+        Jeder Landkreis und jede Stadt ist in der Farbe der Kulturregion eingefärbt, zu der sie mit
+        dem Entwurf gehören. Orange gestrichelt: ungespeicherte Änderung. Grau: noch ohne
+        Kulturregion (gehört zum Bundesland). Klick auf einen Landkreis: zur gewählten Region
+        hinzufügen.
       </p>
     </div>
   );

@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { REGION_MAP } from '../data/regionMap';
+import { germanDistrictHolders, groupDistrictShapes } from '../utils/landkreisMap';
 import './RegionMap.css';
 
 /**
@@ -9,31 +10,35 @@ import './RegionMap.css';
  * readers and the keyboard. `activeSlugs`: regions that are open; the others
  * lead to their coming-soon page and are drawn quieter.
  */
-// The three city states are drawn separately in cultureRegionMap.json (no Kulturregion).
-const CITY_STATE_SLUGS = { hamburg: 'hamburg', 'bremen-bremerhaven': 'bremen', berlin: 'berlin' };
-
 export default function RegionMap({ regions, activeSlugs, onChoose }) {
   const [hovered, setHovered] = useState(null);
   const [view, setView] = useState('dach');
-  const [cultureMap, setCultureMap] = useState(null);
+  const [landkreisMap, setLandkreisMap] = useState(null);
   const byId = new Map(regions.map((r) => [r.slug, r]));
   const shown = hovered ? byId.get(hovered) : null;
-  // Germany is drawn from the same data as Verwaltung -> Zuordnung (the Kulturregionen with
-  // their CURRENT names and districts) as soon as one of them has districts. Before that
-  // nothing changes: the Bundesland map of Germany, Austria and Switzerland only.
+  // Germany is drawn from the same Landkreis data as Verwaltung -> Zuordnung as soon as a
+  // Kulturregion has districts: every Landkreis lands in the region that lists it NOW
+  // (current names and assignment of the merged register), so a moved Landkreis shows in
+  // its new region. Before that nothing changes: the Bundesland map of Germany, Austria
+  // and Switzerland only.
   const hasCulture = regions.some((r) => r.country === 'DE' && r.home === false);
   const deView = hasCulture && view === 'de';
+  const groups = useMemo(() => {
+    if (!landkreisMap) return [];
+    const holders = germanDistrictHolders(regions);
+    return groupDistrictShapes(landkreisMap.districts, (key) => holders.get(key));
+  }, [landkreisMap, regions]);
 
   useEffect(() => {
-    if (!deView || cultureMap) return undefined;
+    if (!deView || landkreisMap) return undefined;
     let cancelled = false;
-    import('../data/cultureRegionMap.json').then((m) => {
-      if (!cancelled) setCultureMap(m.default);
+    import('../data/landkreisMap.json').then((m) => {
+      if (!cancelled) setLandkreisMap(m.default);
     });
     return () => {
       cancelled = true;
     };
-  }, [deView, cultureMap]);
+  }, [deView, landkreisMap]);
 
   const shapeProps = (slug) => ({
     'data-region': slug,
@@ -70,30 +75,35 @@ export default function RegionMap({ regions, activeSlugs, onChoose }) {
       )}
       {deView ? (
         <svg
-          viewBox={cultureMap?.viewBox ?? '0 0 539.7 720.8'}
+          viewBox={landkreisMap?.viewBox ?? '0 0 539.7 720.8'}
           className="region-map-svg"
           aria-hidden="true"
           focusable="false"
           data-testid="region-map-de"
         >
-          {cultureMap &&
-            Object.entries(cultureMap.cityStates).map(([key, s]) => {
-              const slug = CITY_STATE_SLUGS[key];
-              if (!byId.has(slug)) {
-                return (
-                  <path key={key} d={s.d} className="region-map-shape region-map-shape--quiet" />
-                );
-              }
-              return <path key={key} d={s.d} {...shapeProps(slug)} />;
-            })}
-          {cultureMap &&
-            Object.entries(cultureMap.regions).map(([id, shape]) =>
-              byId.has(id) ? <path key={id} d={shape.d} {...shapeProps(id)} /> : null
-            )}
-          {cultureMap &&
-            cultureMap.states.map((d, i) => (
-              <path key={`s${i}`} d={d} className="region-map-line" />
-            ))}
+          {groups.map((g) =>
+            g.id === null ? (
+              <path
+                key="none"
+                d={g.d}
+                className="region-map-shape region-map-shape--quiet region-map-shape--fill"
+              />
+            ) : (
+              // One shape per region (all its Landkreise), drawn over a wide border stroke
+              // so only the region edges show, not the Landkreis edges inside.
+              <g key={g.id}>
+                <path d={g.d} className="region-map-border" />
+                <path
+                  d={g.d}
+                  {...shapeProps(g.id)}
+                  className={`${shapeProps(g.id).className} region-map-shape--fill`}
+                />
+              </g>
+            )
+          )}
+          {landkreisMap?.country.map((d, i) => (
+            <path key={`c${i}`} d={d} className="region-map-line" />
+          ))}
         </svg>
       ) : (
         <svg

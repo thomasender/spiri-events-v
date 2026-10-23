@@ -79,8 +79,9 @@
   --s: 42%;
   --l: 76%;
   fill: hsl(var(--h) var(--s) var(--l));
-  stroke: var(--bg-primary);
-  stroke-width: 0.7;
+  stroke: var(--text-primary);
+  stroke-opacity: 0.25;
+  stroke-width: 0.4;
   cursor: pointer;
 }
 
@@ -102,15 +103,39 @@
 
 .culture-shape--quiet {
   fill: var(--bg-secondary);
-  cursor: default;
 }
 
-.culture-shape:not(.culture-shape--quiet):hover,
-.culture-shape:focus-visible,
-.culture-shape.is-selected {
+.culture-shape:hover {
+  stroke-opacity: 1;
+  stroke-width: 1.2;
+}
+
+/* Region border: wide stroke under the fills of its group, only the outer half shows. */
+.culture-border {
+  fill: none;
   stroke: var(--text-primary);
-  stroke-width: 2;
-  outline: none;
+  stroke-opacity: 0.75;
+  stroke-width: 2.2;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.culture-group--fallback .culture-border {
+  stroke-opacity: 0.3;
+}
+
+.culture-group.is-selected .culture-border {
+  stroke-opacity: 1;
+  stroke-width: 5;
+}
+
+.culture-changed {
+  fill: none;
+  stroke: #e67e22;
+  stroke-width: 1.6;
+  stroke-dasharray: 3 2;
+  stroke-linejoin: round;
+  pointer-events: none;
 }
 
 .culture-line {
@@ -188,14 +213,4 @@
 .culture-districts button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-}
-
-.culture-shape.is-empty {
-  opacity: 0.45;
-}
-
-.culture-shape.is-changed {
-  stroke: #e67e22;
-  stroke-width: 2.6;
-  stroke-dasharray: 5 3;
 }

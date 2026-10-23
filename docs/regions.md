@@ -177,8 +177,8 @@ regions of one country; the lists are saved in `regions/{id}.bezirke` (+ `mappin
   is meant to be arranged BEFORE a region gets events. Directory profiles (`directoryRegionIds`
   / `directoryRegions`) are not checked; there are none outside Vorarlberg before launch.
 - **Prefill, drag and drop, rename:** "Vorschlag laden" stages the prepared assignment
-  `src/data/regionSuggestion.js` (region slug -> Landkreis names, guarded by
-  `regionSuggestion.spec.ts`) as a normal draft, locked districts skipped; rows and the
+  `src/data/regionSuggestion.js` (region slug -> Landkreis names, generated from the product
+  owner's map, see below, guarded by `regionSuggestion.spec.ts`) as a normal draft, locked districts skipped; rows and the
   "Noch ohne Region" chips (districts still in their Bundesland) can be dragged onto a region
   in the "Regionen" panel. "Region umbenennen" writes only `regions/{id}.name` (client `setDoc`
   merge, allowed by `isValidRegion`); slug and wording tables stay.
@@ -186,16 +186,29 @@ regions of one country; the lists are saved in `regions/{id}.bezirke` (+ `mappin
   `CULTURE_REGIONS` table in `scripts/build-region-data.mjs`, regenerate, update the id
   list in `firestore.rules` (guarded by `regions.spec.ts`), seed the doc and run
   `check-reserved-usernames.mjs` read-only against production (the slugs are reserved).
-- **Map and search of the cultural regions:** the top of the "Zuordnung" tab has a map of the
-  60 cultural regions (`CultureRegionPicker.jsx`, outlines in `src/data/cultureRegionMap.json`,
-  keyed by region slug, loaded on demand) and a search with autocomplete (region names and the
-  districts they hold now, `src/utils/cultureRegionSearch.js`). Picking a region (click, tap or
-  search) opens a panel with its name (rename), its districts (take out) and an input to add a
-  district (taken from the region that holds it). Add and remove only stage the move in the
-  normal draft; saving, locks and checks are unchanged. The outlines are fixed (Landkreis
-  geometry of about 2015): moving districts changes the lists, not the drawn areas. Hamburg,
-  Berlin and Bremen are drawn quiet (no cultural region). `RegionMap` (visitors) still draws
-  the 51 Bundesland shapes only.
+- **Map and search of the cultural regions:** the top of the "Zuordnung" tab has a map of all
+  400 Landkreise / kreisfreie Städte (`CultureRegionPicker.jsx`, shapes in
+  `src/data/landkreisMap.json`, keyed by `DISTRICT_CATALOG` key, loaded on demand) and a search
+  with autocomplete (region names and the districts they hold now,
+  `src/utils/cultureRegionSearch.js`). Every Landkreis is coloured by the cultural region that
+  holds it **with the draft applied** (moving one recolours it), unsaved moves are marked
+  orange, the picked region gets a wide border, Landkreise in no cultural region (Bundesland
+  fallback, e.g. Berlin, Hamburg, Bremen) are grey. Picking a region (search, or a click on one
+  of its Landkreise while none is picked) opens a panel with its name (rename), its districts
+  (take out) and an input to add a district; a click on a Landkreis with a region picked adds it
+  to that region. Add and remove only stage the move in the normal draft; saving, locks and
+  checks are unchanged (a locked Landkreis cannot be clicked out of its region).
+  `RegionMap` (visitors, Germany view once a cultural region has districts) draws the same
+  shapes grouped by the region that lists them in the merged register, so renames and moves
+  show there too.
+- **Map data source:** `scripts/build-landkreis-map.mjs <html>` reads the product owner's map
+  "Neu Kulturregionen Deutschlands mit Landkreisen und Städten" (not committed) as text, matches
+  its names to the catalog (rules + `ALIASES`; Osterode am Harz is drawn as part of Göttingen,
+  Eisenach as part of the Wartburgkreis; geometry about 2015), writes `landkreisMap.json`
+  (paths re-encoded relative, lossless) and regenerates `src/data/regionSuggestion.js` from the
+  map's assignment (the map is the current source for "Vorschlag laden"). Guarded by
+  `tests/components/landkreisMap.spec.ts`. Coordinates are SVG units of the 539.7 x 720.8
+  viewBox, not lat/lon.
 
 ## 3. Roles
 

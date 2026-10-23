@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import RegionMap from '../../src/components/RegionMap';
 import { REGION_MAP } from '../../src/data/regionMap';
+import landkreisMap from '../../src/data/landkreisMap.json';
 
 const regions = REGION_MAP.regions.map((r: { id: string }) => ({
   slug: r.id,
@@ -27,24 +28,37 @@ describe('RegionMap', () => {
     expect(screen.queryByTestId('region-map-view-de')).not.toBeInTheDocument();
   });
 
-  it('draws Germany from the Kulturregionen with their current names', async () => {
+  it('draws Germany from the Landkreise with the current names and assignment', async () => {
     const onChoose = vi.fn();
+    // Roth was moved from Franken to the renamed Tauberfranken: it is drawn in it.
     const withCulture = [
       ...regions,
-      { slug: 'franken', name: 'Frankenland', country: 'DE', home: false },
+      {
+        slug: 'franken',
+        name: 'Frankenland',
+        country: 'DE',
+        home: false,
+        bezirke: ['Ansbach (Stadt)'],
+      },
+      { slug: 'tauberfranken', name: 'Taubertal', country: 'DE', home: false, bezirke: ['Roth'] },
     ];
     const { container } = render(
       <RegionMap regions={withCulture} activeSlugs={new Set()} onChoose={onChoose} />
     );
     fireEvent.click(screen.getByTestId('region-map-view-de'));
     const shape = await waitFor(() => {
-      const el = container.querySelector('[data-region="franken"]');
+      const el = container.querySelector('path[data-region="tauberfranken"]');
       if (!el) throw new Error('map not loaded');
       return el;
     });
+    const roth = (landkreisMap.districts as Record<string, { d: string }>)['DE|Roth'].d;
+    expect(shape.getAttribute('d')).toBe(roth);
+    expect(container.querySelector('path[data-region="franken"]')!.getAttribute('d')).not.toContain(
+      roth
+    );
     fireEvent.mouseEnter(shape);
-    expect(screen.getByTestId('region-map-caption').textContent).toContain('Frankenland');
+    expect(screen.getByTestId('region-map-caption').textContent).toContain('Taubertal');
     fireEvent.click(shape);
-    expect(onChoose).toHaveBeenCalledWith('franken');
+    expect(onChoose).toHaveBeenCalledWith('tauberfranken');
   });
 });

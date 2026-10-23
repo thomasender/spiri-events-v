@@ -58,6 +58,12 @@ export default function RegionMappingTab() {
     return byRegion;
   }, [draft, baseAssignment]);
   const districtsOf = useCallback((id) => districtsByRegion.get(id) ?? [], [districtsByRegion]);
+  // Region that holds a district with the draft applied (colours the Landkreis map).
+  const holderOf = useCallback(
+    (key) => draft.get(key) ?? baseAssignment.get(key),
+    [draft, baseAssignment]
+  );
+  const changedKeys = useMemo(() => new Set(draft.keys()), [draft]);
   const cultureRegions = useMemo(
     () => regions.filter((r) => r.country === 'DE' && !r.home),
     [regions]
@@ -65,13 +71,11 @@ export default function RegionMappingTab() {
 
   if (!isSuperAdmin) return null;
 
-  const changedIds = new Set(plan.changes.map((c) => c.regionId));
-  const effectiveRegionId = (key) => draft.get(key) ?? baseAssignment.get(key);
   // Districts that still sit in their Bundesland, i.e. in no cultural region yet (compared
   // with the current data: only the Bundesland fallback). The Bundesland is not shown as a
   // group, only its name as a small label.
   const unassigned = DISTRICT_CATALOG.filter(
-    (d) => d.country === 'DE' && regionById.get(effectiveRegionId(d.key))?.home
+    (d) => d.country === 'DE' && regionById.get(holderOf(d.key))?.home
   );
 
   const focusRegion = focusId ? regionById.get(focusId) : null;
@@ -99,6 +103,29 @@ export default function RegionMappingTab() {
   };
   // "Aus der Region nehmen": the district goes back to its Bundesland, i.e. to "no cultural
   // region yet" (a district always belongs to exactly one region).
+  const selectRegion = (id) => {
+    setFocusId(id);
+    setFocusName(regionById.get(id)?.name ?? '');
+    setAddValue('');
+  };
+  // A click on a Landkreis of the map: added to the picked region (as a draft), like the
+  // "hinzufügen" field. Without a picked region it picks the region that holds it.
+  const onDistrictClick = (key) => {
+    const holder = holderOf(key);
+    if (!focusRegion) {
+      if (cultureRegions.some((r) => r.id === holder)) selectRegion(holder);
+      return;
+    }
+    if (busy || holder === focusRegion.id) return;
+    if (locks[key]) {
+      setNotice({
+        kind: 'error',
+        text: `${CATALOG_BY_KEY.get(key)?.name ?? key} hat schon Events und bleibt in seiner Region.`,
+      });
+      return;
+    }
+    stageKeys([key], focusRegion.id);
+  };
   const unstageKeys = (keys) => {
     setNotice(null);
     setDraft((prev) => {
@@ -189,13 +216,11 @@ export default function RegionMappingTab() {
         <CultureRegionPicker
           regions={cultureRegions}
           districtsOf={districtsOf}
+          holderOf={holderOf}
           selectedId={focusId}
-          changedIds={changedIds}
-          onSelect={(id) => {
-            setFocusId(id);
-            setFocusName(regionById.get(id)?.name ?? '');
-            setAddValue('');
-          }}
+          changedKeys={changedKeys}
+          onSelect={selectRegion}
+          onDistrictClick={onDistrictClick}
         />
         {focusRegion ? (
           <div className="culture-panel" data-testid="culture-panel">
@@ -294,7 +319,7 @@ export default function RegionMappingTab() {
           </div>
         ) : (
           <p className="moderation-hint">
-            Wähle eine Kulturregion auf der Karte oder über die Suche.
+            Wähle eine Kulturregion über die Suche oder mit einem Klick auf einen ihrer Landkreise.
           </p>
         )}
       </section>
