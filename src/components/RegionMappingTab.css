@@ -1,32 +1,5 @@
 /* "Zuordnung" admin tab; cards, notices and buttons reuse ModerationTab.css. */
-.mapping-countries {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
 
-.mapping-country {
-  min-height: 44px;
-  padding: 0 16px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  font: inherit;
-  cursor: pointer;
-}
-
-.mapping-country--active {
-  border-color: var(--accent-primary);
-  font-weight: 600;
-}
-
-.mapping-country:focus-visible {
-  outline: 2px solid var(--accent-primary);
-  outline-offset: 2px;
-}
-
-.mapping-filters,
 .mapping-move {
   display: flex;
   flex-wrap: wrap;
@@ -56,13 +29,6 @@
   font-size: 1rem;
 }
 
-.mapping-selected {
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  font-weight: 600;
-}
-
 .mapping-draft {
   padding: 12px 14px;
   border: 1px solid var(--accent-primary);
@@ -82,100 +48,9 @@
   justify-content: flex-end;
 }
 
-.mapping-state {
-  margin: 0;
-  padding: 0 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-}
-
-.mapping-state[open] {
-  padding-bottom: 8px;
-}
-
-.mapping-state-summary {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 10px;
-  min-height: 48px;
-  padding: 10px 0;
-  cursor: pointer;
-}
-
-.mapping-state-summary:focus-visible {
-  outline: 2px solid var(--accent-primary);
-  outline-offset: 2px;
-}
-
-.mapping-state-name {
-  font-weight: 600;
-}
-
-.mapping-state-note {
-  color: var(--accent-primary);
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
 .mapping-count {
   font-weight: 400;
   color: var(--text-secondary);
-}
-
-.mapping-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.mapping-item {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 12px;
-  min-height: 44px;
-  border-bottom: 1px solid var(--border);
-}
-
-.mapping-item:last-child {
-  border-bottom: 0;
-}
-
-.mapping-item label {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 1 1 220px;
-  min-height: 44px;
-  cursor: pointer;
-}
-
-.mapping-item input[type='checkbox'] {
-  width: 20px;
-  height: 20px;
-}
-
-.mapping-item--moved {
-  background: var(--bg-secondary);
-}
-
-.mapping-region {
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-}
-
-.mapping-badge {
-  color: var(--accent-primary);
-  font-weight: 600;
-}
-
-.mapping-lock {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--text-secondary);
-  font-size: 0.85rem;
 }
 
 .mapping-summary {
@@ -187,40 +62,6 @@
   font-size: 0.9rem;
 }
 
-/* The shared intro has `flex: 1 1 320px`, which would stretch it in this column. */
-.mapping-tab .moderation-intro {
-  flex: 0 0 auto;
-}
-
-.mapping-info {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 12px;
-}
-
-.mapping-info-card {
-  padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--bg-secondary);
-}
-
-.mapping-info-card h3 {
-  margin: 0 0 6px;
-  font-size: 1rem;
-}
-
-.mapping-info-card ul {
-  margin: 0;
-  padding-left: 18px;
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-}
-
-.mapping-info-card li + li {
-  margin-top: 4px;
-}
-
 .mapping-suggestion {
   display: flex;
   flex-wrap: wrap;
@@ -228,18 +69,14 @@
   gap: 10px 14px;
 }
 
-.mapping-unassigned,
-.mapping-drop,
-.mapping-rename {
+.mapping-unassigned {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-secondary);
   padding: 10px 14px;
 }
 
-.mapping-unassigned summary,
-.mapping-drop summary,
-.mapping-rename summary {
+.mapping-unassigned summary {
   cursor: pointer;
 }
 
@@ -252,12 +89,8 @@
   list-style: none;
 }
 
-.mapping-chip,
-.mapping-item[draggable='true'] {
-  cursor: grab;
-}
-
 .mapping-chip {
+  cursor: pointer;
   padding: 8px 14px;
   min-height: 40px;
   border: 1px solid var(--border);
@@ -267,44 +100,12 @@
   font: inherit;
 }
 
-.mapping-chip--selected {
-  border-color: var(--primary, #b98a5e);
-  background: var(--primary, #b98a5e);
-  color: #fff;
+.mapping-chip:disabled {
+  cursor: default;
+  opacity: 0.6;
 }
 
-.mapping-drop-actions {
-  margin-top: 10px;
-}
-
-.mapping-drop-group h4 {
-  margin: 12px 0 6px;
-  font-size: 0.9rem;
-}
-
-.mapping-drop-targets {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.mapping-drop-target {
-  min-height: 44px;
-  color: inherit;
-  font-family: inherit;
-  text-align: left;
-  padding: 8px 12px;
-  border: 1px dashed var(--border);
-  border-radius: var(--radius-md);
-  background: var(--bg-primary);
-  font-size: 0.9rem;
-}
-
-.mapping-drop-target:not(:disabled) {
-  border-style: solid;
-  cursor: pointer;
-}
-
-.mapping-drop-target:disabled {
-  opacity: 0.7;
+.mapping-state-label {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
 }
