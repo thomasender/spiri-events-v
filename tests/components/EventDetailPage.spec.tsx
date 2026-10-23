@@ -892,6 +892,7 @@ describe('EventDetailPage — recurrence dates list (4bVW6i7o)', () => {
       const datesList = screen.getByTestId('event-detail-dates-list');
       expect(datesList).toBeInTheDocument();
 
+      fireEvent.click(screen.getByRole('button', { name: 'Mehr anzeigen' }));
       const items = screen.getAllByTestId('event-detail-date-item');
       expect(items).toHaveLength(customDatesEvent.customDates.length);
 
@@ -912,7 +913,7 @@ describe('EventDetailPage — recurrence dates list (4bVW6i7o)', () => {
       expect(datesList).toBeInTheDocument();
 
       const items = screen.getAllByTestId('event-detail-date-item');
-      expect(items).toHaveLength(customDatesEvent.customDates.length);
+      expect(items).toHaveLength(3);
 
       const currentItems = screen.getAllByTestId('event-detail-date-current');
       expect(currentItems).toHaveLength(1);
@@ -958,6 +959,32 @@ describe('EventDetailPage — recurrence dates list (4bVW6i7o)', () => {
       const currentItems = screen.getAllByTestId('event-detail-date-current');
       expect(currentItems).toHaveLength(1);
       expect(currentItems[0]).toHaveTextContent('14. September 2026');
+    });
+  });
+
+  describe('long series', () => {
+    beforeEach(() => {
+      mockFirestoreDoc.getDocResult = { id: recurringEvent.id, data: recurringEvent };
+      mockGetRecurrenceDatesForDetail.mockReturnValue([
+        '2026-09-07',
+        '2026-09-14',
+        '2026-09-21',
+        '2026-09-28',
+        '2026-10-05',
+      ]);
+    });
+
+    it('shows only three dates until "Mehr anzeigen" is clicked', async () => {
+      renderRecurringEventPage(null);
+      expect(await screen.findByText('Wochen-Yoga')).toBeInTheDocument();
+
+      expect(screen.getAllByTestId('event-detail-date-item')).toHaveLength(3);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Mehr anzeigen' }));
+      expect(screen.getAllByTestId('event-detail-date-item')).toHaveLength(5);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Weniger anzeigen' }));
+      expect(screen.getAllByTestId('event-detail-date-item')).toHaveLength(3);
     });
   });
 

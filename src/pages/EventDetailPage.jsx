@@ -174,6 +174,8 @@ function generateEventJsonLd(event) {
   });
 }
 
+const MAX_COLLAPSED_DATES = 3;
+
 export default function EventDetailPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
@@ -186,6 +188,7 @@ export default function EventDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [showAllDates, setShowAllDates] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showRecurringDeleteDialog, setShowRecurringDeleteDialog] = useState(false);
@@ -549,6 +552,9 @@ export default function EventDetailPage() {
   const eventPath = `/event/${event.slug || event.id}`;
   const recurrenceDates = getRecurrenceDatesForDetail(event);
   const showRecurrenceDatesList = recurrenceDates.length > 0;
+  const visibleRecurrenceDates = showAllDates
+    ? recurrenceDates
+    : recurrenceDates.slice(0, MAX_COLLAPSED_DATES);
 
   return (
     <div className="event-detail-page">
@@ -726,7 +732,7 @@ export default function EventDetailPage() {
                 className="detail-value event-detail-dates-list"
                 data-testid="event-detail-dates-list"
               >
-                {recurrenceDates.map((date) => {
+                {visibleRecurrenceDates.map((date) => {
                   const isCurrent = date === occurrenceDate;
                   const dateCancelled = isOccurrenceCancelled(event, date);
                   const dateIsCancelledSingly =
@@ -766,6 +772,19 @@ export default function EventDetailPage() {
                     </li>
                   );
                 })}
+                {recurrenceDates.length > MAX_COLLAPSED_DATES && (
+                  <li>
+                    <button
+                      type="button"
+                      className="detail-link detail-link--button"
+                      onClick={() => setShowAllDates((v) => !v)}
+                      aria-expanded={showAllDates}
+                      data-testid="toggle-dates-button"
+                    >
+                      {showAllDates ? 'Weniger anzeigen' : 'Mehr anzeigen'}
+                    </button>
+                  </li>
+                )}
               </ul>
             ) : (
               <span className="detail-value">
