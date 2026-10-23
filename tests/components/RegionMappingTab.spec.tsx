@@ -230,4 +230,24 @@ describe('RegionMappingTab: culture region map and search', () => {
     await waitFor(() => expect(state.renames[0]?.id).toBe('tauberfranken'));
     expect(state.renames[0].data.name).toBe('Taubertal');
   });
+
+  it('marks regions with an unsaved change on the map and fades empty ones', async () => {
+    render(<RegionMappingTab />);
+    const shape = (id: string) =>
+      waitFor(() => {
+        const el = document.querySelector(`[data-region="${id}"]`);
+        if (!el) throw new Error('map not loaded');
+        return el;
+      });
+    expect(await shape('tauberfranken')).not.toHaveClass('is-changed');
+    expect(await shape('tauberfranken')).toHaveClass('is-empty');
+    await pickViaSearch('Tauberfr', 'Tauberfranken');
+    fireEvent.change(screen.getByTestId('culture-add-input'), { target: { value: 'Roth' } });
+    fireEvent.click(screen.getByTestId('culture-add-save'));
+    expect(await shape('tauberfranken')).toHaveClass('is-changed');
+    expect(await shape('tauberfranken')).not.toHaveClass('is-empty');
+    expect(await shape('franken')).not.toHaveClass('is-changed');
+    fireEvent.click(screen.getByText('Verwerfen'));
+    expect(await shape('tauberfranken')).not.toHaveClass('is-changed');
+  });
 });

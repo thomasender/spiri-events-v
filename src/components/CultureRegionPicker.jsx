@@ -6,7 +6,17 @@ import { searchCultureRegions } from '../utils/cultureRegionSearch';
 // a region (`onSelect(regionId)`); what is done with it lives in RegionMappingTab. The
 // outlines (src/data/cultureRegionMap.json) are fixed; the three city states have no
 // cultural region and are drawn quiet. Loaded on demand because the file is ~110 kB.
-export default function CultureRegionPicker({ regions, districtsOf, selectedId, onSelect }) {
+//
+// The file only holds the outlines of the regions, not of the Landkreise. So the draft is
+// shown on the region shapes: `changedIds` (regions with unsaved changes) get a marked
+// outline, regions without any Landkreis are drawn faded.
+export default function CultureRegionPicker({
+  regions,
+  districtsOf,
+  selectedId,
+  onSelect,
+  changedIds,
+}) {
   const [mapData, setMapData] = useState(null);
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
@@ -112,11 +122,13 @@ export default function CultureRegionPicker({ regions, districtsOf, selectedId, 
               d={shape.d}
               className={`culture-shape culture-shade-${shape.shade}${
                 id === selectedId ? ' is-selected' : ''
+              }${changedIds?.has(id) ? ' is-changed' : ''}${
+                districtsOf(id).length === 0 ? ' is-empty' : ''
               }`}
               style={{ '--h': shape.hue }}
               tabIndex={0}
               role="button"
-              aria-label={byId.get(id).name}
+              aria-label={`${byId.get(id).name}${changedIds?.has(id) ? ', geändert' : ''}`}
               aria-pressed={id === selectedId}
               data-region={id}
               onClick={() => onSelect(id)}
@@ -127,7 +139,10 @@ export default function CultureRegionPicker({ regions, districtsOf, selectedId, 
                 }
               }}
             >
-              <title>{byId.get(id).name}</title>
+              <title>
+                {byId.get(id).name}
+                {changedIds?.has(id) ? ' (ungespeicherte Änderung)' : ''}
+              </title>
             </path>
           ))}
           {mapData.states.map((d, i) => (
@@ -140,6 +155,10 @@ export default function CultureRegionPicker({ regions, districtsOf, selectedId, 
       ) : (
         <p className="moderation-hint">Karte wird geladen …</p>
       )}
+      <p className="moderation-hint" data-testid="culture-map-legend">
+        Orange umrandet: Region mit ungespeicherter Änderung. Blass: Region ohne Landkreis. Die
+        Karte zeigt die Regionen als Ganzes, einzelne Landkreise sind darin nicht eingezeichnet.
+      </p>
     </div>
   );
 }

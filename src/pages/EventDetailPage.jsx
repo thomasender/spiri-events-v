@@ -36,6 +36,7 @@ import {
 import { useAuth } from '../hooks/useAuth';
 import { useEvents } from '../hooks/useEvents';
 import { useEventRegionContext, useRegion } from '../hooks/useRegion';
+import { useRegions } from '../hooks/useRegions';
 import { useOrganizerProfile } from '../hooks/useOrganizerProfile';
 import { useEventFavoriteCount } from '../hooks/useEventFavoriteCount';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
@@ -170,16 +171,16 @@ function formatRecurrence(recurrence, recurrenceEndDate, eventDate) {
 }
 
 // Name of the event's region (Vorarlberg for events without regionId, so unchanged).
-function eventRegionName(event) {
-  return getRegionBySlug(resolveRegionId(event))?.name ?? 'Vorarlberg';
+function eventRegionName(event, regions) {
+  return getRegionBySlug(resolveRegionId(event), regions)?.name ?? 'Vorarlberg';
 }
 
-function generateEventJsonLd(event) {
+function generateEventJsonLd(event, regions) {
   const image = event.imageUrl || getEventFallbackImage(event);
   return buildEventJsonLd(event, {
     image: /^https?:\/\//i.test(image) ? image : `https://www.thetribe.at${image}`,
     description: stripHtml(event.description || ''),
-    regionName: eventRegionName(event),
+    regionName: eventRegionName(event, regions),
   });
 }
 
@@ -197,6 +198,7 @@ export default function EventDetailPage() {
   const { deleteEvent, updateEvent, approveEvent, unpublishEvent } = useEvents(user);
   const [event, setEvent] = useState(null);
   useEventRegionContext(event);
+  const { regions } = useRegions();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -407,7 +409,7 @@ export default function EventDetailPage() {
 
   const isFree = event.contribution === 'free';
   const isDonation = event.contribution === 'donation';
-  const jsonLd = generateEventJsonLd(event);
+  const jsonLd = generateEventJsonLd(event, regions);
   const isOwner = user && event.createdBy === user.uid;
   const showEditButton = canEditEvent(user, event, role);
   const showDeleteButton = canDeleteEvent(user, event, role);
@@ -890,7 +892,7 @@ export default function EventDetailPage() {
               className="detail-value"
               data-testid={event.isOnline ? 'event-detail-location-online' : undefined}
             >
-              {getEventLocationLabel(event) || eventRegionName(event)}
+              {getEventLocationLabel(event) || eventRegionName(event, regions)}
             </span>
           </div>
         </div>

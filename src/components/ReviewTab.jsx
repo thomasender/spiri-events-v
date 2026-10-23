@@ -9,7 +9,7 @@ import { useUserDisplayNames } from '../hooks/useUserDisplayNames';
 import { useAuth } from '../hooks/useAuth';
 import { requiresDeleteReason } from '../utils/eventPermissions';
 import { getStaffAccess } from '../utils/staffRoles';
-import { STATIC_REGIONS, resolveRegionId } from '../utils/regions';
+import { resolveRegionId } from '../utils/regions';
 import { buildTrashUpdate } from '../utils/trashUpdates';
 import EventAdminListRow from './EventAdminListRow';
 import ConfirmDialog from './ConfirmDialog';
@@ -18,8 +18,8 @@ import './ReviewTab.css';
 
 const APPROVED_WINDOW_DAYS = 7;
 
-function regionNames(ids) {
-  const names = ids.map((id) => STATIC_REGIONS.find((r) => r.id === id)?.name || id);
+function regionNames(ids, nameOf) {
+  const names = ids.map((id) => nameOf(id));
   if (names.length <= 1) return names.join('');
   return `${names.slice(0, -1).join(', ')} und ${names[names.length - 1]}`;
 }
@@ -234,7 +234,7 @@ export default function ReviewTab() {
   }
 
   const subtitle = access.isRegionModerator
-    ? `Hier landen die Events aus ${regionNames(access.moderatorRegionIds)}, die auf deine Freigabe warten`
+    ? `Hier landen die Events aus ${regionNames(access.moderatorRegionIds, nameOf)}, die auf deine Freigabe warten`
     : 'Hier landen alle Events, die auf deine Freigabe warten';
 
   const pendingShown = pendingInKlaerung.length + pendingNeu.length;

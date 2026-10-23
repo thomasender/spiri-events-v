@@ -65,6 +65,7 @@ export default function RegionMappingTab() {
 
   if (!isSuperAdmin) return null;
 
+  const changedIds = new Set(plan.changes.map((c) => c.regionId));
   const effectiveRegionId = (key) => draft.get(key) ?? baseAssignment.get(key);
   // Districts that still sit in their Bundesland, i.e. in no cultural region yet (compared
   // with the current data: only the Bundesland fallback). The Bundesland is not shown as a
@@ -189,6 +190,7 @@ export default function RegionMappingTab() {
           regions={cultureRegions}
           districtsOf={districtsOf}
           selectedId={focusId}
+          changedIds={changedIds}
           onSelect={(id) => {
             setFocusId(id);
             setFocusName(regionById.get(id)?.name ?? '');

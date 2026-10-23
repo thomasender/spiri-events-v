@@ -189,3 +189,13 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+.culture-shape.is-empty {
+  opacity: 0.45;
+}
+
+.culture-shape.is-changed {
+  stroke: #e67e22;
+  stroke-width: 2.6;
+  stroke-dasharray: 5 3;
+}

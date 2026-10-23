@@ -12,8 +12,9 @@ import './ModerationTab.css';
 
 const MAX_SEARCH_RESULTS = 8;
 
-function regionName(id) {
-  return STATIC_REGIONS.find((r) => r.id === id)?.name || id;
+// Current names come from the merged register (a renamed region shows its new name).
+function regionName(id, regions = STATIC_REGIONS) {
+  return regions.find((r) => r.id === id)?.name || id;
 }
 
 function personLabel(person) {
@@ -31,11 +32,12 @@ function blockedReason(member, { currentUid, moderatorUids }) {
 }
 
 function RegionChips({ regionIds }) {
+  const { regions } = useRegions();
   return (
     <ul className="moderation-chips" aria-label="Regionen">
       {regionIds.map((id) => (
         <li key={id} className="moderation-chip">
-          {regionName(id)}
+          {regionName(id, regions)}
         </li>
       ))}
     </ul>
@@ -201,7 +203,7 @@ function ModeratorDialog({ mode, moderator, moderatorUids, currentUid, onSave, o
                     onChange={() => toggleRegion(id)}
                   />
                   <span>
-                    {regionName(id)}
+                    {regionName(id, regions)}
                     {activeById.get(id) === false && (
                       <span className="moderation-inactive"> (noch nicht freigeschaltet)</span>
                     )}
@@ -250,6 +252,7 @@ export default function ModerationTab() {
   const [revoking, setRevoking] = useState(false);
   const [revokeError, setRevokeError] = useState(null);
   const [notice, setNotice] = useState(null);
+  const { regions } = useRegions();
 
   const moderatorUids = useMemo(() => new Set(moderators.map((m) => m.uid)), [moderators]);
 
@@ -261,7 +264,7 @@ export default function ModerationTab() {
     setNotice(
       result?.changed === false
         ? `Für ${personLabel(person)} war schon alles so eingestellt.`
-        : `Gespeichert: ${personLabel(person)} moderiert ${regionIds.map(regionName).join(', ')}.`
+        : `Gespeichert: ${personLabel(person)} moderiert ${regionIds.map((id) => regionName(id, regions)).join(', ')}.`
     );
   };
 

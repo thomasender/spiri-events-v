@@ -34,3 +34,37 @@
   font-size: 0.95rem;
   color: var(--text-secondary);
 }
+
+.region-map-shape--quiet {
+  fill: color-mix(in srgb, var(--text-primary) 8%, var(--bg-primary));
+}
+
+.region-map-line {
+  fill: none;
+  stroke: var(--text-primary);
+  stroke-opacity: 0.35;
+  stroke-width: 1;
+  pointer-events: none;
+}
+
+.region-map-views {
+  display: flex;
+  gap: 6px;
+}
+
+.region-map-views button {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.region-map-views button.is-current {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: var(--accent-contrast, #fff);
+}
