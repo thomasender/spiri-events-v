@@ -1,14 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { LocateFixed } from 'lucide-react';
-import { prepareDistrictShapes, regionForPosition } from '../utils/geoRegion';
+import { prepareAdminShapes, prepareDistrictShapes, regionForPosition } from '../utils/geoRegion';
 import './LocateRegionButton.css';
 
-// Landkreis shapes, only loaded once somebody asks for their location.
+// Landkreis shapes (Germany) and Bundesland / Kanton outlines (Austria, Switzerland),
+// only loaded once somebody asks for their location.
 let shapesPromise = null;
 function loadShapes() {
-  shapesPromise ??= import('../data/landkreisMap.json').then((m) =>
-    prepareDistrictShapes((m.default ?? m).districts)
-  );
+  shapesPromise ??= Promise.all([
+    import('../data/landkreisMap.json'),
+    import('../data/adminAtChMap.json'),
+  ]).then(([districts, admin]) => ({
+    districts: prepareDistrictShapes((districts.default ?? districts).districts),
+    admin: prepareAdminShapes(admin.default ?? admin),
+  }));
   shapesPromise.catch(() => {
     shapesPromise = null;
   });
@@ -31,7 +36,8 @@ const MESSAGES = {
  * "Meinen Standort verwenden" in the region chooser and the region pop-up (ticket 567).
  * Opt-in only: the browser is asked for the position only after the visitor read the
  * short explanation and confirmed. The position is turned into a region right here in
- * the browser (Landkreis shapes + current assignment, see utils/geoRegion.js) and then
+ * the browser (Germany: Landkreis shapes + current assignment; Austria / Switzerland:
+ * Bundesland / Kanton outlines; see utils/geoRegion.js) and then
  * thrown away: it is never stored, sent or tracked. The result goes through `onChoose`,
  * exactly like a manual choice (a region that is not open yet leads to its coming-soon
  * page). Every failure only shows a hint; the manual choice stays usable.
@@ -69,7 +75,7 @@ export default function LocateRegionButton({ regions, onChoose, className = '' }
         const { latitude, longitude } = position.coords;
         shapes
           .then((s) => {
-            const hit = regionForPosition(latitude, longitude, s, regions);
+            const hit = regionForPosition(latitude, longitude, s.districts, regions, s.admin);
             if (!hit) {
               finish('noMatch');
               return;

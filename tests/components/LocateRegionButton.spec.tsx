@@ -21,6 +21,7 @@ import RegionPickerModal from '../../src/components/RegionPickerModal';
 const TWO_ACTIVE = mergeRegions([{ id: 'tirol', active: true }]);
 const MUNICH = { latitude: 48.1374, longitude: 11.5755 };
 const BREGENZ = { latitude: 47.5031, longitude: 9.7471 };
+const VADUZ = { latitude: 47.141, longitude: 9.521 };
 
 type Success = (p: { coords: { latitude: number; longitude: number } }) => void;
 type Failure = (e: { code: number }) => void;
@@ -119,8 +120,18 @@ describe('LocateRegionButton', () => {
     expect(onChoose).not.toHaveBeenCalled();
   });
 
-  it('outside Germany (Vorarlberg) it does not guess a region', async () => {
+  it('in Austria it chooses the Bundesland (Bregenz: Vorarlberg)', async () => {
     answerWith(BREGENZ);
+    const onChoose = vi.fn();
+    render(<LocateRegionButton regions={STATIC_REGIONS} onChoose={onChoose} />);
+    clickUseLocation();
+    confirm();
+    await waitFor(() => expect(onChoose).toHaveBeenCalledWith('vorarlberg'));
+    expect(onChoose).toHaveBeenCalledTimes(1);
+  });
+
+  it('in Liechtenstein (no region) it does not guess a region', async () => {
+    answerWith(VADUZ);
     const onChoose = vi.fn();
     render(<LocateRegionButton regions={STATIC_REGIONS} onChoose={onChoose} />);
     clickUseLocation();
@@ -174,8 +185,16 @@ describe('in the region chooser', () => {
     await waitFor(() => expect(where()).toBe('/ostfriesland'));
   });
 
-  it('outside Germany the chooser stays open and usable', async () => {
-    answerWith(BREGENZ);
+  it('a position in Switzerland chooses the Kanton, which is not open yet: coming soon', async () => {
+    answerWith({ latitude: 47.3769, longitude: 8.5417 });
+    renderChooser();
+    clickUseLocation();
+    confirm();
+    await waitFor(() => expect(where()).toBe('/zuerich'));
+  });
+
+  it('outside all regions (Liechtenstein) the chooser stays open and usable', async () => {
+    answerWith(VADUZ);
     renderChooser();
     clickUseLocation();
     confirm();

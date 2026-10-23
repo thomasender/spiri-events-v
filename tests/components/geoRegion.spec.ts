@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
+import adminAtChMap from '../../src/data/adminAtChMap.json';
 import landkreisMap from '../../src/data/landkreisMap.json';
 import { STATIC_REGIONS, mergeRegions } from '../../src/utils/regions';
 import {
   BORDER_TOLERANCE,
   districtAt,
   parsePathRings,
+  positionHit,
+  prepareAdminShapes,
   prepareDistrictShapes,
   projectToMap,
   regionForDistrict,
@@ -14,6 +17,7 @@ import {
 // "Meinen Standort verwenden": lat/lon -> Landkreis (point in polygon on the map of the
 // product owner) -> region via the current assignment. All local, no third-party service.
 const shapes = prepareDistrictShapes(landkreisMap.districts);
+const admin = prepareAdminShapes(adminAtChMap);
 
 // City centres (WGS84) -> the Landkreis / kreisfreie Stadt that contains them.
 const CITIES: [string, number, number, string][] = [
@@ -148,8 +152,136 @@ describe('Landkreis -> region (current assignment)', () => {
     expect(hit?.region.active).toBe(false);
   });
 
-  it('outside Germany and for invalid input there is no region', () => {
+  it('without the AT/CH outlines, outside Germany and for invalid input there is no region', () => {
     expect(regionForPosition(47.5031, 9.7471, shapes, STATIC_REGIONS)).toBeNull();
-    expect(regionForPosition(Number.NaN, 9, shapes, STATIC_REGIONS)).toBeNull();
+    expect(regionForPosition(Number.NaN, 9, shapes, STATIC_REGIONS, admin)).toBeNull();
+  });
+});
+
+// Austria / Switzerland: the Bundesland / Kanton is the region (adminAtChMap.json, official
+// BEV / swisstopo borders via geoBoundaries, about 0.1-0.15 km).
+const slugAt = (lat: number, lon: number) =>
+  regionForPosition(lat, lon, shapes, STATIC_REGIONS, admin)?.region.slug ?? null;
+
+describe('lat/lon -> Bundesland / Kanton', () => {
+  it.each([
+    ['Bregenz', 47.5031, 9.7471, 'vorarlberg'],
+    ['Dornbirn', 47.4125, 9.7417, 'vorarlberg'],
+    ['Feldkirch', 47.237, 9.598, 'vorarlberg'],
+    ['Bludenz', 47.1547, 9.822, 'vorarlberg'],
+    ['Mittelberg (Kleinwalsertal)', 47.322, 10.15, 'vorarlberg'],
+    ['Innsbruck', 47.2692, 11.4041, 'tirol'],
+    ['Jungholz', 47.575, 10.448, 'tirol'],
+    ['Salzburg', 47.8095, 13.055, 'salzburg'],
+    ['Klagenfurt', 46.6247, 14.3053, 'kaernten'],
+    ['Graz', 47.0707, 15.4395, 'steiermark'],
+    ['Linz', 48.3069, 14.2858, 'oberoesterreich'],
+    ['St. Pölten', 48.2047, 15.6256, 'niederoesterreich'],
+    ['Wien', 48.2082, 16.3738, 'wien'],
+    ['Eisenstadt', 47.8456, 16.5232, 'burgenland'],
+    ['Zürich', 47.3769, 8.5417, 'zuerich'],
+    ['Bern', 46.948, 7.4474, 'bern'],
+    ['Basel', 47.558, 7.588, 'basel-stadt'],
+    ['Liestal', 47.484, 7.734, 'basel-landschaft'],
+    ['Genf', 46.2044, 6.1432, 'genf'],
+    ['Lausanne', 46.5197, 6.6323, 'waadt'],
+    ['Lugano', 46.0037, 8.9511, 'tessin'],
+    ['Chur', 46.8508, 9.532, 'graubuenden'],
+    ['St. Gallen', 47.4245, 9.3767, 'st-gallen'],
+    ['Luzern', 47.0502, 8.3093, 'luzern'],
+    ['Sion', 46.2331, 7.3606, 'wallis'],
+    ['Fribourg', 46.8065, 7.162, 'freiburg'],
+    ['Neuchâtel', 46.99, 6.9293, 'neuenburg'],
+    ['Delémont', 47.3649, 7.3445, 'jura'],
+    ['Schaffhausen', 47.697, 8.634, 'schaffhausen'],
+    ['Frauenfeld', 47.5536, 8.8986, 'thurgau'],
+    ['Aarau', 47.3904, 8.0457, 'aargau'],
+    ['Solothurn', 47.2088, 7.5323, 'solothurn'],
+    ['Zug', 47.1662, 8.5155, 'zug'],
+    ['Schwyz', 47.0207, 8.653, 'schwyz'],
+    ['Altdorf', 46.8805, 8.6444, 'uri'],
+    ['Sarnen', 46.896, 8.2461, 'obwalden'],
+    ['Stans', 46.958, 8.366, 'nidwalden'],
+    ['Glarus', 47.0404, 9.068, 'glarus'],
+    ['Herisau', 47.386, 9.279, 'appenzell-ausserrhoden'],
+    ['Appenzell', 47.331, 9.409, 'appenzell-innerrhoden'],
+  ])('%s -> %s', (_label, lat, lon, slug) => {
+    expect(slugAt(lat, lon)).toBe(slug);
+  });
+
+  // Pairs right at the German border: the precise AT/CH outlines are checked first, so
+  // neither the German projection (2-3 km) nor its tolerance pulls a point across.
+  it.each([
+    ['Konstanz, Altstadt', 47.66, 9.175, 'baden-wuerttemberg'],
+    ['Konstanz, Bahnhof', 47.6585, 9.1775, 'baden-wuerttemberg'],
+    ['Kreuzlingen', 47.6458, 9.1752, 'thurgau'],
+    ['Kreuzlingen, Hafen', 47.652, 9.188, 'thurgau'],
+    ['Lindau, Insel', 47.546, 9.684, 'bayern'],
+    ['Lindau-Reutin', 47.556, 9.707, 'bayern'],
+    ['Hörbranz', 47.552, 9.755, 'vorarlberg'],
+    ['Lochau', 47.53, 9.75, 'vorarlberg'],
+    ['Passau, Altstadt', 48.574, 13.465, 'bayern'],
+    ['Passau, Innstadt', 48.57, 13.46, 'bayern'],
+    ['Freinberg', 48.539, 13.457, 'oberoesterreich'],
+    ['Schärding', 48.457, 13.432, 'oberoesterreich'],
+    ['Basel, Kleinhüningen', 47.581, 7.591, 'basel-stadt'],
+    ['Riehen', 47.585, 7.648, 'basel-stadt'],
+    ['Weil am Rhein', 47.5935, 7.6206, 'baden-wuerttemberg'],
+    ['Lörrach', 47.615, 7.661, 'baden-wuerttemberg'],
+    ['Grenzach-Wyhlen', 47.545, 7.675, 'baden-wuerttemberg'],
+    ['Salzburg-Liefering', 47.83, 13.0, 'salzburg'],
+    ['Freilassing', 47.838, 12.977, 'bayern'],
+    ['Kufstein', 47.583, 12.17, 'tirol'],
+    ['Kiefersfelden', 47.613, 12.189, 'bayern'],
+    ['Braunau am Inn', 48.258, 13.034, 'oberoesterreich'],
+    ['Simbach am Inn', 48.265, 13.023, 'bayern'],
+    ['Rheinfelden (CH)', 47.554, 7.794, 'aargau'],
+    ['Rheinfelden (Baden)', 47.561, 7.787, 'baden-wuerttemberg'],
+    ['Koblenz (AG)', 47.605, 8.237, 'aargau'],
+    ['Waldshut', 47.623, 8.214, 'baden-wuerttemberg'],
+    ['Feldkirch-Tisis (next to Liechtenstein)', 47.228, 9.558, 'vorarlberg'],
+    ['Buchs SG (next to Liechtenstein)', 47.168, 9.478, 'st-gallen'],
+    ['Lustenau', 47.427, 9.659, 'vorarlberg'],
+    ['St. Margrethen', 47.452, 9.637, 'st-gallen'],
+  ])('border: %s -> %s', (_label, lat, lon, slug) => {
+    expect(slugAt(lat, lon)).toBe(slug);
+  });
+
+  it.each([
+    ['Vaduz', 47.141, 9.521],
+    ['Schaan', 47.165, 9.509],
+    ['Triesen', 47.107, 9.526],
+    ['Balzers', 47.066, 9.503],
+    ['Ruggell', 47.238, 9.527],
+    ['Como', 45.81, 9.085],
+    ['Campione d’Italia (enclave in Ticino)', 45.969, 8.971],
+    ['Bozen', 46.4983, 11.3548],
+    ['Annemasse', 46.193, 6.234],
+    ['Ljubljana', 46.0569, 14.5058],
+    ['Bratislava', 48.1486, 17.1077],
+    ['Brno', 49.1951, 16.6068],
+  ])('%s (Liechtenstein / other countries) -> no region', (_label, lat, lon) => {
+    expect(slugAt(lat, lon)).toBeNull();
+  });
+
+  it('Liechtenstein is a known "no region", not a near miss of St. Gallen or Vorarlberg', () => {
+    expect(positionHit(47.141, 9.521, shapes, admin)).toEqual({ adminSlug: null });
+  });
+
+  it('an inactive Bundesland is still returned (the caller leads to "kommt bald")', () => {
+    const hit = regionForPosition(47.2692, 11.4041, shapes, STATIC_REGIONS, admin);
+    expect(hit).toMatchObject({ adminSlug: 'tirol', region: { slug: 'tirol', active: false } });
+    expect(hit?.districtKey).toBeUndefined();
+  });
+
+  it('every AT / CH register region has an outline and every outline is a register region', () => {
+    const register = STATIC_REGIONS.filter((r) => r.country === 'AT' || r.country === 'CH')
+      .map((r) => r.slug)
+      .sort();
+    expect(register).toHaveLength(35);
+    expect(Object.keys(adminAtChMap.regions).sort()).toEqual(register);
+    for (const rings of Object.values(adminAtChMap.regions))
+      expect(rings.length).toBeGreaterThan(0);
+    expect(Object.keys(adminAtChMap.noRegion)).toEqual(['LI']);
   });
 });

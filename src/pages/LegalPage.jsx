@@ -324,10 +324,11 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
         heading: '17. Standort für die Regionswahl (freiwillig)',
         text: `Bei der Wahl Ihrer Region können Sie auf „Meinen Standort verwenden“ klicken. Erst dann fragt Ihr Browser, ob er Ihren Standort mitteilen darf; ohne diesen Klick und ohne Ihre Erlaubnis wird kein Standort abgefragt.
 
-- Der Standort wird nur einmal und nur in Ihrem Browser verwendet, um den passenden Landkreis und damit Ihre Region zu finden
+- Der Standort wird nur einmal und nur in Ihrem Browser verwendet, um den passenden Landkreis (Deutschland), das Bundesland (Österreich) bzw. den Kanton (Schweiz) und damit Ihre Region zu finden
 - Er wird nicht an uns oder an andere Dienste übermittelt und nirgends gespeichert. Gespeichert wird nur die gewählte Region, genauso wie bei einer Auswahl von Hand
 - Ihr Browser bzw. Ihr Gerät ermittelt den Standort selbst und nutzt dafür je nach Gerät die Ortungsdienste des Herstellers (z.B. Google oder Apple); dafür gelten deren Datenschutzbestimmungen
-- Sie können Ihre Region jederzeit selbst wählen oder ändern. Die Erlaubnis für den Standort können Sie in den Einstellungen Ihres Browsers jederzeit widerrufen`,
+- Sie können Ihre Region jederzeit selbst wählen oder ändern. Die Erlaubnis für den Standort können Sie in den Einstellungen Ihres Browsers jederzeit widerrufen
+- Die dafür nötigen Grenzen liegen in der App selbst. Quellen: Österreich © BEV – Bundesamt für Eich- und Vermessungswesen (über geoBoundaries, Lizenz CC BY-SA 2.0, vereinfacht), Schweiz © swisstopo (über geoBoundaries, vereinfacht), Liechtenstein Natural Earth`,
       },
       {
         heading: '18. Änderungen dieser Datenschutzerklärung',
