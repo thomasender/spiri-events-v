@@ -6,6 +6,7 @@ import { useRegion } from '../hooks/useRegion';
 import { trackFilter } from '../lib/analyticsEvents';
 import { COMBINED_VIEWS, COUNTRIES, COUNTRY_LABELS } from '../utils/regions';
 import { regionSwitchSubpath } from '../utils/regionRouting';
+import LocateRegionButton from './LocateRegionButton';
 import './RegionPickerModal.css';
 
 const FOCUSABLE = 'button:not([disabled])';
@@ -119,6 +120,11 @@ export default function RegionPickerModal({ open, onClose }) {
         </header>
 
         <div className="region-picker-body">
+          <LocateRegionButton
+            regions={allRegions}
+            onChoose={choose}
+            className="locate-region--start"
+          />
           <div className="region-picker-group">
             <h3 className="region-picker-group-name">Ansichten</h3>
             <div className="region-picker-chips">

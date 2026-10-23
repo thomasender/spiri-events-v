@@ -20,6 +20,7 @@ import {
 } from '../utils/regionRouting';
 import './RegionChooser.css';
 
+import LocateRegionButton from './LocateRegionButton';
 import ModeratorApplyCard from './ModeratorApplyCard';
 import RegionSearch from './RegionSearch';
 
@@ -177,6 +178,7 @@ export default function RegionChooser() {
             Menü wechseln.
           </p>
           <RegionSearch regions={sorted} activeSlugs={activeSlugs} onChoose={choose} />
+          <LocateRegionButton regions={allRegions} onChoose={choose} />
         </header>
         <div className="region-chooser-layout">
           <Suspense fallback={null}>

@@ -321,7 +321,16 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
 *Rechtsgrundlage:* Ihre Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), die Sie jederzeit mit Wirkung für die Zukunft widerrufen können, indem Sie die Option im Profil ausschalten.`,
       },
       {
-        heading: '17. Änderungen dieser Datenschutzerklärung',
+        heading: '17. Standort für die Regionswahl (freiwillig)',
+        text: `Bei der Wahl Ihrer Region können Sie auf „Meinen Standort verwenden“ klicken. Erst dann fragt Ihr Browser, ob er Ihren Standort mitteilen darf; ohne diesen Klick und ohne Ihre Erlaubnis wird kein Standort abgefragt.
+
+- Der Standort wird nur einmal und nur in Ihrem Browser verwendet, um den passenden Landkreis und damit Ihre Region zu finden
+- Er wird nicht an uns oder an andere Dienste übermittelt und nirgends gespeichert. Gespeichert wird nur die gewählte Region, genauso wie bei einer Auswahl von Hand
+- Ihr Browser bzw. Ihr Gerät ermittelt den Standort selbst und nutzt dafür je nach Gerät die Ortungsdienste des Herstellers (z.B. Google oder Apple); dafür gelten deren Datenschutzbestimmungen
+- Sie können Ihre Region jederzeit selbst wählen oder ändern. Die Erlaubnis für den Standort können Sie in den Einstellungen Ihres Browsers jederzeit widerrufen`,
+      },
+      {
+        heading: '18. Änderungen dieser Datenschutzerklärung',
         text: `Wir behalten uns vor, diese Datenschutzerklärung bei Änderungen der App oder der Rechtslage anzupassen. Die jeweils aktuelle Version finden Sie immer auf dieser Seite.`,
       },
     ],
