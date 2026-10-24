@@ -4,6 +4,23 @@ import RegionMap from '../../src/components/RegionMap';
 import { REGION_MAP } from '../../src/data/regionMap';
 import landkreisMap from '../../src/data/landkreisMap.json';
 
+const AT = [
+  'vorarlberg',
+  'tirol',
+  'salzburg',
+  'kaernten',
+  'steiermark',
+  'oberoesterreich',
+  'niederoesterreich',
+  'wien',
+  'burgenland',
+];
+const CH_START = REGION_MAP.regions.findIndex((r: { id: string }) => r.id === 'zuerich');
+const countryOf = (slug: string) => {
+  if (AT.includes(slug)) return 'AT';
+  const i = REGION_MAP.regions.findIndex((r: { id: string }) => r.id === slug);
+  return i >= CH_START ? 'CH' : 'DE';
+};
 const regions = REGION_MAP.regions.map((r: { id: string }) => ({
   slug: r.id,
   name: `Name ${r.id}`,
@@ -14,7 +31,10 @@ describe('RegionMap', () => {
     const { container } = render(
       <RegionMap regions={regions} activeSlugs={new Set()} onChoose={() => {}} />
     );
-    expect(container.querySelectorAll('svg text').length).toBe(0);
+    // Only the soft country names are permanent; a region's name never is.
+    container
+      .querySelectorAll('svg text')
+      .forEach((t) => expect(t.textContent).not.toContain('Name '));
     const first = REGION_MAP.regions[0].id;
     expect(screen.getByTestId('region-map-caption').textContent).not.toContain('Name ');
     fireEvent.mouseEnter(container.querySelector(`[data-region="${first}"]`)!);
@@ -23,16 +43,28 @@ describe('RegionMap', () => {
     expect(screen.getByTestId('region-map-caption').textContent).not.toContain('Name ');
   });
 
-  it('has no Germany view while no Kulturregion has districts', () => {
-    render(<RegionMap regions={regions} activeSlugs={new Set()} onChoose={() => {}} />);
+  it('is one map without a separate Germany view, and labels each country softly', () => {
+    const { container } = render(
+      <RegionMap
+        regions={regions.map((r: { slug: string }) => ({ ...r, country: countryOf(r.slug) }))}
+        activeSlugs={new Set()}
+        onChoose={() => {}}
+      />
+    );
     expect(screen.queryByTestId('region-map-view-de')).not.toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Kartenausschnitt' })).not.toBeInTheDocument();
+    expect(container.querySelectorAll('svg')).toHaveLength(1);
+    const names = [...container.querySelectorAll('text.region-map-country')].map(
+      (t) => t.textContent
+    );
+    expect(names.sort()).toEqual(['Deutschland', 'Schweiz', 'Österreich']);
   });
 
   it('draws Germany from the Landkreise with the current names and assignment', async () => {
     const onChoose = vi.fn();
     // Roth was moved from Franken to the renamed Tauberfranken: it is drawn in it.
     const withCulture = [
-      ...regions,
+      ...regions.map((r: { slug: string }) => ({ ...r, country: countryOf(r.slug) })),
       {
         slug: 'franken',
         name: 'Frankenland',
@@ -45,7 +77,6 @@ describe('RegionMap', () => {
     const { container } = render(
       <RegionMap regions={withCulture} activeSlugs={new Set()} onChoose={onChoose} />
     );
-    fireEvent.click(screen.getByTestId('region-map-view-de'));
     const shape = await waitFor(() => {
       const el = container.querySelector('path[data-region="tauberfranken"]');
       if (!el) throw new Error('map not loaded');
@@ -53,6 +84,13 @@ describe('RegionMap', () => {
     });
     const roth = (landkreisMap.districts as Record<string, { d: string }>)['DE|Roth'].d;
     expect(shape.getAttribute('d')).toBe(roth);
+    // Same map: Austria and Switzerland stay, the German Bundesländer give way to the Kulturregionen.
+    expect(container.querySelectorAll('svg')).toHaveLength(1);
+    expect(container.querySelector('path[data-region="vorarlberg"]')).toBeInTheDocument();
+    expect(container.querySelector('path[data-region="bayern"]')).not.toBeInTheDocument();
+    expect(shape.closest('g[data-testid="region-map-de"]')!.getAttribute('transform')).toContain(
+      'matrix('
+    );
     expect(container.querySelector('path[data-region="franken"]')!.getAttribute('d')).not.toContain(
       roth
     );

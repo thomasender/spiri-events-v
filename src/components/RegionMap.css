@@ -47,28 +47,6 @@
   pointer-events: none;
 }
 
-.region-map-views {
-  display: flex;
-  gap: 6px;
-}
-
-.region-map-views button {
-  padding: 6px 12px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font: inherit;
-  font-size: 0.85rem;
-  cursor: pointer;
-}
-
-.region-map-views button.is-current {
-  background: var(--accent-primary);
-  border-color: var(--accent-primary);
-  color: var(--accent-contrast, #fff);
-}
-
 /* Germany view: a region is all its Landkreise in one path. No stroke on the fill (it
    would draw the Landkreis edges); the border path under it leaves only the region edge. */
 .region-map-shape--fill {
@@ -81,4 +59,16 @@
   stroke-width: 3;
   stroke-linejoin: round;
   pointer-events: none;
+}
+
+/* Soft country lettering for orientation: quiet, letter-spaced, never catches the pointer. */
+.region-map-country {
+  fill: var(--text-primary);
+  fill-opacity: 0.38;
+  font-size: 34px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  pointer-events: none;
+  user-select: none;
 }
