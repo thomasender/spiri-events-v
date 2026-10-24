@@ -195,3 +195,7 @@ Peter is the product owner and tester. He tests directly on production at https:
 - Keep messages **short and clear**
 - Example: "Das Problem ist behoben! User können jetzt ihre eigenen Events wieder ansehen."
 - NEVER mention: useEffect, dependency array, hooks, queries, commits, branches, etc.
+- **Technical questions are NOT asked to Peter.** Questions about architecture, permissions, third-party
+  setup (Meta/Firebase/etc.), data models or legal/technical trade-offs are clarified with Thomas in the
+  session. Only ask Peter about product behaviour he can judge as a user (what should the user see, which
+  option feels right), in plain German.
