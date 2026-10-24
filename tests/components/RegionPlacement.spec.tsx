@@ -67,7 +67,7 @@ describe('where the region can be chosen', () => {
     expect(screen.getByTestId('region-switcher')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('footer-region-pick'));
     const picker = screen.getByTestId('region-picker');
-    expect(within(picker).getByRole('button', { name: 'Tirol' })).toBeInTheDocument();
+    expect(within(picker).getByRole('combobox')).toBeInTheDocument();
   });
 
   it('signed-in users change the region from the profile card', () => {

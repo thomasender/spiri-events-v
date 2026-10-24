@@ -86,11 +86,17 @@ const openPicker = () => {
   fireEvent.click(screen.getByRole('button', { name: /Region wählen, aktuell/ }));
   return screen.getByTestId('region-picker');
 };
-const chipNames = (scope: HTMLElement) =>
-  within(scope)
-    .getAllByRole('button', { pressed: undefined })
-    .filter((b) => b.classList.contains('region-chip'))
-    .map((b) => b.textContent);
+// Types into the pop-up's search field and clicks the suggestion with this label.
+const searchAndPick = (dialog: HTMLElement, query: string, label: string | RegExp) => {
+  fireEvent.change(within(dialog).getByRole('combobox'), { target: { value: query } });
+  const option = within(dialog)
+    .getAllByTestId('region-search-option')
+    .find((o) => {
+      const text = o.querySelector('.region-search-option-label')!.textContent ?? '';
+      return typeof label === 'string' ? text === label : label.test(text);
+    })!;
+  fireEvent.click(option);
+};
 
 describe('RegionSwitcher with two active regions', () => {
   beforeEach(() => {
@@ -98,7 +104,7 @@ describe('RegionSwitcher with two active regions', () => {
     window.localStorage.setItem(REGION_CHOOSER_SEEN_KEY, '1');
   });
 
-  it('opens a pop-up with chips grouped by country and marks the current region', () => {
+  it('opens a pop-up with location button, search and map link, but no region chips', () => {
     renderAt('/');
     const trigger = screen.getByRole('button', { name: /Region wählen, aktuell Vorarlberg/ });
     expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
@@ -108,31 +114,23 @@ describe('RegionSwitcher with two active regions', () => {
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
     expect(dialog).toHaveAttribute('aria-modal', 'true');
     expect(dialog).toHaveFocus();
+    expect(within(dialog).getByRole('button', { name: /Meinen Standort verwenden/ })).toBeTruthy();
+    expect(within(dialog).getByRole('combobox')).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: /Auf der Karte wählen/ })).toBeTruthy();
+    expect(within(dialog).queryByRole('button', { name: 'Tirol' })).toBeNull();
     expect(
-      within(dialog)
-        .getAllByRole('heading', { level: 3 })
-        .map((h) => h.textContent)
-    ).toEqual(['Ansichten', 'Österreich', 'Deutschland', 'Schweiz']);
-    const names = chipNames(dialog);
-    expect(names.slice(0, 4)).toEqual([
-      'Ganz Österreich',
-      'Ganz Deutschland (bald)',
-      'Ganz Schweiz (bald)',
-      'Alle Tribes',
-    ]);
-    // 4 views + all 51 regions; open regions plain, the others marked "(bald)".
-    expect(names).toHaveLength(4 + 51);
-    expect(names).toContain('Tirol');
-    expect(names).toContain('Salzburg (bald)');
-    expect(names).toContain('Bayern (bald)');
-    expect(within(dialog).getByRole('button', { name: 'Vorarlberg' })).toHaveAttribute(
-      'aria-pressed',
-      'true'
-    );
-    expect(within(dialog).getByRole('button', { name: 'Tirol' })).toHaveAttribute(
-      'aria-pressed',
-      'false'
-    );
+      within(dialog).queryByRole('button', { name: /Ganz Österreich|Alle Tribes/ })
+    ).toBeNull();
+    expect(within(dialog).queryAllByRole('heading', { level: 3 })).toHaveLength(0);
+  });
+
+  it('the search finds regions and districts, and marks regions that are not open yet', () => {
+    renderAt('/');
+    const dialog = openPicker();
+    fireEvent.change(within(dialog).getByRole('combobox'), { target: { value: 'tirol' } });
+    expect(within(dialog).getAllByTestId('region-search-option')[0]).toHaveTextContent('Tirol');
+    fireEvent.change(within(dialog).getByRole('combobox'), { target: { value: 'bayern' } });
+    expect(within(dialog).getAllByTestId('region-search-option')[0]).toHaveTextContent('bald');
   });
 
   it('"Auf der Karte wählen" closes the pop-up and opens the map page', () => {
@@ -145,7 +143,7 @@ describe('RegionSwitcher with two active regions', () => {
 
   it('navigates to the region, keeps the area and remembers the choice', () => {
     renderAt('/vorarlberg/verzeichnis');
-    fireEvent.click(within(openPicker()).getByRole('button', { name: 'Tirol' }));
+    searchAndPick(openPicker(), 'tirol', 'Tirol');
     expect(where()).toBe('/tirol/verzeichnis');
     expect(window.localStorage.getItem(LAST_REGION_STORAGE_KEY)).toBe('tirol');
     expect(mocks.trackFilter).toHaveBeenCalledWith('region', 'tirol');
@@ -155,26 +153,19 @@ describe('RegionSwitcher with two active regions', () => {
 
   it('a region that is not open yet leads to its coming-soon address', () => {
     renderAt('/');
-    fireEvent.click(within(openPicker()).getByRole('button', { name: /^Zürich/ }));
+    searchAndPick(openPicker(), 'zürich', /^Zürich/);
     expect(where()).toBe('/zuerich');
-  });
-
-  it('Ganz Österreich opens the combined view', () => {
-    renderAt('/tirol');
-    fireEvent.click(within(openPicker()).getByRole('button', { name: 'Ganz Österreich' }));
-    expect(where()).toBe('/oesterreich');
-    expect(screen.getByRole('button', { name: /aktuell Ganz Österreich/ })).toBeInTheDocument();
   });
 
   it('from an event page the switch leads to the region calendar', () => {
     renderAt('/event/some-event');
-    fireEvent.click(within(openPicker()).getByRole('button', { name: 'Tirol' }));
+    searchAndPick(openPicker(), 'tirol', 'Tirol');
     expect(where()).toBe('/tirol');
   });
 
   it('choosing the current region only closes the pop-up', () => {
     renderAt('/');
-    fireEvent.click(within(openPicker()).getByRole('button', { name: 'Vorarlberg' }));
+    searchAndPick(openPicker(), 'vorarlberg', 'Vorarlberg');
     expect(where()).toBe('/');
     expect(screen.queryByTestId('region-picker')).toBeNull();
   });
@@ -217,7 +208,7 @@ describe('RegionSwitcher with two active regions', () => {
       throw new Error('blocked');
     });
     renderAt('/');
-    fireEvent.click(within(openPicker()).getByRole('button', { name: 'Tirol' }));
+    searchAndPick(openPicker(), 'tirol', 'Tirol');
     expect(where()).toBe('/tirol');
   });
 });
@@ -243,7 +234,7 @@ describe('RegionMenuList (burger menu on the phone)', () => {
     fireEvent.click(button);
     expect(onNavigate).toHaveBeenCalled();
     const dialog = screen.getByTestId('region-picker');
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Tirol' }));
+    searchAndPick(dialog, 'tirol', 'Tirol');
     expect(where()).toBe('/tirol');
     expect(screen.queryByTestId('region-picker')).toBeNull();
   });
@@ -264,43 +255,6 @@ describe('RegionMenuList (burger menu on the phone)', () => {
 describe('combined views in switcher and chooser (ticket 33)', () => {
   beforeEach(() => {
     window.localStorage.setItem(REGION_CHOOSER_SEEN_KEY, '1');
-  });
-
-  const viewChips = (dialog: HTMLElement) => chipNames(dialog).slice(0, 4);
-
-  it('marks the views without enough open regions "(bald)"', () => {
-    mocks.regions = { regions: AT_AND_DE, loading: false };
-    renderAt('/');
-    expect(viewChips(openPicker())).toEqual([
-      'Ganz Österreich (bald)',
-      'Ganz Deutschland (bald)',
-      'Ganz Schweiz (bald)',
-      'Alle Tribes',
-    ]);
-  });
-
-  it('offers Ganz Österreich and Alle Tribes with Austria + Germany, and navigates there', () => {
-    mocks.regions = { regions: THREE_ACTIVE, loading: false };
-    renderAt('/');
-    const dialog = openPicker();
-    expect(viewChips(dialog)).toEqual([
-      'Ganz Österreich',
-      'Ganz Deutschland (bald)',
-      'Ganz Schweiz (bald)',
-      'Alle Tribes',
-    ]);
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Alle Tribes' }));
-    expect(where()).toBe('/alle-tribes');
-    expect(screen.getByRole('button', { name: /aktuell Alle Tribes/ })).toBeInTheDocument();
-  });
-
-  it('shows the current combined view as selected after opening its address', () => {
-    mocks.regions = { regions: THREE_ACTIVE, loading: false };
-    renderAt('/alle-tribes');
-    expect(within(openPicker()).getByRole('button', { name: 'Alle Tribes' })).toHaveAttribute(
-      'aria-pressed',
-      'true'
-    );
   });
 
   it('an unavailable combined view address does not become the current view', () => {

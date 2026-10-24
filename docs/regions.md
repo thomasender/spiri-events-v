@@ -65,9 +65,11 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
   remembered). The map is a pointer shortcut (`aria-hidden`); the list is the accessible
   equivalent. All four combined views are always offered above the list (the ones without enough open regions marked "(bald)"; they lead to the view's coming-soon address); changing the region
   later uses the header button (phone: one button in the burger menu), which opens a pop-up
-  (`RegionPickerModal.jsx`): chips grouped by country for all regions and the four views
-  (not open yet: "(bald)", leading to the coming-soon address), the current one highlighted,
-  closing with X / Escape / a click next to it, and a button "Auf der Karte wählen" that opens
+  (`RegionPickerModal.jsx`, ticket 596): no region chips any more, only the location button,
+  the `RegionSearch` field (regions and districts; not open yet: "bald", leading to the
+  coming-soon address) and a button "Auf der Karte wählen". The four combined views are no
+  longer in the pop-up; they stay in the list of the map page. Closes with X / Escape (a
+  first Escape only closes the search suggestions) / a click next to it. The map button opens
   `/regionen`: the map page on purpose, with a "Schließen" button / Escape, shown even when a
   region is remembered. `/regionen` redirects to `/` while fewer than two regions are open.
   - **Search and accordions (ticket 518):** at the top of the chooser, `RegionSearch.jsx`

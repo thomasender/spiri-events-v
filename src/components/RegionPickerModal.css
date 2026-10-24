@@ -66,67 +66,14 @@
   gap: 18px;
 }
 
-.region-picker-group-name {
-  margin: 0 0 8px;
-  font-family: var(--font-heading);
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.region-picker-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.region-chip {
-  min-height: 40px;
-  padding: 0 14px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background-color: var(--bg-secondary);
-  color: var(--text-primary);
-  font-family: var(--font-body);
-  font-size: 0.95rem;
-  cursor: pointer;
-}
-
-.region-chip:hover {
-  border-color: var(--accent-primary);
-}
-
-.region-chip--soon {
-  background-color: transparent;
-  color: var(--text-secondary);
-}
-
-.region-chip--current {
-  background-color: var(--accent-primary);
-  border-color: var(--accent-primary);
-  color: #fff;
-  font-weight: 600;
-}
-
-.region-chip-soon {
-  font-size: 0.8125rem;
-  white-space: nowrap;
-}
-
-.region-chip:focus-visible,
 .region-picker-close:focus-visible,
 .region-picker-map:focus-visible {
   outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
 }
 
-.region-picker-footer {
-  padding: 12px 20px 16px;
-  border-top: 1px solid var(--border);
-}
-
 .region-picker-map {
+  align-self: flex-start;
   display: inline-flex;
   align-items: center;
   gap: 8px;

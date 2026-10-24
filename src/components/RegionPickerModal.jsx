@@ -4,21 +4,22 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Map as MapIcon, X } from 'lucide-react';
 import { useRegion } from '../hooks/useRegion';
 import { trackFilter } from '../lib/analyticsEvents';
-import { COMBINED_VIEWS, COUNTRIES, COUNTRY_LABELS } from '../utils/regions';
 import { regionSwitchSubpath } from '../utils/regionRouting';
 import LocateRegionButton from './LocateRegionButton';
+import RegionSearch from './RegionSearch';
 import './RegionPickerModal.css';
 
-const FOCUSABLE = 'button:not([disabled])';
+const FOCUSABLE = 'button:not([disabled]), input:not([disabled])';
 
 /**
- * Pop-up to change the region: chips grouped by country (all regions; the ones
- * that are not open yet are marked "bald" and lead to their coming-soon page),
- * the four combined views on top and a link to the map page. Closes with the X,
- * Escape or a click next to it. Used by the header switcher and the burger menu.
+ * Pop-up to change the region (ticket 596): the "use my location" button, a
+ * search field with autocomplete (regions and districts; regions that are not
+ * open yet are marked "bald" and lead to their coming-soon page) and a link to
+ * the map page. No region chips any more. Closes with the X, Escape or a click
+ * next to it. Used by the header switcher and the burger menu.
  */
 export default function RegionPickerModal({ open, onClose }) {
-  const { regions, allRegions, regionId, combinedView, combinedViews, setRegion } = useRegion();
+  const { regions, allRegions, regionId, combinedView, setRegion } = useRegion();
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const dialogRef = useRef(null);
@@ -30,6 +31,9 @@ export default function RegionPickerModal({ open, onClose }) {
     document.body.style.overflow = 'hidden';
     const onKeyDown = (e) => {
       if (e.key === 'Escape') {
+        // The search field first closes its own suggestions / clears itself.
+        const t = e.target;
+        if (t?.getAttribute?.('role') === 'combobox' && t.value) return;
         e.preventDefault();
         e.stopPropagation();
         onClose();
@@ -63,7 +67,6 @@ export default function RegionPickerModal({ open, onClose }) {
   if (!open) return null;
 
   const activeSlugs = new Set(regions.map((r) => r.slug));
-  const availableViews = new Set(combinedViews.map((v) => v.slug));
   const currentSlug = combinedView ? combinedView.slug : regionId;
   const sorted = [...allRegions].sort((a, b) => a.order - b.order);
 
@@ -73,21 +76,6 @@ export default function RegionPickerModal({ open, onClose }) {
     trackFilter('region', slug);
     setRegion(slug, regionSwitchSubpath(pathname));
   };
-
-  const chip = (slug, name, soon) => (
-    <button
-      key={slug}
-      type="button"
-      className={`region-chip${slug === currentSlug ? ' region-chip--current' : ''}${
-        soon ? ' region-chip--soon' : ''
-      }`}
-      aria-pressed={slug === currentSlug}
-      onClick={() => choose(slug)}
-    >
-      {name}
-      {soon && <span className="region-chip-soon"> (bald)</span>}
-    </button>
-  );
 
   return createPortal(
     <div
@@ -125,27 +113,7 @@ export default function RegionPickerModal({ open, onClose }) {
             onChoose={choose}
             className="locate-region--start"
           />
-          <div className="region-picker-group">
-            <h3 className="region-picker-group-name">Ansichten</h3>
-            <div className="region-picker-chips">
-              {COMBINED_VIEWS.map((v) => chip(v.slug, v.name, !availableViews.has(v.slug)))}
-            </div>
-          </div>
-          {COUNTRIES.map((country) => {
-            const inCountry = sorted.filter((r) => r.country === country);
-            if (inCountry.length === 0) return null;
-            return (
-              <div key={country} className="region-picker-group">
-                <h3 className="region-picker-group-name">{COUNTRY_LABELS[country]}</h3>
-                <div className="region-picker-chips">
-                  {inCountry.map((r) => chip(r.slug, r.name, !activeSlugs.has(r.slug)))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <footer className="region-picker-footer">
+          <RegionSearch regions={sorted} activeSlugs={activeSlugs} onChoose={choose} />
           <button
             type="button"
             className="region-picker-map"
@@ -156,7 +124,7 @@ export default function RegionPickerModal({ open, onClose }) {
           >
             <MapIcon size={18} aria-hidden="true" /> Auf der Karte wählen
           </button>
-        </footer>
+        </div>
       </section>
     </div>,
     document.body
