@@ -37,6 +37,8 @@ import {
 } from './instagramPublish';
 
 /** Bezirke that get a weekly carousel. Online events are excluded. */
+// TODO(regions): Vorarlberg-specific Bezirk list. Carousels and stories stay
+// Vorarlberg-only until another region has its own Bezirk structure.
 export const CAROUSEL_BEZIRKE = [
   'Dornbirn',
   'Feldkirch',
@@ -304,8 +306,21 @@ function bezirkSlug(bezirk: string): string {
   return bezirk.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
-export function carouselPostId(bezirk: string, weekStart: string, part: number): CarouselPostId {
-  return `carousel_${bezirkSlug(bezirk)}_${weekStart}${part > 1 ? `_p${part}` : ''}`;
+/**
+ * `regionId` is for future non-Vorarlberg carousels: it is added to the id so
+ * two regions' posts never collide. Vorarlberg (and no regionId) keeps the
+ * historic id. TODO: the carousel itself (CAROUSEL_BEZIRKE, per-region
+ * credentials) is still Vorarlberg-only; see docs/instagram-regions.md.
+ */
+export function carouselPostId(
+  bezirk: string,
+  weekStart: string,
+  part: number,
+  regionId?: string
+): CarouselPostId {
+  const region =
+    regionId && regionId !== 'vorarlberg' ? `${regionId.replace(/[^a-z0-9]/g, '')}_` : '';
+  return `carousel_${region}${bezirkSlug(bezirk)}_${weekStart}${part > 1 ? `_p${part}` : ''}`;
 }
 
 /** Distinct (case-insensitive) organizer handles in event order. */

@@ -47,6 +47,11 @@ export interface PublishDeps {
   fetch: typeof fetch;
   accessToken: string;
   userId: string;
+  /**
+   * Regions the account above may publish for. Default: INSTAGRAM_REGION_IDS
+   * (Vorarlberg). Regional accounts pass `[regionId]` of their own region.
+   */
+  instagramRegionIds?: readonly string[];
   /** app_settings/instagram.enabled === true */
   isEnabled(): Promise<boolean>;
   /** Firestore create(): resolves false when the doc already exists. */
@@ -357,7 +362,7 @@ export async function publishApprovedEvent(
 
   // The Instagram account belongs to Vorarlberg. Not an error: no dedupe doc,
   // no admin mail, the event simply is not posted.
-  if (!isInstagramRegion(after)) {
+  if (!isInstagramRegion(after, deps.instagramRegionIds)) {
     log('instagram skipped: region', { eventId });
     return 'region';
   }

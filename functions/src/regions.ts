@@ -66,11 +66,13 @@ export const STATIC_COUNTRIES: Record<string, string> = Object.fromEntries(
 export const DEFAULT_COUNTRY = 'AT';
 
 /**
- * Regions whose events the Instagram automation (feed post on approval, weekly
- * carousel, preview, manual post) may publish. The Instagram account belongs to
- * Vorarlberg. To support another region later, add its id here AND make sure it
- * has its own account/token (today there is exactly one account); until then
- * events of other regions must never reach it.
+ * Regions that always have an Instagram account: Vorarlberg, via the legacy
+ * global secrets IG_ACCESS_TOKEN / IG_USER_ID. Other regions get an account by
+ * Thomas storing credentials in instagram_private/region_{id}
+ * (scripts/instagram-set-region-account.mjs, docs/instagram-regions.md); the
+ * feed trigger and the backfill then pass that region id as `regionIds` below.
+ * The weekly carousel and the stories are still Vorarlberg-only and call
+ * isInstagramRegion without `regionIds`, so they keep this list.
  */
 export const INSTAGRAM_REGION_IDS: readonly string[] = ['vorarlberg'];
 
@@ -83,8 +85,11 @@ export function resolveRegionId(doc: unknown): string {
 }
 
 /** Online events count by their moderation region (`regionId`), like all others. */
-export function isInstagramRegion(event: unknown): boolean {
-  return INSTAGRAM_REGION_IDS.includes(resolveRegionId(event));
+export function isInstagramRegion(
+  event: unknown,
+  regionIds: readonly string[] = INSTAGRAM_REGION_IDS
+): boolean {
+  return regionIds.includes(resolveRegionId(event));
 }
 
 /** Online events are visible in every region (copy of eventVisibleInRegion). */

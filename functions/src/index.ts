@@ -138,8 +138,10 @@ export { calendarFeed } from './calendarFeed';
 export { publicEvents, onEventWriteBumpEventsVersion } from './publicEvents';
 export { getCalendarFeedToken } from './calendarFeedToken';
 export { refreshInstagramTokenJob } from './instagramTokenRefresh';
+export { onInstagramRegionAccountEnabled } from './instagramRegionBackfill';
 export {
   adminRetryInstagramPost,
+  adminBackfillInstagramRegion,
   adminSkipInstagramPost,
   adminArchiveInstagramPost,
   adminPreviewWeeklyCarousels,

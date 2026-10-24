@@ -7,6 +7,8 @@ import { refreshInstagramToken, type StoredToken } from './instagram/instagramTo
 import { sanitizeError } from './instagram/instagramPublish';
 import { notifyAdmins, ADMIN_MAIL_SECRETS } from './adminNotify';
 import { readStoredInstagramToken } from './instagramTokenStore';
+import { refreshRegionAccounts } from './instagram/instagramRegionAccounts';
+import { buildRegionRefreshDeps } from './instagramRegionStore';
 
 if (getApps().length === 0) {
   initializeApp();
@@ -58,6 +60,14 @@ export const refreshInstagramTokenJob = onSchedule(
       logger.error('Instagram token refresh job crashed', {
         error: sanitizeError(err, [secretToken]),
       });
+    }
+    // Regional accounts (instagram_private/region_{id}); never affects the
+    // Vorarlberg refresh above and a failing region never stops the others.
+    try {
+      const regional = await refreshRegionAccounts(buildRegionRefreshDeps(db));
+      logger.info('Instagram regional token refresh finished', { regional });
+    } catch (err) {
+      logger.error('Instagram regional token refresh crashed', { error: sanitizeError(err) });
     }
   }
 );
