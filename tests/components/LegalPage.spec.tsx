@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { describe, it, expect } from 'vitest';
 import LegalPage from '../../src/pages/LegalPage';
+import { DEFAULT_REGION_CONTEXT, RegionContext } from '../../src/hooks/useRegion';
 
 /**
  * Replaces tests/integration/datenschutz-formatierung.spec.ts.
@@ -107,5 +108,70 @@ describe('LegalPage formatting', () => {
       ).not.toBeNull();
       unmount();
     }
+  });
+});
+
+describe('LegalPage Instagram channels (per region)', () => {
+  const renderWith = (page: 'datenschutz' | 'impressum', regions: Array<Record<string, unknown>>) =>
+    render(
+      <HelmetProvider>
+        <RegionContext.Provider value={{ ...DEFAULT_REGION_CONTEXT, regions } as never}>
+          <MemoryRouter>
+            <LegalPage page={page} />
+          </MemoryRouter>
+        </RegionContext.Provider>
+      </HelmetProvider>
+    );
+  const vbg = { id: 'vorarlberg', name: 'Vorarlberg' };
+  const tirol = { id: 'tirol', name: 'Tirol', instagramHandle: '@tribetirol' };
+  const wien = { id: 'wien', name: 'Wien' };
+
+  it("Vorarlberg only: today's wording, no channel list", () => {
+    const { container } = renderLegalPage('datenschutz');
+    expect(container.textContent).toContain(
+      'Wir betreiben den Instagram-Kanal @tribevorarlberg, auf dem wir Veranstaltungen bewerben.'
+    );
+    expect(container.textContent).toContain('auf unserem Instagram-Kanal veröffentlicht');
+    expect(screen.queryByTestId('legal-instagram-channels')).toBeNull();
+  });
+
+  it('one channel plus a region without a handle still shows no list', () => {
+    renderWith('datenschutz', [vbg, wien]);
+    expect(screen.queryByTestId('legal-instagram-channels')).toBeNull();
+  });
+
+  it('two channels: generic wording and a collapsed list built from the regions', () => {
+    const { container } = renderWith('datenschutz', [vbg, tirol, wien]);
+    const details = screen.getByTestId('legal-instagram-channels') as HTMLDetailsElement;
+    expect(details.open).toBe(false);
+    expect(details.querySelector('summary')).toHaveTextContent('Unsere Instagram-Kanäle (2)');
+    const links = Array.from(details.querySelectorAll('a')).map((a) => a.getAttribute('href'));
+    expect(links).toEqual([
+      'https://www.instagram.com/tribevorarlberg/',
+      'https://www.instagram.com/tribetirol/',
+    ]);
+    expect(details.querySelector('a')).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(container.textContent).not.toContain(
+      'Wir betreiben den Instagram-Kanal @tribevorarlberg'
+    );
+    expect(container.textContent).toContain(
+      'Wir betreiben für unsere Regionen eigene Instagram-Kanäle'
+    );
+    expect(container.textContent).toContain('Meta Platforms Ireland Limited');
+  });
+
+  it('Impressum: unchanged for one channel, one link per region for several', () => {
+    const first = renderLegalPage('impressum');
+    expect(
+      first.container.querySelector('a[href="https://www.instagram.com/tribevorarlberg"]')
+    ).not.toBeNull();
+    first.unmount();
+    const { container } = renderWith('impressum', [vbg, tirol]);
+    expect(
+      container.querySelector('a[href="https://www.instagram.com/tribevorarlberg/"]')
+    ).not.toBeNull();
+    expect(
+      container.querySelector('a[href="https://www.instagram.com/tribetirol/"]')
+    ).not.toBeNull();
   });
 });

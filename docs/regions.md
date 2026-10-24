@@ -284,6 +284,18 @@ regions of one country; the lists are saved in `regions/{id}.bezirke` (+ `mappin
   `aboutText` = default text). The rule lets a moderator update exactly those fields
   (+ `updatedAt`) of her own regions. Helpers are global (admin tab "Helfer") and shown in
   full on every "Über uns" page; `aboutHelperIds` is no longer written or read.
+- **Instagram-Name per region:** optional `instagramHandle` ("@name", display only) on
+  `regions/{id}`. Only Super-Admins set it (`RegionAboutTab`, section "Instagram-Name der
+  Region"; the moderator rule's field list does not contain it; rules check
+  `^@[A-Za-z0-9._]{1,30}$` or null). There is no connect/token UI: wiring the real
+  account is done manually outside the app. `regionInstagramAccount(region)`
+  (`src/utils/regions.js`) returns the stored name, `@tribevorarlberg` for Vorarlberg
+  when none is stored (code default, no migration), else null (wording then says "unserem
+  Instagram-Kanal" without a name). Used by the event form consent box (event's region),
+  the profile card, the regional "Über uns" (link, region mode only) and the Datenschutz
+  section 12: generic wording plus a collapsed list "Unsere Instagram-Kanäle (n)" and one
+  Impressum link per channel, all only once at least two channels of active regions exist
+  (dark launch). Have the legal wording confirmed before a second channel goes live.
   Not in
   the prerender/sitemap yet.
 - `admin_users` is written only via the Admin SDK: callables

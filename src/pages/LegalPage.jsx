@@ -2,6 +2,12 @@ import { Link } from 'react-router-dom';
 import SeoMeta from '../components/SeoMeta';
 import './LegalPage.css';
 import { CANDLE_ROOM_NAME } from '../utils/candleRoom';
+import { useRegion } from '../hooks/useRegion';
+import { instagramChannels, instagramProfileUrl } from '../utils/regions';
+
+// Dark launch: the per-region wording and the channel list only appear once at
+// least two Instagram channels exist; with one channel the text stays as it was.
+const MIN_CHANNELS_FOR_LIST = 2;
 
 const content = {
   datenschutz: {
@@ -197,21 +203,33 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
       },
       {
         heading: '12. Veröffentlichung auf Instagram (freiwillig)',
-        text: `Wir betreiben den Instagram-Kanal @tribevorarlberg, auf dem wir Veranstaltungen bewerben. Instagram ist ein Dienst von Meta Platforms Ireland Limited.
+        channelList: true,
+        text: (ctx) => {
+          const multi = ctx.channels.length >= MIN_CHANNELS_FOR_LIST;
+          return `${
+            multi
+              ? 'Wir betreiben für unsere Regionen eigene Instagram-Kanäle, auf denen wir Veranstaltungen der jeweiligen Region bewerben. Instagram ist ein Dienst von Meta Platforms Ireland Limited.'
+              : 'Wir betreiben den Instagram-Kanal @tribevorarlberg, auf dem wir Veranstaltungen bewerben. Instagram ist ein Dienst von Meta Platforms Ireland Limited.'
+          }
 
 *Was wird veröffentlicht?*
-- Nur wenn Sie beim Erstellen oder Bearbeiten eines Events ausdrücklich zustimmen, wird Ihr Event auf unserem Instagram-Kanal veröffentlicht (als Beitrag und in wöchentlichen Übersichten je Bezirk)
+- Nur wenn Sie beim Erstellen oder Bearbeiten eines Events ausdrücklich zustimmen, wird Ihr Event auf ${multi ? 'dem Instagram-Kanal der Region Ihres Events' : 'unserem Instagram-Kanal'} veröffentlicht (als Beitrag und in wöchentlichen Übersichten je Bezirk)
 - Veröffentlicht werden die Angaben zum Event (Titel, Datum, Uhrzeit, Ort, Beschreibung, Bild und ein Link zur Event-Seite)
 - Wenn Sie in Ihrem Profil einen Instagram-Namen angegeben haben, markieren wir Ihr Instagram-Profil im Bild des Beitrags, laden es als Co-Autor (Collab) zum Beitrag ein und erwähnen es in der Beschreibung („@name“). Die Einladung müssen Sie in Instagram selbst annehmen; kann sie nicht gesendet werden, wird der Beitrag ohne Einladung veröffentlicht
 - Sie können in Ihrem Profil festlegen, ob die Zustimmung für neue Events standardmäßig gesetzt sein soll; sie ist standardmäßig ausgeschaltet. Pro Event können Sie diese Einstellung ändern
 
 *Rechtsgrundlage:* Ihre Einwilligung (Art. 6 Abs. 1 lit. a DSGVO). Ohne Ihre Zustimmung wird Ihr Event nicht auf Instagram veröffentlicht und Ihr Profil weder markiert noch eingeladen noch erwähnt.
 
-*Weitergabe:* Mit der Veröffentlichung werden die genannten Inhalte an Instagram (Meta) übermittelt und sind dort öffentlich sichtbar. Für die Verarbeitung durch Instagram gilt die Datenschutzerklärung von Meta.
+*Weitergabe:* Mit der Veröffentlichung werden die genannten Inhalte an Instagram (Meta) übermittelt und sind dort öffentlich sichtbar. Für die Verarbeitung durch Instagram gilt die Datenschutzerklärung von Meta.${
+            multi
+              ? ' Meta Platforms Ireland Limited ist für die Verarbeitung auf Instagram ein eigener Verantwortlicher.'
+              : ''
+          }
 
 *Widerruf und Löschung:*
 - Sie können Ihre Zustimmung jederzeit für künftige Events ausschalten
-- Möchten Sie, dass ein bereits veröffentlichter Beitrag entfernt wird, senden Sie uns eine E-Mail an admin@thetribe.at; wir löschen den Beitrag in angemessener Frist`,
+- Möchten Sie, dass ein bereits veröffentlichter Beitrag entfernt wird, senden Sie uns eine E-Mail an admin@thetribe.at; wir löschen den Beitrag in angemessener Frist`;
+        },
       },
       {
         heading: '13. Kalender-Export und Kalender-Abo (nur mit Login)',
@@ -375,12 +393,24 @@ Thomas Ender
       },
       {
         heading: 'Onlinepräsenzen',
-        text: `Dieses Impressum gilt auch für folgende Onlinepräsenzen:
+        text: (ctx) => {
+          // One channel (today): the line as before. Several: one line per region.
+          const instagramLines =
+            ctx.channels.length >= MIN_CHANNELS_FOR_LIST
+              ? ctx.channels
+                  .map((c) => {
+                    const url = instagramProfileUrl(c.handle);
+                    return `- Instagram ${c.regionName}: [${url}](${url})`;
+                  })
+                  .join('\n')
+              : '- Instagram: [https://www.instagram.com/tribevorarlberg](https://www.instagram.com/tribevorarlberg)';
+          return `Dieses Impressum gilt auch für folgende Onlinepräsenzen:
 
 - Facebook: [https://www.facebook.com/tribevorarlberg](https://www.facebook.com/tribevorarlberg)
-- Instagram: [https://www.instagram.com/tribevorarlberg](https://www.instagram.com/tribevorarlberg)
+${instagramLines}
 
-E-Mail: [admin@thetribe.at](mailto:admin@thetribe.at)`,
+E-Mail: [admin@thetribe.at](mailto:admin@thetribe.at)`;
+        },
       },
       {
         heading: 'Kartendaten / Quellen',
@@ -610,8 +640,34 @@ function LegalText({ text }) {
   );
 }
 
+function InstagramChannelList({ channels }) {
+  return (
+    <details className="legal-details" data-testid="legal-instagram-channels">
+      <summary>Unsere Instagram-Kanäle ({channels.length})</summary>
+      <ul className="legal-list">
+        {channels.map((c) => (
+          <li key={c.regionId}>
+            {c.regionName}:{' '}
+            <a
+              className="legal-link"
+              href={instagramProfileUrl(c.handle)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {c.handle}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
 export default function LegalPage({ page }) {
   const data = content[page];
+  // Channels of the active regions (Vorarlberg: code default when no handle is stored).
+  const { regions } = useRegion();
+  const channels = instagramChannels(regions);
 
   if (!data) {
     return (
@@ -636,7 +692,14 @@ export default function LegalPage({ page }) {
           {data.sections.map((section, index) => (
             <section key={index}>
               <h2>{section.heading}</h2>
-              <LegalText text={section.text} />
+              <LegalText
+                text={
+                  typeof section.text === 'function' ? section.text({ channels }) : section.text
+                }
+              />
+              {section.channelList && channels.length >= MIN_CHANNELS_FOR_LIST && (
+                <InstagramChannelList channels={channels} />
+              )}
             </section>
           ))}
         </div>

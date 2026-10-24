@@ -1756,7 +1756,14 @@ describe('region moderators', () => {
 // "Über uns" page of a region: its moderators pick the helpers and the header
 // photo of their own region, nothing else on the region doc.
 describe('regions.instagramHandle (display-only, Super-Admin only)', () => {
-  const region = { name: 'Tirol', slug: 'tirol', order: 1, active: false, bezirke: [], updatedAt: 1 };
+  const region = {
+    name: 'Tirol',
+    slug: 'tirol',
+    order: 1,
+    active: false,
+    bezirke: [],
+    updatedAt: 1,
+  };
 
   beforeEach(async () => {
     await env.withSecurityRulesDisabled(async (ctx) => {
