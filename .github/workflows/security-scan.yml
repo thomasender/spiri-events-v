@@ -1,0 +1,234 @@
+name: Security scan (dependencies)
+
+# Weekly Trivy scan of the npm lockfiles (root + functions/) for known
+# vulnerabilities. See docs/security-scanning.md.
+#
+# The paths filter below is ONLY for this workflow. Do not add paths filters to
+# deploy.yml or any other workflow.
+on:
+  schedule:
+    - cron: '17 4 * * 1' # Mondays 04:17 UTC
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+      - 'functions/package.json'
+      - 'functions/package-lock.json'
+      - '.trivyignore.yaml'
+      - '.github/workflows/security-scan.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+      - 'functions/package.json'
+      - 'functions/package-lock.json'
+      - '.trivyignore.yaml'
+      - '.github/workflows/security-scan.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-scan-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # ROLLOUT SWITCH. 'true' = HIGH/CRITICAL findings in production dependencies
+  # turn the run red (blocking). Set to 'false' for report-only: findings are
+  # still shown in the job summary and in Security > Code scanning, but the run
+  # stays green. Flip this if the scan ever becomes too noisy.
+  SCAN_BLOCKING: 'true'
+  # Vulnerability DB mirrors, tried in order. Protects against ghcr.io rate
+  # limits / outages. A DB download failure is a tool error, not a finding.
+  TRIVY_DB_REPOSITORY: 'ghcr.io/aquasecurity/trivy-db:2,public.ecr.aws/aquasecurity/trivy-db:2'
+
+jobs:
+  scan:
+    name: Trivy (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      security-events: write # upload SARIF to code scanning
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Both entries scan from the repo root so SARIF paths stay correct;
+          # each one skips the other's lockfile.
+          - name: root
+            skip_files: 'functions/package-lock.json'
+          - name: functions
+            skip_files: 'package-lock.json'
+    outputs:
+      findings_root: ${{ steps.evaluate.outputs.findings_root }}
+      findings_functions: ${{ steps.evaluate.outputs.findings_functions }}
+    env:
+      # SARIF upload is not allowed for pull requests from forks (read-only token).
+      CAN_UPLOAD: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+      GATE_SARIF: trivy-${{ matrix.name }}.sarif
+      DEV_SARIF: trivy-${{ matrix.name }}-dev.sarif
+
+    steps:
+      # Pinned by full commit SHA (the tag is only a comment).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Gate pass: production dependencies only (Trivy skips devDependencies of
+      # npm lockfiles by default). exit-code 0 here on purpose: the decision is
+      # made in the "Evaluate" step from the SARIF file, so that a Trivy tool
+      # error (no SARIF written) cannot be confused with a vulnerability.
+      - name: Trivy scan (gate, production dependencies)
+        id: gate_scan
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: '.'
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          skip-dirs: '**/node_modules,**/dist'
+          skip-files: ${{ matrix.skip_files }}
+          trivyignores: .trivyignore.yaml
+          format: sarif
+          output: ${{ env.GATE_SARIF }}
+          limit-severities-for-sarif: true
+          exit-code: '0'
+          hide-progress: true
+
+      - name: Explain Trivy tool error
+        if: ${{ failure() && steps.gate_scan.outcome == 'failure' }}
+        run: |
+          echo "::error title=Trivy could not complete::This is a tool error (for example the vulnerability DB could not be downloaded), NOT a vulnerability finding. Re-run the job; if it persists, check the Trivy step log."
+
+      # Report-only pass: also includes devDependencies. Never fails the job.
+      - name: Trivy scan (report only, incl. dev dependencies)
+        id: dev_scan
+        if: ${{ steps.gate_scan.outcome == 'success' }}
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        env:
+          TRIVY_INCLUDE_DEV_DEPS: 'true'
+        with:
+          scan-type: fs
+          scan-ref: '.'
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          skip-dirs: '**/node_modules,**/dist'
+          skip-files: ${{ matrix.skip_files }}
+          trivyignores: .trivyignore.yaml
+          format: sarif
+          output: ${{ env.DEV_SARIF }}
+          limit-severities-for-sarif: true
+          exit-code: '0'
+          hide-progress: true
+          skip-setup-trivy: true
+          cache: 'false'
+
+      # Upload even when findings exist, so they show up in code scanning.
+      - name: Upload SARIF (gate)
+        if: ${{ !cancelled() && env.CAN_UPLOAD == 'true' && hashFiles(env.GATE_SARIF) != '' }}
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          sarif_file: ${{ env.GATE_SARIF }}
+          category: trivy-${{ matrix.name }}
+
+      - name: Upload SARIF (dev dependencies, report only)
+        if: ${{ !cancelled() && env.CAN_UPLOAD == 'true' && hashFiles(env.DEV_SARIF) != '' }}
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          sarif_file: ${{ env.DEV_SARIF }}
+          category: trivy-${{ matrix.name }}-dev
+
+      - name: Evaluate
+        id: evaluate
+        if: ${{ !cancelled() && steps.gate_scan.outcome == 'success' }}
+        env:
+          NAME: ${{ matrix.name }}
+        run: |
+          set -euo pipefail
+          count() { jq '[.runs[]?.results[]?] | length' "$1"; }
+          rows() {
+            jq -r '.runs[]?.results[]? | "| \(.ruleId) | \(.level // "-") | \((.message.text // "") | gsub("\n"; " ") | .[0:160]) |"' "$1"
+          }
+
+          gate=$(count "$GATE_SARIF")
+          dev=0
+          if [ -s "$DEV_SARIF" ]; then dev=$(count "$DEV_SARIF"); fi
+          echo "findings_${NAME}=${gate}" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "### Trivy (${NAME})"
+            echo
+            echo "- Production dependencies, HIGH/CRITICAL, fixable: **${gate}** finding(s)"
+            echo "- Including dev dependencies (report only): **${dev}** finding(s)"
+            echo "- Blocking mode (SCAN_BLOCKING): \`${SCAN_BLOCKING}\`"
+            if [ "$gate" -gt 0 ]; then
+              echo
+              echo "| ID | Level | Details |"
+              echo "| --- | --- | --- |"
+              rows "$GATE_SARIF"
+            fi
+            if [ "$dev" -gt "$gate" ]; then
+              echo
+              echo "<details><summary>Dev-dependency findings (not blocking)</summary>"
+              echo
+              echo "| ID | Level | Details |"
+              echo "| --- | --- | --- |"
+              rows "$DEV_SARIF"
+              echo
+              echo "</details>"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$gate" -gt 0 ]; then
+            if [ "$SCAN_BLOCKING" = "true" ]; then
+              echo "::error title=Vulnerable dependencies (${NAME})::${gate} HIGH/CRITICAL finding(s) in production dependencies. See the job summary and docs/security-scanning.md."
+              exit 1
+            fi
+            echo "::warning title=Vulnerable dependencies (${NAME})::${gate} HIGH/CRITICAL finding(s) (report-only mode, SCAN_BLOCKING=false)."
+          fi
+
+  # One deduplicated issue per scheduled run, even though two matrix legs scan.
+  notify:
+    name: Open or update issue
+    needs: scan
+    if: ${{ always() && github.event_name == 'schedule' && (needs.scan.outputs.findings_root != '' && needs.scan.outputs.findings_root != '0' || needs.scan.outputs.findings_functions != '' && needs.scan.outputs.findings_functions != '0') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      ROOT_FINDINGS: ${{ needs.scan.outputs.findings_root }}
+      FUNCTIONS_FINDINGS: ${{ needs.scan.outputs.findings_functions }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - name: Create or update the issue
+        run: |
+          set -euo pipefail
+          title='Security scan: vulnerable dependencies'
+          body="The weekly dependency scan found HIGH/CRITICAL vulnerabilities with a fix available.
+
+          - App (root): ${ROOT_FINDINGS:-0}
+          - Cloud Functions: ${FUNCTIONS_FINDINGS:-0}
+
+          Details: ${RUN_URL}
+          How to read it and what to do: docs/security-scanning.md"
+
+          gh label create security --color D93F0B --description 'Security findings' 2>/dev/null || true
+
+          number=$(gh issue list --state open --label security --search "\"$title\" in:title" --json number,title \
+            | jq -r --arg t "$title" '[.[] | select(.title == $t)][0].number // empty')
+
+          if [ -n "$number" ]; then
+            gh issue comment "$number" --body "$body"
+          else
+            gh issue create --title "$title" --label security --body "$body"
+          fi
