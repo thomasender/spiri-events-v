@@ -328,7 +328,7 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
 - Er wird nicht an uns oder an andere Dienste übermittelt und nirgends gespeichert. Gespeichert wird nur die gewählte Region, genauso wie bei einer Auswahl von Hand
 - Ihr Browser bzw. Ihr Gerät ermittelt den Standort selbst und nutzt dafür je nach Gerät die Ortungsdienste des Herstellers (z.B. Google oder Apple); dafür gelten deren Datenschutzbestimmungen
 - Sie können Ihre Region jederzeit selbst wählen oder ändern. Die Erlaubnis für den Standort können Sie in den Einstellungen Ihres Browsers jederzeit widerrufen
-- Die dafür nötigen Grenzen liegen in der App selbst. Quellen: Österreich © BEV – Bundesamt für Eich- und Vermessungswesen (über geoBoundaries, Lizenz CC BY-SA 2.0, vereinfacht), Schweiz © swisstopo (über geoBoundaries, vereinfacht), Liechtenstein Natural Earth`,
+- Die dafür nötigen Grenzen liegen in der App selbst. Die Kartendaten wurden vereinfacht und damit verändert. Quellen: Österreich © BEV – Bundesamt für Eich- und Vermessungswesen, laut Angabe von geoBoundaries unter der Lizenz [CC BY-SA 2.0](https://creativecommons.org/licenses/by-sa/2.0/); Schweiz © swisstopo (swissBOUNDARIES3D, [Nutzungsbedingungen](https://www.swisstopo.admin.ch/de/nutzungsbedingungen-kostenlose-geodaten-und-geodienste)); Liechtenstein: Natural Earth (gemeinfrei)`,
       },
       {
         heading: '18. Änderungen dieser Datenschutzerklärung',
@@ -381,6 +381,10 @@ Thomas Ender
 - Instagram: [https://www.instagram.com/tribevorarlberg](https://www.instagram.com/tribevorarlberg)
 
 E-Mail: [admin@thetribe.at](mailto:admin@thetribe.at)`,
+      },
+      {
+        heading: 'Kartendaten / Quellen',
+        text: `Die Grenzen für die Regionswahl wurden vereinfacht und damit verändert. Österreich: © BEV – Bundesamt für Eich- und Vermessungswesen, laut Angabe von geoBoundaries unter der Lizenz [CC BY-SA 2.0](https://creativecommons.org/licenses/by-sa/2.0/). Schweiz: © swisstopo ([Nutzungsbedingungen](https://www.swisstopo.admin.ch/de/nutzungsbedingungen-kostenlose-geodaten-und-geodienste)). Liechtenstein: Natural Earth (gemeinfrei).`,
       },
       {
         heading: 'Streitschlichtung',

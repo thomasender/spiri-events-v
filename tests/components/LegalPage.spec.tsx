@@ -94,4 +94,18 @@ describe('LegalPage formatting', () => {
     expect(screen.getByText('Impressum')).toBeInTheDocument();
     expect(container.textContent).toContain('ZVR-Zahl');
   });
+
+  it('names the map data sources and licence links in Datenschutz and Impressum', () => {
+    for (const page of ['datenschutz', 'impressum'] as const) {
+      const { container, unmount } = renderLegalPage(page);
+      expect(container.textContent).toContain('BEV');
+      expect(container.textContent).toContain('swisstopo');
+      expect(container.textContent).toContain('Natural Earth');
+      expect(container.textContent).toContain('verändert');
+      expect(
+        container.querySelector('a[href="https://creativecommons.org/licenses/by-sa/2.0/"]')
+      ).not.toBeNull();
+      unmount();
+    }
+  });
 });

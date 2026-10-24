@@ -117,6 +117,14 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
       this section and Datenschutz section 17. Natural Earth admin-1 alone (public domain)
       was evaluated first and rejected: about 0.4 km median / 1.5 km p95, up to 3-5 km off
       the official borders, which put Konstanz into Thurgau and Passau into Oberösterreich.
+      **Licence status: NOT independently verified.** The geoBoundaries metadata files
+      (`boundaryLicense`, `licenseSource`) and the original publishers' pages (BEV, swisstopo)
+      were unreachable when this was checked, so CC BY-SA 2.0 is "as stated by
+      geoBoundaries" only; the original BEV licence may be CC BY 4.0 instead. The legal check
+      is tracked on Trello card 581 (Abklärungen, "Rechtlich klären: Standortbestimmung und
+      Kartendaten"). Until then the stricter one (BY-SA 2.0, share-alike) is applied. Notice
+      file next to the data: `src/data/adminAtChMap.LICENSE.md`; public texts: Datenschutz
+      section 17 and Impressum "Kartendaten / Quellen".
     - **Accuracy:** AT/CH outlines are simplified with Douglas-Peucker at 0.1 km and rounded
       to 1/1000 degree, so about 0.1-0.15 km off the official border. The German side stays
       the weak part (2-3 km projection error): checked border pairs (tests) all resolve
