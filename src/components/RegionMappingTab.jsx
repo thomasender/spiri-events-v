@@ -23,7 +23,23 @@ import './RegionMappingTab.css';
  * is editable. Changes are collected first ("Entwurf") and written together via
  * the callable adminSaveRegionMapping, which checks everything again on the server.
  * Districts that already have events are locked (events keep their region).
+ *
+ * Germany (default): the 60 cultural regions, districts = Landkreise. Austria and Switzerland
+ * (ticket 599): same flow with the Bundesländer / Kantone as the regions and the Bezirke as
+ * districts (no cultural regions are defined there yet). A Bezirk taken out of a region
+ * goes back to the Bundesland / Kanton it belongs to by origin.
  */
+const COUNTRIES = [
+  { id: 'DE', label: 'Deutschland' },
+  { id: 'AT', label: 'Österreich' },
+  { id: 'CH', label: 'Schweiz' },
+];
+const DISTRICT_WORDS = {
+  DE: { one: 'Landkreis', many: 'Landkreise und Städte', add: 'Landkreis oder Stadt hinzufügen' },
+  AT: { one: 'Bezirk', many: 'Bezirke', add: 'Bezirk hinzufügen' },
+  CH: { one: 'Bezirk', many: 'Bezirke', add: 'Bezirk hinzufügen' },
+};
+
 export default function RegionMappingTab() {
   const { role, staffRegionIds } = useAuth();
   const isSuperAdmin = getStaffAccess(role, staffRegionIds).isSuperAdmin;
@@ -37,6 +53,9 @@ export default function RegionMappingTab() {
   const [focusId, setFocusId] = useState('');
   const [focusName, setFocusName] = useState('');
   const [addValue, setAddValue] = useState('');
+  const [country, setCountry] = useState('DE');
+  const isGermany = country === 'DE';
+  const words = DISTRICT_WORDS[country];
 
   const baseAssignment = useMemo(() => currentAssignment(regions), [regions]);
   const moves = useMemo(
@@ -65,8 +84,8 @@ export default function RegionMappingTab() {
   );
   const changedKeys = useMemo(() => new Set(draft.keys()), [draft]);
   const cultureRegions = useMemo(
-    () => regions.filter((r) => r.country === 'DE' && !r.home),
-    [regions]
+    () => regions.filter((r) => r.country === country && (country !== 'DE' || !r.home)),
+    [regions, country]
   );
 
   if (!isSuperAdmin) return null;
@@ -74,9 +93,9 @@ export default function RegionMappingTab() {
   // Districts that still sit in their Bundesland, i.e. in no cultural region yet (compared
   // with the current data: only the Bundesland fallback). The Bundesland is not shown as a
   // group, only its name as a small label.
-  const unassigned = DISTRICT_CATALOG.filter(
-    (d) => d.country === 'DE' && regionById.get(holderOf(d.key))?.home
-  );
+  const unassigned = isGermany
+    ? DISTRICT_CATALOG.filter((d) => d.country === 'DE' && regionById.get(holderOf(d.key))?.home)
+    : [];
 
   const focusRegion = focusId ? regionById.get(focusId) : null;
   const focusDistricts = focusRegion ? districtsOf(focusRegion.id) : [];
@@ -85,7 +104,7 @@ export default function RegionMappingTab() {
   // Districts that can be added to the picked region: Germany, not already in it. A name
   // typed or chosen from the list that matches exactly stages the move.
   const addOptions = focusRegion
-    ? DISTRICT_CATALOG.filter((d) => d.country === 'DE' && !focusDistricts.includes(d))
+    ? DISTRICT_CATALOG.filter((d) => d.country === country && !focusDistricts.includes(d))
     : [];
   const addCandidate = addOptions.find((d) => d.name === addValue.trim()) ?? null;
 
@@ -103,6 +122,13 @@ export default function RegionMappingTab() {
   };
   // "Aus der Region nehmen": the district goes back to its Bundesland, i.e. to "no cultural
   // region yet" (a district always belongs to exactly one region).
+  const selectCountry = (id) => {
+    setCountry(id);
+    setFocusId('');
+    setFocusName('');
+    setAddValue('');
+    setNotice(null);
+  };
   const selectRegion = (id) => {
     setFocusId(id);
     setFocusName(regionById.get(id)?.name ?? '');
@@ -212,8 +238,29 @@ export default function RegionMappingTab() {
         </div>
       )}
 
+      <div
+        className="mapping-countries"
+        role="group"
+        aria-label="Land"
+        data-testid="mapping-countries"
+      >
+        {COUNTRIES.map((c) => (
+          <button
+            key={c.id}
+            type="button"
+            className={`btn ${country === c.id ? 'btn-primary' : 'btn-secondary'}`}
+            aria-pressed={country === c.id}
+            onClick={() => selectCountry(c.id)}
+            data-testid={`mapping-country-${c.id}`}
+          >
+            {c.label}
+          </button>
+        ))}
+      </div>
+
       <section className="culture-layout" data-testid="culture-section">
         <CultureRegionPicker
+          country={country}
           regions={cultureRegions}
           districtsOf={districtsOf}
           holderOf={holderOf}
@@ -225,35 +272,41 @@ export default function RegionMappingTab() {
         {focusRegion ? (
           <div className="culture-panel" data-testid="culture-panel">
             <h3>{focusRegion.name}</h3>
-            <form
-              className="mapping-move"
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (canRenameFocus) doRename(focusRegion.id, focusName);
-              }}
-            >
-              <label className="mapping-field">
-                <span>Name der Kulturregion</span>
-                <input
-                  type="text"
-                  value={focusName}
-                  maxLength={100}
-                  onChange={(e) => setFocusName(e.target.value)}
-                  data-testid="culture-rename-name"
-                />
-              </label>
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={!canRenameFocus}
-                data-testid="culture-rename-save"
+            {isGermany && (
+              <form
+                className="mapping-move"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (canRenameFocus) doRename(focusRegion.id, focusName);
+                }}
               >
-                Umbenennen
-              </button>
-            </form>
+                <label className="mapping-field">
+                  <span>Name der Kulturregion</span>
+                  <input
+                    type="text"
+                    value={focusName}
+                    maxLength={100}
+                    onChange={(e) => setFocusName(e.target.value)}
+                    data-testid="culture-rename-name"
+                  />
+                </label>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={!canRenameFocus}
+                  data-testid="culture-rename-save"
+                >
+                  Umbenennen
+                </button>
+              </form>
+            )}
             <strong>
-              {focusDistricts.length} {focusDistricts.length === 1 ? 'Landkreis' : 'Landkreise'} und
-              Städte
+              {focusDistricts.length}{' '}
+              {isGermany
+                ? `${focusDistricts.length === 1 ? 'Landkreis' : 'Landkreise'} und Städte`
+                : focusDistricts.length === 1
+                  ? 'Bezirk'
+                  : 'Bezirke'}
             </strong>
             {focusDistricts.length === 0 ? (
               <p className="moderation-hint">Dieser Region ist nichts zugeordnet.</p>
@@ -265,15 +318,17 @@ export default function RegionMappingTab() {
                       {d.name} <span className="mapping-state-label">{d.stateName}</span>
                       {draft.has(d.key) && ' (neu)'}
                     </span>
-                    <button
-                      type="button"
-                      disabled={busy || Boolean(locks[d.key])}
-                      title={locks[d.key] ? 'Hier gibt es schon Events' : undefined}
-                      onClick={() => unstageKeys([d.key])}
-                      aria-label={`${d.name} aus der Region nehmen`}
-                    >
-                      <X size={14} aria-hidden="true" />
-                    </button>
+                    {d.stateSlug !== focusRegion.id && (
+                      <button
+                        type="button"
+                        disabled={busy || Boolean(locks[d.key])}
+                        title={locks[d.key] ? 'Hier gibt es schon Events' : undefined}
+                        onClick={() => unstageKeys([d.key])}
+                        aria-label={`${d.name} aus der Region nehmen`}
+                      >
+                        <X size={14} aria-hidden="true" />
+                      </button>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -289,7 +344,7 @@ export default function RegionMappingTab() {
               }}
             >
               <label className="mapping-field">
-                <span>Landkreis oder Stadt hinzufügen</span>
+                <span>{words.add}</span>
                 <input
                   type="text"
                   list="culture-add-options"
@@ -319,22 +374,26 @@ export default function RegionMappingTab() {
           </div>
         ) : (
           <p className="moderation-hint">
-            Wähle eine Kulturregion über die Suche oder mit einem Klick auf einen ihrer Landkreise.
+            {isGermany
+              ? 'Wähle eine Kulturregion über die Suche oder mit einem Klick auf einen ihrer Landkreise.'
+              : `Wähle ${country === 'AT' ? 'ein Bundesland' : 'einen Kanton'} über die Suche oder mit einem Klick auf einen seiner Bezirke.`}
           </p>
         )}
       </section>
 
-      <div className="mapping-suggestion">
-        <button
-          type="button"
-          className="btn btn-secondary"
-          onClick={loadSuggestion}
-          disabled={busy}
-          data-testid="mapping-suggestion"
-        >
-          Vorschlag laden
-        </button>
-      </div>
+      {isGermany && (
+        <div className="mapping-suggestion">
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={loadSuggestion}
+            disabled={busy}
+            data-testid="mapping-suggestion"
+          >
+            Vorschlag laden
+          </button>
+        </div>
+      )}
 
       {draft.size > 0 && (
         <div className="mapping-draft" data-testid="mapping-draft">

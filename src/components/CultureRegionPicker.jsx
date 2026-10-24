@@ -10,8 +10,32 @@ import { groupDistrictShapes } from '../utils/landkreisMap';
 // change (`changedKeys`) are marked, the picked region is highlighted, Landkreise without
 // a cultural region (Bundesland fallback) are drawn neutral. A click on a region in the
 // search picks it (`onSelect`); a click on a Landkreis is handed to `onDistrictClick`.
-// Shapes: src/data/landkreisMap.json (scripts/build-landkreis-map.mjs), loaded on demand.
+// Shapes: Germany src/data/landkreisMap.json (scripts/build-landkreis-map.mjs); Austria and
+// Switzerland (`country` AT / CH, ticket 599) src/data/bezirkMapAtCh.json
+// (scripts/build-atch-bezirk-map.mjs): there the regions are the Bundesländer / Kantone and
+// the shapes are Bezirke. Loaded on demand.
+const WORDS = {
+  DE: {
+    region: 'Kulturregion',
+    district: 'Landkreis',
+    districts: 'Landkreise und Städte',
+    none: 'noch ohne Kulturregion',
+  },
+  AT: { region: 'Bundesland', district: 'Bezirk', districts: 'Bezirke', none: 'ohne Region' },
+  CH: { region: 'Kanton', district: 'Bezirk', districts: 'Bezirke', none: 'ohne Region' },
+};
+
+async function loadMap(country) {
+  if (country === 'DE') {
+    const m = await import('../data/landkreisMap.json');
+    return { ...m.default, unmatched: [] };
+  }
+  const m = await import('../data/bezirkMapAtCh.json');
+  return m.default[country];
+}
+
 export default function CultureRegionPicker({
+  country = 'DE',
   regions,
   districtsOf,
   holderOf,
@@ -27,13 +51,15 @@ export default function CultureRegionPicker({
 
   useEffect(() => {
     let cancelled = false;
-    import('../data/landkreisMap.json').then((m) => {
-      if (!cancelled) setMapData(m.default);
+    setMapData(null);
+    loadMap(country).then((m) => {
+      if (!cancelled) setMapData(m);
     });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [country]);
+  const words = WORDS[country] ?? WORDS.DE;
 
   const hits = useMemo(
     () => searchCultureRegions(regions, districtsOf, query),
@@ -92,8 +118,8 @@ export default function CultureRegionPicker({
           aria-expanded={hits.length > 0}
           aria-controls={listId}
           aria-autocomplete="list"
-          aria-label="Kulturregion oder Landkreis suchen"
-          placeholder="Region oder Landkreis suchen …"
+          aria-label={`${words.region} oder ${words.district} suchen`}
+          placeholder={`${country === 'DE' ? 'Region' : words.region} oder ${words.district} suchen …`}
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
@@ -130,7 +156,7 @@ export default function CultureRegionPicker({
           className="culture-map"
           viewBox={mapData.viewBox}
           role="group"
-          aria-label="Karte der Landkreise und Städte nach Kulturregion"
+          aria-label={`Karte der ${words.districts} nach ${words.region}`}
         >
           {ordered.map((g) => (
             <g
@@ -158,13 +184,24 @@ export default function CultureRegionPicker({
                     onClick={() => onDistrictClick(key)}
                   >
                     <title>
-                      {district?.name ?? key} · {region ? region.name : 'noch ohne Kulturregion'}
+                      {district?.name ?? key} · {region ? region.name : words.none}
                       {changedKeys?.has(key) ? ' (ungespeicherte Änderung)' : ''}
                     </title>
                   </path>
                 );
               })}
             </g>
+          ))}
+          {/* Shapes of the map that have no district in the register: shown, not clickable. */}
+          {mapData.unmatched.map((u) => (
+            <path
+              key={u.key}
+              d={u.d}
+              className="culture-shape culture-shape--quiet"
+              data-unmatched={u.name}
+            >
+              <title>{u.name} · nicht zuordenbar (kein Bezirk in der Struktur)</title>
+            </path>
           ))}
           {changed.map((key) => (
             <path
@@ -182,10 +219,13 @@ export default function CultureRegionPicker({
         <p className="moderation-hint">Karte wird geladen …</p>
       )}
       <p className="moderation-hint" data-testid="culture-map-legend">
-        Jeder Landkreis und jede Stadt ist in der Farbe der Kulturregion eingefärbt, zu der sie mit
-        dem Entwurf gehören. Orange gestrichelt: ungespeicherte Änderung. Grau: noch ohne
-        Kulturregion (gehört zum Bundesland). Klick auf einen Landkreis: zur gewählten Region
-        hinzufügen.
+        {country === 'DE'
+          ? 'Jeder Landkreis und jede Stadt ist in der Farbe der Kulturregion eingefärbt, zu der sie mit dem Entwurf gehören. Orange gestrichelt: ungespeicherte Änderung. Grau: noch ohne Kulturregion (gehört zum Bundesland). Klick auf einen Landkreis: zur gewählten Region hinzufügen.'
+          : `Jeder Bezirk ist in der Farbe der Region eingefärbt, zu der er mit dem Entwurf gehört. Orange gestrichelt: ungespeicherte Änderung. Klick auf einen Bezirk: zur gewählten Region hinzufügen.${
+              mapData?.unmatched.length
+                ? ' Hellgrau: Gebiete der Karte, die es in unserer Bezirksliste nicht gibt.'
+                : ''
+            }`}
       </p>
     </div>
   );

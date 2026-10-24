@@ -271,3 +271,66 @@ describe('RegionMappingTab: culture region map and search', () => {
     expect(screen.queryByTestId('mapping-draft')).not.toBeInTheDocument();
   });
 });
+
+describe('RegionMappingTab: Austria and Switzerland (ticket 599)', () => {
+  it('opens on Germany and switches the country', async () => {
+    render(<RegionMappingTab />);
+    expect(screen.getByTestId('mapping-country-DE')).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByTestId('mapping-country-AT'));
+    expect(screen.getByTestId('mapping-country-AT')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByTestId('mapping-suggestion')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mapping-unassigned')).not.toBeInTheDocument();
+    expect(await district('AT|Bregenz')).toBeInTheDocument();
+    expect(document.querySelector('[data-district="DE|Roth"]')).toBeNull();
+  });
+
+  it('adds a Bezirk to another Bundesland and takes it out again (back to its own)', async () => {
+    render(<RegionMappingTab />);
+    fireEvent.click(screen.getByTestId('mapping-country-AT'));
+    await district('AT|Bregenz');
+    fireEvent.change(screen.getByTestId('culture-search'), { target: { value: 'Tirol' } });
+    fireEvent.mouseDown(screen.getAllByRole('option')[0]);
+    const panel = await screen.findByTestId('culture-panel');
+    expect(within(panel).getByRole('heading', { name: 'Tirol' })).toBeInTheDocument();
+    // no rename for a Bundesland, and its own Bezirke cannot be "taken out"
+    expect(screen.queryByTestId('culture-rename-name')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Imst aus der Region nehmen' })).toBeNull();
+
+    fireEvent.change(screen.getByTestId('culture-add-input'), { target: { value: 'Bregenz' } });
+    fireEvent.click(screen.getByTestId('culture-add-save'));
+    expect(screen.getByTestId('mapping-draft')).toHaveTextContent('Tirol: +1');
+    expect((await district('AT|Bregenz')).closest('g')).toHaveAttribute('data-region', 'tirol');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Bregenz aus der Region nehmen' }));
+    expect(screen.queryByTestId('mapping-draft')).not.toBeInTheDocument();
+  });
+
+  it('saves a Swiss move in one call and offers only Swiss Bezirke', async () => {
+    render(<RegionMappingTab />);
+    fireEvent.click(screen.getByTestId('mapping-country-CH'));
+    await district('CH|Olten');
+    fireEvent.change(screen.getByTestId('culture-search'), { target: { value: 'Aargau' } });
+    fireEvent.mouseDown(screen.getAllByRole('option')[0]);
+    await screen.findByTestId('culture-panel');
+    const options = [...document.querySelectorAll('#culture-add-options option')].map(
+      (o) => (o as HTMLOptionElement).value
+    );
+    expect(options).toContain('Olten');
+    expect(options).not.toContain('Bregenz');
+    fireEvent.click(await district('CH|Olten'));
+    fireEvent.click(screen.getByTestId('mapping-save'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(state.saves).toHaveLength(1));
+    expect(state.saves[0].moves).toEqual([{ districtKey: 'CH|Olten', toRegionId: 'aargau' }]);
+  });
+
+  it('shows map shapes without a register Bezirk as not clickable', async () => {
+    render(<RegionMappingTab />);
+    fireEvent.click(screen.getByTestId('mapping-country-CH'));
+    await district('CH|Olten');
+    const loose = document.querySelector('[data-unmatched="Dorneck"]');
+    expect(loose).toBeInTheDocument();
+    fireEvent.click(loose!);
+    expect(screen.queryByTestId('mapping-draft')).not.toBeInTheDocument();
+  });
+});
