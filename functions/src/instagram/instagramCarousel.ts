@@ -7,6 +7,7 @@
  * ../instagramWeeklyCarousel.ts.
  */
 
+import { isInstagramRegion } from '../regions';
 import {
   BASE_HASHTAGS,
   CAPTION_MAX_LENGTH,
@@ -36,6 +37,8 @@ import {
 } from './instagramPublish';
 
 /** Bezirke that get a weekly carousel. Online events are excluded. */
+// TODO(regions): Vorarlberg-specific Bezirk list. Carousels and stories stay
+// Vorarlberg-only until another region has its own Bezirk structure.
 export const CAROUSEL_BEZIRKE = [
   'Dornbirn',
   'Feldkirch',
@@ -114,6 +117,7 @@ function asString(value: unknown): string {
 export function isCarouselEligible(event: CarouselEvent, window: WeekWindow): boolean {
   if (event.status !== 'approved') return false;
   if (event.instagramConsent !== true) return false;
+  if (!isInstagramRegion(event)) return false;
   const date = asString(event.date);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date < window.start || date > window.end) return false;
   if (event.isOnline === true || event.isOnline === 'true') return false;
@@ -302,8 +306,21 @@ function bezirkSlug(bezirk: string): string {
   return bezirk.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
-export function carouselPostId(bezirk: string, weekStart: string, part: number): CarouselPostId {
-  return `carousel_${bezirkSlug(bezirk)}_${weekStart}${part > 1 ? `_p${part}` : ''}`;
+/**
+ * `regionId` is for future non-Vorarlberg carousels: it is added to the id so
+ * two regions' posts never collide. Vorarlberg (and no regionId) keeps the
+ * historic id. TODO: the carousel itself (CAROUSEL_BEZIRKE, per-region
+ * credentials) is still Vorarlberg-only; see docs/instagram-regions.md.
+ */
+export function carouselPostId(
+  bezirk: string,
+  weekStart: string,
+  part: number,
+  regionId?: string
+): CarouselPostId {
+  const region =
+    regionId && regionId !== 'vorarlberg' ? `${regionId.replace(/[^a-z0-9]/g, '')}_` : '';
+  return `carousel_${region}${bezirkSlug(bezirk)}_${weekStart}${part > 1 ? `_p${part}` : ''}`;
 }
 
 /** Distinct (case-insensitive) organizer handles in event order. */
@@ -518,6 +535,8 @@ export interface CarouselCandidateSummary {
   eligible: number;
   notApproved: number;
   withoutConsent: number;
+  /** Event belongs to a region without an Instagram account (not Vorarlberg). */
+  regionExcluded: number;
   online: number;
   /** No Bezirk or one that gets no carousel. */
   otherRegion: number;
@@ -525,6 +544,7 @@ export interface CarouselCandidateSummary {
   details: {
     notApproved: CandidateInfo[];
     withoutConsent: CandidateInfo[];
+    regionExcluded: CandidateInfo[];
     online: CandidateInfo[];
     otherRegion: CandidateInfo[];
   };
@@ -557,9 +577,16 @@ export function summarizeCandidates(
     eligible: 0,
     notApproved: 0,
     withoutConsent: 0,
+    regionExcluded: 0,
     online: 0,
     otherRegion: 0,
-    details: { notApproved: [], withoutConsent: [], online: [], otherRegion: [] },
+    details: {
+      notApproved: [],
+      withoutConsent: [],
+      regionExcluded: [],
+      online: [],
+      otherRegion: [],
+    },
   };
   const note = (reason: keyof CarouselCandidateSummary['details'], event: CarouselEvent) => {
     summary[reason] += 1;
@@ -579,6 +606,7 @@ export function summarizeCandidates(
     if (isCarouselEligible(event, window)) summary.eligible += 1;
     else if (event.status !== 'approved') note('notApproved', event);
     else if (event.instagramConsent !== true) note('withoutConsent', event);
+    else if (!isInstagramRegion(event)) note('regionExcluded', event);
     else if (event.isOnline === true || event.isOnline === 'true') note('online', event);
     else note('otherRegion', event);
   }

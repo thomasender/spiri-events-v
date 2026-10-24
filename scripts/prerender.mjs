@@ -2,6 +2,10 @@ import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { buildEventJsonLd, stripHtmlToText } from '../src/utils/eventJsonLd.js'
+import { BRAND_NAME } from '../src/config/brand.js'
+import { DEFAULT_REGION_ID, STATIC_REGIONS, getRegionBySlug, isRegionSlug, mergeRegions, resolveRegionId } from '../src/utils/regions.js'
+import { activeRegions } from '../src/utils/regionRouting.js'
+import { regionTexts } from '../src/utils/regionTexts.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT_DIR = path.resolve(__dirname, '..')
@@ -169,6 +173,7 @@ export function generateEventJsonLd(event) {
   return buildEventJsonLd(event, {
     image: getEventOgImage(event),
     description: stripHtmlToText(event.description),
+    regionName: getRegionBySlug(resolveRegionId(event))?.name,
   })
 }
 
@@ -284,11 +289,26 @@ function buildEventStaticBody(event, isFree, category, formattedDate) {
   `
 }
 
+// Title suffix of an event page. Vorarlberg events (and everything while
+// Vorarlberg is the only active region, i.e. `regions` is null/has <= 1 active
+// entry) keep today's suffix. Events of another region get "The Tribe <Region>"
+// once more than one region is active (dark launch, see regionTexts.js).
+// `regions` = merged register (mergeRegions result), not only the active ones.
+export function getEventTitleSuffix(event, regions = null) {
+  if (!Array.isArray(regions) || activeRegions(regions).length <= 1) return SITE_NAME
+  const regionId = resolveRegionId(event)
+  if (regionId === DEFAULT_REGION_ID) return SITE_NAME
+  const region = getRegionBySlug(regionId, regions)
+  if (!region || !region.name) return SITE_NAME
+  return `${BRAND_NAME} ${region.name}`
+}
+
 export function generateEventHtml(
   event,
   theme = THEME_FALLBACK,
   jsBundlePath = null,
-  cssBundlePath = null
+  cssBundlePath = null,
+  regions = null
 ) {
   const jsonLd = generateEventJsonLd(event)
   const isFree = event.contribution === 'free'
@@ -328,7 +348,7 @@ export function generateEventHtml(
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${escapeHtml(event.title)} | ${escapeHtml(SITE_NAME)}</title>
+  <title>${escapeHtml(event.title)} | ${escapeHtml(getEventTitleSuffix(event, regions))}</title>
   <meta name="description" content="${escapeHtml(description)}" />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="${escapeHtml(eventUrl)}" />
@@ -401,6 +421,38 @@ export function generateEventHtml(
   ${pwaRegisterScript()}
 </body>
 </html>`
+}
+
+// Shared <style> body of the calendar-style pages (`/` and the region pages).
+function calendarPageCss(themeRoot) {
+  return `    ${themeRoot}
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Nunito Sans', -apple-system, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+    }
+    h1, h2, h3 { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; }
+    a { color: var(--accent-primary); text-decoration: none; }
+    a:hover { color: var(--accent-primary-hover); }
+    .calendar-page { min-height: 100vh; display: flex; flex-direction: column; }
+    .page-header { background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%); padding: 48px 24px; text-align: center; }
+    .header-content h1 { font-size: 2.5rem; margin-bottom: 8px; }
+    .header-content p { color: var(--text-secondary); font-size: 1.1rem; }
+    .calendar-wrapper { max-width: 1000px; margin: 0 auto; padding: 40px 24px; flex: 1; }
+    .page-title { font-size: 1.8rem; margin-bottom: 24px; text-align: center; }
+    .events-list { list-style: none; display: grid; gap: 16px; }
+    .events-list li { background: var(--bg-calendar); border-radius: 8px; padding: 16px; box-shadow: 0 2px 8px rgba(22, 24, 25, 0.06); }
+    .events-list a { display: flex; flex-direction: column; gap: 4px; }
+    .events-list strong { font-size: 1.1rem; color: var(--text-primary); }
+    .events-list span { font-size: 0.9rem; color: var(--text-secondary); }
+    .prerender-loading { display: flex; justify-content: center; align-items: center; padding: 48px 16px; min-height: 160px; }
+    .prerender-loading::after { content: ''; width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent-primary); border-radius: 50%; animation: prerender-spin 0.8s linear infinite; }
+    @keyframes prerender-spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .prerender-loading::after { animation-duration: 3s; } }
+    .prerender-no-events { text-align: center; color: var(--text-secondary); padding: 48px 16px; }
+    footer { background: var(--bg-secondary); padding: 24px; text-align: center; color: var(--text-secondary); font-size: 0.9rem; }`
 }
 
 export function generateCalendarPageHtml(events, jsBundlePath, cssBundlePath, theme = THEME_FALLBACK) {
@@ -487,34 +539,7 @@ export function generateCalendarPageHtml(events, jsBundlePath, cssBundlePath, th
   })}</script>
 
   <style>
-    ${themeRoot}
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Nunito Sans', -apple-system, sans-serif;
-      background-color: var(--bg-primary);
-      color: var(--text-primary);
-      line-height: 1.6;
-    }
-    h1, h2, h3 { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; }
-    a { color: var(--accent-primary); text-decoration: none; }
-    a:hover { color: var(--accent-primary-hover); }
-    .calendar-page { min-height: 100vh; display: flex; flex-direction: column; }
-    .page-header { background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%); padding: 48px 24px; text-align: center; }
-    .header-content h1 { font-size: 2.5rem; margin-bottom: 8px; }
-    .header-content p { color: var(--text-secondary); font-size: 1.1rem; }
-    .calendar-wrapper { max-width: 1000px; margin: 0 auto; padding: 40px 24px; flex: 1; }
-    .page-title { font-size: 1.8rem; margin-bottom: 24px; text-align: center; }
-    .events-list { list-style: none; display: grid; gap: 16px; }
-    .events-list li { background: var(--bg-calendar); border-radius: 8px; padding: 16px; box-shadow: 0 2px 8px rgba(22, 24, 25, 0.06); }
-    .events-list a { display: flex; flex-direction: column; gap: 4px; }
-    .events-list strong { font-size: 1.1rem; color: var(--text-primary); }
-    .events-list span { font-size: 0.9rem; color: var(--text-secondary); }
-    .prerender-loading { display: flex; justify-content: center; align-items: center; padding: 48px 16px; min-height: 160px; }
-    .prerender-loading::after { content: ''; width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent-primary); border-radius: 50%; animation: prerender-spin 0.8s linear infinite; }
-    @keyframes prerender-spin { to { transform: rotate(360deg); } }
-    @media (prefers-reduced-motion: reduce) { .prerender-loading::after { animation-duration: 3s; } }
-    .prerender-no-events { text-align: center; color: var(--text-secondary); padding: 48px 16px; }
-    footer { background: var(--bg-secondary); padding: 24px; text-align: center; color: var(--text-secondary); font-size: 0.9rem; }
+${calendarPageCss(themeRoot)}
   </style>
 </head>
 <body>
@@ -562,7 +587,144 @@ export function toLastmod(value) {
   return date.toISOString().split('T')[0]
 }
 
-export function generateSitemap(events) {
+
+// Pages of an ACTIVE region: `/<slug>` (kind 'calendar') and
+// `/<slug>/verzeichnis` (kind 'directory'). Only generated once at least two
+// regions are active (see getRegionPagePlan); texts come from regionTexts.js so
+// they match what the SPA's SeoMeta sets after hydration. Private data: only
+// public region fields (name, texts) and approved events' titles/dates/places.
+export function generateRegionPageHtml(
+  region,
+  kind,
+  events,
+  jsBundlePath,
+  cssBundlePath,
+  theme = THEME_FALLBACK,
+  { activeCount = 2, activeRegionIds = [region.id] } = {}
+) {
+  const texts = regionTexts(region, { activeCount })
+  const isDirectory = kind === 'directory'
+  const pagePath = isDirectory ? `/${region.slug}/verzeichnis` : `/${region.slug}`
+  const url = `${BASE_URL}${pagePath}`
+  const pageTitle = isDirectory
+    ? `${texts.directoryTitle} | ${texts.siteName}`
+    : texts.calendarTitle
+  const description = isDirectory ? texts.directoryDescription : texts.calendarDescription
+  const siteName = texts.siteName
+  const themeRoot = buildThemeRootBlock(theme)
+
+  const today = new Date().toISOString().split('T')[0]
+  const upcomingEvents = isDirectory
+    ? []
+    : events
+        .filter(e => e.status === 'approved' || e.status === undefined)
+        .filter(e => e.date && e.date >= today)
+        .filter(e => activeRegionIds.includes(resolveRegionId(e)) && (e.isOnline || resolveRegionId(e) === region.id))
+        .slice(0, 20)
+  const noscriptContent = isDirectory
+    ? `<p class="prerender-no-events">${escapeHtml(texts.directoryDescription)}</p>`
+    : upcomingEvents.length > 0
+      ? `<ul class="events-list">${upcomingEvents.map(event => `
+        <li>
+          <a href="/event/${escapeHtml(getEventPath(event))}">
+            <strong>${escapeHtml(event.title)}</strong>
+            <span>${escapeHtml(formatDate(event.date))} - ${escapeHtml((event.bezirk === 'Grenznahe' ? 'Umgebung' : event.bezirk) || region.name)}</span>
+          </a>
+        </li>`).join('')}</ul>`
+      : '<p class="prerender-no-events">Aktuell sind keine bevorstehenden Events geplant.</p>'
+
+  const jsonLd = isDirectory
+    ? ''
+    : `
+  <script type="application/ld+json">${escapeJson({
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: `${BRAND_NAME} ${region.name}`,
+    description,
+    url,
+  })}</script>
+`
+
+  return `<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${escapeHtml(pageTitle)}</title>
+  <meta name="description" content="${escapeHtml(description)}" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="${escapeHtml(url)}" />
+
+  <meta property="og:site_name" content="${escapeHtml(siteName)}" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="${escapeHtml(pageTitle)}" />
+  <meta property="og:description" content="${escapeHtml(description)}" />
+  <meta property="og:url" content="${escapeHtml(url)}" />
+  <meta property="og:locale" content="de_AT" />
+  <meta property="og:image" content="${escapeHtml(DEFAULT_OG_IMAGE_URL)}" />
+  <meta property="og:image:width" content="${OG_IMAGE_WIDTH}" />
+  <meta property="og:image:height" content="${OG_IMAGE_HEIGHT}" />
+  <meta property="og:image:alt" content="${escapeHtml(pageTitle)}" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="${escapeHtml(pageTitle)}" />
+  <meta name="twitter:description" content="${escapeHtml(description)}" />
+  <meta name="twitter:image" content="${escapeHtml(DEFAULT_OG_IMAGE_URL)}" />
+  <meta name="twitter:image:alt" content="${escapeHtml(pageTitle)}" />
+
+  ${pwaHeadTags()}
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Nunito+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="${escapeHtml(cssBundlePath)}" />
+${jsonLd}
+  <style>
+${calendarPageCss(themeRoot)}
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div class="prerender-loading" role="status" aria-live="polite" aria-label="Lädt Events"></div>
+  </div>
+  <noscript>
+    <div class="calendar-page">
+      <header class="page-header">
+        <div class="header-content">
+          <h1>${escapeHtml(isDirectory ? texts.directoryTitle : texts.headerTitle)}</h1>
+          <p>${escapeHtml(description)}</p>
+        </div>
+      </header>
+
+      <div class="calendar-wrapper">
+        ${isDirectory ? '' : '<h2 class="page-title">Bevorstehende Events</h2>'}
+        ${noscriptContent}
+      </div>
+
+      <footer>
+        <p>© ${new Date().getFullYear()} ${escapeHtml(SITE_NAME)}</p>
+      </footer>
+    </div>
+  </noscript>
+  <script type="module" src="${escapeHtml(jsBundlePath)}"></script>
+  ${pwaRegisterScript()}
+</body>
+</html>`
+}
+
+// Which region pages exist for a merged register. Dark launch: with fewer than
+// two active regions the plan is EMPTY (Vorarlberg's `/` and `/verzeichnis`
+// stay as they are, no other region page is generated). Otherwise every active
+// region gets `/<slug>` and `/<slug>/verzeichnis`.
+export function getRegionPagePlan(regions) {
+  const active = activeRegions(Array.isArray(regions) ? regions : STATIC_REGIONS)
+  if (active.length < 2) return []
+  return active.flatMap(region => [
+    { region, kind: 'calendar', path: `/${region.slug}` },
+    { region, kind: 'directory', path: `/${region.slug}/verzeichnis` },
+  ])
+}
+
+export function generateSitemap(events, regions = null) {
   const today = new Date().toISOString().split('T')[0]
   // No lastmod for static pages: a made-up date teaches Google to ignore the field.
   const staticPages = [
@@ -574,6 +736,16 @@ export function generateSitemap(events) {
     { url: '/nutzungsbedingungen', priority: '0.3', changefreq: 'monthly' },
   ]
 
+  // Region pages (non-default regions only) once at least two regions are
+  // active. Inactive regions (coming-soon, noindex) never show up.
+  const regionPages = getRegionPagePlan(regions)
+    .filter(({ region }) => region.id !== DEFAULT_REGION_ID)
+    .map(({ kind, path: pagePath }) => ({
+      url: pagePath,
+      priority: kind === 'calendar' ? '0.9' : '0.7',
+      changefreq: kind === 'calendar' ? 'daily' : 'weekly',
+    }))
+
   const eventPages = events
     .filter(e => e.date && e.date >= today)
     .map(event => ({
@@ -583,7 +755,7 @@ export function generateSitemap(events) {
       lastmod: toLastmod(event.updatedAt) || toLastmod(event.approvedAt) || toLastmod(event.createdAt),
     }))
 
-  const allPages = [...staticPages, ...eventPages]
+  const allPages = [...staticPages, ...regionPages, ...eventPages]
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -899,6 +1071,114 @@ export async function loadEventsFromFirestoreRest({
   }
 }
 
+// ---------------------------------------------------------------------------
+// Regions (ticket 22). Read the same way as events (export snapshot, then live
+// Admin SDK / REST / client SDK) but tolerant: a missing file, an empty or
+// unreadable collection simply means "static register" = Vorarlberg only, so
+// the build never fails and nothing but Vorarlberg is generated.
+// Only the public fields mergeRegions understands are kept (never e.g.
+// contactEmail); unknown ids are dropped.
+// ---------------------------------------------------------------------------
+export function sanitizeRegionDoc(doc) {
+  if (!doc || !isRegionSlug(doc.id)) return null
+  const out = { id: doc.id }
+  if (typeof doc.name === 'string') out.name = doc.name
+  if (typeof doc.order === 'number') out.order = doc.order
+  if (typeof doc.active === 'boolean') out.active = doc.active
+  if (Array.isArray(doc.bezirke)) out.bezirke = doc.bezirke.filter(b => typeof b === 'string')
+  if (doc.seo && typeof doc.seo === 'object') {
+    const seo = {}
+    if (typeof doc.seo.title === 'string') seo.title = doc.seo.title
+    if (typeof doc.seo.description === 'string') seo.description = doc.seo.description
+    out.seo = seo
+  }
+  if (typeof doc.timezone === 'string') out.timezone = doc.timezone
+  return out
+}
+
+// Later docs win per id; fields merge (a live doc without `seo` keeps the
+// snapshot's, like mergeEventsByIdentity).
+export function mergeRegionDocs(base, incoming) {
+  const byId = new Map()
+  for (const doc of [...base, ...incoming]) {
+    const clean = sanitizeRegionDoc(doc)
+    if (clean) byId.set(clean.id, { ...(byId.get(clean.id) || {}), ...clean })
+  }
+  return [...byId.values()]
+}
+
+export function loadRegionsFromExport(exportPath) {
+  const file = path.join(exportPath, 'regions.json')
+  if (!fs.existsSync(file)) {
+    return { regions: [], source: null, error: `No regions.json at ${file}` }
+  }
+  try {
+    const raw = JSON.parse(fs.readFileSync(file, 'utf8'))
+    if (!Array.isArray(raw)) return { regions: [], source: null, error: 'regions.json is not an array' }
+    const regions = raw.map(unfirestore).map(sanitizeRegionDoc).filter(Boolean)
+    return { regions, source: file, error: null }
+  } catch (err) {
+    return { regions: [], source: null, error: `Failed to read regions.json: ${err.message}` }
+  }
+}
+
+export async function loadRegionsFromFirestoreAdmin({
+  projectId = 'spirieventsvbg',
+  appName = `prerender-admin-regions-${Date.now()}`,
+  fallbackPath = 'scripts/service-account.json',
+} = {}) {
+  const { credential, error: credentialError } = resolveServiceAccountCredential({ fallbackPath })
+  if (!credential) return { regions: [], error: credentialError }
+  try {
+    const admin = await import('firebase-admin/app')
+    const { getFirestore } = await import('firebase-admin/firestore')
+    const app = admin.initializeApp({ credential: admin.cert(credential), projectId }, appName)
+    try {
+      const snapshot = await getFirestore(app).collection('regions').get()
+      const regions = snapshot.docs.map(doc => sanitizeRegionDoc({ id: doc.id, ...doc.data() })).filter(Boolean)
+      return { regions, error: null }
+    } finally {
+      app.delete().catch(() => {})
+    }
+  } catch (err) {
+    return { regions: [], error: `Regions Admin SDK read threw: ${err.message}` }
+  }
+}
+
+export async function loadRegionsFromFirestoreRest({
+  projectId,
+  apiKey,
+  baseUrl = 'https://firestore.googleapis.com',
+} = {}) {
+  if (!projectId || !apiKey) return { regions: [], error: 'Missing projectId or apiKey for regions REST fetch.' }
+  const url = `${baseUrl}/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents/regions?pageSize=100&key=${encodeURIComponent(apiKey)}`
+  try {
+    const res = await fetch(url)
+    if (!res.ok) return { regions: [], error: `Regions REST request failed: ${res.status} ${res.statusText}` }
+    const payload = await res.json()
+    const docs = Array.isArray(payload?.documents) ? payload.documents : []
+    const regions = docs
+      .map(doc => sanitizeRegionDoc({ id: doc.name?.split('/').pop(), ...unfirestore(doc.fields || {}) }))
+      .filter(Boolean)
+    return { regions, error: null }
+  } catch (err) {
+    return { regions: [], error: `Regions REST fetch threw: ${err.message}` }
+  }
+}
+
+export async function loadRegionsFromFirestore(firebaseConfig) {
+  try {
+    const { initializeApp } = await import('firebase/app')
+    const { getFirestore, collection, getDocs } = await import('firebase/firestore')
+    const db = getFirestore(initializeApp(firebaseConfig, `prerender-regions-${Date.now()}`))
+    const snapshot = await getDocs(collection(db, 'regions'))
+    const regions = snapshot.docs.map(doc => sanitizeRegionDoc({ id: doc.id, ...doc.data() })).filter(Boolean)
+    return { regions, error: null }
+  } catch (err) {
+    return { regions: [], error: `Regions client SDK read threw: ${err.message}` }
+  }
+}
+
 function pickBundlePath(assetsDir, ext) {
   const files = fs.readdirSync(assetsDir)
   const candidates = files.filter(f => f.endsWith(`.${ext}`) && !f.includes('map'))
@@ -1080,6 +1360,28 @@ export async function prerender({
     console.warn('No events loaded from any source — prerendering without event pages.')
   }
 
+  // Regions: snapshot (optional), then live sources on top, merged over the
+  // static register. Any failure leaves the static register (Vorarlberg only).
+  let regionDocs = []
+  const regionsExport = loadRegionsFromExport(exportPath)
+  if (!regionsExport.error) regionDocs = mergeRegionDocs(regionDocs, regionsExport.regions)
+  const regionReads = []
+  if (!skipAdmin) regionReads.push(['Admin SDK', () => loadRegionsFromFirestoreAdmin({ projectId: firebaseConfig.projectId })])
+  if (!skipRest) regionReads.push(['REST', () => loadRegionsFromFirestoreRest({ projectId: firebaseConfig.projectId, apiKey: firebaseConfig.apiKey })])
+  if (!skipFirestore) regionReads.push(['SDK', () => loadRegionsFromFirestore(firebaseConfig)])
+  for (const [label, read] of regionReads) {
+    try {
+      const result = await read()
+      if (result.regions.length > 0) regionDocs = mergeRegionDocs(regionDocs, result.regions)
+      else if (result.error) console.warn(`Regions ${label} read skipped: ${result.error}`)
+    } catch (err) {
+      console.warn(`Regions ${label} read threw: ${err.message}`)
+    }
+  }
+  const regions = mergeRegions(regionDocs)
+  const regionPlan = getRegionPagePlan(regions)
+  console.log(`Active regions: ${activeRegions(regions).map(r => r.slug).join(', ') || 'none'}.`)
+
   const writtenFiles = []
   const skippedEvents = []
   const seenPaths = new Set()
@@ -1111,7 +1413,7 @@ export async function prerender({
 
     const eventDir = path.join(distPath, 'event', eventPath)
     ensureDir(eventDir)
-    const html = generateEventHtml(event, theme, jsBundlePath, cssBundlePath)
+    const html = generateEventHtml(event, theme, jsBundlePath, cssBundlePath, regions)
     const filePath = path.join(eventDir, 'index.html')
     fs.writeFileSync(filePath, html)
     writtenFiles.push({ path: `/event/${eventPath}/index.html`, slug: eventPath, title: event.title })
@@ -1134,7 +1436,26 @@ export async function prerender({
     console.warn(`No assets/ directory in dist; skipping calendar prerender.`)
   }
 
-  const sitemap = generateSitemap(events)
+  if (regionPlan.length > 0) {
+    if (jsBundlePath && cssBundlePath) {
+      const activeRegionIds = activeRegions(regions).map(r => r.id)
+      for (const { region, kind, path: pagePath } of regionPlan) {
+        const pageDir = path.join(distPath, ...pagePath.split('/').filter(Boolean))
+        ensureDir(pageDir)
+        const html = generateRegionPageHtml(region, kind, events, jsBundlePath, cssBundlePath, theme, {
+          activeCount: activeRegionIds.length,
+          activeRegionIds,
+        })
+        fs.writeFileSync(path.join(pageDir, 'index.html'), html)
+        writtenFiles.push({ path: `${pagePath}/index.html`, slug: null, title: `${region.name} (${kind})` })
+      }
+      console.log(`Prerendered ${regionPlan.length} region pages.`)
+    } else {
+      console.warn('No assets/ directory in dist; skipping region page prerender.')
+    }
+  }
+
+  const sitemap = generateSitemap(events, regions)
   fs.writeFileSync(path.join(distPath, 'sitemap.xml'), sitemap)
   writtenFiles.push({ path: '/sitemap.xml', slug: null, title: 'sitemap' })
   console.log(`Generated sitemap.xml with ${events.length} event URLs.`)

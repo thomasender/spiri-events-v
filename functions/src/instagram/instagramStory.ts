@@ -207,9 +207,14 @@ export function storyPostId(
   bezirk: string,
   day: string,
   part: number,
-  section?: 'frueh' | 'abend'
+  section?: 'frueh' | 'abend',
+  regionId?: string
 ): StoryPostId {
-  return `story_${bezirk.toLowerCase().replace(/[^a-z0-9]/g, '')}_${day}${section ? `_${section}` : ''}${part > 1 ? `_p${part}` : ''}`;
+  // Non-Vorarlberg regions get their id in the post id so regions never collide;
+  // Vorarlberg ids stay as they are. Stories are still Vorarlberg-only (TODO).
+  const region =
+    regionId && regionId !== 'vorarlberg' ? `${regionId.replace(/[^a-z0-9]/g, '')}_` : '';
+  return `story_${region}${bezirk.toLowerCase().replace(/[^a-z0-9]/g, '')}_${day}${section ? `_${section}` : ''}${part > 1 ? `_p${part}` : ''}`;
 }
 
 export interface StoryPostRecord {

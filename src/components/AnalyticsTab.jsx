@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { AlertTriangle, ExternalLink, RefreshCw } from 'lucide-react';
 import { useAdminAnalytics } from '../hooks/useAdminAnalytics';
+import { useRegion } from '../hooks/useRegion';
 import './AnalyticsTab.css';
 
 export const RANGES = [7, 30];
@@ -231,7 +232,20 @@ function errorMessage(error) {
 // lower bound — the hint below says so.
 export default function AnalyticsTab() {
   const [days, setDays] = useState(7);
-  const { report, loading, error, reload } = useAdminAnalytics(days);
+  const [region, setRegion] = useState('');
+  const { report, loading, error, reload } = useAdminAnalytics(days, region || null);
+  const { regions, combinedViews } = useRegion();
+
+  // Slug -> display name for active regions and combined views; slugs GA knows
+  // but the register does not (e.g. a deactivated region) show as the slug.
+  const regionNames = new Map([
+    ...(combinedViews ?? []).map((v) => [v.slug, v.name ?? v.label]),
+    ...regions.map((r) => [r.id, r.name]),
+  ]);
+  const regionRows = report?.regions ?? [];
+  const showRegionSelect = regions.length >= 2 || regionRows.length > 1 || Boolean(region);
+  const regionOptions = [...regionNames.keys()];
+  if (region && !regionNames.has(region)) regionOptions.push(region);
 
   const channelItems = (report?.channels ?? []).map((c) => ({
     label: CHANNEL_LABELS[c.name] ?? c.name,
@@ -264,6 +278,22 @@ export default function AnalyticsTab() {
             </button>
           ))}
         </div>
+        {showRegionSelect && (
+          <select
+            className="analytics-region-select"
+            aria-label="Region"
+            value={region}
+            onChange={(e) => setRegion(e.target.value)}
+            data-testid="analytics-region-select"
+          >
+            <option value="">Alle Regionen</option>
+            {regionOptions.map((slug) => (
+              <option key={slug} value={slug}>
+                {regionNames.get(slug) ?? slug}
+              </option>
+            ))}
+          </select>
+        )}
         <button
           type="button"
           className="btn btn-secondary"
@@ -291,6 +321,13 @@ export default function AnalyticsTab() {
 
       {loading && !report && <p className="analytics-empty">Lade Statistik …</p>}
 
+      {report?.regionDimension === 'unavailable' && (
+        <p className="analytics-hint" role="status" data-testid="analytics-region-unavailable">
+          Für die Auswertung pro Region muss in Google Analytics einmalig die benutzerdefinierte
+          Dimension „region“ angelegt werden (Anleitung: docs/regions.md).
+        </p>
+      )}
+
       {report && (
         <>
           <div className="analytics-kpis">
@@ -304,6 +341,32 @@ export default function AnalyticsTab() {
             <h2>Seitenaufrufe pro Tag</h2>
             <DailyChart daily={report.daily} />
           </section>
+
+          {regionRows.length > 0 && (
+            <section className="analytics-card" data-testid="analytics-regions">
+              <h2>Regionen im Vergleich</h2>
+              <table className="analytics-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Region</th>
+                    <th scope="col">Besucher:innen</th>
+                    <th scope="col">Seitenaufrufe</th>
+                    <th scope="col">Besuche</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {regionRows.map((r) => (
+                    <tr key={r.name} data-testid="analytics-region-row">
+                      <th scope="row">{regionNames.get(r.name) ?? r.name}</th>
+                      <td>{formatNumber(r.users)}</td>
+                      <td>{formatNumber(r.pageViews)}</td>
+                      <td>{formatNumber(r.sessions)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </section>
+          )}
 
           <section className="analytics-card" data-testid="analytics-top-events-card">
             <h2>Top 10 Events (letzte {report.topEvents?.rangeDays ?? 14} Tage)</h2>

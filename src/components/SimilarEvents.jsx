@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { collection, getDocs, query, where } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { getEventQueries } from '../lib/staffEventQueries';
 import EventCard from './EventCard';
 import { resolveEventColor } from '../utils/categoryColors';
 import { useCategoryRegistry } from '../hooks/useCategoryRegistry';
 import { getPrimaryCategory } from '../utils/eventFormat';
+import { filterEventsForRegion, resolveRegionId } from '../utils/regions';
+import { useRegion } from '../hooks/useRegion';
+import { useRegionMigrationComplete } from '../hooks/useRegionMigrationMarker';
+import { buildPublicEventQueryPlan, queryPlanKey } from '../utils/regionQueries';
 import './SimilarEvents.css';
 
 const SIMILAR_EVENTS_LIMIT = 5;
@@ -20,6 +23,7 @@ function normalizeSimilarEvent(event) {
     category,
     bezirk: isOnline ? '' : event.bezirk || '',
     isOnline,
+    regionId: resolveRegionId(event),
     status: event.status || 'approved',
     organizer: event.organizer || { name: '', email: '' },
     kontakt: event.kontakt || '',
@@ -32,6 +36,16 @@ export default function SimilarEvents({ currentEvent }) {
   const currentBezirk = currentEvent?.isOnline ? '' : currentEvent?.bezirk || '';
   const hasCurrentBezirk = Boolean(currentBezirk);
   const { colorByName } = useCategoryRegistry();
+  const { regions } = useRegion();
+  const activeKey = regions.map((r) => r.id).join(',');
+  const currentRegionId = currentEvent ? resolveRegionId(currentEvent) : null;
+  // Only the shown event's region (+ online events) once the regionId
+  // migration is marked complete; before that every approved event. The
+  // region comes from the event, so there is no need to wait for the register.
+  const markerComplete = useRegionMigrationComplete();
+  const planKey = queryPlanKey(
+    buildPublicEventQueryPlan({ markerComplete, regionId: currentRegionId })
+  );
   const sliderRef = useRef(null);
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -44,21 +58,24 @@ export default function SimilarEvents({ currentEvent }) {
       setLoading(false);
       return;
     }
+    if (planKey === 'pending') return;
 
     let cancelled = false;
     setLoading(true);
 
-    const q = query(collection(db, 'events'), where('status', '==', 'approved'));
-
-    getDocs(q)
-      .then((snapshot) => {
+    getEventQueries(JSON.parse(planKey).queries)
+      .then((docs) => {
         if (cancelled) return;
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const todayIso = today.toISOString().split('T')[0];
 
-        const normalized = snapshot.docs
-          .map((docSnap) => normalizeSimilarEvent({ id: docSnap.id, ...docSnap.data() }))
+        // Same region as the shown event (plus online events); never inactive regions.
+        const candidates = filterEventsForRegion(docs.map(normalizeSimilarEvent), {
+          regionId: currentRegionId,
+          activeRegionIds: activeKey ? activeKey.split(',') : [],
+        });
+        const normalized = candidates
           .filter((event) => event.category === category)
           .filter((event) => event.id !== currentId)
           .filter((event) => {
@@ -88,7 +105,7 @@ export default function SimilarEvents({ currentEvent }) {
     return () => {
       cancelled = true;
     };
-  }, [category, currentId, currentBezirk, hasCurrentBezirk]);
+  }, [category, currentId, currentBezirk, hasCurrentBezirk, currentRegionId, activeKey, planKey]);
 
   useEffect(() => {
     const node = sliderRef.current;

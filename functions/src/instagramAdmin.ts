@@ -29,6 +29,10 @@ import {
   skipInstagramPost,
 } from './instagram/instagramAdminLogic';
 import type { TriggerOutcome } from './instagram/instagramPublish';
+import { ALLOWED_ORIGINS } from './allowedOrigins';
+import { DEFAULT_REGION_ID, resolveRegionId } from './regions';
+import { isValidRegionId, type BackfillResult } from './instagram/instagramRegionAccounts';
+import { resolveCredentialsForRegion, runRegionBackfill } from './instagramRegionStore';
 
 if (getApps().length === 0) {
   initializeApp();
@@ -36,13 +40,6 @@ if (getApps().length === 0) {
 
 const IG_ACCESS_TOKEN = defineSecret('IG_ACCESS_TOKEN');
 const IG_USER_ID = defineSecret('IG_USER_ID');
-
-const ALLOWED_ORIGINS = [
-  'https://www.thetribe.at',
-  'https://thetribe.at',
-  'https://spirieventsvbg.web.app',
-  'http://localhost:5180',
-];
 
 async function assertAdmin(uid: string | undefined): Promise<void> {
   if (!uid) {
@@ -84,7 +81,23 @@ export const adminRetryInstagramPost = onCall(
       const force = data?.force === true;
       const db = getFirestore();
       const publishDeps = buildPublishDeps(db, IG_USER_ID.value());
-      publishDeps.accessToken = await resolveInstagramAccessToken(db, IG_ACCESS_TOKEN.value());
+      // The event's region decides the account: Vorarlberg uses the legacy
+      // secrets (unchanged), other regions their own instagram_private doc.
+      const eventSnap = await db.collection('events').doc(eventId).get();
+      const regionId = eventSnap.exists ? resolveRegionId(eventSnap.data()) : DEFAULT_REGION_ID;
+      if (regionId === DEFAULT_REGION_ID) {
+        publishDeps.accessToken = await resolveInstagramAccessToken(db, IG_ACCESS_TOKEN.value());
+      } else {
+        const credentials = await resolveCredentialsForRegion(db, regionId, {
+          accessToken: '',
+          userId: '',
+        });
+        if (credentials) {
+          publishDeps.accessToken = credentials.accessToken;
+          publishDeps.userId = credentials.userId;
+          publishDeps.instagramRegionIds = [regionId];
+        }
+      }
       if (!publishDeps.accessToken || !publishDeps.userId) {
         throw new HttpsError('failed-precondition', 'Instagram is not configured.');
       }
@@ -110,6 +123,41 @@ export const adminRetryInstagramPost = onCall(
     } catch (err) {
       return toHttpsError(err);
     }
+  }
+);
+
+// Publishes a region's already approved events (consent given, not past, no
+// post record yet) in one bounded batch; call again until `remaining` is 0.
+// Same Admin check as the other callables. Respects the global kill switch.
+export const adminBackfillInstagramRegion = onCall(
+  {
+    region: 'europe-west3',
+    cors: ALLOWED_ORIGINS,
+    timeoutSeconds: 540,
+    memory: '1GiB',
+    secrets: [IG_ACCESS_TOKEN, IG_USER_ID, ...ADMIN_MAIL_SECRETS],
+    ...appCheckOptions(),
+  },
+  async (request): Promise<BackfillResult> => {
+    logMissingAppCheck('adminBackfillInstagramRegion', request);
+    await assertAdmin(request.auth?.uid);
+    const data = request.data as { regionId?: unknown; limit?: unknown } | null;
+    const regionId = data?.regionId;
+    if (!isValidRegionId(regionId)) {
+      throw new HttpsError('invalid-argument', 'regionId is required.');
+    }
+    const db = getFirestore();
+    const credentials = await resolveCredentialsForRegion(db, regionId, {
+      accessToken: IG_ACCESS_TOKEN.value(),
+      userId: IG_USER_ID.value(),
+    });
+    if (!credentials) {
+      throw new HttpsError('failed-precondition', 'Instagram is not configured for this region.');
+    }
+    const limit = typeof data?.limit === 'number' ? data.limit : undefined;
+    const result = await runRegionBackfill(db, regionId, credentials, { limit });
+    logger.info('Instagram region backfill run by admin', { ...result });
+    return result;
   }
 );
 

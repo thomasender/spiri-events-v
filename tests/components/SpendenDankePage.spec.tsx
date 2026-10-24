@@ -34,9 +34,9 @@ describe('SpendenDankePage', () => {
   it('mentions the contact email for questions', () => {
     renderDankePage();
     expect(screen.getByText(/bei fragen/i)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'office@tribevorarlberg.at' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'admin@thetribe.at' })).toHaveAttribute(
       'href',
-      'mailto:office@tribevorarlberg.at'
+      'mailto:admin@thetribe.at'
     );
   });
 });

@@ -40,6 +40,8 @@ vi.mock('react-helmet-async', () => ({
   Helmet: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
+import { DEFAULT_REGION_CONTEXT, RegionContext } from '../../src/hooks/useRegion';
+import { STATIC_REGIONS } from '../../src/utils/regions.js';
 import DirectoryPage from '../../src/pages/DirectoryPage';
 
 const e = (uid: string, over = {}) => ({
@@ -65,7 +67,7 @@ const names = () =>
   screen
     .queryAllByRole('heading', { level: 2 })
     .map((h) => h.textContent)
-    .filter((t) => !['Kategorie', 'Region'].includes(t || ''))
+    .filter((t) => !['Kategorie', 'Region', 'Bezirk'].includes(t || ''))
     .sort(); // display order is random
 
 beforeEach(() => {
@@ -171,6 +173,67 @@ describe('DirectoryPage analytics', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('DirectoryPage — regions (ticket 14)', () => {
+  const regionOf = (slug: string, active = true) => ({
+    ...STATIC_REGIONS.find((r) => r.id === slug)!,
+    active,
+  });
+  const allRegions = [regionOf('vorarlberg'), regionOf('steiermark'), regionOf('wien', false)];
+
+  const renderIn = (regionId: string, isNational = false) =>
+    render(
+      <MemoryRouter initialEntries={['/verzeichnis']}>
+        <RegionContext.Provider
+          value={{
+            ...DEFAULT_REGION_CONTEXT,
+            region: allRegions.find((r) => r.id === regionId)!,
+            regionId,
+            regions: allRegions.filter((r) => r.active),
+            allRegions,
+            isNational,
+            combinedRegions: isNational ? allRegions.filter((r) => r.active) : [],
+          }}
+        >
+          <DirectoryPage />
+        </RegionContext.Provider>
+      </MemoryRouter>
+    );
+
+  beforeEach(() => {
+    mocks.directory.entries = [
+      e('anna', { displayName: 'Anna', regions: ['Dornbirn'] }), // no regionIds = Vorarlberg
+      e('berta', { displayName: 'Berta', regions: ['Graz'], regionIds: ['steiermark'] }),
+      e('clara', {
+        displayName: 'Clara',
+        regions: ['Online'],
+        regionIds: ['vorarlberg', 'steiermark'],
+      }),
+      e('dora', { displayName: 'Dora', regions: ['Wien'], regionIds: ['wien'] }),
+    ];
+  });
+
+  it("lists only profiles of the region, with that region's Bezirke as chips", () => {
+    renderIn('steiermark');
+    expect(names()).toEqual(['Berta', 'Clara']);
+    expect(screen.getByTestId('directory-region-Graz')).toBeInTheDocument();
+    expect(screen.queryByTestId('directory-region-Dornbirn')).not.toBeInTheDocument();
+    expect(screen.getByText('Bezirk')).toBeInTheDocument();
+  });
+
+  it('Vorarlberg keeps its profiles and the "Region" heading', () => {
+    renderIn('vorarlberg');
+    expect(names()).toEqual(['Anna', 'Clara']);
+    expect(screen.getByTestId('directory-region-Dornbirn')).toBeInTheDocument();
+    expect(screen.queryByTestId('directory-region-Graz')).not.toBeInTheDocument();
+  });
+
+  it('combined view shows profiles of all active regions, not of inactive ones', () => {
+    renderIn('vorarlberg', true);
+    expect(names()).toEqual(['Anna', 'Berta', 'Clara']);
+    expect(screen.getByTestId('directory-count')).toHaveTextContent('3 Einträge');
   });
 });
 

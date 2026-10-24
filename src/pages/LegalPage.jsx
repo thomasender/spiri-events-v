@@ -2,6 +2,12 @@ import { Link } from 'react-router-dom';
 import SeoMeta from '../components/SeoMeta';
 import './LegalPage.css';
 import { CANDLE_ROOM_NAME } from '../utils/candleRoom';
+import { useRegion } from '../hooks/useRegion';
+import { instagramChannels, instagramProfileUrl } from '../utils/regions';
+
+// Dark launch: the per-region wording and the channel list only appear once at
+// least two Instagram channels exist; with one channel the text stays as it was.
+const MIN_CHANNELS_FOR_LIST = 2;
 
 const content = {
   datenschutz: {
@@ -197,21 +203,33 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
       },
       {
         heading: '12. Veröffentlichung auf Instagram (freiwillig)',
-        text: `Wir betreiben den Instagram-Kanal @tribevorarlberg, auf dem wir Veranstaltungen bewerben. Instagram ist ein Dienst von Meta Platforms Ireland Limited.
+        channelList: true,
+        text: (ctx) => {
+          const multi = ctx.channels.length >= MIN_CHANNELS_FOR_LIST;
+          return `${
+            multi
+              ? 'Wir betreiben für unsere Regionen eigene Instagram-Kanäle, auf denen wir Veranstaltungen der jeweiligen Region bewerben. Instagram ist ein Dienst von Meta Platforms Ireland Limited.'
+              : 'Wir betreiben den Instagram-Kanal @tribevorarlberg, auf dem wir Veranstaltungen bewerben. Instagram ist ein Dienst von Meta Platforms Ireland Limited.'
+          }
 
 *Was wird veröffentlicht?*
-- Nur wenn Sie beim Erstellen oder Bearbeiten eines Events ausdrücklich zustimmen, wird Ihr Event auf unserem Instagram-Kanal veröffentlicht (als Beitrag und in wöchentlichen Übersichten je Bezirk)
+- Nur wenn Sie beim Erstellen oder Bearbeiten eines Events ausdrücklich zustimmen, wird Ihr Event auf ${multi ? 'dem Instagram-Kanal der Region Ihres Events' : 'unserem Instagram-Kanal'} veröffentlicht (als Beitrag und in wöchentlichen Übersichten je Bezirk)
 - Veröffentlicht werden die Angaben zum Event (Titel, Datum, Uhrzeit, Ort, Beschreibung, Bild und ein Link zur Event-Seite)
 - Wenn Sie in Ihrem Profil einen Instagram-Namen angegeben haben, markieren wir Ihr Instagram-Profil im Bild des Beitrags, laden es als Co-Autor (Collab) zum Beitrag ein und erwähnen es in der Beschreibung („@name“). Die Einladung müssen Sie in Instagram selbst annehmen; kann sie nicht gesendet werden, wird der Beitrag ohne Einladung veröffentlicht
 - Sie können in Ihrem Profil festlegen, ob die Zustimmung für neue Events standardmäßig gesetzt sein soll; sie ist standardmäßig ausgeschaltet. Pro Event können Sie diese Einstellung ändern
 
 *Rechtsgrundlage:* Ihre Einwilligung (Art. 6 Abs. 1 lit. a DSGVO). Ohne Ihre Zustimmung wird Ihr Event nicht auf Instagram veröffentlicht und Ihr Profil weder markiert noch eingeladen noch erwähnt.
 
-*Weitergabe:* Mit der Veröffentlichung werden die genannten Inhalte an Instagram (Meta) übermittelt und sind dort öffentlich sichtbar. Für die Verarbeitung durch Instagram gilt die Datenschutzerklärung von Meta.
+*Weitergabe:* Mit der Veröffentlichung werden die genannten Inhalte an Instagram (Meta) übermittelt und sind dort öffentlich sichtbar. Für die Verarbeitung durch Instagram gilt die Datenschutzerklärung von Meta.${
+            multi
+              ? ' Meta Platforms Ireland Limited ist für die Verarbeitung auf Instagram ein eigener Verantwortlicher.'
+              : ''
+          }
 
 *Widerruf und Löschung:*
 - Sie können Ihre Zustimmung jederzeit für künftige Events ausschalten
-- Möchten Sie, dass ein bereits veröffentlichter Beitrag entfernt wird, senden Sie uns eine E-Mail an admin@thetribe.at; wir löschen den Beitrag in angemessener Frist`,
+- Möchten Sie, dass ein bereits veröffentlichter Beitrag entfernt wird, senden Sie uns eine E-Mail an admin@thetribe.at; wir löschen den Beitrag in angemessener Frist`;
+        },
       },
       {
         heading: '13. Kalender-Export und Kalender-Abo (nur mit Login)',
@@ -321,7 +339,17 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
 *Rechtsgrundlage:* Ihre Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), die Sie jederzeit mit Wirkung für die Zukunft widerrufen können, indem Sie die Option im Profil ausschalten.`,
       },
       {
-        heading: '17. Änderungen dieser Datenschutzerklärung',
+        heading: '17. Standort für die Regionswahl (freiwillig)',
+        text: `Bei der Wahl Ihrer Region können Sie auf „Meinen Standort verwenden“ klicken. Erst dann fragt Ihr Browser, ob er Ihren Standort mitteilen darf; ohne diesen Klick und ohne Ihre Erlaubnis wird kein Standort abgefragt.
+
+- Der Standort wird nur einmal und nur in Ihrem Browser verwendet, um den passenden Landkreis (Deutschland), das Bundesland (Österreich) bzw. den Kanton (Schweiz) und damit Ihre Region zu finden
+- Er wird nicht an uns oder an andere Dienste übermittelt und nirgends gespeichert. Gespeichert wird nur die gewählte Region, genauso wie bei einer Auswahl von Hand
+- Ihr Browser bzw. Ihr Gerät ermittelt den Standort selbst und nutzt dafür je nach Gerät die Ortungsdienste des Herstellers (z.B. Google oder Apple); dafür gelten deren Datenschutzbestimmungen
+- Sie können Ihre Region jederzeit selbst wählen oder ändern. Die Erlaubnis für den Standort können Sie in den Einstellungen Ihres Browsers jederzeit widerrufen
+- Die dafür nötigen Grenzen liegen in der App selbst. Die Kartendaten wurden vereinfacht und damit verändert. Quellen: Österreich © BEV – Bundesamt für Eich- und Vermessungswesen, laut Angabe von geoBoundaries unter der Lizenz [CC BY-SA 2.0](https://creativecommons.org/licenses/by-sa/2.0/); Schweiz © swisstopo (swissBOUNDARIES3D, [Nutzungsbedingungen](https://www.swisstopo.admin.ch/de/nutzungsbedingungen-kostenlose-geodaten-und-geodienste)); Liechtenstein: Natural Earth (gemeinfrei)`,
+      },
+      {
+        heading: '18. Änderungen dieser Datenschutzerklärung',
         text: `Wir behalten uns vor, diese Datenschutzerklärung bei Änderungen der App oder der Rechtslage anzupassen. Die jeweils aktuelle Version finden Sie immer auf dieser Seite.`,
       },
     ],
@@ -365,12 +393,28 @@ Thomas Ender
       },
       {
         heading: 'Onlinepräsenzen',
-        text: `Dieses Impressum gilt auch für folgende Onlinepräsenzen:
+        text: (ctx) => {
+          // One channel (today): the line as before. Several: one line per region.
+          const instagramLines =
+            ctx.channels.length >= MIN_CHANNELS_FOR_LIST
+              ? ctx.channels
+                  .map((c) => {
+                    const url = instagramProfileUrl(c.handle);
+                    return `- Instagram ${c.regionName}: [${url}](${url})`;
+                  })
+                  .join('\n')
+              : '- Instagram: [https://www.instagram.com/tribevorarlberg](https://www.instagram.com/tribevorarlberg)';
+          return `Dieses Impressum gilt auch für folgende Onlinepräsenzen:
 
 - Facebook: [https://www.facebook.com/tribevorarlberg](https://www.facebook.com/tribevorarlberg)
-- Instagram: [https://www.instagram.com/tribevorarlberg](https://www.instagram.com/tribevorarlberg)
+${instagramLines}
 
-E-Mail: [admin@thetribe.at](mailto:admin@thetribe.at)`,
+E-Mail: [admin@thetribe.at](mailto:admin@thetribe.at)`;
+        },
+      },
+      {
+        heading: 'Kartendaten / Quellen',
+        text: `Die Grenzen für die Regionswahl wurden vereinfacht und damit verändert. Österreich: © BEV – Bundesamt für Eich- und Vermessungswesen, laut Angabe von geoBoundaries unter der Lizenz [CC BY-SA 2.0](https://creativecommons.org/licenses/by-sa/2.0/). Schweiz: © swisstopo ([Nutzungsbedingungen](https://www.swisstopo.admin.ch/de/nutzungsbedingungen-kostenlose-geodaten-und-geodienste)). Liechtenstein: Natural Earth (gemeinfrei).`,
       },
       {
         heading: 'Streitschlichtung',
@@ -596,8 +640,34 @@ function LegalText({ text }) {
   );
 }
 
+function InstagramChannelList({ channels }) {
+  return (
+    <details className="legal-details" data-testid="legal-instagram-channels">
+      <summary>Unsere Instagram-Kanäle ({channels.length})</summary>
+      <ul className="legal-list">
+        {channels.map((c) => (
+          <li key={c.regionId}>
+            {c.regionName}:{' '}
+            <a
+              className="legal-link"
+              href={instagramProfileUrl(c.handle)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {c.handle}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
 export default function LegalPage({ page }) {
   const data = content[page];
+  // Channels of the active regions (Vorarlberg: code default when no handle is stored).
+  const { regions } = useRegion();
+  const channels = instagramChannels(regions);
 
   if (!data) {
     return (
@@ -622,7 +692,14 @@ export default function LegalPage({ page }) {
           {data.sections.map((section, index) => (
             <section key={index}>
               <h2>{section.heading}</h2>
-              <LegalText text={section.text} />
+              <LegalText
+                text={
+                  typeof section.text === 'function' ? section.text({ channels }) : section.text
+                }
+              />
+              {section.channelList && channels.length >= MIN_CHANNELS_FOR_LIST && (
+                <InstagramChannelList channels={channels} />
+              )}
             </section>
           ))}
         </div>

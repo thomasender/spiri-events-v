@@ -156,3 +156,29 @@ describe('EventModal', () => {
     });
   });
 });
+
+describe('EventModal location', () => {
+  it('names the Ort with Bezirk for Vorarlberg and Landkreis for Germany', () => {
+    const { unmount } = render(
+      <EventModal
+        event={{ ...mockEvent, city: 'Altach', bezirk: 'Feldkirch' }}
+        onClose={() => {}}
+      />
+    );
+    expect(screen.getByText('Ort')).toBeInTheDocument();
+    expect(screen.getByText('Altach (Bez. Feldkirch)')).toBeInTheDocument();
+    unmount();
+    render(
+      <EventModal
+        event={{ ...mockEvent, regionId: 'bayern', city: 'Garching', bezirk: 'München' }}
+        onClose={() => {}}
+      />
+    );
+    expect(screen.getByText('Garching (Lkr. München)')).toBeInTheDocument();
+  });
+
+  it('falls back to the district for events without a city', () => {
+    render(<EventModal event={{ ...mockEvent, bezirk: 'Dornbirn' }} onClose={() => {}} />);
+    expect(screen.getByText('Dornbirn')).toBeInTheDocument();
+  });
+});

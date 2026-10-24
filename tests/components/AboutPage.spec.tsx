@@ -3,6 +3,8 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import AboutPage from '../../src/pages/AboutPage';
+import { RegionContext, DEFAULT_REGION_CONTEXT } from '../../src/hooks/useRegion';
+import { STATIC_REGIONS, mergeRegions } from '../../src/utils/regions';
 
 const mockHelpers = vi.hoisted(() => ({
   helpers: [] as Array<{
@@ -88,7 +90,7 @@ describe('AboutPage', () => {
     expect(screen.getByText('Unsere Werte')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Wer wir sind/ })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Hände hinter tribe/ })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /Spende — damit tribe/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Spende — damit der Tribe/ })).toBeInTheDocument();
   });
 
   it('does not render the founder photo cards on the About page', () => {
@@ -291,5 +293,92 @@ describe('AboutPage contact CTAs (6ab4f6e5 + VHzOoH6Y)', () => {
       'Hallo Tribe Vorarlberg'
     );
     expect(screen.getByTestId('contact-modal-recipient')).toHaveTextContent('admin@thetribe.at');
+  });
+});
+
+describe('AboutPage — region mode', () => {
+  beforeEach(() => {
+    mockHelpers.helpers = [
+      { id: 'h1', name: 'Anna Alpha' },
+      { id: 'h2', name: 'Berta Beta' },
+    ];
+    mockHelpers.loading = false;
+    mockHelpers.error = null;
+  });
+
+  function renderRegion(aboutDoc: Record<string, unknown>, activeIds = ['vorarlberg', 'tirol']) {
+    const allRegions = mergeRegions(
+      STATIC_REGIONS.map((r) => ({
+        id: r.id,
+        active: activeIds.includes(r.id),
+        ...(r.id === 'tirol' ? aboutDoc : {}),
+      }))
+    );
+    const ctx = {
+      ...DEFAULT_REGION_CONTEXT,
+      allRegions,
+      regions: allRegions.filter((r) => r.active),
+      regionId: 'tirol',
+      region: allRegions.find((r) => r.id === 'tirol'),
+    };
+    return render(
+      <HelmetProvider>
+        <RegionContext.Provider value={ctx as never}>
+          <MemoryRouter initialEntries={['/tirol/ueber-uns']}>
+            <Routes>
+              <Route path="/tirol/ueber-uns" element={<AboutPage />} />
+            </Routes>
+          </MemoryRouter>
+        </RegionContext.Provider>
+      </HelmetProvider>
+    );
+  }
+
+  it('names the region and shows all helpers, with the header photo of its moderators', () => {
+    renderRegion({
+      aboutHeaderImage: 'https://example.com/tirol-header.jpg',
+    });
+
+    expect(
+      screen.getByRole('heading', { name: /Deine Heimat Tirol ruft dich/ })
+    ).toBeInTheDocument();
+    expect(screen.getByText('Anna Alpha')).toBeInTheDocument();
+    expect(screen.getByText('Berta Beta')).toBeInTheDocument();
+    expect(document.querySelector('.about-hero-image')).toHaveAttribute(
+      'src',
+      'https://example.com/tirol-header.jpg'
+    );
+  });
+
+  it('shows the text written by the moderators instead of the default text', () => {
+    renderRegion({ aboutText: '<p>Unser eigener Tiroler Text</p>' });
+
+    expect(
+      screen.getByRole('heading', { name: /Deine Heimat Tirol ruft dich/ })
+    ).toBeInTheDocument();
+    expect(screen.getByText('Unser eigener Tiroler Text')).toBeInTheDocument();
+    expect(screen.queryByText('Selbsterkenntnis')).not.toBeInTheDocument();
+  });
+
+  it('a region without own text shows the default text and the default photo', () => {
+    renderRegion({});
+
+    expect(screen.getByText('Selbsterkenntnis')).toBeInTheDocument();
+    expect(document.querySelector('.about-hero-image')).toHaveAttribute('src', '/hero.jpeg');
+  });
+
+  it('links the Instagram name of the region, safely', () => {
+    renderRegion({ instagramHandle: '@tribe.tirol' });
+
+    const link = screen.getByTestId('about-instagram-link').querySelector('a')!;
+    expect(link).toHaveAttribute('href', 'https://www.instagram.com/tribe.tirol/');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(link).toHaveTextContent('@tribe.tirol');
+  });
+
+  it('shows no Instagram link for a region without a name', () => {
+    renderRegion({});
+    expect(screen.queryByTestId('about-instagram-link')).not.toBeInTheDocument();
   });
 });

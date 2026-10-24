@@ -62,7 +62,21 @@ function slugBase(slug) {
 export async function resolveSlugForApproval(eventId, slug) {
   if (!slug) return slug;
   const usedByOthers = async (candidate) => {
-    const snap = await getDocs(query(collection(db, 'events'), where('slug', '==', candidate)));
+    let snap;
+    try {
+      snap = await getDocs(query(collection(db, 'events'), where('slug', '==', candidate)));
+    } catch (err) {
+      if (err?.code !== 'permission-denied') throw err;
+      // A Regions-Moderator:in may not list other people's drafts: compare
+      // with the published events only (the URLs that can actually clash).
+      snap = await getDocs(
+        query(
+          collection(db, 'events'),
+          where('slug', '==', candidate),
+          where('status', '==', 'approved')
+        )
+      );
+    }
     return snap.docs.filter((d) => d.id !== eventId);
   };
   const clashes = await usedByOthers(slug);

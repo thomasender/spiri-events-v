@@ -12,7 +12,7 @@ const db = getFirestore();
 const MESSAGE_EVENT_ID = 'test-event-with-messages';
 
 async function findAdminUid() {
-  const adminDoc = await db.collection('admin_users').limit(1).get();
+  const adminDoc = await db.collection('admin_users').where('role', '==', 'Admin').limit(1).get();
   if (adminDoc.empty) return null;
   return adminDoc.docs[0].id;
 }
@@ -34,9 +34,17 @@ if (!adminUid || !userUid) {
   process.exit(1);
 }
 
+// One batch for the whole reset: several specs run this while the app may be
+// listening to the same event, and a doc-by-doc reset let them see the event
+// without messages, or with only some of them, in between.
+const batch = db.batch();
 const eventRef = db.collection('events').doc(MESSAGE_EVENT_ID);
-const existingMessages = await eventRef.collection('messages').get();
-await Promise.all(existingMessages.docs.map((docSnap) => docSnap.ref.delete()));
+const messagesRef = eventRef.collection('messages');
+const SEEDED_IDS = new Set(['seed-admin-msg-1', 'seed-admin-msg-2', 'seed-user-msg-1']);
+const existingMessages = await messagesRef.get();
+existingMessages.docs
+  .filter((docSnap) => !SEEDED_IDS.has(docSnap.id))
+  .forEach((docSnap) => batch.delete(docSnap.ref));
 
 const today = new Date();
 const futureDate = new Date(today);
@@ -45,7 +53,7 @@ const date = futureDate.toISOString().split('T')[0];
 
 const slug = generateEventSlug('Test Event With Messages', 'Sonstiges', 'Bludenz', date);
 
-await eventRef.set({
+batch.set(eventRef, {
   id: MESSAGE_EVENT_ID,
   title: 'Test Event With Messages',
   date,
@@ -64,10 +72,9 @@ await eventRef.set({
   createdAt: Timestamp.now(),
 });
 
-const messagesRef = eventRef.collection('messages');
 const now = Timestamp.now();
 
-await messagesRef.doc('seed-admin-msg-1').set({
+batch.set(messagesRef.doc('seed-admin-msg-1'), {
   text: 'Bitte überarbeite den Ort etwas genauer.',
   authorUid: adminUid,
   authorRole: 'Admin',
@@ -76,7 +83,7 @@ await messagesRef.doc('seed-admin-msg-1').set({
   readByRecipient: false,
 });
 
-await messagesRef.doc('seed-admin-msg-2').set({
+batch.set(messagesRef.doc('seed-admin-msg-2'), {
   text: 'Auch die Bezirksangabe fehlt noch.',
   authorUid: adminUid,
   authorRole: 'Admin',
@@ -85,7 +92,7 @@ await messagesRef.doc('seed-admin-msg-2').set({
   readByRecipient: false,
 });
 
-await messagesRef.doc('seed-user-msg-1').set({
+batch.set(messagesRef.doc('seed-user-msg-1'), {
   text: 'Danke für den Hinweis, ich passe es an.',
   authorUid: userUid,
   authorRole: 'User',
@@ -94,4 +101,5 @@ await messagesRef.doc('seed-user-msg-1').set({
   readByRecipient: false,
 });
 
+await batch.commit();
 console.log(`Seeded ${MESSAGE_EVENT_ID} with 3 messages (2 unread for ${userUid}).`);

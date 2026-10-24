@@ -35,14 +35,18 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useEvents } from '../hooks/useEvents';
+import { useEventRegionContext, useRegion } from '../hooks/useRegion';
+import { useRegions } from '../hooks/useRegions';
 import { useOrganizerProfile } from '../hooks/useOrganizerProfile';
 import { useEventFavoriteCount } from '../hooks/useEventFavoriteCount';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
 import { buildEventJsonLd } from '../utils/eventJsonLd';
+import { getRegionBySlug, resolveRegionId } from '../utils/regions';
 import { pickEventDoc } from '../utils/pickEventDoc';
 import { getOrganizerName, getEventLocationLabel } from '../utils/eventFormat';
 import { resolveOrganizerProfilePath } from '../utils/profile';
 import { canEditEvent, canDeleteEvent, requiresDeleteReason } from '../utils/eventPermissions';
+import { getStaffAccess, isModeratorForEvent } from '../utils/staffRoles';
 import { parseContactText } from '../utils/contactFormat';
 import { getNextUpcomingOccurrence, getRecurrenceDatesForDetail } from '../utils/eventOccurrences';
 import { isEventCancelled, isOccurrenceCancelled } from '../utils/eventCancellation';
@@ -166,11 +170,17 @@ function formatRecurrence(recurrence, recurrenceEndDate, eventDate) {
   return label;
 }
 
-function generateEventJsonLd(event) {
+// Name of the event's region (Vorarlberg for events without regionId, so unchanged).
+function eventRegionName(event, regions) {
+  return getRegionBySlug(resolveRegionId(event), regions)?.name ?? 'Vorarlberg';
+}
+
+function generateEventJsonLd(event, regions) {
   const image = event.imageUrl || getEventFallbackImage(event);
   return buildEventJsonLd(event, {
     image: /^https?:\/\//i.test(image) ? image : `https://www.thetribe.at${image}`,
     description: stripHtml(event.description || ''),
+    regionName: eventRegionName(event, regions),
   });
 }
 
@@ -182,9 +192,13 @@ export default function EventDetailPage() {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const occurrenceDate = searchParams.get('occurrenceDate');
-  const { user, loading: authLoading, role } = useAuth();
+  const { user, loading: authLoading, role, staffRegionIds } = useAuth();
+  const moderatorRegionKey = Array.isArray(staffRegionIds) ? staffRegionIds.join(',') : '';
+  const staffAccess = getStaffAccess(role, staffRegionIds);
   const { deleteEvent, updateEvent, approveEvent, unpublishEvent } = useEvents(user);
   const [event, setEvent] = useState(null);
+  useEventRegionContext(event);
+  const { regions } = useRegions();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -205,12 +219,17 @@ export default function EventDetailPage() {
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState('');
   const isAdmin = role === 'Admin';
+  // A Regions-Moderator:in reviews events of her regions (approve, unpublish,
+  // messages) but never edits their content.
+  const isEventModerator = isModeratorForEvent(staffAccess, event);
   const canSeeFavoriteCount =
     Boolean(event && user) &&
     event.status === 'approved' &&
     (isAdmin || event.createdBy === user.uid);
   const favoriteCount = useEventFavoriteCount(event?.id, canSeeFavoriteCount);
-  const showMessagesForHash = Boolean(event && user && (isAdmin || event.createdBy === user.uid));
+  const showMessagesForHash = Boolean(
+    event && user && (isAdmin || event.createdBy === user.uid || isEventModerator)
+  );
 
   useEffect(() => {
     async function fetchEvent() {
@@ -249,6 +268,27 @@ export default function EventDetailPage() {
               docSnap = pickEventDoc(anySnapshot.docs);
             }
           } else if (user) {
+            // A Regions-Moderator:in may read non-draft events of her regions,
+            // but only with a region filter (firestore.rules).
+            const moderatorRegionIds = getStaffAccess(
+              role,
+              moderatorRegionKey ? moderatorRegionKey.split(',') : []
+            ).moderatorRegionIds;
+            if (moderatorRegionIds.length > 0) {
+              const regionSnapshot = await getDocs(
+                query(
+                  collection(db, 'events'),
+                  where('slug', '==', slug),
+                  where('status', '==', 'pending'),
+                  where('regionId', 'in', moderatorRegionIds)
+                )
+              );
+              if (!regionSnapshot.empty) {
+                docSnap = pickEventDoc(regionSnapshot.docs);
+              }
+            }
+          }
+          if (!docSnap && user && role !== 'Admin') {
             const ownQuery = query(
               collection(db, 'events'),
               where('slug', '==', slug),
@@ -281,7 +321,7 @@ export default function EventDetailPage() {
     }
 
     fetchEvent();
-  }, [slug, user, role, authLoading]);
+  }, [slug, user, role, moderatorRegionKey, authLoading]);
 
   const eventMessagesReadyRef = useRef(false);
   const [eventMessagesReady, setEventMessagesReady] = useState(false);
@@ -369,16 +409,16 @@ export default function EventDetailPage() {
 
   const isFree = event.contribution === 'free';
   const isDonation = event.contribution === 'donation';
-  const jsonLd = generateEventJsonLd(event);
+  const jsonLd = generateEventJsonLd(event, regions);
   const isOwner = user && event.createdBy === user.uid;
   const showEditButton = canEditEvent(user, event, role);
   const showDeleteButton = canDeleteEvent(user, event, role);
-  const deleteReasonRequired = requiresDeleteReason(user, event, role);
+  const deleteReasonRequired = requiresDeleteReason(user, event, role, staffRegionIds);
   const fallbackImage = getEventFallbackImage(event);
   const showRemoteImage = Boolean(event.imageUrl) && !imageError;
   const imageSrc = showRemoteImage ? event.imageUrl : fallbackImage;
 
-  const showApproveButton = isAdmin && event.status === 'pending';
+  const showApproveButton = (isAdmin || isEventModerator) && event.status === 'pending';
 
   const handleApprove = async () => {
     setApproving(true);
@@ -392,7 +432,7 @@ export default function EventDetailPage() {
     }
   };
 
-  const showUnpublishButton = isAdmin && event.status === 'approved';
+  const showUnpublishButton = (isAdmin || isEventModerator) && event.status === 'approved';
 
   const handleUnpublish = async () => {
     setUnpublishing(true);
@@ -852,7 +892,7 @@ export default function EventDetailPage() {
               className="detail-value"
               data-testid={event.isOnline ? 'event-detail-location-online' : undefined}
             >
-              {getEventLocationLabel(event) || 'Vorarlberg'}
+              {getEventLocationLabel(event) || eventRegionName(event, regions)}
             </span>
           </div>
         </div>
@@ -976,9 +1016,10 @@ export default function EventDetailPage() {
         </a>
       )}
 
-      {user && (isAdmin || isOwner) && (
+      {user && (isAdmin || isOwner || isEventModerator) && (
         <EventMessages
           eventId={event.id}
+          eventOwnerUid={event.createdBy || null}
           organizerName={event.organizer?.firstName?.trim() || getOrganizerName(event)}
           onReady={() => setEventMessagesReady(true)}
         />

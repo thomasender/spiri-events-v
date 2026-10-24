@@ -16,6 +16,10 @@ import {
   Contact,
   Instagram,
   BarChart3,
+  ShieldCheck,
+  Info,
+  MapPin,
+  Network,
   MailCheck,
   Flame,
   ChevronDown,
@@ -35,6 +39,11 @@ import DonorsTab from '../components/DonorsTab';
 import MembersTab from '../components/MembersTab';
 import InstagramTab from '../components/InstagramTab';
 import AnalyticsTab from '../components/AnalyticsTab';
+import ModerationTab from '../components/ModerationTab';
+import RegionsTab from '../components/RegionsTab';
+import RegionMappingTab from '../components/RegionMappingTab';
+import RegionAboutTab from '../components/RegionAboutTab';
+import NoAccess from '../components/NoAccess';
 import MailgunTab from '../components/MailgunTab';
 import EmailVerificationBanner from '../components/EmailVerificationBanner';
 import EmailVerificationModal from '../components/EmailVerificationModal';
@@ -44,6 +53,7 @@ import { useEvents, usePendingEvents } from '../hooks/useEvents';
 import { useHasMessages, useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
 import { useUnreadFeedbackCount, useHasFeedback } from '../hooks/useFeedbackList';
 import { useTrashedEventsCount } from '../hooks/useTrashedEventsCount';
+import { ADMIN_TABS, allowedAdminTabs, getStaffAccess } from '../utils/staffRoles';
 import './AdminPage.css';
 
 // Tabs are grouped into drop-down menus (QhQJFz04). `id` is the ?tab= value.
@@ -91,6 +101,17 @@ const TAB_GROUPS = [
       { id: 'trash', label: 'Papierkorb', Icon: Trash2 },
     ],
   },
+  {
+    id: 'regions-group',
+    label: 'Regionen',
+    Icon: MapPin,
+    tabs: [
+      { id: 'moderation', label: 'Moderation', Icon: ShieldCheck },
+      { id: 'regions', label: 'Regionen', Icon: MapPin },
+      { id: 'mapping', label: 'Zuordnung', Icon: Network },
+      { id: 'about', label: 'Über uns', Icon: Info },
+    ],
+  },
 ];
 
 const PANELS = {
@@ -109,37 +130,34 @@ const PANELS = {
   instagram: InstagramTab,
   analytics: AnalyticsTab,
   mailgun: MailgunTab,
+  moderation: ModerationTab,
+  regions: RegionsTab,
+  mapping: RegionMappingTab,
+  about: RegionAboutTab,
 };
 
-const VALID_TABS = new Set([
-  'events',
-  'drafts',
-  'review',
-  'messages',
-  'feedback',
-  'trash',
-  'categories',
-  'theme',
-  'helpers',
-  'donors',
-  'members',
-  'chat',
-  'instagram',
-  'analytics',
-  'mailgun',
-]);
+const VALID_TABS = new Set(ADMIN_TABS);
 
 export default function AdminPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, role, canCreateEvents } = useAuth();
-  const isAdmin = role === 'Admin';
+  const { user, role, staffRegionIds, loading: authLoading, canCreateEvents } = useAuth();
+  // Super-Admin: every tab. Regions-Moderator:in: Review, Nachrichten,
+  // Papierkorb and Mitglieder of her regions (plus her own events). Everyone
+  // else: their own events. A tab outside the list is blocked for the URL
+  // too, with a "Kein Zugriff" state instead of the content.
+  const access = getStaffAccess(role, staffRegionIds);
+  const isAdmin = access.isSuperAdmin;
+  const allowedTabs = useMemo(
+    () => allowedAdminTabs({ isSuperAdmin: isAdmin, isRegionModerator: access.isRegionModerator }),
+    [isAdmin, access.isRegionModerator]
+  );
   const { count: unreadCount } = useUnreadMessageCount();
   const { hasMessages } = useHasMessages();
   const { count: unreadFeedbackCount } = useUnreadFeedbackCount(isAdmin);
   const { hasFeedback } = useHasFeedback(isAdmin);
-  const { count: trashedCount } = useTrashedEventsCount(isAdmin);
+  const { count: trashedCount } = useTrashedEventsCount();
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
   const { events } = useEvents(user);
   const { pendingEvents } = usePendingEvents();
@@ -149,13 +167,17 @@ export default function AdminPage() {
     const hash = location.hash.replace(/^#/, '').trim();
     return hash || null;
   }, [location.hash]);
-  const reviewCount = useMemo(() => (isAdmin ? pendingEvents.length : 0), [isAdmin, pendingEvents]);
+  const canReview = allowedTabs.has('review');
+  const reviewCount = useMemo(
+    () => (canReview ? pendingEvents.length : 0),
+    [canReview, pendingEvents]
+  );
 
   const visibleTabs = useMemo(() => {
     return {
       events: true,
       drafts: draftCount > 0,
-      review: isAdmin,
+      review: canReview,
       messages: hasMessages,
       feedback: isAdmin && hasFeedback,
       trash: trashedCount > 0,
@@ -163,19 +185,26 @@ export default function AdminPage() {
       theme: isAdmin,
       helpers: isAdmin,
       donors: isAdmin,
-      members: isAdmin,
-      chat: isAdmin,
+      members: allowedTabs.has('members'),
+      chat: allowedTabs.has('chat'),
       instagram: isAdmin,
       analytics: isAdmin,
+      moderation: isAdmin,
+      regions: isAdmin,
+      mapping: isAdmin,
+      about: allowedTabs.has('about'),
       mailgun: isAdmin,
     };
-  }, [draftCount, hasMessages, isAdmin, hasFeedback, trashedCount]);
+  }, [draftCount, hasMessages, isAdmin, canReview, allowedTabs, hasFeedback, trashedCount]);
 
   const rawTab = searchParams.get('tab');
+  // A known tab this role may not open: wait for the role, then say so.
+  const forbiddenTab = Boolean(rawTab && VALID_TABS.has(rawTab) && !allowedTabs.has(rawTab));
   const activeTab = useMemo(() => {
+    if (forbiddenTab) return authLoading ? 'loading' : 'no-access';
     if (rawTab && VALID_TABS.has(rawTab) && visibleTabs[rawTab]) return rawTab;
     return 'events';
-  }, [rawTab, visibleTabs]);
+  }, [rawTab, visibleTabs, forbiddenTab, authLoading]);
 
   const [openGroup, setOpenGroup] = useState(null);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
@@ -350,6 +379,11 @@ export default function AdminPage() {
           );
         })}
       </div>
+
+      {activeTab === 'loading' && <div className="loading-spinner"></div>}
+      {activeTab === 'no-access' && (
+        <NoAccess message="Diesen Bereich der Verwaltung kannst du mit deinem Konto nicht öffnen. Wenn du glaubst, dass das ein Fehler ist, melde dich bitte beim Team." />
+      )}
 
       {Object.entries(PANELS).map(([id, Panel]) =>
         visibleTabs[id] ? (

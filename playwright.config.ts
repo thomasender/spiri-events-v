@@ -6,6 +6,9 @@ import { CONSENT_STORAGE_STATE } from './tests/helpers/consent';
 // anything else, so they get their own project that only starts once the
 // parallel suite has finished (see the `destructive` project below).
 const DESTRUCTIVE_SPECS = [
+  // Seed region fixtures that activate Tirol: two active regions show the
+  // region chooser dialog on every page, which would block parallel specs.
+  '**/integration/region-calendar-filtering.spec.ts',
   // Rewrite the shared `categories` registry / clear the Storage bucket.
   '**/integration/admin-categories-tab.spec.ts',
   '**/integration/profile.spec.ts',

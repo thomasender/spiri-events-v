@@ -328,3 +328,23 @@ test.describe('Review tab for admins', () => {
     }
   });
 });
+
+test.describe('Admin area for a Regions-Moderator:in', () => {
+  test.use({ storageState: STORAGE_STATE.regionModerator });
+
+  test('moderator sees only her tabs and a direct link to a Super-Admin tab is blocked', async ({
+    page,
+  }) => {
+    await page.goto('/admin');
+    const tabs = page.locator('.admin-page-tabs');
+    await expect(tabs.getByTestId('admin-tab-review')).toBeVisible();
+    await expect(tabs.getByTestId('admin-tab-members')).toBeVisible();
+    for (const id of ['categories', 'theme', 'instagram', 'analytics', 'moderation', 'regions']) {
+      await expect(tabs.getByTestId(`admin-tab-${id}`)).toHaveCount(0);
+    }
+
+    await page.goto('/admin?tab=categories');
+    await expect(page.getByTestId('no-access')).toContainText('Kein Zugriff');
+    await expect(page.locator('#admin-tab-categories')).toHaveCount(0);
+  });
+});

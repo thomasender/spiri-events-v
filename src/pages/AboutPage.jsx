@@ -6,6 +6,12 @@ import DonationBlock from '../components/DonationBlock';
 import HelpersList from '../components/HelpersList';
 import DonorsList from '../components/DonorsList';
 import ContactFormModal from '../components/ContactFormModal';
+import { useRegion } from '../hooks/useRegion';
+import { useRegionTexts } from '../hooks/useRegionTexts';
+import { regionCanonicalPath } from '../utils/regionRouting';
+import { instagramProfileUrl, regionInstagramAccount } from '../utils/regions';
+import { customAboutText } from '../utils/regionAboutText';
+import RichTextView from '../components/RichTextView';
 import './AboutPage.css';
 
 const CONTACT_EMAIL = 'admin@thetribe.at';
@@ -45,6 +51,23 @@ export default function AboutPage() {
   }, [hash]);
 
   const [contactOpen, setContactOpen] = useState(false);
+  // Region mode (same dark-launch rule as every region text): with Vorarlberg as
+  // the only active region this page is exactly the Vorarlberg page.
+  const { region, allRegions, isNational } = useRegion();
+  const texts = useRegionTexts();
+  const regionMode = texts.regionSpecific && Boolean(region) && !isNational;
+  const siteName = regionMode ? texts.siteName : 'tribe Vorarlberg';
+  const placeName = regionMode ? region.name : 'Vorarlberg';
+  const placePhrase = regionMode ? texts.locationPhrase : 'in Vorarlberg';
+  const aboutPath = regionMode
+    ? regionCanonicalPath(region.id, '/ueber-uns', allRegions)
+    : '/ueber-uns';
+  const homePath = regionMode ? regionCanonicalPath(region.id, '/', allRegions) : '/';
+  // Text of the "Deine Heimat" section written by the region's moderators.
+  const customText = regionMode ? customAboutText(region) : '';
+  const headerImage = (regionMode && region.aboutHeaderImage) || '/hero.jpeg';
+  // Region mode only, so the Vorarlberg-only page stays as it is.
+  const instagramHandle = regionMode ? regionInstagramAccount(region) : null;
   const openContact = () => setContactOpen(true);
   const contactClass = 'about-inline-link';
   const sayHello = (
@@ -75,16 +98,20 @@ export default function AboutPage() {
   return (
     <div className="page-container about-page fade-enter">
       <SeoMeta
-        title="Über uns — tribe Vorarlberg"
-        description="Der gemeinnützige Verein tribe Vorarlberg — wer wir sind, was uns trägt und wie du Teil davon werden kannst."
-        path="/ueber-uns"
+        title={`Über uns — ${siteName}`}
+        description={
+          regionMode
+            ? `${siteName} — wer wir sind, was uns trägt und wie du Teil davon werden kannst.`
+            : 'Der gemeinnützige Verein tribe Vorarlberg — wer wir sind, was uns trägt und wie du Teil davon werden kannst.'
+        }
+        path={aboutPath}
       />
 
       <header className="about-hero">
         <div className="about-hero-image-wrap" aria-hidden="true">
-          <img src="/hero.jpeg" alt="" className="about-hero-image" loading="eager" />
+          <img src={headerImage} alt="" className="about-hero-image" loading="eager" />
         </div>
-        <span className="eyebrow about-hero-eyebrow">Über tribe Vorarlberg</span>
+        <span className="eyebrow about-hero-eyebrow">Über {siteName}</span>
         <h1 className="about-hero-title">Dein Tribe ruft dich.</h1>
         <p className="about-hero-lead">
           Ja, du hast viel in der Welt erfahren und gelernt — vor allem über dich selbst. Nun bist
@@ -110,25 +137,43 @@ export default function AboutPage() {
             <span>Teil vom Tribe werden</span>
           </a>
         </div>
+        {instagramHandle && (
+          <p className="about-hero-instagram" data-testid="about-instagram-link">
+            Instagram:{' '}
+            <a
+              href={instagramProfileUrl(instagramHandle)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {instagramHandle}
+            </a>
+          </p>
+        )}
       </header>
 
       <section className="about-section">
-        <h2>Deine Heimat Vorarlberg ruft dich.</h2>
-        <p>
-          Wir sind der Tribe in Vorarlberg, der die gefundenen Methoden praktiziert und sich
-          verbindet. Diese sind meist sehr ganzheitlich (Breathwork, Meditation, Yoga, Singen,
-          Tanzen, Aufstellungsarbeit, …) und haben alle ein gemeinsames Ziel:
-        </p>
-        <p className="about-highlight">Zurück zu uns Selbst zu kommen.</p>
-        <ul className="about-list">
-          <li>Selbsterkenntnis</li>
-          <li>Friede</li>
-          <li>Mitgefühl</li>
-          <li>Erwachen in Vorarlberg vergrößern und hier pflegen</li>
-        </ul>
-        <p className="about-cta-line">
-          <strong>Verbinde dich jetzt mit uns!</strong>
-        </p>
+        <h2>Deine Heimat {placeName} ruft dich.</h2>
+        {customText ? (
+          <RichTextView html={customText} className="about-custom-text" />
+        ) : (
+          <>
+            <p>
+              Wir sind der Tribe {placePhrase}, der die gefundenen Methoden praktiziert und sich
+              verbindet. Diese sind meist sehr ganzheitlich (Breathwork, Meditation, Yoga, Singen,
+              Tanzen, Aufstellungsarbeit, …) und haben alle ein gemeinsames Ziel:
+            </p>
+            <p className="about-highlight">Zurück zu uns Selbst zu kommen.</p>
+            <ul className="about-list">
+              <li>Selbsterkenntnis</li>
+              <li>Friede</li>
+              <li>Mitgefühl</li>
+              <li>Erwachen {placePhrase} vergrößern und hier pflegen</li>
+            </ul>
+            <p className="about-cta-line">
+              <strong>Verbinde dich jetzt mit uns!</strong>
+            </p>
+          </>
+        )}
       </section>
 
       <section className="about-section">
@@ -167,9 +212,12 @@ export default function AboutPage() {
         <span className="eyebrow about-section-eyebrow">Unsere Gemeinschaft</span>
         <h2>Wer wir sind — und wer du sein könntest</h2>
         <p>
-          tribe Vorarlberg ist ein gemeinnütziger Zusammenschluss vieler Menschen, die miteinander
-          wachsen wollen — Yoginis, Atem-Reisende, Sänger:innen, Tänzer:innen, Stille-Suchende,
-          Neugierige, Alte und Junge. Gegründet wurde der Verein von{' '}
+          {regionMode ? siteName : 'tribe Vorarlberg'} ist ein gemeinnütziger Zusammenschluss vieler
+          Menschen, die miteinander wachsen wollen — Yoginis, Atem-Reisende, Sänger:innen,
+          Tänzer:innen, Stille-Suchende, Neugierige, Alte und Junge.{' '}
+          {regionMode
+            ? 'Getragen wird die Plattform vom Verein tribe Vorarlberg, gegründet von '
+            : 'Gegründet wurde der Verein von '}
           <Link to="/impressum" className="about-inline-link" data-testid="about-founders-link">
             drei Vorarlberger:innen
           </Link>
@@ -180,7 +228,7 @@ export default function AboutPage() {
         <div className="about-section-callout">
           <h3 className="about-section-callout-title">Du gehörst dazu.</h3>
           <p>
-            Du musst nichts können, nichts wissen und niemand sein. tribe Vorarlberg lebt von jeder
+            Du musst nichts können, nichts wissen und niemand sein. {siteName} lebt von jeder
             einzelnen Person, die sich einbringt — sei es mit einem Workshop, einer
             Mitfahrgelegenheit, einem Foto, einer Tasse Tee oder einfach mit einem offenen Ohr. Wenn
             du dich angesprochen fühlst: {joinUs}. Wir freuen uns, dich kennenzulernen.
@@ -190,10 +238,10 @@ export default function AboutPage() {
 
       <section className="about-section about-section--helpers" id="helfer">
         <span className="eyebrow about-section-eyebrow">Mithelfer:innen</span>
-        <h2>Die Hände hinter tribe Vorarlberg</h2>
+        <h2>Die Hände hinter {siteName}</h2>
         <p>
           Hinter jedem Event, jedem Foto und jeder Zeile Code stehen Menschen, die ihre Zeit
-          schenken. Hier sind sie — die Helfer:innen, die tribe Vorarlberg tragen. Möchtest du auch
+          schenken. Hier sind sie — die Helfer:innen, die {siteName} tragen. Möchtest du auch
           mithelfen? {sayHello}.
         </p>
         <HelpersList />
@@ -201,7 +249,7 @@ export default function AboutPage() {
 
       <section className="about-section about-support" id="spenden">
         <span className="eyebrow about-section-eyebrow">Unterstützung</span>
-        <h2>Spende — damit tribe Vorarlberg weiter wachsen kann</h2>
+        <h2>Spende — damit der Tribe weiter wachsen kann</h2>
         <p>
           Viele Stunden ehrenamtlicher Arbeit stecken in dieser Website und in unserem Verein. Falls
           du uns unterstützen möchtest, freuen wir uns sehr über deine Spende. Diese wird aktuell
@@ -218,15 +266,15 @@ export default function AboutPage() {
           </h3>
           <p className="about-donors-intro">
             Jede Spende — ob einmalig oder monatlich, ob mit oder ohne Namen — hilft uns, den Raum
-            für tribe Vorarlberg offen zu halten. Spender:innen können anonym bleiben oder
-            namentlich genannt werden, mit oder ohne Betrag.
+            für den Tribe offen zu halten. Spender:innen können anonym bleiben oder namentlich
+            genannt werden, mit oder ohne Betrag.
           </p>
           <DonorsList />
         </div>
       </section>
 
       <div className="about-footer">
-        <Link to="/" className="btn btn-secondary">
+        <Link to={homePath} className="btn btn-secondary">
           Zurück zur Startseite
         </Link>
       </div>
@@ -236,7 +284,7 @@ export default function AboutPage() {
         onClose={() => setContactOpen(false)}
         defaultSubject={DEFAULT_CONTACT_SUBJECT}
         recipientEmail={CONTACT_EMAIL}
-        pageUrl="/ueber-uns"
+        pageUrl={aboutPath}
       />
     </div>
   );

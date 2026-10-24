@@ -54,6 +54,11 @@
   margin: 0;
 }
 
+.about-hero-instagram {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
 .about-hero-actions {
   display: flex;
   flex-wrap: wrap;

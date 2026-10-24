@@ -17,6 +17,30 @@
       ]
     },
     {
+      "collectionGroup": "events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "regionId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "isOnline", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "publicProfile",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "listedInDirectory", "order": "ASCENDING" },
+        { "fieldPath": "directoryRegionIds", "arrayConfig": "CONTAINS" }
+      ]
+    },
+    {
       "collectionGroup": "publicProfile",
       "queryScope": "COLLECTION_GROUP",
       "fields": [

@@ -52,34 +52,10 @@ npm run test:e2e:mobile      # @mobile specs on WebKit @ 390px
 **Always use emulators + seeded test data for local development and testing.**
 Do NOT test against production.
 
-### ⚠️ If integration tests fail with widespread, unrelated-looking errors
-
-The Firestore emulator is a long-running JVM process and under sustained load
-it degrades: CPU pegs at 300–900%, memory balloons, requests hang. Dozens of
-unrelated tests then fail with "element not found" for content that is always
-present.
-
-You normally never have to deal with this by hand any more:
-
-- `npm run emulators:ensure` (run automatically before every `test:e2e:*`
-  command and by the pre-push hook) starts the emulators if they are down and
-  **restarts them if they are degraded or have grown past 2.5 GB RSS**
-  (`EMULATOR_MAX_RSS_MB` overrides). The emulator leaks memory across runs — it
-  passed 9 GB after a handful of full-suite runs, and the same suite went from
-  ~1.5 min to ~5 min with timing-related failures. A restart costs ~13 s.
-- `npm run emulators:check` only _diagnoses_ (probes Auth and a real Firestore
-  query). `npm run emulators:restart` forces a restart.
-
-Do **not** debug or rewrite tests based on a run where the emulator was
-degraded. Restart, re-run, and only chase a failure that reproduces against a
-fresh emulator.
-
-`firebase-tools` hardcodes the Firestore JVM to debug-level logging and writes
-`firestore-debug.log` into the working directory regardless of
-`--log-verbosity` (it reached 2.6 GB in one session). `scripts/start-emulators.sh`
-symlinks the `*-debug.log` files to `/dev/null`; do not start the emulators any
-other way if you care about speed. The quiet logs go to
-`$TMPDIR/spiri-events-emulators/`.
+If integration tests fail with widespread, unrelated-looking errors, the Firestore
+emulator is probably degraded: `npm run emulators:ensure` (automatic before
+every `test:e2e:*` and in the pre-push hook) restarts it; do not debug tests based
+on a run with a degraded emulator. Details: `docs/testing.md`.
 
 ## Testing
 
@@ -103,64 +79,8 @@ port 8782, project `demo-rules`), so it does not collide with the dev emulator o
 `vitest.rules.config.ts`; the normal `npm run test` does not pick them up and needs
 no emulator. Add new rules cases to the existing spec files there.
 
-### The emulator is the bottleneck, not the browsers
-
-There is one Firestore emulator and it is a JVM process that does not cope with
-unbounded parallelism. Left at Playwright's default worker count it goes into a
-GC death spiral part-way through a long run: CPU pegs near 900%, a
-one-document query goes from ~10ms to over a second, and dozens of unrelated
-tests fail with "element not found".
-
-Two consequences:
-
-- `playwright.config.ts` caps `workers` at 4 on purpose. Raising it makes the
-  suite slower and flakier, not faster.
-- **Start the full suite against a freshly restarted emulator.** A long work
-  session degrades it gradually. `npm run emulators:restart` does it in one
-  step, and `npm run emulators:check` tells you whether you need to.
-
-### Shared state and the `destructive` project
-
-The integration specs share one emulator, one seeded `events` collection and one
-`categories` registry. Most specs only read that state, so they run in parallel.
-A few rewrite it wholesale, or contend with each other over it:
-
-- `admin-categories-tab.spec.ts` rewrites the shared `categories` registry —
-  it briefly renames and deletes seed categories, which the wizard's category
-  picker and the calendar's filter chips read
-- `profile.spec.ts` clears the Storage bucket
-- `admin-trash-tab.spec.ts`, `recurring-event-deletion-edit-form.spec.ts` and
-  `recurring-event-list-link-no-occurrence.spec.ts` all own the trash: the first
-  resets every trashed event in its `beforeEach`, the other two put events into
-  the trash and read them back
-- `admin-theme-tab.spec.ts` and `admin-theme-editor.spec.ts` publish to the
-  global `theme` document, which every page renders its CSS variables from
-- `admin-drafts-tab.spec.ts`, `admin-drafts-tab-navigation.spec.ts` and
-  `duplicate-published-event.spec.ts` write draft state that
-  `scripts/reset-draft-fixtures.mjs` — run by nine other specs — deletes by
-  title, "(Kopie)" suffixes included
-
-Those run in the separate `destructive` Playwright project, invoked as a second
-Playwright run after the parallel one finishes, **with `--workers=1`** — they
-conflict with each other, not only with the parallel suite.
-
-A pattern worth knowing before you write the next fixture reset: the app mounts
-`SeedBootstrap` on every page load, which calls `seedCategoriesIfEmpty()` and
-`seedThemeIfMissing()`. A reset that _empties_ one of those collections opens a
-window where the app seeds it back, racing your test. Reconcile to the desired
-state instead of wipe-then-reseed, and write the set in one commit so no reader
-sees it half-populated. That alone turned admin-categories-tab from "two or
-three shifting failures per run, 45s" into twelve green in 15s.
-
-If you write a spec that wipes a whole collection, add it to
-`DESTRUCTIVE_SPECS` in `playwright.config.ts`. Better: don't — create your own
-uniquely-named fixtures and delete only those.
-
-Those numbers assume a freshly started emulator. After a long work session the
-same smoke run takes 3–4 minutes, because the Firestore emulator degrades (see
-below). `npm run emulators:check` tells you in ~3 s whether that has happened.
-The pre-push hook runs it first, so a dead emulator fails immediately with
-instructions instead of after 30 s of silence.
+Emulator, `destructive` project, Vitest hygiene and how to write a Playwright test:
+`docs/testing.md`.
 
 ### Which tool for which problem
 
@@ -175,22 +95,6 @@ instructions instead of after 30 s of silence.
 Rule of thumb: if you can write the assertion without a running emulator, it is
 a Vitest test. Playwright proves the _integration_; Vitest proves the _logic_.
 Never test the same behaviour at both tiers.
-
-### Vitest hygiene (enforced by `vitest.config.ts` / `tests/vitest.setup.ts`)
-
-- **No real network.** `fetch` is stubbed to reject in every test. Stub the
-  response you need with `vi.stubGlobal('fetch', ...)`.
-- **Mocks and globals are restored after each test** (`restoreMocks`,
-  `unstubGlobals`, `unstubEnvs`; `navigator`/`window` overrides are snapshotted
-  and restored). Tests must not rely on running before or after another test.
-  `vi.fn().mockReturnValue(...)` is _not_ reset by `clearAllMocks` — reset it
-  yourself in `afterEach` if you configure it per test.
-- **Run `npm run test:shuffle` after writing a test.** It runs in random order
-  and flushes out order dependence (that is how the PWA and prerender tests
-  turned out to be flaky).
-- Use `vi.useFakeTimers()` for timers; never `setTimeout`-wait in a test.
-- Don't mock the unit under test (a hand-written fake of a sanitiser proves
-  nothing about the sanitiser).
 
 ### Default: do NOT write a new E2E test
 
@@ -210,50 +114,10 @@ reaching for one, work down this list:
 For a bugfix, the regression test belongs at the lowest tier that can actually
 fail before the fix. A bug in date maths gets a unit test, not a browser.
 
-### If you do write a Playwright test
-
-- **Put it in an existing spec file.** Find the thematic file that covers the
-  area and add to it. Do not create a new file per ticket.
-- **No ticket IDs in `describe` or `test` titles.** Name the behaviour, not the
-  ticket.
-- **At most one new `test()` block per ticket.** A new spec file needs explicit
-  approval from the user.
-- **Use the storageState fixtures, never a UI login.** `tests/auth.setup.ts`
-  signs in once per role; specs get the session via
-  `test.use({ storageState: STORAGE_STATE.admin })` (see `tests/helpers/roles.ts`).
-- **Tag it `@smoke` only if it is a critical user flow**, and tag the _single
-  test_ — `test('title', { tag: '@smoke' }, async ...)` — never a whole
-  `describe`. The smoke set is one test per critical flow (create → review →
-  publish, drafts stay private, auth gating, profile save, trash/restore, …),
-  currently ~25 tests. It is a budget, not a collection: when you add one,
-  consider which one it replaces.
-- **Shared fixtures are shared.** If your spec mutates a fixture another spec
-  also reads (`test-event-with-messages`, the trash, categories, theme), either
-  create your own uniquely-named fixture or add the spec to `DESTRUCTIVE_SPECS`.
-  A spec that passes alone and fails in the full run is almost always this.
-- **Selectors:** `getByRole` / `getByTestId`, scoped to the region you mean
-  (`page.locator('.calendar-header').getByRole(...)`). A strict-mode violation
-  means the selector is too broad, not that the test is flaky.
-- **Dates:** derive them from `new Date()`. A hard-coded month silently becomes
-  "the past" and the app clamps it.
-- **Waiting for a write:** if a test leaves a page and then checks the effect of
-  an async write the page made, use `expect(async () => {...}).toPass()` — don't
-  race it with one `goto`.
-
-### Never test these
-
-These produce tests that are slow, brittle, and prove nothing about behaviour.
-They were the bulk of what had to be deleted:
-
-- CSS classes, `getComputedStyle`, colour values, contrast ratios
-- Pixel measurements, `boundingBox()`, viewport overflow, element ordering
-- SVG attributes, icon presence
-- Static text content of legal/marketing copy
-- "the mocked function was called" without an observable effect
-- `page.waitForTimeout()` — **banned**. Use web-first assertions
-  (`await expect(locator).toBeVisible()`) or `expect.poll()`. Playwright actions
-  already wait for actionability; a sleep is either redundant or hiding a
-  missing assertion.
+Hard rules when you do write a Playwright test: put it in an **existing** spec file,
+no ticket IDs in titles, at most one new `test()` per ticket, storageState fixtures
+instead of UI login, and `page.waitForTimeout()` is **banned**. Full list and the
+"never test these" list: `docs/testing.md`.
 
 ### Before you commit
 
@@ -269,227 +133,45 @@ no signal. For these, `git push --no-verify` is fine. Any commit that touches
 `src/`, `functions/`, `tests/`, `firestore.rules`, `firebase.json`, or any
 other executable code or config still goes through the hooks normally.
 
-## Analytics (GA4) check against production
+## Regions
 
-`npm run analytics:verify` drives the **live** site (`--url=` to override) in a real
-browser: banner, "Ablehnen" sends nothing, "Akzeptieren" sends `page_view` /
-`select_content` without PII, footer "Cookie-Einstellungen" revokes, and the
-event counts are cross-checked against the GA realtime report. `npm run
-analytics:realtime` prints the last 30 minutes of events (`--dimension=eventName,unifiedScreenName`).
+The platform supports several regions (all Bundesländer / Kantone of Austria, Germany and Switzerland, 51 in total, plus 60 cultural regions of Germany that the product owner fills in Verwaltung -> "Zuordnung") behind
+a **dark launch**: only Vorarlberg is active, and with fewer than two active regions
+nothing visible may change (no chooser, no region names in mails, no GA `region`,
+byte-identical prerender and Vorarlberg ICS feed). A missing `regionId` /
+`directoryRegionIds` always means `vorarlberg`. Roles: Super-Admin and
+Regions-Moderator:in. Regions are switched on only in Verwaltung -> "Regionen",
+never by hand-editing `regions/{id}.active`. Everything else (data model,
+queries and migration marker, emails, SEO, ICS, analytics, fixtures, how to add a
+region) is in `docs/regions.md`.
 
-It is deliberately **not** part of `npm run test`: it hits production, counts as
-real traffic in GA, takes ~1 min and needs network plus gcloud. Run it after a
-GA-related deploy, not on every commit. `--no-ga` skips the GA API cross-check.
+## Where to read more (progressive disclosure)
 
-GA API access uses impersonation of the read-only service account
-`ga-reader@spirieventsvbg.iam.gserviceaccount.com` (Betrachter on the GA property,
-no key file). Your gcloud user needs `roles/iam.serviceAccountTokenCreator` on it.
-Plain `gcloud auth application-default login` with analytics scopes is blocked by Google.
-The check uses a normal browser user agent because GA drops "HeadlessChrome" traffic.
+Read a topic file ONLY when your task matches its trigger; each starts with a
+two-line "read this when".
 
-### Admin tab "Statistik"
-
-The admin tab reads GA through the callable `adminAnalyticsReport`
-(`functions/src/adminAnalytics.ts`, pure logic in `analyticsReport.ts`). It runs as the
-functions' default service account `54424804895-compute@developer.gserviceaccount.com`,
-which must be a **Betrachter** of the GA property (Verwalten → Zugriffsverwaltung für
-Property). Without that the tab shows "Kein Zugriff auf Google Analytics". Standard GA
-reports lag 24–48 h, so fresh data shows up in the tab a day late (use the GA realtime
-view or `npm run analytics:realtime` for live checks). Results are cached 10 minutes per
-range in the function instance.
-
-The "Top 10 Events (letzte 14 Tage)" block (`buildEventRequests` / `buildTopEvents`) always
-covers 14 days, uses two `batchRunReports` calls (6 reports) filtered to `pagePath` starting
-with `/event/`, and resolves titles from Firestore by slug (GA page title as fallback). Per-event
-numbers rely on every client event carrying `page_location` (origin + path, no query) and on
-`page_view` carrying `page_referrer` = the previous page of the site (`src/lib/analytics.js`).
-`organizer_link_click` ("Mehr Infos & Tickets") and `calendar_add` exist since 2026-10-19
-(`EVENT_ACTIONS_SINCE`); older days have no data for them.
-
-## App Check (reCAPTCHA)
-
-Firebase App Check lets Firestore, Storage and the callable Cloud Functions tell
-requests from the real website apart from scripts. It is rolled out in steps
-(see the Trello column "App Check (reCAPTCHA)"): code first and inert, then an
-observation phase, then enforcement one product at a time in the Firebase
-console.
-
-- **Client:** `src/lib/appCheck.js`, called from `src/lib/firebase.js`. Active
-  only with `VITE_RECAPTCHA_SITE_KEY` set, never with `VITE_USE_EMULATORS=true`,
-  never in plain dev builds. Emulators and all tests are not checked.
-  `VITE_RECAPTCHA_PROVIDER` is `enterprise` (default) or `v3`.
-- **Site key in production:** the GitHub _variable_ `VITE_RECAPTCHA_SITE_KEY`
-  (and optionally `VITE_RECAPTCHA_PROVIDER`), read by `deploy.yml` when it builds.
-  It is public, not a secret. Empty variable = App Check off.
-- **Local development against production:** put a debug token (Firebase console →
-  App Check → Manage debug tokens) in `.env.local` as `VITE_APPCHECK_DEBUG_TOKEN`
-  together with the site key. Never commit it.
-- **Callable functions:** `functions/src/appCheck.ts`. Every browser-facing
-  `onCall` spreads `...appCheckOptions()` into its options and calls
-  `logMissingAppCheck(name, request)` first. Requests without a token are logged
-  as "callable without app check". `ENFORCE_APP_CHECK` is `false`; setting it to
-  `true` and deploying makes all of them reject requests without a valid token.
-- **Never enforce** `mollieWebhook` (called by Mollie) or `calendarFeed`
-  (token-protected iCalendar feed fetched by calendar apps, see below). `tests/lib/appCheck.spec.ts` guards this and
-  fails if a new `onCall` forgets the helpers.
-- **If the CSP changes:** reCAPTCHA needs `https://www.google.com/recaptcha/` and
-  `https://www.gstatic.com/recaptcha/` in `script-src` and
-  `https://www.google.com/recaptcha/` plus `https://recaptcha.google.com/recaptcha/`
-  in `frame-src` (`firebase.json`, guarded by `tests/lib/hostingCsp.spec.ts`).
-- **Users whose browser blocks reCAPTCHA** get a one-time banner
-  (`AppCheckBanner`), triggered only by App Check's own token failure.
-- **Rollback:** Firebase console → App Check → APIs → the product → "Not enforced"
-  (takes effect in about 15 minutes). For functions, set `ENFORCE_APP_CHECK` back
-  to `false` and deploy.
-
-## Kalender-Export (.ics download and subscription)
-
-Only for signed-in users, like Favoriten (no verified e-mail needed). Calendar
-apps cannot send a Firebase login or App Check token, so every calendar URL
-carries the user's personal secret: `?token=` on `/calendar/feed.ics` and
-`/calendar/event/<slug>.ics`.
-
-- **Token:** `calendarFeedTokens/{uid}` = `{ token, createdAt }`, 32 random bytes
-  base64url. Server-only collection (`firestore.rules` denies every client
-  access). Issued by the callable `getCalendarFeedToken`
-  (`functions/src/calendarFeedToken.ts`): `{}` returns/creates it,
-  `{ regenerate: true }` replaces it ("Neuen Link erzeugen" in the calendar),
-  `{ revoke: true }` deletes it (called by account deletion in `useAuth`).
-- **Check:** `calendarFeed` validates the format first (`calendarRoutes.ts`),
-  then looks the token up (5 min in-memory cache) and also refuses tokens of
-  deleted or disabled accounts. Missing/unknown token: `401`, `no-store`.
-- **Caching:** valid responses stay `public, s-maxage=3600`; the Hosting CDN
-  keys on the full URL including the token. A revoked token can therefore
-  still be served from the CDN for about an hour.
-- **Revoke by hand:** delete `calendarFeedTokens/{uid}` in the Firestore console
-  (the user gets a new token the next time they open the export).
-- The frontend asks for the token only when the user opens "im eigenen Kalender
-  speichern" or clicks "Zum Kalender hinzufügen" (`useCalendarFeedToken`).
-
-## Prerender (Open Graph / Social Media Preview)
-
-`npm run build` runs `vite build && node scripts/prerender.mjs`. The prerender
-generates one static HTML file per event under `dist/event/<slug>/index.html`
-with full Open Graph + Twitter meta tags, so messengers (WhatsApp, Telegram,
-Facebook, LinkedIn, Slack) and crawlers see a proper preview without running
-any JavaScript.
-
-**Data source priority:**
-
-1. `data-export/firestore-export/events.json` (committed to the repo — the
-   deterministic offline base).
-2. Live Firestore Admin SDK — bypasses security rules using a service
-   account, so it can list all events including the freshly created ones
-   that aren't in the snapshot yet. Only runs when a service account is
-   available (see "GitHub Actions + Firebase setup" below).
-3. Firestore REST API (anonymous read — usually blocked on production).
-4. Live Firestore client SDK (anonymous — usually blocked on production).
-
-When more than one source succeeds, the build **merges** them: events matched
-by `id`/`slug` get their live field values (so a freshly changed `imageUrl`
-wins immediately), and events that exist only in Firestore are appended.
-
-### Auto-trigger on event changes (UIWI8kWx)
-
-The `onEventWriteTriggerBuild` Cloud Function fires on every Firestore
-write to `events/{eventId}`. It skips drafts and pending submissions (they
-don't appear in OG previews anyway) and POSTs to the GitHub
-`repository_dispatch` API for every write where the event was, is, or
-becomes `status === 'approved'`. The matching GitHub Actions workflow
-(`.github/workflows/deploy.yml`) then runs slug migration, `npm run build`
-and the Hosting deploy, which includes the Admin SDK live read
-described above, so a freshly approved event gets its own
-`/event/<slug>/index.html` within one build cycle (≈3–5 min) without
-anyone manually refreshing the snapshot.
-
-Which event deploys what: `repository_dispatch` and `workflow_dispatch` only
-refresh content (migrate + build + Hosting). Firestore rules/indexes and Cloud
-Functions deploy only on `push` to main, and only if `firestore.rules`,
-`firestore.indexes.json`, `firebase.json` or `functions/**` changed. Hosting
-runs even if that backend deploy fails (the job then ends red). Manual
-function deploys: use `--only functions:<name>` and merge soon, otherwise the
-next push deploy aborts on the cloud-only function.
-
-A **5-minute debounce window** is enforced via a `buildAt` timestamp on
-`app_settings/last_build`: only the first event write inside the window
-triggers a build, subsequent writes are coalesced into the same build.
-This is safe because one build regenerates ALL event pages from the live
-Firestore snapshot — so the result after the build is the same whether 1
-or 50 events changed in the meantime — and it prevents the GitHub Actions
-queue from stacking up during bulk-import / onboarding bursts.
-Worst-case latency for a single edit is 5 min (when another build just
-fired). The timestamp is only stamped on a 2xx POST, so a failed dispatch
-doesn't burn the window — the next event change retries immediately.
-
-A **6-hour safety-net scheduled rebuild** (`scheduledBuildTrigger`,
-Cloud Scheduler) runs as a backstop in case the event-driven trigger is
-ever lost — Cloud Function cold-start crash, secret-lookup transient
-failure, debounce edge case where a POST was lost, or anything else
-weird in the underlying infrastructure. Rebuilding on a 6-hour cadence
-means the worst-case staleness for any event page is bounded even if the
-event-driven path silently broke.
-
-The build is idempotent — it always reads the live Firestore snapshot
-(Admin SDK in the prerender) and writes the same HTML when nothing has
-changed — so the only cost of an unnecessary run is a few minutes of
-GitHub Actions + Firebase Hosting deploy time.
-
-### GitHub Actions + Firebase setup
-
-For the auto-trigger + live read to work on production, two secret sets
-must be configured.
-
-**Firebase Functions secrets** (read by the Cloud Functions at runtime):
-
-```bash
-firebase functions:secrets:set GH_DISPATCH_TOKEN   # GitHub PAT with `repo` scope
-firebase functions:secrets:set GH_DISPATCH_REPO    # e.g. thomasender/spiri-events-v
-```
-
-**GitHub Actions secrets** (read by `.github/workflows/deploy.yml` at build time):
-
-| Secret                              | Source                                                                                                                                                                                        |
-| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `FIREBASE_SERVICE_ACCOUNT_JSON_B64` | `base64 -i scripts/service-account.json` — the encoded JSON of a service account with Firebase Admin / Hosting deploy permissions on `spirieventsvbg`. The workflow decodes it at build time. |
-
-Set them in GitHub → repo → Settings → Secrets and variables → Actions.
-
-### Manual refresh (fallback)
-
-If the auto-trigger or live read is broken, the OG previews can still be
-refreshed manually after production events change:
-
-```bash
-firebase emulators:start --import ./data-export   # in one terminal
-npm run prerender:refresh                          # in another — writes events.json
-git add data-export/firestore-export/events.json
-git commit -m "chore: refresh prerender event snapshot"
-```
-
-The refresh script reads from the emulator (preferred) or production
-Firestore (via `scripts/service-account.json`).
-
-## Instagram Canva kit
-
-The Instagram images (feed post, carousel slides, cover, stories) are rendered
-in `functions/src/instagram/instagramImage.ts`. To rebuild those templates by
-hand in Canva there is a kit that renders every template once with example
-text and once as text-free layers (gradient, logo, pill, coloured bars):
-
-```bash
-npm --prefix functions run build
-node scripts/instagram-canva-kit.mjs [outDir]   # default: ./tmp-canva-kit (gitignored)
-```
-
-It writes `<template>_beispiel.jpg` and `<template>_ohne-text.png` per template,
-uses `public/hero.jpeg` as sample photo and reads/posts nothing. The code lives
-in `functions/src/instagram/instagramCanvaKit.ts`; it is not exported from
-`index.ts`, so it is not a Cloud Function and never runs in production.
-
-When you change a layout in `instagramImage.ts` (new element, spacing, colours),
-update the matching template in `instagramCanvaKit.ts` too, otherwise the Canva
-templates drift from what the app posts. A new template needs an entry in
-`KIT_TEMPLATES`.
+- Read `docs/regions.md` ONLY when you touch regions, region texts or routing, combined
+  views (`/oesterreich`, `/alle-tribes`), Regions-Moderator:in roles or rules,
+  region activation, region fixtures/tests, or want to add a region.
+- Read `docs/staging-migration.md` ONLY when you run or change the Firestore
+  migration/backup/mirror scripts (`migrate-region-ids`, `export-firestore`,
+  `mirror-prod-to-staging`, `seed-regions`) or build/deploy to `tribe-vbg-staging`.
+- Read `docs/testing.md` ONLY when you write or change a Playwright/Vitest test or
+  fixture, or debug a slow/flaky e2e run (degraded emulator, `destructive` project).
+- Read `docs/analytics.md` ONLY when you touch GA4 tracking, `npm run analytics:*`, the
+  admin tab "Statistik" or `adminAnalyticsReport`.
+- Read `docs/app-check.md` ONLY when you touch Firebase App Check, `appCheckOptions()`
+  on a callable, the reCAPTCHA CSP or `ENFORCE_APP_CHECK`.
+- Read `docs/calendar-feed.md` ONLY when you touch the `.ics` export/feed,
+  `getCalendarFeedToken` or `calendarRoutes.ts`.
+- Read `docs/seo-prerender.md` ONLY when you touch `scripts/prerender.mjs`, Open Graph /
+  sitemap, the auto-rebuild trigger, `deploy.yml` secrets or `prerender:refresh`.
+- Read `docs/instagram-canva-kit.md` ONLY when you change an Instagram image layout
+  (`instagramImage.ts`) or rebuild the Instagram templates in Canva.
+- Read `docs/instagram-regions.md` ONLY when you touch the per-region Instagram backend
+  (regional accounts, token refresh, backfill) or onboard a regional Instagram account.
+- Read `docs/email-testing-protocol.md` ONLY when you test or change transactional
+  emails; `docs/mailgun-sender-photo.md` ONLY for the Mailgun sender photo.
 
 ## Community chat
 
@@ -521,3 +203,7 @@ Peter is the product owner and tester. He tests directly on production at https:
 - Keep messages **short and clear**
 - Example: "Das Problem ist behoben! User können jetzt ihre eigenen Events wieder ansehen."
 - NEVER mention: useEffect, dependency array, hooks, queries, commits, branches, etc.
+- **Technical questions are NOT asked to Peter.** Questions about architecture, permissions, third-party
+  setup (Meta/Firebase/etc.), data models or legal/technical trade-offs are clarified with Thomas in the
+  session. Only ask Peter about product behaviour he can judge as a user (what should the user see, which
+  option feels right), in plain German.

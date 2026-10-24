@@ -217,6 +217,13 @@ describe('EventFormWizard — multi-day + recurrence confirmation (naTXj8Oa)', (
   });
 });
 
+describe('EventFormWizard — unexpected year in the date field', () => {
+  it('does not crash when the date has a 5-digit year', () => {
+    seedDraft({ formData: { date: '20343-05-01', endDate: '', recurrence: 'weekly' } });
+    expect(() => renderWizard()).not.toThrow();
+  });
+});
+
 describe('EventFormWizard — recurrence question labels (kZAYjgbF)', () => {
   it('asks "Wiederholt sich dein Event oder ist es einmalig?" with Einmalig / Wiederholung options', () => {
     seedDraft();

@@ -215,3 +215,26 @@ describe('EventForm — image preservation on edit (6bs5MvXI)', () => {
     expect(screen.queryByTestId('focal-point-picker')).toBeNull();
   });
 });
+
+describe('EventForm — region on edit', () => {
+  async function saveAndGetPayload(event: Record<string, unknown>) {
+    render(
+      <MemoryRouter>
+        <EventForm event={event} />
+      </MemoryRouter>
+    );
+    fireEvent.click(screen.getByRole('button', { name: /änderungen speichern/i }));
+    await vi.waitFor(() => expect(mockEvents.updateEvent).toHaveBeenCalledTimes(1));
+    return (mockEvents.updateEvent.mock.calls[0] as unknown[])[1] as Record<string, unknown>;
+  }
+
+  it('keeps a stored region the form does not change', async () => {
+    const payload = await saveAndGetPayload({ ...baseEvent, regionId: 'tirol' });
+    expect(payload.regionId).toBe('tirol');
+  });
+
+  it('gives an old event without region the default on save', async () => {
+    const payload = await saveAndGetPayload(baseEvent);
+    expect(payload.regionId).toBe('vorarlberg');
+  });
+});

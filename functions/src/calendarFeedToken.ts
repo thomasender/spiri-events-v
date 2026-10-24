@@ -17,19 +17,13 @@ import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { appCheckOptions, logMissingAppCheck } from './appCheck';
 import { enforceRateLimit } from './rateLimit';
 import { isValidCalendarToken } from './calendar/calendarRoutes';
+import { ALLOWED_ORIGINS } from './allowedOrigins';
 
 if (getApps().length === 0) {
   initializeApp();
 }
 
 export const CALENDAR_TOKENS_COLLECTION = 'calendarFeedTokens';
-
-const ALLOWED_ORIGINS = [
-  'https://www.thetribe.at',
-  'https://thetribe.at',
-  'https://spirieventsvbg.web.app',
-  'http://localhost:5180',
-];
 
 // Every "add to calendar" click asks for the token, so reading is generous;
 // replacing it invalidates the user's subscriptions and is rare.

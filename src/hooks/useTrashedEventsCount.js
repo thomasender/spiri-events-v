@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { db } from '../lib/firebase';
 import { useAuth } from './useAuth';
+import { getStaffAccess } from '../utils/staffRoles';
+import { staffEventQuerySpecs, subscribeEventQueries } from '../lib/staffEventQueries';
 
-export function useTrashedEventsCount(isAdmin = false) {
-  const { user } = useAuth();
+// Same scope as useTrashedEvents (role decides: all / own regions + own / own).
+export function useTrashedEventsCount() {
+  const { user, role, staffRegionIds } = useAuth();
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const regionKey = Array.isArray(staffRegionIds) ? staffRegionIds.join(',') : '';
 
   useEffect(() => {
     if (!user) {
@@ -15,21 +17,11 @@ export function useTrashedEventsCount(isAdmin = false) {
       return undefined;
     }
 
-    let q;
-    if (isAdmin) {
-      q = query(collection(db, 'events'), where('status', '==', 'trashed'));
-    } else {
-      q = query(
-        collection(db, 'events'),
-        where('status', '==', 'trashed'),
-        where('createdBy', '==', user.uid)
-      );
-    }
-
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        setCount(snapshot.size);
+    const access = getStaffAccess(role, regionKey ? regionKey.split(',') : []);
+    return subscribeEventQueries(
+      staffEventQuerySpecs({ access, uid: user.uid, status: 'trashed' }),
+      (list) => {
+        setCount(list.length);
         setLoading(false);
       },
       (err) => {
@@ -37,8 +29,7 @@ export function useTrashedEventsCount(isAdmin = false) {
         setLoading(false);
       }
     );
-    return unsubscribe;
-  }, [user, isAdmin]);
+  }, [user, role, regionKey]);
 
   return { count, loading };
 }

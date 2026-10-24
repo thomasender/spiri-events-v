@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import './InstagramConsentField.css';
 import { normalizeInstagramHandle } from '../utils/instagramHandle';
-
-export const INSTAGRAM_ACCOUNT = '@tribevorarlberg';
+import { useRegionInstagramAccount } from '../hooks/useRegion';
 
 /**
  * Opt-in checkbox for posting an event on the Instagram channel and tagging
  * the organizer. Controlled; the parent owns the value. `instagramHandle` is
  * the event creator's profile handle; `forOrganizer` marks an edit of someone
- * else's event (admin), which words the hint for the organizer.
+ * else's event (admin), which words the hint for the organizer. `regionId` is
+ * the event's region: its Instagram name is shown, or none when it has no name.
  */
 export default function InstagramConsentField({
   checked,
@@ -17,7 +17,9 @@ export default function InstagramConsentField({
   handleOverride,
   onHandleOverrideChange,
   forOrganizer = false,
+  regionId,
 }) {
+  const channel = useRegionInstagramAccount(regionId);
   const profileHandle = normalizeInstagramHandle(instagramHandle);
   const overrideHandle = normalizeInstagramHandle(handleOverride);
   const handle = overrideHandle || profileHandle;
@@ -91,9 +93,10 @@ export default function InstagramConsentField({
           data-testid="instagram-consent-checkbox"
         />
         <span>
-          Mein Event darf auf dem Instagram-Kanal {INSTAGRAM_ACCOUNT} veröffentlicht werden. Mein
-          Instagram-Profil darf dabei markiert und als Co-Autor (Collab) zum Beitrag eingeladen
-          werden.
+          Mein Event darf auf{' '}
+          {channel ? `dem Instagram-Kanal ${channel}` : 'unserem Instagram-Kanal'} veröffentlicht
+          werden. Mein Instagram-Profil darf dabei markiert und als Co-Autor (Collab) zum Beitrag
+          eingeladen werden.
         </span>
       </label>
       <p className="instagram-consent-hint" data-testid="instagram-consent-hint">

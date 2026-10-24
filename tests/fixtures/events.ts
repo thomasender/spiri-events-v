@@ -97,6 +97,26 @@ export async function createApprovedEvent(opts: {
   });
 }
 
+/**
+ * Ids of the messages on an event that are still unread by their recipient,
+ * read straight from the emulator, sorted. Use it with `expect.poll` to wait
+ * until the app's async "mark as read" writes have reached the server before
+ * leaving the page that issued them (a navigation drops unacknowledged writes).
+ */
+export async function unreadEventMessageIds(eventId: string): Promise<string[]> {
+  const response = await fetch(`${FIRESTORE_BASE}/events/${eventId}/messages?pageSize=100`, {
+    headers: { Authorization: 'Bearer owner' },
+  });
+  if (!response.ok) throw new Error(`messages read failed: ${response.status}`);
+  const payload = (await response.json()) as {
+    documents?: Array<{ name: string; fields?: { readByRecipient?: { booleanValue?: boolean } } }>;
+  };
+  return (payload.documents ?? [])
+    .filter((d) => d.fields?.readByRecipient?.booleanValue !== true)
+    .map((d) => d.name.split('/').pop() as string)
+    .sort();
+}
+
 export async function deleteEventById(id: string): Promise<void> {
   await fetch(`${FIRESTORE_BASE}/events/${id}`, {
     method: 'DELETE',

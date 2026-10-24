@@ -4,6 +4,7 @@ import { Check, Loader2, Sparkles, X } from 'lucide-react';
 import ProfilePhotoUpload from './ProfilePhotoUpload';
 import DirectoryListingFields from './DirectoryListingFields';
 import { useCategoryRegistry } from '../hooks/useCategoryRegistry';
+import { useRegionChoices } from '../hooks/useRegionChoices';
 import { validateDirectoryListing } from '../utils/directory';
 import {
   ONBOARDING_BIO_STARTERS,
@@ -12,6 +13,8 @@ import {
 } from '../utils/onboarding';
 import { BIO_MAX } from '../utils/profile';
 import { messageToHtml } from '../utils/sanitize';
+import { getAllDistricts, resolveDirectoryRegionIds } from '../utils/regions';
+import { districtsAfterRegionChange } from '../utils/regionChoices';
 import './ConfirmDialog.css';
 import './ProfileOnboarding.css';
 
@@ -43,10 +46,16 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
   const [photoZoom, setPhotoZoom] = useState(profile?.photoZoom || 1);
   const [bio, setBio] = useState(profile?.bio || '');
 
+  const regionChoices = useRegionChoices();
   const { categories: registryCategories } = useCategoryRegistry();
   const [listed, setListed] = useState(profile?.listedInDirectory === true);
   const [categories, setCategories] = useState(profile?.directoryCategories || []);
   const [regions, setRegions] = useState(profile?.directoryRegions || []);
+  const [regionIds, setRegionIds] = useState(
+    profile?.directoryRegionIds?.length
+      ? resolveDirectoryRegionIds(profile)
+      : [regionChoices.defaultRegionId]
+  );
   const [directoryErrors, setDirectoryErrors] = useState({});
 
   useEffect(() => {
@@ -112,10 +121,15 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
           categories,
           regions,
           hasBio: Boolean(profile?.bio?.trim()),
+          extraRegions: getAllDistricts(regionChoices.allRegions),
         });
         const result = {};
         if (errors.categories) result.categories = errors.categories;
         if (errors.regions) result.regions = errors.regions;
+        if (regionChoices.enabled && regionIds.length === 0) {
+          result.regionIds =
+            'Bitte wähle mindestens eine Region, damit du im Verzeichnis erscheinst.';
+        }
         if (errors.bio) {
           setError(
             'Für den Verzeichnis-Eintrag braucht es eine Kurzbeschreibung. Geh bitte einen Schritt zurück.'
@@ -131,6 +145,8 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
           listedInDirectory: listed,
           directoryCategories: listed ? categories : profile?.directoryCategories || [],
           directoryRegions: listed ? regions : profile?.directoryRegions || [],
+          directoryRegionIds:
+            listed && regionChoices.enabled ? regionIds : resolveDirectoryRegionIds(profile),
         });
         if (!ok) return;
       }
@@ -271,6 +287,12 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
                 regions={regions}
                 onRegionsChange={setRegions}
                 availableCategories={categoryOptions}
+                regionChoices={regionChoices}
+                regionIds={regionIds}
+                onRegionIdsChange={(ids) => {
+                  setRegionIds(ids);
+                  setRegions((current) => districtsAfterRegionChange(current, ids, regionChoices));
+                }}
                 errors={directoryErrors}
               />
             )}

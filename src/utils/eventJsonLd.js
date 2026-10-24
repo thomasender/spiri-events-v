@@ -88,7 +88,7 @@ function buildOffers(event) {
   return null;
 }
 
-function buildLocation(event) {
+function buildLocation(event, regionName = 'Vorarlberg') {
   if (event.isOnline) {
     return {
       '@type': 'VirtualLocation',
@@ -97,11 +97,11 @@ function buildLocation(event) {
   }
   return {
     '@type': 'Place',
-    name: event.place || event.bezirk || 'Vorarlberg',
+    name: event.place || event.bezirk || regionName,
     address: {
       '@type': 'PostalAddress',
-      addressLocality: event.city || event.bezirk || 'Vorarlberg',
-      addressRegion: 'Vorarlberg',
+      addressLocality: event.city || event.bezirk || regionName,
+      addressRegion: regionName,
       addressCountry: 'AT',
     },
   };
@@ -109,7 +109,7 @@ function buildLocation(event) {
 
 // `image` and `description` are passed in because the two callers derive them
 // differently (prerender needs an absolute URL).
-export function buildEventJsonLd(event, { image, description } = {}) {
+export function buildEventJsonLd(event, { image, description, regionName } = {}) {
   const startDate = toIsoDateTime(event.date, event.time);
   const endDay = DATE_RE.test(event.endDate || '') ? event.endDate : event.date;
   // An end time without an end date belongs to the start day.
@@ -134,7 +134,7 @@ export function buildEventJsonLd(event, { image, description } = {}) {
     eventAttendanceMode: event.isOnline
       ? 'https://schema.org/OnlineEventAttendanceMode'
       : 'https://schema.org/OfflineEventAttendanceMode',
-    location: buildLocation(event),
+    location: buildLocation(event, regionName),
     description: description ?? stripHtmlToText(event.description),
     ...(image && { image }),
     ...(slug && { url: `${SITE_URL}/event/${slug}` }),

@@ -6,32 +6,30 @@ import { getFirestore, type DocumentData } from 'firebase-admin/firestore';
 import { assertAdmin } from './adminMembers';
 import {
   buildEventRequests,
+  buildRegionsRequest,
   buildReport,
   buildRequests,
   buildTopEvents,
+  buildUnavailableReport,
+  isUnknownRegionDimensionError,
   parseRange,
+  parseRegion,
   type AnalyticsReport,
   type GaResponse,
   type RangeDays,
   type TopEventsReport,
 } from './analyticsReport';
+import { ALLOWED_ORIGINS } from './allowedOrigins';
 
 export type AnalyticsResponse = AnalyticsReport & { topEvents: TopEventsReport | null };
 
-const ALLOWED_ORIGINS = [
-  'https://www.thetribe.at',
-  'https://thetribe.at',
-  'https://spirieventsvbg.web.app',
-  'http://localhost:5180',
-];
-
 // GA4 property of the web stream G-34TNY65VBC. The function's runtime service
-// account must be a "Betrachter" of this property (see AGENTS.md → Analytics).
+// account must be a "Betrachter" of this property (see docs/analytics.md).
 const GA_PROPERTY_ID = '529962266';
 const CACHE_MS = 10 * 60 * 1000;
 
 const auth = new GoogleAuth({ scopes: ['https://www.googleapis.com/auth/analytics.readonly'] });
-const cache = new Map<RangeDays, { at: number; report: AnalyticsReport }>();
+const cache = new Map<string, { at: number; report: AnalyticsReport }>();
 let topEventsCache: { at: number; report: TopEventsReport } | null = null;
 
 const GA_BASE = `https://analyticsdata.googleapis.com/v1beta/properties/${GA_PROPERTY_ID}`;
@@ -109,38 +107,65 @@ export const adminAnalyticsReport = onCall(
   async (request): Promise<AnalyticsResponse> => {
     logMissingAppCheck('adminAnalyticsReport', request);
     await assertAdmin(request.auth?.uid);
-    const days = parseRange((request.data as { days?: unknown } | undefined)?.days);
+    const data = request.data as { days?: unknown; region?: unknown } | undefined;
+    const days = parseRange(data?.days);
+    const region = parseRegion(data?.region);
+    const cacheKey = `${days}:${region ?? ''}`;
 
     try {
       const token = await auth.getAccessToken();
       if (!token) throw new Error('No access token');
 
       // The event block is optional: if only it fails, the rest still shows.
+      // It always covers the whole platform, whatever region filter is chosen.
       const topEventsPromise = loadTopEvents(token).catch((err) => {
         logger.error('adminAnalyticsReport top events failed', { err: (err as Error)?.message });
         return null;
       });
 
-      const hit = cache.get(days);
+      const hit = cache.get(cacheKey);
       let report: AnalyticsReport;
       if (hit && Date.now() - hit.at < CACHE_MS) {
         report = hit.report;
       } else {
-        const q = buildRequests(days);
-        const [totals, daily, pages, channels, devices, actions] = await Promise.all([
+        const q = buildRequests(days, region);
+        // Comparison table: only without a region filter. GA rejects the request
+        // until the custom dimension "region" is registered; that must not break
+        // the rest of the report.
+        let dimensionMissing = false;
+        const regionsRequest = region
+          ? Promise.resolve(undefined)
+          : runReport(token, buildRegionsRequest(days)).catch((err: Error) => {
+              if (isUnknownRegionDimensionError(err.message)) {
+                dimensionMissing = true;
+                return undefined;
+              }
+              throw err;
+            });
+        const [totals, daily, pages, channels, devices, actions, regions] = await Promise.all([
           runReport(token, q.totals),
           runReport(token, q.daily),
           runReport(token, q.pages),
           runReport(token, q.channels),
           runReport(token, q.devices),
           runReport(token, q.actions),
+          regionsRequest,
         ]);
-        report = buildReport({ totals, daily, pages, channels, devices, actions }, days);
-        cache.set(days, { at: Date.now(), report });
+        report = {
+          ...buildReport({ totals, daily, pages, channels, devices, actions, regions }, days),
+          ...(region ? { region } : {}),
+          ...(dimensionMissing ? { regionDimension: 'unavailable' as const } : {}),
+        };
+        cache.set(cacheKey, { at: Date.now(), report });
       }
       return { ...report, topEvents: await topEventsPromise };
     } catch (err) {
       const message = (err as Error)?.message ?? '';
+      if (region && isUnknownRegionDimensionError(message)) {
+        const report = buildUnavailableReport(days, region);
+        cache.set(cacheKey, { at: Date.now(), report });
+        return { ...report, topEvents: null };
+      }
       logger.error('adminAnalyticsReport failed', { err: message });
       if (/permission|403/i.test(message)) {
         throw new HttpsError(

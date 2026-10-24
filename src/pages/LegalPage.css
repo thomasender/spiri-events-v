@@ -145,3 +145,16 @@
     padding: 24px;
   }
 }
+
+.legal-content .legal-details {
+  margin: 12px 0 0;
+}
+
+.legal-content .legal-details summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.legal-content .legal-details .legal-list {
+  margin-top: 8px;
+}

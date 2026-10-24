@@ -138,3 +138,18 @@
 .review-section [hidden] {
   display: none;
 }
+
+.review-region-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+}
+
+.review-region-filter select {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 8px;
+  background: var(--bg-card, #fff);
+  color: inherit;
+}

@@ -3,6 +3,7 @@ import { collectionGroup, onSnapshot, query, where, limit } from 'firebase/fires
 import { db } from '../lib/firebase';
 import { normalizeFocalPoint } from '../lib/eventImage';
 import { normalizePhotoZoom } from '../components/AvatarImage';
+import { DEFAULT_REGION_ID, resolveDirectoryRegionIds } from '../utils/regions';
 
 const EMPTY_PROFILE = {
   displayName: '',
@@ -16,6 +17,7 @@ const EMPTY_PROFILE = {
   socialMedia: { facebook: '', instagram: '', sharePublicly: false },
   directoryCategories: [],
   directoryRegions: [],
+  directoryRegionIds: [DEFAULT_REGION_ID],
   showOnlineStatus: false,
   updatedAt: null,
 };
@@ -51,6 +53,8 @@ function normalize(data) {
       Array.isArray(data.directoryRegions)
         ? data.directoryRegions.filter((item) => typeof item === 'string')
         : [],
+    // Read-side preparation only: nothing filters by it yet.
+    directoryRegionIds: resolveDirectoryRegionIds(data),
     showOnlineStatus: data.showOnlineStatus === true,
     updatedAt: data.updatedAt || null,
   };

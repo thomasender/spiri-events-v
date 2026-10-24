@@ -490,6 +490,45 @@ describe('useProfile.save — rich-text bio (kKjV8UFZ)', () => {
   });
 });
 
+describe('useProfile — directoryRegionIds', () => {
+  it('reads Vorarlberg for profiles without the field and keeps stored ids', async () => {
+    mockOnSnapshot.mockImplementation((_ref, onNext) => {
+      onNext(makeSnapshot({ displayName: 'A', slug: 'a', directoryRegionIds: ['tirol'] }));
+    });
+    const { result } = renderHook(() => useProfile('user-1'));
+    await waitFor(() => expect(result.current.profile).not.toBeNull());
+    expect(result.current.profile.directoryRegionIds).toEqual(['tirol']);
+
+    mockOnSnapshot.mockImplementation((_ref, onNext) => {
+      onNext(makeSnapshot({ displayName: 'B', slug: 'b' }));
+    });
+    const { result: legacy } = renderHook(() => useProfile('user-2'));
+    await waitFor(() => expect(legacy.current.profile).not.toBeNull());
+    expect(legacy.current.profile.directoryRegionIds).toEqual(['vorarlberg']);
+  });
+
+  it('writes directoryRegionIds to both the private and the public doc', async () => {
+    mockOnSnapshot.mockImplementation((_ref, onNext) => {
+      onNext(makeSnapshot({ displayName: 'A', slug: 'a' }));
+    });
+    const { result } = renderHook(() => useProfile('user-1'));
+    await waitFor(() => expect(result.current.profile).not.toBeNull());
+
+    await act(async () => {
+      await result.current.save({ listedInDirectory: false, directoryRegionIds: ['vorarlberg'] });
+    });
+
+    const publicPayload = mockBatchSet.mock.calls.find(
+      ([ref]) => ref.path?.join('/') === 'users/user-1/publicProfile/data'
+    )?.[1];
+    const privatePayload = mockBatchSet.mock.calls.find(
+      ([ref]) => ref.path?.join('/') === 'users/user-1'
+    )?.[1];
+    expect(publicPayload).toMatchObject({ directoryRegionIds: ['vorarlberg'] });
+    expect(privatePayload).toMatchObject({ directoryRegionIds: ['vorarlberg'] });
+  });
+});
+
 describe('useProfile.save — username (LtBHuNes)', () => {
   function setupWithProfile(profileData) {
     mockOnSnapshot.mockImplementation((_ref, onNext) => {

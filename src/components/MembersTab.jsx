@@ -18,8 +18,11 @@ import { useAdminMembers } from '../hooks/useAdminMembers';
 import { useMemberLists } from '../hooks/useMemberLists';
 import { useCategories } from '../hooks/useCategories';
 import { useAuth } from '../hooks/useAuth';
+import { getStaffAccess } from '../utils/staffRoles';
+import { BEZIRKE, ONLINE_LOCATION } from '../utils/regions';
+import { useRegionChoices } from '../hooks/useRegionChoices';
+import { directoryDistrictGroups } from '../utils/regionChoices';
 import { useMemberEvents } from '../hooks/useMemberEvents';
-import { DIRECTORY_REGIONS } from '../utils/directory';
 import {
   filterMembers,
   sortMembers,
@@ -43,7 +46,18 @@ function formatDate(iso) {
   return new Date(iso).toLocaleDateString('de-AT');
 }
 
-function MemberEditDialog({ member, categories, onSave, onClose }) {
+// Fields a Regions-Moderator:in may change (mirrors MODERATOR_MEMBER_FIELDS
+// in functions/src/adminMembers.ts): directory curation, not the identity.
+const MODERATOR_FIELDS = ['listedInDirectory', 'directoryCategories', 'directoryRegions'];
+
+function memberSaveErrorMessage(err, moderatorMode) {
+  if (moderatorMode && err?.code === 'functions/permission-denied') {
+    return 'Dieses Mitglied kannst du nicht ändern: Es ist auch in einer anderen Region eingetragen oder gehört zum Team.';
+  }
+  return `Speichern fehlgeschlagen (${err?.code || 'unbekannt'}). Bitte erneut versuchen.`;
+}
+
+function MemberEditDialog({ member, categories, onSave, onClose, moderatorMode = false }) {
   const [draft, setDraft] = useState({
     displayName: member.displayName,
     username: member.username,
@@ -53,6 +67,13 @@ function MemberEditDialog({ member, categories, onSave, onClose }) {
   });
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
+  const regionChoices = useRegionChoices();
+  const districtGroups = regionChoices.enabled
+    ? directoryDistrictGroups(
+        regionChoices.options.map((r) => r.id),
+        regionChoices
+      )
+    : [];
 
   const toggle = (field, value) =>
     setDraft((d) => ({
@@ -78,7 +99,7 @@ function MemberEditDialog({ member, categories, onSave, onClose }) {
       await onSave(draft);
     } catch (err) {
       console.error('Member update failed:', err?.code, err?.message, err);
-      setError(`Speichern fehlgeschlagen (${err?.code || 'unbekannt'}). Bitte erneut versuchen.`);
+      setError(memberSaveErrorMessage(err, moderatorMode));
       setSaving(false);
     }
   };
@@ -94,14 +115,22 @@ function MemberEditDialog({ member, categories, onSave, onClose }) {
         data-testid="member-edit-dialog"
       >
         <h2>Mitglied bearbeiten</h2>
-        <p className="members-dialog-hint">
-          E-Mail: <strong>{member.email || '–'}</strong> (kann hier nicht geändert werden)
-        </p>
+        {moderatorMode ? (
+          <p className="members-dialog-hint">
+            Du kannst den Verzeichnis-Eintrag anpassen. Name und Benutzername ändert nur das
+            Kernteam.
+          </p>
+        ) : (
+          <p className="members-dialog-hint">
+            E-Mail: <strong>{member.email || '–'}</strong> (kann hier nicht geändert werden)
+          </p>
+        )}
         <label>
           Name
           <input
             type="text"
             maxLength={80}
+            readOnly={moderatorMode}
             value={draft.displayName}
             onChange={(e) => setDraft({ ...draft, displayName: e.target.value })}
           />
@@ -111,23 +140,57 @@ function MemberEditDialog({ member, categories, onSave, onClose }) {
           <input
             type="text"
             maxLength={40}
+            readOnly={moderatorMode}
             value={draft.username}
             onChange={(e) => setDraft({ ...draft, username: e.target.value })}
           />
         </label>
-        <fieldset>
-          <legend>Bezirke</legend>
-          {DIRECTORY_REGIONS.map((b) => (
-            <label key={b} className="members-check">
-              <input
-                type="checkbox"
-                checked={draft.directoryRegions.includes(b)}
-                onChange={() => toggle('directoryRegions', b)}
-              />
-              {b}
-            </label>
-          ))}
-        </fieldset>
+        {regionChoices.enabled ? (
+          <>
+            {districtGroups.map((group) => (
+              <fieldset key={group.regionId}>
+                <legend>
+                  {group.label} {group.regionName}
+                </legend>
+                {group.districts.map((b) => (
+                  <label key={b} className="members-check">
+                    <input
+                      type="checkbox"
+                      checked={draft.directoryRegions.includes(b)}
+                      onChange={() => toggle('directoryRegions', b)}
+                    />
+                    {b}
+                  </label>
+                ))}
+              </fieldset>
+            ))}
+            <fieldset>
+              <legend>Online</legend>
+              <label className="members-check">
+                <input
+                  type="checkbox"
+                  checked={draft.directoryRegions.includes(ONLINE_LOCATION)}
+                  onChange={() => toggle('directoryRegions', ONLINE_LOCATION)}
+                />
+                {ONLINE_LOCATION}
+              </label>
+            </fieldset>
+          </>
+        ) : (
+          <fieldset>
+            <legend>Bezirke</legend>
+            {[...BEZIRKE, ONLINE_LOCATION].map((b) => (
+              <label key={b} className="members-check">
+                <input
+                  type="checkbox"
+                  checked={draft.directoryRegions.includes(b)}
+                  onChange={() => toggle('directoryRegions', b)}
+                />
+                {b}
+              </label>
+            ))}
+          </fieldset>
+        )}
         <fieldset>
           <legend>Kategorien (max. 5)</legend>
           {categories.map((c) => (
@@ -224,14 +287,27 @@ function MemberEventsDialog({ member, onClose }) {
 // Admin tab: member management. Search, filter by Bezirk / Kategorie, edit
 // public profile fields, group members into lists and export CSV / PDF.
 export default function MembersTab() {
-  const { role } = useAuth();
-  const isAdmin = role === 'Admin';
-  const { members, loading, error, reload, updateMember } = useAdminMembers(isAdmin);
+  const { role, staffRegionIds } = useAuth();
+  const access = getStaffAccess(role, staffRegionIds);
+  const isAdmin = access.isSuperAdmin;
+  // Moderator:innen get the list of their regions from the same callable
+  // (filtered server side, without e-mail or Instagram data); member lists and
+  // exports stay with the Super-Admins.
+  const isModerator = access.isRegionModerator;
+  const { members, loading, error, reload, updateMember } = useAdminMembers(access.isStaff);
   const { lists, createList, setMemberUids, renameList, deleteList } = useMemberLists(isAdmin);
   const categories = useCategories();
 
   const [search, setSearch] = useState('');
   const [region, setRegion] = useState('');
+  const [regionId, setRegionId] = useState('');
+  const regionChoices = useRegionChoices();
+  const districtGroups = regionChoices.enabled
+    ? directoryDistrictGroups(
+        regionChoices.options.map((r) => r.id),
+        regionChoices
+      )
+    : [];
   const [category, setCategory] = useState('');
   const [activeListId, setActiveListId] = useState('');
   const [sort, setSort] = useState({ key: 'createdAt', direction: 'desc' });
@@ -247,11 +323,12 @@ export default function MembersTab() {
     const filtered = filterMembers(members, {
       search,
       region,
+      regionId,
       category,
       listUids: activeList ? new Set(activeList.memberUids || []) : null,
     });
     return sortMembers(filtered, sort.key, sort.direction);
-  }, [members, search, region, category, activeList, sort]);
+  }, [members, search, region, regionId, category, activeList, sort]);
 
   const toggleSort = (key) =>
     setSort((s) =>
@@ -321,14 +398,22 @@ export default function MembersTab() {
       setDeletingList(false);
     });
 
-  if (!isAdmin) return null;
+  if (!isAdmin && !isModerator) return null;
+
+  const columns = isAdmin
+    ? COLUMNS
+    : COLUMNS.filter(
+        (c) => c.key === 'displayName' || c.key === 'username' || c.key === 'createdAt'
+      );
 
   const exportTitle = activeList ? `Mitglieder – ${activeList.name}` : 'Mitglieder';
 
   return (
     <div className="members-tab" data-testid="members-tab">
       <p className="members-tab-description">
-        Alle registrierten Mitglieder. Dieser Bereich ist nur für Admins sichtbar.
+        {isModerator
+          ? 'Mitglieder, die im Verzeichnis deiner Region eingetragen sind.'
+          : 'Alle registrierten Mitglieder. Dieser Bereich ist nur für Admins sichtbar.'}
       </p>
 
       <div className="members-toolbar">
@@ -336,23 +421,59 @@ export default function MembersTab() {
           <Search size={16} aria-hidden="true" />
           <input
             type="search"
-            placeholder="Name, Benutzername oder E-Mail suchen"
+            placeholder={
+              isAdmin ? 'Name, Benutzername oder E-Mail suchen' : 'Name oder Benutzername suchen'
+            }
             aria-label="Mitglieder suchen"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </label>
+        {regionChoices.enabled && (
+          <select
+            aria-label="Nach Region filtern"
+            value={regionId}
+            onChange={(e) => setRegionId(e.target.value)}
+            data-testid="members-region-filter"
+          >
+            <option value="">Alle Regionen</option>
+            {regionChoices.options.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+        )}
         <select
-          aria-label="Nach Bezirk filtern"
+          aria-label={
+            regionChoices.enabled ? 'Nach Bezirk oder Landkreis filtern' : 'Nach Bezirk filtern'
+          }
           value={region}
           onChange={(e) => setRegion(e.target.value)}
         >
-          <option value="">Alle Bezirke</option>
-          {DIRECTORY_REGIONS.map((b) => (
-            <option key={b} value={b}>
-              {b}
-            </option>
-          ))}
+          <option value="">
+            {regionChoices.enabled ? 'Alle Bezirke und Landkreise' : 'Alle Bezirke'}
+          </option>
+          {regionChoices.enabled ? (
+            <>
+              {districtGroups.map((group) => (
+                <optgroup key={group.regionId} label={`${group.label} ${group.regionName}`}>
+                  {group.districts.map((b) => (
+                    <option key={b} value={b}>
+                      {b}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+              <option value={ONLINE_LOCATION}>{ONLINE_LOCATION}</option>
+            </>
+          ) : (
+            [...BEZIRKE, ONLINE_LOCATION].map((b) => (
+              <option key={b} value={b}>
+                {b}
+              </option>
+            ))
+          )}
         </select>
         <select
           aria-label="Nach Kategorie filtern"
@@ -366,77 +487,81 @@ export default function MembersTab() {
             </option>
           ))}
         </select>
-        <select
-          aria-label="Liste wählen"
-          value={activeListId}
-          onChange={(e) => setActiveListId(e.target.value)}
-        >
-          <option value="">Alle Mitglieder</option>
-          {lists.map((l) => (
-            <option key={l.id} value={l.id}>
-              {l.name} ({(l.memberUids || []).length})
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="members-toolbar">
-        <button type="button" className="btn btn-secondary" onClick={handleCreateList}>
-          <Plus size={16} aria-hidden="true" />
-          <span>Neue Liste{selected.size > 0 ? ` (${selected.size} Mitglieder)` : ''}</span>
-        </button>
-        {activeList && (
-          <>
-            <button type="button" className="btn btn-secondary" onClick={handleRenameList}>
-              <Pencil size={16} aria-hidden="true" />
-              <span>Liste umbenennen</span>
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => setDeletingList(true)}
-            >
-              <Trash2 size={16} aria-hidden="true" />
-              <span>Liste löschen</span>
-            </button>
-          </>
-        )}
-        {selected.size > 0 && lists.length > 0 && (
+        {isAdmin && (
           <select
-            aria-label="Auswahl zu Liste hinzufügen"
-            value=""
-            onChange={(e) => e.target.value && handleAddSelected(e.target.value)}
+            aria-label="Liste wählen"
+            value={activeListId}
+            onChange={(e) => setActiveListId(e.target.value)}
           >
-            <option value="">{selected.size} ausgewählt: zu Liste hinzufügen …</option>
+            <option value="">Alle Mitglieder</option>
             {lists.map((l) => (
               <option key={l.id} value={l.id}>
-                {l.name}
+                {l.name} ({(l.memberUids || []).length})
               </option>
             ))}
           </select>
         )}
-        <span className="members-toolbar-spacer" />
-        <button
-          type="button"
-          className="btn btn-secondary"
-          onClick={() => downloadCsv(visible, 'mitglieder.csv')}
-          disabled={visible.length === 0}
-          data-testid="members-export-csv"
-        >
-          <Download size={16} aria-hidden="true" />
-          <span>CSV</span>
-        </button>
-        <button
-          type="button"
-          className="btn btn-secondary"
-          onClick={() => printMembers(visible, exportTitle)}
-          disabled={visible.length === 0}
-          data-testid="members-export-pdf"
-        >
-          <Printer size={16} aria-hidden="true" />
-          <span>PDF</span>
-        </button>
       </div>
+
+      {isAdmin && (
+        <div className="members-toolbar">
+          <button type="button" className="btn btn-secondary" onClick={handleCreateList}>
+            <Plus size={16} aria-hidden="true" />
+            <span>Neue Liste{selected.size > 0 ? ` (${selected.size} Mitglieder)` : ''}</span>
+          </button>
+          {activeList && (
+            <>
+              <button type="button" className="btn btn-secondary" onClick={handleRenameList}>
+                <Pencil size={16} aria-hidden="true" />
+                <span>Liste umbenennen</span>
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setDeletingList(true)}
+              >
+                <Trash2 size={16} aria-hidden="true" />
+                <span>Liste löschen</span>
+              </button>
+            </>
+          )}
+          {selected.size > 0 && lists.length > 0 && (
+            <select
+              aria-label="Auswahl zu Liste hinzufügen"
+              value=""
+              onChange={(e) => e.target.value && handleAddSelected(e.target.value)}
+            >
+              <option value="">{selected.size} ausgewählt: zu Liste hinzufügen …</option>
+              {lists.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}
+                </option>
+              ))}
+            </select>
+          )}
+          <span className="members-toolbar-spacer" />
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => downloadCsv(visible, 'mitglieder.csv')}
+            disabled={visible.length === 0}
+            data-testid="members-export-csv"
+          >
+            <Download size={16} aria-hidden="true" />
+            <span>CSV</span>
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => printMembers(visible, exportTitle)}
+            disabled={visible.length === 0}
+            data-testid="members-export-pdf"
+          >
+            <Printer size={16} aria-hidden="true" />
+            <span>PDF</span>
+          </button>
+        </div>
+      )}
 
       {actionError && (
         <p className="members-error" role="alert">
@@ -466,15 +591,17 @@ export default function MembersTab() {
               <table className="members-table">
                 <thead>
                   <tr>
-                    <th>
-                      <input
-                        type="checkbox"
-                        aria-label="Alle sichtbaren auswählen"
-                        checked={allVisibleSelected}
-                        onChange={toggleAllVisible}
-                      />
-                    </th>
-                    {COLUMNS.map((c) => (
+                    {isAdmin && (
+                      <th>
+                        <input
+                          type="checkbox"
+                          aria-label="Alle sichtbaren auswählen"
+                          checked={allVisibleSelected}
+                          onChange={toggleAllVisible}
+                        />
+                      </th>
+                    )}
+                    {columns.map((c) => (
                       <th
                         key={c.key}
                         aria-sort={
@@ -512,26 +639,30 @@ export default function MembersTab() {
                     const profilePath = memberProfilePath(m);
                     return (
                       <tr key={m.uid} data-testid="member-row">
-                        <td>
-                          <input
-                            type="checkbox"
-                            aria-label={`${m.displayName || m.email} auswählen`}
-                            checked={selected.has(m.uid)}
-                            onChange={() => toggleSelected(m.uid)}
-                          />
-                        </td>
+                        {isAdmin && (
+                          <td>
+                            <input
+                              type="checkbox"
+                              aria-label={`${m.displayName || m.email} auswählen`}
+                              checked={selected.has(m.uid)}
+                              onChange={() => toggleSelected(m.uid)}
+                            />
+                          </td>
+                        )}
                         <td>{m.displayName || '–'}</td>
                         <td>{m.username || '–'}</td>
-                        <td>
-                          {m.email || '–'}
-                          {m.emailVerified && (
-                            <CheckCircle2
-                              size={14}
-                              className="members-verified"
-                              aria-label="E-Mail bestätigt"
-                            />
-                          )}
-                        </td>
+                        {isAdmin && (
+                          <td>
+                            {m.email || '–'}
+                            {m.emailVerified && (
+                              <CheckCircle2
+                                size={14}
+                                className="members-verified"
+                                aria-label="E-Mail bestätigt"
+                              />
+                            )}
+                          </td>
+                        )}
                         <td>{formatDate(m.createdAt)}</td>
                         <td>
                           {profilePath ? (
@@ -590,9 +721,13 @@ export default function MembersTab() {
         <MemberEditDialog
           member={editing}
           categories={categories}
+          moderatorMode={isModerator}
           onClose={() => setEditing(null)}
           onSave={async (draft) => {
-            await updateMember(editing.uid, draft);
+            const changes = isModerator
+              ? Object.fromEntries(MODERATOR_FIELDS.map((k) => [k, draft[k]]))
+              : draft;
+            await updateMember(editing.uid, changes);
             setEditing(null);
           }}
         />

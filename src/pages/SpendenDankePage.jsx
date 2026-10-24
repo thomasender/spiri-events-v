@@ -28,8 +28,7 @@ export default function SpendenDankePage() {
       </header>
 
       <p className="spenden-danke-disclaimer">
-        Bei Fragen schreibe gerne an{' '}
-        <a href="mailto:office@tribevorarlberg.at">office@tribevorarlberg.at</a>.
+        Bei Fragen schreibe gerne an <a href="mailto:admin@thetribe.at">admin@thetribe.at</a>.
       </p>
 
       <p className="spenden-danke-back-link">

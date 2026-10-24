@@ -2,15 +2,20 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import MembersTab from '../../src/components/MembersTab';
+import { RegionContext, DEFAULT_REGION_CONTEXT } from '../../src/hooks/useRegion';
+import { STATIC_REGIONS, mergeRegions } from '../../src/utils/regions';
 
 const state = vi.hoisted(() => ({
   role: 'Admin',
+  staffRegionIds: [] as string[],
   members: [] as Record<string, unknown>[],
   updateMember: vi.fn(),
   memberEvents: [] as Record<string, unknown>[],
 }));
 
-vi.mock('../../src/hooks/useAuth', () => ({ useAuth: () => ({ role: state.role }) }));
+vi.mock('../../src/hooks/useAuth', () => ({
+  useAuth: () => ({ role: state.role, staffRegionIds: state.staffRegionIds }),
+}));
 vi.mock('../../src/hooks/useAdminMembers', () => ({
   useAdminMembers: () => ({
     members: state.members,
@@ -56,6 +61,7 @@ const member = (uid: string, over: Record<string, unknown> = {}) => ({
 
 beforeEach(() => {
   state.role = 'Admin';
+  state.staffRegionIds = [];
   state.updateMember.mockReset();
   state.memberEvents = [];
   state.members = [
@@ -154,5 +160,120 @@ describe('MembersTab', () => {
     const row = screen.getByTestId('member-row');
     expect(within(row).getByText('@anna.yoga')).toBeInTheDocument();
     expect(within(row).getByText('Ja')).toBeInTheDocument();
+  });
+});
+
+describe('MembersTab for a Regions-Moderator:in', () => {
+  beforeEach(() => {
+    state.role = 'RegionModerator';
+    state.staffRegionIds = ['tirol'];
+    // The callable already filters to her regions and strips private fields.
+    state.members = [
+      {
+        uid: 'tina',
+        displayName: 'Tina',
+        username: 'tina',
+        slug: 'tina',
+        photoURL: '',
+        listedInDirectory: true,
+        directoryHidden: false,
+        directoryCategories: ['Yoga'],
+        directoryRegions: [],
+        directoryRegionIds: ['tirol'],
+        instagramConsent: true,
+        instagramHandle: '@tina.yoga',
+        createdAt: '2026-01-01T00:00:00.000Z',
+      },
+    ];
+  });
+
+  it('shows the member list of her region without e-mail, lists or exports', () => {
+    render(<MembersTab />);
+    expect(screen.getAllByTestId('member-row')).toHaveLength(1);
+    const headers = screen.getAllByRole('columnheader').map((h) => h.textContent);
+    expect(headers).not.toContain('E-Mail');
+    expect(headers).toEqual(expect.arrayContaining(['Name', 'Benutzername', 'Registriert']));
+    expect(headers).toEqual(expect.arrayContaining(['Instagram teilen', 'Instagram-Name']));
+    expect(screen.getByText('@tina.yoga')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Liste wählen')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('members-export-csv')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Neue Liste/)).not.toBeInTheDocument();
+  });
+
+  it('saves only the directory fields and explains a refused change', async () => {
+    state.updateMember.mockRejectedValueOnce({ code: 'functions/permission-denied' });
+    render(<MembersTab />);
+    fireEvent.click(screen.getByLabelText('Tina bearbeiten'));
+    const dialog = screen.getByTestId('member-edit-dialog');
+    expect(within(dialog).getByLabelText('Name')).toHaveAttribute('readonly');
+    fireEvent.click(within(dialog).getByText('Speichern'));
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent(
+      'auch in einer anderen Region'
+    );
+    expect(state.updateMember).toHaveBeenCalledWith('tina', {
+      listedInDirectory: true,
+      directoryCategories: ['Yoga'],
+      directoryRegions: [],
+    });
+  });
+});
+
+describe('MembersTab with several active regions', () => {
+  const allRegions = mergeRegions(
+    STATIC_REGIONS.map((r) => ({ id: r.id, active: ['vorarlberg', 'bayern'].includes(r.id) }))
+  );
+  const renderMulti = () =>
+    render(
+      <RegionContext.Provider
+        value={
+          {
+            ...DEFAULT_REGION_CONTEXT,
+            allRegions,
+            regions: allRegions.filter((r) => r.active),
+          } as never
+        }
+      >
+        <MembersTab />
+      </RegionContext.Provider>
+    );
+
+  it('has no region filter with a single active region', () => {
+    render(<MembersTab />);
+    expect(screen.queryByTestId('members-region-filter')).not.toBeInTheDocument();
+  });
+
+  it('filters by region (members without region ids count as Vorarlberg) and offers Landkreise', () => {
+    state.members = [
+      member('anna', { directoryRegions: ['Dornbirn'] }),
+      member('carla', { directoryRegions: ['Oberallgäu'], directoryRegionIds: ['bayern'] }),
+    ];
+    renderMulti();
+    expect(screen.getAllByTestId('member-row')).toHaveLength(2);
+
+    fireEvent.change(screen.getByTestId('members-region-filter'), { target: { value: 'bayern' } });
+    const rows = screen.getAllByTestId('member-row');
+    expect(rows).toHaveLength(1);
+    expect(within(rows[0]).getByText('carla@x.at')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByTestId('members-region-filter'), {
+      target: { value: 'vorarlberg' },
+    });
+    expect(
+      within(screen.getAllByTestId('member-row')[0]).getByText('anna@x.at')
+    ).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Nach Bezirk oder Landkreis filtern'), {
+      target: { value: 'Oberallgäu' },
+    });
+    expect(screen.queryAllByTestId('member-row')).toHaveLength(0);
+  });
+
+  it('the edit dialog groups districts per region with the right label', () => {
+    renderMulti();
+    fireEvent.click(screen.getByLabelText('bernd bearbeiten'));
+    const dialog = screen.getByTestId('member-edit-dialog');
+    expect(within(dialog).getByText('Bezirke Vorarlberg')).toBeInTheDocument();
+    expect(within(dialog).getByText('Landkreise Bayern')).toBeInTheDocument();
+    expect(within(dialog).getByLabelText('Oberallgäu')).toBeInTheDocument();
   });
 });

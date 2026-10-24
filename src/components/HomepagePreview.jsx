@@ -9,6 +9,7 @@ import { getEventOccurrences } from '../utils/eventOccurrences';
 import { DATE_FILTER_OPTIONS, applyDateFilter } from '../utils/dateQuickFilters';
 // Reuses the public-facing homepage layout. Scoped overrides for the
 // sandbox live in HomepagePreview.css so the styles below stay clean.
+import { useRegionTexts } from '../hooks/useRegionTexts';
 import '../pages/CalendarPage.css';
 import './HomepagePreview.css';
 
@@ -17,6 +18,7 @@ const HERO_FEATURES = [
     icon: MapPin,
     title: 'In deiner Umgebung',
     description: 'Für Vorarlberg und Umkreis',
+    nearby: true,
   },
   {
     icon: Users,
@@ -67,6 +69,7 @@ export default function HomepagePreview({
   onEventClick,
   onCardClick,
 }) {
+  const regionTexts = useRegionTexts();
   const [activeHeroPair, setActiveHeroPair] = useState(0);
   const heroSliderRef = useRef(null);
   const [selectedCategories, setSelectedCategories] = useState(categories);
@@ -163,7 +166,7 @@ export default function HomepagePreview({
               <br />
               Tanz, Singen, Soundhealing und viele
               <br />
-              weitere Veranstaltungen in Vorarlberg.
+              weitere Veranstaltungen {regionTexts.locationPhrase}.
             </p>
             <div
               className="hero-features-slider"
@@ -185,12 +188,14 @@ export default function HomepagePreview({
                     data-testid="homepage-preview-hero-slide"
                     data-slide-index={pairIndex}
                   >
-                    {pair.map(({ icon: Icon, title, description }) => (
+                    {pair.map(({ icon: Icon, title, description, nearby }) => (
                       <div key={title} className="hero-feature-item">
                         <Icon size={20} aria-hidden="true" />
                         <div>
                           <span className="hero-feature-title">{title}</span>
-                          <span className="hero-feature-description">{description}</span>
+                          <span className="hero-feature-description">
+                            {nearby ? regionTexts.nearbyText : description}
+                          </span>
                         </div>
                       </div>
                     ))}

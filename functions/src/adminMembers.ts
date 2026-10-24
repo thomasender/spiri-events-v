@@ -4,20 +4,23 @@ import { logger } from 'firebase-functions';
 import { initializeApp, getApps } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
+import {
+  REGION_MODERATOR_ROLE,
+  SUPER_ADMIN_ROLE,
+  assertStaff,
+  assertSuperAdmin,
+  profileEditableByModerator,
+  readRoleDoc,
+  profileVisibleToModerator,
+  type StaffRole,
+} from './staffRoles';
+import { DEFAULT_REGION_ID, DIRECTORY_REGIONS, isRegionId } from './regions';
+import { ALLOWED_ORIGINS } from './allowedOrigins';
 
 if (getApps().length === 0) {
   initializeApp();
 }
 
-const ALLOWED_ORIGINS = [
-  'https://www.thetribe.at',
-  'https://thetribe.at',
-  'https://spirieventsvbg.web.app',
-  'http://localhost:5180',
-];
-
-// Mirrors DIRECTORY_REGIONS in src/utils/directory.js (Bezirke + Online).
-const DIRECTORY_REGIONS = ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe', 'Online'];
 const DISPLAY_NAME_MAX = 80;
 const USERNAME_MAX = 40;
 const MAX_CATEGORIES = 5;
@@ -35,11 +38,14 @@ export interface MemberRow {
   directoryHidden: boolean;
   directoryCategories: string[];
   directoryRegions: string[];
+  directoryRegionIds: string[];
   instagramConsent: boolean;
   instagramHandle: string;
   createdAt: string | null;
   lastSignInAt: string | null;
   disabled: boolean;
+  // Super-Admin scope only (listMembersHandler): existing staff role.
+  staffRole?: 'Admin' | 'RegionModerator' | null;
 }
 
 export interface AuthRecord {
@@ -50,6 +56,7 @@ export interface AuthRecord {
   displayName?: string;
   photoURL?: string;
   metadata?: { creationTime?: string; lastSignInTime?: string };
+  customClaims?: Record<string, unknown>;
 }
 
 function str(value: unknown): string {
@@ -88,6 +95,7 @@ export function buildMemberRow(
     directoryHidden: profile.directoryHidden === true,
     directoryCategories: strList(profile.directoryCategories),
     directoryRegions: strList(profile.directoryRegions),
+    directoryRegionIds: strList(profile.directoryRegionIds).filter(isRegionId),
     instagramConsent: privateProfile.instagramConsentDefault === true,
     instagramHandle: instagram.trim(),
     createdAt: toIso(user.metadata?.creationTime),
@@ -106,7 +114,10 @@ export interface MemberPatch {
 
 // Validates an admin edit. Only the whitelisted public-profile fields are
 // accepted; the e-mail address (login) is deliberately not editable here.
-export function validateMemberPatch(raw: unknown): MemberPatch {
+export function validateMemberPatch(
+  raw: unknown,
+  extraDistricts: readonly string[] = []
+): MemberPatch {
   if (!raw || typeof raw !== 'object') {
     throw new HttpsError('invalid-argument', 'changes must be an object.');
   }
@@ -140,7 +151,7 @@ export function validateMemberPatch(raw: unknown): MemberPatch {
   }
   if ('directoryRegions' in input) {
     const list = strList(input.directoryRegions);
-    if (list.some((r) => !DIRECTORY_REGIONS.includes(r))) {
+    if (list.some((r) => !DIRECTORY_REGIONS.includes(r) && !extraDistricts.includes(r))) {
       throw new HttpsError('invalid-argument', 'Unknown region.');
     }
     patch.directoryRegions = Array.from(new Set(list));
@@ -170,22 +181,239 @@ export function validateMemberPatch(raw: unknown): MemberPatch {
   return patch;
 }
 
-export async function assertAdmin(uid: string | undefined): Promise<void> {
-  if (!uid) {
-    throw new HttpsError('unauthenticated', 'Must be signed in.');
-  }
-  const snap = await getFirestore().collection('admin_users').doc(uid).get();
-  if (!snap.exists || snap.data()?.role !== 'Admin') {
-    throw new HttpsError('permission-denied', 'Admins only.');
-  }
+// Super-Admin only (role 'Admin' in admin_users). Kept under its old name for
+// adminAnalyticsReport; region moderators do NOT pass it.
+export function assertAdmin(uid: string | undefined): Promise<void> {
+  return assertSuperAdmin(uid);
 }
 
-export const adminListMembers = onCall(
-  { region: 'europe-west3', cors: ALLOWED_ORIGINS, ...appCheckOptions() },
-  async (request): Promise<{ members: MemberRow[] }> => {
-    logMissingAppCheck('adminListMembers', request);
-    await assertAdmin(request.auth?.uid);
+// What a region moderator gets per member: what the public profile shows plus
+// registration date and the Instagram handle/sharing consent (product owner
+// decision). No e-mail, sign-in metadata or account state.
+export interface ModeratorMemberRow {
+  uid: string;
+  displayName: string;
+  username: string;
+  slug: string;
+  photoURL: string;
+  listedInDirectory: boolean;
+  directoryHidden: boolean;
+  directoryCategories: string[];
+  directoryRegions: string[];
+  directoryRegionIds: string[];
+  instagramConsent: boolean;
+  instagramHandle: string;
+  createdAt: string | null;
+}
 
+export function toModeratorMemberRow(row: MemberRow): ModeratorMemberRow {
+  return {
+    uid: row.uid,
+    displayName: row.displayName,
+    username: row.username,
+    slug: row.slug,
+    photoURL: row.photoURL,
+    listedInDirectory: row.listedInDirectory,
+    directoryHidden: row.directoryHidden,
+    directoryCategories: row.directoryCategories,
+    directoryRegions: row.directoryRegions,
+    directoryRegionIds: row.directoryRegionIds,
+    instagramConsent: row.instagramConsent,
+    instagramHandle: row.instagramHandle,
+    createdAt: row.createdAt,
+  };
+}
+
+export type MemberListResult =
+  | { scope: { role: 'Admin' }; members: MemberRow[] }
+  | { scope: { role: 'RegionModerator'; regionIds: string[] }; members: ModeratorMemberRow[] };
+
+type Doc = Record<string, unknown>;
+
+// Super-Admin: every member with all fields (unchanged). Moderator: only
+// members whose public profile is listed in one of her regions (profiles
+// without directoryRegionIds count as Vorarlberg, members without a profile
+// belong to no region), reduced to ModeratorMemberRow.
+export function membersForRole(
+  role: StaffRole,
+  users: AuthRecord[],
+  profiles: Map<string, Doc>,
+  privates: Map<string, Doc>
+): MemberListResult {
+  if (role.kind === 'superAdmin') {
+    return {
+      scope: { role: 'Admin' },
+      members: users.map((u) => buildMemberRow(u, profiles.get(u.uid), privates.get(u.uid))),
+    };
+  }
+  return {
+    scope: { role: 'RegionModerator', regionIds: [...role.regionIds] },
+    members: users
+      .filter((u) => profileVisibleToModerator(profiles.get(u.uid), role.regionIds))
+      .map((u) =>
+        toModeratorMemberRow(buildMemberRow(u, profiles.get(u.uid), privates.get(u.uid) ?? {}))
+      ),
+  };
+}
+
+export interface ListMembersDeps {
+  readRoleDoc: (uid: string) => Promise<Doc | null>;
+  listAuthUsers: () => Promise<AuthRecord[]>;
+  readDocs: (paths: string[]) => Promise<Map<string, Doc>>;
+}
+
+export async function listMembersHandler(
+  request: { auth?: { uid?: string } | null },
+  deps: ListMembersDeps
+): Promise<MemberListResult> {
+  const role = await assertStaff(request.auth?.uid, deps.readRoleDoc);
+  const users = await deps.listAuthUsers();
+  const byUid = async (path: (uid: string) => string) => {
+    const docs = await deps.readDocs(users.map((u) => path(u.uid)));
+    const map = new Map<string, Doc>();
+    for (const u of users) {
+      const d = docs.get(path(u.uid));
+      if (d) map.set(u.uid, d);
+    }
+    return map;
+  };
+  const profiles = await byUid((uid) => `users/${uid}/publicProfile/data`);
+  // Instagram consent + handle live in the private users/{uid} doc. A
+  // moderator gets them only for members of her regions, so only those are read.
+  if (role.kind !== 'superAdmin') {
+    const visible = users.filter((u) =>
+      profileVisibleToModerator(profiles.get(u.uid), role.regionIds)
+    );
+    const docs = await deps.readDocs(visible.map((u) => `users/${u.uid}`));
+    const visiblePrivates = new Map<string, Doc>();
+    for (const u of visible) {
+      const d = docs.get(`users/${u.uid}`);
+      if (d) visiblePrivates.set(u.uid, d);
+    }
+    return membersForRole(role, users, profiles, visiblePrivates);
+  }
+  const privates = await byUid((uid) => `users/${uid}`);
+  // Super-Admins also see who already has a staff role, so the Moderation tab
+  // can show Super-Admins as such instead of offering them as moderators.
+  const staffDocs = await byUid((uid) => `admin_users/${uid}`);
+  const claimsByUid = new Map(users.map((u) => [u.uid, u.customClaims]));
+  const result = membersForRole(role, users, profiles, privates) as {
+    scope: { role: 'Admin' };
+    members: MemberRow[];
+  };
+  return {
+    ...result,
+    members: result.members.map((m) => ({
+      ...m,
+      staffRole: memberStaffRole(staffDocs.get(m.uid) ?? null, claimsByUid.get(m.uid)),
+    })),
+  };
+}
+
+/**
+ * Staff role of a member as the role callables see it: token claim 'Admin'
+ * or any admin_users doc that is not a moderator doc counts as Super-Admin
+ * (adminSetRegionModerator refuses to touch those).
+ */
+export function memberStaffRole(
+  doc: Doc | null,
+  claims: Record<string, unknown> | undefined
+): 'Admin' | 'RegionModerator' | null {
+  if (claims?.role === SUPER_ADMIN_ROLE) return 'Admin';
+  if (!doc) return null;
+  return doc.role === REGION_MODERATOR_ROLE ? 'RegionModerator' : 'Admin';
+}
+
+// Fields a region moderator may change on a member of her region(s):
+// directory curation only, not the identity (display name, username).
+export const MODERATOR_MEMBER_FIELDS: readonly (keyof MemberPatch)[] = [
+  'listedInDirectory',
+  'directoryCategories',
+  'directoryRegions',
+];
+
+export interface UpdateMemberDeps {
+  readRoleDoc: (uid: string) => Promise<Doc | null>;
+  readProfiles: (uid: string) => Promise<{ publicData: Doc | null; privateData: Doc | null }>;
+  // Districts stored in regions/{id}.bezirke (e.g. Tirol), valid next to the
+  // built-in DIRECTORY_REGIONS. Optional: without it only the built-in list counts.
+  readRegionDistricts?: () => Promise<string[]>;
+  writeProfiles: (
+    uid: string,
+    update: Doc,
+    targets: { public: boolean; private: boolean }
+  ) => Promise<void>;
+}
+
+function hasDirectoryRegionIds(profile: Doc | null): boolean {
+  const ids = profile?.directoryRegionIds;
+  return Array.isArray(ids) && ids.length > 0;
+}
+
+export async function updateMemberHandler(
+  request: { auth?: { uid?: string } | null; data?: unknown },
+  deps: UpdateMemberDeps
+): Promise<{ ok: true }> {
+  const role = await assertStaff(request.auth?.uid, deps.readRoleDoc);
+  const data = (request.data ?? {}) as { uid?: unknown; changes?: unknown };
+  if (typeof data.uid !== 'string' || !data.uid || data.uid.includes('/')) {
+    throw new HttpsError('invalid-argument', 'uid is required.');
+  }
+  const uid = data.uid;
+  const changes = data.changes as Record<string, unknown> | null | undefined;
+  const extraDistricts =
+    changes && typeof changes === 'object' && 'directoryRegions' in changes
+      ? ((await deps.readRegionDistricts?.()) ?? [])
+      : [];
+  const patch = validateMemberPatch(data.changes, extraDistricts);
+
+  const { publicData, privateData } = await deps.readProfiles(uid);
+  if (role.kind === 'regionModerator') {
+    const forbidden = Object.keys(patch).filter(
+      (k) => !MODERATOR_MEMBER_FIELDS.includes(k as keyof MemberPatch)
+    );
+    if (forbidden.length > 0) {
+      throw new HttpsError('permission-denied', 'Moderators cannot change these fields.');
+    }
+    // Staff accounts (Super-Admins, other moderators) are off limits, as are
+    // members listed (also) outside her regions.
+    if ((await deps.readRoleDoc(uid)) !== null) {
+      throw new HttpsError('permission-denied', 'Staff accounts cannot be changed here.');
+    }
+    if (!profileEditableByModerator(publicData, role.regionIds)) {
+      throw new HttpsError('permission-denied', 'Member is not (only) in your regions.');
+    }
+  }
+  if (!publicData && !privateData) {
+    throw new HttpsError('not-found', 'Member has no profile yet.');
+  }
+
+  const current = { ...(privateData ?? {}), ...(publicData ?? {}) };
+  const merged = { ...current, ...patch };
+  if (merged.listedInDirectory === true && strList(merged.directoryCategories).length < 1) {
+    throw new HttpsError('failed-precondition', 'A directory listing needs at least one category.');
+  }
+
+  const update: Doc = { ...patch, updatedAt: FieldValue.serverTimestamp() };
+  // A listing must carry its regions, or the region-scoped directory query
+  // (array-contains on directoryRegionIds, used once the regionId migration is
+  // marked complete) would miss it. Profiles that never saved the form (e.g.
+  // fresh sign-ups) have none: give them the region they are read as.
+  if (merged.listedInDirectory === true && !hasDirectoryRegionIds(publicData)) {
+    update.directoryRegionIds = [DEFAULT_REGION_ID];
+  }
+  try {
+    await deps.writeProfiles(uid, update, { public: !!publicData, private: !!privateData });
+  } catch (err) {
+    logger.error('adminUpdateMember: batch commit failed', { uid, err });
+    throw new HttpsError('internal', `Save failed: ${(err as Error)?.message ?? 'unknown'}`);
+  }
+  return { ok: true };
+}
+
+const listMembersDeps: ListMembersDeps = {
+  readRoleDoc,
+  async listAuthUsers() {
     const auth = getAuth();
     const users: AuthRecord[] = [];
     let pageToken: string | undefined;
@@ -194,31 +422,57 @@ export const adminListMembers = onCall(
       users.push(...page.users);
       pageToken = page.pageToken;
     } while (pageToken);
-
+    return users;
+  },
+  async readDocs(paths) {
     const db = getFirestore();
-    const profiles = new Map<string, Record<string, unknown>>();
-    const refs = users.map((u) => db.doc(`users/${u.uid}/publicProfile/data`));
+    const out = new Map<string, Doc>();
     // getAll accepts many refs but keep batches modest.
-    for (let i = 0; i < refs.length; i += 300) {
-      const snaps = await db.getAll(...refs.slice(i, i + 300));
+    for (let i = 0; i < paths.length; i += 300) {
+      const chunk = paths.slice(i, i + 300);
+      const snaps = await db.getAll(...chunk.map((p) => db.doc(p)));
       snaps.forEach((snap, idx) => {
-        if (snap.exists) profiles.set(users[i + idx].uid, snap.data() ?? {});
+        if (snap.exists) out.set(chunk[idx], snap.data() ?? {});
       });
     }
+    return out;
+  },
+};
 
-    // Instagram consent + handle live in the private users/{uid} doc.
-    const privates = new Map<string, Record<string, unknown>>();
-    const privateRefs = users.map((u) => db.doc(`users/${u.uid}`));
-    for (let i = 0; i < privateRefs.length; i += 300) {
-      const snaps = await db.getAll(...privateRefs.slice(i, i + 300));
-      snaps.forEach((snap, idx) => {
-        if (snap.exists) privates.set(users[i + idx].uid, snap.data() ?? {});
-      });
-    }
-
+const updateMemberDeps: UpdateMemberDeps = {
+  readRoleDoc,
+  async readProfiles(uid) {
+    const db = getFirestore();
+    const [publicSnap, privateSnap] = await Promise.all([
+      db.doc(`users/${uid}/publicProfile/data`).get(),
+      db.doc(`users/${uid}`).get(),
+    ]);
     return {
-      members: users.map((u) => buildMemberRow(u, profiles.get(u.uid), privates.get(u.uid))),
+      publicData: publicSnap.exists ? (publicSnap.data() ?? {}) : null,
+      privateData: privateSnap.exists ? (privateSnap.data() ?? {}) : null,
     };
+  },
+  async readRegionDistricts() {
+    const snap = await getFirestore().collection('regions').get();
+    return snap.docs.flatMap((d) => strList(d.data().bezirke));
+  },
+  async writeProfiles(uid, update, targets) {
+    const db = getFirestore();
+    const batch = db.batch();
+    if (targets.public) batch.update(db.doc(`users/${uid}/publicProfile/data`), update);
+    if (targets.private) batch.update(db.doc(`users/${uid}`), update);
+    await batch.commit();
+  },
+};
+
+// Super-Admins get every member; region moderators only members of their
+// region(s) without sensitive fields (see membersForRole). Everyone else is
+// rejected server-side.
+export const adminListMembers = onCall(
+  { region: 'europe-west3', cors: ALLOWED_ORIGINS, ...appCheckOptions() },
+  async (request): Promise<MemberListResult> => {
+    logMissingAppCheck('adminListMembers', request);
+    return listMembersHandler(request, listMembersDeps);
   }
 );
 
@@ -226,40 +480,6 @@ export const adminUpdateMember = onCall(
   { region: 'europe-west3', cors: ALLOWED_ORIGINS, ...appCheckOptions() },
   async (request): Promise<{ ok: true }> => {
     logMissingAppCheck('adminUpdateMember', request);
-    await assertAdmin(request.auth?.uid);
-    const data = (request.data ?? {}) as { uid?: unknown; changes?: unknown };
-    if (typeof data.uid !== 'string' || !data.uid) {
-      throw new HttpsError('invalid-argument', 'uid is required.');
-    }
-    const patch = validateMemberPatch(data.changes);
-
-    const db = getFirestore();
-    const publicRef = db.doc(`users/${data.uid}/publicProfile/data`);
-    const privateRef = db.doc(`users/${data.uid}`);
-    const [publicSnap, privateSnap] = await Promise.all([publicRef.get(), privateRef.get()]);
-    if (!publicSnap.exists && !privateSnap.exists) {
-      throw new HttpsError('not-found', 'Member has no profile yet.');
-    }
-
-    const current = { ...(privateSnap.data() ?? {}), ...(publicSnap.data() ?? {}) };
-    const merged = { ...current, ...patch };
-    if (merged.listedInDirectory === true && strList(merged.directoryCategories).length < 1) {
-      throw new HttpsError(
-        'failed-precondition',
-        'A directory listing needs at least one category.'
-      );
-    }
-
-    const update = { ...patch, updatedAt: FieldValue.serverTimestamp() };
-    const batch = db.batch();
-    if (publicSnap.exists) batch.update(publicRef, update);
-    if (privateSnap.exists) batch.update(privateRef, update);
-    try {
-      await batch.commit();
-    } catch (err) {
-      logger.error('adminUpdateMember: batch commit failed', { uid: data.uid, err });
-      throw new HttpsError('internal', `Save failed: ${(err as Error)?.message ?? 'unknown'}`);
-    }
-    return { ok: true };
+    return updateMemberHandler(request, updateMemberDeps);
   }
 );
