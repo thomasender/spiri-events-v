@@ -1,0 +1,34 @@
+# Trivy ignore list (YAML format). Used by .github/workflows/security-scan.yml.
+# Rules: every entry needs a statement (why it is safe) and an expired_at date,
+# so ignores cannot be forgotten. See docs/security-scanning.md.
+#
+# All entries below are MODERATE. The gate only looks at HIGH/CRITICAL, so they
+# do not trigger today; they are recorded so that lowering the severity later
+# (e.g. to MEDIUM) does not suddenly turn the build red.
+#
+# No entries are needed for happy-dom and other dev-only packages: devDependencies
+# are not part of the gate (they are reported separately, non-blocking).
+vulnerabilities:
+  - id: GHSA-wrjc-x8rr-h8h6
+    statement: >-
+      react-router 6.30.6. Fixed only in v7; the v7 migration is pending and
+      tracked by hand. Revisit when the migration is done.
+    expired_at: 2027-01-22
+
+  - id: GHSA-337j-9hxr-rhxg
+    statement: >-
+      react-router 6.30.6. Same as GHSA-wrjc-x8rr-h8h6: fix requires the pending
+      v7 migration.
+    expired_at: 2027-01-22
+
+  - id: GHSA-w5hq-g745-h8pq
+    statement: >-
+      uuid (transitive via gaxios). Only affects v3/v5/v6 called with the buf
+      argument; gaxios uses v4, so the vulnerable code path is not reachable.
+    expired_at: 2027-01-22
+
+  - id: GHSA-px8p-9vwx-vf98
+    statement: >-
+      fflate (transitive via satori). Malformed ZIP64 input only; we render our
+      own content and never unzip untrusted data.
+    expired_at: 2027-01-22

@@ -1,5 +1,9 @@
 # Development Setup
 
+**Node 24.12 or newer** (see `.nvmrc`, `engines` in `package.json`): firebase 13 and its
+`@firebase/*` packages declare `node >=24.12`. Older Node only warns (no `engine-strict`), but
+use `nvm use` to match CI. `functions/` stays on Node 22.
+
 ## Firebase Emulators
 
 This project uses Firebase Local Emulators with a production data dump.
@@ -183,6 +187,8 @@ The private messenger ("Postfach", `/postfach`, flag `app_settings/messenger`) l
 read `docs/messenger.md` ONLY when you touch it, its `dm_*` rules or its privacy section.
 The opt-in online dot (green/red next to avatars, `presence/{uid}`) is in `docs/online-status.md`;
 read it ONLY when you touch it.
+The weekly Trivy dependency scan, Dependabot and the `.trivyignore.yaml` ignore policy are in
+`docs/security-scanning.md`; read it ONLY when you touch them or the scan is red.
 
 ## Communicating with Peter
 
