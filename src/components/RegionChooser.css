@@ -180,3 +180,8 @@
   outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
 }
+
+/* /regionen: only the map (and the location button), no lists. */
+.region-chooser-layout--map-only {
+  grid-template-columns: minmax(0, 1fr);
+}

@@ -40,8 +40,9 @@ const FOCUSABLE =
  * "Wo suchst du?" when we do not know yet where a visitor wants to search: a
  * full page (not a small pop-up) with a silent map of Germany, Austria and
  * Switzerland plus the same choice as a list (the accessible equivalent).
- * Dark launch: needs at least two active regions. Required: no close button, no
- * Escape dismissal. Not shown once a region is remembered (localStorage), and
+ * Opened on purpose (`/regionen`, ticket 597) it shows only the map and the
+ * location button, with "Schließen" at the top. Dark launch: needs at least two active
+ * regions. First-visit: no close button, no Escape dismissal. Not shown once a region is remembered (localStorage), and
  * opening a region address counts as a choice. The page stays rendered behind it
  * (only made inert while the chooser is open). A region that is not open yet
  * leads to its coming-soon page.
@@ -173,79 +174,87 @@ export default function RegionChooser() {
           <h2 id="region-chooser-title" className="region-chooser-title">
             Wo suchst du?
           </h2>
-          <p className="region-chooser-hint">
-            Wähle deine Region, damit wir dir passende Events zeigen. Du kannst sie jederzeit im
-            Menü wechseln.
-          </p>
-          <RegionSearch regions={sorted} activeSlugs={activeSlugs} onChoose={choose} />
+          {!onRegionsPage && (
+            <>
+              <p className="region-chooser-hint">
+                Wähle deine Region, damit wir dir passende Events zeigen. Du kannst sie jederzeit im
+                Menü wechseln.
+              </p>
+              <RegionSearch regions={sorted} activeSlugs={activeSlugs} onChoose={choose} />
+            </>
+          )}
           <LocateRegionButton regions={allRegions} onChoose={choose} />
         </header>
-        <div className="region-chooser-layout">
+        <div
+          className={`region-chooser-layout${onRegionsPage ? ' region-chooser-layout--map-only' : ''}`}
+        >
           <Suspense fallback={null}>
             <RegionMap regions={sorted} activeSlugs={activeSlugs} onChoose={choose} />
           </Suspense>
-          <div className="region-chooser-lists">
-            <div className="region-chooser-options region-chooser-options--views">
-              {COMBINED_VIEWS.map((v) => {
-                const available = availableViews.has(v.slug);
+          {!onRegionsPage && (
+            <div className="region-chooser-lists">
+              <div className="region-chooser-options region-chooser-options--views">
+                {COMBINED_VIEWS.map((v) => {
+                  const available = availableViews.has(v.slug);
+                  return (
+                    <button
+                      key={v.slug}
+                      type="button"
+                      className={`region-chooser-option region-chooser-option--all${
+                        available ? '' : ' region-chooser-option--soon'
+                      }`}
+                      onClick={() => choose(v.slug)}
+                    >
+                      {v.name}
+                      {!available && <span className="region-chooser-soon"> (bald)</span>}
+                    </button>
+                  );
+                })}
+              </div>
+              {COUNTRIES.map((country) => {
+                const inCountry = sorted.filter((r) => r.country === country);
+                if (inCountry.length === 0) return null;
                 return (
-                  <button
-                    key={v.slug}
-                    type="button"
-                    className={`region-chooser-option region-chooser-option--all${
-                      available ? '' : ' region-chooser-option--soon'
-                    }`}
-                    onClick={() => choose(v.slug)}
+                  <details
+                    key={country}
+                    className="region-chooser-country"
+                    open={country === DEFAULT_COUNTRY || undefined}
+                    data-testid={`region-chooser-country-${country}`}
                   >
-                    {v.name}
-                    {!available && <span className="region-chooser-soon"> (bald)</span>}
-                  </button>
+                    <summary className="region-chooser-country-name">
+                      {COUNTRY_LABELS[country]}
+                      <span className="region-chooser-country-count"> ({inCountry.length})</span>
+                    </summary>
+                    {country === 'DE' && inCountry.some((r) => r.macro)
+                      ? // Germany: first the six Grossregionen, then the regions inside.
+                        DE_MACRO_REGIONS.map((macro) => {
+                          const inMacro = inCountry.filter((r) => r.macro === macro);
+                          if (inMacro.length === 0) return null;
+                          return (
+                            <details
+                              key={macro}
+                              className="region-chooser-macro"
+                              data-testid={`region-chooser-macro-${macro}`}
+                            >
+                              <summary className="region-chooser-macro-name">
+                                {macro}
+                                <span className="region-chooser-country-count">
+                                  {' '}
+                                  ({inMacro.length})
+                                </span>
+                              </summary>
+                              {renderOptions(inMacro)}
+                            </details>
+                          );
+                        })
+                      : renderOptions(inCountry)}
+                  </details>
                 );
               })}
             </div>
-            {COUNTRIES.map((country) => {
-              const inCountry = sorted.filter((r) => r.country === country);
-              if (inCountry.length === 0) return null;
-              return (
-                <details
-                  key={country}
-                  className="region-chooser-country"
-                  open={country === DEFAULT_COUNTRY || undefined}
-                  data-testid={`region-chooser-country-${country}`}
-                >
-                  <summary className="region-chooser-country-name">
-                    {COUNTRY_LABELS[country]}
-                    <span className="region-chooser-country-count"> ({inCountry.length})</span>
-                  </summary>
-                  {country === 'DE' && inCountry.some((r) => r.macro)
-                    ? // Germany: first the six Grossregionen, then the regions inside.
-                      DE_MACRO_REGIONS.map((macro) => {
-                        const inMacro = inCountry.filter((r) => r.macro === macro);
-                        if (inMacro.length === 0) return null;
-                        return (
-                          <details
-                            key={macro}
-                            className="region-chooser-macro"
-                            data-testid={`region-chooser-macro-${macro}`}
-                          >
-                            <summary className="region-chooser-macro-name">
-                              {macro}
-                              <span className="region-chooser-country-count">
-                                {' '}
-                                ({inMacro.length})
-                              </span>
-                            </summary>
-                            {renderOptions(inMacro)}
-                          </details>
-                        );
-                      })
-                    : renderOptions(inCountry)}
-                </details>
-              );
-            })}
-          </div>
+          )}
         </div>
-        <ModeratorApplyCard className="region-chooser-apply" />
+        {!onRegionsPage && <ModeratorApplyCard className="region-chooser-apply" />}
       </section>
     </div>,
     document.body

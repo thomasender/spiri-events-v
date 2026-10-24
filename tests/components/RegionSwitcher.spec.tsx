@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { STATIC_REGIONS, mergeRegions } from '../../src/utils/regions';
@@ -322,29 +322,30 @@ describe('region chooser opened on purpose (/regionen)', () => {
     expect(where()).toBe('/');
   });
 
-  it('Escape in the search field only closes the suggestions, not the page', () => {
+  it('shows only the map and the location button: no lists, search or moderator card', async () => {
     renderAt('/regionen');
-    const input = screen.getByTestId('region-search-input');
-    fireEvent.change(input, { target: { value: 'tir' } });
-    fireEvent.keyDown(input, { key: 'Escape' });
-    expect(where()).toBe('/regionen');
-    expect(screen.getByTestId('region-chooser')).toBeInTheDocument();
-    fireEvent.keyDown(input, { key: 'Escape' });
-    expect(screen.getByTestId('region-chooser')).toBeInTheDocument();
-    key('Escape');
+    expect(await screen.findByTestId('region-map')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Standort/ })).toBeInTheDocument();
+    expect(screen.queryByTestId('region-search-input')).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Ganz Deutschland/ })).toBeNull();
+    expect(screen.queryByTestId('region-chooser-country-DE')).toBeNull();
+    expect(document.querySelector('.region-chooser-apply')).toBeNull();
+  });
+
+  it('"Schließen" returns to the previous page, or to the start page without history', () => {
+    renderAt('/regionen');
+    fireEvent.click(screen.getByTestId('region-chooser-close'));
     expect(where()).toBe('/');
   });
 
-  it('a view without enough open regions still opens its coming-soon address', () => {
+  it('choosing a region on the map leaves the page (also a closed one)', async () => {
     renderAt('/regionen');
-    fireEvent.click(screen.getByRole('button', { name: /^Ganz Deutschland/ }));
-    expect(where()).toBe('/deutschland');
-    expect(screen.queryByTestId('region-chooser')).toBeNull();
-  });
-
-  it('choosing a region (also a closed one) leaves the page', () => {
-    renderAt('/regionen');
-    fireEvent.click(screen.getByRole('button', { name: /^Schwyz/ }));
+    const shape = await waitFor(() => {
+      const el = document.querySelector('[data-region="schwyz"]');
+      expect(el).not.toBeNull();
+      return el as Element;
+    });
+    fireEvent.click(shape);
     expect(where()).toBe('/schwyz');
     expect(screen.queryByTestId('region-chooser')).toBeNull();
   });
