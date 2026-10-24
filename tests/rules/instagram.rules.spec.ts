@@ -1755,6 +1755,56 @@ describe('region moderators', () => {
 
 // "Über uns" page of a region: its moderators pick the helpers and the header
 // photo of their own region, nothing else on the region doc.
+describe('regions.instagramHandle (display-only, Super-Admin only)', () => {
+  const region = { name: 'Tirol', slug: 'tirol', order: 1, active: false, bezirke: [], updatedAt: 1 };
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'regions/tirol'), region);
+      await setDoc(doc(db, 'admin_users/modTirol'), {
+        role: 'RegionModerator',
+        regionIds: ['tirol'],
+      });
+    });
+  });
+
+  describe.each(Object.entries(adminVariants))('%s', (_n, make) => {
+    it('can set a valid handle and clear it with null', async () => {
+      const db = make().firestore();
+      await assertSucceeds(
+        updateDoc(doc(db, 'regions/tirol'), { instagramHandle: '@tribe.tirol_1', updatedAt: 2 })
+      );
+      await assertSucceeds(updateDoc(doc(db, 'regions/tirol'), { instagramHandle: null }));
+    });
+
+    it('rejects a malformed handle', async () => {
+      const db = make().firestore();
+      for (const bad of ['tribetirol', '@', '@a b', '@tribe-tirol', `@${'a'.repeat(31)}`, 5]) {
+        await assertFails(updateDoc(doc(db, 'regions/tirol'), { instagramHandle: bad }));
+      }
+    });
+  });
+
+  it('a moderator cannot write the handle, not even on her own region', async () => {
+    const db = env.authenticatedContext('modTirol', { email_verified: true }).firestore();
+    await assertFails(
+      updateDoc(doc(db, 'regions/tirol'), { instagramHandle: '@tribetirol', updatedAt: 2 })
+    );
+    await assertFails(updateDoc(doc(db, 'regions/tirol'), { instagramHandle: null, updatedAt: 2 }));
+  });
+
+  it('a moderator can still edit other fields when a handle is stored', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), 'regions/tirol'), { instagramHandle: '@tribetirol' });
+    });
+    const db = env.authenticatedContext('modTirol', { email_verified: true }).firestore();
+    await assertSucceeds(
+      updateDoc(doc(db, 'regions/tirol'), { aboutText: '<p>Hallo</p>', updatedAt: 3 })
+    );
+  });
+});
+
 describe('region about page (moderators)', () => {
   const region = {
     name: 'Tirol',

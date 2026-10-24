@@ -16,6 +16,9 @@ import {
   getRegionBySlug,
   isRegionSlug,
   mergeRegions,
+  regionInstagramAccount,
+  instagramChannels,
+  instagramProfileUrl,
   bezirkLabel,
   pickEventRegionId,
   resolveDirectoryRegionIds,
@@ -294,5 +297,43 @@ describe('filters with a country view (ticket 33)', () => {
     const regions = STATIC_REGIONS.filter((r) => r.id === 'bayern');
     expect(getAllDistricts(regions)).toEqual(getBezirke('bayern'));
     expect(getAllDistricts(STATIC_REGIONS.filter((r) => r.id === 'genf'))).toEqual(['Genf']);
+  });
+});
+
+describe('region Instagram account (display only)', () => {
+  it('uses the stored handle, normalised', () => {
+    const merged = mergeRegions([{ id: 'tirol', instagramHandle: 'instagram.com/tribe.tirol/' }]);
+    expect(regionInstagramAccount(merged.find((r) => r.id === 'tirol'))).toBe('@tribe.tirol');
+  });
+
+  it('defaults Vorarlberg to @tribevorarlberg and shows no name for other regions', () => {
+    expect(regionInstagramAccount({ id: 'vorarlberg' })).toBe('@tribevorarlberg');
+    expect(regionInstagramAccount({ id: 'tirol' })).toBeNull();
+    expect(regionInstagramAccount(null)).toBeNull();
+    expect(regionInstagramAccount({ id: 'tirol', instagramHandle: 'not valid!' })).toBeNull();
+  });
+
+  it('a stored Vorarlberg handle wins over the default', () => {
+    expect(regionInstagramAccount({ id: 'vorarlberg', instagramHandle: '@neu' })).toBe('@neu');
+  });
+
+  it('ignores an invalid stored handle when merging', () => {
+    const merged = mergeRegions([{ id: 'tirol', instagramHandle: 'a b' }]);
+    expect(merged.find((r) => r.id === 'tirol')).not.toHaveProperty('instagramHandle');
+  });
+
+  it('lists distinct channels incl. the Vorarlberg default', () => {
+    const channels = instagramChannels([
+      { id: 'vorarlberg', name: 'Vorarlberg' },
+      { id: 'tirol', name: 'Tirol', instagramHandle: '@tribetirol' },
+      { id: 'wien', name: 'Wien' },
+      { id: 'salzburg', name: 'Salzburg', instagramHandle: '@TribeTirol' },
+    ]);
+    expect(channels.map((c) => c.handle)).toEqual(['@tribevorarlberg', '@tribetirol']);
+  });
+
+  it('builds the profile URL', () => {
+    expect(instagramProfileUrl('@tribe.tirol')).toBe('https://www.instagram.com/tribe.tirol/');
+    expect(instagramProfileUrl('')).toBeNull();
   });
 });

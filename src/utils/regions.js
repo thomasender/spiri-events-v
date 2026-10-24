@@ -1,4 +1,5 @@
 import { REGION_DATA } from '../data/regionData.js';
+import { normalizeInstagramHandle } from './instagramHandle.js';
 
 // Regions an event or a directory listing can be assigned to. Kept free of
 // Firebase imports so pure helpers (and their unit tests) can use it.
@@ -28,6 +29,41 @@ export const REGION_SLUGS = REGION_DATA.map((r) => r.slug);
 export const LEGACY_REGION_ALIASES = Object.freeze({ allgaeu: 'bayern' });
 
 export const DEFAULT_REGION_ID = 'vorarlberg';
+
+// Vorarlberg's Instagram channel: the code default while `regions/vorarlberg`
+// stores no `instagramHandle` (no data migration needed).
+export const DEFAULT_INSTAGRAM_HANDLE = '@tribevorarlberg';
+
+/**
+ * Instagram name ("@name") shown for a region: the stored `instagramHandle`,
+ * else Vorarlberg's default, else null (wording then stays vague, no name).
+ * Display only; the publishing account is wired outside the app.
+ */
+export function regionInstagramAccount(region) {
+  const stored = normalizeInstagramHandle(region?.instagramHandle);
+  if (stored) return stored;
+  return region?.id === DEFAULT_REGION_ID ? DEFAULT_INSTAGRAM_HANDLE : null;
+}
+
+/** Distinct Instagram channels ("@name") of the given regions, in region order. */
+export function instagramChannels(regions) {
+  const seen = new Set();
+  const out = [];
+  for (const region of regions ?? []) {
+    const handle = regionInstagramAccount(region);
+    if (handle && !seen.has(handle.toLowerCase())) {
+      seen.add(handle.toLowerCase());
+      out.push({ regionId: region.id, regionName: region.name, handle });
+    }
+  }
+  return out;
+}
+
+/** Profile URL of an Instagram handle ("@name" -> https://www.instagram.com/name/). */
+export function instagramProfileUrl(handle) {
+  const h = normalizeInstagramHandle(handle);
+  return h ? `https://www.instagram.com/${h.slice(1)}/` : null;
+}
 
 // Country of each region (static only; deliberately NOT stored in
 // `regions/{id}` docs, firestore.rules does not whitelist it). Drives the
@@ -237,6 +273,10 @@ export function mergeRegions(docs, base = STATIC_REGIONS) {
           ? { aboutSlogan2: d.aboutSlogan2 }
           : {}),
         ...(d.aboutSloganLocked === true ? { aboutSloganLocked: true } : {}),
+        // Display-only Instagram name of the region (Super-Admin sets it).
+        ...(normalizeInstagramHandle(d.instagramHandle)
+          ? { instagramHandle: normalizeInstagramHandle(d.instagramHandle) }
+          : {}),
       };
     })
     .sort((a, b) => a.order - b.order);

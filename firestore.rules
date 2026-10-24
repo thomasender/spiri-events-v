@@ -687,7 +687,7 @@ service cloud.firestore {
         return d.keys().hasOnly(
                  ['name', 'slug', 'order', 'active', 'bezirke', 'contactEmail', 'seo',
                   'timezone', 'aboutHelperIds', 'aboutHeaderImage', 'aboutText', 'aboutSlogan1',
-                  'aboutSlogan2', 'aboutSloganLocked', 'createdAt',
+                  'aboutSlogan2', 'aboutSloganLocked', 'instagramHandle', 'createdAt',
                   'updatedAt', 'mappingUpdatedAt'])
           && d.slug is string
           && d.slug == regionId
@@ -714,7 +714,13 @@ service cloud.firestore {
           && (!('aboutSlogan2' in d)
               || d.aboutSlogan2 == null
               || (d.aboutSlogan2 is string && d.aboutSlogan2.size() <= 30))
-          && (!('aboutSloganLocked' in d) || d.aboutSloganLocked is bool);
+          && (!('aboutSloganLocked' in d) || d.aboutSloganLocked is bool)
+          // Display-only Instagram name; only Super-Admins can write it (the
+          // moderator rule below keeps its own, shorter field list).
+          && (!('instagramHandle' in d)
+              || d.instagramHandle == null
+              || (d.instagramHandle is string
+                  && d.instagramHandle.matches('^@[A-Za-z0-9._]{1,30}$')));
       }
       // Once a Super-Admin saved the header slogan it is locked for moderators.
       function sloganTouched() {
