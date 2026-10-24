@@ -1,5 +1,9 @@
 # Development Setup
 
+**Node 24.12 or newer** (see `.nvmrc`, `engines` in `package.json`): firebase 13 and its
+`@firebase/*` packages declare `node >=24.12`. Older Node only warns (no `engine-strict`), but
+use `nvm use` to match CI. `functions/` stays on Node 22.
+
 ## Firebase Emulators
 
 This project uses Firebase Local Emulators with a production data dump.
