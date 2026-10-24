@@ -9,6 +9,7 @@ import ContactFormModal from '../components/ContactFormModal';
 import { useRegion } from '../hooks/useRegion';
 import { useRegionTexts } from '../hooks/useRegionTexts';
 import { regionCanonicalPath } from '../utils/regionRouting';
+import { instagramProfileUrl, regionInstagramAccount } from '../utils/regions';
 import { customAboutText } from '../utils/regionAboutText';
 import RichTextView from '../components/RichTextView';
 import './AboutPage.css';
@@ -65,6 +66,8 @@ export default function AboutPage() {
   // Text of the "Deine Heimat" section written by the region's moderators.
   const customText = regionMode ? customAboutText(region) : '';
   const headerImage = (regionMode && region.aboutHeaderImage) || '/hero.jpeg';
+  // Region mode only, so the Vorarlberg-only page stays as it is.
+  const instagramHandle = regionMode ? regionInstagramAccount(region) : null;
   const openContact = () => setContactOpen(true);
   const contactClass = 'about-inline-link';
   const sayHello = (
@@ -134,6 +137,18 @@ export default function AboutPage() {
             <span>Teil vom Tribe werden</span>
           </a>
         </div>
+        {instagramHandle && (
+          <p className="about-hero-instagram" data-testid="about-instagram-link">
+            Instagram:{' '}
+            <a
+              href={instagramProfileUrl(instagramHandle)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {instagramHandle}
+            </a>
+          </p>
+        )}
       </header>
 
       <section className="about-section">

@@ -366,4 +366,19 @@ describe('AboutPage — region mode', () => {
     expect(screen.getByText('Selbsterkenntnis')).toBeInTheDocument();
     expect(document.querySelector('.about-hero-image')).toHaveAttribute('src', '/hero.jpeg');
   });
+
+  it('links the Instagram name of the region, safely', () => {
+    renderRegion({ instagramHandle: '@tribe.tirol' });
+
+    const link = screen.getByTestId('about-instagram-link').querySelector('a')!;
+    expect(link).toHaveAttribute('href', 'https://www.instagram.com/tribe.tirol/');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(link).toHaveTextContent('@tribe.tirol');
+  });
+
+  it('shows no Instagram link for a region without a name', () => {
+    renderRegion({});
+    expect(screen.queryByTestId('about-instagram-link')).not.toBeInTheDocument();
+  });
 });
