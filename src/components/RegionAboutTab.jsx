@@ -6,6 +6,8 @@ import { uploadRegionImage, MAX_INPUT_SIZE_BYTES } from '../lib/imageUpload';
 import { useAuth } from '../hooks/useAuth';
 import { refreshRegions, useRegions } from '../hooks/useRegions';
 import { getStaffAccess } from '../utils/staffRoles';
+import { normalizeInstagramHandle } from '../utils/instagramHandle';
+import { regionInstagramAccount } from '../utils/regions';
 import {
   ABOUT_TEXT_MAX_LENGTH,
   customAboutText,
@@ -54,6 +56,7 @@ export default function RegionAboutTab() {
   const [slogan1, setSlogan1] = useState('');
   const [slogan2, setSlogan2] = useState('');
   const [unlockSlogan, setUnlockSlogan] = useState(false);
+  const [instagramInput, setInstagramInput] = useState('');
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState(null);
@@ -69,6 +72,7 @@ export default function RegionAboutTab() {
     setSlogan1(slogan.line1);
     setSlogan2(slogan.line2);
     setUnlockSlogan(false);
+    setInstagramInput(region?.instagramHandle ?? '');
     setNotice(null);
     // Only on region switch: a refresh after saving must not reset unsaved edits.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -104,7 +108,18 @@ export default function RegionAboutTab() {
     }
   };
 
+  const instagramTrimmed = instagramInput.trim();
+  const instagramInvalid = instagramTrimmed !== '' && !normalizeInstagramHandle(instagramTrimmed);
+  const shownInstagram = regionInstagramAccount(current);
+
   const save = async () => {
+    if (access.isSuperAdmin && instagramInvalid) {
+      setNotice({
+        kind: 'error',
+        text: 'Der Instagram-Name ist ungültig. Erlaubt sind Buchstaben, Zahlen, Punkt und Unterstrich (max. 30 Zeichen).',
+      });
+      return;
+    }
     setSaving(true);
     setNotice(null);
     try {
@@ -119,8 +134,13 @@ export default function RegionAboutTab() {
               aboutSlogan2: slogan2.trim() || null,
               ...(access.isSuperAdmin ? { aboutSloganLocked: !unlockSlogan } : {}),
             }),
+        // Display-only name; only Super-Admins may write it (firestore.rules).
+        ...(access.isSuperAdmin
+          ? { instagramHandle: normalizeInstagramHandle(instagramTrimmed) }
+          : {}),
         updatedAt: serverTimestamp(),
       });
+      if (access.isSuperAdmin) setInstagramInput(normalizeInstagramHandle(instagramTrimmed) ?? '');
       await refreshRegions();
       setNotice({ kind: 'success', text: `„Über uns“ für ${current.name} ist gespeichert.` });
     } catch (err) {
@@ -214,6 +234,47 @@ export default function RegionAboutTab() {
           </label>
         )}
       </section>
+
+      {(access.isSuperAdmin || shownInstagram) && (
+        <section className="region-about-section" data-testid="region-about-instagram">
+          <h3>Instagram-Name der Region</h3>
+          {access.isSuperAdmin ? (
+            <>
+              <p className="region-about-fixed-note">
+                Der Name wird nur angezeigt (Event-Formular, „Über uns“, Datenschutzerklärung). Er
+                richtet kein Konto ein und verbindet nichts mit Instagram.
+                {current.id === 'vorarlberg' && ' Leer = @tribevorarlberg.'}
+              </p>
+              <label className="region-about-field">
+                <span>Instagram-Name</span>
+                <input
+                  type="text"
+                  value={instagramInput}
+                  maxLength={60}
+                  placeholder="@tribename"
+                  onChange={(e) => setInstagramInput(e.target.value)}
+                  disabled={saving}
+                  aria-invalid={instagramInvalid}
+                  data-testid="region-about-instagram-input"
+                />
+              </label>
+              {instagramInvalid && (
+                <p
+                  className="moderation-error"
+                  role="alert"
+                  data-testid="region-about-instagram-error"
+                >
+                  Bitte einen gültigen Instagram-Namen eingeben, z. B. @tribetirol.
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="region-about-fixed-note" data-testid="region-about-instagram-readonly">
+              {shownInstagram} (wird von einem Admin festgelegt)
+            </p>
+          )}
+        </section>
+      )}
 
       <section className="region-about-section">
         <h3>Titelbild</h3>
