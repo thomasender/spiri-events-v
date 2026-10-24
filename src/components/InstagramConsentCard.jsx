@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useRegionInstagramAccount } from '../hooks/useRegion';
 import './ProfileForm.css';
 
 const SAVED_INDICATOR_TIMEOUT_MS = 3000;
@@ -11,6 +12,7 @@ export default function InstagramConsentCard({ checked, onSave }) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
+  const channel = useRegionInstagramAccount();
 
   const handleToggle = async (value) => {
     setError('');
@@ -32,10 +34,10 @@ export default function InstagramConsentCard({ checked, onSave }) {
     <div className="profile-card" data-testid="instagram-consent-card">
       <h2 className="profile-card-title">Instagram</h2>
       <p className="profile-card-hint">
-        Mit deiner Einwilligung dürfen wir deine Events auf dem Instagram-Kanal @tribevorarlberg
-        veröffentlichen. Dein Instagram-Profil (siehe Feld „Instagram“ oben) dürfen wir dabei
-        markieren und als Co-Autor (Collab) zum Beitrag einladen. Änderungen werden sofort
-        gespeichert.
+        Mit deiner Einwilligung dürfen wir deine Events auf{' '}
+        {channel ? `dem Instagram-Kanal ${channel}` : 'unserem Instagram-Kanal'} veröffentlichen.
+        Dein Instagram-Profil (siehe Feld „Instagram“ oben) dürfen wir dabei markieren und als
+        Co-Autor (Collab) zum Beitrag einladen. Änderungen werden sofort gespeichert.
       </p>
       <label className="notification-preference-label">
         <input

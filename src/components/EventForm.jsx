@@ -1663,6 +1663,10 @@ export default function EventForm({ event }) {
             forOrganizer={editsForeignEvent}
             handleOverride={instagramHandleOverride}
             onHandleOverrideChange={setInstagramHandleOverride}
+            regionId={pickEventRegionId(
+              regionChoices.enabled ? selectedRegion : formData.regionId,
+              event
+            )}
           />
 
           {instagramConsent && (

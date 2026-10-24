@@ -8,6 +8,7 @@ import {
   getBezirke,
   getRegionBySlug,
   isPopulated,
+  regionInstagramAccount,
   resolveRegionId,
 } from '../utils/regions';
 import { activeRegions, regionCanonicalPath, regionPath } from '../utils/regionRouting';
@@ -110,4 +111,15 @@ export function useRegionBezirke() {
     () => (isNational ? getAllDistricts(combinedRegions) : getBezirke(regionId, allRegions)),
     [isNational, regionId, combinedRegions, allRegions]
   );
+}
+
+/**
+ * Instagram name ("@name") of a region for display, or null (then the wording
+ * names no account). `regionId` is the event's region (event wizard); without
+ * it the current region of the page counts, none in a combined view.
+ */
+export function useRegionInstagramAccount(regionId) {
+  const { region, allRegions, isNational } = useRegion();
+  const target = regionId ? allRegions.find((r) => r.id === regionId) : isNational ? null : region;
+  return regionInstagramAccount(target ?? (regionId ? { id: regionId } : null));
 }

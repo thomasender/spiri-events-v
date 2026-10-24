@@ -1744,6 +1744,7 @@ export default function EventFormWizard() {
         instagramHandle={profile?.socialMedia?.instagram}
         handleOverride={instagramHandleOverride}
         onHandleOverrideChange={setInstagramHandleOverride}
+        regionId={pickEventRegionId(regionChoices.enabled ? selectedRegion : formData.regionId)}
       />
 
       {instagramConsent && (
