@@ -75,7 +75,7 @@
     "@types/node": "^26.1.1",
     "@types/react": "^18.3.31",
     "@types/react-dom": "^18.3.7",
-    "@vitejs/plugin-react": "^4.7.0",
+    "@vitejs/plugin-react": "^6.1.2",
     "emojibase-data": "^18.0.0",
     "eslint": "^9.39.5",
     "eslint-config-prettier": "^10.1.8",
