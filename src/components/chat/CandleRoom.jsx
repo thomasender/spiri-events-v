@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import ChatMessage from './ChatMessage';
 import ChatRules from './ChatRules';
@@ -227,11 +228,32 @@ function CandleRoomInner({ eventId, mode }) {
 }
 
 // The Kerzenraum of one event. Rendered only when the chat flag lets this
-// person read it (all: everyone, admins: admins only).
+// person read it (all: everyone, admins: admins only). It sits as a collapsed
+// bar between the event details and the description; a click opens the chat
+// inline. A mention link (#msg-...) or #kerzenraum opens it straight away.
 export default function CandleRoom({ eventId }) {
   const { role, loading: authLoading } = useAuth();
   const { mode, loading } = useChatSettings();
+  const { hash } = useLocation();
+  const [open, setOpen] = useState(() => /^#(msg-|kerzenraum)/.test(hash));
   if (authLoading || loading || !eventId) return null;
   if (!canReadCandleRoom({ mode, isAdmin: role === 'Admin' })) return null;
-  return <CandleRoomInner key={eventId} eventId={eventId} mode={mode} />;
+  if (open) return <CandleRoomInner key={eventId} eventId={eventId} mode={mode} />;
+  return (
+    <section id="kerzenraum" className="candle-room candle-room--closed">
+      <button
+        type="button"
+        className="candle-room-toggle"
+        aria-expanded="false"
+        data-testid="candle-room-toggle"
+        onClick={() => setOpen(true)}
+      >
+        <span className="candle-flame" aria-hidden="true">
+          🕯️
+        </span>
+        <span className="candle-room-toggle-label">{CANDLE_ROOM_NAME}</span>
+        <ChevronDown size={18} aria-hidden="true" />
+      </button>
+    </section>
+  );
 }

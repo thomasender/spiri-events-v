@@ -50,12 +50,15 @@ function setRoom(overrides: Record<string, unknown> = {}) {
   };
 }
 
-const renderRoom = () =>
-  render(
-    <MemoryRouter>
+const renderRoom = (open = true, initialEntry = '/event/ev1') => {
+  const result = render(
+    <MemoryRouter initialEntries={[initialEntry]}>
       <CandleRoom eventId="ev1" />
     </MemoryRouter>
   );
+  if (open) fireEvent.click(screen.getByTestId('candle-room-toggle'));
+  return result;
+};
 
 beforeEach(() => {
   state.user = null;
@@ -106,10 +109,32 @@ describe('Kerzenraum helpers', () => {
 });
 
 describe('CandleRoom', () => {
+  it('is a collapsed "Event Chat" bar that opens the chat inline on click', () => {
+    state.role = 'Admin';
+    state.mode = 'admins';
+    renderRoom(false);
+    expect(screen.getByTestId('candle-room-toggle')).toHaveTextContent('Event Chat');
+    expect(screen.queryByTestId('candle-room')).toBeNull();
+    fireEvent.click(screen.getByTestId('candle-room-toggle'));
+    expect(screen.getByRole('heading', { name: /Event Chat/ })).toBeInTheDocument();
+    expect(screen.getByText('Nachricht 1')).toBeInTheDocument();
+  });
+
+  it('opens straight away when a mention link points at a message', () => {
+    renderRoom(false, '/event/ev1#msg-1');
+    expect(screen.getByTestId('candle-room')).toBeInTheDocument();
+  });
+
+  it('shows no toggle for non-admins in admin test mode', () => {
+    state.mode = 'admins';
+    renderRoom(false);
+    expect(screen.queryByTestId('candle-room-toggle')).toBeNull();
+  });
+
   it('stays hidden for non-admins while the chat is in admin test mode', () => {
     state.mode = 'admins';
     state.user = { uid: 'me', emailVerified: true };
-    renderRoom();
+    renderRoom(false);
     expect(screen.queryByTestId('candle-room')).toBeNull();
   });
 
