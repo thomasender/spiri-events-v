@@ -162,7 +162,7 @@ describe('EventCard location (kgYQqmUo)', () => {
       </MemoryRouter>
     );
     const badge = screen.getByTestId('candle-badge');
-    expect(badge).toHaveAccessibleName('Neue Nachrichten im Kerzenraum');
+    expect(badge).toHaveAccessibleName('Neue Nachrichten im Event Chat');
     expect(badge.getAttribute('data-tooltip')).toMatch(/Mitfahrgelegenheiten/);
   });
 });

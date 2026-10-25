@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, Loader2, Sparkles, X } from 'lucide-react';
+import { Award, Check, Loader2, X } from 'lucide-react';
 import ProfilePhotoUpload from './ProfilePhotoUpload';
 import DirectoryListingFields from './DirectoryListingFields';
 import { useCategoryRegistry } from '../hooks/useCategoryRegistry';
 import { useRegionChoices } from '../hooks/useRegionChoices';
+import { deleteImageByUrl } from '../lib/imageUpload';
 import { validateDirectoryListing } from '../utils/directory';
 import {
   ONBOARDING_BIO_STARTERS,
@@ -18,68 +19,140 @@ import { districtsAfterRegionChange } from '../utils/regionChoices';
 import './ConfirmDialog.css';
 import './ProfileOnboarding.css';
 
+// `hint` is an invitation, not a claim: no numbers, no promises.
 const STEP_COPY = [
   {
     title: 'Zeig dein Gesicht',
     text: 'Mit einem Foto erkennen dich andere im Lagerfeuer, in den Kerzenräumen und im Verzeichnis sofort wieder.',
+    hint: 'Ein freundliches Gesicht lädt dazu ein, dein Profil anzuschauen.',
   },
   {
     title: 'Sag kurz, wer du bist',
     text: 'Ein, zwei Sätze genügen. Das macht den Anfang leicht für alle, die dir begegnen.',
+    hint: 'Schon ein paar Worte helfen anderen, dich kennenzulernen.',
   },
   {
     title: 'Lass dich finden',
     text: 'Im Verzeichnis finden Menschen, was du anbietest. Das ist freiwillig, du kannst es jederzeit ändern.',
+    hint: 'So können Menschen dich entdecken, wenn sie nach dem suchen, was du anbietest.',
   },
 ];
 
+const FOCUSABLE =
+  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 // Wizard in three small steps (photo, description, directory). Every step saves
 // on its own, so closing midway never loses what is done. `profile` is the live
-// profile doc, which drives the progress bar.
+// profile doc; the progress bar additionally counts what is typed or picked but
+// not saved yet. "Überspringen" drops the draft of the current step, so the bar
+// never promises more than what is stored.
 export default function ProfileOnboarding({ profile, uid, defaultName = '', onSave, onClose }) {
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-
-  const [photoURL, setPhotoURL] = useState(profile?.photoURL || null);
-  const [photoFocalPoint, setPhotoFocalPoint] = useState(profile?.photoFocalPoint || null);
-  const [photoZoom, setPhotoZoom] = useState(profile?.photoZoom || 1);
-  const [bio, setBio] = useState(profile?.bio || '');
+  const [gain, setGain] = useState(null);
 
   const regionChoices = useRegionChoices();
-  const { categories: registryCategories } = useCategoryRegistry();
-  const [listed, setListed] = useState(profile?.listedInDirectory === true);
-  const [categories, setCategories] = useState(profile?.directoryCategories || []);
-  const [regions, setRegions] = useState(profile?.directoryRegions || []);
-  const [regionIds, setRegionIds] = useState(
-    profile?.directoryRegionIds?.length
+
+  // What is stored right now (starts from the profile, follows our own saves).
+  const [saved, setSaved] = useState(() => ({
+    photoURL: profile?.photoURL || null,
+    photoFocalPoint: profile?.photoFocalPoint || null,
+    photoZoom: profile?.photoZoom || 1,
+    bio: profile?.bio || '',
+    listed: profile?.listedInDirectory === true,
+    categories: profile?.directoryCategories || [],
+    regions: profile?.directoryRegions || [],
+    regionIds: profile?.directoryRegionIds?.length
       ? resolveDirectoryRegionIds(profile)
-      : [regionChoices.defaultRegionId]
-  );
+      : [regionChoices.defaultRegionId],
+  }));
+  const savedRef = useRef(saved);
+  useEffect(() => {
+    savedRef.current = saved;
+  }, [saved]);
+
+  const [photoURL, setPhotoURL] = useState(saved.photoURL);
+  const [photoFocalPoint, setPhotoFocalPoint] = useState(saved.photoFocalPoint);
+  const [photoZoom, setPhotoZoom] = useState(saved.photoZoom);
+  const [bio, setBio] = useState(saved.bio);
+
+  const { categories: registryCategories } = useCategoryRegistry();
+  const [listed, setListed] = useState(saved.listed);
+  const [categories, setCategories] = useState(saved.categories);
+  const [regions, setRegions] = useState(saved.regions);
+  const [regionIds, setRegionIds] = useState(saved.regionIds);
   const [directoryErrors, setDirectoryErrors] = useState({});
+
+  const dialogRef = useRef(null);
+  const titleRef = useRef(null);
+  const stepMounted = useRef(false);
+  // Photos uploaded in this session. Storage gets the file on upload, but the
+  // profile only on "Weiter"; whatever never reaches the profile is deleted.
+  const uploadedRef = useRef(new Set());
+
+  // Deletes every upload of this session except `keepUrl` and what the profile stores.
+  const discardUnsavedUploads = (keepUrl) => {
+    for (const url of [...uploadedRef.current]) {
+      if (url === keepUrl || url === savedRef.current.photoURL) continue;
+      uploadedRef.current.delete(url);
+      deleteImageByUrl(url);
+    }
+  };
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
+    const opener = document.activeElement;
+    dialogRef.current?.focus();
     return () => {
       document.body.style.overflow = '';
+      discardUnsavedUploads(null);
+      if (opener instanceof HTMLElement && document.contains(opener)) opener.focus();
     };
   }, []);
 
-  const progress = getOnboardingProgress(profile);
+  // Screen readers should hear the new step; sighted users keep their place.
+  useEffect(() => {
+    if (!stepMounted.current) {
+      stepMounted.current = true;
+      return;
+    }
+    titleRef.current?.focus();
+  }, [step]);
+
+  useEffect(() => {
+    if (!gain) return undefined;
+    const timer = setTimeout(() => setGain(null), 2500);
+    return () => clearTimeout(timer);
+  }, [gain]);
+
+  // With regions switched on, a listing without a region is not complete.
+  const hasRegion = (ids) => !regionChoices.enabled || ids.length > 0;
+
+  const draft = {
+    photoURL,
+    bio,
+    listedInDirectory: listed && categories.length > 0 && hasRegion(regionIds),
+  };
+  const progress = getOnboardingProgress(draft);
   const finished = step >= ONBOARDING_STEPS.length;
   const categoryOptions = [
     ...registryCategories.map((cat) => cat.name),
     ...categories.filter((name) => !registryCategories.some((cat) => cat.name === name)),
   ];
+  // Listing needs a description: offer the field right here instead of sending
+  // people back a step.
+  const needsBioHere = listed && !saved.bio.trim();
 
   // The users doc requires displayName and bio on every write.
-  const base = { displayName: profile?.displayName || defaultName || '', bio: profile?.bio || '' };
+  const base = { displayName: profile?.displayName || defaultName || '', bio: saved.bio };
 
-  const persist = async (updates) => {
+  const persist = async (updates, nextSaved) => {
     setSaving(true);
     setError('');
     try {
       await onSave({ ...base, ...updates });
+      setSaved((current) => ({ ...current, ...nextSaved }));
       return true;
     } catch (err) {
       console.error('Onboarding save failed:', err);
@@ -95,32 +168,70 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
     setStep((current) => current + 1);
   };
 
+  // Gentle "+33 %" after a step that added something.
+  const celebrate = (before, afterDraft) => {
+    const delta = getOnboardingProgress(afterDraft).percent - getOnboardingProgress(before).percent;
+    if (delta > 0) setGain({ delta, id: Date.now() });
+  };
+
+  const savedAsProfile = () => ({
+    photoURL: saved.photoURL,
+    bio: saved.bio,
+    listedInDirectory: saved.listed && saved.categories.length > 0 && hasRegion(saved.regionIds),
+  });
+
+  const handleSkip = () => {
+    // Drop the draft of this step.
+    if (step === 0) {
+      discardUnsavedUploads(null);
+      setPhotoURL(saved.photoURL);
+      setPhotoFocalPoint(saved.photoFocalPoint);
+      setPhotoZoom(saved.photoZoom);
+    } else if (step === 1) {
+      setBio(saved.bio);
+    } else if (step === 2) {
+      setListed(saved.listed);
+      setCategories(saved.categories);
+      setRegions(saved.regions);
+      setRegionIds(saved.regionIds);
+      setBio(saved.bio);
+      setDirectoryErrors({});
+    }
+    next();
+  };
+
   const handleNext = async () => {
     if (step === 0) {
-      const changed = (photoURL || null) !== (profile?.photoURL || null);
+      const changed = (photoURL || null) !== (saved.photoURL || null);
       if (changed) {
-        const ok = await persist({
-          photoURL: photoURL || null,
-          photoFocalPoint: photoURL ? photoFocalPoint : null,
-          photoZoom: photoURL && photoZoom > 1 ? photoZoom : null,
-        });
+        const zoom = photoURL && photoZoom > 1 ? photoZoom : null;
+        const focal = photoURL ? photoFocalPoint : null;
+        const ok = await persist(
+          { photoURL: photoURL || null, photoFocalPoint: focal, photoZoom: zoom },
+          { photoURL: photoURL || null, photoFocalPoint: focal, photoZoom: zoom || 1 }
+        );
         if (!ok) return;
+        // The replaced upload is no longer referenced by the profile.
+        discardUnsavedUploads(photoURL);
+        celebrate(savedAsProfile(), { ...savedAsProfile(), photoURL });
       }
       next();
     } else if (step === 1) {
       const text = bio.trim();
-      if (text !== (profile?.bio || '').trim()) {
-        const ok = await persist({ bio: text, bioHtml: messageToHtml(text) });
+      if (text !== saved.bio.trim()) {
+        const ok = await persist({ bio: text, bioHtml: messageToHtml(text) }, { bio: text });
         if (!ok) return;
+        celebrate(savedAsProfile(), { ...savedAsProfile(), bio: text });
       }
       next();
     } else if (step === 2) {
+      const text = bio.trim();
       if (listed) {
         const errors = validateDirectoryListing({
           listed,
           categories,
           regions,
-          hasBio: Boolean(profile?.bio?.trim()),
+          hasBio: Boolean(text),
           extraRegions: getAllDistricts(regionChoices.allRegions),
         });
         const result = {};
@@ -130,37 +241,81 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
           result.regionIds =
             'Bitte wähle mindestens eine Region, damit du im Verzeichnis erscheinst.';
         }
-        if (errors.bio) {
-          setError(
-            'Für den Verzeichnis-Eintrag braucht es eine Kurzbeschreibung. Geh bitte einen Schritt zurück.'
-          );
-          return;
-        }
+        if (errors.bio) result.bio = errors.bio;
         setDirectoryErrors(result);
         if (Object.keys(result).length > 0) return;
       }
       setDirectoryErrors({});
-      if (listed || profile?.listedInDirectory === true) {
-        const ok = await persist({
-          listedInDirectory: listed,
-          directoryCategories: listed ? categories : profile?.directoryCategories || [],
-          directoryRegions: listed ? regions : profile?.directoryRegions || [],
-          directoryRegionIds:
-            listed && regionChoices.enabled ? regionIds : resolveDirectoryRegionIds(profile),
-        });
+      if (listed || saved.listed) {
+        const bioChanged = text !== saved.bio.trim();
+        const storedRegionIds = resolveDirectoryRegionIds(profile);
+        const nextRegionIds = listed && regionChoices.enabled ? regionIds : storedRegionIds;
+        const ok = await persist(
+          {
+            ...(bioChanged ? { bio: text, bioHtml: messageToHtml(text) } : {}),
+            listedInDirectory: listed,
+            directoryCategories: listed ? categories : saved.categories,
+            directoryRegions: listed ? regions : saved.regions,
+            directoryRegionIds: nextRegionIds,
+          },
+          {
+            ...(bioChanged ? { bio: text } : {}),
+            listed,
+            categories: listed ? categories : saved.categories,
+            regions: listed ? regions : saved.regions,
+            regionIds: nextRegionIds,
+          }
+        );
         if (!ok) return;
+        celebrate(savedAsProfile(), {
+          ...savedAsProfile(),
+          bio: text,
+          listedInDirectory: listed && categories.length > 0 && hasRegion(regionIds),
+        });
       }
       next();
+    }
+  };
+
+  // Escape closes like the X; Tab stays inside the dialog. The native photo
+  // adjust dialog (a <dialog> inside) handles both for itself.
+  const handleKeyDown = (event) => {
+    if (event.target instanceof Element && event.target.closest('dialog')) return;
+    if (event.key === 'Escape') {
+      event.stopPropagation();
+      onClose();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const items = [...dialogRef.current.querySelectorAll(FOCUSABLE)].filter(
+      (el) => !el.closest('dialog')
+    );
+    if (items.length === 0) {
+      event.preventDefault();
+      return;
+    }
+    const first = items[0];
+    const last = items[items.length - 1];
+    const active = document.activeElement;
+    if (event.shiftKey && (active === first || active === dialogRef.current)) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && active === last) {
+      event.preventDefault();
+      first.focus();
     }
   };
 
   return (
     <div className="confirm-overlay fade-enter" data-testid="profile-onboarding">
       <div
+        ref={dialogRef}
         className="confirm-dialog onboarding-dialog"
         role="dialog"
         aria-modal="true"
         aria-labelledby="onboarding-title"
+        tabIndex={-1}
+        onKeyDown={handleKeyDown}
       >
         <button
           type="button"
@@ -181,10 +336,20 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
           aria-label="Fortschritt deines Profils"
         >
           <div className="onboarding-progress-track">
-            <div className="onboarding-progress-bar" style={{ width: `${progress.percent}%` }} />
+            <div
+              className={`onboarding-progress-bar${
+                progress.count === progress.total ? ' onboarding-progress-bar--full' : ''
+              }`}
+              style={{ width: `${progress.percent}%` }}
+            />
           </div>
           <span className="onboarding-progress-label" data-testid="onboarding-percent">
             Dein Profil ist zu {progress.percent} % fertig
+            {gain && (
+              <span key={gain.id} className="onboarding-gain" data-testid="onboarding-gain">
+                +{gain.delta} %
+              </span>
+            )}
           </span>
         </div>
 
@@ -206,8 +371,13 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
 
         {finished ? (
           <div className="onboarding-body onboarding-finish" data-testid="onboarding-finish">
-            <Sparkles size={36} className="onboarding-sparkle" aria-hidden="true" />
-            <h2 id="onboarding-title">
+            {progress.count === progress.total && (
+              <div className="onboarding-badge" data-testid="onboarding-badge">
+                <Award size={20} aria-hidden="true" />
+                <span>Profil vollständig</span>
+              </div>
+            )}
+            <h2 id="onboarding-title" ref={titleRef} tabIndex={-1}>
               {progress.count === progress.total ? 'Wunderbar, du bist komplett!' : 'Danke dir!'}
             </h2>
             <p>
@@ -226,8 +396,13 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
           </div>
         ) : (
           <div className="onboarding-body">
-            <h2 id="onboarding-title">{STEP_COPY[step].title}</h2>
+            <h2 id="onboarding-title" ref={titleRef} tabIndex={-1}>
+              {STEP_COPY[step].title}
+            </h2>
             <p>{STEP_COPY[step].text}</p>
+            <p className="onboarding-hint" data-testid="onboarding-hint">
+              {STEP_COPY[step].hint}
+            </p>
 
             {step === 0 && (
               <ProfilePhotoUpload
@@ -238,11 +413,14 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
                 zoom={photoZoom}
                 onZoomChange={setPhotoZoom}
                 onUploaded={(url) => {
+                  uploadedRef.current.add(url);
+                  discardUnsavedUploads(url);
                   setPhotoURL(url);
                   setPhotoFocalPoint(null);
                   setPhotoZoom(1);
                 }}
                 onRemoved={() => {
+                  discardUnsavedUploads(null);
                   setPhotoURL(null);
                   setPhotoFocalPoint(null);
                   setPhotoZoom(1);
@@ -275,6 +453,29 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {step === 2 && needsBioHere && (
+              <div className="form-group onboarding-bio-inline">
+                <label htmlFor="onboarding-bio-directory">
+                  Kurzbeschreibung für dein Verzeichnis-Profil
+                </label>
+                <textarea
+                  id="onboarding-bio-directory"
+                  data-testid="onboarding-bio-directory"
+                  rows={3}
+                  maxLength={BIO_MAX}
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  placeholder="Ein, zwei Sätze zu dir und deinem Angebot"
+                  aria-invalid={directoryErrors.bio ? 'true' : undefined}
+                />
+                {directoryErrors.bio && (
+                  <p className="submit-error" role="alert">
+                    {directoryErrors.bio}
+                  </p>
+                )}
               </div>
             )}
 
@@ -317,7 +518,7 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
               <button
                 type="button"
                 className="btn btn-secondary"
-                onClick={next}
+                onClick={handleSkip}
                 disabled={saving}
                 data-testid="onboarding-skip"
               >

@@ -55,6 +55,7 @@ const EMPTY_PROFILE = {
   showOnlineStatus: false,
   allowMentions: false,
   instagramConsentDefault: false,
+  onboardingDismissed: false,
   createdAt: null,
   updatedAt: null,
 };
@@ -103,6 +104,7 @@ function normalize(data) {
     showOnlineStatus: data.showOnlineStatus === true,
     allowMentions: data.allowMentions === true,
     instagramConsentDefault: data.instagramConsentDefault === true,
+    onboardingDismissed: data.onboardingDismissed === true,
     createdAt: data.createdAt || null,
     updatedAt: data.updatedAt || null,
   };
