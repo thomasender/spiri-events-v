@@ -28,10 +28,13 @@ service firebase.storage {
     // only the owning user can write/delete under their own path
     match /users/{uid}/{allPaths=**} {
       allow read: if true;
-      allow write: if isAuthenticated()
+      allow create, update: if isAuthenticated()
                    && request.auth.uid == uid
                    && request.resource.size < 15 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*');
+      // A delete has no request.resource, so it needs its own rule (the size and
+      // type checks above would error and deny it).
+      allow delete: if isAuthenticated() && request.auth.uid == uid;
     }
 
     // Feedback screenshots: anyone can upload (feedback is anonymous-friendly).

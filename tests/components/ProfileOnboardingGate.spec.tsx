@@ -7,14 +7,21 @@ const state = {
   available: true,
   profile: { photoURL: null, bio: '' } as any,
   loading: false,
+  exists: true,
 };
+const save = vi.fn().mockResolvedValue('slug');
 
 vi.mock('../../src/hooks/useAuth', () => ({ useAuth: () => ({ user: state.user }) }));
 vi.mock('../../src/hooks/useChatSettings', () => ({
   useOnboardingAccess: () => ({ available: state.available }),
 }));
 vi.mock('../../src/hooks/useProfile', () => ({
-  useProfile: () => ({ profile: state.profile, loading: state.loading, save: vi.fn() }),
+  useProfile: () => ({
+    profile: state.profile,
+    loading: state.loading,
+    exists: state.exists,
+    save,
+  }),
 }));
 vi.mock('../../src/components/ProfileOnboarding', () => ({
   default: ({ onClose }: { onClose: () => void }) => (
@@ -40,6 +47,8 @@ describe('ProfileOnboardingGate', () => {
     state.available = true;
     state.profile = { photoURL: null, bio: '' };
     state.loading = false;
+    state.exists = true;
+    save.mockClear();
   });
 
   it('renders nothing while the flag is off for this person', () => {
@@ -86,5 +95,29 @@ describe('ProfileOnboardingGate', () => {
     renderGate('/profil');
     expect(screen.queryByTestId('profile-onboarding')).toBeNull();
     expect(screen.queryByTestId('onboarding-banner')).toBeNull();
+  });
+
+  it('stores the dismissal on the user doc so other devices stay quiet', () => {
+    renderGate();
+    fireEvent.click(screen.getByText('close'));
+    expect(localStorage.getItem('onboarding-dismissed:u1')).toBe('1');
+    expect(save).toHaveBeenCalledWith(
+      expect.objectContaining({ onboardingDismissed: true, displayName: 'Sandra', bio: '' })
+    );
+  });
+
+  it('does not open on a device without the local flag when the doc says dismissed', () => {
+    state.profile = { photoURL: null, bio: '', onboardingDismissed: true };
+    renderGate();
+    expect(screen.queryByTestId('profile-onboarding')).toBeNull();
+    expect(screen.getByTestId('onboarding-banner')).toBeInTheDocument();
+  });
+
+  it('does not create a user doc just to remember the dismissal', () => {
+    state.exists = false;
+    renderGate();
+    fireEvent.click(screen.getByText('close'));
+    expect(save).not.toHaveBeenCalled();
+    expect(localStorage.getItem('onboarding-dismissed:u1')).toBe('1');
   });
 });

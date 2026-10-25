@@ -23,7 +23,7 @@ export default function ProfileOnboardingGate() {
 }
 
 function GateInner({ user }) {
-  const { profile, loading, save } = useProfile(user.uid);
+  const { profile, loading, exists, save } = useProfile(user.uid);
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
   const [bannerHidden, setBannerHidden] = useState(false);
@@ -34,12 +34,23 @@ function GateInner({ user }) {
   useEffect(() => {
     if (loading || autoChecked.current) return;
     autoChecked.current = true;
-    if (needsOnboarding(profile) && !isOnboardingDismissed(user.uid)) setOpen(true);
+    const dismissed = isOnboardingDismissed(user.uid) || profile?.onboardingDismissed === true;
+    if (needsOnboarding(profile) && !dismissed) setOpen(true);
   }, [loading, profile, user.uid]);
 
+  // localStorage answers instantly (no flicker); the flag on the user doc carries
+  // the choice to other devices. Without a user doc yet we do not create one just
+  // for this, the local flag has to do.
   const close = () => {
     setOnboardingDismissed(user.uid);
     setOpen(false);
+    if (exists && profile?.onboardingDismissed !== true) {
+      save({
+        displayName: profile?.displayName || user.displayName || '',
+        bio: profile?.bio || '',
+        onboardingDismissed: true,
+      }).catch((err) => console.warn('Could not store onboarding dismissal:', err));
+    }
   };
 
   // The profile page has the full form already.
