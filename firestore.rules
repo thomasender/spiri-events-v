@@ -262,7 +262,7 @@ service cloud.firestore {
                        'notifyOnSubmitted', 'notifyOnChangesRequested',
                        'notifyOnPublished', 'notifyOnDeleted',
                        'notifyOnContactMessage', 'notifyOnFavoriteCancelled',
-                       'notifyNewsletter', 'instagramConsentDefault',
+                       'notifyNewsletter', 'instagramConsentDefault', 'onboardingDismissed',
                        'createdAt', 'updatedAt']
                     )
                     && request.resource.data.bio.size() <= 2000
@@ -274,6 +274,8 @@ service cloud.firestore {
                         || request.resource.data.showOnlineStatus is bool)
                     && (!('allowMentions' in request.resource.data)
                         || request.resource.data.allowMentions is bool)
+                    && (!('onboardingDismissed' in request.resource.data)
+                        || request.resource.data.onboardingDismissed is bool)
                     && (!('bioHtml' in request.resource.data)
                         || (request.resource.data.bioHtml is string
                             && request.resource.data.bioHtml.size() <= 20000));
@@ -289,6 +291,8 @@ service cloud.firestore {
                         || request.resource.data.showOnlineStatus is bool)
                     && (!('allowMentions' in request.resource.data)
                         || request.resource.data.allowMentions is bool)
+                    && (!('onboardingDismissed' in request.resource.data)
+                        || request.resource.data.onboardingDismissed is bool)
                     && (!('bioHtml' in request.resource.data)
                         || (request.resource.data.bioHtml is string
                             && request.resource.data.bioHtml.size() <= 20000))
@@ -299,7 +303,7 @@ service cloud.firestore {
                                   'notifyOnSubmitted', 'notifyOnChangesRequested',
                                   'notifyOnPublished', 'notifyOnDeleted',
                                   'notifyOnContactMessage', 'notifyOnFavoriteCancelled',
-                                  'notifyNewsletter', 'instagramConsentDefault',
+                                  'notifyNewsletter', 'instagramConsentDefault', 'onboardingDismissed',
                                   'updatedAt']);
 
       allow delete: if isAuthenticated() && request.auth.uid == uid;
