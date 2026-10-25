@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import ChatMessage from './ChatMessage';
 import ChatRules from './ChatRules';
@@ -6,12 +7,13 @@ import MessageComposer from './MessageComposer';
 import ConfirmDialog from '../ConfirmDialog';
 import { useAuth } from '../../hooks/useAuth';
 import { useChatSettings } from '../../hooks/useChatSettings';
-import { useCandleRoom } from '../../hooks/useCandleRoom';
+import { useCandleRoom, useCandleRoomActivity } from '../../hooks/useCandleRoom';
 import { useMessageJump } from '../../hooks/useMessageJump';
 import { CHAT_RETENTION_DAYS, describeChatBan, isChatBanActive } from '../../utils/chat';
 import {
   CANDLE_ROOM_NAME,
   canReadCandleRoom,
+  hasNewCandleMessages,
   hasNewForeignMessages,
   markCandleRoomSeen,
   readCandleRoomSeen,
@@ -142,10 +144,11 @@ function CandleRoomInner({ eventId, mode }) {
   }
 
   return (
-    <section
-      id="kerzenraum"
-      className="candle-room"
+    <div
+      id="candle-room-panel"
+      className="candle-room-panel"
       data-testid="candle-room"
+      role="region"
       aria-labelledby="candle-room-title"
     >
       <header className="candle-room-header">
@@ -222,16 +225,90 @@ function CandleRoomInner({ eventId, mode }) {
         onConfirm={confirmDelete}
         onCancel={() => setToDelete(null)}
       />
-    </section>
+    </div>
   );
 }
 
 // The Kerzenraum of one event. Rendered only when the chat flag lets this
-// person read it (all: everyone, admins: admins only).
+// person read it (all: everyone, admins: admins only). It sits as a bar between
+// the event details and the description; the toggle button stays put and shows
+// or hides the chat below it. The chat (and its Firestore reads) only mounts
+// after the first opening. A mention link (#msg-... / #kerzenraum) opens it
+// without moving focus (no pop-up keyboard on phones); a click focuses the
+// message field.
+function openedByHash(hash) {
+  return /^#(msg-|kerzenraum)/.test(hash);
+}
+
 export default function CandleRoom({ eventId }) {
   const { role, loading: authLoading } = useAuth();
   const { mode, loading } = useChatSettings();
+  const { hash } = useLocation();
+  const canRead = canReadCandleRoom({ mode, isAdmin: role === 'Admin' });
+  const activity = useCandleRoomActivity(canRead && !authLoading && !loading && Boolean(eventId));
+  const [open, setOpen] = useState(() => openedByHash(hash));
+  const [mounted, setMounted] = useState(open);
+  const [focusRequest, setFocusRequest] = useState(false);
+  const panelRef = useRef(null);
+
+  useEffect(() => {
+    if (openedByHash(hash)) {
+      setOpen(true);
+      setMounted(true);
+    }
+  }, [hash]);
+
+  useEffect(() => {
+    if (!open || !focusRequest) return;
+    setFocusRequest(false);
+    const panel = panelRef.current;
+    const target =
+      panel?.querySelector('[data-testid="candle-room-input"]') ??
+      panel?.querySelector('[data-testid="candle-room-rules-accept"]');
+    target?.focus?.();
+    panel?.scrollIntoView?.({ block: 'nearest' });
+  }, [open, focusRequest]);
+
   if (authLoading || loading || !eventId) return null;
-  if (!canReadCandleRoom({ mode, isAdmin: role === 'Admin' })) return null;
-  return <CandleRoomInner key={eventId} eventId={eventId} mode={mode} />;
+  if (!canRead) return null;
+
+  const hasNews = !open && hasNewCandleMessages(activity[eventId], readCandleRoomSeen(eventId));
+  const toggle = () => {
+    if (!open) {
+      setMounted(true);
+      setFocusRequest(true);
+    }
+    setOpen(!open);
+  };
+
+  return (
+    <section id="kerzenraum" className="candle-room" aria-label={CANDLE_ROOM_NAME}>
+      <button
+        type="button"
+        className="candle-room-toggle"
+        aria-expanded={open}
+        aria-controls="candle-room-panel"
+        data-testid="candle-room-toggle"
+        onClick={toggle}
+      >
+        <span className={`candle-flame${hasNews ? ' candle-flame--lit' : ''}`} aria-hidden="true">
+          🕯️
+        </span>
+        <span className="candle-room-toggle-label">{CANDLE_ROOM_NAME}</span>
+        {hasNews && (
+          <span className="candle-room-new-label" data-testid="candle-room-toggle-new">
+            Neue Nachrichten
+          </span>
+        )}
+        <ChevronDown
+          size={18}
+          aria-hidden="true"
+          className={`candle-room-chevron${open ? ' candle-room-chevron--open' : ''}`}
+        />
+      </button>
+      <div ref={panelRef} hidden={!open}>
+        {mounted && <CandleRoomInner eventId={eventId} mode={mode} />}
+      </div>
+    </section>
+  );
 }

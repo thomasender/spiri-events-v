@@ -2,8 +2,8 @@
 // No Firebase here.
 import { CHAT_RETENTION_DAYS } from './chat';
 
-// Working title. Peter does not love it yet: rename it here and nowhere else.
-export const CANDLE_ROOM_NAME = 'Kerzenraum';
+// Working title ("Event Chat" for the test phase): rename it here and nowhere else.
+export const CANDLE_ROOM_NAME = 'Event Chat';
 
 export const CANDLE_ROOM_COLLECTION = 'event_chats';
 export const CANDLE_ROOM_PAGE_SIZE = 50;

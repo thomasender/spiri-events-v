@@ -948,6 +948,8 @@ export default function EventDetailPage() {
         )}
       </div>
 
+      {event.status === 'approved' && <CandleRoom key={event.id} eventId={event.id} />}
+
       {event.description && (
         <div className="event-description">
           <h3>Über das Event</h3>
@@ -985,8 +987,6 @@ export default function EventDetailPage() {
       )}
 
       {isAdmin && user && <EventHistory eventId={event.id} />}
-
-      {event.status === 'approved' && <CandleRoom eventId={event.id} />}
 
       <SimilarEvents currentEvent={event} />
 
