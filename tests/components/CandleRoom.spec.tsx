@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, useNavigate } from 'react-router-dom';
 import CandleRoom from '../../src/components/chat/CandleRoom';
 import {
@@ -24,6 +24,9 @@ vi.mock('../../src/hooks/useAuth', () => ({
 }));
 vi.mock('../../src/hooks/useChatSettings', () => ({
   useChatSettings: () => ({ mode: state.mode, loading: false }),
+}));
+vi.mock('../../src/components/messenger/MemberCard', () => ({
+  default: ({ uid }: { uid: string }) => <div data-testid="member-card">{uid}</div>,
 }));
 vi.mock('../../src/hooks/useCandleRoom', () => ({
   useCandleRoom: () => state.room,
@@ -50,6 +53,10 @@ function setRoom(overrides: Record<string, unknown> = {}) {
     ban: null,
     send: vi.fn(async () => {}),
     remove: vi.fn(async () => {}),
+    report: vi.fn(async () => {}),
+    react: vi.fn(async () => {}),
+    canLoadMore: false,
+    loadOlder: vi.fn(),
     ...overrides,
   };
 }
@@ -246,5 +253,103 @@ describe('CandleRoom', () => {
     unmount();
     renderRoom();
     expect(screen.queryByTestId('candle-room-new')).toBeNull();
+  });
+});
+
+describe('CandleRoom: parity with the Lagerfeuer', () => {
+  const login = () => {
+    state.user = { uid: 'me', emailVerified: true };
+    window.localStorage.setItem('candleRoomRulesAccepted', '1');
+  };
+
+  it('double-tap reacts with a heart; muted members and visitors cannot react', () => {
+    login();
+    const react = vi.fn(async () => {});
+    setRoom({ react });
+    const { unmount } = renderRoom();
+    const bubble = screen.getByTestId('reactable-bubble');
+    fireEvent.click(bubble);
+    fireEvent.click(bubble);
+    expect(react).toHaveBeenCalledWith('1', '❤️');
+    unmount();
+
+    setRoom({ react, ban: { until: { toDate: () => new Date(Date.now() + 3_600_000) } } });
+    const second = renderRoom();
+    expect(screen.queryByRole('button', { name: 'Mit Emoji reagieren' })).toBeNull();
+    second.unmount();
+
+    state.user = null;
+    renderRoom();
+    expect(screen.queryByRole('button', { name: 'Mit Emoji reagieren' })).toBeNull();
+  });
+
+  it('shows reactions of others as pills', () => {
+    login();
+    setRoom({ messages: [{ ...msg('1', 'mira', 1000), reactions: { x: '👍' } }] });
+    renderRoom();
+    expect(screen.getByRole('button', { name: /Daumen hoch, 1 Reaktion/ })).toBeInTheDocument();
+  });
+
+  it('reports a foreign message after confirming, never an own one', async () => {
+    login();
+    const report = vi.fn(async () => {});
+    setRoom({ report, messages: [msg('1', 'mira', 1000), msg('2', 'me', 2000)] });
+    renderRoom();
+    expect(screen.getAllByRole('button', { name: /melden/i })).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button', { name: /melden/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Melden' }));
+    await waitFor(() => expect(report).toHaveBeenCalledTimes(1));
+    expect(report.mock.calls[0][0]).toMatchObject({ id: '1' });
+  });
+
+  it('offers no report to visitors and unverified members', () => {
+    renderRoom();
+    expect(screen.queryByRole('button', { name: /melden/i })).toBeNull();
+  });
+
+  it('lets admins delete any message, others only their own', () => {
+    state.user = { uid: 'me', emailVerified: true };
+    setRoom({ messages: [msg('1', 'mira', 1000), msg('2', 'me', 2000)] });
+    const { unmount } = renderRoom();
+    expect(screen.getAllByRole('button', { name: 'Nachricht löschen' })).toHaveLength(1);
+    unmount();
+    state.role = 'Admin';
+    renderRoom();
+    expect(screen.getAllByRole('button', { name: 'Nachricht löschen' })).toHaveLength(2);
+  });
+
+  it('opens the member card from the author name', () => {
+    login();
+    renderRoom();
+    fireEvent.click(screen.getByRole('button', { name: 'mira' }));
+    expect(screen.getByTestId('member-card')).toHaveTextContent('mira');
+  });
+
+  it('loads older messages on request', () => {
+    const loadOlder = vi.fn();
+    setRoom({ canLoadMore: true, loadOlder });
+    renderRoom();
+    fireEvent.click(screen.getByTestId('candle-room-older'));
+    expect(loadOlder).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides the older button when everything is loaded', () => {
+    renderRoom();
+    expect(screen.queryByTestId('candle-room-older')).toBeNull();
+  });
+
+  it('highlights mentions and marks messages that mention me', () => {
+    login();
+    setRoom({
+      messages: [
+        { ...msg('1', 'mira', 1000), text: 'Hi @Ich und @Fremd', mentions: { me: 'Ich' } },
+      ],
+    });
+    renderRoom();
+    const marks = screen.getAllByTestId('chat-mention');
+    expect(marks).toHaveLength(1);
+    expect(marks[0]).toHaveTextContent('@Ich');
+    expect(marks[0]).toHaveClass('chat-mention--me');
+    expect(screen.getByTestId('chat-message')).toHaveClass('chat-message--mentions-me');
   });
 });

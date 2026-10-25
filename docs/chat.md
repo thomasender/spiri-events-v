@@ -14,14 +14,14 @@ at once for everyone; messages stay until the purge.
 
 ## Data (all in `firestore.rules`, tests in `tests/rules/chat.rules.spec.ts`)
 
-| Path                                    | What                                                                                                           |
-| --------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `chat_rooms/lagerfeuer/messages/{id}`   | `text, authorUid, authorName, authorPhotoURL, createdAt`, optional `reactions`, `mentions`. Text never edited. |
-| `chat_rooms/lagerfeuer/members/{uid}`   | `lastMessageAt`: the cooldown marker                                                                           |
-| `chat_rooms/lagerfeuer/presence/{uid}`  | heartbeat `displayName, photoURL, lastSeen` (who is at the fire)                                               |
-| `chat_bans/{uid}`                       | `until` (far future = permanent), `reason`, `bannedBy`, `userName`                                             |
-| `chat_reports/{messageId}_{reporterId}` | copy of the reported text, `status` open/resolved                                                              |
-| `chat_private/reportMail`               | server-only throttle for admin mails (no client rule, so denied)                                               |
+| Path                                    | What                                                                                                              |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `chat_rooms/lagerfeuer/messages/{id}`   | `text, authorUid, authorName, authorPhotoURL, createdAt`, optional `reactions`, `mentions`. Text never edited.    |
+| `chat_rooms/lagerfeuer/members/{uid}`   | `lastMessageAt`: the cooldown marker                                                                              |
+| `chat_rooms/lagerfeuer/presence/{uid}`  | heartbeat `displayName, photoURL, lastSeen` (who is at the fire)                                                  |
+| `chat_bans/{uid}`                       | `until` (far future = permanent), `reason`, `bannedBy`, `userName`                                                |
+| `chat_reports/{messageId}_{reporterId}` | copy of the reported text, `status` open/resolved, optional `eventId` (set = reported in that event's Kerzenraum) |
+| `chat_private/reportMail`               | server-only throttle for admin mails (no client rule, so denied)                                                  |
 
 - **Rate limit (3 s)** lives in the rules: a message may only be created in the same batch that
   updates `members/{uid}.lastMessageAt` to `request.time`, and that update must be > 3 s after the
@@ -37,7 +37,7 @@ at once for everyone; messages stay until the purge.
   `isAdminOrEmulatorAdmin()` because the latter errors for users without a `role` claim.
   Regions-Moderator:innen exist only on the regions epic; add them here when it merges.
 
-## Reactions (Lagerfeuer and Postfach)
+## Reactions (Lagerfeuer, Kerzenraum and Postfach)
 
 Five fixed emoji (`src/utils/reactions.js`: 👍 ❤️ 😂 😮 🙏; the same list is in `firestore.rules`,
 keep both in sync). Stored **on the message** as `reactions: { [uid]: emoji }`, so one reaction per
@@ -105,8 +105,8 @@ exactly **one** Lagerfeuer; per-district fires were discussed and dropped (Trell
   everyone **including visitors without login**, `admins` = admins only, `off` = nobody. Writing
   needs `chatAccessible()` (login, verified e-mail, flag) and no mute/ban, like the Lagerfeuer.
 - **Data:** `event_chats/{eventId}` = `{ lastMessageAt, lastMessageId }` (the summary the calendar
-  listens to), `event_chats/{eventId}/messages/{id}` (same fields as Lagerfeuer messages, no
-  reactions), `event_chats/{eventId}/members/{uid}` (3 s cooldown marker). The client writes
+  listens to), `event_chats/{eventId}/messages/{id}` (same fields as Lagerfeuer messages, incl.
+  optional `reactions`), `event_chats/{eventId}/members/{uid}` (3 s cooldown marker). The client writes
   message + marker + summary in one batch; the rules require all three with the same server time,
   so the summary can never be bumped without a real message, and the event must exist and be
   approved. Rules tests: `tests/rules/chat.rules.spec.ts` ("Kerzenraum").
@@ -116,8 +116,19 @@ exactly **one** Lagerfeuer; per-district fires were discussed and dropped (Trell
   hover tooltip) on the card of every room with a newer message. Inside the room the candle next to
   the title flickers while there are messages by others newer than the last visit (fixed when the
   room is opened). List view rows get no candle (ticket asked for the card view).
-- **Not built (yet):** reporting messages (admins delete directly), reactions, presence. Adding
-  reports needs an event id on `chat_reports` and the admin tab's delete path.
+- **Same as the Lagerfeuer:** the Kerzenraum behaves like the Lagerfeuer, only the room differs
+  (decision of the product owner, Trello lIFGjH33). Reactions: same map on the message and same
+  rule (`allow update` on `event_chats/{eventId}/messages`, `isOwnReactionChange()` + `chatAccessible()`
+  - not banned + fixed emoji, removal always allowed); `useCandleRoom.react`. Account deletion drops
+    own reactions per room (can be denied for rooms while the flag is off; the entry then stays until
+    the 10-day purge). Reporting: `useCandleRoom.report` writes the same `chat_reports` doc plus
+    `eventId`; the admin tab (`ChatTab`, `useChatAdmin.deleteMessage(messageId, eventId)`) shows room
+    and event link and deletes in the right room; the report mail (`buildReportMail`) says "im Event Chat zu
+    <Titel>" or "im Chat Lagerfeuer"; the 15-minute mail throttle is shared. Also there: member card on
+    avatar/name, "Ältere Nachrichten laden" (50 per step, max 500), "Neue Nachricht" jump button.
+- **Not built, on purpose:** presence ("who is here"). A heartbeat plus a listener per event would
+  cost reads for every open event page and gives little for a room that is mostly a message board.
+  `useChat` and `useCandleRoom` are still two hooks (no shared abstraction), so the Lagerfeuer cannot regress.
 - Purge and account deletion include the rooms (see below). Signed-in users may read the summary
   docs and their own messages even with the flag off, so account deletion always finds them.
 
@@ -163,13 +174,14 @@ fromName, excerpt, read, createdAt }`. Only the server creates them (rules: no c
 - `purgeChatMessages` (daily 04:10 Vienna): messages and cooldown markers older than **10 days**,
   reports older than 30 days. Kerzenraum rooms whose last message is older than 10 days are deleted
   entirely, others lose their old messages and markers.
-- `onChatReportCreated`: mails the admins about a new report, at most one mail per 15 minutes.
+- `onChatReportCreated`: mails the admins about a new report (Lagerfeuer or Event Chat, the latter
+  with the event title read from `events/{eventId}`), at most one mail per 15 minutes.
 - Account deletion (`useAuth.deleteAccount`) removes the user's messages, their reactions on other
   messages and the cooldown marker, also in every Kerzenraum.
 
 ## Privacy
 
-Datenschutzerklärung Abschnitt 14 (+ 2 and 5); the Kerzenraum has its own paragraph there (public history!). Change it whenever data, retention or visibility changes.
+Datenschutzerklärung Abschnitt 14 (+ 2 and 5); the Kerzenraum has its own paragraph there (public history!). Change it whenever data, retention or visibility changes. Open since lIFGjH33: that paragraph still has to mention reactions and reports for the Event Chat (not edited by the developer on purpose).
 
 ## Not built (ideas)
 

@@ -20,6 +20,14 @@ import {
   useOnlineStatusSettings,
 } from './useChatSettings';
 import { CHAT_PERMANENT_UNTIL_MS, CHAT_ROOM_ID } from '../utils/chat';
+import { CANDLE_ROOM_COLLECTION } from '../utils/candleRoom';
+
+// Where a reported message lives: the Lagerfeuer, or an event's Kerzenraum.
+export function reportedMessageRef(messageId, eventId) {
+  return eventId
+    ? doc(db, CANDLE_ROOM_COLLECTION, eventId, 'messages', messageId)
+    : doc(db, 'chat_rooms', CHAT_ROOM_ID, 'messages', messageId);
+}
 
 function toMillis(value) {
   return value && typeof value.toMillis === 'function' ? value.toMillis() : 0;
@@ -156,8 +164,9 @@ export function useChatAdmin(enabled) {
     [user]
   );
 
-  const deleteMessage = useCallback(async (messageId) => {
-    await deleteDoc(doc(db, 'chat_rooms', CHAT_ROOM_ID, 'messages', messageId));
+  // `eventId` set = message of that event's Kerzenraum, otherwise the Lagerfeuer.
+  const deleteMessage = useCallback(async (messageId, eventId) => {
+    await deleteDoc(reportedMessageRef(messageId, eventId));
   }, []);
 
   // durationMs null = permanent.

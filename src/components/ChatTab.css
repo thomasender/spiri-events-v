@@ -114,3 +114,10 @@
   display: grid;
   gap: 6px;
 }
+
+.chat-tab-room {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}

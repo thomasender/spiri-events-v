@@ -192,6 +192,17 @@ describe('server side retention and report mails', () => {
     expect(mail.text).toContain('3 Meldungen');
     expect(mail.text.split('\n').length).toBeLessThan(10);
   });
+  it('names the room: Lagerfeuer without eventId, the event title with it', () => {
+    const base = { messageAuthorName: 'Mira', messageText: 'Hi' };
+    const lager = buildReportMail(base, 1, 'https://example.test');
+    expect(lager.subject).toContain('Lagerfeuer');
+    const event = buildReportMail({ ...base, eventId: 'ev1' }, 1, 'https://example.test', 'Kakao');
+    expect(event.subject).toBe('Neue Meldung im Event Chat zu „Kakao“');
+    expect(event.text).toContain('im Event Chat zu „Kakao“');
+    expect(event.subject).not.toContain('Lagerfeuer');
+    const noTitle = buildReportMail({ ...base, eventId: 'ev1' }, 1, 'https://example.test');
+    expect(noTitle.subject).toContain('Event Chat');
+  });
 });
 
 describe('chatPhotoUrl', () => {
