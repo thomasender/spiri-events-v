@@ -948,7 +948,7 @@ export default function EventDetailPage() {
         )}
       </div>
 
-      {event.status === 'approved' && <CandleRoom eventId={event.id} />}
+      {event.status === 'approved' && <CandleRoom key={event.id} eventId={event.id} />}
 
       {event.description && (
         <div className="event-description">
