@@ -396,6 +396,27 @@ describe('chat_reports', () => {
     ...overrides,
   });
 
+  it('accepts an optional eventId (Kerzenraum) and rejects a wrong type; without it stays valid', async () => {
+    const db = verified('bob').firestore();
+    await assertFails(setDoc(doc(db, 'chat_reports/m1_bob'), report('bob', { eventId: 42 })));
+    await assertFails(setDoc(doc(db, 'chat_reports/m1_bob'), report('bob', { eventId: '' })));
+    await assertFails(
+      setDoc(doc(db, 'chat_reports/m1_bob'), report('bob', { eventId: 'x'.repeat(200) }))
+    );
+    await assertFails(
+      setDoc(doc(db, 'chat_reports/m1_bob'), report('bob', { eventId: 'ev1', other: 1 }))
+    );
+    await assertSucceeds(setDoc(doc(db, 'chat_reports/m1_bob'), report('bob', { eventId: 'ev1' })));
+    // Without eventId (Lagerfeuer) still valid.
+    await assertSucceeds(
+      setDoc(doc(db, 'chat_reports/m2_bob'), report('bob', { messageId: 'm2' }))
+    );
+    // Needs chat access like before.
+    await assertFails(
+      setDoc(doc(anon().firestore(), 'chat_reports/m1_bob'), report('bob', { eventId: 'ev1' }))
+    );
+  });
+
   it('a chat member reports once per message under a deterministic id', async () => {
     const db = verified('bob').firestore();
     await assertSucceeds(setDoc(doc(db, 'chat_reports/m1_bob'), report('bob')));
@@ -664,6 +685,91 @@ describe('Kerzenraum (event chat rooms)', () => {
     await assertSucceeds(getDocs(collection(db, 'event_chats')));
     await assertSucceeds(getDocs(query(collection(db, msgs()), where('authorUid', '==', 'alice'))));
     await assertFails(getDocs(collection(db, msgs())));
+  });
+});
+
+describe('Kerzenraum: reactions', () => {
+  const path = 'event_chats/ev1/messages/m1';
+  const react = (db: Firestore, uid: string, emoji: string | null) =>
+    updateDoc(doc(db, path), new FieldPath('reactions', uid), emoji ?? deleteField());
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'events/ev1'), { title: 'Kakao-Zeremonie', status: 'approved' });
+      await setDoc(doc(db, path), {
+        text: 'Wer fährt?',
+        authorUid: 'alice',
+        authorName: 'Alice',
+        createdAt: Timestamp.now(),
+      });
+    });
+  });
+
+  it('a member sets, replaces and removes their own reaction', async () => {
+    const db = verified('bob').firestore();
+    await assertSucceeds(react(db, 'bob', '❤️'));
+    await assertSucceeds(react(db, 'bob', '😂'));
+    expect((await getDoc(doc(db, path))).data()?.reactions).toEqual({ bob: '😂' });
+    await assertSucceeds(react(db, 'bob', null));
+  });
+
+  it('only the fixed emoji, only your own entry, nothing else on the message', async () => {
+    const db = verified('bob').firestore();
+    await assertFails(react(db, 'bob', '💩'));
+    await assertFails(react(db, 'alice', '❤️'));
+    await assertFails(updateDoc(doc(db, path), { reactions: { bob: '❤️', carol: '❤️' } }));
+    await assertFails(updateDoc(doc(db, path), { 'reactions.bob': '❤️', text: 'x' }));
+    await assertFails(updateDoc(doc(db, path), { text: 'geändert' }));
+  });
+
+  it('nobody removes someone else’s reaction, not even an admin', async () => {
+    await assertSucceeds(react(verified('carol').firestore(), 'carol', '🙏'));
+    await assertFails(react(verified('bob').firestore(), 'carol', null));
+    await assertFails(react(adminVariants['admin (token claim)']().firestore(), 'carol', null));
+  });
+
+  it('needs login, verified e-mail, an open flag and no mute; removal is always allowed', async () => {
+    await assertFails(react(anon().firestore(), 'bob', '❤️'));
+    await assertFails(react(unverified('bob').firestore(), 'bob', '❤️'));
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'chat_bans/bob'), {
+        until: Timestamp.fromMillis(Date.now() + 3_600_000),
+        reason: 'Spam',
+        bannedBy: 'adminTok',
+      });
+    });
+    await assertFails(react(verified('bob').firestore(), 'bob', '❤️'));
+    await assertSucceeds(react(verified('carol').firestore(), 'carol', '❤️'));
+    await setMode('admins');
+    await assertFails(react(verified('carol').firestore(), 'carol', '👍'));
+    await setMode('off');
+    await assertFails(react(verified('carol').firestore(), 'carol', '👍'));
+    await assertSucceeds(react(verified('carol').firestore(), 'carol', null));
+  });
+
+  it('in admin test mode only admins react', async () => {
+    await setMode('admins');
+    await assertFails(react(verified('bob').firestore(), 'bob', '❤️'));
+    await assertSucceeds(
+      react(
+        env.authenticatedContext('adminTok', { role: 'Admin', email_verified: true }).firestore(),
+        'adminTok',
+        '❤️'
+      )
+    );
+  });
+
+  it('account deletion finds own reactions with a query', async () => {
+    const db = verified('bob').firestore();
+    await assertSucceeds(react(db, 'bob', '😮'));
+    const snap = await getDocs(
+      query(
+        collection(db, 'event_chats/ev1/messages'),
+        where(new FieldPath('reactions', 'bob'), 'in', ['👍', '❤️', '😂', '😮', '🙏'])
+      )
+    );
+    expect(snap.docs.map((d) => d.id)).toEqual(['m1']);
   });
 });
 

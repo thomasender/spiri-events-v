@@ -210,7 +210,17 @@ export const onChatReportCreated = onDocumentCreated(
     }
 
     const open = await db.collection('chat_reports').where('status', '==', 'open').count().get();
-    const mail = buildReportMail(data, open.data().count, ADMIN_CHAT_URL);
+    let eventTitle: string | undefined;
+    if (typeof data.eventId === 'string' && data.eventId) {
+      try {
+        const eventSnap = await db.doc(`events/${data.eventId}`).get();
+        const title = eventSnap.get('title');
+        eventTitle = typeof title === 'string' ? title : undefined;
+      } catch (err) {
+        logger.warn('Could not read event title for report mail', { eventId: data.eventId });
+      }
+    }
+    const mail = buildReportMail(data, open.data().count, ADMIN_CHAT_URL, eventTitle);
     try {
       await notifyAdmins(mail.subject, mail.text);
     } catch (err) {

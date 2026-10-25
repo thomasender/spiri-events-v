@@ -440,6 +440,13 @@ export function useAuth() {
       console.warn('Failed to delete calendar feed token:', err);
     }
 
+    // Own emoji reactions on other people's messages (chat, private, Kerzenraum).
+    const myReaction = new FieldPath('reactions', uid);
+    const dropMyReactions = async (messagesRef) => {
+      const reacted = await getDocs(query(messagesRef, where(myReaction, 'in', REACTION_EMOJIS)));
+      await Promise.all(reacted.docs.map((m) => updateDoc(m.ref, myReaction, deleteField())));
+    };
+
     try {
       // Own chat messages and the cooldown marker (the messages would also be
       // purged after 10 days, but a deleted account should not linger).
@@ -447,12 +454,6 @@ export function useAuth() {
         query(collection(db, 'chat_rooms', 'lagerfeuer', 'messages'), where('authorUid', '==', uid))
       );
       await Promise.all(chatMessages.docs.map((m) => deleteDoc(m.ref)));
-      // Own emoji reactions on other people's messages (chat and private).
-      const myReaction = new FieldPath('reactions', uid);
-      const dropMyReactions = async (messagesRef) => {
-        const reacted = await getDocs(query(messagesRef, where(myReaction, 'in', REACTION_EMOJIS)));
-        await Promise.all(reacted.docs.map((m) => updateDoc(m.ref, myReaction, deleteField())));
-      };
       await dropMyReactions(collection(db, 'chat_rooms', 'lagerfeuer', 'messages')).catch((err) =>
         console.warn('Failed to delete chat reactions:', err)
       );
@@ -487,6 +488,10 @@ export function useAuth() {
           query(collection(room.ref, 'messages'), where('authorUid', '==', uid))
         );
         await Promise.all(own.docs.map((m) => deleteDoc(m.ref)));
+        // Can be denied for rooms that are closed by the flag; then the entry just stays.
+        await dropMyReactions(collection(room.ref, 'messages')).catch((err) =>
+          console.warn('Failed to delete Kerzenraum reactions:', err)
+        );
         await deleteDoc(doc(room.ref, 'members', uid));
       }
     } catch (err) {
