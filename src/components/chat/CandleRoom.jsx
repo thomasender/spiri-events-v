@@ -1,15 +1,17 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { ArrowDown, ChevronDown } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import ChatMessage from './ChatMessage';
 import ChatRules from './ChatRules';
 import MessageComposer from './MessageComposer';
+import MemberCard from '../messenger/MemberCard';
 import ConfirmDialog from '../ConfirmDialog';
 import { useAuth } from '../../hooks/useAuth';
 import { useChatSettings } from '../../hooks/useChatSettings';
 import { useCandleRoom, useCandleRoomActivity } from '../../hooks/useCandleRoom';
 import { useMessageJump } from '../../hooks/useMessageJump';
 import { CHAT_RETENTION_DAYS, describeChatBan, isChatBanActive } from '../../utils/chat';
+import { REACTION_FAILED } from '../../utils/reactions';
 import {
   CANDLE_ROOM_NAME,
   canReadCandleRoom,
@@ -22,6 +24,7 @@ import '../../pages/ChatPage.css';
 import './CandleRoom.css';
 
 const RULES_KEY = 'candleRoomRulesAccepted';
+const NEAR_BOTTOM_PX = 120;
 
 function readRulesAccepted() {
   try {
@@ -35,16 +38,34 @@ function CandleRoomInner({ eventId, mode }) {
   const { user, role } = useAuth();
   const isAdmin = role === 'Admin';
   const location = useLocation();
-  const { messages, loading, error, sending, ban, send, remove } = useCandleRoom(eventId, true);
+  const {
+    messages,
+    loading,
+    error,
+    sending,
+    ban,
+    canLoadMore,
+    loadOlder,
+    send,
+    remove,
+    report,
+    react,
+  } = useCandleRoom(eventId, true);
   // What counts as "new" is fixed when the room is opened, so the candle
   // keeps flickering for what arrived since the last visit.
   const [seenAtOpen] = useState(() => readCandleRoomSeen(eventId));
   const [rulesAccepted, setRulesAccepted] = useState(readRulesAccepted);
   const [toDelete, setToDelete] = useState(null);
+  const [toReport, setToReport] = useState(null);
+  const [memberCard, setMemberCard] = useState(null);
+  const [unseen, setUnseen] = useState(0);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
   const listRef = useRef(null);
   const stickToBottom = useRef(true);
+  const lastId = useRef(null);
+  const lastCount = useRef(0);
+  const prependFrom = useRef(null);
   const jumpTarget = useMessageJump(messages, {
     onJump: () => {
       stickToBottom.current = false;
@@ -53,6 +74,27 @@ function CandleRoomInner({ eventId, mode }) {
 
   const hasNew = hasNewForeignMessages(messages, user?.uid ?? null, seenAtOpen);
   const banned = isChatBanActive(ban);
+  const canInteract = Boolean(user?.emailVerified) && !banned;
+
+  const scrollToBottom = useCallback(() => {
+    const el = listRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+    stickToBottom.current = true;
+    setUnseen(0);
+  }, []);
+
+  const loadOlderKeepingPosition = () => {
+    prependFrom.current = listRef.current?.scrollHeight ?? null;
+    loadOlder();
+  };
+
+  const onScroll = () => {
+    const el = listRef.current;
+    if (!el) return;
+    const near = el.scrollHeight - el.scrollTop - el.clientHeight < NEAR_BOTTOM_PX;
+    stickToBottom.current = near;
+    if (near) setUnseen(0);
+  };
 
   // Remember the newest confirmed message as seen (the calendar candle goes out).
   useEffect(() => {
@@ -60,10 +102,24 @@ function CandleRoomInner({ eventId, mode }) {
     if (newest) markCandleRoomSeen(eventId, newest.createdAt);
   }, [messages, eventId]);
 
+  // Keep the view at the newest message unless the reader scrolled up.
+  // Loading older messages grows the list at the top and must not scroll.
   useLayoutEffect(() => {
     const el = listRef.current;
-    if (el && stickToBottom.current) el.scrollTop = el.scrollHeight;
-  }, [messages]);
+    if (prependFrom.current !== null && el) {
+      el.scrollTop += el.scrollHeight - prependFrom.current;
+      prependFrom.current = null;
+    }
+    const newest = messages.length ? messages[messages.length - 1].id : null;
+    const appended = newest !== lastId.current && lastCount.current > 0;
+    if (stickToBottom.current) {
+      scrollToBottom();
+    } else if (appended) {
+      setUnseen((n) => n + 1);
+    }
+    lastCount.current = messages.length;
+    lastId.current = newest;
+  }, [messages, scrollToBottom]);
 
   useEffect(() => {
     if (!notice) return undefined;
@@ -89,6 +145,24 @@ function CandleRoomInner({ eventId, mode }) {
       setNotice('Die Nachricht konnte nicht gelöscht werden.');
     } finally {
       setToDelete(null);
+      setBusy(false);
+    }
+  };
+
+  const confirmReport = async () => {
+    if (!toReport) return;
+    setBusy(true);
+    try {
+      await report(toReport);
+      setNotice('Danke! Wir schauen uns die Nachricht an.');
+    } catch (err) {
+      setNotice(
+        err?.code === 'permission-denied'
+          ? 'Du hast diese Nachricht bereits gemeldet.'
+          : 'Die Meldung konnte nicht gesendet werden.'
+      );
+    } finally {
+      setToReport(null);
       setBusy(false);
     }
   };
@@ -126,7 +200,7 @@ function CandleRoomInner({ eventId, mode }) {
           mode === 'all' ? 'Alle Besucher:innen dieser Event-Seite' : 'Die Administrator:innen'
         }
         testIdPrefix="candle-room"
-        canReport={false}
+        canReport
       />
     );
   } else {
@@ -137,6 +211,9 @@ function CandleRoomInner({ eventId, mode }) {
         autoFocus={false}
         mentionsEnabled
         selfUid={user.uid}
+        onSent={() => {
+          stickToBottom.current = true;
+        }}
         placeholder="Frag nach einer Mitfahrgelegenheit oder sag Hallo…"
         testIdPrefix="candle-room"
       />
@@ -179,8 +256,21 @@ function CandleRoomInner({ eventId, mode }) {
           role="log"
           aria-live="polite"
           aria-label={`Nachrichten im ${CANDLE_ROOM_NAME}`}
+          onScroll={onScroll}
           data-testid="candle-room-list"
         >
+          {canLoadMore && (
+            <li className="chat-older">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={loadOlderKeepingPosition}
+                data-testid="candle-room-older"
+              >
+                Ältere Nachrichten laden
+              </button>
+            </li>
+          )}
           {loading && <li className="chat-state">Lade Nachrichten…</li>}
           {!loading && error && messages.length === 0 && (
             <li className="chat-state" role="alert">
@@ -198,13 +288,35 @@ function CandleRoomInner({ eventId, mode }) {
               message={m}
               own={Boolean(user) && m.authorUid === user.uid}
               canDelete={Boolean(user) && (m.authorUid === user.uid || isAdmin)}
-              canReport={false}
+              canReport={Boolean(user?.emailVerified) && m.authorUid !== user.uid}
               onDelete={setToDelete}
+              onReport={setToReport}
               me={user?.uid}
               isTarget={jumpTarget === m.id}
+              canReact={canInteract}
+              onReact={(msg, emoji) => react(msg.id, emoji)}
+              onReactError={() => setNotice(REACTION_FAILED)}
+              onOpenMember={(msg) =>
+                setMemberCard({
+                  uid: msg.authorUid,
+                  name: msg.authorName,
+                  photoURL: msg.authorPhotoURL,
+                })
+              }
             />
           ))}
         </ul>
+        {unseen > 0 && (
+          <button
+            type="button"
+            className="chat-jump"
+            onClick={scrollToBottom}
+            data-testid="candle-room-jump"
+          >
+            <ArrowDown size={16} aria-hidden="true" />{' '}
+            {unseen === 1 ? 'Neue Nachricht' : `${unseen} neue Nachrichten`}
+          </button>
+        )}
       </div>
 
       {notice && (
@@ -215,6 +327,15 @@ function CandleRoomInner({ eventId, mode }) {
 
       {writeArea}
 
+      {memberCard && (
+        <MemberCard
+          uid={memberCard.uid}
+          fallbackName={memberCard.name}
+          fallbackPhotoURL={memberCard.photoURL}
+          onClose={() => setMemberCard(null)}
+        />
+      )}
+
       <ConfirmDialog
         isOpen={Boolean(toDelete)}
         title="Nachricht löschen?"
@@ -224,6 +345,15 @@ function CandleRoomInner({ eventId, mode }) {
         loading={busy}
         onConfirm={confirmDelete}
         onCancel={() => setToDelete(null)}
+      />
+      <ConfirmDialog
+        isOpen={Boolean(toReport)}
+        title="Nachricht melden?"
+        message="Unser Team schaut sich die Nachricht an und entscheidet, ob sie gelöscht wird."
+        confirmLabel="Melden"
+        loading={busy}
+        onConfirm={confirmReport}
+        onCancel={() => setToReport(null)}
       />
     </div>
   );

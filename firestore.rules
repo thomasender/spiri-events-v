@@ -1169,6 +1169,16 @@ service cloud.firestore {
                       && getAfter(/databases/$(database)/documents/event_chats/$(eventId))
                            .data.lastMessageId == messageId;
 
+        // Reactions work like in the Lagerfeuer: only your own map entry may
+        // change; setting one needs chat access and no mute/ban, taking it
+        // back is always allowed (account deletion does it).
+        allow update: if isAuthenticated()
+                      && isOwnReactionChange()
+                      && (isReactionRemoval()
+                          || (chatAccessible()
+                              && !isChatBanned(request.auth.uid)
+                              && isValidReaction()));
+
         allow delete: if isAuthenticated()
                       && (resource.data.authorUid == request.auth.uid || isChatStaff());
       }
@@ -1480,8 +1490,13 @@ service cloud.firestore {
       allow create: if chatAccessible()
                     && request.resource.data.keys().hasOnly(
                       ['messageId', 'messageText', 'messageAuthorUid', 'messageAuthorName',
-                       'reportedBy', 'status', 'createdAt']
+                       'reportedBy', 'status', 'createdAt', 'eventId']
                     )
+                    // Optional: set for a message of an event's Kerzenraum, absent for the Lagerfeuer.
+                    && (!('eventId' in request.resource.data)
+                        || (request.resource.data.eventId is string
+                            && request.resource.data.eventId.size() > 0
+                            && request.resource.data.eventId.size() <= 128))
                     && request.resource.data.messageId is string
                     && request.resource.data.messageId.size() > 0
                     && request.resource.data.messageId.size() <= 40

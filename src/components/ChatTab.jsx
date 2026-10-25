@@ -1,5 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { doc, getDoc } from 'firebase/firestore';
 import { Flame } from 'lucide-react';
+import { db } from '../lib/firebase';
 import { useChatAdmin } from '../hooks/useChatAdmin';
 import ConfirmDialog from './ConfirmDialog';
 import {
@@ -24,6 +27,36 @@ const MODES = [
 function describeUntil(untilMs) {
   if (untilMs >= CHAT_PERMANENT_UNTIL_MS - 24 * 60 * 60 * 1000) return 'dauerhaft';
   return `bis ${formatChatTime(untilMs)}`;
+}
+
+// Where a report came from: the Lagerfeuer, or an event's Kerzenraum with a
+// link to the event (title looked up once; the report itself only keeps the id).
+function ReportRoom({ eventId, messageId }) {
+  const [title, setTitle] = useState('');
+  useEffect(() => {
+    if (!eventId) return undefined;
+    let active = true;
+    getDoc(doc(db, 'events', eventId))
+      .then((snap) => {
+        if (active && snap.exists()) setTitle(String(snap.get('title') ?? ''));
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [eventId]);
+  if (!eventId) {
+    return (
+      <span className="chat-tab-room" data-testid="chat-report-room">
+        Lagerfeuer
+      </span>
+    );
+  }
+  return (
+    <span className="chat-tab-room" data-testid="chat-report-room">
+      Event Chat: <Link to={`/event/${eventId}#msg-${messageId}`}>{title || 'Zum Event'}</Link>
+    </span>
+  );
 }
 
 export default function ChatTab() {
@@ -230,6 +263,7 @@ export default function ChatTab() {
                   <strong>{r.messageAuthorName}</strong>
                   <span>{formatChatTime(r.createdAtMs)}</span>
                 </div>
+                <ReportRoom eventId={r.eventId} messageId={r.messageId} />
                 <blockquote className="chat-tab-quote">{r.messageText}</blockquote>
                 <div className="chat-tab-actions">
                   <button
@@ -338,7 +372,7 @@ export default function ChatTab() {
         onConfirm={async () => {
           const report = pending.report;
           await run(async () => {
-            await deleteMessage(report.messageId);
+            await deleteMessage(report.messageId, report.eventId);
             await resolveReport(report.id);
           }, 'Nachricht gelöscht.');
           setPending(null);
@@ -368,7 +402,7 @@ export default function ChatTab() {
               if (isDm) {
                 await resolveDmReport(report.id);
               } else {
-                await deleteMessage(report.messageId);
+                await deleteMessage(report.messageId, report.eventId);
                 await resolveReport(report.id);
               }
             },

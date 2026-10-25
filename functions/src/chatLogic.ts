@@ -25,16 +25,25 @@ function clean(value: unknown, max: number): string {
 }
 
 export function buildReportMail(
-  report: { messageText?: unknown; messageAuthorName?: unknown },
+  report: { messageText?: unknown; messageAuthorName?: unknown; eventId?: unknown },
   openCount: number,
-  adminUrl: string
+  adminUrl: string,
+  eventTitle?: string
 ): { subject: string; text: string } {
   const author = clean(report.messageAuthorName, 80) || 'Unbekannt';
   const excerpt = clean(report.messageText, 200);
   const others = openCount > 1 ? `\n\nInsgesamt warten ${openCount} Meldungen auf dich.` : '';
+  // A report with an event id comes from that event's Event Chat, otherwise from the Lagerfeuer.
+  const fromEvent = typeof report.eventId === 'string' && report.eventId.length > 0;
+  const title = clean(eventTitle, 120);
+  const room = fromEvent
+    ? title
+      ? `im Event Chat zu „${title}“`
+      : 'in einem Event Chat'
+    : 'im Chat „Lagerfeuer“';
   return {
-    subject: 'Neue Meldung im Chat „Lagerfeuer“',
-    text: `Eine Nachricht von ${author} wurde gemeldet:\n\n„${excerpt}“${others}\n\nZur Moderation: ${adminUrl}`,
+    subject: `Neue Meldung ${room}`,
+    text: `Eine Nachricht von ${author} wurde ${room} gemeldet:\n\n„${excerpt}“${others}\n\nZur Moderation: ${adminUrl}`,
   };
 }
 

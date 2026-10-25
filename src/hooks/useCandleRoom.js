@@ -2,13 +2,17 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Timestamp,
   collection,
+  FieldPath,
   deleteDoc,
+  deleteField,
   doc,
   limit,
   onSnapshot,
   orderBy,
   query,
   serverTimestamp,
+  setDoc,
+  updateDoc,
   where,
   writeBatch,
 } from 'firebase/firestore';
@@ -18,12 +22,14 @@ import { sanitizeMentions } from '../utils/mentions';
 import { useProfile } from './useProfile';
 import { useChatSettings } from './useChatSettings';
 import {
+  CHAT_MAX_LOADED,
   chatAuthorName,
   chatPhotoUrl,
   cooldownRemainingMs,
   isUnsentMessage,
   validateChatText,
 } from '../utils/chat';
+import { sanitizeReactions } from '../utils/reactions';
 import {
   CANDLE_ROOM_COLLECTION,
   CANDLE_ROOM_PAGE_SIZE,
@@ -41,8 +47,8 @@ function isPermissionError(err) {
   return err?.code === 'permission-denied';
 }
 
-// Live messages of one event's Kerzenraum (newest page, oldest first) plus send
-// and delete. Reading works without login (see firestore.rules); `enabled`
+// Live messages of one event's Kerzenraum (newest page, oldest first) plus send,
+// delete, report and react (same behaviour as useChat, other path). Reading works without login (see firestore.rules); `enabled`
 // is the feature flag as seen by the UI.
 export function useCandleRoom(eventId, enabled) {
   const { user } = useAuth();
@@ -53,6 +59,7 @@ export function useCandleRoom(eventId, enabled) {
   const [error, setError] = useState(null);
   const [sending, setSending] = useState(false);
   const [ban, setBan] = useState(null);
+  const [windowSize, setWindowSize] = useState(CANDLE_ROOM_PAGE_SIZE);
   const lastSentAt = useRef(0);
 
   useEffect(() => {
@@ -65,7 +72,7 @@ export function useCandleRoom(eventId, enabled) {
     const q = query(
       collection(db, CANDLE_ROOM_COLLECTION, eventId, 'messages'),
       orderBy('createdAt', 'desc'),
-      limit(CANDLE_ROOM_PAGE_SIZE)
+      limit(windowSize)
     );
     return onSnapshot(
       q,
@@ -82,7 +89,7 @@ export function useCandleRoom(eventId, enabled) {
                 authorPhotoURL: data.authorPhotoURL ?? null,
                 mentions: sanitizeMentions(data.mentions),
                 createdAt: toMillis(data.createdAt),
-                reactions: {},
+                reactions: sanitizeReactions(data.reactions),
                 pending: isUnsentMessage(d),
               };
             })
@@ -97,7 +104,7 @@ export function useCandleRoom(eventId, enabled) {
         setLoading(false);
       }
     );
-  }, [eventId, enabled]);
+  }, [eventId, enabled, windowSize]);
 
   useEffect(() => {
     if (!uid || !enabled) {
@@ -110,6 +117,11 @@ export function useCandleRoom(eventId, enabled) {
       () => setBan(null)
     );
   }, [uid, enabled]);
+
+  const canLoadMore = messages.length >= windowSize && windowSize < CHAT_MAX_LOADED;
+  const loadOlder = useCallback(() => {
+    setWindowSize((size) => Math.min(CHAT_MAX_LOADED, size + CANDLE_ROOM_PAGE_SIZE));
+  }, []);
 
   const authorName = chatAuthorName(profile, user);
   const authorPhotoURL = chatPhotoUrl(profile?.photoURL || user?.photoURL);
@@ -178,9 +190,53 @@ export function useCandleRoom(eventId, enabled) {
     [eventId]
   );
 
+  // One reaction per person: `emoji` replaces mine, null removes it.
+  const react = useCallback(
+    async (messageId, emoji) => {
+      if (!uid) throw new Error('Bitte melde dich an.');
+      await updateDoc(
+        doc(db, CANDLE_ROOM_COLLECTION, eventId, 'messages', messageId),
+        new FieldPath('reactions', uid),
+        emoji ?? deleteField()
+      );
+    },
+    [uid, eventId]
+  );
+
+  // Same report document as in the Lagerfeuer, plus `eventId` so the admins
+  // know which room it came from.
+  const report = useCallback(
+    async (message) => {
+      if (!user) throw new Error('Bitte melde dich an.');
+      await setDoc(doc(db, 'chat_reports', `${message.id}_${user.uid}`), {
+        messageId: message.id,
+        messageText: String(message.text).slice(0, 2000),
+        messageAuthorUid: message.authorUid,
+        messageAuthorName: String(message.authorName).slice(0, 80),
+        reportedBy: user.uid,
+        eventId,
+        status: 'open',
+        createdAt: serverTimestamp(),
+      });
+    },
+    [user, eventId]
+  );
+
   return useMemo(
-    () => ({ messages, loading, error, sending, ban, send, remove }),
-    [messages, loading, error, sending, ban, send, remove]
+    () => ({
+      messages,
+      loading,
+      error,
+      sending,
+      ban,
+      canLoadMore,
+      loadOlder,
+      send,
+      remove,
+      report,
+      react,
+    }),
+    [messages, loading, error, sending, ban, canLoadMore, loadOlder, send, remove, report, react]
   );
 }
 
