@@ -13,7 +13,7 @@ jobs:
     # this job deploys to production, so it only ever runs from main. Feature
     # branches are tested via emulators/previews.
     # Scope per trigger: repository_dispatch / workflow_dispatch only refresh
-    # content (migrate slugs + build + Hosting). Rules, indexes and Cloud
+    # content (migrate slugs + build + Hosting). Rules, indexes, Storage rules and Cloud
     # Functions are deployed only on push to main, and only if backend files
     # changed in that push.
     if: github.ref == 'refs/heads/main'
@@ -50,7 +50,7 @@ jobs:
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
 
-      - name: Detect whether backend (rules/indexes/functions) needs deploying
+      - name: Detect whether backend (rules/indexes/storage/functions) needs deploying
         id: scope
         env:
           EVENT_NAME: ${{ github.event_name }}
@@ -68,7 +68,7 @@ jobs:
               deploy=true
             else
               echo "Changed files:"; echo "$changed"
-              if echo "$changed" | grep -Eq '^(firestore\.rules|firestore\.indexes\.json|firebase\.json|functions/)'; then
+              if echo "$changed" | grep -Eq '^(firestore\.rules|firestore\.indexes\.json|storage\.rules|firebase\.json|functions/)'; then
                 deploy=true
               fi
             fi
@@ -92,11 +92,11 @@ jobs:
           VITE_RECAPTCHA_PROVIDER: ${{ vars.VITE_RECAPTCHA_PROVIDER }}
         run: npm run build
 
-      - name: Deploy Firestore rules and indexes
+      - name: Deploy Firestore rules, indexes and Storage rules
         if: steps.scope.outputs.backend == 'true'
         env:
           GOOGLE_APPLICATION_CREDENTIALS: scripts/service-account.json
-        run: npx -y firebase-tools@latest deploy --only firestore:rules,firestore:indexes --project spirieventsvbg --non-interactive
+        run: npx -y firebase-tools@latest deploy --only firestore:rules,firestore:indexes,storage --project spirieventsvbg --non-interactive
 
       - name: Install Cloud Functions dependencies
         if: steps.scope.outputs.backend == 'true'
