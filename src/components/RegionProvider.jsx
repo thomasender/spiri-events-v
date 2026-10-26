@@ -25,6 +25,9 @@ import {
   writeLastRegion,
 } from '../utils/regionRouting';
 
+// Pages that belong to no region (legal pages of the association): neutral header.
+const NEUTRAL_HEADER_PATHS = ['/impressum', '/datenschutz'];
+
 /**
  * Region context for the whole app. The URL (`/tirol`, `/tirol/verzeichnis`)
  * is the source of truth; `/` and other pages without a region use the last
@@ -98,22 +101,26 @@ export default function RegionProvider({ children }) {
     const eventRegionComingSoon = Boolean(
       !urlSlug && eventRegionId && !getRegionBySlug(eventRegionId, allRegions)?.active
     );
+    // Dark launch: with fewer than two active regions nothing below changes the header.
+    const regionMode = !loading && activeRegions(allRegions).length >= 2;
     // "Wo suchst du?" page (RegionChooser): `/regionen` opened on purpose, or `/` and
     // `/verzeichnis` while nothing is remembered (place, chooser seen, active last region).
-    // Dark launch: never with fewer than two active regions.
     const stored = readLastRegion();
     const chooserRemembered =
       readRegionChooserSeen() ||
       Boolean(placeSelection) ||
       Boolean(stored && getRegionBySlug(stored, allRegions)?.active);
     const regionChooserOpen =
-      !loading &&
-      activeRegions(allRegions).length >= 2 &&
+      regionMode &&
       (pathname === REGIONS_PAGE_PATH || (!chooserRemembered && CHOOSER_PATHS.includes(pathname)));
-    // Neutral header ("Dein Kalender"): region chooser, coming-soon pages and the event
-    // form for a region that is not open yet.
+    // Neutral header ("Dein Kalender"): region chooser, coming-soon pages, the event
+    // form for a region that is not open yet and Impressum / Datenschutz.
     const neutralHeader =
-      comingSoon || eventRegionComingSoon || pathname === REGIONS_PAGE_PATH || regionChooserOpen;
+      comingSoon ||
+      eventRegionComingSoon ||
+      pathname === REGIONS_PAGE_PATH ||
+      regionChooserOpen ||
+      (regionMode && NEUTRAL_HEADER_PATHS.includes(pathname));
     const regionId =
       !urlSlug && eventRegionId
         ? eventRegionId
