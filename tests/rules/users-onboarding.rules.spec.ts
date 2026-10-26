@@ -6,7 +6,7 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, setDoc, updateDoc } from 'firebase/firestore';
+import { deleteDoc, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 
 let env: RulesTestEnvironment;
@@ -67,5 +67,40 @@ describe('users/{uid}.onboardingDismissed', () => {
   it('other unknown fields are still rejected', async () => {
     const db = env.authenticatedContext('alice').firestore();
     await assertFails(updateDoc(doc(db, 'users/alice'), { somethingElse: true }));
+  });
+});
+
+// In-app alerts for admins, written only by the Cloud Function.
+describe('users/{uid}/adminAlerts', () => {
+  const alert = { eventId: 'e1', eventTitle: 'Yoga', read: false, changeCount: 1 };
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'users/alice/adminAlerts/e1'), alert);
+    });
+  });
+
+  it('the owner reads, marks as read and deletes', async () => {
+    const db = env.authenticatedContext('alice').firestore();
+    await assertSucceeds(getDoc(doc(db, 'users/alice/adminAlerts/e1')));
+    await assertSucceeds(updateDoc(doc(db, 'users/alice/adminAlerts/e1'), { read: true }));
+    await assertSucceeds(deleteDoc(doc(db, 'users/alice/adminAlerts/e1')));
+  });
+
+  it('nobody else can read or change it', async () => {
+    const db = env.authenticatedContext('bob').firestore();
+    await assertFails(getDoc(doc(db, 'users/alice/adminAlerts/e1')));
+    await assertFails(updateDoc(doc(db, 'users/alice/adminAlerts/e1'), { read: true }));
+  });
+
+  it('no client can create an alert, not even for themselves', async () => {
+    const db = env.authenticatedContext('alice').firestore();
+    await assertFails(setDoc(doc(db, 'users/alice/adminAlerts/e2'), alert));
+  });
+
+  it('the owner cannot edit anything but read, nor set it back to unread', async () => {
+    const db = env.authenticatedContext('alice').firestore();
+    await assertFails(updateDoc(doc(db, 'users/alice/adminAlerts/e1'), { changeCount: 9 }));
+    await assertFails(updateDoc(doc(db, 'users/alice/adminAlerts/e1'), { read: false }));
   });
 });

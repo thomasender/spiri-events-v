@@ -40,6 +40,14 @@ vi.mock('../../src/hooks/useUserDisplayNames', () => ({
 }));
 
 const mockUpdateDoc = vi.hoisted(() => vi.fn());
+const mockAlerts = vi.hoisted(() => ({
+  unreadByEvent: {} as Record<string, { kind: string; changeCount: number }>,
+  markRead: vi.fn(async () => {}),
+}));
+
+vi.mock('../../src/hooks/useAdminAlerts', () => ({
+  useAdminAlerts: () => mockAlerts,
+}));
 
 vi.mock('../../src/hooks/useAuth', () => ({
   useAuth: () => ({ user: { uid: 'admin-uid' }, role: 'Admin' }),
@@ -65,6 +73,8 @@ function renderReviewTab() {
 beforeEach(() => {
   mockApproveEvent.mockReset();
   mockUpdateDoc.mockReset();
+  mockAlerts.unreadByEvent = {};
+  mockAlerts.markRead.mockClear();
   mockUpdateDoc.mockResolvedValue(undefined);
   mockUsePendingEvents.pendingEvents = [];
   mockUsePendingEvents.loading = false;
@@ -339,5 +349,35 @@ describe("ReviewTab — deleting another user's event", () => {
     fireEvent.click(screen.getByRole('button', { name: 'Event löschen' }));
     expect(screen.queryByLabelText(/Grund für das Löschen/)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'In Papierkorb' })).toBeEnabled();
+  });
+});
+
+describe('ReviewTab — organizer edit alerts', () => {
+  it('marks only the events with an unread alert as "Vom User bearbeitet"', () => {
+    mockUsePendingEvents.pendingEvents = [
+      { id: 'p1', title: 'Bearbeitet', status: 'pending' },
+      { id: 'p2', title: 'Unberührt', status: 'pending' },
+    ];
+    mockAlerts.unreadByEvent = { p1: { kind: 'edited', changeCount: 2 } };
+    renderReviewTab();
+    const ribbons = screen.getAllByTestId('event-card-edit-ribbon');
+    expect(ribbons).toHaveLength(1);
+    expect(ribbons[0]).toHaveTextContent('Vom User bearbeitet');
+  });
+
+  it('labels a re-submission differently', () => {
+    mockUsePendingEvents.pendingEvents = [{ id: 'p1', title: 'Zurück', status: 'pending' }];
+    mockAlerts.unreadByEvent = { p1: { kind: 'resubmitted', changeCount: 1 } };
+    renderReviewTab();
+    expect(screen.getByTestId('event-card-edit-ribbon')).toHaveTextContent('Erneut eingereicht');
+  });
+
+  it('marks the alert as read when the admin approves the event', async () => {
+    mockUsePendingEvents.pendingEvents = [{ id: 'p1', title: 'Bearbeitet', status: 'pending' }];
+    mockAlerts.unreadByEvent = { p1: { kind: 'edited', changeCount: 1 } };
+    mockApproveEvent.mockResolvedValue(undefined);
+    renderReviewTab();
+    fireEvent.click(screen.getByRole('button', { name: 'Genehmigen' }));
+    await waitFor(() => expect(mockAlerts.markRead).toHaveBeenCalledWith('p1'));
   });
 });

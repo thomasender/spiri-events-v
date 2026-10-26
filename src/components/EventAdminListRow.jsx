@@ -12,6 +12,7 @@ import {
   Copy,
   RefreshCw,
   MessageCircle,
+  Pencil,
 } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 import { formatDayNumber, formatMonthShort, formatWeekdayShort } from '../utils/eventFormat';
@@ -71,6 +72,7 @@ export default function EventAdminListRow({
   showTrashedAt = false,
   showSubmittedAt = false,
   showRevisionHint = false,
+  editAlert = null,
   showApprovedBy = false,
   approvedByName = null,
   showInKlaerungBy = false,
@@ -112,6 +114,22 @@ export default function EventAdminListRow({
         >
           <MessageCircle size={14} aria-hidden="true" />
           <span>Klärung läuft</span>
+        </div>
+      )}
+      {editAlert && (
+        <div
+          className="event-card-clarification-ribbon event-card-edit-ribbon"
+          data-testid="event-card-edit-ribbon"
+          title={
+            editAlert.kind === 'resubmitted'
+              ? 'Die einreichende Person hat dieses Event erneut eingereicht.'
+              : `Die einreichende Person hat dieses Event nach der Einreichung bearbeitet (${editAlert.changeCount} ${editAlert.changeCount === 1 ? 'Änderung' : 'Änderungen'}).`
+          }
+        >
+          <Pencil size={14} aria-hidden="true" />
+          <span>
+            {editAlert.kind === 'resubmitted' ? 'Erneut eingereicht' : 'Vom User bearbeitet'}
+          </span>
         </div>
       )}
       <Link to={eventLinkTarget} state={{ from: fromPath }} className="event-card-content">

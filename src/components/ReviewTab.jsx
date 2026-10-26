@@ -6,6 +6,7 @@ import { usePendingEvents, useAllEvents } from '../hooks/useEvents';
 import { useEventsWithMessages } from '../hooks/useEventsWithMessages';
 import { useUserDisplayNames } from '../hooks/useUserDisplayNames';
 import { useAuth } from '../hooks/useAuth';
+import { useAdminAlerts } from '../hooks/useAdminAlerts';
 import { requiresDeleteReason } from '../utils/eventPermissions';
 import { buildTrashUpdate } from '../utils/trashUpdates';
 import EventAdminListRow from './EventAdminListRow';
@@ -56,6 +57,8 @@ export default function ReviewTab() {
   const { unreadCountByEvent, hasMessagesByEvent, inKlaerungAuthorNameByEvent } =
     useEventsWithMessages();
 
+  const { unreadByEvent: editAlerts, markRead: markAlertRead } = useAdminAlerts(user?.uid, true);
+
   const [approvingId, setApprovingId] = useState(null);
   const [revertTarget, setRevertTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -74,6 +77,7 @@ export default function ReviewTab() {
     setApprovingId(eventId);
     try {
       await approveEvent(eventId);
+      markAlertRead(eventId).catch(() => {});
       setApproveSuccess(target ? { eventTitle: target.title } : null);
     } catch (err) {
       console.error('Approve failed:', err);
@@ -92,6 +96,7 @@ export default function ReviewTab() {
         status: 'draft',
         updatedAt: serverTimestamp(),
       });
+      markAlertRead(revertTarget.id).catch(() => {});
       setRevertTarget(null);
     } catch (err) {
       console.error('Revert failed:', err);
@@ -243,6 +248,7 @@ export default function ReviewTab() {
                         showDuplicate={false}
                         showSubmittedAt
                         showRevisionHint
+                        editAlert={editAlerts[event.id] || null}
                         fromPath="/admin?tab=review"
                         isAdmin
                         approving={approvingId}
@@ -296,6 +302,7 @@ export default function ReviewTab() {
                           showDuplicate={false}
                           showSubmittedAt
                           showRevisionHint
+                          editAlert={editAlerts[event.id] || null}
                           showInKlaerungBy
                           inKlaerungByName={inKlaerungAuthorNameByEvent[event.id] || null}
                           fromPath="/admin?tab=review"

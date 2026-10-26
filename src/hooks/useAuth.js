@@ -505,6 +505,8 @@ export function useAuth() {
       favorites.forEach((fav) => batch.delete(fav.ref));
       const mentions = await getDocs(collection(db, 'users', uid, 'mentions'));
       mentions.forEach((mention) => batch.delete(mention.ref));
+      const adminAlerts = await getDocs(collection(db, 'users', uid, 'adminAlerts'));
+      adminAlerts.forEach((alert) => batch.delete(alert.ref));
       batch.delete(doc(db, 'users', uid, 'publicProfile', 'data'));
       batch.delete(doc(db, 'users', uid));
       await batch.commit();

@@ -331,6 +331,18 @@ service cloud.firestore {
         allow delete: if isAuthenticated() && request.auth.uid == uid;
       }
 
+      // In-app alerts for admins ("a user edited a pending event"): written only by the
+      // Cloud Function `onEventUpdatedWriteRevision` (no client create), one doc per
+      // event. The admin reads, marks as read (only `read`, only to true) and deletes.
+      match /adminAlerts/{eventId} {
+        allow read: if isAuthenticated() && request.auth.uid == uid;
+        allow update: if isAuthenticated()
+                      && request.auth.uid == uid
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+                      && request.resource.data.read == true;
+        allow delete: if isAuthenticated() && request.auth.uid == uid;
+      }
+
       // Public profile subdoc: mirrors only the public-safe fields
       // (displayName, bio, website, photoURL, slug) so anyone can render a
       // organizer's public profile page via the `/:slug` route without

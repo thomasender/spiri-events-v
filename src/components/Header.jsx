@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
 import { useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
 import { useUnreadFeedbackCount } from '../hooks/useFeedbackList';
+import { useAdminAlerts } from '../hooks/useAdminAlerts';
 import { useChatAccess, useMessengerAccess } from '../hooks/useChatSettings';
 import { useThreads } from '../hooks/useMessenger';
 import { useChatPresence } from '../hooks/useChatPresence';
@@ -44,6 +45,7 @@ export default function Header() {
   const location = useLocation();
   const { count: unreadMessageCount } = useUnreadMessageCount();
   const { count: unreadFeedbackCount } = useUnreadFeedbackCount(isAdmin);
+  const { unreadCount: unreadAdminAlerts } = useAdminAlerts(user?.uid, isAdmin);
   const { available: chatAvailable } = useChatAccess();
   const { count: chatOnline } = useChatPresence(chatAvailable);
   const { available: messengerAvailable } = useMessengerAccess();
@@ -209,7 +211,7 @@ export default function Header() {
     };
   }, [accountOpen]);
 
-  const unreadCount = unreadMessageCount + unreadFeedbackCount;
+  const unreadCount = unreadMessageCount + unreadFeedbackCount + unreadAdminAlerts;
   const hasUnread = unreadCount > 0;
 
   const profilePhotoURL = profile?.photoURL || user?.photoURL;
