@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { usePwaInstall, isIOSDevice } from '../hooks/usePwaInstall';
 import { PWA_OPEN_REQUEST_EVENT } from './PwaInstallPrompt';
 import { requestConsentBanner } from '../lib/analyticsConsent';
-import { LEGACY_SITE_NAME } from '../config/brand';
+import { COPYRIGHT_NOTICE } from '../config/brand';
 import { useRegion } from '../hooks/useRegion';
 import { useAuth } from '../hooks/useAuth';
 import { RegionPickButton } from './RegionSwitcher';
@@ -54,7 +54,7 @@ export default function Footer() {
   return (
     <footer className="footer">
       <div className="footer-container">
-        <span className="footer-copy">© 2026 {LEGACY_SITE_NAME}</span>
+        <span className="footer-copy">{COPYRIGHT_NOTICE}</span>
         <nav className="footer-nav" aria-label="Footer-Navigation">
           <Link to={aboutPath}>Über uns</Link>
           {showInstallLink && (

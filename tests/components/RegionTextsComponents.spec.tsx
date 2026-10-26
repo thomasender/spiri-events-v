@@ -58,10 +58,10 @@ describe('Header subtitle and footer follow the region', () => {
       </Wrap>
     );
     expect(screen.getByText('Dein Vorarlberger Kalender')).toBeInTheDocument();
-    expect(screen.getByText('© 2026 tribe Vorarlberg')).toBeInTheDocument();
+    expect(screen.getByText('© 2026 Alle Rechte vorbehalten')).toBeInTheDocument();
   });
 
-  it('Steiermark: region subtitle, footer keeps the association name', () => {
+  it('Steiermark: region subtitle, footer copyright has no region', () => {
     const { container } = render(
       <Wrap value={STEIERMARK_CONTEXT}>
         <Header />
@@ -69,8 +69,9 @@ describe('Header subtitle and footer follow the region', () => {
       </Wrap>
     );
     expect(screen.getByText('Dein steirischer Kalender')).toBeInTheDocument();
-    // The footer names the legal entity in every region.
-    expect(screen.getByText('© 2026 tribe Vorarlberg')).toBeInTheDocument();
+    // The footer copyright is the same in every region.
+    expect(screen.getByText('© 2026 Alle Rechte vorbehalten')).toBeInTheDocument();
+    expect(screen.queryByText(/tribe Vorarlberg/)).toBeNull();
   });
 });
 
