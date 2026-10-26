@@ -341,6 +341,46 @@ describe('RegionMenuList (burger menu on the phone)', () => {
     expect(screen.queryByTestId('region-picker')).toBeNull();
   });
 
+  describe('on a coming-soon page', () => {
+    const koeln = {
+      label: 'Köln',
+      lat: 50.94,
+      lon: 6.96,
+      radiusKm: 25,
+      regionId: 'koeln-bonn-eifel',
+      source: 'search',
+      updatedAt: 1,
+    };
+    function renderListAt(path: string) {
+      mocks.regions = { regions: TWO_ACTIVE, loading: false };
+      window.localStorage.setItem(REGION_CHOOSER_SEEN_KEY, '1');
+      render(
+        <MemoryRouter initialEntries={[path]}>
+          <RegionProvider>
+            <RegionMenuList />
+          </RegionProvider>
+        </MemoryRouter>
+      );
+    }
+
+    it('names the searched place of that region', () => {
+      window.localStorage.setItem(PLACE_SELECTION_KEY, JSON.stringify(koeln));
+      renderListAt('/koeln-bonn-eifel');
+      expect(screen.getByRole('button', { name: 'Ort: Köln · 25 km' })).toBeInTheDocument();
+    });
+
+    it('keeps the old text when the place belongs to another region', () => {
+      window.localStorage.setItem(PLACE_SELECTION_KEY, JSON.stringify(koeln));
+      renderListAt('/bayern');
+      expect(screen.getByRole('button', { name: /Ort: Vorarlberg/ })).toBeInTheDocument();
+    });
+
+    it('keeps the old text without a remembered place', () => {
+      renderListAt('/koeln-bonn-eifel');
+      expect(screen.getByRole('button', { name: /Ort: Vorarlberg/ })).toBeInTheDocument();
+    });
+  });
+
   it('renders nothing with only Vorarlberg active (dark launch)', () => {
     mocks.regions = { regions: STATIC_REGIONS, loading: false };
     render(

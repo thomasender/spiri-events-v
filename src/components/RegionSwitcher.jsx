@@ -1,21 +1,42 @@
 import { useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { ChevronDown, MapPin } from 'lucide-react';
 import { useRegion } from '../hooks/useRegion';
 import { selectionLabel } from '../utils/placeSelection';
+import { regionSlugFromPath } from '../utils/regionRouting';
 import RegionPickerModal from './RegionPickerModal';
 import './RegionSwitcher.css';
 
 // Text shown on the button: the remembered place and radius ("Bregenz · 25 km") while the
 // calendar uses them, else the current combined view or region.
 function useCurrentRegionName() {
-  const { regions, allRegions, regionId, combinedView, placeSelection, radiusFilter } = useRegion();
+  const {
+    regions,
+    allRegions,
+    regionId,
+    combinedView,
+    placeSelection,
+    radiusFilter,
+    comingSoon,
+    loading,
+  } = useRegion();
+  const { pathname } = useLocation();
+  // A coming-soon page falls back to the default region as context, so the remembered place
+  // only counts when it belongs to the region named by the address (as in the footer).
+  const comingSoonPlace =
+    !loading &&
+    comingSoon &&
+    placeSelection &&
+    placeSelection.regionId === regionSlugFromPath(pathname);
   const region = allRegions.find((r) => r.slug === regionId) ?? regions[0];
   return {
     name: combinedView
       ? combinedView.name
-      : radiusFilter
+      : comingSoonPlace
         ? selectionLabel(placeSelection)
-        : (region?.name ?? ''),
+        : radiusFilter
+          ? selectionLabel(placeSelection)
+          : (region?.name ?? ''),
     // Dark launch: nothing to switch between while fewer than two regions are active.
     visible: regions.length >= 2,
   };

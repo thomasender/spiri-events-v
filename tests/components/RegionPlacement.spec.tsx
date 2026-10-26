@@ -70,6 +70,29 @@ describe('where the region can be chosen', () => {
     expect(within(picker).getByRole('combobox')).toBeInTheDocument();
   });
 
+  it('the footer button names the searched place on its coming-soon page', () => {
+    window.localStorage.setItem(
+      'tribe:placeSelection',
+      JSON.stringify({
+        label: 'Köln',
+        lat: 50.94,
+        lon: 6.96,
+        radiusKm: 25,
+        regionId: 'koeln-bonn-eifel',
+        source: 'search',
+        updatedAt: 1,
+      })
+    );
+    render(
+      <MemoryRouter initialEntries={['/koeln-bonn-eifel']}>
+        <RegionProvider>
+          <Footer />
+        </RegionProvider>
+      </MemoryRouter>
+    );
+    expect(screen.getByTestId('footer-region-pick')).toHaveTextContent('Köln · 25 km');
+  });
+
   it('signed-in users change the region from the profile card', () => {
     mocks.auth = { role: 'User', user: { uid: 'u1' } };
     renderProfile();
