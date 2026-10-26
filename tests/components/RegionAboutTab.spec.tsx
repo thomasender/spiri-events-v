@@ -131,6 +131,16 @@ describe('RegionAboutTab example texts', () => {
     expect(state.updates[0].texts).toEqual({ examples: { place: 'Innsbruck' } });
   });
 
+  it('a moderator does not see the example texts and never writes them', async () => {
+    state.role = 'RegionModerator';
+    state.staffRegionIds = ['tirol'];
+    render(<RegionAboutTab />);
+    expect(screen.queryByTestId('region-about-examples')).toBeNull();
+    fireEvent.click(screen.getByTestId('region-about-save'));
+    await waitFor(() => expect(state.updates).toHaveLength(1));
+    expect(state.updates[0]).not.toHaveProperty('texts');
+  });
+
   it('reset to default clears the field and removes the stored texts', async () => {
     state.texts = { tirol: { examples: { place: 'Hall' } } };
     render(<RegionAboutTab />);
