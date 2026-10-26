@@ -64,6 +64,7 @@ import {
   needsUploadedUrl,
   resolveInstagramImage,
 } from '../utils/instagramImageChoice';
+import { REGISTRATION_MAX_LENGTH } from '../utils/contactFormat';
 import './EventForm.css';
 import './EventFormWizard.css';
 
@@ -93,6 +94,7 @@ const INITIAL_STATE = {
   isOnline: false,
   organizer: { name: '', email: '' },
   kontakt: '',
+  registration: '',
 };
 
 const STEPS = [
@@ -763,6 +765,7 @@ export default function EventFormWizard() {
       photoURL: profile?.photoURL || null,
     },
     kontakt: formData.kontakt.trim(),
+    registration: formData.registration.trim(),
     imageUrl: null,
     imageThumbUrl: null,
     status,
@@ -965,6 +968,25 @@ export default function EventFormWizard() {
           className={errors.kontakt ? 'input-error' : ''}
         />
         {errors.kontakt && <span className="error-text">{errors.kontakt}</span>}
+      </div>
+
+      <div className="form-group">
+        <div className="input-label-row">
+          <label htmlFor="registration">Anmeldung (optional)</label>
+          <span className="input-info">
+            <Info size={14} />
+            <span>Wie melden sich Teilnehmer:innen an?</span>
+          </span>
+        </div>
+        <input
+          id="registration"
+          name="registration"
+          type="text"
+          value={formData.registration}
+          onChange={handleChange}
+          maxLength={REGISTRATION_MAX_LENGTH}
+          placeholder="z.B. Buchungslink, E-Mail oder Telefonnummer"
+        />
       </div>
     </div>
   );
@@ -1523,6 +1545,7 @@ export default function EventFormWizard() {
             <strong>{formData.organizer.name}</strong>
           </p>
           <p>{formData.kontakt}</p>
+          {formData.registration.trim() && <p>Anmeldung: {formData.registration.trim()}</p>}
         </div>
 
         <div className="summary-section">

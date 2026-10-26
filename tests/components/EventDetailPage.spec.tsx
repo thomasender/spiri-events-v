@@ -1288,3 +1288,57 @@ describe('EventDetailPage — cancelling an event or a single date', () => {
     expect(screen.queryByTestId('cancel-event-button')).toBeNull();
   });
 });
+
+describe('EventDetailPage — Anmeldung and reading order', () => {
+  it('shows the registration with clickable link, e-mail and phone number', async () => {
+    mockFirestoreDoc.getDocResult = {
+      id: foreignEvent.id,
+      data: {
+        ...foreignEvent,
+        registration:
+          'Buchen unter https://example.com/buchen oder anmeldung@example.com oder 0676 7654321',
+      },
+    };
+    renderPage();
+    const item = await screen.findByTestId('event-registration');
+    expect(within(item).getByText('Anmeldung')).toBeInTheDocument();
+    const link = within(item).getByRole('link', { name: 'https://example.com/buchen' });
+    expect(link).toHaveAttribute('href', 'https://example.com/buchen');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(within(item).getByRole('link', { name: 'anmeldung@example.com' })).toHaveAttribute(
+      'href',
+      'mailto:anmeldung@example.com'
+    );
+    expect(
+      within(item).getByRole('link', { name: '0676 7654321'.replace(/\s/g, '') })
+    ).toHaveAttribute('href', 'tel:06767654321');
+  });
+
+  it.each([undefined, '', '   '])('hides the Anmeldung item completely for %j', async (value) => {
+    mockFirestoreDoc.getDocResult = {
+      id: foreignEvent.id,
+      data: { ...foreignEvent, registration: value },
+    };
+    renderPage();
+    await screen.findByText('Yoga heute');
+    expect(screen.queryByTestId('event-registration')).toBeNull();
+    expect(screen.queryByText('Anmeldung')).toBeNull();
+  });
+
+  it('orders title, description, info box and ticket button', async () => {
+    mockFirestoreDoc.getDocResult = {
+      id: foreignEvent.id,
+      data: { ...foreignEvent, link: 'https://example.com/tickets' },
+    };
+    renderPage();
+    const title = await screen.findByRole('heading', { level: 1, name: 'Yoga heute' });
+    const description = screen.getByText('Yoga Kurs.');
+    const infoBox = screen.getByTestId('event-kontakt');
+    const ticketButton = screen.getByRole('link', { name: /Mehr Infos & Tickets/ });
+    const follows = (a: Node, b: Node) =>
+      Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(follows(title, description)).toBe(true);
+    expect(follows(description, infoBox)).toBe(true);
+    expect(follows(infoBox, ticketButton)).toBe(true);
+  });
+});

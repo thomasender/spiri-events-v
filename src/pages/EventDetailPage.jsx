@@ -32,6 +32,7 @@ import {
   Phone,
   Ban,
   Heart,
+  ClipboardList,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useEvents } from '../hooks/useEvents';
@@ -45,6 +46,7 @@ import { getOrganizerName, getEventLocationLabel } from '../utils/eventFormat';
 import { resolveOrganizerProfilePath } from '../utils/profile';
 import { canEditEvent, canDeleteEvent, requiresDeleteReason } from '../utils/eventPermissions';
 import { parseContactText } from '../utils/contactFormat';
+import RegistrationText from '../components/RegistrationText';
 import {
   getMonthlyWeekdayPhrase,
   getNextUpcomingOccurrence,
@@ -69,7 +71,7 @@ import ShareButton from '../components/ShareButton';
 import { AdminInstagramPreview } from '../components/InstagramPostPreview';
 import AdminCoverPreview from '../components/AdminCoverPreview';
 import EventCoverImage from '../components/EventCoverImage';
-import RichTextView from '../components/RichTextView';
+import CollapsibleRichText from '../components/CollapsibleRichText';
 import SimilarEvents from '../components/SimilarEvents';
 import { stripHtml, truncateHtmlText } from '../utils/sanitize';
 import { normalizeLink } from '../utils/link';
@@ -738,6 +740,13 @@ export default function EventDetailPage() {
         </div>
       </header>
 
+      {event.description && (
+        <div className="event-description">
+          <h3>Über das Event</h3>
+          <CollapsibleRichText html={event.description} />
+        </div>
+      )}
+
       <div className="event-details">
         <div className="detail-item">
           <Calendar size={18} className="detail-icon" />
@@ -905,6 +914,16 @@ export default function EventDetailPage() {
           </div>
         )}
 
+        {event.registration?.trim() && (
+          <div className="detail-item" data-testid="event-registration">
+            <ClipboardList size={18} className="detail-icon" />
+            <div>
+              <span className="detail-label">Anmeldung</span>
+              <RegistrationText text={event.registration} />
+            </div>
+          </div>
+        )}
+
         {event.kontakt && (
           <div className="detail-item" data-testid="event-kontakt">
             {(() => {
@@ -964,14 +983,20 @@ export default function EventDetailPage() {
         )}
       </div>
 
-      {event.status === 'approved' && <CandleRoom key={event.id} eventId={event.id} />}
-
-      {event.description && (
-        <div className="event-description">
-          <h3>Über das Event</h3>
-          <RichTextView html={event.description} />
-        </div>
+      {event.link && (
+        <a
+          href={normalizeLink(event.link)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn btn-primary event-link"
+          onClick={() => trackOrganizerLinkClick(event, normalizeLink(event.link))}
+        >
+          <span>Mehr Infos & Tickets</span>
+          <ExternalLink size={16} />
+        </a>
       )}
+
+      {event.status === 'approved' && <CandleRoom key={event.id} eventId={event.id} />}
 
       <AdminCoverPreview
         event={event}
@@ -986,19 +1011,6 @@ export default function EventDetailPage() {
           setEvent((prev) => (prev ? { ...prev, instagramImage } : prev))
         }
       />
-
-      {event.link && (
-        <a
-          href={normalizeLink(event.link)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn btn-primary event-link"
-          onClick={() => trackOrganizerLinkClick(event, normalizeLink(event.link))}
-        >
-          <span>Mehr Infos & Tickets</span>
-          <ExternalLink size={16} />
-        </a>
-      )}
 
       {user && (isAdmin || isOwner) && (
         <EventMessages

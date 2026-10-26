@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseContactText } from '../../src/utils/contactFormat';
+import { parseContactText, parseRegistrationText } from '../../src/utils/contactFormat';
 
 describe('parseContactText', () => {
   it('returns no segments for empty input', () => {
@@ -38,5 +38,46 @@ describe('parseContactText', () => {
     expect(parseContactText('Einfach vorbeikommen')).toEqual([
       { type: 'text', value: 'Einfach vorbeikommen' },
     ]);
+  });
+});
+
+describe('parseRegistrationText', () => {
+  it('returns no segments for empty or blank input', () => {
+    expect(parseRegistrationText('')).toEqual([]);
+    expect(parseRegistrationText('   ')).toEqual([]);
+    expect(parseRegistrationText(null)).toEqual([]);
+    expect(parseRegistrationText(undefined)).toEqual([]);
+  });
+
+  it('turns a booking link into a link segment', () => {
+    expect(parseRegistrationText('https://example.com/buchen')).toEqual([
+      { type: 'link', value: 'https://example.com/buchen', href: 'https://example.com/buchen' },
+    ]);
+  });
+
+  it('adds https to www links and keeps trailing punctuation out of the link', () => {
+    const segments = parseRegistrationText('Buchen auf www.example.com/kurs.');
+    expect(segments.find((s) => s.type === 'link')).toEqual({
+      type: 'link',
+      value: 'www.example.com/kurs',
+      href: 'https://www.example.com/kurs',
+    });
+    expect(segments[0]).toEqual({ type: 'text', value: 'Buchen auf ' });
+    expect(segments[segments.length - 1]).toEqual({ type: 'text', value: '.' });
+  });
+
+  it('mixes text, link, email and phone and keeps the blanks between them', () => {
+    const segments = parseRegistrationText(
+      'Online https://example.com/x oder per Mail anmeldung@example.com oder 0676 1234567'
+    );
+    expect(segments.map((s) => s.type)).toEqual(['text', 'link', 'text', 'email', 'text', 'phone']);
+    expect(segments.map((s) => s.value).join('')).toBe(
+      'Online https://example.com/x oder per Mail anmeldung@example.com oder 06761234567'
+    );
+  });
+
+  it('does not make javascript: or other schemes clickable', () => {
+    const segments = parseRegistrationText('javascript:alert(1)');
+    expect(segments.some((s) => s.type === 'link')).toBe(false);
   });
 });

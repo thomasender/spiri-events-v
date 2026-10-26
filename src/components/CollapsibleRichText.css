@@ -1,0 +1,36 @@
+.collapsible-rich-text__content {
+  position: relative;
+  line-height: 1.4;
+  max-height: calc(10 * 1.4em);
+  overflow: hidden;
+}
+
+.collapsible-rich-text__content--expanded {
+  max-height: none;
+  overflow: visible;
+}
+
+.collapsible-rich-text__content--faded::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2.8em;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, var(--bg-primary, #fff));
+}
+
+.collapsible-rich-text__content .rich-text-view {
+  line-height: inherit;
+}
+
+.collapsible-rich-text__toggle {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}

@@ -321,3 +321,44 @@ describe('EventFormWizard Instagram image crop', () => {
     }
   });
 });
+
+describe('EventFormWizard registration field', () => {
+  const seedWith = (formData: Record<string, unknown>, currentStep = 4) =>
+    localStorage.setItem(
+      'eventWizardDraft:user-uid',
+      JSON.stringify({
+        version: 1,
+        savedAt: Date.now(),
+        draft: {
+          ...COMPLETE_DRAFT,
+          currentStep,
+          formData: { ...COMPLETE_DRAFT.formData, ...formData },
+        },
+      })
+    );
+
+  it('is optional: an event without it saves an empty registration', async () => {
+    mockProfile.value = profileWith({});
+    seedWith({});
+    renderWizard();
+    const saved = await submitAndGetSavedEvent();
+    expect(saved.registration).toBe('');
+  });
+
+  it('saves the trimmed text', async () => {
+    mockProfile.value = profileWith({});
+    seedWith({ registration: '  Anmeldung unter https://example.com/buchen  ' });
+    renderWizard();
+    const saved = await submitAndGetSavedEvent();
+    expect(saved.registration).toBe('Anmeldung unter https://example.com/buchen');
+  });
+
+  it('offers the field right after the contact field', () => {
+    mockProfile.value = profileWith({});
+    seedWith({}, 1);
+    renderWizard();
+    const field = screen.getByLabelText(/Anmeldung \(optional\)/);
+    expect(field).not.toBeRequired();
+    expect(field).toHaveAttribute('maxlength', '300');
+  });
+});
