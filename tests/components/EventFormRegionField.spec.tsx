@@ -50,6 +50,16 @@ vi.mock('../../src/lib/imageUpload', () => ({
   MAX_INPUT_SIZE_BYTES: 5 * 1024 * 1024,
 }));
 
+const placeData = vi.hoisted(() => ({ loadPlaceIndex: vi.fn() }));
+vi.mock('../../src/lib/placeData', async () => {
+  const search = await import('../../src/utils/placeSearch');
+  const { RAW_INDEX } = await import('../fixtures/smallPlaceIndex');
+  placeData.loadPlaceIndex.mockImplementation(() =>
+    Promise.resolve(search.preparePlaceIndex(RAW_INDEX))
+  );
+  return placeData;
+});
+
 import EventFormWizard from '../../src/components/EventFormWizard';
 import EventForm from '../../src/components/EventForm';
 
@@ -308,6 +318,78 @@ describe('EventFormWizard region field', () => {
     mockAuth.staffRegionIds = ['wien'];
     render(withRegions(ctx, <EventFormWizard />));
     expect(regionOptions()).toEqual(['Vorarlberg', 'Tirol', 'Wien (noch nicht freigeschaltet)']);
+  });
+});
+
+describe('Ort -> Landkreis in regions without a Gemeinde list', () => {
+  // Bayern and a cultural region (Ruhrgebiet, districts as assigned in Verwaltung).
+  function deContext(currentId: string) {
+    const allRegions = mergeRegions([
+      ...STATIC_REGIONS.map((r) => ({
+        id: r.id,
+        active: ['vorarlberg', 'bayern', 'ruhrgebiet'].includes(r.id),
+      })),
+      { id: 'ruhrgebiet', active: true, bezirke: ['Essen', 'Dortmund'] },
+    ]);
+    return {
+      ...DEFAULT_REGION_CONTEXT,
+      allRegions,
+      regions: allRegions.filter((r) => r.active),
+      regionId: currentId,
+      region: allRegions.find((r) => r.id === currentId) ?? null,
+    };
+  }
+  const city = () => document.getElementById('city') as HTMLInputElement;
+  const bezirk = () => document.getElementById('bezirk') as HTMLSelectElement;
+  const typeCity = (value: string) => {
+    fireEvent.focus(city());
+    fireEvent.change(city(), { target: { value } });
+  };
+
+  it('picking a place sets the Landkreis, which stays editable', async () => {
+    seedWizardDraft({ city: '', regionId: 'ruhrgebiet' });
+    render(withRegions(deContext('ruhrgebiet'), <EventFormWizard />));
+
+    typeCity('Dort');
+    fireEvent.click((await screen.findAllByTestId('city-place-option'))[0]);
+
+    expect(city().value).toBe('Dortmund');
+    expect(bezirk().value).toBe('Dortmund');
+    expect(screen.getByTestId('city-district-hint')).toHaveTextContent('Landkreis Dortmund');
+
+    fireEvent.change(bezirk(), { target: { value: 'Essen' } });
+    expect(bezirk().value).toBe('Essen');
+    expect(city().value).toBe('Dortmund');
+    expect(screen.queryByTestId('city-district-hint')).not.toBeInTheDocument();
+  });
+
+  it('only suggests places of the selected region and leaves ambiguous names empty', async () => {
+    seedWizardDraft({ city: '', regionId: 'bayern' });
+    render(withRegions(deContext('bayern'), <EventFormWizard />));
+
+    typeCity('Neustadt');
+    const options = await screen.findAllByTestId('city-place-option');
+    expect(options).toHaveLength(2);
+    fireEvent.click(options[0]);
+    expect(city().value).toBe('Neustadt');
+    expect(bezirk().value).toBe('');
+
+    typeCity('Essen');
+    await waitFor(() => expect(screen.queryAllByTestId('city-place-option')).toHaveLength(0));
+    expect(city().value).toBe('Essen');
+  });
+
+  it('Vorarlberg (Gemeinde field) and a single active region never load the place list', () => {
+    placeData.loadPlaceIndex.mockClear();
+    seedWizardDraft({ city: '' });
+    const { unmount } = render(withRegions(regionContext(['vorarlberg']), <EventFormWizard />));
+    fireEvent.change(screen.getByLabelText('Ort *'), { target: { value: 'Altach' } });
+    unmount();
+    seedWizardDraft({ city: '' });
+    render(withRegions(deContext('vorarlberg'), <EventFormWizard />));
+    fireEvent.change(screen.getByLabelText('Ort *'), { target: { value: 'Altach' } });
+    expect(document.getElementById('bezirk')).toBeNull();
+    expect(placeData.loadPlaceIndex).not.toHaveBeenCalled();
   });
 });
 

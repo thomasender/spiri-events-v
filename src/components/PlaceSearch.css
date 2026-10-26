@@ -133,3 +133,8 @@
   white-space: nowrap;
   border: 0;
 }
+
+/* Ort field of the event forms (CityField, regions without a Gemeinde list). */
+.city-combobox {
+  position: relative;
+}
