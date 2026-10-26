@@ -137,10 +137,10 @@ function brandHeader(): string {
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin:0 0 24px 0;">
       <tr>
         <td style="vertical-align:middle;padding-right:12px;">
-          <img src="${BRAND_LOGO_URL}" alt="tribe Vorarlberg" width="40" height="40" style="display:block;border:0;outline:none;text-decoration:none;" />
+          <img src="${BRAND_LOGO_URL}" alt="Tribe" width="40" height="40" style="display:block;border:0;outline:none;text-decoration:none;" />
         </td>
         <td style="vertical-align:middle;">
-          <span style="font-family:${HEADING_FONT};font-size:22px;font-weight:500;color:${COLOR_TEXT};letter-spacing:0.01em;">tribe Vorarlberg</span>
+          <span style="font-family:${HEADING_FONT};font-size:22px;font-weight:500;color:${COLOR_TEXT};letter-spacing:0.01em;">Tribe</span>
         </td>
       </tr>
     </table>`;
@@ -187,7 +187,7 @@ function wrapHtml(body: string, kind: FooterKind = 'notification'): string {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>tribe Vorarlberg</title>
+  <title>Tribe</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Nunito+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -199,7 +199,7 @@ function wrapHtml(body: string, kind: FooterKind = 'notification'): string {
     ${footerHtml(kind)}
   </div>
   <div style="max-width:560px;margin:16px auto 0 auto;font-family:${BODY_FONT};font-size:11px;line-height:1.5;color:${COLOR_MUTED};text-align:center;">
-    © tribe Vorarlberg
+    © Tribe
   </div>
 </body>
 </html>`;
@@ -556,7 +556,7 @@ export function buildPasswordResetPayload({
   buttonUrl,
 }: PasswordResetPayloadInput): EmailPayload {
   const link = escapeHtml(buttonUrl);
-  const subject = 'Passwort zurücksetzen für tribe Vorarlberg';
+  const subject = 'Passwort zurücksetzen für Tribe';
   const htmlBody = `
     <h1 style="${headingStyle(1)}">Passwort zurücksetzen</h1>
     <p style="${paragraphStyle()}">Hallo,</p>
