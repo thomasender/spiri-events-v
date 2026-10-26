@@ -784,6 +784,21 @@ describe('regions', () => {
       await assertFails(setDoc(doc(db, 'regions/tirol'), { ...validRegion, extra: 1 }));
       await assertFails(updateDoc(doc(db, 'regions/vorarlberg'), { extra: 1 }));
     });
+
+    it('texts.examples: strings up to 120 characters, known keys only', async () => {
+      const db = make().firestore();
+      const ref = doc(db, 'regions/vorarlberg');
+      await assertSucceeds(
+        updateDoc(ref, { texts: { examples: { place: 'Essen', contact: 'x' } } })
+      );
+      await assertSucceeds(updateDoc(ref, { texts: { examples: { place: 'a'.repeat(120) } } }));
+      await assertSucceeds(updateDoc(ref, { texts: deleteField() }));
+      await assertFails(updateDoc(ref, { texts: { examples: { place: 'a'.repeat(121) } } }));
+      await assertFails(updateDoc(ref, { texts: { examples: { place: 5 } } }));
+      await assertFails(updateDoc(ref, { texts: { examples: { bogus: 'x' } } }));
+      await assertFails(updateDoc(ref, { texts: { headings: {} } }));
+      await assertFails(updateDoc(ref, { texts: 'x' }));
+    });
   });
 });
 
@@ -1892,6 +1907,34 @@ describe('region about page (moderators)', () => {
       updateDoc(doc(db, 'regions/tirol'), { aboutText: 'x'.repeat(20001), updatedAt: 3 })
     );
     await assertFails(updateDoc(doc(db, 'regions/wien'), { aboutText: '<p>x</p>', updatedAt: 2 }));
+  });
+
+  it('a moderator sets and clears example texts of her own region only', async () => {
+    const db = dbFor('modTirol');
+    await assertSucceeds(
+      updateDoc(doc(db, 'regions/tirol'), {
+        texts: { examples: { place: 'Innsbruck', contact: 'a@b.at' } },
+        updatedAt: 2,
+      })
+    );
+    await assertSucceeds(
+      updateDoc(doc(db, 'regions/tirol'), { texts: deleteField(), updatedAt: 3 })
+    );
+    await assertFails(
+      updateDoc(doc(db, 'regions/wien'), { texts: { examples: { place: 'x' } }, updatedAt: 2 })
+    );
+    await assertFails(
+      updateDoc(doc(db, 'regions/tirol'), {
+        texts: { examples: { place: 'x'.repeat(121) } },
+        updatedAt: 2,
+      })
+    );
+    await assertFails(
+      updateDoc(doc(db, 'regions/tirol'), { texts: { examples: { place: 5 } }, updatedAt: 2 })
+    );
+    await assertFails(
+      updateDoc(doc(db, 'regions/tirol'), { texts: { examples: { other: 'x' } }, updatedAt: 2 })
+    );
   });
 
   it('a moderator cannot touch another region or other fields', async () => {

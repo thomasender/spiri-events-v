@@ -61,4 +61,11 @@ describe('CityField', () => {
     expect(screen.getByTestId('city')).toHaveTextContent('');
     expect(screen.getByTestId('bezirk')).toHaveTextContent('');
   });
+
+  it('free variant: default placeholder, or the one handed in', () => {
+    const { rerender } = render(<CityField free city="" bezirk="" onChange={() => {}} />);
+    expect(input()).toHaveAttribute('placeholder', 'z.B. Lindau');
+    rerender(<CityField free city="" bezirk="" onChange={() => {}} placeholder="z.B. Essen" />);
+    expect(input()).toHaveAttribute('placeholder', 'z.B. Essen');
+  });
 });

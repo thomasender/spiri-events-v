@@ -45,6 +45,7 @@ import {
   resolveRegionId,
 } from '../utils/regions';
 import { useRegionChoices } from '../hooks/useRegionChoices';
+import { formExamples } from '../utils/regionExamples';
 import { keepIfInRegion, selectedRegionId, subdivisionFor } from '../utils/regionChoices';
 import EventRegionDialog, { BEZIRK_NOT_FOUND } from './EventRegionDialog';
 import { normalizeCategoryInput, isValidCategoryInput } from '../utils/categoryInput';
@@ -208,6 +209,10 @@ export default function EventForm({ event }) {
     ? selectedRegionId(formData.regionId || storedRegionId, regionChoices)
     : '';
   const subdivision = subdivisionFor(selectedRegion, regionChoices);
+  const examples = formExamples(
+    regionChoices.allRegions?.find((r) => r.id === selectedRegion) ?? null,
+    { regionSpecific: regionChoices.enabled }
+  );
   const subdivisionLabel = subdivision.label;
   const bezirkOptions = subdivision.options ?? BEZIRKE;
   // A region without any Bezirk / Landkreis in its register cannot require one.
@@ -1015,7 +1020,7 @@ export default function EventForm({ event }) {
               type="text"
               value={formData.organizer.name}
               onChange={handleOrganizerChange}
-              placeholder="z.B. Peter Mathis oder Yoga Studio Dornbirn"
+              placeholder={examples.organizer}
               autoComplete="organization"
               className={errors['organizer.name'] ? 'input-error' : ''}
             />
@@ -1065,7 +1070,7 @@ export default function EventForm({ event }) {
               type="text"
               value={formData.kontakt}
               onChange={handleChange}
-              placeholder="z.B. 0676 1234567 oder kontakt@email.de"
+              placeholder={examples.contact}
               className={errors.kontakt ? 'input-error' : ''}
             />
             {errors.kontakt && <span className="error-text">{errors.kontakt}</span>}
@@ -1142,6 +1147,7 @@ export default function EventForm({ event }) {
               <div>
                 <CityField
                   free
+                  placeholder={examples.place}
                   city={formData.city}
                   bezirk={formData.bezirk}
                   disabled={formData.isOnline}
@@ -1190,9 +1196,7 @@ export default function EventForm({ event }) {
                 value={formData.place}
                 onChange={handleChange}
                 placeholder={
-                  formData.isOnline
-                    ? 'Nicht relevant für Online-Events'
-                    : 'z.B. Yogastudio Mitte, Stadtstraße 12, 6900 Bregenz'
+                  formData.isOnline ? 'Nicht relevant für Online-Events' : examples.address
                 }
                 disabled={formData.isOnline}
                 className={errors.place ? 'input-error' : ''}
