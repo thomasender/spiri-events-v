@@ -2,6 +2,8 @@ import { describe, it, expect, vi } from 'vitest';
 import {
   getEventOccurrences,
   getNextUpcomingOccurrence,
+  getNthWeekdayOrdinal,
+  nthWeekdayOfMonth,
   getOccurrenceCount,
   getRecurrenceLabel,
 } from '../../src/utils/eventOccurrences';
@@ -609,5 +611,258 @@ describe('getEventOccurrences — cancelled dates stay visible and are flagged',
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('monthlyWeekday and monthly month-end handling (6adca49e)', () => {
+  // Pin "today" so the series is fully inside the 1-year look-ahead window.
+  const withToday = (iso: string, fn: () => void) => {
+    const [y, m, d] = iso.split('-').map(Number);
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(y, m - 1, d, 12, 0, 0));
+    try {
+      fn();
+    } finally {
+      vi.useRealTimers();
+    }
+  };
+  const list = (event: Record<string, unknown>, mode: 'list' | 'calendar' = 'list') =>
+    getEventOccurrences(event, { mode });
+
+  it('nthWeekdayOfMonth finds the n-th and last weekday, and null when there is no 5th', () => {
+    // January 2026: Thursdays on 1, 8, 15, 22, 29
+    expect(nthWeekdayOfMonth(2026, 0, 4, 1)).toBe(1);
+    expect(nthWeekdayOfMonth(2026, 0, 4, 4)).toBe(22);
+    expect(nthWeekdayOfMonth(2026, 0, 4, 5)).toBe(29);
+    expect(nthWeekdayOfMonth(2026, 0, 4, -1)).toBe(29);
+    // February 2026 has only four Thursdays
+    expect(nthWeekdayOfMonth(2026, 1, 4, 5)).toBeNull();
+    expect(nthWeekdayOfMonth(2026, 1, 4, -1)).toBe(26);
+    // Leap year: last Saturday of Feb 2028 is the 26th, last Tuesday the 29th
+    expect(nthWeekdayOfMonth(2028, 1, 6, -1)).toBe(26);
+    expect(nthWeekdayOfMonth(2028, 1, 2, -1)).toBe(29);
+  });
+
+  it('getNthWeekdayOrdinal returns 1-4 and -1 (last) for a 5th weekday', () => {
+    expect(getNthWeekdayOrdinal('2026-01-01')).toBe(1);
+    expect(getNthWeekdayOrdinal('2026-01-07')).toBe(1);
+    expect(getNthWeekdayOrdinal('2026-01-08')).toBe(2);
+    expect(getNthWeekdayOrdinal('2026-01-15')).toBe(3);
+    expect(getNthWeekdayOrdinal('2026-01-28')).toBe(4);
+    expect(getNthWeekdayOrdinal('2026-01-29')).toBe(-1);
+    expect(getNthWeekdayOrdinal('')).toBeNull();
+  });
+
+  it('first Monday of the month', () => {
+    withToday('2026-01-02', () => {
+      const dates = list({
+        id: '1',
+        date: '2026-01-05',
+        recurrence: 'monthlyWeekday',
+        recurrenceEndDate: '2026-06-30',
+      }).map((o) => o.date);
+      expect(dates).toEqual([
+        '2026-01-05',
+        '2026-02-02',
+        '2026-03-02',
+        '2026-04-06',
+        '2026-05-04',
+        '2026-06-01',
+      ]);
+    });
+  });
+
+  it('second Wednesday and fourth Thursday of the month', () => {
+    withToday('2026-01-02', () => {
+      const second = list({
+        id: '1',
+        date: '2026-01-14',
+        recurrence: 'monthlyWeekday',
+        recurrenceEndDate: '2026-04-30',
+      }).map((o) => o.date);
+      expect(second).toEqual(['2026-01-14', '2026-02-11', '2026-03-11', '2026-04-08']);
+
+      // April 2026 has five Thursdays: the 4th one is the 23rd, not the 30th
+      const fourth = list({
+        id: '1',
+        date: '2026-01-22',
+        recurrence: 'monthlyWeekday',
+        recurrenceEndDate: '2026-04-30',
+      }).map((o) => o.date);
+      expect(fourth).toEqual(['2026-01-22', '2026-02-26', '2026-03-26', '2026-04-23']);
+    });
+  });
+
+  it('last weekday: a 5th start uses "last" and never skips months without a 5th one', () => {
+    withToday('2026-01-02', () => {
+      // Jan 29 2026 is the 5th Thursday; Feb has only four, April has five
+      const dates = list({
+        id: '1',
+        date: '2026-01-29',
+        recurrence: 'monthlyWeekday',
+        recurrenceEndDate: '2026-05-31',
+      }).map((o) => o.date);
+      expect(dates).toEqual(['2026-01-29', '2026-02-26', '2026-03-26', '2026-04-30', '2026-05-28']);
+    });
+  });
+
+  it('crosses the year boundary', () => {
+    withToday('2026-10-26', () => {
+      const dates = list({
+        id: '1',
+        date: '2026-10-30',
+        recurrence: 'monthlyWeekday',
+        recurrenceEndDate: '2027-02-28',
+      }).map((o) => o.date);
+      // last Fridays
+      expect(dates).toEqual(['2026-10-30', '2026-11-27', '2026-12-25', '2027-01-29', '2027-02-26']);
+    });
+  });
+
+  it('handles February in a leap year', () => {
+    withToday('2028-01-02', () => {
+      // Jan 29 2028 is the 5th Saturday -> last Saturday; Feb 2028 has five Saturdays? (5,12,19,26) no
+      const dates = list({
+        id: '1',
+        date: '2028-01-29',
+        recurrence: 'monthlyWeekday',
+        recurrenceEndDate: '2028-03-31',
+      }).map((o) => o.date);
+      expect(dates).toEqual(['2028-01-29', '2028-02-26', '2028-03-25']);
+    });
+  });
+
+  it('honors exceptionDates (removed) and cancelledDates (kept, flagged)', () => {
+    withToday('2026-01-02', () => {
+      const result = list({
+        id: '1',
+        date: '2026-01-05',
+        recurrence: 'monthlyWeekday',
+        recurrenceEndDate: '2026-04-30',
+        exceptionDates: ['2026-02-02'],
+        cancelledDates: ['2026-03-02'],
+      });
+      expect(result.map((o) => o.date)).toEqual(['2026-01-05', '2026-03-02', '2026-04-06']);
+      expect(result.map((o) => o.isCancelled)).toEqual([false, true, false]);
+    });
+  });
+
+  it('includes the recurrence end date itself and nothing after it', () => {
+    withToday('2026-01-02', () => {
+      const base = { id: '1', date: '2026-01-05', recurrence: 'monthlyWeekday' };
+      expect(list({ ...base, recurrenceEndDate: '2026-03-02' }).map((o) => o.date)).toEqual([
+        '2026-01-05',
+        '2026-02-02',
+        '2026-03-02',
+      ]);
+      expect(list({ ...base, recurrenceEndDate: '2026-03-01' }).map((o) => o.date)).toEqual([
+        '2026-01-05',
+        '2026-02-02',
+      ]);
+    });
+  });
+
+  it('defaults to a one-year horizon without recurrenceEndDate', () => {
+    withToday('2026-01-02', () => {
+      const dates = list({ id: '1', date: '2026-01-05', recurrence: 'monthlyWeekday' }).map(
+        (o) => o.date
+      );
+      // capped by the global look-ahead of one year from today (2027-01-02)
+      expect(dates).toHaveLength(12);
+      expect(dates[11]).toBe('2026-12-07');
+    });
+  });
+
+  it('expands multi-day events per occurrence (calendar days and list entries)', () => {
+    withToday('2026-01-02', () => {
+      const event = {
+        id: '1',
+        date: '2026-01-05',
+        endDate: '2026-01-07',
+        recurrence: 'monthlyWeekday',
+        recurrenceEndDate: '2026-02-28',
+      };
+      expect(list(event, 'calendar').map((o) => o.date)).toEqual([
+        '2026-01-05',
+        '2026-01-06',
+        '2026-01-07',
+        '2026-02-02',
+        '2026-02-03',
+        '2026-02-04',
+      ]);
+      expect(list(event).map((o) => o.date)).toEqual(['2026-01-05', '2026-02-02']);
+    });
+  });
+
+  it('keeps an ongoing multi-day occurrence visible until its last day', () => {
+    withToday('2026-02-03', () => {
+      const result = list({
+        id: '1',
+        date: '2026-01-05',
+        endDate: '2026-01-07',
+        recurrence: 'monthlyWeekday',
+        recurrenceEndDate: '2026-03-31',
+      }).map((o) => o.date);
+      expect(result).toEqual(['2026-02-02', '2026-03-02']);
+    });
+  });
+
+  it('monthly on the 31st clamps to the last day of shorter months instead of overflowing', () => {
+    withToday('2026-01-02', () => {
+      const dates = list({
+        id: '1',
+        date: '2026-01-31',
+        recurrence: 'monthly',
+        recurrenceEndDate: '2026-06-30',
+      }).map((o) => o.date);
+      expect(dates).toEqual([
+        '2026-01-31',
+        '2026-02-28',
+        '2026-03-31',
+        '2026-04-30',
+        '2026-05-31',
+        '2026-06-30',
+      ]);
+    });
+    withToday('2028-01-02', () => {
+      const dates = list({
+        id: '1',
+        date: '2028-01-30',
+        recurrence: 'monthly',
+        recurrenceEndDate: '2028-03-31',
+      }).map((o) => o.date);
+      expect(dates).toEqual(['2028-01-30', '2028-02-29', '2028-03-30']);
+    });
+  });
+
+  it('monthly on the 15th is unchanged', () => {
+    withToday('2026-01-02', () => {
+      const dates = list({
+        id: '1',
+        date: '2026-01-15',
+        recurrence: 'monthly',
+        recurrenceEndDate: '2026-03-31',
+      }).map((o) => o.date);
+      expect(dates).toEqual(['2026-01-15', '2026-02-15', '2026-03-15']);
+    });
+  });
+
+  it('getRecurrenceLabel names the ordinal and weekday', () => {
+    expect(getRecurrenceLabel({ date: '2026-01-05', recurrence: 'monthlyWeekday' })).toBe(
+      'Jeden ersten Montag im Monat'
+    );
+    expect(getRecurrenceLabel({ date: '2026-01-14', recurrence: 'monthlyWeekday' })).toBe(
+      'Jeden zweiten Mittwoch im Monat'
+    );
+    expect(getRecurrenceLabel({ date: '2026-01-15', recurrence: 'monthlyWeekday' })).toBe(
+      'Jeden dritten Donnerstag im Monat'
+    );
+    expect(getRecurrenceLabel({ date: '2026-01-22', recurrence: 'monthlyWeekday' })).toBe(
+      'Jeden vierten Donnerstag im Monat'
+    );
+    expect(getRecurrenceLabel({ date: '2026-01-30', recurrence: 'monthlyWeekday' })).toBe(
+      'Jeden letzten Freitag im Monat'
+    );
+    expect(getRecurrenceLabel({ date: '2026-01-30', recurrence: 'monthly' })).toBe('Jeden Monat');
   });
 });

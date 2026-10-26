@@ -48,6 +48,8 @@ import {
   isDefaultFocalPoint,
 } from '../lib/eventImage';
 import { CURRENCIES, DEFAULT_CURRENCY, formatPriceWithCurrency } from '../utils/currency';
+import MonthlyModeOptions from './MonthlyModeOptions';
+import { getMonthlyWeekdayPhrase } from '../utils/eventOccurrences';
 import { saveWizardDraft, loadWizardDraft, clearWizardDraft } from '../utils/wizardDraftStorage';
 import { normalizeCategoryInput, isValidCategoryInput } from '../utils/categoryInput';
 import { getCategoryColor } from '../utils/categoryColors';
@@ -64,6 +66,8 @@ import {
 } from '../utils/instagramImageChoice';
 import './EventForm.css';
 import './EventFormWizard.css';
+
+const isMonthly = (recurrence) => recurrence === 'monthly' || recurrence === 'monthlyWeekday';
 
 const INITIAL_STATE = {
   title: '',
@@ -1398,12 +1402,12 @@ export default function EventFormWizard() {
               />
               <span>Zweiwöchentlich</span>
             </label>
-            <label className={`radio-label ${formData.recurrence === 'monthly' ? 'active' : ''}`}>
+            <label className={`radio-label ${isMonthly(formData.recurrence) ? 'active' : ''}`}>
               <input
                 type="radio"
                 name="recurrence"
                 value="monthly"
-                checked={formData.recurrence === 'monthly'}
+                checked={isMonthly(formData.recurrence)}
                 onChange={handleChange}
               />
               <span>Monatlich</span>
@@ -1420,6 +1424,14 @@ export default function EventFormWizard() {
             </label>
           </div>
         </div>
+      )}
+
+      {hasRecurrence && (
+        <MonthlyModeOptions
+          recurrence={formData.recurrence}
+          date={formData.date}
+          onSelect={(value) => handleChange({ target: { name: 'recurrence', value } })}
+        />
       )}
 
       {formData.recurrence === 'custom' && (
@@ -1597,7 +1609,9 @@ export default function EventFormWizard() {
                   ? 'Zweiwöchentlich'
                   : formData.recurrence === 'monthly'
                     ? 'Monatlich'
-                    : `An einzelnen Terminen (${formData.customDates?.length || 0} Termine)`}
+                    : formData.recurrence === 'monthlyWeekday'
+                      ? `Monatlich am ${getMonthlyWeekdayPhrase(formData.date)}`
+                      : `An einzelnen Terminen (${formData.customDates?.length || 0} Termine)`}
             </p>
           )}
           <p>
