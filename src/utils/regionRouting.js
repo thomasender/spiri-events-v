@@ -151,6 +151,23 @@ export function regionCanonicalPath(regionId, path = '/', regions = STATIC_REGIO
 }
 
 /**
+ * Target of the header logo. Signed-in people whose profile names a region
+ * (`users/{uid}.placeSelection.regionId`) go to that region's page while it is
+ * active, otherwise to "Wo suchst du?" (`/regionen`). Everyone else, and
+ * everyone while fewer than two regions are active or the region config is still
+ * loading (the static register only knows Vorarlberg as active), goes to `/`.
+ */
+export function logoTargetPath(
+  profileRegionId,
+  { regions = STATIC_REGIONS, loading = false } = {}
+) {
+  if (!profileRegionId || loading || activeRegions(regions).length < 2) return '/';
+  return getRegionBySlug(profileRegionId, regions)?.active
+    ? regionCanonicalPath(profileRegionId, '/', regions)
+    : REGIONS_PAGE_PATH;
+}
+
+/**
  * "in der Steiermark", "im Allgäu", "in Tirol": for running text on region
  * pages. Uses the register's `inPhrase` (src/utils/regions.js); a region
  * object without one falls back to "in <Name>".
@@ -174,6 +191,11 @@ export function regionSwitchSubpath(pathname) {
 }
 
 export const REGION_CHOOSER_SEEN_KEY = 'tribe:regionChooserSeen';
+// "Wo suchst du?" (RegionChooser) opened on purpose (switcher, burger menu).
+export const REGIONS_PAGE_PATH = '/regionen';
+// Entry pages without a region in the address that show the chooser on a first visit:
+// never on a region address, event page or profile, so crawlers and previews are unaffected.
+export const CHOOSER_PATHS = ['/', '/verzeichnis'];
 
 export function readRegionChooserSeen(storage) {
   try {

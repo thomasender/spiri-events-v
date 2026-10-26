@@ -13,6 +13,7 @@ import RegionSwitcher, { RegionMenuList } from './RegionSwitcher';
 import { useRegion } from '../hooks/useRegion';
 import { useRegionTexts } from '../hooks/useRegionTexts';
 import { customSlogan, DEFAULT_SLOGAN_LINE2 } from '../utils/regionAboutText';
+import { logoTargetPath } from '../utils/regionRouting';
 import MentionBell from './MentionBell';
 import {
   Users,
@@ -44,7 +45,22 @@ export default function Header() {
   const { user, logout, role, canCreateEvents } = useAuth();
   const { profile } = useProfile(user?.uid);
   const regionTexts = useRegionTexts();
-  const { comingSoon, regionId, region, isNational, combinedView, neutralHeader } = useRegion();
+  const {
+    comingSoon,
+    regionId,
+    region,
+    isNational,
+    combinedView,
+    neutralHeader,
+    regionChooserOpen,
+    allRegions,
+    loading: regionsLoading,
+  } = useRegion();
+  // Logo: the region of the signed-in person's profile (see logoTargetPath).
+  const logoPath = logoTargetPath(user ? profile?.placeSelection?.regionId : null, {
+    regions: allRegions,
+    loading: regionsLoading,
+  });
   const slogan = !neutralHeader && !isNational && !combinedView ? customSlogan(region) : null;
   // On a coming-soon region page the event belongs to that region.
   const addEventPath = comingSoon && regionId ? `/admin/new?region=${regionId}` : '/admin/new';
@@ -513,7 +529,7 @@ export default function Header() {
       data-header-visible={isHeaderVisible}
     >
       <nav className="header-container" aria-label="Hauptnavigation">
-        <Link to="/" className="logo" onClick={closeMenu}>
+        <Link to={logoPath} className="logo" onClick={closeMenu} data-testid="header-logo">
           <div className="logo-icon">
             <img src="/logo-mark.svg" alt="" aria-hidden="true" />
           </div>
@@ -523,8 +539,9 @@ export default function Header() {
           </div>
         </Link>
 
-        {/* Signed-in people change the region in their profile (Super-Admins in the footer). */}
-        {!user && <RegionSwitcher />}
+        {/* Signed-in people change the region in their profile (Super-Admins in the footer).
+            Not above "Wo suchst du?": no region name there. */}
+        {!user && !regionChooserOpen && <RegionSwitcher />}
 
         <div className="nav-desktop">{renderDesktopNav()}</div>
 
@@ -583,7 +600,7 @@ export default function Header() {
         className={`nav-mobile${menuOpen ? ' nav-mobile--open' : ''}`}
         aria-hidden={!menuOpen}
       >
-        {!user && <RegionMenuList onNavigate={closeMenu} />}
+        {!user && !regionChooserOpen && <RegionMenuList onNavigate={closeMenu} />}
         {renderMobileNav()}
       </div>
 

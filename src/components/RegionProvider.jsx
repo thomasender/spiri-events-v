@@ -10,6 +10,8 @@ import {
   writePlaceSelection,
 } from '../utils/placeSelection';
 import {
+  CHOOSER_PATHS,
+  REGIONS_PAGE_PATH,
   activeRegions,
   availableCombinedViews,
   combinedViewRegions,
@@ -23,6 +25,9 @@ import {
   writeLastRegion,
 } from '../utils/regionRouting';
 
+// Pages that belong to no region (legal pages of the association): neutral header.
+const NEUTRAL_HEADER_PATHS = ['/impressum', '/datenschutz'];
+
 /**
  * Region context for the whole app. The URL (`/tirol`, `/tirol/verzeichnis`)
  * is the source of truth; `/` and other pages without a region use the last
@@ -31,7 +36,7 @@ import {
  * from `useRegions()` (static register first, Firestore when loaded).
  */
 export default function RegionProvider({ children }) {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const navigate = useNavigate();
   const { regions: registry, loading } = useRegions();
   // A region without Landkreise / Bezirke does not exist for visitors (see isPopulated).
@@ -96,16 +101,33 @@ export default function RegionProvider({ children }) {
     const eventRegionComingSoon = Boolean(
       !urlSlug && eventRegionId && !getRegionBySlug(eventRegionId, allRegions)?.active
     );
-    // Neutral header ("Dein Kalender"): region chooser (/regionen and first visit),
-    // coming-soon pages and the event form for a region that is not open yet.
+    // Dark launch: with fewer than two active regions nothing below changes the header.
+    const regionMode = !loading && activeRegions(allRegions).length >= 2;
+    // "Event erstellen" for a region that is not open yet (`/admin/new?region=<slug>`, from
+    // its coming-soon page): the form reads the region from the address itself.
+    const formRegion = pathname === '/admin/new' ? new URLSearchParams(search).get('region') : null;
+    const eventFormComingSoon = Boolean(
+      regionMode && isRegionSlug(formRegion) && !getRegionBySlug(formRegion, allRegions)?.active
+    );
+    // "Wo suchst du?" page (RegionChooser): `/regionen` opened on purpose, or `/` and
+    // `/verzeichnis` while nothing is remembered (place, chooser seen, active last region).
     const stored = readLastRegion();
-    const firstVisitChooser =
-      !loading &&
-      activeRegions(allRegions).length >= 2 &&
-      ['/', '/verzeichnis'].includes(pathname) &&
-      !(readRegionChooserSeen() || Boolean(stored && getRegionBySlug(stored, allRegions)?.active));
+    const chooserRemembered =
+      readRegionChooserSeen() ||
+      Boolean(placeSelection) ||
+      Boolean(stored && getRegionBySlug(stored, allRegions)?.active);
+    const regionChooserOpen =
+      regionMode &&
+      (pathname === REGIONS_PAGE_PATH || (!chooserRemembered && CHOOSER_PATHS.includes(pathname)));
+    // Neutral header ("Dein Kalender"): region chooser, coming-soon pages, the event
+    // form for a region that is not open yet and Impressum / Datenschutz.
     const neutralHeader =
-      comingSoon || eventRegionComingSoon || pathname === '/regionen' || firstVisitChooser;
+      comingSoon ||
+      eventRegionComingSoon ||
+      eventFormComingSoon ||
+      pathname === REGIONS_PAGE_PATH ||
+      regionChooserOpen ||
+      (regionMode && NEUTRAL_HEADER_PATHS.includes(pathname));
     const regionId =
       !urlSlug && eventRegionId
         ? eventRegionId
@@ -125,9 +147,11 @@ export default function RegionProvider({ children }) {
       // True on the coming-soon page of a region/view that is not open yet.
       comingSoon,
       neutralHeader,
+      // True while the "Wo suchst du?" page (RegionChooser) covers the page.
+      regionChooserOpen,
       // Active regions the current combined view covers ([] outside one).
       combinedRegions: combinedView ? combinedViewRegions(combinedView, allRegions) : [],
-      // Combined views offered in chooser and switcher.
+      // Combined views that are available (enough active regions).
       combinedViews: availableCombinedViews(allRegions),
       loading,
       setRegion,
@@ -144,6 +168,7 @@ export default function RegionProvider({ children }) {
   }, [
     urlSlug,
     pathname,
+    search,
     eventRegionId,
     storedSlug,
     allRegions,

@@ -13,7 +13,7 @@
 //   page title    "Kalender | The Tribe <Region>"    (legacy: "Kalender | tribe Vorarlberg")
 //   directory     "Verzeichnis – Angebote <inPhrase>"
 // The brand in region mode is "The Tribe"; the legal entity "tribe Vorarlberg"
-// (footer, LEGACY_SITE_NAME) is never replaced. Combined views (COMBINED_VIEW_TEXTS):
+// (LEGACY_SITE_NAME) is never replaced. Combined views (COMBINED_VIEW_TEXTS):
 // "österreichischer" / "deutscher" / "Schweizer", "Für Österreich und Umkreis";
 // "Alle Tribes" has no place or adjective ("Dein Kalender",
 // "in allen Regionen", title "Kalender | The Tribe").

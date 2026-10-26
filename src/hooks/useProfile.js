@@ -15,6 +15,7 @@ import { normalizePhotoZoom } from '../components/AvatarImage';
 import { findUniqueProfileSlug, slugifyName } from '../lib/slug';
 import { normalizeUsername } from '../utils/username';
 import { DEFAULT_REGION_ID, resolveDirectoryRegionIds } from '../utils/regions';
+import { normalizeSelection } from '../utils/placeSelection';
 
 export const NOTIFICATION_PREFERENCE_KEYS = [
   'notifyOnSubmitted',
@@ -56,6 +57,7 @@ const EMPTY_PROFILE = {
   allowMentions: false,
   instagramConsentDefault: false,
   onboardingDismissed: false,
+  placeSelection: null,
   createdAt: null,
   updatedAt: null,
 };
@@ -105,6 +107,8 @@ function normalize(data) {
     allowMentions: data.allowMentions === true,
     instagramConsentDefault: data.instagramConsentDefault === true,
     onboardingDismissed: data.onboardingDismissed === true,
+    // "Wo bist du?" place + radius mirrored by PlaceSelectionSync (null without one).
+    placeSelection: normalizeSelection(data.placeSelection),
     createdAt: data.createdAt || null,
     updatedAt: data.updatedAt || null,
   };

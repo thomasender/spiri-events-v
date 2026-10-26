@@ -35,6 +35,7 @@ vi.mock('../../src/pages/PublicProfilePage', () => ({
 import RegionProvider from '../../src/components/RegionProvider';
 import { RegionDirectoryRoute, RegionOrProfileRoute } from '../../src/components/RegionRoutes';
 import { useEventRegionContext, useRegion } from '../../src/hooks/useRegion';
+import { useRegionTexts } from '../../src/hooks/useRegionTexts';
 
 const WITH_TIROL = mergeRegions([{ id: 'tirol', active: true }]);
 const WITH_ALLGAEU = mergeRegions([
@@ -53,6 +54,11 @@ function RegionProbe() {
   );
 }
 
+// The title the site header shows top left.
+function HeaderTitle() {
+  return <output data-testid="header-title">{useRegionTexts().headerTitle}</output>;
+}
+
 function EventStub() {
   useEventRegionContext({ regionId: 'tirol' });
   return <div data-testid="event-page" />;
@@ -63,6 +69,7 @@ function renderAt(path: string) {
     <MemoryRouter initialEntries={[path]}>
       <RegionProvider>
         <RegionProbe />
+        <HeaderTitle />
         <Routes>
           <Route path="/" element={<div data-testid="home-calendar" />} />
           <Route path="/event/:slug" element={<EventStub />} />
@@ -75,6 +82,7 @@ function renderAt(path: string) {
 }
 
 const probe = () => screen.getByTestId('region-probe').textContent;
+const headerTitle = () => screen.getByTestId('header-title').textContent;
 
 beforeEach(() => {
   mocks.regions = { regions: STATIC_REGIONS, loading: false };
@@ -305,5 +313,42 @@ describe('event pages', () => {
     renderAt('/event/yoga-innsbruck');
     expect(screen.getByTestId('event-page')).toBeInTheDocument();
     expect(probe()).toBe('tirol');
+  });
+});
+
+describe('neutral header on pages without a region', () => {
+  it.each(['/impressum', '/datenschutz'])(
+    '%s has the neutral title with two active regions',
+    (path) => {
+      mocks.regions = { regions: WITH_TIROL, loading: false };
+      window.localStorage.setItem(LAST_REGION_STORAGE_KEY, 'tirol');
+      renderAt(path);
+      expect(headerTitle()).toBe('Dein Kalender');
+    }
+  );
+
+  it('Impressum keeps the Vorarlberg title with only Vorarlberg active (dark launch)', () => {
+    renderAt('/impressum');
+    expect(headerTitle()).toBe('Dein Vorarlberger Kalender');
+  });
+});
+
+describe('neutral header on "Event erstellen" for a region that is not open yet', () => {
+  it('/admin/new?region=<inactive> has the neutral title', () => {
+    mocks.regions = { regions: WITH_TIROL, loading: false };
+    renderAt('/admin/new?region=steiermark');
+    expect(headerTitle()).toBe('Dein Kalender');
+  });
+
+  it('an open region keeps its title', () => {
+    mocks.regions = { regions: WITH_TIROL, loading: false };
+    window.localStorage.setItem(LAST_REGION_STORAGE_KEY, 'tirol');
+    renderAt('/admin/new?region=tirol');
+    expect(headerTitle()).toBe('Dein Tiroler Kalender');
+  });
+
+  it('keeps the Vorarlberg title with only Vorarlberg active (dark launch)', () => {
+    renderAt('/admin/new?region=steiermark');
+    expect(headerTitle()).toBe('Dein Vorarlberger Kalender');
   });
 });

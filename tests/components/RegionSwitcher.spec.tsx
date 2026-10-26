@@ -48,6 +48,7 @@ vi.mock('../../src/lib/placeData', async () => {
 import RegionProvider from '../../src/components/RegionProvider';
 import RegionSwitcher, { RegionMenuList } from '../../src/components/RegionSwitcher';
 import RegionChooser from '../../src/components/RegionChooser';
+import { useRegionTexts } from '../../src/hooks/useRegionTexts';
 
 const TWO_ACTIVE = mergeRegions([{ id: 'tirol', active: true }]);
 // Vorarlberg (AT) + Bayern (DE): "Alle Tribes" is available, the country views are not.
@@ -62,6 +63,11 @@ function Where() {
   return <output data-testid="where">{useLocation().pathname}</output>;
 }
 
+// The title the site header shows top left.
+function HeaderTitle() {
+  return <output data-testid="header-title">{useRegionTexts().headerTitle}</output>;
+}
+
 function renderAt(path: string) {
   return render(
     <MemoryRouter initialEntries={[path]}>
@@ -69,6 +75,7 @@ function renderAt(path: string) {
         <RegionSwitcher />
         <RegionChooser />
         <Where />
+        <HeaderTitle />
         <Routes>
           <Route path="*" element={null} />
         </Routes>
@@ -80,6 +87,7 @@ function renderAt(path: string) {
 const key = (k: string, shiftKey = false) =>
   fireEvent.keyDown(document.activeElement as HTMLElement, { key: k, shiftKey });
 const where = () => screen.getByTestId('where').textContent;
+const headerTitle = () => screen.getByTestId('header-title').textContent;
 const stored = () => JSON.parse(window.localStorage.getItem(PLACE_SELECTION_KEY) ?? 'null');
 
 beforeEach(() => {
@@ -328,6 +336,8 @@ describe('the remembered place', () => {
     renderAt('/');
     expect(screen.queryByTestId('region-chooser')).toBeNull();
     expect(screen.getByRole('button', { name: /aktuell Innsbruck · 25 km/ })).toBeInTheDocument();
+    // No chooser, so the header names the region again.
+    expect(headerTitle()).toBe('Dein Tiroler Kalender');
   });
 
   it('is ignored for another region address: Tirol by hand is Tirol, not a circle', () => {
@@ -377,26 +387,15 @@ describe('combined views in switcher and chooser (ticket 33)', () => {
     expect(screen.getByRole('button', { name: /aktuell Vorarlberg/ })).toBeInTheDocument();
   });
 
-  it('chooser lists the available combined views; choosing one counts as a choice', () => {
+  it('the chooser offers no combined views (for now)', () => {
     window.localStorage.clear();
     mocks.regions = { regions: THREE_ACTIVE, loading: false };
-    const { unmount } = renderAt('/');
-    const labels = Array.from(
-      document.querySelectorAll('.region-chooser-options--views .region-chooser-option')
-    ).map((b) => b.textContent);
-    // All four views are always offered; unavailable ones are marked "(bald)".
-    expect(labels).toEqual([
-      'Ganz Österreich',
-      'Ganz Deutschland (bald)',
-      'Ganz Schweiz (bald)',
-      'Alle Tribes',
-    ]);
-    fireEvent.click(screen.getByRole('button', { name: 'Alle Tribes' }));
-    expect(where()).toBe('/alle-tribes');
-    expect(window.localStorage.getItem(REGION_CHOOSER_SEEN_KEY)).toBe('1');
-    unmount();
     renderAt('/');
-    expect(screen.queryByTestId('region-chooser')).toBeNull();
+    const chooser = screen.getByTestId('region-chooser');
+    expect(within(chooser).queryByText(/Oder alles auf einmal/)).toBeNull();
+    expect(
+      within(chooser).queryByRole('button', { name: /Ganz Österreich|Alle Tribes/ })
+    ).toBeNull();
   });
 
   it('opening a combined view address counts as a choice', () => {
@@ -425,6 +424,7 @@ describe('region chooser opened on purpose (/regionen)', () => {
   it('shows the page although a region is remembered, and can be closed', () => {
     renderAt('/regionen');
     expect(screen.getByTestId('region-chooser')).toBeInTheDocument();
+    expect(headerTitle()).toBe('Dein Kalender');
     fireEvent.click(screen.getByTestId('region-chooser-close'));
     expect(where()).toBe('/');
     expect(screen.queryByTestId('region-chooser')).toBeNull();
@@ -467,6 +467,8 @@ describe('RegionChooser (first visit)', () => {
   it('shows as a modal dialog with focus inside, a place search and no map or region lists', () => {
     renderAt('/');
     const dialog = screen.getByRole('dialog', { name: 'Wo suchst du?' });
+    // The header above it has the neutral title, without a region.
+    expect(headerTitle()).toBe('Dein Kalender');
     expect(dialog).toHaveAttribute('aria-modal', 'true');
     expect(dialog).toHaveFocus();
     expect(dialog.querySelector('.region-chooser-close')).toBeNull();
@@ -503,16 +505,6 @@ describe('RegionChooser (first visit)', () => {
     await searchAndPick(chooser, 'innsbruck', 'Innsbruck');
     apply(chooser);
     expect(where()).toBe('/tirol/verzeichnis');
-  });
-
-  it('Ganz Österreich counts as a choice too', () => {
-    mocks.regions = { regions: THREE_ACTIVE, loading: false };
-    const { unmount } = renderAt('/verzeichnis');
-    fireEvent.click(screen.getByRole('button', { name: 'Ganz Österreich' }));
-    expect(where()).toBe('/oesterreich/verzeichnis');
-    unmount();
-    renderAt('/');
-    expect(screen.queryByTestId('region-chooser')).toBeNull();
   });
 
   it('cannot be dismissed with Escape or a backdrop click', () => {

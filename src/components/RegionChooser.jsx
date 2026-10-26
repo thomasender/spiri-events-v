@@ -4,10 +4,9 @@ import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useRegion } from '../hooks/useRegion';
 import { trackFilter } from '../lib/analyticsEvents';
-import { COMBINED_VIEWS, isCombinedViewSlug } from '../utils/regions';
+import { isCombinedViewSlug } from '../utils/regions';
 import {
-  readLastRegion,
-  readRegionChooserSeen,
+  REGIONS_PAGE_PATH,
   regionSlugFromPath,
   writeRegionChooserSeen,
 } from '../utils/regionRouting';
@@ -15,12 +14,6 @@ import './RegionChooser.css';
 
 import ModeratorApplyCard from './ModeratorApplyCard';
 import PlacePicker from './PlacePicker';
-
-// Only the two entry pages without a region in the address: never on a region
-// address, event page or profile, so crawlers and link previews are unaffected.
-const CHOOSER_PATHS = ['/', '/verzeichnis'];
-// Opened on purpose (switcher, burger menu): always shown, and it can be closed.
-export const REGIONS_PAGE_PATH = '/regionen';
 
 const FOCUSABLE =
   'button:not([disabled]), input:not([disabled]):not([tabindex="-1"]), select:not([disabled]), textarea:not([disabled])';
@@ -32,15 +25,17 @@ const FOCUSABLE =
  * Opened on purpose (`/regionen`) it has "Schließen" at the top and works with Escape.
  * Dark launch: needs at least two active regions. First visit: no close button, no Escape
  * dismissal. Not shown once a place or region is remembered (localStorage), and opening a
- * region address counts as a choice. The page stays rendered behind it (only made inert
- * while the chooser is open). A region that is not open yet leads to its coming-soon page.
+ * region address counts as a choice (when it shows: `regionChooserOpen` in RegionProvider).
+ * The page stays rendered behind it (only made inert while the chooser is open); the site
+ * header stays visible above it with the neutral title. A region that is not open yet leads
+ * to its coming-soon page.
  */
 export default function RegionChooser() {
-  const { regions, combinedViews, loading, setRegion, placeSelection, setPlaceSelection } =
-    useRegion();
+  const { regions, loading, setRegion, setPlaceSelection, regionChooserOpen } = useRegion();
   const { pathname, key } = useLocation();
   const navigate = useNavigate();
   const dialogRef = useRef(null);
+  const backdropRef = useRef(null);
   const onRegionsPage = pathname === REGIONS_PAGE_PATH;
 
   // Opening a combined view ("Ganz Österreich", ...) by address is a choice as
@@ -50,21 +45,21 @@ export default function RegionChooser() {
     if (isCombinedViewSlug(urlSlug) && !loading && regions.length >= 2) writeRegionChooserSeen();
   }, [urlSlug, loading, regions.length]);
 
-  const stored = readLastRegion();
-  const remembered =
-    readRegionChooserSeen() ||
-    Boolean(placeSelection) ||
-    Boolean(stored && regions.some((r) => r.slug === stored));
-  const show =
-    !loading &&
-    regions.length >= 2 &&
-    (onRegionsPage || (!remembered && CHOOSER_PATHS.includes(pathname)));
+  const show = regionChooserOpen;
   // Only the on-purpose page can be left without choosing.
   const close = () => navigate(key !== 'default' ? -1 : '/');
 
   useEffect(() => {
     if (!show) return undefined;
     dialogRef.current?.focus();
+    // The site header stays visible (inert like the rest of the page): start below it.
+    const placeBelowHeader = () => {
+      const header = document.querySelector('header.header');
+      const bottom = header ? Math.max(0, header.getBoundingClientRect().bottom) : 0;
+      backdropRef.current?.style.setProperty('--region-chooser-top', `${bottom}px`);
+    };
+    placeBelowHeader();
+    window.addEventListener('resize', placeBelowHeader);
     const app = document.getElementById('root');
     app?.setAttribute('inert', '');
     app?.setAttribute('aria-hidden', 'true');
@@ -102,6 +97,7 @@ export default function RegionChooser() {
     document.addEventListener('keydown', onKeyDown, true);
     return () => {
       document.removeEventListener('keydown', onKeyDown, true);
+      window.removeEventListener('resize', placeBelowHeader);
       app?.removeAttribute('inert');
       app?.removeAttribute('aria-hidden');
     };
@@ -112,12 +108,6 @@ export default function RegionChooser() {
   if (!show) return null;
 
   const subpath = pathname === '/verzeichnis' ? '/verzeichnis' : '/';
-
-  const chooseView = (slug) => {
-    writeRegionChooserSeen();
-    trackFilter('region', slug);
-    setRegion(slug, subpath);
-  };
 
   const apply = (selection) => {
     setPlaceSelection(selection);
@@ -131,11 +121,8 @@ export default function RegionChooser() {
     }
   };
 
-  // All four views are offered; the ones without enough open regions lead to "bald".
-  const availableViews = new Set(combinedViews.map((v) => v.slug));
-
   return createPortal(
-    <div className="region-chooser-backdrop">
+    <div ref={backdropRef} className="region-chooser-backdrop">
       <section
         ref={dialogRef}
         tabIndex={-1}
@@ -166,27 +153,6 @@ export default function RegionChooser() {
         </header>
         <div className="region-chooser-layout region-chooser-layout--map-only">
           <PlacePicker onApply={apply} applyLabel="Events anzeigen" />
-        </div>
-        <div className="region-chooser-lists">
-          <p className="region-chooser-views-label">Oder alles auf einmal ansehen:</p>
-          <div className="region-chooser-options region-chooser-options--views">
-            {COMBINED_VIEWS.map((v) => {
-              const available = availableViews.has(v.slug);
-              return (
-                <button
-                  key={v.slug}
-                  type="button"
-                  className={`region-chooser-option region-chooser-option--all${
-                    available ? '' : ' region-chooser-option--soon'
-                  }`}
-                  onClick={() => chooseView(v.slug)}
-                >
-                  {v.name}
-                  {!available && <span className="region-chooser-soon"> (bald)</span>}
-                </button>
-              );
-            })}
-          </div>
         </div>
         {!onRegionsPage && <ModeratorApplyCard className="region-chooser-apply" />}
       </section>
