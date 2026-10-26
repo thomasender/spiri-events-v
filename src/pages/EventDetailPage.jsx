@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useEvents } from '../hooks/useEvents';
+import { useAdminAlerts } from '../hooks/useAdminAlerts';
 import { useOrganizerProfile } from '../hooks/useOrganizerProfile';
 import { useEventFavoriteCount } from '../hooks/useEventFavoriteCount';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
@@ -216,6 +217,16 @@ export default function EventDetailPage() {
     (isAdmin || event.createdBy === user.uid);
   const favoriteCount = useEventFavoriteCount(event?.id, canSeeFavoriteCount);
   const showMessagesForHash = Boolean(event && user && (isAdmin || event.createdBy === user.uid));
+  const { unreadByEvent: unreadEditAlerts, markRead: markEditAlertRead } = useAdminAlerts(
+    user?.uid,
+    isAdmin
+  );
+
+  // Opening the event is what "seen" means for an organizer-edit alert.
+  const hasUnreadEditAlert = Boolean(event && unreadEditAlerts[event.id]);
+  useEffect(() => {
+    if (hasUnreadEditAlert) markEditAlertRead(event.id).catch(() => {});
+  }, [hasUnreadEditAlert, event?.id, markEditAlertRead]);
 
   useEffect(() => {
     async function fetchEvent() {

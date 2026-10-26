@@ -44,6 +44,15 @@ vi.mock('../../src/hooks/useAuth', () => ({
   }),
 }));
 
+const mockAlerts = vi.hoisted(() => ({
+  unreadByEvent: {} as Record<string, unknown>,
+  markRead: vi.fn(async () => {}),
+}));
+
+vi.mock('../../src/hooks/useAdminAlerts', () => ({
+  useAdminAlerts: () => mockAlerts,
+}));
+
 const mockCalendar = vi.hoisted(() => ({
   requestCalendarFeedToken: vi.fn(async () => 'tok-1'),
   startCalendarDownload: vi.fn(),
@@ -277,6 +286,8 @@ beforeEach(() => {
   mockAuth.user = null;
   mockAuth.role = null;
   mockAuth.loading = false;
+  mockAlerts.unreadByEvent = {};
+  mockAlerts.markRead.mockClear();
   mockFirestoreDoc.getDocResult = {
     id: foreignEvent.id,
     data: foreignEvent,
@@ -473,6 +484,29 @@ describe('EventDetailPage — admin approve button', () => {
 
     expect(mockEvents.approveEvent).toHaveBeenCalledWith('remote-event-id');
     expect(screen.queryByTestId('approve-event-button')).toBeNull();
+  });
+
+  it('marks the admin edit alert as read once the admin has opened the event', async () => {
+    mockAuth.user = { uid: 'admin-uid' };
+    mockAuth.role = 'Admin';
+    setStatus('pending');
+    mockAlerts.unreadByEvent = { 'remote-event-id': { kind: 'edited' } };
+
+    renderPage();
+    await screen.findByTestId('approve-event-button');
+
+    expect(mockAlerts.markRead).toHaveBeenCalledWith('remote-event-id');
+  });
+
+  it('does not touch alerts when the event has none', async () => {
+    mockAuth.user = { uid: 'admin-uid' };
+    mockAuth.role = 'Admin';
+    setStatus('pending');
+
+    renderPage();
+    await screen.findByTestId('approve-event-button');
+
+    expect(mockAlerts.markRead).not.toHaveBeenCalled();
   });
 
   it('does not offer approval to the event owner', async () => {
