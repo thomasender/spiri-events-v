@@ -2,12 +2,16 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { useRegion } from '../hooks/useRegion';
 import EmailVerificationModal from './EmailVerificationModal';
 import './CreateEventFab.css';
 
 export default function CreateEventFab() {
   const { user, canCreateEvents } = useAuth();
   const navigate = useNavigate();
+  const { comingSoon, regionId } = useRegion();
+  // On a coming-soon region page the event belongs to that region.
+  const addEventPath = comingSoon && regionId ? `/admin/new?region=${regionId}` : '/admin/new';
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
 
   // Three branches mirror the original inline create-event CTA so the
@@ -36,7 +40,7 @@ export default function CreateEventFab() {
   return (
     <>
       {canCreateEvents ? (
-        <Link to="/admin/new" {...fabProps}>
+        <Link to={addEventPath} {...fabProps}>
           <Plus size={22} aria-hidden="true" />
           <span className="create-event-fab-label">Event erstellen</span>
         </Link>

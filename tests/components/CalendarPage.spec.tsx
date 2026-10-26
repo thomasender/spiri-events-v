@@ -3,6 +3,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
+import { DEFAULT_REGION_CONTEXT, RegionContext } from '../../src/hooks/useRegion';
+import { STATIC_REGIONS } from '../../src/utils/regions.js';
+import { getCombinedView } from '../../src/utils/regionRouting.js';
 import CalendarPage, { buildFeedUrl, buildGoogleCalendarUrl } from '../../src/pages/CalendarPage';
 
 const mockUseAllEvents = vi.hoisted(() => ({ events: [], loading: false, error: null }));
@@ -803,5 +806,150 @@ describe('CalendarPage — calendar feed subscription', () => {
       `${origin}/calendar/feed.ics?bezirk=Dornbirn&kategorie=Yoga&token=a_b-C`
     );
     expect(buildFeedUrl(origin, [], [], 'a_b-C')).toBe(`${origin}/calendar/feed.ics?token=a_b-C`);
+  });
+
+  it('adds the region only when it is not Vorarlberg (dark launch: URL unchanged)', () => {
+    const origin = 'https://www.thetribe.at';
+    const vbg = { regionId: 'vorarlberg', bezirke: ['Bregenz', 'Dornbirn'], isNational: false };
+    expect(buildFeedUrl(origin, ['Dornbirn'], ['Yoga'], 'tok', vbg)).toBe(
+      buildFeedUrl(origin, ['Dornbirn'], ['Yoga'], 'tok')
+    );
+    const stmk = { regionId: 'steiermark', bezirke: ['Graz', 'Leoben'], isNational: false };
+    expect(buildFeedUrl(origin, ['Graz', 'Dornbirn', 'Online'], ['Yoga'], 'tok', stmk)).toBe(
+      `${origin}/calendar/feed.ics?region=steiermark&bezirk=Graz&bezirk=Online&kategorie=Yoga&token=tok`
+    );
+    expect(buildFeedUrl(origin, [], [], undefined, stmk)).toBe(
+      `${origin}/calendar/feed.ics?region=steiermark`
+    );
+    // A combined view asks for its own slug and the union of its Bezirke.
+    const de = { regionId: 'vorarlberg', bezirke: ['Oberallgäu', 'Graz'], isNational: true };
+    expect(
+      buildFeedUrl(origin, ['Oberallgäu', 'Dornbirn'], [], 'tok', {
+        ...de,
+        combinedView: { slug: 'deutschland' },
+      })
+    ).toBe(`${origin}/calendar/feed.ics?region=deutschland&bezirk=Oberallg%C3%A4u&token=tok`);
+    expect(
+      buildFeedUrl(origin, [], [], undefined, { ...de, combinedView: { slug: 'alle-tribes' } })
+    ).toBe(`${origin}/calendar/feed.ics?region=alle-tribes`);
+    expect(
+      buildFeedUrl(origin, [], [], undefined, { ...de, combinedView: { slug: 'oesterreich' } })
+    ).toBe(`${origin}/calendar/feed.ics?region=oesterreich`);
+  });
+});
+
+describe('CalendarPage — regions (ticket 14)', () => {
+  const regionOf = (slug: string, active = true) => ({
+    ...STATIC_REGIONS.find((r) => r.id === slug)!,
+    active,
+  });
+  const allRegions = [
+    regionOf('vorarlberg'),
+    regionOf('steiermark'),
+    regionOf('bayern'),
+    regionOf('wien', false),
+  ];
+
+  function renderInRegion(regionId: string, isNational = false) {
+    const combinedView = isNational ? getCombinedView('alle-tribes') : null;
+    const value = {
+      ...DEFAULT_REGION_CONTEXT,
+      region: allRegions.find((r) => r.id === regionId)!,
+      regionId,
+      regions: allRegions.filter((r) => r.active),
+      allRegions,
+      isNational,
+      combinedView,
+      combinedRegions: isNational ? allRegions.filter((r) => r.active) : [],
+    };
+    return render(
+      <MemoryRouter>
+        <HelmetProvider>
+          <RegionContext.Provider value={value}>
+            <CalendarPage />
+          </RegionContext.Provider>
+        </HelmetProvider>
+      </MemoryRouter>
+    );
+  }
+
+  const titles = () =>
+    Array.from(document.querySelectorAll('.event-tile, .event-row')).map((n) => n.textContent);
+  const ortChips = () =>
+    Array.from(document.querySelectorAll('.filter-chip--ort')).map(
+      (c) => c.querySelector('span:not(.filter-chip-icon):not(.filter-chip-count)')?.textContent
+    );
+
+  beforeEach(() => {
+    window.localStorage.clear();
+    const now = new Date();
+    const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const date = `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, '0')}-${String(last.getDate()).padStart(2, '0')}`;
+    const base = { date, time: '18:00', category: 'Yoga' };
+    mockUseAllEvents.events = [
+      { ...base, id: 'v-old', title: 'AltVbg', bezirk: 'Dornbirn' },
+      { ...base, id: 'v', title: 'NeuVbg', bezirk: 'Bregenz', regionId: 'vorarlberg' },
+      { ...base, id: 's', title: 'StmkGraz', bezirk: 'Graz', regionId: 'steiermark' },
+      { ...base, id: 'on', title: 'OnlineStmk', isOnline: true, regionId: 'steiermark' },
+      { ...base, id: 'w', title: 'WienEvent', bezirk: 'Wien', regionId: 'wien' },
+    ];
+    mockUseCategories.value = ['Yoga'];
+  });
+
+  it('shows only Vorarlberg and online events in Vorarlberg, never inactive regions', () => {
+    renderInRegion('vorarlberg');
+    const text = titles().join('|');
+    expect(text).toContain('AltVbg');
+    expect(text).toContain('NeuVbg');
+    expect(text).toContain('OnlineStmk');
+    expect(text).not.toContain('StmkGraz');
+    expect(text).not.toContain('WienEvent');
+  });
+
+  it('shows Steiermark events and the Steiermark Bezirke as Ort chips', () => {
+    renderInRegion('steiermark');
+    const text = titles().join('|');
+    expect(text).toContain('StmkGraz');
+    expect(text).toContain('OnlineStmk');
+    expect(text).not.toContain('AltVbg');
+    const chips = ortChips();
+    expect(chips).toContain('Graz');
+    expect(chips).toContain('Murau');
+    expect(chips).not.toContain('Dornbirn');
+    expect(chips).not.toContain('Umgebung');
+    expect(chips[chips.length - 1]).toBe('Online');
+  });
+
+  it('keeps the Vorarlberg Ort chips (incl. Umgebung) unchanged', () => {
+    renderInRegion('vorarlberg');
+    expect(ortChips()).toEqual([
+      'Bregenz',
+      'Dornbirn',
+      'Feldkirch',
+      'Bludenz',
+      'Umgebung',
+      'Online',
+    ]);
+  });
+
+  it('combined view lists all active regions but not inactive ones; counts match', () => {
+    renderInRegion('vorarlberg', true);
+    const text = titles().join('|');
+    expect(text).toContain('AltVbg');
+    expect(text).toContain('StmkGraz');
+    expect(text).not.toContain('WienEvent');
+    // Ort chip counts add up to the listed events: AltVbg, NeuVbg, StmkGraz + online.
+    const sum = Array.from(document.querySelectorAll('.filter-chip--ort .filter-chip-count'))
+      .map((c) => Number(c.textContent))
+      .reduce((a, b) => a + b, 0);
+    expect(sum).toBe(4);
+  });
+
+  it('drops a remembered Ort filter from another region', async () => {
+    setStoredOrte(['Dornbirn']);
+    renderInRegion('steiermark');
+    await waitFor(() => {
+      expect(titles().join('|')).toContain('StmkGraz');
+    });
   });
 });

@@ -46,17 +46,142 @@ service cloud.firestore {
       return order is int && order >= 0;
     }
 
+    // Region ids (== slugs) of the region registry: the nine Austrian and
+    // sixteen German Bundeslaender, the 26 Swiss cantons and the 60 cultural
+    // regions of Germany (they hold Landkreise only after the product owner
+    // assigned some in Verwaltung -> "Zuordnung").
+    // "Österreich" etc. are combined views in the UI, not regions. KEEP IN SYNC
+    // with REGION_SLUGS in src/utils/regions.js (guarded by
+    // tests/components/regions.spec.ts); generated order, see
+    // scripts/build-region-data.mjs.
+    function regionIds() {
+      return ['vorarlberg', 'tirol', 'salzburg', 'kaernten', 'steiermark',
+              'oberoesterreich', 'niederoesterreich', 'wien', 'burgenland',
+              'baden-wuerttemberg', 'bayern', 'berlin', 'brandenburg',
+              'bremen', 'hamburg', 'hessen', 'mecklenburg-vorpommern',
+              'niedersachsen', 'nordrhein-westfalen', 'rheinland-pfalz',
+              'saarland', 'sachsen', 'sachsen-anhalt',
+              'schleswig-holstein', 'thueringen', 'zuerich', 'bern',
+              'luzern', 'uri', 'schwyz', 'obwalden', 'nidwalden', 'glarus',
+              'zug', 'freiburg', 'solothurn', 'basel-stadt',
+              'basel-landschaft', 'schaffhausen', 'appenzell-ausserrhoden',
+              'appenzell-innerrhoden', 'st-gallen', 'graubuenden',
+              'aargau', 'thurgau', 'tessin', 'waadt', 'wallis',
+              'neuenburg', 'genf', 'jura', 'schwaben-wuerttemberg',
+              'kurpfalz', 'suedbaden-markgraeflerland', 'schwarzwald',
+              'oberschwaben', 'tauberfranken', 'oberbayern',
+              'niederbayern', 'oberpfalz', 'franken',
+              'bayerisch-schwaben-allgaeu', 'niederrhein',
+              'koeln-bonn-eifel', 'bergisches-land', 'ruhrgebiet',
+              'muensterland', 'sauerland-siegerland', 'ostwestfalen-lippe',
+              'ostfriesland', 'oldenburger-land-emsland',
+              'lueneburger-heide', 'weserbergland', 'region-hannover',
+              'braunschweiger-land-harz', 'nordhessen', 'mittelhessen',
+              'odenwald-rhoen', 'rhein-main-gebiet', 'rheingau',
+              'erzgebirge', 'vogtland', 'leipzig-region',
+              'dresden-elbland', 'oberlausitz', 'pfalz', 'rheinhessen',
+              'mosel-saar-ruwer', 'eifel-westerwald', 'hunsrueck',
+              'thueringer-wald-rennsteig', 'suedthueringen',
+              'klassikerregion', 'eichsfeld', 'nordfriesland',
+              'dithmarschen', 'schleswig-angeln', 'holstein',
+              'prignitz-uckermark', 'havelland-potsdam', 'spreewald',
+              'niederlausitz', 'mecklenburg', 'vorpommern', 'altmark',
+              'harz-harzvorland', 'anhalt-dessau', 'saale-unstrut',
+              'saarlouis-umgebung', 'saarbruecken-warndt',
+              'hochwald-bliesgau'];
+    }
+
+    function isValidRegionId(id) {
+      return id is string && id in regionIds();
+    }
+
+    // ── Regions-Moderator:innen ────────────────────────────────────────
+    // `admin_users/{uid}` = { role: 'RegionModerator', regionIds: [...] },
+    // written only by the Admin SDK (adminSetRegionModerator callable,
+    // scripts/promote-admin.mjs). This is a NARROW extra right next to the
+    // Super-Admin (`role: 'Admin'`): isAdminOrEmulatorAdmin() is deliberately
+    // untouched, so a moderator never passes any of the many admin-only
+    // rules below (categories, theme, instagram, donors, helpers, feedback,
+    // member_lists, regions, admin_users, audit log, permanent deletes).
+    // Token claims are NOT consulted for moderators: the doc is the only
+    // source, so revoking (deleting the doc) takes effect immediately.
+    function staffDoc() {
+      return get(/databases/$(database)/documents/admin_users/$(request.auth.uid));
+    }
+
+    function isRegionModerator() {
+      return isAuthenticated()
+        && exists(/databases/$(database)/documents/admin_users/$(request.auth.uid))
+        && staffDoc().data.role == 'RegionModerator'
+        && staffDoc().data.regionIds is list;
+    }
+
+    function isRegionModeratorFor(regionId) {
+      return isValidRegionId(regionId)
+        && isRegionModerator()
+        && regionId in staffDoc().data.regionIds;
+    }
+
+    // Every id in `ids` is one of the moderator's regions (and there is at
+    // least one): entries that are also listed in a foreign region stay
+    // read-only for her.
+    function isRegionModeratorForAll(ids) {
+      return ids is list
+        && ids.size() > 0
+        && ids.hasOnly(regionIds())
+        && isRegionModerator()
+        && ids.hasOnly(staffDoc().data.regionIds);
+    }
+
+    // Moderation region of an event: the stored regionId, or Vorarlberg for
+    // events written before regions existed (same fallback as
+    // resolveRegionId in src/utils/regions.js). Online events are moderated
+    // by the region in their regionId like every other event.
+    function eventRegionId(data) {
+      return data.get('regionId', 'vorarlberg');
+    }
+
+    // The remembered "Wo bist du?" choice of a user (place + radius). Coordinates are those of
+    // the place, never an exact device position. Null clears it.
+    function isValidPlaceSelection(d) {
+      return !('placeSelection' in d)
+        || d.placeSelection == null
+        || (d.placeSelection is map
+            && d.placeSelection.keys().hasOnly(
+              ['label', 'lat', 'lon', 'radiusKm', 'regionId', 'source', 'updatedAt'])
+            && d.placeSelection.label is string
+            && d.placeSelection.label.size() > 0
+            && d.placeSelection.label.size() <= 80
+            && d.placeSelection.lat is number
+            && d.placeSelection.lat >= -90 && d.placeSelection.lat <= 90
+            && d.placeSelection.lon is number
+            && d.placeSelection.lon >= -180 && d.placeSelection.lon <= 180
+            && d.placeSelection.radiusKm is number
+            && d.placeSelection.radiusKm >= 1 && d.placeSelection.radiusKm <= 200
+            && d.placeSelection.source in ['search', 'device']
+            && d.placeSelection.updatedAt is number
+            && (d.placeSelection.get('regionId', null) == null
+                || isValidRegionId(d.placeSelection.regionId)));
+    }
+
     // Directory listing fields on the profile docs. A profile may only be
     // listed (`listedInDirectory == true`) when it names at least one
-    // category; categories/regions are capped so the doc stays small.
-    // `request.resource.data` is the merged document, so this also holds
-    // for partial updates.
+    // category; categories/regions are capped so the doc stays small (up to
+    // 120 Bezirk/Landkreis names: one profile may list in several regions).
+    // `directoryRegionIds` (region ids, next to the Bezirk names in
+    // `directoryRegions`) is optional so profiles saved before regions
+    // existed stay valid. `request.resource.data` is the merged document,
+    // so this also holds for partial updates.
     function isValidDirectoryData(d) {
       return (!('listedInDirectory' in d) || d.listedInDirectory is bool)
         && (!('directoryCategories' in d)
             || (d.directoryCategories is list && d.directoryCategories.size() <= 5))
         && (!('directoryRegions' in d)
-            || (d.directoryRegions is list && d.directoryRegions.size() <= 6))
+            || (d.directoryRegions is list && d.directoryRegions.size() <= 120))
+        && (!('directoryRegionIds' in d)
+            || (d.directoryRegionIds is list
+                && d.directoryRegionIds.size() <= 10
+                && d.directoryRegionIds.hasOnly(regionIds())))
         && (!('listedInDirectory' in d)
             || d.listedInDirectory != true
             || ('directoryCategories' in d && d.directoryCategories.size() >= 1));
@@ -76,7 +201,11 @@ service cloud.firestore {
                || request.resource.data.instagramConsent is bool;
       }
 
-      allow read: if isApproved() || isOwner() || isAdminOrEmulatorAdmin();
+      // Region moderators read pending/approved/trashed events of their
+      // regions; drafts of other people stay private (owner + Super-Admin).
+      allow read: if isApproved() || isOwner() || isAdminOrEmulatorAdmin()
+                  || (resource.data.status in ['pending', 'approved', 'trashed']
+                      && isRegionModeratorFor(eventRegionId(resource.data)));
 
       // imageFocalPoint, if present, must be a {x, y} map with both values
       // being numbers in [0, 1]. The form layer treats {0.5, 0.5} as "no
@@ -129,6 +258,32 @@ service cloud.firestore {
                                && data.cancelledDates[data.cancelledDates.size() - 1] is string))));
       }
 
+      // regionId (moderation region, also for online events) is optional:
+      // events written before regions existed have none and fall back to
+      // Vorarlberg on read. When present it must be a known region id.
+      function isValidEventRegionOnCreate() {
+        return !('regionId' in request.resource.data)
+               || isValidRegionId(request.resource.data.regionId);
+      }
+
+      // On update only a changed regionId is checked, so every existing
+      // path (status changes, trash/restore, series exceptions, image
+      // patches) keeps working on any stored document.
+      function isValidEventRegionOnUpdate() {
+        return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['regionId'])
+               || !('regionId' in request.resource.data)
+               || isValidRegionId(request.resource.data.regionId);
+      }
+
+      // lat / lng: position of the event (Ort / Bezirk accuracy, derived in the browser from
+      // the bundled place list for the radius filter). Optional, null when unknown.
+      function isValidEventPosition() {
+        let d = request.resource.data;
+        return (!('lat' in d) || d.lat == null || (d.lat is number && d.lat >= -90 && d.lat <= 90))
+               && (!('lng' in d) || d.lng == null
+                   || (d.lng is number && d.lng >= -180 && d.lng <= 180));
+      }
+
       // Anyone creating an event (including admins) must start it as
       // 'pending' or 'draft'. Approval happens via update. Non-admins
       // additionally need a confirmed email address.
@@ -144,7 +299,9 @@ service cloud.firestore {
                             && request.resource.data.category.size() <= 40))
                     && isValidInstagramConsent()
                     && isValidFocalPoint()
-                    && isValidImageZoom();
+                    && isValidImageZoom()
+                    && isValidEventPosition()
+                    && isValidEventRegionOnCreate();
 
       // Moderation guard for owners who are not admins (a direct write
       // bypasses the UI): an owner may keep an ALREADY approved event
@@ -206,13 +363,89 @@ service cloud.firestore {
                     && isValidInstagramConsent()
                     && isValidFocalPoint()
                     && isValidImageZoom()
-                    && isValidCancellation();
+                    && isValidEventPosition()
+                    && isValidCancellation()
+                    && isValidEventRegionOnUpdate();
+
+      // Review actions of a region moderator on a (non-draft) event of one
+      // of her regions. Only the status change and its bookkeeping fields
+      // may change: no content edits, no regionId change (so no moving an
+      // event into another region), no category. Each action mirrors what
+      // the admin UI writes:
+      //   approve         pending  -> approved (approvedBy/At, maybe slug)
+      //   request changes pending  -> draft
+      //   unpublish       approved -> draft    (unpublishedBy/At)
+      //   reject / trash  pending|approved -> trashed (trashedBy/At/Reason)
+      //   restore         trashed  -> draft    (trash fields nulled)
+      // Permanent delete stays Super-Admin only (delete rule below).
+      function isModeratorReviewUpdate() {
+        let before = resource.data;
+        let after = request.resource.data;
+        let changed = after.diff(before).affectedKeys();
+        return before.status in ['pending', 'approved', 'trashed']
+          && isRegionModeratorFor(eventRegionId(before))
+          && changed.hasAll(['status'])
+          && changed.hasOnly(['status', 'updatedAt', 'approvedBy', 'approvedAt', 'slug',
+                              'unpublishedBy', 'unpublishedAt',
+                              'trashedAt', 'trashedBy', 'trashReason'])
+          && (!changed.hasAny(['updatedAt']) || after.updatedAt == request.time)
+          // Slug: only the collision variant resolveSlugForApproval makes
+          // ("<slug>-N", or for "<...-yyyymmdd>-N" also "<...-yyyymmdd>-M"), so a moderator
+          // cannot point an event at an arbitrary (foreign) public URL.
+          && (!changed.hasAny(['slug'])
+              || (after.status == 'approved'
+                  && before.slug is string
+                  && before.slug.matches('^[a-z0-9]+(-[a-z0-9]+)*$')
+                  && after.slug is string
+                  && after.slug.size() <= 200
+                  && (after.slug.matches(before.slug + '-[0-9]+')
+                      || (before.slug.matches('^.*-[0-9]{8}-[0-9]+$')
+                          && after.slug.matches(before.slug.replace('-[0-9]+$', '') + '-[0-9]+')))))
+          && (
+            (before.status == 'pending' && after.status == 'approved'
+              && changed.hasOnly(['status', 'updatedAt', 'approvedBy', 'approvedAt', 'slug'])
+              && after.approvedBy == request.auth.uid
+              && after.approvedAt == request.time)
+            || (before.status == 'pending' && after.status == 'draft'
+              && changed.hasOnly(['status', 'updatedAt']))
+            || (before.status == 'approved' && after.status == 'draft'
+              && changed.hasOnly(['status', 'updatedAt', 'unpublishedBy', 'unpublishedAt'])
+              && after.unpublishedBy == request.auth.uid
+              && after.unpublishedAt == request.time)
+            || (before.status in ['pending', 'approved'] && after.status == 'trashed'
+              && changed.hasOnly(['status', 'updatedAt', 'trashedAt', 'trashedBy', 'trashReason'])
+              && after.trashedBy == request.auth.uid
+              && after.trashedAt == request.time
+              && (!('trashReason' in after) || after.trashReason == null
+                  || (after.trashReason is string && after.trashReason.size() <= 2000)))
+            || (before.status == 'trashed' && after.status == 'draft'
+              && changed.hasOnly(['status', 'updatedAt', 'trashedAt', 'trashedBy', 'trashReason'])
+              && after.get('trashedAt', null) == null
+              && after.get('trashedBy', null) == null
+              && after.get('trashReason', null) == null)
+          );
+      }
+
+      allow update: if isModeratorReviewUpdate();
+
       allow delete: if isOwner() || isAdminOrEmulatorAdmin();
 
       match /messages/{messageId} {
-        allow read: if isEventOwner(eventId) || isAdminOrEmulatorAdmin();
+        // Region moderators: messages of non-draft events of their regions.
+        function isRegionModeratorForEvent() {
+          let ev = get(/databases/$(database)/documents/events/$(eventId)).data;
+          return ev.status in ['pending', 'approved', 'trashed']
+            && isRegionModeratorFor(eventRegionId(ev));
+        }
 
-        allow create: if (isEventOwner(eventId) || isAdminOrEmulatorAdmin())
+        allow read: if isEventOwner(eventId) || isAdminOrEmulatorAdmin()
+                    || isRegionModeratorForEvent();
+
+        // A moderator who is not the event owner writes as staff
+        // (authorRole 'Admin'), never in the organizer's name.
+        allow create: if (isEventOwner(eventId) || isAdminOrEmulatorAdmin()
+                          || (isRegionModeratorForEvent()
+                              && request.resource.data.authorRole == 'Admin'))
                       && request.resource.data.authorUid == request.auth.uid
                       && request.resource.data.keys().hasOnly(
                         ['text', 'authorUid', 'authorRole', 'authorName', 'createdAt', 'readByRecipient']
@@ -223,7 +456,8 @@ service cloud.firestore {
                       && request.resource.data.text.size() <= 20000
                       && request.resource.data.authorRole in ['Admin', 'User'];
 
-        allow update: if (isEventOwner(eventId) || isAdminOrEmulatorAdmin())
+        allow update: if (isEventOwner(eventId) || isAdminOrEmulatorAdmin()
+                          || isRegionModeratorForEvent())
                       && request.resource.data.diff(resource.data).affectedKeys()
                           .hasOnly(['readByRecipient']);
 
@@ -243,8 +477,11 @@ service cloud.firestore {
                       && request.resource.data.editedAt == request.time;
 
         // Owners can permanently delete their own event's messages via the
-        // Papierkorb. Admins can always delete messages.
-        allow delete: if isAdminOrEmulatorAdmin() || isEventOwner(eventId);
+        // Papierkorb. Admins can always delete messages. Region moderators
+        // can delete messages of their regions' events because approving an
+        // event clears its conversation (approveEventAsAdmin).
+        allow delete: if isAdminOrEmulatorAdmin() || isEventOwner(eventId)
+                      || isRegionModeratorForEvent();
       }
 
       // Change history, written only by the onEventUpdatedWriteRevision
@@ -255,8 +492,19 @@ service cloud.firestore {
       }
     }
 
+    // Role docs ({ role: 'Admin' } or { role: 'RegionModerator', regionIds }).
+    // Written ONLY via the Admin SDK (adminSetRegionModerator callable,
+    // scripts/promote-admin.mjs): no client, not even a Super-Admin, may
+    // write here, and a moderator can never touch her own doc.
     match /admin_users/{uid} {
       allow read: if isAuthenticated() && request.auth.uid == uid;
+    }
+
+    // Audit trail of role changes (adminSetRegionModerator). Written only by
+    // the Admin SDK; readable by Super-Admins only, never by moderators.
+    match /admin_audit_log/{entryId} {
+      allow read: if isAdminOrEmulatorAdmin();
+      allow write: if false;
     }
 
     match /users/{uid} {
@@ -267,11 +515,11 @@ service cloud.firestore {
                     && request.resource.data.keys().hasOnly(
                       ['displayName', 'bio', 'bioHtml', 'website', 'contact', 'photoURL', 'photoFocalPoint', 'photoZoom',
                        'slug', 'username', 'socialMedia',
-                       'listedInDirectory', 'directoryCategories', 'directoryRegions', 'showOnlineStatus', 'allowMentions',
+                       'listedInDirectory', 'directoryCategories', 'directoryRegions', 'directoryRegionIds', 'showOnlineStatus', 'allowMentions',
                        'notifyOnSubmitted', 'notifyOnChangesRequested',
                        'notifyOnPublished', 'notifyOnDeleted',
                        'notifyOnContactMessage', 'notifyOnFavoriteCancelled',
-                       'notifyNewsletter', 'instagramConsentDefault', 'onboardingDismissed', 'onboardingCompleted',
+                       'notifyNewsletter', 'instagramConsentDefault', 'onboardingDismissed', 'onboardingCompleted', 'placeSelection',
                        'createdAt', 'updatedAt']
                     )
                     && request.resource.data.bio.size() <= 2000
@@ -296,6 +544,7 @@ service cloud.firestore {
                     && request.resource.data.bio.size() <= 2000
                     && request.resource.data.displayName.size() <= 80
                     && isValidDirectoryData(request.resource.data)
+                    && isValidPlaceSelection(request.resource.data)
                     && (!('instagramConsentDefault' in request.resource.data)
                         || request.resource.data.instagramConsentDefault is bool)
                     && (!('showOnlineStatus' in request.resource.data)
@@ -312,11 +561,11 @@ service cloud.firestore {
                     && request.resource.data.diff(resource.data).affectedKeys()
                         .hasOnly(['displayName', 'bio', 'bioHtml', 'website', 'contact', 'photoURL', 'photoFocalPoint', 'photoZoom',
                                   'slug', 'username', 'socialMedia',
-                                  'listedInDirectory', 'directoryCategories', 'directoryRegions', 'showOnlineStatus', 'allowMentions',
+                                  'listedInDirectory', 'directoryCategories', 'directoryRegions', 'directoryRegionIds', 'showOnlineStatus', 'allowMentions',
                                   'notifyOnSubmitted', 'notifyOnChangesRequested',
                                   'notifyOnPublished', 'notifyOnDeleted',
                                   'notifyOnContactMessage', 'notifyOnFavoriteCancelled',
-                                  'notifyNewsletter', 'instagramConsentDefault', 'onboardingDismissed', 'onboardingCompleted',
+                                  'notifyNewsletter', 'instagramConsentDefault', 'onboardingDismissed', 'onboardingCompleted', 'placeSelection',
                                   'updatedAt']);
 
       allow delete: if isAuthenticated() && request.auth.uid == uid;
@@ -369,7 +618,7 @@ service cloud.firestore {
                       && request.auth.uid == uid
                       && request.resource.data.keys().hasOnly(
                         ['displayName', 'bio', 'bioHtml', 'website', 'photoURL', 'photoFocalPoint', 'photoZoom', 'slug', 'username', 'socialMedia',
-                         'listedInDirectory', 'directoryCategories', 'directoryRegions', 'showOnlineStatus',
+                         'listedInDirectory', 'directoryCategories', 'directoryRegions', 'directoryRegionIds', 'showOnlineStatus',
                          'allowMentions', 'mentionName',
                          'updatedAt']
                       )
@@ -404,7 +653,7 @@ service cloud.firestore {
                               && request.resource.data.bioHtml.size() <= 20000))
                       && request.resource.data.diff(resource.data).affectedKeys()
                           .hasOnly(['displayName', 'bio', 'bioHtml', 'website', 'photoURL', 'photoFocalPoint', 'photoZoom', 'slug', 'username', 'socialMedia',
-                                    'listedInDirectory', 'directoryCategories', 'directoryRegions', 'showOnlineStatus',
+                                    'listedInDirectory', 'directoryCategories', 'directoryRegions', 'directoryRegionIds', 'showOnlineStatus',
                                     'allowMentions', 'mentionName',
                                     'updatedAt']);
 
@@ -413,6 +662,18 @@ service cloud.firestore {
         // above deliberately exclude it, so a hidden user cannot re-show
         // themselves; the merge-writes from the profile form never touch it.
         allow update: if isAdminOrEmulatorAdmin()
+                      && request.resource.data.diff(resource.data).affectedKeys()
+                          .hasOnly(['directoryHidden'])
+                      && request.resource.data.directoryHidden is bool;
+
+        // Region moderators may hide/unhide a listing only when ALL its
+        // regions are hers (profiles saved before regions existed count as
+        // Vorarlberg); listings that also appear in a foreign region stay
+        // read-only for her. Staff accounts (any admin_users doc) are off
+        // limits.
+        allow update: if isRegionModeratorForAll(
+                           resource.data.get('directoryRegionIds', ['vorarlberg']))
+                      && !exists(/databases/$(database)/documents/admin_users/$(uid))
                       && request.resource.data.diff(resource.data).affectedKeys()
                           .hasOnly(['directoryHidden'])
                       && request.resource.data.directoryHidden is bool;
@@ -480,6 +741,88 @@ service cloud.firestore {
                         || isValidCategoryColor(request.resource.data.color))
                     && (!('order' in request.resource.data)
                         || isValidCategoryOrder(request.resource.data.order));
+      allow delete: if isAdminOrEmulatorAdmin();
+    }
+
+    // Region registry (one doc per region, doc id == slug).
+    // Public read, admin-only write, closed field list, slug from the fixed list.
+    match /regions/{regionId} {
+      // Everything but the slug-in-list check (a moderator's regionId is already
+      // validated by isRegionModeratorFor; saves rule expressions, the budget is 1000).
+      function isValidRegionFields(d) {
+        return d.keys().hasOnly(
+                 ['name', 'slug', 'order', 'active', 'bezirke', 'contactEmail', 'seo',
+                  'timezone', 'aboutHelperIds', 'aboutHeaderImage', 'aboutText', 'aboutSlogan1',
+                  'aboutSlogan2', 'aboutSloganLocked', 'instagramHandle', 'texts', 'createdAt',
+                  'updatedAt', 'mappingUpdatedAt'])
+          && d.slug is string
+          && d.slug == regionId
+          && d.name is string && d.name.size() > 0 && d.name.size() <= 100
+          && (!('order' in d) || d.order is number)
+          && (!('active' in d) || d.active is bool)
+          && (!('bezirke' in d) || (d.bezirke is list && d.bezirke.size() <= 250))
+          && (!('contactEmail' in d) || (d.contactEmail is string && d.contactEmail.size() <= 200))
+          && (!('seo' in d) || d.seo is map)
+          && (!('timezone' in d) || d.timezone is string)
+          && (!('aboutHelperIds' in d)
+              || (d.aboutHelperIds is list && d.aboutHelperIds.size() <= 60))
+          && (!('aboutHeaderImage' in d)
+              || d.aboutHeaderImage == null
+              || (d.aboutHeaderImage is string && d.aboutHeaderImage.size() <= 500
+                  && d.aboutHeaderImage.matches('^https?://.+$')))
+          && (!('aboutText' in d)
+              || d.aboutText == null
+              || (d.aboutText is string && d.aboutText.size() <= 20000))
+          && (!('aboutSlogan1' in d)
+              || d.aboutSlogan1 == null
+              || (d.aboutSlogan1 is string && d.aboutSlogan1.size() <= 30))
+          && (!('aboutSlogan2' in d)
+              || d.aboutSlogan2 == null
+              || (d.aboutSlogan2 is string && d.aboutSlogan2.size() <= 30))
+          && (!('aboutSloganLocked' in d) || d.aboutSloganLocked is bool)
+          && (!('texts' in d) || isValidRegionTexts(d.texts))
+          // Display-only Instagram name; only Super-Admins can write it (the
+          // moderator rule below keeps its own, shorter field list).
+          && (!('instagramHandle' in d)
+              || d.instagramHandle == null
+              || (d.instagramHandle is string
+                  && d.instagramHandle.matches('^@[A-Za-z0-9._]{1,30}$')));
+      }
+      function isValidRegion(d) {
+        return isValidRegionFields(d) && d.slug in regionIds();
+      }
+      // Free texts of a region: { examples: { place, organizer, address, contact } },
+      // plain strings of at most 120 characters (placeholders of the event form).
+      function isValidExampleText(v) {
+        return v is string && v.size() <= 120;
+      }
+      function isValidRegionTexts(t) {
+        return t is map
+          && t.keys().hasOnly(['examples'])
+          && (!('examples' in t)
+              || (t.examples is map
+                  && t.examples.keys().hasOnly(['place', 'organizer', 'address', 'contact'])
+                  && (!('place' in t.examples) || isValidExampleText(t.examples.place))
+                  && (!('organizer' in t.examples) || isValidExampleText(t.examples.organizer))
+                  && (!('address' in t.examples) || isValidExampleText(t.examples.address))
+                  && (!('contact' in t.examples) || isValidExampleText(t.examples.contact))));
+      }
+      // Once a Super-Admin saved the header slogan it is locked for moderators.
+      function sloganTouched() {
+        return request.resource.data.diff(resource.data).affectedKeys()
+                 .hasAny(['aboutSlogan1', 'aboutSlogan2']);
+      }
+      allow read: if true;
+      allow create, update: if isAdminOrEmulatorAdmin() && isValidRegion(request.resource.data);
+      // Regions-Moderator:innen maintain the "Über uns" page of their own
+      // regions (header photo, text of the "Deine Heimat" section) and nothing else of the doc
+      // (`texts`, the example texts of the event form, are Super-Admin only).
+      allow update: if isRegionModeratorFor(regionId)
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['aboutHelperIds', 'aboutHeaderImage', 'aboutText', 'aboutSlogan1',
+                                   'aboutSlogan2', 'updatedAt'])
+                    && (!sloganTouched() || resource.data.get('aboutSloganLocked', false) != true)
+                    && isValidRegionFields(request.resource.data);
       allow delete: if isAdminOrEmulatorAdmin();
     }
 

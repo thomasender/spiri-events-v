@@ -1,3 +1,4 @@
+import { resolveDirectoryRegionIds } from './regions';
 // Pure helpers for the admin "Mitglieder" tab: search, filter, sort and
 // export. Kept free of Firebase imports so they can be unit-tested.
 
@@ -18,10 +19,15 @@ export function matchesSearch(member, term) {
 // listIds: when set, only members whose uid is in that Set pass.
 export function filterMembers(
   members,
-  { search = '', region = '', category = '', listUids = null } = {}
+  { search = '', region = '', regionId = '', category = '', listUids = null } = {}
 ) {
   return members.filter((m) => {
     if (!matchesSearch(m, search)) return false;
+    if (
+      regionId &&
+      !resolveDirectoryRegionIds({ directoryRegionIds: m.directoryRegionIds }).includes(regionId)
+    )
+      return false;
     if (region && !(m.directoryRegions || []).includes(region)) return false;
     if (category && !(m.directoryCategories || []).includes(category)) return false;
     if (listUids && !listUids.has(m.uid)) return false;

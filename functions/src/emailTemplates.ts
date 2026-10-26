@@ -32,6 +32,12 @@ export interface AdminMessageContext {
 
 export interface SubmittedContext {
   submitterName?: string | null;
+  /**
+   * Region of the event, set only while more than one region is active
+   * (adminEventRouting.mailRegionLabel). Unset = the mail is byte-identical to
+   * the single-region version.
+   */
+  regionName?: string | null;
 }
 
 export interface EmailPayload {
@@ -205,6 +211,27 @@ function wrapHtml(body: string, kind: FooterKind = 'notification'): string {
 </html>`;
 }
 
+/**
+ * Optional line for mails to event owners. Empty string when there is no
+ * contact address, so those mails stay byte-identical.
+ */
+function regionContactHtml(email: string | null | undefined): string {
+  const value = (email ?? '').trim();
+  if (!value) return '';
+  return `
+    <p style="${mutedStyle()}">Rückfragen zu dieser Region: <a href="mailto:${escapeHtml(value)}" style="color:${COLOR_MUTED};text-decoration:underline;">${escapeHtml(value)}</a></p>`;
+}
+
+function regionContactText(email: string | null | undefined): string {
+  const value = (email ?? '').trim();
+  return value ? `\n\nRückfragen zu dieser Region: ${value}` : '';
+}
+
+/** Set on mails to event owners only while more than one region is active. */
+export interface RegionContactInput {
+  regionContactEmail?: string | null;
+}
+
 export interface SubmittedPayloadInput {
   event: NotificationEvent;
   context: SubmittedContext;
@@ -218,21 +245,30 @@ export function buildSubmittedPayload({
 }: SubmittedPayloadInput): EmailPayload {
   const link = adminReviewUrl(event.id);
   const submitter = (context.submitterName ?? '').trim() || 'Ein Mitglied';
-  const subject = `Neuer Event-Vorschlag: ${event.title}`;
+  const regionName = (context.regionName ?? '').trim();
+  const subject = regionName
+    ? `Neuer Event-Vorschlag (${regionName}): ${event.title}`
+    : `Neuer Event-Vorschlag: ${event.title}`;
+  const regionHtml = regionName
+    ? `
+    <p style="${paragraphStyle()}">Region: ${escapeHtml(regionName)}</p>`
+    : '';
   const htmlBody = `
     <h1 style="${headingStyle(1)}">Neuer Event-Vorschlag</h1>
     <p style="${paragraphStyle()}">Hallo,</p>
     <p style="${paragraphStyle()}">
       <strong>${escapeHtml(submitter)}</strong> hat ein neues Event zur Prüfung eingereicht:
     </p>
-    <p style="${paragraphStyle()}"><strong>${escapeHtml(event.title)}</strong></p>
+    <p style="${paragraphStyle()}"><strong>${escapeHtml(event.title)}</strong></p>${regionHtml}
     <p style="margin:8px 0 24px 0;">
       <a href="${link}" style="${brandButtonStyle()}">Im Review ansehen</a>
     </p>`;
   const textBody =
     `Hallo,\n\n` +
     `${submitter} hat ein neues Event zur Prüfung eingereicht:\n` +
-    `${event.title}\n\n` +
+    `${event.title}\n` +
+    (regionName ? `Region: ${regionName}\n` : '') +
+    `\n` +
     `Im Review ansehen: ${link}`;
   return {
     to: recipient,
@@ -242,7 +278,7 @@ export function buildSubmittedPayload({
   };
 }
 
-export interface ChangesRequestedPayloadInput {
+export interface ChangesRequestedPayloadInput extends RegionContactInput {
   event: NotificationEvent;
   context: AdminMessageContext;
   recipient: string;
@@ -252,6 +288,7 @@ export function buildChangesRequestedPayload({
   event,
   context,
   recipient,
+  regionContactEmail,
 }: ChangesRequestedPayloadInput): EmailPayload {
   const link = eventUrl(event.slug);
   const messageText = messageToPlainText(context.text);
@@ -281,12 +318,12 @@ export function buildChangesRequestedPayload({
   return {
     to: recipient,
     subject,
-    html: wrapHtml(htmlBody),
-    text: textBody + footerText(),
+    html: wrapHtml(htmlBody + regionContactHtml(regionContactEmail)),
+    text: textBody + regionContactText(regionContactEmail) + footerText(),
   };
 }
 
-export interface PublishedPayloadInput {
+export interface PublishedPayloadInput extends RegionContactInput {
   event: NotificationEvent;
   recipient: string;
 }
@@ -328,7 +365,11 @@ export function buildPublishedShareUrls(
   }));
 }
 
-export function buildPublishedPayload({ event, recipient }: PublishedPayloadInput): EmailPayload {
+export function buildPublishedPayload({
+  event,
+  recipient,
+  regionContactEmail,
+}: PublishedPayloadInput): EmailPayload {
   const link = eventUrl(event.slug);
   const greetingName = organizerDisplayName(event.organizer);
   const greeting = greetingName ? `Hallo ${escapeHtml(greetingName)},` : 'Hallo,';
@@ -372,12 +413,12 @@ export function buildPublishedPayload({ event, recipient }: PublishedPayloadInpu
   return {
     to: recipient,
     subject,
-    html: wrapHtml(htmlBody),
-    text: textBody + footerText(),
+    html: wrapHtml(htmlBody + regionContactHtml(regionContactEmail)),
+    text: textBody + regionContactText(regionContactEmail) + footerText(),
   };
 }
 
-export interface UnpublishedPayloadInput {
+export interface UnpublishedPayloadInput extends RegionContactInput {
   event: NotificationEvent;
   recipient: string;
 }
@@ -385,6 +426,7 @@ export interface UnpublishedPayloadInput {
 export function buildUnpublishedPayload({
   event,
   recipient,
+  regionContactEmail,
 }: UnpublishedPayloadInput): EmailPayload {
   const link = eventUrl(event.slug);
   const greetingName = organizerDisplayName(event.organizer);
@@ -410,12 +452,12 @@ export function buildUnpublishedPayload({
   return {
     to: recipient,
     subject,
-    html: wrapHtml(htmlBody),
-    text: textBody + footerText(),
+    html: wrapHtml(htmlBody + regionContactHtml(regionContactEmail)),
+    text: textBody + regionContactText(regionContactEmail) + footerText(),
   };
 }
 
-export interface DeletedPayloadInput {
+export interface DeletedPayloadInput extends RegionContactInput {
   event: NotificationEvent;
   recipient: string;
   /** Set when an admin deleted the owner's event and had to give a reason. */
@@ -426,6 +468,7 @@ export function buildDeletedPayload({
   event,
   recipient,
   reason,
+  regionContactEmail,
 }: DeletedPayloadInput): EmailPayload {
   const greetingName = organizerDisplayName(event.organizer);
   const greeting = greetingName ? `Hallo ${escapeHtml(greetingName)},` : 'Hallo,';
@@ -460,8 +503,8 @@ export function buildDeletedPayload({
   return {
     to: recipient,
     subject,
-    html: wrapHtml(htmlBody),
-    text: textBody + footerText(),
+    html: wrapHtml(htmlBody + regionContactHtml(regionContactEmail)),
+    text: textBody + regionContactText(regionContactEmail) + footerText(),
   };
 }
 

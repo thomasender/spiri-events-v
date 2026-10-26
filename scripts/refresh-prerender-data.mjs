@@ -22,6 +22,7 @@ import { fileURLToPath } from 'url'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..')
 const EVENTS_FILE = join(ROOT, 'data-export', 'firestore-export', 'events.json')
+const REGIONS_FILE = join(ROOT, 'data-export', 'firestore-export', 'regions.json')
 const THEME_FILE = join(ROOT, 'data-export', 'firestore-export', 'theme.json')
 const SERVICE_ACCOUNT = join(__dirname, 'service-account.json')
 
@@ -89,6 +90,18 @@ async function main() {
   const events = eventsSnap.docs.map(firestoreToEmulatorExport)
   writeFileSync(EVENTS_FILE, JSON.stringify(events, null, 2))
   console.log(`Wrote ${events.length} events to ${EVENTS_FILE}`)
+
+  // Regions (optional snapshot, read by scripts/prerender.mjs). Written only
+  // when the collection has docs; without regions.json the prerender uses the
+  // static register (Vorarlberg only).
+  const regionsSnap = await adminDb.collection('regions').get()
+  if (!regionsSnap.empty) {
+    const regionDocs = regionsSnap.docs.map(firestoreToEmulatorExport)
+    writeFileSync(REGIONS_FILE, JSON.stringify(regionDocs, null, 2))
+    console.log(`Wrote ${regionDocs.length} regions to ${REGIONS_FILE}`)
+  } else {
+    console.log('No regions found — skipping regions.json (prerender will use the static register).')
+  }
 
   const themeSnap = await adminDb.collection('app_settings').doc('theme').get()
   if (themeSnap.exists) {

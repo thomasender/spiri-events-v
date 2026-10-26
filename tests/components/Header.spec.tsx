@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { RegionContext, DEFAULT_REGION_CONTEXT } from '../../src/hooks/useRegion';
 import Header from '../../src/components/Header';
+import { mergeRegions } from '../../src/utils/regions';
 
 const mockAuth = vi.hoisted(() => ({
   user: null as { uid: string; photoURL?: string | null } | null,
@@ -20,6 +22,7 @@ vi.mock('../../src/hooks/useAdminAlerts', () => ({
 
 const mockProfile = vi.hoisted(() => ({
   photoURL: null as string | null,
+  placeSelection: null as { regionId: string | null } | null,
 }));
 
 const mockUseUnread = vi.hoisted(() => ({
@@ -38,7 +41,7 @@ vi.mock('../../src/hooks/useAuth', () => ({
 
 vi.mock('../../src/hooks/useProfile', () => ({
   useProfile: () => ({
-    profile: { photoURL: mockProfile.photoURL },
+    profile: { photoURL: mockProfile.photoURL, placeSelection: mockProfile.placeSelection },
     loading: false,
     exists: mockProfile.photoURL !== null,
     save: () => {},
@@ -80,6 +83,7 @@ beforeEach(() => {
   mockAdminAlerts.unread = 0;
   if (mockAuth.user) mockAuth.user.photoURL = undefined;
   mockProfile.photoURL = null;
+  mockProfile.placeSelection = null;
   mockUseUnread.count = 0;
   mockUseUnread.loading = false;
   mockChat.available = false;
@@ -1244,5 +1248,121 @@ describe('Header: desktop account menu', () => {
     ) as HTMLElement;
     expect(link.className).toContain('nav-link--icon');
     expect(link).toHaveAttribute('aria-label', 'Postfach');
+  });
+});
+
+describe('Header slogan saved in Über uns', () => {
+  const withSlogan = (extra: Record<string, unknown>) => ({
+    ...DEFAULT_REGION_CONTEXT,
+    region: { ...DEFAULT_REGION_CONTEXT.region, ...extra },
+  });
+  const renderWith = (ctx: typeof DEFAULT_REGION_CONTEXT) =>
+    render(
+      <RegionContext.Provider value={ctx}>
+        <MemoryRouter>
+          <Header />
+        </MemoryRouter>
+      </RegionContext.Provider>
+    );
+
+  it('shows the saved two lines instead of the defaults', () => {
+    renderWith(withSlogan({ aboutSlogan1: 'Dein Kalender', aboutSlogan2: 'für Bewusstsein' }));
+    expect(screen.getByText('Dein Kalender')).toBeInTheDocument();
+    expect(screen.getByText('für Bewusstsein')).toBeInTheDocument();
+    expect(screen.queryByText('für bewusste Events')).not.toBeInTheDocument();
+  });
+
+  it("falls back to today's text for a line that is empty", () => {
+    renderWith(withSlogan({ aboutSlogan1: '', aboutSlogan2: 'für Bewusstsein' }));
+    expect(screen.getByText('Dein Vorarlberger Kalender')).toBeInTheDocument();
+    expect(screen.getByText('für Bewusstsein')).toBeInTheDocument();
+  });
+});
+
+describe('Header above "Wo suchst du?"', () => {
+  it('shows the neutral title and subtitle and no region switcher', () => {
+    const regions = mergeRegions([{ id: 'tirol', active: true }]).filter((r) => r.active);
+    const ctx = {
+      ...DEFAULT_REGION_CONTEXT,
+      region: { ...DEFAULT_REGION_CONTEXT.region, aboutSlogan1: 'Ländle', aboutSlogan2: 'Events' },
+      regions,
+      neutralHeader: true,
+      regionChooserOpen: true,
+    };
+    render(
+      <RegionContext.Provider value={ctx}>
+        <MemoryRouter initialEntries={['/regionen']}>
+          <Header />
+        </MemoryRouter>
+      </RegionContext.Provider>
+    );
+    expect(screen.getByText('Dein Kalender')).toBeInTheDocument();
+    expect(screen.getByText('für bewusste Events')).toBeInTheDocument();
+    expect(screen.queryByText(/Vorarlberg|Ländle/)).toBeNull();
+    expect(screen.queryByTestId('region-switcher')).toBeNull();
+  });
+});
+
+describe('Header logo target', () => {
+  const WITH_TIROL = mergeRegions([{ id: 'tirol', active: true }]);
+  const renderLogo = (ctx: Partial<typeof DEFAULT_REGION_CONTEXT> = {}) => {
+    render(
+      <RegionContext.Provider
+        value={
+          {
+            ...DEFAULT_REGION_CONTEXT,
+            allRegions: WITH_TIROL,
+            ...ctx,
+          } as typeof DEFAULT_REGION_CONTEXT
+        }
+      >
+        <MemoryRouter>
+          <Header />
+        </MemoryRouter>
+      </RegionContext.Provider>
+    );
+    return screen.getByTestId('header-logo');
+  };
+  const signIn = (regionId: string | null) => {
+    mockAuth.user = { uid: 'u1' };
+    mockProfile.placeSelection = { regionId };
+  };
+
+  it('leads a signed-in person to the active region of the profile', () => {
+    signIn('tirol');
+    expect(renderLogo()).toHaveAttribute('href', '/tirol');
+  });
+
+  it('leads to "Wo suchst du?" when the profile region is not active', () => {
+    signIn('steiermark');
+    expect(renderLogo()).toHaveAttribute('href', '/regionen');
+  });
+
+  it('leads to "Wo suchst du?" when the profile region is unknown', () => {
+    signIn('atlantis');
+    expect(renderLogo()).toHaveAttribute('href', '/regionen');
+  });
+
+  it('stays / for a signed-in person without a place in the profile', () => {
+    mockAuth.user = { uid: 'u1' };
+    expect(renderLogo()).toHaveAttribute('href', '/');
+  });
+
+  it('stays / for signed-out visitors even with a profile place in the mock', () => {
+    mockProfile.placeSelection = { regionId: 'tirol' };
+    expect(renderLogo()).toHaveAttribute('href', '/');
+  });
+
+  it('stays / while the region config is loading (no early jump to /regionen)', () => {
+    signIn('tirol');
+    expect(renderLogo({ loading: true })).toHaveAttribute('href', '/');
+  });
+
+  it('stays / with only Vorarlberg active (dark launch)', () => {
+    signIn('tirol');
+    expect(renderLogo({ allRegions: DEFAULT_REGION_CONTEXT.allRegions })).toHaveAttribute(
+      'href',
+      '/'
+    );
   });
 });

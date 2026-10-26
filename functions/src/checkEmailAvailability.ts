@@ -2,13 +2,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { appCheckOptions, logMissingAppCheck } from './appCheck';
 import { getAuth, type Auth } from 'firebase-admin/auth';
 import { enforceRateLimit, RATE_LIMIT_PRESETS } from './rateLimit';
-
-const ALLOWED_ORIGINS = [
-  'https://www.thetribe.at',
-  'https://thetribe.at',
-  'https://spirieventsvbg.web.app',
-  'http://localhost:5180',
-];
+import { ALLOWED_ORIGINS } from './allowedOrigins';
 
 export function normalizeEmail(value: unknown): string | null {
   if (typeof value !== 'string') return null;

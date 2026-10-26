@@ -124,6 +124,10 @@ export { sendVerificationEmail } from './sendVerificationEmail';
 export { sendPasswordResetEmailFn } from './sendPasswordResetEmail';
 export { checkEmailAvailability } from './checkEmailAvailability';
 export { adminListMembers, adminUpdateMember } from './adminMembers';
+export { submitModeratorApplication } from './moderatorApplication';
+export { adminSetRegionModerator, adminListRegionModerators } from './adminModerators';
+export { adminSetRegionActive, adminListRegionActivation } from './adminRegions';
+export { adminGetRegionMappingLocks, adminSaveRegionMapping } from './adminRegionMapping';
 export { adminAnalyticsReport } from './adminAnalytics';
 export { adminMailgunUsage } from './adminMailgun';
 export { onEventApprovedPostToInstagram } from './instagramPostOnApproval';
@@ -134,8 +138,10 @@ export { calendarFeed } from './calendarFeed';
 export { publicEvents, onEventWriteBumpEventsVersion } from './publicEvents';
 export { getCalendarFeedToken } from './calendarFeedToken';
 export { refreshInstagramTokenJob } from './instagramTokenRefresh';
+export { onInstagramRegionAccountEnabled } from './instagramRegionBackfill';
 export {
   adminRetryInstagramPost,
+  adminBackfillInstagramRegion,
   adminSkipInstagramPost,
   adminArchiveInstagramPost,
   adminPreviewWeeklyCarousels,

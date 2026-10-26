@@ -1,12 +1,17 @@
 import { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { db } from '../lib/firebase';
 import { useAuth } from './useAuth';
+import { getStaffAccess } from '../utils/staffRoles';
+import { staffEventQuerySpecs, subscribeEventQueries } from '../lib/staffEventQueries';
 
-export function useTrashedEvents(isAdmin = false) {
-  const { user } = useAuth();
+/**
+ * Trashed events: Super-Admin all, a Regions-Moderator:in those of her regions
+ * plus her own, everyone else their own.
+ */
+export function useTrashedEvents() {
+  const { user, role, staffRegionIds } = useAuth();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const regionKey = Array.isArray(staffRegionIds) ? staffRegionIds.join(',') : '';
 
   useEffect(() => {
     if (!user) {
@@ -15,21 +20,10 @@ export function useTrashedEvents(isAdmin = false) {
       return undefined;
     }
 
-    let q;
-    if (isAdmin) {
-      q = query(collection(db, 'events'), where('status', '==', 'trashed'));
-    } else {
-      q = query(
-        collection(db, 'events'),
-        where('status', '==', 'trashed'),
-        where('createdBy', '==', user.uid)
-      );
-    }
-
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const list = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const access = getStaffAccess(role, regionKey ? regionKey.split(',') : []);
+    return subscribeEventQueries(
+      staffEventQuerySpecs({ access, uid: user.uid, status: 'trashed' }),
+      (list) => {
         list.sort((a, b) => {
           const aTime = a.trashedAt?.toMillis ? a.trashedAt.toMillis() : 0;
           const bTime = b.trashedAt?.toMillis ? b.trashedAt.toMillis() : 0;
@@ -43,8 +37,7 @@ export function useTrashedEvents(isAdmin = false) {
         setLoading(false);
       }
     );
-    return unsubscribe;
-  }, [user, isAdmin]);
+  }, [user, role, regionKey]);
 
   return { events, loading };
 }

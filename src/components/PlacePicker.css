@@ -1,0 +1,112 @@
+.place-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.place-picker-error {
+  margin: 8px 0 0;
+  font-size: 0.9rem;
+  color: var(--error, #b3261e);
+}
+
+.place-picker-chosen {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  color: var(--text-primary);
+}
+
+.place-picker-region {
+  color: var(--text-secondary);
+}
+
+.place-picker-radius {
+  margin: 14px 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.place-picker-radius legend {
+  margin-bottom: 6px;
+  padding: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.place-picker-radius-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.place-picker-radius-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.place-picker-radius-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.place-picker-radius-option:focus-within {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 1px;
+}
+
+.place-picker-radius-option--on {
+  border-color: var(--accent-primary-hover);
+  background: var(--accent-primary-hover);
+  color: #fff;
+}
+
+.place-picker-radius:disabled .place-picker-radius-option {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.place-picker-apply {
+  min-height: 48px;
+  margin-top: 16px;
+  border: 1px solid var(--accent-primary-hover);
+  border-radius: var(--radius-sm);
+  background: var(--accent-primary-hover);
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.place-picker-apply:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* The search field centres itself on the chooser page; inside the picker it fills the column. */
+.place-picker .place-search {
+  max-width: none;
+  margin: 8px 0 0;
+}

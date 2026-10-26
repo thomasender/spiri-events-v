@@ -47,6 +47,7 @@ import {
 
 const ADMIN_EMULATOR_USERS = ['admin@test.com', 'mathis.aut@gmail.com'];
 const GOOGLE_PROVIDER_ID = 'google.com';
+const EMPTY_REGION_IDS = [];
 export const MIN_PASSWORD_LENGTH = 8;
 
 const AUTH_ERROR_MESSAGES = {
@@ -118,21 +119,28 @@ export function verificationEmailErrorMessage(err) {
   return authErrorMessage(err);
 }
 
+// Own staff doc `admin_users/{uid}` (users may read their own): `role` and,
+// for a Regions-Moderator:in, her `regionIds`.
 async function checkFirestoreAdminRole(user) {
-  if (!user?.email) return null;
+  const none = { role: null, regionIds: [] };
+  if (!user?.email) return none;
   try {
     const adminDocRef = doc(db, 'admin_users', user.uid);
     const adminDoc = await getDoc(adminDocRef);
     if (adminDoc.exists()) {
-      return adminDoc.data().role || 'Admin';
+      const data = adminDoc.data();
+      return {
+        role: data.role || 'Admin',
+        regionIds: Array.isArray(data.regionIds) ? data.regionIds : [],
+      };
     }
     if (ADMIN_EMULATOR_USERS.includes(user.email)) {
-      return 'Admin';
+      return { role: 'Admin', regionIds: [] };
     }
   } catch (err) {
     console.warn('Error checking Firestore admin role:', err);
   }
-  return null;
+  return none;
 }
 
 async function seedProfileDoc(
@@ -190,6 +198,8 @@ export function useAuth() {
   const [user, setUser] = useState(() => auth.currentUser);
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState(null);
+  // Regions of a Regions-Moderator:in (role 'RegionModerator'); [] otherwise.
+  const [staffRegionIds, setStaffRegionIds] = useState(EMPTY_REGION_IDS);
   const [emailVerified, setEmailVerified] = useState(() =>
     Boolean(auth.currentUser?.emailVerified)
   );
@@ -221,17 +231,21 @@ export function useAuth() {
           const tokenRole = tokenResult.claims.role ?? null;
           if (tokenRole) {
             setRole(tokenRole);
+            setStaffRegionIds(EMPTY_REGION_IDS);
           } else {
-            const firestoreRole = await checkFirestoreAdminRole(firebaseUser);
-            setRole(firestoreRole);
+            const staff = await checkFirestoreAdminRole(firebaseUser);
+            setRole(staff.role);
+            setStaffRegionIds(staff.regionIds);
           }
         } catch (err) {
           console.warn('Error getting ID token result:', err);
-          const firestoreRole = await checkFirestoreAdminRole(firebaseUser);
-          setRole(firestoreRole);
+          const staff = await checkFirestoreAdminRole(firebaseUser);
+          setRole(staff.role);
+          setStaffRegionIds(staff.regionIds);
         }
       } else {
         setRole(null);
+        setStaffRegionIds(EMPTY_REGION_IDS);
       }
       setLoading(false);
     });
@@ -531,6 +545,7 @@ export function useAuth() {
     user,
     loading,
     role,
+    staffRegionIds,
     emailVerified,
     canCreateEvents,
     register,

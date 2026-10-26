@@ -2,11 +2,23 @@ import { Link } from 'react-router-dom';
 import { usePwaInstall, isIOSDevice } from '../hooks/usePwaInstall';
 import { PWA_OPEN_REQUEST_EVENT } from './PwaInstallPrompt';
 import { requestConsentBanner } from '../lib/analyticsConsent';
+import { COPYRIGHT_NOTICE } from '../config/brand';
+import { useRegion } from '../hooks/useRegion';
+import { useAuth } from '../hooks/useAuth';
+import { RegionPickButton } from './RegionSwitcher';
+import { aboutPathFor } from '../utils/regionRouting';
 import './Footer.css';
 
 export default function Footer() {
   const { installAvailable, isStandalone, isMobileViewport, requestInstall } = usePwaInstall();
   const isIOS = isIOSDevice();
+  const { role, user } = useAuth();
+  // The page's own region / combined view (on Impressum / Datenschutz the one the
+  // visitor came from) decides; a coming-soon region is not the context region, so
+  // `regionId` alone would fall back to the default. Unchanged `/ueber-uns` while
+  // Vorarlberg is the only active region; combined views use it too.
+  const { regionId, allRegions, pageSlug } = useRegion();
+  const aboutPath = aboutPathFor({ pageSlug, regionId, regions: allRegions });
 
   // The link is removed from the DOM (not just visually hidden) on desktop
   // and on standalone runs. On desktop, Chrome shows its own install UI and
@@ -35,9 +47,9 @@ export default function Footer() {
   return (
     <footer className="footer">
       <div className="footer-container">
-        <span className="footer-copy">© 2026 tribe Vorarlberg</span>
+        <span className="footer-copy">{COPYRIGHT_NOTICE}</span>
         <nav className="footer-nav" aria-label="Footer-Navigation">
-          <Link to="/ueber-uns">Über uns</Link>
+          <Link to={aboutPath}>Über uns</Link>
           {showInstallLink && (
             <button
               type="button"
@@ -48,6 +60,10 @@ export default function Footer() {
             >
               App installieren
             </button>
+          )}
+          {/* Visitors without an account (also in the header) and Super-Admins. */}
+          {(!user || role === 'Admin') && (
+            <RegionPickButton className="region-pick-button--footer" testId="footer-region-pick" />
           )}
           <Link to="/impressum">Impressum</Link>
           <Link to="/datenschutz">Datenschutz</Link>

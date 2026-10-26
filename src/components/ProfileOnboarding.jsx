@@ -4,6 +4,7 @@ import { Award, Check, Loader2, X } from 'lucide-react';
 import ProfilePhotoUpload from './ProfilePhotoUpload';
 import DirectoryListingFields from './DirectoryListingFields';
 import { useCategoryRegistry } from '../hooks/useCategoryRegistry';
+import { useRegionChoices } from '../hooks/useRegionChoices';
 import { deleteImageByUrl } from '../lib/imageUpload';
 import { validateDirectoryListing } from '../utils/directory';
 import { normalizeInstagramHandle } from '../utils/instagramHandle';
@@ -14,6 +15,8 @@ import {
 } from '../utils/onboarding';
 import { BIO_MAX } from '../utils/profile';
 import { messageToHtml } from '../utils/sanitize';
+import { getAllDistricts, resolveDirectoryRegionIds } from '../utils/regions';
+import { districtsAfterRegionChange } from '../utils/regionChoices';
 import './ConfirmDialog.css';
 import './ProfileForm.css';
 import './ProfileOnboarding.css';
@@ -58,6 +61,8 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
   const [error, setError] = useState('');
   const [gain, setGain] = useState(null);
 
+  const regionChoices = useRegionChoices();
+
   // What is stored right now (starts from the profile, follows our own saves).
   const [saved, setSaved] = useState(() => ({
     photoURL: profile?.photoURL || null,
@@ -67,6 +72,9 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
     listed: profile?.listedInDirectory === true,
     categories: profile?.directoryCategories || [],
     regions: profile?.directoryRegions || [],
+    regionIds: profile?.directoryRegionIds?.length
+      ? resolveDirectoryRegionIds(profile)
+      : [regionChoices.defaultRegionId],
     instagram: profile?.socialMedia?.instagram || '',
   }));
   const savedRef = useRef(saved);
@@ -83,6 +91,7 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
   const [listed, setListed] = useState(saved.listed);
   const [categories, setCategories] = useState(saved.categories);
   const [regions, setRegions] = useState(saved.regions);
+  const [regionIds, setRegionIds] = useState(saved.regionIds);
   const [directoryErrors, setDirectoryErrors] = useState({});
 
   const [instagram, setInstagram] = useState(saved.instagram);
@@ -133,10 +142,13 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
     return () => clearTimeout(timer);
   }, [gain]);
 
+  // With regions switched on, a listing without a region is not complete.
+  const hasRegion = (ids) => !regionChoices.enabled || ids.length > 0;
+
   const draft = {
     photoURL,
     bio,
-    listedInDirectory: listed && categories.length > 0,
+    listedInDirectory: listed && categories.length > 0 && hasRegion(regionIds),
     socialMedia: { instagram },
   };
   const progress = getOnboardingProgress(draft);
@@ -191,7 +203,7 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
   const savedAsProfile = () => ({
     photoURL: saved.photoURL,
     bio: saved.bio,
-    listedInDirectory: saved.listed && saved.categories.length > 0,
+    listedInDirectory: saved.listed && saved.categories.length > 0 && hasRegion(saved.regionIds),
     socialMedia: { instagram: saved.instagram },
   });
 
@@ -208,6 +220,7 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
       setListed(saved.listed);
       setCategories(saved.categories);
       setRegions(saved.regions);
+      setRegionIds(saved.regionIds);
       setBio(saved.bio);
       setDirectoryErrors({});
     } else if (step === 3) {
@@ -249,10 +262,15 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
           categories,
           regions,
           hasBio: Boolean(text),
+          extraRegions: getAllDistricts(regionChoices.allRegions),
         });
         const result = {};
         if (errors.categories) result.categories = errors.categories;
         if (errors.regions) result.regions = errors.regions;
+        if (regionChoices.enabled && regionIds.length === 0) {
+          result.regionIds =
+            'Bitte wähle mindestens eine Region, damit du im Verzeichnis erscheinst.';
+        }
         if (errors.bio) result.bio = errors.bio;
         setDirectoryErrors(result);
         if (Object.keys(result).length > 0) return;
@@ -260,25 +278,29 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
       setDirectoryErrors({});
       if (listed || saved.listed) {
         const bioChanged = text !== saved.bio.trim();
+        const storedRegionIds = resolveDirectoryRegionIds(profile);
+        const nextRegionIds = listed && regionChoices.enabled ? regionIds : storedRegionIds;
         const ok = await persist(
           {
             ...(bioChanged ? { bio: text, bioHtml: messageToHtml(text) } : {}),
             listedInDirectory: listed,
             directoryCategories: listed ? categories : saved.categories,
             directoryRegions: listed ? regions : saved.regions,
+            directoryRegionIds: nextRegionIds,
           },
           {
             ...(bioChanged ? { bio: text } : {}),
             listed,
             categories: listed ? categories : saved.categories,
             regions: listed ? regions : saved.regions,
+            regionIds: nextRegionIds,
           }
         );
         if (!ok) return;
         celebrate(savedAsProfile(), {
           ...savedAsProfile(),
           bio: text,
-          listedInDirectory: listed && categories.length > 0,
+          listedInDirectory: listed && categories.length > 0 && hasRegion(regionIds),
         });
       }
       next();
@@ -528,6 +550,12 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
                 regions={regions}
                 onRegionsChange={setRegions}
                 availableCategories={categoryOptions}
+                regionChoices={regionChoices}
+                regionIds={regionIds}
+                onRegionIdsChange={(ids) => {
+                  setRegionIds(ids);
+                  setRegions((current) => districtsAfterRegionChange(current, ids, regionChoices));
+                }}
                 errors={directoryErrors}
               />
             )}

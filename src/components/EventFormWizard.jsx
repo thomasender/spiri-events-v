@@ -1,9 +1,9 @@
 import { EVENTS, trackEvent } from '../lib/analytics';
 import { useState, useRef, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import CreatableSelect from 'react-select/creatable';
 import { serverTimestamp } from 'firebase/firestore';
-import { useEvents } from '../hooks/useEvents';
+import { useEvents, BEZIRKE } from '../hooks/useEvents';
 import CityField from './CityField';
 import { validateCity, canonicalCity, formatCityWithBezirk } from '../utils/gemeinden';
 import { applyAdminPrefill, shouldPrefillForAdmin } from '../utils/adminPrefill';
@@ -48,6 +48,11 @@ import {
   isDefaultFocalPoint,
 } from '../lib/eventImage';
 import { CURRENCIES, DEFAULT_CURRENCY, formatPriceWithCurrency } from '../utils/currency';
+import { bezirkLabel, DEFAULT_REGION_ID, isRegionSlug, pickEventRegionId } from '../utils/regions';
+import { useRegionChoices } from '../hooks/useRegionChoices';
+import { formExamples } from '../utils/regionExamples';
+import { keepIfInRegion, selectedRegionId, subdivisionFor } from '../utils/regionChoices';
+import EventRegionDialog, { BEZIRK_NOT_FOUND } from './EventRegionDialog';
 import MonthlyModeOptions from './MonthlyModeOptions';
 import { getMonthlyWeekdayPhrase } from '../utils/eventOccurrences';
 import { saveWizardDraft, loadWizardDraft, clearWizardDraft } from '../utils/wizardDraftStorage';
@@ -166,12 +171,19 @@ export default function EventFormWizard() {
     kontakt: user?.email || '',
   };
   const restoredDraft = user ? loadWizardDraft(user.uid) : null;
+  // `?region=tirol` (coming-soon page "Event eintragen"): the event is for that
+  // region even though it is not open yet.
+  const [searchParams] = useSearchParams();
+  const requestedRegion = isRegionSlug(searchParams.get('region'))
+    ? searchParams.get('region')
+    : '';
 
   const [formData, setFormData] = useState(() => {
     if (restoredDraft && restoredDraft.formData) {
       return {
         ...INITIAL_STATE,
         ...restoredDraft.formData,
+        ...(requestedRegion && { regionId: requestedRegion }),
         organizer: {
           ...INITIAL_STATE.organizer,
           ...(restoredDraft.formData.organizer || {}),
@@ -184,8 +196,26 @@ export default function EventFormWizard() {
     return {
       ...INITIAL_STATE,
       ...profileDefaults,
+      ...(requestedRegion && { regionId: requestedRegion }),
     };
   });
+
+  // Region field: only with two or more active regions (otherwise nothing
+  // changes). The preselection is the current region.
+  const regionChoices = useRegionChoices({ keepRegionId: requestedRegion });
+  const selectedRegion = regionChoices.enabled
+    ? selectedRegionId(formData.regionId, regionChoices)
+    : '';
+  const subdivision = subdivisionFor(selectedRegion, regionChoices);
+  const selectedRegionObj = regionChoices.allRegions?.find((r) => r.id === selectedRegion) ?? null;
+  const examples = formExamples(selectedRegionObj, { regionSpecific: regionChoices.enabled });
+  const subdivisionLabel = subdivision.label;
+  const bezirkOptions = subdivision.options ?? BEZIRKE;
+  // A region without any Bezirk / Landkreis in its register cannot require one.
+  const bezirkRequired = bezirkOptions.length > 0;
+  // Vorarlberg: pick the Gemeinde, the Bezirk follows. Other regions have no Gemeinde
+  // list: free-text Ort plus the Bezirk / Landkreis select.
+  const useGemeinden = (selectedRegion || DEFAULT_REGION_ID) === DEFAULT_REGION_ID;
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -352,7 +382,10 @@ export default function EventFormWizard() {
   const recurrenceMaxDate = useMemo(() => {
     if (!formData.date) return '';
     const eventDate = new Date(formData.date + 'T12:00:00');
+    // An unexpected year (e.g. 5 digits) gives an invalid date; toISOString() would throw.
+    if (Number.isNaN(eventDate.getTime())) return '';
     eventDate.setDate(eventDate.getDate() + 180);
+    if (Number.isNaN(eventDate.getTime())) return '';
     return eventDate.toISOString().split('T')[0];
   }, [formData.date]);
 
@@ -386,8 +419,15 @@ export default function EventFormWizard() {
         newErrors.endTime = 'Die Endzeit muss nach der Startzeit liegen';
       }
       if (!formData.isOnline) {
-        const cityError = validateCity(formData.city, formData.bezirk);
+        const cityError = useGemeinden
+          ? validateCity(formData.city, formData.bezirk)
+          : (formData.city || '').trim()
+            ? null
+            : 'Bitte Ort angeben oder als Online-Event markieren';
         if (cityError) newErrors.city = cityError;
+        if (!useGemeinden && bezirkRequired && !formData.bezirk) {
+          newErrors.bezirk = `Bitte ${subdivisionLabel} auswählen oder als Online-Event markieren`;
+        }
       }
       if (!formData.category) {
         newErrors.category = 'Kategorie ist erforderlich';
@@ -546,6 +586,16 @@ export default function EventFormWizard() {
     }
   };
 
+  const [regionDialogOpen, setRegionDialogOpen] = useState(false);
+  // "Finde meinen Bezirk nicht" opens the region dialog instead of setting a value.
+  const handleBezirkChange = (e) => {
+    if (e.target.value === BEZIRK_NOT_FOUND) {
+      setRegionDialogOpen(true);
+      return;
+    }
+    handleChange(e);
+  };
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     if (type === 'checkbox') {
@@ -565,6 +615,11 @@ export default function EventFormWizard() {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
+      ...(name === 'bezirk' && value ? { isOnline: false } : {}),
+      // A new region has its own Bezirke / Landkreise (and Orte): drop what no longer fits.
+      ...(name === 'regionId'
+        ? { bezirk: keepIfInRegion(prev.bezirk, value, regionChoices), city: '' }
+        : {}),
     }));
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: null }));
@@ -573,6 +628,7 @@ export default function EventFormWizard() {
 
   const handleCityChange = ({ city, bezirk }) => {
     setFormData((prev) => ({ ...prev, city, bezirk, ...(city.trim() ? { isOnline: false } : {}) }));
+    if (bezirk && errors.bezirk) setErrors((prev) => ({ ...prev, bezirk: null }));
     if (errors.city) setErrors((prev) => ({ ...prev, city: null }));
     if (errors.isOnline) setErrors((prev) => ({ ...prev, isOnline: null }));
   };
@@ -625,7 +681,7 @@ export default function EventFormWizard() {
       if (baseDate) {
         const d = new Date(baseDate + 'T12:00:00');
         d.setDate(d.getDate() + 7);
-        nextDate = d.toISOString().split('T')[0];
+        if (!Number.isNaN(d.getTime())) nextDate = d.toISOString().split('T')[0];
       }
       return { ...prev, customDates: [...existing, nextDate] };
     });
@@ -758,6 +814,7 @@ export default function EventFormWizard() {
     bezirk: formData.isOnline ? '' : formData.bezirk,
     city: formData.isOnline ? '' : canonicalCity(formData.city),
     isOnline: Boolean(formData.isOnline),
+    regionId: pickEventRegionId(regionChoices.enabled ? selectedRegion : formData.regionId),
     organizer: {
       firstName: splitOrganizerName(formData.organizer.name).firstName,
       lastName: splitOrganizerName(formData.organizer.name).lastName,
@@ -943,7 +1000,7 @@ export default function EventFormWizard() {
           type="text"
           value={formData.organizer.name}
           onChange={handleOrganizerChange}
-          placeholder="z.B. Peter Mathis oder Yoga Studio Dornbirn"
+          placeholder={examples.organizer}
           autoComplete="organization"
           className={errors['organizer.name'] ? 'input-error' : ''}
         />
@@ -964,7 +1021,7 @@ export default function EventFormWizard() {
           type="text"
           value={formData.kontakt}
           onChange={handleChange}
-          placeholder="z.B. 0676 1234567 oder kontakt@email.de"
+          placeholder={examples.contact}
           className={errors.kontakt ? 'input-error' : ''}
         />
         {errors.kontakt && <span className="error-text">{errors.kontakt}</span>}
@@ -1095,11 +1152,6 @@ export default function EventFormWizard() {
           onChange={handleImageSelectFromInput}
           style={{ display: 'none' }}
         />
-        <p className="image-hint" data-testid="title-image-hint">
-          Tipp: Verwende als Titelfoto am besten ein schönes Symbolfoto mit wenig Text. Fotos mit
-          viel Text (z.B. ein Flyer) kannst du im Feld „Beschreibung“ zusätzlich zu deinem
-          Beschreibungstext hinzufügen.
-        </p>
         {errors.image && <span className="error-text">{errors.image}</span>}
         {imageUploading && (
           <div className="upload-progress">
@@ -1186,13 +1238,60 @@ export default function EventFormWizard() {
       </div>
 
       <div className="form-row">
-        <CityField
-          city={formData.city}
-          bezirk={formData.bezirk}
-          disabled={formData.isOnline}
-          error={errors.city}
-          onChange={handleCityChange}
-        />
+        {useGemeinden ? (
+          <CityField
+            city={formData.city}
+            bezirk={formData.bezirk}
+            disabled={formData.isOnline}
+            error={errors.city}
+            onChange={handleCityChange}
+            onOtherRegion={regionChoices.enabled ? () => setRegionDialogOpen(true) : undefined}
+          />
+        ) : (
+          <div>
+            <CityField
+              free
+              region={selectedRegionObj}
+              subdivisionLabel={subdivisionLabel}
+              placeholder={examples.place}
+              city={formData.city}
+              bezirk={formData.bezirk}
+              disabled={formData.isOnline}
+              error={errors.city}
+              onChange={handleCityChange}
+            />
+            <div className="form-group">
+              <label htmlFor="bezirk">{subdivisionLabel} *</label>
+              <select
+                id="bezirk"
+                name="bezirk"
+                value={formData.bezirk}
+                onChange={handleBezirkChange}
+                disabled={formData.isOnline}
+                className={errors.bezirk ? 'input-error' : ''}
+              >
+                <option value="">{subdivisionLabel} auswählen...</option>
+                {bezirkOptions.map((b) => (
+                  <option key={b} value={b}>
+                    {bezirkLabel(b)}
+                  </option>
+                ))}
+                <option value={BEZIRK_NOT_FOUND}>Finde meinen {subdivisionLabel} nicht</option>
+              </select>
+              {errors.bezirk && <span className="error-text">{errors.bezirk}</span>}
+            </div>
+          </div>
+        )}
+        {regionChoices.enabled && (
+          <EventRegionDialog
+            isOpen={regionDialogOpen}
+            regionName={regionChoices.options.find((r) => r.id === selectedRegion)?.name ?? ''}
+            value={selectedRegion}
+            options={regionChoices.options}
+            onChange={handleChange}
+            onClose={() => setRegionDialogOpen(false)}
+          />
+        )}
 
         <div className="form-group">
           <label htmlFor="place">Adresse / Veranstaltungsort</label>
@@ -1202,11 +1301,7 @@ export default function EventFormWizard() {
             type="text"
             value={formData.place}
             onChange={handleChange}
-            placeholder={
-              formData.isOnline
-                ? 'Nicht relevant für Online-Events'
-                : 'z.B. Yogastudio Mitte, Stadtstraße 12, 6900 Bregenz'
-            }
+            placeholder={formData.isOnline ? 'Nicht relevant für Online-Events' : examples.address}
             disabled={formData.isOnline}
             className={errors.place ? 'input-error' : ''}
           />
@@ -1689,6 +1784,7 @@ export default function EventFormWizard() {
         instagramHandle={profile?.socialMedia?.instagram}
         handleOverride={instagramHandleOverride}
         onHandleOverrideChange={setInstagramHandleOverride}
+        regionId={pickEventRegionId(regionChoices.enabled ? selectedRegion : formData.regionId)}
       />
 
       {instagramConsent && (

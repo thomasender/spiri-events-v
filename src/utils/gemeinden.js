@@ -127,13 +127,17 @@ export function findGemeinde(text) {
   return BY_NAME.get(norm(text)) || null;
 }
 
-/** "Altach (Bez. Feldkirch)"; outside Vorarlberg "Ruggell (Umgebung)"; just the Bezirk for events without a city. */
-export function formatCityWithBezirk(city, bezirk) {
+/**
+ * "Altach (Bez. Feldkirch)"; "Lindau (Lkr. Lindau)" in Germany; outside
+ * Vorarlberg "Ruggell (Umgebung)"; just the Bezirk for events without a city.
+ * A city that is its own district (kreisfreie Stadt) is not repeated.
+ */
+export function formatCityWithBezirk(city, bezirk, subdivisionLabel = 'Bezirk') {
   const name = (city || '').trim();
   if (!name) return bezirkLabel(bezirk) || '';
-  if (!bezirk) return name;
+  if (!bezirk || norm(name) === norm(bezirk)) return name;
   if (bezirk === OUTSIDE_BEZIRK) return `${name} (${bezirkLabel(bezirk)})`;
-  return `${name} (Bez. ${bezirk})`;
+  return `${name} (${subdivisionLabel === 'Landkreis' ? 'Lkr.' : 'Bez.'} ${bezirk})`;
 }
 
 /** Error message for the Ort field of an in-person event, or null when it is valid. */

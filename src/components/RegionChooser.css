@@ -1,0 +1,96 @@
+/* Required choice as a full page: the real page stays rendered (inert) behind it, the
+   site header stays visible above it (top set by RegionChooser.jsx). */
+.region-chooser-backdrop {
+  position: fixed;
+  inset: 0;
+  top: var(--region-chooser-top, 0);
+  z-index: 2000;
+  overflow-y: auto;
+  background-color: var(--bg-primary);
+}
+
+.region-chooser {
+  width: min(1100px, 100%);
+  margin: 0 auto;
+  padding: 24px 16px 40px;
+}
+
+.region-chooser:focus {
+  outline: none;
+}
+
+.region-chooser-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.region-chooser-title {
+  margin: 0 0 6px;
+  font-family: var(--font-heading);
+  font-size: 1.8rem;
+  color: var(--text-primary);
+}
+
+.region-chooser-hint {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text-secondary);
+}
+
+.region-chooser-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.region-chooser-close {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  margin: 0 0 8px auto;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.region-chooser-header:has(.region-chooser-close) {
+  display: flex;
+  flex-direction: column;
+}
+
+.region-chooser-close:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.region-chooser-apply {
+  margin-top: 32px;
+}
+
+/* Desktop: one common column width for intro, place picker and moderator call, and
+   more air between the blocks. Mobile is unchanged. */
+@media (min-width: 768px) {
+  .region-chooser {
+    width: min(640px, 100%);
+  }
+
+  .region-chooser-header {
+    margin-bottom: 40px;
+  }
+
+  .region-chooser .place-picker,
+  .region-chooser .moderator-apply {
+    max-width: none;
+  }
+
+  .region-chooser .region-chooser-apply {
+    margin-top: 48px;
+  }
+}

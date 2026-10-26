@@ -190,6 +190,24 @@ describe('event slug uniqueness', () => {
     expect(await resolveSlugForApproval('e1', BASE)).toBe(`${BASE}-3`);
   });
 
+  it('Regions-Moderator:in (no list rights on drafts): checks the published events only', async () => {
+    fakeEvents = [
+      { id: 'a1', slug: BASE, status: 'approved', createdBy: 'u2' },
+      { id: 'e1', slug: BASE, status: 'pending', createdBy: 'u1' },
+    ];
+    const { getDocs } = await import('firebase/firestore');
+    const real = vi.mocked(getDocs).getMockImplementation()!;
+    vi.mocked(getDocs).mockImplementation(async (filters: unknown) => {
+      const list = filters as { field: string }[];
+      if (!list.some((f) => f.field === 'status')) {
+        throw Object.assign(new Error('denied'), { code: 'permission-denied' });
+      }
+      return real(filters as never);
+    });
+    expect(await resolveSlugForApproval('e1', BASE)).toBe(`${BASE}-2`);
+    vi.mocked(getDocs).mockImplementation(real);
+  });
+
   it('server-side: keeps a free slug and renames a taken one after the date suffix', async () => {
     const taken = new Set([BASE, `${BASE}-2`]);
     const isTaken = async (s: string) => taken.has(s);

@@ -73,3 +73,6 @@ scripts/check-user.mjs
 scripts/manual-verify-email.mjs
 scripts/list-unverified-users.mjs
 scripts/read-mailgun-secrets.mjs
+
+# Firestore backups (scripts/export-firestore.mjs); contain personal data
+/backups/

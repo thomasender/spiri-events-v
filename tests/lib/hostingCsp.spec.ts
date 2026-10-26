@@ -40,3 +40,22 @@ describe('Content-Security-Policy', () => {
     expect(scripts.every((s) => !/^https:\/\/\*\./.test(s))).toBe(true);
   });
 });
+
+describe('Permissions-Policy', () => {
+  const policy: string = config.hosting.headers
+    .flatMap((h: { headers: { key: string; value: string }[] }) => h.headers)
+    .find((h: { key: string }) => h.key === 'Permissions-Policy').value;
+  const features = Object.fromEntries(
+    policy.split(',').map((f) => f.trim().split('=') as [string, string])
+  );
+
+  it('allows geolocation for our own pages only ("Meinen Standort verwenden")', () => {
+    expect(features.geolocation).toBe('(self)');
+  });
+
+  it('keeps camera, microphone and payment blocked', () => {
+    expect(features.camera).toBe('()');
+    expect(features.microphone).toBe('()');
+    expect(features.payment).toBe('()');
+  });
+});

@@ -6,7 +6,7 @@ import { TEST_ROLES, storageStatePath, type TestRole } from './helpers/roles';
  *
  * Every spec used to sign in through the login form — 259 UI logins per pass,
  * each costing a page load, a Firebase Auth round trip and a hardcoded 2s
- * sleep. Here we do it three times (once per role) and persist the session so
+ * sleep. Here we do it once per role (TEST_ROLES) and persist the session so
  * the specs can start already authenticated via `test.use({ storageState })`.
  *
  * `indexedDB: true` is essential: the Firebase Web SDK keeps its session in

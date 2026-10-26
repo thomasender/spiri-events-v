@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { createHash } from 'node:crypto';
 import {
   buildEmailPayload,
   buildSubmittedPayload,
@@ -743,6 +744,93 @@ describe('messageToPlainText', () => {
 
   it('converts breaks, images and entities', () => {
     expect(messageToPlainText('<p>A&amp;B<br>C</p><p><img src="x"></p>')).toBe('A&B\nC\n[Bild]');
+  });
+});
+
+describe('region contact line in owner mails', () => {
+  const owner = {
+    id: 'e1',
+    title: 'Yoga am See',
+    slug: 'yoga-am-see',
+    organizer: { firstName: 'Anna', lastName: 'B' },
+  };
+  const changes = {
+    event: owner,
+    recipient: 'a@b.at',
+    context: { messageId: 'm', authorName: 'Admin', text: 'Bitte Bild' },
+  };
+  const hash = (p: unknown) =>
+    createHash('sha256').update(JSON.stringify(p)).digest('hex').slice(0, 16);
+
+  // Hashes of the mails as they were before the region line existed. With one
+  // active region no contact is passed, so these must never change.
+  it('keeps the mails byte-identical without a contact address', () => {
+    const base = { event: owner, recipient: 'a@b.at' };
+    expect(hash(buildEmailPayload('published', base))).toBe('24a6c914d7a74e2f');
+    expect(hash(buildEmailPayload('unpublished', base))).toBe('6c322f74e5ffc172');
+    expect(hash(buildEmailPayload('deleted', { ...base, reason: 'Doppelt' }))).toBe(
+      '837dca1832b07039'
+    );
+    expect(hash(buildEmailPayload('deleted', base))).toBe('c99a96faf4e5c24a');
+    expect(hash(buildEmailPayload('changes_requested', changes))).toBe('a34379e8412ae535');
+  });
+
+  it.each([undefined, null, '', '   '])('ignores an empty contact (%j)', (value) => {
+    const base = { event: owner, recipient: 'a@b.at' };
+    expect(buildEmailPayload('published', { ...base, regionContactEmail: value })).toEqual(
+      buildEmailPayload('published', base)
+    );
+  });
+
+  it('adds the line before the footer in all four owner mails', () => {
+    const regionContactEmail = 'tirol@thetribe.at';
+    const base = { event: owner, recipient: 'a@b.at' };
+    const cases: [Parameters<typeof buildEmailPayload>[0], object][] = [
+      ['published', base],
+      ['unpublished', base],
+      ['deleted', { ...base, reason: 'Doppelt' }],
+      ['deleted', base],
+      ['changes_requested', changes],
+    ];
+    for (const [type, input] of cases) {
+      const plain = buildEmailPayload(type, input as never);
+      const withLine = buildEmailPayload(type, { ...input, regionContactEmail } as never);
+      expect(withLine.subject).toBe(plain.subject);
+      expect(withLine.text).toContain('Rückfragen zu dieser Region: tirol@thetribe.at');
+      expect(withLine.html).toContain('Rückfragen zu dieser Region:');
+      expect(withLine.html).toContain('mailto:tirol@thetribe.at');
+      // Everything else stays as it was: removing the line gives the old mail.
+      expect(withLine.text.replace('\n\nRückfragen zu dieser Region: tirol@thetribe.at', '')).toBe(
+        plain.text
+      );
+      expect(withLine.text.indexOf('Rückfragen')).toBeLessThan(
+        withLine.text.indexOf('Du erhältst diese E-Mail')
+      );
+      expect(withLine.html.indexOf('Rückfragen')).toBeLessThan(
+        withLine.html.indexOf('Benachrichtigungseinstellungen')
+      );
+    }
+  });
+
+  it('escapes the address in HTML', () => {
+    const payload = buildEmailPayload('published', {
+      event: owner,
+      recipient: 'a@b.at',
+      regionContactEmail: 'a"b@x.at',
+    });
+    expect(payload.html).not.toContain('a"b@x.at');
+    expect(payload.html).toContain('a&quot;b@x.at');
+  });
+
+  it('does not touch the submitted admin mail or the contact message', () => {
+    const submitted = buildEmailPayload('submitted', {
+      event: owner,
+      recipient: 'x@y.at',
+      context: { submitterName: 'Anna' },
+      regionContactEmail: 'tirol@thetribe.at',
+    } as never);
+    expect(submitted.text).not.toContain('Rückfragen');
+    expect(submitted.html).not.toContain('Rückfragen');
   });
 });
 

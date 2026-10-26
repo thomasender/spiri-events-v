@@ -113,7 +113,8 @@ test.describe('Calendar Integration @mobile', () => {
 
       const onlineChip = page.getByTestId('filter-chip-online');
       await expect(onlineChip).toBeVisible();
-      await expect(onlineChip).toHaveText('Online');
+      // The chip also carries a facet-count badge, so assert on the label span only.
+      await expect(onlineChip.locator('span').first()).toHaveText('Online');
       await onlineChip.click();
       await expect(onlineChip).toHaveAttribute('aria-pressed', 'true');
     });

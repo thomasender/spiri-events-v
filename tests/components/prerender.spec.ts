@@ -180,6 +180,16 @@ describe('prerender.mjs helpers', () => {
   });
 
   describe('mergeEventsByIdentity', () => {
+    it('keeps regionId through unfirestore, normalizeEvent and the merge', async () => {
+      const { mergeEventsByIdentity, normalizeEvent, unfirestore } = await importPrerender();
+      const fromExport = normalizeEvent(
+        unfirestore({ id: 'e1', slug: 's1', regionId: { stringValue: 'tirol' } })
+      );
+      expect(fromExport.regionId).toBe('tirol');
+      const merged = mergeEventsByIdentity([fromExport], [{ id: 'e1', title: 'Live' }]);
+      expect(merged[0].regionId).toBe('tirol');
+    });
+
     it('appends events only present in the incoming list (BKtuzVC2)', async () => {
       const { mergeEventsByIdentity } = await importPrerender();
       const base = [{ id: 'old-1', slug: 'old-1', title: 'Old Event', imageUrl: null }];

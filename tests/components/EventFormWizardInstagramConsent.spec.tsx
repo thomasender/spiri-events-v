@@ -144,6 +144,16 @@ const profileWith = (extra: Record<string, unknown>) => ({
   ...extra,
 });
 
+describe('EventFormWizard region', () => {
+  it('stores the default region on submit', async () => {
+    mockProfile.value = profileWith({});
+    seedDraft();
+    renderWizard();
+    const saved = await submitAndGetSavedEvent();
+    expect(saved.regionId).toBe('vorarlberg');
+  });
+});
+
 describe('EventFormWizard Instagram consent', () => {
   it('is off by default and saved as false', async () => {
     mockProfile.value = profileWith({});

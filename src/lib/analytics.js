@@ -40,6 +40,7 @@ const PII_KEYS = new Set([
 
 let consent = false;
 let adminUser = false;
+let region = null; // slug sent as `region` on every event, null = nothing
 let sdk = null; // { mod, instance }
 let initPromise = null;
 let lastPageLocation = null; // previous in-app page, sent as page_referrer
@@ -130,6 +131,14 @@ export async function setAnalyticsAdminUser(isAdmin) {
   applyState();
 }
 
+/**
+ * Region label for all following events (region slug or combined-view slug).
+ * Pass null to send none (the app does that while only one region is active).
+ */
+export function setAnalyticsRegion(slug) {
+  region = typeof slug === 'string' && /^[a-z0-9-]{1,40}$/.test(slug) ? slug : null;
+}
+
 /** Current page URL without query string or hash (no tokens, no search terms). */
 function currentPageLocation() {
   try {
@@ -149,6 +158,7 @@ function cleanParams(params) {
     if (v === undefined || v === null || PII_KEYS.has(k.toLowerCase())) continue;
     out[k] = v;
   }
+  if (region && out.region === undefined) out.region = region;
   return out;
 }
 

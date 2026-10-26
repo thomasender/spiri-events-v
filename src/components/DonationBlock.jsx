@@ -128,7 +128,7 @@ export default function DonationBlock({ placement = 'unknown' }) {
         </label>
         <p className="donation-consent-hint">
           Du kannst deinen Eintrag jederzeit formlos per E-Mail an{' '}
-          <a href="mailto:office@tribevorarlberg.at">office@tribevorarlberg.at</a> entfernen lassen.
+          <a href="mailto:admin@thetribe.at">admin@thetribe.at</a> entfernen lassen.
         </p>
 
         <label className="donation-amount-field">
@@ -191,9 +191,9 @@ export default function DonationBlock({ placement = 'unknown' }) {
         {isMonthly
           ? 'Die Spende wird monatlich per SEPA-Lastschrift oder Kreditkarte abgebucht. Du kannst sie jederzeit über dein Mollie-Konto oder per E-Mail an '
           : 'Die Spende wird einmalig per SEPA-Lastschrift oder Kreditkarte abgebucht. Für Rückfragen schreibe an '}
-        <a href="mailto:office@tribevorarlberg.at">office@tribevorarlberg.at</a>. Für eine
-        offizielle Spendenquittung wende dich ebenfalls an{' '}
-        <a href="mailto:office@tribevorarlberg.at">office@tribevorarlberg.at</a>.
+        <a href="mailto:admin@thetribe.at">admin@thetribe.at</a>. Für eine offizielle
+        Spendenquittung wende dich ebenfalls an{' '}
+        <a href="mailto:admin@thetribe.at">admin@thetribe.at</a>.
       </p>
     </form>
   );

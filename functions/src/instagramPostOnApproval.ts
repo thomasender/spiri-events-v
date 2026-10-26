@@ -10,6 +10,8 @@ import {
 } from './instagram/instagramPublish';
 import { buildPublishDeps, resolveInstagramAccessToken } from './instagramDeps';
 import { ADMIN_MAIL_SECRETS } from './adminNotify';
+import { DEFAULT_REGION_ID, isInstagramRegion, resolveRegionId } from './regions';
+import { resolveCredentialsForRegion } from './instagramRegionStore';
 
 if (getApps().length === 0) {
   initializeApp();
@@ -40,6 +42,41 @@ export const onEventApprovedPostToInstagram = onDocumentWritten(
     // network; the full decision (kill switch, dedupe, date) lives in the
     // tested logic module.
     if (!isApprovalTransition(before, after)) return;
+    const regionId = resolveRegionId(after);
+    if (regionId !== DEFAULT_REGION_ID) {
+      // Another region posts only with its own account from
+      // instagram_private/region_{id}. Consent first (cheap, no read). No
+      // account, a disabled one or a failed lookup: skip quietly, write no
+      // instagram_posts doc, so the consent stays on the event.
+      if (after?.instagramConsent !== true) {
+        logger.info('Instagram feed post skipped: no organizer consent', {
+          eventId,
+          outcome: 'no-consent',
+        });
+        return;
+      }
+      const credentials = await resolveCredentialsForRegion(db, regionId, {
+        accessToken: '',
+        userId: '',
+      });
+      if (!credentials) {
+        logger.info('instagram skipped: region', { eventId, regionId, outcome: 'region' });
+        return;
+      }
+      deps.userId = credentials.userId;
+      deps.accessToken = credentials.accessToken;
+      deps.instagramRegionIds = [regionId];
+      const regionOutcome = await publishApprovedEvent(deps, eventId, before, after);
+      if (regionOutcome !== 'ignored') {
+        logger.info('Instagram feed post processed', { eventId, regionId, outcome: regionOutcome });
+      }
+      return;
+    }
+    // Vorarlberg: legacy secrets + instagram_private/token, unchanged.
+    if (!isInstagramRegion(after)) {
+      logger.info('instagram skipped: region', { eventId, outcome: 'region' });
+      return;
+    }
     // No consent: skip before touching secrets. Writes no instagram_posts doc,
     // so approving again after the organizer opted in can still post.
     if (after?.instagramConsent !== true) {

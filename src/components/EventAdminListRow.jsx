@@ -63,6 +63,8 @@ export default function EventAdminListRow({
   showSubmit = false,
   showRevert = false,
   showDuplicate = false,
+  showEdit = true,
+  showDelete = true,
   unreadCount = 0,
   hasMessages = false,
   isAdmin = false,
@@ -77,6 +79,7 @@ export default function EventAdminListRow({
   approvedByName = null,
   showInKlaerungBy = false,
   inKlaerungByName = null,
+  regionLabel = null,
   onApprove,
   onSubmit,
   onRevert,
@@ -179,6 +182,15 @@ export default function EventAdminListRow({
             </h3>
             <div className="event-card-badges">
               {showStatus && <StatusBadge status={event.status} />}
+              {regionLabel && (
+                <span
+                  className="badge badge--region"
+                  data-testid={`event-card-region-badge-${event.id}`}
+                  title="Region"
+                >
+                  {regionLabel}
+                </span>
+              )}
               {isRecurring && (
                 <span className="badge badge--recurring" title="Wiederholende Veranstaltung">
                   <Repeat size={12} />
@@ -201,7 +213,9 @@ export default function EventAdminListRow({
             {locationLabel && (
               <span className="event-card-meta-item">
                 <MapPin size={12} />
-                {locationLabel}
+                {regionLabel && !event.isOnline
+                  ? `${locationLabel} · ${regionLabel}`
+                  : locationLabel}
               </span>
             )}
             {event.organizer && event.organizer.email && (
@@ -338,7 +352,7 @@ export default function EventAdminListRow({
             <RefreshCw size={16} />
           </button>
         )}
-        {!onRestore && (
+        {!onRestore && showEdit && (
           <Link
             to={`/admin/edit/${event.id}`}
             state={{ from: fromPath }}
@@ -349,31 +363,35 @@ export default function EventAdminListRow({
             <Edit2 size={16} />
           </Link>
         )}
-        <button
-          onClick={() => (onPermanentDelete ? onPermanentDelete(event) : onDeleteClick?.(event))}
-          className="btn btn-subtle-danger btn-sm event-card-action"
-          data-testid={onPermanentDelete ? `trash-permanent-delete-button-${event.id}` : undefined}
-          aria-label={
-            onPermanentDelete
-              ? isRecurring
-                ? 'Serie endgültig löschen'
-                : 'Endgültig löschen'
-              : isRecurring
-                ? 'Serie löschen'
-                : 'Event löschen'
-          }
-          title={
-            onPermanentDelete
-              ? isRecurring
-                ? 'Serie endgültig löschen'
-                : 'Endgültig löschen'
-              : isRecurring
-                ? 'Serie löschen'
-                : 'Event löschen'
-          }
-        >
-          <Trash2 size={16} />
-        </button>
+        {showDelete && (
+          <button
+            onClick={() => (onPermanentDelete ? onPermanentDelete(event) : onDeleteClick?.(event))}
+            className="btn btn-subtle-danger btn-sm event-card-action"
+            data-testid={
+              onPermanentDelete ? `trash-permanent-delete-button-${event.id}` : undefined
+            }
+            aria-label={
+              onPermanentDelete
+                ? isRecurring
+                  ? 'Serie endgültig löschen'
+                  : 'Endgültig löschen'
+                : isRecurring
+                  ? 'Serie löschen'
+                  : 'Event löschen'
+            }
+            title={
+              onPermanentDelete
+                ? isRecurring
+                  ? 'Serie endgültig löschen'
+                  : 'Endgültig löschen'
+                : isRecurring
+                  ? 'Serie löschen'
+                  : 'Event löschen'
+            }
+          >
+            <Trash2 size={16} />
+          </button>
+        )}
       </div>
     </div>
   );

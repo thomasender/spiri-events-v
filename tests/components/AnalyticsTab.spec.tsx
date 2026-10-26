@@ -2,17 +2,27 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import AnalyticsTab, { formatDuration, formatPercent } from '../../src/components/AnalyticsTab';
 
+const regionCtx = vi.hoisted(() => ({
+  value: {
+    regions: [{ id: 'vorarlberg', name: 'Vorarlberg' }] as { id: string; name: string }[],
+    combinedViews: [] as { slug: string; name: string }[],
+  },
+}));
+vi.mock('../../src/hooks/useRegion', () => ({ useRegion: () => regionCtx.value }));
+
 const state = vi.hoisted(() => ({
   report: null as Record<string, unknown> | null,
   loading: false,
   error: null as { message: string } | null,
   reload: vi.fn(),
   days: [] as number[],
+  regions: [] as (string | null)[],
 }));
 
 vi.mock('../../src/hooks/useAdminAnalytics', () => ({
-  useAdminAnalytics: (days: number) => {
+  useAdminAnalytics: (days: number, region: string | null = null) => {
     state.days.push(days);
+    state.regions.push(region);
     return {
       report: state.report,
       loading: state.loading,
@@ -90,6 +100,11 @@ describe('AnalyticsTab', () => {
     state.error = null;
     state.reload = vi.fn();
     state.days = [];
+    state.regions = [];
+    regionCtx.value = {
+      regions: [{ id: 'vorarlberg', name: 'Vorarlberg' }],
+      combinedViews: [],
+    };
   });
 
   it('shows the totals with German number formatting', () => {
@@ -203,5 +218,78 @@ describe('AnalyticsTab', () => {
     };
     render(<AnalyticsTab />);
     expect(screen.getAllByText('Noch keine Daten.')).toHaveLength(4);
+  });
+
+  describe('regions', () => {
+    const two = [
+      { id: 'vorarlberg', name: 'Vorarlberg' },
+      { id: 'steiermark', name: 'Steiermark' },
+    ];
+
+    it('looks exactly like before with one region (no select, table or hint)', () => {
+      const { container } = render(<AnalyticsTab />);
+      expect(screen.queryByTestId('analytics-region-select')).toBeNull();
+      expect(screen.queryByTestId('analytics-regions')).toBeNull();
+      expect(screen.queryByTestId('analytics-region-unavailable')).toBeNull();
+      expect(container.textContent).not.toContain('Regionen im Vergleich');
+      expect(state.regions.every((r) => r === null)).toBe(true);
+    });
+
+    it('shows the select with two active regions and asks for the chosen one', () => {
+      regionCtx.value = {
+        regions: two,
+        combinedViews: [{ slug: 'oesterreich', name: 'Ganz Österreich' }],
+      };
+      render(<AnalyticsTab />);
+      const select = screen.getByTestId('analytics-region-select') as HTMLSelectElement;
+      expect(Array.from(select.options).map((o) => o.textContent)).toEqual([
+        'Alle Regionen',
+        'Ganz Österreich',
+        'Vorarlberg',
+        'Steiermark',
+      ]);
+      fireEvent.change(select, { target: { value: 'steiermark' } });
+      expect(state.regions.at(-1)).toBe('steiermark');
+      fireEvent.change(select, { target: { value: '' } });
+      expect(state.regions.at(-1)).toBeNull();
+    });
+
+    it('shows the select when the data has more than one region', () => {
+      state.report = {
+        ...report,
+        regions: [
+          { name: 'vorarlberg', users: 1, pageViews: 2, sessions: 3 },
+          { name: 'tirol', users: 1, pageViews: 1, sessions: 1 },
+        ],
+      };
+      render(<AnalyticsTab />);
+      expect(screen.getByTestId('analytics-region-select')).toBeInTheDocument();
+    });
+
+    it('draws the comparison table with region names', () => {
+      regionCtx.value = { regions: two, combinedViews: [] };
+      state.report = {
+        ...report,
+        regions: [
+          { name: 'steiermark', users: 1200, pageViews: 3000, sessions: 1500 },
+          { name: 'neue-region', users: 1, pageViews: 2, sessions: 1 },
+        ],
+      };
+      render(<AnalyticsTab />);
+      expect(screen.getByTestId('analytics-regions')).toHaveTextContent('Regionen im Vergleich');
+      const rows = screen.getAllByTestId('analytics-region-row');
+      expect(rows[0]).toHaveTextContent('Steiermark');
+      expect(rows[0]).toHaveTextContent('1.200');
+      expect(rows[1]).toHaveTextContent('neue-region');
+    });
+
+    it('explains the missing custom dimension', () => {
+      regionCtx.value = { regions: two, combinedViews: [] };
+      state.report = { ...report, regionDimension: 'unavailable' };
+      render(<AnalyticsTab />);
+      expect(screen.getByTestId('analytics-region-unavailable')).toHaveTextContent(
+        'Für die Auswertung pro Region muss in Google Analytics einmalig die benutzerdefinierte Dimension „region“ angelegt werden (Anleitung: docs/regions.md).'
+      );
+    });
   });
 });

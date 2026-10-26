@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { X, Smartphone } from 'lucide-react';
 import { EVENTS, trackEvent } from '../lib/analytics';
 import { usePwaInstall, PWA_POPUP_DELAY_MS, isIOSDevice } from '../hooks/usePwaInstall';
+import { useRegionTexts } from '../hooks/useRegionTexts';
 import './PwaInstallPrompt.css';
 
 // Custom event the Footer (and any other caller) dispatches to ask the popup
@@ -38,6 +39,7 @@ export const PWA_OPEN_REQUEST_EVENT = 'pwa-install-open-requested';
 // Mounted once near the top of the React tree (App.jsx), alongside the other
 // global chrome components (SeedBootstrap, ThemeApplier).
 export default function PwaInstallPrompt() {
+  const { siteName } = useRegionTexts();
   const location = useLocation();
   const {
     installAvailable,
@@ -195,7 +197,7 @@ export default function PwaInstallPrompt() {
         ) : (
           <>
             <p id="pwa-install-description" className="pwa-install-description">
-              Mit der App hast du tribe Vorarlberg immer griffbereit — auch ohne Browser zu öffnen.
+              Mit der App hast du {siteName} immer griffbereit — auch ohne Browser zu öffnen.
               Schneller Zugriff direkt vom Startbildschirm.
             </p>
             <div className="pwa-install-actions">

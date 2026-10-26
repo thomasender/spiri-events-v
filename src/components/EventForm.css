@@ -494,6 +494,18 @@ input:disabled {
   color: var(--text-muted, #6b7280);
 }
 
+.link-button {
+  display: block;
+  margin-top: 6px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--color-primary, #5c6b3f);
+  font-size: 0.85rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .city-select--error .kategorie__control {
   border-color: var(--error, #c0392b);
 }

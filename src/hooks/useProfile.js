@@ -14,6 +14,8 @@ import { normalizeFocalPoint } from '../lib/eventImage';
 import { normalizePhotoZoom } from '../components/AvatarImage';
 import { findUniqueProfileSlug, slugifyName } from '../lib/slug';
 import { normalizeUsername } from '../utils/username';
+import { DEFAULT_REGION_ID, resolveDirectoryRegionIds } from '../utils/regions';
+import { normalizeSelection } from '../utils/placeSelection';
 
 export const NOTIFICATION_PREFERENCE_KEYS = [
   'notifyOnSubmitted',
@@ -50,10 +52,12 @@ const EMPTY_PROFILE = {
   listedInDirectory: false,
   directoryCategories: [],
   directoryRegions: [],
+  directoryRegionIds: [DEFAULT_REGION_ID],
   showOnlineStatus: false,
   allowMentions: false,
   instagramConsentDefault: false,
   onboardingDismissed: false,
+  placeSelection: null,
   onboardingCompleted: null,
   createdAt: null,
   updatedAt: null,
@@ -99,10 +103,13 @@ function normalize(data) {
     listedInDirectory: data.listedInDirectory === true,
     directoryCategories: stringArray(data.directoryCategories),
     directoryRegions: stringArray(data.directoryRegions),
+    directoryRegionIds: resolveDirectoryRegionIds(data),
     showOnlineStatus: data.showOnlineStatus === true,
     allowMentions: data.allowMentions === true,
     instagramConsentDefault: data.instagramConsentDefault === true,
     onboardingDismissed: data.onboardingDismissed === true,
+    // "Wo bist du?" place + radius mirrored by PlaceSelectionSync (null without one).
+    placeSelection: normalizeSelection(data.placeSelection),
     // true = finished, false = new account that has not finished it yet,
     // null = older account from before the wizard (see shouldOfferOnboarding).
     onboardingCompleted:

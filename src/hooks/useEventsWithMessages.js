@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from './useAuth';
+import { getStaffAccess } from '../utils/staffRoles';
+import { staffEventQuerySpecs, subscribeEventQueries } from '../lib/staffEventQueries';
 
 export function useEventsWithMessages() {
-  const { user, role } = useAuth();
+  const { user, role, staffRegionIds } = useAuth();
+  const regionKey = Array.isArray(staffRegionIds) ? staffRegionIds.join(',') : '';
   const [events, setEvents] = useState([]);
   const [unreadCountByEvent, setUnreadCountByEvent] = useState({});
   const [hasMessagesByEvent, setHasMessagesByEvent] = useState({});
@@ -27,23 +30,17 @@ export function useEventsWithMessages() {
 
     setLoading(true);
 
-    const eventsRef = collection(db, 'events');
-    let eventsQuery;
-    if (role === 'Admin') {
-      eventsQuery = query(eventsRef, where('status', '==', 'pending'));
-    } else {
-      eventsQuery = query(
-        eventsRef,
-        where('status', '==', 'pending'),
-        where('createdBy', '==', user.uid)
-      );
-    }
+    // Pending events whose conversation this person takes part in:
+    // Super-Admin all, a Regions-Moderator:in those of her regions plus her
+    // own, everyone else their own.
+    const access = getStaffAccess(role, regionKey ? regionKey.split(',') : []);
+    const specs = staffEventQuerySpecs({ access, uid: user.uid, status: 'pending' });
 
     const messageUnsubscribers = [];
 
-    const eventsUnsub = onSnapshot(
-      eventsQuery,
-      (snapshot) => {
+    const eventsUnsub = subscribeEventQueries(
+      specs,
+      (docs) => {
         messageUnsubscribers.forEach((u) => {
           try {
             u();
@@ -52,11 +49,6 @@ export function useEventsWithMessages() {
           }
         });
         messageUnsubscribers.length = 0;
-
-        const docs = snapshot.docs.map((docSnap) => ({
-          id: docSnap.id,
-          ...docSnap.data(),
-        }));
 
         if (docs.length === 0) {
           setEvents([]);
@@ -147,7 +139,7 @@ export function useEventsWithMessages() {
         // ignore
       }
     };
-  }, [user, role]);
+  }, [user, role, regionKey]);
 
   return {
     events,

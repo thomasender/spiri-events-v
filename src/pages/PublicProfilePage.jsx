@@ -14,6 +14,7 @@ import { usePublicProfile } from '../hooks/usePublicProfile';
 import { useAuth } from '../hooks/useAuth';
 import { stripHtml } from '../utils/sanitize';
 import AvatarImage from '../components/AvatarImage';
+import { useRegionTexts } from '../hooks/useRegionTexts';
 import './PublicProfilePage.css';
 
 function normalizeWebsite(url) {
@@ -42,6 +43,7 @@ function buildProfileShareUrl(slug) {
 }
 
 export default function PublicProfilePage() {
+  const { siteName } = useRegionTexts();
   const { slug } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -62,7 +64,7 @@ export default function PublicProfilePage() {
   const seoSourceText = profile?.bioHtml ? stripHtml(profile.bioHtml) : profile?.bio || '';
   const seoDescription = seoSourceText.trim()
     ? seoSourceText.slice(0, 160)
-    : 'Profilseite des Veranstalters auf tribe Vorarlberg.';
+    : `Profilseite des Veranstalters auf ${siteName}.`;
   const seoPath = `/${slug}`;
   const handleBack = () => {
     if (typeof window !== 'undefined' && window.history.length > 1) {

@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "spirieventsvbg"
+    "default": "spirieventsvbg",
+    "staging": "tribe-vbg-staging"
   }
 }

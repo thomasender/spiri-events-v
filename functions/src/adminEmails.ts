@@ -22,10 +22,26 @@ interface AdminCache {
 let cache: AdminCache | null = null;
 let inflight: Promise<AdminAccount[]> | null = null;
 
+/**
+ * Which admin_users docs receive the admin mails (new submissions of ALL
+ * regions, feedback, organizer replies, Instagram alerts). Only Super-Admins:
+ * region moderators (role 'RegionModerator') must not get mails about other
+ * regions. Docs without a role field are kept as recipients, as before this
+ * filter existed (the client also treats them as Admin), so no existing
+ * admin silently stops getting mail.
+ */
+export function isSuperAdminDoc(data: unknown): boolean {
+  const role = data && typeof data === 'object' ? (data as { role?: unknown }).role : undefined;
+  return role === undefined || role === 'Admin';
+}
+
 async function fetchAdminAccounts(): Promise<AdminAccount[]> {
   const db = getFirestore();
   const snapshot = await db.collection('admin_users').get();
-  const uids = snapshot.docs.map((doc) => doc.id).filter((uid) => typeof uid === 'string' && uid);
+  const uids = snapshot.docs
+    .filter((doc) => isSuperAdminDoc(doc.data()))
+    .map((doc) => doc.id)
+    .filter((uid) => typeof uid === 'string' && uid);
   if (uids.length === 0) {
     logger.warn('No admin_users documents found; "submitted" emails will have no recipient.');
     return [];

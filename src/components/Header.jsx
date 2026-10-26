@@ -10,6 +10,11 @@ import { useThreads } from '../hooks/useMessenger';
 import { useChatPresence } from '../hooks/useChatPresence';
 import EmailVerificationModal from './EmailVerificationModal';
 import AvatarImage from './AvatarImage';
+import RegionSwitcher, { RegionMenuList } from './RegionSwitcher';
+import { useRegion } from '../hooks/useRegion';
+import { useRegionTexts } from '../hooks/useRegionTexts';
+import { customSlogan, DEFAULT_SLOGAN_LINE2 } from '../utils/regionAboutText';
+import { logoTargetPath } from '../utils/regionRouting';
 import MentionBell from './MentionBell';
 import {
   Users,
@@ -40,6 +45,26 @@ const HEADER_TOP_BUFFER = 80;
 export default function Header() {
   const { user, logout, role, canCreateEvents } = useAuth();
   const { profile } = useProfile(user?.uid);
+  const regionTexts = useRegionTexts();
+  const {
+    comingSoon,
+    regionId,
+    region,
+    isNational,
+    combinedView,
+    neutralHeader,
+    regionChooserOpen,
+    allRegions,
+    loading: regionsLoading,
+  } = useRegion();
+  // Logo: the region of the signed-in person's profile (see logoTargetPath).
+  const logoPath = logoTargetPath(user ? profile?.placeSelection?.regionId : null, {
+    regions: allRegions,
+    loading: regionsLoading,
+  });
+  const slogan = !neutralHeader && !isNational && !combinedView ? customSlogan(region) : null;
+  // On a coming-soon region page the event belongs to that region.
+  const addEventPath = comingSoon && regionId ? `/admin/new?region=${regionId}` : '/admin/new';
   const isAdmin = role === 'Admin';
   const navigate = useNavigate();
   const location = useLocation();
@@ -346,7 +371,7 @@ export default function Header() {
   const createLink = (extraClass = '') =>
     canCreateEvents ? (
       <NavLink
-        to="/admin/new"
+        to={addEventPath}
         className={({ isActive }) => `${navClass({ isActive })}${extraClass}`}
         onClick={closeMenu}
       >
@@ -506,15 +531,19 @@ export default function Header() {
       data-header-visible={isHeaderVisible}
     >
       <nav className="header-container" aria-label="Hauptnavigation">
-        <Link to="/" className="logo" onClick={closeMenu}>
+        <Link to={logoPath} className="logo" onClick={closeMenu} data-testid="header-logo">
           <div className="logo-icon">
             <img src="/logo-mark.svg" alt="" aria-hidden="true" />
           </div>
           <div className="logo-text">
-            <span className="logo-title">Dein Vorarlberger Kalender</span>
-            <span className="logo-subtitle">für bewusste Events</span>
+            <span className="logo-title">{slogan?.line1 || regionTexts.headerTitle}</span>
+            <span className="logo-subtitle">{slogan?.line2 || DEFAULT_SLOGAN_LINE2}</span>
           </div>
         </Link>
+
+        {/* Signed-in people change the region in their profile (Super-Admins in the footer).
+            Not above "Wo suchst du?": no region name there. */}
+        {!user && !regionChooserOpen && <RegionSwitcher />}
 
         <div className="nav-desktop">{renderDesktopNav()}</div>
 
@@ -573,6 +602,7 @@ export default function Header() {
         className={`nav-mobile${menuOpen ? ' nav-mobile--open' : ''}`}
         aria-hidden={!menuOpen}
       >
+        {!user && !regionChooserOpen && <RegionMenuList onNavigate={closeMenu} />}
         {renderMobileNav()}
       </div>
 

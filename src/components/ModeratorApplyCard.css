@@ -1,0 +1,85 @@
+.moderator-apply {
+  width: 100%;
+  max-width: 640px;
+  margin: 8px auto 0;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-secondary);
+  text-align: left;
+}
+
+.moderator-apply-intro {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.moderator-apply-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--accent-primary);
+}
+
+.moderator-apply-title {
+  margin: 0 0 6px;
+  font-family: var(--font-heading);
+  font-size: 1.15rem;
+  color: var(--text-primary);
+}
+
+.moderator-apply-text {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.moderator-apply-open {
+  display: block;
+  width: 100%;
+  margin-top: 18px;
+  padding: 14px 20px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+
+.moderator-apply-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.moderator-apply-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.moderator-apply-form input,
+.moderator-apply-form select,
+.moderator-apply-form textarea {
+  width: 100%;
+}
+
+.moderator-apply-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.moderator-apply-success {
+  margin: 14px 0 0;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* Honeypot: off screen, not display:none (some bots skip hidden fields). */
+.moderator-apply-hp {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}

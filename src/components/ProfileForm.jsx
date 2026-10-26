@@ -13,6 +13,10 @@ import { getMissingProfileFields, BIO_MAX } from '../utils/profile';
 import { slugifyName } from '../lib/slug';
 import { validateUsername, normalizeUsername, USERNAME_MIN, USERNAME_MAX } from '../utils/username';
 import { isUsernameAvailable } from '../lib/slug';
+import { resolveDirectoryRegionIds } from '../utils/regions';
+import { useRegionChoices } from '../hooks/useRegionChoices';
+import { districtsAfterRegionChange } from '../utils/regionChoices';
+import { getAllDistricts } from '../utils/regions';
 import { useChatAccess, useOnlineStatusAccess } from '../hooks/useChatSettings';
 import './ProfileForm.css';
 
@@ -73,6 +77,18 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
     profile?.directoryCategories || []
   );
   const [directoryRegions, setDirectoryRegions] = useState(profile?.directoryRegions || []);
+  // Region choice for the directory: only with two or more active regions.
+  // Keeps regions the profile already has even if they are not selectable.
+  const regionChoices = useRegionChoices({ keepRegionId: resolveDirectoryRegionIds(profile) });
+  const initialRegionIds = () =>
+    profile?.directoryRegionIds?.length || profile?.listedInDirectory === true
+      ? resolveDirectoryRegionIds(profile)
+      : [regionChoices.defaultRegionId];
+  const [directoryRegionIds, setDirectoryRegionIds] = useState(initialRegionIds);
+  const handleRegionIdsChange = (ids) => {
+    setDirectoryRegionIds(ids);
+    setDirectoryRegions((current) => districtsAfterRegionChange(current, ids, regionChoices));
+  };
   const { categories: registryCategories } = useCategoryRegistry();
   const { available: onlineStatusAvailable } = useOnlineStatusAccess();
   const { available: chatAvailable } = useChatAccess();
@@ -117,6 +133,12 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
     setAllowMentions(profile.allowMentions === true);
     setDirectoryCategories(profile.directoryCategories || []);
     setDirectoryRegions(profile.directoryRegions || []);
+    setDirectoryRegionIds(
+      profile.directoryRegionIds?.length || profile.listedInDirectory === true
+        ? resolveDirectoryRegionIds(profile)
+        : [regionChoices.defaultRegionId]
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile]);
 
   const usernameCheckSeqRef = useRef(0);
@@ -209,7 +231,13 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
       categories: directoryCategories,
       regions: directoryRegions,
       hasBio: getPlainTextLength(bioHtml) > 0,
+      // Districts that only exist in Firestore (e.g. Tirol) are valid too.
+      extraRegions: getAllDistricts(regionChoices.allRegions),
     });
+    if (regionChoices.enabled && listedInDirectory && directoryRegionIds.length === 0) {
+      newErrors.directoryRegionIds =
+        'Bitte wähle mindestens eine Region, damit du im Verzeichnis erscheinst.';
+    }
     if (directoryErrors.categories) newErrors.directoryCategories = directoryErrors.categories;
     if (directoryErrors.regions) newErrors.directoryRegions = directoryErrors.regions;
     if (directoryErrors.bio && !newErrors.bio) newErrors.bio = directoryErrors.bio;
@@ -234,6 +262,10 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
     listedInDirectory,
     directoryCategories,
     directoryRegions,
+    // Without a region picker (one active region) the stored ids stay, default Vorarlberg.
+    directoryRegionIds: regionChoices.enabled
+      ? directoryRegionIds
+      : resolveDirectoryRegionIds(profile),
     showOnlineStatus,
     allowMentions,
   });
@@ -573,7 +605,14 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
           regions={directoryRegions}
           onRegionsChange={setDirectoryRegions}
           availableCategories={directoryCategoryOptions}
-          errors={{ categories: errors.directoryCategories, regions: errors.directoryRegions }}
+          regionChoices={regionChoices}
+          regionIds={directoryRegionIds}
+          onRegionIdsChange={handleRegionIdsChange}
+          errors={{
+            categories: errors.directoryCategories,
+            regions: errors.directoryRegions,
+            regionIds: errors.directoryRegionIds,
+          }}
         />
 
         {submitError && <p className="submit-error">{submitError}</p>}

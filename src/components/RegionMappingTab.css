@@ -1,0 +1,118 @@
+/* "Zuordnung" admin tab; cards, notices and buttons reuse ModerationTab.css. */
+
+.mapping-move {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 14px;
+}
+
+.mapping-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 160px;
+  flex: 1 1 180px;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.mapping-field input,
+.mapping-field select {
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 1rem;
+}
+
+.mapping-draft {
+  padding: 12px 14px;
+  border: 1px solid var(--accent-primary);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+
+.mapping-draft ul {
+  margin: 6px 0;
+  padding-left: 20px;
+}
+
+.mapping-draft-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.mapping-count {
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.mapping-summary {
+  max-height: 50vh;
+  overflow-y: auto;
+  margin: 0 0 12px;
+  padding-left: 18px;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.mapping-suggestion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+}
+
+.mapping-unassigned {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  padding: 10px 14px;
+}
+
+.mapping-unassigned summary {
+  cursor: pointer;
+}
+
+.mapping-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mapping-chip {
+  cursor: pointer;
+  padding: 8px 14px;
+  min-height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-primary);
+  color: inherit;
+  font: inherit;
+}
+
+.mapping-chip:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.mapping-state-label {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.mapping-countries {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}

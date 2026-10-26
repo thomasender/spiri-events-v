@@ -70,6 +70,59 @@ describe('users/{uid}.onboardingDismissed', () => {
   });
 });
 
+// The remembered "Wo bist du?" choice (place + radius) on the own user doc.
+describe('users/{uid}.placeSelection', () => {
+  const valid = {
+    label: 'Bregenz',
+    lat: 47.503,
+    lon: 9.747,
+    radiusKm: 25,
+    regionId: 'vorarlberg',
+    source: 'search',
+    updatedAt: 1760000000000,
+  };
+
+  it('the owner can save and clear it', async () => {
+    const db = env.authenticatedContext('alice').firestore();
+    await assertSucceeds(updateDoc(doc(db, 'users/alice'), { placeSelection: valid }));
+    await assertSucceeds(updateDoc(doc(db, 'users/alice'), { placeSelection: null }));
+  });
+
+  it('a place without a region is fine (outside every region)', async () => {
+    const db = env.authenticatedContext('alice').firestore();
+    await assertSucceeds(
+      updateDoc(doc(db, 'users/alice'), { placeSelection: { ...valid, regionId: null } })
+    );
+  });
+
+  it.each([
+    ['an unknown region', { regionId: 'narnia' }],
+    ['a radius of 0', { radiusKm: 0 }],
+    ['a radius above 200 km', { radiusKm: 500 }],
+    ['an impossible latitude', { lat: 91 }],
+    ['an impossible longitude', { lon: 181 }],
+    ['an empty label', { label: '' }],
+    ['a very long label', { label: 'x'.repeat(81) }],
+    ['an unknown source', { source: 'ip' }],
+    ['a stored exact position', { accuracy: 12 }],
+  ])('rejects %s', async (_name, patch) => {
+    const db = env.authenticatedContext('alice').firestore();
+    await assertFails(
+      updateDoc(doc(db, 'users/alice'), { placeSelection: { ...valid, ...patch } })
+    );
+  });
+
+  it('rejects something that is not a map', async () => {
+    const db = env.authenticatedContext('alice').firestore();
+    await assertFails(updateDoc(doc(db, 'users/alice'), { placeSelection: 'Bregenz' }));
+  });
+
+  it('nobody else can set it on someone elses doc', async () => {
+    const db = env.authenticatedContext('bob').firestore();
+    await assertFails(updateDoc(doc(db, 'users/alice'), { placeSelection: valid }));
+  });
+});
+
 // "Onboarding finished" on the own user doc: false at registration, true once done.
 describe('users/{uid}.onboardingCompleted', () => {
   it('the owner can set it at registration and on finishing', async () => {

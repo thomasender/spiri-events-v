@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import { spawn } from 'child_process';
 
 import { generateSlug } from '../helpers/slug';
+import { unreadEventMessageIds } from '../fixtures/events';
 
 import { STORAGE_STATE } from '../helpers/roles';
 
@@ -62,17 +63,20 @@ test.describe('Messages tab — read messages & auto-scroll & event indicator', 
 
     await expect(page.getByTestId('event-messages')).toBeVisible({ timeout: 10000 });
 
-    // Opening the event marks its messages as read with an async write. Reload
-    // the list until that write has landed instead of racing it with one goto.
-    await expect(async () => {
-      await page.goto('/admin?tab=messages');
-      await expect(page.getByTestId('messages-tab-list')).toBeVisible({ timeout: 5000 });
-      const itemAfter = page.getByTestId('messages-tab-item').first();
-      await expect(itemAfter).toContainText('Test Event With Messages');
-      await expect(itemAfter.getByTestId('messages-tab-item-badge')).toHaveCount(0, {
-        timeout: 2000,
-      });
-    }).toPass({ timeout: 20000 });
+    // Opening the event marks its messages as read with async writes. Stay on
+    // the event page until the emulator has them: navigating away earlier
+    // drops writes that are not acknowledged yet, and no reload of the list
+    // can bring them back (they are only issued on this page). Only the user's
+    // own reply stays unread — it is addressed to the team.
+    await expect
+      .poll(() => unreadEventMessageIds('test-event-with-messages'), { timeout: 15000 })
+      .toEqual(['seed-user-msg-1']);
+
+    await page.goto('/admin?tab=messages');
+    await expect(page.getByTestId('messages-tab-list')).toBeVisible({ timeout: 10000 });
+    const itemAfter = page.getByTestId('messages-tab-item').first();
+    await expect(itemAfter).toContainText('Test Event With Messages');
+    await expect(itemAfter.getByTestId('messages-tab-item-badge')).toHaveCount(0);
   });
 
   test('Message item links include #event-messages hash', async ({ page }) => {

@@ -112,4 +112,5 @@ export const RATE_LIMIT_PRESETS = {
   contact: { maxAttempts: 5, windowMs: 10 * 60 * 1000 },
   passwordReset: { maxAttempts: 3, windowMs: 15 * 60 * 1000 },
   emailAvailability: { maxAttempts: 10, windowMs: 5 * 60 * 1000 },
+  moderatorApplication: { maxAttempts: 3, windowMs: 30 * 60 * 1000 },
 } as const;

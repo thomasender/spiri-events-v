@@ -68,3 +68,12 @@ describe('validateCity / canonicalCity', () => {
     expect(canonicalCity(' Ruggell ')).toBe('Ruggell');
   });
 });
+
+describe('formatCityWithBezirk in Germany', () => {
+  it('uses "Lkr." for Landkreise and does not repeat a kreisfreie Stadt', () => {
+    expect(formatCityWithBezirk('Garching', 'München', 'Landkreis')).toBe(
+      'Garching (Lkr. München)'
+    );
+    expect(formatCityWithBezirk('Kempten', 'Kempten', 'Landkreis')).toBe('Kempten');
+  });
+});

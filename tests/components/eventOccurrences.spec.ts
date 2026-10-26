@@ -443,6 +443,9 @@ describe('getEventOccurrences (custom recurrence)', () => {
   });
 
   it('expands multi-day custom occurrences in calendar mode', () => {
+    // Pin the clock mid-month so the +5..+12 day span never crosses a month boundary.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 2, 10, 12, 0, 0));
     const event = {
       id: '1',
       date: dateStr(5),
@@ -462,6 +465,7 @@ describe('getEventOccurrences (custom recurrence)', () => {
     ]);
     expect(result[3].isMultiDayStart).toBe(true);
     expect(result[5].isMultiDayEnd).toBe(true);
+    vi.useRealTimers();
   });
 
   it('returns single-day entry in list mode for multi-day custom occurrences', () => {

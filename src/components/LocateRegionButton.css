@@ -1,0 +1,70 @@
+.locate-region {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.locate-region-consent {
+  max-width: 560px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  text-align: left;
+}
+
+.locate-region-info {
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.locate-region-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.locate-region-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.locate-region-button:hover:not(:disabled) {
+  border-color: var(--accent-primary);
+}
+
+.locate-region-button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.locate-region-button--primary {
+  border-color: var(--accent-primary-hover);
+  background: var(--accent-primary-hover);
+  color: #fff;
+}
+
+.locate-region-status {
+  margin: 0;
+  max-width: 560px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+/* Region pop-up: left-aligned like the chip groups below it. */
+.locate-region--start {
+  align-items: flex-start;
+}

@@ -1,5 +1,5 @@
 import { formatCityWithBezirk } from './gemeinden';
-import { bezirkLabel } from './regions';
+import { bezirkLabel, getSubdivisionLabel, resolveRegionId } from './regions';
 
 export function parseEventDate(dateStr) {
   const [year, month, day] = dateStr.split('-');
@@ -70,7 +70,11 @@ export function getPrimaryCategory(event) {
 export function getEventLocationLabel(event) {
   if (!event) return '';
   if (event.isOnline) return 'Online';
-  return formatCityWithBezirk(event.city, event.bezirk);
+  return formatCityWithBezirk(
+    event.city,
+    event.bezirk,
+    getSubdivisionLabel(resolveRegionId(event))
+  );
 }
 
 // Short location for event cards and list rows: just the Ort ("Altach"),
