@@ -57,6 +57,7 @@ import {
 } from '../utils/instagramHandle';
 import { useOrganizerProfile } from '../hooks/useOrganizerProfile';
 import InstagramImagePicker from './InstagramImagePicker';
+import MonthlyModeOptions from './MonthlyModeOptions';
 import {
   COVER_SOURCE,
   INSTAGRAM_UPLOAD_SOURCE,
@@ -1450,13 +1451,15 @@ export default function EventForm({ event }) {
                   <span>Zweiwöchentlich</span>
                 </label>
                 <label
-                  className={`radio-label ${formData.recurrence === 'monthly' ? 'active' : ''}`}
+                  className={`radio-label ${formData.recurrence === 'monthly' || formData.recurrence === 'monthlyWeekday' ? 'active' : ''}`}
                 >
                   <input
                     type="radio"
                     name="recurrence"
                     value="monthly"
-                    checked={formData.recurrence === 'monthly'}
+                    checked={
+                      formData.recurrence === 'monthly' || formData.recurrence === 'monthlyWeekday'
+                    }
                     onChange={handleChange}
                   />
                   <span>Monatlich</span>
@@ -1475,6 +1478,14 @@ export default function EventForm({ event }) {
                 </label>
               </div>
             </div>
+          )}
+
+          {formData.recurrence !== 'none' && (
+            <MonthlyModeOptions
+              recurrence={formData.recurrence}
+              date={formData.date}
+              onSelect={(value) => handleChange({ target: { name: 'recurrence', value } })}
+            />
           )}
 
           {formData.recurrence === 'custom' && (

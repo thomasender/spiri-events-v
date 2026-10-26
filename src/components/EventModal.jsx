@@ -7,6 +7,7 @@ import { formatPriceWithCurrency } from '../utils/currency';
 import { normalizeLink } from '../utils/link';
 import RichTextView from './RichTextView';
 import EventCoverImage from './EventCoverImage';
+import { getMonthlyWeekdayPhrase } from '../utils/eventOccurrences';
 import './EventModal.css';
 
 function formatDate(dateStr) {
@@ -54,6 +55,7 @@ function formatRecurrence(recurrence, recurrenceEndDate, eventDate) {
     weekly: `Jeden${weekday}`,
     biweekly: `Jeden zweiten${weekday}`,
     monthly: 'Jeden Monat',
+    monthlyWeekday: `Jeden ${getMonthlyWeekdayPhrase(eventDate)} im Monat`,
   };
   let label = labels[recurrence];
   if (!label) {

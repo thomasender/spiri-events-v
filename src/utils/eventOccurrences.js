@@ -16,7 +16,7 @@ export function getCustomSeriesDates(event) {
 // Returns the sorted, de-duplicated list of dates to show on the event detail
 // page for any recurring event. For `custom` series this is the full series
 // (past + future, including the implicit `event.date`). For `weekly`,
-// `biweekly` and `monthly` series this is the future-only occurrences that
+// `biweekly`, `monthly` and `monthlyWeekday` series this is the future-only occurrences that
 // `getEventOccurrences` already bounds by the recurrence end date / default
 // look-ahead horizon. For non-recurring events it returns an empty array.
 export function getRecurrenceDatesForDetail(event) {
@@ -73,6 +73,79 @@ export function getOccurrenceCount(event) {
   return getEventOccurrences(event, { mode: 'list' }).length;
 }
 
+const WEEKDAY_NAMES = [
+  'Sonntag',
+  'Montag',
+  'Dienstag',
+  'Mittwoch',
+  'Donnerstag',
+  'Freitag',
+  'Samstag',
+];
+
+// Ordinal -1 stands for "the last <weekday> of the month".
+const ORDINAL_WORDS = { 1: 'ersten', 2: 'zweiten', 3: 'dritten', 4: 'vierten', [-1]: 'letzten' };
+
+// Day of month (1-31) of the n-th `weekday` (0 = Sunday) in the given month
+// (`month` is 0-based), or null if there is none. `ordinal` is 1-5, or -1 for
+// the last one. Pure calendar arithmetic on year/month/day (no time zones).
+export function nthWeekdayOfMonth(year, month, weekday, ordinal) {
+  const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  if (ordinal === -1) {
+    const lastWeekday = new Date(Date.UTC(year, month, daysInMonth)).getUTCDay();
+    return daysInMonth - ((lastWeekday - weekday + 7) % 7);
+  }
+  const firstWeekday = new Date(Date.UTC(year, month, 1)).getUTCDay();
+  const day = 1 + ((weekday - firstWeekday + 7) % 7) + (ordinal - 1) * 7;
+  return day <= daysInMonth ? day : null;
+}
+
+function parseYmd(iso) {
+  const [year, month, day] = String(iso).split('-').map(Number);
+  return { year, month: month - 1, day };
+}
+
+// Which weekday of its month a date is: 1-4 for the first to fourth, -1 for a
+// 5th one (shown as "last"; a 5th weekday is always the last of its month).
+export function getNthWeekdayOrdinal(iso) {
+  if (!iso) return null;
+  const { day } = parseYmd(iso);
+  if (!Number.isFinite(day)) return null;
+  const nth = Math.floor((day - 1) / 7) + 1;
+  return nth >= 5 ? -1 : nth;
+}
+
+// "ersten Montag" / "letzten Freitag" for the weekday the date falls on.
+export function getMonthlyWeekdayPhrase(iso) {
+  const ordinal = getNthWeekdayOrdinal(iso);
+  if (ordinal === null) return '';
+  const { year, month, day } = parseYmd(iso);
+  const weekday = new Date(Date.UTC(year, month, day)).getUTCDay();
+  return `${ORDINAL_WORDS[ordinal]} ${WEEKDAY_NAMES[weekday]}`;
+}
+
+// Date (YYYY-MM-DD) of the occurrence of a monthly series in the month that is
+// `monthsAhead` months after the start date's month. `monthly` keeps the day of
+// month and is clamped to the last day of shorter months (31st -> 30th/28th/29th)
+// instead of overflowing into the next month; `monthlyWeekday` keeps the n-th
+// weekday ("last" if the start is a 5th weekday).
+function monthlyOccurrenceYmd(startIso, recurrence, monthsAhead) {
+  const { year, month, day } = parseYmd(startIso);
+  const target = new Date(Date.UTC(year, month + monthsAhead, 1));
+  const y = target.getUTCFullYear();
+  const m = target.getUTCMonth();
+  const daysInMonth = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  if (recurrence === 'monthlyWeekday') {
+    const weekday = new Date(Date.UTC(year, month, day)).getUTCDay();
+    return formatDate(y, m, nthWeekdayOfMonth(y, m, weekday, getNthWeekdayOrdinal(startIso)));
+  }
+  return formatDate(y, m, Math.min(day, daysInMonth));
+}
+
+function isMonthlyRecurrence(recurrence) {
+  return recurrence === 'monthly' || recurrence === 'monthlyWeekday';
+}
+
 // Returns a short human-readable recurrence label, e.g. "Jeden Donnerstag" or
 // "Jeden zweiten Donnerstag". Returns null for non-recurring events.
 export function getRecurrenceLabel(event) {
@@ -82,17 +155,8 @@ export function getRecurrenceLabel(event) {
     return 'An einzelnen Terminen';
   }
 
-  const weekdayNames = [
-    'Sonntag',
-    'Montag',
-    'Dienstag',
-    'Mittwoch',
-    'Donnerstag',
-    'Freitag',
-    'Samstag',
-  ];
   const date = new Date(event.date + 'T12:00:00');
-  const weekday = weekdayNames[date.getDay()];
+  const weekday = WEEKDAY_NAMES[date.getDay()];
 
   switch (event.recurrence) {
     case 'weekly':
@@ -101,6 +165,8 @@ export function getRecurrenceLabel(event) {
       return `Jeden zweiten ${weekday}`;
     case 'monthly':
       return 'Jeden Monat';
+    case 'monthlyWeekday':
+      return `Jeden ${getMonthlyWeekdayPhrase(event.date)} im Monat`;
     default:
       return null;
   }
@@ -252,7 +318,7 @@ function expandRecurring(event, mode) {
     ? new Date(event.recurrenceEndDate + 'T12:00:00')
     : new Date(startDate);
   if (!event.recurrenceEndDate) {
-    if (event.recurrence === 'monthly') {
+    if (isMonthlyRecurrence(event.recurrence)) {
       endDate.setFullYear(endDate.getFullYear() + 1);
     } else {
       endDate.setMonth(endDate.getMonth() + 3);
@@ -275,6 +341,7 @@ function expandRecurring(event, mode) {
       interval = 2;
       break;
     case 'monthly':
+    case 'monthlyWeekday':
       interval = 0;
       break;
     default:
@@ -282,6 +349,20 @@ function expandRecurring(event, mode) {
   }
 
   const current = new Date(startDate);
+  // Monthly series are recomputed from the start date for every month (so a
+  // 31st or a "last Friday" never drifts); weekly ones just add days.
+  let monthsAhead = 0;
+  const advance = () => {
+    if (interval === 0) {
+      monthsAhead += 1;
+      const { year, month, day } = parseYmd(
+        monthlyOccurrenceYmd(event.date, event.recurrence, monthsAhead)
+      );
+      current.setTime(new Date(year, month, day, 12).getTime());
+    } else {
+      current.setDate(current.getDate() + interval * 7);
+    }
+  };
   const exceptionDates = event.exceptionDates || [];
   const eventDays = event.endDate
     ? Math.round((new Date(event.endDate + 'T12:00:00') - startDate) / (1000 * 60 * 60 * 24)) + 1
@@ -297,11 +378,7 @@ function expandRecurring(event, mode) {
         current.getDate()
       );
       if (exceptionDates.includes(occurrenceStart)) {
-        if (interval === 0) {
-          current.setMonth(current.getMonth() + 1);
-        } else {
-          current.setDate(current.getDate() + interval * 7);
-        }
+        advance();
         continue;
       }
       const isCancelled = isOccurrenceCancelled(event, occurrenceStart);
@@ -349,11 +426,7 @@ function expandRecurring(event, mode) {
       }
     }
 
-    if (interval === 0) {
-      current.setMonth(current.getMonth() + 1);
-    } else {
-      current.setDate(current.getDate() + interval * 7);
-    }
+    advance();
   }
 
   return occurrences;

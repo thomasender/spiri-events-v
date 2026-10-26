@@ -38,4 +38,12 @@ describe('eventExpiry', () => {
     expect(getExpiryHint({ date: '2026-01-01' }, '2026-01-01')).toBeNull();
     expect(getExpiryHint({ date: '2026-01-01' }, '2026-01-02')).toContain('automatisch gelöscht');
   });
+
+  it('monthlyWeekday uses the same one-year horizon as monthly (frontend and functions)', () => {
+    const event = { date: '2026-01-05', recurrence: 'monthlyWeekday' };
+    expect(getEventLastDate(event)).toBe('2027-01-05');
+    expect(getEventLastDate({ ...event, recurrence: 'monthly' })).toBe('2027-01-05');
+    expect(isEventExpired(event, '2027-02-04')).toBe(false);
+    expect(isEventExpired(event, '2027-02-05')).toBe(true);
+  });
 });
