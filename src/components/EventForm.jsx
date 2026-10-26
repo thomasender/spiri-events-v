@@ -209,10 +209,8 @@ export default function EventForm({ event }) {
     ? selectedRegionId(formData.regionId || storedRegionId, regionChoices)
     : '';
   const subdivision = subdivisionFor(selectedRegion, regionChoices);
-  const examples = formExamples(
-    regionChoices.allRegions?.find((r) => r.id === selectedRegion) ?? null,
-    { regionSpecific: regionChoices.enabled }
-  );
+  const selectedRegionObj = regionChoices.allRegions?.find((r) => r.id === selectedRegion) ?? null;
+  const examples = formExamples(selectedRegionObj, { regionSpecific: regionChoices.enabled });
   const subdivisionLabel = subdivision.label;
   const bezirkOptions = subdivision.options ?? BEZIRKE;
   // A region without any Bezirk / Landkreis in its register cannot require one.
@@ -595,6 +593,7 @@ export default function EventForm({ event }) {
 
   const handleCityChange = ({ city, bezirk }) => {
     setFormData((prev) => ({ ...prev, city, bezirk, ...(city.trim() ? { isOnline: false } : {}) }));
+    if (bezirk && errors.bezirk) setErrors((prev) => ({ ...prev, bezirk: null }));
     if (errors.city) setErrors((prev) => ({ ...prev, city: null }));
     if (errors.isOnline) setErrors((prev) => ({ ...prev, isOnline: null }));
   };
@@ -1147,6 +1146,8 @@ export default function EventForm({ event }) {
               <div>
                 <CityField
                   free
+                  region={selectedRegionObj}
+                  subdivisionLabel={subdivisionLabel}
                   placeholder={examples.place}
                   city={formData.city}
                   bezirk={formData.bezirk}

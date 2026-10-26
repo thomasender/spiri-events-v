@@ -102,6 +102,15 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
     events without a position only if they belong to the current region (so an unmigrated
     event behaves like before). Favourites ignore the radius. The directory is still filtered
     by region (profiles have no position).
+  - **Ort -> Landkreis in the event forms (other regions).** Vorarlberg uses the Gemeinde picker
+    (`gemeinden.js`). In every other region (only with two or more active regions) the Ort field of
+    `EventForm` / `EventFormWizard` is a combobox (`CityField` with `region`) that suggests places of
+    the selected region from `placeIndex.json` (lazy `loadPlaceIndex`, loaded when the person starts
+    typing, never in the Vorarlberg / single-region path). Picking a suggestion, or leaving the field
+    with an unambiguous name while the Landkreis is empty, sets the Bezirk / Landkreis select to the
+    place's district, but only if the region holds that district (`src/utils/placeDistrict.js`).
+    Ambiguous names ("Neustadt" in several districts) and unknown places leave the select empty;
+    free text stays possible, the select stays editable and never gets overwritten.
   - **Event positions.** `events/{id}.lat` / `.lng` (null = unknown / online; rules
     `isValidEventPosition`). `useEvents` `addEvent` / `updateEvent` set them from `city` +
     `bezirk` (+ region) via `src/lib/eventPosition.js` (Gemeinde accuracy, never a street):
