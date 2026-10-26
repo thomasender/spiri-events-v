@@ -73,3 +73,24 @@
 .region-chooser-apply {
   margin-top: 32px;
 }
+
+/* Desktop: one common column width for intro, place picker and moderator call, and
+   more air between the blocks. Mobile is unchanged. */
+@media (min-width: 768px) {
+  .region-chooser {
+    width: min(640px, 100%);
+  }
+
+  .region-chooser-header {
+    margin-bottom: 40px;
+  }
+
+  .region-chooser .place-picker,
+  .region-chooser .moderator-apply {
+    max-width: none;
+  }
+
+  .region-chooser .region-chooser-apply {
+    margin-top: 48px;
+  }
+}
