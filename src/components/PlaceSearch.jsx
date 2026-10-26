@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from 'react';
+import { useId, useMemo, useRef, useState } from 'react';
 import { Search, X } from 'lucide-react';
 import { placeDetail, searchPlaces } from '../utils/placeSearch';
 import './PlaceSearch.css';
@@ -17,6 +17,7 @@ export default function PlaceSearch({ index, regionEntries, onChoose }) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(true);
   const [active, setActive] = useState(-1);
+  const inputRef = useRef(null);
 
   const results = useMemo(
     () => searchPlaces(index, regionEntries, query),
@@ -31,6 +32,13 @@ export default function PlaceSearch({ index, regionEntries, onChoose }) {
     setQuery('');
     setActive(-1);
     onChoose(entry);
+  };
+
+  // Tapping a suggestion on a touch device closes the on-screen keyboard again. Enter and
+  // desktop pointers keep the focus where it is.
+  const pickByPointer = (entry) => {
+    pick(entry);
+    if (entry && window.matchMedia?.('(pointer: coarse)').matches) inputRef.current?.blur();
   };
 
   const onKeyDown = (e) => {
@@ -73,6 +81,7 @@ export default function PlaceSearch({ index, regionEntries, onChoose }) {
         <Search size={18} className="place-search-icon" aria-hidden="true" />
         <input
           id={`${id}-input`}
+          ref={inputRef}
           type="text"
           role="combobox"
           className="place-search-input"
@@ -126,7 +135,7 @@ export default function PlaceSearch({ index, regionEntries, onChoose }) {
               className={`place-search-option${i === active ? ' place-search-option--active' : ''}`}
               // mousedown keeps the focus in the input until the choice is made.
               onMouseDown={(e) => e.preventDefault()}
-              onClick={() => pick(entry)}
+              onClick={() => pickByPointer(entry)}
               data-testid="place-search-option"
             >
               <span className="place-search-option-label">{entry.name}</span>

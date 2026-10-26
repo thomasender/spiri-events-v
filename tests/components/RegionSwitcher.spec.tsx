@@ -133,6 +133,31 @@ const searchAndPick = async (scope: HTMLElement, query: string, name: string) =>
   )!;
   fireEvent.click(option);
 };
+// Makes `(pointer: coarse)` match (a phone) or not (a mouse); restored after each test.
+const realMatchMedia = window.matchMedia;
+const stubPointer = (coarse: boolean) => {
+  window.matchMedia = ((query: string) => ({
+    matches: coarse && query === '(pointer: coarse)',
+    media: query,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    addListener: () => {},
+    removeListener: () => {},
+    onchange: null,
+    dispatchEvent: () => false,
+  })) as unknown as typeof window.matchMedia;
+};
+afterEach(() => {
+  window.matchMedia = realMatchMedia;
+});
+// Focuses the search field (as the keyboard would), picks a place, returns the field.
+const pickWithFocus = async (scope: HTMLElement) => {
+  const input = within(scope).getByRole('combobox');
+  input.focus();
+  expect(input).toHaveFocus();
+  await searchAndPick(scope, 'innsbruck', 'Innsbruck');
+  return input;
+};
 const apply = (scope: HTMLElement) =>
   fireEvent.click(within(scope).getByTestId('place-picker-apply'));
 
@@ -200,6 +225,20 @@ describe('RegionSwitcher with two active regions', () => {
     expect(where()).toBe('/');
     expect(screen.queryByTestId('region-picker')).toBeNull();
     expect(stored()).toMatchObject({ label: 'Dornbirn', radiusKm: 25, regionId: 'vorarlberg' });
+  });
+
+  it('on a touch device picking a place closes the on-screen keyboard (input loses focus)', async () => {
+    stubPointer(true);
+    renderAt('/');
+    const input = await pickWithFocus(openPicker());
+    expect(input).not.toHaveFocus();
+  });
+
+  it('with a fine pointer picking a place keeps the focus in the search field', async () => {
+    stubPointer(false);
+    renderAt('/');
+    const input = await pickWithFocus(openPicker());
+    expect(input).toHaveFocus();
   });
 
   it('a place of a region that is not open yet leads to its coming-soon address', async () => {
@@ -497,6 +536,20 @@ describe('RegionChooser (first visit)', () => {
     unmount();
     renderAt('/');
     expect(screen.queryByTestId('region-chooser')).toBeNull();
+  });
+
+  it('on a touch device picking a place closes the on-screen keyboard (input loses focus)', async () => {
+    stubPointer(true);
+    renderAt('/');
+    const input = await pickWithFocus(screen.getByTestId('region-chooser'));
+    expect(input).not.toHaveFocus();
+  });
+
+  it('with a fine pointer picking a place keeps the focus in the search field', async () => {
+    stubPointer(false);
+    renderAt('/');
+    const input = await pickWithFocus(screen.getByTestId('region-chooser'));
+    expect(input).toHaveFocus();
   });
 
   it('the directory keeps its address when the choice is made there', async () => {
