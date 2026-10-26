@@ -50,6 +50,7 @@ import {
 import { CURRENCIES, DEFAULT_CURRENCY, formatPriceWithCurrency } from '../utils/currency';
 import { bezirkLabel, DEFAULT_REGION_ID, isRegionSlug, pickEventRegionId } from '../utils/regions';
 import { useRegionChoices } from '../hooks/useRegionChoices';
+import { formExamples } from '../utils/regionExamples';
 import { keepIfInRegion, selectedRegionId, subdivisionFor } from '../utils/regionChoices';
 import EventRegionDialog, { BEZIRK_NOT_FOUND } from './EventRegionDialog';
 import { saveWizardDraft, loadWizardDraft, clearWizardDraft } from '../utils/wizardDraftStorage';
@@ -200,6 +201,10 @@ export default function EventFormWizard() {
     ? selectedRegionId(formData.regionId, regionChoices)
     : '';
   const subdivision = subdivisionFor(selectedRegion, regionChoices);
+  const examples = formExamples(
+    regionChoices.allRegions?.find((r) => r.id === selectedRegion) ?? null,
+    { regionSpecific: regionChoices.enabled }
+  );
   const subdivisionLabel = subdivision.label;
   const bezirkOptions = subdivision.options ?? BEZIRKE;
   // A region without any Bezirk / Landkreis in its register cannot require one.
@@ -989,7 +994,7 @@ export default function EventFormWizard() {
           type="text"
           value={formData.organizer.name}
           onChange={handleOrganizerChange}
-          placeholder="z.B. Peter Mathis oder Yoga Studio Dornbirn"
+          placeholder={examples.organizer}
           autoComplete="organization"
           className={errors['organizer.name'] ? 'input-error' : ''}
         />
@@ -1010,7 +1015,7 @@ export default function EventFormWizard() {
           type="text"
           value={formData.kontakt}
           onChange={handleChange}
-          placeholder="z.B. 0676 1234567 oder kontakt@email.de"
+          placeholder={examples.contact}
           className={errors.kontakt ? 'input-error' : ''}
         />
         {errors.kontakt && <span className="error-text">{errors.kontakt}</span>}
@@ -1221,6 +1226,7 @@ export default function EventFormWizard() {
           <div>
             <CityField
               free
+              placeholder={examples.place}
               city={formData.city}
               bezirk={formData.bezirk}
               disabled={formData.isOnline}
@@ -1268,11 +1274,7 @@ export default function EventFormWizard() {
             type="text"
             value={formData.place}
             onChange={handleChange}
-            placeholder={
-              formData.isOnline
-                ? 'Nicht relevant für Online-Events'
-                : 'z.B. Yogastudio Mitte, Stadtstraße 12, 6900 Bregenz'
-            }
+            placeholder={formData.isOnline ? 'Nicht relevant für Online-Events' : examples.address}
             disabled={formData.isOnline}
             className={errors.place ? 'input-error' : ''}
           />

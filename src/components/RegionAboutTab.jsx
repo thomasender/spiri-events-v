@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { doc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { deleteField, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { Upload } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { uploadRegionImage, MAX_INPUT_SIZE_BYTES } from '../lib/imageUpload';
@@ -17,11 +17,26 @@ import {
   SLOGAN_LINE2_MAX_LENGTH,
   defaultAboutBodyHtml,
 } from '../utils/regionAboutText';
+import {
+  EXAMPLE_KEYS,
+  EXAMPLE_MAX_LENGTH,
+  customExample,
+  formExamples,
+  sanitizeTexts,
+} from '../utils/regionExamples';
 import RichTextEditorLazy from './RichTextEditorLazy';
 import './ModerationTab.css';
 import './RegionAboutTab.css';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+// Labels of the example fields (what the person sees greyed out in the event form).
+const EXAMPLE_FIELDS = [
+  { key: 'place', label: 'Ort' },
+  { key: 'organizer', label: 'Veranstalter:in' },
+  { key: 'address', label: 'Adresse / Veranstaltungsort' },
+  { key: 'contact', label: 'Kontakt' },
+];
 
 const placePhraseOf = (region) => region?.inPhrase || `in ${region?.name ?? ''}`;
 
@@ -57,6 +72,7 @@ export default function RegionAboutTab() {
   const [slogan2, setSlogan2] = useState('');
   const [unlockSlogan, setUnlockSlogan] = useState(false);
   const [instagramInput, setInstagramInput] = useState('');
+  const [examples, setExamples] = useState({});
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState(null);
@@ -73,6 +89,7 @@ export default function RegionAboutTab() {
     setSlogan2(slogan.line2);
     setUnlockSlogan(false);
     setInstagramInput(region?.instagramHandle ?? '');
+    setExamples(Object.fromEntries(EXAMPLE_KEYS.map((k) => [k, customExample(region, k)])));
     setNotice(null);
     // Only on region switch: a refresh after saving must not reset unsaved edits.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -112,6 +129,11 @@ export default function RegionAboutTab() {
   const instagramInvalid = instagramTrimmed !== '' && !normalizeInstagramHandle(instagramTrimmed);
   const shownInstagram = regionInstagramAccount(current);
 
+  // Greyed-out defaults of the example fields (without the automatic "z.B. ").
+  const defaultExamples = formExamples({ ...current, texts: undefined }, { regionSpecific: true });
+  const activeCount = regions.filter((r) => r.active).length;
+  const examplesDark = current.id === 'vorarlberg' && activeCount < 2;
+
   const save = async () => {
     if (access.isSuperAdmin && instagramInvalid) {
       setNotice({
@@ -124,7 +146,11 @@ export default function RegionAboutTab() {
     setNotice(null);
     try {
       const isDefault = aboutText.trim() === defaultAboutBodyHtml(placePhraseOf(current));
+      const newTexts = sanitizeTexts({ examples });
+      const textsChanged =
+        JSON.stringify(newTexts ?? null) !== JSON.stringify(sanitizeTexts(current.texts) ?? null);
       await updateDoc(doc(db, 'regions', current.id), {
+        ...(textsChanged ? { texts: newTexts ?? deleteField() } : {}),
         aboutText: aboutText.trim() && !isDefault ? aboutText.trim() : null,
         aboutHeaderImage: headerImage || null,
         ...(sloganLocked
@@ -275,6 +301,49 @@ export default function RegionAboutTab() {
           )}
         </section>
       )}
+
+      <section className="region-about-section" data-testid="region-about-examples">
+        <h3>Beispieltexte im Formular „Event erstellen“</h3>
+        <p className="region-about-fixed-note">
+          Diese Beispiele stehen grau in den Feldern, wenn jemand ein Event für {current.name}{' '}
+          anlegt. „z.B.“ wird automatisch davor gesetzt. Leer lassen für den Standardtext.
+        </p>
+        {examplesDark && (
+          <p className="region-about-fixed-note" data-testid="region-about-examples-dark">
+            Für Vorarlberg gelten diese Beispiele erst, sobald eine weitere Region freigeschaltet
+            ist. Bis dahin bleiben die bisherigen Beispiele.
+          </p>
+        )}
+        {EXAMPLE_FIELDS.map(({ key, label }) => (
+          <div className="region-about-field" key={key}>
+            <label htmlFor={`region-about-example-${key}`}>
+              <span>{label}</span>
+            </label>
+            <input
+              id={`region-about-example-${key}`}
+              type="text"
+              value={examples[key] ?? ''}
+              maxLength={EXAMPLE_MAX_LENGTH}
+              placeholder={defaultExamples[key].replace(/^z\.B\. /, '')}
+              onChange={(e) => setExamples((prev) => ({ ...prev, [key]: e.target.value }))}
+              disabled={saving}
+              data-testid={`region-about-example-${key}`}
+            />
+            <span className="region-about-fixed-note">
+              {(examples[key] ?? '').length}/{EXAMPLE_MAX_LENGTH}
+            </span>
+            <button
+              type="button"
+              className="btn btn-secondary region-about-reset"
+              onClick={() => setExamples((prev) => ({ ...prev, [key]: '' }))}
+              disabled={saving || !examples[key]}
+              data-testid={`region-about-example-${key}-reset`}
+            >
+              Auf Standard zurücksetzen
+            </button>
+          </div>
+        ))}
+      </section>
 
       <section className="region-about-section">
         <h3>Titelbild</h3>

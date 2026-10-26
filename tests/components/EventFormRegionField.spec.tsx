@@ -414,3 +414,85 @@ describe('EventForm (edit) region field', () => {
     expect((await savedPayload()).regionId).toBe('tirol');
   });
 });
+
+// Example placeholders follow the region of the event (Verwaltung texts > first
+// Bezirk > neutral); with only Vorarlberg active they stay as they always were.
+describe('event form example texts', () => {
+  const TEXTS = {
+    id: 'tirol',
+    active: true,
+    bezirke: ['Innsbruck', 'Kufstein'],
+    texts: { examples: { organizer: 'Yoga Studio Inntal', address: 'Maria-Theresien-Str. 1' } },
+  };
+  const ctxWithTexts = (activeIds: string[], currentId: string) => {
+    const base = regionContext(activeIds, currentId);
+    const allRegions = mergeRegions([
+      ...STATIC_REGIONS.map((r) => ({ id: r.id, active: activeIds.includes(r.id) })),
+      TEXTS,
+    ]);
+    return {
+      ...base,
+      allRegions,
+      region: allRegions.find((r) => r.id === currentId) ?? null,
+    };
+  };
+  const ph = (id: string) => (document.getElementById(id) as HTMLInputElement).placeholder;
+
+  it('only Vorarlberg active: exact old placeholders (wizard step with Ort and Adresse)', () => {
+    seedWizardDraft();
+    render(withRegions(ctxWithTexts(['vorarlberg'], 'vorarlberg'), <EventFormWizard />));
+    expect(ph('place')).toBe('z.B. Yogastudio Mitte, Stadtstraße 12, 6900 Bregenz');
+  });
+
+  it('a Tirol event shows Tirol texts, neutral fallback and the first Bezirk, never Vorarlberg examples', () => {
+    seedWizardDraft({ regionId: 'tirol' });
+    render(withRegions(ctxWithTexts(['vorarlberg', 'tirol'], 'tirol'), <EventFormWizard />));
+    expect(ph('city')).toBe('z.B. Innsbruck');
+    expect(ph('place')).toBe('z.B. Maria-Theresien-Str. 1');
+    expect(document.body.innerHTML).not.toMatch(/Lindau|6900 Bregenz/);
+  });
+
+  it('switching the region in the form swaps the placeholders back and forth (edit form, all fields)', () => {
+    render(
+      withRegions(
+        ctxWithTexts(['vorarlberg', 'tirol'], 'tirol'),
+        <EventForm event={{ ...storedEventForTexts(), regionId: 'tirol', bezirk: 'Innsbruck' }} />
+      )
+    );
+    const organizer = () =>
+      (document.getElementById('organizer.name') as HTMLInputElement)?.placeholder;
+    expect(ph('city')).toBe('z.B. Innsbruck');
+    expect(ph('place')).toBe('z.B. Maria-Theresien-Str. 1');
+    expect(organizer()).toBe('z.B. Yoga Studio Inntal');
+    expect(document.querySelector('input[name="kontakt"]')).toHaveProperty(
+      'placeholder',
+      'z.B. kontakt@email.de'
+    );
+
+    changeRegionViaDialog('vorarlberg');
+    expect(ph('place')).toBe('z.B. Yogastudio Mitte, Stadtstraße 12, 6900 Bregenz');
+    expect(organizer()).toBe('z.B. Peter Mathis oder Yoga Studio Dornbirn');
+    expect(document.querySelector('input[name="kontakt"]')).toHaveProperty(
+      'placeholder',
+      'z.B. 0676 1234567 oder kontakt@email.de'
+    );
+  });
+});
+
+function storedEventForTexts() {
+  return {
+    id: 'ev1',
+    title: 'T',
+    date: FUTURE_DATE,
+    time: '10:00',
+    place: 'Ort',
+    city: 'Innsbruck',
+    contribution: 'free',
+    description: '<p>d</p>',
+    category: 'Yoga',
+    organizer: { name: 'Test', email: 'user@test.local' },
+    kontakt: 'x',
+    status: 'draft',
+    createdBy: 'user-uid',
+  };
+}

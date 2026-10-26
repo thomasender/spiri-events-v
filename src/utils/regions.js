@@ -1,5 +1,6 @@
 import { REGION_DATA } from '../data/regionData.js';
 import { normalizeInstagramHandle } from './instagramHandle.js';
+import { sanitizeTexts } from './regionExamples.js';
 
 // Regions an event or a directory listing can be assigned to. Kept free of
 // Firebase imports so pure helpers (and their unit tests) can use it.
@@ -273,6 +274,8 @@ export function mergeRegions(docs, base = STATIC_REGIONS) {
           ? { aboutSlogan2: d.aboutSlogan2 }
           : {}),
         ...(d.aboutSloganLocked === true ? { aboutSloganLocked: true } : {}),
+        // Free texts of the region (example placeholders of the event form, ...).
+        ...(sanitizeTexts(d.texts) ? { texts: sanitizeTexts(d.texts) } : {}),
         // Display-only Instagram name of the region (Super-Admin sets it).
         ...(normalizeInstagramHandle(d.instagramHandle)
           ? { instagramHandle: normalizeInstagramHandle(d.instagramHandle) }

@@ -722,15 +722,16 @@ service cloud.firestore {
     // Region registry (one doc per region, doc id == slug).
     // Public read, admin-only write, closed field list, slug from the fixed list.
     match /regions/{regionId} {
-      function isValidRegion(d) {
+      // Everything but the slug-in-list check (a moderator's regionId is already
+      // validated by isRegionModeratorFor; saves rule expressions, the budget is 1000).
+      function isValidRegionFields(d) {
         return d.keys().hasOnly(
                  ['name', 'slug', 'order', 'active', 'bezirke', 'contactEmail', 'seo',
                   'timezone', 'aboutHelperIds', 'aboutHeaderImage', 'aboutText', 'aboutSlogan1',
-                  'aboutSlogan2', 'aboutSloganLocked', 'instagramHandle', 'createdAt',
+                  'aboutSlogan2', 'aboutSloganLocked', 'instagramHandle', 'texts', 'createdAt',
                   'updatedAt', 'mappingUpdatedAt'])
           && d.slug is string
           && d.slug == regionId
-          && d.slug in regionIds()
           && d.name is string && d.name.size() > 0 && d.name.size() <= 100
           && (!('order' in d) || d.order is number)
           && (!('active' in d) || d.active is bool)
@@ -754,12 +755,32 @@ service cloud.firestore {
               || d.aboutSlogan2 == null
               || (d.aboutSlogan2 is string && d.aboutSlogan2.size() <= 30))
           && (!('aboutSloganLocked' in d) || d.aboutSloganLocked is bool)
+          && (!('texts' in d) || isValidRegionTexts(d.texts))
           // Display-only Instagram name; only Super-Admins can write it (the
           // moderator rule below keeps its own, shorter field list).
           && (!('instagramHandle' in d)
               || d.instagramHandle == null
               || (d.instagramHandle is string
                   && d.instagramHandle.matches('^@[A-Za-z0-9._]{1,30}$')));
+      }
+      function isValidRegion(d) {
+        return isValidRegionFields(d) && d.slug in regionIds();
+      }
+      // Free texts of a region: { examples: { place, organizer, address, contact } },
+      // plain strings of at most 120 characters (placeholders of the event form).
+      function isValidExampleText(v) {
+        return v is string && v.size() <= 120;
+      }
+      function isValidRegionTexts(t) {
+        return t is map
+          && t.keys().hasOnly(['examples'])
+          && (!('examples' in t)
+              || (t.examples is map
+                  && t.examples.keys().hasOnly(['place', 'organizer', 'address', 'contact'])
+                  && (!('place' in t.examples) || isValidExampleText(t.examples.place))
+                  && (!('organizer' in t.examples) || isValidExampleText(t.examples.organizer))
+                  && (!('address' in t.examples) || isValidExampleText(t.examples.address))
+                  && (!('contact' in t.examples) || isValidExampleText(t.examples.contact))));
       }
       // Once a Super-Admin saved the header slogan it is locked for moderators.
       function sloganTouched() {
@@ -773,9 +794,9 @@ service cloud.firestore {
       allow update: if isRegionModeratorFor(regionId)
                     && request.resource.data.diff(resource.data).affectedKeys()
                          .hasOnly(['aboutHelperIds', 'aboutHeaderImage', 'aboutText', 'aboutSlogan1',
-                                   'aboutSlogan2', 'updatedAt'])
+                                   'aboutSlogan2', 'texts', 'updatedAt'])
                     && (!sloganTouched() || resource.data.get('aboutSloganLocked', false) != true)
-                    && isValidRegion(request.resource.data);
+                    && isValidRegionFields(request.resource.data);
       allow delete: if isAdminOrEmulatorAdmin();
     }
 

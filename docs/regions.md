@@ -207,6 +207,17 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
 - `regions/{id}`: `name`, `slug`, `order`, `active`, `bezirke`, `contactEmail`,
   `seo: { title, description }`, `timezone`, `createdAt`, `updatedAt` (rules
   whitelist; no `country`).
+- `regions/{id}.texts` (optional, `{ examples: { place, organizer, address, contact } }`,
+  plain text, max 120 characters each, more text keys can be added next to `examples`):
+  the grey "z.B. ..." examples of the event forms (`EventFormWizard`, `EventForm`,
+  `CityField` free variant). Edited per region in Verwaltung -> "Über uns" (section
+  "Beispieltexte"; moderators of the region and Super-Admins, rules list `texts` in the
+  moderator field set). `mergeRegions` sanitises it (`sanitizeTexts`). Precedence per
+  field (`formExamples` in `src/utils/regionExamples.js`): stored text of the event's
+  region > (Ort only) first Bezirk / Landkreis > neutral text ("z.B. Ortsname", ...).
+  Dark launch: with fewer than two active regions the legacy Vorarlberg strings
+  ("Lindau", "Dornbirn", "6900 Bregenz", ...) stay byte-identical and stored texts are ignored;
+  with two or more, Vorarlberg keeps the legacy strings unless it has own texts.
 - `app_settings/regionMigration` = `{ complete: true }` is the migration marker.
 - Online events (`isOnline`) are visible in every region but keep their own
   `regionId`.

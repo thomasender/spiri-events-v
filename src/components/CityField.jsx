@@ -16,6 +16,7 @@ export default function CityField({
   onChange,
   free,
   onOtherRegion,
+  placeholder,
 }) {
   // Drafts saved before the Ort field existed have no city.
   const city = cityProp || '';
@@ -45,7 +46,7 @@ export default function CityField({
           autoComplete="off"
           value={city}
           onChange={(e) => onChange({ city: e.target.value, bezirk })}
-          placeholder="z.B. Lindau"
+          placeholder={placeholder || 'z.B. Lindau'}
           disabled={disabled}
           className={error ? 'input-error' : ''}
         />

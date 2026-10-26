@@ -7,6 +7,7 @@ const state = vi.hoisted(() => ({
   role: 'Admin' as string | null,
   staffRegionIds: [] as string[],
   stored: {} as Record<string, string>,
+  texts: {} as Record<string, unknown>,
   updates: [] as Array<Record<string, unknown>>,
 }));
 
@@ -14,6 +15,7 @@ vi.mock('../../src/lib/firebase', () => ({ db: {} }));
 vi.mock('firebase/firestore', () => ({
   doc: (_db: unknown, col: string, id: string) => ({ col, id }),
   serverTimestamp: () => 'TS',
+  deleteField: () => 'DELETE',
   updateDoc: async (_ref: unknown, data: Record<string, unknown>) => {
     state.updates.push(data);
   },
@@ -32,6 +34,7 @@ vi.mock('../../src/hooks/useRegions', () => ({
     regions: STATIC_REGIONS.filter((r) => r.id === 'tirol' || r.id === 'vorarlberg').map((r) => ({
       ...r,
       ...(state.stored[r.id] ? { instagramHandle: state.stored[r.id] } : {}),
+      ...(state.texts[r.id] ? { texts: state.texts[r.id] } : {}),
     })),
     loading: false,
   }),
@@ -41,6 +44,7 @@ beforeEach(() => {
   state.role = 'Admin';
   state.staffRegionIds = [];
   state.stored = {};
+  state.texts = {};
   state.updates = [];
 });
 
@@ -107,5 +111,51 @@ describe('RegionAboutTab Instagram name', () => {
     state.staffRegionIds = ['tirol'];
     render(<RegionAboutTab />);
     expect(screen.queryByTestId('region-about-instagram')).toBeNull();
+  });
+});
+
+describe('RegionAboutTab example texts', () => {
+  it('saves typed examples, shows the default as placeholder and a counter', async () => {
+    render(<RegionAboutTab />);
+    pickTirol();
+    const place = screen.getByTestId('region-about-example-place') as HTMLInputElement;
+    expect(place.placeholder).toBe(STATIC_REGIONS.find((r) => r.id === 'tirol')!.bezirke[0]);
+    expect(screen.getByTestId('region-about-example-contact')).toHaveAttribute(
+      'placeholder',
+      'kontakt@email.de'
+    );
+    fireEvent.change(place, { target: { value: ' Innsbruck ' } });
+    expect(screen.getByTestId('region-about-examples')).toHaveTextContent('11/120');
+    fireEvent.click(screen.getByTestId('region-about-save'));
+    await waitFor(() => expect(state.updates).toHaveLength(1));
+    expect(state.updates[0].texts).toEqual({ examples: { place: 'Innsbruck' } });
+  });
+
+  it('reset to default clears the field and removes the stored texts', async () => {
+    state.texts = { tirol: { examples: { place: 'Hall' } } };
+    render(<RegionAboutTab />);
+    pickTirol();
+    const place = screen.getByTestId('region-about-example-place') as HTMLInputElement;
+    expect(place.value).toBe('Hall');
+    fireEvent.click(screen.getByTestId('region-about-example-place-reset'));
+    expect(place.value).toBe('');
+    fireEvent.click(screen.getByTestId('region-about-save'));
+    await waitFor(() => expect(state.updates).toHaveLength(1));
+    expect(state.updates[0].texts).toBe('DELETE');
+  });
+
+  it('does not touch texts when nothing changed', async () => {
+    render(<RegionAboutTab />);
+    pickTirol();
+    fireEvent.click(screen.getByTestId('region-about-save'));
+    await waitFor(() => expect(state.updates).toHaveLength(1));
+    expect(state.updates[0]).not.toHaveProperty('texts');
+  });
+
+  it('tells that Vorarlberg examples apply only after another region is active', () => {
+    render(<RegionAboutTab />);
+    expect(screen.getByTestId('region-about-examples-dark')).toBeInTheDocument();
+    pickTirol();
+    expect(screen.queryByTestId('region-about-examples-dark')).not.toBeInTheDocument();
   });
 });
