@@ -266,3 +266,68 @@ describe('EventFormWizard — recurrence limited to 180 days (cTfN9wqQ)', () => 
     await waitFor(() => expect(screen.queryByTestId('submit-event-button')).not.toBeNull());
   });
 });
+
+describe('EventFormWizard — monthly on the n-th weekday (6adca49e)', () => {
+  // 2030-03-04 is the first Monday of March 2030, 2030-03-29 the last Friday.
+  const monthlyDraft = (date: string, recurrence = 'monthly') =>
+    seedDraft({ formData: { date, endDate: '', recurrence, recurrenceEndDate: '' } });
+
+  it('offers both monthly variants, with texts taken from the start date', () => {
+    monthlyDraft('2030-03-04');
+    renderWizard();
+    const options = screen.getByTestId('monthly-mode-options');
+    expect(within(options).getByLabelText(/am gleichen Datum/)).toBeChecked();
+    expect(within(options).getByText('am gleichen Datum (jeweils am 4.)')).toBeInTheDocument();
+    expect(within(options).getByText('am ersten Montag')).toBeInTheDocument();
+  });
+
+  it('does not show the monthly options for weekly series', () => {
+    monthlyDraft('2030-03-04', 'weekly');
+    renderWizard();
+    expect(screen.queryByTestId('monthly-mode-options')).toBeNull();
+  });
+
+  it('switches to monthlyWeekday and keeps the Monatlich radio active', () => {
+    monthlyDraft('2030-03-04');
+    renderWizard();
+    fireEvent.click(screen.getByLabelText('am ersten Montag'));
+    expect(screen.getByLabelText('am ersten Montag')).toBeChecked();
+    expect(screen.getByLabelText('Monatlich')).toBeChecked();
+  });
+
+  it('updates the weekday text live when the start date changes, and offers "letzten" for a 5th weekday', () => {
+    monthlyDraft('2030-03-04', 'monthlyWeekday');
+    renderWizard();
+    expect(screen.getByLabelText('am ersten Montag')).toBeChecked();
+    fireEvent.change(document.getElementById('date') as HTMLElement, {
+      target: { value: '2030-03-29' },
+    });
+    expect(screen.getByLabelText('am letzten Freitag')).toBeChecked();
+    expect(screen.getByText('am gleichen Datum (jeweils am 29.)')).toBeInTheDocument();
+  });
+
+  it('runs an old stored draft with plain monthly without errors', () => {
+    monthlyDraft('2030-03-04', 'monthly');
+    expect(() => renderWizard()).not.toThrow();
+    expect(screen.getByLabelText('Monatlich')).toBeChecked();
+  });
+
+  it('shows the label on the summary and saves recurrence monthlyWeekday without extra fields', async () => {
+    monthlyDraft('2030-03-29', 'monthlyWeekday');
+    renderWizard();
+    fireEvent.click(screen.getByTestId('continue-button'));
+    await waitFor(() => expect(screen.queryByTestId('submit-event-button')).not.toBeNull());
+    expect(screen.getByText(/Monatlich am letzten Freitag/)).toBeInTheDocument();
+
+    const noText = screen.queryByTestId('instagram-no-text-checkbox');
+    if (noText && !(noText as HTMLInputElement).checked) fireEvent.click(noText);
+    fireEvent.click(screen.getByTestId('submit-event-button'));
+    const confirmDialog = document.querySelector('.confirm-dialog') as HTMLElement;
+    await waitFor(() => expect(confirmDialog).toBeTruthy());
+    fireEvent.click(within(confirmDialog).getByRole('button', { name: /^einreichen$/i }));
+    await waitFor(() => expect(mockEvents.addEvent).toHaveBeenCalled());
+    const saved = (mockEvents.addEvent.mock.calls[0] as unknown[])[0] as Record<string, unknown>;
+    expect(saved).toMatchObject({ recurrence: 'monthlyWeekday', date: '2030-03-29' });
+    expect(saved).not.toHaveProperty('monthlyOrdinal');
+  });
+});

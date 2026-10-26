@@ -48,7 +48,11 @@ import { resolveOrganizerProfilePath } from '../utils/profile';
 import { canEditEvent, canDeleteEvent, requiresDeleteReason } from '../utils/eventPermissions';
 import { getStaffAccess, isModeratorForEvent } from '../utils/staffRoles';
 import { parseContactText } from '../utils/contactFormat';
-import { getNextUpcomingOccurrence, getRecurrenceDatesForDetail } from '../utils/eventOccurrences';
+import {
+  getMonthlyWeekdayPhrase,
+  getNextUpcomingOccurrence,
+  getRecurrenceDatesForDetail,
+} from '../utils/eventOccurrences';
 import { isEventCancelled, isOccurrenceCancelled } from '../utils/eventCancellation';
 import CancelledBadge from '../components/CancelledBadge';
 import {
@@ -157,6 +161,7 @@ function formatRecurrence(recurrence, recurrenceEndDate, eventDate) {
     weekly: `Jeden${weekday}`,
     biweekly: `Jeden zweiten${weekday}`,
     monthly: 'Jeden Monat',
+    monthlyWeekday: `Jeden ${getMonthlyWeekdayPhrase(eventDate)} im Monat`,
   };
   let label = labels[recurrence];
   if (!label) {
