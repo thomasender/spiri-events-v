@@ -17,16 +17,16 @@ import {
   combinedViewRegions,
   getCombinedView,
   isCombinedViewAvailable,
+  isNeutralPagePath,
+  readLastPageSlug,
   readLastRegion,
   readRegionChooserSeen,
   regionPath,
   regionSlugFromPath,
   resolveCurrentRegionId,
+  writeLastPageSlug,
   writeLastRegion,
 } from '../utils/regionRouting';
-
-// Pages that belong to no region (legal pages of the association): neutral header.
-const NEUTRAL_HEADER_PATHS = ['/impressum', '/datenschutz'];
 
 /**
  * Region context for the whole app. The URL (`/tirol`, `/tirol/verzeichnis`)
@@ -58,6 +58,15 @@ export default function RegionProvider({ children }) {
     writeLastRegion(urlSlug);
     setStoredSlug(urlSlug);
   }, [urlSlug, urlRegionIsActive]);
+
+  // Region / combined view of the last page that named one (also not yet open
+  // ones): neutral pages (Impressum, Datenschutz) keep it as their context.
+  const [lastPageSlug, setLastPageSlug] = useState(() => readLastPageSlug());
+  useEffect(() => {
+    if (!urlSlug) return;
+    writeLastPageSlug(urlSlug);
+    setLastPageSlug(urlSlug);
+  }, [urlSlug]);
 
   const setRegion = useCallback(
     (slug, path = '/') => {
@@ -127,7 +136,10 @@ export default function RegionProvider({ children }) {
       eventFormComingSoon ||
       pathname === REGIONS_PAGE_PATH ||
       regionChooserOpen ||
-      (regionMode && NEUTRAL_HEADER_PATHS.includes(pathname));
+      (regionMode && isNeutralPagePath(pathname));
+    // Region or combined view the page belongs to: its address, on a neutral page the
+    // one the visitor came from (dark launch: only with two or more active regions).
+    const pageSlug = urlSlug ?? (regionMode && isNeutralPagePath(pathname) ? lastPageSlug : null);
     const regionId =
       !urlSlug && eventRegionId
         ? eventRegionId
@@ -147,6 +159,8 @@ export default function RegionProvider({ children }) {
       // True on the coming-soon page of a region/view that is not open yet.
       comingSoon,
       neutralHeader,
+      // Region / combined-view slug of the page (see above), null on other pages.
+      pageSlug,
       // True while the "Wo suchst du?" page (RegionChooser) covers the page.
       regionChooserOpen,
       // Active regions the current combined view covers ([] outside one).
@@ -171,6 +185,7 @@ export default function RegionProvider({ children }) {
     search,
     eventRegionId,
     storedSlug,
+    lastPageSlug,
     allRegions,
     loading,
     setRegion,

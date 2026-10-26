@@ -107,6 +107,59 @@ export function regionSlugFromPath(pathname) {
   return isRegionSlug(slug) || isCombinedViewSlug(slug) ? slug : null;
 }
 
+/**
+ * Pages that belong to no region (the association's legal pages, the same for
+ * every region). They name no region in their address, so they keep the region
+ * (or combined view) of the page the visitor came from: neutral header, and the
+ * footer's region links ("Über uns") still lead back to that region.
+ */
+export const NEUTRAL_PAGE_PATHS = ['/impressum', '/datenschutz'];
+
+export const isNeutralPagePath = (pathname) => NEUTRAL_PAGE_PATHS.includes(pathname);
+
+// Last region or combined-view slug named by an address in this tab (also a
+// region that is not open yet). Session only: it carries the context across
+// neutral pages and a reload of them, nothing more.
+export const LAST_PAGE_SLUG_STORAGE_KEY = 'tribe:lastPageSlug';
+
+export function readLastPageSlug(storage) {
+  try {
+    const store = storage ?? (typeof window !== 'undefined' ? window.sessionStorage : null);
+    const value = store?.getItem(LAST_PAGE_SLUG_STORAGE_KEY) ?? null;
+    return isRegionSlug(value) || isCombinedViewSlug(value) ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+export function writeLastPageSlug(slug, storage) {
+  if (!isRegionSlug(slug) && !isCombinedViewSlug(slug)) return;
+  try {
+    const store = storage ?? (typeof window !== 'undefined' ? window.sessionStorage : null);
+    store?.setItem(LAST_PAGE_SLUG_STORAGE_KEY, slug);
+  } catch {
+    // ignore: a convenience only
+  }
+}
+
+/**
+ * Address of "Über uns" for a page. `pageSlug` is the region or combined-view
+ * slug the page belongs to (its address, or on a neutral page the one the
+ * visitor came from), `regionId` the region context for pages without one.
+ * A region that is not open yet still has its own page; combined views use
+ * the general `/ueber-uns`; Vorarlberg keeps `/ueber-uns` while it is the only
+ * active region.
+ */
+export function aboutPathFor({ pageSlug, regionId, regions = STATIC_REGIONS } = {}) {
+  if (isCombinedViewSlug(pageSlug)) return '/ueber-uns';
+  if (isRegionSlug(pageSlug)) {
+    return getRegionBySlug(pageSlug, regions)?.active
+      ? regionCanonicalPath(pageSlug, '/ueber-uns', regions)
+      : regionPath(pageSlug, '/ueber-uns');
+  }
+  return regionCanonicalPath(regionId, '/ueber-uns', regions);
+}
+
 /** Path a redirect fallback points to (`path` is kept, e.g. `/verzeichnis`). */
 export function redirectTargetPath(fallback, path = '/', regions = STATIC_REGIONS) {
   if (fallback?.region) return regionCanonicalPath(fallback.region.id, path, regions);

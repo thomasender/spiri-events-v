@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { usePwaInstall, isIOSDevice } from '../hooks/usePwaInstall';
 import { PWA_OPEN_REQUEST_EVENT } from './PwaInstallPrompt';
 import { requestConsentBanner } from '../lib/analyticsConsent';
@@ -6,26 +6,19 @@ import { COPYRIGHT_NOTICE } from '../config/brand';
 import { useRegion } from '../hooks/useRegion';
 import { useAuth } from '../hooks/useAuth';
 import { RegionPickButton } from './RegionSwitcher';
-import { regionCanonicalPath, regionPath, regionSlugFromPath } from '../utils/regionRouting';
-import { isRegionSlug } from '../utils/regions';
+import { aboutPathFor } from '../utils/regionRouting';
 import './Footer.css';
 
 export default function Footer() {
   const { installAvailable, isStandalone, isMobileViewport, requestInstall } = usePwaInstall();
   const isIOS = isIOSDevice();
   const { role, user } = useAuth();
-  // Unchanged `/ueber-uns` while Vorarlberg is the only active region; combined views use it too.
-  const { regionId, allRegions, combinedView, comingSoon } = useRegion();
-  const { pathname } = useLocation();
-  // A coming-soon region is not the context region (that falls back to the
-  // default), so its own address names the region.
-  const comingSoonSlug = comingSoon ? regionSlugFromPath(pathname) : null;
-  const aboutPath =
-    comingSoonSlug && isRegionSlug(comingSoonSlug)
-      ? regionPath(comingSoonSlug, '/ueber-uns')
-      : combinedView || comingSoonSlug
-        ? '/ueber-uns'
-        : regionCanonicalPath(regionId, '/ueber-uns', allRegions);
+  // The page's own region / combined view (on Impressum / Datenschutz the one the
+  // visitor came from) decides; a coming-soon region is not the context region, so
+  // `regionId` alone would fall back to the default. Unchanged `/ueber-uns` while
+  // Vorarlberg is the only active region; combined views use it too.
+  const { regionId, allRegions, pageSlug } = useRegion();
+  const aboutPath = aboutPathFor({ pageSlug, regionId, regions: allRegions });
 
   // The link is removed from the DOM (not just visually hidden) on desktop
   // and on standalone runs. On desktop, Chrome shows its own install UI and
