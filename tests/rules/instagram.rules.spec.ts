@@ -1909,32 +1909,23 @@ describe('region about page (moderators)', () => {
     await assertFails(updateDoc(doc(db, 'regions/wien'), { aboutText: '<p>x</p>', updatedAt: 2 }));
   });
 
-  it('a moderator sets and clears example texts of her own region only', async () => {
+  it('a moderator cannot set or clear example texts (Super-Admin only)', async () => {
     const db = dbFor('modTirol');
-    await assertSucceeds(
+    await assertFails(
       updateDoc(doc(db, 'regions/tirol'), {
-        texts: { examples: { place: 'Innsbruck', contact: 'a@b.at' } },
+        texts: { examples: { place: 'Innsbruck' } },
         updatedAt: 2,
       })
     );
-    await assertSucceeds(
-      updateDoc(doc(db, 'regions/tirol'), { texts: deleteField(), updatedAt: 3 })
-    );
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), 'regions/tirol'), {
+        texts: { examples: { place: 'x' } },
+      });
+    });
     await assertFails(
-      updateDoc(doc(db, 'regions/wien'), { texts: { examples: { place: 'x' } }, updatedAt: 2 })
+      updateDoc(doc(db, 'regions/tirol'), { texts: { examples: { place: 'y' } }, updatedAt: 4 })
     );
-    await assertFails(
-      updateDoc(doc(db, 'regions/tirol'), {
-        texts: { examples: { place: 'x'.repeat(121) } },
-        updatedAt: 2,
-      })
-    );
-    await assertFails(
-      updateDoc(doc(db, 'regions/tirol'), { texts: { examples: { place: 5 } }, updatedAt: 2 })
-    );
-    await assertFails(
-      updateDoc(doc(db, 'regions/tirol'), { texts: { examples: { other: 'x' } }, updatedAt: 2 })
-    );
+    await assertFails(updateDoc(doc(db, 'regions/tirol'), { texts: deleteField(), updatedAt: 3 }));
   });
 
   it('a moderator cannot touch another region or other fields', async () => {

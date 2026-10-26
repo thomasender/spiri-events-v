@@ -148,6 +148,7 @@ export default function RegionAboutTab() {
       const isDefault = aboutText.trim() === defaultAboutBodyHtml(placePhraseOf(current));
       const newTexts = sanitizeTexts({ examples });
       const textsChanged =
+        access.isSuperAdmin &&
         JSON.stringify(newTexts ?? null) !== JSON.stringify(sanitizeTexts(current.texts) ?? null);
       await updateDoc(doc(db, 'regions', current.id), {
         ...(textsChanged ? { texts: newTexts ?? deleteField() } : {}),
@@ -302,48 +303,50 @@ export default function RegionAboutTab() {
         </section>
       )}
 
-      <section className="region-about-section" data-testid="region-about-examples">
-        <h3>Beispieltexte im Formular „Event erstellen“</h3>
-        <p className="region-about-fixed-note">
-          Diese Beispiele stehen grau in den Feldern, wenn jemand ein Event für {current.name}{' '}
-          anlegt. „z.B.“ wird automatisch davor gesetzt. Leer lassen für den Standardtext.
-        </p>
-        {examplesDark && (
-          <p className="region-about-fixed-note" data-testid="region-about-examples-dark">
-            Für Vorarlberg gelten diese Beispiele erst, sobald eine weitere Region freigeschaltet
-            ist. Bis dahin bleiben die bisherigen Beispiele.
+      {access.isSuperAdmin && (
+        <section className="region-about-section" data-testid="region-about-examples">
+          <h3>Beispieltexte im Formular „Event erstellen“</h3>
+          <p className="region-about-fixed-note">
+            Diese Beispiele stehen grau in den Feldern, wenn jemand ein Event für {current.name}{' '}
+            anlegt. „z.B.“ wird automatisch davor gesetzt. Leer lassen für den Standardtext.
           </p>
-        )}
-        {EXAMPLE_FIELDS.map(({ key, label }) => (
-          <div className="region-about-field" key={key}>
-            <label htmlFor={`region-about-example-${key}`}>
-              <span>{label}</span>
-            </label>
-            <input
-              id={`region-about-example-${key}`}
-              type="text"
-              value={examples[key] ?? ''}
-              maxLength={EXAMPLE_MAX_LENGTH}
-              placeholder={defaultExamples[key].replace(/^z\.B\. /, '')}
-              onChange={(e) => setExamples((prev) => ({ ...prev, [key]: e.target.value }))}
-              disabled={saving}
-              data-testid={`region-about-example-${key}`}
-            />
-            <span className="region-about-fixed-note">
-              {(examples[key] ?? '').length}/{EXAMPLE_MAX_LENGTH}
-            </span>
-            <button
-              type="button"
-              className="btn btn-secondary region-about-reset"
-              onClick={() => setExamples((prev) => ({ ...prev, [key]: '' }))}
-              disabled={saving || !examples[key]}
-              data-testid={`region-about-example-${key}-reset`}
-            >
-              Auf Standard zurücksetzen
-            </button>
-          </div>
-        ))}
-      </section>
+          {examplesDark && (
+            <p className="region-about-fixed-note" data-testid="region-about-examples-dark">
+              Für Vorarlberg gelten diese Beispiele erst, sobald eine weitere Region freigeschaltet
+              ist. Bis dahin bleiben die bisherigen Beispiele.
+            </p>
+          )}
+          {EXAMPLE_FIELDS.map(({ key, label }) => (
+            <div className="region-about-field" key={key}>
+              <label htmlFor={`region-about-example-${key}`}>
+                <span>{label}</span>
+              </label>
+              <input
+                id={`region-about-example-${key}`}
+                type="text"
+                value={examples[key] ?? ''}
+                maxLength={EXAMPLE_MAX_LENGTH}
+                placeholder={defaultExamples[key].replace(/^z\.B\. /, '')}
+                onChange={(e) => setExamples((prev) => ({ ...prev, [key]: e.target.value }))}
+                disabled={saving}
+                data-testid={`region-about-example-${key}`}
+              />
+              <span className="region-about-fixed-note">
+                {(examples[key] ?? '').length}/{EXAMPLE_MAX_LENGTH}
+              </span>
+              <button
+                type="button"
+                className="btn btn-secondary region-about-reset"
+                onClick={() => setExamples((prev) => ({ ...prev, [key]: '' }))}
+                disabled={saving || !examples[key]}
+                data-testid={`region-about-example-${key}-reset`}
+              >
+                Auf Standard zurücksetzen
+              </button>
+            </div>
+          ))}
+        </section>
+      )}
 
       <section className="region-about-section">
         <h3>Titelbild</h3>

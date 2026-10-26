@@ -790,11 +790,12 @@ service cloud.firestore {
       allow read: if true;
       allow create, update: if isAdminOrEmulatorAdmin() && isValidRegion(request.resource.data);
       // Regions-Moderator:innen maintain the "Über uns" page of their own
-      // regions (header photo, text of the "Deine Heimat" section) and nothing else of the doc.
+      // regions (header photo, text of the "Deine Heimat" section) and nothing else of the doc
+      // (`texts`, the example texts of the event form, are Super-Admin only).
       allow update: if isRegionModeratorFor(regionId)
                     && request.resource.data.diff(resource.data).affectedKeys()
                          .hasOnly(['aboutHelperIds', 'aboutHeaderImage', 'aboutText', 'aboutSlogan1',
-                                   'aboutSlogan2', 'texts', 'updatedAt'])
+                                   'aboutSlogan2', 'updatedAt'])
                     && (!sloganTouched() || resource.data.get('aboutSloganLocked', false) != true)
                     && isValidRegionFields(request.resource.data);
       allow delete: if isAdminOrEmulatorAdmin();
