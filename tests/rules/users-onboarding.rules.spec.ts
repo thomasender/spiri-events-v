@@ -70,6 +70,25 @@ describe('users/{uid}.onboardingDismissed', () => {
   });
 });
 
+// "Onboarding finished" on the own user doc: false at registration, true once done.
+describe('users/{uid}.onboardingCompleted', () => {
+  it('the owner can set it at registration and on finishing', async () => {
+    const carol = env.authenticatedContext('carol').firestore();
+    await assertSucceeds(
+      setDoc(doc(carol, 'users/carol'), { ...base, onboardingCompleted: false })
+    );
+    const alice = env.authenticatedContext('alice').firestore();
+    await assertSucceeds(updateDoc(doc(alice, 'users/alice'), { onboardingCompleted: true }));
+  });
+
+  it('rejects a non-boolean value and other people', async () => {
+    const alice = env.authenticatedContext('alice').firestore();
+    await assertFails(updateDoc(doc(alice, 'users/alice'), { onboardingCompleted: 'yes' }));
+    const bob = env.authenticatedContext('bob').firestore();
+    await assertFails(updateDoc(doc(bob, 'users/alice'), { onboardingCompleted: true }));
+  });
+});
+
 // In-app alerts for admins, written only by the Cloud Function.
 describe('users/{uid}/adminAlerts', () => {
   const alert = { eventId: 'e1', eventTitle: 'Yoga', read: false, changeCount: 1 };

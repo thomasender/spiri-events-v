@@ -43,6 +43,7 @@ const renderGate = (path = '/') =>
 describe('ProfileOnboardingGate', () => {
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
     state.user = { uid: 'u1', emailVerified: true, displayName: 'Sandra' };
     state.available = true;
     state.profile = { photoURL: null, bio: '' };
@@ -58,10 +59,11 @@ describe('ProfileOnboardingGate', () => {
     expect(screen.queryByTestId('onboarding-banner')).toBeNull();
   });
 
-  it('renders nothing for an unverified email', () => {
+  it('opens right after registration, before the e-mail is confirmed', () => {
     state.user = { uid: 'u1', emailVerified: false };
+    state.profile = { photoURL: null, bio: '', onboardingCompleted: false };
     renderGate();
-    expect(screen.queryByTestId('profile-onboarding')).toBeNull();
+    expect(screen.getByTestId('profile-onboarding')).toBeInTheDocument();
   });
 
   it('opens on its own when photo and description are missing', () => {
@@ -69,8 +71,21 @@ describe('ProfileOnboardingGate', () => {
     expect(screen.getByTestId('profile-onboarding')).toBeInTheDocument();
   });
 
-  it('stays closed for a complete profile', () => {
+  it('stays closed for a complete profile of an older account', () => {
     state.profile = { photoURL: 'u', bio: 'Hallo' };
+    renderGate();
+    expect(screen.queryByTestId('profile-onboarding')).toBeNull();
+    expect(screen.queryByTestId('onboarding-banner')).toBeNull();
+  });
+
+  it('opens for a new account that has not finished it, even with photo and description', () => {
+    state.profile = { photoURL: 'u', bio: 'Hallo', onboardingCompleted: false };
+    renderGate();
+    expect(screen.getByTestId('profile-onboarding')).toBeInTheDocument();
+  });
+
+  it('never opens again once finished, on any device', () => {
+    state.profile = { photoURL: null, bio: '', onboardingCompleted: true };
     renderGate();
     expect(screen.queryByTestId('profile-onboarding')).toBeNull();
     expect(screen.queryByTestId('onboarding-banner')).toBeNull();
@@ -84,40 +99,35 @@ describe('ProfileOnboardingGate', () => {
     expect(screen.getByTestId('profile-onboarding')).toBeInTheDocument();
   });
 
-  it('does not reopen by itself once dismissed', () => {
-    localStorage.setItem('onboarding-dismissed:u1', '1');
+  it('closing hides it for this visit only and stores nothing on the account', () => {
+    const first = renderGate();
+    fireEvent.click(screen.getByText('close'));
+    expect(save).not.toHaveBeenCalled();
+    first.unmount();
+
+    // same visit: stays closed, the banner offers it
+    renderGate().unmount();
+    sessionStorage.clear(); // next visit
+    renderGate();
+    expect(screen.getByTestId('profile-onboarding')).toBeInTheDocument();
+  });
+
+  it('stays closed within the visit after closing', () => {
+    sessionStorage.setItem('onboarding-dismissed:u1', '1');
     renderGate();
     expect(screen.queryByTestId('profile-onboarding')).toBeNull();
     expect(screen.getByTestId('onboarding-banner')).toBeInTheDocument();
+  });
+
+  it('ignores the old "closed for good" flag: not finished means offered again', () => {
+    state.profile = { photoURL: null, bio: '', onboardingDismissed: true };
+    renderGate();
+    expect(screen.getByTestId('profile-onboarding')).toBeInTheDocument();
   });
 
   it('stays out of the way on the profile page', () => {
     renderGate('/profil');
     expect(screen.queryByTestId('profile-onboarding')).toBeNull();
     expect(screen.queryByTestId('onboarding-banner')).toBeNull();
-  });
-
-  it('stores the dismissal on the user doc so other devices stay quiet', () => {
-    renderGate();
-    fireEvent.click(screen.getByText('close'));
-    expect(localStorage.getItem('onboarding-dismissed:u1')).toBe('1');
-    expect(save).toHaveBeenCalledWith(
-      expect.objectContaining({ onboardingDismissed: true, displayName: 'Sandra', bio: '' })
-    );
-  });
-
-  it('does not open on a device without the local flag when the doc says dismissed', () => {
-    state.profile = { photoURL: null, bio: '', onboardingDismissed: true };
-    renderGate();
-    expect(screen.queryByTestId('profile-onboarding')).toBeNull();
-    expect(screen.getByTestId('onboarding-banner')).toBeInTheDocument();
-  });
-
-  it('does not create a user doc just to remember the dismissal', () => {
-    state.exists = false;
-    renderGate();
-    fireEvent.click(screen.getByText('close'));
-    expect(save).not.toHaveBeenCalled();
-    expect(localStorage.getItem('onboarding-dismissed:u1')).toBe('1');
   });
 });

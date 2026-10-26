@@ -6,51 +6,43 @@ import { useProfile } from '../hooks/useProfile';
 import { useOnboardingAccess } from '../hooks/useChatSettings';
 import {
   isOnboardingDismissed,
-  needsOnboarding,
   setOnboardingDismissed,
+  shouldOfferOnboarding,
 } from '../utils/onboarding';
 import ProfileOnboarding from './ProfileOnboarding';
 import './ProfileOnboarding.css';
 
 // Mounted once in the app layout. Behind the flag app_settings/onboarding it opens
-// the wizard once for a verified member whose photo or description is missing; after
-// "Schließen" a slim banner offers it again.
+// the wizard for a signed-in member (verified e-mail or not, so a new account can
+// finish it while the confirmation mail is on its way) until it is finished once
+// (`onboardingCompleted` on the user doc, so on every device). "Schließen" only
+// hides it for this visit; a slim banner offers it again meanwhile.
 export default function ProfileOnboardingGate() {
   const { user } = useAuth();
   const { available } = useOnboardingAccess();
-  if (!user || !user.emailVerified || !available) return null;
+  if (!user || !available) return null;
   return <GateInner user={user} />;
 }
 
 function GateInner({ user }) {
-  const { profile, loading, exists, save } = useProfile(user.uid);
+  const { profile, loading, save } = useProfile(user.uid);
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
   const [bannerHidden, setBannerHidden] = useState(false);
   const autoChecked = useRef(false);
-  const incomplete = !loading && needsOnboarding(profile);
+  const offer = !loading && shouldOfferOnboarding(profile);
 
   // Decide once, when the profile has loaded, whether to open on its own.
   useEffect(() => {
     if (loading || autoChecked.current) return;
     autoChecked.current = true;
-    const dismissed = isOnboardingDismissed(user.uid) || profile?.onboardingDismissed === true;
-    if (needsOnboarding(profile) && !dismissed) setOpen(true);
+    if (shouldOfferOnboarding(profile) && !isOnboardingDismissed(user.uid)) setOpen(true);
   }, [loading, profile, user.uid]);
 
-  // localStorage answers instantly (no flicker); the flag on the user doc carries
-  // the choice to other devices. Without a user doc yet we do not create one just
-  // for this, the local flag has to do.
+  // Not finished: hidden for this visit only. Finishing is stored by the wizard.
   const close = () => {
     setOnboardingDismissed(user.uid);
     setOpen(false);
-    if (exists && profile?.onboardingDismissed !== true) {
-      save({
-        displayName: profile?.displayName || user.displayName || '',
-        bio: profile?.bio || '',
-        onboardingDismissed: true,
-      }).catch((err) => console.warn('Could not store onboarding dismissal:', err));
-    }
   };
 
   // The profile page has the full form already.
@@ -67,7 +59,7 @@ function GateInner({ user }) {
           onClose={close}
         />
       )}
-      {!open && incomplete && !bannerHidden && (
+      {!open && offer && !bannerHidden && (
         <div className="onboarding-banner" role="status" data-testid="onboarding-banner">
           <Sparkles size={20} aria-hidden="true" />
           <p className="onboarding-banner-text">
