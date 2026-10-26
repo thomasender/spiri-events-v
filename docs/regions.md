@@ -94,6 +94,12 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
     wording and analytics keep following the region; choosing a place navigates to that region's
     page (a region that is not open yet leads to its coming-soon page). A region address typed
     by hand wins over the selection.
+  - **Neutral pages** (`NEUTRAL_PAGE_PATHS` in `regionRouting.js`: Impressum, Datenschutz) are the
+    same for every region and name none in their address. They keep the region or combined view of
+    the last page that named one in this tab (`pageSlug` in the region context, sessionStorage
+    `tribe:lastPageSlug`, also a not-yet-open region), so the footer's "Über uns"
+    (`aboutPathFor`) leads back to that region. Only with two or more active regions. Add further
+    region-independent pages to that list.
   - **Events within the radius.** `radiusFilter` in the region context is non-null only with a
     selection, at least two active regions, no combined view and while the current region is the
     selection's region. Then the calendar loads the events of ALL active regions (query plan

@@ -1,7 +1,8 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mergeRegions } from '../../src/utils/regions';
+import { writePlaceSelection } from '../../src/utils/placeSelection';
 
 const mocks = vi.hoisted(() => ({
   regions: { regions: [] as unknown[], loading: false },
@@ -47,6 +48,7 @@ const aboutHref = () => screen.getByRole('link', { name: 'Über uns' }).getAttri
 describe('Footer "Über uns" link', () => {
   beforeEach(() => {
     window.localStorage.clear();
+    window.sessionStorage.clear();
     mocks.regions = { regions: mergeRegions([]), loading: false };
   });
 
@@ -69,5 +71,53 @@ describe('Footer "Über uns" link', () => {
   it('keeps /ueber-uns for Vorarlberg while it is the only open region', () => {
     renderAt('/');
     expect(aboutHref()).toBe('/ueber-uns');
+  });
+
+  describe('on Impressum / Datenschutz (neutral pages)', () => {
+    const twoActive = () => {
+      mocks.regions = {
+        regions: mergeRegions([{ id: 'steiermark', active: true }]),
+        loading: false,
+      };
+    };
+    const openLegal = (name: 'Impressum' | 'Datenschutz') =>
+      fireEvent.click(screen.getByRole('link', { name }));
+
+    it('keeps the region the visitor came from, even if the remembered place is elsewhere', () => {
+      twoActive();
+      writePlaceSelection({ label: 'Bregenz', lat: 47.5, lon: 9.75, regionId: 'vorarlberg' });
+      renderAt('/steiermark');
+      openLegal('Impressum');
+      expect(aboutHref()).toBe('/steiermark/ueber-uns');
+      openLegal('Datenschutz');
+      expect(aboutHref()).toBe('/steiermark/ueber-uns');
+    });
+
+    it('keeps a region that is not open yet', () => {
+      twoActive();
+      renderAt('/tirol');
+      openLegal('Datenschutz');
+      expect(aboutHref()).toBe('/tirol/ueber-uns');
+    });
+
+    it('keeps the general page after a combined view', () => {
+      twoActive();
+      renderAt('/alle-tribes');
+      openLegal('Impressum');
+      expect(aboutHref()).toBe('/ueber-uns');
+    });
+
+    it('survives a reload of the neutral page', () => {
+      twoActive();
+      renderAt('/steiermark').unmount();
+      renderAt('/impressum');
+      expect(aboutHref()).toBe('/steiermark/ueber-uns');
+    });
+
+    it('stays /ueber-uns while Vorarlberg is the only open region (dark launch)', () => {
+      renderAt('/tirol');
+      openLegal('Impressum');
+      expect(aboutHref()).toBe('/ueber-uns');
+    });
   });
 });
