@@ -1,7 +1,14 @@
 import { useMemo, useState } from 'react';
 import { doc, getFirestore, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { getApp } from 'firebase/app';
-import { ClipboardCheck, Inbox, MessageCircle, CheckCircle2, ChevronDown } from 'lucide-react';
+import {
+  ClipboardCheck,
+  Inbox,
+  MessageCircle,
+  CheckCircle2,
+  ChevronDown,
+  Image as ImageIcon,
+} from 'lucide-react';
 import { usePendingEvents, useAllEvents } from '../hooks/useEvents';
 import { useEventsWithMessages } from '../hooks/useEventsWithMessages';
 import { useUserDisplayNames } from '../hooks/useUserDisplayNames';
@@ -10,6 +17,8 @@ import { useAdminAlerts } from '../hooks/useAdminAlerts';
 import { requiresDeleteReason } from '../utils/eventPermissions';
 import { buildTrashUpdate } from '../utils/trashUpdates';
 import EventAdminListRow from './EventAdminListRow';
+import AdminCoverPreview from './AdminCoverPreview';
+import { AdminInstagramPreview } from './InstagramPostPreview';
 import ConfirmDialog from './ConfirmDialog';
 import SuccessDialog from './SuccessDialog';
 import './ReviewTab.css';
@@ -47,6 +56,39 @@ function CollapseToggle({ id, open, onToggle, testId, children }) {
         className={`review-toggle-chevron${open ? ' is-open' : ''}`}
       />
     </button>
+  );
+}
+
+/**
+ * "Bild prüfen" under a pending row: opens the cover crop and, when the
+ * organizer enabled the Instagram post, the Instagram crop, so admins can
+ * check and adjust both before approving. The pending list is a live
+ * snapshot, so a saved crop shows up in the row without extra state.
+ */
+function ReviewImageCheck({ event }) {
+  const [open, setOpen] = useState(false);
+  if (!event.imageUrl) return null;
+  const bodyId = `review-image-check-${event.id}`;
+  return (
+    <div className="review-image-check">
+      <button
+        type="button"
+        className="btn btn-secondary btn-sm review-image-check-toggle"
+        aria-expanded={open}
+        aria-controls={bodyId}
+        onClick={() => setOpen((v) => !v)}
+        data-testid={`review-image-check-toggle-${event.id}`}
+      >
+        <ImageIcon size={14} aria-hidden="true" />
+        Bild prüfen
+      </button>
+      {open && (
+        <div id={bodyId} data-testid={`review-image-check-${event.id}`}>
+          <AdminCoverPreview event={event} isAdmin />
+          <AdminInstagramPreview event={event} isAdmin />
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -258,6 +300,7 @@ export default function ReviewTab() {
                         onRevert={(evt) => setRevertTarget({ id: evt.id, eventTitle: evt.title })}
                         onDeleteClick={(evt) => openDelete(evt)}
                       />
+                      <ReviewImageCheck event={event} />
                     </div>
                   ))}
                 </div>
@@ -314,6 +357,7 @@ export default function ReviewTab() {
                           onRevert={(evt) => setRevertTarget({ id: evt.id, eventTitle: evt.title })}
                           onDeleteClick={(evt) => openDelete(evt)}
                         />
+                        <ReviewImageCheck event={event} />
                       </div>
                     ))}
                   </div>

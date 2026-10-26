@@ -46,6 +46,7 @@ import '../pages/AdminPage.css';
 import '../components/FocalPointPicker.css';
 import '../components/InstagramConsentField.css';
 import '../components/InstagramImagePicker.css';
+import '../components/AdminCoverPreview.css';
 import '../components/EventForm.css';
 import '../components/RichTextView.css';
 import '../components/EventFormWizard.css';

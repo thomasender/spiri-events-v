@@ -529,6 +529,53 @@ describe('EventDetailPage — admin approve button', () => {
   });
 });
 
+describe('EventDetailPage — cover crop in header and review', () => {
+  const coverEvent = {
+    ...foreignEvent,
+    imageUrl: 'https://x/cover.jpg',
+    imageFocalPoint: { x: 0.2, y: 0.8 },
+    imageZoom: 2,
+  };
+  const setEvent = (status: string) => {
+    mockFirestoreDoc.getDocResult = {
+      id: foreignEvent.id,
+      data: { ...coverEvent, status },
+    };
+  };
+
+  it('shows the header image with the saved focal point and zoom', async () => {
+    setEvent('approved');
+    renderPage();
+    const img = await screen.findByAltText('Yoga heute');
+    expect(img).toHaveStyle({ objectPosition: '20% 80%', transform: 'scale(2)' });
+  });
+
+  it('offers the cover crop editor to admins on pending events only', async () => {
+    mockAuth.user = { uid: 'admin-uid' };
+    mockAuth.role = 'Admin';
+    setEvent('pending');
+    renderPage();
+    expect(await screen.findByTestId('admin-cover-crop-edit')).toBeInTheDocument();
+  });
+
+  it('hides the cover crop editor for admins on approved events and for guests', async () => {
+    mockAuth.user = { uid: 'admin-uid' };
+    mockAuth.role = 'Admin';
+    setEvent('approved');
+    const { unmount } = renderPage();
+    await screen.findByAltText('Yoga heute');
+    expect(screen.queryByTestId('admin-cover-crop-edit')).toBeNull();
+    unmount();
+
+    mockAuth.user = null;
+    mockAuth.role = null;
+    setEvent('approved');
+    renderPage();
+    await screen.findByAltText('Yoga heute');
+    expect(screen.queryByTestId('admin-cover-crop-edit')).toBeNull();
+  });
+});
+
 describe('EventDetailPage — admin back-to-draft button', () => {
   const setStatus = (status: string) => {
     mockFirestoreDoc.getDocResult = {

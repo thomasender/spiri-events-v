@@ -67,6 +67,8 @@ import LoginPromptModal from '../components/LoginPromptModal';
 import { requestCalendarFeedToken, startCalendarDownload } from '../hooks/useCalendarFeedToken';
 import ShareButton from '../components/ShareButton';
 import { AdminInstagramPreview } from '../components/InstagramPostPreview';
+import AdminCoverPreview from '../components/AdminCoverPreview';
+import EventCoverImage from '../components/EventCoverImage';
 import RichTextView from '../components/RichTextView';
 import SimilarEvents from '../components/SimilarEvents';
 import { stripHtml, truncateHtmlText } from '../utils/sanitize';
@@ -195,7 +197,6 @@ export default function EventDetailPage() {
   const [error, setError] = useState(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [showAllDates, setShowAllDates] = useState(false);
-  const [imageError, setImageError] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showRecurringDeleteDialog, setShowRecurringDeleteDialog] = useState(false);
   const [pendingRecurringDelete, setPendingRecurringDelete] = useState(null);
@@ -391,8 +392,7 @@ export default function EventDetailPage() {
   const showDeleteButton = canDeleteEvent(user, event, role);
   const deleteReasonRequired = requiresDeleteReason(user, event, role);
   const fallbackImage = getEventFallbackImage(event);
-  const showRemoteImage = Boolean(event.imageUrl) && !imageError;
-  const imageSrc = showRemoteImage ? event.imageUrl : fallbackImage;
+  const showRemoteImage = Boolean(event.imageUrl);
 
   const showApproveButton = isAdmin && event.status === 'pending';
 
@@ -689,12 +689,12 @@ export default function EventDetailPage() {
       <header className="event-header">
         <div className="event-image-wrapper">
           {showRemoteImage && !imageLoaded && <div className="event-image-skeleton" />}
-          <img
-            src={imageSrc}
-            alt={event.title}
+          <EventCoverImage
+            event={event}
+            fallbackSrc={fallbackImage}
             className={`event-image ${imageLoaded || !showRemoteImage ? 'loaded' : ''}`}
+            loading="eager"
             onLoad={() => setImageLoaded(true)}
-            onError={() => setImageError(true)}
           />
         </div>
         <div className="event-title-row">
@@ -972,6 +972,12 @@ export default function EventDetailPage() {
           <RichTextView html={event.description} />
         </div>
       )}
+
+      <AdminCoverPreview
+        event={event}
+        isAdmin={isAdmin}
+        onCropSaved={(patch) => setEvent((prev) => (prev ? { ...prev, ...patch } : prev))}
+      />
 
       <AdminInstagramPreview
         event={event}
