@@ -55,6 +55,8 @@ vi.mock('../../src/hooks/useAuth', () => ({
 
 vi.mock('firebase/app', () => ({ getApp: vi.fn() }));
 
+vi.mock('../../src/lib/firebase', () => ({ db: {} }));
+
 vi.mock('firebase/firestore', () => ({
   doc: vi.fn(),
   getFirestore: vi.fn(),
@@ -379,5 +381,44 @@ describe('ReviewTab — organizer edit alerts', () => {
     renderReviewTab();
     fireEvent.click(screen.getByRole('button', { name: 'Genehmigen' }));
     await waitFor(() => expect(mockAlerts.markRead).toHaveBeenCalledWith('p1'));
+  });
+});
+
+describe('ReviewTab — image check on pending rows', () => {
+  it('opens the cover crop from "Bild prüfen" on a pending row with a cover', () => {
+    mockUsePendingEvents.pendingEvents = [
+      { id: 'p1', title: 'Mit Bild', status: 'pending', imageUrl: 'https://x/cover.jpg' },
+    ];
+    renderReviewTab();
+    expect(screen.queryByTestId('admin-cover-preview')).toBeNull();
+    fireEvent.click(screen.getByTestId('review-image-check-toggle-p1'));
+    expect(screen.getByTestId('admin-cover-preview')).toBeInTheDocument();
+    expect(screen.getByTestId('admin-cover-crop-edit')).toBeInTheDocument();
+    expect(screen.queryByTestId('instagram-post-preview')).toBeNull();
+    fireEvent.click(screen.getByTestId('review-image-check-toggle-p1'));
+    expect(screen.queryByTestId('admin-cover-preview')).toBeNull();
+  });
+
+  it('also shows the Instagram preview when the organizer allowed the post', () => {
+    mockUsePendingEvents.pendingEvents = [
+      {
+        id: 'p1',
+        title: 'Mit Instagram',
+        status: 'pending',
+        imageUrl: 'https://x/cover.jpg',
+        instagramConsent: true,
+      },
+    ];
+    renderReviewTab();
+    fireEvent.click(screen.getByTestId('review-image-check-toggle-p1'));
+    expect(screen.getByTestId('admin-cover-preview')).toBeInTheDocument();
+    expect(screen.getByTestId('instagram-post-preview')).toBeInTheDocument();
+    expect(screen.getByTestId('admin-instagram-crop-edit')).toBeInTheDocument();
+  });
+
+  it('offers no image check for a row without a cover photo', () => {
+    mockUsePendingEvents.pendingEvents = [{ id: 'p1', title: 'Ohne Bild', status: 'pending' }];
+    renderReviewTab();
+    expect(screen.queryByTestId('review-image-check-toggle-p1')).toBeNull();
   });
 });

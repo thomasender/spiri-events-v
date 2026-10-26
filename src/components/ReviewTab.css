@@ -138,3 +138,14 @@
 .review-section [hidden] {
   display: none;
 }
+
+.review-image-check {
+  margin: 8px 0 4px;
+  padding-left: 4px;
+}
+
+.review-image-check-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
