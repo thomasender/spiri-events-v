@@ -10,6 +10,8 @@ import {
   writePlaceSelection,
 } from '../utils/placeSelection';
 import {
+  CHOOSER_PATHS,
+  REGIONS_PAGE_PATH,
   activeRegions,
   availableCombinedViews,
   combinedViewRegions,
@@ -96,16 +98,22 @@ export default function RegionProvider({ children }) {
     const eventRegionComingSoon = Boolean(
       !urlSlug && eventRegionId && !getRegionBySlug(eventRegionId, allRegions)?.active
     );
-    // Neutral header ("Dein Kalender"): region chooser (/regionen and first visit),
-    // coming-soon pages and the event form for a region that is not open yet.
+    // "Wo suchst du?" page (RegionChooser): `/regionen` opened on purpose, or `/` and
+    // `/verzeichnis` while nothing is remembered (place, chooser seen, active last region).
+    // Dark launch: never with fewer than two active regions.
     const stored = readLastRegion();
-    const firstVisitChooser =
+    const chooserRemembered =
+      readRegionChooserSeen() ||
+      Boolean(placeSelection) ||
+      Boolean(stored && getRegionBySlug(stored, allRegions)?.active);
+    const regionChooserOpen =
       !loading &&
       activeRegions(allRegions).length >= 2 &&
-      ['/', '/verzeichnis'].includes(pathname) &&
-      !(readRegionChooserSeen() || Boolean(stored && getRegionBySlug(stored, allRegions)?.active));
+      (pathname === REGIONS_PAGE_PATH || (!chooserRemembered && CHOOSER_PATHS.includes(pathname)));
+    // Neutral header ("Dein Kalender"): region chooser, coming-soon pages and the event
+    // form for a region that is not open yet.
     const neutralHeader =
-      comingSoon || eventRegionComingSoon || pathname === '/regionen' || firstVisitChooser;
+      comingSoon || eventRegionComingSoon || pathname === REGIONS_PAGE_PATH || regionChooserOpen;
     const regionId =
       !urlSlug && eventRegionId
         ? eventRegionId
@@ -125,9 +133,11 @@ export default function RegionProvider({ children }) {
       // True on the coming-soon page of a region/view that is not open yet.
       comingSoon,
       neutralHeader,
+      // True while the "Wo suchst du?" page (RegionChooser) covers the page.
+      regionChooserOpen,
       // Active regions the current combined view covers ([] outside one).
       combinedRegions: combinedView ? combinedViewRegions(combinedView, allRegions) : [],
-      // Combined views offered in chooser and switcher.
+      // Combined views that are available (enough active regions).
       combinedViews: availableCombinedViews(allRegions),
       loading,
       setRegion,

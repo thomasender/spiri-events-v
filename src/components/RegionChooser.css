@@ -1,7 +1,9 @@
-/* Required choice as a full page: the real page stays rendered (inert) behind it. */
+/* Required choice as a full page: the real page stays rendered (inert) behind it, the
+   site header stays visible above it (top set by RegionChooser.jsx). */
 .region-chooser-backdrop {
   position: fixed;
   inset: 0;
+  top: var(--region-chooser-top, 0);
   z-index: 2000;
   overflow-y: auto;
   background-color: var(--bg-primary);
@@ -40,70 +42,6 @@
   grid-template-columns: minmax(0, 1fr);
   gap: 24px;
   align-items: start;
-}
-
-.region-chooser-lists {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  max-width: 520px;
-  margin: 28px auto 0;
-}
-
-.region-chooser-views-label {
-  margin: 0;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.region-chooser-options {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 8px;
-}
-
-.region-chooser-options--views {
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-}
-
-.region-chooser-option {
-  min-height: 48px;
-  padding: 0 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background-color: var(--bg-secondary);
-  color: var(--text-primary);
-  font-family: var(--font-body);
-  font-size: 1rem;
-  font-weight: 500;
-  text-align: left;
-  cursor: pointer;
-}
-
-.region-chooser-option:hover {
-  border-color: var(--accent-primary);
-}
-
-.region-chooser-option--all {
-  text-align: center;
-  font-weight: 600;
-}
-
-.region-chooser-option--soon {
-  background-color: transparent;
-  color: var(--text-secondary);
-  font-weight: 400;
-}
-
-.region-chooser-soon {
-  font-size: 0.8125rem;
-  white-space: nowrap;
-}
-
-.region-chooser-option:focus-visible {
-  outline: 2px solid var(--accent-primary);
-  outline-offset: 2px;
 }
 
 .region-chooser-close {

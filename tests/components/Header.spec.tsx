@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { RegionContext, DEFAULT_REGION_CONTEXT } from '../../src/hooks/useRegion';
 import Header from '../../src/components/Header';
+import { mergeRegions } from '../../src/utils/regions';
 
 const mockAuth = vi.hoisted(() => ({
   user: null as { uid: string; photoURL?: string | null } | null,
@@ -1232,5 +1233,29 @@ describe('Header slogan saved in Über uns', () => {
     renderWith(withSlogan({ aboutSlogan1: '', aboutSlogan2: 'für Bewusstsein' }));
     expect(screen.getByText('Dein Vorarlberger Kalender')).toBeInTheDocument();
     expect(screen.getByText('für Bewusstsein')).toBeInTheDocument();
+  });
+});
+
+describe('Header above "Wo suchst du?"', () => {
+  it('shows the neutral title and subtitle and no region switcher', () => {
+    const regions = mergeRegions([{ id: 'tirol', active: true }]).filter((r) => r.active);
+    const ctx = {
+      ...DEFAULT_REGION_CONTEXT,
+      region: { ...DEFAULT_REGION_CONTEXT.region, aboutSlogan1: 'Ländle', aboutSlogan2: 'Events' },
+      regions,
+      neutralHeader: true,
+      regionChooserOpen: true,
+    };
+    render(
+      <RegionContext.Provider value={ctx}>
+        <MemoryRouter initialEntries={['/regionen']}>
+          <Header />
+        </MemoryRouter>
+      </RegionContext.Provider>
+    );
+    expect(screen.getByText('Dein Kalender')).toBeInTheDocument();
+    expect(screen.getByText('für bewusste Events')).toBeInTheDocument();
+    expect(screen.queryByText(/Vorarlberg|Ländle/)).toBeNull();
+    expect(screen.queryByTestId('region-switcher')).toBeNull();
   });
 });

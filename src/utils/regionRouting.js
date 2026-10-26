@@ -174,6 +174,11 @@ export function regionSwitchSubpath(pathname) {
 }
 
 export const REGION_CHOOSER_SEEN_KEY = 'tribe:regionChooserSeen';
+// "Wo suchst du?" (RegionChooser) opened on purpose (switcher, burger menu).
+export const REGIONS_PAGE_PATH = '/regionen';
+// Entry pages without a region in the address that show the chooser on a first visit:
+// never on a region address, event page or profile, so crawlers and previews are unaffected.
+export const CHOOSER_PATHS = ['/', '/verzeichnis'];
 
 export function readRegionChooserSeen(storage) {
   try {
