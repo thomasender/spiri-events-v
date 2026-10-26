@@ -1,8 +1,20 @@
 import { useState, useEffect } from 'react';
-import { X, Calendar, Clock, MapPin, Ticket, ExternalLink, User, Mail, Phone } from 'lucide-react';
+import {
+  X,
+  Calendar,
+  Clock,
+  MapPin,
+  Ticket,
+  ExternalLink,
+  User,
+  Mail,
+  Phone,
+  ClipboardList,
+} from 'lucide-react';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
 import { getOrganizerName, getEventLocationLabel } from '../utils/eventFormat';
 import { parseContactText } from '../utils/contactFormat';
+import RegistrationText from './RegistrationText';
 import { formatPriceWithCurrency } from '../utils/currency';
 import { normalizeLink } from '../utils/link';
 import RichTextView from './RichTextView';
@@ -222,6 +234,16 @@ export default function EventModal({ event, onClose }) {
                   )}
                   <span>{getOrganizerName(event)}</span>
                 </span>
+              </div>
+            </div>
+          )}
+
+          {event.registration?.trim() && (
+            <div className="detail-item" data-testid="event-modal-registration">
+              <ClipboardList size={18} className="detail-icon" />
+              <div>
+                <span className="detail-label">Anmeldung</span>
+                <RegistrationText text={event.registration} />
               </div>
             </div>
           )}

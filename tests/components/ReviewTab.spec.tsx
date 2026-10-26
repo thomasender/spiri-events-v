@@ -52,6 +52,14 @@ vi.mock('../../src/hooks/useUserDisplayNames', () => ({
 }));
 
 const mockUpdateDoc = vi.hoisted(() => vi.fn());
+const mockAlerts = vi.hoisted(() => ({
+  unreadByEvent: {} as Record<string, { kind: string; changeCount: number }>,
+  markRead: vi.fn(async () => {}),
+}));
+
+vi.mock('../../src/hooks/useAdminAlerts', () => ({
+  useAdminAlerts: () => mockAlerts,
+}));
 
 const mockAuth = vi.hoisted(() => ({
   current: { user: { uid: 'admin-uid' }, role: 'Admin' } as Record<string, unknown>,
@@ -62,6 +70,8 @@ vi.mock('../../src/hooks/useAuth', () => ({
 }));
 
 vi.mock('firebase/app', () => ({ getApp: vi.fn() }));
+
+vi.mock('../../src/lib/firebase', () => ({ db: {} }));
 
 vi.mock('firebase/firestore', () => ({
   doc: vi.fn(),
@@ -84,6 +94,8 @@ beforeEach(() => {
   mockAuth.current = { user: { uid: 'admin-uid' }, role: 'Admin' };
   mockApproveEvent.mockReset();
   mockUpdateDoc.mockReset();
+  mockAlerts.unreadByEvent = {};
+  mockAlerts.markRead.mockClear();
   mockUpdateDoc.mockResolvedValue(undefined);
   mockUsePendingEvents.pendingEvents = [];
   mockUsePendingEvents.loading = false;
@@ -496,5 +508,74 @@ describe('ReviewTab - regions', () => {
     mockUsePendingEvents.pendingEvents = [pendingEvent('b', 'tirol', 'Innsbruck')];
     renderReviewTab();
     expect(screen.queryByTestId('review-region-filter')).not.toBeInTheDocument();
+  });
+});
+
+describe('ReviewTab — organizer edit alerts', () => {
+  it('marks only the events with an unread alert as "Vom User bearbeitet"', () => {
+    mockUsePendingEvents.pendingEvents = [
+      { id: 'p1', title: 'Bearbeitet', status: 'pending' },
+      { id: 'p2', title: 'Unberührt', status: 'pending' },
+    ];
+    mockAlerts.unreadByEvent = { p1: { kind: 'edited', changeCount: 2 } };
+    renderReviewTab();
+    const ribbons = screen.getAllByTestId('event-card-edit-ribbon');
+    expect(ribbons).toHaveLength(1);
+    expect(ribbons[0]).toHaveTextContent('Vom User bearbeitet');
+  });
+
+  it('labels a re-submission differently', () => {
+    mockUsePendingEvents.pendingEvents = [{ id: 'p1', title: 'Zurück', status: 'pending' }];
+    mockAlerts.unreadByEvent = { p1: { kind: 'resubmitted', changeCount: 1 } };
+    renderReviewTab();
+    expect(screen.getByTestId('event-card-edit-ribbon')).toHaveTextContent('Erneut eingereicht');
+  });
+
+  it('marks the alert as read when the admin approves the event', async () => {
+    mockUsePendingEvents.pendingEvents = [{ id: 'p1', title: 'Bearbeitet', status: 'pending' }];
+    mockAlerts.unreadByEvent = { p1: { kind: 'edited', changeCount: 1 } };
+    mockApproveEvent.mockResolvedValue(undefined);
+    renderReviewTab();
+    fireEvent.click(screen.getByRole('button', { name: 'Genehmigen' }));
+    await waitFor(() => expect(mockAlerts.markRead).toHaveBeenCalledWith('p1'));
+  });
+});
+
+describe('ReviewTab — image check on pending rows', () => {
+  it('opens the cover crop from "Bild prüfen" on a pending row with a cover', () => {
+    mockUsePendingEvents.pendingEvents = [
+      { id: 'p1', title: 'Mit Bild', status: 'pending', imageUrl: 'https://x/cover.jpg' },
+    ];
+    renderReviewTab();
+    expect(screen.queryByTestId('admin-cover-preview')).toBeNull();
+    fireEvent.click(screen.getByTestId('review-image-check-toggle-p1'));
+    expect(screen.getByTestId('admin-cover-preview')).toBeInTheDocument();
+    expect(screen.getByTestId('admin-cover-crop-edit')).toBeInTheDocument();
+    expect(screen.queryByTestId('instagram-post-preview')).toBeNull();
+    fireEvent.click(screen.getByTestId('review-image-check-toggle-p1'));
+    expect(screen.queryByTestId('admin-cover-preview')).toBeNull();
+  });
+
+  it('also shows the Instagram preview when the organizer allowed the post', () => {
+    mockUsePendingEvents.pendingEvents = [
+      {
+        id: 'p1',
+        title: 'Mit Instagram',
+        status: 'pending',
+        imageUrl: 'https://x/cover.jpg',
+        instagramConsent: true,
+      },
+    ];
+    renderReviewTab();
+    fireEvent.click(screen.getByTestId('review-image-check-toggle-p1'));
+    expect(screen.getByTestId('admin-cover-preview')).toBeInTheDocument();
+    expect(screen.getByTestId('instagram-post-preview')).toBeInTheDocument();
+    expect(screen.getByTestId('admin-instagram-crop-edit')).toBeInTheDocument();
+  });
+
+  it('offers no image check for a row without a cover photo', () => {
+    mockUsePendingEvents.pendingEvents = [{ id: 'p1', title: 'Ohne Bild', status: 'pending' }];
+    renderReviewTab();
+    expect(screen.queryByTestId('review-image-check-toggle-p1')).toBeNull();
   });
 });

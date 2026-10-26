@@ -68,6 +68,7 @@ function normalizeEvents(events) {
       status: event.status || 'pending',
       organizer: event.organizer || { name: '', email: '' },
       kontakt: event.kontakt || '',
+      registration: event.registration || '',
       priceCurrency: normalizeCurrency(event.priceCurrency),
     };
   });
@@ -271,6 +272,7 @@ export function useEvents(user) {
         ? { ...source.organizer }
         : { name: '', email: '', photoURL: null },
       kontakt: source.kontakt || '',
+      registration: source.registration || '',
       imageUrl: source.imageUrl || null,
       imageThumbUrl: source.imageThumbUrl || null,
       status: 'draft',
@@ -580,6 +582,7 @@ export function useEventById(eventId) {
             status: data.status || 'pending',
             organizer: data.organizer || { name: '', email: '' },
             kontakt: data.kontakt || '',
+            registration: data.registration || '',
             priceCurrency: normalizeCurrency(data.priceCurrency),
           };
           setEvent(normalized);

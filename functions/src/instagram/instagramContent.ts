@@ -69,6 +69,8 @@ export interface InstagramEventInput {
   recurrenceEndDate?: unknown;
   customDates?: unknown;
   exceptionDates?: unknown;
+  cancelled?: unknown;
+  cancelledDates?: unknown;
   place?: unknown;
   city?: unknown;
   bezirk?: unknown;
@@ -554,7 +556,10 @@ function buildRecurringHeader(event: InstagramEventInput, location: string, now:
     ? new Intl.DateTimeFormat('de-AT', { weekday: 'long', timeZone: 'UTC' }).format(start)
     : '';
   const today = now.toISOString().slice(0, 10);
-  const dates = expandOccurrencesInWindow(event, { start: today, end: '9999-12-31' });
+  const cancelledDates = Array.isArray(event.cancelledDates) ? event.cancelledDates : [];
+  const dates = expandOccurrencesInWindow(event, { start: today, end: '9999-12-31' }).filter(
+    (o) => !cancelledDates.includes(asString(o.date))
+  );
   const time = formatEventTime(event.time, event.endTime);
   const day =
     event.recurrence === 'weekly' || event.recurrence === 'biweekly'

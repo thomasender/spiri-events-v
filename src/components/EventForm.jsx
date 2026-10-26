@@ -65,6 +65,7 @@ import {
   extractDescriptionImageUrls,
   resolveInstagramImage,
 } from '../utils/instagramImageChoice';
+import { REGISTRATION_MAX_LENGTH } from '../utils/contactFormat';
 import './EventForm.css';
 
 const INITIAL_STATE = {
@@ -91,6 +92,7 @@ const INITIAL_STATE = {
   isOnline: false,
   organizer: { name: '', email: '' },
   kontakt: '',
+  registration: '',
 };
 
 function getOrganizerDefault(displayName, email) {
@@ -187,6 +189,7 @@ export default function EventForm({ event }) {
           email: storedOrganizer.email || '',
         },
         kontakt: event.kontakt || '',
+        registration: event.registration || '',
       };
     }
     const organizerDefault = getOrganizerDefault(user?.displayName, user?.email);
@@ -779,6 +782,7 @@ export default function EventForm({ event }) {
       photoURL: resolveOrganizerPhotoURL({ isEdit, event, user, profile }),
     },
     kontakt: formData.kontakt.trim(),
+    registration: formData.registration.trim(),
     ...buildInstagramData(),
     imageUrl: imageFile || imageRemoved ? null : originalImageUrl || null,
     imageThumbUrl: imageFile || imageRemoved ? null : originalImageThumbUrl || null,
@@ -1074,6 +1078,25 @@ export default function EventForm({ event }) {
               className={errors.kontakt ? 'input-error' : ''}
             />
             {errors.kontakt && <span className="error-text">{errors.kontakt}</span>}
+          </div>
+
+          <div className="form-group">
+            <div className="input-label-row">
+              <label htmlFor="registration">Anmeldung (optional)</label>
+              <span className="input-info">
+                <Info size={14} />
+                <span>Wie melden sich Teilnehmer:innen an?</span>
+              </span>
+            </div>
+            <input
+              id="registration"
+              name="registration"
+              type="text"
+              value={formData.registration}
+              onChange={handleChange}
+              maxLength={REGISTRATION_MAX_LENGTH}
+              placeholder="z.B. Buchungslink, E-Mail oder Telefonnummer"
+            />
           </div>
 
           <div className="form-section-divider">

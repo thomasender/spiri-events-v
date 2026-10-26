@@ -29,6 +29,7 @@ const FIELD_LABELS = {
   isOnline: 'Online',
   organizer: 'Veranstalter',
   kontakt: 'Kontakt',
+  registration: 'Anmeldung',
   imageUrl: 'Bild',
   imageThumbUrl: 'Vorschaubild',
   imageFocalPoint: 'Bildausschnitt',

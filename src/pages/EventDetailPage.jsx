@@ -32,11 +32,13 @@ import {
   Phone,
   Ban,
   Heart,
+  ClipboardList,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useEvents } from '../hooks/useEvents';
 import { useEventRegionContext, useRegion } from '../hooks/useRegion';
 import { useRegions } from '../hooks/useRegions';
+import { useAdminAlerts } from '../hooks/useAdminAlerts';
 import { useOrganizerProfile } from '../hooks/useOrganizerProfile';
 import { useEventFavoriteCount } from '../hooks/useEventFavoriteCount';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
@@ -48,6 +50,7 @@ import { resolveOrganizerProfilePath } from '../utils/profile';
 import { canEditEvent, canDeleteEvent, requiresDeleteReason } from '../utils/eventPermissions';
 import { getStaffAccess, isModeratorForEvent } from '../utils/staffRoles';
 import { parseContactText } from '../utils/contactFormat';
+import RegistrationText from '../components/RegistrationText';
 import {
   getMonthlyWeekdayPhrase,
   getNextUpcomingOccurrence,
@@ -70,7 +73,9 @@ import LoginPromptModal from '../components/LoginPromptModal';
 import { requestCalendarFeedToken, startCalendarDownload } from '../hooks/useCalendarFeedToken';
 import ShareButton from '../components/ShareButton';
 import { AdminInstagramPreview } from '../components/InstagramPostPreview';
-import RichTextView from '../components/RichTextView';
+import AdminCoverPreview from '../components/AdminCoverPreview';
+import EventCoverImage from '../components/EventCoverImage';
+import CollapsibleRichText from '../components/CollapsibleRichText';
 import SimilarEvents from '../components/SimilarEvents';
 import { stripHtml, truncateHtmlText } from '../utils/sanitize';
 import { normalizeLink } from '../utils/link';
@@ -208,7 +213,6 @@ export default function EventDetailPage() {
   const [error, setError] = useState(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [showAllDates, setShowAllDates] = useState(false);
-  const [imageError, setImageError] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showRecurringDeleteDialog, setShowRecurringDeleteDialog] = useState(false);
   const [pendingRecurringDelete, setPendingRecurringDelete] = useState(null);
@@ -235,6 +239,16 @@ export default function EventDetailPage() {
   const showMessagesForHash = Boolean(
     event && user && (isAdmin || event.createdBy === user.uid || isEventModerator)
   );
+  const { unreadByEvent: unreadEditAlerts, markRead: markEditAlertRead } = useAdminAlerts(
+    user?.uid,
+    isAdmin
+  );
+
+  // Opening the event is what "seen" means for an organizer-edit alert.
+  const hasUnreadEditAlert = Boolean(event && unreadEditAlerts[event.id]);
+  useEffect(() => {
+    if (hasUnreadEditAlert) markEditAlertRead(event.id).catch(() => {});
+  }, [hasUnreadEditAlert, event?.id, markEditAlertRead]);
 
   useEffect(() => {
     async function fetchEvent() {
@@ -420,8 +434,7 @@ export default function EventDetailPage() {
   const showDeleteButton = canDeleteEvent(user, event, role);
   const deleteReasonRequired = requiresDeleteReason(user, event, role, staffRegionIds);
   const fallbackImage = getEventFallbackImage(event);
-  const showRemoteImage = Boolean(event.imageUrl) && !imageError;
-  const imageSrc = showRemoteImage ? event.imageUrl : fallbackImage;
+  const showRemoteImage = Boolean(event.imageUrl);
 
   const showApproveButton = (isAdmin || isEventModerator) && event.status === 'pending';
 
@@ -718,12 +731,12 @@ export default function EventDetailPage() {
       <header className="event-header">
         <div className="event-image-wrapper">
           {showRemoteImage && !imageLoaded && <div className="event-image-skeleton" />}
-          <img
-            src={imageSrc}
-            alt={event.title}
+          <EventCoverImage
+            event={event}
+            fallbackSrc={fallbackImage}
             className={`event-image ${imageLoaded || !showRemoteImage ? 'loaded' : ''}`}
+            loading="eager"
             onLoad={() => setImageLoaded(true)}
-            onError={() => setImageError(true)}
           />
         </div>
         <div className="event-title-row">
@@ -766,6 +779,13 @@ export default function EventDetailPage() {
           )}
         </div>
       </header>
+
+      {event.description && (
+        <div className="event-description">
+          <h3>Über das Event</h3>
+          <CollapsibleRichText html={event.description} />
+        </div>
+      )}
 
       <div className="event-details">
         <div className="detail-item">
@@ -934,6 +954,16 @@ export default function EventDetailPage() {
           </div>
         )}
 
+        {event.registration?.trim() && (
+          <div className="detail-item" data-testid="event-registration">
+            <ClipboardList size={18} className="detail-icon" />
+            <div>
+              <span className="detail-label">Anmeldung</span>
+              <RegistrationText text={event.registration} />
+            </div>
+          </div>
+        )}
+
         {event.kontakt && (
           <div className="detail-item" data-testid="event-kontakt">
             {(() => {
@@ -993,23 +1023,6 @@ export default function EventDetailPage() {
         )}
       </div>
 
-      {event.status === 'approved' && <CandleRoom key={event.id} eventId={event.id} />}
-
-      {event.description && (
-        <div className="event-description">
-          <h3>Über das Event</h3>
-          <RichTextView html={event.description} />
-        </div>
-      )}
-
-      <AdminInstagramPreview
-        event={event}
-        isAdmin={isAdmin}
-        onCropSaved={(instagramImage) =>
-          setEvent((prev) => (prev ? { ...prev, instagramImage } : prev))
-        }
-      />
-
       {event.link && (
         <a
           href={normalizeLink(event.link)}
@@ -1022,6 +1035,22 @@ export default function EventDetailPage() {
           <ExternalLink size={16} />
         </a>
       )}
+
+      {event.status === 'approved' && <CandleRoom key={event.id} eventId={event.id} />}
+
+      <AdminCoverPreview
+        event={event}
+        isAdmin={isAdmin}
+        onCropSaved={(patch) => setEvent((prev) => (prev ? { ...prev, ...patch } : prev))}
+      />
+
+      <AdminInstagramPreview
+        event={event}
+        isAdmin={isAdmin}
+        onCropSaved={(instagramImage) =>
+          setEvent((prev) => (prev ? { ...prev, instagramImage } : prev))
+        }
+      />
 
       {user && (isAdmin || isOwner || isEventModerator) && (
         <EventMessages

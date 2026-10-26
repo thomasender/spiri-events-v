@@ -1,17 +1,27 @@
 import { useMemo, useState } from 'react';
 import { doc, getFirestore, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { getApp } from 'firebase/app';
-import { ClipboardCheck, Inbox, MessageCircle, CheckCircle2, ChevronDown } from 'lucide-react';
+import {
+  ClipboardCheck,
+  Inbox,
+  MessageCircle,
+  CheckCircle2,
+  ChevronDown,
+  Image as ImageIcon,
+} from 'lucide-react';
 import { useRegionLabels } from '../hooks/useRegionLabels';
 import { usePendingEvents, useAllEvents } from '../hooks/useEvents';
 import { useEventsWithMessages } from '../hooks/useEventsWithMessages';
 import { useUserDisplayNames } from '../hooks/useUserDisplayNames';
 import { useAuth } from '../hooks/useAuth';
+import { useAdminAlerts } from '../hooks/useAdminAlerts';
 import { requiresDeleteReason } from '../utils/eventPermissions';
 import { getStaffAccess } from '../utils/staffRoles';
 import { resolveRegionId } from '../utils/regions';
 import { buildTrashUpdate } from '../utils/trashUpdates';
 import EventAdminListRow from './EventAdminListRow';
+import AdminCoverPreview from './AdminCoverPreview';
+import { AdminInstagramPreview } from './InstagramPostPreview';
 import ConfirmDialog from './ConfirmDialog';
 import SuccessDialog from './SuccessDialog';
 import './ReviewTab.css';
@@ -68,6 +78,39 @@ function readStoredRegionFilter() {
   }
 }
 
+/**
+ * "Bild prüfen" under a pending row: opens the cover crop and, when the
+ * organizer enabled the Instagram post, the Instagram crop, so admins can
+ * check and adjust both before approving. The pending list is a live
+ * snapshot, so a saved crop shows up in the row without extra state.
+ */
+function ReviewImageCheck({ event }) {
+  const [open, setOpen] = useState(false);
+  if (!event.imageUrl) return null;
+  const bodyId = `review-image-check-${event.id}`;
+  return (
+    <div className="review-image-check">
+      <button
+        type="button"
+        className="btn btn-secondary btn-sm review-image-check-toggle"
+        aria-expanded={open}
+        aria-controls={bodyId}
+        onClick={() => setOpen((v) => !v)}
+        data-testid={`review-image-check-toggle-${event.id}`}
+      >
+        <ImageIcon size={14} aria-hidden="true" />
+        Bild prüfen
+      </button>
+      {open && (
+        <div id={bodyId} data-testid={`review-image-check-${event.id}`}>
+          <AdminCoverPreview event={event} isAdmin />
+          <AdminInstagramPreview event={event} isAdmin />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ReviewTab() {
   const { user, role, staffRegionIds } = useAuth();
   const { labelFor, nameOf, regions } = useRegionLabels();
@@ -120,6 +163,7 @@ export default function ReviewTab() {
     }
   };
   const inFilter = (event) => regionFilter === 'all' || resolveRegionId(event) === regionFilter;
+  const { unreadByEvent: editAlerts, markRead: markAlertRead } = useAdminAlerts(user?.uid, true);
 
   const [approvingId, setApprovingId] = useState(null);
   const [revertTarget, setRevertTarget] = useState(null);
@@ -139,6 +183,7 @@ export default function ReviewTab() {
     setApprovingId(eventId);
     try {
       await approveEvent(eventId);
+      markAlertRead(eventId).catch(() => {});
       setApproveSuccess(target ? { eventTitle: target.title } : null);
     } catch (err) {
       console.error('Approve failed:', err);
@@ -157,6 +202,7 @@ export default function ReviewTab() {
         status: 'draft',
         updatedAt: serverTimestamp(),
       });
+      markAlertRead(revertTarget.id).catch(() => {});
       setRevertTarget(null);
     } catch (err) {
       console.error('Revert failed:', err);
@@ -343,6 +389,7 @@ export default function ReviewTab() {
                         showDuplicate={false}
                         showSubmittedAt
                         showRevisionHint
+                        editAlert={editAlerts[event.id] || null}
                         fromPath="/admin?tab=review"
                         isAdmin
                         showEdit={canEdit(event)}
@@ -353,6 +400,7 @@ export default function ReviewTab() {
                         onRevert={(evt) => setRevertTarget({ id: evt.id, eventTitle: evt.title })}
                         onDeleteClick={(evt) => openDelete(evt)}
                       />
+                      {canEdit(event) && <ReviewImageCheck event={event} />}
                     </div>
                   ))}
                 </div>
@@ -398,6 +446,7 @@ export default function ReviewTab() {
                           showDuplicate={false}
                           showSubmittedAt
                           showRevisionHint
+                          editAlert={editAlerts[event.id] || null}
                           showInKlaerungBy
                           inKlaerungByName={inKlaerungAuthorNameByEvent[event.id] || null}
                           fromPath="/admin?tab=review"
@@ -410,6 +459,7 @@ export default function ReviewTab() {
                           onRevert={(evt) => setRevertTarget({ id: evt.id, eventTitle: evt.title })}
                           onDeleteClick={(evt) => openDelete(evt)}
                         />
+                        {canEdit(event) && <ReviewImageCheck event={event} />}
                       </div>
                     ))}
                   </div>

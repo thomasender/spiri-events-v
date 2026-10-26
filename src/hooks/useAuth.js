@@ -143,7 +143,12 @@ async function checkFirestoreAdminRole(user) {
   return none;
 }
 
-async function seedProfileDoc(user, displayName, photoURL, { notifyNewsletter = false } = {}) {
+async function seedProfileDoc(
+  user,
+  displayName,
+  photoURL,
+  { notifyNewsletter = false, isNewAccount = false } = {}
+) {
   try {
     const profileRef = doc(db, 'users', user.uid);
     const publicProfileRef = doc(db, 'users', user.uid, 'publicProfile', 'data');
@@ -160,6 +165,9 @@ async function seedProfileDoc(user, displayName, photoURL, { notifyNewsletter = 
       photoURL: fallbackPhoto,
       slug,
       notifyNewsletter: Boolean(notifyNewsletter),
+      // Only on registration (Google sign-in seeds on every login): marks the
+      // account as one that gets the onboarding wizard until it is finished.
+      ...(isNewAccount ? { onboardingCompleted: false } : {}),
       createdAt: now,
       updatedAt: now,
     };
@@ -267,6 +275,7 @@ export function useAuth() {
     }
     await seedProfileDoc(credential.user, displayName, null, {
       notifyNewsletter: Boolean(subscribeNewsletter),
+      isNewAccount: true,
     });
     try {
       await requestVerificationEmail(credential.user);
@@ -519,6 +528,8 @@ export function useAuth() {
       favorites.forEach((fav) => batch.delete(fav.ref));
       const mentions = await getDocs(collection(db, 'users', uid, 'mentions'));
       mentions.forEach((mention) => batch.delete(mention.ref));
+      const adminAlerts = await getDocs(collection(db, 'users', uid, 'adminAlerts'));
+      adminAlerts.forEach((alert) => batch.delete(alert.ref));
       batch.delete(doc(db, 'users', uid, 'publicProfile', 'data'));
       batch.delete(doc(db, 'users', uid));
       await batch.commit();

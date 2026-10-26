@@ -44,6 +44,15 @@ vi.mock('../../src/hooks/useAuth', () => ({
   }),
 }));
 
+const mockAlerts = vi.hoisted(() => ({
+  unreadByEvent: {} as Record<string, unknown>,
+  markRead: vi.fn(async () => {}),
+}));
+
+vi.mock('../../src/hooks/useAdminAlerts', () => ({
+  useAdminAlerts: () => mockAlerts,
+}));
+
 const mockCalendar = vi.hoisted(() => ({
   requestCalendarFeedToken: vi.fn(async () => 'tok-1'),
   startCalendarDownload: vi.fn(),
@@ -277,6 +286,8 @@ beforeEach(() => {
   mockAuth.user = null;
   mockAuth.role = null;
   mockAuth.loading = false;
+  mockAlerts.unreadByEvent = {};
+  mockAlerts.markRead.mockClear();
   mockFirestoreDoc.getDocResult = {
     id: foreignEvent.id,
     data: foreignEvent,
@@ -475,6 +486,29 @@ describe('EventDetailPage — admin approve button', () => {
     expect(screen.queryByTestId('approve-event-button')).toBeNull();
   });
 
+  it('marks the admin edit alert as read once the admin has opened the event', async () => {
+    mockAuth.user = { uid: 'admin-uid' };
+    mockAuth.role = 'Admin';
+    setStatus('pending');
+    mockAlerts.unreadByEvent = { 'remote-event-id': { kind: 'edited' } };
+
+    renderPage();
+    await screen.findByTestId('approve-event-button');
+
+    expect(mockAlerts.markRead).toHaveBeenCalledWith('remote-event-id');
+  });
+
+  it('does not touch alerts when the event has none', async () => {
+    mockAuth.user = { uid: 'admin-uid' };
+    mockAuth.role = 'Admin';
+    setStatus('pending');
+
+    renderPage();
+    await screen.findByTestId('approve-event-button');
+
+    expect(mockAlerts.markRead).not.toHaveBeenCalled();
+  });
+
   it('does not offer approval to the event owner', async () => {
     mockAuth.user = { uid: 'other-user-uid' };
     setStatus('pending');
@@ -492,6 +526,53 @@ describe('EventDetailPage — admin approve button', () => {
     renderPage();
     expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
     expect(screen.queryByTestId('approve-event-button')).toBeNull();
+  });
+});
+
+describe('EventDetailPage — cover crop in header and review', () => {
+  const coverEvent = {
+    ...foreignEvent,
+    imageUrl: 'https://x/cover.jpg',
+    imageFocalPoint: { x: 0.2, y: 0.8 },
+    imageZoom: 2,
+  };
+  const setEvent = (status: string) => {
+    mockFirestoreDoc.getDocResult = {
+      id: foreignEvent.id,
+      data: { ...coverEvent, status },
+    };
+  };
+
+  it('shows the header image with the saved focal point and zoom', async () => {
+    setEvent('approved');
+    renderPage();
+    const img = await screen.findByAltText('Yoga heute');
+    expect(img).toHaveStyle({ objectPosition: '20% 80%', transform: 'scale(2)' });
+  });
+
+  it('offers the cover crop editor to admins on pending events only', async () => {
+    mockAuth.user = { uid: 'admin-uid' };
+    mockAuth.role = 'Admin';
+    setEvent('pending');
+    renderPage();
+    expect(await screen.findByTestId('admin-cover-crop-edit')).toBeInTheDocument();
+  });
+
+  it('hides the cover crop editor for admins on approved events and for guests', async () => {
+    mockAuth.user = { uid: 'admin-uid' };
+    mockAuth.role = 'Admin';
+    setEvent('approved');
+    const { unmount } = renderPage();
+    await screen.findByAltText('Yoga heute');
+    expect(screen.queryByTestId('admin-cover-crop-edit')).toBeNull();
+    unmount();
+
+    mockAuth.user = null;
+    mockAuth.role = null;
+    setEvent('approved');
+    renderPage();
+    await screen.findByAltText('Yoga heute');
+    expect(screen.queryByTestId('admin-cover-crop-edit')).toBeNull();
   });
 });
 
@@ -1205,5 +1286,59 @@ describe('EventDetailPage — cancelling an event or a single date', () => {
     renderPage();
     await screen.findByText('Yoga heute');
     expect(screen.queryByTestId('cancel-event-button')).toBeNull();
+  });
+});
+
+describe('EventDetailPage — Anmeldung and reading order', () => {
+  it('shows the registration with clickable link, e-mail and phone number', async () => {
+    mockFirestoreDoc.getDocResult = {
+      id: foreignEvent.id,
+      data: {
+        ...foreignEvent,
+        registration:
+          'Buchen unter https://example.com/buchen oder anmeldung@example.com oder 0676 7654321',
+      },
+    };
+    renderPage();
+    const item = await screen.findByTestId('event-registration');
+    expect(within(item).getByText('Anmeldung')).toBeInTheDocument();
+    const link = within(item).getByRole('link', { name: 'https://example.com/buchen' });
+    expect(link).toHaveAttribute('href', 'https://example.com/buchen');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(within(item).getByRole('link', { name: 'anmeldung@example.com' })).toHaveAttribute(
+      'href',
+      'mailto:anmeldung@example.com'
+    );
+    expect(
+      within(item).getByRole('link', { name: '0676 7654321'.replace(/\s/g, '') })
+    ).toHaveAttribute('href', 'tel:06767654321');
+  });
+
+  it.each([undefined, '', '   '])('hides the Anmeldung item completely for %j', async (value) => {
+    mockFirestoreDoc.getDocResult = {
+      id: foreignEvent.id,
+      data: { ...foreignEvent, registration: value },
+    };
+    renderPage();
+    await screen.findByText('Yoga heute');
+    expect(screen.queryByTestId('event-registration')).toBeNull();
+    expect(screen.queryByText('Anmeldung')).toBeNull();
+  });
+
+  it('orders title, description, info box and ticket button', async () => {
+    mockFirestoreDoc.getDocResult = {
+      id: foreignEvent.id,
+      data: { ...foreignEvent, link: 'https://example.com/tickets' },
+    };
+    renderPage();
+    const title = await screen.findByRole('heading', { level: 1, name: 'Yoga heute' });
+    const description = screen.getByText('Yoga Kurs.');
+    const infoBox = screen.getByTestId('event-kontakt');
+    const ticketButton = screen.getByRole('link', { name: /Mehr Infos & Tickets/ });
+    const follows = (a: Node, b: Node) =>
+      Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(follows(title, description)).toBe(true);
+    expect(follows(description, infoBox)).toBe(true);
+    expect(follows(infoBox, ticketButton)).toBe(true);
   });
 });

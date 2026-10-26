@@ -137,7 +137,7 @@ export const sendVerificationEmail = onCall(
 
     const buttonUrl = `${APP_URL}/auth-action?mode=verifyEmail&oobCode=${encodeURIComponent(oobCode)}`;
     const displayName = user.displayName || user.email;
-    const appName = process.env.APP_DISPLAY_NAME || 'tribe Vorarlberg';
+    const appName = process.env.APP_DISPLAY_NAME || 'Tribe';
     const { subject, html, text } = renderEmail({ displayName, buttonUrl, appName });
 
     const apiKey = MAILGUN_API_KEY.value();

@@ -399,7 +399,7 @@ describe('buildPasswordResetPayload', () => {
       recipient: 'peter@example.com',
       buttonUrl,
     });
-    expect(payload.subject).toBe('Passwort zurücksetzen für tribe Vorarlberg');
+    expect(payload.subject).toBe('Passwort zurücksetzen für Tribe');
     expect(payload.to).toBe('peter@example.com');
   });
 
@@ -725,7 +725,7 @@ describe('email brand identity', () => {
   it('shows the tribe logo and brand name in the email header', () => {
     for (const p of allPayloads()) {
       expect(p.html).toContain(`${APP_BASE_URL}/logo-mark.svg`);
-      expect(p.html).toContain('tribe Vorarlberg');
+      expect(p.html).toContain('>Tribe</span>');
     }
   });
 
@@ -766,13 +766,13 @@ describe('region contact line in owner mails', () => {
   // active region no contact is passed, so these must never change.
   it('keeps the mails byte-identical without a contact address', () => {
     const base = { event: owner, recipient: 'a@b.at' };
-    expect(hash(buildEmailPayload('published', base))).toBe('0d3288e7d3bd45e7');
-    expect(hash(buildEmailPayload('unpublished', base))).toBe('8067d26eb9146822');
+    expect(hash(buildEmailPayload('published', base))).toBe('24a6c914d7a74e2f');
+    expect(hash(buildEmailPayload('unpublished', base))).toBe('6c322f74e5ffc172');
     expect(hash(buildEmailPayload('deleted', { ...base, reason: 'Doppelt' }))).toBe(
-      'd8b93d7bc5055645'
+      '837dca1832b07039'
     );
-    expect(hash(buildEmailPayload('deleted', base))).toBe('5ca06175e4f49b04');
-    expect(hash(buildEmailPayload('changes_requested', changes))).toBe('d0b42e72d3fbb9e5');
+    expect(hash(buildEmailPayload('deleted', base))).toBe('c99a96faf4e5c24a');
+    expect(hash(buildEmailPayload('changes_requested', changes))).toBe('a34379e8412ae535');
   });
 
   it.each([undefined, null, '', '   '])('ignores an empty contact (%j)', (value) => {
@@ -831,5 +831,18 @@ describe('region contact line in owner mails', () => {
     } as never);
     expect(submitted.text).not.toContain('Rückfragen');
     expect(submitted.html).not.toContain('Rückfragen');
+  });
+});
+
+describe('branding is region-neutral', () => {
+  it('uses "Tribe" without "Vorarlberg" in the password reset mail', () => {
+    const payload = buildPasswordResetPayload({
+      recipient: 'a@x.com',
+      buttonUrl: 'https://www.thetribe.at/auth-action?x=1',
+    });
+    expect(payload.subject).toBe('Passwort zurücksetzen für Tribe');
+    expect(payload.html).toContain('>Tribe</span>');
+    expect(payload.html).not.toMatch(/tribe Vorarlberg/i);
+    expect(payload.text).not.toMatch(/tribe Vorarlberg/i);
   });
 });

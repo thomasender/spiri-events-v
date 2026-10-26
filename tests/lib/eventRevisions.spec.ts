@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { buildRevisionDraft, computeEventChanges } from '../../functions/src/eventRevisions';
+import {
+  buildEditAlertFields,
+  shouldNotifyAdminsOfEdit,
+} from '../../functions/src/eventEditNotice';
 
 describe('computeEventChanges', () => {
   it('returns only changed fields as from/to', () => {
@@ -73,5 +77,88 @@ describe('buildRevisionDraft', () => {
     expect(draft?.statusFrom).toBe('approved');
     expect(draft?.statusTo).toBe('pending');
     expect(Object.keys(draft?.changes ?? {})).toEqual(['title']);
+  });
+});
+
+describe('shouldNotifyAdminsOfEdit', () => {
+  const decide = (
+    before: Record<string, unknown>,
+    after: Record<string, unknown>,
+    role: 'Admin' | 'User' | 'System' = 'User'
+  ) =>
+    shouldNotifyAdminsOfEdit(before, after, role, buildRevisionDraft(before, after)?.changes ?? {});
+
+  it('alerts when an organizer changes content of a pending event', () => {
+    expect(decide({ status: 'pending', title: 'A' }, { status: 'pending', title: 'B' })).toBe(
+      'edited'
+    );
+  });
+
+  it('ignores bookkeeping-only updates of a pending event', () => {
+    expect(
+      decide(
+        { status: 'pending', title: 'A', updatedAt: 1 },
+        { status: 'pending', title: 'A', updatedAt: 2, slug: 'x' }
+      )
+    ).toBeNull();
+  });
+
+  it('does not alert for admin or system edits', () => {
+    const b = { status: 'pending', title: 'A' };
+    const a = { status: 'pending', title: 'B' };
+    expect(decide(b, a, 'Admin')).toBeNull();
+    expect(decide(b, a, 'System')).toBeNull();
+  });
+
+  it('does not alert for approved or trashed events', () => {
+    expect(
+      decide({ status: 'approved', title: 'A' }, { status: 'approved', title: 'B' })
+    ).toBeNull();
+    expect(decide({ status: 'trashed', title: 'A' }, { status: 'trashed', title: 'B' })).toBeNull();
+    expect(
+      decide({ status: 'approved', title: 'A' }, { status: 'pending', title: 'B' })
+    ).toBeNull();
+  });
+
+  it('alerts on a re-submission from draft, even without content changes', () => {
+    expect(decide({ status: 'draft', title: 'A' }, { status: 'pending', title: 'A' })).toBe(
+      'resubmitted'
+    );
+  });
+
+  it('does not alert when a user moves a pending event back to draft', () => {
+    expect(decide({ status: 'pending', title: 'A' }, { status: 'draft', title: 'A' })).toBeNull();
+  });
+});
+
+describe('buildEditAlertFields', () => {
+  it('starts a new alert unread with the number of changed fields', () => {
+    expect(
+      buildEditAlertFields(undefined, { triggerId: 't1', kind: 'edited', changeCount: 3 })
+    ).toEqual({ kind: 'edited', read: false, changeCount: 3, lastTriggerId: 't1' });
+  });
+
+  it('counts a re-submission without content changes as one', () => {
+    expect(
+      buildEditAlertFields(undefined, { triggerId: 't1', kind: 'resubmitted', changeCount: 0 })
+        ?.changeCount
+    ).toBe(1);
+  });
+
+  it('keeps one alert per event: a further edit raises the counter and makes it unread again', () => {
+    const next = buildEditAlertFields(
+      { read: true, changeCount: 2, lastTriggerId: 't1' },
+      { triggerId: 't2', kind: 'edited', changeCount: 1 }
+    );
+    expect(next).toMatchObject({ read: false, changeCount: 3, lastTriggerId: 't2' });
+  });
+
+  it('does not count a retried delivery of the same trigger twice', () => {
+    expect(
+      buildEditAlertFields(
+        { read: false, changeCount: 2, lastTriggerId: 't1' },
+        { triggerId: 't1', kind: 'edited', changeCount: 1 }
+      )
+    ).toBeNull();
   });
 });

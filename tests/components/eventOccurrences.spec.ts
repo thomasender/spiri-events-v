@@ -547,8 +547,8 @@ describe('getRecurrenceLabel (custom)', () => {
   });
 });
 
-describe('getEventOccurrences — cancelled dates stay visible and are flagged', () => {
-  it('flags only the cancelled date of a weekly series and keeps it in the list', () => {
+describe('getEventOccurrences — a cancelled date of a series is hidden, a cancelled single event stays flagged', () => {
+  it('hides the cancelled date of a weekly series', () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-09-01T10:00:00'));
     try {
@@ -563,7 +563,6 @@ describe('getEventOccurrences — cancelled dates stay visible and are flagged',
       const result = getEventOccurrences(event).map((o) => [o.date, o.isCancelled]);
       expect(result).toEqual([
         ['2026-09-07', false],
-        ['2026-09-14', true],
         ['2026-09-28', false],
       ]);
     } finally {
@@ -571,7 +570,7 @@ describe('getEventOccurrences — cancelled dates stay visible and are flagged',
     }
   });
 
-  it('flags every day of a cancelled multi-day custom date in calendar mode', () => {
+  it('hides every day of a cancelled multi-day custom date in calendar mode', () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-09-01T10:00:00'));
     try {
@@ -590,9 +589,22 @@ describe('getEventOccurrences — cancelled dates stay visible and are flagged',
       expect(result).toEqual([
         ['2026-09-05', false],
         ['2026-09-06', false],
-        ['2026-09-12', true],
-        ['2026-09-13', true],
       ]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('keeps a cancelled non-recurring event visible and flagged', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-01T10:00:00'));
+    try {
+      const r = getEventOccurrences({
+        id: 's',
+        date: '2026-09-10',
+        cancelledDates: ['2026-09-10'],
+      });
+      expect(r.map((o) => o.isCancelled)).toEqual([true]);
     } finally {
       vi.useRealTimers();
     }
@@ -736,7 +748,7 @@ describe('monthlyWeekday and monthly month-end handling (6adca49e)', () => {
     });
   });
 
-  it('honors exceptionDates (removed) and cancelledDates (kept, flagged)', () => {
+  it('honors exceptionDates and cancelledDates (both removed)', () => {
     withToday('2026-01-02', () => {
       const result = list({
         id: '1',
@@ -746,8 +758,7 @@ describe('monthlyWeekday and monthly month-end handling (6adca49e)', () => {
         exceptionDates: ['2026-02-02'],
         cancelledDates: ['2026-03-02'],
       });
-      expect(result.map((o) => o.date)).toEqual(['2026-01-05', '2026-03-02', '2026-04-06']);
-      expect(result.map((o) => o.isCancelled)).toEqual([false, true, false]);
+      expect(result.map((o) => o.date)).toEqual(['2026-01-05', '2026-04-06']);
     });
   });
 

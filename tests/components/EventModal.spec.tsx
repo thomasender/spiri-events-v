@@ -155,6 +155,27 @@ describe('EventModal', () => {
       expect(screen.getByText('Einzelstunde')).toBeInTheDocument();
     });
   });
+
+  describe('registration', () => {
+    it('shows the Anmeldung with a clickable link', () => {
+      render(
+        <EventModal
+          event={{ ...mockEvent, registration: 'Buchen: https://example.com/buchen' }}
+          onClose={() => {}}
+        />
+      );
+      expect(screen.getByTestId('event-modal-registration')).toHaveTextContent('Anmeldung');
+      expect(screen.getByRole('link', { name: 'https://example.com/buchen' })).toHaveAttribute(
+        'href',
+        'https://example.com/buchen'
+      );
+    });
+
+    it('omits the Anmeldung when empty or blank', () => {
+      render(<EventModal event={{ ...mockEvent, registration: '  ' }} onClose={() => {}} />);
+      expect(screen.queryByTestId('event-modal-registration')).toBeNull();
+    });
+  });
 });
 
 describe('EventModal location', () => {

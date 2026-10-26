@@ -103,6 +103,10 @@ describe('isCarouselEligible', () => {
     expect(isCarouselEligible(ev({ bezirk: 'Grenznahe' }), WINDOW)).toBe(true);
     expect(isCarouselEligible(ev({ bezirk: 'Wien' }), WINDOW)).toBe(false);
     expect(isCarouselEligible(ev({ isOnline: true, bezirk: 'Dornbirn' }), WINDOW)).toBe(false);
+    // cancelled: whole event, or this occurrence's date only
+    expect(isCarouselEligible(ev({ cancelled: true }), WINDOW)).toBe(false);
+    expect(isCarouselEligible(ev({ cancelledDates: ['2026-10-07'] }), WINDOW)).toBe(false);
+    expect(isCarouselEligible(ev({ cancelledDates: ['2026-10-14'] }), WINDOW)).toBe(true);
   });
 });
 
