@@ -12,6 +12,7 @@ const mockAuth = vi.hoisted(() => ({
 
 const mockProfile = vi.hoisted(() => ({
   photoURL: null as string | null,
+  placeSelection: null as { regionId: string | null } | null,
 }));
 
 const mockUseUnread = vi.hoisted(() => ({
@@ -29,7 +30,7 @@ vi.mock('../../src/hooks/useAuth', () => ({
 
 vi.mock('../../src/hooks/useProfile', () => ({
   useProfile: () => ({
-    profile: { photoURL: mockProfile.photoURL },
+    profile: { photoURL: mockProfile.photoURL, placeSelection: mockProfile.placeSelection },
     loading: false,
     exists: mockProfile.photoURL !== null,
     save: () => {},
@@ -69,6 +70,7 @@ beforeEach(() => {
   mockAuth.canCreateEvents = true;
   if (mockAuth.user) mockAuth.user.photoURL = undefined;
   mockProfile.photoURL = null;
+  mockProfile.placeSelection = null;
   mockUseUnread.count = 0;
   mockUseUnread.loading = false;
   mockChat.available = false;
@@ -1257,5 +1259,69 @@ describe('Header above "Wo suchst du?"', () => {
     expect(screen.getByText('für bewusste Events')).toBeInTheDocument();
     expect(screen.queryByText(/Vorarlberg|Ländle/)).toBeNull();
     expect(screen.queryByTestId('region-switcher')).toBeNull();
+  });
+});
+
+describe('Header logo target', () => {
+  const WITH_TIROL = mergeRegions([{ id: 'tirol', active: true }]);
+  const renderLogo = (ctx: Partial<typeof DEFAULT_REGION_CONTEXT> = {}) => {
+    render(
+      <RegionContext.Provider
+        value={
+          {
+            ...DEFAULT_REGION_CONTEXT,
+            allRegions: WITH_TIROL,
+            ...ctx,
+          } as typeof DEFAULT_REGION_CONTEXT
+        }
+      >
+        <MemoryRouter>
+          <Header />
+        </MemoryRouter>
+      </RegionContext.Provider>
+    );
+    return screen.getByTestId('header-logo');
+  };
+  const signIn = (regionId: string | null) => {
+    mockAuth.user = { uid: 'u1' };
+    mockProfile.placeSelection = { regionId };
+  };
+
+  it('leads a signed-in person to the active region of the profile', () => {
+    signIn('tirol');
+    expect(renderLogo()).toHaveAttribute('href', '/tirol');
+  });
+
+  it('leads to "Wo suchst du?" when the profile region is not active', () => {
+    signIn('steiermark');
+    expect(renderLogo()).toHaveAttribute('href', '/regionen');
+  });
+
+  it('leads to "Wo suchst du?" when the profile region is unknown', () => {
+    signIn('atlantis');
+    expect(renderLogo()).toHaveAttribute('href', '/regionen');
+  });
+
+  it('stays / for a signed-in person without a place in the profile', () => {
+    mockAuth.user = { uid: 'u1' };
+    expect(renderLogo()).toHaveAttribute('href', '/');
+  });
+
+  it('stays / for signed-out visitors even with a profile place in the mock', () => {
+    mockProfile.placeSelection = { regionId: 'tirol' };
+    expect(renderLogo()).toHaveAttribute('href', '/');
+  });
+
+  it('stays / while the region config is loading (no early jump to /regionen)', () => {
+    signIn('tirol');
+    expect(renderLogo({ loading: true })).toHaveAttribute('href', '/');
+  });
+
+  it('stays / with only Vorarlberg active (dark launch)', () => {
+    signIn('tirol');
+    expect(renderLogo({ allRegions: DEFAULT_REGION_CONTEXT.allRegions })).toHaveAttribute(
+      'href',
+      '/'
+    );
   });
 });

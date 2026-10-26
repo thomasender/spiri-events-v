@@ -491,6 +491,28 @@ describe('useProfile.save — rich-text bio (kKjV8UFZ)', () => {
 });
 
 describe('useProfile — directoryRegionIds', () => {
+  it('reads the remembered place (header logo) and null without one', async () => {
+    mockOnSnapshot.mockImplementation((_ref, onNext) => {
+      onNext(
+        makeSnapshot({
+          displayName: 'A',
+          slug: 'a',
+          placeSelection: { label: 'Innsbruck', lat: 47.27, lon: 11.4, regionId: 'tirol' },
+        })
+      );
+    });
+    const { result } = renderHook(() => useProfile('user-1'));
+    await waitFor(() => expect(result.current.profile).not.toBeNull());
+    expect(result.current.profile.placeSelection).toMatchObject({ regionId: 'tirol' });
+
+    mockOnSnapshot.mockImplementation((_ref, onNext) => {
+      onNext(makeSnapshot({ displayName: 'B', slug: 'b' }));
+    });
+    const { result: none } = renderHook(() => useProfile('user-2'));
+    await waitFor(() => expect(none.current.profile).not.toBeNull());
+    expect(none.current.profile.placeSelection).toBeNull();
+  });
+
   it('reads Vorarlberg for profiles without the field and keeps stored ids', async () => {
     mockOnSnapshot.mockImplementation((_ref, onNext) => {
       onNext(makeSnapshot({ displayName: 'A', slug: 'a', directoryRegionIds: ['tirol'] }));

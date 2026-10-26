@@ -13,6 +13,7 @@ import RegionSwitcher, { RegionMenuList } from './RegionSwitcher';
 import { useRegion } from '../hooks/useRegion';
 import { useRegionTexts } from '../hooks/useRegionTexts';
 import { customSlogan, DEFAULT_SLOGAN_LINE2 } from '../utils/regionAboutText';
+import { logoTargetPath } from '../utils/regionRouting';
 import MentionBell from './MentionBell';
 import {
   Users,
@@ -52,7 +53,14 @@ export default function Header() {
     combinedView,
     neutralHeader,
     regionChooserOpen,
+    allRegions,
+    loading: regionsLoading,
   } = useRegion();
+  // Logo: the region of the signed-in person's profile (see logoTargetPath).
+  const logoPath = logoTargetPath(user ? profile?.placeSelection?.regionId : null, {
+    regions: allRegions,
+    loading: regionsLoading,
+  });
   const slogan = !neutralHeader && !isNational && !combinedView ? customSlogan(region) : null;
   // On a coming-soon region page the event belongs to that region.
   const addEventPath = comingSoon && regionId ? `/admin/new?region=${regionId}` : '/admin/new';
@@ -521,7 +529,7 @@ export default function Header() {
       data-header-visible={isHeaderVisible}
     >
       <nav className="header-container" aria-label="Hauptnavigation">
-        <Link to="/" className="logo" onClick={closeMenu}>
+        <Link to={logoPath} className="logo" onClick={closeMenu} data-testid="header-logo">
           <div className="logo-icon">
             <img src="/logo-mark.svg" alt="" aria-hidden="true" />
           </div>

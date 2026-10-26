@@ -151,6 +151,23 @@ export function regionCanonicalPath(regionId, path = '/', regions = STATIC_REGIO
 }
 
 /**
+ * Target of the header logo. Signed-in people whose profile names a region
+ * (`users/{uid}.placeSelection.regionId`) go to that region's page while it is
+ * active, otherwise to "Wo suchst du?" (`/regionen`). Everyone else, and
+ * everyone while fewer than two regions are active or the region config is still
+ * loading (the static register only knows Vorarlberg as active), goes to `/`.
+ */
+export function logoTargetPath(
+  profileRegionId,
+  { regions = STATIC_REGIONS, loading = false } = {}
+) {
+  if (!profileRegionId || loading || activeRegions(regions).length < 2) return '/';
+  return getRegionBySlug(profileRegionId, regions)?.active
+    ? regionCanonicalPath(profileRegionId, '/', regions)
+    : REGIONS_PAGE_PATH;
+}
+
+/**
  * "in der Steiermark", "im Allgäu", "in Tirol": for running text on region
  * pages. Uses the register's `inPhrase` (src/utils/regions.js); a region
  * object without one falls back to "in <Name>".
