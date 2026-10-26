@@ -54,6 +54,7 @@ const EMPTY_PROFILE = {
   allowMentions: false,
   instagramConsentDefault: false,
   onboardingDismissed: false,
+  onboardingCompleted: null,
   createdAt: null,
   updatedAt: null,
 };
@@ -102,6 +103,10 @@ function normalize(data) {
     allowMentions: data.allowMentions === true,
     instagramConsentDefault: data.instagramConsentDefault === true,
     onboardingDismissed: data.onboardingDismissed === true,
+    // true = finished, false = new account that has not finished it yet,
+    // null = older account from before the wizard (see shouldOfferOnboarding).
+    onboardingCompleted:
+      typeof data.onboardingCompleted === 'boolean' ? data.onboardingCompleted : null,
     createdAt: data.createdAt || null,
     updatedAt: data.updatedAt || null,
   };

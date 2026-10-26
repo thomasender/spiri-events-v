@@ -6,6 +6,7 @@ import DirectoryListingFields from './DirectoryListingFields';
 import { useCategoryRegistry } from '../hooks/useCategoryRegistry';
 import { deleteImageByUrl } from '../lib/imageUpload';
 import { validateDirectoryListing } from '../utils/directory';
+import { normalizeInstagramHandle } from '../utils/instagramHandle';
 import {
   ONBOARDING_BIO_STARTERS,
   ONBOARDING_STEPS,
@@ -14,13 +15,14 @@ import {
 import { BIO_MAX } from '../utils/profile';
 import { messageToHtml } from '../utils/sanitize';
 import './ConfirmDialog.css';
+import './ProfileForm.css';
 import './ProfileOnboarding.css';
 
 // `hint` is an invitation, not a claim: no numbers, no promises.
 const STEP_COPY = [
   {
     title: 'Zeig dein Gesicht',
-    text: 'Mit einem Foto erkennen dich andere im Lagerfeuer, in den Kerzenräumen und im Verzeichnis sofort wieder.',
+    text: 'Mit einem Foto erkennen dich andere in der Community sofort wieder.',
     hint: 'Ein freundliches Gesicht lädt dazu ein, dein Profil anzuschauen.',
   },
   {
@@ -33,12 +35,19 @@ const STEP_COPY = [
     text: 'Im Verzeichnis finden Menschen, was du anbietest. Das ist freiwillig, du kannst es jederzeit ändern.',
     hint: 'So können Menschen dich entdecken, wenn sie nach dem suchen, was du anbietest.',
   },
+  {
+    title: 'Bist du auf Instagram?',
+    text: 'Wenn wir deine Events auf unserem Instagram-Kanal @tribevorarlberg vorstellen, markieren wir dich gern mit deinem Instagram-Namen.',
+    hint: 'Beides ist freiwillig und lässt sich jederzeit in deinem Profil ändern.',
+  },
 ];
+
+const INSTAGRAM_INVALID = 'Bitte gib einen gültigen Instagram-Namen ein, z. B. @deinname.';
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-// Wizard in three small steps (photo, description, directory). Every step saves
+// Wizard in four small steps (photo, description, directory, Instagram). Every step saves
 // on its own, so closing midway never loses what is done. `profile` is the live
 // profile doc; the progress bar additionally counts what is typed or picked but
 // not saved yet. "Überspringen" drops the draft of the current step, so the bar
@@ -58,6 +67,7 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
     listed: profile?.listedInDirectory === true,
     categories: profile?.directoryCategories || [],
     regions: profile?.directoryRegions || [],
+    instagram: profile?.socialMedia?.instagram || '',
   }));
   const savedRef = useRef(saved);
   useEffect(() => {
@@ -74,6 +84,12 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
   const [categories, setCategories] = useState(saved.categories);
   const [regions, setRegions] = useState(saved.regions);
   const [directoryErrors, setDirectoryErrors] = useState({});
+
+  const [instagram, setInstagram] = useState(saved.instagram);
+  // Checked by default: the step asks for permission to promote the events.
+  const [instagramConsent, setInstagramConsent] = useState(true);
+  const [instagramError, setInstagramError] = useState('');
+  const completedRef = useRef(false);
 
   const dialogRef = useRef(null);
   const titleRef = useRef(null);
@@ -121,6 +137,7 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
     photoURL,
     bio,
     listedInDirectory: listed && categories.length > 0,
+    socialMedia: { instagram },
   };
   const progress = getOnboardingProgress(draft);
   const finished = step >= ONBOARDING_STEPS.length;
@@ -151,8 +168,17 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
     }
   };
 
+  // Reaching the end (whatever was skipped) finishes the onboarding for good,
+  // on every device. Closing earlier does not. The last step never changes the
+  // description, so `base` is current here.
   const next = () => {
     setError('');
+    if (step === ONBOARDING_STEPS.length - 1 && !completedRef.current) {
+      completedRef.current = true;
+      Promise.resolve(onSave({ ...base, onboardingCompleted: true })).catch((err) =>
+        console.warn('Could not store onboarding completion:', err)
+      );
+    }
     setStep((current) => current + 1);
   };
 
@@ -166,6 +192,7 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
     photoURL: saved.photoURL,
     bio: saved.bio,
     listedInDirectory: saved.listed && saved.categories.length > 0,
+    socialMedia: { instagram: saved.instagram },
   });
 
   const handleSkip = () => {
@@ -183,6 +210,9 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
       setRegions(saved.regions);
       setBio(saved.bio);
       setDirectoryErrors({});
+    } else if (step === 3) {
+      setInstagram(saved.instagram);
+      setInstagramError('');
     }
     next();
   };
@@ -250,6 +280,38 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
           bio: text,
           listedInDirectory: listed && categories.length > 0,
         });
+      }
+      next();
+    } else if (step === 3) {
+      const raw = instagram.trim();
+      const handle = raw ? normalizeInstagramHandle(raw) : '';
+      if (handle === null) {
+        setInstagramError(INSTAGRAM_INVALID);
+        return;
+      }
+      setInstagramError('');
+      const handleChanged = handle !== (normalizeInstagramHandle(saved.instagram) || '');
+      const ok = await persist(
+        {
+          instagramConsentDefault: instagramConsent,
+          ...(handleChanged
+            ? {
+                // Same shape as the profile form; facebook and the public
+                // sharing choice stay as they are.
+                socialMedia: {
+                  facebook: profile?.socialMedia?.facebook || '',
+                  instagram: handle,
+                  sharePublicly: profile?.socialMedia?.sharePublicly === true,
+                },
+              }
+            : {}),
+        },
+        handleChanged ? { instagram: handle } : {}
+      );
+      if (!ok) return;
+      setInstagram(handle);
+      if (handleChanged) {
+        celebrate(savedAsProfile(), { ...savedAsProfile(), socialMedia: { instagram: handle } });
       }
       next();
     }
@@ -468,6 +530,48 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
                 availableCategories={categoryOptions}
                 errors={directoryErrors}
               />
+            )}
+
+            {step === 3 && (
+              <>
+                <div className="form-group">
+                  <label htmlFor="onboarding-instagram">Dein Instagram-Name</label>
+                  <input
+                    id="onboarding-instagram"
+                    type="text"
+                    data-testid="onboarding-instagram"
+                    value={instagram}
+                    onChange={(e) => setInstagram(e.target.value)}
+                    placeholder="@deinname"
+                    autoComplete="off"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    aria-invalid={instagramError ? 'true' : undefined}
+                  />
+                  {instagramError && (
+                    <p className="submit-error" role="alert">
+                      {instagramError}
+                    </p>
+                  )}
+                </div>
+                <label className="notification-preference-label">
+                  <input
+                    type="checkbox"
+                    checked={instagramConsent}
+                    onChange={(e) => setInstagramConsent(e.target.checked)}
+                    data-testid="onboarding-instagram-consent"
+                  />
+                  <span className="notification-preference-text">
+                    <span className="notification-preference-name">
+                      Ihr dürft meine Events auf Instagram vorstellen
+                    </span>
+                    <span className="notification-preference-description">
+                      Das Häkchen ist dann bei jedem neuen Event schon gesetzt. Du kannst es pro
+                      Event ändern.
+                    </span>
+                  </span>
+                </label>
+              </>
             )}
 
             {error && (

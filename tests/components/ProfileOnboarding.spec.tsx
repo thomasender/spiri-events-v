@@ -55,7 +55,7 @@ describe('ProfileOnboarding', () => {
     next();
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
     expect(onSave.mock.calls[0][0]).toMatchObject({ photoURL: 'https://x/new-1.jpg' });
-    expect(await screen.findByTestId('onboarding-gain')).toHaveTextContent('+33 %');
+    expect(await screen.findByTestId('onboarding-gain')).toHaveTextContent('+25 %');
 
     fireEvent.change(await screen.findByTestId('onboarding-bio'), { target: { value: 'Hallo' } });
     next();
@@ -71,6 +71,20 @@ describe('ProfileOnboarding', () => {
       directoryCategories: ['Yoga'],
     });
 
+    // Instagram step: permission to promote the events is ticked by default.
+    expect(await screen.findByTestId('onboarding-instagram-consent')).toBeChecked();
+    fireEvent.change(screen.getByTestId('onboarding-instagram'), {
+      target: { value: 'instagram.com/sandra.yoga' },
+    });
+    next();
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(4));
+    expect(onSave.mock.calls[3][0]).toMatchObject({
+      instagramConsentDefault: true,
+      socialMedia: { facebook: '', instagram: '@sandra.yoga', sharePublicly: false },
+    });
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(5));
+    expect(onSave.mock.calls[4][0]).toMatchObject({ onboardingCompleted: true, bio: 'Hallo' });
+
     expect(await screen.findByTestId('onboarding-badge')).toHaveTextContent('Profil vollständig');
     expect(percent()).toContain('100 %');
     expect(deleteImageByUrl).not.toHaveBeenCalled();
@@ -79,14 +93,14 @@ describe('ProfileOnboarding', () => {
   it('counts unsaved input live and drops it when the step is skipped', async () => {
     setup();
     fireEvent.click(screen.getByText('upload-1'));
-    expect(percent()).toContain('33 %');
+    expect(percent()).toContain('25 %');
     skip();
     expect(percent()).toContain('0 %');
     // the unsaved upload is cleaned up
     expect(deleteImageByUrl).toHaveBeenCalledWith('https://x/new-1.jpg');
 
     fireEvent.change(await screen.findByTestId('onboarding-bio'), { target: { value: 'Hi' } });
-    expect(percent()).toContain('33 %');
+    expect(percent()).toContain('25 %');
     fireEvent.change(screen.getByTestId('onboarding-bio'), { target: { value: '   ' } });
     expect(percent()).toContain('0 %');
   });
@@ -114,7 +128,57 @@ describe('ProfileOnboarding', () => {
       listedInDirectory: true,
       directoryCategories: ['Tanz'],
     });
-    expect(await screen.findByTestId('onboarding-badge')).toBeInTheDocument();
+    await screen.findByTestId('onboarding-instagram');
+  });
+
+  it('keeps the Instagram name and consent as they were when the step is skipped', async () => {
+    const { onSave } = setup({ ...emptyProfile, socialMedia: { instagram: '@alt' } });
+    skip();
+    skip();
+    skip();
+    fireEvent.change(await screen.findByTestId('onboarding-instagram'), {
+      target: { value: '@neu' },
+    });
+    fireEvent.click(screen.getByTestId('onboarding-instagram-consent'));
+    skip();
+    await screen.findByTestId('onboarding-finish');
+    expect(onSave).toHaveBeenCalledTimes(1);
+    expect(onSave.mock.calls[0][0]).toEqual({
+      displayName: 'Sandra',
+      bio: '',
+      onboardingCompleted: true,
+    });
+  });
+
+  it('rejects an invalid Instagram name and stores the consent choice', async () => {
+    const { onSave } = setup();
+    skip();
+    skip();
+    skip();
+    fireEvent.change(await screen.findByTestId('onboarding-instagram'), {
+      target: { value: 'kein name' },
+    });
+    next();
+    expect(await screen.findByText(/gültigen Instagram-Namen/)).toBeInTheDocument();
+    expect(onSave).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByTestId('onboarding-instagram'), { target: { value: '' } });
+    fireEvent.click(screen.getByTestId('onboarding-instagram-consent'));
+    next();
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(2));
+    expect(onSave.mock.calls[0][0]).toMatchObject({ instagramConsentDefault: false });
+    expect(onSave.mock.calls[0][0]).not.toHaveProperty('socialMedia');
+    expect(onSave.mock.calls[1][0]).toMatchObject({ onboardingCompleted: true });
+  });
+
+  it('does not count as finished when closed before the end', async () => {
+    const { onSave, onClose } = setup();
+    skip();
+    skip();
+    await screen.findByTestId('profile-directory-toggle');
+    fireEvent.click(screen.getByTestId('onboarding-close'));
+    expect(onClose).toHaveBeenCalled();
+    expect(onSave).not.toHaveBeenCalled();
   });
 
   it('does not offer the extra bio field when a description is already saved', async () => {

@@ -1,10 +1,13 @@
 // Pure helpers of the profile onboarding wizard (flag app_settings/onboarding).
 // No Firebase here.
 
+import { normalizeInstagramHandle } from './instagramHandle';
+
 export const ONBOARDING_STEPS = [
   { id: 'photo', label: 'Foto' },
   { id: 'bio', label: 'Beschreibung' },
   { id: 'directory', label: 'Verzeichnis' },
+  { id: 'instagram', label: 'Instagram' },
 ];
 
 export const ONBOARDING_BIO_STARTERS = [
@@ -23,6 +26,7 @@ export function getOnboardingDone(profile) {
     photo: hasText(profile?.photoURL),
     bio: hasText(profile?.bio),
     directory: profile?.listedInDirectory === true,
+    instagram: Boolean(normalizeInstagramHandle(profile?.socialMedia?.instagram)),
   };
 }
 
@@ -44,13 +48,25 @@ export function needsOnboarding(profile) {
   return !done.photo || !done.bio;
 }
 
+// Whether the wizard should be offered. Once finished (`onboardingCompleted:
+// true` on the user doc) never again. Accounts registered since the wizard
+// exists carry `onboardingCompleted: false` and get it until they finish it;
+// older accounts (no field) only while photo or description is missing.
+export function shouldOfferOnboarding(profile) {
+  if (profile?.onboardingCompleted === true) return false;
+  if (profile?.onboardingCompleted === false) return true;
+  return needsOnboarding(profile);
+}
+
+// Closing the wizard without finishing it only hides it for this visit (this
+// browser tab session); the next visit offers it again.
 export function onboardingDismissKey(uid) {
   return `onboarding-dismissed:${uid}`;
 }
 
 export function isOnboardingDismissed(uid) {
   try {
-    return window.localStorage.getItem(onboardingDismissKey(uid)) === '1';
+    return window.sessionStorage.getItem(onboardingDismissKey(uid)) === '1';
   } catch {
     return false;
   }
@@ -58,7 +74,7 @@ export function isOnboardingDismissed(uid) {
 
 export function setOnboardingDismissed(uid) {
   try {
-    window.localStorage.setItem(onboardingDismissKey(uid), '1');
+    window.sessionStorage.setItem(onboardingDismissKey(uid), '1');
   } catch {
     // Private window / blocked storage: the wizard may show again, nothing breaks.
   }
