@@ -332,6 +332,19 @@ describe('publishApprovedEvent', () => {
       expect(h.generateImage).not.toHaveBeenCalled();
     });
 
+    it('does not post a cancelled event and writes no dedupe doc', async () => {
+      const h = makeHarness();
+      const outcome = await publishApprovedEvent(
+        h.deps,
+        'e1',
+        { status: 'pending' },
+        { ...futureEvent, cancelled: true }
+      );
+      expect(outcome).toBe('ignored');
+      expect(h.posts.size).toBe(0);
+      expect(h.fetchMock).not.toHaveBeenCalled();
+    });
+
     it('still posts on a later re-approval once consent was given', async () => {
       const h = makeHarness();
       expect(await publishApprovedEvent(h.deps, 'e1', { status: 'pending' }, withoutConsent)).toBe(
