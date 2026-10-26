@@ -199,6 +199,28 @@ describe('events.instagramConsent', () => {
   });
 });
 
+describe('events.registration', () => {
+  const base = { createdBy: 'owner', status: 'draft', description: 'd' };
+  const owner = () => env.authenticatedContext('owner', { email_verified: true });
+
+  it('create: absent, empty and up to 300 chars OK; longer or non-string rejected', async () => {
+    const db = owner().firestore();
+    await assertSucceeds(setDoc(doc(db, 'events/r1'), base));
+    await assertSucceeds(setDoc(doc(db, 'events/r2'), { ...base, registration: '' }));
+    await assertSucceeds(setDoc(doc(db, 'events/r3'), { ...base, registration: 'a'.repeat(300) }));
+    await assertFails(setDoc(doc(db, 'events/r4'), { ...base, registration: 'a'.repeat(301) }));
+    await assertFails(setDoc(doc(db, 'events/r5'), { ...base, registration: 42 }));
+  });
+
+  it('update: up to 300 chars OK, longer rejected', async () => {
+    const db = owner().firestore();
+    await assertSucceeds(
+      updateDoc(doc(db, 'events/ev1'), { registration: 'Anmeldung unter a@b.at' })
+    );
+    await assertFails(updateDoc(doc(db, 'events/ev1'), { registration: 'a'.repeat(301) }));
+  });
+});
+
 // Moderation: an owner (any user with a verified e-mail) must not be able to
 // publish their own event with a direct write. Each allowed case mirrors a
 // write the app makes (src/hooks/useEvents.js, EventForm, utils/trashUpdates,

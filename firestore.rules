@@ -63,6 +63,13 @@ service cloud.firestore {
     }
 
     match /events/{eventId} {
+      // Optional free text "Anmeldung" (how to register), max 300 chars.
+      function isValidRegistration() {
+        return !('registration' in request.resource.data)
+               || (request.resource.data.registration is string
+                   && request.resource.data.registration.size() <= 300);
+      }
+
       // Organizer opt-in for posting on Instagram; absent == no consent.
       function isValidInstagramConsent() {
         return !('instagramConsent' in request.resource.data)
@@ -131,6 +138,7 @@ service cloud.firestore {
                     && request.resource.data.createdBy == request.auth.uid
                     && (request.resource.data.status in ['pending', 'draft'])
                     && request.resource.data.description.size() <= 20000
+                    && isValidRegistration()
                     && (!('category' in request.resource.data)
                         || (request.resource.data.category is string
                             && request.resource.data.category.size() <= 40))
@@ -190,6 +198,7 @@ service cloud.firestore {
       // events so the Papierkorb tab can list them.
       allow update: if (isAdminOrEmulatorAdmin() || (isOwner() && isOwnerUpdateWithoutReview()))
                     && request.resource.data.description.size() <= 20000
+                    && isValidRegistration()
                     && (request.resource.data.status in ['pending', 'draft', 'approved', 'trashed'])
                     && (!('category' in request.resource.data)
                         || (request.resource.data.category is string

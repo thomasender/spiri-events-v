@@ -23,6 +23,7 @@ function normalizeSimilarEvent(event) {
     status: event.status || 'approved',
     organizer: event.organizer || { name: '', email: '' },
     kontakt: event.kontakt || '',
+    registration: event.registration || '',
   };
 }
 
