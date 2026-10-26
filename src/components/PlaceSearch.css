@@ -1,11 +1,11 @@
-.region-search {
+.place-search {
   position: relative;
   max-width: 520px;
   margin: 16px auto 0;
   text-align: left;
 }
 
-.region-search-label {
+.place-search-label {
   display: block;
   margin-bottom: 6px;
   font-size: 0.9rem;
@@ -13,13 +13,13 @@
   color: var(--text-secondary);
 }
 
-.region-search-field {
+.place-search-field {
   position: relative;
   display: flex;
   align-items: center;
 }
 
-.region-search-icon {
+.place-search-icon {
   position: absolute;
   left: 14px;
   color: var(--text-secondary);
@@ -28,7 +28,7 @@
 
 /* Doubled class: the global input[type='text'] rule (padding 12px 16px) is more
    specific than a single class and would put the text under the icon. */
-.region-search-field .region-search-input {
+.place-search-field .place-search-input {
   width: 100%;
   min-height: 48px;
   padding: 0 44px 0 42px;
@@ -41,12 +41,12 @@
   font-size: 1rem;
 }
 
-.region-search-field .region-search-input:focus-visible {
+.place-search-field .place-search-input:focus-visible {
   outline: 2px solid var(--accent-primary);
   outline-offset: 1px;
 }
 
-.region-search-clear {
+.place-search-clear {
   position: absolute;
   right: 4px;
   display: inline-flex;
@@ -61,11 +61,11 @@
   cursor: pointer;
 }
 
-.region-search-clear:focus-visible {
+.place-search-clear:focus-visible {
   outline: 2px solid var(--accent-primary);
 }
 
-.region-search-list {
+.place-search-list {
   position: absolute;
   z-index: 5;
   left: 0;
@@ -81,11 +81,11 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
 }
 
-.region-search-list[hidden] {
+.place-search-list[hidden] {
   display: none;
 }
 
-.region-search-option {
+.place-search-option {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -96,33 +96,33 @@
   cursor: pointer;
 }
 
-.region-search-option:hover,
-.region-search-option--active {
+.place-search-option:hover,
+.place-search-option--active {
   background-color: var(--bg-secondary);
 }
 
-.region-search-option--active {
+.place-search-option--active {
   outline: 2px solid var(--accent-primary);
   outline-offset: -2px;
 }
 
-.region-search-option-label {
+.place-search-option-label {
   color: var(--text-primary);
   font-weight: 600;
 }
 
-.region-search-option-detail {
+.place-search-option-detail {
   color: var(--text-secondary);
   font-size: 0.85rem;
 }
 
-.region-search-empty {
+.place-search-empty {
   margin: 8px 0 0;
   color: var(--text-secondary);
   font-size: 0.9rem;
 }
 
-.region-search-status {
+.place-search-status {
   position: absolute;
   width: 1px;
   height: 1px;

@@ -2,11 +2,7 @@ import { describe, it, expect } from 'vitest';
 import landkreisMap from '../../src/data/landkreisMap.json';
 import { DISTRICT_CATALOG } from '../../src/utils/regionMapping';
 import { STATIC_REGIONS } from '../../src/utils/regions';
-import {
-  countryLabels,
-  germanDistrictHolders,
-  groupDistrictShapes,
-} from '../../src/utils/landkreisMap';
+import { germanDistrictHolders, groupDistrictShapes } from '../../src/utils/landkreisMap';
 
 // Guard for src/data/landkreisMap.json (scripts/build-landkreis-map.mjs, from the product
 // owner's map). The build already stops on unmatched or duplicated names; this keeps the
@@ -64,27 +60,5 @@ describe('Landkreis map helpers', () => {
       { id: null, keys: ['DE|Leer'], d: 'M2,2Z' },
       { id: 'franken', keys: ['DE|Roth', 'DE|Fürth (Stadt)'], d: 'M1,1ZM3,3Z' },
     ]);
-  });
-});
-
-describe('countryLabels', () => {
-  const shapes = [
-    { id: 'a', cx: 0, cy: 0, area: 1 },
-    { id: 'b', cx: 100, cy: 200, area: 3 },
-    { id: 'c', cx: 500, cy: 500, area: 9 },
-  ];
-  it('puts one name per country at the area-weighted centre', () => {
-    const regions = [
-      { slug: 'a', country: 'AT' },
-      { slug: 'b', country: 'AT' },
-      { slug: 'c', country: 'CH' },
-    ];
-    expect(countryLabels(shapes, regions)).toEqual([
-      { country: 'AT', name: 'Österreich', x: 75, y: 150 },
-      { country: 'CH', name: 'Schweiz', x: 500, y: 500 },
-    ]);
-  });
-  it('skips regions without a known country', () => {
-    expect(countryLabels(shapes, [{ slug: 'a' }])).toEqual([]);
   });
 });

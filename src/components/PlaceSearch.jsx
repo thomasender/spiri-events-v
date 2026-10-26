@@ -1,35 +1,36 @@
 import { useId, useMemo, useState } from 'react';
 import { Search, X } from 'lucide-react';
-import { buildRegionSearchIndex, searchRegions } from '../utils/regionSearch';
-import './RegionSearch.css';
+import { placeDetail, searchPlaces } from '../utils/placeSearch';
+import './PlaceSearch.css';
 
 /**
- * Search as you type for the region chooser, the WAI-ARIA "combobox with list
- * autocomplete" pattern: focus stays in the input, ArrowUp/Down move through the
- * suggestions (aria-activedescendant), Enter picks the highlighted one (or the
- * first), Escape closes the list and a second Escape clears the field. A live
- * region tells screen readers how many suggestions there are.
- * `regions`: the full register; `activeSlugs`: regions that are open (the others
- * are marked "(bald)" and lead to their coming-soon page).
+ * Search as you type for "Wo bist du?", the WAI-ARIA "combobox with list autocomplete"
+ * pattern: focus stays in the input, ArrowUp/Down move through the suggestions
+ * (aria-activedescendant), Enter picks the highlighted one (or the first), Escape closes the
+ * list and a second Escape clears the field. A live region tells screen readers how many
+ * suggestions there are. Finds places (Orte / Gemeinden) and regions ("Allgäu").
+ * `index`: the prepared place list (null while it loads), `regionEntries`: the regions.
  */
-export default function RegionSearch({ regions, activeSlugs, onChoose }) {
+export default function PlaceSearch({ index, regionEntries, onChoose }) {
   const id = useId();
   const listId = `${id}-list`;
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(true);
   const [active, setActive] = useState(-1);
 
-  const index = useMemo(() => buildRegionSearchIndex(regions), [regions]);
-  const results = useMemo(() => searchRegions(index, query), [index, query]);
+  const results = useMemo(
+    () => searchPlaces(index, regionEntries, query),
+    [index, regionEntries, query]
+  );
   const trimmed = query.trim();
-  const expanded = open && trimmed.length > 0;
+  const expanded = open && trimmed.length > 1;
   const optionId = (i) => `${id}-opt-${i}`;
 
   const pick = (entry) => {
     if (!entry) return;
     setQuery('');
     setActive(-1);
-    onChoose(entry.slug);
+    onChoose(entry);
   };
 
   const onKeyDown = (e) => {
@@ -55,32 +56,34 @@ export default function RegionSearch({ regions, activeSlugs, onChoose }) {
     }
   };
 
-  const status = !trimmed
+  const status = !expanded
     ? ''
-    : results.length === 0
-      ? 'Keine passende Region gefunden'
-      : `${results.length} ${results.length === 1 ? 'Vorschlag' : 'Vorschläge'}`;
+    : !index
+      ? 'Orte werden geladen …'
+      : results.length === 0
+        ? 'Kein passender Ort gefunden'
+        : `${results.length} ${results.length === 1 ? 'Vorschlag' : 'Vorschläge'}`;
 
   return (
-    <div className="region-search" data-testid="region-search">
-      <label className="region-search-label" htmlFor={`${id}-input`}>
-        Region oder Ort suchen
+    <div className="place-search" data-testid="place-search">
+      <label className="place-search-label" htmlFor={`${id}-input`}>
+        Ort oder Region
       </label>
-      <div className="region-search-field">
-        <Search size={18} className="region-search-icon" aria-hidden="true" />
+      <div className="place-search-field">
+        <Search size={18} className="place-search-icon" aria-hidden="true" />
         <input
           id={`${id}-input`}
           type="text"
           role="combobox"
-          className="region-search-input"
-          placeholder="z. B. Tirol, Franken, München"
+          className="place-search-input"
+          placeholder="z. B. Bregenz, Lindau, Allgäu"
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="off"
           spellCheck={false}
           enterKeyHint="go"
           aria-autocomplete="list"
-          aria-expanded={expanded}
+          aria-expanded={expanded && results.length > 0}
           aria-controls={listId}
           aria-activedescendant={expanded && active >= 0 ? optionId(active) : undefined}
           value={query}
@@ -90,12 +93,12 @@ export default function RegionSearch({ regions, activeSlugs, onChoose }) {
             setActive(-1);
           }}
           onKeyDown={onKeyDown}
-          data-testid="region-search-input"
+          data-testid="place-search-input"
         />
         {query && (
           <button
             type="button"
-            className="region-search-clear"
+            className="place-search-clear"
             aria-label="Suche leeren"
             onClick={() => {
               setQuery('');
@@ -109,37 +112,34 @@ export default function RegionSearch({ regions, activeSlugs, onChoose }) {
       <ul
         id={listId}
         role="listbox"
-        aria-label="Passende Regionen"
-        className="region-search-list"
+        aria-label="Passende Orte und Regionen"
+        className="place-search-list"
         hidden={!expanded || results.length === 0}
       >
         {expanded &&
           results.map((entry, i) => (
             <li
-              key={`${entry.kind}-${entry.slug}-${entry.label}`}
+              key={`${entry.kind}-${entry.name}-${entry.lat}-${entry.lon}`}
               id={optionId(i)}
               role="option"
               aria-selected={i === active}
-              className={`region-search-option${i === active ? ' region-search-option--active' : ''}`}
+              className={`place-search-option${i === active ? ' place-search-option--active' : ''}`}
               // mousedown keeps the focus in the input until the choice is made.
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => pick(entry)}
-              data-testid="region-search-option"
+              data-testid="place-search-option"
             >
-              <span className="region-search-option-label">{entry.label}</span>
-              <span className="region-search-option-detail">
-                {entry.detail}
-                {!activeSlugs.has(entry.slug) && ' · bald'}
-              </span>
+              <span className="place-search-option-label">{entry.name}</span>
+              <span className="place-search-option-detail">{placeDetail(entry)}</span>
             </li>
           ))}
       </ul>
-      {expanded && results.length === 0 && (
-        <p className="region-search-empty" data-testid="region-search-empty">
-          Keine passende Region gefunden. Wähle sie auf der Karte oder in der Liste.
+      {expanded && index && results.length === 0 && (
+        <p className="place-search-empty" data-testid="place-search-empty">
+          Kein passender Ort gefunden. Versuche es mit dem Namen der nächsten größeren Stadt.
         </p>
       )}
-      <p className="region-search-status" role="status" aria-live="polite">
+      <p className="place-search-status" role="status" aria-live="polite">
         {status}
       </p>
     </div>

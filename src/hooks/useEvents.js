@@ -31,6 +31,8 @@ import { buildTrashUpdate, buildRestoreUpdate } from '../utils/trashUpdates';
 import { getStaffAccess } from '../utils/staffRoles';
 import { staffEventQuerySpecs, subscribeEventQueries } from '../lib/staffEventQueries';
 import { buildPublicEventQueryPlan, queryPlanKey } from '../utils/regionQueries';
+import { POSITION_SOURCE_FIELDS, positionFields } from '../lib/eventPosition';
+import { useRegions } from './useRegions';
 import { useRegion } from './useRegion';
 import { useRegionMigrationComplete } from './useRegionMigrationMarker';
 
@@ -72,6 +74,7 @@ function normalizeEvents(events) {
 }
 
 export function useEvents(user) {
+  const { regions: registry } = useRegions();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -118,10 +121,13 @@ export function useEvents(user) {
       eventData.date,
       user.uid
     );
+    const regionId = pickEventRegionId(eventData.regionId);
     return addDoc(collection(db, 'events'), {
       ...eventData,
       // Every new event carries its region (form value or the default).
-      regionId: pickEventRegionId(eventData.regionId),
+      regionId,
+      // ... and its position (Ort / Bezirk), for the radius filter.
+      ...(await positionFields({ ...eventData, regionId }, registry)),
       slug,
       status,
       createdBy: user.uid,
@@ -131,8 +137,11 @@ export function useEvents(user) {
 
   const updateEvent = async (id, eventData) => {
     const ref = doc(db, 'events', id);
+    // A new Ort / Bezirk / region moves the event on the map of the radius filter.
+    const moves = POSITION_SOURCE_FIELDS.some((field) => field in eventData);
     return updateDoc(ref, {
       ...eventData,
+      ...(moves ? await positionFields(eventData, registry) : {}),
       updatedAt: serverTimestamp(),
     });
   };
@@ -256,6 +265,8 @@ export function useEvents(user) {
       city: source.city || '',
       isOnline: Boolean(source.isOnline),
       regionId: pickEventRegionId(null, source),
+      lat: source.lat ?? null,
+      lng: source.lng ?? null,
       organizer: source.organizer
         ? { ...source.organizer }
         : { name: '', email: '', photoURL: null },
@@ -392,7 +403,16 @@ export function usePendingEvents() {
  * change when it arrives, and a resubscribe would read a region twice).
  */
 export function useRegionEventQueryPlan({ regionScoped = false, allActive = false } = {}) {
-  const { regionId, regions, combinedRegions, isNational, loading: regionsLoading } = useRegion();
+  const {
+    regionId,
+    regions,
+    combinedRegions,
+    isNational,
+    radiusFilter,
+    loading: regionsLoading,
+  } = useRegion();
+  // Within a radius the events of every active region can qualify.
+  const radiusMode = Boolean(radiusFilter) && !allActive;
   const markerComplete = useRegionMigrationComplete({ enabled: regionScoped });
   // Combined view: the regions it covers; favourites (`allActive`): every active region.
   const activeKey = (isNational && !allActive ? combinedRegions : regions)
@@ -406,10 +426,19 @@ export function useRegionEventQueryPlan({ regionScoped = false, allActive = fals
         : buildPublicEventQueryPlan({
             markerComplete: regionScoped ? markerComplete : false,
             regionId,
-            isNational: isNational || allActive,
+            isNational: isNational || allActive || radiusMode,
             activeRegionIds: activeKey ? activeKey.split(',') : [],
           }),
-    [waitForRegions, regionScoped, markerComplete, regionId, isNational, allActive, activeKey]
+    [
+      waitForRegions,
+      regionScoped,
+      markerComplete,
+      regionId,
+      isNational,
+      allActive,
+      radiusMode,
+      activeKey,
+    ]
   );
   return plan;
 }

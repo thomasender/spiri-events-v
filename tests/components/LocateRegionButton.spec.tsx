@@ -1,8 +1,8 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { STATIC_REGIONS, mergeRegions } from '../../src/utils/regions';
-import { LAST_REGION_STORAGE_KEY } from '../../src/utils/regionRouting';
+import { PLACE_SELECTION_KEY } from '../../src/utils/placeSelection';
 
 const mocks = vi.hoisted(() => ({
   regions: { regions: [] as unknown[], loading: false },
@@ -15,13 +15,12 @@ vi.mock('../../src/lib/analyticsEvents', () => ({ trackFilter: mocks.trackFilter
 import LocateRegionButton from '../../src/components/LocateRegionButton';
 import RegionProvider from '../../src/components/RegionProvider';
 import RegionChooser from '../../src/components/RegionChooser';
-import RegionPickerModal from '../../src/components/RegionPickerModal';
 
 // Vorarlberg + Tirol open: the first-visit chooser is shown. Bayern is not open yet.
 const TWO_ACTIVE = mergeRegions([{ id: 'tirol', active: true }]);
 const MUNICH = { latitude: 48.1374, longitude: 11.5755 };
 const BREGENZ = { latitude: 47.5031, longitude: 9.7471 };
-const VADUZ = { latitude: 47.141, longitude: 9.521 };
+const MADRID = { latitude: 40.4168, longitude: -3.7038 };
 
 type Success = (p: { coords: { latitude: number; longitude: number } }) => void;
 type Failure = (e: { code: number }) => void;
@@ -75,12 +74,11 @@ afterEach(() => {
 
 describe('LocateRegionButton', () => {
   it('asks the browser only after the explanation was shown and confirmed', () => {
-    const onChoose = vi.fn();
-    render(<LocateRegionButton regions={STATIC_REGIONS} onChoose={onChoose} />);
+    render(<LocateRegionButton onLocate={vi.fn()} />);
     expect(getCurrentPosition).not.toHaveBeenCalled();
 
     clickUseLocation();
-    expect(screen.getByText(/nur ein einziges Mal, um deine Region zu finden/)).toBeTruthy();
+    expect(screen.getByText(/nur ein einziges Mal, um den nächsten Ort zu finden/)).toBeTruthy();
     expect(
       screen.getByText(/nicht gespeichert und nicht an uns oder andere gesendet/)
     ).toBeTruthy();
@@ -96,15 +94,15 @@ describe('LocateRegionButton', () => {
     [1, /nicht erlaubt/],
     [2, /konnte gerade nicht bestimmt werden/],
     [3, /zu lange gedauert/],
-  ])('error code %i shows a friendly hint and chooses nothing', async (code, text) => {
+  ])('error code %i shows a friendly hint and locates nothing', (code, text) => {
     failWith(code);
-    const onChoose = vi.fn();
-    render(<LocateRegionButton regions={STATIC_REGIONS} onChoose={onChoose} />);
+    const onLocate = vi.fn();
+    render(<LocateRegionButton onLocate={onLocate} />);
     clickUseLocation();
     confirm();
     expect(screen.getByRole('status').textContent).toMatch(text);
-    expect(screen.getByRole('status').textContent).toMatch(/Bitte wähle deine Region selbst/);
-    expect(onChoose).not.toHaveBeenCalled();
+    expect(screen.getByRole('status').textContent).toMatch(/Bitte gib deinen Ort selbst ein/);
+    expect(onLocate).not.toHaveBeenCalled();
     expect(getCurrentPosition).toHaveBeenCalledTimes(1);
     // The button is back, nothing retries by itself.
     expect(screen.getByRole('button', { name: /Meinen Standort verwenden/ })).toBeTruthy();
@@ -112,55 +110,82 @@ describe('LocateRegionButton', () => {
 
   it('a browser without geolocation gets a hint', () => {
     setGeolocation(undefined);
-    const onChoose = vi.fn();
-    render(<LocateRegionButton regions={STATIC_REGIONS} onChoose={onChoose} />);
+    const onLocate = vi.fn();
+    render(<LocateRegionButton onLocate={onLocate} />);
     clickUseLocation();
     confirm();
     expect(screen.getByRole('status').textContent).toMatch(/Dein Browser kann deinen Standort/);
-    expect(onChoose).not.toHaveBeenCalled();
+    expect(onLocate).not.toHaveBeenCalled();
   });
 
-  it('in Austria it chooses the Bundesland (Bregenz: Vorarlberg)', async () => {
+  it('hands the position to onLocate once, and stays quiet when a place was found', async () => {
     answerWith(BREGENZ);
-    const onChoose = vi.fn();
-    render(<LocateRegionButton regions={STATIC_REGIONS} onChoose={onChoose} />);
+    const onLocate = vi.fn().mockResolvedValue(true);
+    render(<LocateRegionButton onLocate={onLocate} />);
     clickUseLocation();
     confirm();
-    await waitFor(() => expect(onChoose).toHaveBeenCalledWith('vorarlberg'));
-    expect(onChoose).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(onLocate).toHaveBeenCalledWith({ lat: 47.5031, lon: 9.7471 }));
+    expect(onLocate).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(screen.getByRole('status').textContent).toBe(''));
   });
 
-  it('in Liechtenstein (no region) it does not guess a region', async () => {
-    answerWith(VADUZ);
-    const onChoose = vi.fn();
-    render(<LocateRegionButton regions={STATIC_REGIONS} onChoose={onChoose} />);
+  it('says so when no place was found, or when finding it fails', async () => {
+    answerWith(BREGENZ);
+    const onLocate = vi.fn().mockResolvedValueOnce(false).mockRejectedValueOnce(new Error('x'));
+    render(<LocateRegionButton onLocate={onLocate} />);
     clickUseLocation();
     confirm();
     await waitFor(() =>
       expect(screen.getByRole('status').textContent).toBe(
-        'Wir konnten deinen Standort keiner Region zuordnen. Bitte wähle deine Region selbst.'
+        'Wir konnten deinen Standort keinem Ort zuordnen. Bitte gib deinen Ort selbst ein.'
       )
     );
-    expect(onChoose).not.toHaveBeenCalled();
+    clickUseLocation();
+    confirm();
+    await waitFor(() =>
+      expect(screen.getByRole('status').textContent).toMatch(/konnte gerade nicht bestimmt/)
+    );
   });
 });
 
-describe('in the region chooser', () => {
-  it('a position in Munich chooses Bayern like a click, which is not open yet: coming soon', async () => {
-    answerWith(MUNICH);
+describe('in the region chooser (real place list and border shapes)', () => {
+  const useMyLocation = async (coords: { latitude: number; longitude: number }) => {
+    answerWith(coords);
     renderChooser();
-    expect(screen.getByTestId('region-chooser')).toBeTruthy();
     clickUseLocation();
     confirm();
-    await waitFor(() => expect(where()).toBe('/bayern'));
+    await screen.findByTestId('place-picker-chosen');
+  };
+  const apply = () => fireEvent.click(screen.getByTestId('place-picker-apply'));
+  const storedSelection = () => JSON.parse(window.localStorage.getItem(PLACE_SELECTION_KEY)!);
+
+  it('a position in Austria snaps to the nearest place and chooses its region', async () => {
+    await useMyLocation(BREGENZ);
+    expect(screen.getByTestId('place-picker-chosen')).toHaveTextContent('Bregenz');
+    apply();
+    expect(where()).toBe('/vorarlberg');
+    expect(storedSelection()).toMatchObject({
+      label: 'Bregenz',
+      regionId: 'vorarlberg',
+      source: 'device',
+    });
+  });
+
+  it('a position in Munich chooses Bayern, which is not open yet: coming soon', async () => {
+    await useMyLocation(MUNICH);
+    apply();
+    expect(where()).toBe('/bayern');
     expect(mocks.trackFilter).toHaveBeenCalledWith('region', 'bayern');
-    expect(mocks.trackFilter).toHaveBeenCalledTimes(1);
-    // Only the region is remembered, never the position.
-    expect(window.localStorage.getItem(LAST_REGION_STORAGE_KEY)).toBe('bayern');
+  });
+
+  it('remembers the place, never the exact position', async () => {
+    await useMyLocation(BREGENZ);
+    apply();
     const stored = Object.keys(window.localStorage)
       .map((k) => `${k}=${window.localStorage.getItem(k)}`)
       .join(';');
-    expect(stored).not.toMatch(/48\.1|11\.5/);
+    expect(stored).not.toMatch(/47\.5031|9\.7471/);
+    expect(storedSelection().lat).toBeCloseTo(47.503, 2);
   });
 
   it('a position in a cultural region of the current assignment chooses that region', async () => {
@@ -178,47 +203,21 @@ describe('in the region chooser', () => {
       ]),
       loading: false,
     };
-    answerWith({ latitude: 53.2316, longitude: 7.461 });
-    renderChooser();
-    clickUseLocation();
-    confirm();
-    await waitFor(() => expect(where()).toBe('/ostfriesland'));
+    await useMyLocation({ latitude: 53.2316, longitude: 7.461 });
+    apply();
+    expect(where()).toBe('/ostfriesland');
   });
 
-  it('a position in Switzerland chooses the Kanton, which is not open yet: coming soon', async () => {
-    answerWith({ latitude: 47.3769, longitude: 8.5417 });
+  it('a position far from every place leaves the chooser open and usable', async () => {
+    answerWith(MADRID);
     renderChooser();
     clickUseLocation();
     confirm();
-    await waitFor(() => expect(where()).toBe('/zuerich'));
-  });
-
-  it('outside all regions (Liechtenstein) the chooser stays open and usable', async () => {
-    answerWith(VADUZ);
-    renderChooser();
-    clickUseLocation();
-    confirm();
-    await screen.findByText(/keiner Region zuordnen/);
+    await screen.findByText(/keinem Ort zuordnen/);
     expect(screen.getByTestId('region-chooser')).toBeTruthy();
     expect(where()).toBe('/');
-    fireEvent.click(screen.getByRole('button', { name: 'Vorarlberg' }));
-    expect(where()).toBe('/vorarlberg');
-  });
-
-  it('is offered in the region pop-up as well', async () => {
-    answerWith(MUNICH);
-    const onClose = vi.fn();
-    render(
-      <MemoryRouter initialEntries={['/vorarlberg']}>
-        <RegionProvider>
-          <RegionPickerModal open onClose={onClose} />
-          <Where />
-        </RegionProvider>
-      </MemoryRouter>
-    );
-    clickUseLocation();
-    confirm();
-    await waitFor(() => expect(where()).toBe('/bayern'));
-    expect(onClose).toHaveBeenCalled();
+    expect(
+      within(screen.getByTestId('region-chooser')).getByTestId('place-picker-apply')
+    ).toBeDisabled();
   });
 });

@@ -20,6 +20,7 @@ import ErrorPage from './pages/ErrorPage';
 import NoAccess from './components/NoAccess';
 import RegionProvider from './components/RegionProvider';
 import RegionChooser from './components/RegionChooser';
+import PlaceSelectionSync from './components/PlaceSelectionSync';
 import {
   RegionAboutRoute,
   RegionDirectoryRoute,
@@ -168,6 +169,7 @@ function AppLayout() {
       <OnlineStatusBeacon />
       <ScrollToTop />
       <AnalyticsRouteTracker />
+      <PlaceSelectionSync />
       <Header />
       <RegionChooser />
       <AppCheckBanner />

@@ -66,30 +66,9 @@
   gap: 18px;
 }
 
-.region-picker-close:focus-visible,
-.region-picker-map:focus-visible {
+.region-picker-close:focus-visible {
   outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
-}
-
-.region-picker-map {
-  align-self: flex-start;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 0 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-primary);
-  font-family: var(--font-body);
-  font-size: 0.95rem;
-  cursor: pointer;
-}
-
-.region-picker-map:hover {
-  border-color: var(--accent-primary);
 }
 
 @media (max-width: 640px) {

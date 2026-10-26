@@ -1,48 +1,28 @@
 import { useEffect, useRef, useState } from 'react';
 import { LocateFixed } from 'lucide-react';
-import { prepareAdminShapes, prepareDistrictShapes, regionForPosition } from '../utils/geoRegion';
 import './LocateRegionButton.css';
-
-// Landkreis shapes (Germany) and Bundesland / Kanton outlines (Austria, Switzerland),
-// only loaded once somebody asks for their location.
-let shapesPromise = null;
-function loadShapes() {
-  shapesPromise ??= Promise.all([
-    import('../data/landkreisMap.json'),
-    import('../data/adminAtChMap.json'),
-  ]).then(([districts, admin]) => ({
-    districts: prepareDistrictShapes((districts.default ?? districts).districts),
-    admin: prepareAdminShapes(admin.default ?? admin),
-  }));
-  shapesPromise.catch(() => {
-    shapesPromise = null;
-  });
-  return shapesPromise;
-}
 
 const MESSAGES = {
   locating: 'Dein Standort wird bestimmt …',
   denied:
-    'Du hast den Zugriff auf deinen Standort nicht erlaubt. Kein Problem: Bitte wähle deine Region selbst.',
+    'Du hast den Zugriff auf deinen Standort nicht erlaubt. Kein Problem: Bitte gib deinen Ort selbst ein.',
   unavailable:
-    'Dein Standort konnte gerade nicht bestimmt werden. Bitte wähle deine Region selbst.',
-  timeout: 'Das Bestimmen deines Standorts hat zu lange gedauert. Bitte wähle deine Region selbst.',
+    'Dein Standort konnte gerade nicht bestimmt werden. Bitte gib deinen Ort selbst ein.',
+  timeout: 'Das Bestimmen deines Standorts hat zu lange gedauert. Bitte gib deinen Ort selbst ein.',
   unsupported:
-    'Dein Browser kann deinen Standort nicht bestimmen. Bitte wähle deine Region selbst.',
-  noMatch: 'Wir konnten deinen Standort keiner Region zuordnen. Bitte wähle deine Region selbst.',
+    'Dein Browser kann deinen Standort nicht bestimmen. Bitte gib deinen Ort selbst ein.',
+  noMatch: 'Wir konnten deinen Standort keinem Ort zuordnen. Bitte gib deinen Ort selbst ein.',
 };
 
 /**
- * "Meinen Standort verwenden" in the region chooser and the region pop-up (ticket 567).
+ * "Meinen Standort verwenden" in "Wo bist du?" (ticket 567, reworked for place + radius).
  * Opt-in only: the browser is asked for the position only after the visitor read the
- * short explanation and confirmed. The position is turned into a region right here in
- * the browser (Germany: Landkreis shapes + current assignment; Austria / Switzerland:
- * Bundesland / Kanton outlines; see utils/geoRegion.js) and then
- * thrown away: it is never stored, sent or tracked. The result goes through `onChoose`,
- * exactly like a manual choice (a region that is not open yet leads to its coming-soon
- * page). Every failure only shows a hint; the manual choice stays usable.
+ * short explanation and confirmed. The position goes to `onLocate({ lat, lon })`, which
+ * snaps it to the nearest place of the bundled list (nothing is sent anywhere) and resolves
+ * `true` when it found one. Only that place is remembered, never the exact position. Every
+ * failure only shows a hint; typing a place stays usable.
  */
-export default function LocateRegionButton({ regions, onChoose, className = '' }) {
+export default function LocateRegionButton({ onLocate, className = '' }) {
   // idle | confirm | locating | <message key>
   const [state, setState] = useState('idle');
   const confirmRef = useRef(null);
@@ -68,21 +48,12 @@ export default function LocateRegionButton({ regions, onChoose, className = '' }
       return;
     }
     setState('locating');
-    const shapes = loadShapes();
     geo.getCurrentPosition(
       (position) => {
         // Only these two numbers are used, and only inside this callback.
         const { latitude, longitude } = position.coords;
-        shapes
-          .then((s) => {
-            const hit = regionForPosition(latitude, longitude, s.districts, regions, s.admin);
-            if (!hit) {
-              finish('noMatch');
-              return;
-            }
-            finish('idle');
-            onChoose(hit.region.slug);
-          })
+        Promise.resolve(onLocate({ lat: latitude, lon: longitude }))
+          .then((found) => finish(found ? 'idle' : 'noMatch'))
           .catch(() => finish('unavailable'));
       },
       (error) => {
@@ -101,8 +72,9 @@ export default function LocateRegionButton({ regions, onChoose, className = '' }
         <div className="locate-region-consent" role="group" aria-labelledby="locate-region-info">
           <p id="locate-region-info" className="locate-region-info">
             Dein Browser fragt dich gleich, ob er deinen Standort mitteilen darf. Wir verwenden ihn
-            nur ein einziges Mal, um deine Region zu finden. Er wird nicht gespeichert und nicht an
-            uns oder andere gesendet. Du kannst deine Region jederzeit auch selbst wählen.
+            nur ein einziges Mal, um den nächsten Ort zu finden. Dein genauer Standort wird nicht
+            gespeichert und nicht an uns oder andere gesendet, nur der Ortsname. Du kannst deinen
+            Ort jederzeit auch selbst eingeben.
           </p>
           <div className="locate-region-actions">
             <button

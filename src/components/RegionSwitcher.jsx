@@ -1,15 +1,21 @@
 import { useRef, useState } from 'react';
 import { ChevronDown, MapPin } from 'lucide-react';
 import { useRegion } from '../hooks/useRegion';
+import { selectionLabel } from '../utils/placeSelection';
 import RegionPickerModal from './RegionPickerModal';
 import './RegionSwitcher.css';
 
-// Name shown on the button: the current combined view or region.
+// Text shown on the button: the remembered place and radius ("Bregenz · 25 km") while the
+// calendar uses them, else the current combined view or region.
 function useCurrentRegionName() {
-  const { regions, allRegions, regionId, combinedView } = useRegion();
+  const { regions, allRegions, regionId, combinedView, placeSelection, radiusFilter } = useRegion();
   const region = allRegions.find((r) => r.slug === regionId) ?? regions[0];
   return {
-    name: combinedView ? combinedView.name : (region?.name ?? ''),
+    name: combinedView
+      ? combinedView.name
+      : radiusFilter
+        ? selectionLabel(placeSelection)
+        : (region?.name ?? ''),
     // Dark launch: nothing to switch between while fewer than two regions are active.
     visible: regions.length >= 2,
   };
@@ -36,7 +42,7 @@ export function RegionMenuList({ onNavigate }) {
         }}
       >
         <MapPin size={18} aria-hidden="true" />
-        <span className="region-menu-list-label">Region: {name}</span>
+        <span className="region-menu-list-label">Ort: {name}</span>
         <ChevronDown size={16} aria-hidden="true" />
       </button>
       <RegionPickerModal open={open} onClose={() => setOpen(false)} />
@@ -68,7 +74,7 @@ export function RegionPickButton({ className = '', testId = 'region-pick-button'
         className={`region-pick-button ${className}`.trim()}
         aria-haspopup="dialog"
         aria-expanded={open}
-        aria-label={`Region wählen, aktuell ${name}`}
+        aria-label={`Ort und Umkreis wählen, aktuell ${name}`}
         data-testid={testId}
         onClick={() => setOpen(true)}
       >
@@ -82,7 +88,7 @@ export function RegionPickButton({ className = '', testId = 'region-pick-button'
 }
 
 /**
- * Header button that opens the region pop-up (chips by country). Dark launch:
+ * Header button that opens the place + radius pop-up. Dark launch:
  * renders nothing while fewer than two regions are active, so Vorarlberg-only
  * visitors see no change.
  */
@@ -105,7 +111,7 @@ export default function RegionSwitcher() {
         className="region-switcher-trigger"
         aria-haspopup="dialog"
         aria-expanded={open}
-        aria-label={`Region wählen, aktuell ${name}`}
+        aria-label={`Ort und Umkreis wählen, aktuell ${name}`}
         onClick={() => setOpen(true)}
       >
         <MapPin size={16} aria-hidden="true" />

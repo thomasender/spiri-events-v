@@ -58,9 +58,10 @@ export default function ProfilePage() {
 
         {!isAdmin && canPickRegion && (
           <section className="profile-card" data-testid="profile-region">
-            <h2 className="profile-card-title">Region</h2>
+            <h2 className="profile-card-title">Ort und Umkreis</h2>
             <p className="profile-card-hint">
-              Wähle, für welche Region du den Kalender sehen möchtest.
+              Wähle deinen Ort und einen Umkreis. Wir zeigen dir die Events in deiner Nähe und
+              merken uns die Auswahl für dein Konto.
             </p>
             <RegionPickButton testId="profile-region-pick" />
           </section>

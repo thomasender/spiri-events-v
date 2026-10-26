@@ -787,6 +787,42 @@ describe('regions', () => {
   });
 });
 
+// lat / lng: the event's position for the radius filter ("Wo bist du?").
+describe('events.lat / lng', () => {
+  const owner = () => env.authenticatedContext('owner', { email_verified: true });
+  const create = (extra: Record<string, unknown>) => ({
+    title: 'T',
+    description: 'd',
+    category: 'Yoga',
+    slug: 's',
+    status: 'pending',
+    createdBy: 'owner',
+    createdAt: serverTimestamp(),
+    ...extra,
+  });
+
+  it('accepts a position, null (unknown / online) and no position at all', async () => {
+    const db = owner().firestore();
+    await assertSucceeds(setDoc(doc(db, 'events/p1'), create({ lat: 47.503, lng: 9.747 })));
+    await assertSucceeds(setDoc(doc(db, 'events/p2'), create({ lat: null, lng: null })));
+    await assertSucceeds(setDoc(doc(db, 'events/p3'), create({})));
+  });
+
+  it.each([
+    ['latitude above 90', { lat: 91, lng: 9 }],
+    ['longitude below -180', { lat: 47, lng: -181 }],
+    ['text instead of numbers', { lat: '47.5', lng: '9.7' }],
+  ])('rejects %s on create', async (_name, extra) => {
+    await assertFails(setDoc(doc(owner().firestore(), 'events/bad'), create(extra)));
+  });
+
+  it('the owner can move an event on update, but not to an invalid position', async () => {
+    const db = owner().firestore();
+    await assertSucceeds(updateDoc(doc(db, 'events/ev1'), { lat: 47.2, lng: 9.6 }));
+    await assertFails(updateDoc(doc(db, 'events/ev1'), { lat: 100, lng: 9.6 }));
+  });
+});
+
 describe('events.regionId', () => {
   const owner = () => env.authenticatedContext('owner', { email_verified: true });
   // What EventForm / the wizard send on create and on a full edit.

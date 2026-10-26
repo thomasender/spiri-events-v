@@ -12,6 +12,7 @@ import {
   resolveRegionId,
 } from '../utils/regions';
 import { activeRegions, regionCanonicalPath, regionPath } from '../utils/regionRouting';
+import { filterEventsByRadius } from '../utils/placeSearch';
 
 const noop = () => {};
 
@@ -31,6 +32,9 @@ export const DEFAULT_REGION_CONTEXT = Object.freeze({
   loading: false,
   setRegion: noop,
   setEventRegion: noop,
+  placeSelection: null,
+  setPlaceSelection: noop,
+  radiusFilter: null,
 });
 
 export const RegionContext = createContext(DEFAULT_REGION_CONTEXT);
@@ -74,19 +78,23 @@ export function useRegionCanonicalPath(path = '/') {
  * keeps the inactive-region rule.
  */
 export function useRegionEvents(events, { allActive = false } = {}) {
-  const { regionId, regions, combinedRegions, isNational } = useRegion();
+  const { regionId, regions, combinedRegions, isNational, radiusFilter } = useRegion();
   // Combined view: the regions it covers; favourites (`allActive`): every active region.
   const scope = isNational && !allActive ? combinedRegions : regions;
   const activeKey = scope.map((r) => r.id).join(',');
-  return useMemo(
-    () =>
-      filterEventsForRegion(events, {
-        regionId,
-        isNational: isNational || allActive,
-        activeRegionIds: activeKey ? activeKey.split(',') : [],
-      }),
-    [events, regionId, isNational, allActive, activeKey]
-  );
+  // "Wo bist du?": everything within the chosen radius, whatever region it lies in.
+  const radius = allActive ? null : radiusFilter;
+  const { lat, lon, km } = radius ?? {};
+  return useMemo(() => {
+    const inRegions = filterEventsForRegion(events, {
+      regionId,
+      isNational: isNational || allActive || Boolean(radius),
+      activeRegionIds: activeKey ? activeKey.split(',') : [],
+    });
+    return radius ? filterEventsByRadius(inRegions, { lat, lon, km, regionId }) : inRegions;
+    // `radius` is read through lat / lon / km.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [events, regionId, isNational, allActive, activeKey, lat, lon, km]);
 }
 
 /** Directory profiles listed in the current region (combined view: any active region). */

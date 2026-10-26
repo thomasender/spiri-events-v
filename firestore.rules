@@ -141,6 +141,29 @@ service cloud.firestore {
       return data.get('regionId', 'vorarlberg');
     }
 
+    // The remembered "Wo bist du?" choice of a user (place + radius). Coordinates are those of
+    // the place, never an exact device position. Null clears it.
+    function isValidPlaceSelection(d) {
+      return !('placeSelection' in d)
+        || d.placeSelection == null
+        || (d.placeSelection is map
+            && d.placeSelection.keys().hasOnly(
+              ['label', 'lat', 'lon', 'radiusKm', 'regionId', 'source', 'updatedAt'])
+            && d.placeSelection.label is string
+            && d.placeSelection.label.size() > 0
+            && d.placeSelection.label.size() <= 80
+            && d.placeSelection.lat is number
+            && d.placeSelection.lat >= -90 && d.placeSelection.lat <= 90
+            && d.placeSelection.lon is number
+            && d.placeSelection.lon >= -180 && d.placeSelection.lon <= 180
+            && d.placeSelection.radiusKm is number
+            && d.placeSelection.radiusKm >= 1 && d.placeSelection.radiusKm <= 200
+            && d.placeSelection.source in ['search', 'device']
+            && d.placeSelection.updatedAt is number
+            && (d.placeSelection.get('regionId', null) == null
+                || isValidRegionId(d.placeSelection.regionId)));
+    }
+
     // Directory listing fields on the profile docs. A profile may only be
     // listed (`listedInDirectory == true`) when it names at least one
     // category; categories/regions are capped so the doc stays small (up to
@@ -245,6 +268,15 @@ service cloud.firestore {
                || isValidRegionId(request.resource.data.regionId);
       }
 
+      // lat / lng: position of the event (Ort / Bezirk accuracy, derived in the browser from
+      // the bundled place list for the radius filter). Optional, null when unknown.
+      function isValidEventPosition() {
+        let d = request.resource.data;
+        return (!('lat' in d) || d.lat == null || (d.lat is number && d.lat >= -90 && d.lat <= 90))
+               && (!('lng' in d) || d.lng == null
+                   || (d.lng is number && d.lng >= -180 && d.lng <= 180));
+      }
+
       // Anyone creating an event (including admins) must start it as
       // 'pending' or 'draft'. Approval happens via update. Non-admins
       // additionally need a confirmed email address.
@@ -260,6 +292,7 @@ service cloud.firestore {
                     && isValidInstagramConsent()
                     && isValidFocalPoint()
                     && isValidImageZoom()
+                    && isValidEventPosition()
                     && isValidEventRegionOnCreate();
 
       // Moderation guard for owners who are not admins (a direct write
@@ -321,6 +354,7 @@ service cloud.firestore {
                     && isValidInstagramConsent()
                     && isValidFocalPoint()
                     && isValidImageZoom()
+                    && isValidEventPosition()
                     && isValidCancellation()
                     && isValidEventRegionOnUpdate();
 
@@ -499,6 +533,7 @@ service cloud.firestore {
                     && request.resource.data.bio.size() <= 2000
                     && request.resource.data.displayName.size() <= 80
                     && isValidDirectoryData(request.resource.data)
+                    && isValidPlaceSelection(request.resource.data)
                     && (!('instagramConsentDefault' in request.resource.data)
                         || request.resource.data.instagramConsentDefault is bool)
                     && (!('showOnlineStatus' in request.resource.data)
@@ -517,7 +552,7 @@ service cloud.firestore {
                                   'notifyOnSubmitted', 'notifyOnChangesRequested',
                                   'notifyOnPublished', 'notifyOnDeleted',
                                   'notifyOnContactMessage', 'notifyOnFavoriteCancelled',
-                                  'notifyNewsletter', 'instagramConsentDefault', 'onboardingDismissed',
+                                  'notifyNewsletter', 'instagramConsentDefault', 'onboardingDismissed', 'placeSelection',
                                   'updatedAt']);
 
       allow delete: if isAuthenticated() && request.auth.uid == uid;

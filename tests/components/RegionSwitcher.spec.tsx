@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { STATIC_REGIONS, mergeRegions } from '../../src/utils/regions';
@@ -7,14 +7,43 @@ import {
   REGION_CHOOSER_SEEN_KEY,
   regionSwitchSubpath,
 } from '../../src/utils/regionRouting';
+import { PLACE_SELECTION_KEY } from '../../src/utils/placeSelection';
 
 const mocks = vi.hoisted(() => ({
   regions: { regions: [] as unknown[], loading: false },
   trackFilter: vi.fn(),
+  // A handful of places is enough: the real list is pinned in placeSearch.spec.ts.
+  rawIndex: {
+    states: [
+      ['vorarlberg', 47.25, 9.9],
+      ['tirol', 47.25, 11.4],
+      ['bayern', 48.9, 11.4],
+      ['zuerich', 47.4, 8.6],
+    ],
+    districts: [
+      ['AT|Bregenz', 47.5, 9.75],
+      ['AT|Innsbruck', 47.27, 11.4],
+    ],
+    places: [
+      ['Bregenz', 47.503, 9.747, 0, 0],
+      ['Dornbirn', 47.413, 9.744, 0, -1],
+      ['Innsbruck', 47.269, 11.404, 1, 1],
+      ['München', 48.137, 11.575, 2, -1],
+      ['Zürich', 47.377, 8.54, 3, -1],
+    ],
+  },
 }));
 
 vi.mock('../../src/hooks/useRegions', () => ({ useRegions: () => mocks.regions }));
 vi.mock('../../src/lib/analyticsEvents', () => ({ trackFilter: mocks.trackFilter }));
+vi.mock('../../src/lib/placeData', async () => {
+  const search = await import('../../src/utils/placeSearch');
+  return {
+    buildRegionEntries: search.buildRegionEntries,
+    loadPlaceIndex: () => Promise.resolve(search.preparePlaceIndex(mocks.rawIndex)),
+    loadGeoShapes: () => Promise.reject(new Error('no border shapes in this test')),
+  };
+});
 
 import RegionProvider from '../../src/components/RegionProvider';
 import RegionSwitcher, { RegionMenuList } from '../../src/components/RegionSwitcher';
@@ -51,6 +80,7 @@ function renderAt(path: string) {
 const key = (k: string, shiftKey = false) =>
   fireEvent.keyDown(document.activeElement as HTMLElement, { key: k, shiftKey });
 const where = () => screen.getByTestId('where').textContent;
+const stored = () => JSON.parse(window.localStorage.getItem(PLACE_SELECTION_KEY) ?? 'null');
 
 beforeEach(() => {
   mocks.regions = { regions: STATIC_REGIONS, loading: false };
@@ -83,20 +113,20 @@ describe('with one active region', () => {
 });
 
 const openPicker = () => {
-  fireEvent.click(screen.getByRole('button', { name: /Region wählen, aktuell/ }));
+  fireEvent.click(screen.getByRole('button', { name: /Ort und Umkreis wählen, aktuell/ }));
   return screen.getByTestId('region-picker');
 };
-// Types into the pop-up's search field and clicks the suggestion with this label.
-const searchAndPick = (dialog: HTMLElement, query: string, label: string | RegExp) => {
-  fireEvent.change(within(dialog).getByRole('combobox'), { target: { value: query } });
-  const option = within(dialog)
-    .getAllByTestId('region-search-option')
-    .find((o) => {
-      const text = o.querySelector('.region-search-option-label')!.textContent ?? '';
-      return typeof label === 'string' ? text === label : label.test(text);
-    })!;
+// Types into the search field and clicks the suggestion with this name.
+const searchAndPick = async (scope: HTMLElement, query: string, name: string) => {
+  fireEvent.change(within(scope).getByRole('combobox'), { target: { value: query } });
+  const options = await within(scope).findAllByTestId('place-search-option');
+  const option = options.find(
+    (o) => o.querySelector('.place-search-option-label')!.textContent === name
+  )!;
   fireEvent.click(option);
 };
+const apply = (scope: HTMLElement) =>
+  fireEvent.click(within(scope).getByTestId('place-picker-apply'));
 
 describe('RegionSwitcher with two active regions', () => {
   beforeEach(() => {
@@ -104,9 +134,11 @@ describe('RegionSwitcher with two active regions', () => {
     window.localStorage.setItem(REGION_CHOOSER_SEEN_KEY, '1');
   });
 
-  it('opens a pop-up with location button, search and map link, but no region chips', () => {
+  it('opens a pop-up with search, location button and radius, but no map and no region chips', () => {
     renderAt('/');
-    const trigger = screen.getByRole('button', { name: /Region wählen, aktuell Vorarlberg/ });
+    const trigger = screen.getByRole('button', {
+      name: /Ort und Umkreis wählen, aktuell Vorarlberg/,
+    });
     expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
     expect(screen.queryByTestId('region-picker')).toBeNull();
@@ -116,63 +148,80 @@ describe('RegionSwitcher with two active regions', () => {
     expect(dialog).toHaveFocus();
     expect(within(dialog).getByRole('button', { name: /Meinen Standort verwenden/ })).toBeTruthy();
     expect(within(dialog).getByRole('combobox')).toBeInTheDocument();
-    expect(within(dialog).getByRole('button', { name: /Auf der Karte wählen/ })).toBeTruthy();
+    expect(within(dialog).getAllByRole('radio')).toHaveLength(4);
+    expect(within(dialog).queryByRole('button', { name: /Karte/ })).toBeNull();
     expect(within(dialog).queryByRole('button', { name: 'Tirol' })).toBeNull();
-    expect(
-      within(dialog).queryByRole('button', { name: /Ganz Österreich|Alle Tribes/ })
-    ).toBeNull();
-    expect(within(dialog).queryAllByRole('heading', { level: 3 })).toHaveLength(0);
   });
 
-  it('the search finds regions and districts, and marks regions that are not open yet', () => {
+  it('"Übernehmen" waits for a place; the radius defaults to 25 km', async () => {
     renderAt('/');
     const dialog = openPicker();
-    fireEvent.change(within(dialog).getByRole('combobox'), { target: { value: 'tirol' } });
-    expect(within(dialog).getAllByTestId('region-search-option')[0]).toHaveTextContent('Tirol');
-    fireEvent.change(within(dialog).getByRole('combobox'), { target: { value: 'bayern' } });
-    expect(within(dialog).getAllByTestId('region-search-option')[0]).toHaveTextContent('bald');
+    expect(within(dialog).getByTestId('place-picker-apply')).toBeDisabled();
+    expect(within(dialog).getByRole('radio', { name: '25 km' })).toBeChecked();
+    await searchAndPick(dialog, 'bregenz', 'Bregenz');
+    expect(within(dialog).getByTestId('place-picker-chosen')).toHaveTextContent('Bregenz');
+    expect(within(dialog).getByTestId('place-picker-chosen')).toHaveTextContent('Vorarlberg');
+    expect(within(dialog).getByTestId('place-picker-apply')).toBeEnabled();
   });
 
-  it('"Auf der Karte wählen" closes the pop-up and opens the map page', () => {
-    renderAt('/');
-    const dialog = openPicker();
-    fireEvent.click(within(dialog).getByRole('button', { name: /Auf der Karte wählen/ }));
-    expect(where()).toBe('/regionen');
-    expect(screen.queryByTestId('region-picker')).toBeNull();
-  });
-
-  it('navigates to the region, keeps the area and remembers the choice', () => {
+  it('a place in another region navigates there, remembers place and radius, tells analytics', async () => {
     renderAt('/vorarlberg/verzeichnis');
-    searchAndPick(openPicker(), 'tirol', 'Tirol');
+    const dialog = openPicker();
+    await searchAndPick(dialog, 'innsbruck', 'Innsbruck');
+    fireEvent.click(within(dialog).getByRole('radio', { name: '50 km' }));
+    apply(dialog);
     expect(where()).toBe('/tirol/verzeichnis');
     expect(window.localStorage.getItem(LAST_REGION_STORAGE_KEY)).toBe('tirol');
+    expect(stored()).toMatchObject({
+      label: 'Innsbruck',
+      radiusKm: 50,
+      regionId: 'tirol',
+      source: 'search',
+    });
     expect(mocks.trackFilter).toHaveBeenCalledWith('region', 'tirol');
     expect(screen.queryByTestId('region-picker')).toBeNull();
-    expect(screen.getByRole('button', { name: /aktuell Tirol/ })).toBeInTheDocument();
+    // The button now names place and radius.
+    expect(screen.getByRole('button', { name: /aktuell Innsbruck · 50 km/ })).toBeInTheDocument();
   });
 
-  it('a region that is not open yet leads to its coming-soon address', () => {
+  it('a place in the current region only closes the pop-up and keeps the address', async () => {
     renderAt('/');
-    searchAndPick(openPicker(), 'zürich', /^Zürich/);
-    expect(where()).toBe('/zuerich');
-  });
-
-  it('from an event page the switch leads to the region calendar', () => {
-    renderAt('/event/some-event');
-    searchAndPick(openPicker(), 'tirol', 'Tirol');
-    expect(where()).toBe('/tirol');
-  });
-
-  it('choosing the current region only closes the pop-up', () => {
-    renderAt('/');
-    searchAndPick(openPicker(), 'vorarlberg', 'Vorarlberg');
+    const dialog = openPicker();
+    await searchAndPick(dialog, 'dornbirn', 'Dornbirn');
+    apply(dialog);
     expect(where()).toBe('/');
     expect(screen.queryByTestId('region-picker')).toBeNull();
+    expect(stored()).toMatchObject({ label: 'Dornbirn', radiusKm: 25, regionId: 'vorarlberg' });
+  });
+
+  it('a place of a region that is not open yet leads to its coming-soon address', async () => {
+    renderAt('/');
+    const dialog = openPicker();
+    await searchAndPick(dialog, 'münchen', 'München');
+    apply(dialog);
+    expect(where()).toBe('/bayern');
+  });
+
+  it('finds a region by its name too, and uses it as the place', async () => {
+    renderAt('/');
+    const dialog = openPicker();
+    await searchAndPick(dialog, 'tirol', 'Tirol');
+    apply(dialog);
+    expect(where()).toBe('/tirol');
+    expect(stored()).toMatchObject({ label: 'Tirol', regionId: 'tirol' });
+  });
+
+  it('from an event page the choice leads to the region calendar', async () => {
+    renderAt('/event/some-event');
+    const dialog = openPicker();
+    await searchAndPick(dialog, 'innsbruck', 'Innsbruck');
+    apply(dialog);
+    expect(where()).toBe('/tirol');
   });
 
   it('closes with the X, Escape or a click next to it, and focus returns to the button', () => {
     renderAt('/');
-    const trigger = screen.getByRole('button', { name: /Region wählen, aktuell/ });
+    const trigger = screen.getByRole('button', { name: /Ort und Umkreis wählen, aktuell/ });
     fireEvent.click(within(openPicker()).getByRole('button', { name: 'Schließen' }));
     expect(screen.queryByTestId('region-picker')).toBeNull();
     expect(trigger).toHaveFocus();
@@ -187,20 +236,23 @@ describe('RegionSwitcher with two active regions', () => {
     const dialog = openPicker();
     fireEvent.mouseDown(dialog);
     expect(screen.getByTestId('region-picker')).toBeInTheDocument();
+    expect(stored()).toBeNull();
   });
 
   it('keeps Tab focus inside the pop-up', () => {
     renderAt('/');
     const dialog = openPicker();
-    const buttons = within(dialog).getAllByRole('button');
-    buttons[buttons.length - 1].focus();
+    const stops = Array.from(
+      dialog.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled])')
+    );
+    stops[stops.length - 1].focus();
     key('Tab');
-    expect(buttons[0]).toHaveFocus();
+    expect(stops[0]).toHaveFocus();
     key('Tab', true);
-    expect(buttons[buttons.length - 1]).toHaveFocus();
+    expect(stops[stops.length - 1]).toHaveFocus();
   });
 
-  it('does not crash when localStorage throws', () => {
+  it('does not crash when localStorage throws', async () => {
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new Error('blocked');
     });
@@ -208,7 +260,9 @@ describe('RegionSwitcher with two active regions', () => {
       throw new Error('blocked');
     });
     renderAt('/');
-    searchAndPick(openPicker(), 'tirol', 'Tirol');
+    const dialog = openPicker();
+    await searchAndPick(dialog, 'innsbruck', 'Innsbruck');
+    apply(dialog);
     expect(where()).toBe('/tirol');
   });
 });
@@ -227,14 +281,15 @@ describe('RegionMenuList (burger menu on the phone)', () => {
     return onNavigate;
   }
 
-  it('is one button naming the region; it closes the menu and opens the same pop-up', () => {
+  it('is one button naming the place; it closes the menu and opens the same pop-up', async () => {
     const onNavigate = renderList();
-    const button = screen.getByRole('button', { name: /Region: Vorarlberg/ });
+    const button = screen.getByRole('button', { name: /Ort: Vorarlberg/ });
     expect(button).toHaveAttribute('aria-haspopup', 'dialog');
     fireEvent.click(button);
     expect(onNavigate).toHaveBeenCalled();
     const dialog = screen.getByTestId('region-picker');
-    searchAndPick(dialog, 'tirol', 'Tirol');
+    await searchAndPick(dialog, 'innsbruck', 'Innsbruck');
+    apply(dialog);
     expect(where()).toBe('/tirol');
     expect(screen.queryByTestId('region-picker')).toBeNull();
   });
@@ -249,6 +304,65 @@ describe('RegionMenuList (burger menu on the phone)', () => {
       </MemoryRouter>
     );
     expect(screen.queryByTestId('region-menu-list')).toBeNull();
+  });
+});
+
+describe('the remembered place', () => {
+  beforeEach(() => {
+    mocks.regions = { regions: TWO_ACTIVE, loading: false };
+  });
+
+  it('is the region of / and the first-visit chooser stays away', () => {
+    window.localStorage.setItem(
+      PLACE_SELECTION_KEY,
+      JSON.stringify({
+        label: 'Innsbruck',
+        lat: 47.269,
+        lon: 11.404,
+        radiusKm: 25,
+        regionId: 'tirol',
+        source: 'search',
+        updatedAt: 1,
+      })
+    );
+    renderAt('/');
+    expect(screen.queryByTestId('region-chooser')).toBeNull();
+    expect(screen.getByRole('button', { name: /aktuell Innsbruck · 25 km/ })).toBeInTheDocument();
+  });
+
+  it('is ignored for another region address: Tirol by hand is Tirol, not a circle', () => {
+    window.localStorage.setItem(
+      PLACE_SELECTION_KEY,
+      JSON.stringify({
+        label: 'Bregenz',
+        lat: 47.503,
+        lon: 9.747,
+        radiusKm: 25,
+        regionId: 'vorarlberg',
+        source: 'search',
+        updatedAt: 1,
+      })
+    );
+    renderAt('/tirol');
+    expect(screen.getByRole('button', { name: /aktuell Tirol/ })).toBeInTheDocument();
+  });
+
+  it('is not used with only Vorarlberg active (dark launch)', () => {
+    mocks.regions = { regions: STATIC_REGIONS, loading: false };
+    window.localStorage.setItem(
+      PLACE_SELECTION_KEY,
+      JSON.stringify({
+        label: 'Bregenz',
+        lat: 47.503,
+        lon: 9.747,
+        radiusKm: 25,
+        regionId: 'vorarlberg',
+        source: 'search',
+        updatedAt: 1,
+      })
+    );
+    renderAt('/');
+    expect(screen.queryByTestId('region-switcher')).toBeNull();
   });
 });
 
@@ -308,7 +422,7 @@ describe('region chooser opened on purpose (/regionen)', () => {
     window.localStorage.setItem(LAST_REGION_STORAGE_KEY, 'vorarlberg');
   });
 
-  it('shows the map page although a region is remembered, and can be closed', () => {
+  it('shows the page although a region is remembered, and can be closed', () => {
     renderAt('/regionen');
     expect(screen.getByTestId('region-chooser')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('region-chooser-close'));
@@ -322,31 +436,19 @@ describe('region chooser opened on purpose (/regionen)', () => {
     expect(where()).toBe('/');
   });
 
-  it('shows only the map and the location button: no lists, search or moderator card', async () => {
+  it('has no moderator card and no map', () => {
     renderAt('/regionen');
-    expect(await screen.findByTestId('region-map')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Standort/ })).toBeInTheDocument();
-    expect(screen.queryByTestId('region-search-input')).toBeNull();
-    expect(screen.queryByRole('button', { name: /^Ganz Deutschland/ })).toBeNull();
-    expect(screen.queryByTestId('region-chooser-country-DE')).toBeNull();
+    expect(screen.getByTestId('place-picker')).toBeInTheDocument();
     expect(document.querySelector('.region-chooser-apply')).toBeNull();
+    expect(screen.queryByTestId('region-map')).toBeNull();
   });
 
-  it('"Schließen" returns to the previous page, or to the start page without history', () => {
+  it('choosing a place leaves the page', async () => {
     renderAt('/regionen');
-    fireEvent.click(screen.getByTestId('region-chooser-close'));
-    expect(where()).toBe('/');
-  });
-
-  it('choosing a region on the map leaves the page (also a closed one)', async () => {
-    renderAt('/regionen');
-    const shape = await waitFor(() => {
-      const el = document.querySelector('[data-region="schwyz"]');
-      expect(el).not.toBeNull();
-      return el as Element;
-    });
-    fireEvent.click(shape);
-    expect(where()).toBe('/schwyz');
+    const chooser = screen.getByTestId('region-chooser');
+    await searchAndPick(chooser, 'innsbruck', 'Innsbruck');
+    apply(chooser);
+    expect(where()).toBe('/tirol');
     expect(screen.queryByTestId('region-chooser')).toBeNull();
   });
 
@@ -357,48 +459,22 @@ describe('region chooser opened on purpose (/regionen)', () => {
   });
 });
 
-describe('RegionChooser', () => {
+describe('RegionChooser (first visit)', () => {
   beforeEach(() => {
     mocks.regions = { regions: TWO_ACTIVE, loading: false };
   });
 
-  it('shows on the first visit as a modal dialog with focus inside and lists the regions', () => {
+  it('shows as a modal dialog with focus inside, a place search and no map or region lists', () => {
     renderAt('/');
     const dialog = screen.getByRole('dialog', { name: 'Wo suchst du?' });
     expect(dialog).toHaveAttribute('aria-modal', 'true');
     expect(dialog).toHaveFocus();
-    expect(dialog.querySelector('.region-chooser-close, .region-chooser-skip')).toBeNull();
-    const labels = Array.from(dialog.querySelectorAll('.region-chooser-option')).map(
-      (b) => b.textContent
-    );
-    // Combined views first, then every region grouped by country: open regions
-    // plain, the others marked "(bald)".
-    expect(labels.slice(0, 4)).toEqual([
-      'Ganz Österreich',
-      'Ganz Deutschland (bald)',
-      'Ganz Schweiz (bald)',
-      'Alle Tribes',
-    ]);
-    expect(labels).toHaveLength(4 + 51);
-    expect(labels).toContain('Vorarlberg');
-    expect(labels).toContain('Tirol');
-    expect(labels).toContain('Bayern (bald)');
-    expect(labels).not.toContain('Steiermark');
-    expect(dialog.querySelectorAll('.region-chooser-country-name')).toHaveLength(3);
-  });
-
-  it('shows the silent map; clicking a region on it is a choice, closed regions go to coming soon', async () => {
-    renderAt('/');
-    const map = await screen.findByTestId('region-map');
-    expect(map).toHaveAttribute('data-testid', 'region-map');
-    expect(map.querySelectorAll('path[data-region]')).toHaveLength(51);
-    // The map is a pointer shortcut; the list is the accessible equivalent.
-    expect(map.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
-    fireEvent.mouseEnter(map.querySelector('path[data-region="bayern"]')!);
-    expect(screen.getByTestId('region-map-caption')).toHaveTextContent('Bayern (bald)');
-    fireEvent.click(map.querySelector('path[data-region="steiermark"]')!);
-    expect(where()).toBe('/steiermark');
-    expect(window.localStorage.getItem(LAST_REGION_STORAGE_KEY)).toBe('steiermark');
+    expect(dialog.querySelector('.region-chooser-close')).toBeNull();
+    expect(within(dialog).getByRole('combobox')).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: /Meinen Standort verwenden/ })).toBeTruthy();
+    expect(screen.queryByTestId('region-map')).toBeNull();
+    expect(dialog.querySelectorAll('.region-chooser-country-name')).toHaveLength(0);
+    expect(within(dialog).queryByRole('button', { name: 'Tirol' })).toBeNull();
   });
 
   it('shows nothing while the region data is loading', () => {
@@ -407,54 +483,30 @@ describe('RegionChooser', () => {
     expect(screen.queryByTestId('region-chooser')).toBeNull();
   });
 
-  it('a choice navigates, is remembered and the chooser does not come back', () => {
+  it('a choice navigates, is remembered and the chooser does not come back', async () => {
     const { unmount } = renderAt('/');
-    fireEvent.click(screen.getByRole('button', { name: 'Tirol' }));
+    const chooser = screen.getByTestId('region-chooser');
+    await searchAndPick(chooser, 'innsbruck', 'Innsbruck');
+    apply(chooser);
     expect(where()).toBe('/tirol');
     expect(window.localStorage.getItem(LAST_REGION_STORAGE_KEY)).toBe('tirol');
+    expect(stored()).toMatchObject({ label: 'Innsbruck', regionId: 'tirol' });
     expect(screen.queryByTestId('region-chooser')).toBeNull();
     unmount();
     renderAt('/');
     expect(screen.queryByTestId('region-chooser')).toBeNull();
   });
 
-  it('searching a Landkreis and pressing Enter is a choice of its region', () => {
-    renderAt('/');
-    const input = screen.getByTestId('region-search-input');
-    fireEvent.change(input, { target: { value: 'münchen' } });
-    fireEvent.keyDown(input, { key: 'Enter' });
-    expect(where()).toBe('/bayern');
-    expect(window.localStorage.getItem(LAST_REGION_STORAGE_KEY)).toBe('bayern');
-  });
-
-  it('groups the German regions by Grossregion, hides regions without Landkreise', () => {
-    mocks.regions = {
-      regions: TWO_ACTIVE.map((r) =>
-        r.id === 'franken'
-          ? { ...r, bezirke: ['Roth'] }
-          : r.id === 'bayern'
-            ? { ...r, bezirke: [] }
-            : r
-      ),
-      loading: false,
-    };
-    renderAt('/');
-    const south = screen.getByTestId('region-chooser-macro-Südosten');
-    expect(within(south).getByRole('button', { name: /^Franken/ })).toBeInTheDocument();
-    // Bayern lost all its Landkreise: gone for visitors; empty cultural regions never show.
-    expect(screen.queryByRole('button', { name: /^Bayern/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^Oberbayern/ })).not.toBeInTheDocument();
-    expect(screen.getByTestId('region-chooser-macro-Norden')).toBeInTheDocument();
-  });
-
-  it('offers the countries as accordions, Austria open', () => {
-    renderAt('/');
-    expect(screen.getByTestId('region-chooser-country-AT')).toHaveAttribute('open');
-    expect(screen.getByTestId('region-chooser-country-DE')).not.toHaveAttribute('open');
-    expect(screen.getByTestId('region-chooser-country-CH')).not.toHaveAttribute('open');
+  it('the directory keeps its address when the choice is made there', async () => {
+    renderAt('/verzeichnis');
+    const chooser = screen.getByTestId('region-chooser');
+    await searchAndPick(chooser, 'innsbruck', 'Innsbruck');
+    apply(chooser);
+    expect(where()).toBe('/tirol/verzeichnis');
   });
 
   it('Ganz Österreich counts as a choice too', () => {
+    mocks.regions = { regions: THREE_ACTIVE, loading: false };
     const { unmount } = renderAt('/verzeichnis');
     fireEvent.click(screen.getByRole('button', { name: 'Ganz Österreich' }));
     expect(where()).toBe('/oesterreich/verzeichnis');
@@ -474,13 +526,15 @@ describe('RegionChooser', () => {
 
   it('keeps Tab focus inside the dialog', () => {
     renderAt('/');
-    const options = within(screen.getByRole('dialog')).getAllByRole('button');
-    options[options.length - 1].focus();
+    const dialog = screen.getByRole('dialog');
+    const stops = Array.from(
+      dialog.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled])')
+    );
+    stops[stops.length - 1].focus();
     key('Tab');
-    // The search field is the first stop of the dialog.
-    expect(screen.getByTestId('region-search-input')).toHaveFocus();
-    key('Tab'); // from the dialog itself / first button stays inside
-    expect(screen.getByRole('dialog')).toContainElement(document.activeElement as HTMLElement);
+    expect(stops[0]).toHaveFocus();
+    key('Tab', true);
+    expect(dialog).toContainElement(document.activeElement as HTMLElement);
   });
 
   it('visiting a region address counts as a choice and the chooser never shows afterwards', () => {
@@ -497,7 +551,7 @@ describe('RegionChooser', () => {
     expect(screen.getByTestId('region-chooser')).toBeInTheDocument();
   });
 
-  it('stays away with a remembered region or on region, event and profile addresses', () => {
+  it('stays away with a remembered region', () => {
     window.localStorage.setItem(LAST_REGION_STORAGE_KEY, 'vorarlberg');
     renderAt('/');
     expect(screen.queryByTestId('region-chooser')).toBeNull();

@@ -1,27 +1,24 @@
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { Map as MapIcon, X } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+import { X } from 'lucide-react';
 import { useRegion } from '../hooks/useRegion';
 import { trackFilter } from '../lib/analyticsEvents';
 import { regionSwitchSubpath } from '../utils/regionRouting';
-import LocateRegionButton from './LocateRegionButton';
-import RegionSearch from './RegionSearch';
+import PlacePicker from './PlacePicker';
 import './RegionPickerModal.css';
 
 const FOCUSABLE = 'button:not([disabled]), input:not([disabled])';
 
 /**
- * Pop-up to change the region (ticket 596): the "use my location" button, a
- * search field with autocomplete (regions and districts; regions that are not
- * open yet are marked "bald" and lead to their coming-soon page) and a link to
- * the map page. No region chips any more. Closes with the X, Escape or a click
- * next to it. Used by the header switcher and the burger menu.
+ * Pop-up to change "Wo bist du?": place (typed or shared location) and radius, see
+ * PlacePicker. The region follows from the place; a region that is not open yet leads to
+ * its coming-soon page. Closes with the X, Escape or a click next to it. Used by the header
+ * switcher, the burger menu, the profile and the footer.
  */
 export default function RegionPickerModal({ open, onClose }) {
-  const { regions, allRegions, regionId, combinedView, setRegion } = useRegion();
+  const { regionId, combinedView, setRegion, setPlaceSelection } = useRegion();
   const { pathname } = useLocation();
-  const navigate = useNavigate();
   const dialogRef = useRef(null);
 
   useEffect(() => {
@@ -66,15 +63,16 @@ export default function RegionPickerModal({ open, onClose }) {
 
   if (!open) return null;
 
-  const activeSlugs = new Set(regions.map((r) => r.slug));
   const currentSlug = combinedView ? combinedView.slug : regionId;
-  const sorted = [...allRegions].sort((a, b) => a.order - b.order);
 
-  const choose = (slug) => {
+  const apply = (selection) => {
+    setPlaceSelection(selection);
     onClose();
-    if (slug === currentSlug) return;
-    trackFilter('region', slug);
-    setRegion(slug, regionSwitchSubpath(pathname));
+    if (!selection.regionId) return;
+    trackFilter('region', selection.regionId);
+    if (selection.regionId !== currentSlug) {
+      setRegion(selection.regionId, regionSwitchSubpath(pathname));
+    }
   };
 
   return createPortal(
@@ -95,7 +93,7 @@ export default function RegionPickerModal({ open, onClose }) {
       >
         <header className="region-picker-header">
           <h2 id="region-picker-title" className="region-picker-title">
-            Region wählen
+            Wo bist du?
           </h2>
           <button
             type="button"
@@ -108,22 +106,7 @@ export default function RegionPickerModal({ open, onClose }) {
         </header>
 
         <div className="region-picker-body">
-          <LocateRegionButton
-            regions={allRegions}
-            onChoose={choose}
-            className="locate-region--start"
-          />
-          <RegionSearch regions={sorted} activeSlugs={activeSlugs} onChoose={choose} />
-          <button
-            type="button"
-            className="region-picker-map"
-            onClick={() => {
-              onClose();
-              navigate('/regionen');
-            }}
-          >
-            <MapIcon size={18} aria-hidden="true" /> Auf der Karte wählen
-          </button>
+          <PlacePicker onApply={apply} />
         </div>
       </section>
     </div>,

@@ -4,6 +4,12 @@ import { useRegions } from '../hooks/useRegions';
 import { RegionContext } from '../hooks/useRegion';
 import { getRegionBySlug, isCombinedViewSlug, isPopulated, isRegionSlug } from '../utils/regions';
 import {
+  activeRadiusFilter,
+  normalizeSelection,
+  readPlaceSelection,
+  writePlaceSelection,
+} from '../utils/placeSelection';
+import {
   activeRegions,
   availableCombinedViews,
   combinedViewRegions,
@@ -32,6 +38,9 @@ export default function RegionProvider({ children }) {
   const allRegions = useMemo(() => registry.filter(isPopulated), [registry]);
   const [storedSlug, setStoredSlug] = useState(() => readLastRegion());
   const [eventRegionId, setEventRegionId] = useState(null);
+  // "Wo bist du?": the remembered place + radius (browser; PlaceSelectionSync mirrors it to
+  // the profile of signed-in users).
+  const [placeSelection, setPlaceSelectionState] = useState(() => readPlaceSelection());
 
   const urlSlug = regionSlugFromPath(pathname);
   const urlRegionIsActive = Boolean(
@@ -58,6 +67,16 @@ export default function RegionProvider({ children }) {
     },
     [navigate]
   );
+
+  // `selection` null forgets the place. A selection that comes from the profile keeps its own
+  // timestamp (`keepTime`), a new choice is stamped now so the newer one wins on sign-in.
+  const setPlaceSelection = useCallback((selection, { keepTime = false } = {}) => {
+    const clean = normalizeSelection(
+      selection ? { ...selection, updatedAt: keepTime ? selection.updatedAt : Date.now() } : null
+    );
+    writePlaceSelection(clean);
+    setPlaceSelectionState(clean);
+  }, []);
 
   const setEventRegion = useCallback((regionId) => {
     setEventRegionId(isRegionSlug(regionId) ? regionId : null);
@@ -90,7 +109,12 @@ export default function RegionProvider({ children }) {
     const regionId =
       !urlSlug && eventRegionId
         ? eventRegionId
-        : resolveCurrentRegionId({ urlSlug, storedSlug, regions: allRegions });
+        : resolveCurrentRegionId({
+            urlSlug,
+            storedSlug: placeSelection?.regionId ?? storedSlug,
+            regions: allRegions,
+          });
+    const activeList = activeRegions(allRegions);
     return {
       region: getRegionBySlug(regionId, allRegions),
       regionId,
@@ -108,6 +132,14 @@ export default function RegionProvider({ children }) {
       loading,
       setRegion,
       setEventRegion,
+      placeSelection,
+      setPlaceSelection,
+      // { lat, lon, km } while the calendar shows everything within the radius, else null.
+      radiusFilter: activeRadiusFilter(placeSelection, {
+        regionId,
+        isNational,
+        activeCount: activeList.length,
+      }),
     };
   }, [
     urlSlug,
@@ -118,6 +150,8 @@ export default function RegionProvider({ children }) {
     loading,
     setRegion,
     setEventRegion,
+    placeSelection,
+    setPlaceSelection,
   ]);
 
   return <RegionContext.Provider value={value}>{children}</RegionContext.Provider>;

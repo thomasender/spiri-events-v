@@ -141,7 +141,9 @@ nothing visible may change (no chooser, no region names in mails, no GA `region`
 byte-identical prerender and Vorarlberg ICS feed). A missing `regionId` /
 `directoryRegionIds` always means `vorarlberg`. Roles: Super-Admin and
 Regions-Moderator:in. Regions are switched on only in Verwaltung -> "Regionen",
-never by hand-editing `regions/{id}.active`. Everything else (data model,
+never by hand-editing `regions/{id}.active`. Visitors never see a region map: they give a
+place (typed or shared location) and a radius, the calendar shows everything within it and the
+region (title, texts) follows the place; the Landkreis -> region mapping stays in the backend. Everything else (data model,
 queries and migration marker, emails, SEO, ICS, analytics, fixtures, how to add a
 region) is in `docs/regions.md`.
 
@@ -152,7 +154,8 @@ two-line "read this when".
 
 - Read `docs/regions.md` ONLY when you touch regions, region texts or routing, combined
   views (`/oesterreich`, `/alle-tribes`), Regions-Moderator:in roles or rules,
-  region activation, region fixtures/tests, or want to add a region.
+  region activation, region fixtures/tests, the visitor's place + radius choice ("Wo bist du?"), event
+  positions (`lat`/`lng`) or the place list, or want to add a region.
 - Read `docs/staging-migration.md` ONLY when you run or change the Firestore
   migration/backup/mirror scripts (`migrate-region-ids`, `export-firestore`,
   `mirror-prod-to-staging`, `seed-regions`) or build/deploy to `tribe-vbg-staging`.

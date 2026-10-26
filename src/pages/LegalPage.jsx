@@ -339,14 +339,15 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
 *Rechtsgrundlage:* Ihre Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), die Sie jederzeit mit Wirkung für die Zukunft widerrufen können, indem Sie die Option im Profil ausschalten.`,
       },
       {
-        heading: '17. Standort für die Regionswahl (freiwillig)',
-        text: `Bei der Wahl Ihrer Region können Sie auf „Meinen Standort verwenden“ klicken. Erst dann fragt Ihr Browser, ob er Ihren Standort mitteilen darf; ohne diesen Klick und ohne Ihre Erlaubnis wird kein Standort abgefragt.
+        heading: '17. Ort, Umkreis und Standort (freiwillig)',
+        text: `Damit wir Ihnen Veranstaltungen in Ihrer Nähe zeigen können, geben Sie einen Ort oder eine Region ein und wählen einen Umkreis. Alternativ können Sie auf „Meinen Standort verwenden“ klicken. Erst dann fragt Ihr Browser, ob er Ihren Standort mitteilen darf; ohne diesen Klick und ohne Ihre Erlaubnis wird kein Standort abgefragt.
 
-- Der Standort wird nur einmal und nur in Ihrem Browser verwendet, um den passenden Landkreis (Deutschland), das Bundesland (Österreich) bzw. den Kanton (Schweiz) und damit Ihre Region zu finden
-- Er wird nicht an uns oder an andere Dienste übermittelt und nirgends gespeichert. Gespeichert wird nur die gewählte Region, genauso wie bei einer Auswahl von Hand
+- Die Suche nach Orten und Regionen läuft vollständig in Ihrem Browser mit einer in die App eingebauten Ortsliste. Ihre Eingabe wird dafür nicht an uns oder an andere Dienste gesendet
+- Ein geteilter Standort wird nur einmal und nur in Ihrem Browser verwendet, um den nächstgelegenen Ort der Liste (und damit Ihre Region) zu finden. Der genaue Standort wird nicht an uns oder an andere Dienste übermittelt und nirgends gespeichert
+- Gespeichert wird nur die Auswahl selbst: der Name des Ortes, dessen ungefähre Lage (auf den Ort gerundet), der Umkreis und die zugehörige Region. Ohne Konto bleibt das in Ihrem Browser (lokaler Speicher). Mit Konto wird die Auswahl zusätzlich in Ihrem Profil gespeichert, damit sie auf allen Ihren Geräten gilt. Sie können sie jederzeit im Menü oder in Ihrem Profil ändern; beim Löschen Ihres Kontos wird sie mit gelöscht
+- Rechtsgrundlage ist unser berechtigtes Interesse, Ihnen passende Veranstaltungen anzuzeigen (Art. 6 Abs. 1 lit. f DSGVO), für den geteilten Standort Ihre Einwilligung im Browser (Art. 6 Abs. 1 lit. a DSGVO), die Sie jederzeit in den Einstellungen Ihres Browsers widerrufen können
 - Ihr Browser bzw. Ihr Gerät ermittelt den Standort selbst und nutzt dafür je nach Gerät die Ortungsdienste des Herstellers (z.B. Google oder Apple); dafür gelten deren Datenschutzbestimmungen
-- Sie können Ihre Region jederzeit selbst wählen oder ändern. Die Erlaubnis für den Standort können Sie in den Einstellungen Ihres Browsers jederzeit widerrufen
-- Die dafür nötigen Grenzen liegen in der App selbst. Die Kartendaten wurden vereinfacht und damit verändert. Quellen: Österreich © BEV – Bundesamt für Eich- und Vermessungswesen, laut Angabe von geoBoundaries unter der Lizenz [CC BY-SA 2.0](https://creativecommons.org/licenses/by-sa/2.0/); Schweiz © swisstopo (swissBOUNDARIES3D, [Nutzungsbedingungen](https://www.swisstopo.admin.ch/de/nutzungsbedingungen-kostenlose-geodaten-und-geodienste)); Liechtenstein: Natural Earth (gemeinfrei)`,
+- Die Ortsliste und die Grenzen liegen in der App selbst. Die Kartendaten wurden vereinfacht und damit verändert. Quellen: Orte und Postleitzahlen: [GeoNames](https://www.geonames.org), Lizenz [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); Österreich © BEV – Bundesamt für Eich- und Vermessungswesen, laut Angabe von geoBoundaries unter der Lizenz [CC BY-SA 2.0](https://creativecommons.org/licenses/by-sa/2.0/); Schweiz © swisstopo (swissBOUNDARIES3D, [Nutzungsbedingungen](https://www.swisstopo.admin.ch/de/nutzungsbedingungen-kostenlose-geodaten-und-geodienste)); Liechtenstein: Natural Earth (gemeinfrei)`,
       },
       {
         heading: '18. Änderungen dieser Datenschutzerklärung',
@@ -414,7 +415,7 @@ E-Mail: [admin@thetribe.at](mailto:admin@thetribe.at)`;
       },
       {
         heading: 'Kartendaten / Quellen',
-        text: `Die Grenzen für die Regionswahl wurden vereinfacht und damit verändert. Österreich: © BEV – Bundesamt für Eich- und Vermessungswesen, laut Angabe von geoBoundaries unter der Lizenz [CC BY-SA 2.0](https://creativecommons.org/licenses/by-sa/2.0/). Schweiz: © swisstopo ([Nutzungsbedingungen](https://www.swisstopo.admin.ch/de/nutzungsbedingungen-kostenlose-geodaten-und-geodienste)). Liechtenstein: Natural Earth (gemeinfrei).`,
+        text: `Die Ortsliste für die Ortswahl stammt von [GeoNames](https://www.geonames.org) ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)). Die Grenzen für die Regionswahl wurden vereinfacht und damit verändert. Österreich: © BEV – Bundesamt für Eich- und Vermessungswesen, laut Angabe von geoBoundaries unter der Lizenz [CC BY-SA 2.0](https://creativecommons.org/licenses/by-sa/2.0/). Schweiz: © swisstopo ([Nutzungsbedingungen](https://www.swisstopo.admin.ch/de/nutzungsbedingungen-kostenlose-geodaten-und-geodienste)). Liechtenstein: Natural Earth (gemeinfrei).`,
       },
       {
         heading: 'Streitschlichtung',

@@ -1,17 +1,10 @@
-import { Suspense, lazy, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useRegion } from '../hooks/useRegion';
 import { trackFilter } from '../lib/analyticsEvents';
-import {
-  COMBINED_VIEWS,
-  COUNTRY_LABELS,
-  COUNTRIES,
-  DE_MACRO_REGIONS,
-  DEFAULT_COUNTRY,
-  isCombinedViewSlug,
-} from '../utils/regions';
+import { COMBINED_VIEWS, isCombinedViewSlug } from '../utils/regions';
 import {
   readLastRegion,
   readRegionChooserSeen,
@@ -20,12 +13,8 @@ import {
 } from '../utils/regionRouting';
 import './RegionChooser.css';
 
-import LocateRegionButton from './LocateRegionButton';
 import ModeratorApplyCard from './ModeratorApplyCard';
-import RegionSearch from './RegionSearch';
-
-// The map data is only needed by first-time visitors.
-const RegionMap = lazy(() => import('./RegionMap'));
+import PlacePicker from './PlacePicker';
 
 // Only the two entry pages without a region in the address: never on a region
 // address, event page or profile, so crawlers and link previews are unaffected.
@@ -37,18 +26,18 @@ const FOCUSABLE =
   'button:not([disabled]), input:not([disabled]):not([tabindex="-1"]), select:not([disabled]), textarea:not([disabled])';
 
 /**
- * "Wo suchst du?" when we do not know yet where a visitor wants to search: a
- * full page (not a small pop-up) with a silent map of Germany, Austria and
- * Switzerland plus the same choice as a list (the accessible equivalent).
- * Opened on purpose (`/regionen`, ticket 597) it shows only the map and the
- * location button, with "Schließen" at the top. Dark launch: needs at least two active
- * regions. First-visit: no close button, no Escape dismissal. Not shown once a region is remembered (localStorage), and
- * opening a region address counts as a choice. The page stays rendered behind it
- * (only made inert while the chooser is open). A region that is not open yet
- * leads to its coming-soon page.
+ * "Wo suchst du?" when we do not know yet where a visitor wants to search: a full page (not
+ * a small pop-up) with the place + radius step (PlacePicker). No map: visitors type a place
+ * or share their location and pick a radius; the region is worked out from the place.
+ * Opened on purpose (`/regionen`) it has "Schließen" at the top and works with Escape.
+ * Dark launch: needs at least two active regions. First visit: no close button, no Escape
+ * dismissal. Not shown once a place or region is remembered (localStorage), and opening a
+ * region address counts as a choice. The page stays rendered behind it (only made inert
+ * while the chooser is open). A region that is not open yet leads to its coming-soon page.
  */
 export default function RegionChooser() {
-  const { regions, allRegions, combinedViews, loading, setRegion } = useRegion();
+  const { regions, combinedViews, loading, setRegion, placeSelection, setPlaceSelection } =
+    useRegion();
   const { pathname, key } = useLocation();
   const navigate = useNavigate();
   const dialogRef = useRef(null);
@@ -63,7 +52,9 @@ export default function RegionChooser() {
 
   const stored = readLastRegion();
   const remembered =
-    readRegionChooserSeen() || Boolean(stored && regions.some((r) => r.slug === stored));
+    readRegionChooserSeen() ||
+    Boolean(placeSelection) ||
+    Boolean(stored && regions.some((r) => r.slug === stored));
   const show =
     !loading &&
     regions.length >= 2 &&
@@ -120,34 +111,28 @@ export default function RegionChooser() {
 
   if (!show) return null;
 
-  const choose = (slug) => {
-    if (isCombinedViewSlug(slug)) writeRegionChooserSeen();
+  const subpath = pathname === '/verzeichnis' ? '/verzeichnis' : '/';
+
+  const chooseView = (slug) => {
+    writeRegionChooserSeen();
     trackFilter('region', slug);
-    // setRegion remembers a concrete region itself (tribe:lastRegion).
-    setRegion(slug, pathname === '/verzeichnis' ? '/verzeichnis' : '/');
+    setRegion(slug, subpath);
   };
 
-  const activeSlugs = new Set(regions.map((r) => r.slug));
+  const apply = (selection) => {
+    setPlaceSelection(selection);
+    writeRegionChooserSeen();
+    if (selection.regionId) {
+      trackFilter('region', selection.regionId);
+      // setRegion remembers a concrete region itself (tribe:lastRegion).
+      setRegion(selection.regionId, subpath);
+    } else {
+      navigate(subpath);
+    }
+  };
+
   // All four views are offered; the ones without enough open regions lead to "bald".
   const availableViews = new Set(combinedViews.map((v) => v.slug));
-  const sorted = [...allRegions].sort((a, b) => a.order - b.order);
-  const renderOptions = (list) => (
-    <div className="region-chooser-options">
-      {list.map((r) => (
-        <button
-          key={r.slug}
-          type="button"
-          className={`region-chooser-option${
-            activeSlugs.has(r.slug) ? '' : ' region-chooser-option--soon'
-          }`}
-          onClick={() => choose(r.slug)}
-        >
-          {r.name}
-          {!activeSlugs.has(r.slug) && <span className="region-chooser-soon"> (bald)</span>}
-        </button>
-      ))}
-    </div>
-  );
 
   return createPortal(
     <div className="region-chooser-backdrop">
@@ -174,85 +159,34 @@ export default function RegionChooser() {
           <h2 id="region-chooser-title" className="region-chooser-title">
             Wo suchst du?
           </h2>
-          {!onRegionsPage && (
-            <>
-              <p className="region-chooser-hint">
-                Wähle deine Region, damit wir dir passende Events zeigen. Du kannst sie jederzeit im
-                Menü wechseln.
-              </p>
-              <RegionSearch regions={sorted} activeSlugs={activeSlugs} onChoose={choose} />
-            </>
-          )}
-          <LocateRegionButton regions={allRegions} onChoose={choose} />
+          <p className="region-chooser-hint">
+            Gib einen Ort oder eine Region ein oder teile deinen Standort und wähle einen Umkreis.
+            Wir zeigen dir die passenden Events. Du kannst das jederzeit im Menü ändern.
+          </p>
         </header>
-        <div
-          className={`region-chooser-layout${onRegionsPage ? ' region-chooser-layout--map-only' : ''}`}
-        >
-          <Suspense fallback={null}>
-            <RegionMap regions={sorted} activeSlugs={activeSlugs} onChoose={choose} />
-          </Suspense>
-          {!onRegionsPage && (
-            <div className="region-chooser-lists">
-              <div className="region-chooser-options region-chooser-options--views">
-                {COMBINED_VIEWS.map((v) => {
-                  const available = availableViews.has(v.slug);
-                  return (
-                    <button
-                      key={v.slug}
-                      type="button"
-                      className={`region-chooser-option region-chooser-option--all${
-                        available ? '' : ' region-chooser-option--soon'
-                      }`}
-                      onClick={() => choose(v.slug)}
-                    >
-                      {v.name}
-                      {!available && <span className="region-chooser-soon"> (bald)</span>}
-                    </button>
-                  );
-                })}
-              </div>
-              {COUNTRIES.map((country) => {
-                const inCountry = sorted.filter((r) => r.country === country);
-                if (inCountry.length === 0) return null;
-                return (
-                  <details
-                    key={country}
-                    className="region-chooser-country"
-                    open={country === DEFAULT_COUNTRY || undefined}
-                    data-testid={`region-chooser-country-${country}`}
-                  >
-                    <summary className="region-chooser-country-name">
-                      {COUNTRY_LABELS[country]}
-                      <span className="region-chooser-country-count"> ({inCountry.length})</span>
-                    </summary>
-                    {country === 'DE' && inCountry.some((r) => r.macro)
-                      ? // Germany: first the six Grossregionen, then the regions inside.
-                        DE_MACRO_REGIONS.map((macro) => {
-                          const inMacro = inCountry.filter((r) => r.macro === macro);
-                          if (inMacro.length === 0) return null;
-                          return (
-                            <details
-                              key={macro}
-                              className="region-chooser-macro"
-                              data-testid={`region-chooser-macro-${macro}`}
-                            >
-                              <summary className="region-chooser-macro-name">
-                                {macro}
-                                <span className="region-chooser-country-count">
-                                  {' '}
-                                  ({inMacro.length})
-                                </span>
-                              </summary>
-                              {renderOptions(inMacro)}
-                            </details>
-                          );
-                        })
-                      : renderOptions(inCountry)}
-                  </details>
-                );
-              })}
-            </div>
-          )}
+        <div className="region-chooser-layout region-chooser-layout--map-only">
+          <PlacePicker onApply={apply} applyLabel="Events anzeigen" />
+        </div>
+        <div className="region-chooser-lists">
+          <p className="region-chooser-views-label">Oder alles auf einmal ansehen:</p>
+          <div className="region-chooser-options region-chooser-options--views">
+            {COMBINED_VIEWS.map((v) => {
+              const available = availableViews.has(v.slug);
+              return (
+                <button
+                  key={v.slug}
+                  type="button"
+                  className={`region-chooser-option region-chooser-option--all${
+                    available ? '' : ' region-chooser-option--soon'
+                  }`}
+                  onClick={() => chooseView(v.slug)}
+                >
+                  {v.name}
+                  {!available && <span className="region-chooser-soon"> (bald)</span>}
+                </button>
+              );
+            })}
+          </div>
         </div>
         {!onRegionsPage && <ModeratorApplyCard className="region-chooser-apply" />}
       </section>
