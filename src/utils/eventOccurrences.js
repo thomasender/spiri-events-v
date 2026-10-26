@@ -1,4 +1,4 @@
-import { isOccurrenceCancelled } from './eventCancellation';
+import { getCancelledDates, isEventCancelled, isOccurrenceCancelled } from './eventCancellation';
 
 // For events with `recurrence: 'custom'` the initial event date is part of the
 // series as well, even if it was never added to `customDates` explicitly.
@@ -214,6 +214,13 @@ function collapseToMonthEntries(event, start, end) {
   return entries;
 }
 
+// A single cancelled date of a series is not shown in lists/calendar (the
+// people who liked it are still notified by the backend). A fully cancelled
+// event, or a non-recurring one, stays visible with the "Abgesagt" label.
+function isHiddenCancelledDate(event, date) {
+  return !isEventCancelled(event) && getCancelledDates(event).includes(date);
+}
+
 function expandNonRecurring(event, mode) {
   if (!event) return [];
   const start = new Date(event.date + 'T12:00:00');
@@ -283,6 +290,7 @@ function expandCustom(event, mode) {
     const lastDay =
       eventDays > 1 ? new Date(occDate.getTime() + (eventDays - 1) * 86400000) : occDate;
     if (lastDay < today) continue;
+    if (isHiddenCancelledDate(event, occurrenceStart)) continue;
     const isCancelled = isOccurrenceCancelled(event, occurrenceStart);
 
     if (mode === 'calendar' && eventDays > 1) {
@@ -378,6 +386,10 @@ function expandRecurring(event, mode) {
         current.getDate()
       );
       if (exceptionDates.includes(occurrenceStart)) {
+        advance();
+        continue;
+      }
+      if (isHiddenCancelledDate(event, occurrenceStart)) {
         advance();
         continue;
       }

@@ -1,7 +1,8 @@
 // An organizer can call off a whole event (`cancelled: true`) or single dates
 // of a series (`cancelledDates: ['YYYY-MM-DD', ...]`). Unlike `exceptionDates`
-// (date removed from the series), a cancelled date stays visible and is shown
-// with an "Abgesagt" label.
+// (date removed from the series), a cancelled date still counts for
+// notifications and the detail page ("Abgesagt" label), but is hidden from
+// lists and the calendar. A wholly cancelled event stays visible with the label.
 
 export function isEventCancelled(event) {
   return event?.cancelled === true;
