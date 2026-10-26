@@ -5,7 +5,7 @@
  * The rendering itself lives in ./instagramImage.ts.
  */
 
-import { expandOccurrencesInWindow } from './instagramOccurrences';
+import { expandOccurrencesInWindow, getNthWeekdayOrdinal } from './instagramOccurrences';
 
 export type InstagramFormat = 'feed' | 'story' | 'carousel';
 
@@ -470,6 +470,23 @@ export function buildFirstComment(event: InstagramEventInput): string {
 /** Most dates a caption lists; with more, the "die Termine" line is left out. */
 export const MAX_CAPTION_DATES = 20;
 
+const ORDINAL_WORDS: Record<number, string> = {
+  1: 'ersten',
+  2: 'zweiten',
+  3: 'dritten',
+  4: 'vierten',
+  [-1]: 'letzten',
+};
+
+/** "ersten Montag" / "letzten Freitag" for the weekday of a monthlyWeekday series' start date. */
+function monthlyWeekdayPhrase(start: Date): string {
+  const weekday = new Intl.DateTimeFormat('de-AT', { weekday: 'long', timeZone: 'UTC' }).format(
+    start
+  );
+  const ordinal = getNthWeekdayOrdinal(start.toISOString().slice(0, 10));
+  return `${ORDINAL_WORDS[ordinal]} ${weekday}`;
+}
+
 /** "wöchentlich am Dienstag" etc. for regular series; '' for custom dates. */
 function describeRecurrencePattern(event: InstagramEventInput): string {
   const start = parseIsoDate(asString(event.date));
@@ -484,6 +501,8 @@ function describeRecurrencePattern(event: InstagramEventInput): string {
       return `alle zwei Wochen am ${weekday}`;
     case 'monthly':
       return `monatlich am ${start.getUTCDate()}.`;
+    case 'monthlyWeekday':
+      return `monatlich am ${monthlyWeekdayPhrase(start)}`;
     default:
       return '';
   }
@@ -494,6 +513,7 @@ function isRecurringEvent(event: InstagramEventInput): boolean {
     event.recurrence === 'weekly' ||
     event.recurrence === 'biweekly' ||
     event.recurrence === 'monthly' ||
+    event.recurrence === 'monthlyWeekday' ||
     event.recurrence === 'custom'
   );
 }
@@ -541,7 +561,9 @@ function buildRecurringHeader(event: InstagramEventInput, location: string, now:
       ? weekday && `${weekday}s`
       : event.recurrence === 'monthly'
         ? `Monatlich am ${start?.getUTCDate()}.`
-        : '';
+        : event.recurrence === 'monthlyWeekday' && start
+          ? `Monatlich am ${monthlyWeekdayPhrase(start)}`
+          : '';
   const when = [day, time].filter(Boolean).join(' · ');
   const category = displayCategory(event.category);
   const place = inBezirk(event);

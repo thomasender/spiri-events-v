@@ -44,7 +44,8 @@ export function getEventLastDate(event: ExpiryEvent | null | undefined): string 
   if (event.recurrenceEndDate) return event.recurrenceEndDate;
   // No explicit end: the app only expands the series for 3 months (monthly: 1 year).
   const implicitEnd = parseIso(event.date);
-  if (recurrence === 'monthly') implicitEnd.setUTCFullYear(implicitEnd.getUTCFullYear() + 1);
+  if (recurrence === 'monthly' || recurrence === 'monthlyWeekday')
+    implicitEnd.setUTCFullYear(implicitEnd.getUTCFullYear() + 1);
   else implicitEnd.setUTCMonth(implicitEnd.getUTCMonth() + 3);
   return toIso(implicitEnd);
 }
