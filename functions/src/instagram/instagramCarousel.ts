@@ -68,6 +68,17 @@ export interface CarouselEvent extends InstagramEventInput {
   instagramConsent?: unknown;
   /** Handle for tag/collab on this event only; wins over the profile handle. */
   instagramHandleOverride?: unknown;
+  /** Whole event called off. */
+  cancelled?: unknown;
+  /** Single cancelled occurrences of a series (YYYY-MM-DD). */
+  cancelledDates?: unknown;
+}
+
+/** True when the whole event or this occurrence's date (event.date) is cancelled. */
+export function isCancelledOccurrence(event: CarouselEvent): boolean {
+  if (event.cancelled === true) return true;
+  const date = typeof event.date === 'string' ? event.date.trim() : '';
+  return Array.isArray(event.cancelledDates) && date !== '' && event.cancelledDates.includes(date);
 }
 
 export interface WeekWindow {
@@ -114,6 +125,7 @@ function asString(value: unknown): string {
 export function isCarouselEligible(event: CarouselEvent, window: WeekWindow): boolean {
   if (event.status !== 'approved') return false;
   if (event.instagramConsent !== true) return false;
+  if (isCancelledOccurrence(event)) return false;
   const date = asString(event.date);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date < window.start || date > window.end) return false;
   if (event.isOnline === true || event.isOnline === 'true') return false;
@@ -575,6 +587,7 @@ export function summarizeCandidates(
   for (const event of events) {
     const date = asString(event.date);
     if (date < window.start || date > window.end) continue;
+    if (isCancelledOccurrence(event)) continue;
     summary.total += 1;
     if (isCarouselEligible(event, window)) summary.eligible += 1;
     else if (event.status !== 'approved') note('notApproved', event);

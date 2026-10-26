@@ -360,6 +360,12 @@ export async function publishApprovedEvent(
     return 'no-consent';
   }
 
+  // Called-off events are never announced (no dedupe doc, like no-consent).
+  if (event.cancelled === true) {
+    log('Event is cancelled; skipping Instagram post', { eventId });
+    return 'ignored';
+  }
+
   const postId = `feed_${eventId}`;
   const base: PostRecord = {
     type: 'feed',

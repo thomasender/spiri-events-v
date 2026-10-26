@@ -47,6 +47,8 @@ describe('groupStories', () => {
         ev({ id: 'no-consent', instagramConsent: false }),
         ev({ id: 'pending', status: 'pending' }),
         ev({ id: 'online', isOnline: true }),
+        ev({ id: 'cancelled', cancelled: true }),
+        ev({ id: 'cancelled-date', cancelledDates: [DAY] }),
       ],
       DAY,
       'Feldkirch'
