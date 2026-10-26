@@ -36,7 +36,7 @@ const NEUTRAL_HEADER_PATHS = ['/impressum', '/datenschutz'];
  * from `useRegions()` (static register first, Firestore when loaded).
  */
 export default function RegionProvider({ children }) {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const navigate = useNavigate();
   const { regions: registry, loading } = useRegions();
   // A region without Landkreise / Bezirke does not exist for visitors (see isPopulated).
@@ -103,6 +103,12 @@ export default function RegionProvider({ children }) {
     );
     // Dark launch: with fewer than two active regions nothing below changes the header.
     const regionMode = !loading && activeRegions(allRegions).length >= 2;
+    // "Event erstellen" for a region that is not open yet (`/admin/new?region=<slug>`, from
+    // its coming-soon page): the form reads the region from the address itself.
+    const formRegion = pathname === '/admin/new' ? new URLSearchParams(search).get('region') : null;
+    const eventFormComingSoon = Boolean(
+      regionMode && isRegionSlug(formRegion) && !getRegionBySlug(formRegion, allRegions)?.active
+    );
     // "Wo suchst du?" page (RegionChooser): `/regionen` opened on purpose, or `/` and
     // `/verzeichnis` while nothing is remembered (place, chooser seen, active last region).
     const stored = readLastRegion();
@@ -118,6 +124,7 @@ export default function RegionProvider({ children }) {
     const neutralHeader =
       comingSoon ||
       eventRegionComingSoon ||
+      eventFormComingSoon ||
       pathname === REGIONS_PAGE_PATH ||
       regionChooserOpen ||
       (regionMode && NEUTRAL_HEADER_PATHS.includes(pathname));
@@ -161,6 +168,7 @@ export default function RegionProvider({ children }) {
   }, [
     urlSlug,
     pathname,
+    search,
     eventRegionId,
     storedSlug,
     allRegions,

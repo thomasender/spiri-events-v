@@ -332,3 +332,23 @@ describe('neutral header on pages without a region', () => {
     expect(headerTitle()).toBe('Dein Vorarlberger Kalender');
   });
 });
+
+describe('neutral header on "Event erstellen" for a region that is not open yet', () => {
+  it('/admin/new?region=<inactive> has the neutral title', () => {
+    mocks.regions = { regions: WITH_TIROL, loading: false };
+    renderAt('/admin/new?region=steiermark');
+    expect(headerTitle()).toBe('Dein Kalender');
+  });
+
+  it('an open region keeps its title', () => {
+    mocks.regions = { regions: WITH_TIROL, loading: false };
+    window.localStorage.setItem(LAST_REGION_STORAGE_KEY, 'tirol');
+    renderAt('/admin/new?region=tirol');
+    expect(headerTitle()).toBe('Dein Tiroler Kalender');
+  });
+
+  it('keeps the Vorarlberg title with only Vorarlberg active (dark launch)', () => {
+    renderAt('/admin/new?region=steiermark');
+    expect(headerTitle()).toBe('Dein Vorarlberger Kalender');
+  });
+});
