@@ -381,7 +381,13 @@
   box-shadow: none;
 }
 
-.nav-link--create.nav-link--disabled {
+/* Locked (e-mail not verified yet): a <button> with .nav-link--disabled, whose
+   `background: transparent` (EmailVerificationBanner.css) has the same
+   specificity and loads later, so the orange must be restated here. */
+.nav-link--create.nav-link--disabled,
+.nav-link--create.nav-link--disabled:hover {
+  background: var(--accent-primary);
+  color: #fff;
   opacity: 0.75;
 }
 
