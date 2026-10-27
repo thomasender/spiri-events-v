@@ -33,7 +33,7 @@ function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
-function renderEmail(args: { displayName: string; buttonUrl: string; appName: string }): {
+export function renderEmail(args: { displayName: string; buttonUrl: string; appName: string }): {
   subject: string;
   html: string;
   text: string;
@@ -41,7 +41,7 @@ function renderEmail(args: { displayName: string; buttonUrl: string; appName: st
   const displayName = escapeHtml(args.displayName);
   const buttonUrl = escapeHtml(args.buttonUrl);
   const appName = escapeHtml(args.appName);
-  const subject = `Bestätige deine E-Mail-Adresse für ${appName}`;
+  const subject = `Bestätige deine E-Mail-Adresse für den ${appName}`;
   const html = `<!DOCTYPE html><html lang="de"><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#faf7f2;padding:24px;margin:0;">
   <div style="max-width:520px;margin:0 auto;background:#ffffff;padding:32px;border-radius:8px;">
     <h1 style="color:#4a5d23;font-size:20px;margin-top:0;">Hallo ${displayName},</h1>

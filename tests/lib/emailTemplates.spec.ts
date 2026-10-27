@@ -399,7 +399,7 @@ describe('buildPasswordResetPayload', () => {
       recipient: 'peter@example.com',
       buttonUrl,
     });
-    expect(payload.subject).toBe('Passwort zurücksetzen für Tribe');
+    expect(payload.subject).toBe('Passwort zurücksetzen für den Tribe');
     expect(payload.to).toBe('peter@example.com');
   });
 
@@ -840,7 +840,7 @@ describe('branding is region-neutral', () => {
       recipient: 'a@x.com',
       buttonUrl: 'https://www.thetribe.at/auth-action?x=1',
     });
-    expect(payload.subject).toBe('Passwort zurücksetzen für Tribe');
+    expect(payload.subject).toBe('Passwort zurücksetzen für den Tribe');
     expect(payload.html).toContain('>Tribe</span>');
     expect(payload.html).not.toMatch(/tribe Vorarlberg/i);
     expect(payload.text).not.toMatch(/tribe Vorarlberg/i);
