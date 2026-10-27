@@ -36,14 +36,14 @@ describe('EventsSection — Mehr laden', () => {
   it('shows only the first page and a load-more button for long lists', () => {
     renderSection(makeEvents(60));
     expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(EVENTS_PAGE_SIZE);
-    expect(screen.getByTestId('events-load-more')).toHaveTextContent('25 von 60');
+    expect(screen.getByTestId('events-load-more')).toHaveTextContent('24 von 60');
     expect(screen.getByText('60 Events')).toBeInTheDocument();
   });
 
   it('adds another page per click and hides the button once everything is shown', () => {
     renderSection(makeEvents(60));
     fireEvent.click(screen.getByTestId('events-load-more'));
-    expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(50);
+    expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(EVENTS_PAGE_SIZE * 2);
     fireEvent.click(screen.getByTestId('events-load-more'));
     expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(60);
     expect(screen.queryByTestId('events-load-more')).toBeNull();
