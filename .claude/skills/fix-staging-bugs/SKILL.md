@@ -1,6 +1,6 @@
 ---
 name: fix-staging-bugs
-description: Orchestrate fixing every ticket in the "Bugs Staging" column of the spiri-events-v Trello board on the staging branch (currently feature/regions-epic, deployed to tribe-vbg-staging). Sibling of fix-trello-bugs, which stays the skill for main/production. Groups closely related tickets into one subagent run, merges to the staging branch, waits for deploy-staging.yml, moves cards to "Testing Staging" and reports to Peter. Use when asked to "fix the staging bugs", "process Bugs Staging", or similar.
+description: Orchestrate fixing every ticket in the "Bugs Staging" column of the spiri-events-v Trello board on the staging branch (`staging`, deployed to tribe-vbg-staging). Sibling of fix-trello-bugs, which stays the skill for main/production. Groups closely related tickets into one subagent run, merges to the staging branch, waits for deploy-staging.yml, moves cards to "Testing Staging" and reports to Peter. Use when asked to "fix the staging bugs", "process Bugs Staging", or similar.
 ---
 
 # Fix Staging Bugs (orchestrator)
@@ -22,10 +22,8 @@ Read `AGENTS.md` once before starting. Subagents also follow
 - Board: `rebumcT4`, API board id `6a672fa782573b198141a15f`
 - Source column: **Bugs Staging** (id `6ad06e1f632ed7ae3b4278fb`)
 - Destination column after a fix: **Testing Staging** (id `6ad0792deab4ae31aacf706b`)
-- **Staging branch: `feature/regions-epic`**. This is the only branch that deploys to
-  staging today. When the epic is merged to main and a dedicated `staging` branch
-  exists, change this one constant (and the workflow trigger it refers to) and
-  nothing else.
+- **Staging branch: `staging`** (branched from main; keep it in sync with main via `git merge main`). This is the only branch that deploys to
+  staging (trigger in `deploy-staging.yml`).
 - Firebase project: `tribe-vbg-staging` (**never** `spirieventsvbg`)
 - Staging URL: look it up in `docs/staging-migration.md` / the hosting config; do not guess
 - Peter's mention: `@petermathis1` (starts every comment to him; German, non-technical)
@@ -34,8 +32,8 @@ Read `AGENTS.md` once before starting. Subagents also follow
 
 1. Fixes are merged into the **staging branch** with `git merge --no-ff` and the
    staging branch is pushed. **Never merge into or push `main`**, and never merge
-   the epic into main.
-2. A push to `feature/regions-epic` triggers `deploy-staging.yml` (hosting,
+   staging into main (Thomas does that).
+2. A push to `staging` triggers `deploy-staging.yml` (hosting,
    Firestore rules and indexes; **not** Cloud Functions or storage rules). Wait
    until the run for the pushed SHA is `completed` and green
    (`gh run list --workflow=deploy-staging.yml --limit 3`). A cancelled run for an
@@ -54,7 +52,7 @@ Read `AGENTS.md` once before starting. Subagents also follow
 ## Step 0: Pre-flight
 
 On a clean, up-to-date staging branch
-(`git checkout feature/regions-epic && git pull --ff-only origin feature/regions-epic`)
+(`git checkout staging && git pull --ff-only origin staging`)
 run `npx vitest run`. If it is red before any change, fix that first with one
 subagent. Run `npm run emulators:check` only when a ticket needs emulator tests.
 
@@ -72,7 +70,7 @@ before dispatching and tell the user.
 
 ## Step 2: Dispatch
 
-Before each dispatch: `git checkout feature/regions-epic && git pull --ff-only origin feature/regions-epic && git status --short`.
+Before each dispatch: `git checkout staging && git pull --ff-only origin staging && git status --short`.
 
 Spawn a `general-purpose` subagent (model: sonnet by default, opus for vague or
 auth/rules/data-loss work, haiku for purely mechanical; see fix-trello-bugs).
@@ -81,7 +79,7 @@ Self-contained prompt:
 ```
 You are fixing Trello bug(s) on the STAGING branch in the repository root (cwd).
 Read AGENTS.md and .claude/skills/process-trello-ticket/SKILL.md first and follow
-them, with these overrides: the base and merge target is feature/regions-epic, NOT
+them, with these overrides: the base and merge target is staging, NOT
 main; the Firebase project is tribe-vbg-staging; the deploy workflow is
 deploy-staging.yml; the destination list is "Testing Staging" (id 6ad0792deab4ae31aacf706b).
 
@@ -90,14 +88,14 @@ Ticket(s): <shortLink — name (card id), desc, comments, prior commits, bucket>
 
 Rules:
 - Branch: bugfix/<shortLink>_<kebab-title> (or bugfix/staging_<topic> for a group)
-  from the up-to-date feature/regions-epic.
+  from the up-to-date staging.
 - Minimal fix. Regression test at the lowest tier that fails before the fix
   (usually Vitest in tests/components/). No new Playwright spec files.
   page.waitForTimeout is banned.
 - One commit per ticket: `fix(<shortLink>): <what>`, ending with:
   Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
   Claude-Session: https://claude.ai/code/session_012JRKfZoYgBcbFKuC437JSa
-- Merge into feature/regions-epic with `git merge --no-ff`, push feature/regions-epic,
+- Merge into staging with `git merge --no-ff`, push staging,
   delete the branch locally and remotely. NEVER touch main.
 - Prefer letting hooks run; --no-verify only if the hook fails for reasons unrelated
   to your change, and say so in the report.

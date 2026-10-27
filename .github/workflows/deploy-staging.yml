@@ -1,13 +1,13 @@
 name: Deploy to staging (tribe-vbg-staging)
 
-# Staging only, never production. Runs on every push to feature/regions-epic (hosting, rules and indexes) and can be
+# Staging only, never production. Runs on every push to staging (hosting, rules and indexes) and can be
 # started by hand from the Actions tab (any branch). Needs ONE secret:
 # STAGING_SERVICE_ACCOUNT_JSON = the raw JSON key of a service account of the project
 # tribe-vbg-staging (Settings > Secrets and variables > Actions > New repository secret;
 # paste the whole file as it is). The web app config is read from the staging project itself.
 on:
   push:
-    branches: [feature/regions-epic]
+    branches: [staging]
   workflow_dispatch:
     inputs:
       backend:
