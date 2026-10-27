@@ -25,8 +25,9 @@ const MONTHS = [
 const MOBILE_BREAKPOINT = 768;
 
 // Only this many events are rendered at first; "Mehr laden" adds another page.
-// Keeps the first paint light when a month has dozens of events.
-export const EVENTS_PAGE_SIZE = 25;
+// Keeps the first paint light when a month has dozens of events. Divisible by 3
+// (and 2) so the last row of the grid is never half empty before the button.
+export const EVENTS_PAGE_SIZE = 24;
 
 export default function EventsSection({
   events,

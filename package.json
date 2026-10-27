@@ -45,6 +45,7 @@
     "emulators:check": "bash scripts/check-emulators.sh",
     "emulators:ensure": "bash scripts/ensure-emulators.sh",
     "emulators:restart": "pkill -f cloud-firestore-emulator; pkill -f \"firebase.*emulators\"; sleep 3; bash scripts/start-emulators.sh",
+    "chat:clear": "node scripts/clear-chat-messages.mjs",
     "emoji:build": "node scripts/build-emoji-data.mjs"
   },
   "dependencies": {
