@@ -40,7 +40,7 @@ export default function RegionComingSoonPage({ region = null, view = null, canPr
   const invite = async () => {
     const inviteUrl = `${window.location.origin}${path}`;
     const title = `${BRAND_NAME} – ${name}`;
-    const message = `Hilf mit, bewusste Events in ${name} zu sammeln: `;
+    const message = `Hilf mit, bewusste Events ${region ? regionLocative(region) : `in ${name}`} zu sammeln: `;
     if (navigator.share) {
       try {
         await navigator.share({ title, text: message, url: inviteUrl });
@@ -58,16 +58,14 @@ export default function RegionComingSoonPage({ region = null, view = null, canPr
   return (
     <div className="page-container error-page fade-enter">
       <SeoMeta
-        title={`${name} kommt bald`}
+        title={`Der Tribe ${name} kommt bald`}
         description={`${BRAND_NAME} ${region ? regionLocative(region) : viewTexts.comingSoonSubject} ist in Vorbereitung.`}
         path={path}
         noindex
       />
       <div className="error-page-card" data-testid="region-coming-soon">
         <span className="eyebrow">Bald auch hier</span>
-        <h1 className="error-page-title">
-          {BRAND_NAME} – {name} kommt bald
-        </h1>
+        <h1 className="error-page-title">Der Tribe {name} kommt bald.</h1>
         <p className="error-page-message">{text}</p>
         {!region && viewTexts.liveHint && (
           <p className="error-page-message" data-testid="view-live-hint">
@@ -92,8 +90,8 @@ export default function RegionComingSoonPage({ region = null, view = null, canPr
               </span>
             </div>
             <p className="error-page-message">
-              Du kennst bewusste Events in {name}? Trag sie jetzt ein, damit wir bald starten
-              können.
+              Du kennst bewusste Events {regionLocative(region)}? Trag sie jetzt ein, damit wir bald
+              starten können.
             </p>
             <div className="error-page-actions">
               <Link

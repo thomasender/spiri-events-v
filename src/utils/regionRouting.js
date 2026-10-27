@@ -113,7 +113,7 @@ export function regionSlugFromPath(pathname) {
  * (or combined view) of the page the visitor came from: neutral header, and the
  * footer's region links ("Über uns") still lead back to that region.
  */
-export const NEUTRAL_PAGE_PATHS = ['/impressum', '/datenschutz'];
+export const NEUTRAL_PAGE_PATHS = ['/impressum', '/datenschutz', '/login'];
 
 export const isNeutralPagePath = (pathname) => NEUTRAL_PAGE_PATHS.includes(pathname);
 
@@ -158,6 +158,21 @@ export function aboutPathFor({ pageSlug, regionId, regions = STATIC_REGIONS } = 
       : regionPath(pageSlug, '/ueber-uns');
   }
   return regionCanonicalPath(regionId, '/ueber-uns', regions);
+}
+
+/**
+ * Start page for a page: "Zurück zur Startseite" on neutral pages (Impressum,
+ * Datenschutz). Leads to the region / combined view the page belongs to, `/`
+ * when it names none.
+ */
+export function homePathFor({ pageSlug, regions = STATIC_REGIONS } = {}) {
+  if (isCombinedViewSlug(pageSlug)) return regionPath(pageSlug, '/');
+  if (isRegionSlug(pageSlug)) {
+    return getRegionBySlug(pageSlug, regions)?.active
+      ? regionCanonicalPath(pageSlug, '/', regions)
+      : regionPath(pageSlug, '/');
+  }
+  return '/';
 }
 
 /** Path a redirect fallback points to (`path` is kept, e.g. `/verzeichnis`). */
