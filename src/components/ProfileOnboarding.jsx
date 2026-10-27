@@ -96,7 +96,9 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
 
   const [instagram, setInstagram] = useState(saved.instagram);
   // Checked by default: the step asks for permission to promote the events.
-  const [instagramConsent, setInstagramConsent] = useState(true);
+  const [instagramConsent, setInstagramConsent] = useState(
+    profile?.instagramConsentDefault === true
+  );
   const [instagramError, setInstagramError] = useState('');
   const completedRef = useRef(false);
 
@@ -594,8 +596,8 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
                       Ihr dürft meine Events auf Instagram vorstellen
                     </span>
                     <span className="notification-preference-description">
-                      Das Häkchen ist dann bei jedem neuen Event schon gesetzt. Du kannst es pro
-                      Event ändern.
+                      Wenn du das Häkchen setzt, ist es bei jedem neuen Event schon vorausgewählt.
+                      Du kannst es pro Event ändern.
                     </span>
                   </span>
                 </label>
