@@ -330,7 +330,7 @@ describe('RegionMenuList (burger menu on the phone)', () => {
 
   it('is one button naming the place; it closes the menu and opens the same pop-up', async () => {
     const onNavigate = renderList();
-    const button = screen.getByRole('button', { name: /Ort: Vorarlberg/ });
+    const button = screen.getByRole('button', { name: /Ort: Ort wählen/ });
     expect(button).toHaveAttribute('aria-haspopup', 'dialog');
     fireEvent.click(button);
     expect(onNavigate).toHaveBeenCalled();
