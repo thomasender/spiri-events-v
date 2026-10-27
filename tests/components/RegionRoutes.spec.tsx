@@ -124,7 +124,8 @@ describe('region or profile at /:slug', () => {
   it('an inactive region shows the coming-soon page without links to other regions', () => {
     renderAt('/steiermark');
     const page = screen.getByTestId('region-coming-soon');
-    expect(page).toHaveTextContent('The Tribe – Steiermark kommt bald');
+    expect(page).toHaveTextContent('Der Tribe Steiermark kommt bald.');
+    expect(page).toHaveTextContent('Du kennst bewusste Events in der Steiermark?');
     expect(page).toHaveTextContent('in der Steiermark');
     expect(screen.queryByRole('link', { name: /Zum Kalender/ })).not.toBeInTheDocument();
     expect(screen.getByTestId('region-explore')).toHaveTextContent('Andere Regionen erkunden');
@@ -195,7 +196,7 @@ describe('region or profile at /:slug', () => {
   it('/deutschland is coming soon without an active German region', () => {
     renderAt('/deutschland');
     expect(screen.getByTestId('region-coming-soon')).toHaveTextContent(
-      'The Tribe – Deutschland kommt bald'
+      'Der Tribe Deutschland kommt bald.'
     );
   });
 
@@ -215,7 +216,7 @@ describe('region or profile at /:slug', () => {
     mocks.regions = { regions: WITH_TIROL, loading: false };
     renderAt('/schweiz');
     expect(screen.getByTestId('region-coming-soon')).toHaveTextContent(
-      'The Tribe – Schweiz kommt bald'
+      'Der Tribe Schweiz kommt bald.'
     );
   });
 
