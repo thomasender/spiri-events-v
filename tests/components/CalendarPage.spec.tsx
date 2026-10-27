@@ -403,6 +403,39 @@ describe('CalendarPage — facet counts and reset', () => {
     expect(countOf('[data-category="Meditation"]')).toBe('1');
   });
 
+  function withEventInTwoMonths() {
+    mockUseCategories.value = ['Yoga', 'Meditation', 'Schwitzhütte'];
+    const later = new Date();
+    later.setMonth(later.getMonth() + 2, 15);
+    const date = `${later.getFullYear()}-${String(later.getMonth() + 1).padStart(2, '0')}-15`;
+    mockUseAllEvents.events = [
+      ...mockUseAllEvents.events,
+      {
+        id: 'late',
+        title: 'Late',
+        date,
+        time: '18:00',
+        status: 'approved',
+        category: 'Schwitzhütte',
+        bezirk: 'Dornbirn',
+      },
+    ];
+  }
+
+  it('hides category chips with 0 events in the shown month (yDDYM01K)', () => {
+    withEventInTwoMonths();
+    renderPage();
+    expect(document.querySelector('[data-category="Schwitzhütte"]')).toBeNull();
+    expect(document.querySelector('[data-category="Yoga"]')).not.toBeNull();
+  });
+
+  it('keeps a selected category chip even with 0 events (yDDYM01K)', () => {
+    withEventInTwoMonths();
+    storeFilter(['Schwitzhütte']);
+    renderPage();
+    expect(document.querySelector('[data-category="Schwitzhütte"]')).not.toBeNull();
+  });
+
   it('narrows category counts by the selected Bezirk', () => {
     storeFilter([], ['Dornbirn']);
     renderPage();

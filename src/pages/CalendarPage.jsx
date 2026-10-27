@@ -579,23 +579,31 @@ export default function CalendarPage() {
               </div>
             </div>
             <div className="filter-options" data-testid="filter-options-category">
-              {categories.map((category) => (
-                <button
-                  key={category}
-                  type="button"
-                  className="filter-chip filter-chip--category"
-                  data-category={category}
-                  style={{
-                    '--category-color': resolveEventColor({ category }, categoryColorByName),
-                  }}
-                  onClick={() => toggleCategory(category)}
-                  aria-pressed={selectedCategories.includes(category)}
-                >
-                  <Check size={14} className="filter-chip-icon" aria-hidden="true" />
-                  <span>{category}</span>
-                  <FacetCount value={facetCounts.category[category] || 0} />
-                </button>
-              ))}
+              {categories
+                .filter(
+                  (category) =>
+                    // Hide chips with 0 events for the current month/filters, but never
+                    // the selected one (the user must be able to deselect it).
+                    (facetCounts.category[category] || 0) > 0 ||
+                    selectedCategories.includes(category)
+                )
+                .map((category) => (
+                  <button
+                    key={category}
+                    type="button"
+                    className="filter-chip filter-chip--category"
+                    data-category={category}
+                    style={{
+                      '--category-color': resolveEventColor({ category }, categoryColorByName),
+                    }}
+                    onClick={() => toggleCategory(category)}
+                    aria-pressed={selectedCategories.includes(category)}
+                  >
+                    <Check size={14} className="filter-chip-icon" aria-hidden="true" />
+                    <span>{category}</span>
+                    <FacetCount value={facetCounts.category[category] || 0} />
+                  </button>
+                ))}
             </div>
 
             <details
