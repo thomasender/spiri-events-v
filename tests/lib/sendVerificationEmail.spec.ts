@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { MailgunError } from '../../functions/src/mailgun';
-import { toVerificationEmailHttpsError } from '../../functions/src/sendVerificationEmail';
+import {
+  toVerificationEmailHttpsError,
+  renderEmail,
+} from '../../functions/src/sendVerificationEmail';
 
 describe('toVerificationEmailHttpsError', () => {
   it('reports an exhausted Mailgun quota as resource-exhausted', () => {
@@ -27,5 +30,16 @@ describe('toVerificationEmailHttpsError', () => {
     const mapped = toVerificationEmailHttpsError(new Error('boom'));
     expect(mapped.code).toBe('internal');
     expect(toVerificationEmailHttpsError(mapped)).toBe(mapped);
+  });
+});
+
+describe('renderEmail', () => {
+  it('uses the article "den" before Tribe in the subject', () => {
+    const { subject } = renderEmail({
+      displayName: 'Anna',
+      buttonUrl: 'https://www.thetribe.at/auth-action?x=1',
+      appName: 'Tribe',
+    });
+    expect(subject).toBe('Bestätige deine E-Mail-Adresse für den Tribe');
   });
 });

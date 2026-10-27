@@ -599,7 +599,7 @@ export function buildPasswordResetPayload({
   buttonUrl,
 }: PasswordResetPayloadInput): EmailPayload {
   const link = escapeHtml(buttonUrl);
-  const subject = 'Passwort zurücksetzen für Tribe';
+  const subject = 'Passwort zurücksetzen für den Tribe';
   const htmlBody = `
     <h1 style="${headingStyle(1)}">Passwort zurücksetzen</h1>
     <p style="${paragraphStyle()}">Hallo,</p>
