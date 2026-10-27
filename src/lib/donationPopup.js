@@ -59,3 +59,15 @@ export function markDonateClicked() {
 export function isDueThisWeek(lastShown, now = Date.now()) {
   return lastShown === null || now - lastShown >= DONATION_POPUP_INTERVAL_MS || lastShown > now;
 }
+
+/**
+ * True when the account is at least 7 days old. Visitors without an account and
+ * accounts without a (valid) creation time count as old enough, so only
+ * verifiably fresh registrations are held back.
+ */
+export function isAccountOldEnough(creationTime, now = Date.now()) {
+  if (!creationTime) return true;
+  const created = new Date(creationTime).getTime();
+  if (!Number.isFinite(created)) return true;
+  return now - created >= DONATION_POPUP_INTERVAL_MS;
+}

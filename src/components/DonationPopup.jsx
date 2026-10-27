@@ -7,6 +7,7 @@ import { readConsent } from '../lib/analyticsConsent';
 import {
   DONATION_POPUP_DELAY_MS,
   DONATION_POPUP_ENABLED,
+  isAccountOldEnough,
   isDueThisWeek,
   isExcludedPath,
   hasClickedDonate,
@@ -21,7 +22,7 @@ import './DonationPopup.css';
 // visitor clicks "Jetzt unterstützen". Admins preview it with ?spendenpopup=1.
 export default function DonationPopup() {
   const { pathname, search } = useLocation();
-  const { role, loading } = useAuth();
+  const { user, role, loading } = useAuth();
   const [open, setOpen] = useState(false);
   const [previewClosed, setPreviewClosed] = useState(false);
   const closeButtonRef = useRef(null);
@@ -29,6 +30,7 @@ export default function DonationPopup() {
   const isAdmin = Boolean(role);
   const preview = isAdmin && isPreviewRequested(search);
   const excluded = isExcludedPath(pathname);
+  const creationTime = user?.metadata?.creationTime;
 
   useEffect(() => {
     if (loading || open) return undefined;
@@ -39,13 +41,15 @@ export default function DonationPopup() {
     // Wait until the cookie banner is out of the way, never bother admins.
     if (!DONATION_POPUP_ENABLED || isAdmin || excluded) return undefined;
     if (hasClickedDonate()) return undefined;
+    // Brand-new accounts get a week of peace before the first ask.
+    if (!isAccountOldEnough(creationTime)) return undefined;
     if (readConsent() === null || !isDueThisWeek(readLastShown())) return undefined;
     const timer = window.setTimeout(() => {
       markShown();
       setOpen(true);
     }, DONATION_POPUP_DELAY_MS);
     return () => window.clearTimeout(timer);
-  }, [loading, open, preview, previewClosed, isAdmin, excluded, pathname]);
+  }, [loading, open, preview, previewClosed, isAdmin, excluded, pathname, creationTime]);
 
   useEffect(() => {
     if (!open) return undefined;
