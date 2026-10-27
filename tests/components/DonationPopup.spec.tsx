@@ -5,7 +5,11 @@ import DonationPopup from '../../src/components/DonationPopup';
 import * as popup from '../../src/lib/donationPopup';
 import { writeConsent } from '../../src/lib/analyticsConsent';
 
-const auth = { role: null as string | null, loading: false };
+const auth = {
+  role: null as string | null,
+  loading: false,
+  user: null as { metadata: { creationTime?: string } } | null,
+};
 vi.mock('../../src/hooks/useAuth', () => ({ useAuth: () => auth }));
 
 const flags = vi.hoisted(() => ({ enabled: false }));
@@ -33,6 +37,7 @@ describe('DonationPopup', () => {
     window.localStorage.clear();
     auth.role = null;
     auth.loading = false;
+    auth.user = null;
     flags.enabled = false;
     writeConsent(true);
   });
@@ -64,6 +69,35 @@ describe('DonationPopup', () => {
       vi.advanceTimersByTime(popup.DONATION_POPUP_DELAY_MS + 1);
     });
     expect(screen.queryByTestId('donation-popup')).toBeNull();
+  });
+
+  it('holds the pop-up back for accounts younger than a week, shows it after', () => {
+    flags.enabled = true;
+    auth.user = { metadata: { creationTime: new Date(Date.now() - 60 * 60 * 1000).toUTCString() } };
+    const first = renderAt('/');
+    act(() => {
+      vi.advanceTimersByTime(popup.DONATION_POPUP_DELAY_MS + 1);
+    });
+    expect(screen.queryByTestId('donation-popup')).toBeNull();
+    first.unmount();
+
+    auth.user = {
+      metadata: {
+        creationTime: new Date(Date.now() - popup.DONATION_POPUP_INTERVAL_MS - 1000).toUTCString(),
+      },
+    };
+    renderAt('/');
+    act(() => {
+      vi.advanceTimersByTime(popup.DONATION_POPUP_DELAY_MS + 1);
+    });
+    expect(screen.getByTestId('donation-popup')).toBeTruthy();
+  });
+
+  it('treats a missing or invalid creation time as an old account', () => {
+    const now = Date.now();
+    expect(popup.isAccountOldEnough(undefined, now)).toBe(true);
+    expect(popup.isAccountOldEnough('garbage', now)).toBe(true);
+    expect(popup.isAccountOldEnough(new Date(now - 1000).toISOString(), now)).toBe(false);
   });
 
   it('shows again after a week', () => {
