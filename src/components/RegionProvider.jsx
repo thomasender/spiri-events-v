@@ -139,7 +139,8 @@ export default function RegionProvider({ children }) {
       (regionMode && isNeutralPagePath(pathname));
     // Region or combined view the page belongs to: its address, on a neutral page the
     // one the visitor came from (dark launch: only with two or more active regions).
-    const pageSlug = urlSlug ?? (regionMode && isNeutralPagePath(pathname) ? lastPageSlug : null);
+    const pageSlug =
+      urlSlug ?? (regionMode && isNeutralPagePath(pathname) ? (lastPageSlug ?? storedSlug) : null);
     const regionId =
       !urlSlug && eventRegionId
         ? eventRegionId

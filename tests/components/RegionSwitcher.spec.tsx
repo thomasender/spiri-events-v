@@ -49,6 +49,7 @@ import RegionProvider from '../../src/components/RegionProvider';
 import RegionSwitcher, { RegionMenuList } from '../../src/components/RegionSwitcher';
 import RegionChooser from '../../src/components/RegionChooser';
 import { useRegionTexts } from '../../src/hooks/useRegionTexts';
+import { useRegion } from '../../src/hooks/useRegion';
 
 const TWO_ACTIVE = mergeRegions([{ id: 'tirol', active: true }]);
 // Vorarlberg (AT) + Bayern (DE): "Alle Tribes" is available, the country views are not.
@@ -659,5 +660,29 @@ describe('RegionChooser (first visit)', () => {
     });
     renderAt('/');
     expect(screen.getByTestId('region-chooser')).toBeInTheDocument();
+  });
+});
+
+describe('login page of a logged-out visitor', () => {
+  beforeEach(() => {
+    mocks.regions = { regions: TWO_ACTIVE, loading: false };
+    window.sessionStorage.clear();
+  });
+
+  it('stays neutral instead of showing Vorarlberg, and keeps the remembered region', () => {
+    window.localStorage.setItem(LAST_REGION_STORAGE_KEY, 'kaernten');
+    function PageSlug() {
+      return <output data-testid="page-slug">{useRegion().pageSlug}</output>;
+    }
+    render(
+      <MemoryRouter initialEntries={['/login']}>
+        <RegionProvider>
+          <HeaderTitle />
+          <PageSlug />
+        </RegionProvider>
+      </MemoryRouter>
+    );
+    expect(headerTitle()).toBe('Dein Kalender');
+    expect(screen.getByTestId('page-slug').textContent).toBe('kaernten');
   });
 });
