@@ -14,7 +14,7 @@ import RegionSwitcher, { RegionMenuList } from './RegionSwitcher';
 import { useRegion } from '../hooks/useRegion';
 import { useRegionTexts } from '../hooks/useRegionTexts';
 import { customSlogan, DEFAULT_SLOGAN_LINE2 } from '../utils/regionAboutText';
-import { logoTargetPath } from '../utils/regionRouting';
+import { logoTargetPath, readLastRegion } from '../utils/regionRouting';
 import MentionBell from './MentionBell';
 import {
   Users,
@@ -61,6 +61,7 @@ export default function Header() {
   const logoPath = logoTargetPath(user ? profile?.placeSelection?.regionId : null, {
     regions: allRegions,
     loading: regionsLoading,
+    lastRegion: user ? null : readLastRegion(),
   });
   const slogan = !neutralHeader && !isNational && !combinedView ? customSlogan(region) : null;
   // On a coming-soon region page the event belongs to that region.

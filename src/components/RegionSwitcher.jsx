@@ -18,6 +18,7 @@ function useCurrentRegionName() {
     placeSelection,
     radiusFilter,
     comingSoon,
+    neutralHeader,
     loading,
   } = useRegion();
   const { pathname } = useLocation();
@@ -36,7 +37,11 @@ function useCurrentRegionName() {
         ? selectionLabel(placeSelection)
         : radiusFilter
           ? selectionLabel(placeSelection)
-          : (region?.name ?? ''),
+          : neutralHeader && !comingSoon
+            ? // Neutral pages (coming soon, Impressum, ...) have no region of their own:
+              // the default region must not show up as the visitor's choice.
+              'Ort wählen'
+            : (region?.name ?? ''),
     // Dark launch: nothing to switch between while fewer than two regions are active.
     visible: regions.length >= 2,
   };
