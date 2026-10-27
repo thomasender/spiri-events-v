@@ -71,8 +71,9 @@ describe('ProfileOnboarding', () => {
       directoryCategories: ['Yoga'],
     });
 
-    // Instagram step: permission to promote the events is ticked by default.
-    expect(await screen.findByTestId('onboarding-instagram-consent')).toBeChecked();
+    // Instagram step: the permission is NOT ticked by default; the user must tick it.
+    expect(await screen.findByTestId('onboarding-instagram-consent')).not.toBeChecked();
+    fireEvent.click(screen.getByTestId('onboarding-instagram-consent'));
     fireEvent.change(screen.getByTestId('onboarding-instagram'), {
       target: { value: 'instagram.com/sandra.yoga' },
     });
@@ -166,9 +167,22 @@ describe('ProfileOnboarding', () => {
     fireEvent.click(screen.getByTestId('onboarding-instagram-consent'));
     next();
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(2));
-    expect(onSave.mock.calls[0][0]).toMatchObject({ instagramConsentDefault: false });
+    expect(onSave.mock.calls[0][0]).toMatchObject({ instagramConsentDefault: true });
     expect(onSave.mock.calls[0][0]).not.toHaveProperty('socialMedia');
     expect(onSave.mock.calls[1][0]).toMatchObject({ onboardingCompleted: true });
+  });
+
+  it('saves no consent when the person leaves the Instagram checkbox untouched', async () => {
+    const { onSave } = setup();
+    skip();
+    skip();
+    skip();
+    fireEvent.change(await screen.findByTestId('onboarding-instagram'), {
+      target: { value: '@sandra' },
+    });
+    next();
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(2));
+    expect(onSave.mock.calls[0][0]).toMatchObject({ instagramConsentDefault: false });
   });
 
   it('does not count as finished when closed before the end', async () => {
