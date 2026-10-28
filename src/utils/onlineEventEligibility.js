@@ -3,7 +3,7 @@ import {
   getBezirke,
   getSubdivisionLabel,
   resolveDirectoryRegionIds,
-} from './regions';
+} from './regions.js';
 
 // Online events need a regional anchor (Trello lVFp6Dvw). An online event of a
 // non-staff organiser (`createdBy`) shows in a region only when that organiser
