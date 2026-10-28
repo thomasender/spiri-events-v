@@ -1377,7 +1377,6 @@ describe('region moderators', () => {
       await setDoc(doc(db, 'feedback/f1'), { description: 'x', status: 'new' });
       await setDoc(doc(db, 'member_lists/l1'), { name: 'L', memberUids: [] });
       await setDoc(doc(db, 'donors/d1'), { name: 'D', amount: 5 });
-      await setDoc(doc(db, 'helpers/h1'), { name: 'H' });
       await setDoc(doc(db, 'regions/tirol'), {
         name: 'Tirol',
         slug: 'tirol',
@@ -1772,11 +1771,10 @@ describe('region moderators', () => {
       }
     });
 
-    it('donations, helpers, feedback, member lists', async () => {
+    it('donations, feedback, member lists', async () => {
       for (const db of allMods()) {
         await assertFails(setDoc(doc(db, 'donors/d2'), { name: 'X', amount: 1 }));
         await assertFails(updateDoc(doc(db, 'donors/d1'), { amount: 1000 }));
-        await assertFails(updateDoc(doc(db, 'helpers/h1'), { name: 'X' }));
         await assertFails(getDoc(doc(db, 'feedback/f1')));
         await assertFails(getDocs(collection(db, 'feedback')));
         await assertFails(updateDoc(doc(db, 'feedback/f1'), { status: 'done' }));
@@ -2096,5 +2094,95 @@ describe('app_settings/layout and layout_history (Design-Modus)', () => {
         })
       );
     }
+  });
+});
+
+// Mithelfer per region: Super-Admins everywhere, moderators in their regions.
+// A helper without regionId belongs to Vorarlberg; regionId never changes.
+describe('helpers per region', () => {
+  const dbFor = (uid: string) =>
+    env.authenticatedContext(uid, { email_verified: true }).firestore();
+  const helper = (regionId: string) => ({
+    name: 'H',
+    profileSlug: null,
+    website: null,
+    photoURL: null,
+    description: null,
+    order: 0,
+    createdBy: 'x',
+    regionId,
+  });
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'admin_users/modTirol'), {
+        role: 'RegionModerator',
+        regionIds: ['tirol'],
+      });
+      await setDoc(doc(db, 'admin_users/modVorarlberg'), {
+        role: 'RegionModerator',
+        regionIds: ['vorarlberg'],
+      });
+      await setDoc(doc(db, 'helpers/tirolH'), helper('tirol'));
+      await setDoc(doc(db, 'helpers/wienH'), helper('wien'));
+      await setDoc(doc(db, 'helpers/legacyH'), { name: 'Alt', order: 0 });
+    });
+  });
+
+  it('a moderator manages the helpers of her own region', async () => {
+    const db = dbFor('modTirol');
+    await assertSucceeds(setDoc(doc(db, 'helpers/new'), helper('tirol')));
+    await assertSucceeds(updateDoc(doc(db, 'helpers/tirolH'), { name: 'Neu', order: 100 }));
+    await assertSucceeds(deleteDoc(doc(db, 'helpers/tirolH')));
+  });
+
+  it('a moderator cannot touch helpers of a foreign region', async () => {
+    const db = dbFor('modTirol');
+    await assertFails(setDoc(doc(db, 'helpers/new'), helper('wien')));
+    await assertFails(updateDoc(doc(db, 'helpers/wienH'), { name: 'Neu' }));
+    await assertFails(deleteDoc(doc(db, 'helpers/wienH')));
+    await assertFails(updateDoc(doc(db, 'helpers/legacyH'), { name: 'Neu' }));
+    await assertFails(deleteDoc(doc(db, 'helpers/legacyH')));
+  });
+
+  it('a helper without regionId belongs to Vorarlberg', async () => {
+    const db = dbFor('modVorarlberg');
+    await assertSucceeds(updateDoc(doc(db, 'helpers/legacyH'), { name: 'Neu', order: 100 }));
+    await assertSucceeds(deleteDoc(doc(db, 'helpers/legacyH')));
+  });
+
+  it('nobody signed in as a visitor or organizer can write; everybody can read', async () => {
+    for (const db of [env.unauthenticatedContext().firestore(), dbFor('organizer')]) {
+      await assertSucceeds(getDoc(doc(db, 'helpers/tirolH')));
+      await assertFails(setDoc(doc(db, 'helpers/new'), helper('tirol')));
+      await assertFails(updateDoc(doc(db, 'helpers/tirolH'), { name: 'Neu' }));
+    }
+  });
+
+  describe.each(Object.entries(adminVariants))('%s', (_n, make) => {
+    it('manages helpers of every region, but only with a valid regionId', async () => {
+      const db = make().firestore();
+      await assertSucceeds(setDoc(doc(db, 'helpers/new'), helper('wien')));
+      await assertSucceeds(updateDoc(doc(db, 'helpers/tirolH'), { name: 'Neu' }));
+      await assertSucceeds(updateDoc(doc(db, 'helpers/legacyH'), { name: 'Neu' }));
+      await assertSucceeds(deleteDoc(doc(db, 'helpers/wienH')));
+      const { regionId: _omit, ...noRegion } = helper('wien');
+      await assertFails(setDoc(doc(db, 'helpers/noRegion'), noRegion));
+      await assertFails(setDoc(doc(db, 'helpers/badRegion'), helper('atlantis')));
+    });
+  });
+
+  it('regionId can neither be changed, added nor removed (not even by admins)', async () => {
+    for (const db of [dbFor('modTirol'), dbFor('adminDoc')]) {
+      await assertFails(updateDoc(doc(db, 'helpers/tirolH'), { regionId: 'wien' }));
+      await assertFails(updateDoc(doc(db, 'helpers/tirolH'), { regionId: deleteField() }));
+    }
+    await assertFails(
+      updateDoc(doc(dbFor('modVorarlberg'), 'helpers/legacyH'), { regionId: 'tirol' })
+    );
+    await assertFails(
+      updateDoc(doc(dbFor('adminDoc'), 'helpers/legacyH'), { regionId: 'vorarlberg' })
+    );
   });
 });

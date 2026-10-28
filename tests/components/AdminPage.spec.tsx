@@ -48,7 +48,7 @@ const mockUseHelpers = vi.hoisted(() => ({
   helpers: [] as Array<{ id: string; name: string }>,
   loading: false,
   error: null as string | null,
-  isAdmin: true,
+  canEdit: true,
   addHelper: vi.fn(),
   updateHelper: vi.fn(),
   deleteHelper: vi.fn(),
@@ -384,7 +384,7 @@ describe('AdminPage Papierkorb tab', () => {
 });
 
 describe('AdminPage Helfer tab (5dlVbOmf)', () => {
-  it('hides the Helfer tab for non-admin users', () => {
+  it('hides the Helfer tab for organizers', () => {
     mockAuth.role = 'User';
     renderAdmin();
     expect(screen.queryByTestId('admin-tab-helpers')).not.toBeInTheDocument();
@@ -635,7 +635,6 @@ describe('AdminPage access per role', () => {
   const SUPER_ADMIN_ONLY = [
     'admin-tab-categories',
     'admin-tab-theme',
-    'admin-tab-helpers',
     'admin-tab-donors',
     'admin-tab-instagram',
     'admin-tab-analytics',
@@ -657,6 +656,7 @@ describe('AdminPage access per role', () => {
       ...SUPER_ADMIN_ONLY,
       'admin-tab-review',
       'admin-tab-members',
+      'admin-tab-helpers',
       'admin-tab-feedback',
     ]) {
       expect(screen.getByTestId(id)).toBeInTheDocument();
@@ -670,7 +670,7 @@ describe('AdminPage access per role', () => {
     expect(screen.getByTestId('moderation-tab-stub')).toBeInTheDocument();
   });
 
-  it('moderator sees Review and Mitglieder but none of the Super-Admin areas', () => {
+  it('moderator sees Review, Mitglieder and Helfer but none of the Super-Admin areas', () => {
     asModerator();
     mockUseHasFeedback.hasFeedback = true;
     mockUseHasMessages.hasMessages = true;
@@ -680,6 +680,7 @@ describe('AdminPage access per role', () => {
       'admin-tab-events',
       'admin-tab-review',
       'admin-tab-members',
+      'admin-tab-helpers',
       'admin-tab-messages',
       'admin-tab-trash',
     ]) {
@@ -705,7 +706,6 @@ describe('AdminPage access per role', () => {
     'analytics',
     'feedback',
     'donors',
-    'helpers',
     'moderation',
     'regions',
   ])('moderator opening ?tab=%s directly gets "Kein Zugriff", not the content', (tab) => {

@@ -356,8 +356,15 @@ regions of one country; the lists are saved in `regions/{id}.bezirke` (+ `mappin
   rich text of the "Deine Heimat <Region> ruft dich." section (heading fixed), saved as
   `aboutHeaderImage` / `aboutText` on `regions/{id}` (`src/utils/regionAboutText.js`; no
   `aboutText` = default text). The rule lets a moderator update exactly those fields
-  (+ `updatedAt`) of her own regions. Helpers are global (admin tab "Helfer") and shown in
-  full on every "Über uns" page; `aboutHelperIds` is no longer written or read.
+  (+ `updatedAt`) of her own regions. Helpers (`helpers/*`, admin tab "Helfer") belong to one
+  region via `regionId`; a doc without it is Vorarlberg's (read fallback, no migration). The tab
+  is open to moderators (region picker only with more than one region to choose; Super-Admins
+  get all regions). Rules: create needs a valid `regionId`, create/update/delete for Super-Admins
+  or `isRegionModeratorFor(regionId)`, `regionId` never changes. `useHelpers(regionId)` queries
+  `where('regionId', '==', id)`, Vorarlberg reads the whole collection and filters on the client
+  (`src/utils/helperRegions.js`). "Über uns" shows the helpers of its region (national views and
+  the dark launch: Vorarlberg's) and leaves the whole "Mithelfer:innen" section out while there
+  are none (also while loading or on an error). `aboutHelperIds` is no longer written or read.
 - **Instagram-Name per region:** optional `instagramHandle` ("@name", display only) on
   `regions/{id}`. Only Super-Admins set it (`RegionAboutTab`, section "Instagram-Name der
   Region"; the moderator rule's field list does not contain it; rules check

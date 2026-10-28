@@ -8,8 +8,9 @@ import DonorsList from '../components/DonorsList';
 import ContactFormModal from '../components/ContactFormModal';
 import { useRegion } from '../hooks/useRegion';
 import { useRegionTexts } from '../hooks/useRegionTexts';
+import { useHelpers } from '../hooks/useHelpers';
 import { regionCanonicalPath } from '../utils/regionRouting';
-import { instagramProfileUrl, regionInstagramAccount } from '../utils/regions';
+import { DEFAULT_REGION_ID, instagramProfileUrl, regionInstagramAccount } from '../utils/regions';
 import { customAboutText } from '../utils/regionAboutText';
 import RichTextView from '../components/RichTextView';
 import './AboutPage.css';
@@ -68,6 +69,11 @@ export default function AboutPage() {
   const headerImage = (regionMode && region.aboutHeaderImage) || '/hero.jpeg';
   // Region mode only, so the Vorarlberg-only page stays as it is.
   const instagramHandle = regionMode ? regionInstagramAccount(region) : null;
+  // Helpers belong to one region; national pages and the dark launch show
+  // Vorarlberg's. No helpers (or not loaded yet / failed): no section at all.
+  const helpersState = useHelpers(regionMode ? region.id : DEFAULT_REGION_ID);
+  const showHelpers =
+    !helpersState.loading && !helpersState.error && helpersState.helpers.length > 0;
   const openContact = () => setContactOpen(true);
   const contactClass = 'about-inline-link';
   const sayHello = (
@@ -236,16 +242,18 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section className="about-section about-section--helpers" id="helfer">
-        <span className="eyebrow about-section-eyebrow">Mithelfer:innen</span>
-        <h2>Die Hände hinter {siteName}</h2>
-        <p>
-          Hinter jedem Event, jedem Foto und jeder Zeile Code stehen Menschen, die ihre Zeit
-          schenken. Hier sind sie — die Helfer:innen, die {siteName} tragen. Möchtest du auch
-          mithelfen? {sayHello}.
-        </p>
-        <HelpersList />
-      </section>
+      {showHelpers && (
+        <section className="about-section about-section--helpers" id="helfer">
+          <span className="eyebrow about-section-eyebrow">Mithelfer:innen</span>
+          <h2>Die Hände hinter {siteName}</h2>
+          <p>
+            Hinter jedem Event, jedem Foto und jeder Zeile Code stehen Menschen, die ihre Zeit
+            schenken. Hier sind sie — die Helfer:innen, die {siteName} tragen. Möchtest du auch
+            mithelfen? {sayHello}.
+          </p>
+          <HelpersList helpers={helpersState.helpers} />
+        </section>
+      )}
 
       <section className="about-section about-support" id="spenden">
         <span className="eyebrow about-section-eyebrow">Unterstützung</span>

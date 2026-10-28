@@ -1,12 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import HelpersTab from '../../src/components/HelpersTab';
+import { STATIC_REGIONS } from '../../src/utils/regions';
+import { getStaffAccess } from '../../src/utils/staffRoles';
 
 const mockHelpers = vi.hoisted(() => ({
   helpers: [],
   loading: false,
   error: null,
-  isAdmin: true,
+  canEdit: true,
+  regionIdArg: null as string | null,
   addHelper: vi.fn(),
   updateHelper: vi.fn(),
   deleteHelper: vi.fn(),
@@ -33,7 +36,20 @@ const mockUserSearch = vi.hoisted(() => ({
 const mockUploadHelperImage = vi.hoisted(() => vi.fn());
 
 vi.mock('../../src/hooks/useHelpers', () => ({
-  useHelpers: () => mockHelpers,
+  useHelpers: (regionId: string) => {
+    mockHelpers.regionIdArg = regionId;
+    return mockHelpers;
+  },
+}));
+
+const mockStaff = vi.hoisted(() => ({ role: 'Admin', regionIds: [] as string[] }));
+
+vi.mock('../../src/hooks/useStaffRole', () => ({
+  useStaffRole: () => getStaffAccess(mockStaff.role, mockStaff.regionIds),
+}));
+
+vi.mock('../../src/hooks/useRegions', () => ({
+  useRegions: () => ({ regions: STATIC_REGIONS, loading: false }),
 }));
 
 vi.mock('../../src/hooks/useUserSearch', () => ({
@@ -53,7 +69,10 @@ beforeEach(() => {
   mockHelpers.helpers = [];
   mockHelpers.loading = false;
   mockHelpers.error = null;
-  mockHelpers.isAdmin = true;
+  mockHelpers.canEdit = true;
+  mockHelpers.regionIdArg = null;
+  mockStaff.role = 'Admin';
+  mockStaff.regionIds = [];
   mockUserSearch.query = '';
   mockUserSearch.results = [];
   mockUserSearch.loading = false;
@@ -439,5 +458,37 @@ describe('HelpersTab', () => {
     expect(screen.getByTestId('helper-edit-photo')).toHaveValue('/photos/doris.jpg');
     fireEvent.click(screen.getByTestId('helper-photo-remove'));
     expect(screen.getByTestId('helper-edit-photo')).toHaveValue('');
+  });
+});
+
+describe('HelpersTab region picker', () => {
+  it('a moderator of two regions picks the region and adds the helper there', async () => {
+    mockStaff.role = 'RegionModerator';
+    mockStaff.regionIds = ['tirol', 'steiermark'];
+    render(<HelpersTab />);
+    const select = screen.getByTestId('helpers-tab-region') as HTMLSelectElement;
+    expect([...select.options].map((o) => o.value).sort()).toEqual(['steiermark', 'tirol']);
+
+    fireEvent.change(select, { target: { value: 'steiermark' } });
+    expect(mockHelpers.regionIdArg).toBe('steiermark');
+    fireEvent.click(screen.getByTestId('helpers-tab-add'));
+    fireEvent.change(screen.getByTestId('helper-edit-name'), { target: { value: 'Carla' } });
+    fireEvent.click(screen.getByTestId('helper-edit-save'));
+    await waitFor(() => expect(mockHelpers.addHelper).toHaveBeenCalled());
+    expect(mockHelpers.regionIdArg).toBe('steiermark');
+  });
+
+  it('a moderator of one region gets no picker and works in her region', () => {
+    mockStaff.role = 'RegionModerator';
+    mockStaff.regionIds = ['tirol'];
+    render(<HelpersTab />);
+    expect(screen.queryByTestId('helpers-tab-region')).not.toBeInTheDocument();
+    expect(mockHelpers.regionIdArg).toBe('tirol');
+  });
+
+  it('a Super-Admin can pick every region', () => {
+    render(<HelpersTab />);
+    const select = screen.getByTestId('helpers-tab-region') as HTMLSelectElement;
+    expect(select.options).toHaveLength(STATIC_REGIONS.length);
   });
 });

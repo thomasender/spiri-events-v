@@ -12,25 +12,64 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { useHelpers } from '../hooks/useHelpers';
+import { useRegions } from '../hooks/useRegions';
+import { useStaffRole } from '../hooks/useStaffRole';
 import HelperEditDialog from './HelperEditDialog';
 import ConfirmDialog from './ConfirmDialog';
 import './HelpersTab.css';
 
-// Admin tab: manage the "Helfer" (helpers) registry shown on the public
-// "Über uns" page. Each helper is one of the people who keep the tribe
-// running — web hosting, photography, event hosting, etc. Admins can add,
-// edit, delete and reorder helpers.
+// Admin tab: manage the "Helfer" (helpers) of one region, shown on that
+// region's public "Über uns" page. Each helper is one of the people who keep
+// the tribe running — web hosting, photography, event hosting, etc.
+// Super-Admins pick any region, Regions-Moderator:innen one of theirs; the
+// region picker shows only when there is more than one to choose from.
 export default function HelpersTab() {
+  const { canModerateRegion } = useStaffRole();
+  const { regions } = useRegions();
+  const options = useMemo(
+    () => regions.filter((r) => canModerateRegion(r.id)),
+    [regions, canModerateRegion]
+  );
+  const [regionId, setRegionId] = useState('');
+  const current = options.find((r) => r.id === regionId) ?? options[0] ?? null;
+
+  if (!current) return null;
+
+  return (
+    <div className="helpers-tab" data-testid="helpers-tab">
+      {options.length > 1 && (
+        <label className="helpers-tab-region">
+          <span>Region</span>
+          <select
+            value={current.id}
+            onChange={(e) => setRegionId(e.target.value)}
+            data-testid="helpers-tab-region"
+          >
+            {options.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      {/* Keyed by region: switching resets the pending order and open dialogs. */}
+      <RegionHelpers key={current.id} regionId={current.id} />
+    </div>
+  );
+}
+
+function RegionHelpers({ regionId }) {
   const {
     helpers,
     loading,
     error,
-    isAdmin,
+    canEdit,
     addHelper,
     updateHelper,
     deleteHelper,
     reorderHelpers,
-  } = useHelpers();
+  } = useHelpers(regionId);
 
   const [editing, setEditing] = useState(null); // { mode, helper }
   const [deleting, setDeleting] = useState(null);
@@ -177,15 +216,15 @@ export default function HelpersTab() {
   }
 
   return (
-    <div className="helpers-tab" data-testid="helpers-tab">
+    <>
       <div className="helpers-tab-toolbar">
         <p className="helpers-tab-description">
-          Hier verwaltest du die Liste der Menschen, die tribe Vorarlberg unterstützen —
+          Hier verwaltest du die Liste der Menschen, die den Tribe in dieser Region unterstützen —
           Fotograf:innen, Helfer:innen bei Events, Webhosting und mehr. Diese Liste erscheint auf
-          der öffentlichen „Über uns-Seite, damit sich alle sehen und willkommen fühlen können.
-          Reihenfolge, Fotos und Kurzbeschreibungen sind frei wählbar.
+          der öffentlichen „Über uns“-Seite der Region, damit sich alle sehen und willkommen fühlen
+          können. Reihenfolge, Fotos und Kurzbeschreibungen sind frei wählbar.
         </p>
-        {isAdmin && (
+        {canEdit && (
           <button
             type="button"
             className="btn btn-primary"
@@ -202,7 +241,10 @@ export default function HelpersTab() {
         <div className="helpers-tab-empty" data-testid="helpers-tab-empty">
           <Inbox size={32} aria-hidden="true" />
           <h2>Noch keine Helfer</h2>
-          <p>Lege den ersten Helfer an, damit die Liste auf der „Über uns-Seite erscheinen kann.</p>
+          <p>
+            Solange hier niemand eingetragen ist, zeigt die „Über uns“-Seite der Region keinen
+            Abschnitt „Mithelfer:innen“.
+          </p>
         </div>
       ) : (
         <ul className="helpers-tab-list" data-testid="helpers-tab-list">
@@ -215,12 +257,12 @@ export default function HelpersTab() {
               <li
                 key={helper.id}
                 className={`helper-row${reordering ? ' helper-row--busy' : ''}`}
-                draggable={isAdmin && !reordering}
-                onDragStart={isAdmin ? (e) => handleDragStart(e, helper.id) : undefined}
-                onDragOver={isAdmin ? (e) => handleDragOver(e, helper.id) : undefined}
-                onDragLeave={isAdmin ? handleDragLeave : undefined}
-                onDrop={isAdmin ? (e) => handleDrop(e, helper.id) : undefined}
-                onDragEnd={isAdmin ? handleDragEnd : undefined}
+                draggable={canEdit && !reordering}
+                onDragStart={canEdit ? (e) => handleDragStart(e, helper.id) : undefined}
+                onDragOver={canEdit ? (e) => handleDragOver(e, helper.id) : undefined}
+                onDragLeave={canEdit ? handleDragLeave : undefined}
+                onDrop={canEdit ? (e) => handleDrop(e, helper.id) : undefined}
+                onDragEnd={canEdit ? handleDragEnd : undefined}
                 data-testid="helper-row"
                 data-helper-id={helper.id}
                 data-drop-before={showDropBefore || undefined}
@@ -264,7 +306,7 @@ export default function HelpersTab() {
                     )}
                   </span>
                 </div>
-                {isAdmin && (
+                {canEdit && (
                   <div className="helper-row-reorder">
                     <button
                       type="button"
@@ -288,7 +330,7 @@ export default function HelpersTab() {
                     </button>
                   </div>
                 )}
-                {isAdmin && (
+                {canEdit && (
                   <div className="helper-row-actions">
                     <button
                       type="button"
@@ -350,6 +392,6 @@ export default function HelpersTab() {
           </>
         )}
       </ConfirmDialog>
-    </div>
+    </>
   );
 }

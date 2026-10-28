@@ -1,50 +1,14 @@
 import { User } from 'lucide-react';
-import { useHelpers } from '../hooks/useHelpers';
-import { useRegionTexts } from '../hooks/useRegionTexts';
 import './HelpersList.css';
 
 function isExternalUrl(url) {
   return typeof url === 'string' && /^https?:\/\//.test(url);
 }
 
-// Public list of helpers rendered on the "Über uns" page. Live-fetches via
-// useAdmin (admin-only) hooks which manage their own data. Renders an
-// empty-state so the section gracefully hides its helper prompts.
-// `helperIds` (a region's "Über uns" page): only these helpers, in this order.
-export default function HelpersList({ helperIds = null }) {
-  const { siteName } = useRegionTexts();
-  const { helpers: allHelpers, loading, error } = useHelpers();
-  const helpers = Array.isArray(helperIds)
-    ? helperIds.map((id) => allHelpers.find((h) => h.id === id)).filter(Boolean)
-    : allHelpers;
-
-  if (loading) {
-    return (
-      <div className="helpers-list-loading" data-testid="helpers-list-loading">
-        Lade Helfer…
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="helpers-list-error" role="status" data-testid="helpers-list-error">
-        Helfer konnten gerade nicht geladen werden.
-      </div>
-    );
-  }
-
-  if (!helpers.length) {
-    return (
-      <div className="helpers-list-empty" data-testid="helpers-list-empty">
-        <p>
-          Sobald Admins Helfer:innen hinzufügen, erscheinen sie hier — jede:r, die/der {siteName}
-          mitträgt, ist eingeladen, Teil dieser Liste zu werden.
-        </p>
-      </div>
-    );
-  }
-
+// Public list of a region's helpers on the "Über uns" page. AboutPage loads
+// them (useHelpers) and renders the whole section only when there is at least
+// one, so this list has no loading, error or empty state of its own.
+export default function HelpersList({ helpers }) {
   return (
     <ul className="helpers-list" data-testid="helpers-list">
       {helpers.map((helper) => {

@@ -145,7 +145,7 @@ export default function AdminPage() {
   const navigate = useNavigate();
   const { user, role, staffRegionIds, loading: authLoading, canCreateEvents } = useAuth();
   // Super-Admin: every tab. Regions-Moderator:in: Review, Nachrichten,
-  // Papierkorb and Mitglieder of her regions (plus her own events). Everyone
+  // Papierkorb, Mitglieder, Helfer and Über uns of her regions (plus her own events). Everyone
   // else: their own events. A tab outside the list is blocked for the URL
   // too, with a "Kein Zugriff" state instead of the content.
   const access = getStaffAccess(role, staffRegionIds);
@@ -185,7 +185,7 @@ export default function AdminPage() {
       trash: trashedCount > 0,
       categories: isAdmin,
       theme: isAdmin,
-      helpers: isAdmin,
+      helpers: allowedTabs.has('helpers'),
       donors: isAdmin,
       members: allowedTabs.has('members'),
       chat: allowedTabs.has('chat'),

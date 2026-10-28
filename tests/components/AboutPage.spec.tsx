@@ -17,6 +17,7 @@ const mockHelpers = vi.hoisted(() => ({
   }>,
   loading: false,
   error: null as string | null,
+  regionIdArg: null as string | null,
 }));
 
 const mockDonors = vi.hoisted(() => ({
@@ -31,7 +32,10 @@ const mockDonors = vi.hoisted(() => ({
 }));
 
 vi.mock('../../src/hooks/useHelpers', () => ({
-  useHelpers: () => mockHelpers,
+  useHelpers: (regionId: string) => {
+    mockHelpers.regionIdArg = regionId;
+    return mockHelpers;
+  },
 }));
 
 vi.mock('../../src/hooks/useDonors', () => ({
@@ -65,6 +69,7 @@ beforeEach(() => {
   mockHelpers.helpers = [];
   mockHelpers.loading = false;
   mockHelpers.error = null;
+  mockHelpers.regionIdArg = null;
   mockDonors.donors = [];
   mockDonors.loading = false;
   mockDonors.error = null;
@@ -89,7 +94,6 @@ describe('AboutPage', () => {
     expect(screen.getByText('Kalender')).toBeInTheDocument();
     expect(screen.getByText('Unsere Werte')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Wer wir sind/ })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /Hände hinter tribe/ })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Spende — damit der Tribe/ })).toBeInTheDocument();
   });
 
@@ -167,18 +171,33 @@ describe('AboutPage', () => {
     expect(screen.getByText(/du gehörst dazu/i)).toBeInTheDocument();
   });
 
-  it('renders the helpers list and donor list blocks', () => {
+  it('renders the donor list block', () => {
     renderAboutPage();
-    expect(document.querySelector('.about-section--helpers')).not.toBeNull();
     expect(screen.getByTestId('about-donors-block')).toBeInTheDocument();
   });
 });
 
 describe('AboutPage helpers list (5dlVbOmf)', () => {
-  it('renders an empty-state when no helpers exist', () => {
-    mockHelpers.helpers = [];
+  it("shows Vorarlberg's helpers in their own section", () => {
+    mockHelpers.helpers = [{ id: 'h1', name: 'Anna' }];
     renderAboutPage();
-    expect(screen.getByTestId('helpers-list-empty')).toBeInTheDocument();
+    expect(mockHelpers.regionIdArg).toBe('vorarlberg');
+    const section = document.getElementById('helfer');
+    expect(section).not.toBeNull();
+    expect(section).toHaveTextContent('Die Hände hinter tribe Vorarlberg');
+    expect(section).toHaveTextContent('Anna');
+  });
+
+  it.each([
+    ['there are no helpers', {}],
+    ['the helpers are still loading', { loading: true }],
+    ['the helpers failed to load', { error: 'permission-denied' }],
+  ])('leaves the whole section out while %s', (_name, patch) => {
+    Object.assign(mockHelpers, patch);
+    renderAboutPage();
+    expect(document.getElementById('helfer')).toBeNull();
+    expect(screen.queryByText(/Mithelfer:innen/)).not.toBeInTheDocument();
+    expect(screen.queryByTestId('helpers-list')).not.toBeInTheDocument();
   });
 
   it('renders a card for each helper with name, photo and links', () => {
@@ -212,18 +231,6 @@ describe('AboutPage helpers list (5dlVbOmf)', () => {
     const placeholder = card.querySelector('.helpers-list-photo-placeholder');
     expect(placeholder).not.toBeNull();
     expect(placeholder?.textContent?.trim()).toBe('');
-  });
-
-  it('shows a loading hint while the helpers registry loads', () => {
-    mockHelpers.loading = true;
-    renderAboutPage();
-    expect(screen.getByTestId('helpers-list-loading')).toBeInTheDocument();
-  });
-
-  it('falls back to a friendly error message on registry failure', () => {
-    mockHelpers.error = 'permission-denied';
-    renderAboutPage();
-    expect(screen.getByTestId('helpers-list-error')).toBeInTheDocument();
   });
 });
 
@@ -265,6 +272,11 @@ describe('AboutPage donors list (5dlVbOmf)', () => {
 });
 
 describe('AboutPage contact CTAs (6ab4f6e5 + VHzOoH6Y)', () => {
+  // "Sag uns Hallo" sits in the helpers section, which needs at least one helper.
+  beforeEach(() => {
+    mockHelpers.helpers = [{ id: 'h1', name: 'Anna' }];
+  });
+
   it('renders the three contact CTAs as buttons (no mailto fallback)', () => {
     renderAboutPage();
 
@@ -306,7 +318,11 @@ describe('AboutPage — region mode', () => {
     mockHelpers.error = null;
   });
 
-  function renderRegion(aboutDoc: Record<string, unknown>, activeIds = ['vorarlberg', 'tirol']) {
+  function renderRegion(
+    aboutDoc: Record<string, unknown>,
+    activeIds = ['vorarlberg', 'tirol'],
+    overrides: Record<string, unknown> = {}
+  ) {
     const allRegions = mergeRegions(
       STATIC_REGIONS.map((r) => ({
         id: r.id,
@@ -320,6 +336,7 @@ describe('AboutPage — region mode', () => {
       regions: allRegions.filter((r) => r.active),
       regionId: 'tirol',
       region: allRegions.find((r) => r.id === 'tirol'),
+      ...overrides,
     };
     return render(
       <HelmetProvider>
@@ -334,11 +351,12 @@ describe('AboutPage — region mode', () => {
     );
   }
 
-  it('names the region and shows all helpers, with the header photo of its moderators', () => {
+  it('names the region and shows its helpers, with the header photo of its moderators', () => {
     renderRegion({
       aboutHeaderImage: 'https://example.com/tirol-header.jpg',
     });
 
+    expect(mockHelpers.regionIdArg).toBe('tirol');
     expect(
       screen.getByRole('heading', { name: /Deine Heimat Tirol ruft dich/ })
     ).toBeInTheDocument();
@@ -348,6 +366,19 @@ describe('AboutPage — region mode', () => {
       'src',
       'https://example.com/tirol-header.jpg'
     );
+  });
+
+  it('leaves the helpers section out when the region has none', () => {
+    mockHelpers.helpers = [];
+    renderRegion({});
+    expect(mockHelpers.regionIdArg).toBe('tirol');
+    expect(document.getElementById('helfer')).toBeNull();
+  });
+
+  it("a combined view (national page) shows Vorarlberg's helpers", () => {
+    renderRegion({}, ['vorarlberg', 'tirol'], { isNational: true, region: null, regionId: null });
+    expect(mockHelpers.regionIdArg).toBe('vorarlberg');
+    expect(screen.getByText('Anna Alpha')).toBeInTheDocument();
   });
 
   it('shows the text written by the moderators instead of the default text', () => {

@@ -46,7 +46,7 @@ describe('allowedAdminTabs', () => {
     expect([...allowedAdminTabs(superAdmin)]).toContain('moderation');
     expect([...allowedAdminTabs(superAdmin)]).toContain('about');
     expect([...allowedAdminTabs(tirolMod)].sort()).toEqual(
-      ['about', 'drafts', 'events', 'members', 'messages', 'review', 'trash'].sort()
+      ['about', 'drafts', 'events', 'helpers', 'members', 'messages', 'review', 'trash'].sort()
     );
     expect([...allowedAdminTabs(organizer)].sort()).toEqual(
       ['drafts', 'events', 'messages', 'trash'].sort()

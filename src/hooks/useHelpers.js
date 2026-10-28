@@ -4,24 +4,20 @@ import {
   doc,
   onSnapshot,
   deleteDoc,
+  query,
+  where,
   writeBatch,
   serverTimestamp,
   setDoc,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from './useAuth';
+import { useStaffRole } from './useStaffRole';
+import { DEFAULT_REGION_ID } from '../utils/regions';
+import { helpersOfRegion } from '../utils/helperRegions';
 
 const HELPER_DESCRIPTION_MAX = 120;
 const ORDER_STEP = 100;
-
-function compareHelpersByOrder(a, b) {
-  const aHasOrder = typeof a.order === 'number';
-  const bHasOrder = typeof b.order === 'number';
-  if (aHasOrder && !bHasOrder) return -1;
-  if (!aHasOrder && bHasOrder) return 1;
-  if (aHasOrder && bHasOrder && a.order !== b.order) return a.order - b.order;
-  return a.name.localeCompare(b.name, 'de');
-}
 
 function nextOrderForNewHelper(helpers) {
   let max = -1;
@@ -83,27 +79,34 @@ function validateHelperFields(input, { isCreate } = {}) {
   return { name, profileSlug, website, photoURL, description };
 }
 
-// Live subscription to the `helpers` collection. Admins add people who help
-// run the tribe (web hosting, design, photography, event hosting, etc.). The
-// list is rendered publicly on the "Über uns" page.
-export function useHelpers() {
-  const { user, role } = useAuth();
-  const isAdmin = role === 'Admin';
+// Live subscription to the helpers (Mithelfer) of one region. Super-Admins and
+// the region's moderators add people who help run the tribe there (web
+// hosting, design, photography, event hosting, etc.). The list is rendered
+// publicly on the region's "Über uns" page. Docs without `regionId` belong to
+// Vorarlberg; Firestore cannot query a missing field, so Vorarlberg reads the
+// whole collection and filters on the client (no composite index needed).
+export function useHelpers(regionId = DEFAULT_REGION_ID) {
+  const { user } = useAuth();
+  const { canModerateRegion } = useStaffRole();
+  const canEdit = canModerateRegion(regionId);
   const [helpers, setHelpers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     setLoading(true);
+    const source =
+      regionId === DEFAULT_REGION_ID
+        ? collection(db, 'helpers')
+        : query(collection(db, 'helpers'), where('regionId', '==', regionId));
     const unsubscribe = onSnapshot(
-      collection(db, 'helpers'),
+      source,
       (snapshot) => {
         const items = snapshot.docs.map((docSnap) => ({
           id: docSnap.id,
           ...docSnap.data(),
         }));
-        items.sort(compareHelpersByOrder);
-        setHelpers(items);
+        setHelpers(helpersOfRegion(items, regionId));
         setLoading(false);
         setError(null);
       },
@@ -114,17 +117,18 @@ export function useHelpers() {
       }
     );
     return unsubscribe;
-  }, []);
+  }, [regionId]);
 
   const addHelper = useCallback(
     async (input) => {
-      if (!isAdmin) throw new Error('Nur Admins können Helfer anlegen.');
+      if (!canEdit) throw new Error('Du kannst in dieser Region keine Helfer anlegen.');
       if (!user?.uid) throw new Error('Nicht angemeldet.');
       const fields = validateHelperFields(input, { isCreate: true });
       const id = `helper_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
       const order = nextOrderForNewHelper(helpers);
       await setDoc(doc(db, 'helpers', id), {
         ...fields,
+        regionId,
         order,
         createdBy: user.uid,
         createdAt: serverTimestamp(),
@@ -132,12 +136,12 @@ export function useHelpers() {
       });
       return id;
     },
-    [isAdmin, user, helpers]
+    [canEdit, user, helpers, regionId]
   );
 
   const updateHelper = useCallback(
     async (id, input) => {
-      if (!isAdmin) throw new Error('Nur Admins können Helfer ändern.');
+      if (!canEdit) throw new Error('Du kannst in dieser Region keine Helfer ändern.');
       const fields = validateHelperFields(input, { isCreate: false });
       await setDoc(
         doc(db, 'helpers', id),
@@ -145,23 +149,25 @@ export function useHelpers() {
         { merge: true }
       );
     },
-    [isAdmin]
+    [canEdit]
   );
 
   const deleteHelper = useCallback(
     async (id) => {
-      if (!isAdmin) throw new Error('Nur Admins können Helfer löschen.');
+      if (!canEdit) throw new Error('Du kannst in dieser Region keine Helfer löschen.');
       await deleteDoc(doc(db, 'helpers', id));
     },
-    [isAdmin]
+    [canEdit]
   );
 
   const reorderHelpers = useCallback(
     async (orderedIds) => {
-      if (!isAdmin) throw new Error('Nur Admins können Helfer sortieren.');
+      if (!canEdit) throw new Error('Du kannst in dieser Region keine Helfer sortieren.');
       if (!Array.isArray(orderedIds)) {
         throw new Error('Ungültige Reihenfolge.');
       }
+      // `helpers` holds only this region's helpers, so a reorder never
+      // touches another region.
       const knownIds = new Set(helpers.map((h) => h.id));
       const seen = new Set();
       for (const id of orderedIds) {
@@ -178,14 +184,14 @@ export function useHelpers() {
       });
       await batch.commit();
     },
-    [isAdmin, helpers]
+    [canEdit, helpers]
   );
 
   return {
     helpers,
     loading,
     error,
-    isAdmin,
+    canEdit,
     addHelper,
     updateHelper,
     deleteHelper,

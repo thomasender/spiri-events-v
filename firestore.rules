@@ -101,7 +101,7 @@ service cloud.firestore {
     // scripts/promote-admin.mjs). This is a NARROW extra right next to the
     // Super-Admin (`role: 'Admin'`): isAdminOrEmulatorAdmin() is deliberately
     // untouched, so a moderator never passes any of the many admin-only
-    // rules below (categories, theme, instagram, donors, helpers, feedback,
+    // rules below (categories, theme, instagram, donors, feedback,
     // member_lists, regions, admin_users, audit log, permanent deletes).
     // Token claims are NOT consulted for moderators: the doc is the only
     // source, so revoking (deleting the doc) takes effect immediately.
@@ -1705,9 +1705,12 @@ service cloud.firestore {
       allow delete: if isAdminOrEmulatorAdmin();
     }
 
-    // Helpers (Mithelfer) registry — admin-managed list of people who
-    // support the tribe. Public read so the "Über uns" page can render the
-    // cards without auth gymnastics; admin-only CRUD. `profileSlug` links
+    // Helpers (Mithelfer) registry — list of people who support the tribe,
+    // per region (`regionId`; docs written before helpers were per region
+    // have none and belong to Vorarlberg, no migration). Public read so the
+    // "Über uns" page can render the cards without auth gymnastics. CRUD for
+    // Super-Admins and the region's moderators; `regionId` is required on
+    // create and never changes afterwards (not even for admins). `profileSlug` links
     // to the public profile page (must start with `/` to discourage open
     // redirects when admins paste an arbitrary path), `website` is an
     // optional URL, `photoURL` an optional image, and `description` is
@@ -1743,10 +1746,18 @@ service cloud.firestore {
           || (description is string && description.size() <= 120);
       }
 
-      allow create: if isAdminOrEmulatorAdmin()
+      function helperRegionId(data) {
+        return data.get('regionId', 'vorarlberg');
+      }
+      function canManageHelpersIn(regionId) {
+        return isAdminOrEmulatorAdmin() || isRegionModeratorFor(regionId);
+      }
+
+      allow create: if isValidRegionId(request.resource.data.get('regionId', null))
+                    && canManageHelpersIn(request.resource.data.regionId)
                     && request.resource.data.keys().hasOnly([
                       'name', 'profileSlug', 'website', 'photoURL', 'description',
-                      'order', 'createdAt', 'updatedAt', 'createdBy',
+                      'order', 'createdAt', 'updatedAt', 'createdBy', 'regionId',
                     ])
                     && isValidHelperName(request.resource.data.name)
                     && isValidHelperProfileSlug(request.resource.data.profileSlug)
@@ -1754,7 +1765,8 @@ service cloud.firestore {
                     && isValidHelperPhotoUrl(request.resource.data.photoURL)
                     && isValidHelperDescription(request.resource.data.description);
 
-      allow update: if isAdminOrEmulatorAdmin()
+      // `regionId` is not in the list: it can be neither changed, added nor removed.
+      allow update: if canManageHelpersIn(helperRegionId(resource.data))
                     && request.resource.data.diff(resource.data).affectedKeys()
                           .hasOnly([
                             'name', 'profileSlug', 'website', 'photoURL', 'description',
@@ -1771,7 +1783,7 @@ service cloud.firestore {
                     && (!('description' in request.resource.data)
                         || isValidHelperDescription(request.resource.data.description));
 
-      allow delete: if isAdminOrEmulatorAdmin();
+      allow delete: if canManageHelpersIn(helperRegionId(resource.data));
     }
 
     // Donors registry — admin-managed list of previous donors for the
