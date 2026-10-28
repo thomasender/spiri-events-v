@@ -10,8 +10,14 @@ const FREQUENCIES = [
 
 const NOTE_MAX = 120;
 
+const COMMENT_MAX = 140;
+
 function clampNote(value) {
   return value.slice(0, NOTE_MAX);
+}
+
+function clampComment(value) {
+  return value.slice(0, COMMENT_MAX);
 }
 
 function emptyDraft() {
@@ -20,6 +26,7 @@ function emptyDraft() {
     amount: '',
     frequency: '',
     note: '',
+    comment: '',
     anonymous: true,
   };
 }
@@ -31,6 +38,7 @@ function draftFromDonor(donor) {
     amount: donor.amount != null ? String(donor.amount).replace('.', ',') : '',
     frequency: donor.frequency ?? '',
     note: donor.note ?? '',
+    comment: donor.comment ?? '',
     anonymous: !donor.name,
   };
 }
@@ -70,6 +78,7 @@ export default function DonorEditDialog({ open, mode, donor, onSave, onClose }) 
         draft.amount.trim().length > 0 ||
         draft.frequency.length > 0 ||
         draft.note.trim().length > 0 ||
+        draft.comment.trim().length > 0 ||
         !draft.anonymous
       );
     }
@@ -79,6 +88,7 @@ export default function DonorEditDialog({ open, mode, donor, onSave, onClose }) 
       draft.amount !== original.amount ||
       draft.frequency !== original.frequency ||
       draft.note !== original.note ||
+      draft.comment !== original.comment ||
       draft.anonymous !== original.anonymous
     );
   }
@@ -91,6 +101,7 @@ export default function DonorEditDialog({ open, mode, donor, onSave, onClose }) 
       amount: draft.amount.trim() || null,
       frequency: draft.frequency || null,
       note: clampNote(draft.note).trim() || null,
+      comment: clampComment(draft.comment).trim() || null,
     };
     setSubmitting(true);
     try {
@@ -246,6 +257,23 @@ export default function DonorEditDialog({ open, mode, donor, onSave, onClose }) 
               data-testid="donor-edit-note"
             />
             <span className="donor-edit-dialog-hint">Wird nicht öffentlich angezeigt.</span>
+          </label>
+
+          <label className="donor-edit-dialog-field">
+            <span className="donor-edit-dialog-label">
+              Öffentlicher Kommentar (max. {COMMENT_MAX} Zeichen)
+            </span>
+            <textarea
+              value={draft.comment}
+              onChange={(e) => updateField('comment', clampComment(e.target.value))}
+              rows={2}
+              maxLength={COMMENT_MAX}
+              disabled={submitting}
+              data-testid="donor-edit-comment"
+            />
+            <span className="donor-edit-dialog-hint">
+              Wird auf der „Über uns“-Seite angezeigt. Leeren, um ihn zu löschen.
+            </span>
           </label>
 
           {error && (

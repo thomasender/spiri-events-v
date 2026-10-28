@@ -131,6 +131,7 @@ describe('DonationBlock', () => {
       expect(startOneTimeDonation).toHaveBeenCalledWith(15, {
         name: 'Anna',
         displayOnConsent: false,
+        comment: null,
       });
     });
     await waitFor(() => {
@@ -158,6 +159,7 @@ describe('DonationBlock', () => {
       expect(startMonthlyDonation).toHaveBeenCalledWith(5, {
         name: null,
         displayOnConsent: false,
+        comment: null,
       });
     });
     await waitFor(() => {
@@ -184,6 +186,7 @@ describe('DonationBlock', () => {
       expect(startOneTimeDonation).toHaveBeenCalledWith(12.5, {
         name: null,
         displayOnConsent: false,
+        comment: null,
       });
     });
   });
@@ -257,6 +260,7 @@ describe('DonationBlock', () => {
       expect(startOneTimeDonation).toHaveBeenCalledWith(20, {
         name: null,
         displayOnConsent: false,
+        comment: null,
       });
     });
   });
@@ -282,6 +286,7 @@ describe('DonationBlock', () => {
       expect(startMonthlyDonation).toHaveBeenCalledWith(10, {
         name: 'Anna Musterfrau',
         displayOnConsent: true,
+        comment: null,
       });
     });
   });
@@ -299,6 +304,70 @@ describe('DonationBlock', () => {
     });
     expect(startOneTimeDonation).not.toHaveBeenCalled();
     expect(startMonthlyDonation).not.toHaveBeenCalled();
+  });
+
+  it('enables the public comment only with the donor list consent and caps it at 140 characters', () => {
+    renderBlock();
+
+    const comment = screen.getByTestId('donation-comment');
+    expect(comment).toBeDisabled();
+    expect(comment).toHaveAttribute('maxlength', '140');
+
+    fireEvent.click(screen.getByTestId('donation-consent-checkbox'));
+    expect(comment).not.toBeDisabled();
+
+    fireEvent.change(comment, { target: { value: 'x'.repeat(200) } });
+    expect(comment).toHaveValue('x'.repeat(140));
+  });
+
+  it.each([
+    ['one-time', selectOneTime, startOneTimeDonation],
+    ['monthly', selectMonthly, startMonthlyDonation],
+  ])('sends the trimmed comment with a %s donation', async (_label, select, start) => {
+    start.mockResolvedValue({ checkoutUrl: 'https://www.mollie.com/checkout/x' });
+
+    renderBlock();
+
+    select();
+    fireEvent.change(screen.getByPlaceholderText(/anna musterfrau/i), {
+      target: { value: 'Anna' },
+    });
+    fireEvent.click(screen.getByTestId('donation-consent-checkbox'));
+    fireEvent.change(screen.getByTestId('donation-comment'), {
+      target: { value: '  Danke für alles!  ' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '10 €' }));
+    submit();
+
+    await waitFor(() => {
+      expect(start).toHaveBeenCalledWith(10, {
+        name: 'Anna',
+        displayOnConsent: true,
+        comment: 'Danke für alles!',
+      });
+    });
+  });
+
+  it('drops a typed comment when the consent is withdrawn before submitting', async () => {
+    startOneTimeDonation.mockResolvedValue({ checkoutUrl: 'https://www.mollie.com/checkout/x' });
+
+    renderBlock();
+
+    selectOneTime();
+    const consent = screen.getByTestId('donation-consent-checkbox');
+    fireEvent.click(consent);
+    fireEvent.change(screen.getByTestId('donation-comment'), { target: { value: 'Hallo' } });
+    fireEvent.click(consent);
+    fireEvent.click(screen.getByRole('button', { name: '10 €' }));
+    submit();
+
+    await waitFor(() => {
+      expect(startOneTimeDonation).toHaveBeenCalledWith(10, {
+        name: null,
+        displayOnConsent: false,
+        comment: null,
+      });
+    });
   });
 });
 

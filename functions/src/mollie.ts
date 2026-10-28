@@ -197,6 +197,7 @@ export async function startMollieSubscriptionCheckout(
     appBaseUrl: string;
     name?: string | null;
     displayOnConsent?: boolean;
+    comment?: string | null;
   }
 ): Promise<MollieSubscriptionCheckoutResult> {
   const metadata: Record<string, unknown> = {
@@ -205,6 +206,9 @@ export async function startMollieSubscriptionCheckout(
   };
   if (params.name && params.name.trim().length > 0) {
     metadata.donorName = params.name.trim();
+  }
+  if (params.displayOnConsent && params.comment) {
+    metadata.comment = params.comment;
   }
 
   const payment = await mollieRequest<MolliePaymentResponse>(apiKey, '/payments', {
@@ -291,6 +295,7 @@ export async function startMolliePaymentCheckout(
     appBaseUrl: string;
     name?: string | null;
     displayOnConsent?: boolean;
+    comment?: string | null;
   }
 ): Promise<MolliePaymentCheckoutResult> {
   const body: Record<string, unknown> = {
@@ -308,6 +313,9 @@ export async function startMolliePaymentCheckout(
   };
   if (params.name && params.name.trim().length > 0) {
     metadata.donorName = params.name.trim();
+  }
+  if (params.displayOnConsent && params.comment) {
+    metadata.comment = params.comment;
   }
   body.metadata = metadata;
 

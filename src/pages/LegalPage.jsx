@@ -64,6 +64,9 @@ Nach der Freigabe sind die Angaben zum Event, einschließlich Veranstalter-Name 
 *Bei aktiviertem Online-Status (freiwillig, standardmäßig aus):*
 - Ein Zeitstempel Ihrer letzten Aktivität auf der Website (siehe Abschnitt 16)
 
+*Bei einer Spende mit Eintrag in der Spenderliste (freiwillig):*
+- Ein optionaler Kommentar (max. 140 Zeichen), den Sie nur zusammen mit Ihrer Einwilligung zur Nennung in der Spenderliste angeben können; er wird zusammen mit Ihrem Eintrag öffentlich auf der „Über uns“-Seite angezeigt. Sie können Ihre Einwilligung jederzeit per E-Mail an admin@thetribe.at widerrufen, dann entfernen wir Kommentar und Eintrag
+
 *Beim Aufruf der Website:*
 - Technische Zugriffsdaten in Server-Protokollen (siehe Abschnitt 9)`,
       },

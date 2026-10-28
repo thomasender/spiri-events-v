@@ -76,13 +76,15 @@ function validateDonorFields(input, { isCreate } = {}) {
   }
 
   const note = normalizeOptionalString(input.note, 120);
+  // Public comment of the donor; admins may change or clear it.
+  const comment = normalizeOptionalString(input.comment, 140);
 
   if (errors.length && !isCreate) {
     // Allow partial updates where the caller didn't touch invalid fields.
     const providedKeys = Object.keys(input);
     const stillRelevant = errors.some(() => providedKeys.length > 0);
     if (!stillRelevant) {
-      return { name, amount, frequency, note };
+      return { name, amount, frequency, note, comment };
     }
   }
 
@@ -90,7 +92,7 @@ function validateDonorFields(input, { isCreate } = {}) {
     throw new Error(errors[0]);
   }
 
-  return { name, amount, frequency, note };
+  return { name, amount, frequency, note, comment };
 }
 
 // Live subscription to the `donors` collection. Admins maintain a list of

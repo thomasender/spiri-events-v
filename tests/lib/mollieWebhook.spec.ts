@@ -8,6 +8,7 @@ import {
   verifyMollieSignature,
   canonicalBodyBytes,
   subscriptionStartDate,
+  sanitizeDonorComment,
 } from '../../functions/src/mollieWebhookLogic';
 
 function makeSnapshot(exists, fields = {}, docs = []) {
@@ -341,6 +342,59 @@ describe('handlePaidPayment', () => {
     });
     expect(setCalls).toHaveLength(1);
     expect(setCalls[0].data).toMatchObject({ order: 100, createdAt: 'preset' });
+  });
+
+  it('stores the cleaned comment from the payment metadata', async () => {
+    const { db, setCalls } = makeDb();
+    await handlePaidPayment({
+      db,
+      payment: basePayment({
+        metadata: { displayOnConsent: true, donorName: 'Anna', comment: ' <i>Danke</i>\neuch! ' },
+      }),
+    });
+    expect(setCalls[0].data).toMatchObject({ comment: 'Danke euch!', note: null });
+  });
+
+  it('stores no comment without consent', async () => {
+    const { db, setCalls } = makeDb();
+    const result = await handlePaidPayment({
+      db,
+      payment: basePayment({ metadata: { displayOnConsent: false, comment: 'Hallo' } }),
+    });
+    expect(result).toEqual({ written: false, reason: 'no-consent' });
+    expect(setCalls).toHaveLength(0);
+  });
+
+  it('keeps a comment and note an admin changed or deleted when Mollie resends the webhook', async () => {
+    const { db, setCalls } = makeDb({
+      donor_mollie_tr_001: { order: 0, createdAt: 'preset', comment: null, note: 'intern' },
+    });
+    await handlePaidPayment({
+      db,
+      payment: basePayment({
+        metadata: { displayOnConsent: true, donorName: 'Anna', comment: 'Original' },
+      }),
+    });
+    expect(setCalls[0].data).toMatchObject({ comment: null, note: 'intern' });
+  });
+});
+
+describe('sanitizeDonorComment', () => {
+  it.each([
+    [undefined, null],
+    [42, null],
+    ['   ', null],
+    ['<script>x</script>', 'x'],
+    ['a\u0000b\u202Ec\td', 'a b c d'],
+    ['1 < 2 > 0', '1 2 0'],
+  ])('%j -> %j', (input, expected) => {
+    expect(sanitizeDonorComment(input)).toBe(expected);
+  });
+
+  it('cuts to 140 characters without splitting an emoji', () => {
+    expect(sanitizeDonorComment('x'.repeat(300))).toHaveLength(140);
+    const cut = sanitizeDonorComment('x'.repeat(139) + '😀');
+    expect(cut).toBe('x'.repeat(139));
   });
 });
 

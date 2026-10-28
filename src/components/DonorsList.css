@@ -62,3 +62,23 @@
   color: var(--text-light);
   font-weight: 600;
 }
+
+.donors-list-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.donors-list-comment {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-90);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+.donors-list-more {
+  align-self: center;
+}

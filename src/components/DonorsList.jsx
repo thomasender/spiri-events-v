@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useDonors } from '../hooks/useDonors';
 import './DonorsList.css';
 
@@ -11,6 +12,22 @@ function donorDisplayName(donor) {
   return 'Anonyme:r Spender:in';
 }
 
+// The public list shows newest donations first, a few at a time.
+const PAGE_SIZE = 7;
+
+// Firestore Timestamp, or nothing for old/hand-made entries (sorted last).
+function createdAtMillis(donor) {
+  const createdAt = donor.createdAt;
+  if (!createdAt) return 0;
+  if (typeof createdAt.toMillis === 'function') return createdAt.toMillis();
+  if (typeof createdAt.seconds === 'number') return createdAt.seconds * 1000;
+  return 0;
+}
+
+function sortNewestFirst(donors) {
+  return [...donors].sort((a, b) => createdAtMillis(b) - createdAtMillis(a));
+}
+
 function frequencyLabel(frequency) {
   if (frequency === 'monthly') return 'monatlich';
   if (frequency === 'one-time') return 'einmalig';
@@ -21,9 +38,11 @@ function frequencyLabel(frequency) {
 // a donor only appears here once an admin has explicitly opted them in,
 // and the donor record itself controls whether the name is shown
 // (donor.name === null → anonym) and whether the amount is shown
-// (donor.amount === null → verborgen).
+// (donor.amount === null → verborgen). The optional public comment is
+// rendered as plain text.
 export default function DonorsList() {
   const { donors, loading, error } = useDonors();
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   if (loading) {
     return (
@@ -52,34 +71,56 @@ export default function DonorsList() {
     );
   }
 
+  const sorted = sortNewestFirst(donors);
+  const visible = sorted.slice(0, visibleCount);
+  const hasMore = sorted.length > visible.length;
+
   return (
-    <ul className="donors-list" data-testid="donors-list">
-      {donors.map((donor) => {
-        const isAnonymous = !donor.name;
-        const freq = frequencyLabel(donor.frequency);
-        const amountText = donor.amount != null ? `${formatAmount(donor.amount)} €` : null;
-        const showAmount = amountText != null;
-        return (
-          <li
-            key={donor.id}
-            className="donors-list-item"
-            data-testid="donors-list-item"
-            data-anonymous={isAnonymous || undefined}
-          >
-            <span className="donors-list-name">{donorDisplayName(donor)}</span>
-            {(showAmount || freq) && (
-              <span className="donors-list-meta">
-                {showAmount && (
-                  <span className="donors-list-amount" data-testid="donors-list-amount">
-                    {amountText}
-                  </span>
-                )}
-                {freq && <span className="donors-list-frequency">{freq}</span>}
-              </span>
-            )}
-          </li>
-        );
-      })}
-    </ul>
+    <div className="donors-list-wrapper">
+      <ul className="donors-list" data-testid="donors-list">
+        {visible.map((donor) => {
+          const isAnonymous = !donor.name;
+          const freq = frequencyLabel(donor.frequency);
+          const amountText = donor.amount != null ? `${formatAmount(donor.amount)} €` : null;
+          const showAmount = amountText != null;
+          const comment = typeof donor.comment === 'string' ? donor.comment.trim() : '';
+          return (
+            <li
+              key={donor.id}
+              className="donors-list-item"
+              data-testid="donors-list-item"
+              data-anonymous={isAnonymous || undefined}
+            >
+              <span className="donors-list-name">{donorDisplayName(donor)}</span>
+              {(showAmount || freq) && (
+                <span className="donors-list-meta">
+                  {showAmount && (
+                    <span className="donors-list-amount" data-testid="donors-list-amount">
+                      {amountText}
+                    </span>
+                  )}
+                  {freq && <span className="donors-list-frequency">{freq}</span>}
+                </span>
+              )}
+              {comment && (
+                <p className="donors-list-comment" data-testid="donors-list-comment">
+                  {comment}
+                </p>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      {hasMore && (
+        <button
+          type="button"
+          className="btn btn-secondary donors-list-more"
+          onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
+          data-testid="donors-list-more"
+        >
+          Mehr laden
+        </button>
+      )}
+    </div>
   );
 }

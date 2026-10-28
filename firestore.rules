@@ -1802,6 +1802,11 @@ service cloud.firestore {
         return note == null
           || (note is string && note.size() <= 120);
       }
+      // Public comment of the donor on the "Über uns" page (plain text).
+      function isValidDonorComment(comment) {
+        return comment == null
+          || (comment is string && comment.size() <= 140);
+      }
       function isValidDonorSource(source) {
         return source == null
           || (source is string && source in ['manual', 'mollie']);
@@ -1820,7 +1825,7 @@ service cloud.firestore {
 
       allow create: if isAdminOrEmulatorAdmin()
                     && request.resource.data.keys().hasOnly([
-                      'name', 'amount', 'frequency', 'note',
+                      'name', 'amount', 'frequency', 'note', 'comment',
                       'order', 'createdAt', 'updatedAt', 'createdBy',
                       'source', 'mollieConsent',
                       'molliePaymentId', 'mollieSubscriptionId',
@@ -1829,6 +1834,8 @@ service cloud.firestore {
                     && isValidDonorAmount(request.resource.data.amount)
                     && isValidDonorFrequency(request.resource.data.frequency)
                     && isValidDonorNote(request.resource.data.note)
+                    && (!('comment' in request.resource.data)
+                        || isValidDonorComment(request.resource.data.comment))
                     && (!('source' in request.resource.data)
                         || isValidDonorSource(request.resource.data.source))
                     && (!('mollieConsent' in request.resource.data)
@@ -1841,7 +1848,7 @@ service cloud.firestore {
       allow update: if isAdminOrEmulatorAdmin()
                     && request.resource.data.diff(resource.data).affectedKeys()
                           .hasOnly([
-                            'name', 'amount', 'frequency', 'note',
+                            'name', 'amount', 'frequency', 'note', 'comment',
                             'order', 'updatedAt',
                           ])
                     && (!('name' in request.resource.data)
@@ -1851,7 +1858,9 @@ service cloud.firestore {
                     && (!('frequency' in request.resource.data)
                         || isValidDonorFrequency(request.resource.data.frequency))
                     && (!('note' in request.resource.data)
-                        || isValidDonorNote(request.resource.data.note));
+                        || isValidDonorNote(request.resource.data.note))
+                    && (!('comment' in request.resource.data)
+                        || isValidDonorComment(request.resource.data.comment));
 
       allow delete: if isAdminOrEmulatorAdmin();
     }

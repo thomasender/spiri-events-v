@@ -104,7 +104,24 @@ describe('DonorsTab', () => {
         amount: '12,50',
         frequency: 'monthly',
         note: null,
+        comment: null,
       });
+    });
+  });
+
+  it('lets the admin clear the public comment of a donor', async () => {
+    mockDonors.donors = [{ ...SEED[0], comment: 'Weiter so!' }];
+    render(<DonorsTab />);
+    fireEvent.click(screen.getAllByTestId('donor-row-edit')[0]);
+    const comment = screen.getByTestId('donor-edit-comment');
+    expect(comment).toHaveValue('Weiter so!');
+    fireEvent.change(comment, { target: { value: '   ' } });
+    fireEvent.click(screen.getByTestId('donor-edit-save'));
+    await waitFor(() => {
+      expect(mockDonors.updateDonor).toHaveBeenCalledWith(
+        'd1',
+        expect.objectContaining({ name: 'Anna Müller', comment: null })
+      );
     });
   });
 

@@ -11,6 +11,7 @@ import {
   startMollieSubscriptionCheckout,
 } from './mollie';
 import { describeError, reportPaymentFailure } from './paymentAlerts';
+import { sanitizeDonorComment } from './mollieWebhookLogic';
 import {
   onEventStatusChanged,
   onEventCreated,
@@ -30,6 +31,14 @@ interface CreateDonationRequest {
   amount: number;
   name?: string | null;
   displayOnConsent?: boolean;
+  comment?: unknown;
+}
+
+// The public comment only travels with the consent to appear on the donor
+// list. Cleaned and capped at 140 characters, which also keeps the Mollie
+// metadata (about 1 kB per payment) well within its limit.
+function donorCommentFor(data: CreateDonationRequest): string | null {
+  return data.displayOnConsent === true ? sanitizeDonorComment(data.comment) : null;
 }
 
 function assertValidAmount(amount: unknown): asserts amount is number {
@@ -75,6 +84,7 @@ export const createMollieSubscription = onCall(
         appBaseUrl: resolveAppBaseUrl(request),
         name: data.name ?? null,
         displayOnConsent: Boolean(data.displayOnConsent),
+        comment: donorCommentFor(data),
       });
       return checkout;
     } catch (err) {
@@ -112,6 +122,7 @@ export const createMolliePayment = onCall(
         appBaseUrl: resolveAppBaseUrl(request),
         name: data.name ?? null,
         displayOnConsent: Boolean(data.displayOnConsent),
+        comment: donorCommentFor(data),
       });
       return checkout;
     } catch (err) {

@@ -38,6 +38,38 @@ export function subscriptionStartDate(firstPaidAt: Date): string {
   return new Date(Date.UTC(year, month, day)).toISOString().slice(0, 10);
 }
 
+// Public donor comment shown on the "Über uns" page (max. length in UTF-16
+// code units, like the textarea maxLength and the Firestore rule).
+export const DONOR_COMMENT_MAX = 140;
+
+// C0/C1 control characters plus zero-width and bidi override characters,
+// which could hide or reorder text in the public list.
+const COMMENT_INVISIBLE_CHARS =
+  /[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g;
+
+/**
+ * Cleans a donor comment before it goes to Mollie metadata and Firestore:
+ * strings only, HTML tags and angle brackets removed, control characters
+ * replaced by spaces, whitespace collapsed, trimmed and cut to
+ * DONOR_COMMENT_MAX. Returns null when nothing is left.
+ */
+export function sanitizeDonorComment(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  let text = value
+    .replace(/<\/?[a-zA-Z!][^>]*>/g, ' ')
+    .replace(/[<>]/g, '')
+    .replace(COMMENT_INVISIBLE_CHARS, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (text.length > DONOR_COMMENT_MAX) {
+    text = text.slice(0, DONOR_COMMENT_MAX);
+    // Do not leave half of a surrogate pair (emoji) at the end.
+    if (/[\uD800-\uDBFF]$/.test(text)) text = text.slice(0, -1);
+    text = text.trim();
+  }
+  return text.length > 0 ? text : null;
+}
+
 function asMetadata(input: unknown): Record<string, unknown> {
   if (input && typeof input === 'object') return input as Record<string, unknown>;
   return {};
@@ -215,6 +247,9 @@ export async function handlePaidPayment({
   const ref = db.collection('donors').doc(donorId);
   const existing = await ref.get();
   const existingCreatedAt = existing.exists ? existing.get('createdAt') : undefined;
+  // Mollie resends webhooks; keep what an admin changed or deleted since.
+  const existingNote = existing.exists ? existing.get('note') : undefined;
+  const existingComment = existing.exists ? existing.get('comment') : undefined;
 
   let order: number;
   if (existing.exists) {
@@ -239,7 +274,9 @@ export async function handlePaidPayment({
     name: isAnonymous ? null : donorName,
     amount,
     frequency,
-    note: null,
+    note: existingNote !== undefined ? existingNote : null,
+    comment:
+      existingComment !== undefined ? existingComment : sanitizeDonorComment(metadata.comment),
     order,
     source: 'mollie',
     mollieConsent: true,

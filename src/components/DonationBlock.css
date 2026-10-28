@@ -54,6 +54,7 @@
 }
 
 .donation-name-field,
+.donation-comment-field,
 .donation-amount-field {
   display: flex;
   flex-direction: column;
@@ -61,6 +62,7 @@
 }
 
 .donation-name-label,
+.donation-comment-label,
 .donation-amount-label {
   font-size: var(--fs-eyebrow);
   font-weight: 600;
@@ -69,7 +71,8 @@
   color: var(--text-light);
 }
 
-.donation-name-field input {
+.donation-name-field input,
+.donation-comment-field textarea {
   padding: var(--space-3) var(--space-3-5);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -77,9 +80,25 @@
   color: var(--text-primary);
 }
 
-.donation-name-field input:focus {
+.donation-comment-field textarea {
+  font: inherit;
+  resize: vertical;
+}
+
+.donation-name-field input:focus,
+.donation-comment-field textarea:focus {
   outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
+}
+
+.donation-comment-field textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.donation-comment-hint {
+  font-size: var(--text-85);
+  color: var(--text-light);
 }
 
 .donation-consent-field {

@@ -177,6 +177,26 @@ describe('calendarFeedTokens', () => {
   });
 });
 
+describe('donors.comment (public donor comment)', () => {
+  const adminDb = () => env.authenticatedContext('adminDoc').firestore();
+  const donor = { name: 'Anna', amount: 10, frequency: 'one-time', note: null, order: 0 };
+
+  it('admins may set, change and clear a comment up to 140 characters', async () => {
+    const db = adminDb();
+    await assertSucceeds(setDoc(doc(db, 'donors/c1'), { ...donor, comment: 'x'.repeat(140) }));
+    await assertSucceeds(updateDoc(doc(db, 'donors/c1'), { comment: 'Danke!' }));
+    await assertSucceeds(updateDoc(doc(db, 'donors/c1'), { comment: null }));
+  });
+
+  it('rejects a longer or non-string comment, and writes by non-admins', async () => {
+    const db = adminDb();
+    await assertFails(setDoc(doc(db, 'donors/c2'), { ...donor, comment: 'x'.repeat(141) }));
+    await assertSucceeds(setDoc(doc(db, 'donors/c3'), donor));
+    await assertFails(updateDoc(doc(db, 'donors/c3'), { comment: 42 }));
+    await assertFails(updateDoc(doc(user().firestore(), 'donors/c3'), { comment: 'Hallo' }));
+  });
+});
+
 describe('other app_settings stay public', () => {
   it('theme and last_build are readable without auth', async () => {
     const db = anon().firestore();
