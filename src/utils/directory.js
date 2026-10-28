@@ -7,6 +7,9 @@ import { normalizePhotoZoom } from '../components/AvatarImage';
 // them. No Firebase or DOM imports so everything here is unit-testable.
 
 export const DIRECTORY_MAX_CATEGORIES = 5;
+// Max. regions a person can be active in (limits online-event spam). Profiles that
+// already hold more keep them until the person changes the selection.
+export const DIRECTORY_MAX_REGION_IDS = 3;
 // All districts of all regions known without Firestore (Vorarlberg first, so
 // its order is unchanged) plus "Online". Mirrored by DIRECTORY_REGIONS in
 // functions/src/regions.ts (sync test: tests/lib/functionsRegions.spec.ts).
