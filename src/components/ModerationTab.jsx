@@ -188,8 +188,8 @@ function ModeratorDialog({ mode, moderator, moderatorUids, currentUid, onSave, o
         <fieldset className="moderation-regions">
           <legend>Regionen</legend>
           {choiceIds.map((id, index) => {
-            const country = STATIC_REGIONS.find((r) => r.id === id)?.country;
-            const prevCountry = STATIC_REGIONS.find((r) => r.id === choiceIds[index - 1])?.country;
+            const country = regions.find((r) => r.id === id)?.country;
+            const prevCountry = regions.find((r) => r.id === choiceIds[index - 1])?.country;
             return (
               <Fragment key={id}>
                 {country !== prevCountry && (

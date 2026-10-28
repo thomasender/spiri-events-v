@@ -91,8 +91,18 @@ service cloud.firestore {
               'hochwald-bliesgau'];
     }
 
+    // Regions a Super-Admin created in Verwaltung -> "Zuordnung" (callable
+    // adminCreateRegion). The rules cannot list the `regions` collection, so the
+    // callable keeps their ids in app_settings/customRegions { ids }. Only
+    // evaluated for ids that are not in the static list above.
+    function customRegionIds() {
+      return exists(/databases/$(database)/documents/app_settings/customRegions)
+        ? get(/databases/$(database)/documents/app_settings/customRegions).data.get('ids', [])
+        : [];
+    }
+
     function isValidRegionId(id) {
-      return id is string && id in regionIds();
+      return id is string && (id in regionIds() || id in customRegionIds());
     }
 
     // ── Regions-Moderator:innen ────────────────────────────────────────
@@ -128,7 +138,7 @@ service cloud.firestore {
     function isRegionModeratorForAll(ids) {
       return ids is list
         && ids.size() > 0
-        && ids.hasOnly(regionIds())
+        && ids.hasOnly(regionIds().concat(customRegionIds()))
         && isRegionModerator()
         && ids.hasOnly(staffDoc().data.regionIds);
     }
@@ -181,7 +191,7 @@ service cloud.firestore {
         && (!('directoryRegionIds' in d)
             || (d.directoryRegionIds is list
                 && d.directoryRegionIds.size() <= 10
-                && d.directoryRegionIds.hasOnly(regionIds())))
+                && d.directoryRegionIds.hasOnly(regionIds().concat(customRegionIds()))))
         && (!('listedInDirectory' in d)
             || d.listedInDirectory != true
             || ('directoryCategories' in d && d.directoryCategories.size() >= 1));
@@ -768,7 +778,8 @@ service cloud.firestore {
                  ['name', 'slug', 'order', 'active', 'bezirke', 'contactEmail', 'seo',
                   'timezone', 'aboutHelperIds', 'aboutHeaderImage', 'aboutText', 'aboutSlogan1',
                   'aboutSlogan2', 'aboutSloganLocked', 'instagramHandle', 'texts', 'createdAt',
-                  'updatedAt', 'mappingUpdatedAt'])
+                  'updatedAt', 'mappingUpdatedAt', 'custom', 'country', 'inPhrase', 'forPhrase',
+                  'demonym', 'subdivisionLabel'])
           && d.slug is string
           && d.slug == regionId
           && d.name is string && d.name.size() > 0 && d.name.size() <= 100
@@ -802,8 +813,22 @@ service cloud.firestore {
               || (d.instagramHandle is string
                   && d.instagramHandle.matches('^@[A-Za-z0-9._]{1,30}$')));
       }
+      // Regions created by a Super-Admin (adminCreateRegion) carry their own wording and
+      // country; the built-in ones take them from the generated register. Checked on
+      // Super-Admin writes only (moderators cannot touch these keys), which keeps the
+      // moderator path inside the 1000-expression budget.
+      function isValidCustomRegionFields(d) {
+        return (!('custom' in d) || d.custom is bool)
+          && (!('country' in d) || d.country in ['AT', 'DE', 'CH'])
+          && (!('inPhrase' in d) || (d.inPhrase is string && d.inPhrase.size() <= 80))
+          && (!('forPhrase' in d) || (d.forPhrase is string && d.forPhrase.size() <= 80))
+          && (!('demonym' in d) || (d.demonym is string && d.demonym.size() <= 80))
+          && (!('subdivisionLabel' in d) || d.subdivisionLabel in ['Bezirk', 'Landkreis']);
+      }
       function isValidRegion(d) {
-        return isValidRegionFields(d) && d.slug in regionIds();
+        return isValidRegionFields(d)
+          && isValidCustomRegionFields(d)
+          && (d.slug in regionIds() || d.slug in customRegionIds());
       }
       // Free texts of a region: { examples: { place, organizer, address, contact } },
       // plain strings of at most 120 characters (placeholders of the event form).

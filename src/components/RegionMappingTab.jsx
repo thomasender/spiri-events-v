@@ -2,7 +2,11 @@ import { useCallback, useMemo, useState } from 'react';
 import { Lock, X } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useRegions } from '../hooks/useRegions';
-import { regionMappingErrorMessage, useRegionMapping } from '../hooks/useRegionMapping';
+import {
+  createRegionErrorMessage,
+  regionMappingErrorMessage,
+  useRegionMapping,
+} from '../hooks/useRegionMapping';
 import {
   CATALOG_BY_KEY,
   DISTRICT_CATALOG,
@@ -44,7 +48,7 @@ export default function RegionMappingTab() {
   const { role, staffRegionIds } = useAuth();
   const isSuperAdmin = getStaffAccess(role, staffRegionIds).isSuperAdmin;
   const { regions } = useRegions();
-  const { locks, loading, error, reload, save, rename } = useRegionMapping(isSuperAdmin);
+  const { locks, loading, error, reload, save, rename, create } = useRegionMapping(isSuperAdmin);
 
   const [draft, setDraft] = useState(() => new Map()); // district key -> region id
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -53,6 +57,8 @@ export default function RegionMappingTab() {
   const [focusId, setFocusId] = useState('');
   const [focusName, setFocusName] = useState('');
   const [addValue, setAddValue] = useState('');
+  const [newName, setNewName] = useState('');
+  const [newPhrase, setNewPhrase] = useState('');
   const [country, setCountry] = useState('DE');
   const isGermany = country === 'DE';
   const words = DISTRICT_WORDS[country];
@@ -195,6 +201,29 @@ export default function RegionMappingTab() {
     }
   };
 
+  const doCreate = async () => {
+    const name = newName.trim();
+    setBusy(true);
+    setNotice(null);
+    try {
+      const created = await create({ name, country, inPhrase: newPhrase.trim() });
+      setNewName('');
+      setNewPhrase('');
+      setFocusId(created.regionId);
+      setFocusName(created.name);
+      setAddValue('');
+      setNotice({
+        kind: 'success',
+        text: `Die Region „${created.name}“ ist angelegt. Ordne ihr jetzt ${words.many} zu. Freigeschaltet wird sie danach im Tab „Regionen“.`,
+      });
+    } catch (err) {
+      console.error('Creating region failed:', err);
+      setNotice({ kind: 'error', text: createRegionErrorMessage(err) });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const discard = () => {
     setDraft(new Map());
     setNotice(null);
@@ -258,6 +287,55 @@ export default function RegionMappingTab() {
         ))}
       </div>
 
+      <details className="mapping-new-region" data-testid="new-region">
+        <summary>
+          <strong>Neue Region anlegen</strong> ({COUNTRIES.find((c) => c.id === country).label})
+        </summary>
+        <form
+          className="mapping-move"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (newName.trim().length >= 2 && !busy) doCreate();
+          }}
+        >
+          <label className="mapping-field">
+            <span>Name der neuen Region</span>
+            <input
+              type="text"
+              value={newName}
+              maxLength={60}
+              placeholder="z. B. Allgäu"
+              onChange={(e) => setNewName(e.target.value)}
+              data-testid="new-region-name"
+            />
+          </label>
+          <label className="mapping-field">
+            <span>So steht es in Texten (optional)</span>
+            <input
+              type="text"
+              value={newPhrase}
+              maxLength={80}
+              placeholder={newName.trim() ? `in ${newName.trim()}` : 'z. B. im Allgäu'}
+              onChange={(e) => setNewPhrase(e.target.value)}
+              data-testid="new-region-phrase"
+            />
+          </label>
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={newName.trim().length < 2 || busy}
+            data-testid="new-region-save"
+          >
+            Region anlegen
+          </button>
+        </form>
+        <p className="moderation-hint">
+          Die neue Region ist leer und noch nicht sichtbar. Sie wird dem oben gewählten Land
+          zugeordnet. Danach ordnest du ihr {words.many} zu und schaltest sie im Tab „Regionen“
+          frei.
+        </p>
+      </details>
+
       <section className="culture-layout" data-testid="culture-section">
         <CultureRegionPicker
           country={country}
@@ -272,7 +350,7 @@ export default function RegionMappingTab() {
         {focusRegion ? (
           <div className="culture-panel" data-testid="culture-panel">
             <h3>{focusRegion.name}</h3>
-            {isGermany && (
+            {(isGermany || focusRegion.custom) && (
               <form
                 className="mapping-move"
                 onSubmit={(e) => {
@@ -281,7 +359,7 @@ export default function RegionMappingTab() {
                 }}
               >
                 <label className="mapping-field">
-                  <span>Name der Kulturregion</span>
+                  <span>{isGermany ? 'Name der Kulturregion' : 'Name der Region'}</span>
                   <input
                     type="text"
                     value={focusName}

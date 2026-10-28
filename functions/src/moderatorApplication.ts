@@ -12,8 +12,8 @@ import {
   type MailgunInlineImage,
 } from './mailgun';
 import { enforceRateLimit, RATE_LIMIT_PRESETS } from './rateLimit';
-import { isRegionId } from './regions';
-import { REGION_DATA } from './regionData';
+import { isRegionId, regionNameOf } from './regions';
+import { ensureCustomRegions } from './customRegions';
 
 /** Applications for the role "Regions-Moderator:in" go to the admins' inbox. */
 export const MODERATOR_APPLICATION_INBOX = 'admin@thetribe.at';
@@ -109,7 +109,7 @@ const escapeHtml = (value: string): string =>
   value.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 const regionName = (id: string | null): string =>
-  (id && REGION_DATA.find((r) => r.slug === id)?.name) || 'keine bestimmte Region';
+  (id && regionNameOf(id)) || 'keine bestimmte Region';
 
 /** Subject, plain text and HTML of the mail to the admins. */
 export function buildModeratorApplicationEmail(app: ModeratorApplication): {
@@ -157,6 +157,7 @@ export const submitModeratorApplication = onCall(
     logMissingAppCheck('submitModeratorApplication', request);
     enforceRateLimit(request, 'moderatorApplication', RATE_LIMIT_PRESETS.moderatorApplication);
 
+    await ensureCustomRegions();
     const app = validateModeratorApplication(request.data);
     const { subject, text, html } = buildModeratorApplicationEmail(app);
     const inlineImages: MailgunInlineImage[] = app.photo ? [app.photo] : [];

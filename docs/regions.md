@@ -12,7 +12,7 @@ on. Structure everywhere: country -> region (Bundesland / Kanton) -> Bezirk
 
 Contents: 1 Concept · 2 Data model · 3 Roles · 4 Activation · 5 Queries and the
 migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed ·
-10 Analytics per region · 11 Tests · 12 Known limitations · 13 How to add a region
+10 Analytics per region · 11 Tests · 12 Known limitations · 13 How to add a region (2c: regions created in the Verwaltung)
 
 ## 1. Concept
 
@@ -253,7 +253,7 @@ one of the six Großregionen) from the product owner's list. Cultural regions st
 regions of one country; the lists are saved in `regions/{id}.bezirke` (+ `mappingUpdatedAt`).
 
 - **Phone flow (ticket 559):** drag and drop does not work on phones, so everything also works by tapping: tap entries (checkbox or the chips of "Noch ohne Region"), then tap the target region tile; "Aus der Region nehmen" puts the selection back to its Bundesland. Drag and drop stays for desktop.
-- **Germany, Austria, Switzerland (ticket 599):** the tab has a country switcher (Deutschland is the default). Germany works as described here. Austria and Switzerland use the same flow, but no cultural regions exist there yet, so the regions are the Bundesländer / Kantone themselves and the districts are the Bezirke: pick a Bundesland / Kanton, add Bezirke from elsewhere in the country or take them out again (a Bezirk taken out returns to the Bundesland / Kanton it belongs to by origin; a region's own Bezirke have no "take out" button). No rename (the names are the register's), no "Vorschlag laden", no "Noch ohne Region". The callable already accepted AT / CH moves; nothing changed server side. The map is `src/data/bezirkMapAtCh.json` (`scripts/build-atch-bezirk-map.mjs <html>`, from the product owner's map "Österreich, Schweiz und Liechtenstein – Bundesländer, Kantone und Bezirke", not committed; guarded by `tests/components/bezirkMapAtCh.spec.ts`). The register is NOT changed to fit the map: Wien (23 Gemeindebezirke), Bern "Oberland" (2 Verwaltungskreise) and Schaffhausen (old Bezirke) are drawn as one district each. Open gaps: four map shapes have no register Bezirk (Küssnacht SZ, la Veveyse FR, Dorneck SO, Solothurn SO); they are drawn grey and cannot be clicked. Liechtenstein (11 Gemeinden) is in the map file but not in the register (no country, no region), so it is not drawn or assignable. New cultural regions for AT / CH need the product owner's list and a developer step (see "Adding a region").
+- **Germany, Austria, Switzerland (ticket 599):** the tab has a country switcher (Deutschland is the default). Germany works as described here. Austria and Switzerland use the same flow, but no built-in cultural regions exist there, so the regions are the Bundesländer / Kantone themselves (plus any region created in this tab) and the districts are the Bezirke: pick a Bundesland / Kanton, add Bezirke from elsewhere in the country or take them out again (a Bezirk taken out returns to the Bundesland / Kanton it belongs to by origin; a region's own Bezirke have no "take out" button). No rename (the names are the register's), no "Vorschlag laden", no "Noch ohne Region". The callable already accepted AT / CH moves; nothing changed server side. The map is `src/data/bezirkMapAtCh.json` (`scripts/build-atch-bezirk-map.mjs <html>`, from the product owner's map "Österreich, Schweiz und Liechtenstein – Bundesländer, Kantone und Bezirke", not committed; guarded by `tests/components/bezirkMapAtCh.spec.ts`). The register is NOT changed to fit the map: Wien (23 Gemeindebezirke), Bern "Oberland" (2 Verwaltungskreise) and Schaffhausen (old Bezirke) are drawn as one district each. Open gaps: four map shapes have no register Bezirk (Küssnacht SZ, la Veveyse FR, Dorneck SO, Solothurn SO); they are drawn grey and cannot be clicked. Liechtenstein (11 Gemeinden) is in the map file but not in the register (no country, no region), so it is not drawn or assignable. New regions for AT / CH are created by the Super-Admin in this tab ("Neue Region anlegen", section 2c).
 - **Fixed vs editable:** the districts themselves (`DISTRICT_CATALOG` in
   `src/utils/regionMapping.js`, built from the `home` regions; key `"<country>|<name>"`,
   names are unique per country) are never editable, nor is the country of a district.
@@ -281,10 +281,11 @@ regions of one country; the lists are saved in `regions/{id}.bezirke` (+ `mappin
   "Noch ohne Region" chips (districts still in their Bundesland) can be dragged onto a region
   in the "Regionen" panel. "Region umbenennen" writes only `regions/{id}.name` (client `setDoc`
   merge, allowed by `isValidRegion`); slug and wording tables stay.
-- **Adding a region** (new slug) is still a developer step: edit the
-  `CULTURE_REGIONS` table in `scripts/build-region-data.mjs`, regenerate, update the id
-  list in `firestore.rules` (guarded by `regions.spec.ts`), seed the doc and run
-  `check-reserved-usernames.mjs` read-only against production (the slugs are reserved).
+- **Adding a region (Super-Admin, no developer step):** Verwaltung -> "Zuordnung" ->
+  "Neue Region anlegen" creates a region in the country that is selected above (AT, DE, CH):
+  name plus an optional phrase for texts ("im Allgäu"). It is a **custom region**, see
+  section 2c. Built-in regions (the 51 Bundesländer / Kantone and the 60 cultural regions of
+  Germany) stay generated from `scripts/build-region-data.mjs`.
 - **Map and search of the cultural regions:** the top of the "Zuordnung" tab has a map of all
   400 Landkreise / kreisfreie Städte (`CultureRegionPicker.jsx`, shapes in
   `src/data/landkreisMap.json`, keyed by `DISTRICT_CATALOG` key, loaded on demand) and a search
@@ -305,6 +306,63 @@ regions of one country; the lists are saved in `regions/{id}.bezirke` (+ `mappin
   map's assignment (the map is the current source for "Vorschlag laden"). Guarded by
   `tests/components/landkreisMap.spec.ts`. Coordinates are SVG units of the 539.7 x 720.8
   viewBox, not lat/lon.
+
+### 2c. Regions created in the Verwaltung (custom regions)
+
+A Super-Admin creates a region in "Zuordnung" -> "Neue Region anlegen" (Germany, Austria,
+Switzerland). Nothing in the code has to change for that; everything below makes it work
+like a built-in region.
+
+- **Callable** `adminCreateRegion({ name, country, inPhrase? })` (`functions/src/adminCreateRegion.ts`,
+  Super-Admin only). The slug is derived from the name (`slugifyRegionName`: umlauts
+  transliterated, `Allgäu` -> `allgaeu`). It is refused (`slug-reserved`) when it is a region
+  id, the retired `allgaeu`, a combined view, an app route (`RESERVED_ROUTES`, synced with
+  `username.js`, guarded by `tests/lib/adminCreateRegion.spec.ts`) or the username of an
+  existing profile; `name-taken` when another region has the same name. In one batch it writes
+  - `regions/{slug}`: `custom: true`, `country`, `inPhrase`, `forPhrase` (= name), `demonym`
+    (empty: the header reads "Dein Kalender"), `subdivisionLabel` (Landkreis in DE, else
+    Bezirk), `timezone`, `active: false`, `bezirke: []` + `mappingUpdatedAt`, `order` (behind
+    every region of its country, fractional);
+  - `app_settings/customRegions` `{ ids }` (see rules below);
+  - an `admin_audit_log` entry `createRegion`.
+- **Lifecycle is the normal one:** the region starts empty and inactive, so visitors do not
+  see it (`isPopulated`); districts are assigned in the same tab (all moves work for AT / CH
+  / DE regions, a district taken out returns to the Bundesland / Kanton it belongs to by
+  origin); activation, moderators ("Moderation"), "Über uns", coming-soon page, place
+  search, event forms, emails, ICS, prerender work as for any region. Renaming is allowed
+  (name only, the slug stays). There is no delete and no slug change (an id is stored on
+  events and profiles).
+- **Client register:** `mergeRegions` appends valid custom docs (`customRegionFromDoc`:
+  `custom === true`, slug pattern, not a static id, name, country AT/DE/CH) and
+  `registerCustomRegions` adds their slugs IN PLACE to `REGION_SLUGS` (`STATIC_REGION_SLUGS`
+  is the generated, fixed part). So `isRegionSlug`, `isReservedUsername`, the moderator
+  region lists and the region queries need no extra code. The slugs only exist after the
+  region config loaded: `RegionRoutes` waits for it (`UnknownSlugOrWait`) before it shows a
+  profile or a 404 for an unknown first path segment. The map colours a custom region by a
+  hue derived from its slug.
+- **Functions:** `REGION_IDS` / `isRegionId` in `functions/src/regions.ts` are extended in
+  place by `registerCustomRegionDocs`. `customRegions.ts` (`ensureCustomRegions`, cached 30 s)
+  loads them; it is called by `readRoleDoc` (every role check, so moderators of a created region
+  keep their rights) and by the callables / triggers that validate region ids without a role
+  check (members, moderator application, Mollie webhook, analytics report, event mails).
+  `mergeFeedRegions` (public events, ICS feed) registers and appends them; the mapping
+  callables read them through `buildMappingRegisters`. **Any new server code that validates
+  a region id must make sure the custom regions are loaded first.**
+- **Rules:** `regionIds()` stays the static list. `isValidRegionId` and the `hasOnly` checks on
+  `directoryRegionIds` / moderator lists additionally accept ids in
+  `app_settings/customRegions.ids` (`customRegionIds()`, only looked up for ids that are not
+  static; only the Admin SDK writes the doc, clients cannot). `regions/{id}` allows the extra
+  keys (`custom`, `country`, `inPhrase`, `forPhrase`, `demonym`, `subdivisionLabel`), validated
+  on Super-Admin writes only to stay inside the 1000-expression budget of the moderator path.
+  Lists are joined with `.concat()` (`+` does not work on lists). Tests:
+  `tests/rules/regions.rules.spec.ts` (own emulator project id, the other spec files wipe
+  `demo-rules`).
+- **Prerender:** `sanitizeRegionDoc` keeps the custom keys, `mergeRegions` registers the region,
+  active custom regions get `/<slug>` and `/<slug>/verzeichnis` like the others.
+- **Not covered:** the per-region Instagram backend (still wired by hand,
+  `docs/instagram-regions.md`), `scripts/seed-regions.mjs` (only the generated register; custom
+  docs are never touched), the German "Großregion" (`macro`) of the map page, a polygon on the
+  AT/CH/DE maps (the districts of a custom region are coloured on the existing district map).
 
 ### 2b. Online events need a regional directory listing (Trello lVFp6Dvw)
 
@@ -694,9 +752,10 @@ regionIds: ['tirol'] }` (reconciled by `seed-region-fixtures.mjs`). Playwright
 
 ## 13. How to add a new region
 
-All 51 regions of AT/DE/CH exist in the register, so adding one is data work
-(steps 2-9). A region outside these countries needs the generator table
-(`scripts/build-region-data.mjs`) and a `COMBINED_VIEWS` entry first.
+**Preferred: as Super-Admin in Verwaltung -> "Zuordnung" -> "Neue Region anlegen"** (section 2c);
+this replaces steps 1-2 below, steps 3-9 apply unchanged. The developer steps below are only for
+a region that should ship with the generated register. A region outside AT/DE/CH needs the
+generator table (`scripts/build-region-data.mjs`) and a `COMBINED_VIEWS` entry first.
 
 1. **Register entry** (`src/utils/regions.js`, only if the slug is new): add the
    slug to `REGION_SLUGS` (this also reserves the URL via `username.js`), and fill

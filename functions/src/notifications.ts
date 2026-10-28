@@ -36,6 +36,7 @@ import {
   resolveOwnerRegionContact,
 } from './adminEventRouting';
 import { REGION_MODERATOR_ROLE } from './staffRoles';
+import { ensureCustomRegions } from './customRegions';
 import {
   buildEmailPayload,
   NotificationType,
@@ -316,6 +317,8 @@ async function loadAuthUsers(uids: string[]): Promise<AuthUserLike[]> {
 }
 
 async function loadModeratorDocs(): Promise<StaffDocEntry[]> {
+  // Events of a region created in the Verwaltung route to its moderators only once it is known.
+  await ensureCustomRegions();
   const snap = await getFirestore()
     .collection('admin_users')
     .where('role', '==', REGION_MODERATOR_ROLE)

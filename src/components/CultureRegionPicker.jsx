@@ -25,6 +25,14 @@ const WORDS = {
   CH: { region: 'Kanton', district: 'Bezirk', districts: 'Bezirke', none: 'ohne Region' },
 };
 
+// Regions created in the Verwaltung are not in the pre-built map data: they get a stable
+// colour derived from their slug (hue 0-359) and the middle shade.
+function customHue(id) {
+  let hash = 0;
+  for (const ch of id) hash = (hash * 31 + ch.charCodeAt(0)) % 360;
+  return hash;
+}
+
 async function loadMap(country) {
   if (country === 'DE') {
     const m = await import('../data/landkreisMap.json');
@@ -99,7 +107,8 @@ export default function CultureRegionPicker({
 
   const regionColour = (id) => {
     const c = mapData?.regions[id];
-    return c ? { '--h': c.h } : { '--h': 0, '--s': '0%' };
+    if (c) return { '--h': c.h };
+    return byId.get(id)?.custom ? { '--h': customHue(id) } : { '--h': 0, '--s': '0%' };
   };
   const changed = groups.flatMap((g) => g.keys).filter((key) => changedKeys?.has(key));
   // The picked region is drawn last, so its (wider) border lies on top of its neighbours.

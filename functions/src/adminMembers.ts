@@ -15,6 +15,7 @@ import {
   type StaffRole,
 } from './staffRoles';
 import { DEFAULT_REGION_ID, DIRECTORY_REGIONS, isRegionId } from './regions';
+import { ensureCustomRegions } from './customRegions';
 import { ALLOWED_ORIGINS } from './allowedOrigins';
 
 if (getApps().length === 0) {
@@ -472,6 +473,7 @@ export const adminListMembers = onCall(
   { region: 'europe-west3', cors: ALLOWED_ORIGINS, ...appCheckOptions() },
   async (request): Promise<MemberListResult> => {
     logMissingAppCheck('adminListMembers', request);
+    await ensureCustomRegions();
     return listMembersHandler(request, listMembersDeps);
   }
 );
@@ -480,6 +482,7 @@ export const adminUpdateMember = onCall(
   { region: 'europe-west3', cors: ALLOWED_ORIGINS, ...appCheckOptions() },
   async (request): Promise<{ ok: true }> => {
     logMissingAppCheck('adminUpdateMember', request);
+    await ensureCustomRegions();
     return updateMemberHandler(request, updateMemberDeps);
   }
 );

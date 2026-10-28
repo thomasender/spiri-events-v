@@ -101,5 +101,7 @@ export function validateUsername(raw, { currentUsername } = {}) {
 
 export function isReservedUsername(slug) {
   if (!slug) return false;
-  return RESERVED_USERNAMES.has(foldUmlauts(normalizeUsername(slug)));
+  const folded = foldUmlauts(normalizeUsername(slug));
+  // REGION_SLUGS also holds regions created in the Verwaltung after this file loaded.
+  return RESERVED_USERNAMES.has(folded) || REGION_SLUGS.includes(folded);
 }

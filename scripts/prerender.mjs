@@ -170,11 +170,11 @@ function formatDate(dateStr) {
   })
 }
 
-export function generateEventJsonLd(event) {
+export function generateEventJsonLd(event, regions = STATIC_REGIONS) {
   return buildEventJsonLd(event, {
     image: getEventOgImage(event),
     description: stripHtmlToText(event.description),
-    regionName: getRegionBySlug(resolveRegionId(event))?.name,
+    regionName: getRegionBySlug(resolveRegionId(event), regions)?.name,
   })
 }
 
@@ -311,7 +311,7 @@ export function generateEventHtml(
   cssBundlePath = null,
   regions = null
 ) {
-  const jsonLd = generateEventJsonLd(event)
+  const jsonLd = generateEventJsonLd(event, Array.isArray(regions) ? regions : STATIC_REGIONS)
   const isFree = event.contribution === 'free'
   const formattedDate = formatDate(event.date)
   const category = event.category || 'Sonstiges'
@@ -1083,8 +1083,16 @@ export async function loadEventsFromFirestoreRest({
 // contactEmail); unknown ids are dropped.
 // ---------------------------------------------------------------------------
 export function sanitizeRegionDoc(doc) {
-  if (!doc || !isRegionSlug(doc.id)) return null
+  // Regions created in the Verwaltung (`custom`) are not in the static register; mergeRegions
+  // validates them (slug, country, name) and registers them.
+  if (!doc || (!isRegionSlug(doc.id) && doc.custom !== true)) return null
   const out = { id: doc.id }
+  if (doc.custom === true) {
+    out.custom = true
+    for (const key of ['country', 'inPhrase', 'forPhrase', 'demonym', 'subdivisionLabel']) {
+      if (typeof doc[key] === 'string') out[key] = doc[key]
+    }
+  }
   if (typeof doc.name === 'string') out.name = doc.name
   if (typeof doc.order === 'number') out.order = doc.order
   if (typeof doc.active === 'boolean') out.active = doc.active

@@ -23,7 +23,14 @@ export function bezirkLabel(bezirk) {
 // views over them (UI only, never stored on an event or profile).
 // Single source: username.js reserves the slugs so no profile can shadow a
 // region address (`/tirol`, `/bayern`, `/zuerich`, ...).
-export const REGION_SLUGS = REGION_DATA.map((r) => r.slug);
+//
+// `REGION_SLUGS` also carries the regions a Super-Admin created in Verwaltung ->
+// "Zuordnung" (`regions/{id}.custom`): `registerCustomRegions` appends their
+// slugs IN PLACE once the region docs are loaded, so `isRegionSlug`, the
+// username check and every `REGION_SLUGS.includes` see them without changes.
+// `STATIC_REGION_SLUGS` is the fixed, generated part (it matches firestore.rules).
+export const STATIC_REGION_SLUGS = Object.freeze(REGION_DATA.map((r) => r.slug));
+export const REGION_SLUGS = [...STATIC_REGION_SLUGS];
 
 // The Allgäu was a region once (pilot); Bavaria replaced it. Stored ids of the
 // old region are read as Bavaria.
@@ -239,12 +246,67 @@ export function filterDirectoryForRegion(
   });
 }
 
+const CUSTOM_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const CUSTOM_TIMEZONES = { AT: 'Europe/Vienna', DE: 'Europe/Berlin', CH: 'Europe/Zurich' };
+
+// A `regions/{id}` doc of a region created at runtime (adminCreateRegion), or null.
+// Needs the country and the name; the wording falls back to the name.
+function customRegionFromDoc(doc, order) {
+  if (!doc || doc.custom !== true || typeof doc.id !== 'string') return null;
+  if (STATIC_REGION_SLUGS.includes(doc.id) || !CUSTOM_SLUG_PATTERN.test(doc.id)) return null;
+  if (typeof doc.name !== 'string' || !doc.name) return null;
+  if (!COUNTRIES.includes(doc.country)) return null;
+  const subdivisionLabel =
+    doc.subdivisionLabel === 'Landkreis' || doc.subdivisionLabel === 'Bezirk'
+      ? doc.subdivisionLabel
+      : doc.country === 'DE'
+        ? 'Landkreis'
+        : DEFAULT_SUBDIVISION_LABEL;
+  const text = (v) => (typeof v === 'string' ? v : '');
+  return {
+    id: doc.id,
+    slug: doc.id,
+    name: doc.name,
+    inPhrase: text(doc.inPhrase) || `in ${doc.name}`,
+    demonym: text(doc.demonym),
+    forPhrase: text(doc.forPhrase) || doc.name,
+    order: typeof doc.order === 'number' ? doc.order : order,
+    country: doc.country,
+    active: false,
+    bezirke: [],
+    subdivisionLabel,
+    timezone: CUSTOM_TIMEZONES[doc.country] ?? DEFAULT_REGION_TIMEZONE,
+    home: false,
+    custom: true,
+  };
+}
+
+/**
+ * Makes the regions created in the Verwaltung known: appends their slugs to
+ * REGION_SLUGS (and removes slugs of custom regions that no longer exist).
+ * Idempotent; returns the register entries of the custom regions.
+ */
+export function registerCustomRegions(docs) {
+  const entries = (Array.isArray(docs) ? docs : [])
+    .map((d, i) => customRegionFromDoc(d, STATIC_REGIONS.length + i))
+    .filter(Boolean);
+  const wanted = new Set(entries.map((e) => e.id));
+  for (let i = REGION_SLUGS.length - 1; i >= STATIC_REGION_SLUGS.length; i -= 1) {
+    if (!wanted.has(REGION_SLUGS[i])) REGION_SLUGS.splice(i, 1);
+  }
+  for (const id of wanted) if (!REGION_SLUGS.includes(id)) REGION_SLUGS.push(id);
+  return entries;
+}
+
 // Lays Firestore region docs ({ id, ...data }) over the static register.
-// Unknown ids are ignored; an empty/invalid input yields the static register.
+// Unknown ids are ignored, except regions created in the Verwaltung (`custom`),
+// which are appended; an empty/invalid input yields the static register.
 export function mergeRegions(docs, base = STATIC_REGIONS) {
   if (!Array.isArray(docs) || docs.length === 0) return base;
+  const customEntries = base === STATIC_REGIONS ? registerCustomRegions(docs) : [];
+  const withCustom = customEntries.length ? [...base, ...customEntries] : base;
   const byId = new Map(docs.filter((d) => d && isRegionSlug(d.id)).map((d) => [d.id, d]));
-  return base
+  return withCustom
     .map((r) => {
       const d = byId.get(r.id);
       if (!d) return r;

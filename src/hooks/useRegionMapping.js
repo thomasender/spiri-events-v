@@ -53,7 +53,34 @@ export function useRegionMapping(enabled) {
     await refreshRegions();
   }, []);
 
-  return { locks, loading, error, reload: load, save, rename };
+  // Creates a new, empty and inactive region (callable adminCreateRegion; the server derives the
+  // address from the name). Resolves with { regionId, name } once the shared regions are reloaded.
+  const create = useCallback(async ({ name, country, inPhrase }) => {
+    const result = await httpsCallable(functions, 'adminCreateRegion')({ name, country, inPhrase });
+    await refreshRegions();
+    return result.data;
+  }, []);
+
+  return { locks, loading, error, reload: load, save, rename, create };
+}
+
+/** Plain German text for a failed adminCreateRegion call. */
+export function createRegionErrorMessage(err) {
+  const code = String(err?.code || '').replace(/^functions\//, '');
+  const reason = err?.details?.reason;
+  if (code === 'already-exists' || reason === 'name-taken') {
+    return 'Eine Region mit diesem Namen gibt es schon.';
+  }
+  if (reason === 'slug-reserved') {
+    return 'Dieser Name ist schon für etwas anderes vergeben (z. B. eine Seite oder ein Profil). Bitte wähle einen anderen Namen.';
+  }
+  if (reason === 'invalid-name' || code === 'invalid-argument') {
+    return 'Bitte gib einen Namen mit 2 bis 60 Zeichen ein (Buchstaben oder Zahlen).';
+  }
+  if (code === 'permission-denied') return 'Nur Super-Admins können Regionen anlegen.';
+  if (code === 'unauthenticated')
+    return 'Du bist nicht mehr angemeldet. Bitte melde dich erneut an.';
+  return 'Das Anlegen hat leider nicht geklappt. Bitte versuche es erneut.';
 }
 
 /** Plain German text for a failed adminSaveRegionMapping / adminGetRegionMappingLocks call. */

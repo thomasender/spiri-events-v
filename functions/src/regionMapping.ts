@@ -36,6 +36,8 @@ export const DISTRICT_CATALOG: readonly CatalogDistrict[] = REGION_DATA.filter(
 const CATALOG_INDEX = new Map(DISTRICT_CATALOG.map((d, i) => [d.key, i]));
 export const CATALOG_BY_KEY = new Map(DISTRICT_CATALOG.map((d) => [d.key, d]));
 
+const COUNTRIES = ['AT', 'DE', 'CH'];
+
 export interface MappingRegion {
   id: string;
   name: string;
@@ -54,7 +56,7 @@ type Doc = Record<string, unknown>;
  */
 export function buildMappingRegisters(docs: Array<{ id: string; data: Doc }>): MappingRegion[] {
   const byId = new Map(docs.map((d) => [d.id, d.data]));
-  return REGION_DATA.map((r, order) => {
+  const staticRegions = REGION_DATA.map((r, order) => {
     const d = byId.get(r.slug);
     const bezirke =
       d && Array.isArray(d.bezirke) && (d.bezirke.length > 0 || d.mappingUpdatedAt)
@@ -69,6 +71,28 @@ export function buildMappingRegisters(docs: Array<{ id: string; data: Doc }>): M
       bezirke,
     };
   });
+  // Regions a Super-Admin created (no entry in the generated register).
+  const staticIds = new Set(REGION_DATA.map((r) => r.slug));
+  const custom: MappingRegion[] = docs
+    .filter(
+      (d) =>
+        !staticIds.has(d.id) &&
+        d.data.custom === true &&
+        typeof d.data.name === 'string' &&
+        typeof d.data.country === 'string' &&
+        COUNTRIES.includes(d.data.country)
+    )
+    .map((d) => ({
+      id: d.id,
+      name: d.data.name as string,
+      country: d.data.country as string,
+      active: d.data.active === true,
+      order: typeof d.data.order === 'number' ? d.data.order : REGION_DATA.length,
+      bezirke: Array.isArray(d.data.bezirke)
+        ? (d.data.bezirke as unknown[]).filter((b): b is string => typeof b === 'string')
+        : [],
+    }));
+  return [...staticRegions, ...custom];
 }
 
 export interface MappingMove {

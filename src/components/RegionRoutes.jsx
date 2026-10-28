@@ -29,16 +29,31 @@ function RedirectOrWait({ redirect, path }) {
   return <Navigate to={redirectTargetPath(redirect, path, allRegions)} replace />;
 }
 
+// A slug that is no known region may still be a region a Super-Admin created in the
+// Verwaltung (those slugs arrive with the region config), so wait for it before showing a
+// profile or a 404.
+function UnknownSlugOrWait({ children }) {
+  const { loading } = useRegion();
+  if (loading) return <div className="loading-spinner" data-testid="region-loading" />;
+  return children;
+}
+
 /**
- * `/:slug`: a region address or a public profile. Decided synchronously from
- * the fixed region slug list (username.js reserves those slugs), so profiles
- * never wait for the region config.
+ * `/:slug`: a region address or a public profile. The fixed region slugs
+ * (username.js reserves those) are decided synchronously; any other slug waits for
+ * the region config in case it names a region created in the Verwaltung.
  */
 export function RegionOrProfileRoute() {
   const { slug } = useParams();
   const { allRegions } = useRegion();
   const { kind, region, view, redirect } = resolveTopLevelSlug(slug?.toLowerCase(), allRegions);
-  if (kind === 'profile') return <PublicProfilePage />;
+  if (kind === 'profile') {
+    return (
+      <UnknownSlugOrWait>
+        <PublicProfilePage />
+      </UnknownSlugOrWait>
+    );
+  }
   if (kind === 'redirect') return <RedirectOrWait redirect={redirect} path="/" />;
   if (kind === 'coming-soon') return <ComingSoonOrWait region={region} view={view} />;
   return <CalendarPage />;
@@ -52,7 +67,13 @@ export function RegionDirectoryRoute() {
     regionSlug?.toLowerCase(),
     allRegions
   );
-  if (kind === 'profile') return <ErrorPage type="not-found" />;
+  if (kind === 'profile') {
+    return (
+      <UnknownSlugOrWait>
+        <ErrorPage type="not-found" />
+      </UnknownSlugOrWait>
+    );
+  }
   if (kind === 'redirect') return <RedirectOrWait redirect={redirect} path="/verzeichnis" />;
   if (kind === 'coming-soon') return <ComingSoonOrWait region={region} view={view} />;
   return <DirectoryPage />;
@@ -76,7 +97,13 @@ export function RegionAboutRoute() {
     regionSlug?.toLowerCase(),
     allRegions
   );
-  if (kind === 'profile') return <ErrorPage type="not-found" />;
+  if (kind === 'profile') {
+    return (
+      <UnknownSlugOrWait>
+        <ErrorPage type="not-found" />
+      </UnknownSlugOrWait>
+    );
+  }
   if (kind === 'redirect') return <RedirectOrWait redirect={redirect} path="/ueber-uns" />;
   if (kind === 'all-regions') return <Navigate to="/ueber-uns" replace />;
   // A not-yet-open region still has its own "Über uns" (the footer links to it).

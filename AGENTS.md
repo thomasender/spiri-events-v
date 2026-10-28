@@ -143,7 +143,7 @@ byte-identical prerender and Vorarlberg ICS feed). A missing `regionId` /
 Regions-Moderator:in. Regions are switched on only in Verwaltung -> "Regionen",
 never by hand-editing `regions/{id}.active`. Visitors never see a region map: they give a
 place (typed or shared location) and a radius, the calendar shows everything within it and the
-region (title, texts) follows the place; the Landkreis -> region mapping stays in the backend. Everything else (data model,
+region (title, texts) follows the place; the Landkreis -> region mapping stays in the backend. Super-Admins can create further regions (AT/DE/CH) in Verwaltung -> "Zuordnung" (custom regions, `docs/regions.md` 2c). Everything else (data model,
 queries and migration marker, emails, SEO, ICS, analytics, fixtures, how to add a
 region) is in `docs/regions.md`.
 

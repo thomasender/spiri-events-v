@@ -161,6 +161,7 @@ export { submitModeratorApplication } from './moderatorApplication';
 export { adminSetRegionModerator, adminListRegionModerators } from './adminModerators';
 export { adminSetRegionActive, adminListRegionActivation } from './adminRegions';
 export { adminGetRegionMappingLocks, adminSaveRegionMapping } from './adminRegionMapping';
+export { adminCreateRegion } from './adminCreateRegion';
 export { adminAnalyticsReport } from './adminAnalytics';
 export { adminMailgunUsage } from './adminMailgun';
 export { onEventApprovedPostToInstagram } from './instagramPostOnApproval';

@@ -13,6 +13,9 @@ const state = vi.hoisted(() => ({
   refreshes: 0,
   active: { vorarlberg: true } as Record<string, boolean>,
   renames: [] as Array<{ id: string; data: Record<string, unknown> }>,
+  creates: [] as Array<Record<string, unknown>>,
+  createError: null as null | { code: string; details?: unknown },
+  custom: [] as Array<Record<string, unknown>>,
 }));
 
 vi.mock('../../src/lib/firebase', () => ({ functions: {}, db: {} }));
@@ -31,6 +34,12 @@ vi.mock('firebase/functions', () => ({
       if (state.saveError) throw state.saveError;
       return { data: { changes: [] } };
     }
+    if (name === 'adminCreateRegion') {
+      state.creates.push(data as Record<string, unknown>);
+      if (state.createError) throw state.createError;
+      const input = data as { name: string; country: string };
+      return { data: { regionId: 'neue-region', name: input.name } };
+    }
     throw new Error(`unexpected callable ${name}`);
   },
 }));
@@ -39,7 +48,10 @@ vi.mock('../../src/hooks/useAuth', () => ({
 }));
 vi.mock('../../src/hooks/useRegions', () => ({
   useRegions: () => ({
-    regions: STATIC_REGIONS.map((r) => ({ ...r, active: Boolean(state.active[r.id]) })),
+    regions: [...STATIC_REGIONS, ...state.custom].map((r) => ({
+      ...r,
+      active: Boolean(state.active[r.id]),
+    })),
     loading: false,
   }),
   refreshRegions: async () => {
@@ -56,6 +68,9 @@ beforeEach(() => {
   state.refreshes = 0;
   state.active = { vorarlberg: true };
   state.renames = [];
+  state.creates = [];
+  state.createError = null;
+  state.custom = [];
 });
 
 const district = (key: string) =>
@@ -332,5 +347,64 @@ describe('RegionMappingTab: Austria and Switzerland (ticket 599)', () => {
     expect(loose).toBeInTheDocument();
     fireEvent.click(loose!);
     expect(screen.queryByTestId('mapping-draft')).not.toBeInTheDocument();
+  });
+});
+
+describe('RegionMappingTab: create a new region', () => {
+  const openForm = () => fireEvent.click(screen.getByText('Neue Region anlegen'));
+
+  it('sends name, the chosen country and the phrase, then picks the new region', async () => {
+    state.custom = [
+      {
+        id: 'neue-region',
+        slug: 'neue-region',
+        name: 'Neue Region',
+        country: 'DE',
+        order: 200.001,
+        active: false,
+        bezirke: [],
+        home: false,
+        custom: true,
+        subdivisionLabel: 'Landkreis',
+      },
+    ];
+    render(<RegionMappingTab />);
+    openForm();
+    expect(screen.getByTestId('new-region-save')).toBeDisabled();
+    fireEvent.change(screen.getByTestId('new-region-name'), { target: { value: ' Neue Region ' } });
+    fireEvent.change(screen.getByTestId('new-region-phrase'), {
+      target: { value: 'in der Neuen' },
+    });
+    fireEvent.click(screen.getByTestId('new-region-save'));
+    await screen.findByTestId('culture-panel');
+    expect(state.creates).toEqual([
+      { name: 'Neue Region', country: 'DE', inPhrase: 'in der Neuen' },
+    ]);
+    expect(state.refreshes).toBe(1);
+    expect(screen.getByRole('status')).toHaveTextContent('Die Region „Neue Region“ ist angelegt');
+    expect(screen.getByTestId('culture-rename-name')).toHaveValue('Neue Region');
+  });
+
+  it('creates in the country that is selected', async () => {
+    render(<RegionMappingTab />);
+    fireEvent.click(screen.getByTestId('mapping-country-CH'));
+    openForm();
+    fireEvent.change(screen.getByTestId('new-region-name'), { target: { value: 'Bodensee' } });
+    fireEvent.click(screen.getByTestId('new-region-save'));
+    await waitFor(() => expect(state.creates).toHaveLength(1));
+    expect(state.creates[0]).toMatchObject({ name: 'Bodensee', country: 'CH' });
+  });
+
+  it('explains a refused name in plain German', async () => {
+    state.createError = {
+      code: 'functions/failed-precondition',
+      details: { reason: 'slug-reserved' },
+    };
+    render(<RegionMappingTab />);
+    openForm();
+    fireEvent.change(screen.getByTestId('new-region-name'), { target: { value: 'Tirol' } });
+    fireEvent.click(screen.getByTestId('new-region-save'));
+    expect(await screen.findByRole('alert')).toHaveTextContent('schon für etwas anderes vergeben');
+    expect(screen.queryByTestId('culture-panel')).not.toBeInTheDocument();
   });
 });
