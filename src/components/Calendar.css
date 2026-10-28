@@ -27,21 +27,21 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 20px 24px 16px;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-6) var(--space-4);
 }
 
 .calendar-title {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: var(--space-3);
   flex: 1;
 }
 
 .calendar-title h2 {
   font-family: 'Cormorant Garamond', Georgia, serif;
-  font-size: 1.5rem;
+  font-size: var(--text-150);
   font-weight: 500;
   color: var(--text-primary);
   white-space: nowrap;
@@ -58,21 +58,21 @@
 .calendar-divider {
   height: 1px;
   background-color: var(--border);
-  margin: 8px 24px 0;
+  margin: var(--space-2) var(--space-6) 0;
 }
 
 .calendar-legend {
   list-style: none;
   display: flex;
   flex-flow: row wrap;
-  gap: 10px 20px;
-  padding: 16px 24px 20px;
+  gap: var(--space-2-5) var(--space-5);
+  padding: var(--space-4) var(--space-6) var(--space-5);
 }
 
 .calendar-legend li {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-2-5);
   font-size: var(--fs-eventinfo);
   color: var(--text-secondary);
 }
@@ -124,13 +124,13 @@
 .calendar-weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  padding: 0 8px;
+  padding: 0 var(--space-2);
 }
 
 .weekday {
-  padding: 8px 4px 12px;
+  padding: var(--space-2) var(--space-1) var(--space-3);
   text-align: center;
-  font-size: 0.75rem;
+  font-size: var(--text-75);
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -141,17 +141,17 @@
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   grid-template-rows: repeat(6, minmax(56px, 1fr));
-  padding: 0 8px 8px;
+  padding: 0 var(--space-2) var(--space-2);
 }
 
 .calendar-cell {
-  padding: 6px 4px;
+  padding: var(--space-1-5) var(--space-1);
   min-height: 56px;
   min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   border: none;
   background: none;
   border-radius: var(--radius-sm);
@@ -188,7 +188,7 @@
 }
 
 .day-number {
-  font-size: 0.9rem;
+  font-size: var(--text-90);
   font-weight: 500;
   color: var(--text-secondary);
   width: 28px;
@@ -252,13 +252,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
+  padding: var(--space-4) var(--space-5);
   border-bottom: 1px solid var(--border);
   background: var(--bg-secondary);
 }
 
 .day-popover-title {
-  font-size: 0.95rem;
+  font-size: var(--text-95);
   font-weight: 600;
   color: var(--text-primary);
 }
@@ -266,7 +266,7 @@
 .day-popover-close {
   background: none;
   border: none;
-  font-size: 1.5rem;
+  font-size: var(--text-150);
   color: var(--text-light);
   cursor: pointer;
   padding: 0;
@@ -278,18 +278,18 @@
 }
 
 .day-popover-events {
-  padding: 12px;
+  padding: var(--space-3);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
   overflow-y: auto;
 }
 
 .day-popover-event {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
+  gap: var(--space-3);
+  padding: var(--space-2-5) var(--space-3-5);
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -314,19 +314,19 @@
 .day-popover-event-info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-0-5);
   flex: 1;
   min-width: 0;
 }
 
 .day-popover-event-time {
-  font-size: 0.75rem;
+  font-size: var(--text-75);
   font-weight: 600;
   color: var(--accent-primary);
 }
 
 .day-popover-event-name {
-  font-size: 0.85rem;
+  font-size: var(--text-85);
   font-weight: 500;
   color: var(--text-primary);
   overflow: hidden;
@@ -337,7 +337,7 @@
 .day-popover-event-badge {
   padding: 3px 8px;
   border-radius: 10px;
-  font-size: 0.7rem;
+  font-size: var(--text-70);
   font-weight: 600;
   flex-shrink: 0;
 }
@@ -367,7 +367,7 @@
 }
 
 .agenda-day {
-  padding: 0 16px;
+  padding: 0 var(--space-4);
   border-bottom: 1px solid var(--border);
 }
 
@@ -378,8 +378,8 @@
 .agenda-day-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 0 8px;
+  gap: var(--space-2-5);
+  padding: var(--space-3) 0 var(--space-2);
   position: sticky;
   top: 0;
   background: var(--bg-calendar);
@@ -387,7 +387,7 @@
 }
 
 .agenda-day-weekday {
-  font-size: 0.75rem;
+  font-size: var(--text-75);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -395,7 +395,7 @@
 }
 
 .agenda-day-number {
-  font-size: 1rem;
+  font-size: var(--text-100);
   font-weight: 600;
   color: var(--text-secondary);
 }
@@ -409,7 +409,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.9rem;
+  font-size: var(--text-90);
 }
 
 .agenda-day-empty {
@@ -419,15 +419,15 @@
 .agenda-events {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
   padding-bottom: 12px;
 }
 
 .agenda-event-row {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 12px;
+  gap: var(--space-1-5);
+  padding: var(--space-3);
   background-color: var(--bg-secondary);
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
@@ -445,18 +445,18 @@
 .agenda-event-main {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-2-5);
 }
 
 .agenda-event-time {
-  font-size: 0.8rem;
+  font-size: var(--text-80);
   font-weight: 600;
   color: var(--accent-primary);
   min-width: 44px;
 }
 
 .agenda-event-title {
-  font-size: 0.9rem;
+  font-size: var(--text-90);
   font-weight: 500;
   color: var(--text-primary);
   white-space: nowrap;
@@ -475,7 +475,7 @@
   display: flex;
   align-items: center;
   gap: 3px;
-  font-size: 0.75rem;
+  font-size: var(--text-75);
   color: var(--text-light);
   white-space: nowrap;
   overflow: hidden;
@@ -490,7 +490,7 @@
 .agenda-event-badge {
   padding: 3px 8px;
   border-radius: 10px;
-  font-size: 0.7rem;
+  font-size: var(--text-70);
   font-weight: 600;
   flex-shrink: 0;
 }
@@ -524,15 +524,15 @@
 
 @media (max-width: 768px) {
   .calendar-header {
-    padding: 16px 20px;
+    padding: var(--space-4) var(--space-5);
   }
 
   .calendar-title h2 {
-    font-size: 1.3rem;
+    font-size: var(--text-130);
   }
 
   .day-number {
-    font-size: 0.8rem;
+    font-size: var(--text-80);
   }
 }
 

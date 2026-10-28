@@ -37,9 +37,9 @@
   position: absolute;
   top: 12px;
   left: 12px;
-  padding: 4px 10px;
+  padding: var(--space-1) var(--space-2-5);
   border-radius: 12px;
-  font-size: 0.7rem;
+  font-size: var(--text-70);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -49,18 +49,18 @@
 .event-tile-body {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 16px;
+  gap: var(--space-1-5);
+  padding: var(--space-4);
 }
 
 .event-tile-date {
-  font-size: 0.8rem;
+  font-size: var(--text-80);
   color: var(--text-secondary);
 }
 
 .event-tile-title {
   font-family: var(--font-heading);
-  font-size: 1.1rem;
+  font-size: var(--text-110);
   font-weight: 500;
   color: var(--text-primary);
 }
@@ -68,8 +68,8 @@
 .event-tile-location {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.85rem;
+  gap: var(--space-1-5);
+  font-size: var(--text-85);
   color: var(--text-secondary);
 }
 
@@ -81,9 +81,9 @@
 .event-tile-organizer {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   margin-top: 4px;
-  font-size: 0.85rem;
+  font-size: var(--text-85);
   color: var(--text-secondary);
 }
 
@@ -96,7 +96,7 @@
   border-radius: 50%;
   background-color: var(--accent-soft);
   color: var(--accent-primary-strong);
-  font-size: 0.75rem;
+  font-size: var(--text-75);
   font-weight: 600;
   flex-shrink: 0;
 }

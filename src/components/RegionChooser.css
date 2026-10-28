@@ -12,7 +12,7 @@
 .region-chooser {
   width: min(1100px, 100%);
   margin: 0 auto;
-  padding: 24px 16px 40px;
+  padding: var(--space-6) var(--space-4) var(--space-10);
 }
 
 .region-chooser:focus {
@@ -25,38 +25,38 @@
 }
 
 .region-chooser-title {
-  margin: 0 0 6px;
+  margin: 0 0 var(--space-1-5);
   font-family: var(--font-heading);
-  font-size: 1.8rem;
+  font-size: var(--text-180);
   color: var(--text-primary);
 }
 
 .region-chooser-hint {
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--text-100);
   color: var(--text-secondary);
 }
 
 .region-chooser-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 24px;
+  gap: var(--space-6);
   align-items: start;
 }
 
 .region-chooser-close {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1-5);
   min-height: 44px;
-  margin: 0 0 8px auto;
-  padding: 0 14px;
+  margin: 0 0 var(--space-2) auto;
+  padding: 0 var(--space-3-5);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-primary);
   font-family: var(--font-body);
-  font-size: 0.95rem;
+  font-size: var(--text-95);
   cursor: pointer;
 }
 

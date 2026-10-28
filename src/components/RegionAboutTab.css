@@ -1,7 +1,7 @@
 .region-about-field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
   max-width: 320px;
   margin-bottom: 16px;
 }
@@ -30,12 +30,12 @@
 .region-about-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .region-about-fixed-note {
   color: var(--text-light);
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-2);
 }
 
 .region-about-reset {

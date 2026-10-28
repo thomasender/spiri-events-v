@@ -22,19 +22,19 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
+  padding: var(--space-4) var(--space-5);
   border-bottom: 1px solid var(--border);
 }
 
 .photo-adjust-header h3 {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: var(--text-115);
 }
 
 .photo-adjust-close {
   background: transparent;
   border: 0;
-  padding: 6px;
+  padding: var(--space-1-5);
   cursor: pointer;
   color: var(--text-secondary);
   border-radius: var(--radius-sm);
@@ -48,22 +48,22 @@
 .photo-adjust-body {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 16px 20px;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
   overflow-y: auto;
 }
 
 .photo-adjust-hint {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: var(--text-90);
   color: var(--text-secondary);
 }
 
 .photo-adjust-zoom {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 0.9rem;
+  gap: var(--space-3);
+  font-size: var(--text-90);
 }
 
 .photo-adjust-zoom input[type='range'] {
@@ -80,8 +80,8 @@
 .photo-adjust-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
-  padding: 12px 20px;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
   border-top: 1px solid var(--border);
 }
 

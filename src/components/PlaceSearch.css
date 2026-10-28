@@ -1,14 +1,14 @@
 .place-search {
   position: relative;
   max-width: 520px;
-  margin: 16px auto 0;
+  margin: var(--space-4) auto 0;
   text-align: left;
 }
 
 .place-search-label {
   display: block;
   margin-bottom: 6px;
-  font-size: 0.9rem;
+  font-size: var(--text-90);
   font-weight: 600;
   color: var(--text-secondary);
 }
@@ -38,7 +38,7 @@
   color: var(--text-primary);
   font-family: var(--font-body);
   /* 16px keeps iOS Safari from zooming into the field. */
-  font-size: 1rem;
+  font-size: var(--text-100);
 }
 
 .place-search-field .place-search-input:focus-visible {
@@ -70,8 +70,8 @@
   z-index: 5;
   left: 0;
   right: 0;
-  margin: 4px 0 0;
-  padding: 4px;
+  margin: var(--space-1) 0 0;
+  padding: var(--space-1);
   list-style: none;
   max-height: 340px;
   overflow-y: auto;
@@ -88,9 +88,9 @@
 .place-search-option {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-0-5);
   min-height: 48px;
-  padding: 8px 12px;
+  padding: var(--space-2) var(--space-3);
   justify-content: center;
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -113,13 +113,13 @@
 
 .place-search-option-detail {
   color: var(--text-secondary);
-  font-size: 0.85rem;
+  font-size: var(--text-85);
 }
 
 .place-search-empty {
-  margin: 8px 0 0;
+  margin: var(--space-2) 0 0;
   color: var(--text-secondary);
-  font-size: 0.9rem;
+  font-size: var(--text-90);
 }
 
 .place-search-status {

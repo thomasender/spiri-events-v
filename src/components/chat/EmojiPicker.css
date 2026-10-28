@@ -22,7 +22,7 @@
   min-height: 44px;
   border: 0;
   background: transparent;
-  font-size: 1.25rem;
+  font-size: var(--text-125);
   cursor: pointer;
   border-bottom: 2px solid transparent;
 }
@@ -35,8 +35,8 @@
 .emoji-picker-grid {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
-  gap: 2px;
-  padding: 8px;
+  gap: var(--space-0-5);
+  padding: var(--space-2);
   max-height: 220px;
   overflow-y: auto;
 }
@@ -46,7 +46,7 @@
   border: 0;
   border-radius: var(--radius-sm);
   background: transparent;
-  font-size: 1.4rem;
+  font-size: var(--text-140);
   line-height: 1;
   cursor: pointer;
 }
@@ -59,8 +59,8 @@
 .emoji-picker-search {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
   border-bottom: 1px solid var(--border);
   color: var(--text-light);
 }
@@ -74,13 +74,13 @@
   color: var(--text-primary);
   font: inherit;
   /* 16px keeps iOS Safari from zooming in on focus. */
-  font-size: 1rem;
+  font-size: var(--text-100);
 }
 
 .emoji-picker-note {
   grid-column: 1 / -1;
-  margin: 8px 0;
+  margin: var(--space-2) 0;
   text-align: center;
   color: var(--text-secondary);
-  font-size: 0.9rem;
+  font-size: var(--text-90);
 }

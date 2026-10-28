@@ -35,13 +35,13 @@
 .header-container {
   max-width: var(--page-max-width);
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 var(--space-6);
   padding-left: 0;
   height: 72px;
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 @media (max-width: 1300px) {
@@ -53,7 +53,7 @@
 .logo {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   color: var(--text-primary);
   text-decoration: none;
   flex-shrink: 0;
@@ -85,7 +85,7 @@
 
 .logo-title {
   font-family: var(--font-heading);
-  font-size: 1.05rem;
+  font-size: var(--text-105);
   font-weight: 600;
   line-height: 1.15;
   color: var(--text-primary);
@@ -93,7 +93,7 @@
 
 .logo-subtitle {
   font-family: var(--font-heading);
-  font-size: 1.05rem;
+  font-size: var(--text-105);
   font-weight: 500;
   font-style: italic;
   line-height: 1.15;
@@ -103,7 +103,7 @@
 .nav-desktop {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-4);
   flex-wrap: nowrap;
 }
 
@@ -111,11 +111,11 @@
 .nav-group {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .nav-group--actions {
-  gap: 6px;
+  gap: var(--space-1-5);
   padding-left: 16px;
   border-left: 1px solid var(--border);
 }
@@ -123,10 +123,10 @@
 .nav-link {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 10px 16px;
+  gap: var(--space-1-5);
+  padding: var(--space-2-5) var(--space-4);
   border-radius: var(--radius-sm);
-  font-size: 0.95rem;
+  font-size: var(--text-95);
   font-weight: 500;
   color: var(--text-secondary);
   text-decoration: none;
@@ -194,7 +194,7 @@
   justify-content: center;
   min-width: 16px;
   height: 16px;
-  padding: 0 4px;
+  padding: 0 var(--space-1);
   border-radius: 999px;
   background: var(--error);
   color: #fff;
@@ -230,7 +230,7 @@
 @media (max-width: 800px) {
   .header-container {
     height: 64px;
-    padding: 0 16px;
+    padding: 0 var(--space-4);
     gap: 0;
   }
 
@@ -287,12 +287,12 @@
   .nav-mobile {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--space-1);
     position: absolute;
     top: 100%;
     left: 0;
     right: 0;
-    padding: 12px 16px 20px;
+    padding: var(--space-3) var(--space-4) var(--space-5);
     background-color: rgba(246, 241, 236, 0.98);
     backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border);
@@ -321,8 +321,8 @@
   .nav-mobile .nav-link {
     width: 100%;
     justify-content: flex-start;
-    padding: 14px 16px;
-    font-size: 1rem;
+    padding: var(--space-3-5) var(--space-4);
+    font-size: var(--text-100);
   }
 }
 
@@ -330,8 +330,8 @@
   .header-container {
     /* Match the CalendarPage mobile padding (8px) so the header, hero
        and filter panel share the same horizontal inset. */
-    padding: 0 8px;
-    gap: 6px;
+    padding: 0 var(--space-2);
+    gap: var(--space-1-5);
   }
 
   /* The two-line tagline stays visible on phones — just shrunk so it
@@ -339,7 +339,7 @@
      buttons on narrow viewports (zh4jJzje). */
   .logo-title,
   .logo-subtitle {
-    font-size: 0.9rem;
+    font-size: var(--text-90);
     line-height: 1.15;
   }
 }
@@ -354,7 +354,7 @@
 
   .logo-title,
   .logo-subtitle {
-    font-size: 0.8rem;
+    font-size: var(--text-80);
   }
 }
 
@@ -393,7 +393,7 @@
 
 /* Icon-only link (Postfach): label stays for screen readers. */
 .nav-link--icon {
-  padding: 10px;
+  padding: var(--space-2-5);
 }
 
 .nav-link--icon > span:not(.nav-link-admin-icon) {
@@ -418,9 +418,9 @@
 .account-menu-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   min-height: 44px;
-  padding: 6px 8px;
+  padding: var(--space-1-5) var(--space-2);
   border: 0;
   border-radius: var(--radius-sm);
   background: none;
@@ -469,9 +469,9 @@
   z-index: 110;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-0-5);
   min-width: 240px;
-  padding: 6px;
+  padding: var(--space-1-5);
   background: var(--bg-calendar);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -485,7 +485,7 @@
 .account-menu-panel .nav-link {
   width: 100%;
   justify-content: flex-start;
-  padding: 12px 14px;
+  padding: var(--space-3) var(--space-3-5);
 }
 
 .account-menu-panel .nav-link--active {
@@ -495,14 +495,14 @@
 
 .account-menu-divider {
   height: 1px;
-  margin: 4px 6px;
+  margin: var(--space-1) var(--space-1-5);
   background: var(--border);
 }
 
 /* Narrower desktops: keep everything on one line. */
 @media (max-width: 1100px) {
   .nav-desktop {
-    gap: 8px;
+    gap: var(--space-2);
   }
 
   .nav-group--actions {
@@ -510,11 +510,11 @@
   }
 
   .nav-desktop .nav-group--primary .nav-link {
-    padding: 10px 10px;
+    padding: var(--space-2-5) var(--space-2-5);
   }
 
   .nav-desktop .nav-link--create {
-    padding: 10px;
+    padding: var(--space-2-5);
   }
 
   .nav-desktop .nav-link--create > span:not(.nav-link-admin-icon) {

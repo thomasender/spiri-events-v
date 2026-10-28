@@ -5,7 +5,7 @@
 }
 
 .rich-text-view > p {
-  margin: 0 0 12px;
+  margin: 0 0 var(--space-3);
 }
 
 .rich-text-view > p:last-child {
@@ -24,7 +24,7 @@
 
 .rich-text-view ul,
 .rich-text-view ol {
-  margin: 0 0 12px;
+  margin: 0 0 var(--space-3);
   padding-left: 24px;
 }
 
@@ -60,7 +60,7 @@
   display: block;
   max-width: 100%;
   height: auto;
-  margin: 12px 0;
+  margin: var(--space-3) 0;
   border-radius: var(--radius-sm);
 }
 

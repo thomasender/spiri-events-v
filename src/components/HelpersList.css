@@ -4,7 +4,7 @@
   margin: 0;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .helpers-list-loading,
@@ -13,20 +13,20 @@
   background-color: var(--bg-secondary);
   border: 1px dashed var(--border);
   border-radius: var(--radius-md);
-  padding: 24px;
+  padding: var(--space-6);
   text-align: center;
   color: var(--text-secondary);
-  font-size: 0.95rem;
+  font-size: var(--text-95);
   line-height: 1.6;
 }
 
 .helpers-list-card {
   display: flex;
-  gap: 16px;
+  gap: var(--space-4);
   background-color: var(--bg-primary);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 16px;
+  padding: var(--space-4);
   align-items: flex-start;
 }
 
@@ -59,14 +59,14 @@
 .helpers-list-body {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
   min-width: 0;
   flex: 1;
 }
 
 .helpers-list-name {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: var(--text-105);
   color: var(--text-primary);
   font-weight: 600;
 }
@@ -74,19 +74,19 @@
 .helpers-list-description {
   margin: 0;
   color: var(--text-secondary);
-  font-size: 0.9rem;
+  font-size: var(--text-90);
   line-height: 1.5;
 }
 
 .helpers-list-links {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
   margin-top: 4px;
 }
 
 .helpers-list-link {
-  font-size: 0.85rem;
+  font-size: var(--text-85);
   color: var(--accent-primary-strong);
   font-weight: 600;
   text-decoration: none;

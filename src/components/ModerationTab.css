@@ -1,7 +1,7 @@
 .moderation-tab {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .moderation-header {
@@ -9,7 +9,7 @@
   flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .moderation-intro,
@@ -24,7 +24,7 @@
 
 .moderation-notice {
   margin: 0;
-  padding: 10px 12px;
+  padding: var(--space-2-5) var(--space-3);
   border-radius: var(--radius-md);
   background: var(--bg-secondary);
   border: 1px solid var(--border);
@@ -39,8 +39,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 32px 16px;
+  gap: var(--space-2);
+  padding: var(--space-8) var(--space-4);
   text-align: center;
   background: var(--bg-secondary);
   border: 1px dashed var(--border);
@@ -58,15 +58,15 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .moderation-card {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px 16px;
-  padding: 14px 16px;
+  gap: var(--space-3) var(--space-4);
+  padding: var(--space-3-5) var(--space-4);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-primary);
@@ -75,7 +75,7 @@
 .moderation-card-person {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-0-5);
   flex: 1 1 200px;
   min-width: 0;
 }
@@ -87,20 +87,20 @@
 .moderation-card-email,
 .moderation-result-email {
   color: var(--text-secondary);
-  font-size: 0.875rem;
+  font-size: var(--text-88);
   overflow-wrap: anywhere;
 }
 
 .moderation-card-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .moderation-card-actions .btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1-5);
 }
 
 .moderation-chips {
@@ -109,18 +109,18 @@
   padding: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-1-5);
   flex: 1 1 160px;
 }
 
 .moderation-chip,
 .moderation-result-tag {
   display: inline-block;
-  padding: 2px 10px;
+  padding: var(--space-0-5) var(--space-2-5);
   border-radius: 999px;
   border: 1px solid var(--border);
   background: var(--bg-secondary);
-  font-size: 0.8125rem;
+  font-size: var(--text-81);
   white-space: nowrap;
 }
 
@@ -135,7 +135,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: var(--space-4);
   z-index: 1000;
 }
 
@@ -143,13 +143,13 @@
   background: var(--bg-primary);
   color: var(--text-primary);
   border-radius: var(--radius-md);
-  padding: 24px;
+  padding: var(--space-6);
   width: min(560px, 100%);
   max-height: 90vh;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .moderation-dialog h2 {
@@ -159,20 +159,20 @@
 .moderation-person-picker {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .moderation-search {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .moderation-search-field {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-2-5);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-primary);
@@ -210,9 +210,9 @@
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 4px 10px;
+  gap: var(--space-1) var(--space-2-5);
   width: 100%;
-  padding: 10px 12px;
+  padding: var(--space-2-5) var(--space-3);
   border: 0;
   background: transparent;
   color: inherit;
@@ -244,28 +244,28 @@
   border-radius: var(--radius-md);
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-  gap: 6px 16px;
+  gap: var(--space-1-5) var(--space-4);
   margin: 0;
-  padding: 12px;
+  padding: var(--space-3);
 }
 
 .moderation-check {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   min-height: 32px;
 }
 
 .moderation-inactive {
   color: var(--text-secondary);
-  font-size: 0.8125rem;
+  font-size: var(--text-81);
 }
 
 .moderation-dialog-actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 /* Country heading inside the region list (spans the whole grid row). */
@@ -273,7 +273,7 @@
   grid-column: 1 / -1;
   margin-top: 6px;
   color: var(--text-secondary);
-  font-size: 0.8125rem;
+  font-size: var(--text-81);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;

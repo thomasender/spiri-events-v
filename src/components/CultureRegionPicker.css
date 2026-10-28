@@ -1,15 +1,15 @@
 .culture-picker {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .culture-search {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 0 12px;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg-calendar);
@@ -24,7 +24,7 @@
   min-width: 0;
   border: 0;
   background: transparent;
-  padding: 10px 0;
+  padding: var(--space-2-5) 0;
   font: inherit;
   color: var(--text-primary);
 }
@@ -39,8 +39,8 @@
   left: 0;
   right: 0;
   z-index: 10;
-  margin: 4px 0 0;
-  padding: 4px;
+  margin: var(--space-1) 0 0;
+  padding: var(--space-1);
   list-style: none;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -49,10 +49,10 @@
 }
 
 .culture-search-list li {
-  padding: 8px 10px;
+  padding: var(--space-2) var(--space-2-5);
   border-radius: 6px;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: var(--text-90);
   color: var(--text-secondary);
 }
 
@@ -155,8 +155,8 @@
 .culture-panel {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 14px 16px;
+  gap: var(--space-3);
+  padding: var(--space-3-5) var(--space-4);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-calendar);
@@ -164,13 +164,13 @@
 
 .culture-panel h3 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: var(--text-110);
 }
 
 .culture-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 20px;
+  gap: var(--space-5);
   align-items: start;
 }
 
@@ -186,18 +186,18 @@
   padding: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-1-5);
 }
 
 .culture-districts li {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 6px 4px 10px;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-1-5) var(--space-1) var(--space-2-5);
   border-radius: 999px;
   background: var(--chip-bg);
   color: var(--chip-text);
-  font-size: 0.85rem;
+  font-size: var(--text-85);
 }
 
 .culture-districts button {

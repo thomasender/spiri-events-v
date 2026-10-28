@@ -1,8 +1,8 @@
 .moderator-apply {
   width: 100%;
   max-width: 640px;
-  margin: 8px auto 0;
-  padding: 20px;
+  margin: var(--space-2) auto 0;
+  padding: var(--space-5);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background-color: var(--bg-secondary);
@@ -11,7 +11,7 @@
 
 .moderator-apply-intro {
   display: flex;
-  gap: 14px;
+  gap: var(--space-3-5);
   align-items: flex-start;
 }
 
@@ -22,9 +22,9 @@
 }
 
 .moderator-apply-title {
-  margin: 0 0 6px;
+  margin: 0 0 var(--space-1-5);
   font-family: var(--font-heading);
-  font-size: 1.15rem;
+  font-size: var(--text-115);
   color: var(--text-primary);
 }
 
@@ -38,8 +38,8 @@
   display: block;
   width: 100%;
   margin-top: 18px;
-  padding: 14px 20px;
-  font-size: 1.05rem;
+  padding: var(--space-3-5) var(--space-5);
+  font-size: var(--text-105);
   font-weight: 600;
   box-shadow: var(--shadow-sm);
 }
@@ -47,14 +47,14 @@
 .moderator-apply-form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
   margin-top: 16px;
 }
 
 .moderator-apply-form .form-group {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .moderator-apply-form input,
@@ -66,11 +66,11 @@
 .moderator-apply-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: var(--space-2-5);
 }
 
 .moderator-apply-success {
-  margin: 14px 0 0;
+  margin: var(--space-3-5) 0 0;
   color: var(--text-primary);
   font-weight: 500;
 }

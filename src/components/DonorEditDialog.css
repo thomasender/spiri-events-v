@@ -6,7 +6,7 @@
   align-items: center;
   justify-content: center;
   z-index: 60;
-  padding: 24px;
+  padding: var(--space-6);
 }
 
 .donor-edit-dialog {
@@ -25,17 +25,17 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 24px 12px;
+  padding: var(--space-5) var(--space-6) var(--space-3);
   border-bottom: 1px solid var(--border);
 }
 
 .donor-edit-dialog-source-note {
-  margin: 16px 24px 0;
-  padding: 12px 14px;
+  margin: var(--space-4) var(--space-6) 0;
+  padding: var(--space-3) var(--space-3-5);
   background-color: var(--bg-calendar);
   border: 1px dashed var(--border);
   border-radius: var(--radius-sm);
-  font-size: 0.85rem;
+  font-size: var(--text-85);
   color: var(--text-secondary);
   line-height: 1.4;
 }
@@ -49,12 +49,12 @@
 
 .donor-edit-dialog-source-meta code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.8rem;
+  font-size: var(--text-80);
 }
 
 .donor-edit-dialog-title {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: var(--text-125);
   color: var(--text-primary);
   font-weight: 600;
 }
@@ -62,7 +62,7 @@
 .donor-edit-dialog-close {
   background: transparent;
   border: 0;
-  padding: 6px;
+  padding: var(--space-1-5);
   cursor: pointer;
   color: var(--text-secondary);
   border-radius: var(--radius-sm);
@@ -76,22 +76,22 @@
 .donor-edit-dialog-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 20px 24px 24px;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-6) var(--space-6);
 }
 
 .donor-edit-dialog-field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-1-5);
 }
 
 .donor-edit-dialog-field--checkbox {
   flex-direction: row;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   background-color: var(--bg-secondary);
-  padding: 10px 12px;
+  padding: var(--space-2-5) var(--space-3);
   border-radius: var(--radius-sm);
 }
 
@@ -110,7 +110,7 @@
 
 .donor-edit-dialog-field input[type='text'],
 .donor-edit-dialog-field textarea {
-  padding: 10px 12px;
+  padding: var(--space-2-5) var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background-color: var(--bg-primary);
@@ -153,21 +153,21 @@
 .donor-edit-dialog-frequency-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
   align-items: center;
 }
 
 .donor-edit-dialog-frequency-option {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
+  gap: var(--space-1-5);
+  padding: var(--space-1-5) var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   cursor: pointer;
   background-color: var(--bg-primary);
   color: var(--text-secondary);
-  font-size: 0.95rem;
+  font-size: var(--text-95);
 }
 
 .donor-edit-dialog-frequency-option.is-selected {
@@ -183,30 +183,30 @@
   text-decoration: underline;
   cursor: pointer;
   font: inherit;
-  font-size: 0.9rem;
+  font-size: var(--text-90);
 }
 
 .donor-edit-dialog-hint {
-  font-size: 0.8rem;
+  font-size: var(--text-80);
   color: var(--text-light);
 }
 
 .donor-edit-dialog-error {
   color: var(--error);
-  font-size: 0.9rem;
+  font-size: var(--text-90);
   margin: 0;
 }
 
 .donor-edit-dialog-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: var(--space-2);
   margin-top: 8px;
 }
 
 @media (max-width: 480px) {
   .donor-edit-dialog-backdrop {
-    padding: 12px;
+    padding: var(--space-3);
   }
 
   .donor-edit-dialog-form,

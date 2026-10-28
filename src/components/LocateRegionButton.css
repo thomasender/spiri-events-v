@@ -2,13 +2,13 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1-5);
   margin-top: 12px;
 }
 
 .locate-region-consent {
   max-width: 560px;
-  padding: 12px 14px;
+  padding: var(--space-3) var(--space-3-5);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--accent-soft);
@@ -16,29 +16,29 @@
 }
 
 .locate-region-info {
-  margin: 0 0 10px;
-  font-size: 0.95rem;
+  margin: 0 0 var(--space-2-5);
+  font-size: var(--text-95);
   color: var(--text-primary);
 }
 
 .locate-region-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .locate-region-button {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   min-height: 44px;
-  padding: 0 14px;
+  padding: 0 var(--space-3-5);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-primary);
   font-family: var(--font-body);
-  font-size: 0.95rem;
+  font-size: var(--text-95);
   cursor: pointer;
 }
 
@@ -60,7 +60,7 @@
 .locate-region-status {
   margin: 0;
   max-width: 560px;
-  font-size: 0.9rem;
+  font-size: var(--text-90);
   color: var(--text-secondary);
 }
 

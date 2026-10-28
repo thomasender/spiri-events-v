@@ -3,19 +3,19 @@
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: var(--space-4);
   margin-bottom: 20px;
 }
 
 .events-section-month {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .events-section-month h2 {
   font-family: var(--font-heading);
-  font-size: 1.5rem;
+  font-size: var(--text-150);
   font-weight: 500;
   color: var(--text-primary);
   min-width: 13ch;
@@ -24,7 +24,7 @@
 
 .events-section-month-nav {
   display: flex;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .events-section-month-nav button {
@@ -53,10 +53,10 @@
 }
 
 .events-section-count {
-  padding: 4px 10px;
+  padding: var(--space-1) var(--space-2-5);
   background-color: var(--bg-secondary);
   border-radius: 12px;
-  font-size: 0.8rem;
+  font-size: var(--text-80);
   color: var(--text-secondary);
 }
 
@@ -64,17 +64,17 @@
   display: inline-flex;
   background-color: var(--bg-secondary);
   border-radius: var(--radius-sm);
-  padding: 4px;
-  gap: 4px;
+  padding: var(--space-1);
+  gap: var(--space-1);
 }
 
 .events-section-view-toggle button {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
+  gap: var(--space-1-5);
+  padding: var(--space-2) var(--space-3-5);
   border-radius: 6px;
-  font-size: 0.85rem;
+  font-size: var(--text-85);
   font-weight: 500;
   color: var(--text-secondary);
   transition: all 0.15s ease;
@@ -89,20 +89,20 @@
 .events-section-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .events-section-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 20px;
+  gap: var(--space-5);
 }
 
 .events-section-empty {
   background-color: var(--bg-calendar);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 48px 24px;
+  padding: var(--space-12) var(--space-6);
   text-align: center;
   color: var(--text-secondary);
 }

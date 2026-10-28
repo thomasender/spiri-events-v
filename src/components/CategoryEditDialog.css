@@ -1,6 +1,6 @@
 .category-edit-dialog {
   max-width: 520px;
-  padding: 32px 32px 24px;
+  padding: var(--space-8) var(--space-8) var(--space-6);
 }
 
 .category-edit-dialog-header {
@@ -19,14 +19,14 @@
 .category-edit-dialog-body {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--space-5);
   margin-bottom: 24px;
 }
 
 .category-edit-dialog-label {
   display: block;
   margin-bottom: 6px;
-  font-size: 0.9rem;
+  font-size: var(--text-90);
   font-weight: 500;
   color: var(--text-secondary);
 }
@@ -34,11 +34,11 @@
 .category-edit-dialog-error {
   margin-top: 6px;
   color: var(--error);
-  font-size: 0.85rem;
+  font-size: var(--text-85);
 }
 
 .category-edit-dialog-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: var(--space-3);
 }

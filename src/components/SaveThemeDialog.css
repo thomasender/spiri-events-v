@@ -6,7 +6,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: var(--space-6);
 }
 
 .save-theme-dialog {
@@ -16,10 +16,10 @@
   box-shadow: var(--shadow-lg);
   width: 100%;
   max-width: 520px;
-  padding: 28px;
+  padding: var(--space-7);
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: var(--space-4-5);
 }
 
 .save-theme-close {
@@ -30,7 +30,7 @@
   border: none;
   color: var(--text-light);
   cursor: pointer;
-  padding: 6px;
+  padding: var(--space-1-5);
   border-radius: var(--radius-sm);
   transition:
     background-color 0.15s ease,
@@ -48,33 +48,33 @@
 }
 
 .save-theme-header h2 {
-  margin: 0 0 6px;
+  margin: 0 0 var(--space-1-5);
   font-family: var(--font-heading);
-  font-size: 1.4rem;
+  font-size: var(--text-140);
   color: var(--heading-color);
 }
 
 .save-theme-header p {
   margin: 0;
   color: var(--text-secondary);
-  font-size: 0.9rem;
+  font-size: var(--text-90);
   line-height: 1.5;
 }
 
 .save-theme-body {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .save-theme-field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .save-theme-label {
-  font-size: 0.85rem;
+  font-size: var(--text-85);
   font-weight: 600;
   color: var(--text-primary);
 }
@@ -87,12 +87,12 @@
 .save-theme-field input,
 .save-theme-field textarea {
   width: 100%;
-  padding: 10px 12px;
+  padding: var(--space-2-5) var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background-color: var(--bg-calendar);
   color: var(--text-primary);
-  font-size: 0.95rem;
+  font-size: var(--text-95);
   font-family: inherit;
   transition: border-color 0.15s ease;
   resize: vertical;
@@ -116,20 +116,20 @@
 }
 
 .save-theme-hint {
-  font-size: 0.8rem;
+  font-size: var(--text-80);
   color: var(--text-light);
 }
 
 .save-theme-error {
-  padding: 10px 12px;
+  padding: var(--space-2-5) var(--space-3);
   border-radius: var(--radius-sm);
   background-color: rgba(191, 91, 78, 0.08);
   color: var(--error);
-  font-size: 0.9rem;
+  font-size: var(--text-90);
 }
 
 .save-theme-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: var(--space-2-5);
 }

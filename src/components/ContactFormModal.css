@@ -1,12 +1,12 @@
 .contact-modal {
   max-width: 540px;
-  padding: 32px 32px 24px;
+  padding: var(--space-8) var(--space-8) var(--space-6);
 }
 
 .contact-modal-header {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   margin-bottom: 8px;
   padding-right: 40px;
 }
@@ -14,7 +14,7 @@
 .contact-modal-header h2 {
   margin: 0;
   font-family: var(--font-heading);
-  font-size: 1.5rem;
+  font-size: var(--text-150);
   font-weight: 500;
   color: var(--text-primary);
 }
@@ -25,7 +25,7 @@
 
 .contact-modal-intro {
   color: var(--text-secondary);
-  font-size: 0.95rem;
+  font-size: var(--text-95);
   margin-bottom: 20px;
   line-height: 1.5;
 }
@@ -34,7 +34,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-2);
   margin-top: 6px;
   min-height: 18px;
 }
@@ -44,7 +44,7 @@
 }
 
 .contact-modal-count {
-  font-size: 0.75rem;
+  font-size: var(--text-75);
   color: var(--text-light);
   margin-left: auto;
 }
@@ -52,10 +52,10 @@
 .contact-modal-error {
   background-color: rgba(191, 91, 78, 0.1);
   color: var(--error);
-  padding: 10px 14px;
+  padding: var(--space-2-5) var(--space-3-5);
   border-radius: var(--radius-sm);
   margin-bottom: 16px;
-  font-size: 0.9rem;
+  font-size: var(--text-90);
 }
 
 .contact-modal-footer {
@@ -64,18 +64,18 @@
   border-top: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .contact-modal-actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .contact-modal-hint {
-  font-size: 0.85rem;
+  font-size: var(--text-85);
   color: var(--text-light);
   text-align: center;
 }
@@ -96,7 +96,7 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 24px 16px 16px;
+  padding: var(--space-6) var(--space-4) var(--space-4);
 }
 
 .contact-success-icon {
@@ -106,7 +106,7 @@
 
 .contact-success h2 {
   font-family: var(--font-heading);
-  font-size: 1.6rem;
+  font-size: var(--text-160);
   font-weight: 500;
   margin-bottom: 12px;
   color: var(--text-primary);
@@ -114,7 +114,7 @@
 
 .contact-success p {
   color: var(--text-secondary);
-  font-size: 0.95rem;
+  font-size: var(--text-95);
   line-height: 1.5;
   margin-bottom: 24px;
   max-width: 380px;
@@ -127,7 +127,7 @@
 
 @media (max-width: 480px) {
   .contact-modal {
-    padding: 24px 20px 20px;
+    padding: var(--space-6) var(--space-5) var(--space-5);
   }
 
   .contact-modal-actions {

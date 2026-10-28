@@ -5,7 +5,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: var(--space-6);
   z-index: 1100;
   backdrop-filter: blur(4px);
 }
@@ -19,7 +19,7 @@
   max-height: 90vh;
   overflow-y: auto;
   position: relative;
-  padding: 32px 28px 24px;
+  padding: var(--space-8) var(--space-7) var(--space-6);
 }
 
 .theme-info-close {
@@ -49,7 +49,7 @@
 .theme-info-header {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-2-5);
   margin-bottom: 20px;
   color: var(--accent-primary);
 }
@@ -57,24 +57,24 @@
 .theme-info-header h2 {
   margin: 0;
   font-family: var(--font-heading);
-  font-size: 1.6rem;
+  font-size: var(--text-160);
   color: var(--heading-color);
 }
 
 .theme-info-meta {
   display: grid;
   grid-template-columns: max-content 1fr;
-  column-gap: 16px;
-  row-gap: 10px;
-  margin: 0 0 20px;
-  padding: 16px;
+  column-gap: var(--space-4);
+  row-gap: var(--space-2-5);
+  margin: 0 0 var(--space-5);
+  padding: var(--space-4);
   background-color: var(--bg-secondary);
   border-radius: var(--radius-md);
   align-items: center;
 }
 
 .theme-info-meta dt {
-  font-size: 0.85rem;
+  font-size: var(--text-85);
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
@@ -85,10 +85,10 @@
   margin: 0;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-2-5);
   flex-wrap: wrap;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.9rem;
+  font-size: var(--text-90);
   color: var(--text-primary);
   word-break: break-all;
 }
@@ -104,9 +104,9 @@
 }
 
 .theme-info-usage h3 {
-  margin: 0 0 10px;
+  margin: 0 0 var(--space-2-5);
   font-family: var(--font-heading);
-  font-size: 1.2rem;
+  font-size: var(--text-120);
   color: var(--heading-color);
 }
 
@@ -115,7 +115,7 @@
   padding-left: 20px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-1-5);
   color: var(--text-secondary);
   line-height: 1.5;
 }
@@ -135,11 +135,11 @@
 
 @media (max-width: 480px) {
   .theme-info-dialog {
-    padding: 24px 20px 20px;
+    padding: var(--space-6) var(--space-5) var(--space-5);
   }
 
   .theme-info-meta {
     grid-template-columns: 1fr;
-    row-gap: 4px;
+    row-gap: var(--space-1);
   }
 }

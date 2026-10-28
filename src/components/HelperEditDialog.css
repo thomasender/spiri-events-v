@@ -6,7 +6,7 @@
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 24px;
+  padding: var(--space-6);
 }
 
 .helper-edit-dialog {
@@ -25,13 +25,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 24px 12px;
+  padding: var(--space-5) var(--space-6) var(--space-3);
   border-bottom: 1px solid var(--border);
 }
 
 .helper-edit-dialog-title {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: var(--text-125);
   color: var(--text-primary);
   font-weight: 600;
 }
@@ -39,7 +39,7 @@
 .helper-edit-dialog-close {
   background: transparent;
   border: 0;
-  padding: 6px;
+  padding: var(--space-1-5);
   cursor: pointer;
   color: var(--text-secondary);
   border-radius: var(--radius-sm);
@@ -53,14 +53,14 @@
 .helper-edit-dialog-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 20px 24px 24px;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-6) var(--space-6);
 }
 
 .helper-edit-dialog-field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-1-5);
 }
 
 .helper-edit-dialog-label {
@@ -73,7 +73,7 @@
 
 .helper-edit-dialog-field input,
 .helper-edit-dialog-field textarea {
-  padding: 10px 12px;
+  padding: var(--space-2-5) var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background-color: var(--bg-primary);
@@ -89,7 +89,7 @@
 }
 
 .helper-edit-dialog-hint {
-  font-size: 0.8rem;
+  font-size: var(--text-80);
   color: var(--text-light);
 }
 
@@ -101,20 +101,20 @@
 
 .helper-edit-dialog-error {
   color: var(--error);
-  font-size: 0.9rem;
+  font-size: var(--text-90);
   margin: 0;
 }
 
 .helper-edit-dialog-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: var(--space-2);
   margin-top: 8px;
 }
 
 @media (max-width: 480px) {
   .helper-edit-dialog-backdrop {
-    padding: 12px;
+    padding: var(--space-3);
   }
 
   .helper-edit-dialog-form,
@@ -129,7 +129,7 @@
 }
 
 .helper-user-search input {
-  padding: 10px 12px;
+  padding: var(--space-2-5) var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background-color: var(--bg-primary);
@@ -151,7 +151,7 @@
   right: 0;
   z-index: 5;
   margin: 0;
-  padding: 4px 0;
+  padding: var(--space-1) 0;
   list-style: none;
   background-color: var(--bg-primary);
   border: 1px solid var(--border);
@@ -164,8 +164,8 @@
 .helper-user-search-option {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
+  gap: var(--space-2-5);
+  padding: var(--space-2) var(--space-3);
   cursor: pointer;
 }
 
@@ -208,12 +208,12 @@
 }
 
 .helper-user-search-username {
-  font-size: 0.85rem;
+  font-size: var(--text-85);
   color: var(--text-light);
 }
 
 .helper-user-search-empty {
-  padding: 10px 12px;
+  padding: var(--space-2-5) var(--space-3);
   color: var(--text-light);
   font-style: italic;
 }
@@ -221,18 +221,18 @@
 .helper-edit-dialog-photo-url {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-1-5);
   margin-top: 8px;
 }
 
 .helper-edit-dialog-photo-url-label {
-  font-size: 0.8rem;
+  font-size: var(--text-80);
   color: var(--text-light);
 }
 
 .helper-user-search-row {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .helper-user-search-row input {
@@ -242,7 +242,7 @@
 
 .helper-user-search-apply {
   white-space: nowrap;
-  padding: 0 12px;
+  padding: 0 var(--space-3);
   cursor: pointer;
 }
 
