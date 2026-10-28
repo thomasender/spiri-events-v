@@ -21,6 +21,7 @@ import {
   type FeedRegion,
 } from './regions';
 import { CALENDAR_TOKENS_COLLECTION } from './calendarFeedToken';
+import { annotateOnlineEvents } from './onlineEventListings';
 
 if (getApps().length === 0) {
   initializeApp();
@@ -80,6 +81,18 @@ async function loadApprovedEvents(): Promise<PublicEvent[]> {
   const events = snap.docs.map((doc) => ({ ...doc.data(), id: doc.id }) as PublicEvent);
   eventsCache = { at: Date.now(), events };
   return events;
+}
+
+let annotatedCache: { at: number; events: PublicEvent[] } | null = null;
+
+async function loadFeedEvents(regions: FeedRegion[]): Promise<PublicEvent[]> {
+  const events = await loadApprovedEvents();
+  if (regions.filter((r) => r.active).length < 2) return events;
+  if (annotatedCache && Date.now() - annotatedCache.at < MEMORY_TTL_MS)
+    return annotatedCache.events;
+  const annotated = await annotateOnlineEvents(getFirestore(), events, regions);
+  annotatedCache = { at: Date.now(), events: annotated };
+  return annotated;
 }
 
 async function loadFeedRegions(): Promise<FeedRegion[]> {
@@ -171,7 +184,9 @@ export const calendarFeed = onRequest(
         }
         // An inactive region has no public events: selectFeedEvents returns [].
         // A combined view lists the active regions of its scope (possibly none).
-        events = selectFeedEvents(await loadApprovedEvents(), today, {
+        // Two or more active regions: online events carry `onlineRegionIds`
+        // (where their organiser is listed); with one nothing is read or changed.
+        events = selectFeedEvents(await loadFeedEvents(regions), today, {
           ...route,
           regionId: route.region,
           activeRegionIds: regions.filter((r) => r.active).map((r) => r.id),

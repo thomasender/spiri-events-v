@@ -15,9 +15,9 @@
   max-width: 420px;
   background-color: var(--bg-primary);
   border-radius: 20px;
-  margin: 0 16px;
+  margin: 0 var(--space-4);
   width: calc(100% - 32px);
-  padding: 28px 24px 32px;
+  padding: var(--space-7) var(--space-6) var(--space-8);
   box-shadow:
     0 4px 24px rgba(22, 24, 25, 0.18),
     0 12px 40px rgba(22, 24, 25, 0.12);
@@ -62,21 +62,21 @@
   border-radius: 16px;
   background-color: var(--accent-primary);
   color: #fff;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .donation-popup-title {
-  margin: 0 0 8px 0;
+  margin: 0 0 var(--space-2) 0;
   font-family: var(--font-heading, var(--font-body));
-  font-size: 1.35rem;
+  font-size: var(--text-135);
   font-weight: 600;
   line-height: 1.3;
   color: var(--text-primary, #1a1a1a);
 }
 
 .donation-popup-text {
-  margin: 0 0 20px 0;
-  font-size: 0.95rem;
+  margin: 0 0 var(--space-5) 0;
+  font-size: var(--text-95);
   line-height: 1.5;
   color: var(--text-secondary, #555);
 }
@@ -84,7 +84,7 @@
 .donation-popup-actions {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .donation-popup-donate {
@@ -93,19 +93,19 @@
   text-align: center;
   text-decoration: none;
   width: 100%;
-  padding: 12px 20px;
-  font-size: 1rem;
+  padding: var(--space-3) var(--space-5);
+  font-size: var(--text-100);
   font-weight: 500;
 }
 
 .donation-popup-later {
   width: 100%;
-  padding: 10px 20px;
+  padding: var(--space-2-5) var(--space-5);
   background-color: transparent;
   border: none;
   color: var(--text-secondary, #555);
   font-family: var(--font-body);
-  font-size: 0.9rem;
+  font-size: var(--text-90);
   font-weight: 500;
   cursor: pointer;
   border-radius: 999px;
@@ -122,15 +122,15 @@
 }
 
 .pwa-install-ios-steps {
-  margin: 0 0 20px 0;
-  padding-left: 20px;
-  font-size: 0.9rem;
+  margin: 0 0 var(--space-5) 0;
+  padding-left: var(--space-5);
+  font-size: var(--text-90);
   line-height: 1.55;
   color: var(--text-secondary, #555);
 }
 
 .pwa-install-ios-steps li {
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .pwa-install-ios-steps li:last-child {

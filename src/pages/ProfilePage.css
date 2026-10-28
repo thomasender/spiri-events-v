@@ -1,6 +1,6 @@
 .profile-page {
   min-height: calc(100vh - 72px);
-  padding: 48px 24px;
+  padding: var(--space-12) var(--space-6);
   background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
 }
 
@@ -9,11 +9,11 @@
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--space-6);
 }
 
 .profile-header {
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .profile-header h1 {
@@ -26,23 +26,23 @@
 
 .profile-header p {
   color: var(--text-secondary);
-  margin: 4px 0 0;
-  font-size: 0.95rem;
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-95);
 }
 
 .profile-card {
   background-color: var(--bg-calendar);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
-  padding: 32px;
+  padding: var(--space-8);
 }
 
 @media (max-width: 640px) {
   .profile-card {
-    padding: 24px;
+    padding: var(--space-6);
   }
 
   .profile-page {
-    padding: 48px 8px;
+    padding: var(--space-12) var(--space-2);
   }
 }

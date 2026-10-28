@@ -2,8 +2,8 @@
   display: grid;
   grid-template-columns: 56px 96px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 16px;
-  padding: 16px;
+  gap: var(--row-gap);
+  padding: var(--row-padding);
   background-color: var(--bg-calendar);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
@@ -25,21 +25,21 @@
 }
 
 .event-row-weekday {
-  font-size: 0.7rem;
+  font-size: var(--text-70);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
 
 .event-row-day {
   font-family: var(--font-heading);
-  font-size: 1.6rem;
+  font-size: var(--text-160);
   font-weight: 600;
   color: var(--text-primary);
   line-height: 1.1;
 }
 
 .event-row-month {
-  font-size: 0.7rem;
+  font-size: var(--text-70);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
@@ -62,7 +62,7 @@
 .event-row-body {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
   min-width: 0;
 }
 
@@ -70,7 +70,7 @@
   align-self: flex-start;
   padding: 3px 10px;
   border-radius: 12px;
-  font-size: 0.7rem;
+  font-size: var(--text-70);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -79,7 +79,7 @@
 
 .event-row-title {
   font-family: var(--font-heading);
-  font-size: 1.15rem;
+  font-size: var(--text-115);
   font-weight: 500;
   color: var(--text-primary);
 }
@@ -87,8 +87,8 @@
 .event-row-location {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.85rem;
+  gap: var(--space-1-5);
+  font-size: var(--text-85);
   color: var(--text-secondary);
 }
 
@@ -100,8 +100,8 @@
 .event-row-organizer {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.85rem;
+  gap: var(--space-2);
+  font-size: var(--text-85);
   color: var(--text-secondary);
 }
 
@@ -114,7 +114,7 @@
   border-radius: 50%;
   background-color: var(--accent-soft);
   color: var(--accent-primary-strong);
-  font-size: 0.7rem;
+  font-size: var(--text-70);
   font-weight: 600;
   flex-shrink: 0;
 }
@@ -129,7 +129,7 @@
 }
 
 .event-row-time {
-  font-size: 0.9rem;
+  font-size: var(--text-90);
   font-weight: 500;
   color: var(--text-primary);
   white-space: nowrap;

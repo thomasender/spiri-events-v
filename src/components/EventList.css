@@ -1,45 +1,45 @@
 .event-list-page {
   max-width: 1000px;
   margin: 0 auto;
-  padding: 48px 24px;
+  padding: var(--space-12) var(--space-6);
 }
 
 .event-list-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 32px;
+  margin-bottom: var(--space-8);
 }
 
 .event-list-header h1 {
   font-family: 'Cormorant Garamond', Georgia, serif;
-  font-size: 2rem;
+  font-size: var(--text-200);
   font-weight: 500;
   color: var(--text-primary);
 }
 
 .event-list-header p {
   color: var(--text-secondary);
-  margin-top: 4px;
+  margin-top: var(--space-1);
 }
 
 .event-list-section {
-  margin-bottom: 48px;
+  margin-bottom: var(--space-12);
 }
 
 .event-list-section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 20px;
-  padding-bottom: 12px;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-3);
   border-bottom: 1px solid var(--border);
 }
 
 .event-list-section-header h2 {
   font-family: 'Cormorant Garamond', Georgia, serif;
-  font-size: 1.35rem;
+  font-size: var(--text-135);
   font-weight: 500;
   color: var(--text-primary);
   margin: 0;
@@ -47,32 +47,32 @@
 
 .event-list-section h2 {
   font-family: 'Cormorant Garamond', Georgia, serif;
-  font-size: 1.35rem;
+  font-size: var(--text-135);
   font-weight: 500;
   color: var(--text-primary);
-  margin-bottom: 20px;
-  padding-bottom: 12px;
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-3);
   border-bottom: 1px solid var(--border);
 }
 
 .event-list-filters {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .event-list-filter-label {
-  font-size: 0.85rem;
+  font-size: var(--text-85);
   color: var(--text-secondary);
   font-weight: 500;
 }
 
 .event-list-filter-select {
-  padding: 6px 12px;
+  padding: var(--space-1-5) var(--space-3);
   border-radius: 8px;
   border: 1px solid var(--border);
   background-color: var(--bg-calendar);
-  font-size: 0.85rem;
+  font-size: var(--text-85);
   color: var(--text-primary);
   cursor: pointer;
 }
@@ -86,14 +86,14 @@
   background-color: var(--bg-calendar);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
-  padding: 64px 32px;
+  padding: var(--space-16) var(--space-8);
   text-align: center;
 }
 
 .empty-icon {
   width: 80px;
   height: 80px;
-  margin: 0 auto 24px;
+  margin: 0 auto var(--space-6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -104,15 +104,15 @@
 
 .event-list-empty h2 {
   font-family: 'Cormorant Garamond', Georgia, serif;
-  font-size: 1.5rem;
+  font-size: var(--text-150);
   font-weight: 500;
   color: var(--text-primary);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .event-list-empty p {
   color: var(--text-secondary);
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
   max-width: 360px;
   margin-left: auto;
   margin-right: auto;
@@ -121,14 +121,14 @@
 .event-list-rows {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-2-5);
 }
 
 .event-list-empty-small {
   background-color: var(--bg-calendar);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
-  padding: 32px;
+  padding: var(--space-8);
   text-align: center;
 }
 
@@ -138,8 +138,8 @@
 }
 
 .btn-sm {
-  padding: 8px 14px;
-  font-size: 0.85rem;
+  padding: var(--space-2) var(--space-3-5);
+  font-size: var(--text-85);
 }
 
 .btn-success {
@@ -159,9 +159,9 @@
 
 .badge {
   flex-shrink: 0;
-  padding: 4px 10px;
+  padding: var(--space-1) var(--space-2-5);
   border-radius: 12px;
-  font-size: 0.75rem;
+  font-size: var(--text-75);
   font-weight: 600;
 }
 
@@ -173,7 +173,7 @@
 .badge--recurring {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   background-color: rgba(59, 130, 246, 0.1);
   color: #3b82f6;
 }
@@ -181,7 +181,7 @@
 @media (max-width: 640px) {
   .event-list-header {
     flex-direction: column;
-    gap: 20px;
+    gap: var(--space-5);
   }
 
   .event-list-header .btn {
@@ -197,12 +197,12 @@
 .event-list-accordion > summary {
   cursor: pointer;
   font-weight: 600;
-  font-size: 1.1rem;
+  font-size: var(--text-110);
   padding: 0.5rem 0;
 }
 
 .event-list-retention-note {
   margin: 0.25rem 0 0.75rem;
-  font-size: 0.9rem;
+  font-size: var(--text-90);
   opacity: 0.75;
 }

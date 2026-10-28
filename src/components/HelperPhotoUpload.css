@@ -1,8 +1,8 @@
 .helper-photo-upload {
   display: flex;
-  gap: 16px;
+  gap: var(--space-4);
   align-items: flex-start;
-  padding: 12px;
+  padding: var(--space-3);
   border: 2px dashed var(--border);
   border-radius: var(--radius-md);
 }
@@ -16,7 +16,7 @@
 .helper-photo-hint {
   width: 100%;
   color: var(--text-light);
-  font-size: 0.85rem;
+  font-size: var(--text-85);
 }
 
 .helper-photo-preview {
@@ -31,7 +31,7 @@
   justify-content: center;
   flex-shrink: 0;
   color: var(--text-light);
-  font-size: 0.85rem;
+  font-size: var(--text-85);
 }
 
 .helper-photo-preview img {
@@ -42,18 +42,18 @@
 
 .helper-photo-preview-empty {
   text-align: center;
-  padding: 8px;
+  padding: var(--space-2);
 }
 
 .helper-photo-controls {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .helper-photo-error {
   width: 100%;
   color: var(--error);
-  font-size: 0.85rem;
+  font-size: var(--text-85);
 }

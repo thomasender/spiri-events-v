@@ -15,8 +15,8 @@
   display: flex;
   align-items: center;
   width: 100%;
-  margin: 32px 0;
-  padding: 32px 48px;
+  margin: var(--space-8) 0;
+  padding: var(--space-8) var(--space-12);
   padding-left: 0;
   overflow: hidden;
   border-radius: var(--radius-lg);
@@ -31,11 +31,11 @@
 }
 
 .hero-title {
-  font-size: clamp(1.75rem, 1.8vw + 1.1rem, 3.5rem);
+  font-size: var(--fs-hero-title);
   font-weight: 500;
   line-height: 1.2;
   color: var(--text-primary);
-  margin-bottom: 14px;
+  margin-bottom: var(--space-3-5);
 }
 
 .hero-title em {
@@ -47,7 +47,7 @@
   font-size: var(--fs-intro);
   color: var(--text-secondary);
   max-width: 56ch;
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
 }
 
 .hero-feature-title {
@@ -57,7 +57,7 @@
 }
 
 .hero-feature-description {
-  font-size: 0.875rem;
+  font-size: var(--text-88);
   color: var(--text-secondary);
 }
 
@@ -74,10 +74,10 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-4);
   max-width: 776px;
   min-height: 56px;
-  padding: 14px 18px;
+  padding: var(--space-3-5) var(--space-4-5);
   background-color: var(--accent-secondary);
   border-radius: var(--radius-md);
   color: var(--bg-primary);
@@ -87,7 +87,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-4);
   width: 100%;
   min-width: 0;
   /* Hidden by default — one slide visible at a time. */
@@ -125,7 +125,7 @@
 .hero-feature-item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   min-width: 0;
 }
 
@@ -165,18 +165,18 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) 360px;
   align-items: start;
-  gap: 32px;
+  gap: var(--layout-column-gap);
   width: 100%;
   max-width: var(--page-max-width);
   margin: 0 auto;
-  padding: 0 32px 48px;
+  padding: 0 var(--space-8) var(--page-bottom-space);
   padding-left: 0;
 }
 
 @media (max-width: 1300px) {
   .page-layout,
   .hero {
-    padding-left: 20px;
+    padding-left: var(--space-5);
   }
 }
 
@@ -187,7 +187,7 @@
 .page-sidebar {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--sidebar-gap);
   position: sticky;
   top: 88px;
 }
@@ -196,8 +196,8 @@
   background-color: var(--bg-calendar);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 20px;
-  margin-bottom: 20px;
+  padding: var(--filter-panel-padding);
+  margin-bottom: var(--space-5);
   box-shadow: var(--shadow-sm);
 }
 
@@ -212,9 +212,9 @@
   display: none;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 16px 20px;
-  margin-bottom: 20px;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-5);
   background-color: var(--bg-calendar);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -224,28 +224,28 @@
 .create-event-cta-text {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-0-5);
   min-width: 0;
 }
 
 .create-event-cta-text strong {
   font-family: var(--font-heading);
-  font-size: 1.1rem;
+  font-size: var(--text-110);
   font-weight: 600;
   color: var(--text-primary);
   line-height: 1.2;
 }
 
 .create-event-cta-text span {
-  font-size: 0.85rem;
+  font-size: var(--text-85);
   color: var(--text-secondary);
   line-height: 1.3;
 }
 
 .create-event-cta-button {
   flex-shrink: 0;
-  padding: 10px 18px;
-  font-size: 0.9rem;
+  padding: var(--space-2-5) var(--space-4-5);
+  font-size: var(--text-90);
 }
 
 .create-event-cta-button.btn-disabled {
@@ -264,7 +264,7 @@
   .create-event-cta {
     flex-direction: column;
     align-items: stretch;
-    padding: 14px 16px;
+    padding: var(--space-3-5) var(--space-4);
   }
 
   .create-event-cta-button {
@@ -276,14 +276,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .filter-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 /* ----------------------------------------------------------------
@@ -308,24 +308,24 @@
    gaps themselves is needed; if the rhythm ever changes, update
    the four declarations in this block (zh4jJzje). */
 .filter-header--title {
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .filter-header--section {
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 /* Subsequent section headers (e.g. Datum → Kategorie) share a hairline
    divider so the user can tell where one filter group ends and the next
    begins. The 16px gap matches the rest of the filter panel rhythm. */
 .filter-header--section ~ .filter-header--section {
-  margin-top: 16px;
-  padding-top: 8px;
+  margin-top: var(--space-4);
+  padding-top: var(--space-2);
   border-top: 1px solid var(--border);
 }
 
 .filter-header--section .filter-label {
-  font-size: 0.75rem;
+  font-size: var(--text-75);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -333,7 +333,7 @@
 }
 
 .filter-label {
-  font-size: 0.75rem;
+  font-size: var(--text-75);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -342,7 +342,7 @@
 
 .filter-section-title {
   font-family: var(--font-heading);
-  font-size: 1.25rem;
+  font-size: var(--text-125);
   font-weight: 600;
   color: var(--text-primary);
   margin: 0;
@@ -350,8 +350,8 @@
 
 .filter-quick-actions {
   display: flex;
-  gap: 8px;
-  padding-top: 8px;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
 }
 
 /* On phone-sized viewports the section labels (Datum / Kategorie / Ort)
@@ -363,13 +363,13 @@
    the global CreateEventFab so it stays reachable while scrolling. */
 
 .filter-quick-actions button {
-  font-size: 0.8rem;
+  font-size: var(--text-80);
   font-weight: 500;
   color: var(--text-secondary);
   background-color: transparent;
   border: 1px solid var(--border);
   border-radius: 999px;
-  padding: 4px 12px;
+  padding: var(--space-1) var(--space-3);
   cursor: pointer;
   transition:
     background-color 0.15s ease,
@@ -391,7 +391,7 @@
 .filter-options {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 /* ----------------------------------------------------------------
@@ -404,9 +404,9 @@
 .filter-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  font-size: 0.875rem;
+  gap: var(--space-1-5);
+  padding: var(--space-1-5) var(--space-3-5);
+  font-size: var(--text-88);
   font-weight: 500;
   line-height: 1.2;
   color: var(--text-secondary);
@@ -491,23 +491,23 @@
    The hairline divider that used to separate it from the chips above was
    removed so the accordion no longer feels detached (zh4jJzje). */
 .filter-accordion {
-  margin-top: 16px;
+  margin-top: var(--space-4);
 }
 
 .filter-accordion-summary {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-2);
   cursor: pointer;
   list-style: none;
-  font-size: 0.85rem;
+  font-size: var(--text-85);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-light);
   user-select: none;
-  padding: 4px 0;
+  padding: var(--space-1) 0;
 }
 
 .filter-accordion-summary::-webkit-details-marker {
@@ -521,7 +521,7 @@
 .filter-accordion-label {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .filter-accordion-filter-icon {
@@ -537,36 +537,36 @@
 }
 
 .filter-accordion-body {
-  padding-top: 16px;
+  padding-top: var(--space-4);
   animation: fadeIn 0.15s ease-out;
 }
 
 .calendar-error {
   background-color: var(--bg-calendar);
   border-radius: var(--radius-md);
-  padding: 48px 32px;
+  padding: var(--space-12) var(--space-8);
   text-align: center;
   box-shadow: var(--shadow-sm);
 }
 
 .calendar-error h3 {
   font-family: 'Cormorant Garamond', Georgia, serif;
-  font-size: 1.35rem;
+  font-size: var(--text-135);
   color: var(--error);
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .calendar-error p {
   color: var(--text-secondary);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .error-detail {
-  font-size: 0.85rem;
+  font-size: var(--text-85);
   color: var(--text-light);
   font-family: monospace;
   background: var(--bg-secondary);
-  padding: 8px 12px;
+  padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-sm);
   display: inline-block;
 }
@@ -578,8 +578,8 @@
 @media (max-width: 900px) {
   .hero {
     flex-direction: column;
-    padding: 24px 20px;
-    margin: 16px 0;
+    padding: var(--space-6) var(--space-5);
+    margin: var(--space-4) 0;
     max-width: 100%;
   }
 
@@ -589,11 +589,11 @@
   }
 
   .hero-title {
-    margin-bottom: 10px;
+    margin-bottom: var(--space-2-5);
   }
 
   .hero-subtitle {
-    margin-bottom: 14px;
+    margin-bottom: var(--space-3-5);
   }
 
   .page-layout {
@@ -607,7 +607,7 @@
 
 @media (max-width: 640px) {
   .page-layout {
-    padding: 0 8px 32px;
+    padding: 0 var(--space-2) var(--space-8);
   }
 
   /* On phone-sized viewports the hero (title, subtitle, fact slider)
@@ -663,13 +663,13 @@
     /* Snap chips into place for a steadier feel when swiping. */
     scroll-snap-type: x proximity;
     /* Allow room for chip shadows / focus rings without clipping. */
-    padding-bottom: 4px;
+    padding-bottom: var(--space-1);
     /* Bleed slightly past the page gutter so the first/last chip align
        with the rest of the filter panel content. */
     margin-right: -8px;
     margin-left: -8px;
-    padding-left: 8px;
-    padding-right: 8px;
+    padding-left: var(--space-2);
+    padding-right: var(--space-2);
     /* Hide the scrollbar — chips are still reachable via swipe. */
     scrollbar-width: none;
   }
@@ -686,7 +686,7 @@
 }
 
 .filter-chip-count {
-  font-size: 0.75rem;
+  font-size: var(--text-75);
   font-weight: 600;
   opacity: 0.7;
   font-variant-numeric: tabular-nums;
@@ -708,17 +708,17 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 8px;
-  margin-top: 12px;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
 }
 
 .calendar-export-summary {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1-5);
   cursor: pointer;
   color: var(--text-secondary);
-  font-size: 0.85rem;
+  font-size: var(--text-85);
   list-style: none;
 }
 
@@ -730,14 +730,14 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 8px;
-  margin-top: 8px;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
 }
 
 .calendar-export-panel .btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1-5);
   text-decoration: none;
 }
 
@@ -747,7 +747,7 @@
   max-width: 100%;
   overflow-wrap: anywhere;
   color: var(--text-secondary);
-  font-size: 0.8rem;
+  font-size: var(--text-80);
 }
 
 .calendar-subscribe-hint {
@@ -755,5 +755,5 @@
   margin: 0;
   text-align: right;
   color: var(--text-secondary);
-  font-size: 0.8rem;
+  font-size: var(--text-80);
 }

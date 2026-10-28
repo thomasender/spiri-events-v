@@ -5,7 +5,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: var(--space-6);
   z-index: 1100;
   backdrop-filter: blur(4px);
 }
@@ -14,7 +14,7 @@
   background-color: var(--bg-calendar);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
-  padding: 32px;
+  padding: var(--space-8);
   max-width: 400px;
   width: 100%;
   position: relative;
@@ -56,17 +56,17 @@
 
 .confirm-dialog h2 {
   font-family: 'Cormorant Garamond', Georgia, serif;
-  font-size: 1.35rem;
+  font-size: var(--text-135);
   font-weight: 500;
   color: var(--text-primary);
-  margin-bottom: 12px;
-  padding-right: 24px;
+  margin-bottom: var(--space-3);
+  padding-right: var(--space-6);
 }
 
 .confirm-dialog p {
   color: var(--text-secondary);
   line-height: 1.6;
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
 }
 
 .confirm-dialog-body p:last-child {
@@ -75,7 +75,7 @@
 
 .confirm-actions {
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
   justify-content: flex-end;
   /* Narrow phones: let the buttons wrap instead of squeezing the labels. */
   flex-wrap: wrap;

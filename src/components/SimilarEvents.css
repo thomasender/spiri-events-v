@@ -1,17 +1,17 @@
 .similar-events {
-  margin-top: 32px;
-  margin-bottom: 8px;
+  margin-top: var(--space-8);
+  margin-bottom: var(--space-2);
 }
 
 .similar-events-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
 }
 
 .similar-events-header h2 {
-  font-size: 1.3rem;
+  font-size: var(--text-130);
   color: var(--text-primary);
   margin: 0;
 }
@@ -19,9 +19,9 @@
 .similar-events-category-badge {
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
+  padding: var(--space-1) var(--space-2-5);
   border-radius: 12px;
-  font-size: 0.7rem;
+  font-size: var(--text-70);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -36,12 +36,12 @@
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 240px;
-  gap: 16px;
+  gap: var(--space-4);
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
   scrollbar-width: thin;
-  padding: 4px 4px 16px;
+  padding: var(--space-1) var(--space-1) var(--space-4);
   -webkit-overflow-scrolling: touch;
 }
 

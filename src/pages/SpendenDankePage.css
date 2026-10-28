@@ -4,16 +4,16 @@
   padding: 48px 24px 80px;
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: var(--space-8);
 }
 
 .spenden-danke-hero {
   text-align: center;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
   align-items: center;
-  margin-top: 48px;
+  margin-top: var(--space-12);
 }
 
 .spenden-danke-hero .eyebrow {
@@ -23,7 +23,7 @@
   letter-spacing: normal;
   text-transform: none;
   color: var(--text-primary);
-  margin-top: 16px;
+  margin-top: var(--space-4);
 }
 
 .spenden-danke-hero-title {
@@ -56,6 +56,6 @@
 
 @media (max-width: 640px) {
   .spenden-danke-page {
-    padding: 32px 8px 64px;
+    padding: var(--space-8) var(--space-2) var(--space-16);
   }
 }

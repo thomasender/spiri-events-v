@@ -2002,3 +2002,79 @@ describe('region about page (moderators)', () => {
     );
   });
 });
+
+describe('app_settings/layout and layout_history (Design-Modus)', () => {
+  const uidOf = (n: string) => (n.includes('token') ? 'adminTok' : 'adminDoc');
+
+  it('everyone can read the live layout, only admins write it', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'app_settings/layout'), { '--card-padding': '20px' });
+    });
+    for (const ctx of [anon(), user()]) {
+      const db = ctx.firestore();
+      await assertSucceeds(getDoc(doc(db, 'app_settings/layout')));
+      await assertFails(
+        setDoc(doc(db, 'app_settings/layout'), {
+          '--card-padding': '24px',
+          updatedAt: serverTimestamp(),
+          updatedBy: 'someUser',
+        })
+      );
+    }
+  });
+
+  describe.each(Object.entries(adminVariants))('%s', (name, make) => {
+    const uid = uidOf(name);
+
+    it('can publish a layout, but not as someone else or oversized', async () => {
+      const db = make().firestore();
+      const ref = doc(db, 'app_settings/layout');
+      await assertSucceeds(
+        setDoc(ref, { '--card-padding': '24px', updatedAt: serverTimestamp(), updatedBy: uid })
+      );
+      await assertFails(
+        setDoc(ref, { '--card-padding': '24px', updatedAt: serverTimestamp(), updatedBy: 'other' })
+      );
+      const huge = Object.fromEntries(Array.from({ length: 201 }, (_v, i) => [`--t${i}`, '1px']));
+      await assertFails(setDoc(ref, { ...huge, updatedAt: serverTimestamp(), updatedBy: uid }));
+    });
+
+    it('can append history entries, never edit or delete them', async () => {
+      const db = make().firestore();
+      const entry = {
+        values: { '--card-padding': '24px' },
+        changes: [{ token: '--card-padding', from: '16px', to: '24px' }],
+        note: 'Karten luftiger',
+        publishedBy: uid,
+        publishedByName: 'Jana',
+        publishedAt: serverTimestamp(),
+      };
+      const ref = doc(collection(db, 'layout_history'));
+      await assertSucceeds(setDoc(ref, entry));
+      await assertFails(updateDoc(ref, { note: 'umgeschrieben' }));
+      await assertFails(deleteDoc(ref));
+      await assertFails(
+        setDoc(doc(collection(db, 'layout_history')), { ...entry, publishedBy: 'x' })
+      );
+      await assertFails(setDoc(doc(collection(db, 'layout_history')), { ...entry, extra: 1 }));
+      await assertSucceeds(getDocs(collection(db, 'layout_history')));
+    });
+  });
+
+  it('non-admins cannot read or write the history', async () => {
+    for (const ctx of [anon(), user()]) {
+      const db = ctx.firestore();
+      await assertFails(getDocs(collection(db, 'layout_history')));
+      await assertFails(
+        setDoc(doc(collection(db, 'layout_history')), {
+          values: {},
+          changes: [],
+          note: '',
+          publishedBy: 'someUser',
+          publishedByName: '',
+          publishedAt: serverTimestamp(),
+        })
+      );
+    }
+  });
+});

@@ -1,13 +1,13 @@
 .share-trigger {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-sm);
   background-color: var(--bg-secondary);
   color: var(--text-primary);
   border: 1px solid var(--border);
-  font-size: 0.9rem;
+  font-size: var(--text-90);
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -28,8 +28,8 @@
   background-color: transparent;
   border-color: transparent;
   color: var(--text-secondary);
-  padding: 6px 10px;
-  font-size: 0.85rem;
+  padding: var(--space-1-5) var(--space-2-5);
+  font-size: var(--text-85);
 }
 
 .share-trigger--subtle:hover {
@@ -45,7 +45,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: var(--space-6);
   z-index: 1100;
   backdrop-filter: blur(4px);
 }
@@ -54,7 +54,7 @@
   background-color: var(--bg-calendar);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
-  padding: 32px;
+  padding: var(--space-8);
   max-width: 420px;
   width: 100%;
   position: relative;
@@ -101,33 +101,33 @@
 
 .share-dialog-title {
   font-family: var(--font-heading);
-  font-size: 1.35rem;
+  font-size: var(--text-135);
   font-weight: 500;
   color: var(--text-primary);
-  margin-bottom: 8px;
-  padding-right: 24px;
+  margin-bottom: var(--space-2);
+  padding-right: var(--space-6);
 }
 
 .share-dialog-subtitle {
   color: var(--text-secondary);
-  font-size: 0.95rem;
-  margin-bottom: 20px;
+  font-size: var(--text-95);
+  margin-bottom: var(--space-5);
   line-height: 1.5;
 }
 
 .share-channels {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: var(--space-2-5);
   justify-content: flex-start;
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
 }
 
 .share-channel {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 12px;
+  padding: var(--space-3);
   border-radius: var(--radius-sm);
   background-color: var(--bg-secondary);
   color: var(--text-primary);
@@ -155,14 +155,14 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--space-2);
   width: 100%;
-  padding: 12px 16px;
+  padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-sm);
   background-color: var(--accent-primary);
   color: white;
   border: none;
-  font-size: 0.95rem;
+  font-size: var(--text-95);
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.15s ease;
@@ -179,6 +179,6 @@
 
 @media (max-width: 640px) {
   .share-dialog {
-    padding: 24px;
+    padding: var(--space-6);
   }
 }

@@ -9,14 +9,15 @@ const mockAuth = vi.hoisted(() => ({
   user: null as { uid: string; photoURL?: string | null } | null,
   canCreateEvents: true,
   role: null as string | null,
+  staffRegionIds: [] as string[],
 }));
 
 const mockAdminAlerts = vi.hoisted(() => ({ unread: 0 }));
 
-vi.mock('../../src/hooks/useAdminAlerts', () => ({
-  // Like the real hook: nothing is counted unless the caller says the user is an admin.
-  useAdminAlerts: (_uid: string, enabled: boolean) => ({
-    unreadCount: enabled ? mockAdminAlerts.unread : 0,
+vi.mock('../../src/hooks/useReviewNotifications', () => ({
+  // Like the real hook: nothing is counted unless the caller says the user is staff.
+  useReviewNotifications: (_uid: string, enabled: boolean) => ({
+    count: enabled ? mockAdminAlerts.unread : 0,
   }),
 }));
 
@@ -35,6 +36,7 @@ vi.mock('../../src/hooks/useAuth', () => ({
     user: mockAuth.user,
     canCreateEvents: mockAuth.canCreateEvents,
     role: mockAuth.role,
+    staffRegionIds: mockAuth.staffRegionIds,
     logout: () => {},
   }),
 }));
@@ -80,6 +82,7 @@ beforeEach(() => {
   mockAuth.user = null;
   mockAuth.canCreateEvents = true;
   mockAuth.role = null;
+  mockAuth.staffRegionIds = [];
   mockAdminAlerts.unread = 0;
   if (mockAuth.user) mockAuth.user.photoURL = undefined;
   mockProfile.photoURL = null;
@@ -585,7 +588,7 @@ describe('Header Verwaltung unread badge (zejdjTnm)', () => {
     expect(screen.getAllByTestId('verwaltung-unread-badge')[0]).toHaveTextContent('9+');
   });
 
-  it('adds unread admin edit alerts to the Verwaltung badge for admins', () => {
+  it('adds new Review events to the Verwaltung badge for admins', () => {
     mockAuth.user = { uid: 'admin-uid' };
     mockAuth.role = 'Admin';
     mockUseUnread.count = 1;
@@ -600,7 +603,41 @@ describe('Header Verwaltung unread badge (zejdjTnm)', () => {
     expect(screen.getAllByTestId('verwaltung-unread-badge')[0]).toHaveTextContent('3');
   });
 
-  it('ignores admin edit alerts for non-admins', () => {
+  it('adds new Review events for a Regions-Moderator:in too, and dots the burger on phones', () => {
+    mockAuth.user = { uid: 'mod-uid' };
+    mockAuth.role = 'RegionModerator';
+    mockAuth.staffRegionIds = ['tirol'];
+    mockAdminAlerts.unread = 2;
+
+    render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    expect(screen.getAllByTestId('verwaltung-unread-badge')[0]).toHaveTextContent('2');
+    expect(screen.getByTestId('account-unread-badge')).toHaveTextContent('2');
+    expect(screen.getByTestId('menu-toggle-unread-badge')).toHaveTextContent('2');
+    // Opening the menu hands the dot down to "Verwaltung".
+    fireEvent.click(screen.getByRole('button', { name: /Menü öffnen/ }));
+    expect(screen.queryByTestId('menu-toggle-unread-badge')).toBeNull();
+  });
+
+  it('shows no burger dot for non-staff (unchanged for organizers)', () => {
+    mockAuth.user = { uid: 'test-uid' };
+    mockUseUnread.count = 2;
+
+    render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    expect(screen.getAllByTestId('verwaltung-unread-badge')[0]).toHaveTextContent('2');
+    expect(screen.queryByTestId('menu-toggle-unread-badge')).toBeNull();
+  });
+
+  it('ignores Review news for non-staff', () => {
     mockAuth.user = { uid: 'test-uid' };
     mockAdminAlerts.unread = 2;
 

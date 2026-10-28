@@ -1,21 +1,21 @@
 .region-switcher {
   position: relative;
   flex-shrink: 0;
-  margin-right: 8px;
+  margin-right: var(--space-2);
 }
 
 .region-switcher-trigger {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1-5);
   min-height: 44px;
-  padding: 0 12px;
+  padding: 0 var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-primary);
   font-family: var(--font-body);
-  font-size: 0.95rem;
+  font-size: var(--text-95);
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
@@ -43,24 +43,24 @@
 
   .region-menu-list {
     display: block;
-    padding: 8px 0;
+    padding: var(--space-2) 0;
     border-bottom: 1px solid var(--border);
-    margin-bottom: 4px;
+    margin-bottom: var(--space-1);
   }
 
   .region-menu-list-button {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
     width: 100%;
     min-height: 48px;
-    padding: 0 16px;
+    padding: 0 var(--space-4);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     background-color: var(--bg-secondary);
     color: var(--text-primary);
     font-family: var(--font-body);
-    font-size: 1rem;
+    font-size: var(--text-100);
     font-weight: 500;
     text-align: left;
     cursor: pointer;
@@ -79,8 +79,8 @@
 .region-pick-button {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3-5);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg-calendar);
@@ -102,6 +102,6 @@
   padding: 0;
   border: 0;
   background: none;
-  font-size: 0.9rem;
+  font-size: var(--text-90);
   color: var(--text-light);
 }

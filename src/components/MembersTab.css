@@ -1,7 +1,7 @@
 .members-tab {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .members-tab-description,
@@ -14,12 +14,12 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .members-toolbar select,
 .members-search {
-  padding: 8px 10px;
+  padding: var(--space-2) var(--space-2-5);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-primary);
@@ -29,7 +29,7 @@
 .members-search {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   flex: 1 1 260px;
 }
 
@@ -55,12 +55,12 @@
 .members-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.9rem;
+  font-size: var(--text-90);
 }
 
 .members-table th,
 .members-table td {
-  padding: 8px 10px;
+  padding: var(--space-2) var(--space-2-5);
   text-align: left;
   vertical-align: top;
   border-bottom: 1px solid var(--border);
@@ -76,12 +76,12 @@
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .members-verified {
   color: var(--success, #2e7d32);
-  margin-left: 4px;
+  margin-left: var(--space-1);
   vertical-align: middle;
 }
 
@@ -95,7 +95,7 @@
 }
 
 .members-empty {
-  padding: 32px;
+  padding: var(--space-8);
   text-align: center;
   background: var(--bg-secondary);
   border: 1px dashed var(--border);
@@ -109,7 +109,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: var(--space-4);
   z-index: 1000;
 }
 
@@ -117,19 +117,19 @@
   background: var(--bg-primary);
   color: var(--text-primary);
   border-radius: var(--radius-md);
-  padding: 24px;
+  padding: var(--space-6);
   width: min(520px, 100%);
   max-height: 90vh;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .members-dialog label:not(.members-check) {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .members-dialog fieldset {
@@ -137,19 +137,19 @@
   border-radius: var(--radius-md);
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 16px;
+  gap: var(--space-1) var(--space-4);
 }
 
 .members-check {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1-5);
 }
 
 .members-dialog-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .members-events {
@@ -158,14 +158,14 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .members-events-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 0;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
   border-bottom: 1px solid var(--border);
 }
 

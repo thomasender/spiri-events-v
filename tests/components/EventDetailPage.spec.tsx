@@ -62,6 +62,8 @@ vi.mock('../../src/hooks/useCalendarFeedToken', () => mockCalendar);
 
 vi.mock('../../src/hooks/useEvents', () => ({
   useEvents: () => mockEvents,
+  // SimilarEvents reads the public list only with two or more active regions.
+  usePublicEvents: () => ({ events: [], loading: false, error: null }),
 }));
 
 vi.mock('../../src/hooks/useCategoryRegistry', () => ({

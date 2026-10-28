@@ -1,0 +1,28 @@
+/* Fixed px on purpose: the Design-Modus UI must not change when a designer
+   edits a layout token. */
+.dm-launcher {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 3000;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: #1f2937;
+  color: #fff;
+  font: 600 14px/1 var(--font-body);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+}
+
+.dm-launcher:hover {
+  background: #111827;
+}
+
+.dm-launcher:focus-visible {
+  outline: 3px solid #93c5fd;
+  outline-offset: 2px;
+}

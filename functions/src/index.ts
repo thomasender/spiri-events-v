@@ -10,6 +10,7 @@ import {
   startMolliePaymentCheckout,
   startMollieSubscriptionCheckout,
 } from './mollie';
+import { describeError, reportPaymentFailure } from './paymentAlerts';
 import {
   onEventStatusChanged,
   onEventCreated,
@@ -20,6 +21,10 @@ import { enforceRateLimit, RATE_LIMIT_PRESETS } from './rateLimit';
 
 const REGION = 'europe-west3';
 const ALLOWED_ORIGINS = ['https://www.thetribe.at', 'https://thetribe.at'];
+
+// Shown to the donor; the raw Mollie error goes to the logs and Verwaltung.
+const DONATION_START_FAILED_MESSAGE =
+  'Die Spende konnte gerade nicht gestartet werden. Bitte versuche es später erneut.';
 
 interface CreateDonationRequest {
   amount: number;
@@ -68,11 +73,19 @@ export const createMollieSubscription = onCall(
         customerId: customer.id,
         amount: data.amount,
         appBaseUrl: resolveAppBaseUrl(request),
+        name: data.name ?? null,
+        displayOnConsent: Boolean(data.displayOnConsent),
       });
       return checkout;
     } catch (err) {
-      logger.error('Mollie subscription creation failed', err);
-      throw new HttpsError('unavailable', err instanceof Error ? err.message : 'unknown error');
+      logger.error('Mollie monthly donation start failed', { error: describeError(err) });
+      await reportPaymentFailure({
+        step: 'monatliche-spende-start',
+        error: err,
+        amount: data.amount,
+        pageUrl: `${resolveAppBaseUrl(request)}/spenden`,
+      });
+      throw new HttpsError('unavailable', DONATION_START_FAILED_MESSAGE);
     }
   }
 );
@@ -102,8 +115,14 @@ export const createMolliePayment = onCall(
       });
       return checkout;
     } catch (err) {
-      logger.error('Mollie one-time payment creation failed', err);
-      throw new HttpsError('unavailable', err instanceof Error ? err.message : 'unknown error');
+      logger.error('Mollie one-time payment creation failed', { error: describeError(err) });
+      await reportPaymentFailure({
+        step: 'einmalige-spende-start',
+        error: err,
+        amount: data.amount,
+        pageUrl: `${resolveAppBaseUrl(request)}/spenden`,
+      });
+      throw new HttpsError('unavailable', DONATION_START_FAILED_MESSAGE);
     }
   }
 );
@@ -135,7 +154,12 @@ export { onEventApprovedCount } from './approvedEventsCounter';
 export { instagramWeeklyCarousel } from './instagramWeeklyCarousel';
 export { instagramEventStories, instagramMorningStories } from './instagramStories';
 export { calendarFeed } from './calendarFeed';
-export { publicEvents, onEventWriteBumpEventsVersion } from './publicEvents';
+export {
+  publicEvents,
+  onEventWriteBumpEventsVersion,
+  onListingWriteBumpEventsVersion,
+  onRegionWriteBumpEventsVersion,
+} from './publicEvents';
 export { getCalendarFeedToken } from './calendarFeedToken';
 export { refreshInstagramTokenJob } from './instagramTokenRefresh';
 export { onInstagramRegionAccountEnabled } from './instagramRegionBackfill';

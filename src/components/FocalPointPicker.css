@@ -1,7 +1,7 @@
 .focal-point-picker {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-2-5);
   width: 100%;
   max-width: 520px;
 }
@@ -9,26 +9,26 @@
 .focal-point-picker-info {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: var(--space-2);
   margin: 0;
-  padding: 10px 12px;
+  padding: var(--space-2-5) var(--space-3);
   background-color: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   color: var(--text-secondary);
-  font-size: 0.85rem;
+  font-size: var(--text-85);
   line-height: 1.4;
 }
 
 .focal-point-picker-info svg {
   flex-shrink: 0;
-  margin-top: 2px;
+  margin-top: var(--space-0-5);
   color: var(--accent-primary);
 }
 
 .focal-point-picker-body {
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
   align-items: flex-start;
   flex-wrap: wrap;
 }
@@ -108,7 +108,7 @@
 .focal-point-picker-preview-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-1-5);
   flex: 0 0 auto;
   max-width: 220px;
   min-width: 140px;
@@ -118,11 +118,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
+  gap: var(--space-1-5);
 }
 
 .focal-point-picker-preview-label {
-  font-size: 0.75rem;
+  font-size: var(--text-75);
   font-weight: 500;
   color: var(--text-secondary);
   text-transform: uppercase;
@@ -178,8 +178,8 @@
 .focal-point-picker-readout {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.8rem;
+  gap: var(--space-2);
+  font-size: var(--text-80);
   color: var(--text-secondary);
   flex-wrap: wrap;
 }
@@ -193,21 +193,21 @@
   font-variant-numeric: tabular-nums;
   color: var(--text-secondary);
   background-color: var(--bg-secondary);
-  padding: 2px 8px;
+  padding: var(--space-0-5) var(--space-2);
   border-radius: var(--radius-sm);
 }
 
 .focal-point-picker-reset {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   margin-left: auto;
-  padding: 4px 10px;
+  padding: var(--space-1) var(--space-2-5);
   background: transparent;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
-  font-size: 0.8rem;
+  font-size: var(--text-80);
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -264,9 +264,9 @@
 .focal-point-picker-zoom {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-  font-size: 0.9rem;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+  font-size: var(--text-90);
 }
 
 .focal-point-picker-zoom input[type='range'] {

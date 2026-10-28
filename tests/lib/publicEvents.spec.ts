@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  changesOnlineListing,
   changesPublicList,
   nextVersion,
   parseVersionParam,
@@ -61,5 +62,17 @@ describe('nextVersion', () => {
     expect(nextVersion(50, 100)).toBe(100);
     expect(nextVersion(100, 100)).toBe(101);
     expect(nextVersion(200, 100)).toBe(201);
+  });
+});
+
+describe('changesOnlineListing', () => {
+  it('only listing fields that decide where online events show count', () => {
+    const before = { displayName: 'Anna', listedInDirectory: true, directoryRegions: ['Bregenz'] };
+    expect(changesOnlineListing(before, { ...before, displayName: 'Anna B' })).toBe(false);
+    expect(changesOnlineListing(before, { ...before, directoryRegions: ['Dornbirn'] })).toBe(true);
+    expect(changesOnlineListing(before, { ...before, directoryHidden: true })).toBe(true);
+    expect(changesOnlineListing(before, { ...before, directoryRegionIds: ['tirol'] })).toBe(true);
+    expect(changesOnlineListing(undefined, before)).toBe(true);
+    expect(changesOnlineListing(undefined, undefined)).toBe(false);
   });
 });

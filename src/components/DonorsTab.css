@@ -1,20 +1,20 @@
 .donors-tab {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--space-6);
 }
 
 .donors-tab-toolbar {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-4);
   flex-wrap: wrap;
 }
 
 .donors-tab-description {
   color: var(--text-secondary);
-  font-size: 0.95rem;
+  font-size: var(--text-95);
   line-height: 1.6;
   margin: 0;
   flex: 1 1 320px;
@@ -25,7 +25,7 @@
   background-color: var(--bg-secondary);
   border: 1px solid var(--error);
   border-radius: var(--radius-md);
-  padding: 16px;
+  padding: var(--space-4);
   color: var(--error);
 }
 
@@ -33,8 +33,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 48px 24px;
+  gap: var(--space-2);
+  padding: var(--space-12) var(--space-6);
   background-color: var(--bg-secondary);
   border: 1px dashed var(--border);
   border-radius: var(--radius-md);
@@ -44,7 +44,7 @@
 
 .donors-tab-empty h2 {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: var(--text-115);
   color: var(--text-primary);
   font-weight: 600;
 }
@@ -55,15 +55,15 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .donor-row {
   display: grid;
   grid-template-columns: 24px 1fr auto auto;
-  gap: 16px;
+  gap: var(--space-4);
   align-items: center;
-  padding: 12px 16px;
+  padding: var(--space-3) var(--space-4);
   background-color: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -84,26 +84,26 @@
 .donor-row-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
   min-width: 0;
 }
 
 .donor-row-name {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   color: var(--text-primary);
   font-weight: 600;
-  font-size: 1.05rem;
+  font-size: var(--text-105);
 }
 
 .donor-row-tag {
   background-color: var(--bg-primary);
   border: 1px solid var(--border);
   border-radius: 999px;
-  padding: 2px 10px;
+  padding: var(--space-0-5) var(--space-2-5);
   color: var(--text-light);
-  font-size: 0.75rem;
+  font-size: var(--text-75);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-weight: 600;
@@ -111,20 +111,20 @@
 
 .donor-row-meta {
   color: var(--text-secondary);
-  font-size: 0.9rem;
+  font-size: var(--text-90);
 }
 
 .donor-row-reorder {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .donor-row-reorder-btn {
   background-color: var(--bg-primary);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 4px;
+  padding: var(--space-1);
   cursor: pointer;
   color: var(--text-secondary);
 }
@@ -141,20 +141,20 @@
 
 .donor-row-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .donor-row-action {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   background-color: var(--bg-primary);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 6px 10px;
+  padding: var(--space-1-5) var(--space-2-5);
   color: var(--text-secondary);
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: var(--text-85);
 }
 
 .donor-row-action:hover:not(:disabled) {

@@ -5,11 +5,14 @@ import { initializeApp, getApps } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import {
   EVENTS_VERSION_DOC,
+  changesOnlineListing,
   changesPublicList,
   nextVersion,
   parseVersionParam,
   toPublicEvent,
 } from './publicEventsLogic';
+import { mergeFeedRegions } from './regions';
+import { annotateOnlineEvents } from './onlineEventListings';
 
 if (getApps().length === 0) {
   initializeApp();
@@ -65,7 +68,18 @@ export const publicEvents = onRequest(
             .collection('events')
             .where('status', '==', 'approved')
             .get();
-          const events = snap.docs.map((doc) => toPublicEvent(doc.id, doc.data()));
+          // Two or more active regions: online events get `onlineRegionIds`
+          // (onlineEventListings.ts); with one active region the list is unchanged.
+          const db = getFirestore();
+          const regions = mergeFeedRegions(
+            (await db.collection('regions').get()).docs.map((d) => ({ ...d.data(), id: d.id }))
+          );
+          const annotated = await annotateOnlineEvents(
+            db,
+            snap.docs.map((doc) => doc.data() as Record<string, unknown>),
+            regions
+          );
+          const events = annotated.map((data, i) => toPublicEvent(snap.docs[i].id, data));
           snapshot = { version: current, body: JSON.stringify(events) };
         }
       }
@@ -81,6 +95,18 @@ export const publicEvents = onRequest(
   }
 );
 
+async function bumpEventsVersion(): Promise<void> {
+  const db = getFirestore();
+  const ref = db.doc(EVENTS_VERSION_DOC);
+  await db.runTransaction(async (tx) => {
+    const previous = (await tx.get(ref)).get('version');
+    tx.set(ref, {
+      version: nextVersion(typeof previous === 'number' ? previous : undefined, Date.now()),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  });
+}
+
 /** Publishes a new version whenever a write changes what the public list shows. */
 export const onEventWriteBumpEventsVersion = onDocumentWritten(
   { region: REGION, document: 'events/{eventId}' },
@@ -89,14 +115,42 @@ export const onEventWriteBumpEventsVersion = onDocumentWritten(
     if (!changesPublicList(eventId, event.data?.before.data(), event.data?.after.data())) {
       return;
     }
+    await bumpEventsVersion();
+  }
+);
+
+/**
+ * A changed directory listing can change the `onlineRegionIds` of the
+ * organiser's online events, so publish a new version. Only with two or more
+ * active regions (otherwise the list does not depend on listings).
+ */
+export const onListingWriteBumpEventsVersion = onDocumentWritten(
+  { region: REGION, document: 'users/{uid}/publicProfile/{docId}' },
+  async (event) => {
+    if (!changesOnlineListing(event.data?.before.data(), event.data?.after.data())) return;
     const db = getFirestore();
-    const ref = db.doc(EVENTS_VERSION_DOC);
-    await db.runTransaction(async (tx) => {
-      const previous = (await tx.get(ref)).get('version');
-      tx.set(ref, {
-        version: nextVersion(typeof previous === 'number' ? previous : undefined, Date.now()),
-        updatedAt: FieldValue.serverTimestamp(),
-      });
-    });
+    const regions = mergeFeedRegions(
+      (await db.collection('regions').get()).docs.map((d) => ({ ...d.data(), id: d.id }))
+    );
+    if (regions.filter((r) => r.active).length < 2) return;
+    await bumpEventsVersion();
+  }
+);
+
+/**
+ * Activating / deactivating a region or moving districts changes where online
+ * events show (`onlineRegionIds`), so publish a new version. Region docs
+ * change rarely (Verwaltung -> "Regionen" / "Zuordnung").
+ */
+export const onRegionWriteBumpEventsVersion = onDocumentWritten(
+  { region: REGION, document: 'regions/{regionId}' },
+  async (event) => {
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+    const changed = ['active', 'bezirke'].some(
+      (key) => JSON.stringify(before?.[key] ?? null) !== JSON.stringify(after?.[key] ?? null)
+    );
+    if (!changed) return;
+    await bumpEventsVersion();
   }
 );

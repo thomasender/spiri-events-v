@@ -28,7 +28,7 @@
 .homepage-preview .hero {
   max-width: 100%;
   margin: 0 0 0.75rem 0;
-  padding: 14px 18px;
+  padding: var(--space-3-5) var(--space-4-5);
   border-radius: var(--radius-md);
   /* The CalendarPage hero is hidden below 640px so the phone layout can
      show a short title in the header instead. The Theme Editor preview
@@ -43,37 +43,37 @@
 
 .homepage-preview .hero-title {
   font-size: clamp(1.05rem, 0.6vw + 0.95rem, 1.5rem);
-  margin-bottom: 6px;
+  margin-bottom: var(--space-1-5);
   line-height: 1.15;
 }
 
 .homepage-preview .hero-subtitle {
-  font-size: 0.85rem;
-  margin-bottom: 10px;
+  font-size: var(--text-85);
+  margin-bottom: var(--space-2-5);
   line-height: 1.4;
 }
 
 .homepage-preview .hero-features-slider {
-  padding: 8px 12px;
+  padding: var(--space-2) var(--space-3);
   min-height: 0;
-  gap: 10px;
+  gap: var(--space-2-5);
 }
 
 .homepage-preview .hero-feature-slide {
   inset: 8px 12px;
-  gap: 10px;
+  gap: var(--space-2-5);
 }
 
 .homepage-preview .hero-feature-item {
-  gap: 10px;
+  gap: var(--space-2-5);
 }
 
 .homepage-preview .hero-feature-title {
-  font-size: 0.85rem;
+  font-size: var(--text-85);
 }
 
 .homepage-preview .hero-feature-description {
-  font-size: 0.75rem;
+  font-size: var(--text-75);
 }
 
 /* ── Layout (main + sidebar calendar) ────────────────────────────────
@@ -87,7 +87,7 @@
 .homepage-preview .page-layout {
   max-width: 100%;
   padding: 0;
-  gap: 14px;
+  gap: var(--space-3-5);
   grid-template-columns: minmax(0, 1fr) 200px;
 }
 
@@ -104,47 +104,47 @@
 /* ── Filter panel ──────────────────────────────────────────────────── */
 
 .homepage-preview .filter-panel {
-  padding: 12px 14px;
-  margin-bottom: 12px;
+  padding: var(--space-3) var(--space-3-5);
+  margin-bottom: var(--space-3);
 }
 
 .homepage-preview .filter-header--title {
-  margin-bottom: 10px;
+  margin-bottom: var(--space-2-5);
 }
 
 .homepage-preview .filter-section-title {
-  font-size: 1rem;
+  font-size: var(--text-100);
 }
 
 .homepage-preview .filter-header {
-  margin-bottom: 10px;
+  margin-bottom: var(--space-2-5);
 }
 
 .homepage-preview .filter-header--section {
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .homepage-preview .filter-header--section ~ .filter-header--section {
-  margin-top: 14px;
-  padding-top: 12px;
+  margin-top: var(--space-3-5);
+  padding-top: var(--space-3);
 }
 
 .homepage-preview .filter-accordion {
-  margin-top: 14px;
-  padding-top: 12px;
+  margin-top: var(--space-3-5);
+  padding-top: var(--space-3);
 }
 
 .homepage-preview .filter-accordion-body {
-  padding-top: 10px;
+  padding-top: var(--space-2-5);
 }
 
 .homepage-preview .filter-options {
-  gap: 6px;
+  gap: var(--space-1-5);
 }
 
 .homepage-preview .filter-chip {
-  padding: 4px 10px;
-  font-size: 0.8rem;
+  padding: var(--space-1) var(--space-2-5);
+  font-size: var(--text-80);
 }
 
 /* The CalendarPage hides filter section labels and Alle/Keine toggles
@@ -158,11 +158,11 @@
 /* ── Events section ────────────────────────────────────────────────── */
 
 .homepage-preview .events-section-header {
-  margin-bottom: 10px;
+  margin-bottom: var(--space-2-5);
 }
 
 .homepage-preview .events-section-month h2 {
-  font-size: 1.05rem;
+  font-size: var(--text-105);
 }
 
 /* ── Create-event CTA (always visible in preview so theme edits show) */
@@ -171,8 +171,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 10px 14px;
+  gap: var(--space-3);
+  padding: var(--space-2-5) var(--space-3-5);
   background-color: var(--bg-calendar);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -183,28 +183,28 @@
 .homepage-preview-create-cta .create-event-cta-text {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-0-5);
   min-width: 0;
 }
 
 .homepage-preview-create-cta .create-event-cta-text strong {
   font-family: var(--font-heading);
-  font-size: 0.95rem;
+  font-size: var(--text-95);
   font-weight: 600;
   color: var(--text-primary);
   line-height: 1.2;
 }
 
 .homepage-preview-create-cta .create-event-cta-text span {
-  font-size: 0.75rem;
+  font-size: var(--text-75);
   color: var(--text-secondary);
   line-height: 1.3;
 }
 
 .homepage-preview-create-cta .create-event-cta-button {
   flex-shrink: 0;
-  padding: 6px 12px;
-  font-size: 0.8rem;
+  padding: var(--space-1-5) var(--space-3);
+  font-size: var(--text-80);
 }
 
 /* On very narrow viewports the create-event CTA stacks vertically so
@@ -215,7 +215,7 @@
   .homepage-preview-create-cta {
     flex-direction: column;
     align-items: stretch;
-    padding: 10px 12px;
+    padding: var(--space-2-5) var(--space-3);
   }
 
   .homepage-preview-create-cta .create-event-cta-button {

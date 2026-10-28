@@ -13,6 +13,7 @@ import {
 } from '../utils/regions';
 import { activeRegions, regionCanonicalPath, regionPath } from '../utils/regionRouting';
 import { filterEventsByRadius } from '../utils/placeSearch';
+import { filterOnlineEventsForRegions } from '../utils/onlineEventEligibility';
 
 const noop = () => {};
 
@@ -76,7 +77,8 @@ export function useRegionCanonicalPath(path = '/') {
  * Public event lists: events of the current region plus online events; in the
  * combined view all events of active regions. Events of inactive regions never
  * pass. `{ allActive: true }` skips the region restriction (favourites) but
- * keeps the inactive-region rule.
+ * keeps the inactive-region rule. Online events with `onlineRegionIds` show
+ * only in those regions (src/utils/onlineEventEligibility.js).
  */
 export function useRegionEvents(events, { allActive = false } = {}) {
   const { regionId, regions, combinedRegions, isNational, radiusFilter } = useRegion();
@@ -87,12 +89,18 @@ export function useRegionEvents(events, { allActive = false } = {}) {
   const radius = allActive ? null : radiusFilter;
   const { lat, lon, km } = radius ?? {};
   return useMemo(() => {
+    const activeIds = activeKey ? activeKey.split(',') : [];
     const inRegions = filterEventsForRegion(events, {
       regionId,
       isNational: isNational || allActive || Boolean(radius),
-      activeRegionIds: activeKey ? activeKey.split(',') : [],
+      activeRegionIds: activeIds,
     });
-    return radius ? filterEventsByRadius(inRegions, { lat, lon, km, regionId }) : inRegions;
+    // Online events only where their organiser is listed (`onlineRegionIds`,
+    // set by the server with two or more active regions). Favourites ignore it.
+    const anchored = allActive
+      ? inRegions
+      : filterOnlineEventsForRegions(inRegions, isNational ? activeIds : [regionId]);
+    return radius ? filterEventsByRadius(anchored, { lat, lon, km, regionId }) : anchored;
     // `radius` is read through lat / lon / km.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [events, regionId, isNational, allActive, activeKey, lat, lon, km]);

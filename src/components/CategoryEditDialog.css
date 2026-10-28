@@ -1,11 +1,11 @@
 .category-edit-dialog {
   max-width: 520px;
-  padding: 32px 32px 24px;
+  padding: var(--space-8) var(--space-8) var(--space-6);
 }
 
 .category-edit-dialog-header {
-  margin-bottom: 20px;
-  padding-right: 32px;
+  margin-bottom: var(--space-5);
+  padding-right: var(--space-8);
 }
 
 .category-edit-dialog-header h2 {
@@ -19,26 +19,26 @@
 .category-edit-dialog-body {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  margin-bottom: 24px;
+  gap: var(--space-5);
+  margin-bottom: var(--space-6);
 }
 
 .category-edit-dialog-label {
   display: block;
-  margin-bottom: 6px;
-  font-size: 0.9rem;
+  margin-bottom: var(--space-1-5);
+  font-size: var(--text-90);
   font-weight: 500;
   color: var(--text-secondary);
 }
 
 .category-edit-dialog-error {
-  margin-top: 6px;
+  margin-top: var(--space-1-5);
   color: var(--error);
-  font-size: 0.85rem;
+  font-size: var(--text-85);
 }
 
 .category-edit-dialog-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: var(--space-3);
 }

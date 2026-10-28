@@ -1,6 +1,6 @@
 .profile-page {
   min-height: calc(100vh - 72px);
-  padding: 48px 24px;
+  padding: var(--space-12) var(--space-6);
   background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
 }
 
@@ -9,11 +9,11 @@
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--space-6);
 }
 
 .profile-header {
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .profile-header h1 {
@@ -26,37 +26,37 @@
 
 .profile-header p {
   color: var(--text-secondary);
-  margin: 4px 0 0;
-  font-size: 0.95rem;
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-95);
 }
 
 .profile-card {
   background-color: var(--bg-calendar);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
-  padding: 32px;
+  padding: var(--space-8);
 }
 
 .profile-card-title {
   font-family: 'Cormorant Garamond', Georgia, serif;
-  font-size: 1.25rem;
+  font-size: var(--text-125);
   font-weight: 500;
   color: var(--text-primary);
-  margin: 0 0 4px;
+  margin: 0 0 var(--space-1);
 }
 
 .profile-card-hint {
   color: var(--text-secondary);
-  font-size: 0.85rem;
-  margin: 0 0 20px;
+  font-size: var(--text-85);
+  margin: 0 0 var(--space-5);
 }
 
 .profile-card-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
 }
 
 .profile-card-header-text {
@@ -68,29 +68,29 @@
 }
 
 .profile-card-header .profile-card-hint {
-  margin: 4px 0 0;
+  margin: var(--space-1) 0 0;
 }
 
 .profile-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .profile-form .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .profile-form .form-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-1-5);
 }
 
 .profile-form label {
-  font-size: 0.9rem;
+  font-size: var(--text-90);
   font-weight: 500;
   color: var(--text-primary);
 }
@@ -98,12 +98,12 @@
 .profile-form input,
 .profile-form textarea {
   width: 100%;
-  padding: 10px 12px;
+  padding: var(--space-2-5) var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  font-size: 0.95rem;
+  font-size: var(--text-95);
   font-family: inherit;
   transition:
     border-color 0.15s ease,
@@ -128,11 +128,11 @@
 
 .profile-form .error-text {
   color: var(--error);
-  font-size: 0.85rem;
+  font-size: var(--text-85);
 }
 
 .profile-form .field-counter {
-  font-size: 0.8rem;
+  font-size: var(--text-80);
   color: var(--text-light);
   align-self: flex-end;
 }
@@ -143,7 +143,7 @@
 
 .profile-username-hint {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: var(--text-85);
   color: var(--text-secondary);
   line-height: 1.4;
 }
@@ -152,9 +152,9 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
-  font-size: 0.85rem;
-  margin-top: 2px;
+  gap: var(--space-1-5);
+  font-size: var(--text-85);
+  margin-top: var(--space-0-5);
   min-height: 1.4em;
 }
 
@@ -172,8 +172,8 @@
 
 .profile-username-preview {
   font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
-  font-size: 0.8rem;
-  padding: 2px 6px;
+  font-size: var(--text-80);
+  padding: var(--space-0-5) var(--space-1-5);
   border-radius: var(--radius-sm);
   background-color: var(--bg-secondary);
 }
@@ -185,8 +185,8 @@
 .profile-form .form-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
-  margin-top: 8px;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
   width: 100%;
 }
 
@@ -197,35 +197,35 @@
 
 .profile-form .success-text {
   color: var(--free-text);
-  font-size: 0.9rem;
+  font-size: var(--text-90);
   margin: 0;
 }
 
 .profile-form .submit-error {
   color: var(--error);
-  font-size: 0.9rem;
+  font-size: var(--text-90);
   margin: 0;
 }
 
 .profile-social-media {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding-top: 16px;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
   border-top: 1px solid var(--border);
-  margin-top: 4px;
+  margin-top: var(--space-1);
 }
 
 .profile-social-media-title {
   font-family: 'Cormorant Garamond', Georgia, serif;
-  font-size: 1.1rem;
+  font-size: var(--text-110);
   font-weight: 500;
   color: var(--text-primary);
   margin: 0;
 }
 
 .profile-social-media-hint {
-  font-size: 0.85rem;
+  font-size: var(--text-85);
   color: var(--text-secondary);
   margin: 0;
   line-height: 1.4;
@@ -234,19 +234,19 @@
 .profile-social-media .form-group label {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1-5);
 }
 
 .profile-social-media-checkbox {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: var(--space-2-5);
   cursor: pointer;
-  padding: 10px 12px;
+  padding: var(--space-2-5) var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background-color: var(--bg-primary);
-  font-size: 0.9rem;
+  font-size: var(--text-90);
   color: var(--text-primary);
   transition: border-color 0.15s ease;
 }
@@ -281,7 +281,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-2);
   cursor: pointer;
   list-style: none;
   user-select: none;
@@ -313,10 +313,10 @@
 }
 
 .danger-accordion-body {
-  padding-top: 16px;
+  padding-top: var(--space-4);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .danger-accordion-body .profile-card-hint {
@@ -327,10 +327,10 @@
   background-color: rgba(191, 91, 78, 0.04);
   border: 1px solid rgba(191, 91, 78, 0.2);
   border-radius: var(--radius-md);
-  padding: 20px;
+  padding: var(--space-5);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .profile-danger-zone .form-actions {
@@ -342,7 +342,7 @@
 .profile-danger-zone .form-actions .btn-subtle-danger {
   flex: 0 0 auto;
   width: auto;
-  padding: 8px;
+  padding: var(--space-2);
 }
 
 .profile-danger-zone .danger-title {
@@ -353,15 +353,15 @@
 
 .profile-danger-zone .danger-text {
   color: var(--text-secondary);
-  font-size: 0.9rem;
+  font-size: var(--text-90);
   margin: 0;
 }
 
 .profile-photo-upload {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
 }
 
 .profile-photo-preview {
@@ -387,12 +387,12 @@
 .profile-photo-controls {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .profile-photo-controls .photo-error {
   color: var(--error);
-  font-size: 0.85rem;
+  font-size: var(--text-85);
   margin: 0;
 }
 
@@ -401,7 +401,7 @@
 }
 
 .profile-photo-controls .photo-progress {
-  font-size: 0.85rem;
+  font-size: var(--text-85);
   color: var(--text-secondary);
 }
 
@@ -430,7 +430,7 @@
 
 @media (max-width: 640px) {
   .profile-card {
-    padding: 24px;
+    padding: var(--space-6);
   }
 
   .profile-form .form-row {
@@ -449,7 +449,7 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .notification-preference-item {
@@ -459,9 +459,9 @@
 .notification-preference-label {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: var(--space-3);
   cursor: pointer;
-  padding: 12px 14px;
+  padding: var(--space-3) var(--space-3-5);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background-color: var(--bg-primary);
@@ -491,24 +491,24 @@
 .notification-preference-text {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
   min-width: 0;
 }
 
 .notification-preference-name {
-  font-size: 0.95rem;
+  font-size: var(--text-95);
   font-weight: 500;
   color: var(--text-primary);
 }
 
 .notification-preference-description {
-  font-size: 0.85rem;
+  font-size: var(--text-85);
   color: var(--text-secondary);
   line-height: 1.4;
 }
 
 .notification-preference-saved {
-  font-size: 0.8rem;
+  font-size: var(--text-80);
   color: var(--free-text);
-  margin-top: 2px;
+  margin-top: var(--space-0-5);
 }

@@ -49,7 +49,8 @@ import EmailVerificationBanner from '../components/EmailVerificationBanner';
 import EmailVerificationModal from '../components/EmailVerificationModal';
 import EventStatusMismatchBanner from '../components/EventStatusMismatchBanner';
 import { useAuth } from '../hooks/useAuth';
-import { useEvents, usePendingEvents } from '../hooks/useEvents';
+import { useEvents } from '../hooks/useEvents';
+import { useReviewNotifications } from '../hooks/useReviewNotifications';
 import { useHasMessages, useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
 import { useUnreadFeedbackCount, useHasFeedback } from '../hooks/useFeedbackList';
 import { useTrashedEventsCount } from '../hooks/useTrashedEventsCount';
@@ -160,7 +161,6 @@ export default function AdminPage() {
   const { count: trashedCount } = useTrashedEventsCount();
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
   const { events } = useEvents(user);
-  const { pendingEvents } = usePendingEvents();
 
   const draftCount = useMemo(() => events.filter((e) => e.status === 'draft').length, [events]);
   const hashEventId = useMemo(() => {
@@ -168,9 +168,11 @@ export default function AdminPage() {
     return hash || null;
   }, [location.hash]);
   const canReview = allowedTabs.has('review');
-  const reviewCount = useMemo(
-    () => (canReview ? pendingEvents.length : 0),
-    [canReview, pendingEvents]
+  // Only what is new since this account last opened Review (vX7TgrWN), not
+  // every waiting event: the dot goes away once Review was opened.
+  const { count: reviewCount, markSeen: markReviewSeen } = useReviewNotifications(
+    user?.uid,
+    canReview
   );
 
   const visibleTabs = useMemo(() => {
@@ -205,6 +207,11 @@ export default function AdminPage() {
     if (rawTab && VALID_TABS.has(rawTab) && visibleTabs[rawTab]) return rawTab;
     return 'events';
   }, [rawTab, visibleTabs, forbiddenTab, authLoading]);
+
+  useEffect(() => {
+    if (activeTab !== 'review' || reviewCount === 0) return;
+    markReviewSeen().catch((err) => console.warn('Review seen not saved:', err?.code || err));
+  }, [activeTab, reviewCount, markReviewSeen]);
 
   const [openGroup, setOpenGroup] = useState(null);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
@@ -248,7 +255,7 @@ export default function AdminPage() {
   // Red signal counts per tab; a group shows the sum of its tabs.
   const badges = {
     drafts: { count: draftCount, label: `${draftCount} Entwurf${draftCount > 1 ? 'e' : ''}` },
-    review: { count: reviewCount, label: `${reviewCount} zu prüfende Events` },
+    review: { count: reviewCount, label: `${reviewCount} neue Events zum Prüfen` },
     messages: { count: unreadCount, label: `${unreadCount} ungelesene Nachrichten` },
     feedback: {
       count: isAdmin ? unreadFeedbackCount : 0,

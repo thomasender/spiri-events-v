@@ -1,0 +1,83 @@
+/* Design tokens — the scales that every raw spacing / font-size value in the
+   stylesheets points to. Brand colours, radius and shadows still live in
+   index.css `:root`; the semantic layout tokens (--page-gutter, --card-padding,
+   ...) at the bottom are the ones designers are meant to tune.
+
+   Rules for new CSS: use these tokens instead of raw px/rem for padding,
+   margin, gap and font-size (see docs/design-tokens.md). `npm run style:tokens`
+   lists offenders. */
+
+:root {
+  /* Spacing scale — 4px base, half steps where the existing design needs them.
+     Name = px / 4, '-' for the decimal point (--space-1-5 = 6px). */
+  --space-0-5: 2px;
+  --space-1: 4px;
+  --space-1-5: 6px;
+  --space-2: 8px;
+  --space-2-5: 10px;
+  --space-3: 12px;
+  --space-3-5: 14px;
+  --space-4: 16px;
+  --space-4-5: 18px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+  --space-9: 36px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Font-size scale — name = percent of the 16px base (--text-85 = 0.85rem).
+     Neighbouring steps (80/81/85/88/90/95) are near-duplicates inherited from
+     the old CSS; set two of them to the same value to merge them. */
+  --text-70: 0.7rem;
+  --text-75: 0.75rem;
+  --text-80: 0.8rem;
+  --text-81: 0.8125rem;
+  --text-85: 0.85rem;
+  --text-88: 0.875rem;
+  --text-90: 0.9rem;
+  --text-92: 0.92rem;
+  --text-95: 0.95rem;
+  --text-100: 1rem;
+  --text-105: 1.05rem;
+  --text-110: 1.1rem;
+  --text-115: 1.15rem;
+  --text-120: 1.2rem;
+  --text-125: 1.25rem;
+  --text-130: 1.3rem;
+  --text-135: 1.35rem;
+  --text-140: 1.4rem;
+  --text-150: 1.5rem;
+  --text-160: 1.6rem;
+  --text-175: 1.75rem;
+  --text-180: 1.8rem;
+  --text-200: 2rem;
+  --text-250: 2.5rem;
+
+  /* Semantic layout tokens — what the Design-Modus edits. Literal values (not
+     var(--space-*)) so that changing a scale step never moves them silently.
+     Must match src/utils/layoutTokens.js (a test enforces it). */
+  --page-gutter: 24px;
+  --layout-column-gap: 32px;
+  --page-bottom-space: 48px;
+  --sidebar-gap: 16px;
+  --filter-panel-padding: 20px;
+  --grid-gap: 20px;
+  --card-padding: 16px;
+  --card-gap: 6px;
+  --card-image-height: 160px;
+  --row-padding: 16px;
+  --row-gap: 16px;
+  --nav-link-padding-y: 10px;
+  --nav-link-padding-x: 16px;
+  --btn-padding-y: 12px;
+  --btn-padding-x: 24px;
+  --btn-gap: 8px;
+  --modal-padding-x: 32px;
+  --footer-padding-y: 24px;
+  --fs-hero-title: clamp(1.75rem, 1.8vw + 1.1rem, 3.5rem);
+  --lh-body: 1.6;
+  --lh-heading: 1.3;
+}

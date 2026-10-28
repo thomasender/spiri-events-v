@@ -1,6 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { DIRECTORY_MAX_CATEGORIES, toggleValue } from '../utils/directory';
+import {
+  DIRECTORY_MAX_CATEGORIES,
+  DIRECTORY_MAX_REGION_IDS,
+  toggleValue,
+} from '../utils/directory';
 import { BEZIRKE, ONLINE_LOCATION } from '../utils/regions';
 import { directoryDistrictGroups } from '../utils/regionChoices';
 import './DirectoryListingFields.css';
@@ -40,6 +44,7 @@ export default function DirectoryListingFields({
   const multiRegion = Boolean(regionChoices?.enabled);
   const districtGroups = multiRegion ? directoryDistrictGroups(regionIds, regionChoices) : [];
   const atLimit = categories.length >= DIRECTORY_MAX_CATEGORIES;
+  const regionsAtLimit = regionIds.length >= DIRECTORY_MAX_REGION_IDS;
   const sectionRef = useRef(null);
   const { hash } = useLocation();
 
@@ -111,7 +116,9 @@ export default function DirectoryListingFields({
 
           {multiRegion && (
             <fieldset className="directory-fields-group" data-testid="profile-directory-region-ids">
-              <legend>In welchen Regionen bist du aktiv? *</legend>
+              <legend>
+                In welchen Regionen bist du aktiv? * <span>(max. {DIRECTORY_MAX_REGION_IDS})</span>
+              </legend>
               <div className="directory-chip-row">
                 {regionChoices.options.map((r) => {
                   const selected = regionIds.includes(r.id);
@@ -121,6 +128,7 @@ export default function DirectoryListingFields({
                       type="button"
                       className={`directory-chip${selected ? ' directory-chip--selected' : ''}`}
                       aria-pressed={selected}
+                      disabled={!selected && regionsAtLimit}
                       onClick={() => onRegionIdsChange(toggleValue(regionIds, r.id))}
                       data-testid={`profile-directory-region-id-${r.id}`}
                     >
@@ -129,6 +137,15 @@ export default function DirectoryListingFields({
                   );
                 })}
               </div>
+              {regionsAtLimit && (
+                <span
+                  className="directory-fields-hint"
+                  data-testid="profile-directory-region-ids-limit"
+                >
+                  Du hast {DIRECTORY_MAX_REGION_IDS} Regionen gewählt. Entferne eine Region, um eine
+                  andere zu wählen.
+                </span>
+              )}
               {errors.regionIds && (
                 <span className="error-text" data-testid="profile-directory-region-ids-error">
                   {errors.regionIds}

@@ -1,10 +1,10 @@
 import './OnlineDot.css';
 
-// Green = online, red = offline. Renders nothing for `null` (status not shared).
+// Green = online. Renders nothing when offline or `null` (status not shared): no red dot.
 // Meant to sit inside a `position: relative` avatar wrapper.
 export default function OnlineDot({ status, className = '' }) {
-  if (status !== 'online' && status !== 'offline') return null;
-  const label = status === 'online' ? 'Online' : 'Offline';
+  if (status !== 'online') return null;
+  const label = 'Online';
   return (
     <span
       className={`online-dot online-dot--${status} ${className}`.trim()}

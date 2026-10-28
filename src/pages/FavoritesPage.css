@@ -1,6 +1,6 @@
 .page-container.favorites-page {
   min-height: calc(100vh - 72px);
-  padding: 48px 24px;
+  padding: var(--space-12) var(--space-6);
   max-width: 1080px;
   margin: 0 auto;
   width: 100%;
@@ -10,8 +10,8 @@
 .favorites-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 24px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
 }
 
 .favorites-header h1 {
@@ -27,6 +27,6 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 16px;
+  gap: var(--space-4);
   color: var(--text-secondary);
 }

@@ -104,7 +104,7 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
     selection, at least two active regions, no combined view and while the current region is the
     selection's region. Then the calendar loads the events of ALL active regions (query plan
     mode `national`) and `useRegionEvents` keeps those within the radius via
-    `filterEventsByRadius`: online events always; events with a stored position by distance;
+    `filterEventsByRadius`: online events always (subject to section 2b); events with a stored position by distance;
     events without a position only if they belong to the current region (so an unmigrated
     event behaves like before). Favourites ignore the radius. The directory is still filtered
     by region (profiles have no position).
@@ -234,8 +234,8 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
   ("Lindau", "Dornbirn", "6900 Bregenz", ...) stay byte-identical and stored texts are ignored;
   with two or more, Vorarlberg keeps the legacy strings unless it has own texts.
 - `app_settings/regionMigration` = `{ complete: true }` is the migration marker.
-- Online events (`isOnline`) are visible in every region but keep their own
-  `regionId`.
+- Online events (`isOnline`) keep their own `regionId`. With one active region they are
+  visible everywhere; with two or more see 2b.
 - Write paths that must set the fields: event form/wizard/duplicate
   (`pickEventRegionId`), profile form, `adminUpdateMember` (adds
   `directoryRegionIds: ['vorarlberg']` when listing a profile without one),
@@ -305,6 +305,39 @@ regions of one country; the lists are saved in `regions/{id}.bezirke` (+ `mappin
   map's assignment (the map is the current source for "Vorschlag laden"). Guarded by
   `tests/components/landkreisMap.spec.ts`. Coordinates are SVG units of the 539.7 x 720.8
   viewBox, not lat/lon.
+
+### 2b. Online events need a regional directory listing (Trello lVFp6Dvw)
+
+- **Rule (only with two or more active regions):** an online event of a non-staff organiser
+  (`createdBy`) shows in region R only if the organiser's `users/{uid}/publicProfile/data` is
+  listed (`listedInDirectory`, not `directoryHidden`), has R in `directoryRegionIds` (missing =
+  Vorarlberg) and names at least one Bezirk / Landkreis of R (current Zuordnung) in
+  `directoryRegions`. The "Online" chip does not count. The event forms (`EventForm`,
+  `EventFormWizard`, hook `useOnlineEventGate`) offer "Online-Event" only then; otherwise the box
+  is disabled with a German hint (an event that already is online stays editable and can be
+  unticked). Staff (any `admin_users` doc: Super-Admin, Regions-Moderator:in) are exempt, as
+  editors in the form and as organisers in the lists; events without `createdBy` too.
+- **Single region (dark launch decision):** with fewer than two active regions the rule is off
+  completely: the option is always offered, nothing extra is read, no event gets
+  `onlineRegionIds`, so `/api/events.json`, the calendar, prerender and the Vorarlberg ICS feed
+  are byte-identical. Organisers without listing data lose nothing until a second region goes
+  live; from then on the rule applies in every region, Vorarlberg included (no migration, no
+  data is written).
+- **Logic:** one pure helper `src/utils/onlineEventEligibility.js`; synced copy for the functions
+  in `functions/src/onlineEventEligibility.ts` (guarded by `tests/lib/functionsRegions.spec.ts`).
+- **Data path:** the public list never carries `createdBy`, so the server works it out:
+  `publicEvents` (and the ICS feed, `functions/src/onlineEventListings.ts`) add
+  `onlineRegionIds` (the active regions the event may show in) to online events of non-staff
+  organisers. `useRegionEvents` (calendar; combined view: any region of the view), SimilarEvents
+  (annotations from the cached public list), the prerendered region pages (Admin SDK read in
+  `prerender.mjs`) and the ICS feed filter by it. **Fail open:** an online event without
+  `onlineRegionIds` (Firestore fallback path, emulators, prerender without credentials) is shown
+  as before. Favourites and OrganizerEvents ignore the rule.
+- **Freshness:** `events.json` gets a new version on event writes, on listing changes
+  (`onListingWriteBumpEventsVersion`, only the four listing fields and only with two or more
+  active regions) and on `regions/{id}` changes of `active` / `bezirke`
+  (`onRegionWriteBumpEventsVersion`). Changes of `admin_users` (someone becomes staff) do not
+  bump it; they show with the next version. The ICS feed caches annotations for 5 minutes.
 
 ## 3. Roles
 
@@ -506,7 +539,8 @@ only. Only public fields are kept (never `contactEmail`).
 Default and absent = `vorarlberg`; the client never adds `region=vorarlberg`, so
 the URL and output of the Vorarlberg feed stay byte-identical. Events by
 `filterEventsForRegion` (own region, events without `regionId` = Vorarlberg,
-online events in every region, active regions only). `bezirk=` is checked against
+online events in every region, active regions only; with two or more active regions online
+events only where their organiser is listed, section 2b). `bezirk=` is checked against
 the region's own Bezirke (`regions/{id}.bezirke` over the static register, 5 min
 cache, `functions/src/regions.ts`). Unknown slug: `400`. Known but inactive
 region: valid empty feed (`200`, cached like others). Name/PRODID/X-WR-TIMEZONE

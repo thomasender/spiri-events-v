@@ -15,7 +15,7 @@
 .reactable-row {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   min-width: 0;
   max-width: 100%;
 }
@@ -60,8 +60,8 @@
 .reaction-picker {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  margin-top: 4px;
+  gap: var(--space-0-5);
+  margin-top: var(--space-1);
   padding: 3px 4px;
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -75,12 +75,12 @@
   justify-content: center;
   min-width: 36px;
   height: 36px;
-  padding: 0 4px;
+  padding: 0 var(--space-1);
   border: 0;
   border-radius: 999px;
   background: transparent;
   color: var(--text-secondary);
-  font-size: 1.35rem;
+  font-size: var(--text-135);
   line-height: 1;
   cursor: pointer;
   touch-action: manipulation;
@@ -96,10 +96,10 @@
 }
 
 .reaction-option--copy {
-  font-size: 0.75rem;
+  font-size: var(--text-75);
   border-left: 1px solid var(--border);
   border-radius: 0 999px 999px 0;
-  padding: 0 8px;
+  padding: 0 var(--space-2);
 }
 
 .reaction-copied {
@@ -109,7 +109,7 @@
 .reaction-pills {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--space-1);
   margin-top: 3px;
 }
 
@@ -123,7 +123,7 @@
   border-radius: 999px;
   background: var(--bg-primary);
   color: var(--text-secondary);
-  font-size: 0.85rem;
+  font-size: var(--text-85);
   line-height: 1;
   cursor: pointer;
   touch-action: manipulation;
@@ -146,7 +146,7 @@
 }
 
 .reaction-count {
-  font-size: 0.75rem;
+  font-size: var(--text-75);
 }
 
 /* Touch screens: long-press opens the emoji bar (with "copy"), so it must not

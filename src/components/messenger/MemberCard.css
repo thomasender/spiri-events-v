@@ -5,14 +5,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: var(--space-4);
   background: var(--modal-overlay);
 }
 
 .member-card {
   position: relative;
   width: min(340px, 100%);
-  padding: 28px 24px 24px;
+  padding: var(--space-7) var(--space-6) var(--space-6);
   border-radius: var(--radius-lg);
   background: var(--bg-calendar);
   box-shadow: var(--shadow-lg);
@@ -49,12 +49,12 @@
 .member-card-avatar--fallback {
   background: var(--accent-soft);
   color: var(--accent-primary-strong);
-  font-size: 2rem;
+  font-size: var(--text-200);
   font-weight: 600;
 }
 
 .member-card-name {
-  margin: 12px 0 16px;
+  margin: var(--space-3) 0 var(--space-4);
   font-family: var(--font-heading);
   overflow-wrap: anywhere;
 }
@@ -62,13 +62,13 @@
 .member-card-actions {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-2-5);
 }
 
 .member-card-note {
   margin: 0;
   color: var(--text-secondary);
-  font-size: 0.9rem;
+  font-size: var(--text-90);
 }
 
 .member-card-avatar-wrap {

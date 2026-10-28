@@ -1,12 +1,12 @@
 .mailgun-quota-figures {
-  margin: 0 0 10px;
-  font-size: 1rem;
+  margin: 0 0 var(--space-2-5);
+  font-size: var(--text-100);
   color: var(--text-primary);
 }
 
 .mailgun-quota-track {
   height: 10px;
-  margin-bottom: 10px;
+  margin-bottom: var(--space-2-5);
   background: var(--border);
   border-radius: 999px;
   overflow: hidden;

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { buildRevisionDraft, computeEventChanges } from '../../functions/src/eventRevisions';
 import {
   buildEditAlertFields,
+  pickResponsibleStaff,
   shouldNotifyAdminsOfEdit,
 } from '../../functions/src/eventEditNotice';
 
@@ -159,6 +160,52 @@ describe('buildEditAlertFields', () => {
         { read: false, changeCount: 2, lastTriggerId: 't1' },
         { triggerId: 't1', kind: 'edited', changeCount: 1 }
       )
+    ).toBeNull();
+  });
+});
+
+describe('pickResponsibleStaff', () => {
+  const messages = [
+    { authorRole: 'User', authorUid: 'owner', atMs: 1 },
+    { authorRole: 'Admin', authorUid: 'ben', atMs: 30 },
+    { authorRole: 'Admin', authorUid: 'anna', atMs: 20 },
+  ];
+  const reverts = [
+    { statusFrom: 'pending', statusTo: 'draft', by: 'carla', atMs: 10 },
+    { statusFrom: 'pending', statusTo: 'draft', by: 'dora', atMs: 40 },
+    // The organizer pulling her own event back is no change request.
+    { statusFrom: 'pending', statusTo: 'draft', by: 'owner', atMs: 50 },
+  ];
+
+  it('an edit during "In Klärung" goes to whoever wrote the first staff message', () => {
+    expect(
+      pickResponsibleStaff({ kind: 'edited', ownerUid: 'owner', messages, revisions: reverts })
+    ).toBe('anna');
+  });
+
+  it('a re-submission goes to whoever sent it back to draft last', () => {
+    expect(
+      pickResponsibleStaff({ kind: 'resubmitted', ownerUid: 'owner', messages, revisions: reverts })
+    ).toBe('dora');
+  });
+
+  it('falls back to the other kind of request', () => {
+    expect(
+      pickResponsibleStaff({ kind: 'resubmitted', ownerUid: 'owner', messages, revisions: [] })
+    ).toBe('anna');
+    expect(
+      pickResponsibleStaff({ kind: 'edited', ownerUid: 'owner', messages: [], revisions: reverts })
+    ).toBe('dora');
+  });
+
+  it('is null when nobody asked for a change (then every admin is alerted)', () => {
+    expect(
+      pickResponsibleStaff({
+        kind: 'edited',
+        ownerUid: 'owner',
+        messages: [{ authorRole: 'User', authorUid: 'owner', atMs: 1 }],
+        revisions: [{ statusFrom: 'pending', statusTo: 'draft', by: 'owner', atMs: 2 }],
+      })
     ).toBeNull();
   });
 });

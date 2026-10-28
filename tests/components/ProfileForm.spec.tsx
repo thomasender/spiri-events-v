@@ -849,6 +849,39 @@ describe('ProfileForm directory with several active regions', () => {
     });
   });
 
+  it('limits the regions to 3 and lets a profile with more reduce them', () => {
+    const four = mergeRegions(
+      STATIC_REGIONS.map((r) => ({
+        id: r.id,
+        active: ['vorarlberg', 'tirol', 'bayern', 'salzburg'].includes(r.id),
+      }))
+    );
+    render(
+      <RegionContext.Provider
+        value={{ ...ctx, allRegions: four, regions: four.filter((r) => r.active) } as never}
+      >
+        <MemoryRouter>
+          <ProfileForm
+            profile={{
+              ...profile,
+              listedInDirectory: true,
+              directoryCategories: ['Yoga'],
+              directoryRegionIds: ['vorarlberg', 'tirol', 'bayern'],
+            }}
+            uid="user-123"
+            onSave={vi.fn()}
+          />
+        </MemoryRouter>
+      </RegionContext.Provider>
+    );
+    expect(screen.getByTestId('profile-directory-region-ids-limit')).toBeInTheDocument();
+    expect(screen.getByTestId('profile-directory-region-id-salzburg')).toBeDisabled();
+    expect(screen.getByTestId('profile-directory-region-id-tirol')).toBeEnabled();
+    fireEvent.click(screen.getByTestId('profile-directory-region-id-tirol'));
+    expect(screen.queryByTestId('profile-directory-region-ids-limit')).not.toBeInTheDocument();
+    expect(screen.getByTestId('profile-directory-region-id-salzburg')).toBeEnabled();
+  });
+
   it('requires at least one region while listed', async () => {
     const onSave = renderMulti(profile);
     fireEvent.click(screen.getByTestId('profile-directory-toggle'));

@@ -74,11 +74,11 @@ describe('onlineStatusOf', () => {
 });
 
 describe('OnlineDot', () => {
-  it('renders green and red with an accessible name, nothing for null', () => {
+  it('renders green with an accessible name, nothing for offline or null', () => {
     const { rerender } = render(<OnlineDot status="online" />);
     expect(screen.getByRole('img', { name: 'Online' })).toHaveAttribute('data-status', 'online');
     rerender(<OnlineDot status="offline" />);
-    expect(screen.getByRole('img', { name: 'Offline' })).toHaveAttribute('data-status', 'offline');
+    expect(screen.queryByTestId('online-dot')).toBeNull();
     rerender(<OnlineDot status={null} />);
     expect(screen.queryByTestId('online-dot')).toBeNull();
   });

@@ -1,7 +1,7 @@
 .place-picker {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
   width: 100%;
   max-width: 520px;
   margin: 0 auto;
@@ -9,17 +9,17 @@
 }
 
 .place-picker-error {
-  margin: 8px 0 0;
-  font-size: 0.9rem;
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-90);
   color: var(--error, #b3261e);
 }
 
 .place-picker-chosen {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin: 12px 0 0;
-  padding: 10px 12px;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 0;
+  padding: var(--space-2-5) var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--accent-soft);
@@ -31,15 +31,15 @@
 }
 
 .place-picker-radius {
-  margin: 14px 0 0;
+  margin: var(--space-3-5) 0 0;
   padding: 0;
   border: 0;
 }
 
 .place-picker-radius legend {
-  margin-bottom: 6px;
+  margin-bottom: var(--space-1-5);
   padding: 0;
-  font-size: 0.9rem;
+  font-size: var(--text-90);
   font-weight: 600;
   color: var(--text-secondary);
 }
@@ -47,7 +47,7 @@
 .place-picker-radius-options {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .place-picker-radius-option {
@@ -56,12 +56,12 @@
   justify-content: center;
   min-width: 72px;
   min-height: 44px;
-  padding: 0 14px;
+  padding: 0 var(--space-3-5);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-primary);
-  font-size: 0.95rem;
+  font-size: var(--text-95);
   cursor: pointer;
 }
 
@@ -89,13 +89,13 @@
 
 .place-picker-apply {
   min-height: 48px;
-  margin-top: 16px;
+  margin-top: var(--space-4);
   border: 1px solid var(--accent-primary-hover);
   border-radius: var(--radius-sm);
   background: var(--accent-primary-hover);
   color: #fff;
   font-family: var(--font-body);
-  font-size: 1rem;
+  font-size: var(--text-100);
   font-weight: 600;
   cursor: pointer;
 }
@@ -108,5 +108,5 @@
 /* The search field centres itself on the chooser page; inside the picker it fills the column. */
 .place-picker .place-search {
   max-width: none;
-  margin: 8px 0 0;
+  margin: var(--space-2) 0 0;
 }

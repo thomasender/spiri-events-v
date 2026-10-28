@@ -1,10 +1,10 @@
 .public-profile-page {
   min-height: calc(100vh - 72px);
-  padding: 24px 24px 48px;
+  padding: var(--space-6) var(--space-6) var(--space-12);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 24px;
+  gap: var(--space-6);
   background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
 }
 
@@ -14,19 +14,19 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .public-profile-toolbar-btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3-5);
   border-radius: var(--radius-sm);
   background-color: transparent;
   color: var(--text-secondary);
   border: 1px solid transparent;
-  font-size: 0.9rem;
+  font-size: var(--text-90);
   font-weight: 500;
   cursor: pointer;
   text-decoration: none;
@@ -48,7 +48,7 @@
 .public-profile-toolbar-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .public-profile-card {
@@ -57,12 +57,12 @@
   background-color: var(--bg-calendar);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
-  padding: 40px 32px;
+  padding: var(--space-10) var(--space-8);
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .public-profile-events {
@@ -72,10 +72,10 @@
 
 .public-profile-actions {
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
   flex-wrap: wrap;
   justify-content: center;
-  margin-top: 8px;
+  margin-top: var(--space-2);
 }
 
 .public-profile-back-btn {
@@ -85,14 +85,14 @@
 
 .public-profile-title {
   font-family: var(--font-heading);
-  font-size: 1.6rem;
+  font-size: var(--text-160);
   font-weight: 500;
   color: var(--text-primary);
   margin: 0;
 }
 
 .public-profile-eyebrow {
-  font-size: 0.75rem;
+  font-size: var(--text-75);
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -113,7 +113,7 @@
   align-items: center;
   justify-content: center;
   font-family: 'Cormorant Garamond', Georgia, serif;
-  font-size: 2.5rem;
+  font-size: var(--text-250);
   font-weight: 500;
   color: var(--accent-primary);
   background-color: var(--accent-soft);
@@ -122,14 +122,14 @@
 
 .public-profile-name {
   font-family: 'Cormorant Garamond', Georgia, serif;
-  font-size: 2rem;
+  font-size: var(--text-200);
   font-weight: 500;
   color: var(--text-primary);
   margin: 0;
 }
 
 .public-profile-bio {
-  font-size: 1rem;
+  font-size: var(--text-100);
   line-height: 1.6;
   color: var(--text-primary);
   margin: 0;
@@ -145,15 +145,15 @@
 .public-profile-website {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   word-break: break-word;
 }
 
 .public-profile-social-media {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
-  margin-top: 4px;
+  gap: var(--space-3);
+  margin-top: var(--space-1);
 }
 
 .public-profile-social-link {
@@ -183,16 +183,16 @@
 
 .public-profile-message {
   color: var(--text-secondary);
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-2);
 }
 
 @media (max-width: 640px) {
   .public-profile-page {
-    padding: 16px 8px 32px;
+    padding: var(--space-4) var(--space-2) var(--space-8);
   }
 
   .public-profile-card {
-    padding: 28px 20px;
+    padding: var(--space-7) var(--space-5);
   }
 
   .public-profile-photo,
@@ -202,7 +202,7 @@
   }
 
   .public-profile-name {
-    font-size: 1.6rem;
+    font-size: var(--text-160);
   }
 
   .public-profile-toolbar {
@@ -217,12 +217,12 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .public-profile-category {
   display: inline-block;
-  padding: 4px 14px;
+  padding: var(--space-1) var(--space-3-5);
   border-radius: 999px;
   background-color: var(--chip-bg);
   color: var(--chip-text);
@@ -240,7 +240,7 @@
 .public-profile-dm {
   display: flex;
   justify-content: center;
-  margin: 4px 0 16px;
+  margin: var(--space-1) 0 var(--space-4);
 }
 
 .public-profile-avatar {
