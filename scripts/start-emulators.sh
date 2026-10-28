@@ -62,7 +62,16 @@ for log in firestore-debug.log database-debug.log ui-debug.log pubsub-debug.log;
   ln -s /dev/null "$log"
 done
 
-firebase emulators:start \
+# A global firebase-tools is per Node version (nvm): after switching versions the
+# command is gone and the pre-push hook failed with "firebase: command not found".
+# Fall back to npx (cached after the first run) instead of failing the push.
+if command -v firebase >/dev/null 2>&1; then
+  FIREBASE_CMD=(firebase)
+else
+  FIREBASE_CMD=(npx --yes firebase-tools@15.23.0)
+fi
+
+"${FIREBASE_CMD[@]}" emulators:start \
   --import "$IMPORT_PATH" \
   --project spirieventsvbg \
   --log-verbosity QUIET 2>"$EMULATOR_LOG_DIR/emulators.err" &
