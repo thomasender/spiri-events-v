@@ -99,8 +99,19 @@ const mockUseEventById = vi.hoisted(() => ({
   error: null as string | null,
 }));
 
+const mockReview = vi.hoisted(() => ({
+  count: 0,
+  newIds: [] as string[],
+  markSeen: vi.fn(async () => {}),
+}));
+
 vi.mock('../../src/hooks/useAuth', () => ({
   useAuth: () => mockAuth,
+}));
+
+vi.mock('../../src/hooks/useReviewNotifications', () => ({
+  useReviewNotifications: (_uid: string, enabled: boolean) =>
+    enabled ? mockReview : { count: 0, newIds: [], markSeen: mockReview.markSeen },
 }));
 
 vi.mock('../../src/hooks/useUnreadMessageCount', () => ({
@@ -180,6 +191,9 @@ beforeEach(() => {
   mockUseEvents.loading = false;
   mockUsePendingEvents.pendingEvents = [];
   mockUsePendingEvents.loading = false;
+  mockReview.count = 0;
+  mockReview.newIds = [];
+  mockReview.markSeen.mockClear();
   mockUseEventById.event = null;
   mockUseEventById.loading = false;
   mockUseEventById.error = null;
@@ -439,25 +453,41 @@ describe('AdminPage Review tab (dUWoE5vu)', () => {
     expect(screen.getByTestId('admin-tab-review')).toHaveTextContent('Review');
   });
 
-  it('shows a badge with the pending count on the Review tab', () => {
+  it('shows a badge with the number of NEW events on the Review tab', () => {
     mockAuth.role = 'Admin';
     mockUsePendingEvents.pendingEvents = [
       { id: 'p1', title: 'Pending One', status: 'pending' },
       { id: 'p2', title: 'Pending Two', status: 'pending' },
     ];
+    mockReview.count = 1;
     renderAdmin();
-    const badge = screen.getByTestId('admin-tab-review-badge');
-    expect(badge).toBeInTheDocument();
-    expect(badge).toHaveTextContent('2');
+    expect(screen.getByTestId('admin-tab-review-badge')).toHaveTextContent('1');
+    // The group shows the sum of its tabs.
+    expect(screen.getByTestId('admin-group-events-group-badge')).toHaveTextContent('1');
+  });
+
+  it('shows no Review badge for events this account has already seen, even if they still wait', () => {
+    mockAuth.role = 'Admin';
+    mockUsePendingEvents.pendingEvents = [{ id: 'p1', title: 'Pending One', status: 'pending' }];
+    mockReview.count = 0;
+    renderAdmin();
+    expect(screen.queryByTestId('admin-tab-review-badge')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('admin-group-events-group-badge')).not.toBeInTheDocument();
+  });
+
+  it('opening Review marks its news as seen; other tabs do not', () => {
+    mockAuth.role = 'Admin';
+    mockReview.count = 2;
+    const { unmount } = renderAdmin();
+    expect(mockReview.markSeen).not.toHaveBeenCalled();
+    unmount();
+    renderAdmin(['/admin?tab=review']);
+    expect(mockReview.markSeen).toHaveBeenCalled();
   });
 
   it('caps the Review tab badge at 9+', () => {
     mockAuth.role = 'Admin';
-    mockUsePendingEvents.pendingEvents = Array.from({ length: 15 }, (_, i) => ({
-      id: `p${i}`,
-      title: `Pending ${i}`,
-      status: 'pending',
-    }));
+    mockReview.count = 15;
     renderAdmin();
     expect(screen.getByTestId('admin-tab-review-badge')).toHaveTextContent('9+');
   });
@@ -660,9 +690,10 @@ describe('AdminPage access per role', () => {
     }
   });
 
-  it('moderator gets the pending count of her queue on the Review tab', () => {
+  it('moderator gets the new events of her queue on the Review tab', () => {
     asModerator();
     mockUsePendingEvents.pendingEvents = [{ id: 'p1', title: 'Yoga Innsbruck' }];
+    mockReview.count = 1;
     renderAdmin();
     expect(screen.getByTestId('admin-tab-review-badge')).toHaveTextContent('1');
   });
@@ -765,6 +796,7 @@ describe('AdminPage tab groups', () => {
   it('shows the red signal on the group as well as on the entry', () => {
     mockAuth.role = 'Admin';
     mockUsePendingEvents.pendingEvents = [{ id: 'a', title: 'A' }];
+    mockReview.count = 1;
     mockUseHasMessages.hasMessages = true;
     mockUseUnread.count = 2;
     renderAdmin();

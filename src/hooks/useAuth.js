@@ -530,6 +530,7 @@ export function useAuth() {
       mentions.forEach((mention) => batch.delete(mention.ref));
       const adminAlerts = await getDocs(collection(db, 'users', uid, 'adminAlerts'));
       adminAlerts.forEach((alert) => batch.delete(alert.ref));
+      batch.delete(doc(db, 'users', uid, 'seen', 'review'));
       batch.delete(doc(db, 'users', uid, 'publicProfile', 'data'));
       batch.delete(doc(db, 'users', uid));
       await batch.commit();

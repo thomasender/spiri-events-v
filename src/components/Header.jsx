@@ -4,7 +4,8 @@ import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
 import { useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
 import { useUnreadFeedbackCount } from '../hooks/useFeedbackList';
-import { useAdminAlerts } from '../hooks/useAdminAlerts';
+import { useReviewNotifications } from '../hooks/useReviewNotifications';
+import { getStaffAccess } from '../utils/staffRoles';
 import { useChatAccess, useMessengerAccess } from '../hooks/useChatSettings';
 import { useThreads } from '../hooks/useMessenger';
 import { useChatPresence } from '../hooks/useChatPresence';
@@ -43,7 +44,7 @@ const SCROLL_DIRECTION_THRESHOLD = 8;
 const HEADER_TOP_BUFFER = 80;
 
 export default function Header() {
-  const { user, logout, role, canCreateEvents } = useAuth();
+  const { user, logout, role, staffRegionIds, canCreateEvents } = useAuth();
   const { profile } = useProfile(user?.uid);
   const regionTexts = useRegionTexts();
   const {
@@ -67,11 +68,13 @@ export default function Header() {
   // On a coming-soon region page the event belongs to that region.
   const addEventPath = comingSoon && regionId ? `/admin/new?region=${regionId}` : '/admin/new';
   const isAdmin = role === 'Admin';
+  const isStaff = getStaffAccess(role, staffRegionIds).isStaff;
   const navigate = useNavigate();
   const location = useLocation();
   const { count: unreadMessageCount } = useUnreadMessageCount();
   const { count: unreadFeedbackCount } = useUnreadFeedbackCount(isAdmin);
-  const { unreadCount: unreadAdminAlerts } = useAdminAlerts(user?.uid, isAdmin);
+  // Staff: new events in Review since the last visit (vX7TgrWN).
+  const { count: newReviewCount } = useReviewNotifications(user?.uid, isStaff);
   const { available: chatAvailable } = useChatAccess();
   const { count: chatOnline } = useChatPresence(chatAvailable);
   const { available: messengerAvailable } = useMessengerAccess();
@@ -237,7 +240,9 @@ export default function Header() {
     };
   }, [accountOpen]);
 
-  const unreadCount = unreadMessageCount + unreadFeedbackCount + unreadAdminAlerts;
+  // One sum for every level (avatar -> Verwaltung -> tab), so a dot always
+  // leads to the place that has one.
+  const unreadCount = unreadMessageCount + unreadFeedbackCount + newReviewCount;
   const hasUnread = unreadCount > 0;
 
   const profilePhotoURL = profile?.photoURL || user?.photoURL;
@@ -590,10 +595,26 @@ export default function Header() {
           className="menu-toggle"
           aria-expanded={menuOpen}
           aria-controls="mobile-menu"
-          aria-label={menuOpen ? 'Menü schließen' : 'Menü öffnen'}
+          aria-label={
+            menuOpen
+              ? 'Menü schließen'
+              : isStaff && hasUnread
+                ? `Menü öffnen (${unreadCount} ungelesene Benachrichtigungen)`
+                : 'Menü öffnen'
+          }
           onClick={() => setMenuOpen((open) => !open)}
         >
           {menuOpen ? <X size={24} aria-hidden="true" /> : <Menu size={24} aria-hidden="true" />}
+          {/* Phones: "Verwaltung" sits in this menu, so its dot starts here (staff only). */}
+          {isStaff && hasUnread && !menuOpen && (
+            <span
+              className="nav-link-badge menu-toggle-badge"
+              data-testid="menu-toggle-unread-badge"
+              aria-hidden="true"
+            >
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
         </button>
       </nav>
 

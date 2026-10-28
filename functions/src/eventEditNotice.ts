@@ -66,3 +66,58 @@ export function buildEditAlertFields(
     lastTriggerId: input.triggerId,
   };
 }
+
+export interface StaffMessageLike {
+  authorRole?: unknown;
+  authorUid?: unknown;
+  atMs?: number | null;
+}
+
+export interface RevisionLike {
+  statusFrom?: unknown;
+  statusTo?: unknown;
+  by?: unknown;
+  atMs?: number | null;
+}
+
+/**
+ * The staff member who asked the organizer to change this event ("bitte ändere
+ * dein Event"), or null when nobody did (then every admin is alerted as before).
+ * - the author of the first staff message on the event (the "In Klärung mit ..."
+ *   person), or
+ * - whoever sent it back to draft last (a status pending -> draft not done by the
+ *   owner), for a re-submission this one wins: it is the newer request.
+ */
+export function pickResponsibleStaff(input: {
+  kind: EditAlertKind;
+  ownerUid: string | null;
+  messages: StaffMessageLike[];
+  revisions: RevisionLike[];
+}): string | null {
+  const byTime = <T extends { atMs?: number | null }>(list: T[]) =>
+    list
+      .map((item, i) => ({ item, i, at: typeof item.atMs === 'number' ? item.atMs : Infinity }))
+      .sort((a, b) => a.at - b.at || a.i - b.i)
+      .map((x) => x.item);
+
+  const firstMessage = byTime(
+    input.messages.filter(
+      (m) => m.authorRole === 'Admin' && typeof m.authorUid === 'string' && m.authorUid
+    )
+  )[0];
+  const messageUid = firstMessage ? (firstMessage.authorUid as string) : null;
+
+  const reverts = byTime(
+    input.revisions.filter(
+      (r) =>
+        r.statusFrom === 'pending' &&
+        r.statusTo === 'draft' &&
+        typeof r.by === 'string' &&
+        r.by &&
+        r.by !== input.ownerUid
+    )
+  );
+  const revertUid = reverts.length > 0 ? (reverts[reverts.length - 1].by as string) : null;
+
+  return input.kind === 'resubmitted' ? (revertUid ?? messageUid) : (messageUid ?? revertUid);
+}
