@@ -1795,6 +1795,10 @@ service cloud.firestore {
     // Entries with `source == 'mollie'` are written by the Cloud Function
     // mollieWebhook via the Admin SDK (which bypasses these rules) after a
     // successful payment, then become visible/editable like any other entry.
+    // Donors belong to one region (`regionId`, the "Über uns" page they show
+    // on); docs without it belong to Vorarlberg (read fallback, no
+    // migration). Unlike helpers, a Super-Admin may move a donor to another
+    // valid region; moderators get no access to donors at all.
     match /donors/{donorId} {
       allow read: if true;
 
@@ -1840,8 +1844,10 @@ service cloud.firestore {
                       'name', 'amount', 'frequency', 'note', 'comment',
                       'order', 'createdAt', 'updatedAt', 'createdBy',
                       'source', 'mollieConsent',
-                      'molliePaymentId', 'mollieSubscriptionId',
+                      'molliePaymentId', 'mollieSubscriptionId', 'regionId',
                     ])
+                    && (!('regionId' in request.resource.data)
+                        || isValidRegionId(request.resource.data.regionId))
                     && isValidDonorName(request.resource.data.name)
                     && isValidDonorAmount(request.resource.data.amount)
                     && isValidDonorFrequency(request.resource.data.frequency)
@@ -1861,8 +1867,11 @@ service cloud.firestore {
                     && request.resource.data.diff(resource.data).affectedKeys()
                           .hasOnly([
                             'name', 'amount', 'frequency', 'note', 'comment',
-                            'order', 'updatedAt',
+                            'order', 'updatedAt', 'regionId',
                           ])
+                    // A changed regionId must be a valid region (removing it is not allowed).
+                    && (!('regionId' in request.resource.data.diff(resource.data).affectedKeys())
+                        || isValidRegionId(request.resource.data.get('regionId', null)))
                     && (!('name' in request.resource.data)
                         || isValidDonorName(request.resource.data.name))
                     && (!('amount' in request.resource.data)

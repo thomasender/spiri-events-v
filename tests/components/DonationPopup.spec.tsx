@@ -4,6 +4,8 @@ import { MemoryRouter } from 'react-router-dom';
 import DonationPopup from '../../src/components/DonationPopup';
 import * as popup from '../../src/lib/donationPopup';
 import { writeConsent } from '../../src/lib/analyticsConsent';
+import { DEFAULT_REGION_CONTEXT, RegionContext } from '../../src/hooks/useRegion';
+import { mergeRegions } from '../../src/utils/regions';
 
 const auth = {
   role: null as string | null,
@@ -152,6 +154,25 @@ describe('DonationPopup', () => {
     });
     expect(screen.getByTestId('donation-popup-donate').getAttribute('href')).toBe(
       '/ueber-uns#spenden'
+    );
+  });
+
+  it("links to the donation section of the visitor's region", () => {
+    auth.role = 'Admin';
+    const ctx = {
+      ...DEFAULT_REGION_CONTEXT,
+      regionId: 'tirol',
+      allRegions: mergeRegions([{ id: 'tirol', active: true }]),
+    };
+    render(
+      <RegionContext.Provider value={ctx}>
+        <MemoryRouter initialEntries={['/?spendenpopup=1']}>
+          <DonationPopup />
+        </MemoryRouter>
+      </RegionContext.Provider>
+    );
+    expect(screen.getByTestId('donation-popup-donate').getAttribute('href')).toBe(
+      '/tirol/ueber-uns#spenden'
     );
   });
 

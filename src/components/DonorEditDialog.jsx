@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Save, X } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
+import { DEFAULT_REGION_ID, resolveRegionId } from '../utils/regions';
 import './DonorEditDialog.css';
 
 const FREQUENCIES = [
@@ -20,8 +21,9 @@ function clampComment(value) {
   return value.slice(0, COMMENT_MAX);
 }
 
-function emptyDraft() {
+function emptyDraft(regionId = DEFAULT_REGION_ID) {
   return {
+    regionId,
     name: '',
     amount: '',
     frequency: '',
@@ -31,9 +33,10 @@ function emptyDraft() {
   };
 }
 
-function draftFromDonor(donor) {
-  if (!donor) return emptyDraft();
+function draftFromDonor(donor, regionId) {
+  if (!donor) return emptyDraft(regionId);
   return {
+    regionId: resolveRegionId(donor),
     name: donor.name ?? '',
     amount: donor.amount != null ? String(donor.amount).replace('.', ',') : '',
     frequency: donor.frequency ?? '',
@@ -48,8 +51,18 @@ function draftFromDonor(donor) {
 // the donation as either one-time or monthly. Currency formatting on save
 // mirrors what the public list shows. Donor entries written by the
 // Mollie webhook carry a `source: 'mollie'` flag and are shown read-only
-// metadata here.
-export default function DonorEditDialog({ open, mode, donor, onSave, onClose }) {
+// metadata here. `regionId` is the region currently shown in the tab (the
+// default for a new donor); with more than one entry in `regions` the
+// dialog offers a region choice, which also moves an existing donor.
+export default function DonorEditDialog({
+  open,
+  mode,
+  donor,
+  regionId = DEFAULT_REGION_ID,
+  regions = [],
+  onSave,
+  onClose,
+}) {
   const [draft, setDraft] = useState(emptyDraft());
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -58,8 +71,8 @@ export default function DonorEditDialog({ open, mode, donor, onSave, onClose }) 
   useEffect(() => {
     if (!open) return;
     setError(null);
-    setDraft(draftFromDonor(donor));
-  }, [open, donor]);
+    setDraft(draftFromDonor(donor, regionId));
+  }, [open, donor, regionId]);
 
   if (!open) return null;
 
@@ -79,11 +92,13 @@ export default function DonorEditDialog({ open, mode, donor, onSave, onClose }) 
         draft.frequency.length > 0 ||
         draft.note.trim().length > 0 ||
         draft.comment.trim().length > 0 ||
-        !draft.anonymous
+        !draft.anonymous ||
+        draft.regionId !== regionId
       );
     }
-    const original = draftFromDonor(donor);
+    const original = draftFromDonor(donor, regionId);
     return (
+      draft.regionId !== original.regionId ||
       draft.name !== original.name ||
       draft.amount !== original.amount ||
       draft.frequency !== original.frequency ||
@@ -97,6 +112,7 @@ export default function DonorEditDialog({ open, mode, donor, onSave, onClose }) 
     event.preventDefault();
     if (submitting) return;
     const payload = {
+      regionId: draft.regionId,
       name: draft.anonymous ? null : draft.name.trim() || null,
       amount: draft.amount.trim() || null,
       frequency: draft.frequency || null,
@@ -169,6 +185,27 @@ export default function DonorEditDialog({ open, mode, donor, onSave, onClose }) 
         )}
 
         <form className="donor-edit-dialog-form" onSubmit={handleSubmit}>
+          {regions.length > 1 && (
+            <label className="donor-edit-dialog-field">
+              <span className="donor-edit-dialog-label">Region</span>
+              <select
+                value={draft.regionId}
+                onChange={(e) => updateField('regionId', e.target.value)}
+                disabled={submitting}
+                data-testid="donor-edit-region"
+              >
+                {regions.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name}
+                  </option>
+                ))}
+              </select>
+              <span className="donor-edit-dialog-hint">
+                Der Eintrag erscheint auf der „Über uns“-Seite dieser Region.
+              </span>
+            </label>
+          )}
+
           <label className="donor-edit-dialog-field donor-edit-dialog-field--checkbox">
             <input
               type="checkbox"

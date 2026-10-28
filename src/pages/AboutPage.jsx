@@ -69,9 +69,11 @@ export default function AboutPage() {
   const headerImage = (regionMode && region.aboutHeaderImage) || '/hero.jpeg';
   // Region mode only, so the Vorarlberg-only page stays as it is.
   const instagramHandle = regionMode ? regionInstagramAccount(region) : null;
-  // Helpers belong to one region; national pages and the dark launch show
-  // Vorarlberg's. No helpers (or not loaded yet / failed): no section at all.
-  const helpersState = useHelpers(regionMode ? region.id : DEFAULT_REGION_ID);
+  // Helpers and donors belong to one region; national pages and the dark
+  // launch show Vorarlberg's. Donations started here count for that region.
+  // No helpers (or not loaded yet / failed): no helpers section at all.
+  const pageRegionId = regionMode ? region.id : DEFAULT_REGION_ID;
+  const helpersState = useHelpers(pageRegionId);
   const showHelpers =
     !helpersState.loading && !helpersState.error && helpersState.helpers.length > 0;
   const openContact = () => setContactOpen(true);
@@ -265,7 +267,7 @@ export default function AboutPage() {
           möchtest, nimm gerne {getInTouch}.
         </p>
 
-        <DonationBlock placement="about_page" />
+        <DonationBlock placement="about_page" regionId={pageRegionId} />
 
         <div className="about-donors-block" data-testid="about-donors-block">
           <h3 className="about-donors-title">
@@ -277,7 +279,7 @@ export default function AboutPage() {
             für den Tribe offen zu halten. Spender:innen können anonym bleiben oder namentlich
             genannt werden, mit oder ohne Betrag.
           </p>
-          <DonorsList />
+          <DonorsList regionId={pageRegionId} />
         </div>
       </section>
 

@@ -19,6 +19,7 @@
  */
 
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import { DEFAULT_REGION_ID, isRegionId } from './regions';
 
 export const DONOR_NEXT_ORDER_STEP = 100;
 export const MOLLIE_DONATION_CURRENCY = 'EUR';
@@ -68,6 +69,15 @@ export function sanitizeDonorComment(value: unknown): string | null {
     text = text.trim();
   }
   return text.length > 0 ? text : null;
+}
+
+/**
+ * Region a donation counts for (the donor list on that region's "Über uns"
+ * page): a known region id, otherwise Vorarlberg (also for donations started
+ * before donors were per region).
+ */
+export function donationRegionId(value: unknown): string {
+  return isRegionId(value) ? value : DEFAULT_REGION_ID;
 }
 
 function asMetadata(input: unknown): Record<string, unknown> {
@@ -250,6 +260,9 @@ export async function handlePaidPayment({
   // Mollie resends webhooks; keep what an admin changed or deleted since.
   const existingNote = existing.exists ? existing.get('note') : undefined;
   const existingComment = existing.exists ? existing.get('comment') : undefined;
+  // The region comes from the first payment's metadata; a later write keeps
+  // the stored one (an admin may have moved the donor to another region).
+  const existingRegionId = existing.exists ? existing.get('regionId') : undefined;
 
   let order: number;
   if (existing.exists) {
@@ -277,6 +290,7 @@ export async function handlePaidPayment({
     note: existingNote !== undefined ? existingNote : null,
     comment:
       existingComment !== undefined ? existingComment : sanitizeDonorComment(metadata.comment),
+    regionId: isRegionId(existingRegionId) ? existingRegionId : donationRegionId(metadata.regionId),
     order,
     source: 'mollie',
     mollieConsent: true,

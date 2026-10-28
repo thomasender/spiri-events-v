@@ -9,6 +9,7 @@ import {
   canonicalBodyBytes,
   subscriptionStartDate,
   sanitizeDonorComment,
+  donationRegionId,
 } from '../../functions/src/mollieWebhookLogic';
 
 function makeSnapshot(exists, fields = {}, docs = []) {
@@ -376,6 +377,51 @@ describe('handlePaidPayment', () => {
       }),
     });
     expect(setCalls[0].data).toMatchObject({ comment: null, note: 'intern' });
+  });
+
+  it('stores the region of the donation from the payment metadata', async () => {
+    const { db, setCalls } = makeDb();
+    await handlePaidPayment({
+      db,
+      payment: basePayment({
+        metadata: { displayOnConsent: true, donorName: 'Anna', regionId: 'tirol' },
+      }),
+    });
+    expect(setCalls[0].data).toMatchObject({ regionId: 'tirol' });
+  });
+
+  it('falls back to Vorarlberg without a known region in the metadata', async () => {
+    for (const regionId of [undefined, 'atlantis', 42]) {
+      const { db, setCalls } = makeDb();
+      await handlePaidPayment({
+        db,
+        payment: basePayment({ metadata: { displayOnConsent: true, regionId } }),
+      });
+      expect(setCalls[0].data).toMatchObject({ regionId: 'vorarlberg' });
+    }
+  });
+
+  it('keeps the stored region on a later write (an admin may have moved the donor)', async () => {
+    const { db, setCalls } = makeDb({
+      donor_mollie_sub_sub_1: { order: 0, createdAt: 'preset', regionId: 'wien' },
+    });
+    await handlePaidPayment({
+      db,
+      payment: basePayment({
+        subscriptionId: 'sub_1',
+        sequenceType: 'first',
+        metadata: { displayOnConsent: true, regionId: 'tirol' },
+      }),
+    });
+    expect(setCalls[0].data).toMatchObject({ regionId: 'wien' });
+  });
+});
+
+describe('donationRegionId', () => {
+  it('accepts known region ids only', () => {
+    expect(donationRegionId('steiermark')).toBe('steiermark');
+    expect(donationRegionId('oesterreich')).toBe('vorarlberg');
+    expect(donationRegionId(null)).toBe('vorarlberg');
   });
 });
 

@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Heart, X } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { useRegion } from '../hooks/useRegion';
+import { aboutPathFor } from '../utils/regionRouting';
 import { EVENTS, trackEvent } from '../lib/analytics';
 import { readConsent } from '../lib/analyticsConsent';
 import {
@@ -23,6 +25,9 @@ import './DonationPopup.css';
 export default function DonationPopup() {
   const { pathname, search } = useLocation();
   const { user, role, loading } = useAuth();
+  // Donation section of the visitor's region (same target as the footer link).
+  const { regionId, allRegions, pageSlug } = useRegion();
+  const donatePath = `${aboutPathFor({ pageSlug, regionId, regions: allRegions })}#spenden`;
   const [open, setOpen] = useState(false);
   const [previewClosed, setPreviewClosed] = useState(false);
   const closeButtonRef = useRef(null);
@@ -111,7 +116,7 @@ export default function DonationPopup() {
         </p>
         <div className="donation-popup-actions">
           <Link
-            to="/ueber-uns#spenden"
+            to={donatePath}
             className="btn btn-primary donation-popup-donate"
             onClick={() => {
               trackEvent(EVENTS.DONATE_CLICK, { placement: 'popup' });

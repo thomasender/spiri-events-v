@@ -4,6 +4,13 @@
   gap: var(--space-6);
 }
 
+.donors-tab-region {
+  display: flex;
+  flex-direction: column;
+  align-self: flex-start;
+  gap: var(--space-1);
+}
+
 .donors-tab-toolbar {
   display: flex;
   align-items: flex-start;

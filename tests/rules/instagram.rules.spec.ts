@@ -2186,3 +2186,47 @@ describe('helpers per region', () => {
     );
   });
 });
+
+// Donors per region: only Super-Admins write; unlike helpers they may move a
+// donor to another region. A donor without regionId belongs to Vorarlberg.
+describe('donors per region', () => {
+  const donor = { name: 'D', amount: 5, frequency: null, note: null, order: 0 };
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'admin_users/modTirol'), {
+        role: 'RegionModerator',
+        regionIds: ['tirol'],
+      });
+      await setDoc(doc(db, 'donors/tirolD'), { ...donor, regionId: 'tirol' });
+      await setDoc(doc(db, 'donors/legacyD'), donor);
+    });
+  });
+
+  describe.each(Object.entries(adminVariants))('%s', (_n, make) => {
+    it('creates donors with a valid or without regionId, never with an unknown one', async () => {
+      const db = make().firestore();
+      await assertSucceeds(setDoc(doc(db, 'donors/new1'), { ...donor, regionId: 'wien' }));
+      await assertSucceeds(setDoc(doc(db, 'donors/new2'), donor));
+      await assertFails(setDoc(doc(db, 'donors/new3'), { ...donor, regionId: 'atlantis' }));
+      await assertFails(setDoc(doc(db, 'donors/new4'), { ...donor, regionId: 42 }));
+    });
+
+    it('moves a donor to another valid region, but cannot remove or break it', async () => {
+      const db = make().firestore();
+      await assertSucceeds(updateDoc(doc(db, 'donors/tirolD'), { regionId: 'wien' }));
+      await assertSucceeds(updateDoc(doc(db, 'donors/legacyD'), { regionId: 'tirol' }));
+      await assertFails(updateDoc(doc(db, 'donors/tirolD'), { regionId: 'atlantis' }));
+      await assertFails(updateDoc(doc(db, 'donors/tirolD'), { regionId: deleteField() }));
+    });
+  });
+
+  it('a moderator cannot write donors, not even of her own region', async () => {
+    const db = env.authenticatedContext('modTirol', { email_verified: true }).firestore();
+    await assertFails(setDoc(doc(db, 'donors/new'), { ...donor, regionId: 'tirol' }));
+    await assertFails(updateDoc(doc(db, 'donors/tirolD'), { amount: 10 }));
+    await assertFails(updateDoc(doc(db, 'donors/tirolD'), { regionId: 'wien' }));
+    await assertFails(deleteDoc(doc(db, 'donors/tirolD')));
+  });
+});

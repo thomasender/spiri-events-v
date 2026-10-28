@@ -27,24 +27,24 @@ function assertValidAmount(amount) {
 
 /**
  * @param {number} amount donation amount in EUR (≥ MIN_DONATION_AMOUNT)
- * @param {{ name?: string|null, displayOnConsent?: boolean, comment?: string|null }} [options]
+ * @param {{ name?: string|null, displayOnConsent?: boolean, comment?: string|null, regionId?: string|null }} [options]
  * @returns {Promise<{checkoutUrl: string, paymentId: string}>}
  */
 export async function startOneTimeDonation(amount, options = {}) {
   assertValidAmount(amount);
-  const { name = null, displayOnConsent = false, comment = null } = options;
-  const result = await createPayment({ amount, name, displayOnConsent, comment });
+  const { name = null, displayOnConsent = false, comment = null, regionId = null } = options;
+  const result = await createPayment({ amount, name, displayOnConsent, comment, regionId });
   return result.data;
 }
 
 /**
  * @param {number} amount donation amount in EUR (≥ MIN_DONATION_AMOUNT)
- * @param {{ name?: string|null, displayOnConsent?: boolean, comment?: string|null }} [options]
+ * @param {{ name?: string|null, displayOnConsent?: boolean, comment?: string|null, regionId?: string|null }} [options]
  * @returns {Promise<{checkoutUrl: string, customerId: string, paymentId: string}>}
  */
 export async function startMonthlyDonation(amount, options = {}) {
   assertValidAmount(amount);
-  const { name = null, displayOnConsent = false, comment = null } = options;
-  const result = await createSubscription({ amount, name, displayOnConsent, comment });
+  const { name = null, displayOnConsent = false, comment = null, regionId = null } = options;
+  const result = await createSubscription({ amount, name, displayOnConsent, comment, regionId });
   return result.data;
 }

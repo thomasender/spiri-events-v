@@ -4,23 +4,18 @@ import {
   doc,
   onSnapshot,
   deleteDoc,
+  query,
+  where,
   writeBatch,
   serverTimestamp,
   setDoc,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from './useAuth';
+import { DEFAULT_REGION_ID, isRegionSlug } from '../utils/regions';
+import { donorsOfRegion } from '../utils/donorRegions';
 
 const ORDER_STEP = 100;
-
-function compareDonorsByOrder(a, b) {
-  const aHasOrder = typeof a.order === 'number';
-  const bHasOrder = typeof b.order === 'number';
-  if (aHasOrder && !bHasOrder) return -1;
-  if (!aHasOrder && bHasOrder) return 1;
-  if (aHasOrder && bHasOrder && a.order !== b.order) return a.order - b.order;
-  return (a.createdAt?.seconds ?? 0) - (b.createdAt?.seconds ?? 0);
-}
 
 function nextOrderForNewDonor(donors) {
   let max = -1;
@@ -75,6 +70,17 @@ function validateDonorFields(input, { isCreate } = {}) {
     }
   }
 
+  // Region of the donor ("Über uns" page it appears on). Only Super-Admins
+  // reach this hook's writes; moving a donor to another region is allowed.
+  let regionId;
+  if (input.regionId !== undefined) {
+    if (!isRegionSlug(input.regionId)) {
+      errors.push('Bitte eine gültige Region wählen.');
+    } else {
+      regionId = input.regionId;
+    }
+  }
+
   const note = normalizeOptionalString(input.note, 120);
   // Public comment of the donor; admins may change or clear it.
   const comment = normalizeOptionalString(input.comment, 140);
@@ -84,7 +90,7 @@ function validateDonorFields(input, { isCreate } = {}) {
     const providedKeys = Object.keys(input);
     const stillRelevant = errors.some(() => providedKeys.length > 0);
     if (!stillRelevant) {
-      return { name, amount, frequency, note, comment };
+      return { name, amount, frequency, note, comment, ...(regionId ? { regionId } : {}) };
     }
   }
 
@@ -92,16 +98,19 @@ function validateDonorFields(input, { isCreate } = {}) {
     throw new Error(errors[0]);
   }
 
-  return { name, amount, frequency, note, comment };
+  return { name, amount, frequency, note, comment, ...(regionId ? { regionId } : {}) };
 }
 
-// Live subscription to the `donors` collection. Admins maintain a list of
-// previous donors that is shown publicly on the "Über uns" page so the
-// community can see who is already contributing. Each donor is either named
+// Live subscription to the donors of one region. Admins maintain a list of
+// previous donors that is shown publicly on the region's "Über uns" page so
+// the community can see who is already contributing. Each donor is either named
 // (name + optional amount + optional frequency) or anonymous (name = null,
 // optional amount still allowed). Privacy note: admins should only add a
 // donor after the donor has explicitly opted in to being listed.
-export function useDonors() {
+// Docs without `regionId` belong to Vorarlberg; Firestore cannot query a
+// missing field, so Vorarlberg reads the whole collection and filters on the
+// client (no composite index needed).
+export function useDonors(regionId = DEFAULT_REGION_ID) {
   const { user, role } = useAuth();
   const isAdmin = role === 'Admin';
   const [donors, setDonors] = useState([]);
@@ -110,15 +119,18 @@ export function useDonors() {
 
   useEffect(() => {
     setLoading(true);
+    const source =
+      regionId === DEFAULT_REGION_ID
+        ? collection(db, 'donors')
+        : query(collection(db, 'donors'), where('regionId', '==', regionId));
     const unsubscribe = onSnapshot(
-      collection(db, 'donors'),
+      source,
       (snapshot) => {
         const items = snapshot.docs.map((docSnap) => ({
           id: docSnap.id,
           ...docSnap.data(),
         }));
-        items.sort(compareDonorsByOrder);
-        setDonors(items);
+        setDonors(donorsOfRegion(items, regionId));
         setLoading(false);
         setError(null);
       },
@@ -129,7 +141,7 @@ export function useDonors() {
       }
     );
     return unsubscribe;
-  }, []);
+  }, [regionId]);
 
   const addDonor = useCallback(
     async (input) => {
@@ -139,6 +151,7 @@ export function useDonors() {
       const id = `donor_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
       const order = nextOrderForNewDonor(donors);
       await setDoc(doc(db, 'donors', id), {
+        regionId,
         ...fields,
         order,
         source: 'manual',
@@ -148,7 +161,7 @@ export function useDonors() {
       });
       return id;
     },
-    [isAdmin, user, donors]
+    [isAdmin, user, donors, regionId]
   );
 
   const updateDonor = useCallback(
@@ -178,6 +191,8 @@ export function useDonors() {
       if (!Array.isArray(orderedIds)) {
         throw new Error('Ungültige Reihenfolge.');
       }
+      // `donors` holds only this region's donors, so a reorder never touches
+      // another region.
       const knownIds = new Set(donors.map((d) => d.id));
       const seen = new Set();
       for (const id of orderedIds) {

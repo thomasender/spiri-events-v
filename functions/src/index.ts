@@ -11,7 +11,7 @@ import {
   startMollieSubscriptionCheckout,
 } from './mollie';
 import { describeError, reportPaymentFailure } from './paymentAlerts';
-import { sanitizeDonorComment } from './mollieWebhookLogic';
+import { donationRegionId, sanitizeDonorComment } from './mollieWebhookLogic';
 import {
   onEventStatusChanged,
   onEventCreated,
@@ -32,6 +32,7 @@ interface CreateDonationRequest {
   name?: string | null;
   displayOnConsent?: boolean;
   comment?: unknown;
+  regionId?: unknown;
 }
 
 // The public comment only travels with the consent to appear on the donor
@@ -85,6 +86,7 @@ export const createMollieSubscription = onCall(
         name: data.name ?? null,
         displayOnConsent: Boolean(data.displayOnConsent),
         comment: donorCommentFor(data),
+        regionId: donationRegionId(data.regionId),
       });
       return checkout;
     } catch (err) {
@@ -123,6 +125,7 @@ export const createMolliePayment = onCall(
         name: data.name ?? null,
         displayOnConsent: Boolean(data.displayOnConsent),
         comment: donorCommentFor(data),
+        regionId: donationRegionId(data.regionId),
       });
       return checkout;
     } catch (err) {

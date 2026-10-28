@@ -49,6 +49,7 @@ describe('startMollieSubscriptionCheckout', () => {
       appBaseUrl: 'https://www.thetribe.at',
       name: 'Greta',
       displayOnConsent: true,
+      regionId: 'tirol',
     });
 
     expect(calls).toHaveLength(1);
@@ -61,7 +62,12 @@ describe('startMollieSubscriptionCheckout', () => {
       sequenceType: 'first',
       redirectUrl: 'https://www.thetribe.at/spenden/danke',
       webhookUrl: 'https://www.thetribe.at/mollieWebhook',
-      metadata: { donationType: 'monthly', displayOnConsent: true, donorName: 'Greta' },
+      metadata: {
+        donationType: 'monthly',
+        displayOnConsent: true,
+        donorName: 'Greta',
+        regionId: 'tirol',
+      },
     });
     expect(result).toEqual({
       checkoutUrl: 'https://www.mollie.com/checkout/x',

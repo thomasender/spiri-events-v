@@ -365,6 +365,20 @@ regions of one country; the lists are saved in `regions/{id}.bezirke` (+ `mappin
   (`src/utils/helperRegions.js`). "Über uns" shows the helpers of its region (national views and
   the dark launch: Vorarlberg's) and leaves the whole "Mithelfer:innen" section out while there
   are none (also while loading or on an error). `aboutHelperIds` is no longer written or read.
+- **Donors per region:** `donors/*` carry a `regionId` (the "Über uns" page the donor is listed
+  on); a doc without it is Vorarlberg's (read fallback, no migration). `useDonors(regionId)`
+  works like `useHelpers` (Vorarlberg reads all and filters on the client,
+  `src/utils/donorRegions.js`). "Über uns" lists the donors of its region (national views and
+  the dark launch: Vorarlberg's), and its `DonationBlock` sends that `regionId` with the
+  callable; `/spenden` uses the visitor's region (`useRegion().regionId`), the donation
+  pop-up and the `/spenden` back link lead to `aboutPathFor(...)` (`#spenden`), like the
+  footer. `createMolliePayment` / `createMollieSubscription` accept only a known region id
+  (otherwise Vorarlberg) and put it into the Mollie metadata; the webhook writes it on the
+  first write of a donor doc and keeps a stored `regionId` afterwards (`donationRegionId` in
+  `functions/src/mollieWebhookLogic.ts`). Admin tab "Spender" stays Super-Admin only, with the
+  same region picker as "Helfer" and a region choice in the dialog. Rules: `regionId` optional
+  on create, must be a valid region when set or changed, only Super-Admins write (they may
+  move a donor to another region; unlike helpers); moderators have no access.
 - **Instagram-Name per region:** optional `instagramHandle` ("@name", display only) on
   `regions/{id}`. Only Super-Admins set it (`RegionAboutTab`, section "Instagram-Name der
   Region"; the moderator rule's field list does not contain it; rules check

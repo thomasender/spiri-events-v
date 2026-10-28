@@ -1,12 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import DonorsTab from '../../src/components/DonorsTab';
+import { STATIC_REGIONS } from '../../src/utils/regions';
+import { getStaffAccess } from '../../src/utils/staffRoles';
 
 const mockDonors = vi.hoisted(() => ({
   donors: [],
   loading: false,
   error: null,
   isAdmin: true,
+  regionIdArg: null as string | null,
   addDonor: vi.fn(),
   updateDonor: vi.fn(),
   deleteDonor: vi.fn(),
@@ -22,7 +25,20 @@ const mockDonors = vi.hoisted(() => ({
 }));
 
 vi.mock('../../src/hooks/useDonors', () => ({
-  useDonors: () => mockDonors,
+  useDonors: (regionId: string) => {
+    mockDonors.regionIdArg = regionId;
+    return mockDonors;
+  },
+}));
+
+const mockStaff = vi.hoisted(() => ({ role: 'Admin', regionIds: [] as string[] }));
+
+vi.mock('../../src/hooks/useStaffRole', () => ({
+  useStaffRole: () => getStaffAccess(mockStaff.role, mockStaff.regionIds),
+}));
+
+vi.mock('../../src/hooks/useRegions', () => ({
+  useRegions: () => ({ regions: STATIC_REGIONS, loading: false }),
 }));
 
 beforeEach(() => {
@@ -31,6 +47,9 @@ beforeEach(() => {
   mockDonors.loading = false;
   mockDonors.error = null;
   mockDonors.isAdmin = true;
+  mockDonors.regionIdArg = null;
+  mockStaff.role = 'Admin';
+  mockStaff.regionIds = [];
 });
 
 const SEED = [
@@ -100,6 +119,7 @@ describe('DonorsTab', () => {
 
     await waitFor(() => {
       expect(mockDonors.addDonor).toHaveBeenCalledWith({
+        regionId: 'vorarlberg',
         name: 'Carla',
         amount: '12,50',
         frequency: 'monthly',
@@ -142,6 +162,42 @@ describe('DonorsTab', () => {
     fireEvent.click(screen.getByTestId('donor-edit-save'));
     await waitFor(() => {
       expect(screen.getByTestId('donor-edit-error')).toHaveTextContent('Betrag ungültig.');
+    });
+  });
+});
+
+describe('DonorsTab regions', () => {
+  it('a Super-Admin picks the region; the list and new donors follow it', async () => {
+    render(<DonorsTab />);
+    expect(mockDonors.regionIdArg).toBe('vorarlberg');
+    const select = screen.getByTestId('donors-tab-region') as HTMLSelectElement;
+    expect(select.options).toHaveLength(STATIC_REGIONS.length);
+    fireEvent.change(select, { target: { value: 'tirol' } });
+    expect(mockDonors.regionIdArg).toBe('tirol');
+
+    fireEvent.click(screen.getByTestId('donors-tab-add'));
+    expect(screen.getByTestId('donor-edit-region')).toHaveValue('tirol');
+    fireEvent.click(screen.getByTestId('donor-edit-save'));
+    await waitFor(() => {
+      expect(mockDonors.addDonor).toHaveBeenCalledWith(
+        expect.objectContaining({ regionId: 'tirol' })
+      );
+    });
+  });
+
+  it('moves a donor to another region from the dialog; old donors count as Vorarlberg', async () => {
+    mockDonors.donors = SEED;
+    render(<DonorsTab />);
+    fireEvent.click(screen.getAllByTestId('donor-row-edit')[0]);
+    const region = screen.getByTestId('donor-edit-region');
+    expect(region).toHaveValue('vorarlberg');
+    fireEvent.change(region, { target: { value: 'wien' } });
+    fireEvent.click(screen.getByTestId('donor-edit-save'));
+    await waitFor(() => {
+      expect(mockDonors.updateDonor).toHaveBeenCalledWith(
+        'd1',
+        expect.objectContaining({ regionId: 'wien', name: 'Anna Müller' })
+      );
     });
   });
 });

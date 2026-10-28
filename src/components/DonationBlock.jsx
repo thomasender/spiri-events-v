@@ -8,6 +8,7 @@ import {
   startOneTimeDonation,
 } from '../lib/mollieClient';
 import { EVENTS, trackEvent } from '../lib/analytics';
+import { DEFAULT_REGION_ID } from '../utils/regions';
 import './DonationBlock.css';
 
 // Public comment on the donor list; same limit as the server and the rules.
@@ -26,7 +27,9 @@ function formatPreset(amount) {
   return Number.isInteger(amount) ? `${amount}` : formatAmount(amount);
 }
 
-export default function DonationBlock({ placement = 'unknown' }) {
+// `regionId`: the region the donation counts for (its donor list on "Über
+// uns"); the server checks it and falls back to Vorarlberg.
+export default function DonationBlock({ placement = 'unknown', regionId = DEFAULT_REGION_ID }) {
   const [frequency, setFrequency] = useState('monthly');
   const [name, setName] = useState('');
   const [displayOnConsent, setDisplayOnConsent] = useState(false);
@@ -67,6 +70,7 @@ export default function DonationBlock({ placement = 'unknown' }) {
         displayOnConsent,
         // Only sent with the consent to appear on the donor list.
         comment: displayOnConsent ? comment.trim().slice(0, COMMENT_MAX) || null : null,
+        regionId,
       });
       window.location.assign(checkoutUrl);
     } catch {

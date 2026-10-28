@@ -132,6 +132,7 @@ describe('DonationBlock', () => {
         name: 'Anna',
         displayOnConsent: false,
         comment: null,
+        regionId: 'vorarlberg',
       });
     });
     await waitFor(() => {
@@ -160,6 +161,7 @@ describe('DonationBlock', () => {
         name: null,
         displayOnConsent: false,
         comment: null,
+        regionId: 'vorarlberg',
       });
     });
     await waitFor(() => {
@@ -187,6 +189,7 @@ describe('DonationBlock', () => {
         name: null,
         displayOnConsent: false,
         comment: null,
+        regionId: 'vorarlberg',
       });
     });
   });
@@ -261,6 +264,7 @@ describe('DonationBlock', () => {
         name: null,
         displayOnConsent: false,
         comment: null,
+        regionId: 'vorarlberg',
       });
     });
   });
@@ -287,6 +291,7 @@ describe('DonationBlock', () => {
         name: 'Anna Musterfrau',
         displayOnConsent: true,
         comment: null,
+        regionId: 'vorarlberg',
       });
     });
   });
@@ -344,7 +349,25 @@ describe('DonationBlock', () => {
         name: 'Anna',
         displayOnConsent: true,
         comment: 'Danke für alles!',
+        regionId: 'vorarlberg',
       });
+    });
+  });
+
+  it('sends the region of the page with the donation', async () => {
+    startMonthlyDonation.mockResolvedValue({ checkoutUrl: 'https://www.mollie.com/checkout/x' });
+    render(
+      <MemoryRouter>
+        <DonationBlock regionId="tirol" />
+      </MemoryRouter>
+    );
+    fireEvent.click(screen.getByRole('button', { name: '10 €' }));
+    submit();
+    await waitFor(() => {
+      expect(startMonthlyDonation).toHaveBeenCalledWith(
+        10,
+        expect.objectContaining({ regionId: 'tirol' })
+      );
     });
   });
 
@@ -366,6 +389,7 @@ describe('DonationBlock', () => {
         name: null,
         displayOnConsent: false,
         comment: null,
+        regionId: 'vorarlberg',
       });
     });
   });

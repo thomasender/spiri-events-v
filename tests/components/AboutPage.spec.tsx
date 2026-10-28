@@ -29,6 +29,7 @@ const mockDonors = vi.hoisted(() => ({
   }>,
   loading: false,
   error: null as string | null,
+  regionIdArg: null as string | null,
 }));
 
 vi.mock('../../src/hooks/useHelpers', () => ({
@@ -39,7 +40,10 @@ vi.mock('../../src/hooks/useHelpers', () => ({
 }));
 
 vi.mock('../../src/hooks/useDonors', () => ({
-  useDonors: () => mockDonors,
+  useDonors: (regionId: string) => {
+    mockDonors.regionIdArg = regionId;
+    return mockDonors;
+  },
 }));
 
 vi.mock('../../src/components/ContactFormModal', () => ({
@@ -73,6 +77,7 @@ beforeEach(() => {
   mockDonors.donors = [];
   mockDonors.loading = false;
   mockDonors.error = null;
+  mockDonors.regionIdArg = null;
 });
 
 describe('AboutPage', () => {
@@ -368,6 +373,11 @@ describe('AboutPage — region mode', () => {
     );
   });
 
+  it('lists the donors of its region', () => {
+    renderRegion({});
+    expect(mockDonors.regionIdArg).toBe('tirol');
+  });
+
   it('leaves the helpers section out when the region has none', () => {
     mockHelpers.helpers = [];
     renderRegion({});
@@ -378,6 +388,7 @@ describe('AboutPage — region mode', () => {
   it("a combined view (national page) shows Vorarlberg's helpers", () => {
     renderRegion({}, ['vorarlberg', 'tirol'], { isNational: true, region: null, regionId: null });
     expect(mockHelpers.regionIdArg).toBe('vorarlberg');
+    expect(mockDonors.regionIdArg).toBe('vorarlberg');
     expect(screen.getByText('Anna Alpha')).toBeInTheDocument();
   });
 

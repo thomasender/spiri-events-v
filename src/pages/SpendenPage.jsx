@@ -1,9 +1,15 @@
 import { Link } from 'react-router-dom';
 import SeoMeta from '../components/SeoMeta';
 import DonationBlock from '../components/DonationBlock';
+import { useRegion } from '../hooks/useRegion';
+import { aboutPathFor } from '../utils/regionRouting';
 import './SpendenPage.css';
 
+// General donation page: the donation counts for the visitor's region and
+// the back link leads to that region's "Über uns" page.
 export default function SpendenPage() {
+  const { regionId, allRegions, pageSlug } = useRegion();
+  const aboutPath = aboutPathFor({ pageSlug, regionId, regions: allRegions });
   return (
     <div className="page-container spenden-page fade-enter">
       <SeoMeta
@@ -22,10 +28,10 @@ export default function SpendenPage() {
         </p>
       </header>
 
-      <DonationBlock placement="spenden_page" />
+      <DonationBlock placement="spenden_page" regionId={regionId} />
 
       <p className="spenden-back-link">
-        <Link to="/ueber-uns" className="btn btn-secondary">
+        <Link to={aboutPath} className="btn btn-secondary">
           Zurück zu &bdquo;Über uns&ldquo;
         </Link>
       </p>

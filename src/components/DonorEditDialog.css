@@ -109,6 +109,7 @@
 }
 
 .donor-edit-dialog-field input[type='text'],
+.donor-edit-dialog-field select,
 .donor-edit-dialog-field textarea {
   padding: var(--space-2-5) var(--space-3);
   border: 1px solid var(--border);
@@ -120,12 +121,14 @@
 }
 
 .donor-edit-dialog-field input:disabled,
+.donor-edit-dialog-field select:disabled,
 .donor-edit-dialog-field textarea:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
 .donor-edit-dialog-field input:focus,
+.donor-edit-dialog-field select:focus,
 .donor-edit-dialog-field textarea:focus {
   outline: 2px solid var(--accent-primary);
   outline-offset: 2px;

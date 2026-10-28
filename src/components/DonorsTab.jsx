@@ -11,6 +11,8 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { useDonors } from '../hooks/useDonors';
+import { useRegions } from '../hooks/useRegions';
+import { useStaffRole } from '../hooks/useStaffRole';
 import DonorEditDialog from './DonorEditDialog';
 import ConfirmDialog from './ConfirmDialog';
 import './DonorsTab.css';
@@ -34,12 +36,49 @@ function donorSubLabel(donor) {
 }
 
 // Admin tab: manage the list of previous donors shown on the public "Über
-// uns" page. Admins add entries manually after the donor has opted in to
-// being listed — privacy note is reinforced in the empty state and the
-// dialog ("Anonym" toggle).
+// uns" page of one region. Admins add entries manually after the donor has
+// opted in to being listed — privacy note is reinforced in the empty state
+// and the dialog ("Anonym" toggle). Super-Admins only; same region picker as
+// the "Helfer" tab (shown when there is more than one region to choose).
 export default function DonorsTab() {
+  const { canModerateRegion } = useStaffRole();
+  const { regions } = useRegions();
+  const options = useMemo(
+    () => regions.filter((r) => canModerateRegion(r.id)),
+    [regions, canModerateRegion]
+  );
+  const [regionId, setRegionId] = useState('');
+  const current = options.find((r) => r.id === regionId) ?? options[0] ?? null;
+
+  if (!current) return null;
+
+  return (
+    <div className="donors-tab" data-testid="donors-tab">
+      {options.length > 1 && (
+        <label className="donors-tab-region">
+          <span>Region</span>
+          <select
+            value={current.id}
+            onChange={(e) => setRegionId(e.target.value)}
+            data-testid="donors-tab-region"
+          >
+            {options.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      {/* Keyed by region: switching resets the pending order and open dialogs. */}
+      <RegionDonors key={current.id} regionId={current.id} regions={options} />
+    </div>
+  );
+}
+
+function RegionDonors({ regionId, regions }) {
   const { donors, loading, error, isAdmin, addDonor, updateDonor, deleteDonor, reorderDonors } =
-    useDonors();
+    useDonors(regionId);
 
   const [editing, setEditing] = useState(null);
   const [deleting, setDeleting] = useState(null);
@@ -186,13 +225,13 @@ export default function DonorsTab() {
   }
 
   return (
-    <div className="donors-tab" data-testid="donors-tab">
+    <>
       <div className="donors-tab-toolbar">
         <p className="donors-tab-description">
           Hier verwaltest du die Liste der bisherigen Spender:innen auf der öffentlichen „Über
-          uns-Seite. Füge einen Eintrag erst hinzu, wenn die Person ausdrücklich zugestimmt hat,
-          namentlich genannt zu werden — Spender:innen können anonym oder namentlich erscheinen, mit
-          oder ohne Betrag.
+          uns“-Seite dieser Region. Füge einen Eintrag erst hinzu, wenn die Person ausdrücklich
+          zugestimmt hat, namentlich genannt zu werden — Spender:innen können anonym oder namentlich
+          erscheinen, mit oder ohne Betrag.
         </p>
         {isAdmin && (
           <button
@@ -212,8 +251,8 @@ export default function DonorsTab() {
           <Inbox size={32} aria-hidden="true" />
           <h2>Noch keine Spender</h2>
           <p>
-            Sobald du Spender:innen hinzufügst, erscheinen sie auf der „Über uns-Seite unter dem
-            Spenden-Block.
+            Sobald du Spender:innen hinzufügst, erscheinen sie auf der „Über uns“-Seite der Region
+            unter dem Spenden-Block.
           </p>
         </div>
       ) : (
@@ -321,6 +360,8 @@ export default function DonorsTab() {
         open={Boolean(editing)}
         mode={editing?.mode || 'create'}
         donor={editing?.donor || null}
+        regionId={regionId}
+        regions={regions}
         onSave={handleSave}
         onClose={() => setEditing(null)}
       />
@@ -349,6 +390,6 @@ export default function DonorsTab() {
           </>
         )}
       </ConfirmDialog>
-    </div>
+    </>
   );
 }

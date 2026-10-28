@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useDonors } from '../hooks/useDonors';
+import { DEFAULT_REGION_ID } from '../utils/regions';
 import './DonorsList.css';
 
 function formatAmount(value) {
@@ -39,9 +40,9 @@ function frequencyLabel(frequency) {
 // and the donor record itself controls whether the name is shown
 // (donor.name === null → anonym) and whether the amount is shown
 // (donor.amount === null → verborgen). The optional public comment is
-// rendered as plain text.
-export default function DonorsList() {
-  const { donors, loading, error } = useDonors();
+// rendered as plain text. Shows the donors of one region (`regionId`).
+export default function DonorsList({ regionId = DEFAULT_REGION_ID }) {
+  const { donors, loading, error } = useDonors(regionId);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   if (loading) {

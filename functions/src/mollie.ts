@@ -198,6 +198,8 @@ export async function startMollieSubscriptionCheckout(
     name?: string | null;
     displayOnConsent?: boolean;
     comment?: string | null;
+    // Region the donation counts for (already checked by the callable).
+    regionId?: string | null;
   }
 ): Promise<MollieSubscriptionCheckoutResult> {
   const metadata: Record<string, unknown> = {
@@ -209,6 +211,9 @@ export async function startMollieSubscriptionCheckout(
   }
   if (params.displayOnConsent && params.comment) {
     metadata.comment = params.comment;
+  }
+  if (params.regionId) {
+    metadata.regionId = params.regionId;
   }
 
   const payment = await mollieRequest<MolliePaymentResponse>(apiKey, '/payments', {
@@ -296,6 +301,8 @@ export async function startMolliePaymentCheckout(
     name?: string | null;
     displayOnConsent?: boolean;
     comment?: string | null;
+    // Region the donation counts for (already checked by the callable).
+    regionId?: string | null;
   }
 ): Promise<MolliePaymentCheckoutResult> {
   const body: Record<string, unknown> = {
@@ -316,6 +323,9 @@ export async function startMolliePaymentCheckout(
   }
   if (params.displayOnConsent && params.comment) {
     metadata.comment = params.comment;
+  }
+  if (params.regionId) {
+    metadata.regionId = params.regionId;
   }
   body.metadata = metadata;
 
