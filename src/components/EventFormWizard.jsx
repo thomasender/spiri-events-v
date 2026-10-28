@@ -50,6 +50,7 @@ import {
 import { CURRENCIES, DEFAULT_CURRENCY, formatPriceWithCurrency } from '../utils/currency';
 import { bezirkLabel, DEFAULT_REGION_ID, isRegionSlug, pickEventRegionId } from '../utils/regions';
 import { useRegionChoices } from '../hooks/useRegionChoices';
+import { useOnlineEventGate } from '../hooks/useOnlineEventGate';
 import { formExamples } from '../utils/regionExamples';
 import { keepIfInRegion, selectedRegionId, subdivisionFor } from '../utils/regionChoices';
 import EventRegionDialog, { BEZIRK_NOT_FOUND } from './EventRegionDialog';
@@ -208,6 +209,13 @@ export default function EventFormWizard() {
     : '';
   const subdivision = subdivisionFor(selectedRegion, regionChoices);
   const selectedRegionObj = regionChoices.allRegions?.find((r) => r.id === selectedRegion) ?? null;
+  // Online events need a directory listing in the event's region (only with two
+  // or more active regions, never for staff; useOnlineEventGate).
+  const onlineGate = useOnlineEventGate({
+    enabled: regionChoices.enabled,
+    region: selectedRegionObj ?? { id: selectedRegion },
+    regions: regionChoices.allRegions,
+  });
   const examples = formExamples(selectedRegionObj, { regionSpecific: regionChoices.enabled });
   const subdivisionLabel = subdivision.label;
   const bezirkOptions = subdivision.options ?? BEZIRKE;
@@ -428,6 +436,8 @@ export default function EventFormWizard() {
         if (!useGemeinden && bezirkRequired && !formData.bezirk) {
           newErrors.bezirk = `Bitte ${subdivisionLabel} auswählen oder als Online-Event markieren`;
         }
+      } else if (!onlineGate.offered) {
+        newErrors.isOnline = onlineGate.hint || 'Online-Events sind hier gerade nicht möglich.';
       }
       if (!formData.category) {
         newErrors.category = 'Kategorie ist erforderlich';
@@ -1316,10 +1326,17 @@ export default function EventFormWizard() {
             name="isOnline"
             checked={formData.isOnline}
             onChange={handleChange}
+            disabled={!onlineGate.offered && !formData.isOnline}
             data-testid="is-online-checkbox"
           />
           <span>Online-Event (kein Ort und keine Adresse nötig)</span>
         </label>
+        {onlineGate.hint && (
+          <span className="input-hint" data-testid="online-event-hint">
+            {onlineGate.hint}
+          </span>
+        )}
+        {errors.isOnline && <span className="error-text">{errors.isOnline}</span>}
       </div>
 
       <div className="form-group">

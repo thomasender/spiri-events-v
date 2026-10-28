@@ -508,7 +508,9 @@ const EVENTS_VERSION_PATH = ['app_settings', 'eventsVersion'];
 // is approved or changed, a Cloud Function bumps it and the list is refetched.
 // If the version doc is missing or the fetch fails, it falls back to reading
 // Firestore directly, as before. The local emulators have no such endpoint.
-export function usePublicEvents({ regionScoped = false, allActive = false } = {}) {
+// `enabled: false` reads nothing (SimilarEvents uses the list only with two or
+// more active regions, for `onlineRegionIds`).
+export function usePublicEvents({ regionScoped = false, allActive = false, enabled = true } = {}) {
   const emulators = import.meta.env.VITE_USE_EMULATORS === 'true';
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -517,7 +519,7 @@ export function usePublicEvents({ regionScoped = false, allActive = false } = {}
   const [version, setVersion] = useState(null);
 
   useEffect(() => {
-    if (emulators) return undefined;
+    if (emulators || !enabled) return undefined;
     return onSnapshot(
       doc(db, ...EVENTS_VERSION_PATH),
       (snap) => {
@@ -527,7 +529,7 @@ export function usePublicEvents({ regionScoped = false, allActive = false } = {}
       },
       () => setUseFallback(true)
     );
-  }, [emulators]);
+  }, [emulators, enabled]);
 
   useEffect(() => {
     if (version === null) return undefined;
@@ -550,7 +552,11 @@ export function usePublicEvents({ regionScoped = false, allActive = false } = {}
     return () => controller.abort();
   }, [version]);
 
-  const direct = useAllEvents({ regionScoped, allActive, enabled: emulators || useFallback });
+  const direct = useAllEvents({
+    regionScoped,
+    allActive,
+    enabled: enabled && (emulators || useFallback),
+  });
   return emulators || useFallback ? direct : { events, loading, error };
 }
 

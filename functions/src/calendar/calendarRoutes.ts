@@ -25,6 +25,7 @@ import {
   isRegionId,
   STATIC_REGION_BEZIRKE,
 } from '../regions';
+import { onlineEventVisibleIn } from '../onlineEventEligibility';
 
 export const FEED_HORIZON_DAYS = 180;
 export const SINGLE_EVENT_HORIZON_DAYS = 365;
@@ -222,16 +223,18 @@ export function selectFeedEvents<T extends PublicEvent>(
 
   let inRegion: T[] = events;
   if (filters.combinedRegionIds) {
+    const scope = filters.combinedRegionIds;
     inRegion = filterEventsForRegion(events, {
       isNational: true,
-      activeRegionIds: filters.combinedRegionIds,
-    });
+      activeRegionIds: scope,
+    }).filter((event) => onlineEventVisibleIn(event, scope));
   } else if (filters.regionId) {
-    inRegion = filters.activeRegionIds?.includes(filters.regionId)
+    const regionId = filters.regionId;
+    inRegion = filters.activeRegionIds?.includes(regionId)
       ? filterEventsForRegion(events, {
-          regionId: filters.regionId,
+          regionId,
           activeRegionIds: filters.activeRegionIds,
-        })
+        }).filter((event) => onlineEventVisibleIn(event, [regionId]))
       : [];
   }
 

@@ -25,6 +25,16 @@ import {
   resolveRegionId,
 } from '../../src/utils/regions.js';
 import { getEventLocationLabel } from '../../src/utils/eventFormat';
+import {
+  annotateOnlineRegionIds,
+  filterOnlineEventsForRegions,
+  onlineEligibilityEnabled,
+  onlineEligibilityHint,
+  onlineEligibilityReason,
+  onlineEventVisibleIn,
+  onlineOrganizerUids,
+  onlineRegionIdsFor,
+} from '../../src/utils/onlineEventEligibility';
 
 describe('static register', () => {
   it('covers 9 Austrian + 16 German Bundeslaender + 26 Swiss cantons + 60 cultural regions (no oesterreich), only Vorarlberg active', () => {
@@ -335,5 +345,103 @@ describe('region Instagram account (display only)', () => {
   it('builds the profile URL', () => {
     expect(instagramProfileUrl('@tribe.tirol')).toBe('https://www.instagram.com/tribe.tirol/');
     expect(instagramProfileUrl('')).toBeNull();
+  });
+});
+
+describe('online events need a regional directory listing (lVFp6Dvw)', () => {
+  const REG = mergeRegions([
+    { id: 'tirol', active: true, bezirke: ['Innsbruck', 'Kufstein'] },
+    { id: 'wien', active: false },
+  ]);
+  const tirolListing = {
+    listedInDirectory: true,
+    directoryRegionIds: ['tirol'],
+    directoryRegions: ['Innsbruck'],
+  };
+
+  it('is only in force with two or more active regions', () => {
+    expect(onlineEligibilityEnabled(1)).toBe(false);
+    expect(onlineEligibilityEnabled(2)).toBe(true);
+  });
+
+  it('needs a listing in the region that names one of its districts', () => {
+    expect(onlineEligibilityReason(null, 'tirol', REG)).toBe('not-listed');
+    expect(
+      onlineEligibilityReason({ ...tirolListing, listedInDirectory: false }, 'tirol', REG)
+    ).toBe('not-listed');
+    expect(onlineEligibilityReason({ ...tirolListing, directoryHidden: true }, 'tirol', REG)).toBe(
+      'not-listed'
+    );
+    expect(onlineEligibilityReason(tirolListing, 'vorarlberg', REG)).toBe('not-listed');
+    expect(
+      onlineEligibilityReason({ ...tirolListing, directoryRegions: ['Online'] }, 'tirol', REG)
+    ).toBe('no-district');
+    // A district of another region does not count, even if listed in Tirol.
+    expect(
+      onlineEligibilityReason({ ...tirolListing, directoryRegions: ['Dornbirn'] }, 'tirol', REG)
+    ).toBe('no-district');
+    expect(onlineEligibilityReason(tirolListing, 'tirol', REG)).toBeNull();
+    // No directoryRegionIds = Vorarlberg.
+    expect(
+      onlineEligibilityReason(
+        { listedInDirectory: true, directoryRegions: ['Dornbirn'] },
+        'vorarlberg',
+        REG
+      )
+    ).toBeNull();
+  });
+
+  it('German hints name the region and the subdivision label', () => {
+    const tirol = REG.find((r) => r.id === 'tirol');
+    expect(onlineEligibilityHint(null, tirol, REG)).toContain('im Verzeichnis für Tirol gelistet');
+    expect(onlineEligibilityHint({ ...tirolListing, directoryRegions: [] }, tirol, REG)).toContain(
+      'mindestens einen Bezirk in Tirol'
+    );
+    expect(onlineEligibilityHint(tirolListing, tirol, REG)).toBeNull();
+  });
+
+  it('onlineRegionIdsFor: active regions only', () => {
+    const both = {
+      ...tirolListing,
+      directoryRegionIds: ['tirol', 'wien'],
+      directoryRegions: ['Innsbruck', 'Wien'],
+    };
+    expect(onlineRegionIdsFor(both, REG)).toEqual(['tirol']);
+  });
+
+  it('annotates online events of non-staff organisers, only with two or more active regions', () => {
+    const events = [
+      { id: 'a', isOnline: true, createdBy: 'u1' },
+      { id: 'b', isOnline: true, createdBy: 'staff' },
+      { id: 'c', isOnline: true },
+      { id: 'd', isOnline: false, createdBy: 'u1' },
+      { id: 'e', isOnline: true, createdBy: 'u2' },
+    ];
+    expect(onlineOrganizerUids(events)).toEqual(['staff', 'u1', 'u2']);
+    const out = annotateOnlineRegionIds(events, {
+      regions: REG,
+      listings: { u1: tirolListing, u2: null },
+      staffUids: ['staff'],
+    });
+    expect(out.map((e) => e.onlineRegionIds)).toEqual([
+      ['tirol'],
+      undefined,
+      undefined,
+      undefined,
+      [],
+    ]);
+    // Dark launch: one active region = same array, nothing added.
+    expect(annotateOnlineRegionIds(events, { regions: STATIC_REGIONS, listings: {} })).toBe(events);
+  });
+
+  it('visibility fails open without onlineRegionIds', () => {
+    expect(onlineEventVisibleIn({ isOnline: true }, ['tirol'])).toBe(true);
+    expect(onlineEventVisibleIn({ isOnline: true, onlineRegionIds: [] }, ['tirol'])).toBe(false);
+    expect(
+      onlineEventVisibleIn({ isOnline: true, onlineRegionIds: ['tirol'] }, ['wien', 'tirol'])
+    ).toBe(true);
+    expect(onlineEventVisibleIn({ isOnline: false, onlineRegionIds: [] }, ['tirol'])).toBe(true);
+    const plain = [{ id: 'x', isOnline: true }];
+    expect(filterOnlineEventsForRegions(plain, ['tirol'])).toBe(plain);
   });
 });

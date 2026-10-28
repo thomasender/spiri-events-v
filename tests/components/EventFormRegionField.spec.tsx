@@ -32,8 +32,10 @@ vi.mock('react-router-dom', async () => {
 });
 vi.mock('../../src/hooks/useAuth', () => ({ useAuth: () => mockAuth }));
 vi.mock('../../src/hooks/useProfile', () => ({ useProfile: () => ({ profile: null }) }));
+// The person's public profile (directory listing), read by the online-event gate.
+const mockOrganizer = vi.hoisted(() => ({ profile: null as Record<string, unknown> | null }));
 vi.mock('../../src/hooks/useOrganizerProfile', () => ({
-  useOrganizerProfile: () => ({ profile: null }),
+  useOrganizerProfile: () => ({ profile: mockOrganizer.profile, loading: false }),
 }));
 vi.mock('../../src/hooks/useEvents', () => ({
   useEvents: () => mockEvents,
@@ -91,6 +93,13 @@ const withRegions = (
     </RegionContext.Provider>
   </HelmetProvider>
 );
+
+// A directory listing in Tirol that names a Tirol Bezirk (qualifies for online events there).
+const TIROL_LISTING = {
+  listedInDirectory: true,
+  directoryRegionIds: ['tirol'],
+  directoryRegions: ['Innsbruck', 'Online'],
+};
 
 const FUTURE_DATE = (() => {
   const d = new Date();
@@ -161,6 +170,7 @@ beforeEach(() => {
   mockAuth.user = { uid: 'user-uid', email: 'user@test.local', emailVerified: true };
   mockAuth.role = null;
   mockAuth.staffRegionIds = [];
+  mockOrganizer.profile = null;
   mockEvents.addEvent.mockClear();
   mockEvents.updateEvent.mockClear();
 });
@@ -290,6 +300,7 @@ describe('EventFormWizard region field', () => {
   });
 
   it('online event: no Bezirk, the region still counts', async () => {
+    mockOrganizer.profile = TIROL_LISTING;
     seedWizardDraft({ isOnline: true, bezirk: '', regionId: 'tirol' }, 3);
     render(withRegions(regionContext(['vorarlberg', 'tirol']), <EventFormWizard />));
 
@@ -299,6 +310,44 @@ describe('EventFormWizard region field', () => {
     await waitFor(() => expect(screen.getByTestId('submit-event-button')).toBeInTheDocument());
     const saved = await submitWizardAndGetEvent();
     expect(saved).toMatchObject({ isOnline: true, bezirk: '', regionId: 'tirol' });
+  });
+
+  it('offers "Online-Event" only with a directory listing that names a Bezirk of the region', () => {
+    seedWizardDraft({ regionId: 'tirol' });
+    const ctx = regionContext(['vorarlberg', 'tirol'], 'tirol');
+    const { unmount } = render(withRegions(ctx, <EventFormWizard />));
+    expect(screen.getByTestId('is-online-checkbox')).toBeDisabled();
+    expect(screen.getByTestId('online-event-hint')).toHaveTextContent(
+      'Online-Events sind nur möglich, wenn du im Verzeichnis für Tirol gelistet bist'
+    );
+    unmount();
+
+    // Listed in Tirol, but only with the "Online" chip: still no Bezirk of Tirol.
+    mockOrganizer.profile = { ...TIROL_LISTING, directoryRegions: ['Online'] };
+    const second = render(withRegions(ctx, <EventFormWizard />));
+    expect(screen.getByTestId('is-online-checkbox')).toBeDisabled();
+    expect(screen.getByTestId('online-event-hint')).toHaveTextContent(
+      'mindestens einen Bezirk in Tirol nennt'
+    );
+    second.unmount();
+
+    mockOrganizer.profile = TIROL_LISTING;
+    render(withRegions(ctx, <EventFormWizard />));
+    expect(screen.getByTestId('is-online-checkbox')).not.toBeDisabled();
+    expect(screen.queryByTestId('online-event-hint')).not.toBeInTheDocument();
+  });
+
+  it('online-event gate: off with one active region and for staff', () => {
+    seedWizardDraft();
+    const { unmount } = render(withRegions(regionContext(['vorarlberg']), <EventFormWizard />));
+    expect(screen.getByTestId('is-online-checkbox')).not.toBeDisabled();
+    expect(screen.queryByTestId('online-event-hint')).not.toBeInTheDocument();
+    unmount();
+
+    mockAuth.role = 'Admin';
+    render(withRegions(regionContext(['vorarlberg', 'tirol'], 'tirol'), <EventFormWizard />));
+    expect(screen.getByTestId('is-online-checkbox')).not.toBeDisabled();
+    expect(screen.queryByTestId('online-event-hint')).not.toBeInTheDocument();
   });
 
   it('ordinary organizers cannot pick inactive regions, moderators can pick their own', () => {

@@ -22,6 +22,16 @@ import { REGION_DATA as SRC_REGION_DATA } from '../../src/data/regionData';
 import { REGION_DATA as FN_REGION_DATA } from '../../functions/src/regionData';
 import { expandOccurrencesInWindow } from '../../functions/src/instagram/instagramOccurrences';
 import { selectFeedEvents } from '../../functions/src/calendar/calendarRoutes';
+import {
+  annotateOnlineRegionIds as fnAnnotate,
+  onlineEventVisibleIn as fnVisibleIn,
+  organizerQualifiesForOnline as fnQualifies,
+} from '../../functions/src/onlineEventEligibility';
+import {
+  annotateOnlineRegionIds as srcAnnotate,
+  onlineEventVisibleIn as srcVisibleIn,
+  organizerQualifiesForOnline as srcQualifies,
+} from '../../src/utils/onlineEventEligibility';
 
 // Same cases as "resolveRegionId shared cases" in tests/components/regions.spec.ts.
 // functions/src/regions.ts is a synced copy of src/utils/regions.js.
@@ -157,5 +167,73 @@ describe('functions filterEventsForRegion', () => {
   ];
   it.each(cases)('same result as the client copy: %j', (opts) => {
     expect(filterEventsForRegion(events, opts)).toEqual(srcFilterEventsForRegion(events, opts));
+  });
+});
+
+describe('online-event eligibility: functions copy matches src (lVFp6Dvw)', () => {
+  const srcRegions = mergeRegions([
+    { id: 'tirol', active: true, bezirke: ['Innsbruck', 'Kufstein'] },
+    { id: 'bayern', active: true },
+  ]);
+  const fnRegions = mergeFeedRegions([
+    { id: 'tirol', active: true, bezirke: ['Innsbruck', 'Kufstein'] },
+    { id: 'bayern', active: true },
+  ]);
+  const LISTINGS: unknown[] = [
+    null,
+    { listedInDirectory: true, directoryRegions: ['Dornbirn'] },
+    { listedInDirectory: true, directoryRegionIds: ['tirol'], directoryRegions: ['Innsbruck'] },
+    { listedInDirectory: true, directoryRegionIds: ['tirol'], directoryRegions: ['Online'] },
+    { listedInDirectory: true, directoryRegionIds: ['allgaeu'], directoryRegions: ['Oberallgäu'] },
+    {
+      listedInDirectory: true,
+      directoryRegionIds: ['tirol'],
+      directoryRegions: ['Innsbruck'],
+      directoryHidden: true,
+    },
+    { listedInDirectory: false, directoryRegionIds: ['tirol'], directoryRegions: ['Innsbruck'] },
+  ];
+
+  it('organizerQualifiesForOnline', () => {
+    for (const listing of LISTINGS) {
+      for (const id of ['vorarlberg', 'tirol', 'bayern']) {
+        expect(fnQualifies(listing as never, id, fnRegions)).toBe(
+          srcQualifies(listing, id, srcRegions)
+        );
+      }
+    }
+  });
+
+  it('annotateOnlineRegionIds and onlineEventVisibleIn', () => {
+    const events = LISTINGS.map((_, i) => ({ id: `e${i}`, isOnline: true, createdBy: `u${i}` }));
+    const listings = Object.fromEntries(LISTINGS.map((l, i) => [`u${i}`, l]));
+    const fn = fnAnnotate(events, {
+      regions: fnRegions,
+      listings: listings as never,
+      staffUids: ['u2'],
+    });
+    const src = srcAnnotate(events, { regions: srcRegions, listings, staffUids: ['u2'] });
+    expect(fn).toEqual(src);
+    for (const e of fn) {
+      expect(fnVisibleIn(e, ['tirol'])).toBe(srcVisibleIn(e, ['tirol']));
+    }
+    expect(fnAnnotate(events, { regions: STATIC_FEED_REGIONS, listings: {} })).toBe(events);
+  });
+
+  it('the ICS feed drops online events not listed in the region; unannotated ones stay', () => {
+    const base = { status: 'approved', date: '2026-11-05', recurrence: 'none', regionId: 'tirol' };
+    const feedEvents = [
+      { ...base, id: 'in', isOnline: true, onlineRegionIds: ['tirol'] },
+      { ...base, id: 'out', isOnline: true, onlineRegionIds: ['bayern'] },
+      { ...base, id: 'plain', isOnline: true },
+    ];
+    const ids = (filters: Record<string, unknown>) =>
+      selectFeedEvents(feedEvents, '2026-11-01', { bezirk: [], kategorie: [], ...filters }).map(
+        (e) => e.id
+      );
+    const active = ['vorarlberg', 'tirol', 'bayern'];
+    expect(ids({ regionId: 'tirol', activeRegionIds: active })).toEqual(['in', 'plain']);
+    expect(ids({ regionId: 'bayern', activeRegionIds: active })).toEqual(['out', 'plain']);
+    expect(ids({ combinedRegionIds: ['tirol'] })).toEqual(['in', 'plain']);
   });
 });

@@ -200,6 +200,39 @@ describe('generateRegionPageHtml', () => {
     expect(html).not.toContain('Tiroler Entwurf');
   });
 
+  it('lists online events only where their organiser is listed (onlineRegionIds)', async () => {
+    const { generateRegionPageHtml } = await importPrerender();
+    const { mergeRegions } = await import('../../src/utils/regions.js');
+    const tirol = mergeRegions(TIROL_ACTIVE).find((r: { id: string }) => r.id === 'tirol');
+    const date = '2099-01-01';
+    const online = (title: string, extra: Record<string, unknown>) => ({
+      id: title,
+      slug: title.toLowerCase().replace(/ /g, '-'),
+      title,
+      date,
+      status: 'approved',
+      isOnline: true,
+      regionId: 'vorarlberg',
+      ...extra,
+    });
+    const html = generateRegionPageHtml(
+      tirol,
+      'calendar',
+      [
+        online('Online Tirol', { onlineRegionIds: ['tirol'] }),
+        online('Online Anderswo', { onlineRegionIds: ['vorarlberg'] }),
+        online('Online Alt', {}),
+      ],
+      '/a.js',
+      '/a.css',
+      undefined,
+      { activeRegionIds: ['vorarlberg', 'tirol'] }
+    );
+    expect(html).toContain('Online Tirol');
+    expect(html).toContain('Online Alt');
+    expect(html).not.toContain('Online Anderswo');
+  });
+
   it('config seo.title / seo.description win', async () => {
     const { generateRegionPageHtml } = await importPrerender();
     const { mergeRegions } = await import('../../src/utils/regions.js');
