@@ -83,5 +83,6 @@ branches that still use raw values.
   layout is not). First-time visitors get the defaults until Firestore answers; returning
   visitors are fine thanks to the localStorage cache.
 - The overlay reads the page's stylesheets, so it only sees what is written with tokens.
+- Design-Modus is not offered on mobile (viewport <= 800px): too buggy there for now.
 - No mobile preview frame: narrow the browser window to see mobile rules (the overlay
   recompiles on resize).

@@ -52,4 +52,21 @@ describe('DesignModeLauncher', () => {
     render(<DesignModeLauncher />);
     expect(window.sessionStorage.getItem('design-mode:on')).toBeNull();
   });
+
+  it('is not offered on mobile viewports', () => {
+    const original = window.matchMedia;
+    window.matchMedia = ((query: string) => ({
+      matches: true,
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    })) as unknown as typeof window.matchMedia;
+    try {
+      auth = { role: 'Admin', loading: false };
+      const { container } = render(<DesignModeLauncher />);
+      expect(container).toBeEmptyDOMElement();
+    } finally {
+      window.matchMedia = original;
+    }
+  });
 });

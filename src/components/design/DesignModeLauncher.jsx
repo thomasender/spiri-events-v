@@ -6,6 +6,21 @@ import './DesignModeLauncher.css';
 
 const DesignModeApp = lazyWithReload(() => import('./DesignModeApp'));
 const STORAGE_KEY = 'design-mode:on';
+// Same breakpoint as the mobile header. The editor is still too buggy on phones.
+const MOBILE_QUERY = '(max-width: 800px)';
+
+const useIsMobile = () => {
+  const [mobile, setMobile] = useState(() => !!window.matchMedia?.(MOBILE_QUERY).matches);
+  useEffect(() => {
+    const mql = window.matchMedia?.(MOBILE_QUERY);
+    if (!mql) return undefined;
+    const onChange = () => setMobile(mql.matches);
+    onChange();
+    mql.addEventListener('change', onChange);
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
+  return mobile;
+};
 
 const readOn = () => {
   try {
@@ -20,6 +35,7 @@ const readOn = () => {
 export default function DesignModeLauncher() {
   const { role, loading } = useAuth();
   const [on, setOn] = useState(readOn);
+  const isMobile = useIsMobile();
 
   const set = useCallback((value) => {
     setOn(value);
@@ -38,7 +54,7 @@ export default function DesignModeLauncher() {
     if (!loading && role !== 'Admin' && on) set(false);
   }, [loading, role, on, set]);
 
-  if (loading || role !== 'Admin') return null;
+  if (loading || role !== 'Admin' || isMobile) return null;
 
   if (!on) {
     return (
