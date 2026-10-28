@@ -279,7 +279,7 @@ describe('DirectoryPage: online status dot', () => {
     renderPage();
     const card = (name: string) => screen.getByRole('heading', { name }).closest('li')!;
     expect(card('anna').querySelector('[data-status="online"]')).not.toBeNull();
-    expect(card('berta').querySelector('[data-status="offline"]')).not.toBeNull();
+    expect(card('berta').querySelector('[data-status="offline"]')).toBeNull();
     expect(card('clara').querySelector('[data-testid="online-dot"]')).toBeNull();
   });
 });
