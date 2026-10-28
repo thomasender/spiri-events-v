@@ -19,7 +19,7 @@
 
 .directory-top-cta {
   align-self: flex-start;
-  margin-top: 8px;
+  margin-top: var(--space-2);
   padding: var(--space-2) var(--space-3-5);
   border: 1px solid var(--accent-secondary);
   border-radius: var(--radius-md);

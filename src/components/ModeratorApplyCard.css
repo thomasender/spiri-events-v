@@ -17,7 +17,7 @@
 
 .moderator-apply-icon {
   flex-shrink: 0;
-  margin-top: 2px;
+  margin-top: var(--space-0-5);
   color: var(--accent-primary);
 }
 
@@ -37,7 +37,7 @@
 .moderator-apply-open {
   display: block;
   width: 100%;
-  margin-top: 18px;
+  margin-top: var(--space-4-5);
   padding: var(--space-3-5) var(--space-5);
   font-size: var(--text-105);
   font-weight: 600;
@@ -48,7 +48,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  margin-top: 16px;
+  margin-top: var(--space-4);
 }
 
 .moderator-apply-form .form-group {

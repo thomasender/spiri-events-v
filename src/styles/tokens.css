@@ -56,6 +56,28 @@
   --text-200: 2rem;
   --text-250: 2.5rem;
 
-  /* Semantic layout tokens — what the Design-Modus edits. Each one points at the
-     scale by default, so nothing changes until a designer overrides it. */
+  /* Semantic layout tokens — what the Design-Modus edits. Literal values (not
+     var(--space-*)) so that changing a scale step never moves them silently.
+     Must match src/utils/layoutTokens.js (a test enforces it). */
+  --page-gutter: 24px;
+  --layout-column-gap: 32px;
+  --page-bottom-space: 48px;
+  --sidebar-gap: 16px;
+  --filter-panel-padding: 20px;
+  --grid-gap: 20px;
+  --card-padding: 16px;
+  --card-gap: 6px;
+  --card-image-height: 160px;
+  --row-padding: 16px;
+  --row-gap: 16px;
+  --nav-link-padding-y: 10px;
+  --nav-link-padding-x: 16px;
+  --btn-padding-y: 12px;
+  --btn-padding-x: 24px;
+  --btn-gap: 8px;
+  --modal-padding-x: 32px;
+  --footer-padding-y: 24px;
+  --fs-hero-title: clamp(1.75rem, 1.8vw + 1.1rem, 3.5rem);
+  --lh-body: 1.6;
+  --lh-heading: 1.3;
 }

@@ -59,14 +59,14 @@
   font-size: var(--text-135);
   font-weight: 500;
   color: var(--text-primary);
-  margin-bottom: 12px;
-  padding-right: 24px;
+  margin-bottom: var(--space-3);
+  padding-right: var(--space-6);
 }
 
 .confirm-dialog p {
   color: var(--text-secondary);
   line-height: 1.6;
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
 }
 
 .confirm-dialog-body p:last-child {

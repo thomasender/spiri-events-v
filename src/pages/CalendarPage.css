@@ -31,11 +31,11 @@
 }
 
 .hero-title {
-  font-size: clamp(1.75rem, 1.8vw + 1.1rem, 3.5rem);
+  font-size: var(--fs-hero-title);
   font-weight: 500;
   line-height: 1.2;
   color: var(--text-primary);
-  margin-bottom: 14px;
+  margin-bottom: var(--space-3-5);
 }
 
 .hero-title em {
@@ -47,7 +47,7 @@
   font-size: var(--fs-intro);
   color: var(--text-secondary);
   max-width: 56ch;
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
 }
 
 .hero-feature-title {
@@ -165,18 +165,18 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) 360px;
   align-items: start;
-  gap: var(--space-8);
+  gap: var(--layout-column-gap);
   width: 100%;
   max-width: var(--page-max-width);
   margin: 0 auto;
-  padding: 0 var(--space-8) var(--space-12);
+  padding: 0 var(--space-8) var(--page-bottom-space);
   padding-left: 0;
 }
 
 @media (max-width: 1300px) {
   .page-layout,
   .hero {
-    padding-left: 20px;
+    padding-left: var(--space-5);
   }
 }
 
@@ -187,7 +187,7 @@
 .page-sidebar {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--sidebar-gap);
   position: sticky;
   top: 88px;
 }
@@ -196,8 +196,8 @@
   background-color: var(--bg-calendar);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: var(--space-5);
-  margin-bottom: 20px;
+  padding: var(--filter-panel-padding);
+  margin-bottom: var(--space-5);
   box-shadow: var(--shadow-sm);
 }
 
@@ -214,7 +214,7 @@
   justify-content: space-between;
   gap: var(--space-4);
   padding: var(--space-4) var(--space-5);
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
   background-color: var(--bg-calendar);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -276,14 +276,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .filter-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 /* ----------------------------------------------------------------
@@ -308,19 +308,19 @@
    gaps themselves is needed; if the rhythm ever changes, update
    the four declarations in this block (zh4jJzje). */
 .filter-header--title {
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .filter-header--section {
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 /* Subsequent section headers (e.g. Datum → Kategorie) share a hairline
    divider so the user can tell where one filter group ends and the next
    begins. The 16px gap matches the rest of the filter panel rhythm. */
 .filter-header--section ~ .filter-header--section {
-  margin-top: 16px;
-  padding-top: 8px;
+  margin-top: var(--space-4);
+  padding-top: var(--space-2);
   border-top: 1px solid var(--border);
 }
 
@@ -351,7 +351,7 @@
 .filter-quick-actions {
   display: flex;
   gap: var(--space-2);
-  padding-top: 8px;
+  padding-top: var(--space-2);
 }
 
 /* On phone-sized viewports the section labels (Datum / Kategorie / Ort)
@@ -491,7 +491,7 @@
    The hairline divider that used to separate it from the chips above was
    removed so the accordion no longer feels detached (zh4jJzje). */
 .filter-accordion {
-  margin-top: 16px;
+  margin-top: var(--space-4);
 }
 
 .filter-accordion-summary {
@@ -537,7 +537,7 @@
 }
 
 .filter-accordion-body {
-  padding-top: 16px;
+  padding-top: var(--space-4);
   animation: fadeIn 0.15s ease-out;
 }
 
@@ -553,12 +553,12 @@
   font-family: 'Cormorant Garamond', Georgia, serif;
   font-size: var(--text-135);
   color: var(--error);
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .calendar-error p {
   color: var(--text-secondary);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .error-detail {
@@ -589,11 +589,11 @@
   }
 
   .hero-title {
-    margin-bottom: 10px;
+    margin-bottom: var(--space-2-5);
   }
 
   .hero-subtitle {
-    margin-bottom: 14px;
+    margin-bottom: var(--space-3-5);
   }
 
   .page-layout {
@@ -663,13 +663,13 @@
     /* Snap chips into place for a steadier feel when swiping. */
     scroll-snap-type: x proximity;
     /* Allow room for chip shadows / focus rings without clipping. */
-    padding-bottom: 4px;
+    padding-bottom: var(--space-1);
     /* Bleed slightly past the page gutter so the first/last chip align
        with the rest of the filter panel content. */
     margin-right: -8px;
     margin-left: -8px;
-    padding-left: 8px;
-    padding-right: 8px;
+    padding-left: var(--space-2);
+    padding-right: var(--space-2);
     /* Hide the scrollbar — chips are still reachable via swipe. */
     scrollbar-width: none;
   }
@@ -709,7 +709,7 @@
   flex-direction: column;
   align-items: flex-end;
   gap: var(--space-2);
-  margin-top: 12px;
+  margin-top: var(--space-3);
 }
 
 .calendar-export-summary {
@@ -731,7 +731,7 @@
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: var(--space-2);
-  margin-top: 8px;
+  margin-top: var(--space-2);
 }
 
 .calendar-export-panel .btn {

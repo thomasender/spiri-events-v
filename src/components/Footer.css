@@ -1,14 +1,14 @@
 .footer {
   border-top: 1px solid var(--border);
   background-color: var(--bg-primary);
-  padding: var(--space-6) 0;
+  padding: var(--footer-padding-y) 0;
   margin-top: auto;
 }
 
 .footer-container {
   max-width: var(--page-max-width);
   margin: 0 auto;
-  padding: 0 var(--space-6);
+  padding: 0 var(--page-gutter);
   display: flex;
   justify-content: space-between;
   align-items: center;

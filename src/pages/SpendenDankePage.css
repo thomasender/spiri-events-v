@@ -13,7 +13,7 @@
   flex-direction: column;
   gap: var(--space-4);
   align-items: center;
-  margin-top: 48px;
+  margin-top: var(--space-12);
 }
 
 .spenden-danke-hero .eyebrow {
@@ -23,7 +23,7 @@
   letter-spacing: normal;
   text-transform: none;
   color: var(--text-primary);
-  margin-top: 16px;
+  margin-top: var(--space-4);
 }
 
 .spenden-danke-hero-title {

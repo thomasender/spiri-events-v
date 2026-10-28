@@ -7,7 +7,7 @@
 
 .place-search-label {
   display: block;
-  margin-bottom: 6px;
+  margin-bottom: var(--space-1-5);
   font-size: var(--text-90);
   font-weight: 600;
   color: var(--text-secondary);

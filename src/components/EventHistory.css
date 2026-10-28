@@ -1,5 +1,5 @@
 .event-history {
-  margin-top: 16px;
+  margin-top: var(--space-4);
   background: var(--bg-secondary, #f5f0e8);
   border: 1px solid var(--border, #e8e0d5);
   border-radius: 12px;
@@ -51,7 +51,7 @@
 
 .event-history-entry {
   border-left: 3px solid var(--accent-primary, #7d9b8a);
-  padding-left: 14px;
+  padding-left: var(--space-3-5);
 }
 
 .event-history-meta {
@@ -73,7 +73,7 @@
 }
 
 .event-history-changes {
-  margin-top: 8px;
+  margin-top: var(--space-2);
   gap: var(--space-2);
 }
 

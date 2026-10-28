@@ -13,7 +13,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  margin-top: 12px;
+  margin-top: var(--space-3);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-sm);
   background-color: var(--bg-secondary);
@@ -314,7 +314,7 @@
 }
 
 .theme-tab-preview {
-  margin-top: 8px;
+  margin-top: var(--space-2);
 }
 
 .theme-tab-preview-card {
@@ -332,7 +332,7 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-light);
-  margin-bottom: 6px;
+  margin-bottom: var(--space-1-5);
 }
 
 .theme-tab-preview-card h3 {
@@ -351,7 +351,7 @@
   display: flex;
   gap: var(--space-2-5);
   flex-wrap: wrap;
-  margin-bottom: 18px;
+  margin-bottom: var(--space-4-5);
 }
 
 .theme-tab-preview-badges {
@@ -426,7 +426,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  margin-top: 8px;
+  margin-top: var(--space-2);
 }
 
 .theme-tab-library-header {

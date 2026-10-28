@@ -13,7 +13,7 @@
 }
 
 .profile-header {
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .profile-header h1 {
@@ -56,7 +56,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-4);
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
 }
 
 .profile-card-header-text {
@@ -154,7 +154,7 @@
   align-items: center;
   gap: var(--space-1-5);
   font-size: var(--text-85);
-  margin-top: 2px;
+  margin-top: var(--space-0-5);
   min-height: 1.4em;
 }
 
@@ -186,7 +186,7 @@
   display: flex;
   justify-content: flex-end;
   gap: var(--space-3);
-  margin-top: 8px;
+  margin-top: var(--space-2);
   width: 100%;
 }
 
@@ -211,9 +211,9 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  padding-top: 16px;
+  padding-top: var(--space-4);
   border-top: 1px solid var(--border);
-  margin-top: 4px;
+  margin-top: var(--space-1);
 }
 
 .profile-social-media-title {
@@ -313,7 +313,7 @@
 }
 
 .danger-accordion-body {
-  padding-top: 16px;
+  padding-top: var(--space-4);
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
@@ -361,7 +361,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-4);
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
 }
 
 .profile-photo-preview {
@@ -510,5 +510,5 @@
 .notification-preference-saved {
   font-size: var(--text-80);
   color: var(--free-text);
-  margin-top: 2px;
+  margin-top: var(--space-0-5);
 }

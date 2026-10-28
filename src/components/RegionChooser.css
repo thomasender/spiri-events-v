@@ -21,7 +21,7 @@
 
 .region-chooser-header {
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
 }
 
 .region-chooser-title {
@@ -71,7 +71,7 @@
 }
 
 .region-chooser-apply {
-  margin-top: 32px;
+  margin-top: var(--space-8);
 }
 
 /* Desktop: one common column width for intro, place picker and moderator call, and
@@ -82,7 +82,7 @@
   }
 
   .region-chooser-header {
-    margin-bottom: 40px;
+    margin-bottom: var(--space-10);
   }
 
   .region-chooser .place-picker,
@@ -91,6 +91,6 @@
   }
 
   .region-chooser .region-chooser-apply {
-    margin-top: 48px;
+    margin-top: var(--space-12);
   }
 }

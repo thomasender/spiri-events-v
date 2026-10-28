@@ -66,7 +66,8 @@ export const TEXT = {
   2.5: '--text-250',
 };
 
-const SPACING_PROPS = /^(padding|margin|gap|row-gap|column-gap)$/;
+const SPACING_PROPS =
+  /^(padding|margin|gap|row-gap|column-gap|(padding|margin)-(top|right|bottom|left|inline|block|inline-start|inline-end|block-start|block-end))$/;
 const DECL = /^(\s*)([a-z-]+)(\s*:\s*)([^;{}]+?)(\s*(?:!important)?\s*;.*)$/;
 
 function walk(dir, out = []) {
@@ -86,6 +87,10 @@ function mapSpacing(value) {
   const out = [];
   for (const part of parts) {
     if (part === '0' || part === 'auto' || part === 'inherit' || part.endsWith('%')) {
+      out.push(part);
+      continue;
+    }
+    if (/^var\(--space-[\d-]+\)$/.test(part)) {
       out.push(part);
       continue;
     }
@@ -140,7 +145,9 @@ for (const file of walk(ROOT)) {
   }
 }
 
-console.log(`${WRITE ? 'Rewrote' : 'Would rewrite'} ${changedDecls} declarations in ${changedFiles} files.`);
+console.log(
+  `${WRITE ? 'Rewrote' : 'Would rewrite'} ${changedDecls} declarations in ${changedFiles} files.`
+);
 console.log('\nLeft raw (not on the scale), by frequency:');
 [...skipped.entries()]
   .sort((a, b) => b[1] - a[1])

@@ -117,7 +117,7 @@
 
 .chat-tab-room {
   display: block;
-  margin-top: 4px;
+  margin-top: var(--space-1);
   font-size: var(--text-85);
   color: var(--text-secondary);
 }

@@ -159,6 +159,9 @@ two-line "read this when".
 - Read `docs/staging-migration.md` ONLY when you run or change the Firestore
   migration/backup/mirror scripts (`migrate-region-ids`, `export-firestore`,
   `mirror-prod-to-staging`, `seed-regions`) or build/deploy to `tribe-vbg-staging`.
+- Read `docs/design-tokens.md` ONLY when you write CSS (spacing, font sizes, radii: use the
+  tokens, never raw px/rem), touch the Design-Modus (`src/components/design/`), the layout
+  token catalogue (`src/utils/layoutTokens.js`) or `app_settings/layout` / `layout_history`.
 - Read `docs/testing.md` ONLY when you write or change a Playwright/Vitest test or
   fixture, or debug a slow/flaky e2e run (degraded emulator, `destructive` project).
 - Read `docs/analytics.md` ONLY when you touch GA4 tracking, `npm run analytics:*`, the

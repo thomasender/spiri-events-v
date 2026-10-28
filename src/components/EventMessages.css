@@ -1,5 +1,5 @@
 .event-messages {
-  margin-top: 16px;
+  margin-top: var(--space-4);
   background: var(--bg-secondary, #f5f0e8);
   border: 1px solid var(--border, #e8e0d5);
   border-radius: 12px;
@@ -85,7 +85,7 @@
   justify-content: space-between;
   align-items: baseline;
   gap: var(--space-3);
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
   font-size: var(--text-75);
   color: var(--text-secondary, #7a6f68);
 }
@@ -108,7 +108,7 @@
   flex-direction: column;
   gap: var(--space-2);
   border-top: 1px solid var(--border, #e8e0d5);
-  padding-top: 12px;
+  padding-top: var(--space-3);
 }
 
 .event-messages-composer textarea {
@@ -168,7 +168,7 @@
   justify-content: flex-end;
   align-items: center;
   gap: var(--space-2-5);
-  margin-top: 4px;
+  margin-top: var(--space-1);
   font-size: var(--text-75);
   color: var(--text-secondary, #7a6f68);
 }

@@ -14,6 +14,8 @@ import FeedbackButton from './components/FeedbackButton';
 import CreateEventFab from './components/CreateEventFab';
 import SeedBootstrap from './components/SeedBootstrap';
 import ThemeApplier from './components/ThemeApplier';
+import LayoutApplier from './components/LayoutApplier';
+import DesignModeLauncher from './components/design/DesignModeLauncher';
 import ScrollToTop from './components/ScrollToTop';
 import ErrorBoundary from './components/ErrorBoundary';
 import ErrorPage from './pages/ErrorPage';
@@ -166,6 +168,7 @@ function AppLayout() {
     <div className="app-layout">
       <SeedBootstrap />
       <ThemeApplier />
+      <LayoutApplier />
       <OnlineStatusBeacon />
       <ScrollToTop />
       <AnalyticsRouteTracker />
@@ -283,6 +286,7 @@ function AppLayout() {
       <DonationPopup />
       <CookieConsent />
       <OutboundLinkTracker />
+      <DesignModeLauncher />
     </div>
   );
 }

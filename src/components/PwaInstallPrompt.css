@@ -62,7 +62,7 @@
   border-radius: 16px;
   background-color: var(--accent-primary);
   color: #fff;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .pwa-install-title {
@@ -119,14 +119,14 @@
 
 .pwa-install-ios-steps {
   margin: 0 0 var(--space-5) 0;
-  padding-left: 20px;
+  padding-left: var(--space-5);
   font-size: var(--text-90);
   line-height: 1.55;
   color: var(--text-secondary, #555);
 }
 
 .pwa-install-ios-steps li {
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .pwa-install-ios-steps li:last-child {

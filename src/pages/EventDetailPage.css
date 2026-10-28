@@ -15,7 +15,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-1-5);
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
   font-size: var(--text-90);
   color: var(--text-secondary);
   transition: color 0.15s ease;
@@ -30,7 +30,7 @@
   flex-wrap: wrap;
   justify-content: space-between;
   gap: var(--space-3);
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
   width: 100%;
 }
 
@@ -59,7 +59,7 @@
 }
 
 .event-header {
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
 }
 
 .event-image-wrapper {
@@ -68,7 +68,7 @@
   aspect-ratio: 16 / 9;
   max-height: 500px;
   border-radius: var(--radius-md);
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -112,7 +112,7 @@
 
 .event-title {
   font-size: var(--text-250);
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
   color: var(--text-primary);
 }
 
@@ -121,7 +121,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-4);
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .event-title-row .event-title {
@@ -172,7 +172,7 @@
   background: var(--bg-calendar);
   border-radius: var(--radius-md);
   padding: var(--space-6);
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
   box-shadow: var(--shadow-sm);
 }
 
@@ -190,14 +190,14 @@
 .detail-icon {
   color: var(--accent-primary);
   flex-shrink: 0;
-  margin-top: 2px;
+  margin-top: var(--space-0-5);
 }
 
 .detail-label {
   display: block;
   font-size: var(--text-80);
   color: var(--text-secondary);
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
 }
 
 .detail-value {
@@ -223,7 +223,7 @@
 }
 
 .event-detail-date-badge {
-  margin-left: 8px;
+  margin-left: var(--space-2);
   vertical-align: middle;
 }
 
@@ -295,12 +295,12 @@
 }
 
 .event-description {
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
 }
 
 .event-description h3 {
   font-size: var(--text-130);
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .event-description p {
@@ -312,7 +312,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
 }
 
 .event-not-found {
@@ -345,7 +345,7 @@
   flex-wrap: wrap;
   justify-content: center;
   gap: var(--space-3);
-  margin-top: 28px;
+  margin-top: var(--space-7);
 }
 
 .event-not-found-hint + .event-not-found-actions {

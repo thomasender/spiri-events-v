@@ -894,6 +894,40 @@ service cloud.firestore {
                         ]);
 
       allow delete: if isAdminOrEmulatorAdmin();
+
+      // Layout tokens (spacing, font sizes, radii) published from the
+      // Design-Modus. Same admin-only write as the colour theme, but the key
+      // set is not whitelisted here: the catalogue lives in
+      // src/utils/layoutTokens.js and the client drops unknown or out-of-range
+      // values (sanitizeLayoutOverrides). The rules only bound the size and
+      // pin the author, so a stray write cannot bloat the doc every visitor
+      // downloads.
+      allow create, update: if docId == 'layout'
+                            && isAdminOrEmulatorAdmin()
+                            && request.resource.data.keys().size() <= 200
+                            && request.resource.data.updatedBy == request.auth.uid
+                            && request.resource.data.updatedAt != null;
+    }
+
+    // Publish log of the layout tokens: one append-only entry per publish,
+    // written in the same batch as the live doc. Admin-only; no edits, no
+    // deletes, so the history is trustworthy for rollbacks.
+    match /layout_history/{entryId} {
+      allow read: if isAdminOrEmulatorAdmin();
+      allow create: if isAdminOrEmulatorAdmin()
+                    && request.resource.data.keys().hasOnly([
+                      'values', 'changes', 'note',
+                      'publishedBy', 'publishedByName', 'publishedAt',
+                    ])
+                    && request.resource.data.values is map
+                    && request.resource.data.values.size() <= 200
+                    && request.resource.data.changes is list
+                    && request.resource.data.changes.size() <= 200
+                    && request.resource.data.note is string
+                    && request.resource.data.note.size() <= 200
+                    && request.resource.data.publishedBy == request.auth.uid
+                    && request.resource.data.publishedAt != null;
+      allow update, delete: if false;
     }
 
     // Saved theme registry — admin-only CRUD. Each doc holds a named

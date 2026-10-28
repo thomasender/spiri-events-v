@@ -81,7 +81,7 @@
 
 .members-verified {
   color: var(--success, #2e7d32);
-  margin-left: 4px;
+  margin-left: var(--space-1);
   vertical-align: middle;
 }
 

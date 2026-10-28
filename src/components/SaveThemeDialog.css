@@ -81,7 +81,7 @@
 
 .save-theme-required {
   color: var(--error);
-  margin-left: 2px;
+  margin-left: var(--space-0-5);
 }
 
 .save-theme-field input,

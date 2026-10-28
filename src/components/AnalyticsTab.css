@@ -233,7 +233,7 @@
 }
 
 .analytics-card > .analytics-hint {
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .analytics-top-events {

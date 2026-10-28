@@ -1,7 +1,7 @@
 .region-switcher {
   position: relative;
   flex-shrink: 0;
-  margin-right: 8px;
+  margin-right: var(--space-2);
 }
 
 .region-switcher-trigger {
@@ -45,7 +45,7 @@
     display: block;
     padding: var(--space-2) 0;
     border-bottom: 1px solid var(--border);
-    margin-bottom: 4px;
+    margin-bottom: var(--space-1);
   }
 
   .region-menu-list-button {

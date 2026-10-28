@@ -13,7 +13,7 @@
 }
 
 .profile-header {
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .profile-header h1 {

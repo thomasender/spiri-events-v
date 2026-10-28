@@ -1,9 +1,9 @@
 .review-section {
-  margin-bottom: 40px;
+  margin-bottom: var(--space-10);
 }
 
 .review-section-header {
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .review-section-title {
@@ -48,7 +48,7 @@
 }
 
 .review-subsection {
-  margin-top: 16px;
+  margin-top: var(--space-4);
 }
 
 .review-subsection-title {
@@ -156,7 +156,7 @@
 
 .review-image-check {
   margin: var(--space-2) 0 var(--space-1);
-  padding-left: 4px;
+  padding-left: var(--space-1);
 }
 
 .review-image-check-toggle {

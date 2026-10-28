@@ -10,7 +10,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .chat-header h1 {
@@ -106,7 +106,7 @@
   display: flex;
   align-items: baseline;
   gap: var(--space-2);
-  margin-bottom: 2px;
+  margin-bottom: var(--space-0-5);
 }
 
 .chat-author {
@@ -171,7 +171,7 @@
 .chat-actions {
   display: flex;
   gap: var(--space-3);
-  margin-top: 2px;
+  margin-top: var(--space-0-5);
 }
 
 .chat-action {
@@ -226,7 +226,7 @@
 
 .chat-form {
   position: relative;
-  margin-top: 12px;
+  margin-top: var(--space-3);
 }
 
 .chat-suggestions {
@@ -234,7 +234,7 @@
   left: 52px;
   right: 0;
   bottom: 100%;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
   z-index: 15;
   list-style: none;
   margin: 0;
@@ -328,7 +328,7 @@
   display: flex;
   justify-content: space-between;
   gap: var(--space-3);
-  margin-top: 4px;
+  margin-top: var(--space-1);
   font-size: var(--text-80);
   min-height: 1.2em;
 }
@@ -353,7 +353,7 @@
 }
 
 .chat-rules {
-  margin-top: 12px;
+  margin-top: var(--space-3);
   padding: var(--space-4) var(--space-5);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -367,7 +367,7 @@
 
 .chat-rules ul {
   margin: 0 0 var(--space-3);
-  padding-left: 20px;
+  padding-left: var(--space-5);
   color: var(--text-secondary);
 }
 
@@ -394,7 +394,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  margin-bottom: 10px;
+  margin-bottom: var(--space-2-5);
   min-height: 36px;
   font-size: var(--text-88);
   color: var(--text-secondary);
@@ -435,7 +435,7 @@
 .chat-presence-more {
   display: inline-flex;
   align-items: center;
-  padding-left: 12px;
+  padding-left: var(--space-3);
   font-weight: 600;
 }
 
@@ -448,7 +448,7 @@
   display: inline-block;
   width: 8px;
   height: 8px;
-  margin-right: 6px;
+  margin-right: var(--space-1-5);
   border-radius: 50%;
   background: var(--accent-secondary);
 }

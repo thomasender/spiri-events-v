@@ -27,7 +27,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .occurrence-picker-dialog .dialog-header h2 {
@@ -41,7 +41,7 @@
 .occurrence-picker-dialog .dialog-message {
   color: var(--text-secondary);
   line-height: 1.6;
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
 }
 
 .occurrence-list {
@@ -50,8 +50,8 @@
   gap: var(--space-2);
   overflow-y: auto;
   max-height: 320px;
-  margin-bottom: 24px;
-  padding-right: 4px;
+  margin-bottom: var(--space-6);
+  padding-right: var(--space-1);
 }
 
 .occurrence-option {

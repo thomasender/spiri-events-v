@@ -3,7 +3,7 @@
   flex-direction: column;
   align-items: center;
   gap: var(--space-1-5);
-  margin-top: 12px;
+  margin-top: var(--space-3);
 }
 
 .locate-region-consent {

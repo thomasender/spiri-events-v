@@ -1,13 +1,13 @@
 .similar-events {
-  margin-top: 32px;
-  margin-bottom: 8px;
+  margin-top: var(--space-8);
+  margin-bottom: var(--space-2);
 }
 
 .similar-events-header {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .similar-events-header h2 {

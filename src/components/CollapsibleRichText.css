@@ -27,7 +27,7 @@
 
 .collapsible-rich-text__toggle {
   display: inline-block;
-  margin-top: 8px;
+  margin-top: var(--space-2);
   padding: 0;
   border: 0;
   background: none;

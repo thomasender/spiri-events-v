@@ -35,7 +35,7 @@
 }
 
 .auth-action-card button {
-  margin-top: 8px;
+  margin-top: var(--space-2);
   background: #4a5d23;
   color: #ffffff;
   border: none;
@@ -61,7 +61,7 @@
   flex-direction: column;
   gap: var(--space-3);
   width: 100%;
-  margin-top: 8px;
+  margin-top: var(--space-2);
 }
 
 .auth-action-form label {
@@ -96,7 +96,7 @@
 }
 
 .auth-action-login-cta {
-  margin-top: 4px;
+  margin-top: var(--space-1);
   color: var(--text-secondary, #555);
   font-size: 14px;
 }

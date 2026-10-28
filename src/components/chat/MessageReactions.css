@@ -61,7 +61,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-0-5);
-  margin-top: 4px;
+  margin-top: var(--space-1);
   padding: 3px 4px;
   border: 1px solid var(--border);
   border-radius: 999px;

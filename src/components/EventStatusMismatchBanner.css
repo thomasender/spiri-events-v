@@ -4,7 +4,7 @@
   align-items: flex-start;
   gap: var(--space-4);
   padding: var(--space-5) var(--space-12) var(--space-5) var(--space-6);
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
   border-radius: 12px;
   background-color: #f3f0ea;
   border: 1px solid #e2dcd2;

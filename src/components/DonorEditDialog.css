@@ -42,7 +42,7 @@
 
 .donor-edit-dialog-source-meta {
   display: inline-block;
-  margin-top: 4px;
+  margin-top: var(--space-1);
   color: var(--text-light);
   word-break: break-all;
 }
@@ -137,7 +137,7 @@
 
 .donor-edit-dialog-amount-wrapper input {
   width: 100%;
-  padding-right: 36px;
+  padding-right: var(--space-9);
 }
 
 .donor-edit-dialog-amount-suffix {
@@ -201,7 +201,7 @@
   display: flex;
   justify-content: flex-end;
   gap: var(--space-2);
-  margin-top: 8px;
+  margin-top: var(--space-2);
 }
 
 @media (max-width: 480px) {
@@ -211,7 +211,7 @@
 
   .donor-edit-dialog-form,
   .donor-edit-dialog-header {
-    padding-left: 16px;
-    padding-right: 16px;
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
   }
 }

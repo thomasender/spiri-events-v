@@ -109,7 +109,7 @@
   display: flex;
   justify-content: flex-end;
   gap: var(--space-2);
-  margin-top: 8px;
+  margin-top: var(--space-2);
 }
 
 @media (max-width: 480px) {
@@ -119,8 +119,8 @@
 
   .helper-edit-dialog-form,
   .helper-edit-dialog-header {
-    padding-left: 16px;
-    padding-right: 16px;
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
   }
 }
 
@@ -222,7 +222,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-1-5);
-  margin-top: 8px;
+  margin-top: var(--space-2);
 }
 
 .helper-edit-dialog-photo-url-label {

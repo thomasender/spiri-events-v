@@ -9,7 +9,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-4);
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
   flex-wrap: wrap;
 }
 
@@ -31,7 +31,7 @@
   align-items: center;
   gap: var(--space-1);
   border-bottom: 1px solid var(--border);
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
   flex-wrap: wrap;
 }
 

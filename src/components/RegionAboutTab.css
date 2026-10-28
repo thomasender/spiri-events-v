@@ -3,16 +3,16 @@
   flex-direction: column;
   gap: var(--space-1);
   max-width: 320px;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .region-about-section {
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
 }
 
 .region-about-header {
   max-width: 480px;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .region-about-header img {
@@ -39,11 +39,11 @@
 }
 
 .region-about-reset {
-  margin-top: 8px;
+  margin-top: var(--space-2);
 }
 
 .region-about-fixed {
   margin: 0;
-  padding-left: 20px;
+  padding-left: var(--space-5);
   color: var(--text-light);
 }

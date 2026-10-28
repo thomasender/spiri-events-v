@@ -1,5 +1,5 @@
 .instagram-image-accordion {
-  margin-top: 12px;
+  margin-top: var(--space-3);
   padding: var(--space-3) var(--space-4) var(--space-4);
   background-color: var(--bg-secondary);
   border: 1px solid var(--border);
@@ -17,7 +17,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3-5);
-  margin-top: 12px;
+  margin-top: var(--space-3);
 }
 
 .instagram-image-picker-warning {
@@ -36,7 +36,7 @@
 
 .instagram-image-picker-warning svg {
   flex-shrink: 0;
-  margin-top: 2px;
+  margin-top: var(--space-0-5);
   color: var(--accent-primary);
 }
 
@@ -47,7 +47,7 @@
 }
 
 .instagram-image-picker-choices legend {
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
   font-size: var(--text-90);
   font-weight: 500;
 }
@@ -139,7 +139,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-2-5);
-  margin-top: 12px;
+  margin-top: var(--space-3);
   max-width: 220px;
 }
 
@@ -147,7 +147,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-1-5);
-  margin-top: 8px;
+  margin-top: var(--space-2);
 }
 
 .instagram-preview-notes .instagram-image-picker-hint {
@@ -233,5 +233,5 @@
   font-family: 'Cormorant Garamond', serif;
   font-size: var(--text-115);
   line-height: 1.05;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
 }

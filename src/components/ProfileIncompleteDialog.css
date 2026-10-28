@@ -1,10 +1,10 @@
 .profile-incomplete-dialog-intro {
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .profile-incomplete-fields {
   list-style: disc;
-  padding-left: 20px;
+  padding-left: var(--space-5);
   margin: 0 0 var(--space-6);
   color: var(--text-secondary);
   line-height: 1.6;

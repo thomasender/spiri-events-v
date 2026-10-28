@@ -1,5 +1,5 @@
 .instagram-consent {
-  margin-top: 24px;
+  margin-top: var(--space-6);
   padding: var(--space-4);
   background-color: var(--bg-secondary);
   border: 1px solid var(--border);

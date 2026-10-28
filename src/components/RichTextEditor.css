@@ -175,7 +175,7 @@
 .rte-editor-surface .rte-content ul,
 .rte-editor-surface .rte-content ol {
   margin: 0 0 var(--space-2-5);
-  padding-left: 24px;
+  padding-left: var(--space-6);
 }
 
 .rte-editor-surface .rte-content ul {
@@ -187,7 +187,7 @@
 }
 
 .rte-editor-surface .rte-content li {
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
 }
 
 .rte-editor-surface .rte-content li:last-child {

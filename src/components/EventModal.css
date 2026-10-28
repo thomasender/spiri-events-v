@@ -1,5 +1,5 @@
 .modal-header {
-  padding: var(--space-8) var(--space-8) var(--space-6);
+  padding: var(--space-8) var(--modal-padding-x) var(--space-6);
   border-bottom: 1px solid var(--border);
 }
 
@@ -8,8 +8,8 @@
   font-size: var(--text-175);
   font-weight: 500;
   color: var(--text-primary);
-  margin-bottom: 12px;
-  padding-right: 40px;
+  margin-bottom: var(--space-3);
+  padding-right: var(--space-10);
 }
 
 .modal-image-wrapper {
@@ -87,7 +87,7 @@
 }
 
 .modal-details {
-  padding: var(--space-6) var(--space-8);
+  padding: var(--space-6) var(--modal-padding-x);
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
@@ -103,7 +103,7 @@
 .detail-icon {
   color: var(--accent-primary);
   flex-shrink: 0;
-  margin-top: 2px;
+  margin-top: var(--space-0-5);
 }
 
 .detail-item > div {
@@ -117,7 +117,7 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-light);
-  margin-bottom: 2px;
+  margin-bottom: var(--space-0-5);
 }
 
 .detail-value {
@@ -167,7 +167,7 @@
   font-size: var(--text-110);
   font-weight: 500;
   color: var(--text-primary);
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .modal-description p {
@@ -192,8 +192,8 @@
   .modal-header,
   .modal-details,
   .modal-description {
-    padding-left: 20px;
-    padding-right: 20px;
+    padding-left: var(--space-5);
+    padding-right: var(--space-5);
   }
 
   .modal-link {
