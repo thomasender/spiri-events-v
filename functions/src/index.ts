@@ -154,7 +154,12 @@ export { onEventApprovedCount } from './approvedEventsCounter';
 export { instagramWeeklyCarousel } from './instagramWeeklyCarousel';
 export { instagramEventStories, instagramMorningStories } from './instagramStories';
 export { calendarFeed } from './calendarFeed';
-export { publicEvents, onEventWriteBumpEventsVersion } from './publicEvents';
+export {
+  publicEvents,
+  onEventWriteBumpEventsVersion,
+  onListingWriteBumpEventsVersion,
+  onRegionWriteBumpEventsVersion,
+} from './publicEvents';
 export { getCalendarFeedToken } from './calendarFeedToken';
 export { refreshInstagramTokenJob } from './instagramTokenRefresh';
 export { onInstagramRegionAccountEnabled } from './instagramRegionBackfill';

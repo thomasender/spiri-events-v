@@ -82,6 +82,36 @@ describe('useRegionEvents with a radius', () => {
   });
 });
 
+describe('useRegionEvents: online events only where the organiser is listed', () => {
+  const ANCHORED = [
+    { id: 'bregenz', regionId: 'vorarlberg' },
+    { id: 'online-tirol-only', regionId: 'tirol', isOnline: true, onlineRegionIds: ['tirol'] },
+    { id: 'online-nowhere', regionId: 'vorarlberg', isOnline: true, onlineRegionIds: [] },
+    { id: 'online-unannotated', regionId: 'tirol', isOnline: true },
+  ];
+
+  it('drops online events whose onlineRegionIds miss the region; unannotated ones stay', () => {
+    const { result } = renderHook(() => useRegionEvents(ANCHORED), {
+      wrapper: wrap({ radiusFilter: null }),
+    });
+    expect(result.current.map((e) => e.id)).toEqual(['bregenz', 'online-unannotated']);
+    const tirol = renderHook(() => useRegionEvents(ANCHORED), {
+      wrapper: wrap({ radiusFilter: null, regionId: 'tirol' }),
+    });
+    expect(tirol.result.current.map((e) => e.id)).toEqual([
+      'online-tirol-only',
+      'online-unannotated',
+    ]);
+  });
+
+  it('favourites ignore it', () => {
+    const { result } = renderHook(() => useRegionEvents(ANCHORED, { allActive: true }), {
+      wrapper: wrap({ radiusFilter: null }),
+    });
+    expect(result.current).toHaveLength(ANCHORED.length);
+  });
+});
+
 describe('query plan with a radius', () => {
   it('loads the events of all active regions, not only the current one', () => {
     const { result } = renderHook(() => useRegionEventQueryPlan({ regionScoped: true }), {

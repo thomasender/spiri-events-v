@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { getEventQueries } from '../lib/staffEventQueries';
 import EventCard from './EventCard';
@@ -9,6 +9,11 @@ import { filterEventsForRegion, resolveRegionId } from '../utils/regions';
 import { useRegion } from '../hooks/useRegion';
 import { useRegionMigrationComplete } from '../hooks/useRegionMigrationMarker';
 import { buildPublicEventQueryPlan, queryPlanKey } from '../utils/regionQueries';
+import { usePublicEvents } from '../hooks/useEvents';
+import {
+  filterOnlineEventsForRegions,
+  onlineEligibilityEnabled,
+} from '../utils/onlineEventEligibility';
 import './SimilarEvents.css';
 
 const SIMILAR_EVENTS_LIMIT = 5;
@@ -48,14 +53,32 @@ export default function SimilarEvents({ currentEvent }) {
     buildPublicEventQueryPlan({ markerComplete, regionId: currentRegionId })
   );
   const sliderRef = useRef(null);
-  const [events, setEvents] = useState([]);
+  const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
+  // Two or more active regions: online events only where their organiser is
+  // listed. Their `onlineRegionIds` come from the cached public list (this
+  // component reads Firestore directly, which has no such field).
+  const anchorOnline = onlineEligibilityEnabled(regions.length);
+  const { events: publicList } = usePublicEvents({ enabled: anchorOnline });
+  const events = useMemo(() => {
+    if (!anchorOnline) return candidates.slice(0, SIMILAR_EVENTS_LIMIT);
+    const byId = new Map(
+      publicList.filter((e) => Array.isArray(e.onlineRegionIds)).map((e) => [e.id, e])
+    );
+    const annotated = candidates.map((e) =>
+      byId.has(e.id) ? { ...e, onlineRegionIds: byId.get(e.id).onlineRegionIds } : e
+    );
+    return filterOnlineEventsForRegions(annotated, [currentRegionId]).slice(
+      0,
+      SIMILAR_EVENTS_LIMIT
+    );
+  }, [anchorOnline, candidates, publicList, currentRegionId]);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
   useEffect(() => {
     if (!category) {
-      setEvents([]);
+      setCandidates([]);
       setLoading(false);
       return;
     }
@@ -72,11 +95,11 @@ export default function SimilarEvents({ currentEvent }) {
         const todayIso = today.toISOString().split('T')[0];
 
         // Same region as the shown event (plus online events); never inactive regions.
-        const candidates = filterEventsForRegion(docs.map(normalizeSimilarEvent), {
+        const inRegion = filterEventsForRegion(docs.map(normalizeSimilarEvent), {
           regionId: currentRegionId,
           activeRegionIds: activeKey ? activeKey.split(',') : [],
         });
-        const normalized = candidates
+        const normalized = inRegion
           .filter((event) => event.category === category)
           .filter((event) => event.id !== currentId)
           .filter((event) => {
@@ -90,16 +113,15 @@ export default function SimilarEvents({ currentEvent }) {
               if (aSame !== bSame) return bSame - aSame;
             }
             return a.date > b.date ? 1 : a.date < b.date ? -1 : 0;
-          })
-          .slice(0, SIMILAR_EVENTS_LIMIT);
+          });
 
-        setEvents(normalized);
+        setCandidates(normalized);
         setLoading(false);
       })
       .catch((err) => {
         if (cancelled) return;
         console.error('SimilarEvents: failed to load events', err);
-        setEvents([]);
+        setCandidates([]);
         setLoading(false);
       });
 

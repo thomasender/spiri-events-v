@@ -6,6 +6,7 @@ import { BRAND_NAME } from '../src/config/brand.js'
 import { DEFAULT_REGION_ID, STATIC_REGIONS, getRegionBySlug, isRegionSlug, mergeRegions, resolveRegionId } from '../src/utils/regions.js'
 import { activeRegions } from '../src/utils/regionRouting.js'
 import { regionTexts } from '../src/utils/regionTexts.js'
+import { annotateOnlineRegionIds, onlineEventVisibleIn, onlineOrganizerUids } from '../src/utils/onlineEventEligibility.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT_DIR = path.resolve(__dirname, '..')
@@ -620,6 +621,8 @@ export function generateRegionPageHtml(
         .filter(e => e.status === 'approved' || e.status === undefined)
         .filter(e => e.date && e.date >= today)
         .filter(e => activeRegionIds.includes(resolveRegionId(e)) && (e.isOnline || resolveRegionId(e) === region.id))
+        // Online events only where their organiser is listed (`onlineRegionIds`, lVFp6Dvw).
+        .filter(e => onlineEventVisibleIn(e, [region.id]))
         .slice(0, 20)
   const noscriptContent = isDirectory
     ? `<p class="prerender-no-events">${escapeHtml(texts.directoryDescription)}</p>`
@@ -1145,6 +1148,40 @@ export async function loadRegionsFromFirestoreAdmin({
   }
 }
 
+// Region pages (two or more active regions): `onlineRegionIds` for online
+// events of non-staff organisers, from their directory listings and the
+// admin_users ids (src/utils/onlineEventEligibility.js). Without Admin SDK
+// credentials the events stay unchanged (online events shown, fail open).
+export async function annotateOnlineEventsFromFirestoreAdmin(events, regions, {
+  projectId = 'spirieventsvbg',
+  appName = `prerender-admin-listings-${Date.now()}`,
+  fallbackPath = 'scripts/service-account.json',
+} = {}) {
+  const uids = onlineOrganizerUids(events)
+  if (uids.length === 0) return { events, error: null }
+  const { credential, error: credentialError } = resolveServiceAccountCredential({ fallbackPath })
+  if (!credential) return { events, error: credentialError }
+  try {
+    const admin = await import('firebase-admin/app')
+    const { getFirestore } = await import('firebase-admin/firestore')
+    const app = admin.initializeApp({ credential: admin.cert(credential), projectId }, appName)
+    try {
+      const db = getFirestore(app)
+      const [staffSnap, profileSnaps] = await Promise.all([
+        db.collection('admin_users').get(),
+        db.getAll(...uids.map(uid => db.doc(`users/${uid}/publicProfile/data`))),
+      ])
+      const listings = Object.fromEntries(profileSnaps.map((snap, i) => [uids[i], snap.exists ? snap.data() : null]))
+      const staffUids = staffSnap.docs.map(d => d.id)
+      return { events: annotateOnlineRegionIds(events, { regions, listings, staffUids }), error: null }
+    } finally {
+      app.delete().catch(() => {})
+    }
+  } catch (err) {
+    return { events, error: `Listings Admin SDK read threw: ${err.message}` }
+  }
+}
+
 export async function loadRegionsFromFirestoreRest({
   projectId,
   apiKey,
@@ -1439,10 +1476,16 @@ export async function prerender({
   if (regionPlan.length > 0) {
     if (jsBundlePath && cssBundlePath) {
       const activeRegionIds = activeRegions(regions).map(r => r.id)
+      let regionEvents = events
+      if (!skipAdmin) {
+        const annotated = await annotateOnlineEventsFromFirestoreAdmin(events, regions, { projectId: firebaseConfig.projectId })
+        if (annotated.error) console.warn(`Online event listings skipped: ${annotated.error}`)
+        regionEvents = annotated.events
+      }
       for (const { region, kind, path: pagePath } of regionPlan) {
         const pageDir = path.join(distPath, ...pagePath.split('/').filter(Boolean))
         ensureDir(pageDir)
-        const html = generateRegionPageHtml(region, kind, events, jsBundlePath, cssBundlePath, theme, {
+        const html = generateRegionPageHtml(region, kind, regionEvents, jsBundlePath, cssBundlePath, theme, {
           activeCount: activeRegionIds.length,
           activeRegionIds,
         })

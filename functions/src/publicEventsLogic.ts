@@ -73,6 +73,26 @@ export function changesPublicList(
   );
 }
 
+const LISTING_FIELDS = [
+  'listedInDirectory',
+  'directoryHidden',
+  'directoryRegions',
+  'directoryRegionIds',
+] as const;
+
+/**
+ * Whether a write to users/{uid}/publicProfile/data changes a field that
+ * decides where the organiser's online events show (Trello lVFp6Dvw).
+ */
+export function changesOnlineListing(
+  before: Record<string, unknown> | undefined,
+  after: Record<string, unknown> | undefined
+): boolean {
+  return LISTING_FIELDS.some(
+    (key) => JSON.stringify(before?.[key] ?? null) !== JSON.stringify(after?.[key] ?? null)
+  );
+}
+
 /** Strictly increasing so a late trigger can never hand out an older version. */
 export function nextVersion(previous: number | undefined, now: number): number {
   return Math.max(now, (previous ?? 0) + 1);
