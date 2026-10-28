@@ -110,6 +110,22 @@
   gap: 6px;
 }
 
+.dm-presence-warning {
+  display: flex;
+  flex: 1 1 100%;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #78350f;
+  color: #fde68a;
+}
+
+.dm-presence-warning svg {
+  flex: none;
+  margin-top: 2px;
+}
+
 .dm-status {
   max-width: 340px;
   color: #d1d5db;

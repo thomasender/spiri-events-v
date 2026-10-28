@@ -1,7 +1,17 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { History, Palette, Paintbrush, Rocket, SlidersHorizontal, Trash2, X } from 'lucide-react';
+import {
+  History,
+  Palette,
+  AlertTriangle,
+  Paintbrush,
+  Rocket,
+  SlidersHorizontal,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import { useDesignPresence } from '../../hooks/useDesignPresence';
 import { discardDraft, listChanges, setDesignMode, useLayoutState } from '../../lib/layoutStore';
 import DesignOverlay from './DesignOverlay';
 import DesignPanel from './DesignPanel';
@@ -16,6 +26,7 @@ import './DesignMode.css';
 export default function DesignModeApp({ onExit }) {
   const { user } = useAuth();
   const layout = useLayoutState();
+  const others = useDesignPresence(user);
   const changes = listChanges(layout);
   const [panelOpen, setPanelOpen] = useState(false);
   const [dialog, setDialog] = useState(null); // 'publish' | 'history' | null
@@ -41,6 +52,15 @@ export default function DesignModeApp({ onExit }) {
       {panelOpen && <DesignPanel onClose={() => setPanelOpen(false)} />}
 
       <div className="dm-toolbar" data-design-ui role="toolbar" aria-label="Design-Modus">
+        {others.length > 0 && (
+          <div className="dm-presence-warning" role="alert">
+            <AlertTriangle size={14} aria-hidden="true" />
+            <span>
+              {others.join(', ')} {others.length === 1 ? 'ist' : 'sind'} gerade auch im
+              Design-Modus. Bitte abstimmen, damit sich eure Veröffentlichungen nicht überschreiben.
+            </span>
+          </div>
+        )}
         <div className="dm-toolbar-title">
           <Paintbrush size={16} aria-hidden="true" />
           <strong>Design-Modus</strong>

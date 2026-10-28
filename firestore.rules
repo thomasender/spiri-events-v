@@ -923,6 +923,21 @@ service cloud.firestore {
                             && request.resource.data.updatedAt != null;
     }
 
+    // Who is in the Design-Modus right now: one heartbeat doc per admin so the
+    // admins can see each other and avoid overwriting each other's publish.
+    // Every admin reads all, writes only their own.
+    match /design_sessions/{uid} {
+      allow read: if isAdminOrEmulatorAdmin();
+      allow create, update: if isAdminOrEmulatorAdmin()
+                            && request.auth.uid == uid
+                            && request.resource.data.keys().hasOnly(['uid', 'name', 'lastSeen'])
+                            && request.resource.data.uid == uid
+                            && request.resource.data.name is string
+                            && request.resource.data.name.size() <= 100
+                            && request.resource.data.lastSeen == request.time;
+      allow delete: if isAdminOrEmulatorAdmin() && request.auth.uid == uid;
+    }
+
     // Publish log of the layout tokens: one append-only entry per publish,
     // written in the same batch as the live doc. Admin-only; no edits, no
     // deletes, so the history is trustworthy for rollbacks.

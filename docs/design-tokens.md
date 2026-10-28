@@ -84,5 +84,6 @@ branches that still use raw values.
   visitors are fine thanks to the localStorage cache.
 - The overlay reads the page's stylesheets, so it only sees what is written with tokens.
 - Design-Modus is not offered on mobile (viewport <= 800px): too buggy there for now.
+- Presence: while in the Design-Modus each admin writes a heartbeat doc `design_sessions/{uid}` (30 s, stale after 90 s, removed on exit). Other admins in the mode see a warning with the names, so they can agree before publishing. It only warns; it does not lock anything.
 - No mobile preview frame: narrow the browser window to see mobile rules (the overlay
   recompiles on resize).
