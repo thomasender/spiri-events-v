@@ -54,6 +54,28 @@
   border-radius: 4px;
 }
 
+/* Donation call: filled pill in the calendar's accent colour. The doubled
+   class beats `.footer-nav a` (colour, padding) and its :hover. */
+.footer-nav .footer-donate-link {
+  display: inline-block;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-lg);
+  background-color: var(--accent-primary);
+  color: white;
+  font-weight: 500;
+  transition: background-color 0.15s ease;
+}
+
+.footer-nav .footer-donate-link:hover {
+  background-color: var(--accent-primary-hover);
+  color: white;
+}
+
+.footer-nav .footer-donate-link:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 3px;
+}
+
 /*
  * Desktop doesn't benefit from an install link — Chrome shows its own
  * mini-infobar and iOS users on desktop Safari won't have a Home Screen.

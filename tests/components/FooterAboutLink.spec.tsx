@@ -45,6 +45,33 @@ function renderAt(path: string) {
 
 const aboutHref = () => screen.getByRole('link', { name: 'Über uns' }).getAttribute('href');
 
+const donateHref = () => screen.getByTestId('footer-donate-link').getAttribute('href');
+
+describe('Footer donation link', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    window.sessionStorage.clear();
+    mocks.regions = { regions: mergeRegions([]), loading: false };
+  });
+
+  it('points to the #spenden section of the general about page', () => {
+    renderAt('/');
+    expect(donateHref()).toBe('/ueber-uns#spenden');
+    expect(screen.getByTestId('footer-donate-link').textContent).toBe('Den Kalender unterstützen');
+  });
+
+  it("points to the region's about page when the visitor is in another region", () => {
+    renderAt('/tirol');
+    expect(donateHref()).toBe('/tirol/ueber-uns#spenden');
+  });
+
+  it('comes first in the footer navigation', () => {
+    renderAt('/');
+    const nav = screen.getByRole('navigation', { name: 'Footer-Navigation' });
+    expect(nav.firstElementChild).toBe(screen.getByTestId('footer-donate-link'));
+  });
+});
+
 describe('Footer "Über uns" link', () => {
   beforeEach(() => {
     window.localStorage.clear();
