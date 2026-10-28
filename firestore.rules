@@ -605,6 +605,20 @@ service cloud.firestore {
         allow delete: if isAuthenticated() && request.auth.uid == uid;
       }
 
+      // "Last opened" markers for staff notification dots (vX7TgrWN): which
+      // pending events the account has already seen in Review. Owner only.
+      match /seen/{area} {
+        allow read: if isAuthenticated() && request.auth.uid == uid;
+        allow create, update: if isAuthenticated()
+                      && request.auth.uid == uid
+                      && area in ['review']
+                      && request.resource.data.keys().hasOnly(['eventIds', 'at'])
+                      && request.resource.data.eventIds is list
+                      && request.resource.data.eventIds.size() <= 500
+                      && request.resource.data.at == request.time;
+        allow delete: if isAuthenticated() && request.auth.uid == uid;
+      }
+
       // Public profile subdoc: mirrors only the public-safe fields
       // (displayName, bio, website, photoURL, slug) so anyone can render a
       // organizer's public profile page via the `/:slug` route without

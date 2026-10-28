@@ -4,6 +4,7 @@ import { db } from '../lib/firebase';
 import { useAuth } from './useAuth';
 import { getStaffAccess } from '../utils/staffRoles';
 import { staffEventQuerySpecs, subscribeEventQueries } from '../lib/staffEventQueries';
+import { messageIsUnreadFor, responsibleStaffUid } from '../utils/staffNotifications';
 
 export function useEventsWithMessages() {
   const { user, role, staffRegionIds } = useAuth();
@@ -83,15 +84,18 @@ export function useEventsWithMessages() {
           const unsub = onSnapshot(
             messagesRef,
             (snap) => {
-              let unread = 0;
-              let hasAny = false;
               let firstAdminName = null;
-              snap.docs.forEach((docSnap) => {
-                hasAny = true;
-                const data = docSnap.data();
-                if (data.authorUid !== user.uid && data.readByRecipient !== true) {
-                  unread += 1;
-                }
+              const messages = snap.docs.map((docSnap) => docSnap.data());
+              const hasAny = messages.length > 0;
+              // An organizer's reply only reaches the staff member who started
+              // the conversation, not every admin (vX7TgrWN).
+              const ctx = {
+                viewerUid: user.uid,
+                viewerIsOwner: event.createdBy === user.uid,
+                responsibleUid: responsibleStaffUid(messages),
+              };
+              const unread = messages.filter((m) => messageIsUnreadFor(m, ctx)).length;
+              messages.forEach((data) => {
                 // Remember the first admin message so the review tab can
                 // show "In Klärung mit [Name]". We only care about the
                 // first occurrence — additional admins joining later still

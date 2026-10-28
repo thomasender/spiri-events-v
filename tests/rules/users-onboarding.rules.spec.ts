@@ -6,7 +6,7 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { deleteDoc, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { deleteDoc, doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 
 let env: RulesTestEnvironment;
@@ -174,5 +174,37 @@ describe('users/{uid}/adminAlerts', () => {
     const db = env.authenticatedContext('alice').firestore();
     await assertFails(updateDoc(doc(db, 'users/alice/adminAlerts/e1'), { changeCount: 9 }));
     await assertFails(updateDoc(doc(db, 'users/alice/adminAlerts/e1'), { read: false }));
+  });
+});
+
+// "Last opened Review" marker for the staff notification dots.
+describe('users/{uid}/seen/{area}', () => {
+  const seen = () => ({ eventIds: ['e1', 'e2'], at: serverTimestamp() });
+
+  it('the owner writes, reads and deletes her review marker', async () => {
+    const db = env.authenticatedContext('alice').firestore();
+    await assertSucceeds(setDoc(doc(db, 'users/alice/seen/review'), seen()));
+    await assertSucceeds(setDoc(doc(db, 'users/alice/seen/review'), seen()));
+    await assertSucceeds(getDoc(doc(db, 'users/alice/seen/review')));
+    await assertSucceeds(deleteDoc(doc(db, 'users/alice/seen/review')));
+  });
+
+  it('nobody else can read or write it', async () => {
+    const db = env.authenticatedContext('bob').firestore();
+    await assertFails(setDoc(doc(db, 'users/alice/seen/review'), seen()));
+    await assertFails(getDoc(doc(db, 'users/alice/seen/review')));
+  });
+
+  it('only known areas, only eventIds + server time, at most 500 ids', async () => {
+    const db = env.authenticatedContext('alice').firestore();
+    await assertFails(setDoc(doc(db, 'users/alice/seen/other'), seen()));
+    await assertFails(setDoc(doc(db, 'users/alice/seen/review'), { ...seen(), extra: 1 }));
+    await assertFails(
+      setDoc(doc(db, 'users/alice/seen/review'), { eventIds: [], at: new Date(0) })
+    );
+    const tooMany = Array.from({ length: 501 }, (_, i) => `e${i}`);
+    await assertFails(
+      setDoc(doc(db, 'users/alice/seen/review'), { eventIds: tooMany, at: serverTimestamp() })
+    );
   });
 });
