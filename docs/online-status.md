@@ -3,8 +3,8 @@
 Read this when you touch the online dot (directory, public profile, member card, Postfach), the
 `presence` collection, `useOnlineStatus`, the profile option or the privacy text about it.
 
-Green = online, red = offline, **no dot = the person does not share** (default). Only verified,
-logged-in members see dots; logged-out visitors never see one (not even a red one).
+Green = online, **no dot = offline or the person does not share** (default; there is no red dot). Only verified,
+logged-in members see dots; logged-out visitors never see one.
 
 ## Feature flag
 
