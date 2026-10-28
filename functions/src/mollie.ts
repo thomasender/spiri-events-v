@@ -1,4 +1,5 @@
 import { defineSecret } from 'firebase-functions/params';
+import { MONTHLY_DONATION_TYPE } from './mollieWebhookLogic';
 
 // Kept inline because the functions bundle is CJS and the shared helpers in
 // src/lib/ are ESM modules. Keep in sync with the helper.
@@ -77,6 +78,7 @@ export function resolveAppBaseUrl(req: CallableRequest): string {
 interface MollieRequestOptions {
   method: 'GET' | 'POST';
   body?: Record<string, unknown>;
+  idempotencyKey?: string;
 }
 
 export async function mollieRequest<T>(
@@ -90,18 +92,31 @@ export async function mollieRequest<T>(
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
       Accept: 'application/json',
+      ...(options.idempotencyKey ? { 'Idempotency-Key': options.idempotencyKey } : {}),
     },
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
 
   const text = await response.text();
-  const data = text ? (JSON.parse(text) as unknown) : null;
+  let data: unknown = null;
+  try {
+    data = text ? (JSON.parse(text) as unknown) : null;
+  } catch {
+    data = null;
+  }
 
   if (!response.ok) {
-    const mollieMessage =
-      data && typeof data === 'object' && 'message' in data && typeof data.message === 'string'
-        ? data.message
-        : null;
+    // Mollie v2 errors carry the reason in `detail` (and the offending
+    // `field`); without it a 422 is undiagnosable.
+    const errorBody = data && typeof data === 'object' ? (data as Record<string, unknown>) : {};
+    const reason =
+      typeof errorBody.detail === 'string'
+        ? errorBody.detail
+        : typeof errorBody.message === 'string'
+          ? errorBody.message
+          : null;
+    const field = typeof errorBody.field === 'string' ? ` (field: ${errorBody.field})` : '';
+    const mollieMessage = reason ? `${reason}${field}` : null;
     const message = mollieMessage
       ? `Mollie ${path} ${response.status}: ${mollieMessage}`
       : `Mollie ${path} failed with ${response.status}`;
@@ -143,7 +158,7 @@ interface MollieSubscriptionResponse {
 export interface MollieSubscriptionCheckoutResult {
   checkoutUrl: string;
   customerId: string;
-  subscriptionId: string;
+  paymentId: string;
 }
 
 export interface MolliePaymentCheckoutResult {
@@ -166,50 +181,107 @@ export async function createMollieCustomer(
   });
 }
 
+/**
+ * Starts a monthly donation. Mollie only accepts a subscription once the
+ * customer has a mandate, and a mandate only exists after a paid FIRST
+ * payment (sequenceType=first). So this creates that first payment and
+ * returns its checkout; the webhook creates the subscription once the
+ * first payment is paid (see `ensureMollieSubscription`). Creating the
+ * subscription straight away (the old flow) always failed with 422.
+ */
 export async function startMollieSubscriptionCheckout(
   apiKey: string,
   params: {
     customerId: string;
     amount: number;
     appBaseUrl: string;
+    name?: string | null;
+    displayOnConsent?: boolean;
   }
 ): Promise<MollieSubscriptionCheckoutResult> {
-  const subscription = await mollieRequest<MollieSubscriptionResponse>(
-    apiKey,
-    `/customers/${params.customerId}/subscriptions`,
-    {
-      method: 'POST',
-      body: {
-        amount: {
-          currency: DONATION_CURRENCY,
-          value: formatAmount(params.amount),
-        },
-        description: SUBSCRIPTION_DESCRIPTION,
-        interval: SUBSCRIPTION_INTERVAL,
-        webhookUrl: `${params.appBaseUrl}/mollieWebhook`,
-      },
-    }
-  );
+  const metadata: Record<string, unknown> = {
+    displayOnConsent: Boolean(params.displayOnConsent),
+    donationType: MONTHLY_DONATION_TYPE,
+  };
+  if (params.name && params.name.trim().length > 0) {
+    metadata.donorName = params.name.trim();
+  }
 
-  const subPayments = await mollieRequest<{
-    _embedded?: { payments?: MolliePaymentResponse[] };
-  }>(apiKey, `/customers/${params.customerId}/subscriptions/${subscription.id}/payments?limit=1`, {
-    method: 'GET',
+  const payment = await mollieRequest<MolliePaymentResponse>(apiKey, '/payments', {
+    method: 'POST',
+    body: {
+      amount: {
+        currency: DONATION_CURRENCY,
+        value: formatAmount(params.amount),
+      },
+      description: SUBSCRIPTION_DESCRIPTION,
+      customerId: params.customerId,
+      sequenceType: 'first',
+      redirectUrl: `${params.appBaseUrl}/spenden/danke`,
+      webhookUrl: `${params.appBaseUrl}/mollieWebhook`,
+      locale: 'de_AT',
+      metadata,
+    },
   });
 
-  const firstPayment = subPayments._embedded?.payments?.[0];
-  const checkoutUrl = firstPayment ? extractMollieCheckoutUrl(firstPayment) : null;
+  const checkoutUrl = extractMollieCheckoutUrl(payment);
   if (!checkoutUrl) {
     throw new Error(
-      `Mollie did not return a checkout URL for the first subscription payment (status: ${firstPayment?.status ?? 'unknown'})`
+      `Mollie did not return a checkout URL for the first monthly payment (status: ${payment.status ?? 'unknown'})`
     );
   }
 
   return {
     checkoutUrl,
     customerId: params.customerId,
-    subscriptionId: subscription.id,
+    paymentId: payment.id,
   };
+}
+
+/**
+ * Creates the monthly subscription after the first payment was paid.
+ * Idempotent: Mollie resends webhooks, so an existing active/pending
+ * subscription of the customer is returned instead of creating a second one.
+ */
+export async function ensureMollieSubscription(
+  apiKey: string,
+  params: {
+    customerId: string;
+    amount: string;
+    startDate: string;
+    firstPaymentId: string;
+    mandateId?: string | null;
+    webhookUrl?: string | null;
+  }
+): Promise<{ id: string; created: boolean }> {
+  const existing = await mollieRequest<{
+    _embedded?: { subscriptions?: MollieSubscriptionResponse[] };
+  }>(apiKey, `/customers/${params.customerId}/subscriptions`, { method: 'GET' });
+  const live = existing?._embedded?.subscriptions?.find(
+    (sub) => sub.status === 'active' || sub.status === 'pending'
+  );
+  if (live) return { id: live.id, created: false };
+
+  const body: Record<string, unknown> = {
+    amount: { currency: DONATION_CURRENCY, value: params.amount },
+    description: SUBSCRIPTION_DESCRIPTION,
+    interval: SUBSCRIPTION_INTERVAL,
+    startDate: params.startDate,
+    metadata: { firstPaymentId: params.firstPaymentId },
+  };
+  if (params.mandateId) body.mandateId = params.mandateId;
+  if (params.webhookUrl) body.webhookUrl = params.webhookUrl;
+
+  const subscription = await mollieRequest<MollieSubscriptionResponse>(
+    apiKey,
+    `/customers/${params.customerId}/subscriptions`,
+    {
+      method: 'POST',
+      body,
+      idempotencyKey: `sub-${params.firstPaymentId}`,
+    }
+  );
+  return { id: subscription.id, created: true };
 }
 
 export async function startMolliePaymentCheckout(

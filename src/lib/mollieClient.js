@@ -40,7 +40,7 @@ export async function startOneTimeDonation(amount, options = {}) {
 /**
  * @param {number} amount donation amount in EUR (≥ MIN_DONATION_AMOUNT)
  * @param {{ name?: string|null, displayOnConsent?: boolean }} [options]
- * @returns {Promise<{checkoutUrl: string, customerId: string, subscriptionId: string}>}
+ * @returns {Promise<{checkoutUrl: string, customerId: string, paymentId: string}>}
  */
 export async function startMonthlyDonation(amount, options = {}) {
   assertValidAmount(amount);

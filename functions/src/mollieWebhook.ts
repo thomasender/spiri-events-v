@@ -1,6 +1,7 @@
 import { onRequest } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions';
-import { MOLLIE_API_KEY, mollieRequest } from './mollie';
+import { MOLLIE_API_KEY, ensureMollieSubscription, mollieRequest } from './mollie';
+import { reportPaymentFailure } from './paymentAlerts';
 import { getFirestore } from 'firebase-admin/firestore';
 import type { FirestoreLikeDb } from './mollieWebhookLogic';
 import {
@@ -68,6 +69,8 @@ export const mollieWebhook = onRequest(
       now: () => new Date(),
       fetchPayment: async (id) => mollieRequest(apiKey, `/payments/${id}`, { method: 'GET' }),
       fetchCustomer: async (id) => mollieRequest(apiKey, `/customers/${id}`, { method: 'GET' }),
+      ensureSubscription: (args) => ensureMollieSubscription(apiKey, args),
+      reportFailure: (args) => reportPaymentFailure(args),
     });
 
     if (result.status >= 500) {

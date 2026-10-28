@@ -189,7 +189,9 @@ describe('DonationBlock', () => {
   });
 
   it('shows an inline error and re-enables the form when the donation call throws', async () => {
-    startOneTimeDonation.mockRejectedValue(new Error('Mollie down'));
+    startOneTimeDonation.mockRejectedValue(
+      new Error('Mollie /customers/cst_x/subscriptions failed with 422')
+    );
 
     renderBlock();
 
@@ -198,7 +200,8 @@ describe('DonationBlock', () => {
     submit();
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('Mollie down');
+      expect(screen.getByRole('alert')).toHaveTextContent(/konnte gerade nicht gestartet werden/);
+      expect(screen.getByRole('alert')).not.toHaveTextContent(/Mollie|422/);
     });
 
     expect(screen.getByLabelText(/betrag in euro/i)).not.toBeDisabled();

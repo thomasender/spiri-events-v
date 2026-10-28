@@ -23,6 +23,20 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 export const DONOR_NEXT_ORDER_STEP = 100;
 export const MOLLIE_DONATION_CURRENCY = 'EUR';
 export const NEXT_GEN_SIGNATURE_HEADER = 'x-mollie-signature';
+// Marks the first payment of a monthly donation (payment metadata).
+export const MONTHLY_DONATION_TYPE = 'monthly';
+
+/**
+ * First day of the next billing period as Mollie `startDate` (YYYY-MM-DD),
+ * clamped to the last day of next month (31 Jan -> 28/29 Feb).
+ */
+export function subscriptionStartDate(firstPaidAt: Date): string {
+  const year = firstPaidAt.getUTCFullYear();
+  const month = firstPaidAt.getUTCMonth() + 1;
+  const lastDayOfNextMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  const day = Math.min(firstPaidAt.getUTCDate(), lastDayOfNextMonth);
+  return new Date(Date.UTC(year, month, day)).toISOString().slice(0, 10);
+}
 
 function asMetadata(input: unknown): Record<string, unknown> {
   if (input && typeof input === 'object') return input as Record<string, unknown>;
@@ -217,7 +231,8 @@ export async function handlePaidPayment({
   const isSubscriptionPayment = Boolean(payment.subscriptionId);
   const isRecurring =
     payment.sequenceType === 'recurring' ||
-    (isSubscriptionPayment && payment.sequenceType === 'first');
+    (isSubscriptionPayment && payment.sequenceType === 'first') ||
+    metadata.donationType === MONTHLY_DONATION_TYPE;
   const frequency = isRecurring ? 'monthly' : 'one-time';
 
   const data: Record<string, unknown> = {
@@ -246,6 +261,8 @@ export async function processMollieWebhook({
   body,
   fetchPayment,
   fetchCustomer,
+  ensureSubscription,
+  reportFailure,
   db,
   now = () => new Date(),
 }: ProcessMollieWebhookDeps): Promise<ProcessMollieWebhookResult> {
@@ -272,12 +289,14 @@ export async function processMollieWebhook({
         body: { received: true, action: 'ignored', reason: payment.status },
       };
     }
-    if (payment.subscriptionId && payment.sequenceType && payment.sequenceType !== 'first') {
-      return { status: 200, body: { received: true, action: 'skip-recurring' } };
-    }
-    await enrichPaymentFromCustomerIfNeeded({ payment, fetchCustomer });
-    const result = await handlePaidPayment({ db, payment, now });
-    return { status: 200, body: { received: true, ...result } };
+    return handlePaidWebhookPayment({
+      payment,
+      db,
+      now,
+      fetchCustomer,
+      ensureSubscription,
+      reportFailure,
+    });
   }
 
   // Classic: only the id is shipped; fetch the full payment from Mollie.
@@ -293,13 +312,21 @@ export async function processMollieWebhook({
           body: { received: true, action: 'ignored', reason: payment.status },
         };
       }
-      if (payment.subscriptionId && payment.sequenceType && payment.sequenceType !== 'first') {
-        return { status: 200, body: { received: true, action: 'skip-recurring' } };
-      }
-      await enrichPaymentFromCustomerIfNeeded({ payment, fetchCustomer });
-      const result = await handlePaidPayment({ db, payment, now });
-      return { status: 200, body: { received: true, ...result } };
+      return await handlePaidWebhookPayment({
+        payment,
+        db,
+        now,
+        fetchCustomer,
+        ensureSubscription,
+        reportFailure,
+      });
     } catch (err) {
+      await reportFailure?.({
+        step: 'webhook',
+        error: err,
+        ids: { payment: body.id },
+        alertId: `mollie_webhook_${body.id}`,
+      });
       return {
         status: 500,
         body: { error: 'fetch-failed', message: (err as Error)?.message ?? 'unknown' },
@@ -308,6 +335,78 @@ export async function processMollieWebhook({
   }
 
   return { status: 400, body: { error: 'unsupported format' } };
+}
+
+/**
+ * The first payment of a monthly donation carries
+ * metadata.donationType='monthly' and no subscriptionId yet. Once it is
+ * paid the customer has a mandate, so the subscription is created here
+ * (starting next month; this month is the first payment). If that fails,
+ * the admins are alerted and a 500 makes Mollie retry the webhook.
+ */
+export function isFirstMonthlyPayment(payment: MolliePaymentResource): boolean {
+  return (
+    asMetadata(payment.metadata).donationType === MONTHLY_DONATION_TYPE &&
+    !payment.subscriptionId &&
+    payment.sequenceType === 'first' &&
+    Boolean(payment.customerId)
+  );
+}
+
+function paidAtOf(payment: MolliePaymentResource, now: () => Date): Date {
+  const parsed = payment.paidAt ? new Date(payment.paidAt) : null;
+  return parsed && !Number.isNaN(parsed.getTime()) ? parsed : now();
+}
+
+async function handlePaidWebhookPayment({
+  payment,
+  db,
+  now = () => new Date(),
+  fetchCustomer,
+  ensureSubscription,
+  reportFailure,
+}: {
+  payment: MolliePaymentResource;
+  db: FirestoreLikeDb;
+  now?: () => Date;
+  fetchCustomer?: CustomerFetcher;
+  ensureSubscription?: SubscriptionEnsurer;
+  reportFailure?: PaymentFailureReporter;
+}): Promise<ProcessMollieWebhookResult> {
+  if (payment.subscriptionId && payment.sequenceType && payment.sequenceType !== 'first') {
+    return { status: 200, body: { received: true, action: 'skip-recurring' } };
+  }
+
+  if (isFirstMonthlyPayment(payment) && ensureSubscription) {
+    const customerId = payment.customerId as string;
+    try {
+      const subscription = await ensureSubscription({
+        customerId,
+        amount: payment.amount?.value ?? '',
+        startDate: subscriptionStartDate(paidAtOf(payment, now)),
+        firstPaymentId: payment.id,
+        mandateId: payment.mandateId ?? null,
+        webhookUrl: payment.webhookUrl ?? null,
+      });
+      payment.subscriptionId = subscription.id;
+    } catch (err) {
+      await reportFailure?.({
+        step: 'abo-anlegen',
+        error: err,
+        amount: payment.amount?.value ?? null,
+        ids: { customer: customerId, payment: payment.id },
+        alertId: `mollie_abo_${payment.id}`,
+      });
+      return {
+        status: 500,
+        body: { error: 'subscription-failed', message: (err as Error)?.message ?? 'unknown' },
+      };
+    }
+  }
+
+  await enrichPaymentFromCustomerIfNeeded({ payment, fetchCustomer });
+  const result = await handlePaidPayment({ db, payment, now });
+  return { status: 200, body: { received: true, ...result } };
 }
 
 /**
@@ -356,7 +455,27 @@ export interface MolliePaymentResource {
   customerId?: string | null;
   subscriptionId?: string | null;
   sequenceType?: string | null;
+  mandateId?: string | null;
+  paidAt?: string | null;
+  webhookUrl?: string | null;
 }
+
+export type SubscriptionEnsurer = (args: {
+  customerId: string;
+  amount: string;
+  startDate: string;
+  firstPaymentId: string;
+  mandateId: string | null;
+  webhookUrl: string | null;
+}) => Promise<{ id: string }>;
+
+export type PaymentFailureReporter = (args: {
+  step: 'abo-anlegen' | 'webhook';
+  error: unknown;
+  amount?: string | null;
+  ids?: Record<string, string | null | undefined>;
+  alertId?: string;
+}) => Promise<void>;
 
 export interface MollieCustomerResource {
   id: string;
@@ -435,6 +554,8 @@ export interface ProcessMollieWebhookDeps {
   body: ParsedWebhookBody;
   fetchPayment?: PaymentFetcher;
   fetchCustomer?: CustomerFetcher;
+  ensureSubscription?: SubscriptionEnsurer;
+  reportFailure?: PaymentFailureReporter;
   db: FirestoreLikeDb;
   now?: () => Date;
 }

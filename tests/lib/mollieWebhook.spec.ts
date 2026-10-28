@@ -7,6 +7,7 @@ import {
   processMollieWebhook,
   verifyMollieSignature,
   canonicalBodyBytes,
+  subscriptionStartDate,
 } from '../../functions/src/mollieWebhookLogic';
 
 function makeSnapshot(exists, fields = {}, docs = []) {
@@ -529,5 +530,97 @@ describe('processMollieWebhook — input validation', () => {
       db: { collection: () => undefined },
     });
     expect(result.status).toBe(400);
+  });
+});
+
+describe('processMollieWebhook — first payment of a monthly donation', () => {
+  const firstPayment = () => ({
+    id: 'tr_first',
+    status: 'paid',
+    amount: { value: '15.00', currency: 'EUR' },
+    sequenceType: 'first',
+    customerId: 'cst_1',
+    mandateId: 'mdt_1',
+    paidAt: '2026-10-28T10:00:00+00:00',
+    webhookUrl: 'https://www.thetribe.at/mollieWebhook',
+    metadata: { donationType: 'monthly', displayOnConsent: true, donorName: 'Greta' },
+  });
+
+  it('creates the subscription after the first payment is paid and records a monthly donor', async () => {
+    const { db, setCalls } = makeDb();
+    const ensureSubscription = vi.fn(async () => ({ id: 'sub_1' }));
+    const result = await processMollieWebhook({
+      body: { format: 'next-gen', type: 'payment.paid', eventId: 'ev', payment: firstPayment() },
+      ensureSubscription,
+      db,
+    });
+
+    expect(result).toEqual({ status: 200, body: { received: true, written: true } });
+    expect(ensureSubscription).toHaveBeenCalledWith({
+      customerId: 'cst_1',
+      amount: '15.00',
+      startDate: '2026-11-28',
+      firstPaymentId: 'tr_first',
+      mandateId: 'mdt_1',
+      webhookUrl: 'https://www.thetribe.at/mollieWebhook',
+    });
+    expect(setCalls[0].data).toMatchObject({ frequency: 'monthly', mollieSubscriptionId: 'sub_1' });
+  });
+
+  it('reports to the Verwaltung and asks Mollie to retry when the subscription cannot be created', async () => {
+    const { db, setCalls } = makeDb();
+    const reportFailure = vi.fn(async () => {});
+    const result = await processMollieWebhook({
+      body: { format: 'next-gen', type: 'payment.paid', eventId: 'ev', payment: firstPayment() },
+      ensureSubscription: vi.fn(async () => {
+        throw new Error('Mollie /customers/cst_1/subscriptions 422: No mandate');
+      }),
+      reportFailure,
+      db,
+    });
+
+    expect(result.status).toBe(500);
+    expect(setCalls).toHaveLength(0);
+    expect(reportFailure).toHaveBeenCalledWith(
+      expect.objectContaining({
+        step: 'abo-anlegen',
+        ids: { customer: 'cst_1', payment: 'tr_first' },
+        alertId: 'mollie_abo_tr_first',
+      })
+    );
+  });
+
+  it('does not create a subscription for a one-time donation', async () => {
+    const { db } = makeDb();
+    const ensureSubscription = vi.fn();
+    await processMollieWebhook({
+      body: {
+        format: 'next-gen',
+        type: 'payment.paid',
+        eventId: 'ev',
+        payment: {
+          id: 'tr_once',
+          status: 'paid',
+          amount: { value: '20.00', currency: 'EUR' },
+          sequenceType: 'oneoff',
+          metadata: { displayOnConsent: true, donorName: 'Max' },
+        },
+      },
+      ensureSubscription,
+      db,
+    });
+    expect(ensureSubscription).not.toHaveBeenCalled();
+  });
+});
+
+describe('subscriptionStartDate', () => {
+  it('starts one month after the first payment', () => {
+    expect(subscriptionStartDate(new Date('2026-10-28T10:00:00Z'))).toBe('2026-11-28');
+    expect(subscriptionStartDate(new Date('2026-12-15T10:00:00Z'))).toBe('2027-01-15');
+  });
+
+  it('clamps to the end of a shorter next month', () => {
+    expect(subscriptionStartDate(new Date('2027-01-31T10:00:00Z'))).toBe('2027-02-28');
+    expect(subscriptionStartDate(new Date('2028-01-31T10:00:00Z'))).toBe('2028-02-29');
   });
 });

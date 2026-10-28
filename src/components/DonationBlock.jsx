@@ -63,12 +63,11 @@ export default function DonationBlock({ placement = 'unknown' }) {
         displayOnConsent,
       });
       window.location.assign(checkoutUrl);
-    } catch (err) {
+    } catch {
+      // Never show the raw provider error (e.g. "Mollie ... failed with 422");
+      // the server logs it and reports it in the Verwaltung.
       setSubmitting(false);
-      const message =
-        err?.message ??
-        'Die Spende konnte gerade nicht gestartet werden. Bitte versuche es erneut.';
-      setError(message);
+      setError('Die Spende konnte gerade nicht gestartet werden. Bitte versuche es später erneut.');
     }
   }
 
