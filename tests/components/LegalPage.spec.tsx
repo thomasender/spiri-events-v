@@ -175,3 +175,21 @@ describe('LegalPage Instagram channels (per region)', () => {
     ).not.toBeNull();
   });
 });
+
+describe('LegalPage back link', () => {
+  it('leads to the region the visitor came from, not to Vorarlberg', () => {
+    render(
+      <HelmetProvider>
+        <MemoryRouter>
+          <RegionContext.Provider value={{ ...DEFAULT_REGION_CONTEXT, pageSlug: 'kaernten' }}>
+            <LegalPage page="impressum" />
+          </RegionContext.Provider>
+        </MemoryRouter>
+      </HelmetProvider>
+    );
+    expect(screen.getByRole('link', { name: 'Zurück zur Startseite' })).toHaveAttribute(
+      'href',
+      '/kaernten'
+    );
+  });
+});

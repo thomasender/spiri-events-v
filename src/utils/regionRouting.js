@@ -160,6 +160,21 @@ export function aboutPathFor({ pageSlug, regionId, regions = STATIC_REGIONS } = 
   return regionCanonicalPath(regionId, '/ueber-uns', regions);
 }
 
+/**
+ * Start page for a page: "Zurück zur Startseite" on neutral pages (Impressum,
+ * Datenschutz). Leads to the region / combined view the page belongs to, `/`
+ * when it names none.
+ */
+export function homePathFor({ pageSlug, regions = STATIC_REGIONS } = {}) {
+  if (isCombinedViewSlug(pageSlug)) return regionPath(pageSlug, '/');
+  if (isRegionSlug(pageSlug)) {
+    return getRegionBySlug(pageSlug, regions)?.active
+      ? regionCanonicalPath(pageSlug, '/', regions)
+      : regionPath(pageSlug, '/');
+  }
+  return '/';
+}
+
 /** Path a redirect fallback points to (`path` is kept, e.g. `/verzeichnis`). */
 export function redirectTargetPath(fallback, path = '/', regions = STATIC_REGIONS) {
   if (fallback?.region) return regionCanonicalPath(fallback.region.id, path, regions);
@@ -212,8 +227,15 @@ export function regionCanonicalPath(regionId, path = '/', regions = STATIC_REGIO
  */
 export function logoTargetPath(
   profileRegionId,
-  { regions = STATIC_REGIONS, loading = false } = {}
+  { regions = STATIC_REGIONS, loading = false, lastRegion = null } = {}
 ) {
+  // Signed-out visitors: the region remembered in this browser (also one that is not open
+  // yet, which leads to its coming-soon page); never silently the default region.
+  if (!profileRegionId && lastRegion && !loading && activeRegions(regions).length >= 2) {
+    return getRegionBySlug(lastRegion, regions)?.active
+      ? regionCanonicalPath(lastRegion, '/', regions)
+      : regionPath(lastRegion, '/');
+  }
   if (!profileRegionId || loading || activeRegions(regions).length < 2) return '/';
   return getRegionBySlug(profileRegionId, regions)?.active
     ? regionCanonicalPath(profileRegionId, '/', regions)

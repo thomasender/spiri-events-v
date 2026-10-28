@@ -3,6 +3,7 @@ import SeoMeta from '../components/SeoMeta';
 import './LegalPage.css';
 import { CANDLE_ROOM_NAME } from '../utils/candleRoom';
 import { useRegion } from '../hooks/useRegion';
+import { homePathFor } from '../utils/regionRouting';
 import { instagramChannels, instagramProfileUrl } from '../utils/regions';
 
 // Dark launch: the per-region wording and the channel list only appear once at
@@ -667,7 +668,8 @@ function InstagramChannelList({ channels }) {
 export default function LegalPage({ page }) {
   const data = content[page];
   // Channels of the active regions (Vorarlberg: code default when no handle is stored).
-  const { regions } = useRegion();
+  const { regions, allRegions, pageSlug } = useRegion();
+  const homePath = homePathFor({ pageSlug, regions: allRegions });
   const channels = instagramChannels(regions);
 
   if (!data) {
@@ -675,7 +677,7 @@ export default function LegalPage({ page }) {
       <div className="page-container">
         <div className="legal-page">
           <p>Die gesuchte Seite wurde nicht gefunden.</p>
-          <Link to="/" className="btn btn-secondary">
+          <Link to={homePath} className="btn btn-secondary">
             Zurück zur Startseite
           </Link>
         </div>
@@ -705,7 +707,7 @@ export default function LegalPage({ page }) {
           ))}
         </div>
         <div className="legal-footer">
-          <Link to="/" className="btn btn-secondary">
+          <Link to={homePath} className="btn btn-secondary">
             Zurück zur Startseite
           </Link>
         </div>

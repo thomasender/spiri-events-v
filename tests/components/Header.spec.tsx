@@ -1348,6 +1348,45 @@ describe('Header logo target', () => {
     expect(renderLogo()).toHaveAttribute('href', '/');
   });
 
+  it('leads a signed-out visitor to the region stored in tribe:lastRegion (OW7xgQoN)', () => {
+    localStorage.setItem('tribe:lastRegion', 'tirol');
+    try {
+      expect(renderLogo()).toHaveAttribute('href', '/tirol');
+    } finally {
+      localStorage.removeItem('tribe:lastRegion');
+    }
+  });
+
+  it('leads a signed-out visitor to the coming-soon page of an inactive stored region', () => {
+    localStorage.setItem('tribe:lastRegion', 'kaernten');
+    try {
+      expect(renderLogo()).toHaveAttribute('href', '/kaernten');
+    } finally {
+      localStorage.removeItem('tribe:lastRegion');
+    }
+  });
+
+  it('shows no region name in the switcher on a neutral page (OW7xgQoN)', () => {
+    render(
+      <RegionContext.Provider
+        value={
+          {
+            ...DEFAULT_REGION_CONTEXT,
+            allRegions: WITH_TIROL,
+            regions: WITH_TIROL.filter((r) => r.active),
+            neutralHeader: true,
+            comingSoon: false,
+          } as typeof DEFAULT_REGION_CONTEXT
+        }
+      >
+        <MemoryRouter>
+          <Header />
+        </MemoryRouter>
+      </RegionContext.Provider>
+    );
+    expect(screen.getByTestId('region-switcher')).not.toHaveTextContent('Vorarlberg');
+  });
+
   it('stays / for signed-out visitors even with a profile place in the mock', () => {
     mockProfile.placeSelection = { regionId: 'tirol' };
     expect(renderLogo()).toHaveAttribute('href', '/');
