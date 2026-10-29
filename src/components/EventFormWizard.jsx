@@ -610,6 +610,9 @@ export default function EventFormWizard() {
   };
 
   const [regionDialogOpen, setRegionDialogOpen] = useState(false);
+  // The Bezirk / Landkreis select only shows while the Ort did not decide it (Trello NA3phFDy),
+  // or once the person picked one in it themselves.
+  const [bezirkPicked, setBezirkPicked] = useState(false);
   // "Finde meinen Bezirk nicht" opens the region dialog instead of setting a value.
   const handleBezirkChange = (e) => {
     if (e.target.value === BEZIRK_NOT_FOUND) {
@@ -620,6 +623,7 @@ export default function EventFormWizard() {
   };
 
   const handleChange = (e) => {
+    if (e.target.name === 'bezirk' && e.target.value) setBezirkPicked(true);
     const { name, value, type, checked } = e.target;
     if (type === 'checkbox') {
       setFormData((prev) => ({
@@ -659,6 +663,7 @@ export default function EventFormWizard() {
   // place (its Bezirke / Landkreise show in the select); a region that is not open yet is
   // only remembered as `placeRegionId` (hint next to the Ort).
   const handleCityChange = ({ city, bezirk, regionId = null }) => {
+    if (bezirk !== formData.bezirk) setBezirkPicked(false);
     const followRegion =
       regionChoices.enabled && regionId && regionChoices.options.some((r) => r.id === regionId);
     setFormData((prev) => ({
@@ -1306,30 +1311,32 @@ export default function EventFormWizard() {
               error={errors.city}
               onChange={handleCityChange}
             />
-            <div className="form-group">
-              <label htmlFor="bezirk">{subdivisionLabel}</label>
-              <select
-                id="bezirk"
-                name="bezirk"
-                value={formData.bezirk}
-                onChange={handleBezirkChange}
-                disabled={formData.isOnline}
-                className={errors.bezirk ? 'input-error' : ''}
-              >
-                <option value="">{subdivisionLabel} auswählen...</option>
-                {bezirkOptions.map((b) => (
-                  <option key={b} value={b}>
-                    {bezirkLabel(b)}
-                  </option>
-                ))}
-                {/* The place's own Bezirk / Landkreis of another region, or a legacy value. */}
-                {formData.bezirk && !bezirkOptions.includes(formData.bezirk) && (
-                  <option value={formData.bezirk}>{bezirkLabel(formData.bezirk)}</option>
-                )}
-                <option value={BEZIRK_NOT_FOUND}>Finde meinen {subdivisionLabel} nicht</option>
-              </select>
-              {errors.bezirk && <span className="error-text">{errors.bezirk}</span>}
-            </div>
+            {(!formData.bezirk || bezirkPicked) && (
+              <div className="form-group">
+                <label htmlFor="bezirk">{subdivisionLabel}</label>
+                <select
+                  id="bezirk"
+                  name="bezirk"
+                  value={formData.bezirk}
+                  onChange={handleBezirkChange}
+                  disabled={formData.isOnline}
+                  className={errors.bezirk ? 'input-error' : ''}
+                >
+                  <option value="">{subdivisionLabel} auswählen...</option>
+                  {bezirkOptions.map((b) => (
+                    <option key={b} value={b}>
+                      {bezirkLabel(b)}
+                    </option>
+                  ))}
+                  {/* The place's own Bezirk / Landkreis of another region, or a legacy value. */}
+                  {formData.bezirk && !bezirkOptions.includes(formData.bezirk) && (
+                    <option value={formData.bezirk}>{bezirkLabel(formData.bezirk)}</option>
+                  )}
+                  <option value={BEZIRK_NOT_FOUND}>Finde meinen {subdivisionLabel} nicht</option>
+                </select>
+                {errors.bezirk && <span className="error-text">{errors.bezirk}</span>}
+              </div>
+            )}
           </div>
         )}
         {regionChoices.enabled && (
