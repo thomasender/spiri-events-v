@@ -396,21 +396,25 @@ describe('Ort -> Landkreis in regions without a Gemeinde list', () => {
     fireEvent.change(city(), { target: { value } });
   };
 
-  it('picking a place sets the Landkreis, which stays editable', async () => {
+  it('picking a place hides the Landkreis select; it shows when the Ort decided nothing, and stays once picked', async () => {
     seedWizardDraft({ city: '', regionId: 'ruhrgebiet' });
     render(withRegions(deContext('ruhrgebiet'), <EventFormWizard />));
 
+    // Not decided yet: the select is there and required.
+    expect(bezirk()).not.toBeNull();
+
     typeCity('Dort');
     fireEvent.click((await screen.findAllByTestId('city-place-option'))[0]);
-
     expect(city().value).toBe('Dortmund');
-    expect(bezirk().value).toBe('Dortmund');
-    expect(screen.getByTestId('city-district-hint')).toHaveTextContent('Landkreis Dortmund');
+    expect(bezirk()).toBeNull();
 
+    // A free text that no place list knows: the select is back; the pick stays visible.
+    fireEvent.change(city(), { target: { value: '' } });
+    typeCity('Nirgendwo');
+    expect(bezirk()).not.toBeNull();
     fireEvent.change(bezirk(), { target: { value: 'Essen' } });
     expect(bezirk().value).toBe('Essen');
-    expect(city().value).toBe('Dortmund');
-    expect(screen.queryByTestId('city-district-hint')).not.toBeInTheDocument();
+    expect(city().value).toBe('Nirgendwo');
   });
 
   it('a picked place decides its Landkreis; a place of another open region moves the form there', async () => {
@@ -422,7 +426,7 @@ describe('Ort -> Landkreis in regions without a Gemeinde list', () => {
     expect(options).toHaveLength(2);
     fireEvent.click(options[0]);
     expect(city().value).toBe('Neustadt');
-    expect(bezirk().value).toBe('Neustadt a.d.Aisch-Bad Windsheim');
+    expect(bezirk()).toBeNull();
   });
 
   it('a place of another open region moves the form there', async () => {
@@ -434,9 +438,7 @@ describe('Ort -> Landkreis in regions without a Gemeinde list', () => {
     typeCity('Inns');
     fireEvent.click(await screen.findByText('Innsbruck'));
     expect(city().value).toBe('Innsbruck');
-    expect(bezirk().value).toBe('Innsbruck');
-    expect(optionTexts(bezirk())).toContain('Kufstein');
-    expect(screen.getByLabelText('Bezirk')).toBeInTheDocument();
+    expect(bezirk()).toBeNull();
     expect(screen.queryByTestId('city-region-hint')).not.toBeInTheDocument();
   });
 });
