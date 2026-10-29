@@ -112,6 +112,10 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
     `tribe:lastPageSlug`, also a not-yet-open region), so the footer's "Über uns"
     (`aboutPathFor`) leads back to that region. Only with two or more active regions. Add further
     region-independent pages to that list.
+  - **Header "Kalender" / "Verzeichnis"** (`regionNavPath`, Trello gflD7CXa) keep the visitor's
+    region on every page (event form, login, profile): the page's region / view, else the chosen
+    place's region, else `tribe:lastRegion`. A region that is not open yet leads to its
+    coming-soon page (plain `/` would show Vorarlberg). Only with two or more active regions.
   - **Events within the radius.** `radiusFilter` in the region context is non-null only with a
     selection, at least two active regions, no combined view and while the current region is the
     selection's region. Then the calendar loads the events of ALL active regions (query plan
