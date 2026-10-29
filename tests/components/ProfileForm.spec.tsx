@@ -110,6 +110,27 @@ describe('ProfileForm', () => {
     expect(onSave).not.toHaveBeenCalled();
   });
 
+  it('gives wizard-style feedback when a required field is missing', async () => {
+    const onSave = vi.fn();
+    renderForm(baseProfile, { onSave });
+
+    fireEvent.change(screen.getByTestId('profile-displayName'), {
+      target: { value: '' },
+    });
+    fireEvent.click(screen.getByTestId('profile-save'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('profile-submit-error')).toHaveTextContent(
+        'Bitte fülle alle Pflichtfelder aus.'
+      );
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('profile-save')).toHaveClass('btn-wobble');
+    });
+    expect(screen.getByTestId('profile-displayName')).toHaveFocus();
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
   it('rejects invalid website URL', async () => {
     const onSave = vi.fn();
     renderForm(baseProfile, { onSave });

@@ -97,6 +97,10 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [wobbling, setWobbling] = useState(false);
+  const [invalidTick, setInvalidTick] = useState(0);
+  const formRef = useRef(null);
+  const wobbleTimerRef = useRef(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMissingFields, setDialogMissingFields] = useState([]);
   const [usernameStatus, setUsernameStatus] = useState({
@@ -270,6 +274,35 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
     allowMentions,
   });
 
+  // Same feedback as the event wizard: wobbling button, hint text above it and
+  // the first invalid field scrolled into view and focused.
+  const showInvalidFeedback = (newErrors) => {
+    setErrors(newErrors);
+    setSubmitError('Bitte fülle alle Pflichtfelder aus.');
+    setWobbling(false);
+    clearTimeout(wobbleTimerRef.current);
+    requestAnimationFrame(() => {
+      setWobbling(true);
+      wobbleTimerRef.current = setTimeout(() => setWobbling(false), 850);
+    });
+    setInvalidTick((t) => t + 1);
+  };
+
+  useEffect(() => {
+    if (invalidTick === 0) return;
+    const target =
+      formRef.current?.querySelector('.input-error, .rte-wrapper--error') ||
+      formRef.current?.querySelector('.error-text');
+    if (!target) return;
+    target.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+    const focusable = target.matches('input, textarea, select')
+      ? target
+      : target.querySelector('input, textarea, select, [contenteditable="true"]');
+    focusable?.focus?.({ preventScroll: true });
+  }, [invalidTick]);
+
+  useEffect(() => () => clearTimeout(wobbleTimerRef.current), []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitError('');
@@ -277,7 +310,7 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
 
     const newErrors = validate();
     if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+      showInvalidFeedback(newErrors);
       return;
     }
 
@@ -302,7 +335,7 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
 
     const newErrors = validate();
     if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+      showInvalidFeedback(newErrors);
       return;
     }
 
@@ -385,7 +418,12 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
         }}
       />
 
-      <form onSubmit={handleSubmit} className="profile-form" data-testid="profile-form">
+      <form
+        ref={formRef}
+        onSubmit={handleSubmit}
+        className="profile-form"
+        data-testid="profile-form"
+      >
         <div className="form-group">
           <label htmlFor="profile-displayName">Name *</label>
           <input
@@ -615,7 +653,11 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
           }}
         />
 
-        {submitError && <p className="submit-error">{submitError}</p>}
+        {submitError && (
+          <p className="submit-error" role="alert" data-testid="profile-submit-error">
+            {submitError}
+          </p>
+        )}
         {success && (
           <p className="success-text" data-testid="profile-save-success">
             Profil gespeichert.
@@ -625,7 +667,7 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
         <div className="form-actions">
           <button
             type="button"
-            className="btn btn-secondary"
+            className={`btn btn-secondary ${wobbling ? 'btn-wobble' : ''}`}
             onClick={handleSaveAndView}
             disabled={saving}
             data-testid="profile-save-and-view"
@@ -635,7 +677,7 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
           </button>
           <button
             type="submit"
-            className="btn btn-primary"
+            className={`btn btn-primary ${wobbling ? 'btn-wobble' : ''}`}
             disabled={saving}
             data-testid="profile-save"
           >
