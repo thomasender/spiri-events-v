@@ -2,7 +2,7 @@
 // organizer pick the Gemeinde; the Bezirk (used for filters, URLs, Instagram)
 // is derived from it so the two can never contradict each other.
 // Source: Wikipedia "Liste der Gemeinden in Vorarlberg" (96 Gemeinden).
-import { bezirkLabel } from './regions.js';
+import { LEGACY_OUTSIDE_BEZIRK, bezirkLabel } from './regions.js';
 
 const BY_BEZIRK = {
   Bludenz: [
@@ -107,8 +107,6 @@ const BY_BEZIRK = {
   ],
 };
 
-export const OUTSIDE_BEZIRK = 'Grenznahe';
-
 export const GEMEINDEN = Object.entries(BY_BEZIRK)
   .flatMap(([bezirk, names]) => names.map((name) => ({ name, bezirk })))
   .sort((a, b) => a.name.localeCompare(b.name, 'de'));
@@ -128,23 +126,28 @@ export function findGemeinde(text) {
 }
 
 /**
- * "Altach (Bez. Feldkirch)"; "Lindau (Lkr. Lindau)" in Germany; outside
- * Vorarlberg "Ruggell (Umgebung)"; just the Bezirk for events without a city.
+ * "Altach (Bez. Feldkirch)"; "Lindau (Lkr. Lindau)" in Germany; old events with the
+ * legacy "Grenznahe" "Ruggell (Umgebung)"; a place without Bezirk just its name; just the
+ * Bezirk for events without a city.
  * A city that is its own district (kreisfreie Stadt) is not repeated.
  */
 export function formatCityWithBezirk(city, bezirk, subdivisionLabel = 'Bezirk') {
   const name = (city || '').trim();
   if (!name) return bezirkLabel(bezirk) || '';
   if (!bezirk || norm(name) === norm(bezirk)) return name;
-  if (bezirk === OUTSIDE_BEZIRK) return `${name} (${bezirkLabel(bezirk)})`;
+  if (bezirk === LEGACY_OUTSIDE_BEZIRK) return `${name} (${bezirkLabel(bezirk)})`;
   return `${name} (${subdivisionLabel === 'Landkreis' ? 'Lkr.' : 'Bez.'} ${bezirk})`;
 }
 
-/** Error message for the Ort field of an in-person event, or null when it is valid. */
-export function validateCity(city, bezirk) {
+/**
+ * Error message for the Ort field of an in-person event, or null when it is valid. Any place
+ * counts: a Gemeinde, a place of the place list (its Bezirk / Landkreis and region follow from
+ * it) or free text that is not in any list (Liechtenstein, outside DACH: no Bezirk, the event
+ * stays in the current region).
+ */
+export function validateCity(city) {
   if (!(city || '').trim()) return 'Bitte Ort angeben oder als Online-Event markieren';
-  if (findGemeinde(city) || bezirk === OUTSIDE_BEZIRK) return null;
-  return 'Bitte wähle eine Gemeinde aus der Liste oder markiere den Ort als außerhalb von Vorarlberg';
+  return null;
 }
 
 /** Canonical spelling of a typed Gemeinde, otherwise the trimmed text. */

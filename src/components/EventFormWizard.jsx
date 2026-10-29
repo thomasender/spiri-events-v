@@ -48,7 +48,14 @@ import {
   isDefaultFocalPoint,
 } from '../lib/eventImage';
 import { CURRENCIES, DEFAULT_CURRENCY, formatPriceWithCurrency } from '../utils/currency';
-import { bezirkLabel, DEFAULT_REGION_ID, isRegionSlug, pickEventRegionId } from '../utils/regions';
+import {
+  bezirkLabel,
+  DEFAULT_REGION_ID,
+  getSubdivisionLabel,
+  isRegionSlug,
+  pickEventRegionId,
+  selectableBezirke,
+} from '../utils/regions';
 import { useRegionChoices } from '../hooks/useRegionChoices';
 import { useOnlineEventGate } from '../hooks/useOnlineEventGate';
 import { formExamples } from '../utils/regionExamples';
@@ -97,6 +104,9 @@ const INITIAL_STATE = {
   category: '',
   bezirk: '',
   city: '',
+  // Region the Ort belongs to (set when a place is picked, '' = unknown): it wins over the
+  // current region when saving (Trello dx8dCQJc). Not stored as such.
+  placeRegionId: '',
   isOnline: false,
   organizer: { name: '', email: '' },
   kontakt: '',
@@ -218,12 +228,20 @@ export default function EventFormWizard() {
   });
   const examples = formExamples(selectedRegionObj, { regionSpecific: regionChoices.enabled });
   const subdivisionLabel = subdivision.label;
-  const bezirkOptions = subdivision.options ?? BEZIRKE;
-  // A region without any Bezirk / Landkreis in its register cannot require one.
-  const bezirkRequired = bezirkOptions.length > 0;
-  // Vorarlberg: pick the Gemeinde, the Bezirk follows. Other regions have no Gemeinde
-  // list: free-text Ort plus the Bezirk / Landkreis select.
-  const useGemeinden = (selectedRegion || DEFAULT_REGION_ID) === DEFAULT_REGION_ID;
+  const bezirkOptions = subdivision.options ?? selectableBezirke(BEZIRKE);
+  // Vorarlberg (and every event while only one region is active): the Gemeinde picker, which
+  // also offers places of other regions. Other regions have no Gemeinde list: free-text Ort
+  // plus the Bezirk / Landkreis select.
+  const useGemeinden = !regionChoices.enabled || selectedRegion === DEFAULT_REGION_ID;
+  // The region the event is saved in: the Ort's region when a place was picked, else the
+  // region field / the requested region / the default.
+  const eventRegionId = pickEventRegionId(
+    formData.placeRegionId || (regionChoices.enabled ? selectedRegion : formData.regionId)
+  );
+  // The region the person is in (for the "other region" hint next to the Ort).
+  const homeRegionId = regionChoices.enabled
+    ? selectedRegion
+    : pickEventRegionId(formData.regionId || regionChoices.defaultRegionId);
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -427,15 +445,10 @@ export default function EventFormWizard() {
         newErrors.endTime = 'Die Endzeit muss nach der Startzeit liegen';
       }
       if (!formData.isOnline) {
-        const cityError = useGemeinden
-          ? validateCity(formData.city, formData.bezirk)
-          : (formData.city || '').trim()
-            ? null
-            : 'Bitte Ort angeben oder als Online-Event markieren';
+        // Any Ort is fine; a place that is in no list (Liechtenstein, outside DACH) simply
+        // has no Bezirk / Landkreis (Trello dx8dCQJc).
+        const cityError = validateCity(formData.city);
         if (cityError) newErrors.city = cityError;
-        if (!useGemeinden && bezirkRequired && !formData.bezirk) {
-          newErrors.bezirk = `Bitte ${subdivisionLabel} auswählen oder als Online-Event markieren`;
-        }
       } else if (!onlineGate.offered) {
         newErrors.isOnline = onlineGate.hint || 'Online-Events sind hier gerade nicht möglich.';
       }
@@ -612,7 +625,7 @@ export default function EventFormWizard() {
       setFormData((prev) => ({
         ...prev,
         [name]: checked,
-        ...(name === 'isOnline' && checked ? { bezirk: '', city: '' } : {}),
+        ...(name === 'isOnline' && checked ? { bezirk: '', city: '', placeRegionId: '' } : {}),
       }));
       if (errors[name]) {
         setErrors((prev) => ({ ...prev, [name]: null }));
@@ -626,9 +639,15 @@ export default function EventFormWizard() {
       ...prev,
       [name]: value,
       ...(name === 'bezirk' && value ? { isOnline: false } : {}),
+      // A Bezirk / Landkreis chosen in the select belongs to the region of the form.
+      ...(name === 'bezirk' ? { placeRegionId: '' } : {}),
       // A new region has its own Bezirke / Landkreise (and Orte): drop what no longer fits.
       ...(name === 'regionId'
-        ? { bezirk: keepIfInRegion(prev.bezirk, value, regionChoices), city: '' }
+        ? {
+            bezirk: keepIfInRegion(prev.bezirk, value, regionChoices),
+            city: '',
+            placeRegionId: '',
+          }
         : {}),
     }));
     if (errors[name]) {
@@ -636,8 +655,20 @@ export default function EventFormWizard() {
     }
   };
 
-  const handleCityChange = ({ city, bezirk }) => {
-    setFormData((prev) => ({ ...prev, city, bezirk, ...(city.trim() ? { isOnline: false } : {}) }));
+  // The Ort decides Bezirk and region. With a region field, an offered region follows the
+  // place (its Bezirke / Landkreise show in the select); a region that is not open yet is
+  // only remembered as `placeRegionId` (hint next to the Ort).
+  const handleCityChange = ({ city, bezirk, regionId = null }) => {
+    const followRegion =
+      regionChoices.enabled && regionId && regionChoices.options.some((r) => r.id === regionId);
+    setFormData((prev) => ({
+      ...prev,
+      city,
+      bezirk,
+      placeRegionId: regionId || '',
+      ...(followRegion ? { regionId } : {}),
+      ...(city.trim() ? { isOnline: false } : {}),
+    }));
     if (bezirk && errors.bezirk) setErrors((prev) => ({ ...prev, bezirk: null }));
     if (errors.city) setErrors((prev) => ({ ...prev, city: null }));
     if (errors.isOnline) setErrors((prev) => ({ ...prev, isOnline: null }));
@@ -824,7 +855,7 @@ export default function EventFormWizard() {
     bezirk: formData.isOnline ? '' : formData.bezirk,
     city: formData.isOnline ? '' : canonicalCity(formData.city),
     isOnline: Boolean(formData.isOnline),
-    regionId: pickEventRegionId(regionChoices.enabled ? selectedRegion : formData.regionId),
+    regionId: eventRegionId,
     organizer: {
       firstName: splitOrganizerName(formData.organizer.name).firstName,
       lastName: splitOrganizerName(formData.organizer.name).lastName,
@@ -1255,6 +1286,9 @@ export default function EventFormWizard() {
             disabled={formData.isOnline}
             error={errors.city}
             onChange={handleCityChange}
+            regions={regionChoices.allRegions}
+            placeRegionId={eventRegionId}
+            homeRegionId={homeRegionId}
             onOtherRegion={regionChoices.enabled ? () => setRegionDialogOpen(true) : undefined}
           />
         ) : (
@@ -1262,7 +1296,9 @@ export default function EventFormWizard() {
             <CityField
               free
               region={selectedRegionObj}
-              subdivisionLabel={subdivisionLabel}
+              regions={regionChoices.allRegions}
+              placeRegionId={formData.placeRegionId}
+              homeRegionId={homeRegionId}
               placeholder={examples.place}
               city={formData.city}
               bezirk={formData.bezirk}
@@ -1271,7 +1307,7 @@ export default function EventFormWizard() {
               onChange={handleCityChange}
             />
             <div className="form-group">
-              <label htmlFor="bezirk">{subdivisionLabel} *</label>
+              <label htmlFor="bezirk">{subdivisionLabel}</label>
               <select
                 id="bezirk"
                 name="bezirk"
@@ -1286,6 +1322,10 @@ export default function EventFormWizard() {
                     {bezirkLabel(b)}
                   </option>
                 ))}
+                {/* The place's own Bezirk / Landkreis of another region, or a legacy value. */}
+                {formData.bezirk && !bezirkOptions.includes(formData.bezirk) && (
+                  <option value={formData.bezirk}>{bezirkLabel(formData.bezirk)}</option>
+                )}
                 <option value={BEZIRK_NOT_FOUND}>Finde meinen {subdivisionLabel} nicht</option>
               </select>
               {errors.bezirk && <span className="error-text">{errors.bezirk}</span>}
@@ -1683,6 +1723,7 @@ export default function EventFormWizard() {
                   place: formData.isOnline ? '' : formData.place,
                   bezirk: formData.isOnline ? '' : formData.bezirk,
                   city: formData.isOnline ? '' : canonicalCity(formData.city),
+                  regionId: eventRegionId,
                   isOnline: Boolean(formData.isOnline),
                   category: formData.category,
                   imageUrl: imagePreview,
@@ -1727,7 +1768,11 @@ export default function EventFormWizard() {
           <h4>Details</h4>
           <p>
             <strong>{formData.category}</strong> •{' '}
-            {formData.isOnline ? 'Online' : formatCityWithBezirk(formData.city, formData.bezirk)}
+            {formData.isOnline ? 'Online' : formatCityWithBezirk(
+                  formData.city,
+                  formData.bezirk,
+                  getSubdivisionLabel(eventRegionId, regionChoices.allRegions)
+                )}
           </p>
           {!formData.isOnline && formData.place && <p>📍 {formData.place}</p>}
           <p>
@@ -1801,7 +1846,7 @@ export default function EventFormWizard() {
         instagramHandle={profile?.socialMedia?.instagram}
         handleOverride={instagramHandleOverride}
         onHandleOverrideChange={setInstagramHandleOverride}
-        regionId={pickEventRegionId(regionChoices.enabled ? selectedRegion : formData.regionId)}
+        regionId={eventRegionId}
       />
 
       {instagramConsent && (

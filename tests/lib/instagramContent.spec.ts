@@ -388,6 +388,12 @@ describe('buildHashtags / caption hashtags', () => {
     }
   });
 
+  it('tags the Ort of an in-person event without Bezirk (place in no list)', () => {
+    const tags = buildHashtags({ city: 'Ruggell', bezirk: '', category: 'Yoga' });
+    expect(tags[0]).toBe('#ruggell');
+    expect(tags).not.toContain('#online');
+  });
+
   it('de-duplicates case-insensitively', () => {
     const tags = buildHashtags({ bezirk: 'Vorarlberg', category: 'Meditation' });
     const lower = tags.map((t) => t.toLowerCase());

@@ -35,8 +35,19 @@ describe('formatCityWithBezirk', () => {
     expect(formatCityWithBezirk('Altach', 'Feldkirch')).toBe('Altach (Bez. Feldkirch)');
   });
 
-  it('shows "Umgebung" for places outside Vorarlberg', () => {
+  it('shows "Umgebung" for old events with the legacy "Grenznahe"', () => {
     expect(formatCityWithBezirk('Ruggell', 'Grenznahe')).toBe('Ruggell (Umgebung)');
+  });
+
+  it('shows just the Ort for a place without Bezirk (Liechtenstein, outside DACH)', () => {
+    expect(formatCityWithBezirk('Ruggell', '')).toBe('Ruggell');
+    expect(getEventLocationLabel({ city: 'Ruggell', bezirk: '' })).toBe('Ruggell');
+  });
+
+  it('uses "Lkr." for a Landkreis', () => {
+    expect(
+      getEventLocationLabel({ city: 'Lindau', bezirk: 'Lindau (Bodensee)', regionId: 'bayern' })
+    ).toBe('Lindau (Lkr. Lindau (Bodensee))');
   });
 
   it('falls back to the Bezirk for older events without a city', () => {
@@ -54,13 +65,11 @@ describe('validateCity / canonicalCity', () => {
     expect(validateCity('  ', '')).toMatch(/Ort angeben/);
   });
 
-  it('accepts a known Gemeinde or an explicit "outside Vorarlberg" choice', () => {
+  it('accepts any place: a Gemeinde, a place of another region, free text, an old "Grenznahe"', () => {
     expect(validateCity('Altach', 'Feldkirch')).toBeNull();
+    expect(validateCity('Lindau', 'Lindau (Bodensee)')).toBeNull();
+    expect(validateCity('Ruggell', '')).toBeNull();
     expect(validateCity('Ruggell', 'Grenznahe')).toBeNull();
-  });
-
-  it('rejects an unknown name (typo) without the outside choice', () => {
-    expect(validateCity('Lustnau', '')).toMatch(/Gemeinde aus der Liste/);
   });
 
   it('normalises the spelling on save', () => {
