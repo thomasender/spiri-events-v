@@ -13,6 +13,8 @@ import { useProfile } from '../hooks/useProfile';
 import {
   uploadImage,
   uploadEventCover,
+  CoverUploadError,
+  COVER_UPLOAD_ERROR,
   deleteImageByUrl,
   getImageDimensions,
   getAspectRatioRecommendation,
@@ -253,6 +255,7 @@ export default function EventFormWizard() {
   const [imagePreview, setImagePreview] = useState('');
   const [imageFocalPoint, setImageFocalPoint] = useState(DEFAULT_FOCAL_POINT);
   const [imageZoom, setImageZoom] = useState(MIN_IMAGE_ZOOM);
+  const createdEventRef = useRef(null);
   const [imageUploading, setImageUploading] = useState(false);
   const [imageProgress, setImageProgress] = useState(0);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
@@ -603,7 +606,7 @@ export default function EventFormWizard() {
       });
     } catch (err) {
       console.error('Image upload failed:', err);
-      throw new Error('Bild-Upload fehlgeschlagen');
+      throw new CoverUploadError(err);
     } finally {
       setImageUploading(false);
     }
@@ -944,9 +947,17 @@ export default function EventFormWizard() {
   const saveEvent = async (eventData) => {
     setLoading(true);
     setShowConfirmModal(false);
+    setSubmitError('');
 
     try {
-      const docRef = await addEvent(eventData, eventData.status || 'pending');
+      // A retry after a failed cover upload reuses the event that already exists.
+      let docRef = createdEventRef.current;
+      if (docRef) {
+        await updateEvent(docRef.id, eventData);
+      } else {
+        docRef = await addEvent(eventData, eventData.status || 'pending');
+        createdEventRef.current = docRef;
+      }
       if (eventData.status !== 'draft') trackEvent(EVENTS.EVENT_CREATE_SUBMIT);
       const instagramSource = eventData.instagramConsent
         ? effectiveInstagramImageChoice?.source
@@ -993,7 +1004,11 @@ export default function EventFormWizard() {
       });
     } catch (err) {
       console.error('Event save failed:', err.code, err.message);
-      setSubmitError('Event konnte nicht gespeichert werden. Bitte versuche es erneut.');
+      setSubmitError(
+        err instanceof CoverUploadError
+          ? COVER_UPLOAD_ERROR
+          : 'Event konnte nicht gespeichert werden. Bitte versuche es erneut.'
+      );
       setLoading(false);
     }
   };

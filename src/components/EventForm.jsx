@@ -11,6 +11,8 @@ import { resolveOrganizerPhotoURL } from '../utils/organizerPhoto';
 import {
   uploadImage,
   uploadEventCover,
+  CoverUploadError,
+  COVER_UPLOAD_ERROR,
   deleteImageByUrl,
   getImageDimensions,
   getAspectRatioRecommendation,
@@ -270,6 +272,7 @@ export default function EventForm({ event }) {
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const createdEventRef = useRef(null);
   const [submitError, setSubmitError] = useState('');
   const [validationError, setValidationError] = useState('');
   const [wobblingAction, setWobblingAction] = useState(null);
@@ -567,7 +570,7 @@ export default function EventForm({ event }) {
       });
     } catch (err) {
       console.error('Image upload failed:', err);
-      throw new Error('Bild-Upload fehlgeschlagen');
+      throw new CoverUploadError(err);
     } finally {
       setImageUploading(false);
     }
@@ -892,12 +895,16 @@ export default function EventForm({ event }) {
     setResubmitWarning(false);
 
     try {
-      let docRef;
+      // A retry after a failed cover upload reuses the event that already exists.
+      let docRef = createdEventRef.current;
       if (event) {
         await updateEvent(event.id, eventData);
         docRef = { id: event.id };
+      } else if (docRef) {
+        await updateEvent(docRef.id, eventData);
       } else {
         docRef = await addEvent(eventData, eventData.status || 'pending');
+        createdEventRef.current = docRef;
       }
 
       const instagramSource = eventData.instagramConsent
@@ -938,7 +945,11 @@ export default function EventForm({ event }) {
       navigate(cancelTarget);
     } catch (err) {
       console.error('Event save failed:', err.code, err.message);
-      setSubmitError('Event konnte nicht gespeichert werden. Bitte versuche es erneut.');
+      setSubmitError(
+        err instanceof CoverUploadError
+          ? COVER_UPLOAD_ERROR
+          : 'Event konnte nicht gespeichert werden. Bitte versuche es erneut.'
+      );
       setLoading(false);
     }
   };
