@@ -39,15 +39,30 @@ function names() {
 }
 
 describe('DonorsList', () => {
-  it('shows the newest donations first, ignoring the admin order; entries without date last', () => {
+  it('shows the newest donations first, ignoring the admin order; entries without date or order last', () => {
     mockDonors.donors = [
       donor(1, { order: 0 }),
       donor(3, { order: 100 }),
-      { id: 'old', name: 'Ohne Datum', order: 50 },
+      { id: 'old', name: 'Ohne Datum' },
       donor(2, { order: 200 }),
     ];
     render(<DonorsList />);
     expect(names()).toEqual(['Spender 3', 'Spender 2', 'Spender 1', 'Ohne Datum']);
+  });
+
+  it('puts the most recent online donation first even when its stored date is unusable', () => {
+    // Online donations were saved with a placeholder instead of a date; the
+    // order number, handed out in sequence, still tells which came last.
+    const placeholder = { __serverTimestamp: true } as unknown as { seconds: number };
+    mockDonors.donors = [
+      { id: 'a', name: 'Erste', order: 0, createdAt: placeholder },
+      donor(5, { name: 'Manuell', order: 100 }),
+      { id: 'b', name: 'Zweite', order: 200, createdAt: placeholder },
+      { id: 'c', name: 'Neueste', order: 300, createdAt: placeholder },
+      { id: 'x', name: 'Ohne alles' },
+    ];
+    render(<DonorsList />);
+    expect(names()).toEqual(['Neueste', 'Zweite', 'Manuell', 'Erste', 'Ohne alles']);
   });
 
   it('shows 7 entries and loads 7 more per click', () => {

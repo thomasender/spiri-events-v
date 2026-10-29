@@ -274,7 +274,17 @@ export async function handlePaidPayment({
   const donorId = donorIdForPayment(payment.id, payment.subscriptionId);
   const ref = db.collection('donors').doc(donorId);
   const existing = await ref.get();
-  const existingCreatedAt = existing.exists ? existing.get('createdAt') : undefined;
+  const storedCreatedAt = existing.exists ? existing.get('createdAt') : undefined;
+  // Earlier versions stored the `{ __serverTimestamp: true }` placeholder
+  // itself (the admin SDK does not resolve it), which the donor list cannot
+  // sort by. Treat it as missing.
+  const existingCreatedAt =
+    storedCreatedAt &&
+    typeof storedCreatedAt === 'object' &&
+    (storedCreatedAt as FirestoreLikeTimestamp).__serverTimestamp
+      ? undefined
+      : storedCreatedAt;
+  const timestamp = now();
   // Mollie resends webhooks; keep what an admin changed or deleted since.
   const existingNote = existing.exists ? existing.get('note') : undefined;
   const existingComment = existing.exists ? existing.get('comment') : undefined;
@@ -314,8 +324,9 @@ export async function handlePaidPayment({
     mollieConsent: true,
     molliePaymentId: payment.id,
     mollieSubscriptionId: payment.subscriptionId ?? null,
-    createdAt: existingCreatedAt ?? { __serverTimestamp: true },
-    updatedAt: { __serverTimestamp: true },
+    // A plain Date: the admin SDK stores it as a Firestore Timestamp.
+    createdAt: existingCreatedAt ?? timestamp,
+    updatedAt: timestamp,
   };
 
   await ref.set(data, { merge: false });

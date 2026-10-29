@@ -253,6 +253,14 @@ describe('handlePaidPayment', () => {
     expect(setCalls[0].options).toEqual({ merge: false });
   });
 
+  it('stores the donation time as a real date the donor list can sort by', async () => {
+    const { db, setCalls } = makeDb();
+    const paidAt = new Date('2026-10-29T10:00:00Z');
+    await handlePaidPayment({ db, payment: basePayment(), now: () => paidAt });
+    expect(setCalls[0].data.createdAt).toEqual(paidAt);
+    expect(setCalls[0].data.updatedAt).toEqual(paidAt);
+  });
+
   it('writes an anonymous donor with amount when displayOnConsent=true but name is empty (CXxscjhl)', async () => {
     const { db, setCalls } = makeDb();
     const result = await handlePaidPayment({

@@ -16,7 +16,9 @@ function donorDisplayName(donor) {
 // The public list shows newest donations first, a few at a time.
 const PAGE_SIZE = 7;
 
-// Firestore Timestamp, or nothing for old/hand-made entries (sorted last).
+// Firestore Timestamp, or 0 when there is no usable date: old/hand-made
+// entries, and online donations that were stored with the
+// `{ __serverTimestamp: true }` placeholder instead of a date.
 function createdAtMillis(donor) {
   const createdAt = donor.createdAt;
   if (!createdAt) return 0;
@@ -25,8 +27,30 @@ function createdAtMillis(donor) {
   return 0;
 }
 
+// Newest donation first. Dated entries go by date. An entry without a date
+// still has its `order`, handed out ascending when the entry was created, so
+// it is slotted in by comparing `order` with its dated neighbours. Entries
+// with neither come last.
 function sortNewestFirst(donors) {
-  return [...donors].sort((a, b) => createdAtMillis(b) - createdAtMillis(a));
+  const dated = donors.filter((d) => createdAtMillis(d) > 0);
+  dated.sort((a, b) => createdAtMillis(b) - createdAtMillis(a));
+  const undated = donors.filter((d) => createdAtMillis(d) === 0 && typeof d.order === 'number');
+  undated.sort((a, b) => b.order - a.order);
+  const neither = donors.filter((d) => createdAtMillis(d) === 0 && typeof d.order !== 'number');
+
+  const merged = [];
+  let i = 0;
+  let j = 0;
+  while (i < dated.length || j < undated.length) {
+    const nextDated = dated[i];
+    const nextUndated = undated[j];
+    const takeUndated =
+      !nextDated ||
+      (nextUndated && (typeof nextDated.order !== 'number' || nextUndated.order > nextDated.order));
+    if (takeUndated) merged.push(undated[j++]);
+    else merged.push(dated[i++]);
+  }
+  return [...merged, ...neither];
 }
 
 function frequencyLabel(frequency) {
