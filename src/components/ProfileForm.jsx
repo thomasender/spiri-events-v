@@ -4,6 +4,7 @@ import { ExternalLink, Facebook, Instagram, Save } from 'lucide-react';
 import ProfilePhotoUpload from './ProfilePhotoUpload';
 import ProfileIncompleteDialog from './ProfileIncompleteDialog';
 import DirectoryListingFields from './DirectoryListingFields';
+import FireplaceField from './FireplaceField';
 import { useCategoryRegistry } from '../hooks/useCategoryRegistry';
 import { validateDirectoryListing } from '../utils/directory';
 import RichTextEditorLazy from './RichTextEditorLazy';
@@ -73,6 +74,8 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
   const [listedInDirectory, setListedInDirectory] = useState(profile?.listedInDirectory === true);
   const [showOnlineStatus, setShowOnlineStatus] = useState(profile?.showOnlineStatus === true);
   const [allowMentions, setAllowMentions] = useState(profile?.allowMentions === true);
+  const [fireplace, setFireplace] = useState(profile?.fireplace || null);
+  const [fireplaceVisible, setFireplaceVisible] = useState(profile?.fireplaceVisible === true);
   const [directoryCategories, setDirectoryCategories] = useState(
     profile?.directoryCategories || []
   );
@@ -135,6 +138,8 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
     setListedInDirectory(profile.listedInDirectory === true);
     setShowOnlineStatus(profile.showOnlineStatus === true);
     setAllowMentions(profile.allowMentions === true);
+    setFireplace(profile.fireplace || null);
+    setFireplaceVisible(profile.fireplaceVisible === true);
     setDirectoryCategories(profile.directoryCategories || []);
     setDirectoryRegions(profile.directoryRegions || []);
     setDirectoryRegionIds(
@@ -272,6 +277,9 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
       : resolveDirectoryRegionIds(profile),
     showOnlineStatus,
     allowMentions,
+    // No place, no visibility: the switch is stored off together with a removed Feuerplatz.
+    fireplace,
+    fireplaceVisible: fireplace ? fireplaceVisible : false,
   });
 
   // Same feedback as the event wizard: wobbling button, hint text above it and
@@ -634,6 +642,16 @@ export default function ProfileForm({ profile, uid, onSave, checkAvailability })
             </p>
           </div>
         )}
+
+        <div className="form-group profile-fireplace">
+          <FireplaceField
+            idPrefix="profile"
+            fireplace={fireplace}
+            onChange={setFireplace}
+            visible={fireplaceVisible}
+            onVisibleChange={setFireplaceVisible}
+          />
+        </div>
 
         <DirectoryListingFields
           listed={listedInDirectory}

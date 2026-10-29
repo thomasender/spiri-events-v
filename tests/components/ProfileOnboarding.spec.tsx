@@ -271,3 +271,34 @@ describe('ProfileOnboarding', () => {
     });
   });
 });
+
+describe('ProfileOnboarding Feuerplatz', () => {
+  it('starts empty, is optional, and saves nothing extra when left alone', async () => {
+    const { onSave } = setup({ ...emptyProfile, bio: 'Hallo', photoURL: 'https://x/a.jpg' });
+    next(); // photo, unchanged
+    next(); // bio, unchanged
+    expect(await screen.findByTestId('fireplace-field')).toBeInTheDocument();
+    expect(screen.queryByTestId('fireplace-chosen')).not.toBeInTheDocument();
+    next();
+    await waitFor(() => expect(screen.getByTestId('onboarding-instagram')).toBeInTheDocument());
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it('takes over the chosen place, private by default, in the directory step', async () => {
+    const { onSave } = setup({ ...emptyProfile, bio: 'Hallo', photoURL: 'https://x/a.jpg' });
+    next();
+    next();
+    fireEvent.change(await screen.findByTestId('place-search-input'), {
+      target: { value: 'Dornbirn' },
+    });
+    fireEvent.click((await screen.findAllByTestId('place-search-option'))[0]);
+    expect(screen.getByTestId('fireplace-visible')).not.toBeChecked();
+    fireEvent.click(screen.getByTestId('fireplace-visible'));
+    next();
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    const saved = onSave.mock.calls[0][0];
+    expect(saved.fireplace).toMatchObject({ label: 'Dornbirn' });
+    expect(saved.fireplaceVisible).toBe(true);
+    expect(saved).not.toHaveProperty('listedInDirectory');
+  });
+});

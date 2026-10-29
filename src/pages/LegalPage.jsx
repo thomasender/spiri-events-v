@@ -194,6 +194,7 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
 
 *Was wird veröffentlicht?*
 - Nur wenn Sie in Ihrem Profil ausdrücklich zustimmen („Ich möchte im Verzeichnis gelistet werden“), erscheinen Ihr Name, Ihr Profilfoto, Ihre Kurzbeschreibung, die von Ihnen gewählten Kategorien und optional Ihre Region im Verzeichnis
+- Wenn Sie in Ihrem Profil einen „Feuerplatz“ (den Ort, an dem Sie am meisten zuhause sind) festlegen und ausdrücklich „Feuerplatz für andere sichtbar“ einschalten (Standard: aus), erscheint der Name dieses Ortes (zum Beispiel „Dornbirn“) auf Ihrem öffentlichen Profil und im Verzeichnis. Die Koordinaten des Ortes werden nicht veröffentlicht; ohne Einschalten sehen nur Sie Ihren Feuerplatz, und Sie können ihn jederzeit ändern oder entfernen
 - Kontaktdaten und weitere Details sind nicht im Verzeichnis, sondern nur auf Ihrem öffentlichen Profil sichtbar
 - Die Einträge sind öffentlich und können von jedem eingesehen und durchsucht werden
 

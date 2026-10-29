@@ -153,6 +153,31 @@ service cloud.firestore {
 
     // The remembered "Wo bist du?" choice of a user (place + radius). Coordinates are those of
     // the place, never an exact device position. Null clears it.
+    // Feuerplatz (the place a person is most at home): private `fireplace` map
+    // { label, lat, lon } or null plus the switch `fireplaceVisible`; the public doc only ever
+    // carries the place name `fireplaceLabel`. Missing fields mean "no Feuerplatz".
+    function isValidFireplace(d) {
+      return (!('fireplace' in d)
+              || d.fireplace == null
+              || (d.fireplace is map
+                  && d.fireplace.keys().hasOnly(['label', 'lat', 'lon'])
+                  && d.fireplace.label is string
+                  && d.fireplace.label.size() > 0
+                  && d.fireplace.label.size() <= 80
+                  && d.fireplace.lat is number
+                  && d.fireplace.lat >= -90 && d.fireplace.lat <= 90
+                  && d.fireplace.lon is number
+                  && d.fireplace.lon >= -180 && d.fireplace.lon <= 180))
+        && (!('fireplaceVisible' in d) || d.fireplaceVisible is bool);
+    }
+
+    function isValidFireplaceLabel(d) {
+      return !('fireplaceLabel' in d)
+        || (d.fireplaceLabel is string
+            && d.fireplaceLabel.size() > 0
+            && d.fireplaceLabel.size() <= 80);
+    }
+
     function isValidPlaceSelection(d) {
       return !('placeSelection' in d)
         || d.placeSelection == null
@@ -525,7 +550,7 @@ service cloud.firestore {
                     && request.resource.data.keys().hasOnly(
                       ['displayName', 'bio', 'bioHtml', 'website', 'contact', 'photoURL', 'photoFocalPoint', 'photoZoom',
                        'slug', 'username', 'socialMedia',
-                       'listedInDirectory', 'directoryCategories', 'directoryRegions', 'directoryRegionIds', 'showOnlineStatus', 'allowMentions',
+                       'listedInDirectory', 'directoryCategories', 'directoryRegions', 'directoryRegionIds', 'showOnlineStatus', 'allowMentions', 'fireplace', 'fireplaceVisible',
                        'notifyOnSubmitted', 'notifyOnChangesRequested',
                        'notifyOnPublished', 'notifyOnDeleted',
                        'notifyOnContactMessage', 'notifyOnFavoriteCancelled',
@@ -541,6 +566,7 @@ service cloud.firestore {
                         || request.resource.data.showOnlineStatus is bool)
                     && (!('allowMentions' in request.resource.data)
                         || request.resource.data.allowMentions is bool)
+                    && isValidFireplace(request.resource.data)
                     && (!('onboardingDismissed' in request.resource.data)
                         || request.resource.data.onboardingDismissed is bool)
                     && (!('onboardingCompleted' in request.resource.data)
@@ -561,6 +587,7 @@ service cloud.firestore {
                         || request.resource.data.showOnlineStatus is bool)
                     && (!('allowMentions' in request.resource.data)
                         || request.resource.data.allowMentions is bool)
+                    && isValidFireplace(request.resource.data)
                     && (!('onboardingDismissed' in request.resource.data)
                         || request.resource.data.onboardingDismissed is bool)
                     && (!('onboardingCompleted' in request.resource.data)
@@ -571,7 +598,7 @@ service cloud.firestore {
                     && request.resource.data.diff(resource.data).affectedKeys()
                         .hasOnly(['displayName', 'bio', 'bioHtml', 'website', 'contact', 'photoURL', 'photoFocalPoint', 'photoZoom',
                                   'slug', 'username', 'socialMedia',
-                                  'listedInDirectory', 'directoryCategories', 'directoryRegions', 'directoryRegionIds', 'showOnlineStatus', 'allowMentions',
+                                  'listedInDirectory', 'directoryCategories', 'directoryRegions', 'directoryRegionIds', 'showOnlineStatus', 'allowMentions', 'fireplace', 'fireplaceVisible',
                                   'notifyOnSubmitted', 'notifyOnChangesRequested',
                                   'notifyOnPublished', 'notifyOnDeleted',
                                   'notifyOnContactMessage', 'notifyOnFavoriteCancelled',
@@ -643,7 +670,7 @@ service cloud.firestore {
                       && request.resource.data.keys().hasOnly(
                         ['displayName', 'bio', 'bioHtml', 'website', 'photoURL', 'photoFocalPoint', 'photoZoom', 'slug', 'username', 'socialMedia',
                          'listedInDirectory', 'directoryCategories', 'directoryRegions', 'directoryRegionIds', 'showOnlineStatus',
-                         'allowMentions', 'mentionName',
+                         'allowMentions', 'mentionName', 'fireplaceLabel',
                          'updatedAt']
                       )
                       && request.resource.data.bio.size() <= 2000
@@ -653,6 +680,7 @@ service cloud.firestore {
                           || request.resource.data.showOnlineStatus is bool)
                       && (!('allowMentions' in request.resource.data)
                           || request.resource.data.allowMentions is bool)
+                      && isValidFireplaceLabel(request.resource.data)
                       && (!('mentionName' in request.resource.data)
                           || (request.resource.data.mentionName is string
                               && request.resource.data.mentionName.size() <= 80))
@@ -669,6 +697,7 @@ service cloud.firestore {
                           || request.resource.data.showOnlineStatus is bool)
                       && (!('allowMentions' in request.resource.data)
                           || request.resource.data.allowMentions is bool)
+                      && isValidFireplaceLabel(request.resource.data)
                       && (!('mentionName' in request.resource.data)
                           || (request.resource.data.mentionName is string
                               && request.resource.data.mentionName.size() <= 80))
@@ -678,7 +707,7 @@ service cloud.firestore {
                       && request.resource.data.diff(resource.data).affectedKeys()
                           .hasOnly(['displayName', 'bio', 'bioHtml', 'website', 'photoURL', 'photoFocalPoint', 'photoZoom', 'slug', 'username', 'socialMedia',
                                     'listedInDirectory', 'directoryCategories', 'directoryRegions', 'directoryRegionIds', 'showOnlineStatus',
-                                    'allowMentions', 'mentionName',
+                                    'allowMentions', 'mentionName', 'fireplaceLabel',
                                     'updatedAt']);
 
         // Moderation: admins can hide a listing from the directory (and

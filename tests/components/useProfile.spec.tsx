@@ -745,3 +745,64 @@ describe('useProfile.save — allowMentions', () => {
     expect(publicPayload).not.toHaveProperty('mentionName');
   });
 });
+
+describe('useProfile.save — Feuerplatz', () => {
+  const base = { displayName: 'Zoë Müller', bio: '', website: '', photoURL: null, slug: 'zoe' };
+  const place = { label: 'Dornbirn', lat: 47.4125, lon: 9.7417 };
+
+  async function saveWith(profile: Record<string, unknown>, updates: Record<string, unknown>) {
+    mockOnSnapshot.mockImplementation((_ref, onNext) => {
+      onNext(makeSnapshot(profile));
+      return () => {};
+    });
+    const { result } = renderHook(() => useProfile('user-1'));
+    await waitFor(() => expect(result.current.profile).not.toBeNull());
+    await act(async () => {
+      await result.current.save(updates);
+    });
+    const call = (path: string) =>
+      mockBatchSet.mock.calls.find(([ref]) => ref.path?.join('/') === path)?.[1];
+    return { priv: call('users/user-1'), pub: call('users/user-1/publicProfile/data') };
+  }
+
+  it('setting a place keeps it private while the switch is off', async () => {
+    const { priv, pub } = await saveWith(base, { fireplace: place, fireplaceVisible: false });
+    expect(priv.fireplace).toEqual(place);
+    // nothing at all is written to the public profile
+    expect(pub).toBeUndefined();
+  });
+
+  it('with the switch on only the place name reaches the public profile, no coordinates', async () => {
+    const { pub } = await saveWith(base, { fireplace: place, fireplaceVisible: true });
+    expect(pub.fireplaceLabel).toBe('Dornbirn');
+    expect(JSON.stringify(pub)).not.toContain('47.41');
+    expect(pub).not.toHaveProperty('fireplace');
+    expect(pub).not.toHaveProperty('fireplaceVisible');
+  });
+
+  it('switching off removes the public name again', async () => {
+    const { priv, pub } = await saveWith(
+      { ...base, fireplace: place, fireplaceVisible: true },
+      { fireplaceVisible: false }
+    );
+    expect(priv.fireplaceVisible).toBe(false);
+    expect(pub.fireplaceLabel).toMatchObject({ __deleteField: true });
+  });
+
+  it('removing the place removes the public name and keeps the private doc free of it', async () => {
+    const { priv, pub } = await saveWith(
+      { ...base, fireplace: place, fireplaceVisible: true },
+      { fireplace: null, fireplaceVisible: false }
+    );
+    expect(priv.fireplace).toBeNull();
+    expect(pub.fireplaceLabel).toMatchObject({ __deleteField: true });
+  });
+
+  it('an unrelated save never touches the Feuerplatz', async () => {
+    const { pub } = await saveWith(
+      { ...base, fireplace: place, fireplaceVisible: true },
+      { displayName: 'Zoë Neu' }
+    );
+    expect(pub).not.toHaveProperty('fireplaceLabel');
+  });
+});

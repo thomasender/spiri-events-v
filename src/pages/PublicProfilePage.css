@@ -255,3 +255,9 @@
   bottom: 4px;
   border-color: var(--bg-calendar);
 }
+
+.public-profile-fireplace {
+  margin: 0;
+  font-size: var(--text-100);
+  color: var(--text-secondary);
+}

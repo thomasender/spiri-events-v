@@ -224,6 +224,13 @@ describe('directory card bio from the saved profile', () => {
     );
   });
 
+  it('shows the Feuerplatz name only when the public doc carries it', () => {
+    expect(normalizeDirectoryEntry('u3', { fireplaceLabel: 'Dornbirn' }).fireplaceLabel).toBe(
+      'Dornbirn'
+    );
+    expect(normalizeDirectoryEntry('u3', { bio: 'x' }).fireplaceLabel).toBe('');
+  });
+
   it('falls back to plain bio when there is no bioHtml', () => {
     expect(normalizeDirectoryEntry('u2', { bio: 'Nur Text' }).bio).toBe('Nur Text');
   });

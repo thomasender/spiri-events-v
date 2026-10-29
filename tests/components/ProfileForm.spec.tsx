@@ -925,3 +925,70 @@ describe('ProfileForm directory with several active regions', () => {
     expect(screen.getByTestId('profile-directory-region-Dornbirn')).toBeInTheDocument();
   });
 });
+
+describe('ProfileForm Feuerplatz', () => {
+  const profile = {
+    displayName: 'Maria Musterfrau',
+    bio: 'Yoga-Lehrerin aus Vorarlberg.',
+    bioHtml: '<p>Yoga-Lehrerin aus Vorarlberg.</p>',
+    website: '',
+    contact: 'maria@example.com',
+    photoURL: null,
+    slug: 'maria-musterfrau',
+  };
+
+  const pickDornbirn = async () => {
+    fireEvent.change(screen.getByTestId('place-search-input'), { target: { value: 'Dornbirn' } });
+    const options = await screen.findAllByTestId('place-search-option');
+    fireEvent.click(options[0]);
+  };
+
+  it('has no Feuerplatz by default and offers no visibility switch without one', () => {
+    renderForm(profile);
+    expect(screen.queryByTestId('fireplace-chosen')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('fireplace-visible')).not.toBeInTheDocument();
+  });
+
+  it('sets a Feuerplatz from the place search, private by default', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    renderForm(profile, { onSave });
+    await pickDornbirn();
+    expect(screen.getByTestId('fireplace-chosen')).toHaveTextContent('Dornbirn');
+    expect(screen.getByTestId('fireplace-visible')).not.toBeChecked();
+
+    fireEvent.click(screen.getByTestId('profile-save'));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    const saved = onSave.mock.calls[0][0];
+    expect(saved.fireplace).toMatchObject({ label: 'Dornbirn' });
+    expect(saved.fireplaceVisible).toBe(false);
+  });
+
+  it('makes the Feuerplatz visible with the switch', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    renderForm(profile, { onSave });
+    await pickDornbirn();
+    fireEvent.click(screen.getByTestId('fireplace-visible'));
+    fireEvent.click(screen.getByTestId('profile-save'));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0][0].fireplaceVisible).toBe(true);
+  });
+
+  it('removes the Feuerplatz and switches the visibility off with it', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    renderForm(
+      {
+        ...profile,
+        fireplace: { label: 'Dornbirn', lat: 47.413, lon: 9.744 },
+        fireplaceVisible: true,
+      },
+      { onSave }
+    );
+    expect(screen.getByTestId('fireplace-visible')).toBeChecked();
+    fireEvent.click(screen.getByTestId('fireplace-remove'));
+    expect(screen.queryByTestId('fireplace-chosen')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('profile-save'));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0][0].fireplace).toBeNull();
+    expect(onSave.mock.calls[0][0].fireplaceVisible).toBe(false);
+  });
+});

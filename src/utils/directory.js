@@ -93,6 +93,8 @@ export function normalizeDirectoryEntry(uid, data) {
     hidden: d.directoryHidden === true,
     // Opt-in: only people who share their online status get a dot.
     showOnlineStatus: d.showOnlineStatus === true,
+    // Only present while the person made their Feuerplatz visible; just the place name.
+    fireplaceLabel: typeof d.fireplaceLabel === 'string' ? d.fireplaceLabel : '',
   };
 }
 

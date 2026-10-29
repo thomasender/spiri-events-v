@@ -208,3 +208,37 @@ describe('users/{uid}/seen/{area}', () => {
     );
   });
 });
+
+// Feuerplatz: private place + switch on the user doc, only the name on the public doc.
+describe('Feuerplatz fields', () => {
+  const place = { label: 'Dornbirn', lat: 47.413, lon: 9.744 };
+  const pub = (uid: string) => `users/${uid}/publicProfile/data`;
+
+  it('the owner stores a valid place and the switch on the user doc, or removes the place', async () => {
+    const db = env.authenticatedContext('alice').firestore();
+    await assertSucceeds(
+      updateDoc(doc(db, 'users/alice'), { fireplace: place, fireplaceVisible: true })
+    );
+    await assertSucceeds(updateDoc(doc(db, 'users/alice'), { fireplace: null }));
+  });
+
+  it('rejects malformed places and a non-boolean switch', async () => {
+    const db = env.authenticatedContext('alice').firestore();
+    await assertFails(updateDoc(doc(db, 'users/alice'), { fireplace: { ...place, label: '' } }));
+    await assertFails(updateDoc(doc(db, 'users/alice'), { fireplace: { ...place, lat: 123 } }));
+    await assertFails(updateDoc(doc(db, 'users/alice'), { fireplace: { ...place, extra: 1 } }));
+    await assertFails(updateDoc(doc(db, 'users/alice'), { fireplace: 'Dornbirn' }));
+    await assertFails(updateDoc(doc(db, 'users/alice'), { fireplaceVisible: 'yes' }));
+  });
+
+  it('the public profile takes only a place name, never coordinates or the private fields', async () => {
+    const db = env.authenticatedContext('carol').firestore();
+    await assertSucceeds(setDoc(doc(db, pub('carol')), { ...base, fireplaceLabel: 'Dornbirn' }));
+    await assertSucceeds(setDoc(doc(db, pub('carol')), { ...base }));
+    await assertFails(setDoc(doc(db, pub('carol')), { ...base, fireplace: place }));
+    await assertFails(setDoc(doc(db, pub('carol')), { ...base, fireplaceVisible: true }));
+    await assertFails(setDoc(doc(db, pub('carol')), { ...base, fireplaceLabel: { ...place } }));
+    await assertFails(setDoc(doc(db, pub('carol')), { ...base, fireplaceLabel: '' }));
+    await assertFails(setDoc(doc(db, pub('carol')), { ...base, fireplaceLabel: 'x'.repeat(81) }));
+  });
+});
