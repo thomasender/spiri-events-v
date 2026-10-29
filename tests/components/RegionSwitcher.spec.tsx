@@ -183,7 +183,7 @@ describe('RegionSwitcher with two active regions', () => {
     expect(dialog).toHaveFocus();
     expect(within(dialog).getByRole('button', { name: /Meinen Standort verwenden/ })).toBeTruthy();
     expect(within(dialog).getByRole('combobox')).toBeInTheDocument();
-    expect(within(dialog).getAllByRole('radio')).toHaveLength(4);
+    expect(within(dialog).getAllByRole('radio')).toHaveLength(6);
     expect(within(dialog).queryByRole('button', { name: /Karte/ })).toBeNull();
     expect(within(dialog).queryByRole('button', { name: 'Tirol' })).toBeNull();
   });
@@ -192,6 +192,11 @@ describe('RegionSwitcher with two active regions', () => {
     renderAt('/');
     const dialog = openPicker();
     expect(within(dialog).getByTestId('place-picker-apply')).toBeDisabled();
+    expect(
+      within(dialog)
+        .getAllByRole('radio')
+        .map((r) => (r as HTMLInputElement).value)
+    ).toEqual(['5', '10', '15', '20', '25', '50']);
     expect(within(dialog).getByRole('radio', { name: '25 km' })).toBeChecked();
     await searchAndPick(dialog, 'bregenz', 'Bregenz');
     expect(within(dialog).getByTestId('place-picker-chosen')).toHaveTextContent('Bregenz');
@@ -419,6 +424,26 @@ describe('the remembered place', () => {
     expect(screen.getByRole('button', { name: /aktuell Innsbruck · 25 km/ })).toBeInTheDocument();
     // No chooser, so the header names the region again.
     expect(headerTitle()).toBe('Dein Tiroler Kalender');
+  });
+
+  it('an old 100 km setting shows as 50 km, on the button and in the picker', () => {
+    window.localStorage.setItem(
+      PLACE_SELECTION_KEY,
+      JSON.stringify({
+        label: 'Innsbruck',
+        lat: 47.269,
+        lon: 11.404,
+        radiusKm: 100,
+        regionId: 'tirol',
+        source: 'search',
+        updatedAt: 1,
+      })
+    );
+    renderAt('/');
+    expect(screen.getByRole('button', { name: /aktuell Innsbruck · 50 km/ })).toBeInTheDocument();
+    const dialog = openPicker();
+    expect(within(dialog).getByRole('radio', { name: '50 km' })).toBeChecked();
+    expect(within(dialog).queryByRole('radio', { name: '100 km' })).toBeNull();
   });
 
   it('is ignored for another region address: Tirol by hand is Tirol, not a circle', () => {

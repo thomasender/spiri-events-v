@@ -6,11 +6,26 @@ import { isRegionSlug } from './regions.js';
 // users, in `users/{uid}.placeSelection` (see PlaceSelectionSync). Pure, free of Firebase/React.
 
 export const PLACE_SELECTION_KEY = 'tribe:placeSelection';
-export const RADIUS_OPTIONS = Object.freeze([10, 25, 50, 100]);
+export const RADIUS_OPTIONS = Object.freeze([5, 10, 15, 20, 25, 50]);
 export const DEFAULT_RADIUS_KM = 25;
-export const MAX_RADIUS_KM = 200;
+export const MAX_RADIUS_KM = 50;
+// firestore.rules still accepts 1..200 on purpose (old profile values, clients not yet reloaded).
 
 const round3 = (x) => Math.round(x * 1000) / 1000;
+
+/**
+ * A stored radius mapped onto an allowed step: the nearest one (the lower on a tie), anything
+ * above the maximum becomes the maximum, anything invalid the default. So an old 100 km shows
+ * as 50 km.
+ */
+export function snapRadius(value) {
+  const radius = Number(value);
+  if (!Number.isFinite(radius) || radius < 1) return DEFAULT_RADIUS_KM;
+  if (radius >= MAX_RADIUS_KM) return MAX_RADIUS_KM;
+  return RADIUS_OPTIONS.reduce((best, km) =>
+    Math.abs(km - radius) < Math.abs(best - radius) ? km : best
+  );
+}
 
 /**
  * Clean selection `{ label, lat, lon, radiusKm, regionId, source, updatedAt }` or null for
@@ -21,7 +36,6 @@ export function normalizeSelection(raw) {
   if (!raw || typeof raw !== 'object') return null;
   const lat = Number(raw.lat);
   const lon = Number(raw.lon);
-  const radius = Number(raw.radiusKm);
   const label = typeof raw.label === 'string' ? raw.label.trim().slice(0, 80) : '';
   if (!label || !Number.isFinite(lat) || !Number.isFinite(lon)) return null;
   if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
@@ -30,10 +44,7 @@ export function normalizeSelection(raw) {
     label,
     lat: round3(lat),
     lon: round3(lon),
-    radiusKm:
-      Number.isFinite(radius) && radius >= 1 && radius <= MAX_RADIUS_KM
-        ? Math.round(radius)
-        : DEFAULT_RADIUS_KM,
+    radiusKm: snapRadius(raw.radiusKm),
     regionId: isRegionSlug(raw.regionId) ? raw.regionId : null,
     source: raw.source === 'device' ? 'device' : 'search',
     updatedAt: Number.isFinite(updatedAt) && updatedAt > 0 ? Math.round(updatedAt) : 0,

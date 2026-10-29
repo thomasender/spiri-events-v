@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { STATIC_REGIONS, mergeRegions } from '../../src/utils/regions';
 import {
   DEFAULT_RADIUS_KM,
+  MAX_RADIUS_KM,
+  RADIUS_OPTIONS,
   PLACE_SELECTION_KEY,
   activeRadiusFilter,
   normalizeSelection,
@@ -47,7 +49,32 @@ describe('normalizeSelection', () => {
     expect(s.regionId).toBeNull();
     expect(s.source).toBe('search');
     expect(normalizeSelection({ ...bregenz, regionId: 'narnia' })!.regionId).toBeNull();
-    expect(normalizeSelection({ ...bregenz, radiusKm: 5000 })!.radiusKm).toBe(DEFAULT_RADIUS_KM);
+  });
+
+  it('offers the steps 5 / 10 / 15 / 20 / 25 / 50 km, the default among them', () => {
+    expect([...RADIUS_OPTIONS]).toEqual([5, 10, 15, 20, 25, 50]);
+    expect(RADIUS_OPTIONS).toContain(DEFAULT_RADIUS_KM);
+    expect(DEFAULT_RADIUS_KM).toBe(25);
+    expect(MAX_RADIUS_KM).toBe(50);
+  });
+
+  it.each([
+    [100, 50],
+    [500, 50],
+    [5000, 50],
+    [30, 25],
+    [12, 10],
+    [7, 5],
+    [5, 5],
+    [50, 50],
+    [17.5, 15],
+    ['x', 25],
+    [0, 25],
+    [-3, 25],
+    [null, 25],
+    [undefined, 25],
+  ])('rounds a stored radius %s to the allowed step %s', (stored, expected) => {
+    expect(normalizeSelection({ ...bregenz, radiusKm: stored })!.radiusKm).toBe(expected);
   });
 
   it('rejects anything without a label or with impossible coordinates', () => {
