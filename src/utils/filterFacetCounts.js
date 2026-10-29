@@ -23,6 +23,7 @@ function matchesOrt(occurrence, selected, onlineLocation) {
 export function computeFacetCounts({
   occurrences: allOccurrences,
   monthKey,
+  range = null,
   selectedCategories,
   selectedOrte,
   dateFilter,
@@ -31,7 +32,10 @@ export function computeFacetCounts({
 }) {
   // The list hides occurrences that already started, so the counts must too.
   const occurrences = allOccurrences.filter((o) => !isOccurrencePast(o, reference));
-  const inMonth = occurrences.filter((o) => o.date.startsWith(monthKey));
+  // `range` ({from, to}) replaces the month when the rolling view is active.
+  const inMonth = occurrences.filter((o) =>
+    range ? o.date >= range.from && o.date <= range.to : o.date.startsWith(monthKey)
+  );
 
   const category = {};
   const ort = {};

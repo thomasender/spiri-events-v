@@ -140,7 +140,8 @@ describe('Calendar', () => {
       fireEvent.click(todayButton);
       const today = new Date();
       expect(onMonthChange).toHaveBeenCalledWith(
-        new Date(today.getFullYear(), today.getMonth(), 1)
+        new Date(today.getFullYear(), today.getMonth(), 1),
+        { rolling: true }
       );
     });
 

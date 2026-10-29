@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import EventsSection, { EVENTS_PAGE_SIZE } from '../../src/components/EventsSection';
@@ -59,5 +59,42 @@ describe('EventsSection — Mehr laden', () => {
     fireEvent.click(screen.getByTestId('events-load-more'));
     rerenderWith(makeEvents(70, 'other'));
     expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(EVENTS_PAGE_SIZE);
+  });
+});
+
+describe('EventsSection — 30-day default view (QRpwwNTI)', () => {
+  afterEach(() => vi.useRealTimers());
+
+  const renderRolling = (onMonthChange = vi.fn()) => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2099, 0, 20, 10, 0));
+    render(
+      <MemoryRouter>
+        <EventsSection
+          events={makeEvents(2)}
+          currentMonth={new Date(2099, 0, 1)}
+          rolling
+          onMonthChange={onMonthChange}
+          viewMode="card"
+          onViewModeChange={() => {}}
+          categoryColorByName={new Map()}
+        />
+      </MemoryRouter>
+    );
+    return onMonthChange;
+  };
+
+  it('labels the rolling view and keeps the back arrow enabled', () => {
+    renderRolling();
+    expect(screen.getByRole('heading', { level: 2, name: 'Nächste 30 Tage' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Vorheriger Monat' })).toBeEnabled();
+  });
+
+  it('> goes to the next calendar month, < to the current month view', () => {
+    const onMonthChange = renderRolling();
+    fireEvent.click(screen.getByRole('button', { name: 'Nächster Monat' }));
+    expect(onMonthChange).toHaveBeenLastCalledWith(new Date(2099, 1, 1));
+    fireEvent.click(screen.getByRole('button', { name: 'Vorheriger Monat' }));
+    expect(onMonthChange).toHaveBeenLastCalledWith(new Date(2099, 0, 1));
   });
 });

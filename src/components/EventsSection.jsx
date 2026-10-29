@@ -32,6 +32,7 @@ export const EVENTS_PAGE_SIZE = 24;
 export default function EventsSection({
   events,
   currentMonth,
+  rolling = false,
   onMonthChange,
   viewMode,
   onViewModeChange,
@@ -64,23 +65,33 @@ export default function EventsSection({
     if (mode !== effectiveViewMode) trackEvent(EVENTS.CALENDAR_VIEW_CHANGE, { view: mode });
     onViewModeChange(mode);
   };
-  const monthLabel = `${MONTHS[currentMonth.getMonth()]} ${currentMonth.getFullYear()}`;
+  const monthLabel = rolling
+    ? 'Nächste 30 Tage'
+    : `${MONTHS[currentMonth.getMonth()]} ${currentMonth.getFullYear()}`;
   // Past months are hidden from the public view, so navigating back from the
   // current month would just land users on an empty month. Disable the back
   // button at the current month to make that explicit.
   const today = new Date();
+  // In the 30-day view the back button leads to the (current) month view.
   const canGoPrev =
+    rolling ||
     currentMonth.getFullYear() > today.getFullYear() ||
     (currentMonth.getFullYear() === today.getFullYear() &&
       currentMonth.getMonth() > today.getMonth());
 
   const goToPrevMonth = () => {
     if (!canGoPrev) return;
+    if (rolling) {
+      onMonthChange(new Date(today.getFullYear(), today.getMonth(), 1));
+      return;
+    }
     onMonthChange(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
   };
 
   const goToNextMonth = () => {
-    onMonthChange(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
+    // From the 30-day view, > goes to the month after the current one.
+    const base = rolling ? today : currentMonth;
+    onMonthChange(new Date(base.getFullYear(), base.getMonth() + 1, 1));
   };
 
   return (

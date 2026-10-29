@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { monthKeyToDate, dateToMonthKey } from '../../src/utils/calendarFilterState';
+import {
+  monthKeyToDate,
+  dateToMonthKey,
+  getRollingRange,
+} from '../../src/utils/calendarFilterState';
 
 describe('calendarFilterState helpers', () => {
   describe('dateToMonthKey', () => {
@@ -57,6 +61,22 @@ describe('calendarFilterState helpers', () => {
         expect(restored.getFullYear()).toBe(original.getFullYear());
         expect(restored.getMonth()).toBe(original.getMonth());
       }
+    });
+  });
+});
+
+describe('getRollingRange (QRpwwNTI)', () => {
+  it('spans today to today + 30 days, inclusive', () => {
+    expect(getRollingRange(new Date(2099, 0, 20, 23, 30))).toEqual({
+      from: '2099-01-20',
+      to: '2099-02-19',
+    });
+  });
+
+  it('crosses year boundaries', () => {
+    expect(getRollingRange(new Date(2099, 11, 15))).toEqual({
+      from: '2099-12-15',
+      to: '2100-01-14',
     });
   });
 });
