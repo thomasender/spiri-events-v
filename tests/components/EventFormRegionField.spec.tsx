@@ -313,23 +313,19 @@ describe('EventFormWizard region field', () => {
     expect(saved).toMatchObject({ isOnline: true, bezirk: '', regionId: 'tirol' });
   });
 
-  it('offers "Online-Event" only with a directory listing that names a Bezirk of the region', () => {
+  it('hides "Online-Event" unless the organiser has a directory listing that names a Bezirk of the region', () => {
     seedWizardDraft({ regionId: 'tirol' });
     const ctx = regionContext(['vorarlberg', 'tirol'], 'tirol');
     const { unmount } = render(withRegions(ctx, <EventFormWizard />));
-    expect(screen.getByTestId('is-online-checkbox')).toBeDisabled();
-    expect(screen.getByTestId('online-event-hint')).toHaveTextContent(
-      'Online-Events sind nur möglich, wenn du im Verzeichnis für Tirol gelistet bist'
-    );
+    expect(screen.queryByTestId('is-online-checkbox')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('online-event-hint')).not.toBeInTheDocument();
     unmount();
 
     // Listed in Tirol, but only with the "Online" chip: still no Bezirk of Tirol.
     mockOrganizer.profile = { ...TIROL_LISTING, directoryRegions: ['Online'] };
     const second = render(withRegions(ctx, <EventFormWizard />));
-    expect(screen.getByTestId('is-online-checkbox')).toBeDisabled();
-    expect(screen.getByTestId('online-event-hint')).toHaveTextContent(
-      'mindestens einen Bezirk in Tirol nennt'
-    );
+    expect(screen.queryByTestId('is-online-checkbox')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('online-event-hint')).not.toBeInTheDocument();
     second.unmount();
 
     mockOrganizer.profile = TIROL_LISTING;

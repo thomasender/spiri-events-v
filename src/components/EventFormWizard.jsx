@@ -1381,25 +1381,27 @@ export default function EventFormWizard() {
         </div>
       </div>
 
-      <div className="form-group">
-        <label className="checkbox-label checkbox-label--inline">
-          <input
-            type="checkbox"
-            name="isOnline"
-            checked={formData.isOnline}
-            onChange={handleChange}
-            disabled={!onlineGate.offered && !formData.isOnline}
-            data-testid="is-online-checkbox"
-          />
-          <span>Online-Event (kein Ort und keine Adresse nötig)</span>
-        </label>
-        {onlineGate.hint && (
-          <span className="input-hint" data-testid="online-event-hint">
-            {onlineGate.hint}
-          </span>
-        )}
-        {errors.isOnline && <span className="error-text">{errors.isOnline}</span>}
-      </div>
+      {(onlineGate.offered || formData.isOnline) && (
+        <div className="form-group">
+          <label className="checkbox-label checkbox-label--inline">
+            <input
+              type="checkbox"
+              name="isOnline"
+              checked={formData.isOnline}
+              onChange={handleChange}
+              disabled={!onlineGate.offered && !formData.isOnline}
+              data-testid="is-online-checkbox"
+            />
+            <span>Online-Event (kein Ort und keine Adresse nötig)</span>
+          </label>
+          {onlineGate.hint && (
+            <span className="input-hint" data-testid="online-event-hint">
+              {onlineGate.hint}
+            </span>
+          )}
+          {errors.isOnline && <span className="error-text">{errors.isOnline}</span>}
+        </div>
+      )}
 
       <div className="form-group">
         <label htmlFor="category">Kategorie *</label>
