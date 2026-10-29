@@ -13,6 +13,7 @@ import {
   redirectTargetPath,
   regionCanonicalPath,
   regionLocative,
+  regionNavPath,
   regionPath,
   regionSlugFromPath,
   regionSwitchSubpath,
@@ -326,5 +327,37 @@ describe('last region in localStorage', () => {
   it('a throwing localStorage does not crash', () => {
     expect(readLastRegion(throwingStorage)).toBeNull();
     expect(() => writeLastRegion('tirol', throwingStorage)).not.toThrow();
+  });
+});
+
+describe('regionNavPath (header Kalender / Verzeichnis)', () => {
+  const opts = (o: Record<string, unknown> = {}) => ({ regions: WITH_TIROL, ...o });
+
+  it('leads to the coming-soon page of the chosen place on pages without a region (event form)', () => {
+    const o = opts({ placeRegionId: 'niederoesterreich' });
+    expect(regionNavPath('/', o)).toBe('/niederoesterreich');
+    expect(regionNavPath('/verzeichnis', o)).toBe('/niederoesterreich/verzeichnis');
+  });
+  it('uses the last chosen region when no place is stored', () => {
+    expect(regionNavPath('/', opts({ lastRegion: 'kaernten' }))).toBe('/kaernten');
+  });
+  it('keeps the region or combined view of the page', () => {
+    expect(regionNavPath('/', opts({ pageSlug: 'tirol', placeRegionId: 'kaernten' }))).toBe(
+      '/tirol'
+    );
+    expect(regionNavPath('/verzeichnis', opts({ pageSlug: 'niederoesterreich' }))).toBe(
+      '/niederoesterreich/verzeichnis'
+    );
+    expect(regionNavPath('/', opts({ pageSlug: 'alle-tribes' }))).toBe('/alle-tribes');
+  });
+  it('keeps the plain path for an active chosen region (it already shows it)', () => {
+    expect(regionNavPath('/', opts({ placeRegionId: 'tirol' }))).toBe('/');
+    expect(regionNavPath('/verzeichnis', opts())).toBe('/verzeichnis');
+  });
+  it('changes nothing with one active region or while loading (dark launch)', () => {
+    expect(regionNavPath('/', { placeRegionId: 'niederoesterreich' })).toBe('/');
+    expect(regionNavPath('/', opts({ placeRegionId: 'niederoesterreich', loading: true }))).toBe(
+      '/'
+    );
   });
 });

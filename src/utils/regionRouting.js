@@ -243,6 +243,36 @@ export function logoTargetPath(
 }
 
 /**
+ * Target of the header's "Kalender" (`path` '/') and "Verzeichnis" ('/verzeichnis') links
+ * (Trello gflD7CXa). They keep the visitor's region on every page, also on pages without one
+ * in the address (event form, login, profile): the region or combined view of the page
+ * (`pageSlug`), else the region of the chosen place, else the last chosen region. `/` and
+ * `/verzeichnis` would fall back to Vorarlberg for a region that is not open yet, so such a
+ * region leads to its coming-soon page instead. An active region without a page slug keeps
+ * the plain path (it shows that region already). Dark launch: the plain path while fewer
+ * than two regions are active or the region config is loading.
+ */
+export function regionNavPath(
+  path,
+  {
+    pageSlug = null,
+    placeRegionId = null,
+    lastRegion = null,
+    regions = STATIC_REGIONS,
+    loading = false,
+  } = {}
+) {
+  if (loading || activeRegions(regions).length < 2) return path;
+  if (isCombinedViewSlug(pageSlug)) return regionPath(pageSlug, path);
+  const slug = [pageSlug, placeRegionId ?? lastRegion].find(
+    (s) => isRegionSlug(s) && getRegionBySlug(s, regions)
+  );
+  if (!slug) return path;
+  if (!getRegionBySlug(slug, regions).active) return regionPath(slug, path);
+  return slug === pageSlug ? regionCanonicalPath(slug, path, regions) : path;
+}
+
+/**
  * "in der Steiermark", "im Allgäu", "in Tirol": for running text on region
  * pages. Uses the register's `inPhrase` (src/utils/regions.js); a region
  * object without one falls back to "in <Name>".

@@ -1442,3 +1442,29 @@ describe('Header logo target', () => {
     );
   });
 });
+
+describe('Header Kalender / Verzeichnis keep the chosen region (gflD7CXa)', () => {
+  it('leads to the not-yet-open region of the chosen place, not to Vorarlberg, on the event form', () => {
+    mockAuth.user = { uid: 'u1' };
+    render(
+      <RegionContext.Provider
+        value={
+          {
+            ...DEFAULT_REGION_CONTEXT,
+            allRegions: mergeRegions([{ id: 'tirol', active: true }]),
+            placeSelection: { regionId: 'niederoesterreich' },
+          } as unknown as typeof DEFAULT_REGION_CONTEXT
+        }
+      >
+        <MemoryRouter initialEntries={['/admin/new']}>
+          <Header />
+        </MemoryRouter>
+      </RegionContext.Provider>
+    );
+    const hrefs = (name: string) =>
+      screen.getAllByRole('link', { name }).map((a) => a.getAttribute('href'));
+    expect(hrefs('Kalender')).toContain('/niederoesterreich');
+    expect(hrefs('Kalender')).not.toContain('/');
+    expect(hrefs('Verzeichnis').every((h) => h === '/niederoesterreich/verzeichnis')).toBe(true);
+  });
+});

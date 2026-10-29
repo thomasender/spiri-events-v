@@ -16,7 +16,7 @@ import RegionSwitcher, { RegionMenuList } from './RegionSwitcher';
 import { useRegion } from '../hooks/useRegion';
 import { useRegionTexts } from '../hooks/useRegionTexts';
 import { customSlogan, DEFAULT_SLOGAN_LINE2 } from '../utils/regionAboutText';
-import { logoTargetPath, readLastRegion } from '../utils/regionRouting';
+import { logoTargetPath, readLastRegion, regionNavPath } from '../utils/regionRouting';
 import MentionBell from './MentionBell';
 import {
   Users,
@@ -58,6 +58,8 @@ export default function Header() {
     regionChooserOpen,
     allRegions,
     loading: regionsLoading,
+    pageSlug,
+    placeSelection,
   } = useRegion();
   // Logo: the region of the signed-in person's profile (see logoTargetPath).
   const logoPath = logoTargetPath(user ? profile?.placeSelection?.regionId : null, {
@@ -65,6 +67,16 @@ export default function Header() {
     loading: regionsLoading,
     lastRegion: user ? null : readLastRegion(),
   });
+  // "Kalender" / "Verzeichnis" keep the visitor's region on every page (gflD7CXa).
+  const navOptions = {
+    pageSlug,
+    placeRegionId: placeSelection?.regionId ?? null,
+    lastRegion: readLastRegion(),
+    regions: allRegions,
+    loading: regionsLoading,
+  };
+  const calendarPath = regionNavPath('/', navOptions);
+  const directoryPath = regionNavPath('/verzeichnis', navOptions);
   const slogan = !neutralHeader && !isNational && !combinedView ? customSlogan(region) : null;
   // On a coming-soon region page the event belongs to that region.
   const addEventPath = comingSoon && regionId ? `/admin/new?region=${regionId}` : '/admin/new';
@@ -256,14 +268,14 @@ export default function Header() {
   // the mobile menu lists them flat. -------------------------------------------
 
   const calendarLink = (
-    <NavLink to="/" className={navClass} end onClick={closeMenu}>
+    <NavLink to={calendarPath} className={navClass} end onClick={closeMenu}>
       <Calendar size={18} />
       <span>Kalender</span>
     </NavLink>
   );
 
   const directoryLink = (
-    <NavLink to="/verzeichnis" className={navClass} onClick={closeMenu}>
+    <NavLink to={directoryPath} className={navClass} onClick={closeMenu}>
       <Users size={18} />
       <span>Verzeichnis</span>
     </NavLink>
@@ -567,7 +579,7 @@ export default function Header() {
             (or to reach their profile when already signed in). Hidden on
             desktop where the nav already exposes the same actions. */}
         <Link
-          to="/verzeichnis"
+          to={directoryPath}
           className="header-profile-button header-directory-button"
           aria-label="Verzeichnis"
           data-testid="header-directory-button"
