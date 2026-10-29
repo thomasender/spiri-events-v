@@ -44,6 +44,11 @@ async function navigateToMonth(page: Page, year: number, month: number): Promise
   for (let attempts = 0; attempts < 24; attempts++) {
     const current = (await header.textContent())?.trim() ?? '';
     if (current === target) return;
+    // Default view is "Nächste 30 Tage"; the back arrow leads to the current month.
+    if (current === 'Nächste 30 Tage') {
+      await page.locator('.events-section-month-nav button').nth(0).click();
+      continue;
+    }
     await page.locator('.events-section-month-nav button').nth(1).click();
   }
   throw new Error(`Failed to navigate to ${target}`);

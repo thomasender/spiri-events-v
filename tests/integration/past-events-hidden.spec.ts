@@ -76,6 +76,11 @@ async function navigateToMonth(
   for (let attempts = 0; attempts < 36; attempts++) {
     const current = (await header.textContent())?.trim() ?? '';
     if (current === target) return;
+    // Default view is "Nächste 30 Tage"; the back arrow leads to the current month.
+    if (current === 'Nächste 30 Tage') {
+      await page.locator('.events-section-month-nav button').nth(0).click();
+      continue;
+    }
     await page.locator('.events-section-month-nav button').nth(navButtonIndex).click();
   }
   throw new Error(`Failed to navigate to ${target}`);
@@ -146,13 +151,11 @@ test.describe('Calendar hides past events', () => {
   });
 
   test('past months are not navigable from the calendar', async ({ page }) => {
-    // The events-section prev button is disabled at the current month — users
-    // cannot navigate to past months in the first place. Asserting that the
-    // button is locked at the current month is the new contract; the old
-    // "navigate back to a past month and check it is empty" check is replaced
-    // by "we never reach the past at all" because past events are filtered
-    // out by useAllEvents.
+    // The default view is "Nächste 30 Tage"; its back arrow leads to the
+    // current month, where the prev button is disabled — users cannot reach
+    // past months at all.
     const prevButton = page.locator('.events-section-month-nav button').nth(0);
+    await prevButton.click();
     await expect(prevButton).toBeDisabled();
   });
 
