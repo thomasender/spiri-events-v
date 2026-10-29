@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import FocalPointPicker from './FocalPointPicker';
+import CropViewport from './CropViewport';
 import EventCoverImage from './EventCoverImage';
 import {
   DEFAULT_FOCAL_POINT,
@@ -12,6 +12,10 @@ import {
   normalizeImageZoom,
 } from '../lib/eventImage';
 import './AdminCoverPreview.css';
+
+// The event page header shows the cover 16:9 (EventDetailPage.css); the tile
+// keeps a fixed height at a variable width, the list row is 4:3.
+const COVER_ASPECT = 16 / 9;
 
 /**
  * Admin editor for the cover crop (focal point + zoom), same controls as the
@@ -25,6 +29,11 @@ function AdminCoverCropEditor({ event, onSaved, onCancel }) {
   const [zoom, setZoom] = useState(normalizeImageZoom(event.imageZoom));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const initialPoint = normalizeFocalPoint(event.imageFocalPoint) ?? DEFAULT_FOCAL_POINT;
+  const dirty =
+    Math.abs(focalPoint.x - initialPoint.x) > 1e-4 ||
+    Math.abs(focalPoint.y - initialPoint.y) > 1e-4 ||
+    Math.abs(zoom - normalizeImageZoom(event.imageZoom)) > 1e-4;
 
   const save = async () => {
     setSaving(true);
@@ -44,19 +53,24 @@ function AdminCoverCropEditor({ event, onSaved, onCancel }) {
 
   return (
     <div className="admin-cover-preview" data-testid="admin-cover-crop-editor">
-      <FocalPointPicker
+      <CropViewport
         imageUrl={event.imageUrl}
-        value={focalPoint}
-        onChange={setFocalPoint}
+        aspect={COVER_ASPECT}
+        focalPoint={focalPoint}
+        onFocalPointChange={setFocalPoint}
         zoom={zoom}
         onZoomChange={setZoom}
-        showZoomSlider
         minZoom={MIN_IMAGE_ZOOM}
         maxZoom={MAX_IMAGE_ZOOM}
-        ariaLabel="Ausschnitt des Titelbilds festlegen"
-        testId="admin-cover-focal-picker"
-        info="Tippe oder ziehe auf das Foto, um den wichtigsten Bereich zu wählen, und zoome bei Bedarf hinein."
+        zoomTestId="admin-cover-focal-picker-zoom"
+        ariaLabel="Ausschnitt des Titelbilds verschieben"
+        testId="admin-cover-viewport"
       />
+      {dirty && !error && (
+        <p className="admin-cover-preview-unsaved" data-testid="admin-cover-crop-unsaved">
+          Ausschnitt noch nicht gespeichert.
+        </p>
+      )}
       {error && (
         <p className="error-text" data-testid="admin-cover-crop-error">
           {error}

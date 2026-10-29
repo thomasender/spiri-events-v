@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import FocalPointPicker from './FocalPointPicker';
+import CropViewport from './CropViewport';
 import {
   INSTAGRAM_CROP_ASPECT,
   MAX_INSTAGRAM_ZOOM,
@@ -162,6 +162,11 @@ function AdminInstagramCropEditor({ event, imageUrl, initial, previewEvent, onSa
   const [mode, setMode] = useState(PREVIEW_MODE_CAROUSEL);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const initialPoint = normalizeFocalPoint(initial?.focalPoint) ?? DEFAULT_FOCAL_POINT;
+  const dirty =
+    Math.abs(focalPoint.x - initialPoint.x) > 1e-4 ||
+    Math.abs(focalPoint.y - initialPoint.y) > 1e-4 ||
+    Math.abs(zoom - clampInstagramZoom(initial?.zoom ?? 1)) > 1e-4;
 
   const save = async () => {
     setSaving(true);
@@ -177,36 +182,31 @@ function AdminInstagramCropEditor({ event, imageUrl, initial, previewEvent, onSa
   };
 
   return (
-    <div className="instagram-post-preview" data-testid="instagram-crop-editor">
-      <div className="instagram-image-picker-zoom">
-        <label htmlFor="admin-instagram-zoom">Hineinzoomen</label>
-        <input
-          id="admin-instagram-zoom"
-          type="range"
-          min={MIN_INSTAGRAM_ZOOM}
-          max={MAX_INSTAGRAM_ZOOM}
-          step={0.05}
-          value={zoom}
-          onChange={(e) => setZoom(Number(e.target.value))}
-          data-testid="admin-instagram-zoom"
-        />
-        <output htmlFor="admin-instagram-zoom">{Math.round(zoom * 100)} %</output>
-      </div>
-      <FocalPointPicker
+    <div
+      className="instagram-post-preview instagram-post-preview--editing"
+      data-testid="instagram-crop-editor"
+    >
+      <InstagramPreviewModeToggle mode={mode} onChange={setMode} />
+      <CropViewport
         imageUrl={imageUrl}
-        value={focalPoint}
-        onChange={setFocalPoint}
-        cropAspect={INSTAGRAM_CROP_ASPECT}
+        aspect={INSTAGRAM_CROP_ASPECT}
+        focalPoint={focalPoint}
+        onFocalPointChange={setFocalPoint}
         zoom={zoom}
         onZoomChange={setZoom}
         minZoom={MIN_INSTAGRAM_ZOOM}
         maxZoom={MAX_INSTAGRAM_ZOOM}
-        ariaLabel="Bildausschnitt für Instagram festlegen"
-        testId="admin-instagram-focal-picker"
-        info="Tippe oder ziehe auf das Foto, um den wichtigsten Bereich zu wählen, und zoome bei Bedarf hinein."
-        previewControls={<InstagramPreviewModeToggle mode={mode} onChange={setMode} />}
-        previewOverlay={<InstagramPreviewModeOverlay mode={mode} event={previewEvent} />}
-      />
+        zoomTestId="admin-instagram-zoom"
+        ariaLabel="Bildausschnitt für Instagram verschieben"
+        testId="admin-instagram-viewport"
+      >
+        <InstagramPreviewModeOverlay mode={mode} event={previewEvent} />
+      </CropViewport>
+      {dirty && !error && (
+        <p className="instagram-image-picker-hint" data-testid="admin-instagram-crop-unsaved">
+          Ausschnitt noch nicht gespeichert.
+        </p>
+      )}
       {error && (
         <p className="error-text" data-testid="admin-instagram-crop-error">
           {error}
