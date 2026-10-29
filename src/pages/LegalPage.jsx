@@ -65,7 +65,7 @@ Nach der Freigabe sind die Angaben zum Event, einschließlich Veranstalter-Name 
 - Ein Zeitstempel Ihrer letzten Aktivität auf der Website (siehe Abschnitt 16)
 
 *Wenn Sie Mitglied des Vereins Tribe Vorarlberg sind:*
-- Die Angabe, dass Sie Vereinsmitglied sind; sie wird als Abzeichen an Ihrem Profilbild öffentlich angezeigt (siehe Abschnitt 18)
+- Die Angabe, dass Sie Vereinsmitglied sind; sie wird nur mit Ihrer Einwilligung als Abzeichen an Ihrem Profilbild öffentlich angezeigt (siehe Abschnitt 18)
 
 *Bei einer Spende mit Eintrag in der Spenderliste (freiwillig):*
 - Ein optionaler Kommentar (max. 140 Zeichen), den Sie nur zusammen mit Ihrer Einwilligung zur Nennung in der Spenderliste angeben können; er wird zusammen mit Ihrem Eintrag öffentlich auf der „Über uns“-Seite angezeigt. Sie können Ihre Einwilligung jederzeit per E-Mail an admin@thetribe.at widerrufen, dann entfernen wir Kommentar und Eintrag
@@ -90,7 +90,7 @@ Nach der Freigabe sind die Angaben zum Event, einschließlich Veranstalter-Name 
 - Bereitstellung der App-Funktionalität
 - Sicherstellung des ordnungsgemäßen Betriebs und der Sicherheit, einschließlich der Server-Protokolle (siehe Abschnitt 9)
 - Veröffentlichung der freigegebenen Event-Angaben, auch in Kalenderdateien und im Kalender-Abo (siehe Abschnitt 13)
-- Abzeichen für Vereinsmitglieder an ihrem Profilbild (siehe Abschnitt 18)`,
+- Abzeichen für Vereinsmitglieder an ihrem Profilbild, nur mit Einwilligung (siehe Abschnitt 18)`,
       },
       {
         heading: '4. Keine Weitergabe an Dritte',
@@ -110,7 +110,7 @@ Wenn Sie den Kalender in einer Kalender-App oder bei einem Kalenderdienst (z.B. 
 - *Chat-Nachrichten:* Werden automatisch nach 10 Tagen gelöscht, beim Löschen Ihres Kontos sofort (siehe Abschnitt 14)
 - *Privatnachrichten:* Werden automatisch nach 90 Tagen gelöscht, beim Löschen Ihres Kontos werden Ihre Nachrichten sofort entfernt (siehe Abschnitt 15)
 - *Online-Status:* Der Zeitstempel wird beim Verlassen der Seite, beim Abmelden und beim Ausschalten der Option gelöscht, spätestens nach einem Tag automatisch (siehe Abschnitt 16)
-- *Vereinsmitgliedschaft (Abzeichen):* Wird entfernt, wenn Ihre Mitgliedschaft endet, wenn Sie widersprechen oder wenn Sie Ihr Konto löschen (siehe Abschnitt 18)
+- *Vereinsmitgliedschaft (Abzeichen):* Wird entfernt, wenn Ihre Mitgliedschaft endet, wenn Sie Ihre Einwilligung widerrufen oder wenn Sie Ihr Konto löschen (siehe Abschnitt 18)
 - *Server-Protokolle:* Siehe Abschnitt 9
 
 Nach einer Löschunganfrage werden die Daten innerhalb von 30 Tagen entfernt.`,
@@ -361,19 +361,19 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
       },
       {
         heading: '18. Abzeichen für Vereinsmitglieder',
-        text: `Wenn Sie Mitglied des Vereins Tribe Vorarlberg sind, zeigen wir an Ihrem Profilbild ein kleines Abzeichen (derzeit eine Blume) mit dem Hinweis „Vereinsmitglied: unterstützt den Tribe“.
+        text: `Wenn Sie Mitglied des Vereins Tribe Vorarlberg sind und uns Ihre Einwilligung gegeben haben, zeigen wir an Ihrem Profilbild ein kleines Abzeichen (derzeit eine Blume) mit dem Hinweis „Vereinsmitglied: unterstützt den Tribe“.
 
 *Was wird veröffentlicht?*
 - Nur die Angabe, dass Sie Vereinsmitglied sind. Das Abzeichen ist öffentlich sichtbar, auch für Besucher:innen ohne Anmeldung, überall dort, wo Ihr Profilbild erscheint, zum Beispiel im Verzeichnis, auf Ihrem öffentlichen Profil, bei Ihren Events, im Chat und im Postfach
 - Im Verzeichnis erscheinen Vereinsmitglieder etwas häufiger weiter oben; die Reihenfolge bleibt zufällig
 - Weitere Angaben zu Ihrer Mitgliedschaft (zum Beispiel Beitrittsdatum oder Mitgliedsbeitrag) werden nicht veröffentlicht
 
-*Wer setzt das Abzeichen?* Die Administrator:innen des Vereins, anhand der Mitgliederliste des Vereins. Sie selbst können es in Ihrem Profil nicht setzen oder ändern.
+*Wer setzt das Abzeichen?* Die Administrator:innen des Vereins, und zwar erst, nachdem Sie ausdrücklich zugestimmt haben (zum Beispiel per E-Mail an admin@thetribe.at oder schriftlich beim Verein) und anhand der Mitgliederliste des Vereins. Ohne Ihre Zustimmung wird kein Abzeichen gesetzt. Sie selbst können es in Ihrem Profil nicht setzen oder ändern.
 
-*Zweck und Rechtsgrundlage:* Wir möchten sichtbar machen und anerkennen, wer den Verein mit einer Mitgliedschaft unterstützt. Rechtsgrundlage ist unser berechtigtes Interesse (Art. 6 Abs. 1 lit. f DSGVO).
+*Zweck und Rechtsgrundlage:* Wir möchten sichtbar machen und anerkennen, wer den Verein mit einer Mitgliedschaft unterstützt. Rechtsgrundlage ist Ihre ausdrückliche Einwilligung (Art. 6 Abs. 1 lit. a DSGVO und, soweit die Mitgliedschaft in unserem Verein Rückschlüsse auf Ihre weltanschauliche Überzeugung zulässt, Art. 9 Abs. 2 lit. a DSGVO). Die Einwilligung ist freiwillig; Ihre Mitgliedschaft und die Nutzung der Website sind davon unabhängig.
 
-*Widerspruch und Entfernung:*
-- Sie können der Anzeige jederzeit per E-Mail an admin@thetribe.at widersprechen; wir entfernen das Abzeichen dann umgehend
+*Widerruf und Entfernung:*
+- Sie können Ihre Einwilligung jederzeit mit Wirkung für die Zukunft per E-Mail an admin@thetribe.at widerrufen; wir entfernen das Abzeichen dann umgehend. Die Rechtmäßigkeit der bisherigen Anzeige bleibt davon unberührt
 - Endet Ihre Mitgliedschaft, entfernen wir das Abzeichen ebenfalls
 - Beim Löschen Ihres Kontos wird die Angabe zusammen mit Ihrem öffentlichen Profil gelöscht`,
       },
