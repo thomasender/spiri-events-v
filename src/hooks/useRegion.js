@@ -31,6 +31,7 @@ export const DEFAULT_REGION_CONTEXT = Object.freeze({
   comingSoon: false,
   neutralHeader: false,
   regionChooserOpen: false,
+  regionChooserPending: false,
   loading: false,
   setRegion: noop,
   setEventRegion: noop,

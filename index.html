@@ -12,6 +12,10 @@
 
     <link rel="canonical" href="https://www.thetribe.at/" />
     <meta name="robots" content="index, follow" />
+    <!-- Without the prerender (staging, dev) the app cannot know the active regions before
+         they load: "unknown" keeps the calendar covered until then (eFPKzCr7). The
+         prerendered / replaces this whole file. -->
+    <meta name="tribe-region-mode" content="unknown" />
 
     <meta property="og:site_name" content="tribe Vorarlberg" />
     <meta property="og:type" content="website" />
