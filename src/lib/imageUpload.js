@@ -36,6 +36,17 @@ const IMMUTABLE_CACHE_CONTROL = 'public, max-age=31536000, immutable';
 export const MAX_INPUT_SIZE_BYTES = 15 * 1024 * 1024;
 export const TARGET_COMPRESSED_BYTES = TARGET_MAX_BYTES;
 
+export const COVER_UPLOAD_ERROR =
+  'Das Titelbild konnte nicht hochgeladen werden. Bitte lade das Foto noch einmal hoch und versuche es erneut.';
+
+/** Thrown by the event forms when the cover photo upload failed (the event itself may be saved). */
+export class CoverUploadError extends Error {
+  constructor(cause) {
+    super(COVER_UPLOAD_ERROR, { cause });
+    this.name = 'CoverUploadError';
+  }
+}
+
 export async function getImageDimensions(file) {
   return new Promise((resolve) => {
     const img = new Image();

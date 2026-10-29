@@ -49,7 +49,18 @@ vi.mock('../../src/hooks/useCategories', () => ({
   ],
 }));
 
+const MSG = vi.hoisted(
+  () =>
+    'Das Titelbild konnte nicht hochgeladen werden. Bitte lade das Foto noch einmal hoch und versuche es erneut.'
+);
+
 vi.mock('../../src/lib/imageUpload', () => ({
+  COVER_UPLOAD_ERROR: MSG,
+  CoverUploadError: class CoverUploadError extends Error {
+    constructor() {
+      super(MSG);
+    }
+  },
   uploadImage: vi.fn(async () => 'https://example.com/brand-new-image.jpg'),
   uploadEventCover: vi.fn(async () => ({
     url: 'https://example.com/brand-new-image.jpg',
@@ -62,6 +73,7 @@ vi.mock('../../src/lib/imageUpload', () => ({
 }));
 
 import EventForm from '../../src/components/EventForm';
+import { uploadEventCover } from '../../src/lib/imageUpload';
 
 const EXISTING_IMAGE_URL =
   'https://firebasestorage.googleapis.com/v0/b/test.appspot.com/o/events%2Fevent-with-picture%2Foriginal.jpg';
@@ -188,6 +200,27 @@ describe('EventForm — image preservation on edit (6bs5MvXI)', () => {
     const firstPayload = mockEvents.updateEvent.mock.calls[0][1];
     expect(firstPayload.imageUrl).toBeNull();
     expect(firstPayload.imageFocalPoint).toBeNull();
+  });
+
+  it('tells the user when the new cover photo could not be uploaded (uNQ0vQ3E)', async () => {
+    vi.mocked(uploadEventCover).mockRejectedValueOnce(new Error('storage/unauthorized'));
+    render(
+      <MemoryRouter>
+        <EventForm event={baseEvent} />
+      </MemoryRouter>
+    );
+
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['fake-bytes'], 'new-cover.jpg', { type: 'image/jpeg' });
+    fireEvent.change(fileInput, { target: { files: [file] } });
+    await waitFor(() => {
+      const preview = screen.getByTestId('title-image-focal-picker-image') as HTMLImageElement;
+      expect(preview.src).not.toBe(EXISTING_IMAGE_URL);
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /änderungen speichern/i }));
+
+    expect(await screen.findByText(/Titelbild konnte nicht hochgeladen werden/)).toBeTruthy();
   });
 
   it('shows the focal point picker when an image is loaded, seeded with the saved point', () => {
