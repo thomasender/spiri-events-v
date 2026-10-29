@@ -74,11 +74,18 @@ Layout (both views): own messages on the right without avatar (`chat-message--ow
 
 The open chat page writes `presence/{uid}` every 60 s while the tab is visible and deletes it on
 leaving (`useChatHeartbeat`). Everyone with chat access listens to the collection
-(`useChatPresence`, also in the Header for the green bubble on "Lagerfeuer") and counts docs with
+(`useChatPresence`, chat page only) and counts docs with
 `lastSeen` < 2 minutes. Rules allow one write per 20 s per person. Cost scales with
 chatters x listeners (each heartbeat is one read per listening client); fine for a community this
 size, revisit (e.g. aggregate in a function) if it grows to hundreds of concurrent users.
 `purgeChatMessages` removes heartbeats older than a day.
+
+## Unread bubble in the Header
+
+The green number on "Lagerfeuer" is the count of unread messages by others (`useChatUnread`, max "9+",
+hidden at 0), not the people online. One listener on the newest 10 messages; "seen" is per browser and
+person in localStorage (`lagerfeuerSeen:<uid>`, `markLagerfeuerSeen`). First visit on a browser starts
+counting from now. While `/chat` is open everything counts as seen, so leaving resets to 0.
 
 ## Emoji picker and `:shortcodes`
 
@@ -185,5 +192,5 @@ Datenschutzerklärung Abschnitt 14 (+ 2 and 5); the Kerzenraum has its own parag
 
 ## Not built (ideas)
 
-Several Lagerfeuer rooms / region rooms, unread badge, push. Presence would need a
+Several Lagerfeuer rooms / region rooms, push. Presence would need a
 heartbeat doc or Realtime Database; Firestore alone is a poor fit.

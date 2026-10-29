@@ -8,7 +8,7 @@ import { useReviewNotifications } from '../hooks/useReviewNotifications';
 import { getStaffAccess } from '../utils/staffRoles';
 import { useChatAccess, useMessengerAccess } from '../hooks/useChatSettings';
 import { useThreads } from '../hooks/useMessenger';
-import { useChatPresence } from '../hooks/useChatPresence';
+import { useChatUnread } from '../hooks/useChatUnread';
 import EmailVerificationModal from './EmailVerificationModal';
 import AvatarImage from './AvatarImage';
 import RegionSwitcher, { RegionMenuList } from './RegionSwitcher';
@@ -76,7 +76,11 @@ export default function Header() {
   // Staff: new events in Review since the last visit (vX7TgrWN).
   const { count: newReviewCount } = useReviewNotifications(user?.uid, isStaff);
   const { available: chatAvailable } = useChatAccess();
-  const { count: chatOnline } = useChatPresence(chatAvailable);
+  const { count: chatUnread } = useChatUnread(
+    chatAvailable,
+    user?.uid,
+    location.pathname.startsWith('/chat')
+  );
   const { available: messengerAvailable } = useMessengerAccess();
   const { unreadCount: dmUnread } = useThreads(messengerAvailable);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -271,20 +275,20 @@ export default function Header() {
       onClick={closeMenu}
       data-testid="nav-chat"
       aria-label={
-        chatOnline > 0
-          ? `Lagerfeuer (${chatOnline} ${chatOnline === 1 ? 'Person' : 'Personen'} online)`
+        chatUnread > 0
+          ? `Lagerfeuer (${chatUnread} ${chatUnread === 1 ? 'ungelesene Nachricht' : 'ungelesene Nachrichten'})`
           : 'Lagerfeuer'
       }
     >
       <span className="nav-link-admin-icon">
         <Flame size={18} aria-hidden="true" />
-        {chatOnline > 0 && (
+        {chatUnread > 0 && (
           <span
             className="nav-link-badge nav-link-badge--presence"
-            data-testid="chat-online-badge"
+            data-testid="chat-unread-badge"
             aria-hidden="true"
           >
-            {chatOnline > 9 ? '9+' : chatOnline}
+            {chatUnread > 9 ? '9+' : chatUnread}
           </span>
         )}
       </span>

@@ -224,3 +224,41 @@ export function describeOnline(members, max = 2) {
   const rest = names.length - max;
   return `${names.slice(0, max).join(', ')} und ${rest} weitere`;
 }
+
+const LAGERFEUER_SEEN_PREFIX = 'lagerfeuerSeen:';
+
+function seenStorage() {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+// When this person last looked at the Lagerfeuer in this browser (ms), 0 if never.
+export function readLagerfeuerSeen(uid) {
+  try {
+    const value = Number(seenStorage()?.getItem(LAGERFEUER_SEEN_PREFIX + uid));
+    return Number.isFinite(value) && value > 0 ? value : 0;
+  } catch {
+    return 0;
+  }
+}
+
+export function markLagerfeuerSeen(uid, atMs) {
+  if (!uid || !atMs) return;
+  try {
+    if (atMs > readLagerfeuerSeen(uid)) {
+      seenStorage()?.setItem(LAGERFEUER_SEEN_PREFIX + uid, String(atMs));
+    }
+  } catch {
+    // Private mode: the count just stays until the chat is opened again.
+  }
+}
+
+// Messages by other people that are newer than the last visit.
+export function countUnreadChatMessages(messages, seenMs, uid) {
+  return messages.filter(
+    (m) => m.authorUid !== uid && typeof m.createdAt === 'number' && m.createdAt > seenMs
+  ).length;
+}
