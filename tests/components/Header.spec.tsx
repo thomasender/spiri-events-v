@@ -74,8 +74,8 @@ vi.mock('../../src/hooks/useMentionNotifications', () => ({
   }),
 }));
 
-vi.mock('../../src/hooks/useChatPresence', () => ({
-  useChatPresence: () => ({ online: [], count: mockChat.online, loading: false }),
+vi.mock('../../src/hooks/useChatUnread', () => ({
+  useChatUnread: () => ({ count: mockChat.online }),
 }));
 
 beforeEach(() => {
@@ -1152,24 +1152,24 @@ describe('Header: Lagerfeuer chat link', () => {
     expect(screen.queryByTestId('nav-chat')).toBeNull();
   });
 
-  it('shows a bubble with the number of people at the fire', () => {
+  it('shows a bubble with the number of unread messages', () => {
     mockAuth.user = { uid: 'u1' };
     mockChat.available = true;
     mockChat.online = 3;
     renderHeader();
-    expect(screen.getAllByTestId('chat-online-badge')[0]).toHaveTextContent('3');
+    expect(screen.getAllByTestId('chat-unread-badge')[0]).toHaveTextContent('3');
     expect(screen.getAllByTestId('nav-chat')[0]).toHaveAttribute(
       'aria-label',
-      'Lagerfeuer (3 Personen online)'
+      'Lagerfeuer (3 ungelesene Nachrichten)'
     );
   });
 
-  it('shows no bubble when nobody is there', () => {
+  it('shows no bubble when nothing is unread', () => {
     mockAuth.user = { uid: 'u1' };
     mockChat.available = true;
     renderHeader();
     expect(screen.getAllByTestId('nav-chat').length).toBeGreaterThan(0);
-    expect(screen.queryByTestId('chat-online-badge')).toBeNull();
+    expect(screen.queryByTestId('chat-unread-badge')).toBeNull();
   });
 });
 
