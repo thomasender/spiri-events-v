@@ -290,6 +290,50 @@ export function writeRegionChooserSeen(storage) {
   }
 }
 
+// Written into the prerendered `/` (scripts/prerender.mjs) ONLY with two or more active
+// regions, so the app knows before the `regions` collection has loaded that a first-time
+// visitor will get the "Wo suchst du?" page (no Vorarlberg calendar flashing first, eFPKzCr7).
+// With one active region the tag is absent and nothing changes (dark launch).
+export const REGION_MODE_META_NAME = 'tribe-region-mode';
+export const REGION_MODE_META_MULTI = 'multi';
+
+export function readMultiRegionHint(doc) {
+  try {
+    const d = doc ?? (typeof document !== 'undefined' ? document : null);
+    const meta = d?.querySelector?.(`meta[name="${REGION_MODE_META_NAME}"]`);
+    return meta?.getAttribute('content') === REGION_MODE_META_MULTI;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Whether the "Wo suchst du?" page covers the current page. `/regionen` opened on purpose,
+ * or `/` and `/verzeichnis` while nothing is remembered. Once the region config has loaded,
+ * a remembered last region counts only while it is active. While it is still loading the
+ * chooser shows only with the prerender's multi-region hint, and then any remembered region
+ * counts (so returning visitors never see it flash).
+ */
+export function shouldOpenRegionChooser({
+  pathname,
+  loading,
+  activeCount,
+  multiRegionHint = false,
+  chooserSeen = false,
+  hasPlaceSelection = false,
+  lastRegion = null,
+  regions = STATIC_REGIONS,
+}) {
+  const regionMode = loading ? multiRegionHint : activeCount >= 2;
+  if (!regionMode) return false;
+  if (pathname === REGIONS_PAGE_PATH) return true;
+  if (!CHOOSER_PATHS.includes(pathname)) return false;
+  const lastRegionRemembered = loading
+    ? Boolean(lastRegion)
+    : Boolean(lastRegion && getRegionBySlug(lastRegion, regions)?.active);
+  return !(chooserSeen || hasPlaceSelection || lastRegionRemembered);
+}
+
 // localStorage can be missing or throw (private mode, blocked storage): both
 // helpers swallow errors, the region then simply comes from the URL/default.
 export function readLastRegion(storage) {

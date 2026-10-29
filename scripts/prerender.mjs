@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url'
 import { buildEventJsonLd, stripHtmlToText } from '../src/utils/eventJsonLd.js'
 import { BRAND_NAME } from '../src/config/brand.js'
 import { DEFAULT_REGION_ID, STATIC_REGIONS, getRegionBySlug, isRegionSlug, mergeRegions, resolveRegionId } from '../src/utils/regions.js'
-import { activeRegions } from '../src/utils/regionRouting.js'
+import { REGION_MODE_META_MULTI, REGION_MODE_META_NAME, activeRegions } from '../src/utils/regionRouting.js'
 import { regionTexts } from '../src/utils/regionTexts.js'
 import { annotateOnlineRegionIds, onlineEventVisibleIn, onlineOrganizerUids } from '../src/utils/onlineEventEligibility.js'
 
@@ -456,7 +456,13 @@ function calendarPageCss(themeRoot) {
     footer { background: var(--bg-secondary); padding: 24px; text-align: center; color: var(--text-secondary); font-size: 0.9rem; }`
 }
 
-export function generateCalendarPageHtml(events, jsBundlePath, cssBundlePath, theme = THEME_FALLBACK) {
+export function generateCalendarPageHtml(events, jsBundlePath, cssBundlePath, theme = THEME_FALLBACK, regions = null) {
+  // Two or more active regions: tell the app before its region config loads that a
+  // first-time visitor gets "Wo suchst du?" (no Vorarlberg flash, eFPKzCr7). Dark launch:
+  // with one active region nothing is added, the page stays byte-identical.
+  const regionModeMeta = Array.isArray(regions) && activeRegions(regions).length >= 2
+    ? `\n  <meta name="${REGION_MODE_META_NAME}" content="${REGION_MODE_META_MULTI}" />`
+    : ''
   const today = new Date().toISOString().split('T')[0]
   const upcomingEvents = events
     .filter(e => e.date && e.date >= today)
@@ -489,7 +495,7 @@ export function generateCalendarPageHtml(events, jsBundlePath, cssBundlePath, th
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${escapeHtml(SITE_NAME)} | Kalender</title>
   <meta name="description" content="${escapeHtml(DEFAULT_DESCRIPTION)}" />
-  <meta name="robots" content="index, follow" />
+  <meta name="robots" content="index, follow" />${regionModeMeta}
   <link rel="canonical" href="${BASE_URL}/" />
 
   <meta property="og:site_name" content="${escapeHtml(SITE_NAME)}" />
@@ -1473,7 +1479,7 @@ export async function prerender({
   }
 
   if (jsBundlePath && cssBundlePath) {
-    const calendarHtml = generateCalendarPageHtml(events, jsBundlePath, cssBundlePath, theme)
+    const calendarHtml = generateCalendarPageHtml(events, jsBundlePath, cssBundlePath, theme, regions)
     fs.writeFileSync(path.join(distPath, 'index.html'), calendarHtml)
     writtenFiles.push({ path: '/index.html', slug: null, title: SITE_NAME })
     console.log(`Prerendered calendar index page with ${events.length} events.`)

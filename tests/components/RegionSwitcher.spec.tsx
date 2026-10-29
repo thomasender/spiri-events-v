@@ -5,6 +5,7 @@ import { STATIC_REGIONS, mergeRegions } from '../../src/utils/regions';
 import {
   LAST_REGION_STORAGE_KEY,
   REGION_CHOOSER_SEEN_KEY,
+  REGION_MODE_META_NAME,
   regionSwitchSubpath,
 } from '../../src/utils/regionRouting';
 import { PLACE_SELECTION_KEY } from '../../src/utils/placeSelection';
@@ -563,6 +564,61 @@ describe('RegionChooser (first visit)', () => {
     mocks.regions = { regions: TWO_ACTIVE, loading: true };
     renderAt('/');
     expect(screen.queryByTestId('region-chooser')).toBeNull();
+  });
+
+  describe('while the region data is still loading (first paint)', () => {
+    let meta: HTMLMetaElement;
+    beforeEach(() => {
+      // What the prerendered `/` carries with two or more active regions.
+      meta = document.createElement('meta');
+      meta.name = REGION_MODE_META_NAME;
+      meta.content = 'multi';
+      document.head.appendChild(meta);
+      mocks.regions = { regions: STATIC_REGIONS, loading: true };
+    });
+    afterEach(() => meta.remove());
+
+    it('a first-time visitor gets the chooser at once, never the Vorarlberg calendar', () => {
+      renderAt('/');
+      expect(screen.getByTestId('region-chooser')).toBeInTheDocument();
+      expect(headerTitle()).toBe('Dein Kalender');
+    });
+
+    it('also on the directory, but not on an event page or a region address', () => {
+      const { unmount } = renderAt('/verzeichnis');
+      expect(screen.getByTestId('region-chooser')).toBeInTheDocument();
+      unmount();
+      const second = renderAt('/event/some-event');
+      expect(screen.queryByTestId('region-chooser')).toBeNull();
+      second.unmount();
+      renderAt('/vorarlberg');
+      expect(screen.queryByTestId('region-chooser')).toBeNull();
+    });
+
+    it('returning visitors (place, chooser seen or any last region) never see it', () => {
+      window.localStorage.setItem(LAST_REGION_STORAGE_KEY, 'tirol');
+      const { unmount } = renderAt('/');
+      expect(screen.queryByTestId('region-chooser')).toBeNull();
+      unmount();
+      window.localStorage.clear();
+      window.localStorage.setItem(REGION_CHOOSER_SEEN_KEY, '1');
+      renderAt('/');
+      expect(screen.queryByTestId('region-chooser')).toBeNull();
+    });
+
+    it('a stale hint closes the chooser once the config shows one active region', () => {
+      const { rerender } = renderAt('/');
+      expect(screen.getByTestId('region-chooser')).toBeInTheDocument();
+      mocks.regions = { regions: STATIC_REGIONS, loading: false };
+      rerender(
+        <MemoryRouter initialEntries={['/']}>
+          <RegionProvider>
+            <RegionChooser />
+          </RegionProvider>
+        </MemoryRouter>
+      );
+      expect(screen.queryByTestId('region-chooser')).toBeNull();
+    });
   });
 
   it('a choice navigates, is remembered and the chooser does not come back', async () => {
