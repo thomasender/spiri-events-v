@@ -99,6 +99,29 @@ function getAccordion() {
   return document.querySelector('.filter-accordion') as HTMLDetailsElement;
 }
 
+describe('CalendarPage — Bezirksfarben on the Ort chips', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    mockUseAllEvents.events = [];
+  });
+
+  it('gives every Bezirk chip and the Online chip its district colour', async () => {
+    renderPage();
+    await waitFor(() =>
+      expect(document.querySelectorAll('.filter-chip--ort').length).toBeGreaterThan(1)
+    );
+    const colorOf = (label: string) => {
+      const chip = Array.from(document.querySelectorAll<HTMLElement>('.filter-chip--ort')).find(
+        (c) => c.textContent?.includes(label)
+      )!;
+      return chip.style.getPropertyValue('--district-color');
+    };
+    expect(colorOf('Bregenz')).toBe('#B97860');
+    expect(colorOf('Dornbirn')).toBe('#BC9367');
+    expect(colorOf('Online')).toBe('#7C8792');
+  });
+});
+
 describe('CalendarPage — category filter initial state (wkzZei1s)', () => {
   beforeEach(() => {
     window.localStorage.clear();

@@ -84,3 +84,19 @@ export function getEventCityLabel(event) {
   if (event.isOnline) return 'Online';
   return (event.city || '').trim() || bezirkLabel(event.bezirk) || '';
 }
+
+// District the DistrictBadge shows for an event: "Online" for online events, else the stored Bezirk
+// / Landkreis (empty when none).
+export function getEventDistrict(event) {
+  if (!event) return '';
+  if (event.isOnline) return 'Online';
+  return event.bezirk || '';
+}
+
+// The Ort that goes next to the district badge; empty for online events and when it would only
+// repeat the district.
+export function getEventCityName(event) {
+  if (!event || event.isOnline) return '';
+  const city = (event.city || '').trim();
+  return city && city !== bezirkLabel(event.bezirk) ? city : '';
+}

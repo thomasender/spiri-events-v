@@ -24,6 +24,23 @@ vi.mock('../src/lib/clubMembersStore', () => {
   return { subscribe: () => () => {}, getSnapshot: () => state };
 });
 
+// District colours come from a shared Firestore listener. Component tests get the code defaults
+// (and automatic colours); specs that test the hook or the editor mock it themselves.
+vi.mock('../src/hooks/useDistrictColors', async () => {
+  const colors = await import('../src/utils/districtColors');
+  const noOverrides = {};
+  return {
+    useDistrictColors: () => ({
+      overrides: noOverrides,
+      loading: false,
+      colorFor: (name: string) => colors.getDistrictColor(name, {}, []),
+      activeDistricts: [],
+      autoColors: {},
+    }),
+    saveDistrictColors: async () => {},
+  };
+});
+
 // App Check would talk to reCAPTCHA. Specs that test it mock this module
 // themselves; everything else gets inert stand-ins and never touches the network.
 vi.mock('firebase/app-check', () => ({

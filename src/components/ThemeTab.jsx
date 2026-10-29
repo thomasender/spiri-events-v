@@ -20,6 +20,7 @@ import ColorPicker from './ColorPicker';
 import ThemeTokenInfoDialog from './ThemeTokenInfoDialog';
 import ConfirmDialog from './ConfirmDialog';
 import SaveThemeDialog from './SaveThemeDialog';
+import DistrictColorsSection from './DistrictColorsSection';
 import './ThemeTab.css';
 
 // Admin tab for full theme management.
@@ -548,6 +549,7 @@ export default function ThemeTab() {
             </ul>
           </section>
         ))}
+        <DistrictColorsSection />
       </div>
 
       <div className="theme-tab-preview" data-testid="theme-tab-preview" aria-hidden="true">

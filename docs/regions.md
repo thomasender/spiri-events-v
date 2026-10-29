@@ -811,3 +811,9 @@ generator table (`scripts/build-region-data.mjs`) and a `COMBINED_VIEWS` entry f
   entirely).
 - **Coming-soon page:** the link "Andere Regionen erkunden, z. B. <Region> (<n> Events)"
   points to the open region with the most approved events (`useLargestRegion`).
+
+## District colours (Bezirksfarben)
+
+Each Bezirk / Landkreis has a colour for its badge and calendar chip, stored as overrides in
+`app_settings/districtColors`. A district added later (new region, Zuordnung) gets an automatic
+warm tone from a fixed palette without any setup. Details: `docs/design-tokens.md`, "Bezirksfarben".

@@ -66,6 +66,7 @@
 }
 
 .event-tile-location {
+  flex-wrap: wrap;
   display: inline-flex;
   align-items: center;
   gap: var(--space-1-5);

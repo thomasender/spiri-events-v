@@ -490,8 +490,23 @@
   border-color: var(--category-color);
 }
 
-/* Per-Kategorie/per-Bezirk Styling entfällt — beide nutzen das
-   gleiche Toggle-Pill-Design mit der Akzentfarbe. */
+/* Bezirke tragen ihre Bezirksfarbe (--district-color per Inline-Style, Quelle:
+   useDistrictColors): inaktiv als Outline, aktiv gefüllt mit weisser Schrift. */
+.filter-chip--ort {
+  border-color: var(--district-color, var(--border));
+}
+
+.filter-chip--ort:hover {
+  border-color: var(--district-color, var(--accent-primary));
+  color: var(--district-color, var(--accent-primary));
+}
+
+.filter-chip--ort[aria-pressed='true'],
+.filter-chip--ort[aria-pressed='true']:hover {
+  background-color: var(--district-color, var(--accent-primary));
+  border-color: var(--district-color, var(--accent-primary));
+  color: #ffffff;
+}
 
 /* "Mehr Filter" accordion — wraps the Bezirke filter. Sits flush under
    the category bubbles with the same 16px gap as the rest of the panel.

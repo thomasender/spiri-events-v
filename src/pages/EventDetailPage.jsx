@@ -45,7 +45,12 @@ import { getEventFallbackImage } from '../utils/eventFallbacks';
 import { buildEventJsonLd } from '../utils/eventJsonLd';
 import { getRegionBySlug, resolveRegionId } from '../utils/regions';
 import { pickEventDoc } from '../utils/pickEventDoc';
-import { getOrganizerName, getEventLocationLabel } from '../utils/eventFormat';
+import {
+  getOrganizerName,
+  getEventLocationLabel,
+  getEventDistrict,
+  getEventCityName,
+} from '../utils/eventFormat';
 import { resolveOrganizerProfilePath } from '../utils/profile';
 import { canEditEvent, canDeleteEvent, requiresDeleteReason } from '../utils/eventPermissions';
 import { getStaffAccess, isModeratorForEvent } from '../utils/staffRoles';
@@ -59,6 +64,7 @@ import {
 } from '../utils/eventOccurrences';
 import { isEventCancelled, isOccurrenceCancelled } from '../utils/eventCancellation';
 import CancelledBadge from '../components/CancelledBadge';
+import DistrictBadge from '../components/DistrictBadge';
 import {
   buildCustomDeleteOccurrenceUpdate,
   buildCustomDeleteFromDateUpdate,
@@ -920,7 +926,14 @@ export default function EventDetailPage() {
               className="detail-value"
               data-testid={event.isOnline ? 'event-detail-location-online' : undefined}
             >
-              {getEventLocationLabel(event) || eventRegionName(event, regions)}
+              {getEventDistrict(event) ? (
+                <>
+                  <DistrictBadge district={getEventDistrict(event)} />
+                  {getEventCityName(event) && ` ${getEventCityName(event)}`}
+                </>
+              ) : (
+                getEventLocationLabel(event) || eventRegionName(event, regions)
+              )}
             </span>
           </div>
         </div>

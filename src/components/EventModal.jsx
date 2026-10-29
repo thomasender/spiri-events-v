@@ -12,9 +12,15 @@ import {
   ClipboardList,
 } from 'lucide-react';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
-import { getOrganizerName, getEventLocationLabel } from '../utils/eventFormat';
+import {
+  getOrganizerName,
+  getEventLocationLabel,
+  getEventDistrict,
+  getEventCityName,
+} from '../utils/eventFormat';
 import { parseContactText } from '../utils/contactFormat';
 import RegistrationText from './RegistrationText';
+import DistrictBadge from './DistrictBadge';
 import { MemberBadgeFrame } from './MemberBadge';
 import { formatPriceWithCurrency } from '../utils/currency';
 import { normalizeLink } from '../utils/link';
@@ -204,7 +210,14 @@ export default function EventModal({ event, onClose }) {
                 className="detail-value"
                 data-testid={event.isOnline ? 'event-modal-location-online' : undefined}
               >
-                {getEventLocationLabel(event)}
+                {getEventDistrict(event) ? (
+                  <>
+                    <DistrictBadge district={getEventDistrict(event)} />
+                    {getEventCityName(event) && ` ${getEventCityName(event)}`}
+                  </>
+                ) : (
+                  getEventLocationLabel(event)
+                )}
               </span>
             </div>
           </div>
