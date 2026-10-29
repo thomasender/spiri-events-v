@@ -5,7 +5,10 @@ import {
   countFacet,
   filterDirectoryEntries,
   formatBioPreview,
+  DIRECTORY_MEMBER_HEAD_CHANCE,
+  DIRECTORY_MEMBER_HEAD_SHARE,
   isRenderableEntry,
+  mixDirectoryEntries,
   normalizeDirectoryEntry,
   parseDirectoryParams,
   shuffleDirectoryEntries,
@@ -75,6 +78,12 @@ describe('normalizeDirectoryEntry / isRenderableEntry', () => {
     expect(e.categories).toEqual(['Yoga']);
     expect(e.regions).toEqual([]);
     expect(e.hidden).toBe(false);
+  });
+
+  it('reads clubMember strictly; a missing field means no member', () => {
+    expect(normalizeDirectoryEntry('u1', { clubMember: true }).clubMember).toBe(true);
+    expect(normalizeDirectoryEntry('u1', { clubMember: 'true' }).clubMember).toBe(false);
+    expect(normalizeDirectoryEntry('u1', {}).clubMember).toBe(false);
   });
 
   it('skips entries that cannot be linked or have no category', () => {
@@ -147,15 +156,89 @@ describe('sortDirectoryEntries', () => {
   });
 });
 
+// Deterministic PRNG (mulberry32), so the statistics below never flake.
+function seeded(seed: number) {
+  let t = seed;
+  return () => {
+    t = (t + 0x6d2b79f5) | 0;
+    let r = Math.imul(t ^ (t >>> 15), 1 | t);
+    r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r;
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const people = (n: number, clubMember: boolean, prefix: string) =>
+  Array.from({ length: n }, (_, i) =>
+    normalizeDirectoryEntry(`${prefix}${i}`, { displayName: `${prefix}${i}`, clubMember })
+  );
+
+describe('mixDirectoryEntries', () => {
+  it('uses the named constants', () => {
+    expect(DIRECTORY_MEMBER_HEAD_SHARE).toBe(0.3);
+    expect(DIRECTORY_MEMBER_HEAD_CHANCE).toBe(0.6);
+  });
+
+  it('fills about 60 % of the first 30 % with members, and keeps everybody', () => {
+    const list = [...people(500, true, 'm'), ...people(500, false, 'n')];
+    const mixed = mixDirectoryEntries(list, seeded(42));
+    expect(mixed).toHaveLength(1000);
+    expect(new Set(mixed.map((e) => e.uid)).size).toBe(1000);
+    const head = mixed.slice(0, 300);
+    const share = head.filter((e) => e.clubMember).length / head.length;
+    expect(share).toBeGreaterThan(0.55);
+    expect(share).toBeLessThan(0.65);
+  });
+
+  it('follows the coin per head place and lets an empty pool hand over', () => {
+    const list = [...people(2, true, 'm'), ...people(8, false, 'n')];
+    // random 0 < 0.6: every head place wants a member; 3 places, only 2 members.
+    const head = mixDirectoryEntries(list, () => 0).slice(0, 3);
+    expect(head.map((e) => e.clubMember)).toEqual([true, true, false]);
+    // random 0.99 >= 0.6: no head place goes to a member.
+    const noMembers = mixDirectoryEntries(list, () => 0.99).slice(0, 3);
+    expect(noMembers.every((e) => !e.clubMember)).toBe(true);
+  });
+
+  it('works with only members, only non-members and an empty list', () => {
+    const onlyMembers = people(5, true, 'm');
+    const onlyOthers = people(5, false, 'n');
+    const uids = (l: { uid: string }[]) => l.map((e) => e.uid).sort();
+    expect(uids(mixDirectoryEntries(onlyMembers, seeded(1)))).toEqual(uids(onlyMembers));
+    expect(uids(mixDirectoryEntries(onlyOthers, seeded(1)))).toEqual(uids(onlyOthers));
+    expect(mixDirectoryEntries([], seeded(1))).toEqual([]);
+  });
+});
+
 describe('shuffleDirectoryEntries', () => {
-  it('orders by random rank, keeps the order stable per ranks map and does not mutate', () => {
-    const list = ['A', 'B', 'C'].map((n) => entry({ displayName: n }));
-    const values = [0.9, 0.1, 0.5];
+  it('keeps the order stable per ranks map while filtering and does not mutate', () => {
+    const list = [...people(4, true, 'm'), ...people(6, false, 'n')];
+    const before = list.map((e) => e.uid);
     const ranks = new Map();
-    const shuffled = shuffleDirectoryEntries(list, ranks, () => values.shift() as number);
-    expect(shuffled.map((e) => e.displayName)).toEqual(['B', 'C', 'A']);
-    expect(list.map((e) => e.displayName)).toEqual(['A', 'B', 'C']);
-    expect(shuffleDirectoryEntries(list, ranks).map((e) => e.displayName)).toEqual(['B', 'C', 'A']);
+    const full = shuffleDirectoryEntries(list, ranks, seeded(7)).map((e) => e.uid);
+    expect(list.map((e) => e.uid)).toEqual(before);
+    // Filtering keeps the relative order (ranks, not places), no re-draw.
+    const subset = list.filter((_, i) => i % 2 === 0);
+    const filtered = shuffleDirectoryEntries(subset, ranks, () => {
+      throw new Error('must not draw again');
+    }).map((e) => e.uid);
+    expect(filtered).toEqual(full.filter((uid) => filtered.includes(uid)));
+    expect(shuffleDirectoryEntries(list, ranks).map((e) => e.uid)).toEqual(full);
+  });
+
+  it('draws the mix over the pool when the first call is already filtered', () => {
+    const list = [...people(3, true, 'm'), ...people(3, false, 'n')];
+    const ranks = new Map();
+    shuffleDirectoryEntries(list.slice(0, 2), ranks, seeded(3), list);
+    expect(ranks.size).toBe(6);
+  });
+
+  it('appends entries that arrive later after the existing ranks', () => {
+    const list = people(3, false, 'n');
+    const ranks = new Map();
+    const first = shuffleDirectoryEntries(list, ranks, seeded(5)).map((e) => e.uid);
+    const late = normalizeDirectoryEntry('late', { displayName: 'Late', clubMember: true });
+    const next = shuffleDirectoryEntries([...list, late], ranks, seeded(6)).map((e) => e.uid);
+    expect(next).toEqual([...first, 'late']);
   });
 });
 

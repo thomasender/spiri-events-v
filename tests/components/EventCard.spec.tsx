@@ -4,6 +4,12 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import EventCard from '../../src/components/EventCard';
 
+const clubMembers = vi.hoisted(() => ({ uids: new Set<string>() }));
+vi.mock('../../src/hooks/useClubMembers', () => ({
+  useClubMembers: () => clubMembers.uids,
+  useIsClubMember: (uid: string) => clubMembers.uids.has(uid),
+}));
+
 const renderCard = (event) =>
   render(
     <MemoryRouter>
@@ -62,6 +68,22 @@ describe('EventCard', () => {
     const cover = container.querySelector('img.event-tile-image');
     expect(cover).toHaveAttribute('loading', 'lazy');
     expect(cover).toHaveAttribute('decoding', 'async');
+  });
+});
+
+describe('EventCard Vereinsmitglied badge', () => {
+  it('marks the organiser by the live member list (createdBy), not by the event copy', () => {
+    clubMembers.uids = new Set(['org-1']);
+    const { unmount } = renderCard({
+      ...baseEvent,
+      createdBy: 'org-1',
+      organizer: { name: 'Anna Schmidt', photoURL: 'https://x/a.jpg' },
+    });
+    expect(screen.getByTestId('member-badge')).toBeInTheDocument();
+    unmount();
+    renderCard({ ...baseEvent, createdBy: 'org-2', organizer: { name: 'Anna', clubMember: true } });
+    expect(screen.queryByTestId('member-badge')).toBeNull();
+    clubMembers.uids = new Set();
   });
 });
 

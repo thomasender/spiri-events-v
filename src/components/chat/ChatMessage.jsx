@@ -1,5 +1,6 @@
 import { Flag, Trash2 } from 'lucide-react';
 import AvatarImage from '../AvatarImage';
+import { MemberBadgeFrame } from '../MemberBadge';
 import MessageReactions from './MessageReactions';
 import { formatChatTime, isEmojiOnly, splitChatLinks } from '../../utils/chat';
 import { splitMentions } from '../../utils/mentions';
@@ -58,17 +59,22 @@ export default function ChatMessage({
       {/* Own messages sit on the right without an avatar, like in common messengers. */}
       {!own &&
         (() => {
-          const avatar = message.authorPhotoURL ? (
-            <AvatarImage
-              src={message.authorPhotoURL}
-              alt=""
-              className="chat-avatar"
-              loading="lazy"
-            />
-          ) : (
-            <span className="chat-avatar chat-avatar--fallback" aria-hidden="true">
-              {(message.authorName || '?').trim().charAt(0).toUpperCase()}
-            </span>
+          // Badge from the live member list by uid, not from the message copy.
+          const avatar = (
+            <MemberBadgeFrame uid={message.authorUid}>
+              {message.authorPhotoURL ? (
+                <AvatarImage
+                  src={message.authorPhotoURL}
+                  alt=""
+                  className="chat-avatar"
+                  loading="lazy"
+                />
+              ) : (
+                <span className="chat-avatar chat-avatar--fallback" aria-hidden="true">
+                  {(message.authorName || '?').trim().charAt(0).toUpperCase()}
+                </span>
+              )}
+            </MemberBadgeFrame>
           );
           return openMember ? (
             <button

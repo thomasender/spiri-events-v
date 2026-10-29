@@ -42,6 +42,8 @@ export interface MemberRow {
   directoryRegionIds: string[];
   instagramConsent: boolean;
   instagramHandle: string;
+  // Vereinsmitglied (badge on the profile photo). Super-Admin scope only.
+  clubMember: boolean;
   createdAt: string | null;
   lastSignInAt: string | null;
   disabled: boolean;
@@ -99,6 +101,7 @@ export function buildMemberRow(
     directoryRegionIds: strList(profile.directoryRegionIds).filter(isRegionId),
     instagramConsent: privateProfile.instagramConsentDefault === true,
     instagramHandle: instagram.trim(),
+    clubMember: profile.clubMember === true,
     createdAt: toIso(user.metadata?.creationTime),
     lastSignInAt: toIso(user.metadata?.lastSignInTime),
     disabled: user.disabled === true,
@@ -111,7 +114,12 @@ export interface MemberPatch {
   directoryCategories?: string[];
   directoryRegions?: string[];
   listedInDirectory?: boolean;
+  clubMember?: boolean;
 }
+
+// Patch fields that live only on the public profile (no copy on users/{uid}).
+// clubMember: set by Super-Admins only; the owner's rules exclude it.
+export const PUBLIC_ONLY_MEMBER_FIELDS: readonly (keyof MemberPatch)[] = ['clubMember'];
 
 // Validates an admin edit. Only the whitelisted public-profile fields are
 // accepted; the e-mail address (login) is deliberately not editable here.
@@ -129,6 +137,7 @@ export function validateMemberPatch(
     'directoryCategories',
     'directoryRegions',
     'listedInDirectory',
+    'clubMember',
   ];
   for (const key of Object.keys(input)) {
     if (!allowed.includes(key)) {
@@ -175,6 +184,12 @@ export function validateMemberPatch(
       throw new HttpsError('invalid-argument', 'listedInDirectory must be a boolean.');
     }
     patch.listedInDirectory = input.listedInDirectory;
+  }
+  if ('clubMember' in input) {
+    if (typeof input.clubMember !== 'boolean') {
+      throw new HttpsError('invalid-argument', 'clubMember must be a boolean.');
+    }
+    patch.clubMember = input.clubMember;
   }
   if (Object.keys(patch).length === 0) {
     throw new HttpsError('invalid-argument', 'No changes given.');
@@ -326,7 +341,8 @@ export function memberStaffRole(
 }
 
 // Fields a region moderator may change on a member of her region(s):
-// directory curation only, not the identity (display name, username).
+// directory curation only, not the identity (display name, username) and not
+// the Vereinsmitgliedschaft (clubMember), which stays with the Super-Admins.
 export const MODERATOR_MEMBER_FIELDS: readonly (keyof MemberPatch)[] = [
   'listedInDirectory',
   'directoryCategories',
@@ -339,10 +355,13 @@ export interface UpdateMemberDeps {
   // Districts stored in regions/{id}.bezirke (e.g. Tirol), valid next to the
   // built-in DIRECTORY_REGIONS. Optional: without it only the built-in list counts.
   readRegionDistricts?: () => Promise<string[]>;
+  // `update` goes to the public profile; `privateUpdate` (defaults to the same
+  // doc) to users/{uid}, without the public-only fields.
   writeProfiles: (
     uid: string,
     update: Doc,
-    targets: { public: boolean; private: boolean }
+    targets: { public: boolean; private: boolean },
+    privateUpdate?: Doc
   ) => Promise<void>;
 }
 
@@ -388,6 +407,9 @@ export async function updateMemberHandler(
   if (!publicData && !privateData) {
     throw new HttpsError('not-found', 'Member has no profile yet.');
   }
+  if ('clubMember' in patch && !publicData) {
+    throw new HttpsError('failed-precondition', 'Member has no public profile yet.');
+  }
 
   const current = { ...(privateData ?? {}), ...(publicData ?? {}) };
   const merged = { ...current, ...patch };
@@ -403,8 +425,19 @@ export async function updateMemberHandler(
   if (merged.listedInDirectory === true && !hasDirectoryRegionIds(publicData)) {
     update.directoryRegionIds = [DEFAULT_REGION_ID];
   }
+  const privateUpdate: Doc = { ...update };
+  for (const key of PUBLIC_ONLY_MEMBER_FIELDS) delete privateUpdate[key];
+  // Nothing but public-only fields changed: leave users/{uid} alone.
+  const touchesPrivate = Object.keys(patch).some(
+    (k) => !PUBLIC_ONLY_MEMBER_FIELDS.includes(k as keyof MemberPatch)
+  );
   try {
-    await deps.writeProfiles(uid, update, { public: !!publicData, private: !!privateData });
+    await deps.writeProfiles(
+      uid,
+      update,
+      { public: !!publicData, private: !!privateData && touchesPrivate },
+      privateUpdate
+    );
   } catch (err) {
     logger.error('adminUpdateMember: batch commit failed', { uid, err });
     throw new HttpsError('internal', `Save failed: ${(err as Error)?.message ?? 'unknown'}`);
@@ -457,11 +490,11 @@ const updateMemberDeps: UpdateMemberDeps = {
     const snap = await getFirestore().collection('regions').get();
     return snap.docs.flatMap((d) => strList(d.data().bezirke));
   },
-  async writeProfiles(uid, update, targets) {
+  async writeProfiles(uid, update, targets, privateUpdate = update) {
     const db = getFirestore();
     const batch = db.batch();
     if (targets.public) batch.update(db.doc(`users/${uid}/publicProfile/data`), update);
-    if (targets.private) batch.update(db.doc(`users/${uid}`), update);
+    if (targets.private) batch.update(db.doc(`users/${uid}`), privateUpdate);
     await batch.commit();
   },
 };

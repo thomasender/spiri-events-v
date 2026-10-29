@@ -1,7 +1,14 @@
 // @vitest-environment happy-dom
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render } from '@testing-library/react';
 import AvatarImage, { normalizePhotoZoom } from '../../src/components/AvatarImage';
+import MemberBadge, { MemberBadgeFrame } from '../../src/components/MemberBadge';
+
+const clubMembers = vi.hoisted(() => ({ uids: new Set<string>(['m1']) }));
+vi.mock('../../src/hooks/useClubMembers', () => ({
+  useClubMembers: () => clubMembers.uids,
+  useIsClubMember: (uid: string) => Boolean(uid) && clubMembers.uids.has(uid),
+}));
 
 describe('normalizePhotoZoom', () => {
   it('clamps to 1..3 and falls back to 1', () => {
@@ -36,5 +43,41 @@ describe('AvatarImage', () => {
       expect(img).toHaveAttribute('loading', 'lazy');
       expect(img).toHaveAttribute('decoding', 'async');
     }
+  });
+});
+
+describe('MemberBadge / MemberBadgeFrame', () => {
+  it('renders the flower with label and title only for members', () => {
+    const { getByTestId, rerender, queryByTestId } = render(<MemberBadge uid="m1" />);
+    const badge = getByTestId('member-badge');
+    expect(badge).toHaveAttribute('role', 'img');
+    expect(badge).toHaveAttribute('aria-label', 'Vereinsmitglied: unterstützt den Tribe');
+    expect(badge.querySelector('svg.club-member-icon')).not.toBeNull();
+    rerender(<MemberBadge uid="x" />);
+    expect(queryByTestId('member-badge')).toBeNull();
+    rerender(<MemberBadge uid={undefined} />);
+    expect(queryByTestId('member-badge')).toBeNull();
+  });
+
+  it('wraps the avatar only for members and leaves other markup untouched', () => {
+    const { container, rerender } = render(
+      <div>
+        <MemberBadgeFrame uid="x">
+          <img className="a" alt="" />
+        </MemberBadgeFrame>
+      </div>
+    );
+    expect(container.querySelector('.member-badge-frame')).toBeNull();
+    expect(container.firstElementChild?.firstElementChild).toHaveClass('a');
+    rerender(
+      <div>
+        <MemberBadgeFrame uid="m1">
+          <img className="a" alt="" />
+        </MemberBadgeFrame>
+      </div>
+    );
+    const frame = container.querySelector('.member-badge-frame');
+    expect(frame?.querySelector('img.a')).not.toBeNull();
+    expect(frame?.querySelector('[data-testid="member-badge"]')).not.toBeNull();
   });
 });

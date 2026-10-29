@@ -17,12 +17,14 @@ export function matchesSearch(member, term) {
 }
 
 // listIds: when set, only members whose uid is in that Set pass.
+// clubOnly: only Vereinsmitglieder.
 export function filterMembers(
   members,
-  { search = '', region = '', regionId = '', category = '', listUids = null } = {}
+  { search = '', region = '', regionId = '', category = '', listUids = null, clubOnly = false } = {}
 ) {
   return members.filter((m) => {
     if (!matchesSearch(m, search)) return false;
+    if (clubOnly && m.clubMember !== true) return false;
     if (
       regionId &&
       !resolveDirectoryRegionIds({ directoryRegionIds: m.directoryRegionIds }).includes(regionId)

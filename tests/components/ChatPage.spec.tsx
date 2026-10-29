@@ -24,6 +24,11 @@ vi.mock('../../src/hooks/useChatPresence', () => ({
   useChatPresence: () => ({ online: state.online, count: state.online.length, loading: false }),
 }));
 vi.mock('../../src/hooks/useChat', () => ({ useChat: () => state.chat }));
+const clubMembers = vi.hoisted(() => ({ uids: new Set<string>() }));
+vi.mock('../../src/hooks/useClubMembers', () => ({
+  useClubMembers: () => clubMembers.uids,
+  useIsClubMember: (uid: string) => clubMembers.uids.has(uid),
+}));
 vi.mock('../../src/components/EmailVerificationModal', () => ({
   default: ({ open }: { open: boolean }) => (open ? <div data-testid="verify-modal" /> : null),
 }));
@@ -66,6 +71,7 @@ function renderPage() {
 }
 
 beforeEach(() => {
+  clubMembers.uids = new Set();
   state.user = { uid: 'me', emailVerified: true };
   state.role = null;
   state.available = true;
@@ -127,6 +133,23 @@ describe('ChatPage', () => {
     expect(mine.querySelector('.chat-avatar')).toBeNull();
     expect(mine.querySelector('.reactable')).toHaveClass('reactable--end');
     expect(mine.querySelector('.chat-bubble')).toHaveClass('chat-bubble--own');
+  });
+
+  it('marks authors who are Vereinsmitglieder by their uid, in messages and at the fire', () => {
+    clubMembers.uids = new Set(['other']);
+    state.online = [
+      { uid: 'other', name: 'Mira', photoURL: null },
+      { uid: 'third', name: 'Tom', photoURL: null },
+    ];
+    setChat({
+      messages: [msg('1', 'other', 'Hallo Welt'), msg('3', 'third', 'Servus')],
+    });
+    renderPage();
+    const [mira, tom] = screen.getAllByTestId('chat-message');
+    expect(mira.querySelector('[data-testid="member-badge"]')).not.toBeNull();
+    expect(tom.querySelector('[data-testid="member-badge"]')).toBeNull();
+    const fire = screen.getByTestId('chat-presence');
+    expect(fire.querySelectorAll('[data-testid="member-badge"]')).toHaveLength(1);
   });
 
   it("lets admins delete other people's messages too", () => {

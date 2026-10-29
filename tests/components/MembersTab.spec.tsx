@@ -93,6 +93,22 @@ describe('MembersTab', () => {
     expect(within(rows[0]).getByText('anna@x.at')).toBeInTheDocument();
   });
 
+  it('sets the Vereinsmitgliedschaft from the row and filters club members', async () => {
+    state.members = [member('anna', { clubMember: true }), member('bernd')];
+    state.updateMember.mockResolvedValue(undefined);
+    render(<MembersTab />);
+    const toggles = screen.getAllByTestId('member-club-toggle') as HTMLInputElement[];
+    expect(toggles.map((t) => t.checked)).toEqual([true, false]);
+    fireEvent.click(screen.getByLabelText('bernd ist Vereinsmitglied'));
+    await vi.waitFor(() =>
+      expect(state.updateMember).toHaveBeenCalledWith('bernd', { clubMember: true })
+    );
+    fireEvent.click(screen.getByTestId('members-club-filter'));
+    const rows = screen.getAllByTestId('member-row');
+    expect(rows).toHaveLength(1);
+    expect(within(rows[0]).getByText('anna@x.at')).toBeInTheDocument();
+  });
+
   it('shows all events of a member, drafts included, in a dialog', () => {
     state.memberEvents = [
       { id: 'e1', title: 'Yoga am See', date: '2026-12-01', status: 'draft' },
@@ -198,6 +214,10 @@ describe('MembersTab for a Regions-Moderator:in', () => {
     expect(screen.queryByLabelText('Liste wählen')).not.toBeInTheDocument();
     expect(screen.queryByTestId('members-export-csv')).not.toBeInTheDocument();
     expect(screen.queryByText(/Neue Liste/)).not.toBeInTheDocument();
+    // The Vereinsmitgliedschaft stays with the Super-Admins.
+    expect(headers).not.toContain('Verein');
+    expect(screen.queryByTestId('member-club-toggle')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('members-club-filter')).not.toBeInTheDocument();
   });
 
   it('saves only the directory fields and explains a refused change', async () => {

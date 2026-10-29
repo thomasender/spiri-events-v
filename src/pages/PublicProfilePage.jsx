@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, ExternalLink, Facebook, Instagram, Pencil } from 'lucide-react';
 import DirectMessageLink from '../components/messenger/DirectMessageLink';
 import OnlineDot from '../components/OnlineDot';
+import MemberBadge from '../components/MemberBadge';
 import { useOnlineStatus } from '../hooks/useOnlineStatus';
 import { useMessengerAccess } from '../hooks/useChatSettings';
 import { useAcceptsDirectMessages } from '../hooks/useMessenger';
@@ -200,6 +201,7 @@ export default function PublicProfilePage() {
                 {(profile.displayName || '?').charAt(0).toUpperCase()}
               </div>
             )}
+            <MemberBadge uid={uid} />
             <OnlineDot status={statusOf(uid, profile.showOnlineStatus)} />
           </div>
 

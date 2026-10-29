@@ -6,7 +6,19 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { deleteDoc, doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import {
+  collectionGroup,
+  deleteDoc,
+  deleteField,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+  where,
+} from 'firebase/firestore';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 
 let env: RulesTestEnvironment;
@@ -240,5 +252,36 @@ describe('Feuerplatz fields', () => {
     await assertFails(setDoc(doc(db, pub('carol')), { ...base, fireplaceLabel: { ...place } }));
     await assertFails(setDoc(doc(db, pub('carol')), { ...base, fireplaceLabel: '' }));
     await assertFails(setDoc(doc(db, pub('carol')), { ...base, fireplaceLabel: 'x'.repeat(81) }));
+  });
+});
+
+// Vereinsmitglied: only the adminUpdateMember callable (Admin SDK) sets it.
+describe('publicProfile.clubMember', () => {
+  const pub = (uid: string) => `users/${uid}/publicProfile/data`;
+
+  it('the owner can neither create nor set, change or remove it', async () => {
+    const db = env.authenticatedContext('carol').firestore();
+    await assertFails(setDoc(doc(db, pub('carol')), { ...base, clubMember: true }));
+    await assertFails(setDoc(doc(db, pub('carol')), { ...base, clubMember: false }));
+    await assertSucceeds(setDoc(doc(db, pub('carol')), { ...base }));
+    await assertFails(updateDoc(doc(db, pub('carol')), { clubMember: true }));
+
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), pub('carol')), { clubMember: true });
+    });
+    await assertFails(updateDoc(doc(db, pub('carol')), { clubMember: false }));
+    await assertFails(updateDoc(doc(db, pub('carol')), { clubMember: deleteField() }));
+    // The normal profile save (merge, without the field) keeps working.
+    await assertSucceeds(setDoc(doc(db, pub('carol')), { ...base, bio: 'Neu' }, { merge: true }));
+  });
+
+  it('anyone, also logged out, can list the members (collection group query)', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), pub('carol')), { ...base, clubMember: true });
+    });
+    const db = env.unauthenticatedContext().firestore();
+    await assertSucceeds(
+      getDocs(query(collectionGroup(db, 'publicProfile'), where('clubMember', '==', true)))
+    );
   });
 });

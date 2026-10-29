@@ -15,6 +15,7 @@ import { trackEventOpen } from '../lib/analyticsEvents';
 import EventCoverImage from './EventCoverImage';
 import FavoriteButton from './FavoriteButton';
 import CancelledBadge from './CancelledBadge';
+import { MemberBadgeFrame } from './MemberBadge';
 import { isEntryCancelled } from '../utils/eventCancellation';
 import './EventListRow.css';
 
@@ -73,17 +74,19 @@ export default function EventListRow({ event, categoryColor, linkState, onClick 
         )}
         {organizerName && (
           <div className="event-row-organizer">
-            {event.organizer && event.organizer.photoURL ? (
-              <img
-                src={event.organizer.photoURL}
-                alt=""
-                className="event-row-organizer-photo"
-                data-testid="event-row-organizer-photo"
-                loading="lazy"
-              />
-            ) : (
-              <span className="event-row-organizer-avatar">{organizerName.charAt(0)}</span>
-            )}
+            <MemberBadgeFrame uid={event.createdBy}>
+              {event.organizer && event.organizer.photoURL ? (
+                <img
+                  src={event.organizer.photoURL}
+                  alt=""
+                  className="event-row-organizer-photo"
+                  data-testid="event-row-organizer-photo"
+                  loading="lazy"
+                />
+              ) : (
+                <span className="event-row-organizer-avatar">{organizerName.charAt(0)}</span>
+              )}
+            </MemberBadgeFrame>
             <span>{organizerName}</span>
           </div>
         )}

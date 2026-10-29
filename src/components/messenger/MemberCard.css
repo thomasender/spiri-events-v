@@ -82,3 +82,13 @@
   right: 4px;
   bottom: 4px;
 }
+
+/* Vereinsmitglied badge: same inset as the online dot on the large photo. */
+.member-card-avatar-wrap .member-badge {
+  right: var(--space-1);
+  bottom: var(--space-1);
+}
+
+.member-card-avatar-wrap .member-badge ~ .online-dot.online-dot {
+  top: var(--space-1);
+}

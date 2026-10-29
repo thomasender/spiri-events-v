@@ -11,6 +11,7 @@ import { useThreads } from '../hooks/useMessenger';
 import { useChatUnread } from '../hooks/useChatUnread';
 import EmailVerificationModal from './EmailVerificationModal';
 import AvatarImage from './AvatarImage';
+import { MemberBadgeFrame } from './MemberBadge';
 import RegionSwitcher, { RegionMenuList } from './RegionSwitcher';
 import { useRegion } from '../hooks/useRegion';
 import { useRegionTexts } from '../hooks/useRegionTexts';
@@ -362,15 +363,17 @@ export default function Header() {
   const profileLink = (
     <NavLink to="/profil" className={navClass} onClick={closeMenu}>
       {profilePhotoURL ? (
-        <AvatarImage
-          src={profilePhotoURL}
-          focalPoint={profile?.photoURL ? profile.photoFocalPoint : null}
-          zoom={profile?.photoURL ? profile.photoZoom : 1}
-          alt=""
-          className="nav-link-avatar"
-          aria-hidden="true"
-          data-testid="profile-nav-avatar"
-        />
+        <MemberBadgeFrame uid={user?.uid} interactive={false}>
+          <AvatarImage
+            src={profilePhotoURL}
+            focalPoint={profile?.photoURL ? profile.photoFocalPoint : null}
+            zoom={profile?.photoURL ? profile.photoZoom : 1}
+            alt=""
+            className="nav-link-avatar"
+            aria-hidden="true"
+            data-testid="profile-nav-avatar"
+          />
+        </MemberBadgeFrame>
       ) : (
         <UserCircle size={18} aria-hidden="true" />
       )}
@@ -485,14 +488,16 @@ export default function Header() {
               >
                 <span className="nav-link-admin-icon">
                   {profilePhotoURL ? (
-                    <AvatarImage
-                      src={profilePhotoURL}
-                      focalPoint={profile?.photoURL ? profile.photoFocalPoint : null}
-                      zoom={profile?.photoURL ? profile.photoZoom : 1}
-                      alt=""
-                      className="account-avatar"
-                      aria-hidden="true"
-                    />
+                    <MemberBadgeFrame uid={user?.uid} interactive={false}>
+                      <AvatarImage
+                        src={profilePhotoURL}
+                        focalPoint={profile?.photoURL ? profile.photoFocalPoint : null}
+                        zoom={profile?.photoURL ? profile.photoZoom : 1}
+                        alt=""
+                        className="account-avatar"
+                        aria-hidden="true"
+                      />
+                    </MemberBadgeFrame>
                   ) : (
                     <UserCircle size={28} aria-hidden="true" />
                   )}
@@ -579,15 +584,17 @@ export default function Header() {
           onClick={closeMenu}
         >
           {profilePhotoURL ? (
-            <AvatarImage
-              src={profilePhotoURL}
-              focalPoint={profile?.photoURL ? profile.photoFocalPoint : null}
-              zoom={profile?.photoURL ? profile.photoZoom : 1}
-              alt=""
-              className="header-profile-avatar"
-              aria-hidden="true"
-              data-testid="header-profile-avatar"
-            />
+            <MemberBadgeFrame uid={user?.uid} interactive={false}>
+              <AvatarImage
+                src={profilePhotoURL}
+                focalPoint={profile?.photoURL ? profile.photoFocalPoint : null}
+                zoom={profile?.photoURL ? profile.photoZoom : 1}
+                alt=""
+                className="header-profile-avatar"
+                aria-hidden="true"
+                data-testid="header-profile-avatar"
+              />
+            </MemberBadgeFrame>
           ) : (
             <UserCircle size={24} aria-hidden="true" />
           )}

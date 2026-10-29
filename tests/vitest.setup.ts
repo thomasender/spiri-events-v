@@ -17,6 +17,13 @@ vi.mock('../src/lib/favoritesStore', () => {
   };
 });
 
+// Same for the shared Vereinsmitglieder listener: no member, no badge. Specs
+// that test the badge mock the useClubMembers hook themselves.
+vi.mock('../src/lib/clubMembersStore', () => {
+  const state = { ready: true, uids: new Set() };
+  return { subscribe: () => () => {}, getSnapshot: () => state };
+});
+
 // App Check would talk to reCAPTCHA. Specs that test it mock this module
 // themselves; everything else gets inert stand-ins and never touches the network.
 vi.mock('firebase/app-check', () => ({

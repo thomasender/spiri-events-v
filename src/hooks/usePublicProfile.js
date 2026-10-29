@@ -20,6 +20,7 @@ const EMPTY_PROFILE = {
   directoryRegionIds: [DEFAULT_REGION_ID],
   showOnlineStatus: false,
   fireplaceLabel: '',
+  clubMember: false,
   updatedAt: null,
 };
 
@@ -58,6 +59,7 @@ function normalize(data) {
     directoryRegionIds: resolveDirectoryRegionIds(data),
     showOnlineStatus: data.showOnlineStatus === true,
     fireplaceLabel: typeof data.fireplaceLabel === 'string' ? data.fireplaceLabel : '',
+    clubMember: data.clubMember === true,
     updatedAt: data.updatedAt || null,
   };
 }

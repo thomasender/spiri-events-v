@@ -138,3 +138,18 @@ describe('validateMemberPatch', () => {
     expect(() => validateMemberPatch({})).toThrow();
   });
 });
+
+describe('clubMember (Vereinsmitglied)', () => {
+  it('is a validated boolean patch field', () => {
+    expect(validateMemberPatch({ clubMember: true })).toEqual({ clubMember: true });
+    expect(validateMemberPatch({ clubMember: false })).toEqual({ clubMember: false });
+    expect(() => validateMemberPatch({ clubMember: 'ja' })).toThrow();
+    expect(() => validateMemberPatch({ clubMember: 1 })).toThrow();
+  });
+
+  it('is read from the public profile; a missing field means no member', () => {
+    expect(buildMemberRow({ uid: 'u1' }, { clubMember: true }).clubMember).toBe(true);
+    expect(buildMemberRow({ uid: 'u2' }, { clubMember: 'true' }).clubMember).toBe(false);
+    expect(buildMemberRow({ uid: 'u3' }).clubMember).toBe(false);
+  });
+});

@@ -310,6 +310,8 @@ export default function MembersTab() {
     : [];
   const [category, setCategory] = useState('');
   const [activeListId, setActiveListId] = useState('');
+  const [clubOnly, setClubOnly] = useState(false);
+  const [clubSaving, setClubSaving] = useState(() => new Set());
   const [sort, setSort] = useState({ key: 'createdAt', direction: 'desc' });
   const [selected, setSelected] = useState(() => new Set());
   const [editing, setEditing] = useState(null);
@@ -326,9 +328,10 @@ export default function MembersTab() {
       regionId,
       category,
       listUids: activeList ? new Set(activeList.memberUids || []) : null,
+      clubOnly: isAdmin && clubOnly,
     });
     return sortMembers(filtered, sort.key, sort.direction);
-  }, [members, search, region, regionId, category, activeList, sort]);
+  }, [members, search, region, regionId, category, activeList, sort, isAdmin, clubOnly]);
 
   const toggleSort = (key) =>
     setSort((s) =>
@@ -390,6 +393,22 @@ export default function MembersTab() {
         (activeList.memberUids || []).filter((id) => id !== uid)
       )
     );
+
+  // Vereinsmitglied (badge on the profile photo): Super-Admins only, saved
+  // straight from the row.
+  const handleClubMember = (member, clubMember) =>
+    run(async () => {
+      setClubSaving((prev) => new Set(prev).add(member.uid));
+      try {
+        await updateMember(member.uid, { clubMember });
+      } finally {
+        setClubSaving((prev) => {
+          const next = new Set(prev);
+          next.delete(member.uid);
+          return next;
+        });
+      }
+    });
 
   const handleDeleteList = () =>
     run(async () => {
@@ -487,6 +506,17 @@ export default function MembersTab() {
             </option>
           ))}
         </select>
+        {isAdmin && (
+          <label className="members-club-filter">
+            <input
+              type="checkbox"
+              checked={clubOnly}
+              onChange={(e) => setClubOnly(e.target.checked)}
+              data-testid="members-club-filter"
+            />
+            Nur Vereinsmitglieder
+          </label>
+        )}
         {isAdmin && (
           <select
             aria-label="Liste wählen"
@@ -628,6 +658,7 @@ export default function MembersTab() {
                       </th>
                     ))}
                     <th>Profil</th>
+                    {isAdmin && <th title="Vereinsmitglied: Abzeichen am Profilfoto">Verein</th>}
                     <th>Verzeichnis</th>
                     <th>Instagram teilen</th>
                     <th>Instagram-Name</th>
@@ -673,6 +704,18 @@ export default function MembersTab() {
                             '–'
                           )}
                         </td>
+                        {isAdmin && (
+                          <td>
+                            <input
+                              type="checkbox"
+                              aria-label={`${m.displayName || m.email} ist Vereinsmitglied`}
+                              checked={m.clubMember === true}
+                              disabled={clubSaving.has(m.uid)}
+                              onChange={(e) => handleClubMember(m, e.target.checked)}
+                              data-testid="member-club-toggle"
+                            />
+                          </td>
+                        )}
                         <td>
                           {m.listedInDirectory ? (m.directoryHidden ? 'Versteckt' : 'Ja') : 'Nein'}
                         </td>

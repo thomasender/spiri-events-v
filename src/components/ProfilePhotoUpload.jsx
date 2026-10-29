@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { User } from 'lucide-react';
 import ProfilePhotoAdjustDialog from './ProfilePhotoAdjustDialog';
 import { photoZoomStyle } from './AvatarImage';
+import { MemberBadgeFrame } from './MemberBadge';
 import { uploadProfileImage, MAX_INPUT_SIZE_BYTES } from '../lib/imageUpload';
 import './ProfileForm.css';
 
@@ -58,13 +59,15 @@ export default function ProfilePhotoUpload({
 
   return (
     <div className="profile-photo-upload" data-testid="profile-photo-upload">
-      <div className="profile-photo-preview">
-        {photoURL ? (
-          <img src={photoURL} alt="Profilfoto" style={photoZoomStyle(focalPoint, zoom)} />
-        ) : (
-          <User size={40} aria-hidden="true" />
-        )}
-      </div>
+      <MemberBadgeFrame uid={uid}>
+        <div className="profile-photo-preview">
+          {photoURL ? (
+            <img src={photoURL} alt="Profilfoto" style={photoZoomStyle(focalPoint, zoom)} />
+          ) : (
+            <User size={40} aria-hidden="true" />
+          )}
+        </div>
+      </MemberBadgeFrame>
 
       <div className="profile-photo-controls">
         <button
