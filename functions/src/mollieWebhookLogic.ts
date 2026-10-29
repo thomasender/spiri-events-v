@@ -94,6 +94,24 @@ function parseEuroAmount(input: unknown): number | null {
   return Math.round(parsed * 100) / 100;
 }
 
+// Income/expense ledger (admin tab "Finanzen"). Every paid EUR donation is
+// mirrored here, with or without display consent, one doc per Mollie payment.
+export const LEDGER_COLLECTION = 'ledger';
+
+export function ledgerIdForPayment(paymentId: string): string {
+  return `mollie_${paymentId}`;
+}
+
+/** Calendar day (YYYY-MM-DD) of an instant in Vienna, the club's books. */
+export function viennaDateString(date: Date): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Vienna',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
+
 export function donorIdForPayment(paymentId: string, subscriptionId?: string | null): string {
   if (subscriptionId) {
     return `donor_mollie_sub_${subscriptionId}`;
@@ -305,6 +323,62 @@ export async function handlePaidPayment({
 }
 
 /**
+ * Mirrors a paid Mollie payment into the `ledger` collection as income.
+ * Create-only: an entry an admin already edited is never overwritten on a
+ * webhook retry. Never throws (the donor flow and the webhook answer must not
+ * depend on the books); a failure is only reported through `onError`.
+ */
+export async function recordLedgerIncome({
+  db,
+  payment,
+  now = () => new Date(),
+  onError,
+}: {
+  db: FirestoreLikeDb;
+  payment: MolliePaymentResource;
+  now?: () => Date;
+  onError?: (err: unknown) => void;
+}): Promise<{ written: boolean; reason?: string }> {
+  try {
+    if (payment.status !== 'paid') return { written: false, reason: `status:${payment.status}` };
+    if (payment.amount?.currency !== MOLLIE_DONATION_CURRENCY) {
+      return { written: false, reason: 'wrong-currency' };
+    }
+    const amount = parseEuroAmount(payment.amount);
+    if (amount === null || amount <= 0) return { written: false, reason: 'no-amount' };
+
+    const ref = db.collection(LEDGER_COLLECTION).doc(ledgerIdForPayment(payment.id));
+    const existing = await ref.get();
+    if (existing.exists) return { written: false, reason: 'exists' };
+
+    const metadata = asMetadata(payment.metadata);
+    const isRecurring =
+      payment.sequenceType === 'recurring' ||
+      Boolean(payment.subscriptionId) ||
+      metadata.donationType === MONTHLY_DONATION_TYPE;
+    const timestamp = now();
+    await ref.set(
+      {
+        type: 'income',
+        date: viennaDateString(paidAtOf(payment, now)),
+        amount,
+        description: `Spende via Mollie (${isRecurring ? 'monatlich' : 'einmalig'})`,
+        category: 'Spenden',
+        source: 'mollie',
+        molliePaymentId: payment.id,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+      { merge: false }
+    );
+    return { written: true };
+  } catch (err) {
+    onError?.(err);
+    return { written: false, reason: 'error' };
+  }
+}
+
+/**
  * Top-level webhook handler. Looks up the resource mentioned in the
  * webhook body, verifies state==='paid', and writes the donor record.
  */
@@ -424,6 +498,15 @@ async function handlePaidWebhookPayment({
   ensureSubscription?: SubscriptionEnsurer;
   reportFailure?: PaymentFailureReporter;
 }): Promise<ProcessMollieWebhookResult> {
+  // Books first and fully isolated: also covers the recurring payments that
+  // the donor flow below skips. Cannot change the response.
+  await recordLedgerIncome({
+    db,
+    payment,
+    now,
+    onError: (err) => console.error('ledger write failed', payment.id, err),
+  });
+
   if (payment.subscriptionId && payment.sequenceType && payment.sequenceType !== 'first') {
     return { status: 200, body: { received: true, action: 'skip-recurring' } };
   }
