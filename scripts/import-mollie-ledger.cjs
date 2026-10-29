@@ -5,7 +5,7 @@
 // Uses the very same booking logic as the live webhook (recordLedgerIncome):
 // one doc per payment with id `mollie_<paymentId>`, create-only. So it is safe
 // to run twice, it never overwrites an entry an admin edited, and it skips what
-// the webhook already booked.
+// the webhook already booked. Refunds and chargebacks are netted off.
 //
 //   MOLLIE_API_KEY=live_xxx node scripts/import-mollie-ledger.cjs          # dry run
 //   MOLLIE_API_KEY=live_xxx node scripts/import-mollie-ledger.cjs --apply  # write
@@ -15,6 +15,7 @@
 // purpose: firebase-admin does not load cleanly under ESM here.
 const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
+const { createRequire } = require('node:module');
 
 const ROOT = join(__dirname, '..');
 const MOLLIE_PAYMENTS_URL = 'https://api.mollie.com/v2/payments?limit=250';
@@ -57,12 +58,20 @@ function dryRunDb(db, planned) {
 async function importPayments({ payments, db, apply, recordLedgerIncome }) {
   const planned = [];
   const target = apply ? db : dryRunDb(db, planned);
-  const summary = { total: payments.length, booked: 0, skipped: {}, sum: 0, refundedOrCharged: [] };
+  const summary = { total: payments.length, booked: 0, skipped: {}, sum: 0, adjusted: [] };
   // Oldest first, so the log reads like the books.
   const sorted = [...payments].sort((a, b) =>
     String(a.paidAt ?? a.createdAt).localeCompare(String(b.paidAt ?? b.createdAt))
   );
-  for (const payment of sorted) {
+  for (const original of sorted) {
+    // Net of refunds and chargebacks: a fully refunded payment drops out
+    // (recordLedgerIncome skips amounts <= 0), a partly refunded one is booked
+    // with what is left.
+    const gross = Number(original.amount?.value ?? 0);
+    const refunded = Number(original.amountRefunded?.value ?? 0);
+    const charged = Number(original.amountChargedBack?.value ?? 0);
+    const net = Math.round((gross - refunded - charged) * 100) / 100;
+    const payment = { ...original, amount: { ...original.amount, value: net.toFixed(2) } };
     const result = await recordLedgerIncome({
       db: target,
       payment,
@@ -70,17 +79,23 @@ async function importPayments({ payments, db, apply, recordLedgerIncome }) {
     });
     if (result.written) {
       summary.booked += 1;
-      summary.sum += Number(payment.amount.value);
-      const refunded = Number(payment.amountRefunded?.value ?? 0);
-      const charged = Number(payment.amountChargedBack?.value ?? 0);
-      if (refunded > 0 || charged > 0)
-        summary.refundedOrCharged.push({ id: payment.id, refunded, charged });
+      summary.sum += net;
+      if (net !== gross) summary.adjusted.push({ id: payment.id, gross, net });
     } else {
-      const reason = result.reason ?? 'unknown';
+      const reason =
+        result.reason === 'no-amount' && gross > 0
+          ? 'fully-refunded'
+          : (result.reason ?? 'unknown');
       summary.skipped[reason] = (summary.skipped[reason] ?? 0) + 1;
     }
   }
   return { summary, planned };
+}
+
+// Resolved from functions/, so functions/node_modules wins and the hoisted root
+// copy is the fallback. Package-name require, because of firebase-admin's `exports`.
+function requireAdmin(sub) {
+  return createRequire(join(ROOT, 'functions', 'package.json'))(`firebase-admin/${sub}`);
 }
 
 async function main() {
@@ -90,8 +105,8 @@ async function main() {
   if (apiKey.startsWith('test_'))
     throw new Error('This is a TEST key: the live history needs the live_ key.');
 
-  const { initializeApp, cert } = require(join(ROOT, 'functions/node_modules/firebase-admin/app'));
-  const { getFirestore } = require(join(ROOT, 'functions/node_modules/firebase-admin/firestore'));
+  const { initializeApp, cert } = requireAdmin('app');
+  const { getFirestore } = requireAdmin('firestore');
   const { recordLedgerIncome } = require(join(ROOT, 'functions/lib/mollieWebhookLogic.js'));
   const sa = JSON.parse(readFileSync(join(ROOT, 'scripts/service-account.json'), 'utf8'));
   initializeApp({ credential: cert(sa), projectId: sa.project_id });
@@ -115,9 +130,9 @@ async function main() {
     `${apply ? 'Booked' : 'Would book'}: ${summary.booked} · ${summary.sum.toFixed(2)} € gross`
   );
   console.log('Skipped:', summary.skipped);
-  if (summary.refundedOrCharged.length) {
-    console.log('Check by hand (refund / chargeback, booked at the full amount):');
-    for (const r of summary.refundedOrCharged) console.log('  ', r);
+  if (summary.adjusted.length) {
+    console.log('Booked net of a partial refund / chargeback:');
+    for (const r of summary.adjusted) console.log('  ', r);
   }
   if (!apply) console.log('\nNothing written. Run again with --apply to book.');
 }
