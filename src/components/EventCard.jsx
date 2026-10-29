@@ -4,6 +4,8 @@ import {
   formatEventDateLabel,
   formatEventDateRangeLabel,
   getEventCityLabel,
+  getEventCityName,
+  getEventDistrict,
   getOrganizerName,
   getPrimaryCategory,
   isMultiDayEvent,
@@ -13,6 +15,7 @@ import { trackEventOpen } from '../lib/analyticsEvents';
 import EventCoverImage from './EventCoverImage';
 import FavoriteButton from './FavoriteButton';
 import CancelledBadge from './CancelledBadge';
+import DistrictBadge from './DistrictBadge';
 import CandleBadge from './CandleBadge';
 import { MemberBadgeFrame } from './MemberBadge';
 import { isEntryCancelled } from '../utils/eventCancellation';
@@ -71,8 +74,17 @@ export default function EventCard({ event, categoryColor, onClick, candleNews = 
             className={`event-tile-location${event.isOnline ? ' event-tile-location--online' : ''}`}
             data-testid={event.isOnline ? 'event-tile-location-online' : undefined}
           >
-            <MapPin size={14} />
-            {locationLabel}
+            {getEventDistrict(event) ? (
+              <>
+                <DistrictBadge district={getEventDistrict(event)} />
+                {getEventCityName(event) && <span>{getEventCityName(event)}</span>}
+              </>
+            ) : (
+              <>
+                <MapPin size={14} />
+                {locationLabel}
+              </>
+            )}
           </span>
         )}
         {organizerName && (

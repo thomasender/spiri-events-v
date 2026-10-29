@@ -179,7 +179,7 @@ describe('EventModal', () => {
 });
 
 describe('EventModal location', () => {
-  it('names the Ort with Bezirk for Vorarlberg and Landkreis for Germany', () => {
+  it('shows the district badge and the Ort (Bezirk for Vorarlberg, Landkreis for Germany)', () => {
     const { unmount } = render(
       <EventModal
         event={{ ...mockEvent, city: 'Altach', bezirk: 'Feldkirch' }}
@@ -187,7 +187,8 @@ describe('EventModal location', () => {
       />
     );
     expect(screen.getByText('Ort')).toBeInTheDocument();
-    expect(screen.getByText('Altach (Bez. Feldkirch)')).toBeInTheDocument();
+    expect(screen.getByTestId('district-badge')).toHaveTextContent('Feldkirch');
+    expect(screen.getByText('Ort').parentElement).toHaveTextContent('Feldkirch Altach');
     unmount();
     render(
       <EventModal
@@ -195,7 +196,8 @@ describe('EventModal location', () => {
         onClose={() => {}}
       />
     );
-    expect(screen.getByText('Garching (Lkr. München)')).toBeInTheDocument();
+    expect(screen.getByTestId('district-badge')).toHaveTextContent('München');
+    expect(screen.getByText('Ort').parentElement).toHaveTextContent('München Garching');
   });
 
   it('falls back to the district for events without a city', () => {

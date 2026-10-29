@@ -49,6 +49,32 @@ the stylesheet, so "Standard" can never drift from the CSS.
 - Returning visitors get the last published values from localStorage before React
   renders (`initLayoutFromCache` in `main.jsx`), so there is no layout jump.
 
+## Bezirksfarben
+
+Every district marking on the site hangs on one colour per district, editable in
+Verwaltung -> Theming -> "Bezirksfarben" (Admin). Colour names are never shown; text on top
+is always white, bold (600).
+
+- **Doc:** `app_settings/districtColors` = flat `{ "<Bezirksname>": "#RRGGBB" }`, only the
+  overrides. Public read, Admin write, <= 300 keys (the rules cannot check the values; the
+  client keeps only well-formed `#RRGGBB`, `sanitizeDistrictOverrides`). Saved with its own
+  button, replacing the doc, so "Zurücksetzen" per field really removes the override.
+- **Lookup** (`src/utils/districtColors.js`, `getDistrictColor`): 1) override, 2)
+  `DISTRICT_COLOR_DEFAULTS` (Bregenz, Dornbirn, Feldkirch, Bludenz, Umgebung, Online; the legacy
+  stored value "Grenznahe" is read as Umgebung), 3) automatic colour: FNV hash of the name onto
+  `AUTO_PALETTE` (16 warm sand / earth tones, contrast >= 3.5 against white, none equal to a
+  default). Inside the districts of the active regions a taken tone moves on to the next free one
+  (alphabetical order, so stable). Umgebung and Online have no automatic colour.
+- **Hook:** `useDistrictColors` (one shared listener; defaults until Firestore answers) gives
+  `colorFor(name)`. In tests `tests/vitest.setup.ts` mocks it with the defaults.
+- **Use:** `DistrictBadge` (event card, list row, event modal and detail page; replaces the
+  grey pin text) and the Ort chips in the calendar filter (`.filter-chip--ort`). Both receive the
+  colour as `--district-color` via inline style. SimilarEvents shows the badge because it uses `EventCard`. Not coloured: the directory, Instagram images (stay on the category colour) and the prerendered HTML (plain text).
+- **Editor:** `DistrictColorsSection` in `ThemeTab`: six fields visible, all other districts of
+  the active regions in the collapsed "Weitere Bezirke", automatic colour as the start value.
+- The default colours have a white-text contrast of only 2.7 - 3.7 (Dornbirn 2.80, Feldkirch 2.69,
+  Bludenz 3.20); this was decided with the product owner and is open for review.
+
 ## Scales
 
 - **Spacing** — 4px base. Name = px / 4, `-` for the decimal point:

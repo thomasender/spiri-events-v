@@ -30,6 +30,7 @@ import '../components/CategoriesTab.css';
 import '../components/ThemeTokenInfoDialog.css';
 import '../components/SaveThemeDialog.css';
 import '../components/ThemeTab.css';
+import '../components/DistrictColorsSection.css';
 import '../components/HelperEditDialog.css';
 import '../components/HelpersTab.css';
 import '../components/DonorEditDialog.css';

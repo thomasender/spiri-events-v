@@ -975,6 +975,15 @@ service cloud.firestore {
                             && request.resource.data.keys().size() <= 200
                             && request.resource.data.updatedBy == request.auth.uid
                             && request.resource.data.updatedAt != null;
+
+      // District colours (docs/design-tokens.md, "Bezirksfarben"): flat map
+      // { "<Bezirksname>": "#RRGGBB" }, public read (above), admin-only write. The rules
+      // cannot loop over map entries, so they only bound the size; the client keeps just
+      // well-formed #RRGGBB strings (sanitizeDistrictOverrides) and falls back to its
+      // defaults for anything else.
+      allow create, update: if docId == 'districtColors'
+                            && isAdminOrEmulatorAdmin()
+                            && request.resource.data.keys().size() <= 300;
     }
 
     // Who is in the Design-Modus right now: one heartbeat doc per admin so the

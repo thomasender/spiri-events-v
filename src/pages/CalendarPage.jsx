@@ -4,6 +4,7 @@ import { bezirkLabel } from '../utils/regions';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { usePublicEvents, BEZIRKE, ONLINE_LOCATION } from '../hooks/useEvents';
 import { useCategories } from '../hooks/useCategories';
+import { useDistrictColors } from '../hooks/useDistrictColors';
 import { useCategoryRegistry } from '../hooks/useCategoryRegistry';
 import { useFavorites } from '../hooks/useFavorites';
 import { useAuth } from '../hooks/useAuth';
@@ -186,6 +187,7 @@ export default function CalendarPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, canCreateEvents } = useAuth();
+  const { colorFor: districtColorFor } = useDistrictColors();
   const canonicalPath = useRegionCanonicalPath('/');
   const regionTexts = useRegionTexts();
   const { regionId, isNational, combinedView } = useRegion();
@@ -706,6 +708,7 @@ export default function CalendarPage() {
                       key={bezirk}
                       type="button"
                       className="filter-chip filter-chip--ort"
+                      style={{ '--district-color': districtColorFor(bezirk) }}
                       onClick={() => toggleOrt(bezirk)}
                       aria-pressed={selectedOrte.includes(bezirk)}
                     >
@@ -717,6 +720,7 @@ export default function CalendarPage() {
                   <button
                     type="button"
                     className="filter-chip filter-chip--ort filter-chip--ort-online"
+                    style={{ '--district-color': districtColorFor(ONLINE_LOCATION) }}
                     onClick={() => toggleOrt(ONLINE_LOCATION)}
                     aria-pressed={selectedOrte.includes(ONLINE_LOCATION)}
                     data-testid="filter-chip-online"

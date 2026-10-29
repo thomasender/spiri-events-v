@@ -205,6 +205,35 @@ describe('other app_settings stay public', () => {
   });
 });
 
+describe('app_settings/districtColors (Bezirksfarben)', () => {
+  const PATH = 'app_settings/districtColors';
+
+  it('is readable by everyone', async () => {
+    await assertSucceeds(getDoc(doc(anon().firestore(), PATH)));
+  });
+
+  it('only admins write', async () => {
+    await assertFails(setDoc(doc(anon().firestore(), PATH), { Bregenz: '#B97860' }));
+    await assertFails(setDoc(doc(user().firestore(), PATH), { Bregenz: '#B97860' }));
+  });
+
+  describe.each(Object.entries(adminVariants))('%s', (_n, make) => {
+    it('can create, replace and delete the colours', async () => {
+      const ref = doc(make().firestore(), PATH);
+      await assertSucceeds(setDoc(ref, { Bregenz: '#B97860', Online: '#7C8792' }));
+      await assertSucceeds(setDoc(ref, { Bregenz: '#111111' }));
+      await assertSucceeds(deleteDoc(ref));
+    });
+
+    it('cannot write more than 300 entries', async () => {
+      const ref = doc(make().firestore(), PATH);
+      const many = Object.fromEntries(Array.from({ length: 301 }, (_, i) => [`B${i}`, '#B97860']));
+      await assertFails(setDoc(ref, many));
+      await assertSucceeds(setDoc(ref, Object.fromEntries(Object.entries(many).slice(0, 300))));
+    });
+  });
+});
+
 // Written only by scripts/migrate-region-ids.mjs (Admin SDK). Every visitor
 // reads it to decide between region-scoped and full queries; no client may
 // create or change it. Deleting is the safe direction (back to the full
