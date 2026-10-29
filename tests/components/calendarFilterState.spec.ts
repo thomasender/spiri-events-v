@@ -3,6 +3,7 @@ import {
   monthKeyToDate,
   dateToMonthKey,
   getRollingRange,
+  countActiveFilters,
 } from '../../src/utils/calendarFilterState';
 
 describe('calendarFilterState helpers', () => {
@@ -78,5 +79,59 @@ describe('getRollingRange (QRpwwNTI)', () => {
       from: '2099-12-15',
       to: '2100-01-14',
     });
+  });
+});
+
+describe('countActiveFilters', () => {
+  const none = {
+    selectedCategories: [] as string[],
+    selectedOrte: [] as string[],
+    dateFilter: null as string | null,
+    favoritesFilterActive: false,
+  };
+
+  it('is 0 without any filter', () => {
+    expect(countActiveFilters(none)).toBe(0);
+  });
+
+  it('counts every chosen category and Bezirk on its own', () => {
+    expect(
+      countActiveFilters({
+        ...none,
+        selectedCategories: ['Yoga', 'Tanz'],
+        selectedOrte: ['Feldkirch'],
+      })
+    ).toBe(3);
+  });
+
+  it('counts Online like a Bezirk', () => {
+    expect(countActiveFilters({ ...none, selectedOrte: ['Online', 'Bregenz'] })).toBe(2);
+  });
+
+  it('counts the date quick filter once', () => {
+    expect(countActiveFilters({ ...none, dateFilter: 'weekend' })).toBe(1);
+  });
+
+  it('counts favourites only while the filter is active (signed in)', () => {
+    expect(countActiveFilters({ ...none, favoritesFilterActive: true })).toBe(1);
+    expect(countActiveFilters({ ...none, favoritesFilterActive: false })).toBe(0);
+  });
+
+  it('is above 0 exactly when hasActiveFilter would be true', () => {
+    const cases = [
+      none,
+      { ...none, selectedCategories: ['Yoga'] },
+      { ...none, selectedOrte: ['Online'] },
+      { ...none, dateFilter: 'today' },
+      { ...none, favoritesFilterActive: true },
+    ];
+    for (const c of cases) {
+      const hasActiveFilter =
+        c.selectedCategories.length > 0 ||
+        c.selectedOrte.length > 0 ||
+        !!c.dateFilter ||
+        c.favoritesFilterActive;
+      expect(countActiveFilters(c) > 0).toBe(hasActiveFilter);
+    }
   });
 });

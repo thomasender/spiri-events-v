@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { bezirkLabel } from '../utils/regions';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { usePublicEvents, BEZIRKE, ONLINE_LOCATION } from '../hooks/useEvents';
@@ -27,7 +28,12 @@ import { compareEventsByDateTime } from '../utils/eventSort';
 import { isOccurrencePast } from '../utils/pastEvents';
 import { computeFacetCounts } from '../utils/filterFacetCounts';
 import { resolveEventColor } from '../utils/categoryColors';
-import { monthKeyToDate, dateToMonthKey, getRollingRange } from '../utils/calendarFilterState';
+import {
+  monthKeyToDate,
+  dateToMonthKey,
+  getRollingRange,
+  countActiveFilters,
+} from '../utils/calendarFilterState';
 import {
   DATE_FILTER_OPTIONS,
   applyDateFilter,
@@ -398,6 +404,33 @@ export default function CalendarPage() {
     !!dateFilter ||
     favoritesFilterActive;
 
+  const activeFilterCount = countActiveFilters({
+    selectedCategories,
+    selectedOrte,
+    dateFilter,
+    favoritesFilterActive,
+  });
+
+  // "(n Filter gesetzt)" next to the event count: open "Mehr Filter" only when
+  // a filter inside it is set, then bring the filter panel into view.
+  const filterPanelRef = useRef(null);
+  const filterTitleRef = useRef(null);
+  const showFilters = () => {
+    if (selectedOrte.length > 0 || favoritesFilterActive) {
+      flushSync(() => setMoreFiltersOpen(true));
+    }
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    filterPanelRef.current?.scrollIntoView({
+      block: 'start',
+      behavior: reduceMotion ? 'auto' : 'smooth',
+    });
+    // The heading is hidden on phones; then the panel itself takes the focus.
+    filterTitleRef.current?.focus({ preventScroll: true });
+    if (document.activeElement !== filterTitleRef.current) {
+      filterPanelRef.current?.focus({ preventScroll: true });
+    }
+  };
+
   const facetCounts = useMemo(
     () =>
       computeFacetCounts({
@@ -572,9 +605,11 @@ export default function CalendarPage() {
             )}
           </div>
 
-          <section className="filter-panel" aria-label="Filter">
+          <section className="filter-panel" aria-label="Filter" ref={filterPanelRef} tabIndex={-1}>
             <div className="filter-header filter-header--title">
-              <h2 className="filter-section-title">Hier kannst du filtern</h2>
+              <h2 className="filter-section-title" ref={filterTitleRef} tabIndex={-1}>
+                Hier kannst du filtern
+              </h2>
             </div>
 
             <div className="filter-header filter-header--section">
@@ -829,6 +864,8 @@ export default function CalendarPage() {
               onViewModeChange={setViewMode}
               categoryColorByName={categoryColorByName}
               onResetFilters={hasActiveFilter ? resetAllFilters : undefined}
+              activeFilterCount={activeFilterCount}
+              onShowFilters={showFilters}
               candleNews={candleNews}
             />
           )}

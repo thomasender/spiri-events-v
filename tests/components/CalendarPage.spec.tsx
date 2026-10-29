@@ -993,3 +993,57 @@ describe('CalendarPage — regions (ticket 14)', () => {
     });
   });
 });
+
+describe('CalendarPage — "Filter gesetzt" jump', () => {
+  const scrollIntoView = vi.fn();
+
+  beforeEach(() => {
+    window.localStorage.clear();
+    scrollIntoView.mockClear();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    mockUseAllEvents.events = [];
+    mockUseCategories.value = ['Yoga', 'Meditation'];
+  });
+
+  function storeFilters(selectedCategories: string[], selectedOrte: string[]) {
+    window.localStorage.setItem(
+      'calendarFilterState',
+      JSON.stringify({
+        currentMonth: '2026-09',
+        selectedCategories,
+        selectedOrte,
+        viewMode: 'card',
+      })
+    );
+  }
+
+  it('opens "Mehr Filter" and scrolls to the panel when a Bezirk is set', () => {
+    storeFilters(['Yoga'], ['Feldkirch']);
+    renderPage();
+    const accordion = getAccordion();
+    fireEvent.click(accordion.querySelector('.filter-accordion-summary')!);
+    expect(accordion.open).toBe(false);
+
+    fireEvent.click(screen.getByRole('button', { name: /2 Filter gesetzt/ }));
+
+    expect(accordion.open).toBe(true);
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+    expect(scrollIntoView.mock.contexts[0]).toBe(document.querySelector('.filter-panel'));
+  });
+
+  it('keeps "Mehr Filter" closed when only a category is set', () => {
+    storeFilters(['Yoga'], []);
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: /1 Filter gesetzt/ }));
+
+    expect(getAccordion().open).toBe(false);
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows no hint without filters', () => {
+    storeFilters([], []);
+    renderPage();
+    expect(screen.queryByRole('button', { name: /Filter gesetzt/ })).not.toBeInTheDocument();
+  });
+});
