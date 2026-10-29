@@ -165,6 +165,14 @@ describe('AboutPage', () => {
     expect(highlight?.textContent).toContain('Zurück zu uns Selbst zu kommen');
   });
 
+  it('offers the donation button next to "Zum Kalender" (o9aEDPbY)', () => {
+    renderAboutPage();
+    const donate = screen.getByTestId('about-donate-link');
+    expect(donate).toHaveTextContent('Den Kalender unterstützen');
+    expect(donate).toHaveAttribute('href', '/ueber-uns#spenden');
+    expect(donate.previousElementSibling).toBe(screen.getByRole('link', { name: 'Zum Kalender' }));
+  });
+
   it('keeps a back link to the calendar', () => {
     renderAboutPage();
     const backLink = screen.getByRole('link', { name: /zurück zur startseite/i });

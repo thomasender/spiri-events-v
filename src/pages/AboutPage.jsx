@@ -5,6 +5,7 @@ import SeoMeta from '../components/SeoMeta';
 import DonationBlock from '../components/DonationBlock';
 import HelpersList from '../components/HelpersList';
 import DonorsList from '../components/DonorsList';
+import DonateLink from '../components/DonateLink';
 import ContactFormModal from '../components/ContactFormModal';
 import { useRegion } from '../hooks/useRegion';
 import { useRegionTexts } from '../hooks/useRegionTexts';
@@ -199,7 +200,8 @@ export default function AboutPage() {
             rel="noopener noreferrer"
           >
             Zum Kalender
-          </a>
+          </a>{' '}
+          <DonateLink className="about-link-button" testId="about-donate-link" />
         </p>
       </section>
 
