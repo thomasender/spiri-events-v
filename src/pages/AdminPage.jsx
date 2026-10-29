@@ -23,6 +23,7 @@ import {
   MailCheck,
   Flame,
   ChevronDown,
+  Wallet,
 } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
 import EventList from '../components/EventList';
@@ -45,6 +46,7 @@ import RegionMappingTab from '../components/RegionMappingTab';
 import RegionAboutTab from '../components/RegionAboutTab';
 import NoAccess from '../components/NoAccess';
 import MailgunTab from '../components/MailgunTab';
+import LedgerTab from '../components/LedgerTab';
 import EmailVerificationBanner from '../components/EmailVerificationBanner';
 import EmailVerificationModal from '../components/EmailVerificationModal';
 import EventStatusMismatchBanner from '../components/EventStatusMismatchBanner';
@@ -98,6 +100,7 @@ const TAB_GROUPS = [
     Icon: BarChart3,
     tabs: [
       { id: 'analytics', label: 'Statistik', Icon: BarChart3 },
+      { id: 'ledger', label: 'Finanzen', Icon: Wallet },
       { id: 'theme', label: 'Theme', Icon: Palette },
       { id: 'trash', label: 'Papierkorb', Icon: Trash2 },
     ],
@@ -131,6 +134,7 @@ const PANELS = {
   instagram: InstagramTab,
   analytics: AnalyticsTab,
   mailgun: MailgunTab,
+  ledger: LedgerTab,
   moderation: ModerationTab,
   regions: RegionsTab,
   mapping: RegionMappingTab,
@@ -196,6 +200,7 @@ export default function AdminPage() {
       mapping: isAdmin,
       about: allowedTabs.has('about'),
       mailgun: isAdmin,
+      ledger: isAdmin,
     };
   }, [draftCount, hasMessages, isAdmin, canReview, allowedTabs, hasFeedback, trashedCount]);
 

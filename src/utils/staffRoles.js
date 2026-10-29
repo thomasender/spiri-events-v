@@ -110,6 +110,7 @@ export const ADMIN_TABS = [
   'instagram',
   'analytics',
   'mailgun',
+  'ledger',
   'moderation',
   'regions',
   'mapping',

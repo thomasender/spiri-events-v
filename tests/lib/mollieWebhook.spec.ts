@@ -10,6 +10,9 @@ import {
   subscriptionStartDate,
   sanitizeDonorComment,
   donationRegionId,
+  recordLedgerIncome,
+  ledgerIdForPayment,
+  viennaDateString,
 } from '../../functions/src/mollieWebhookLogic';
 
 function makeSnapshot(exists, fields = {}, docs = []) {
@@ -722,5 +725,152 @@ describe('subscriptionStartDate', () => {
   it('clamps to the end of a shorter next month', () => {
     expect(subscriptionStartDate(new Date('2027-01-31T10:00:00Z'))).toBe('2027-02-28');
     expect(subscriptionStartDate(new Date('2028-01-31T10:00:00Z'))).toBe('2028-02-29');
+  });
+});
+
+describe('ledger mirror', () => {
+  function makeLedgerDb(existing: Record<string, Record<string, unknown>> = {}) {
+    const writes: Array<{ collection: string; id: string; data: Record<string, unknown> }> = [];
+    const db = {
+      collection: (name: string) => ({
+        doc: (id: string) => ({
+          async get() {
+            const fields = name === 'ledger' ? existing[id] : undefined;
+            return makeSnapshot(Boolean(fields), fields ?? {});
+          },
+          async set(data: Record<string, unknown>) {
+            writes.push({ collection: name, id, data });
+          },
+        }),
+        orderBy: () => ({ limit: () => ({ get: async () => makeSnapshot(false, {}, []) }) }),
+      }),
+    };
+    return { db, writes };
+  }
+
+  const paid = (over = {}) => ({
+    id: 'tr_ledger',
+    status: 'paid',
+    amount: { value: '25.00', currency: 'EUR' },
+    paidAt: '2026-10-28T23:30:00Z',
+    metadata: {},
+    ...over,
+  });
+
+  it('books a one-off donation without display consent as income', async () => {
+    const { db, writes } = makeLedgerDb();
+    const r = await recordLedgerIncome({ db, payment: paid() });
+    expect(r.written).toBe(true);
+    expect(writes).toHaveLength(1);
+    expect(writes[0].collection).toBe('ledger');
+    expect(writes[0].id).toBe(ledgerIdForPayment('tr_ledger'));
+    expect(writes[0].data).toMatchObject({
+      type: 'income',
+      amount: 25,
+      // 23:30 UTC is already the next day in Vienna
+      date: '2026-10-29',
+      description: 'Spende via Mollie (einmalig)',
+      category: 'Spenden',
+      source: 'mollie',
+      molliePaymentId: 'tr_ledger',
+    });
+  });
+
+  it('labels recurring payments as monthly', async () => {
+    const { db, writes } = makeLedgerDb();
+    await recordLedgerIncome({
+      db,
+      payment: paid({ sequenceType: 'recurring', subscriptionId: 'sub_1' }),
+    });
+    expect(writes[0].data.description).toBe('Spende via Mollie (monatlich)');
+  });
+
+  it('never overwrites an entry that already exists (admin edits survive retries)', async () => {
+    const { db, writes } = makeLedgerDb({ [ledgerIdForPayment('tr_ledger')]: { amount: 20 } });
+    const r = await recordLedgerIncome({ db, payment: paid() });
+    expect(r).toEqual({ written: false, reason: 'exists' });
+    expect(writes).toHaveLength(0);
+  });
+
+  it('ignores unpaid, non-EUR and zero payments', async () => {
+    const { db, writes } = makeLedgerDb();
+    await recordLedgerIncome({ db, payment: paid({ status: 'open' }) });
+    await recordLedgerIncome({ db, payment: paid({ amount: { value: '5.00', currency: 'USD' } }) });
+    await recordLedgerIncome({ db, payment: paid({ amount: { value: '0.00', currency: 'EUR' } }) });
+    expect(writes).toHaveLength(0);
+  });
+
+  it('does not throw when the books fail, and reports the error', async () => {
+    const onError = vi.fn();
+    const db = {
+      collection: () => {
+        throw new Error('firestore down');
+      },
+    };
+    const r = await recordLedgerIncome({ db, payment: paid(), onError });
+    expect(r).toEqual({ written: false, reason: 'error' });
+    expect(onError).toHaveBeenCalledTimes(1);
+  });
+
+  it('webhook answer and donor entry are unchanged, recurring payments are booked too', async () => {
+    const { db, writes } = makeLedgerDb();
+    const recurring = await processMollieWebhook({
+      body: {
+        format: 'next-gen',
+        type: 'payment.paid',
+        eventId: 'ev',
+        payment: paid({ id: 'tr_rec', sequenceType: 'recurring', subscriptionId: 'sub_9' }),
+      },
+      db,
+    });
+    expect(recurring).toEqual({
+      status: 200,
+      body: { received: true, action: 'skip-recurring' },
+    });
+    expect(writes.map((w) => w.collection)).toEqual(['ledger']);
+
+    const consent = await processMollieWebhook({
+      body: {
+        format: 'next-gen',
+        type: 'payment.paid',
+        eventId: 'ev2',
+        payment: paid({
+          id: 'tr_one',
+          sequenceType: 'oneoff',
+          metadata: { displayOnConsent: true, donorName: 'Max' },
+        }),
+      },
+      db,
+    });
+    expect(consent).toEqual({ status: 200, body: { received: true, written: true } });
+    expect(writes.map((w) => w.collection).sort()).toEqual(['donors', 'ledger', 'ledger']);
+  });
+
+  it('keeps the webhook working when the ledger write fails', async () => {
+    const { db: base, writes } = makeLedgerDb();
+    const db = {
+      collection: (name: string) => {
+        if (name === 'ledger') throw new Error('ledger broken');
+        return base.collection(name);
+      },
+    };
+    const r = await processMollieWebhook({
+      body: {
+        format: 'next-gen',
+        type: 'payment.paid',
+        eventId: 'ev3',
+        payment: paid({ id: 'tr_x', metadata: { displayOnConsent: true, donorName: 'Max' } }),
+      },
+      db,
+    });
+    expect(r).toEqual({ status: 200, body: { received: true, written: true } });
+    expect(writes.map((w) => w.collection)).toEqual(['donors']);
+  });
+});
+
+describe('viennaDateString', () => {
+  it('uses the Vienna calendar day', () => {
+    expect(viennaDateString(new Date('2026-12-31T23:30:00Z'))).toBe('2027-01-01');
+    expect(viennaDateString(new Date('2026-07-01T10:00:00Z'))).toBe('2026-07-01');
   });
 });

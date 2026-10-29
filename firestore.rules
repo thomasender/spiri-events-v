@@ -1911,6 +1911,48 @@ service cloud.firestore {
       allow delete: if isAdminOrEmulatorAdmin();
     }
 
+    // Income/expense ledger (admin tab "Finanzen"). Super-Admins only, no
+    // public access. Entries with `source == 'mollie'` are written by the
+    // Cloud Function mollieWebhook (Admin SDK) for every paid donation and
+    // can be edited or deleted like manual ones. `date` is a YYYY-MM-DD
+    // string, `amount` is always positive; `type` decides the sign.
+    match /ledger/{entryId} {
+      function isValidLedgerEntry(data) {
+        return data.type in ['income', 'expense']
+          && data.date is string
+          && data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+          && data.amount is number && data.amount > 0 && data.amount <= 10000000
+          && data.description is string
+          && data.description.size() >= 1 && data.description.size() <= 200
+          && (!('category' in data)
+              || data.category == null
+              || (data.category is string && data.category.size() <= 60))
+          && (!('note' in data)
+              || data.note == null
+              || (data.note is string && data.note.size() <= 500));
+      }
+
+      allow read: if isAdminOrEmulatorAdmin();
+
+      allow create: if isAdminOrEmulatorAdmin()
+                    && request.resource.data.keys().hasOnly([
+                      'type', 'date', 'amount', 'description', 'category', 'note',
+                      'source', 'createdAt', 'updatedAt', 'createdBy',
+                    ])
+                    && request.resource.data.source == 'manual'
+                    && isValidLedgerEntry(request.resource.data);
+
+      allow update: if isAdminOrEmulatorAdmin()
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                          .hasOnly([
+                            'type', 'date', 'amount', 'description', 'category',
+                            'note', 'updatedAt',
+                          ])
+                    && isValidLedgerEntry(request.resource.data);
+
+      allow delete: if isAdminOrEmulatorAdmin();
+    }
+
     // Feedback collection: anyone can submit anonymous feedback (with optional
     // name, email, and screenshot). Only admins can read / update / delete.
     match /feedback/{feedbackId} {
