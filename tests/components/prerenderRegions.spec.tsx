@@ -162,6 +162,30 @@ describe('Vorarlberg output is byte-identical (golden hashes of the pre-ticket g
     );
   });
 
+  it('the calendar page tells the app about two or more active regions, never with one', async () => {
+    const m = await importPrerender();
+    const { mergeRegions } = await import('../../src/utils/regions.js');
+    const plain = m.generateCalendarPageHtml(fx, '/assets/index-A.js', '/assets/index-A.css');
+    expect(
+      m.generateCalendarPageHtml(
+        fx,
+        '/assets/index-A.js',
+        '/assets/index-A.css',
+        undefined,
+        mergeRegions([])
+      )
+    ).toBe(plain);
+    expect(plain).not.toContain('tribe-region-mode');
+    const multi = m.generateCalendarPageHtml(
+      fx,
+      '/assets/index-A.js',
+      '/assets/index-A.css',
+      undefined,
+      mergeRegions([{ id: 'tirol', active: true }])
+    );
+    expect(multi).toContain('<meta name="tribe-region-mode" content="multi" />');
+  });
+
   it('passing the single-region register changes nothing for events', async () => {
     const m = await importPrerender();
     const { mergeRegions } = await import('../../src/utils/regions.js');
@@ -342,7 +366,7 @@ describe('prerender() end-to-end with regions', () => {
     expect(fs.existsSync(path.join(distPath, 'tirol'))).toBe(false);
   });
 
-  it('two active regions: region pages, sitemap entries and event suffix; / unchanged', async () => {
+  it('two active regions: region pages, sitemap entries and event suffix; / only gets the hint', async () => {
     const before = await (async () => {
       await run();
       return fs.readFileSync(path.join(distPath, 'index.html'), 'utf8');
@@ -363,7 +387,13 @@ describe('prerender() end-to-end with regions', () => {
     const tirolHtml = fs.readFileSync(path.join(distPath, 'tirol', 'index.html'), 'utf8');
     expect(tirolHtml).toContain('<title>Kalender | The Tribe Tirol</title>');
     expect(tirolHtml).not.toContain('geheim@example.com');
-    expect(fs.readFileSync(path.join(distPath, 'index.html'), 'utf8')).toBe(before);
+    // `/` stays the Vorarlberg page; only the multi-region hint for the app is added.
+    expect(
+      fs
+        .readFileSync(path.join(distPath, 'index.html'), 'utf8')
+        .replace('\n  <meta name="tribe-region-mode" content="multi" />', '')
+    ).toBe(before);
+    expect(before).not.toContain('tribe-region-mode');
     const sitemap = fs.readFileSync(path.join(distPath, 'sitemap.xml'), 'utf8');
     expect(sitemap).toContain('/tirol</loc>');
     expect(sitemap).toContain('/tirol/verzeichnis</loc>');

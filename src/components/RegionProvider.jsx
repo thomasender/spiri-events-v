@@ -10,7 +10,6 @@ import {
   writePlaceSelection,
 } from '../utils/placeSelection';
 import {
-  CHOOSER_PATHS,
   REGIONS_PAGE_PATH,
   activeRegions,
   availableCombinedViews,
@@ -20,10 +19,12 @@ import {
   isNeutralPagePath,
   readLastPageSlug,
   readLastRegion,
+  readMultiRegionHint,
   readRegionChooserSeen,
   regionPath,
   regionSlugFromPath,
   resolveCurrentRegionId,
+  shouldOpenRegionChooser,
   writeLastPageSlug,
   writeLastRegion,
 } from '../utils/regionRouting';
@@ -46,6 +47,8 @@ export default function RegionProvider({ children }) {
   // "Wo bist du?": the remembered place + radius (browser; PlaceSelectionSync mirrors it to
   // the profile of signed-in users).
   const [placeSelection, setPlaceSelectionState] = useState(() => readPlaceSelection());
+  // Prerendered `/` says "two or more active regions" before the region config loaded.
+  const [multiRegionHint] = useState(() => readMultiRegionHint());
 
   const urlSlug = regionSlugFromPath(pathname);
   const urlRegionIsActive = Boolean(
@@ -120,14 +123,18 @@ export default function RegionProvider({ children }) {
     );
     // "Wo suchst du?" page (RegionChooser): `/regionen` opened on purpose, or `/` and
     // `/verzeichnis` while nothing is remembered (place, chooser seen, active last region).
-    const stored = readLastRegion();
-    const chooserRemembered =
-      readRegionChooserSeen() ||
-      Boolean(placeSelection) ||
-      Boolean(stored && getRegionBySlug(stored, allRegions)?.active);
-    const regionChooserOpen =
-      regionMode &&
-      (pathname === REGIONS_PAGE_PATH || (!chooserRemembered && CHOOSER_PATHS.includes(pathname)));
+    // While the region config loads, the prerender's multi-region hint decides, so a
+    // first-time visitor never sees the Vorarlberg calendar before the chooser (eFPKzCr7).
+    const regionChooserOpen = shouldOpenRegionChooser({
+      pathname,
+      loading,
+      activeCount: activeRegions(allRegions).length,
+      multiRegionHint,
+      chooserSeen: readRegionChooserSeen(),
+      hasPlaceSelection: Boolean(placeSelection),
+      lastRegion: readLastRegion(),
+      regions: allRegions,
+    });
     // Neutral header ("Dein Kalender"): region chooser, coming-soon pages, the event
     // form for a region that is not open yet and Impressum / Datenschutz.
     const neutralHeader =
@@ -189,6 +196,7 @@ export default function RegionProvider({ children }) {
     lastPageSlug,
     allRegions,
     loading,
+    multiRegionHint,
     setRegion,
     setEventRegion,
     placeSelection,
