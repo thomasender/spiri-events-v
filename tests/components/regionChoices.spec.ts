@@ -82,6 +82,9 @@ describe('sub-area helpers', () => {
     expect(subdivisionFor('bayern', c).label).toBe('Landkreis');
     expect(subdivisionFor('steiermark', c).label).toBe('Bezirk');
     expect(subdivisionFor('vorarlberg', c).options).toContain('Dornbirn');
+    // The legacy "Umgebung" is never offered for an event (Trello dx8dCQJc), even when a
+    // Firestore doc still lists it.
+    expect(subdivisionFor('vorarlberg', c).options).not.toContain('Grenznahe');
   });
 
   it('keepIfInRegion resets a district of another region', () => {

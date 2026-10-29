@@ -402,10 +402,13 @@ export const MAX_HASHTAGS = 12;
  */
 export function buildHashtags(event: InstagramEventInput, max = MAX_HASHTAGS): string[] {
   const bezirk = asString(event.bezirk);
-  const online = isOnlineEvent(event.isOnline) || !bezirk || bezirk.toLowerCase() === 'online';
+  // An in-person event without Bezirk (a place in no list, e.g. Liechtenstein) tags its Ort.
+  const city = isOnlineEvent(event.isOnline) ? '' : asString(event.city);
+  const place = bezirk || city;
+  const online = isOnlineEvent(event.isOnline) || !place || bezirk.toLowerCase() === 'online';
   const category = displayCategory(event.category);
   const candidates = [
-    online ? '#online' : toHashtag(bezirk),
+    online ? '#online' : toHashtag(place),
     toHashtag(category),
     ...(CATEGORY_EXTRA_HASHTAGS[category] ?? []),
     ...BASE_HASHTAGS,

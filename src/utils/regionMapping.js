@@ -1,4 +1,4 @@
-import { STATIC_REGIONS } from './regions.js';
+import { LEGACY_BEZIRKE, STATIC_REGIONS } from './regions.js';
 
 // Landkreis / Bezirk -> region mapping (Verwaltung -> "Zuordnung").
 //
@@ -11,8 +11,9 @@ import { STATIC_REGIONS } from './regions.js';
 // functions/src/adminRegionMapping.ts, which holds a synced copy of planMappingChange).
 // Pure, free of Firebase/React imports.
 
-// Not a real district: Vorarlberg keeps it for existing events. Never moved.
-export const FIXED_DISTRICTS = Object.freeze(['Grenznahe']);
+// Not real districts: legacy pseudo-Bezirke (Vorarlberg's "Grenznahe") that only old events
+// carry. Not in the catalogue, never moved, kept where they are.
+export const FIXED_DISTRICTS = Object.freeze(Object.values(LEGACY_BEZIRKE).flat());
 
 /**
  * The immutable backend structure: [{ key, country, stateSlug, stateName, name }]

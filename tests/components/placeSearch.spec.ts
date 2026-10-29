@@ -153,6 +153,15 @@ describe('eventPosition', () => {
     expect(haversineKm(pos.lat, pos.lng, 47.55, 9.69)).toBeLessThan(10);
   });
 
+  it('places an event saved in the region of its Ort (inactive region, picked on Vorarlberg)', () => {
+    const pos = at({
+      city: 'Lindau (Bodensee)',
+      bezirk: 'Lindau (Bodensee)',
+      regionId: 'bayern',
+    })!;
+    expect(haversineKm(pos.lat, pos.lng, 47.55, 9.69)).toBeLessThan(10);
+  });
+
   it('has no position for online events or without an index', () => {
     expect(at({ isOnline: true, city: 'Altach', bezirk: 'Feldkirch' })).toBeNull();
     expect(eventPosition({ city: 'Altach' }, null, regions)).toBeNull();

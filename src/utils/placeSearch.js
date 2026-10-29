@@ -1,7 +1,6 @@
 import { CATALOG_BY_KEY } from './regionMapping.js';
-import { OUTSIDE_BEZIRK } from './gemeinden.js';
 import { foldSearchText } from './regionSearch.js';
-import { COUNTRY_LABELS, getRegionBySlug } from './regions.js';
+import { COUNTRY_LABELS, getRegionBySlug, isLegacyBezirk } from './regions.js';
 
 // "Wo bist du?": place search, distances and the radius filter. Pure, free of Firebase and
 // React imports (the build script and the tests import it too). The data is the bundled
@@ -191,7 +190,7 @@ export function eventPosition(event, index, regions = []) {
   const country = region?.country ?? 'AT';
 
   const districtKeys = new Set();
-  const bezirks = bezirk && bezirk !== OUTSIDE_BEZIRK ? [bezirk] : [];
+  const bezirks = bezirk && !isLegacyBezirk(bezirk) ? [bezirk] : [];
   for (const name of bezirks) districtKeys.add(`${country}|${name}`);
   const stateSlugs = new Set();
   if (region) {

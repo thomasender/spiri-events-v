@@ -263,7 +263,7 @@ describe('EventFormWizard region field', () => {
 
     changeRegionViaDialog('bayern');
 
-    expect(screen.getByLabelText('Landkreis *')).toBeInTheDocument();
+    expect(screen.getByLabelText('Landkreis')).toBeInTheDocument();
     expect(bezirk().value).toBe('');
     expect((document.getElementById('city') as HTMLInputElement).value).toBe('');
     expect(optionTexts(bezirk())).toContain('Oberallgäu');
@@ -271,13 +271,14 @@ describe('EventFormWizard region field', () => {
     expect(optionTexts(bezirk())).not.toContain('Dornbirn');
   });
 
-  it('asks for the Landkreis when none is chosen', () => {
-    seedWizardDraft({ regionId: 'bayern' });
+  it('lets an Ort without Landkreis through (a place in no list, e.g. Liechtenstein)', () => {
+    seedWizardDraft({ regionId: 'bayern', city: 'Ruggell', bezirk: '' });
     render(withRegions(regionContext(['vorarlberg', 'bayern']), <EventFormWizard />));
 
     fireEvent.click(screen.getByRole('button', { name: /^weiter$/i }));
 
-    expect(screen.getByText(/Bitte Landkreis auswählen oder als Online-Event/)).toBeInTheDocument();
+    expect(screen.queryByText(/Bitte Landkreis auswählen/)).not.toBeInTheDocument();
+    expect(document.getElementById('city')).toBeNull(); // next step
   });
 
   it('submits regionId and bezirk of the chosen region', async () => {
@@ -412,7 +413,7 @@ describe('Ort -> Landkreis in regions without a Gemeinde list', () => {
     expect(screen.queryByTestId('city-district-hint')).not.toBeInTheDocument();
   });
 
-  it('only suggests places of the selected region and leaves ambiguous names empty', async () => {
+  it('a picked place decides its Landkreis; a place of another open region moves the form there', async () => {
     seedWizardDraft({ city: '', regionId: 'bayern' });
     render(withRegions(deContext('bayern'), <EventFormWizard />));
 
@@ -421,24 +422,90 @@ describe('Ort -> Landkreis in regions without a Gemeinde list', () => {
     expect(options).toHaveLength(2);
     fireEvent.click(options[0]);
     expect(city().value).toBe('Neustadt');
-    expect(bezirk().value).toBe('');
-
-    typeCity('Essen');
-    await waitFor(() => expect(screen.queryAllByTestId('city-place-option')).toHaveLength(0));
-    expect(city().value).toBe('Essen');
+    expect(bezirk().value).toBe('Neustadt a.d.Aisch-Bad Windsheim');
   });
 
-  it('Vorarlberg (Gemeinde field) and a single active region never load the place list', () => {
-    placeData.loadPlaceIndex.mockClear();
-    seedWizardDraft({ city: '' });
-    const { unmount } = render(withRegions(regionContext(['vorarlberg']), <EventFormWizard />));
-    fireEvent.change(screen.getByLabelText('Ort *'), { target: { value: 'Altach' } });
-    unmount();
-    seedWizardDraft({ city: '' });
-    render(withRegions(deContext('vorarlberg'), <EventFormWizard />));
-    fireEvent.change(screen.getByLabelText('Ort *'), { target: { value: 'Altach' } });
+  it('a place of another open region moves the form there', async () => {
+    seedWizardDraft({ city: '', regionId: 'bayern' });
+    render(
+      withRegions(regionContext(['vorarlberg', 'bayern', 'tirol'], 'bayern'), <EventFormWizard />)
+    );
+
+    typeCity('Inns');
+    fireEvent.click(await screen.findByText('Innsbruck'));
+    expect(city().value).toBe('Innsbruck');
+    expect(bezirk().value).toBe('Innsbruck');
+    expect(optionTexts(bezirk())).toContain('Kufstein');
+    expect(screen.getByLabelText('Bezirk')).toBeInTheDocument();
+    expect(screen.queryByTestId('city-region-hint')).not.toBeInTheDocument();
+  });
+});
+
+describe('Ort decides the region while only Vorarlberg is active', () => {
+  it('a place of a region that is not open yet goes there, with a hint', async () => {
+    seedWizardDraft({ city: '', bezirk: '' });
+    render(withRegions(regionContext(['vorarlberg']), <EventFormWizard />));
+    expect(screen.queryByTestId('city-region-hint')).not.toBeInTheDocument();
+
+    const ort = screen.getByLabelText('Ort *');
+    fireEvent.focus(ort);
+    fireEvent.change(ort, { target: { value: 'Lind' } });
+    fireEvent.click(await screen.findByRole('option', { name: /Lindau \(Bodensee\)/ }));
+
+    expect(screen.getByTestId('city-region-hint')).toHaveTextContent(
+      'Dieser Ort gehört zur Region Bayern, die noch nicht freigeschaltet ist. Dein Event erscheint dort ab der Freischaltung.'
+    );
     expect(document.getElementById('bezirk')).toBeNull();
-    expect(placeData.loadPlaceIndex).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: /^weiter$/i }));
+    const saved = await submitWizardAndGetEvent();
+    expect(saved.regionId).toBe('bayern');
+    expect(saved.bezirk).toBe('Lindau (Bodensee)');
+    expect(saved.city).toBe('Lindau (Bodensee)');
+  });
+
+  it('a place in no list stays in Vorarlberg without Bezirk; a Gemeinde as before', async () => {
+    seedWizardDraft({ city: 'Ruggell', bezirk: '' }, 4);
+    render(withRegions(regionContext(['vorarlberg']), <EventFormWizard />));
+    const saved = await submitWizardAndGetEvent();
+    expect(saved.regionId).toBe('vorarlberg');
+    expect(saved.bezirk).toBe('');
+    expect(saved.city).toBe('Ruggell');
+  });
+});
+
+describe('EventForm (edit) of an old "Umgebung" event', () => {
+  it('keeps "Grenznahe" and Vorarlberg on save and shows "Umgebung"', async () => {
+    const legacy = {
+      id: 'g1',
+      slug: 'g1',
+      title: 'Yoga am See',
+      date: '2026-12-10',
+      time: '10:00',
+      endTime: '',
+      place: 'Hafen',
+      city: 'Lindau',
+      contribution: 'free',
+      fee: null,
+      description: '<p>desc</p>',
+      link: '',
+      recurrence: 'none',
+      recurrenceEndDate: '',
+      category: 'Yoga',
+      bezirk: 'Grenznahe',
+      organizer: { firstName: 'A', lastName: 'B', email: 'user@test.local' },
+      kontakt: 'user@test.local',
+      status: 'pending',
+      createdBy: 'user-uid',
+    };
+    render(withRegions(regionContext(['vorarlberg']), <EventForm event={legacy} />));
+    expect(screen.getByTestId('city-district-hint')).toHaveTextContent('Umgebung');
+    expect(screen.queryByTestId('city-region-hint')).not.toBeInTheDocument();
+    fireEvent.submit(screen.getByTestId('submit-event-button').closest('form') as HTMLFormElement);
+    await waitFor(() => expect(mockEvents.updateEvent).toHaveBeenCalled());
+    const saved = (mockEvents.updateEvent.mock.calls[0] as unknown[])[1] as Record<string, unknown>;
+    expect(saved.bezirk).toBe('Grenznahe');
+    expect(saved.regionId).toBe('vorarlberg');
+    expect(saved.city).toBe('Lindau');
   });
 });
 

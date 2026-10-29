@@ -25,7 +25,7 @@ export const REGION_DATA: readonly RegionDatum[] = [
     country: 'AT',
     subdivisionLabel: 'Bezirk',
     timezone: 'Europe/Vienna',
-    bezirke: ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe'],
+    bezirke: ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz'],
     home: true,
   },
   {
@@ -2020,3 +2020,8 @@ export const REGION_DATA: readonly RegionDatum[] = [
     macro: 'Südwesten',
   },
 ];
+
+// Legacy pseudo-Bezirke per region (stored on old events only, never offered for new ones).
+export const LEGACY_BEZIRKE: Readonly<Record<string, readonly string[]>> = {
+  vorarlberg: ['Grenznahe'],
+};

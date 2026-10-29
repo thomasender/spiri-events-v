@@ -1,4 +1,4 @@
-import { REGION_DATA } from '../data/regionData.js';
+import { LEGACY_BEZIRKE, REGION_DATA } from '../data/regionData.js';
 import { normalizeInstagramHandle } from './instagramHandle.js';
 import { sanitizeTexts } from './regionExamples.js';
 
@@ -7,9 +7,22 @@ import { sanitizeTexts } from './regionExamples.js';
 
 export const ONLINE_LOCATION = 'Online';
 
+// Vorarlberg's legacy pseudo-Bezirk for places outside the region. Since Trello dx8dCQJc no new
+// event gets it (the Ort decides the real Bezirk / Landkreis and region), but events stored with
+// it keep it: it stays readable, filterable (calendar chip, ICS `bezirk=`, directory profiles)
+// and is shown as "Umgebung". It is appended to the region's register list (`LEGACY_BEZIRKE`,
+// generated), never offered in the event forms (`selectableBezirke`).
+export const LEGACY_OUTSIDE_BEZIRK = 'Grenznahe';
+export { LEGACY_BEZIRKE };
+const LEGACY_NAMES = new Set(Object.values(LEGACY_BEZIRKE).flat());
+export const isLegacyBezirk = (bezirk) => LEGACY_NAMES.has(bezirk);
+
+/** Bezirke an event form may offer: the list without the legacy pseudo-Bezirke. */
+export const selectableBezirke = (list) => (list ?? []).filter((b) => !isLegacyBezirk(b));
+
 // The stored value 'Grenznahe' stays as is (existing events, filters and URLs
 // depend on it); only what users read is "Umgebung".
-const BEZIRK_LABELS = { Grenznahe: 'Umgebung' };
+const BEZIRK_LABELS = { [LEGACY_OUTSIDE_BEZIRK]: 'Umgebung' };
 
 export function bezirkLabel(bezirk) {
   return BEZIRK_LABELS[bezirk] || bezirk;
@@ -102,7 +115,13 @@ export const COMBINED_VIEWS = Object.freeze([
 ]);
 export const COMBINED_VIEW_SLUGS = COMBINED_VIEWS.map((v) => v.slug);
 
-const VORARLBERG_BEZIRKE = REGION_DATA.find((r) => r.slug === DEFAULT_REGION_ID).bezirke;
+// Register Bezirke plus the region's legacy pseudo-Bezirke (read-only, see LEGACY_OUTSIDE_BEZIRK).
+const withLegacyBezirke = (slug, bezirke) => [...bezirke, ...(LEGACY_BEZIRKE[slug] ?? [])];
+
+const VORARLBERG_BEZIRKE = withLegacyBezirke(
+  DEFAULT_REGION_ID,
+  REGION_DATA.find((r) => r.slug === DEFAULT_REGION_ID).bezirke
+);
 
 // What the sub-areas of a region are called: "Bezirk" in Austria and
 // Switzerland, "Landkreis" in Germany (kreisfreie Staedte are listed there too).
@@ -125,7 +144,7 @@ export const STATIC_REGIONS = REGION_DATA.map((r, order) => ({
   order,
   country: r.country,
   active: r.slug === DEFAULT_REGION_ID,
-  bezirke: [...r.bezirke],
+  bezirke: withLegacyBezirke(r.slug, r.bezirke),
   subdivisionLabel: r.subdivisionLabel,
   timezone: r.timezone,
   // true: Bundesland / Kanton = the backend structure; false: a cultural region of

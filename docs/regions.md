@@ -33,8 +33,13 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
   Re-run it after changing a CSV or the table; never edit the generated files.
   Names inside Germany that exist as city and Landkreis become "X (Stadt)" /
   "X (Landkreis)". The CSV lists only cities for Germany, so the German Bezirk
-  level comes from the Kreis list instead. Vorarlberg keeps "Grenznahe" (existing
-  events; to be retired once South Germany / East Switzerland are live).
+  level comes from the Kreis list instead. Vorarlberg's old pseudo-Bezirk "Grenznahe"
+  ("Umgebung") is no longer in the register: since Trello dx8dCQJc it is a read-only legacy
+  entry (`LEGACY_BEZIRKE`, generated next to `REGION_DATA`), appended to Vorarlberg's list at
+  runtime (`STATIC_REGIONS`, `functions/src/regions.ts`, mapping fallback) so old events stay
+  labelled, filterable (chip, ICS `bezirk=`, directory) and Instagram-grouped; the event forms
+  never offer it (`selectableBezirke`, `subdivisionFor`). No migration: old events keep it until
+  their Ort is changed.
   District names are one namespace for the directory (`directoryRegions`): two
   regions with a district of the same name (e.g. "Baden" in Niederösterreich and
   Aargau) share one filter chip.
@@ -112,21 +117,29 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
     events without a position only if they belong to the current region (so an unmigrated
     event behaves like before). Favourites ignore the radius. The directory is still filtered
     by region (profiles have no position).
-  - **Ort -> Landkreis in the event forms (other regions).** Vorarlberg uses the Gemeinde picker
-    (`gemeinden.js`). In every other region (only with two or more active regions) the Ort field of
-    `EventForm` / `EventFormWizard` is a combobox (`CityField` with `region`) that suggests places of
-    the selected region from `placeIndex.json` (lazy `loadPlaceIndex`, loaded when the person starts
-    typing, never in the Vorarlberg / single-region path). Picking a suggestion, or leaving the field
-    with an unambiguous name while the Landkreis is empty, sets the Bezirk / Landkreis select to the
-    place's district, but only if the region holds that district (`src/utils/placeDistrict.js`).
-    Ambiguous names ("Neustadt" in several districts) and unknown places leave the select empty;
-    free text stays possible, the select stays editable and never gets overwritten.
+  - **The Ort decides Bezirk / Landkreis AND region (Trello dx8dCQJc).** Whatever region the
+    person is in, the place of an event gives its district and the region holding it (current
+    assignment): pure helpers in `src/utils/placeDistrict.js` (`assignmentForEntry` for a picked
+    suggestion, `placeAssignment` for a typed name: Vorarlberg Gemeinde first, else the places of
+    that name when they lie in ONE district, null when unknown / ambiguous). The forms keep it as
+    `placeRegionId`, which wins over the current region when saving. Unknown places (Liechtenstein,
+    outside DACH, free text) stay in the current region with an EMPTY Bezirk (allowed; no
+    "Umgebung" any more). The Ort field (`CityField`): Vorarlberg, and every event while only one
+    region is active, uses the Gemeinde picker, which also suggests places of all regions from
+    `placeIndex.json` (lazy `loadPlaceIndex` after two letters) and takes other text over as typed;
+    in other regions (two or more active) it is a combobox suggesting places of all regions, the
+    form's region first, next to a Bezirk / Landkreis select (not required; an offered region
+    follows the picked place, the select stays editable). When the place belongs to another region
+    a hint shows under the Ort: inactive -> "Dieser Ort gehört zur Region X, die noch nicht
+    freigeschaltet ist. Dein Event erscheint dort ab der Freischaltung." (the event is saved there
+    and is intentionally not findable until then), active -> "Dieses Event erscheint in der Region
+    X." This is the one deliberate visible change of the dark launch.
   - **Event positions.** `events/{id}.lat` / `.lng` (null = unknown / online; rules
     `isValidEventPosition`). `useEvents` `addEvent` / `updateEvent` set them from `city` +
     `bezirk` (+ region) via `src/lib/eventPosition.js` (Gemeinde accuracy, never a street):
     place of that name in the event's Bezirk, else in its Bundesland, else the Bezirk centroid,
-    else the Bundesland centroid; a place outside the region ("Lindau" for Vorarlberg's
-    "Grenznahe") is found by name. A failed list load never blocks saving. Events written before
+    else the Bundesland centroid; a place outside the region (old "Grenznahe" events, or no
+    Bezirk at all) is found by name, the namesake nearest to the region. A failed list load never blocks saving. Events written before
     need `node scripts/backfill-event-positions.mjs` (dry run, `--write`, `--all`;
     `PROJECT_ID=tribe-vbg-staging` for staging) once per project.
   - **"Meinen Standort verwenden" (ticket 567, reworked):** opt-in only: one click shows a short

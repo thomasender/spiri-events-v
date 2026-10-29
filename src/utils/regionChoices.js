@@ -5,6 +5,7 @@ import {
   getSubdivisionLabelPlural,
   isRegionSlug,
   ONLINE_LOCATION,
+  selectableBezirke,
 } from './regions';
 
 // Pure logic behind the "Region" field of the event and profile forms (no
@@ -45,12 +46,15 @@ export function selectedRegionId(formRegionId, choices) {
   return choices.defaultRegionId;
 }
 
-/** Sub-area (Bezirk / Landkreis) label and options for a region. */
+/**
+ * Sub-area (Bezirk / Landkreis) label and options for a region. Legacy pseudo-Bezirke
+ * ("Grenznahe") are never offered for an event.
+ */
 export function subdivisionFor(regionId, choices) {
   if (!choices.enabled) return { label: DEFAULT_SUBDIVISION_LABEL, options: null };
   return {
     label: getSubdivisionLabel(regionId, choices.allRegions),
-    options: getBezirke(regionId, choices.allRegions),
+    options: selectableBezirke(getBezirke(regionId, choices.allRegions)),
   };
 }
 
