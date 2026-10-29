@@ -350,34 +350,32 @@ export default function RegionMappingTab() {
         {focusRegion ? (
           <div className="culture-panel" data-testid="culture-panel">
             <h3>{focusRegion.name}</h3>
-            {(isGermany || focusRegion.custom) && (
-              <form
-                className="mapping-move"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (canRenameFocus) doRename(focusRegion.id, focusName);
-                }}
+            <form
+              className="mapping-move"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (canRenameFocus) doRename(focusRegion.id, focusName);
+              }}
+            >
+              <label className="mapping-field">
+                <span>{isGermany ? 'Name der Kulturregion' : 'Name der Region'}</span>
+                <input
+                  type="text"
+                  value={focusName}
+                  maxLength={100}
+                  onChange={(e) => setFocusName(e.target.value)}
+                  data-testid="culture-rename-name"
+                />
+              </label>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={!canRenameFocus}
+                data-testid="culture-rename-save"
               >
-                <label className="mapping-field">
-                  <span>{isGermany ? 'Name der Kulturregion' : 'Name der Region'}</span>
-                  <input
-                    type="text"
-                    value={focusName}
-                    maxLength={100}
-                    onChange={(e) => setFocusName(e.target.value)}
-                    data-testid="culture-rename-name"
-                  />
-                </label>
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={!canRenameFocus}
-                  data-testid="culture-rename-save"
-                >
-                  Umbenennen
-                </button>
-              </form>
-            )}
+                Umbenennen
+              </button>
+            </form>
             <strong>
               {focusDistricts.length}{' '}
               {isGermany

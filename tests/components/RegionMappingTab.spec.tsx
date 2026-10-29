@@ -307,8 +307,8 @@ describe('RegionMappingTab: Austria and Switzerland (ticket 599)', () => {
     fireEvent.mouseDown(screen.getAllByRole('option')[0]);
     const panel = await screen.findByTestId('culture-panel');
     expect(within(panel).getByRole('heading', { name: 'Tirol' })).toBeInTheDocument();
-    // no rename for a Bundesland, and its own Bezirke cannot be "taken out"
-    expect(screen.queryByTestId('culture-rename-name')).not.toBeInTheDocument();
+    // a Bundesland can be renamed (ticket e2LiBoDe); its own Bezirke cannot be "taken out"
+    expect(screen.getByTestId('culture-rename-name')).toHaveValue('Tirol');
     expect(screen.queryByRole('button', { name: 'Imst aus der Region nehmen' })).toBeNull();
 
     fireEvent.change(screen.getByTestId('culture-add-input'), { target: { value: 'Bregenz' } });
