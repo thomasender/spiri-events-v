@@ -98,3 +98,52 @@ describe('EventsSection — 30-day default view (QRpwwNTI)', () => {
     expect(onMonthChange).toHaveBeenLastCalledWith(new Date(2099, 0, 1));
   });
 });
+
+describe('EventsSection — Filter gesetzt hint', () => {
+  const renderWith = (activeFilterCount: number, count = 5, onShowFilters = vi.fn()) => {
+    render(
+      <MemoryRouter>
+        <EventsSection
+          events={makeEvents(count)}
+          currentMonth={new Date(2099, 0, 1)}
+          onMonthChange={() => {}}
+          viewMode="card"
+          onViewModeChange={() => {}}
+          categoryColorByName={new Map()}
+          activeFilterCount={activeFilterCount}
+          onShowFilters={onShowFilters}
+        />
+      </MemoryRouter>
+    );
+    return onShowFilters;
+  };
+
+  it('shows no button without filters', () => {
+    renderWith(0);
+    expect(screen.getByText('5 Events')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Filter gesetzt/ })).not.toBeInTheDocument();
+  });
+
+  it('shows "(1 Filter gesetzt)"', () => {
+    renderWith(1);
+    expect(
+      screen.getByRole('button', { name: '1 Filter gesetzt, zu den Filtern springen' })
+    ).toHaveTextContent('(1 Filter gesetzt)');
+  });
+
+  it('shows "(2 Filter gesetzt)" and calls onShowFilters on click', () => {
+    const onShowFilters = renderWith(2);
+    const button = screen.getByRole('button', {
+      name: '2 Filter gesetzt, zu den Filtern springen',
+    });
+    expect(button).toHaveTextContent('(2 Filter gesetzt)');
+    expect(button).not.toHaveAttribute('aria-expanded');
+    fireEvent.click(button);
+    expect(onShowFilters).toHaveBeenCalledTimes(1);
+  });
+
+  it('says "1 Event" in the singular', () => {
+    renderWith(0, 1);
+    expect(screen.getByText('1 Event')).toBeInTheDocument();
+  });
+});

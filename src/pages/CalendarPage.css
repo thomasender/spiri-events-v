@@ -192,7 +192,14 @@
   top: 88px;
 }
 
+.filter-panel:focus,
+.filter-section-title:focus {
+  outline: none;
+}
+
 .filter-panel {
+  /* Room for the sticky header (72px) when "Filter gesetzt" jumps here. */
+  scroll-margin-top: calc(var(--space-16) + var(--space-4));
   background-color: var(--bg-calendar);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);

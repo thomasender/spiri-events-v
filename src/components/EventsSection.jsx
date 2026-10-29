@@ -39,6 +39,8 @@ export default function EventsSection({
   categoryColorByName,
   onCardClick,
   onResetFilters,
+  activeFilterCount = 0,
+  onShowFilters,
   candleNews,
 }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < MOBILE_BREAKPOINT);
@@ -113,7 +115,22 @@ export default function EventsSection({
               <ChevronRight size={18} />
             </button>
           </div>
-          <span className="events-section-count">{events.length} Events</span>
+          <span className="events-section-count">
+            {events.length === 1 ? '1 Event' : `${events.length} Events`}
+            {activeFilterCount > 0 && onShowFilters && (
+              <>
+                {' '}
+                <button
+                  type="button"
+                  className="events-section-filter-link"
+                  aria-label={`${activeFilterCount} Filter gesetzt, zu den Filtern springen`}
+                  onClick={onShowFilters}
+                >
+                  ({activeFilterCount} Filter gesetzt)
+                </button>
+              </>
+            )}
+          </span>
         </div>
 
         {!isMobile && (

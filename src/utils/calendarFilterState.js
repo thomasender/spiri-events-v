@@ -25,3 +25,23 @@ export function getRollingRange(now = new Date()) {
   const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + ROLLING_DAYS);
   return { from: toIsoDate(now), to: toIsoDate(end) };
 }
+
+// Number of filters the visitor has set, for the "(n Filter gesetzt)" hint next
+// to the event count. Every single chosen value counts (2 categories + 1 Bezirk
+// = 3), the date quick filter counts once, favourites only while the visitor is
+// signed in. "Online" lives in selectedOrte and counts like a Bezirk. The month
+// / rolling range (navigation) and place + radius are deliberately not counted.
+// count > 0 exactly when CalendarPage's hasActiveFilter is true.
+export function countActiveFilters({
+  selectedCategories = [],
+  selectedOrte = [],
+  dateFilter = null,
+  favoritesFilterActive = false,
+} = {}) {
+  return (
+    selectedCategories.length +
+    selectedOrte.length +
+    (dateFilter ? 1 : 0) +
+    (favoritesFilterActive ? 1 : 0)
+  );
+}
