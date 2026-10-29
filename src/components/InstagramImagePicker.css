@@ -235,3 +235,7 @@
   line-height: 1.05;
   margin-bottom: var(--space-1);
 }
+
+.instagram-post-preview--editing {
+  max-width: 320px;
+}

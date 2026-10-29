@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 const updateDocMock = vi.fn();
@@ -169,5 +170,49 @@ describe('AdminInstagramPreview crop editing', () => {
     fireEvent.click(screen.getByTestId('admin-instagram-crop-cancel'));
     expect(screen.getByTestId('instagram-post-preview')).toBeInTheDocument();
     expect(updateDocMock).not.toHaveBeenCalled();
+  });
+
+  it('drags the Instagram preview (portrait photo) and saves the new focal point', async () => {
+    updateDocMock.mockResolvedValue(undefined);
+    render(<AdminInstagramPreview event={base} isAdmin />);
+    fireEvent.click(screen.getByTestId('admin-instagram-crop-edit'));
+    // 160x200 (4:5) frame, 800x1600 portrait photo: covered 160x320 -> 120px vertical play.
+    const frame = screen.getByTestId('admin-instagram-viewport-frame');
+    vi.spyOn(frame, 'getBoundingClientRect').mockReturnValue({
+      width: 160,
+      height: 200,
+      left: 0,
+      top: 0,
+      right: 160,
+      bottom: 200,
+      x: 0,
+      y: 0,
+      toJSON() {},
+    });
+    const img = screen.getByTestId('admin-instagram-viewport-image');
+    Object.defineProperty(img, 'naturalWidth', { value: 800, configurable: true });
+    Object.defineProperty(img, 'naturalHeight', { value: 1600, configurable: true });
+    fireEvent.load(img);
+    fireEvent.pointerDown(frame, { pointerId: 1, clientX: 80, clientY: 100, button: 0 });
+    // Dragging 60px down shows more of the top: y moves by -0.5, 0.9 -> 0.4.
+    fireEvent.pointerMove(frame, { pointerId: 1, clientX: 80, clientY: 160 });
+    fireEvent.pointerUp(frame, { pointerId: 1 });
+    expect(screen.getByTestId('admin-instagram-crop-unsaved')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('admin-instagram-crop-save'));
+    await vi.waitFor(() => expect(updateDocMock).toHaveBeenCalled());
+    const saved = updateDocMock.mock.calls[0][1].instagramImage;
+    expect(saved.focalPoint.x).toBe(0.1);
+    expect(saved.focalPoint.y).toBeCloseTo(0.4, 5);
+    expect(saved.zoom).toBe(1);
+  });
+
+  it('keeps the text overlay inside the draggable preview', () => {
+    render(<AdminInstagramPreview event={base} isAdmin />);
+    fireEvent.click(screen.getByTestId('admin-instagram-crop-edit'));
+    expect(
+      screen
+        .getByTestId('admin-instagram-viewport-frame')
+        .querySelector('[data-testid="instagram-preview-overlay"]')
+    ).not.toBeNull();
   });
 });
