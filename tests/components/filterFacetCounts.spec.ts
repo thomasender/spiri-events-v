@@ -28,6 +28,11 @@ const base = {
 };
 
 describe('computeFacetCounts', () => {
+  it('counts across month borders when a rolling range is given (QRpwwNTI)', () => {
+    const c = computeFacetCounts({ ...base, range: { from: '2026-10-14', to: '2026-11-13' } });
+    expect(c.category).toEqual({ Yoga: 3, Tanz: 2 });
+  });
+
   it('counts category, Ort and date chips for the visible month', () => {
     const c = computeFacetCounts(base);
     expect(c.category).toEqual({ Yoga: 2, Tanz: 2 });

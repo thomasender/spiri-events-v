@@ -153,7 +153,7 @@ export default function Calendar({
   const goToToday = () => {
     const today = new Date();
     setSlideDirection(null);
-    onMonthChange(new Date(today.getFullYear(), today.getMonth(), 1));
+    onMonthChange(new Date(today.getFullYear(), today.getMonth(), 1), { rolling: true });
   };
 
   const calendarKey = `${year}-${month}`;

@@ -27,7 +27,7 @@ import { compareEventsByDateTime } from '../utils/eventSort';
 import { isOccurrencePast } from '../utils/pastEvents';
 import { computeFacetCounts } from '../utils/filterFacetCounts';
 import { resolveEventColor } from '../utils/categoryColors';
-import { monthKeyToDate, dateToMonthKey } from '../utils/calendarFilterState';
+import { monthKeyToDate, dateToMonthKey, getRollingRange } from '../utils/calendarFilterState';
 import {
   DATE_FILTER_OPTIONS,
   applyDateFilter,
@@ -159,6 +159,7 @@ function saveFilterState(state) {
       state.currentMonth instanceof Date ? state.currentMonth : new Date(state.currentMonth);
     const toSave = {
       ...state,
+      rolling: state.rolling !== false,
       currentMonth: isNaN(date.getTime()) ? dateToMonthKey(new Date()) : dateToMonthKey(date),
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
@@ -191,6 +192,18 @@ export default function CalendarPage() {
   const [currentMonth, setCurrentMonth] = useState(
     monthKeyToDate(savedState?.currentMonth) || new Date()
   );
+  // Default view: the next 30 days instead of the calendar month. Left as soon
+  // as the user navigates to another month (see handleMonthChange).
+  const [rolling, setRolling] = useState(() => {
+    if (typeof savedState?.rolling === 'boolean') return savedState.rolling;
+    const saved = monthKeyToDate(savedState?.currentMonth);
+    const now = new Date();
+    return !saved || dateToMonthKey(saved) <= dateToMonthKey(now);
+  });
+  const handleMonthChange = (date, { rolling: nextRolling = false } = {}) => {
+    setRolling(nextRolling);
+    setCurrentMonth(date);
+  };
   const [selectedCategories, setSelectedCategories] = useState(
     savedState?.selectedCategories || []
   );
@@ -269,8 +282,17 @@ export default function CalendarPage() {
       dateFilter,
       onlyFavorites,
       viewMode,
+      rolling,
     });
-  }, [currentMonth, selectedCategories, selectedOrte, dateFilter, onlyFavorites, viewMode]);
+  }, [
+    currentMonth,
+    rolling,
+    selectedCategories,
+    selectedOrte,
+    dateFilter,
+    onlyFavorites,
+    viewMode,
+  ]);
 
   const handleEventClick = (event) => {
     const slugOrId = event.slug || event.id;
@@ -319,7 +341,13 @@ export default function CalendarPage() {
         const monthKey = getDateFilterMonthKey(next);
         if (monthKey) {
           const target = monthKeyToDate(monthKey);
-          if (target) setCurrentMonth(target);
+          if (target) {
+            const now = new Date();
+            // Targets inside the current month keep the 30-day view; the
+            // date filter narrows it further.
+            if (dateToMonthKey(target) !== dateToMonthKey(now)) setRolling(false);
+            setCurrentMonth(target);
+          }
         }
       }
       return next;
@@ -347,15 +375,17 @@ export default function CalendarPage() {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
     const now = new Date();
+    const range = rolling ? getRollingRange(now) : null;
     return filteredEvents
       .flatMap((event) => getEventOccurrences(event))
       .filter((event) => {
+        if (range) return event.date >= range.from && event.date <= range.to;
         const [eventYear, eventMonth] = event.date.split('-').map(Number);
         return eventYear === year && eventMonth - 1 === month;
       })
       .filter((event) => !isOccurrencePast(event, now))
       .sort(compareEventsByDateTime);
-  }, [filteredEvents, currentMonth]);
+  }, [filteredEvents, currentMonth, rolling]);
 
   const visibleEvents = useMemo(() => {
     if (!dateFilter) return monthEvents;
@@ -373,12 +403,13 @@ export default function CalendarPage() {
       computeFacetCounts({
         occurrences: baseEvents.flatMap((event) => getEventOccurrences(event)),
         monthKey: dateToMonthKey(currentMonth),
+        range: rolling ? getRollingRange() : null,
         selectedCategories,
         selectedOrte,
         dateFilter,
         onlineLocation: ONLINE_LOCATION,
       }),
-    [baseEvents, currentMonth, selectedCategories, selectedOrte, dateFilter]
+    [baseEvents, currentMonth, rolling, selectedCategories, selectedOrte, dateFilter]
   );
 
   // Calendar export: signed-in users only (like Favoriten). The personal token
@@ -792,7 +823,8 @@ export default function CalendarPage() {
             <EventsSection
               events={visibleEvents}
               currentMonth={currentMonth}
-              onMonthChange={setCurrentMonth}
+              rolling={rolling}
+              onMonthChange={handleMonthChange}
               viewMode={viewMode}
               onViewModeChange={setViewMode}
               categoryColorByName={categoryColorByName}
@@ -807,7 +839,7 @@ export default function CalendarPage() {
             events={filteredEvents}
             onEventClick={handleEventClick}
             currentMonth={currentMonth}
-            onMonthChange={setCurrentMonth}
+            onMonthChange={handleMonthChange}
             categoryColorByName={categoryColorByName}
             categories={categories}
           />
