@@ -641,7 +641,14 @@ vi.mock('../../src/lib/analytics', async (importOriginal) => ({
 }));
 
 describe('CalendarPage analytics', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   beforeEach(() => {
+    // Pin only Date (mid-month) so "today + 3 days" never spills into the next month.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 9, 15, 12, 0, 0));
     track.mockClear();
     window.localStorage.clear();
     const future = new Date();
