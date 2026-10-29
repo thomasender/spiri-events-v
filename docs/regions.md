@@ -60,8 +60,8 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
   for prerender, mails and ICS).
 - **"Wo bist du?" (place + radius, replaces the region map).** Visitors never see a map
   or a list of regions. They give a place (a city, village or region, typed with
-  suggestions, or "Meinen Standort verwenden") and a radius (10 / 25 / 50 / 100 km, default
-  25), then press "Übernehmen". Components: `PlacePicker.jsx` (the two steps), `PlaceSearch.jsx`
+  suggestions, or "Meinen Standort verwenden") and a radius (5 / 10 / 15 / 20 / 25 / 50 km, default
+  25; a stored value that is not a step, e.g. an old 100, snaps to the nearest step, here 50), then press "Übernehmen". Components: `PlacePicker.jsx` (the two steps), `PlaceSearch.jsx`
   (WAI-ARIA combobox, search as you type), `LocateRegionButton.jsx` (opt-in location, callback
   `onLocate`), shown by `RegionChooser.jsx` (required full page "Wo suchst du?" on `/` and
   `/verzeichnis` when nothing is remembered, and `/regionen` opened on purpose with a
