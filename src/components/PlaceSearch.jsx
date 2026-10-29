@@ -11,7 +11,13 @@ import './PlaceSearch.css';
  * suggestions there are. Finds places (Orte / Gemeinden) and regions ("Allgäu").
  * `index`: the prepared place list (null while it loads), `regionEntries`: the regions.
  */
-export default function PlaceSearch({ index, regionEntries, onChoose }) {
+export default function PlaceSearch({
+  index,
+  regionEntries,
+  onChoose,
+  label = 'Ort oder Region',
+  placeholder = 'z. B. Bregenz, Lindau, Allgäu',
+}) {
   const id = useId();
   const listId = `${id}-list`;
   const [query, setQuery] = useState('');
@@ -75,7 +81,7 @@ export default function PlaceSearch({ index, regionEntries, onChoose }) {
   return (
     <div className="place-search" data-testid="place-search">
       <label className="place-search-label" htmlFor={`${id}-input`}>
-        Ort oder Region
+        {label}
       </label>
       <div className="place-search-field">
         <Search size={18} className="place-search-icon" aria-hidden="true" />
@@ -85,7 +91,7 @@ export default function PlaceSearch({ index, regionEntries, onChoose }) {
           type="text"
           role="combobox"
           className="place-search-input"
-          placeholder="z. B. Bregenz, Lindau, Allgäu"
+          placeholder={placeholder}
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="off"

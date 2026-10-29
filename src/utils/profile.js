@@ -15,10 +15,43 @@ export const PUBLIC_PROFILE_FIELDS = [
   'directoryRegionIds',
   'showOnlineStatus',
   'allowMentions',
+  // Only the place NAME of the Feuerplatz, and only while the person made it visible.
+  'fireplaceLabel',
 ];
 
 export const BIO_MAX = 2000;
 export const DISPLAY_NAME_MAX = 80;
+export const FIREPLACE_LABEL_MAX = 80;
+
+const round3 = (x) => Math.round(x * 1000) / 1000;
+
+// The Feuerplatz: the one place where a person is most at home. Private on `users/{uid}`
+// as `{ label, lat, lon }` (place of the bundled list, rounded) together with the switch
+// `fireplaceVisible`; only the NAME is mirrored to the publicProfile (`fireplaceLabel`),
+// never the coordinates. Returns null for anything invalid.
+export function normalizeFireplace(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const label = typeof raw.label === 'string' ? raw.label.trim().slice(0, FIREPLACE_LABEL_MAX) : '';
+  const lat = Number(raw.lat);
+  const lon = Number(raw.lon);
+  if (!label || !Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
+  return { label, lat: round3(lat), lon: round3(lon) };
+}
+
+// What the publicProfile must say about the Feuerplatz after a save: the place name when
+// the person made it visible, `null` when it must not be public (the caller removes a
+// stale field). `current` is the stored profile, `updates` what is being saved.
+export function publicFireplaceLabel(current, updates) {
+  const fireplace = normalizeFireplace(
+    'fireplace' in updates ? updates.fireplace : current?.fireplace
+  );
+  const visible =
+    'fireplaceVisible' in updates
+      ? updates.fireplaceVisible === true
+      : current?.fireplaceVisible === true;
+  return visible && fireplace ? fireplace.label : null;
+}
 
 // Fields required for a public profile to feel "worth viewing". Without these,
 // the public profile page (PublicProfilePage.jsx) renders mostly empty. The

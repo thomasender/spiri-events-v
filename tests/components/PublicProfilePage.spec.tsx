@@ -87,6 +87,28 @@ describe('PublicProfilePage (k9CYVFsc)', () => {
     expect(screen.getByRole('heading', { name: /Profil nicht verfügbar/i })).toBeInTheDocument();
   });
 
+  it('shows the Feuerplatz name only when the profile carries it', () => {
+    mockPublicProfile.exists = true;
+    mockPublicProfile.uid = 'user-42';
+    const profile = {
+      displayName: 'Anna Schmidt',
+      bio: 'Hallo',
+      bioHtml: '<p>Hallo</p>',
+      website: '',
+      photoURL: null,
+      slug: 'anna-schmidt',
+      updatedAt: null,
+    };
+    mockPublicProfile.profile = { ...profile, fireplaceLabel: 'Dornbirn' };
+    const { unmount } = renderPage();
+    expect(screen.getByTestId('public-profile-fireplace')).toHaveTextContent('Dornbirn');
+    unmount();
+
+    mockPublicProfile.profile = { ...profile, fireplaceLabel: '' };
+    renderPage();
+    expect(screen.queryByTestId('public-profile-fireplace')).not.toBeInTheDocument();
+  });
+
   it('renders the name, photo, bio, and website link when the profile exists', () => {
     mockPublicProfile.loading = false;
     mockPublicProfile.exists = true;

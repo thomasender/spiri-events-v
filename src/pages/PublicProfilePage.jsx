@@ -207,6 +207,12 @@ export default function PublicProfilePage() {
             {profile.displayName}
           </h1>
 
+          {profile.fireplaceLabel && (
+            <p className="public-profile-fireplace" data-testid="public-profile-fireplace">
+              <span aria-hidden="true">🔥</span> {profile.fireplaceLabel}
+            </p>
+          )}
+
           {canMessage && (
             <div className="public-profile-dm" data-testid="public-profile-dm">
               <DirectMessageLink

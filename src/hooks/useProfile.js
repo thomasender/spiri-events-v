@@ -8,7 +8,12 @@ import {
   deleteField,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { DISPLAY_NAME_MAX, splitProfileData } from '../utils/profile';
+import {
+  DISPLAY_NAME_MAX,
+  normalizeFireplace,
+  publicFireplaceLabel,
+  splitProfileData,
+} from '../utils/profile';
 import { foldName } from '../utils/mentions';
 import { normalizeFocalPoint } from '../lib/eventImage';
 import { normalizePhotoZoom } from '../components/AvatarImage';
@@ -55,6 +60,8 @@ const EMPTY_PROFILE = {
   directoryRegionIds: [DEFAULT_REGION_ID],
   showOnlineStatus: false,
   allowMentions: false,
+  fireplace: null,
+  fireplaceVisible: false,
   instagramConsentDefault: false,
   onboardingDismissed: false,
   placeSelection: null,
@@ -106,6 +113,9 @@ function normalize(data) {
     directoryRegionIds: resolveDirectoryRegionIds(data),
     showOnlineStatus: data.showOnlineStatus === true,
     allowMentions: data.allowMentions === true,
+    // Feuerplatz: private place, public only as a name while fireplaceVisible is on.
+    fireplace: normalizeFireplace(data.fireplace),
+    fireplaceVisible: data.fireplaceVisible === true,
     instagramConsentDefault: data.instagramConsentDefault === true,
     onboardingDismissed: data.onboardingDismissed === true,
     // "Wo bist du?" place + radius mirrored by PlaceSelectionSync (null without one).
@@ -256,6 +266,17 @@ export function useProfile(uid) {
         publicDoc.mentionName = foldName(effectiveDisplayName).slice(0, DISPLAY_NAME_MAX);
       } else if (profile?.allowMentions === true) {
         publicDoc.mentionName = deleteField();
+      }
+    }
+
+    // The Feuerplatz reaches the public doc as a bare place name, and only while the switch
+    // is on. Switching off / removing it deletes the name there again.
+    if ('fireplace' in updates || 'fireplaceVisible' in updates) {
+      const label = publicFireplaceLabel(profile, updates);
+      if (label) {
+        publicDoc.fireplaceLabel = label;
+      } else if (publicFireplaceLabel(profile, {})) {
+        publicDoc.fireplaceLabel = deleteField();
       }
     }
 

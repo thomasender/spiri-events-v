@@ -62,6 +62,11 @@ function DirectoryCard({ entry, colorByName, isAdmin, canMessage, status, onTogg
         </div>
         <div className="directory-card-body">
           <h2 className="directory-card-name">{entry.displayName}</h2>
+          {entry.fireplaceLabel && (
+            <p className="directory-card-fireplace" data-testid="directory-card-fireplace">
+              <span aria-hidden="true">🔥</span> {entry.fireplaceLabel}
+            </p>
+          )}
           {entry.regions.length > 0 && (
             <p className="directory-card-regions">{entry.regions.join(' · ')}</p>
           )}

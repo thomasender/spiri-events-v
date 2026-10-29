@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Award, Check, Loader2, X } from 'lucide-react';
 import ProfilePhotoUpload from './ProfilePhotoUpload';
 import DirectoryListingFields from './DirectoryListingFields';
+import FireplaceField from './FireplaceField';
 import { useCategoryRegistry } from '../hooks/useCategoryRegistry';
 import { useRegionChoices } from '../hooks/useRegionChoices';
 import { deleteImageByUrl } from '../lib/imageUpload';
@@ -76,6 +77,8 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
       ? resolveDirectoryRegionIds(profile)
       : [regionChoices.defaultRegionId],
     instagram: profile?.socialMedia?.instagram || '',
+    fireplace: profile?.fireplace || null,
+    fireplaceVisible: profile?.fireplaceVisible === true,
   }));
   const savedRef = useRef(saved);
   useEffect(() => {
@@ -93,6 +96,9 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
   const [regions, setRegions] = useState(saved.regions);
   const [regionIds, setRegionIds] = useState(saved.regionIds);
   const [directoryErrors, setDirectoryErrors] = useState({});
+  // Optional, empty by default; others only see it when the switch is turned on.
+  const [fireplace, setFireplace] = useState(saved.fireplace);
+  const [fireplaceVisible, setFireplaceVisible] = useState(saved.fireplaceVisible);
 
   const [instagram, setInstagram] = useState(saved.instagram);
   // Checked by default: the step asks for permission to promote the events.
@@ -224,6 +230,8 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
       setRegions(saved.regions);
       setRegionIds(saved.regionIds);
       setBio(saved.bio);
+      setFireplace(saved.fireplace);
+      setFireplaceVisible(saved.fireplaceVisible);
       setDirectoryErrors({});
     } else if (step === 3) {
       setInstagram(saved.instagram);
@@ -278,24 +286,42 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
         if (Object.keys(result).length > 0) return;
       }
       setDirectoryErrors({});
-      if (listed || saved.listed) {
+      const nextVisible = fireplace ? fireplaceVisible : false;
+      const fireplaceChanged =
+        fireplace?.label !== saved.fireplace?.label ||
+        fireplace?.lat !== saved.fireplace?.lat ||
+        fireplace?.lon !== saved.fireplace?.lon ||
+        nextVisible !== saved.fireplaceVisible;
+      if (listed || saved.listed || fireplaceChanged) {
         const bioChanged = text !== saved.bio.trim();
+        const touchesDirectory = listed || saved.listed;
         const storedRegionIds = resolveDirectoryRegionIds(profile);
         const nextRegionIds = listed && regionChoices.enabled ? regionIds : storedRegionIds;
         const ok = await persist(
           {
             ...(bioChanged ? { bio: text, bioHtml: messageToHtml(text) } : {}),
-            listedInDirectory: listed,
-            directoryCategories: listed ? categories : saved.categories,
-            directoryRegions: listed ? regions : saved.regions,
-            directoryRegionIds: nextRegionIds,
+            ...(touchesDirectory
+              ? {
+                  listedInDirectory: listed,
+                  directoryCategories: listed ? categories : saved.categories,
+                  directoryRegions: listed ? regions : saved.regions,
+                  directoryRegionIds: nextRegionIds,
+                }
+              : {}),
+            ...(fireplaceChanged ? { fireplace, fireplaceVisible: nextVisible } : {}),
           },
           {
             ...(bioChanged ? { bio: text } : {}),
-            listed,
-            categories: listed ? categories : saved.categories,
-            regions: listed ? regions : saved.regions,
-            regionIds: nextRegionIds,
+            ...(touchesDirectory
+              ? {
+                  listed,
+                  categories: listed ? categories : saved.categories,
+                  regions: listed ? regions : saved.regions,
+                  regionIds: nextRegionIds,
+                }
+              : {}),
+            fireplace,
+            fireplaceVisible: nextVisible,
           }
         );
         if (!ok) return;
@@ -560,6 +586,18 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
                 }}
                 errors={directoryErrors}
               />
+            )}
+
+            {step === 2 && (
+              <div className="form-group onboarding-fireplace">
+                <FireplaceField
+                  idPrefix="onboarding"
+                  fireplace={fireplace}
+                  onChange={setFireplace}
+                  visible={fireplaceVisible}
+                  onVisibleChange={setFireplaceVisible}
+                />
+              </div>
             )}
 
             {step === 3 && (
