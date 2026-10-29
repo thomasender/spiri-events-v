@@ -8,6 +8,7 @@ import { useMessengerAccess } from '../../hooks/useChatSettings';
 import { useAcceptsDirectMessages } from '../../hooks/useMessenger';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import OnlineDot from '../OnlineDot';
+import MemberBadge from '../MemberBadge';
 import './MemberCard.css';
 
 // Small card for a person in the chat: write them a private message or open their profile.
@@ -58,6 +59,7 @@ export default function MemberCard({ uid, fallbackName, fallbackPhotoURL, onClos
               {name.trim().charAt(0).toUpperCase()}
             </span>
           )}
+          <MemberBadge uid={uid} />
           <OnlineDot status={statusOf(uid, info?.showOnlineStatus)} />
         </div>
         <h2 className="member-card-name">{name}</h2>

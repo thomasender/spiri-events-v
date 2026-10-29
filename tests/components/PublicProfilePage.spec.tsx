@@ -14,6 +14,11 @@ const mockAuth = vi.hoisted(() => ({
 }));
 
 const mockMessenger = vi.hoisted(() => ({ open: false, accepts: true }));
+const clubMembers = vi.hoisted(() => ({ uids: new Set<string>() }));
+vi.mock('../../src/hooks/useClubMembers', () => ({
+  useClubMembers: () => clubMembers.uids,
+  useIsClubMember: (uid: string) => clubMembers.uids.has(uid),
+}));
 const mockOnline = vi.hoisted(() => ({ status: null as 'online' | 'offline' | null }));
 
 vi.mock('../../src/hooks/usePublicProfile', () => ({
@@ -62,6 +67,7 @@ const renderPage = (slug = 'anna-schmidt') =>
   );
 
 beforeEach(() => {
+  clubMembers.uids = new Set();
   mockMessenger.open = false;
   mockMessenger.accepts = true;
   mockPublicProfile.profile = null;
@@ -182,6 +188,28 @@ describe('PublicProfilePage (k9CYVFsc)', () => {
     const bio = screen.getByTestId('public-profile-bio');
     expect(bio.tagName).toBe('P');
     expect(bio).toHaveTextContent('Alte Beschreibung ohne Formatierung.');
+  });
+
+  it('shows the Vereinsmitglied badge on the photo only for members', () => {
+    mockPublicProfile.exists = true;
+    mockPublicProfile.profile = {
+      displayName: 'Beatrice Brunner',
+      bio: '',
+      website: '',
+      photoURL: null,
+      slug: 'beatrice-brunner',
+      updatedAt: null,
+    };
+    mockPublicProfile.uid = 'user-43';
+    const { unmount } = renderPage();
+    expect(screen.queryByTestId('member-badge')).toBeNull();
+    unmount();
+    clubMembers.uids = new Set(['user-43']);
+    renderPage();
+    expect(screen.getByTestId('member-badge')).toHaveAttribute(
+      'title',
+      'Vereinsmitglied: unterstützt den Tribe'
+    );
   });
 
   it('falls back to a placeholder avatar when the profile has no photoURL', () => {

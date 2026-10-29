@@ -95,6 +95,8 @@ export function normalizeDirectoryEntry(uid, data) {
     showOnlineStatus: d.showOnlineStatus === true,
     // Only present while the person made their Feuerplatz visible; just the place name.
     fireplaceLabel: typeof d.fireplaceLabel === 'string' ? d.fireplaceLabel : '',
+    // Vereinsmitglied (set by admins only). Missing field = no member.
+    clubMember: d.clubMember === true,
   };
 }
 
@@ -150,12 +152,62 @@ export function sortDirectoryEntries(entries) {
   return [...entries].sort((a, b) => a.displayName.localeCompare(b.displayName, 'de'));
 }
 
+// Vereinsmitglieder tend to be near the top: in the first 30 % of the places
+// each place goes to a member with probability 60 % (otherwise to a
+// non-member); after that there is no preference.
+export const DIRECTORY_MEMBER_HEAD_SHARE = 0.3;
+export const DIRECTORY_MEMBER_HEAD_CHANCE = 0.6;
+
+function shuffled(list, random) {
+  const out = [...list];
+  for (let i = out.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+// Mixed order of `entries` (pure; `random` injectable). Members and
+// non-members are shuffled separately; the head places draw from the member
+// pool with DIRECTORY_MEMBER_HEAD_CHANCE, the rest is shuffled together. An
+// empty pool hands its turn to the other one.
+export function mixDirectoryEntries(entries, random = Math.random) {
+  const members = shuffled(
+    entries.filter((e) => e.clubMember),
+    random
+  );
+  const others = shuffled(
+    entries.filter((e) => !e.clubMember),
+    random
+  );
+  const headSize = Math.ceil(entries.length * DIRECTORY_MEMBER_HEAD_SHARE);
+  const head = [];
+  for (let i = 0; i < headSize; i += 1) {
+    const wantMember = random() < DIRECTORY_MEMBER_HEAD_CHANCE;
+    const pool = (wantMember && members.length > 0) || others.length === 0 ? members : others;
+    head.push(pool.shift());
+  }
+  return [...head, ...shuffled([...members, ...others], random)];
+}
+
 // Random order, so the same people are not always on top. `ranks` is a Map
-// (uid -> random number) owned by the caller: it keeps the order stable while
-// filters change within one page load, and a new load starts with a new map.
-export function shuffleDirectoryEntries(entries, ranks, random = Math.random) {
-  for (const entry of entries) {
-    if (!ranks.has(entry.uid)) ranks.set(entry.uid, random());
+// (uid -> rank) owned by the caller: it keeps the order stable while filters
+// change within one page load, and a new load starts with a new map. Ranks
+// (not places) are stored: the mix is drawn once over `pool` (pass the
+// unfiltered list, so filtering only hides entries and never re-draws);
+// entries that show up later (live update) are mixed among themselves and
+// appended after the existing ranks.
+export function shuffleDirectoryEntries(entries, ranks, random = Math.random, pool = entries) {
+  const unranked = new Map();
+  for (const entry of [...pool, ...entries]) {
+    if (!ranks.has(entry.uid)) unranked.set(entry.uid, entry);
+  }
+  if (unranked.size > 0) {
+    let next = ranks.size === 0 ? 0 : Math.max(...ranks.values()) + 1;
+    for (const entry of mixDirectoryEntries([...unranked.values()], random)) {
+      ranks.set(entry.uid, next);
+      next += 1;
+    }
   }
   return [...entries].sort((a, b) => ranks.get(a.uid) - ranks.get(b.uid));
 }

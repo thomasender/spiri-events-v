@@ -14,6 +14,7 @@ import EventCoverImage from './EventCoverImage';
 import FavoriteButton from './FavoriteButton';
 import CancelledBadge from './CancelledBadge';
 import CandleBadge from './CandleBadge';
+import { MemberBadgeFrame } from './MemberBadge';
 import { isEntryCancelled } from '../utils/eventCancellation';
 import './EventCard.css';
 
@@ -76,17 +77,19 @@ export default function EventCard({ event, categoryColor, onClick, candleNews = 
         )}
         {organizerName && (
           <div className="event-tile-organizer">
-            {event.organizer && event.organizer.photoURL ? (
-              <img
-                src={event.organizer.photoURL}
-                alt=""
-                className="event-tile-organizer-photo"
-                data-testid="event-tile-organizer-photo"
-                loading="lazy"
-              />
-            ) : (
-              <span className="event-tile-organizer-avatar">{organizerName.charAt(0)}</span>
-            )}
+            <MemberBadgeFrame uid={event.createdBy}>
+              {event.organizer && event.organizer.photoURL ? (
+                <img
+                  src={event.organizer.photoURL}
+                  alt=""
+                  className="event-tile-organizer-photo"
+                  data-testid="event-tile-organizer-photo"
+                  loading="lazy"
+                />
+              ) : (
+                <span className="event-tile-organizer-avatar">{organizerName.charAt(0)}</span>
+              )}
+            </MemberBadgeFrame>
             <span>{organizerName}</span>
           </div>
         )}

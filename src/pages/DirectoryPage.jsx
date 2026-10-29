@@ -19,6 +19,7 @@ import { getCategoryColor } from '../utils/categoryColors';
 import AvatarImage from '../components/AvatarImage';
 import DirectMessageLink from '../components/messenger/DirectMessageLink';
 import OnlineDot from '../components/OnlineDot';
+import MemberBadge from '../components/MemberBadge';
 import { useOnlineStatus } from '../hooks/useOnlineStatus';
 import { useMessengerAccess } from '../hooks/useChatSettings';
 import {
@@ -58,6 +59,7 @@ function DirectoryCard({ entry, colorByName, isAdmin, canMessage, status, onTogg
               {initial}
             </div>
           )}
+          <MemberBadge uid={entry.uid} />
           <OnlineDot status={status} />
         </div>
         <div className="directory-card-body">
@@ -183,10 +185,17 @@ export default function DirectoryPage() {
     (region) => regionCounts.has(region) || filters.regions.includes(region)
   );
 
-  // New random order on every page load; stable while filtering.
+  // New random order on every page load (Vereinsmitglieder tend to be near the
+  // top); drawn over all entries, so it stays stable while filtering.
   const [ranks] = useState(() => new Map());
   const results = useMemo(
-    () => shuffleDirectoryEntries(filterDirectoryEntries(entries, countFilters), ranks),
+    () =>
+      shuffleDirectoryEntries(
+        filterDirectoryEntries(entries, countFilters),
+        ranks,
+        Math.random,
+        entries
+      ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [entries, filters.query, filters.categories, filters.regions, isAdmin]
   );

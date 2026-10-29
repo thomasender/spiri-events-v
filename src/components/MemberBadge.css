@@ -1,0 +1,75 @@
+/* Vereinsmitglied badge (MemberBadge.jsx). Scales with the avatar: 38 % of
+   the wrapper, at least --space-2-5 (10px, readable on the 22-24px organiser
+   avatars), at most --space-6 (24px, large profile photos). */
+.member-badge {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  box-sizing: border-box;
+  width: clamp(var(--space-2-5), 38%, var(--space-6));
+  aspect-ratio: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10%;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  color: var(--bg-calendar);
+  box-shadow: 0 0 0 var(--space-0-5) var(--bg-calendar);
+  cursor: help;
+  line-height: 0;
+}
+
+.club-member-icon {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.club-member-icon-petal {
+  fill: currentColor;
+}
+
+.club-member-icon-center {
+  fill: var(--accent-create-event);
+}
+
+.member-badge-frame {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+/* Both badges on one avatar: the flower keeps the bottom right corner, the
+   green online dot moves to the top right. */
+.member-badge ~ .online-dot.online-dot {
+  top: 0;
+  bottom: auto;
+}
+
+.member-badge-tip {
+  position: fixed;
+  z-index: 1000;
+  max-width: min(240px, calc(100vw - var(--space-8)));
+  transform: translate(-50%, calc(-100% - var(--space-1-5)));
+  padding: var(--space-1-5) var(--space-2-5);
+  border-radius: var(--radius-sm);
+  background: var(--text-primary);
+  color: var(--bg-calendar);
+  font-size: var(--text-81);
+  line-height: 1.35;
+  text-align: center;
+  box-shadow: var(--shadow-md);
+  pointer-events: none;
+}
+
+.member-badge-tip--below {
+  transform: translate(-50%, var(--space-1-5));
+}
+
+/* Decorative only (own avatar in the header): taps reach the menu button. */
+.member-badge--static {
+  pointer-events: none;
+}

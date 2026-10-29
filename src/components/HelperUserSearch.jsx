@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useUserSearch } from '../hooks/useUserSearch';
 import { User } from 'lucide-react';
+import { MemberBadgeFrame } from './MemberBadge';
 
 // Typeahead that lets an admin pick an existing user by Benutzername. When a
 // match is chosen, it passes the publicProfile snapshot back via `onSelect`.
@@ -130,9 +131,11 @@ export default function HelperUserSearch({ disabled, onSelect }) {
                 data-testid="helper-user-search-option"
                 data-username={user.username}
               >
-                <span className="helper-user-search-avatar" aria-hidden="true">
-                  {user.photoURL ? <img src={user.photoURL} alt="" /> : <User size={18} />}
-                </span>
+                <MemberBadgeFrame uid={user.uid}>
+                  <span className="helper-user-search-avatar" aria-hidden="true">
+                    {user.photoURL ? <img src={user.photoURL} alt="" /> : <User size={18} />}
+                  </span>
+                </MemberBadgeFrame>
                 <span className="helper-user-search-meta">
                   <span className="helper-user-search-display-name">
                     {user.displayName || user.username}

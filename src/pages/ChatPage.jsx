@@ -6,6 +6,7 @@ import ChatRules from '../components/chat/ChatRules';
 import MessageComposer from '../components/chat/MessageComposer';
 import MemberCard from '../components/messenger/MemberCard';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { MemberBadgeFrame } from '../components/MemberBadge';
 import EmailVerificationModal from '../components/EmailVerificationModal';
 import ErrorPage from './ErrorPage';
 import { useAuth } from '../hooks/useAuth';
@@ -48,21 +49,25 @@ function WhoIsHere({ online, selfUid, onOpenMember }) {
         {online.slice(0, PRESENCE_AVATARS).map((m) => (
           <li key={m.uid} title={m.name}>
             {(() => {
-              const avatar = m.photoURL ? (
-                <img
-                  className="chat-presence-avatar"
-                  src={m.photoURL}
-                  alt={m.name}
-                  loading="lazy"
-                />
-              ) : (
-                <span
-                  className="chat-presence-avatar chat-presence-avatar--fallback"
-                  role="img"
-                  aria-label={m.name}
-                >
-                  {m.name.trim().charAt(0).toUpperCase()}
-                </span>
+              const avatar = (
+                <MemberBadgeFrame uid={m.uid}>
+                  {m.photoURL ? (
+                    <img
+                      className="chat-presence-avatar"
+                      src={m.photoURL}
+                      alt={m.name}
+                      loading="lazy"
+                    />
+                  ) : (
+                    <span
+                      className="chat-presence-avatar chat-presence-avatar--fallback"
+                      role="img"
+                      aria-label={m.name}
+                    >
+                      {m.name.trim().charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                </MemberBadgeFrame>
               );
               return m.uid === selfUid ? (
                 avatar

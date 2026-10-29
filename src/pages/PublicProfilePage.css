@@ -261,3 +261,13 @@
   font-size: var(--text-100);
   color: var(--text-secondary);
 }
+
+/* Vereinsmitglied badge: same inset as the online dot on the large photo. */
+.public-profile-avatar .member-badge {
+  right: var(--space-1);
+  bottom: var(--space-1);
+}
+
+.public-profile-avatar .member-badge ~ .online-dot.online-dot {
+  top: var(--space-1);
+}

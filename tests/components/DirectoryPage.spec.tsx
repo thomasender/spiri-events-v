@@ -16,6 +16,11 @@ const mocks = vi.hoisted(() => ({
   statuses: {} as Record<string, 'online' | 'offline' | null>,
 }));
 
+const clubMembers = vi.hoisted(() => ({ uids: new Set<string>() }));
+vi.mock('../../src/hooks/useClubMembers', () => ({
+  useClubMembers: () => clubMembers.uids,
+  useIsClubMember: (uid: string) => clubMembers.uids.has(uid),
+}));
 vi.mock('../../src/hooks/useDirectory', () => ({ useDirectory: () => mocks.directory }));
 vi.mock('../../src/hooks/useAuth', () => ({ useAuth: () => mocks.auth }));
 vi.mock('../../src/hooks/useOnlineStatus', () => ({
@@ -71,6 +76,7 @@ const names = () =>
     .sort(); // display order is random
 
 beforeEach(() => {
+  clubMembers.uids = new Set();
   mocks.auth.role = 'User';
   mocks.directory.loading = false;
   mocks.directory.error = null;
@@ -281,5 +287,31 @@ describe('DirectoryPage: online status dot', () => {
     expect(card('anna').querySelector('[data-status="online"]')).not.toBeNull();
     expect(card('berta').querySelector('[data-status="offline"]')).toBeNull();
     expect(card('clara').querySelector('[data-testid="online-dot"]')).toBeNull();
+  });
+
+  it('shows the Vereinsmitglied flower only on members, next to the online dot', () => {
+    clubMembers.uids = new Set(['anna', 'clara']);
+    renderPage();
+    const card = (name: string) => screen.getByRole('heading', { name }).closest('li')!;
+    const badge = within(card('anna')).getByTestId('member-badge');
+    expect(badge).toHaveAttribute('aria-label', 'Vereinsmitglied: unterstützt den Tribe');
+    expect(badge).toHaveAttribute('title', 'Vereinsmitglied: unterstützt den Tribe');
+    expect(card('anna').querySelector('[data-status="online"]')).not.toBeNull();
+    expect(within(card('clara')).getByTestId('member-badge')).toBeInTheDocument();
+    expect(within(card('berta')).queryByTestId('member-badge')).toBeNull();
+  });
+
+  it('opens the explanation on tap instead of following the card link', async () => {
+    clubMembers.uids = new Set(['anna']);
+    renderPage();
+    const badge = screen.getByTestId('member-badge');
+    const click = new MouseEvent('click', { bubbles: true, cancelable: true });
+    act(() => {
+      badge.dispatchEvent(click);
+    });
+    expect(click.defaultPrevented).toBe(true);
+    expect(await screen.findByTestId('member-badge-tip')).toHaveTextContent(
+      'Vereinsmitglied: unterstützt den Tribe'
+    );
   });
 });

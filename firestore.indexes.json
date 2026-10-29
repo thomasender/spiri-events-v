@@ -73,6 +73,11 @@
       "collectionGroup": "publicProfile",
       "fieldPath": "listedInDirectory",
       "indexes": [{ "queryScope": "COLLECTION_GROUP", "order": "ASCENDING" }]
+    },
+    {
+      "collectionGroup": "publicProfile",
+      "fieldPath": "clubMember",
+      "indexes": [{ "queryScope": "COLLECTION_GROUP", "order": "ASCENDING" }]
     }
   ]
 }

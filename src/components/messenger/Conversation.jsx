@@ -6,6 +6,7 @@ import MessageComposer from '../chat/MessageComposer';
 import MessageReactions from '../chat/MessageReactions';
 import { MemberAvatar } from './ThreadList';
 import OnlineDot from '../OnlineDot';
+import MemberBadge from '../MemberBadge';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import { useAuth } from '../../hooks/useAuth';
 import { useMemberInfo } from '../../hooks/useMemberInfo';
@@ -173,6 +174,7 @@ export default function Conversation({ other }) {
         </Link>
         <span className="messenger-avatar-wrap">
           <MemberAvatar info={info} className="messenger-avatar" />
+          <MemberBadge uid={other} />
           <OnlineDot status={statusOf(other, info?.showOnlineStatus)} />
         </span>
         <div className="messenger-conversation-title">

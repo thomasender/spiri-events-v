@@ -15,6 +15,7 @@ import { getEventFallbackImage } from '../utils/eventFallbacks';
 import { getOrganizerName, getEventLocationLabel } from '../utils/eventFormat';
 import { parseContactText } from '../utils/contactFormat';
 import RegistrationText from './RegistrationText';
+import { MemberBadgeFrame } from './MemberBadge';
 import { formatPriceWithCurrency } from '../utils/currency';
 import { normalizeLink } from '../utils/link';
 import RichTextView from './RichTextView';
@@ -225,12 +226,14 @@ export default function EventModal({ event, onClose }) {
                 <span className="detail-label">Veranstalter</span>
                 <span className="detail-value organizer-value">
                   {event.organizer.photoURL && (
-                    <img
-                      src={event.organizer.photoURL}
-                      alt=""
-                      className="organizer-photo"
-                      data-testid="organizer-photo"
-                    />
+                    <MemberBadgeFrame uid={event.createdBy}>
+                      <img
+                        src={event.organizer.photoURL}
+                        alt=""
+                        className="organizer-photo"
+                        data-testid="organizer-photo"
+                      />
+                    </MemberBadgeFrame>
                   )}
                   <span>{getOrganizerName(event)}</span>
                 </span>

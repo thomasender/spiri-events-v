@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import AvatarImage from '../AvatarImage';
 import OnlineDot from '../OnlineDot';
+import MemberBadge from '../MemberBadge';
 import { formatChatTime } from '../../utils/chat';
 import { isThreadUnread, otherUid } from '../../utils/messenger';
 
@@ -45,6 +46,7 @@ export default function ThreadList({ threads, infos, me, activeUid, statusOf, lo
             >
               <span className="messenger-avatar-wrap">
                 <MemberAvatar info={info} />
+                <MemberBadge uid={other} />
                 <OnlineDot status={statusOf?.(other, info?.showOnlineStatus)} />
               </span>
               <span className="messenger-thread-body">

@@ -463,15 +463,25 @@ describe('adminUpdateMember by role', () => {
     staff: { role: 'RegionModerator', regionIds: ['wien'] },
   };
   function harness() {
-    const writes: Array<{ uid: string; update: Doc }> = [];
+    const writes: Array<{
+      uid: string;
+      update: Doc;
+      targets: { public: boolean; private: boolean };
+      privateUpdate?: Doc;
+    }> = [];
     const deps = {
       readRoleDoc: async (uid: string) => roles[uid] ?? null,
       readProfiles: async (uid: string) => ({
         publicData: profiles[uid] ?? null,
         privateData: profiles[uid] ? {} : null,
       }),
-      writeProfiles: async (uid: string, update: Doc) => {
-        writes.push({ uid, update });
+      writeProfiles: async (
+        uid: string,
+        update: Doc,
+        targets: { public: boolean; private: boolean },
+        privateUpdate?: Doc
+      ) => {
+        writes.push({ uid, update, targets, privateUpdate });
       },
     };
     return { deps, writes };
@@ -493,6 +503,7 @@ describe('adminUpdateMember by role', () => {
     for (const [uid, changes] of [
       ['tirol', { displayName: 'X' }],
       ['tirol', { username: 'x' }],
+      ['tirol', { clubMember: true }],
       ['tirolWien', { listedInDirectory: false }],
       ['staff', { listedInDirectory: false }],
       ['nobody', { listedInDirectory: false }],
@@ -531,6 +542,25 @@ describe('adminUpdateMember by role', () => {
     // existing ids stay, unlisting adds nothing
     expect(writes[1].update).not.toHaveProperty('directoryRegionIds');
     expect(writes[2].update).not.toHaveProperty('directoryRegionIds');
+  });
+
+  it('Super-Admin sets clubMember on the public profile only, never on users/{uid}', async () => {
+    const { deps, writes } = harness();
+    await updateMemberHandler(call('admin', { uid: 'tirol', changes: { clubMember: true } }), deps);
+    expect(writes[0].update.clubMember).toBe(true);
+    expect(writes[0].targets).toEqual({ public: true, private: false });
+    await updateMemberHandler(
+      call('admin', { uid: 'tirol', changes: { clubMember: false, displayName: 'Neu' } }),
+      deps
+    );
+    expect(writes[1].update).toMatchObject({ clubMember: false, displayName: 'Neu' });
+    expect(writes[1].targets).toEqual({ public: true, private: true });
+    expect(writes[1].privateUpdate).toMatchObject({ displayName: 'Neu' });
+    expect(writes[1].privateUpdate).not.toHaveProperty('clubMember');
+    await expectCode(
+      updateMemberHandler(call('admin', { uid: 'nobody', changes: { clubMember: true } }), deps),
+      'not-found'
+    );
   });
 
   it('Super-Admin keeps full access; others are rejected; path-like uids refused', async () => {

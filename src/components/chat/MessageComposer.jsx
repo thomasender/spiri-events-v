@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Send, Smile } from 'lucide-react';
 import EmojiPicker from './EmojiPicker';
 import AvatarImage from '../AvatarImage';
+import { MemberBadgeFrame } from '../MemberBadge';
 import { useMentionSearch } from '../../hooks/useMentionSearch';
 import { CHAT_MAX_LENGTH, chatTextLength } from '../../utils/chat';
 import {
@@ -276,20 +277,22 @@ export default function MessageComposer({
                 pickMention(user);
               }}
             >
-              {user.photoURL ? (
-                <AvatarImage
-                  src={user.photoURL}
-                  alt=""
-                  className="chat-avatar chat-avatar--small"
-                />
-              ) : (
-                <span
-                  className="chat-avatar chat-avatar--small chat-avatar--fallback"
-                  aria-hidden="true"
-                >
-                  {user.displayName.charAt(0).toUpperCase()}
-                </span>
-              )}
+              <MemberBadgeFrame uid={user.uid}>
+                {user.photoURL ? (
+                  <AvatarImage
+                    src={user.photoURL}
+                    alt=""
+                    className="chat-avatar chat-avatar--small"
+                  />
+                ) : (
+                  <span
+                    className="chat-avatar chat-avatar--small chat-avatar--fallback"
+                    aria-hidden="true"
+                  >
+                    {user.displayName.charAt(0).toUpperCase()}
+                  </span>
+                )}
+              </MemberBadgeFrame>
               <span className="chat-suggestion-code">{user.displayName}</span>
               {user.username && <span className="chat-suggestion-label">@{user.username}</span>}
             </li>

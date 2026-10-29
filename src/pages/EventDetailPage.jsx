@@ -51,6 +51,7 @@ import { canEditEvent, canDeleteEvent, requiresDeleteReason } from '../utils/eve
 import { getStaffAccess, isModeratorForEvent } from '../utils/staffRoles';
 import { parseContactText } from '../utils/contactFormat';
 import RegistrationText from '../components/RegistrationText';
+import { MemberBadgeFrame } from '../components/MemberBadge';
 import {
   getMonthlyWeekdayPhrase,
   getNextUpcomingOccurrence,
@@ -89,12 +90,14 @@ function OrganizerLine({ event }) {
   const organizerContent = (
     <>
       {event.organizer.photoURL && (
-        <img
-          src={event.organizer.photoURL}
-          alt=""
-          className="organizer-photo"
-          data-testid="organizer-photo"
-        />
+        <MemberBadgeFrame uid={event.createdBy}>
+          <img
+            src={event.organizer.photoURL}
+            alt=""
+            className="organizer-photo"
+            data-testid="organizer-photo"
+          />
+        </MemberBadgeFrame>
       )}
       <span>{getOrganizerName(event)}</span>
     </>
