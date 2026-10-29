@@ -7,6 +7,10 @@
 // to run twice, it never overwrites an entry an admin edited, and it skips what
 // the webhook already booked. Refunds and chargebacks are netted off.
 //
+// With MOLLIE_ORG_TOKEN (read-only organization token, invoices.read) set, the
+// Mollie fee invoices are booked as expenses too (same code as the daily
+// scheduled function syncMollieInvoices).
+//
 //   MOLLIE_API_KEY=live_xxx node scripts/import-mollie-ledger.cjs          # dry run
 //   MOLLIE_API_KEY=live_xxx node scripts/import-mollie-ledger.cjs --apply  # write
 //
@@ -133,6 +137,24 @@ async function main() {
   if (summary.adjusted.length) {
     console.log('Booked net of a partial refund / chargeback:');
     for (const r of summary.adjusted) console.log('  ', r);
+  }
+  const orgToken = process.env.MOLLIE_ORG_TOKEN;
+  if (orgToken) {
+    const { fetchAllInvoices, syncInvoicesToLedger } = require(
+      join(ROOT, 'functions/lib/mollieInvoicesLogic.js')
+    );
+    const invoices = await fetchAllInvoices(orgToken);
+    const planned = [];
+    const invoiceDb = apply ? getFirestore() : dryRunDb(getFirestore(), planned);
+    const result = await syncInvoicesToLedger({ db: invoiceDb, invoices });
+    for (const { id, data } of planned) {
+      console.log(
+        `  - ${data.date}  ${String(data.amount).padStart(8)} €  ${data.description}  [${id}]`
+      );
+    }
+    console.log(`\nMollie invoices read: ${result.total}`);
+    console.log(`${apply ? 'Booked' : 'Would book'}: ${result.booked} expense(s)`);
+    console.log('Skipped:', result.skipped);
   }
   if (!apply) console.log('\nNothing written. Run again with --apply to book.');
 }

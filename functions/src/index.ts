@@ -153,6 +153,7 @@ export {
 export { onEventWriteTriggerBuild } from './triggerBuild';
 export { onEventCreatedEnsureUniqueSlug } from './eventSlugUniqueness';
 export { scheduledBuildTrigger } from './scheduledBuildTrigger';
+export { syncMollieInvoices } from './mollieInvoices';
 export { sendVerificationEmail } from './sendVerificationEmail';
 export { sendPasswordResetEmailFn } from './sendPasswordResetEmail';
 export { checkEmailAvailability } from './checkEmailAvailability';

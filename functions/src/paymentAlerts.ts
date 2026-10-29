@@ -14,13 +14,19 @@ export const PAYMENT_ALERT_NAME = 'System: Zahlungen (Mollie)';
 const MAX_DESCRIPTION = 1000;
 
 export type PaymentAlertStep =
-  'monatliche-spende-start' | 'einmalige-spende-start' | 'abo-anlegen' | 'webhook';
+  | 'monatliche-spende-start'
+  | 'einmalige-spende-start'
+  | 'abo-anlegen'
+  | 'webhook'
+  | 'rechnungen-abgleich';
 
 const STEP_LABELS: Record<PaymentAlertStep, string> = {
   'monatliche-spende-start': 'Monatliche Spende konnte nicht gestartet werden',
   'einmalige-spende-start': 'Einmalige Spende konnte nicht gestartet werden',
   'abo-anlegen': 'Monatliches Abo wurde nach der ersten Zahlung NICHT angelegt',
   webhook: 'Zahlungsbestätigung von Mollie konnte nicht verarbeitet werden',
+  'rechnungen-abgleich':
+    'Die Mollie-Rechnungen (Gebühren) konnten nicht in die Finanzen übernommen werden',
 };
 
 export interface PaymentAlertInput {
