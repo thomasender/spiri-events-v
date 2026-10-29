@@ -646,6 +646,57 @@ describe('RegionChooser (first visit)', () => {
     });
   });
 
+  describe('without the prerender (plain index.html, staging): region count unknown while loading', () => {
+    let meta: HTMLMetaElement;
+    beforeEach(() => {
+      meta = document.createElement('meta');
+      meta.name = REGION_MODE_META_NAME;
+      meta.content = 'unknown';
+      document.head.appendChild(meta);
+      mocks.regions = { regions: STATIC_REGIONS, loading: true };
+    });
+    afterEach(() => meta.remove());
+
+    const rerenderAt = (rerender: (ui: React.ReactElement) => void, path: string) =>
+      rerender(
+        <MemoryRouter initialEntries={[path]}>
+          <RegionProvider>
+            <RegionChooser />
+            <HeaderTitle />
+          </RegionProvider>
+        </MemoryRouter>
+      );
+
+    it('a first-time visitor sees a neutral cover, never the Vorarlberg calendar, then the chooser', () => {
+      const { rerender } = renderAt('/');
+      expect(screen.getByTestId('region-chooser-pending')).toBeInTheDocument();
+      expect(headerTitle()).toBe('Dein Kalender');
+      mocks.regions = { regions: TWO_ACTIVE, loading: false };
+      rerenderAt(rerender, '/');
+      expect(screen.queryByTestId('region-chooser-pending')).toBeNull();
+      expect(screen.getByRole('dialog', { name: 'Wo suchst du?' })).toBeInTheDocument();
+    });
+
+    it('with one active region the cover goes away and the calendar shows', () => {
+      const { rerender } = renderAt('/');
+      expect(screen.getByTestId('region-chooser-pending')).toBeInTheDocument();
+      mocks.regions = { regions: STATIC_REGIONS, loading: false };
+      rerenderAt(rerender, '/');
+      expect(screen.queryByTestId('region-chooser-pending')).toBeNull();
+      expect(screen.queryByTestId('region-chooser')).toBeNull();
+    });
+
+    it('returning visitors and other pages are never covered', () => {
+      window.localStorage.setItem(REGION_CHOOSER_SEEN_KEY, '1');
+      const { unmount } = renderAt('/');
+      expect(screen.queryByTestId('region-chooser-pending')).toBeNull();
+      unmount();
+      window.localStorage.clear();
+      renderAt('/event/some-event');
+      expect(screen.queryByTestId('region-chooser-pending')).toBeNull();
+    });
+  });
+
   it('a choice navigates, is remembered and the chooser does not come back', async () => {
     const { unmount } = renderAt('/');
     const chooser = screen.getByTestId('region-chooser');

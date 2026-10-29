@@ -296,35 +296,46 @@ export function writeRegionChooserSeen(storage) {
 // With one active region the tag is absent and nothing changes (dark launch).
 export const REGION_MODE_META_NAME = 'tribe-region-mode';
 export const REGION_MODE_META_MULTI = 'multi';
+// The plain `index.html` (staging and dev, which are built without the prerender) says
+// "unknown": the number of active regions is only known once the config has loaded.
+export const REGION_MODE_META_UNKNOWN = 'unknown';
 
-export function readMultiRegionHint(doc) {
+/** Content of the region-mode tag ('multi' | 'unknown'), null without it (prerendered, one region). */
+export function readRegionModeHint(doc) {
   try {
     const d = doc ?? (typeof document !== 'undefined' ? document : null);
     const meta = d?.querySelector?.(`meta[name="${REGION_MODE_META_NAME}"]`);
-    return meta?.getAttribute('content') === REGION_MODE_META_MULTI;
+    return meta?.getAttribute('content') ?? null;
   } catch {
-    return false;
+    return null;
   }
+}
+
+export function readMultiRegionHint(doc) {
+  return readRegionModeHint(doc) === REGION_MODE_META_MULTI;
 }
 
 /**
  * Whether the "Wo suchst du?" page covers the current page. `/regionen` opened on purpose,
  * or `/` and `/verzeichnis` while nothing is remembered. Once the region config has loaded,
  * a remembered last region counts only while it is active. While it is still loading the
- * chooser shows only with the prerender's multi-region hint, and then any remembered region
- * counts (so returning visitors never see it flash).
+ * chooser shows only with the prerender's multi-region hint or when the page cannot know
+ * (`regionModeUnknown`, plain index.html; RegionChooser then only covers the page until the
+ * config decides), and then any remembered region counts (so returning visitors never see it
+ * flash).
  */
 export function shouldOpenRegionChooser({
   pathname,
   loading,
   activeCount,
   multiRegionHint = false,
+  regionModeUnknown = false,
   chooserSeen = false,
   hasPlaceSelection = false,
   lastRegion = null,
   regions = STATIC_REGIONS,
 }) {
-  const regionMode = loading ? multiRegionHint : activeCount >= 2;
+  const regionMode = loading ? multiRegionHint || regionModeUnknown : activeCount >= 2;
   if (!regionMode) return false;
   if (pathname === REGIONS_PAGE_PATH) return true;
   if (!CHOOSER_PATHS.includes(pathname)) return false;

@@ -71,7 +71,10 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
   `shouldOpenRegionChooser` in `regionRouting.js`; while the `regions` collection is still loading
   it relies on `<meta name="tribe-region-mode" content="multi">`, which the prerendered `/` carries
   only with two or more active regions, so a first-time visitor never sees the Vorarlberg calendar
-  flash first (Trello eFPKzCr7; a stale hint after (de)activation lasts until the next rebuild);
+  flash first (Trello eFPKzCr7; a stale hint after (de)activation lasts until the next rebuild).
+  Builds without the prerender (staging, dev) ship the plain `index.html` with `content="unknown"`:
+  there a first-time visitor on `/` or `/verzeichnis` gets an empty cover (`regionChooserPending`)
+  until the config has loaded, then the chooser or, with one active region, the calendar;
   the site header stays visible above it with the neutral title "Dein Kalender" and without
   the region switcher (`regionChooserOpen` in the region context). Invisible with fewer than
   two active regions.

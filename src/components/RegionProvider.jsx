@@ -19,7 +19,9 @@ import {
   isNeutralPagePath,
   readLastPageSlug,
   readLastRegion,
-  readMultiRegionHint,
+  REGION_MODE_META_MULTI,
+  REGION_MODE_META_UNKNOWN,
+  readRegionModeHint,
   readRegionChooserSeen,
   regionPath,
   regionSlugFromPath,
@@ -47,8 +49,9 @@ export default function RegionProvider({ children }) {
   // "Wo bist du?": the remembered place + radius (browser; PlaceSelectionSync mirrors it to
   // the profile of signed-in users).
   const [placeSelection, setPlaceSelectionState] = useState(() => readPlaceSelection());
-  // Prerendered `/` says "two or more active regions" before the region config loaded.
-  const [multiRegionHint] = useState(() => readMultiRegionHint());
+  // Prerendered `/` says "two or more active regions" before the region config loaded; the
+  // plain index.html (staging, dev: no prerender) says "unknown".
+  const [regionModeHint] = useState(() => readRegionModeHint());
 
   const urlSlug = regionSlugFromPath(pathname);
   const urlRegionIsActive = Boolean(
@@ -129,7 +132,8 @@ export default function RegionProvider({ children }) {
       pathname,
       loading,
       activeCount: activeRegions(allRegions).length,
-      multiRegionHint,
+      multiRegionHint: regionModeHint === REGION_MODE_META_MULTI,
+      regionModeUnknown: regionModeHint === REGION_MODE_META_UNKNOWN,
       chooserSeen: readRegionChooserSeen(),
       hasPlaceSelection: Boolean(placeSelection),
       lastRegion: readLastRegion(),
@@ -171,6 +175,10 @@ export default function RegionProvider({ children }) {
       pageSlug,
       // True while the "Wo suchst du?" page (RegionChooser) covers the page.
       regionChooserOpen,
+      // Open only because the page cannot know yet whether two regions are active: the
+      // chooser covers the page empty (no Vorarlberg calendar flash, eFPKzCr7) until it knows.
+      regionChooserPending:
+        regionChooserOpen && loading && regionModeHint !== REGION_MODE_META_MULTI,
       // Active regions the current combined view covers ([] outside one).
       combinedRegions: combinedView ? combinedViewRegions(combinedView, allRegions) : [],
       // Combined views that are available (enough active regions).
@@ -196,7 +204,7 @@ export default function RegionProvider({ children }) {
     lastPageSlug,
     allRegions,
     loading,
-    multiRegionHint,
+    regionModeHint,
     setRegion,
     setEventRegion,
     placeSelection,

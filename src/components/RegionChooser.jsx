@@ -31,7 +31,14 @@ const FOCUSABLE =
  * to its coming-soon page.
  */
 export default function RegionChooser() {
-  const { regions, loading, setRegion, setPlaceSelection, regionChooserOpen } = useRegion();
+  const {
+    regions,
+    loading,
+    setRegion,
+    setPlaceSelection,
+    regionChooserOpen,
+    regionChooserPending,
+  } = useRegion();
   const { pathname, key } = useLocation();
   const navigate = useNavigate();
   const dialogRef = useRef(null);
@@ -103,9 +110,24 @@ export default function RegionChooser() {
     };
     // `close` only depends on navigate and the location key.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [show, onRegionsPage, key]);
+  }, [show, regionChooserPending, onRegionsPage, key]);
 
   if (!show) return null;
+
+  // Not known yet whether the chooser is needed (plain index.html, region config loading):
+  // cover the page empty so a first-time visitor never sees the Vorarlberg calendar first.
+  if (regionChooserPending) {
+    return createPortal(
+      <div
+        ref={backdropRef}
+        className="region-chooser-backdrop"
+        data-testid="region-chooser-pending"
+      >
+        <div className="loading-spinner" role="status" aria-label="Lädt" />
+      </div>,
+      document.body
+    );
+  }
 
   const subpath = pathname === '/verzeichnis' ? '/verzeichnis' : '/';
 
