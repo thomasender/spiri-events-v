@@ -929,7 +929,7 @@ export default function EventDetailPage() {
               {getEventDistrict(event) ? (
                 <>
                   <DistrictBadge district={getEventDistrict(event)} />
-                  {getEventCityName(event) && ` ${getEventCityName(event)}`}
+                  {getEventCityName(event) && ` ${getEventLocationLabel(event)}`}
                 </>
               ) : (
                 getEventLocationLabel(event) || eventRegionName(event, regions)

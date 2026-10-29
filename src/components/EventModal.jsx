@@ -213,7 +213,7 @@ export default function EventModal({ event, onClose }) {
                 {getEventDistrict(event) ? (
                   <>
                     <DistrictBadge district={getEventDistrict(event)} />
-                    {getEventCityName(event) && ` ${getEventCityName(event)}`}
+                    {getEventCityName(event) && ` ${getEventLocationLabel(event)}`}
                   </>
                 ) : (
                   getEventLocationLabel(event)

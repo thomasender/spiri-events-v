@@ -188,7 +188,9 @@ describe('EventModal location', () => {
     );
     expect(screen.getByText('Ort')).toBeInTheDocument();
     expect(screen.getByTestId('district-badge')).toHaveTextContent('Feldkirch');
-    expect(screen.getByText('Ort').parentElement).toHaveTextContent('Feldkirch Altach');
+    expect(screen.getByText('Ort').parentElement).toHaveTextContent(
+      'Feldkirch Altach (Bez. Feldkirch)'
+    );
     unmount();
     render(
       <EventModal
@@ -197,7 +199,9 @@ describe('EventModal location', () => {
       />
     );
     expect(screen.getByTestId('district-badge')).toHaveTextContent('München');
-    expect(screen.getByText('Ort').parentElement).toHaveTextContent('München Garching');
+    expect(screen.getByText('Ort').parentElement).toHaveTextContent(
+      'München Garching (Lkr. München)'
+    );
   });
 
   it('falls back to the district for events without a city', () => {
