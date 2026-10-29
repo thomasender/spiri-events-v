@@ -18,6 +18,7 @@ import {
   unmetConditionTexts,
   unmetFromError,
 } from '../utils/regionActivation';
+import { regionCanonicalPath } from '../utils/regionRouting';
 import { searchCultureRegions } from '../utils/cultureRegionSearch';
 import ConfirmDialog from './ConfirmDialog';
 import './ModerationTab.css';
@@ -315,6 +316,13 @@ export default function RegionsTab() {
                           <div>
                             <dt>{bezirkeLabel}</dt>
                             <dd>{bezirkeCount}</dd>
+                          </div>
+                          <div>
+                            <dt>Adresse (URL)</dt>
+                            <dd data-testid="region-url">
+                              {window.location.origin}
+                              {regionCanonicalPath(region.id, '/', registry)}
+                            </dd>
                           </div>
                           <div>
                             <dt>Kontakt</dt>

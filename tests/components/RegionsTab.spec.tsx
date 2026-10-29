@@ -141,6 +141,18 @@ describe('RegionsTab', () => {
     expect(within(vbg).getByTestId('region-contact')).toHaveTextContent('–');
   });
 
+  it('shows the current address of every region', async () => {
+    render(<RegionsTab />);
+    const origin = window.location.origin;
+    expect(within(await row('tirol')).getByTestId('region-url')).toHaveTextContent(
+      `${origin}/tirol`
+    );
+    // Only Vorarlberg is active: it keeps the plain address.
+    expect(within(await row('vorarlberg')).getByTestId('region-url').textContent).toBe(
+      `${origin}/`
+    );
+  });
+
   it('groups the regions by country in foldable sections with a count', async () => {
     render(<RegionsTab />);
     const at = screen.getByRole('button', { name: /Österreich/ });
