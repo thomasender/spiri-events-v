@@ -5,7 +5,13 @@
  * the same cases against the two copies.
  */
 
-import { REGION_DATA } from './regionData';
+import { LEGACY_BEZIRKE, REGION_DATA } from './regionData';
+
+/** Register Bezirke plus the legacy pseudo-Bezirke of old events (Vorarlberg's "Grenznahe"). */
+const withLegacyBezirke = (slug: string, bezirke: readonly string[]): string[] => [
+  ...bezirke,
+  ...(LEGACY_BEZIRKE[slug] ?? []),
+];
 
 export const DEFAULT_REGION_ID = 'vorarlberg';
 
@@ -50,7 +56,7 @@ export const LEGACY_REGION_ALIASES: Readonly<Record<string, string>> = { allgaeu
  * tests/lib/functionsRegions.spec.ts.
  */
 export const DIRECTORY_REGIONS: readonly string[] = [
-  ...new Set(REGION_DATA.flatMap((r) => r.bezirke)),
+  ...new Set(REGION_DATA.flatMap((r) => withLegacyBezirke(r.slug, r.bezirke))),
   'Online',
 ];
 
@@ -214,7 +220,7 @@ const STATIC_NAMES: Record<string, string> = Object.fromEntries(
 
 /** Bezirke known without Firestore (copy of the register data in src/utils/regions.js). */
 export const STATIC_REGION_BEZIRKE: Record<string, readonly string[]> = Object.fromEntries(
-  REGION_DATA.map((r) => [r.slug, r.bezirke])
+  REGION_DATA.map((r) => [r.slug, withLegacyBezirke(r.slug, r.bezirke)])
 );
 
 const STATIC_TIMEZONES: Record<string, string> = Object.fromEntries(

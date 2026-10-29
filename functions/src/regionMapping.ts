@@ -6,10 +6,10 @@
  * KEEP BOTH IN SYNC: tests/lib/functionsRegionMapping.spec.ts runs the same
  * cases against both copies.
  */
-import { REGION_DATA } from './regionData';
+import { LEGACY_BEZIRKE, REGION_DATA } from './regionData';
 
-/** Not a real district: Vorarlberg keeps it for existing events. Never moved. */
-export const FIXED_DISTRICTS: readonly string[] = ['Grenznahe'];
+/** Not real districts: legacy pseudo-Bezirke (Vorarlberg's "Grenznahe") of old events. Never moved. */
+export const FIXED_DISTRICTS: readonly string[] = Object.values(LEGACY_BEZIRKE).flat();
 
 export interface CatalogDistrict {
   key: string;
@@ -61,7 +61,7 @@ export function buildMappingRegisters(docs: Array<{ id: string; data: Doc }>): M
     const bezirke =
       d && Array.isArray(d.bezirke) && (d.bezirke.length > 0 || d.mappingUpdatedAt)
         ? (d.bezirke as string[])
-        : [...r.bezirke];
+        : [...r.bezirke, ...(LEGACY_BEZIRKE[r.slug] ?? [])];
     return {
       id: r.slug,
       name: typeof d?.name === 'string' && d.name ? d.name : r.name,

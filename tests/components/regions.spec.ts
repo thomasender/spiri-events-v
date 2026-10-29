@@ -22,11 +22,15 @@ import {
   instagramChannels,
   instagramProfileUrl,
   bezirkLabel,
+  isLegacyBezirk,
+  LEGACY_BEZIRKE,
   pickEventRegionId,
   resolveDirectoryRegionIds,
   resolveRegionId,
+  selectableBezirke,
 } from '../../src/utils/regions.js';
 import { getEventLocationLabel } from '../../src/utils/eventFormat';
+import { REGION_DATA } from '../../src/data/regionData';
 import { isReservedUsername } from '../../src/utils/username';
 import { planMappingChange } from '../../src/utils/regionMapping';
 import {
@@ -206,6 +210,14 @@ describe('bezirkLabel', () => {
     expect(BEZIRKE).toContain('Grenznahe');
     expect(bezirkLabel('Grenznahe')).toBe('Umgebung');
     expect(getEventLocationLabel({ bezirk: 'Grenznahe' })).toBe('Umgebung');
+  });
+
+  it('keeps "Grenznahe" only as a legacy entry, out of the generated register', () => {
+    expect(REGION_DATA.find((r) => r.slug === 'vorarlberg')!.bezirke).not.toContain('Grenznahe');
+    expect(LEGACY_BEZIRKE).toEqual({ vorarlberg: ['Grenznahe'] });
+    expect(isLegacyBezirk('Grenznahe')).toBe(true);
+    expect(isLegacyBezirk('Dornbirn')).toBe(false);
+    expect(selectableBezirke(BEZIRKE)).toEqual(['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz']);
   });
 
   it('leaves other districts untouched', () => {

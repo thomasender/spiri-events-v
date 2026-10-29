@@ -10,7 +10,7 @@ export const REGION_DATA = [
     country: 'AT',
     subdivisionLabel: 'Bezirk',
     timezone: 'Europe/Vienna',
-    bezirke: ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe'],
+    bezirke: ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz'],
     home: true,
   },
   {
@@ -2005,3 +2005,8 @@ export const REGION_DATA = [
     macro: 'Südwesten',
   },
 ];
+
+// Legacy pseudo-Bezirke per region (stored on old events only, never offered for new ones).
+export const LEGACY_BEZIRKE = {
+  vorarlberg: ['Grenznahe'],
+};
