@@ -187,7 +187,8 @@ export function mixDirectoryEntries(entries, random = Math.random) {
     const pool = (wantMember && members.length > 0) || others.length === 0 ? members : others;
     head.push(pool.shift());
   }
-  return [...head, ...shuffled([...members, ...others], random)];
+  // Shuffle the head again so the members are spread over all its places.
+  return [...shuffled(head, random), ...shuffled([...members, ...others], random)];
 }
 
 // Random order, so the same people are not always on top. `ranks` is a Map

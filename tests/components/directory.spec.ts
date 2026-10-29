@@ -193,10 +193,28 @@ describe('mixDirectoryEntries', () => {
     const list = [...people(2, true, 'm'), ...people(8, false, 'n')];
     // random 0 < 0.6: every head place wants a member; 3 places, only 2 members.
     const head = mixDirectoryEntries(list, () => 0).slice(0, 3);
-    expect(head.map((e) => e.clubMember)).toEqual([true, true, false]);
+    expect(head.filter((e) => e.clubMember)).toHaveLength(2);
+    expect(head.filter((e) => !e.clubMember)).toHaveLength(1);
     // random 0.99 >= 0.6: no head place goes to a member.
     const noMembers = mixDirectoryEntries(list, () => 0.99).slice(0, 3);
     expect(noMembers.every((e) => !e.clubMember)).toBe(true);
+  });
+
+  it('spreads the head members over the whole head instead of stacking them on top', () => {
+    const list = [...people(500, true, 'm'), ...people(500, false, 'n')];
+    const head = mixDirectoryEntries(list, seeded(5)).slice(0, 300);
+    const places = head.map((e, i) => (e.clubMember ? i : -1)).filter((i) => i >= 0);
+    const mean = places.reduce((a, b) => a + b, 0) / places.length;
+    expect(mean).toBeGreaterThan(130);
+    expect(mean).toBeLessThan(170);
+    // Members show up in every third of the head, not only in the first one.
+    for (const [from, to] of [
+      [0, 100],
+      [100, 200],
+      [200, 300],
+    ]) {
+      expect(places.filter((i) => i >= from && i < to).length).toBeGreaterThan(40);
+    }
   });
 
   it('works with only members, only non-members and an empty list', () => {

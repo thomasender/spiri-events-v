@@ -7,14 +7,19 @@
   bottom: 0;
   z-index: 1;
   box-sizing: border-box;
-  width: clamp(var(--space-2-5), 38%, var(--space-6));
+  --member-badge-size: clamp(var(--space-2-5), 38%, var(--space-6));
+  width: var(--member-badge-size);
+  height: var(--member-badge-size);
+  min-width: var(--space-2-5);
+  min-height: var(--space-2-5);
+  flex: none;
   aspect-ratio: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 10%;
+  padding: 3%;
   border-radius: 50%;
-  background: var(--accent-primary);
+  background: var(--accent-create-event);
   color: var(--bg-calendar);
   box-shadow: 0 0 0 var(--space-0-5) var(--bg-calendar);
   cursor: help;
@@ -32,7 +37,7 @@
 }
 
 .club-member-icon-center {
-  fill: var(--accent-create-event);
+  fill: var(--accent-create-event-hover);
 }
 
 .member-badge-frame {
