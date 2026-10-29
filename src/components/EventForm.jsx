@@ -1752,7 +1752,8 @@ export default function EventForm({ event }) {
             handleOverride={instagramHandleOverride}
             onHandleOverrideChange={setInstagramHandleOverride}
             regionId={pickEventRegionId(
-              formData.placeRegionId || (regionChoices.enabled ? selectedRegion : formData.regionId),
+              formData.placeRegionId ||
+                (regionChoices.enabled ? selectedRegion : formData.regionId),
               event
             )}
           />

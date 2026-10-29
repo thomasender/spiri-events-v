@@ -1768,7 +1768,9 @@ export default function EventFormWizard() {
           <h4>Details</h4>
           <p>
             <strong>{formData.category}</strong> •{' '}
-            {formData.isOnline ? 'Online' : formatCityWithBezirk(
+            {formData.isOnline
+              ? 'Online'
+              : formatCityWithBezirk(
                   formData.city,
                   formData.bezirk,
                   getSubdivisionLabel(eventRegionId, regionChoices.allRegions)
