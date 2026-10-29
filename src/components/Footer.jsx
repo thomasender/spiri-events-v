@@ -5,6 +5,7 @@ import { requestConsentBanner } from '../lib/analyticsConsent';
 import { COPYRIGHT_NOTICE } from '../config/brand';
 import { useRegion } from '../hooks/useRegion';
 import { useAuth } from '../hooks/useAuth';
+import DonateLink from './DonateLink';
 import { RegionPickButton } from './RegionSwitcher';
 import { aboutPathFor } from '../utils/regionRouting';
 import './Footer.css';
@@ -49,13 +50,7 @@ export default function Footer() {
       <div className="footer-container">
         <span className="footer-copy">{COPYRIGHT_NOTICE}</span>
         <nav className="footer-nav" aria-label="Footer-Navigation">
-          <Link
-            to={`${aboutPath}#spenden`}
-            className="footer-donate-link"
-            data-testid="footer-donate-link"
-          >
-            Den Kalender unterstützen
-          </Link>
+          <DonateLink className="footer-donate-link" testId="footer-donate-link" />
           <Link to={aboutPath}>Über uns</Link>
           {showInstallLink && (
             <button
