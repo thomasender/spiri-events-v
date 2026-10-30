@@ -613,8 +613,8 @@ export default function EventFormWizard() {
   };
 
   const [regionDialogOpen, setRegionDialogOpen] = useState(false);
-  // The Bezirk / Landkreis select only shows while the Ort did not decide it (Trello NA3phFDy),
-  // or once the person picked one in it themselves.
+  // The Bezirk / Landkreis select is hidden by default. It shows only once an Ort was entered
+  // that did not decide it (Trello NA3phFDy), or once the person picked one in it themselves.
   const [bezirkPicked, setBezirkPicked] = useState(false);
   // "Finde meinen Bezirk nicht" opens the region dialog instead of setting a value.
   const handleBezirkChange = (e) => {
@@ -1326,7 +1326,7 @@ export default function EventFormWizard() {
               error={errors.city}
               onChange={handleCityChange}
             />
-            {(!formData.bezirk || bezirkPicked) && (
+            {((formData.city.trim() && !formData.bezirk) || bezirkPicked || errors.bezirk) && (
               <div className="form-group">
                 <label htmlFor="bezirk">{subdivisionLabel}</label>
                 <select
