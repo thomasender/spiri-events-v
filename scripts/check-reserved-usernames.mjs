@@ -27,8 +27,8 @@ if (process.argv.includes('--prod')) {
 }
 const db = getFirestore();
 
-// Region addresses, combined views (`/oesterreich`, `/schweiz`, `/alle-tribes`) and the
-// addresses of former regions / views (`/bayern`, `/luzern`, `/deutschland`, ...) are
+// Region addresses, combined views (`/oesterreich`, `/deutschland`, `/schweiz`, `/alle-tribes`) and the
+// addresses of former regions / views (`/bayern`, `/luzern`, ...) are
 // reserved by isReservedUsername; listed here so the check visibly covers them.
 console.log(`Region slugs: ${REGION_SLUGS.join(', ')}`);
 console.log(`Combined views: ${COMBINED_VIEW_SLUGS.join(', ')}`);

@@ -78,6 +78,30 @@ describe('region ids', () => {
     await assertFails(
       updateDoc(doc(db, 'users/member'), { directoryRegionIds: ['allgaeu-schwaben'] })
     );
+    await assertFails(updateDoc(doc(db, 'users/member'), place('bayern')));
+  });
+
+  it('German regions of deutschland.csv are valid region ids (incl. reused old ids)', async () => {
+    const db = member().firestore();
+    await assertSucceeds(updateDoc(doc(db, 'users/member'), place('allgaeu')));
+    await assertSucceeds(updateDoc(doc(db, 'users/member'), place('lauenburg')));
+    // Ten ids (the maximum), the last ones of the long list: hasOnly() stays within budget.
+    await assertSucceeds(
+      updateDoc(doc(db, 'users/member'), {
+        directoryRegionIds: [
+          'vorarlberg',
+          'luebecker-bucht',
+          'region-neumuenster',
+          'unterelbe',
+          'kiel-foerde',
+          'flensburger-foerde',
+          'westkueste',
+          'lauenburg',
+          'zuerich',
+          'liechtenstein',
+        ],
+      })
+    );
   });
 
   it('a client cannot invent a region document or a custom-region list', async () => {

@@ -227,7 +227,7 @@ export function eventPosition(event, index, regions = []) {
   // An Ort outside the region's own districts ("Vaduz" for Vorarlberg's "Grenznahe", or no
   // Bezirk at all): the namesake nearest to the region. "Grenznahe" means right across the
   // border, so a namesake farther than LEGACY_NAMESAKE_KM away is not it (an old "Lindau" event
-  // of Vorarlberg must not land in Lindau ZH now that German places are not in the list):
+  // of Vorarlberg must land in Lindau (Bodensee), never in the namesake Lindau ZH):
   // the region centre instead.
   if (!pick && candidates.length > 0 && bezirks.length === 0 && centre) {
     const km = (p) => haversineKm(p.lat, p.lon, centre.lat, centre.lon);

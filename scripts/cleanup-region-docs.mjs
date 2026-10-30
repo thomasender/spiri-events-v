@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // One-off cleanup after the switch to the CSV region register (Trello QG0GR5lv): regions and
-// districts are defined only by scripts/data/regions/*.csv, Germany and the merged Swiss
-// cantons are no longer regions. DRY RUN by default; `--apply` writes.
+// districts are defined only by scripts/data/regions/*.csv; the old German Bundesländer /
+// cultural regions not in deutschland.csv and the merged Swiss cantons are no longer regions
+// (ids that are regions again, e.g. `allgaeu`, count as regions). DRY RUN by default;
+// `--apply` writes.
 //
 //   1. REPORTS (never changes) events / profiles / moderators / helpers / donors whose
 //      `regionId`, `directoryRegionIds` or `regionIds` point to an id that is no longer a
@@ -91,6 +93,7 @@ const stale = docs
 for (const { id, fields } of stale) console.log(`regions/${id}: delete ${fields.join(', ')}`);
 for (const id of plan.deactivate) console.log(`regions/${id}: former region, set active: false`);
 if (plan.retired.length) console.log(`former region docs (kept): ${plan.retired.join(', ')}`);
+if (plan.live.length) console.log(`ACTIVE region docs besides vorarlberg: ${plan.live.join(', ')}`);
 const missing = plan.create.map((c) => c.id);
 if (missing.length) {
   console.log(`register regions without doc (run scripts/seed-regions.mjs): ${missing.join(', ')}`);

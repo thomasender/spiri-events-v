@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-// Builds the static region register from the three country CSVs in scripts/data/regions/
-// (oesterreich.csv, schweiz.csv, liechtenstein.csv; a deutschland.csv can be added later).
+// Builds the static region register from the four country CSVs in scripts/data/regions/
+// (oesterreich.csv, deutschland.csv, schweiz.csv, liechtenstein.csv; two layouts, see
+// scripts/lib/regionRegister.mjs).
 // They are the ONLY source of regions and districts. Writes
 //   src/data/regionData.js          (client)
 //   functions/src/regionData.ts     (Cloud Functions copy; functions/ cannot import src/)
