@@ -169,7 +169,7 @@ sanitized copy of production data. Project id `tribe-vbg-staging` (alias
      same with `--apply`: deletes `name`, `slug`, `bezirke`, `mappingUpdatedAt`, `custom`,
      `country`, `inPhrase`, `forPhrase`, `demonym`, `subdivisionLabel` of the register docs,
      sets former region docs `active: false`, deletes `app_settings/customRegions`.
-     `--apply` on production is refused by the script until staging is checked.
+     `--apply` on production needs a production backup from today (or `--force`); dry-run it first with `--prod`.
   3. `node scripts/backfill-event-positions.mjs` with `PROJECT_ID=tribe-vbg-staging` (dry
      run, then `--write`; `--all` recomputes every event): positions from the new place
      list (German places are back, so old Vorarlberg "Grenznahe" events with Ort "Lindau" get
