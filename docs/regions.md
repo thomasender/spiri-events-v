@@ -71,7 +71,9 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
   `shouldOpenRegionChooser` in `regionRouting.js`; while the `regions` collection is still loading
   it relies on `<meta name="tribe-region-mode" content="multi">`, which the prerendered `/` carries
   only with two or more active regions, so a first-time visitor never sees the Vorarlberg calendar
-  flash first (Trello eFPKzCr7; a stale hint after (de)activation lasts until the next rebuild).
+  flash first (Trello eFPKzCr7). Switching a region on or off therefore rebuilds Hosting at once
+  (`onRegionWriteTriggerBuild`, no debounce); until that deploy is live (about 3 to 5 minutes) the
+  old `/` still carries the old hint and a first-time visitor can see the flash.
   Builds without the prerender (staging, dev) ship the plain `index.html` with `content="unknown"`:
   there a first-time visitor on `/` or `/verzeichnis` gets an empty cover (`regionChooserPending`)
   until the config has loaded, then the chooser or, with one active region, the calendar;
@@ -632,9 +634,11 @@ only. Only public fields are kept (never `contactEmail`).
   `noindex`. Combined views are not prerendered or in the sitemap; unavailable
   ones are `noindex` (coming soon). `/` stays the Vorarlberg page (not
   region-neutral yet).
-- A region only shows up in the prerender after the next build; activation
-  triggers no rebuild by itself (the 6-hour scheduled rebuild or any event change
-  does).
+- A region only shows up in the prerender after the next build. Switching a region
+  on or off (`regions/{id}.active` changes) starts that build at once
+  (`onRegionWriteTriggerBuild` in `functions/src/triggerBuild.ts`, rule
+  `regionActiveChanged`), so the region pages, the sitemap and the region-mode hint on
+  `/` follow within one build cycle.
 
 ## 9. ICS feed
 
