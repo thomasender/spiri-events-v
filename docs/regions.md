@@ -220,12 +220,25 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
     now belongs to the region `liechtenstein`; while that is inactive such an event is not
     findable, like any place of an inactive region; the same now holds for German places again:
     "Lindau (Bodensee)" or "Konstanz" picked on the Vorarlberg page puts the event into the
-    inactive region `bodensee`, while a typed, ambiguous "Lindau" (also Lindau ZH) stays in
-    Vorarlberg). Unknown places (outside AT / DE / CH / LI, free text) stay in the current region
-    with an EMPTY Bezirk (allowed; no "Umgebung" any more). The Ort field (`CityField`): Vorarlberg, and every event while only one
-    region is active, uses the Gemeinde picker, which also suggests places of all regions from
-    `placeIndex.json` (lazy `loadPlaceIndex` after two letters) and takes other text over as typed;
-    in other regions (two or more active) it is a combobox suggesting places of all regions, the
+    inactive region `bodensee`; an ambiguous name such as "Lindau" is told apart by the suggestion
+    the person picks, with district / region in brackets).
+  - **The Ort must be PICKED (Trello QG0GR5lv).** Free text is no longer valid: typing only
+    filters the suggestions; leaving the field / Enter with typed text takes the TOP suggestion,
+    and without any match the form shows "Bitte wähle einen Ort aus der Liste." and does not
+    save (pure `validatePlaceChoice`, `topPlaceChoice` in `placeDistrict.js`; `CityField`
+    reports `picked` and the forms keep `cityPicked`). Places outside the list (outside DACH,
+    unknown villages) can therefore not be entered any more. `placeAssignment` stays for READING
+    old data. **Legacy edit rule:** an event being edited whose stored Ort is in no list (old
+    free text, e.g. "Ruggell", legacy "Grenznahe") opens with that Ort shown and saves
+    unchanged; the rule applies only once the Ort field is changed (`original` of
+    `validatePlaceChoice`). Old wizard drafts with a Gemeinde or a picked place still pass. The
+    one-off staging tool `scripts/realign-event-regions.mjs` (dry run by default, `--apply`,
+    `--project tribe-vbg-staging` only) re-places events by their Ort or deletes unresolvable
+    ones and cleans `directoryRegionIds` / `directoryRegions` / `admin_users.regionIds`
+    (planning in `src/utils/eventRealign.js`). The Ort field (`CityField`): Vorarlberg, and every
+    event while only one region is active, uses the Gemeinde picker, which also suggests places
+    of all regions from `placeIndex.json` (lazy `loadPlaceIndex` after two letters); in other
+    regions (two or more active) it is a combobox suggesting places of all regions, the
     form's region first, next to a Bezirk / Landkreis select (not required; an offered region
     follows the picked place, the select stays editable). When the place belongs to another region
     a hint shows under the Ort: inactive -> "Dieser Ort gehört zur Region X, die noch nicht
