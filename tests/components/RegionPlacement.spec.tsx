@@ -151,3 +151,43 @@ describe('region about text', () => {
     expect(customAboutText({ aboutText: ' <p>a</p> ' })).toBe('<p>a</p>');
   });
 });
+
+describe('Verwaltung header while the chosen region is not open yet (gflD7CXa)', () => {
+  const place = (regionId: string) =>
+    JSON.stringify({
+      label: 'Wiener Neustadt',
+      lat: 47.8,
+      lon: 16.2,
+      radiusKm: 25,
+      regionId,
+      source: 'search',
+      updatedAt: 1,
+    });
+
+  beforeEach(() => {
+    window.localStorage.setItem('tribe:regionChooserSeen', '1');
+    mocks.regions = { regions: TWO_ACTIVE, loading: false };
+    mocks.auth = { role: 'User', user: { uid: 'u1' } };
+  });
+
+  const renderAdminHeader = () =>
+    render(
+      <MemoryRouter initialEntries={['/admin']}>
+        <RegionProvider>
+          <Header />
+        </RegionProvider>
+      </MemoryRouter>
+    );
+
+  it('shows the neutral header in Verwaltung for a region that is not open yet', () => {
+    window.localStorage.setItem('tribe:placeSelection', place('niederoesterreich'));
+    renderAdminHeader();
+    expect(screen.getByText('Dein Kalender')).toBeInTheDocument();
+  });
+
+  it('keeps the region header in Verwaltung for an active region', () => {
+    window.localStorage.setItem('tribe:placeSelection', place('tirol'));
+    renderAdminHeader();
+    expect(screen.queryByText('Dein Kalender')).toBeNull();
+  });
+});
