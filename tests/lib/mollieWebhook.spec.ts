@@ -14,6 +14,9 @@ import {
   ledgerIdForPayment,
   viennaDateString,
   donationCurrencyForRegion,
+  donationNoticeId,
+  donationNoticeText,
+  donationNoticeRecipients,
 } from '../../functions/src/mollieWebhookLogic';
 
 function makeSnapshot(exists, fields = {}, docs = []) {
@@ -929,5 +932,92 @@ describe('donationCurrencyForRegion', () => {
     expect(donationCurrencyForRegion('bern')).toBe('CHF');
     expect(donationCurrencyForRegion('vorarlberg')).toBe('EUR');
     expect(donationCurrencyForRegion('bayern')).toBe('EUR');
+  });
+});
+
+describe('donation notice for the staff', () => {
+  const body = (payment: Record<string, unknown>) => ({
+    format: 'next-gen' as const,
+    type: 'payment.paid',
+    eventId: 'event_n',
+    payment: { status: 'paid', amount: { value: '25.00', currency: 'CHF' }, ...payment } as never,
+  });
+
+  it('sends one notice per paid payment with region, currency and public name', async () => {
+    const notifyDonation = vi.fn(async () => {});
+    await processMollieWebhook({
+      body: body({
+        id: 'tr_n1',
+        sequenceType: 'oneoff',
+        metadata: { displayOnConsent: true, donorName: 'Anna', regionId: 'zuerich' },
+      }),
+      db: makeDb().db as never,
+      notifyDonation,
+    });
+    expect(notifyDonation).toHaveBeenCalledTimes(1);
+    expect(notifyDonation).toHaveBeenCalledWith({
+      id: donationNoticeId('tr_n1'),
+      regionId: 'zuerich',
+      amount: '25.00',
+      currency: 'CHF',
+      donorName: 'Anna',
+      frequency: 'one-time',
+    });
+  });
+
+  it('is anonymous without consent and also fires for recurring payments', async () => {
+    const notifyDonation = vi.fn(async () => {});
+    const result = await processMollieWebhook({
+      body: body({
+        id: 'tr_n2',
+        subscriptionId: 'sub_n',
+        sequenceType: 'recurring',
+        metadata: { donorName: 'Heimlich' },
+      }),
+      db: makeDb().db as never,
+      notifyDonation,
+    });
+    expect(result.status).toBe(200);
+    expect(notifyDonation).toHaveBeenCalledWith(
+      expect.objectContaining({ donorName: null, frequency: 'monthly' })
+    );
+  });
+
+  it('does not notify for unpaid payments and survives a failing notifier', async () => {
+    const notifyDonation = vi.fn(async () => {
+      throw new Error('boom');
+    });
+    const ok = await processMollieWebhook({
+      body: body({ id: 'tr_n3', sequenceType: 'oneoff', metadata: {} }),
+      db: makeDb().db as never,
+      notifyDonation,
+    });
+    expect(ok.status).toBe(200);
+    expect(notifyDonation).toHaveBeenCalledTimes(1);
+    const none = vi.fn(async () => {});
+    await processMollieWebhook({
+      body: body({ id: 'tr_n4', status: 'open', metadata: {} }),
+      db: makeDb().db as never,
+      notifyDonation: none,
+    });
+    expect(none).not.toHaveBeenCalled();
+  });
+
+  it('writes short German text, naming the region only when asked to', () => {
+    const n = { amount: '25.00', currency: 'CHF', donorName: null, frequency: 'one-time' } as const;
+    expect(donationNoticeText(n, null)).toBe('Neue Spende: 25,00 CHF von anonym');
+    expect(donationNoticeText({ ...n, donorName: 'Anna', frequency: 'monthly' }, 'Zürich')).toBe(
+      'Neue Spende: 25,00 CHF von Anna, monatlich, Zürich'
+    );
+  });
+
+  it('notifies Super-Admins and the moderators of that region only', () => {
+    const roles = [
+      { id: 'a', data: { role: 'Admin' } },
+      { id: 'm1', data: { role: 'RegionModerator', regionIds: ['zuerich'] } },
+      { id: 'm2', data: { role: 'RegionModerator', regionIds: ['tirol'] } },
+      { id: 'x', data: undefined },
+    ];
+    expect(donationNoticeRecipients(roles, 'zuerich')).toEqual(['a', 'm1']);
   });
 });

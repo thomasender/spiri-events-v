@@ -427,6 +427,7 @@ export async function processMollieWebhook({
   fetchCustomer,
   ensureSubscription,
   reportFailure,
+  notifyDonation,
   db,
   now = () => new Date(),
 }: ProcessMollieWebhookDeps): Promise<ProcessMollieWebhookResult> {
@@ -460,6 +461,7 @@ export async function processMollieWebhook({
       fetchCustomer,
       ensureSubscription,
       reportFailure,
+      notifyDonation,
     });
   }
 
@@ -483,6 +485,7 @@ export async function processMollieWebhook({
         fetchCustomer,
         ensureSubscription,
         reportFailure,
+        notifyDonation,
       });
     } catch (err) {
       await reportFailure?.({
@@ -529,6 +532,7 @@ async function handlePaidWebhookPayment({
   fetchCustomer,
   ensureSubscription,
   reportFailure,
+  notifyDonation,
 }: {
   payment: MolliePaymentResource;
   db: FirestoreLikeDb;
@@ -536,6 +540,7 @@ async function handlePaidWebhookPayment({
   fetchCustomer?: CustomerFetcher;
   ensureSubscription?: SubscriptionEnsurer;
   reportFailure?: PaymentFailureReporter;
+  notifyDonation?: DonationNotifier;
 }): Promise<ProcessMollieWebhookResult> {
   // Books first and fully isolated: also covers the recurring payments that
   // the donor flow below skips. Cannot change the response.
@@ -547,6 +552,7 @@ async function handlePaidWebhookPayment({
   });
 
   if (payment.subscriptionId && payment.sequenceType && payment.sequenceType !== 'first') {
+    await sendDonationNotice({ db, payment, notifyDonation });
     return { status: 200, body: { received: true, action: 'skip-recurring' } };
   }
 
@@ -583,7 +589,113 @@ async function handlePaidWebhookPayment({
 
   await enrichPaymentFromCustomerIfNeeded({ payment, fetchCustomer });
   const result = await handlePaidPayment({ db, payment, now });
+  await sendDonationNotice({ db, payment, notifyDonation });
   return { status: 200, body: { received: true, ...result } };
+}
+
+// ---------------------------------------------------------------------------
+// In-app notice to the staff for every paid donation (bell, kind 'donation')
+// ---------------------------------------------------------------------------
+
+export interface DonationNotice {
+  /** One notice per Mollie payment: also the id of the bell document. */
+  id: string;
+  regionId: string;
+  amount: string;
+  currency: DonationCurrency;
+  /** Only when the donor agreed to be shown publicly; otherwise null ("anonym"). */
+  donorName: string | null;
+  frequency: 'monthly' | 'one-time';
+}
+
+export type DonationNotifier = (notice: DonationNotice) => Promise<void>;
+
+export function donationNoticeId(paymentId: string): string {
+  return `donation_${paymentId}`;
+}
+
+/** "Neue Spende: 25,00 CHF (anonym), Tirol" - region only while several regions are active. */
+export function donationNoticeText(
+  notice: Pick<DonationNotice, 'amount' | 'currency' | 'donorName' | 'frequency'>,
+  regionName: string | null
+): string {
+  const amount = Number(notice.amount).toLocaleString('de-AT', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  const monthly = notice.frequency === 'monthly' ? ', monatlich' : '';
+  const region = regionName ? `, ${regionName}` : '';
+  return `Neue Spende: ${amount} ${notice.currency} von ${notice.donorName || 'anonym'}${monthly}${region}`;
+}
+
+/** Super-Admins plus the Regions-Moderator:innen of `regionId` (docs/regions.md). */
+export function donationNoticeRecipients(
+  roleDocs: Array<{ id: string; data: Record<string, unknown> | undefined }>,
+  regionId: string
+): string[] {
+  return roleDocs
+    .filter(({ data }) => {
+      if (!data) return false;
+      if (data.role === 'Admin') return true;
+      return (
+        data.role === 'RegionModerator' &&
+        Array.isArray(data.regionIds) &&
+        (data.regionIds as unknown[]).includes(regionId)
+      );
+    })
+    .map((d) => d.id);
+}
+
+/**
+ * Builds the notice for a paid payment and hands it to `notifyDonation`. Never
+ * throws: a failed notice must not change the webhook answer (Mollie would retry).
+ * Region and public name come from the donor doc when there is one (recurring
+ * payments carry no metadata), else from the payment metadata.
+ */
+async function sendDonationNotice({
+  db,
+  payment,
+  notifyDonation,
+}: {
+  db: FirestoreLikeDb;
+  payment: MolliePaymentResource;
+  notifyDonation?: DonationNotifier;
+}): Promise<void> {
+  if (!notifyDonation || payment.status !== 'paid') return;
+  try {
+    const currency = payment.amount?.currency;
+    const amount = parseEuroAmount(payment.amount);
+    if (!isDonationCurrency(currency) || amount === null || amount <= 0) return;
+    const metadata = asMetadata(payment.metadata);
+    const donor = await db
+      .collection('donors')
+      .doc(donorIdForPayment(payment.id, payment.subscriptionId))
+      .get();
+    const storedRegion = donor.exists ? donor.get('regionId') : undefined;
+    const storedName = donor.exists ? donor.get('name') : undefined;
+    const metaName = typeof metadata.donorName === 'string' ? metadata.donorName.trim() : '';
+    const donorName = donor.exists
+      ? typeof storedName === 'string'
+        ? storedName
+        : ''
+      : metadata.displayOnConsent
+        ? metaName
+        : '';
+    const isRecurring =
+      payment.sequenceType === 'recurring' ||
+      Boolean(payment.subscriptionId) ||
+      metadata.donationType === MONTHLY_DONATION_TYPE;
+    await notifyDonation({
+      id: donationNoticeId(payment.id),
+      regionId: isRegionId(storedRegion) ? storedRegion : donationRegionId(metadata.regionId),
+      amount: amount.toFixed(2),
+      currency,
+      donorName: donorName || null,
+      frequency: isRecurring ? 'monthly' : 'one-time',
+    });
+  } catch (err) {
+    console.error('donation notice failed', payment.id, err);
+  }
 }
 
 /**
@@ -735,6 +847,8 @@ export interface ProcessMollieWebhookDeps {
   fetchCustomer?: CustomerFetcher;
   ensureSubscription?: SubscriptionEnsurer;
   reportFailure?: PaymentFailureReporter;
+  /** In-app notice to the staff for a paid donation; failures never reach the webhook answer. */
+  notifyDonation?: DonationNotifier;
   db: FirestoreLikeDb;
   now?: () => Date;
 }

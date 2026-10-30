@@ -449,7 +449,9 @@ export default function Header() {
       {user ? (
         <>
           {chatLink}
-          {chatAvailable && <MentionBell uid={user.uid} variant="row" onNavigate={closeMenu} />}
+          {(chatAvailable || isStaff) && (
+            <MentionBell uid={user.uid} variant="row" onNavigate={closeMenu} />
+          )}
           {messengerLink(false)}
           {createLink()}
           {favoritesLink}
@@ -480,7 +482,7 @@ export default function Header() {
         {user ? (
           <>
             {createLink(' nav-link--create')}
-            {chatAvailable && <MentionBell uid={user.uid} />}
+            {(chatAvailable || isStaff) && <MentionBell uid={user.uid} />}
             {messengerLink(true)}
             <div className="account-menu" ref={accountRef}>
               <button
