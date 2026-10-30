@@ -188,23 +188,9 @@ describe('EventCard location (kgYQqmUo)', () => {
     expect(badge.getAttribute('data-tooltip')).toMatch(/Mitfahrgelegenheiten/);
   });
 
-  it('replaces the grey pin text with a coloured district badge', () => {
+  it('keeps the grey pin text and shows no district badge', () => {
     renderCard({ ...baseEvent, city: 'Lochau' });
-    const badge = screen.getByTestId('district-badge');
-    expect(badge).toHaveTextContent('Bregenz');
-    expect(badge.style.getPropertyValue('--district-color')).toBe('#B97860');
+    expect(screen.queryByTestId('district-badge')).toBeNull();
     expect(screen.getByText('Lochau')).toBeInTheDocument();
-  });
-
-  it('shows the Online colour for online events and Umgebung for the legacy Bezirk', () => {
-    const { unmount } = renderCard({ ...baseEvent, isOnline: true, bezirk: '' });
-    expect(screen.getByTestId('district-badge').style.getPropertyValue('--district-color')).toBe(
-      '#7C8792'
-    );
-    unmount();
-    renderCard({ ...baseEvent, bezirk: 'Grenznahe' });
-    const badge = screen.getByTestId('district-badge');
-    expect(badge).toHaveTextContent('Umgebung');
-    expect(badge.style.getPropertyValue('--district-color')).toBe('#7D8B76');
   });
 });

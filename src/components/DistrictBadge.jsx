@@ -5,7 +5,7 @@ import './DistrictBadge.css';
 // Small coloured label with the name of a Bezirk / Landkreis (or "Online"). The colour comes from
 // `useDistrictColors` (docs/design-tokens.md, "Bezirksfarben") and reaches the CSS as
 // `--district-color`; text is always white. Renders nothing without a district.
-export default function DistrictBadge({ district, className = '' }) {
+export default function DistrictBadge({ district, prefix = '', className = '' }) {
   const { colorFor } = useDistrictColors();
   if (!district) return null;
   const color = colorFor(district);
@@ -15,6 +15,7 @@ export default function DistrictBadge({ district, className = '' }) {
       style={color ? { '--district-color': color } : undefined}
       data-testid="district-badge"
     >
+      {prefix ? `${prefix}: ` : ''}
       {bezirkLabel(district)}
     </span>
   );

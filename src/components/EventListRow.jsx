@@ -6,8 +6,6 @@ import {
   formatWeekdayShort,
   formatEventDateRangeLabel,
   getEventCityLabel,
-  getEventCityName,
-  getEventDistrict,
   getOrganizerName,
   getPrimaryCategory,
   isMultiDayEvent,
@@ -17,7 +15,6 @@ import { trackEventOpen } from '../lib/analyticsEvents';
 import EventCoverImage from './EventCoverImage';
 import FavoriteButton from './FavoriteButton';
 import CancelledBadge from './CancelledBadge';
-import DistrictBadge from './DistrictBadge';
 import { MemberBadgeFrame } from './MemberBadge';
 import { isEntryCancelled } from '../utils/eventCancellation';
 import './EventListRow.css';
@@ -70,17 +67,8 @@ export default function EventListRow({ event, categoryColor, linkState, onClick 
             className={`event-row-location${event.isOnline ? ' event-row-location--online' : ''}`}
             data-testid={event.isOnline ? 'event-row-location-online' : undefined}
           >
-            {getEventDistrict(event) ? (
-              <>
-                <DistrictBadge district={getEventDistrict(event)} />
-                {getEventCityName(event) && <span>{getEventCityName(event)}</span>}
-              </>
-            ) : (
-              <>
-                <MapPin size={14} />
-                {locationLabel}
-              </>
-            )}
+            <MapPin size={14} />
+            {locationLabel}
             {!event.isOnline && event.place && ` · ${event.place}`}
           </span>
         )}
