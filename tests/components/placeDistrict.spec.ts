@@ -14,7 +14,7 @@ const bayern = STATIC_REGIONS.find((r) => r.id === 'bayern')!;
 const vorarlberg = STATIC_REGIONS.find((r) => r.id === 'vorarlberg')!;
 const byName = (name: string) => index.byName.get(name.toLowerCase())![0];
 
-// A cultural region "Allgäu" holding Oberallgäu (current assignment, Verwaltung -> "Zuordnung").
+// A cultural region "Allgäu" holding Oberallgäu (assignment given by the fixture).
 const withAllgaeu = STATIC_REGIONS.map((r) =>
   r.id === 'bayern'
     ? { ...r, bezirke: r.bezirke.filter((b: string) => b !== 'Oberallgäu') }

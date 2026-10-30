@@ -105,7 +105,7 @@ export function reconcileSelections(local, remote) {
 
 /**
  * Region a search hit belongs to: a region hit is the region itself, a place goes through its
- * district and the CURRENT assignment (Verwaltung -> "Zuordnung"), else its Bundesland / Kanton.
+ * district and the register assignment, else its Bundesland / Kanton.
  * `regions` is the merged register. Returns a region id or null.
  */
 export function regionIdForEntry(entry, regions) {

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { withDistricts } from '../helpers/withDistricts';
 import raw from '../../src/data/placeIndex.json';
 import {
   buildRegionEntries,
@@ -12,7 +13,7 @@ import {
   storedEventPosition,
 } from '../../src/utils/placeSearch';
 import { DISTRICT_CATALOG } from '../../src/utils/regionMapping';
-import { REGION_SLUGS, STATIC_REGIONS, mergeRegions } from '../../src/utils/regions';
+import { REGION_SLUGS, STATIC_REGIONS } from '../../src/utils/regions';
 
 // The real bundled list: it is what visitors search, so its shape is pinned here.
 const index = preparePlaceIndex(raw);
@@ -91,9 +92,7 @@ describe('searchPlaces', () => {
   });
 
   it('finds a cultural region once a Landkreis is assigned to it', () => {
-    const merged = mergeRegions([
-      { id: 'schwarzwald', bezirke: ['Calw', 'Freudenstadt'], mappingUpdatedAt: 1 },
-    ]);
+    const merged = withDistricts(STATIC_REGIONS, { schwarzwald: ['Calw', 'Freudenstadt'] });
     const entries = buildRegionEntries(index, merged);
     const hit = searchPlaces(index, entries, 'schwarzwald')[0];
     expect(hit).toMatchObject({ kind: 'region', regionId: 'schwarzwald' });

@@ -29,30 +29,16 @@ function RedirectOrWait({ redirect, path }) {
   return <Navigate to={redirectTargetPath(redirect, path, allRegions)} replace />;
 }
 
-// A slug that is no known region may still be a region a Super-Admin created in the
-// Verwaltung (those slugs arrive with the region config), so wait for it before showing a
-// profile or a 404.
-function UnknownSlugOrWait({ children }) {
-  const { loading } = useRegion();
-  if (loading) return <div className="loading-spinner" data-testid="region-loading" />;
-  return children;
-}
-
 /**
  * `/:slug`: a region address or a public profile. The fixed region slugs
- * (username.js reserves those) are decided synchronously; any other slug waits for
- * the region config in case it names a region created in the Verwaltung.
+ * (username.js reserves those) are decided synchronously; any other slug is a profile.
  */
 export function RegionOrProfileRoute() {
   const { slug } = useParams();
   const { allRegions } = useRegion();
   const { kind, region, view, redirect } = resolveTopLevelSlug(slug?.toLowerCase(), allRegions);
   if (kind === 'profile') {
-    return (
-      <UnknownSlugOrWait>
-        <PublicProfilePage />
-      </UnknownSlugOrWait>
-    );
+    return <PublicProfilePage />;
   }
   if (kind === 'redirect') return <RedirectOrWait redirect={redirect} path="/" />;
   if (kind === 'coming-soon') return <ComingSoonOrWait region={region} view={view} />;
@@ -68,11 +54,7 @@ export function RegionDirectoryRoute() {
     allRegions
   );
   if (kind === 'profile') {
-    return (
-      <UnknownSlugOrWait>
-        <ErrorPage type="not-found" />
-      </UnknownSlugOrWait>
-    );
+    return <ErrorPage type="not-found" />;
   }
   if (kind === 'redirect') return <RedirectOrWait redirect={redirect} path="/verzeichnis" />;
   if (kind === 'coming-soon') return <ComingSoonOrWait region={region} view={view} />;
@@ -98,11 +80,7 @@ export function RegionAboutRoute() {
     allRegions
   );
   if (kind === 'profile') {
-    return (
-      <UnknownSlugOrWait>
-        <ErrorPage type="not-found" />
-      </UnknownSlugOrWait>
-    );
+    return <ErrorPage type="not-found" />;
   }
   if (kind === 'redirect') return <RedirectOrWait redirect={redirect} path="/ueber-uns" />;
   if (kind === 'all-regions') return <Navigate to="/ueber-uns" replace />;

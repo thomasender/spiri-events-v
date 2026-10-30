@@ -22,7 +22,6 @@ import { regionCanonicalPath } from '../utils/regionRouting';
 import { searchCultureRegions } from '../utils/cultureRegionSearch';
 import ConfirmDialog from './ConfirmDialog';
 import './ModerationTab.css';
-import './CultureRegionPicker.css';
 import './RegionsTab.css';
 
 function personLabel(person) {

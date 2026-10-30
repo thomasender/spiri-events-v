@@ -109,8 +109,8 @@ const META = {
 
 // Cultural regions of Germany (ticket 516 of the product owner). They start EMPTY:
 // the 16 Bundeslaender above hold all Landkreise at first (the "backend structure",
-// `home: true`), and the product owner moves Landkreise into these regions in
-// Verwaltung -> "Zuordnung". A region without Landkreise is hidden everywhere.
+// `home: true`); regions and districts are defined only in code. A region without
+// Landkreise is hidden everywhere.
 // `macro` = the six Grossregionen of the map page (ticket 518). The slugs share the
 // top-level URL space with profiles (username.js reserves them).
 const MACRO_OF_STATE = {

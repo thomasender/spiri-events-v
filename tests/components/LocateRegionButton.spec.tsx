@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { withDistricts } from '../helpers/withDistricts';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { STATIC_REGIONS, mergeRegions } from '../../src/utils/regions';
@@ -190,17 +191,12 @@ describe('in the region chooser (real place list and border shapes)', () => {
 
   it('a position in a cultural region of the current assignment chooses that region', async () => {
     mocks.regions = {
-      regions: mergeRegions([
-        { id: 'tirol', active: true },
-        { id: 'ostfriesland', bezirke: ['Leer'], mappingUpdatedAt: 1 },
-        {
-          id: 'niedersachsen',
-          bezirke: STATIC_REGIONS.find((r) => r.slug === 'niedersachsen')!.bezirke.filter(
-            (b) => b !== 'Leer'
-          ),
-          mappingUpdatedAt: 1,
-        },
-      ]),
+      regions: withDistricts(mergeRegions([{ id: 'tirol', active: true }]), {
+        ostfriesland: ['Leer'],
+        niedersachsen: STATIC_REGIONS.find((r) => r.slug === 'niedersachsen')!.bezirke.filter(
+          (b) => b !== 'Leer'
+        ),
+      }),
       loading: false,
     };
     await useMyLocation({ latitude: 53.2316, longitude: 7.461 });

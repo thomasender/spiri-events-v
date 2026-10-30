@@ -1,4 +1,4 @@
-import { afterEach, describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
@@ -6,7 +6,6 @@ import {
   DEFAULT_REGION_ID,
   REGION_SLUGS,
   STATIC_REGIONS,
-  STATIC_REGION_SLUGS,
   eventVisibleInRegion,
   filterDirectoryForRegion,
   filterEventsForRegion,
@@ -18,7 +17,6 @@ import {
   isRegionSlug,
   mergeRegions,
   regionInstagramAccount,
-  registerCustomRegions,
   instagramChannels,
   instagramProfileUrl,
   bezirkLabel,
@@ -31,8 +29,6 @@ import {
 } from '../../src/utils/regions.js';
 import { getEventLocationLabel } from '../../src/utils/eventFormat';
 import { REGION_DATA } from '../../src/data/regionData';
-import { isReservedUsername } from '../../src/utils/username';
-import { planMappingChange } from '../../src/utils/regionMapping';
 import {
   annotateOnlineRegionIds,
   filterOnlineEventsForRegions,
@@ -134,12 +130,15 @@ describe('districts per region', () => {
       expect(r.subdivisionLabel).toBe(r.country === 'DE' ? 'Landkreis' : 'Bezirk');
     }
   });
-  it('mergeRegions keeps the static list and label unless the doc has its own list', () => {
-    const merged = mergeRegions([{ id: 'bayern', active: true, bezirke: [] }]);
+  it('mergeRegions never lets a doc override the districts or the name', () => {
+    const merged = mergeRegions([
+      { id: 'bayern', active: true, bezirke: [], mappingUpdatedAt: 1, name: 'Anders' },
+      { id: 'steiermark', bezirke: ['Graz'] },
+    ]);
     expect(merged.find((r) => r.id === 'bayern')?.bezirke).toHaveLength(96);
+    expect(merged.find((r) => r.id === 'bayern')?.name).toBe('Bayern');
     expect(getSubdivisionLabel('bayern', merged)).toBe('Landkreis');
-    const own = mergeRegions([{ id: 'steiermark', bezirke: ['Graz'] }]);
-    expect(getBezirke('steiermark', own)).toEqual(['Graz']);
+    expect(getBezirke('steiermark', merged)).toEqual(getBezirke('steiermark'));
   });
 });
 
@@ -459,100 +458,5 @@ describe('online events need a regional directory listing (lVFp6Dvw)', () => {
     expect(onlineEventVisibleIn({ isOnline: false, onlineRegionIds: [] }, ['tirol'])).toBe(true);
     const plain = [{ id: 'x', isOnline: true }];
     expect(filterOnlineEventsForRegions(plain, ['tirol'])).toBe(plain);
-  });
-});
-
-describe('regions created in the Verwaltung (custom)', () => {
-  const doc = (over: Record<string, unknown> = {}) => ({
-    id: 'allgaeu-schwaben',
-    custom: true,
-    name: 'Allgäu-Schwaben',
-    country: 'DE',
-    inPhrase: 'im Allgäu',
-    active: false,
-    bezirke: ['Roth'],
-    mappingUpdatedAt: 1,
-    ...over,
-  });
-  afterEach(() => registerCustomRegions([]));
-
-  it('appends a custom region to the merged register and makes its slug known', () => {
-    expect(isRegionSlug('allgaeu-schwaben')).toBe(false);
-    const merged = mergeRegions([doc()]);
-    const region = getRegionBySlug('allgaeu-schwaben', merged);
-    expect(region).toMatchObject({
-      id: 'allgaeu-schwaben',
-      name: 'Allgäu-Schwaben',
-      country: 'DE',
-      inPhrase: 'im Allgäu',
-      forPhrase: 'Allgäu-Schwaben',
-      subdivisionLabel: 'Landkreis',
-      timezone: 'Europe/Berlin',
-      home: false,
-      custom: true,
-      active: false,
-      bezirke: ['Roth'],
-    });
-    expect(isRegionSlug('allgaeu-schwaben')).toBe(true);
-    expect(merged).toHaveLength(STATIC_REGIONS.length + 1);
-  });
-
-  it('applies the Firestore state (active, list, name) like for built-in regions', () => {
-    const merged = mergeRegions([doc({ active: true, name: 'Allgäu', order: 3.5 })]);
-    const region = getRegionBySlug('allgaeu-schwaben', merged);
-    expect(region).toMatchObject({ active: true, name: 'Allgäu', order: 3.5 });
-    expect(merged.indexOf(region!)).toBeLessThan(merged.findIndex((r) => r.order > 4));
-  });
-
-  it('falls back to the name for the wording and keeps an empty list empty', () => {
-    const merged = mergeRegions([doc({ inPhrase: undefined, bezirke: [] })]);
-    const region = getRegionBySlug('allgaeu-schwaben', merged)!;
-    expect(region.inPhrase).toBe('in Allgäu-Schwaben');
-    expect(region.bezirke).toEqual([]);
-  });
-
-  it('ignores docs that are not valid custom regions', () => {
-    const merged = mergeRegions([
-      doc({ id: 'tirol' }),
-      doc({ id: 'kein-land', country: 'FR' }),
-      doc({ id: 'ohne-name', name: '' }),
-      doc({ id: 'Grosses Haus' }),
-      doc({ id: 'nicht-custom', custom: false }),
-    ]);
-    expect(merged).toHaveLength(STATIC_REGIONS.length);
-    for (const id of ['kein-land', 'ohne-name', 'Grosses Haus', 'nicht-custom']) {
-      expect(isRegionSlug(id)).toBe(false);
-    }
-    expect(getRegionBySlug('tirol', merged)?.custom).toBeUndefined();
-  });
-
-  it('forgets a custom region that is gone and keeps the static slugs', () => {
-    mergeRegions([doc()]);
-    registerCustomRegions([]);
-    expect(isRegionSlug('allgaeu-schwaben')).toBe(false);
-    expect(REGION_SLUGS).toEqual(STATIC_REGION_SLUGS);
-  });
-
-  it('reserves the address so no profile can take it', () => {
-    expect(isReservedUsername('allgaeu-schwaben')).toBe(false);
-    mergeRegions([doc()]);
-    expect(isReservedUsername('allgaeu-schwaben')).toBe(true);
-  });
-
-  it('accepts the region for events and profiles, and districts can move into it', () => {
-    const merged = mergeRegions([doc({ bezirke: [] })]);
-    expect(pickEventRegionId('allgaeu-schwaben')).toBe('allgaeu-schwaben');
-    expect(resolveDirectoryRegionIds({ directoryRegionIds: ['allgaeu-schwaben'] })).toEqual([
-      'allgaeu-schwaben',
-    ]);
-    const plan = planMappingChange(merged, [
-      { districtKey: 'DE|Roth', toRegionId: 'allgaeu-schwaben' },
-    ]);
-    expect(plan.errors).toEqual([]);
-    expect(plan.changes.find((c) => c.regionId === 'allgaeu-schwaben')?.added).toEqual(['Roth']);
-    expect(
-      planMappingChange(merged, [{ districtKey: 'AT|Bregenz', toRegionId: 'allgaeu-schwaben' }])
-        .errors
-    ).toEqual([{ code: 'wrong-country', districtKey: 'AT|Bregenz', regionId: 'allgaeu-schwaben' }]);
   });
 });

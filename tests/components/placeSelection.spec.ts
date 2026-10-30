@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { STATIC_REGIONS, mergeRegions } from '../../src/utils/regions';
+import { withDistricts } from '../helpers/withDistricts';
+import { STATIC_REGIONS } from '../../src/utils/regions';
 import {
   DEFAULT_RADIUS_KM,
   MAX_RADIUS_KM,
@@ -195,10 +196,10 @@ describe('regionIdForEntry', () => {
   it('a place goes to the region that holds its district, else to its Bundesland', () => {
     const place = { kind: 'place', districtKey: 'DE|Calw', stateSlug: 'baden-wuerttemberg' };
     expect(regionIdForEntry(place, STATIC_REGIONS)).toBe('baden-wuerttemberg');
-    const merged = mergeRegions([
-      { id: 'schwarzwald', bezirke: ['Calw'], mappingUpdatedAt: 1 },
-      { id: 'baden-wuerttemberg', bezirke: [], mappingUpdatedAt: 1 },
-    ]);
+    const merged = withDistricts(STATIC_REGIONS, {
+      schwarzwald: ['Calw'],
+      'baden-wuerttemberg': [],
+    });
     expect(regionIdForEntry(place, merged)).toBe('schwarzwald');
     expect(regionIdForEntry({ kind: 'place', stateSlug: 'tirol' }, STATIC_REGIONS)).toBe('tirol');
     expect(regionIdForEntry({ kind: 'place', stateSlug: 'narnia' }, STATIC_REGIONS)).toBeNull();

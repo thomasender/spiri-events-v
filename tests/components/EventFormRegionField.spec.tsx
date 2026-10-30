@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { withDistricts } from '../helpers/withDistricts';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
@@ -68,10 +69,10 @@ import EventForm from '../../src/components/EventForm';
 // Static register with the given regions active; Tirol has its Bezirke like
 // the emulator fixture (they come from Firestore in the app).
 function regionContext(activeIds: string[], currentId = 'vorarlberg') {
-  const allRegions = mergeRegions([
-    ...STATIC_REGIONS.map((r) => ({ id: r.id, active: activeIds.includes(r.id) })),
-    { id: 'tirol', active: activeIds.includes('tirol'), bezirke: ['Innsbruck', 'Kufstein'] },
-  ]);
+  const allRegions = withDistricts(
+    mergeRegions(STATIC_REGIONS.map((r) => ({ id: r.id, active: activeIds.includes(r.id) }))),
+    { tirol: ['Innsbruck', 'Kufstein'] }
+  );
   const regions = allRegions.filter((r) => r.active);
   return {
     ...DEFAULT_REGION_CONTEXT,
@@ -375,13 +376,15 @@ describe('EventFormWizard region field', () => {
 describe('Ort -> Landkreis in regions without a Gemeinde list', () => {
   // Bayern and a cultural region (Ruhrgebiet, districts as assigned in Verwaltung).
   function deContext(currentId: string) {
-    const allRegions = mergeRegions([
-      ...STATIC_REGIONS.map((r) => ({
-        id: r.id,
-        active: ['vorarlberg', 'bayern', 'ruhrgebiet'].includes(r.id),
-      })),
-      { id: 'ruhrgebiet', active: true, bezirke: ['Essen', 'Dortmund'] },
-    ]);
+    const allRegions = withDistricts(
+      mergeRegions(
+        STATIC_REGIONS.map((r) => ({
+          id: r.id,
+          active: ['vorarlberg', 'bayern', 'ruhrgebiet'].includes(r.id),
+        }))
+      ),
+      { ruhrgebiet: ['Essen', 'Dortmund'] }
+    );
     return {
       ...DEFAULT_REGION_CONTEXT,
       allRegions,

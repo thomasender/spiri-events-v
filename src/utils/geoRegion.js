@@ -6,7 +6,7 @@ import { CATALOG_BY_KEY, currentAssignment } from './regionMapping.js';
 //
 // Two datasets, both bundled and lazily loaded by LocateRegionButton.jsx:
 // - Germany: Landkreis shapes (landkreisMap.json, SVG units, see GEO_PROJECTION) -> region
-//   via the current assignment (Verwaltung -> "Zuordnung").
+//   via the assignment in the register (src/data/regionData.js).
 // - Austria / Switzerland: Bundesland / Kanton outlines in plain lon/lat
 //   (adminAtChMap.json from the official BEV / swisstopo borders via geoBoundaries,
 //   simplified to about 0.1-0.15 km, see scripts/build-admin-at-ch-map.mjs) -> the region
@@ -242,8 +242,7 @@ export function positionHit(lat, lon, shapes, adminShapes = []) {
 }
 
 /**
- * Region for a district key via the CURRENT assignment (merged register, as edited in
- * Verwaltung -> "Zuordnung"). A Landkreis no cultural region holds stays with its
+ * Region for a district key via the CURRENT assignment (merged register). A Landkreis no cultural region holds stays with its
  * Bundesland (the home region of the backend structure). Returns the region or null.
  */
 export function regionForDistrict(districtKey, regions) {

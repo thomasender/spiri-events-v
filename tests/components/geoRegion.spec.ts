@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { withDistricts } from '../helpers/withDistricts';
 import adminAtChMap from '../../src/data/adminAtChMap.json';
 import landkreisMap from '../../src/data/landkreisMap.json';
-import { STATIC_REGIONS, mergeRegions } from '../../src/utils/regions';
+import { STATIC_REGIONS } from '../../src/utils/regions';
 import {
   BORDER_TOLERANCE,
   districtAt,
@@ -123,16 +124,10 @@ describe('Landkreis -> region (current assignment)', () => {
   });
 
   it('a Landkreis moved into a cultural region belongs to it', () => {
-    const bayern = byName('bayern');
-    const regions = mergeRegions([
-      { id: 'ostfriesland', bezirke: ['Leer'], mappingUpdatedAt: 1 },
-      {
-        id: 'niedersachsen',
-        bezirke: byName('niedersachsen').bezirke.filter((b) => b !== 'Leer'),
-        mappingUpdatedAt: 1,
-      },
-      { id: 'bayern', bezirke: bayern.bezirke },
-    ]);
+    const regions = withDistricts(STATIC_REGIONS, {
+      ostfriesland: ['Leer'],
+      niedersachsen: byName('niedersachsen').bezirke.filter((b) => b !== 'Leer'),
+    });
     expect(regionForDistrict('DE|Leer', regions)?.slug).toBe('ostfriesland');
     expect(regionForDistrict('DE|Aurich', regions)?.slug).toBe('niedersachsen');
   });

@@ -2,11 +2,9 @@ import { describe, it, expect } from 'vitest';
 import landkreisMap from '../../src/data/landkreisMap.json';
 import { DISTRICT_CATALOG } from '../../src/utils/regionMapping';
 import { STATIC_REGIONS } from '../../src/utils/regions';
-import { germanDistrictHolders, groupDistrictShapes } from '../../src/utils/landkreisMap';
 
-// Guard for src/data/landkreisMap.json (scripts/build-landkreis-map.mjs, from the product
-// owner's map). The build already stops on unmatched or duplicated names; this keeps the
-// generated file in line with the catalog when either side changes.
+// Guard for src/data/landkreisMap.json (from the product owner's map): keeps the
+// file in line with the catalog when either side changes.
 //
 // Documented exceptions: none on the catalog side. On the map side two old shapes are drawn
 // as part of the district they merged into (Osterode am Harz -> Göttingen, Eisenach ->
@@ -42,23 +40,5 @@ describe('landkreisMap.json', () => {
       expect(s.d, key).toMatch(/^M[-0-9.,lMZ ]+$/);
       expect(s.x > 0 && s.x < w && s.y > 0 && s.y < h, key).toBe(true);
     }
-  });
-});
-
-describe('Landkreis map helpers', () => {
-  it('groups shapes by the current holder, districts without region first', () => {
-    const holders = germanDistrictHolders([
-      { slug: 'franken', country: 'DE', bezirke: ['Roth', 'Fürth (Stadt)'] },
-      { slug: 'tirol', country: 'AT', bezirke: ['Roth'] },
-    ]);
-    expect(holders.get('DE|Roth')).toBe('franken');
-    const groups = groupDistrictShapes(
-      { 'DE|Roth': { d: 'M1,1Z' }, 'DE|Leer': { d: 'M2,2Z' }, 'DE|Fürth (Stadt)': { d: 'M3,3Z' } },
-      (key) => holders.get(key)
-    );
-    expect(groups).toEqual([
-      { id: null, keys: ['DE|Leer'], d: 'M2,2Z' },
-      { id: 'franken', keys: ['DE|Roth', 'DE|Fürth (Stadt)'], d: 'M1,1ZM3,3Z' },
-    ]);
   });
 });
