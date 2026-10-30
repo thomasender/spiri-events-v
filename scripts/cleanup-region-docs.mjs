@@ -19,8 +19,14 @@
 //   node scripts/cleanup-region-docs.mjs                                  emulator, dry run
 //   node scripts/cleanup-region-docs.mjs --project tribe-vbg-staging      staging, dry run
 //   node scripts/cleanup-region-docs.mjs --project tribe-vbg-staging --apply
-// `--apply` on production (`--prod` / `--project spirieventsvbg`) is refused for now: run it on
-// staging first, check the result, then lift the guard in a reviewed change.
+//   node scripts/cleanup-region-docs.mjs --prod                           production, dry run
+//   node scripts/cleanup-region-docs.mjs --prod --apply                   production (needs a backup of today)
+// `--apply` on production (`--prod` / `--project spirieventsvbg`) needs a production backup from
+// today (node scripts/export-firestore.mjs --project spirieventsvbg, checked via
+// backups/*/manifest.json exportedAt) or `--force`; staging and the emulator need none.
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import {
@@ -28,14 +34,36 @@ import {
   assertInitializedProject,
   resolveSeedRegionsTarget,
 } from '../src/utils/projectTargets.js';
+import { latestProductionExportedAt } from '../src/utils/firestoreBackup.js';
+import { isBackupFromToday } from '../src/utils/regionMigration.js';
 import { planRegionSeed, staleRegionFields, unknownRegionIds } from '../src/utils/regionDocs.js';
 
 const argv = process.argv.slice(2);
 const apply = argv.includes('--apply');
+const force = argv.includes('--force');
+const BACKUP_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'backups');
+
+// Newest complete PRODUCTION backup under backups/*/manifest.json.
+function readBackupExportedAt() {
+  if (!existsSync(BACKUP_DIR)) return null;
+  const manifests = [];
+  for (const entry of readdirSync(BACKUP_DIR, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    try {
+      manifests.push(
+        JSON.parse(readFileSync(join(BACKUP_DIR, entry.name, 'manifest.json'), 'utf8'))
+      );
+    } catch {
+      // unreadable / partial backup dir: ignore
+    }
+  }
+  return latestProductionExportedAt(manifests);
+}
+
 let target;
 try {
   target = resolveSeedRegionsTarget(
-    argv.filter((a) => a !== '--apply'),
+    argv.filter((a) => a !== '--apply' && a !== '--force'),
     process.env
   );
 } catch (err) {
@@ -43,8 +71,13 @@ try {
   process.exit(1);
 }
 if (apply && target.projectId === PROD_PROJECT_ID && target.target !== 'emulator') {
-  console.error('cleanup-region-docs: --apply on production is not enabled yet (staging first).');
-  process.exit(1);
+  if (!force && !isBackupFromToday(readBackupExportedAt())) {
+    console.error(
+      'cleanup-region-docs: --apply on production needs a production backup from today ' +
+        '(node scripts/export-firestore.mjs --project spirieventsvbg) or --force.'
+    );
+    process.exit(1);
+  }
 }
 if (target.target === 'emulator') {
   process.env.FIRESTORE_EMULATOR_HOST ??= '127.0.0.1:8181';
@@ -126,5 +159,7 @@ for (const id of plan.deactivate) {
 }
 if (custom.exists) batch.delete(customRef);
 if (writes) await batch.commit();
-console.log(`${writes} write(s) done. ${reported} doc(s) with former region ids still need a look.`);
+console.log(
+  `${writes} write(s) done. ${reported} doc(s) with former region ids still need a look.`
+);
 process.exit(0);
