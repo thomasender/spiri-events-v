@@ -156,6 +156,13 @@ export const STATIC_REGIONS = REGION_DATA.map((r, order) => ({
   timezone: r.timezone,
 }));
 
+// German district names mostly say what they are ("Stadt München", "Landkreis München",
+// "Rems-Murr-Kreis", "Region Hannover", "Städteregion Aachen"); a few are bare names
+// ("Friesland", "Berchtesgadener Land"). True for the former.
+export const districtNameHasKind = (name) =>
+  typeof name === 'string' &&
+  (/^(Stadt|Landkreis|Region|Städteregion|Regionalverband) /.test(name) || /kreis\b/i.test(name));
+
 // A region whose register list holds no Bezirke / Landkreise does not exist for
 // visitors: no chooser entry, no search hit, no map shape.
 export const isPopulated = (region) => Array.isArray(region?.bezirke) && region.bezirke.length > 0;

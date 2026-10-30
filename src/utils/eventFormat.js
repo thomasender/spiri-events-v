@@ -1,5 +1,5 @@
 import { formatCityWithBezirk } from './gemeinden';
-import { bezirkLabel, getSubdivisionLabel, resolveRegionId } from './regions';
+import { bezirkLabel, districtNameHasKind, getSubdivisionLabel, resolveRegionId } from './regions';
 
 export function parseEventDate(dateStr) {
   const [year, month, day] = dateStr.split('-');
@@ -102,8 +102,12 @@ export function getEventCityName(event) {
 }
 
 // "Bezirk" / "Landkreis" for the coloured badge on the event page and in the event modal, so it is
-// clear which kind of district is meant. Empty for online events and the "Umgebung" catch-all.
+// clear which kind of district is meant. Empty for online events and the "Umgebung" catch-all,
+// and for German district names that already say it ("Landkreis München", "Stadt München",
+// "Rems-Murr-Kreis"; but "Landkreis: Friesland").
 export function getEventDistrictPrefix(event) {
   if (!event || event.isOnline || !event.bezirk || event.bezirk === 'Grenznahe') return '';
-  return getSubdivisionLabel(resolveRegionId(event));
+  const label = getSubdivisionLabel(resolveRegionId(event));
+  if (label === 'Landkreis' && districtNameHasKind(event.bezirk)) return '';
+  return label;
 }
