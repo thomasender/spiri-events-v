@@ -65,10 +65,6 @@ export default function DonationBlock({
       );
       return;
     }
-    if (displayOnConsent && !trimmedName) {
-      setError('Bitte gib einen Namen an oder deaktiviere die Checkbox für die Spenderliste.');
-      return;
-    }
     setError(null);
     trackEvent(EVENTS.DONATE_CLICK, { placement, frequency });
     setSubmitting(true);
@@ -141,7 +137,7 @@ export default function DonationBlock({
             data-testid="donation-consent-checkbox"
           />
           <span className="donation-consent-label">
-            Ich möchte namentlich auf der „Über uns&ldquo;-Seite erscheinen.
+            Ich möchte auf der „Über uns&ldquo;-Seite erscheinen (ohne Namen als „Anonym“).
           </span>
         </label>
         <p className="donation-consent-hint">
@@ -164,7 +160,7 @@ export default function DonationBlock({
           />
           <span className="donation-comment-hint">
             {displayOnConsent
-              ? `Erscheint mit deinem Namen auf der Spenderliste. ${comment.length}/${COMMENT_MAX}`
+              ? `Erscheint auf der Spenderliste (ohne Namen als „Anonym“). ${comment.length}/${COMMENT_MAX}`
               : 'Nur möglich, wenn du auf der Spenderliste erscheinen möchtest.'}
           </span>
         </label>

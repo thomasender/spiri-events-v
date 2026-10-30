@@ -11,7 +11,7 @@ function formatAmount(value) {
 
 function donorDisplayName(donor) {
   if (donor.name && donor.name.trim()) return donor.name;
-  return 'Anonyme:r Spender:in';
+  return 'Anonym';
 }
 
 // The public list shows newest donations first, a few at a time.
@@ -119,6 +119,11 @@ export default function DonorsList({ regionId = DEFAULT_REGION_ID }) {
               data-anonymous={isAnonymous || undefined}
             >
               <span className="donors-list-name">{donorDisplayName(donor)}</span>
+              {comment && (
+                <p className="donors-list-comment" data-testid="donors-list-comment">
+                  {comment}
+                </p>
+              )}
               {(showAmount || freq) && (
                 <span className="donors-list-meta">
                   {showAmount && (
@@ -128,11 +133,6 @@ export default function DonorsList({ regionId = DEFAULT_REGION_ID }) {
                   )}
                   {freq && <span className="donors-list-frequency">{freq}</span>}
                 </span>
-              )}
-              {comment && (
-                <p className="donors-list-comment" data-testid="donors-list-comment">
-                  {comment}
-                </p>
               )}
             </li>
           );

@@ -296,19 +296,21 @@ describe('DonationBlock', () => {
     });
   });
 
-  it('blocks submit and shows an inline error when the checkbox is ticked but no name is entered', async () => {
+  it('allows the donor list consent with a comment but no name (shown as Anonym)', async () => {
     renderBlock();
 
     selectOneTime();
     fireEvent.click(screen.getByTestId('donation-consent-checkbox'));
+    fireEvent.change(screen.getByTestId('donation-comment'), { target: { value: 'Danke' } });
     fireEvent.click(screen.getByRole('button', { name: '20 €' }));
     submit();
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent(/deaktiviere die Checkbox/i);
+      expect(startOneTimeDonation).toHaveBeenCalledWith(
+        20,
+        expect.objectContaining({ name: null, displayOnConsent: true, comment: 'Danke' })
+      );
     });
-    expect(startOneTimeDonation).not.toHaveBeenCalled();
-    expect(startMonthlyDonation).not.toHaveBeenCalled();
   });
 
   it('enables the public comment only with the donor list consent and caps it at 140 characters', () => {
