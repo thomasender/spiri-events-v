@@ -139,10 +139,24 @@ export default function RegionProvider({ children }) {
       lastRegion: readLastRegion(),
       regions: allRegions,
     });
+    // Verwaltung (`/admin...`) while the visitor's chosen place lies in a region that is not
+    // open yet: neutral header instead of the Vorarlberg fallback (Trello gflD7CXa).
+    const placeRegion = placeSelection?.regionId
+      ? getRegionBySlug(placeSelection.regionId, allRegions)
+      : null;
+    const adminComingSoon = Boolean(
+      regionMode &&
+      !urlSlug &&
+      (pathname === '/admin' || pathname.startsWith('/admin/')) &&
+      placeRegion &&
+      !placeRegion.active
+    );
     // Neutral header ("Dein Kalender"): region chooser, coming-soon pages, the event
-    // form for a region that is not open yet and Impressum / Datenschutz.
+    // form for a region that is not open yet, Verwaltung for such a region and
+    // Impressum / Datenschutz.
     const neutralHeader =
       comingSoon ||
+      adminComingSoon ||
       eventRegionComingSoon ||
       eventFormComingSoon ||
       pathname === REGIONS_PAGE_PATH ||
