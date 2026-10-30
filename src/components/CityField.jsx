@@ -1,15 +1,16 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createFilter } from 'react-select';
-import CreatableSelect from 'react-select/creatable';
+import Select from 'react-select';
 import { GEMEINDEN, findGemeinde } from '../utils/gemeinden';
 import { loadPlaceIndex } from '../lib/placeData';
 import { placeDetail } from '../utils/placeSearch';
 import {
   assignmentForEntry,
   assignmentForGemeinde,
-  placeAssignment,
+  PLACE_PICK_ERROR,
   placeRegionHint,
   suggestEventPlaces,
+  topPlaceChoice,
 } from '../utils/placeDistrict';
 import { bezirkLabel, getSubdivisionLabel, isLegacyBezirk } from '../utils/regions';
 import './PlaceSearch.css';
@@ -40,15 +41,19 @@ function usePlaceIndex(typed) {
 }
 
 // Ort picker shared by both event forms, styled like the Kategorie select. The place decides
-// the Bezirk / Landkreis AND the region (Trello dx8dCQJc): `onChange({ city, bezirk, regionId })`
-// with `regionId` = region of the place (null: unknown / ambiguous / typed free text; the event
-// then stays in the current region, with an empty Bezirk for unknown places).
-//   - Vorarlberg (default): the Gemeinde list plus places of the place list (all regions);
-//     anything else is taken over as typed. There is no "Umgebung" any more; old events that
-//     carry the legacy "Grenznahe" keep it until the Ort is changed.
-//   - `free` (other regions, two or more active regions): a plain text field, with `region`
-//     a combobox suggesting places (that region's first); the form keeps its own Bezirk /
-//     Landkreis select.
+// the Bezirk / Landkreis AND the region (Trello dx8dCQJc), and the Ort must be CHOSEN from the
+// known places (Trello QG0GR5lv): typing only filters the suggestions; leaving the field or
+// pressing Enter with typed text takes the TOP suggestion, and without any match the field
+// shows "Bitte wähle einen Ort aus der Liste." (the form does not save). `onChange({ city,
+// bezirk, regionId, picked })`: `picked` is true for a chosen place, false while typing;
+// `regionId` = region of the place (null: place without a district).
+//   - Vorarlberg (default): the Gemeinde list plus places of the place list (all regions).
+//     There is no "Umgebung" any more; old events that carry the legacy "Grenznahe" keep it
+//     until the Ort is changed.
+//   - `free` (other regions, two or more active regions): a combobox suggesting places (that
+//     region's first); the form keeps its own Bezirk / Landkreis select.
+// A stored Ort that is in no list (old free text) is shown as it is and stays until the person
+// edits the field (the forms grandfather it, see `validatePlaceChoice`).
 // `regions` = merged register (current assignment), `placeRegionId` = region the event will
 // be saved in, `homeRegionId` = region the person is in (for the hint).
 export default function CityField({
@@ -67,6 +72,13 @@ export default function CityField({
 }) {
   // Drafts saved before the Ort field existed have no city.
   const city = cityProp || '';
+  // Typed text without any matching place (set on leaving the field).
+  const [missing, setMissing] = useState(false);
+  const emit = (value) => {
+    setMissing(false);
+    onChange(value);
+  };
+  const shownError = error || (missing ? PLACE_PICK_ERROR : null);
   const match = free ? null : findGemeinde(city);
   const regionHint = disabled ? null : placeRegionHint(placeRegionId, homeRegionId, regions);
   // Bezirk / Landkreis of a place outside the Gemeinde list (free mode: only when it came from
@@ -76,29 +88,18 @@ export default function CityField({
   return (
     <div className="form-group">
       <label htmlFor="city">Ort *</label>
-      {free && region ? (
+      {free ? (
         <PlaceInput
           city={city}
           bezirk={bezirk}
-          region={region}
+          region={region ?? null}
           regions={regions}
           placeRegionId={placeRegionId}
           disabled={disabled}
-          error={error}
+          error={shownError}
           placeholder={placeholder}
-          onChange={onChange}
-        />
-      ) : free ? (
-        <input
-          id="city"
-          name="city"
-          type="text"
-          autoComplete="off"
-          value={city}
-          onChange={(e) => onChange({ city: e.target.value, bezirk, regionId: null })}
-          placeholder={placeholder || 'z.B. Lindau'}
-          disabled={disabled}
-          className={error ? 'input-error' : ''}
+          onChange={emit}
+          onMissing={() => setMissing(true)}
         />
       ) : (
         <GemeindeSelect
@@ -106,8 +107,9 @@ export default function CityField({
           regions={regions}
           homeRegionId={homeRegionId}
           disabled={disabled}
-          error={error}
-          onChange={onChange}
+          error={shownError}
+          onChange={emit}
+          onMissing={() => setMissing(true)}
         />
       )}
       {match && !disabled && (
@@ -132,14 +134,15 @@ export default function CityField({
           Der Ort liegt in einer anderen Region
         </button>
       )}
-      {error && <span className="error-text">{error}</span>}
+      {shownError && <span className="error-text">{shownError}</span>}
     </div>
   );
 }
 
-// Vorarlberg: Gemeinde list first, then places of the place list (all regions) while typing;
-// any other text is taken over as typed.
-function GemeindeSelect({ city, regions, homeRegionId, disabled, error, onChange }) {
+// Vorarlberg: Gemeinde list first, then places of the place list (all regions) while typing.
+// Typed text is only a filter: leaving the field takes the top option (Enter picks the focused,
+// i.e. the top, option as usual); nothing matching reports "Bitte wähle einen Ort aus der Liste.".
+function GemeindeSelect({ city, regions, homeRegionId, disabled, error, onChange, onMissing }) {
   const [input, setInput] = useState('');
   const index = usePlaceIndex(input);
   const homeRegion = regions.find((r) => r.id === homeRegionId) ?? null;
@@ -159,7 +162,7 @@ function GemeindeSelect({ city, regions, homeRegionId, disabled, error, onChange
 
   const handlePick = (option) => {
     if (!option) {
-      onChange({ city: '', bezirk: '', regionId: null });
+      onChange({ city: '', bezirk: '', regionId: null, picked: false });
       return;
     }
     if (option.entry) {
@@ -168,6 +171,7 @@ function GemeindeSelect({ city, regions, homeRegionId, disabled, error, onChange
         city: option.entry.name,
         bezirk: found?.bezirk ?? '',
         regionId: found?.regionId ?? null,
+        picked: true,
       });
       return;
     }
@@ -177,24 +181,35 @@ function GemeindeSelect({ city, regions, homeRegionId, disabled, error, onChange
         city: gemeinde.name,
         bezirk: gemeinde.bezirk,
         regionId: assignmentForGemeinde(gemeinde, regions).regionId,
+        picked: true,
       });
-      return;
     }
-    // Typed text: a unique place of that name decides; otherwise no Bezirk, current region.
-    const typed = option.value.trim();
-    const found = placeAssignment(index, regions, typed);
-    onChange({ city: typed, bezirk: found?.bezirk ?? '', regionId: found?.regionId ?? null });
+  };
+
+  // Left the field with typed text: the top option of the list shown so far becomes the Ort.
+  const takeTopOnBlur = () => {
+    const text = input.trim();
+    if (text.length === 0) return;
+    const gemeinden = OPTIONS.filter((o) =>
+      gemeindeFilter({ label: o.label, value: o.value, data: o }, text)
+    );
+    const top = [...gemeinden, ...placeOptions][0];
+    if (top) handlePick(top);
+    else onMissing();
   };
 
   return (
-    <CreatableSelect
+    <Select
       inputId="city"
       options={[...OPTIONS, ...placeOptions]}
       value={city ? { value: city, label: city } : null}
       onChange={handlePick}
       onInputChange={(value, { action }) => {
         if (action === 'input-change') setInput(value);
-        else if (action === 'set-value' || action === 'input-blur' || action === 'menu-close') {
+        else if (action === 'input-blur') {
+          takeTopOnBlur();
+          setInput('');
+        } else if (action === 'set-value' || action === 'menu-close') {
           setInput('');
         }
       }}
@@ -202,10 +217,8 @@ function GemeindeSelect({ city, regions, homeRegionId, disabled, error, onChange
       filterOption={(option, text) => (option.data.entry ? true : gemeindeFilter(option, text))}
       isDisabled={disabled}
       isClearable
-      isValidNewOption={(text) => text.trim().length >= 2 && !findGemeinde(text)}
-      formatCreateLabel={(text) => `"${text.trim()}" übernehmen`}
-      noOptionsMessage={() => 'Keine Gemeinde gefunden'}
-      placeholder="Gemeinde auswählen, z.B. Altach"
+      noOptionsMessage={() => 'Keinen Ort gefunden'}
+      placeholder="Ort auswählen, z.B. Altach"
       className={`city-select${error ? ' city-select--error' : ''}`}
       classNamePrefix="kategorie"
       formatOptionLabel={(option) => (
@@ -219,8 +232,9 @@ function GemeindeSelect({ city, regions, homeRegionId, disabled, error, onChange
   );
 }
 
-// Free Ort field with suggestions (WAI-ARIA combobox, like PlaceSearch). The place list is
-// loaded on the first typed letters only. Unknown places stay as typed.
+// Ort combobox with suggestions (WAI-ARIA combobox, like PlaceSearch). The place list is loaded
+// on the first typed letters only. Typed text must become a picked place: leaving the field or
+// Enter takes the top suggestion.
 function PlaceInput({
   city,
   bezirk,
@@ -231,6 +245,7 @@ function PlaceInput({
   error,
   placeholder,
   onChange,
+  onMissing,
 }) {
   const id = useId();
   const listId = `${id}-list`;
@@ -238,11 +253,16 @@ function PlaceInput({
   const [active, setActive] = useState(-1);
   const typed = city.trim();
   const index = usePlaceIndex(typed);
+  // The Ort the person last picked here, and whether she has edited the field at all (a stored
+  // old Ort that was not touched is left alone on blur).
+  const pickedName = useRef(null);
+  const edited = useRef(false);
 
-  const results = useMemo(
-    () => (open && typed.length >= 2 ? suggestEventPlaces(index, region, typed) : []),
-    [index, region, typed, open]
+  const suggestions = useMemo(
+    () => (typed.length >= 2 ? suggestEventPlaces(index, region, typed) : []),
+    [index, region, typed]
   );
+  const results = open ? suggestions : [];
 
   // A Bezirk that came from an earlier place belongs to that place only.
   const keptBezirk = placeRegionId ? '' : bezirk;
@@ -251,20 +271,33 @@ function PlaceInput({
     const found = assignmentForEntry(entry, regions);
     setOpen(false);
     setActive(-1);
+    pickedName.current = entry.name;
     onChange({
       city: entry.name,
       bezirk: found?.bezirk ?? keptBezirk,
       regionId: found?.regionId ?? null,
+      picked: true,
     });
   };
 
-  // Typed in full without picking: a unique place of that name sets Bezirk and region, unless
-  // the person chose the Bezirk / Landkreis in the select herself.
-  const handleBlur = () => {
+  const needsPick = () => edited.current && typed.length > 0 && typed !== pickedName.current;
+
+  // Left the field with typed text: the top suggestion becomes the Ort (the place list is
+  // loaded first when it is not yet there); none: "Bitte wähle einen Ort aus der Liste.".
+  const handleBlur = async () => {
     setOpen(false);
-    if (!index || typed.length < 2 || (bezirk && !placeRegionId)) return;
-    const found = placeAssignment(index, regions, typed);
-    if (found) onChange({ city, bezirk: found.bezirk, regionId: found.regionId });
+    if (!needsPick()) return;
+    let loaded = index;
+    if (!loaded) {
+      try {
+        loaded = await loadPlaceIndex();
+      } catch {
+        loaded = null;
+      }
+    }
+    const top = loaded ? suggestEventPlaces(loaded, region, typed, { limit: 1 })[0] : null;
+    if (top) pick(top);
+    else onMissing();
   };
 
   const onKeyDown = (e) => {
@@ -274,9 +307,11 @@ function PlaceInput({
       const step = e.key === 'ArrowDown' ? 1 : -1;
       setActive((a) => (a + step + results.length) % results.length);
     } else if (e.key === 'Enter') {
-      if (results.length === 0) return;
+      if (!needsPick() && results.length === 0) return;
+      const choice = results.length > 0 ? results[active >= 0 ? active : 0] : suggestions[0];
+      if (!choice) return;
       e.preventDefault();
-      pick(results[active >= 0 ? active : 0]);
+      pick(choice);
     } else if (e.key === 'Escape' && results.length > 0) {
       e.stopPropagation();
       setOpen(false);
@@ -297,9 +332,10 @@ function PlaceInput({
         aria-activedescendant={active >= 0 ? `${id}-opt-${active}` : undefined}
         value={city}
         onChange={(e) => {
+          edited.current = true;
           setOpen(true);
           setActive(-1);
-          onChange({ city: e.target.value, bezirk: keptBezirk, regionId: null });
+          onChange({ city: e.target.value, bezirk: keptBezirk, regionId: null, picked: false });
         }}
         onFocus={() => setOpen(true)}
         onBlur={handleBlur}

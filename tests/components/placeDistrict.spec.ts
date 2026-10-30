@@ -5,6 +5,9 @@ import {
   placeAssignment,
   placeRegionHint,
   suggestEventPlaces,
+  topPlaceChoice,
+  validatePlaceChoice,
+  PLACE_PICK_ERROR,
 } from '../../src/utils/placeDistrict';
 import { STATIC_REGIONS } from '../../src/utils/regions';
 import { RAW_INDEX } from '../fixtures/smallPlaceIndex';
@@ -85,5 +88,50 @@ describe('placeDistrict: Ort -> region and Bezirk / Landkreis', () => {
     );
     expect(placeRegionHint('vorarlberg', 'vorarlberg', regions)).toBeNull();
     expect(placeRegionHint('', 'vorarlberg', regions)).toBeNull();
+  });
+});
+
+describe('validatePlaceChoice: the Ort must be picked', () => {
+  it('needs a place at all', () => {
+    expect(validatePlaceChoice({ city: '  ' })).toMatch(/Bitte Ort angeben/);
+  });
+
+  it('refuses typed text that was not picked', () => {
+    expect(validatePlaceChoice({ city: 'Ruggell' })).toBe(PLACE_PICK_ERROR);
+    expect(validatePlaceChoice({ city: 'Ruggell', picked: false, original: 'Schaan' })).toBe(
+      PLACE_PICK_ERROR
+    );
+  });
+
+  it('accepts a picked place, a Vorarlberg Gemeinde by name and the unchanged stored Ort', () => {
+    expect(validatePlaceChoice({ city: 'Winterthur', picked: true })).toBeNull();
+    expect(validatePlaceChoice({ city: 'dornbirn' })).toBeNull();
+    expect(validatePlaceChoice({ city: ' Ruggell ', original: 'Ruggell' })).toBeNull();
+  });
+});
+
+describe('topPlaceChoice: typed text becomes the top suggestion', () => {
+  it('takes the top suggestion with its Bezirk and region', () => {
+    expect(topPlaceChoice(index, stGallen, STATIC_REGIONS, 'Altst')).toMatchObject({
+      city: 'Altstätten',
+      bezirk: 'Rheintal',
+      regionId: 'st-gallen',
+    });
+  });
+
+  it('prefers the own region for an ambiguous name and resolves a Gemeinde by name', () => {
+    expect(topPlaceChoice(index, stGallen, STATIC_REGIONS, 'Buchs')).toMatchObject({
+      bezirk: 'Werdenberg',
+    });
+    expect(topPlaceChoice(index, vorarlberg, STATIC_REGIONS, 'Altach')).toMatchObject({
+      city: 'Altach',
+      bezirk: 'Feldkirch',
+      regionId: 'vorarlberg',
+    });
+  });
+
+  it('gives null when nothing matches', () => {
+    expect(topPlaceChoice(index, stGallen, STATIC_REGIONS, 'Gibtsnicht')).toBeNull();
+    expect(topPlaceChoice(index, stGallen, STATIC_REGIONS, ' ')).toBeNull();
   });
 });

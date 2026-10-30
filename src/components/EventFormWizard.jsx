@@ -5,7 +5,8 @@ import CreatableSelect from 'react-select/creatable';
 import { serverTimestamp } from 'firebase/firestore';
 import { useEvents, BEZIRKE } from '../hooks/useEvents';
 import CityField from './CityField';
-import { validateCity, canonicalCity, formatCityWithBezirk } from '../utils/gemeinden';
+import { validatePlaceChoice } from '../utils/placeDistrict';
+import { canonicalCity, formatCityWithBezirk } from '../utils/gemeinden';
 import { applyAdminPrefill, shouldPrefillForAdmin } from '../utils/adminPrefill';
 import { useCategories } from '../hooks/useCategories';
 import { useAuth } from '../hooks/useAuth';
@@ -109,6 +110,8 @@ const INITIAL_STATE = {
   // Region the Ort belongs to (set when a place is picked, '' = unknown): it wins over the
   // current region when saving (Trello dx8dCQJc). Not stored as such.
   placeRegionId: '',
+  // The Ort was chosen from the list (not typed free); see validatePlaceChoice.
+  cityPicked: false,
   isOnline: false,
   organizer: { name: '', email: '' },
   kontakt: '',
@@ -448,9 +451,12 @@ export default function EventFormWizard() {
         newErrors.endTime = 'Die Endzeit muss nach der Startzeit liegen';
       }
       if (!formData.isOnline) {
-        // Any Ort is fine; a place that is in no list (Liechtenstein, outside DACH) simply
-        // has no Bezirk / Landkreis (Trello dx8dCQJc).
-        const cityError = validateCity(formData.city);
+        // The Ort must be chosen from the list (Trello QG0GR5lv).
+        const cityError = validatePlaceChoice({
+          city: formData.city,
+          picked: formData.cityPicked || Boolean(formData.placeRegionId),
+          original: '',
+        });
         if (cityError) newErrors.city = cityError;
       } else if (!onlineGate.offered) {
         newErrors.isOnline = onlineGate.hint || 'Online-Events sind hier gerade nicht möglich.';
@@ -632,7 +638,9 @@ export default function EventFormWizard() {
       setFormData((prev) => ({
         ...prev,
         [name]: checked,
-        ...(name === 'isOnline' && checked ? { bezirk: '', city: '', placeRegionId: '' } : {}),
+        ...(name === 'isOnline' && checked
+          ? { bezirk: '', city: '', placeRegionId: '', cityPicked: false }
+          : {}),
       }));
       if (errors[name]) {
         setErrors((prev) => ({ ...prev, [name]: null }));
@@ -654,6 +662,7 @@ export default function EventFormWizard() {
             bezirk: keepIfInRegion(prev.bezirk, value, regionChoices),
             city: '',
             placeRegionId: '',
+            cityPicked: false,
           }
         : {}),
     }));
@@ -665,7 +674,7 @@ export default function EventFormWizard() {
   // The Ort decides Bezirk and region. With a region field, an offered region follows the
   // place (its Bezirke / Landkreise show in the select); a region that is not open yet is
   // only remembered as `placeRegionId` (hint next to the Ort).
-  const handleCityChange = ({ city, bezirk, regionId = null }) => {
+  const handleCityChange = ({ city, bezirk, regionId = null, picked = false }) => {
     if (bezirk !== formData.bezirk) setBezirkPicked(false);
     const followRegion =
       regionChoices.enabled && regionId && regionChoices.options.some((r) => r.id === regionId);
@@ -674,6 +683,7 @@ export default function EventFormWizard() {
       city,
       bezirk,
       placeRegionId: regionId || '',
+      cityPicked: picked,
       ...(followRegion ? { regionId } : {}),
       ...(city.trim() ? { isOnline: false } : {}),
     }));
