@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, MessageSquare, ShieldCheck, Pencil, Trash2, ImageOff } from 'lucide-react';
+import { Send, MessageSquare, ShieldCheck, Pencil, Trash2, ImageOff, Image } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useEventMessages } from '../hooks/useEventMessages';
 import { getStaffAccess, messageAuthorRole } from '../utils/staffRoles';
@@ -27,6 +27,17 @@ export function instagramNoTextTemplate(name) {
   return [
     `<p>${greeting}</p>`,
     '<p>damit wir dein Event auf Instagram posten können, lade bitte für Instagram ein separates Bild hoch, das keinen Text beinhaltet. Der Grund hierfür ist, dass wir beim Instagram-Post bereits Text über dein Bild legen. Du kannst die Vorschau für den Instagram-Post oben sehen.</p>',
+    '<p>Bei Fragen wende dich gerne direkt über diesen Chat an uns.</p>',
+    '<p>Liebe Grüße,<br>Dein Admin-Team</p>',
+  ].join('');
+}
+
+export function defaultPhotoTemplate(name) {
+  const greeting = name ? `Hallo ${escapeHtml(name)},` : 'Hallo,';
+  return [
+    `<p>${greeting}</p>`,
+    '<p>für dein Event ist aktuell ein Standardfoto hinterlegt. Möchtest du das wirklich so lassen? Erfahrungsgemäß werden Events deutlich öfter angeschaut, wenn sie ein eigenes Foto haben.</p>',
+    '<p>Du kannst jederzeit ein eigenes Foto hochladen. Wenn wir in den nächsten 2 Tagen nichts von dir hören, verwenden wir das Standardfoto und geben dein Event so frei.</p>',
     '<p>Bei Fragen wende dich gerne direkt über diesen Chat an uns.</p>',
     '<p>Liebe Grüße,<br>Dein Admin-Team</p>',
   ].join('');
@@ -282,15 +293,26 @@ export default function EventMessages({ eventId, eventOwnerUid = null, organizer
         <div className="event-messages-composer-footer">
           {error && <span className="event-messages-error">{error}</span>}
           {role === 'Admin' && (
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm event-messages-template-btn"
-              onClick={() => setText(instagramNoTextTemplate(organizerName))}
-              data-testid="event-message-template-instagram"
-            >
-              <ImageOff size={16} aria-hidden="true" />
-              <span>Vorlage: Instagram-Bild ohne Text</span>
-            </button>
+            <>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm event-messages-template-btn"
+                onClick={() => setText(instagramNoTextTemplate(organizerName))}
+                data-testid="event-message-template-instagram"
+              >
+                <ImageOff size={16} aria-hidden="true" />
+                <span>Vorlage: Instagram-Bild ohne Text</span>
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm event-messages-template-btn"
+                onClick={() => setText(defaultPhotoTemplate(organizerName))}
+                data-testid="event-message-template-default-photo"
+              >
+                <Image size={16} aria-hidden="true" />
+                <span>Vorlage: Standardfoto</span>
+              </button>
+            </>
           )}
           <button
             type="submit"

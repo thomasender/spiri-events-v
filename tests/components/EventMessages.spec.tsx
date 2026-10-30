@@ -103,9 +103,20 @@ describe('EventMessages', () => {
     expect(initial).toContain('keinen Text beinhaltet');
   });
 
-  it('does not show the Instagram template button to non-admins', () => {
+  it('offers admins a default-photo template that asks the organizer to upload an own photo', () => {
+    useAuth.mockReturnValue({ user: { uid: 'admin-1' }, role: 'Admin' });
+    render(<EventMessages eventId="event-1" organizerName="Lars" />);
+    fireEvent.click(screen.getByTestId('event-message-template-default-photo'));
+    const initial = screen.getByTestId('event-message-input').getAttribute('data-initial');
+    expect(initial).toContain('Hallo Lars,');
+    expect(initial).toContain('Standardfoto');
+    expect(initial).toContain('2 Tagen');
+  });
+
+  it('does not show the template buttons to non-admins', () => {
     render(<EventMessages eventId="event-1" organizerName="Lars" />);
     expect(screen.queryByTestId('event-message-template-instagram')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('event-message-template-default-photo')).not.toBeInTheDocument();
   });
 
   it('sends the composed rich-text message when the user submits', async () => {
