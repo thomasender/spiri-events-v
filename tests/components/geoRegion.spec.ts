@@ -1,12 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import adminAtChMap from '../../src/data/adminAtChMap.json';
+import rawPlaces from '../../src/data/placeIndex.json';
 import { STATIC_REGIONS } from '../../src/utils/regions';
 import {
   ADMIN_SHAPE_REGIONS,
+  locatePosition,
   positionHit,
   prepareAdminShapes,
   regionForPosition,
 } from '../../src/utils/geoRegion';
+import { preparePlaceIndex } from '../../src/utils/placeSearch';
 
 // "Meinen Standort verwenden": lat/lon -> Bundesland / Kanton / Liechtenstein outline
 // (adminAtChMap.json, official BEV / swisstopo borders via geoBoundaries, about 0.1-0.15 km)
@@ -61,8 +64,8 @@ describe('lat/lon -> Bundesland / Kanton', () => {
     expect(slugAt(lat, lon)).toBe(slug);
   });
 
-  // Pairs right at the German border: the AT/CH side gets its region, the German side none
-  // (Germany has no region now).
+  // Pairs right at the German border: the AT/CH side gets its region by the outline, the
+  // German side no outline (Germany is resolved by the place list, see locatePosition below).
   it.each([
     ['Konstanz, Altstadt', 47.66, 9.175, null],
     ['Konstanz, Bahnhof', 47.6585, 9.1775, null],
@@ -132,8 +135,11 @@ describe('lat/lon -> Bundesland / Kanton', () => {
     expect(regionForPosition(Number.NaN, 9, STATIC_REGIONS, admin)).toBeNull();
   });
 
-  it('every register region has an outline and every outline belongs to a register region', () => {
-    const register = STATIC_REGIONS.map((r) => r.slug).sort();
+  it('every AT / CH / LI region has an outline and every outline belongs to a register region', () => {
+    // Germany has no outlines (nearest place of the list instead).
+    const register = STATIC_REGIONS.filter((r) => r.country !== 'DE')
+      .map((r) => r.slug)
+      .sort();
     expect(register).toHaveLength(29);
     const isos = Object.keys(adminAtChMap.shapes).sort();
     expect(isos).toEqual(Object.keys(ADMIN_SHAPE_REGIONS).sort());
@@ -146,5 +152,70 @@ describe('lat/lon -> Bundesland / Kanton', () => {
     expect(ADMIN_SHAPE_REGIONS['CH-AR']).toBe('appenzell');
     expect(ADMIN_SHAPE_REGIONS['CH-BL']).toBe('basel');
     expect(ADMIN_SHAPE_REGIONS['AT-8']).toBe('vorarlberg');
+  });
+});
+
+// "Meinen Standort verwenden" end to end: outline first (AT / CH / LI), else the nearest
+// German place of the list -> its Landkreis -> region. Real data (placeIndex.json).
+describe('locatePosition (outline, then nearest German place)', () => {
+  const index = preparePlaceIndex(rawPlaces);
+  const locate = (lat: number, lon: number, shapes: typeof admin | null = admin) =>
+    locatePosition(lat, lon, index, STATIC_REGIONS, shapes);
+
+  it.each([
+    // Vorarlberg side must never change.
+    ['Bregenz', 47.5031, 9.7471, 'vorarlberg', 'AT'],
+    ['Hörbranz', 47.552, 9.755, 'vorarlberg', 'AT'],
+    ['Lochau', 47.53, 9.75, 'vorarlberg', 'AT'],
+    ['Lustenau', 47.427, 9.659, 'vorarlberg', 'AT'],
+    ['Feldkirch-Tisis', 47.228, 9.558, 'vorarlberg', 'AT'],
+    ['Mittelberg (Kleinwalsertal)', 47.322, 10.15, 'vorarlberg', 'AT'],
+    // German side of the Vorarlberg / Swiss border.
+    ['Lindau, Insel', 47.546, 9.684, 'bodensee', 'DE'],
+    ['Lindau-Reutin', 47.556, 9.707, 'bodensee', 'DE'],
+    ['Konstanz, Altstadt', 47.66, 9.175, 'bodensee', 'DE'],
+    ['Kreuzlingen', 47.6458, 9.1752, 'thurgau', 'CH'],
+    ['Oberstaufen', 47.555, 10.022, 'allgaeu', 'DE'],
+    // Passau / Schärding, Salzburg / Freilassing, Basel / Weil am Rhein.
+    ['Passau, Altstadt', 48.574, 13.465, 'bayerischer-wald', 'DE'],
+    ['Schärding', 48.457, 13.432, 'oberoesterreich', 'AT'],
+    ['Freinberg', 48.539, 13.457, 'oberoesterreich', 'AT'],
+    ['Salzburg-Liefering', 47.83, 13.0, 'salzburg', 'AT'],
+    ['Freilassing', 47.838, 12.977, 'chiemgau', 'DE'],
+    ['Basel, Kleinhüningen', 47.581, 7.591, 'basel', 'CH'],
+    ['Weil am Rhein', 47.5935, 7.6206, 'suedbaden', 'DE'],
+    ['Kufstein', 47.583, 12.17, 'tirol', 'AT'],
+    ['Kiefersfelden', 47.613, 12.189, 'chiemgau', 'DE'],
+    ['Braunau am Inn', 48.258, 13.034, 'oberoesterreich', 'AT'],
+    ['Simbach am Inn', 48.265, 13.023, 'niederbayern', 'DE'],
+    // Inland Germany.
+    ['München, Marienplatz', 48.1374, 11.5755, 'muenchen', 'DE'],
+    ['Stuttgart', 48.7758, 9.1829, 'region-stuttgart', 'DE'],
+    ['Berlin, Mitte', 52.52, 13.405, 'berlin', 'DE'],
+    ['Hamburg', 53.5511, 9.9937, 'hamburg', 'DE'],
+    ['Essen', 51.4556, 7.0116, 'ruhrgebiet', 'DE'],
+  ] as [string, number, number, string, string][])('%s -> %s', (_l, lat, lon, slug, country) => {
+    const hit = locate(lat, lon);
+    expect(hit?.regionId).toBe(slug);
+    expect(hit?.place.country).toBe(country);
+  });
+
+  it('Liechtenstein resolves to its region with a Liechtenstein place', () => {
+    expect(locate(47.141, 9.521)).toMatchObject({
+      regionId: 'liechtenstein',
+      place: { country: 'LI' },
+    });
+  });
+
+  it('no place within 30 km: null; outside every country near Austria: the nearest place', () => {
+    expect(locate(40.4168, -3.7038)).toBeNull(); // Madrid
+    expect(locate(Number.NaN, 9)).toBeNull();
+    // Sterzing (Italy): no outline, no German place near, so the nearest place (Tirol) as before.
+    expect(locate(46.893, 11.43)).toMatchObject({ regionId: 'tirol', place: { country: 'AT' } });
+  });
+
+  it('without outlines (failed to load) the nearest place of any country decides', () => {
+    expect(locate(47.5031, 9.7471, null)?.regionId).toBe('vorarlberg');
+    expect(locate(48.1374, 11.5755, null)?.regionId).toBe('muenchen');
   });
 });

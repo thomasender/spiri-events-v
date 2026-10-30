@@ -29,9 +29,10 @@ export function bezirkLabel(bezirk) {
 }
 
 // URL slugs of the regions (ASCII, umlauts transliterated). The register is defined ONLY by
-// the three CSVs in scripts/data/regions/ (Austria: 9 Bundesländer, Switzerland: 19 regions,
-// Liechtenstein: 1), generated into src/data/regionData.js by scripts/build-region-data.mjs.
-// Order = switcher order (Austria, Switzerland, Liechtenstein; CSV row order inside).
+// the four CSVs in scripts/data/regions/ (Austria: 9 Bundesländer, Germany: 104 regions,
+// Switzerland: 19 regions, Liechtenstein: 1), generated into src/data/regionData.js by
+// scripts/build-region-data.mjs. Order = switcher order (Austria, Germany, Switzerland,
+// Liechtenstein; CSV row order inside).
 // "Österreich" etc. are not regions but combined views over them (UI only, never stored on
 // an event or profile).
 // Single source: username.js reserves the slugs so no profile can shadow a
@@ -40,14 +41,14 @@ export function bezirkLabel(bezirk) {
 export const STATIC_REGION_SLUGS = Object.freeze(REGION_DATA.map((r) => r.slug));
 export const REGION_SLUGS = [...STATIC_REGION_SLUGS];
 
-// Ids of former regions (Germany, the Allgäu pilot, Swiss cantons now merged into
-// Innerschweiz / Basel / Appenzell). Not valid region ids any more, but still reserved as
+// Ids of former regions (the old German Bundesländer and cultural regions that are not in
+// deutschland.csv, Swiss cantons now merged into Innerschweiz / Basel / Appenzell). Not valid
+// region ids any more, but still reserved as
 // usernames so nobody can claim an old region address. Generated next to REGION_DATA.
 export { RETIRED_REGION_IDS };
 
 // Stored ids that are read as another region. Empty since the CSV register (Trello
-// QG0GR5lv): the old Allgäu -> Bayern alias is gone with Germany; `allgaeu` stays reserved
-// through RETIRED_REGION_IDS.
+// QG0GR5lv): the old Allgäu -> Bayern alias is gone (`allgaeu` is a region of its own again).
 export const LEGACY_REGION_ALIASES = Object.freeze({});
 
 export const DEFAULT_REGION_ID = 'vorarlberg';
@@ -89,28 +90,31 @@ export function instagramProfileUrl(handle) {
 
 // Country of each region (static only; deliberately NOT stored in
 // `regions/{id}` docs, firestore.rules does not whitelist it). Drives the
-// combined country views. Germany follows later (a `deutschland.csv`).
-export const COUNTRIES = ['AT', 'CH', 'LI'];
+// combined country views. Order = switcher order.
+export const COUNTRIES = ['AT', 'DE', 'CH', 'LI'];
 export const DEFAULT_COUNTRY = 'AT';
 export const COUNTRY_LABELS = Object.freeze({
   AT: 'Österreich',
+  DE: 'Deutschland',
   CH: 'Schweiz',
   LI: 'Liechtenstein',
-  DE: 'Deutschland',
 });
 
-// Combined views ("Ganz Österreich", "Ganz Schweiz", "Alle Tribes"): not regions, only UI
+// Combined views ("Ganz Österreich", "Ganz Deutschland", "Ganz Schweiz", "Alle Tribes"): not
+// regions, only UI
 // views over the active regions of one country (`country`) or of all countries
 // (`country: null`). Never stored on an event or profile. Their slugs share the top-level
 // path space with profiles, so username.js reserves them next to REGION_SLUGS.
 // Liechtenstein has a single region, so it gets no country view.
 export const COMBINED_VIEWS = Object.freeze([
   { slug: 'oesterreich', name: 'Ganz Österreich', label: 'Österreich', country: 'AT' },
+  { slug: 'deutschland', name: 'Ganz Deutschland', label: 'Deutschland', country: 'DE' },
   { slug: 'schweiz', name: 'Ganz Schweiz', label: 'Schweiz', country: 'CH' },
   { slug: 'alle-tribes', name: 'Alle Tribes', label: 'Alle Tribes', country: null },
 ]);
-// Former combined views: no longer a view, still reserved as usernames.
-export const RETIRED_VIEW_SLUGS = Object.freeze(['deutschland']);
+// Former combined views: no longer a view, still reserved as usernames (none at the moment;
+// `/deutschland` is a view again).
+export const RETIRED_VIEW_SLUGS = Object.freeze([]);
 export const COMBINED_VIEW_SLUGS = COMBINED_VIEWS.map((v) => v.slug);
 
 // Register Bezirke plus the region's legacy pseudo-Bezirke (read-only, see LEGACY_OUTSIDE_BEZIRK).
@@ -122,7 +126,8 @@ const VORARLBERG_BEZIRKE = withLegacyBezirke(
 );
 
 // What the sub-areas of a region are called: "Bezirk" in Austria and Switzerland,
-// "Landesteil" in Liechtenstein ("Landkreis" once Germany is back).
+// "Landkreis" in Germany (kreisfreie Städte are listed there too), "Landesteil" in
+// Liechtenstein.
 export const DEFAULT_SUBDIVISION_LABEL = 'Bezirk';
 const SUBDIVISION_PLURALS = {
   Bezirk: 'Bezirke',
@@ -150,6 +155,13 @@ export const STATIC_REGIONS = REGION_DATA.map((r, order) => ({
   subdivisionLabel: r.subdivisionLabel,
   timezone: r.timezone,
 }));
+
+// German district names mostly say what they are ("Stadt München", "Landkreis München",
+// "Rems-Murr-Kreis", "Region Hannover", "Städteregion Aachen"); a few are bare names
+// ("Friesland", "Berchtesgadener Land"). True for the former.
+export const districtNameHasKind = (name) =>
+  typeof name === 'string' &&
+  (/^(Stadt|Landkreis|Region|Städteregion|Regionalverband) /.test(name) || /kreis\b/i.test(name));
 
 // A region whose register list holds no Bezirke / Landkreise does not exist for
 // visitors: no chooser entry, no search hit, no map shape.
@@ -201,7 +213,7 @@ export function resolveDirectoryRegionIds(doc) {
 export const getBezirke = (regionId, regions = STATIC_REGIONS) =>
   getRegionBySlug(regionId, regions)?.bezirke ?? [];
 
-// "Bezirk" / "Landesteil" for a region; unknown ids use "Bezirk".
+// "Bezirk" / "Landkreis" / "Landesteil" for a region; unknown ids use "Bezirk".
 export const getSubdivisionLabel = (regionId, regions = STATIC_REGIONS) =>
   getRegionBySlug(regionId, regions)?.subdivisionLabel ?? DEFAULT_SUBDIVISION_LABEL;
 

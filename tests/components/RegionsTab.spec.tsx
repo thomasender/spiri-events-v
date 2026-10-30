@@ -114,10 +114,10 @@ describe('RegionsTab', () => {
     render(<RegionsTab />);
     // Accordion: the country with an active region (Austria) starts open, the rest folded.
     expect(screen.getAllByTestId(/^region-row-/)).toHaveLength(9);
+    fireEvent.click(screen.getByRole('button', { name: /Deutschland/ }));
     fireEvent.click(screen.getByRole('button', { name: /Schweiz/ }));
     fireEvent.click(screen.getByRole('button', { name: /Liechtenstein/ }));
     expect(screen.getAllByTestId(/^region-row-/)).toHaveLength(STATIC_REGIONS.length);
-    expect(screen.queryByRole('button', { name: /Deutschland/ })).not.toBeInTheDocument();
     const tirol = await row('tirol');
     expect(within(tirol).getByTestId('region-status')).toHaveTextContent('noch nicht aktiv');
     expect(within(tirol).getByTestId('region-moderators')).toHaveTextContent('1 (Tina)');
@@ -150,7 +150,13 @@ describe('RegionsTab', () => {
     expect(screen.getByTestId('regions-group-count-AT')).toHaveTextContent('9 Regionen, 1 aktiv');
     expect(screen.getByTestId('regions-group-count-CH')).toHaveTextContent('19 Regionen, 0 aktiv');
     expect(screen.getByTestId('regions-group-count-LI')).toHaveTextContent('1 Region, 0 aktiv');
-    expect(screen.queryByTestId('regions-group-count-DE')).not.toBeInTheDocument();
+    expect(screen.getByTestId('regions-group-count-DE')).toHaveTextContent(
+      /^\d{3} Regionen, 0 aktiv$/
+    );
+    // Country order: Österreich, Deutschland, Schweiz, Liechtenstein.
+    expect(
+      screen.getAllByTestId(/^regions-group-count-/).map((n) => n.dataset.testid?.slice(-2))
+    ).toEqual(['AT', 'DE', 'CH', 'LI']);
     fireEvent.click(ch);
     expect(ch).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByTestId('region-row-innerschweiz')).toBeInTheDocument();

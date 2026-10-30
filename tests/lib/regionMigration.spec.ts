@@ -55,7 +55,8 @@ describe('planEventUpdate', () => {
   it('reports unknown values instead of overwriting them', () => {
     expect(planEventUpdate({ regionId: 'mars' })).toEqual({ kind: 'invalid', value: 'mars' });
     // Former regions (Allgäu pilot, Germany) are reported, never rewritten.
-    expect(planEventUpdate({ regionId: 'allgaeu' })).toEqual({ kind: 'invalid', value: 'allgaeu' });
+    expect(planEventUpdate({ regionId: 'bayern' })).toEqual({ kind: 'invalid', value: 'bayern' });
+    expect(planEventUpdate({ regionId: 'allgaeu' })).toEqual({ kind: 'already' });
     expect(planEventUpdate({ regionId: 'bayern' })).toEqual({ kind: 'invalid', value: 'bayern' });
     expect(planProfileUpdate({ directoryRegionIds: ['bayern', 'tirol'] })).toEqual({
       kind: 'invalid',

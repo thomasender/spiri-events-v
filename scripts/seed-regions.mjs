@@ -1,14 +1,17 @@
 #!/usr/bin/env node
-// Idempotent seed for the `regions` collection from the register in code (the three country
-// CSVs in scripts/data/regions/ -> src/data/regionData.js -> STATIC_REGIONS: 29 regions of
-// Austria, Switzerland and Liechtenstein). Reconciles in ONE batch (plan:
+// Idempotent seed for the `regions` collection from the register in code (the four country
+// CSVs in scripts/data/regions/ -> src/data/regionData.js -> STATIC_REGIONS: 133 regions of
+// Austria, Germany, Switzerland and Liechtenstein). Reconciles in ONE batch (plan:
 // planRegionSeed in src/utils/regionDocs.js):
 //   - a register region without doc gets one (inactive, Vorarlberg active; only switches,
 //     no name / slug / districts: those come from the register),
 //   - an existing doc only gets its MISSING switch fields; admin edits (active, contact,
 //     seo, texts, about, instagram, timezone) are never changed,
-//   - docs of regions that are no longer in the register (Germany, merged cantons,
-//     `oesterreich`, `allgaeu`, ...) are set `active: false` and reported, NEVER deleted.
+//   - docs of regions that are no longer in the register (old German Bundesländer and
+//     cultural regions, merged cantons, `oesterreich`, ...) are set `active: false` and
+//     reported, NEVER deleted,
+//   - a former id that is a region again (`allgaeu`, `berlin`, `ruhrgebiet`, ... from
+//     deutschland.csv) keeps its doc and its `active`; active non-Vorarlberg docs are listed.
 // Stale fields of old docs (name, bezirke, ...) are left alone here; see
 // scripts/cleanup-region-docs.mjs.
 //
@@ -66,6 +69,9 @@ console.log(
   `regions: ${plan.create.length} created, ${plan.complete.length} completed, ${unchanged} unchanged, ` +
     `${plan.deactivate.length} switched off (${target.target}, ${target.projectId})`
 );
+if (plan.live.length) {
+  console.log(`ACTIVE region docs besides vorarlberg (check this is intended): ${plan.live.join(', ')}`);
+}
 if (plan.retired.length) {
   console.log(
     `docs of former regions (kept, inactive; delete them by hand if wanted): ${plan.retired.join(', ')}`

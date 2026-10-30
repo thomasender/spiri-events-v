@@ -1,4 +1,4 @@
-// Pure planning for the `regions/{id}` docs against the register in code (the three CSVs in
+// Pure planning for the `regions/{id}` docs against the register in code (the four CSVs in
 // scripts/data/regions/, generated into src/data/regionData.js). Used by
 // scripts/seed-regions.mjs and scripts/cleanup-region-docs.mjs; no Firebase imports, so
 // Vitest covers it (tests/components/regionDocs.spec.ts).
@@ -31,7 +31,7 @@ export function newRegionDoc(region) {
     active: region.id === DEFAULT_REGION_ID,
     contactEmail: '',
     seo: { title: '', description: '' },
-    // Europe/Vienna, Europe/Zurich or Europe/Vaduz (informational).
+    // Europe/Vienna, Europe/Berlin, Europe/Zurich or Europe/Vaduz (informational).
     timezone: region.timezone,
   };
 }
@@ -41,7 +41,11 @@ export function newRegionDoc(region) {
  * has a doc and every other doc is switched off. Admin-maintained fields (active, contact,
  * seo, texts, about, instagram, timezone) of an existing doc are never changed; only missing
  * ones are filled in. Docs of former regions are never deleted, only set `active: false`.
- * Returns { create: [{ id, data }], complete: [{ id, data }], deactivate: [id], retired: [id] }.
+ * An id that was a former region and is a register region again (e.g. `allgaeu`, `berlin`
+ * from deutschland.csv) simply keeps its doc: it is not switched off, and its `active` is
+ * left as it is (reported in `live` when it is on, so nobody is surprised by a live region).
+ * Returns { create: [{ id, data }], complete: [{ id, data }], deactivate: [id], retired: [id],
+ * live: [id] } (`live`: register regions other than Vorarlberg whose doc is active).
  */
 export function planRegionSeed(existing, register = STATIC_REGIONS) {
   const byId = new Map((existing ?? []).map((d) => [d.id, d.data ?? {}]));
@@ -60,7 +64,10 @@ export function planRegionSeed(existing, register = STATIC_REGIONS) {
   const live = new Set(register.map((r) => r.id));
   const retired = [...byId.keys()].filter((id) => !live.has(id)).sort();
   const deactivate = retired.filter((id) => byId.get(id).active !== false);
-  return { create, complete, deactivate, retired };
+  const liveDocs = register
+    .map((r) => r.id)
+    .filter((id) => id !== DEFAULT_REGION_ID && byId.get(id)?.active === true);
+  return { create, complete, deactivate, retired, live: liveDocs };
 }
 
 /** Stale keys present in one region doc. */

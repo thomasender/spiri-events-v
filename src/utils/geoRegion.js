@@ -10,8 +10,12 @@
 // region of the register that covers it. Several cantons share one region (Luzern, Schwyz,
 // Obwalden, Nidwalden, Uri, Zug -> Innerschweiz; both Appenzell -> Appenzell; both Basel ->
 // Basel): the polygons are not merged, they simply resolve to the same region id.
-// Germany has no region (yet), so a position there is "no region" (the German Landkreis
-// projection was removed with the German regions; Trello QG0GR5lv).
+// Germany has no outlines: a position outside AT / CH / LI is resolved by the nearest German
+// place of the place list (placeIndex.json, within 30 km) -> its Landkreis -> the region whose
+// CSV row lists it (locatePosition; Trello QG0GR5lv). Accuracy there: the Landkreis of the
+// nearest Ort, so right at a Landkreis border the neighbour can come out.
+import { nearestPlace } from './placeSearch.js';
+import { regionIdForEntry } from './placeSelection.js';
 
 // A point outside every outline but this close (km) to one counts as that outline: only the
 // simplification noise of the (precise) outlines. A point farther outside really is outside.
@@ -175,4 +179,51 @@ export function regionForPosition(lat, lon, regions, adminShapes = []) {
   if (!hit) return null;
   const region = hit.adminSlug ? regions.find((r) => r.id === hit.adminSlug) : null;
   return region ? { adminSlug: hit.adminSlug, region } : null;
+}
+
+// Countries that have outlines: inside them the outline decides, outside the place list.
+const OUTLINE_COUNTRIES = new Set(['AT', 'CH', 'LI']);
+
+/**
+ * "Meinen Standort verwenden": lat/lon -> { place, regionId } (place = the place of the list
+ * the position is snapped to; regionId may be null), or null when no place lies within 30 km.
+ *   1. inside (or within ADMIN_TOLERANCE_KM of) a Bundesland / Kanton / Liechtenstein outline:
+ *      that region; the place is the nearest one of that country;
+ *   2. outside all outlines: the nearest German place (Germany has no outlines) and the region
+ *      of its Landkreis;
+ *   3. otherwise (no German place near, e.g. Italy, or the outlines could not be loaded): the
+ *      nearest place of any country and its region.
+ * `index` is the prepared place list, `regions` the merged register, `adminShapes` the
+ * prepared outlines (null / empty when they failed to load).
+ */
+export function locatePosition(lat, lon, index, regions, adminShapes = null) {
+  if (!index || !Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  const nearestOf = (country) =>
+    nearestPlace(
+      index,
+      lat,
+      lon,
+      undefined,
+      undefined,
+      country ? (p) => p.country === country : null
+    );
+  const withShapes = Array.isArray(adminShapes) && adminShapes.length > 0;
+  const hit = withShapes ? regionForPosition(lat, lon, regions, adminShapes) : null;
+  if (hit) {
+    const place = nearestOf(hit.region.country) ?? nearestOf(null);
+    return place ? { place, regionId: hit.region.id } : null;
+  }
+  if (withShapes) {
+    const german = nearestPlace(
+      index,
+      lat,
+      lon,
+      undefined,
+      undefined,
+      (p) => !OUTLINE_COUNTRIES.has(p.country)
+    );
+    if (german) return { place: german, regionId: regionIdForEntry(german, regions) };
+  }
+  const place = nearestOf(null);
+  return place ? { place, regionId: regionIdForEntry(place, regions) } : null;
 }

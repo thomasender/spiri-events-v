@@ -797,12 +797,20 @@ describe('regions', () => {
       await assertFails(setDoc(doc(db, 'regions/mars'), validRegion));
     });
 
-    it('rejects former regions (Germany, merged cantons), accepts the new ones', async () => {
+    it('rejects former regions (old German ids, merged cantons), accepts the register ones', async () => {
       const db = make().firestore();
-      for (const id of ['bayern', 'franken', 'luzern', 'basel-stadt', 'allgaeu']) {
+      for (const id of ['bayern', 'franken', 'luzern', 'basel-stadt', 'region-hannover']) {
         await assertFails(setDoc(doc(db, `regions/${id}`), validRegion));
       }
-      for (const id of ['innerschweiz', 'basel', 'appenzell', 'liechtenstein']) {
+      for (const id of [
+        'innerschweiz',
+        'basel',
+        'appenzell',
+        'liechtenstein',
+        'allgaeu',
+        'muenchen',
+        'altmark-und-jerichower-land',
+      ]) {
         await assertSucceeds(setDoc(doc(db, `regions/${id}`), validRegion));
         await assertSucceeds(deleteDoc(doc(db, `regions/${id}`)));
       }
@@ -992,6 +1000,10 @@ describe('events.regionId', () => {
     );
     // Clients cached before this change send no regionId.
     await assertSucceeds(setDoc(doc(db, 'events/c4'), createPayload()));
+    // German regions (deutschland.csv), first / last of the list, and the last region overall.
+    for (const regionId of ['region-stuttgart', 'lauenburg', 'allgaeu', 'liechtenstein']) {
+      await assertSucceeds(setDoc(doc(db, `events/de-${regionId}`), createPayload({ regionId })));
+    }
   });
 
   it('create: unknown or non-string region rejected', async () => {

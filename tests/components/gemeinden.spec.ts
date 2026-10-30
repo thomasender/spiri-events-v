@@ -7,7 +7,7 @@ import {
   canonicalCity,
 } from '../../src/utils/gemeinden';
 import { BEZIRKE } from '../../src/utils/regions';
-import { getEventLocationLabel } from '../../src/utils/eventFormat';
+import { getEventDistrictPrefix, getEventLocationLabel } from '../../src/utils/eventFormat';
 
 describe('GEMEINDEN', () => {
   it('lists all 96 Vorarlberg Gemeinden once, each in a known Bezirk', () => {
@@ -81,11 +81,49 @@ describe('validateCity / canonicalCity', () => {
   });
 });
 
-describe('formatCityWithBezirk in Germany', () => {
+describe('formatCityWithBezirk in Germany (district names of deutschland.csv)', () => {
   it('uses "Lkr." for Landkreise and does not repeat a kreisfreie Stadt', () => {
-    expect(formatCityWithBezirk('Garching', 'München', 'Landkreis')).toBe(
+    expect(formatCityWithBezirk('Garching', 'Landkreis München', 'Landkreis')).toBe(
       'Garching (Lkr. München)'
     );
-    expect(formatCityWithBezirk('Kempten', 'Kempten', 'Landkreis')).toBe('Kempten');
+    expect(formatCityWithBezirk('München', 'Stadt München', 'Landkreis')).toBe('München');
+    expect(formatCityWithBezirk('Kempten', 'Stadt Kempten (Allgäu)', 'Landkreis')).toBe('Kempten');
+    expect(
+      formatCityWithBezirk('Lindau (Bodensee)', 'Landkreis Lindau (Bodensee)', 'Landkreis')
+    ).toBe('Lindau (Bodensee) (Lkr. Lindau (Bodensee))');
+  });
+
+  it('names that carry their kind stay as they are; bare names get "Lkr."', () => {
+    expect(formatCityWithBezirk('Waiblingen', 'Rems-Murr-Kreis', 'Landkreis')).toBe(
+      'Waiblingen (Rems-Murr-Kreis)'
+    );
+    expect(formatCityWithBezirk('Garbsen', 'Region Hannover', 'Landkreis')).toBe(
+      'Garbsen (Region Hannover)'
+    );
+    expect(formatCityWithBezirk('Spandau', 'Stadt Berlin', 'Landkreis')).toBe(
+      'Spandau (Stadt Berlin)'
+    );
+    expect(formatCityWithBezirk('Jever', 'Friesland', 'Landkreis')).toBe('Jever (Lkr. Friesland)');
+    expect(
+      getEventLocationLabel({
+        city: 'Unterhaching',
+        bezirk: 'Landkreis München',
+        regionId: 'muenchen',
+      })
+    ).toBe('Unterhaching (Lkr. München)');
+  });
+
+  it('the district badge prefix: "Landkreis" only where the name does not say it', () => {
+    const prefix = (bezirk: string) =>
+      getEventDistrictPrefix({ city: 'X', bezirk, regionId: 'bodensee' });
+    expect(prefix('Landkreis Konstanz')).toBe('');
+    expect(prefix('Bodenseekreis')).toBe('');
+    expect(
+      getEventDistrictPrefix({ city: 'Jever', bezirk: 'Friesland', regionId: 'friesland' })
+    ).toBe('Landkreis');
+    expect(getEventDistrictPrefix({ city: 'Altach', bezirk: 'Feldkirch' })).toBe('Bezirk');
+    expect(
+      getEventDistrictPrefix({ city: 'Vaduz', bezirk: 'Oberland', regionId: 'liechtenstein' })
+    ).toBe('Landesteil');
   });
 });

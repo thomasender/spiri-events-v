@@ -46,21 +46,50 @@ service cloud.firestore {
       return order is int && order >= 0;
     }
 
-    // Region ids (== slugs) of the region register: the regions of the three country CSVs
-    // in scripts/data/regions/ (Austria 9, Switzerland 19, Liechtenstein 1), generated into
-    // src/data/regionData.js by scripts/build-region-data.mjs. Regions exist only in code:
-    // there is no way to create one at runtime. Ids of former regions (Germany, merged
-    // cantons) are deliberately NOT valid any more. "Österreich" etc. are combined views in
+    // Region ids (== slugs) of the region register: the regions of the four country CSVs
+    // in scripts/data/regions/ (Austria 9, Germany 104, Switzerland 19, Liechtenstein 1),
+    // generated into src/data/regionData.js by scripts/build-region-data.mjs. Regions exist only in code:
+    // there is no way to create one at runtime. Ids of former regions (the old German
+    // Bundesländer and cultural regions not in deutschland.csv, merged cantons) are
+    // deliberately NOT valid any more. "Österreich" etc. are combined views in
     // the UI, not regions. KEEP IN SYNC with REGION_SLUGS in src/utils/regions.js (guarded by
     // tests/components/regions.spec.ts); generated order.
     function regionIds() {
-      return ['burgenland', 'kaernten', 'niederoesterreich',
-              'oberoesterreich', 'salzburg', 'steiermark', 'tirol',
-              'vorarlberg', 'wien', 'aargau', 'appenzell', 'basel', 'bern',
-              'freiburg', 'genf', 'glarus', 'graubuenden', 'innerschweiz',
-              'jura', 'neuenburg', 'schaffhausen', 'solothurn', 'st-gallen',
-              'tessin', 'thurgau', 'waadt', 'wallis', 'zuerich',
-              'liechtenstein'];
+      return ['burgenland', 'kaernten', 'niederoesterreich', 'oberoesterreich',
+              'salzburg', 'steiermark', 'tirol', 'vorarlberg', 'wien',
+              'region-stuttgart', 'ostalb', 'schwaebische-alb',
+              'heilbronn-franken', 'kurpfalz', 'mittelbaden', 'ortenau',
+              'suedbaden', 'schwarzwald', 'bodensee', 'oberschwaben',
+              'region-ulm', 'muenchen', 'bayerisches-oberland', 'chiemgau',
+              'donauraum', 'niederbayern', 'bayerischer-wald', 'oberpfalz',
+              'nuernberg', 'westmittelfranken', 'bamberger-land',
+              'fichtelgebirge', 'coburger-land', 'mainfranken',
+              'bayerischer-untermain', 'region-augsburg', 'allgaeu', 'berlin',
+              'havelregion', 'flaeming', 'prignitz-oberhavel', 'uckermark',
+              'oderland', 'lausitz', 'bremen', 'hamburg', 'rhein-main-gebiet',
+              'wetterau-kinzigtal', 'suedhessen', 'mittelhessen', 'osthessen',
+              'nordhessen', 'westmecklenburg', 'rostock',
+              'mecklenburgische-seenplatte', 'vorpommern', 'ostfriesland',
+              'friesland', 'oldenburger-land', 'oldenburger-muensterland',
+              'emsland', 'osnabruecker-land', 'mittelweser', 'elbe-weser',
+              'heide', 'hannover', 'hildesheimer-land', 'braunschweiger-land',
+              'suedniedersachsen', 'weserbergland', 'niederrhein',
+              'grossraum-duesseldorf', 'rheinland', 'aachener-land',
+              'bergisches-land', 'ruhrgebiet', 'hellweg', 'sauerland',
+              'siegerland-wittgenstein', 'muensterland', 'ostwestfalen',
+              'lipperland', 'rheinhessen', 'pfalz', 'moselregion', 'eifel',
+              'koblenzer-region', 'westerwald', 'nahe-hunsrueck', 'saarland',
+              'erzgebirge', 'westsachsen', 'vogtland', 'region-leipzig',
+              'dresden-elbland', 'oberlausitz', 'altmark-und-jerichower-land',
+              'magdeburger-boerde', 'anhalt', 'harz', 'saale-unstrut',
+              'region-halle', 'mittelthueringen', 'ostthueringen',
+              'suedwestthueringen', 'nordthueringen', 'westkueste',
+              'flensburger-foerde', 'kiel-foerde', 'unterelbe',
+              'region-neumuenster', 'luebecker-bucht', 'lauenburg', 'aargau',
+              'appenzell', 'basel', 'bern', 'freiburg', 'genf', 'glarus',
+              'graubuenden', 'innerschweiz', 'jura', 'neuenburg',
+              'schaffhausen', 'solothurn', 'st-gallen', 'tessin', 'thurgau',
+              'waadt', 'wallis', 'zuerich', 'liechtenstein'];
     }
 
     function isValidRegionId(id) {

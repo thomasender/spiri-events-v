@@ -51,6 +51,43 @@ describe('planRegionSeed', () => {
     ]);
     expect(plan.retired).toEqual(['bayern', 'luzern', 'oesterreich']);
     expect(plan.deactivate).toEqual(['bayern', 'oesterreich']);
+    expect(plan.live).toEqual([]);
+  });
+
+  it('a former id that is a region again keeps its doc: not retired, not switched off', () => {
+    // `allgaeu` was a pilot region, then retired; deutschland.csv brings it back.
+    const old = {
+      active: false,
+      name: 'Allgäu',
+      bezirke: ['Oberallgäu'],
+      timezone: 'Europe/Berlin',
+    };
+    const plan = planRegionSeed([
+      { id: 'allgaeu', data: old },
+      { id: 'berlin', data: { active: true, contactEmail: 'b@x.de' } },
+    ]);
+    expect(plan.retired).toEqual([]);
+    expect(plan.deactivate).toEqual([]);
+    expect(plan.create.map((c) => c.id)).not.toContain('allgaeu');
+    expect(plan.complete.find((c) => c.id === 'allgaeu')?.data).toEqual({
+      contactEmail: '',
+      seo: { title: '', description: '' },
+    });
+    // An active reused doc stays active, but is reported.
+    expect(plan.live).toEqual(['berlin']);
+    // Its old name / districts are stale (cleanup-region-docs deletes them).
+    expect(staleRegionFields(old)).toEqual(['name', 'bezirke']);
+  });
+
+  it('new German regions are created inactive in Europe/Berlin', () => {
+    const plan = planRegionSeed([]);
+    expect(plan.create.find((c) => c.id === 'muenchen')?.data).toEqual({
+      active: false,
+      contactEmail: '',
+      seo: { title: '', description: '' },
+      timezone: 'Europe/Berlin',
+    });
+    expect(plan.create.filter((c) => c.data.active).map((c) => c.id)).toEqual(['vorarlberg']);
   });
 });
 
@@ -68,6 +105,7 @@ describe('cleanup helpers', () => {
     expect(unknownRegionIds({}, 'regionId')).toEqual([]);
     expect(unknownRegionIds({ regionId: 'vorarlberg' }, 'regionId')).toEqual([]);
     expect(unknownRegionIds({ regionId: 'bayern' }, 'regionId')).toEqual(['bayern']);
+    expect(unknownRegionIds({ regionId: 'allgaeu' }, 'regionId')).toEqual([]);
     expect(
       unknownRegionIds({ directoryRegionIds: ['tirol', 'luzern', 'zug'] }, 'directoryRegionIds')
     ).toEqual(['luzern', 'zug']);

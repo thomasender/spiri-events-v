@@ -41,13 +41,13 @@ import {
 } from '../../src/utils/onlineEventEligibility';
 
 describe('static register', () => {
-  it('covers the CSV register: 9 Austrian, 19 Swiss, 1 Liechtenstein region (no Germany, no oesterreich), only Vorarlberg active', () => {
+  it('covers the CSV register: 9 Austrian, 104 German, 19 Swiss, 1 Liechtenstein region (no oesterreich), only Vorarlberg active', () => {
     expect(STATIC_REGIONS.map((r) => r.slug)).toEqual(REGION_SLUGS);
     const perCountry = (c: string) => STATIC_REGIONS.filter((r) => r.country === c).length;
-    expect([perCountry('AT'), perCountry('CH'), perCountry('LI'), perCountry('DE')]).toEqual([
-      9, 19, 1, 0,
-    ]);
-    expect(isRegionSlug('allgaeu')).toBe(false);
+    expect([perCountry('AT'), perCountry('CH'), perCountry('LI')]).toEqual([9, 19, 1]);
+    expect(perCountry('DE')).toBeGreaterThanOrEqual(100);
+    // The Allgäu is a German region again (deutschland.csv); Bayern / Luzern stay former ids.
+    expect(isRegionSlug('allgaeu')).toBe(true);
     expect(isRegionSlug('bayern')).toBe(false);
     expect(isRegionSlug('luzern')).toBe(false);
     expect(STATIC_REGIONS.some((r) => r.id === 'oesterreich')).toBe(false);
@@ -106,15 +106,18 @@ describe('districts per region', () => {
       expect(r.bezirke.every((b: string) => b.trim() === b && b.length > 0)).toBe(true);
     }
   });
-  it('labels: Bezirk in Austria and Switzerland, Landesteil in Liechtenstein', () => {
+  it('labels: Bezirk in Austria and Switzerland, Landkreis in Germany, Landesteil in Liechtenstein', () => {
     expect(getSubdivisionLabel('vorarlberg')).toBe('Bezirk');
     expect(getSubdivisionLabel('steiermark')).toBe('Bezirk');
     expect(getSubdivisionLabel('liechtenstein')).toBe('Landesteil');
+    expect(getSubdivisionLabel('allgaeu')).toBe('Landkreis');
     expect(getSubdivisionLabel('unknown')).toBe('Bezirk');
     expect(getSubdivisionLabelPlural('wien')).toBe('Bezirke');
     expect(getSubdivisionLabelPlural('liechtenstein')).toBe('Landesteile');
+    expect(getSubdivisionLabelPlural('muenchen')).toBe('Landkreise');
+    const labels = { AT: 'Bezirk', CH: 'Bezirk', DE: 'Landkreis', LI: 'Landesteil' };
     for (const r of STATIC_REGIONS) {
-      expect(r.subdivisionLabel).toBe(r.country === 'LI' ? 'Landesteil' : 'Bezirk');
+      expect(r.subdivisionLabel).toBe(labels[r.country as keyof typeof labels]);
     }
   });
   it('mergeRegions never lets a doc override the districts, the name or the order', () => {
@@ -139,7 +142,8 @@ describe('helpers', () => {
   });
   it('getRegionBySlug / isRegionSlug', () => {
     expect(getRegionBySlug('wien')?.name).toBe('Wien');
-    expect(getRegionBySlug('allgaeu')).toBeNull();
+    expect(getRegionBySlug('allgaeu')?.name).toBe('Allgäu');
+    expect(getRegionBySlug('bayern')).toBeNull();
     expect(isRegionSlug('oesterreich')).toBe(false);
     expect(isRegionSlug('deutschland')).toBe(false);
     expect(isRegionSlug(undefined)).toBe(false);
@@ -148,11 +152,15 @@ describe('helpers', () => {
     expect(getBezirke('nope')).toEqual([]);
   });
   it('ids of former regions are no regions any more (no alias), stored ones stay as they are', () => {
-    expect(resolveRegionId({ regionId: 'allgaeu' })).toBe('allgaeu');
+    expect(resolveRegionId({ regionId: 'luzern' })).toBe('luzern');
     expect(resolveRegionId({ regionId: 'bayern' })).toBe('bayern');
     expect(pickEventRegionId(undefined, { regionId: 'bayern' })).toBe(DEFAULT_REGION_ID);
-    expect(resolveDirectoryRegionIds({ directoryRegionIds: ['allgaeu', 'bayern'] })).toEqual([
+    expect(resolveDirectoryRegionIds({ directoryRegionIds: ['luzern', 'bayern'] })).toEqual([
       DEFAULT_REGION_ID,
+    ]);
+    // A former id that is a region again (deutschland.csv) is simply valid.
+    expect(resolveDirectoryRegionIds({ directoryRegionIds: ['allgaeu', 'bayern'] })).toEqual([
+      'allgaeu',
     ]);
     expect(resolveDirectoryRegionIds({ directoryRegionIds: ['luzern', 'innerschweiz'] })).toEqual([
       'innerschweiz',
@@ -248,7 +256,8 @@ describe('pickEventRegionId', () => {
   it('falls back to the default for new events, old events and unknown ids', () => {
     expect(pickEventRegionId(undefined)).toBe(DEFAULT_REGION_ID);
     expect(pickEventRegionId(null, {})).toBe(DEFAULT_REGION_ID);
-    expect(pickEventRegionId('allgaeu', { regionId: 'nope' })).toBe(DEFAULT_REGION_ID);
+    expect(pickEventRegionId('bayern', { regionId: 'nope' })).toBe(DEFAULT_REGION_ID);
+    expect(pickEventRegionId('allgaeu', { regionId: 'nope' })).toBe('allgaeu');
     expect(pickEventRegionId('oesterreich', { regionId: 'oesterreich' })).toBe(DEFAULT_REGION_ID);
   });
 });

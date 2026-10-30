@@ -136,17 +136,19 @@ other executable code or config still goes through the hooks normally.
 ## Regions
 
 The platform supports several regions behind a **dark launch**. Regions and their
-districts are defined **only in the three CSVs in `scripts/data/regions/`**
-(`oesterreich.csv`: 9 Bundesländer, Wien with its 23 Gemeindebezirke; `schweiz.csv`: 19
-regions; `liechtenstein.csv`: 1 region with the Landesteile Oberland / Unterland; 29 regions
-in total). Germany is not a region country for now (a `deutschland.csv` will follow); ids of
-former regions (`bayern`, `luzern`, `allgaeu`, ...) and `/deutschland` stay reserved as
-usernames. To add or change a region: edit the CSV, add / adjust its entry in the `META` table
-of `scripts/lib/regionRegister.mjs` (id, wording), run `node scripts/build-region-data.mjs`,
-update `regionIds()` in `firestore.rules` (and, for a new canton / Bundesland outline,
-`ADMIN_SHAPE_REGIONS` in `src/utils/geoRegion.js`), rebuild the place list
-(`scripts/build-place-index.mjs`), then seed the doc (`scripts/seed-regions.mjs`);
-`tests/lib/regionRegisterCsv.spec.ts` fails on any drift. The dark launch: only Vorarlberg is active, and with fewer than two active regions
+districts are defined **only in the four CSVs in `scripts/data/regions/`** (countries AT, DE,
+CH, LI; `oesterreich.csv`: 9 Bundesländer, Wien with its 23 Gemeindebezirke;
+`deutschland.csv`: 104 regions over the 400 Landkreise / kreisfreie Städte; `schweiz.csv`: 19
+regions; `liechtenstein.csv`: 1 region with the Landesteile Oberland / Unterland; 133 regions,
+658 districts in total). Two CSV layouts are accepted (`Region;Bezirke`, and the comma layout
+`region, bezirk` of `deutschland.csv`). Ids of former regions (`bayern`, `luzern`, ...) stay
+reserved as usernames; old ids that are regions again (`allgaeu`, `berlin`, ...) are simply
+regions. To add or change a region: edit the CSV, add / adjust its entry in the `META` table
+of `scripts/lib/regionRegister.mjs` (id, wording; a new id also into `HISTORIC_REGION_IDS`),
+run `node scripts/build-region-data.mjs`, update `regionIds()` in `firestore.rules` (and, for
+a new canton / Bundesland outline, `ADMIN_SHAPE_REGIONS` in `src/utils/geoRegion.js`), rebuild
+the place list (`scripts/build-place-index.mjs`), then seed the doc
+(`scripts/seed-regions.mjs`); `tests/lib/regionRegisterCsv.spec.ts` fails on any drift. The dark launch: only Vorarlberg is active, and with fewer than two active regions
 nothing visible may change (no chooser, no region names in mails, no GA `region`,
 byte-identical prerender and Vorarlberg ICS feed). A missing `regionId` /
 `directoryRegionIds` always means `vorarlberg`. Roles: Super-Admin and
@@ -163,7 +165,7 @@ Read a topic file ONLY when your task matches its trigger; each starts with a
 two-line "read this when".
 
 - Read `docs/regions.md` ONLY when you touch regions, the region CSVs, region texts or routing,
-  combined views (`/oesterreich`, `/alle-tribes`), Regions-Moderator:in roles or rules,
+  combined views (`/oesterreich`, `/deutschland`, `/alle-tribes`), Regions-Moderator:in roles or rules,
   region activation, region fixtures/tests, the visitor's place + radius choice ("Wo bist du?"), event
   positions (`lat`/`lng`) or the place list, or want to add a region.
 - Read `docs/staging-migration.md` ONLY when you run or change the Firestore

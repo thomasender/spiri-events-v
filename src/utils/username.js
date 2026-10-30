@@ -53,11 +53,11 @@ export const RESERVED_USERNAMES = new Set([
   'static',
   'public',
   'assets',
-  // Region addresses (`/tirol`, ...) and the combined views (`/oesterreich`,
-  // `/schweiz`, `/alle-tribes`, not regions themselves) share the top-level path
-  // space with profiles. Addresses of former regions (`/bayern`, `/luzern`,
-  // `/allgaeu`, ...) and views (`/deutschland`) stay reserved: nobody may claim
-  // an old region URL.
+  // Region addresses (`/tirol`, `/muenchen`, ...) and the combined views
+  // (`/oesterreich`, `/deutschland`, `/schweiz`, `/alle-tribes`, not regions
+  // themselves) share the top-level path space with profiles. Addresses of former
+  // regions (`/bayern`, `/luzern`, ...) and views (RETIRED_VIEW_SLUGS, empty now)
+  // stay reserved: nobody may claim an old region URL.
   ...REGION_SLUGS,
   ...RETIRED_REGION_IDS,
   ...Object.keys(LEGACY_REGION_ALIASES),

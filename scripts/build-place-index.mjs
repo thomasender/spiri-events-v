@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Builds src/data/placeIndex.json: the bundled list of places (Orte / Gemeinden) of
-// Austria, Switzerland and Liechtenstein that powers "Wo bist du?" (place search, radius
+// Austria, Germany, Switzerland and Liechtenstein that powers "Wo bist du?" (place search, radius
 // filter, event positions). No third-party service is called at runtime.
 //
 // Source: GeoNames postal code files, CC BY 4.0 (https://www.geonames.org, credit required:
@@ -8,18 +8,18 @@
 // are not committed) and pass that directory:
 //
 //   mkdir /tmp/geonames && cd /tmp/geonames
-//   for c in AT CH LI; do curl -sSLO https://download.geonames.org/export/zip/$c.zip; unzip -oq $c.zip -d x$c; done
+//   for c in AT DE CH LI; do curl -sSLO https://download.geonames.org/export/zip/$c.zip; unzip -oq $c.zip -d x$c; done
 //   node scripts/build-place-index.mjs /tmp/geonames
 //
-// Only countries of the region register are read (Germany has no regions until a
-// `deutschland.csv` exists; then add DE here: COLS, the `DE.zip` download and ALIASES).
+// Only countries of the region register are read (COUNTRIES).
 //
 // Rows without an accuracy value are mostly company / large-customer postcodes (e.g.
 // "Mercedes-Benz Vertrieb") and are dropped, except for the main town of a district. Places
 // are de-duplicated per (name, district) and their coordinates averaged. The region
 // ("state" of the list) comes from the GeoNames admin code via ADMIN_SHAPE_REGIONS
-// (src/utils/geoRegion.js: "CH-LU" -> innerschweiz); the district names of GeoNames are
-// matched to the register's districts (`DISTRICT_CATALOG`, from the CSVs in
+// (src/utils/geoRegion.js: "CH-LU" -> innerschweiz); in Germany from the district (see
+// DE_CODES below: the region is the one whose CSV row lists the Landkreis). The district
+// names of GeoNames are matched to the register's districts (`DISTRICT_CATALOG`, from the CSVs in
 // scripts/data/regions/); the rest keep only their region. Centroids of districts and
 // regions are the fallback position for events whose Ort is unknown.
 import fs from 'node:fs';
@@ -28,11 +28,13 @@ import { DISTRICT_CATALOG } from '../src/utils/regionMapping.js';
 import { ADMIN_SHAPE_REGIONS } from '../src/utils/geoRegion.js';
 import { foldSearchText } from '../src/utils/regionSearch.js';
 
-const COUNTRIES = ['AT', 'CH', 'LI'];
+const COUNTRIES = ['AT', 'DE', 'CH', 'LI'];
 
 const dir = process.argv[2];
 if (!dir) {
-  console.error('usage: node scripts/build-place-index.mjs <dir with xAT/AT.txt, xCH/CH.txt, xLI/LI.txt>');
+  console.error(
+    'usage: node scripts/build-place-index.mjs <dir with xAT/AT.txt, xDE/DE.txt, xCH/CH.txt, xLI/LI.txt>'
+  );
   process.exit(1);
 }
 
@@ -58,6 +60,21 @@ const ALIASES = {
     veveyse: 'Vivisbach',
   },
   LI: {},
+  DE: {},
+};
+
+// Germany: GeoNames gives the Kreis as admin3, name AND official Kreisschlüssel (column 8,
+// e.g. "09776" "Landkreis Lindau"). The CSV names a district "Stadt X" (kreisfreie Stadt),
+// "Landkreis X" or by its own name ("Rems-Murr-Kreis", "Region Hannover", "Friesland"). Each
+// Kreisschlüssel is matched once by its GeoNames name(s) (deKreisDistrict); DE_CODES fixes
+// those whose GeoNames name differs or is ambiguous (a bare "Bamberg" is the Landkreis).
+const DE_CODES = {
+  '09471': 'Landkreis Bamberg',
+  '14628': 'Landkreis Sächsische Schweiz-Osterzgebirge',
+  '03256': 'Landkreis Nienburg (Weser)',
+  '03354': 'Landkreis Lüchow-Dannenberg',
+  '03357': 'Landkreis Rotenburg (Wümme)',
+  '03358': 'Heidekreis',
 };
 
 // Districts GeoNames does not have at its district level, decided by the Gemeinde (admin3).
@@ -106,13 +123,42 @@ function parseRegisterName(name) {
   return { base: canonBase(name.replace(/^\d+\.\s*/, '')), kind: null };
 }
 
+// Germany: "Stadt München" -> munchen / stadt, "Landkreis München" -> munchen / land,
+// "Rems-Murr-Kreis" -> rems murr kreis / null.
+function parseGermanRegisterName(name) {
+  const m = name.match(/^(Stadt|Landkreis) (.+)$/);
+  if (m) return { base: canonBase(m[2]), kind: m[1] === 'Stadt' ? 'stadt' : 'land' };
+  return { base: canonBase(name), kind: null };
+}
+
+// GeoNames Kreis name -> { base, kind }: "Kreisfreie Stadt Kempten", "Stadtkreis Ulm",
+// "Bielefeld, Stadt", "Kassel, documenta-Stadt" (stadt); "Landkreis Lindau", "Kreis Kleve"
+// (land); "Ortenaukreis", "Region Hannover" (null).
+function parseGermanGeoNamesKreis(raw) {
+  let s = raw.trim();
+  let kind = null;
+  const suffix = s.match(
+    /, (stadt|kreisfreie stadt|landeshauptstadt|wissenschaftsstadt|documenta-stadt|hansestadt|freie und hansestadt)$/i
+  );
+  if (suffix) {
+    kind = 'stadt';
+    s = s.slice(0, suffix.index);
+  }
+  const prefix = s.match(/^(kreisfreie stadt|stadtkreis|landeshauptstadt|landkreis|kreis) /i);
+  if (prefix) {
+    kind = /^(landkreis|kreis)$/i.test(prefix[1]) ? 'land' : 'stadt';
+    s = s.slice(prefix[0].length);
+  }
+  return { base: canonBase(s), kind };
+}
+
 // base name -> [{ district, kind }] per country; exact name -> district per country
 const registerIndex = Object.fromEntries(COUNTRIES.map((c) => [c, new Map()]));
 const byExactName = new Map(DISTRICT_CATALOG.map((d) => [`${d.country}|${d.name}`, d]));
 const districtsOfRegion = new Map();
 for (const d of DISTRICT_CATALOG) {
   if (!registerIndex[d.country]) continue;
-  const { base, kind } = parseRegisterName(d.name);
+  const { base, kind } = d.country === 'DE' ? parseGermanRegisterName(d.name) : parseRegisterName(d.name);
   const list = registerIndex[d.country].get(base) ?? [];
   list.push({ d, kind });
   registerIndex[d.country].set(base, list);
@@ -146,9 +192,46 @@ function matchDistrict(country, raw) {
   return (candidates.find((c) => c.kind === kind) ?? candidates[0]).d;
 }
 
+// Kreisschlüssel -> register district (Germany), from all GeoNames names of that code.
+function deKreisDistrict(code, names) {
+  if (DE_CODES[code]) return byExactName.get(`DE|${DE_CODES[code]}`) ?? null;
+  const parsed = [...names].map(parseGermanGeoNamesKreis);
+  const kind = parsed.some((p) => p.kind === 'stadt')
+    ? 'stadt'
+    : parsed.some((p) => p.kind === 'land')
+      ? 'land'
+      : null;
+  const found = new Set();
+  for (const { base } of parsed) {
+    const candidates = registerIndex.DE.get(base) ?? [];
+    const fit =
+      candidates.length === 1 && (candidates[0].kind === null || !kind || candidates[0].kind === kind)
+        ? candidates
+        : candidates.filter((c) => c.kind === kind);
+    for (const c of fit) found.add(c.d);
+  }
+  return found.size === 1 ? [...found][0] : null;
+}
+
+const deKreise = new Map(); // Kreisschlüssel -> district
+const deKreisNames = new Map(); // Kreisschlüssel -> Set of GeoNames names
+{
+  const file = path.join(dir, 'xDE', 'DE.txt');
+  for (const line of fs.readFileSync(file, 'utf8').split('\n').filter(Boolean)) {
+    const c = line.split('\t');
+    if (!c[8]) continue;
+    deKreisNames.set(c[8], (deKreisNames.get(c[8]) ?? new Set()).add(c[7]));
+  }
+  for (const [code, names] of deKreisNames) {
+    const d = deKreisDistrict(code, names);
+    if (d) deKreise.set(code, d);
+  }
+}
+
 // GeoNames columns: 0 country, 2 place, 3 admin1 name, 4 admin1 code, 5 admin2 name,
-// 7 admin3 name, 9 lat, 10 lon, 11 accuracy.
+// 7 admin3 name, 8 admin3 code (Germany: Kreisschlüssel), 9 lat, 10 lon, 11 accuracy.
 function regionOf(country, c) {
+  if (country === 'DE') return deKreise.get(c[8])?.stateSlug ?? null;
   if (country === 'LI') return ADMIN_SHAPE_REGIONS.LI;
   const code = country === 'AT' ? String(Number(c[4])) : c[4];
   return ADMIN_SHAPE_REGIONS[`${country}-${code}`] ?? null;
@@ -158,6 +241,7 @@ function regionOf(country, c) {
 function districtOf(country, region, c) {
   const admin2 = c[5] ?? '';
   const admin3 = norm(c[7] ?? '');
+  if (country === 'DE') return deKreise.get(c[8]) ?? null;
   const own = districtsOfRegion.get(region) ?? [];
   // A region with a single district (Genf, Glarus, Neuenburg, Schaffhausen): all its places.
   if (own.length === 1) return own[0];
@@ -170,6 +254,8 @@ function districtOf(country, region, c) {
     if (norm(c[2]) === 'wien') return null;
     return matchDistrict(country, c[7] ?? '');
   }
+  // Appenzell Ausserrhoden is one district of the region Appenzell ("Ausserrhoden").
+  if (country === 'CH' && c[4] === 'AR') return byExactName.get('CH|Ausserrhoden') ?? null;
   if (country === 'CH' && c[4] === 'AI') {
     const name = AI_GEMEINDEN[admin3];
     return name ? byExactName.get(`CH|${name}`) : null;
@@ -179,6 +265,9 @@ function districtOf(country, region, c) {
   }
   return matchDistrict(country, admin2);
 }
+
+const registerBase = (d) =>
+  (d.country === 'DE' ? parseGermanRegisterName(d.name) : parseRegisterName(d.name)).base;
 
 const places = new Map(); // key -> { name, country, state, district, n, lat, lon }
 const unmatchedStates = new Map();
@@ -200,11 +289,11 @@ for (const country of COUNTRIES) {
     // No accuracy value: company / large-customer postcodes ("Mercedes-Benz Vertrieb") mixed
     // with the main town of a postcode. Only the latter is kept: a name that equals its own
     // district.
-    if (!c[11] && !(district && canonBase(name) === parseRegisterName(district.name).base)) continue;
+    if (!c[11] && !(district && canonBase(name) === registerBase(district))) continue;
     const lat = Number(c[9]);
     const lon = Number(c[10]);
     if (!name || !Number.isFinite(lat) || !Number.isFinite(lon)) continue;
-    const rawDistrict = country === 'LI' ? c[3] : c[5];
+    const rawDistrict = country === 'LI' ? c[3] : country === 'DE' ? c[7] : c[5];
     if (!district && rawDistrict) {
       const k = `${country}|${region}|${rawDistrict}`;
       unmatchedDistricts.set(k, (unmatchedDistricts.get(k) ?? 0) + 1);
@@ -223,7 +312,7 @@ for (const country of COUNTRIES) {
       lon: 0,
     };
     // The main town of its district ("Innsbruck" in "Innsbruck (Stadt)") ranks first.
-    if (district && canonBase(name) === parseRegisterName(district.name).base) p.seat = true;
+    if (district && canonBase(name) === registerBase(district)) p.seat = true;
     p.n += 1;
     p.lat += lat;
     p.lon += lon;
@@ -324,6 +413,15 @@ console.log(`regions ${states.length}, districts ${districts.length} of ${DISTRI
 const missing = DISTRICT_CATALOG.filter((d) => !districtIdx.has(d.key)).map((d) => d.key);
 console.log(`catalog districts without places (${missing.length}):`, missing.join(' | '));
 console.log('unmatched states:', [...unmatchedStates.entries()]);
+const deUnmatched = [...deKreisNames.entries()].filter(([code]) => !deKreise.has(code));
+console.log(
+  `German Kreise: ${deKreise.size} of ${deKreisNames.size} matched; unmatched:`,
+  deUnmatched.map(([code, names]) => `${code} ${[...names].join(' / ')}`).join(' | ')
+);
+const deByDistrict = new Map();
+for (const [code, d] of deKreise) deByDistrict.set(d.key, [...(deByDistrict.get(d.key) ?? []), code]);
+const deShared = [...deByDistrict.entries()].filter(([, codes]) => codes.length > 1);
+console.log('German districts with several Kreise:', deShared.map(([k, c]) => `${k} ${c}`).join(' | '));
 console.log(
   'unmatched districts (top):',
   [...unmatchedDistricts.entries()]

@@ -103,14 +103,30 @@ describe('buildPublicEventQueryPlan', () => {
     ).toEqual({ mode: 'national', queries: [] });
   });
 
-  it('all regions of the register fit into one `in` (at most 30 values)', () => {
-    expect(REGION_SLUGS.length).toBeLessThanOrEqual(MAX_IN_VALUES);
+  it('up to 30 active regions fit into one `in`; more fall back to the full query', () => {
+    // 133 regions since Germany is back: only the ACTIVE ones go into the `in`.
+    expect(REGION_SLUGS.length).toBeGreaterThan(MAX_IN_VALUES);
+    const thirty = REGION_SLUGS.slice(0, MAX_IN_VALUES);
     const plan = buildPublicEventQueryPlan({
       markerComplete: true,
       isNational: true,
-      activeRegionIds: REGION_SLUGS,
+      activeRegionIds: thirty,
     });
-    expect(plan?.queries[0].constraints[1]).toEqual(['regionId', 'in', REGION_SLUGS]);
+    expect(plan?.queries[0].constraints[1]).toEqual(['regionId', 'in', thirty]);
+    expect(
+      buildPublicEventQueryPlan({
+        markerComplete: true,
+        isNational: true,
+        activeRegionIds: REGION_SLUGS,
+      })
+    ).toEqual(FULL_EVENTS);
+    expect(
+      buildDirectoryQueryPlan({
+        markerComplete: true,
+        isNational: true,
+        activeRegionIds: REGION_SLUGS,
+      })?.mode
+    ).toBe('all');
   });
 
   it('an unknown region id falls back to the full query', () => {

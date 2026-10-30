@@ -106,7 +106,7 @@ describe('evaluateRegionActivation / regionActivationStatuses', () => {
     );
     expect(statuses.map((s) => s.regionId)[0]).toBe('burgenland');
     expect(statuses.map((s) => s.regionId)).toContain('vorarlberg');
-    expect(statuses).toHaveLength(29);
+    expect(statuses).toHaveLength(133);
     expect(statuses.find((s) => s.regionId === 'tirol')?.unmet).toEqual([]);
   });
 });

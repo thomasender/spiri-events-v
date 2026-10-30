@@ -193,13 +193,43 @@ describe('region or profile at /:slug', () => {
     expect(screen.getByTestId('region-loading')).toBeInTheDocument();
   });
 
-  it('/deutschland is no view any more: it is a (reserved, so never existing) profile address', () => {
+  it('/deutschland is coming soon without an active German region', () => {
     renderAt('/deutschland');
-    expect(screen.queryByTestId('region-coming-soon')).toBeNull();
-    expect(screen.getByTestId('profile-page')).toBeInTheDocument();
+    expect(screen.queryByTestId('profile-page')).toBeNull();
+    expect(screen.getByTestId('region-coming-soon')).toHaveTextContent(
+      'Der Tribe Deutschland kommt bald.'
+    );
   });
 
-  it('the coming-soon page of Schweiz says what is needed to go live; Österreich needs none', () => {
+  it('/deutschland redirects to the only active German region', () => {
+    mocks.regions = {
+      regions: mergeRegions([{ id: 'allgaeu', active: true }]),
+      loading: false,
+    };
+    renderAt('/deutschland');
+    expect(screen.queryByTestId('region-coming-soon')).toBeNull();
+    expect(screen.getByTestId('calendar-page')).toBeInTheDocument();
+    expect(probe()).toBe('allgaeu');
+  });
+
+  it('/deutschland is the combined view with two German regions', () => {
+    mocks.regions = {
+      regions: mergeRegions([
+        { id: 'allgaeu', active: true },
+        { id: 'bodensee', active: true },
+      ]),
+      loading: false,
+    };
+    renderAt('/deutschland');
+    expect(probe()).toBe('vorarlberg national');
+  });
+
+  it('coming-soon pages of Deutschland and Schweiz say what is needed to go live; Österreich needs none', () => {
+    const { unmount } = renderAt('/deutschland');
+    expect(screen.getByTestId('view-live-hint')).toHaveTextContent(
+      'Wir suchen gerade Events für die Landkreise in Deutschland. Wir können erst mit Deutschland live gehen, sobald mindestens ein Landkreis genügend Events hat.'
+    );
+    unmount();
     renderAt('/schweiz');
     expect(screen.getByTestId('view-live-hint')).toHaveTextContent(
       'Wir suchen gerade Events für die Bezirke in der Schweiz. Wir können erst mit der Schweiz live gehen, sobald mindestens ein Bezirk genügend Events hat.'

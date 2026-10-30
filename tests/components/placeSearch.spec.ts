@@ -47,11 +47,32 @@ describe('placeIndex.json', () => {
     expect(outside).toEqual([]);
   });
 
-  it('covers all 29 regions and every district of the register (AT, CH, LI; no Germany)', () => {
-    expect(raw.states).toHaveLength(29);
+  it('covers all 133 regions and every district of the register (AT, DE, CH, LI)', () => {
+    expect(raw.states).toHaveLength(133);
+    // Every district of the CSVs has places (incl. the 400 German Landkreise / Städte).
     expect(raw.districts).toHaveLength(DISTRICT_CATALOG.length);
-    expect(raw.places.length).toBeGreaterThan(18000);
-    expect(raw.districts.some(([key]) => String(key).startsWith('DE|'))).toBe(false);
+    expect(raw.districts.filter(([key]) => String(key).startsWith('DE|'))).toHaveLength(400);
+    expect(raw.places.length).toBeGreaterThan(30000);
+    // At least 99 % of the places know their district.
+    const withDistrict = raw.places.filter((p) => (p[4] as number) >= 0).length;
+    expect(withDistrict / raw.places.length).toBeGreaterThan(0.99);
+  });
+
+  it('German places lie in the Landkreis / Stadt of the CSV and its region', () => {
+    const of = (name: string) =>
+      index.places
+        .filter((p) => p.name === name && p.country === 'DE')
+        .map((p) => [p.districtKey, p.stateSlug]);
+    expect(of('Lindau (Bodensee)')).toEqual([['DE|Landkreis Lindau (Bodensee)', 'bodensee']]);
+    expect(of('Konstanz')).toEqual([['DE|Landkreis Konstanz', 'bodensee']]);
+    expect(of('München')).toEqual([['DE|Stadt München', 'muenchen']]);
+    expect(of('Unterhaching')).toEqual([['DE|Landkreis München', 'muenchen']]);
+    expect(of('Passau')).toEqual([['DE|Stadt Passau', 'bayerischer-wald']]);
+    expect(of('Freilassing')).toEqual([['DE|Berchtesgadener Land', 'chiemgau']]);
+    expect(of('Weil am Rhein')).toEqual([['DE|Landkreis Lörrach', 'suedbaden']]);
+    expect(of('Kempten')).toEqual([['DE|Stadt Kempten (Allgäu)', 'allgaeu']]);
+    expect(of('Hannover')).toEqual([['DE|Region Hannover', 'hannover']]);
+    expect(of('Berlin')).toEqual([['DE|Stadt Berlin', 'berlin']]);
   });
 
   it('Liechtenstein: its Gemeinden lie in Oberland / Unterland', () => {
@@ -179,10 +200,20 @@ describe('eventPosition', () => {
     expect(haversineKm(pos.lat, pos.lng, 47.141, 9.521)).toBeLessThan(5);
   });
 
-  it('a German Ort of an old "Grenznahe" event is no longer in the list: Vorarlberg centre', () => {
+  it('finds the German Ort of an old "Grenznahe" event (Lindau), not the Vorarlberg centre', () => {
     const pos = at({ city: 'Lindau', bezirk: 'Grenznahe', regionId: 'vorarlberg' })!;
-    const centre = at({ city: '', bezirk: '', regionId: 'vorarlberg' })!;
-    expect(pos).toEqual(centre);
+    expect(haversineKm(pos.lat, pos.lng, 47.55, 9.69)).toBeLessThan(5);
+    // Lindau ZH is a namesake far away: never picked for a Vorarlberg event.
+    expect(haversineKm(pos.lat, pos.lng, 47.44, 8.67)).toBeGreaterThan(50);
+  });
+
+  it('places a German event in its Landkreis', () => {
+    const pos = at({
+      city: 'Lindau (Bodensee)',
+      bezirk: 'Landkreis Lindau (Bodensee)',
+      regionId: 'bodensee',
+    })!;
+    expect(haversineKm(pos.lat, pos.lng, 47.55, 9.69)).toBeLessThan(5);
   });
 
   it('places an event saved in the region of its Ort (inactive region, picked on Vorarlberg)', () => {
