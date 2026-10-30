@@ -23,27 +23,8 @@ export const DEFAULT_REGION_ID = 'vorarlberg';
  */
 export const STATIC_REGION_IDS: readonly string[] = REGION_DATA.map((r) => r.slug);
 
-/**
- * All region ids: the static ones plus the regions a Super-Admin created in
- * Verwaltung -> "Zuordnung" (`regions/{id}.custom == true`). The array is
- * extended IN PLACE by registerCustomRegionDocs, so every existing user of
- * REGION_IDS / isRegionId sees custom regions once they were loaded
- * (customRegions.ts loads them before the handlers that need them).
- */
-export const REGION_IDS: string[] = [...STATIC_REGION_IDS];
-
-/** A region created at runtime (no entry in the generated register). */
-export interface CustomRegion {
-  id: string;
-  name: string;
-  country: string;
-  timezone: string;
-  bezirke: string[];
-  active: boolean;
-  order: number;
-}
-
-const CUSTOM_REGIONS = new Map<string, CustomRegion>();
+/** All region ids (the generated register is the only source). */
+export const REGION_IDS: readonly string[] = STATIC_REGION_IDS;
 
 /** The Allgäu was a pilot region; Bavaria replaced it (stored ids read as Bavaria). */
 export const LEGACY_REGION_ALIASES: Readonly<Record<string, string>> = { allgaeu: 'bayern' };
@@ -52,7 +33,7 @@ export const LEGACY_REGION_ALIASES: Readonly<Record<string, string>> = { allgaeu
  * Districts (Bezirke / Landkreise) known without Firestore, in the order of
  * DIRECTORY_REGIONS in src/utils/directory.js (all districts of all regions,
  * Vorarlberg first, then "Online"). A directory profile may only name these
- * (plus districts stored in `regions/{id}.bezirke`). Synced copy, guarded by
+ * Synced copy, guarded by
  * tests/lib/functionsRegions.spec.ts.
  */
 export const DIRECTORY_REGIONS: readonly string[] = [
@@ -64,55 +45,9 @@ export function isRegionId(value: unknown): value is string {
   return typeof value === 'string' && REGION_IDS.includes(value);
 }
 
-const COUNTRY_CODES = ['AT', 'DE', 'CH'];
-const COUNTRY_TIMEZONES: Record<string, string> = {
-  AT: 'Europe/Vienna',
-  DE: 'Europe/Berlin',
-  CH: 'Europe/Zurich',
-};
-const CUSTOM_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-
-/**
- * Replaces the custom regions with the ones in `docs` (`regions/{id}` docs as
- * { id, ...data }). Only docs with `custom === true`, a valid slug that is not
- * a static id, a name and a known country count. Mirrors registerCustomRegions
- * in src/utils/regions.js.
- */
-export function registerCustomRegionDocs(docs: unknown[]): void {
-  CUSTOM_REGIONS.clear();
-  for (const raw of docs) {
-    const d = raw as Record<string, unknown> | null;
-    if (!d || d.custom !== true || typeof d.id !== 'string') continue;
-    const id = d.id;
-    if (STATIC_REGION_IDS.includes(id) || !CUSTOM_SLUG_PATTERN.test(id)) continue;
-    if (typeof d.name !== 'string' || !d.name || typeof d.country !== 'string') continue;
-    if (!COUNTRY_CODES.includes(d.country)) continue;
-    CUSTOM_REGIONS.set(id, {
-      id,
-      name: d.name,
-      country: d.country,
-      timezone:
-        typeof d.timezone === 'string' && TIMEZONE_PATTERN.test(d.timezone)
-          ? d.timezone
-          : (COUNTRY_TIMEZONES[d.country] ?? DEFAULT_REGION_TIMEZONE),
-      bezirke: Array.isArray(d.bezirke)
-        ? d.bezirke.filter((b): b is string => typeof b === 'string' && b !== '')
-        : [],
-      active: d.active === true,
-      order: typeof d.order === 'number' ? d.order : STATIC_REGION_IDS.length,
-    });
-  }
-  REGION_IDS.length = 0;
-  REGION_IDS.push(...STATIC_REGION_IDS, ...CUSTOM_REGIONS.keys());
-}
-
-export function getCustomRegion(id: string): CustomRegion | undefined {
-  return CUSTOM_REGIONS.get(id);
-}
-
-/** Display name of a region (static register or custom), else null. */
+/** Display name of a region, else null. */
 export function regionNameOf(id: string): string | null {
-  return REGION_DATA.find((r) => r.slug === id)?.name ?? CUSTOM_REGIONS.get(id)?.name ?? null;
+  return REGION_DATA.find((r) => r.slug === id)?.name ?? null;
 }
 
 /**
@@ -144,9 +79,9 @@ export const STATIC_COUNTRIES: Record<string, string> = Object.fromEntries(
 );
 export const DEFAULT_COUNTRY = 'AT';
 
-/** Country of a region id, static or custom (default AT). */
+/** Country of a region id (default AT). */
 export function countryOfRegion(id: string): string {
-  return STATIC_COUNTRIES[id] ?? CUSTOM_REGIONS.get(id)?.country ?? DEFAULT_COUNTRY;
+  return STATIC_COUNTRIES[id] ?? DEFAULT_COUNTRY;
 }
 
 /**
@@ -264,33 +199,23 @@ export function combinedViewBezirke(
   );
 }
 
-/** Lays `regions/{id}` docs ({ id, ...data }) over the static register (copy of mergeRegions). */
+/**
+ * Lays `regions/{id}` docs ({ id, ...data }) over the static register (copy of mergeRegions).
+ * Districts and names come only from the register; the docs switch regions on and off
+ * and may set the timezone.
+ */
 export function mergeFeedRegions(docs: unknown[]): FeedRegion[] {
-  registerCustomRegionDocs(docs);
   const byId = new Map<string, Record<string, unknown>>();
   for (const d of docs) {
     const doc = d as Record<string, unknown> | null;
     if (doc && isRegionId(doc.id)) byId.set(doc.id as string, doc);
   }
-  const custom: FeedRegion[] = [...CUSTOM_REGIONS.values()].map((c) => ({
-    id: c.id,
-    name: c.name,
-    country: c.country,
-    active: c.active,
-    bezirke: c.bezirke,
-    timezone: c.timezone,
-  }));
-  return [...STATIC_FEED_REGIONS, ...custom].map((r) => {
+  return STATIC_FEED_REGIONS.map((r) => {
     const d = byId.get(r.id);
     if (!d) return r;
-    const bezirke = Array.isArray(d.bezirke)
-      ? d.bezirke.filter((b): b is string => typeof b === 'string' && b !== '')
-      : [];
     return {
       ...r,
-      ...(typeof d.name === 'string' && d.name ? { name: d.name } : {}),
       ...(typeof d.active === 'boolean' ? { active: d.active } : {}),
-      ...(bezirke.length ? { bezirke } : {}),
       ...(typeof d.timezone === 'string' && TIMEZONE_PATTERN.test(d.timezone)
         ? { timezone: d.timezone }
         : {}),

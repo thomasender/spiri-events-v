@@ -34,8 +34,7 @@ export type DonationCurrency = 'EUR' | 'CHF';
 
 /**
  * Currency a donation to `regionId` is charged in: CHF for regions in
- * Switzerland, EUR for everything else. Custom regions need
- * ensureCustomRegions() first, otherwise they count as AT (EUR).
+ * Switzerland, EUR for everything else.
  */
 export function donationCurrencyForRegion(regionId: string): DonationCurrency {
   return countryOfRegion(regionId) === 'CH' ? 'CHF' : 'EUR';

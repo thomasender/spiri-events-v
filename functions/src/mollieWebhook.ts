@@ -1,5 +1,4 @@
 import { onRequest } from 'firebase-functions/v2/https';
-import { ensureCustomRegions } from './customRegions';
 import { logger } from 'firebase-functions';
 import { MOLLIE_API_KEY, ensureMollieSubscription, mollieRequest } from './mollie';
 import { reportPaymentFailure } from './paymentAlerts';
@@ -84,7 +83,6 @@ export const mollieWebhook = onRequest(
       return;
     }
 
-    await ensureCustomRegions();
     const rawBody = canonicalBodyBytes(req);
 
     const secret = getWebhookSigningSecret();

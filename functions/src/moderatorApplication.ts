@@ -13,7 +13,6 @@ import {
 } from './mailgun';
 import { enforceRateLimit, RATE_LIMIT_PRESETS } from './rateLimit';
 import { isRegionId, regionNameOf } from './regions';
-import { ensureCustomRegions } from './customRegions';
 
 /** Applications for the role "Regions-Moderator:in" go to the admins' inbox. */
 export const MODERATOR_APPLICATION_INBOX = 'admin@thetribe.at';
@@ -157,7 +156,6 @@ export const submitModeratorApplication = onCall(
     logMissingAppCheck('submitModeratorApplication', request);
     enforceRateLimit(request, 'moderatorApplication', RATE_LIMIT_PRESETS.moderatorApplication);
 
-    await ensureCustomRegions();
     const app = validateModeratorApplication(request.data);
     const { subject, text, html } = buildModeratorApplicationEmail(app);
     const inlineImages: MailgunInlineImage[] = app.photo ? [app.photo] : [];

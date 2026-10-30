@@ -129,11 +129,6 @@ describe('validateMemberPatch', () => {
     expect(
       validateMemberPatch({ directoryRegions: ['Leibnitz', 'Oberallgäu', 'Dornbirn'] })
     ).toEqual({ directoryRegions: ['Leibnitz', 'Oberallgäu', 'Dornbirn'] });
-    // Districts that only live in Firestore (regions/{id}.bezirke) via extraDistricts.
-    expect(() => validateMemberPatch({ directoryRegions: ['Nirgendwo'] })).toThrow();
-    expect(validateMemberPatch({ directoryRegions: ['Nirgendwo'] }, ['Nirgendwo'])).toEqual({
-      directoryRegions: ['Nirgendwo'],
-    });
     expect(() => validateMemberPatch({ displayName: '' })).toThrow();
     expect(() => validateMemberPatch({})).toThrow();
   });

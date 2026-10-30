@@ -135,7 +135,7 @@ other executable code or config still goes through the hooks normally.
 
 ## Regions
 
-The platform supports several regions (all Bundesländer / Kantone of Austria, Germany and Switzerland, 51 in total, plus 60 cultural regions of Germany that the product owner fills in Verwaltung -> "Zuordnung") behind
+The platform supports several regions (all Bundesländer / Kantone of Austria, Germany and Switzerland, 51 in total, plus 60 cultural regions of Germany) behind
 a **dark launch**: only Vorarlberg is active, and with fewer than two active regions
 nothing visible may change (no chooser, no region names in mails, no GA `region`,
 byte-identical prerender and Vorarlberg ICS feed). A missing `regionId` /
@@ -143,7 +143,7 @@ byte-identical prerender and Vorarlberg ICS feed). A missing `regionId` /
 Regions-Moderator:in. Regions are switched on only in Verwaltung -> "Regionen",
 never by hand-editing `regions/{id}.active`. Visitors never see a region map: they give a
 place (typed or shared location) and a radius, the calendar shows everything within it and the
-region (title, texts) follows the place; the Landkreis -> region mapping stays in the backend. Super-Admins can create further regions (AT/DE/CH) in Verwaltung -> "Zuordnung" (custom regions, `docs/regions.md` 2c). Everything else (data model,
+region (title, texts) follows the place; the Landkreis -> region mapping stays in the backend. Regions and their districts are defined only in code (the generated register `src/data/regionData.js`); there is no admin tool to create regions or move districts, and `regions/{id}` docs carry only switches and texts (`docs/regions.md` 2a). Everything else (data model,
 queries and migration marker, emails, SEO, ICS, analytics, fixtures, how to add a
 region) is in `docs/regions.md`.
 

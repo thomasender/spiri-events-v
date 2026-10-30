@@ -138,16 +138,16 @@ export const onListingWriteBumpEventsVersion = onDocumentWritten(
 );
 
 /**
- * Activating / deactivating a region or moving districts changes where online
- * events show (`onlineRegionIds`), so publish a new version. Region docs
- * change rarely (Verwaltung -> "Regionen" / "Zuordnung").
+ * Activating / deactivating a region changes where online events show
+ * (`onlineRegionIds`), so publish a new version. Region docs change rarely
+ * (Verwaltung -> "Regionen").
  */
 export const onRegionWriteBumpEventsVersion = onDocumentWritten(
   { region: REGION, document: 'regions/{regionId}' },
   async (event) => {
     const before = event.data?.before.data();
     const after = event.data?.after.data();
-    const changed = ['active', 'bezirke'].some(
+    const changed = ['active'].some(
       (key) => JSON.stringify(before?.[key] ?? null) !== JSON.stringify(after?.[key] ?? null)
     );
     if (!changed) return;

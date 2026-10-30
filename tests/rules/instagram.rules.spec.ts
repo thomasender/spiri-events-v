@@ -753,7 +753,6 @@ describe('regions', () => {
     slug: 'tirol',
     order: 1,
     active: false,
-    bezirke: [],
     contactEmail: '',
     seo: { title: 't', description: 'd' },
     timezone: 'Europe/Vienna',
@@ -821,27 +820,21 @@ describe('regions', () => {
       await assertSucceeds(deleteDoc(doc(db, 'regions/bayern')));
     });
 
-    it('accepts a cultural region of Germany and the mapping fields (long Landkreis list)', async () => {
+    it('accepts a cultural region of Germany, but never districts or the old mapping marker', async () => {
       const db = make().firestore();
-      const bezirke = Array.from({ length: 96 }, (_, i) => `Landkreis ${i}`);
-      await assertSucceeds(
-        setDoc(doc(db, 'regions/franken'), {
-          ...validRegion,
-          name: 'Franken',
-          slug: 'franken',
-          order: 60,
-          timezone: 'Europe/Berlin',
-          bezirke,
-          mappingUpdatedAt: 1,
-        })
-      );
-      await assertSucceeds(
-        updateDoc(doc(db, 'regions/franken'), { bezirke: [], mappingUpdatedAt: 2 })
-      );
+      const franken = {
+        ...validRegion,
+        name: 'Franken',
+        slug: 'franken',
+        order: 60,
+        timezone: 'Europe/Berlin',
+      };
+      await assertSucceeds(setDoc(doc(db, 'regions/franken'), franken));
+      await assertFails(updateDoc(doc(db, 'regions/franken'), { bezirke: ['Roth'] }));
+      await assertFails(updateDoc(doc(db, 'regions/franken'), { mappingUpdatedAt: 2 }));
+      await assertFails(updateDoc(doc(db, 'regions/franken'), { name: 'Anders' }));
       await assertFails(
-        updateDoc(doc(db, 'regions/franken'), {
-          bezirke: Array.from({ length: 251 }, (_, i) => `L${i}`),
-        })
+        setDoc(doc(db, 'regions/bayern'), { ...franken, slug: 'bayern', bezirke: [] })
       );
       await assertSucceeds(deleteDoc(doc(db, 'regions/franken')));
     });

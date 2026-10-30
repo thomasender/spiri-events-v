@@ -9,8 +9,8 @@ import {
 import { doc, setDoc, updateDoc } from 'firebase/firestore';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 
-// Regions created in the Verwaltung (adminCreateRegion) are accepted as ids only
-// once app_settings/customRegions lists them; the built-in ids need no lookup.
+// Regions exist only in code: ids come from the static list in firestore.rules and the
+// regions/{id} docs never get their name, slug or districts written from the client.
 
 let env: RulesTestEnvironment;
 
@@ -30,35 +30,28 @@ afterAll(async () => {
   await env?.cleanup();
 });
 
-const customRegionDoc = {
-  name: 'Allgäu-Schwaben',
-  slug: 'allgaeu-schwaben',
-  order: 100.001,
+// A seeded region doc as scripts/seed-regions.mjs writes it (legacy keys included).
+const tirolDoc = {
+  name: 'Tirol',
+  slug: 'tirol',
+  order: 1,
   active: false,
-  bezirke: [],
-  custom: true,
-  country: 'DE',
-  inPhrase: 'im Allgäu',
-  forPhrase: 'Allgäu-Schwaben',
-  demonym: '',
-  subdivisionLabel: 'Landkreis',
-  timezone: 'Europe/Berlin',
+  bezirke: ['Innsbruck'],
+  contactEmail: '',
+  seo: { title: '', description: '' },
+  timezone: 'Europe/Vienna',
 };
 
-async function seed({ listed }: { listed: boolean }) {
+beforeEach(async () => {
   await env.clearFirestore();
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
     await setDoc(doc(db, 'admin_users/admin'), { role: 'Admin' });
-    await setDoc(doc(db, 'admin_users/mod'), {
-      role: 'RegionModerator',
-      regionIds: ['allgaeu-schwaben'],
-    });
+    await setDoc(doc(db, 'admin_users/mod'), { role: 'RegionModerator', regionIds: ['tirol'] });
     await setDoc(doc(db, 'users/member'), { displayName: 'Member', bio: 'b' });
-    await setDoc(doc(db, 'regions/allgaeu-schwaben'), customRegionDoc);
-    if (listed) await setDoc(doc(db, 'app_settings/customRegions'), { ids: ['allgaeu-schwaben'] });
+    await setDoc(doc(db, 'regions/tirol'), tirolDoc);
   });
-}
+});
 
 const place = (regionId: string) => ({
   placeSelection: {
@@ -73,73 +66,51 @@ const place = (regionId: string) => ({
 });
 const member = () => env.authenticatedContext('member', { email_verified: true });
 
-describe('custom region ids', () => {
-  describe('listed in app_settings/customRegions', () => {
-    beforeEach(() => seed({ listed: true }));
-
-    it('are accepted as place selection and directory region', async () => {
-      const db = member().firestore();
-      await assertSucceeds(updateDoc(doc(db, 'users/member'), place('allgaeu-schwaben')));
-      await assertSucceeds(
-        updateDoc(doc(db, 'users/member'), {
-          directoryRegionIds: ['vorarlberg', 'allgaeu-schwaben'],
-        })
-      );
-    });
-
-    it('still reject ids nobody created', async () => {
-      const db = member().firestore();
-      await assertFails(updateDoc(doc(db, 'users/member'), place('erfunden')));
-      await assertFails(updateDoc(doc(db, 'users/member'), { directoryRegionIds: ['erfunden'] }));
-    });
-
-    it('let the moderator of the region edit its "Über uns" text, nothing else', async () => {
-      const db = env.authenticatedContext('mod').firestore();
-      await assertSucceeds(
-        updateDoc(doc(db, 'regions/allgaeu-schwaben'), { aboutText: 'Hallo', updatedAt: 2 })
-      );
-      await assertFails(updateDoc(doc(db, 'regions/allgaeu-schwaben'), { active: true }));
-    });
-
-    it('let a Super-Admin rename the region and keep its wording valid', async () => {
-      const db = env.authenticatedContext('admin').firestore();
-      await assertSucceeds(updateDoc(doc(db, 'regions/allgaeu-schwaben'), { name: 'Allgäu' }));
-      await assertFails(updateDoc(doc(db, 'regions/allgaeu-schwaben'), { country: 'FR' }));
-      await assertFails(
-        updateDoc(doc(db, 'regions/allgaeu-schwaben'), { subdivisionLabel: 'Kreis' })
-      );
-    });
-  });
-
-  describe('not listed', () => {
-    beforeEach(() => seed({ listed: false }));
-
-    it('are rejected as place selection and directory region', async () => {
-      const db = member().firestore();
-      await assertFails(updateDoc(doc(db, 'users/member'), place('allgaeu-schwaben')));
-      await assertFails(
-        updateDoc(doc(db, 'users/member'), { directoryRegionIds: ['allgaeu-schwaben'] })
-      );
-    });
-
-    it('built-in ids need no lookup', async () => {
-      const db = member().firestore();
-      await assertSucceeds(updateDoc(doc(db, 'users/member'), place('tirol')));
-    });
-
-    it('cannot be written to the id list by the client', async () => {
-      const admin = env.authenticatedContext('admin').firestore();
-      await assertFails(
-        setDoc(doc(admin, 'app_settings/customRegions'), { ids: ['allgaeu-schwaben'] })
-      );
-    });
-  });
-
-  it('a client cannot invent a region document with a made-up slug', async () => {
-    await seed({ listed: true });
-    const admin = env.authenticatedContext('admin').firestore();
-    await assertFails(
-      setDoc(doc(admin, 'regions/erfunden'), { ...customRegionDoc, slug: 'erfunden' })
+describe('region ids', () => {
+  it('only the static ids are accepted as place selection and directory region', async () => {
+    const db = member().firestore();
+    await assertSucceeds(updateDoc(doc(db, 'users/member'), place('tirol')));
+    await assertSucceeds(
+      updateDoc(doc(db, 'users/member'), { directoryRegionIds: ['vorarlberg', 'tirol'] })
     );
+    await assertFails(updateDoc(doc(db, 'users/member'), place('allgaeu-schwaben')));
+    await assertFails(
+      updateDoc(doc(db, 'users/member'), { directoryRegionIds: ['allgaeu-schwaben'] })
+    );
+  });
+
+  it('a client cannot invent a region document or a custom-region list', async () => {
+    const admin = env.authenticatedContext('admin').firestore();
+    await assertFails(setDoc(doc(admin, 'regions/erfunden'), { ...tirolDoc, slug: 'erfunden' }));
+    await assertFails(setDoc(doc(admin, 'app_settings/customRegions'), { ids: ['erfunden'] }));
+  });
+});
+
+describe('regions/{id} writes', () => {
+  it('a Super-Admin can switch a region on and set its contact data', async () => {
+    const db = env.authenticatedContext('admin').firestore();
+    await assertSucceeds(updateDoc(doc(db, 'regions/tirol'), { active: true }));
+    await assertSucceeds(updateDoc(doc(db, 'regions/tirol'), { contactEmail: 'a@b.at' }));
+  });
+
+  it('nobody writes name, slug, districts or the old mapping marker from the client', async () => {
+    const db = env.authenticatedContext('admin').firestore();
+    await assertFails(updateDoc(doc(db, 'regions/tirol'), { name: 'Tirol neu' }));
+    await assertFails(updateDoc(doc(db, 'regions/tirol'), { bezirke: ['Innsbruck', 'Kufstein'] }));
+    await assertFails(updateDoc(doc(db, 'regions/tirol'), { mappingUpdatedAt: 5 }));
+  });
+
+  it('the keys of the custom regions are gone from the whitelist', async () => {
+    const db = env.authenticatedContext('admin').firestore();
+    await assertFails(updateDoc(doc(db, 'regions/tirol'), { custom: true }));
+    await assertFails(updateDoc(doc(db, 'regions/tirol'), { country: 'AT' }));
+    await assertFails(updateDoc(doc(db, 'regions/tirol'), { subdivisionLabel: 'Bezirk' }));
+  });
+
+  it('the moderator of the region edits its "Über uns" text, nothing else', async () => {
+    const db = env.authenticatedContext('mod').firestore();
+    await assertSucceeds(updateDoc(doc(db, 'regions/tirol'), { aboutText: 'Hallo', updatedAt: 2 }));
+    await assertFails(updateDoc(doc(db, 'regions/tirol'), { active: true }));
+    await assertFails(updateDoc(doc(db, 'regions/tirol'), { bezirke: [] }));
   });
 });

@@ -19,7 +19,6 @@ import {
   type RangeDays,
   type TopEventsReport,
 } from './analyticsReport';
-import { ensureCustomRegions } from './customRegions';
 import { ALLOWED_ORIGINS } from './allowedOrigins';
 
 export type AnalyticsResponse = AnalyticsReport & { topEvents: TopEventsReport | null };
@@ -108,7 +107,6 @@ export const adminAnalyticsReport = onCall(
   async (request): Promise<AnalyticsResponse> => {
     logMissingAppCheck('adminAnalyticsReport', request);
     await assertAdmin(request.auth?.uid);
-    await ensureCustomRegions();
     const data = request.data as { days?: unknown; region?: unknown } | undefined;
     const days = parseRange(data?.days);
     const region = parseRegion(data?.region);
