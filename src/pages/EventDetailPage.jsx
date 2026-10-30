@@ -50,6 +50,7 @@ import {
   getEventLocationLabel,
   getEventDistrict,
   getEventCityName,
+  getEventDistrictPrefix,
 } from '../utils/eventFormat';
 import { resolveOrganizerProfilePath } from '../utils/profile';
 import { canEditEvent, canDeleteEvent, requiresDeleteReason } from '../utils/eventPermissions';
@@ -928,8 +929,11 @@ export default function EventDetailPage() {
             >
               {getEventDistrict(event) ? (
                 <>
-                  <DistrictBadge district={getEventDistrict(event)} />
-                  {getEventCityName(event) && ` ${getEventLocationLabel(event)}`}
+                  {getEventCityName(event) && `${getEventCityName(event)} `}
+                  <DistrictBadge
+                    district={getEventDistrict(event)}
+                    prefix={getEventDistrictPrefix(event)}
+                  />
                 </>
               ) : (
                 getEventLocationLabel(event) || eventRegionName(event, regions)

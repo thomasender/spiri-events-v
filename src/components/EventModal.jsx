@@ -17,6 +17,7 @@ import {
   getEventLocationLabel,
   getEventDistrict,
   getEventCityName,
+  getEventDistrictPrefix,
 } from '../utils/eventFormat';
 import { parseContactText } from '../utils/contactFormat';
 import RegistrationText from './RegistrationText';
@@ -212,8 +213,11 @@ export default function EventModal({ event, onClose }) {
               >
                 {getEventDistrict(event) ? (
                   <>
-                    <DistrictBadge district={getEventDistrict(event)} />
-                    {getEventCityName(event) && ` ${getEventLocationLabel(event)}`}
+                    {getEventCityName(event) && `${getEventCityName(event)} `}
+                    <DistrictBadge
+                      district={getEventDistrict(event)}
+                      prefix={getEventDistrictPrefix(event)}
+                    />
                   </>
                 ) : (
                   getEventLocationLabel(event)

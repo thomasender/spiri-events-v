@@ -100,3 +100,10 @@ export function getEventCityName(event) {
   const city = (event.city || '').trim();
   return city && city !== bezirkLabel(event.bezirk) ? city : '';
 }
+
+// "Bezirk" / "Landkreis" for the coloured badge on the event page and in the event modal, so it is
+// clear which kind of district is meant. Empty for online events and the "Umgebung" catch-all.
+export function getEventDistrictPrefix(event) {
+  if (!event || event.isOnline || !event.bezirk || event.bezirk === 'Grenznahe') return '';
+  return getSubdivisionLabel(resolveRegionId(event)) === 'Landkreis' ? 'Landkreis' : 'Bezirk';
+}

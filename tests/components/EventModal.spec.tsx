@@ -187,10 +187,9 @@ describe('EventModal location', () => {
       />
     );
     expect(screen.getByText('Ort')).toBeInTheDocument();
-    expect(screen.getByTestId('district-badge')).toHaveTextContent('Feldkirch');
-    expect(screen.getByText('Ort').parentElement).toHaveTextContent(
-      'Feldkirch Altach (Bez. Feldkirch)'
-    );
+    expect(screen.getByTestId('district-badge')).toHaveTextContent('Bezirk: Feldkirch');
+    expect(screen.getByText('Ort').parentElement).toHaveTextContent('Altach Bezirk: Feldkirch');
+    expect(screen.getByText('Ort').parentElement).not.toHaveTextContent('(Bez.');
     unmount();
     render(
       <EventModal
@@ -198,14 +197,12 @@ describe('EventModal location', () => {
         onClose={() => {}}
       />
     );
-    expect(screen.getByTestId('district-badge')).toHaveTextContent('München');
-    expect(screen.getByText('Ort').parentElement).toHaveTextContent(
-      'München Garching (Lkr. München)'
-    );
+    expect(screen.getByTestId('district-badge')).toHaveTextContent('Landkreis: München');
+    expect(screen.getByText('Ort').parentElement).toHaveTextContent('Garching Landkreis: München');
   });
 
   it('falls back to the district for events without a city', () => {
     render(<EventModal event={{ ...mockEvent, bezirk: 'Dornbirn' }} onClose={() => {}} />);
-    expect(screen.getByText('Dornbirn')).toBeInTheDocument();
+    expect(screen.getByTestId('district-badge')).toHaveTextContent('Bezirk: Dornbirn');
   });
 });
