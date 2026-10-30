@@ -92,8 +92,8 @@ describe('combined views (ticket 33)', () => {
   const available = (slug: string, regions: typeof STATIC_REGIONS) =>
     isCombinedViewAvailable(slug, regions);
 
-  it('every region has a country: 9 Austrian, 19 Swiss, 1 Liechtenstein, no German one', () => {
-    expect(STATIC_REGIONS.filter((r) => r.country === 'DE')).toHaveLength(0);
+  it('every region has a country: 9 Austrian, 104 German, 19 Swiss, 1 Liechtenstein', () => {
+    expect(STATIC_REGIONS.filter((r) => r.country === 'DE').length).toBeGreaterThanOrEqual(100);
     expect(STATIC_REGIONS.filter((r) => r.country === 'AT')).toHaveLength(9);
     expect(STATIC_REGIONS.filter((r) => r.country === 'CH')).toHaveLength(19);
     expect(STATIC_REGIONS.filter((r) => r.country === 'LI').map((r) => r.id)).toEqual([
@@ -101,10 +101,16 @@ describe('combined views (ticket 33)', () => {
     ]);
   });
 
-  it('the three slugs are fixed and keep the order of the chooser (no Deutschland, no Liechtenstein view)', () => {
-    expect(COMBINED_VIEWS.map((v) => v.slug)).toEqual(['oesterreich', 'schweiz', 'alle-tribes']);
+  it('the four slugs are fixed and keep the order of the chooser (no Liechtenstein view)', () => {
+    expect(COMBINED_VIEWS.map((v) => v.slug)).toEqual([
+      'oesterreich',
+      'deutschland',
+      'schweiz',
+      'alle-tribes',
+    ]);
     expect(COMBINED_VIEWS.map((v) => v.name)).toEqual([
       'Ganz Österreich',
+      'Ganz Deutschland',
       'Ganz Schweiz',
       'Alle Tribes',
     ]);
@@ -121,6 +127,8 @@ describe('combined views (ticket 33)', () => {
     expect(available('schweiz', regionsWith('vorarlberg', 'tirol', 'zuerich'))).toBe(false);
     expect(available('schweiz', regionsWith('zuerich', 'innerschweiz'))).toBe(true);
     expect(available('deutschland', regionsWith('vorarlberg', 'tirol'))).toBe(false);
+    expect(available('deutschland', regionsWith('vorarlberg', 'bodensee'))).toBe(false);
+    expect(available('deutschland', regionsWith('bodensee', 'allgaeu'))).toBe(true);
   });
 
   it('Alle Tribes: at least two active regions in total, one country is enough', () => {
@@ -185,8 +193,19 @@ describe('combined views (ticket 33)', () => {
     expect(resolveTopLevelSlug('alle-tribes', regionsWith())).toMatchObject({
       kind: 'coming-soon',
     });
-    // The former view /deutschland is no view any more (reserved, so no profile either).
-    expect(resolveTopLevelSlug('deutschland', at2)).toMatchObject({ kind: 'profile' });
+    // Ganz Deutschland behaves like the other country views.
+    expect(resolveTopLevelSlug('deutschland', at2)).toMatchObject({
+      kind: 'coming-soon',
+      view: { slug: 'deutschland' },
+    });
+    expect(resolveTopLevelSlug('deutschland', regionsWith('vorarlberg', 'allgaeu'))).toMatchObject({
+      kind: 'redirect',
+      redirect: { region: { id: 'allgaeu' } },
+    });
+    expect(resolveTopLevelSlug('deutschland', regionsWith('allgaeu', 'muenchen'))).toMatchObject({
+      kind: 'all-regions',
+      view: { slug: 'deutschland' },
+    });
   });
 
   it('redirectTargetPath keeps the area and uses the old addresses for Vorarlberg only', () => {
@@ -203,13 +222,12 @@ describe('combined views (ticket 33)', () => {
   });
 
   it('every combined slug is a valid first path segment, region slugs stay separate', () => {
-    for (const slug of ['oesterreich', 'schweiz', 'alle-tribes']) {
+    for (const slug of ['oesterreich', 'deutschland', 'schweiz', 'alle-tribes']) {
       expect(regionSlugFromPath(`/${slug}/verzeichnis`)).toBe(slug);
       expect(regionPath(slug, '/verzeichnis')).toBe(`/${slug}/verzeichnis`);
       expect(regionSwitchSubpath(`/${slug}/verzeichnis`)).toBe('/verzeichnis');
     }
     expect(isRegionSlug('deutschland')).toBe(false);
-    expect(regionSlugFromPath('/deutschland')).toBeNull();
   });
 });
 

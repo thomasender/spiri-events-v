@@ -11,11 +11,12 @@ type R = (typeof STATIC_REGIONS)[number];
 const regions = (): R[] => STATIC_REGIONS.map((r) => ({ ...r, bezirke: [...r.bezirke] }));
 
 describe('district catalogue (the fixed backend structure)', () => {
-  it('lists the districts of all 29 regions of the CSVs, without Grenznahe', () => {
+  it('lists the districts of all 133 regions of the CSVs, without Grenznahe', () => {
     const states = new Set(DISTRICT_CATALOG.map((d) => d.stateSlug));
-    expect(states.size).toBe(29);
+    expect(states.size).toBe(133);
     expect(DISTRICT_CATALOG.some((d) => d.name === 'Grenznahe')).toBe(false);
-    expect(DISTRICT_CATALOG).toHaveLength(257);
+    expect(DISTRICT_CATALOG).toHaveLength(658);
+    expect(DISTRICT_CATALOG.filter((d) => d.country === 'DE')).toHaveLength(400);
     expect(DISTRICT_CATALOG.filter((d) => d.country === 'LI').map((d) => d.key)).toEqual([
       'LI|Oberland',
       'LI|Unterland',

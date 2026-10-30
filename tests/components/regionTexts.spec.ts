@@ -126,8 +126,21 @@ describe('regionTexts: region-specific mode', () => {
     expect(t.nearbyText).toBe('Für Österreich und Umkreis');
   });
 
-  it('combined views: Switzerland and Alle Tribes (ticket 33); no Deutschland view any more', () => {
-    expect(combinedViewTexts('deutschland')).toEqual(combinedViewTexts('oesterreich'));
+  it('combined views: Deutschland, Switzerland and Alle Tribes (ticket 33)', () => {
+    expect(combinedViewTexts('unknown')).toEqual(combinedViewTexts('oesterreich'));
+    expect(combinedViewTexts('deutschland').liveHint).toBe(
+      'Wir suchen gerade Events für die Landkreise in Deutschland. Wir können erst mit Deutschland live gehen, sobald mindestens ein Landkreis genügend Events hat.'
+    );
+    const de = regionTexts(reg('vorarlberg'), {
+      activeCount: 3,
+      national: true,
+      view: 'deutschland',
+    });
+    expect(de.headerTitle).toBe('Dein deutscher Kalender');
+    expect(de.calendarTitle).toBe('Kalender | The Tribe Deutschland');
+    expect(de.nearbyText).toBe('Für Deutschland und Umkreis');
+    expect(de.locationPhrase).toBe('in Deutschland');
+    expect(de.siteName).toBe('The Tribe');
 
     const ch = regionTexts(reg('vorarlberg'), {
       activeCount: 3,
@@ -151,7 +164,7 @@ describe('regionTexts: region-specific mode', () => {
     expect(all.calendarDescription).toBe(
       'Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in allen Regionen.'
     );
-    for (const t of [ch, all]) expect(JSON.stringify(t)).not.toMatch(/Vorarlberg/);
+    for (const t of [de, ch, all]) expect(JSON.stringify(t)).not.toMatch(/Vorarlberg/);
     // The Austrian view is unchanged and the default when no view is named.
     expect(
       regionTexts(reg('vorarlberg'), { activeCount: 2, national: true, view: 'oesterreich' })
@@ -161,7 +174,7 @@ describe('regionTexts: region-specific mode', () => {
   it('region texts of another region never mention Vorarlberg', () => {
     const t = regionTexts(reg('steiermark'), { activeCount: 2 });
     expect(JSON.stringify(t)).not.toMatch(/Vorarlberg/);
-    expect(STATIC_REGIONS.length).toBe(29);
+    expect(STATIC_REGIONS.length).toBe(133);
   });
 });
 

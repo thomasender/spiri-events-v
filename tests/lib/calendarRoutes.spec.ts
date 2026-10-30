@@ -277,11 +277,10 @@ describe('selectFeedEvents by region', () => {
 
 describe('combined view feeds (ticket 33)', () => {
   it('accepts the combined view slugs as region', () => {
-    for (const region of ['oesterreich', 'schweiz', 'alle-tribes']) {
+    for (const region of ['oesterreich', 'deutschland', 'schweiz', 'alle-tribes']) {
       expect(parse('/calendar/feed.ics', { region })).toMatchObject({ kind: 'feed', region });
     }
-    // Former view / regions: unknown now.
-    expect(parse('/calendar/feed.ics', { region: 'deutschland' })).toMatchObject({ status: 400 });
+    // Former regions: unknown now.
     expect(parse('/calendar/feed.ics', { region: 'bayern' })).toMatchObject({ status: 400 });
     expect(parse('/calendar/feed.ics', { region: 'europa' })).toMatchObject({ status: 400 });
   });
