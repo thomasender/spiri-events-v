@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useDonors } from '../hooks/useDonors';
 import { DEFAULT_REGION_ID } from '../utils/regions';
+import { currencySymbol } from '../lib/donationCurrency';
 import './DonorsList.css';
 
 function formatAmount(value) {
@@ -106,7 +107,8 @@ export default function DonorsList({ regionId = DEFAULT_REGION_ID }) {
         {visible.map((donor) => {
           const isAnonymous = !donor.name;
           const freq = frequencyLabel(donor.frequency);
-          const amountText = donor.amount != null ? `${formatAmount(donor.amount)} €` : null;
+          const amountText =
+            donor.amount != null ? `${formatAmount(donor.amount)} ${currencySymbol(donor)}` : null;
           const showAmount = amountText != null;
           const comment = typeof donor.comment === 'string' ? donor.comment.trim() : '';
           return (

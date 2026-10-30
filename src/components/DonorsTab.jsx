@@ -14,6 +14,7 @@ import { useDonors } from '../hooks/useDonors';
 import { useRegions } from '../hooks/useRegions';
 import { useStaffRole } from '../hooks/useStaffRole';
 import DonorEditDialog from './DonorEditDialog';
+import { currencySymbol } from '../lib/donationCurrency';
 import ConfirmDialog from './ConfirmDialog';
 import './DonorsTab.css';
 
@@ -29,7 +30,7 @@ function donorLabel(donor) {
 
 function donorSubLabel(donor) {
   const parts = [];
-  if (donor.amount != null) parts.push(`${formatAmount(donor.amount)} €`);
+  if (donor.amount != null) parts.push(`${formatAmount(donor.amount)} ${currencySymbol(donor)}`);
   if (donor.frequency === 'monthly') parts.push('monatlich');
   else if (donor.frequency === 'one-time') parts.push('einmalig');
   return parts.join(' · ');

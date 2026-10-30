@@ -6,6 +6,7 @@ type Donor = {
   id: string;
   name?: string | null;
   amount?: number | null;
+  currency?: string;
   frequency?: 'one-time' | 'monthly' | null;
   comment?: string | null;
   order?: number;
@@ -98,5 +99,18 @@ describe('DonorsList', () => {
     expect(anonymous.querySelector('[data-testid="donors-list-comment"]')).toHaveTextContent(
       'Weiter so'
     );
+  });
+});
+
+describe('DonorsList currency', () => {
+  it('shows CHF for Swiss donations and euros for donations without a currency', () => {
+    mockDonors.donors = [
+      donor(1, { amount: 10 }),
+      donor(2, { amount: 15, currency: 'CHF' }),
+      donor(3, { amount: 20, currency: 'EUR' }),
+    ];
+    render(<DonorsList regionId="zuerich" />);
+    const amounts = screen.getAllByTestId('donors-list-amount').map((el) => el.textContent);
+    expect(amounts).toEqual(['20,00 €', '15,00 CHF', '10,00 €']);
   });
 });

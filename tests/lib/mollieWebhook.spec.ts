@@ -13,6 +13,7 @@ import {
   recordLedgerIncome,
   ledgerIdForPayment,
   viennaDateString,
+  donationCurrencyForRegion,
 } from '../../functions/src/mollieWebhookLogic';
 
 function makeSnapshot(exists, fields = {}, docs = []) {
@@ -305,6 +306,19 @@ describe('handlePaidPayment', () => {
     });
     expect(result).toEqual({ written: false, reason: 'wrong-currency' });
     expect(setCalls).toHaveLength(0);
+  });
+
+  it('stores the currency: CHF for a Swiss donation, EUR otherwise or when missing', async () => {
+    for (const [amount, expected] of [
+      [{ value: '20.00', currency: 'CHF' }, 'CHF'],
+      [{ value: '20.00', currency: 'EUR' }, 'EUR'],
+      [{ value: '20.00' }, 'EUR'],
+    ] as const) {
+      const { db, setCalls } = makeDb();
+      const result = await handlePaidPayment({ db, payment: basePayment({ amount }) });
+      expect(result).toEqual({ written: true });
+      expect(setCalls[0].data).toMatchObject({ amount: 20, currency: expected });
+    }
   });
 
   it('marks monthly frequency for the FIRST subscription payment', async () => {
@@ -670,12 +684,28 @@ describe('processMollieWebhook — first payment of a monthly donation', () => {
     expect(ensureSubscription).toHaveBeenCalledWith({
       customerId: 'cst_1',
       amount: '15.00',
+      currency: 'EUR',
       startDate: '2026-11-28',
       firstPaymentId: 'tr_first',
       mandateId: 'mdt_1',
       webhookUrl: 'https://www.thetribe.at/mollieWebhook',
     });
     expect(setCalls[0].data).toMatchObject({ frequency: 'monthly', mollieSubscriptionId: 'sub_1' });
+  });
+
+  it('creates the subscription of a Swiss monthly donation in CHF', async () => {
+    const { db, setCalls } = makeDb();
+    const ensureSubscription = vi.fn(async () => ({ id: 'sub_chf' }));
+    const payment = { ...firstPayment(), amount: { value: '15.00', currency: 'CHF' } };
+    await processMollieWebhook({
+      body: { format: 'next-gen', type: 'payment.paid', eventId: 'ev', payment },
+      ensureSubscription,
+      db,
+    });
+    expect(ensureSubscription).toHaveBeenCalledWith(
+      expect.objectContaining({ amount: '15.00', currency: 'CHF' })
+    );
+    expect(setCalls[0].data).toMatchObject({ frequency: 'monthly', currency: 'CHF' });
   });
 
   it('reports to the Verwaltung and asks Mollie to retry when the subscription cannot be created', async () => {
@@ -784,6 +814,16 @@ describe('ledger mirror', () => {
     });
   });
 
+  it('books a CHF donation with its currency', async () => {
+    const { db, writes } = makeLedgerDb();
+    const r = await recordLedgerIncome({
+      db,
+      payment: paid({ amount: { value: '25.00', currency: 'CHF' } }),
+    });
+    expect(r.written).toBe(true);
+    expect(writes[0].data).toMatchObject({ amount: 25, currency: 'CHF' });
+  });
+
   it('labels recurring payments as monthly', async () => {
     const { db, writes } = makeLedgerDb();
     await recordLedgerIncome({
@@ -880,5 +920,14 @@ describe('viennaDateString', () => {
   it('uses the Vienna calendar day', () => {
     expect(viennaDateString(new Date('2026-12-31T23:30:00Z'))).toBe('2027-01-01');
     expect(viennaDateString(new Date('2026-07-01T10:00:00Z'))).toBe('2026-07-01');
+  });
+});
+
+describe('donationCurrencyForRegion', () => {
+  it('charges Swiss regions in CHF and every other region in EUR', () => {
+    expect(donationCurrencyForRegion('zuerich')).toBe('CHF');
+    expect(donationCurrencyForRegion('bern')).toBe('CHF');
+    expect(donationCurrencyForRegion('vorarlberg')).toBe('EUR');
+    expect(donationCurrencyForRegion('bayern')).toBe('EUR');
   });
 });

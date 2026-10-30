@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   ensureMollieSubscription,
   mollieRequest,
+  startMolliePaymentCheckout,
   startMollieSubscriptionCheckout,
 } from '../../functions/src/mollie';
 import { buildPaymentAlert } from '../../functions/src/paymentAlerts';
@@ -74,6 +75,81 @@ describe('startMollieSubscriptionCheckout', () => {
       customerId: 'cst_1',
       paymentId: 'tr_first',
     });
+  });
+});
+
+describe('donations in CHF (Swiss regions)', () => {
+  const checkoutResponse = {
+    status: 201,
+    body: {
+      id: 'tr_chf',
+      status: 'open',
+      _links: { checkout: { href: 'https://www.mollie.com/checkout/chf', type: 'text/html' } },
+    },
+  };
+
+  it('sends a one-time CHF payment with the Swiss checkout and no fixed method', async () => {
+    const calls = stubFetch([checkoutResponse]);
+    await startMolliePaymentCheckout('test_key', {
+      amount: 10,
+      appBaseUrl: 'https://www.thetribe.at',
+      regionId: 'zuerich',
+      currency: 'CHF',
+    });
+    const body = JSON.parse(String(calls[0].init.body));
+    expect(body.amount).toEqual({ currency: 'CHF', value: '10.00' });
+    expect(body.locale).toBe('de_CH');
+    expect(body).not.toHaveProperty('method');
+  });
+
+  it('starts the monthly CHF donation with a CHF first payment', async () => {
+    const calls = stubFetch([checkoutResponse]);
+    await startMollieSubscriptionCheckout('test_key', {
+      customerId: 'cst_1',
+      amount: 15,
+      appBaseUrl: 'https://www.thetribe.at',
+      currency: 'CHF',
+    });
+    const body = JSON.parse(String(calls[0].init.body));
+    expect(body.amount).toEqual({ currency: 'CHF', value: '15.00' });
+    expect(body.sequenceType).toBe('first');
+    expect(body.locale).toBe('de_CH');
+  });
+
+  it('keeps EUR and the Austrian checkout when no currency is given', async () => {
+    const calls = stubFetch([checkoutResponse]);
+    await startMolliePaymentCheckout('test_key', { amount: 10, appBaseUrl: 'https://x.at' });
+    const body = JSON.parse(String(calls[0].init.body));
+    expect(body.amount.currency).toBe('EUR');
+    expect(body.locale).toBe('de_AT');
+  });
+
+  it('creates the subscription in the currency of the first payment', async () => {
+    const calls = stubFetch([
+      { status: 200, body: { _embedded: { subscriptions: [] } } },
+      { status: 201, body: { id: 'sub_chf', status: 'active' } },
+    ]);
+    await ensureMollieSubscription('test_key', {
+      customerId: 'cst_1',
+      amount: '15.00',
+      currency: 'CHF',
+      startDate: '2026-11-28',
+      firstPaymentId: 'tr_chf',
+    });
+    expect(JSON.parse(String(calls[1].init.body)).amount).toEqual({
+      currency: 'CHF',
+      value: '15.00',
+    });
+  });
+
+  it('names the currency in the payment alert', () => {
+    const alert = buildPaymentAlert({
+      step: 'einmalige-spende-start',
+      error: new Error('x'),
+      amount: 10,
+      currency: 'CHF',
+    });
+    expect(alert.description).toContain('Betrag: 10 CHF');
   });
 });
 

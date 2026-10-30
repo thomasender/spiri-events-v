@@ -13,6 +13,7 @@ import { useHelpers } from '../hooks/useHelpers';
 import { regionCanonicalPath } from '../utils/regionRouting';
 import { DEFAULT_REGION_ID, instagramProfileUrl, regionInstagramAccount } from '../utils/regions';
 import { customAboutText } from '../utils/regionAboutText';
+import { donationCurrencyForCountry } from '../lib/donationCurrency';
 import RichTextView from '../components/RichTextView';
 import './AboutPage.css';
 
@@ -74,6 +75,8 @@ export default function AboutPage() {
   // launch show Vorarlberg's. Donations started here count for that region.
   // No helpers (or not loaded yet / failed): no helpers section at all.
   const pageRegionId = regionMode ? region.id : DEFAULT_REGION_ID;
+  // Swiss regions take donations in CHF, all others in EUR.
+  const donationCurrency = donationCurrencyForCountry(regionMode ? region.country : null);
   const helpersState = useHelpers(pageRegionId);
   const showHelpers =
     !helpersState.loading && !helpersState.error && helpersState.helpers.length > 0;
@@ -269,7 +272,7 @@ export default function AboutPage() {
           möchtest, nimm gerne {getInTouch}.
         </p>
 
-        <DonationBlock placement="about_page" regionId={pageRegionId} />
+        <DonationBlock placement="about_page" regionId={pageRegionId} currency={donationCurrency} />
 
         <div className="about-donors-block" data-testid="about-donors-block">
           <h3 className="about-donors-title">

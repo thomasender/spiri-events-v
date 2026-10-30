@@ -33,6 +33,8 @@ export interface PaymentAlertInput {
   step: PaymentAlertStep;
   error: unknown;
   amount?: number | string | null;
+  // EUR when missing (CHF for donations to Swiss regions).
+  currency?: string | null;
   ids?: Record<string, string | null | undefined>;
   pageUrl?: string | null;
 }
@@ -53,7 +55,7 @@ export function buildPaymentAlert(input: PaymentAlertInput): Record<string, unkn
     `Fehler: ${describeError(input.error)}`,
   ];
   if (input.amount !== undefined && input.amount !== null && input.amount !== '') {
-    lines.push(`Betrag: ${input.amount} EUR`);
+    lines.push(`Betrag: ${input.amount} ${input.currency || 'EUR'}`);
   }
   const ids = Object.entries(input.ids ?? {}).filter(([, v]) => typeof v === 'string' && v);
   if (ids.length > 0) {

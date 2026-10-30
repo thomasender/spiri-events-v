@@ -2,6 +2,8 @@
 // Pure helpers, free of Firebase imports. `date` is a YYYY-MM-DD string and
 // `amount` is always positive; `type` ('income' | 'expense') decides the sign.
 
+import { DEFAULT_DONATION_CURRENCY, donationCurrencyOf } from '../lib/donationCurrency';
+
 export const LEDGER_TYPES = ['income', 'expense'];
 export const DESCRIPTION_MAX = 200;
 export const CATEGORY_MAX = 60;
@@ -87,23 +89,46 @@ export function entriesOfYear(entries, year) {
   return entries.filter((e) => typeof e.date === 'string' && e.date.startsWith(`${year}-`));
 }
 
+// The books are in euros. Entries in another currency (CHF donations of Swiss
+// regions, `currency: 'CHF'`; entries without `currency` are euros) are not
+// added to the euro totals but summed per currency in `other` (signed balance).
 export function ledgerTotals(entries) {
   let income = 0;
   let expense = 0;
+  const otherCents = {};
   for (const e of entries) {
     const cents = Math.round(Number(e.amount) * 100);
     if (!Number.isFinite(cents)) continue;
+    const currency = donationCurrencyOf(e);
+    if (currency !== DEFAULT_DONATION_CURRENCY) {
+      const signed = e.type === 'expense' ? -cents : e.type === 'income' ? cents : 0;
+      otherCents[currency] = (otherCents[currency] ?? 0) + signed;
+      continue;
+    }
     if (e.type === 'income') income += cents;
     else if (e.type === 'expense') expense += cents;
   }
-  return { income: income / 100, expense: expense / 100, balance: (income - expense) / 100 };
+  const other = Object.fromEntries(Object.entries(otherCents).map(([c, v]) => [c, v / 100]));
+  return { income: income / 100, expense: expense / 100, balance: (income - expense) / 100, other };
+}
+
+function formatNumber(value) {
+  return new Intl.NumberFormat('de-AT', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
 }
 
 export function formatEuro(value) {
-  return `${new Intl.NumberFormat('de-AT', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value)} €`;
+  return `${formatNumber(value)} €`;
+}
+
+/** Amount of a ledger entry in its own currency ("12,50 €", "12,50 CHF"). */
+export function formatLedgerAmount(entry) {
+  const currency = donationCurrencyOf(entry);
+  return currency === DEFAULT_DONATION_CURRENCY
+    ? formatEuro(entry.amount)
+    : `${formatNumber(entry.amount)} ${currency}`;
 }
 
 /** "2026-10-29" -> "29.10.2026" */
@@ -125,13 +150,16 @@ const BOM = String.fromCharCode(0xfeff);
 
 /** Semicolon CSV with comma decimals, opens correctly in German Excel. */
 export function ledgerToCsv(entries) {
-  const lines = [['Datum', 'Art', 'Betrag', 'Beschreibung', 'Kategorie', 'Notiz', 'Quelle']];
+  const lines = [
+    ['Datum', 'Art', 'Betrag', 'Währung', 'Beschreibung', 'Kategorie', 'Notiz', 'Quelle'],
+  ];
   for (const e of sortLedger(entries).reverse()) {
     const signed = e.type === 'expense' ? -e.amount : e.amount;
     lines.push([
       csvCell(formatLedgerDate(e.date)),
       csvCell(e.type === 'income' ? 'Einnahme' : 'Ausgabe'),
       csvCell(signed.toFixed(2).replace('.', ',')),
+      csvCell(donationCurrencyOf(e)),
       csvCell(e.description, { freeText: true }),
       csvCell(e.category ?? '', { freeText: true }),
       csvCell(e.note ?? '', { freeText: true }),

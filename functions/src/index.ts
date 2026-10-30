@@ -11,7 +11,12 @@ import {
   startMollieSubscriptionCheckout,
 } from './mollie';
 import { describeError, reportPaymentFailure } from './paymentAlerts';
-import { donationRegionId, sanitizeDonorComment } from './mollieWebhookLogic';
+import {
+  donationCurrencyForRegion,
+  donationRegionId,
+  sanitizeDonorComment,
+} from './mollieWebhookLogic';
+import { ensureCustomRegions } from './customRegions';
 import {
   onEventStatusChanged,
   onEventCreated,
@@ -46,7 +51,7 @@ function assertValidAmount(amount: unknown): asserts amount is number {
   if (!isValidDonationAmount(amount)) {
     throw new HttpsError(
       'invalid-argument',
-      `amount must be a number of at least ${MIN_DONATION_AMOUNT.toFixed(2)} EUR`
+      `amount must be a number of at least ${MIN_DONATION_AMOUNT.toFixed(2)}`
     );
   }
 }
@@ -74,6 +79,11 @@ export const createMollieSubscription = onCall(
     const apiKey = MOLLIE_API_KEY.value();
     assertApiKey(apiKey);
 
+    // Custom regions must be known for the region and its currency (CHF in CH).
+    await ensureCustomRegions();
+    const regionId = donationRegionId(data.regionId);
+    const currency = donationCurrencyForRegion(regionId);
+
     try {
       const customer = await createMollieCustomer(apiKey, {
         name: data.name ?? null,
@@ -86,7 +96,8 @@ export const createMollieSubscription = onCall(
         name: data.name ?? null,
         displayOnConsent: Boolean(data.displayOnConsent),
         comment: donorCommentFor(data),
-        regionId: donationRegionId(data.regionId),
+        regionId,
+        currency,
       });
       return checkout;
     } catch (err) {
@@ -95,6 +106,7 @@ export const createMollieSubscription = onCall(
         step: 'monatliche-spende-start',
         error: err,
         amount: data.amount,
+        currency,
         pageUrl: `${resolveAppBaseUrl(request)}/spenden`,
       });
       throw new HttpsError('unavailable', DONATION_START_FAILED_MESSAGE);
@@ -118,6 +130,11 @@ export const createMolliePayment = onCall(
     const apiKey = MOLLIE_API_KEY.value();
     assertApiKey(apiKey);
 
+    // Custom regions must be known for the region and its currency (CHF in CH).
+    await ensureCustomRegions();
+    const regionId = donationRegionId(data.regionId);
+    const currency = donationCurrencyForRegion(regionId);
+
     try {
       const checkout = await startMolliePaymentCheckout(apiKey, {
         amount: data.amount,
@@ -125,7 +142,8 @@ export const createMolliePayment = onCall(
         name: data.name ?? null,
         displayOnConsent: Boolean(data.displayOnConsent),
         comment: donorCommentFor(data),
-        regionId: donationRegionId(data.regionId),
+        regionId,
+        currency,
       });
       return checkout;
     } catch (err) {
@@ -134,6 +152,7 @@ export const createMolliePayment = onCall(
         step: 'einmalige-spende-start',
         error: err,
         amount: data.amount,
+        currency,
         pageUrl: `${resolveAppBaseUrl(request)}/spenden`,
       });
       throw new HttpsError('unavailable', DONATION_START_FAILED_MESSAGE);

@@ -1,5 +1,5 @@
 import { defineSecret } from 'firebase-functions/params';
-import { MONTHLY_DONATION_TYPE } from './mollieWebhookLogic';
+import { MONTHLY_DONATION_TYPE, type DonationCurrency } from './mollieWebhookLogic';
 
 // Kept inline because the functions bundle is CJS and the shared helpers in
 // src/lib/ are ESM modules. Keep in sync with the helper.
@@ -19,6 +19,13 @@ export const MOLLIE_API_BASE = 'https://api.mollie.com/v2';
 export const MIN_DONATION_AMOUNT = 5.0;
 
 export const DONATION_CURRENCY = 'EUR';
+
+// Checkout language and country: Swiss donors (CHF) get the Swiss checkout.
+// No `method` is sent, so Mollie only offers methods that support the
+// currency (no SEPA direct debit in CHF; monthly CHF donations: credit card).
+export function mollieLocaleFor(currency: DonationCurrency): string {
+  return currency === 'CHF' ? 'de_CH' : 'de_AT';
+}
 
 export const SUBSCRIPTION_INTERVAL = '1 month';
 
@@ -200,8 +207,11 @@ export async function startMollieSubscriptionCheckout(
     comment?: string | null;
     // Region the donation counts for (already checked by the callable).
     regionId?: string | null;
+    // CHF for Swiss regions, otherwise EUR (see donationCurrencyForRegion).
+    currency?: DonationCurrency;
   }
 ): Promise<MollieSubscriptionCheckoutResult> {
+  const currency = params.currency ?? DONATION_CURRENCY;
   const metadata: Record<string, unknown> = {
     displayOnConsent: Boolean(params.displayOnConsent),
     donationType: MONTHLY_DONATION_TYPE,
@@ -220,7 +230,7 @@ export async function startMollieSubscriptionCheckout(
     method: 'POST',
     body: {
       amount: {
-        currency: DONATION_CURRENCY,
+        currency,
         value: formatAmount(params.amount),
       },
       description: SUBSCRIPTION_DESCRIPTION,
@@ -228,7 +238,7 @@ export async function startMollieSubscriptionCheckout(
       sequenceType: 'first',
       redirectUrl: `${params.appBaseUrl}/spenden/danke`,
       webhookUrl: `${params.appBaseUrl}/mollieWebhook`,
-      locale: 'de_AT',
+      locale: mollieLocaleFor(currency),
       metadata,
     },
   });
@@ -257,6 +267,8 @@ export async function ensureMollieSubscription(
   params: {
     customerId: string;
     amount: string;
+    // Same currency as the first payment (the mandate's currency).
+    currency?: DonationCurrency;
     startDate: string;
     firstPaymentId: string;
     mandateId?: string | null;
@@ -272,7 +284,7 @@ export async function ensureMollieSubscription(
   if (live) return { id: live.id, created: false };
 
   const body: Record<string, unknown> = {
-    amount: { currency: DONATION_CURRENCY, value: params.amount },
+    amount: { currency: params.currency ?? DONATION_CURRENCY, value: params.amount },
     description: SUBSCRIPTION_DESCRIPTION,
     interval: SUBSCRIPTION_INTERVAL,
     startDate: params.startDate,
@@ -303,17 +315,20 @@ export async function startMolliePaymentCheckout(
     comment?: string | null;
     // Region the donation counts for (already checked by the callable).
     regionId?: string | null;
+    // CHF for Swiss regions, otherwise EUR (see donationCurrencyForRegion).
+    currency?: DonationCurrency;
   }
 ): Promise<MolliePaymentCheckoutResult> {
+  const currency = params.currency ?? DONATION_CURRENCY;
   const body: Record<string, unknown> = {
     amount: {
-      currency: DONATION_CURRENCY,
+      currency,
       value: formatAmount(params.amount),
     },
     description: PAYMENT_DESCRIPTION,
     redirectUrl: `${params.appBaseUrl}/spenden/danke`,
     webhookUrl: `${params.appBaseUrl}/mollieWebhook`,
-    locale: 'de_AT',
+    locale: mollieLocaleFor(currency),
   };
   const metadata: Record<string, unknown> = {
     displayOnConsent: Boolean(params.displayOnConsent),
