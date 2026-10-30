@@ -78,3 +78,8 @@
 .member-badge--static {
   pointer-events: none;
 }
+
+/* Small header avatar: the white ring is halved so the gold disc dominates. */
+.member-badge--static {
+  box-shadow: 0 0 0 calc(var(--space-0-5) / 2) var(--bg-calendar);
+}
