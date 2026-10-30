@@ -209,7 +209,7 @@ describe('EventFormWizard region field', () => {
   });
 
   it('with two active regions: no region field, Bezirke of the current region, extra option', () => {
-    seedWizardDraft();
+    seedWizardDraft({ city: 'Nirgendwo', regionId: 'tirol' });
     render(withRegions(regionContext(['vorarlberg', 'tirol'], 'tirol'), <EventFormWizard />));
 
     expect(screen.queryByTestId('event-region-field')).not.toBeInTheDocument();
@@ -238,7 +238,7 @@ describe('EventFormWizard region field', () => {
   });
 
   it('"Finde meinen Bezirk nicht" names the current region and cancelling changes nothing', () => {
-    seedWizardDraft();
+    seedWizardDraft({ city: 'Nirgendwo', regionId: 'tirol' });
     render(withRegions(regionContext(['vorarlberg', 'tirol'], 'tirol'), <EventFormWizard />));
 
     fireEvent.change(document.getElementById('bezirk') as HTMLElement, {
@@ -263,9 +263,14 @@ describe('EventFormWizard region field', () => {
 
     changeRegionViaDialog('bayern');
 
+    // The city was reset with the region: nothing entered, so no select yet.
+    expect(bezirk()).toBeNull();
+    expect((document.getElementById('city') as HTMLInputElement).value).toBe('');
+    fireEvent.change(document.getElementById('city') as HTMLInputElement, {
+      target: { value: 'Nirgendwo' },
+    });
     expect(screen.getByLabelText('Landkreis')).toBeInTheDocument();
     expect(bezirk().value).toBe('');
-    expect((document.getElementById('city') as HTMLInputElement).value).toBe('');
     expect(optionTexts(bezirk())).toContain('Oberallgäu');
     expect(optionTexts(bezirk())[0]).toBe('Landkreis auswählen...');
     expect(optionTexts(bezirk())).not.toContain('Dornbirn');
@@ -396,8 +401,8 @@ describe('Ort -> Landkreis in regions without a Gemeinde list', () => {
     seedWizardDraft({ city: '', regionId: 'ruhrgebiet' });
     render(withRegions(deContext('ruhrgebiet'), <EventFormWizard />));
 
-    // Not decided yet: the select is there and required.
-    expect(bezirk()).not.toBeNull();
+    // Nothing entered yet: the select is hidden by default.
+    expect(bezirk()).toBeNull();
 
     typeCity('Dort');
     fireEvent.click((await screen.findAllByTestId('city-place-option'))[0]);
