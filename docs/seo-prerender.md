@@ -46,6 +46,11 @@ runs even if that backend deploy fails (the job then ends red). Manual
 function deploys: use `--only functions:<name>` and merge soon, otherwise the
 next push deploy aborts on the cloud-only function.
 
+`onRegionWriteTriggerBuild` does the same when a region is switched on or off
+(`regions/{id}.active` changes; Trello eFPKzCr7), without the debounce below, because the
+prerendered `/` carries the region-mode hint and region pages ([regions.md](./regions.md)
+section 8).
+
 A **5-minute debounce window** is enforced via a `buildAt` timestamp on
 `app_settings/last_build`: only the first event write inside the window
 triggers a build, subsequent writes are coalesced into the same build.

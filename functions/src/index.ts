@@ -150,7 +150,7 @@ export {
   onAdminMessageCreated,
   onFeedbackCreated,
 } from './notifications';
-export { onEventWriteTriggerBuild } from './triggerBuild';
+export { onEventWriteTriggerBuild, onRegionWriteTriggerBuild } from './triggerBuild';
 export { onEventCreatedEnsureUniqueSlug } from './eventSlugUniqueness';
 export { scheduledBuildTrigger } from './scheduledBuildTrigger';
 export { syncMollieInvoices } from './mollieInvoices';
