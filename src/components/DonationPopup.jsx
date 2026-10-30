@@ -107,12 +107,12 @@ export default function DonationPopup() {
           <Heart size={28} />
         </div>
         <h2 id="donation-popup-title" className="donation-popup-title">
-          Hilf mit, dass Tribe Vorarlberg online bleibt
+          Hilf mit, den Tribe zu erhalten
         </h2>
         <p id="donation-popup-text" className="donation-popup-text">
-          tribe Vorarlberg wird ehrenamtlich betrieben und lebt allein von Spenden. Mit deinem
-          Beitrag — ob klein oder groß — hältst du den Kalender kostenlos und werbefrei für alle.
-          Danke, dass du dabei bist!
+          Der Tribe wird ehrenamtlich betrieben und lebt allein von Spenden. Mit deinem Beitrag — ob
+          klein oder groß — hältst du den Kalender kostenlos und werbefrei für alle. Danke, dass du
+          dabei bist!
         </p>
         <div className="donation-popup-actions">
           <Link
