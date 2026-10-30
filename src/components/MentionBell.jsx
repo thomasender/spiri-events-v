@@ -94,7 +94,9 @@ export default function MentionBell({ uid, variant = 'icon', onNavigate }) {
                     <span className="mention-item-title">
                       {describeMention(m, CANDLE_ROOM_NAME)}
                     </span>
-                    {m.excerpt && <span className="mention-item-excerpt">{m.excerpt}</span>}
+                    {m.excerpt && m.kind !== 'donation' && (
+                      <span className="mention-item-excerpt">{m.excerpt}</span>
+                    )}
                     {m.createdAt && (
                       <time className="mention-item-time">{formatChatTime(m.createdAt)}</time>
                     )}

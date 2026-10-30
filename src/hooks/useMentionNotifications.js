@@ -40,7 +40,7 @@ export function useMentionNotifications(uid, enabled = true) {
             const data = d.data();
             return {
               id: d.id,
-              kind: data.kind === 'event' ? 'event' : 'lagerfeuer',
+              kind: ['event', 'donation'].includes(data.kind) ? data.kind : 'lagerfeuer',
               eventId: data.eventId ?? null,
               eventSlug: data.eventSlug ?? '',
               eventTitle: data.eventTitle ?? '',
