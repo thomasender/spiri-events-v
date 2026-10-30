@@ -6,6 +6,7 @@ import ConfirmDialog from './ConfirmDialog';
 import {
   entriesOfYear,
   formatEuro,
+  formatLedgerAmount,
   formatLedgerDate,
   ledgerToCsv,
   ledgerTotals,
@@ -122,6 +123,12 @@ export default function LedgerTab() {
           </strong>
         </div>
       </div>
+      {Object.entries(totals.other).map(([currency, balance]) => (
+        <p key={currency} className="ledger-tab-other" data-testid={`ledger-other-${currency}`}>
+          Nicht in den Summen enthalten: {formatLedgerAmount({ amount: balance, currency })} (
+          {currency}-Spenden)
+        </p>
+      ))}
 
       {(error || actionError) && (
         <div className="ledger-tab-error" role="alert" data-testid="ledger-error">
@@ -153,7 +160,7 @@ export default function LedgerTab() {
                 className={`ledger-row-amount ${entry.type === 'income' ? 'ledger-tab-income' : 'ledger-tab-expense'}`}
               >
                 {entry.type === 'income' ? '+' : '−'}
-                {formatEuro(entry.amount)}
+                {formatLedgerAmount(entry)}
               </span>
               <div className="ledger-row-buttons">
                 <button
@@ -198,7 +205,7 @@ export default function LedgerTab() {
         onCancel={() => setPendingDelete(null)}
       >
         <p>
-          „{pendingDelete?.description}“ ({pendingDelete ? formatEuro(pendingDelete.amount) : ''})
+          „{pendingDelete?.description}“ ({pendingDelete ? formatLedgerAmount(pendingDelete) : ''})
           wird endgültig gelöscht.
         </p>
       </ConfirmDialog>

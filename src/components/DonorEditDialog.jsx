@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Save, X } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
 import { DEFAULT_REGION_ID, resolveRegionId } from '../utils/regions';
+import { currencyName, currencySymbol } from '../lib/donationCurrency';
 import './DonorEditDialog.css';
 
 const FREQUENCIES = [
@@ -231,7 +232,9 @@ export default function DonorEditDialog({
           </label>
 
           <label className="donor-edit-dialog-field">
-            <span className="donor-edit-dialog-label">Betrag in Euro (optional)</span>
+            <span className="donor-edit-dialog-label">
+              Betrag in {currencyName(donor)} (optional)
+            </span>
             <div className="donor-edit-dialog-amount-wrapper">
               <input
                 type="text"
@@ -242,7 +245,7 @@ export default function DonorEditDialog({
                 disabled={submitting}
                 data-testid="donor-edit-amount"
               />
-              <span className="donor-edit-dialog-amount-suffix">€</span>
+              <span className="donor-edit-dialog-amount-suffix">{currencySymbol(donor)}</span>
             </div>
             <span className="donor-edit-dialog-hint">
               Leer lassen, wenn der Betrag nicht angezeigt werden soll.

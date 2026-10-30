@@ -19,10 +19,31 @@
  */
 
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { DEFAULT_REGION_ID, isRegionId } from './regions';
+import { DEFAULT_REGION_ID, countryOfRegion, isRegionId } from './regions';
 
 export const DONOR_NEXT_ORDER_STEP = 100;
+// Default currency; donations to a Swiss region (country CH) are in CHF.
+// Stored donors / ledger entries without `currency` are EUR.
 export const MOLLIE_DONATION_CURRENCY = 'EUR';
+export const SWISS_DONATION_CURRENCY = 'CHF';
+export const DONATION_CURRENCIES: readonly string[] = [
+  MOLLIE_DONATION_CURRENCY,
+  SWISS_DONATION_CURRENCY,
+];
+export type DonationCurrency = 'EUR' | 'CHF';
+
+/**
+ * Currency a donation to `regionId` is charged in: CHF for regions in
+ * Switzerland, EUR for everything else. Custom regions need
+ * ensureCustomRegions() first, otherwise they count as AT (EUR).
+ */
+export function donationCurrencyForRegion(regionId: string): DonationCurrency {
+  return countryOfRegion(regionId) === 'CH' ? 'CHF' : 'EUR';
+}
+
+function isDonationCurrency(value: unknown): value is DonationCurrency {
+  return typeof value === 'string' && DONATION_CURRENCIES.includes(value);
+}
 export const NEXT_GEN_SIGNATURE_HEADER = 'x-mollie-signature';
 // Marks the first payment of a monthly donation (payment metadata).
 export const MONTHLY_DONATION_TYPE = 'monthly';
@@ -264,9 +285,12 @@ export async function handlePaidPayment({
   if (payment.status !== 'paid' && payment.status !== 'authorized') {
     return { written: false, reason: `status:${payment.status}` };
   }
-  if (payment.amount?.currency && payment.amount.currency !== MOLLIE_DONATION_CURRENCY) {
+  if (payment.amount?.currency && !isDonationCurrency(payment.amount.currency)) {
     return { written: false, reason: 'wrong-currency' };
   }
+  const currency = isDonationCurrency(payment.amount?.currency)
+    ? payment.amount.currency
+    : MOLLIE_DONATION_CURRENCY;
   const donorName = typeof metadata.donorName === 'string' ? metadata.donorName.trim() : '';
   const isAnonymous = donorName.length === 0;
   const amount = parseEuroAmount(payment.amount);
@@ -314,6 +338,7 @@ export async function handlePaidPayment({
   const data: Record<string, unknown> = {
     name: isAnonymous ? null : donorName,
     amount,
+    currency,
     frequency,
     note: existingNote !== undefined ? existingNote : null,
     comment:
@@ -352,7 +377,8 @@ export async function recordLedgerIncome({
 }): Promise<{ written: boolean; reason?: string }> {
   try {
     if (payment.status !== 'paid') return { written: false, reason: `status:${payment.status}` };
-    if (payment.amount?.currency !== MOLLIE_DONATION_CURRENCY) {
+    const currency = payment.amount?.currency;
+    if (!isDonationCurrency(currency)) {
       return { written: false, reason: 'wrong-currency' };
     }
     const amount = parseEuroAmount(payment.amount);
@@ -373,6 +399,8 @@ export async function recordLedgerIncome({
         type: 'income',
         date: viennaDateString(paidAtOf(payment, now)),
         amount,
+        // The books are in EUR; a CHF entry is listed but not added to the totals.
+        currency,
         description: `Spende via Mollie (${isRecurring ? 'monatlich' : 'einmalig'})`,
         category: 'Spenden',
         source: 'mollie',
@@ -528,6 +556,9 @@ async function handlePaidWebhookPayment({
       const subscription = await ensureSubscription({
         customerId,
         amount: payment.amount?.value ?? '',
+        currency: isDonationCurrency(payment.amount?.currency)
+          ? payment.amount.currency
+          : MOLLIE_DONATION_CURRENCY,
         startDate: subscriptionStartDate(paidAtOf(payment, now)),
         firstPaymentId: payment.id,
         mandateId: payment.mandateId ?? null,
@@ -539,6 +570,7 @@ async function handlePaidWebhookPayment({
         step: 'abo-anlegen',
         error: err,
         amount: payment.amount?.value ?? null,
+        currency: payment.amount?.currency ?? null,
         ids: { customer: customerId, payment: payment.id },
         alertId: `mollie_abo_${payment.id}`,
       });
@@ -608,6 +640,7 @@ export interface MolliePaymentResource {
 export type SubscriptionEnsurer = (args: {
   customerId: string;
   amount: string;
+  currency: DonationCurrency;
   startDate: string;
   firstPaymentId: string;
   mandateId: string | null;
@@ -618,6 +651,7 @@ export type PaymentFailureReporter = (args: {
   step: 'abo-anlegen' | 'webhook';
   error: unknown;
   amount?: string | null;
+  currency?: string | null;
   ids?: Record<string, string | null | undefined>;
   alertId?: string;
 }) => Promise<void>;

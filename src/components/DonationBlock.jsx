@@ -9,6 +9,7 @@ import {
 } from '../lib/mollieClient';
 import { EVENTS, trackEvent } from '../lib/analytics';
 import { DEFAULT_REGION_ID } from '../utils/regions';
+import { DEFAULT_DONATION_CURRENCY, currencyName, currencySymbol } from '../lib/donationCurrency';
 import './DonationBlock.css';
 
 // Public comment on the donor list; same limit as the server and the rules.
@@ -28,8 +29,16 @@ function formatPreset(amount) {
 }
 
 // `regionId`: the region the donation counts for (its donor list on "Über
-// uns"); the server checks it and falls back to Vorarlberg.
-export default function DonationBlock({ placement = 'unknown', regionId = DEFAULT_REGION_ID }) {
+// uns"); the server checks it and falls back to Vorarlberg. `currency` is only
+// what the form shows ('CHF' for Swiss regions); the server derives the
+// currency it charges from the region the same way.
+export default function DonationBlock({
+  placement = 'unknown',
+  regionId = DEFAULT_REGION_ID,
+  currency = DEFAULT_DONATION_CURRENCY,
+}) {
+  const symbol = currencySymbol(currency);
+  const isChf = symbol === 'CHF';
   const [frequency, setFrequency] = useState('monthly');
   const [name, setName] = useState('');
   const [displayOnConsent, setDisplayOnConsent] = useState(false);
@@ -52,7 +61,7 @@ export default function DonationBlock({ placement = 'unknown', regionId = DEFAUL
     event.preventDefault();
     if (!isAmountValid) {
       setError(
-        `Bitte einen Betrag von mindestens ${formatAmount(MIN_DONATION_AMOUNT)} € eingeben.`
+        `Bitte einen Betrag von mindestens ${formatAmount(MIN_DONATION_AMOUNT)} ${symbol} eingeben.`
       );
       return;
     }
@@ -161,7 +170,7 @@ export default function DonationBlock({ placement = 'unknown', regionId = DEFAUL
         </label>
 
         <label className="donation-amount-field">
-          <span className="donation-amount-label">Betrag in Euro</span>
+          <span className="donation-amount-label">Betrag in {currencyName(currency)}</span>
           <div className="donation-amount-input-wrapper">
             <input
               type="text"
@@ -176,10 +185,10 @@ export default function DonationBlock({ placement = 'unknown', regionId = DEFAUL
               aria-invalid={amountInput.length > 0 && !isAmountValid}
               required
             />
-            <span className="donation-amount-suffix">€</span>
+            <span className="donation-amount-suffix">{symbol}</span>
           </div>
           <span className="donation-amount-hint">
-            Mindestens {formatAmount(MIN_DONATION_AMOUNT)} €.
+            Mindestens {formatAmount(MIN_DONATION_AMOUNT)} {symbol}.
           </span>
         </label>
 
@@ -192,7 +201,7 @@ export default function DonationBlock({ placement = 'unknown', regionId = DEFAUL
               onClick={() => handlePresetClick(preset)}
               disabled={submitting}
             >
-              {formatPreset(preset)} €
+              {formatPreset(preset)} {symbol}
             </button>
           ))}
         </div>
@@ -205,8 +214,8 @@ export default function DonationBlock({ placement = 'unknown', regionId = DEFAUL
           {submitting
             ? 'Weiterleitung …'
             : isMonthly
-              ? `${isAmountValid ? formatAmount(parsedAmount) : ''} € monatlich spenden`.trim()
-              : `${isAmountValid ? formatAmount(parsedAmount) : ''} € spenden`.trim()}
+              ? `${isAmountValid ? formatAmount(parsedAmount) : ''} ${symbol} monatlich spenden`.trim()
+              : `${isAmountValid ? formatAmount(parsedAmount) : ''} ${symbol} spenden`.trim()}
         </button>
       </div>
 
@@ -217,9 +226,11 @@ export default function DonationBlock({ placement = 'unknown', regionId = DEFAUL
       )}
 
       <p className="donation-disclaimer">
+        {/* SEPA direct debit only exists in euros; in Swiss francs Mollie offers
+            the methods that support CHF (for monthly donations: credit card). */}
         {isMonthly
-          ? 'Die Spende wird monatlich per SEPA-Lastschrift oder Kreditkarte abgebucht. Du kannst sie jederzeit über dein Mollie-Konto oder per E-Mail an '
-          : 'Die Spende wird einmalig per SEPA-Lastschrift oder Kreditkarte abgebucht. Für Rückfragen schreibe an '}
+          ? `Die Spende wird monatlich per ${isChf ? 'Kreditkarte' : 'SEPA-Lastschrift oder Kreditkarte'} abgebucht. Du kannst sie jederzeit über dein Mollie-Konto oder per E-Mail an `
+          : `Die Spende wird einmalig per ${isChf ? 'Kreditkarte oder einer anderen angebotenen Zahlungsart' : 'SEPA-Lastschrift oder Kreditkarte'} abgebucht. Für Rückfragen schreibe an `}
         <a href="mailto:admin@thetribe.at">admin@thetribe.at</a>. Für eine offizielle
         Spendenquittung wende dich ebenfalls an{' '}
         <a href="mailto:admin@thetribe.at">admin@thetribe.at</a>.

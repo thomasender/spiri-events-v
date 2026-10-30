@@ -431,3 +431,32 @@ describe('DonationBlock analytics', () => {
     expect(track).not.toHaveBeenCalled();
   });
 });
+
+describe('DonationBlock in Swiss francs', () => {
+  it('shows CHF everywhere and no SEPA direct debit for a Swiss region', () => {
+    render(
+      <MemoryRouter>
+        <DonationBlock placement="about_page" regionId="zuerich" currency="CHF" />
+      </MemoryRouter>
+    );
+    fireEvent.change(screen.getByLabelText(/betrag in schweizer franken/i), {
+      target: { value: '10' },
+    });
+    expect(screen.getByText('Mindestens 5,00 CHF.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '20 CHF' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '10,00 CHF monatlich spenden' })).toBeInTheDocument();
+    expect(screen.queryByText(/€/)).toBeNull();
+    expect(screen.queryByText(/SEPA/)).toBeNull();
+  });
+
+  it('keeps euros by default', () => {
+    render(
+      <MemoryRouter>
+        <DonationBlock />
+      </MemoryRouter>
+    );
+    expect(screen.getByLabelText(/betrag in euro/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '20 €' })).toBeInTheDocument();
+    expect(screen.queryByText(/CHF/)).toBeNull();
+  });
+});
