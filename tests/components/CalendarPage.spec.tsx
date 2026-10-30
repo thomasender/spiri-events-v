@@ -1070,3 +1070,146 @@ describe('CalendarPage — "Filter gesetzt" jump', () => {
     expect(screen.queryByRole('button', { name: /Filter gesetzt/ })).not.toBeInTheDocument();
   });
 });
+
+describe('CalendarPage — place + radius and the Bezirk / Landkreis filter', () => {
+  const scrollIntoView = vi.fn();
+  const regionOf = (slug: string) => ({
+    ...STATIC_REGIONS.find((r) => r.id === slug)!,
+    active: true,
+  });
+  const allRegions = [regionOf('vorarlberg'), regionOf('bayern')];
+  const BREGENZ = {
+    label: 'Bregenz',
+    lat: 47.503,
+    lon: 9.747,
+    radiusKm: 10,
+    regionId: 'vorarlberg',
+  };
+
+  function renderWith(overrides: Record<string, unknown> = {}) {
+    const regionId = (overrides.regionId as string) ?? 'vorarlberg';
+    const value = {
+      ...DEFAULT_REGION_CONTEXT,
+      region: allRegions.find((r) => r.id === regionId)!,
+      regionId,
+      regions: allRegions,
+      allRegions,
+      placeSelection: BREGENZ,
+      radiusFilter: { lat: BREGENZ.lat, lon: BREGENZ.lon, km: BREGENZ.radiusKm },
+      ...overrides,
+    };
+    return render(
+      <MemoryRouter>
+        <HelmetProvider>
+          <RegionContext.Provider value={value as never}>
+            <CalendarPage />
+          </RegionContext.Provider>
+        </HelmetProvider>
+      </MemoryRouter>
+    );
+  }
+
+  const titles = () =>
+    Array.from(document.querySelectorAll('.event-tile, .event-row'))
+      .map((n) => n.textContent)
+      .join('|');
+
+  beforeEach(() => {
+    window.localStorage.clear();
+    scrollIntoView.mockClear();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    const now = new Date();
+    const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const date = `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, '0')}-${String(last.getDate()).padStart(2, '0')}`;
+    const base = { date, time: '18:00', category: 'Yoga', status: 'approved' };
+    mockUseAllEvents.events = [
+      {
+        ...base,
+        id: 'near',
+        title: 'NahBregenz',
+        bezirk: 'Bregenz',
+        regionId: 'vorarlberg',
+        lat: 47.503,
+        lng: 9.747,
+      },
+      {
+        ...base,
+        id: 'far',
+        title: 'FernBludenz',
+        bezirk: 'Bludenz',
+        regionId: 'vorarlberg',
+        lat: 47.154,
+        lng: 9.822,
+      },
+      {
+        ...base,
+        id: 'lindau',
+        title: 'NachbarLindau',
+        bezirk: 'Lindau (Bodensee)',
+        regionId: 'bayern',
+        lat: 47.55,
+        lng: 9.69,
+      },
+    ];
+    mockUseCategories.value = ['Yoga'];
+  });
+
+  it('shows the place and radius next to the count and opens the Bezirk filter on click', () => {
+    renderWith();
+    expect(titles()).toContain('NahBregenz');
+    expect(titles()).toContain('NachbarLindau');
+    expect(titles()).not.toContain('FernBludenz');
+    expect(getAccordion().open).toBe(false);
+
+    fireEvent.click(screen.getByRole('button', { name: /Bregenz \+ 10 km/ }));
+
+    expect(getAccordion().open).toBe(true);
+    expect(scrollIntoView.mock.contexts[0]).toBe(getAccordion());
+  });
+
+  it('a picked Bezirk overrides the radius and shows all its events', () => {
+    renderWith();
+    fireEvent.click(screen.getByText('Mehr Filter'));
+    const bludenz = screen.getByRole('button', { name: /^Bludenz/ });
+    // The chip counts the whole Bezirk, not only what lies within the radius.
+    expect(bludenz.querySelector('[data-testid="filter-chip-count"]')?.textContent).toBe('1');
+
+    fireEvent.click(bludenz);
+
+    expect(titles()).toContain('FernBludenz');
+    expect(titles()).not.toContain('NahBregenz');
+    expect(screen.queryByRole('button', { name: /\+ 10 km/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /1 Filter gesetzt/ })).toBeInTheDocument();
+  });
+
+  it('"Alle" carries the region name and shows the whole region; "Keine" goes back to the radius', () => {
+    renderWith();
+    fireEvent.click(screen.getByText('Mehr Filter'));
+    expect(screen.getByText('Bezirk')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Vorarlberg' }));
+    expect(titles()).toContain('FernBludenz');
+    expect(titles()).toContain('NahBregenz');
+    expect(titles()).not.toContain('NachbarLindau');
+
+    // The Kategorie row has its own "Keine"; the Ort one is the last.
+    const keine = screen.getAllByRole('button', { name: 'Keine' });
+    fireEvent.click(keine[keine.length - 1]);
+    expect(titles()).not.toContain('FernBludenz');
+    expect(titles()).toContain('NachbarLindau');
+    expect(screen.getByRole('button', { name: /Bregenz \+ 10 km/ })).toBeInTheDocument();
+  });
+
+  it('calls the filter "Landkreis" in a German region', () => {
+    renderWith({ regionId: 'bayern', placeSelection: null, radiusFilter: null });
+    expect(screen.getByText('Landkreis')).toBeInTheDocument();
+    expect(screen.queryByText('Bezirk')).not.toBeInTheDocument();
+  });
+
+  it('dark launch: one active region keeps "Alle" and shows no place hint', () => {
+    renderPage();
+    expect(screen.getByText('Bezirk')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Alle' })).toHaveLength(2);
+    expect(screen.queryByRole('button', { name: /km/ })).not.toBeInTheDocument();
+  });
+});

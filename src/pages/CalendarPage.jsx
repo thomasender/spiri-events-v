@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { flushSync } from 'react-dom';
-import { bezirkLabel } from '../utils/regions';
+import { bezirkLabel, getSubdivisionLabel } from '../utils/regions';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { usePublicEvents, BEZIRKE, ONLINE_LOCATION } from '../hooks/useEvents';
 import { useCategories } from '../hooks/useCategories';
@@ -34,6 +34,8 @@ import {
   dateToMonthKey,
   getRollingRange,
   countActiveFilters,
+  hasDistrictFilter,
+  ortFilterLabel,
 } from '../utils/calendarFilterState';
 import {
   DATE_FILTER_OPTIONS,
@@ -190,7 +192,17 @@ export default function CalendarPage() {
   const { colorFor: districtColorFor } = useDistrictColors();
   const canonicalPath = useRegionCanonicalPath('/');
   const regionTexts = useRegionTexts();
-  const { regionId, isNational, combinedView } = useRegion();
+  const {
+    region,
+    regionId,
+    regions: activeRegionList,
+    allRegions,
+    isNational,
+    combinedView,
+    combinedRegions,
+    placeSelection,
+    radiusFilter,
+  } = useRegion();
   const candleNews = useCandleRoomNews();
   // Load saved state exactly once per mount. Reading it inside the render body
   // would create a new object reference on every render and trip downstream
@@ -238,8 +250,27 @@ export default function CalendarPage() {
   // client filter below stays as a second safety layer.
   const { events: allEvents, loading, error } = usePublicEvents({ regionScoped: true });
   // One central filter: everything below (lists, counts, chips) derives from this.
-  const events = useRegionEvents(allEvents);
+  // A picked Bezirk / Landkreis overrides the "Wo bist du?" radius: then every event of the
+  // region (and so of the picked districts) counts, not only those within the radius.
+  const districtPicked = hasDistrictFilter(selectedOrte, ONLINE_LOCATION);
+  const nearbyEvents = useRegionEvents(allEvents);
+  const regionalEvents = useRegionEvents(allEvents, { ignoreRadius: true });
+  const radiusApplies = Boolean(radiusFilter) && !districtPicked;
+  const events = radiusApplies ? nearbyEvents : regionalEvents;
   const regionBezirke = useRegionBezirke();
+  // "Bezirk" (Austria, Switzerland) or "Landkreis" (Germany) as the region calls it.
+  const ortLabel = ortFilterLabel(
+    isNational
+      ? combinedRegions.map((r) => r.subdivisionLabel)
+      : [getSubdivisionLabel(regionId, allRegions)]
+  );
+  // With two or more active regions "Alle" carries the region's name ("Allgäu"): it shows the
+  // whole region and ignores the radius. Dark launch / combined view: "Alle" as before.
+  const allOrteLabel =
+    activeRegionList.length >= 2 && !isNational && region?.name ? region.name : 'Alle';
+  // "(Dornbirn + 25 km)" next to the event count while the radius decides what is shown.
+  const placeHint =
+    radiusApplies && placeSelection ? `${placeSelection.label} + ${radiusFilter.km} km` : null;
   // A remembered Ort filter from another region would hide everything here.
   useEffect(() => {
     setSelectedOrte((prev) => {
@@ -366,6 +397,13 @@ export default function CalendarPage() {
     () => (favoritesFilterActive ? events.filter((e) => favoriteIds.has(e.id)) : events),
     [events, favoritesFilterActive, favoriteIds]
   );
+  // Bezirk chips count the whole region: a click on one lifts the radius, so the number on the
+  // chip must be what the list shows afterwards.
+  const regionalBaseEvents = useMemo(
+    () =>
+      favoritesFilterActive ? regionalEvents.filter((e) => favoriteIds.has(e.id)) : regionalEvents,
+    [regionalEvents, favoritesFilterActive, favoriteIds]
+  );
 
   const filteredEvents = useMemo(() => {
     return baseEvents.filter((event) => {
@@ -415,17 +453,25 @@ export default function CalendarPage() {
 
   // "(n Filter gesetzt)" next to the event count: open "Mehr Filter" only when
   // a filter inside it is set, then bring the filter panel into view.
+  // "(Dornbirn + 25 km)" alone opens "Mehr Filter" and jumps straight to the Bezirk /
+  // Landkreis filter there, so further districts can be picked.
   const filterPanelRef = useRef(null);
   const filterTitleRef = useRef(null);
+  const moreFiltersRef = useRef(null);
   const showFilters = () => {
-    if (selectedOrte.length > 0 || favoritesFilterActive) {
+    if (selectedOrte.length > 0 || favoritesFilterActive || placeHint) {
       flushSync(() => setMoreFiltersOpen(true));
     }
     const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
-    filterPanelRef.current?.scrollIntoView({
+    const onlyPlace = Boolean(placeHint) && activeFilterCount === 0;
+    (onlyPlace ? moreFiltersRef : filterPanelRef).current?.scrollIntoView({
       block: 'start',
       behavior: reduceMotion ? 'auto' : 'smooth',
     });
+    if (onlyPlace) {
+      moreFiltersRef.current?.querySelector('summary')?.focus({ preventScroll: true });
+      return;
+    }
     // The heading is hidden on phones; then the panel itself takes the focus.
     filterTitleRef.current?.focus({ preventScroll: true });
     if (document.activeElement !== filterTitleRef.current) {
@@ -433,19 +479,29 @@ export default function CalendarPage() {
     }
   };
 
-  const facetCounts = useMemo(
-    () =>
+  const facetCounts = useMemo(() => {
+    const countFor = (list) =>
       computeFacetCounts({
-        occurrences: baseEvents.flatMap((event) => getEventOccurrences(event)),
+        occurrences: list.flatMap((event) => getEventOccurrences(event)),
         monthKey: dateToMonthKey(currentMonth),
         range: rolling ? getRollingRange() : null,
         selectedCategories,
         selectedOrte,
         dateFilter,
         onlineLocation: ONLINE_LOCATION,
-      }),
-    [baseEvents, currentMonth, rolling, selectedCategories, selectedOrte, dateFilter]
-  );
+      });
+    const counts = countFor(baseEvents);
+    if (baseEvents === regionalBaseEvents) return counts;
+    return { ...counts, ort: countFor(regionalBaseEvents).ort };
+  }, [
+    baseEvents,
+    regionalBaseEvents,
+    currentMonth,
+    rolling,
+    selectedCategories,
+    selectedOrte,
+    dateFilter,
+  ]);
 
   // Calendar export: signed-in users only (like Favoriten). The personal token
   // is requested when the user opens the section, not on page load.
@@ -676,6 +732,7 @@ export default function CalendarPage() {
 
             <details
               className="filter-accordion"
+              ref={moreFiltersRef}
               open={moreFiltersOpen}
               onToggle={(event) => setMoreFiltersOpen(event.currentTarget.open)}
             >
@@ -692,10 +749,10 @@ export default function CalendarPage() {
               </summary>
               <div className="filter-accordion-body">
                 <div className="filter-header">
-                  <span className="filter-label">Bezirk</span>
+                  <span className="filter-label">{ortLabel}</span>
                   <div className="filter-quick-actions">
                     <button type="button" onClick={selectAllOrte}>
-                      Alle
+                      {allOrteLabel}
                     </button>
                     <button type="button" onClick={selectNoneOrte}>
                       Keine
@@ -869,6 +926,7 @@ export default function CalendarPage() {
               categoryColorByName={categoryColorByName}
               onResetFilters={hasActiveFilter ? resetAllFilters : undefined}
               activeFilterCount={activeFilterCount}
+              placeHint={placeHint}
               onShowFilters={showFilters}
               candleNews={candleNews}
             />

@@ -40,6 +40,7 @@ export default function EventsSection({
   onCardClick,
   onResetFilters,
   activeFilterCount = 0,
+  placeHint = null,
   onShowFilters,
   candleNews,
 }) {
@@ -52,6 +53,14 @@ export default function EventsSection({
     setVisibleCount(EVENTS_PAGE_SIZE);
   }
   const shownEvents = events.slice(0, visibleCount);
+  // "(Dornbirn + 25 km, 2 Filter gesetzt)": the place + radius (only while it decides the
+  // list, two or more active regions) and the number of set filters.
+  const filterHint = [
+    placeHint,
+    activeFilterCount > 0 ? `${activeFilterCount} Filter gesetzt` : null,
+  ]
+    .filter(Boolean)
+    .join(', ');
   const remaining = events.length - shownEvents.length;
 
   useEffect(() => {
@@ -117,16 +126,16 @@ export default function EventsSection({
           </div>
           <span className="events-section-count">
             {events.length === 1 ? '1 Event' : `${events.length} Events`}
-            {activeFilterCount > 0 && onShowFilters && (
+            {filterHint && onShowFilters && (
               <>
                 {' '}
                 <button
                   type="button"
                   className="events-section-filter-link"
-                  aria-label={`${activeFilterCount} Filter gesetzt, zu den Filtern springen`}
+                  aria-label={`${filterHint}, zu den Filtern springen`}
                   onClick={onShowFilters}
                 >
-                  ({activeFilterCount} Filter gesetzt)
+                  ({filterHint})
                 </button>
               </>
             )}
