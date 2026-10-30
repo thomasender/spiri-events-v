@@ -29,23 +29,13 @@ process.env.GCLOUD_PROJECT = 'spirieventsvbg';
 initializeApp({ projectId: 'spirieventsvbg' });
 const db = getFirestore();
 
+// Only the switchable fields: names, order and districts come from the register in code
+// (src/data/regionData.js, from the CSVs in scripts/data/regions/).
 const REGION_FIXTURES = [
-  {
-    id: 'vorarlberg',
-    name: 'Vorarlberg',
-    order: 0,
-    active: true,
-    bezirke: ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe'],
-  },
-  {
-    id: 'tirol',
-    name: 'Tirol',
-    order: 1,
-    active: true,
-    bezirke: ['Innsbruck', 'Kufstein', 'Imst', 'Lienz'],
-  },
+  { id: 'vorarlberg', active: true },
+  { id: 'tirol', active: true },
   // Inactive on purpose: tests region visibility (hidden from the switcher).
-  { id: 'wien', name: 'Wien', order: 7, active: false, bezirke: [] },
+  { id: 'wien', active: false },
 ];
 
 const day = (offset) => {
@@ -72,7 +62,7 @@ const REGION_EVENT_FIXTURES = [
     endTime: '19:30',
     place: 'Yogaraum Innsbruck',
     description: 'Fixture-Event der Region Tirol.',
-    bezirk: 'Innsbruck',
+    bezirk: 'Innsbruck (Stadt)',
     regionId: 'tirol',
   },
   {
@@ -184,7 +174,6 @@ for (const { id, ...region } of REGION_FIXTURES) {
     {
       ...region,
       ...(id === 'tirol' ? { active: withEvents } : {}),
-      slug: id,
       contactEmail: '',
       seo: { title: '', description: '' },
       timezone: 'Europe/Vienna',

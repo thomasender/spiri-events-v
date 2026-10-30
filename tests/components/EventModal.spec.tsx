@@ -179,7 +179,7 @@ describe('EventModal', () => {
 });
 
 describe('EventModal location', () => {
-  it('shows the district badge and the Ort (Bezirk for Vorarlberg, Landkreis for Germany)', () => {
+  it('shows the district badge and the Ort (Bezirk for Vorarlberg, Landesteil for Liechtenstein)', () => {
     const { unmount } = render(
       <EventModal
         event={{ ...mockEvent, city: 'Altach', bezirk: 'Feldkirch' }}
@@ -193,12 +193,12 @@ describe('EventModal location', () => {
     unmount();
     render(
       <EventModal
-        event={{ ...mockEvent, regionId: 'bayern', city: 'Garching', bezirk: 'München' }}
+        event={{ ...mockEvent, regionId: 'liechtenstein', city: 'Vaduz', bezirk: 'Oberland' }}
         onClose={() => {}}
       />
     );
-    expect(screen.getByTestId('district-badge')).toHaveTextContent('Landkreis: München');
-    expect(screen.getByText('Ort').parentElement).toHaveTextContent('Garching Landkreis: München');
+    expect(screen.getByTestId('district-badge')).toHaveTextContent('Landesteil: Oberland');
+    expect(screen.getByText('Ort').parentElement).toHaveTextContent('Vaduz Landesteil: Oberland');
   });
 
   it('falls back to the district for events without a city', () => {

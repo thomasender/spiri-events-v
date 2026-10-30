@@ -47,10 +47,29 @@ describe('placeIndex.json', () => {
     expect(outside).toEqual([]);
   });
 
-  it('covers all 51 Bundesländer / Kantone and the vast majority of districts', () => {
-    expect(raw.states).toHaveLength(51);
-    expect(raw.districts.length).toBeGreaterThan(DISTRICT_CATALOG.length * 0.95);
-    expect(raw.places.length).toBeGreaterThan(25000);
+  it('covers all 29 regions and every district of the register (AT, CH, LI; no Germany)', () => {
+    expect(raw.states).toHaveLength(29);
+    expect(raw.districts).toHaveLength(DISTRICT_CATALOG.length);
+    expect(raw.places.length).toBeGreaterThan(18000);
+    expect(raw.districts.some(([key]) => String(key).startsWith('DE|'))).toBe(false);
+  });
+
+  it('Liechtenstein: its Gemeinden lie in Oberland / Unterland', () => {
+    const district = (name: string) =>
+      index.places.find((p) => p.name === name && p.country === 'LI')?.districtKey;
+    expect(district('Vaduz')).toBe('LI|Oberland');
+    expect(district('Balzers')).toBe('LI|Oberland');
+    expect(district('Ruggell')).toBe('LI|Unterland');
+    expect(district('Eschen')).toBe('LI|Unterland');
+  });
+
+  it('Vorarlberg places keep their Bezirk', () => {
+    const district = (name: string) =>
+      index.places.find((p) => p.name === name && p.stateSlug === 'vorarlberg')?.districtKey;
+    expect(district('Bregenz')).toBe('AT|Bregenz');
+    expect(district('Dornbirn')).toBe('AT|Dornbirn');
+    expect(district('Feldkirch')).toBe('AT|Feldkirch');
+    expect(district('Bludenz')).toBe('AT|Bludenz');
   });
 
   it('keeps the attribution', () => {
@@ -91,11 +110,19 @@ describe('searchPlaces', () => {
     expect(first.lat).toBeLessThan(47.7);
   });
 
-  it('finds a cultural region once a Landkreis is assigned to it', () => {
-    const merged = withDistricts(STATIC_REGIONS, { schwarzwald: ['Calw', 'Freudenstadt'] });
-    const entries = buildRegionEntries(index, merged);
-    const hit = searchPlaces(index, entries, 'schwarzwald')[0];
-    expect(hit).toMatchObject({ kind: 'region', regionId: 'schwarzwald' });
+  it('finds the new regions of the register by name', () => {
+    expect(searchPlaces(index, regionEntries, 'innerschweiz')[0]).toMatchObject({
+      kind: 'region',
+      regionId: 'innerschweiz',
+    });
+    expect(searchPlaces(index, regionEntries, 'liechtenstein')[0]).toMatchObject({
+      kind: 'region',
+      regionId: 'liechtenstein',
+    });
+    // A region with other districts (test helper) centres on those.
+    const merged = withDistricts(STATIC_REGIONS, { basel: ['Basel-Stadt'] });
+    const basel = buildRegionEntries(index, merged).find((e) => e.regionId === 'basel')!;
+    expect(haversineKm(basel.lat, basel.lon, 47.56, 7.59)).toBeLessThan(5);
   });
 
   it('ranks exact before prefix before contains, limits the list, ignores one letter', () => {
@@ -116,7 +143,7 @@ describe('nearestPlace', () => {
 
   it('prefers the town over a suburb next to it (Innsbruck, not Pradl)', () => {
     expect(nearestPlace(index, 47.2692, 11.4041)?.name).toBe('Innsbruck');
-    expect(nearestPlace(index, 48.1374, 11.5755)?.name).toBe('München');
+    expect(nearestPlace(index, 47.3769, 8.5417)?.name).toBe('Zürich');
   });
 
   it('returns null far away from every place or for bad input', () => {
@@ -147,18 +174,20 @@ describe('eventPosition', () => {
     expect(state.lat).toBeLessThan(47.7);
   });
 
-  it('finds a place outside the region for "Grenznahe" (Lindau)', () => {
+  it('finds a place outside the region for "Grenznahe" (Vaduz)', () => {
+    const pos = at({ city: 'Vaduz', bezirk: 'Grenznahe', regionId: 'vorarlberg' })!;
+    expect(haversineKm(pos.lat, pos.lng, 47.141, 9.521)).toBeLessThan(5);
+  });
+
+  it('a German Ort of an old "Grenznahe" event is no longer in the list: Vorarlberg centre', () => {
     const pos = at({ city: 'Lindau', bezirk: 'Grenznahe', regionId: 'vorarlberg' })!;
-    expect(haversineKm(pos.lat, pos.lng, 47.55, 9.69)).toBeLessThan(10);
+    const centre = at({ city: '', bezirk: '', regionId: 'vorarlberg' })!;
+    expect(pos).toEqual(centre);
   });
 
   it('places an event saved in the region of its Ort (inactive region, picked on Vorarlberg)', () => {
-    const pos = at({
-      city: 'Lindau (Bodensee)',
-      bezirk: 'Lindau (Bodensee)',
-      regionId: 'bayern',
-    })!;
-    expect(haversineKm(pos.lat, pos.lng, 47.55, 9.69)).toBeLessThan(10);
+    const pos = at({ city: 'Vaduz', bezirk: 'Oberland', regionId: 'liechtenstein' })!;
+    expect(haversineKm(pos.lat, pos.lng, 47.141, 9.521)).toBeLessThan(5);
   });
 
   it('has no position for online events or without an index', () => {
@@ -171,8 +200,8 @@ describe('filterEventsByRadius', () => {
   const bregenz = { lat: 47.503, lon: 9.747 };
   const events = [
     { id: 'near', lat: 47.51, lng: 9.75, regionId: 'vorarlberg' },
-    { id: 'lindau', lat: 47.55, lng: 9.69, regionId: 'bayern' },
-    { id: 'munich', lat: 48.137, lng: 11.575, regionId: 'bayern' },
+    { id: 'stmargrethen', lat: 47.452, lng: 9.637, regionId: 'st-gallen' },
+    { id: 'zurich', lat: 47.377, lng: 8.542, regionId: 'zuerich' },
     { id: 'online', isOnline: true, regionId: 'tirol' },
     { id: 'noPosHome', regionId: 'vorarlberg' },
     { id: 'noPosAway', regionId: 'tirol' },
@@ -182,14 +211,14 @@ describe('filterEventsByRadius', () => {
     const ids = filterEventsByRadius(events, { ...bregenz, km: 25, regionId: 'vorarlberg' }).map(
       (e) => e.id
     );
-    expect(ids).toEqual(['near', 'lindau', 'online', 'noPosHome']);
+    expect(ids).toEqual(['near', 'stmargrethen', 'online', 'noPosHome']);
   });
 
   it('a bigger radius reaches farther; events without position stay in their own region only', () => {
     const ids = filterEventsByRadius(events, { ...bregenz, km: 200, regionId: 'vorarlberg' }).map(
       (e) => e.id
     );
-    expect(ids).toContain('munich');
+    expect(ids).toContain('zurich');
     expect(ids).not.toContain('noPosAway');
   });
 

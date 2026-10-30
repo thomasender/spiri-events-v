@@ -226,7 +226,7 @@ describe('useAllEvents({ regionScoped }) — marker complete', () => {
     expect(store.queries.map((q) => q.constraints)).toEqual([
       [
         ['status', '==', 'approved'],
-        ['regionId', 'in', ['vorarlberg', 'tirol']],
+        ['regionId', 'in', ['tirol', 'vorarlberg']],
       ],
     ]);
     expect(ids(result.current.events)).toEqual(['online-tirol', 'tirol', 'vbg']);
@@ -315,7 +315,7 @@ describe('useDirectory({ regionScoped })', () => {
       ],
       [
         ['listedInDirectory', '==', true],
-        ['directoryRegionIds', 'array-contains-any', ['vorarlberg', 'tirol']],
+        ['directoryRegionIds', 'array-contains-any', ['tirol', 'vorarlberg']],
       ],
     ]);
   });

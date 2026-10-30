@@ -44,10 +44,13 @@ describe('formatCityWithBezirk', () => {
     expect(getEventLocationLabel({ city: 'Ruggell', bezirk: '' })).toBe('Ruggell');
   });
 
-  it('uses "Lkr." for a Landkreis', () => {
+  it('uses "Lkr." for a Landkreis and the full label for a Landesteil', () => {
+    expect(formatCityWithBezirk('Lindau', 'Lindau (Bodensee)', 'Landkreis')).toBe(
+      'Lindau (Lkr. Lindau (Bodensee))'
+    );
     expect(
-      getEventLocationLabel({ city: 'Lindau', bezirk: 'Lindau (Bodensee)', regionId: 'bayern' })
-    ).toBe('Lindau (Lkr. Lindau (Bodensee))');
+      getEventLocationLabel({ city: 'Vaduz', bezirk: 'Oberland', regionId: 'liechtenstein' })
+    ).toBe('Vaduz (Landesteil Oberland)');
   });
 
   it('falls back to the Bezirk for older events without a city', () => {

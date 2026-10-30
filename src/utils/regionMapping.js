@@ -10,13 +10,12 @@ export const FIXED_DISTRICTS = Object.freeze(Object.values(LEGACY_BEZIRKE).flat(
 
 /**
  * The immutable backend structure: [{ key, country, stateSlug, stateName, name }]
- * in register order (state by state). `key` = "<country>|<name>"; names are
+ * in register order (region by region; `stateSlug` is the region that lists the district). `key` = "<country>|<name>"; names are
  * unique within a country (guarded by tests).
  */
 export function districtCatalog(base = STATIC_REGIONS) {
   const out = [];
   for (const state of base) {
-    if (!state.home) continue;
     for (const name of state.bezirke) {
       if (FIXED_DISTRICTS.includes(name)) continue;
       out.push({

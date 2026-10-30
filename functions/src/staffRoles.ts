@@ -40,7 +40,7 @@ export function parseStaffRole(doc: unknown): StaffRole | null {
 
 /**
  * Validates the region list for a moderator: only ids from REGION_IDS (the
- * nine Bundeslaender plus the Allgäu), no duplicates. `[]` is allowed
+ * regions of the CSV register), no duplicates. `[]` is allowed
  * (= revoke). Returns the ids in the canonical REGION_IDS order so equal sets
  * compare equal.
  */

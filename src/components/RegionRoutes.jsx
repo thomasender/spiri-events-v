@@ -20,7 +20,7 @@ function ComingSoonOrWait({ region, view = null }) {
   return <RegionComingSoonPage region={region} view={view} canPreview={canPreview} />;
 }
 
-// An unavailable combined view with a fallback (`/deutschland` with one German
+// An unavailable combined view with a fallback (`/schweiz` with one Swiss
 // region) replaces itself by that region's page. Waits for the region config
 // first: the static register only knows Vorarlberg as active.
 function RedirectOrWait({ redirect, path }) {

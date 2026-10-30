@@ -93,11 +93,12 @@ describe('getRegionPagePlan / generateSitemap', () => {
     const { getRegionPagePlan } = await importPrerender();
     const { mergeRegions } = await import('../../src/utils/regions.js');
     const plan = getRegionPagePlan(mergeRegions(TIROL_ACTIVE));
+    // Register order (CSV): Tirol before Vorarlberg.
     expect(plan.map((p: { path: string }) => p.path)).toEqual([
-      '/vorarlberg',
-      '/vorarlberg/verzeichnis',
       '/tirol',
       '/tirol/verzeichnis',
+      '/vorarlberg',
+      '/vorarlberg/verzeichnis',
     ]);
   });
 

@@ -36,6 +36,7 @@ import {
   resolveOwnerRegionContact,
 } from './adminEventRouting';
 import { REGION_MODERATOR_ROLE } from './staffRoles';
+import { isRegionId, regionNameOf } from './regions';
 import {
   buildEmailPayload,
   NotificationType,
@@ -323,17 +324,21 @@ async function loadModeratorDocs(): Promise<StaffDocEntry[]> {
   return snap.docs.map((doc) => ({ uid: doc.id, data: doc.data() }));
 }
 
+// Only regions of the register count (a leftover doc of a former region never makes the mails
+// "multi-region"); the name comes from the register, not from the doc.
 async function loadRegionInfos(): Promise<RegionInfo[]> {
   const snap = await getFirestore().collection('regions').get();
-  return snap.docs.map((doc) => {
-    const data = doc.data();
-    return {
-      id: doc.id,
-      name: typeof data.name === 'string' ? data.name : null,
-      active: data.active === true,
-      contactEmail: typeof data.contactEmail === 'string' ? data.contactEmail : null,
-    };
-  });
+  return snap.docs
+    .filter((doc) => isRegionId(doc.id))
+    .map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        name: regionNameOf(doc.id),
+        active: data.active === true,
+        contactEmail: typeof data.contactEmail === 'string' ? data.contactEmail : null,
+      };
+    });
 }
 
 /**

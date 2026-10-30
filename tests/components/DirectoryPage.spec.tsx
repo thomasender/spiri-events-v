@@ -211,7 +211,7 @@ describe('DirectoryPage — regions (ticket 14)', () => {
   beforeEach(() => {
     mocks.directory.entries = [
       e('anna', { displayName: 'Anna', regions: ['Dornbirn'] }), // no regionIds = Vorarlberg
-      e('berta', { displayName: 'Berta', regions: ['Graz'], regionIds: ['steiermark'] }),
+      e('berta', { displayName: 'Berta', regions: ['Graz (Stadt)'], regionIds: ['steiermark'] }),
       e('clara', {
         displayName: 'Clara',
         regions: ['Online'],
@@ -224,7 +224,7 @@ describe('DirectoryPage — regions (ticket 14)', () => {
   it("lists only profiles of the region, with that region's Bezirke as chips", () => {
     renderIn('steiermark');
     expect(names()).toEqual(['Berta', 'Clara']);
-    expect(screen.getByTestId('directory-region-Graz')).toBeInTheDocument();
+    expect(screen.getByTestId('directory-region-Graz (Stadt)')).toBeInTheDocument();
     expect(screen.queryByTestId('directory-region-Dornbirn')).not.toBeInTheDocument();
     expect(screen.getByText('Bezirk')).toBeInTheDocument();
   });
@@ -233,7 +233,7 @@ describe('DirectoryPage — regions (ticket 14)', () => {
     renderIn('vorarlberg');
     expect(names()).toEqual(['Anna', 'Clara']);
     expect(screen.getByTestId('directory-region-Dornbirn')).toBeInTheDocument();
-    expect(screen.queryByTestId('directory-region-Graz')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('directory-region-Graz (Stadt)')).not.toBeInTheDocument();
   });
 
   it('combined view shows profiles of all active regions, not of inactive ones', () => {

@@ -18,7 +18,7 @@ const mocks = vi.hoisted(() => ({
     states: [
       ['vorarlberg', 47.25, 9.9],
       ['tirol', 47.25, 11.4],
-      ['bayern', 48.9, 11.4],
+      ['innerschweiz', 47.05, 8.4],
       ['zuerich', 47.4, 8.6],
     ],
     districts: [
@@ -29,7 +29,7 @@ const mocks = vi.hoisted(() => ({
       ['Bregenz', 47.503, 9.747, 0, 0],
       ['Dornbirn', 47.413, 9.744, 0, -1],
       ['Innsbruck', 47.269, 11.404, 1, 1],
-      ['München', 48.137, 11.575, 2, -1],
+      ['Luzern', 47.05, 8.31, 2, -1],
       ['Zürich', 47.377, 8.54, 3, -1],
     ],
   },
@@ -53,12 +53,12 @@ import { useRegionTexts } from '../../src/hooks/useRegionTexts';
 import { useRegion } from '../../src/hooks/useRegion';
 
 const TWO_ACTIVE = mergeRegions([{ id: 'tirol', active: true }]);
-// Vorarlberg (AT) + Bayern (DE): "Alle Tribes" is available, the country views are not.
-const AT_AND_DE = mergeRegions([{ id: 'bayern', active: true }]);
-// Vorarlberg + Tirol (AT) + Bayern (DE): "Ganz Österreich" and "Alle Tribes".
+// Vorarlberg (AT) + Zürich (CH): "Alle Tribes" is available, the country views are not.
+const AT_AND_CH = mergeRegions([{ id: 'zuerich', active: true }]);
+// Vorarlberg + Tirol (AT) + Zürich (CH): "Ganz Österreich" and "Alle Tribes".
 const THREE_ACTIVE = mergeRegions([
   { id: 'tirol', active: true },
-  { id: 'bayern', active: true },
+  { id: 'zuerich', active: true },
 ]);
 
 function Where() {
@@ -251,9 +251,9 @@ describe('RegionSwitcher with two active regions', () => {
   it('a place of a region that is not open yet leads to its coming-soon address', async () => {
     renderAt('/');
     const dialog = openPicker();
-    await searchAndPick(dialog, 'münchen', 'München');
+    await searchAndPick(dialog, 'luzern', 'Luzern');
     apply(dialog);
-    expect(where()).toBe('/bayern');
+    expect(where()).toBe('/innerschweiz');
   });
 
   it('finds a region by its name too, and uses it as the place', async () => {
@@ -350,11 +350,11 @@ describe('RegionMenuList (burger menu on the phone)', () => {
 
   describe('on a coming-soon page', () => {
     const koeln = {
-      label: 'Köln',
-      lat: 50.94,
-      lon: 6.96,
+      label: 'Vaduz',
+      lat: 47.141,
+      lon: 9.521,
       radiusKm: 25,
-      regionId: 'koeln-bonn-eifel',
+      regionId: 'liechtenstein',
       source: 'search',
       updatedAt: 1,
     };
@@ -372,18 +372,18 @@ describe('RegionMenuList (burger menu on the phone)', () => {
 
     it('names the searched place of that region', () => {
       window.localStorage.setItem(PLACE_SELECTION_KEY, JSON.stringify(koeln));
-      renderListAt('/koeln-bonn-eifel');
-      expect(screen.getByRole('button', { name: 'Ort: Köln · 25 km' })).toBeInTheDocument();
+      renderListAt('/liechtenstein');
+      expect(screen.getByRole('button', { name: 'Ort: Vaduz · 25 km' })).toBeInTheDocument();
     });
 
     it('keeps the old text when the place belongs to another region', () => {
       window.localStorage.setItem(PLACE_SELECTION_KEY, JSON.stringify(koeln));
-      renderListAt('/bayern');
+      renderListAt('/innerschweiz');
       expect(screen.getByRole('button', { name: /Ort: Vorarlberg/ })).toBeInTheDocument();
     });
 
     it('keeps the old text without a remembered place', () => {
-      renderListAt('/koeln-bonn-eifel');
+      renderListAt('/liechtenstein');
       expect(screen.getByRole('button', { name: /Ort: Vorarlberg/ })).toBeInTheDocument();
     });
   });
@@ -489,7 +489,7 @@ describe('combined views in switcher and chooser (ticket 33)', () => {
 
   it('an unavailable combined view address does not become the current view', () => {
     mocks.regions = { regions: TWO_ACTIVE, loading: false };
-    renderAt('/deutschland');
+    renderAt('/schweiz');
     expect(screen.getByRole('button', { name: /aktuell Vorarlberg/ })).toBeInTheDocument();
   });
 
@@ -506,7 +506,7 @@ describe('combined views in switcher and chooser (ticket 33)', () => {
 
   it('opening a combined view address counts as a choice', () => {
     window.localStorage.clear();
-    mocks.regions = { regions: AT_AND_DE, loading: false };
+    mocks.regions = { regions: AT_AND_CH, loading: false };
     renderAt('/alle-tribes');
     expect(window.localStorage.getItem(REGION_CHOOSER_SEEN_KEY)).toBe('1');
   });

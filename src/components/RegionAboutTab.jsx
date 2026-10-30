@@ -7,7 +7,7 @@ import { useAuth } from '../hooks/useAuth';
 import { refreshRegions, useRegions } from '../hooks/useRegions';
 import { getStaffAccess } from '../utils/staffRoles';
 import { normalizeInstagramHandle } from '../utils/instagramHandle';
-import { regionInstagramAccount } from '../utils/regions';
+import { DEFAULT_REGION_ID, regionInstagramAccount } from '../utils/regions';
 import {
   ABOUT_TEXT_MAX_LENGTH,
   customAboutText,
@@ -65,7 +65,11 @@ export default function RegionAboutTab() {
   );
 
   const [regionId, setRegionId] = useState('');
-  const current = options.find((r) => r.id === regionId) ?? options[0] ?? null;
+  const current =
+    options.find((r) => r.id === regionId) ??
+    options.find((r) => r.id === DEFAULT_REGION_ID) ??
+    options[0] ??
+    null;
   const [aboutText, setAboutText] = useState('');
   const [headerImage, setHeaderImage] = useState('');
   const [slogan1, setSlogan1] = useState('');

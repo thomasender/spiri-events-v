@@ -57,8 +57,9 @@ describe('generated region data (scripts/build-region-data.mjs)', () => {
     expect(FN_LEGACY_BEZIRKE).toEqual(SRC_LEGACY_BEZIRKE);
   });
 
-  it('the old Allgäu pilot id is read as Bavaria in both copies', () => {
-    expect(resolveRegionId({ regionId: 'allgaeu' })).toBe('bayern');
+  it('former region ids are kept as stored (no alias any more)', () => {
+    expect(resolveRegionId({ regionId: 'allgaeu' })).toBe('allgaeu');
+    expect(resolveRegionId({ regionId: 'bayern' })).toBe('bayern');
   });
 });
 

@@ -30,7 +30,8 @@ afterAll(async () => {
   await env?.cleanup();
 });
 
-// A seeded region doc as scripts/seed-regions.mjs writes it (legacy keys included).
+// A region doc seeded before the CSV register (legacy keys name / slug / bezirke included):
+// it must stay editable until scripts/cleanup-region-docs.mjs removes them.
 const tirolDoc = {
   name: 'Tirol',
   slug: 'tirol',
@@ -91,6 +92,22 @@ describe('regions/{id} writes', () => {
     const db = env.authenticatedContext('admin').firestore();
     await assertSucceeds(updateDoc(doc(db, 'regions/tirol'), { active: true }));
     await assertSucceeds(updateDoc(doc(db, 'regions/tirol'), { contactEmail: 'a@b.at' }));
+  });
+
+  it('a cleaned doc without name / slug / bezirke stays editable', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'regions/tirol'), {
+        order: 1,
+        active: false,
+        contactEmail: '',
+        seo: { title: '', description: '' },
+        timezone: 'Europe/Vienna',
+      });
+    });
+    const db = env.authenticatedContext('admin').firestore();
+    await assertSucceeds(updateDoc(doc(db, 'regions/tirol'), { active: true }));
+    const mod = env.authenticatedContext('mod').firestore();
+    await assertSucceeds(updateDoc(doc(mod, 'regions/tirol'), { aboutText: '<p>Hallo</p>' }));
   });
 
   it('nobody writes name, slug, districts or the old mapping marker from the client', async () => {

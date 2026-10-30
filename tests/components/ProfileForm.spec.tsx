@@ -795,7 +795,7 @@ describe('ProfileForm directory with several active regions', () => {
   const allRegions = mergeRegions([
     ...STATIC_REGIONS.map((r) => ({
       id: r.id,
-      active: ['vorarlberg', 'tirol', 'bayern'].includes(r.id),
+      active: ['vorarlberg', 'tirol', 'zuerich'].includes(r.id),
     })),
     { id: 'tirol', active: true, bezirke: ['Innsbruck', 'Kufstein'] },
   ]);
@@ -842,31 +842,33 @@ describe('ProfileForm directory with several active regions', () => {
       'aria-pressed',
       'true'
     );
-    expect(screen.getByTestId('profile-directory-region-Innsbruck')).toBeInTheDocument();
+    expect(screen.getByTestId('profile-directory-region-Innsbruck (Stadt)')).toBeInTheDocument();
     expect(screen.queryByTestId('profile-directory-region-Dornbirn')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByTestId('profile-directory-region-id-bayern'));
-    expect(screen.getByTestId('profile-directory-region-Oberallgäu')).toBeInTheDocument();
-    expect(screen.getByText(/Landkreise in Bayern/)).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('profile-directory-region-id-zuerich'));
+    expect(screen.getByTestId('profile-directory-region-Winterthur')).toBeInTheDocument();
+    expect(screen.getByText(/Bezirke in Zürich/)).toBeInTheDocument();
   });
 
   it('drops districts of a region that is deselected and saves regionIds + districts', async () => {
     const onSave = renderMulti(profile);
     fireEvent.click(screen.getByTestId('profile-directory-toggle'));
     fireEvent.click(screen.getByTestId('profile-directory-category-Yoga'));
-    fireEvent.click(screen.getByTestId('profile-directory-region-id-bayern'));
-    fireEvent.click(screen.getByTestId('profile-directory-region-Innsbruck'));
-    fireEvent.click(screen.getByTestId('profile-directory-region-Oberallgäu'));
+    fireEvent.click(screen.getByTestId('profile-directory-region-id-zuerich'));
+    fireEvent.click(screen.getByTestId('profile-directory-region-Innsbruck (Stadt)'));
+    fireEvent.click(screen.getByTestId('profile-directory-region-Winterthur'));
     fireEvent.click(screen.getByTestId('profile-directory-region-id-tirol'));
 
-    expect(screen.queryByTestId('profile-directory-region-Innsbruck')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('profile-directory-region-Innsbruck (Stadt)')
+    ).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('profile-save'));
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     expect(onSave.mock.calls[0][0]).toMatchObject({
       listedInDirectory: true,
-      directoryRegionIds: ['bayern'],
-      directoryRegions: ['Oberallgäu'],
+      directoryRegionIds: ['zuerich'],
+      directoryRegions: ['Winterthur'],
     });
   });
 
@@ -874,7 +876,7 @@ describe('ProfileForm directory with several active regions', () => {
     const four = mergeRegions(
       STATIC_REGIONS.map((r) => ({
         id: r.id,
-        active: ['vorarlberg', 'tirol', 'bayern', 'salzburg'].includes(r.id),
+        active: ['vorarlberg', 'tirol', 'zuerich', 'salzburg'].includes(r.id),
       }))
     );
     render(
@@ -887,7 +889,7 @@ describe('ProfileForm directory with several active regions', () => {
               ...profile,
               listedInDirectory: true,
               directoryCategories: ['Yoga'],
-              directoryRegionIds: ['vorarlberg', 'tirol', 'bayern'],
+              directoryRegionIds: ['vorarlberg', 'tirol', 'zuerich'],
             }}
             uid="user-123"
             onSave={vi.fn()}

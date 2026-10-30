@@ -125,8 +125,10 @@ export function findGemeinde(text) {
   return BY_NAME.get(norm(text)) || null;
 }
 
+const SUBDIVISION_ABBREVIATIONS = { Bezirk: 'Bez.', Landkreis: 'Lkr.' };
+
 /**
- * "Altach (Bez. Feldkirch)"; "Lindau (Lkr. Lindau)" in Germany; old events with the
+ * "Altach (Bez. Feldkirch)"; "Vaduz (Landesteil Oberland)" in Liechtenstein; old events with the
  * legacy "Grenznahe" "Ruggell (Umgebung)"; a place without Bezirk just its name; just the
  * Bezirk for events without a city.
  * A city that is its own district (kreisfreie Stadt) is not repeated.
@@ -136,7 +138,8 @@ export function formatCityWithBezirk(city, bezirk, subdivisionLabel = 'Bezirk') 
   if (!name) return bezirkLabel(bezirk) || '';
   if (!bezirk || norm(name) === norm(bezirk)) return name;
   if (bezirk === LEGACY_OUTSIDE_BEZIRK) return `${name} (${bezirkLabel(bezirk)})`;
-  return `${name} (${subdivisionLabel === 'Landkreis' ? 'Lkr.' : 'Bez.'} ${bezirk})`;
+  const prefix = SUBDIVISION_ABBREVIATIONS[subdivisionLabel] ?? subdivisionLabel;
+  return `${name} (${prefix} ${bezirk})`;
 }
 
 /**
