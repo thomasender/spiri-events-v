@@ -3,6 +3,8 @@ import {
   monthKeyToDate,
   dateToMonthKey,
   getRollingRange,
+  hasDistrictFilter,
+  ortFilterLabel,
   countActiveFilters,
 } from '../../src/utils/calendarFilterState';
 
@@ -133,5 +135,22 @@ describe('countActiveFilters', () => {
         c.favoritesFilterActive;
       expect(countActiveFilters(c) > 0).toBe(hasActiveFilter);
     }
+  });
+});
+
+describe('hasDistrictFilter', () => {
+  it('is true once a Bezirk / Landkreis is picked, not for "Online" alone', () => {
+    expect(hasDistrictFilter([], 'Online')).toBe(false);
+    expect(hasDistrictFilter(['Online'], 'Online')).toBe(false);
+    expect(hasDistrictFilter(['Online', 'Dornbirn'], 'Online')).toBe(true);
+  });
+});
+
+describe('ortFilterLabel', () => {
+  it('uses the region wording and mixes only when regions disagree', () => {
+    expect(ortFilterLabel([])).toBe('Bezirk');
+    expect(ortFilterLabel(['Bezirk'])).toBe('Bezirk');
+    expect(ortFilterLabel(['Landkreis', 'Landkreis'])).toBe('Landkreis');
+    expect(ortFilterLabel(['Bezirk', 'Landkreis'])).toBe('Bezirk / Landkreis');
   });
 });

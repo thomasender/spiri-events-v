@@ -45,3 +45,18 @@ export function countActiveFilters({
     (favoritesFilterActive ? 1 : 0)
   );
 }
+
+// True when a Bezirk / Landkreis (not just "Online") is picked in the Ort filter. Then the
+// "Wo bist du?" radius no longer applies: the calendar shows every event of the picked
+// districts (Trello RAjDENly). "Online" alone keeps the radius (online events pass it anyway).
+export function hasDistrictFilter(selectedOrte = [], onlineLocation = 'Online') {
+  return selectedOrte.some((ort) => ort !== onlineLocation);
+}
+
+// Heading of the Ort filter: "Bezirk" or "Landkreis" as the region calls it. A combined view
+// whose regions disagree gets "Bezirk / Landkreis".
+export function ortFilterLabel(labels = []) {
+  const unique = [...new Set(labels.filter(Boolean))];
+  if (unique.length === 0) return 'Bezirk';
+  return unique.length === 1 ? unique[0] : 'Bezirk / Landkreis';
+}

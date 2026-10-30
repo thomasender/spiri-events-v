@@ -79,15 +79,17 @@ export function useRegionCanonicalPath(path = '/') {
  * combined view all events of active regions. Events of inactive regions never
  * pass. `{ allActive: true }` skips the region restriction (favourites) but
  * keeps the inactive-region rule. Online events with `onlineRegionIds` show
- * only in those regions (src/utils/onlineEventEligibility.js).
+ * only in those regions (src/utils/onlineEventEligibility.js). `{ ignoreRadius: true }` drops
+ * the "Wo bist du?" radius and shows the whole current region (a Bezirk / Landkreis picked in
+ * the calendar filter overrides the radius, Trello RAjDENly).
  */
-export function useRegionEvents(events, { allActive = false } = {}) {
+export function useRegionEvents(events, { allActive = false, ignoreRadius = false } = {}) {
   const { regionId, regions, combinedRegions, isNational, radiusFilter } = useRegion();
   // Combined view: the regions it covers; favourites (`allActive`): every active region.
   const scope = isNational && !allActive ? combinedRegions : regions;
   const activeKey = scope.map((r) => r.id).join(',');
   // "Wo bist du?": everything within the chosen radius, whatever region it lies in.
-  const radius = allActive ? null : radiusFilter;
+  const radius = allActive || ignoreRadius ? null : radiusFilter;
   const { lat, lon, km } = radius ?? {};
   return useMemo(() => {
     const activeIds = activeKey ? activeKey.split(',') : [];

@@ -126,6 +126,15 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
     events without a position only if they belong to the current region (so an unmigrated
     event behaves like before). Favourites ignore the radius. The directory is still filtered
     by region (profiles have no position).
+  - **Bezirk / Landkreis filter vs. radius (Trello RAjDENly).** While the radius decides the
+    list, the event count shows "(Ort + 25 km)" (`placeHint`, with "n Filter gesetzt" after a
+    comma); a click opens "Mehr Filter" at the Bezirk / Landkreis filter. Picking a district
+    (anything but "Online", `hasDistrictFilter`) lifts the radius: the calendar shows every event
+    of the current region in the picked districts (`useRegionEvents(..., { ignoreRadius: true })`),
+    and the district chips always count the whole region. The quick action "Alle" carries the
+    region's name ("Allgäu") and selects all districts; "Keine" returns to place + radius. The
+    filter heading is the region's `subdivisionLabel` ("Landkreis" in Germany). One active region
+    or a combined view: "Alle" and no place hint as before.
   - **The Ort decides Bezirk / Landkreis AND region (Trello dx8dCQJc).** Whatever region the
     person is in, the place of an event gives its district and the region holding it (current
     assignment): pure helpers in `src/utils/placeDistrict.js` (`assignmentForEntry` for a picked
