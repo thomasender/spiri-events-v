@@ -105,5 +105,5 @@ export function getEventCityName(event) {
 // clear which kind of district is meant. Empty for online events and the "Umgebung" catch-all.
 export function getEventDistrictPrefix(event) {
   if (!event || event.isOnline || !event.bezirk || event.bezirk === 'Grenznahe') return '';
-  return getSubdivisionLabel(resolveRegionId(event)) === 'Landkreis' ? 'Landkreis' : 'Bezirk';
+  return getSubdivisionLabel(resolveRegionId(event));
 }

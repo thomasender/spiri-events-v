@@ -58,7 +58,7 @@ export default function PlacePicker({ onApply, applyLabel = 'Übernehmen' }) {
     let regionId = regionIdForEntry(place, allRegions);
     try {
       const shapes = await loadGeoShapes();
-      const hit = regionForPosition(lat, lon, shapes.districts, allRegions, shapes.admin);
+      const hit = regionForPosition(lat, lon, allRegions, shapes.admin);
       if (hit?.region) regionId = hit.region.id;
     } catch {
       // the place's own region stays

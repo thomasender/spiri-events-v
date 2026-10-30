@@ -104,8 +104,9 @@ describe('evaluateRegionActivation / regionActivationStatuses', () => {
       many(15, { regionId: 'tirol' }),
       TODAY
     );
-    expect(statuses.map((s) => s.regionId)[0]).toBe('vorarlberg');
-    expect(statuses).toHaveLength(111);
+    expect(statuses.map((s) => s.regionId)[0]).toBe('burgenland');
+    expect(statuses.map((s) => s.regionId)).toContain('vorarlberg');
+    expect(statuses).toHaveLength(29);
     expect(statuses.find((s) => s.regionId === 'tirol')?.unmet).toEqual([]);
   });
 });
@@ -378,61 +379,33 @@ describe('listRegionActivationHandler', () => {
   });
 });
 
-describe('setRegionActiveHandler: regions without districts', () => {
-  it('refuses to activate a cultural region that has no Landkreise yet', async () => {
+describe('setRegionActiveHandler: former regions and districts in the doc', () => {
+  it('refuses a former region (no longer in the register), even with a doc', async () => {
     const w = makeWorld({
       roles: { admin: ADMIN },
-      regions: { vorarlberg: { active: true }, franken: { active: false } },
+      regions: { vorarlberg: { active: true }, bayern: { active: false } },
     });
     await expect(
       setRegionActiveHandler(
-        call('admin', { regionId: 'franken', active: true, override: true }),
+        call('admin', { regionId: 'bayern', active: true, override: true }),
         w.deps
       )
-    ).rejects.toMatchObject({
-      code: 'failed-precondition',
-      details: { reason: 'no-districts' },
-    });
-    expect(w.regionDocs.get('franken')?.active).toBe(false);
+    ).rejects.toMatchObject({ code: 'invalid-argument' });
+    expect(w.regionDocs.get('bayern')?.active).toBe(false);
   });
 
-  it('activates it once the mapping tool gave it districts, even with an override', async () => {
+  it('ignores districts or the old mapping marker in the region doc (register in code only)', async () => {
     const w = makeWorld({
       roles: { admin: ADMIN },
       regions: {
         vorarlberg: { active: true },
-        franken: { active: false, bezirke: ['Roth'], mappingUpdatedAt: 1 },
-      },
-    });
-    const result = await setRegionActiveHandler(
-      call('admin', { regionId: 'franken', active: true, override: true }),
-      w.deps
-    );
-    expect(result).toMatchObject({ changed: true });
-  });
-
-  it('treats an emptied Bundesland (mapping tool wrote []) as empty, a legacy [] as the register list', async () => {
-    const emptied = makeWorld({
-      roles: { admin: ADMIN },
-      regions: {
-        vorarlberg: { active: true },
-        bayern: { active: false, bezirke: [], mappingUpdatedAt: 1 },
+        tirol: { active: false, bezirke: [], mappingUpdatedAt: 1 },
       },
     });
     await expect(
       setRegionActiveHandler(
-        call('admin', { regionId: 'bayern', active: true, override: true }),
-        emptied.deps
-      )
-    ).rejects.toMatchObject({ details: { reason: 'no-districts' } });
-    const legacy = makeWorld({
-      roles: { admin: ADMIN },
-      regions: { vorarlberg: { active: true }, bayern: { active: false, bezirke: [] } },
-    });
-    await expect(
-      setRegionActiveHandler(
-        call('admin', { regionId: 'bayern', active: true, override: true }),
-        legacy.deps
+        call('admin', { regionId: 'tirol', active: true, override: true }),
+        w.deps
       )
     ).resolves.toMatchObject({ changed: true });
   });

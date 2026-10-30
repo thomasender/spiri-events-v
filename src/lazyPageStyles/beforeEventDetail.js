@@ -44,8 +44,6 @@ import '../components/EmailVerificationBanner.css';
 import '../components/EventStatusMismatchBanner.css';
 import '../components/ModerationTab.css';
 import '../components/RegionsTab.css';
-import '../components/RegionMappingTab.css';
-import '../components/CultureRegionPicker.css';
 import '../components/RegionAboutTab.css';
 import '../pages/AdminPage.css';
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { STATIC_REGIONS, mergeRegions } from '../../src/utils/regions';
+import { withDistricts } from '../helpers/withDistricts';
+import { STATIC_REGIONS } from '../../src/utils/regions';
 import {
   DEFAULT_RADIUS_KM,
   MAX_RADIUS_KM,
@@ -192,14 +193,12 @@ describe('regionIdForEntry', () => {
     expect(regionIdForEntry({ kind: 'region', regionId: 'tirol' }, STATIC_REGIONS)).toBe('tirol');
   });
 
-  it('a place goes to the region that holds its district, else to its Bundesland', () => {
-    const place = { kind: 'place', districtKey: 'DE|Calw', stateSlug: 'baden-wuerttemberg' };
-    expect(regionIdForEntry(place, STATIC_REGIONS)).toBe('baden-wuerttemberg');
-    const merged = mergeRegions([
-      { id: 'schwarzwald', bezirke: ['Calw'], mappingUpdatedAt: 1 },
-      { id: 'baden-wuerttemberg', bezirke: [], mappingUpdatedAt: 1 },
-    ]);
-    expect(regionIdForEntry(place, merged)).toBe('schwarzwald');
+  it('a place goes to the region that holds its district, else to its region', () => {
+    const place = { kind: 'place', districtKey: 'CH|Zug', stateSlug: 'innerschweiz' };
+    expect(regionIdForEntry(place, STATIC_REGIONS)).toBe('innerschweiz');
+    // A (test-only) other holder of the district wins.
+    const merged = withDistricts(STATIC_REGIONS, { zuerich: ['Zug'], innerschweiz: [] });
+    expect(regionIdForEntry(place, merged)).toBe('zuerich');
     expect(regionIdForEntry({ kind: 'place', stateSlug: 'tirol' }, STATIC_REGIONS)).toBe('tirol');
     expect(regionIdForEntry({ kind: 'place', stateSlug: 'narnia' }, STATIC_REGIONS)).toBeNull();
   });

@@ -14,7 +14,7 @@
 //   directory     "Verzeichnis – Angebote <inPhrase>"
 // The brand in region mode is "The Tribe"; the legal entity "tribe Vorarlberg"
 // (LEGACY_SITE_NAME) is never replaced. Combined views (COMBINED_VIEW_TEXTS):
-// "österreichischer" / "deutscher" / "Schweizer", "Für Österreich und Umkreis";
+// "österreichischer" / "Schweizer", "Für Österreich und Umkreis";
 // "Alle Tribes" has no place or adjective ("Dein Kalender",
 // "in allen Regionen", title "Kalender | The Tribe").
 //
@@ -53,16 +53,6 @@ const COMBINED_VIEW_TEXTS = {
     forPhrase: 'Österreich',
     comingSoon: 'Bald findest du hier die Events aus allen Bundesländern auf einen Blick.',
     comingSoonSubject: 'für ganz Österreich',
-  },
-  deutschland: {
-    label: 'Deutschland',
-    demonym: 'deutscher',
-    locationPhrase: 'in Deutschland',
-    forPhrase: 'Deutschland',
-    comingSoon: 'Bald findest du hier die Events aus ganz Deutschland auf einen Blick.',
-    comingSoonSubject: 'für ganz Deutschland',
-    liveHint:
-      'Wir suchen gerade Events für die Landkreise in Deutschland. Wir können erst mit Deutschland live gehen, sobald mindestens ein Landkreis genügend Events hat.',
   },
   schweiz: {
     label: 'Schweiz',

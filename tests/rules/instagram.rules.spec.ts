@@ -748,12 +748,11 @@ describe('users/{uid}/favorites', () => {
 });
 
 describe('regions', () => {
+  // A region doc as scripts/seed-regions.mjs creates it now: only switches (no name / slug /
+  // districts; those come from the register in code).
   const validRegion = {
-    name: 'Tirol',
-    slug: 'tirol',
     order: 1,
     active: false,
-    bezirke: [],
     contactEmail: '',
     seo: { title: 't', description: 'd' },
     timezone: 'Europe/Vienna',
@@ -763,10 +762,7 @@ describe('regions', () => {
 
   beforeEach(async () => {
     await env.withSecurityRulesDisabled(async (ctx) => {
-      await setDoc(doc(ctx.firestore(), 'regions/vorarlberg'), {
-        ...validRegion,
-        slug: 'vorarlberg',
-      });
+      await setDoc(doc(ctx.firestore(), 'regions/vorarlberg'), validRegion);
     });
   });
 
@@ -793,61 +789,45 @@ describe('regions', () => {
     });
 
     it('cannot create oesterreich (a combined view, not a region)', async () => {
-      await assertFails(
-        setDoc(doc(make().firestore(), 'regions/oesterreich'), {
-          ...validRegion,
-          name: 'Österreich',
-          slug: 'oesterreich',
-        })
-      );
+      await assertFails(setDoc(doc(make().firestore(), 'regions/oesterreich'), validRegion));
     });
 
     it('rejects a slug outside the fixed list', async () => {
       const db = make().firestore();
-      await assertFails(setDoc(doc(db, 'regions/mars'), { ...validRegion, slug: 'mars' }));
+      await assertFails(setDoc(doc(db, 'regions/mars'), validRegion));
     });
 
-    it('accepts the Bayern pilot region (outside Austria)', async () => {
+    it('rejects former regions (Germany, merged cantons), accepts the new ones', async () => {
       const db = make().firestore();
-      await assertSucceeds(
-        setDoc(doc(db, 'regions/bayern'), {
-          ...validRegion,
-          name: 'Bayern',
-          slug: 'bayern',
-          order: 9,
-          timezone: 'Europe/Berlin',
-        })
-      );
-      await assertSucceeds(deleteDoc(doc(db, 'regions/bayern')));
+      for (const id of ['bayern', 'franken', 'luzern', 'basel-stadt', 'allgaeu']) {
+        await assertFails(setDoc(doc(db, `regions/${id}`), validRegion));
+      }
+      for (const id of ['innerschweiz', 'basel', 'appenzell', 'liechtenstein']) {
+        await assertSucceeds(setDoc(doc(db, `regions/${id}`), validRegion));
+        await assertSucceeds(deleteDoc(doc(db, `regions/${id}`)));
+      }
     });
 
-    it('accepts a cultural region of Germany and the mapping fields (long Landkreis list)', async () => {
+    it('a new doc never carries name, slug, districts or the old mapping marker', async () => {
       const db = make().firestore();
-      const bezirke = Array.from({ length: 96 }, (_, i) => `Landkreis ${i}`);
-      await assertSucceeds(
-        setDoc(doc(db, 'regions/franken'), {
-          ...validRegion,
-          name: 'Franken',
-          slug: 'franken',
-          order: 60,
-          timezone: 'Europe/Berlin',
-          bezirke,
-          mappingUpdatedAt: 1,
-        })
-      );
-      await assertSucceeds(
-        updateDoc(doc(db, 'regions/franken'), { bezirke: [], mappingUpdatedAt: 2 })
-      );
-      await assertFails(
-        updateDoc(doc(db, 'regions/franken'), {
-          bezirke: Array.from({ length: 251 }, (_, i) => `L${i}`),
-        })
-      );
-      await assertSucceeds(deleteDoc(doc(db, 'regions/franken')));
+      for (const extra of [
+        { name: 'Tirol' },
+        { slug: 'tirol' },
+        { bezirke: [] },
+        { mappingUpdatedAt: 1 },
+      ]) {
+        await assertFails(setDoc(doc(db, 'regions/tirol'), { ...validRegion, ...extra }));
+      }
+      await assertSucceeds(setDoc(doc(db, 'regions/tirol'), validRegion));
+      await assertFails(updateDoc(doc(db, 'regions/tirol'), { name: 'Anders' }));
+      await assertFails(updateDoc(doc(db, 'regions/tirol'), { bezirke: ['Imst'] }));
     });
 
-    it('rejects a slug that differs from the doc id', async () => {
-      await assertFails(setDoc(doc(make().firestore(), 'regions/wien'), validRegion));
+    it('an old doc with a slug that differs from the doc id cannot be edited', async () => {
+      await env.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), 'regions/wien'), { ...validRegion, slug: 'tirol' });
+      });
+      await assertFails(updateDoc(doc(make().firestore(), 'regions/wien'), { active: true }));
     });
 
     it('rejects unknown fields', async () => {
@@ -1176,7 +1156,7 @@ describe('users / publicProfile directoryRegionIds', () => {
       'niederoesterreich',
       'wien',
       'burgenland',
-      'bayern',
+      'zuerich',
     ];
     for (const directoryRegionIds of [
       ['mars'],

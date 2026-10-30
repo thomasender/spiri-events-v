@@ -1,13 +1,16 @@
 #!/usr/bin/env node
-// Idempotent seed for the `regions` collection (all 111 regions of Austria,
-// Germany and Switzerland, from STATIC_REGIONS: 51 Bundeslaender / Kantone plus 60
-// cultural regions of Germany that start without Landkreise). Reconciles to the desired state in ONE batch:
-// vorarlberg active, every other region inactive. Existing
-// admin edits (name, bezirke, contactEmail, seo, active) are kept; only missing
-// fields (and an empty `bezirke` list) are filled in from the register. Leftover
-// docs of retired regions are removed: `regions/oesterreich` (from before
-// "Österreich" became a combined view) and `regions/allgaeu` (the Allgäu pilot,
-// replaced by Bayern).
+// Idempotent seed for the `regions` collection from the register in code (the three country
+// CSVs in scripts/data/regions/ -> src/data/regionData.js -> STATIC_REGIONS: 29 regions of
+// Austria, Switzerland and Liechtenstein). Reconciles in ONE batch (plan:
+// planRegionSeed in src/utils/regionDocs.js):
+//   - a register region without doc gets one (inactive, Vorarlberg active; only switches,
+//     no name / slug / districts: those come from the register),
+//   - an existing doc only gets its MISSING switch fields; admin edits (active, contact,
+//     seo, texts, about, instagram, timezone) are never changed,
+//   - docs of regions that are no longer in the register (Germany, merged cantons,
+//     `oesterreich`, `allgaeu`, ...) are set `active: false` and reported, NEVER deleted.
+// Stale fields of old docs (name, bezirke, ...) are left alone here; see
+// scripts/cleanup-region-docs.mjs.
 //
 // Emulator (default):  node scripts/seed-regions.mjs
 // Production (admin runs this deliberately, see ticket 9):
@@ -18,8 +21,8 @@
 // Any other project id is refused (src/utils/projectTargets.js).
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
-import { STATIC_REGIONS } from '../src/utils/regions.js';
 import { assertInitializedProject, resolveSeedRegionsTarget } from '../src/utils/projectTargets.js';
+import { planRegionSeed } from '../src/utils/regionDocs.js';
 
 let target;
 try {
@@ -37,58 +40,34 @@ const app = initializeApp({ projectId: target.projectId });
 assertInitializedProject(app.options.projectId, target.projectId);
 const db = getFirestore(app);
 
-const refs = STATIC_REGIONS.map((r) => db.collection('regions').doc(r.id));
-const staleRefs = ['oesterreich', 'allgaeu'].map((id) => db.collection('regions').doc(id));
-const [staleOesterreich, staleAllgaeu, ...existing] = await db.getAll(...staleRefs, ...refs);
-const stale = [staleOesterreich, staleAllgaeu].filter((d) => d.exists);
+const snap = await db.collection('regions').get();
+const plan = planRegionSeed(snap.docs.map((d) => ({ id: d.id, data: d.data() })));
+
 const batch = db.batch();
-let created = 0;
-let completed = 0;
-const removed = stale.length;
-for (const doc of stale) batch.delete(doc.ref);
+const ref = (id) => db.collection('regions').doc(id);
+for (const { id, data } of plan.create) {
+  batch.set(ref(id), {
+    ...data,
+    createdAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
+  });
+}
+for (const { id, data } of plan.complete) {
+  batch.set(ref(id), { ...data, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+}
+for (const id of plan.deactivate) {
+  batch.update(ref(id), { active: false, updatedAt: FieldValue.serverTimestamp() });
+}
 
-STATIC_REGIONS.forEach((r, i) => {
-  const snap = existing[i];
-  const desired = {
-    name: r.name,
-    slug: r.slug,
-    order: r.order,
-    active: r.active,
-    bezirke: r.bezirke,
-    contactEmail: '',
-    seo: { title: '', description: '' },
-    // Europe/Vienna, Europe/Berlin or Europe/Zurich (same offset all year).
-    timezone: r.timezone,
-  };
-  if (!snap.exists) {
-    batch.set(refs[i], {
-      ...desired,
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-    });
-    created++;
-    return;
-  }
-  const data = snap.data();
-  const missing = Object.fromEntries(Object.entries(desired).filter(([k]) => !(k in data)));
-  // Docs seeded before the register had Bezirke for this region carry `bezirke: []`.
-  // (An empty list written by the mapping tool, `mappingUpdatedAt`, is deliberate: keep it.)
-  if (
-    Array.isArray(data.bezirke) &&
-    data.bezirke.length === 0 &&
-    r.bezirke.length > 0 &&
-    !data.mappingUpdatedAt
-  ) {
-    missing.bezirke = r.bezirke;
-  }
-  if (Object.keys(missing).length) {
-    batch.set(refs[i], { ...missing, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
-    completed++;
-  }
-});
-
-if (created || completed || removed) await batch.commit();
-const unchanged = STATIC_REGIONS.length - created - completed;
+const writes = plan.create.length + plan.complete.length + plan.deactivate.length;
+if (writes) await batch.commit();
+const unchanged = snap.size - plan.complete.length - plan.retired.length;
 console.log(
-  `regions: ${created} created, ${completed} completed, ${unchanged} unchanged, ${removed} removed (${target.target}, ${target.projectId})`
+  `regions: ${plan.create.length} created, ${plan.complete.length} completed, ${unchanged} unchanged, ` +
+    `${plan.deactivate.length} switched off (${target.target}, ${target.projectId})`
 );
+if (plan.retired.length) {
+  console.log(
+    `docs of former regions (kept, inactive; delete them by hand if wanted): ${plan.retired.join(', ')}`
+  );
+}

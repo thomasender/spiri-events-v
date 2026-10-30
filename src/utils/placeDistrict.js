@@ -6,8 +6,7 @@ import { findGemeinde } from './gemeinden.js';
 import { DEFAULT_REGION_ID } from './regions.js';
 
 // Ort -> Bezirk / Landkreis AND region for the event forms (Trello dx8dCQJc). Pure, offline: it
-// only reads the prepared place list (`preparePlaceIndex`) and the merged register (`regions`,
-// current assignment of Verwaltung -> "Zuordnung"). The place decides, not the region the
+// only reads the prepared place list (`preparePlaceIndex`) and the merged register (`regions`). The place decides, not the region the
 // person is in: "Lindau (Bodensee)" picked on the Vorarlberg page is Landkreis Lindau (Bodensee)
 // in the region that holds it. An unknown or ambiguous place gives null: the event then stays
 // in the current region with an empty Bezirk (Liechtenstein, outside DACH, free text).

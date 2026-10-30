@@ -35,7 +35,7 @@ export function onlineEligibilityEnabled(activeRegionCount) {
  * events in `regionId`: 'not-listed' (no listing, not in the directory, hidden,
  * or not listed in that region), 'no-district' (listed there but no Bezirk /
  * Landkreis of that region), or null when it qualifies. `regions` = merged
- * register (`allRegions`), so the current Zuordnung counts.
+ * register (`allRegions`).
  */
 export function onlineEligibilityReason(listing, regionId, regions = STATIC_REGIONS) {
   if (!listing || listing.listedInDirectory !== true || listing.directoryHidden === true) {

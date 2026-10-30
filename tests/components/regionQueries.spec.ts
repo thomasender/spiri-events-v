@@ -87,12 +87,12 @@ describe('buildPublicEventQueryPlan', () => {
         isNational: true,
         activeRegionIds: ids,
       });
-    expect(plan(['bayern', 'vorarlberg']).queries[0].constraints[1]).toEqual([
+    expect(plan(['zuerich', 'vorarlberg']).queries[0].constraints[1]).toEqual([
       'regionId',
       'in',
-      ['bayern', 'vorarlberg'],
+      ['zuerich', 'vorarlberg'],
     ]);
-    expect(plan(['bayern']).queries[0].constraints[1]).toEqual(['regionId', 'in', ['bayern']]);
+    expect(plan(['zuerich']).queries[0].constraints[1]).toEqual(['regionId', 'in', ['zuerich']]);
     // A country without active region (Switzerland): no query.
     expect(plan([])).toEqual({ mode: 'national', queries: [] });
   });
@@ -103,22 +103,14 @@ describe('buildPublicEventQueryPlan', () => {
     ).toEqual({ mode: 'national', queries: [] });
   });
 
-  it('up to 30 active regions fit into one `in`, more fall back to the full query', () => {
-    const active = REGION_SLUGS.slice(0, MAX_IN_VALUES);
+  it('all regions of the register fit into one `in` (at most 30 values)', () => {
+    expect(REGION_SLUGS.length).toBeLessThanOrEqual(MAX_IN_VALUES);
     const plan = buildPublicEventQueryPlan({
       markerComplete: true,
       isNational: true,
-      activeRegionIds: active,
+      activeRegionIds: REGION_SLUGS,
     });
-    expect(plan?.queries[0].constraints[1]).toEqual(['regionId', 'in', active]);
-    expect(REGION_SLUGS.length).toBeGreaterThan(MAX_IN_VALUES);
-    expect(
-      buildPublicEventQueryPlan({
-        markerComplete: true,
-        isNational: true,
-        activeRegionIds: REGION_SLUGS,
-      })
-    ).toEqual(FULL_EVENTS);
+    expect(plan?.queries[0].constraints[1]).toEqual(['regionId', 'in', REGION_SLUGS]);
   });
 
   it('an unknown region id falls back to the full query', () => {

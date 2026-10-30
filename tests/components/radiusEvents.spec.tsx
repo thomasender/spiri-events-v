@@ -16,12 +16,12 @@ import { activeRegions } from '../../src/utils/regionRouting';
 
 const REGIONS = mergeRegions([
   { id: 'tirol', active: true },
-  { id: 'bayern', active: true },
+  { id: 'st-gallen', active: true },
 ]);
 
 const EVENTS = [
   { id: 'bregenz', regionId: 'vorarlberg', lat: 47.503, lng: 9.747 },
-  { id: 'lindau', regionId: 'bayern', lat: 47.55, lng: 9.69 },
+  { id: 'lindau', regionId: 'st-gallen', lat: 47.55, lng: 9.69 },
   { id: 'innsbruck', regionId: 'tirol', lat: 47.269, lng: 11.404 },
   { id: 'old', regionId: 'vorarlberg' },
   { id: 'online', regionId: 'tirol', isOnline: true },
@@ -121,7 +121,7 @@ describe('query plan with a radius', () => {
     expect(result.current?.queries[0].constraints).toContainEqual([
       'regionId',
       'in',
-      ['vorarlberg', 'tirol', 'bayern'],
+      ['tirol', 'vorarlberg', 'st-gallen'],
     ]);
   });
 

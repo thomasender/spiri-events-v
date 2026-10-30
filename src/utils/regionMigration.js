@@ -19,9 +19,10 @@ const isMissing = (value) => value === undefined || value === null || value === 
 /**
  * Update for one `events/{id}` doc. Every status (approved, pending, draft,
  * rejected, trashed) and every series doc is treated the same: only a missing
- * `regionId` is filled in. The id of a retired region (the Allgäu pilot) is
- * replaced by its successor (Bayern). Any other unknown value is left alone and
- * reported, never silently overwritten.
+ * `regionId` is filled in. An id listed in LEGACY_REGION_ALIASES (none since the
+ * CSV register) is replaced by its successor. Any other unknown value (e.g. a
+ * former region such as `bayern`) is left alone and reported, never silently
+ * overwritten.
  * @returns {{ kind: 'migrate', update: { regionId: string } } | { kind: 'already' } | { kind: 'invalid', value: unknown }}
  */
 export function planEventUpdate(data) {
@@ -48,7 +49,7 @@ export function planProfileUpdate(data) {
   if (Array.isArray(value) && value.length > 0 && value.every(isRegionSlug)) {
     return { kind: 'already' };
   }
-  // Retired ids (Allgäu) become their successor; everything else must be valid.
+  // Aliased ids become their successor; everything else must be valid.
   const mapped = Array.isArray(value) ? value.map((id) => LEGACY_REGION_ALIASES[id] ?? id) : null;
   if (mapped && mapped.length > 0 && mapped.every(isRegionSlug)) {
     return { kind: 'migrate', update: { directoryRegionIds: [...new Set(mapped)] } };

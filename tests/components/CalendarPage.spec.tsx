@@ -885,13 +885,13 @@ describe('CalendarPage — calendar feed subscription', () => {
       `${origin}/calendar/feed.ics?region=steiermark`
     );
     // A combined view asks for its own slug and the union of its Bezirke.
-    const de = { regionId: 'vorarlberg', bezirke: ['Oberallgäu', 'Graz'], isNational: true };
+    const de = { regionId: 'vorarlberg', bezirke: ['Zürich', 'Graz'], isNational: true };
     expect(
-      buildFeedUrl(origin, ['Oberallgäu', 'Dornbirn'], [], 'tok', {
+      buildFeedUrl(origin, ['Zürich', 'Dornbirn'], [], 'tok', {
         ...de,
-        combinedView: { slug: 'deutschland' },
+        combinedView: { slug: 'schweiz' },
       })
-    ).toBe(`${origin}/calendar/feed.ics?region=deutschland&bezirk=Oberallg%C3%A4u&token=tok`);
+    ).toBe(`${origin}/calendar/feed.ics?region=schweiz&bezirk=Z%C3%BCrich&token=tok`);
     expect(
       buildFeedUrl(origin, [], [], undefined, { ...de, combinedView: { slug: 'alle-tribes' } })
     ).toBe(`${origin}/calendar/feed.ics?region=alle-tribes`);
@@ -909,7 +909,7 @@ describe('CalendarPage — regions (ticket 14)', () => {
   const allRegions = [
     regionOf('vorarlberg'),
     regionOf('steiermark'),
-    regionOf('bayern'),
+    regionOf('zuerich'),
     regionOf('wien', false),
   ];
 
@@ -952,7 +952,7 @@ describe('CalendarPage — regions (ticket 14)', () => {
     mockUseAllEvents.events = [
       { ...base, id: 'v-old', title: 'AltVbg', bezirk: 'Dornbirn' },
       { ...base, id: 'v', title: 'NeuVbg', bezirk: 'Bregenz', regionId: 'vorarlberg' },
-      { ...base, id: 's', title: 'StmkGraz', bezirk: 'Graz', regionId: 'steiermark' },
+      { ...base, id: 's', title: 'StmkGraz', bezirk: 'Graz (Stadt)', regionId: 'steiermark' },
       { ...base, id: 'on', title: 'OnlineStmk', isOnline: true, regionId: 'steiermark' },
       { ...base, id: 'w', title: 'WienEvent', bezirk: 'Wien', regionId: 'wien' },
     ];
@@ -976,7 +976,7 @@ describe('CalendarPage — regions (ticket 14)', () => {
     expect(text).toContain('OnlineStmk');
     expect(text).not.toContain('AltVbg');
     const chips = ortChips();
-    expect(chips).toContain('Graz');
+    expect(chips).toContain('Graz (Stadt)');
     expect(chips).toContain('Murau');
     expect(chips).not.toContain('Dornbirn');
     expect(chips).not.toContain('Umgebung');
@@ -1077,7 +1077,7 @@ describe('CalendarPage — place + radius and the Bezirk / Landkreis filter', ()
     ...STATIC_REGIONS.find((r) => r.id === slug)!,
     active: true,
   });
-  const allRegions = [regionOf('vorarlberg'), regionOf('bayern')];
+  const allRegions = [regionOf('vorarlberg'), regionOf('st-gallen'), regionOf('liechtenstein')];
   const BREGENZ = {
     label: 'Bregenz',
     lat: 47.503,
@@ -1143,10 +1143,10 @@ describe('CalendarPage — place + radius and the Bezirk / Landkreis filter', ()
       },
       {
         ...base,
-        id: 'lindau',
+        id: 'rheintal',
         title: 'NachbarLindau',
-        bezirk: 'Lindau (Bodensee)',
-        regionId: 'bayern',
+        bezirk: 'Rheintal',
+        regionId: 'st-gallen',
         lat: 47.55,
         lng: 9.69,
       },
@@ -1200,9 +1200,9 @@ describe('CalendarPage — place + radius and the Bezirk / Landkreis filter', ()
     expect(screen.getByRole('button', { name: /Bregenz \+ 10 km/ })).toBeInTheDocument();
   });
 
-  it('calls the filter "Landkreis" in a German region', () => {
-    renderWith({ regionId: 'bayern', placeSelection: null, radiusFilter: null });
-    expect(screen.getByText('Landkreis')).toBeInTheDocument();
+  it('calls the filter "Landesteil" in Liechtenstein', () => {
+    renderWith({ regionId: 'liechtenstein', placeSelection: null, radiusFilter: null });
+    expect(screen.getByText('Landesteil')).toBeInTheDocument();
     expect(screen.queryByText('Bezirk')).not.toBeInTheDocument();
   });
 

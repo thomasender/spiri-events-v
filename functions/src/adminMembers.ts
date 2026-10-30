@@ -15,7 +15,6 @@ import {
   type StaffRole,
 } from './staffRoles';
 import { DEFAULT_REGION_ID, DIRECTORY_REGIONS, isRegionId } from './regions';
-import { ensureCustomRegions } from './customRegions';
 import { ALLOWED_ORIGINS } from './allowedOrigins';
 
 if (getApps().length === 0) {
@@ -123,10 +122,7 @@ export const PUBLIC_ONLY_MEMBER_FIELDS: readonly (keyof MemberPatch)[] = ['clubM
 
 // Validates an admin edit. Only the whitelisted public-profile fields are
 // accepted; the e-mail address (login) is deliberately not editable here.
-export function validateMemberPatch(
-  raw: unknown,
-  extraDistricts: readonly string[] = []
-): MemberPatch {
+export function validateMemberPatch(raw: unknown): MemberPatch {
   if (!raw || typeof raw !== 'object') {
     throw new HttpsError('invalid-argument', 'changes must be an object.');
   }
@@ -161,7 +157,7 @@ export function validateMemberPatch(
   }
   if ('directoryRegions' in input) {
     const list = strList(input.directoryRegions);
-    if (list.some((r) => !DIRECTORY_REGIONS.includes(r) && !extraDistricts.includes(r))) {
+    if (list.some((r) => !DIRECTORY_REGIONS.includes(r))) {
       throw new HttpsError('invalid-argument', 'Unknown region.');
     }
     patch.directoryRegions = Array.from(new Set(list));
@@ -352,9 +348,6 @@ export const MODERATOR_MEMBER_FIELDS: readonly (keyof MemberPatch)[] = [
 export interface UpdateMemberDeps {
   readRoleDoc: (uid: string) => Promise<Doc | null>;
   readProfiles: (uid: string) => Promise<{ publicData: Doc | null; privateData: Doc | null }>;
-  // Districts stored in regions/{id}.bezirke (e.g. Tirol), valid next to the
-  // built-in DIRECTORY_REGIONS. Optional: without it only the built-in list counts.
-  readRegionDistricts?: () => Promise<string[]>;
   // `update` goes to the public profile; `privateUpdate` (defaults to the same
   // doc) to users/{uid}, without the public-only fields.
   writeProfiles: (
@@ -380,12 +373,7 @@ export async function updateMemberHandler(
     throw new HttpsError('invalid-argument', 'uid is required.');
   }
   const uid = data.uid;
-  const changes = data.changes as Record<string, unknown> | null | undefined;
-  const extraDistricts =
-    changes && typeof changes === 'object' && 'directoryRegions' in changes
-      ? ((await deps.readRegionDistricts?.()) ?? [])
-      : [];
-  const patch = validateMemberPatch(data.changes, extraDistricts);
+  const patch = validateMemberPatch(data.changes);
 
   const { publicData, privateData } = await deps.readProfiles(uid);
   if (role.kind === 'regionModerator') {
@@ -486,10 +474,6 @@ const updateMemberDeps: UpdateMemberDeps = {
       privateData: privateSnap.exists ? (privateSnap.data() ?? {}) : null,
     };
   },
-  async readRegionDistricts() {
-    const snap = await getFirestore().collection('regions').get();
-    return snap.docs.flatMap((d) => strList(d.data().bezirke));
-  },
   async writeProfiles(uid, update, targets, privateUpdate = update) {
     const db = getFirestore();
     const batch = db.batch();
@@ -506,7 +490,6 @@ export const adminListMembers = onCall(
   { region: 'europe-west3', cors: ALLOWED_ORIGINS, ...appCheckOptions() },
   async (request): Promise<MemberListResult> => {
     logMissingAppCheck('adminListMembers', request);
-    await ensureCustomRegions();
     return listMembersHandler(request, listMembersDeps);
   }
 );
@@ -515,7 +498,6 @@ export const adminUpdateMember = onCall(
   { region: 'europe-west3', cors: ALLOWED_ORIGINS, ...appCheckOptions() },
   async (request): Promise<{ ok: true }> => {
     logMissingAppCheck('adminUpdateMember', request);
-    await ensureCustomRegions();
     return updateMemberHandler(request, updateMemberDeps);
   }
 );

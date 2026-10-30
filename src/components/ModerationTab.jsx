@@ -76,7 +76,7 @@ function ModeratorDialog({ mode, moderator, moderatorUids, currentUid, onSave, o
   }, [isAdd, members, search]);
 
   const activeById = useMemo(() => new Map(regions.map((r) => [r.id, r.active])), [regions]);
-  // Regions without Landkreise / Bezirke (cultural regions nobody filled yet) are
+  // Regions without districts in the register are
   // not offered; one the person already moderates stays visible so it can be removed.
   const choiceIds = useMemo(() => {
     const populated = new Set(regions.filter(isPopulated).map((r) => r.id));

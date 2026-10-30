@@ -4,55 +4,70 @@
 region activation, region emails, SEO/ICS/analytics per region, or add a region.
 Linked from `AGENTS.md`. Production migration and staging: [staging-migration.md](./staging-migration.md).
 
-The platform started as "tribe Vorarlberg"; the regions epic prepares all 51
-regions of Austria (9 Bundesländer), Germany (16 Bundesländer) and Switzerland
-(26 Kantone) without changing what visitors see until a second region is switched
-on. Structure everywhere: country -> region (Bundesland / Kanton) -> Bezirk
-(Austria, Switzerland) or Landkreis (Germany, incl. kreisfreie Städte).
+The platform started as "tribe Vorarlberg"; the regions epic prepares 29 regions of
+Austria (9 Bundesländer), Switzerland (19 regions, some cantons grouped: Innerschweiz,
+Basel, Appenzell) and Liechtenstein (1 region) without changing what visitors see until a
+second region is switched on. Structure everywhere: country -> region -> district (Bezirk in
+Austria and Switzerland, Wien: its 23 Gemeindebezirke; Landesteil in Liechtenstein).
+Regions and districts are defined ONLY by the three CSVs in `scripts/data/regions/`
+(Trello QG0GR5lv). Germany is not a region country for now; a `deutschland.csv` will follow.
 
 Contents: 1 Concept · 2 Data model · 3 Roles · 4 Activation · 5 Queries and the
 migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed ·
-10 Analytics per region · 11 Tests · 12 Known limitations · 13 How to add a region (2c: regions created in the Verwaltung)
+10 Analytics per region · 11 Tests · 12 Known limitations · 13 How to add a region
 
 ## 1. Concept
 
 - **Static register + `regions/{id}` docs.** `STATIC_REGIONS` in
-  `src/utils/regions.js` is the fallback whenever Firestore delivers nothing;
-  `regions/{id}` docs (id == slug, also enforced by `firestore.rules`) override
-  name, `bezirke`, `contactEmail`, `seo`, `active`, `timezone`. Only Vorarlberg is
-  active in the register. `functions/src/regions.ts` has a synced copy of the
-  register data the functions need, guarded by `tests/lib/functionsRegions.spec.ts`.
-- **Register data is generated.** `scripts/build-region-data.mjs` reads
-  `scripts/data/regions-countries.csv` (the product owner's list: country, region,
-  Bezirk; Austria and Switzerland as given) and `scripts/data/de-kreise.json`
-  (German Landkreise and kreisfreie Städte, status 31.12.2018 from the Destatis
-  GV-ISys via the npm package `landkreise-deutschland`, CC-BY-4.0, Eisenach removed
-  because it merged into the Wartburgkreis in 2021) and writes
-  `src/data/regionData.js` and `functions/src/regionData.ts`. Wording per region
-  (`inPhrase`, `forPhrase`, `demonym`) lives in the `META` table of that script.
-  Re-run it after changing a CSV or the table; never edit the generated files.
-  Names inside Germany that exist as city and Landkreis become "X (Stadt)" /
-  "X (Landkreis)". The CSV lists only cities for Germany, so the German Bezirk
-  level comes from the Kreis list instead. Vorarlberg's old pseudo-Bezirk "Grenznahe"
+  `src/utils/regions.js` is the register; `regions/{id}` docs (id == slug) carry only the
+  switches (`active`, `contactEmail`, `seo`, `timezone`, texts, "Über uns", Instagram name).
+  Names, order and districts are never read from a doc. Only Vorarlberg is active in the
+  register. `functions/src/regions.ts` uses the same generated data
+  (`functions/src/regionData.ts`), guarded by `tests/lib/functionsRegions.spec.ts`.
+- **Register data is generated from three CSVs.** `scripts/data/regions/oesterreich.csv`,
+  `schweiz.csv`, `liechtenstein.csv` (UTF-8, BOM allowed, `;`-separated, header
+  `Region;Bezirke`, districts comma-separated, the country comes from the file name) are the
+  single truth. `scripts/build-region-data.mjs` (pure part `scripts/lib/regionRegister.mjs`)
+  writes `src/data/regionData.js` and `functions/src/regionData.ts` (prettier-formatted).
+  Wording and id per region (`slug`, `inPhrase`, `forPhrase`, `demonym`) live in the `META`
+  table; country settings (`subdivisionLabel` Bezirk / Landesteil, `timezone`) in
+  `COUNTRY_SETTINGS`. The generator fails on a CSV region without META, META without CSV
+  region, a duplicate / non-ASCII id or a district listed twice within one country.
+  District names are taken 1:1 (e.g. "Eisenstadt (Stadt)", "Innsbruck (Stadt)",
+  "1. Innere Stadt"). Region order = file order (Austria, Switzerland, Liechtenstein), then
+  CSV row order. A `deutschland.csv` plus a `DE` META block is all Germany needs in the
+  generator (`COUNTRY_FILES`, `COUNTRY_SETTINGS.DE` are prepared).
+  `tests/lib/regionRegisterCsv.spec.ts` re-parses the CSVs and compares them with both
+  generated files, the rules list and the functions list. Re-run the generator after any CSV
+  or META change; never edit the generated files.
+  `HISTORIC_REGION_IDS` lists every id the register ever had; those no longer in the CSVs are
+  generated as `RETIRED_REGION_IDS` (reserved usernames, switched off by the seed / cleanup
+  scripts).
+  Vorarlberg's old pseudo-Bezirk "Grenznahe"
   ("Umgebung") is no longer in the register: since Trello dx8dCQJc it is a read-only legacy
   entry (`LEGACY_BEZIRKE`, generated next to `REGION_DATA`), appended to Vorarlberg's list at
-  runtime (`STATIC_REGIONS`, `functions/src/regions.ts`, mapping fallback) so old events stay
+  runtime (`STATIC_REGIONS`, `functions/src/regions.ts`) so old events stay
   labelled, filterable (chip, ICS `bezirk=`, directory) and Instagram-grouped; the event forms
   never offer it (`selectableBezirke`, `subdivisionFor`). No migration: old events keep it until
-  their Ort is changed.
-  District names are one namespace for the directory (`directoryRegions`): two
-  regions with a district of the same name (e.g. "Baden" in Niederösterreich and
+  their Ort is changed. Vorarlberg's id, Bezirke and fallbacks are pinned by
+  `tests/components/vorarlbergRegister.spec.ts`.
+  District names are one namespace for the directory (`directoryRegions`, Vorarlberg's
+  first): two regions with a district of the same name (e.g. "Baden" in Niederösterreich and
   Aargau) share one filter chip.
-- **Region ids.** The id is the ASCII slug (`vorarlberg`, `tirol`, `bayern`,
-  `zuerich`, `graubuenden`, `freiburg` for the Swiss canton, ...). Order = switcher
-  order: Austria, Germany, Switzerland. Each region has a static `country`
-  (`AT` / `DE` / `CH`, not in `regions/{id}` docs: the rules whitelist does not
-  include it), `name`, `inPhrase`, `forPhrase`, `demonym`, `order`, `bezirke`,
-  `subdivisionLabel` ("Bezirk"; "Landkreis" in Germany) and `timezone`
-  (`Europe/Vienna`, `Europe/Berlin`, `Europe/Zurich`; informational, all date
-  maths uses Europe/Vienna). The old pilot region `allgaeu` no longer exists:
-  stored `allgaeu` ids are read as `bayern` (`LEGACY_REGION_ALIASES`, the name
-  stays reserved); the Allgäu Landkreise are Bavarian Landkreise now.
+- **Region ids.** The id is the ASCII slug (lowercase, umlauts transliterated, spaces / dots
+  -> `-`): `vorarlberg`, `tirol`, `zuerich`, `graubuenden`, `st-gallen`, `innerschweiz`,
+  `liechtenstein`, `freiburg` for the Swiss region, ... Never change an existing id. Order =
+  switcher order: Austria, Switzerland, Liechtenstein (CSV order inside a country, so
+  Burgenland comes first; places where Vorarlberg must lead, like the directory district list
+  or a form's default region, put it first explicitly). Each region has a static `country`
+  (`AT` / `CH` / `LI`, not in `regions/{id}` docs), `name`, `inPhrase`, `forPhrase`,
+  `demonym`, `order`, `bezirke`, `subdivisionLabel` ("Bezirk"; "Landesteil" in
+  Liechtenstein) and `timezone` (`Europe/Vienna`, `Europe/Zurich`, `Europe/Vaduz`;
+  informational, all date maths uses Europe/Vienna). Former ids (Germany incl. the 60
+  cultural regions, the Allgäu pilot, the cantons now grouped: `luzern`, `uri`, `schwyz`,
+  `obwalden`, `nidwalden`, `zug`, `basel-stadt`, `basel-landschaft`,
+  `appenzell-ausserrhoden`, `appenzell-innerrhoden`) are no longer valid region ids, have no
+  alias (`LEGACY_REGION_ALIASES` is empty) and stay reserved.
 - **Dark launch rule.** With only Vorarlberg active nothing visible changes:
   no chooser, no switcher, no region name in mails, no GA `region` parameter, no
   region pages in the prerender, byte-identical Vorarlberg ICS feed. Every new
@@ -80,18 +95,24 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
   the site header stays visible above it with the neutral title "Dein Kalender" and without
   the region switcher (`regionChooserOpen` in the region context). Invisible with fewer than
   two active regions.
-  - **Place list, no third party.** `src/data/placeIndex.json` (about 33,000 places of AT / DE /
-    CH, 380 kB gzipped, loaded lazily by `src/lib/placeData.js` only when the picker opens or an
+  - **Place list, no third party.** `src/data/placeIndex.json` (about 20,000 places of AT / CH /
+    LI, about 710 kB raw, loaded lazily by `src/lib/placeData.js` only when the picker opens or an
     event is saved) is generated by `scripts/build-place-index.mjs` from the GeoNames postal
     code files (CC BY 4.0, credit in Datenschutz section 17 and Impressum "Kartendaten /
     Quellen"; download commands in the script header, raw files are not committed). Each place
-    has name, lat / lon, Bundesland / Kanton and, for about 99 %, the register district
-    (`DISTRICT_CATALOG` key) it lies in; districts and states carry a centroid (mean of their
-    places). Company postcodes are dropped. The script prints districts without places and
-    unmatched names; extend `ALIASES` / `STATE_ALIASES` there. Search, distance and radius logic
+    has name, lat / lon, its region (from the GeoNames admin code via `ADMIN_SHAPE_REGIONS`)
+    and, for 99.6 %, the register district (`DISTRICT_CATALOG` key) it lies in; districts and
+    regions carry a centroid (mean of their places). Every one of the 257 districts has places.
+    Company postcodes are dropped. Special cases in the script: Wien by Gemeindebezirk (the
+    bare name "Wien" is the whole city, no district), Appenzell Innerrhoden and Liechtenstein
+    by Gemeinde, Raron split into Östlich / Westlich Raron, regions with one district (Genf,
+    Glarus, Neuenburg, Schaffhausen) take all their places. Without district (region only):
+    Appenzell Ausserrhoden (the CSV lists only Innerrhoden's Bezirke) and Entlebuch (not in
+    the Innerschweiz list). German places are not in the list any more. The script prints
+    districts without places and unmatched names; extend `ALIASES` there. Search, distance and radius logic
     is `src/utils/placeSearch.js` (pure; `searchPlaces`, `nearestPlace`, `eventPosition`,
-    `filterEventsByRadius`); it also finds regions by name ("Allgäu"; centre = mean of its
-    districts under the current assignment).
+    `filterEventsByRadius`); it also finds regions by name ("Innerschweiz"; centre = mean of
+    its districts).
   - **Selection.** `{ label, lat, lon, radiusKm, regionId, source, updatedAt }` (pure helpers in
     `src/utils/placeSelection.js`) lives in `RegionProvider` (`placeSelection`,
     `setPlaceSelection`, `radiusFilter`), is remembered in localStorage (`tribe:placeSelection`)
@@ -132,16 +153,18 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
     (anything but "Online", `hasDistrictFilter`) lifts the radius: the calendar shows every event
     of the current region in the picked districts (`useRegionEvents(..., { ignoreRadius: true })`),
     and the district chips always count the whole region. The quick action "Alle" carries the
-    region's name ("Allgäu") and selects all districts; "Keine" returns to place + radius. The
-    filter heading is the region's `subdivisionLabel` ("Landkreis" in Germany). One active region
+    region's name ("Tirol") and selects all districts; "Keine" returns to place + radius. The
+    filter heading is the region's `subdivisionLabel` ("Landesteil" in Liechtenstein). One active region
     or a combined view: "Alle" and no place hint as before.
   - **The Ort decides Bezirk / Landkreis AND region (Trello dx8dCQJc).** Whatever region the
     person is in, the place of an event gives its district and the region holding it (current
     assignment): pure helpers in `src/utils/placeDistrict.js` (`assignmentForEntry` for a picked
     suggestion, `placeAssignment` for a typed name: Vorarlberg Gemeinde first, else the places of
     that name when they lie in ONE district, null when unknown / ambiguous). The forms keep it as
-    `placeRegionId`, which wins over the current region when saving. Unknown places (Liechtenstein,
-    outside DACH, free text) stay in the current region with an EMPTY Bezirk (allowed; no
+    `placeRegionId`, which wins over the current region when saving (a place in Liechtenstein
+    now belongs to the region `liechtenstein`; while that is inactive such an event is not
+    findable, like any place of an inactive region). Unknown places (Germany, outside
+    AT / CH / LI, free text) stay in the current region with an EMPTY Bezirk (allowed; no
     "Umgebung" any more). The Ort field (`CityField`): Vorarlberg, and every event while only one
     region is active, uses the Gemeinde picker, which also suggests places of all regions from
     `placeIndex.json` (lazy `loadPlaceIndex` after two letters) and takes other text over as typed;
@@ -157,25 +180,28 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
     `bezirk` (+ region) via `src/lib/eventPosition.js` (Gemeinde accuracy, never a street):
     place of that name in the event's Bezirk, else in its Bundesland, else the Bezirk centroid,
     else the Bundesland centroid; a place outside the region (old "Grenznahe" events, or no
-    Bezirk at all) is found by name, the namesake nearest to the region. A failed list load never blocks saving. Events written before
+    Bezirk at all) is found by name, the namesake nearest to the region (for "Grenznahe" only
+    within 40 km of the region centre, `LEGACY_NAMESAKE_KM`: an old "Lindau" event must not
+    land in Lindau ZH now that German places are gone; it gets the region centre). A failed list load never blocks saving. Events written before
     need `node scripts/backfill-event-positions.mjs` (dry run, `--write`, `--all`;
     `PROJECT_ID=tribe-vbg-staging` for staging) once per project.
   - **"Meinen Standort verwenden" (ticket 567, reworked):** opt-in only: one click shows a short
     explanation, only "Standort abfragen" calls `navigator.geolocation` (never on page load, no
     retry). The position goes to `PlacePicker.onLocate`: nearest place of the list, region by
     `src/utils/geoRegion.js` from two bundled files that are dynamically imported (`loadGeoShapes`):
-    - **Austria / Switzerland:** `src/data/adminAtChMap.json` (about 100 kB, 31 kB gzipped),
-      the 9 Bundesländer and 26 Kantone in plain lon/lat (plus Liechtenstein as "no
-      region"). Generated by `scripts/build-admin-at-ch-map.mjs` (download commands and
-      checksums in its header; raw downloads are not committed), which matches by ISO 3166-2
-      code and an explicit name list and fails if a register region has no polygon or vice
-      versa (also guarded in `tests/components/geoRegion.spec.ts`).
-    - **Germany:** projects lat/lon into the SVG of `landkreisMap.json` (equirectangular,
-      constants `GEO_PROJECTION` fitted on 54 cities, about 2-3 km), finds the Landkreis and
-      the region via `currentAssignment` (no holder: its Bundesland).
-    - **Order:** exact hit in AT/CH/LI first, then an exact Landkreis hit; only without any
-      exact hit the nearest shape within its tolerance (AT/CH 0.2 km, German shapes 2 units,
-      about 2.5 km).
+    - **Austria / Switzerland / Liechtenstein:** `src/data/adminAtChMap.json` (about 100 kB,
+      31 kB gzipped), the 9 Bundesländer, the 26 Kantone and Liechtenstein in plain lon/lat,
+      keyed by ISO 3166-2 code (`AT-8`, `CH-LU`, `LI`). `ADMIN_SHAPE_REGIONS` in
+      `src/utils/geoRegion.js` maps each outline onto its region (LU / SZ / OW / NW / UR / ZG ->
+      `innerschweiz`, AR / AI -> `appenzell`, BS / BL -> `basel`, LI -> `liechtenstein`); the
+      polygons are not merged. Generated by `scripts/build-admin-at-ch-map.mjs` (download
+      commands and checksums in its header; raw downloads are not committed), which matches by
+      ISO code and an explicit name list and fails if a register region has no outline or an
+      outline no register region (also guarded in `tests/components/geoRegion.spec.ts`). A
+      change of the register usually only needs the table, not a new download.
+    - **Germany:** no region, so a position there is "no region" (the old Landkreis projection
+      `landkreisMap.json` was removed with the German regions).
+    - **Order:** an exact hit first, then the nearest outline within 0.2 km.
     - Denial, timeout, no API or no place within 30 km (Madrid): a German hint, the picker stays
       usable. Needs `geolocation=(self)` in the `Permissions-Policy` of `firebase.json` (guarded
       by `tests/lib/hostingCsp.spec.ts`).
@@ -185,7 +211,7 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
       `adminAtChMap.json` is shared under the same licence. Switzerland: geoBoundaries
       gbOpen CHE ADM1 (CHE-ADM1-70761945, from swisstopo swissBOUNDARIES3D), swisstopo OGD
       terms: free use, source "© swisstopo" must be named. Liechtenstein: Natural Earth
-      1:10m (public domain). Attribution: `source` field of the JSON, the generator header,
+      1:10m (public domain; coarser than the AT/CH outlines). Attribution: `source` field of the JSON, the generator header,
       this section and Datenschutz section 17. Natural Earth admin-1 alone (public domain)
       was evaluated first and rejected: about 0.4 km median / 1.5 km p95, up to 3-5 km off
       the official borders, which put Konstanz into Thurgau and Passau into Oberösterreich.
@@ -198,20 +224,17 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
       file next to the data: `src/data/adminAtChMap.LICENSE.md`; public texts: Datenschutz
       section 17 and Impressum "Kartendaten / Quellen".
     - **Accuracy:** AT/CH outlines are simplified with Douglas-Peucker at 0.1 km and rounded
-      to 1/1000 degree, so about 0.1-0.15 km off the official border. The German side stays
-      the weak part (2-3 km projection error): checked border pairs (tests) all resolve
-      correctly: Konstanz / Kreuzlingen, Lindau / Bregenz, Lochau, Hörbranz, Passau /
-      Schärding, Freinberg, Basel, Riehen / Weil am Rhein, Lörrach, Grenzach-Wyhlen,
-      Salzburg / Freilassing, Kufstein / Kiefersfelden, Braunau / Simbach, Rheinfelden
-      DE / CH, Waldshut / Koblenz AG, Vaduz, Schaan, Triesen / Buchs, Feldkirch-Tisis.
-      Known residuals: within about 200 m of an AT/CH border either side can come out
-      (e.g. right on the Rhine at Laufenburg, Konstanz-Paradies -> Thurgau); France next to
-      Basel (Saint-Louis) snaps to Landkreis Lörrach through the German tolerance; the
-      German exclave Büsingen gets no region.
-- **Combined views** "Ganz Österreich" `/oesterreich`, "Ganz Deutschland"
-  `/deutschland`, "Ganz Schweiz" `/schweiz` and the global "Alle Tribes"
-  `/alle-tribes` are NOT regions, only views (never stored on events/profiles).
-  Definitions: `COMBINED_VIEWS` in `src/utils/regions.js`; logic in
+      to 1/1000 degree, so about 0.1-0.15 km off the official border. Checked border pairs
+      (tests): Kreuzlingen, Hörbranz, Lochau, Freinberg, Schärding, Basel, Riehen, Salzburg,
+      Kufstein, Braunau, Rheinfelden CH, Koblenz AG, Feldkirch-Tisis, Buchs SG, Lustenau,
+      St. Margrethen resolve to their region; the German side (Konstanz, Lindau, Passau,
+      Freilassing, ...) to no region. Known residuals: within about 200 m of a border either side
+      can come out; the Liechtenstein outline (Natural Earth) is coarser.
+- **Combined views** "Ganz Österreich" `/oesterreich`, "Ganz Schweiz" `/schweiz` and the
+  global "Alle Tribes" `/alle-tribes` (all countries incl. Liechtenstein) are NOT regions,
+  only views (never stored on events/profiles). Liechtenstein has no view of its own (one
+  region). The former view `/deutschland` is gone (its address stays reserved, so it is an
+  empty profile address). Definitions: `COMBINED_VIEWS` in `src/utils/regions.js`; logic in
   `regionRouting.js` (`isCombinedViewAvailable`, `combinedViewRegions`,
   `availableCombinedViews`, `resolveTopLevelSlug`).
   - **Availability:** a view is available with at least 2 ACTIVE regions in its scope: a
@@ -220,19 +243,17 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
     page lists none (for now).
   - **Unavailable view at its URL:** exactly one active region in scope -> `replace`
     redirect to that region's page (`/` while it is Vorarlberg; `/verzeichnis` is kept);
-    none -> coming-soon page ("The Tribe – Deutschland kommt bald", `noindex`). The
-    coming-soon pages of Deutschland and Schweiz add a hint what is needed to go live
-    ("Wir suchen gerade Events für die Landkreise / Bezirke ... sobald mindestens ein
-    Landkreis / Bezirk genügend Events hat", `liveHint` in `regionTexts.js`); Österreich has
-    none. Routes wait for the region config (`loading`) before they redirect.
+    none -> coming-soon page ("Der Tribe Schweiz kommt bald", `noindex`). The
+    coming-soon page of Schweiz adds a hint what is needed to go live ("Wir suchen gerade
+    Events für die Bezirke ... sobald mindestens ein Bezirk genügend Events hat", `liveHint`
+    in `regionTexts.js`); Österreich has none. Routes wait for the region config (`loading`) before they redirect.
   - **Data:** `RegionProvider` exposes `combinedView`, `combinedRegions` (active
     regions in scope) and `combinedViews` (available ones). Calendar, directory
     and query plans use `isNational` mode with `combinedRegions` as id list
     (`regionId in [...]`, `array-contains-any`, limit 30); Bezirke/Orte chips are
     the union of those regions. Favourites (`allActive`) use every active region.
   - **Texts:** `COMBINED_VIEW_TEXTS` in `regionTexts.js`: "Dein österreichischer /
-    deutscher / Schweizer Kalender", "Für Österreich / Deutschland / die Schweiz
-    und Umkreis", title "Kalender | The Tribe <Land>"; "Alle Tribes": "Dein
+    Schweizer Kalender", "Für Österreich / die Schweiz und Umkreis", title "Kalender | The Tribe <Land>"; "Alle Tribes": "Dein
     Kalender für bewusste Events", "in allen Regionen", "Für alle Regionen", title
     "Kalender | The Tribe". The footer reads "© 2026 Alle Rechte vorbehalten" everywhere. Per-region texts
     come from `regionTexts()`; the Vorarlberg header is "Dein Vorarlberger Kalender".
@@ -242,8 +263,11 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
   - **Phone:** the header dropdown is hidden below 800px; the region list sits in the burger
     menu (`RegionMenuList`). A not-yet-open region/view shows the neutral header "Dein
     Kalender für bewusste Veranstaltungen" (`comingSoon` in the region context).
-- **Reserved names.** The region slugs and the four combined-view slugs share the
-  top-level URL space with profiles, so `username.js` reserves them.
+- **Reserved names.** The region slugs and the combined-view slugs share the
+  top-level URL space with profiles, so `username.js` reserves them, plus the ids of former
+  regions (`RETIRED_REGION_IDS`: Germany, the cultural regions, `allgaeu`, the grouped
+  cantons) and the former view `deutschland` (`RETIRED_VIEW_SLUGS`), so nobody can claim an
+  old region address.
   `scripts/check-reserved-usernames.mjs` prints and checks them (run it READ-ONLY
   against production before a merge that adds names).
 
@@ -254,9 +278,13 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
   **missing** field means `vorarlberg` everywhere (`resolveRegionId`), so
   pre-migration docs keep working. The server-side queries (section 5) need the
   fields to exist, hence the migration.
-- `regions/{id}`: `name`, `slug`, `order`, `active`, `bezirke`, `contactEmail`,
-  `seo: { title, description }`, `timezone`, `createdAt`, `updatedAt` (rules
-  whitelist; no `country`).
+- `regions/{id}`: `order`, `active`, `contactEmail`, `seo: { title, description }`,
+  `timezone`, the "Über uns" fields, `instagramHandle`, `texts`, `createdAt`, `updatedAt`
+  (rules whitelist). **Names, slugs, order and districts (`bezirke`) are defined only in
+  code** (the generated register, section 2a); old docs may still carry `name`, `slug`,
+  `bezirke` and `mappingUpdatedAt`: ignored, never required, the rules refuse client writes
+  to them and a new doc must not carry them. `scripts/cleanup-region-docs.mjs` removes them
+  (see staging-migration.md, "Regions rollout").
 - `regions/{id}.texts` (optional, `{ examples: { place, organizer, address, contact } }`,
   plain text, max 120 characters each, more text keys can be added next to `examples`):
   the grey "z.B. ..." examples of the event forms (`EventFormWizard`, `EventForm`,
@@ -264,10 +292,11 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
   "Beispieltexte"; moderators of the region and Super-Admins, rules list `texts` in the
   moderator field set). `mergeRegions` sanitises it (`sanitizeTexts`). Precedence per
   field (`formExamples` in `src/utils/regionExamples.js`): stored text of the event's
-  region > (Ort only) first Bezirk / Landkreis > neutral text ("z.B. Ortsname", ...).
-  Dark launch: with fewer than two active regions the legacy Vorarlberg strings
-  ("Lindau", "Dornbirn", "6900 Bregenz", ...) stay byte-identical and stored texts are ignored;
-  with two or more, Vorarlberg keeps the legacy strings unless it has own texts.
+  region > (Ort only) first Bezirk / Landkreis without "(Stadt)" / "1. " ("z.B. Innsbruck")
+  > neutral text ("z.B. Ortsname", ...).
+  > Dark launch: with fewer than two active regions the legacy Vorarlberg strings
+  > ("Lindau", "Dornbirn", "6900 Bregenz", ...) stay byte-identical and stored texts are ignored;
+  > with two or more, Vorarlberg keeps the legacy strings unless it has own texts.
 - `app_settings/regionMigration` = `{ complete: true }` is the migration marker.
 - Online events (`isOnline`) keep their own `regionId`. With one active region they are
   visible everywhere; with two or more see 2b.
@@ -278,133 +307,41 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
   that writes events or listings outside the app (scripts, console) must set
   them too, or the doc is invisible while the marker is set.
 
-### 2a. Landkreis / Bezirk -> region mapping ("Zuordnung")
+### 2a. Regions and districts: defined only in code
 
-The register has **111 regions**: the 51 Bundesländer / Kantone (`home: true`, the
-**backend structure**) and **60 cultural regions of Germany** (`home: false`, `macro` =
-one of the six Großregionen) from the product owner's list. Cultural regions start
-**empty**; all Landkreise first belong to their Bundesland. In Verwaltung -> "Zuordnung"
-(Super-Admin only, `RegionMappingTab.jsx`) the product owner moves districts between the
-regions of one country; the lists are saved in `regions/{id}.bezirke` (+ `mappingUpdatedAt`).
+The register has **29 regions**: Austria 9 (116 Bezirke), Switzerland 19 (139 Bezirke),
+Liechtenstein 1 (2 Landesteile). Regions and their districts come only from the CSVs in
+`scripts/data/regions/` via the generated `src/data/regionData.js`; there is no admin tool,
+callable or Firestore field to change them, and no region can be created at runtime. A change
+is a code change (see section 13).
 
-- **Phone flow (ticket 559):** drag and drop does not work on phones, so everything also works by tapping: tap entries (checkbox or the chips of "Noch ohne Region"), then tap the target region tile; "Aus der Region nehmen" puts the selection back to its Bundesland. Drag and drop stays for desktop.
-- **Germany, Austria, Switzerland (ticket 599):** the tab has a country switcher (Deutschland is the default). Germany works as described here. Austria and Switzerland use the same flow, but no built-in cultural regions exist there, so the regions are the Bundesländer / Kantone themselves (plus any region created in this tab) and the districts are the Bezirke: pick a Bundesland / Kanton, add Bezirke from elsewhere in the country or take them out again (a Bezirk taken out returns to the Bundesland / Kanton it belongs to by origin; a region's own Bezirke have no "take out" button). No rename (the names are the register's), no "Vorschlag laden", no "Noch ohne Region". The callable already accepted AT / CH moves; nothing changed server side. The map is `src/data/bezirkMapAtCh.json` (`scripts/build-atch-bezirk-map.mjs <html>`, from the product owner's map "Österreich, Schweiz und Liechtenstein – Bundesländer, Kantone und Bezirke", not committed; guarded by `tests/components/bezirkMapAtCh.spec.ts`). The register is NOT changed to fit the map: Wien (23 Gemeindebezirke), Bern "Oberland" (2 Verwaltungskreise) and Schaffhausen (old Bezirke) are drawn as one district each. Open gaps: four map shapes have no register Bezirk (Küssnacht SZ, la Veveyse FR, Dorneck SO, Solothurn SO); they are drawn grey and cannot be clicked. Liechtenstein (11 Gemeinden) is in the map file but not in the register (no country, no region), so it is not drawn or assignable. New regions for AT / CH are created by the Super-Admin in this tab ("Neue Region anlegen", section 2c).
-- **Fixed vs editable:** the districts themselves (`DISTRICT_CATALOG` in
-  `src/utils/regionMapping.js`, built from the `home` regions; key `"<country>|<name>"`,
-  names are unique per country) are never editable, nor is the country of a district.
-  Only the assignment is. Every district belongs to exactly one region of its country
-  (`checkMapping`). The legacy "Grenznahe" of Vorarlberg is not a district and never moves.
-- **Empty regions do not exist for visitors:** `isPopulated(region)` (has districts).
-  `RegionProvider` removes empty ones from `allRegions` (chooser, place search, routes),
-  `RegionsTab` / `ModerationTab` do not list them, and `adminSetRegionActive` refuses to
-  activate one (`no-districts`). The mapping tab still lists them as targets.
-  An empty `bezirke` list only counts when `mappingUpdatedAt` is set (older docs seeded
-  with `[]` fall back to the register); `seed-regions.mjs` never refills such a list.
-- **Server:** callables `adminGetRegionMappingLocks` and `adminSaveRegionMapping`
-  (`functions/src/adminRegionMapping.ts`, pure logic `functions/src/regionMapping.ts` =
-  synced copy of `regionMapping.js`, guarded by `tests/lib/functionsRegionMapping.spec.ts`).
-  Super-Admin only; validates district keys, country, active-region-keeps-a-district and
-  writes the region docs + an `admin_audit_log` entry (`saveRegionMapping`) in one batch.
-- **No event migration, by design:** events keep their `regionId` and `bezirk`. A district
-  that still has events (counted per region that holds it) is **locked** and cannot leave
-  its region (`events-in-district`); moving INTO a region is always allowed. So the mapping
-  is meant to be arranged BEFORE a region gets events. Directory profiles (`directoryRegionIds`
-  / `directoryRegions`) are not checked; there are none outside Vorarlberg before launch.
-- **Prefill, drag and drop, rename:** "Vorschlag laden" stages the prepared assignment
-  `src/data/regionSuggestion.js` (region slug -> Landkreis names, generated from the product
-  owner's map, see below, guarded by `regionSuggestion.spec.ts`) as a normal draft, locked districts skipped; rows and the
-  "Noch ohne Region" chips (districts still in their Bundesland) can be dragged onto a region
-  in the "Regionen" panel. "Region umbenennen" writes only `regions/{id}.name` (client `setDoc`
-  merge, allowed by `isValidRegion`); slug and wording tables stay.
-- **Adding a region (Super-Admin, no developer step):** Verwaltung -> "Zuordnung" ->
-  "Neue Region anlegen" creates a region in the country that is selected above (AT, DE, CH):
-  name plus an optional phrase for texts ("im Allgäu"). It is a **custom region**, see
-  section 2c. Built-in regions (the 51 Bundesländer / Kantone and the 60 cultural regions of
-  Germany) stay generated from `scripts/build-region-data.mjs`.
-- **Map and search of the cultural regions:** the top of the "Zuordnung" tab has a map of all
-  400 Landkreise / kreisfreie Städte (`CultureRegionPicker.jsx`, shapes in
-  `src/data/landkreisMap.json`, keyed by `DISTRICT_CATALOG` key, loaded on demand) and a search
-  with autocomplete (region names and the districts they hold now,
-  `src/utils/cultureRegionSearch.js`). Every Landkreis is coloured by the cultural region that
-  holds it **with the draft applied** (moving one recolours it), unsaved moves are marked
-  orange, the picked region gets a wide border, Landkreise in no cultural region (Bundesland
-  fallback, e.g. Berlin, Hamburg, Bremen) are grey. Picking a region (search, or a click on one
-  of its Landkreise while none is picked) opens a panel with its name (rename), its districts
-  (take out) and an input to add a district; a click on a Landkreis with a region picked adds it
-  to that region. Add and remove only stage the move in the normal draft; saving, locks and
-  checks are unchanged (a locked Landkreis cannot be clicked out of its region).
-- **Map data source:** `scripts/build-landkreis-map.mjs <html>` reads the product owner's map
-  "Neu Kulturregionen Deutschlands mit Landkreisen und Städten" (not committed) as text, matches
-  its names to the catalog (rules + `ALIASES`; Osterode am Harz is drawn as part of Göttingen,
-  Eisenach as part of the Wartburgkreis; geometry about 2015), writes `landkreisMap.json`
-  (paths re-encoded relative, lossless) and regenerates `src/data/regionSuggestion.js` from the
-  map's assignment (the map is the current source for "Vorschlag laden"). Guarded by
-  `tests/components/landkreisMap.spec.ts`. Coordinates are SVG units of the 539.7 x 720.8
-  viewBox, not lat/lon.
-
-### 2c. Regions created in the Verwaltung (custom regions)
-
-A Super-Admin creates a region in "Zuordnung" -> "Neue Region anlegen" (Germany, Austria,
-Switzerland). Nothing in the code has to change for that; everything below makes it work
-like a built-in region.
-
-- **Callable** `adminCreateRegion({ name, country, inPhrase? })` (`functions/src/adminCreateRegion.ts`,
-  Super-Admin only). The slug is derived from the name (`slugifyRegionName`: umlauts
-  transliterated, `Allgäu` -> `allgaeu`). It is refused (`slug-reserved`) when it is a region
-  id, the retired `allgaeu`, a combined view, an app route (`RESERVED_ROUTES`, synced with
-  `username.js`, guarded by `tests/lib/adminCreateRegion.spec.ts`) or the username of an
-  existing profile; `name-taken` when another region has the same name. In one batch it writes
-  - `regions/{slug}`: `custom: true`, `country`, `inPhrase`, `forPhrase` (= name), `demonym`
-    (empty: the header reads "Dein Kalender"), `subdivisionLabel` (Landkreis in DE, else
-    Bezirk), `timezone`, `active: false`, `bezirke: []` + `mappingUpdatedAt`, `order` (behind
-    every region of its country, fractional);
-  - `app_settings/customRegions` `{ ids }` (see rules below);
-  - an `admin_audit_log` entry `createRegion`.
-- **Lifecycle is the normal one:** the region starts empty and inactive, so visitors do not
-  see it (`isPopulated`); districts are assigned in the same tab (all moves work for AT / CH
-  / DE regions, a district taken out returns to the Bundesland / Kanton it belongs to by
-  origin); activation, moderators ("Moderation"), "Über uns", coming-soon page, place
-  search, event forms, emails, ICS, prerender work as for any region. Renaming is allowed
-  (name only, the slug stays). There is no delete and no slug change (an id is stored on
-  events and profiles).
-- **Client register:** `mergeRegions` appends valid custom docs (`customRegionFromDoc`:
-  `custom === true`, slug pattern, not a static id, name, country AT/DE/CH) and
-  `registerCustomRegions` adds their slugs IN PLACE to `REGION_SLUGS` (`STATIC_REGION_SLUGS`
-  is the generated, fixed part). So `isRegionSlug`, `isReservedUsername`, the moderator
-  region lists and the region queries need no extra code. The slugs only exist after the
-  region config loaded: `RegionRoutes` waits for it (`UnknownSlugOrWait`) before it shows a
-  profile or a 404 for an unknown first path segment. The map colours a custom region by a
-  hue derived from its slug.
-- **Functions:** `REGION_IDS` / `isRegionId` in `functions/src/regions.ts` are extended in
-  place by `registerCustomRegionDocs`. `customRegions.ts` (`ensureCustomRegions`, cached 30 s)
-  loads them; it is called by `readRoleDoc` (every role check, so moderators of a created region
-  keep their rights) and by the callables / triggers that validate region ids without a role
-  check (members, moderator application, Mollie webhook, analytics report, event mails).
-  `mergeFeedRegions` (public events, ICS feed) registers and appends them; the mapping
-  callables read them through `buildMappingRegisters`. **Any new server code that validates
-  a region id must make sure the custom regions are loaded first.**
-- **Rules:** `regionIds()` stays the static list. `isValidRegionId` and the `hasOnly` checks on
-  `directoryRegionIds` / moderator lists additionally accept ids in
-  `app_settings/customRegions.ids` (`customRegionIds()`, only looked up for ids that are not
-  static; only the Admin SDK writes the doc, clients cannot). `regions/{id}` allows the extra
-  keys (`custom`, `country`, `inPhrase`, `forPhrase`, `demonym`, `subdivisionLabel`), validated
-  on Super-Admin writes only to stay inside the 1000-expression budget of the moderator path.
-  Lists are joined with `.concat()` (`+` does not work on lists). Tests:
-  `tests/rules/regions.rules.spec.ts` (own emulator project id, the other spec files wipe
-  `demo-rules`).
-- **Prerender:** `sanitizeRegionDoc` keeps the custom keys, `mergeRegions` registers the region,
-  active custom regions get `/<slug>` and `/<slug>/verzeichnis` like the others.
-- **Not covered:** the per-region Instagram backend (still wired by hand,
-  `docs/instagram-regions.md`), `scripts/seed-regions.mjs` (only the generated register; custom
-  docs are never touched), the German "Großregion" (`macro`) of the map page, a polygon on the
-  AT/CH/DE maps (the districts of a custom region are coloured on the existing district map).
+- **Client:** `mergeRegions` lays only the switchable fields of the `regions/{id}` docs
+  (`active`, contact, seo, texts, about, `instagramHandle`, `timezone`, `order`) over the
+  register; `name` and `bezirke` of a doc are ignored. Functions do the same
+  (`mergeFeedRegions`; `STATIC_REGION_BEZIRKE` for `adminSetRegionActive` and the ICS
+  `bezirk=` check); `onRegionWriteBumpEventsVersion` reacts to `active` only.
+- **Catalogue:** `DISTRICT_CATALOG` in `src/utils/regionMapping.js` (key `"<country>|<name>"`,
+  e.g. `AT|Bregenz`, `LI|Oberland`; names are unique per country) and `currentAssignment`
+  (district key -> the region of the register that lists it) are what place search and the
+  Ort -> Bezirk lookup use.
+  The legacy "Grenznahe" of Vorarlberg is not a district.
+- **Empty regions do not exist for visitors:** `isPopulated(region)` (the register lists
+  districts; every CSV region has some, the guard stays for safety). `RegionProvider` removes empty ones from `allRegions` (chooser, place search,
+  routes), `RegionsTab` / `ModerationTab` do not list them, and `adminSetRegionActive`
+  refuses to activate one (`no-districts`).
+- **Rules:** `regionIds()` in `firestore.rules` is the only list of valid region ids (the 29;
+  former ids are refused everywhere: events, profiles, moderators, place selection).
+  `regions/{id}` allows no client write to `name`, `slug`, `bezirke` or `mappingUpdatedAt`
+  (legacy keys may stay in seeded docs until the cleanup).
+- **Not covered:** the per-region Instagram backend is wired by hand
+  (`docs/instagram-regions.md`).
 
 ### 2b. Online events need a regional directory listing (Trello lVFp6Dvw)
 
 - **Rule (only with two or more active regions):** an online event of a non-staff organiser
   (`createdBy`) shows in region R only if the organiser's `users/{uid}/publicProfile/data` is
   listed (`listedInDirectory`, not `directoryHidden`), has R in `directoryRegionIds` (missing =
-  Vorarlberg) and names at least one Bezirk / Landkreis of R (current Zuordnung) in
+  Vorarlberg) and names at least one Bezirk / Landkreis of R (register) in
   `directoryRegions`. The "Online" chip does not count. The event forms (`EventForm`,
   `EventFormWizard`, hook `useOnlineEventGate`) offer "Online-Event" only then; otherwise the box
   is disabled with a German hint (an event that already is online stays editable and can be
@@ -428,7 +365,7 @@ like a built-in region.
   as before. Favourites and OrganizerEvents ignore the rule.
 - **Freshness:** `events.json` gets a new version on event writes, on listing changes
   (`onListingWriteBumpEventsVersion`, only the four listing fields and only with two or more
-  active regions) and on `regions/{id}` changes of `active` / `bezirke`
+  active regions) and on `regions/{id}` changes of `active`
   (`onRegionWriteBumpEventsVersion`). Changes of `admin_users` (someone becomes staff) do not
   bump it; they show with the next version. The ICS feed caches annotations for 5 minutes.
 
@@ -662,12 +599,12 @@ cache, `functions/src/regions.ts`). Unknown slug: `400`. Known but inactive
 region: valid empty feed (`200`, cached like others). Name/PRODID/X-WR-TIMEZONE
 follow the region ("Events Steiermark – thetribe.at"); Vorarlberg unchanged.
 
-Combined views: `region=oesterreich|deutschland|schweiz|alle-tribes` (the client
-sends them in a combined view). Events of the ACTIVE regions of that country (all
+Combined views: `region=oesterreich|schweiz|alle-tribes` (the client
+sends them in a combined view; `deutschland` and former region ids are `400` now). Events of the ACTIVE regions of that country (all
 for `alle-tribes`), online events by their own region; no availability check (a
 view without active region is a valid empty feed); `bezirk=` is checked against
-the Bezirke of all regions in scope; name "Events Deutschland – thetribe.at"
-(`Alle Tribes`, `Österreich`, `Schweiz` alike), default time zone. Favourites use
+the Bezirke of all regions in scope; name "Events Schweiz – thetribe.at"
+(`Alle Tribes`, `Österreich` alike), default time zone. Favourites use
 the default feed. The single-event `.ics` ignores regions.
 
 ## 10. Analytics per region
@@ -720,7 +657,7 @@ Fixtures for a second region, emulator only. Source of truth:
 `scripts/seed-region-fixtures.mjs`.
 
 - **Regions** `regions/vorarlberg` (active), `regions/tirol` (inactive by
-  default; Bezirke Innsbruck, Kufstein, Imst, Lienz) and `regions/wien`
+  default; only switches, the Bezirke come from the register) and `regions/wien`
   (inactive, for visibility tests). `tests/globalSetup.ts` reconciles them on
   every Playwright run with `set(..., { merge: true })` in one batch.
 - **Destructive-project rule:** two active regions show the required region
@@ -729,7 +666,8 @@ Fixtures for a second region, emulator only. Source of truth:
   project. Any spec that activates a second region must be added to
   `DESTRUCTIVE_SPECS` in `playwright.config.ts` and deactivate it again.
 - **Events** are _not_ loaded by globalSetup, so no existing count/order
-  assertion sees them (all titles start with `[Region-Test]`): Yoga Innsbruck,
+  assertion sees them (all titles start with `[Region-Test]`): Yoga Innsbruck (Bezirk
+  "Innsbruck (Stadt)"),
   Meditation Kufstein, Online Atemreise Tirol (`isOnline`, `regionId: 'tirol'`),
   Yoga Dornbirn (explicit `regionId: 'vorarlberg'`) and Yoga Bregenz ohne Region
   (no `regionId`, i.e. "before the migration"). Ids are in `REGION_EVENT_IDS`
@@ -746,9 +684,12 @@ Fixtures for a second region, emulator only. Source of truth:
 regionIds: ['tirol'] }` (reconciled by `seed-region-fixtures.mjs`). Playwright
   session: `STORAGE_STATE.regionModerator`. Scripts that need "the" admin filter
   `admin_users` by `role == 'Admin'`; never use a bare `admin_users.limit(1)`.
-- **Sync test:** `tests/lib/functionsRegions.spec.ts` keeps
-  `functions/src/regions.ts` (slugs, countries, `DIRECTORY_REGIONS`) in step with
-  `src/utils/regions.js` / `src/utils/directory.js`. Rules matrix:
+- **Sync tests:** `tests/lib/regionRegisterCsv.spec.ts` (CSVs <-> both generated files <->
+  rules <-> functions ids, META completeness, id shape, district uniqueness),
+  `tests/lib/functionsRegions.spec.ts` (`functions/src/regions.ts` vs `src/utils/regions.js`
+  / `src/utils/directory.js`), `tests/components/vorarlbergRegister.spec.ts` (Vorarlberg's id,
+  Bezirke, "Grenznahe", the missing-regionId fallback), `tests/components/regionDocs.spec.ts`
+  (seed / cleanup plan). Rules matrix:
   `tests/rules/instagram.rules.spec.ts`.
 - Logic belongs in Vitest (`tests/components/`, `tests/lib/`); see [testing.md](./testing.md)
   and AGENTS.md "Testing" for the tier policy.
@@ -779,50 +720,57 @@ regionIds: ['tirol'] }` (reconciled by `seed-region-fixtures.mjs`). Playwright
   (`staffEventQuerySpecs`).
 - **Legal texts** (Impressum, Datenschutz, AGB in `LegalPage.jsx`) still describe
   tribe Vorarlberg only.
-- **Location near borders:** "Meinen Standort verwenden" resolves AT / CH to the
-  Bundesland / Kanton (no Bezirk shapes, not needed since the Bezirke are fixed inside
-  them); next to the German border the German projection (2-3 km) is the limit, see the
-  accuracy note in the chooser section.
-- **District data** is only as good as the lists in `scripts/data/`: German Landkreise are
-  from 2018 (re-check before going live in Germany), Swiss cantons with one entry list
-  the canton itself as its only "Bezirk".
+- **Location near borders:** "Meinen Standort verwenden" resolves AT / CH / LI to the
+  region of the Bundesland / Kanton / Liechtenstein outline (no Bezirk shapes); a position in
+  Germany has no region.
+- **District data** is only as good as the CSVs: Swiss regions with one entry (Genf, Glarus,
+  Neuenburg, Schaffhausen) list the canton itself as their only "Bezirk"; Appenzell
+  Ausserrhoden and the Entlebuch have no district in the CSV (their places know only the
+  region).
+- **Germany** is not a region country until a `deutschland.csv` arrives. Dormant code that
+  would need it again: `COUNTRY_SETTINGS.DE` / `COUNTRY_LABELS.DE` (ready), the "Landkreis"
+  wording paths (`formatCityWithBezirk` "Lkr.", `SUBDIVISION_PLURALS`), the German parts of
+  `build-place-index.mjs` were removed (add DE to `COUNTRIES`, the download and `ALIASES`),
+  the Landkreis GPS projection was removed (would need German outlines again).
 
 ## 13. How to add a new region
 
-**Preferred: as Super-Admin in Verwaltung -> "Zuordnung" -> "Neue Region anlegen"** (section 2c);
-this replaces steps 1-2 below, steps 3-9 apply unchanged. The developer steps below are only for
-a region that should ship with the generated register. A region outside AT/DE/CH needs the
-generator table (`scripts/build-region-data.mjs`) and a `COMBINED_VIEWS` entry first.
+Regions are added in code only (there is no admin tool for it).
 
-1. **Register entry** (`src/utils/regions.js`, only if the slug is new): add the
-   slug to `REGION_SLUGS` (this also reserves the URL via `username.js`), and fill
-   `REGION_NAMES`, `REGION_IN_PHRASES` ("in der …" when the name takes an
-   article), `REGION_FOR_PHRASES` ("die …" accusative), `REGION_DEMONYMS` (the
-   complete adjective token), `REGION_COUNTRIES` (when not `AT`),
-   `REGION_BEZIRKE` and `REGION_SUBDIVISION_LABELS` (if different),
-   `REGION_TIMEZONES`. A new country also needs a `COMBINED_VIEWS` entry. Mirror
-   slugs/country/districts in `functions/src/regions.ts` and in `firestore.rules`
-   (region id list); `tests/lib/functionsRegions.spec.ts` and
-   `tests/components/regions.spec.ts` catch drift. Adding a slug also requires
-   running `check-reserved-usernames.mjs` read-only against production.
-2. **Seed script:** `node scripts/seed-regions.mjs --prod` (idempotent; creates
-   the doc inactive, keeps admin edits). Test it on staging first.
-3. **Moderator:** appoint a Regions-Moderator:in (admin tab "Moderation" or
+1. **CSV:** add the row (`Region;Bezirke`) to the country's CSV in `scripts/data/regions/` (a
+   new country: a new CSV, plus `COUNTRY_FILES` / `COUNTRY_SETTINGS` in
+   `scripts/lib/regionRegister.mjs`, `COUNTRIES` / `COUNTRY_LABELS` in `src/utils/regions.js`
+   and, if wanted, a `COMBINED_VIEWS` entry in both `regions.js` and
+   `functions/src/regions.ts`).
+2. **META:** add the region to `META` in `scripts/lib/regionRegister.mjs` (`slug` by the id
+   rule, `demonym`, `inPhrase` / `forPhrase` when "in <Name>" / "<Name>" do not fit). Never
+   change an existing slug.
+3. **Generate:** `node scripts/build-region-data.mjs`. Add the id to `regionIds()` in
+   `firestore.rules` (same order); a new outline / canton grouping goes into
+   `ADMIN_SHAPE_REGIONS` (`src/utils/geoRegion.js`). Rebuild the place list
+   (`scripts/build-place-index.mjs`, extend `ALIASES` for unmatched names).
+   `npm run test` (incl. `tests/lib/regionRegisterCsv.spec.ts`) and `npm run test:rules`
+   must be green. Adding a slug also requires running `check-reserved-usernames.mjs`
+   read-only against production.
+4. **Seed script:** `node scripts/seed-regions.mjs --project tribe-vbg-staging`, then
+   `--prod` (idempotent; creates the doc inactive with only switches, keeps admin edits,
+   switches off docs of regions that left the CSVs).
+5. **Moderator:** appoint a Regions-Moderator:in (admin tab "Moderation" or
    `promote-admin.mjs --role RegionModerator --regions <slug>`).
-4. **Contact email:** set `regions/{id}.contactEmail` (Regionen/Console); used for
+6. **Contact email:** set `regions/{id}.contactEmail` (Regionen/Console); used for
    owner mails and, once re-enabled, submission mails.
-5. **Content:** at least 15 upcoming approved, non-online events in the region
+7. **Content:** at least 15 upcoming approved, non-online events in the region
    (the activation condition). Check the Bezirke list with the moderator.
-6. **Activation:** Verwaltung -> Regionen -> "Freischalten" (section 4). Consider
+8. **Activation:** Verwaltung -> Regionen -> "Freischalten" (section 4). Consider
    that this turns on the chooser/switcher and region names for everyone.
-7. **GA dimension:** already exists once `region` is registered (section 10);
+9. **GA dimension:** already exists once `region` is registered (section 10);
    nothing to do per region.
-8. **SEO check:** after the next build, check `dist/<slug>/index.html` (title,
-   canonical, JSON-LD), the sitemap entries and that the page is indexable; check
-   `/<slug>/verzeichnis`.
-9. **Legal texts:** confirm Impressum / Datenschutz / AGB / footer wording with the
-   product owner for the new region or country (they are Vorarlberg-specific
-   today).
+10. **SEO check:** after the next build, check `dist/<slug>/index.html` (title,
+    canonical, JSON-LD), the sitemap entries and that the page is indexable; check
+    `/<slug>/verzeichnis`.
+11. **Legal texts:** confirm Impressum / Datenschutz / AGB / footer wording with the
+    product owner for the new region or country (they are Vorarlberg-specific
+    today).
 
 - **Where the region is chosen:** visitors without an account use the header button (phone:
   burger menu) and the footer; signed-in users and moderators use the card "Region" in the
@@ -835,5 +783,5 @@ generator table (`scripts/build-region-data.mjs`) and a `COMBINED_VIEWS` entry f
 ## District colours (Bezirksfarben)
 
 Each Bezirk / Landkreis has a colour for its badge and calendar chip, stored as overrides in
-`app_settings/districtColors`. A district added later (new region, Zuordnung) gets an automatic
+`app_settings/districtColors`. A district added later (new region) gets an automatic
 warm tone from a fixed palette without any setup. Details: `docs/design-tokens.md`, "Bezirksfarben".

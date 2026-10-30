@@ -493,8 +493,8 @@ describe('ReviewTab - regions', () => {
     const select = screen.getByTestId('review-region-filter') as HTMLSelectElement;
     expect(Array.from(select.options).map((o) => o.textContent)).toEqual([
       'Alle (2)',
-      'Tirol (1)',
       'Steiermark (1)',
+      'Tirol (1)',
     ]);
   });
 

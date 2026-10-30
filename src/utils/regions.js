@@ -1,4 +1,4 @@
-import { LEGACY_BEZIRKE, REGION_DATA } from '../data/regionData.js';
+import { LEGACY_BEZIRKE, REGION_DATA, RETIRED_REGION_IDS } from '../data/regionData.js';
 import { normalizeInstagramHandle } from './instagramHandle.js';
 import { sanitizeTexts } from './regionExamples.js';
 
@@ -28,26 +28,27 @@ export function bezirkLabel(bezirk) {
   return BEZIRK_LABELS[bezirk] || bezirk;
 }
 
-// URL slugs of the regions (ASCII, umlauts transliterated): the nine Austrian
-// Bundeslaender, the sixteen German Bundeslaender and the 26 Swiss cantons.
-// Order = switcher order (Austria, Germany, Switzerland). The data (names,
-// wording, Bezirke / Landkreise) is generated into src/data/regionData.js by
-// scripts/build-region-data.mjs. "Österreich" etc. are not regions but combined
-// views over them (UI only, never stored on an event or profile).
+// URL slugs of the regions (ASCII, umlauts transliterated). The register is defined ONLY by
+// the three CSVs in scripts/data/regions/ (Austria: 9 Bundesländer, Switzerland: 19 regions,
+// Liechtenstein: 1), generated into src/data/regionData.js by scripts/build-region-data.mjs.
+// Order = switcher order (Austria, Switzerland, Liechtenstein; CSV row order inside).
+// "Österreich" etc. are not regions but combined views over them (UI only, never stored on
+// an event or profile).
 // Single source: username.js reserves the slugs so no profile can shadow a
-// region address (`/tirol`, `/bayern`, `/zuerich`, ...).
-//
-// `REGION_SLUGS` also carries the regions a Super-Admin created in Verwaltung ->
-// "Zuordnung" (`regions/{id}.custom`): `registerCustomRegions` appends their
-// slugs IN PLACE once the region docs are loaded, so `isRegionSlug`, the
-// username check and every `REGION_SLUGS.includes` see them without changes.
-// `STATIC_REGION_SLUGS` is the fixed, generated part (it matches firestore.rules).
+// region address (`/tirol`, `/zuerich`, ...).
+// `STATIC_REGION_SLUGS` is the generated list (it matches firestore.rules).
 export const STATIC_REGION_SLUGS = Object.freeze(REGION_DATA.map((r) => r.slug));
 export const REGION_SLUGS = [...STATIC_REGION_SLUGS];
 
-// The Allgäu was a region once (pilot); Bavaria replaced it. Stored ids of the
-// old region are read as Bavaria.
-export const LEGACY_REGION_ALIASES = Object.freeze({ allgaeu: 'bayern' });
+// Ids of former regions (Germany, the Allgäu pilot, Swiss cantons now merged into
+// Innerschweiz / Basel / Appenzell). Not valid region ids any more, but still reserved as
+// usernames so nobody can claim an old region address. Generated next to REGION_DATA.
+export { RETIRED_REGION_IDS };
+
+// Stored ids that are read as another region. Empty since the CSV register (Trello
+// QG0GR5lv): the old Allgäu -> Bayern alias is gone with Germany; `allgaeu` stays reserved
+// through RETIRED_REGION_IDS.
+export const LEGACY_REGION_ALIASES = Object.freeze({});
 
 export const DEFAULT_REGION_ID = 'vorarlberg';
 
@@ -88,31 +89,28 @@ export function instagramProfileUrl(handle) {
 
 // Country of each region (static only; deliberately NOT stored in
 // `regions/{id}` docs, firestore.rules does not whitelist it). Drives the
-// combined country views.
-export const COUNTRIES = ['AT', 'DE', 'CH'];
+// combined country views. Germany follows later (a `deutschland.csv`).
+export const COUNTRIES = ['AT', 'CH', 'LI'];
 export const DEFAULT_COUNTRY = 'AT';
-// The six Grossregionen of Germany (map page, ticket 518); `region.macro` names one.
-export const DE_MACRO_REGIONS = Object.freeze([
-  'Norden',
-  'Westen',
-  'Mitte',
-  'Osten',
-  'Südwesten',
-  'Südosten',
-]);
-export const COUNTRY_LABELS = Object.freeze({ AT: 'Österreich', DE: 'Deutschland', CH: 'Schweiz' });
+export const COUNTRY_LABELS = Object.freeze({
+  AT: 'Österreich',
+  CH: 'Schweiz',
+  LI: 'Liechtenstein',
+  DE: 'Deutschland',
+});
 
-// Combined views ("Ganz Österreich", "Ganz Deutschland", "Ganz Schweiz", "Alle
-// Tribes"): not regions, only UI views over the active regions of one country
-// (`country`) or of all countries (`country: null`). Never stored on an event or
-// profile. Their slugs share the top-level path space with profiles, so
-// username.js reserves them next to REGION_SLUGS.
+// Combined views ("Ganz Österreich", "Ganz Schweiz", "Alle Tribes"): not regions, only UI
+// views over the active regions of one country (`country`) or of all countries
+// (`country: null`). Never stored on an event or profile. Their slugs share the top-level
+// path space with profiles, so username.js reserves them next to REGION_SLUGS.
+// Liechtenstein has a single region, so it gets no country view.
 export const COMBINED_VIEWS = Object.freeze([
   { slug: 'oesterreich', name: 'Ganz Österreich', label: 'Österreich', country: 'AT' },
-  { slug: 'deutschland', name: 'Ganz Deutschland', label: 'Deutschland', country: 'DE' },
   { slug: 'schweiz', name: 'Ganz Schweiz', label: 'Schweiz', country: 'CH' },
   { slug: 'alle-tribes', name: 'Alle Tribes', label: 'Alle Tribes', country: null },
 ]);
+// Former combined views: no longer a view, still reserved as usernames.
+export const RETIRED_VIEW_SLUGS = Object.freeze(['deutschland']);
 export const COMBINED_VIEW_SLUGS = COMBINED_VIEWS.map((v) => v.slug);
 
 // Register Bezirke plus the region's legacy pseudo-Bezirke (read-only, see LEGACY_OUTSIDE_BEZIRK).
@@ -123,17 +121,21 @@ const VORARLBERG_BEZIRKE = withLegacyBezirke(
   REGION_DATA.find((r) => r.slug === DEFAULT_REGION_ID).bezirke
 );
 
-// What the sub-areas of a region are called: "Bezirk" in Austria and
-// Switzerland, "Landkreis" in Germany (kreisfreie Staedte are listed there too).
+// What the sub-areas of a region are called: "Bezirk" in Austria and Switzerland,
+// "Landesteil" in Liechtenstein ("Landkreis" once Germany is back).
 export const DEFAULT_SUBDIVISION_LABEL = 'Bezirk';
-const SUBDIVISION_PLURALS = { Bezirk: 'Bezirke', Landkreis: 'Landkreise' };
+const SUBDIVISION_PLURALS = {
+  Bezirk: 'Bezirke',
+  Landesteil: 'Landesteile',
+  Landkreis: 'Landkreise',
+};
 
 export const DEFAULT_REGION_TIMEZONE = 'Europe/Vienna';
 
 // Static register (one entry per region, doc id == slug; also enforced in
 // firestore.rules): the fallback whenever Firestore delivers nothing. Only
-// Vorarlberg is active by default. Every region ships its Bezirke / Landkreise;
-// `regions/{id}.bezirke` overrides them.
+// Vorarlberg is active by default. Every region ships its districts here;
+// Firestore never overrides them.
 export const STATIC_REGIONS = REGION_DATA.map((r, order) => ({
   id: r.slug,
   slug: r.slug,
@@ -147,16 +149,10 @@ export const STATIC_REGIONS = REGION_DATA.map((r, order) => ({
   bezirke: withLegacyBezirke(r.slug, r.bezirke),
   subdivisionLabel: r.subdivisionLabel,
   timezone: r.timezone,
-  // true: Bundesland / Kanton = the backend structure; false: a cultural region of
-  // Germany that starts without Landkreise (see regionMapping.js).
-  home: r.home !== false,
-  ...(r.macro ? { macro: r.macro } : {}),
 }));
 
-// A region without Bezirke / Landkreise (a cultural region nobody has assigned
-// districts to yet, or a Bundesland whose districts all moved elsewhere) does not
-// exist for visitors: no chooser entry, no search hit, no map shape. Only the
-// Verwaltung ("Zuordnung") still lists it.
+// A region whose register list holds no Bezirke / Landkreise does not exist for
+// visitors: no chooser entry, no search hit, no map shape.
 export const isPopulated = (region) => Array.isArray(region?.bezirke) && region.bezirke.length > 0;
 
 // Bezirke of Vorarlberg only. Still used as fallback (event form, directory
@@ -205,16 +201,19 @@ export function resolveDirectoryRegionIds(doc) {
 export const getBezirke = (regionId, regions = STATIC_REGIONS) =>
   getRegionBySlug(regionId, regions)?.bezirke ?? [];
 
-// "Bezirk" / "Landkreis" for a region; unknown ids use "Bezirk".
+// "Bezirk" / "Landesteil" for a region; unknown ids use "Bezirk".
 export const getSubdivisionLabel = (regionId, regions = STATIC_REGIONS) =>
   getRegionBySlug(regionId, regions)?.subdivisionLabel ?? DEFAULT_SUBDIVISION_LABEL;
 
-// "Bezirke" / "Landkreise".
-// Every district of every region (Vorarlberg first), without duplicates: what
-// a directory profile may name in `directoryRegions`. Pass the merged register
-// to include districts that only exist in Firestore (e.g. Tirol).
+// Every district of every region (Vorarlberg first, whatever its place in the register),
+// without duplicates: what a directory profile may name in `directoryRegions`.
 export const getAllDistricts = (regions = STATIC_REGIONS) => [
-  ...new Set(regions.flatMap((r) => r.bezirke ?? [])),
+  ...new Set(
+    [
+      ...regions.filter((r) => r.id === DEFAULT_REGION_ID),
+      ...regions.filter((r) => r.id !== DEFAULT_REGION_ID),
+    ].flatMap((r) => r.bezirke ?? [])
+  ),
 ];
 
 export const getSubdivisionLabelPlural = (regionId, regions = STATIC_REGIONS) => {
@@ -265,80 +264,21 @@ export function filterDirectoryForRegion(
   });
 }
 
-const CUSTOM_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const CUSTOM_TIMEZONES = { AT: 'Europe/Vienna', DE: 'Europe/Berlin', CH: 'Europe/Zurich' };
-
-// A `regions/{id}` doc of a region created at runtime (adminCreateRegion), or null.
-// Needs the country and the name; the wording falls back to the name.
-function customRegionFromDoc(doc, order) {
-  if (!doc || doc.custom !== true || typeof doc.id !== 'string') return null;
-  if (STATIC_REGION_SLUGS.includes(doc.id) || !CUSTOM_SLUG_PATTERN.test(doc.id)) return null;
-  if (typeof doc.name !== 'string' || !doc.name) return null;
-  if (!COUNTRIES.includes(doc.country)) return null;
-  const subdivisionLabel =
-    doc.subdivisionLabel === 'Landkreis' || doc.subdivisionLabel === 'Bezirk'
-      ? doc.subdivisionLabel
-      : doc.country === 'DE'
-        ? 'Landkreis'
-        : DEFAULT_SUBDIVISION_LABEL;
-  const text = (v) => (typeof v === 'string' ? v : '');
-  return {
-    id: doc.id,
-    slug: doc.id,
-    name: doc.name,
-    inPhrase: text(doc.inPhrase) || `in ${doc.name}`,
-    demonym: text(doc.demonym),
-    forPhrase: text(doc.forPhrase) || doc.name,
-    order: typeof doc.order === 'number' ? doc.order : order,
-    country: doc.country,
-    active: false,
-    bezirke: [],
-    subdivisionLabel,
-    timezone: CUSTOM_TIMEZONES[doc.country] ?? DEFAULT_REGION_TIMEZONE,
-    home: false,
-    custom: true,
-  };
-}
-
-/**
- * Makes the regions created in the Verwaltung known: appends their slugs to
- * REGION_SLUGS (and removes slugs of custom regions that no longer exist).
- * Idempotent; returns the register entries of the custom regions.
- */
-export function registerCustomRegions(docs) {
-  const entries = (Array.isArray(docs) ? docs : [])
-    .map((d, i) => customRegionFromDoc(d, STATIC_REGIONS.length + i))
-    .filter(Boolean);
-  const wanted = new Set(entries.map((e) => e.id));
-  for (let i = REGION_SLUGS.length - 1; i >= STATIC_REGION_SLUGS.length; i -= 1) {
-    if (!wanted.has(REGION_SLUGS[i])) REGION_SLUGS.splice(i, 1);
-  }
-  for (const id of wanted) if (!REGION_SLUGS.includes(id)) REGION_SLUGS.push(id);
-  return entries;
-}
-
 // Lays Firestore region docs ({ id, ...data }) over the static register.
-// Unknown ids are ignored, except regions created in the Verwaltung (`custom`),
-// which are appended; an empty/invalid input yields the static register.
+// Unknown ids are ignored; an empty/invalid input yields the static register.
+// Regions, their order and their districts (`bezirke`) come only from the static register
+// (the CSVs); the docs carry just the switchable fields (active, contact, seo, texts, about,
+// ...). A stored `order` of an old doc is ignored.
 export function mergeRegions(docs, base = STATIC_REGIONS) {
   if (!Array.isArray(docs) || docs.length === 0) return base;
-  const customEntries = base === STATIC_REGIONS ? registerCustomRegions(docs) : [];
-  const withCustom = customEntries.length ? [...base, ...customEntries] : base;
   const byId = new Map(docs.filter((d) => d && isRegionSlug(d.id)).map((d) => [d.id, d]));
-  return withCustom
+  return base
     .map((r) => {
       const d = byId.get(r.id);
       if (!d) return r;
       return {
         ...r,
-        ...(typeof d.name === 'string' && d.name ? { name: d.name } : {}),
-        ...(typeof d.order === 'number' ? { order: d.order } : {}),
         ...(typeof d.active === 'boolean' ? { active: d.active } : {}),
-        // An empty list only counts when the mapping tool wrote it (`mappingUpdatedAt`);
-        // older docs seeded before the register had Bezirke carry `bezirke: []`.
-        ...(Array.isArray(d.bezirke) && (d.bezirke.length || d.mappingUpdatedAt)
-          ? { bezirke: d.bezirke }
-          : {}),
         ...(typeof d.contactEmail === 'string' ? { contactEmail: d.contactEmail } : {}),
         ...(d.seo && typeof d.seo === 'object' ? { seo: d.seo } : {}),
         ...(typeof d.timezone === 'string' ? { timezone: d.timezone } : {}),

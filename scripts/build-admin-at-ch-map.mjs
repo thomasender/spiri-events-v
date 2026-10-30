@@ -1,7 +1,11 @@
 #!/usr/bin/env node
-// Builds the Bundesland / Kanton outlines of Austria and Switzerland for "Meinen
-// Standort verwenden" (src/utils/geoRegion.js) -> src/data/adminAtChMap.json.
-// Lazily loaded by LocateRegionButton.jsx only after the visitor asked for the location.
+// Builds the Bundesland / Kanton outlines of Austria and Switzerland plus Liechtenstein for
+// "Meinen Standort verwenden" (src/utils/geoRegion.js) -> src/data/adminAtChMap.json.
+// Lazily loaded by PlacePicker.jsx only after the visitor asked for the location.
+// Outlines are keyed by ISO 3166-2 code; which region each one belongs to is
+// ADMIN_SHAPE_REGIONS in src/utils/geoRegion.js (several cantons share a region, e.g. the six
+// of the Innerschweiz). A change of the region register therefore only needs that table, not
+// a new download.
 //
 // Sources (downloads are not committed; treated as untrusted data, parsed as JSON only):
 // - Austria: geoBoundaries gbOpen AUT ADM1 (boundaryID AUT-ADM1-97560089, build
@@ -10,8 +14,7 @@
 // - Switzerland: geoBoundaries gbOpen CHE ADM1 (CHE-ADM1-70761945, build Dec 12, 2023;
 //   source swisstopo swissBOUNDARIES3D), licence swisstopo OGD (free use, source must be
 //   named).
-// - Liechtenstein (no region, only so a position there stays "no match"): Natural Earth
-//   Admin 1 1:10m, public domain.
+// - Liechtenstein (region `liechtenstein`): Natural Earth Admin 1 1:10m, public domain.
 // Natural Earth alone is too coarse for AT / CH (it puts Konstanz into Thurgau and
 // Passau into Oberösterreich), see docs/regions.md.
 //
@@ -21,20 +24,24 @@
 //   curl -sSLo ne.geojson https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_admin_1_states_provinces.geojson
 //   node scripts/build-admin-at-ch-map.mjs aut.geojson che.geojson ne.geojson
 //
-// Keeps the 9 Bundesländer and the 26 Kantone, matched by ISO 3166-2 code AND an explicit
-// list of accepted names (both must agree), and checks them against the region register
-// both ways. Coordinates stay plain lon/lat: simplified (Douglas-Peucker, SIMPLIFY_KM)
+// Keeps the 9 Bundesländer, the 26 Kantone and Liechtenstein, matched by ISO 3166-2 code AND
+// an explicit list of accepted names (both must agree), and checks ADMIN_SHAPE_REGIONS
+// against the region register both ways (every register region of AT / CH / LI has at least
+// one outline, every outline belongs to a register region). Coordinates stay plain lon/lat: simplified (Douglas-Peucker, SIMPLIFY_KM)
 // and rounded to 1/1000 degree (about 110 m north-south, 75 m east-west). Each ring is
 // stored as integers [lon0, lat0, dLon1, dLat1, ...] in 1/1000 degree.
 import { readFileSync, writeFileSync } from 'node:fs';
+import * as prettier from 'prettier';
 import { STATIC_REGIONS } from '../src/utils/regions.js';
+import { ADMIN_SHAPE_REGIONS } from '../src/utils/geoRegion.js';
 
 const root = new URL('..', import.meta.url).pathname;
 const SCALE = 1000;
 const SIMPLIFY_KM = 0.1;
 
-// ISO 3166-2 -> slug and the names accepted for it (geoBoundaries shapeName; German,
-// French, Italian and English variants so a renamed source fails loudly, not silently).
+// ISO 3166-2 -> the names accepted for it (geoBoundaries shapeName; German, French, Italian
+// and English variants so a renamed source fails loudly, not silently). The first entry is
+// the former canton / Bundesland id, kept for reference only.
 const ADMIN = {
   'AT-1': ['burgenland', 'Burgenland'],
   'AT-2': ['kaernten', 'Kärnten', 'Carinthia'],
@@ -72,9 +79,8 @@ const ADMIN = {
   'CH-ZG': ['zug', 'Zug'],
   'CH-ZH': ['zuerich', 'Zürich', 'Zurich'],
 };
-// Countries without a region of this app (from Natural Earth): a position there is
-// "no match" instead of snapping to St. Gallen / Vorarlberg.
-const NO_REGION_COUNTRIES = ['LI'];
+// Whole countries taken from Natural Earth (one outline per country, key = ISO code).
+const NATURAL_EARTH_COUNTRIES = ['LI'];
 
 const [autPath, chePath, nePath] = process.argv.slice(2);
 if (!autPath || !chePath || !nePath) {
@@ -148,8 +154,7 @@ const addRings = (target, geometry, label) => {
     }
 };
 
-const regions = {};
-const noRegion = {};
+const shapes = {};
 const problems = [];
 for (const [path, country] of [
   [autPath, 'AT'],
@@ -163,28 +168,36 @@ for (const [path, country] of [
       problems.push(`${path}: no slug for ${iso} (${name})`);
       continue;
     }
-    const [slug, ...names] = entry;
+    const [, ...names] = entry;
     if (!names.includes(name)) problems.push(`${iso}: unexpected name "${name}"`);
-    if (regions[slug]) problems.push(`${iso}: listed twice`);
-    regions[slug] = [];
-    addRings(regions[slug], f.geometry, iso);
+    if (shapes[iso]) problems.push(`${iso}: listed twice`);
+    shapes[iso] = [];
+    addRings(shapes[iso], f.geometry, iso);
   }
 }
 for (const f of read(nePath).features ?? []) {
   const country = String(f?.properties?.iso_a2 ?? '');
-  if (!NO_REGION_COUNTRIES.includes(country)) continue;
-  addRings((noRegion[country] ??= []), f.geometry, country);
+  if (!NATURAL_EARTH_COUNTRIES.includes(country)) continue;
+  addRings((shapes[country] ??= []), f.geometry, country);
 }
 
-// Register <-> polygons, both ways.
-const registerSlugs = STATIC_REGIONS.filter((r) => r.country === 'AT' || r.country === 'CH').map(
+// Register <-> outlines (via ADMIN_SHAPE_REGIONS), both ways.
+const registerSlugs = STATIC_REGIONS.filter((r) => ['AT', 'CH', 'LI'].includes(r.country)).map(
   (r) => r.slug
 );
-for (const s of registerSlugs)
-  if (!regions[s]?.length) problems.push(`register region ${s} has no polygon`);
-for (const s of Object.keys(regions))
-  if (!registerSlugs.includes(s)) problems.push(`polygon ${s} is not a register region`);
-for (const c of NO_REGION_COUNTRIES) if (!noRegion[c]) problems.push(`no outline for ${c}`);
+for (const iso of Object.keys(shapes)) {
+  const region = ADMIN_SHAPE_REGIONS[iso];
+  if (!region) problems.push(`outline ${iso} has no region in ADMIN_SHAPE_REGIONS`);
+  else if (!registerSlugs.includes(region))
+    problems.push(`outline ${iso} -> ${region} is not a register region`);
+  if (!shapes[iso].length) problems.push(`outline ${iso} is empty`);
+}
+for (const s of registerSlugs) {
+  const isos = Object.keys(shapes).filter((iso) => ADMIN_SHAPE_REGIONS[iso] === s);
+  if (isos.length === 0) problems.push(`register region ${s} has no outline`);
+}
+for (const iso of Object.keys(ADMIN_SHAPE_REGIONS))
+  if (!shapes[iso]) problems.push(`ADMIN_SHAPE_REGIONS lists ${iso}, but no outline was built`);
 if (problems.length) {
   console.error(problems.join('\n'));
   process.exit(1);
@@ -200,14 +213,19 @@ const out = {
   source:
     'AT: geoBoundaries AUT ADM1 (BEV, CC BY-SA 2.0); CH: geoBoundaries CHE ADM1 (swisstopo, OGD, Quelle: swisstopo); LI: Natural Earth (public domain). Generated by scripts/build-admin-at-ch-map.mjs',
   scale: SCALE,
-  regions: sorted(regions),
-  noRegion: sorted(noRegion),
+  // ISO 3166-2 code -> rings (region: ADMIN_SHAPE_REGIONS in src/utils/geoRegion.js)
+  shapes: sorted(shapes),
 };
 const json = JSON.stringify(out);
-writeFileSync(root + 'src/data/adminAtChMap.json', json + '\n');
-const points = [...Object.values(regions), ...Object.values(noRegion)]
+// Formatted like the committed file (prettier, same as the rest of src/).
+const target = root + 'src/data/adminAtChMap.json';
+writeFileSync(
+  target,
+  await prettier.format(json, { ...((await prettier.resolveConfig(target)) ?? {}), filepath: target })
+);
+const points = Object.values(shapes)
   .flat()
   .reduce((a, r) => a + r.length / 2, 0);
 console.log(
-  `src/data/adminAtChMap.json: ${Object.keys(regions).length} regions, ${points} points, ${json.length} bytes`
+  `src/data/adminAtChMap.json: ${Object.keys(shapes).length} outlines, ${points} points, ${json.length} bytes`
 );

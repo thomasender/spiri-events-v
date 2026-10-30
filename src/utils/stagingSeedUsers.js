@@ -24,7 +24,7 @@ export const STAGING_SEED_USERS = Object.freeze([
     displayName: 'Staging Regions-Moderatorin',
     role: REGION_MODERATOR_ROLE,
     // Canonical REGION_SLUGS order, validated.
-    regionIds: parseModeratorRegions('steiermark,bayern'),
+    regionIds: parseModeratorRegions('steiermark,innerschweiz'),
   },
   {
     key: 'user',

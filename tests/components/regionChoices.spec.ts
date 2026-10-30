@@ -11,12 +11,11 @@ import { STATIC_REGIONS, getAllDistricts, mergeRegions } from '../../src/utils/r
 import { getStaffAccess } from '../../src/utils/staffRoles';
 import { DIRECTORY_REGIONS, validateDirectoryListing } from '../../src/utils/directory';
 
-// Static register with the given regions active; Tirol gets its Bezirke like
-// the emulator fixture (they normally come from Firestore).
+// Static register with the given regions active.
 function registerWithActive(ids: string[]) {
   return mergeRegions([
     ...STATIC_REGIONS.map((r) => ({ id: r.id, active: ids.includes(r.id) })),
-    { id: 'tirol', active: ids.includes('tirol'), bezirke: ['Innsbruck', 'Kufstein'] },
+    { id: 'tirol', active: ids.includes('tirol') },
   ]);
 }
 
@@ -41,7 +40,8 @@ describe('buildRegionChoices', () => {
   it('offers only active regions to ordinary users', () => {
     const c = choices(['vorarlberg', 'tirol']);
     expect(c.enabled).toBe(true);
-    expect(c.options.map((r) => r.id)).toEqual(['vorarlberg', 'tirol']);
+    // Register order (CSV): Tirol before Vorarlberg.
+    expect(c.options.map((r) => r.id)).toEqual(['tirol', 'vorarlberg']);
   });
 
   it('adds inactive regions the person may moderate, and the region an event already has', () => {
@@ -56,8 +56,8 @@ describe('buildRegionChoices', () => {
     ).toBe(STATIC_REGIONS.length);
     const mod = getStaffAccess('RegionModerator', ['wien']);
     expect(buildRegionChoices({ ...base, access: mod }).options.map((r) => r.id)).toEqual([
-      'vorarlberg',
       'tirol',
+      'vorarlberg',
       'wien',
     ]);
     expect(
@@ -65,21 +65,24 @@ describe('buildRegionChoices', () => {
     ).toContain('salzburg');
   });
 
-  it('preselects the current region, else the first option', () => {
+  it('preselects the current region, else Vorarlberg, else the first option', () => {
     expect(choices(['vorarlberg', 'tirol'], { currentRegionId: 'tirol' }).defaultRegionId).toBe(
       'tirol'
     );
     expect(choices(['vorarlberg', 'tirol'], { currentRegionId: 'wien' }).defaultRegionId).toBe(
       'vorarlberg'
     );
+    expect(choices(['salzburg', 'tirol'], { currentRegionId: 'wien' }).defaultRegionId).toBe(
+      'salzburg'
+    );
   });
 });
 
 describe('sub-area helpers', () => {
-  const c = choices(['vorarlberg', 'steiermark', 'bayern']);
+  const c = choices(['vorarlberg', 'steiermark', 'liechtenstein']);
 
   it('label and options follow the region', () => {
-    expect(subdivisionFor('bayern', c).label).toBe('Landkreis');
+    expect(subdivisionFor('liechtenstein', c).label).toBe('Landesteil');
     expect(subdivisionFor('steiermark', c).label).toBe('Bezirk');
     expect(subdivisionFor('vorarlberg', c).options).toContain('Dornbirn');
     // The legacy "Umgebung" is never offered for an event (Trello dx8dCQJc), even when a
@@ -89,22 +92,22 @@ describe('sub-area helpers', () => {
 
   it('keepIfInRegion resets a district of another region', () => {
     expect(keepIfInRegion('Dornbirn', 'vorarlberg', c)).toBe('Dornbirn');
-    expect(keepIfInRegion('Dornbirn', 'bayern', c)).toBe('');
-    expect(keepIfInRegion('', 'bayern', c)).toBe('');
+    expect(keepIfInRegion('Dornbirn', 'liechtenstein', c)).toBe('');
+    expect(keepIfInRegion('', 'liechtenstein', c)).toBe('');
   });
 
   it('selectedRegionId falls back to the default for unknown or unavailable ids', () => {
-    expect(selectedRegionId('bayern', c)).toBe('bayern');
+    expect(selectedRegionId('liechtenstein', c)).toBe('liechtenstein');
     expect(selectedRegionId('wien', c)).toBe('vorarlberg');
     expect(selectedRegionId('', c)).toBe('vorarlberg');
   });
 
   it('directory groups and cleanup follow the chosen regions', () => {
-    const groups = directoryDistrictGroups(['vorarlberg', 'bayern'], c);
-    expect(groups.map((g) => g.label)).toEqual(['Bezirke', 'Landkreise']);
-    expect(districtsAfterRegionChange(['Dornbirn', 'Oberallgäu', 'Online'], ['bayern'], c)).toEqual(
-      ['Oberallgäu', 'Online']
-    );
+    const groups = directoryDistrictGroups(['vorarlberg', 'liechtenstein'], c);
+    expect(groups.map((g) => g.label)).toEqual(['Bezirke', 'Landesteile']);
+    expect(
+      districtsAfterRegionChange(['Dornbirn', 'Oberland', 'Online'], ['liechtenstein'], c)
+    ).toEqual(['Oberland', 'Online']);
   });
 });
 
@@ -119,7 +122,8 @@ describe('directory district list', () => {
     ]);
     expect(DIRECTORY_REGIONS).toEqual([...getAllDistricts(), 'Online']);
     expect(DIRECTORY_REGIONS).toContain('Leibnitz');
-    expect(DIRECTORY_REGIONS).toContain('Oberallgäu');
+    expect(DIRECTORY_REGIONS).toContain('Oberland');
+    expect(DIRECTORY_REGIONS).not.toContain('Oberallgäu');
     expect(DIRECTORY_REGIONS).toContain('Zürich');
     expect(DIRECTORY_REGIONS.at(-1)).toBe('Online');
   });

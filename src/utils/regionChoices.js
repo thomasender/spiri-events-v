@@ -1,4 +1,5 @@
 import {
+  DEFAULT_REGION_ID,
   DEFAULT_SUBDIVISION_LABEL,
   getBezirke,
   getSubdivisionLabel,
@@ -15,7 +16,7 @@ import {
  * `enabled` is true only with two or more active regions; with one the forms
  * show no region field and behave exactly as before. `options` are the regions
  * the person may pick, `defaultRegionId` the preselection (current region if
- * selectable, else the first option).
+ * selectable, else Vorarlberg if selectable, else the first option).
  */
 export function buildRegionChoices({
   activeRegions = [],
@@ -32,9 +33,12 @@ export function buildRegionChoices({
   const options = allRegions.filter(
     (r) => r.active || Boolean(access?.canModerateRegion?.(r.id)) || keep.includes(r.id)
   );
-  const defaultRegionId = options.some((r) => r.id === currentRegionId)
+  const offered = (id) => options.some((r) => r.id === id);
+  const defaultRegionId = offered(currentRegionId)
     ? currentRegionId
-    : (options[0]?.id ?? currentRegionId);
+    : offered(DEFAULT_REGION_ID)
+      ? DEFAULT_REGION_ID
+      : (options[0]?.id ?? currentRegionId);
   return { enabled, options, defaultRegionId, allRegions };
 }
 

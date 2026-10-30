@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { withDistricts } from '../helpers/withDistricts';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
@@ -68,10 +69,10 @@ import EventForm from '../../src/components/EventForm';
 // Static register with the given regions active; Tirol has its Bezirke like
 // the emulator fixture (they come from Firestore in the app).
 function regionContext(activeIds: string[], currentId = 'vorarlberg') {
-  const allRegions = mergeRegions([
-    ...STATIC_REGIONS.map((r) => ({ id: r.id, active: activeIds.includes(r.id) })),
-    { id: 'tirol', active: activeIds.includes('tirol'), bezirke: ['Innsbruck', 'Kufstein'] },
-  ]);
+  const allRegions = withDistricts(
+    mergeRegions(STATIC_REGIONS.map((r) => ({ id: r.id, active: activeIds.includes(r.id) }))),
+    { tirol: ['Innsbruck', 'Kufstein'] }
+  );
   const regions = allRegions.filter((r) => r.active);
   return {
     ...DEFAULT_REGION_CONTEXT,
@@ -253,15 +254,15 @@ describe('EventFormWizard region field', () => {
     expect(optionTexts(document.getElementById('bezirk') as HTMLElement)).toContain('Innsbruck');
   });
 
-  it('uses "Landkreis" for the Bayern and resets a Bezirk that no longer fits when the region changes', () => {
+  it('uses the Bezirke of the region and resets a Bezirk that no longer fits when the region changes', () => {
     seedWizardDraft({ bezirk: 'Dornbirn', city: 'Dornbirn', regionId: 'vorarlberg' });
-    render(withRegions(regionContext(['vorarlberg', 'bayern']), <EventFormWizard />));
+    render(withRegions(regionContext(['vorarlberg', 'st-gallen']), <EventFormWizard />));
 
     const bezirk = () => document.getElementById('bezirk') as HTMLSelectElement;
     expect(document.querySelector('.kategorie__single-value')).toHaveTextContent('Dornbirn');
     expect(bezirk()).toBeNull();
 
-    changeRegionViaDialog('bayern');
+    changeRegionViaDialog('st-gallen');
 
     // The city was reset with the region: nothing entered, so no select yet.
     expect(bezirk()).toBeNull();
@@ -269,20 +270,20 @@ describe('EventFormWizard region field', () => {
     fireEvent.change(document.getElementById('city') as HTMLInputElement, {
       target: { value: 'Nirgendwo' },
     });
-    expect(screen.getByLabelText('Landkreis')).toBeInTheDocument();
+    expect(screen.getByLabelText('Bezirk')).toBeInTheDocument();
     expect(bezirk().value).toBe('');
-    expect(optionTexts(bezirk())).toContain('Oberallgäu');
-    expect(optionTexts(bezirk())[0]).toBe('Landkreis auswählen...');
+    expect(optionTexts(bezirk())).toContain('Rheintal');
+    expect(optionTexts(bezirk())[0]).toBe('Bezirk auswählen...');
     expect(optionTexts(bezirk())).not.toContain('Dornbirn');
   });
 
-  it('lets an Ort without Landkreis through (a place in no list, e.g. Liechtenstein)', () => {
-    seedWizardDraft({ regionId: 'bayern', city: 'Ruggell', bezirk: '' });
-    render(withRegions(regionContext(['vorarlberg', 'bayern']), <EventFormWizard />));
+  it('lets an Ort without Bezirk through (a place in no list)', () => {
+    seedWizardDraft({ regionId: 'st-gallen', city: 'Nirgendwo', bezirk: '' });
+    render(withRegions(regionContext(['vorarlberg', 'st-gallen']), <EventFormWizard />));
 
     fireEvent.click(screen.getByRole('button', { name: /^weiter$/i }));
 
-    expect(screen.queryByText(/Bitte Landkreis auswählen/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Bitte Bezirk auswählen/)).not.toBeInTheDocument();
     expect(document.getElementById('city')).toBeNull(); // next step
   });
 
@@ -362,26 +363,26 @@ describe('EventFormWizard region field', () => {
       );
     };
     const { unmount } = render(withRegions(ctx, <EventFormWizard />));
-    expect(regionOptions()).toEqual(['Vorarlberg', 'Tirol']);
+    // Register order (CSV): Tirol before Vorarlberg.
+    expect(regionOptions()).toEqual(['Tirol', 'Vorarlberg']);
     unmount();
 
     mockAuth.role = 'RegionModerator';
     mockAuth.staffRegionIds = ['wien'];
     render(withRegions(ctx, <EventFormWizard />));
-    expect(regionOptions()).toEqual(['Vorarlberg', 'Tirol', 'Wien (noch nicht freigeschaltet)']);
+    expect(regionOptions()).toEqual(['Tirol', 'Vorarlberg', 'Wien (noch nicht freigeschaltet)']);
   });
 });
 
-describe('Ort -> Landkreis in regions without a Gemeinde list', () => {
-  // Bayern and a cultural region (Ruhrgebiet, districts as assigned in Verwaltung).
-  function deContext(currentId: string) {
-    const allRegions = mergeRegions([
-      ...STATIC_REGIONS.map((r) => ({
+describe('Ort -> Bezirk in regions without a Gemeinde list', () => {
+  // St. Gallen and Zürich (Swiss regions of the register).
+  function chContext(currentId: string) {
+    const allRegions = mergeRegions(
+      STATIC_REGIONS.map((r) => ({
         id: r.id,
-        active: ['vorarlberg', 'bayern', 'ruhrgebiet'].includes(r.id),
-      })),
-      { id: 'ruhrgebiet', active: true, bezirke: ['Essen', 'Dortmund'] },
-    ]);
+        active: ['vorarlberg', 'st-gallen', 'zuerich'].includes(r.id),
+      }))
+    );
     return {
       ...DEFAULT_REGION_CONTEXT,
       allRegions,
@@ -397,43 +398,46 @@ describe('Ort -> Landkreis in regions without a Gemeinde list', () => {
     fireEvent.change(city(), { target: { value } });
   };
 
-  it('picking a place hides the Landkreis select; it shows when the Ort decided nothing, and stays once picked', async () => {
-    seedWizardDraft({ city: '', regionId: 'ruhrgebiet' });
-    render(withRegions(deContext('ruhrgebiet'), <EventFormWizard />));
+  it('picking a place hides the Bezirk select; it shows when the Ort decided nothing, and stays once picked', async () => {
+    seedWizardDraft({ city: '', regionId: 'zuerich' });
+    render(withRegions(chContext('zuerich'), <EventFormWizard />));
 
     // Nothing entered yet: the select is hidden by default.
     expect(bezirk()).toBeNull();
 
-    typeCity('Dort');
+    typeCity('Wint');
     fireEvent.click((await screen.findAllByTestId('city-place-option'))[0]);
-    expect(city().value).toBe('Dortmund');
+    expect(city().value).toBe('Winterthur');
     expect(bezirk()).toBeNull();
 
     // A free text that no place list knows: the select is back; the pick stays visible.
     fireEvent.change(city(), { target: { value: '' } });
     typeCity('Nirgendwo');
     expect(bezirk()).not.toBeNull();
-    fireEvent.change(bezirk(), { target: { value: 'Essen' } });
-    expect(bezirk().value).toBe('Essen');
+    fireEvent.change(bezirk(), { target: { value: 'Horgen' } });
+    expect(bezirk().value).toBe('Horgen');
     expect(city().value).toBe('Nirgendwo');
   });
 
-  it('a picked place decides its Landkreis; a place of another open region moves the form there', async () => {
-    seedWizardDraft({ city: '', regionId: 'bayern' });
-    render(withRegions(deContext('bayern'), <EventFormWizard />));
+  it('a picked place decides its Bezirk; a place of another open region moves the form there', async () => {
+    seedWizardDraft({ city: '', regionId: 'st-gallen' });
+    render(withRegions(chContext('st-gallen'), <EventFormWizard />));
 
-    typeCity('Neustadt');
+    typeCity('Buchs');
     const options = await screen.findAllByTestId('city-place-option');
     expect(options).toHaveLength(2);
     fireEvent.click(options[0]);
-    expect(city().value).toBe('Neustadt');
+    expect(city().value).toBe('Buchs');
     expect(bezirk()).toBeNull();
   });
 
   it('a place of another open region moves the form there', async () => {
-    seedWizardDraft({ city: '', regionId: 'bayern' });
+    seedWizardDraft({ city: '', regionId: 'st-gallen' });
     render(
-      withRegions(regionContext(['vorarlberg', 'bayern', 'tirol'], 'bayern'), <EventFormWizard />)
+      withRegions(
+        regionContext(['vorarlberg', 'st-gallen', 'tirol'], 'st-gallen'),
+        <EventFormWizard />
+      )
     );
 
     typeCity('Inns');
@@ -452,18 +456,18 @@ describe('Ort decides the region while only Vorarlberg is active', () => {
 
     const ort = screen.getByLabelText('Ort *');
     fireEvent.focus(ort);
-    fireEvent.change(ort, { target: { value: 'Lind' } });
-    fireEvent.click(await screen.findByRole('option', { name: /Lindau \(Bodensee\)/ }));
+    fireEvent.change(ort, { target: { value: 'Rorsch' } });
+    fireEvent.click(await screen.findByRole('option', { name: /Rorschach \(Bodensee\)/ }));
 
     expect(screen.getByTestId('city-region-hint')).toHaveTextContent(
-      'Dieser Ort gehört zur Region Bayern, die noch nicht freigeschaltet ist. Dein Event erscheint dort ab der Freischaltung.'
+      'Dieser Ort gehört zur Region St. Gallen, die noch nicht freigeschaltet ist. Dein Event erscheint dort ab der Freischaltung.'
     );
     expect(document.getElementById('bezirk')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /^weiter$/i }));
     const saved = await submitWizardAndGetEvent();
-    expect(saved.regionId).toBe('bayern');
-    expect(saved.bezirk).toBe('Lindau (Bodensee)');
-    expect(saved.city).toBe('Lindau (Bodensee)');
+    expect(saved.regionId).toBe('st-gallen');
+    expect(saved.bezirk).toBe('Rorschach');
+    expect(saved.city).toBe('Rorschach (Bodensee)');
   });
 
   it('a place in no list stays in Vorarlberg without Bezirk; a Gemeinde as before', async () => {

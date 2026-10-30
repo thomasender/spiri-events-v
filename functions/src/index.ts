@@ -16,7 +16,6 @@ import {
   donationRegionId,
   sanitizeDonorComment,
 } from './mollieWebhookLogic';
-import { ensureCustomRegions } from './customRegions';
 import {
   onEventStatusChanged,
   onEventCreated,
@@ -79,8 +78,6 @@ export const createMollieSubscription = onCall(
     const apiKey = MOLLIE_API_KEY.value();
     assertApiKey(apiKey);
 
-    // Custom regions must be known for the region and its currency (CHF in CH).
-    await ensureCustomRegions();
     const regionId = donationRegionId(data.regionId);
     const currency = donationCurrencyForRegion(regionId);
 
@@ -130,8 +127,6 @@ export const createMolliePayment = onCall(
     const apiKey = MOLLIE_API_KEY.value();
     assertApiKey(apiKey);
 
-    // Custom regions must be known for the region and its currency (CHF in CH).
-    await ensureCustomRegions();
     const regionId = donationRegionId(data.regionId);
     const currency = donationCurrencyForRegion(regionId);
 
@@ -180,8 +175,6 @@ export { adminListMembers, adminUpdateMember } from './adminMembers';
 export { submitModeratorApplication } from './moderatorApplication';
 export { adminSetRegionModerator, adminListRegionModerators } from './adminModerators';
 export { adminSetRegionActive, adminListRegionActivation } from './adminRegions';
-export { adminGetRegionMappingLocks, adminSaveRegionMapping } from './adminRegionMapping';
-export { adminCreateRegion } from './adminCreateRegion';
 export { adminAnalyticsReport } from './adminAnalytics';
 export { adminMailgunUsage } from './adminMailgun';
 export { onEventApprovedPostToInstagram } from './instagramPostOnApproval';

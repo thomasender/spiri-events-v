@@ -38,13 +38,13 @@ import { useEventRegionContext, useRegion } from '../../src/hooks/useRegion';
 import { useRegionTexts } from '../../src/hooks/useRegionTexts';
 
 const WITH_TIROL = mergeRegions([{ id: 'tirol', active: true }]);
-const WITH_ALLGAEU = mergeRegions([
+const WITH_ZUERICH = mergeRegions([
   { id: 'vorarlberg', active: false },
-  { id: 'bayern', active: true },
+  { id: 'zuerich', active: true },
 ]);
-const WITH_ALLGAEU_AND_TIROL = mergeRegions([
+const WITH_ZUERICH_AND_TIROL = mergeRegions([
   { id: 'tirol', active: true },
-  { id: 'bayern', active: true },
+  { id: 'zuerich', active: true },
 ]);
 
 function RegionProbe() {
@@ -189,23 +189,17 @@ describe('region or profile at /:slug', () => {
 
   it('waits for the region config before redirecting a combined view', () => {
     mocks.regions = { regions: STATIC_REGIONS, loading: true };
-    renderAt('/deutschland');
+    renderAt('/schweiz');
     expect(screen.getByTestId('region-loading')).toBeInTheDocument();
   });
 
-  it('/deutschland is coming soon without an active German region', () => {
+  it('/deutschland is no view any more: it is a (reserved, so never existing) profile address', () => {
     renderAt('/deutschland');
-    expect(screen.getByTestId('region-coming-soon')).toHaveTextContent(
-      'Der Tribe Deutschland kommt bald.'
-    );
+    expect(screen.queryByTestId('region-coming-soon')).toBeNull();
+    expect(screen.getByTestId('profile-page')).toBeInTheDocument();
   });
 
-  it('coming-soon pages of Deutschland and Schweiz say what is needed to go live; Österreich needs none', () => {
-    const { unmount } = renderAt('/deutschland');
-    expect(screen.getByTestId('view-live-hint')).toHaveTextContent(
-      'Wir suchen gerade Events für die Landkreise in Deutschland. Wir können erst mit Deutschland live gehen, sobald mindestens ein Landkreis genügend Events hat.'
-    );
-    unmount();
+  it('the coming-soon page of Schweiz says what is needed to go live; Österreich needs none', () => {
     renderAt('/schweiz');
     expect(screen.getByTestId('view-live-hint')).toHaveTextContent(
       'Wir suchen gerade Events für die Bezirke in der Schweiz. Wir können erst mit der Schweiz live gehen, sobald mindestens ein Bezirk genügend Events hat.'
@@ -220,16 +214,16 @@ describe('region or profile at /:slug', () => {
     );
   });
 
-  it('/deutschland redirects to the only active German region', () => {
-    mocks.regions = { regions: WITH_ALLGAEU, loading: false };
-    renderAt('/deutschland');
+  it('/schweiz redirects to the only active Swiss region', () => {
+    mocks.regions = { regions: WITH_ZUERICH, loading: false };
+    renderAt('/schweiz');
     expect(screen.queryByTestId('region-coming-soon')).toBeNull();
     expect(screen.getByTestId('calendar-page')).toBeInTheDocument();
-    expect(probe()).toBe('bayern');
+    expect(probe()).toBe('zuerich');
   });
 
   it('/alle-tribes is the combined view with regions of two countries', () => {
-    mocks.regions = { regions: WITH_ALLGAEU_AND_TIROL, loading: false };
+    mocks.regions = { regions: WITH_ZUERICH_AND_TIROL, loading: false };
     renderAt('/alle-tribes');
     expect(screen.getByTestId('calendar-page')).toBeInTheDocument();
     expect(probe()).toBe('vorarlberg national');
@@ -241,12 +235,15 @@ describe('region or profile at /:slug', () => {
     expect(probe()).toBe('vorarlberg national');
   });
 
-  it('/deutschland is the combined view with two German regions', () => {
+  it('/schweiz is the combined view with two Swiss regions', () => {
     mocks.regions = {
-      regions: WITH_ALLGAEU_AND_TIROL.map((r) => (r.id === 'tirol' ? { ...r, country: 'DE' } : r)),
+      regions: mergeRegions([
+        { id: 'zuerich', active: true },
+        { id: 'innerschweiz', active: true },
+      ]),
       loading: false,
     };
-    renderAt('/deutschland');
+    renderAt('/schweiz');
     expect(probe()).toBe('vorarlberg national');
   });
 

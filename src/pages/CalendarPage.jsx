@@ -104,7 +104,7 @@ const HERO_FEATURE_PAIRS = [HERO_FEATURES.slice(0, 2), HERO_FEATURES.slice(2, 4)
 // `region` = { regionId, bezirke }: the region's feed (`region=<slug>`, Orte checked against its
 // own Bezirke). Absent, the default region (Vorarlberg) or the combined view: no `region`
 // parameter and the Vorarlberg Bezirke, i.e. exactly the URL from before regions existed.
-// Combined view (`region.combinedView`, e.g. { slug: 'deutschland' }): `region=<view slug>`
+// Combined view (`region.combinedView`, e.g. { slug: 'schweiz' }): `region=<view slug>`
 // and the union of the Bezirke of the included regions.
 export function buildFeedUrl(origin, selectedOrte, selectedCategories, token, region = null) {
   const params = new URLSearchParams();

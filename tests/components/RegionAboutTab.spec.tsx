@@ -119,7 +119,8 @@ describe('RegionAboutTab example texts', () => {
     render(<RegionAboutTab />);
     pickTirol();
     const place = screen.getByTestId('region-about-example-place') as HTMLInputElement;
-    expect(place.placeholder).toBe(STATIC_REGIONS.find((r) => r.id === 'tirol')!.bezirke[0]);
+    // The first Bezirk without its "(Stadt)": an Ort.
+    expect(place.placeholder).toBe('Innsbruck');
     expect(screen.getByTestId('region-about-example-contact')).toHaveAttribute(
       'placeholder',
       'kontakt@email.de'
