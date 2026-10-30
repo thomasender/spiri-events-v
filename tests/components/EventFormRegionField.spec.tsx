@@ -122,6 +122,8 @@ function seedWizardDraft(formData: Record<string, unknown> = {}, currentStep = 3
           endDate: '',
           place: 'Ort',
           city: 'Testort',
+          // Chosen from the list (an Ort typed free is refused, see the Ruggell test).
+          cityPicked: true,
           contribution: 'free',
           priceCurrency: 'EUR',
           description: '<p>Beschreibung</p>',
@@ -470,13 +472,12 @@ describe('Ort decides the region while only Vorarlberg is active', () => {
     expect(saved.city).toBe('Rorschach (Bodensee)');
   });
 
-  it('a place in no list stays in Vorarlberg without Bezirk; a Gemeinde as before', async () => {
-    seedWizardDraft({ city: 'Ruggell', bezirk: '' }, 4);
+  it('refuses an Ort that was typed and is in no list (Ruggell); nothing is saved', async () => {
+    seedWizardDraft({ city: 'Ruggell', bezirk: '', cityPicked: false });
     render(withRegions(regionContext(['vorarlberg']), <EventFormWizard />));
-    const saved = await submitWizardAndGetEvent();
-    expect(saved.regionId).toBe('vorarlberg');
-    expect(saved.bezirk).toBe('');
-    expect(saved.city).toBe('Ruggell');
+    fireEvent.click(screen.getByRole('button', { name: /^weiter$/i }));
+    expect(await screen.findByText('Bitte wähle einen Ort aus der Liste.')).toBeInTheDocument();
+    expect(mockEvents.addEvent).not.toHaveBeenCalled();
   });
 });
 
@@ -513,6 +514,56 @@ describe('EventForm (edit) of an old "Umgebung" event', () => {
     expect(saved.bezirk).toBe('Grenznahe');
     expect(saved.regionId).toBe('vorarlberg');
     expect(saved.city).toBe('Lindau');
+  });
+});
+
+describe('EventForm (edit) of an old event whose Ort is in no list', () => {
+  const legacy = {
+    id: 'g2',
+    slug: 'g2',
+    title: 'Yoga in Ruggell',
+    date: '2026-12-10',
+    time: '10:00',
+    endTime: '',
+    place: 'Dorfplatz',
+    city: 'Ruggell',
+    contribution: 'free',
+    fee: null,
+    description: '<p>desc</p>',
+    link: '',
+    recurrence: 'none',
+    recurrenceEndDate: '',
+    category: 'Yoga',
+    bezirk: '',
+    organizer: { firstName: 'A', lastName: 'B', email: 'user@test.local' },
+    kontakt: 'user@test.local',
+    status: 'pending',
+    createdBy: 'user-uid',
+  };
+  const form = () => screen.getByTestId('submit-event-button').closest('form') as HTMLFormElement;
+
+  it('opens with the stored Ort and saves it unchanged (grandfathered)', async () => {
+    mockEvents.updateEvent.mockClear();
+    render(withRegions(regionContext(['vorarlberg']), <EventForm event={legacy} />));
+    expect(document.querySelector('.city-select .kategorie__single-value')).toHaveTextContent(
+      'Ruggell'
+    );
+    fireEvent.submit(form());
+    await waitFor(() => expect(mockEvents.updateEvent).toHaveBeenCalled());
+    const saved = (mockEvents.updateEvent.mock.calls[0] as unknown[])[1] as Record<string, unknown>;
+    expect(saved.city).toBe('Ruggell');
+    expect(saved.regionId).toBe('vorarlberg');
+  });
+
+  it('applies the rule once the Ort is cleared: no save without a picked place', async () => {
+    mockEvents.updateEvent.mockClear();
+    render(withRegions(regionContext(['vorarlberg']), <EventForm event={legacy} />));
+    fireEvent.mouseDown(
+      document.querySelector('.city-select .kategorie__clear-indicator') as Element
+    );
+    fireEvent.submit(form());
+    expect(await screen.findByText(/Bitte Ort angeben/)).toBeInTheDocument();
+    expect(mockEvents.updateEvent).not.toHaveBeenCalled();
   });
 });
 
