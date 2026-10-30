@@ -384,6 +384,15 @@ describe('handlePaidPayment', () => {
     expect(setCalls[0].data).toMatchObject({ comment: 'Danke euch!', note: null });
   });
 
+  it('keeps the comment of an anonymous donor (consent, no name)', async () => {
+    const { db, setCalls } = makeDb();
+    await handlePaidPayment({
+      db,
+      payment: basePayment({ metadata: { displayOnConsent: true, comment: 'Danke' } }),
+    });
+    expect(setCalls[0].data).toMatchObject({ name: null, comment: 'Danke' });
+  });
+
   it('stores no comment without consent', async () => {
     const { db, setCalls } = makeDb();
     const result = await handlePaidPayment({

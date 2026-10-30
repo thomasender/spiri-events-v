@@ -94,11 +94,21 @@ describe('DonorsList', () => {
     expect(named.querySelector('b')).toBeNull();
 
     expect(anonymous).toHaveAttribute('data-anonymous', 'true');
-    expect(anonymous).toHaveTextContent('Anonyme:r Spender:in');
+    expect(anonymous).toHaveTextContent('Anonym');
     expect(anonymous).not.toHaveTextContent('Spender 1');
     expect(anonymous.querySelector('[data-testid="donors-list-comment"]')).toHaveTextContent(
       'Weiter so'
     );
+  });
+
+  it('orders name, comment, then amount and frequency', () => {
+    mockDonors.donors = [donor(1, { comment: 'Hallo' })];
+    render(<DonorsList />);
+    const item = screen.getByTestId('donors-list-item');
+    const kids = Array.from(item.children).map((c) => c.className);
+    expect(kids[0]).toBe('donors-list-name');
+    expect(kids[1]).toBe('donors-list-comment');
+    expect(kids[2]).toBe('donors-list-meta');
   });
 });
 

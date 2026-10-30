@@ -266,7 +266,7 @@ describe('AboutPage donors list (5dlVbOmf)', () => {
     expect(items[0]).toHaveTextContent('Anna Müller');
     expect(items[0]).toHaveTextContent('25,00 €');
     expect(items[1]).toHaveAttribute('data-anonymous', 'true');
-    expect(items[1]).toHaveTextContent('Anonyme:r Spender:in');
+    expect(items[1]).toHaveTextContent('Anonym');
     expect(items[2]).toHaveTextContent('Bernd Berger');
     expect(items[2].querySelector('[data-testid="donors-list-amount"]')).toBeNull();
   });
