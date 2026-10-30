@@ -136,11 +136,30 @@ sanitized copy of production data. Project id `tribe-vbg-staging` (alias
     production's public URLs).
 - **Test accounts:** `node scripts/seed-staging-users.mjs` creates or resets
   `admin@staging.test` (Super-Admin: claim + `admin_users`),
-  `moderator@staging.test` (Regions-Moderator:in for `steiermark` and `bayern`,
+  `moderator@staging.test` (Regions-Moderator:in for `steiermark` and `innerschweiz`,
   `admin_users` only) and `user@staging.test` (normal user with `users/{uid}` +
   `publicProfile/data`). All are email-verified and share one random password per
   run, printed once to stdout and never stored (or set it with `--password`).
   Hard-coded to staging, `--emulator` for tests. Idempotent.
+- **Regions rollout (CSV register, Trello QG0GR5lv), after the deploy, staging first:**
+  documented, not yet run. All three are dry runs or idempotent; never use
+  `scripts/service-account.json` for staging.
+  1. `node scripts/seed-regions.mjs --project tribe-vbg-staging`: creates the docs of the new
+     regions (`innerschweiz`, `basel`, `appenzell`, `liechtenstein`, inactive), fills missing
+     switch fields, switches off docs of former regions (Germany, merged cantons, `allgaeu`,
+     `oesterreich`) and lists them. Never deletes, never touches admin edits.
+  2. `node scripts/cleanup-region-docs.mjs --project tribe-vbg-staging` (dry run), check the
+     report: events / profiles / moderators / helpers / donors that still point to a former
+     region id (fix by hand: they are invisible now), stale fields per region doc. Then the
+     same with `--apply`: deletes `name`, `slug`, `bezirke`, `mappingUpdatedAt`, `custom`,
+     `country`, `inPhrase`, `forPhrase`, `demonym`, `subdivisionLabel` of the register docs,
+     sets former region docs `active: false`, deletes `app_settings/customRegions`.
+     `--apply` on production is refused by the script until staging is checked.
+  3. `node scripts/backfill-event-positions.mjs` with `PROJECT_ID=tribe-vbg-staging` (dry
+     run, then `--write`; `--all` recomputes every event): positions from the new place
+     list. Old Vorarlberg "Grenznahe" events with a German Ort get the Vorarlberg centre
+     (German places are no longer in the list), so prefer the default (missing positions
+     only) over `--all` on production.
 - **Other scripts:** `seed-regions.mjs --project tribe-vbg-staging`,
   `migrate-region-ids.mjs --project tribe-vbg-staging [--revert] [--apply]`,
   `promote-admin.mjs <email> --project tribe-vbg-staging`. `export-firestore.mjs`

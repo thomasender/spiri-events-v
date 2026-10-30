@@ -135,15 +135,25 @@ other executable code or config still goes through the hooks normally.
 
 ## Regions
 
-The platform supports several regions (all Bundesländer / Kantone of Austria, Germany and Switzerland, 51 in total, plus 60 cultural regions of Germany) behind
-a **dark launch**: only Vorarlberg is active, and with fewer than two active regions
+The platform supports several regions behind a **dark launch**. Regions and their
+districts are defined **only in the three CSVs in `scripts/data/regions/`**
+(`oesterreich.csv`: 9 Bundesländer, Wien with its 23 Gemeindebezirke; `schweiz.csv`: 19
+regions; `liechtenstein.csv`: 1 region with the Landesteile Oberland / Unterland; 29 regions
+in total). Germany is not a region country for now (a `deutschland.csv` will follow); ids of
+former regions (`bayern`, `luzern`, `allgaeu`, ...) and `/deutschland` stay reserved as
+usernames. To add or change a region: edit the CSV, add / adjust its entry in the `META` table
+of `scripts/lib/regionRegister.mjs` (id, wording), run `node scripts/build-region-data.mjs`,
+update `regionIds()` in `firestore.rules` (and, for a new canton / Bundesland outline,
+`ADMIN_SHAPE_REGIONS` in `src/utils/geoRegion.js`), rebuild the place list
+(`scripts/build-place-index.mjs`), then seed the doc (`scripts/seed-regions.mjs`);
+`tests/lib/regionRegisterCsv.spec.ts` fails on any drift. The dark launch: only Vorarlberg is active, and with fewer than two active regions
 nothing visible may change (no chooser, no region names in mails, no GA `region`,
 byte-identical prerender and Vorarlberg ICS feed). A missing `regionId` /
 `directoryRegionIds` always means `vorarlberg`. Roles: Super-Admin and
 Regions-Moderator:in. Regions are switched on only in Verwaltung -> "Regionen",
 never by hand-editing `regions/{id}.active`. Visitors never see a region map: they give a
 place (typed or shared location) and a radius, the calendar shows everything within it and the
-region (title, texts) follows the place; the Landkreis -> region mapping stays in the backend. Regions and their districts are defined only in code (the generated register `src/data/regionData.js`); there is no admin tool to create regions or move districts, and `regions/{id}` docs carry only switches and texts (`docs/regions.md` 2a). Everything else (data model,
+region (title, texts) follows the place; the Landkreis -> region mapping stays in the backend. There is no admin tool to create regions or move districts, and `regions/{id}` docs carry only switches and texts (`docs/regions.md` 2a). Everything else (data model,
 queries and migration marker, emails, SEO, ICS, analytics, fixtures, how to add a
 region) is in `docs/regions.md`.
 
@@ -152,8 +162,8 @@ region) is in `docs/regions.md`.
 Read a topic file ONLY when your task matches its trigger; each starts with a
 two-line "read this when".
 
-- Read `docs/regions.md` ONLY when you touch regions, region texts or routing, combined
-  views (`/oesterreich`, `/alle-tribes`), Regions-Moderator:in roles or rules,
+- Read `docs/regions.md` ONLY when you touch regions, the region CSVs, region texts or routing,
+  combined views (`/oesterreich`, `/alle-tribes`), Regions-Moderator:in roles or rules,
   region activation, region fixtures/tests, the visitor's place + radius choice ("Wo bist du?"), event
   positions (`lat`/`lng`) or the place list, or want to add a region.
 - Read `docs/staging-migration.md` ONLY when you run or change the Firestore
