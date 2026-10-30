@@ -159,12 +159,14 @@ export function placeDetail(entry) {
  * The place a position belongs to (GPS -> a named place), or null. The nearest place of the
  * list can be a suburb ("Pradl"); among the places that are at most `townKm` farther than the
  * nearest one the biggest wins, so the position of a city centre becomes "Innsbruck".
+ * `filter` (optional) limits the candidates (e.g. to one country).
  */
-export function nearestPlace(index, lat, lon, maxKm = 30, townKm = 4) {
+export function nearestPlace(index, lat, lon, maxKm = 30, townKm = 4, filter = null) {
   if (!index || !Number.isFinite(lat) || !Number.isFinite(lon)) return null;
   const near = [];
   let bestKm = Infinity;
   for (const p of index.places) {
+    if (filter && !filter(p)) continue;
     // Cheap pre-check before the trigonometry: about 0.35 degrees is 39 km.
     if (Math.abs(p.lat - lat) > 0.35) continue;
     const km = haversineKm(lat, lon, p.lat, p.lon);
