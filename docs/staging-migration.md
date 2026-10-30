@@ -136,11 +136,47 @@ sanitized copy of production data. Project id `tribe-vbg-staging` (alias
     production's public URLs).
 - **Test accounts:** `node scripts/seed-staging-users.mjs` creates or resets
   `admin@staging.test` (Super-Admin: claim + `admin_users`),
-  `moderator@staging.test` (Regions-Moderator:in for `steiermark` and `bayern`,
+  `moderator@staging.test` (Regions-Moderator:in for `steiermark` and `innerschweiz`,
   `admin_users` only) and `user@staging.test` (normal user with `users/{uid}` +
   `publicProfile/data`). All are email-verified and share one random password per
   run, printed once to stdout and never stored (or set it with `--password`).
   Hard-coded to staging, `--emulator` for tests. Idempotent.
+- **Regions rollout (CSV register, Trello QG0GR5lv), after the deploy, staging first:**
+  documented, not yet run. All three are dry runs or idempotent; never use
+  `scripts/service-account.json` for staging. Register now: 133 regions (AT 9, DE 104, CH 19,
+  LI 1).
+  1. `node scripts/seed-regions.mjs --project tribe-vbg-staging`: creates the docs of the new
+     regions (`innerschweiz`, `basel`, `appenzell`, `liechtenstein` and the 77 German ids that
+     never existed, all inactive, `Europe/Berlin` for Germany), fills missing switch fields,
+     switches off docs of former regions (old Bundesländer / cultural regions not in
+     `deutschland.csv`, merged cantons, `oesterreich`) and lists them. Never deletes, never
+     touches admin edits. **Reused ids** (27 old German ids that are regions of
+     `deutschland.csv` again: `allgaeu`, `kurpfalz`, `schwarzwald`, `oberschwaben`,
+     `niederbayern`, `oberpfalz`, `berlin`, `bremen`, `hamburg`, `rhein-main-gebiet`,
+     `mittelhessen`, `nordhessen`, `vorpommern`, `ostfriesland`, `weserbergland`,
+     `niederrhein`, `bergisches-land`, `ruhrgebiet`, `muensterland`, `rheinhessen`, `pfalz`,
+     `saarland`, `erzgebirge`, `vogtland`, `dresden-elbland`, `oberlausitz`, `saale-unstrut`)
+     keep their existing doc (contact, seo, texts, about, `active` as stored); they are not
+     switched off. The script prints every active doc besides `vorarlberg` ("ACTIVE region
+     docs ..."): if a reused id shows up there, switch it off in Verwaltung -> Regionen unless
+     it is meant to be live. Check their old `seo` / about texts, which were written for the
+     former region of that id.
+  2. `node scripts/cleanup-region-docs.mjs --project tribe-vbg-staging` (dry run), check the
+     report: events / profiles / moderators / helpers / donors that still point to a former
+     region id (fix by hand: they are invisible now; ids that are regions again, e.g. an
+     `allgaeu` event or a moderator for `berlin`, are valid again and not reported), stale
+     fields per region doc (also the old `name` / `bezirke` of reused docs). Then the
+     same with `--apply`: deletes `name`, `slug`, `bezirke`, `mappingUpdatedAt`, `custom`,
+     `country`, `inPhrase`, `forPhrase`, `demonym`, `subdivisionLabel` of the register docs,
+     sets former region docs `active: false`, deletes `app_settings/customRegions`.
+     `--apply` on production is refused by the script until staging is checked.
+  3. `node scripts/backfill-event-positions.mjs` with `PROJECT_ID=tribe-vbg-staging` (dry
+     run, then `--write`; `--all` recomputes every event): positions from the new place
+     list (German places are back, so old Vorarlberg "Grenznahe" events with Ort "Lindau" get
+     Lindau (Bodensee) again instead of the Vorarlberg centre; events that got the centre in an
+     earlier `--all` run only change with `--all`).
+     Before the production merge: `scripts/check-reserved-usernames.mjs --prod` READ-ONLY (77 new
+     reserved German region names such as `heide`, `harz`, `anhalt`, `eifel`).
 - **Other scripts:** `seed-regions.mjs --project tribe-vbg-staging`,
   `migrate-region-ids.mjs --project tribe-vbg-staging [--revert] [--apply]`,
   `promote-admin.mjs <email> --project tribe-vbg-staging`. `export-firestore.mjs`

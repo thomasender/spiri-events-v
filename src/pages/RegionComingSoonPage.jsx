@@ -16,8 +16,8 @@ import './ErrorPage.css';
 
 /**
  * Friendly page for a region address that is not open yet (`/steiermark`
- * while `active=false`) and for a combined view (`/oesterreich`, `/deutschland`,
- * `/schweiz`, `/alle-tribes`) without any active region in scope. Never a 404,
+ * while `active=false`) and for a combined view (`/oesterreich`, `/schweiz`,
+ * `/alle-tribes`) without any active region in scope. Never a 404,
  * never an empty calendar. `region` is null for a combined view (`view`, default
  * the Austrian one).
  */

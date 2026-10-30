@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useDonors } from '../hooks/useDonors';
 import { useRegions } from '../hooks/useRegions';
+import { DEFAULT_REGION_ID } from '../utils/regions';
 import { useStaffRole } from '../hooks/useStaffRole';
 import DonorEditDialog from './DonorEditDialog';
 import { currencySymbol } from '../lib/donationCurrency';
@@ -49,7 +50,11 @@ export default function DonorsTab() {
     [regions, canModerateRegion]
   );
   const [regionId, setRegionId] = useState('');
-  const current = options.find((r) => r.id === regionId) ?? options[0] ?? null;
+  const current =
+    options.find((r) => r.id === regionId) ??
+    options.find((r) => r.id === DEFAULT_REGION_ID) ??
+    options[0] ??
+    null;
 
   if (!current) return null;
 

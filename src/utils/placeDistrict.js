@@ -6,8 +6,7 @@ import { findGemeinde } from './gemeinden.js';
 import { DEFAULT_REGION_ID } from './regions.js';
 
 // Ort -> Bezirk / Landkreis AND region for the event forms (Trello dx8dCQJc). Pure, offline: it
-// only reads the prepared place list (`preparePlaceIndex`) and the merged register (`regions`,
-// current assignment of Verwaltung -> "Zuordnung"). The place decides, not the region the
+// only reads the prepared place list (`preparePlaceIndex`) and the merged register (`regions`). The place decides, not the region the
 // person is in: "Lindau (Bodensee)" picked on the Vorarlberg page is Landkreis Lindau (Bodensee)
 // in the region that holds it. An unknown or ambiguous place gives null: the event then stays
 // in the current region with an empty Bezirk (Liechtenstein, outside DACH, free text).
@@ -89,4 +88,50 @@ export function placeRegionHint(placeRegionId, homeRegionId, regions = []) {
     return `Dieser Ort gehört zur Region ${region.name}, die noch nicht freigeschaltet ist. Dein Event erscheint dort ab der Freischaltung.`;
   }
   return `Dieses Event erscheint in der Region ${region.name}.`;
+}
+
+/** German message when the Ort is not one of the known places (QG0GR5lv). */
+export const PLACE_PICK_ERROR = 'Bitte wähle einen Ort aus der Liste.';
+const PLACE_REQUIRED_ERROR = 'Bitte Ort angeben oder als Online-Event markieren';
+
+/**
+ * Error message for the Ort of an in-person event, or null when it is valid. The Ort must be
+ * CHOSEN from the known places (suggestions of the place list, Vorarlberg's Gemeinden); free
+ * text is not valid. Valid are:
+ *  - `picked`: the person chose a suggestion (or the form took over the top suggestion),
+ *  - a Vorarlberg Gemeinde by its exact name (also a known place),
+ *  - `original`: the stored Ort of the event being edited, unchanged (old events with free
+ *    text stay editable; the rule applies only once the Ort is changed).
+ */
+export function validatePlaceChoice({ city, picked = false, original = '' } = {}) {
+  const text = (city || '').trim();
+  if (!text) return PLACE_REQUIRED_ERROR;
+  if (picked) return null;
+  if (findGemeinde(text)) return null;
+  if ((original || '').trim() && text === (original || '').trim()) return null;
+  return PLACE_PICK_ERROR;
+}
+
+/**
+ * The place a typed text stands for when the person leaves the field without picking: the TOP
+ * suggestion, as `{ city, bezirk, regionId, entry }` (bezirk / regionId like `assignmentForEntry`,
+ * a Vorarlberg Gemeinde like `assignmentForGemeinde`). Null when nothing matches.
+ */
+export function topPlaceChoice(index, region, regions, text) {
+  const typed = (text || '').trim();
+  if (!typed) return null;
+  const gemeinde = findGemeinde(typed);
+  if (gemeinde) {
+    const found = assignmentForGemeinde(gemeinde, regions);
+    return { city: gemeinde.name, bezirk: found.bezirk, regionId: found.regionId, entry: null };
+  }
+  const entry = suggestEventPlaces(index, region, typed, { limit: 1 })[0];
+  if (!entry) return null;
+  const found = assignmentForEntry(entry, regions);
+  return {
+    city: entry.name,
+    bezirk: found?.bezirk ?? '',
+    regionId: found?.regionId ?? null,
+    entry,
+  };
 }

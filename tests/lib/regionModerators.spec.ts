@@ -90,10 +90,14 @@ describe('parseStaffRole', () => {
 });
 
 describe('validateModeratorRegionIds', () => {
-  it('accepts up to all ten regions in canonical order, [] = revoke', () => {
+  it('accepts regions in canonical (register) order, [] = revoke', () => {
     expect(validateModeratorRegionIds(['wien', 'tirol'])).toEqual(['tirol', 'wien']);
     expect(validateModeratorRegionIds([])).toEqual([]);
-    expect(validateModeratorRegionIds(['bayern', 'steiermark'])).toEqual(['steiermark', 'bayern']);
+    expect(validateModeratorRegionIds(['zuerich', 'steiermark'])).toEqual([
+      'steiermark',
+      'zuerich',
+    ]);
+    expect(() => validateModeratorRegionIds(['bayern'])).toThrow();
   });
   it('rejects unknown ids, duplicates, non-lists and too many entries', () => {
     for (const bad of [
@@ -194,12 +198,12 @@ describe('adminSetRegionModerator', () => {
     expect(grant).toEqual({
       uid: 'user',
       role: 'RegionModerator',
-      regionIds: ['tirol', 'steiermark'],
+      regionIds: ['steiermark', 'tirol'],
       changed: true,
     });
     expect(w.roleDocs.get('user')).toEqual({
       role: 'RegionModerator',
-      regionIds: ['tirol', 'steiermark'],
+      regionIds: ['steiermark', 'tirol'],
       email: 'user@x.at',
       updatedBy: 'admin',
     });
@@ -219,12 +223,12 @@ describe('adminSetRegionModerator', () => {
         'grantRegionModerator',
         'admin',
         null,
-        { role: 'RegionModerator', regionIds: ['tirol', 'steiermark'] },
+        { role: 'RegionModerator', regionIds: ['steiermark', 'tirol'] },
       ],
       [
         'updateRegionModerator',
         'admin',
-        { role: 'RegionModerator', regionIds: ['tirol', 'steiermark'] },
+        { role: 'RegionModerator', regionIds: ['steiermark', 'tirol'] },
         { role: 'RegionModerator', regionIds: ['wien'] },
       ],
       ['revokeRegionModerator', 'admin2', { role: 'RegionModerator', regionIds: ['wien'] }, null],
@@ -598,8 +602,8 @@ describe('admin mail recipients', () => {
 
 describe('promote-admin.mjs --role RegionModerator', () => {
   it('parses --regions into canonical, validated ids', () => {
-    expect(parseModeratorRegions('tirol, steiermark')).toEqual(['tirol', 'steiermark']);
-    expect(parseModeratorRegions('steiermark,tirol')).toEqual(['tirol', 'steiermark']);
+    expect(parseModeratorRegions('tirol, steiermark')).toEqual(['steiermark', 'tirol']);
+    expect(parseModeratorRegions('steiermark,tirol')).toEqual(['steiermark', 'tirol']);
     for (const bad of ['', undefined, 'mars', 'tirol,tirol', 'oesterreich']) {
       expect(() => parseModeratorRegions(bad)).toThrow();
     }

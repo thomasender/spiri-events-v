@@ -2,8 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { MapPin } from 'lucide-react';
 import { useRegion } from '../hooks/useRegion';
 import { buildRegionEntries, loadGeoShapes, loadPlaceIndex } from '../lib/placeData';
-import { regionForPosition } from '../utils/geoRegion';
-import { nearestPlace } from '../utils/placeSearch';
+import { locatePosition } from '../utils/geoRegion';
 import {
   DEFAULT_RADIUS_KM,
   RADIUS_OPTIONS,
@@ -49,20 +48,19 @@ export default function PlacePicker({ onApply, applyLabel = 'Übernehmen' }) {
     setDraft({ label: entry.name, lat: entry.lat, lon: entry.lon, regionId, source: 'search' });
   };
 
-  // The shared position is only used here: it is snapped to the nearest place, and a border
-  // position is put into the right region by the outlines (utils/geoRegion.js).
+  // The shared position is only used here: it is snapped to a place of the list; AT / CH / LI
+  // by the outlines, Germany by the nearest German place (utils/geoRegion.js locatePosition).
   const onLocate = async ({ lat, lon }) => {
     const loaded = index ?? (await loadPlaceIndex());
-    const place = nearestPlace(loaded, lat, lon);
-    if (!place) return false;
-    let regionId = regionIdForEntry(place, allRegions);
+    let shapes = null;
     try {
-      const shapes = await loadGeoShapes();
-      const hit = regionForPosition(lat, lon, shapes.districts, allRegions, shapes.admin);
-      if (hit?.region) regionId = hit.region.id;
+      shapes = (await loadGeoShapes()).admin;
     } catch {
-      // the place's own region stays
+      // without outlines: the nearest place and its region
     }
+    const located = locatePosition(lat, lon, loaded, allRegions, shapes);
+    if (!located) return false;
+    const { place, regionId } = located;
     setDraft({
       label: place.name,
       lat: place.lat,

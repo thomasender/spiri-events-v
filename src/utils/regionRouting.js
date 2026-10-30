@@ -11,13 +11,11 @@ import {
   isRegionSlug,
 } from './regions.js';
 
-// Combined views (`/oesterreich`, `/deutschland`, `/schweiz`, `/alle-tribes`)
-// are not regions: never stored on an event or profile, reserved as usernames
-// (username.js). A country view covers the ACTIVE regions of that country,
-// "Alle Tribes" all active regions of all countries (definitions: COMBINED_VIEWS
-// in regions.js).
-// "Ganz Österreich" is only the Austrian regions (the Allgäu is German and
-// appears under "Ganz Deutschland").
+// Combined views (`/oesterreich`, `/schweiz`, `/alle-tribes`) are not regions:
+// never stored on an event or profile, reserved as usernames (username.js). A
+// country view covers the ACTIVE regions of that country, "Alle Tribes" all
+// active regions of all countries incl. Liechtenstein (definitions: COMBINED_VIEWS
+// in regions.js). Liechtenstein has no country view of its own.
 export { COMBINED_VIEWS };
 export const ALL_REGIONS_SLUG = 'oesterreich';
 export const ALL_REGIONS_NAME = 'Ganz Österreich';
@@ -273,7 +271,7 @@ export function regionNavPath(
 }
 
 /**
- * "in der Steiermark", "im Allgäu", "in Tirol": for running text on region
+ * "in der Steiermark", "im Tessin", "in Tirol": for running text on region
  * pages. Uses the register's `inPhrase` (src/utils/regions.js); a region
  * object without one falls back to "in <Name>".
  */

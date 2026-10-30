@@ -10,15 +10,6 @@ type Status = {
   unmet: string[];
 };
 
-// Kulturregionen start without Landkreise; these two have some assigned.
-const CULTURE_DISTRICTS = vi.hoisted(
-  () =>
-    ({
-      ostfriesland: ['Aurich', 'Emden', 'Leer'],
-      schwarzwald: ['Freudenstadt', 'Calw'],
-    }) as Record<string, string[]>
-);
-
 const state = vi.hoisted(() => ({
   role: 'Admin' as string | null,
   staffRegionIds: [] as string[],
@@ -55,7 +46,6 @@ vi.mock('../../src/hooks/useRegions', () => ({
   useRegions: () => ({
     regions: STATIC_REGIONS.map((r) => ({
       ...r,
-      ...(CULTURE_DISTRICTS[r.id] ? { bezirke: CULTURE_DISTRICTS[r.id] } : {}),
       active: Boolean(state.active[r.id]),
       ...(state.contact[r.id] ? { contactEmail: state.contact[r.id] } : {}),
     })),
@@ -126,10 +116,8 @@ describe('RegionsTab', () => {
     expect(screen.getAllByTestId(/^region-row-/)).toHaveLength(9);
     fireEvent.click(screen.getByRole('button', { name: /Deutschland/ }));
     fireEvent.click(screen.getByRole('button', { name: /Schweiz/ }));
-    // Germany lists only Kulturregionen (none active yet), never the Bundesländer.
-    expect(screen.getAllByTestId(/^region-row-/)).toHaveLength(
-      STATIC_REGIONS.filter((r) => r.country !== 'DE' && r.home).length
-    );
+    fireEvent.click(screen.getByRole('button', { name: /Liechtenstein/ }));
+    expect(screen.getAllByTestId(/^region-row-/)).toHaveLength(STATIC_REGIONS.length);
     const tirol = await row('tirol');
     expect(within(tirol).getByTestId('region-status')).toHaveTextContent('noch nicht aktiv');
     expect(within(tirol).getByTestId('region-moderators')).toHaveTextContent('1 (Tina)');
@@ -156,17 +144,22 @@ describe('RegionsTab', () => {
   it('groups the regions by country in foldable sections with a count', async () => {
     render(<RegionsTab />);
     const at = screen.getByRole('button', { name: /Österreich/ });
-    const de = screen.getByRole('button', { name: /Deutschland/ });
+    const ch = screen.getByRole('button', { name: /Schweiz/ });
     expect(at).toHaveAttribute('aria-expanded', 'true');
-    expect(de).toHaveAttribute('aria-expanded', 'false');
+    expect(ch).toHaveAttribute('aria-expanded', 'false');
     expect(screen.getByTestId('regions-group-count-AT')).toHaveTextContent('9 Regionen, 1 aktiv');
+    expect(screen.getByTestId('regions-group-count-CH')).toHaveTextContent('19 Regionen, 0 aktiv');
+    expect(screen.getByTestId('regions-group-count-LI')).toHaveTextContent('1 Region, 0 aktiv');
     expect(screen.getByTestId('regions-group-count-DE')).toHaveTextContent(
-      '2 Kulturregionen, 0 aktiv'
+      /^\d{3} Regionen, 0 aktiv$/
     );
-    expect(screen.getByTestId('regions-group-count-CH')).toHaveTextContent('26 Regionen, 0 aktiv');
-    fireEvent.click(de);
-    expect(de).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByTestId('regions-search')).toBeInTheDocument();
+    // Country order: Österreich, Deutschland, Schweiz, Liechtenstein.
+    expect(
+      screen.getAllByTestId(/^regions-group-count-/).map((n) => n.dataset.testid?.slice(-2))
+    ).toEqual(['AT', 'DE', 'CH', 'LI']);
+    fireEvent.click(ch);
+    expect(ch).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByTestId('region-row-innerschweiz')).toBeInTheDocument();
     fireEvent.click(at);
     expect(at).toHaveAttribute('aria-expanded', 'false');
     expect(screen.queryByTestId('region-row-tirol')).not.toBeInTheDocument();
@@ -256,34 +249,14 @@ describe('RegionsTab', () => {
     expect(state.setCalls).toEqual([]);
   });
 
-  it('Germany: no Bundesländer, only active Kulturregionen by default, rest via search', async () => {
-    state.active.schwarzwald = true;
-    state.statuses.push(status('ostfriesland', 1, 20), status('schwarzwald', 1, 30));
+  it('Liechtenstein: its section starts open with an active region', async () => {
+    state.active.liechtenstein = true;
+    state.statuses.push(status('liechtenstein', 1, 20));
     render(<RegionsTab />);
-    // Germany has an active region, so its section starts open.
-    expect(screen.getByRole('button', { name: /Deutschland/ })).toHaveAttribute(
-      'aria-expanded',
-      'true'
-    );
-    expect(screen.getByTestId('regions-group-count-DE')).toHaveTextContent(
-      '2 Kulturregionen, 1 aktiv'
-    );
-    expect(screen.getByTestId('region-row-schwarzwald')).toBeInTheDocument();
-    expect(screen.queryByTestId('region-row-ostfriesland')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('region-row-bayern')).not.toBeInTheDocument();
-    // Search by Landkreis finds the inactive Kulturregion; Bundesländer never show up.
-    const input = screen.getByRole('combobox', { name: 'Kulturregion oder Landkreis suchen' });
-    fireEvent.change(input, { target: { value: 'Leer' } });
-    const option = screen.getByRole('option', { name: /Ostfriesland/ });
-    expect(option).toHaveTextContent('Leer');
-    fireEvent.change(input, { target: { value: 'Bayern' } });
-    expect(screen.queryByRole('option')).not.toBeInTheDocument();
-    fireEvent.change(input, { target: { value: 'Ostfries' } });
-    fireEvent.mouseDown(screen.getByRole('option', { name: /Ostfriesland/ }));
-    fireEvent.click(
-      within(await row('ostfriesland')).getByRole('button', { name: 'Ostfriesland freischalten' })
-    );
-    expect(await screen.findByRole('status')).toHaveTextContent('Ostfriesland ist jetzt');
-    expect(state.setCalls).toEqual([{ regionId: 'ostfriesland', active: true, override: false }]);
+    expect(
+      within(screen.getByTestId('regions-group-LI')).getByRole('button', { expanded: true })
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('regions-group-count-LI')).toHaveTextContent('1 Region, 1 aktiv');
+    expect(await row('liechtenstein')).toHaveTextContent('Landesteile');
   });
 });

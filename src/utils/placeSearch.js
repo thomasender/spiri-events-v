@@ -9,6 +9,9 @@ import { COUNTRY_LABELS, getRegionBySlug, isLegacyBezirk } from './regions.js';
 // street address.
 
 export const MAX_PLACE_RESULTS = 8;
+// How far from the region centre the Ort of an event with a legacy pseudo-Bezirk ("Grenznahe")
+// may lie (see eventPosition).
+export const LEGACY_NAMESAKE_KM = 40;
 const EARTH_RADIUS_KM = 6371;
 
 /** Great-circle distance in km between two lat/lon points (degrees). */
@@ -127,7 +130,7 @@ export function searchPlaces(index, regionEntries, query, limit = MAX_PLACE_RESU
     const r = a === null ? b : b === null ? a : Math.min(a, b);
     if (r !== null) hits.push({ entry, r, group: 1 });
   }
-  const countryOrder = { AT: 0, CH: 1, DE: 2 };
+  const countryOrder = { AT: 0, CH: 1, LI: 2, DE: 3 };
   hits.sort(
     (a, b) =>
       a.r - b.r ||
@@ -156,12 +159,14 @@ export function placeDetail(entry) {
  * The place a position belongs to (GPS -> a named place), or null. The nearest place of the
  * list can be a suburb ("Pradl"); among the places that are at most `townKm` farther than the
  * nearest one the biggest wins, so the position of a city centre becomes "Innsbruck".
+ * `filter` (optional) limits the candidates (e.g. to one country).
  */
-export function nearestPlace(index, lat, lon, maxKm = 30, townKm = 4) {
+export function nearestPlace(index, lat, lon, maxKm = 30, townKm = 4, filter = null) {
   if (!index || !Number.isFinite(lat) || !Number.isFinite(lon)) return null;
   const near = [];
   let bestKm = Infinity;
   for (const p of index.places) {
+    if (filter && !filter(p)) continue;
     // Cheap pre-check before the trigonometry: about 0.35 degrees is 39 km.
     if (Math.abs(p.lat - lat) > 0.35) continue;
     const km = haversineKm(lat, lon, p.lat, p.lon);
@@ -219,15 +224,15 @@ export function eventPosition(event, index, regions = []) {
     return null;
   })();
 
-  // An Ort outside the region's own districts ("Lindau" for Vorarlberg's "Grenznahe", or no
-  // Bezirk at all): the namesake nearest to the region.
+  // An Ort outside the region's own districts ("Vaduz" for Vorarlberg's "Grenznahe", or no
+  // Bezirk at all): the namesake nearest to the region. "Grenznahe" means right across the
+  // border, so a namesake farther than LEGACY_NAMESAKE_KM away is not it (an old "Lindau" event
+  // of Vorarlberg must land in Lindau (Bodensee), never in the namesake Lindau ZH):
+  // the region centre instead.
   if (!pick && candidates.length > 0 && bezirks.length === 0 && centre) {
-    pick = candidates.reduce((best, p) =>
-      haversineKm(p.lat, p.lon, centre.lat, centre.lon) <
-      haversineKm(best.lat, best.lon, centre.lat, centre.lon)
-        ? p
-        : best
-    );
+    const km = (p) => haversineKm(p.lat, p.lon, centre.lat, centre.lon);
+    const nearest = candidates.reduce((best, p) => (km(p) < km(best) ? p : best));
+    if (!isLegacyBezirk(bezirk) || km(nearest) <= LEGACY_NAMESAKE_KM) pick = nearest;
   }
   if (pick) return { lat: pick.lat, lng: pick.lon };
   return centre ? { lat: centre.lat, lng: centre.lon } : null;

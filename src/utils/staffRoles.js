@@ -113,7 +113,6 @@ export const ADMIN_TABS = [
   'ledger',
   'moderation',
   'regions',
-  'mapping',
   'about',
 ];
 const MODERATOR_TABS = [

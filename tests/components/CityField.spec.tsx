@@ -62,31 +62,37 @@ describe('CityField', () => {
     expect(screen.getByTestId('bezirk')).toHaveTextContent('Dornbirn');
   });
 
-  it('takes over a place in no list (Liechtenstein) as typed, without Bezirk or "Umgebung"', () => {
+  it('does not take typed text over: no matching place gives the German error, nothing is picked', async () => {
     render(<Harness />);
     type('Ruggell');
-    expect(screen.getByText('"Ruggell" übernehmen')).toBeInTheDocument();
-    expect(screen.queryByText(/Umgebung/)).not.toBeInTheDocument();
-    pickFirst();
-    expect(screen.getByTestId('city')).toHaveTextContent('Ruggell');
-    expect(screen.getByTestId('bezirk')).toHaveTextContent('');
+    expect(screen.queryByText(/übernehmen/)).not.toBeInTheDocument();
+    expect(screen.getByText('Keinen Ort gefunden')).toBeInTheDocument();
+    fireEvent.blur(input());
+    expect(await screen.findByText('Bitte wähle einen Ort aus der Liste.')).toBeInTheDocument();
+    expect(screen.getByTestId('city')).toHaveTextContent('');
     expect(screen.getByTestId('region')).toHaveTextContent('');
-    expect(screen.queryByText(/Umgebung/)).not.toBeInTheDocument();
   });
 
-  it('offers places of other regions; picking one sets its Landkreis and region and hints at it', async () => {
+  it('leaving the field with typed text takes the top suggestion (picked: true)', async () => {
     render(<Harness />);
-    type('Lind');
-    const option = await screen.findByRole('option', { name: /Lindau \(Bodensee\)/ });
+    type('Dornb');
+    fireEvent.blur(input());
+    await waitFor(() => expect(screen.getByTestId('city')).toHaveTextContent('Dornbirn'));
+    expect(screen.getByTestId('bezirk')).toHaveTextContent('Dornbirn');
+    expect(screen.getByTestId('region')).toHaveTextContent('vorarlberg');
+  });
+
+  it('offers places of other regions; picking one sets its Bezirk and region and hints at it', async () => {
+    render(<Harness />);
+    type('Rorsch');
+    const option = await screen.findByRole('option', { name: /Rorschach \(Bodensee\)/ });
     fireEvent.click(option);
-    expect(screen.getByTestId('city')).toHaveTextContent('Lindau (Bodensee)');
-    expect(screen.getByTestId('bezirk')).toHaveTextContent('Lindau (Bodensee)');
-    expect(screen.getByTestId('region')).toHaveTextContent('bayern');
-    expect(screen.getByTestId('city-district-hint')).toHaveTextContent(
-      'Landkreis Lindau (Bodensee)'
-    );
+    expect(screen.getByTestId('city')).toHaveTextContent('Rorschach (Bodensee)');
+    expect(screen.getByTestId('bezirk')).toHaveTextContent('Rorschach');
+    expect(screen.getByTestId('region')).toHaveTextContent('st-gallen');
+    expect(screen.getByTestId('city-district-hint')).toHaveTextContent('Bezirk Rorschach');
     expect(screen.getByTestId('city-region-hint')).toHaveTextContent(
-      'Dieser Ort gehört zur Region Bayern, die noch nicht freigeschaltet ist. Dein Event erscheint dort ab der Freischaltung.'
+      'Dieser Ort gehört zur Region St. Gallen, die noch nicht freigeschaltet ist. Dein Event erscheint dort ab der Freischaltung.'
     );
   });
 
@@ -119,7 +125,7 @@ describe('CityField', () => {
   });
 
   describe('free variant with a region', () => {
-    const bayern = STATIC_REGIONS.find((r) => r.id === 'bayern');
+    const stGallen = STATIC_REGIONS.find((r) => r.id === 'st-gallen');
 
     function FreeHarness({ initial = { city: '', bezirk: '' } as State }) {
       const [state, setState] = useState<State>(initial);
@@ -127,10 +133,10 @@ describe('CityField', () => {
         <>
           <CityField
             free
-            region={bayern}
+            region={stGallen}
             regions={STATIC_REGIONS}
             placeRegionId={state.regionId || ''}
-            homeRegionId="bayern"
+            homeRegionId="st-gallen"
             city={state.city}
             bezirk={state.bezirk}
             onChange={setState}
@@ -147,59 +153,71 @@ describe('CityField', () => {
       await waitFor(() => expect(loadPlaceIndex).toHaveBeenCalled());
     };
 
-    it('sets city and Landkreis when a suggestion is picked, and shows a hint', async () => {
+    it('sets city and Bezirk when a suggestion is picked, and shows a hint', async () => {
       render(<FreeHarness />);
-      await typeFree('Lind');
-      const option = await screen.findByText('Lindau (Bodensee)');
+      await typeFree('Rorsch');
+      const option = await screen.findByText('Rorschach (Bodensee)');
       fireEvent.click(option);
-      expect(screen.getByTestId('city')).toHaveTextContent('Lindau (Bodensee)');
-      expect(screen.getByTestId('bezirk')).toHaveTextContent('Lindau (Bodensee)');
-      expect(screen.getByTestId('city-district-hint')).toHaveTextContent(
-        'Landkreis Lindau (Bodensee)'
-      );
+      expect(screen.getByTestId('city')).toHaveTextContent('Rorschach (Bodensee)');
+      expect(screen.getByTestId('bezirk')).toHaveTextContent('Rorschach');
+      expect(screen.getByTestId('city-district-hint')).toHaveTextContent('Bezirk Rorschach');
     });
 
-    it('a picked suggestion decides even for a shared name; typing it leaves it empty', async () => {
+    it('a picked suggestion decides for a shared name; leaving the field takes the top one', async () => {
       render(<FreeHarness />);
-      await typeFree('Neustadt');
+      await typeFree('Buchs');
       const options = await screen.findAllByTestId('city-place-option');
       expect(options).toHaveLength(2);
-      fireEvent.blur(input());
-      expect(screen.getByTestId('bezirk')).toHaveTextContent('');
-      fireEvent.focus(input());
-      fireEvent.click((await screen.findAllByTestId('city-place-option'))[0]);
-      expect(screen.getByTestId('city')).toHaveTextContent('Neustadt');
-      expect(screen.getByTestId('bezirk')).toHaveTextContent('Neustadt a.d.Aisch-Bad Windsheim');
+      // Both Buchs are told apart by their district.
+      expect(options[0]).toHaveTextContent('Werdenberg');
+      expect(options[1]).toHaveTextContent('Aarau');
+      fireEvent.click(options[1]);
+      expect(screen.getByTestId('bezirk')).toHaveTextContent('Aarau');
+      expect(screen.getByTestId('city')).toHaveTextContent('Buchs');
+    });
+
+    it('Enter takes the top suggestion even after the list was closed', async () => {
+      render(<FreeHarness />);
+      await typeFree('Buchs');
+      await screen.findAllByTestId('city-place-option');
+      fireEvent.keyDown(input(), { key: 'Escape', code: 'Escape' });
+      fireEvent.keyDown(input(), { key: 'Enter', code: 'Enter' });
+      expect(screen.getByTestId('bezirk')).toHaveTextContent('Werdenberg');
     });
 
     it('suggests places of other regions too and moves the event there', async () => {
       render(<FreeHarness />);
       await typeFree('Inns');
       fireEvent.click(await screen.findByText('Innsbruck'));
-      expect(screen.getByTestId('bezirk')).toHaveTextContent('Innsbruck');
+      expect(screen.getByTestId('bezirk')).toHaveTextContent('Innsbruck (Stadt)');
       expect(screen.getByTestId('region')).toHaveTextContent('tirol');
-      expect(screen.getByTestId('city-district-hint')).toHaveTextContent('Bezirk Innsbruck');
+      expect(screen.getByTestId('city-district-hint')).toHaveTextContent(
+        'Bezirk Innsbruck (Stadt)'
+      );
       expect(screen.getByTestId('city-region-hint')).toHaveTextContent(/Region Tirol/);
     });
 
-    it('keeps free text for an unknown place and fills an empty Landkreis on blur only when unique', async () => {
+    it('leaving the field: top suggestion wins; no match keeps the text and shows the error', async () => {
       render(<FreeHarness />);
       await typeFree('Gibtsnicht');
       fireEvent.blur(input());
-      expect(screen.getByTestId('city')).toHaveTextContent('Gibtsnicht');
+      expect(await screen.findByText('Bitte wähle einen Ort aus der Liste.')).toBeInTheDocument();
       expect(screen.getByTestId('bezirk')).toHaveTextContent('');
 
-      fireEvent.change(input(), { target: { value: 'Sonthofen' } });
+      fireEvent.change(input(), { target: { value: 'Altstätten' } });
       fireEvent.blur(input());
-      expect(screen.getByTestId('bezirk')).toHaveTextContent('Oberallgäu');
-      expect(screen.getByTestId('region')).toHaveTextContent('bayern');
+      await waitFor(() => expect(screen.getByTestId('bezirk')).toHaveTextContent('Rheintal'));
+      expect(screen.getByTestId('region')).toHaveTextContent('st-gallen');
+      expect(screen.queryByText('Bitte wähle einen Ort aus der Liste.')).not.toBeInTheDocument();
     });
 
-    it('does not overwrite a Landkreis the person chose on blur', async () => {
-      render(<FreeHarness initial={{ city: 'Sonthofen', bezirk: 'Lindau (Bodensee)' }} />);
-      await typeFree('Sonthofen');
+    it('a stored old Ort in no list is shown and left alone on blur until it is edited', async () => {
+      render(<FreeHarness initial={{ city: 'Altstätten', bezirk: 'Rorschach' }} />);
+      expect(input()).toHaveValue('Altstätten');
+      fireEvent.focus(input());
       fireEvent.blur(input());
-      expect(screen.getByTestId('bezirk')).toHaveTextContent('Lindau (Bodensee)');
+      expect(screen.getByTestId('bezirk')).toHaveTextContent('Rorschach');
+      expect(screen.queryByText('Bitte wähle einen Ort aus der Liste.')).not.toBeInTheDocument();
     });
 
     it('does not load the place list for the plain field or before two letters are typed', () => {

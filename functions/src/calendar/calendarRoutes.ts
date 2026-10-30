@@ -70,8 +70,8 @@ function many(value: unknown): string[] | null {
  * `regionBezirke`: Bezirke per region id (the handler passes the merged
  * register, plus entries for the combined-view slugs); defaults to the static
  * register. `?region=<slug>` is optional, absent = Vorarlberg. A slug that is
- * neither one of the ten region ids nor a combined view (`oesterreich`,
- * `deutschland`, `schweiz`, `alle-tribes`) is a 400 (like an unknown bezirk); a
+ * neither a region id of the register nor a combined view (`oesterreich`,
+ * `schweiz`, `alle-tribes`) is a 400 (like an unknown bezirk); a
  * known but inactive region is valid (the handler answers with an empty feed).
  */
 export function parseCalendarRequest(

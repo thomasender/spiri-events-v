@@ -240,7 +240,10 @@ describe('MembersTab for a Regions-Moderator:in', () => {
 
 describe('MembersTab with several active regions', () => {
   const allRegions = mergeRegions(
-    STATIC_REGIONS.map((r) => ({ id: r.id, active: ['vorarlberg', 'bayern'].includes(r.id) }))
+    STATIC_REGIONS.map((r) => ({
+      id: r.id,
+      active: ['vorarlberg', 'liechtenstein'].includes(r.id),
+    }))
   );
   const renderMulti = () =>
     render(
@@ -262,15 +265,17 @@ describe('MembersTab with several active regions', () => {
     expect(screen.queryByTestId('members-region-filter')).not.toBeInTheDocument();
   });
 
-  it('filters by region (members without region ids count as Vorarlberg) and offers Landkreise', () => {
+  it('filters by region (members without region ids count as Vorarlberg) and offers their districts', () => {
     state.members = [
       member('anna', { directoryRegions: ['Dornbirn'] }),
-      member('carla', { directoryRegions: ['Oberallgäu'], directoryRegionIds: ['bayern'] }),
+      member('carla', { directoryRegions: ['Oberland'], directoryRegionIds: ['liechtenstein'] }),
     ];
     renderMulti();
     expect(screen.getAllByTestId('member-row')).toHaveLength(2);
 
-    fireEvent.change(screen.getByTestId('members-region-filter'), { target: { value: 'bayern' } });
+    fireEvent.change(screen.getByTestId('members-region-filter'), {
+      target: { value: 'liechtenstein' },
+    });
     const rows = screen.getAllByTestId('member-row');
     expect(rows).toHaveLength(1);
     expect(within(rows[0]).getByText('carla@x.at')).toBeInTheDocument();
@@ -283,7 +288,7 @@ describe('MembersTab with several active regions', () => {
     ).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('Nach Bezirk oder Landkreis filtern'), {
-      target: { value: 'Oberallgäu' },
+      target: { value: 'Oberland' },
     });
     expect(screen.queryAllByTestId('member-row')).toHaveLength(0);
   });
@@ -293,7 +298,7 @@ describe('MembersTab with several active regions', () => {
     fireEvent.click(screen.getByLabelText('bernd bearbeiten'));
     const dialog = screen.getByTestId('member-edit-dialog');
     expect(within(dialog).getByText('Bezirke Vorarlberg')).toBeInTheDocument();
-    expect(within(dialog).getByText('Landkreise Bayern')).toBeInTheDocument();
-    expect(within(dialog).getByLabelText('Oberallgäu')).toBeInTheDocument();
+    expect(within(dialog).getByText('Landesteile Liechtenstein')).toBeInTheDocument();
+    expect(within(dialog).getByLabelText('Oberland')).toBeInTheDocument();
   });
 });

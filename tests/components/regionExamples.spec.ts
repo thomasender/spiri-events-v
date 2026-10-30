@@ -46,6 +46,18 @@ describe('formExamples', () => {
     );
   });
 
+  it('a German region: the first Landkreis / Stadt of the CSV without its kind', () => {
+    const place = (id: string) =>
+      formExamples(
+        STATIC_REGIONS.find((r) => r.id === id),
+        { regionSpecific: true }
+      ).place;
+    expect(place('region-stuttgart')).toBe('z.B. Stuttgart');
+    expect(place('bodensee')).toBe('z.B. Konstanz');
+    expect(place('muenchen')).toBe('z.B. München');
+    expect(place('hannover')).toBe('z.B. Region Hannover');
+  });
+
   it('Vorarlberg with several regions keeps legacy unless overridden', () => {
     expect(formExamples({ id: 'vorarlberg' }, { regionSpecific: true })).toEqual(LEGACY_EXAMPLES);
     expect(

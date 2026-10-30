@@ -16,9 +16,9 @@ import LocateRegionButton from '../../src/components/LocateRegionButton';
 import RegionProvider from '../../src/components/RegionProvider';
 import RegionChooser from '../../src/components/RegionChooser';
 
-// Vorarlberg + Tirol open: the first-visit chooser is shown. Bayern is not open yet.
+// Vorarlberg + Tirol open: the first-visit chooser is shown. Innerschweiz is not open yet.
 const TWO_ACTIVE = mergeRegions([{ id: 'tirol', active: true }]);
-const MUNICH = { latitude: 48.1374, longitude: 11.5755 };
+const LUZERN = { latitude: 47.0502, longitude: 8.3093 };
 const BREGENZ = { latitude: 47.5031, longitude: 9.7471 };
 const MADRID = { latitude: 40.4168, longitude: -3.7038 };
 
@@ -171,11 +171,11 @@ describe('in the region chooser (real place list and border shapes)', () => {
     });
   });
 
-  it('a position in Munich chooses Bayern, which is not open yet: coming soon', async () => {
-    await useMyLocation(MUNICH);
+  it('a position in Luzern chooses the Innerschweiz, which is not open yet: coming soon', async () => {
+    await useMyLocation(LUZERN);
     apply();
-    expect(where()).toBe('/bayern');
-    expect(mocks.trackFilter).toHaveBeenCalledWith('region', 'bayern');
+    expect(where()).toBe('/innerschweiz');
+    expect(mocks.trackFilter).toHaveBeenCalledWith('region', 'innerschweiz');
   });
 
   it('remembers the place, never the exact position', async () => {
@@ -188,24 +188,10 @@ describe('in the region chooser (real place list and border shapes)', () => {
     expect(storedSelection().lat).toBeCloseTo(47.503, 2);
   });
 
-  it('a position in a cultural region of the current assignment chooses that region', async () => {
-    mocks.regions = {
-      regions: mergeRegions([
-        { id: 'tirol', active: true },
-        { id: 'ostfriesland', bezirke: ['Leer'], mappingUpdatedAt: 1 },
-        {
-          id: 'niedersachsen',
-          bezirke: STATIC_REGIONS.find((r) => r.slug === 'niedersachsen')!.bezirke.filter(
-            (b) => b !== 'Leer'
-          ),
-          mappingUpdatedAt: 1,
-        },
-      ]),
-      loading: false,
-    };
-    await useMyLocation({ latitude: 53.2316, longitude: 7.461 });
+  it('a position in Liechtenstein chooses the region Liechtenstein', async () => {
+    await useMyLocation({ latitude: 47.141, longitude: 9.521 });
     apply();
-    expect(where()).toBe('/ostfriesland');
+    expect(where()).toBe('/liechtenstein');
   });
 
   it('a position far from every place leaves the chooser open and usable', async () => {

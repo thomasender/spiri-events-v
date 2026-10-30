@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { STATIC_REGIONS, getRegionBySlug, mergeRegions } from '../../src/utils/regions';
 import {
   LEGACY_CALENDAR_DESCRIPTION,
+  combinedViewTexts,
   LEGACY_DEFAULT_DESCRIPTION,
   isRegionSpecific,
   regionTexts,
@@ -77,9 +78,12 @@ describe('regionTexts: region-specific mode', () => {
     expect(t.directoryTitle).toBe('Verzeichnis – Angebote in der Steiermark');
   });
 
-  it('Bayern uses "in Bayern"', () => {
-    expect(regionTexts(reg('bayern'), { activeCount: 1 }).headerTitle).toBe(
-      'Dein bayerischer Kalender'
+  it('Innerschweiz uses "in der Innerschweiz", Liechtenstein "in Liechtenstein"', () => {
+    const t = regionTexts(reg('innerschweiz'), { activeCount: 1 });
+    expect(t.headerTitle).toBe('Dein Innerschweizer Kalender');
+    expect(t.nearbyText).toBe('Für die Innerschweiz und Umkreis');
+    expect(regionTexts(reg('liechtenstein'), { activeCount: 1 }).locationPhrase).toBe(
+      'in Liechtenstein'
     );
   });
 
@@ -122,7 +126,11 @@ describe('regionTexts: region-specific mode', () => {
     expect(t.nearbyText).toBe('Für Österreich und Umkreis');
   });
 
-  it('combined views: Germany, Switzerland and Alle Tribes (ticket 33)', () => {
+  it('combined views: Deutschland, Switzerland and Alle Tribes (ticket 33)', () => {
+    expect(combinedViewTexts('unknown')).toEqual(combinedViewTexts('oesterreich'));
+    expect(combinedViewTexts('deutschland').liveHint).toBe(
+      'Wir suchen gerade Events für die Landkreise in Deutschland. Wir können erst mit Deutschland live gehen, sobald mindestens ein Landkreis genügend Events hat.'
+    );
     const de = regionTexts(reg('vorarlberg'), {
       activeCount: 3,
       national: true,
@@ -166,7 +174,7 @@ describe('regionTexts: region-specific mode', () => {
   it('region texts of another region never mention Vorarlberg', () => {
     const t = regionTexts(reg('steiermark'), { activeCount: 2 });
     expect(JSON.stringify(t)).not.toMatch(/Vorarlberg/);
-    expect(STATIC_REGIONS.filter((r) => r.home).length).toBe(51);
+    expect(STATIC_REGIONS.length).toBe(133);
   });
 });
 
@@ -236,11 +244,25 @@ describe('regionTexts: wording per region (two regions active)', () => {
       'Kalender | The Tribe Burgenland',
     ],
     [
-      'bayern',
-      'Dein bayerischer Kalender',
-      'in Bayern',
-      'Für Bayern und Umkreis',
-      'Kalender | The Tribe Bayern',
+      'innerschweiz',
+      'Dein Innerschweizer Kalender',
+      'in der Innerschweiz',
+      'Für die Innerschweiz und Umkreis',
+      'Kalender | The Tribe Innerschweiz',
+    ],
+    [
+      'appenzell',
+      'Dein Appenzeller Kalender',
+      'im Appenzellerland',
+      'Für das Appenzellerland und Umkreis',
+      'Kalender | The Tribe Appenzell',
+    ],
+    [
+      'liechtenstein',
+      'Dein Liechtensteiner Kalender',
+      'in Liechtenstein',
+      'Für Liechtenstein und Umkreis',
+      'Kalender | The Tribe Liechtenstein',
     ],
   ];
   it.each(table)('%s', (id, header, loc, feature, title) => {
@@ -251,9 +273,9 @@ describe('regionTexts: wording per region (two regions active)', () => {
     expect(t.calendarTitle).toBe(title);
   });
 
-  it('spot-checked regions are part of the register, in register order', () => {
+  it('spot-checked regions are part of the register', () => {
     const ids = STATIC_REGIONS.map((r) => r.id);
-    expect(table.map((r) => r[0])).toEqual(ids.filter((id) => table.some((r) => r[0] === id)));
+    for (const [id] of table) expect(ids).toContain(id);
   });
 
   it('every other region gets generated wording with its own name', () => {

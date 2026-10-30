@@ -18,8 +18,9 @@ describe('donorsOfRegion', () => {
     ]);
   });
 
-  it('keeps other regions apart (legacy Allgäu ids count as Bavaria)', () => {
+  it('keeps other regions apart (a former region id stays its own, never Vorarlberg)', () => {
     expect(donorsOfRegion(donors, 'tirol').map((d) => d.id)).toEqual(['tirol']);
-    expect(donorsOfRegion(donors, 'bayern').map((d) => d.id)).toEqual(['allgaeu']);
+    expect(donorsOfRegion(donors, 'allgaeu').map((d) => d.id)).toEqual(['allgaeu']);
+    expect(donorsOfRegion(donors, 'vorarlberg').map((d) => d.id)).not.toContain('allgaeu');
   });
 });

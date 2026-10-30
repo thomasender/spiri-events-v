@@ -131,9 +131,9 @@ describe('ModerationTab', () => {
     const save = within(dialog).getByRole('button', { name: 'Speichern' });
     expect(save).toBeDisabled();
     // Inactive regions can be assigned too (moderation before the launch).
-    expect(within(dialog).getAllByRole('checkbox')).toHaveLength(51);
+    expect(within(dialog).getAllByRole('checkbox')).toHaveLength(STATIC_REGIONS.length);
     expect(
-      within(dialog).getByRole('checkbox', { name: /Bayern \(noch nicht freigeschaltet\)/ })
+      within(dialog).getByRole('checkbox', { name: /Innerschweiz \(noch nicht freigeschaltet\)/ })
     ).toBeEnabled();
     expect(within(dialog).getByRole('group', { name: 'Regionen' })).toBeInTheDocument();
     expect(
@@ -144,8 +144,8 @@ describe('ModerationTab', () => {
     fireEvent.click(save);
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-    expect(state.setCalls).toEqual([{ uid: 'anna', regionIds: ['tirol', 'salzburg'] }]);
-    expect(screen.getByRole('status')).toHaveTextContent('anna moderiert Tirol, Salzburg');
+    expect(state.setCalls).toEqual([{ uid: 'anna', regionIds: ['salzburg', 'tirol'] }]);
+    expect(screen.getByRole('status')).toHaveTextContent('anna moderiert Salzburg, Tirol');
     expect(await screen.findByTestId('moderation-row')).toHaveTextContent('anna');
   });
 

@@ -66,7 +66,17 @@ export function formExamples(region, { regionSpecific = false } = {}) {
   }
   if (!customExample(region, 'place') && fallback === NEUTRAL_EXAMPLES) {
     const first = Array.isArray(region?.bezirke) ? region.bezirke[0] : null;
-    if (typeof first === 'string' && first.trim()) out.place = withPrefix(first.trim());
+    // "Innsbruck (Stadt)" -> "Innsbruck", "1. Innere Stadt" -> "Innere Stadt", Germany
+    // "Stadt Stuttgart" / "Landkreis Konstanz" -> "Stuttgart" / "Konstanz": an Ort, not a Bezirk.
+    const name =
+      typeof first === 'string'
+        ? first
+            .replace(/\s*\((Stadt|Landkreis)\)$/, '')
+            .replace(/^\d+\.\s*/, '')
+            .replace(/^(Stadt|Landkreis) /, '')
+            .trim()
+        : '';
+    if (name) out.place = withPrefix(name);
   }
   return out;
 }

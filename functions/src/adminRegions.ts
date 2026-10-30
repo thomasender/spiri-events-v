@@ -158,12 +158,8 @@ export async function setRegionActiveHandler(
       // Region docs are created by scripts/seed-regions.mjs; never invent one here.
       throw new HttpsError('not-found', 'Region document does not exist.');
     }
-    // A region without Landkreise / Bezirke (a cultural region nobody has filled in
-    // Verwaltung -> "Zuordnung") cannot go live.
-    const districts =
-      Array.isArray(current.bezirke) && (current.bezirke.length > 0 || current.mappingUpdatedAt)
-        ? current.bezirke
-        : (STATIC_REGION_BEZIRKE[regionId] ?? []);
+    // A region without Landkreise / Bezirke in the register cannot go live.
+    const districts = STATIC_REGION_BEZIRKE[regionId] ?? [];
     if (active && districts.length === 0) {
       throw new HttpsError('failed-precondition', 'The region has no districts yet.', {
         reason: 'no-districts',

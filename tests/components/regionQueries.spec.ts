@@ -87,12 +87,12 @@ describe('buildPublicEventQueryPlan', () => {
         isNational: true,
         activeRegionIds: ids,
       });
-    expect(plan(['bayern', 'vorarlberg']).queries[0].constraints[1]).toEqual([
+    expect(plan(['zuerich', 'vorarlberg']).queries[0].constraints[1]).toEqual([
       'regionId',
       'in',
-      ['bayern', 'vorarlberg'],
+      ['zuerich', 'vorarlberg'],
     ]);
-    expect(plan(['bayern']).queries[0].constraints[1]).toEqual(['regionId', 'in', ['bayern']]);
+    expect(plan(['zuerich']).queries[0].constraints[1]).toEqual(['regionId', 'in', ['zuerich']]);
     // A country without active region (Switzerland): no query.
     expect(plan([])).toEqual({ mode: 'national', queries: [] });
   });
@@ -103,15 +103,16 @@ describe('buildPublicEventQueryPlan', () => {
     ).toEqual({ mode: 'national', queries: [] });
   });
 
-  it('up to 30 active regions fit into one `in`, more fall back to the full query', () => {
-    const active = REGION_SLUGS.slice(0, MAX_IN_VALUES);
+  it('up to 30 active regions fit into one `in`; more fall back to the full query', () => {
+    // 133 regions since Germany is back: only the ACTIVE ones go into the `in`.
+    expect(REGION_SLUGS.length).toBeGreaterThan(MAX_IN_VALUES);
+    const thirty = REGION_SLUGS.slice(0, MAX_IN_VALUES);
     const plan = buildPublicEventQueryPlan({
       markerComplete: true,
       isNational: true,
-      activeRegionIds: active,
+      activeRegionIds: thirty,
     });
-    expect(plan?.queries[0].constraints[1]).toEqual(['regionId', 'in', active]);
-    expect(REGION_SLUGS.length).toBeGreaterThan(MAX_IN_VALUES);
+    expect(plan?.queries[0].constraints[1]).toEqual(['regionId', 'in', thirty]);
     expect(
       buildPublicEventQueryPlan({
         markerComplete: true,
@@ -119,6 +120,13 @@ describe('buildPublicEventQueryPlan', () => {
         activeRegionIds: REGION_SLUGS,
       })
     ).toEqual(FULL_EVENTS);
+    expect(
+      buildDirectoryQueryPlan({
+        markerComplete: true,
+        isNational: true,
+        activeRegionIds: REGION_SLUGS,
+      })?.mode
+    ).toBe('all');
   });
 
   it('an unknown region id falls back to the full query', () => {

@@ -109,11 +109,11 @@ describe('buildModeratorApplicationEmail', () => {
     expect(MODERATOR_APPLICATION_INBOX).toBe('admin@thetribe.at');
     const app = validateModeratorApplication({
       ...valid,
-      regionId: 'bayern',
+      regionId: 'innerschweiz',
       photoBase64: JPEG.toString('base64'),
     });
     const { subject, text, html } = buildModeratorApplicationEmail(app);
-    expect(subject).toBe('Bewerbung als Moderator:in: Maria Muster (Bayern)');
+    expect(subject).toBe('Bewerbung als Moderator:in: Maria Muster (Innerschweiz)');
     expect(text).toContain('Antwort an: maria@example.at');
     expect(text).toContain('Foto: siehe Anhang');
     expect(html).toContain('src="cid:bewerbung.jpg"');

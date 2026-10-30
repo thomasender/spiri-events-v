@@ -117,18 +117,46 @@ describe('isReservedUsername', () => {
 describe('reserved region names', () => {
   const extra = ['oesterreich', 'austria', 'online', 'regionen', 'region'];
 
-  it('REGION_SLUGS lists all 111 regions (51 Bundeslaender / Kantone + 60 cultural) in ASCII', () => {
-    expect(REGION_SLUGS).toHaveLength(111);
-    expect(REGION_SLUGS).toContain('bayern');
+  it('REGION_SLUGS lists the 133 regions of the CSV register in ASCII', () => {
+    expect(REGION_SLUGS).toHaveLength(133);
+    expect(REGION_SLUGS).toContain('innerschweiz');
     expect(REGION_SLUGS).toContain('zuerich');
+    expect(REGION_SLUGS).toContain('muenchen');
+    expect(REGION_SLUGS).not.toContain('bayern');
     for (const slug of REGION_SLUGS) expect(slug).toMatch(/^[a-z]+(-[a-z]+)*$/);
   });
 
-  it('reserves the combined view addresses', () => {
+  it('every region and view slug is a valid, reserved username (fits the 30 characters)', () => {
+    for (const slug of [...REGION_SLUGS, 'oesterreich', 'deutschland', 'schweiz', 'alle-tribes']) {
+      expect(slug.length).toBeLessThanOrEqual(30);
+      expect(validateUsername(slug)).toMatchObject({ valid: false, error: 'RESERVED' });
+    }
+    expect(validateUsername('München')).toMatchObject({ valid: false });
+    expect(isReservedUsername('Allgäu')).toBe(true);
+    expect(isReservedUsername('grossraum-duesseldorf')).toBe(true);
+  });
+
+  it('reserves the combined view addresses (incl. /deutschland)', () => {
     for (const name of ['oesterreich', 'deutschland', 'schweiz', 'alle-tribes']) {
       expect(validateUsername(name)).toMatchObject({ valid: false, error: 'RESERVED' });
     }
     expect(validateUsername('Ganz-Schweiz').valid).toBe(true);
+  });
+
+  it('keeps former region addresses reserved (old German ids, merged cantons; reused ids as regions)', () => {
+    for (const name of [
+      'bayern',
+      'berlin',
+      'ruhrgebiet',
+      'allgaeu',
+      'luzern',
+      'zug',
+      'basel-stadt',
+      'appenzell-innerrhoden',
+      'thueringen',
+    ]) {
+      expect(validateUsername(name)).toMatchObject({ valid: false, error: 'RESERVED' });
+    }
   });
 
   it('reserves every region slug and the extra names', () => {

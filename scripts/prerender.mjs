@@ -1089,20 +1089,12 @@ export async function loadEventsFromFirestoreRest({
 // contactEmail); unknown ids are dropped.
 // ---------------------------------------------------------------------------
 export function sanitizeRegionDoc(doc) {
-  // Regions created in the Verwaltung (`custom`) are not in the static register; mergeRegions
-  // validates them (slug, country, name) and registers them.
-  if (!doc || (!isRegionSlug(doc.id) && doc.custom !== true)) return null
+  // Names and districts come only from the register in code (mergeRegions ignores them in a
+  // doc), so only the switchable public fields are kept.
+  if (!doc || !isRegionSlug(doc.id)) return null
   const out = { id: doc.id }
-  if (doc.custom === true) {
-    out.custom = true
-    for (const key of ['country', 'inPhrase', 'forPhrase', 'demonym', 'subdivisionLabel']) {
-      if (typeof doc[key] === 'string') out[key] = doc[key]
-    }
-  }
-  if (typeof doc.name === 'string') out.name = doc.name
   if (typeof doc.order === 'number') out.order = doc.order
   if (typeof doc.active === 'boolean') out.active = doc.active
-  if (Array.isArray(doc.bezirke)) out.bezirke = doc.bezirke.filter(b => typeof b === 'string')
   if (doc.seo && typeof doc.seo === 'object') {
     const seo = {}
     if (typeof doc.seo.title === 'string') seo.title = doc.seo.title

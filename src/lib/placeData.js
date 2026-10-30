@@ -1,4 +1,4 @@
-import { prepareAdminShapes, prepareDistrictShapes } from '../utils/geoRegion';
+import { prepareAdminShapes } from '../utils/geoRegion';
 import { buildRegionEntries, preparePlaceIndex } from '../utils/placeSearch';
 
 // The bundled place list (about 380 kB gzipped) and the border shapes are only loaded when
@@ -14,15 +14,11 @@ export function loadPlaceIndex() {
 
 export { buildRegionEntries };
 
-// Landkreis shapes (Germany) and Bundesland / Kanton outlines (Austria, Switzerland): only
-// needed to put a shared GPS position into the right region near a border.
+// Bundesland / Kanton / Liechtenstein outlines: only needed to put a shared GPS position into
+// the right region near a border.
 let shapesPromise = null;
 export function loadGeoShapes() {
-  shapesPromise ??= Promise.all([
-    import('../data/landkreisMap.json'),
-    import('../data/adminAtChMap.json'),
-  ]).then(([districts, admin]) => ({
-    districts: prepareDistrictShapes((districts.default ?? districts).districts),
+  shapesPromise ??= import('../data/adminAtChMap.json').then((admin) => ({
     admin: prepareAdminShapes(admin.default ?? admin),
   }));
   shapesPromise.catch(() => {

@@ -13,7 +13,6 @@ import { HttpsError } from 'firebase-functions/v2/https';
 import { initializeApp, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { DEFAULT_REGION_ID, REGION_IDS, isRegionId } from './regions';
-import { ensureCustomRegions } from './customRegions';
 
 if (getApps().length === 0) {
   initializeApp();
@@ -41,7 +40,7 @@ export function parseStaffRole(doc: unknown): StaffRole | null {
 
 /**
  * Validates the region list for a moderator: only ids from REGION_IDS (the
- * nine Bundeslaender plus the Allgäu), no duplicates. `[]` is allowed
+ * regions of the CSV register), no duplicates. `[]` is allowed
  * (= revoke). Returns the ids in the canonical REGION_IDS order so equal sets
  * compare equal.
  */
@@ -101,8 +100,6 @@ export function profileEditableByModerator(
 }
 
 export async function readRoleDoc(uid: string): Promise<Record<string, unknown> | null> {
-  // Every role check passes here; moderators of a created region need it registered.
-  await ensureCustomRegions();
   const snap = await getFirestore().collection('admin_users').doc(uid).get();
   return snap.exists ? (snap.data() ?? {}) : null;
 }

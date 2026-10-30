@@ -7,7 +7,13 @@
 //
 // Pure: no Firebase, no DOM, no env. Safe to import from Node scripts.
 
-import { COMBINED_VIEW_SLUGS, LEGACY_REGION_ALIASES, REGION_SLUGS } from './regions.js';
+import {
+  COMBINED_VIEW_SLUGS,
+  LEGACY_REGION_ALIASES,
+  REGION_SLUGS,
+  RETIRED_REGION_IDS,
+  RETIRED_VIEW_SLUGS,
+} from './regions.js';
 
 export const USERNAME_MIN = 3;
 export const USERNAME_MAX = 30;
@@ -47,12 +53,16 @@ export const RESERVED_USERNAMES = new Set([
   'static',
   'public',
   'assets',
-  // Region addresses (`/tirol`, ...) and the combined views (`/oesterreich`,
-  // `/deutschland`, `/schweiz`, `/alle-tribes`, not regions themselves) share
-  // the top-level path space with profiles.
+  // Region addresses (`/tirol`, `/muenchen`, ...) and the combined views
+  // (`/oesterreich`, `/deutschland`, `/schweiz`, `/alle-tribes`, not regions
+  // themselves) share the top-level path space with profiles. Addresses of former
+  // regions (`/bayern`, `/luzern`, ...) and views (RETIRED_VIEW_SLUGS, empty now)
+  // stay reserved: nobody may claim an old region URL.
   ...REGION_SLUGS,
+  ...RETIRED_REGION_IDS,
   ...Object.keys(LEGACY_REGION_ALIASES),
   ...COMBINED_VIEW_SLUGS,
+  ...RETIRED_VIEW_SLUGS,
   'austria',
   'online',
   'regionen',

@@ -26,7 +26,7 @@ function stringList(value) {
 // German error messages keyed by field; empty when the choice is valid.
 // Not listed → nothing is required, so users who stay out of the directory
 // never have to name an offering.
-// `extraRegions`: district names that exist only in Firestore (regions/{id}.bezirke).
+// `extraRegions`: district names of the register that DIRECTORY_REGIONS does not list.
 export function validateDirectoryListing({
   listed,
   categories,

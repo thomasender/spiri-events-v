@@ -1,10 +1,9 @@
 import { onRequest } from 'firebase-functions/v2/https';
-import { ensureCustomRegions } from './customRegions';
 import { logger } from 'firebase-functions';
 import { MOLLIE_API_KEY, ensureMollieSubscription, mollieRequest } from './mollie';
 import { reportPaymentFailure } from './paymentAlerts';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
-import { regionNameOf } from './regions';
+import { isRegionId, regionNameOf } from './regions';
 import type { FirestoreLikeDb } from './mollieWebhookLogic';
 import {
   canonicalBodyBytes,
@@ -40,7 +39,8 @@ async function notifyStaffOfDonation(notice: DonationNotice): Promise<void> {
     db.collection('admin_users').get(),
     db.collection('regions').where('active', '==', true).get(),
   ]);
-  const activeIds = new Set(regions.docs.map((d) => d.id));
+  // Only regions of the register (a leftover doc of a former region does not count).
+  const activeIds = new Set(regions.docs.map((d) => d.id).filter(isRegionId));
   activeIds.add('vorarlberg');
   const text = donationNoticeText(
     notice,
@@ -84,7 +84,6 @@ export const mollieWebhook = onRequest(
       return;
     }
 
-    await ensureCustomRegions();
     const rawBody = canonicalBodyBytes(req);
 
     const secret = getWebhookSigningSecret();
