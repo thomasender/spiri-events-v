@@ -190,4 +190,25 @@ describe('Verwaltung header while the chosen region is not open yet (gflD7CXa)',
     renderAdminHeader();
     expect(screen.queryByText('Dein Kalender')).toBeNull();
   });
+
+  it('Favoriten and Profil never fall back to the Vorarlberg header', () => {
+    for (const path of ['/favoriten', '/profil']) {
+      for (const [regionId, title] of [
+        ['niederoesterreich', 'Dein Kalender'],
+        ['tirol', 'Dein Tiroler Kalender'],
+      ]) {
+        window.localStorage.setItem('tribe:placeSelection', place(regionId));
+        const { unmount } = render(
+          <MemoryRouter initialEntries={[path]}>
+            <RegionProvider>
+              <Header />
+            </RegionProvider>
+          </MemoryRouter>
+        );
+        expect(screen.getByText(title)).toBeInTheDocument();
+        expect(screen.queryByText('Dein Vorarlberger Kalender')).toBeNull();
+        unmount();
+      }
+    }
+  });
 });

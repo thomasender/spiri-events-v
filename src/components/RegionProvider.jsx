@@ -10,6 +10,7 @@ import {
   writePlaceSelection,
 } from '../utils/placeSelection';
 import {
+  CHOOSER_PATHS,
   REGIONS_PAGE_PATH,
   activeRegions,
   availableCombinedViews,
@@ -139,24 +140,27 @@ export default function RegionProvider({ children }) {
       lastRegion: readLastRegion(),
       regions: allRegions,
     });
-    // Verwaltung (`/admin...`) while the visitor's chosen place lies in a region that is not
-    // open yet: neutral header instead of the Vorarlberg fallback (Trello gflD7CXa).
+    // Pages without a region in their address (Verwaltung, Favoriten, Profil, ...) while the
+    // visitor's chosen place lies in a region that is not open yet: neutral header instead of
+    // the Vorarlberg fallback (Trello gflD7CXa, 6uzk1bHG). Not on `/` and `/verzeichnis`
+    // (they show the default region's calendar) nor on event pages (the event's region).
     const placeRegion = placeSelection?.regionId
       ? getRegionBySlug(placeSelection.regionId, allRegions)
       : null;
-    const adminComingSoon = Boolean(
+    const placeComingSoon = Boolean(
       regionMode &&
       !urlSlug &&
-      (pathname === '/admin' || pathname.startsWith('/admin/')) &&
+      !eventRegionId &&
+      !CHOOSER_PATHS.includes(pathname) &&
       placeRegion &&
       !placeRegion.active
     );
     // Neutral header ("Dein Kalender"): region chooser, coming-soon pages, the event
-    // form for a region that is not open yet, Verwaltung for such a region and
+    // form for a region that is not open yet, pages without a region for such a region and
     // Impressum / Datenschutz.
     const neutralHeader =
       comingSoon ||
-      adminComingSoon ||
+      placeComingSoon ||
       eventRegionComingSoon ||
       eventFormComingSoon ||
       pathname === REGIONS_PAGE_PATH ||
