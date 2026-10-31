@@ -7,6 +7,7 @@ import {
   buildPublishedPayload,
   buildPublishedShareUrls,
   buildDeletedPayload,
+  buildRejectedPayload,
   buildPasswordResetPayload,
   buildContactMessagePayload,
   buildModeratorInvitePayload,
@@ -391,6 +392,63 @@ describe('buildDeletedPayload', () => {
       reason: 'Doppelt eingetragen',
     });
     expect(payload.text).toContain('Doppelt eingetragen');
+  });
+});
+
+describe('buildRejectedPayload', () => {
+  const baseEvent = {
+    id: 'evt7',
+    title: 'Retreat Bali',
+    slug: null,
+    organizer: { firstName: 'Lukas', lastName: 'Weber', email: 'l@x.at', photoURL: null },
+  };
+
+  it('quotes the staff reason escaped and explains trash, rework and re-submit', () => {
+    const payload = buildRejectedPayload({
+      event: baseEvent,
+      recipient: 'l@x.at',
+      reason: '<p>Hallo Lukas,</p><p>kein regionaler <b>Bezug</b> & Co.</p>',
+    });
+    expect(payload.subject).toBe('Dein Event wurde abgelehnt: Retreat Bali');
+    expect(payload.html).toContain('Hallo Lukas Weber,');
+    expect(payload.html).toContain('<blockquote');
+    expect(payload.html).toContain('kein regionaler Bezug &amp; Co.');
+    expect(payload.html).not.toContain('<b>Bezug</b>');
+    expect(payload.text).toContain('Hallo Lukas,\nkein regionaler Bezug & Co.');
+    for (const body of [payload.html, payload.text]) {
+      expect(body).toContain('Papierkorb');
+      expect(body).toContain('erneut ein');
+    }
+  });
+
+  it('escapes a plain-text reason with markup', () => {
+    const payload = buildRejectedPayload({
+      event: baseEvent,
+      recipient: 'l@x.at',
+      reason: 'Bild <script>alert(1)</script>',
+    });
+    expect(payload.html).toContain('Bild &lt;script&gt;alert(1)&lt;/script&gt;');
+    expect(payload.html).not.toContain('<script>');
+  });
+
+  it('still makes sense without a reason', () => {
+    const payload = buildRejectedPayload({ event: baseEvent, recipient: 'l@x.at', reason: ' ' });
+    expect(payload.html).not.toContain('<blockquote');
+    expect(payload.text).not.toContain('Die Nachricht unseres Teams');
+    expect(payload.text).toContain('Papierkorb');
+  });
+
+  it('is reachable through the dispatcher and adds the region contact line', () => {
+    const payload = buildEmailPayload('rejected', {
+      event: baseEvent,
+      recipient: 'l@x.at',
+      reason: 'Doppelt eingetragen',
+      regionContactEmail: 'tirol@thetribe.at',
+    });
+    expect(payload.subject).toMatch(/^Dein Event wurde abgelehnt/);
+    expect(payload.text).toContain('Doppelt eingetragen');
+    expect(payload.text).toContain('Rückfragen zu dieser Region: tirol@thetribe.at');
+    expect(payload.text).toContain('admin@thetribe.at');
   });
 });
 

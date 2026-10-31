@@ -567,6 +567,27 @@ describe('events: owners cannot approve their own events', () => {
       }
     });
 
+    it('restores a rejected event (the mark is cleared) but cannot set the mark', async () => {
+      await seed('e', {
+        status: 'trashed',
+        trashedBy: 'adminDoc',
+        trashReason: 'Spam',
+        trashKind: 'rejected',
+        trashedAt: 1,
+      });
+      await assertSucceeds(
+        updateDoc(ownerRef('e'), {
+          status: 'draft',
+          trashedAt: null,
+          trashedBy: null,
+          trashReason: null,
+          trashKind: null,
+          updatedAt: 2,
+        })
+      );
+      await assertFails(updateDoc(ownerRef('e'), { trashKind: 'rejected' }));
+    });
+
     it('restores an event an admin trashed with a reason (reason is cleared)', async () => {
       await seed('e', {
         status: 'trashed',
@@ -1579,6 +1600,21 @@ describe('region moderators', () => {
       await assertSucceeds(updateDoc(ev('tirolTrashed'), restore()));
     });
 
+    it('rejects a pending event (trashKind "rejected"), only from pending', async () => {
+      const reject = (uid: string) => ({ ...trash(uid, 'Grund'), trashKind: 'rejected' });
+      await assertFails(updateDoc(ev('tirolApproved'), reject('modTirol')));
+      await assertFails(
+        updateDoc(ev('tirolPending'), { ...trash('modTirol'), trashKind: 'gelöscht' })
+      );
+      await assertSucceeds(
+        updateDoc(ev('tirolApproved'), { ...trash('modTirol'), trashKind: null })
+      );
+      await assertSucceeds(updateDoc(ev('tirolPending'), reject('modTirol')));
+      // Restore clears the mark again.
+      await assertFails(updateDoc(ev('tirolPending'), restore()));
+      await assertSucceeds(updateDoc(ev('tirolPending'), { ...restore(), trashKind: null }));
+    });
+
     it('cannot stamp somebody else as approver/unpublisher/trasher', async () => {
       await assertFails(updateDoc(ev('tirolPending'), approve('adminDoc')));
       await assertFails(updateDoc(ev('tirolApproved'), unpublish('adminDoc')));
@@ -1719,6 +1755,22 @@ describe('region moderators', () => {
       );
       await assertSucceeds(deleteDoc(doc(msgs('modTirol', 'tirolPending'), 'm1')));
       await assertSucceeds(getDocs(msgs('modTirol', 'onlineTirol')));
+    });
+
+    it('may mark a staff message as rejection reason, nothing else', async () => {
+      await assertSucceeds(
+        setDoc(doc(msgs('modTirol', 'tirolPending')), { ...message('modTirol'), kind: 'rejection' })
+      );
+      await assertFails(
+        setDoc(doc(msgs('modTirol', 'tirolPending')), { ...message('modTirol'), kind: 'other' })
+      );
+      // The organizer cannot use it to suppress mails or fake a reason.
+      await assertFails(
+        setDoc(doc(msgs('owner', 'tirolPending')), {
+          ...message('owner', 'User'),
+          kind: 'rejection',
+        })
+      );
     });
 
     it("cannot write in the organizer's name or as someone else", async () => {

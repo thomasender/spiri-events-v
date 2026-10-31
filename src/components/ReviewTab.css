@@ -164,3 +164,18 @@
   align-items: center;
   gap: var(--space-1-5);
 }
+
+/* Reject dialog: the staff message that goes to the owner as the reason. */
+.review-reject-reason {
+  margin: 0 0 var(--space-6) 0;
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--accent-primary);
+  background: var(--bg-secondary);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  color: var(--text-primary);
+  font-size: var(--text-90);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  max-height: 40vh;
+  overflow-y: auto;
+}

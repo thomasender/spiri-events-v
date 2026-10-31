@@ -1,6 +1,6 @@
 # Testprotokoll: Event-Lifecycle-E-Mails
 
-_Test-Protokoll für die vier automatischen Benachrichtigungs-E-Mails, die beim Lebenszyklus eines Events ausgelöst werden. Voraussetzung: Funktionen sind deployt (`firebase deploy --only functions`), Mailgun-Domain `mg.thetribe.at` ist verifiziert, die Secrets `MAILGUN_API_KEY`, `MAILGUN_DOMAIN`, `MAILGUN_FROM`, `MAILGUN_REPLY_TO` sind gebunden. `MAILGUN_FROM` ist der angezeigte Absender (`The Tribe <admin@mg.thetribe.at>`), `MAILGUN_REPLY_TO` ist die Adresse, an die Antworten gehen (`admin@thetribe.at`, Outlook-365-Posteingang)._
+_Test-Protokoll für die automatischen Benachrichtigungs-E-Mails, die beim Lebenszyklus eines Events ausgelöst werden. Voraussetzung: Funktionen sind deployt (`firebase deploy --only functions`), Mailgun-Domain `mg.thetribe.at` ist verifiziert, die Secrets `MAILGUN_API_KEY`, `MAILGUN_DOMAIN`, `MAILGUN_FROM`, `MAILGUN_REPLY_TO` sind gebunden. `MAILGUN_FROM` ist der angezeigte Absender (`The Tribe <admin@mg.thetribe.at>`), `MAILGUN_REPLY_TO` ist die Adresse, an die Antworten gehen (`admin@thetribe.at`, Outlook-365-Posteingang)._
 
 ## 1. „Neuer Event-Vorschlag" (Submitted → an alle Admins)
 
@@ -41,6 +41,7 @@ _Test-Protokoll für die vier automatischen Benachrichtigungs-E-Mails, die beim 
   - Function Log: `changes_requested notification processed`, `recipients: 1`
   - Im Ersteller-Postfach: eingebetteter Text muss zeichengenau dem geschriebenen Admin-Text entsprechen
 - **Wichtig:** Triggert nur bei `authorRole: "Admin"`. Antworten eines Users auf eine Admin-Nachricht lösen **keine** E-Mail aus (gewollt).
+- **Ausnahme Ablehnungsgrund:** Eine Nachricht aus dem Dropdown „Ablehnungsgründe“ (Feld `kind: "rejection"`) löst **keine** „Änderungen gewünscht“-Mail aus; der Text geht mit der Ablehnungsmail (Abschnitt 4a) raus. Im Composer und an der Nachricht steht dafür „E-Mail erst beim Ablehnen“. Wird das Häkchen „Als Ablehnungsgrund senden“ entfernt, ist es eine normale Nachricht mit Mail.
 
 ## 4. „Dein Event wurde gelöscht" (Deleted → an Ersteller)
 
@@ -52,7 +53,21 @@ _Test-Protokoll für die vier automatischen Benachrichtigungs-E-Mails, die beim 
 - **Verifizieren:**
   - Mailgun Logs → 1× delivered
   - Function Log: `deleted notification processed`, `recipients: 1`
-- **Wichtig:** Triggert bei **jedem** Übergang nach `trashed` (von `draft`, `pending` oder `approved`).
+- **Wichtig:** Triggert bei **jedem** Übergang nach `trashed` (von `draft`, `pending` oder `approved`), außer bei einer Ablehnung (`trashKind: "rejected"`, siehe 4a).
+
+## 4a. „Dein Event wurde abgelehnt" (Rejected → an Ersteller)
+
+- **Wer löst aus:** Super-Admin oder Regions-Moderator:in, nur bei einem fremden Event im Status `pending`
+- **Voraussetzung:** Im Nachrichtenbereich des Events steht mindestens eine Staff-Nachricht (`authorRole: "Admin"`), am besten aus „Ablehnungsgründe“. Sonst ist „Ablehnen“ im Dialog gesperrt und zeigt „Bitte zuerst im Nachrichtenbereich einen Grund schreiben“ mit Link zum Event.
+- **Aktion:** Review → Button „Ablehnen“ (Verbotsschild) → Dialog zeigt die neueste Staff-Nachricht als Grund → „Ablehnen“
+- **Ergebnis:** Event im Papierkorb (`status: "trashed"`, `trashKind: "rejected"`, `trashReason` = Nachrichtentext als Klartext, max. 2000 Zeichen); der Nachrichtenverlauf bleibt erhalten
+- **Empfänger:** Ersteller (Einstellung „Gelöscht“-Mails, `notifyOnDeleted`)
+- **Betreff:** `Dein Event wurde abgelehnt: {Titel}`
+- **Inhalt:** freundliche Anrede, Grund als Zitat (HTML-escaped), Hinweis auf „Papierkorb“ (30 Tage) mit Wiederherstellen, Überarbeiten und erneut Einreichen; bei mehreren aktiven Regionen die Zeile „Rückfragen zu dieser Region“
+- **Verifizieren:**
+  - Mailgun Logs → 1× delivered; **keine** zusätzliche „Dein Event wurde gelöscht“-Mail und (bei Vorlage) keine „Änderungen gewünscht“-Mail
+  - Function Log: `rejected notification processed`, `recipients: 1`
+- **Negativtests:** eigenes Event → kein „Ablehnen“-Button; freigegebenes Event → kein „Ablehnen“-Button; Wiederherstellen aus dem Papierkorb setzt `trashKind` zurück (späteres normales Löschen schickt wieder die Lösch-Mail)
 
 ## 5. „Einladung ins Moderations-Team" (an die eingeladene Person) und „Neue Moderator:in" (an Super-Admins)
 

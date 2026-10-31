@@ -10,6 +10,8 @@ export interface EventSnapshot {
   createdBy?: string | null;
   unpublishedBy?: string | null;
   trashReason?: string | null;
+  /** 'rejected' when staff rejected the pending event (buildRejectUpdate). */
+  trashKind?: string | null;
 }
 
 export type AdminMessageRole = 'Admin' | 'User';
@@ -19,17 +21,25 @@ export interface AdminMessageSnapshot {
   authorUid?: string | null;
   text?: string | null;
   authorName?: string | null;
+  /** 'rejection' = a rejection reason; its mail is the rejection mail. */
+  kind?: string | null;
   id: string;
 }
 
 export type NotificationType =
-  'submitted' | 'changes_requested' | 'published' | 'unpublished' | 'deleted' | 'contact_message';
+  | 'submitted'
+  | 'changes_requested'
+  | 'published'
+  | 'unpublished'
+  | 'deleted'
+  | 'rejected'
+  | 'contact_message';
 
 export interface EventNotificationDecision {
   type: Exclude<NotificationType, 'changes_requested'>;
   event: NotificationEvent;
   recipient: string | 'admins';
-  /** Only for 'deleted': why an admin deleted the owner's event. */
+  /** Only for 'deleted' / 'rejected': why staff deleted or rejected the owner's event. */
   reason?: string | null;
 }
 
@@ -89,7 +99,7 @@ export function decideEventStatusNotification(
     if (!ownerEmail) return null;
     const reason = typeof after.trashReason === 'string' ? after.trashReason.trim() : '';
     return {
-      type: 'deleted',
+      type: after.trashKind === 'rejected' ? 'rejected' : 'deleted',
       event: buildEventFor(eventId, after, eventTitle, slug),
       recipient: ownerEmail,
       reason: reason || null,
@@ -154,6 +164,9 @@ export function decideAdminMessageNotification(
   slug?: string | null
 ): ChangesRequestedDecision | null {
   if (message.authorRole !== 'Admin') return null;
+  // A rejection reason is mailed with "Dein Event wurde abgelehnt" once staff
+  // rejects the event, not as a change request (no double mail).
+  if (message.kind === 'rejection') return null;
   const text = typeof message.text === 'string' ? message.text.trim() : '';
   if (!text) return null;
 
