@@ -3,6 +3,8 @@
 // HTML on `regions/{id}.aboutText`. Until a moderator saves her own text the page
 // shows the default below (the same words as the static markup in AboutPage).
 
+import { regionTexts } from './regionTexts.js';
+
 export const ABOUT_TEXT_MAX_LENGTH = 5000;
 
 const escapeHtml = (s) =>
@@ -34,6 +36,14 @@ export function customAboutText(region) {
 export const SLOGAN_LINE1_MAX_LENGTH = 30;
 export const SLOGAN_LINE2_MAX_LENGTH = 30;
 export const DEFAULT_SLOGAN_LINE2 = 'für bewusste Events';
+
+/**
+ * The slogan the header shows when nothing is saved: line 1 is the header title of
+ * `regionTexts` (same function as the Header), line 2 the fixed subline.
+ */
+export function defaultSlogan(region, { activeCount = 1 } = {}) {
+  return { line1: regionTexts(region, { activeCount }).headerTitle, line2: DEFAULT_SLOGAN_LINE2 };
+}
 
 /** Saved slogan lines of a region; '' where nothing is saved (header shows today's text). */
 export function customSlogan(region) {

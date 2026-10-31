@@ -12,7 +12,7 @@ import {
   ABOUT_TEXT_MAX_LENGTH,
   customAboutText,
   customSlogan,
-  DEFAULT_SLOGAN_LINE2,
+  defaultSlogan,
   SLOGAN_LINE1_MAX_LENGTH,
   SLOGAN_LINE2_MAX_LENGTH,
   defaultAboutBodyHtml,
@@ -82,15 +82,19 @@ export default function RegionAboutTab() {
   const [notice, setNotice] = useState(null);
   const fileInputRef = useRef(null);
 
+  const activeCount = regions.filter((r) => r.active).length;
+
   // Load the stored values whenever another region is picked.
   const currentId = current?.id ?? '';
   useEffect(() => {
     const region = options.find((r) => r.id === currentId);
     setAboutText(customAboutText(region) || defaultAboutBodyHtml(placePhraseOf(region)));
     setHeaderImage(region?.aboutHeaderImage ?? '');
+    // Nothing saved: show the slogan the header uses today, so it can be edited directly.
     const slogan = customSlogan(region);
-    setSlogan1(slogan.line1);
-    setSlogan2(slogan.line2);
+    const fallback = defaultSlogan(region, { activeCount });
+    setSlogan1(slogan.line1 || fallback.line1);
+    setSlogan2(slogan.line2 || fallback.line2);
     setUnlockSlogan(false);
     setInstagramInput(region?.instagramHandle ?? '');
     setExamples(Object.fromEntries(EXAMPLE_KEYS.map((k) => [k, customExample(region, k)])));
@@ -135,7 +139,6 @@ export default function RegionAboutTab() {
 
   // Greyed-out defaults of the example fields (without the automatic "z.B. ").
   const defaultExamples = formExamples({ ...current, texts: undefined }, { regionSpecific: true });
-  const activeCount = regions.filter((r) => r.active).length;
   const examplesDark = current.id === 'vorarlberg' && activeCount < 2;
 
   const save = async () => {
@@ -143,6 +146,24 @@ export default function RegionAboutTab() {
       setNotice({
         kind: 'error',
         text: 'Der Instagram-Name ist ungültig. Erlaubt sind Buchstaben, Zahlen, Punkt und Unterstrich (max. 30 Zeichen).',
+      });
+      return;
+    }
+    // An unchanged default is saved as "nothing saved", so the header keeps following it.
+    const sloganDefault = defaultSlogan(current, { activeCount });
+    const sloganValue = (value, fallback) =>
+      value.trim() && value.trim() !== fallback ? value.trim() : null;
+    const savedSlogan1 = sloganValue(slogan1, sloganDefault.line1);
+    const savedSlogan2 = sloganValue(slogan2, sloganDefault.line2);
+    // Some default lines are longer than the limit; an edited line must fit.
+    if (
+      !sloganLocked &&
+      ((savedSlogan1 ?? '').length > SLOGAN_LINE1_MAX_LENGTH ||
+        (savedSlogan2 ?? '').length > SLOGAN_LINE2_MAX_LENGTH)
+    ) {
+      setNotice({
+        kind: 'error',
+        text: `Der Slogan ist zu lang. Pro Zeile sind höchstens ${SLOGAN_LINE1_MAX_LENGTH} Zeichen erlaubt.`,
       });
       return;
     }
@@ -161,8 +182,8 @@ export default function RegionAboutTab() {
         ...(sloganLocked
           ? {}
           : {
-              aboutSlogan1: slogan1.trim() || null,
-              aboutSlogan2: slogan2.trim() || null,
+              aboutSlogan1: savedSlogan1,
+              aboutSlogan2: savedSlogan2,
               ...(access.isSuperAdmin ? { aboutSloganLocked: !unlockSlogan } : {}),
             }),
         // Display-only name; only Super-Admins may write it (firestore.rules).
@@ -218,11 +239,6 @@ export default function RegionAboutTab() {
 
       <section className="region-about-section">
         <h3>Slogan in der Kopfzeile</h3>
-        <p className="region-about-fixed-note">
-          Steht links oben neben dem Logo, in zwei Zeilen. Zeile 1: Name des Kalenders (z. B. „Dein
-          Vorarlberger Kalender“). Zeile 2: Zusatz (z. B. „{DEFAULT_SLOGAN_LINE2}“). Leer lassen für
-          den Standardtext.
-        </p>
         {sloganLocked && (
           <p className="region-about-fixed-note" data-testid="region-about-slogan-locked">
             Der Slogan wurde von einem Admin festgelegt. Zum Ändern braucht es die Freigabe eines
