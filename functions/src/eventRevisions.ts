@@ -21,6 +21,7 @@ const IGNORED_FIELDS = new Set([
   'unpublishedAt',
   'trashedBy',
   'trashReason',
+  'trashKind',
 ]);
 
 const MAX_STRING_LENGTH = 20000;

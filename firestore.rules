@@ -335,8 +335,9 @@ service cloud.firestore {
       // but never move an event INTO 'approved' from any other status, and
       // never write the fields only the review flow sets: approval/unpublish
       // bookkeeping, the public slug (changed on approval), ownership, and
-      // the admin's trash reason. Owner trash/restore writes trashedBy = own
-      // uid / null and trashReason = null (buildTrashUpdate/buildRestoreUpdate).
+      // the admin's trash reason / rejection mark. Owner trash/restore writes
+      // trashedBy = own uid / null and trashReason = trashKind = null
+      // (buildTrashUpdate/buildRestoreUpdate).
       function isOwnerUpdateWithoutReview() {
         let before = resource.data;
         let after = request.resource.data;
@@ -345,6 +346,7 @@ service cloud.firestore {
           && !changed.hasAny(['approvedBy', 'approvedAt', 'unpublishedBy', 'unpublishedAt',
                               'slug', 'createdBy'])
           && (!changed.hasAny(['trashReason']) || after.get('trashReason', null) == null)
+          && (!changed.hasAny(['trashKind']) || after.get('trashKind', null) == null)
           && (!changed.hasAny(['trashedBy'])
               || after.get('trashedBy', null) == null
               || after.get('trashedBy', null) == request.auth.uid)
@@ -401,7 +403,8 @@ service cloud.firestore {
       //   approve         pending  -> approved (approvedBy/At, maybe slug)
       //   request changes pending  -> draft
       //   unpublish       approved -> draft    (unpublishedBy/At)
-      //   reject / trash  pending|approved -> trashed (trashedBy/At/Reason)
+      //   reject / trash  pending|approved -> trashed (trashedBy/At/Reason/Kind;
+      //                   trashKind 'rejected' only from pending, buildRejectUpdate)
       //   restore         trashed  -> draft    (trash fields nulled)
       // Permanent delete stays Super-Admin only (delete rule below).
       function isModeratorReviewUpdate() {
@@ -413,7 +416,7 @@ service cloud.firestore {
           && changed.hasAll(['status'])
           && changed.hasOnly(['status', 'updatedAt', 'approvedBy', 'approvedAt', 'slug',
                               'unpublishedBy', 'unpublishedAt',
-                              'trashedAt', 'trashedBy', 'trashReason'])
+                              'trashedAt', 'trashedBy', 'trashReason', 'trashKind'])
           && (!changed.hasAny(['updatedAt']) || after.updatedAt == request.time)
           // Slug: only the collision variant resolveSlugForApproval makes
           // ("<slug>-N", or for "<...-yyyymmdd>-N" also "<...-yyyymmdd>-M"), so a moderator
@@ -439,16 +442,21 @@ service cloud.firestore {
               && after.unpublishedBy == request.auth.uid
               && after.unpublishedAt == request.time)
             || (before.status in ['pending', 'approved'] && after.status == 'trashed'
-              && changed.hasOnly(['status', 'updatedAt', 'trashedAt', 'trashedBy', 'trashReason'])
+              && changed.hasOnly(['status', 'updatedAt', 'trashedAt', 'trashedBy', 'trashReason',
+                                  'trashKind'])
               && after.trashedBy == request.auth.uid
               && after.trashedAt == request.time
               && (!('trashReason' in after) || after.trashReason == null
-                  || (after.trashReason is string && after.trashReason.size() <= 2000)))
+                  || (after.trashReason is string && after.trashReason.size() <= 2000))
+              && (after.get('trashKind', null) == null
+                  || (after.trashKind == 'rejected' && before.status == 'pending')))
             || (before.status == 'trashed' && after.status == 'draft'
-              && changed.hasOnly(['status', 'updatedAt', 'trashedAt', 'trashedBy', 'trashReason'])
+              && changed.hasOnly(['status', 'updatedAt', 'trashedAt', 'trashedBy', 'trashReason',
+                                  'trashKind'])
               && after.get('trashedAt', null) == null
               && after.get('trashedBy', null) == null
-              && after.get('trashReason', null) == null)
+              && after.get('trashReason', null) == null
+              && after.get('trashKind', null) == null)
           );
       }
 
@@ -468,14 +476,20 @@ service cloud.firestore {
                     || isRegionModeratorForEvent();
 
         // A moderator who is not the event owner writes as staff
-        // (authorRole 'Admin'), never in the organizer's name.
+        // (authorRole 'Admin'), never in the organizer's name. `kind:
+        // 'rejection'` (staff only) marks a rejection reason: it sends no
+        // "Änderungen gewünscht" mail, the reason goes out with the rejection.
         allow create: if (isEventOwner(eventId) || isAdminOrEmulatorAdmin()
                           || (isRegionModeratorForEvent()
                               && request.resource.data.authorRole == 'Admin'))
                       && request.resource.data.authorUid == request.auth.uid
                       && request.resource.data.keys().hasOnly(
-                        ['text', 'authorUid', 'authorRole', 'authorName', 'createdAt', 'readByRecipient']
+                        ['text', 'authorUid', 'authorRole', 'authorName', 'createdAt', 'readByRecipient',
+                         'kind']
                       )
+                      && (!('kind' in request.resource.data)
+                          || (request.resource.data.kind == 'rejection'
+                              && request.resource.data.authorRole == 'Admin'))
                       && request.resource.data.text.size() > 0
                       // Rich-text HTML: plain-text length (2000) is enforced client-side,
                       // the stored HTML is longer because of tags.

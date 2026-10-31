@@ -13,6 +13,7 @@ import {
   RefreshCw,
   MessageCircle,
   Pencil,
+  Ban,
 } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 import { formatDayNumber, formatMonthShort, formatWeekdayShort } from '../utils/eventFormat';
@@ -62,6 +63,7 @@ export default function EventAdminListRow({
   showApprove = false,
   showSubmit = false,
   showRevert = false,
+  showReject = false,
   showDuplicate = false,
   showEdit = true,
   showDelete = true,
@@ -83,6 +85,7 @@ export default function EventAdminListRow({
   onApprove,
   onSubmit,
   onRevert,
+  onReject,
   onDuplicate,
   onDeleteClick,
   onRestore,
@@ -327,6 +330,17 @@ export default function EventAdminListRow({
             title="Zu Entwurf"
           >
             <FileText size={16} />
+          </button>
+        )}
+        {showReject && (
+          <button
+            onClick={() => onReject?.(event)}
+            className="btn btn-subtle-danger btn-sm event-card-action"
+            data-testid={`reject-event-button-${event.id}`}
+            aria-label="Ablehnen"
+            title="Ablehnen"
+          >
+            <Ban size={16} />
           </button>
         )}
         {showDuplicate && (

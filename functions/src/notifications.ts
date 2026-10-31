@@ -72,6 +72,8 @@ const PREFERENCE_KEY_BY_TYPE: Record<Exclude<NotificationType, 'submitted'>, Pre
   // "Back to draft" asks the owner to rework the event, like a change request.
   unpublished: 'notifyOnChangesRequested',
   deleted: 'notifyOnDeleted',
+  // A rejection moves the event to the trash, like a delete.
+  rejected: 'notifyOnDeleted',
   contact_message: 'notifyOnContactMessage',
 };
 
@@ -113,6 +115,7 @@ function snapshotToEventSnapshot(data: FirebaseFirestore.DocumentData | undefine
     lastNotifiedStatus: readStatus(data.lastNotifiedStatus),
     unpublishedBy: readString(data.unpublishedBy),
     trashReason: readString(data.trashReason),
+    trashKind: readString(data.trashKind),
   };
 }
 
@@ -464,7 +467,7 @@ function buildPayloadInputFromDecision(
       recipient: decision.recipient,
     };
   }
-  if (decision.type === 'deleted') {
+  if (decision.type === 'deleted' || decision.type === 'rejected') {
     return {
       event: decision.event,
       recipient: decision.recipient,
@@ -612,6 +615,7 @@ export const onAdminMessageCreated = onDocumentCreated(
       authorUid: readString(data.authorUid),
       text: readString(data.text),
       authorName: readString(data.authorName),
+      kind: readString(data.kind),
     };
 
     const db = getFirestore();

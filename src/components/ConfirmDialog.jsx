@@ -7,6 +7,7 @@ import './ConfirmDialog.css';
  * Generic confirm dialog. With `reasonRequired` it also shows a required
  * "Grund" textarea; the confirm button stays disabled until a non-empty
  * reason is entered and `onConfirm` receives the trimmed reason.
+ * `confirmDisabled` blocks the confirm button for a caller-side condition.
  */
 export default function ConfirmDialog(props) {
   const { isOpen } = props;
@@ -37,10 +38,12 @@ function ConfirmDialogContent({
   danger = false,
   reasonRequired = false,
   hideActions = false,
+  confirmDisabled: externalConfirmDisabled = false,
 }) {
   const [reason, setReason] = useState('');
   const trimmedReason = reason.trim();
-  const confirmDisabled = loading || (reasonRequired && trimmedReason.length === 0);
+  const confirmDisabled =
+    loading || externalConfirmDisabled || (reasonRequired && trimmedReason.length === 0);
 
   const handleConfirm = () => {
     if (confirmDisabled) return;
