@@ -243,6 +243,60 @@
   color: var(--text-primary);
 }
 
+/* Mobile: text on its own lines, button below it (full width), close top right. */
+@media (max-width: 800px) {
+  .onboarding-banner {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: start;
+  }
+
+  .onboarding-banner-text {
+    grid-column: 2;
+  }
+
+  .onboarding-banner-close {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .onboarding-banner .btn {
+    grid-column: 1 / -1;
+    justify-content: center;
+  }
+}
+
+/* Desktop: small card at the top right, just below the header, not screen-wide. */
+@media (min-width: 801px) {
+  .onboarding-banner {
+    position: fixed;
+    top: calc(72px + var(--space-3));
+    right: var(--space-5);
+    z-index: 90;
+    width: min(26rem, calc(100vw - 2 * var(--space-5)));
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: start;
+    border: 1px solid var(--border-color, #e5e5e5);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+  }
+
+  .onboarding-banner-text {
+    grid-column: 2;
+  }
+
+  .onboarding-banner-close {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .onboarding-banner .btn {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}
+
 .onboarding-banner-text {
   flex: 1;
   min-width: 0;
