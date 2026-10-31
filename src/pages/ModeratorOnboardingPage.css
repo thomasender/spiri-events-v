@@ -1,0 +1,51 @@
+.mod-invite-page {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-4) var(--space-16);
+}
+
+.mod-invite-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-8);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-calendar);
+  box-shadow: var(--shadow-sm);
+}
+
+.mod-invite-card > .mod-onb {
+  align-self: stretch;
+}
+
+.mod-invite-icon {
+  color: var(--accent-primary);
+}
+
+.mod-invite-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: var(--fs-event-title);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.mod-invite-text {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.mod-invite-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+@media (max-width: 480px) {
+  .mod-invite-card {
+    padding: var(--space-6) var(--space-4);
+  }
+}

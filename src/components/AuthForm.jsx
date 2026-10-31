@@ -39,9 +39,16 @@ function GoogleIcon() {
 }
 
 export default function AuthForm() {
-  const [mode, setMode] = useState('login');
+  const location = useLocation();
+  // Pages that send people here may preselect "Registrieren" and prefill the
+  // address (the moderator invitation, /einladung).
+  const [mode, setMode] = useState(() =>
+    location.state?.authMode === 'register' ? 'register' : 'login'
+  );
   const [isForgotPassword, setIsForgotPassword] = useState(false);
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() =>
+    typeof location.state?.email === 'string' ? location.state.email : ''
+  );
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -56,7 +63,6 @@ export default function AuthForm() {
   const wobbleTimerRef = useRef(null);
   const { login, register, loginWithGoogle, resetPassword } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
 
   const isLogin = mode === 'login';
 

@@ -629,6 +629,103 @@ export function buildPasswordResetPayload({
   };
 }
 
+/** "Tribe Tirol", "Tribe Tirol und Tribe Wien", "Tribe A, Tribe B und Tribe C". */
+export function tribeNames(regionNames: readonly string[]): string {
+  const names = regionNames.map((name) => `Tribe ${name}`);
+  if (names.length <= 1) return names[0] ?? 'Tribe';
+  return `${names.slice(0, -1).join(', ')} und ${names[names.length - 1]}`;
+}
+
+export interface ModeratorInvitePayloadInput {
+  recipient: string;
+  /** Display names of the invited regions, in register order. */
+  regionNames: string[];
+  inviteUrl: string;
+  /** Last day the link works, YYYY-MM-DD (Vienna). */
+  expiresAt: string;
+}
+
+export function buildModeratorInvitePayload({
+  recipient,
+  regionNames,
+  inviteUrl,
+  expiresAt,
+}: ModeratorInvitePayloadInput): EmailPayload {
+  const tribe = tribeNames(regionNames);
+  const link = escapeHtml(inviteUrl);
+  const until = formatGermanDate(expiresAt);
+  const subject = `Einladung ins Moderations-Team vom ${tribe}`;
+  const htmlBody = `
+    <h1 style="${headingStyle(1)}">Du bist eingeladen! ❤️</h1>
+    <p style="${paragraphStyle()}">Hallo,</p>
+    <p style="${paragraphStyle()}">
+      wir laden dich herzlich ein, beim <strong>${escapeHtml(tribe)}</strong> als Moderator:in mitzuwirken. Du hilfst mit, dass im Veranstaltungskalender ein Raum entsteht, in dem Menschen zusammenfinden, sich inspirieren und gemeinsam wachsen können.
+    </p>
+    <p style="${paragraphStyle()}">
+      Mit einem Klick auf den Button kommst du zu einer kurzen Einführung in ein paar Schritten. Danach kannst du sofort loslegen.
+    </p>
+    <p style="margin:8px 0 24px 0;">
+      <a href="${link}" style="${brandButtonStyle()}">Einladung annehmen</a>
+    </p>
+    <p style="${mutedStyle()}">Direkter Link, falls der Button nicht funktioniert:</p>
+    <p style="font-family:${BODY_FONT};font-size:14px;line-height:1.6;margin:0 0 24px 0;word-break:break-all;background:${COLOR_BG_SOFT};padding:12px 14px;border-radius:8px;border:1px solid ${COLOR_BORDER};">
+      <a href="${link}" style="color:${COLOR_TEXT};text-decoration:underline;">${link}</a>
+    </p>
+    <p style="${mutedStyle()}">
+      Die Einladung gilt bis ${escapeHtml(until)} und nur für ein Konto mit dieser E-Mail-Adresse (${escapeHtml(recipient)}). Hast du noch kein Konto, kannst du es unterwegs anlegen.
+    </p>`;
+  const textBody =
+    `Hallo,\n\n` +
+    `wir laden dich herzlich ein, beim ${tribe} als Moderator:in mitzuwirken. Du hilfst mit, dass im Veranstaltungskalender ein Raum entsteht, in dem Menschen zusammenfinden, sich inspirieren und gemeinsam wachsen können.\n\n` +
+    `Mit diesem Link kommst du zu einer kurzen Einführung in ein paar Schritten:\n\n` +
+    `${inviteUrl}\n\n` +
+    `Die Einladung gilt bis ${until} und nur für ein Konto mit dieser E-Mail-Adresse (${recipient}). Hast du noch kein Konto, kannst du es unterwegs anlegen.`;
+  return {
+    to: recipient,
+    subject,
+    html: wrapHtml(htmlBody, 'auth'),
+    text: textBody + footerText('auth'),
+  };
+}
+
+export interface ModeratorInviteAcceptedPayloadInput {
+  recipient: string;
+  moderatorEmail: string;
+  signatureName: string;
+  regionNames: string[];
+}
+
+/** Info for the Super-Admins: someone finished the onboarding and is moderator now. */
+export function buildModeratorInviteAcceptedPayload({
+  recipient,
+  moderatorEmail,
+  signatureName,
+  regionNames,
+}: ModeratorInviteAcceptedPayloadInput): EmailPayload {
+  const tribe = tribeNames(regionNames);
+  const link = `${APP_BASE_URL}/admin?tab=moderation`;
+  const subject = `Neue Moderator:in: ${signatureName} (${tribe})`;
+  const htmlBody = `
+    <h1 style="${headingStyle(1)}">Einladung angenommen</h1>
+    <p style="${paragraphStyle()}">Hallo,</p>
+    <p style="${paragraphStyle()}">
+      <strong>${escapeHtml(signatureName)}</strong> (${escapeHtml(moderatorEmail)}) hat die Einladung angenommen, die Einführung abgeschlossen und unterschrieben. Ab sofort ist die Person Moderator:in beim <strong>${escapeHtml(tribe)}</strong>.
+    </p>
+    <p style="margin:8px 0 24px 0;">
+      <a href="${link}" style="${brandButtonStyle()}">Moderation ansehen</a>
+    </p>`;
+  const textBody =
+    `Hallo,\n\n` +
+    `${signatureName} (${moderatorEmail}) hat die Einladung angenommen, die Einführung abgeschlossen und unterschrieben. Ab sofort ist die Person Moderator:in beim ${tribe}.\n\n` +
+    `Moderation ansehen: ${link}`;
+  return {
+    to: recipient,
+    subject,
+    html: wrapHtml(htmlBody, 'auth'),
+    text: textBody + footerText('auth'),
+  };
+}
+
 export interface ContactMessagePayloadInput {
   context: ContactMessageContext;
   recipient: string;

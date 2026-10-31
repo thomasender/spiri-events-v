@@ -174,6 +174,13 @@ export { checkEmailAvailability } from './checkEmailAvailability';
 export { adminListMembers, adminUpdateMember } from './adminMembers';
 export { submitModeratorApplication } from './moderatorApplication';
 export { adminSetRegionModerator, adminListRegionModerators } from './adminModerators';
+export {
+  adminCreateModeratorInvite,
+  adminListModeratorInvites,
+  adminRevokeModeratorInvite,
+  getModeratorInvite,
+  acceptModeratorInvite,
+} from './moderatorInvites';
 export { adminSetRegionActive, adminListRegionActivation } from './adminRegions';
 export { adminAnalyticsReport } from './adminAnalytics';
 export { adminMailgunUsage } from './adminMailgun';

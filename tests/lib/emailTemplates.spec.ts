@@ -9,6 +9,9 @@ import {
   buildDeletedPayload,
   buildPasswordResetPayload,
   buildContactMessagePayload,
+  buildModeratorInvitePayload,
+  buildModeratorInviteAcceptedPayload,
+  tribeNames,
   escapeHtml,
   messageToPlainText,
   notificationSettingsUrl,
@@ -844,5 +847,54 @@ describe('branding is region-neutral', () => {
     expect(payload.html).toContain('>Tribe</span>');
     expect(payload.html).not.toMatch(/tribe Vorarlberg/i);
     expect(payload.text).not.toMatch(/tribe Vorarlberg/i);
+  });
+});
+
+describe('moderator invitation mails', () => {
+  const inviteUrl = 'https://www.thetribe.at/einladung?t=abc_DEF-123';
+
+  it('names the region tribe, links "Einladung annehmen" and the last valid day', () => {
+    const payload = buildModeratorInvitePayload({
+      recipient: 'neu@x.at',
+      regionNames: ['Tirol'],
+      inviteUrl,
+      expiresAt: '2026-11-14',
+    });
+    expect(payload.to).toBe('neu@x.at');
+    expect(payload.subject).toBe('Einladung ins Moderations-Team vom Tribe Tirol');
+    expect(payload.html).toContain(`<a href="${inviteUrl}"`);
+    expect(payload.html).toContain('Einladung annehmen');
+    expect(payload.html).toContain('<strong>Tribe Tirol</strong>');
+    expect(payload.html).toContain('Samstag, 14. November 2026');
+    expect(payload.text).toContain(inviteUrl);
+    expect(payload.text).toContain('neu@x.at');
+    expect(payload.html).not.toContain('Benachrichtigungseinstellungen');
+  });
+
+  it('lists several regions and escapes the names', () => {
+    expect(tribeNames(['Tirol', 'Wien'])).toBe('Tribe Tirol und Tribe Wien');
+    expect(tribeNames(['A', 'B', 'C'])).toBe('Tribe A, Tribe B und Tribe C');
+    const payload = buildModeratorInvitePayload({
+      recipient: 'neu@x.at',
+      regionNames: ['<b>X</b>'],
+      inviteUrl,
+      expiresAt: '2026-11-14',
+    });
+    expect(payload.html).not.toContain('<b>X</b>');
+    expect(payload.html).toContain('&lt;b&gt;X&lt;/b&gt;');
+  });
+
+  it('tells the Super-Admins who accepted, with the signed name', () => {
+    const payload = buildModeratorInviteAcceptedPayload({
+      recipient: 'boss@tribe.at',
+      moderatorEmail: 'neu@x.at',
+      signatureName: 'Anna <Muster>',
+      regionNames: ['Tirol', 'Wien'],
+    });
+    expect(payload.to).toBe('boss@tribe.at');
+    expect(payload.subject).toBe('Neue Moderator:in: Anna <Muster> (Tribe Tirol und Tribe Wien)');
+    expect(payload.html).toContain('Anna &lt;Muster&gt;');
+    expect(payload.html).toContain(`${APP_BASE_URL}/admin?tab=moderation`);
+    expect(payload.text).toContain('neu@x.at');
   });
 });

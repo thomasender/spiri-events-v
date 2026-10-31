@@ -282,3 +282,31 @@
 .moderation-country:first-child {
   margin-top: 0;
 }
+
+/* Invitations by e-mail (Trello 6ae5aa68) */
+.moderation-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.moderation-email-input {
+  padding: var(--space-2) var(--space-2-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  color: inherit;
+  font: inherit;
+}
+
+.moderation-invites {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.moderation-invites-title {
+  margin: var(--space-4) 0 0;
+  font-size: var(--text-100);
+  font-weight: 600;
+}

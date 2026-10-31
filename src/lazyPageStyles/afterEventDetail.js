@@ -51,3 +51,7 @@ import '../pages/MessengerPage.css';
 
 // OnlineDot (DirectoryPage, PublicProfilePage, MessengerPage)
 import '../components/OnlineDot.css';
+
+// ModeratorOnboardingPage
+import '../components/ModeratorOnboardingWizard.css';
+import '../pages/ModeratorOnboardingPage.css';

@@ -1727,6 +1727,14 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Moderator invitations, doc id = SHA-256 of the secret link token.
+    // Created, read, revoked and accepted only by the callables in
+    // functions/src/moderatorInvites.ts (Admin SDK bypasses rules). No client
+    // may read or write them, not even Super-Admins: they use the callables.
+    match /moderator_invites/{inviteId} {
+      allow read, write: if false;
+    }
+
     // Idempotency/audit records of Instagram posts. Written only by the
     // Cloud Function (Admin SDK bypasses rules); admins may read them.
     match /instagram_posts/{postId} {
