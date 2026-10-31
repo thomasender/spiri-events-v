@@ -18,6 +18,7 @@ import { isLegacyId } from '../lib/slug';
 import { trackCalendarAdd, trackOrganizerLinkClick } from '../lib/analyticsEvents';
 import {
   Calendar,
+  CalendarPlus,
   Clock,
   MapPin,
   Ticket,
@@ -629,6 +630,9 @@ export default function EventDetailPage() {
   const eventPath = `/event/${event.slug || event.id}`;
   const recurrenceDates = getRecurrenceDatesForDetail(event);
   const showRecurrenceDatesList = recurrenceDates.length > 0;
+  const calendarLabel = showRecurrenceDatesList
+    ? 'Alle Termine zum Kalender hinzufügen'
+    : 'Zum Kalender hinzufügen';
   const visibleRecurrenceDates = showAllDates
     ? recurrenceDates
     : recurrenceDates.slice(0, MAX_COLLAPSED_DATES);
@@ -888,10 +892,10 @@ export default function EventDetailPage() {
                   onClick={handleAddToCalendar}
                   disabled={calendarDownloadState === 'loading'}
                   data-testid="add-to-calendar-link"
+                  aria-label={calendarLabel}
+                  title={calendarLabel}
                 >
-                  {showRecurrenceDatesList
-                    ? 'Alle Termine zum Kalender hinzufügen'
-                    : 'Zum Kalender hinzufügen'}
+                  <CalendarPlus size={18} aria-hidden="true" />
                 </button>
                 {calendarDownloadState === 'error' && (
                   <span className="detail-value" role="alert" data-testid="add-to-calendar-error">
