@@ -350,7 +350,10 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
     Bezirk nicht" opens `EventRegionDialog` to change it.
   - **Phone:** the header dropdown is hidden below 800px; the region list sits in the burger
     menu (`RegionMenuList`). A not-yet-open region/view shows the neutral header "Dein
-    Kalender für bewusste Veranstaltungen" (`comingSoon` in the region context).
+    Kalender für bewusste Veranstaltungen" (`comingSoon` in the region context). So do pages
+    without a region in their address (Verwaltung, Favoriten, Profil, Chat, ...; not `/`,
+    `/verzeichnis` or event pages) while the chosen place's region is not open yet
+    (`placeComingSoon`, Trello gflD7CXa / 6uzk1bHG), never the Vorarlberg fallback.
 - **Reserved names.** The region slugs and the combined-view slugs share the
   top-level URL space with profiles, so `username.js` reserves them, plus the ids of former
   regions (`RETIRED_REGION_IDS`: the old German Bundesländer and cultural regions not in
