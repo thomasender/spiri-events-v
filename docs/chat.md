@@ -133,6 +133,17 @@ exactly **one** Lagerfeuer; per-district fires were discussed and dropped (Trell
     and event link and deletes in the right room; the report mail (`buildReportMail`) says "im Event Chat zu
     <Titel>" or "im Chat Lagerfeuer"; the 15-minute mail throttle is shared. Also there: member card on
     avatar/name, "Ältere Nachrichten laden" (50 per step, max 500), "Neue Nachricht" jump button.
+- **E-mail to the organizer** (`onKerzenraumMailNotify`, logic in `chatMailNotify.ts`, Trello
+  6ae5bb2c; this reverses the earlier "no e-mail" stance for this case): a new message mails the
+  event's creator (`events.createdBy`, address from Firebase Auth) "Neue Nachricht im Event Chat:
+  <Titel>" with author name (public profile), a ~140-character excerpt and a button to
+  `/event/<slug>#kerzenraum`. **At most one mail per organizer and calendar day (Vienna), across all
+  their events**: marker `event_chat_notify/{organizerUid}` `{ day, lastMailAt }`, claimed in a
+  transaction, Functions only (rules deny every client), purged after two days. No mail for the
+  organizer's own messages, with the flag off (`admins`: only admin organizers), when
+  `notifyOnEventChat` is off (profile, default on, switch only visible while the chat is open), when
+  the organizer blocked the author in the Postfach, for muted/banned authors, deleted/disabled
+  accounts or events that are not approved. Presence is not a criterion.
 - **Not built, on purpose:** presence ("who is here"). A heartbeat plus a listener per event would
   cost reads for every open event page and gives little for a room that is mostly a message board.
   `useChat` and `useCandleRoom` are still two hooks (no shared abstraction), so the Lagerfeuer cannot regress.
@@ -165,8 +176,8 @@ map says which person a name means, so an `@Name` without an entry is never high
 fromName, excerpt, read, createdAt }`. Only the server creates them (rules: no client create), per
   target it re-checks `allowMentions` on the public profile, drops the author, and honours the chat
   flag (`off`: nobody, `admins`: only admins). The owner reads, sets `read: true` (nothing else may
-  change) and deletes. The document id is the message id, so a retry does not duplicate. No e-mail,
-  by decision of the product owner.
+  change) and deletes. The document id is the message id, so a retry does not duplicate. No e-mail
+  for mentions (decision of the product owner; the organizer mail below is a separate thing).
 - **Bell:** `MentionBell` next to the Postfach in the header (row in the phone menu), fed by
   `useMentionNotifications` (latest 20 + unread count). A click opens `/chat#msg-<id>` or
   `/event/<slug>#msg-<id>`; `useMessageJump` scrolls to the message and highlights it. A message
@@ -188,9 +199,9 @@ fromName, excerpt, read, createdAt }`. Only the server creates them (rules: no c
 
 ## Privacy
 
-Datenschutzerklärung Abschnitt 14 (+ 2 and 5); the Kerzenraum has its own paragraph there (public history!). Change it whenever data, retention or visibility changes. Open since lIFGjH33: that paragraph still has to mention reactions and reports for the Event Chat (not edited by the developer on purpose).
+Datenschutzerklärung Abschnitt 14 (+ 2, 3, 4 and 5); the Kerzenraum has its own paragraph there (public history!), including the organizer mail with excerpt (Mailgun, section 4). Change it whenever data, retention or visibility changes. Open since lIFGjH33: that paragraph still has to mention reactions and reports for the Event Chat (not edited by the developer on purpose).
 
 ## Not built (ideas)
 
-Several Lagerfeuer rooms / region rooms, push. Presence would need a
+Several Lagerfeuer rooms / region rooms, push, e-mail for the Lagerfeuer or for mentions. Presence would need a
 heartbeat doc or Realtime Database; Firestore alone is a poor fit.

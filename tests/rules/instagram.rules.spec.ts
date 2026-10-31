@@ -745,6 +745,32 @@ describe('users.notifyOnFavoriteCancelled', () => {
   });
 });
 
+describe('users.notifyOnDirectMessage / notifyOnEventChat (chat e-mails)', () => {
+  it('owner can switch both off and on, only with a bool', async () => {
+    const db = env.authenticatedContext('owner').firestore();
+    await assertSucceeds(
+      updateDoc(doc(db, 'users/owner'), { notifyOnDirectMessage: false, notifyOnEventChat: false })
+    );
+    await assertSucceeds(updateDoc(doc(db, 'users/owner'), { notifyOnDirectMessage: true }));
+    await assertFails(updateDoc(doc(db, 'users/owner'), { notifyOnEventChat: 'no' }));
+  });
+
+  it('can be set on a new profile', async () => {
+    const db = env.authenticatedContext('fresh').firestore();
+    const profile = { displayName: 'F', bio: 'b' };
+    await assertFails(setDoc(doc(db, 'users/fresh'), { ...profile, notifyOnDirectMessage: 1 }));
+    await assertSucceeds(
+      setDoc(doc(db, 'users/fresh'), { ...profile, notifyOnDirectMessage: false })
+    );
+  });
+
+  it('nobody else can change them', async () => {
+    const db = env.authenticatedContext('intruder').firestore();
+    await assertFails(updateDoc(doc(db, 'users/owner'), { notifyOnEventChat: false }));
+    await assertFails(getDoc(doc(db, 'users/owner')));
+  });
+});
+
 describe('users.instagramConsentDefault', () => {
   it('owner can set a bool, not a non-bool', async () => {
     const db = env.authenticatedContext('owner').firestore();

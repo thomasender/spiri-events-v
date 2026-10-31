@@ -82,6 +82,33 @@ _Test-Protokoll für die automatischen Benachrichtigungs-E-Mails, die beim Leben
   - Schlägt der Versand fehl (z. B. Staging mit Dummy-Mailgun), bleibt die Einladung gültig: der Dialog zeigt „konnte nicht gesendet werden" und „Link kopieren"
 - **Negativtests:** zweites Öffnen eines angenommenen Links → „schon angenommen", keine Mail; widerrufener oder abgelaufener Link → keine Rolle, keine Mail; „Link kopieren" bei einer älteren Einladung erzeugt einen neuen Link **ohne** Mail (der Link aus der ersten Mail funktioniert danach nicht mehr)
 
+## 6. „Neue Nachricht von {Name}" (Postfach → an die angeschriebene Person)
+
+- **Voraussetzung:** `app_settings/messenger` steht auf `all` (bei `admins` bekommen nur Admins als Empfänger eine Mail). Zwei Konten mit bestätigter E-Mail-Adresse.
+- **Wer löst aus:** Mitglied A schreibt Mitglied B im Postfach (`/postfach/<uid von B>`)
+- **Empfänger:** B (Adresse aus Firebase Auth), Einstellung „Neue Privatnachricht" (`notifyOnDirectMessage`, Standard an)
+- **Betreff:** `Neue Nachricht von {Anzeigename von A}`
+- **Inhalt:** Anrede, Name von A, Textauszug (ca. 140 Zeichen, an einer Wortgrenze mit „…" gekürzt, eine Zeile), Button „Nachricht lesen und antworten" (Link `/postfach/<uid von A>`), Hinweis „höchstens einmal pro Stunde", Fußzeile mit Link zu den Benachrichtigungseinstellungen
+- **Drossel:** pro Unterhaltung und Empfänger höchstens 1 Mail pro Stunde. Zweite Nachricht von A innerhalb der Stunde → keine Mail; Antwort von B an A → A bekommt seine eigene erste Mail.
+- **Verifizieren:**
+  - Mailgun Logs → 1× delivered an B
+  - Function Log: `firebase functions:log --only onDirectMessageMailNotify -n 50` → `Direct message mail processed` (`sent: true`), bei der zweiten Nachricht `Direct message mail throttled`
+  - Link in der Mail öffnet direkt die Unterhaltung mit A
+- **Negativtests (keine Mail, Log `Direct message mail skipped` mit `reason`):** B hat den Schalter im Profil aus (`opted_out`), B hat A blockiert oder umgekehrt (`blocked`), B nimmt keine Privatnachrichten an (`no_direct_messages`, Senden scheitert dann ohnehin), A ist im Chat stumm geschaltet/gesperrt (`author_banned`), Flag `off` (gar kein Log), Konto gelöscht/deaktiviert (`author_inactive` / `recipient_inactive`), B ohne bestätigte Adresse (`recipient_unverified`)
+
+## 7. „Neue Nachricht im Event Chat: {Titel}" (Event Chat → an die Veranstalter:in)
+
+- **Voraussetzung:** `app_settings/chat` steht auf `all` (bei `admins`: nur Admins als Veranstalter:in). Ein freigegebenes Event von Konto V, ein zweites Konto G mit bestätigter E-Mail-Adresse.
+- **Wer löst aus:** G schreibt im Event Chat auf der Event-Seite von V
+- **Empfänger:** V (`events.createdBy`, Adresse aus Firebase Auth), Einstellung „Event Chat deiner Veranstaltungen" (`notifyOnEventChat`, Standard an)
+- **Betreff:** `Neue Nachricht im Event Chat: {Titel}`
+- **Inhalt:** Anrede, Eventtitel, Name von G, Textauszug (wie oben), Button „Zum Event Chat" (Link `/event/<slug>#kerzenraum`), Hinweis „höchstens einmal pro Tag", Fußzeile mit Link zu den Benachrichtigungseinstellungen
+- **Drossel:** höchstens 1 Mail pro Veranstalter:in und Kalendertag (Zeitzone Wien), **über alle Events zusammen**. Zweite Nachricht am selben Tag (auch in einem anderen Event von V) → keine Mail; ab Mitternacht wieder.
+- **Verifizieren:**
+  - Mailgun Logs → 1× delivered an V
+  - Function Log: `firebase functions:log --only onKerzenraumMailNotify -n 50` → `Event chat mail processed`, danach `Event chat mail throttled`
+- **Negativtests (keine Mail):** V schreibt selbst (`author_is_organizer`), Schalter aus (`opted_out`), V hat G im Postfach blockiert (`blocked`), G gesperrt (`author_banned`), Flag `off`
+
 ## Was **nicht** zu einer E-Mail führt (Negativtests)
 
 | Aktion                                                                     | Erwartung                                |
@@ -91,6 +118,7 @@ _Test-Protokoll für die automatischen Benachrichtigungs-E-Mails, die beim Leben
 | Admin klickt „Endgültig löschen"                                           | keine E-Mail (Doc ist weg, kein Trigger) |
 | User schreibt eine Nachricht an Admin (`authorRole: "User"`)               | keine E-Mail                             |
 | Andere Felder werden geändert (`title`, `category`, …) ohne Status-Wechsel | keine E-Mail                             |
+| Nachricht im Chat „Lagerfeuer“ oder eine @Erwähnung                        | keine E-Mail (nur die Glocke)            |
 
 ## Wiederkehrende Verifikations-Tools
 

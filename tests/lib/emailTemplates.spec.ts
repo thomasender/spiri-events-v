@@ -12,6 +12,9 @@ import {
   buildContactMessagePayload,
   buildModeratorInvitePayload,
   buildModeratorInviteAcceptedPayload,
+  buildDirectMessagePayload,
+  buildEventChatPayload,
+  chatMailExcerpt,
   tribeNames,
   escapeHtml,
   messageToPlainText,
@@ -954,5 +957,126 @@ describe('moderator invitation mails', () => {
     expect(payload.html).toContain('Anna &lt;Muster&gt;');
     expect(payload.html).toContain(`${APP_BASE_URL}/admin?tab=moderation`);
     expect(payload.text).toContain('neu@x.at');
+  });
+});
+
+describe('chat mail excerpt', () => {
+  it('keeps short messages and flattens line breaks', () => {
+    expect(chatMailExcerpt('Hallo\r\n\n  du   da')).toBe('Hallo du da');
+  });
+
+  it('cuts long messages at a word boundary with an ellipsis, about 140 characters', () => {
+    const text = `${'Wort '.repeat(60)}Ende`;
+    const excerpt = chatMailExcerpt(text);
+    expect(Array.from(excerpt).length).toBeLessThanOrEqual(140);
+    expect(excerpt.endsWith('Wort…')).toBe(true);
+  });
+
+  it('cuts a text without spaces hard and never splits an emoji', () => {
+    const excerpt = chatMailExcerpt('🌿'.repeat(200));
+    expect(Array.from(excerpt)).toHaveLength(140);
+    expect(excerpt.endsWith('🌿…')).toBe(true);
+  });
+
+  it('drops invisible and bidi control characters', () => {
+    expect(chatMailExcerpt('a\u202Eb\u200Bc\u0007d')).toBe('abcd');
+  });
+
+  it('returns an empty string for non-strings', () => {
+    expect(chatMailExcerpt(undefined)).toBe('');
+  });
+});
+
+describe('buildDirectMessagePayload', () => {
+  const base = {
+    recipient: 'bob@example.com',
+    recipientName: 'Bob',
+    senderName: 'Anna',
+    messageText: 'Hallo Bob, kommst du morgen?',
+    conversationUrl: 'https://www.thetribe.at/postfach/alice',
+  };
+
+  it('names the sender, quotes the excerpt and links to the conversation', () => {
+    const payload = buildDirectMessagePayload(base);
+    expect(payload.to).toBe('bob@example.com');
+    expect(payload.subject).toBe('Neue Nachricht von Anna');
+    expect(payload.html).toContain('href="https://www.thetribe.at/postfach/alice"');
+    expect(payload.html).toContain('Hallo Bob, kommst du morgen?');
+    expect(payload.text).toContain(
+      'Nachricht lesen und antworten: https://www.thetribe.at/postfach/alice'
+    );
+    expect(payload.text).toContain('„Hallo Bob, kommst du morgen?“');
+  });
+
+  it('has a footer with the link to the notification settings', () => {
+    const payload = buildDirectMessagePayload(base);
+    expect(payload.html).toContain(`href="${notificationSettingsUrl()}"`);
+    expect(payload.html).toContain('eine Privatnachricht geschrieben');
+    expect(payload.text).toContain(
+      `Benachrichtigungseinstellungen anpassen: ${notificationSettingsUrl()}`
+    );
+  });
+
+  it('escapes HTML in name and message and keeps the subject on one line', () => {
+    const payload = buildDirectMessagePayload({
+      ...base,
+      senderName: 'Eve <script>\nBcc: x@y',
+      messageText: '<img src=x onerror=alert(1)> & "zitat"',
+    });
+    expect(payload.html).not.toContain('<script>');
+    expect(payload.html).not.toContain('<img src=x');
+    expect(payload.html).toContain('&lt;img src=x onerror=alert(1)&gt; &amp; &quot;zitat&quot;');
+    expect(payload.html).toContain('Eve &lt;script&gt; Bcc: x@y');
+    expect(payload.subject).not.toMatch(/[\r\n]/);
+  });
+
+  it('shortens long messages and falls back to a neutral sender name', () => {
+    const payload = buildDirectMessagePayload({
+      ...base,
+      senderName: '  ',
+      recipientName: null,
+      messageText: 'lang '.repeat(100),
+    });
+    expect(payload.subject).toBe('Neue Nachricht von Ein Mitglied');
+    expect(payload.text.startsWith('Hallo,')).toBe(true);
+    expect(payload.text).toContain('…“');
+    expect(payload.text).not.toContain('lang '.repeat(40));
+  });
+});
+
+describe('buildEventChatPayload', () => {
+  const base = {
+    recipient: 'host@example.com',
+    recipientName: 'Hanna',
+    authorName: 'Gast',
+    eventTitle: 'Yoga am See',
+    messageText: 'Gibt es noch Plätze?',
+    roomUrl: 'https://www.thetribe.at/event/yoga-am-see#kerzenraum',
+  };
+
+  it('names event and author and links to the Event Chat', () => {
+    const payload = buildEventChatPayload(base);
+    expect(payload.subject).toBe('Neue Nachricht im Event Chat: Yoga am See');
+    expect(payload.html).toContain('href="https://www.thetribe.at/event/yoga-am-see#kerzenraum"');
+    expect(payload.html).toContain('<strong>Gast</strong>');
+    expect(payload.text).toContain('im Event Chat zu „Yoga am See“ hat Gast geschrieben');
+    expect(payload.text).toContain(
+      'Zum Event Chat: https://www.thetribe.at/event/yoga-am-see#kerzenraum'
+    );
+    expect(payload.text).toContain('höchstens einmal pro Tag');
+    expect(payload.text).toContain(
+      `Benachrichtigungseinstellungen anpassen: ${notificationSettingsUrl()}`
+    );
+  });
+
+  it('escapes the title and the message', () => {
+    const payload = buildEventChatPayload({
+      ...base,
+      eventTitle: 'Tanz & <b>Feuer</b>',
+      messageText: '</blockquote><a href="https://evil">klick</a>',
+    });
+    expect(payload.html).toContain('Tanz &amp; &lt;b&gt;Feuer&lt;/b&gt;');
+    expect(payload.html).not.toContain('<a href="https://evil">');
+    expect(payload.html).toContain('&lt;/blockquote&gt;');
   });
 });

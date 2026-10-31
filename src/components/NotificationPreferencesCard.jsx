@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import './ProfileForm.css';
+import { CANDLE_ROOM_NAME } from '../utils/candleRoom';
 
 const PREFERENCE_DEFINITIONS = [
   {
@@ -30,6 +31,21 @@ const PREFERENCE_DEFINITIONS = [
     adminOnly: false,
   },
   {
+    key: 'notifyOnDirectMessage',
+    label: 'Neue Privatnachricht',
+    description:
+      'Du erhältst eine E-Mail mit einem kurzen Auszug, wenn dir jemand im Postfach schreibt (höchstens eine pro Unterhaltung und Stunde).',
+    adminOnly: false,
+    feature: 'messenger',
+  },
+  {
+    key: 'notifyOnEventChat',
+    label: `${CANDLE_ROOM_NAME} deiner Veranstaltungen`,
+    description: `Du erhältst eine E-Mail mit einem kurzen Auszug, wenn jemand im ${CANDLE_ROOM_NAME} einer Veranstaltung schreibt, die du erstellt hast (höchstens eine pro Tag).`,
+    adminOnly: false,
+    feature: 'chat',
+  },
+  {
     key: 'notifyOnSubmitted',
     label: 'Neue Event-Einreichungen',
     description:
@@ -54,13 +70,24 @@ const PREFERENCE_DEFINITIONS = [
 
 const SAVED_INDICATOR_TIMEOUT_MS = 3000;
 
-export default function NotificationPreferencesCard({ preferences, isAdmin = false, onSave }) {
+// `messengerAvailable` / `chatAvailable`: the chat switches only show while the
+// Postfach / Event Chat is open for this person (dark launch: nothing changes
+// while the flags are off).
+export default function NotificationPreferencesCard({
+  preferences,
+  isAdmin = false,
+  messengerAvailable = false,
+  chatAvailable = false,
+  onSave,
+}) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [savedKey, setSavedKey] = useState(null);
 
+  const features = { messenger: messengerAvailable, chat: chatAvailable };
   const visibleDefinitions = PREFERENCE_DEFINITIONS.filter(
-    (definition) => !definition.adminOnly || isAdmin
+    (definition) =>
+      (!definition.adminOnly || isAdmin) && (!definition.feature || features[definition.feature])
   );
 
   const handleToggle = async (key, value) => {
