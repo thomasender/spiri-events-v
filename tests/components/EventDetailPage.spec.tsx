@@ -1344,3 +1344,71 @@ describe('EventDetailPage — Anmeldung and reading order', () => {
     expect(follows(infoBox, ticketButton)).toBe(true);
   });
 });
+
+describe('EventDetailPage — merged info box rows', () => {
+  it('shows organizer and contact in one row, contact e-mail clickable', async () => {
+    mockFirestoreDoc.getDocResult = {
+      id: foreignEvent.id,
+      data: { ...foreignEvent, kontakt: 'sandra@example.com' },
+    };
+    renderPage();
+    const row = await screen.findByTestId('event-organizer-contact');
+    expect(within(row).getByTestId('event-organizer')).toBeInTheDocument();
+    expect(within(row).getByRole('link', { name: 'sandra@example.com' })).toHaveAttribute(
+      'href',
+      'mailto:sandra@example.com'
+    );
+    expect(row.textContent).toContain('(sandra@example.com)');
+    expect(screen.queryByText('Kontakt')).toBeNull();
+  });
+
+  it('shows the address above the place in a single Ort row', async () => {
+    mockFirestoreDoc.getDocResult = {
+      id: foreignEvent.id,
+      data: { ...foreignEvent, place: 'Hauptstrasse 1' },
+    };
+    renderPage();
+    const address = await screen.findByTestId('event-detail-address');
+    expect(address).toHaveTextContent('Hauptstrasse 1');
+    expect(screen.queryByText('Adresse')).toBeNull();
+    expect(screen.getAllByText('Ort')).toHaveLength(1);
+  });
+
+  it('ticket button links to the booking link, falls back to the website, else none', async () => {
+    mockFirestoreDoc.getDocResult = {
+      id: foreignEvent.id,
+      data: {
+        ...foreignEvent,
+        registration: 'Buchen: https://example.com/buchen',
+        link: 'https://example.com/web',
+      },
+    };
+    const { unmount } = renderPage();
+    const button = await screen.findByRole('link', { name: /Mehr Infos & Tickets/ });
+    expect(button).toHaveAttribute('href', 'https://example.com/buchen');
+    unmount();
+
+    mockFirestoreDoc.getDocResult = {
+      id: foreignEvent.id,
+      data: {
+        ...foreignEvent,
+        registration: 'Mail an a@example.com',
+        link: 'https://example.com/web',
+      },
+    };
+    const second = renderPage();
+    expect(await screen.findByRole('link', { name: /Mehr Infos & Tickets/ })).toHaveAttribute(
+      'href',
+      'https://example.com/web'
+    );
+    second.unmount();
+
+    mockFirestoreDoc.getDocResult = {
+      id: foreignEvent.id,
+      data: { ...foreignEvent, registration: '', link: '' },
+    };
+    renderPage();
+    await screen.findByText('Yoga heute');
+    expect(screen.queryByRole('link', { name: /Mehr Infos & Tickets/ })).toBeNull();
+  });
+});

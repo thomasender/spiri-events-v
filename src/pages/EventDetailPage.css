@@ -179,7 +179,7 @@
 .detail-item {
   display: flex;
   gap: var(--space-3);
-  padding: var(--space-3) 0;
+  padding: var(--space-2) 0;
   border-bottom: 1px solid var(--border);
 }
 
@@ -197,12 +197,31 @@
   display: block;
   font-size: var(--text-80);
   color: var(--text-secondary);
-  margin-bottom: var(--space-1);
+  margin-bottom: 0;
+  line-height: 1.3;
 }
 
 .detail-value {
   font-size: var(--text-100);
   color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.detail-value--block {
+  display: block;
+}
+
+.detail-organizer-contact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--space-1);
+}
+
+.detail-contact {
+  display: inline-flex;
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
 }
 
 .event-detail-dates-list {
