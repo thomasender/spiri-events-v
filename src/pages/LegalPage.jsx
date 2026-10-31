@@ -61,6 +61,9 @@ Nach der Freigabe sind die Angaben zum Event, einschließlich Veranstalter-Name 
 *Bei Nutzung der Privatnachrichten (nur mit Login und bestätigter E-Mail-Adresse):*
 - Ihre Privatnachrichten und Emoji-Reaktionen darauf, deren Zeitpunkt, die Konto-Kennungen der beiden Beteiligten sowie Ihre Einstellungen dazu (siehe Abschnitt 15)
 
+*Bei E-Mail-Benachrichtigungen über neue Nachrichten (im Profil abschaltbar):*
+- Ihre E-Mail-Adresse und Ihr Name, der Name der schreibenden Person, ein kurzer Textauszug der Nachricht, beim ${CANDLE_ROOM_NAME} der Titel des Events, sowie der Zeitpunkt der letzten Benachrichtigung (siehe Abschnitte 14 und 15)
+
 *Bei aktiviertem Online-Status (freiwillig, standardmäßig aus):*
 - Ein Zeitstempel Ihrer letzten Aktivität auf der Website (siehe Abschnitt 16)
 
@@ -81,6 +84,7 @@ Nach der Freigabe sind die Angaben zum Event, einschließlich Veranstalter-Name 
 - Registrierung und Authentifizierung
 - Verwaltung Ihrer Events
 - Kalender-Export und Kalender-Abo, wenn Sie diese Funktion nutzen (siehe Abschnitt 13)
+- E-Mail-Benachrichtigungen über neue Privatnachrichten und über neue Nachrichten im ${CANDLE_ROOM_NAME} Ihrer Veranstaltungen (siehe Abschnitte 14 und 15)
 
 *Einwilligung (Art. 6 Abs. 1 lit. a DSGVO):*
 - Statistik mit Google Analytics (siehe Abschnitt 7)
@@ -98,6 +102,8 @@ Nach der Freigabe sind die Angaben zum Event, einschließlich Veranstalter-Name 
 
 Firebase (Google) fungiert als Auftragsverarbeiter und erhält Ihre Daten nur insoweit, als dies für die Bereitstellung der Authentifizierungs-, Datenbank- und Hosting-Dienste erforderlich ist.
 
+*E-Mail-Versand (Mailgun):* Unsere automatischen E-Mails (z.B. zum Status Ihrer Events, zum Zurücksetzen des Passworts und Benachrichtigungen über neue Nachrichten, siehe Abschnitte 14 und 15) versenden wir über den Dienst Mailgun der Mailgun Technologies, Inc. (USA). Wir nutzen die EU-Region von Mailgun. Mailgun erhält dafür Ihre E-Mail-Adresse und den Inhalt der jeweiligen E-Mail und speichert Versandprotokolle (Empfängeradresse, Betreff, Zeitpunkt, Zustellstatus) für begrenzte Zeit, um die Zustellung nachvollziehen zu können. Mailgun ist als Auftragsverarbeiter auf Grundlage eines Auftragsverarbeitungsvertrags gemäß Art. 28 DSGVO tätig und verarbeitet die Daten nur nach unserer Weisung. Soweit dabei Daten in die USA übermittelt werden können, erfolgt dies auf Grundlage der EU-Standardvertragsklauseln bzw. des EU-US Data Privacy Framework.
+
 Wenn Sie den Kalender in einer Kalender-App oder bei einem Kalenderdienst (z.B. Google Kalender) abonnieren, ruft dieser Dienst die öffentlichen Event-Daten auf Ihre Veranlassung bei uns ab (siehe Abschnitt 13).`,
       },
       {
@@ -109,6 +115,7 @@ Wenn Sie den Kalender in einer Kalender-App oder bei einem Kalenderdienst (z.B. 
 - *Kalender-Schlüssel:* Wird gelöscht, sobald Sie Ihr Konto löschen; wenn Sie einen neuen Kalender-Link erzeugen, wird der alte Schlüssel ersetzt
 - *Chat-Nachrichten:* Werden automatisch nach 10 Tagen gelöscht, beim Löschen Ihres Kontos sofort (siehe Abschnitt 14)
 - *Privatnachrichten:* Werden automatisch nach 90 Tagen gelöscht, beim Löschen Ihres Kontos werden Ihre Nachrichten sofort entfernt (siehe Abschnitt 15)
+- *Zeitpunkt der letzten Benachrichtigungs-E-Mail:* Wird nur zur Begrenzung der Anzahl der E-Mails gespeichert und automatisch gelöscht, bei Privatnachrichten nach einem Tag, beim ${CANDLE_ROOM_NAME} nach zwei Tagen (siehe Abschnitte 14 und 15)
 - *Online-Status:* Der Zeitstempel wird beim Verlassen der Seite, beim Abmelden und beim Ausschalten der Option gelöscht, spätestens nach einem Tag automatisch (siehe Abschnitt 16)
 - *Vereinsmitgliedschaft (Abzeichen):* Wird entfernt, wenn Ihre Mitgliedschaft endet, wenn Sie Ihre Einwilligung widerrufen oder wenn Sie Ihr Konto löschen (siehe Abschnitt 18)
 - *Server-Protokolle:* Siehe Abschnitt 9
@@ -292,6 +299,13 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
 - *Anders als im Lagerfeuer ist der Verlauf öffentlich:* Wenn die Funktion für alle freigeschaltet ist, kann jede Person, die die Event-Seite aufruft, die Nachrichten mit Anzeigename und Profilfoto lesen, auch ohne Login. Schreiben Sie dort deshalb nur, was öffentlich sichtbar sein darf
 - Zusätzlich speichern wir für jeden Raum den Zeitpunkt der letzten Nachricht, damit im Kalender eine Kerze auf neue Nachrichten hinweisen kann. Welche Nachrichten Sie schon gesehen haben, merkt sich nur Ihr Browser (Local Storage)
 
+*E-Mail an Veranstalter:innen bei neuen Nachrichten im ${CANDLE_ROOM_NAME}:*
+- Schreibt jemand im ${CANDLE_ROOM_NAME} eines Events, erhält die Person, die das Event erstellt hat, eine E-Mail an die Adresse ihres Kontos. Sie enthält den Titel des Events, den Anzeigenamen der schreibenden Person, einen kurzen Textauszug der Nachricht (etwa die ersten 140 Zeichen) und einen Link zum ${CANDLE_ROOM_NAME}. Wer im ${CANDLE_ROOM_NAME} schreibt, sollte also wissen, dass der Anfang der Nachricht auch per E-Mail an die Veranstalterin bzw. den Veranstalter geht
+- Die Veranstalterin bzw. der Veranstalter erhält höchstens eine solche E-Mail pro Tag, egal für wie viele Events. Für eigene Nachrichten, für Nachrichten gesperrter Mitglieder und für Nachrichten von Personen, die sie bzw. er im Postfach blockiert hat, wird keine E-Mail verschickt
+- Dafür speichern wir den Tag und den Zeitpunkt der letzten E-Mail zusammen mit der Konto-Kennung der Veranstalterin bzw. des Veranstalters. Dieser Eintrag wird nach zwei Tagen automatisch gelöscht
+- Die Benachrichtigung ist standardmäßig eingeschaltet. Sie können sie in Ihrem Profil unter „Benachrichtigungen“ („${CANDLE_ROOM_NAME} deiner Veranstaltungen“) jederzeit ausschalten; jede E-Mail enthält dazu einen Link zu diesen Einstellungen
+- Rechtsgrundlage ist die Bereitstellung der Plattform, die Sie als Veranstalter:in nutzen (Art. 6 Abs. 1 lit. b DSGVO), sowie unser berechtigtes Interesse und das Interesse der Teilnehmenden, dass Fragen zu einem Event die Veranstalterin bzw. den Veranstalter auch erreichen (Art. 6 Abs. 1 lit. f DSGVO). Die E-Mails werden über Mailgun versendet (siehe Abschnitt 4)
+
 *Erwähnungen (@Name):*
 - In Lagerfeuer und ${CANDLE_ROOM_NAME} können Mitglieder andere mit @Name erwähnen, nicht jedoch in Privatnachrichten. Erwähnt werden können nur Personen, die in ihrem Profil „Andere dürfen mich erwähnen“ eingeschaltet haben (Standard: aus; Einwilligung, jederzeit im Profil widerrufbar)
 - Ist die Option eingeschaltet, speichern wir in Ihrem öffentlichen Profil zusätzlich Ihren Namen in vereinfachter Schreibweise (Kleinbuchstaben, ohne Akzente), damit Sie bei der Namenssuche nach dem @ gefunden werden. Beim Ausschalten wird dieser Eintrag gelöscht
@@ -329,7 +343,14 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
 
 *Rechtsgrundlage:* Die Zustellung und Anzeige der Nachrichten erfolgt, weil Sie die Funktion nutzen (Art. 6 Abs. 1 lit. b DSGVO). Spam-Schutz, Moderation und die Bearbeitung von Meldungen beruhen auf unserem berechtigten Interesse, die Funktion sicher und frei von Missbrauch zu halten (Art. 6 Abs. 1 lit. f DSGVO). Ein vom Chat verhängter Ausschluss gilt auch für Privatnachrichten.
 
-*Verarbeitung:* Die Daten werden in Google Cloud Firestore (Firebase) gespeichert (siehe Abschnitt 9). Wir geben sie nicht an Dritte weiter und nutzen sie nicht für Werbung oder Statistik. Wir senden keine E-Mail-Benachrichtigungen über neue Privatnachrichten.
+*E-Mail-Benachrichtigung über neue Privatnachrichten:*
+- Erhalten Sie eine neue Privatnachricht, schicken wir Ihnen eine E-Mail an die Adresse Ihres Kontos. Sie enthält den Anzeigenamen der schreibenden Person, einen kurzen Textauszug der Nachricht (etwa die ersten 140 Zeichen) und einen direkten Link zur Unterhaltung. Der Textauszug liegt damit auch in Ihrem E-Mail-Postfach und wird von Ihrem E-Mail-Anbieter gespeichert; wer Ihnen schreibt, sollte das wissen
+- Pro Unterhaltung erhalten Sie höchstens eine E-Mail pro Stunde. Dafür speichern wir den Zeitpunkt der letzten E-Mail zusammen mit der Kennung der Unterhaltung; dieser Eintrag wird nach einem Tag automatisch gelöscht
+- Keine E-Mail gibt es, wenn Sie die Person blockiert haben (oder sie Sie), wenn Sie keine Privatnachrichten annehmen oder wenn die schreibende Person gesperrt ist
+- Die Benachrichtigung ist standardmäßig eingeschaltet. Sie können sie in Ihrem Profil unter „Benachrichtigungen“ („Neue Privatnachricht“) jederzeit ausschalten; jede E-Mail enthält dazu einen Link zu diesen Einstellungen
+- Rechtsgrundlage ist die Bereitstellung der Funktion, die Sie nutzen (Art. 6 Abs. 1 lit. b DSGVO), sowie unser berechtigtes Interesse, dass Nachrichten ihre Empfänger:innen auch erreichen (Art. 6 Abs. 1 lit. f DSGVO). Die E-Mails werden über Mailgun versendet (siehe Abschnitt 4); die Administrator:innen erhalten dabei keinen Einblick in Ihre Nachrichten
+
+*Verarbeitung:* Die Daten werden in Google Cloud Firestore (Firebase) gespeichert (siehe Abschnitt 9). Wir geben sie nicht an Dritte weiter und nutzen sie nicht für Werbung oder Statistik. Für die E-Mail-Benachrichtigung wird ein Textauszug über Mailgun versendet (siehe oben und Abschnitt 4).
 
 *Ihre Rechte:* Siehe Abschnitt 6. Auskunft über Ihre Privatnachrichten erhalten Sie auf Anfrage an admin@thetribe.at.`,
       },

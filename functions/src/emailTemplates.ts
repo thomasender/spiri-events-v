@@ -158,13 +158,24 @@ function brandHeader(): string {
     </table>`;
 }
 
-type FooterKind = 'notification' | 'auth' | 'favorite';
+type FooterKind = 'notification' | 'auth' | 'favorite' | 'directMessage' | 'eventChat';
+
+/** Why the person gets the mail; the settings link doubles as the way to switch it off. */
+const FOOTER_REASON: Partial<Record<FooterKind, string>> = {
+  favorite:
+    'Du erhältst diese E-Mail, weil du dieses Event auf tribe Events als Favorit gespeichert hast.',
+  directMessage:
+    'Du erhältst diese E-Mail, weil dir jemand auf tribe Events eine Privatnachricht geschrieben hat.',
+  eventChat:
+    'Du erhältst diese E-Mail, weil im Event Chat einer Veranstaltung, die du erstellt hast, eine neue Nachricht steht. Wir schicken dir dazu höchstens eine E-Mail pro Tag.',
+};
 
 function footerHtml(kind: FooterKind = 'notification'): string {
-  if (kind === 'favorite') {
+  const reason = FOOTER_REASON[kind];
+  if (reason) {
     return `
       <p style="margin-top:32px;padding-top:16px;border-top:1px solid ${COLOR_BORDER};font-family:${BODY_FONT};font-size:12px;line-height:1.5;color:${COLOR_MUTED};">
-        Du erhältst diese E-Mail, weil du dieses Event auf tribe Events als Favorit gespeichert hast.
+        ${reason}
         <a href="${notificationSettingsUrl()}" style="color:${COLOR_MUTED};text-decoration:underline;">Benachrichtigungseinstellungen anpassen</a>.
         Bei Fragen wende dich an <a href="mailto:admin@thetribe.at" style="color:${COLOR_MUTED};text-decoration:underline;">admin@thetribe.at</a>.
       </p>`;
@@ -184,8 +195,9 @@ function footerHtml(kind: FooterKind = 'notification'): string {
 }
 
 function footerText(kind: FooterKind = 'notification'): string {
-  if (kind === 'favorite') {
-    return `\n--\nDu erhältst diese E-Mail, weil du dieses Event auf tribe Events als Favorit gespeichert hast.\nBenachrichtigungseinstellungen anpassen: ${notificationSettingsUrl()}\nBei Fragen wende dich an admin@thetribe.at.`;
+  const reason = FOOTER_REASON[kind];
+  if (reason) {
+    return `\n--\n${reason}\nBenachrichtigungseinstellungen anpassen: ${notificationSettingsUrl()}\nBei Fragen wende dich an admin@thetribe.at.`;
   }
   if (kind === 'auth') {
     return `\n--\nBei Fragen wende dich an admin@thetribe.at.`;
@@ -637,6 +649,139 @@ export function buildFavoriteCancelledPayload({
     subject,
     html: wrapHtml(htmlBody, 'favorite'),
     text: textBody + footerText('favorite'),
+  };
+}
+
+// ---- Chat notifications (Postfach and Event Chat, docs/messenger.md, docs/chat.md) ----
+
+export const CHAT_MAIL_EXCERPT_MAX = 140;
+const CHAT_MAIL_NAME_MAX = 80;
+const CHAT_MAIL_TITLE_MAX = 120;
+
+// Invisible or direction-changing characters (C0/C1 controls, zero-width, bidi
+// overrides) are dropped so nothing can disguise the text; ZWJ stays for emoji.
+const UNWANTED_MAIL_CHARS = new RegExp(
+  '[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F-\\u009F\\u200B\\u200E\\u200F\\u202A-\\u202E\\u2060-\\u2064\\u2066-\\u2069\\uFEFF]',
+  'g'
+);
+
+/** One clean line: line breaks and runs of whitespace become single spaces. */
+function chatMailLine(value: unknown): string {
+  if (typeof value !== 'string') return '';
+  return value.replace(/\r\n?/g, '\n').replace(UNWANTED_MAIL_CHARS, '').replace(/\s+/g, ' ').trim();
+}
+
+function shorten(flat: string, max: number): string {
+  const chars = Array.from(flat); // never split an emoji (surrogate pair) in half
+  if (chars.length <= max) return flat;
+  const cut = chars.slice(0, max - 1).join('');
+  const lastSpace = cut.lastIndexOf(' ');
+  // Cut at the last word boundary unless that throws away most of the excerpt.
+  const base = lastSpace >= Math.floor(max / 2) ? cut.slice(0, lastSpace) : cut;
+  return `${base.replace(/[\s.,;:!?-]+$/u, '')}…`;
+}
+
+/** The message as a short one-line excerpt (about 140 characters, cut at a word, "…"). */
+export function chatMailExcerpt(text: unknown, max: number = CHAT_MAIL_EXCERPT_MAX): string {
+  return shorten(chatMailLine(text), max);
+}
+
+function chatMailName(value: unknown, fallback: string): string {
+  return shorten(chatMailLine(value), CHAT_MAIL_NAME_MAX) || fallback;
+}
+
+function excerptBlockHtml(excerpt: string): string {
+  return `<blockquote style="margin:0 0 20px 0;padding:14px 18px;border-left:3px solid ${COLOR_PRIMARY};background:${COLOR_BG_SOFT};border-radius:0 6px 6px 0;font-family:${BODY_FONT};font-size:15px;line-height:1.6;color:${COLOR_TEXT};">${escapeHtml(excerpt)}</blockquote>`;
+}
+
+export interface DirectMessagePayloadInput {
+  recipient: string;
+  recipientName?: string | null;
+  senderName?: string | null;
+  messageText: string;
+  /** Direct link to the conversation, `/postfach/<sender uid>`. */
+  conversationUrl: string;
+}
+
+export function buildDirectMessagePayload({
+  recipient,
+  recipientName,
+  senderName,
+  messageText,
+  conversationUrl,
+}: DirectMessagePayloadInput): EmailPayload {
+  const name = chatMailLine(recipientName);
+  const sender = chatMailName(senderName, 'Ein Mitglied');
+  const excerpt = chatMailExcerpt(messageText);
+  const link = escapeHtml(conversationUrl);
+  const subject = `Neue Nachricht von ${sender}`;
+  const htmlBody = `
+    <h1 style="${headingStyle(1)}">Du hast eine neue Nachricht</h1>
+    <p style="${paragraphStyle()}">${name ? `Hallo ${escapeHtml(name)},` : 'Hallo,'}</p>
+    <p style="${paragraphStyle()}"><strong>${escapeHtml(sender)}</strong> hat dir in deinem Postfach geschrieben:</p>
+    ${excerptBlockHtml(excerpt)}
+    <p style="margin:8px 0 24px 0;">
+      <a href="${link}" style="${brandButtonStyle()}">Nachricht lesen und antworten</a>
+    </p>
+    <p style="${mutedStyle()}">Weitere Nachrichten in dieser Unterhaltung melden wir dir höchstens einmal pro Stunde.</p>`;
+  const textBody =
+    `${name ? `Hallo ${name},` : 'Hallo,'}\n\n` +
+    `${sender} hat dir in deinem Postfach geschrieben:\n\n` +
+    `„${excerpt}“\n\n` +
+    `Nachricht lesen und antworten: ${conversationUrl}\n\n` +
+    `Weitere Nachrichten in dieser Unterhaltung melden wir dir höchstens einmal pro Stunde.`;
+  return {
+    to: recipient,
+    subject,
+    html: wrapHtml(htmlBody, 'directMessage'),
+    text: textBody + footerText('directMessage'),
+  };
+}
+
+export interface EventChatPayloadInput {
+  recipient: string;
+  recipientName?: string | null;
+  authorName?: string | null;
+  eventTitle: string;
+  messageText: string;
+  /** Direct link to the room, `/event/<slug>#kerzenraum`. */
+  roomUrl: string;
+}
+
+export function buildEventChatPayload({
+  recipient,
+  recipientName,
+  authorName,
+  eventTitle,
+  messageText,
+  roomUrl,
+}: EventChatPayloadInput): EmailPayload {
+  const name = chatMailLine(recipientName);
+  const author = chatMailName(authorName, 'Ein Mitglied');
+  const title = shorten(chatMailLine(eventTitle), CHAT_MAIL_TITLE_MAX) || 'deine Veranstaltung';
+  const excerpt = chatMailExcerpt(messageText);
+  const link = escapeHtml(roomUrl);
+  const subject = `Neue Nachricht im Event Chat: ${title}`;
+  const htmlBody = `
+    <h1 style="${headingStyle(1)}">Neue Nachricht im Event Chat</h1>
+    <p style="${paragraphStyle()}">${name ? `Hallo ${escapeHtml(name)},` : 'Hallo,'}</p>
+    <p style="${paragraphStyle()}">im Event Chat zu <strong>${escapeHtml(title)}</strong> hat <strong>${escapeHtml(author)}</strong> geschrieben:</p>
+    ${excerptBlockHtml(excerpt)}
+    <p style="margin:8px 0 24px 0;">
+      <a href="${link}" style="${brandButtonStyle()}">Zum Event Chat</a>
+    </p>
+    <p style="${mutedStyle()}">Vielleicht freut sich jemand über deine Antwort. Über weitere Nachrichten in den Event Chats deiner Veranstaltungen informieren wir dich höchstens einmal pro Tag.</p>`;
+  const textBody =
+    `${name ? `Hallo ${name},` : 'Hallo,'}\n\n` +
+    `im Event Chat zu „${title}“ hat ${author} geschrieben:\n\n` +
+    `„${excerpt}“\n\n` +
+    `Zum Event Chat: ${roomUrl}\n\n` +
+    `Vielleicht freut sich jemand über deine Antwort. Über weitere Nachrichten in den Event Chats deiner Veranstaltungen informieren wir dich höchstens einmal pro Tag.`;
+  return {
+    to: recipient,
+    subject,
+    html: wrapHtml(htmlBody, 'eventChat'),
+    text: textBody + footerText('eventChat'),
   };
 }
 

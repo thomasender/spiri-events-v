@@ -1,6 +1,7 @@
 import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
 import { useRegion } from '../hooks/useRegion';
+import { useChatAccess, useMessengerAccess } from '../hooks/useChatSettings';
 import ProfileForm from '../components/ProfileForm';
 import ChangeEmailForm from '../components/ChangeEmailForm';
 import NotificationPreferencesCard from '../components/NotificationPreferencesCard';
@@ -17,6 +18,9 @@ export default function ProfilePage() {
   // Dark launch: no region card at all while there is nothing to switch between
   // (an empty card with only the hint text looked broken).
   const canPickRegion = useRegion().regions.length >= 2;
+  // The chat e-mail switches only appear while Postfach / Event Chat are open for this person.
+  const { available: messengerAvailable } = useMessengerAccess();
+  const { available: chatAvailable } = useChatAccess();
 
   const handleProfileSave = async (updates) => {
     const newSlug = await save(updates);
@@ -70,6 +74,8 @@ export default function ProfilePage() {
         <NotificationPreferencesCard
           preferences={notificationPreferences}
           isAdmin={isAdmin}
+          messengerAvailable={messengerAvailable}
+          chatAvailable={chatAvailable}
           onSave={handlePreferencesSave}
         />
 

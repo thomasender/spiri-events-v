@@ -22,6 +22,8 @@ describe('normalizePreferences', () => {
       notifyNewsletter: false,
       notifyOnContactMessage: true,
       notifyOnFavoriteCancelled: true,
+      notifyOnDirectMessage: true,
+      notifyOnEventChat: true,
     });
   });
 
@@ -40,6 +42,8 @@ describe('normalizePreferences', () => {
       notifyNewsletter: false,
       notifyOnContactMessage: true,
       notifyOnFavoriteCancelled: true,
+      notifyOnDirectMessage: true,
+      notifyOnEventChat: true,
     });
   });
 
@@ -53,6 +57,8 @@ describe('normalizePreferences', () => {
         notifyNewsletter: true,
         notifyOnContactMessage: false,
         notifyOnFavoriteCancelled: false,
+        notifyOnDirectMessage: false,
+        notifyOnEventChat: false,
       })
     ).toEqual({
       notifyOnSubmitted: false,
@@ -62,6 +68,8 @@ describe('normalizePreferences', () => {
       notifyNewsletter: true,
       notifyOnContactMessage: false,
       notifyOnFavoriteCancelled: false,
+      notifyOnDirectMessage: false,
+      notifyOnEventChat: false,
     });
   });
 
@@ -80,5 +88,19 @@ describe('normalizePreferences', () => {
     expect(normalizePreferences({ notifyNewsletter: false })).toMatchObject({
       notifyNewsletter: false,
     });
+  });
+});
+
+describe('chat mail preferences', () => {
+  it('are on by default', () => {
+    expect(DEFAULT_NOTIFICATION_PREFERENCES.notifyOnDirectMessage).toBe(true);
+    expect(DEFAULT_NOTIFICATION_PREFERENCES.notifyOnEventChat).toBe(true);
+    expect(normalizePreferences({}).notifyOnDirectMessage).toBe(true);
+  });
+
+  it('can be switched off and ignore non-boolean values', () => {
+    const prefs = normalizePreferences({ notifyOnDirectMessage: false, notifyOnEventChat: 'no' });
+    expect(prefs.notifyOnDirectMessage).toBe(false);
+    expect(prefs.notifyOnEventChat).toBe(true);
   });
 });

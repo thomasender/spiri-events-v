@@ -29,6 +29,8 @@ export const NOTIFICATION_PREFERENCE_KEYS = [
   'notifyOnDeleted',
   'notifyOnContactMessage',
   'notifyOnFavoriteCancelled',
+  'notifyOnDirectMessage',
+  'notifyOnEventChat',
   'notifyNewsletter',
 ];
 
@@ -39,6 +41,8 @@ const DEFAULT_NOTIFICATION_PREFERENCES = {
   notifyOnDeleted: true,
   notifyOnContactMessage: true,
   notifyOnFavoriteCancelled: true,
+  notifyOnDirectMessage: true,
+  notifyOnEventChat: true,
   notifyNewsletter: false,
 };
 
