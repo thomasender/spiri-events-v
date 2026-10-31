@@ -6,6 +6,7 @@ import EventCard from './EventCard';
 import { resolveEventColor } from '../utils/categoryColors';
 import { useCategoryRegistry } from '../hooks/useCategoryRegistry';
 import { getPrimaryCategory } from '../utils/eventFormat';
+import { getEventOccurrences } from '../utils/eventOccurrences';
 import { filterEventsForRegion, resolveRegionId } from '../utils/regions';
 import { useRegion } from '../hooks/useRegion';
 import './SimilarEvents.css';
@@ -59,10 +60,6 @@ export default function OrganizerEvents({ organizerUid, organizerName }) {
     getDocs(q)
       .then((snapshot) => {
         if (cancelled) return;
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const todayIso = today.toISOString().split('T')[0];
-
         // All active regions (the profile is reachable from anywhere); never inactive ones.
         const candidates = filterEventsForRegion(
           snapshot.docs.map((docSnap) =>
@@ -70,11 +67,11 @@ export default function OrganizerEvents({ organizerUid, organizerName }) {
           ),
           { activeRegionIds: activeKey ? activeKey.split(',') : [] }
         );
+        // Next upcoming date of each event; a running series whose first date
+        // is already past still shows up (at its next date), like in the calendar.
         const normalized = candidates
-          .filter((event) => {
-            const referenceDate = event.endDate || event.date;
-            return referenceDate && referenceDate >= todayIso;
-          })
+          .map((event) => (event.date ? getEventOccurrences(event, { mode: 'list' })[0] : null))
+          .filter(Boolean)
           .sort((a, b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0))
           .slice(0, ORGANIZER_EVENTS_LIMIT);
 
