@@ -177,6 +177,32 @@ describe('calendarFeedTokens', () => {
   });
 });
 
+describe('moderator_invites', () => {
+  it('nobody can read, list or write invitations, not even the invitee or admins', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'moderator_invites/abc'), {
+        email: 'invitee@x.at',
+        regionIds: ['tirol'],
+        status: 'pending',
+      });
+    });
+    const invitee = env.authenticatedContext('invitee', {
+      email: 'invitee@x.at',
+      email_verified: true,
+    });
+    const ctxs = [anon(), user(), invitee, ...Object.values(adminVariants).map((m) => m())];
+    for (const ctx of ctxs) {
+      const db = ctx.firestore();
+      const ref = doc(db, 'moderator_invites/abc');
+      await assertFails(getDoc(ref));
+      await assertFails(getDocs(collection(db, 'moderator_invites')));
+      await assertFails(setDoc(doc(db, 'moderator_invites/new'), { status: 'pending' }));
+      await assertFails(updateDoc(ref, { status: 'accepted' }));
+      await assertFails(deleteDoc(ref));
+    }
+  });
+});
+
 describe('donors.comment (public donor comment)', () => {
   const adminDb = () => env.authenticatedContext('adminDoc').firestore();
   const donor = { name: 'Anna', amount: 10, frequency: 'one-time', note: null, order: 0 };

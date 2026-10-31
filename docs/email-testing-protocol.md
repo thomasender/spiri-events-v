@@ -54,6 +54,19 @@ _Test-Protokoll für die vier automatischen Benachrichtigungs-E-Mails, die beim 
   - Function Log: `deleted notification processed`, `recipients: 1`
 - **Wichtig:** Triggert bei **jedem** Übergang nach `trashed` (von `draft`, `pending` oder `approved`).
 
+## 5. „Einladung ins Moderations-Team" (an die eingeladene Person) und „Neue Moderator:in" (an Super-Admins)
+
+- **Wer löst aus:** Super-Admin in Verwaltung → „Moderation" → „Per E-Mail einladen" (oder „Erneut senden" in der Liste „Offene Einladungen")
+- **Empfänger:** die eingegebene Adresse (klein geschrieben)
+- **Betreff:** `Einladung ins Moderations-Team vom Tribe {Region}` (mehrere Regionen: `Tribe A und Tribe B`)
+- **Inhalt:** Einladungstext + Button „Einladung annehmen" (Link `/einladung?t=<token>`, auf Staging zur Staging-Seite), „gilt bis {Datum}" (14 Tage), Hinweis auf die Adresse
+- **Danach:** Link öffnen → anmelden oder Konto anlegen (mit derselben Adresse) → Wizard durchklicken, Häkchen setzen, mit Namen unterschreiben → „Willkommen im Team!". Jetzt geht an **alle Super-Admins** je eine Mail `Neue Moderator:in: {Name} ({Tribe Region})` mit Button „Moderation ansehen".
+- **Verifizieren:**
+  - Mailgun Logs → 1× delivered an die eingeladene Adresse; nach der Annahme je 1× an jede Super-Admin-Adresse
+  - Function Log: `firebase functions:log --only adminCreateModeratorInvite,acceptModeratorInvite -n 50` → `emailSent: true` bzw. `alreadyAccepted: false`
+  - Schlägt der Versand fehl (z. B. Staging mit Dummy-Mailgun), bleibt die Einladung gültig: der Dialog zeigt „konnte nicht gesendet werden" und „Link kopieren"
+- **Negativtests:** zweites Öffnen eines angenommenen Links → „schon angenommen", keine Mail; widerrufener oder abgelaufener Link → keine Rolle, keine Mail; „Link kopieren" bei einer älteren Einladung erzeugt einen neuen Link **ohne** Mail (der Link aus der ersten Mail funktioniert danach nicht mehr)
+
 ## Was **nicht** zu einer E-Mail führt (Negativtests)
 
 | Aktion                                                                     | Erwartung                                |

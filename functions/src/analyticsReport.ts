@@ -419,6 +419,7 @@ const OTHER_INTERNAL = new Set([
   'admin',
   'login',
   'auth-action',
+  'einladung',
   'datenschutz',
   'impressum',
 ]);
