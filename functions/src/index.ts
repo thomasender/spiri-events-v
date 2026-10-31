@@ -217,4 +217,6 @@ export {
   onDmReportCreated,
   onLagerfeuerMention,
   onKerzenraumMention,
+  onDirectMessageMailNotify,
+  onKerzenraumMailNotify,
 } from './chat';

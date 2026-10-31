@@ -548,6 +548,33 @@ describe('blocks, settings, reports', () => {
   });
 });
 
+describe('chat e-mail throttle markers (server only)', () => {
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'dm_notify/alice_bob_bob'), { lastMailAt: Timestamp.now() });
+      await setDoc(doc(db, 'event_chat_notify/bob'), {
+        day: '2026-10-31',
+        lastMailAt: Timestamp.now(),
+      });
+    });
+  });
+
+  it('no client may read, create, change or delete them, admins included', async () => {
+    for (const ctx of [verified('bob'), verified('alice'), admin(), anon()]) {
+      const db = ctx.firestore();
+      await assertFails(getDoc(doc(db, 'dm_notify/alice_bob_bob')));
+      await assertFails(getDocs(collection(db, 'dm_notify')));
+      await assertFails(setDoc(doc(db, 'dm_notify/alice_bob_bob'), { lastMailAt: null }));
+      await assertFails(setDoc(doc(db, 'dm_notify/alice_bob_alice'), { lastMailAt: null }));
+      await assertFails(deleteDoc(doc(db, 'dm_notify/alice_bob_bob')));
+      await assertFails(getDoc(doc(db, 'event_chat_notify/bob')));
+      await assertFails(setDoc(doc(db, 'event_chat_notify/bob'), { day: 'x' }));
+      await assertFails(deleteDoc(doc(db, 'event_chat_notify/bob')));
+    }
+  });
+});
+
 describe('app_settings/onboarding', () => {
   it('is readable by everyone, writable only by admins with a valid mode', async () => {
     await assertSucceeds(getDoc(doc(anon().firestore(), 'app_settings/onboarding')));

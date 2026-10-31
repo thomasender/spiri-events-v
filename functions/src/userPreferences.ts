@@ -13,7 +13,9 @@ export type PreferenceKey =
   | 'notifyOnDeleted'
   | 'notifyNewsletter'
   | 'notifyOnContactMessage'
-  | 'notifyOnFavoriteCancelled';
+  | 'notifyOnFavoriteCancelled'
+  | 'notifyOnDirectMessage'
+  | 'notifyOnEventChat';
 
 export type NotificationPreferenceMap = Record<PreferenceKey, boolean>;
 
@@ -25,6 +27,9 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferenceMap = {
   notifyNewsletter: false,
   notifyOnContactMessage: true,
   notifyOnFavoriteCancelled: true,
+  // Chat mails (docs/messenger.md, docs/chat.md): on unless switched off in the profile.
+  notifyOnDirectMessage: true,
+  notifyOnEventChat: true,
 };
 
 function readBool(value: unknown): boolean | null {

@@ -147,4 +147,62 @@ describe('NotificationPreferencesCard', () => {
 
     await waitFor(() => expect(onSave).toHaveBeenLastCalledWith({ notifyOnDeleted: true }));
   });
+
+  describe('chat e-mail switches', () => {
+    const chatKeys = ['notifyOnDirectMessage', 'notifyOnEventChat'];
+
+    it('stay hidden while Postfach and Event Chat are closed (dark launch)', () => {
+      render(
+        <NotificationPreferencesCard
+          preferences={allOn}
+          isAdmin
+          onSave={vi.fn().mockResolvedValue(undefined)}
+        />
+      );
+      for (const key of chatKeys) {
+        expect(screen.queryByTestId(`notification-pref-${key}`)).not.toBeInTheDocument();
+      }
+    });
+
+    it('show each switch only with its own feature open', () => {
+      const { rerender } = render(
+        <NotificationPreferencesCard
+          preferences={allOn}
+          messengerAvailable
+          onSave={vi.fn().mockResolvedValue(undefined)}
+        />
+      );
+      expect(screen.getByTestId('notification-pref-notifyOnDirectMessage')).toBeInTheDocument();
+      expect(screen.queryByTestId('notification-pref-notifyOnEventChat')).not.toBeInTheDocument();
+
+      rerender(
+        <NotificationPreferencesCard
+          preferences={allOn}
+          chatAvailable
+          onSave={vi.fn().mockResolvedValue(undefined)}
+        />
+      );
+      expect(screen.getByTestId('notification-pref-notifyOnEventChat')).toBeInTheDocument();
+      expect(
+        screen.queryByTestId('notification-pref-notifyOnDirectMessage')
+      ).not.toBeInTheDocument();
+    });
+
+    it('reflect the stored value and save a change', async () => {
+      const onSave = vi.fn().mockResolvedValue(undefined);
+      render(
+        <NotificationPreferencesCard
+          preferences={{ notifyOnDirectMessage: true, notifyOnEventChat: false }}
+          messengerAvailable
+          chatAvailable
+          onSave={onSave}
+        />
+      );
+      expect(screen.getByTestId('notification-pref-notifyOnDirectMessage')).toBeChecked();
+      expect(screen.getByTestId('notification-pref-notifyOnEventChat')).not.toBeChecked();
+
+      fireEvent.click(screen.getByTestId('notification-pref-notifyOnDirectMessage'));
+      await waitFor(() => expect(onSave).toHaveBeenCalledWith({ notifyOnDirectMessage: false }));
+    });
+  });
 });

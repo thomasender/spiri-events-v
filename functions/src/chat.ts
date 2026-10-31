@@ -2,8 +2,38 @@ import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { logger } from 'firebase-functions';
 import { initializeApp, getApps } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { ADMIN_MAIL_SECRETS, notifyAdmins } from './adminNotify';
+import {
+  MAILGUN_API_KEY,
+  MAILGUN_DOMAIN,
+  MAILGUN_EU_BASE,
+  MAILGUN_FROM,
+  MAILGUN_REPLY_TO,
+  isMailgunDryRun,
+  sendMailgunMessage,
+} from './mailgun';
+import { buildDirectMessagePayload, buildEventChatPayload, EmailPayload } from './emailTemplates';
+import { getUserNotificationPreferences } from './userPreferences';
+import {
+  DM_MAIL_MARKER_COLLECTION,
+  DM_MAIL_MARKER_RETENTION_MS,
+  EVENT_CHAT_MAIL_MARKER_COLLECTION,
+  EVENT_CHAT_MAIL_MARKER_RETENTION_MS,
+  MailAccount,
+  chatMailBaseUrl,
+  decideDmMail,
+  decideEventChatMail,
+  directMessageUrl,
+  dmMailMarkerId,
+  dmRecipientUid,
+  eventChatUrl,
+  isBanActive,
+  shouldSendDmMail,
+  shouldSendEventChatMail,
+  viennaDay,
+} from './chatMailNotify';
 import {
   CHAT_RESOLVED_REPORT_RETENTION_DAYS,
   DM_RETENTION_DAYS,
@@ -164,8 +194,21 @@ export const purgeChatMessages = onSchedule(
     const mentionNotices = await deleteQuery(
       db.collectionGroup('mentions').where('createdAt', '<', messageCutoff)
     );
+    // Throttle markers of the chat e-mails are only needed for an hour / a day.
+    const dmMailMarkers = await deleteQuery(
+      db
+        .collection(DM_MAIL_MARKER_COLLECTION)
+        .where('lastMailAt', '<', Timestamp.fromMillis(now - DM_MAIL_MARKER_RETENTION_MS))
+    );
+    const eventChatMailMarkers = await deleteQuery(
+      db
+        .collection(EVENT_CHAT_MAIL_MARKER_COLLECTION)
+        .where('lastMailAt', '<', Timestamp.fromMillis(now - EVENT_CHAT_MAIL_MARKER_RETENTION_MS))
+    );
     logger.info('Purged chat data', {
       mentionNotices,
+      dmMailMarkers,
+      eventChatMailMarkers,
       messages,
       members,
       presence,
@@ -331,4 +374,297 @@ export const onKerzenraumMention = onDocumentCreated(
   { region: REGION, document: 'event_chats/{eventId}/messages/{messageId}' },
   async (event) =>
     notifyMentions('event', event.params.eventId, event.params.messageId, event.data?.data())
+);
+
+// ---- E-mail notifications (Postfach and Event Chat, pure logic in chatMailNotify.ts) ----
+
+const CHAT_MAIL_SECRETS = [MAILGUN_API_KEY, MAILGUN_DOMAIN, MAILGUN_FROM, MAILGUN_REPLY_TO];
+
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
+function readText(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+}
+
+interface ChatMailAccount extends MailAccount {
+  displayName: string | null;
+}
+
+/** Firebase Auth accounts by uid; a deleted account is simply missing. */
+async function readAccounts(uids: string[]): Promise<Map<string, ChatMailAccount>> {
+  const map = new Map<string, ChatMailAccount>();
+  const result = await getAuth().getUsers(uids.map((uid) => ({ uid })));
+  for (const user of result.users) {
+    map.set(user.uid, {
+      email: user.email ?? null,
+      disabled: user.disabled,
+      emailVerified: user.emailVerified,
+      displayName: user.displayName ?? null,
+    });
+  }
+  return map;
+}
+
+async function publicDisplayName(uid: string): Promise<string | null> {
+  const profile = await getFirestore().doc(`users/${uid}/publicProfile/data`).get();
+  return readText(profile.get('displayName'));
+}
+
+async function isChatBanActive(uid: string, nowMs: number): Promise<boolean> {
+  const ban = await getFirestore().doc(`chat_bans/${uid}`).get();
+  const until = ban.exists ? (ban.get('until') as Timestamp | undefined) : undefined;
+  return isBanActive(
+    until && typeof until.toMillis === 'function' ? until.toMillis() : null,
+    nowMs
+  );
+}
+
+async function isAdminUid(uid: string): Promise<boolean> {
+  return (await getFirestore().doc(`admin_users/${uid}`).get()).exists;
+}
+
+/** Sends one chat mail via Mailgun (or logs it in dry-run mode). */
+async function sendChatMail(
+  payload: EmailPayload,
+  context: Record<string, string>
+): Promise<boolean> {
+  if (isMailgunDryRun(process.env)) {
+    logger.info('MAILGUN dry-run: would send chat e-mail', {
+      ...context,
+      subject: payload.subject,
+    });
+    return true;
+  }
+  const apiKey = MAILGUN_API_KEY.value() ?? '';
+  const domain = MAILGUN_DOMAIN.value() ?? '';
+  const from = MAILGUN_FROM.value() ?? '';
+  if (!apiKey || !domain || !from) {
+    logger.error('Mailgun secrets are not configured; skipping chat e-mail', context);
+    return false;
+  }
+  await sendMailgunMessage(MAILGUN_EU_BASE, {
+    apiKey,
+    domain,
+    from,
+    to: payload.to,
+    subject: payload.subject,
+    text: payload.text,
+    html: payload.html,
+    replyTo: readText(MAILGUN_REPLY_TO.value()) ?? undefined,
+  });
+  return true;
+}
+
+/** One mail per conversation and recipient per hour; the transaction stops parallel triggers. */
+async function claimDmMailSlot(markerId: string, nowMs: number): Promise<boolean> {
+  const db = getFirestore();
+  const ref = db.collection(DM_MAIL_MARKER_COLLECTION).doc(markerId);
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const last = snap.exists ? (snap.get('lastMailAt') as Timestamp | undefined) : undefined;
+    if (!shouldSendDmMail(last ? last.toMillis() : null, nowMs)) return false;
+    tx.set(ref, { lastMailAt: Timestamp.fromMillis(nowMs) });
+    return true;
+  });
+}
+
+/** One Event Chat mail per organizer and calendar day (Vienna), whichever event it is. */
+async function claimEventChatMailSlot(organizerUid: string, nowMs: number): Promise<boolean> {
+  const db = getFirestore();
+  const ref = db.collection(EVENT_CHAT_MAIL_MARKER_COLLECTION).doc(organizerUid);
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const day = snap.exists ? readText(snap.get('day')) : null;
+    if (!shouldSendEventChatMail(day, nowMs)) return false;
+    tx.set(ref, { day: viennaDay(nowMs), lastMailAt: Timestamp.fromMillis(nowMs) });
+    return true;
+  });
+}
+
+/**
+ * Mails the other participant about a new private message, with a short excerpt
+ * and a link to the conversation. Never for blocked senders, recipients who take
+ * no private messages or switched the mail off, banned authors or inactive accounts.
+ */
+async function mailDirectMessage(
+  threadId: string,
+  messageId: string,
+  data: FirebaseFirestore.DocumentData | undefined
+): Promise<void> {
+  const authorUid = readText(data?.authorUid) ?? '';
+  if (!data || !authorUid) return;
+  const db = getFirestore();
+  const mode = (await db.doc('app_settings/messenger').get()).get('mode');
+  if (mode !== 'all' && mode !== 'admins') return;
+  const recipientUid = dmRecipientUid(threadId, authorUid);
+  const log = { threadId, messageId };
+  if (!recipientUid || recipientUid === authorUid) {
+    logger.info('Direct message mail skipped', { ...log, reason: 'invalid_thread' });
+    return;
+  }
+
+  const now = Date.now();
+  const [recipientIsAdmin, prefs, blockA, blockB, settings, authorBanned, accounts] =
+    await Promise.all([
+      mode === 'admins' ? isAdminUid(recipientUid) : Promise.resolve(false),
+      getUserNotificationPreferences(recipientUid),
+      db.doc(`dm_blocks/${recipientUid}_${authorUid}`).get(),
+      db.doc(`dm_blocks/${authorUid}_${recipientUid}`).get(),
+      db.doc(`dm_settings/${recipientUid}`).get(),
+      isChatBanActive(authorUid, now),
+      readAccounts([authorUid, recipientUid]),
+    ]);
+  const decision = decideDmMail({
+    mode,
+    recipientIsAdmin,
+    authorUid,
+    recipientUid,
+    text: data.text,
+    prefEnabled: prefs.notifyOnDirectMessage !== false,
+    blocked: blockA.exists || blockB.exists,
+    recipientAllowsDirectMessages: settings.get('allowDirectMessages') !== false,
+    authorBanned,
+    author: accounts.get(authorUid) ?? null,
+    recipient: accounts.get(recipientUid) ?? null,
+  });
+  if (!decision.send) {
+    logger.info('Direct message mail skipped', { ...log, reason: decision.reason });
+    return;
+  }
+  if (!(await claimDmMailSlot(dmMailMarkerId(threadId, recipientUid), now))) {
+    logger.info('Direct message mail throttled', log);
+    return;
+  }
+
+  const recipient = accounts.get(recipientUid) as ChatMailAccount;
+  const [senderName, recipientName] = await Promise.all([
+    publicDisplayName(authorUid),
+    publicDisplayName(recipientUid),
+  ]);
+  const payload = buildDirectMessagePayload({
+    recipient: recipient.email as string,
+    recipientName: recipientName ?? recipient.displayName,
+    senderName,
+    messageText: typeof data.text === 'string' ? data.text : '',
+    conversationUrl: directMessageUrl(chatMailBaseUrl(process.env.GCLOUD_PROJECT), authorUid),
+  });
+  const sent = await sendChatMail(payload, log);
+  logger.info('Direct message mail processed', { ...log, sent });
+}
+
+/**
+ * Mails the organizer (events.createdBy) about a new message in the Event Chat
+ * of their event, at most once a day across all their events. No mail for the
+ * organizer's own messages.
+ */
+async function mailEventChatMessage(
+  eventId: string,
+  messageId: string,
+  data: FirebaseFirestore.DocumentData | undefined
+): Promise<void> {
+  const authorUid = readText(data?.authorUid) ?? '';
+  if (!data || !authorUid) return;
+  const db = getFirestore();
+  const mode = (await db.doc('app_settings/chat').get()).get('mode');
+  if (mode !== 'all' && mode !== 'admins') return;
+  const event = await db.doc(`events/${eventId}`).get();
+  const organizerUid = readText(event.get('createdBy'));
+  const log = { eventId, messageId };
+  if (!organizerUid || organizerUid === authorUid) {
+    logger.info('Event chat mail skipped', {
+      ...log,
+      reason: organizerUid ? 'author_is_organizer' : 'no_organizer',
+    });
+    return;
+  }
+
+  const now = Date.now();
+  const [organizerIsAdmin, prefs, block, authorBanned, accounts] = await Promise.all([
+    mode === 'admins' ? isAdminUid(organizerUid) : Promise.resolve(false),
+    getUserNotificationPreferences(organizerUid),
+    db.doc(`dm_blocks/${organizerUid}_${authorUid}`).get(),
+    isChatBanActive(authorUid, now),
+    readAccounts([authorUid, organizerUid]),
+  ]);
+  const decision = decideEventChatMail({
+    mode,
+    organizerIsAdmin,
+    authorUid,
+    organizerUid,
+    eventStatus: event.get('status'),
+    text: data.text,
+    prefEnabled: prefs.notifyOnEventChat !== false,
+    blocked: block.exists,
+    authorBanned,
+    author: accounts.get(authorUid) ?? null,
+    organizer: accounts.get(organizerUid) ?? null,
+  });
+  if (!decision.send) {
+    logger.info('Event chat mail skipped', { ...log, reason: decision.reason });
+    return;
+  }
+  if (!(await claimEventChatMailSlot(organizerUid, now))) {
+    logger.info('Event chat mail throttled', log);
+    return;
+  }
+
+  const organizer = accounts.get(organizerUid) as ChatMailAccount;
+  const [authorName, organizerName] = await Promise.all([
+    publicDisplayName(authorUid),
+    publicDisplayName(organizerUid),
+  ]);
+  const payload = buildEventChatPayload({
+    recipient: organizer.email as string,
+    recipientName: organizerName ?? organizer.displayName,
+    authorName,
+    eventTitle: readText(event.get('title')) ?? '',
+    messageText: typeof data.text === 'string' ? data.text : '',
+    roomUrl: eventChatUrl(
+      chatMailBaseUrl(process.env.GCLOUD_PROJECT),
+      readText(event.get('slug')),
+      eventId
+    ),
+  });
+  const sent = await sendChatMail(payload, log);
+  logger.info('Event chat mail processed', { ...log, sent });
+}
+
+export const onDirectMessageMailNotify = onDocumentCreated(
+  {
+    region: REGION,
+    document: 'dm_threads/{threadId}/messages/{messageId}',
+    secrets: CHAT_MAIL_SECRETS,
+  },
+  async (event) => {
+    try {
+      await mailDirectMessage(event.params.threadId, event.params.messageId, event.data?.data());
+    } catch (err) {
+      logger.error('Direct message mail failed', {
+        threadId: event.params.threadId,
+        messageId: event.params.messageId,
+        error: errorMessage(err),
+      });
+    }
+  }
+);
+
+export const onKerzenraumMailNotify = onDocumentCreated(
+  {
+    region: REGION,
+    document: 'event_chats/{eventId}/messages/{messageId}',
+    secrets: CHAT_MAIL_SECRETS,
+  },
+  async (event) => {
+    try {
+      await mailEventChatMessage(event.params.eventId, event.params.messageId, event.data?.data());
+    } catch (err) {
+      logger.error('Event chat mail failed', {
+        eventId: event.params.eventId,
+        messageId: event.params.messageId,
+        error: errorMessage(err),
+      });
+    }
+  }
 );

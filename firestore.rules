@@ -547,6 +547,13 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // E-mail switches for new private messages / Event Chat messages
+    // (functions/src/chatMailNotify.ts); missing means on.
+    function isValidChatMailPrefs(data) {
+      return (!('notifyOnDirectMessage' in data) || data.notifyOnDirectMessage is bool)
+        && (!('notifyOnEventChat' in data) || data.notifyOnEventChat is bool);
+    }
+
     match /users/{uid} {
       allow read: if isAuthenticated() && request.auth.uid == uid;
 
@@ -559,6 +566,7 @@ service cloud.firestore {
                        'notifyOnSubmitted', 'notifyOnChangesRequested',
                        'notifyOnPublished', 'notifyOnDeleted',
                        'notifyOnContactMessage', 'notifyOnFavoriteCancelled',
+                       'notifyOnDirectMessage', 'notifyOnEventChat',
                        'notifyNewsletter', 'instagramConsentDefault', 'onboardingDismissed', 'onboardingCompleted', 'placeSelection',
                        'createdAt', 'updatedAt']
                     )
@@ -571,6 +579,7 @@ service cloud.firestore {
                         || request.resource.data.showOnlineStatus is bool)
                     && (!('allowMentions' in request.resource.data)
                         || request.resource.data.allowMentions is bool)
+                    && isValidChatMailPrefs(request.resource.data)
                     && isValidFireplace(request.resource.data)
                     && (!('onboardingDismissed' in request.resource.data)
                         || request.resource.data.onboardingDismissed is bool)
@@ -592,6 +601,7 @@ service cloud.firestore {
                         || request.resource.data.showOnlineStatus is bool)
                     && (!('allowMentions' in request.resource.data)
                         || request.resource.data.allowMentions is bool)
+                    && isValidChatMailPrefs(request.resource.data)
                     && isValidFireplace(request.resource.data)
                     && (!('onboardingDismissed' in request.resource.data)
                         || request.resource.data.onboardingDismissed is bool)
@@ -607,6 +617,7 @@ service cloud.firestore {
                                   'notifyOnSubmitted', 'notifyOnChangesRequested',
                                   'notifyOnPublished', 'notifyOnDeleted',
                                   'notifyOnContactMessage', 'notifyOnFavoriteCancelled',
+                                  'notifyOnDirectMessage', 'notifyOnEventChat',
                                   'notifyNewsletter', 'instagramConsentDefault', 'onboardingDismissed', 'onboardingCompleted', 'placeSelection',
                                   'updatedAt']);
 
@@ -1631,6 +1642,17 @@ service cloud.firestore {
                         .hasOnly(['status', 'resolvedAt', 'resolvedBy'])
                     && request.resource.data.status in ['open', 'resolved'];
       allow delete: if isChatStaff();
+    }
+
+    // Throttle markers of the chat e-mails (functions/src/chatMailNotify.ts):
+    // `dm_notify/{threadId}_{recipient}` (one mail per conversation and hour) and
+    // `event_chat_notify/{organizer}` (one Event Chat mail per day). Written and
+    // read only by Cloud Functions (Admin SDK); no client access at all.
+    match /dm_notify/{markerId} {
+      allow read, write: if false;
+    }
+    match /event_chat_notify/{uid} {
+      allow read, write: if false;
     }
 
     // Presence ("who sits at the fire"): one heartbeat doc per person who has

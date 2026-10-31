@@ -198,7 +198,9 @@ feature flag `app_settings/chat` (off / admins / all). Messages are deleted afte
 Behind the same flag every approved event has a small "Kerzenraum" room (`event_chats/*`, readable
 without login, candle on calendar cards for new messages). The Kerzenraum behaves like the
 Lagerfeuer (send, delete, report, reactions, `@mentions`, older messages, member card), except
-presence. Mentions are opt-in in the profile, bell in the header; not in the Postfach.
+presence. Mentions are opt-in in the profile, bell in the header; not in the Postfach. New Postfach
+messages (max. 1 per conversation/hour) and Event Chat messages to the organizer (max. 1 per day) send
+an e-mail with excerpt (`chatMailNotify.ts`, switches in the profile).
 Read `docs/chat.md` ONLY when you touch the chat or Kerzenraum, its rules (`chat_*`, `event_chats`), `functions/src/chat.ts`
 or the chat section of the privacy policy.
 
