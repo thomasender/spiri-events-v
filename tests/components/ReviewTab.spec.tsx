@@ -23,6 +23,7 @@ const mockUseEventsWithMessages = vi.hoisted(() => ({
   unreadCountByEvent: {},
   hasMessagesByEvent: {},
   inKlaerungAuthorNameByEvent: {},
+  lastStaffMessageByEvent: {} as Record<string, { id: string; text: string; kind: string | null }>,
   loading: false,
 }));
 
@@ -104,6 +105,7 @@ beforeEach(() => {
   mockUseEventsWithMessages.unreadCountByEvent = {};
   mockUseEventsWithMessages.hasMessagesByEvent = {};
   mockUseEventsWithMessages.inKlaerungAuthorNameByEvent = {};
+  mockUseEventsWithMessages.lastStaffMessageByEvent = {};
   mockUserDisplayNames.namesByUid = {};
   mockUserDisplayNames.loading = false;
 });
@@ -370,6 +372,80 @@ describe("ReviewTab — deleting another user's event", () => {
     fireEvent.click(screen.getByRole('button', { name: 'Event löschen' }));
     expect(screen.queryByLabelText(/Grund für das Löschen/)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'In Papierkorb' })).toBeEnabled();
+  });
+});
+
+describe('ReviewTab — rejecting a pending event', () => {
+  const pending = {
+    id: 'p1',
+    title: 'Fremdes Event',
+    status: 'pending',
+    createdBy: 'user-uid',
+    slug: 'fremd',
+  };
+
+  it('blocks the rejection until a staff message gives a reason, with a link to the event', () => {
+    mockUsePendingEvents.pendingEvents = [pending];
+    renderReviewTab();
+    fireEvent.click(screen.getByRole('button', { name: 'Ablehnen' }));
+    expect(screen.getByTestId('review-reject-needs-reason')).toHaveTextContent(
+      'Bitte zuerst im Nachrichtenbereich einen Grund schreiben'
+    );
+    expect(screen.getByRole('link', { name: 'Zum Event' })).toHaveAttribute(
+      'href',
+      '/event/fremd#event-messages'
+    );
+    const confirm = screen
+      .getAllByRole('button', { name: 'Ablehnen' })
+      .find((b) => b.classList.contains('confirm-confirm'));
+    expect(confirm).toBeDisabled();
+    expect(mockUpdateDoc).not.toHaveBeenCalled();
+  });
+
+  it('shows the newest staff message as the reason and writes the reject update', async () => {
+    mockUsePendingEvents.pendingEvents = [pending];
+    mockUseEventsWithMessages.hasMessagesByEvent = { p1: true };
+    mockUseEventsWithMessages.lastStaffMessageByEvent = {
+      p1: {
+        id: 'm1',
+        text: '<p>Hallo Lars,</p><p>leider doppelt eingetragen.</p>',
+        kind: 'rejection',
+      },
+    };
+    renderReviewTab();
+    fireEvent.click(screen.getByRole('button', { name: 'Ablehnen' }));
+    expect(screen.getByTestId('review-reject-reason')).toHaveTextContent(
+      'leider doppelt eingetragen.'
+    );
+    const confirm = screen
+      .getAllByRole('button', { name: 'Ablehnen' })
+      .find((b) => b.classList.contains('confirm-confirm'))!;
+    expect(confirm).toBeEnabled();
+    fireEvent.click(confirm);
+    await waitFor(() => expect(mockUpdateDoc).toHaveBeenCalledTimes(1));
+    expect(mockUpdateDoc.mock.calls[0][1]).toMatchObject({
+      status: 'trashed',
+      trashedBy: 'admin-uid',
+      trashKind: 'rejected',
+      trashReason: 'Hallo Lars,\nleider doppelt eingetragen.',
+    });
+  });
+
+  it('offers no rejection for an own event', () => {
+    mockUsePendingEvents.pendingEvents = [{ ...pending, createdBy: 'admin-uid' }];
+    renderReviewTab();
+    expect(screen.queryByRole('button', { name: 'Ablehnen' })).not.toBeInTheDocument();
+  });
+
+  it('lets a Regions-Moderator:in reject events of her region', () => {
+    mockAuth.current = {
+      user: { uid: 'mod-uid' },
+      role: 'RegionModerator',
+      staffRegionIds: ['tirol'],
+    };
+    mockUsePendingEvents.pendingEvents = [{ ...pending, regionId: 'tirol' }];
+    renderReviewTab();
+    expect(screen.getByRole('button', { name: 'Ablehnen' })).toBeInTheDocument();
   });
 });
 

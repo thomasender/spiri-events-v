@@ -133,9 +133,42 @@
 
 .event-messages-composer-footer {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
   justify-content: flex-end;
+}
+
+/* Rejection reasons (staff, pending events only). */
+.event-messages-rejection-select {
+  max-width: 100%;
+  padding: var(--space-1-5) var(--space-2-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary, #3d3530);
+  font: inherit;
+  font-size: var(--text-85);
+}
+
+.event-messages-rejection-hint {
+  margin: 0;
+  font-size: var(--text-85);
+  color: var(--text-secondary, #7a6f68);
+}
+
+.event-messages-rejection-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-85);
+  color: var(--text-secondary, #7a6f68);
+}
+
+.event-message-kind {
+  font-size: var(--text-75);
+  color: var(--text-secondary, #7a6f68);
+  font-style: italic;
 }
 
 .event-messages-count {

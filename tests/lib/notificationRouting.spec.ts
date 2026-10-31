@@ -79,6 +79,26 @@ describe('decideEventStatusNotification', () => {
     expect(decideEventStatusNotification('evt1', before, withoutReason)?.reason).toBeNull();
   });
 
+  it('emits a "rejected" decision with the reason when staff rejected the pending event', () => {
+    const before: EventSnapshot = { status: 'pending', organizer: organizer() };
+    const after: EventSnapshot = {
+      status: 'trashed',
+      organizer: organizer(),
+      trashKind: 'rejected',
+      trashReason: ' Leider kein regionaler Bezug. ',
+    };
+    const decision = decideEventStatusNotification('evt1', before, after, 'Retreat', 'retreat');
+    expect(decision?.type).toBe('rejected');
+    expect(decision?.recipient).toBe('owner@example.com');
+    expect(decision?.reason).toBe('Leider kein regionaler Bezug.');
+  });
+
+  it('stays a plain "deleted" mail without the rejected mark', () => {
+    const before: EventSnapshot = { status: 'pending', organizer: organizer() };
+    const after: EventSnapshot = { status: 'trashed', organizer: organizer(), trashKind: null };
+    expect(decideEventStatusNotification('evt1', before, after)?.type).toBe('deleted');
+  });
+
   it('returns null when the after status is unrecognized', () => {
     const before: EventSnapshot = { status: 'pending', organizer: organizer() };
     const after: EventSnapshot = {
@@ -256,6 +276,22 @@ describe('decideAdminMessageNotification', () => {
     expect(result?.event.slug).toBe('workshop');
     expect(result?.context.text).toBe('Bitte genauer beschreiben.');
     expect(result?.context.authorName).toBe('Anna');
+  });
+
+  it('sends no change-request mail for a rejection reason (the rejection mail carries it)', () => {
+    const message = { id: 'm1', authorRole: 'Admin', authorName: 'Anna', text: 'Grund' };
+    expect(
+      decideAdminMessageNotification(
+        'evt1',
+        { ...message, kind: 'rejection' },
+        {
+          organizer: organizer(),
+        }
+      )
+    ).toBeNull();
+    expect(decideAdminMessageNotification('evt1', message, { organizer: organizer() })?.type).toBe(
+      'changes_requested'
+    );
   });
 
   it('falls back to "Das tribe-Team" when the admin author name is empty', () => {

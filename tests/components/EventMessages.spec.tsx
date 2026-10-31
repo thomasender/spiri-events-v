@@ -119,6 +119,102 @@ describe('EventMessages', () => {
     expect(screen.queryByTestId('event-message-template-default-photo')).not.toBeInTheDocument();
   });
 
+  describe('rejection reasons', () => {
+    const moderator = {
+      user: { uid: 'mod-1' },
+      role: 'RegionModerator',
+      staffRegionIds: ['vorarlberg'],
+    };
+
+    it('gives Regions-Moderator:innen the templates and the rejection reasons', () => {
+      useAuth.mockReturnValue(moderator);
+      render(
+        <EventMessages
+          eventId="event-1"
+          eventOwnerUid="owner-1"
+          eventStatus="pending"
+          organizerName="Lars"
+        />
+      );
+      expect(screen.getByTestId('event-message-template-instagram')).toBeInTheDocument();
+      fireEvent.change(screen.getByLabelText('Ablehnungsgründe'), {
+        target: { value: 'doppelt' },
+      });
+      const initial = screen.getByTestId('event-message-input').getAttribute('data-initial');
+      expect(initial).toContain('Hallo Lars,');
+      expect(initial).toContain('bereits eingetragen');
+      expect(screen.getByTestId('event-message-rejection-hint')).toHaveTextContent(
+        'noch keine E-Mail'
+      );
+    });
+
+    it('offers no rejection reasons on the moderator’s own or a non-pending event', () => {
+      useAuth.mockReturnValue(moderator);
+      const { rerender } = render(
+        <EventMessages eventId="event-1" eventOwnerUid="mod-1" eventStatus="pending" />
+      );
+      expect(screen.queryByLabelText('Ablehnungsgründe')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('event-message-template-instagram')).not.toBeInTheDocument();
+      rerender(<EventMessages eventId="event-1" eventOwnerUid="owner-1" eventStatus="approved" />);
+      expect(screen.queryByLabelText('Ablehnungsgründe')).not.toBeInTheDocument();
+    });
+
+    it('sends a picked reason with kind "rejection", unless the box is unticked', async () => {
+      useAuth.mockReturnValue({ user: { uid: 'admin-1' }, role: 'Admin' });
+      sendMessageMock.mockResolvedValue();
+      render(<EventMessages eventId="event-1" eventStatus="pending" organizerName="Lars" />);
+      fireEvent.change(screen.getByLabelText('Ablehnungsgründe'), {
+        target: { value: 'vergangen' },
+      });
+      fireEvent.click(screen.getByTestId('event-message-send'));
+      await waitFor(() => expect(sendMessageMock).toHaveBeenCalledTimes(1));
+      expect(sendMessageMock.mock.calls[0][0]).toContain('in der Vergangenheit');
+      expect(sendMessageMock.mock.calls[0][1]).toEqual({ kind: 'rejection' });
+
+      fireEvent.change(screen.getByLabelText('Ablehnungsgründe'), {
+        target: { value: 'bild' },
+      });
+      fireEvent.click(screen.getByTestId('event-message-rejection-toggle'));
+      expect(screen.queryByTestId('event-message-rejection-hint')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('event-message-send'));
+      await waitFor(() => expect(sendMessageMock).toHaveBeenCalledTimes(2));
+      expect(sendMessageMock.mock.calls[1][1]).toBeUndefined();
+    });
+
+    it('a normal template is an ordinary message', async () => {
+      useAuth.mockReturnValue({ user: { uid: 'admin-1' }, role: 'Admin' });
+      sendMessageMock.mockResolvedValue();
+      render(<EventMessages eventId="event-1" eventStatus="pending" organizerName="Lars" />);
+      fireEvent.click(screen.getByTestId('event-message-template-default-photo'));
+      fireEvent.click(screen.getByTestId('event-message-send'));
+      await waitFor(() => expect(sendMessageMock).toHaveBeenCalledTimes(1));
+      expect(sendMessageMock.mock.calls[0][1]).toBeUndefined();
+    });
+
+    it('marks a sent rejection reason for staff while the event is pending', () => {
+      useAuth.mockReturnValue({ user: { uid: 'admin-1' }, role: 'Admin' });
+      useEventMessages.mockReturnValue({
+        messages: [
+          {
+            id: 'm1',
+            text: '<p>Grund</p>',
+            authorUid: 'admin-1',
+            authorRole: 'Admin',
+            kind: 'rejection',
+          },
+        ],
+        loading: false,
+        sending: false,
+        sendMessage: sendMessageMock,
+        markAsRead: markAsReadMock,
+      });
+      render(<EventMessages eventId="event-1" eventStatus="pending" />);
+      expect(screen.getByTestId('event-message-rejection-badge')).toHaveTextContent(
+        'E-Mail erst beim Ablehnen'
+      );
+    });
+  });
+
   it('sends the composed rich-text message when the user submits', async () => {
     sendMessageMock.mockResolvedValue();
     render(<EventMessages eventId="event-1" />);

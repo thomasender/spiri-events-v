@@ -1,5 +1,11 @@
 export type NotificationType =
-  'submitted' | 'changes_requested' | 'published' | 'unpublished' | 'deleted' | 'contact_message';
+  | 'submitted'
+  | 'changes_requested'
+  | 'published'
+  | 'unpublished'
+  | 'deleted'
+  | 'rejected'
+  | 'contact_message';
 
 export interface ContactMessageContext {
   feedbackId: string;
@@ -508,6 +514,51 @@ export function buildDeletedPayload({
   };
 }
 
+/** Staff rejected the pending event; `reason` is the staff message (plain text). */
+export type RejectedPayloadInput = DeletedPayloadInput;
+
+export function buildRejectedPayload({
+  event,
+  recipient,
+  reason,
+  regionContactEmail,
+}: RejectedPayloadInput): EmailPayload {
+  const greetingName = organizerDisplayName(event.organizer);
+  const greeting = greetingName ? `Hallo ${escapeHtml(greetingName)},` : 'Hallo,';
+  const subject = `Dein Event wurde abgelehnt: ${event.title}`;
+  const staffReason = messageToPlainText(typeof reason === 'string' ? reason : '');
+  const introEnd = `mit unserer Community teilen wolltest. Wir haben es uns genau angesehen und können es leider so nicht veröffentlichen.`;
+  const trashHtml = `Dein Event ist nicht verloren: Du findest es im Verwaltungs-Bereich unter „Papierkorb" (dort bleibt es 30 Tage). Wenn du es überarbeiten möchtest, stelle es wieder her, passe es an und reiche es erneut ein. Bei Fragen antworte gerne direkt beim Event im Nachrichtenbereich.`;
+  const trashText = `Dein Event ist nicht verloren: Du findest es im Verwaltungs-Bereich unter "Papierkorb" (dort bleibt es 30 Tage). Wenn du es überarbeiten möchtest, stelle es wieder her, passe es an und reiche es erneut ein. Bei Fragen antworte gerne direkt beim Event im Nachrichtenbereich.`;
+  const reasonHtml = staffReason
+    ? `
+    <p style="${paragraphStyle()}">Die Nachricht unseres Teams dazu:</p>
+    <blockquote style="margin:0 0 20px 0;padding:14px 18px;border-left:3px solid ${COLOR_PRIMARY};background:${COLOR_BG_SOFT};border-radius:0 6px 6px 0;font-family:${BODY_FONT};font-size:15px;line-height:1.6;color:${COLOR_TEXT};white-space:pre-wrap;">${escapeHtml(staffReason)}</blockquote>`
+    : '';
+  const htmlBody = `
+    <h1 style="${headingStyle(1)}">Dein Event wurde abgelehnt</h1>
+    <p style="${paragraphStyle()}">${greeting}</p>
+    <p style="${paragraphStyle()}">
+      danke, dass du dein Event <strong>${escapeHtml(event.title)}</strong> ${introEnd}
+    </p>${reasonHtml}
+    <p style="${paragraphStyle()}">
+      ${trashHtml}
+    </p>
+    <p style="${paragraphStyle()}">Liebe Grüße<br>Dein Tribe-Team</p>`;
+  const textBody =
+    `${greetingName ? `Hallo ${greetingName},\n\n` : 'Hallo,\n\n'}` +
+    `danke, dass du dein Event "${event.title}" ${introEnd}\n\n` +
+    (staffReason ? `Die Nachricht unseres Teams dazu:\n\n${staffReason}\n\n` : '') +
+    `${trashText}\n\n` +
+    `Liebe Grüße\nDein Tribe-Team`;
+  return {
+    to: recipient,
+    subject,
+    html: wrapHtml(htmlBody + regionContactHtml(regionContactEmail)),
+    text: textBody + regionContactText(regionContactEmail) + footerText(),
+  };
+}
+
 /** "Samstag, 8. November 2026" for an ISO date (YYYY-MM-DD). */
 export function formatGermanDate(iso: string): string {
   const [y, m, d] = iso.split('-').map(Number);
@@ -796,6 +847,8 @@ export function buildEmailPayload(
       return buildUnpublishedPayload(input as UnpublishedPayloadInput);
     case 'deleted':
       return buildDeletedPayload(input as DeletedPayloadInput);
+    case 'rejected':
+      return buildRejectedPayload(input as RejectedPayloadInput);
     case 'contact_message':
       return buildContactMessagePayload(input as ContactMessagePayloadInput);
     default: {

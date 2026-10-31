@@ -1074,6 +1074,7 @@ export default function EventDetailPage() {
         <EventMessages
           eventId={event.id}
           eventOwnerUid={event.createdBy || null}
+          eventStatus={event.status}
           organizerName={event.organizer?.firstName?.trim() || getOrganizerName(event)}
           onReady={() => setEventMessagesReady(true)}
         />

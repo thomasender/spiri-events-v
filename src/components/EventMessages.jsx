@@ -6,6 +6,11 @@ import { getStaffAccess, messageAuthorRole } from '../utils/staffRoles';
 import RichTextEditorLazy from './RichTextEditorLazy';
 import RichTextView from './RichTextView';
 import { isHtmlEmpty, messageToHtml, MAX_MESSAGE_LENGTH } from '../utils/sanitize';
+import {
+  REJECTION_MESSAGE_KIND,
+  REJECTION_TEMPLATES,
+  buildRejectionTemplate,
+} from '../utils/rejectionTemplates';
 import './EventMessages.css';
 
 function formatTime(timestamp) {
@@ -43,7 +48,13 @@ export function defaultPhotoTemplate(name) {
   ].join('');
 }
 
-export default function EventMessages({ eventId, eventOwnerUid = null, organizerName, onReady }) {
+export default function EventMessages({
+  eventId,
+  eventOwnerUid = null,
+  eventStatus = null,
+  organizerName,
+  onReady,
+}) {
   const { user, role, staffRegionIds } = useAuth();
   const { messages, loading, sending, sendMessage, editMessage, deleteMessage, markAsRead } =
     useEventMessages(eventId, { ownerUid: eventOwnerUid });
@@ -54,6 +65,12 @@ export default function EventMessages({ eventId, eventOwnerUid = null, organizer
       Boolean(user && eventOwnerUid && eventOwnerUid === user.uid)
     ) === 'Admin';
   const [text, setText] = useState('');
+  // 'rejection' while the composer holds a rejection reason (template picked,
+  // box ticked): such a message sends no mail until the event is rejected.
+  const [messageKind, setMessageKind] = useState(null);
+  // Rejection reasons only where a rejection follows: someone else's pending event.
+  const offersRejection = writesAsStaff && eventStatus === 'pending';
+  const sendsAsRejection = offersRejection && messageKind === REJECTION_MESSAGE_KIND;
   const [error, setError] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editText, setEditText] = useState('');
@@ -106,11 +123,17 @@ export default function EventMessages({ eventId, eventOwnerUid = null, organizer
     setError('');
     if (isHtmlEmpty(text)) return;
     try {
-      await sendMessage(text);
+      await sendMessage(text, sendsAsRejection ? { kind: REJECTION_MESSAGE_KIND } : undefined);
       setText('');
+      setMessageKind(null);
     } catch (err) {
       setError(err.message || 'Nachricht konnte nicht gesendet werden.');
     }
+  };
+
+  const applyTemplate = (html, kind = null) => {
+    setText(html);
+    setMessageKind(kind);
   };
 
   const startEdit = (msg) => {
@@ -200,6 +223,15 @@ export default function EventMessages({ eventId, eventOwnerUid = null, organizer
                     <span className="event-message-author">
                       {isAdmin ? 'Admin' : msg.authorName || 'Veranstalter'}
                     </span>
+                    {offersRejection && msg.kind === REJECTION_MESSAGE_KIND && (
+                      <span
+                        className="event-message-kind"
+                        data-testid="event-message-rejection-badge"
+                        title="Diese Nachricht hat noch keine E-Mail ausgelöst. Die E-Mail mit dem Grund geht erst beim Ablehnen im Review raus."
+                      >
+                        Ablehnungsgrund · E-Mail erst beim Ablehnen
+                      </span>
+                    )}
                     <span className="event-message-time">{formatTime(msg.createdAt)}</span>
                   </div>
                   {editingId === msg.id ? (
@@ -280,7 +312,10 @@ export default function EventMessages({ eventId, eventOwnerUid = null, organizer
       <form className="event-messages-composer" onSubmit={handleSubmit}>
         <RichTextEditorLazy
           value={text}
-          onChange={setText}
+          onChange={(value) => {
+            setText(value);
+            if (isHtmlEmpty(value)) setMessageKind(null);
+          }}
           placeholder={
             writesAsStaff
               ? 'Beschreibe, was am Event geändert werden soll…'
@@ -290,14 +325,50 @@ export default function EventMessages({ eventId, eventOwnerUid = null, organizer
           testId="event-message-input"
           eventId={eventId}
         />
+        {sendsAsRejection && (
+          <p className="event-messages-rejection-hint" data-testid="event-message-rejection-hint">
+            Diese Nachricht löst noch keine E-Mail aus. Die E-Mail mit diesem Grund geht erst raus,
+            wenn du das Event im Review ablehnst.
+          </p>
+        )}
+        {offersRejection && messageKind === REJECTION_MESSAGE_KIND && (
+          <label className="event-messages-rejection-toggle">
+            <input
+              type="checkbox"
+              checked
+              onChange={() => setMessageKind(null)}
+              data-testid="event-message-rejection-toggle"
+            />
+            <span>Als Ablehnungsgrund senden (sonst als normale Nachricht mit E-Mail)</span>
+          </label>
+        )}
         <div className="event-messages-composer-footer">
           {error && <span className="event-messages-error">{error}</span>}
-          {role === 'Admin' && (
+          {offersRejection && (
+            <select
+              className="event-messages-rejection-select"
+              aria-label="Ablehnungsgründe"
+              value=""
+              onChange={(e) => {
+                const html = buildRejectionTemplate(e.target.value, organizerName);
+                if (html) applyTemplate(html, REJECTION_MESSAGE_KIND);
+              }}
+              data-testid="event-message-rejection-templates"
+            >
+              <option value="">Ablehnungsgründe…</option>
+              {REJECTION_TEMPLATES.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          )}
+          {writesAsStaff && (
             <>
               <button
                 type="button"
                 className="btn btn-secondary btn-sm event-messages-template-btn"
-                onClick={() => setText(instagramNoTextTemplate(organizerName))}
+                onClick={() => applyTemplate(instagramNoTextTemplate(organizerName))}
                 data-testid="event-message-template-instagram"
               >
                 <ImageOff size={16} aria-hidden="true" />
@@ -306,7 +377,7 @@ export default function EventMessages({ eventId, eventOwnerUid = null, organizer
               <button
                 type="button"
                 className="btn btn-secondary btn-sm event-messages-template-btn"
-                onClick={() => setText(defaultPhotoTemplate(organizerName))}
+                onClick={() => applyTemplate(defaultPhotoTemplate(organizerName))}
                 data-testid="event-message-template-default-photo"
               >
                 <Image size={16} aria-hidden="true" />

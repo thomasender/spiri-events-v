@@ -5,6 +5,7 @@ import { useAuth } from './useAuth';
 import { getStaffAccess } from '../utils/staffRoles';
 import { staffEventQuerySpecs, subscribeEventQueries } from '../lib/staffEventQueries';
 import { messageIsUnreadFor, responsibleStaffUid } from '../utils/staffNotifications';
+import { latestStaffMessage } from '../utils/rejectionTemplates';
 
 export function useEventsWithMessages() {
   const { user, role, staffRegionIds } = useAuth();
@@ -17,6 +18,9 @@ export function useEventsWithMessages() {
   // "In Klärung mit Anna Schmidt"). Falls back to null when no admin message
   // exists yet (which can happen if the creator spoke first).
   const [inKlaerungAuthorNameByEvent, setInKlaerungAuthorNameByEvent] = useState({});
+  // Newest staff message per pending event ({ id, text, kind }), the reason a
+  // rejection in the Review tab needs (Trello 6ae46ad6). Missing = none yet.
+  const [lastStaffMessageByEvent, setLastStaffMessageByEvent] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -25,6 +29,7 @@ export function useEventsWithMessages() {
       setUnreadCountByEvent({});
       setHasMessagesByEvent({});
       setInKlaerungAuthorNameByEvent({});
+      setLastStaffMessageByEvent({});
       setLoading(false);
       return undefined;
     }
@@ -56,6 +61,7 @@ export function useEventsWithMessages() {
           setUnreadCountByEvent({});
           setHasMessagesByEvent({});
           setInKlaerungAuthorNameByEvent({});
+          setLastStaffMessageByEvent({});
           setLoading(false);
           return;
         }
@@ -63,6 +69,7 @@ export function useEventsWithMessages() {
         const perEventUnread = {};
         const perEventHasMessages = {};
         const perEventFirstAdmin = {};
+        const perEventLastStaff = {};
         const recompute = () => {
           const list = docs
             .filter((e) => perEventHasMessages[e.id])
@@ -76,6 +83,7 @@ export function useEventsWithMessages() {
           setUnreadCountByEvent({ ...perEventUnread });
           setHasMessagesByEvent({ ...perEventHasMessages });
           setInKlaerungAuthorNameByEvent({ ...perEventFirstAdmin });
+          setLastStaffMessageByEvent({ ...perEventLastStaff });
           setLoading(false);
         };
 
@@ -85,7 +93,7 @@ export function useEventsWithMessages() {
             messagesRef,
             (snap) => {
               let firstAdminName = null;
-              const messages = snap.docs.map((docSnap) => docSnap.data());
+              const messages = snap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
               const hasAny = messages.length > 0;
               // An organizer's reply only reaches the staff member who started
               // the conversation, not every admin (vX7TgrWN).
@@ -107,12 +115,23 @@ export function useEventsWithMessages() {
               perEventUnread[event.id] = unread;
               perEventHasMessages[event.id] = hasAny;
               perEventFirstAdmin[event.id] = firstAdminName;
+              const lastStaff = latestStaffMessage(messages);
+              if (lastStaff) {
+                perEventLastStaff[event.id] = {
+                  id: lastStaff.id,
+                  text: lastStaff.text,
+                  kind: lastStaff.kind ?? null,
+                };
+              } else {
+                delete perEventLastStaff[event.id];
+              }
               recompute();
             },
             () => {
               perEventUnread[event.id] = 0;
               perEventHasMessages[event.id] = false;
               perEventFirstAdmin[event.id] = null;
+              delete perEventLastStaff[event.id];
               recompute();
             }
           );
@@ -125,6 +144,7 @@ export function useEventsWithMessages() {
         setUnreadCountByEvent({});
         setHasMessagesByEvent({});
         setInKlaerungAuthorNameByEvent({});
+        setLastStaffMessageByEvent({});
         setLoading(false);
       }
     );
@@ -150,6 +170,7 @@ export function useEventsWithMessages() {
     unreadCountByEvent,
     hasMessagesByEvent,
     inKlaerungAuthorNameByEvent,
+    lastStaffMessageByEvent,
     loading,
   };
 }

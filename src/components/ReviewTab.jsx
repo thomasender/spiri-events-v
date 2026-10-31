@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { doc, getFirestore, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { getApp } from 'firebase/app';
 import {
@@ -18,7 +19,8 @@ import { useAdminAlerts } from '../hooks/useAdminAlerts';
 import { requiresDeleteReason } from '../utils/eventPermissions';
 import { getStaffAccess } from '../utils/staffRoles';
 import { resolveRegionId } from '../utils/regions';
-import { buildTrashUpdate } from '../utils/trashUpdates';
+import { buildRejectUpdate, buildTrashUpdate } from '../utils/trashUpdates';
+import { rejectionReasonFromMessage } from '../utils/rejectionTemplates';
 import EventAdminListRow from './EventAdminListRow';
 import AdminCoverPreview from './AdminCoverPreview';
 import { AdminInstagramPreview } from './InstagramPostPreview';
@@ -123,8 +125,12 @@ export default function ReviewTab() {
   const canEdit = (evt) => access.isSuperAdmin || evt.createdBy === user?.uid;
   const { pendingEvents, loading: pendingLoading, approveEvent } = usePendingEvents();
   const { events: allApprovedEvents, loading: approvedLoading } = useAllEvents();
-  const { unreadCountByEvent, hasMessagesByEvent, inKlaerungAuthorNameByEvent } =
-    useEventsWithMessages();
+  const {
+    unreadCountByEvent,
+    hasMessagesByEvent,
+    inKlaerungAuthorNameByEvent,
+    lastStaffMessageByEvent = {},
+  } = useEventsWithMessages();
 
   // Region filter: only for staff who can see more than one region (a
   // Super-Admin: every region that is active or has items; a moderator: hers).
@@ -168,6 +174,7 @@ export default function ReviewTab() {
   const [approvingId, setApprovingId] = useState(null);
   const [revertTarget, setRevertTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [rejectTarget, setRejectTarget] = useState(null);
   const [approveSuccess, setApproveSuccess] = useState(null);
   const [mutating, setMutating] = useState(false);
   // Pending (needs action) and "In Klärung" start open; the approved history starts closed.
@@ -225,6 +232,35 @@ export default function ReviewTab() {
       setMutating(false);
     }
   };
+
+  // Rejecting needs a reason: the newest staff message in the event's thread.
+  // It is read when the dialog opens and goes into the owner's mail.
+  const openReject = (evt) =>
+    setRejectTarget({
+      id: evt.id,
+      eventTitle: evt.title,
+      eventPath: `/event/${evt.slug || evt.id}`,
+      reason: rejectionReasonFromMessage(lastStaffMessageByEvent[evt.id]?.text),
+    });
+
+  const handleReject = async () => {
+    if (!rejectTarget?.reason) return;
+    setMutating(true);
+    try {
+      const db = getFirestore(getApp());
+      const ref = doc(db, 'events', rejectTarget.id);
+      await updateDoc(ref, buildRejectUpdate(user?.uid, rejectTarget.reason));
+      markAlertRead(rejectTarget.id).catch(() => {});
+      setRejectTarget(null);
+    } catch (err) {
+      console.error('Reject failed:', err);
+    } finally {
+      setMutating(false);
+    }
+  };
+
+  // Only someone else's pending event; an own event is simply deleted.
+  const canReject = (evt) => evt.status === 'pending' && evt.createdBy !== user?.uid;
 
   const openDelete = (evt) =>
     setDeleteTarget({
@@ -386,6 +422,7 @@ export default function ReviewTab() {
                         showStatus
                         showApprove
                         showRevert
+                        showReject={canReject(event)}
                         showDuplicate={false}
                         showSubmittedAt
                         showRevisionHint
@@ -398,6 +435,7 @@ export default function ReviewTab() {
                         hasMessages={Boolean(hasMessagesByEvent[event.id])}
                         onApprove={handleApprove}
                         onRevert={(evt) => setRevertTarget({ id: evt.id, eventTitle: evt.title })}
+                        onReject={openReject}
                         onDeleteClick={(evt) => openDelete(evt)}
                       />
                       {canEdit(event) && <ReviewImageCheck event={event} />}
@@ -443,6 +481,7 @@ export default function ReviewTab() {
                           showStatus
                           showApprove
                           showRevert
+                          showReject={canReject(event)}
                           showDuplicate={false}
                           showSubmittedAt
                           showRevisionHint
@@ -457,6 +496,7 @@ export default function ReviewTab() {
                           hasMessages={Boolean(hasMessagesByEvent[event.id])}
                           onApprove={handleApprove}
                           onRevert={(evt) => setRevertTarget({ id: evt.id, eventTitle: evt.title })}
+                          onReject={openReject}
                           onDeleteClick={(evt) => openDelete(evt)}
                         />
                         {canEdit(event) && <ReviewImageCheck event={event} />}
@@ -549,6 +589,39 @@ export default function ReviewTab() {
         loading={mutating}
         reasonRequired={Boolean(deleteTarget?.reasonRequired)}
       />
+
+      <ConfirmDialog
+        isOpen={Boolean(rejectTarget)}
+        title="Event ablehnen"
+        confirmLabel="Ablehnen"
+        cancelLabel="Abbrechen"
+        onConfirm={handleReject}
+        onCancel={() => setRejectTarget(null)}
+        loading={mutating}
+        danger
+        confirmDisabled={!rejectTarget?.reason}
+      >
+        {rejectTarget?.reason ? (
+          <>
+            <p>
+              {`Das Event „${rejectTarget.eventTitle}" wird abgelehnt und in den Papierkorb der einreichenden Person verschoben. Sie bekommt eine E-Mail mit dieser Nachricht als Grund:`}
+            </p>
+            <blockquote className="review-reject-reason" data-testid="review-reject-reason">
+              {rejectTarget.reason}
+            </blockquote>
+          </>
+        ) : rejectTarget ? (
+          <p data-testid="review-reject-needs-reason">
+            Bitte zuerst im Nachrichtenbereich einen Grund schreiben.{' '}
+            <Link
+              to={`${rejectTarget.eventPath}#event-messages`}
+              state={{ from: '/admin?tab=review' }}
+            >
+              Zum Event
+            </Link>
+          </p>
+        ) : null}
+      </ConfirmDialog>
 
       <SuccessDialog
         isOpen={Boolean(approveSuccess)}

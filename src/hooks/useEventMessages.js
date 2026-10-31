@@ -67,8 +67,10 @@ export function useEventMessages(eventId, { ownerUid = null } = {}) {
     return unsubscribe;
   }, [eventId]);
 
+  // `kind: 'rejection'` (staff only) marks a rejection reason: it triggers no
+  // "Änderungen gewünscht" mail; the reason goes out with the rejection mail.
   const sendMessage = useCallback(
-    async (text) => {
+    async (text, { kind = null } = {}) => {
       if (!user || !eventId) {
         throw new Error('Nicht angemeldet oder Event fehlt.');
       }
@@ -90,6 +92,7 @@ export function useEventMessages(eventId, { ownerUid = null } = {}) {
           authorName: user.displayName || user.email || 'Unbekannt',
           createdAt: serverTimestamp(),
           readByRecipient: false,
+          ...(kind === 'rejection' && authorRole === 'Admin' ? { kind } : {}),
         });
       } finally {
         setSending(false);
