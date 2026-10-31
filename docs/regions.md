@@ -532,6 +532,32 @@ is a code change (see section 13).
   (`--emulator` for local emulators, `--project tribe-vbg-staging` for staging
   with ADC; no flag = production via `scripts/service-account.json`; any other
   `--project` is refused).
+- **Inviting a moderator by e-mail** (Trello 6ae5aa68, `functions/src/moderatorInvites.ts`):
+  tab "Moderation" -> "Per E-Mail einladen" (address + regions). `adminCreateModeratorInvite`
+  (Super-Admin, regions via `validateModeratorRegionIds`, refuses Super-Admins and the caller)
+  stores `moderator_invites/{sha256(token)}` (only the hash; token = 32 random bytes base64url;
+  `email` lowercase, `regionIds`, `invitedBy`, `createdAt`, `expiresAt` = 14 days, `status`
+  pending | accepted | revoked, `acceptedUid`, `acceptedAt`, `consents`, `signatureName`,
+  `textVersion`) and mails "Einladung ins Moderations-Team vom Tribe <Region>" with the button
+  "Einladung annehmen" -> `/einladung?t=<token>` (staging functions link to the staging site).
+  A new invite for the same address revokes its open ones ("Erneut senden"; "Link kopieren"
+  for an older invite makes a new link without mail, since the token is not stored).
+  `adminListModeratorInvites` / `adminRevokeModeratorInvite` list / revoke open invites. The
+  page `/einladung` (`ModeratorOnboardingPage`, reserved username, not in prerender or sitemap,
+  noindex) asks `getModeratorInvite` (no login, rate-limited; region names, state, address
+  while open), sends visitors to `/login` with `from` (and `authMode: 'register'` for "Konto
+  anlegen"), and shows the wizard (`ModeratorOnboardingWizard`, texts and version in
+  `src/utils/moderatorOnboardingText.js`): Willkommen -> Haltung (tick) -> OK / nicht OK (tick)
+  -> Prüfen (tick) -> Erinnerung -> Unterschrift (typed name). `acceptModeratorInvite` checks in
+  one transaction: open, not expired, account e-mail == invited address (case-insensitive, no
+  extra verification), all consents, name 2-80 chars, current text version; writes
+  `admin_users` as the union with existing moderator regions (Super-Admins are never touched,
+  shared logic `moderatorSnapshotOrRefuse` in `adminModerators.ts`), an `admin_audit_log` entry
+  with `via: 'invite'`, consents, name and text version, and marks the invite accepted (once;
+  the same account again gets `alreadyAccepted`). Consents and signature are stored on the
+  invite and in the audit log, never in `admin_users`. Then the Super-Admins get a mail "Neue
+  Moderator:in". Rules: `moderator_invites` is closed for every client
+  (`tests/rules/instagram.rules.spec.ts`). The direct way "Moderator:in hinzufügen" stays.
 - **Client:** `useAuth()` exposes `role` and `staffRegionIds` (own `admin_users`
   doc); `getStaffAccess(role, regionIds)` / `useStaffRole()` give `isSuperAdmin`,
   `isRegionModerator`, `moderatorRegionIds`, `canModerateRegion(id)`. Admin tabs

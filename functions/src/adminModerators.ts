@@ -66,6 +66,13 @@ export interface AuditEntry {
   targetEmail: string | null;
   before: RoleSnapshot | null;
   after: RoleSnapshot | null;
+  /** Set when the role came from an accepted invitation (moderatorInvites.ts). */
+  via?: 'invite';
+  inviteId?: string;
+  invitedBy?: string;
+  consents?: string[];
+  signatureName?: string;
+  textVersion?: number;
 }
 
 /** The writes of one role change; implemented as a Firestore transaction. */
@@ -112,9 +119,58 @@ function sameIds(a: readonly string[], b: readonly string[]): boolean {
   return a.length === b.length && a.every((id, i) => id === b[i]);
 }
 
-function storedRegionIds(doc: Doc): string[] {
+export function storedRegionIds(doc: Doc): string[] {
   const raw = Array.isArray(doc.regionIds) ? doc.regionIds : [];
   return REGION_IDS.filter((id) => raw.includes(id));
+}
+
+/**
+ * Role logic shared by adminSetRegionModerator and acceptModeratorInvite:
+ * the snapshot of the current role doc, or null when there is none. Any
+ * existing doc that is not a moderator doc (role 'Admin', a missing or unknown
+ * role) belongs to a Super-Admin or is unknown: never touch it.
+ */
+export function moderatorSnapshotOrRefuse(current: Doc | null): RoleSnapshot | null {
+  if (current && current.role !== REGION_MODERATOR_ROLE) {
+    throw new HttpsError('failed-precondition', 'Super-Admins cannot be changed here.');
+  }
+  return current ? { role: REGION_MODERATOR_ROLE, regionIds: storedRegionIds(current) } : null;
+}
+
+/** The stored doc already holds exactly these regions in canonical form. */
+export function hasSameModeratorRegions(
+  current: Doc | null,
+  regionIds: readonly string[]
+): boolean {
+  return Boolean(
+    current && Array.isArray(current.regionIds) && sameIds(current.regionIds, regionIds)
+  );
+}
+
+/** The admin_users doc of a moderator, as written by both callables. */
+export function moderatorRoleDoc({
+  regionIds,
+  email,
+  updatedBy,
+}: {
+  regionIds: string[];
+  email: string | null;
+  updatedBy: string;
+}): Doc {
+  return {
+    role: REGION_MODERATOR_ROLE,
+    regionIds,
+    email,
+    updatedAt: FieldValue.serverTimestamp(),
+    updatedBy,
+  };
+}
+
+/** Super-Admin by token claim: refused as a target, like a role doc 'Admin'. */
+export function assertNotSuperAdminUser(user: TargetUser): void {
+  if (user.customClaims?.role === SUPER_ADMIN_ROLE) {
+    throw new HttpsError('failed-precondition', 'Super-Admins cannot be changed here.');
+  }
 }
 
 export async function setRegionModeratorHandler(
@@ -135,21 +191,12 @@ export async function setRegionModeratorHandler(
   if (!user) {
     throw new HttpsError('not-found', 'No account with this uid.');
   }
-  if (user.customClaims?.role === SUPER_ADMIN_ROLE) {
-    throw new HttpsError('failed-precondition', 'Super-Admins cannot be changed here.');
-  }
+  assertNotSuperAdminUser(user);
   const email = typeof user.email === 'string' && user.email ? user.email : null;
 
   return deps.runTransaction(async (tx) => {
     const current = await tx.getRoleDoc(uid);
-    // Any existing doc that is not a moderator doc (role 'Admin', a missing
-    // or unknown role) belongs to a Super-Admin or is unknown: never touch it.
-    if (current && current.role !== REGION_MODERATOR_ROLE) {
-      throw new HttpsError('failed-precondition', 'Super-Admins cannot be changed here.');
-    }
-    const before: RoleSnapshot | null = current
-      ? { role: REGION_MODERATOR_ROLE, regionIds: storedRegionIds(current) }
-      : null;
+    const before = moderatorSnapshotOrRefuse(current);
 
     if (regionIds.length === 0) {
       if (!current) return { uid, role: null, regionIds: [], changed: false };
@@ -167,7 +214,7 @@ export async function setRegionModeratorHandler(
 
     // Idempotent: the same regions again change nothing (a doc with unknown
     // or duplicate ids is rewritten in canonical form).
-    if (current && Array.isArray(current.regionIds) && sameIds(current.regionIds, regionIds)) {
+    if (hasSameModeratorRegions(current, regionIds)) {
       return { uid, role: REGION_MODERATOR_ROLE, regionIds, changed: false };
     }
 
@@ -255,16 +302,8 @@ const setModeratorDeps: SetModeratorDeps = {
           const snap = await t.get(db.collection('admin_users').doc(uid));
           return snap.exists ? (snap.data() ?? {}) : null;
         },
-        setModerator(uid, { regionIds, email, updatedBy }) {
-          writes.push(() =>
-            t.set(db.collection('admin_users').doc(uid), {
-              role: REGION_MODERATOR_ROLE,
-              regionIds,
-              email,
-              updatedAt: FieldValue.serverTimestamp(),
-              updatedBy,
-            })
-          );
+        setModerator(uid, data) {
+          writes.push(() => t.set(db.collection('admin_users').doc(uid), moderatorRoleDoc(data)));
         },
         deleteRoleDoc(uid) {
           writes.push(() => t.delete(db.collection('admin_users').doc(uid)));

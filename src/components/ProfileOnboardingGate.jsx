@@ -45,8 +45,8 @@ function GateInner({ user }) {
     setOpen(false);
   };
 
-  // The profile page has the full form already.
-  if (pathname.startsWith('/profil')) return null;
+  // The profile page has the full form already; the moderator invitation has its own wizard.
+  if (pathname.startsWith('/profil') || pathname.startsWith('/einladung')) return null;
 
   return (
     <>

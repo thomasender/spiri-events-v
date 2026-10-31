@@ -19,6 +19,10 @@ const state = vi.hoisted(() => ({
   members: [] as Record<string, unknown>[],
   setCalls: [] as Array<{ uid: string; regionIds: string[] }>,
   setError: null as null | { code: string; message: string },
+  invites: [] as Array<Record<string, unknown>>,
+  inviteCalls: [] as unknown[],
+  revokeCalls: [] as unknown[],
+  inviteEmailSent: true,
 }));
 
 vi.mock('../../src/lib/firebase', () => ({ functions: {} }));
@@ -26,6 +30,37 @@ vi.mock('firebase/functions', () => ({
   httpsCallable: (_fns: unknown, name: string) => async (data: unknown) => {
     if (name === 'adminListRegionModerators') return { data: { moderators: state.moderators } };
     if (name === 'adminListMembers') return { data: { members: state.members } };
+    if (name === 'adminListModeratorInvites') return { data: { invites: state.invites } };
+    if (name === 'adminCreateModeratorInvite') {
+      const { email, regionIds } = data as { email: string; regionIds: string[] };
+      state.inviteCalls.push(data);
+      const inviteId = String(state.inviteCalls.length).padStart(64, '0');
+      state.invites = [
+        ...state.invites.filter((i) => i.email !== email),
+        {
+          inviteId,
+          email,
+          regionIds,
+          createdAt: '2026-10-31T10:00:00.000Z',
+          expiresAt: '2026-11-14T10:00:00.000Z',
+          expired: false,
+        },
+      ];
+      return {
+        data: {
+          inviteId,
+          inviteUrl: `https://www.thetribe.at/einladung?t=${inviteId}`,
+          expiresAt: '2026-11-14T10:00:00.000Z',
+          emailSent: state.inviteEmailSent,
+        },
+      };
+    }
+    if (name === 'adminRevokeModeratorInvite') {
+      const { inviteId } = data as { inviteId: string };
+      state.revokeCalls.push(inviteId);
+      state.invites = state.invites.filter((i) => i.inviteId !== inviteId);
+      return { data: { revoked: true } };
+    }
     if (name === 'adminSetRegionModerator') {
       if (state.setError) throw state.setError;
       const { uid, regionIds } = data as { uid: string; regionIds: string[] };
@@ -79,6 +114,10 @@ beforeEach(() => {
   state.moderators = [];
   state.setCalls = [];
   state.setError = null;
+  state.invites = [];
+  state.inviteCalls = [];
+  state.revokeCalls = [];
+  state.inviteEmailSent = true;
   state.members = [
     member('anna'),
     member('boss', { displayName: 'Bossi', staffRole: 'Admin' }),
@@ -236,5 +275,93 @@ describe('ModerationTab', () => {
     state.staffRegionIds = ['tirol'];
     const { container } = render(<ModerationTab />);
     expect(container).toBeEmptyDOMElement();
+  });
+
+  describe('invitations by e-mail', () => {
+    const pending = {
+      inviteId: 'a'.repeat(64),
+      email: 'neu@x.at',
+      regionIds: ['tirol'],
+      createdAt: '2026-10-31T10:00:00.000Z',
+      expiresAt: '2026-11-14T10:00:00.000Z',
+      expired: false,
+    };
+
+    it('invites an address for the chosen regions', async () => {
+      render(<ModerationTab />);
+      await screen.findByTestId('moderation-empty');
+      fireEvent.click(screen.getByTestId('moderation-invite'));
+      const dialog = screen.getByRole('dialog', { name: 'Per E-Mail einladen' });
+      const send = within(dialog).getByRole('button', { name: 'Einladung senden' });
+      expect(send).toBeDisabled();
+      fireEvent.change(within(dialog).getByLabelText('E-Mail-Adresse'), {
+        target: { value: ' neu@x.at ' },
+      });
+      expect(send).toBeDisabled();
+      fireEvent.click(within(dialog).getByRole('checkbox', { name: /Tirol/ }));
+      fireEvent.click(send);
+      expect(await within(dialog).findByTestId('moderation-invite-result')).toHaveTextContent(
+        'Die Einladung ist unterwegs an neu@x.at'
+      );
+      expect(state.inviteCalls).toEqual([
+        { email: 'neu@x.at', regionIds: ['tirol'], sendEmail: true },
+      ]);
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Fertig' }));
+      const row = await screen.findByTestId('moderation-invite-row');
+      expect(row).toHaveTextContent('neu@x.at');
+      expect(row).toHaveTextContent('Tirol');
+    });
+
+    it('says so when the mail could not be sent', async () => {
+      state.inviteEmailSent = false;
+      render(<ModerationTab />);
+      await screen.findByTestId('moderation-empty');
+      fireEvent.click(screen.getByTestId('moderation-invite'));
+      const dialog = screen.getByRole('dialog', { name: 'Per E-Mail einladen' });
+      fireEvent.change(within(dialog).getByLabelText('E-Mail-Adresse'), {
+        target: { value: 'neu@x.at' },
+      });
+      fireEvent.click(within(dialog).getByRole('checkbox', { name: /Tirol/ }));
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Einladung senden' }));
+      expect(await within(dialog).findByTestId('moderation-invite-result')).toHaveTextContent(
+        'konnte nicht gesendet werden'
+      );
+      expect(within(dialog).getByRole('button', { name: 'Link kopieren' })).toBeInTheDocument();
+    });
+
+    it('resends and revokes open invitations', async () => {
+      state.invites = [pending];
+      render(<ModerationTab />);
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'Einladung an neu@x.at erneut senden' })
+      );
+      await waitFor(() =>
+        expect(state.inviteCalls).toEqual([
+          { email: 'neu@x.at', regionIds: ['tirol'], sendEmail: true },
+        ])
+      );
+      expect(await screen.findByRole('status')).toHaveTextContent('erneut an neu@x.at gesendet');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Einladung an neu@x.at widerrufen' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Widerrufen' }));
+      await waitFor(() => expect(state.revokeCalls).toHaveLength(1));
+      await waitFor(() =>
+        expect(screen.queryByTestId('moderation-invite-row')).not.toBeInTheDocument()
+      );
+    });
+
+    it('asks before making a new link for an older invitation', async () => {
+      state.invites = [pending];
+      render(<ModerationTab />);
+      fireEvent.click(await screen.findByRole('button', { name: 'Link für neu@x.at kopieren' }));
+      expect(screen.getByText(/Der Link aus der E-Mail funktioniert/)).toBeInTheDocument();
+      expect(state.inviteCalls).toEqual([]);
+      fireEvent.click(screen.getByRole('button', { name: 'Neuen Link kopieren' }));
+      await waitFor(() =>
+        expect(state.inviteCalls).toEqual([
+          { email: 'neu@x.at', regionIds: ['tirol'], sendEmail: false },
+        ])
+      );
+    });
   });
 });
