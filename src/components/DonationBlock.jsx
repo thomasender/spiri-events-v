@@ -140,30 +140,33 @@ export default function DonationBlock({
             Ich möchte auf der „Über uns&ldquo;-Seite erscheinen (ohne Namen als „Anonym“).
           </span>
         </label>
-        <p className="donation-consent-hint">
-          Du kannst deinen Eintrag jederzeit formlos per E-Mail an{' '}
-          <a href="mailto:admin@thetribe.at">admin@thetribe.at</a> entfernen lassen.
-        </p>
+        {displayOnConsent && (
+          <>
+            <p className="donation-consent-hint">
+              Du kannst deinen Eintrag jederzeit formlos per E-Mail an{' '}
+              <a href="mailto:admin@thetribe.at">admin@thetribe.at</a> entfernen lassen.
+            </p>
 
-        <label className="donation-comment-field">
-          <span className="donation-comment-label">
-            Kommentar (öffentlich, max. {COMMENT_MAX} Zeichen)
-          </span>
-          <textarea
-            value={comment}
-            onChange={(e) => setComment(e.target.value.slice(0, COMMENT_MAX))}
-            placeholder="z.B. Danke für eure Arbeit!"
-            maxLength={COMMENT_MAX}
-            rows={2}
-            disabled={submitting || !displayOnConsent}
-            data-testid="donation-comment"
-          />
-          <span className="donation-comment-hint">
-            {displayOnConsent
-              ? `Erscheint auf der Spenderliste (ohne Namen als „Anonym“). ${comment.length}/${COMMENT_MAX}`
-              : 'Nur möglich, wenn du auf der Spenderliste erscheinen möchtest.'}
-          </span>
-        </label>
+            <label className="donation-comment-field">
+              <span className="donation-comment-label">
+                Kommentar (öffentlich, max. {COMMENT_MAX} Zeichen)
+              </span>
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value.slice(0, COMMENT_MAX))}
+                placeholder="z.B. Danke für eure Arbeit!"
+                maxLength={COMMENT_MAX}
+                rows={2}
+                disabled={submitting}
+                data-testid="donation-comment"
+              />
+              <span className="donation-comment-hint">
+                Erscheint auf der Spenderliste (ohne Namen als „Anonym“). {comment.length}/
+                {COMMENT_MAX}
+              </span>
+            </label>
+          </>
+        )}
 
         <label className="donation-amount-field">
           <span className="donation-amount-label">Betrag in {currencyName(currency)}</span>

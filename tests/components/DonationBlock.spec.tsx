@@ -313,15 +313,18 @@ describe('DonationBlock', () => {
     });
   });
 
-  it('enables the public comment only with the donor list consent and caps it at 140 characters', () => {
+  it('shows the public comment and its removal hint only with the donor list consent and caps it at 140 characters', () => {
     renderBlock();
 
-    const comment = screen.getByTestId('donation-comment');
-    expect(comment).toBeDisabled();
-    expect(comment).toHaveAttribute('maxlength', '140');
+    expect(screen.queryByTestId('donation-comment')).not.toBeInTheDocument();
+    expect(screen.queryByText(/formlos per E-Mail/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Kommentar \(öffentlich/)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('donation-consent-checkbox'));
+    const comment = screen.getByTestId('donation-comment');
     expect(comment).not.toBeDisabled();
+    expect(comment).toHaveAttribute('maxlength', '140');
+    expect(screen.getByText(/formlos per E-Mail/)).toBeInTheDocument();
 
     fireEvent.change(comment, { target: { value: 'x'.repeat(200) } });
     expect(comment).toHaveValue('x'.repeat(140));
