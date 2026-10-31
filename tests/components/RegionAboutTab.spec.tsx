@@ -170,3 +170,16 @@ describe('RegionAboutTab example texts', () => {
     expect(screen.queryByTestId('region-about-examples-dark')).not.toBeInTheDocument();
   });
 });
+
+describe('RegionAboutTab fixed-parts note', () => {
+  it('is shown to Super-Admins but hidden from moderators', () => {
+    const { unmount } = render(<RegionAboutTab />);
+    expect(screen.getByTestId('region-about-fixed')).toBeInTheDocument();
+    unmount();
+    state.role = 'RegionModerator';
+    state.staffRegionIds = ['vorarlberg'];
+    render(<RegionAboutTab />);
+    expect(screen.queryByTestId('region-about-fixed')).toBeNull();
+    expect(screen.queryByText('Fest vorgegeben')).toBeNull();
+  });
+});

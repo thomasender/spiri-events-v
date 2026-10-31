@@ -420,15 +420,17 @@ export default function RegionAboutTab() {
         </button>
       </section>
 
-      <section className="region-about-section">
-        <h3>Fest vorgegeben</h3>
-        <p className="region-about-fixed-note">Diese Teile der Seite sind nicht veränderbar:</p>
-        <ul className="region-about-fixed" data-testid="region-about-fixed">
-          {FIXED_PARTS.map((label) => (
-            <li key={label}>{label}</li>
-          ))}
-        </ul>
-      </section>
+      {access.isSuperAdmin && (
+        <section className="region-about-section">
+          <h3>Fest vorgegeben</h3>
+          <p className="region-about-fixed-note">Diese Teile der Seite sind nicht veränderbar:</p>
+          <ul className="region-about-fixed" data-testid="region-about-fixed">
+            {FIXED_PARTS.map((label) => (
+              <li key={label}>{label}</li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <button
         type="button"
