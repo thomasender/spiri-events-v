@@ -396,6 +396,10 @@ describe('EventDetailPage — add to calendar', () => {
 
     const button = screen.getByTestId('add-to-calendar-link');
     expect(button).not.toHaveAttribute('href');
+    // Icon-only: the long text is only the accessible name / tooltip (Ux5Fw0fU)
+    expect(button).toHaveAttribute('aria-label', 'Zum Kalender hinzufügen');
+    expect(button).toHaveAttribute('title', 'Zum Kalender hinzufügen');
+    expect(button.textContent).toBe('');
     fireEvent.click(button);
 
     expect(await screen.findByTestId('login-prompt-modal')).toHaveTextContent('Kalender');
