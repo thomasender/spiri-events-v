@@ -301,6 +301,38 @@ describe('SimilarEvents — same-district prioritization (P4ujxIxF)', () => {
     ).toBe('Anderes Yoga');
   });
 
+  it('shows a running series whose first date is already past', async () => {
+    mockDocs.docs = [
+      makeDoc('series', {
+        title: 'Laufende Serie',
+        date: todayPlus(-14),
+        recurrence: 'weekly',
+        category: 'Yoga',
+        bezirk: 'Dornbirn',
+        status: 'approved',
+      }),
+    ];
+
+    render(
+      <MemoryRouter>
+        <SimilarEvents
+          currentEvent={{
+            id: 'current',
+            title: 'Aktuelles Yoga',
+            category: 'Yoga',
+            bezirk: 'Dornbirn',
+            date: todayPlus(0),
+            status: 'approved',
+          }}
+        />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId('similar-event-card')).toHaveLength(1);
+    });
+  });
+
   it('renders nothing when no other event shares the category', async () => {
     mockDocs.docs = [
       makeDoc('other-category', {

@@ -1,4 +1,4 @@
-import { getCancelledDates, isEventCancelled, isOccurrenceCancelled } from './eventCancellation';
+import { getCancelledDates, isEventCancelled, isOccurrenceCancelled } from './eventCancellation.js';
 
 // For events with `recurrence: 'custom'` the initial event date is part of the
 // series as well, even if it was never added to `customDates` explicitly.

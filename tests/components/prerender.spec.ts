@@ -410,6 +410,21 @@ describe('prerender.mjs helpers', () => {
       expect(html).not.toContain(`href="/event/${sampleEvents[0].id}"`);
     });
 
+    it('lists a running weekly series whose first date is already past', async () => {
+      const { generateCalendarPageHtml, generateSitemap } = await importPrerender();
+      const started = new Date();
+      started.setDate(started.getDate() - 14);
+      const series = {
+        ...sampleEvents[0],
+        slug: 'laufende-serie',
+        date: started.toISOString().split('T')[0],
+        recurrence: 'weekly',
+      };
+      const html = generateCalendarPageHtml([series], '/assets/x.js', '/assets/x.css');
+      expect(html).toContain('href="/event/laufende-serie"');
+      expect(generateSitemap([series])).toContain('/event/laufende-serie');
+    });
+
     it('renders an animated loading spinner (no misleading "no events" copy) when no upcoming events exist', async () => {
       const { generateCalendarPageHtml } = await importPrerender();
       const pastEvent = { ...sampleEvents[0], date: '2020-01-01' };

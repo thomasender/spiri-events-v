@@ -5,6 +5,7 @@ import EventCard from './EventCard';
 import { resolveEventColor } from '../utils/categoryColors';
 import { useCategoryRegistry } from '../hooks/useCategoryRegistry';
 import { getPrimaryCategory } from '../utils/eventFormat';
+import { getEventOccurrences } from '../utils/eventOccurrences';
 import { filterEventsForRegion, resolveRegionId } from '../utils/regions';
 import { useRegion } from '../hooks/useRegion';
 import { useRegionMigrationComplete } from '../hooks/useRegionMigrationMarker';
@@ -90,22 +91,18 @@ export default function SimilarEvents({ currentEvent }) {
     getEventQueries(JSON.parse(planKey).queries)
       .then((docs) => {
         if (cancelled) return;
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const todayIso = today.toISOString().split('T')[0];
-
         // Same region as the shown event (plus online events); never inactive regions.
         const inRegion = filterEventsForRegion(docs.map(normalizeSimilarEvent), {
           regionId: currentRegionId,
           activeRegionIds: activeKey ? activeKey.split(',') : [],
         });
+        // Next upcoming date of each event; a running series whose first date is
+        // already past still shows up (at its next date), like in the calendar.
         const normalized = inRegion
           .filter((event) => event.category === category)
           .filter((event) => event.id !== currentId)
-          .filter((event) => {
-            const referenceDate = event.endDate || event.date;
-            return referenceDate && referenceDate >= todayIso;
-          })
+          .map((event) => (event.date ? getEventOccurrences(event, { mode: 'list' })[0] : null))
+          .filter(Boolean)
           .sort((a, b) => {
             if (hasCurrentBezirk) {
               const aSame = a.bezirk === currentBezirk ? 1 : 0;

@@ -6,6 +6,7 @@ import { BRAND_NAME } from '../src/config/brand.js'
 import { DEFAULT_REGION_ID, STATIC_REGIONS, getRegionBySlug, isRegionSlug, mergeRegions, resolveRegionId } from '../src/utils/regions.js'
 import { REGION_MODE_META_MULTI, REGION_MODE_META_NAME, activeRegions } from '../src/utils/regionRouting.js'
 import { regionTexts } from '../src/utils/regionTexts.js'
+import { getEventOccurrences } from '../src/utils/eventOccurrences.js'
 import { annotateOnlineRegionIds, onlineEventVisibleIn, onlineOrganizerUids } from '../src/utils/onlineEventEligibility.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -66,6 +67,15 @@ export function toAbsoluteUrl(pathOrUrl, baseUrl = BASE_URL) {
 
 export function getEventPath(event) {
   return event.slug || event.id
+}
+
+// Each event at its next upcoming date, soonest first. A running series whose first
+// date is already past still counts (at its next date), like in the calendar.
+function withNextDate(events) {
+  return events
+    .map(e => (e.date ? getEventOccurrences(e, { mode: 'list' })[0] : null))
+    .filter(Boolean)
+    .sort((a, b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0))
 }
 
 const CATEGORY_FALLBACKS = {
@@ -463,10 +473,7 @@ export function generateCalendarPageHtml(events, jsBundlePath, cssBundlePath, th
   const regionModeMeta = Array.isArray(regions) && activeRegions(regions).length >= 2
     ? `\n  <meta name="${REGION_MODE_META_NAME}" content="${REGION_MODE_META_MULTI}" />`
     : ''
-  const today = new Date().toISOString().split('T')[0]
-  const upcomingEvents = events
-    .filter(e => e.date && e.date >= today)
-    .slice(0, 20)
+  const upcomingEvents = withNextDate(events).slice(0, 20)
 
   // JS-enabled users get a clean spinner that React replaces with the real
   // calendar the moment it mounts. The events list used to be rendered for
@@ -620,12 +627,9 @@ export function generateRegionPageHtml(
   const siteName = texts.siteName
   const themeRoot = buildThemeRootBlock(theme)
 
-  const today = new Date().toISOString().split('T')[0]
   const upcomingEvents = isDirectory
     ? []
-    : events
-        .filter(e => e.status === 'approved' || e.status === undefined)
-        .filter(e => e.date && e.date >= today)
+    : withNextDate(events.filter(e => e.status === 'approved' || e.status === undefined))
         .filter(e => activeRegionIds.includes(resolveRegionId(e)) && (e.isOnline || resolveRegionId(e) === region.id))
         // Online events only where their organiser is listed (`onlineRegionIds`, lVFp6Dvw).
         .filter(e => onlineEventVisibleIn(e, [region.id]))
@@ -734,7 +738,6 @@ export function getRegionPagePlan(regions) {
 }
 
 export function generateSitemap(events, regions = null) {
-  const today = new Date().toISOString().split('T')[0]
   // No lastmod for static pages: a made-up date teaches Google to ignore the field.
   const staticPages = [
     { url: '/', priority: '1.0', changefreq: 'daily' },
@@ -755,8 +758,7 @@ export function generateSitemap(events, regions = null) {
       changefreq: kind === 'calendar' ? 'daily' : 'weekly',
     }))
 
-  const eventPages = events
-    .filter(e => e.date && e.date >= today)
+  const eventPages = withNextDate(events)
     .map(event => ({
       url: `/event/${getEventPath(event)}`,
       priority: '0.8',
