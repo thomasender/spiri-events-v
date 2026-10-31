@@ -171,6 +171,48 @@ describe('RegionAboutTab example texts', () => {
   });
 });
 
+describe('RegionAboutTab slogan', () => {
+  const line1 = () => screen.getByTestId('region-about-slogan1') as HTMLInputElement;
+  const line2 = () => screen.getByTestId('region-about-slogan2') as HTMLInputElement;
+
+  it('prefills the slogan the header shows and has no explanation text', () => {
+    render(<RegionAboutTab />);
+    expect(line1().value).toBe('Dein Vorarlberger Kalender');
+    expect(line2().value).toBe('für bewusste Events');
+    pickTirol();
+    expect(line1().value).toBe('Dein Tiroler Kalender');
+    expect(screen.queryByText(/Steht links oben neben dem Logo/)).toBeNull();
+  });
+
+  it('saving the unchanged default keeps "use default" (null)', async () => {
+    render(<RegionAboutTab />);
+    pickTirol();
+    fireEvent.click(screen.getByTestId('region-about-save'));
+    await waitFor(() => expect(state.updates).toHaveLength(1));
+    expect(state.updates[0].aboutSlogan1).toBeNull();
+    expect(state.updates[0].aboutSlogan2).toBeNull();
+  });
+
+  it('saves a changed line', async () => {
+    render(<RegionAboutTab />);
+    pickTirol();
+    fireEvent.change(line1(), { target: { value: ' Dein Kalender im Inntal ' } });
+    fireEvent.click(screen.getByTestId('region-about-save'));
+    await waitFor(() => expect(state.updates).toHaveLength(1));
+    expect(state.updates[0].aboutSlogan1).toBe('Dein Kalender im Inntal');
+    expect(state.updates[0].aboutSlogan2).toBeNull();
+  });
+
+  it('an edited line longer than the limit is not saved', async () => {
+    render(<RegionAboutTab />);
+    pickTirol();
+    fireEvent.change(line1(), { target: { value: 'Dein niederösterreichischer Kal.' } });
+    fireEvent.click(screen.getByTestId('region-about-save'));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/zu lang/);
+    expect(state.updates).toHaveLength(0);
+  });
+});
+
 describe('RegionAboutTab fixed-parts note', () => {
   it('is shown to Super-Admins but hidden from moderators', () => {
     const { unmount } = render(<RegionAboutTab />);

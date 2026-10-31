@@ -485,7 +485,9 @@ is a code change (see section 13).
   admin tab "Über uns" (`RegionAboutTab`): header photo (`regions/{id}/` in Storage) and the
   rich text of the "Deine Heimat <Region> ruft dich." section (heading fixed), saved as
   `aboutHeaderImage` / `aboutText` on `regions/{id}` (`src/utils/regionAboutText.js`; no
-  `aboutText` = default text). The rule lets a moderator update exactly those fields
+  `aboutText` = default text). The header slogan fields (`aboutSlogan1` / `aboutSlogan2`) are
+  prefilled with the header's default (`defaultSlogan()`, line 1 = `regionTexts().headerTitle`);
+  saving an unchanged default stores `null`, so the header keeps following the default. The rule lets a moderator update exactly those fields
   (+ `updatedAt`) of her own regions. Helpers (`helpers/*`, admin tab "Helfer") belong to one
   region via `regionId`; a doc without it is Vorarlberg's (read fallback, no migration). The tab
   is open to moderators (region picker only with more than one region to choose; Super-Admins
