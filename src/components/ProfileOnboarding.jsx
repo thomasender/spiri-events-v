@@ -6,6 +6,7 @@ import DirectoryListingFields from './DirectoryListingFields';
 import FireplaceField from './FireplaceField';
 import { useCategoryRegistry } from '../hooks/useCategoryRegistry';
 import { useRegionChoices } from '../hooks/useRegionChoices';
+import { useRegionInstagramAccount } from '../hooks/useRegion';
 import { deleteImageByUrl } from '../lib/imageUpload';
 import { validateDirectoryListing } from '../utils/directory';
 import { normalizeInstagramHandle } from '../utils/instagramHandle';
@@ -41,7 +42,8 @@ const STEP_COPY = [
   },
   {
     title: 'Bist du auf Instagram?',
-    text: 'Wenn wir deine Events auf unserem Instagram-Kanal @tribevorarlberg vorstellen, markieren wir dich gern mit deinem Instagram-Namen.',
+    text: (channel) =>
+      `Wenn wir deine Events auf ${channel ? `dem Instagram-Kanal ${channel}` : 'unserem Instagram-Kanal'} vorstellen, markieren wir dich gern mit deinem Instagram-Namen.`,
     hint: 'Beides ist freiwillig und lässt sich jederzeit in deinem Profil ändern.',
   },
 ];
@@ -63,6 +65,7 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
   const [gain, setGain] = useState(null);
 
   const regionChoices = useRegionChoices();
+  const instagramChannel = useRegionInstagramAccount();
 
   // What is stored right now (starts from the profile, follows our own saves).
   const [saved, setSaved] = useState(() => ({
@@ -489,7 +492,11 @@ export default function ProfileOnboarding({ profile, uid, defaultName = '', onSa
             <h2 id="onboarding-title" ref={titleRef} tabIndex={-1}>
               {STEP_COPY[step].title}
             </h2>
-            <p>{STEP_COPY[step].text}</p>
+            <p>
+              {typeof STEP_COPY[step].text === 'function'
+                ? STEP_COPY[step].text(instagramChannel)
+                : STEP_COPY[step].text}
+            </p>
             <p className="onboarding-hint" data-testid="onboarding-hint">
               {STEP_COPY[step].hint}
             </p>

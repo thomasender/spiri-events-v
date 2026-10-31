@@ -22,6 +22,7 @@ vi.mock('../../src/components/ProfilePhotoUpload', () => ({
 }));
 
 import ProfileOnboarding from '../../src/components/ProfileOnboarding';
+import { DEFAULT_REGION_CONTEXT, RegionContext } from '../../src/hooks/useRegion';
 
 const emptyProfile = { displayName: 'Sandra', photoURL: null, bio: '' };
 
@@ -300,5 +301,48 @@ describe('ProfileOnboarding Feuerplatz', () => {
     expect(saved.fireplace).toMatchObject({ label: 'Dornbirn' });
     expect(saved.fireplaceVisible).toBe(true);
     expect(saved).not.toHaveProperty('listedInDirectory');
+  });
+});
+
+describe('ProfileOnboarding Instagram step names the region channel', () => {
+  const regions = [
+    { id: 'vorarlberg', name: 'Vorarlberg' },
+    { id: 'tirol', name: 'Tirol', instagramHandle: '@tribetirol' },
+    { id: 'wien', name: 'Wien' },
+  ];
+  const textFor = async (region: (typeof regions)[number]) => {
+    render(
+      <RegionContext.Provider
+        value={{ ...DEFAULT_REGION_CONTEXT, allRegions: regions, region } as never}
+      >
+        <MemoryRouter>
+          <ProfileOnboarding
+            profile={emptyProfile}
+            uid="u1"
+            onSave={vi.fn().mockResolvedValue(undefined)}
+            onClose={vi.fn()}
+          />
+        </MemoryRouter>
+      </RegionContext.Provider>
+    );
+    skip();
+    skip();
+    skip();
+    await screen.findByTestId('onboarding-instagram');
+    return document.body.textContent;
+  };
+
+  it('keeps the Vorarlberg handle', async () => {
+    expect(await textFor(regions[0])).toContain('auf dem Instagram-Kanal @tribevorarlberg');
+  });
+  it("shows another region's handle", async () => {
+    const text = await textFor(regions[1]);
+    expect(text).toContain('auf dem Instagram-Kanal @tribetirol');
+    expect(text).not.toContain('@tribevorarlberg');
+  });
+  it('says "unserem Instagram-Kanal" without a handle', async () => {
+    const text = await textFor(regions[2]);
+    expect(text).toContain('auf unserem Instagram-Kanal vorstellen');
+    expect(text).not.toContain('@tribevorarlberg');
   });
 });
