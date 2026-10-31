@@ -80,7 +80,7 @@ import {
   needsUploadedUrl,
   resolveInstagramImage,
 } from '../utils/instagramImageChoice';
-import { REGISTRATION_MAX_LENGTH } from '../utils/contactFormat';
+import { REGISTRATION_MAX_LENGTH, KONTAKT_MAX_LENGTH } from '../utils/contactFormat';
 import './EventForm.css';
 import './EventFormWizard.css';
 
@@ -1092,6 +1092,7 @@ export default function EventFormWizard() {
           type="text"
           value={formData.kontakt}
           onChange={handleChange}
+          maxLength={KONTAKT_MAX_LENGTH}
           placeholder={examples.contact}
           className={errors.kontakt ? 'input-error' : ''}
         />

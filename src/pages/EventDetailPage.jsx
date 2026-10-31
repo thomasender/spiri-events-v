@@ -55,7 +55,7 @@ import {
 import { resolveOrganizerProfilePath } from '../utils/profile';
 import { canEditEvent, canDeleteEvent, requiresDeleteReason } from '../utils/eventPermissions';
 import { getStaffAccess, isModeratorForEvent } from '../utils/staffRoles';
-import { parseContactText } from '../utils/contactFormat';
+import { parseContactText, parseRegistrationText } from '../utils/contactFormat';
 import RegistrationText from '../components/RegistrationText';
 import { MemberBadgeFrame } from '../components/MemberBadge';
 import {
@@ -125,6 +125,14 @@ function OrganizerLine({ event }) {
       {organizerContent}
     </span>
   );
+}
+
+// Target of the "Mehr Infos & Tickets" button: first link in the booking text ("Anmeldung"),
+// otherwise the website of the event. No link at all: no button.
+function getTicketLink(event) {
+  const booking = parseRegistrationText(event?.registration).find((s) => s.type === 'link');
+  if (booking) return booking.href;
+  return event?.link ? normalizeLink(event.link) : null;
 }
 
 const PENDING_REVIEW_MESSAGE =
@@ -440,6 +448,7 @@ export default function EventDetailPage() {
   const isDonation = event.contribution === 'donation';
   const jsonLd = generateEventJsonLd(event, regions);
   const isOwner = user && event.createdBy === user.uid;
+  const ticketLink = getTicketLink(event);
   const showEditButton = canEditEvent(user, event, role);
   const showDeleteButton = canDeleteEvent(user, event, role);
   const deleteReasonRequired = requiresDeleteReason(user, event, role, staffRegionIds);
@@ -923,8 +932,13 @@ export default function EventDetailPage() {
           <MapPin size={18} className="detail-icon" />
           <div>
             <span className="detail-label">Ort</span>
+            {!event.isOnline && event.place && (
+              <span className="detail-value detail-value--block" data-testid="event-detail-address">
+                {event.place}
+              </span>
+            )}
             <span
-              className="detail-value"
+              className="detail-value detail-value--block"
               data-testid={event.isOnline ? 'event-detail-location-online' : undefined}
             >
               {getEventDistrict(event) ? (
@@ -942,22 +956,47 @@ export default function EventDetailPage() {
           </div>
         </div>
 
-        {!event.isOnline && (
-          <div className="detail-item">
-            <MapPin size={18} className="detail-icon" />
-            <div>
-              <span className="detail-label">Adresse</span>
-              <span className="detail-value">{event.place || 'Noch nicht angegeben'}</span>
-            </div>
-          </div>
-        )}
-
-        {event.organizer && getOrganizerName(event) && (
-          <div className="detail-item" data-testid="event-organizer">
+        {((event.organizer && getOrganizerName(event)) || event.kontakt) && (
+          <div className="detail-item" data-testid="event-organizer-contact">
             <User size={18} className="detail-icon" />
             <div>
-              <span className="detail-label">Veranstalter</span>
-              <OrganizerLine event={event} />
+              <span className="detail-label">
+                {event.organizer && getOrganizerName(event)
+                  ? event.kontakt
+                    ? 'Veranstalter & Kontakt'
+                    : 'Veranstalter'
+                  : 'Kontakt'}
+              </span>
+              <span className="detail-value detail-organizer-contact">
+                {event.organizer && getOrganizerName(event) && (
+                  <span data-testid="event-organizer">
+                    <OrganizerLine event={event} />
+                  </span>
+                )}
+                {event.kontakt && (
+                  <span data-testid="event-kontakt" className="detail-contact">
+                    {event.organizer && getOrganizerName(event) && '('}
+                    {parseContactText(event.kontakt).map((segment, index) => {
+                      if (segment.type === 'email') {
+                        return (
+                          <a key={index} href={`mailto:${segment.value}`} className="detail-link">
+                            {segment.value}
+                          </a>
+                        );
+                      }
+                      if (segment.type === 'phone') {
+                        return (
+                          <a key={index} href={`tel:${segment.value}`} className="detail-link">
+                            {segment.value}
+                          </a>
+                        );
+                      }
+                      return <span key={index}>{segment.value}</span>;
+                    })}
+                    {event.organizer && getOrganizerName(event) && ')'}
+                  </span>
+                )}
+              </span>
             </div>
           </div>
         )}
@@ -984,47 +1023,6 @@ export default function EventDetailPage() {
           </div>
         )}
 
-        {event.kontakt && (
-          <div className="detail-item" data-testid="event-kontakt">
-            {(() => {
-              const segments = parseContactText(event.kontakt);
-              const hasEmail = segments.some((s) => s.type === 'email');
-              const hasPhone = segments.some((s) => s.type === 'phone');
-              return hasEmail || hasPhone ? (
-                hasEmail ? (
-                  <Mail size={18} className="detail-icon" />
-                ) : (
-                  <Phone size={18} className="detail-icon" />
-                )
-              ) : (
-                <Phone size={18} className="detail-icon" />
-              );
-            })()}
-            <div>
-              <span className="detail-label">Kontakt</span>
-              <span className="detail-value">
-                {parseContactText(event.kontakt).map((segment, index) => {
-                  if (segment.type === 'email') {
-                    return (
-                      <a key={index} href={`mailto:${segment.value}`} className="detail-link">
-                        {segment.value}
-                      </a>
-                    );
-                  }
-                  if (segment.type === 'phone') {
-                    return (
-                      <a key={index} href={`tel:${segment.value}`} className="detail-link">
-                        {segment.value}
-                      </a>
-                    );
-                  }
-                  return <span key={index}>{segment.value}</span>;
-                })}
-              </span>
-            </div>
-          </div>
-        )}
-
         {event.link && (
           <div className="detail-item" data-testid="event-detail-link">
             <ExternalLink size={18} className="detail-icon" />
@@ -1043,13 +1041,13 @@ export default function EventDetailPage() {
         )}
       </div>
 
-      {event.link && (
+      {ticketLink && (
         <a
-          href={normalizeLink(event.link)}
+          href={ticketLink}
           target="_blank"
           rel="noopener noreferrer"
           className="btn btn-primary event-link"
-          onClick={() => trackOrganizerLinkClick(event, normalizeLink(event.link))}
+          onClick={() => trackOrganizerLinkClick(event, ticketLink)}
         >
           <span>Mehr Infos & Tickets</span>
           <ExternalLink size={16} />

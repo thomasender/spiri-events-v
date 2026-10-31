@@ -5,6 +5,8 @@ const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
 const PHONE_REGEX = /(?:\+?\d{1,4}[-.\s]?)?(?:\(?\d{2,5}\)?[-.\s]?)?\d{3,4}[-.\s]?\d{3,4}/g;
 
 export const REGISTRATION_MAX_LENGTH = 300;
+// Kontakt shares one line with the organizer name in the detail box.
+export const KONTAKT_MAX_LENGTH = 40;
 
 const URL_REGEX = /(?:https?:\/\/|www\.)[^\s<>]+/gi;
 
