@@ -43,6 +43,7 @@ vi.mock('../../src/utils/ensureCategoryExists', () => ({ ensureCategoryExists: v
 
 import { updateDoc } from 'firebase/firestore';
 import { useEvents } from '../../src/hooks/useEvents';
+import { registerInstagramCropDraft } from '../../src/lib/instagramCropDrafts';
 
 const user = { uid: 'owner' };
 
@@ -124,6 +125,21 @@ describe('approveEvent and regionId', () => {
     await result.current.approveEvent('e1');
     expect(updates()).toHaveLength(1);
     expect(updates()[0]).not.toHaveProperty('regionId');
+  });
+
+  it('saves an open, unsaved Instagram crop before the status flips to approved', async () => {
+    mockStore.sourceDoc = { title: 'Neu', status: 'pending', regionId: 'tirol' };
+    const order: string[] = [];
+    vi.mocked(updateDoc).mockImplementationOnce(async () => {
+      order.push('update');
+    });
+    const unregister = registerInstagramCropDraft('e1', async () => {
+      order.push('crop');
+    });
+    const { result } = renderHook(() => useEvents(user));
+    await result.current.approveEvent('e1');
+    unregister();
+    expect(order).toEqual(['crop', 'update']);
   });
 
   it('approval still succeeds when the region write is rejected (moderator)', async () => {
