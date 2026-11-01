@@ -15,6 +15,15 @@ vi.mock('../../src/hooks/useAuth', () => ({ useAuth: () => ({ user: state.user }
 vi.mock('../../src/hooks/useChatSettings', () => ({
   useOnboardingAccess: () => ({ available: state.available }),
 }));
+const regionState = {
+  region: { id: 'tirol', name: 'Tirol' } as any,
+  regionSpecific: true,
+  isNational: false,
+};
+vi.mock('../../src/hooks/useRegion', () => ({ useRegion: () => regionState }));
+vi.mock('../../src/hooks/useRegionTexts', () => ({
+  useRegionTexts: () => ({ regionSpecific: regionState.regionSpecific }),
+}));
 vi.mock('../../src/hooks/useProfile', () => ({
   useProfile: () => ({
     profile: state.profile,
@@ -48,6 +57,9 @@ describe('ProfileOnboardingGate', () => {
     state.available = true;
     state.profile = { photoURL: null, bio: '' };
     state.loading = false;
+    regionState.region = { id: 'tirol', name: 'Tirol' };
+    regionState.regionSpecific = true;
+    regionState.isNational = false;
     state.exists = true;
     save.mockClear();
   });
@@ -129,5 +141,19 @@ describe('ProfileOnboardingGate', () => {
     renderGate('/profil');
     expect(screen.queryByTestId('profile-onboarding')).toBeNull();
     expect(screen.queryByTestId('onboarding-banner')).toBeNull();
+  });
+
+  it('names the region in the banner text, but not while only one region is live', () => {
+    const { unmount } = renderGate();
+    fireEvent.click(screen.getByText('close'));
+    expect(screen.getByTestId('onboarding-banner').textContent).toContain(
+      'findet dich die Tirol Community leichter.'
+    );
+    unmount();
+    regionState.regionSpecific = false;
+    renderGate();
+    expect(screen.getByTestId('onboarding-banner').textContent).toContain(
+      'findet dich die Community leichter.'
+    );
   });
 });
