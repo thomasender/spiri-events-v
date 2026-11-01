@@ -980,23 +980,26 @@ export default function EventDetailPage() {
                 {event.kontakt && (
                   <span data-testid="event-kontakt" className="detail-contact">
                     {event.organizer && getOrganizerName(event) && '('}
-                    {parseContactText(event.kontakt).map((segment, index) => {
-                      if (segment.type === 'email') {
-                        return (
-                          <a key={index} href={`mailto:${segment.value}`} className="detail-link">
-                            {segment.value}
-                          </a>
-                        );
-                      }
-                      if (segment.type === 'phone') {
-                        return (
-                          <a key={index} href={`tel:${segment.value}`} className="detail-link">
-                            {segment.value}
-                          </a>
-                        );
-                      }
-                      return <span key={index}>{segment.value}</span>;
-                    })}
+                    {/* One inline wrapper: as direct flex items the blank before a link would collapse. */}
+                    <span className="detail-contact-text">
+                      {parseContactText(event.kontakt).map((segment, index) => {
+                        if (segment.type === 'email') {
+                          return (
+                            <a key={index} href={`mailto:${segment.value}`} className="detail-link">
+                              {segment.value}
+                            </a>
+                          );
+                        }
+                        if (segment.type === 'phone') {
+                          return (
+                            <a key={index} href={`tel:${segment.value}`} className="detail-link">
+                              {segment.value}
+                            </a>
+                          );
+                        }
+                        return <span key={index}>{segment.value}</span>;
+                      })}
+                    </span>
                     {event.organizer && getOrganizerName(event) && ')'}
                   </span>
                 )}
