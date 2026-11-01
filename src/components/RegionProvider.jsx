@@ -26,6 +26,7 @@ import {
   readRegionChooserSeen,
   regionPath,
   regionSlugFromPath,
+  rememberedRegionRedirect,
   resolveCurrentRegionId,
   shouldOpenRegionChooser,
   writeLastPageSlug,
@@ -65,6 +66,18 @@ export default function RegionProvider({ children }) {
     writeLastRegion(urlSlug);
     setStoredSlug(urlSlug);
   }, [urlSlug, urlRegionIsActive]);
+
+  // `/` and `/verzeichnis` never show Vorarlberg to a visitor whose chosen place lies in a
+  // region not open yet: its coming-soon page instead (NK7os0Tf; also after e-mail confirmation / login).
+  const placeRegionId = placeSelection?.regionId ?? null;
+  useEffect(() => {
+    const target = rememberedRegionRedirect(pathname, {
+      placeRegionId,
+      regions: allRegions,
+      loading,
+    });
+    if (target) navigate(target, { replace: true });
+  }, [pathname, placeRegionId, allRegions, loading, navigate]);
 
   // Region / combined view of the last page that named one (also not yet open
   // ones): neutral pages (Impressum, Datenschutz) keep it as their context.
@@ -154,13 +167,14 @@ export default function RegionProvider({ children }) {
     const placeRegion = placeSelection?.regionId
       ? getRegionBySlug(placeSelection.regionId, allRegions)
       : null;
+    // The same while no region is remembered at all (e.g. the e-mail confirmation opened in
+    // another browser): Vorarlberg is never named without a reason (NK7os0Tf).
     const placeComingSoon = Boolean(
       regionMode &&
       !urlSlug &&
       !eventRegionId &&
       !CHOOSER_PATHS.includes(pathname) &&
-      placeRegion &&
-      !placeRegion.active
+      !(placeRegion ?? getRegionBySlug(storedSlug, allRegions))?.active
     );
     // Neutral header ("Dein Kalender"): region chooser, coming-soon pages, the event
     // form for a region that is not open yet, pages without a region for such a region and
