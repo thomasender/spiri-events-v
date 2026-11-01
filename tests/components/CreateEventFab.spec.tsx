@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import CreateEventFab from '../../src/components/CreateEventFab';
 import { RegionContext, DEFAULT_REGION_CONTEXT } from '../../src/hooks/useRegion';
@@ -33,13 +33,23 @@ beforeEach(() => {
   mockAuth.canCreateEvents = false;
 });
 
+function LoginStub() {
+  const location = useLocation();
+  const from = (location.state as { from?: string } | null)?.from ?? '';
+  return (
+    <div data-testid="login-page" data-from={from}>
+      Login
+    </div>
+  );
+}
+
 function renderFab(initialPath = '/') {
   return render(
     <HelmetProvider>
       <MemoryRouter initialEntries={[initialPath]}>
         <Routes>
           <Route path="/" element={<CreateEventFab />} />
-          <Route path="/login" element={<div data-testid="login-page">Login</div>} />
+          <Route path="/login" element={<LoginStub />} />
           <Route path="/admin/new" element={<div data-testid="admin-new-page">Admin New</div>} />
         </Routes>
       </MemoryRouter>
@@ -96,6 +106,8 @@ describe('CreateEventFab (zh4jJzje)', () => {
     fireEvent.click(fab);
 
     expect(screen.getByTestId('login-page')).toBeInTheDocument();
+    // The login page sends the user on to the wizard after sign-in.
+    expect(screen.getByTestId('login-page').getAttribute('data-from')).toBe('/admin/new');
     expect(screen.queryByTestId('admin-new-page')).toBeNull();
   });
 });

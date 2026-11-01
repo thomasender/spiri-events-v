@@ -654,6 +654,7 @@ export default function CalendarPage() {
             ) : (
               <Link
                 to="/login"
+                state={{ from: '/admin/new' }}
                 className="btn btn-primary create-event-cta-button"
                 data-testid="create-event-cta-button"
               >
