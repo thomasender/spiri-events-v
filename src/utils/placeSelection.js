@@ -121,6 +121,52 @@ export function regionIdForEntry(entry, regions) {
   return byId.has(entry.stateSlug) ? entry.stateSlug : null;
 }
 
+/**
+ * Moderator invitation (Trello f9bhbyUo): the one region of the invite the person stands for.
+ * A region of the invite the person already chose (place, else last region) is kept, otherwise
+ * the first invited one. Null for an invite without a known region.
+ */
+export function inviteHomeRegionId(
+  inviteRegionIds,
+  { placeSelection = null, lastRegion = null } = {}
+) {
+  const ids = (Array.isArray(inviteRegionIds) ? inviteRegionIds : []).filter(isRegionSlug);
+  if (ids.length === 0) return null;
+  const chosen = [placeSelection?.regionId, lastRegion].find((id) => id && ids.includes(id));
+  return chosen ?? ids[0];
+}
+
+/**
+ * Region whose header / texts the invitation page shows: the invited region while it is
+ * active; a region that is not open yet only once two regions are active (it then gets the
+ * neutral header). Dark launch: with one active region an invite for another region changes
+ * nothing (null = the page keeps the usual region).
+ */
+export function invitePageRegionId(homeRegionId, regions = []) {
+  if (!homeRegionId) return null;
+  const active = regions.filter((r) => r.active);
+  if (active.some((r) => r.id === homeRegionId)) return homeRegionId;
+  return active.length >= 2 ? homeRegionId : null;
+}
+
+/**
+ * Place selection for a whole region (a region hit of `buildRegionEntries`), keeping the
+ * radius of the previous selection. Used when an accepted invitation replaces a place that
+ * lies in another region. Null for an invalid entry.
+ */
+export function regionPlaceSelection(entry, previous = null) {
+  if (entry?.kind !== 'region') return null;
+  return normalizeSelection({
+    label: entry.name,
+    lat: entry.lat,
+    lon: entry.lon,
+    radiusKm: previous?.radiusKm ?? DEFAULT_RADIUS_KM,
+    regionId: entry.regionId,
+    source: 'search',
+    updatedAt: previous?.updatedAt ?? 0,
+  });
+}
+
 /** "Bregenz · 25 km": the short label for buttons. */
 export function selectionLabel(selection) {
   return selection ? `${selection.label} · ${selection.radiusKm} km` : '';
