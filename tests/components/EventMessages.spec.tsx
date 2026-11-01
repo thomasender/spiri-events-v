@@ -148,6 +148,46 @@ describe('EventMessages', () => {
       );
     });
 
+    it('offers Ablehnen next to Senden and passes the newest staff message as reason', () => {
+      useAuth.mockReturnValue(moderator);
+      const onReject = vi.fn();
+      useEventMessages.mockReturnValue({
+        messages: [
+          {
+            id: 'm1',
+            text: '<p>Das Event ist doppelt.</p>',
+            authorUid: 'mod-1',
+            authorRole: 'Admin',
+            createdAt: { toDate: () => new Date('2026-08-01T10:00:00Z') },
+          },
+        ],
+        loading: false,
+        sending: false,
+        sendMessage: sendMessageMock,
+        markAsRead: markAsReadMock,
+        editMessage: editMessageMock,
+      });
+      const { rerender } = render(
+        <EventMessages
+          eventId="event-1"
+          eventOwnerUid="owner-1"
+          eventStatus="pending"
+          onReject={onReject}
+        />
+      );
+      fireEvent.click(screen.getByTestId('event-message-reject'));
+      expect(onReject).toHaveBeenCalledWith('Das Event ist doppelt.');
+      rerender(
+        <EventMessages
+          eventId="event-1"
+          eventOwnerUid="owner-1"
+          eventStatus="approved"
+          onReject={onReject}
+        />
+      );
+      expect(screen.queryByTestId('event-message-reject')).not.toBeInTheDocument();
+    });
+
     it('offers no rejection reasons on the moderator’s own or a non-pending event', () => {
       useAuth.mockReturnValue(moderator);
       const { rerender } = render(
