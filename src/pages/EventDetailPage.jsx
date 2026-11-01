@@ -12,6 +12,7 @@ import {
   getDocs,
   arrayUnion,
   arrayRemove,
+  updateDoc,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { isLegacyId } from '../lib/slug';
@@ -71,6 +72,7 @@ import {
   buildCustomDeleteOccurrenceUpdate,
   buildCustomDeleteFromDateUpdate,
 } from '../utils/customSeriesUpdates';
+import { buildRejectUpdate } from '../utils/trashUpdates';
 import ConfirmDialog from '../components/ConfirmDialog';
 import RecurringDeleteDialog from '../components/RecurringDeleteDialog';
 import OccurrencePickerDialog from '../components/OccurrencePickerDialog';
@@ -237,6 +239,8 @@ export default function EventDetailPage() {
   const [pendingRecurringDelete, setPendingRecurringDelete] = useState(null);
   const [selectedOccurrenceDate, setSelectedOccurrenceDate] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  // null = closed; a string (maybe empty) = reject dialog open with that reason.
+  const [rejectReason, setRejectReason] = useState(null);
   const [approving, setApproving] = useState(false);
   const [showUnpublishDialog, setShowUnpublishDialog] = useState(false);
   const [unpublishing, setUnpublishing] = useState(false);
@@ -482,6 +486,19 @@ export default function EventDetailPage() {
       console.error('Unpublish failed:', err);
     } finally {
       setUnpublishing(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!rejectReason) return;
+    setDeleting(true);
+    try {
+      await updateDoc(doc(db, 'events', event.id), buildRejectUpdate(user?.uid, rejectReason));
+      setRejectReason(null);
+      navigate(backPath);
+    } catch (err) {
+      console.error('Reject failed:', err);
+      setDeleting(false);
     }
   };
 
@@ -1084,6 +1101,7 @@ export default function EventDetailPage() {
           eventStatus={event.status}
           organizerName={event.organizer?.firstName?.trim() || getOrganizerName(event)}
           onReady={() => setEventMessagesReady(true)}
+          onReject={isOwner ? undefined : setRejectReason}
         />
       )}
 
@@ -1110,6 +1128,34 @@ export default function EventDetailPage() {
         loading={deleting}
         reasonRequired={deleteReasonRequired}
       />
+
+      <ConfirmDialog
+        isOpen={rejectReason !== null}
+        title="Event ablehnen"
+        confirmLabel="Ablehnen"
+        cancelLabel="Abbrechen"
+        onConfirm={handleReject}
+        onCancel={() => setRejectReason(null)}
+        loading={deleting}
+        danger
+        confirmDisabled={!rejectReason}
+      >
+        {rejectReason ? (
+          <>
+            <p>
+              {`Das Event „${event.title}" wird abgelehnt und in den Papierkorb der einreichenden Person verschoben. Sie bekommt eine E-Mail mit dieser Nachricht als Grund:`}
+            </p>
+            <blockquote className="review-reject-reason" data-testid="event-reject-reason">
+              {rejectReason}
+            </blockquote>
+          </>
+        ) : (
+          <p data-testid="event-reject-needs-reason">
+            Bitte zuerst oben im Nachrichtenbereich einen Grund schreiben und mit „Senden“
+            abschicken.
+          </p>
+        )}
+      </ConfirmDialog>
 
       <ConfirmDialog
         isOpen={showUnpublishDialog}
