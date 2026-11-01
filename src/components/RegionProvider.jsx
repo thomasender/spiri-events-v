@@ -89,6 +89,13 @@ export default function RegionProvider({ children }) {
     [navigate]
   );
 
+  // Makes a region the remembered one without navigating (accepted moderator invitation).
+  const rememberRegion = useCallback((slug) => {
+    if (!isRegionSlug(slug)) return;
+    writeLastRegion(slug);
+    setStoredSlug(slug);
+  }, []);
+
   // `selection` null forgets the place. A selection that comes from the profile keeps its own
   // timestamp (`keepTime`), a new choice is stamped now so the newer one wins on sign-in.
   const setPlaceSelection = useCallback((selection, { keepTime = false } = {}) => {
@@ -203,6 +210,7 @@ export default function RegionProvider({ children }) {
       combinedViews: availableCombinedViews(allRegions),
       loading,
       setRegion,
+      rememberRegion,
       setEventRegion,
       placeSelection,
       setPlaceSelection,
@@ -224,6 +232,7 @@ export default function RegionProvider({ children }) {
     loading,
     regionModeHint,
     setRegion,
+    rememberRegion,
     setEventRegion,
     placeSelection,
     setPlaceSelection,

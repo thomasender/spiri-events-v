@@ -558,6 +558,14 @@ is a code change (see section 13).
   invite and in the audit log, never in `admin_users`. Then the Super-Admins get a mail "Neue
   Moderator:in". Rules: `moderator_invites` is closed for every client
   (`tests/rules/instagram.rules.spec.ts`). The direct way "Moderator:in hinzufügen" stays.
+  **Region of the invitation (Trello f9bhbyUo):** `/einladung` has no region in its address,
+  so the page lays the invited region over the header and texts (`usePageRegionContext`, like
+  event pages; `inviteHomeRegionId`: an invited region the person already chose, else the first
+  invited one; `invitePageRegionId`: an inactive one only with two active regions, then with the
+  neutral header). Accepting makes it the person's own region: `rememberRegion` (last region)
+  and, if the remembered place lies in another region, a whole-region place selection with the
+  old radius (`regionPlaceSelection`, mirrored to the profile by `PlaceSelectionSync`), so no
+  stale region of the browser or profile shows in the header afterwards.
 - **Client:** `useAuth()` exposes `role` and `staffRegionIds` (own `admin_users`
   doc); `getStaffAccess(role, regionIds)` / `useStaffRole()` give `isSuperAdmin`,
   `isRegionModerator`, `moderatorRegionIds`, `canModerateRegion(id)`. Admin tabs
