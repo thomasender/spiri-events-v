@@ -462,6 +462,32 @@ service cloud.firestore {
 
       allow update: if isModeratorReviewUpdate();
 
+      // While reviewing a pending event of her region, a moderator may adjust
+      // the Instagram crop (focal point + zoom, AdminInstagramPreview) of the
+      // photo already chosen (or the cover photo), nothing else.
+      function isModeratorInstagramCropUpdate() {
+        let before = resource.data;
+        let after = request.resource.data;
+        let changed = after.diff(before).affectedKeys();
+        let img = after.get('instagramImage', null);
+        return before.status == 'pending'
+          && isRegionModeratorFor(eventRegionId(before))
+          && changed.hasOnly(['instagramImage', 'updatedAt'])
+          && (!changed.hasAny(['updatedAt']) || after.updatedAt == request.time)
+          && img is map
+          && img.keys().hasOnly(['url', 'focalPoint', 'zoom'])
+          && img.url is string
+          && (img.url == before.get('imageUrl', null)
+              || img.url == before.get('instagramImage', {}).get('url', null))
+          && img.focalPoint is map
+          && img.focalPoint.keys().hasOnly(['x', 'y'])
+          && img.focalPoint.x is number && img.focalPoint.x >= 0 && img.focalPoint.x <= 1
+          && img.focalPoint.y is number && img.focalPoint.y >= 0 && img.focalPoint.y <= 1
+          && img.zoom is number && img.zoom >= 1 && img.zoom <= 3;
+      }
+
+      allow update: if isModeratorInstagramCropUpdate();
+
       allow delete: if isOwner() || isAdminOrEmulatorAdmin();
 
       match /messages/{messageId} {

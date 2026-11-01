@@ -27,6 +27,7 @@ import { useAuth } from './useAuth';
 import { auth } from '../lib/firebase';
 import { getApp } from 'firebase/app';
 import { ensureCategoryExists } from '../utils/ensureCategoryExists';
+import { flushInstagramCropDrafts } from '../lib/instagramCropDrafts';
 import { buildTrashUpdate, buildRestoreUpdate } from '../utils/trashUpdates';
 import { getStaffAccess } from '../utils/staffRoles';
 import { staffEventQuerySpecs, subscribeEventQueries } from '../lib/staffEventQueries';
@@ -303,6 +304,13 @@ export function useEvents(user) {
 const isMissingRegionId = (value) => value === undefined || value === null || value === '';
 
 async function approveEventAsAdmin(eventId, adminUid) {
+  // The Instagram post is rendered from the stored crop when the status flips
+  // to approved: save a crop the reviewer adjusted but did not save yet.
+  try {
+    await flushInstagramCropDrafts(eventId);
+  } catch (err) {
+    console.warn('Saving the adjusted Instagram crop before approval failed:', err);
+  }
   if (auth.currentUser) {
     await auth.currentUser.getIdToken(true);
   }

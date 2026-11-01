@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import CropViewport from './CropViewport';
@@ -9,6 +9,7 @@ import {
   clampInstagramZoom,
 } from '../utils/instagramImageChoice';
 import { DEFAULT_FOCAL_POINT, normalizeFocalPoint } from '../lib/eventImage';
+import { registerInstagramCropDraft } from '../lib/instagramCropDrafts';
 
 /** "2026-10-12" -> "12.10.2026"; anything else is passed through. */
 export function formatPreviewDate(date) {
@@ -175,11 +176,26 @@ function AdminInstagramCropEditor({ event, imageUrl, initial, previewEvent, onSa
     try {
       await updateDoc(doc(db, 'events', event.id), { instagramImage });
       onSaved(instagramImage);
-    } catch {
+    } catch (err) {
       setError('Der Ausschnitt konnte nicht gespeichert werden. Bitte versuche es erneut.');
       setSaving(false);
+      throw err;
     }
   };
+
+  // Approving the event (Freigeben) publishes the stored crop, so an adjusted
+  // but unsaved crop is written first (approveEventAsAdmin flushes it).
+  const latest = useRef(null);
+  useEffect(() => {
+    latest.current = { dirty, save };
+  });
+  useEffect(
+    () =>
+      registerInstagramCropDraft(event.id, async () => {
+        if (latest.current?.dirty) await latest.current.save();
+      }),
+    [event.id]
+  );
 
   return (
     <div
@@ -216,7 +232,7 @@ function AdminInstagramCropEditor({ event, imageUrl, initial, previewEvent, onSa
         <button
           type="button"
           className="btn btn-primary"
-          onClick={save}
+          onClick={() => save().catch(() => {})}
           disabled={saving}
           data-testid="admin-instagram-crop-save"
         >
