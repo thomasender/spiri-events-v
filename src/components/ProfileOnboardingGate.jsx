@@ -4,6 +4,8 @@ import { Sparkles, X } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
 import { useOnboardingAccess } from '../hooks/useChatSettings';
+import { useRegion } from '../hooks/useRegion';
+import { useRegionTexts } from '../hooks/useRegionTexts';
 import {
   isOnboardingDismissed,
   setOnboardingDismissed,
@@ -27,6 +29,10 @@ export default function ProfileOnboardingGate() {
 function GateInner({ user }) {
   const { profile, loading, save } = useProfile(user.uid);
   const { pathname } = useLocation();
+  // Dark launch: the region is only named once region wording is in effect.
+  const { region, isNational } = useRegion();
+  const { regionSpecific } = useRegionTexts();
+  const regionName = regionSpecific && !isNational ? region?.name : '';
   const [open, setOpen] = useState(false);
   const [bannerHidden, setBannerHidden] = useState(false);
   const autoChecked = useRef(false);
@@ -63,8 +69,8 @@ function GateInner({ user }) {
         <div className="onboarding-banner" role="status" data-testid="onboarding-banner">
           <Sparkles size={20} aria-hidden="true" />
           <p className="onboarding-banner-text">
-            Dein Profil ist noch nicht ganz fertig. Mit Foto und Beschreibung findet dich die
-            Community leichter.
+            Dein Profil ist noch nicht ganz fertig. Mit Foto und Beschreibung findet dich die{' '}
+            {regionName ? `${regionName} ` : ''}Community leichter.
           </p>
           <button
             type="button"
