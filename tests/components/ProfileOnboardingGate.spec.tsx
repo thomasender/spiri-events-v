@@ -19,6 +19,10 @@ const regionState = {
   region: { id: 'tirol', name: 'Tirol' } as any,
   regionSpecific: true,
   isNational: false,
+  allRegions: [
+    { id: 'tirol', slug: 'tirol', name: 'Tirol', active: true },
+    { id: 'steiermark', slug: 'steiermark', name: 'Steiermark', active: false },
+  ] as any[],
 };
 vi.mock('../../src/hooks/useRegion', () => ({ useRegion: () => regionState }));
 vi.mock('../../src/hooks/useRegionTexts', () => ({
@@ -155,5 +159,12 @@ describe('ProfileOnboardingGate', () => {
     expect(screen.getByTestId('onboarding-banner').textContent).toContain(
       'findet dich die Community leichter.'
     );
+  });
+
+  it('names the region from ?region= on the event form, not the fallback region', () => {
+    state.profile = { photoURL: null, bio: '' };
+    renderGate('/admin/new?region=steiermark');
+    fireEvent.click(screen.getByText('close'));
+    expect(screen.getByTestId('onboarding-banner')).toHaveTextContent('die Steiermark Community');
   });
 });
