@@ -271,6 +271,22 @@ export function regionNavPath(
 }
 
 /**
+ * Plain `/` and `/verzeichnis` show the default region's calendar when the chosen place lies
+ * in a region that is not open yet. Such a visitor is sent to that region's coming-soon page
+ * instead (Trello NK7os0Tf: after the e-mail
+ * confirmation, login or a direct visit nobody lands in Vorarlberg without having chosen it).
+ * Returns the target or null (nothing remembered: the chooser asks; active region: `/` shows
+ * it already; fewer than two active regions or config loading: dark launch, no change).
+ */
+export function rememberedRegionRedirect(pathname, options = {}) {
+  if (!CHOOSER_PATHS.includes(pathname)) return null;
+  // Only the chosen place counts: a stale last region that is no longer active brings
+  // the chooser back instead (shouldOpenRegionChooser).
+  const target = regionNavPath(pathname, { ...options, pageSlug: null, lastRegion: null });
+  return target === pathname ? null : target;
+}
+
+/**
  * "in der Steiermark", "im Tessin", "in Tirol": for running text on region
  * pages. Uses the register's `inPhrase` (src/utils/regions.js); a region
  * object without one falls back to "in <Name>".
