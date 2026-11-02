@@ -60,7 +60,7 @@ export default function ProfilePage() {
 
         <ProfileForm profile={profile} uid={user.uid} onSave={handleProfileSave} />
 
-        {!isAdmin && canPickRegion && (
+        {canPickRegion && (
           <section className="profile-card" data-testid="profile-region">
             <h2 className="profile-card-title">Ort und Umkreis</h2>
             <p className="profile-card-hint">
