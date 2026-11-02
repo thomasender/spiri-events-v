@@ -518,6 +518,9 @@ describe('static index.html (production safety net)', () => {
     const { readFileSync } = await import('fs');
     const { resolve } = await import('path');
     const html = readFileSync(resolve(__dirname, '../../index.html'), 'utf8');
+    expect(html).toContain('<title>Dein Tribe</title>');
+    expect(html).toContain('<meta property="og:title" content="Dein Tribe" />');
+    expect(html).toContain('<meta name="twitter:title" content="Dein Tribe" />');
     expect(html).toContain('<meta property="og:type" content="website" />');
     expect(html).toContain('<meta property="og:site_name" content="tribe Vorarlberg" />');
     expect(html).toContain('<meta property="og:url" content="https://www.thetribe.at/" />');
@@ -618,6 +621,8 @@ describe('prerender() end-to-end', () => {
     expect(indexHtml).toContain(
       '<meta property="og:image" content="https://www.thetribe.at/hero.jpeg" />'
     );
+    expect(indexHtml).toContain('<title>Dein Tribe</title>');
+    expect(indexHtml).toContain('<meta property="og:title" content="Dein Tribe" />');
     expect(indexHtml).not.toContain('old placeholder');
   });
 

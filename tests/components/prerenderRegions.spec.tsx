@@ -150,7 +150,7 @@ describe('Vorarlberg output is byte-identical (golden hashes of the pre-ticket g
   it('calendar page, sitemap and event pages match the golden hashes', async () => {
     const m = await importPrerender();
     expect(sha(m.generateCalendarPageHtml(fx, '/assets/index-A.js', '/assets/index-A.css'))).toBe(
-      '3b567cb133a297d42db94c11b3b2d9dba50f0252be1b32d8e1e10cbb751af6a2'
+      'eb3aa14f73b0b68806f1376c02b62ad9bb613a922b3d6c521d416548c5df9488'
     );
     expect(sha(m.generateSitemap(fx))).toBe(
       '614309ed74d4e6182b9f17dbb3ca51c239b52977f9f9e0ae7519b4361f793b7a'

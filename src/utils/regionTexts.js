@@ -32,6 +32,9 @@ export const LEGACY_DEFAULT_DESCRIPTION =
 export const LEGACY_CALENDAR_DESCRIPTION =
   'Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg - Bregenz, Dornbirn, Feldkirch, Bludenz, Umgebung';
 
+// Page title of the home/calendar page while Vorarlberg is the only active region.
+export const LEGACY_CALENDAR_TITLE = 'Dein Tribe';
+
 const str = (v) => (typeof v === 'string' && v.trim() ? v.trim() : '');
 
 export function isRegionSpecific(region, { activeCount = 1, national = false } = {}) {
@@ -97,8 +100,8 @@ function legacyTexts() {
     headerTitle: 'Dein Vorarlberger Kalender',
     locationPhrase: 'in Vorarlberg',
     nearbyText: 'Für Vorarlberg und Umkreis',
-    calendarTitle: 'Kalender',
-    calendarTitleExact: false,
+    calendarTitle: LEGACY_CALENDAR_TITLE,
+    calendarTitleExact: true,
     calendarDescription: LEGACY_CALENDAR_DESCRIPTION,
     defaultDescription: LEGACY_DEFAULT_DESCRIPTION,
     directoryTitle: 'Verzeichnis – Angebote in Vorarlberg',
