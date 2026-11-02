@@ -24,16 +24,22 @@ function useCurrentRegionName() {
   const { pathname } = useLocation();
   // A coming-soon page falls back to the default region as context, so the remembered place
   // only counts when it belongs to the region named by the address (as in the footer).
+  const urlSlug = regionSlugFromPath(pathname);
   const comingSoonPlace =
-    !loading &&
-    comingSoon &&
-    placeSelection &&
-    placeSelection.regionId === regionSlugFromPath(pathname);
+    !loading && comingSoon && placeSelection && placeSelection.regionId === urlSlug;
+  // Pages without a region in the address (Profil, Favoriten, ...) while the remembered place
+  // lies in a region not open yet: they get the neutral header, but the chosen place is still
+  // the visitor's choice and is named (HFL6cI34: the profile looked as if it was not saved).
+  const placeRegion = placeSelection?.regionId
+    ? allRegions.find((r) => r.slug === placeSelection.regionId)
+    : null;
+  const notOpenPlace =
+    !loading && !urlSlug && neutralHeader && placeRegion != null && !placeRegion.active;
   const region = allRegions.find((r) => r.slug === regionId) ?? regions[0];
   return {
     name: combinedView
       ? combinedView.name
-      : comingSoonPlace
+      : comingSoonPlace || notOpenPlace
         ? selectionLabel(placeSelection)
         : radiusFilter
           ? selectionLabel(placeSelection)
