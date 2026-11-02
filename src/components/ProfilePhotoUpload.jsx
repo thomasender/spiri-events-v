@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import FileDropZone from './FileDropZone';
 import { User } from 'lucide-react';
 import ProfilePhotoAdjustDialog from './ProfilePhotoAdjustDialog';
 import { photoZoomStyle } from './AvatarImage';
@@ -58,7 +59,12 @@ export default function ProfilePhotoUpload({
   };
 
   return (
-    <div className="profile-photo-upload" data-testid="profile-photo-upload">
+    <FileDropZone
+      className="profile-photo-upload"
+      disabled={uploading}
+      onFiles={([file]) => handleSelect(file)}
+      data-testid="profile-photo-upload"
+    >
       <MemberBadgeFrame uid={uid}>
         <div className="profile-photo-preview">
           {photoURL ? (
@@ -129,6 +135,6 @@ export default function ProfilePhotoUpload({
         }}
         onClose={() => setAdjustOpen(false)}
       />
-    </div>
+    </FileDropZone>
   );
 }

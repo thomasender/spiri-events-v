@@ -1,0 +1,5 @@
+.file-drop-zone.is-dragover {
+  background-color: var(--bg-calendar);
+  outline: 2px dashed var(--accent-primary);
+  outline-offset: 2px;
+}

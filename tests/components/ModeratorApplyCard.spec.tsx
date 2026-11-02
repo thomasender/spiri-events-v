@@ -121,15 +121,15 @@ describe('ModeratorApplyCard', () => {
     const { container } = render(<ModeratorApplyCard />);
     open();
     const area = container.querySelector('[data-testid="helper-photo-upload"]') as HTMLElement;
-    fireEvent.dragOver(area);
-    expect(area).toHaveClass('drag-over');
+    fireEvent.dragOver(area, { dataTransfer: { types: ['Files'] } });
+    expect(area).toHaveClass('is-dragover');
     fireEvent.drop(area, {
-      dataTransfer: { files: [new File(['x'], 'a.gif', { type: 'image/gif' })] },
+      dataTransfer: { types: ['Files'], files: [new File(['x'], 'a.gif', { type: 'image/gif' })] },
     });
-    expect(area).not.toHaveClass('drag-over');
+    expect(area).not.toHaveClass('is-dragover');
     expect(screen.getByRole('alert')).toHaveTextContent('Nur JPEG, PNG und WebP');
     fireEvent.drop(area, {
-      dataTransfer: { files: [new File(['x'], 'c.png', { type: 'image/png' })] },
+      dataTransfer: { types: ['Files'], files: [new File(['x'], 'c.png', { type: 'image/png' })] },
     });
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });

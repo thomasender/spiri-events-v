@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import FileDropZone from './FileDropZone';
 import { X, Send, CheckCircle2, MessageSquare, ImagePlus, Loader2 } from 'lucide-react';
 import {
   MAX_FEEDBACK_DESCRIPTION_LENGTH,
@@ -293,7 +294,11 @@ export default function FeedbackModal({ open, onClose, pageUrl }) {
               </span>
             </div>
 
-            <div className="form-group">
+            <FileDropZone
+              className="form-group"
+              disabled={submitting}
+              onFiles={([file]) => handleSelectFile(file)}
+            >
               <label>Screenshot (optional)</label>
               {!screenshotPreview ? (
                 <button
@@ -304,7 +309,7 @@ export default function FeedbackModal({ open, onClose, pageUrl }) {
                   data-testid="feedback-screenshot-add"
                 >
                   <ImagePlus size={20} aria-hidden="true" />
-                  <span>Bild hinzufügen</span>
+                  <span>Bild hinzufügen oder hierher ziehen</span>
                 </button>
               ) : (
                 <div
@@ -346,7 +351,7 @@ export default function FeedbackModal({ open, onClose, pageUrl }) {
                   Bild wird hochgeladen… {uploadProgress}%
                 </span>
               )}
-            </div>
+            </FileDropZone>
 
             {error && (
               <div className="feedback-modal-error" role="alert" data-testid="feedback-error">
