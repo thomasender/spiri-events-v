@@ -46,6 +46,7 @@ vi.mock('../../src/lib/imageUpload', () => ({ deleteImageByUrl: vi.fn() }));
 vi.mock('../../src/utils/ensureCategoryExists', () => ({ ensureCategoryExists: vi.fn() }));
 
 import { EVENTS_VERSION_STORAGE_KEY, usePublicEvents } from '../../src/hooks/useEvents';
+import { NETWORK_SLOW_EVENT, SLOW_LOAD_THRESHOLD_MS } from '../../src/utils/networkStatus';
 
 const versionSnap = (version?: number) => ({
   exists: () => version !== undefined,
@@ -108,6 +109,57 @@ describe('usePublicEvents', () => {
     renderHook(() => usePublicEvents());
     act(() => fs.versionCb?.(versionSnap(7)));
     await waitFor(() => expect(fs.eventListeners).toBe(1));
+  });
+
+  describe('connection hint', () => {
+    const slowListener = vi.fn();
+    beforeEach(() => {
+      slowListener.mockReset();
+      window.addEventListener(NETWORK_SLOW_EVENT, slowListener);
+    });
+    afterEach(() => {
+      window.removeEventListener(NETWORK_SLOW_EVENT, slowListener);
+      vi.useRealTimers();
+    });
+
+    it('reports a slow list without aborting it or falling back to Firestore', () => {
+      vi.useFakeTimers();
+      let signal: AbortSignal | undefined;
+      fetchMock.mockImplementation((_url: string, init: { signal: AbortSignal }) => {
+        signal = init.signal;
+        return new Promise(() => {});
+      });
+      renderHook(() => usePublicEvents());
+      act(() => fs.versionCb?.(versionSnap(3)));
+      act(() => void vi.advanceTimersByTime(SLOW_LOAD_THRESHOLD_MS));
+      expect(slowListener).toHaveBeenCalledTimes(1);
+      expect(signal?.aborted).toBe(false);
+      expect(fs.eventListeners).toBe(0);
+    });
+
+    it('reports a network failure', async () => {
+      fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+      renderHook(() => usePublicEvents());
+      act(() => fs.versionCb?.(versionSnap(4)));
+      await waitFor(() => expect(fs.eventListeners).toBe(1));
+      expect(slowListener).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not report a server answer such as 404', async () => {
+      fetchMock.mockResolvedValue({ ok: false, status: 404 });
+      renderHook(() => usePublicEvents());
+      act(() => fs.versionCb?.(versionSnap(5)));
+      await waitFor(() => expect(fs.eventListeners).toBe(1));
+      expect(slowListener).not.toHaveBeenCalled();
+    });
+
+    it('stays quiet when the list arrives in time', async () => {
+      fetchMock.mockResolvedValue({ ok: true, json: async () => [] });
+      const { result } = renderHook(() => usePublicEvents());
+      act(() => fs.versionCb?.(versionSnap(6)));
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      expect(slowListener).not.toHaveBeenCalled();
+    });
   });
 
   describe('with the version of the last visit remembered', () => {
