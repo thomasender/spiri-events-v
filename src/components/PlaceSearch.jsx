@@ -1,5 +1,6 @@
 import { useId, useMemo, useRef, useState } from 'react';
 import { Search, X } from 'lucide-react';
+import { placeholderForHost } from '../utils/placeExamples';
 import { placeDetail, searchPlaces } from '../utils/placeSearch';
 import './PlaceSearch.css';
 
@@ -16,7 +17,7 @@ export default function PlaceSearch({
   regionEntries,
   onChoose,
   label = 'Ort oder Region',
-  placeholder = 'z. B. Bregenz, Lindau, Allgäu',
+  placeholder,
 }) {
   const id = useId();
   const listId = `${id}-list`;
@@ -24,6 +25,14 @@ export default function PlaceSearch({
   const [open, setOpen] = useState(true);
   const [active, setActive] = useState(-1);
   const inputRef = useRef(null);
+  // Examples fitting the domain (.de, .ch, ...); read in the browser only, never at import.
+  const domainPlaceholder = useMemo(
+    () =>
+      typeof window === 'undefined'
+        ? placeholderForHost('')
+        : placeholderForHost(window.location.hostname, window.navigator?.language),
+    []
+  );
 
   const results = useMemo(
     () => searchPlaces(index, regionEntries, query),
@@ -91,7 +100,7 @@ export default function PlaceSearch({
           type="text"
           role="combobox"
           className="place-search-input"
-          placeholder={placeholder}
+          placeholder={placeholder ?? domainPlaceholder}
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="off"
