@@ -63,11 +63,11 @@ describe('regionTexts: region-specific mode', () => {
     expect(isRegionSpecific(null, { activeCount: 2 })).toBe(true);
   });
 
-  it('Steiermark: title, header, hero and directory use the region, brand stays The Tribe', () => {
+  it('Steiermark: title, header, hero and directory use the region, brand stays Dein Tribe', () => {
     const t = regionTexts(reg('steiermark'), { activeCount: 2 });
     expect(t.regionSpecific).toBe(true);
     expect(t.siteName).toBe(BRAND_NAME);
-    expect(t.calendarTitle).toBe('Kalender | The Tribe Steiermark');
+    expect(t.calendarTitle).toBe('Kalender | Dein Tribe Steiermark');
     expect(t.calendarTitleExact).toBe(true);
     expect(t.headerTitle).toBe('Dein steirischer Kalender');
     expect(t.locationPhrase).toBe('in der Steiermark');
@@ -89,10 +89,10 @@ describe('regionTexts: region-specific mode', () => {
 
   it('Vorarlberg also switches to region texts once two regions are active', () => {
     const t = regionTexts(reg('vorarlberg'), { activeCount: 2 });
-    expect(t.calendarTitle).toBe('Kalender | The Tribe Vorarlberg');
+    expect(t.calendarTitle).toBe('Kalender | Dein Tribe Vorarlberg');
     expect(t.headerTitle).toBe('Dein Vorarlberger Kalender');
     expect(t.nearbyText).toBe('Für Vorarlberg und Umkreis');
-    expect(t.siteName).toBe('The Tribe');
+    expect(t.siteName).toBe('Dein Tribe');
   });
 
   it('the config seo.title/description win over generated texts', () => {
@@ -100,11 +100,11 @@ describe('regionTexts: region-specific mode', () => {
       {
         id: 'steiermark',
         active: true,
-        seo: { title: 'Events Steiermark | The Tribe', description: 'Eigene Beschreibung' },
+        seo: { title: 'Events Steiermark | Dein Tribe', description: 'Eigene Beschreibung' },
       },
     ]);
     const t = regionTexts(getRegionBySlug('steiermark', merged), { activeCount: 2 });
-    expect(t.calendarTitle).toBe('Events Steiermark | The Tribe');
+    expect(t.calendarTitle).toBe('Events Steiermark | Dein Tribe');
     expect(t.calendarDescription).toBe('Eigene Beschreibung');
     expect(t.defaultDescription).toBe('Eigene Beschreibung');
   });
@@ -114,14 +114,14 @@ describe('regionTexts: region-specific mode', () => {
       { id: 'tirol', slug: 'tirol', name: 'Tirol', seo: { title: '  ', description: '' } },
       { activeCount: 2 }
     );
-    expect(t.calendarTitle).toBe('Kalender | The Tribe Tirol');
+    expect(t.calendarTitle).toBe('Kalender | Dein Tribe Tirol');
     expect(t.locationPhrase).toBe('in Tirol');
     expect(t.calendarDescription).toMatch(/und mehr in Tirol\.$/);
   });
 
   it('combined view (Österreich) with two active regions', () => {
     const t = regionTexts(reg('vorarlberg'), { activeCount: 2, national: true });
-    expect(t.calendarTitle).toBe('Kalender | The Tribe Österreich');
+    expect(t.calendarTitle).toBe('Kalender | Dein Tribe Österreich');
     expect(t.headerTitle).toBe('Dein österreichischer Kalender');
     expect(t.nearbyText).toBe('Für Österreich und Umkreis');
   });
@@ -137,10 +137,10 @@ describe('regionTexts: region-specific mode', () => {
       view: 'deutschland',
     });
     expect(de.headerTitle).toBe('Dein deutscher Kalender');
-    expect(de.calendarTitle).toBe('Kalender | The Tribe Deutschland');
+    expect(de.calendarTitle).toBe('Kalender | Dein Tribe Deutschland');
     expect(de.nearbyText).toBe('Für Deutschland und Umkreis');
     expect(de.locationPhrase).toBe('in Deutschland');
-    expect(de.siteName).toBe('The Tribe');
+    expect(de.siteName).toBe('Dein Tribe');
 
     const ch = regionTexts(reg('vorarlberg'), {
       activeCount: 3,
@@ -148,7 +148,7 @@ describe('regionTexts: region-specific mode', () => {
       view: { slug: 'schweiz' },
     });
     expect(ch.headerTitle).toBe('Dein Schweizer Kalender');
-    expect(ch.calendarTitle).toBe('Kalender | The Tribe Schweiz');
+    expect(ch.calendarTitle).toBe('Kalender | Dein Tribe Schweiz');
     expect(ch.nearbyText).toBe('Für die Schweiz und Umkreis');
     expect(ch.locationPhrase).toBe('in der Schweiz');
 
@@ -158,7 +158,7 @@ describe('regionTexts: region-specific mode', () => {
       view: 'alle-tribes',
     });
     expect(all.headerTitle).toBe('Dein Kalender');
-    expect(all.calendarTitle).toBe('Kalender | The Tribe');
+    expect(all.calendarTitle).toBe('Kalender | Dein Tribe');
     expect(all.nearbyText).toBe('Für alle Regionen');
     expect(all.locationPhrase).toBe('in allen Regionen');
     expect(all.calendarDescription).toBe(
@@ -185,84 +185,84 @@ describe('regionTexts: wording per region (two regions active)', () => {
       'Dein Vorarlberger Kalender',
       'in Vorarlberg',
       'Für Vorarlberg und Umkreis',
-      'Kalender | The Tribe Vorarlberg',
+      'Kalender | Dein Tribe Vorarlberg',
     ],
     [
       'tirol',
       'Dein Tiroler Kalender',
       'in Tirol',
       'Für Tirol und Umkreis',
-      'Kalender | The Tribe Tirol',
+      'Kalender | Dein Tribe Tirol',
     ],
     [
       'salzburg',
       'Dein Salzburger Kalender',
       'in Salzburg',
       'Für Salzburg und Umkreis',
-      'Kalender | The Tribe Salzburg',
+      'Kalender | Dein Tribe Salzburg',
     ],
     [
       'kaernten',
       'Dein Kärntner Kalender',
       'in Kärnten',
       'Für Kärnten und Umkreis',
-      'Kalender | The Tribe Kärnten',
+      'Kalender | Dein Tribe Kärnten',
     ],
     [
       'steiermark',
       'Dein steirischer Kalender',
       'in der Steiermark',
       'Für die Steiermark und Umkreis',
-      'Kalender | The Tribe Steiermark',
+      'Kalender | Dein Tribe Steiermark',
     ],
     [
       'oberoesterreich',
       'Dein oberösterreichischer Kalender',
       'in Oberösterreich',
       'Für Oberösterreich und Umkreis',
-      'Kalender | The Tribe Oberösterreich',
+      'Kalender | Dein Tribe Oberösterreich',
     ],
     [
       'niederoesterreich',
       'Dein niederösterreichischer Kalender',
       'in Niederösterreich',
       'Für Niederösterreich und Umkreis',
-      'Kalender | The Tribe Niederösterreich',
+      'Kalender | Dein Tribe Niederösterreich',
     ],
     [
       'wien',
       'Dein Wiener Kalender',
       'in Wien',
       'Für Wien und Umkreis',
-      'Kalender | The Tribe Wien',
+      'Kalender | Dein Tribe Wien',
     ],
     [
       'burgenland',
       'Dein burgenländischer Kalender',
       'im Burgenland',
       'Für das Burgenland und Umkreis',
-      'Kalender | The Tribe Burgenland',
+      'Kalender | Dein Tribe Burgenland',
     ],
     [
       'innerschweiz',
       'Dein Innerschweizer Kalender',
       'in der Innerschweiz',
       'Für die Innerschweiz und Umkreis',
-      'Kalender | The Tribe Innerschweiz',
+      'Kalender | Dein Tribe Innerschweiz',
     ],
     [
       'appenzell',
       'Dein Appenzeller Kalender',
       'im Appenzellerland',
       'Für das Appenzellerland und Umkreis',
-      'Kalender | The Tribe Appenzell',
+      'Kalender | Dein Tribe Appenzell',
     ],
     [
       'liechtenstein',
       'Dein Liechtensteiner Kalender',
       'in Liechtenstein',
       'Für Liechtenstein und Umkreis',
-      'Kalender | The Tribe Liechtenstein',
+      'Kalender | Dein Tribe Liechtenstein',
     ],
   ];
   it.each(table)('%s', (id, header, loc, feature, title) => {
@@ -283,7 +283,7 @@ describe('regionTexts: wording per region (two regions active)', () => {
       const t = regionTexts(reg(r.id), { activeCount: 2 });
       expect(t.headerTitle).toBe(`Dein ${r.demonym} Kalender`);
       expect(t.locationPhrase).toBe(r.inPhrase);
-      expect(t.calendarTitle).toBe(`Kalender | The Tribe ${r.name}`);
+      expect(t.calendarTitle).toBe(`Kalender | Dein Tribe ${r.name}`);
       expect(JSON.stringify(t)).not.toMatch(r.id === 'vorarlberg' ? /^$/ : /Vorarlberg/);
     }
   });

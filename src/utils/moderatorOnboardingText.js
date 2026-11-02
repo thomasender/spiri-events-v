@@ -1,5 +1,5 @@
 // Texts of the moderator onboarding wizard (/einladung, Trello 6ae5aa68), taken from
-// the ticket. "The Tribe" of the original is replaced by "Tribe <Region>".
+// the ticket. "The Tribe" (old brand) of the original is replaced by "Tribe <Region>".
 //
 // The version and the consent ids are stored with the signature. KEEP IN SYNC with
 // ONBOARDING_TEXT_VERSION / REQUIRED_CONSENTS in functions/src/moderatorInvites.ts

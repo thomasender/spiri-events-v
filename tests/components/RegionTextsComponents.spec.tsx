@@ -91,12 +91,12 @@ describe('SeoMeta title and description follow the region', () => {
   it('Steiermark: exact region title, brand and generated description', async () => {
     render(
       <Wrap value={STEIERMARK_CONTEXT}>
-        <SeoMeta title="Spirituelle Events Steiermark – The Tribe" exactTitle />
+        <SeoMeta title="Spirituelle Events Steiermark – Dein Tribe" exactTitle />
       </Wrap>
     );
-    await waitFor(() => expect(document.title).toBe('Spirituelle Events Steiermark – The Tribe'));
+    await waitFor(() => expect(document.title).toBe('Spirituelle Events Steiermark – Dein Tribe'));
     expect(document.querySelector('meta[property="og:site_name"]')?.getAttribute('content')).toBe(
-      'The Tribe'
+      'Dein Tribe'
     );
     expect(document.querySelector('meta[name="description"]')?.getAttribute('content')).toBe(
       'Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in der Steiermark.'

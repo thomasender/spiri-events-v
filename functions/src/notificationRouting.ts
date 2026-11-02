@@ -182,7 +182,7 @@ export function decideAdminMessageNotification(
       authorName:
         typeof message.authorName === 'string' && message.authorName.trim().length > 0
           ? message.authorName.trim()
-          : 'Das tribe-Team',
+          : 'Dein Tribe-Team',
       text,
     },
   };

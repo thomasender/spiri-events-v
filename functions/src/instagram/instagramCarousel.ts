@@ -11,6 +11,7 @@ import { isInstagramRegion } from '../regions';
 import {
   BASE_HASHTAGS,
   CAPTION_MAX_LENGTH,
+  DEFAULT_SITE_DOMAIN,
   buildCaptionFooter,
   formatEventDate,
   formatEventTime,
@@ -214,7 +215,8 @@ export function buildCoverModel(group: CarouselGroup, window: WeekWindow): Cover
   };
 }
 
-const MORE_LINE = `…und mehr auf thetribe.at`;
+// The weekly carousel is Vorarlberg-only (isInstagramRegion), so it shows the Austrian domain.
+const MORE_LINE = `…und mehr auf ${DEFAULT_SITE_DOMAIN}`;
 
 const MAX_MENTION_LINE = 400;
 

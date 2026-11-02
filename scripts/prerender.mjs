@@ -302,7 +302,7 @@ function buildEventStaticBody(event, isFree, category, formattedDate) {
 
 // Title suffix of an event page. Vorarlberg events (and everything while
 // Vorarlberg is the only active region, i.e. `regions` is null/has <= 1 active
-// entry) keep today's suffix. Events of another region get "The Tribe <Region>"
+// entry) keep today's suffix. Events of another region get "Dein Tribe <Region>"
 // once more than one region is active (dark launch, see regionTexts.js).
 // `regions` = merged register (mergeRegions result), not only the active ones.
 export function getEventTitleSuffix(event, regions = null) {
