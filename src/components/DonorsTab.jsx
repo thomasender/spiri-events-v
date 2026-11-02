@@ -12,7 +12,8 @@ import {
 } from 'lucide-react';
 import { useDonors } from '../hooks/useDonors';
 import { useRegions } from '../hooks/useRegions';
-import { DEFAULT_REGION_ID } from '../utils/regions';
+import { useRegion } from '../hooks/useRegion';
+import { preferredRegionOption } from '../utils/regionChoices';
 import { useStaffRole } from '../hooks/useStaffRole';
 import DonorEditDialog from './DonorEditDialog';
 import { currencySymbol } from '../lib/donationCurrency';
@@ -49,12 +50,11 @@ export default function DonorsTab() {
     () => regions.filter((r) => canModerateRegion(r.id)),
     [regions, canModerateRegion]
   );
+  // Preselected: the visitor's region, not Vorarlberg without a reason (bUcG9rBf).
+  const visitorRegionId = useRegion().namedRegion?.id;
   const [regionId, setRegionId] = useState('');
   const current =
-    options.find((r) => r.id === regionId) ??
-    options.find((r) => r.id === DEFAULT_REGION_ID) ??
-    options[0] ??
-    null;
+    options.find((r) => r.id === regionId) ?? preferredRegionOption(options, visitorRegionId);
 
   if (!current) return null;
 

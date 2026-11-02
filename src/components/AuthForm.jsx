@@ -204,7 +204,7 @@ export default function AuthForm() {
       <div className="auth-container">
         <div className="auth-header">
           <div className="auth-icon">
-            <img src="/logo-mark.svg" alt="" aria-hidden="true" />
+            <img src="/logo-mark-transparent.svg" alt="" aria-hidden="true" />
           </div>
           {isForgotPassword ? (
             resetSent ? (
@@ -442,21 +442,6 @@ export default function AuthForm() {
               </button>
             </form>
 
-            <div className="auth-divider" role="separator" aria-label="oder">
-              <span>oder</span>
-            </div>
-
-            <button
-              type="button"
-              className="btn btn-google btn-submit"
-              onClick={handleGoogleSignIn}
-              disabled={loading || googleLoading}
-              data-testid="auth-google-signin"
-            >
-              <GoogleIcon />
-              <span>{isLogin ? 'Mit Google anmelden' : 'Mit Google registrieren'}</span>
-            </button>
-
             {showCreateAccountCta && (
               <div className="auth-create-cta" data-testid="auth-create-cta">
                 <p>
@@ -472,6 +457,21 @@ export default function AuthForm() {
                 </button>
               </div>
             )}
+
+            <div className="auth-divider" role="separator" aria-label="oder">
+              <span>oder</span>
+            </div>
+
+            <button
+              type="button"
+              className="btn btn-google btn-submit"
+              onClick={handleGoogleSignIn}
+              disabled={loading || googleLoading}
+              data-testid="auth-google-signin"
+            >
+              <GoogleIcon />
+              <span>{isLogin ? 'Mit Google anmelden' : 'Mit Google registrieren'}</span>
+            </button>
 
             {(!showCreateAccountCta || isLogin) && (
               <div className="auth-footer">

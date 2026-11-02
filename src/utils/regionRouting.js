@@ -192,6 +192,37 @@ export function resolveCurrentRegionId({ urlSlug, storedSlug, regions = STATIC_R
 }
 
 /**
+ * Region a page NAMES in its wording (texts, Instagram account, "Über uns" link), which can
+ * differ from the context region: that one falls back to Vorarlberg on pages with a neutral
+ * header (Verwaltung, Favoriten, ... while the visitor's place lies in a region not open yet,
+ * coming-soon pages, the event form of such a region). There the region the page is about
+ * counts, also one not open yet: the page's address, the event form's `?region=`, the open
+ * event, the chosen place. Null = name no region (Vorarlberg is never named without a reason,
+ * bUcG9rBf). Dark launch: with fewer than two active regions always `regionId`.
+ */
+export function namedRegionId({
+  regionMode = false,
+  neutralHeader = false,
+  regionId = DEFAULT_REGION_ID,
+  pageSlug = null,
+  formRegionId = null,
+  eventRegionId = null,
+  placeRegionId = null,
+} = {}) {
+  if (!regionMode || !neutralHeader) return regionId;
+  if (isCombinedViewSlug(pageSlug)) return null;
+  return [pageSlug, formRegionId, eventRegionId, placeRegionId].find(isRegionSlug) ?? null;
+}
+
+/**
+ * The named region (see namedRegionId) of a region context value: `namedRegion` when the
+ * provider set it (null = none), else the context region (contexts built without the
+ * provider, e.g. DEFAULT_REGION_CONTEXT in component tests).
+ */
+export const namedRegionOf = (context) =>
+  context?.namedRegion === undefined ? (context?.region ?? null) : context.namedRegion;
+
+/**
  * Address of a page inside a region: `regionPath('tirol')` -> `/tirol`,
  * `regionPath('tirol', '/verzeichnis')` -> `/tirol/verzeichnis`. Accepts a
  * region object or a slug.

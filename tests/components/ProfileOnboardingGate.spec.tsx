@@ -17,6 +17,7 @@ vi.mock('../../src/hooks/useChatSettings', () => ({
 }));
 const regionState = {
   region: { id: 'tirol', name: 'Tirol' } as any,
+  namedRegion: undefined as any,
   regionSpecific: true,
   isNational: false,
   allRegions: [
@@ -62,6 +63,7 @@ describe('ProfileOnboardingGate', () => {
     state.profile = { photoURL: null, bio: '' };
     state.loading = false;
     regionState.region = { id: 'tirol', name: 'Tirol' };
+    regionState.namedRegion = undefined;
     regionState.regionSpecific = true;
     regionState.isNational = false;
     state.exists = true;
@@ -161,10 +163,19 @@ describe('ProfileOnboardingGate', () => {
     );
   });
 
-  it('names the region from ?region= on the event form, not the fallback region', () => {
-    state.profile = { photoURL: null, bio: '' };
-    renderGate('/admin/new?region=steiermark');
+  it('names the region the page names (e.g. Verwaltung), not the fallback region', () => {
+    regionState.namedRegion = { id: 'steiermark', name: 'Steiermark' };
+    renderGate('/admin');
     fireEvent.click(screen.getByText('close'));
     expect(screen.getByTestId('onboarding-banner')).toHaveTextContent('die Steiermark Community');
+  });
+
+  it('names no region when the page names none', () => {
+    regionState.namedRegion = null;
+    renderGate('/admin');
+    fireEvent.click(screen.getByText('close'));
+    expect(screen.getByTestId('onboarding-banner').textContent).toContain(
+      'findet dich die Community leichter.'
+    );
   });
 });

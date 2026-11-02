@@ -42,6 +42,19 @@ export function buildRegionChoices({
   return { enabled, options, defaultRegionId, allRegions };
 }
 
+/**
+ * Preselected region of a Verwaltung region select (Helfer:innen, Spender:innen, Über uns):
+ * the visitor's region (`preferredId`) when offered, else Vorarlberg, else the first option.
+ */
+export function preferredRegionOption(options, preferredId) {
+  return (
+    options.find((r) => r.id === preferredId) ??
+    options.find((r) => r.id === DEFAULT_REGION_ID) ??
+    options[0] ??
+    null
+  );
+}
+
 /** The region a form currently stands on: its own choice if still offered, else the default. */
 export function selectedRegionId(formRegionId, choices) {
   if (isRegionSlug(formRegionId) && choices.options.some((r) => r.id === formRegionId)) {

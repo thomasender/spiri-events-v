@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Heart, X } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { useRegion } from '../hooks/useRegion';
-import { aboutPathFor } from '../utils/regionRouting';
+import { useAboutPath } from '../hooks/useRegion';
 import { EVENTS, trackEvent } from '../lib/analytics';
 import { readConsent } from '../lib/analyticsConsent';
 import {
@@ -26,8 +25,7 @@ export default function DonationPopup() {
   const { pathname, search } = useLocation();
   const { user, role, loading } = useAuth();
   // Donation section of the visitor's region (same target as the footer link).
-  const { regionId, allRegions, pageSlug } = useRegion();
-  const donatePath = `${aboutPathFor({ pageSlug, regionId, regions: allRegions })}#spenden`;
+  const donatePath = `${useAboutPath()}#spenden`;
   const [open, setOpen] = useState(false);
   const [previewClosed, setPreviewClosed] = useState(false);
   const closeButtonRef = useRef(null);

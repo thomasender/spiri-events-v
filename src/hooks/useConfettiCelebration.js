@@ -38,7 +38,14 @@ export function useConfettiCelebration(isActive) {
 
     import('canvas-confetti').then((module) => {
       if (isCancelled) return;
-      confetti = module.default;
+      // An own instance, because the default one always draws in a blob: worker and ignores a
+      // per-call `useWorker: false`. The CSP (script-src 'self') blocks that worker, so nothing
+      // would be drawn in production.
+      confetti = module.default.create(null, {
+        resize: true,
+        useWorker: false,
+        disableForReducedMotion: true,
+      });
       const colors = readThemeColors();
       const endTime = Date.now() + CONFETTI_DURATION_MS;
 
@@ -52,8 +59,6 @@ export function useConfettiCelebration(isActive) {
           origin: { x: Math.random(), y: -0.1 },
           colors,
           zIndex: CONFETTI_Z_INDEX,
-          disableForReducedMotion: true,
-          useWorker: false, // the CSP (script-src 'self') blocks the blob: worker
         });
         animationFrame = requestAnimationFrame(rain);
       };

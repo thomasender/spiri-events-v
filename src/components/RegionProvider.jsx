@@ -18,6 +18,7 @@ import {
   getCombinedView,
   isCombinedViewAvailable,
   isNeutralPagePath,
+  namedRegionId,
   readLastPageSlug,
   readLastRegion,
   REGION_MODE_META_MULTI,
@@ -200,9 +201,21 @@ export default function RegionProvider({ children }) {
             regions: allRegions,
           });
     const activeList = activeRegions(allRegions);
+    // Region the page's wording names (null: none); differs from `region` only on pages
+    // with a neutral header, where `region` is the Vorarlberg fallback (bUcG9rBf).
+    const namedId = namedRegionId({
+      regionMode,
+      neutralHeader,
+      regionId,
+      pageSlug,
+      formRegionId: formRegion,
+      eventRegionId,
+      placeRegionId: placeSelection?.regionId ?? null,
+    });
     return {
       region: getRegionBySlug(regionId, allRegions),
       regionId,
+      namedRegion: namedId ? getRegionBySlug(namedId, allRegions) : null,
       regions: activeRegions(allRegions),
       allRegions,
       isNational,
