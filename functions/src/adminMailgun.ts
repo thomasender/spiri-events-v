@@ -1,5 +1,6 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions';
+import { ALLOWED_ORIGINS } from './allowedOrigins';
 import { appCheckOptions, logMissingAppCheck } from './appCheck';
 import { assertAdmin } from './adminMembers';
 import { MAILGUN_API_KEY, MAILGUN_DOMAIN, isMailgunDryRun } from './mailgun';
@@ -13,13 +14,6 @@ import {
   type MetricsResponse,
   type RangeDays,
 } from './mailgunUsage';
-
-const ALLOWED_ORIGINS = [
-  'https://www.thetribe.at',
-  'https://thetribe.at',
-  'https://spirieventsvbg.web.app',
-  'http://localhost:5180',
-];
 
 // The Mailgun API does not expose the quota of the booked plan, so it is kept here
 // (messages per month; null = show usage only). A custom limit set in the Mailgun

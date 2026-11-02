@@ -8,6 +8,7 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getApps, initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { ALLOWED_ORIGINS } from './allowedOrigins';
 import { appCheckOptions, logMissingAppCheck } from './appCheck';
 import { enforceRateLimit } from './rateLimit';
 
@@ -17,13 +18,6 @@ if (getApps().length === 0) {
 
 const GET_ALL_CHUNK = 300;
 const LIMIT = { maxAttempts: 60, windowMs: 10 * 60 * 1000 };
-
-const ALLOWED_ORIGINS = [
-  'https://www.thetribe.at',
-  'https://thetribe.at',
-  'https://spirieventsvbg.web.app',
-  'http://localhost:5180',
-];
 
 // Same approach as the cancellation mail: the site has few accounts, so
 // checking each user's favorite doc beats a collection-group index.
