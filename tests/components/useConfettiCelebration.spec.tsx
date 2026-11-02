@@ -1,9 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 
-const mockConfetti = vi.hoisted(() => Object.assign(vi.fn(), { reset: vi.fn() }));
+// `mockConfetti` is the instance the hook creates; `mockDefaultConfetti` the library default.
+const { mockConfetti, mockDefaultConfetti } = vi.hoisted(() => {
+  const instance = Object.assign(vi.fn(), { reset: vi.fn() });
+  const defaultFire = Object.assign(vi.fn(), { reset: vi.fn(), create: vi.fn(() => instance) });
+  return { mockConfetti: instance, mockDefaultConfetti: defaultFire };
+});
 
-vi.mock('canvas-confetti', () => ({ default: mockConfetti }));
+vi.mock('canvas-confetti', () => ({ default: mockDefaultConfetti }));
 
 import {
   useConfettiCelebration,
@@ -17,6 +22,8 @@ function mockReducedMotion(matches: boolean) {
 beforeEach(() => {
   mockConfetti.mockClear();
   mockConfetti.reset.mockClear();
+  mockDefaultConfetti.mockClear();
+  mockDefaultConfetti.create.mockClear();
   mockReducedMotion(false);
 });
 
@@ -28,7 +35,19 @@ describe('useConfettiCelebration', () => {
   it('rains confetti once active', async () => {
     renderHook(() => useConfettiCelebration(true));
     await waitFor(() => expect(mockConfetti).toHaveBeenCalled());
-    expect(mockConfetti.mock.calls[0][0]).toMatchObject({ useWorker: false, zIndex: 2000 });
+    expect(mockConfetti.mock.calls[0][0]).toMatchObject({ zIndex: 2000 });
+  });
+
+  // The default instance always uses a blob: worker (a per-call `useWorker: false` is ignored),
+  // which the production CSP blocks: the canvas stayed empty.
+  it('draws through its own instance without a worker', async () => {
+    renderHook(() => useConfettiCelebration(true));
+    await waitFor(() => expect(mockConfetti).toHaveBeenCalled());
+    expect(mockDefaultConfetti.create).toHaveBeenCalledWith(
+      null,
+      expect.objectContaining({ useWorker: false, resize: true })
+    );
+    expect(mockDefaultConfetti).not.toHaveBeenCalled();
   });
 
   it('does nothing while inactive', async () => {
