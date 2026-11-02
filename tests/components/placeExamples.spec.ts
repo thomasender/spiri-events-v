@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import raw from '../../src/data/placeIndex.json';
 import {
-  LEGACY_PLACE_PLACEHOLDER,
+  DEFAULT_PLACE_PLACEHOLDER,
   PLACE_PLACEHOLDERS,
   placeholderForHost,
 } from '../../src/utils/placeExamples';
@@ -9,8 +9,8 @@ import { buildRegionEntries, preparePlaceIndex, searchPlaces } from '../../src/u
 import { STATIC_REGIONS } from '../../src/utils/regions';
 
 describe('placeholderForHost', () => {
-  it('keeps the Vorarlberg text byte-identical for .at, localhost and unknown hosts', () => {
-    expect(LEGACY_PLACE_PLACEHOLDER).toBe('z. B. Bregenz, Lindau, Allgäu');
+  it('uses the Austria text for .at, localhost and unknown hosts', () => {
+    expect(DEFAULT_PLACE_PLACEHOLDER).toBe('z. B. Wien, Graz oder Dornbirn');
     for (const host of [
       'thetribe.at',
       'deintribe.at',
@@ -20,9 +20,9 @@ describe('placeholderForHost', () => {
       'example.org',
       '',
     ]) {
-      expect(placeholderForHost(host, 'de-DE')).toBe('z. B. Bregenz, Lindau, Allgäu');
+      expect(placeholderForHost(host, 'de-DE')).toBe('z. B. Wien, Graz oder Dornbirn');
     }
-    expect(placeholderForHost(undefined as unknown as string)).toBe(LEGACY_PLACE_PLACEHOLDER);
+    expect(placeholderForHost(undefined as unknown as string)).toBe(DEFAULT_PLACE_PLACEHOLDER);
   });
 
   it('uses German and Swiss examples on .de and .ch', () => {
@@ -33,16 +33,16 @@ describe('placeholderForHost', () => {
   it('ignores "www." and upper case', () => {
     expect(placeholderForHost('www.TheTribe.DE')).toBe(PLACE_PLACEHOLDERS.DE);
     expect(placeholderForHost('WWW.thetribe.ch')).toBe(PLACE_PLACEHOLDERS.CH);
-    expect(placeholderForHost('www.thetribe.at')).toBe(LEGACY_PLACE_PLACEHOLDER);
+    expect(placeholderForHost('www.thetribe.at')).toBe(DEFAULT_PLACE_PLACEHOLDER);
   });
 
   it('decides .com by the browser language, Austria otherwise', () => {
     expect(placeholderForHost('thetribe.com', 'de-CH')).toBe(PLACE_PLACEHOLDERS.CH);
     expect(placeholderForHost('thetribe.com', 'de-DE')).toBe(PLACE_PLACEHOLDERS.DE);
     expect(placeholderForHost('www.thetribe.com', 'de_ch')).toBe(PLACE_PLACEHOLDERS.CH);
-    expect(placeholderForHost('thetribe.com', 'de-AT')).toBe(LEGACY_PLACE_PLACEHOLDER);
-    expect(placeholderForHost('thetribe.com', 'en')).toBe(LEGACY_PLACE_PLACEHOLDER);
-    expect(placeholderForHost('thetribe.com')).toBe(LEGACY_PLACE_PLACEHOLDER);
+    expect(placeholderForHost('thetribe.com', 'de-AT')).toBe(DEFAULT_PLACE_PLACEHOLDER);
+    expect(placeholderForHost('thetribe.com', 'en')).toBe(DEFAULT_PLACE_PLACEHOLDER);
+    expect(placeholderForHost('thetribe.com')).toBe(DEFAULT_PLACE_PLACEHOLDER);
   });
 });
 
@@ -54,7 +54,7 @@ describe('example places exist in the place list', () => {
 
   // "Niedersachsen" is deliberately missing: it is a retired region id, only
   // "Südniedersachsen" is searchable. Reported on the ticket, not pinned here.
-  it.each(['Bregenz', 'Lindau', 'Allgäu', 'München', 'Berlin', 'Zürich', 'Bern', 'Genf'])(
+  it.each(['Wien', 'Graz', 'Dornbirn', 'München', 'Berlin', 'Zürich', 'Bern', 'Genf'])(
     'finds %s',
     (name) => {
       expect(hit(name)).toBe(true);

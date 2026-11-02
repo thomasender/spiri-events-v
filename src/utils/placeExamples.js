@@ -2,13 +2,13 @@
 // visitor is on, so a German visitor is not shown Vorarlberg places. Pure module: no React,
 // no window access at import time (prerender-safe); the caller passes hostname and language.
 
-// What the field showed before. Kept byte-identical for .at, thetribe.at, deintribe.at,
-// localhost and unknown hosts (dark launch: Vorarlberg-only stays unchanged).
-export const LEGACY_PLACE_PLACEHOLDER = 'z. B. Bregenz, Lindau, Allgäu';
+// Austria text (Vorarlberg-only text before 2026-11-02). Used for .at, thetribe.at, deintribe.at,
+// localhost and unknown hosts.
+export const DEFAULT_PLACE_PLACEHOLDER = 'z. B. Wien, Graz oder Dornbirn';
 
 // Example places per country, all of them known to the bundled place list / regions.
 export const PLACE_PLACEHOLDERS = Object.freeze({
-  AT: LEGACY_PLACE_PLACEHOLDER,
+  AT: DEFAULT_PLACE_PLACEHOLDER,
   DE: 'z. B. München, Berlin, Niedersachsen',
   CH: 'z. B. Zürich, Bern, Genf',
 });

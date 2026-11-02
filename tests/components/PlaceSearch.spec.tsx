@@ -18,7 +18,7 @@ describe('PlaceSearch placeholder', () => {
     show();
     expect(screen.getByRole('combobox')).toHaveAttribute(
       'placeholder',
-      'z. B. Bregenz, Lindau, Allgäu'
+      'z. B. Wien, Graz oder Dornbirn'
     );
   });
 
