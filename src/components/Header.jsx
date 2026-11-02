@@ -563,7 +563,7 @@ export default function Header() {
       <nav className="header-container" aria-label="Hauptnavigation">
         <Link to={logoPath} className="logo" onClick={closeMenu} data-testid="header-logo">
           <div className="logo-icon">
-            <img src="/logo-mark.svg" alt="" aria-hidden="true" />
+            <img src="/logo-mark-transparent.svg" alt="" aria-hidden="true" />
           </div>
           <div className="logo-text">
             <span className="logo-title">{slogan?.line1 || regionTexts.headerTitle}</span>

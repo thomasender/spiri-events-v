@@ -204,7 +204,7 @@ export default function AuthForm() {
       <div className="auth-container">
         <div className="auth-header">
           <div className="auth-icon">
-            <img src="/logo-mark.svg" alt="" aria-hidden="true" />
+            <img src="/logo-mark-transparent.svg" alt="" aria-hidden="true" />
           </div>
           {isForgotPassword ? (
             resetSent ? (
