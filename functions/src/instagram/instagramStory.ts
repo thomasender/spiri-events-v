@@ -92,6 +92,8 @@ export interface StoryModel {
   /** "Teil 1 von 2" - only when one half of the day still has more events than fit; else empty */
   partLabel: string;
   items: StoryItem[];
+  /** Domain in the "Mehr auf ..." line; default DEFAULT_SITE_DOMAIN (stories are Vorarlberg-only). */
+  siteDomain?: string;
   /** The event's own picture and crop, only for a story about a single event. */
   image: InstagramImageChoice | null;
 }

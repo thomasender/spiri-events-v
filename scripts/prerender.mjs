@@ -5,7 +5,7 @@ import { buildEventJsonLd, stripHtmlToText } from '../src/utils/eventJsonLd.js'
 import { BRAND_NAME } from '../src/config/brand.js'
 import { DEFAULT_REGION_ID, STATIC_REGIONS, getRegionBySlug, isRegionSlug, mergeRegions, resolveRegionId } from '../src/utils/regions.js'
 import { REGION_MODE_META_MULTI, REGION_MODE_META_NAME, activeRegions } from '../src/utils/regionRouting.js'
-import { regionTexts } from '../src/utils/regionTexts.js'
+import { regionTexts, LEGACY_CALENDAR_TITLE } from '../src/utils/regionTexts.js'
 import { getEventOccurrences } from '../src/utils/eventOccurrences.js'
 import { annotateOnlineRegionIds, onlineEventVisibleIn, onlineOrganizerUids } from '../src/utils/onlineEventEligibility.js'
 
@@ -302,7 +302,7 @@ function buildEventStaticBody(event, isFree, category, formattedDate) {
 
 // Title suffix of an event page. Vorarlberg events (and everything while
 // Vorarlberg is the only active region, i.e. `regions` is null/has <= 1 active
-// entry) keep today's suffix. Events of another region get "The Tribe <Region>"
+// entry) keep today's suffix. Events of another region get "Dein Tribe <Region>"
 // once more than one region is active (dark launch, see regionTexts.js).
 // `regions` = merged register (mergeRegions result), not only the active ones.
 export function getEventTitleSuffix(event, regions = null) {
@@ -500,14 +500,14 @@ export function generateCalendarPageHtml(events, jsBundlePath, cssBundlePath, th
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${escapeHtml(SITE_NAME)} | Kalender</title>
+  <title>${escapeHtml(LEGACY_CALENDAR_TITLE)}</title>
   <meta name="description" content="${escapeHtml(DEFAULT_DESCRIPTION)}" />
   <meta name="robots" content="index, follow" />${regionModeMeta}
   <link rel="canonical" href="${BASE_URL}/" />
 
   <meta property="og:site_name" content="${escapeHtml(SITE_NAME)}" />
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="${escapeHtml(SITE_NAME)}" />
+  <meta property="og:title" content="${escapeHtml(LEGACY_CALENDAR_TITLE)}" />
   <meta property="og:description" content="${escapeHtml(DEFAULT_DESCRIPTION)}" />
   <meta property="og:url" content="${BASE_URL}/" />
   <meta property="og:locale" content="de_AT" />
@@ -517,7 +517,7 @@ export function generateCalendarPageHtml(events, jsBundlePath, cssBundlePath, th
   <meta property="og:image:alt" content="${escapeHtml(SITE_NAME)}" />
 
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="${escapeHtml(SITE_NAME)}" />
+  <meta name="twitter:title" content="${escapeHtml(LEGACY_CALENDAR_TITLE)}" />
   <meta name="twitter:description" content="${escapeHtml(DEFAULT_DESCRIPTION)}" />
   <meta name="twitter:image" content="${escapeHtml(DEFAULT_OG_IMAGE_URL)}" />
   <meta name="twitter:image:alt" content="${escapeHtml(SITE_NAME)}" />

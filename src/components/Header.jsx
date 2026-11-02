@@ -431,6 +431,7 @@ export default function Header() {
       </NavLink>
       <NavLink
         to="/login"
+        state={{ from: addEventPath }}
         className={({ isActive }) => `${navClass({ isActive })}${extraClass}`}
         onClick={closeMenu}
         data-testid="event-create-cta"

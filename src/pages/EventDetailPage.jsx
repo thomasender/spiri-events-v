@@ -12,12 +12,14 @@ import {
   getDocs,
   arrayUnion,
   arrayRemove,
+  updateDoc,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { isLegacyId } from '../lib/slug';
 import { trackCalendarAdd, trackOrganizerLinkClick } from '../lib/analyticsEvents';
 import {
   Calendar,
+  CalendarPlus,
   Clock,
   MapPin,
   Ticket,
@@ -70,6 +72,7 @@ import {
   buildCustomDeleteOccurrenceUpdate,
   buildCustomDeleteFromDateUpdate,
 } from '../utils/customSeriesUpdates';
+import { buildRejectUpdate } from '../utils/trashUpdates';
 import ConfirmDialog from '../components/ConfirmDialog';
 import RecurringDeleteDialog from '../components/RecurringDeleteDialog';
 import OccurrencePickerDialog from '../components/OccurrencePickerDialog';
@@ -236,6 +239,8 @@ export default function EventDetailPage() {
   const [pendingRecurringDelete, setPendingRecurringDelete] = useState(null);
   const [selectedOccurrenceDate, setSelectedOccurrenceDate] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  // null = closed; a string (maybe empty) = reject dialog open with that reason.
+  const [rejectReason, setRejectReason] = useState(null);
   const [approving, setApproving] = useState(false);
   const [showUnpublishDialog, setShowUnpublishDialog] = useState(false);
   const [unpublishing, setUnpublishing] = useState(false);
@@ -484,6 +489,19 @@ export default function EventDetailPage() {
     }
   };
 
+  const handleReject = async () => {
+    if (!rejectReason) return;
+    setDeleting(true);
+    try {
+      await updateDoc(doc(db, 'events', event.id), buildRejectUpdate(user?.uid, rejectReason));
+      setRejectReason(null);
+      navigate(backPath);
+    } catch (err) {
+      console.error('Reject failed:', err);
+      setDeleting(false);
+    }
+  };
+
   const handleDelete = async (reason) => {
     setDeleting(true);
     try {
@@ -629,6 +647,9 @@ export default function EventDetailPage() {
   const eventPath = `/event/${event.slug || event.id}`;
   const recurrenceDates = getRecurrenceDatesForDetail(event);
   const showRecurrenceDatesList = recurrenceDates.length > 0;
+  const calendarLabel = showRecurrenceDatesList
+    ? 'Alle Termine zum Kalender hinzufügen'
+    : 'Zum Kalender hinzufügen';
   const visibleRecurrenceDates = showAllDates
     ? recurrenceDates
     : recurrenceDates.slice(0, MAX_COLLAPSED_DATES);
@@ -888,10 +909,10 @@ export default function EventDetailPage() {
                   onClick={handleAddToCalendar}
                   disabled={calendarDownloadState === 'loading'}
                   data-testid="add-to-calendar-link"
+                  aria-label={calendarLabel}
+                  title={calendarLabel}
                 >
-                  {showRecurrenceDatesList
-                    ? 'Alle Termine zum Kalender hinzufügen'
-                    : 'Zum Kalender hinzufügen'}
+                  <CalendarPlus size={18} aria-hidden="true" />
                 </button>
                 {calendarDownloadState === 'error' && (
                   <span className="detail-value" role="alert" data-testid="add-to-calendar-error">
@@ -976,23 +997,26 @@ export default function EventDetailPage() {
                 {event.kontakt && (
                   <span data-testid="event-kontakt" className="detail-contact">
                     {event.organizer && getOrganizerName(event) && '('}
-                    {parseContactText(event.kontakt).map((segment, index) => {
-                      if (segment.type === 'email') {
-                        return (
-                          <a key={index} href={`mailto:${segment.value}`} className="detail-link">
-                            {segment.value}
-                          </a>
-                        );
-                      }
-                      if (segment.type === 'phone') {
-                        return (
-                          <a key={index} href={`tel:${segment.value}`} className="detail-link">
-                            {segment.value}
-                          </a>
-                        );
-                      }
-                      return <span key={index}>{segment.value}</span>;
-                    })}
+                    {/* One inline wrapper: as direct flex items the blank before a link would collapse. */}
+                    <span className="detail-contact-text">
+                      {parseContactText(event.kontakt).map((segment, index) => {
+                        if (segment.type === 'email') {
+                          return (
+                            <a key={index} href={`mailto:${segment.value}`} className="detail-link">
+                              {segment.value}
+                            </a>
+                          );
+                        }
+                        if (segment.type === 'phone') {
+                          return (
+                            <a key={index} href={`tel:${segment.value}`} className="detail-link">
+                              {segment.value}
+                            </a>
+                          );
+                        }
+                        return <span key={index}>{segment.value}</span>;
+                      })}
+                    </span>
                     {event.organizer && getOrganizerName(event) && ')'}
                   </span>
                 )}
@@ -1077,6 +1101,7 @@ export default function EventDetailPage() {
           eventStatus={event.status}
           organizerName={event.organizer?.firstName?.trim() || getOrganizerName(event)}
           onReady={() => setEventMessagesReady(true)}
+          onReject={isOwner ? undefined : setRejectReason}
         />
       )}
 
@@ -1103,6 +1128,34 @@ export default function EventDetailPage() {
         loading={deleting}
         reasonRequired={deleteReasonRequired}
       />
+
+      <ConfirmDialog
+        isOpen={rejectReason !== null}
+        title="Event ablehnen"
+        confirmLabel="Ablehnen"
+        cancelLabel="Abbrechen"
+        onConfirm={handleReject}
+        onCancel={() => setRejectReason(null)}
+        loading={deleting}
+        danger
+        confirmDisabled={!rejectReason}
+      >
+        {rejectReason ? (
+          <>
+            <p>
+              {`Das Event „${event.title}" wird abgelehnt und in den Papierkorb der einreichenden Person verschoben. Sie bekommt eine E-Mail mit dieser Nachricht als Grund:`}
+            </p>
+            <blockquote className="review-reject-reason" data-testid="event-reject-reason">
+              {rejectReason}
+            </blockquote>
+          </>
+        ) : (
+          <p data-testid="event-reject-needs-reason">
+            Bitte zuerst oben im Nachrichtenbereich einen Grund schreiben und mit „Senden“
+            abschicken.
+          </p>
+        )}
+      </ConfirmDialog>
 
       <ConfirmDialog
         isOpen={showUnpublishDialog}

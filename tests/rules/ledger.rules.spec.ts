@@ -107,4 +107,18 @@ describe('ledger', () => {
     await assertFails(updateDoc(doc(db, 'ledger/mollie_tr_1'), { molliePaymentId: 'tr_2' }));
     await assertFails(updateDoc(doc(db, 'ledger/l1'), { amount: -5 }));
   });
+
+  it('accepts receipts as a list of at most ten', async () => {
+    const db = env.authenticatedContext('adminDoc').firestore();
+    const file = {
+      path: 'ledger/new/1_a.pdf',
+      name: 'a.pdf',
+      size: 10,
+      contentType: 'application/pdf',
+    };
+    await assertSucceeds(setDoc(doc(db, 'ledger/new'), { ...entry, attachments: [file] }));
+    await assertSucceeds(updateDoc(doc(db, 'ledger/l1'), { attachments: [file] }));
+    await assertFails(updateDoc(doc(db, 'ledger/l1'), { attachments: Array(11).fill(file) }));
+    await assertFails(updateDoc(doc(db, 'ledger/l1'), { attachments: 'x' }));
+  });
 });

@@ -15,6 +15,7 @@ import {
   regionLocative,
   regionNavPath,
   regionPath,
+  rememberedRegionRedirect,
   regionSlugFromPath,
   regionSwitchSubpath,
   resolveCurrentRegionId,
@@ -373,8 +374,37 @@ describe('regionNavPath (header Kalender / Verzeichnis)', () => {
   });
   it('changes nothing with one active region or while loading (dark launch)', () => {
     expect(regionNavPath('/', { placeRegionId: 'niederoesterreich' })).toBe('/');
+    expect(rememberedRegionRedirect('/', { placeRegionId: 'niederoesterreich' })).toBeNull();
+    expect(
+      rememberedRegionRedirect('/', opts({ placeRegionId: 'niederoesterreich', loading: true }))
+    ).toBeNull();
     expect(regionNavPath('/', opts({ placeRegionId: 'niederoesterreich', loading: true }))).toBe(
       '/'
     );
+  });
+});
+
+describe('rememberedRegionRedirect (/ and /verzeichnis never fall back to Vorarlberg)', () => {
+  const opts = (o: Record<string, unknown> = {}) => ({ regions: WITH_TIROL, ...o });
+
+  it('sends a visitor whose chosen place lies in a region not open yet to its page', () => {
+    const o = opts({ placeRegionId: 'muenchen' });
+    expect(rememberedRegionRedirect('/', o)).toBe('/muenchen');
+    expect(rememberedRegionRedirect('/verzeichnis', o)).toBe('/muenchen/verzeichnis');
+  });
+  it('keeps / for an active remembered region and when nothing is remembered (chooser asks)', () => {
+    expect(rememberedRegionRedirect('/', opts({ placeRegionId: 'tirol' }))).toBeNull();
+    expect(
+      rememberedRegionRedirect('/', opts({ placeRegionId: 'tirol', lastRegion: 'kaernten' }))
+    ).toBeNull();
+    expect(rememberedRegionRedirect('/', opts())).toBeNull();
+    // A stale last region no longer active: the chooser asks again instead.
+    expect(rememberedRegionRedirect('/', opts({ lastRegion: 'kaernten' }))).toBeNull();
+  });
+  it('never redirects other pages', () => {
+    const o = opts({ placeRegionId: 'muenchen' });
+    expect(rememberedRegionRedirect('/auth-action', o)).toBeNull();
+    expect(rememberedRegionRedirect('/tirol', o)).toBeNull();
+    expect(rememberedRegionRedirect('/regionen', o)).toBeNull();
   });
 });

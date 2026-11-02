@@ -216,7 +216,7 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
 - Sie können die Eintragung jederzeit in Ihrem Profil wieder ausschalten; Sie verschwinden dann sofort aus dem Verzeichnis
 - Beim Löschen Ihres Kontos wird auch Ihr Verzeichniseintrag entfernt
 
-*Moderation:* Das Team von The Tribe kann einzelne Einträge aus dem Verzeichnis ausblenden, etwa bei unpassenden oder rechtswidrigen Inhalten. Ihr Profil bleibt davon unberührt.`,
+*Moderation:* Das Tribe-Team kann einzelne Einträge aus dem Verzeichnis ausblenden, etwa bei unpassenden oder rechtswidrigen Inhalten. Ihr Profil bleibt davon unberührt.`,
       },
       {
         heading: '12. Veröffentlichung auf Instagram (freiwillig)',
@@ -476,69 +476,69 @@ Wir sind nicht bereit oder verpflichtet, an Streitbeilegungsverfahren vor einer 
         heading: 'Haftungsausschluss',
         text: `### 1. Inhalte und Veranstaltungen
 
-The Tribe dient als Plattform zur Veröffentlichung und Auffindbarkeit von Veranstaltungen, Angeboten und Informationen Dritter. Die auf der Website veröffentlichten Inhalte, insbesondere Texte, Bilder, Termine, Preise, Beschreibungen und sonstige Angaben, werden teilweise von externen Veranstalter:innen und Nutzer:innen bereitgestellt.
+Dein Tribe dient als Plattform zur Veröffentlichung und Auffindbarkeit von Veranstaltungen, Angeboten und Informationen Dritter. Die auf der Website veröffentlichten Inhalte, insbesondere Texte, Bilder, Termine, Preise, Beschreibungen und sonstige Angaben, werden teilweise von externen Veranstalter:innen und Nutzer:innen bereitgestellt.
 
-Für die Aktualität, Richtigkeit, Vollständigkeit oder Rechtmäßigkeit der bereitgestellten Informationen übernimmt The Tribe keine Gewähr. Haftungsansprüche, die sich aus der Nutzung oder Nichtnutzung der auf The Tribe veröffentlichten Informationen ergeben, sind ausgeschlossen, soweit gesetzlich zulässig und sofern kein vorsätzliches oder grob fahrlässiges Verhalten von The Tribe vorliegt.
+Für die Aktualität, Richtigkeit, Vollständigkeit oder Rechtmäßigkeit der bereitgestellten Informationen übernimmt Dein Tribe keine Gewähr. Haftungsansprüche, die sich aus der Nutzung oder Nichtnutzung der auf Tribe veröffentlichten Informationen ergeben, sind ausgeschlossen, soweit gesetzlich zulässig und sofern kein vorsätzliches oder grob fahrlässiges Verhalten von Tribe vorliegt.
 
-The Tribe ist nicht Veranstalter, Anbieter oder Vertragspartner der auf der Plattform präsentierten Veranstaltungen und Angebote, sofern dies nicht ausdrücklich anders angegeben ist. Für die Durchführung, Ausgestaltung, Verfügbarkeit, Qualität und rechtliche Zulässigkeit der jeweiligen Veranstaltungen und Angebote sind ausschließlich die jeweiligen Anbieter:innen verantwortlich.
+Dein Tribe ist nicht Veranstalter, Anbieter oder Vertragspartner der auf der Plattform präsentierten Veranstaltungen und Angebote, sofern dies nicht ausdrücklich anders angegeben ist. Für die Durchführung, Ausgestaltung, Verfügbarkeit, Qualität und rechtliche Zulässigkeit der jeweiligen Veranstaltungen und Angebote sind ausschließlich die jeweiligen Anbieter:innen verantwortlich.
 
 ### 2. Externe Links und Angebote
 
-Auf The Tribe können externe Personen und Veranstalter:innen Links zu ihren eigenen Websites, Angeboten, Buchungs- und Verkaufsseiten sowie zu anderen externen Online-Angeboten hinterlegen. Diese Links können teilweise automatisiert mit den veröffentlichten Veranstaltungen oder Profilen verknüpft werden.
+Auf Tribe können externe Personen und Veranstalter:innen Links zu ihren eigenen Websites, Angeboten, Buchungs- und Verkaufsseiten sowie zu anderen externen Online-Angeboten hinterlegen. Diese Links können teilweise automatisiert mit den veröffentlichten Veranstaltungen oder Profilen verknüpft werden.
 
-The Tribe hat keinen Einfluss auf die Inhalte, Verfügbarkeit, Preise, Geschäftsbedingungen oder Datenschutzpraktiken dieser externen Websites und Angebote und übernimmt hierfür keine Verantwortung. Für sämtliche Inhalte und Angebote auf verlinkten externen Seiten ist ausschließlich deren jeweilige Betreiber verantwortlich.
+Dein Tribe hat keinen Einfluss auf die Inhalte, Verfügbarkeit, Preise, Geschäftsbedingungen oder Datenschutzpraktiken dieser externen Websites und Angebote und übernimmt hierfür keine Verantwortung. Für sämtliche Inhalte und Angebote auf verlinkten externen Seiten ist ausschließlich deren jeweilige Betreiber verantwortlich.
 
-Für Schäden, die aus der Nutzung oder Nichtnutzung externer Websites oder der dort angebotenen Informationen, Produkte oder Dienstleistungen entstehen, haftet The Tribe nicht, soweit gesetzlich zulässig.
+Für Schäden, die aus der Nutzung oder Nichtnutzung externer Websites oder der dort angebotenen Informationen, Produkte oder Dienstleistungen entstehen, haftet Dein Tribe nicht, soweit gesetzlich zulässig.
 
-Sollte The Tribe von rechtswidrigen oder problematischen Inhalten Kenntnis erlangen, werden diese im Rahmen der technischen und rechtlichen Möglichkeiten geprüft und gegebenenfalls entfernt bzw. die entsprechende Verlinkung deaktiviert.
+Sollte Dein Tribe von rechtswidrigen oder problematischen Inhalten Kenntnis erlangen, werden diese im Rahmen der technischen und rechtlichen Möglichkeiten geprüft und gegebenenfalls entfernt bzw. die entsprechende Verlinkung deaktiviert.
 
 ### 3. Von Nutzer:innen bereitgestellte Inhalte
 
-Personen und Veranstalter:innen, die Inhalte auf The Tribe hochladen oder veröffentlichen, sind selbst dafür verantwortlich, dass ihre Texte, Bilder, Videos, Logos, Veranstaltungsinformationen und sonstigen Inhalte frei von Rechten Dritter sind und keine gesetzlichen Bestimmungen verletzen.
+Personen und Veranstalter:innen, die Inhalte auf Tribe hochladen oder veröffentlichen, sind selbst dafür verantwortlich, dass ihre Texte, Bilder, Videos, Logos, Veranstaltungsinformationen und sonstigen Inhalte frei von Rechten Dritter sind und keine gesetzlichen Bestimmungen verletzen.
 
-Mit der Übermittlung von Inhalten bestätigen die jeweiligen Nutzer:innen, dass sie über die erforderlichen Rechte zur Veröffentlichung verfügen und The Tribe diese Inhalte im Rahmen der Plattform veröffentlichen, bearbeiten, technisch verarbeiten und darstellen darf.
+Mit der Übermittlung von Inhalten bestätigen die jeweiligen Nutzer:innen, dass sie über die erforderlichen Rechte zur Veröffentlichung verfügen und Dein Tribe diese Inhalte im Rahmen der Plattform veröffentlichen, bearbeiten, technisch verarbeiten und darstellen darf.
 
-The Tribe übernimmt keine Verantwortung für die von Nutzer:innen bereitgestellten Inhalte und ist nicht verpflichtet, diese vor ihrer Veröffentlichung auf ihre Rechtmäßigkeit, Richtigkeit oder Vollständigkeit zu überprüfen.
+Dein Tribe übernimmt keine Verantwortung für die von Nutzer:innen bereitgestellten Inhalte und ist nicht verpflichtet, diese vor ihrer Veröffentlichung auf ihre Rechtmäßigkeit, Richtigkeit oder Vollständigkeit zu überprüfen.
 
-The Tribe behält sich vor, Inhalte, die gegen gesetzliche Bestimmungen, Rechte Dritter oder die Grundsätze der Plattform verstoßen, ohne vorherige Ankündigung zu entfernen.
+Dein Tribe behält sich vor, Inhalte, die gegen gesetzliche Bestimmungen, Rechte Dritter oder die Grundsätze der Plattform verstoßen, ohne vorherige Ankündigung zu entfernen.
 
 ### 4. Urheberrecht
 
-Die auf The Tribe veröffentlichten Inhalte können sowohl von The Tribe selbst als auch von externen Nutzer:innen und Veranstalter:innen stammen.
+Die auf Tribe veröffentlichten Inhalte können sowohl von Tribe selbst als auch von externen Nutzer:innen und Veranstalter:innen stammen.
 
-Die Urheber- und Nutzungsrechte an von The Tribe selbst erstellten Texten, Bildern, Grafiken und sonstigen Inhalten verbleiben bei The Tribe bzw. den jeweiligen Rechteinhaber:innen. Eine Verwendung, Vervielfältigung oder Weitergabe dieser Inhalte bedarf der entsprechenden Zustimmung, sofern keine gesetzliche Ausnahme besteht.
+Die Urheber- und Nutzungsrechte an von Tribe selbst erstellten Texten, Bildern, Grafiken und sonstigen Inhalten verbleiben bei Tribe bzw. den jeweiligen Rechteinhaber:innen. Eine Verwendung, Vervielfältigung oder Weitergabe dieser Inhalte bedarf der entsprechenden Zustimmung, sofern keine gesetzliche Ausnahme besteht.
 
-Die Rechte an von Nutzer:innen bereitgestellten Inhalten verbleiben bei den jeweiligen Urheber:innen bzw. Rechteinhaber:innen. Die Verantwortung dafür, dass diese Inhalte auf The Tribe veröffentlicht werden dürfen, liegt bei der jeweiligen einstellenden Person.
+Die Rechte an von Nutzer:innen bereitgestellten Inhalten verbleiben bei den jeweiligen Urheber:innen bzw. Rechteinhaber:innen. Die Verantwortung dafür, dass diese Inhalte auf Tribe veröffentlicht werden dürfen, liegt bei der jeweiligen einstellenden Person.
 
-Sollte trotz sorgfältiger Prüfung ein Inhalt ohne entsprechende Berechtigung veröffentlicht worden sein, bitten wir um einen entsprechenden Hinweis. Nach Kenntniserlangung wird The Tribe den betreffenden Inhalt prüfen und, sofern erforderlich, entfernen oder die weitere Veröffentlichung unterbinden.
+Sollte trotz sorgfältiger Prüfung ein Inhalt ohne entsprechende Berechtigung veröffentlicht worden sein, bitten wir um einen entsprechenden Hinweis. Nach Kenntniserlangung wird Dein Tribe den betreffenden Inhalt prüfen und, sofern erforderlich, entfernen oder die weitere Veröffentlichung unterbinden.
 
 ### 5. Nutzung der Inhalte und Datenbank
 
-Die Inhalte von The Tribe dürfen ausschließlich für private, nicht-kommerzielle Zwecke genutzt werden, etwa um sich über Veranstaltungen zu informieren, einzelne Termine im eigenen Kalender zu speichern oder Veranstaltungen im persönlichen Umfeld weiterzuempfehlen.
+Die Inhalte von Tribe dürfen ausschließlich für private, nicht-kommerzielle Zwecke genutzt werden, etwa um sich über Veranstaltungen zu informieren, einzelne Termine im eigenen Kalender zu speichern oder Veranstaltungen im persönlichen Umfeld weiterzuempfehlen.
 
-Ohne vorherige ausdrückliche schriftliche Zustimmung von The Tribe ist es nicht gestattet,
+Ohne vorherige ausdrückliche schriftliche Zustimmung von Tribe ist es nicht gestattet,
 
 - Inhalte, insbesondere die Veranstaltungsdaten, Texte, Bilder und Veranstalterinformationen, ganz oder in wesentlichen Teilen zu kommerziellen Zwecken zu vervielfältigen, zu verbreiten, öffentlich zugänglich zu machen, zu verkaufen oder auf andere Weise weiterzuverwenden;
-- die auf The Tribe veröffentlichten Daten systematisch oder automatisiert auszulesen, zu kopieren oder zu sammeln (z. B. durch Web-Scraping, Crawler, Bots, das Abrufen von Datenschnittstellen oder das Auswerten von Kalender-Feeds und Kalenderdateien);
-- Inhalte von The Tribe in andere Plattformen, Datenbanken, Verzeichnisse, Kalender, Apps oder Dienste zu übernehmen oder dort automatisiert zu spiegeln;
-- Inhalte von The Tribe zum Training, zur Weiterentwicklung oder zum Betrieb von KI-Systemen oder anderen automatisierten Verfahren der Datenanalyse zu verwenden;
-- Schutzmechanismen, Zugangs- oder Nutzungsbeschränkungen von The Tribe zu umgehen.
+- die auf Tribe veröffentlichten Daten systematisch oder automatisiert auszulesen, zu kopieren oder zu sammeln (z. B. durch Web-Scraping, Crawler, Bots, das Abrufen von Datenschnittstellen oder das Auswerten von Kalender-Feeds und Kalenderdateien);
+- Inhalte von Tribe in andere Plattformen, Datenbanken, Verzeichnisse, Kalender, Apps oder Dienste zu übernehmen oder dort automatisiert zu spiegeln;
+- Inhalte von Tribe zum Training, zur Weiterentwicklung oder zum Betrieb von KI-Systemen oder anderen automatisierten Verfahren der Datenanalyse zu verwenden;
+- Schutzmechanismen, Zugangs- oder Nutzungsbeschränkungen von Tribe zu umgehen.
 
-Diese Einschränkungen gelten unabhängig davon, ob die Inhalte frei zugänglich sind. Die Zusammenstellung und Aufbereitung der Veranstaltungsdaten auf The Tribe kann als Datenbank bzw. Datenbankwerk nach dem österreichischen Urheberrechtsgesetz (§§ 40f und 76c ff. UrhG) geschützt sein. Die allgemeine Auffindbarkeit über Suchmaschinen im üblichen Umfang bleibt davon unberührt. Gesetzlich zwingend erlaubte Nutzungen (z. B. Vervielfältigungen zum privaten Gebrauch) bleiben ebenfalls unberührt.
+Diese Einschränkungen gelten unabhängig davon, ob die Inhalte frei zugänglich sind. Die Zusammenstellung und Aufbereitung der Veranstaltungsdaten auf Tribe kann als Datenbank bzw. Datenbankwerk nach dem österreichischen Urheberrechtsgesetz (§§ 40f und 76c ff. UrhG) geschützt sein. Die allgemeine Auffindbarkeit über Suchmaschinen im üblichen Umfang bleibt davon unberührt. Gesetzlich zwingend erlaubte Nutzungen (z. B. Vervielfältigungen zum privaten Gebrauch) bleiben ebenfalls unberührt.
 
-Hinweis: Die Rechte an den von Veranstalter:innen bereitgestellten Inhalten verbleiben bei diesen. Auch aus diesem Grund kann The Tribe Dritten keine Weiterverwendungsrechte an solchen Inhalten einräumen. Eine Weiterverwendung von Veranstaltungsdaten bedarf daher gegebenenfalls zusätzlich der Zustimmung der jeweiligen Rechteinhaber:innen. Personenbezogene Angaben von Veranstalter:innen und Nutzer:innen dürfen nicht für Werbe- oder Adressierungszwecke gesammelt oder weiterverarbeitet werden.
+Hinweis: Die Rechte an den von Veranstalter:innen bereitgestellten Inhalten verbleiben bei diesen. Auch aus diesem Grund kann Dein Tribe Dritten keine Weiterverwendungsrechte an solchen Inhalten einräumen. Eine Weiterverwendung von Veranstaltungsdaten bedarf daher gegebenenfalls zusätzlich der Zustimmung der jeweiligen Rechteinhaber:innen. Personenbezogene Angaben von Veranstalter:innen und Nutzer:innen dürfen nicht für Werbe- oder Adressierungszwecke gesammelt oder weiterverarbeitet werden.
 
-Bei Verstößen behält sich The Tribe vor, Zugriffe zu sperren und zivil- und urheberrechtliche Schritte einzuleiten, insbesondere auf Unterlassung, Beseitigung, Auskunft, Schadenersatz und Herausgabe des Gewinns. Anfragen zu einer Nutzung der Inhalte richten Sie bitte an [admin@thetribe.at](mailto:admin@thetribe.at).
+Bei Verstößen behält sich Dein Tribe vor, Zugriffe zu sperren und zivil- und urheberrechtliche Schritte einzuleiten, insbesondere auf Unterlassung, Beseitigung, Auskunft, Schadenersatz und Herausgabe des Gewinns. Anfragen zu einer Nutzung der Inhalte richten Sie bitte an [admin@thetribe.at](mailto:admin@thetribe.at).
 
 ### 6. Änderungen des Online-Angebots
 
-The Tribe behält sich ausdrücklich vor, Teile der Website oder das gesamte Online-Angebot jederzeit ohne gesonderte Ankündigung zu verändern, zu ergänzen, zu löschen oder die Veröffentlichung zeitweise oder dauerhaft einzustellen.
+Dein Tribe behält sich ausdrücklich vor, Teile der Website oder das gesamte Online-Angebot jederzeit ohne gesonderte Ankündigung zu verändern, zu ergänzen, zu löschen oder die Veröffentlichung zeitweise oder dauerhaft einzustellen.
 
 Für die Verfügbarkeit einzelner Inhalte, Veranstaltungen, Profile oder Funktionen kann keine Gewähr übernommen werden.
 
 ### 7. Haftung
 
-The Tribe haftet nicht für Schäden materieller oder ideeller Art, die aus der Nutzung oder Nichtnutzung der auf der Plattform veröffentlichten Informationen, Veranstaltungen, Angebote oder extern verlinkten Websites entstehen, soweit gesetzlich zulässig und sofern kein vorsätzliches oder grob fahrlässiges Verhalten von The Tribe vorliegt.
+Dein Tribe haftet nicht für Schäden materieller oder ideeller Art, die aus der Nutzung oder Nichtnutzung der auf der Plattform veröffentlichten Informationen, Veranstaltungen, Angebote oder extern verlinkten Websites entstehen, soweit gesetzlich zulässig und sofern kein vorsätzliches oder grob fahrlässiges Verhalten von Tribe vorliegt.
 
 Zwingende gesetzliche Haftungsbestimmungen bleiben unberührt.
 

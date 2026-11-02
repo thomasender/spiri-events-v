@@ -172,7 +172,8 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
     `src/utils/placeSelection.js`) lives in `RegionProvider` (`placeSelection`,
     `setPlaceSelection`, `radiusFilter`), is remembered in localStorage (`tribe:placeSelection`)
     and mirrored to `users/{uid}.placeSelection` by `PlaceSelectionSync.jsx` (the newer of
-    browser and profile wins on sign-in; no `users/{uid}` doc yet = browser only; rules:
+    browser and profile wins on sign-in; a new account's `users/{uid}` doc is waited for, so the
+    place chosen before registering reaches the profile, Trello NK7os0Tf; rules:
     `isValidPlaceSelection`). Coordinates are those of the PLACE, rounded to 3 decimals, never
     the exact device position: a shared position is snapped to the nearest place of the list
     (within 30 km) in the browser, nothing is sent anywhere. `regionId` is worked out when the
@@ -183,7 +184,11 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
     on `/` (it replaces `tribe:lastRegion` as the stored slug), so titles, "Über uns", mail
     wording and analytics keep following the region; choosing a place navigates to that region's
     page (a region that is not open yet leads to its coming-soon page). A region address typed
-    by hand wins over the selection.
+    by hand wins over the selection. Plain `/` and `/verzeichnis` redirect (replace) to the
+    coming-soon page while the chosen place's region is not open yet (`rememberedRegionRedirect`),
+    and pages without a region in their address show the neutral header while no region is
+    remembered at all, so nobody lands in Vorarlberg without having chosen it (Trello
+    NK7os0Tf; only with two or more active regions).
   - **Neutral pages** (`NEUTRAL_PAGE_PATHS` in `regionRouting.js`: Impressum, Datenschutz) are the
     same for every region and name none in their address. They keep the region or combined view of
     the last page that named one in this tab (`pageSlug` in the region context, sessionStorage
@@ -558,6 +563,14 @@ is a code change (see section 13).
   invite and in the audit log, never in `admin_users`. Then the Super-Admins get a mail "Neue
   Moderator:in". Rules: `moderator_invites` is closed for every client
   (`tests/rules/instagram.rules.spec.ts`). The direct way "Moderator:in hinzufügen" stays.
+  **Region of the invitation (Trello f9bhbyUo):** `/einladung` has no region in its address,
+  so the page lays the invited region over the header and texts (`usePageRegionContext`, like
+  event pages; `inviteHomeRegionId`: an invited region the person already chose, else the first
+  invited one; `invitePageRegionId`: an inactive one only with two active regions, then with the
+  neutral header). Accepting makes it the person's own region: `rememberRegion` (last region)
+  and, if the remembered place lies in another region, a whole-region place selection with the
+  old radius (`regionPlaceSelection`, mirrored to the profile by `PlaceSelectionSync`), so no
+  stale region of the browser or profile shows in the header afterwards.
 - **Client:** `useAuth()` exposes `role` and `staffRegionIds` (own `admin_users`
   doc); `getStaffAccess(role, regionIds)` / `useStaffRole()` give `isSuperAdmin`,
   `isRegionModerator`, `moderatorRegionIds`, `canModerateRegion(id)`. Admin tabs

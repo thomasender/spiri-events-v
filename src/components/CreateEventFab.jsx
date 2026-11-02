@@ -27,7 +27,8 @@ export default function CreateEventFab() {
       return;
     }
     event.preventDefault();
-    navigate('/login');
+    // Remember the intent so the login lands in the create wizard.
+    navigate('/login', { state: { from: addEventPath } });
   };
 
   const fabProps = {

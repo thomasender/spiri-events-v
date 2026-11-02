@@ -396,6 +396,10 @@ describe('EventDetailPage — add to calendar', () => {
 
     const button = screen.getByTestId('add-to-calendar-link');
     expect(button).not.toHaveAttribute('href');
+    // Icon-only: the long text is only the accessible name / tooltip (Ux5Fw0fU)
+    expect(button).toHaveAttribute('aria-label', 'Zum Kalender hinzufügen');
+    expect(button).toHaveAttribute('title', 'Zum Kalender hinzufügen');
+    expect(button.textContent).toBe('');
     fireEvent.click(button);
 
     expect(await screen.findByTestId('login-prompt-modal')).toHaveTextContent('Kalender');
@@ -528,6 +532,21 @@ describe('EventDetailPage — admin approve button', () => {
     renderPage();
     expect(await screen.findByText('Yoga heute')).toBeInTheDocument();
     expect(screen.queryByTestId('approve-event-button')).toBeNull();
+  });
+});
+
+describe('EventDetailPage — contact text spacing (cQ80gpL3)', () => {
+  it('keeps the blank between contact text and phone number', async () => {
+    mockFirestoreDoc.getDocResult = {
+      id: foreignEvent.id,
+      data: { ...foreignEvent, kontakt: 'Whatsapp oder Telegram 068181828713' },
+    };
+    renderPage();
+    const kontakt = await screen.findByTestId('event-kontakt');
+    const link = within(kontakt).getByRole('link', { name: '068181828713' });
+    // The text and the link must share one inline parent, not be separate flex items.
+    expect(link.parentElement).not.toBe(kontakt);
+    expect(link.parentElement?.textContent).toBe('Whatsapp oder Telegram 068181828713');
   });
 });
 

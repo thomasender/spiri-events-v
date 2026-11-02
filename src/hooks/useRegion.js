@@ -34,6 +34,7 @@ export const DEFAULT_REGION_CONTEXT = Object.freeze({
   regionChooserPending: false,
   loading: false,
   setRegion: noop,
+  rememberRegion: noop,
   setEventRegion: noop,
   placeSelection: null,
   setPlaceSelection: noop,
@@ -55,8 +56,15 @@ export function useRegion() {
  * page is open. The URL stays `/event/<slug>`.
  */
 export function useEventRegionContext(event) {
+  usePageRegionContext(event ? resolveRegionId(event) : null);
+}
+
+/**
+ * A page without a region in its address that still belongs to one (event pages, the
+ * moderator invitation `/einladung`): header and texts follow `regionId` while it is open.
+ */
+export function usePageRegionContext(regionId) {
   const { setEventRegion } = useRegion();
-  const regionId = event ? resolveRegionId(event) : null;
   useEffect(() => {
     if (!regionId) return undefined;
     setEventRegion(regionId);

@@ -150,7 +150,7 @@ describe('Vorarlberg output is byte-identical (golden hashes of the pre-ticket g
   it('calendar page, sitemap and event pages match the golden hashes', async () => {
     const m = await importPrerender();
     expect(sha(m.generateCalendarPageHtml(fx, '/assets/index-A.js', '/assets/index-A.css'))).toBe(
-      '3b567cb133a297d42db94c11b3b2d9dba50f0252be1b32d8e1e10cbb751af6a2'
+      'eb3aa14f73b0b68806f1376c02b62ad9bb613a922b3d6c521d416548c5df9488'
     );
     expect(sha(m.generateSitemap(fx))).toBe(
       '614309ed74d4e6182b9f17dbb3ca51c239b52977f9f9e0ae7519b4361f793b7a'
@@ -208,13 +208,13 @@ describe('generateRegionPageHtml', () => {
       '/assets/index-A.js',
       '/assets/index-A.css'
     );
-    expect(html).toContain('<title>Kalender | The Tribe Tirol</title>');
+    expect(html).toContain('<title>Kalender | Dein Tribe Tirol</title>');
     expect(html).toContain(
       '<meta name="description" content="Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Tirol." />'
     );
     expect(html).toContain(`<link rel="canonical" href="${BASE_URL}/tirol" />`);
     expect(html).toContain('<meta name="robots" content="index, follow" />');
-    expect(html).toContain('<meta property="og:title" content="Kalender | The Tribe Tirol" />');
+    expect(html).toContain('<meta property="og:title" content="Kalender | Dein Tribe Tirol" />');
     expect(html).toContain(`<meta property="og:url" content="${BASE_URL}/tirol" />`);
     expect(html).toContain(`<meta property="og:image" content="${DEFAULT_OG_IMAGE_URL}" />`);
     expect(html).toContain('"@type":"WebSite"');
@@ -278,7 +278,7 @@ describe('generateRegionPageHtml', () => {
     const { mergeRegions } = await import('../../src/utils/regions.js');
     const tirol = mergeRegions(TIROL_ACTIVE).find((r: { id: string }) => r.id === 'tirol');
     const html = generateRegionPageHtml(tirol, 'directory', events, '/a.js', '/a.css');
-    expect(html).toContain('<title>Verzeichnis – Angebote in Tirol | The Tribe</title>');
+    expect(html).toContain('<title>Verzeichnis – Angebote in Tirol | Dein Tribe</title>');
     expect(html).toContain(`<link rel="canonical" href="${BASE_URL}/tirol/verzeichnis" />`);
     expect(html).not.toContain('application/ld+json');
   });
@@ -292,7 +292,7 @@ describe('event title suffix', () => {
     const one = mergeRegions([]);
     const [vbg, tirol] = events;
     expect(generateEventHtml(tirol, undefined, null, null, two)).toContain(
-      '<title>Meditation Kufstein | The Tribe Tirol</title>'
+      '<title>Meditation Kufstein | Dein Tribe Tirol</title>'
     );
     expect(generateEventHtml(tirol, undefined, null, null, one)).toContain(
       '<title>Meditation Kufstein | tribe Vorarlberg</title>'
@@ -386,7 +386,7 @@ describe('prerender() end-to-end with regions', () => {
       expect(fs.existsSync(path.join(distPath, p))).toBe(true);
     }
     const tirolHtml = fs.readFileSync(path.join(distPath, 'tirol', 'index.html'), 'utf8');
-    expect(tirolHtml).toContain('<title>Kalender | The Tribe Tirol</title>');
+    expect(tirolHtml).toContain('<title>Kalender | Dein Tribe Tirol</title>');
     expect(tirolHtml).not.toContain('geheim@example.com');
     // `/` stays the Vorarlberg page; only the multi-region hint for the app is added.
     expect(
@@ -400,7 +400,7 @@ describe('prerender() end-to-end with regions', () => {
     expect(sitemap).toContain('/tirol/verzeichnis</loc>');
     expect(
       fs.readFileSync(path.join(distPath, 'event', 'meditation-kufstein', 'index.html'), 'utf8')
-    ).toContain('| The Tribe Tirol</title>');
+    ).toContain('| Dein Tribe Tirol</title>');
     const manifest = JSON.parse(
       fs.readFileSync(path.join(distPath, 'prerender-manifest.json'), 'utf8')
     );

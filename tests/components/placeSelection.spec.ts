@@ -7,6 +7,9 @@ import {
   RADIUS_OPTIONS,
   PLACE_SELECTION_KEY,
   activeRadiusFilter,
+  inviteHomeRegionId,
+  invitePageRegionId,
+  regionPlaceSelection,
   normalizeSelection,
   readPlaceSelection,
   reconcileSelections,
@@ -208,5 +211,48 @@ describe('selectionLabel', () => {
   it('names place and radius', () => {
     expect(selectionLabel(normalizeSelection(bregenz))).toBe('Bregenz · 50 km');
     expect(selectionLabel(null)).toBe('');
+  });
+});
+
+describe('moderator invitation region (f9bhbyUo)', () => {
+  const withActive = (ids: string[]) =>
+    STATIC_REGIONS.map((r) => ({ ...r, active: ids.includes(r.id) }));
+
+  it('picks the invited region, preferring one the person already chose', () => {
+    expect(inviteHomeRegionId(['tirol'])).toBe('tirol');
+    expect(inviteHomeRegionId(['tirol'], { placeSelection: { ...bregenz } })).toBe('tirol');
+    expect(inviteHomeRegionId(['burgenland', 'tirol'], { lastRegion: 'tirol' })).toBe('tirol');
+    expect(
+      inviteHomeRegionId(['burgenland', 'vorarlberg'], {
+        placeSelection: { ...bregenz },
+        lastRegion: 'burgenland',
+      })
+    ).toBe('vorarlberg');
+    expect(inviteHomeRegionId([])).toBeNull();
+    expect(inviteHomeRegionId(['gibts-nicht'])).toBeNull();
+  });
+
+  it('shows an inactive invited region only with two active regions (dark launch)', () => {
+    expect(invitePageRegionId('tirol', withActive(['vorarlberg', 'tirol']))).toBe('tirol');
+    expect(invitePageRegionId('tirol', withActive(['vorarlberg', 'burgenland']))).toBe('tirol');
+    expect(invitePageRegionId('tirol', withActive(['vorarlberg']))).toBeNull();
+    expect(invitePageRegionId('vorarlberg', withActive(['vorarlberg']))).toBe('vorarlberg');
+    expect(invitePageRegionId(null, withActive(['vorarlberg', 'tirol']))).toBeNull();
+  });
+
+  it('builds a whole-region place selection that keeps the radius', () => {
+    const entry = { kind: 'region', name: 'Tirol', lat: 47.2534, lon: 11.4, regionId: 'tirol' };
+    expect(regionPlaceSelection(entry, { ...bregenz, radiusKm: 10 })).toEqual({
+      label: 'Tirol',
+      lat: 47.253,
+      lon: 11.4,
+      radiusKm: 10,
+      regionId: 'tirol',
+      source: 'search',
+      updatedAt: 1000,
+    });
+    expect(regionPlaceSelection(entry)?.radiusKm).toBe(DEFAULT_RADIUS_KM);
+    expect(regionPlaceSelection({ ...entry, kind: 'place' })).toBeNull();
+    expect(regionPlaceSelection(undefined)).toBeNull();
   });
 });

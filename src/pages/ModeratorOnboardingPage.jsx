@@ -4,6 +4,15 @@ import { httpsCallable } from 'firebase/functions';
 import { MailOpen, PartyPopper } from 'lucide-react';
 import { functions } from '../lib/firebase';
 import { useAuth } from '../hooks/useAuth';
+import { usePageRegionContext, useRegion } from '../hooks/useRegion';
+import { buildRegionEntries, loadPlaceIndex } from '../lib/placeData';
+import { getRegionBySlug } from '../utils/regions';
+import { readLastRegion } from '../utils/regionRouting';
+import {
+  inviteHomeRegionId,
+  invitePageRegionId,
+  regionPlaceSelection,
+} from '../utils/placeSelection';
 import SeoMeta from '../components/SeoMeta';
 import ModeratorOnboardingWizard from '../components/ModeratorOnboardingWizard';
 import {
@@ -37,6 +46,14 @@ export default function ModeratorOnboardingPage() {
   const [invite, setInvite] = useState(null);
   const [loadError, setLoadError] = useState(null);
   const [accepted, setAccepted] = useState(false);
+  const { allRegions, placeSelection, setPlaceSelection, rememberRegion } = useRegion();
+  // The region the invitation is for (Trello f9bhbyUo): the page shows its header and texts,
+  // and accepting makes it the person's own region, so nothing stale (an older place, the
+  // last region of this browser or profile) shows another region afterwards.
+  const homeRegionId = invite
+    ? inviteHomeRegionId(invite.regionIds, { placeSelection, lastRegion: readLastRegion() })
+    : null;
+  usePageRegionContext(invitePageRegionId(homeRegionId, allRegions));
 
   const load = useCallback(async () => {
     setLoadError(null);
@@ -182,6 +199,23 @@ export default function ModeratorOnboardingPage() {
     );
   }
 
+  // A remembered place in another region is replaced by the invited region (kept radius);
+  // it is mirrored to the profile like any other choice. A failed place-list load only
+  // leaves the place as it was.
+  const adoptHomeRegion = async () => {
+    if (!homeRegionId) return;
+    rememberRegion(homeRegionId);
+    if (!placeSelection || placeSelection.regionId === homeRegionId) return;
+    const region = getRegionBySlug(homeRegionId, allRegions);
+    try {
+      const [entry] = buildRegionEntries(await loadPlaceIndex(), region ? [region] : []);
+      const selection = regionPlaceSelection(entry, placeSelection);
+      if (selection) setPlaceSelection(selection);
+    } catch (err) {
+      console.warn('Region of the invitation not remembered:', err);
+    }
+  };
+
   const accept = async ({ consents, signatureName }) => {
     await httpsCallable(
       functions,
@@ -192,6 +226,7 @@ export default function ModeratorOnboardingPage() {
       signatureName,
       textVersion: MODERATOR_ONBOARDING_TEXT_VERSION,
     });
+    await adoptHomeRegion();
     setAccepted(true);
   };
 

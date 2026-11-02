@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 const updateDocMock = vi.fn();
 const docMock = vi.fn((...args: unknown[]) => args);
 vi.mock('firebase/firestore', () => ({
@@ -14,6 +14,7 @@ import InstagramPostPreview, {
   formatPreviewDate,
   formatPreviewOrganizer,
 } from '../../src/components/InstagramPostPreview';
+import { flushInstagramCropDrafts } from '../../src/lib/instagramCropDrafts';
 
 const event = {
   title: 'Morgen-Yoga',
@@ -204,6 +205,22 @@ describe('AdminInstagramPreview crop editing', () => {
     expect(saved.focalPoint.x).toBe(0.1);
     expect(saved.focalPoint.y).toBeCloseTo(0.4, 5);
     expect(saved.zoom).toBe(1);
+  });
+
+  it('approval saves an adjusted crop that was not saved explicitly', async () => {
+    updateDocMock.mockResolvedValue(undefined);
+    const onCropSaved = vi.fn();
+    render(<AdminInstagramPreview event={base} isAdmin onCropSaved={onCropSaved} />);
+    fireEvent.click(screen.getByTestId('admin-instagram-crop-edit'));
+    // Nothing to write while the crop is unchanged.
+    await flushInstagramCropDrafts('ev1');
+    expect(updateDocMock).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByTestId('admin-instagram-zoom'), { target: { value: '2' } });
+    await act(() => flushInstagramCropDrafts('ev1'));
+    expect(updateDocMock.mock.calls[0][1]).toEqual({
+      instagramImage: { url: 'https://x/ig.jpg', focalPoint: { x: 0.1, y: 0.9 }, zoom: 2 },
+    });
+    expect(onCropSaved).toHaveBeenCalled();
   });
 
   it('keeps the text overlay inside the draggable preview', () => {

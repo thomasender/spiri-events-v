@@ -10,13 +10,13 @@
 //   header        "Dein <demonym> Kalender"          (Vorarlberger / Tiroler / steirischer ...)
 //   hero          "... weitere Veranstaltungen <inPhrase>."   (locationPhrase)
 //   feature       "Für <forPhrase> und Umkreis"
-//   page title    "Kalender | The Tribe <Region>"    (legacy: "Kalender | tribe Vorarlberg")
+//   page title    "Kalender | Dein Tribe <Region>"    (legacy: "Kalender | tribe Vorarlberg")
 //   directory     "Verzeichnis – Angebote <inPhrase>"
-// The brand in region mode is "The Tribe"; the legal entity "tribe Vorarlberg"
+// The brand in region mode is "Dein Tribe"; the legal entity "tribe Vorarlberg"
 // (LEGACY_SITE_NAME) is never replaced. Combined views (COMBINED_VIEW_TEXTS):
 // "österreichischer" / "deutscher" / "Schweizer", "Für Österreich und Umkreis";
 // "Alle Tribes" has no place or adjective ("Dein Kalender",
-// "in allen Regionen", title "Kalender | The Tribe").
+// "in allen Regionen", title "Kalender | Dein Tribe").
 //
 // Config wins: `region.seo.title` / `region.seo.description` (from
 // `regions/{id}`) replace the generated texts, but only in region-specific
@@ -32,6 +32,9 @@ export const LEGACY_DEFAULT_DESCRIPTION =
 export const LEGACY_CALENDAR_DESCRIPTION =
   'Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg - Bregenz, Dornbirn, Feldkirch, Bludenz, Umgebung';
 
+// Page title of the home/calendar page while Vorarlberg is the only active region.
+export const LEGACY_CALENDAR_TITLE = 'Dein Tribe';
+
 const str = (v) => (typeof v === 'string' && v.trim() ? v.trim() : '');
 
 export function isRegionSpecific(region, { activeCount = 1, national = false } = {}) {
@@ -42,7 +45,7 @@ export function isRegionSpecific(region, { activeCount = 1, national = false } =
 
 // Wording of the combined views (plus the coming-soon page texts; `liveHint` only for
 // countries that are not live yet: what has to happen before they can go live). `label` ends up in the page title ("Kalender |
-// The Tribe <label>"; empty = just the brand), `demonym` in the header (empty =
+// Dein Tribe <label>"; empty = just the brand), `demonym` in the header (empty =
 // "Dein Kalender"), `forPhrase` in "Für <forPhrase> und
 // Umkreis" (empty = "Für alle Regionen").
 const COMBINED_VIEW_TEXTS = {
@@ -97,8 +100,8 @@ function legacyTexts() {
     headerTitle: 'Dein Vorarlberger Kalender',
     locationPhrase: 'in Vorarlberg',
     nearbyText: 'Für Vorarlberg und Umkreis',
-    calendarTitle: 'Kalender',
-    calendarTitleExact: false,
+    calendarTitle: LEGACY_CALENDAR_TITLE,
+    calendarTitleExact: true,
     calendarDescription: LEGACY_CALENDAR_DESCRIPTION,
     defaultDescription: LEGACY_DEFAULT_DESCRIPTION,
     directoryTitle: 'Verzeichnis – Angebote in Vorarlberg',

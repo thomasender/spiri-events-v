@@ -1,14 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { Sparkles, X } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
 import { useOnboardingAccess } from '../hooks/useChatSettings';
+import { useRegion } from '../hooks/useRegion';
+import { useRegionTexts } from '../hooks/useRegionTexts';
 import {
   isOnboardingDismissed,
   setOnboardingDismissed,
   shouldOfferOnboarding,
 } from '../utils/onboarding';
+import { getRegionBySlug, isRegionSlug } from '../utils/regions';
 import ProfileOnboarding from './ProfileOnboarding';
 import './ProfileOnboarding.css';
 
@@ -27,6 +30,18 @@ export default function ProfileOnboardingGate() {
 function GateInner({ user }) {
   const { profile, loading, save } = useProfile(user.uid);
   const { pathname } = useLocation();
+  // Dark launch: the region is only named once region wording is in effect.
+  const { region, allRegions, isNational } = useRegion();
+  const { regionSpecific } = useRegionTexts();
+  // `/admin/new?region=steiermark` is the event form of that region, even if it is not open yet:
+  // name it instead of the fallback region (bUcG9rBf).
+  const [searchParams] = useSearchParams();
+  const requested = searchParams.get('region');
+  const formRegion =
+    pathname === '/admin/new' && isRegionSlug(requested)
+      ? getRegionBySlug(requested, allRegions)
+      : null;
+  const regionName = regionSpecific && !isNational ? (formRegion ?? region)?.name : '';
   const [open, setOpen] = useState(false);
   const [bannerHidden, setBannerHidden] = useState(false);
   const autoChecked = useRef(false);
@@ -63,8 +78,8 @@ function GateInner({ user }) {
         <div className="onboarding-banner" role="status" data-testid="onboarding-banner">
           <Sparkles size={20} aria-hidden="true" />
           <p className="onboarding-banner-text">
-            Dein Profil ist noch nicht ganz fertig. Mit Foto und Beschreibung findet dich die
-            Community leichter.
+            Dein Profil ist noch nicht ganz fertig. Mit Foto und Beschreibung findet dich die{' '}
+            {regionName ? `${regionName} ` : ''}Community leichter.
           </p>
           <button
             type="button"

@@ -189,7 +189,7 @@ describe('buildCarouselCaption', () => {
     );
     const caption = buildCarouselCaption(group(events), WINDOW);
     expect(caption.length).toBeLessThanOrEqual(CAPTION_MAX_LENGTH);
-    expect(caption).toContain('…und mehr auf thetribe.at');
+    expect(caption).toContain('…und mehr auf www.deintribe.at');
     // The call to action is never what gets cut when the list is too long.
     expect(caption).toContain(CAPTION_CTA);
     expect(caption).toContain(BIO_LINK_LINE);

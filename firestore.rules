@@ -462,6 +462,32 @@ service cloud.firestore {
 
       allow update: if isModeratorReviewUpdate();
 
+      // While reviewing a pending event of her region, a moderator may adjust
+      // the Instagram crop (focal point + zoom, AdminInstagramPreview) of the
+      // photo already chosen (or the cover photo), nothing else.
+      function isModeratorInstagramCropUpdate() {
+        let before = resource.data;
+        let after = request.resource.data;
+        let changed = after.diff(before).affectedKeys();
+        let img = after.get('instagramImage', null);
+        return before.status == 'pending'
+          && isRegionModeratorFor(eventRegionId(before))
+          && changed.hasOnly(['instagramImage', 'updatedAt'])
+          && (!changed.hasAny(['updatedAt']) || after.updatedAt == request.time)
+          && img is map
+          && img.keys().hasOnly(['url', 'focalPoint', 'zoom'])
+          && img.url is string
+          && (img.url == before.get('imageUrl', null)
+              || img.url == before.get('instagramImage', {}).get('url', null))
+          && img.focalPoint is map
+          && img.focalPoint.keys().hasOnly(['x', 'y'])
+          && img.focalPoint.x is number && img.focalPoint.x >= 0 && img.focalPoint.x <= 1
+          && img.focalPoint.y is number && img.focalPoint.y >= 0 && img.focalPoint.y <= 1
+          && img.zoom is number && img.zoom >= 1 && img.zoom <= 3;
+      }
+
+      allow update: if isModeratorInstagramCropUpdate();
+
       allow delete: if isOwner() || isAdminOrEmulatorAdmin();
 
       match /messages/{messageId} {
@@ -1981,7 +2007,8 @@ service cloud.firestore {
     }
 
     // Income/expense ledger (admin tab "Finanzen"). Super-Admins only, no
-    // public access. Entries with `source == 'mollie'` are written by the
+    // public access. `attachments` lists the receipts (files live in Storage
+    // under ledger/{entryId}/, see storage.rules). Entries with `source == 'mollie'` are written by the
     // Cloud Function mollieWebhook (Admin SDK) for every paid donation and
     // can be edited or deleted like manual ones. `date` is a YYYY-MM-DD
     // string, `amount` is always positive; `type` decides the sign.
@@ -1998,7 +2025,9 @@ service cloud.firestore {
               || (data.category is string && data.category.size() <= 60))
           && (!('note' in data)
               || data.note == null
-              || (data.note is string && data.note.size() <= 500));
+              || (data.note is string && data.note.size() <= 500))
+          && (!('attachments' in data)
+              || (data.attachments is list && data.attachments.size() <= 10));
       }
 
       allow read: if isAdminOrEmulatorAdmin();
@@ -2006,7 +2035,7 @@ service cloud.firestore {
       allow create: if isAdminOrEmulatorAdmin()
                     && request.resource.data.keys().hasOnly([
                       'type', 'date', 'amount', 'description', 'category', 'note',
-                      'source', 'createdAt', 'updatedAt', 'createdBy',
+                      'attachments', 'source', 'createdAt', 'updatedAt', 'createdBy',
                     ])
                     && request.resource.data.source == 'manual'
                     && isValidLedgerEntry(request.resource.data);
@@ -2015,7 +2044,7 @@ service cloud.firestore {
                     && request.resource.data.diff(resource.data).affectedKeys()
                           .hasOnly([
                             'type', 'date', 'amount', 'description', 'category',
-                            'note', 'updatedAt',
+                            'note', 'attachments', 'updatedAt',
                           ])
                     && isValidLedgerEntry(request.resource.data);
 

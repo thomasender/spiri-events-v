@@ -9,7 +9,38 @@ export const DESCRIPTION_MAX = 200;
 export const CATEGORY_MAX = 60;
 export const NOTE_MAX = 500;
 
+export const ATTACHMENT_MAX_COUNT = 10;
+export const ATTACHMENT_MAX_BYTES = 10 * 1024 * 1024;
+const ATTACHMENT_TYPES = ['application/pdf'];
+
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Receipts are photos or PDFs, up to 10 MB. Returns a German message or null. */
+export function attachmentProblem(file) {
+  const type = String(file?.type ?? '');
+  if (!type.startsWith('image/') && !ATTACHMENT_TYPES.includes(type)) {
+    return `„${file?.name}“ ist kein Bild und kein PDF.`;
+  }
+  if (file.size > ATTACHMENT_MAX_BYTES) {
+    return `„${file.name}“ ist größer als 10 MB.`;
+  }
+  return null;
+}
+
+/** Storage path of a receipt; the name is made path-safe and unique. */
+export function attachmentPath(entryId, file, now = Date.now()) {
+  const safe =
+    String(file.name ?? 'beleg')
+      .normalize('NFKD')
+      .replace(/[^\w.-]+/g, '_')
+      .slice(-80) || 'beleg';
+  return `ledger/${entryId}/${now}_${safe}`;
+}
+
+export function formatFileSize(bytes) {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1).replace('.', ',')} MB`;
+}
 
 /** "12,50" / "1.234,50" / "12.5" -> 12.5, otherwise null. */
 export function parseLedgerAmount(input) {

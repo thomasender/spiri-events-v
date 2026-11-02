@@ -1,5 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, MessageSquare, ShieldCheck, Pencil, Trash2, ImageOff, Image } from 'lucide-react';
+import {
+  Send,
+  MessageSquare,
+  ShieldCheck,
+  Pencil,
+  Trash2,
+  ImageOff,
+  Image,
+  Ban,
+} from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useEventMessages } from '../hooks/useEventMessages';
 import { getStaffAccess, messageAuthorRole } from '../utils/staffRoles';
@@ -10,6 +19,8 @@ import {
   REJECTION_MESSAGE_KIND,
   REJECTION_TEMPLATES,
   buildRejectionTemplate,
+  latestStaffMessage,
+  rejectionReasonFromMessage,
 } from '../utils/rejectionTemplates';
 import './EventMessages.css';
 
@@ -54,6 +65,7 @@ export default function EventMessages({
   eventStatus = null,
   organizerName,
   onReady,
+  onReject,
 }) {
   const { user, role, staffRegionIds } = useAuth();
   const { messages, loading, sending, sendMessage, editMessage, deleteMessage, markAsRead } =
@@ -328,7 +340,7 @@ export default function EventMessages({
         {sendsAsRejection && (
           <p className="event-messages-rejection-hint" data-testid="event-message-rejection-hint">
             Diese Nachricht löst noch keine E-Mail aus. Die E-Mail mit diesem Grund geht erst raus,
-            wenn du das Event im Review ablehnst.
+            wenn du das Event ablehnst (Button „Ablehnen“ neben „Senden“).
           </p>
         )}
         {offersRejection && messageKind === REJECTION_MESSAGE_KIND && (
@@ -384,6 +396,21 @@ export default function EventMessages({
                 <span>Vorlage: Standardfoto</span>
               </button>
             </>
+          )}
+          {offersRejection && onReject && (
+            <button
+              type="button"
+              className="btn btn-subtle-danger btn-sm"
+              onClick={() =>
+                onReject(rejectionReasonFromMessage(latestStaffMessage(messages)?.text))
+              }
+              data-testid="event-message-reject"
+              aria-label="Ablehnen"
+              title="Ablehnen"
+            >
+              <Ban size={16} aria-hidden="true" />
+              <span>Ablehnen</span>
+            </button>
           )}
           <button
             type="submit"

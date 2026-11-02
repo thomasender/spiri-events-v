@@ -1674,6 +1674,38 @@ describe('region moderators', () => {
       await assertFails(updateDoc(ev('tirolPending'), { ...requestChanges(), slug: 'x-2' }));
     });
 
+    it('adjusts the Instagram crop of a pending event, but no photo or other field', async () => {
+      await env.withSecurityRulesDisabled(async (ctx) => {
+        const db = ctx.firestore();
+        await updateDoc(doc(db, 'events/tirolPending'), { imageUrl: 'https://x/cover.jpg' });
+        await updateDoc(doc(db, 'events/tirolApproved'), { imageUrl: 'https://x/cover.jpg' });
+        await updateDoc(doc(db, 'events/stPending'), { imageUrl: 'https://x/cover.jpg' });
+      });
+      const crop = (extra: Record<string, unknown> = {}) => ({
+        instagramImage: {
+          url: 'https://x/cover.jpg',
+          focalPoint: { x: 0.2, y: 0.7 },
+          zoom: 1.5,
+          ...extra,
+        },
+      });
+      await assertSucceeds(updateDoc(ev('tirolPending'), crop()));
+      // Keeps the photo the organizer picked for Instagram.
+      await env.withSecurityRulesDisabled((ctx) =>
+        updateDoc(doc(ctx.firestore(), 'events/tirolPending'), {
+          instagramImage: { url: 'https://x/ig.jpg', focalPoint: { x: 0.5, y: 0.5 }, zoom: 1 },
+        })
+      );
+      await assertSucceeds(updateDoc(ev('tirolPending'), crop({ url: 'https://x/ig.jpg' })));
+      await assertFails(updateDoc(ev('tirolPending'), crop({ url: 'https://evil/x.jpg' })));
+      await assertFails(updateDoc(ev('tirolPending'), crop({ zoom: 4 })));
+      await assertFails(updateDoc(ev('tirolPending'), crop({ focalPoint: { x: 2, y: 0 } })));
+      await assertFails(updateDoc(ev('tirolPending'), crop({ extra: 1 })));
+      await assertFails(updateDoc(ev('tirolPending'), { ...crop(), title: 'Neu' }));
+      await assertFails(updateDoc(ev('tirolApproved'), crop()));
+      await assertFails(updateDoc(ev('stPending'), crop()));
+    });
+
     it('cannot make transitions the review flow does not have', async () => {
       await assertFails(updateDoc(ev('tirolTrashed'), approve('modTirol')));
       await assertFails(
