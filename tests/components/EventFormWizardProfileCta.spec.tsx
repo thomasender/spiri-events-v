@@ -19,7 +19,9 @@ const mockNavigate = vi.fn();
 
 const mockConfetti = vi.hoisted(() => Object.assign(vi.fn(), { reset: vi.fn() }));
 
-vi.mock('canvas-confetti', () => ({ default: mockConfetti }));
+vi.mock('canvas-confetti', () => ({
+  default: Object.assign(vi.fn(), { create: () => mockConfetti }),
+}));
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');

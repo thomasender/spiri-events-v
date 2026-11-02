@@ -26,7 +26,10 @@ vi.mock('../src/lib/clubMembersStore', () => {
 
 // jsdom has no canvas: the confetti after submitting an event gets an inert stand-in.
 // Specs that test the confetti mock 'canvas-confetti' themselves.
-vi.mock('canvas-confetti', () => ({ default: Object.assign(vi.fn(), { reset: vi.fn() }) }));
+vi.mock('canvas-confetti', () => {
+  const confetti = Object.assign(vi.fn(), { reset: vi.fn() });
+  return { default: Object.assign(vi.fn(), { reset: vi.fn(), create: () => confetti }) };
+});
 
 // District colours come from a shared Firestore listener. Component tests get the code defaults
 // (and automatic colours); specs that test the hook or the editor mock it themselves.
