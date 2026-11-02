@@ -21,8 +21,8 @@ describe('regionTexts: one active region (dark launch)', () => {
       headerTitle: 'Dein Vorarlberger Kalender',
       locationPhrase: 'in Vorarlberg',
       nearbyText: 'Für Vorarlberg und Umkreis',
-      calendarTitle: 'Kalender',
-      calendarTitleExact: false,
+      calendarTitle: 'Dein Tribe',
+      calendarTitleExact: true,
       calendarDescription:
         'Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg - Bregenz, Dornbirn, Feldkirch, Bludenz, Umgebung',
       defaultDescription:
