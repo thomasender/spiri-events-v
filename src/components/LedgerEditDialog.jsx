@@ -46,6 +46,7 @@ export default function LedgerEditDialog({ open, mode, entry, categories = [], o
   const [submitting, setSubmitting] = useState(false);
   const [newFiles, setNewFiles] = useState([]);
   const [removed, setRemoved] = useState([]);
+  const [dragOver, setDragOver] = useState(false);
   const fileInput = useRef(null);
 
   useEffect(() => {
@@ -63,9 +64,8 @@ export default function LedgerEditDialog({ open, mode, entry, categories = [], o
   const existing = (entry?.attachments ?? []).filter((a) => !removed.includes(a.path));
   const attachmentCount = existing.length + newFiles.length;
 
-  function addFiles(event) {
-    const picked = [...event.target.files];
-    event.target.value = '';
+  function addFiles(picked) {
+    if (submitting || picked.length === 0) return;
     const problem = picked.map(attachmentProblem).find(Boolean);
     if (problem) return setError(problem);
     if (attachmentCount + picked.length > ATTACHMENT_MAX_COUNT) {
@@ -240,7 +240,22 @@ export default function LedgerEditDialog({ open, mode, entry, categories = [], o
             />
           </label>
 
-          <div className="donor-edit-dialog-field">
+          <div
+            className={`donor-edit-dialog-field ledger-edit-dropzone${dragOver ? ' is-dragover' : ''}`}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOver(true);
+            }}
+            onDragLeave={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(false);
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOver(false);
+              addFiles([...e.dataTransfer.files]);
+            }}
+            data-testid="ledger-edit-dropzone"
+          >
             <span className="donor-edit-dialog-label">Belege (optional)</span>
             {(existing.length > 0 || newFiles.length > 0) && (
               <ul className="ledger-edit-attachments" data-testid="ledger-edit-attachments">
@@ -285,7 +300,10 @@ export default function LedgerEditDialog({ open, mode, entry, categories = [], o
               accept="image/*,application/pdf"
               multiple
               hidden
-              onChange={addFiles}
+              onChange={(e) => {
+                addFiles([...e.target.files]);
+                e.target.value = '';
+              }}
               data-testid="ledger-edit-file-input"
             />
             <button
@@ -298,7 +316,9 @@ export default function LedgerEditDialog({ open, mode, entry, categories = [], o
               <Paperclip size={16} aria-hidden="true" />
               <span>Beleg hinzufügen</span>
             </button>
-            <span className="donor-edit-dialog-source-meta">Foto oder PDF, bis 10 MB</span>
+            <span className="donor-edit-dialog-source-meta">
+              Foto oder PDF, bis 10 MB – oder hierher ziehen
+            </span>
           </div>
 
           {error && (
