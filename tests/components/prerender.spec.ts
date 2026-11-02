@@ -290,7 +290,7 @@ describe('prerender.mjs helpers', () => {
       expect(html).toContain(`<meta property="og:image" content="${event.imageUrl}" />`);
       expect(html).toContain('<meta property="og:type" content="event" />');
       expect(html).toContain(`<meta name="twitter:image" content="${event.imageUrl}" />`);
-      expect(html).toContain('<title>Yoga Workshop | tribe Vorarlberg</title>');
+      expect(html).toContain('<title>Yoga Workshop | Dein Tribe</title>');
       expect(html).toContain('<link rel="canonical"');
     });
 

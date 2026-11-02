@@ -104,7 +104,7 @@ export function isoDay(ga: string): string {
 
 /** Strips the site suffix so "Morgen Yoga | tribe Vorarlberg" reads "Morgen Yoga". */
 export function cleanTitle(title: string): string {
-  const t = title.replace(/\s*\|\s*tribe Vorarlberg\s*$/i, '').trim();
+  const t = title.replace(/\s*\|\s*(?:tribe Vorarlberg|Dein Tribe(?: [^|]*)?)\s*$/i, '').trim();
   return t || '(ohne Titel)';
 }
 

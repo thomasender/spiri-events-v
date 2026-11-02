@@ -4,6 +4,9 @@
 region activation, region emails, SEO/ICS/analytics per region, or add a region.
 Linked from `AGENTS.md`. Production migration and staging: [staging-migration.md](./staging-migration.md).
 
+Every page title (browser tab, OG/Twitter title) carries the brand "Dein Tribe", also in
+Vorarlberg-only mode: `SeoMeta` and `scripts/prerender.mjs` use `BRAND_NAME` as the suffix.
+
 The platform started as "tribe Vorarlberg"; the regions epic prepares 133 regions of
 Austria (9 Bundesländer), Germany (104 regions over the 400 Landkreise and kreisfreie
 Städte), Switzerland (19 regions, some cantons grouped: Innerschweiz, Basel, Appenzell) and

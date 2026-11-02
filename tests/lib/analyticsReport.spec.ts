@@ -55,6 +55,8 @@ describe('helpers', () => {
   it('cleanTitle drops the site suffix and never returns empty', () => {
     expect(cleanTitle('Morgen Yoga | tribe Vorarlberg')).toBe('Morgen Yoga');
     expect(cleanTitle('Kalender | tribe Vorarlberg')).toBe('Kalender');
+    expect(cleanTitle('Morgen Yoga | Dein Tribe')).toBe('Morgen Yoga');
+    expect(cleanTitle('Morgen Yoga | Dein Tribe Tirol')).toBe('Morgen Yoga');
     expect(cleanTitle('')).toBe('(ohne Titel)');
     expect(cleanTitle(' | tribe Vorarlberg')).toBe('(ohne Titel)');
   });
