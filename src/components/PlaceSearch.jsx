@@ -11,11 +11,14 @@ import './PlaceSearch.css';
  * list and a second Escape clears the field. A live region tells screen readers how many
  * suggestions there are. Finds places (Orte / Gemeinden) and regions ("Allgäu").
  * `index`: the prepared place list (null while it loads), `regionEntries`: the regions.
+ * `onNeedIndex`: called when the person starts using the field (focus, typing, and as an
+ * early hint on hover / touch), so the parent loads the place list only then.
  */
 export default function PlaceSearch({
   index,
   regionEntries,
   onChoose,
+  onNeedIndex,
   label = 'Ort oder Region',
   placeholder,
 }) {
@@ -111,7 +114,11 @@ export default function PlaceSearch({
           aria-controls={listId}
           aria-activedescendant={expanded && active >= 0 ? optionId(active) : undefined}
           value={query}
+          onFocus={onNeedIndex}
+          onPointerEnter={onNeedIndex}
+          onTouchStart={onNeedIndex}
           onChange={(e) => {
+            onNeedIndex?.();
             setQuery(e.target.value);
             setOpen(true);
             setActive(-1);

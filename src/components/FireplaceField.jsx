@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Flame } from 'lucide-react';
-import { loadPlaceIndex } from '../lib/placeData';
+import { usePlaceIndexOnDemand } from '../hooks/usePlaceIndexOnDemand';
 import { normalizeFireplace } from '../utils/profile';
 import PlaceSearch from './PlaceSearch';
 import './FireplaceField.css';
@@ -10,7 +10,7 @@ import './FireplaceField.css';
  * same place search as "Wo bist du?" (places only, no regions) and independent of the
  * directory regions. `fireplace` is `{ label, lat, lon }` or null, `visible` the switch that
  * decides whether others see the place NAME (default off). The place list is only loaded
- * once the search is shown.
+ * once the search field is used (focus / typing), not when the profile opens.
  */
 export default function FireplaceField({
   fireplace,
@@ -20,20 +20,8 @@ export default function FireplaceField({
   idPrefix,
 }) {
   const [changing, setChanging] = useState(false);
-  const [index, setIndex] = useState(null);
-  const [failed, setFailed] = useState(false);
+  const { index, failed, request: requestIndex } = usePlaceIndexOnDemand();
   const searching = !fireplace || changing;
-
-  useEffect(() => {
-    if (!searching || index) return undefined;
-    let alive = true;
-    loadPlaceIndex()
-      .then((loaded) => alive && setIndex(loaded))
-      .catch(() => alive && setFailed(true));
-    return () => {
-      alive = false;
-    };
-  }, [searching, index]);
 
   const choose = (entry) => {
     const next = normalizeFireplace({ label: entry.name, lat: entry.lat, lon: entry.lon });
@@ -85,6 +73,7 @@ export default function FireplaceField({
             index={index}
             regionEntries={[]}
             onChoose={choose}
+            onNeedIndex={requestIndex}
             label="Ort suchen"
             placeholder="z. B. Dornbirn"
           />
