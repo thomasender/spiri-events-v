@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '../lib/firebase';
+import { callable } from '../lib/firebase';
 
 // Anonymous number of users who saved the event as favorite. The callable only
 // answers the organizer and admins; for everyone else `enabled` stays false.
@@ -10,10 +9,7 @@ export function useEventFavoriteCount(eventId, enabled) {
   useEffect(() => {
     if (!enabled || !eventId) return undefined;
     let cancelled = false;
-    httpsCallable(
-      functions,
-      'getEventFavoriteCount'
-    )({ eventId })
+    callable('getEventFavoriteCount')({ eventId })
       .then((result) => {
         if (!cancelled) setCount(result.data?.count ?? null);
       })
