@@ -8,8 +8,7 @@ import {
   setDoc,
   updateDoc,
 } from 'firebase/firestore';
-import { deleteObject, getDownloadURL, ref, uploadBytes } from 'firebase/storage';
-import { db, storage } from '../lib/firebase';
+import { db, getStorageInstance } from '../lib/firebase';
 import { useAuth } from './useAuth';
 import {
   ATTACHMENT_MAX_COUNT,
@@ -18,7 +17,11 @@ import {
   validateLedgerFields,
 } from '../utils/ledger';
 
+// The Storage SDK is loaded on first use (lib/firebase.js).
+const loadStorageSdk = () => Promise.all([import('firebase/storage'), getStorageInstance()]);
+
 async function uploadAttachments(entryId, files) {
+  const [{ ref, uploadBytes }, storage] = await loadStorageSdk();
   const uploaded = [];
   try {
     for (const file of files) {
@@ -37,6 +40,7 @@ async function uploadAttachments(entryId, files) {
 
 // Best effort: a leftover file is harmless, a failed cleanup must not block the books.
 async function removeFiles(paths) {
+  const [{ ref, deleteObject }, storage] = await loadStorageSdk();
   await Promise.all(
     paths.map((path) =>
       deleteObject(ref(storage, path)).catch((err) => console.warn('ledger file cleanup:', err))
@@ -45,7 +49,8 @@ async function removeFiles(paths) {
 }
 
 /** Short-lived access to one receipt (the storage rules admit Super-Admins only). */
-export function attachmentUrl(attachment) {
+export async function attachmentUrl(attachment) {
+  const [{ ref, getDownloadURL }, storage] = await loadStorageSdk();
   return getDownloadURL(ref(storage, attachment.path));
 }
 

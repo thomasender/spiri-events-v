@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { bezirkLabel } from '../utils/regions';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
 import {
   Archive,
   AlertTriangle,
@@ -13,7 +12,7 @@ import {
   Send,
   SkipForward,
 } from 'lucide-react';
-import { db, functions } from '../lib/firebase';
+import { db, callable } from '../lib/firebase';
 import { useAuth } from '../hooks/useAuth';
 import ConfirmDialog from './ConfirmDialog';
 import {
@@ -219,7 +218,7 @@ export default function InstagramTab() {
     setError(null);
     setMessage(null);
     try {
-      const result = await httpsCallable(functions, callableName, { timeout: 540000 })({
+      const result = await callable(callableName, { timeout: 540000 })({
         eventId: post.eventId,
         ...extra,
       });
@@ -242,7 +241,7 @@ export default function InstagramTab() {
     setError(null);
     setMessage(null);
     try {
-      const result = await httpsCallable(functions, 'adminPreviewWeeklyCarousels')();
+      const result = await callable('adminPreviewWeeklyCarousels')();
       setPreview(result?.data ?? null);
     } catch (err) {
       console.error('adminPreviewWeeklyCarousels failed:', err?.code, err?.message);
@@ -257,7 +256,7 @@ export default function InstagramTab() {
     setError(null);
     setMessage(null);
     try {
-      const result = await httpsCallable(functions, 'adminPostWeeklyCarousels', {
+      const result = await callable('adminPostWeeklyCarousels', {
         timeout: 540000,
       })();
       const data = result?.data;

@@ -28,7 +28,15 @@ vi.mock('../../src/hooks/useInstagramAdmin', () => ({
   }),
   useUnpostedConsentEvents: () => ({ events: state.unposted, loading: false, error: null }),
 }));
-vi.mock('../../src/lib/firebase', () => ({ db: {}, functions: {} }));
+vi.mock('../../src/lib/firebase', async () => {
+  // lib/firebase loads the Functions SDK on first call; here it is the mock below.
+  const { httpsCallable } = await import('firebase/functions');
+  return {
+    db: {},
+    callable: (name: string, options?: unknown) => (data?: unknown) =>
+      httpsCallable({} as never, name, options as never)(data as never),
+  };
+});
 vi.mock('firebase/firestore', () => ({
   doc: (_db: unknown, ...path: string[]) => path.join('/'),
   setDoc: (...args: unknown[]) => state.setDoc(...args),

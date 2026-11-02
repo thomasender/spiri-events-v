@@ -5,8 +5,15 @@
  * small WebP thumbnail (events/{eventId}/thumb_{timestamp}_{filename}) for tiles.
  */
 
-import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
-import { storage } from './firebase';
+import { getStorageInstance } from './firebase';
+
+// The Storage SDK is only loaded on the first upload or delete, not with the first page.
+const loadStorageSdk = () => Promise.all([import('firebase/storage'), getStorageInstance()]);
+
+async function storageRefAt(path) {
+  const [{ ref }, storage] = await loadStorageSdk();
+  return ref(storage, path);
+}
 
 const LANDSCAPE_RATIO = 16 / 9;
 const PORTRAIT_RATIO = 9 / 16;
@@ -181,8 +188,8 @@ export async function deleteImageByUrl(downloadUrl) {
   const path = getStoragePathFromUrl(downloadUrl);
   if (!path) return;
   try {
-    const storageRef = ref(storage, path);
-    await deleteObject(storageRef);
+    const [{ ref, deleteObject }, storage] = await loadStorageSdk();
+    await deleteObject(ref(storage, path));
   } catch (err) {
     if (err?.code !== 'storage/object-not-found') {
       console.warn('Failed to delete image from storage:', err);
@@ -212,7 +219,7 @@ export async function uploadImage(file, options = {}) {
   const compressedBlob = await compressImage(file);
   const safeName = sanitizeFilename(file.name);
   const filename = `${Date.now()}_${safeName}`;
-  const storageRef = ref(storage, `events/${eventId}/${filename}`);
+  const storageRef = await storageRefAt(`events/${eventId}/${filename}`);
 
   return uploadCompressedBlob(compressedBlob, storageRef, onProgress);
 }
@@ -239,7 +246,7 @@ export async function uploadEventCover(file, options = {}) {
   const filename = `${Date.now()}_${sanitizeFilename(file.name)}`;
   const url = await uploadCompressedBlob(
     compressedBlob,
-    ref(storage, `events/${eventId}/${filename}`),
+    await storageRefAt(`events/${eventId}/${filename}`),
     onProgress
   );
 
@@ -253,7 +260,7 @@ export async function uploadEventCover(file, options = {}) {
     });
     thumbUrl = await uploadCompressedBlob(
       thumbBlob,
-      ref(storage, `events/${eventId}/${THUMB_PREFIX}${filename}`)
+      await storageRefAt(`events/${eventId}/${THUMB_PREFIX}${filename}`)
     );
   } catch (err) {
     console.warn('Thumbnail upload failed, tiles will use the full image:', err);
@@ -277,7 +284,7 @@ export async function uploadProfileImage(file, uid, options = {}) {
   const compressedBlob = await compressImage(file, AVATAR_OPTIONS);
   const safeName = sanitizeFilename(file.name);
   const filename = `${Date.now()}_${safeName}`;
-  const photoRef = ref(storage, `users/${uid}/avatar/${filename}`);
+  const photoRef = await storageRefAt(`users/${uid}/avatar/${filename}`);
 
   return uploadCompressedBlob(compressedBlob, photoRef, onProgress);
 }
@@ -296,7 +303,7 @@ export async function uploadHelperImage(file, options = {}) {
   const compressedBlob = await compressImage(file, AVATAR_OPTIONS);
   const safeName = sanitizeFilename(file.name);
   const filename = `${Date.now()}_${safeName}`;
-  const helperImageRef = ref(storage, `helpers/photos/${filename}`);
+  const helperImageRef = await storageRefAt(`helpers/photos/${filename}`);
 
   return uploadCompressedBlob(compressedBlob, helperImageRef, onProgress);
 }
@@ -316,7 +323,7 @@ export async function uploadRegionImage(file, regionId, options = {}) {
   const compressedBlob = await compressImage(file);
   const safeName = sanitizeFilename(file.name);
   const filename = `${Date.now()}_${safeName}`;
-  const regionImageRef = ref(storage, `regions/${regionId}/${filename}`);
+  const regionImageRef = await storageRefAt(`regions/${regionId}/${filename}`);
 
   return uploadCompressedBlob(compressedBlob, regionImageRef, onProgress);
 }
@@ -337,7 +344,7 @@ export async function uploadFeedbackScreenshot(file, feedbackId, options = {}) {
   const compressedBlob = await compressImage(file);
   const safeName = sanitizeFilename(file.name);
   const filename = `${Date.now()}_${safeName}`;
-  const screenshotRef = ref(storage, `feedback/${feedbackId}/${filename}`);
+  const screenshotRef = await storageRefAt(`feedback/${feedbackId}/${filename}`);
 
   return uploadCompressedBlob(compressedBlob, screenshotRef, onProgress);
 }
@@ -360,7 +367,7 @@ export async function uploadDescriptionImage(file, eventId = 'temp', options = {
   const compressedBlob = await compressImage(file);
   const safeName = sanitizeFilename(file.name);
   const filename = `${Date.now()}_${safeName}`;
-  const descriptionRef = ref(storage, `event-descriptions/${eventId}/${filename}`);
+  const descriptionRef = await storageRefAt(`event-descriptions/${eventId}/${filename}`);
 
   return uploadCompressedBlob(compressedBlob, descriptionRef, onProgress);
 }
@@ -384,12 +391,13 @@ export async function uploadProfileDescriptionImage(file, uid = 'temp', options 
   const compressedBlob = await compressImage(file);
   const safeName = sanitizeFilename(file.name);
   const filename = `${Date.now()}_${safeName}`;
-  const bioImageRef = ref(storage, `users/${uid}/bio/${filename}`);
+  const bioImageRef = await storageRefAt(`users/${uid}/bio/${filename}`);
 
   return uploadCompressedBlob(compressedBlob, bioImageRef, onProgress);
 }
 
-function uploadCompressedBlob(blob, storageRef, onProgress) {
+async function uploadCompressedBlob(blob, storageRef, onProgress) {
+  const [{ uploadBytesResumable, getDownloadURL }] = await loadStorageSdk();
   return new Promise((resolve, reject) => {
     const uploadTask = uploadBytesResumable(storageRef, blob, {
       contentType: blob.type || 'image/jpeg',

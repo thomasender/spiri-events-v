@@ -7,7 +7,7 @@ vi.mock('firebase/storage', () => ({
   getDownloadURL: async (r: { fullPath: string }) => `https://dl/${r.fullPath}`,
   deleteObject: vi.fn(),
 }));
-vi.mock('../../src/lib/firebase', () => ({ storage: {} }));
+vi.mock('../../src/lib/firebase', () => ({ getStorageInstance: async () => ({}) }));
 
 import { uploadEventCover, uploadProfileImage } from '../../src/lib/imageUpload';
 

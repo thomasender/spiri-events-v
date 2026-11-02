@@ -1,5 +1,4 @@
-import { httpsCallable } from 'firebase/functions';
-import { functions } from './firebase';
+import { callable } from './firebase';
 import { compressImage } from './imageUpload';
 
 // Limits mirror functions/src/moderatorApplication.ts.
@@ -44,10 +43,7 @@ function blobToBase64(blob) {
  */
 export async function sendModeratorApplication({ name, email, message, regionId, photo, website }) {
   const photoBase64 = photo ? await blobToBase64(await compressImage(photo)) : '';
-  const result = await httpsCallable(
-    functions,
-    'submitModeratorApplication'
-  )({
+  const result = await callable('submitModeratorApplication')({
     name: name.trim(),
     email: email.trim(),
     message: message.trim(),

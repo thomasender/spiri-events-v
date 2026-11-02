@@ -1,5 +1,4 @@
-import { getFunctions, httpsCallable, connectFunctionsEmulator } from 'firebase/functions';
-import app from './firebase';
+import { callable } from './firebase';
 import {
   MIN_DONATION_AMOUNT,
   DONATION_AMOUNT_PRESETS,
@@ -9,15 +8,10 @@ import {
 export { MIN_DONATION_AMOUNT, DONATION_AMOUNT_PRESETS, isValidDonationAmount };
 export { parseDonationAmount } from './donationValidation';
 
-const useEmulators = import.meta.env.VITE_USE_EMULATORS === 'true';
-const functions = getFunctions(app, 'europe-west3');
-
-if (useEmulators) {
-  connectFunctionsEmulator(functions, 'localhost', 5001);
-}
-
-const createSubscription = httpsCallable(functions, 'createMollieSubscription');
-const createPayment = httpsCallable(functions, 'createMolliePayment');
+// Same Functions instance as everywhere else (lib/firebase.js, emulator included), loaded on
+// the first donation.
+const createSubscription = callable('createMollieSubscription');
+const createPayment = callable('createMolliePayment');
 
 function assertValidAmount(amount) {
   if (!isValidDonationAmount(amount)) {

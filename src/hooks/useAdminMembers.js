@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '../lib/firebase';
+import { callable } from '../lib/firebase';
 
 // Admin-only member list. E-Mail addresses live in Firebase Auth, so the data
 // comes from a callable Cloud Function that re-checks the admin role itself.
@@ -13,7 +12,7 @@ export function useAdminMembers(enabled) {
     setLoading(true);
     setError(null);
     try {
-      const result = await httpsCallable(functions, 'adminListMembers')();
+      const result = await callable('adminListMembers')();
       setMembers(result.data?.members ?? []);
     } catch (err) {
       console.error('Loading members failed:', err);
@@ -28,7 +27,7 @@ export function useAdminMembers(enabled) {
   }, [enabled, load]);
 
   const updateMember = useCallback(async (uid, changes) => {
-    await httpsCallable(functions, 'adminUpdateMember')({ uid, changes });
+    await callable('adminUpdateMember')({ uid, changes });
     setMembers((prev) => prev.map((m) => (m.uid === uid ? { ...m, ...changes } : m)));
   }, []);
 

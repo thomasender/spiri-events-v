@@ -25,7 +25,14 @@ const state = vi.hoisted(() => ({
   inviteEmailSent: true,
 }));
 
-vi.mock('../../src/lib/firebase', () => ({ functions: {} }));
+vi.mock('../../src/lib/firebase', async () => {
+  // lib/firebase loads the Functions SDK on first call; here it is the mock below.
+  const { httpsCallable } = await import('firebase/functions');
+  return {
+    callable: (name: string, options?: unknown) => (data?: unknown) =>
+      httpsCallable({} as never, name, options as never)(data as never),
+  };
+});
 vi.mock('firebase/functions', () => ({
   httpsCallable: (_fns: unknown, name: string) => async (data: unknown) => {
     if (name === 'adminListRegionModerators') return { data: { moderators: state.moderators } };

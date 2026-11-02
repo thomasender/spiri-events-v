@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { httpsCallable } from 'firebase/functions';
 import { MailOpen, PartyPopper } from 'lucide-react';
-import { functions } from '../lib/firebase';
+import { callable } from '../lib/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { usePageRegionContext, useRegion } from '../hooks/useRegion';
 import { buildRegionEntries, loadPlaceIndex } from '../lib/placeData';
@@ -58,7 +57,7 @@ export default function ModeratorOnboardingPage() {
   const load = useCallback(async () => {
     setLoadError(null);
     try {
-      const result = await httpsCallable(functions, 'getModeratorInvite')({ token });
+      const result = await callable('getModeratorInvite')({ token });
       setInvite(result.data);
     } catch (err) {
       console.error('Loading the invitation failed:', err);
@@ -217,10 +216,7 @@ export default function ModeratorOnboardingPage() {
   };
 
   const accept = async ({ consents, signatureName }) => {
-    await httpsCallable(
-      functions,
-      'acceptModeratorInvite'
-    )({
+    await callable('acceptModeratorInvite')({
       token,
       consents,
       signatureName,

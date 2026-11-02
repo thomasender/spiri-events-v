@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '../lib/firebase';
+import { callable } from '../lib/firebase';
 
 // Admin-only GA4 report. The numbers come from a callable Cloud Function that
 // re-checks the admin role and talks to the Google Analytics Data API itself.
@@ -13,10 +12,7 @@ export function useAdminAnalytics(days, region = null, enabled = true, host = nu
     setLoading(true);
     setError(null);
     try {
-      const result = await httpsCallable(
-        functions,
-        'adminAnalyticsReport'
-      )({
+      const result = await callable('adminAnalyticsReport')({
         days,
         ...(region ? { region } : {}),
         ...(host ? { host } : {}),

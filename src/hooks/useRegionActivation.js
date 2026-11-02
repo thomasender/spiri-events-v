@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '../lib/firebase';
+import { callable } from '../lib/firebase';
 import { refreshRegions } from './useRegions';
 
 /**
@@ -20,7 +19,7 @@ export function useRegionActivation(enabled) {
     setLoading(true);
     setError(null);
     try {
-      const result = await httpsCallable(functions, 'adminListRegionActivation')();
+      const result = await callable('adminListRegionActivation')();
       setStatuses(result.data?.regions ?? []);
       if (typeof result.data?.minUpcomingEvents === 'number') {
         setMinUpcomingEvents(result.data.minUpcomingEvents);
@@ -39,10 +38,7 @@ export function useRegionActivation(enabled) {
 
   const setActive = useCallback(
     async (regionId, active, override = false) => {
-      const result = await httpsCallable(
-        functions,
-        'adminSetRegionActive'
-      )({ regionId, active, override });
+      const result = await callable('adminSetRegionActive')({ regionId, active, override });
       await Promise.all([refreshRegions(), load()]);
       return result.data;
     },
