@@ -237,8 +237,3 @@
   border: 1px dashed var(--border);
   border-radius: var(--radius-sm);
 }
-
-.ledger-edit-dropzone.is-dragover {
-  background-color: var(--bg-calendar);
-  border-color: var(--accent-primary);
-}

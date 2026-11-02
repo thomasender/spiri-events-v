@@ -9,6 +9,7 @@ import {
   formatFileSize,
 } from '../utils/ledger';
 import LedgerAttachmentLink from './LedgerAttachmentLink';
+import FileDropZone from './FileDropZone';
 import './DonorEditDialog.css';
 
 function todayVienna() {
@@ -46,7 +47,6 @@ export default function LedgerEditDialog({ open, mode, entry, categories = [], o
   const [submitting, setSubmitting] = useState(false);
   const [newFiles, setNewFiles] = useState([]);
   const [removed, setRemoved] = useState([]);
-  const [dragOver, setDragOver] = useState(false);
   const fileInput = useRef(null);
 
   useEffect(() => {
@@ -240,20 +240,11 @@ export default function LedgerEditDialog({ open, mode, entry, categories = [], o
             />
           </label>
 
-          <div
-            className={`donor-edit-dialog-field ledger-edit-dropzone${dragOver ? ' is-dragover' : ''}`}
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragOver(true);
-            }}
-            onDragLeave={(e) => {
-              if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(false);
-            }}
-            onDrop={(e) => {
-              e.preventDefault();
-              setDragOver(false);
-              addFiles([...e.dataTransfer.files]);
-            }}
+          <FileDropZone
+            className="donor-edit-dialog-field ledger-edit-dropzone"
+            multiple
+            disabled={submitting}
+            onFiles={addFiles}
             data-testid="ledger-edit-dropzone"
           >
             <span className="donor-edit-dialog-label">Belege (optional)</span>
@@ -319,7 +310,7 @@ export default function LedgerEditDialog({ open, mode, entry, categories = [], o
             <span className="donor-edit-dialog-source-meta">
               Foto oder PDF, bis 10 MB – oder hierher ziehen
             </span>
-          </div>
+          </FileDropZone>
 
           {error && (
             <p className="donor-edit-dialog-error" role="alert" data-testid="ledger-edit-error">

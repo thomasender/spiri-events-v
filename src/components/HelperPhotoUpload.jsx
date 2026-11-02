@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { Upload } from 'lucide-react';
 import { uploadHelperImage } from '../lib/imageUpload';
+import FileDropZone from './FileDropZone';
 import './HelperPhotoUpload.css';
 
 // Photo size cap shared by the selection check below.
@@ -26,7 +27,6 @@ export default function HelperPhotoUpload({
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
-  const [isDraggingOver, setIsDraggingOver] = useState(false);
 
   const handleSelect = async (file) => {
     if (!file) return;
@@ -61,32 +61,12 @@ export default function HelperPhotoUpload({
     onRemoved?.();
   };
 
-  // Same drag-and-drop behaviour as the event form's image area.
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!disabled && !uploading) setIsDraggingOver(true);
-  };
-  const handleDragLeave = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDraggingOver(false);
-  };
-  const handleDrop = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDraggingOver(false);
-    if (disabled || uploading) return;
-    handleSelect(e.dataTransfer?.files?.[0]);
-  };
-
   return (
-    <div
-      className={`helper-photo-upload ${isDraggingOver ? 'drag-over' : ''}`}
+    <FileDropZone
+      className="helper-photo-upload"
+      disabled={disabled || uploading}
+      onFiles={([file]) => handleSelect(file)}
       data-testid="helper-photo-upload"
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
     >
       <div className="helper-photo-preview">
         {photoURL ? (
@@ -134,9 +114,7 @@ export default function HelperPhotoUpload({
           </button>
         )}
         <span className="helper-photo-hint">
-          {isDraggingOver
-            ? 'Datei hier ablegen'
-            : 'oder Datei hierher ziehen (JPEG, PNG, WebP, max. 2 MB)'}
+          oder Datei hierher ziehen (JPEG, PNG, WebP, max. 2 MB)
         </span>
         {error && (
           <span className="helper-photo-error" role="alert" data-testid="helper-photo-error">
@@ -144,6 +122,6 @@ export default function HelperPhotoUpload({
           </span>
         )}
       </div>
-    </div>
+    </FileDropZone>
   );
 }

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import FileDropZone from './FileDropZone';
 import { deleteField, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { Upload } from 'lucide-react';
 import { db } from '../lib/firebase';
@@ -370,13 +371,19 @@ export default function RegionAboutTab() {
 
       <section className="region-about-section">
         <h3>Titelbild</h3>
-        <div className="region-about-header">
+        <FileDropZone
+          className="region-about-header"
+          disabled={uploading || saving}
+          onFiles={([file]) => handleSelectFile(file)}
+        >
           {headerImage ? (
             <img src={headerImage} alt="Titelbild" data-testid="region-about-header-preview" />
           ) : (
-            <span className="region-about-header-empty">Kein Titelbild (Standardbild)</span>
+            <span className="region-about-header-empty">
+              Kein Titelbild (Standardbild) – Bild hierher ziehen
+            </span>
           )}
-        </div>
+        </FileDropZone>
         <div className="region-about-actions">
           <button
             type="button"
