@@ -76,13 +76,13 @@ describe('Header subtitle and footer follow the region', () => {
 });
 
 describe('SeoMeta title and description follow the region', () => {
-  it('Vorarlberg: "Kalender | tribe Vorarlberg" and the legacy description', async () => {
+  it('Vorarlberg: "Kalender | Dein Tribe" and the legacy description', async () => {
     render(
       <Wrap>
         <SeoMeta title="Kalender" />
       </Wrap>
     );
-    await waitFor(() => expect(document.title).toBe('Kalender | tribe Vorarlberg'));
+    await waitFor(() => expect(document.title).toBe('Kalender | Dein Tribe'));
     expect(document.querySelector('meta[name="description"]')?.getAttribute('content')).toMatch(
       /in Vorarlberg - Bregenz/
     );
@@ -101,5 +101,16 @@ describe('SeoMeta title and description follow the region', () => {
     expect(document.querySelector('meta[name="description"]')?.getAttribute('content')).toBe(
       'Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in der Steiermark.'
     );
+  });
+});
+
+describe('every page title ends with the brand "Dein Tribe"', () => {
+  it('a plain page title gets the brand, never "tribe Vorarlberg"', async () => {
+    render(
+      <Wrap>
+        <SeoMeta title="Spenden" />
+      </Wrap>
+    );
+    await waitFor(() => expect(document.title).toBe('Spenden | Dein Tribe'));
   });
 });

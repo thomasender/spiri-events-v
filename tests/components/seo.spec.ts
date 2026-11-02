@@ -101,7 +101,7 @@ describe('buildPageUrl', () => {
 describe('getDefaultOgTags', () => {
   it('returns the default site-wide tags when called with no arguments', () => {
     const tags = getDefaultOgTags();
-    expect(tags.title).toBe('tribe Vorarlberg');
+    expect(tags.title).toBe('Dein Tribe');
     expect(tags.description).toMatch(/Vorarlberg/);
     expect(tags.url).toBe('https://www.thetribe.at/');
     expect(tags.imageUrl).toBe(DEFAULT_OG_IMAGE_URL);

@@ -12,6 +12,7 @@ import {
 } from '../utils/seo';
 import { getEventFallbackImage } from '../utils/eventFallbacks';
 import { useRegionTexts } from '../hooks/useRegionTexts';
+import { BRAND_NAME } from '../config/brand';
 
 export function getEventOgImage(event) {
   if (event?.imageUrl) {
@@ -47,7 +48,7 @@ export default function SeoMeta({
   const resolvedImageUrl = imageUrl || (event ? getEventOgImage(event) : DEFAULT_OG_IMAGE_URL);
   const absoluteImageUrl = toAbsoluteUrl(resolvedImageUrl);
   const url = buildPageUrl(path);
-  const finalTitle = defaultTitle(title, texts.siteName, exactTitle);
+  const finalTitle = defaultTitle(title, BRAND_NAME, exactTitle);
   const finalDescription = buildDescription(description, texts.defaultDescription);
 
   return (

@@ -157,9 +157,9 @@ describe('Vorarlberg output is byte-identical (golden hashes of the pre-ticket g
     );
     expect(
       sha(m.generateEventHtml(fx[0], undefined, '/assets/index-A.js', '/assets/index-A.css'))
-    ).toBe('821e8baab7fe6cf7184099a7b7588f5d8b194b42d226ee141ff20582d36357f6');
+    ).toBe('4232bcf9e3cc89bc05971b58ecfa977c40dfc2ed100c4fa45e3d6c3e1d1b6af0');
     expect(sha(m.generateEventHtml(fx[1]))).toBe(
-      '04a54c17f379b3a01432ba7d92e381e49736d67acfbf19a872de784a796c3b07'
+      '8f9d4c8cffe229cf937ffc6308da5c67b4a5d853f212ebc8e97e6dc8155e503c'
     );
   });
 
@@ -295,10 +295,10 @@ describe('event title suffix', () => {
       '<title>Meditation Kufstein | Dein Tribe Tirol</title>'
     );
     expect(generateEventHtml(tirol, undefined, null, null, one)).toContain(
-      '<title>Meditation Kufstein | tribe Vorarlberg</title>'
+      '<title>Meditation Kufstein | Dein Tribe</title>'
     );
     expect(generateEventHtml(vbg, undefined, null, null, two)).toContain(
-      '<title>Yoga Dornbirn | tribe Vorarlberg</title>'
+      '<title>Yoga Dornbirn | Dein Tribe</title>'
     );
     // canonical stays /event/<slug>
     expect(generateEventHtml(tirol, undefined, null, null, two)).toContain(
