@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from
 import { HelmetProvider } from 'react-helmet-async';
 import { useAuth } from './hooks/useAuth';
 import AppCheckBanner from './components/AppCheckBanner';
+import NetworkBanner from './components/NetworkBanner';
 import ProfileOnboardingGate from './components/ProfileOnboardingGate';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -175,6 +176,7 @@ function AppLayout() {
       <AnalyticsRouteTracker />
       <PlaceSelectionSync />
       <Header />
+      <NetworkBanner />
       <RegionChooser />
       <AppCheckBanner />
       <ProfileOnboardingGate />

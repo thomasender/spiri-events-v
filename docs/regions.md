@@ -931,11 +931,11 @@ Regions are added in code only (there is no admin tool for it).
     product owner for the new region or country (they are Vorarlberg-specific
     today).
 
-- **Where the region is chosen:** visitors without an account use the header button (phone:
-  burger menu) and the footer; signed-in users and moderators use the card "Region" in the
-  profile; Super-Admins use the footer (`RegionPickButton`). All open the same pop-up and keep
-  the dark launch rule (hidden below two active regions; the profile card is then left out
-  entirely).
+- **Where the region is chosen:** all roles (visitors, users, moderators, Super-Admins) choose in
+  the profile card "Ort und Umkreis" (signed-in only) and in the footer (`RegionPickButton`);
+  visitors without an account additionally use the header button (phone: burger menu). All open
+  the same pop-up and keep the dark launch rule (hidden below two active regions; the profile
+  card is then left out entirely). The choice is saved to the account for every signed-in role.
 - **Coming-soon page:** the link "Andere Regionen erkunden, z. B. <Region> (<n> Events)"
   points to the open region with the most approved events (`useLargestRegion`).
 

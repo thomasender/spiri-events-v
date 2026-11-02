@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -93,11 +93,18 @@ describe('where the region can be chosen', () => {
     expect(screen.getByTestId('footer-region-pick')).toHaveTextContent('Köln · 25 km');
   });
 
-  it('signed-in users change the region from the profile card', () => {
-    mocks.auth = { role: 'User', user: { uid: 'u1' } };
+  it.each([
+    ['User', 'u1'],
+    ['RegionModerator', 'm1'],
+    ['Admin', 'a1'],
+  ])('%s can change the region in the profile card and in the footer', (role, uid) => {
+    mocks.auth = { role, user: { uid } };
     renderProfile();
     fireEvent.click(screen.getByTestId('profile-region-pick'));
     expect(screen.getByTestId('region-picker')).toBeInTheDocument();
+    cleanup();
+    renderChrome();
+    expect(screen.getByTestId('footer-region-pick')).toBeInTheDocument();
   });
 
   it('no empty region card in the profile with only Vorarlberg open (dark launch)', () => {
@@ -108,19 +115,15 @@ describe('where the region can be chosen', () => {
     expect(screen.queryByTestId('profile-region')).toBeNull();
   });
 
-  it('signed-in users and moderators have no region button in header or footer', () => {
+  it('signed-in users have no region button in the header (footer and profile only)', () => {
     mocks.auth = { role: 'RegionModerator', user: { uid: 'u1' } };
     renderChrome();
     expect(screen.queryByTestId('region-switcher')).toBeNull();
     expect(screen.queryByTestId('region-menu-list')).toBeNull();
-    expect(screen.queryByTestId('footer-region-pick')).toBeNull();
-  });
-
-  it('Super-Admins choose in the footer, not in the header', () => {
     mocks.auth = { role: 'Admin', user: { uid: 'a1' } };
+    cleanup();
     renderChrome();
     expect(screen.queryByTestId('region-switcher')).toBeNull();
-    expect(screen.getByTestId('footer-region-pick')).toBeInTheDocument();
   });
 
   it('the footer button stays hidden with only Vorarlberg open (dark launch)', () => {
@@ -128,6 +131,7 @@ describe('where the region can be chosen', () => {
     mocks.auth = { role: 'Admin', user: { uid: 'a1' } };
     renderChrome();
     expect(screen.queryByTestId('footer-region-pick')).toBeNull();
+    cleanup();
     mocks.auth = { role: null, user: null };
     renderChrome();
     expect(screen.queryByTestId('footer-region-pick')).toBeNull();

@@ -4,7 +4,6 @@ import { PWA_OPEN_REQUEST_EVENT } from './PwaInstallPrompt';
 import { requestConsentBanner } from '../lib/analyticsConsent';
 import { COPYRIGHT_NOTICE } from '../config/brand';
 import { useAboutPath } from '../hooks/useRegion';
-import { useAuth } from '../hooks/useAuth';
 import DonateLink from './DonateLink';
 import { RegionPickButton } from './RegionSwitcher';
 import './Footer.css';
@@ -12,7 +11,6 @@ import './Footer.css';
 export default function Footer() {
   const { installAvailable, isStandalone, isMobileViewport, requestInstall } = usePwaInstall();
   const isIOS = isIOSDevice();
-  const { role, user } = useAuth();
   // The page's own region / combined view (on Impressum / Datenschutz the one the
   // visitor came from) decides; a coming-soon region is not the context region, so
   // `regionId` alone would fall back to the default. Unchanged `/ueber-uns` while
@@ -61,10 +59,8 @@ export default function Footer() {
               App installieren
             </button>
           )}
-          {/* Visitors without an account (also in the header) and Super-Admins. */}
-          {(!user || role === 'Admin') && (
-            <RegionPickButton className="region-pick-button--footer" testId="footer-region-pick" />
-          )}
+          {/* Everyone, whatever the role (visitors also have it in the header). */}
+          <RegionPickButton className="region-pick-button--footer" testId="footer-region-pick" />
           <Link to="/impressum">Impressum</Link>
           <Link to="/datenschutz">Datenschutz</Link>
           <button

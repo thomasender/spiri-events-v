@@ -23,6 +23,7 @@ import { BEZIRKE, ONLINE_LOCATION, pickEventRegionId, resolveRegionId } from '..
 import { normalizeCurrency } from '../utils/currency';
 import { deleteImageByUrl } from '../lib/imageUpload';
 import { compareEventsByDateTime } from '../utils/eventSort';
+import { watchSlowLoad } from '../utils/networkStatus';
 import { useAuth } from './useAuth';
 import { auth } from '../lib/firebase';
 import { getApp } from 'firebase/app';
@@ -582,12 +583,20 @@ export function usePublicEvents({ regionScoped = false, allActive = false, enabl
   useEffect(() => {
     if (wanted === null || loadedVersionRef.current === wanted) return undefined;
     const controller = new AbortController();
+    // Only reports a slow / failed download to the connection hint; it never aborts
+    // the request and does not change the fallback below.
+    const slowWatch = watchSlowLoad('events');
     fetch(`/api/events.json?v=${wanted}`, { signal: controller.signal })
       .then((res) => {
-        if (!res.ok) throw new Error(`events.json ${res.status}`);
+        if (!res.ok) {
+          // The server answered: not a connection problem.
+          slowWatch.done();
+          throw new Error(`events.json ${res.status}`);
+        }
         return res.json();
       })
       .then((data) => {
+        slowWatch.done();
         const normalized = normalizeEvents(data);
         normalized.sort(compareEventsByDateTime);
         loadedVersionRef.current = wanted;
@@ -597,11 +606,15 @@ export function usePublicEvents({ regionScoped = false, allActive = false, enabl
       })
       .catch((err) => {
         if (err.name === 'AbortError') return;
+        slowWatch.failed();
         // Only the guess from the last visit failed: forget it and wait for the version doc.
         if (liveVersionRef.current !== wanted) setCachedVersion(null);
         else setUseFallback(true);
       });
-    return () => controller.abort();
+    return () => {
+      slowWatch.cancel();
+      controller.abort();
+    };
   }, [wanted]);
 
   const direct = useAllEvents({
