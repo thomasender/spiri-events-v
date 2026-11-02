@@ -19,6 +19,7 @@ import {
   regionSlugFromPath,
   regionSwitchSubpath,
   resolveCurrentRegionId,
+  namedRegionId,
   resolveTopLevelSlug,
   writeLastRegion,
 } from '../../src/utils/regionRouting.js';
@@ -264,6 +265,36 @@ describe('resolveCurrentRegionId', () => {
     expect(resolveCurrentRegionId({ urlSlug: 'oesterreich', storedSlug: 'bayern' })).toBe(
       'vorarlberg'
     );
+  });
+});
+
+describe('namedRegionId (region a page names, never Vorarlberg without a reason)', () => {
+  const multi = { regionMode: true, neutralHeader: true, regionId: 'vorarlberg' };
+  it('is the context region in the dark launch and on pages without a neutral header', () => {
+    expect(namedRegionId({ ...multi, regionMode: false, placeRegionId: 'tirol' })).toBe(
+      'vorarlberg'
+    );
+    expect(namedRegionId({ ...multi, neutralHeader: false, placeRegionId: 'tirol' })).toBe(
+      'vorarlberg'
+    );
+  });
+  it('Verwaltung: the region of the chosen place, also one not open yet', () => {
+    expect(namedRegionId({ ...multi, placeRegionId: 'steiermark' })).toBe('steiermark');
+  });
+  it('the page, the event form and the open event come before the place', () => {
+    expect(namedRegionId({ ...multi, pageSlug: 'tirol', placeRegionId: 'steiermark' })).toBe(
+      'tirol'
+    );
+    expect(namedRegionId({ ...multi, formRegionId: 'wien', placeRegionId: 'steiermark' })).toBe(
+      'wien'
+    );
+    expect(namedRegionId({ ...multi, eventRegionId: 'wien', placeRegionId: 'steiermark' })).toBe(
+      'wien'
+    );
+  });
+  it('names no region when nothing is known or on a combined view', () => {
+    expect(namedRegionId(multi)).toBeNull();
+    expect(namedRegionId({ ...multi, pageSlug: 'deutschland', placeRegionId: 'tirol' })).toBeNull();
   });
 });
 

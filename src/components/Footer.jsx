@@ -3,11 +3,10 @@ import { usePwaInstall, isIOSDevice } from '../hooks/usePwaInstall';
 import { PWA_OPEN_REQUEST_EVENT } from './PwaInstallPrompt';
 import { requestConsentBanner } from '../lib/analyticsConsent';
 import { COPYRIGHT_NOTICE } from '../config/brand';
-import { useRegion } from '../hooks/useRegion';
+import { useAboutPath } from '../hooks/useRegion';
 import { useAuth } from '../hooks/useAuth';
 import DonateLink from './DonateLink';
 import { RegionPickButton } from './RegionSwitcher';
-import { aboutPathFor } from '../utils/regionRouting';
 import './Footer.css';
 
 export default function Footer() {
@@ -18,8 +17,7 @@ export default function Footer() {
   // visitor came from) decides; a coming-soon region is not the context region, so
   // `regionId` alone would fall back to the default. Unchanged `/ueber-uns` while
   // Vorarlberg is the only active region; combined views use it too.
-  const { regionId, allRegions, pageSlug } = useRegion();
-  const aboutPath = aboutPathFor({ pageSlug, regionId, regions: allRegions });
+  const aboutPath = useAboutPath();
 
   // The link is removed from the DOM (not just visually hidden) on desktop
   // and on standalone runs. On desktop, Chrome shows its own install UI and
