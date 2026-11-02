@@ -17,6 +17,10 @@ const mockEvents = vi.hoisted(() => ({
 
 const mockNavigate = vi.fn();
 
+const mockConfetti = vi.hoisted(() => Object.assign(vi.fn(), { reset: vi.fn() }));
+
+vi.mock('canvas-confetti', () => ({ default: mockConfetti }));
+
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
   return {
@@ -121,6 +125,7 @@ beforeEach(() => {
   mockEvents.addEvent.mockClear();
   mockEvents.updateEvent.mockClear();
   mockNavigate.mockClear();
+  mockConfetti.mockClear();
 });
 
 describe('EventFormWizard success dialog — profile completion CTA (EkrMNDkO regression)', () => {
@@ -194,5 +199,30 @@ describe('EventFormWizard success dialog — profile completion CTA (EkrMNDkO re
       expect(screen.getByTestId('success-dialog')).toBeInTheDocument();
     });
     expect(screen.queryByTestId('success-dialog-cta')).not.toBeInTheDocument();
+  });
+});
+
+describe('EventFormWizard confetti celebration', () => {
+  it('rains confetti after a successful submit', async () => {
+    seedDraft();
+    renderWizard();
+
+    fireEvent.click(screen.getByTestId('submit-event-button'));
+    const confirmDialog = document.querySelector('.confirm-dialog');
+    await waitFor(() => expect(confirmDialog).toBeTruthy());
+    fireEvent.click(within(confirmDialog).getByRole('button', { name: /^einreichen$/i }));
+
+    await waitFor(() => expect(screen.getByTestId('success-dialog')).toBeInTheDocument());
+    await waitFor(() => expect(mockConfetti).toHaveBeenCalled());
+  });
+
+  it('does not rain confetti when saving a draft', async () => {
+    seedDraft();
+    renderWizard();
+
+    fireEvent.click(screen.getByTestId('save-as-draft-button'));
+
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/admin'));
+    expect(mockConfetti).not.toHaveBeenCalled();
   });
 });

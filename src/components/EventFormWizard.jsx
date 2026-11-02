@@ -61,6 +61,7 @@ import {
 } from '../utils/regions';
 import { useRegionChoices } from '../hooks/useRegionChoices';
 import { useOnlineEventGate } from '../hooks/useOnlineEventGate';
+import { useConfettiCelebration } from '../hooks/useConfettiCelebration';
 import { formExamples } from '../utils/regionExamples';
 import { keepIfInRegion, selectedRegionId, subdivisionFor } from '../utils/regionChoices';
 import EventRegionDialog, { BEZIRK_NOT_FOUND } from './EventRegionDialog';
@@ -266,6 +267,7 @@ export default function EventFormWizard() {
   const [showMultiDayRecurrenceConfirm, setShowMultiDayRecurrenceConfirm] = useState(false);
   const [endDateConflictMarked, setEndDateConflictMarked] = useState(false);
   const [successState, setSuccessState] = useState(null);
+  useConfettiCelebration(successState !== null);
   const [showFocalPointInSummary, setShowFocalPointInSummary] = useState(false);
   const [currentStep, setCurrentStep] = useState(() =>
     restoredDraft && Number.isInteger(restoredDraft.currentStep)
