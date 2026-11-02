@@ -1,6 +1,14 @@
-import { useEffect, useState } from 'react';
-import { Save, X } from 'lucide-react';
-import { CATEGORY_MAX, DESCRIPTION_MAX, NOTE_MAX } from '../utils/ledger';
+import { useEffect, useRef, useState } from 'react';
+import { Paperclip, Save, X } from 'lucide-react';
+import {
+  ATTACHMENT_MAX_COUNT,
+  CATEGORY_MAX,
+  DESCRIPTION_MAX,
+  NOTE_MAX,
+  attachmentProblem,
+  formatFileSize,
+} from '../utils/ledger';
+import LedgerAttachmentLink from './LedgerAttachmentLink';
 import './DonorEditDialog.css';
 
 function todayVienna() {
@@ -36,17 +44,36 @@ export default function LedgerEditDialog({ open, mode, entry, categories = [], o
   const [draft, setDraft] = useState(emptyDraft());
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [newFiles, setNewFiles] = useState([]);
+  const [removed, setRemoved] = useState([]);
+  const fileInput = useRef(null);
 
   useEffect(() => {
     if (!open) return;
     setError(null);
     setSubmitting(false);
     setDraft(draftFromEntry(entry));
+    setNewFiles([]);
+    setRemoved([]);
   }, [open, entry]);
 
   if (!open) return null;
 
   const isCreate = mode === 'create';
+  const existing = (entry?.attachments ?? []).filter((a) => !removed.includes(a.path));
+  const attachmentCount = existing.length + newFiles.length;
+
+  function addFiles(event) {
+    const picked = [...event.target.files];
+    event.target.value = '';
+    const problem = picked.map(attachmentProblem).find(Boolean);
+    if (problem) return setError(problem);
+    if (attachmentCount + picked.length > ATTACHMENT_MAX_COUNT) {
+      return setError(`Höchstens ${ATTACHMENT_MAX_COUNT} Belege pro Buchung.`);
+    }
+    setNewFiles((prev) => [...prev, ...picked]);
+    setError(null);
+  }
 
   function updateField(field, value) {
     setDraft((prev) => ({ ...prev, [field]: value }));
@@ -58,7 +85,7 @@ export default function LedgerEditDialog({ open, mode, entry, categories = [], o
     if (submitting) return;
     setSubmitting(true);
     try {
-      await onSave(draft);
+      await onSave(draft, { newFiles, removed });
     } catch (err) {
       setError(err?.message ?? 'Speichern fehlgeschlagen.');
       setSubmitting(false);
@@ -212,6 +239,67 @@ export default function LedgerEditDialog({ open, mode, entry, categories = [], o
               data-testid="ledger-edit-note"
             />
           </label>
+
+          <div className="donor-edit-dialog-field">
+            <span className="donor-edit-dialog-label">Belege (optional)</span>
+            {(existing.length > 0 || newFiles.length > 0) && (
+              <ul className="ledger-edit-attachments" data-testid="ledger-edit-attachments">
+                {existing.map((a) => (
+                  <li key={a.path}>
+                    <LedgerAttachmentLink attachment={a} />
+                    <button
+                      type="button"
+                      className="ledger-edit-attachment-remove"
+                      onClick={() => setRemoved((prev) => [...prev, a.path])}
+                      disabled={submitting}
+                      aria-label={`${a.name} entfernen`}
+                    >
+                      <X size={14} aria-hidden="true" />
+                    </button>
+                  </li>
+                ))}
+                {newFiles.map((file, index) => (
+                  <li key={`${file.name}-${index}`}>
+                    <span className="ledger-attachment is-new">
+                      <Paperclip size={12} aria-hidden="true" />
+                      <span>
+                        {file.name} ({formatFileSize(file.size)})
+                      </span>
+                    </span>
+                    <button
+                      type="button"
+                      className="ledger-edit-attachment-remove"
+                      onClick={() => setNewFiles((prev) => prev.filter((_, i) => i !== index))}
+                      disabled={submitting}
+                      aria-label={`${file.name} entfernen`}
+                    >
+                      <X size={14} aria-hidden="true" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <input
+              ref={fileInput}
+              type="file"
+              accept="image/*,application/pdf"
+              multiple
+              hidden
+              onChange={addFiles}
+              data-testid="ledger-edit-file-input"
+            />
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => fileInput.current?.click()}
+              disabled={submitting || attachmentCount >= ATTACHMENT_MAX_COUNT}
+              data-testid="ledger-edit-add-file"
+            >
+              <Paperclip size={16} aria-hidden="true" />
+              <span>Beleg hinzufügen</span>
+            </button>
+            <span className="donor-edit-dialog-source-meta">Foto oder PDF, bis 10 MB</span>
+          </div>
 
           {error && (
             <p className="donor-edit-dialog-error" role="alert" data-testid="ledger-edit-error">

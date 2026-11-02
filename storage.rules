@@ -5,6 +5,24 @@ service firebase.storage {
       return request.auth != null;
     }
 
+    // Receipts of the income/expense ledger (admin tab "Finanzen"): Super-Admins
+    // only, for reading as well. The role is the `role` token claim or, like in
+    // firestore.rules, the staff doc `admin_users/{uid}`. Photos or PDFs, max 10 MB.
+    function isLedgerAdmin() {
+      return request.auth != null
+        && (request.auth.token.role == 'Admin'
+            || (firestore.exists(/databases/(default)/documents/admin_users/$(request.auth.uid))
+                && firestore.get(/databases/(default)/documents/admin_users/$(request.auth.uid)).data.role == 'Admin'));
+    }
+
+    match /ledger/{entryId}/{filename} {
+      allow read, delete: if isLedgerAdmin();
+      allow create, update: if isLedgerAdmin()
+                   && request.resource.size < 10 * 1024 * 1024
+                   && (request.resource.contentType.matches('image/.*')
+                       || request.resource.contentType == 'application/pdf');
+    }
+
     // Event images: anyone can read (public, served on event pages),
     // only authenticated users can upload images up to 15MB
     match /events/{eventId}/{filename} {

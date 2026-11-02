@@ -8,9 +8,46 @@ import {
   setDoc,
   updateDoc,
 } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { deleteObject, getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import { db, storage } from '../lib/firebase';
 import { useAuth } from './useAuth';
-import { validateLedgerFields } from '../utils/ledger';
+import {
+  ATTACHMENT_MAX_COUNT,
+  attachmentPath,
+  attachmentProblem,
+  validateLedgerFields,
+} from '../utils/ledger';
+
+async function uploadAttachments(entryId, files) {
+  const uploaded = [];
+  try {
+    for (const file of files) {
+      const problem = attachmentProblem(file);
+      if (problem) throw new Error(problem);
+      const path = attachmentPath(entryId, file);
+      await uploadBytes(ref(storage, path), file, { contentType: file.type });
+      uploaded.push({ path, name: file.name, size: file.size, contentType: file.type });
+    }
+  } catch (err) {
+    await removeFiles(uploaded.map((a) => a.path));
+    throw err;
+  }
+  return uploaded;
+}
+
+// Best effort: a leftover file is harmless, a failed cleanup must not block the books.
+async function removeFiles(paths) {
+  await Promise.all(
+    paths.map((path) =>
+      deleteObject(ref(storage, path)).catch((err) => console.warn('ledger file cleanup:', err))
+    )
+  );
+}
+
+/** Short-lived access to one receipt (the storage rules admit Super-Admins only). */
+export function attachmentUrl(attachment) {
+  return getDownloadURL(ref(storage, attachment.path));
+}
 
 // Live subscription to the income/expense ledger (Super-Admins only, the
 // rules deny everybody else). Entries written by the Mollie webhook
@@ -41,36 +78,62 @@ export function useLedger() {
   }, [isAdmin]);
 
   const addEntry = useCallback(
-    async (input) => {
+    async (input, newFiles = []) => {
       if (!isAdmin) throw new Error('Nur Admins können Buchungen anlegen.');
       if (!user?.uid) throw new Error('Nicht angemeldet.');
       const fields = validateLedgerFields(input);
+      if (newFiles.length > ATTACHMENT_MAX_COUNT) {
+        throw new Error(`Höchstens ${ATTACHMENT_MAX_COUNT} Belege pro Buchung.`);
+      }
       const id = `ledger_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-      await setDoc(doc(db, 'ledger', id), {
-        ...fields,
-        source: 'manual',
-        createdBy: user.uid,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
+      const attachments = await uploadAttachments(id, newFiles);
+      try {
+        await setDoc(doc(db, 'ledger', id), {
+          ...fields,
+          attachments,
+          source: 'manual',
+          createdBy: user.uid,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      } catch (err) {
+        await removeFiles(attachments.map((a) => a.path));
+        throw err;
+      }
       return id;
     },
     [isAdmin, user]
   );
 
   const updateEntry = useCallback(
-    async (id, input) => {
+    async (entry, input, { newFiles = [], removed = [] } = {}) => {
       if (!isAdmin) throw new Error('Nur Admins können Buchungen ändern.');
       const fields = validateLedgerFields(input);
-      await updateDoc(doc(db, 'ledger', id), { ...fields, updatedAt: serverTimestamp() });
+      const kept = (entry.attachments ?? []).filter((a) => !removed.includes(a.path));
+      if (kept.length + newFiles.length > ATTACHMENT_MAX_COUNT) {
+        throw new Error(`Höchstens ${ATTACHMENT_MAX_COUNT} Belege pro Buchung.`);
+      }
+      const added = await uploadAttachments(entry.id, newFiles);
+      try {
+        await updateDoc(doc(db, 'ledger', entry.id), {
+          ...fields,
+          attachments: [...kept, ...added],
+          updatedAt: serverTimestamp(),
+        });
+      } catch (err) {
+        await removeFiles(added.map((a) => a.path));
+        throw err;
+      }
+      await removeFiles(removed);
     },
     [isAdmin]
   );
 
   const deleteEntry = useCallback(
-    async (id) => {
+    async (entry) => {
       if (!isAdmin) throw new Error('Nur Admins können Buchungen löschen.');
-      await deleteDoc(doc(db, 'ledger', id));
+      await deleteDoc(doc(db, 'ledger', entry.id));
+      await removeFiles((entry.attachments ?? []).map((a) => a.path));
     },
     [isAdmin]
   );

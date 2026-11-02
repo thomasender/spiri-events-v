@@ -9,6 +9,8 @@ import {
   ledgerToCsv,
   formatLedgerDate,
   formatLedgerAmount,
+  attachmentProblem,
+  attachmentPath,
 } from '../../src/utils/ledger';
 
 describe('parseLedgerAmount', () => {
@@ -117,5 +119,20 @@ describe('ledgerToCsv', () => {
       `${formatLedgerDate('2026-10-01')};Ausgabe;-12,50;EUR;'=SUM(A1);;"a;b ""c""";manuell`
     );
     expect(lines[2]).toBe('29.10.2026;Einnahme;25,00;EUR;Spende;;;Mollie');
+  });
+});
+
+describe('receipts', () => {
+  const file = (name: string, type: string, size = 1000) => ({ name, type, size });
+  it('accepts photos and PDFs, rejects other types and big files', () => {
+    expect(attachmentProblem(file('a.jpg', 'image/jpeg'))).toBeNull();
+    expect(attachmentProblem(file('a.pdf', 'application/pdf'))).toBeNull();
+    expect(attachmentProblem(file('a.zip', 'application/zip'))).toMatch(/kein Bild/);
+    expect(attachmentProblem(file('a.pdf', 'application/pdf', 11 * 1024 * 1024))).toMatch(/10 MB/);
+  });
+  it('builds a path-safe storage path', () => {
+    expect(attachmentPath('l1', file('Rechnung Mai/äö.pdf', 'application/pdf'), 5)).toMatch(
+      /^ledger\/l1\/5_[\w.-]+\.pdf$/
+    );
   });
 });

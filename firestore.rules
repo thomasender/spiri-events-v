@@ -2007,7 +2007,8 @@ service cloud.firestore {
     }
 
     // Income/expense ledger (admin tab "Finanzen"). Super-Admins only, no
-    // public access. Entries with `source == 'mollie'` are written by the
+    // public access. `attachments` lists the receipts (files live in Storage
+    // under ledger/{entryId}/, see storage.rules). Entries with `source == 'mollie'` are written by the
     // Cloud Function mollieWebhook (Admin SDK) for every paid donation and
     // can be edited or deleted like manual ones. `date` is a YYYY-MM-DD
     // string, `amount` is always positive; `type` decides the sign.
@@ -2024,7 +2025,9 @@ service cloud.firestore {
               || (data.category is string && data.category.size() <= 60))
           && (!('note' in data)
               || data.note == null
-              || (data.note is string && data.note.size() <= 500));
+              || (data.note is string && data.note.size() <= 500))
+          && (!('attachments' in data)
+              || (data.attachments is list && data.attachments.size() <= 10));
       }
 
       allow read: if isAdminOrEmulatorAdmin();
@@ -2032,7 +2035,7 @@ service cloud.firestore {
       allow create: if isAdminOrEmulatorAdmin()
                     && request.resource.data.keys().hasOnly([
                       'type', 'date', 'amount', 'description', 'category', 'note',
-                      'source', 'createdAt', 'updatedAt', 'createdBy',
+                      'attachments', 'source', 'createdAt', 'updatedAt', 'createdBy',
                     ])
                     && request.resource.data.source == 'manual'
                     && isValidLedgerEntry(request.resource.data);
@@ -2041,7 +2044,7 @@ service cloud.firestore {
                     && request.resource.data.diff(resource.data).affectedKeys()
                           .hasOnly([
                             'type', 'date', 'amount', 'description', 'category',
-                            'note', 'updatedAt',
+                            'note', 'attachments', 'updatedAt',
                           ])
                     && isValidLedgerEntry(request.resource.data);
 

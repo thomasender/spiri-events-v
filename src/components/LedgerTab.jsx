@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Plus, Pencil, Trash2, Download, Wallet, AlertTriangle } from 'lucide-react';
 import { useLedger } from '../hooks/useLedger';
 import LedgerEditDialog from './LedgerEditDialog';
+import LedgerAttachmentLink from './LedgerAttachmentLink';
 import ConfirmDialog from './ConfirmDialog';
 import {
   entriesOfYear,
@@ -46,9 +47,9 @@ export default function LedgerTab() {
 
   if (!isAdmin) return null;
 
-  async function handleSave(draft) {
-    if (dialog.mode === 'create') await addEntry(draft);
-    else await updateEntry(dialog.entry.id, draft);
+  async function handleSave(draft, files) {
+    if (dialog.mode === 'create') await addEntry(draft, files.newFiles);
+    else await updateEntry(dialog.entry, draft, files);
     setDialog(null);
   }
 
@@ -57,7 +58,7 @@ export default function LedgerTab() {
     setPendingDelete(null);
     setActionError(null);
     try {
-      await deleteEntry(target.id);
+      await deleteEntry(target);
     } catch (err) {
       setActionError(err?.message ?? 'Löschen fehlgeschlagen.');
     }
@@ -155,6 +156,13 @@ export default function LedgerTab() {
                   {entry.category ? ` · ${entry.category}` : ''}
                   {entry.source === 'mollie' ? ' · Mollie' : ''}
                 </span>
+                {entry.attachments?.length > 0 && (
+                  <span className="ledger-row-attachments">
+                    {entry.attachments.map((a) => (
+                      <LedgerAttachmentLink key={a.path} attachment={a} />
+                    ))}
+                  </span>
+                )}
               </div>
               <span
                 className={`ledger-row-amount ${entry.type === 'income' ? 'ledger-tab-income' : 'ledger-tab-expense'}`}
