@@ -1,6 +1,5 @@
 import { useCallback, useState } from 'react';
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '../lib/firebase';
+import { callable } from '../lib/firebase';
 
 // The calendar export (.ics download and subscription) is for signed-in users.
 // Calendar apps cannot send a login, so the URLs carry a personal secret token
@@ -8,7 +7,7 @@ import { functions } from '../lib/firebase';
 
 /** data: {} returns (and on first use creates) the token, { regenerate: true } replaces it. */
 export async function requestCalendarFeedToken(data = {}) {
-  const result = await httpsCallable(functions, 'getCalendarFeedToken')(data);
+  const result = await callable('getCalendarFeedToken')(data);
   const token = result?.data?.token;
   if (typeof token !== 'string' || !token) throw new Error('No calendar token');
   return token;
@@ -21,7 +20,7 @@ export function startCalendarDownload(url) {
 
 /** Deletes the token, so every calendar link of the user stops working (account deletion). */
 export async function revokeCalendarFeedToken() {
-  await httpsCallable(functions, 'getCalendarFeedToken')({ revoke: true });
+  await callable('getCalendarFeedToken')({ revoke: true });
 }
 
 // The token is only requested on demand (load / regenerate), never on mount,

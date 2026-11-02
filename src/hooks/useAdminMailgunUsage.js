@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '../lib/firebase';
+import { callable } from '../lib/firebase';
 
 // Admin-only Mailgun usage. The numbers come from a callable Cloud Function that
 // re-checks the admin role and talks to the Mailgun API itself (the API key stays
@@ -14,7 +13,7 @@ export function useAdminMailgunUsage(days, enabled = true) {
     setLoading(true);
     setError(null);
     try {
-      const result = await httpsCallable(functions, 'adminMailgunUsage')({ days });
+      const result = await callable('adminMailgunUsage')({ days });
       setReport(result.data ?? null);
     } catch (err) {
       console.error('Loading Mailgun usage failed:', err);

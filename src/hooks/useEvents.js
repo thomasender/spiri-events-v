@@ -509,11 +509,37 @@ export function useAllEvents({ regionScoped = false, allActive = false, enabled 
 }
 
 const EVENTS_VERSION_PATH = ['app_settings', 'eventsVersion'];
+// The last version seen in the version doc, so the next visit can ask for the list at once
+// instead of waiting for the Firestore connection first.
+export const EVENTS_VERSION_STORAGE_KEY = 'tribe:eventsVersion';
+
+function readCachedEventsVersion() {
+  try {
+    const v = Number(window.localStorage.getItem(EVENTS_VERSION_STORAGE_KEY));
+    return Number.isSafeInteger(v) && v > 0 ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+function storeEventsVersion(version) {
+  try {
+    if (version === null) window.localStorage.removeItem(EVENTS_VERSION_STORAGE_KEY);
+    else window.localStorage.setItem(EVENTS_VERSION_STORAGE_KEY, String(version));
+  } catch {
+    // private mode / storage full: the next visit simply waits for the version doc
+  }
+}
 
 // Approved events for the public pages. Instead of every visitor reading every
 // event from Firestore, the list comes from /api/events.json, which the Hosting
 // CDN caches per version. Only the tiny version doc is watched: when an event
 // is approved or changed, a Cloud Function bumps it and the list is refetched.
+// A returning visitor's list is requested right away with the version of the last
+// visit (localStorage), in parallel to the Firestore connection; once the version doc
+// answers with another version, that one is fetched and replaces it, so the list
+// always ends on the current version. A failed request for the remembered version
+// only waits for the version doc.
 // If the version doc is missing or the fetch fails, it falls back to reading
 // Firestore directly, as before. The local emulators have no such endpoint.
 // `enabled: false` reads nothing (SimilarEvents uses the list only with two or
@@ -525,6 +551,12 @@ export function usePublicEvents({ regionScoped = false, allActive = false, enabl
   const [error, setError] = useState(null);
   const [useFallback, setUseFallback] = useState(false);
   const [version, setVersion] = useState(null);
+  const [cachedVersion, setCachedVersion] = useState(() =>
+    emulators || !enabled ? null : readCachedEventsVersion()
+  );
+  // The version from the version doc (null until it answered), for the fetch below.
+  const liveVersionRef = useRef(null);
+  const loadedVersionRef = useRef(null);
 
   useEffect(() => {
     if (emulators || !enabled) return undefined;
@@ -532,17 +564,25 @@ export function usePublicEvents({ regionScoped = false, allActive = false, enabl
       doc(db, ...EVENTS_VERSION_PATH),
       (snap) => {
         const v = snap.exists() ? snap.data().version : null;
-        if (typeof v === 'number') setVersion(v);
-        else setUseFallback(true);
+        if (typeof v === 'number') {
+          liveVersionRef.current = v;
+          storeEventsVersion(v);
+          setVersion(v);
+        } else {
+          storeEventsVersion(null);
+          setUseFallback(true);
+        }
       },
       () => setUseFallback(true)
     );
   }, [emulators, enabled]);
 
+  const wanted = version ?? cachedVersion;
+
   useEffect(() => {
-    if (version === null) return undefined;
+    if (wanted === null || loadedVersionRef.current === wanted) return undefined;
     const controller = new AbortController();
-    fetch(`/api/events.json?v=${version}`, { signal: controller.signal })
+    fetch(`/api/events.json?v=${wanted}`, { signal: controller.signal })
       .then((res) => {
         if (!res.ok) throw new Error(`events.json ${res.status}`);
         return res.json();
@@ -550,15 +590,19 @@ export function usePublicEvents({ regionScoped = false, allActive = false, enabl
       .then((data) => {
         const normalized = normalizeEvents(data);
         normalized.sort(compareEventsByDateTime);
+        loadedVersionRef.current = wanted;
         setEvents(normalized);
         setLoading(false);
         setError(null);
       })
       .catch((err) => {
-        if (err.name !== 'AbortError') setUseFallback(true);
+        if (err.name === 'AbortError') return;
+        // Only the guess from the last visit failed: forget it and wait for the version doc.
+        if (liveVersionRef.current !== wanted) setCachedVersion(null);
+        else setUseFallback(true);
       });
     return () => controller.abort();
-  }, [version]);
+  }, [wanted]);
 
   const direct = useAllEvents({
     regionScoped,

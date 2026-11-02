@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '../lib/firebase';
+import { callable } from '../lib/firebase';
 
 /**
  * Super-Admin only: current Regions-Moderator:innen and changing them via the
@@ -16,7 +15,7 @@ export function useRegionModerators(enabled) {
     setLoading(true);
     setError(null);
     try {
-      const result = await httpsCallable(functions, 'adminListRegionModerators')();
+      const result = await callable('adminListRegionModerators')();
       setModerators(result.data?.moderators ?? []);
     } catch (err) {
       console.error('Loading moderators failed:', err);
@@ -32,7 +31,7 @@ export function useRegionModerators(enabled) {
 
   const setRegions = useCallback(
     async (uid, regionIds) => {
-      const result = await httpsCallable(functions, 'adminSetRegionModerator')({ uid, regionIds });
+      const result = await callable('adminSetRegionModerator')({ uid, regionIds });
       await load();
       return result.data;
     },

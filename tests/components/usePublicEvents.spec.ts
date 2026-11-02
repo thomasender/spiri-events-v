@@ -45,7 +45,7 @@ vi.mock('../../src/lib/slug', () => ({ findUniqueSlug: vi.fn(), resolveSlugForAp
 vi.mock('../../src/lib/imageUpload', () => ({ deleteImageByUrl: vi.fn() }));
 vi.mock('../../src/utils/ensureCategoryExists', () => ({ ensureCategoryExists: vi.fn() }));
 
-import { usePublicEvents } from '../../src/hooks/useEvents';
+import { EVENTS_VERSION_STORAGE_KEY, usePublicEvents } from '../../src/hooks/useEvents';
 
 const versionSnap = (version?: number) => ({
   exists: () => version !== undefined,
@@ -63,6 +63,7 @@ describe('usePublicEvents', () => {
     fetchMock.mockReset();
     vi.stubGlobal('fetch', fetchMock);
     vi.stubEnv('VITE_USE_EMULATORS', 'false');
+    window.localStorage.clear();
   });
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -107,5 +108,67 @@ describe('usePublicEvents', () => {
     renderHook(() => usePublicEvents());
     act(() => fs.versionCb?.(versionSnap(7)));
     await waitFor(() => expect(fs.eventListeners).toBe(1));
+  });
+
+  describe('with the version of the last visit remembered', () => {
+    const list = (...ids: string[]) => ({
+      ok: true,
+      json: async () => ids.map((id) => ({ id, date: '2026-11-01', title: id })),
+    });
+    const ids = (r: { current: { events: { id: string }[] } }) => r.current.events.map((e) => e.id);
+
+    it('remembers the version from the version doc', () => {
+      fetchMock.mockResolvedValue(list());
+      renderHook(() => usePublicEvents());
+      act(() => fs.versionCb?.(versionSnap(9)));
+      expect(window.localStorage.getItem(EVENTS_VERSION_STORAGE_KEY)).toBe('9');
+    });
+
+    it('asks for the list at once, without waiting for Firestore, and keeps it when the version matches', async () => {
+      window.localStorage.setItem(EVENTS_VERSION_STORAGE_KEY, '5');
+      fetchMock.mockResolvedValue(list('a'));
+      const { result } = renderHook(() => usePublicEvents());
+      expect(fetchMock).toHaveBeenCalledWith('/api/events.json?v=5', expect.anything());
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      expect(ids(result)).toEqual(['a']);
+      act(() => fs.versionCb?.(versionSnap(5)));
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('replaces the remembered list when the version doc has a newer version', async () => {
+      window.localStorage.setItem(EVENTS_VERSION_STORAGE_KEY, '5');
+      fetchMock.mockImplementation(async (url: string) =>
+        url.endsWith('v=6') ? list('new') : list('old')
+      );
+      const { result } = renderHook(() => usePublicEvents());
+      await waitFor(() => expect(ids(result)).toEqual(['old']));
+      act(() => fs.versionCb?.(versionSnap(6)));
+      await waitFor(() => expect(ids(result)).toEqual(['new']));
+      expect(fetchMock).toHaveBeenLastCalledWith('/api/events.json?v=6', expect.anything());
+      expect(fs.eventListeners).toBe(0);
+    });
+
+    it('a failed request for the remembered version waits for the version doc instead of falling back', async () => {
+      window.localStorage.setItem(EVENTS_VERSION_STORAGE_KEY, '5');
+      fetchMock.mockResolvedValueOnce({ ok: false, status: 404 }).mockResolvedValue(list('a'));
+      const { result } = renderHook(() => usePublicEvents());
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+      await act(async () => {});
+      expect(result.current.loading).toBe(true);
+      expect(fs.eventListeners).toBe(0);
+      act(() => fs.versionCb?.(versionSnap(5)));
+      await waitFor(() => expect(ids(result)).toEqual(['a']));
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(fs.eventListeners).toBe(0);
+    });
+
+    it('forgets the remembered version when the version doc is missing', async () => {
+      window.localStorage.setItem(EVENTS_VERSION_STORAGE_KEY, '5');
+      fetchMock.mockResolvedValue(list('a'));
+      renderHook(() => usePublicEvents());
+      act(() => fs.versionCb?.(versionSnap()));
+      await waitFor(() => expect(fs.eventListeners).toBe(1));
+      expect(window.localStorage.getItem(EVENTS_VERSION_STORAGE_KEY)).toBeNull();
+    });
   });
 });

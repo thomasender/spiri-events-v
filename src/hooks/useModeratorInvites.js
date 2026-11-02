@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '../lib/firebase';
+import { callable } from '../lib/firebase';
 
 /**
  * Super-Admin only: open moderator invitations (functions/src/moderatorInvites.ts).
@@ -16,7 +15,7 @@ export function useModeratorInvites(enabled) {
     setLoading(true);
     setError(null);
     try {
-      const result = await httpsCallable(functions, 'adminListModeratorInvites')();
+      const result = await callable('adminListModeratorInvites')();
       setInvites(result.data?.invites ?? []);
     } catch (err) {
       console.error('Loading moderator invitations failed:', err);
@@ -32,10 +31,7 @@ export function useModeratorInvites(enabled) {
 
   const invite = useCallback(
     async (email, regionIds, { sendEmail = true } = {}) => {
-      const result = await httpsCallable(
-        functions,
-        'adminCreateModeratorInvite'
-      )({ email, regionIds, sendEmail });
+      const result = await callable('adminCreateModeratorInvite')({ email, regionIds, sendEmail });
       await load();
       return result.data;
     },
@@ -44,7 +40,7 @@ export function useModeratorInvites(enabled) {
 
   const revoke = useCallback(
     async (inviteId) => {
-      await httpsCallable(functions, 'adminRevokeModeratorInvite')({ inviteId });
+      await callable('adminRevokeModeratorInvite')({ inviteId });
       await load();
     },
     [load]
