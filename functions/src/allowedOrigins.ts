@@ -4,6 +4,12 @@
 const PRODUCTION_ORIGINS = [
   'https://www.thetribe.at',
   'https://thetribe.at',
+  'https://www.deintribe.at',
+  'https://deintribe.at',
+  'https://www.deintribe.de',
+  'https://deintribe.de',
+  'https://www.deintribe.ch',
+  'https://deintribe.ch',
   'https://spirieventsvbg.web.app',
   'http://localhost:5180',
 ];

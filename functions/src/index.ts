@@ -1,4 +1,5 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { ALLOWED_ORIGINS } from './allowedOrigins';
 import { appCheckOptions, logMissingAppCheck } from './appCheck';
 import { logger } from 'firebase-functions';
 import {
@@ -25,7 +26,6 @@ import {
 import { enforceRateLimit, RATE_LIMIT_PRESETS } from './rateLimit';
 
 const REGION = 'europe-west3';
-const ALLOWED_ORIGINS = ['https://www.thetribe.at', 'https://thetribe.at'];
 
 // Shown to the donor; the raw Mollie error goes to the logs and Verwaltung.
 const DONATION_START_FAILED_MESSAGE =
