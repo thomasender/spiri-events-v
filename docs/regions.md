@@ -198,6 +198,18 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
     `tribe:lastPageSlug`, also a not-yet-open region), so the footer's "Über uns"
     (`aboutPathFor`) leads back to that region. Only with two or more active regions. Add further
     region-independent pages to that list.
+  - **Named region (Trello bUcG9rBf).** On pages with a neutral header (Verwaltung, Favoriten,
+    ... while the chosen place lies in a region not open yet, coming-soon pages, the event form
+    `/admin/new?region=`) the context region is only the Vorarlberg fallback. What such a page
+    NAMES follows `namedRegion` of the region context instead (`namedRegionId` in
+    `regionRouting.js`: the page's region, the form's `?region=`, the open event, the chosen
+    place; null = no region, never Vorarlberg without a reason): region texts
+    (`useRegionTexts`, "Alle Tribes" wording when none), the "Profil vervollständigen" hint, the
+    Instagram account in the profile wizard, the region preselected in the event / profile
+    forms (`useRegionChoices`), the footer's "Über uns" / donation links (`useAboutPath`) and the
+    region preselected in Verwaltung -> Helfer:innen / Spender:innen / Über uns
+    (`preferredRegionOption`). Data rules are unchanged (a missing `regionId` is Vorarlberg).
+    Only with two or more active regions.
   - **Header "Kalender" / "Verzeichnis"** (`regionNavPath`, Trello gflD7CXa) keep the visitor's
     region on every page (event form, login, profile): the page's region / view, else the chosen
     place's region, else `tribe:lastRegion`. A region that is not open yet leads to its

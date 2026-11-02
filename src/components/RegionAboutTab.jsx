@@ -6,9 +6,11 @@ import { db } from '../lib/firebase';
 import { uploadRegionImage, MAX_INPUT_SIZE_BYTES } from '../lib/imageUpload';
 import { useAuth } from '../hooks/useAuth';
 import { refreshRegions, useRegions } from '../hooks/useRegions';
+import { useRegion } from '../hooks/useRegion';
+import { preferredRegionOption } from '../utils/regionChoices';
 import { getStaffAccess } from '../utils/staffRoles';
 import { normalizeInstagramHandle } from '../utils/instagramHandle';
-import { DEFAULT_REGION_ID, regionInstagramAccount } from '../utils/regions';
+import { regionInstagramAccount } from '../utils/regions';
 import {
   ABOUT_TEXT_MAX_LENGTH,
   customAboutText,
@@ -65,12 +67,11 @@ export default function RegionAboutTab() {
     [regions, access]
   );
 
+  // Preselected: the visitor's region, not Vorarlberg without a reason (bUcG9rBf).
+  const visitorRegionId = useRegion().namedRegion?.id;
   const [regionId, setRegionId] = useState('');
   const current =
-    options.find((r) => r.id === regionId) ??
-    options.find((r) => r.id === DEFAULT_REGION_ID) ??
-    options[0] ??
-    null;
+    options.find((r) => r.id === regionId) ?? preferredRegionOption(options, visitorRegionId);
   const [aboutText, setAboutText] = useState('');
   const [headerImage, setHeaderImage] = useState('');
   const [slogan1, setSlogan1] = useState('');

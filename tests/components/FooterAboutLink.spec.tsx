@@ -141,6 +141,13 @@ describe('Footer "Über uns" link', () => {
       expect(aboutHref()).toBe('/steiermark/ueber-uns');
     });
 
+    it('Verwaltung: leads to the not-yet-open region of the chosen place, not Vorarlberg', () => {
+      twoActive();
+      writePlaceSelection({ label: 'Innsbruck', lat: 47.27, lon: 11.39, regionId: 'tirol' });
+      renderAt('/admin');
+      expect(aboutHref()).toBe('/tirol/ueber-uns');
+    });
+
     it('stays /ueber-uns while Vorarlberg is the only open region (dark launch)', () => {
       renderAt('/tirol');
       openLegal('Impressum');

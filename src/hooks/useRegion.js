@@ -11,7 +11,13 @@ import {
   regionInstagramAccount,
   resolveRegionId,
 } from '../utils/regions';
-import { activeRegions, regionCanonicalPath, regionPath } from '../utils/regionRouting';
+import {
+  aboutPathFor,
+  activeRegions,
+  namedRegionOf,
+  regionCanonicalPath,
+  regionPath,
+} from '../utils/regionRouting';
 import { filterEventsByRadius } from '../utils/placeSearch';
 import { filterOnlineEventsForRegions } from '../utils/onlineEventEligibility';
 
@@ -147,7 +153,22 @@ export function useRegionBezirke() {
  * it the current region of the page counts, none in a combined view.
  */
 export function useRegionInstagramAccount(regionId) {
-  const { region, allRegions, isNational } = useRegion();
-  const target = regionId ? allRegions.find((r) => r.id === regionId) : isNational ? null : region;
+  const context = useRegion();
+  const { allRegions, isNational } = context;
+  // Without an event region: the region the page names (never the Vorarlberg fallback).
+  const target = regionId
+    ? allRegions.find((r) => r.id === regionId)
+    : isNational
+      ? null
+      : namedRegionOf(context);
   return regionInstagramAccount(target ?? (regionId ? { id: regionId } : null));
+}
+
+/**
+ * Address of "Über uns" (aboutPathFor) for the region the page names, so pages with a neutral
+ * header lead to the visitor's region instead of the Vorarlberg fallback (bUcG9rBf).
+ */
+export function useAboutPath() {
+  const { regionId, namedRegion, allRegions, pageSlug } = useRegion();
+  return aboutPathFor({ pageSlug, regionId: namedRegion?.id ?? regionId, regions: allRegions });
 }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useLocation, useSearchParams } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { Sparkles, X } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
@@ -11,7 +11,7 @@ import {
   setOnboardingDismissed,
   shouldOfferOnboarding,
 } from '../utils/onboarding';
-import { getRegionBySlug, isRegionSlug } from '../utils/regions';
+import { namedRegionOf } from '../utils/regionRouting';
 import ProfileOnboarding from './ProfileOnboarding';
 import './ProfileOnboarding.css';
 
@@ -30,18 +30,13 @@ export default function ProfileOnboardingGate() {
 function GateInner({ user }) {
   const { profile, loading, save } = useProfile(user.uid);
   const { pathname } = useLocation();
-  // Dark launch: the region is only named once region wording is in effect.
-  const { region, allRegions, isNational } = useRegion();
+  // Dark launch: the region is only named once region wording is in effect. The region the
+  // page names, never the Vorarlberg fallback (`/admin/new?region=steiermark`, the Verwaltung
+  // while the chosen place lies in a region not open yet, bUcG9rBf).
+  const regionContext = useRegion();
   const { regionSpecific } = useRegionTexts();
-  // `/admin/new?region=steiermark` is the event form of that region, even if it is not open yet:
-  // name it instead of the fallback region (bUcG9rBf).
-  const [searchParams] = useSearchParams();
-  const requested = searchParams.get('region');
-  const formRegion =
-    pathname === '/admin/new' && isRegionSlug(requested)
-      ? getRegionBySlug(requested, allRegions)
-      : null;
-  const regionName = regionSpecific && !isNational ? (formRegion ?? region)?.name : '';
+  const regionName =
+    regionSpecific && !regionContext.isNational ? (namedRegionOf(regionContext)?.name ?? '') : '';
   const [open, setOpen] = useState(false);
   const [bannerHidden, setBannerHidden] = useState(false);
   const autoChecked = useRef(false);

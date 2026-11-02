@@ -12,7 +12,11 @@ import { buildRegionChoices } from '../utils/regionChoices';
  * an event already has) always stays selectable so an edit never loses it.
  */
 export function useRegionChoices({ keepRegionId = '' } = {}) {
-  const { regionId, regions, allRegions, comingSoon } = useRegion();
+  const context = useRegion();
+  const { regions, allRegions, comingSoon } = context;
+  // The region the page names (a coming-soon page's own region, the visitor's region on the
+  // Verwaltung), never the Vorarlberg fallback of pages with a neutral header (bUcG9rBf).
+  const regionId = context.namedRegion?.id ?? context.regionId;
   const { role, staffRegionIds } = useAuth();
   return useMemo(
     () =>
