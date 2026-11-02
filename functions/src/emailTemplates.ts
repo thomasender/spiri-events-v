@@ -163,9 +163,9 @@ type FooterKind = 'notification' | 'auth' | 'favorite' | 'directMessage' | 'even
 /** Why the person gets the mail; the settings link doubles as the way to switch it off. */
 const FOOTER_REASON: Partial<Record<FooterKind, string>> = {
   favorite:
-    'Du erhältst diese E-Mail, weil du dieses Event auf tribe Events als Favorit gespeichert hast.',
+    'Du erhältst diese E-Mail, weil du dieses Event auf Tribe als Favorit gespeichert hast.',
   directMessage:
-    'Du erhältst diese E-Mail, weil dir jemand auf tribe Events eine Privatnachricht geschrieben hat.',
+    'Du erhältst diese E-Mail, weil dir jemand auf Tribe eine Privatnachricht geschrieben hat.',
   eventChat:
     'Du erhältst diese E-Mail, weil im Event Chat einer Veranstaltung, die du erstellt hast, eine neue Nachricht steht. Wir schicken dir dazu höchstens eine E-Mail pro Tag.',
 };
@@ -188,7 +188,7 @@ function footerHtml(kind: FooterKind = 'notification'): string {
   }
   return `
     <p style="margin-top:32px;padding-top:16px;border-top:1px solid ${COLOR_BORDER};font-family:${BODY_FONT};font-size:12px;line-height:1.5;color:${COLOR_MUTED};">
-      Du erhältst diese E-Mail, weil du auf tribe Events ein Event eingereicht hast oder verwaltest.
+      Du erhältst diese E-Mail, weil du auf Tribe ein Event eingereicht hast oder verwaltest.
       <a href="${notificationSettingsUrl()}" style="color:${COLOR_MUTED};text-decoration:underline;">Benachrichtigungseinstellungen anpassen</a>.
       Bei Fragen wende dich an <a href="mailto:admin@thetribe.at" style="color:${COLOR_MUTED};text-decoration:underline;">admin@thetribe.at</a>.
     </p>`;
@@ -202,7 +202,7 @@ function footerText(kind: FooterKind = 'notification'): string {
   if (kind === 'auth') {
     return `\n--\nBei Fragen wende dich an admin@thetribe.at.`;
   }
-  return `\n--\nDu erhältst diese E-Mail, weil du auf tribe Events ein Event eingereicht hast oder verwaltest.\nBenachrichtigungseinstellungen anpassen: ${notificationSettingsUrl()}\nBei Fragen wende dich an admin@thetribe.at.`;
+  return `\n--\nDu erhältst diese E-Mail, weil du auf Tribe ein Event eingereicht hast oder verwaltest.\nBenachrichtigungseinstellungen anpassen: ${notificationSettingsUrl()}\nBei Fragen wende dich an admin@thetribe.at.`;
 }
 
 function wrapHtml(body: string, kind: FooterKind = 'notification'): string {

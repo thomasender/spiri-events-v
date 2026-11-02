@@ -20,6 +20,7 @@ import satori from 'satori';
 import { Resvg } from '@resvg/resvg-js';
 import sharp from 'sharp';
 import {
+  DEFAULT_SITE_DOMAIN,
   FORMAT_DIMENSIONS,
   buildEventImageModel,
   computeCropRect,
@@ -174,7 +175,7 @@ export function buildLayout(
                 el(
                   'div',
                   { fontSize: 26, fontWeight: 400, letterSpacing: 1, opacity: 0.6 },
-                  'www.thetribe.at'
+                  model.siteDomain ?? DEFAULT_SITE_DOMAIN
                 ),
               ]
             )
@@ -188,7 +189,7 @@ export function buildLayout(
                 textTransform: 'uppercase',
                 opacity: 0.85,
               },
-              'thetribe.at'
+              model.siteDomain ?? DEFAULT_SITE_DOMAIN
             ),
       ]),
     ]
@@ -435,7 +436,7 @@ export function buildCoverLayout(cover: CoverModel, format: InstagramFormat): No
           textTransform: 'uppercase',
           opacity: 0.85,
         },
-        'thetribe.at'
+        cover.siteDomain ?? DEFAULT_SITE_DOMAIN
       ),
       // Keeps the text block below the logo drawn by coverBackgroundSvg().
       el('div', { height: 530 }),
@@ -616,7 +617,7 @@ export function buildStoryListLayout(story: StoryModel, imageDataUri: string | n
           textTransform: 'uppercase',
           opacity: 0.7,
         },
-        'Mehr auf thetribe.at'
+        `Mehr auf ${story.siteDomain ?? DEFAULT_SITE_DOMAIN}`
       ),
     ]
   );

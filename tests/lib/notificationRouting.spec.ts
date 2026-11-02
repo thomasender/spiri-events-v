@@ -294,12 +294,12 @@ describe('decideAdminMessageNotification', () => {
     );
   });
 
-  it('falls back to "Das tribe-Team" when the admin author name is empty', () => {
+  it('falls back to "Dein Tribe-Team" when the admin author name is empty', () => {
     const result = decideAdminMessageNotification(
       'evt1',
       { id: 'm1', authorRole: 'Admin', authorName: '', text: 'hallo' },
       { organizer: organizer() }
     );
-    expect(result?.context.authorName).toBe('Das tribe-Team');
+    expect(result?.context.authorName).toBe('Dein Tribe-Team');
   });
 });

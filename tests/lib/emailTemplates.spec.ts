@@ -828,15 +828,16 @@ describe('region contact line in owner mails', () => {
 
   // Hashes of the mails as they were before the region line existed. With one
   // active region no contact is passed, so these must never change.
+  // (Updated once on purpose for the rename to "Tribe" in the footer, SRy1nWXs.)
   it('keeps the mails byte-identical without a contact address', () => {
     const base = { event: owner, recipient: 'a@b.at' };
-    expect(hash(buildEmailPayload('published', base))).toBe('24a6c914d7a74e2f');
-    expect(hash(buildEmailPayload('unpublished', base))).toBe('6c322f74e5ffc172');
+    expect(hash(buildEmailPayload('published', base))).toBe('4ee629fae48e54f4');
+    expect(hash(buildEmailPayload('unpublished', base))).toBe('b67466d69e6d85e8');
     expect(hash(buildEmailPayload('deleted', { ...base, reason: 'Doppelt' }))).toBe(
-      '837dca1832b07039'
+      '3fe4cf9d00a4eb12'
     );
-    expect(hash(buildEmailPayload('deleted', base))).toBe('c99a96faf4e5c24a');
-    expect(hash(buildEmailPayload('changes_requested', changes))).toBe('a34379e8412ae535');
+    expect(hash(buildEmailPayload('deleted', base))).toBe('dfe5eed6a8c7e300');
+    expect(hash(buildEmailPayload('changes_requested', changes))).toBe('781a189087aab362');
   });
 
   it.each([undefined, null, '', '   '])('ignores an empty contact (%j)', (value) => {

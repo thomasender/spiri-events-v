@@ -19,6 +19,7 @@ import {
   resolveCategoryColor,
   stripHtml,
   truncateTitle,
+  siteDomainForRegion,
 } from '../../functions/src/instagram/instagramContent';
 import { renderEventImage } from '../../functions/src/instagram/instagramImage';
 
@@ -461,5 +462,29 @@ describe('category "Sonstiges" is never shown on Instagram', () => {
       new Date('2026-11-01T00:00:00Z')
     );
     expect(caption).not.toMatch(/sonstiges/i);
+  });
+});
+
+describe('instagram domain follows the country of the region', () => {
+  it.each([
+    [undefined, 'www.deintribe.at'],
+    ['vorarlberg', 'www.deintribe.at'],
+    ['burgenland', 'www.deintribe.at'],
+    ['region-stuttgart', 'www.deintribe.de'],
+    ['aargau', 'www.deintribe.ch'],
+    // Liechtenstein has no own domain: it falls back to the default country (Austria).
+    ['liechtenstein', 'www.deintribe.at'],
+    ['unknown-region', 'www.deintribe.at'],
+  ])('%s -> %s', (regionId, domain) => {
+    expect(siteDomainForRegion(regionId)).toBe(domain);
+    expect(buildEventImageModel({ title: 'Yoga', regionId }).siteDomain).toBe(domain);
+  });
+
+  it('caption bio-link line names the domain of the event region, never thetribe.at', () => {
+    const caption = buildCaption({ title: 'Yoga', date: '2026-12-01', regionId: 'aargau' });
+    expect(caption).toContain('Alle Events und Infos auf www.deintribe.ch');
+    expect(caption).not.toContain('thetribe');
+    expect(buildCaption({ title: 'Yoga', date: '2026-12-01' })).toContain(BIO_LINK_LINE);
+    expect(BIO_LINK_LINE).toContain('www.deintribe.at');
   });
 });

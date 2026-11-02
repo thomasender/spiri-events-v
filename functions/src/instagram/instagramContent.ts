@@ -5,6 +5,7 @@
  * The rendering itself lives in ./instagramImage.ts.
  */
 
+import { countryOfRegion, resolveRegionId } from '../regions';
 import { expandOccurrencesInWindow, getNthWeekdayOrdinal } from './instagramOccurrences';
 
 export type InstagramFormat = 'feed' | 'story' | 'carousel';
@@ -18,6 +19,26 @@ export const FORMAT_DIMENSIONS: Record<InstagramFormat, { width: number; height:
 export const CAPTION_MAX_LENGTH = 2200;
 export const TITLE_MAX_LENGTH = 70;
 export const SITE_URL = 'https://www.thetribe.at';
+
+/**
+ * Domain that Instagram captions and images SHOW (display text only; links such as
+ * the first comment keep SITE_URL). Follows the country of the post's region:
+ * Austria www.deintribe.at, Germany www.deintribe.de, Switzerland www.deintribe.ch. Any other
+ * country (Liechtenstein) gets the default country's (Austrian) domain, like
+ * countryOfRegion's fallback.
+ */
+export const SITE_DOMAIN_BY_COUNTRY: Readonly<Record<string, string>> = {
+  AT: 'www.deintribe.at',
+  DE: 'www.deintribe.de',
+  CH: 'www.deintribe.ch',
+};
+export const DEFAULT_SITE_DOMAIN = SITE_DOMAIN_BY_COUNTRY.AT;
+
+/** Display domain for a region id (missing/unknown = Vorarlberg, i.e. www.deintribe.at). */
+export function siteDomainForRegion(regionId?: unknown): string {
+  const id = resolveRegionId({ regionId });
+  return SITE_DOMAIN_BY_COUNTRY[countryOfRegion(id)] ?? DEFAULT_SITE_DOMAIN;
+}
 
 // Mirrors CATEGORY_COLORS in src/utils/categoryColors.js. functions/ cannot
 // import from src/, and the live `categories` registry (admin-editable) wins
@@ -90,6 +111,8 @@ export interface InstagramEventInput {
   /** Crop of the event's own picture as set in the event form: { x, y } and imageZoom. */
   imageFocalPoint?: unknown;
   imageZoom?: unknown;
+  /** Moderation region; picks the domain shown in caption and image. */
+  regionId?: unknown;
 }
 
 /** Validated organizer pick of photo + 4:5 crop for the Instagram post. */
@@ -192,6 +215,8 @@ export interface CoverModel {
   /** "Teil 1 von 2"; empty for a single-part carousel. */
   partLabel: string;
   eventCount: number;
+  /** Domain shown on the cover; default DEFAULT_SITE_DOMAIN. */
+  siteDomain?: string;
 }
 
 export interface EventImageModel {
@@ -204,6 +229,8 @@ export interface EventImageModel {
   imageUrl: string | null;
   /** Carousel slides and feed posts show the organizer at the bottom. */
   organizerName?: string;
+  /** Domain shown on the image ("www.deintribe.de"); default DEFAULT_SITE_DOMAIN. */
+  siteDomain?: string;
 }
 
 function asString(value: unknown): string {
@@ -357,6 +384,7 @@ export function buildEventImageModel(
     color: resolveCategoryColor(event.category, registry),
     imageUrl: imageUrl || null,
     organizerName: formatOrganizerName(event),
+    siteDomain: siteDomainForRegion(event.regionId),
   };
 }
 
@@ -392,7 +420,7 @@ export const CATEGORY_EXTRA_HASHTAGS: Record<string, string[]> = {
   Therapie: ['#ganzheitlich'],
 };
 
-export const BASE_HASHTAGS = ['#vorarlberg', '#thetribe', '#bewusstsein', '#veranstaltung'];
+export const BASE_HASHTAGS = ['#vorarlberg', '#deintribe', '#bewusstsein', '#veranstaltung'];
 export const MAX_HASHTAGS = 12;
 
 /**
@@ -455,12 +483,14 @@ export const CAPTION_CTA = [
  * Instagram does not make URLs in captions clickable, so the caption points to
  * the one link that is: the one in the bio, which leads to the site.
  */
-export const BIO_LINK_LINE =
-  '🔗 Alle Events und Infos auf thetribe.at – den Link findest du in unserer Bio.';
+export function bioLinkLine(domain: string = DEFAULT_SITE_DOMAIN): string {
+  return `🔗 Alle Events und Infos auf ${domain} – den Link findest du in unserer Bio.`;
+}
+export const BIO_LINK_LINE = bioLinkLine();
 
 /** CTA, bio-link hint and hashtags: the tail of every caption. */
-export function buildCaptionFooter(hashtags: string): string {
-  return [CAPTION_CTA, BIO_LINK_LINE, hashtags].filter(Boolean).join('\n\n');
+export function buildCaptionFooter(hashtags: string, domain: string = DEFAULT_SITE_DOMAIN): string {
+  return [CAPTION_CTA, bioLinkLine(domain), hashtags].filter(Boolean).join('\n\n');
 }
 
 /**
@@ -637,7 +667,7 @@ export function buildCaption(
         .filter(Boolean)
         .join('\n\n');
 
-  const footer = buildCaptionFooter(buildHashtags(event).join(' '));
+  const footer = buildCaptionFooter(buildHashtags(event).join(' '), model.siteDomain);
 
   const description = stripHtml(event.description);
   // Two blank-line separators sit between header, description and footer.
