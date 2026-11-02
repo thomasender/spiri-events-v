@@ -394,6 +394,19 @@ describe('AuthForm analytics', () => {
     expect(track).not.toHaveBeenCalled();
   });
 
+  it('shows "Konto erstellen" right below the login button, before the Google button', async () => {
+    mocks.login.mockRejectedValueOnce({ code: 'auth/invalid-credential' });
+    renderForm();
+    fireEvent.change(screen.getByLabelText('E-Mail'), { target: { value: 'a@example.com' } });
+    fireEvent.change(screen.getByLabelText('Passwort', { exact: true }), {
+      target: { value: 'falsch' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Anmelden' }));
+    const cta = await screen.findByTestId('auth-create-cta');
+    const google = screen.getByTestId('auth-google-signin');
+    expect(cta.compareDocumentPosition(google) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it('keeps the "Passwort vergessen?" link visible after a wrong-password error', async () => {
     mocks.login.mockRejectedValueOnce({ code: 'auth/invalid-credential' });
     renderForm();
