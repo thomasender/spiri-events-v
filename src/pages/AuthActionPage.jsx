@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { applyActionCode, confirmPasswordReset, verifyPasswordResetCode } from 'firebase/auth';
-import { auth, functions } from '../lib/firebase';
-import { httpsCallable } from 'firebase/functions';
+import { auth, callable } from '../lib/firebase';
 import { useAuth, MIN_PASSWORD_LENGTH } from '../hooks/useAuth';
 import SeoMeta from '../components/SeoMeta';
 import './AuthActionPage.css';
@@ -159,7 +158,7 @@ export default function AuthActionPage() {
     setResending(true);
     setResendMessage(null);
     try {
-      const fn = httpsCallable(functions, 'sendVerificationEmail');
+      const fn = callable('sendVerificationEmail');
       await fn({ userId: current.uid });
       setResendMessage('Eine neue Bestätigungs-E-Mail wurde versendet.');
     } catch (err) {

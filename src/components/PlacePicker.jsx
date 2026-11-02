@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { MapPin } from 'lucide-react';
+import { usePlaceIndexOnDemand } from '../hooks/usePlaceIndexOnDemand';
 import { useRegion } from '../hooks/useRegion';
 import { buildRegionEntries, loadGeoShapes, loadPlaceIndex } from '../lib/placeData';
 import { locatePosition } from '../utils/geoRegion';
@@ -23,20 +24,10 @@ import './PlacePicker.css';
  */
 export default function PlacePicker({ onApply, applyLabel = 'Übernehmen' }) {
   const { allRegions, placeSelection } = useRegion();
-  const [index, setIndex] = useState(null);
+  // The place list is loaded once the search field is used, not when the picker opens.
+  const { index, failed, request: requestIndex } = usePlaceIndexOnDemand();
   const [draft, setDraft] = useState(() => (placeSelection ? { ...placeSelection } : null));
   const [radiusKm, setRadiusKm] = useState(placeSelection?.radiusKm ?? DEFAULT_RADIUS_KM);
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    let alive = true;
-    loadPlaceIndex()
-      .then((loaded) => alive && setIndex(loaded))
-      .catch(() => alive && setFailed(true));
-    return () => {
-      alive = false;
-    };
-  }, []);
 
   const regionEntries = useMemo(
     () => (index ? buildRegionEntries(index, allRegions) : []),
@@ -80,7 +71,12 @@ export default function PlacePicker({ onApply, applyLabel = 'Übernehmen' }) {
 
   return (
     <div className="place-picker" data-testid="place-picker">
-      <PlaceSearch index={index} regionEntries={regionEntries} onChoose={chooseEntry} />
+      <PlaceSearch
+        index={index}
+        regionEntries={regionEntries}
+        onChoose={chooseEntry}
+        onNeedIndex={requestIndex}
+      />
       {failed && (
         <p className="place-picker-error" role="alert">
           Die Ortsliste konnte nicht geladen werden. Bitte versuche es später noch einmal.

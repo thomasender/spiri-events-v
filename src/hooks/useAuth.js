@@ -16,7 +16,6 @@ import {
   getIdTokenResult,
   getAdditionalUserInfo,
 } from 'firebase/auth';
-import { getFunctions, httpsCallable } from 'firebase/functions';
 import {
   FieldPath,
   collection,
@@ -36,8 +35,7 @@ import { REACTION_EMOJIS } from '../utils/reactions';
 import { splitProfileData } from '../utils/profile';
 import { revokeCalendarFeedToken } from './useCalendarFeedToken';
 import { findUniqueProfileSlug } from '../lib/slug';
-import { ref as storageRef, listAll, deleteObject } from 'firebase/storage';
-import { auth, db, storage, functions } from '../lib/firebase';
+import { auth, db, callable, getStorageInstance } from '../lib/firebase';
 import {
   checkRateLimit,
   recordRateLimitAttempt,
@@ -294,7 +292,7 @@ export function useAuth() {
     if (!targetUser) {
       throw { code: 'auth/no-current-user', message: 'Kein angemeldeter Benutzer.' };
     }
-    const fn = httpsCallable(functions, 'sendVerificationEmail');
+    const fn = callable('sendVerificationEmail');
     await fn({ userId: targetUser.uid });
   };
 
@@ -340,7 +338,7 @@ export function useAuth() {
     }
     recordRateLimitAttempt({ bucket, ...preset });
     try {
-      const fn = httpsCallable(functions, 'sendPasswordResetEmailFn');
+      const fn = callable('sendPasswordResetEmailFn');
       await fn({ email });
     } catch (err) {
       const code = err?.code || err?.details?.code;
@@ -396,7 +394,7 @@ export function useAuth() {
 
     let availabilityChecked = false;
     try {
-      const fn = httpsCallable(functions, 'checkEmailAvailability');
+      const fn = callable('checkEmailAvailability');
       const result = await fn({ email: newEmail, currentEmail: current.email });
       availabilityChecked = true;
       if (result?.data?.available === false) {
@@ -452,6 +450,10 @@ export function useAuth() {
     await reauthenticateCurrent(password);
 
     try {
+      const [{ ref: storageRef, listAll, deleteObject }, storage] = await Promise.all([
+        import('firebase/storage'),
+        getStorageInstance(),
+      ]);
       const userFolder = storageRef(storage, `users/${uid}`);
       const listed = await listAll(userFolder);
       await Promise.all(listed.items.map((item) => deleteObject(item).catch(() => {})));

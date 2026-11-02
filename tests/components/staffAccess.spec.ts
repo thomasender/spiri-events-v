@@ -10,7 +10,7 @@ import { requiresDeleteReason, canEditEvent } from '../../src/utils/eventPermiss
 import { canPreviewRegion } from '../../src/hooks/useCanPreviewRegion';
 import { staffEventQuerySpecs } from '../../src/lib/staffEventQueries';
 
-vi.mock('../../src/lib/firebase', () => ({ db: {}, auth: {}, functions: {} }));
+vi.mock('../../src/lib/firebase', () => ({ db: {}, auth: {}, callable: () => vi.fn() }));
 
 const superAdmin = getStaffAccess('Admin', []);
 const tirolMod = getStaffAccess('RegionModerator', ['tirol']);

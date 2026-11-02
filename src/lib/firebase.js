@@ -1,8 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
-import { getStorage, connectStorageEmulator } from 'firebase/storage';
-import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 import { setupAppCheck } from './appCheck';
 
 const prodConfig = {
@@ -36,14 +34,55 @@ const app = initializeApp(useEmulators || useStaging ? devConfig : prodConfig);
 setupAppCheck(app);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const storage = getStorage(app);
-export const functions = getFunctions(app, 'europe-west3');
 
 if (useEmulators) {
   connectAuthEmulator(auth, 'http://localhost:9199', { disableWarnings: true });
   connectFirestoreEmulator(db, 'localhost', 8181);
-  connectStorageEmulator(storage, 'localhost', 9299);
-  connectFunctionsEmulator(functions, 'localhost', 5001);
+}
+
+// Storage and the callable functions are not needed for the first page, so their SDKs are
+// loaded on first use. Every call returns the same instance (one promise per service); a failed
+// chunk load is forgotten so the next call tries again.
+let storagePromise = null;
+export function getStorageInstance() {
+  storagePromise ??= import('firebase/storage').then(({ getStorage, connectStorageEmulator }) => {
+    const storage = getStorage(app);
+    if (useEmulators) connectStorageEmulator(storage, 'localhost', 9299);
+    return storage;
+  });
+  storagePromise.catch(() => {
+    storagePromise = null;
+  });
+  return storagePromise;
+}
+
+let functionsPromise = null;
+export function getFunctionsInstance() {
+  functionsPromise ??= import('firebase/functions').then(
+    ({ getFunctions, connectFunctionsEmulator }) => {
+      const functions = getFunctions(app, 'europe-west3');
+      if (useEmulators) connectFunctionsEmulator(functions, 'localhost', 5001);
+      return functions;
+    }
+  );
+  functionsPromise.catch(() => {
+    functionsPromise = null;
+  });
+  return functionsPromise;
+}
+
+/**
+ * A callable Cloud Function, like `httpsCallable(functions, name, options)`, but the
+ * Functions SDK is only loaded when it is first called: `await callable('name')(data)`.
+ */
+export function callable(name, options) {
+  return async (data) => {
+    const [{ httpsCallable }, functions] = await Promise.all([
+      import('firebase/functions'),
+      getFunctionsInstance(),
+    ]);
+    return httpsCallable(functions, name, options)(data);
+  };
 }
 
 export default app;

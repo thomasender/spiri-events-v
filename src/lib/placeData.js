@@ -1,8 +1,9 @@
 import { prepareAdminShapes } from '../utils/geoRegion';
 import { buildRegionEntries, preparePlaceIndex } from '../utils/placeSearch';
 
-// The bundled place list (about 380 kB gzipped) and the border shapes are only loaded when
-// somebody opens "Wo bist du?" or saves an event, never with the first page.
+// The bundled place list (about 390 kB gzipped) and the border shapes are only loaded when
+// somebody uses a place search field (focus / typing, hooks/usePlaceIndexOnDemand.js), shares
+// the location or saves an event; never with the first page or when a picker merely opens.
 let placePromise = null;
 export function loadPlaceIndex() {
   placePromise ??= import('../data/placeIndex.json').then((m) => preparePlaceIndex(m.default ?? m));

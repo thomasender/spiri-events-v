@@ -9,7 +9,7 @@ vi.mock('../../src/lib/moderatorApplication', async () => {
   );
   return { ...actual, sendModeratorApplication: mocks.send };
 });
-vi.mock('../../src/lib/firebase', () => ({ functions: {} }));
+vi.mock('../../src/lib/firebase', () => ({ callable: () => vi.fn() }));
 vi.mock('firebase/functions', () => ({ httpsCallable: () => vi.fn() }));
 
 import ModeratorApplyCard from '../../src/components/ModeratorApplyCard';
