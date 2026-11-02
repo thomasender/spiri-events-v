@@ -10,6 +10,8 @@ const PRODUCTION_ORIGINS = [
   'https://deintribe.de',
   'https://www.deintribe.ch',
   'https://deintribe.ch',
+  'https://www.deintribe.com',
+  'https://deintribe.com',
   'https://spirieventsvbg.web.app',
   'http://localhost:5180',
 ];

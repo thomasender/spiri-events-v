@@ -13,6 +13,7 @@ import {
   sendMailgunMessage,
 } from './mailgun';
 import { APP_BASE_URL, buildPasswordResetPayload } from './emailTemplates';
+import { requestSiteOrigin } from './siteOrigin';
 import { enforceRateLimit, RATE_LIMIT_PRESETS } from './rateLimit';
 
 function parseOobCode(magicLink: string): string | null {
@@ -71,7 +72,7 @@ export const sendPasswordResetEmailFn = onCall(
       throw new HttpsError('internal', 'Could not generate password reset link.');
     }
 
-    const buttonUrl = `${APP_BASE_URL}/auth-action?mode=resetPassword&oobCode=${encodeURIComponent(oobCode)}`;
+    const buttonUrl = `${requestSiteOrigin(request)}/auth-action?mode=resetPassword&oobCode=${encodeURIComponent(oobCode)}`;
     const { subject, html, text } = buildPasswordResetPayload({
       recipient: email,
       buttonUrl,

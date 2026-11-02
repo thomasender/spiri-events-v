@@ -594,8 +594,11 @@ service cloud.firestore {
                        'notifyOnContactMessage', 'notifyOnFavoriteCancelled',
                        'notifyOnDirectMessage', 'notifyOnEventChat',
                        'notifyNewsletter', 'instagramConsentDefault', 'onboardingDismissed', 'onboardingCompleted', 'placeSelection',
-                       'createdAt', 'updatedAt']
+                       'siteOrigin', 'createdAt', 'updatedAt']
                     )
+                    && (!('siteOrigin' in request.resource.data)
+                        || (request.resource.data.siteOrigin is string
+                            && request.resource.data.siteOrigin.size() <= 100))
                     && request.resource.data.bio.size() <= 2000
                     && request.resource.data.displayName.size() <= 80
                     && isValidDirectoryData(request.resource.data)

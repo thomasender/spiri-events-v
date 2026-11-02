@@ -17,14 +17,14 @@ import {
   sendMailgunMessage,
   isMailgunDryRun,
 } from './mailgun';
-import { buildFavoriteCancelledPayload } from './emailTemplates';
+import { buildFavoriteCancelledPayload, withSiteOrigin } from './emailTemplates';
 import {
   detectNewCancellations,
   selectFavoriteRecipients,
   todayInVienna,
   FavoriteUserInfo,
 } from './eventCancellation';
-import { getUsersNotificationPreferences } from './userPreferences';
+import { getUsersNotificationPreferences, getUsersSiteOrigins } from './userPreferences';
 
 const REGION = 'europe-west3';
 const GET_ALL_CHUNK = 300;
@@ -99,9 +99,10 @@ export const onEventCancelledNotifyFavorites = onDocumentUpdated(
       logger.info('Event cancelled, nobody favorited it', { eventId });
       return;
     }
-    const [users, prefs] = await Promise.all([
+    const [users, prefs, siteOrigins] = await Promise.all([
       lookupUsers(favoriterUids),
       getUsersNotificationPreferences(favoriterUids),
+      getUsersSiteOrigins(favoriterUids),
     ]);
     const recipients = selectFavoriteRecipients(
       favoriterUids,
@@ -117,13 +118,16 @@ export const onEventCancelledNotifyFavorites = onDocumentUpdated(
     };
     let sent = 0;
     for (const recipient of recipients) {
-      const payload = buildFavoriteCancelledPayload({
-        event: notificationEvent,
-        recipient: recipient.email,
-        recipientName: recipient.displayName,
-        dates: change.dates,
-        wholeEvent: change.wholeEvent,
-      });
+      const payload = withSiteOrigin(
+        buildFavoriteCancelledPayload({
+          event: notificationEvent,
+          recipient: recipient.email,
+          recipientName: recipient.displayName,
+          dates: change.dates,
+          wholeEvent: change.wholeEvent,
+        }),
+        siteOrigins.get(recipient.uid)
+      );
       if (dryRun) {
         logger.info('MAILGUN dry-run: would send cancellation e-mail', {
           eventId,

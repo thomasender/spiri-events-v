@@ -14,8 +14,13 @@ import {
   isMailgunDryRun,
   sendMailgunMessage,
 } from './mailgun';
-import { buildDirectMessagePayload, buildEventChatPayload, EmailPayload } from './emailTemplates';
-import { getUserNotificationPreferences } from './userPreferences';
+import {
+  buildDirectMessagePayload,
+  buildEventChatPayload,
+  EmailPayload,
+  withSiteOrigin,
+} from './emailTemplates';
+import { getUserNotificationPreferences, getUserSiteOrigin } from './userPreferences';
 import {
   DM_MAIL_MARKER_COLLECTION,
   DM_MAIL_MARKER_RETENTION_MS,
@@ -543,14 +548,18 @@ async function mailDirectMessage(
     publicDisplayName(authorUid),
     publicDisplayName(recipientUid),
   ]);
+  const siteOrigin = await getUserSiteOrigin(recipientUid);
   const payload = buildDirectMessagePayload({
     recipient: recipient.email as string,
     recipientName: recipientName ?? recipient.displayName,
     senderName,
     messageText: typeof data.text === 'string' ? data.text : '',
-    conversationUrl: directMessageUrl(chatMailBaseUrl(process.env.GCLOUD_PROJECT), authorUid),
+    conversationUrl: directMessageUrl(
+      chatMailBaseUrl(process.env.GCLOUD_PROJECT, siteOrigin),
+      authorUid
+    ),
   });
-  const sent = await sendChatMail(payload, log);
+  const sent = await sendChatMail(withSiteOrigin(payload, siteOrigin), log);
   logger.info('Direct message mail processed', { ...log, sent });
 }
 
@@ -615,6 +624,7 @@ async function mailEventChatMessage(
     publicDisplayName(authorUid),
     publicDisplayName(organizerUid),
   ]);
+  const siteOrigin = await getUserSiteOrigin(organizerUid);
   const payload = buildEventChatPayload({
     recipient: organizer.email as string,
     recipientName: organizerName ?? organizer.displayName,
@@ -622,12 +632,12 @@ async function mailEventChatMessage(
     eventTitle: readText(event.get('title')) ?? '',
     messageText: typeof data.text === 'string' ? data.text : '',
     roomUrl: eventChatUrl(
-      chatMailBaseUrl(process.env.GCLOUD_PROJECT),
+      chatMailBaseUrl(process.env.GCLOUD_PROJECT, siteOrigin),
       readText(event.get('slug')),
       eventId
     ),
   });
-  const sent = await sendChatMail(payload, log);
+  const sent = await sendChatMail(withSiteOrigin(payload, siteOrigin), log);
   logger.info('Event chat mail processed', { ...log, sent });
 }
 

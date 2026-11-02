@@ -1,6 +1,7 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { appCheckOptions, logMissingAppCheck } from './appCheck';
 import { ALLOWED_ORIGINS } from './allowedOrigins';
+import { DEFAULT_SITE_ORIGIN, requestSiteOrigin } from './siteOrigin';
 import { logger } from 'firebase-functions';
 import { getAuth } from 'firebase-admin/auth';
 import {
@@ -13,8 +14,6 @@ import {
   isMailgunDryRun,
   sendMailgunMessage,
 } from './mailgun';
-
-const APP_URL = 'https://thetribe.at';
 
 function parseOobCode(magicLink: string): string | null {
   try {
@@ -125,7 +124,9 @@ export const sendVerificationEmail = onCall(
     let magicLink: string;
     try {
       magicLink = await auth.generateEmailVerificationLink(user.email, {
-        url: `${APP_URL}/auth-action?mode=verifyEmail`,
+        // Only a placeholder (the mail carries its own link below); the default
+        // domain is known to be an authorized Firebase Auth domain.
+        url: `${DEFAULT_SITE_ORIGIN}/auth-action?mode=verifyEmail`,
       });
     } catch (err) {
       logger.error('Failed to generate verification link', { userId, err });
@@ -136,7 +137,8 @@ export const sendVerificationEmail = onCall(
       throw new HttpsError('internal', 'Could not generate verification link.');
     }
 
-    const buttonUrl = `${APP_URL}/auth-action?mode=verifyEmail&oobCode=${encodeURIComponent(oobCode)}`;
+    // The link goes to the domain the user is on, so their session there stays valid.
+    const buttonUrl = `${requestSiteOrigin(request)}/auth-action?mode=verifyEmail&oobCode=${encodeURIComponent(oobCode)}`;
     const displayName = user.displayName || user.email;
     const appName = process.env.APP_DISPLAY_NAME || 'Tribe';
     const { subject, html, text } = renderEmail({ displayName, buttonUrl, appName });
