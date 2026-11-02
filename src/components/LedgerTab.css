@@ -231,3 +231,14 @@
 .ledger-edit-attachment-remove:hover {
   color: var(--error);
 }
+
+.ledger-edit-dropzone {
+  padding: var(--space-3);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.ledger-edit-dropzone.is-dragover {
+  background-color: var(--bg-calendar);
+  border-color: var(--accent-primary);
+}
