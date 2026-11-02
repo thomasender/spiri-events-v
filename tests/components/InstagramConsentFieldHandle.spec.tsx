@@ -241,4 +241,17 @@ describe('Instagram channel named after the event region', () => {
     const hint = screen.getByTestId('instagram-consent-card').textContent;
     expect(hint).toContain('auf unserem Instagram-Kanal veröffentlichen');
   });
+
+  it('the profile card names no account when the page names no region', () => {
+    render(
+      <RegionContext.Provider
+        value={{ ...DEFAULT_REGION_CONTEXT, allRegions: regions, namedRegion: null } as never}
+      >
+        <InstagramConsentCard checked={false} onSave={async () => {}} />
+      </RegionContext.Provider>
+    );
+    const hint = screen.getByTestId('instagram-consent-card').textContent;
+    expect(hint).toContain('auf unserem Instagram-Kanal veröffentlichen');
+    expect(hint).not.toContain('@tribevorarlberg');
+  });
 });
