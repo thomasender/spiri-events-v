@@ -13,6 +13,7 @@ import { PLACE_SELECTION_KEY } from '../../src/utils/placeSelection';
 const mocks = vi.hoisted(() => ({
   regions: { regions: [] as unknown[], loading: false },
   trackFilter: vi.fn(),
+  loadPlaceIndex: vi.fn(),
   // A handful of places is enough: the real list is pinned in placeSearch.spec.ts.
   rawIndex: {
     states: [
@@ -41,7 +42,9 @@ vi.mock('../../src/lib/placeData', async () => {
   const search = await import('../../src/utils/placeSearch');
   return {
     buildRegionEntries: search.buildRegionEntries,
-    loadPlaceIndex: () => Promise.resolve(search.preparePlaceIndex(mocks.rawIndex)),
+    loadPlaceIndex: mocks.loadPlaceIndex.mockImplementation(() =>
+      Promise.resolve(search.preparePlaceIndex(mocks.rawIndex))
+    ),
     loadGeoShapes: () => Promise.reject(new Error('no border shapes in this test')),
   };
 });
@@ -186,6 +189,32 @@ describe('RegionSwitcher with two active regions', () => {
     expect(within(dialog).getAllByRole('radio')).toHaveLength(6);
     expect(within(dialog).queryByRole('button', { name: /Karte/ })).toBeNull();
     expect(within(dialog).queryByRole('button', { name: 'Tirol' })).toBeNull();
+  });
+
+  it('loads the place list only once the search field is used, and keeps the first input', async () => {
+    const search = await import('../../src/utils/placeSearch');
+    let finish: () => void = () => {};
+    mocks.loadPlaceIndex.mockClear();
+    mocks.loadPlaceIndex.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = () => resolve(search.preparePlaceIndex(mocks.rawIndex));
+        })
+    );
+    renderAt('/');
+    const dialog = openPicker();
+    expect(mocks.loadPlaceIndex).not.toHaveBeenCalled();
+    const input = within(dialog).getByRole('combobox');
+    fireEvent.focus(input);
+    expect(mocks.loadPlaceIndex).toHaveBeenCalledTimes(1);
+    // Typed before the list is there: no error, a loading note, nothing lost.
+    fireEvent.change(input, { target: { value: 'bre' } });
+    expect(mocks.loadPlaceIndex).toHaveBeenCalledTimes(1);
+    expect(within(dialog).getByText('Orte werden geladen …')).toBeInTheDocument();
+    expect(within(dialog).queryByRole('alert')).toBeNull();
+    finish();
+    const options = await within(dialog).findAllByTestId('place-search-option');
+    expect(options[0]).toHaveTextContent('Bregenz');
   });
 
   it('"Übernehmen" waits for a place; the radius defaults to 25 km', async () => {
