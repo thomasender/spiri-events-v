@@ -188,6 +188,7 @@ two-line "read this when".
   (`instagramImage.ts`) or rebuild the Instagram templates in Canva.
 - Read `docs/instagram-regions.md` ONLY when you touch the per-region Instagram backend
   (regional accounts, token refresh, backfill) or onboard a regional Instagram account.
+- Read `docs/event-celebration.md` ONLY when you touch the confetti after submitting an event.
 - Read `docs/email-testing-protocol.md` ONLY when you test or change transactional
   emails; `docs/mailgun-sender-photo.md` ONLY for the Mailgun sender photo.
 

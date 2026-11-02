@@ -1,6 +1,7 @@
 import { logger } from 'firebase-functions';
 import { initializeApp, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { DEFAULT_SITE_ORIGIN, resolveSiteOrigin } from './siteOrigin';
 
 if (getApps().length === 0) {
   initializeApp();
@@ -84,4 +85,29 @@ export async function getUsersNotificationPreferences(
     }
   }
   return map;
+}
+
+/**
+ * Domain each user registered on (`users/{uid}.siteOrigin`), for the links in
+ * their mails. Users without one (accounts from before the domain change) and
+ * unreadable docs get the default.
+ */
+export async function getUsersSiteOrigins(uids: string[]): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  const unique = Array.from(new Set(uids.filter((uid): uid is string => Boolean(uid))));
+  if (unique.length === 0) return map;
+  try {
+    const db = getFirestore();
+    const snaps = await db.getAll(...unique.map((uid) => db.collection('users').doc(uid)));
+    unique.forEach((uid, i) => map.set(uid, resolveSiteOrigin(snaps[i].data()?.siteOrigin)));
+  } catch (err) {
+    logger.warn('Failed batch-read of user site origins; using default', { err });
+    for (const uid of unique) map.set(uid, DEFAULT_SITE_ORIGIN);
+  }
+  return map;
+}
+
+export async function getUserSiteOrigin(uid: string | null | undefined): Promise<string> {
+  if (!uid) return DEFAULT_SITE_ORIGIN;
+  return (await getUsersSiteOrigins([uid])).get(uid) ?? DEFAULT_SITE_ORIGIN;
 }

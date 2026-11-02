@@ -1,3 +1,5 @@
+import { DEFAULT_SITE_ORIGIN } from './siteOrigin';
+
 export type NotificationType =
   | 'submitted'
   | 'changes_requested'
@@ -53,7 +55,7 @@ export interface EmailPayload {
   text: string;
 }
 
-export const APP_BASE_URL = 'https://www.thetribe.at';
+export const APP_BASE_URL = DEFAULT_SITE_ORIGIN;
 
 /**
  * Admin messages are stored as rich-text HTML (older ones as plain text).
@@ -94,6 +96,23 @@ function organizerDisplayName(organizer: EventOrganizer | null | undefined): str
     (part): part is string => typeof part === 'string' && part.trim().length > 0
   );
   return parts.join(' ').trim();
+}
+
+/**
+ * Points every link of a finished mail (event, profile, logo, ...) at the domain
+ * the recipient registered on. The templates are written against APP_BASE_URL;
+ * mail addresses like admin@thetribe.at do not match and stay as they are.
+ */
+export function withSiteOrigin<T extends { html: string; text: string }>(
+  payload: T,
+  origin: string | null | undefined
+): T {
+  if (!origin || origin === APP_BASE_URL) return payload;
+  return {
+    ...payload,
+    html: payload.html.split(APP_BASE_URL).join(origin),
+    text: payload.text.split(APP_BASE_URL).join(origin),
+  };
 }
 
 function eventUrl(slug: string | null | undefined): string {

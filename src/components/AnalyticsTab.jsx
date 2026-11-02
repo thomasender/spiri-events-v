@@ -233,7 +233,13 @@ function errorMessage(error) {
 export default function AnalyticsTab() {
   const [days, setDays] = useState(7);
   const [region, setRegion] = useState('');
-  const { report, loading, error, reload } = useAdminAnalytics(days, region || null);
+  const [host, setHost] = useState('');
+  const { report, loading, error, reload } = useAdminAnalytics(
+    days,
+    region || null,
+    true,
+    host || null
+  );
   const { regions, combinedViews } = useRegion();
 
   // Slug -> display name for active regions and combined views; slugs GA knows
@@ -243,6 +249,9 @@ export default function AnalyticsTab() {
     ...regions.map((r) => [r.id, r.name]),
   ]);
   const regionRows = report?.regions ?? [];
+  const hostRows = report?.hosts ?? [];
+  const hostOptions = hostRows.map((h) => h.name);
+  if (host && !hostOptions.includes(host)) hostOptions.push(host);
   const showRegionSelect = regions.length >= 2 || regionRows.length > 1 || Boolean(region);
   const regionOptions = [...regionNames.keys()];
   if (region && !regionNames.has(region)) regionOptions.push(region);
@@ -294,6 +303,22 @@ export default function AnalyticsTab() {
             ))}
           </select>
         )}
+        {hostOptions.length > 0 && (
+          <select
+            className="analytics-region-select"
+            aria-label="Domain"
+            value={host}
+            onChange={(e) => setHost(e.target.value)}
+            data-testid="analytics-host-select"
+          >
+            <option value="">Alle Domains</option>
+            {hostOptions.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        )}
         <button
           type="button"
           className="btn btn-secondary"
@@ -341,6 +366,32 @@ export default function AnalyticsTab() {
             <h2>Seitenaufrufe pro Tag</h2>
             <DailyChart daily={report.daily} />
           </section>
+
+          {hostRows.length > 0 && (
+            <section className="analytics-card" data-testid="analytics-hosts">
+              <h2>Domains im Vergleich</h2>
+              <table className="analytics-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Domain</th>
+                    <th scope="col">Besucher:innen</th>
+                    <th scope="col">Seitenaufrufe</th>
+                    <th scope="col">Besuche</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {hostRows.map((h) => (
+                    <tr key={h.name} data-testid="analytics-host-row">
+                      <th scope="row">{h.name}</th>
+                      <td>{formatNumber(h.users)}</td>
+                      <td>{formatNumber(h.pageViews)}</td>
+                      <td>{formatNumber(h.sessions)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </section>
+          )}
 
           {regionRows.length > 0 && (
             <section className="analytics-card" data-testid="analytics-regions">

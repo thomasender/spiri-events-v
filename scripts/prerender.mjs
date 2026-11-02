@@ -306,11 +306,11 @@ function buildEventStaticBody(event, isFree, category, formattedDate) {
 // once more than one region is active (dark launch, see regionTexts.js).
 // `regions` = merged register (mergeRegions result), not only the active ones.
 export function getEventTitleSuffix(event, regions = null) {
-  if (!Array.isArray(regions) || activeRegions(regions).length <= 1) return SITE_NAME
+  if (!Array.isArray(regions) || activeRegions(regions).length <= 1) return BRAND_NAME
   const regionId = resolveRegionId(event)
-  if (regionId === DEFAULT_REGION_ID) return SITE_NAME
+  if (regionId === DEFAULT_REGION_ID) return BRAND_NAME
   const region = getRegionBySlug(regionId, regions)
-  if (!region || !region.name) return SITE_NAME
+  if (!region || !region.name) return BRAND_NAME
   return `${BRAND_NAME} ${region.name}`
 }
 

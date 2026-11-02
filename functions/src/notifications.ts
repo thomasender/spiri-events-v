@@ -46,10 +46,12 @@ import {
   DeletedPayloadInput,
   ContactMessagePayloadInput,
   EmailPayload,
+  withSiteOrigin,
 } from './emailTemplates';
 import {
   DEFAULT_NOTIFICATION_PREFERENCES,
   getUsersNotificationPreferences,
+  getUsersSiteOrigins,
   PreferenceKey,
   NotificationPreferenceMap,
 } from './userPreferences';
@@ -289,13 +291,20 @@ async function dispatchDecision(
           logger.warn(message, { eventId, ...data })
         )
       : null;
+  // Links lead to the domain each recipient registered on.
+  const siteOrigins = await getUsersSiteOrigins(
+    filtered.map((r) => r.uid).filter((uid): uid is string => typeof uid === 'string')
+  );
   let sent = 0;
-  for (const { email: to } of filtered) {
-    const payload = buildEmailPayload(type, {
-      ...payloadInput,
-      recipient: to,
-      ...(regionContactEmail ? { regionContactEmail } : {}),
-    });
+  for (const { email: to, uid } of filtered) {
+    const payload = withSiteOrigin(
+      buildEmailPayload(type, {
+        ...payloadInput,
+        recipient: to,
+        ...(regionContactEmail ? { regionContactEmail } : {}),
+      }),
+      uid ? siteOrigins.get(uid) : undefined
+    );
     const result = await sendPayload(payload, options).catch((err) => {
       logger.error('Mailgun send failed', { eventId, type, recipient: to, err });
       return { delivered: false as const };

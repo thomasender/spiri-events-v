@@ -3,7 +3,9 @@ import {
   ACTION_EVENTS,
   buildReport,
   buildEventRequests,
+  buildHostsRequest,
   buildRegionsRequest,
+  parseHost,
   buildRequests,
   buildUnavailableReport,
   isUnknownRegionDimensionError,
@@ -55,6 +57,8 @@ describe('helpers', () => {
   it('cleanTitle drops the site suffix and never returns empty', () => {
     expect(cleanTitle('Morgen Yoga | tribe Vorarlberg')).toBe('Morgen Yoga');
     expect(cleanTitle('Kalender | tribe Vorarlberg')).toBe('Kalender');
+    expect(cleanTitle('Morgen Yoga | Dein Tribe')).toBe('Morgen Yoga');
+    expect(cleanTitle('Morgen Yoga | Dein Tribe Tirol')).toBe('Morgen Yoga');
     expect(cleanTitle('')).toBe('(ohne Titel)');
     expect(cleanTitle(' | tribe Vorarlberg')).toBe('(ohne Titel)');
   });
@@ -428,5 +432,68 @@ describe('missing custom dimension', () => {
     expect(r.totals).toEqual({ users: 0, newUsers: 0, sessions: 0, pageViews: 0 });
     expect(r.daily).toHaveLength(7);
     expect(r.regions).toBeUndefined();
+  });
+});
+
+describe('domain filter', () => {
+  it('parseHost accepts our domains with or without www and nothing else', () => {
+    expect(parseHost('deintribe.de')).toBe('deintribe.de');
+    expect(parseHost('www.DeinTribe.at')).toBe('deintribe.at');
+    expect(parseHost('evil.example')).toBeNull();
+    expect(parseHost(undefined)).toBeNull();
+  });
+
+  it('filters every request on the host, combined with region and the action list', () => {
+    const q = buildRequests(7, 'vorarlberg', 'deintribe.de');
+    const hostFilter = {
+      filter: {
+        fieldName: 'hostName',
+        inListFilter: { values: ['deintribe.de', 'www.deintribe.de'] },
+      },
+    };
+    expect(q.totals.dimensionFilter).toEqual({
+      andGroup: {
+        expressions: [expect.objectContaining({ filter: expect.anything() }), hostFilter],
+      },
+    });
+    expect(buildRequests(7, null, 'deintribe.de').totals.dimensionFilter).toEqual(hostFilter);
+    expect(JSON.stringify(q.actions.dimensionFilter)).toContain('select_content');
+    expect(buildRequests(7).totals).not.toHaveProperty('dimensionFilter');
+  });
+
+  it('buildHostsRequest groups by hostName', () => {
+    expect(buildHostsRequest(30).dimensions).toEqual([{ name: 'hostName' }]);
+  });
+
+  it('buildReport merges www and non-www, drops foreign hosts and needs two domains', () => {
+    const row = (host: string, u: number, p: number, s: number) => ({
+      dimensionValues: [{ value: host }],
+      metricValues: [{ value: String(u) }, { value: String(p) }, { value: String(s) }],
+    });
+    const empty = { totals: {}, daily: {}, pages: {}, channels: {}, devices: {}, actions: {} };
+    const report = buildReport(
+      {
+        ...empty,
+        hosts: {
+          rows: [
+            row('www.thetribe.at', 10, 50, 20),
+            row('thetribe.at', 2, 5, 3),
+            row('deintribe.de', 4, 30, 6),
+            row('spirieventsvbg.web.app', 1, 1, 1),
+          ],
+        },
+      },
+      7
+    );
+    expect(report.hosts).toEqual([
+      { name: 'thetribe.at', users: 12, pageViews: 55, sessions: 23 },
+      { name: 'deintribe.de', users: 4, pageViews: 30, sessions: 6 },
+    ]);
+    const single = buildReport({ ...empty, hosts: { rows: [row('www.thetribe.at', 1, 1, 1)] } }, 7);
+    expect(single.hosts).toBeUndefined();
+  });
+
+  it('counts the new domains as own pages in referrers', () => {
+    expect(referrerLabel('https://www.deintribe.de/verzeichnis')).toBe('Verzeichnis');
   });
 });

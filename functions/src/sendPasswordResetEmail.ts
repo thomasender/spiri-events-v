@@ -1,5 +1,6 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { appCheckOptions, logMissingAppCheck } from './appCheck';
+import { ALLOWED_ORIGINS } from './allowedOrigins';
 import { logger } from 'firebase-functions';
 import { getAuth } from 'firebase-admin/auth';
 import {
@@ -12,6 +13,7 @@ import {
   sendMailgunMessage,
 } from './mailgun';
 import { APP_BASE_URL, buildPasswordResetPayload } from './emailTemplates';
+import { requestSiteOrigin } from './siteOrigin';
 import { enforceRateLimit, RATE_LIMIT_PRESETS } from './rateLimit';
 
 function parseOobCode(magicLink: string): string | null {
@@ -35,7 +37,7 @@ export const sendPasswordResetEmailFn = onCall(
   {
     region: 'europe-west3',
     secrets: [MAILGUN_API_KEY, MAILGUN_DOMAIN, MAILGUN_FROM, MAILGUN_REPLY_TO],
-    cors: ['https://www.thetribe.at', 'https://thetribe.at', 'https://spirieventsvbg.web.app'],
+    cors: ALLOWED_ORIGINS,
     ...appCheckOptions(),
   },
   async (request) => {
@@ -70,7 +72,7 @@ export const sendPasswordResetEmailFn = onCall(
       throw new HttpsError('internal', 'Could not generate password reset link.');
     }
 
-    const buttonUrl = `${APP_BASE_URL}/auth-action?mode=resetPassword&oobCode=${encodeURIComponent(oobCode)}`;
+    const buttonUrl = `${requestSiteOrigin(request)}/auth-action?mode=resetPassword&oobCode=${encodeURIComponent(oobCode)}`;
     const { subject, html, text } = buildPasswordResetPayload({
       recipient: email,
       buttonUrl,

@@ -4,7 +4,7 @@ import { functions } from '../lib/firebase';
 
 // Admin-only GA4 report. The numbers come from a callable Cloud Function that
 // re-checks the admin role and talks to the Google Analytics Data API itself.
-export function useAdminAnalytics(days, region = null, enabled = true) {
+export function useAdminAnalytics(days, region = null, enabled = true, host = null) {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(Boolean(enabled));
   const [error, setError] = useState(null);
@@ -16,7 +16,11 @@ export function useAdminAnalytics(days, region = null, enabled = true) {
       const result = await httpsCallable(
         functions,
         'adminAnalyticsReport'
-      )(region ? { days, region } : { days });
+      )({
+        days,
+        ...(region ? { region } : {}),
+        ...(host ? { host } : {}),
+      });
       setReport(result.data ?? null);
     } catch (err) {
       console.error('Loading analytics failed:', err);
@@ -24,7 +28,7 @@ export function useAdminAnalytics(days, region = null, enabled = true) {
     } finally {
       setLoading(false);
     }
-  }, [days, region]);
+  }, [days, region, host]);
 
   useEffect(() => {
     if (enabled) load();

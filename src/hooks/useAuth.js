@@ -14,6 +14,7 @@ import {
   reauthenticateWithPopup,
   EmailAuthProvider,
   getIdTokenResult,
+  getAdditionalUserInfo,
 } from 'firebase/auth';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import {
@@ -147,7 +148,7 @@ async function seedProfileDoc(
   user,
   displayName,
   photoURL,
-  { notifyNewsletter = false, isNewAccount = false } = {}
+  { notifyNewsletter = false, isNewAccount = false, recordSiteOrigin = isNewAccount } = {}
 ) {
   try {
     const profileRef = doc(db, 'users', user.uid);
@@ -168,6 +169,9 @@ async function seedProfileDoc(
       // Only on registration (Google sign-in seeds on every login): marks the
       // account as one that gets the onboarding wizard until it is finished.
       ...(isNewAccount ? { onboardingCompleted: false } : {}),
+      // Domain the account was created on (thetribe.at, deintribe.de, ...): the
+      // links in all mails to this user point to it. Never changed afterwards.
+      ...(recordSiteOrigin ? { siteOrigin: window.location.origin } : {}),
       createdAt: now,
       updatedAt: now,
     };
@@ -316,7 +320,9 @@ export function useAuth() {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
     const credential = await signInWithPopup(auth, provider);
-    await seedProfileDoc(credential.user, credential.user.displayName, credential.user.photoURL);
+    await seedProfileDoc(credential.user, credential.user.displayName, credential.user.photoURL, {
+      recordSiteOrigin: getAdditionalUserInfo(credential)?.isNewUser === true,
+    });
     return credential;
   };
 

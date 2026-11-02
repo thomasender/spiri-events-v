@@ -19,11 +19,14 @@ export const EVENT_CHAT_MAIL_MARKER_RETENTION_MS = 2 * 24 * 60 * 60 * 1000;
 const STAGING_PROJECT_ID = 'tribe-vbg-staging';
 const PRODUCTION_BASE_URL = 'https://www.thetribe.at';
 
-/** Links in the mail point to the site the message was written on. */
-export function chatMailBaseUrl(projectId: string | undefined): string {
+/**
+ * Links in the mail point to the site the message was written on; in
+ * production that is the domain the recipient registered on (`siteOrigin`).
+ */
+export function chatMailBaseUrl(projectId: string | undefined, siteOrigin?: string): string {
   return projectId === STAGING_PROJECT_ID
     ? `https://${STAGING_PROJECT_ID}.web.app`
-    : PRODUCTION_BASE_URL;
+    : (siteOrigin ?? PRODUCTION_BASE_URL);
 }
 
 /** The two uids of a 1:1 thread (id = sorted uids joined by "_"), or null. */

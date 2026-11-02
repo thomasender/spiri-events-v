@@ -6,6 +6,7 @@ import { getFirestore, type DocumentData } from 'firebase-admin/firestore';
 import { assertAdmin } from './adminMembers';
 import {
   buildEventRequests,
+  buildHostsRequest,
   buildRegionsRequest,
   buildReport,
   buildRequests,
@@ -13,6 +14,7 @@ import {
   buildUnavailableReport,
   isUnknownRegionDimensionError,
   parseRange,
+  parseHost,
   parseRegion,
   type AnalyticsReport,
   type GaResponse,
@@ -107,10 +109,11 @@ export const adminAnalyticsReport = onCall(
   async (request): Promise<AnalyticsResponse> => {
     logMissingAppCheck('adminAnalyticsReport', request);
     await assertAdmin(request.auth?.uid);
-    const data = request.data as { days?: unknown; region?: unknown } | undefined;
+    const data = request.data as { days?: unknown; region?: unknown; host?: unknown } | undefined;
     const days = parseRange(data?.days);
     const region = parseRegion(data?.region);
-    const cacheKey = `${days}:${region ?? ''}`;
+    const host = parseHost(data?.host);
+    const cacheKey = `${days}:${region ?? ''}:${host ?? ''}`;
 
     try {
       const token = await auth.getAccessToken();
@@ -128,32 +131,47 @@ export const adminAnalyticsReport = onCall(
       if (hit && Date.now() - hit.at < CACHE_MS) {
         report = hit.report;
       } else {
-        const q = buildRequests(days, region);
+        const q = buildRequests(days, region, host);
         // Comparison table: only without a region filter. GA rejects the request
         // until the custom dimension "region" is registered; that must not break
         // the rest of the report.
         let dimensionMissing = false;
         const regionsRequest = region
           ? Promise.resolve(undefined)
-          : runReport(token, buildRegionsRequest(days)).catch((err: Error) => {
+          : runReport(token, buildRegionsRequest(days, host)).catch((err: Error) => {
               if (isUnknownRegionDimensionError(err.message)) {
                 dimensionMissing = true;
                 return undefined;
               }
               throw err;
             });
-        const [totals, daily, pages, channels, devices, actions, regions] = await Promise.all([
-          runReport(token, q.totals),
-          runReport(token, q.daily),
-          runReport(token, q.pages),
-          runReport(token, q.channels),
-          runReport(token, q.devices),
-          runReport(token, q.actions),
-          regionsRequest,
-        ]);
+        // Domain comparison: only without a domain filter. Optional like the
+        // region table, a failing request just leaves it out.
+        const hostsRequest = host
+          ? Promise.resolve(undefined)
+          : runReport(token, buildHostsRequest(days, region)).catch((err: Error) => {
+              if (region && isUnknownRegionDimensionError(err.message)) throw err;
+              logger.warn('adminAnalyticsReport hosts failed', { err: err.message });
+              return undefined;
+            });
+        const [totals, daily, pages, channels, devices, actions, regions, hosts] =
+          await Promise.all([
+            runReport(token, q.totals),
+            runReport(token, q.daily),
+            runReport(token, q.pages),
+            runReport(token, q.channels),
+            runReport(token, q.devices),
+            runReport(token, q.actions),
+            regionsRequest,
+            hostsRequest,
+          ]);
         report = {
-          ...buildReport({ totals, daily, pages, channels, devices, actions, regions }, days),
+          ...buildReport(
+            { totals, daily, pages, channels, devices, actions, regions, hosts },
+            days
+          ),
           ...(region ? { region } : {}),
+          ...(host ? { host } : {}),
           ...(dimensionMissing ? { regionDimension: 'unavailable' as const } : {}),
         };
         cache.set(cacheKey, { at: Date.now(), report });
@@ -162,7 +180,10 @@ export const adminAnalyticsReport = onCall(
     } catch (err) {
       const message = (err as Error)?.message ?? '';
       if (region && isUnknownRegionDimensionError(message)) {
-        const report = buildUnavailableReport(days, region);
+        const report = {
+          ...buildUnavailableReport(days, region),
+          ...(host ? { host } : {}),
+        };
         cache.set(cacheKey, { at: Date.now(), report });
         return { ...report, topEvents: null };
       }

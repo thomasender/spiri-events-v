@@ -285,3 +285,25 @@ describe('publicProfile.clubMember', () => {
     );
   });
 });
+
+// The domain the account was registered on; mails link to it.
+describe('users/{uid}.siteOrigin', () => {
+  it('the owner can set it when the doc is created', async () => {
+    const db = env.authenticatedContext('carol').firestore();
+    await assertSucceeds(
+      setDoc(doc(db, 'users/carol'), { ...base, siteOrigin: 'https://www.deintribe.de' })
+    );
+  });
+
+  it('rejects a non-string value on create', async () => {
+    const db = env.authenticatedContext('carol').firestore();
+    await assertFails(setDoc(doc(db, 'users/carol'), { ...base, siteOrigin: 5 }));
+  });
+
+  it('cannot be changed afterwards', async () => {
+    const db = env.authenticatedContext('alice').firestore();
+    await assertFails(
+      updateDoc(doc(db, 'users/alice'), { siteOrigin: 'https://www.deintribe.ch' })
+    );
+  });
+});

@@ -1,4 +1,4 @@
-import { LEGACY_SITE_NAME } from '../config/brand';
+import { BRAND_NAME, LEGACY_SITE_NAME } from '../config/brand';
 
 export const SITE_URL = 'https://www.thetribe.at';
 
@@ -38,7 +38,7 @@ export function buildPageUrl(pathname = '/') {
 }
 
 export function getDefaultOgTags({
-  title = SITE_NAME,
+  title = BRAND_NAME,
   description = DEFAULT_DESCRIPTION,
   path = '/',
   imagePath = DEFAULT_OG_IMAGE_PATH,

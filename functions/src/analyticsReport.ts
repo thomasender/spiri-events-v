@@ -7,6 +7,17 @@ import { COMBINED_VIEWS, REGION_IDS } from './regions';
 /** GA4 custom dimension (event scope, parameter `region`) the per-region numbers rely on. */
 export const REGION_DIMENSION = 'customEvent:region';
 
+/** The domains the site is served on (each also as www.); GA reports them as `hostName`. */
+export const SITE_DOMAINS = [
+  'thetribe.at',
+  'deintribe.at',
+  'deintribe.de',
+  'deintribe.ch',
+  'deintribe.com',
+] as const;
+
+const HOST_DIMENSION = 'hostName';
+
 export const ALLOWED_RANGES = [7, 30] as const;
 export type RangeDays = (typeof ALLOWED_RANGES)[number];
 
@@ -47,6 +58,10 @@ export interface AnalyticsReport {
   actions: { event: string; count: number }[];
   /** Per-region comparison; only present when GA has region data and no region filter is set. */
   regions?: { name: string; users: number; pageViews: number; sessions: number }[];
+  /** Per-domain comparison; only present without a domain filter and when more than one domain has data. */
+  hosts?: { name: string; users: number; pageViews: number; sessions: number }[];
+  /** Echo of the domain filter (only when one was requested). */
+  host?: string;
   /** Echo of the region filter (only when one was requested). */
   region?: string;
   /** The GA custom dimension `region` is not registered (yet), see docs/regions.md. */
@@ -62,6 +77,8 @@ export interface RawReports {
   actions: GaResponse;
   /** Optional; rows of buildRegionsRequest(). */
   regions?: GaResponse;
+  /** Optional; rows of buildHostsRequest(). */
+  hosts?: GaResponse;
 }
 
 export function parseRange(value: unknown): RangeDays {
@@ -77,6 +94,19 @@ export function parseRegion(value: unknown): string | null {
   if (typeof value !== 'string') return null;
   const ok = REGION_IDS.includes(value) || COMBINED_VIEWS.some((v) => v.slug === value);
   return ok ? value : null;
+}
+
+/**
+ * Optional `host` argument of the callable: one of SITE_DOMAINS ("www." is
+ * ignored). Absent or unknown = null = all domains.
+ */
+export function parseHost(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const host = value
+    .trim()
+    .toLowerCase()
+    .replace(/^www\./, '');
+  return (SITE_DOMAINS as readonly string[]).includes(host) ? host : null;
 }
 
 /** GA answers 400 "Field customEvent:region is not a valid dimension" until the dimension is registered. */
@@ -104,7 +134,7 @@ export function isoDay(ga: string): string {
 
 /** Strips the site suffix so "Morgen Yoga | tribe Vorarlberg" reads "Morgen Yoga". */
 export function cleanTitle(title: string): string {
-  const t = title.replace(/\s*\|\s*tribe Vorarlberg\s*$/i, '').trim();
+  const t = title.replace(/\s*\|\s*(?:tribe Vorarlberg|Dein Tribe(?: [^|]*)?)\s*$/i, '').trim();
   return t || '(ohne Titel)';
 }
 
@@ -158,6 +188,24 @@ export function buildReport(
     .filter((r) => r.name && r.name !== '(not set)')
     .sort((a, b) => b.pageViews - a.pageViews || a.name.localeCompare(b.name));
 
+  // www.x and x are one domain; hosts that are not ours (staging, previews) are left out.
+  const hostTotals = new Map<string, { users: number; pageViews: number; sessions: number }>();
+  for (const r of raw.hosts?.rows ?? []) {
+    const name = dim(r)
+      .toLowerCase()
+      .replace(/^www\./, '');
+    if (!(SITE_DOMAINS as readonly string[]).includes(name)) continue;
+    const sum = hostTotals.get(name) ?? { users: 0, pageViews: 0, sessions: 0 };
+    hostTotals.set(name, {
+      users: sum.users + met(r, 0),
+      pageViews: sum.pageViews + met(r, 1),
+      sessions: sum.sessions + met(r, 2),
+    });
+  }
+  const hostRows = [...hostTotals]
+    .map(([name, v]) => ({ name, ...v }))
+    .sort((a, b) => b.pageViews - a.pageViews || a.name.localeCompare(b.name));
+
   return {
     rangeDays,
     generatedAt: now.toISOString(),
@@ -180,6 +228,7 @@ export function buildReport(
       .sort((a, b) => b.users - a.users),
     actions: ACTION_EVENTS.map((event) => ({ event, count: actionCounts.get(event) ?? 0 })),
     ...(regionRows.length ? { regions: regionRows } : {}),
+    ...(hostRows.length > 1 ? { hosts: hostRows } : {}),
   };
 }
 
@@ -204,25 +253,21 @@ export function buildUnavailableReport(
   };
 }
 
-/** The runReport body that compares regions; only requested without a region filter. */
-export function buildRegionsRequest(rangeDays: RangeDays) {
-  return {
-    dateRanges: [{ startDate: `${rangeDays - 1}daysAgo`, endDate: 'today' }],
-    dimensions: [{ name: REGION_DIMENSION }],
-    metrics: [{ name: 'activeUsers' }, { name: 'screenPageViews' }, { name: 'sessions' }],
-    orderBys: [{ metric: { metricName: 'screenPageViews' }, desc: true }],
-    limit: 50,
-  };
+type GaFilter = { filter: object };
+
+function hostFilterOf(host: string | null): GaFilter | null {
+  return host
+    ? {
+        filter: {
+          fieldName: HOST_DIMENSION,
+          inListFilter: { values: [host, `www.${host}`] },
+        },
+      }
+    : null;
 }
 
-/**
- * The six runReport bodies for a range (end date is "today", GA's own timezone).
- * With `region` every body also filters on the custom dimension (EXACT match on
- * the slug; a combined-view slug matches only events sent with that slug).
- */
-export function buildRequests(rangeDays: RangeDays, region: string | null = null) {
-  const dateRanges = [{ startDate: `${rangeDays - 1}daysAgo`, endDate: 'today' }];
-  const regionFilter = region
+function regionFilterOf(region: string | null): GaFilter | null {
+  return region
     ? {
         filter: {
           fieldName: REGION_DIMENSION,
@@ -230,10 +275,60 @@ export function buildRequests(rangeDays: RangeDays, region: string | null = null
         },
       }
     : null;
-  const withRegion = <T extends object>(body: T) =>
-    regionFilter ? { ...body, dimensionFilter: regionFilter } : body;
-  const requests = {
-    totals: {
+}
+
+/** One filter, or an AND of several; null when there is none. */
+function allOf(filters: (GaFilter | object | null)[]): object | null {
+  const list = filters.filter((f): f is object => f !== null);
+  if (list.length === 0) return null;
+  return list.length === 1 ? list[0] : { andGroup: { expressions: list } };
+}
+
+/** The runReport body that compares regions; only requested without a region filter. */
+export function buildRegionsRequest(rangeDays: RangeDays, host: string | null = null) {
+  const dimensionFilter = hostFilterOf(host);
+  return {
+    dateRanges: [{ startDate: `${rangeDays - 1}daysAgo`, endDate: 'today' }],
+    dimensions: [{ name: REGION_DIMENSION }],
+    metrics: [{ name: 'activeUsers' }, { name: 'screenPageViews' }, { name: 'sessions' }],
+    orderBys: [{ metric: { metricName: 'screenPageViews' }, desc: true }],
+    limit: 50,
+    ...(dimensionFilter ? { dimensionFilter } : {}),
+  };
+}
+
+/** The runReport body that compares the site's domains; only requested without a domain filter. */
+export function buildHostsRequest(rangeDays: RangeDays, region: string | null = null) {
+  const dimensionFilter = regionFilterOf(region);
+  return {
+    dateRanges: [{ startDate: `${rangeDays - 1}daysAgo`, endDate: 'today' }],
+    dimensions: [{ name: HOST_DIMENSION }],
+    metrics: [{ name: 'activeUsers' }, { name: 'screenPageViews' }, { name: 'sessions' }],
+    orderBys: [{ metric: { metricName: 'screenPageViews' }, desc: true }],
+    limit: 50,
+    ...(dimensionFilter ? { dimensionFilter } : {}),
+  };
+}
+
+/**
+ * The six runReport bodies for a range (end date is "today", GA's own timezone).
+ * With `region` every body also filters on the custom dimension (EXACT match on
+ * the slug; a combined-view slug matches only events sent with that slug); with
+ * `host` on the domain (with and without "www.").
+ */
+export function buildRequests(
+  rangeDays: RangeDays,
+  region: string | null = null,
+  host: string | null = null
+) {
+  const dateRanges = [{ startDate: `${rangeDays - 1}daysAgo`, endDate: 'today' }];
+  const filters = [regionFilterOf(region), hostFilterOf(host)];
+  const withFilters = <T extends object>(body: T, ...extra: object[]) => {
+    const dimensionFilter = allOf([...extra, ...filters]);
+    return dimensionFilter ? { ...body, dimensionFilter } : body;
+  };
+  return {
+    totals: withFilters({
       dateRanges,
       metrics: [
         { name: 'activeUsers' },
@@ -241,55 +336,43 @@ export function buildRequests(rangeDays: RangeDays, region: string | null = null
         { name: 'sessions' },
         { name: 'screenPageViews' },
       ],
-    },
-    daily: {
+    }),
+    daily: withFilters({
       dateRanges,
       dimensions: [{ name: 'date' }],
       metrics: [{ name: 'activeUsers' }, { name: 'screenPageViews' }],
       orderBys: [{ dimension: { dimensionName: 'date' } }],
-    },
-    pages: {
+    }),
+    pages: withFilters({
       dateRanges,
       dimensions: [{ name: 'pageTitle' }],
       metrics: [{ name: 'screenPageViews' }],
       orderBys: [{ metric: { metricName: 'screenPageViews' }, desc: true }],
       limit: 40,
-    },
-    channels: {
+    }),
+    channels: withFilters({
       dateRanges,
       dimensions: [{ name: 'sessionDefaultChannelGroup' }],
       metrics: [{ name: 'sessions' }],
-    },
-    devices: {
+    }),
+    devices: withFilters({
       dateRanges,
       dimensions: [{ name: 'deviceCategory' }],
       metrics: [{ name: 'activeUsers' }],
-    },
-    actions: {
-      dateRanges,
-      dimensions: [{ name: 'eventName' }],
-      metrics: [{ name: 'eventCount' }],
-      dimensionFilter: {
+    }),
+    actions: withFilters(
+      {
+        dateRanges,
+        dimensions: [{ name: 'eventName' }],
+        metrics: [{ name: 'eventCount' }],
+      },
+      {
         filter: {
           fieldName: 'eventName',
           inListFilter: { values: [...ACTION_EVENTS] },
         },
-      },
-    },
-  };
-  if (!regionFilter) return requests;
-  return {
-    totals: withRegion(requests.totals),
-    daily: withRegion(requests.daily),
-    pages: withRegion(requests.pages),
-    channels: withRegion(requests.channels),
-    devices: withRegion(requests.devices),
-    actions: {
-      ...requests.actions,
-      dimensionFilter: {
-        andGroup: { expressions: [requests.actions.dimensionFilter, regionFilter] },
-      },
-    },
+      }
+    ),
   };
 }
 
@@ -318,8 +401,7 @@ export const EVENT_ACTIONS_SINCE = '2026-10-19';
 
 /** Hostnames of this site; a referrer from one of them is an internal page. */
 export const OWN_HOSTS = [
-  'www.thetribe.at',
-  'thetribe.at',
+  ...SITE_DOMAINS.flatMap((d) => [`www.${d}`, d]),
   'spirieventsvbg.web.app',
   'spirieventsvbg.firebaseapp.com',
   'localhost',
