@@ -461,6 +461,14 @@ export default function EventForm({ event }) {
     ) {
       newErrors.feeMax = 'Maximalbetrag muss ≥ Betrag sein';
     }
+    if (
+      !isEdit &&
+      formData.recurrence !== 'none' &&
+      formData.recurrence !== 'custom' &&
+      !formData.recurrenceEndDate
+    ) {
+      newErrors.recurrenceEndDate = 'Bitte gib ein Enddatum für die Wiederholung an';
+    }
     if (formData.recurrence !== 'none' && formData.recurrenceEndDate && recurrenceMaxDate) {
       const endRecurrenceDate = new Date(formData.recurrenceEndDate + 'T12:00:00');
       const maxDate = new Date(recurrenceMaxDate + 'T12:00:00');
@@ -1635,7 +1643,7 @@ export default function EventForm({ event }) {
           {formData.recurrence !== 'none' && formData.recurrence !== 'custom' && (
             <div className="form-group">
               <div className="input-label-row">
-                <label htmlFor="recurrenceEndDate">Wiederholung bis</label>
+                <label htmlFor="recurrenceEndDate">Wiederholung bis *</label>
                 <span className="input-info">
                   <Info size={14} />
                   <span>Max. 180 Tage</span>
