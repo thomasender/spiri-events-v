@@ -106,6 +106,12 @@ function toIso(date: Date): string {
  * that is the week starting tomorrow. Pure calendar arithmetic on date
  * strings (UTC), so DST changes and year ends cannot shift it.
  */
+/** The Monday-Sunday week that starts on `start` (a Monday, YYYY-MM-DD). */
+export function weekWindowFrom(start: string): WeekWindow {
+  const monday = parseIso(start);
+  return { start, end: toIso(new Date(monday.getTime() + 6 * 86_400_000)) };
+}
+
 export function getNextWeekWindow(now: Date): WeekWindow {
   const today = parseIso(viennaToday(now));
   const dow = today.getUTCDay(); // 0 = Sunday
@@ -348,7 +354,7 @@ function distinctHandles(eventHandles: Array<string | null>): string[] {
   return handles;
 }
 
-async function publishCarousel(
+export async function publishCarousel(
   deps: CarouselDeps,
   group: CarouselGroup,
   window: WeekWindow,

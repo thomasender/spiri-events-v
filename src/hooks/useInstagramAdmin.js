@@ -60,7 +60,9 @@ export function useInstagramPosts(enabled) {
             const data = d.data();
             return {
               id: d.id,
+              // Carousels and stories have no eventId; their own id stands in.
               eventId: data.eventId || d.id.replace(/^feed_/, ''),
+              type: data.type || 'feed',
               status: data.status,
               attempts: data.attempts ?? 0,
               permalink: data.permalink || null,
