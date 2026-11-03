@@ -25,6 +25,8 @@ import {
   AdminActionError,
   archiveInstagramPost,
   assertEventId,
+  isCarouselPostId,
+  retryCarouselPost,
   retryInstagramPost,
   skipInstagramPost,
 } from './instagram/instagramAdminLogic';
@@ -80,6 +82,32 @@ export const adminRetryInstagramPost = onCall(
       const eventId = assertEventId(data?.eventId);
       const force = data?.force === true;
       const db = getFirestore();
+      const posts = db.collection('instagram_posts');
+      const deletePost = async (postId: string) => {
+        await posts.doc(postId).delete();
+      };
+      if (isCarouselPostId(eventId)) {
+        // Weekly carousel (Vorarlberg account): post this one group again.
+        const accessToken = await resolveInstagramAccessToken(db, IG_ACCESS_TOKEN.value());
+        const userId = IG_USER_ID.value();
+        if (!accessToken || !userId) {
+          throw new HttpsError('failed-precondition', 'Instagram is not configured.');
+        }
+        const outcome = await retryCarouselPost(
+          {
+            ...buildCarouselDeps(db, accessToken, userId),
+            getPostStatus: readStatus,
+            async getPost(postId) {
+              const snap = await posts.doc(postId).get();
+              return snap.exists ? (snap.data() ?? null) : null;
+            },
+            deletePost,
+          },
+          eventId
+        );
+        logger.info('Instagram carousel retried by admin', { postId: eventId, outcome });
+        return { outcome };
+      }
       const publishDeps = buildPublishDeps(db, IG_USER_ID.value());
       // The event's region decides the account: Vorarlberg uses the legacy
       // secrets (unchanged), other regions their own instagram_private doc.
@@ -107,9 +135,7 @@ export const adminRetryInstagramPost = onCall(
         {
           publishDeps,
           getPostStatus: readStatus,
-          deletePost: async (postId) => {
-            await db.collection('instagram_posts').doc(postId).delete();
-          },
+          deletePost,
           async getEvent(id) {
             const snap = await db.collection('events').doc(id).get();
             return snap.exists ? (snap.data() ?? null) : null;
@@ -172,6 +198,9 @@ export const adminSkipInstagramPost = onCall(
       const outcome = await skipInstagramPost(
         {
           getPostStatus: readStatus,
+          deletePost: async (postId) => {
+            await col.doc(postId).delete();
+          },
           async setSkipped(postId, skipReason) {
             await col
               .doc(postId)
@@ -209,6 +238,9 @@ export const adminArchiveInstagramPost = onCall(
       const outcome = await archiveInstagramPost(
         {
           getPostStatus: readStatus,
+          deletePost: async (postId) => {
+            await col.doc(postId).delete();
+          },
           async setArchived(postId) {
             await col
               .doc(postId)

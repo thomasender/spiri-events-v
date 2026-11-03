@@ -254,7 +254,9 @@ describe('InstagramTab', () => {
     fireEvent.click(screen.getByRole('button', { name: /Erneut versuchen/ }));
     await waitFor(() => expect(state.callable).toHaveBeenCalledWith({ eventId: 'fail' }));
     expect(state.httpsCallable).toHaveBeenCalledWith('adminRetryInstagramPost');
-    expect(await screen.findByText('Der Beitrag wurde veröffentlicht.')).toBeInTheDocument();
+    expect(await screen.findByTestId('instagram-action-feedback')).toHaveTextContent(
+      'Geschafft! Der Beitrag ist jetzt auf Instagram online.'
+    );
   });
 
   it('archives a skipped post and lists archived posts in their own section', async () => {
@@ -300,7 +302,7 @@ describe('InstagramTab', () => {
     fireEvent.click(screen.getByRole('button', { name: /Erneut versuchen/ }));
     await waitFor(() => expect(state.callable).toHaveBeenCalledWith({ eventId: 'skip' }));
     expect(state.httpsCallable).toHaveBeenCalledWith('adminRetryInstagramPost');
-    expect(await screen.findByText('Der Beitrag wurde veröffentlicht.')).toBeInTheDocument();
+    expect(await screen.findByText(/jetzt auf Instagram online/)).toBeInTheDocument();
   });
 
   it('explains a refused retry in plain words', async () => {
@@ -321,6 +323,56 @@ describe('InstagramTab', () => {
     fireEvent.click(screen.getByRole('button', { name: /Überspringen/ }));
     await waitFor(() => expect(state.callable).toHaveBeenCalledWith({ eventId: 'pend' }));
     expect(state.httpsCallable).toHaveBeenCalledWith('adminSkipInstagramPost');
+    // Skipping must not claim the event is in the past.
+    expect(await screen.findByTestId('instagram-action-feedback')).toHaveTextContent(
+      /wurde übersprungen und wird nicht gepostet/
+    );
+  });
+
+  it('force-posts a skipped carousel by its own id after the confirmation', async () => {
+    state.posts = [
+      {
+        ...post('x', 'skipped', { skipReason: 'admin' }),
+        id: 'carousel_bregenz_2026-11-02',
+        eventId: 'carousel_bregenz_2026-11-02',
+        type: 'carousel',
+      },
+    ];
+    const confirm = vi.fn().mockReturnValue(true);
+    vi.stubGlobal('confirm', confirm);
+    render(<InstagramTab />);
+    open('skipped');
+    fireEvent.click(screen.getByRole('button', { name: /Trotzdem posten/ }));
+    expect(confirm.mock.calls[0][0]).toMatch(/Karussell/);
+    await waitFor(() =>
+      expect(state.callable).toHaveBeenCalledWith({
+        eventId: 'carousel_bregenz_2026-11-02',
+        force: true,
+      })
+    );
+    expect(await screen.findByRole('status')).toHaveTextContent(/jetzt auf Instagram online/);
+    vi.unstubAllGlobals();
+  });
+
+  it('tells the admin what to do when a post fails again', async () => {
+    state.posts = [post('fail', 'failed')];
+    state.callable.mockResolvedValue({ data: { outcome: 'failed' } });
+    render(<InstagramTab />);
+    open('failed');
+    fireEvent.click(screen.getByRole('button', { name: /Erneut versuchen/ }));
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(/nicht geklappt/);
+    expect(alert).toHaveTextContent(/„Erneut versuchen“/);
+    fireEvent.click(within(alert).getByRole('button', { name: 'Meldung schließen' }));
+    expect(screen.queryByTestId('instagram-action-feedback')).not.toBeInTheDocument();
+  });
+
+  it('offers no repost for stories', () => {
+    state.posts = [{ ...post('s', 'failed'), id: 'story_bregenz_2026-11-03', type: 'story' }];
+    render(<InstagramTab />);
+    open('failed');
+    expect(screen.queryByRole('button', { name: /Erneut versuchen/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Überspringen/ })).toBeInTheDocument();
   });
 
   it('shows an error when the callable fails', async () => {
@@ -330,7 +382,7 @@ describe('InstagramTab', () => {
     render(<InstagramTab />);
     open('failed');
     fireEvent.click(screen.getByRole('button', { name: /Erneut versuchen/ }));
-    expect(await screen.findByText(/Aktion fehlgeschlagen/)).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent(/melde dich neu an/);
   });
 
   it('lists consented events without a post and posts them via the retry callable', async () => {
