@@ -656,6 +656,12 @@
     display: none;
   }
 
+  /* The Alle / region-name / Keine buttons next to "Bezirk" / "Landkreis" stay
+     available on mobile (f9t0O7EA), as on desktop. */
+  .filter-accordion-body .filter-header .filter-quick-actions {
+    display: flex;
+  }
+
   /* Tiny breathing room above the filter panel on mobile — the hero is
      gone so the panel now sits directly under the header tagline. The
      panel padding is also tightened to 1rem on all sides so the chips
@@ -692,6 +698,9 @@
     margin-left: -8px;
     padding-left: var(--space-2);
     padding-right: var(--space-2);
+    /* Snap to the padding edge, not the scrollport edge, so the first chip
+       stays flush with the rows below it (f9t0O7EA). */
+    scroll-padding-inline: var(--space-2);
     /* Hide the scrollbar — chips are still reachable via swipe. */
     scrollbar-width: none;
   }
