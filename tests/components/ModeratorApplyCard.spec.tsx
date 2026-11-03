@@ -66,7 +66,7 @@ describe('ModeratorApplyCard', () => {
     render(<ModeratorApplyCard regionId="tirol" />);
     open();
     fill('Maria Muster', 'maria@example.at', 'Ich lebe in Tirol und kenne viele Veranstalter.');
-    expect((screen.getByLabelText('Region (optional)') as HTMLSelectElement).value).toBe('tirol');
+    expect(screen.queryByLabelText(/Region \(optional\)/)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Bewerbung senden' }));
     await waitFor(() => expect(screen.getByTestId('moderator-apply-sent')).toBeInTheDocument());
     expect(mocks.send).toHaveBeenCalledWith(
@@ -77,6 +77,16 @@ describe('ModeratorApplyCard', () => {
         website: '',
       })
     );
+  });
+
+  it('has no region field and sends the visitors current region when no prop is given', async () => {
+    render(<ModeratorApplyCard />);
+    open();
+    expect(screen.queryByLabelText(/Region \(optional\)/)).not.toBeInTheDocument();
+    fill('Maria Muster', 'maria@example.at', 'Ich lebe hier und kenne viele Veranstalter.');
+    fireEvent.click(screen.getByRole('button', { name: 'Bewerbung senden' }));
+    await waitFor(() => expect(mocks.send).toHaveBeenCalled());
+    expect(mocks.send).toHaveBeenCalledWith(expect.objectContaining({ regionId: 'vorarlberg' }));
   });
 
   it('tells the person when sending fails and keeps the form', async () => {
