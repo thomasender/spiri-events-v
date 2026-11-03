@@ -69,6 +69,8 @@ function makeDraft(overrides = {}) {
   start.setDate(start.getDate() + 30);
   const end = new Date(start);
   end.setDate(end.getDate() + 2); // multi-day event
+  const seriesEnd = new Date(start);
+  seriesEnd.setDate(seriesEnd.getDate() + 60);
   return {
     formData: {
       title: 'Retreat',
@@ -83,7 +85,7 @@ function makeDraft(overrides = {}) {
       description: '<p>Beschreibung</p>',
       link: '',
       recurrence: 'weekly',
-      recurrenceEndDate: '',
+      recurrenceEndDate: seriesEnd.toISOString().split('T')[0],
       customDates: [],
       category: 'Yoga',
       bezirk: 'Bregenz',
@@ -270,7 +272,7 @@ describe('EventFormWizard — recurrence limited to 180 days (cTfN9wqQ)', () => 
 describe('EventFormWizard — monthly on the n-th weekday (6adca49e)', () => {
   // 2030-03-04 is the first Monday of March 2030, 2030-03-29 the last Friday.
   const monthlyDraft = (date: string, recurrence = 'monthly') =>
-    seedDraft({ formData: { date, endDate: '', recurrence, recurrenceEndDate: '' } });
+    seedDraft({ formData: { date, endDate: '', recurrence, recurrenceEndDate: '2030-04-30' } });
 
   it('offers both monthly variants, with texts taken from the start date', () => {
     monthlyDraft('2030-03-04');
@@ -329,5 +331,38 @@ describe('EventFormWizard — monthly on the n-th weekday (6adca49e)', () => {
     const saved = (mockEvents.addEvent.mock.calls[0] as unknown[])[0] as Record<string, unknown>;
     expect(saved).toMatchObject({ recurrence: 'monthlyWeekday', date: '2030-03-29' });
     expect(saved).not.toHaveProperty('monthlyOrdinal');
+  });
+});
+
+describe('EventFormWizard — series needs an end date (XqeZro0q)', () => {
+  const REQUIRED = 'Bitte gib ein Enddatum für die Wiederholung an';
+
+  it.each(['weekly', 'biweekly', 'monthly'])(
+    'blocks Weiter for %s recurrence without a series end date',
+    async (recurrence) => {
+      seedDraft({ formData: { endDate: '', recurrence, recurrenceEndDate: '' } });
+      renderWizard();
+      fireEvent.click(screen.getByTestId('continue-button'));
+
+      await waitFor(() => expect(screen.getByText(REQUIRED)).toBeInTheDocument());
+      expect(document.getElementById('recurrenceEndDate')).toHaveClass('input-error');
+      expect(screen.queryByTestId('submit-event-button')).toBeNull();
+    }
+  );
+
+  it('does not require a series end date for custom dates', async () => {
+    seedDraft({
+      formData: {
+        endDate: '',
+        recurrence: 'custom',
+        recurrenceEndDate: '',
+        customDates: ['2030-05-01'],
+      },
+    });
+    renderWizard();
+    fireEvent.click(screen.getByTestId('continue-button'));
+
+    await waitFor(() => expect(screen.queryByTestId('submit-event-button')).not.toBeNull());
+    expect(screen.queryByText(REQUIRED)).toBeNull();
   });
 });
