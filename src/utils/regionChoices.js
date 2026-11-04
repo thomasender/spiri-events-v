@@ -1,3 +1,4 @@
+import { foldSearchText } from './regionSearch';
 import {
   DEFAULT_REGION_ID,
   DEFAULT_SUBDIVISION_LABEL,
@@ -100,4 +101,16 @@ export function directoryDistrictGroups(regionIds, choices) {
 export function districtsAfterRegionChange(districts, regionIds, choices) {
   const allowed = new Set(directoryDistrictGroups(regionIds, choices).flatMap((g) => g.districts));
   return districts.filter((d) => allowed.has(d) || d === ONLINE_LOCATION);
+}
+
+/** Search entries (`PlaceSearch` format) for picking directory regions: every region, active or not. */
+export function directoryRegionEntries(allRegions) {
+  return allRegions.map((r) => ({
+    kind: 'region',
+    name: r.name,
+    regionId: r.id,
+    country: r.country,
+    key: foldSearchText(r.name),
+    order: r.order ?? 0,
+  }));
 }

@@ -11,6 +11,7 @@ import './PlaceSearch.css';
  * list and a second Escape clears the field. A live region tells screen readers how many
  * suggestions there are. Finds places (Orte / Gemeinden) and regions ("Allgäu").
  * `index`: the prepared place list (null while it loads), `regionEntries`: the regions.
+ * `emptyText` replaces the "no place found" texts (a region-only search has no place hint).
  * `onNeedIndex`: called when the person starts using the field (focus, typing, and as an
  * early hint on hover / touch), so the parent loads the place list only then.
  */
@@ -21,6 +22,7 @@ export default function PlaceSearch({
   onNeedIndex,
   label = 'Ort oder Region',
   placeholder,
+  emptyText = null,
 }) {
   const id = useId();
   const listId = `${id}-list`;
@@ -87,7 +89,7 @@ export default function PlaceSearch({
     : !index
       ? 'Orte werden geladen …'
       : results.length === 0
-        ? 'Kein passender Ort gefunden'
+        ? (emptyText ?? 'Kein passender Ort gefunden')
         : `${results.length} ${results.length === 1 ? 'Vorschlag' : 'Vorschläge'}`;
 
   return (
@@ -167,7 +169,8 @@ export default function PlaceSearch({
       </ul>
       {expanded && index && results.length === 0 && (
         <p className="place-search-empty" data-testid="place-search-empty">
-          Kein passender Ort gefunden. Versuche es mit dem Namen der nächsten größeren Stadt.
+          {emptyText ??
+            'Kein passender Ort gefunden. Versuche es mit dem Namen der nächsten größeren Stadt.'}
         </p>
       )}
       <p className="place-search-status" role="status" aria-live="polite">

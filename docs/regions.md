@@ -424,6 +424,10 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
   approving an event without `regionId` (adds it; Super-Admins only). Anything
   that writes events or listings outside the app (scripts, console) must set
   them too, or the doc is invisible while the marker is set.
+- **Directory region field** (profile form / onboarding wizard, only with two or more active
+  regions): a search field (`PlaceSearch`, region names only, no place list) over ALL regions,
+  active or not (`directoryRegionEntries`). Picks become removable chips; 1 to
+  `DIRECTORY_MAX_REGION_IDS` (3), at the limit the search is hidden until a chip is removed.
 
 ### 2a. Regions and districts: defined only in code
 

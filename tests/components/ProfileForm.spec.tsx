@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import ProfileForm from '../../src/components/ProfileForm';
 import { RegionContext, DEFAULT_REGION_CONTEXT } from '../../src/hooks/useRegion';
@@ -824,13 +824,24 @@ describe('ProfileForm directory with several active regions', () => {
     return onSave;
   }
 
-  it('shows a region picker with one chip per selectable region', () => {
+  // The region field is a search: type a name, click the suggestion.
+  function pickRegion(name: string) {
+    const input = within(screen.getByTestId('profile-directory-region-ids')).getByTestId(
+      'place-search-input'
+    );
+    fireEvent.change(input, { target: { value: name } });
+    fireEvent.click(screen.getByText(name, { selector: '.place-search-option-label' }));
+  }
+
+  it('shows a region search; every region is found, active or not', () => {
     renderMulti({ ...profile, listedInDirectory: true, directoryCategories: ['Yoga'] });
 
     expect(screen.getByTestId('profile-directory-region-ids')).toBeInTheDocument();
-    expect(screen.getByTestId('profile-directory-region-id-tirol')).toHaveAttribute(
+    expect(screen.queryByTestId('profile-directory-region-id-salzburg')).not.toBeInTheDocument();
+    pickRegion('Burgenland');
+    expect(screen.getByTestId('profile-directory-region-id-burgenland')).toHaveAttribute(
       'aria-pressed',
-      'false'
+      'true'
     );
   });
 
@@ -845,7 +856,7 @@ describe('ProfileForm directory with several active regions', () => {
     expect(screen.getByTestId('profile-directory-region-Innsbruck (Stadt)')).toBeInTheDocument();
     expect(screen.queryByTestId('profile-directory-region-Dornbirn')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByTestId('profile-directory-region-id-zuerich'));
+    pickRegion('Zürich');
     expect(screen.getByTestId('profile-directory-region-Winterthur')).toBeInTheDocument();
     expect(screen.getByText(/Bezirke in Zürich/)).toBeInTheDocument();
   });
@@ -854,7 +865,7 @@ describe('ProfileForm directory with several active regions', () => {
     const onSave = renderMulti(profile);
     fireEvent.click(screen.getByTestId('profile-directory-toggle'));
     fireEvent.click(screen.getByTestId('profile-directory-category-Yoga'));
-    fireEvent.click(screen.getByTestId('profile-directory-region-id-zuerich'));
+    pickRegion('Zürich');
     fireEvent.click(screen.getByTestId('profile-directory-region-Innsbruck (Stadt)'));
     fireEvent.click(screen.getByTestId('profile-directory-region-Winterthur'));
     fireEvent.click(screen.getByTestId('profile-directory-region-id-tirol'));
@@ -898,11 +909,11 @@ describe('ProfileForm directory with several active regions', () => {
       </RegionContext.Provider>
     );
     expect(screen.getByTestId('profile-directory-region-ids-limit')).toBeInTheDocument();
-    expect(screen.getByTestId('profile-directory-region-id-salzburg')).toBeDisabled();
-    expect(screen.getByTestId('profile-directory-region-id-tirol')).toBeEnabled();
+    const regionField = screen.getByTestId('profile-directory-region-ids');
+    expect(within(regionField).queryByTestId('place-search-input')).not.toBeInTheDocument();
     fireEvent.click(screen.getByTestId('profile-directory-region-id-tirol'));
     expect(screen.queryByTestId('profile-directory-region-ids-limit')).not.toBeInTheDocument();
-    expect(screen.getByTestId('profile-directory-region-id-salzburg')).toBeEnabled();
+    expect(within(regionField).getByTestId('place-search-input')).toBeInTheDocument();
   });
 
   it('requires at least one region while listed', async () => {
