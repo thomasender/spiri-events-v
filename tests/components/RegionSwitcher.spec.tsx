@@ -163,8 +163,13 @@ const pickWithFocus = async (scope: HTMLElement) => {
   await searchAndPick(scope, 'innsbruck', 'Innsbruck');
   return input;
 };
-const apply = (scope: HTMLElement) =>
+// The first-visit chooser only shows the apply button once a radius is picked.
+const apply = (scope: HTMLElement) => {
+  if (!within(scope).queryByTestId('place-picker-apply')) {
+    fireEvent.click(within(scope).getByLabelText('10 km'));
+  }
   fireEvent.click(within(scope).getByTestId('place-picker-apply'));
+};
 
 describe('RegionSwitcher with two active regions', () => {
   beforeEach(() => {

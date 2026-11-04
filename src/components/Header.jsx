@@ -575,84 +575,94 @@ export default function Header() {
             Not above "Wo suchst du?": no region name there. */}
         {!user && !regionChooserOpen && <RegionSwitcher />}
 
-        <div className="nav-desktop">{renderDesktopNav()}</div>
+        {!regionChooserOpen && (
+          <>
+            <div className="nav-desktop">{renderDesktopNav()}</div>
 
-        {/* Tablet+phone only — quick login/profile shortcut next to the
+            {/* Tablet+phone only — quick login/profile shortcut next to the
             burger so users do not have to open the mobile menu to sign in
             (or to reach their profile when already signed in). Hidden on
             desktop where the nav already exposes the same actions. */}
-        <Link
-          to={directoryPath}
-          className="header-profile-button header-directory-button"
-          aria-label="Verzeichnis"
-          data-testid="header-directory-button"
-          onClick={closeMenu}
-        >
-          <Users size={24} aria-hidden="true" />
-        </Link>
-
-        <Link
-          to={profileTarget}
-          className="header-profile-button"
-          aria-label={profileLabel}
-          data-testid="header-profile-button"
-          onClick={closeMenu}
-        >
-          {profilePhotoURL ? (
-            <MemberBadgeFrame uid={user?.uid} interactive={false}>
-              <AvatarImage
-                src={profilePhotoURL}
-                focalPoint={profile?.photoURL ? profile.photoFocalPoint : null}
-                zoom={profile?.photoURL ? profile.photoZoom : 1}
-                alt=""
-                className="header-profile-avatar"
-                aria-hidden="true"
-                data-testid="header-profile-avatar"
-              />
-            </MemberBadgeFrame>
-          ) : (
-            <UserCircle size={24} aria-hidden="true" />
-          )}
-        </Link>
-
-        <button
-          ref={toggleRef}
-          type="button"
-          className="menu-toggle"
-          aria-expanded={menuOpen}
-          aria-controls="mobile-menu"
-          aria-label={
-            menuOpen
-              ? 'Menü schließen'
-              : isStaff && hasUnread
-                ? `Menü öffnen (${unreadCount} ungelesene Benachrichtigungen)`
-                : 'Menü öffnen'
-          }
-          onClick={() => setMenuOpen((open) => !open)}
-        >
-          {menuOpen ? <X size={24} aria-hidden="true" /> : <Menu size={24} aria-hidden="true" />}
-          {/* Phones: "Verwaltung" sits in this menu, so its dot starts here (staff only). */}
-          {isStaff && hasUnread && !menuOpen && (
-            <span
-              className="nav-link-badge menu-toggle-badge"
-              data-testid="menu-toggle-unread-badge"
-              aria-hidden="true"
+            <Link
+              to={directoryPath}
+              className="header-profile-button header-directory-button"
+              aria-label="Verzeichnis"
+              data-testid="header-directory-button"
+              onClick={closeMenu}
             >
-              {unreadCount > 9 ? '9+' : unreadCount}
-            </span>
-          )}
-        </button>
+              <Users size={24} aria-hidden="true" />
+            </Link>
+
+            <Link
+              to={profileTarget}
+              className="header-profile-button"
+              aria-label={profileLabel}
+              data-testid="header-profile-button"
+              onClick={closeMenu}
+            >
+              {profilePhotoURL ? (
+                <MemberBadgeFrame uid={user?.uid} interactive={false}>
+                  <AvatarImage
+                    src={profilePhotoURL}
+                    focalPoint={profile?.photoURL ? profile.photoFocalPoint : null}
+                    zoom={profile?.photoURL ? profile.photoZoom : 1}
+                    alt=""
+                    className="header-profile-avatar"
+                    aria-hidden="true"
+                    data-testid="header-profile-avatar"
+                  />
+                </MemberBadgeFrame>
+              ) : (
+                <UserCircle size={24} aria-hidden="true" />
+              )}
+            </Link>
+
+            <button
+              ref={toggleRef}
+              type="button"
+              className="menu-toggle"
+              aria-expanded={menuOpen}
+              aria-controls="mobile-menu"
+              aria-label={
+                menuOpen
+                  ? 'Menü schließen'
+                  : isStaff && hasUnread
+                    ? `Menü öffnen (${unreadCount} ungelesene Benachrichtigungen)`
+                    : 'Menü öffnen'
+              }
+              onClick={() => setMenuOpen((open) => !open)}
+            >
+              {menuOpen ? (
+                <X size={24} aria-hidden="true" />
+              ) : (
+                <Menu size={24} aria-hidden="true" />
+              )}
+              {/* Phones: "Verwaltung" sits in this menu, so its dot starts here (staff only). */}
+              {isStaff && hasUnread && !menuOpen && (
+                <span
+                  className="nav-link-badge menu-toggle-badge"
+                  data-testid="menu-toggle-unread-badge"
+                  aria-hidden="true"
+                >
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </button>
+          </>
+        )}
       </nav>
 
-      <div
-        id="mobile-menu"
-        ref={menuRef}
-        className={`nav-mobile${menuOpen ? ' nav-mobile--open' : ''}`}
-        aria-hidden={!menuOpen}
-      >
-        {!user && !regionChooserOpen && <RegionMenuList onNavigate={closeMenu} />}
-        {renderMobileNav()}
-      </div>
+      {!regionChooserOpen && (
+        <div
+          id="mobile-menu"
+          ref={menuRef}
+          className={`nav-mobile${menuOpen ? ' nav-mobile--open' : ''}`}
+          aria-hidden={!menuOpen}
+        >
+          {!user && <RegionMenuList onNavigate={closeMenu} />}
+          {renderMobileNav()}
+        </div>
+      )}
 
       <EmailVerificationModal
         open={verificationModalOpen}

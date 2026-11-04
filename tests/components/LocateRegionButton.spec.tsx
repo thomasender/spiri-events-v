@@ -156,7 +156,10 @@ describe('in the region chooser (real place list and border shapes)', () => {
     confirm();
     await screen.findByTestId('place-picker-chosen');
   };
-  const apply = () => fireEvent.click(screen.getByTestId('place-picker-apply'));
+  const apply = () => {
+    fireEvent.click(screen.getByLabelText('10 km'));
+    fireEvent.click(screen.getByTestId('place-picker-apply'));
+  };
   const storedSelection = () => JSON.parse(window.localStorage.getItem(PLACE_SELECTION_KEY)!);
 
   it('a position in Austria snaps to the nearest place and chooses its region', async () => {
@@ -203,7 +206,7 @@ describe('in the region chooser (real place list and border shapes)', () => {
     expect(screen.getByTestId('region-chooser')).toBeTruthy();
     expect(where()).toBe('/');
     expect(
-      within(screen.getByTestId('region-chooser')).getByTestId('place-picker-apply')
-    ).toBeDisabled();
+      within(screen.getByTestId('region-chooser')).queryByTestId('place-picker-apply')
+    ).toBeNull();
   });
 });
