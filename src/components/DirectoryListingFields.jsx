@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
+import { X } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import {
   DIRECTORY_MAX_CATEGORIES,
@@ -6,8 +7,12 @@ import {
   toggleValue,
 } from '../utils/directory';
 import { BEZIRKE, ONLINE_LOCATION } from '../utils/regions';
-import { directoryDistrictGroups } from '../utils/regionChoices';
+import { directoryDistrictGroups, directoryRegionEntries } from '../utils/regionChoices';
+import PlaceSearch from './PlaceSearch';
 import './DirectoryListingFields.css';
+
+// The region search matches region names only; it needs no place list.
+const NO_PLACES = { places: [] };
 
 function RegionChip({ name, selected, onToggle }) {
   return (
@@ -45,6 +50,16 @@ export default function DirectoryListingFields({
   const districtGroups = multiRegion ? directoryDistrictGroups(regionIds, regionChoices) : [];
   const atLimit = categories.length >= DIRECTORY_MAX_CATEGORIES;
   const regionsAtLimit = regionIds.length >= DIRECTORY_MAX_REGION_IDS;
+  const regionEntries = useMemo(
+    () =>
+      multiRegion
+        ? directoryRegionEntries(regionChoices.allRegions).filter(
+            (entry) => !regionIds.includes(entry.regionId)
+          )
+        : [],
+    [multiRegion, regionChoices, regionIds]
+  );
+  const regionNameFor = (id) => regionChoices.allRegions.find((r) => r.id === id)?.name ?? id;
   const sectionRef = useRef(null);
   const { hash } = useLocation();
 
@@ -119,23 +134,30 @@ export default function DirectoryListingFields({
               <legend>
                 In welchen Regionen bist du aktiv? * <span>(max. {DIRECTORY_MAX_REGION_IDS})</span>
               </legend>
+              {!regionsAtLimit && (
+                <PlaceSearch
+                  index={NO_PLACES}
+                  regionEntries={regionEntries}
+                  onChoose={(entry) => onRegionIdsChange([...regionIds, entry.regionId])}
+                  label="Region suchen"
+                  placeholder="z. B. Allgäu, Tirol, Zürich"
+                  emptyText="Keine passende Region gefunden."
+                />
+              )}
               <div className="directory-chip-row">
-                {regionChoices.options.map((r) => {
-                  const selected = regionIds.includes(r.id);
-                  return (
-                    <button
-                      key={r.id}
-                      type="button"
-                      className={`directory-chip${selected ? ' directory-chip--selected' : ''}`}
-                      aria-pressed={selected}
-                      disabled={!selected && regionsAtLimit}
-                      onClick={() => onRegionIdsChange(toggleValue(regionIds, r.id))}
-                      data-testid={`profile-directory-region-id-${r.id}`}
-                    >
-                      {r.name}
-                    </button>
-                  );
-                })}
+                {regionIds.map((id) => (
+                  <button
+                    key={id}
+                    type="button"
+                    className="directory-chip directory-chip--selected"
+                    aria-pressed="true"
+                    aria-label={`${regionNameFor(id)} entfernen`}
+                    onClick={() => onRegionIdsChange(toggleValue(regionIds, id))}
+                    data-testid={`profile-directory-region-id-${id}`}
+                  >
+                    {regionNameFor(id)} <X size={14} aria-hidden="true" />
+                  </button>
+                ))}
               </div>
               {regionsAtLimit && (
                 <span
