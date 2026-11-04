@@ -51,7 +51,7 @@ const SAMPLE_COVER = {
   heading: 'Events der Woche',
   bezirk: 'in Feldkirch',
   dateRange: '19. - 25. Okt 2026',
-  partLabel: 'Teil 1 von 2',
+  partLabel: 'am Montag und Dienstag',
   eventCount: 7,
 };
 

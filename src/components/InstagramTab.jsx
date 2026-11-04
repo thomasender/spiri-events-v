@@ -489,7 +489,7 @@ export default function InstagramTab() {
                     <div className="instagram-post-main">
                       <strong>
                         {group.label || group.bezirk}
-                        {group.parts > 1 ? ` (Teil ${group.part} von ${group.parts})` : ''}
+                        {group.daysLabel ? ` ${group.daysLabel}` : ''}
                       </strong>
                       <span className="instagram-muted">
                         {group.events.length} {group.events.length === 1 ? 'Event' : 'Events'}

@@ -444,6 +444,19 @@ describe('InstagramTab weekly carousels', () => {
     expect(screen.getByText(/Kakao Zeremonie \(Studio\) · @kakao/)).toBeInTheDocument();
   });
 
+  it('names the weekdays of a split carousel instead of "Teil x von y"', async () => {
+    withPreview([
+      group({ parts: 2, daysLabel: 'am Montag und Dienstag' }),
+      group({ postId: 'p2', part: 2, parts: 2, daysLabel: 'am Mittwoch' }),
+    ]);
+    await runPreview();
+
+    const rows = screen.getAllByTestId('instagram-carousel-group');
+    expect(rows[0]).toHaveTextContent('Dornbirn am Montag und Dienstag');
+    expect(rows[1]).toHaveTextContent('Dornbirn am Mittwoch');
+    expect(rows[0]).not.toHaveTextContent('Teil');
+  });
+
   it('keeps the post button disabled while the automation is off', async () => {
     withPreview([group()]);
     await runPreview();
