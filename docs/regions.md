@@ -619,7 +619,7 @@ is a code change (see section 13).
 
 Do not hand-edit `regions/{id}.active`. Verwaltung -> tab "Regionen"
 (`RegionsTab.jsx`, Super-Admin only; moderators get "Kein Zugriff") lists every
-region (grouped by country in foldable accordion sections; countries with an active region start open) with status, moderators, upcoming events, Bezirke count and `contactEmail`,
+region (grouped by country in foldable accordion sections; countries with an active region start open; inside a country active regions come first, then inactive ones, each sorted by most upcoming events first) with status, moderators, upcoming events, Bezirke count and `contactEmail`,
 plus "Freischalten" / "Deaktivieren". Everything goes through the callables
 `adminListRegionActivation` and `adminSetRegionActive({ regionId, active,
 override })` (`functions/src/adminRegions.ts`; pure rules in

@@ -131,7 +131,15 @@ export default function RegionsTab() {
 
       <div className="regions-groups">
         {COUNTRIES.map((country) => {
-          const inCountry = regions.filter((r) => r.country === country);
+          // Active first, then most upcoming events first (stable: ties keep register order).
+          const inCountry = regions
+            .filter((r) => r.country === country)
+            .sort(
+              (a, b) =>
+                Number(Boolean(b.active)) - Number(Boolean(a.active)) ||
+                (statusById.get(b.id)?.upcomingEventCount ?? 0) -
+                  (statusById.get(a.id)?.upcomingEventCount ?? 0)
+            );
           if (inCountry.length === 0) return null;
           const isOpen = openCountries.has(country);
           const activeCount = inCountry.filter((r) => r.active).length;
