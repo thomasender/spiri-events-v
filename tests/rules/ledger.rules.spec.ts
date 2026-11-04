@@ -81,6 +81,13 @@ describe('ledger', () => {
     await assertSucceeds(setDoc(doc(db, 'ledger/new'), entry));
   });
 
+  it('stores the creator name on create but never lets it change', async () => {
+    const db = env.authenticatedContext('adminDoc').firestore();
+    await assertSucceeds(setDoc(doc(db, 'ledger/named'), { ...entry, createdByName: 'Anna' }));
+    await assertFails(updateDoc(doc(db, 'ledger/named'), { createdByName: 'Bob' }));
+    await assertFails(updateDoc(doc(db, 'ledger/named'), { createdBy: 'other' }));
+  });
+
   it.each([
     ['a negative amount', { amount: -1 }],
     ['a zero amount', { amount: 0 }],

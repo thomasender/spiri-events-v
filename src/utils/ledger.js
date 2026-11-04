@@ -162,6 +162,19 @@ export function formatLedgerAmount(entry) {
     : `${formatNumber(entry.amount)} ${currency}`;
 }
 
+/** "Angelegt von Anna am 29.10.2026" – read-only provenance of an entry. */
+export function formatLedgerCreator(entry) {
+  const who = entry.source === 'mollie' ? 'Mollie (automatisch)' : entry.createdByName || 'Admin';
+  const millis = entry.createdAt?.toMillis?.();
+  if (!Number.isFinite(millis)) return `Angelegt von ${who}`;
+  const date = new Intl.DateTimeFormat('de-AT', {
+    timeZone: 'Europe/Vienna',
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(new Date(millis));
+  return `Angelegt von ${who} am ${date}`;
+}
+
 /** "2026-10-29" -> "29.10.2026" */
 export function formatLedgerDate(date) {
   if (!DATE_PATTERN.test(date ?? '')) return date ?? '';

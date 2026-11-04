@@ -2029,6 +2029,8 @@ service cloud.firestore {
           && (!('note' in data)
               || data.note == null
               || (data.note is string && data.note.size() <= 500))
+          && (!('createdByName' in data)
+              || (data.createdByName is string && data.createdByName.size() <= 100))
           && (!('attachments' in data)
               || (data.attachments is list && data.attachments.size() <= 10));
       }
@@ -2038,7 +2040,7 @@ service cloud.firestore {
       allow create: if isAdminOrEmulatorAdmin()
                     && request.resource.data.keys().hasOnly([
                       'type', 'date', 'amount', 'description', 'category', 'note',
-                      'attachments', 'source', 'createdAt', 'updatedAt', 'createdBy',
+                      'attachments', 'source', 'createdAt', 'updatedAt', 'createdBy', 'createdByName',
                     ])
                     && request.resource.data.source == 'manual'
                     && isValidLedgerEntry(request.resource.data);

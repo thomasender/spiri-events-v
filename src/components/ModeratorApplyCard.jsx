@@ -2,7 +2,6 @@ import { useEffect, useId, useState } from 'react';
 import { HeartHandshake } from 'lucide-react';
 import HelperPhotoUpload from './HelperPhotoUpload';
 import { useRegion } from '../hooks/useRegion';
-import { COUNTRIES, COUNTRY_LABELS } from '../utils/regions';
 import {
   APPLICATION_MESSAGE_MAX,
   sendModeratorApplication,
@@ -14,14 +13,15 @@ import './ModeratorApplyCard.css';
  * Invitation to become a Regions-Moderator:in with a short application form
  * (name, reply address, a few lines, optional photo). The application is mailed
  * to the admins. Shown on the region page and on the coming-soon pages.
- * `regionId` preselects the region the visitor is looking at.
+ * `regionId` (default: the visitor's current region) is sent along with the application.
  */
 export default function ModeratorApplyCard({ regionId = '', className = '' }) {
-  const { allRegions = [] } = useRegion();
+  const { regionId: currentRegionId = '', isNational = false } = useRegion();
   const uid = useId();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', message: '', website: '' });
-  const [region, setRegion] = useState(regionId);
+  // The visitor already picked a region: it goes along without asking again.
+  const region = regionId || (isNational ? '' : currentRegionId);
   const [photo, setPhoto] = useState(null);
   const [errors, setErrors] = useState({});
   const [status, setStatus] = useState('idle'); // idle | sending | sent | failed
@@ -53,11 +53,6 @@ export default function ModeratorApplyCard({ regionId = '', className = '' }) {
       setStatus('failed');
     }
   };
-
-  const regionOptions = COUNTRIES.map((country) => ({
-    country,
-    regions: allRegions.filter((r) => r.country === country),
-  })).filter((g) => g.regions.length > 0);
 
   return (
     <section
@@ -117,21 +112,6 @@ export default function ModeratorApplyCard({ regionId = '', className = '' }) {
               className={errors.email ? 'input-error' : ''}
             />
             {errors.email && <span className="error-text">{errors.email}</span>}
-          </div>
-          <div className="form-group">
-            <label htmlFor={`${uid}-region`}>Region (optional)</label>
-            <select id={`${uid}-region`} value={region} onChange={(e) => setRegion(e.target.value)}>
-              <option value="">Keine bestimmte Region</option>
-              {regionOptions.map((g) => (
-                <optgroup key={g.country} label={COUNTRY_LABELS[g.country]}>
-                  {g.regions.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.name}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
           </div>
           <div className="form-group">
             <label htmlFor={`${uid}-message`}>Erzähl uns kurz von dir *</label>

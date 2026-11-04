@@ -212,7 +212,7 @@ export interface CoverModel {
   heading: string;
   bezirk: string;
   dateRange: string;
-  /** "Teil 1 von 2"; empty for a single-part carousel. */
+  /** Days of this carousel, e.g. "am Montag und Dienstag"; empty for a single carousel. */
   partLabel: string;
   eventCount: number;
   /** Domain shown on the cover; default DEFAULT_SITE_DOMAIN. */

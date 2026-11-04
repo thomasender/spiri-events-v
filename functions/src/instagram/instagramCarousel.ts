@@ -106,6 +106,12 @@ function toIso(date: Date): string {
  * that is the week starting tomorrow. Pure calendar arithmetic on date
  * strings (UTC), so DST changes and year ends cannot shift it.
  */
+/** The Monday-Sunday week that starts on `start` (a Monday, YYYY-MM-DD). */
+export function weekWindowFrom(start: string): WeekWindow {
+  const monday = parseIso(start);
+  return { start, end: toIso(new Date(monday.getTime() + 6 * 86_400_000)) };
+}
+
 export function getNextWeekWindow(now: Date): WeekWindow {
   const today = parseIso(viennaToday(now));
   const dow = today.getUTCDay(); // 0 = Sunday
@@ -149,13 +155,146 @@ export interface CarouselGroup {
   part: number;
   parts: number;
   events: CarouselEvent[];
+  /**
+   * Which days this carousel covers, e.g. "am Montag und Dienstag" or "am Mittwoch
+   * Abend". Empty when the Bezirk fits into a single carousel.
+   */
+  daysLabel: string;
+}
+
+const WEEKDAYS = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+const DAY_PARTS = ['Vormittag', 'Nachmittag', 'Abend'] as const;
+
+/** 0 = Vormittag (before 12:00, also no time), 1 = Nachmittag (12:00-16:59), 2 = Abend (from 17:00). */
+function dayPartOf(event: CarouselEvent): number {
+  const match = /^(\d{1,2}):/.exec(asString(event.time));
+  const hour = match ? Number(match[1]) : 0;
+  return hour < 12 ? 0 : hour < 17 ? 1 : 2;
+}
+
+/**
+ * Smallest piece a carousel is built from: a whole day, or (for a day with more
+ * than 9 events) its Vormittag / Nachmittag / Abend. A day part that alone still
+ * has more than 9 events is cut into evenly sized chunks (`chunk` of `chunks`),
+ * which always stand alone in their carousel.
+ */
+interface CarouselUnit {
+  date: string;
+  dayPart: number | null;
+  chunk: number;
+  chunks: number;
+  events: CarouselEvent[];
+}
+
+function splitEvenly<T>(list: T[], parts: number): T[][] {
+  const base = Math.floor(list.length / parts);
+  const extra = list.length % parts;
+  const out: T[][] = [];
+  let offset = 0;
+  for (let i = 0; i < parts; i += 1) {
+    const size = base + (i < extra ? 1 : 0);
+    out.push(list.slice(offset, offset + size));
+    offset += size;
+  }
+  return out;
+}
+
+function buildUnits(sorted: CarouselEvent[]): CarouselUnit[] {
+  const byDate = new Map<string, CarouselEvent[]>();
+  for (const event of sorted) {
+    const date = asString(event.date);
+    byDate.set(date, [...(byDate.get(date) ?? []), event]);
+  }
+  const units: CarouselUnit[] = [];
+  for (const [date, dayEvents] of byDate) {
+    if (dayEvents.length <= MAX_EVENTS_PER_CAROUSEL) {
+      units.push({ date, dayPart: null, chunk: 1, chunks: 1, events: dayEvents });
+      continue;
+    }
+    for (let dayPart = 0; dayPart < DAY_PARTS.length; dayPart += 1) {
+      const partEvents = dayEvents.filter((e) => dayPartOf(e) === dayPart);
+      if (partEvents.length === 0) continue;
+      const chunks = Math.ceil(partEvents.length / MAX_EVENTS_PER_CAROUSEL);
+      splitEvenly(partEvents, chunks).forEach((events, i) =>
+        units.push({ date, dayPart, chunk: i + 1, chunks, events })
+      );
+    }
+  }
+  return units;
+}
+
+/** Packs consecutive units into bins of at most `capacity` events, never splitting a unit. */
+function packUnits(units: CarouselUnit[], capacity: number): CarouselUnit[][] {
+  const bins: CarouselUnit[][] = [];
+  let current: CarouselUnit[] = [];
+  let size = 0;
+  for (const unit of units) {
+    const alone = unit.chunks > 1;
+    if (current.length > 0 && (alone || size + unit.events.length > capacity)) {
+      bins.push(current);
+      current = [];
+      size = 0;
+    }
+    current.push(unit);
+    size += unit.events.length;
+    if (alone) {
+      bins.push(current);
+      current = [];
+      size = 0;
+    }
+  }
+  if (current.length > 0) bins.push(current);
+  return bins;
+}
+
+/**
+ * As few carousels as possible (each <= 9 events, whole days or day parts only),
+ * and among those the most even split, so no nearly empty last carousel.
+ */
+function packBalanced(units: CarouselUnit[]): CarouselUnit[][] {
+  const minimal = packUnits(units, MAX_EVENTS_PER_CAROUSEL);
+  for (let capacity = 1; capacity < MAX_EVENTS_PER_CAROUSEL; capacity += 1) {
+    if (units.some((u) => u.events.length > capacity)) continue;
+    const bins = packUnits(units, capacity);
+    if (bins.length <= minimal.length) return bins;
+  }
+  return minimal;
+}
+
+function joinGerman(items: string[]): string {
+  if (items.length <= 1) return items.join('');
+  return `${items.slice(0, -1).join(', ')} und ${items[items.length - 1]}`;
+}
+
+/** "am Montag, Dienstag und Mittwoch", "am Mittwoch Vormittag und Nachmittag", "am Mittwoch Abend (Teil 1 von 2)". */
+function buildDaysLabel(units: CarouselUnit[]): string {
+  const segments: string[] = [];
+  let i = 0;
+  while (i < units.length) {
+    const unit = units[i];
+    const day = WEEKDAYS[parseIso(unit.date).getUTCDay()];
+    if (unit.dayPart === null) {
+      segments.push(day);
+      i += 1;
+      continue;
+    }
+    const dayParts: string[] = [];
+    while (i < units.length && units[i].date === unit.date && units[i].dayPart !== null) {
+      dayParts.push(DAY_PARTS[units[i].dayPart as number]);
+      i += 1;
+    }
+    const chunk = unit.chunks > 1 ? ` (Teil ${unit.chunk} von ${unit.chunks})` : '';
+    segments.push(`${day} ${dayParts.join(' und ')}${chunk}`);
+  }
+  return `am ${joinGerman(segments)}`;
 }
 
 /**
  * Eligible events grouped per Bezirk and sorted by date/time. A Bezirk with more
- * than 9 events gets as many carousels as needed, with the events spread evenly
- * (sizes differ by at most one; earlier parts get the extra event) instead of
- * filling the first ones and leaving a nearly empty last one. Empty Bezirke are skipped.
+ * than 9 events gets several carousels, split by weekday so that no day appears in
+ * two carousels (several days may share one). Only a day with more than 9 events
+ * is split further, into Vormittag / Nachmittag / Abend. Each carousel then carries
+ * a label naming its days. Empty Bezirke are skipped.
  */
 export function groupCarousels(events: CarouselEvent[], window: WeekWindow): CarouselGroup[] {
   const groups: CarouselGroup[] = [];
@@ -164,15 +303,20 @@ export function groupCarousels(events: CarouselEvent[], window: WeekWindow): Car
       .filter((e) => isCarouselEligible(e, window) && asString(e.bezirk) === bezirk)
       .sort(compareEvents);
     if (list.length === 0) continue;
-    const parts = Math.ceil(list.length / MAX_EVENTS_PER_CAROUSEL);
-    const base = Math.floor(list.length / parts);
-    const extra = list.length % parts;
-    let offset = 0;
-    for (let i = 0; i < parts; i += 1) {
-      const size = base + (i < extra ? 1 : 0);
-      groups.push({ bezirk, part: i + 1, parts, events: list.slice(offset, offset + size) });
-      offset += size;
+    if (list.length <= MAX_EVENTS_PER_CAROUSEL) {
+      groups.push({ bezirk, part: 1, parts: 1, events: list, daysLabel: '' });
+      continue;
     }
+    const bins = packBalanced(buildUnits(list));
+    bins.forEach((bin, i) =>
+      groups.push({
+        bezirk,
+        part: i + 1,
+        parts: bins.length,
+        events: bin.flatMap((u) => u.events),
+        daysLabel: buildDaysLabel(bin),
+      })
+    );
   }
   return groups;
 }
@@ -210,7 +354,7 @@ export function buildCoverModel(group: CarouselGroup, window: WeekWindow): Cover
     heading: 'Events nächste Woche',
     bezirk: stripImageUnsafeChars(bezirkInPhrase(group.bezirk)),
     dateRange: formatWeekRange(window),
-    partLabel: group.parts > 1 ? `Teil ${group.part} von ${group.parts}` : '',
+    partLabel: stripImageUnsafeChars(group.daysLabel),
     eventCount: group.events.length,
   };
 }
@@ -239,7 +383,7 @@ export function buildCarouselCaption(
   window: WeekWindow,
   handles: string[] = []
 ): string {
-  const part = group.parts > 1 ? ` (Teil ${group.part} von ${group.parts})` : '';
+  const part = group.daysLabel ? ` ${group.daysLabel}` : '';
   const heading = `Events nächste Woche ${bezirkInPhrase(group.bezirk)}${part}\n${formatWeekRange(window)}`;
   const hashtags = [
     ...new Set([toHashtag(group.bezirk), ...BASE_HASHTAGS, '#events'].filter(Boolean)),
@@ -348,7 +492,7 @@ function distinctHandles(eventHandles: Array<string | null>): string[] {
   return handles;
 }
 
-async function publishCarousel(
+export async function publishCarousel(
   deps: CarouselDeps,
   group: CarouselGroup,
   window: WeekWindow,
@@ -498,7 +642,7 @@ export async function runWeeklyCarousels(deps: CarouselDeps): Promise<CarouselRu
       try {
         await deps.notifyAdmins(
           `Instagram-Karussell fehlgeschlagen: ${bezirkLabel(group.bezirk)} ${window.start}`,
-          `Das wöchentliche Instagram-Karussell für ${bezirkLabel(group.bezirk)} (Woche ab ${window.start}, Teil ${group.part} von ${group.parts}, ${postId}) konnte nicht veröffentlicht werden.\n\nFehler: ${message}\n\nEs wird nicht automatisch erneut versucht.`
+          `Das wöchentliche Instagram-Karussell für ${bezirkLabel(group.bezirk)} (Woche ab ${window.start}${group.daysLabel ? `, ${group.daysLabel}` : ''}, ${postId}) konnte nicht veröffentlicht werden.\n\nFehler: ${message}\n\nEs wird nicht automatisch erneut versucht.`
         );
       } catch (mailErr) {
         log('Could not mail admins about carousel failure', {
@@ -535,6 +679,8 @@ export interface CarouselPreviewGroup {
   label: string;
   part: number;
   parts: number;
+  /** "am Montag und Dienstag"; empty for a single carousel. */
+  daysLabel: string;
   cover: CoverModel;
   caption: string;
   events: CarouselPreviewEvent[];
@@ -657,6 +803,7 @@ export async function previewWeeklyCarousels(deps: CarouselPreviewDeps): Promise
       label: bezirkLabel(group.bezirk),
       part: group.part,
       parts: group.parts,
+      daysLabel: group.daysLabel,
       cover: buildCoverModel(group, window),
       caption: buildCarouselCaption(group, window, distinctHandles(eventHandles)),
       events: group.events.map((event, i) => ({

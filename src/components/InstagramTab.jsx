@@ -11,6 +11,7 @@ import {
   RefreshCw,
   Send,
   SkipForward,
+  X,
 } from 'lucide-react';
 import { db, callable } from '../lib/firebase';
 import { useAuth } from '../hooks/useAuth';
@@ -33,15 +34,85 @@ const STATUS_LABELS = {
 };
 
 const OUTCOME_MESSAGES = {
-  archived: 'Der Beitrag wurde ins Archiv verschoben.',
-  published: 'Der Beitrag wurde veröffentlicht.',
-  failed: 'Der Versuch ist erneut fehlgeschlagen. Details stehen in der Liste.',
-  skipped: 'Das Event liegt in der Vergangenheit und wurde übersprungen.',
   disabled: 'Die Automatik ist ausgeschaltet. Bitte zuerst einschalten.',
-  'no-consent': 'Der Veranstalter hat der Veröffentlichung auf Instagram nicht zugestimmt.',
-  region: 'Es werden nur Events aus Vorarlberg auf Instagram gepostet.',
-  duplicate: 'Es existiert bereits ein Eintrag für dieses Event.',
 };
+
+const LIST_HINT = 'Die Liste aktualisiert sich von selbst.';
+
+// Feedback after "Erneut versuchen", "Trotzdem posten", "Jetzt posten",
+// "Überspringen" and "Archivieren", in plain words. `action` is retry, force,
+// skip or archive; `outcome` what the server answered.
+export function describeActionResult(action, outcome) {
+  if (action === 'skip') {
+    return {
+      kind: 'success',
+      text: 'Der Beitrag wurde übersprungen und wird nicht gepostet. Du findest ihn jetzt unter „Übersprungen“.',
+    };
+  }
+  if (action === 'archive') {
+    return { kind: 'success', text: 'Der Beitrag wurde ins Archiv verschoben.' };
+  }
+  switch (outcome) {
+    case 'published':
+      return { kind: 'success', text: 'Geschafft! Der Beitrag ist jetzt auf Instagram online.' };
+    case 'failed':
+      return {
+        kind: 'error',
+        text: 'Das Posten hat leider wieder nicht geklappt. Den Grund siehst du beim Beitrag unter „Fehlgeschlagen“. Bitte versuche es später mit „Erneut versuchen“ nochmal.',
+      };
+    case 'skipped':
+      return {
+        kind: 'error',
+        text: 'Das Event ist schon vorbei, deshalb wurde nichts gepostet. Wenn du es trotzdem veröffentlichen willst, klicke unter „Übersprungen“ auf „Trotzdem posten“.',
+      };
+    case 'disabled':
+      return { kind: 'error', text: OUTCOME_MESSAGES.disabled };
+    case 'no-consent':
+      return {
+        kind: 'error',
+        text: 'Nicht gepostet: Der Veranstalter hat der Veröffentlichung auf Instagram nicht zugestimmt.',
+      };
+    case 'region':
+      return {
+        kind: 'error',
+        text: 'Nicht gepostet: Es werden nur Events aus Vorarlberg auf Instagram gepostet.',
+      };
+    case 'duplicate':
+      return {
+        kind: 'error',
+        text: `Nicht gepostet: Für dieses Event gibt es schon einen Beitrag. ${LIST_HINT}`,
+      };
+    default:
+      return { kind: 'success', text: `Erledigt. ${LIST_HINT}` };
+  }
+}
+
+export function describeActionError(action, code, { carousel = false } = {}) {
+  const short = String(code || '').replace(/^functions\//, '');
+  if (short === 'unauthenticated' || short === 'permission-denied') {
+    return 'Das hat nicht geklappt, weil du nicht (mehr) als Admin angemeldet bist. Bitte melde dich neu an und versuche es dann nochmal.';
+  }
+  if (short === 'not-found') {
+    return carousel
+      ? 'Dieses Karussell gibt es nicht mehr. Bitte lade die Seite neu.'
+      : 'Das Event gibt es nicht mehr (es wurde gelöscht), deshalb kann nichts gepostet werden. Bitte klicke beim Beitrag auf „Überspringen“ oder „Archivieren“.';
+  }
+  if (short === 'failed-precondition') {
+    if (action === 'archive') {
+      return 'Nicht möglich: Nur übersprungene Beiträge können archiviert werden. Bitte lade die Seite neu.';
+    }
+    if (action === 'skip') {
+      return 'Nicht möglich: Der Beitrag ist bereits veröffentlicht. Bitte lade die Seite neu.';
+    }
+    return carousel
+      ? 'Nicht möglich: Für dieses Karussell gibt es keine passenden Events mehr, oder es ist schon veröffentlicht. Wenn es nicht mehr gepostet werden soll, klicke auf „Überspringen“.'
+      : 'Nicht möglich: Das Event ist nicht (mehr) genehmigt oder der Beitrag ist bereits veröffentlicht. Bitte lade die Seite neu und prüfe die Liste.';
+  }
+  if (short === 'deadline-exceeded') {
+    return 'Instagram hat zu lange gebraucht. Bitte warte ein paar Minuten und lade die Seite neu. Steht der Beitrag dann unter „Bereits veröffentlichte Beiträge“, ist alles gut, sonst bitte nochmal versuchen.';
+  }
+  return `Das hat leider nicht geklappt (Fehler: ${short || 'unbekannt'}). Bitte versuche es in ein paar Minuten nochmal. Wenn es wieder nicht klappt, gib bitte dem Technik-Team Bescheid.`;
+}
 
 // Why a post was skipped, in plain words. Records written before the reason
 // was stored have none.
@@ -191,6 +262,7 @@ export default function InstagramTab() {
   const [preview, setPreview] = useState(null);
   const [carouselBusy, setCarouselBusy] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [feedback, setFeedback] = useState(null);
 
   if (!isAdmin) return null;
 
@@ -213,24 +285,21 @@ export default function InstagramTab() {
     }
   };
 
-  const runAction = async (post, callableName, extra = {}) => {
+  const runAction = async (post, callableName, action, extra = {}) => {
     setBusyId(post.id);
-    setError(null);
-    setMessage(null);
+    setFeedback(null);
     try {
       const result = await callable(callableName, { timeout: 540000 })({
         eventId: post.eventId,
         ...extra,
       });
-      const outcome = result?.data?.outcome;
-      setMessage(OUTCOME_MESSAGES[outcome] || 'Erledigt.');
+      setFeedback(describeActionResult(action, result?.data?.outcome));
     } catch (err) {
       console.error(`${callableName} failed:`, err?.code, err?.message);
-      setError(
-        err?.code === 'functions/failed-precondition'
-          ? 'Nicht möglich: Das Event ist nicht (mehr) genehmigt oder der Beitrag ist bereits veröffentlicht.'
-          : `Aktion fehlgeschlagen (${err?.code || 'unbekannt'}). Bitte erneut versuchen.`
-      );
+      setFeedback({
+        kind: 'error',
+        text: describeActionError(action, err?.code, { carousel: post.type === 'carousel' }),
+      });
     } finally {
       setBusyId(null);
     }
@@ -306,6 +375,23 @@ export default function InstagramTab() {
         <p className="instagram-info" role="status">
           {message}
         </p>
+      )}
+      {feedback && (
+        <div
+          className={`instagram-toast instagram-toast--${feedback.kind}`}
+          role={feedback.kind === 'error' ? 'alert' : 'status'}
+          data-testid="instagram-action-feedback"
+        >
+          <p>{feedback.text}</p>
+          <button
+            type="button"
+            className="instagram-toast-close"
+            aria-label="Meldung schließen"
+            onClick={() => setFeedback(null)}
+          >
+            <X size={16} aria-hidden="true" />
+          </button>
+        </div>
       )}
 
       <p className="instagram-muted" data-testid="instagram-region-note">
@@ -403,7 +489,7 @@ export default function InstagramTab() {
                     <div className="instagram-post-main">
                       <strong>
                         {group.label || group.bezirk}
-                        {group.parts > 1 ? ` (Teil ${group.part} von ${group.parts})` : ''}
+                        {group.daysLabel ? ` ${group.daysLabel}` : ''}
                       </strong>
                       <span className="instagram-muted">
                         {group.events.length} {group.events.length === 1 ? 'Event' : 'Events'}
@@ -531,7 +617,8 @@ export default function InstagramTab() {
                     onClick={() =>
                       runAction(
                         { id: event.eventId, eventId: event.eventId },
-                        'adminRetryInstagramPost'
+                        'adminRetryInstagramPost',
+                        'retry'
                       )
                     }
                   >
@@ -570,6 +657,8 @@ export default function InstagramTab() {
                       ? `Story ${post.kind === 'event' ? 'Event' : 'Übersicht'} ${post.bezirk} ${post.day}`
                       : post.id);
                   const busy = busyId === post.id;
+                  // Stories are only for the day; they cannot be posted again.
+                  const canRepost = post.type !== 'story';
                   return (
                     <li key={post.id} className="instagram-post" data-testid="instagram-post">
                       <div className="instagram-post-main">
@@ -604,35 +693,43 @@ export default function InstagramTab() {
                       )}
                       {post.status === 'skipped' && (
                         <div className="instagram-post-actions">
+                          {canRepost && (
+                            <button
+                              type="button"
+                              className="btn btn-secondary"
+                              disabled={busy}
+                              onClick={() => runAction(post, 'adminRetryInstagramPost', 'retry')}
+                            >
+                              <RefreshCw size={14} aria-hidden="true" /> Erneut versuchen
+                            </button>
+                          )}
+                          {canRepost && (
+                            <button
+                              type="button"
+                              className="btn btn-secondary"
+                              disabled={busy}
+                              onClick={() => {
+                                if (
+                                  window.confirm(
+                                    post.type === 'carousel'
+                                      ? 'Dieses Karussell jetzt trotzdem auf Instagram veröffentlichen? Termine, die schon vorbei sind, sind auch dabei.'
+                                      : 'Beitrag trotzdem auf Instagram veröffentlichen, auch wenn das Event schon vorbei ist?'
+                                  )
+                                ) {
+                                  runAction(post, 'adminRetryInstagramPost', 'force', {
+                                    force: true,
+                                  });
+                                }
+                              }}
+                            >
+                              <Send size={14} aria-hidden="true" /> Trotzdem posten
+                            </button>
+                          )}
                           <button
                             type="button"
                             className="btn btn-secondary"
                             disabled={busy}
-                            onClick={() => runAction(post, 'adminRetryInstagramPost')}
-                          >
-                            <RefreshCw size={14} aria-hidden="true" /> Erneut versuchen
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-secondary"
-                            disabled={busy}
-                            onClick={() => {
-                              if (
-                                window.confirm(
-                                  'Beitrag trotzdem auf Instagram veröffentlichen, auch wenn das Event schon vorbei ist?'
-                                )
-                              ) {
-                                runAction(post, 'adminRetryInstagramPost', { force: true });
-                              }
-                            }}
-                          >
-                            <Send size={14} aria-hidden="true" /> Trotzdem posten
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-secondary"
-                            disabled={busy}
-                            onClick={() => runAction(post, 'adminArchiveInstagramPost')}
+                            onClick={() => runAction(post, 'adminArchiveInstagramPost', 'archive')}
                           >
                             <Archive size={14} aria-hidden="true" /> Archivieren
                           </button>
@@ -640,12 +737,12 @@ export default function InstagramTab() {
                       )}
                       {(post.status === 'failed' || post.status === 'publishing') && (
                         <div className="instagram-post-actions">
-                          {post.status === 'failed' && (
+                          {post.status === 'failed' && canRepost && (
                             <button
                               type="button"
                               className="btn btn-secondary"
                               disabled={busy}
-                              onClick={() => runAction(post, 'adminRetryInstagramPost')}
+                              onClick={() => runAction(post, 'adminRetryInstagramPost', 'retry')}
                             >
                               <RefreshCw size={14} aria-hidden="true" /> Erneut versuchen
                             </button>
@@ -654,7 +751,7 @@ export default function InstagramTab() {
                             type="button"
                             className="btn btn-secondary"
                             disabled={busy}
-                            onClick={() => runAction(post, 'adminSkipInstagramPost')}
+                            onClick={() => runAction(post, 'adminSkipInstagramPost', 'skip')}
                           >
                             <SkipForward size={14} aria-hidden="true" /> Überspringen
                           </button>

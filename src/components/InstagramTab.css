@@ -228,3 +228,45 @@
   line-height: 1.5;
   text-align: center;
 }
+
+/* Feedback after a post action; fixed so it is visible even when the
+   buttons sit far down in an expanded section. */
+.instagram-toast {
+  position: fixed;
+  left: 50%;
+  bottom: var(--space-4);
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  width: min(90vw, 36rem);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-left-width: 4px;
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 15%);
+}
+
+.instagram-toast p {
+  margin: 0;
+  flex: 1;
+}
+
+.instagram-toast--success {
+  border-left-color: var(--accent-primary);
+}
+
+.instagram-toast--error {
+  border-left-color: var(--error);
+  color: var(--error);
+}
+
+.instagram-toast-close {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+}

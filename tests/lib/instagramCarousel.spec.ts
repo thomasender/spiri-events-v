@@ -4,6 +4,7 @@ import {
   isCarouselEligible,
   groupCarousels,
   buildCarouselCaption,
+  buildCoverModel,
   formatWeekRange,
   carouselPostId,
   runWeeklyCarousels,
@@ -127,19 +128,115 @@ describe('groupCarousels', () => {
     expect(groups[0].parts).toBe(1);
   });
 
-  it('splits into as many carousels as needed, spreading events evenly', () => {
-    const many = Array.from({ length: 19 }, (_, i) =>
-      ev({ id: `e${i}`, time: `${String(8 + (i % 12)).padStart(2, '0')}:00` })
+  it('has no day label when a Bezirk fits into one carousel', () => {
+    const nine = Array.from({ length: 9 }, (_, i) =>
+      ev({ id: `e${i}`, date: `2026-10-0${5 + (i % 3)}` })
     );
-    const groups = groupCarousels(many, WINDOW);
-    expect(groups.map((g) => g.events.length)).toEqual([7, 6, 6]);
-    expect(groups.map((g) => g.part)).toEqual([1, 2, 3]);
-    expect(groups.every((g) => g.parts === 3)).toBe(true);
+    const groups = groupCarousels(nine, WINDOW);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].daysLabel).toBe('');
+  });
+
+  it('splits by weekday without a day ever appearing in two carousels', () => {
+    // Mon 3, Tue 3, Wed 4, Thu 2, Fri 1, Sun 2 = 15 events
+    const perDay: Array<[string, number]> = [
+      ['2026-10-05', 3],
+      ['2026-10-06', 3],
+      ['2026-10-07', 4],
+      ['2026-10-08', 2],
+      ['2026-10-09', 1],
+      ['2026-10-11', 2],
+    ];
+    const events = perDay.flatMap(([date, n]) =>
+      Array.from({ length: n }, (_, i) => ev({ id: `${date}-${i}`, date }))
+    );
+    const groups = groupCarousels(events, WINDOW);
+    expect(groups.map((g) => g.events.length)).toEqual([6, 9]);
+    expect(groups.map((g) => g.part)).toEqual([1, 2]);
+    expect(groups.every((g) => g.parts === 2)).toBe(true);
+    const dayOwner = new Map<string, number>();
+    groups.forEach((g) =>
+      g.events.forEach((e) => {
+        expect(dayOwner.get(e.date as string) ?? g.part).toBe(g.part);
+        dayOwner.set(e.date as string, g.part);
+      })
+    );
+    expect(groups.map((g) => g.daysLabel)).toEqual([
+      'am Montag und Dienstag',
+      'am Mittwoch, Donnerstag, Freitag und Sonntag',
+    ]);
+  });
+
+  it('balances the carousels instead of leaving a nearly empty last one', () => {
+    // Mon 5, Tue 4, Wed 1: greedy would give 9 + 1, balanced gives 5 + 5
+    const events = [
+      ...Array.from({ length: 5 }, (_, i) => ev({ id: `mo${i}`, date: '2026-10-05' })),
+      ...Array.from({ length: 4 }, (_, i) => ev({ id: `di${i}`, date: '2026-10-06' })),
+      ev({ id: 'mi0', date: '2026-10-07' }),
+    ];
+    const groups = groupCarousels(events, WINDOW);
+    expect(groups.map((g) => g.events.length)).toEqual([5, 5]);
+    expect(groups.map((g) => g.daysLabel)).toEqual(['am Montag', 'am Dienstag und Mittwoch']);
+  });
+
+  it('splits a day with more than 9 events into Vormittag, Nachmittag and Abend', () => {
+    const wed = [
+      ...['08:00', '09:30', '10:00', '11:59'].map((time, i) => ev({ id: `v${i}`, time })),
+      ...['12:00', '13:00', '14:00', '15:00', '16:00', '16:59'].map((time, i) =>
+        ev({ id: `n${i}`, time })
+      ),
+      ...['17:00', '19:00', '20:00', '21:00'].map((time, i) => ev({ id: `a${i}`, time })),
+    ];
+    const groups = groupCarousels([...wed, ev({ id: 'do', date: '2026-10-08' })], WINDOW);
+    expect(groups.map((g) => g.events.map((e) => e.id))).toEqual([
+      ['v0', 'v1', 'v2', 'v3'],
+      ['n0', 'n1', 'n2', 'n3', 'n4', 'n5'],
+      ['a0', 'a1', 'a2', 'a3', 'do'],
+    ]);
+    expect(groups.map((g) => g.daysLabel)).toEqual([
+      'am Mittwoch Vormittag',
+      'am Mittwoch Nachmittag',
+      'am Mittwoch Abend und Donnerstag',
+    ]);
+  });
+
+  it('keeps two day parts together when they fit', () => {
+    // Wed: Vormittag 2, Nachmittag 3, Abend 6
+    const wed = [
+      ...['09:00', '10:00'].map((time, i) => ev({ id: `v${i}`, time })),
+      ...['13:00', '14:00', '15:00'].map((time, i) => ev({ id: `n${i}`, time })),
+      ...['18:00', '18:30', '19:00', '19:30', '20:00', '20:30'].map((time, i) =>
+        ev({ id: `a${i}`, time })
+      ),
+    ];
+    const groups = groupCarousels(wed, WINDOW);
+    expect(groups.map((g) => g.daysLabel)).toEqual([
+      'am Mittwoch Vormittag und Nachmittag',
+      'am Mittwoch Abend',
+    ]);
+  });
+
+  it('shows the days on the cover and in the caption instead of "Teil x von y"', () => {
+    const events = [
+      ...Array.from({ length: 5 }, (_, i) => ev({ id: `mo${i}`, date: '2026-10-05' })),
+      ...Array.from({ length: 5 }, (_, i) => ev({ id: `di${i}`, date: '2026-10-06' })),
+    ];
+    const [first] = groupCarousels(events, WINDOW);
+    expect(buildCoverModel(first, WINDOW).partLabel).toBe('am Montag');
+    const caption = buildCarouselCaption(first, WINDOW);
+    expect(caption).toContain('Events nächste Woche in Dornbirn am Montag');
+    expect(caption).not.toContain('Teil 1 von');
   });
 
   it('does not leave a nearly empty second carousel for 10 events', () => {
     const ten = Array.from({ length: 10 }, (_, i) => ev({ id: `e${i}` }));
-    expect(groupCarousels(ten, WINDOW).map((g) => g.events.length)).toEqual([5, 5]);
+    const groups = groupCarousels(ten, WINDOW);
+    expect(groups.map((g) => g.events.length)).toEqual([5, 5]);
+    // All ten on Wednesday evening: the only case that still needs numbered parts.
+    expect(groups.map((g) => g.daysLabel)).toEqual([
+      'am Mittwoch Abend (Teil 1 von 2)',
+      'am Mittwoch Abend (Teil 2 von 2)',
+    ]);
   });
 
   it('keeps chronological order across the parts', () => {
@@ -167,6 +264,7 @@ describe('buildCarouselCaption', () => {
     part: 1,
     parts: 1,
     events,
+    daysLabel: '',
   });
 
   it('lists events with date, time, title and place plus call to action, bio hint and hashtags', () => {

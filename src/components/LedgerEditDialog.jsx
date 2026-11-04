@@ -7,6 +7,7 @@ import {
   NOTE_MAX,
   attachmentProblem,
   formatFileSize,
+  formatLedgerCreator,
 } from '../utils/ledger';
 import LedgerAttachmentLink from './LedgerAttachmentLink';
 import FileDropZone from './FileDropZone';
@@ -138,6 +139,12 @@ export default function LedgerEditDialog({ open, mode, entry, categories = [], o
                 </span>
               </>
             ) : null}
+          </p>
+        )}
+
+        {!isCreate && (
+          <p className="donor-edit-dialog-source-meta" data-testid="ledger-edit-creator">
+            {formatLedgerCreator(entry)}
           </p>
         )}
 
