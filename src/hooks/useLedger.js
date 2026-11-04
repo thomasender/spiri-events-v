@@ -98,6 +98,7 @@ export function useLedger() {
           attachments,
           source: 'manual',
           createdBy: user.uid,
+          createdByName: user.displayName || user.email || user.uid,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });

@@ -8,6 +8,7 @@ import {
   entriesOfYear,
   formatEuro,
   formatLedgerAmount,
+  formatLedgerCreator,
   formatLedgerDate,
   ledgerToCsv,
   ledgerTotals,
@@ -155,6 +156,9 @@ export default function LedgerTab() {
                   {formatLedgerDate(entry.date)}
                   {entry.category ? ` · ${entry.category}` : ''}
                   {entry.source === 'mollie' ? ' · Mollie' : ''}
+                </span>
+                <span className="ledger-row-meta" data-testid={`ledger-creator-${entry.id}`}>
+                  {formatLedgerCreator(entry)}
                 </span>
                 {entry.attachments?.length > 0 && (
                   <span className="ledger-row-attachments">

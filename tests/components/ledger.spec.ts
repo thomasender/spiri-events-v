@@ -9,6 +9,7 @@ import {
   ledgerToCsv,
   formatLedgerDate,
   formatLedgerAmount,
+  formatLedgerCreator,
   attachmentProblem,
   attachmentPath,
 } from '../../src/utils/ledger';
@@ -134,5 +135,18 @@ describe('receipts', () => {
     expect(attachmentPath('l1', file('Rechnung Mai/äö.pdf', 'application/pdf'), 5)).toMatch(
       /^ledger\/l1\/5_[\w.-]+\.pdf$/
     );
+  });
+});
+
+describe('formatLedgerCreator', () => {
+  const createdAt = { toMillis: () => Date.UTC(2026, 9, 29, 10, 30) };
+  it('names the creator and the time', () => {
+    expect(formatLedgerCreator({ createdByName: 'Anna', createdAt })).toMatch(
+      /^Angelegt von Anna am 29\.10\.26/
+    );
+  });
+  it('marks Mollie entries and falls back for old ones', () => {
+    expect(formatLedgerCreator({ source: 'mollie', createdAt })).toMatch(/Mollie \(automatisch\)/);
+    expect(formatLedgerCreator({ source: 'manual' })).toBe('Angelegt von Admin');
   });
 });
