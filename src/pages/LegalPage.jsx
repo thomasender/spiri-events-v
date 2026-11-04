@@ -10,6 +10,33 @@ import { instagramChannels, instagramProfileUrl } from '../utils/regions';
 // least two Instagram channels exist; with one channel the text stays as it was.
 const MIN_CHANNELS_FOR_LIST = 2;
 
+const RESPONSIBLE_PEOPLE = [
+  {
+    role: 'Präsident',
+    name: 'Peter Mathis',
+    photo: '/impressum/peter-mathis.jpg',
+    contacts: [
+      { href: 'mailto:info@petermathis.at', label: 'info@petermathis.at' },
+      { href: 'tel:+4368181828713', label: '+4368181828713' },
+    ],
+  },
+  {
+    role: 'Vizepräsident',
+    name: 'Thomas Ender',
+    photo: '/impressum/thomas-ender.jpg',
+    contacts: [
+      { href: 'mailto:thomas@blissofkundalini.yoga', label: 'thomas@blissofkundalini.yoga' },
+      { href: 'tel:+436602673509', label: '+43 660 2673509' },
+    ],
+  },
+  {
+    role: 'Mitgründerin',
+    name: 'Jana Sunjevic',
+    photo: '/impressum/jana-sunjevic.jpg',
+    contacts: [{ href: 'https://www.instagram.com/jana_suu/', label: '@jana_suu' }],
+  },
+];
+
 const content = {
   datenschutz: {
     title: 'Datenschutzerklärung',
@@ -421,25 +448,9 @@ Vorarlberg / Österreich`,
       },
       {
         heading: 'Projekt',
-        text: `Dieser Online Veranstaltungskalender ist ein Projekt des gemeinnützigen Vereins "Tribe Vorarlberg" welcher mit diesem Projekt seinen Zweck eine ganzheitliche, bewusste und gesundheitsfördernde Lebensweise zu fördern und zu pflegen, sowie die Unterstützung von Menschen in ihrer persönlichen, körperlichen, geistigen, sozialen, spirituellen und kulturellen Entwicklung nachkommt.
-
-### Verantwortliche / Vereinsvorstand
-
-#### Präsident
-
-Peter Mathis
-
-[info@petermathis.at](mailto:info@petermathis.at)
-
-+4368181828713
-
-#### Vizepräsident
-
-Thomas Ender
-
-[thomas@blissofkundalini.yoga](mailto:thomas@blissofkundalini.yoga)
-
-+43 660 2673509`,
+        text: `Dieser Online Veranstaltungskalender ist ein Projekt des gemeinnützigen Vereins "Tribe Vorarlberg" welcher mit diesem Projekt seinen Zweck eine ganzheitliche, bewusste und gesundheitsfördernde Lebensweise zu fördern und zu pflegen, sowie die Unterstützung von Menschen in ihrer persönlichen, körperlichen, geistigen, sozialen, spirituellen und kulturellen Entwicklung nachkommt.`,
+        peopleHeading: 'Verantwortliche',
+        people: RESPONSIBLE_PEOPLE,
       },
       {
         heading: 'Onlinepräsenzen',
@@ -690,6 +701,44 @@ function LegalText({ text }) {
   );
 }
 
+function PeopleList({ heading, people }) {
+  return (
+    <>
+      <h3 className="legal-subheading">{heading}</h3>
+      <ul className="legal-people">
+        {people.map((p) => (
+          <li key={p.name} className="legal-person">
+            <img
+              className="legal-person-photo"
+              src={p.photo}
+              alt={p.name}
+              loading="lazy"
+              width="200"
+              height="200"
+            />
+            <div className="legal-person-info">
+              <p className="legal-person-role">{p.role}</p>
+              <p className="legal-person-name">{p.name}</p>
+              {p.contacts.map((c) => (
+                <a
+                  key={c.href}
+                  className="legal-link"
+                  href={c.href}
+                  {...(c.href.startsWith('http')
+                    ? { target: '_blank', rel: 'noopener noreferrer' }
+                    : {})}
+                >
+                  {c.label}
+                </a>
+              ))}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
 function InstagramChannelList({ channels }) {
   return (
     <details className="legal-details" data-testid="legal-instagram-channels">
@@ -748,6 +797,9 @@ export default function LegalPage({ page }) {
                   typeof section.text === 'function' ? section.text({ channels }) : section.text
                 }
               />
+              {section.people && (
+                <PeopleList heading={section.peopleHeading} people={section.people} />
+              )}
               {section.channelList && channels.length >= MIN_CHANNELS_FOR_LIST && (
                 <InstagramChannelList channels={channels} />
               )}

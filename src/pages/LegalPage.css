@@ -158,3 +158,55 @@
 .legal-content .legal-details .legal-list {
   margin-top: var(--space-2);
 }
+
+.legal-content .legal-people {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(calc(var(--space-16) * 3), 1fr));
+  gap: var(--space-4);
+}
+
+.legal-content .legal-person {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.legal-content .legal-person-photo {
+  width: 100%;
+  max-width: calc(var(--space-16) * 2);
+  aspect-ratio: 1;
+  object-fit: cover;
+  object-position: 50% 30%;
+  border-radius: 50%;
+}
+
+.legal-content .legal-person-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.legal-content .legal-person-info p {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.legal-content .legal-person-role {
+  font-size: var(--text-85);
+  color: var(--text-light);
+}
+
+.legal-content .legal-person-name {
+  font-size: var(--text-105);
+  font-weight: 600;
+  color: var(--text-primary);
+}
