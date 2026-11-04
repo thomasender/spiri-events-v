@@ -128,7 +128,7 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
   suggestions, or "Meinen Standort verwenden") and a radius (5 / 10 / 15 / 20 / 25 / 50 km, default
   25; a stored value that is not a step, e.g. an old 100, snaps to the nearest step, here 50), then press "Übernehmen". Components: `PlacePicker.jsx` (the two steps), `PlaceSearch.jsx`
   (WAI-ARIA combobox, search as you type), `LocateRegionButton.jsx` (opt-in location, callback
-  `onLocate`), shown by `RegionChooser.jsx` (required full page "Wo suchst du?" on `/` and
+  `onLocate`), shown by `RegionChooser.jsx` (required blocking pop-up "Wo suchst du?" over the calendar (dimmed backdrop, page behind inert and not scrollable, so not even the header is usable) on `/` and
   `/verzeichnis` when nothing is remembered, and `/regionen` opened on purpose with a
   "Schließen" button) and `RegionPickerModal.jsx` (pop-up behind the header button, the burger
   menu, the profile card "Ort und Umkreis" and the footer). The "Wo suchst du?" page has no
@@ -142,8 +142,8 @@ migration marker · 6 (moved) · 7 Emails · 8 SEO and prerender · 9 ICS feed �
   Builds without the prerender (staging, dev) ship the plain `index.html` with `content="unknown"`:
   there a first-time visitor on `/` or `/verzeichnis` gets an empty cover (`regionChooserPending`)
   until the config has loaded, then the chooser or, with one active region, the calendar;
-  the site header stays visible above it with the neutral title "Dein Kalender" and without
-  the region switcher (`regionChooserOpen` in the region context). Invisible with fewer than
+  the header carries the neutral title "Dein Kalender" and no region switcher
+  (`regionChooserOpen` in the region context). Invisible with fewer than
   two active regions.
   The search field's example text follows the domain (`src/utils/placeExamples.js`: `.de` Germany, `.ch` Switzerland, `.com` by browser language; `.at`, `thetribe.at`, `deintribe.at` and localhost show "Wien, Graz oder Dornbirn").
   - **Place list, no third party.** `src/data/placeIndex.json` (33,376 places of AT / DE / CH /

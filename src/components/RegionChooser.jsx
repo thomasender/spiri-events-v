@@ -19,15 +19,15 @@ const FOCUSABLE =
   'button:not([disabled]), input:not([disabled]):not([tabindex="-1"]), select:not([disabled]), textarea:not([disabled])';
 
 /**
- * "Wo suchst du?" when we do not know yet where a visitor wants to search: a full page (not
- * a small pop-up) with the place + radius step (PlacePicker). No map: visitors type a place
+ * "Wo suchst du?" when we do not know yet where a visitor wants to search: a blocking modal
+ * with a dimmed backdrop over the calendar, with the place + radius step (PlacePicker). No map: visitors type a place
  * or share their location and pick a radius; the region is worked out from the place.
  * Opened on purpose (`/regionen`) it has "Schließen" at the top and works with Escape.
  * Dark launch: needs at least two active regions. First visit: no close button, no Escape
  * dismissal. Not shown once a place or region is remembered (localStorage), and opening a
  * region address counts as a choice (when it shows: `regionChooserOpen` in RegionProvider).
- * The page stays rendered behind it (only made inert while the chooser is open); the site
- * header stays visible above it with the neutral title. A region that is not open yet leads
+ * The page stays rendered behind it (made inert and not scrollable while the chooser is open,
+ * so nothing but the dialog is usable, not even the header). A region that is not open yet leads
  * to its coming-soon page.
  */
 export default function RegionChooser() {
@@ -42,7 +42,6 @@ export default function RegionChooser() {
   const { pathname, key } = useLocation();
   const navigate = useNavigate();
   const dialogRef = useRef(null);
-  const backdropRef = useRef(null);
   const onRegionsPage = pathname === REGIONS_PAGE_PATH;
 
   // Opening a combined view ("Ganz Österreich", ...) by address is a choice as
@@ -59,14 +58,8 @@ export default function RegionChooser() {
   useEffect(() => {
     if (!show) return undefined;
     dialogRef.current?.focus();
-    // The site header stays visible (inert like the rest of the page): start below it.
-    const placeBelowHeader = () => {
-      const header = document.querySelector('header.header');
-      const bottom = header ? Math.max(0, header.getBoundingClientRect().bottom) : 0;
-      backdropRef.current?.style.setProperty('--region-chooser-top', `${bottom}px`);
-    };
-    placeBelowHeader();
-    window.addEventListener('resize', placeBelowHeader);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     const app = document.getElementById('root');
     app?.setAttribute('inert', '');
     app?.setAttribute('aria-hidden', 'true');
@@ -104,7 +97,7 @@ export default function RegionChooser() {
     document.addEventListener('keydown', onKeyDown, true);
     return () => {
       document.removeEventListener('keydown', onKeyDown, true);
-      window.removeEventListener('resize', placeBelowHeader);
+      document.body.style.overflow = previousOverflow;
       app?.removeAttribute('inert');
       app?.removeAttribute('aria-hidden');
     };
@@ -118,11 +111,7 @@ export default function RegionChooser() {
   // cover the page empty so a first-time visitor never sees the Vorarlberg calendar first.
   if (regionChooserPending) {
     return createPortal(
-      <div
-        ref={backdropRef}
-        className="region-chooser-backdrop"
-        data-testid="region-chooser-pending"
-      >
+      <div className="region-chooser-backdrop" data-testid="region-chooser-pending">
         <div className="loading-spinner" role="status" aria-label="Lädt" />
       </div>,
       document.body
@@ -144,7 +133,13 @@ export default function RegionChooser() {
   };
 
   return createPortal(
-    <div ref={backdropRef} className="region-chooser-backdrop">
+    <div
+      className="region-chooser-backdrop"
+      onMouseDown={(e) => {
+        // Only the on-purpose page can be left without choosing.
+        if (onRegionsPage && e.target === e.currentTarget) close();
+      }}
+    >
       <section
         ref={dialogRef}
         tabIndex={-1}
