@@ -1338,6 +1338,21 @@ describe('Header above "Wo suchst du?"', () => {
     expect(screen.queryByText(/Vorarlberg|Ländle/)).toBeNull();
     expect(screen.queryByTestId('region-switcher')).toBeNull();
   });
+
+  it('hides the buttons on the right: only logo and slogan stay', () => {
+    const ctx = { ...DEFAULT_REGION_CONTEXT, neutralHeader: true, regionChooserOpen: true };
+    render(
+      <RegionContext.Provider value={ctx}>
+        <MemoryRouter initialEntries={['/regionen']}>
+          <Header />
+        </MemoryRouter>
+      </RegionContext.Provider>
+    );
+    expect(screen.getByTestId('header-logo')).toBeInTheDocument();
+    expect(screen.queryByTestId('header-profile-button')).toBeNull();
+    expect(screen.queryByTestId('header-directory-button')).toBeNull();
+    expect(screen.queryByRole('button', { name: /Menü/ })).toBeNull();
+  });
 });
 
 describe('Header logo target', () => {

@@ -20,14 +20,22 @@ import './PlacePicker.css';
  * Nothing is saved until "Übernehmen"; then `onApply(selection)` gets
  * `{ label, lat, lon, radiusKm, regionId, source }`. The region (and with it the calendar
  * title) comes from the place; the events shown are all those within the radius.
- * Used by the first-visit page, `/regionen` and the pop-up of the header button.
+ * `progressive` (first-visit page): Umkreis shows once a place is chosen, the apply button
+ * (and `afterApply`) once a radius is picked; no radius is preselected. Used by the first-visit page, `/regionen` and the pop-up of the header button.
  */
-export default function PlacePicker({ onApply, applyLabel = 'Übernehmen' }) {
+export default function PlacePicker({
+  onApply,
+  applyLabel = 'Übernehmen',
+  progressive = false,
+  afterApply = null,
+}) {
   const { allRegions, placeSelection } = useRegion();
   // The place list is loaded once the search field is used, not when the picker opens.
   const { index, failed, request: requestIndex } = usePlaceIndexOnDemand();
   const [draft, setDraft] = useState(() => (placeSelection ? { ...placeSelection } : null));
-  const [radiusKm, setRadiusKm] = useState(placeSelection?.radiusKm ?? DEFAULT_RADIUS_KM);
+  const [radiusKm, setRadiusKm] = useState(
+    placeSelection?.radiusKm ?? (progressive ? null : DEFAULT_RADIUS_KM)
+  );
 
   const regionEntries = useMemo(
     () => (index ? buildRegionEntries(index, allRegions) : []),
@@ -63,8 +71,8 @@ export default function PlacePicker({ onApply, applyLabel = 'Übernehmen' }) {
   };
 
   const apply = () => {
-    const selection = normalizeSelection({ ...draft, radiusKm });
-    if (selection) onApply(selection);
+    const selection = normalizeSelection({ ...draft, radiusKm: radiusKm ?? DEFAULT_RADIUS_KM });
+    if (selection && (radiusKm || !progressive)) onApply(selection);
   };
 
   const regionName = draft?.regionId ? allRegions.find((r) => r.id === draft.regionId)?.name : null;
@@ -94,36 +102,43 @@ export default function PlacePicker({ onApply, applyLabel = 'Übernehmen' }) {
         </p>
       )}
 
-      <fieldset className="place-picker-radius" disabled={!draft}>
-        <legend>Umkreis</legend>
-        <div className="place-picker-radius-options" role="radiogroup">
-          {RADIUS_OPTIONS.map((km) => (
-            <label
-              key={km}
-              className={`place-picker-radius-option${km === radiusKm ? ' place-picker-radius-option--on' : ''}`}
-            >
-              <input
-                type="radio"
-                name="place-radius"
-                value={km}
-                checked={km === radiusKm}
-                onChange={() => setRadiusKm(km)}
-              />
-              {km} km
-            </label>
-          ))}
-        </div>
-      </fieldset>
+      {(!progressive || draft) && (
+        <fieldset className="place-picker-radius" disabled={!draft}>
+          <legend>Umkreis</legend>
+          <div className="place-picker-radius-options" role="radiogroup">
+            {RADIUS_OPTIONS.map((km) => (
+              <label
+                key={km}
+                className={`place-picker-radius-option${km === radiusKm ? ' place-picker-radius-option--on' : ''}`}
+              >
+                <input
+                  type="radio"
+                  name="place-radius"
+                  value={km}
+                  checked={km === radiusKm}
+                  onChange={() => setRadiusKm(km)}
+                />
+                {km} km
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )}
 
-      <button
-        type="button"
-        className="place-picker-apply"
-        disabled={!draft}
-        onClick={apply}
-        data-testid="place-picker-apply"
-      >
-        {applyLabel}
-      </button>
+      {(!progressive || radiusKm) && (
+        <>
+          <button
+            type="button"
+            className="place-picker-apply"
+            disabled={!draft}
+            onClick={apply}
+            data-testid="place-picker-apply"
+          >
+            {applyLabel}
+          </button>
+          {afterApply}
+        </>
+      )}
     </div>
   );
 }

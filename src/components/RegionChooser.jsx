@@ -174,9 +174,13 @@ export default function RegionChooser() {
           </p>
         </header>
         <div className="region-chooser-layout region-chooser-layout--map-only">
-          <PlacePicker onApply={apply} applyLabel="Events anzeigen" />
+          <PlacePicker
+            onApply={apply}
+            applyLabel="Events anzeigen"
+            progressive
+            afterApply={!onRegionsPage && <ModeratorApplyCard className="region-chooser-apply" />}
+          />
         </div>
-        {!onRegionsPage && <ModeratorApplyCard className="region-chooser-apply" />}
       </section>
     </div>,
     document.body
