@@ -273,7 +273,7 @@ describe('buildCarouselCaption', () => {
     expect(caption).toContain('• Mi, 7. Okt · 18:00 Uhr – Kakao Zeremonie (Studio Eins)');
     expect(caption).toContain(CAPTION_CTA);
     expect(caption).toContain(BIO_LINK_LINE);
-    expect(caption).toContain('#vorarlberg');
+    expect(caption).toContain('#deintribe');
     expect(caption).toContain('#dornbirn');
   });
 
@@ -291,7 +291,7 @@ describe('buildCarouselCaption', () => {
     // The call to action is never what gets cut when the list is too long.
     expect(caption).toContain(CAPTION_CTA);
     expect(caption).toContain(BIO_LINK_LINE);
-    expect(caption).toContain('#vorarlberg');
+    expect(caption).toContain('#deintribe');
   });
 });
 

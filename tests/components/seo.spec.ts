@@ -21,7 +21,7 @@ describe('seo constants', () => {
   });
 
   it('has a branded site name', () => {
-    expect(SITE_NAME).toBe('tribe Vorarlberg');
+    expect(SITE_NAME).toBe('Dein Tribe');
   });
 
   it('points the default OG image at an absolute URL under the site', () => {
@@ -102,7 +102,8 @@ describe('getDefaultOgTags', () => {
   it('returns the default site-wide tags when called with no arguments', () => {
     const tags = getDefaultOgTags();
     expect(tags.title).toBe('Dein Tribe');
-    expect(tags.description).toMatch(/Vorarlberg/);
+    expect(tags.description).toMatch(/^Regionaler Kalender für bewusste Veranstaltungen/);
+    expect(tags.description).not.toMatch(/Vorarlberg/);
     expect(tags.url).toBe('https://www.thetribe.at/');
     expect(tags.imageUrl).toBe(DEFAULT_OG_IMAGE_URL);
     expect(tags.type).toBe('website');

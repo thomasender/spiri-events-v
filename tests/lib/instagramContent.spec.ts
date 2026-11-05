@@ -407,9 +407,14 @@ describe('buildHashtags / caption hashtags', () => {
     expect(buildHashtags({ bezirk: 'Dornbirn', category: 'Yoga' }, 3)).toEqual([
       '#dornbirn',
       '#yoga',
-      '#yogavorarlberg',
+      '#yogapraxis',
     ]);
     expect(buildHashtags({ bezirk: 'Dornbirn', category: 'Tanz' }).length).toBeLessThanOrEqual(12);
+  });
+
+  it('adds no region tag of its own (neutral base tags)', () => {
+    const tags = buildHashtags({ bezirk: 'Dornbirn', category: 'Yoga' });
+    expect(tags.some((t) => t.includes('vorarlberg'))).toBe(false);
   });
 
   it('skips missing category and works for unknown categories', () => {

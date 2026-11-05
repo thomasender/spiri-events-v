@@ -13,7 +13,7 @@ export default function SpendenPage() {
     <div className="page-container spenden-page fade-enter">
       <SeoMeta
         title="Spenden"
-        description="Unterstütze tribe Vorarlberg mit einer monatlichen Spende. Jeder Beitrag hilft uns, Webhosting, Technik und Flyer zu finanzieren."
+        description="Unterstütze Dein Tribe mit einer monatlichen Spende. Jeder Beitrag hilft uns, Webhosting, Technik und Flyer zu finanzieren."
         path="/spenden"
       />
 

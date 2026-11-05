@@ -147,19 +147,20 @@ describe('Vorarlberg output is byte-identical (golden hashes of the pre-ticket g
     { id: 'b', title: 'Tanz', date: '2026-12-20', category: 'Tanz', fee: '20' },
   ];
 
+  // Hashes re-pinned for the neutral default meta texts (Trello nolfWvHb).
   it('calendar page, sitemap and event pages match the golden hashes', async () => {
     const m = await importPrerender();
     expect(sha(m.generateCalendarPageHtml(fx, '/assets/index-A.js', '/assets/index-A.css'))).toBe(
-      'eb3aa14f73b0b68806f1376c02b62ad9bb613a922b3d6c521d416548c5df9488'
+      '9c06c1f265b1388e74014a977876d064c9b2d1536238858cfd22fcf2a5c96a9d'
     );
     expect(sha(m.generateSitemap(fx))).toBe(
       '614309ed74d4e6182b9f17dbb3ca51c239b52977f9f9e0ae7519b4361f793b7a'
     );
     expect(
       sha(m.generateEventHtml(fx[0], undefined, '/assets/index-A.js', '/assets/index-A.css'))
-    ).toBe('4232bcf9e3cc89bc05971b58ecfa977c40dfc2ed100c4fa45e3d6c3e1d1b6af0');
+    ).toBe('40d1c474bbf5f095d9e94666c73532b976adf89bedd2437e3544dba3cd89b83e');
     expect(sha(m.generateEventHtml(fx[1]))).toBe(
-      '8f9d4c8cffe229cf937ffc6308da5c67b4a5d853f212ebc8e97e6dc8155e503c'
+      'a042ae294530833de7ec650b00c10759c8be50e5f3f7ea84ef1ebbb176c98fb1'
     );
   });
 
