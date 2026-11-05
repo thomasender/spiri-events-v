@@ -1,7 +1,7 @@
 {
   "name": "Dein Tribe",
   "short_name": "tribe",
-  "description": "Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg.",
+  "description": "Regionaler Kalender für bewusste Veranstaltungen: Workshops, Meditation, Yoga, Tanz, Singen und mehr in deiner Nähe.",
   "lang": "de-AT",
   "start_url": "/",
   "scope": "/",

@@ -1,12 +1,11 @@
-import { BRAND_NAME, LEGACY_SITE_NAME } from '../config/brand';
+import { BRAND_NAME, DEFAULT_SITE_DESCRIPTION } from '../config/brand';
 
 export const SITE_URL = 'https://www.thetribe.at';
 
-// Today's (Vorarlberg) site name. Region-aware texts: src/utils/regionTexts.js.
-export const SITE_NAME = LEGACY_SITE_NAME;
+// Neutral site name and description. Region-aware texts: src/utils/regionTexts.js.
+export const SITE_NAME = BRAND_NAME;
 
-export const DEFAULT_DESCRIPTION =
-  'Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg - Bregenz, Dornbirn, Feldkirch, Bludenz';
+export const DEFAULT_DESCRIPTION = DEFAULT_SITE_DESCRIPTION;
 
 export const DEFAULT_OG_IMAGE_PATH = '/hero.jpeg';
 export const OG_IMAGE_WIDTH = 1389;

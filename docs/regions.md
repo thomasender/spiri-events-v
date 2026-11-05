@@ -6,6 +6,11 @@ Linked from `AGENTS.md`. Production migration and staging: [staging-migration.md
 
 Every page title (browser tab, OG/Twitter title) carries the brand "Dein Tribe", also in
 Vorarlberg-only mode: `SeoMeta` and `scripts/prerender.mjs` use `BRAND_NAME` as the suffix.
+The default meta texts are neutral too (Trello nolfWvHb): site name "Dein Tribe" and
+`DEFAULT_SITE_DESCRIPTION` ("Regionaler Kalender für bewusste Veranstaltungen: ...", `src/config/brand.js`)
+in `index.html`, `site.webmanifest`, `llms.txt`, `seo.js`, the legacy `regionTexts` and the prerender;
+no region or town names, no `#vorarlberg` Instagram tag. Vorarlberg's own pages (Über uns, legal
+pages, ICS feed name) and the visible UI wording keep "Vorarlberg".
 
 The platform started as "tribe Vorarlberg"; the regions epic prepares 133 regions of
 Austria (9 Bundesländer), Germany (104 regions over the 400 Landkreise and kreisfreie

@@ -13,23 +13,23 @@ import { DEFAULT_DESCRIPTION, SITE_NAME } from '../../src/utils/seo';
 const reg = (id: string) => getRegionBySlug(id)!;
 
 describe('regionTexts: one active region (dark launch)', () => {
-  it("Vorarlberg with one active region is exactly today's text", () => {
+  it('Vorarlberg with one active region: Vorarlberg UI wording, neutral meta texts', () => {
     const t = regionTexts(reg('vorarlberg'), { activeCount: 1 });
     expect(t).toEqual({
       regionSpecific: false,
-      siteName: 'tribe Vorarlberg',
+      siteName: 'Dein Tribe',
       headerTitle: 'Dein Vorarlberger Kalender',
       locationPhrase: 'in Vorarlberg',
       nearbyText: 'Für Vorarlberg und Umkreis',
       calendarTitle: 'Dein Tribe',
       calendarTitleExact: true,
       calendarDescription:
-        'Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg - Bregenz, Dornbirn, Feldkirch, Bludenz, Umgebung',
+        'Regionaler Kalender für bewusste Veranstaltungen: Workshops, Meditation, Yoga, Tanz, Singen und mehr in deiner Nähe.',
       defaultDescription:
-        'Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg - Bregenz, Dornbirn, Feldkirch, Bludenz',
-      directoryTitle: 'Verzeichnis – Angebote in Vorarlberg',
+        'Regionaler Kalender für bewusste Veranstaltungen: Workshops, Meditation, Yoga, Tanz, Singen und mehr in deiner Nähe.',
+      directoryTitle: 'Verzeichnis – Angebote in deiner Nähe',
       directoryDescription:
-        'Finde Menschen mit bewussten Angeboten in Vorarlberg: nach Kategorie, Region oder Name durchsuchbar.',
+        'Finde Menschen mit bewussten Angeboten in deiner Nähe: nach Kategorie, Region oder Name durchsuchbar.',
     });
   });
 

@@ -2,7 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { buildEventJsonLd, stripHtmlToText } from '../src/utils/eventJsonLd.js'
-import { BRAND_NAME } from '../src/config/brand.js'
+import { BRAND_NAME, DEFAULT_SITE_DESCRIPTION } from '../src/config/brand.js'
 import { DEFAULT_REGION_ID, STATIC_REGIONS, getRegionBySlug, isRegionSlug, mergeRegions, resolveRegionId } from '../src/utils/regions.js'
 import { REGION_MODE_META_MULTI, REGION_MODE_META_NAME, activeRegions } from '../src/utils/regionRouting.js'
 import { regionTexts, LEGACY_CALENDAR_TITLE } from '../src/utils/regionTexts.js'
@@ -17,9 +17,9 @@ export const BASE_URL = 'https://www.thetribe.at'
 export const DEFAULT_OG_IMAGE_URL = `${BASE_URL}/hero.jpeg`
 export const OG_IMAGE_WIDTH = 1389
 export const OG_IMAGE_HEIGHT = 768
-export const SITE_NAME = 'tribe Vorarlberg'
-export const DEFAULT_DESCRIPTION =
-  'Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg - Bregenz, Dornbirn, Feldkirch, Bludenz'
+// Neutral site name and description: the default pages name no region (Trello nolfWvHb).
+export const SITE_NAME = BRAND_NAME
+export const DEFAULT_DESCRIPTION = DEFAULT_SITE_DESCRIPTION
 
 export const THEME_COLOR_LIGHT = '#f4f2f0'
 export const THEME_COLOR_DARK = '#1a1a1a'
@@ -199,7 +199,9 @@ export function buildEventDescription(event) {
     return `${(lastSpace > 100 ? cut.slice(0, lastSpace) : cut).replace(/[\s,;:.\-–]+$/, '')}…`
   }
   const category = event.category || 'Sonstiges'
-  return `${event.title} - ${category} in ${(event.bezirk === 'Grenznahe' ? 'Umgebung' : event.bezirk) || 'Vorarlberg'}`
+  // No Bezirk: no place in the meta description (neutral, Trello nolfWvHb).
+  const place = event.bezirk === 'Grenznahe' ? 'Umgebung' : event.bezirk
+  return place ? `${event.title} - ${category} in ${place}` : `${event.title} - ${category}`
 }
 
 // Renders the static event content (title, date, place, description, link)
@@ -488,7 +490,7 @@ export function generateCalendarPageHtml(events, jsBundlePath, cssBundlePath, th
         <li>
           <a href="/event/${escapeHtml(eventPath)}">
             <strong>${escapeHtml(event.title)}</strong>
-            <span>${escapeHtml(formatDate(event.date))} - ${escapeHtml((event.bezirk === 'Grenznahe' ? 'Umgebung' : event.bezirk) || 'Vorarlberg')}</span>
+            <span>${escapeHtml([formatDate(event.date), event.bezirk === 'Grenznahe' ? 'Umgebung' : event.bezirk].filter(Boolean).join(' - '))}</span>
           </a>
         </li>`
       }).join('')}</ul>`
@@ -547,7 +549,6 @@ export function generateCalendarPageHtml(events, jsBundlePath, cssBundlePath, th
         url: BASE_URL,
         logo: `${BASE_URL}/icon-512.png`,
         description: DEFAULT_DESCRIPTION,
-        areaServed: { '@type': 'AdministrativeArea', name: 'Vorarlberg' },
       },
     ],
   })}</script>
@@ -564,7 +565,7 @@ ${calendarPageCss(themeRoot)}
     <div class="calendar-page">
       <header class="page-header">
         <div class="header-content">
-          <h1>Spirituelle Events Vorarlberg</h1>
+          <h1>Regionaler Kalender für bewusste Veranstaltungen</h1>
           <p>Entdecke Workshops, Meditationen und Retreats in deiner Nähe</p>
         </div>
       </header>

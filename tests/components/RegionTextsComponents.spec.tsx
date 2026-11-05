@@ -76,7 +76,7 @@ describe('Header subtitle and footer follow the region', () => {
 });
 
 describe('SeoMeta title and description follow the region', () => {
-  it('Vorarlberg: "Kalender | Dein Tribe" and the legacy description', async () => {
+  it('Vorarlberg: "Kalender | Dein Tribe" and the neutral description', async () => {
     render(
       <Wrap>
         <SeoMeta title="Kalender" />
@@ -84,7 +84,7 @@ describe('SeoMeta title and description follow the region', () => {
     );
     await waitFor(() => expect(document.title).toBe('Kalender | Dein Tribe'));
     expect(document.querySelector('meta[name="description"]')?.getAttribute('content')).toMatch(
-      /in Vorarlberg - Bregenz/
+      /^Regionaler Kalender für bewusste Veranstaltungen/
     );
   });
 

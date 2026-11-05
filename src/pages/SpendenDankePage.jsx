@@ -13,7 +13,7 @@ export default function SpendenDankePage() {
     <div className="page-container spenden-danke-page fade-enter">
       <SeoMeta
         title="Vielen Dank für deine Spende"
-        description="Vielen Dank für deine Spende an tribe Vorarlberg. Sie hilft uns, Webhosting, Technik und Flyer zu finanzieren."
+        description="Vielen Dank für deine Spende an Dein Tribe. Sie hilft uns, Webhosting, Technik und Flyer zu finanzieren."
         path="/spenden/danke"
         noindex
       />

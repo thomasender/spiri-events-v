@@ -4,16 +4,18 @@
 // DARK-LAUNCH RULE (isRegionSpecific): region-specific text only takes effect
 // when the visited region is NOT Vorarlberg, or when MORE THAN ONE region is
 // active. With Vorarlberg as the only active region every text is exactly
-// today's text (same bytes), so nothing changes for visitors or crawlers.
+// today's text (same bytes), so nothing changes for visitors or crawlers. Exception:
+// the default meta texts (site name, descriptions, directory title) are neutral
+// and name no region (Trello nolfWvHb).
 //
 // PATTERNS (region mode mirrors the Vorarlberg wording, region swapped in):
 //   header        "Dein <demonym> Kalender"          (Vorarlberger / Tiroler / steirischer ...)
 //   hero          "... weitere Veranstaltungen <inPhrase>."   (locationPhrase)
 //   feature       "Für <forPhrase> und Umkreis"
-//   page title    "Kalender | Dein Tribe <Region>"    (legacy: "Kalender | tribe Vorarlberg")
+//   page title    "Kalender | Dein Tribe <Region>"    (legacy: "Dein Tribe")
 //   directory     "Verzeichnis – Angebote <inPhrase>"
-// The brand in region mode is "Dein Tribe"; the legal entity "tribe Vorarlberg"
-// (LEGACY_SITE_NAME) is never replaced. Combined views (COMBINED_VIEW_TEXTS):
+// The brand (also the default site name) is "Dein Tribe"; the legal entity
+// "tribe Vorarlberg" (LEGACY_SITE_NAME) stays on Vorarlberg's own pages. Combined views (COMBINED_VIEW_TEXTS):
 // "österreichischer" / "deutscher" / "Schweizer", "Für Österreich und Umkreis";
 // "Alle Tribes" has no place or adjective ("Dein Kalender",
 // "in allen Regionen", title "Kalender | Dein Tribe").
@@ -23,14 +25,14 @@
 // mode. Fallbacks: missing config -> generated from `name`/`inPhrase`; no region
 // at all -> today's texts.
 // Explicit .js extensions: scripts/prerender.mjs imports this file in plain Node.
-import { BRAND_NAME, LEGACY_SITE_NAME } from '../config/brand.js';
+import { BRAND_NAME, DEFAULT_SITE_DESCRIPTION } from '../config/brand.js';
 import { getCombinedView } from './regionRouting.js';
 import { DEFAULT_REGION_ID } from './regions.js';
 
-export const LEGACY_DEFAULT_DESCRIPTION =
-  'Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg - Bregenz, Dornbirn, Feldkirch, Bludenz';
-export const LEGACY_CALENDAR_DESCRIPTION =
-  'Entdecke spirituelle Workshops, Meditationen, Yoga, Tanz, Singen und mehr in Vorarlberg - Bregenz, Dornbirn, Feldkirch, Bludenz, Umgebung';
+// Meta texts of the default (non-region-specific) pages are neutral: no region or
+// town names (Trello nolfWvHb).
+export const LEGACY_DEFAULT_DESCRIPTION = DEFAULT_SITE_DESCRIPTION;
+export const LEGACY_CALENDAR_DESCRIPTION = DEFAULT_SITE_DESCRIPTION;
 
 // Page title of the home/calendar page while Vorarlberg is the only active region.
 export const LEGACY_CALENDAR_TITLE = 'Dein Tribe';
@@ -96,7 +98,7 @@ export function combinedViewTexts(view) {
 function legacyTexts() {
   return {
     regionSpecific: false,
-    siteName: LEGACY_SITE_NAME,
+    siteName: BRAND_NAME,
     headerTitle: 'Dein Vorarlberger Kalender',
     locationPhrase: 'in Vorarlberg',
     nearbyText: 'Für Vorarlberg und Umkreis',
@@ -104,9 +106,9 @@ function legacyTexts() {
     calendarTitleExact: true,
     calendarDescription: LEGACY_CALENDAR_DESCRIPTION,
     defaultDescription: LEGACY_DEFAULT_DESCRIPTION,
-    directoryTitle: 'Verzeichnis – Angebote in Vorarlberg',
+    directoryTitle: 'Verzeichnis – Angebote in deiner Nähe',
     directoryDescription:
-      'Finde Menschen mit bewussten Angeboten in Vorarlberg: nach Kategorie, Region oder Name durchsuchbar.',
+      'Finde Menschen mit bewussten Angeboten in deiner Nähe: nach Kategorie, Region oder Name durchsuchbar.',
   };
 }
 
