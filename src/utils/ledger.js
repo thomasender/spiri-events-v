@@ -164,7 +164,10 @@ export function formatLedgerAmount(entry) {
 
 /** "Angelegt von Anna am 29.10.2026" – read-only provenance of an entry. */
 export function formatLedgerCreator(entry) {
-  const who = entry.source === 'mollie' ? 'Mollie (automatisch)' : entry.createdByName || 'Admin';
+  const who =
+    entry.source === 'mollie'
+      ? 'Mollie (automatisch)'
+      : entry.createdByEmail || entry.createdByName || 'Admin';
   const millis = entry.createdAt?.toMillis?.();
   if (!Number.isFinite(millis)) return `Angelegt von ${who}`;
   const date = new Intl.DateTimeFormat('de-AT', {

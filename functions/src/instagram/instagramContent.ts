@@ -408,7 +408,7 @@ export function toHashtag(text: unknown): string | null {
 // Extra descriptive tags for the categories in src/utils/categoryColors.js.
 // Kept deliberately small: the category itself is always tagged separately.
 export const CATEGORY_EXTRA_HASHTAGS: Record<string, string[]> = {
-  Yoga: ['#yoga', '#yogavorarlberg'],
+  Yoga: ['#yoga', '#yogapraxis'],
   Breathwork: ['#atemarbeit'],
   Meditation: ['#meditation'],
   Tanz: ['#tanz', '#ecstaticdance'],
@@ -420,7 +420,8 @@ export const CATEGORY_EXTRA_HASHTAGS: Record<string, string[]> = {
   Therapie: ['#ganzheitlich'],
 };
 
-export const BASE_HASHTAGS = ['#vorarlberg', '#deintribe', '#bewusstsein', '#veranstaltung'];
+// Neutral: no region tag (Trello nolfWvHb); the place tag comes from the event's Bezirk/Ort.
+export const BASE_HASHTAGS = ['#deintribe', '#bewusstsein', '#veranstaltung', '#bewussteevents'];
 export const MAX_HASHTAGS = 12;
 
 /**

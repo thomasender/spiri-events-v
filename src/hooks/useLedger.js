@@ -99,6 +99,7 @@ export function useLedger() {
           source: 'manual',
           createdBy: user.uid,
           createdByName: user.displayName || user.email || user.uid,
+          ...(user.email ? { createdByEmail: user.email } : {}),
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });

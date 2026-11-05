@@ -145,6 +145,11 @@ describe('formatLedgerCreator', () => {
       /^Angelegt von Anna am 29\.10\.26/
     );
   });
+  it('prefers the creator email when stored', () => {
+    expect(
+      formatLedgerCreator({ createdByName: 'Anna', createdByEmail: 'anna@x.at', createdAt })
+    ).toMatch(/^Angelegt von anna@x\.at am /);
+  });
   it('marks Mollie entries and falls back for old ones', () => {
     expect(formatLedgerCreator({ source: 'mollie', createdAt })).toMatch(/Mollie \(automatisch\)/);
     expect(formatLedgerCreator({ source: 'manual' })).toBe('Angelegt von Admin');

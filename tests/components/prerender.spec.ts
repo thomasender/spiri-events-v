@@ -522,7 +522,7 @@ describe('static index.html (production safety net)', () => {
     expect(html).toContain('<meta property="og:title" content="Dein Tribe" />');
     expect(html).toContain('<meta name="twitter:title" content="Dein Tribe" />');
     expect(html).toContain('<meta property="og:type" content="website" />');
-    expect(html).toContain('<meta property="og:site_name" content="tribe Vorarlberg" />');
+    expect(html).toContain('<meta property="og:site_name" content="Dein Tribe" />');
     expect(html).toContain('<meta property="og:url" content="https://www.thetribe.at/" />');
     expect(html).toContain(
       '<meta property="og:image" content="https://www.thetribe.at/hero.jpeg" />'
@@ -534,6 +534,37 @@ describe('static index.html (production safety net)', () => {
       '<meta name="twitter:image" content="https://www.thetribe.at/hero.jpeg" />'
     );
     expect(html).toContain('<link rel="canonical" href="https://www.thetribe.at/" />');
+  });
+
+  // Trello nolfWvHb: the default meta/SEO/LLM texts are neutral ("regionaler Kalender
+  // für bewusste Veranstaltungen") and name no region; Vorarlberg's own pages keep theirs.
+  it('keeps the default meta, manifest, llms.txt and prerendered home page free of region names', async () => {
+    const { readFileSync } = await import('fs');
+    const { resolve } = await import('path');
+    const { DEFAULT_SITE_DESCRIPTION } = await import('../../src/config/brand.js');
+    const { generateCalendarPageHtml } = await importPrerender();
+    const indexHtml = readFileSync(resolve(__dirname, '../../index.html'), 'utf8');
+    const manifest = readFileSync(resolve(__dirname, '../../public/site.webmanifest'), 'utf8');
+    const llms = readFileSync(resolve(__dirname, '../../public/llms.txt'), 'utf8');
+    const noPlace = {
+      id: 'np',
+      slug: 'np',
+      title: 'Ohne Ort',
+      date: '2099-01-01',
+      status: 'approved',
+    };
+    const home = generateCalendarPageHtml([noPlace], '/assets/a.js', '/assets/a.css');
+    for (const text of [indexHtml, manifest, llms, home]) {
+      expect(text).not.toMatch(/vorarlberg|bregenz|dornbirn|feldkirch|bludenz/i);
+    }
+    expect(DEFAULT_SITE_DESCRIPTION).toMatch(/^Regionaler Kalender für bewusste Veranstaltungen/);
+    expect(indexHtml).toContain(
+      `<meta property="og:description" content="${DEFAULT_SITE_DESCRIPTION}" />`
+    );
+    expect(JSON.parse(manifest).description).toBe(DEFAULT_SITE_DESCRIPTION);
+    expect(home).toContain(
+      `<meta property="og:description" content="${DEFAULT_SITE_DESCRIPTION}" />`
+    );
   });
 });
 
@@ -1299,7 +1330,7 @@ describe('prerender SEO structured data', () => {
     const graph = JSON.parse(json)['@graph'];
     expect(graph.map((n: { '@type': string }) => n['@type'])).toEqual(['WebSite', 'Organization']);
     expect(graph[1]).toMatchObject({
-      name: 'tribe Vorarlberg',
+      name: 'Dein Tribe',
       logo: expect.stringContaining('/icon-512.png'),
     });
   });
