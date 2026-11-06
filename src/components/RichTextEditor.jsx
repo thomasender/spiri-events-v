@@ -195,6 +195,14 @@ function RichTextEditor({
         inline: true,
         allowBase64: false,
         HTMLAttributes: { class: 'rte-embedded-image' },
+        // Drag a corner to scale; the ratio stays locked so nothing is squashed.
+        resize: {
+          enabled: true,
+          directions: ['top-left', 'top-right', 'bottom-left', 'bottom-right'],
+          minWidth: 60,
+          minHeight: 40,
+          alwaysPreserveAspectRatio: true,
+        },
       }),
       Placeholder.configure({ placeholder }),
     ],

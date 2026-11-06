@@ -218,6 +218,38 @@
   border-radius: var(--radius-sm);
 }
 
+/* Resize handles (Tiptap positions them on the image corners, we only paint
+   them). They show while the image is selected or hovered. */
+.rte-editor-surface .rte-content [data-resize-handle] {
+  width: var(--space-3);
+  height: var(--space-3);
+  margin: calc(var(--space-1) * -1);
+  background-color: var(--accent-primary);
+  border: 2px solid var(--bg-calendar);
+  border-radius: 50%;
+  opacity: 0;
+  z-index: 1;
+}
+
+.rte-editor-surface .rte-content [data-resize-wrapper]:hover [data-resize-handle],
+.rte-editor-surface .rte-content .ProseMirror-selectednode [data-resize-handle],
+.rte-editor-surface
+  .rte-content
+  [data-resize-container][data-resize-state='true']
+  [data-resize-handle] {
+  opacity: 1;
+}
+
+.rte-editor-surface .rte-content [data-resize-handle='top-left'],
+.rte-editor-surface .rte-content [data-resize-handle='bottom-right'] {
+  cursor: nwse-resize;
+}
+
+.rte-editor-surface .rte-content [data-resize-handle='top-right'],
+.rte-editor-surface .rte-content [data-resize-handle='bottom-left'] {
+  cursor: nesw-resize;
+}
+
 .rte-editor-surface .rte-content--error {
   background-color: rgba(191, 91, 78, 0.05);
 }

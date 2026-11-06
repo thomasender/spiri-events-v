@@ -126,6 +126,22 @@ describe('sanitizeHtml', () => {
     expect(out).toContain('alt="Foto"');
   });
 
+  it('keeps a pixel width and height on images (editor resize handles)', () => {
+    const src = 'https://firebasestorage.googleapis.com/v0/b/x/o/photo.jpg';
+    const out = sanitizeHtml(`<img src="${src}" width="320" height="180">`);
+    expect(out).toContain('width="320"');
+    expect(out).toContain('height="180"');
+  });
+
+  it('drops image sizes that are not plain pixel counts', () => {
+    const src = 'https://firebasestorage.googleapis.com/v0/b/x/o/photo.jpg';
+    for (const bad of ['-5', '0', '12px', '1e9', '999999', 'auto', '100%']) {
+      const out = sanitizeHtml(`<img src="${src}" width="${bad}" height="${bad}">`);
+      expect(out).toContain('<img');
+      expect(out).not.toMatch(/\s(width|height)=/);
+    }
+  });
+
   it('strips <img> tags whose src is not a Firebase Storage URL', () => {
     const out = sanitizeHtml('<img src="https://evil.example/foo.jpg">');
     expect(out).not.toContain('<img');
