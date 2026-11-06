@@ -188,7 +188,7 @@
   flex-direction: column;
   gap: var(--sidebar-gap);
   position: sticky;
-  top: 88px;
+  top: 40px;
   /* Starts level with the hero title: the sidebar shares the grid row with
      the hero, so skip the hero's top padding. */
   margin-top: var(--space-8);
