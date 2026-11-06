@@ -572,60 +572,60 @@ export default function CalendarPage() {
         path={canonicalPath}
       />
 
-      <section className="hero">
-        <div className="hero-content">
-          <h1 className="hero-title">
-            Finde Events.
-            <br />
-            Finde <em>Menschen.</em>
-          </h1>
-          <p className="hero-subtitle">
-            Dein Kalender für Yoga, Breathwork, Meditation,
-            <br />
-            Tanz, Singen, Soundhealing und viele
-            <br />
-            weitere Veranstaltungen {regionTexts.locationPhrase}.
-          </p>
-          <div
-            className="hero-features-slider"
-            role="group"
-            aria-roledescription="carousel"
-            aria-label="Was die Seite bietet"
-            data-testid="hero-features-slider"
-          >
-            {HERO_FEATURE_PAIRS.map((pair, pairIndex) => {
-              const isActive = pairIndex === activeHeroPair;
-              return (
-                <div
-                  key={pairIndex}
-                  className={`hero-feature-slide${isActive ? ' is-active' : ''}`}
-                  role="group"
-                  aria-roledescription="slide"
-                  aria-label={`${pairIndex + 1} von ${HERO_FEATURE_PAIRS.length}`}
-                  aria-hidden={!isActive}
-                  data-testid="hero-feature-slide"
-                  data-slide-index={pairIndex}
-                >
-                  {pair.map(({ icon: Icon, title, description, nearby }) => (
-                    <div key={title} className="hero-feature-item">
-                      <Icon size={20} aria-hidden="true" />
-                      <div>
-                        <span className="hero-feature-title">{title}</span>
-                        <span className="hero-feature-description">
-                          {nearby ? regionTexts.nearbyText : description}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
       <div className="page-layout">
         <div className="page-main">
+          <section className="hero">
+            <div className="hero-content">
+              <h1 className="hero-title">
+                Finde Events.
+                <br />
+                Finde <em>Menschen.</em>
+              </h1>
+              <p className="hero-subtitle">
+                Dein Kalender für Yoga, Breathwork, Meditation,
+                <br />
+                Tanz, Singen, Soundhealing und viele
+                <br />
+                weitere Veranstaltungen {regionTexts.locationPhrase}.
+              </p>
+              <div
+                className="hero-features-slider"
+                role="group"
+                aria-roledescription="carousel"
+                aria-label="Was die Seite bietet"
+                data-testid="hero-features-slider"
+              >
+                {HERO_FEATURE_PAIRS.map((pair, pairIndex) => {
+                  const isActive = pairIndex === activeHeroPair;
+                  return (
+                    <div
+                      key={pairIndex}
+                      className={`hero-feature-slide${isActive ? ' is-active' : ''}`}
+                      role="group"
+                      aria-roledescription="slide"
+                      aria-label={`${pairIndex + 1} von ${HERO_FEATURE_PAIRS.length}`}
+                      aria-hidden={!isActive}
+                      data-testid="hero-feature-slide"
+                      data-slide-index={pairIndex}
+                    >
+                      {pair.map(({ icon: Icon, title, description, nearby }) => (
+                        <div key={title} className="hero-feature-item">
+                          <Icon size={20} aria-hidden="true" />
+                          <div>
+                            <span className="hero-feature-title">{title}</span>
+                            <span className="hero-feature-description">
+                              {nearby ? regionTexts.nearbyText : description}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+
           <div className="create-event-cta" data-testid="create-event-cta">
             <div className="create-event-cta-text">
               <strong>Du willst ein Event teilen?</strong>

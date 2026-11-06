@@ -174,8 +174,7 @@
 }
 
 @media (max-width: 1300px) {
-  .page-layout,
-  .hero {
+  .page-layout {
     padding-left: var(--space-5);
   }
 }
@@ -190,6 +189,9 @@
   gap: var(--sidebar-gap);
   position: sticky;
   top: 88px;
+  /* Starts level with the hero title: the sidebar shares the grid row with
+     the hero, so skip the hero's top padding. */
+  margin-top: var(--space-8);
 }
 
 .filter-panel:focus,
@@ -601,6 +603,7 @@
   .hero {
     flex-direction: column;
     padding: var(--space-6) var(--space-5);
+    padding-left: 0;
     margin: var(--space-4) 0;
     max-width: 100%;
   }
