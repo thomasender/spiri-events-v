@@ -191,7 +191,7 @@
   top: 40px;
   /* Starts level with the hero title: the sidebar shares the grid row with
      the hero, so skip the hero's top padding. */
-  margin-top: var(--space-8);
+  margin-top: var(--space-10);
 }
 
 .filter-panel:focus,
