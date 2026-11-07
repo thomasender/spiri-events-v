@@ -14,13 +14,24 @@ const escapeHtml = (s) =>
 export function defaultAboutBodyHtml(placePhrase) {
   const phrase = escapeHtml(placePhrase);
   return (
-    `<p>Wir sind der Tribe ${phrase}, der die gefundenen Methoden praktiziert und sich ` +
-    'verbindet. Diese sind meist sehr ganzheitlich (Breathwork, Meditation, Yoga, Singen, ' +
-    'Tanzen, Aufstellungsarbeit, …) und haben alle ein gemeinsames Ziel:</p>' +
-    '<p><strong>Zurück zu uns Selbst zu kommen.</strong></p>' +
-    '<ul><li>Selbsterkenntnis</li><li>Friede</li><li>Mitgefühl</li>' +
-    `<li>Erwachen ${phrase} vergrößern und hier pflegen</li></ul>` +
-    '<p><strong>Verbinde dich jetzt mit uns!</strong></p>'
+    '<p>Veranstaltungen wie Breathwork, Meditation, Yoga, Singen, Tanzen, Aufstellungsarbeit ' +
+    'und vieles mehr eröffnen unterschiedliche Zugänge zu einem gemeinsamen Anliegen:</p>' +
+    '<p><strong>Zurück zu uns selbst und anderen kommen.</strong></p>' +
+    '<p>Für uns heißt das, die eigenen Bedürfnisse, Gefühle und Werte bewusster wahrzunehmen ' +
+    'und das eigene Leben danach auszurichten. So können wir auch für andere besser da sein.</p>' +
+    '<p>Dabei ist uns wichtig:</p>' +
+    '<ul><li><strong>Selbsterkenntnis:</strong> Wir möchten unsere Gedanken, Gefühle und ' +
+    'Verhaltensmuster besser verstehen und erkennen, was uns wirklich entspricht.</li>' +
+    '<li><strong>Frieden:</strong> Wir üben, uns selbst und anderen mit mehr Gelassenheit zu ' +
+    'begegnen und Konflikte respektvoll zu klären.</li>' +
+    '<li><strong>Mitgefühl:</strong> Wir nehmen Anteil an dem, was andere bewegt, und achten ' +
+    'dabei auch auf die eigenen Grenzen.</li>' +
+    `<li><strong>Bewusstsein ${phrase} stärken:</strong> Wir schaffen vor Ort Möglichkeiten, ` +
+    'innezuhalten, voneinander zu lernen und bewusster mit uns selbst und unserer Umgebung ' +
+    'umzugehen.</li></ul>' +
+    '<p><strong>Verbindung beginnt für uns mit einer Begegnung und wächst durch das, was wir ' +
+    'miteinander teilen und füreinander tun.</strong> Lass uns gemeinsam wachsen und das, was ' +
+    'uns bewegt, in die Welt bringen – denn <strong>die Welt braucht unser Strahlen.</strong></p>'
   );
 }
 

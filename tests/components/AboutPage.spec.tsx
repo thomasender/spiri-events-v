@@ -158,11 +158,11 @@ describe('AboutPage', () => {
     }
   });
 
-  it('highlights the core line "Zurück zu uns Selbst zu kommen"', () => {
+  it('highlights the core line "Zurück zu uns selbst und anderen kommen"', () => {
     renderAboutPage();
     const highlight = document.querySelector('.about-highlight');
     expect(highlight).not.toBeNull();
-    expect(highlight?.textContent).toContain('Zurück zu uns Selbst zu kommen');
+    expect(highlight?.textContent).toContain('Zurück zu uns selbst und anderen kommen');
   });
 
   it('offers the donation button next to "Zum Kalender" (o9aEDPbY)', () => {
@@ -413,7 +413,7 @@ describe('AboutPage — region mode', () => {
   it('a region without own text shows the default text and the default photo', () => {
     renderRegion({});
 
-    expect(screen.getByText('Selbsterkenntnis')).toBeInTheDocument();
+    expect(screen.getByText('Selbsterkenntnis:')).toBeInTheDocument();
     expect(document.querySelector('.about-hero-image')).toHaveAttribute('src', '/hero.jpeg');
   });
 
