@@ -141,8 +141,7 @@ describe('where the region can be chosen', () => {
 describe('region about text', () => {
   it('the default body names the place and matches the page wording', () => {
     const html = defaultAboutBodyHtml('in Tirol');
-    expect(html).toContain('Wir sind der Tribe in Tirol');
-    expect(html).toContain('Erwachen in Tirol vergrößern');
+    expect(html).toContain('Bewusstsein in Tirol stärken');
   });
 
   it('escapes the place phrase', () => {

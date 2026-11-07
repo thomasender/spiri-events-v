@@ -125,12 +125,36 @@ export default function AboutPage() {
         </div>
         <span className="eyebrow about-hero-eyebrow">Über {siteName}</span>
         <h1 className="about-hero-title">Dein Tribe ruft dich.</h1>
-        <p className="about-hero-lead">
-          Ja, du hast viel in der Welt erfahren und gelernt — vor allem über dich selbst. Nun bist
-          du hier, mit deinem inneren Wachstum. <strong>Willkommen zurück Zuhause.</strong> Jetzt
-          ist unsere Zeit, uns zu verbinden, zu integrieren, weiter zu wachsen und unser Licht in
-          die Welt zu bringen.
-        </p>
+        <div className="about-hero-lead">
+          <p>
+            Hinter diesem Ruf steht eine Vision: Menschen {placePhrase} zusammenzubringen, die Neues
+            entdecken, Erfahrungen teilen, sich gegenseitig unterstützen und gemeinsam wachsen
+            möchten.
+          </p>
+          <p>
+            Dafür schaffen wir mit “tribe” Raum. Bewusste Veranstaltungen sind ein Ausgangspunkt, um
+            einander kennenzulernen und Verbindungen entstehen zu lassen, die über das einzelne
+            Erlebnis hinausgehen.
+          </p>
+          <p>
+            <strong>
+              Gemeinschaft entsteht durch das, was Menschen daraus machen und wie sie miteinander
+              umgehen.
+            </strong>{' '}
+            Deshalb schaffen wir mit tribe einen Raum für Begegnung, Austausch und gegenseitige
+            Unterstützung, auch über Veranstaltungen hinaus.
+          </p>
+          <p>
+            So kann aus einem ersten Kennenlernen ein vertrautes Wiedersehen werden und aus
+            Begegnungen ein Gefühl von Zugehörigkeit.
+          </p>
+          <p>
+            Lass uns gemeinsam wachsen und das, was uns bewegt, in die Welt bringen – denn die Welt
+            braucht unser Strahlen.
+            <br />
+            <strong>Willkommen im tribe. Willkommen zurück zu Hause.</strong>
+          </p>
+        </div>
         <div className="about-hero-actions">
           <a
             href="https://www.thetribe.at"
@@ -170,19 +194,42 @@ export default function AboutPage() {
         ) : (
           <>
             <p>
-              Wir sind der Tribe {placePhrase}, der die gefundenen Methoden praktiziert und sich
-              verbindet. Diese sind meist sehr ganzheitlich (Breathwork, Meditation, Yoga, Singen,
-              Tanzen, Aufstellungsarbeit, …) und haben alle ein gemeinsames Ziel:
+              Veranstaltungen wie Breathwork, Meditation, Yoga, Singen, Tanzen, Aufstellungsarbeit
+              und vieles mehr eröffnen unterschiedliche Zugänge zu einem gemeinsamen Anliegen:
             </p>
-            <p className="about-highlight">Zurück zu uns Selbst zu kommen.</p>
+            <p className="about-highlight">Zurück zu uns selbst und anderen kommen.</p>
+            <p>
+              Für uns heißt das, die eigenen Bedürfnisse, Gefühle und Werte bewusster wahrzunehmen
+              und das eigene Leben danach auszurichten. So können wir auch für andere besser da
+              sein.
+            </p>
+            <p>Dabei ist uns wichtig:</p>
             <ul className="about-list">
-              <li>Selbsterkenntnis</li>
-              <li>Friede</li>
-              <li>Mitgefühl</li>
-              <li>Erwachen {placePhrase} vergrößern und hier pflegen</li>
+              <li>
+                <strong>Selbsterkenntnis:</strong> Wir möchten unsere Gedanken, Gefühle und
+                Verhaltensmuster besser verstehen und erkennen, was uns wirklich entspricht.
+              </li>
+              <li>
+                <strong>Frieden:</strong> Wir üben, uns selbst und anderen mit mehr Gelassenheit zu
+                begegnen und Konflikte respektvoll zu klären.
+              </li>
+              <li>
+                <strong>Mitgefühl:</strong> Wir nehmen Anteil an dem, was andere bewegt, und achten
+                dabei auch auf die eigenen Grenzen.
+              </li>
+              <li>
+                <strong>Bewusstsein {placePhrase} stärken:</strong> Wir schaffen vor Ort
+                Möglichkeiten, innezuhalten, voneinander zu lernen und bewusster mit uns selbst und
+                unserer Umgebung umzugehen.
+              </li>
             </ul>
             <p className="about-cta-line">
-              <strong>Verbinde dich jetzt mit uns!</strong>
+              <strong>
+                Verbindung beginnt für uns mit einer Begegnung und wächst durch das, was wir
+                miteinander teilen und füreinander tun.
+              </strong>{' '}
+              Lass uns gemeinsam wachsen und das, was uns bewegt, in die Welt bringen – denn{' '}
+              <strong>die Welt braucht unser Strahlen.</strong>
             </p>
           </>
         )}
@@ -191,10 +238,13 @@ export default function AboutPage() {
       <section className="about-section">
         <h2>Kalender</h2>
         <p>
-          Du fühlst, dass du dich mit Gleichgesinnten verbinden willst? Dann schau gerne ganz
-          unverbindlich in den Kalender hinein. Du kannst nach Bezirken filtern, um Veranstaltungen
-          in deiner Nähe zu finden. Fühle dich eingeladen, deine eigene Veranstaltung einzutragen —
-          das hilft uns, uns noch mehr zu verbinden.
+          Entdecke Veranstaltungen, die dich interessieren, und begegne Menschen, die deine
+          Interessen teilen. Filtere nach Regionen und finde Angebote in deiner Nähe.
+        </p>
+        <p>
+          Du veranstaltest selbst etwas? Trage deine Veranstaltung ein und mache sie für die
+          Community sichtbar. So schaffen wir gemeinsam mehr Möglichkeiten, uns zu begegnen und zu
+          verbinden.
         </p>
         <p>
           <a
@@ -211,41 +261,70 @@ export default function AboutPage() {
       <section className="about-section">
         <h2>Unsere Werte</h2>
         <p>
-          Zentral verankert ist in uns die Dankbarkeit und die Wertschätzung. Wir sind neugierige
-          Menschen und möchten noch mehr über uns und die Welt lernen. Uns ist ein respektvolles
-          Miteinander wichtig, und wir scheuen uns nicht, Dinge konkret anzusprechen. Zusammen
-          halten wir uns in der Verantwortung für noch mehr Selbsterkenntnis und
-          Selbstverwirklichung. Wir sind nicht dogmatisch und haben nicht den Anspruch, es besser
-          für dich zu wissen. Wir erkennen den Wert der Naturgesetze und sehen die Weisheit der
-          Natur, die in uns allen steckt.
+          <strong>Dankbarkeit und Wertschätzung</strong> uns selbst und anderen gegenüber. Dies
+          prägt unser Miteinander. Wir nehmen bewusst wahr, was Menschen einbringen und würdigen
+          ihren Beitrag zur Gemeinschaft.
+        </p>
+        <p>
+          <strong>Neugier und Offenheit</strong> begleiten uns. Wir möchten uns selbst und die Welt
+          besser verstehen, eigene Überzeugungen hinterfragen und offen und transparent miteinander
+          kommunizieren. Dabei lassen wir auch Raum für andere Perspektiven.
+        </p>
+        <p>
+          <strong>Respekt und Klarheit</strong> gehören für uns zusammen. Wir begegnen einander
+          wohlwollend und achten auf Klarheit und Integrität in unserer Sprache und unseren
+          Intentionen.
+        </p>
+        <p>
+          <strong>Eigenverantwortung und gegenseitige Unterstützung</strong> stärken unsere
+          Gemeinschaft. Jeder übernimmt Verantwortung für sein Handeln und seinen Weg. Dabei
+          ermutigen wir einander, uns selbst besser kennenzulernen und unsere Fähigkeiten zu
+          entfalten.
+        </p>
+        <p>
+          <strong>Selbstbestimmung</strong> ist uns wichtig. Wir geben Impulse und teilen
+          Erfahrungen, ohne vorzugeben, was für andere richtig ist. Unterschiedliche Perspektiven
+          dürfen nebeneinander bestehen.
+        </p>
+        <p>
+          <strong>Naturverbundenheit</strong> bedeutet für uns, uns als Teil der Natur zu verstehen,
+          ihre Zusammenhänge zu achten und verantwortungsvoll mit unseren Lebensgrundlagen
+          umzugehen.
         </p>
       </section>
 
       <section className="about-section about-section--community" id="wer-wir-sind">
         <span className="eyebrow about-section-eyebrow">Unsere Gemeinschaft</span>
-        <h2>Wer wir sind — und wer du sein könntest</h2>
+        <h2>Wer wir sind – und wie du Teil davon wirst</h2>
         <p>
-          {regionMode ? siteName : 'tribe Vorarlberg'} ist ein gemeinnütziger Zusammenschluss vieler
-          Menschen, die miteinander wachsen wollen — Yoginis, Atem-Reisende, Sänger:innen,
-          Tänzer:innen, Stille-Suchende, Neugierige, Alte und Junge.{' '}
-          {regionMode
-            ? 'Getragen wird die Plattform vom Verein tribe Vorarlberg, gegründet von '
-            : 'Gegründet wurde der Verein von '}
+          {regionMode ? siteName : 'tribe Vorarlberg'} bringt Menschen zusammen, die miteinander
+          wachsen möchten: Menschen, die Yoga praktizieren, bewusst atmen, singen, tanzen, Stille
+          suchen oder einfach neugierig sind. Unterschiedliche Erfahrungen und Generationen kommen
+          hier zusammen.
+        </p>
+        <p>
+          Getragen wird die Plattform vom Verein tribe Vorarlberg, gegründet von{' '}
           <Link to="/impressum" className="about-inline-link" data-testid="about-founders-link">
             drei Vorarlberger:innen
           </Link>
-          , die einfach keine Lust mehr auf die unterschiedlichsten WhatsApp- und Telegram-Gruppen
-          hatten.
+          . Die Idee entstand aus einem praktischen Wunsch: Veranstaltungen und Austausch an einem
+          gemeinsamen Ort zu bündeln, statt sie über zahlreiche WhatsApp- und Telegram-Gruppen
+          verteilt zu suchen. Zugleich wollten wir ein „Auffangbecken“ bieten für Menschen, die
+          spüren, dass sie ihren Funken verloren haben oder mehr im Leben wollen.
         </p>
 
         <div className="about-section-callout">
           <h3 className="about-section-callout-title">Du gehörst dazu.</h3>
           <p>
-            Du musst nichts können, nichts wissen und niemand sein. {siteName} lebt von jeder
-            einzelnen Person, die sich einbringt — sei es mit einem Workshop, einer
-            Mitfahrgelegenheit, einem Foto, einer Tasse Tee oder einfach mit einem offenen Ohr. Wenn
-            du dich angesprochen fühlst: {joinUs}. Wir freuen uns, dich kennenzulernen.
+            Du brauchst keine Vorerfahrung und musst keine bestimmte Lebensweise mitbringen. Komm
+            so, wie du bist.
           </p>
+          <p>
+            {siteName} lebt von den Menschen, die ihn mitgestalten: mit einem Workshop, einer
+            Mitfahrgelegenheit, einer Tasse Tee oder einem offenen Ohr. Jeder Beitrag kann
+            Verbindung schaffen.
+          </p>
+          <p>Wenn du dich angesprochen fühlst, {joinUs}. Wir freuen uns, dich kennenzulernen.</p>
         </div>
       </section>
 
