@@ -5,6 +5,7 @@ import { useChatAccess, useMessengerAccess } from '../hooks/useChatSettings';
 import ProfileForm from '../components/ProfileForm';
 import ChangeEmailForm from '../components/ChangeEmailForm';
 import NotificationPreferencesCard from '../components/NotificationPreferencesCard';
+import DirectMessageSetting from '../components/messenger/DirectMessageSetting';
 import InstagramConsentCard from '../components/InstagramConsentCard';
 import DeleteAccountSection from '../components/DeleteAccountSection';
 import { RegionPickButton } from '../components/RegionSwitcher';
@@ -78,6 +79,20 @@ export default function ProfilePage() {
           chatAvailable={chatAvailable}
           onSave={handlePreferencesSave}
         />
+
+        {messengerAvailable && (
+          <section className="profile-card" data-testid="profile-direct-messages">
+            <h2 className="profile-card-title">Privatnachrichten</h2>
+            <p className="profile-card-hint">
+              Wenn du das ausschaltest, können dir andere Mitglieder keine neuen Nachrichten
+              schicken. Bestehende Unterhaltungen bleiben sichtbar.
+            </p>
+            <DirectMessageSetting
+              className="notification-preference-label"
+              testId="profile-dm-allow"
+            />
+          </section>
+        )}
 
         <InstagramConsentCard
           checked={profile?.instagramConsentDefault === true}
