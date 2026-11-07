@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/react';
-import AnalyticsTab, { formatDuration, formatPercent } from '../../src/components/AnalyticsTab';
+import AnalyticsTab, {
+  formatDuration,
+  formatPercent,
+  niceMax,
+} from '../../src/components/AnalyticsTab';
 
 const regionCtx = vi.hoisted(() => ({
   value: {
@@ -130,6 +134,26 @@ describe('AnalyticsTab', () => {
     const chart = screen.getByTestId('analytics-daily');
     expect(within(chart).getByText('11.10.')).toBeInTheDocument();
     expect(within(chart).getByText('12.10.')).toBeInTheDocument();
+  });
+
+  it('shows the exact numbers of a day on hover and focus', () => {
+    render(<AnalyticsTab />);
+    const chart = screen.getByTestId('analytics-daily');
+    const col = within(chart).getByLabelText(/^11\.10\.:/);
+    expect(within(chart).queryByRole('tooltip')).toBeNull();
+    fireEvent.mouseEnter(col);
+    expect(within(chart).getByRole('tooltip')).toHaveTextContent(/Aufrufe/);
+    fireEvent.mouseLeave(chart.querySelector('.analytics-daily')!);
+    expect(within(chart).queryByRole('tooltip')).toBeNull();
+    fireEvent.focus(col);
+    expect(within(chart).getByRole('tooltip')).toBeInTheDocument();
+  });
+
+  it('rounds the axis maximum to a readable number', () => {
+    expect(niceMax(0)).toBe(1);
+    expect(niceMax(7)).toBe(10);
+    expect(niceMax(130)).toBe(200);
+    expect(niceMax(1234)).toBe(2000);
   });
 
   it('switches the range and asks the hook for 30 days', () => {

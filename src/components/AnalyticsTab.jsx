@@ -74,28 +74,68 @@ function BarList({ items, emptyText = 'Noch keine Daten.' }) {
   );
 }
 
+/** Round the axis maximum up to 1, 2, 5 x 10^n so the gridlines carry readable numbers. */
+export function niceMax(value) {
+  if (value <= 1) return 1;
+  const pow = 10 ** Math.floor(Math.log10(value));
+  const step = [1, 2, 5, 10].find((m) => value <= m * pow);
+  return step * pow;
+}
+
 function DailyChart({ daily }) {
-  const max = Math.max(...daily.map((d) => d.pageViews), 1);
+  const [active, setActive] = useState(null);
+  const top = niceMax(Math.max(...daily.map((d) => d.pageViews), 0));
+  const ticks = [top, top / 2, 0];
+  const showValues = daily.length <= 10;
   return (
-    <div
-      className="analytics-daily"
-      role="img"
-      aria-label="Seitenaufrufe pro Tag"
-      data-testid="analytics-daily"
-    >
-      {daily.map((d) => (
-        <div
-          key={d.date}
-          className="analytics-daily-col"
-          title={`${formatDay(d.date)}: ${formatNumber(d.pageViews)} Aufrufe, ${formatNumber(d.users)} Besucher`}
-        >
-          <span
-            className="analytics-daily-bar"
-            style={{ height: `${Math.max((d.pageViews / max) * 100, d.pageViews ? 3 : 0)}%` }}
-          />
-          <span className="analytics-daily-day">{formatDay(d.date)}</span>
-        </div>
-      ))}
+    <div className="analytics-daily-wrap" data-testid="analytics-daily">
+      <div className="analytics-daily-axis" aria-hidden="true">
+        {ticks.map((t) => (
+          <span key={t}>{formatNumber(t)}</span>
+        ))}
+      </div>
+      <div
+        className="analytics-daily"
+        role="group"
+        aria-label="Seitenaufrufe pro Tag"
+        onMouseLeave={() => setActive(null)}
+      >
+        {daily.map((d, i) => {
+          const summary = `${formatDay(d.date)}: ${formatNumber(d.pageViews)} Aufrufe, ${formatNumber(d.users)} Besucher`;
+          const isActive = active === i;
+          return (
+            <div
+              key={d.date}
+              className={`analytics-daily-col${isActive ? ' analytics-daily-col--active' : ''}`}
+              tabIndex={0}
+              aria-label={summary}
+              onMouseEnter={() => setActive(i)}
+              onFocus={() => setActive(i)}
+              onBlur={() => setActive(null)}
+              onClick={() => setActive(isActive ? null : i)}
+            >
+              {isActive && (
+                <span
+                  className={`analytics-daily-tip${i < 3 ? ' analytics-daily-tip--start' : ''}${i >= daily.length - 3 ? ' analytics-daily-tip--end' : ''}`}
+                  role="tooltip"
+                >
+                  <strong>{formatDay(d.date)}</strong>
+                  <span>{formatNumber(d.pageViews)} Aufrufe</span>
+                  <span>{formatNumber(d.users)} Besucher</span>
+                </span>
+              )}
+              {showValues && (
+                <span className="analytics-daily-value">{formatNumber(d.pageViews)}</span>
+              )}
+              <span
+                className="analytics-daily-bar"
+                style={{ height: `${(d.pageViews / top) * 100}%` }}
+              />
+              <span className="analytics-daily-day">{formatDay(d.date)}</span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

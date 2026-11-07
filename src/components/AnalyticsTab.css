@@ -116,14 +116,41 @@
   gap: var(--space-4);
 }
 
+.analytics-daily-wrap {
+  display: flex;
+  gap: var(--space-2);
+  padding-bottom: var(--space-5);
+}
+
+/* Y axis labels: top / middle / baseline, aligned with the gridlines of .analytics-daily. */
+.analytics-daily-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 160px;
+  font-size: var(--text-75);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  text-align: right;
+  line-height: 1;
+}
+
 .analytics-daily {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   align-items: flex-end;
   gap: 3px;
   height: 160px;
+  background:
+    linear-gradient(var(--border), var(--border)) top / 100% 1px no-repeat,
+    linear-gradient(var(--border), var(--border)) center / 100% 1px no-repeat,
+    linear-gradient(var(--border), var(--border)) bottom / 100% 1px no-repeat;
 }
 
 .analytics-daily-col {
+  position: relative;
   flex: 1 1 0;
   min-width: 0;
   height: 100%;
@@ -131,21 +158,75 @@
   flex-direction: column;
   justify-content: flex-end;
   align-items: center;
-  gap: var(--space-1);
+  cursor: default;
+  outline: none;
 }
 
 .analytics-daily-bar {
   display: block;
   width: 100%;
+  min-height: 2px;
   background: var(--accent-primary);
   border-radius: 3px 3px 0 0;
-  min-height: 0;
+  opacity: 0.85;
+  transition: opacity 0.12s;
 }
 
+.analytics-daily-col--active .analytics-daily-bar {
+  opacity: 1;
+}
+
+.analytics-daily-col:focus-visible .analytics-daily-bar {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.analytics-daily-value {
+  font-size: var(--text-75);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  margin-bottom: var(--space-0-5);
+}
+
+/* Day labels sit below the baseline so the bars start exactly on the 0 gridline. */
 .analytics-daily-day {
-  font-size: 0.65rem;
+  position: absolute;
+  top: 100%;
+  margin-top: var(--space-1);
+  font-size: var(--text-75);
   color: var(--text-secondary);
   white-space: nowrap;
+}
+
+.analytics-daily-tip {
+  position: absolute;
+  bottom: calc(100% + var(--space-1));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  padding: var(--space-2) var(--space-2-5);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  font-size: var(--text-85);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.analytics-daily-tip--start {
+  left: 0;
+  transform: none;
+}
+
+.analytics-daily-tip--end {
+  left: auto;
+  right: 0;
+  transform: none;
 }
 
 /* With 30 days only every 5th label fits; the bars keep their tooltips. */
