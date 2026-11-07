@@ -5,12 +5,13 @@ import SeoMeta from '../components/SeoMeta';
 import EmailVerificationModal from '../components/EmailVerificationModal';
 import Conversation from '../components/messenger/Conversation';
 import ThreadList from '../components/messenger/ThreadList';
+import DirectMessageSetting from '../components/messenger/DirectMessageSetting';
 import ErrorPage from './ErrorPage';
 import { useAuth } from '../hooks/useAuth';
 import { useMessengerAccess } from '../hooks/useChatSettings';
 import { useOnlineStatus } from '../hooks/useOnlineStatus';
 import { useMemberInfos } from '../hooks/useMemberInfo';
-import { useMyDmSetting, useThreads } from '../hooks/useMessenger';
+import { useThreads } from '../hooks/useMessenger';
 import { DM_RETENTION_DAYS, otherUid } from '../utils/messenger';
 import './MessengerPage.css';
 
@@ -20,33 +21,12 @@ function Inbox({ activeUid }) {
   const { threads, loading } = useThreads(true);
   const { statusOf } = useOnlineStatus();
   const infos = useMemberInfos(threads.map((t) => otherUid(t, me)));
-  const { allow, loaded, update } = useMyDmSetting();
-  const [saving, setSaving] = useState(false);
-
-  const toggle = async (e) => {
-    setSaving(true);
-    try {
-      await update(e.target.checked);
-    } finally {
-      setSaving(false);
-    }
-  };
-
   return (
     <aside className="messenger-inbox" aria-label="Postfach">
       <h1 className="messenger-title">
         <Mail size={24} aria-hidden="true" /> Postfach
       </h1>
-      <label className="messenger-setting">
-        <input
-          type="checkbox"
-          checked={allow}
-          disabled={!loaded || saving}
-          onChange={toggle}
-          data-testid="messenger-allow"
-        />
-        <span>Ich nehme Privatnachrichten an</span>
-      </label>
+      <DirectMessageSetting />
       <ThreadList
         threads={threads}
         infos={infos}

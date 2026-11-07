@@ -132,21 +132,14 @@ export default function AboutPage() {
             möchten.
           </p>
           <p>
-            Dafür schaffen wir mit “tribe” Raum. Bewusste Veranstaltungen sind ein Ausgangspunkt, um
-            einander kennenzulernen und Verbindungen entstehen zu lassen, die über das einzelne
-            Erlebnis hinausgehen.
+            Mit <strong>deinem tribe</strong> schaffen wir einen Raum für bewusste Veranstaltungen,
+            Begegnungen und Verbindungen, die über einzelne Erlebnisse hinausgehen.
           </p>
           <p>
             <strong>
               Gemeinschaft entsteht durch das, was Menschen daraus machen und wie sie miteinander
               umgehen.
-            </strong>{' '}
-            Deshalb schaffen wir mit tribe einen Raum für Begegnung, Austausch und gegenseitige
-            Unterstützung, auch über Veranstaltungen hinaus.
-          </p>
-          <p>
-            So kann aus einem ersten Kennenlernen ein vertrautes Wiedersehen werden und aus
-            Begegnungen ein Gefühl von Zugehörigkeit.
+            </strong>
           </p>
           <p>
             Lass uns gemeinsam wachsen und das, was uns bewegt, in die Welt bringen – denn die Welt

@@ -16,9 +16,9 @@
 }
 
 .about-hero-image-wrap {
+  /* Same width as the boxes below, so the left and right edges line up. */
   width: 100%;
-  max-width: 720px;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 2 / 1;
   border-radius: var(--radius-md);
   overflow: hidden;
   margin-bottom: var(--space-2);
