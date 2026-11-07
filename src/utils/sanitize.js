@@ -1,7 +1,7 @@
 import DOMPurify from 'dompurify';
 
 const ALLOWED_TAGS = ['p', 'br', 'strong', 'em', 'b', 'i', 'u', 'a', 'ul', 'ol', 'li', 'img'];
-const ALLOWED_ATTR = ['href', 'rel', 'target', 'src', 'alt', 'title'];
+const ALLOWED_ATTR = ['href', 'rel', 'target', 'src', 'alt', 'title', 'width', 'height'];
 
 const ALLOWED_URI_REGEXP =
   /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp|matrix):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i;
@@ -26,21 +26,31 @@ export function sanitizeHtml(html) {
   return stripUnsafeImages(cleaned);
 }
 
+// Image size set by the resize handles: a plain pixel count, nothing else.
+const IMG_SIZE_REGEXP = /^[1-9]\d{0,4}$/;
+
 function stripUnsafeImages(html) {
   if (typeof document === 'undefined') {
     return html.replace(/<img\b[^>]*>/gi, (match) => {
       const srcMatch = match.match(/src=(["'])([^"']+)\1/i);
       const src = srcMatch ? srcMatch[2] : '';
-      return ALLOWED_IMG_SRC_REGEXP.test(src) ? match : '';
+      if (!ALLOWED_IMG_SRC_REGEXP.test(src)) return '';
+      return match.replace(/\s(?:width|height)=(["'])([^"']*)\1/gi, (attr, _q, value) =>
+        IMG_SIZE_REGEXP.test(value) ? attr : ''
+      );
     });
   }
-  if (typeof document === 'undefined') return html;
   const tmp = document.createElement('div');
   tmp.innerHTML = html;
   const imgs = tmp.querySelectorAll('img');
   imgs.forEach((img) => {
     if (!ALLOWED_IMG_SRC_REGEXP.test(img.getAttribute('src') || '')) {
       img.remove();
+      return;
+    }
+    for (const name of ['width', 'height']) {
+      const value = img.getAttribute(name);
+      if (value !== null && !IMG_SIZE_REGEXP.test(value)) img.removeAttribute(name);
     }
   });
   return tmp.innerHTML;
