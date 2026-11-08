@@ -14,7 +14,6 @@ vi.mock('../../src/hooks/useRegion', () => ({
   }),
 }));
 vi.mock('../../src/components/PlacePicker', () => ({ default: () => <div /> }));
-vi.mock('../../src/components/ModeratorApplyCard', () => ({ default: () => null }));
 
 describe('RegionChooser intro', () => {
   it('shows the headline and the calendar line before any input', () => {

@@ -16,16 +16,24 @@ vi.mock('../../src/components/PlaceSearch', () => ({
 vi.mock('../../src/components/LocateRegionButton', () => ({ default: () => null }));
 
 describe('PlacePicker progressive', () => {
-  it('shows Umkreis only after a place, the apply button only after a radius', () => {
-    render(<PlacePicker progressive onApply={() => {}} afterApply={<p>Moderator:in werden</p>} />);
+  it('shows Umkreis and the apply button as soon as a place is chosen', () => {
+    render(<PlacePicker progressive onApply={() => {}} afterApply={<p>Danach</p>} />);
     expect(screen.queryByText('Umkreis')).toBeNull();
     expect(screen.queryByTestId('place-picker-apply')).toBeNull();
-    expect(screen.queryByText('Moderator:in werden')).toBeNull();
     fireEvent.click(screen.getByText('pick'));
     expect(screen.getByText('Umkreis')).toBeInTheDocument();
-    expect(screen.queryByTestId('place-picker-apply')).toBeNull();
-    fireEvent.click(screen.getByLabelText('10 km'));
     expect(screen.getByTestId('place-picker-apply')).toBeEnabled();
-    expect(screen.getByText('Moderator:in werden')).toBeInTheDocument();
+    expect(screen.getByText('Danach')).toBeInTheDocument();
+  });
+
+  it('applies 20 km when no radius was picked, else the picked one', () => {
+    const onApply = vi.fn();
+    render(<PlacePicker progressive onApply={onApply} />);
+    fireEvent.click(screen.getByText('pick'));
+    fireEvent.click(screen.getByTestId('place-picker-apply'));
+    expect(onApply).toHaveBeenLastCalledWith(expect.objectContaining({ radiusKm: 20 }));
+    fireEvent.click(screen.getByLabelText('10 km'));
+    fireEvent.click(screen.getByTestId('place-picker-apply'));
+    expect(onApply).toHaveBeenLastCalledWith(expect.objectContaining({ radiusKm: 10 }));
   });
 });

@@ -12,7 +12,6 @@ import {
 } from '../utils/regionRouting';
 import './RegionChooser.css';
 
-import ModeratorApplyCard from './ModeratorApplyCard';
 import PlacePicker from './PlacePicker';
 
 const FOCUSABLE =
@@ -183,12 +182,7 @@ export default function RegionChooser() {
           </p>
         </header>
         <div className="region-chooser-layout region-chooser-layout--map-only">
-          <PlacePicker
-            onApply={apply}
-            applyLabel="Events anzeigen"
-            progressive
-            afterApply={!onRegionsPage && <ModeratorApplyCard className="region-chooser-apply" />}
-          />
+          <PlacePicker onApply={apply} applyLabel="Events anzeigen" progressive />
         </div>
       </section>
     </div>,
