@@ -37,6 +37,24 @@
   margin-bottom: var(--space-5);
 }
 
+.region-chooser-intro {
+  margin-bottom: var(--space-5);
+}
+
+.region-chooser-intro-title {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-heading);
+  font-size: var(--text-200, 2rem);
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+
+.region-chooser-intro-text {
+  margin: 0;
+  font-size: var(--text-100);
+  color: var(--text-secondary);
+}
+
 .region-chooser-title {
   margin: 0 0 var(--space-1-5);
   font-family: var(--font-heading);
