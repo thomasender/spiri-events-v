@@ -2059,6 +2059,45 @@ service cloud.firestore {
       allow delete: if isAdminOrEmulatorAdmin();
     }
 
+    // FAQ entries of the public /faq page (platform-wide, no regionId).
+    // Published entries are public (the page queries `published == true`),
+    // drafts only for Super-Admins, who alone write (not Regions-Moderator:innen).
+    // `answerHtml` is rich text, sanitised on display (sanitizeHtml).
+    // Limits mirror src/utils/faqs.js.
+    match /faqs/{faqId} {
+      function isValidFaq(data) {
+        return data.question is string
+          && data.question.size() >= 1 && data.question.size() <= 200
+          && data.answerHtml is string
+          && data.answerHtml.size() >= 1 && data.answerHtml.size() <= 10000
+          && data.topic is string && data.topic.size() <= 60
+          && data.order is int && data.order >= 0
+          && data.published is bool;
+      }
+
+      allow read: if resource.data.published == true || isAdminOrEmulatorAdmin();
+
+      allow create: if isAdminOrEmulatorAdmin()
+                    && request.resource.data.keys().hasOnly([
+                      'question', 'answerHtml', 'topic', 'order', 'published',
+                      'createdAt', 'updatedAt', 'createdBy',
+                    ])
+                    && request.resource.data.createdBy == request.auth.uid
+                    && request.resource.data.createdAt is timestamp
+                    && request.resource.data.updatedAt is timestamp
+                    && isValidFaq(request.resource.data);
+
+      allow update: if isAdminOrEmulatorAdmin()
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                          .hasOnly([
+                            'question', 'answerHtml', 'topic', 'order', 'published', 'updatedAt',
+                          ])
+                    && request.resource.data.updatedAt is timestamp
+                    && isValidFaq(request.resource.data);
+
+      allow delete: if isAdminOrEmulatorAdmin();
+    }
+
     // Feedback collection: anyone can submit anonymous feedback (with optional
     // name, email, and screenshot). Only admins can read / update / delete.
     match /feedback/{feedbackId} {

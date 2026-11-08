@@ -71,7 +71,7 @@ describe('validateUsername', () => {
   });
 
   it('rejects reserved route names with RESERVED', () => {
-    for (const reserved of ['admin', 'profil', 'login', 'event', 'spenden', 'kalender']) {
+    for (const reserved of ['admin', 'profil', 'login', 'event', 'spenden', 'kalender', 'faq']) {
       expect(validateUsername(reserved)).toMatchObject({
         valid: false,
         error: 'RESERVED',
@@ -90,6 +90,7 @@ describe('isReservedUsername', () => {
   it('returns true for known reserved handles', () => {
     expect(isReservedUsername('admin')).toBe(true);
     expect(isReservedUsername('login')).toBe(true);
+    expect(isReservedUsername('FAQ')).toBe(true);
   });
 
   it('returns false for non-reserved handles', () => {

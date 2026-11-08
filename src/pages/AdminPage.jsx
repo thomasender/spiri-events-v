@@ -23,6 +23,7 @@ import {
   Flame,
   ChevronDown,
   Wallet,
+  HelpCircle,
 } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
 import EventList from '../components/EventList';
@@ -45,6 +46,7 @@ import RegionAboutTab from '../components/RegionAboutTab';
 import NoAccess from '../components/NoAccess';
 import MailgunTab from '../components/MailgunTab';
 import LedgerTab from '../components/LedgerTab';
+import FaqTab from '../components/FaqTab';
 import EmailVerificationBanner from '../components/EmailVerificationBanner';
 import EmailVerificationModal from '../components/EmailVerificationModal';
 import EventStatusMismatchBanner from '../components/EventStatusMismatchBanner';
@@ -90,6 +92,7 @@ const TAB_GROUPS = [
       { id: 'chat', label: 'Chat', Icon: Flame },
       { id: 'instagram', label: 'Instagram', Icon: Instagram },
       { id: 'mailgun', label: 'E-Mail-Versand', Icon: MailCheck },
+      { id: 'faq', label: 'FAQ', Icon: HelpCircle },
     ],
   },
   {
@@ -132,6 +135,7 @@ const PANELS = {
   analytics: AnalyticsTab,
   mailgun: MailgunTab,
   ledger: LedgerTab,
+  faq: FaqTab,
   moderation: ModerationTab,
   regions: RegionsTab,
   about: RegionAboutTab,
@@ -196,6 +200,7 @@ export default function AdminPage() {
       about: allowedTabs.has('about'),
       mailgun: isAdmin,
       ledger: isAdmin,
+      faq: isAdmin,
     };
   }, [draftCount, hasMessages, isAdmin, canReview, allowedTabs, hasFeedback, trashedCount]);
 

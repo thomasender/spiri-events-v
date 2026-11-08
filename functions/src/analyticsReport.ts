@@ -494,6 +494,7 @@ const INTERNAL_PAGES: Record<string, string> = {
   verzeichnis: 'Verzeichnis',
   favoriten: 'Favoriten',
   'ueber-uns': 'Über uns',
+  faq: 'FAQ',
   spenden: 'Spenden',
 };
 const OTHER_INTERNAL = new Set([

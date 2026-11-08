@@ -153,8 +153,9 @@ describe('Vorarlberg output is byte-identical (golden hashes of the pre-ticket g
     expect(sha(m.generateCalendarPageHtml(fx, '/assets/index-A.js', '/assets/index-A.css'))).toBe(
       '9c06c1f265b1388e74014a977876d064c9b2d1536238858cfd22fcf2a5c96a9d'
     );
+    // Sitemap re-pinned for the new static page /faq (platform-wide, not regional).
     expect(sha(m.generateSitemap(fx))).toBe(
-      '614309ed74d4e6182b9f17dbb3ca51c239b52977f9f9e0ae7519b4361f793b7a'
+      '1b23d118a68af948fe632550b11bf0323ab393bf7dac933fe0f2f0133bd0ffd2'
     );
     expect(
       sha(m.generateEventHtml(fx[0], undefined, '/assets/index-A.js', '/assets/index-A.css'))
