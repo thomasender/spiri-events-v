@@ -98,6 +98,8 @@ export const MIRROR_POLICY = {
   // --- dropped: secrets / personal records, never even read ---
   admin_users: drop('roles of real staff accounts; staging has no Auth users anyway'),
   admin_audit_log: drop('audit trail with admin uids/emails and free text'),
+  admin_broadcasts: drop('log of the admin Sammelnachrichten incl. their full text'),
+  admin_broadcast_locks: drop('server-only throttle markers of the Sammelnachricht'),
   calendarFeedTokens: drop('secret per-user calendar tokens'),
   instagram_private: drop('Instagram access token'),
   instagram_posts: drop(

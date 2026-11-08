@@ -95,7 +95,8 @@ export type ChatMailSkipReason =
   | 'recipient_inactive'
   | 'recipient_no_email'
   | 'recipient_unverified'
-  | 'empty_text';
+  | 'empty_text'
+  | 'broadcast';
 
 export type ChatMailDecision = { send: true } | { send: false; reason: ChatMailSkipReason };
 
@@ -116,6 +117,8 @@ function accountReason(
 export interface DmMailInput {
   /** app_settings/messenger mode. */
   mode: unknown;
+  /** Set on messages of an admin's Sammelnachricht (adminBroadcast.ts): they never mail. */
+  broadcastId?: unknown;
   recipientIsAdmin: boolean;
   authorUid: string;
   /** dmRecipientUid(); null = the author is not a participant. */
@@ -134,6 +137,7 @@ export interface DmMailInput {
 
 /** Whether a new private message may trigger a mail; the throttle is checked afterwards. */
 export function decideDmMail(input: DmMailInput): ChatMailDecision {
+  if (isBroadcastMessage({ broadcastId: input.broadcastId })) return skip('broadcast');
   if (input.mode !== 'all' && input.mode !== 'admins') return skip('flag_off');
   if (!input.recipientUid) return skip('invalid_thread');
   if (input.recipientUid === input.authorUid) return skip('self');
@@ -147,6 +151,55 @@ export function decideDmMail(input: DmMailInput): ChatMailDecision {
   if (account) return skip(account);
   // The Postfach needs a verified address, so an unverified one could not open the link.
   if (input.recipient?.emailVerified !== true) return skip('recipient_unverified');
+  return { send: true };
+}
+
+/**
+ * A message written by adminSendBroadcastDm. The Sammelnachricht deliberately
+ * sends no e-mail (product decision), so the mail trigger stops on it before
+ * reading anything else.
+ */
+export function isBroadcastMessage(data: { broadcastId?: unknown } | undefined | null): boolean {
+  return typeof data?.broadcastId === 'string' && data.broadcastId.length > 0;
+}
+
+export type BroadcastSkipReason =
+  'self' | 'recipient_inactive' | 'recipient_unverified' | 'blocked' | 'no_direct_messages';
+
+export type BroadcastRecipientDecision =
+  { send: true } | { send: false; reason: BroadcastSkipReason };
+
+export interface BroadcastRecipientInput {
+  senderUid: string;
+  recipientUid: string;
+  /** Firebase Auth account; null = deleted. */
+  recipient: MailAccount | null;
+  /** A block in either direction (dm_blocks). */
+  blocked: boolean;
+  /** dm_settings/{recipient}.allowDirectMessages (default on). */
+  recipientAllowsDirectMessages: boolean;
+}
+
+/**
+ * Whether one member gets the admin's Sammelnachricht in her Postfach. Mirrors
+ * what firestore.rules check when a member writes a private message (block of
+ * the recipient, "keine Privatnachrichten"), plus the messenger's own premise
+ * that both sides have a verified address, and a block by the sender. The
+ * messenger flag and the sender's own state are checked once for the whole
+ * broadcast (broadcastRefusal in adminBroadcastLogic.ts).
+ */
+export function decideBroadcastRecipient(
+  input: BroadcastRecipientInput
+): BroadcastRecipientDecision {
+  const no = (reason: BroadcastSkipReason): BroadcastRecipientDecision => ({
+    send: false,
+    reason,
+  });
+  if (input.recipientUid === input.senderUid) return no('self');
+  if (!input.recipient || input.recipient.disabled) return no('recipient_inactive');
+  if (input.recipient.emailVerified !== true) return no('recipient_unverified');
+  if (input.blocked) return no('blocked');
+  if (!input.recipientAllowsDirectMessages) return no('no_direct_messages');
   return { send: true };
 }
 

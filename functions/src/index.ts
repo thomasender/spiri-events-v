@@ -172,6 +172,7 @@ export { sendVerificationEmail } from './sendVerificationEmail';
 export { sendPasswordResetEmailFn } from './sendPasswordResetEmail';
 export { checkEmailAvailability } from './checkEmailAvailability';
 export { adminListMembers, adminUpdateMember } from './adminMembers';
+export { adminSendBroadcastDm } from './adminBroadcast';
 export { submitModeratorApplication } from './moderatorApplication';
 export { adminSetRegionModerator, adminListRegionModerators } from './adminModerators';
 export {

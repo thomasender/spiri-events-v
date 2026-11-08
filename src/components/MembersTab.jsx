@@ -12,6 +12,7 @@ import {
   Trash2,
   X,
   CalendarDays,
+  MessageCircle,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAdminMembers } from '../hooks/useAdminMembers';
@@ -23,14 +24,19 @@ import { BEZIRKE, ONLINE_LOCATION } from '../utils/regions';
 import { useRegionChoices } from '../hooks/useRegionChoices';
 import { directoryDistrictGroups } from '../utils/regionChoices';
 import { useMemberEvents } from '../hooks/useMemberEvents';
+import { useMessengerAccess } from '../hooks/useChatSettings';
 import {
   filterMembers,
   sortMembers,
   memberProfilePath,
   downloadCsv,
   printMembers,
+  broadcastRecipients,
+  BROADCAST_MAX_RECIPIENTS,
 } from '../utils/members';
 import ConfirmDialog from './ConfirmDialog';
+import DirectMessageLink from './messenger/DirectMessageLink';
+import MemberBroadcastDialog from './MemberBroadcastDialog';
 import StatusBadge from './StatusBadge';
 import './MembersTab.css';
 
@@ -287,7 +293,8 @@ function MemberEventsDialog({ member, onClose }) {
 // Admin tab: member management. Search, filter by Bezirk / Kategorie, edit
 // public profile fields, group members into lists and export CSV / PDF.
 export default function MembersTab() {
-  const { role, staffRegionIds } = useAuth();
+  const { user, role, staffRegionIds } = useAuth();
+  const { available: messengerOpen } = useMessengerAccess();
   const access = getStaffAccess(role, staffRegionIds);
   const isAdmin = access.isSuperAdmin;
   // Moderator:innen get the list of their regions from the same callable
@@ -318,6 +325,7 @@ export default function MembersTab() {
   const [viewingEvents, setViewingEvents] = useState(null);
   const [deletingList, setDeletingList] = useState(false);
   const [actionError, setActionError] = useState(null);
+  const [broadcasting, setBroadcasting] = useState(null);
 
   const activeList = lists.find((l) => l.id === activeListId) || null;
 
@@ -426,6 +434,16 @@ export default function MembersTab() {
       );
 
   const exportTitle = activeList ? `Mitglieder – ${activeList.name}` : 'Mitglieder';
+
+  // Sammelnachricht (Super-Admins only): ticked members win over the chosen list.
+  const broadcast = broadcastRecipients(selected, activeList);
+  const broadcastTooMany = broadcast.uids.length > BROADCAST_MAX_RECIPIENTS;
+  const broadcastTitle =
+    broadcast.source === null
+      ? 'Erst Mitglieder ankreuzen oder eine Liste wählen'
+      : broadcastTooMany
+        ? `Höchstens ${BROADCAST_MAX_RECIPIENTS} Mitglieder pro Nachricht`
+        : undefined;
 
   return (
     <div className="members-tab" data-testid="members-tab">
@@ -569,6 +587,28 @@ export default function MembersTab() {
               ))}
             </select>
           )}
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() =>
+              setBroadcasting({
+                uids: broadcast.uids,
+                sourceLabel:
+                  broadcast.source === 'list'
+                    ? `Alle Mitglieder der Liste „${activeList.name}“.`
+                    : 'Die angekreuzten Mitglieder.',
+              })
+            }
+            disabled={broadcast.uids.length === 0 || broadcastTooMany}
+            title={broadcastTitle}
+            data-testid="members-broadcast"
+          >
+            <MessageCircle size={16} aria-hidden="true" />
+            <span>
+              Nachricht senden
+              {broadcast.uids.length > 0 ? ` (${broadcast.uids.length})` : ''}
+            </span>
+          </button>
           <span className="members-toolbar-spacer" />
           <button
             type="button"
@@ -722,6 +762,13 @@ export default function MembersTab() {
                         <td>{m.instagramConsent ? 'Ja' : 'Nein'}</td>
                         <td>{m.instagramHandle || '–'}</td>
                         <td className="members-actions">
+                          {messengerOpen && user && user.uid !== m.uid && (
+                            <DirectMessageLink
+                              uid={m.uid}
+                              name={m.displayName || m.username || 'Mitglied'}
+                              variant="card"
+                            />
+                          )}
                           <button
                             type="button"
                             className="btn btn-secondary"
@@ -773,6 +820,14 @@ export default function MembersTab() {
             await updateMember(editing.uid, changes);
             setEditing(null);
           }}
+        />
+      )}
+
+      {broadcasting && (
+        <MemberBroadcastDialog
+          recipientUids={broadcasting.uids}
+          sourceLabel={broadcasting.sourceLabel}
+          onClose={() => setBroadcasting(null)}
         />
       )}
 
