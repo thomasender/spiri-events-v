@@ -73,7 +73,10 @@ Layout (both views): own messages on the right without avatar (`chat-message--ow
 ## Presence ("who sits at the fire")
 
 The open chat page writes `presence/{uid}` every 60 s while the tab is visible and deletes it on
-leaving (`useChatHeartbeat`). Everyone with chat access listens to the collection
+leaving (`useChatHeartbeat`): navigating away, `pagehide`, and as soon as the tab is hidden (other tab
+or app, locked phone; on mobile closing a tab often fires no `pagehide`). Logout deletes it (and the
+online-dot heartbeat) _before_ signing out (`dropHeartbeats` in `useAuth`), since the rules refuse the
+delete afterwards. Everyone with chat access listens to the collection
 (`useChatPresence`, chat page only) and counts docs with
 `lastSeen` < 2 minutes. Rules allow one write per 20 s per person. Cost scales with
 chatters x listeners (each heartbeat is one read per listening client); fine for a community this
