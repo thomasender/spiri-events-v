@@ -30,7 +30,8 @@ which must be a **Betrachter** of the GA property (Verwalten → Zugriffsverwalt
 Property). Without that the tab shows "Kein Zugriff auf Google Analytics". Standard GA
 reports lag 24–48 h, so fresh data shows up in the tab a day late (use the GA realtime
 view or `npm run analytics:realtime` for live checks). Results are cached 10 minutes per
-range in the function instance.
+range in the function instance; the tab's "Aktualisieren" button sends `refresh: true`, which
+skips that cache. The hook only shows the answer to its latest request.
 
 The "Top 10 Events (letzte 14 Tage)" block (`buildEventRequests` / `buildTopEvents`) always
 covers 14 days, uses two `batchRunReports` calls (6 reports) filtered to `pagePath` starting

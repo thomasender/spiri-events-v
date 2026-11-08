@@ -196,6 +196,24 @@ export function isPasswordProviderUser(user) {
   return user.providerData.some((p) => p?.providerId === 'password');
 }
 
+// Removes the "who sits at the fire" and online-dot heartbeats before logging
+// out: once signed out the rules refuse the delete, and the person would stay
+// listed until the heartbeat goes stale. Capped so an offline logout (writes
+// wait for the server) never hangs.
+export async function dropHeartbeats(uid, waitMs = 2000) {
+  if (!uid) return;
+  const deletes = Promise.allSettled([
+    deleteDoc(doc(db, 'chat_rooms', 'lagerfeuer', 'presence', uid)),
+    deleteDoc(doc(db, 'presence', uid)),
+  ]);
+  let timer;
+  const cap = new Promise((resolve) => {
+    timer = setTimeout(resolve, waitMs);
+  });
+  await Promise.race([deletes, cap]);
+  clearTimeout(timer);
+}
+
 export function useAuth() {
   const [user, setUser] = useState(() => auth.currentUser);
   const [loading, setLoading] = useState(true);
@@ -324,7 +342,10 @@ export function useAuth() {
     return credential;
   };
 
-  const logout = () => signOut(auth);
+  const logout = async () => {
+    await dropHeartbeats(auth.currentUser?.uid);
+    return signOut(auth);
+  };
 
   const resetPassword = async (email) => {
     const bucket = rateLimitBucket('passwordReset', email);

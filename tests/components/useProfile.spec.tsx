@@ -740,9 +740,17 @@ describe('useProfile.save — allowMentions', () => {
     expect(publicPayload.mentionName).toMatchObject({ __deleteField: true });
   });
 
-  it('never writes a search name for somebody who did not allow mentions', async () => {
-    const publicPayload = await saveWith(base, { displayName: 'Zoë Neu' });
+  it('never writes a search name for somebody who switched mentions off', async () => {
+    const publicPayload = await saveWith(
+      { ...base, allowMentions: false },
+      { displayName: 'Zoë Neu' }
+    );
     expect(publicPayload).not.toHaveProperty('mentionName');
+  });
+
+  it('treats a profile without the field as allowing mentions', async () => {
+    const publicPayload = await saveWith(base, { displayName: 'Zoë Neu' });
+    expect(publicPayload.mentionName).toBe('zoe neu');
   });
 });
 

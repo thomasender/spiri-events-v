@@ -12,7 +12,6 @@ import {
 } from '../utils/regionRouting';
 import './RegionChooser.css';
 
-import ModeratorApplyCard from './ModeratorApplyCard';
 import PlacePicker from './PlacePicker';
 
 const FOCUSABLE =
@@ -160,6 +159,20 @@ export default function RegionChooser() {
               <X size={18} aria-hidden="true" /> Schließen
             </button>
           )}
+          <div className="region-chooser-intro" data-testid="region-chooser-intro">
+            <p className="region-chooser-intro-title">
+              Finde Events.
+              <br />
+              Finde <em>Menschen.</em>
+            </p>
+            <p className="region-chooser-intro-text">
+              Dein Kalender für Yoga, Breathwork, Meditation,
+              <br />
+              Tanz, Singen, Soundhealing und viele
+              <br />
+              weitere Veranstaltungen.
+            </p>
+          </div>
           <h2 id="region-chooser-title" className="region-chooser-title">
             Wo suchst du?
           </h2>
@@ -169,12 +182,7 @@ export default function RegionChooser() {
           </p>
         </header>
         <div className="region-chooser-layout region-chooser-layout--map-only">
-          <PlacePicker
-            onApply={apply}
-            applyLabel="Events anzeigen"
-            progressive
-            afterApply={!onRegionsPage && <ModeratorApplyCard className="region-chooser-apply" />}
-          />
+          <PlacePicker onApply={apply} applyLabel="Events anzeigen" progressive />
         </div>
       </section>
     </div>,

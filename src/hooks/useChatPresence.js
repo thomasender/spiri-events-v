@@ -83,19 +83,23 @@ export function useChatHeartbeat(active) {
       if (document.visibilityState === 'hidden') return;
       setDoc(ref, { displayName: name, photoURL, lastSeen: serverTimestamp() }).catch(() => {});
     };
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') beat();
-    };
     const leave = () => {
       deleteDoc(ref).catch(() => {});
     };
+    // Switching tab or app, locking the phone or closing the tab on mobile
+    // (where `pagehide` often never fires) all hide the page first: leave
+    // right away instead of staying listed until the heartbeat goes stale.
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') beat();
+      else leave();
+    };
     beat();
     const timer = setInterval(beat, PRESENCE_BEAT_MS);
-    document.addEventListener('visibilitychange', onVisible);
+    document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('pagehide', leave);
     return () => {
       clearInterval(timer);
-      document.removeEventListener('visibilitychange', onVisible);
+      document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('pagehide', leave);
       leave();
     };

@@ -14,6 +14,8 @@ import LocateRegionButton from './LocateRegionButton';
 import PlaceSearch from './PlaceSearch';
 import './PlacePicker.css';
 
+const PROGRESSIVE_DEFAULT_RADIUS_KM = 20;
+
 /**
  * "Wo bist du?": the two steps of the location based region choice. 1. a place (typed, or
  * the shared device location snapped to the nearest place of the bundled list), 2. a radius.
@@ -21,7 +23,8 @@ import './PlacePicker.css';
  * `{ label, lat, lon, radiusKm, regionId, source }`. The region (and with it the calendar
  * title) comes from the place; the events shown are all those within the radius.
  * `progressive` (first-visit page): Umkreis shows once a place is chosen, the apply button
- * (and `afterApply`) once a radius is picked; no radius is preselected. Used by the first-visit page, `/regionen` and the pop-up of the header button.
+ * (and `afterApply`) as soon as a place is chosen; no radius is preselected, without one
+ * PROGRESSIVE_DEFAULT_RADIUS_KM (20) is used. Used by the first-visit page, `/regionen` and the pop-up of the header button.
  */
 export default function PlacePicker({
   onApply,
@@ -71,8 +74,9 @@ export default function PlacePicker({
   };
 
   const apply = () => {
-    const selection = normalizeSelection({ ...draft, radiusKm: radiusKm ?? DEFAULT_RADIUS_KM });
-    if (selection && (radiusKm || !progressive)) onApply(selection);
+    const fallback = progressive ? PROGRESSIVE_DEFAULT_RADIUS_KM : DEFAULT_RADIUS_KM;
+    const selection = normalizeSelection({ ...draft, radiusKm: radiusKm ?? fallback });
+    if (selection) onApply(selection);
   };
 
   const regionName = draft?.regionId ? allRegions.find((r) => r.id === draft.regionId)?.name : null;
@@ -125,7 +129,7 @@ export default function PlacePicker({
         </fieldset>
       )}
 
-      {(!progressive || radiusKm) && (
+      {(!progressive || draft) && (
         <>
           <button
             type="button"

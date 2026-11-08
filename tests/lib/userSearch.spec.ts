@@ -37,6 +37,7 @@ beforeEach(() => {
   mockOrderBy.mockImplementation((...args) => ({ _args: args }));
   mockLimit.mockImplementation((n) => ({ n }));
   mockQuery.mockImplementation((...args) => ({ _args: args }));
+  mockGetDocs.mockResolvedValue({ docs: [] });
 });
 
 describe('searchUsersByUsernamePrefix', () => {
@@ -132,5 +133,37 @@ describe('searchUsersByUsernamePrefix', () => {
       message: 'nope',
     });
     expect(consoleWarn).toHaveBeenCalled();
+  });
+  it('also searches the slug, for accounts whose public profile has no username', async () => {
+    // Registered recently, never saved the profile form: only the slug exists,
+    // and the profile form shows it to them as their Benutzername.
+    mockGetDocs.mockImplementation(async (q) => {
+      const field = q._args.find((a) => a?._args?.[1] === '>=')._args[0];
+      return field === 'slug'
+        ? {
+            docs: [
+              makeOwnerDoc('user-1', { username: 'anna.schmidt', slug: 'anna.schmidt' }),
+              makeOwnerDoc('user-3', { slug: 'anton-berger', displayName: 'Anton Berger' }),
+            ],
+          }
+        : { docs: [makeOwnerDoc('user-1', { username: 'anna.schmidt', slug: 'anna.schmidt' })] };
+    });
+
+    const results = await searchUsersByUsernamePrefix('an', { limit: 5 });
+
+    expect(mockWhere).toHaveBeenCalledWith('slug', '>=', 'an');
+    expect(mockWhere).toHaveBeenCalledWith('slug', '<=', 'an\uf8ff');
+    expect(results.map((r) => [r.uid, r.username])).toEqual([
+      ['user-1', 'anna.schmidt'],
+      ['user-3', 'anton-berger'],
+    ]);
+  });
+
+  it('keeps the limit across both lookups', async () => {
+    mockGetDocs.mockResolvedValueOnce({ docs: [makeOwnerDoc('a', { username: 'bert' })] });
+    mockGetDocs.mockResolvedValueOnce({ docs: [makeOwnerDoc('b', { slug: 'berta' })] });
+
+    const results = await searchUsersByUsernamePrefix('be', { limit: 1 });
+    expect(results.map((r) => r.uid)).toEqual(['a']);
   });
 });
