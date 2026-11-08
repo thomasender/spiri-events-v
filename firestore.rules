@@ -331,7 +331,7 @@ service cloud.firestore {
 
       // Moderation guard for owners who are not admins (a direct write
       // bypasses the UI): an owner may keep an ALREADY approved event
-      // approved (Instagram-only edits, series exceptions, image patches),
+      // approved (edits outside the reviewed fields, isOwnerApprovedPatch),
       // but never move an event INTO 'approved' from any other status, and
       // never write the fields only the review flow sets: approval/unpublish
       // bookkeeping, the public slug (changed on approval), ownership, and
@@ -353,29 +353,48 @@ service cloud.firestore {
           && (after.status != 'approved' || isOwnerApprovedPatch(before, after, changed));
       }
 
-      // While an owner's event stays approved, its reviewed content is frozen.
-      // Allowed: Instagram settings (EventForm Instagram-only save, Instagram
-      // photo upload), cover image / focal point / zoom patches, and series
-      // exceptions (utils/customSeriesUpdates, exceptionDates arrayUnion,
-      // recurrenceEndDate cut-off) and cancelling / un-cancelling the event or
-      // single dates (cancelled, cancelledDates) without a new review. `customDates` may only shrink, so no new
-      // dates are published without review. Any other change has to move the
-      // event to draft / pending / trashed first.
+      // While an owner's event stays approved, the fields a moderator has to
+      // see again stay frozen: title, description, cover photo (imageUrl /
+      // imageThumbUrl), the organizer's profile photo and the region (a move
+      // into another region goes to that region's moderation). Changing one
+      // of them has to move the event to draft / pending / trashed first.
+      // Everything else in this list is saved without a new review (Trello
+      // 6af0678b): date / time, place, price, link, contact, registration,
+      // category, the whole series (recurrence, end date, more or fewer
+      // customDates, exceptions), the organizer's name, the cover crop
+      // (focal point / zoom), Instagram settings incl. the own Instagram photo
+      // and cancelling single dates or the event. The list is kept in sync
+      // with OWNER_APPROVED_PATCH_FIELDS in src/utils/eventReviewFields.js
+      // (tests/components/eventReviewFields.spec.ts). The value checks of the
+      // update rule below apply to these writes as to any other edit.
       function isOwnerApprovedPatch(before, after, changed) {
-        return changed.hasOnly(['instagramConsent', 'instagramHandleOverride', 'instagramImage',
-                                'imageUrl', 'imageThumbUrl', 'imageFocalPoint', 'imageZoom',
-                                'customDates', 'exceptionDates', 'recurrenceEndDate',
+        return changed.hasOnly(['date', 'time', 'endTime', 'endDate',
+                                'place', 'city', 'bezirk', 'lat', 'lng', 'isOnline',
+                                'contribution', 'fee', 'feeMax', 'priceCurrency', 'feeNote',
+                                'firstSessionFree',
+                                'link', 'kontakt', 'registration', 'category', 'organizer',
+                                'recurrence', 'recurrenceEndDate', 'customDates', 'exceptionDates',
+                                'imageFocalPoint', 'imageZoom',
+                                'instagramConsent', 'instagramHandleOverride', 'instagramImage',
                                 'cancelled', 'cancelledDates',
                                 'updatedAt'])
-          && (!changed.hasAny(['customDates'])
-              || (after.customDates is list
-                  && before.get('customDates', []) is list
-                  && before.get('customDates', []).toSet().hasAll(after.customDates)))
-          && (!changed.hasAny(['recurrenceEndDate'])
-              || (after.recurrenceEndDate is string
-                  && after.recurrenceEndDate != ''
-                  && (before.get('recurrenceEndDate', '') in ['', null]
-                      || after.recurrenceEndDate <= before.recurrenceEndDate)));
+          && !changed.hasAny(['title', 'description', 'imageUrl', 'imageThumbUrl', 'regionId'])
+          && (!changed.hasAny(['customDates']) || after.customDates is list)
+          && (!changed.hasAny(['recurrenceEndDate']) || after.recurrenceEndDate is string)
+          && (!changed.hasAny(['organizer']) || isOwnerOrganizerNameChange(before, after));
+      }
+
+      // Only the organizer's name may change on an approved event: the
+      // profile photo (counts as a photo, needs a review) and the e-mail stay.
+      function isOwnerOrganizerNameChange(before, after) {
+        let was = before.get('organizer', {});
+        return after.organizer is map
+          && after.organizer.keys().hasOnly(['firstName', 'lastName', 'name', 'email', 'photoURL'])
+          && after.organizer.get('firstName', '') is string
+          && after.organizer.get('lastName', '') is string
+          && after.organizer.get('name', '') is string
+          && after.organizer.get('photoURL', null) == was.get('photoURL', null)
+          && after.organizer.get('email', null) == was.get('email', null);
       }
 
       // Owners and admins can move events to/from the trash (status='trashed'),

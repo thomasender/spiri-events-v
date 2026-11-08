@@ -65,6 +65,16 @@ vi.mock('../../src/lib/imageUpload', () => ({
   MAX_INPUT_SIZE_BYTES: 5 * 1024 * 1024,
 }));
 
+vi.mock('../../src/components/RichTextEditorLazy', () => ({
+  default: ({ value, onChange }: { value: string; onChange: (html: string) => void }) => (
+    <textarea
+      data-testid="description-editor"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    />
+  ),
+}));
+
 import EventForm from '../../src/components/EventForm';
 
 const COVER_URL = 'https://example.com/cover.jpg';
@@ -250,14 +260,94 @@ describe('EventForm — Instagram settings on existing events', () => {
       zoom: 2,
     });
   });
+});
 
-  it('still asks for re-approval when the owner changes other event details', async () => {
+// Trello 6af0678b: an approved event stays approved when the owner changes
+// anything but the title, the description or a photo.
+describe('EventForm — editing an approved event', () => {
+  async function savedPayload() {
+    await waitFor(() => expect(mockEvents.updateEvent).toHaveBeenCalledTimes(1));
+    return (mockEvents.updateEvent.mock.calls[0] as unknown as unknown[])[1] as Record<
+      string,
+      unknown
+    >;
+  }
+
+  it('a new date and link are saved right away: approved, only the changes, no dialog', async () => {
     renderForm(oldApprovedEvent);
 
-    fireEvent.change(screen.getByLabelText('Titel *'), { target: { value: 'Neuer Titel' } });
+    fireEvent.change(screen.getByLabelText('Datum *'), { target: { value: '2026-12-17' } });
+    fireEvent.change(screen.getByLabelText('Link (optional)'), {
+      target: { value: 'https://neu.example' },
+    });
+    expect(screen.getByTestId('submit-event-button').textContent).toContain('Änderungen speichern');
+    submitForm();
+
+    const payload = await savedPayload();
+    expect(screen.queryByText('Event erneut einreichen')).toBeNull();
+    expect(payload).toEqual({
+      date: '2026-12-17',
+      link: 'https://neu.example',
+      instagramConsent: false,
+      status: 'approved',
+    });
+  });
+
+  it('an unchanged cover and crop are not sent along with a free change', async () => {
+    renderForm({ ...oldApprovedEvent, imageZoom: 1.5 });
+
+    fireEvent.change(screen.getByLabelText('Datum *'), { target: { value: '2026-12-17' } });
+    submitForm();
+
+    const payload = await savedPayload();
+    expect(payload.status).toBe('approved');
+    expect(payload).not.toHaveProperty('imageUrl');
+    expect(payload).not.toHaveProperty('imageZoom');
+  });
+
+  it.each([
+    [
+      'title',
+      () =>
+        fireEvent.change(screen.getByLabelText('Titel *'), { target: { value: 'Neuer Titel' } }),
+    ],
+    [
+      'description',
+      () =>
+        fireEvent.change(screen.getByTestId('description-editor'), {
+          target: { value: '<p>ganz anders</p>' },
+        }),
+    ],
+    [
+      'cover photo removed',
+      () => fireEvent.click(screen.getByTestId('title-image-focal-picker-remove')),
+    ],
+  ])('%s change: asks for re-approval and saves as pending', async (_name, change) => {
+    renderForm(oldApprovedEvent);
+
+    change();
+    expect(screen.getByTestId('submit-event-button').textContent).toContain('Erneut einreichen');
     submitForm();
 
     expect(await screen.findByText('Event erneut einreichen')).toBeTruthy();
     expect(mockEvents.updateEvent).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText('Ja, fortfahren'));
+
+    const payload = await savedPayload();
+    expect(payload.status).toBe('pending');
+  });
+
+  it('admins keep editing approved events without a review', async () => {
+    mockAuth.user = { uid: 'admin-uid', email: 'admin@test.local' };
+    mockAuth.role = 'Admin';
+    renderForm(oldApprovedEvent);
+
+    fireEvent.change(screen.getByLabelText('Titel *'), { target: { value: 'Korrigiert' } });
+    submitForm();
+
+    const payload = await savedPayload();
+    expect(screen.queryByText('Event erneut einreichen')).toBeNull();
+    expect(payload.status).toBe('approved');
+    expect(payload.title).toBe('Korrigiert');
   });
 });
