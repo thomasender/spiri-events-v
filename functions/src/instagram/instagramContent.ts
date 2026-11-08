@@ -98,6 +98,15 @@ export interface InstagramEventInput {
   isOnline?: unknown;
   category?: unknown;
   description?: unknown;
+  /** Price model as saved by the event form: 'free' | 'donation' | 'fee'. Old events lack it. */
+  contribution?: unknown;
+  fee?: unknown;
+  feeMax?: unknown;
+  /** 'EUR' (default) or 'CHF'. */
+  priceCurrency?: unknown;
+  /** Short unit of the fee, e.g. "Einzelstunde" (max 12 characters). */
+  feeNote?: unknown;
+  firstSessionFree?: unknown;
   imageUrl?: unknown;
   slug?: unknown;
   instagramConsent?: unknown;
@@ -636,8 +645,53 @@ function buildCategoryLine(event: InstagramEventInput): string {
   return place ? `${category} in ${place}:` : `${category}:`;
 }
 
+// Mirrors CURRENCIES in src/utils/currency.js (functions/ cannot import from src/).
+const CURRENCY_SYMBOLS: Record<string, string> = { EUR: '€', CHF: 'CHF' };
+
+// Same as formatAmount in src/utils/currency.js: whole numbers plain, others with 2 decimals.
+function formatPriceAmount(amount: number): string {
+  return Number.isInteger(amount) ? amount.toString() : amount.toFixed(2);
+}
+
+function positiveNumber(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null;
+  const n = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
 /**
- * Feed caption: headline facts first, a short description, then the call to
+ * One caption line about the price, mirroring how the calendar shows it
+ * (formatPriceWithCurrency + " / feeNote"): "💶 Eintritt: kostenlos",
+ * "💶 Preis: freie Spende" or "💶 Preis: 12-15 € / Abend · erste Stunde gratis".
+ * '' when there is no usable price (never "Preis auf Anfrage"). Older events
+ * without `contribution` count as a fee when `fee` is set.
+ */
+export function buildPriceLine(event: InstagramEventInput): string {
+  if (event.contribution === 'free') return '💶 Eintritt: kostenlos';
+  if (event.contribution === 'donation') return '💶 Preis: freie Spende';
+  if (
+    event.contribution !== undefined &&
+    event.contribution !== null &&
+    event.contribution !== ''
+  ) {
+    if (event.contribution !== 'fee') return '';
+  }
+  const fee = positiveNumber(event.fee);
+  if (fee === null) return '';
+  const symbol = CURRENCY_SYMBOLS[asString(event.priceCurrency)] ?? CURRENCY_SYMBOLS.EUR;
+  const max = positiveNumber(event.feeMax);
+  const amount =
+    max !== null && max > fee
+      ? `${formatPriceAmount(fee)}-${formatPriceAmount(max)} ${symbol}`
+      : `${formatPriceAmount(fee)} ${symbol}`;
+  const note = asString(event.feeNote);
+  const parts = [note ? `${amount} / ${note}` : amount];
+  if (event.firstSessionFree === true) parts.push('erste Stunde gratis');
+  return `💶 Preis: ${parts.join(' · ')}`;
+}
+
+/**
+ * Feed caption: headline facts first, a short description, the price line, then the call to
  * action, the bio-link hint and the hashtags. Always <= CAPTION_MAX_LENGTH (Instagram's hard limit); the
  * description is what gets shortened when the budget runs out.
  */
@@ -670,10 +724,17 @@ export function buildCaption(
 
   const footer = buildCaptionFooter(buildHashtags(event).join(' '), model.siteDomain);
 
+  const priceLine = buildPriceLine(event);
   const description = stripHtml(event.description);
-  // Two blank-line separators sit between header, description and footer.
-  const budget = CAPTION_MAX_LENGTH - header.length - footer.length - 4;
+  // Blank-line separators (2 characters each) sit between the non-empty parts.
+  // The price line is never shortened, only the description.
+  const fixed = [header, priceLine, footer].filter(Boolean);
+  const budget =
+    CAPTION_MAX_LENGTH - fixed.reduce((sum, part) => sum + part.length, 0) - 2 * fixed.length;
   const body = description && budget > 20 ? truncateText(description, budget, true) : '';
 
-  return [header, body, footer].filter(Boolean).join('\n\n').slice(0, CAPTION_MAX_LENGTH);
+  return [header, body, priceLine, footer]
+    .filter(Boolean)
+    .join('\n\n')
+    .slice(0, CAPTION_MAX_LENGTH);
 }

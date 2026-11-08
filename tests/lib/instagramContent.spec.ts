@@ -7,6 +7,7 @@ import {
   FORMAT_DIMENSIONS,
   BASE_HASHTAGS,
   buildCaption,
+  buildPriceLine,
   buildHashtags,
   displayCategory,
   toHashtag,
@@ -491,5 +492,81 @@ describe('instagram domain follows the country of the region', () => {
     expect(caption).not.toContain('thetribe');
     expect(buildCaption({ title: 'Yoga', date: '2026-12-01' })).toContain(BIO_LINK_LINE);
     expect(BIO_LINK_LINE).toContain('www.deintribe.at');
+  });
+});
+
+describe('price line in the caption', () => {
+  const base = { title: 'Kakao', date: '2026-12-01', description: '<p>Ein schöner Abend.</p>' };
+
+  it('free, donation and fee variants', () => {
+    expect(buildPriceLine({ contribution: 'free' })).toBe('💶 Eintritt: kostenlos');
+    expect(buildPriceLine({ contribution: 'donation' })).toBe('💶 Preis: freie Spende');
+    expect(buildPriceLine({ contribution: 'fee', fee: 12 })).toBe('💶 Preis: 12 €');
+    expect(buildPriceLine({ contribution: 'fee', fee: '12.5' })).toBe('💶 Preis: 12.50 €');
+  });
+
+  it('range with unit, CHF and first session free', () => {
+    expect(buildPriceLine({ contribution: 'fee', fee: 12, feeMax: 15, feeNote: 'Abend' })).toBe(
+      '💶 Preis: 12-15 € / Abend'
+    );
+    expect(buildPriceLine({ contribution: 'fee', fee: 20, priceCurrency: 'CHF' })).toBe(
+      '💶 Preis: 20 CHF'
+    );
+    expect(buildPriceLine({ contribution: 'fee', fee: 10, firstSessionFree: true })).toBe(
+      '💶 Preis: 10 € · erste Stunde gratis'
+    );
+    // feeMax not above fee = single price, like the calendar
+    expect(buildPriceLine({ contribution: 'fee', fee: 10, feeMax: 10 })).toBe('💶 Preis: 10 €');
+  });
+
+  it('older events without contribution use fee; unusable values give no line', () => {
+    expect(buildPriceLine({ fee: 8 })).toBe('💶 Preis: 8 €');
+    expect(buildPriceLine({})).toBe('');
+    expect(buildPriceLine({ fee: 0 })).toBe('');
+    expect(buildPriceLine({ fee: '' })).toBe('');
+    expect(buildPriceLine({ contribution: 'fee', fee: 0, feeNote: 'Abend' })).toBe('');
+  });
+
+  it('sits after the description and before the call to action, one blank line apart', () => {
+    const caption = buildCaption({ ...base, contribution: 'fee', fee: 15 });
+    expect(caption).toContain('Ein schöner Abend.\n\n💶 Preis: 15 €\n\n' + CAPTION_CTA);
+  });
+
+  it('is also used for recurring events', () => {
+    const caption = buildCaption(
+      { ...base, recurrence: 'weekly', contribution: 'free' },
+      null,
+      new Date('2026-11-01T10:00:00Z')
+    );
+    expect(caption).toContain('Ein schöner Abend.\n\n💶 Eintritt: kostenlos\n\n' + CAPTION_CTA);
+  });
+
+  it('without a price there is no line and no double blank line', () => {
+    const caption = buildCaption(base);
+    expect(caption).not.toContain('💶');
+    expect(caption).not.toMatch(/\n\n\n/);
+    expect(caption).toContain('Ein schöner Abend.\n\n' + CAPTION_CTA);
+    const noDescription = buildCaption({
+      title: 'Kakao',
+      date: '2026-12-01',
+      contribution: 'free',
+    });
+    expect(noDescription).not.toMatch(/\n\n\n/);
+  });
+
+  it('a very long description is shortened, the price line stays', () => {
+    const priceLine = '💶 Preis: 12-15 € / Abend · erste Stunde gratis';
+    const caption = buildCaption({
+      ...base,
+      description: `<p>${'Wort '.repeat(1000)}</p>`,
+      contribution: 'fee',
+      fee: 12,
+      feeMax: 15,
+      feeNote: 'Abend',
+      firstSessionFree: true,
+    });
+    expect(caption.length).toBeLessThanOrEqual(CAPTION_MAX_LENGTH);
+    expect(caption).toContain(`…\n\n${priceLine}\n\n${CAPTION_CTA}`);
+    expect(caption).toContain(BIO_LINK_LINE);
   });
 });
