@@ -63,7 +63,7 @@ const EMPTY_PROFILE = {
   directoryRegions: [],
   directoryRegionIds: [DEFAULT_REGION_ID],
   showOnlineStatus: false,
-  allowMentions: false,
+  allowMentions: true,
   fireplace: null,
   fireplaceVisible: false,
   instagramConsentDefault: false,
@@ -116,7 +116,8 @@ function normalize(data) {
     directoryRegions: stringArray(data.directoryRegions),
     directoryRegionIds: resolveDirectoryRegionIds(data),
     showOnlineStatus: data.showOnlineStatus === true,
-    allowMentions: data.allowMentions === true,
+    // On by default: only an explicit false (the person switched it off) counts as off.
+    allowMentions: data.allowMentions !== false,
     // Feuerplatz: private place, public only as a name while fireplaceVisible is on.
     fireplace: normalizeFireplace(data.fireplace),
     fireplaceVisible: data.fireplaceVisible === true,
