@@ -160,6 +160,20 @@ export default function RegionChooser() {
               <X size={18} aria-hidden="true" /> Schließen
             </button>
           )}
+          <div className="region-chooser-intro" data-testid="region-chooser-intro">
+            <p className="region-chooser-intro-title">
+              Finde Events.
+              <br />
+              Finde <em>Menschen.</em>
+            </p>
+            <p className="region-chooser-intro-text">
+              Dein Kalender für Yoga, Breathwork, Meditation,
+              <br />
+              Tanz, Singen, Soundhealing und viele
+              <br />
+              weitere Veranstaltungen.
+            </p>
+          </div>
           <h2 id="region-chooser-title" className="region-chooser-title">
             Wo suchst du?
           </h2>
