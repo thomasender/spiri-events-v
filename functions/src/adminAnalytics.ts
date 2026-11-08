@@ -88,8 +88,10 @@ async function eventTitles(slugs: string[]): Promise<Record<string, string>> {
   return titles;
 }
 
-async function loadTopEvents(token: string): Promise<TopEventsReport> {
-  if (topEventsCache && Date.now() - topEventsCache.at < CACHE_MS) return topEventsCache.report;
+async function loadTopEvents(token: string, refresh: boolean): Promise<TopEventsReport> {
+  if (!refresh && topEventsCache && Date.now() - topEventsCache.at < CACHE_MS) {
+    return topEventsCache.report;
+  }
   const q = buildEventRequests();
   const [[top, sources, referrers], [actions, audience, cities]] = await Promise.all([
     batchReports(token, [q.top, q.sources, q.referrers]),
@@ -109,10 +111,14 @@ export const adminAnalyticsReport = onCall(
   async (request): Promise<AnalyticsResponse> => {
     logMissingAppCheck('adminAnalyticsReport', request);
     await assertAdmin(request.auth?.uid);
-    const data = request.data as { days?: unknown; region?: unknown; host?: unknown } | undefined;
+    const data = request.data as
+      { days?: unknown; region?: unknown; host?: unknown; refresh?: unknown } | undefined;
     const days = parseRange(data?.days);
     const region = parseRegion(data?.region);
     const host = parseHost(data?.host);
+    // "Aktualisieren" in the tab: skip the cache, otherwise the button would
+    // return the very same numbers for up to 10 minutes.
+    const refresh = data?.refresh === true;
     const cacheKey = `${days}:${region ?? ''}:${host ?? ''}`;
 
     try {
@@ -121,14 +127,14 @@ export const adminAnalyticsReport = onCall(
 
       // The event block is optional: if only it fails, the rest still shows.
       // It always covers the whole platform, whatever region filter is chosen.
-      const topEventsPromise = loadTopEvents(token).catch((err) => {
+      const topEventsPromise = loadTopEvents(token, refresh).catch((err) => {
         logger.error('adminAnalyticsReport top events failed', { err: (err as Error)?.message });
         return null;
       });
 
       const hit = cache.get(cacheKey);
       let report: AnalyticsReport;
-      if (hit && Date.now() - hit.at < CACHE_MS) {
+      if (!refresh && hit && Date.now() - hit.at < CACHE_MS) {
         report = hit.report;
       } else {
         const q = buildRequests(days, region, host);

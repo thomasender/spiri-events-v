@@ -374,7 +374,8 @@ export default function AnalyticsTab() {
       <p className="analytics-hint">
         Es werden nur Besucher:innen gezählt, die dem Statistik-Hinweis zugestimmt haben. Die echten
         Zahlen sind daher höher (typisch das Doppelte). Admins und angemeldete Veranstalter:innen
-        zählen nicht mit. Die Daten sind bis zu 10 Minuten alt.
+        zählen nicht mit. „Aktualisieren“ holt die neuesten Zahlen; Google Analytics braucht aber
+        einige Stunden, bis neue Besuche hier auftauchen.
       </p>
 
       {error && (
