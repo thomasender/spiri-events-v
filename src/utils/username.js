@@ -45,6 +45,7 @@ export const RESERVED_USERNAMES = new Set([
   'spenden-danke',
   'ueber-uns',
   'about',
+  'faq',
   'datenschutz',
   'impressum',
   'auth-action',

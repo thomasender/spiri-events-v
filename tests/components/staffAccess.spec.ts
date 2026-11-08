@@ -45,6 +45,7 @@ describe('allowedAdminTabs', () => {
   it('per role', () => {
     expect([...allowedAdminTabs(superAdmin)]).toContain('moderation');
     expect([...allowedAdminTabs(superAdmin)]).toContain('about');
+    expect([...allowedAdminTabs(superAdmin)]).toContain('faq');
     expect([...allowedAdminTabs(tirolMod)].sort()).toEqual(
       ['about', 'drafts', 'events', 'helpers', 'members', 'messages', 'review', 'trash'].sort()
     );

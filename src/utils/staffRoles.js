@@ -114,6 +114,7 @@ export const ADMIN_TABS = [
   'moderation',
   'regions',
   'about',
+  'faq',
 ];
 const MODERATOR_TABS = [
   'events',

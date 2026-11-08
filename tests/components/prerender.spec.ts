@@ -1319,6 +1319,7 @@ describe('prerender SEO structured data', () => {
     const entryC = xml.split('<url>').find((chunk) => chunk.includes('/event/c<'));
     expect(entryC).not.toContain('<lastmod>');
     expect(xml).toContain('/ueber-uns');
+    expect(xml).toContain('<loc>https://www.thetribe.at/faq</loc>');
     expect(xml).toContain('/verzeichnis');
     expect(toLastmod('not a date')).toBeNull();
   });
