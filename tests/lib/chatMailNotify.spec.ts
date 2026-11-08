@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   DM_MAIL_WINDOW_MS,
   chatMailBaseUrl,
+  decideBroadcastRecipient,
   decideDmMail,
   decideEventChatMail,
   directMessageUrl,
@@ -9,6 +10,7 @@ import {
   dmRecipientUid,
   eventChatUrl,
   isBanActive,
+  isBroadcastMessage,
   parseDmThreadId,
   shouldSendDmMail,
   shouldSendEventChatMail,
@@ -110,6 +112,21 @@ describe('decideDmMail', () => {
     expect(decideDmMail(dm())).toEqual({ send: true });
   });
 
+  it('never mails a message of an admin Sammelnachricht, before any other check', () => {
+    expect(decideDmMail(dm({ broadcastId: 'admin_req12345' }))).toEqual({
+      send: false,
+      reason: 'broadcast',
+    });
+    expect(decideDmMail(dm({ broadcastId: 'admin_req12345', mode: 'off' }))).toEqual({
+      send: false,
+      reason: 'broadcast',
+    });
+    expect(decideDmMail(dm({ broadcastId: '' }))).toEqual({ send: true });
+    expect(isBroadcastMessage({ broadcastId: 'x' })).toBe(true);
+    expect(isBroadcastMessage({ text: 'Hallo', authorUid: 'alice' })).toBe(false);
+    expect(isBroadcastMessage(undefined)).toBe(false);
+  });
+
   it.each([
     ['flag off', { mode: 'off' }, 'flag_off'],
     ['flag missing', { mode: undefined }, 'flag_off'],
@@ -199,5 +216,38 @@ describe('helpers', () => {
     expect(chatMailBaseUrl('tribe-vbg-staging')).toBe('https://tribe-vbg-staging.web.app');
     expect(chatMailBaseUrl('spirituelle-events-vorarlberg')).toBe('https://www.thetribe.at');
     expect(chatMailBaseUrl(undefined)).toBe('https://www.thetribe.at');
+  });
+});
+
+describe('decideBroadcastRecipient', () => {
+  const base = {
+    senderUid: 'admin',
+    recipientUid: 'bob',
+    recipient: { email: 'bob@example.com', disabled: false, emailVerified: true },
+    blocked: false,
+    recipientAllowsDirectMessages: true,
+  };
+
+  it('delivers to an active, verified member who takes private messages', () => {
+    expect(decideBroadcastRecipient(base)).toEqual({ send: true });
+  });
+
+  it.each([
+    ['the sender herself', { recipientUid: 'admin' }, 'self'],
+    ['a deleted account', { recipient: null }, 'recipient_inactive'],
+    [
+      'a disabled account',
+      { recipient: { ...base.recipient, disabled: true } },
+      'recipient_inactive',
+    ],
+    [
+      'an unverified address',
+      { recipient: { ...base.recipient, emailVerified: false } },
+      'recipient_unverified',
+    ],
+    ['a block in either direction', { blocked: true }, 'blocked'],
+    ['"keine Privatnachrichten"', { recipientAllowsDirectMessages: false }, 'no_direct_messages'],
+  ])('skips %s', (_label, over, reason) => {
+    expect(decideBroadcastRecipient({ ...base, ...over })).toEqual({ send: false, reason });
   });
 });

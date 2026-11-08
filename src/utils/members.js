@@ -147,3 +147,32 @@ export function printMembers(members, title) {
   w.print();
   return true;
 }
+
+// Who gets the Sammelnachricht from the members tab: the ticked members win;
+// without any tick, every member of the chosen list. KEEP IN SYNC with the
+// 500 cap of functions/src/adminBroadcastLogic.ts.
+export const BROADCAST_MAX_RECIPIENTS = 500;
+
+export function broadcastRecipients(selected, activeList) {
+  const ticked = Array.from(selected ?? []);
+  if (ticked.length > 0) return { uids: ticked, source: 'selected' };
+  const listed = Array.from(new Set(activeList?.memberUids ?? []));
+  if (listed.length > 0) return { uids: listed, source: 'list' };
+  return { uids: [], source: null };
+}
+
+// Plain-language labels for the skip reasons of adminSendBroadcastDm.
+export const BROADCAST_SKIP_LABELS = {
+  self: 'du selbst',
+  recipient_inactive: 'Konto gelöscht oder gesperrt',
+  recipient_unverified: 'E-Mail-Adresse noch nicht bestätigt',
+  blocked: 'Blockierung zwischen euch',
+  no_direct_messages: 'möchte keine Privatnachrichten',
+  write_failed: 'konnte nicht zugestellt werden',
+};
+
+export function broadcastSkipLines(skipReasons) {
+  return Object.entries(skipReasons ?? {})
+    .filter(([, n]) => n > 0)
+    .map(([reason, n]) => `${n} × ${BROADCAST_SKIP_LABELS[reason] ?? 'anderer Grund'}`);
+}

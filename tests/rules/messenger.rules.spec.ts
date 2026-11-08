@@ -575,6 +575,55 @@ describe('chat e-mail throttle markers (server only)', () => {
   });
 });
 
+describe('Sammelnachricht log (admin_broadcasts) and throttle (admin_broadcast_locks)', () => {
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'admin_users/modDoc'), {
+        role: 'RegionModerator',
+        regionIds: ['tirol'],
+      });
+      await setDoc(doc(db, 'admin_broadcasts/adminDoc_req12345'), {
+        senderUid: 'adminDoc',
+        text: 'Neu: das Postfach',
+        sentCount: 3,
+      });
+      await setDoc(doc(db, 'admin_broadcast_locks/adminDoc'), { lastSentAt: Timestamp.now() });
+    });
+  });
+
+  it('Super-Admins (token or role doc) read the log, nobody writes it', async () => {
+    const adminDoc = env.authenticatedContext('adminDoc', { email_verified: true });
+    for (const ctx of [admin(), adminDoc]) {
+      const db = ctx.firestore();
+      await assertSucceeds(getDoc(doc(db, 'admin_broadcasts/adminDoc_req12345')));
+      await assertSucceeds(getDocs(collection(db, 'admin_broadcasts')));
+      await assertFails(setDoc(doc(db, 'admin_broadcasts/x'), { text: 'x' }));
+      await assertFails(updateDoc(doc(db, 'admin_broadcasts/adminDoc_req12345'), { sentCount: 9 }));
+      await assertFails(deleteDoc(doc(db, 'admin_broadcasts/adminDoc_req12345')));
+    }
+  });
+
+  it('moderators, members and visitors cannot read it', async () => {
+    const mod = env.authenticatedContext('modDoc', { email_verified: true });
+    for (const ctx of [mod, verified('alice'), anon()]) {
+      const db = ctx.firestore();
+      await assertFails(getDoc(doc(db, 'admin_broadcasts/adminDoc_req12345')));
+      await assertFails(getDocs(collection(db, 'admin_broadcasts')));
+      await assertFails(setDoc(doc(db, 'admin_broadcasts/x'), { text: 'x' }));
+    }
+  });
+
+  it('the throttle doc is server-only, admins included', async () => {
+    for (const ctx of [admin(), verified('alice'), anon()]) {
+      const db = ctx.firestore();
+      await assertFails(getDoc(doc(db, 'admin_broadcast_locks/adminDoc')));
+      await assertFails(setDoc(doc(db, 'admin_broadcast_locks/adminDoc'), { lastSentAt: null }));
+      await assertFails(deleteDoc(doc(db, 'admin_broadcast_locks/adminDoc')));
+    }
+  });
+});
+
 describe('app_settings/onboarding', () => {
   it('is readable by everyone, writable only by admins with a valid mode', async () => {
     await assertSucceeds(getDoc(doc(anon().firestore(), 'app_settings/onboarding')));

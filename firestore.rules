@@ -573,6 +573,18 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Log of the Sammelnachrichten (functions/src/adminBroadcast.ts): sender,
+    // counts, skip reasons and the admin's own text. Written only by the
+    // callable; readable by Super-Admins only, never by moderators. The
+    // per-admin throttle doc is server-only.
+    match /admin_broadcasts/{broadcastId} {
+      allow read: if isAdminOrEmulatorAdmin();
+      allow write: if false;
+    }
+    match /admin_broadcast_locks/{uid} {
+      allow read, write: if false;
+    }
+
     // E-mail switches for new private messages / Event Chat messages
     // (functions/src/chatMailNotify.ts); missing means on.
     function isValidChatMailPrefs(data) {
