@@ -28,7 +28,8 @@ cannot beat and shows as red to admins.
 ## Client
 
 - `OnlineStatusBeacon` (mounted in `App`) runs `useOnlineBeacon`: beat now and every 60 s while the
-  tab is visible; deletes the doc on opt-out, logout, unmount and `pagehide`. A hidden tab stops
+  tab is visible; deletes the doc on opt-out, unmount and `pagehide`; logout deletes it before
+  signing out (`dropHeartbeats` in `useAuth`). A hidden tab stops
   beating and drops offline after 2 minutes.
 - `useOnlineStatus()` listens to the whole `presence` collection (only opted-in people write there)
   and returns `statusOf(uid, shares)` -> `'online' | 'offline' | null`. Always pass the person's
