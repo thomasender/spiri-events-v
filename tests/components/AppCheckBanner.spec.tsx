@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import AppCheckBanner from '../../src/components/AppCheckBanner';
 import { APP_CHECK_FAILED_EVENT } from '../../src/lib/appCheck';
@@ -8,6 +8,10 @@ const fail = () => act(() => void window.dispatchEvent(new CustomEvent(APP_CHECK
 describe('AppCheckBanner', () => {
   beforeEach(() => {
     sessionStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('is hidden until App Check reports a failure', () => {
@@ -41,11 +45,13 @@ describe('AppCheckBanner', () => {
   });
 
   it('still works when sessionStorage throws', () => {
-    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
-      throw new Error('blocked');
-    });
-    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
-      throw new Error('blocked');
+    vi.stubGlobal('sessionStorage', {
+      getItem: () => {
+        throw new Error('blocked');
+      },
+      setItem: () => {
+        throw new Error('blocked');
+      },
     });
     render(<AppCheckBanner />);
     expect(() => fail()).not.toThrow();

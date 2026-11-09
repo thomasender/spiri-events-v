@@ -63,6 +63,7 @@ describe('when the wizard is offered', () => {
 describe('onboarding dismissal', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
     sessionStorage.clear();
   });
 
@@ -79,11 +80,13 @@ describe('onboarding dismissal', () => {
   });
 
   it('survives blocked storage', () => {
-    vi.spyOn(window.sessionStorage, 'getItem').mockImplementation(() => {
-      throw new Error('blocked');
-    });
-    vi.spyOn(window.sessionStorage, 'setItem').mockImplementation(() => {
-      throw new Error('blocked');
+    vi.stubGlobal('sessionStorage', {
+      getItem: () => {
+        throw new Error('blocked');
+      },
+      setItem: () => {
+        throw new Error('blocked');
+      },
     });
     expect(() => setOnboardingDismissed('a')).not.toThrow();
     expect(isOnboardingDismissed('a')).toBe(false);
