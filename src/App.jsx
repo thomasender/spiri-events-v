@@ -250,14 +250,8 @@ function AppLayout() {
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path="/chat"
-                element={
-                  <ProtectedRoute>
-                    <ChatPage />
-                  </ProtectedRoute>
-                }
-              />
+              {/* Guests read the Lagerfeuer too (read-only, Trello 6af1955f); ChatPage gates it. */}
+              <Route path="/chat" element={<ChatPage />} />
               <Route
                 path="/postfach"
                 element={

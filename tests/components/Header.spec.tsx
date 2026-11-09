@@ -54,10 +54,22 @@ vi.mock('../../src/hooks/useUnreadMessageCount', () => ({
   useUnreadMessageCount: () => mockUseUnread,
 }));
 
-const mockChat = vi.hoisted(() => ({ available: false, online: 0, dm: false, unread: 0 }));
+const mockChat = vi.hoisted(() => ({
+  available: false,
+  // Mode 'all' for a guest: may open /chat (read-only) without being signed in.
+  guestReadable: false,
+  online: 0,
+  dm: false,
+  unread: 0,
+}));
 
 vi.mock('../../src/hooks/useChatSettings', () => ({
-  useChatAccess: () => ({ available: mockChat.available, mode: 'off', loading: false }),
+  useChatAccess: () => ({
+    available: mockChat.available,
+    readable: mockChat.available || mockChat.guestReadable,
+    mode: 'off',
+    loading: false,
+  }),
   useMessengerAccess: () => ({ available: mockChat.dm, mode: 'off', loading: false }),
 }));
 
@@ -90,6 +102,7 @@ beforeEach(() => {
   mockUseUnread.count = 0;
   mockUseUnread.loading = false;
   mockChat.available = false;
+  mockChat.guestReadable = false;
   mockChat.online = 0;
   mockChat.dm = false;
   mockChat.unread = 0;
@@ -1170,6 +1183,21 @@ describe('Header: Lagerfeuer chat link', () => {
     renderHeader();
     expect(screen.getAllByTestId('nav-chat').length).toBeGreaterThan(0);
     expect(screen.queryByTestId('chat-unread-badge')).toBeNull();
+  });
+
+  it('guests see the link too while the chat is open for everyone, desktop and phone menu', () => {
+    mockChat.guestReadable = true;
+    const { container } = renderHeader();
+    const links = screen.getAllByTestId('nav-chat');
+    expect(links.length).toBe(2);
+    links.forEach((link) => expect(link).toHaveAttribute('href', '/chat'));
+    expect(container.querySelector('.nav-group--primary [data-testid="nav-chat"]')).not.toBeNull();
+    expect(screen.queryByTestId('chat-unread-badge')).toBeNull();
+  });
+
+  it('guests see no link while the chat is off or only open for admins', () => {
+    renderHeader();
+    expect(screen.queryByTestId('nav-chat')).toBeNull();
   });
 });
 

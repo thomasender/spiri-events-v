@@ -1336,7 +1336,14 @@ service cloud.firestore {
     // region deletes a message. A scheduled function purges them after 10
     // days (functions/src/chat.ts).
     match /chat_rooms/{roomId}/messages/{messageId} {
-      allow read: if isChatRoom(roomId) && chatAccessible();
+      // Guests (no login or no verified e-mail) read along while the chat is open for
+      // everyone, but only messages marked `guestReadable` (Trello 6af1955f): the client sets
+      // it on every message since then, older ones stay members-only. Presence, members and
+      // reports stay closed to guests.
+      allow read: if isChatRoom(roomId)
+                  && (chatAccessible()
+                      || (chatMode() == 'all'
+                          && resource.data.get('guestReadable', false) == true));
 
       // The cooldown marker (members/{uid}) must be written in the same
       // batch with the same server time: that is what rate-limits senders.
@@ -1345,11 +1352,14 @@ service cloud.firestore {
                     && !isChatBanned(request.auth.uid)
                     && request.resource.data.keys().hasAll(['text', 'authorUid', 'authorName', 'createdAt'])
                     && request.resource.data.keys().hasOnly(
-                      ['text', 'authorUid', 'authorName', 'authorPhotoURL', 'mentions', 'createdAt']
+                      ['text', 'authorUid', 'authorName', 'authorPhotoURL', 'mentions',
+                       'guestReadable', 'createdAt']
                     )
                     && (!('mentions' in request.resource.data)
                         || (request.resource.data.mentions is map
                             && request.resource.data.mentions.size() <= 10))
+                    && (!('guestReadable' in request.resource.data)
+                        || request.resource.data.guestReadable == true)
                     && request.resource.data.authorUid == request.auth.uid
                     && request.resource.data.text is string
                     && request.resource.data.text.size() >= 1

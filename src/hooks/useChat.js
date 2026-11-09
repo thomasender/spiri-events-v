@@ -12,6 +12,7 @@ import {
   serverTimestamp,
   setDoc,
   updateDoc,
+  where,
   writeBatch,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -40,8 +41,10 @@ function isPermissionError(err) {
 
 // Live messages of the chat room `roomId` (`lagerfeuer` or a region id; null = none, no
 // listener) (newest `limit`, oldest first) plus send, delete and report. The rules are the
-// real gate; see firestore.rules.
-export function useChat(roomId = LAGERFEUER_ROOM_ID) {
+// real gate; see firestore.rules. `guestView` (visitors without login or without a verified
+// e-mail, read-only) only asks for messages marked `guestReadable` (Trello 6af1955f): what was
+// written before guests could read along stays members-only.
+export function useChat(roomId = LAGERFEUER_ROOM_ID, { guestView = false } = {}) {
   const { user } = useAuth();
   const { profile } = useProfile(user?.uid);
   const uid = user?.uid ?? null;
@@ -55,13 +58,14 @@ export function useChat(roomId = LAGERFEUER_ROOM_ID) {
   const messagesPath = useMemo(() => ['chat_rooms', roomId, 'messages'], [roomId]);
 
   useEffect(() => {
-    if (!uid || !roomId) {
+    if (!roomId || (!uid && !guestView)) {
       setMessages([]);
       setLoading(false);
       return undefined;
     }
     const q = query(
       collection(db, ...messagesPath),
+      ...(guestView ? [where('guestReadable', '==', true)] : []),
       orderBy('createdAt', 'desc'),
       limit(windowSize)
     );
@@ -96,7 +100,7 @@ export function useChat(roomId = LAGERFEUER_ROOM_ID) {
         setLoading(false);
       }
     );
-  }, [uid, roomId, messagesPath, windowSize]);
+  }, [uid, roomId, messagesPath, windowSize, guestView]);
 
   // Own mute/ban entry, so the input can explain why sending is blocked.
   useEffect(() => {
@@ -140,6 +144,8 @@ export function useChat(roomId = LAGERFEUER_ROOM_ID) {
           authorName,
           authorPhotoURL,
           ...(Object.keys(mentions).length > 0 ? { mentions } : {}),
+          // Readable by guests too (read-only Lagerfeuer); page text and chat rules say so.
+          guestReadable: true,
           createdAt: serverTimestamp(),
         });
         batch.set(doc(db, 'chat_rooms', roomId, 'members', user.uid), {
