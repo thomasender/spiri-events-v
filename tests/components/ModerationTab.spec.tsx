@@ -24,6 +24,7 @@ const state = vi.hoisted(() => ({
   inviteCalls: [] as unknown[],
   revokeCalls: [] as unknown[],
   inviteEmailSent: true,
+  inviteError: null as null | { code: string; message: string },
 }));
 
 vi.mock('../../src/lib/firebase', async () => {
@@ -40,7 +41,10 @@ vi.mock('firebase/functions', () => ({
     if (name === 'adminListMembers') return { data: { members: state.members } };
     if (name === 'adminListModeratorInvites') return { data: { invites: state.invites } };
     if (name === 'adminCreateModeratorInvite') {
-      const { email, regionIds } = data as { email: string; regionIds: string[] };
+      if (state.inviteError) throw state.inviteError;
+      const { uid, regionIds } = data as { uid?: string; regionIds: string[] };
+      // A picked member is invited by uid; the server takes the account's address.
+      const email = uid ? `${uid}@x.at` : (data as { email: string }).email;
       state.inviteCalls.push(data);
       const inviteId = String(state.inviteCalls.length).padStart(64, '0');
       state.invites = [
@@ -126,6 +130,7 @@ beforeEach(() => {
   state.inviteCalls = [];
   state.revokeCalls = [];
   state.inviteEmailSent = true;
+  state.inviteError = null;
   state.members = [
     member('anna'),
     member('boss', { displayName: 'Bossi', staffRole: 'Admin' }),
@@ -169,13 +174,14 @@ describe('ModerationTab', () => {
     expect(chips.map((c) => c.textContent)).toEqual(['Tirol', 'Steiermark']);
   });
 
-  it('adds a moderator: pick a member, choose regions, save', async () => {
+  it('adding a moderator sends an onboarding invitation; she is listed only after it', async () => {
     const dialog = await openAddDialog();
+    expect(dialog).toHaveTextContent('Erst wenn sie diese abgeschlossen und unterschrieben hat');
     fireEvent.change(within(dialog).getByRole('searchbox'), { target: { value: 'ann' } });
     fireEvent.click(await within(dialog).findByRole('button', { name: /anna/ }));
     expect(within(dialog).getByTestId('moderation-selected-person')).toHaveTextContent('anna');
 
-    const save = within(dialog).getByRole('button', { name: 'Speichern' });
+    const save = within(dialog).getByRole('button', { name: 'Einladung senden' });
     expect(save).toBeDisabled();
     // Inactive regions can be assigned too (moderation before the launch).
     expect(within(dialog).getAllByRole('checkbox')).toHaveLength(STATIC_REGIONS.length);
@@ -190,10 +196,67 @@ describe('ModerationTab', () => {
     fireEvent.click(within(dialog).getByRole('checkbox', { name: /Salzburg/ }));
     fireEvent.click(save);
 
+    // The dialog switches to its result view.
+    expect(await screen.findByTestId('moderation-add-result')).toHaveTextContent(
+      'anna hat eine Einladung per E-Mail bekommen'
+    );
+    // No role is given directly: the server invites the account, nothing else.
+    expect(state.inviteCalls).toEqual([{ uid: 'anna', regionIds: ['salzburg', 'tirol'] }]);
+    expect(state.setCalls).toEqual([]);
+    fireEvent.click(screen.getByRole('button', { name: 'Fertig' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-    expect(state.setCalls).toEqual([{ uid: 'anna', regionIds: ['salzburg', 'tirol'] }]);
-    expect(screen.getByRole('status')).toHaveTextContent('anna moderiert Salzburg, Tirol');
-    expect(await screen.findByTestId('moderation-row')).toHaveTextContent('anna');
+    expect(screen.queryByTestId('moderation-row')).not.toBeInTheDocument();
+    expect(screen.getByTestId('moderation-empty')).toBeInTheDocument();
+    const row = await screen.findByTestId('moderation-invite-row');
+    expect(row).toHaveTextContent('anna@x.at');
+    expect(row).toHaveTextContent('Wartet auf Annahme');
+  });
+
+  it('marks members with an open invitation and offers the link when the mail failed', async () => {
+    state.invites = [
+      {
+        inviteId: 'b'.repeat(64),
+        email: 'anna@x.at',
+        regionIds: ['tirol'],
+        createdAt: '2026-10-31T10:00:00.000Z',
+        expiresAt: '2026-11-14T10:00:00.000Z',
+        expired: false,
+      },
+    ];
+    state.inviteEmailSent = false;
+    render(<ModerationTab />);
+    await screen.findByTestId('moderation-invite-row');
+    fireEvent.click(screen.getByTestId('moderation-add'));
+    const dialog = screen.getByRole('dialog', { name: 'Moderator:in hinzufügen' });
+    fireEvent.change(within(dialog).getByRole('searchbox'), { target: { value: 'ann' } });
+    const pick = await within(dialog).findByRole('button', { name: /anna.*Einladung offen/ });
+    expect(pick).toBeEnabled();
+    fireEvent.click(pick);
+    fireEvent.click(within(dialog).getByRole('checkbox', { name: /Tirol/ }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Einladung senden' }));
+    expect(await screen.findByTestId('moderation-add-result')).toHaveTextContent(
+      'konnte nicht gesendet werden'
+    );
+    expect(screen.getByRole('button', { name: 'Link kopieren' })).toBeInTheDocument();
+  });
+
+  it.each([
+    [
+      { code: 'functions/failed-precondition', message: 'This account has no email address.' },
+      'keine E-Mail-Adresse',
+    ],
+    [
+      { code: 'functions/failed-precondition', message: 'Super-Admins cannot be changed here.' },
+      'Diese Person ist Super-Admin',
+    ],
+  ])('explains invitation error %o in plain German', async (err, text) => {
+    state.inviteError = err;
+    const dialog = await openAddDialog();
+    fireEvent.change(within(dialog).getByRole('searchbox'), { target: { value: 'ann' } });
+    fireEvent.click(await within(dialog).findByRole('button', { name: /anna/ }));
+    fireEvent.click(within(dialog).getByRole('checkbox', { name: /Tirol/ }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Einladung senden' }));
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent(text);
   });
 
   it('shows Super-Admins and yourself as such and does not let you pick them', async () => {
@@ -217,12 +280,26 @@ describe('ModerationTab', () => {
     ],
     [{ code: 'functions/invalid-argument', message: 'Unknown region.' }, 'gültige Regionen'],
     [{ code: 'functions/permission-denied', message: 'Admins only.' }, 'Nur Super-Admins'],
+    [
+      { code: 'functions/failed-precondition', message: 'New moderators need an invitation.' },
+      'zuerst eine Einladung per E-Mail',
+    ],
   ])('explains server error %o in plain German', async (err, text) => {
     state.setError = err;
-    const dialog = await openAddDialog();
-    fireEvent.change(within(dialog).getByRole('searchbox'), { target: { value: 'ann' } });
-    fireEvent.click(await within(dialog).findByRole('button', { name: /anna/ }));
-    fireEvent.click(within(dialog).getByRole('checkbox', { name: /Tirol/ }));
+    state.moderators = [
+      {
+        uid: 't',
+        email: 't@x.at',
+        displayName: 'Tina',
+        disabled: false,
+        regionIds: ['tirol'],
+        updatedAt: null,
+      },
+    ];
+    render(<ModerationTab />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Regionen von Tina ändern' }));
+    const dialog = screen.getByRole('dialog', { name: 'Regionen ändern' });
+    fireEvent.click(within(dialog).getByRole('checkbox', { name: /Wien/ }));
     fireEvent.click(within(dialog).getByRole('button', { name: 'Speichern' }));
     expect(await within(dialog).findByRole('alert')).toHaveTextContent(text);
     expect(screen.getByRole('dialog')).toBeInTheDocument();

@@ -147,6 +147,9 @@ export function moderatorErrorMessage(err) {
       if (/own role/i.test(message)) {
         return 'Deine eigene Rolle kannst du hier nicht ändern.';
       }
+      if (/invitation/i.test(message)) {
+        return 'Neue Moderator:innen bekommen zuerst eine Einladung per E-Mail und erscheinen nach der Einführung in der Liste.';
+      }
       return 'Diese Person ist Super-Admin. Ihre Rolle kann hier nicht geändert werden.';
     case 'invalid-argument':
       if (/uid/i.test(message)) {
