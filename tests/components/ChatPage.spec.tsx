@@ -10,7 +10,10 @@ const state = vi.hoisted(() => ({
   role: null as string | null,
   staffRegionIds: [] as string[],
   roomIds: [] as (string | null)[],
+  chatOptions: [] as ({ guestView?: boolean } | undefined)[],
+  heartbeat: [] as boolean[],
   available: true,
+  mode: 'all',
   access: { loading: false },
   chat: {} as Record<string, unknown>,
   online: [] as { uid: string; name: string; photoURL: string | null }[],
@@ -26,15 +29,26 @@ vi.mock('../../src/hooks/useAuth', () => ({
 }));
 vi.mock('../../src/hooks/useProfile', () => ({ useProfile: () => ({ profile: null }) }));
 vi.mock('../../src/hooks/useChatSettings', () => ({
-  useChatAccess: () => ({ available: state.available, mode: 'all', loading: state.access.loading }),
+  useChatAccess: () => ({
+    available: state.available && Boolean(state.user),
+    readable: state.available,
+    mode: state.mode,
+    loading: state.access.loading,
+  }),
 }));
 vi.mock('../../src/hooks/useChatPresence', () => ({
-  useChatHeartbeat: () => {},
-  useChatPresence: () => ({ online: state.online, count: state.online.length, loading: false }),
+  useChatHeartbeat: (active: boolean) => {
+    state.heartbeat.push(active);
+  },
+  useChatPresence: (enabled: boolean) => {
+    const online = enabled ? state.online : [];
+    return { online, count: online.length, loading: false };
+  },
 }));
 vi.mock('../../src/hooks/useChat', () => ({
-  useChat: (roomId: string | null) => {
+  useChat: (roomId: string | null, options?: { guestView?: boolean }) => {
     state.roomIds.push(roomId);
+    state.chatOptions.push(options);
     return state.chat;
   },
 }));
@@ -111,10 +125,13 @@ beforeEach(() => {
   state.role = null;
   state.staffRegionIds = [];
   state.roomIds = [];
+  state.chatOptions = [];
+  state.heartbeat = [];
   state.available = true;
+  state.mode = 'all';
   state.access.loading = false;
   state.online = [];
-  window.localStorage.setItem('chatRulesAccepted', '1');
+  window.localStorage.setItem('chatRulesAccepted2', '1');
   setChat();
 });
 
@@ -125,13 +142,24 @@ describe('ChatPage', () => {
     expect(screen.queryByTestId('chat-page')).not.toBeInTheDocument();
   });
 
-  it('asks unverified users to confirm their e-mail instead of showing the chat', () => {
+  it('unverified users read along and are asked to confirm their e-mail to write', () => {
     state.user = { uid: 'me', emailVerified: false };
     renderPage();
+    expect(screen.getAllByTestId('chat-message')).toHaveLength(2);
+    expect(state.chatOptions.at(-1)).toEqual({ guestView: true });
     expect(screen.getByTestId('chat-unverified')).toBeInTheDocument();
     expect(screen.queryByTestId('chat-input')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'E-Mail bestätigen' }));
     expect(screen.getByTestId('verify-modal')).toBeInTheDocument();
+  });
+
+  it('in test mode "admins" an unverified admin reads nothing and is asked to confirm', () => {
+    state.user = { uid: 'me', emailVerified: false };
+    state.role = 'Admin';
+    state.mode = 'admins';
+    renderPage();
+    expect(screen.getByTestId('chat-unverified')).toBeInTheDocument();
+    expect(screen.queryByTestId('chat-list')).toBeNull();
   });
 
   it('renders messages as plain text, never as HTML', () => {
@@ -373,7 +401,7 @@ describe('ChatPage', () => {
   });
 
   it('shows the rules first and the input only after accepting them', () => {
-    window.localStorage.removeItem('chatRulesAccepted');
+    window.localStorage.removeItem('chatRulesAccepted2');
     renderPage();
     expect(screen.getByTestId('chat-rules')).toBeInTheDocument();
     expect(screen.queryByTestId('chat-input')).not.toBeInTheDocument();
@@ -389,6 +417,60 @@ describe('ChatPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Melden' }));
     await waitFor(() => expect(report).toHaveBeenCalledTimes(1));
     expect(report.mock.calls[0][0]).toMatchObject({ id: '1' });
+  });
+});
+
+describe('ChatPage: guests read along (read-only)', () => {
+  beforeEach(() => {
+    state.user = null;
+    clubMembers.uids = new Set();
+  });
+
+  it('shows the messages meant for guests, with a login link instead of the input', () => {
+    renderPage();
+    expect(state.chatOptions.at(-1)).toEqual({ guestView: true });
+    expect(screen.getAllByTestId('chat-message')).toHaveLength(2);
+    expect(screen.getByText('Hallo Welt')).toBeInTheDocument();
+    expect(screen.queryByTestId('chat-input')).toBeNull();
+    expect(screen.queryByTestId('chat-rules')).toBeNull();
+    const hint = screen.getByTestId('chat-login');
+    expect(hint).toHaveTextContent('Melde dich an, um im Lagerfeuer mitzuschreiben.');
+    expect(screen.getByRole('link', { name: 'Melde dich an' })).toHaveAttribute('href', '/login');
+  });
+
+  it('no presence, member card, reactions, reports or deleting for guests', () => {
+    state.online = [{ uid: 'other', name: 'Mira', photoURL: null }];
+    setChat({ messages: [{ ...msg('1', 'other', 'Hallo Welt'), reactions: { x: '👍' } }] });
+    renderPage();
+    expect(screen.queryByTestId('chat-presence')).toBeNull();
+    expect(state.heartbeat.every((active) => active === false)).toBe(true);
+    const [message] = screen.getAllByTestId('chat-message');
+    expect(message).not.toHaveTextContent('Melden');
+    expect(message).not.toHaveTextContent('Löschen');
+    expect(screen.queryByRole('button', { name: 'Mira ansehen' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Mit Emoji reagieren' })).toBeNull();
+    expect(screen.getByRole('button', { name: /Daumen hoch, 1 Reaktion/ })).toBeDisabled();
+  });
+
+  it('says that everyone can read along, and members confirm the rules with that audience', () => {
+    const { unmount } = renderPage();
+    expect(screen.getByTestId('chat-page')).toHaveTextContent('mitlesen können alle');
+    unmount();
+    state.user = { uid: 'me', emailVerified: true };
+    window.localStorage.removeItem('chatRulesAccepted2');
+    renderPage();
+    expect(state.chatOptions.at(-1)).toEqual({ guestView: false });
+    expect(screen.getByTestId('chat-rules')).toHaveTextContent(
+      'auch alle Besucher:innen der Website'
+    );
+  });
+
+  it('members keep presence and the full room', () => {
+    state.user = { uid: 'me', emailVerified: true };
+    state.online = [{ uid: 'other', name: 'Mira', photoURL: null }];
+    renderPage();
+    expect(screen.getByTestId('chat-presence')).toBeInTheDocument();
+    expect(state.heartbeat.at(-1)).toBe(true);
   });
 });
 

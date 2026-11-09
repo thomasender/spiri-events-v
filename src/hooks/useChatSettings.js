@@ -28,12 +28,15 @@ export function useChatSettings() {
   return { mode, loading };
 }
 
-// Whether the signed-in person may see the chat under the current flag.
+// Whether the signed-in person may see the chat under the current flag (`available`), and
+// whether this visitor may open /chat at all (`readable`): with mode 'all' also guests, who
+// only read along (Trello 6af1955f).
 export function useChatAccess() {
   const { user, role } = useAuth();
   const { mode, loading } = useChatSettings();
-  const available = Boolean(user) && canEnterChat({ mode, isAdmin: role === 'Admin' });
-  return { available, mode, loading };
+  const permitted = canEnterChat({ mode, isAdmin: role === 'Admin' });
+  const available = Boolean(user) && permitted;
+  return { available, readable: permitted, mode, loading };
 }
 
 // Same flag pattern for the private messenger: app_settings/messenger { mode }.

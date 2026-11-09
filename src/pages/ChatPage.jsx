@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowDown, Flame } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
 import ChatMessage from '../components/chat/ChatMessage';
@@ -29,7 +29,9 @@ import { REACTION_FAILED } from '../utils/reactions';
 import { getStaffAccess } from '../utils/staffRoles';
 import './ChatPage.css';
 
-const RULES_KEY = 'chatRulesAccepted';
+// Renamed when guests could start reading along (Trello 6af1955f): everyone sees the
+// rules, with the new audience, once more before writing.
+const RULES_KEY = 'chatRulesAccepted2';
 const NEAR_BOTTOM_PX = 120;
 
 function readRulesAccepted() {
@@ -102,14 +104,46 @@ function WhoIsHere({ online, selfUid, onOpenMember }) {
   );
 }
 
-function ChatRoom({ roomId, regionMode }) {
+// Read-only visitors (no login, or e-mail not confirmed yet): a hint instead of the input.
+function ReadOnlyHint({ user }) {
+  const location = useLocation();
+  const [verifyOpen, setVerifyOpen] = useState(false);
+  if (!user) {
+    return (
+      <p className="chat-state chat-readonly" data-testid="chat-login">
+        <Link
+          to="/login"
+          state={{ from: `${location.pathname}${location.search}${location.hash}` }}
+        >
+          Melde dich an
+        </Link>
+        , um im Lagerfeuer mitzuschreiben.
+      </p>
+    );
+  }
+  return (
+    <div className="chat-state chat-unverified" data-testid="chat-unverified">
+      <p>Bitte bestätige zuerst deine E-Mail-Adresse, um im Lagerfeuer mitzuschreiben.</p>
+      <button type="button" className="btn btn-primary" onClick={() => setVerifyOpen(true)}>
+        E-Mail bestätigen
+      </button>
+      <EmailVerificationModal open={verifyOpen} onClose={() => setVerifyOpen(false)} />
+    </div>
+  );
+}
+
+// `readOnly`: guests and people without a verified e-mail read the messages marked for guests
+// and nothing else: no presence (neither seen nor written), no member card, no reactions,
+// reports or deleting (Trello 6af1955f).
+function ChatRoom({ roomId, regionMode, readOnly = false, guestsRead = false }) {
   const { user, role, staffRegionIds } = useAuth();
   const isAdmin = role === 'Admin';
   // Regions-Moderator:innen delete messages in their region's Lagerfeuer (only with region rooms).
   const canModerate =
-    isAdmin ||
-    (regionMode &&
-      getStaffAccess(role, staffRegionIds).canModerateRegion(chatRoomRegionId(roomId)));
+    !readOnly &&
+    (isAdmin ||
+      (regionMode &&
+        getStaffAccess(role, staffRegionIds).canModerateRegion(chatRoomRegionId(roomId))));
   const {
     messages,
     loading,
@@ -122,7 +156,7 @@ function ChatRoom({ roomId, regionMode }) {
     remove,
     report,
     react,
-  } = useChat(roomId);
+  } = useChat(roomId, { guestView: readOnly });
   const [notice, setNotice] = useState('');
   const [rulesAccepted, setRulesAccepted] = useState(readRulesAccepted);
   const [toDelete, setToDelete] = useState(null);
@@ -140,8 +174,8 @@ function ChatRoom({ roomId, regionMode }) {
       stickToBottom.current = false;
     },
   });
-  useChatHeartbeat(true, roomId);
-  const { online } = useChatPresence(true, roomId);
+  useChatHeartbeat(!readOnly, roomId);
+  const { online } = useChatPresence(!readOnly, roomId);
 
   const banned = isChatBanActive(ban);
   const scrollToBottom = useCallback(() => {
@@ -240,7 +274,7 @@ function ChatRoom({ roomId, regionMode }) {
 
   return (
     <>
-      <WhoIsHere online={online} selfUid={user?.uid} onOpenMember={setMemberCard} />
+      {!readOnly && <WhoIsHere online={online} selfUid={user?.uid} onOpenMember={setMemberCard} />}
       <div className="chat-box">
         <ul
           ref={listRef}
@@ -265,29 +299,34 @@ function ChatRoom({ roomId, regionMode }) {
           {loading && <li className="chat-state">Lade Nachrichten…</li>}
           {!loading && messages.length === 0 && (
             <li className="chat-state" data-testid="chat-empty">
-              Noch ist es still am Lagerfeuer. Sag doch einfach Hallo! 👋
+              {readOnly
+                ? 'Noch ist es still am Lagerfeuer.'
+                : 'Noch ist es still am Lagerfeuer. Sag doch einfach Hallo! 👋'}
             </li>
           )}
           {messages.map((m) => (
             <ChatMessage
               key={m.id}
               message={m}
-              own={m.authorUid === user?.uid}
-              canDelete={m.authorUid === user?.uid || canModerate}
-              canReport={m.authorUid !== user?.uid}
+              own={Boolean(user) && m.authorUid === user.uid}
+              canDelete={!readOnly && (m.authorUid === user?.uid || canModerate)}
+              canReport={!readOnly && m.authorUid !== user?.uid}
               onDelete={setToDelete}
               onReport={setToReport}
               me={user?.uid}
               isTarget={jumpTarget === m.id}
-              canReact={!banned}
+              canReact={!readOnly && !banned}
               onReact={(msg, emoji) => react(msg.id, emoji)}
               onReactError={() => setNotice(REACTION_FAILED)}
-              onOpenMember={(msg) =>
-                setMemberCard({
-                  uid: msg.authorUid,
-                  name: msg.authorName,
-                  photoURL: msg.authorPhotoURL,
-                })
+              onOpenMember={
+                readOnly
+                  ? undefined
+                  : (msg) =>
+                      setMemberCard({
+                        uid: msg.authorUid,
+                        name: msg.authorName,
+                        photoURL: msg.authorPhotoURL,
+                      })
               }
             />
           ))}
@@ -311,8 +350,17 @@ function ChatRoom({ roomId, regionMode }) {
         </p>
       )}
 
-      {!rulesAccepted ? (
-        <ChatRules onAccept={acceptRules} />
+      {readOnly ? (
+        <ReadOnlyHint user={user} />
+      ) : !rulesAccepted ? (
+        <ChatRules
+          onAccept={acceptRules}
+          audience={
+            guestsRead
+              ? 'Alle angemeldeten Mitglieder und, ohne Anmeldung, auch alle Besucher:innen der Website'
+              : undefined
+          }
+        />
       ) : banned ? (
         <p className="chat-banned" role="status" data-testid="chat-banned">
           {describeChatBan(ban)}
@@ -329,7 +377,7 @@ function ChatRoom({ roomId, regionMode }) {
         />
       )}
 
-      {memberCard && (
+      {memberCard && !readOnly && (
         <MemberCard
           uid={memberCard.uid}
           fallbackName={memberCard.name}
@@ -390,18 +438,20 @@ function FireChooser({ room }) {
 export default function ChatPage() {
   const { user, loading: authLoading } = useAuth();
   const { profile } = useProfile(user?.uid);
-  const { available, loading: settingsLoading } = useChatAccess();
+  const { readable, mode, loading: settingsLoading } = useChatAccess();
   const room = useChatRoom(profile);
   // Wait for the regions: with two active ones the room is a region's, not `lagerfeuer`.
   const { loading: regionsLoading } = useRegion();
-  const [verifyOpen, setVerifyOpen] = useState(false);
 
   if (authLoading || settingsLoading || regionsLoading) {
     return <div className="loading-spinner"></div>;
   }
-  if (!available) return <ErrorPage type="not-found" redirectSeconds={5} />;
+  if (!readable) return <ErrorPage type="not-found" redirectSeconds={5} />;
 
   const verified = Boolean(user?.emailVerified);
+  // Guests read along only while the chat is open for everyone (mode 'all'; the rules agree).
+  const guestsRead = mode === 'all';
+  const readOnly = !verified;
   const regionMode = room.choices.length > 0;
 
   return (
@@ -413,30 +463,31 @@ export default function ChatPage() {
           <div>
             <h1>{room.title}</h1>
             <p>
-              Der Chat für alle Mitglieder. Nachrichten verschwinden nach {CHAT_RETENTION_DAYS}{' '}
-              Tagen.
+              {guestsRead
+                ? 'Schreiben können alle Mitglieder, mitlesen können alle.'
+                : 'Der Chat für alle Mitglieder.'}{' '}
+              Nachrichten verschwinden nach {CHAT_RETENTION_DAYS} Tagen.
             </p>
           </div>
         </header>
         {regionMode && <FireChooser room={room} />}
-        {verified && !room.roomId ? (
+        {readOnly && !guestsRead ? (
+          // Test mode 'admins' with an unconfirmed e-mail: nothing to read along.
+          <ReadOnlyHint user={user} />
+        ) : !room.roomId ? (
           <p className="chat-state chat-no-room" data-testid="chat-no-room" role="status">
             {room.ownRegionId
               ? 'Das Lagerfeuer deiner Region startet, sobald die Region online geht. Bis dahin kannst du dich an eines der offenen Feuer setzen.'
               : 'Wähle ein Lagerfeuer, an das du dich setzen möchtest.'}
           </p>
-        ) : verified ? (
-          <ChatRoom key={room.roomId} roomId={room.roomId} regionMode={regionMode} />
         ) : (
-          <div className="chat-state chat-unverified" data-testid="chat-unverified">
-            <p>
-              Bitte bestätige zuerst deine E-Mail-Adresse, um im Chat mitzulesen und zu schreiben.
-            </p>
-            <button type="button" className="btn btn-primary" onClick={() => setVerifyOpen(true)}>
-              E-Mail bestätigen
-            </button>
-            <EmailVerificationModal open={verifyOpen} onClose={() => setVerifyOpen(false)} />
-          </div>
+          <ChatRoom
+            key={room.roomId}
+            roomId={room.roomId}
+            regionMode={regionMode}
+            readOnly={readOnly}
+            guestsRead={guestsRead}
+          />
         )}
       </div>
     </>

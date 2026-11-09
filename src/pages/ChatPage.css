@@ -85,6 +85,17 @@
   border-radius: var(--radius-md);
 }
 
+/* Guests: "Melde dich an, um mitzuschreiben" instead of the input. */
+.chat-readonly {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+}
+
+.chat-readonly a {
+  color: var(--accent-primary);
+  font-weight: 600;
+}
+
 .chat-older {
   text-align: center;
 }
