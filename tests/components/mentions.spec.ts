@@ -35,9 +35,12 @@ describe('findMentionToken', () => {
     expect(findMentionToken('@a b c d', 8)).toBeNull();
   });
 
-  it('ignores e-mail addresses and a bare @', () => {
+  it('gives an empty query for a bare @ so the whole list opens', () => {
+    expect(findMentionToken('Hallo @', 7)).toEqual({ start: 6, end: 7, query: '' });
+  });
+
+  it('ignores e-mail addresses and an @ followed by a space', () => {
     expect(findMentionToken('mail anna@web.at', 16)).toBeNull();
-    expect(findMentionToken('Hallo @', 7)).toBeNull();
     expect(findMentionToken('Hallo @ Anna', 12)).toBeNull();
   });
 

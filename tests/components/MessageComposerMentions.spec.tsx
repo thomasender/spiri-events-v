@@ -40,6 +40,13 @@ describe('@mention suggestions in the composer', () => {
     expect(screen.queryByRole('listbox')).toBeNull();
   });
 
+  it('lists everyone for a bare @', async () => {
+    render(<MessageComposer onSend={vi.fn()} mentionsEnabled selfUid="me" />);
+    await typeInto('Hallo @');
+    expect(search).toHaveBeenCalledWith('', { excludeUid: 'me' });
+    expect(screen.getAllByRole('option')).toHaveLength(2);
+  });
+
   it('sends the picked people with the text, only while their name is still in it', async () => {
     const onSend = vi.fn().mockResolvedValue(undefined);
     render(<MessageComposer onSend={onSend} mentionsEnabled selfUid="me" />);
