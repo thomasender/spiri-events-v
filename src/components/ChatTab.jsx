@@ -4,11 +4,13 @@ import { doc, getDoc } from 'firebase/firestore';
 import { Flame } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { useChatAdmin } from '../hooks/useChatAdmin';
+import { useRegion } from '../hooks/useRegion';
 import ConfirmDialog from './ConfirmDialog';
 import {
   CHAT_BAN_DURATIONS,
   CHAT_PERMANENT_UNTIL_MS,
   CHAT_RETENTION_DAYS,
+  LAGERFEUER_ROOM_ID,
   formatChatTime,
 } from '../utils/chat';
 import { DM_RETENTION_DAYS } from '../utils/messenger';
@@ -31,7 +33,8 @@ function describeUntil(untilMs) {
 
 // Where a report came from: the Lagerfeuer, or an event's Kerzenraum with a
 // link to the event (title looked up once; the report itself only keeps the id).
-function ReportRoom({ eventId, messageId }) {
+function ReportRoom({ eventId, messageId, roomId }) {
+  const { allRegions } = useRegion();
   const [title, setTitle] = useState('');
   useEffect(() => {
     if (!eventId) return undefined;
@@ -46,9 +49,21 @@ function ReportRoom({ eventId, messageId }) {
     };
   }, [eventId]);
   if (!eventId) {
+    // A region's room (Trello 6aef2dad); no roomId = `lagerfeuer`, shown as before.
+    const regionName =
+      roomId && roomId !== LAGERFEUER_ROOM_ID
+        ? (allRegions.find((r) => r.id === roomId)?.name ?? roomId)
+        : null;
     return (
       <span className="chat-tab-room" data-testid="chat-report-room">
-        Lagerfeuer
+        {regionName ? (
+          <>
+            Lagerfeuer {regionName}:{' '}
+            <Link to={`/chat?raum=${encodeURIComponent(roomId)}#msg-${messageId}`}>Zum Chat</Link>
+          </>
+        ) : (
+          'Lagerfeuer'
+        )}
       </span>
     );
   }
@@ -263,7 +278,7 @@ export default function ChatTab() {
                   <strong>{r.messageAuthorName}</strong>
                   <span>{formatChatTime(r.createdAtMs)}</span>
                 </div>
-                <ReportRoom eventId={r.eventId} messageId={r.messageId} />
+                <ReportRoom eventId={r.eventId} messageId={r.messageId} roomId={r.roomId} />
                 <blockquote className="chat-tab-quote">{r.messageText}</blockquote>
                 <div className="chat-tab-actions">
                   <button
@@ -372,7 +387,7 @@ export default function ChatTab() {
         onConfirm={async () => {
           const report = pending.report;
           await run(async () => {
-            await deleteMessage(report.messageId, report.eventId);
+            await deleteMessage(report.messageId, report.eventId, report.roomId);
             await resolveReport(report.id);
           }, 'Nachricht gelöscht.');
           setPending(null);
@@ -402,7 +417,7 @@ export default function ChatTab() {
               if (isDm) {
                 await resolveDmReport(report.id);
               } else {
-                await deleteMessage(report.messageId, report.eventId);
+                await deleteMessage(report.messageId, report.eventId, report.roomId);
                 await resolveReport(report.id);
               }
             },

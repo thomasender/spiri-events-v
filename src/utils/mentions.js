@@ -121,7 +121,12 @@ export function mentionLink(mention) {
     const slug = mention.eventSlug || mention.eventId;
     return slug ? `/event/${slug}#msg-${mention.messageId}` : '/';
   }
-  return `/chat#msg-${mention?.messageId}`;
+  // Lagerfeuer: the room it was written in (one per region, Trello 6aef2dad); notices written
+  // before region rooms carry no roomId and lead to /chat as before.
+  const room = typeof mention?.roomId === 'string' && mention.roomId ? mention.roomId : null;
+  return room
+    ? `/chat?raum=${encodeURIComponent(room)}#msg-${mention?.messageId}`
+    : `/chat#msg-${mention?.messageId}`;
 }
 
 // "Anna hat dich im Lagerfeuer erwähnt" / "... im Kerzenraum von «Yoga»".

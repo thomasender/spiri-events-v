@@ -3,10 +3,13 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import ChatPage from '../../src/pages/ChatPage';
+import { DEFAULT_REGION_CONTEXT, RegionContext } from '../../src/hooks/useRegion';
 
 const state = vi.hoisted(() => ({
   user: { uid: 'me', emailVerified: true } as { uid: string; emailVerified: boolean } | null,
   role: null as string | null,
+  staffRegionIds: [] as string[],
+  roomIds: [] as (string | null)[],
   available: true,
   access: { loading: false },
   chat: {} as Record<string, unknown>,
@@ -14,8 +17,14 @@ const state = vi.hoisted(() => ({
 }));
 
 vi.mock('../../src/hooks/useAuth', () => ({
-  useAuth: () => ({ user: state.user, role: state.role, loading: false }),
+  useAuth: () => ({
+    user: state.user,
+    role: state.role,
+    staffRegionIds: state.staffRegionIds,
+    loading: false,
+  }),
 }));
+vi.mock('../../src/hooks/useProfile', () => ({ useProfile: () => ({ profile: null }) }));
 vi.mock('../../src/hooks/useChatSettings', () => ({
   useChatAccess: () => ({ available: state.available, mode: 'all', loading: state.access.loading }),
 }));
@@ -23,7 +32,12 @@ vi.mock('../../src/hooks/useChatPresence', () => ({
   useChatHeartbeat: () => {},
   useChatPresence: () => ({ online: state.online, count: state.online.length, loading: false }),
 }));
-vi.mock('../../src/hooks/useChat', () => ({ useChat: () => state.chat }));
+vi.mock('../../src/hooks/useChat', () => ({
+  useChat: (roomId: string | null) => {
+    state.roomIds.push(roomId);
+    return state.chat;
+  },
+}));
 const clubMembers = vi.hoisted(() => ({ uids: new Set<string>() }));
 vi.mock('../../src/hooks/useClubMembers', () => ({
   useClubMembers: () => clubMembers.uids,
@@ -70,10 +84,33 @@ function renderPage() {
   );
 }
 
+// Two active regions (Vorarlberg, Tirol); `regionId` = the place chosen in the header.
+function renderRegionPage(regionId: string | null, path = '/chat') {
+  const value = {
+    ...DEFAULT_REGION_CONTEXT,
+    regions: [
+      { id: 'vorarlberg', name: 'Vorarlberg', active: true },
+      { id: 'tirol', name: 'Tirol', active: true },
+    ],
+    placeSelection: regionId ? { label: 'Ort', lat: 47, lon: 11, radiusKm: 25, regionId } : null,
+  };
+  return render(
+    <HelmetProvider>
+      <MemoryRouter initialEntries={[path]}>
+        <RegionContext.Provider value={value as typeof DEFAULT_REGION_CONTEXT}>
+          <ChatPage />
+        </RegionContext.Provider>
+      </MemoryRouter>
+    </HelmetProvider>
+  );
+}
+
 beforeEach(() => {
   clubMembers.uids = new Set();
   state.user = { uid: 'me', emailVerified: true };
   state.role = null;
+  state.staffRegionIds = [];
+  state.roomIds = [];
   state.available = true;
   state.access.loading = false;
   state.online = [];
@@ -352,5 +389,57 @@ describe('ChatPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Melden' }));
     await waitFor(() => expect(report).toHaveBeenCalledTimes(1));
     expect(report.mock.calls[0][0]).toMatchObject({ id: '1' });
+  });
+});
+
+describe('ChatPage: one Lagerfeuer per region', () => {
+  it('dark launch: the room "lagerfeuer", title without region, no chooser', () => {
+    renderPage();
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^Lagerfeuer$/);
+    expect(screen.queryByTestId('chat-fire-chooser')).toBeNull();
+    expect(state.roomIds.every((id) => id === 'lagerfeuer')).toBe(true);
+  });
+
+  it('opens the fire of the region in the header, named after it', () => {
+    renderRegionPage('tirol');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Lagerfeuer Tirol');
+    expect(state.roomIds.at(-1)).toBe('tirol');
+    const select = screen.getByLabelText('Anderes Feuer:') as HTMLSelectElement;
+    expect(select.value).toBe('tirol');
+    expect(Array.from(select.options).map((o) => o.textContent)).toEqual([
+      'Vorarlberg',
+      'Tirol (dein Feuer)',
+    ]);
+  });
+
+  it('Vorarlberg keeps the room "lagerfeuer"; ?raum= opens another open fire', () => {
+    renderRegionPage('tirol', '/chat?raum=lagerfeuer');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Lagerfeuer Vorarlberg');
+    expect(state.roomIds.at(-1)).toBe('lagerfeuer');
+  });
+
+  it('switches to another fire with the chooser', () => {
+    renderRegionPage('tirol');
+    fireEvent.change(screen.getByLabelText('Anderes Feuer:'), { target: { value: 'lagerfeuer' } });
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Lagerfeuer Vorarlberg');
+  });
+
+  it('own region not open yet: a hint and the open fires, no chat', () => {
+    renderRegionPage('wien');
+    expect(screen.getByTestId('chat-no-room')).toHaveTextContent(
+      'Das Lagerfeuer deiner Region startet, sobald die Region online geht'
+    );
+    expect(screen.queryByTestId('chat-list')).toBeNull();
+    expect(screen.getByLabelText('Offene Feuer:')).toBeInTheDocument();
+  });
+
+  it("a Regions-Moderator:in deletes others' messages only in her region's fire", () => {
+    state.role = 'RegionModerator';
+    state.staffRegionIds = ['tirol'];
+    const { unmount } = renderRegionPage('tirol');
+    expect(screen.getAllByTestId('chat-message')[0]).toHaveTextContent('Löschen');
+    unmount();
+    renderRegionPage('tirol', '/chat?raum=lagerfeuer');
+    expect(screen.getAllByTestId('chat-message')[0]).not.toHaveTextContent('Löschen');
   });
 });

@@ -4,6 +4,10 @@ import {
   CHAT_PERMANENT_UNTIL_MS,
   canEnterChat,
   chatAuthorName,
+  chatRoomIdFor,
+  chatRoomIdsToClean,
+  chatRoomRegionId,
+  resolveChatRoom,
   chatPhotoUrl,
   chatTextLength,
   cooldownRemainingMs,
@@ -308,5 +312,92 @@ describe('canReceiveChatMention', () => {
     expect(canReceiveChatMention('admins', true)).toBe(true);
     expect(canReceiveChatMention('off', true)).toBe(false);
     expect(canReceiveChatMention(undefined, true)).toBe(false);
+  });
+});
+
+describe('one Lagerfeuer per region', () => {
+  const tirol = { id: 'tirol', name: 'Tirol' };
+  const vorarlberg = { id: 'vorarlberg', name: 'Vorarlberg' };
+
+  it('dark launch: always the room "lagerfeuer", whatever the region', () => {
+    expect(chatRoomIdFor('tirol', false)).toBe('lagerfeuer');
+    expect(chatRoomIdFor(null, false)).toBe('lagerfeuer');
+    expect(resolveChatRoom({ regionMode: false, activeRegions: [vorarlberg] })).toMatchObject({
+      roomId: 'lagerfeuer',
+      title: 'Lagerfeuer',
+      ownRoomId: 'lagerfeuer',
+      choices: [],
+    });
+    // A ?raum= in the address changes nothing while only one region is open.
+    expect(
+      resolveChatRoom({ regionMode: false, activeRegions: [vorarlberg], requested: 'tirol' }).roomId
+    ).toBe('lagerfeuer');
+  });
+
+  it('with several regions: Vorarlberg keeps "lagerfeuer", the others their region id', () => {
+    expect(chatRoomIdFor('vorarlberg', true)).toBe('lagerfeuer');
+    expect(chatRoomIdFor('tirol', true)).toBe('tirol');
+    expect(chatRoomIdFor(null, true)).toBeNull();
+    expect(chatRoomRegionId('lagerfeuer')).toBe('vorarlberg');
+    expect(chatRoomRegionId('tirol')).toBe('tirol');
+  });
+
+  it('opens the own fire, named after the region, and lists every open fire', () => {
+    const room = resolveChatRoom({
+      regionMode: true,
+      activeRegions: [vorarlberg, tirol],
+      ownRegionId: 'tirol',
+    });
+    expect(room).toMatchObject({
+      roomId: 'tirol',
+      regionId: 'tirol',
+      title: 'Lagerfeuer Tirol',
+      ownRoomId: 'tirol',
+      ownRoomOpen: true,
+    });
+    expect(room.choices.map((c) => c.roomId)).toEqual(['lagerfeuer', 'tirol']);
+  });
+
+  it('opens another open fire from ?raum= (room or region id), ignores closed ones', () => {
+    const base = { regionMode: true, activeRegions: [vorarlberg, tirol], ownRegionId: 'tirol' };
+    expect(resolveChatRoom({ ...base, requested: 'lagerfeuer' }).title).toBe(
+      'Lagerfeuer Vorarlberg'
+    );
+    expect(resolveChatRoom({ ...base, requested: 'vorarlberg' }).roomId).toBe('lagerfeuer');
+    expect(resolveChatRoom({ ...base, requested: 'wien' }).roomId).toBe('tirol');
+  });
+
+  it('own region not open yet or unknown: no room, but the open fires to choose from', () => {
+    const closed = resolveChatRoom({
+      regionMode: true,
+      activeRegions: [vorarlberg, tirol],
+      ownRegionId: 'wien',
+    });
+    expect(closed).toMatchObject({
+      roomId: null,
+      title: 'Lagerfeuer',
+      ownRegionId: 'wien',
+      ownRoomOpen: false,
+    });
+    expect(closed.choices).toHaveLength(2);
+    expect(
+      resolveChatRoom({ regionMode: true, activeRegions: [vorarlberg, tirol], ownRegionId: null })
+        .roomId
+    ).toBeNull();
+  });
+
+  it('cleans up "lagerfeuer" plus every active region room, once each', () => {
+    expect(chatRoomIdsToClean([])).toEqual(['lagerfeuer']);
+    expect(chatRoomIdsToClean(['vorarlberg', 'tirol'])).toEqual(['lagerfeuer', 'tirol']);
+  });
+
+  it('report mail names the region only when it is passed (region mode)', () => {
+    const base = { messageAuthorName: 'Mira', messageText: 'Hallo', roomId: 'tirol' };
+    expect(buildReportMail(base, 1, 'https://example.test').subject).toBe(
+      'Neue Meldung im Chat „Lagerfeuer“'
+    );
+    const named = buildReportMail(base, 1, 'https://example.test', undefined, 'Tirol');
+    expect(named.subject).toBe('Neue Meldung im Chat „Lagerfeuer Tirol“');
+    expect(named.text).toContain('im Chat „Lagerfeuer Tirol“ gemeldet');
   });
 });

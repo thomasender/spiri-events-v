@@ -43,6 +43,11 @@ describe('useChatHeartbeat', () => {
   });
   afterEach(() => setVisibility('visible'));
 
+  it('beats in the room it is given', () => {
+    renderHook(() => useChatHeartbeat(true, 'tirol'));
+    expect(fs.setDoc.mock.calls[0][0]).toEqual({ path: 'chat_rooms/tirol/presence/me' });
+  });
+
   it('leaves the fire as soon as the page is hidden and comes back when visible', () => {
     renderHook(() => useChatHeartbeat(true));
     expect(fs.setDoc).toHaveBeenCalledTimes(1);
@@ -62,6 +67,13 @@ describe('dropHeartbeats (logout)', () => {
     await dropHeartbeats('me');
     expect(fs.deleteDoc).toHaveBeenCalledWith({ path: 'chat_rooms/lagerfeuer/presence/me' });
     expect(fs.deleteDoc).toHaveBeenCalledWith({ path: 'presence/me' });
+  });
+
+  it('leaves every fire: "lagerfeuer" and the rooms of the active regions', async () => {
+    await dropHeartbeats('me', 2000, ['vorarlberg', 'tirol']);
+    expect(fs.deleteDoc).toHaveBeenCalledWith({ path: 'chat_rooms/lagerfeuer/presence/me' });
+    expect(fs.deleteDoc).toHaveBeenCalledWith({ path: 'chat_rooms/tirol/presence/me' });
+    expect(fs.deleteDoc).not.toHaveBeenCalledWith({ path: 'chat_rooms/vorarlberg/presence/me' });
   });
 
   it('does not hang when the deletes never reach the server (offline)', async () => {

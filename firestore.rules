@@ -1308,16 +1308,39 @@ service cloud.firestore {
       return request.resource.data.reactions[request.auth.uid] in ['👍', '❤️', '😂', '😮', '🙏'];
     }
 
+    // One Lagerfeuer per active region (Trello 6aef2dad, docs/chat.md): `lagerfeuer` is
+    // Vorarlberg's (the original room, its history stays), every other region's room is
+    // chat_rooms/{regionId} and exists only while that region is switched on. Access is
+    // soft: whoever may enter the chat may read and write in every open fire.
+    function isChatRoom(roomId) {
+      return roomId == 'lagerfeuer'
+        || (roomId != 'vorarlberg'
+            && isValidRegionId(roomId)
+            && exists(/databases/$(database)/documents/regions/$(roomId))
+            && get(/databases/$(database)/documents/regions/$(roomId)).data.get('active', false) == true);
+    }
+
+    // Any room that can exist at all (also of a region switched off again): own messages,
+    // reactions, markers and heartbeats there stay deletable.
+    function isChatRoomId(roomId) {
+      return roomId == 'lagerfeuer' || (roomId != 'vorarlberg' && isValidRegionId(roomId));
+    }
+
+    function chatRoomRegion(roomId) {
+      return roomId == 'lagerfeuer' ? 'vorarlberg' : roomId;
+    }
+
     // Plain-text messages only. The author snapshot (name, photo) is copied
     // from the profile at send time. The text cannot be edited (only the
-    // reactions change); the author or an admin deletes a message. A scheduled function purges them after 10
+    // reactions change); the author, an admin or a Regions-Moderator:in of the room's
+    // region deletes a message. A scheduled function purges them after 10
     // days (functions/src/chat.ts).
     match /chat_rooms/{roomId}/messages/{messageId} {
-      allow read: if roomId == 'lagerfeuer' && chatAccessible();
+      allow read: if isChatRoom(roomId) && chatAccessible();
 
       // The cooldown marker (members/{uid}) must be written in the same
       // batch with the same server time: that is what rate-limits senders.
-      allow create: if roomId == 'lagerfeuer'
+      allow create: if isChatRoom(roomId)
                     && chatAccessible()
                     && !isChatBanned(request.auth.uid)
                     && request.resource.data.keys().hasAll(['text', 'authorUid', 'authorName', 'createdAt'])
@@ -1349,37 +1372,41 @@ service cloud.firestore {
 
       // Reacting needs the same access as sending (also no mute/ban). Taking
       // your own reaction back is always allowed (account deletion does it).
-      allow update: if roomId == 'lagerfeuer'
+      allow update: if isChatRoomId(roomId)
                     && isAuthenticated()
                     && isOwnReactionChange()
                     && (isReactionRemoval()
-                        || (chatAccessible()
+                        || (isChatRoom(roomId)
+                            && chatAccessible()
                             && !isChatBanned(request.auth.uid)
                             && isValidReaction()));
 
       // Own messages stay deletable even when the chat is switched off or
-      // the author is banned (account deletion removes them too).
-      allow delete: if roomId == 'lagerfeuer'
+      // the author is banned (account deletion removes them too). Regions-Moderator:innen
+      // delete in their region's room (nothing else: no mute/ban, no reports).
+      allow delete: if isChatRoomId(roomId)
                     && isAuthenticated()
-                    && (resource.data.authorUid == request.auth.uid || isChatStaff());
+                    && (resource.data.authorUid == request.auth.uid
+                        || isChatStaff()
+                        || isRegionModeratorFor(chatRoomRegion(roomId)));
     }
 
     // Cooldown marker: one doc per sender holding the time of the last message.
     match /chat_rooms/{roomId}/members/{uid} {
-      allow create: if roomId == 'lagerfeuer'
+      allow create: if isChatRoom(roomId)
                     && chatAccessible()
                     && request.auth.uid == uid
                     && request.resource.data.keys().hasOnly(['lastMessageAt'])
                     && request.resource.data.lastMessageAt == request.time;
 
-      allow update: if roomId == 'lagerfeuer'
+      allow update: if isChatRoom(roomId)
                     && chatAccessible()
                     && request.auth.uid == uid
                     && request.resource.data.keys().hasOnly(['lastMessageAt'])
                     && request.resource.data.lastMessageAt == request.time
                     && request.time > resource.data.lastMessageAt + duration.value(3, 's');
 
-      allow delete: if roomId == 'lagerfeuer'
+      allow delete: if isChatRoomId(roomId)
                     && isAuthenticated()
                     && request.auth.uid == uid;
     }
@@ -1736,20 +1763,20 @@ service cloud.firestore {
           && request.resource.data.lastSeen == request.time;
       }
 
-      allow read: if roomId == 'lagerfeuer' && chatAccessible();
+      allow read: if isChatRoom(roomId) && chatAccessible();
 
-      allow create: if roomId == 'lagerfeuer'
+      allow create: if isChatRoom(roomId)
                     && chatAccessible()
                     && request.auth.uid == uid
                     && isValidPresence();
 
-      allow update: if roomId == 'lagerfeuer'
+      allow update: if isChatRoom(roomId)
                     && chatAccessible()
                     && request.auth.uid == uid
                     && isValidPresence()
                     && request.time > resource.data.lastSeen + duration.value(20, 's');
 
-      allow delete: if roomId == 'lagerfeuer'
+      allow delete: if isChatRoomId(roomId)
                     && isAuthenticated()
                     && request.auth.uid == uid;
     }
@@ -1781,8 +1808,12 @@ service cloud.firestore {
       allow create: if chatAccessible()
                     && request.resource.data.keys().hasOnly(
                       ['messageId', 'messageText', 'messageAuthorUid', 'messageAuthorName',
-                       'reportedBy', 'status', 'createdAt', 'eventId']
+                       'reportedBy', 'status', 'createdAt', 'eventId', 'roomId']
                     )
+                    // Optional: the region's Lagerfeuer the message is in; absent = `lagerfeuer`.
+                    && (!('roomId' in request.resource.data)
+                        || (request.resource.data.roomId is string
+                            && isChatRoomId(request.resource.data.roomId)))
                     // Optional: set for a message of an event's Kerzenraum, absent for the Lagerfeuer.
                     && (!('eventId' in request.resource.data)
                         || (request.resource.data.eventId is string
