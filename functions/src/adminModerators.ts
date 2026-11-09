@@ -187,12 +187,14 @@ export async function setRegionModeratorHandler(
   }
   const regionIds = validateModeratorRegionIds(data.regionIds);
 
+  // A deleted account can still have its moderator doc: revoking must work
+  // then (it is the only way to clean it up), granting or changing must not.
   const user = await deps.getUser(uid);
-  if (!user) {
+  if (!user && regionIds.length > 0) {
     throw new HttpsError('not-found', 'No account with this uid.');
   }
-  assertNotSuperAdminUser(user);
-  const email = typeof user.email === 'string' && user.email ? user.email : null;
+  if (user) assertNotSuperAdminUser(user);
+  const email = typeof user?.email === 'string' && user.email ? user.email : null;
 
   return deps.runTransaction(async (tx) => {
     const current = await tx.getRoleDoc(uid);
@@ -205,7 +207,7 @@ export async function setRegionModeratorHandler(
         action: 'revokeRegionModerator',
         actorUid: actorUid as string,
         targetUid: uid,
-        targetEmail: email,
+        targetEmail: email ?? (typeof current.email === 'string' ? current.email : null),
         before,
         after: null,
       });
@@ -236,6 +238,8 @@ export interface ModeratorListEntry {
   email: string | null;
   displayName: string;
   disabled: boolean;
+  /** No Auth account with this uid any more; the role doc is a leftover. */
+  accountDeleted: boolean;
   regionIds: string[];
   updatedAt: string | null;
 }
@@ -269,6 +273,7 @@ export async function listRegionModeratorsHandler(
       email: user?.email ?? (typeof d.data.email === 'string' ? d.data.email : null),
       displayName: user?.displayName ?? '',
       disabled: user?.disabled === true,
+      accountDeleted: !user,
       regionIds: storedRegionIds(d.data),
       updatedAt: toIso(d.data.updatedAt),
     };
