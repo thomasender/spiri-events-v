@@ -150,6 +150,83 @@ describe('chat messages: reading', () => {
       await assertFails(send(verified().firestore(), 'alice'));
     });
   });
+
+  describe('guests read along (read-only Lagerfeuer)', () => {
+    const path = 'chat_rooms/lagerfeuer/messages';
+    const guestQuery = (db: Firestore, room = path) =>
+      query(collection(db, room), where('guestReadable', '==', true));
+
+    beforeEach(async () => {
+      await env.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), `${path}/g1`), {
+          text: 'Für alle',
+          authorUid: 'alice',
+          authorName: 'Alice',
+          guestReadable: true,
+          createdAt: Timestamp.now(),
+        });
+      });
+    });
+
+    it('guests and unverified users read only messages marked guestReadable', async () => {
+      for (const ctx of [anon(), unverified('bob')]) {
+        const db = ctx.firestore();
+        await assertSucceeds(getDocs(guestQuery(db)));
+        await assertSucceeds(getDoc(doc(db, `${path}/g1`)));
+        // Older messages (written before guests could read along) stay members-only.
+        await assertFails(getDoc(doc(db, `${path}/m1`)));
+        await assertFails(getDocs(collection(db, path)));
+      }
+    });
+
+    it('only while the chat is open for everyone', async () => {
+      for (const mode of ['admins', 'off', null]) {
+        await setMode(mode);
+        await assertFails(getDocs(guestQuery(anon().firestore())));
+      }
+    });
+
+    it('not in rooms that are not open', async () => {
+      await assertFails(getDocs(guestQuery(anon().firestore(), 'chat_rooms/tirol/messages')));
+      await assertFails(getDocs(guestQuery(anon().firestore(), 'chat_rooms/vorarlberg/messages')));
+    });
+
+    it('guests cannot write, react, report or see presence and cooldown markers', async () => {
+      const db = anon().firestore();
+      await assertFails(send(db, 'guest'));
+      await assertFails(
+        updateDoc(doc(db, `${path}/g1`), new FieldPath('reactions', 'guest'), '❤️')
+      );
+      await assertFails(
+        setDoc(doc(db, 'chat_reports/g1_guest'), {
+          messageId: 'g1',
+          messageText: 'Für alle',
+          messageAuthorUid: 'alice',
+          messageAuthorName: 'Alice',
+          reportedBy: 'guest',
+          status: 'open',
+          createdAt: serverTimestamp(),
+        })
+      );
+      await assertFails(getDocs(collection(db, 'chat_rooms/lagerfeuer/presence')));
+      await assertFails(getDoc(doc(db, 'chat_rooms/lagerfeuer/members/alice')));
+    });
+
+    it('members send with guestReadable: true, nothing else', async () => {
+      await assertSucceeds(send(verified().firestore(), 'alice', { guestReadable: true }));
+      await assertFails(send(verified('bob').firestore(), 'bob', { guestReadable: false }));
+      await assertFails(send(verified('carl').firestore(), 'carl', { guestReadable: 'yes' }));
+    });
+
+    it('a reaction cannot change guestReadable', async () => {
+      await assertFails(
+        updateDoc(doc(verified('bob').firestore(), `${path}/g1`), {
+          'reactions.bob': '❤️',
+          guestReadable: false,
+        })
+      );
+    });
+  });
 });
 
 describe('chat messages: sending', () => {

@@ -42,7 +42,7 @@ const content = {
     title: 'Datenschutzerklärung',
     description:
       'Datenschutzerklärung von tribe Vorarlberg: welche Daten wir erheben, wie wir sie schützen und welche Rechte du hast.',
-    lastUpdated: 'Oktober 2026',
+    lastUpdated: 'November 2026',
     sections: [
       {
         heading: '1. Verantwortlicher',
@@ -298,18 +298,20 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
       },
       {
         heading: `14. Community-Chat „Lagerfeuer“ und „${CANDLE_ROOM_NAME}“`,
-        text: `Angemeldete Nutzer:innen mit bestätigter E-Mail-Adresse können im Chat „Lagerfeuer“ mit anderen Mitgliedern schreiben. Der Chat steht nur mit Login zur Verfügung und ist nicht öffentlich im Internet sichtbar. Sobald mehrere Regionen geöffnet sind, gibt es ein eigenes Lagerfeuer pro Region; voreingestellt ist das Lagerfeuer der Region, die Sie bei „Wo bist du?“ gewählt haben (ohne diese Wahl: die Region Ihres Feuerplatzes im Profil). Diese Zuordnung geschieht in Ihrem Browser, es wird dafür nichts zusätzlich gespeichert. Sie können sich auch an das Lagerfeuer einer anderen geöffneten Region setzen.
+        text: `Angemeldete Nutzer:innen mit bestätigter E-Mail-Adresse können im Chat „Lagerfeuer“ mit anderen Mitgliedern schreiben. Wenn der Chat für alle freigeschaltet ist, können auch Besucher:innen ohne Login (und angemeldete Nutzer:innen, deren E-Mail-Adresse noch nicht bestätigt ist) die Nachrichten mitlesen, aber nicht schreiben. Sobald mehrere Regionen geöffnet sind, gibt es ein eigenes Lagerfeuer pro Region; voreingestellt ist das Lagerfeuer der Region, die Sie bei „Wo bist du?“ gewählt haben (ohne diese Wahl: die Region Ihres Feuerplatzes im Profil). Diese Zuordnung geschieht in Ihrem Browser, es wird dafür nichts zusätzlich gespeichert. Sie können sich auch an das Lagerfeuer einer anderen geöffneten Region setzen.
 
 *Welche Daten verarbeiten wir?*
 - Ihre Nachricht (Text und Emojis), der Zeitpunkt des Sendens, Ihr Anzeigename und Ihr Profilfoto (so wie in Ihrem Profil hinterlegt; ohne Foto wird der Anfangsbuchstabe Ihres Namens angezeigt) sowie eine interne Konto-Kennung
 - Zeitpunkt Ihrer letzten Nachricht (technisch notwendig, um Spam durch zu schnelles Senden zu verhindern)
 - Wenn Sie auf eine Nachricht mit einem Emoji reagieren: welches Emoji, zusammen mit Ihrer Konto-Kennung. Die Reaktion ist für alle sichtbar, die die Nachricht sehen, Sie können sie jederzeit zurücknehmen, und sie wird mit der Nachricht gelöscht
-- Solange Sie den Chat geöffnet haben, speichern wir kurzzeitig Ihren Anzeigenamen, Ihr Profilfoto und den Zeitpunkt Ihrer letzten Aktivität, damit andere Mitglieder sehen, wer gerade im Chat ist und wie viele Personen es sind. Der Eintrag wird beim Verlassen des Chats gelöscht, spätestens nach einem Tag automatisch. Die Anzeige sehen nur angemeldete Mitglieder mit bestätigter E-Mail-Adresse
+- Solange Sie den Chat geöffnet haben, speichern wir kurzzeitig Ihren Anzeigenamen, Ihr Profilfoto und den Zeitpunkt Ihrer letzten Aktivität, damit andere Mitglieder sehen, wer gerade im Chat ist und wie viele Personen es sind. Der Eintrag wird beim Verlassen des Chats gelöscht, spätestens nach einem Tag automatisch. Die Anzeige sehen nur angemeldete Mitglieder mit bestätigter E-Mail-Adresse, nicht die Besucher:innen, die nur mitlesen
 - Bei Meldungen: der gemeldete Nachrichtentext samt Name der verfassenden Person, die meldende Konto-Kennung und der Zeitpunkt der Meldung
 - Bei Sperren: die Dauer der Sperre und der Grund, den die Moderation vermerkt hat
 
 *Wer sieht Ihre Nachrichten?*
-- Alle angemeldeten Mitglieder mit bestätigter E-Mail-Adresse sowie die Administrator:innen, und zwar in jedem Lagerfeuer, auch dem einer anderen Region. Schreiben Sie deshalb nichts, was nicht alle Mitglieder lesen sollen. Verschicken Sie keine sensiblen Daten, insbesondere keine Gesundheitsdaten (Art. 9 DSGVO), und keine personenbezogenen Daten anderer
+- Alle angemeldeten Mitglieder mit bestätigter E-Mail-Adresse sowie die Administrator:innen, und zwar in jedem Lagerfeuer, auch dem einer anderen Region
+- *Wenn der Chat für alle freigeschaltet ist, ist der Verlauf öffentlich:* Dann kann jede Person, die die Chat-Seite aufruft, Ihre Nachrichten mit Anzeigename, Profilfoto und Zeitpunkt lesen, auch ohne Login. Nachrichten, die geschrieben wurden, bevor das Mitlesen ohne Login eingeführt wurde, bleiben nur für Mitglieder sichtbar. Die Chat-Seite ist für Suchmaschinen als „nicht aufnehmen“ (noindex) gekennzeichnet. Wer nur mitliest, sieht nicht, wer gerade im Chat ist, und kann keine Profilkarten öffnen, nicht reagieren und nichts melden
+- Schreiben Sie deshalb nur, was öffentlich sichtbar sein darf. Verschicken Sie keine sensiblen Daten, insbesondere keine Gesundheitsdaten (Art. 9 DSGVO), und keine personenbezogenen Daten anderer
 - Mitglieder können Nachrichten melden. Gemeldete Nachrichten und die Konto-Kennung der meldenden Person sehen nur die Administrator:innen. Bei einer neuen Meldung erhalten die Administrator:innen eine E-Mail
 
 *Moderation:*
@@ -323,7 +325,7 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
 
 *Chat-Räume zu einzelnen Events („${CANDLE_ROOM_NAME}“):*
 - Auf der Seite eines freigegebenen Events kann es einen kleinen Chat-Raum geben, in dem sich Teilnehmende austauschen, etwa für Mitfahrgelegenheiten. Schreiben können nur angemeldete Mitglieder mit bestätigter E-Mail-Adresse; es gelten dieselben Daten, Chat-Regeln, Sperren, Löschfristen (10 Tage) und Löschung beim Löschen Ihres Kontos wie oben beschrieben
-- *Anders als im Lagerfeuer ist der Verlauf öffentlich:* Wenn die Funktion für alle freigeschaltet ist, kann jede Person, die die Event-Seite aufruft, die Nachrichten mit Anzeigename und Profilfoto lesen, auch ohne Login. Schreiben Sie dort deshalb nur, was öffentlich sichtbar sein darf
+- *Wie im Lagerfeuer ist der Verlauf öffentlich:* Wenn die Funktion für alle freigeschaltet ist, kann jede Person, die die Event-Seite aufruft, die Nachrichten mit Anzeigename und Profilfoto lesen, auch ohne Login. Schreiben Sie dort deshalb nur, was öffentlich sichtbar sein darf
 - Zusätzlich speichern wir für jeden Raum den Zeitpunkt der letzten Nachricht, damit im Kalender eine Kerze auf neue Nachrichten hinweisen kann. Welche Nachrichten Sie schon gesehen haben, merkt sich nur Ihr Browser (Local Storage)
 
 *E-Mail an Veranstalter:innen bei neuen Nachrichten im ${CANDLE_ROOM_NAME}:*

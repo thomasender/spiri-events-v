@@ -4,6 +4,32 @@ Read this when you touch the chat (`/chat`, `ChatPage`, `useChat`, the admin tab
 `chat_*` collections, `functions/src/chat.ts`) or its privacy text.
 
 One room per active region for logged-in members with a verified e-mail. Plain text plus emoji.
+Guests read along without writing (below).
+
+## Guests read along (Trello 6af1955f)
+
+- **Who:** with flag mode `all`, visitors without login and signed-in people whose e-mail is not
+  verified yet see the "Lagerfeuer" nav link (`useChatAccess().readable`) and open `/chat`
+  read-only. Mode `admins` / `off`: nothing changes for them (no link, 404).
+- **Only messages marked for guests:** every message sent since then carries
+  `guestReadable: true` (`useChat.send`); the rules let guests read a message only with that
+  marker (`resource.data.get('guestReadable', false) == true`, only in mode `all`, only in an open
+  room). Older messages were written under "members only" and stay that way until the 10-day
+  purge; that is why there is a marker and not simply an open read rule. The guest query is
+  `where('guestReadable', '==', true)` + `orderBy('createdAt', 'desc')` (composite index on
+  `messages` in `firestore.indexes.json`; without it the guest view shows the load error).
+- **What guests do not get:** presence (no heartbeat, no listener; the rules deny it anyway),
+  member card (names are not clickable), reactions (pills visible but disabled), reports, delete,
+  the unread bubble and the rules dialog. Instead of the input: "Melde dich an, um im Lagerfeuer
+  mitzuschreiben" (link to `/login`, back to the room afterwards), or for unverified people the
+  "E-Mail bestätigen" button. Cooldown markers (`members/*`) have no read rule at all.
+- **What guests still see in the message doc** (rules cannot hide fields): `authorUid`,
+  `authorName`, `authorPhotoURL`, the `mentions` map (uid -> name) and the `reactions` map
+  (uid -> emoji), the same as in the public Kerzenraum.
+- **Members are told:** the page header says "Schreiben können alle Mitglieder, mitlesen können
+  alle" (mode `all`), and the chat rules name the new audience; their localStorage key was renamed
+  to `chatRulesAccepted2`, so everyone confirms them once more before writing.
+- `/chat` stays `noindex`. Privacy: Datenschutzerklärung section 14.
 
 ## One Lagerfeuer per region (Trello 6aef2dad)
 
@@ -45,15 +71,16 @@ eventId, roomId)` deletes there; the report mail says "im Chat „Lagerfeuer <Re
 ## Feature flag
 
 `app_settings/chat { mode: 'off' | 'admins' | 'all' }`, switched in Verwaltung -> Kommunikation -> Chat.
-A missing doc means off. `admins` lets only admins in (testing). **The rules enforce the flag**
-(`chatAccessible()`), the UI only hides the nav link / shows a 404. Turning it off hides the room
+A missing doc means off. `admins` lets only admins in (testing); `all` also lets guests read along
+(above). **The rules enforce the flag** (`chatAccessible()`, plus `chatMode() == 'all'` for the guest
+read), the UI only hides the nav link / shows a 404. Turning it off hides the room
 at once for everyone; messages stay until the purge.
 
 ## Data (all in `firestore.rules`, tests in `tests/rules/chat.rules.spec.ts`)
 
 | Path                                    | What                                                                                                                                                  |
 | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `chat_rooms/{room}/messages/{id}`       | `text, authorUid, authorName, authorPhotoURL, createdAt`, optional `reactions`, `mentions`. Text never edited.                                        |
+| `chat_rooms/{room}/messages/{id}`       | `text, authorUid, authorName, authorPhotoURL, createdAt`, optional `reactions`, `mentions`, `guestReadable` (only `true`). Text never edited.         |
 | `chat_rooms/{room}/members/{uid}`       | `lastMessageAt`: the cooldown marker                                                                                                                  |
 | `chat_rooms/{room}/presence/{uid}`      | heartbeat `displayName, photoURL, lastSeen` (who is at the fire)                                                                                      |
 | `chat_bans/{uid}`                       | `until` (far future = permanent), `reason`, `bannedBy`, `userName`                                                                                    |

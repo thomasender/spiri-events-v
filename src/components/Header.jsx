@@ -89,7 +89,8 @@ export default function Header() {
   const { count: unreadFeedbackCount } = useUnreadFeedbackCount(isAdmin);
   // Staff: new events in Review since the last visit (vX7TgrWN).
   const { count: newReviewCount } = useReviewNotifications(user?.uid, isStaff);
-  const { available: chatAvailable } = useChatAccess();
+  // Guests see the link too (mode 'all') and read along without writing (Trello 6af1955f).
+  const { available: chatAvailable, readable: chatReadable } = useChatAccess();
   // Only the person's own Lagerfeuer counts (one per region; `lagerfeuer` with one region).
   const chatRoom = useChatRoom(profile);
   const { count: chatUnread } = useChatUnread(
@@ -285,7 +286,7 @@ export default function Header() {
     </NavLink>
   );
 
-  const chatLink = chatAvailable && (
+  const chatLink = chatReadable && (
     <NavLink
       to="/chat"
       className={navClass}
@@ -465,7 +466,10 @@ export default function Header() {
           {logoutButton}
         </>
       ) : (
-        loggedOutLinks()
+        <>
+          {chatLink}
+          {loggedOutLinks()}
+        </>
       )}
     </>
   );
@@ -481,7 +485,7 @@ export default function Header() {
       <div className="nav-group nav-group--primary">
         {calendarLink}
         {directoryLink}
-        {user && chatLink}
+        {chatLink}
       </div>
       <div className="nav-group nav-group--actions">
         {user ? (

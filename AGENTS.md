@@ -196,7 +196,8 @@ two-line "read this when".
 
 Logged-in members with a verified e-mail chat in the "Lagerfeuer" (`/chat`; one room per active
 region, `lagerfeuer` = Vorarlberg's, only that one while fewer than two regions are active) behind the
-feature flag `app_settings/chat` (off / admins / all). Messages are deleted after 10 days.
+feature flag `app_settings/chat` (off / admins / all). With `all`, guests read along read-only (only
+messages marked `guestReadable`, no presence/member card). Messages are deleted after 10 days.
 Behind the same flag every approved event has a small "Kerzenraum" room (`event_chats/*`, readable
 without login, candle on calendar cards for new messages). The Kerzenraum behaves like the
 Lagerfeuer (send, delete, report, reactions, `@mentions`, older messages, member card), except
