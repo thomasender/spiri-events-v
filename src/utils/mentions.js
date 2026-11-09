@@ -25,14 +25,15 @@ export function foldName(value) {
 }
 
 // The "@que" before the caret, or null. The @ must start a word, so an e-mail
-// address ("a@b.at") never opens the list. Up to three words, because names have spaces.
+// address ("a@b.at") never opens the list. A bare "@" gives an empty query (the whole
+// list). Up to three words, because names have spaces.
 export function findMentionToken(text, caret = String(text ?? '').length) {
   const before = String(text ?? '').slice(0, caret);
   const at = before.lastIndexOf('@');
   if (at < 0) return null;
   if (at > 0 && !/\s/.test(before[at - 1])) return null;
   const query = before.slice(at + 1);
-  if (query.length === 0 || query.length > MENTION_QUERY_MAX) return null;
+  if (query.length > MENTION_QUERY_MAX) return null;
   if (/^\s|[\n@]|\s{2}/.test(query)) return null;
   if (query.trim().split(' ').length > 3) return null;
   return { start: at, end: caret, query };

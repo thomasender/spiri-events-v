@@ -155,7 +155,7 @@ exactly **one** Lagerfeuer; per-district fires were discussed and dropped (Trell
 
 ## @mentions (Lagerfeuer and Kerzenräume, never the Postfach)
 
-Typing `@` at the start of a word in the composer suggests people; the picked name goes into the text
+Typing `@` at the start of a word in the composer suggests people (a bare `@` lists everyone A–Z, max 20, in a scrolling list); the picked name goes into the text
 as `@Anna Maria` and into `mentions: { [uid]: name }` on the message. The text stays plain text; the
 map says which person a name means, so an `@Name` without an entry is never highlighted
 (`src/utils/mentions.js`, `splitMentions`). The composer only enables this with `mentionsEnabled`

@@ -3,14 +3,13 @@ import { db } from './firebase';
 import { foldQuery } from '../utils/mentions';
 
 // People who allow being mentioned ("Andere dürfen mich erwähnen" in the profile),
-// found by the start of their name. Reads the public `publicProfile` mirror only:
+// found by the start of their name (an empty start lists everyone, A to Z). Reads the public `publicProfile` mirror only:
 // `allowMentions` is the opt-in, `mentionName` the folded display name (lower case,
 // no accents; written by useProfile.save only while the opt-in is on), so the
 // prefix range below is case-insensitive. Needs the composite collection-group
 // index in firestore.indexes.json.
-export async function searchMentionableUsers(rawQuery, { limit: max = 6, excludeUid } = {}) {
+export async function searchMentionableUsers(rawQuery, { limit: max = 20, excludeUid } = {}) {
   const prefix = foldQuery(rawQuery);
-  if (prefix.length < 1) return [];
   const snapshot = await getDocs(
     query(
       collectionGroup(db, 'publicProfile'),

@@ -3,15 +3,15 @@ import { searchMentionableUsers } from '../lib/mentionSearch';
 
 const DEBOUNCE_MS = 150;
 
-// Debounced suggestions for the text after an "@". `query` null/empty or
-// `enabled` false gives []. Stale answers (typed on meanwhile) are dropped.
+// Debounced suggestions for the text after an "@" ("" lists everyone). `query` null
+// or `enabled` false gives []. Stale answers (typed on meanwhile) are dropped.
 export function useMentionSearch(query, { enabled = true, excludeUid } = {}) {
   const [results, setResults] = useState([]);
   const seq = useRef(0);
 
   useEffect(() => {
     const id = ++seq.current;
-    if (!enabled || !query) {
+    if (!enabled || query == null) {
       setResults([]);
       return undefined;
     }

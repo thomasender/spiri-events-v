@@ -57,7 +57,7 @@ export default function MessageComposer({
       : [];
   const emojiListOpen = suggestions.length > 0;
 
-  // "@ann" before the caret offers people who allow being mentioned.
+  // "@ann" (or just "@") before the caret offers people who allow being mentioned.
   const mentionToken = mentionsEnabled ? findMentionToken(draft, caret) : null;
   const mentionQuery =
     mentionToken && mentionToken.start !== dismissedAt ? mentionToken.query : null;
@@ -65,7 +65,7 @@ export default function MessageComposer({
     enabled: mentionsEnabled,
     excludeUid: selfUid,
   });
-  const mentionListOpen = Boolean(mentionQuery) && mentionResults.length > 0;
+  const mentionListOpen = mentionQuery !== null && mentionResults.length > 0;
 
   // Only one list at a time; mentions win.
   const suggestionsOpen = mentionListOpen || emojiListOpen;
@@ -73,6 +73,14 @@ export default function MessageComposer({
   const listId = mentionListOpen
     ? `${testIdPrefix}-mention-suggestions`
     : `${testIdPrefix}-emoji-suggestions`;
+
+  // Arrow keys move through a scrolling list: keep the active row in view.
+  useEffect(() => {
+    if (!suggestionsOpen) return;
+    document
+      .getElementById(`${listId}-${activeSuggestion}`)
+      ?.scrollIntoView?.({ block: 'nearest' });
+  }, [suggestionsOpen, listId, activeSuggestion]);
 
   // Desktop: the cursor is in the message field as soon as it exists. Not on
   // phones, where it would open the keyboard and cover the conversation.

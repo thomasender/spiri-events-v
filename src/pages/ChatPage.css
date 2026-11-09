@@ -240,6 +240,9 @@
   margin: 0;
   padding: var(--space-1);
   max-width: 420px;
+  max-height: min(280px, 40vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   background: var(--bg-calendar);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
