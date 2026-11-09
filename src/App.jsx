@@ -51,6 +51,7 @@ const ProfilePage = lazyWithReload(() => import('./pages/ProfilePage'));
 const ThemeEditorPage = lazyWithReload(() => import('./pages/ThemeEditorPage'));
 const PublicProfilePage = lazyWithReload(() => import('./pages/PublicProfilePage'));
 const AboutPage = lazyWithReload(() => import('./pages/AboutPage'));
+const FaqPage = lazyWithReload(() => import('./pages/FaqPage'));
 const DirectoryPage = lazyWithReload(() => import('./pages/DirectoryPage'));
 const FavoritesPage = lazyWithReload(() => import('./pages/FavoritesPage'));
 const SpendenPage = lazyWithReload(() => import('./pages/SpendenPage'));
@@ -191,6 +192,7 @@ function AppLayout() {
               <Route path="/regionen" element={<RegionsPage />} />
               <Route path="/favoriten" element={<FavoritesPage />} />
               <Route path="/ueber-uns" element={<AboutPage />} />
+              <Route path="/faq" element={<FaqPage />} />
               <Route path="/spenden" element={<SpendenPage />} />
               <Route path="/spenden/danke" element={<SpendenDankePage />} />
               <Route path="/auth-action" element={<AuthActionPage />} />

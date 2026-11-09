@@ -22,6 +22,9 @@ import '../components/DonorsList.css';
 import '../components/ContactFormModal.css';
 import '../pages/AboutPage.css';
 
+// FaqPage
+import '../pages/FaqPage.css';
+
 // DirectoryPage
 import '../pages/DirectoryPage.css';
 

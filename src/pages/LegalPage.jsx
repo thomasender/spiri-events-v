@@ -362,6 +362,7 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
 
 *Ihre Kontrolle:*
 - Sie können Privatnachrichten in Ihrem Postfach ausschalten, Mitglieder blockieren (die blockierte Person erfährt das nicht und kann Ihnen nicht mehr schreiben) und eigene Nachrichten jederzeit löschen. Gelöscht ist sie dann bei beiden Beteiligten
+- Das Team kann Mitgliedern Hinweise, zum Beispiel auf neue Funktionen, als Privatnachricht ins Postfach schicken. Sie kommen vom persönlichen Konto einer Administratorin bzw. eines Administrators, Antworten gehen nur an diese Person. Wer „keine Privatnachrichten“ eingestellt hat, erhält solche Hinweise nicht; eine E-Mail verschicken wir dazu nicht
 
 *Speicherdauer:*
 - Privatnachrichten werden automatisch nach 90 Tagen gelöscht

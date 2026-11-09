@@ -11,10 +11,28 @@ const state = vi.hoisted(() => ({
   members: [] as Record<string, unknown>[],
   updateMember: vi.fn(),
   memberEvents: [] as Record<string, unknown>[],
+  lists: [] as { id: string; name: string; memberUids: string[] }[],
+  messengerOpen: false,
+  broadcastCalls: [] as Record<string, unknown>[],
+  broadcastResult: vi.fn(),
 }));
 
 vi.mock('../../src/hooks/useAuth', () => ({
-  useAuth: () => ({ role: state.role, staffRegionIds: state.staffRegionIds }),
+  useAuth: () => ({
+    user: { uid: 'me' },
+    role: state.role,
+    staffRegionIds: state.staffRegionIds,
+  }),
+}));
+vi.mock('../../src/hooks/useChatSettings', () => ({
+  useMessengerAccess: () => ({ available: state.messengerOpen, mode: 'all', loading: false }),
+}));
+vi.mock('../../src/lib/firebase', () => ({
+  callable: (name: string) => async (data: Record<string, unknown>) => {
+    if (name !== 'adminSendBroadcastDm') throw new Error(`unexpected callable ${name}`);
+    state.broadcastCalls.push(data);
+    return { data: state.broadcastResult(data) };
+  },
 }));
 vi.mock('../../src/hooks/useAdminMembers', () => ({
   useAdminMembers: () => ({
@@ -27,7 +45,7 @@ vi.mock('../../src/hooks/useAdminMembers', () => ({
 }));
 vi.mock('../../src/hooks/useMemberLists', () => ({
   useMemberLists: () => ({
-    lists: [],
+    lists: state.lists,
     createList: vi.fn(),
     setMemberUids: vi.fn(),
     renameList: vi.fn(),
@@ -64,6 +82,10 @@ beforeEach(() => {
   state.staffRegionIds = [];
   state.updateMember.mockReset();
   state.memberEvents = [];
+  state.lists = [];
+  state.messengerOpen = false;
+  state.broadcastCalls = [];
+  state.broadcastResult.mockReset();
   state.members = [
     member('anna', { directoryRegions: ['Dornbirn'], directoryCategories: ['Yoga'] }),
     member('bernd', { directoryRegions: ['Bregenz'] }),
@@ -179,6 +201,126 @@ describe('MembersTab', () => {
   });
 });
 
+describe('MembersTab: Sammelnachricht', () => {
+  const dryRun = {
+    dryRun: true,
+    requested: 2,
+    sent: 1,
+    skipped: 1,
+    skipReasons: { no_direct_messages: 1 },
+    failed: 0,
+    broadcastId: null,
+    waitMs: 0,
+  };
+
+  it('counts the ticked members on the button, which is disabled without a choice', () => {
+    render(<MembersTab />);
+    const button = screen.getByTestId('members-broadcast');
+    expect(button).toBeDisabled();
+    expect(button).toHaveTextContent(/^Nachricht senden$/);
+    fireEvent.click(screen.getByLabelText('anna auswählen'));
+    expect(button).toBeEnabled();
+    expect(button).toHaveTextContent('Nachricht senden (1)');
+  });
+
+  it('uses the chosen list without ticks, and the ticked members win when both are set', async () => {
+    state.lists = [{ id: 'l1', name: 'Newsletter', memberUids: ['anna', 'bernd', 'carla'] }];
+    state.broadcastResult.mockReturnValue(dryRun);
+    render(<MembersTab />);
+    fireEvent.change(screen.getByLabelText('Liste wählen'), { target: { value: 'l1' } });
+    expect(screen.getByTestId('members-broadcast')).toHaveTextContent('Nachricht senden (3)');
+
+    fireEvent.click(screen.getByLabelText('bernd auswählen'));
+    expect(screen.getByTestId('members-broadcast')).toHaveTextContent('Nachricht senden (1)');
+    fireEvent.click(screen.getByTestId('members-broadcast'));
+    const dialog = screen.getByTestId('member-broadcast-dialog');
+    fireEvent.change(within(dialog).getByTestId('member-broadcast-text'), {
+      target: { value: 'Hallo' },
+    });
+    fireEvent.click(within(dialog).getByText('Weiter'));
+    await within(dialog).findByTestId('member-broadcast-summary');
+    expect(state.broadcastCalls[0]).toMatchObject({ recipientUids: ['bernd'], dryRun: true });
+  });
+
+  it('checks with a dry run first, then sends with the same request id and shows the result', async () => {
+    state.broadcastResult.mockImplementation((data: Record<string, unknown>) =>
+      data.dryRun ? dryRun : { ...dryRun, dryRun: false, broadcastId: 'me_x', sent: 1, skipped: 1 }
+    );
+    render(<MembersTab />);
+    fireEvent.click(screen.getByLabelText('anna auswählen'));
+    fireEvent.click(screen.getByLabelText('bernd auswählen'));
+    fireEvent.click(screen.getByTestId('members-broadcast'));
+    const dialog = screen.getByTestId('member-broadcast-dialog');
+    expect(within(dialog).getByText('Weiter')).toBeDisabled();
+
+    fireEvent.change(within(dialog).getByTestId('member-broadcast-text'), {
+      target: { value: 'Neu: das Postfach 🎉' },
+    });
+    expect(within(dialog).getByTestId('member-broadcast-counter')).toHaveTextContent(
+      '19 / 1000 Zeichen'
+    );
+    expect(within(dialog).getByLabelText('Vorschau')).toHaveTextContent('Neu: das Postfach 🎉');
+    fireEvent.click(within(dialog).getByText('Weiter'));
+
+    const summary = await within(dialog).findByTestId('member-broadcast-summary');
+    expect(summary).toHaveTextContent('Wird an 1 Mitglied gesendet, 1 übersprungen.');
+    expect(within(dialog).getByText('1 × möchte keine Privatnachrichten')).toBeInTheDocument();
+    expect(state.broadcastCalls).toHaveLength(1);
+    expect(state.broadcastCalls[0]).toMatchObject({
+      recipientUids: ['anna', 'bernd'],
+      text: 'Neu: das Postfach 🎉',
+      dryRun: true,
+    });
+
+    fireEvent.click(within(dialog).getByText('Jetzt an 1 Mitglied senden'));
+    expect(await within(dialog).findByTestId('member-broadcast-result')).toHaveTextContent(
+      'Gesendet an 1 Mitglied. 1 übersprungen.'
+    );
+    expect(state.broadcastCalls).toHaveLength(2);
+    expect(state.broadcastCalls[1]).toMatchObject({
+      recipientUids: ['anna', 'bernd'],
+      dryRun: false,
+    });
+    expect(state.broadcastCalls[1].requestId).toBe(state.broadcastCalls[0].requestId);
+  });
+
+  it('shows the refusal of the server, e.g. when the Postfach is not open for all', async () => {
+    state.broadcastResult.mockImplementation(() => {
+      throw Object.assign(
+        new Error('Das Postfach ist gerade nicht für alle Mitglieder freigeschaltet.'),
+        {
+          code: 'functions/failed-precondition',
+        }
+      );
+    });
+    render(<MembersTab />);
+    fireEvent.click(screen.getByLabelText('anna auswählen'));
+    fireEvent.click(screen.getByTestId('members-broadcast'));
+    const dialog = screen.getByTestId('member-broadcast-dialog');
+    fireEvent.change(within(dialog).getByTestId('member-broadcast-text'), {
+      target: { value: 'Hallo' },
+    });
+    fireEvent.click(within(dialog).getByText('Weiter'));
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent(
+      'nicht für alle Mitglieder freigeschaltet'
+    );
+    expect(within(dialog).queryByText(/Jetzt an/)).not.toBeInTheDocument();
+  });
+
+  it('offers a Nachricht link per member (not for yourself) when the Postfach is open', () => {
+    state.messengerOpen = true;
+    state.members = [member('anna'), member('me')];
+    render(
+      <MemoryRouter>
+        <MembersTab />
+      </MemoryRouter>
+    );
+    const links = screen.getAllByTestId('dm-link');
+    expect(links).toHaveLength(1);
+    expect(links[0]).toHaveAttribute('href', '/postfach/anna');
+  });
+});
+
 describe('MembersTab for a Regions-Moderator:in', () => {
   beforeEach(() => {
     state.role = 'RegionModerator';
@@ -214,6 +356,8 @@ describe('MembersTab for a Regions-Moderator:in', () => {
     expect(screen.queryByLabelText('Liste wählen')).not.toBeInTheDocument();
     expect(screen.queryByTestId('members-export-csv')).not.toBeInTheDocument();
     expect(screen.queryByText(/Neue Liste/)).not.toBeInTheDocument();
+    // Sending a Sammelnachricht stays with the Super-Admins.
+    expect(screen.queryByTestId('members-broadcast')).not.toBeInTheDocument();
     // The Vereinsmitgliedschaft stays with the Super-Admins.
     expect(headers).not.toContain('Verein');
     expect(screen.queryByTestId('member-club-toggle')).not.toBeInTheDocument();

@@ -744,6 +744,7 @@ export function generateSitemap(events, regions = null) {
     { url: '/', priority: '1.0', changefreq: 'daily' },
     { url: '/verzeichnis', priority: '0.6', changefreq: 'weekly' },
     { url: '/ueber-uns', priority: '0.5', changefreq: 'monthly' },
+    { url: '/faq', priority: '0.5', changefreq: 'monthly' },
     { url: '/datenschutz', priority: '0.3', changefreq: 'monthly' },
     { url: '/impressum', priority: '0.3', changefreq: 'monthly' },
     { url: '/nutzungsbedingungen', priority: '0.3', changefreq: 'monthly' },

@@ -40,6 +40,7 @@ import '../components/InstagramTab.css';
 import '../components/AnalyticsTab.css';
 import '../components/MailgunTab.css';
 import '../components/LedgerTab.css';
+import '../components/FaqTab.css';
 import '../components/EmailVerificationBanner.css';
 import '../components/EventStatusMismatchBanner.css';
 import '../components/ModerationTab.css';

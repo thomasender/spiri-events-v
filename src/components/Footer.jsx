@@ -48,6 +48,7 @@ export default function Footer() {
         <nav className="footer-nav" aria-label="Footer-Navigation">
           <DonateLink className="footer-donate-link" testId="footer-donate-link" />
           <Link to={aboutPath}>Über uns</Link>
+          <Link to="/faq">FAQ</Link>
           {showInstallLink && (
             <button
               type="button"
