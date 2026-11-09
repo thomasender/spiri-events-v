@@ -96,4 +96,16 @@ describe('MentionBell', () => {
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByTestId('mention-panel')).toBeNull();
   });
+
+  it("leads to the region's Lagerfeuer the message was written in", () => {
+    state.items = [
+      { ...lagerfeuer, roomId: 'tirol' },
+      { ...kerzenraum, id: 'm3', kind: 'lagerfeuer', roomId: 'lagerfeuer', messageId: 'm3' },
+    ];
+    renderBell();
+    fireEvent.click(screen.getByTestId('mention-bell'));
+    const [first, second] = screen.getAllByTestId('mention-item');
+    expect(first).toHaveAttribute('href', '/chat?raum=tirol#msg-m1');
+    expect(second).toHaveAttribute('href', '/chat?raum=lagerfeuer#msg-m3');
+  });
 });

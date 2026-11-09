@@ -66,7 +66,9 @@ describe('ChatTab reports', () => {
     expect(screen.getByTestId('chat-report-room')).toHaveTextContent('Lagerfeuer');
     fireEvent.click(screen.getByRole('button', { name: 'Nachricht löschen' }));
     fireEvent.click(screen.getByRole('button', { name: 'Löschen' }));
-    await waitFor(() => expect(state.deleteMessage).toHaveBeenCalledWith('m1', undefined));
+    await waitFor(() =>
+      expect(state.deleteMessage).toHaveBeenCalledWith('m1', undefined, undefined)
+    );
     expect(state.resolveReport).toHaveBeenCalledWith('m1_bob');
   });
 
@@ -79,6 +81,17 @@ describe('ChatTab reports', () => {
     expect(room.querySelector('a')).toHaveAttribute('href', '/event/ev1#msg-m1');
     fireEvent.click(screen.getByRole('button', { name: 'Nachricht löschen' }));
     fireEvent.click(screen.getByRole('button', { name: 'Löschen' }));
-    await waitFor(() => expect(state.deleteMessage).toHaveBeenCalledWith('m1', 'ev1'));
+    await waitFor(() => expect(state.deleteMessage).toHaveBeenCalledWith('m1', 'ev1', undefined));
+  });
+
+  it("names a region's Lagerfeuer, links to it and deletes in that room", async () => {
+    state.reports = [report({ roomId: 'tirol' })];
+    renderTab();
+    const room = screen.getByTestId('chat-report-room');
+    expect(room).toHaveTextContent('Lagerfeuer Tirol');
+    expect(room.querySelector('a')).toHaveAttribute('href', '/chat?raum=tirol#msg-m1');
+    fireEvent.click(screen.getByRole('button', { name: 'Nachricht löschen' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Löschen' }));
+    await waitFor(() => expect(state.deleteMessage).toHaveBeenCalledWith('m1', undefined, 'tirol'));
   });
 });

@@ -3,7 +3,44 @@
 Read this when you touch the chat (`/chat`, `ChatPage`, `useChat`, the admin tab "Chat",
 `chat_*` collections, `functions/src/chat.ts`) or its privacy text.
 
-One central room for logged-in members with a verified e-mail. Plain text plus emoji.
+One room per active region for logged-in members with a verified e-mail. Plain text plus emoji.
+
+## One Lagerfeuer per region (Trello 6aef2dad)
+
+- **Room ids:** Vorarlberg keeps `chat_rooms/lagerfeuer` (no migration, history stays); every
+  other region's room is `chat_rooms/{regionId}` (`chatRoomIdFor(regionId, regionMode)` in
+  `src/utils/chat.js`, `chatRoomRegionId` the other way round). `chat_rooms/vorarlberg` is never used.
+- **Dark launch:** with fewer than two active regions everything is as before: room
+  `lagerfeuer`, title "Lagerfeuer", no region name, no chooser (`resolveChatRoom` with
+  `regionMode` false). From two active regions on the title is "Lagerfeuer <Region>".
+- **Which room /chat shows** (`useChatRoom`, pure `resolveChatRoom`): `?raum=<roomId or regionId>`
+  if that is an open fire, else the person's own: region of the header place
+  (`placeSelection.regionId`, "Wo bist du?"), else of the Feuerplatz in the profile
+  (`regionForPosition`, Bundesland / Kanton / Liechtenstein outlines loaded on demand, so a
+  Feuerplatz in Germany gives none). Own region not open yet: hint "Das Lagerfeuer deiner Region
+  startet, sobald die Region online geht" plus the select of open fires; no region known at all:
+  "Wähle ein Lagerfeuer". The select ("Anderes Feuer") navigates to `/chat?raum=<id>`.
+- **Access is soft:** whoever has chat access reads and writes in every active fire
+  (`isChatRoom(roomId)` in the rules: `lagerfeuer` or a valid region id other than `vorarlberg`
+  whose `regions/{id}` doc is `active`). Own data in a room of a region switched off again stays
+  deletable (`isChatRoomId`, no `get`). Kerzenräume are unchanged.
+- **Moderation:** Regions-Moderator:innen may delete messages in their region's room
+  (`isRegionModeratorFor(chatRoomRegion(roomId))`, `lagerfeuer` counts as Vorarlberg; the
+  delete button shows for them only in region mode). Nothing else: no mute/ban, no reports.
+- **Unread bubble:** only the person's own room counts; seen marker per room
+  `lagerfeuerSeen:<uid>:<roomId>`, Vorarlberg's `lagerfeuer` keeps `lagerfeuerSeen:<uid>`.
+- **Reports** carry an optional `roomId` (set only for a region's room, absent = `lagerfeuer`);
+  the admin tab names "Lagerfeuer <Region>" with a link, `useChatAdmin.deleteMessage(messageId,
+eventId, roomId)` deletes there; the report mail says "im Chat „Lagerfeuer <Region>“" only with
+  two or more active regions.
+- **Logout / account deletion** clean presence, messages, reactions and markers in `lagerfeuer`
+  plus every active region's room (`chatRoomIdsToClean`; logout uses the regions this page
+  already loaded, account deletion also queries `regions where active == true`).
+- **Server:** `purgeChatMessages` walks `chat_rooms` with `listDocuments()` (room docs are never
+  written, only subcollections); `onLagerfeuerMention` listens on
+  `chat_rooms/{roomId}/messages/{messageId}` and stores `roomId` on the notification, the bell
+  links to `/chat?raum=<roomId>#msg-<id>` (old notices without `roomId`: `/chat#msg-<id>`).
+  The `@` search stays platform-wide.
 
 ## Feature flag
 
@@ -14,14 +51,14 @@ at once for everyone; messages stay until the purge.
 
 ## Data (all in `firestore.rules`, tests in `tests/rules/chat.rules.spec.ts`)
 
-| Path                                    | What                                                                                                              |
-| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `chat_rooms/lagerfeuer/messages/{id}`   | `text, authorUid, authorName, authorPhotoURL, createdAt`, optional `reactions`, `mentions`. Text never edited.    |
-| `chat_rooms/lagerfeuer/members/{uid}`   | `lastMessageAt`: the cooldown marker                                                                              |
-| `chat_rooms/lagerfeuer/presence/{uid}`  | heartbeat `displayName, photoURL, lastSeen` (who is at the fire)                                                  |
-| `chat_bans/{uid}`                       | `until` (far future = permanent), `reason`, `bannedBy`, `userName`                                                |
-| `chat_reports/{messageId}_{reporterId}` | copy of the reported text, `status` open/resolved, optional `eventId` (set = reported in that event's Kerzenraum) |
-| `chat_private/reportMail`               | server-only throttle for admin mails (no client rule, so denied)                                                  |
+| Path                                    | What                                                                                                                                                  |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `chat_rooms/{room}/messages/{id}`       | `text, authorUid, authorName, authorPhotoURL, createdAt`, optional `reactions`, `mentions`. Text never edited.                                        |
+| `chat_rooms/{room}/members/{uid}`       | `lastMessageAt`: the cooldown marker                                                                                                                  |
+| `chat_rooms/{room}/presence/{uid}`      | heartbeat `displayName, photoURL, lastSeen` (who is at the fire)                                                                                      |
+| `chat_bans/{uid}`                       | `until` (far future = permanent), `reason`, `bannedBy`, `userName`                                                                                    |
+| `chat_reports/{messageId}_{reporterId}` | copy of the reported text, `status` open/resolved, optional `eventId` (set = reported in that event's Kerzenraum) or `roomId` (a region's Lagerfeuer) |
+| `chat_private/reportMail`               | server-only throttle for admin mails (no client rule, so denied)                                                                                      |
 
 - **Rate limit (3 s)** lives in the rules: a message may only be created in the same batch that
   updates `members/{uid}.lastMessageAt` to `request.time`, and that update must be > 3 s after the
@@ -35,7 +72,7 @@ at once for everyone; messages stay until the purge.
   `dangerouslySetInnerHTML` here.
 - Admins moderate (delete any message, mute/ban). `isChatStaff()` is used instead of
   `isAdminOrEmulatorAdmin()` because the latter errors for users without a `role` claim.
-  Regions-Moderator:innen exist only on the regions epic; add them here when it merges.
+  Regions-Moderator:innen only delete messages in their region's Lagerfeuer (see above).
 
 ## Reactions (Lagerfeuer, Kerzenraum and Postfach)
 
@@ -85,9 +122,10 @@ size, revisit (e.g. aggregate in a function) if it grows to hundreds of concurre
 
 ## Unread bubble in the Header
 
-The green number on "Lagerfeuer" is the count of unread messages by others (`useChatUnread`, max "9+",
-hidden at 0), not the people online. One listener on the newest 10 messages; "seen" is per browser and
-person in localStorage (`lagerfeuerSeen:<uid>`, `markLagerfeuerSeen`). First visit on a browser starts
+The green number on "Lagerfeuer" is the count of unread messages by others in the person's own room
+(`useChatUnread`, max "9+", hidden at 0), not the people online. One listener on the newest 10 messages;
+"seen" is per browser, person and room in localStorage (`lagerfeuerSeen:<uid>` for `lagerfeuer`,
+`lagerfeuerSeen:<uid>:<roomId>` otherwise, `markLagerfeuerSeen`). First visit on a browser starts
 counting from now. While `/chat` is open everything counts as seen, so leaving resets to 0.
 
 ## Emoji picker and `:shortcodes`
@@ -106,8 +144,8 @@ desktop the message field is focused on entry (not on phones, the keyboard would
 ## Kerzenraum (one small room per event)
 
 Working title "Kerzenraum" (Peter does not love it yet): the name lives only in
-`CANDLE_ROOM_NAME` (`src/utils/candleRoom.js`); the privacy text interpolates it. There is still
-exactly **one** Lagerfeuer; per-district fires were discussed and dropped (Trello PaXpbpJe).
+`CANDLE_ROOM_NAME` (`src/utils/candleRoom.js`); the privacy text interpolates it. There is one
+Lagerfeuer per active region (above); per-district fires were discussed and dropped (Trello PaXpbpJe).
 
 - **Where:** a section at the bottom of the event detail page (`CandleRoom`), only for
   `status == 'approved'` events. One room per event doc, so all dates of a recurring event share it.
@@ -192,13 +230,13 @@ fromName, excerpt, read, createdAt }`. Only the server creates them (rules: no c
 
 ## Server (`functions/src/chat.ts`, pure logic in `chatLogic.ts`)
 
-- `purgeChatMessages` (daily 04:10 Vienna): messages and cooldown markers older than **10 days**,
+- `purgeChatMessages` (daily 04:10 Vienna): in every room of `chat_rooms`, messages and cooldown markers older than **10 days**,
   reports older than 30 days. Kerzenraum rooms whose last message is older than 10 days are deleted
   entirely, others lose their old messages and markers.
-- `onChatReportCreated`: mails the admins about a new report (Lagerfeuer or Event Chat, the latter
+- `onChatReportCreated`: mails the admins about a new report (Lagerfeuer, with region name in region mode, or Event Chat, the latter
   with the event title read from `events/{eventId}`), at most one mail per 15 minutes.
 - Account deletion (`useAuth.deleteAccount`) removes the user's messages, their reactions on other
-  messages and the cooldown marker, also in every Kerzenraum.
+  messages and the cooldown marker in `lagerfeuer` and every active region's room, also in every Kerzenraum.
 
 ## Privacy
 
@@ -206,5 +244,5 @@ Datenschutzerklärung Abschnitt 14 (+ 2, 3, 4 and 5); the Kerzenraum has its own
 
 ## Not built (ideas)
 
-Several Lagerfeuer rooms / region rooms, push, e-mail for the Lagerfeuer or for mentions. Presence would need a
+Push, e-mail for the Lagerfeuer or for mentions. Presence would need a
 heartbeat doc or Realtime Database; Firestore alone is a poor fit.
