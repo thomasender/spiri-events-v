@@ -2,7 +2,7 @@
  * Inviting Regions-Moderator:innen by e-mail (Trello 6ae5aa68; UI: tab
  * "Moderation" -> "Per E-Mail einladen", onboarding wizard on /einladung).
  *
- *   adminCreateModeratorInvite({ email, regionIds, sendEmail? })  Super-Admin
+ *   adminCreateModeratorInvite({ email | uid, regionIds, sendEmail? })  Super-Admin
  *   adminListModeratorInvites()                                  Super-Admin
  *   adminRevokeModeratorInvite({ inviteId })                     Super-Admin
  *   getModeratorInvite({ token })                                anyone (rate-limited)
@@ -21,6 +21,10 @@
  *   regions are kept: the new role is the union.
  * - Consents, typed name and text version are stored on the invite and in the
  *   `admin_audit_log` entry (via: 'invite'), never in admin_users.
+ * - This is the only way to become a NEW moderator (Trello 6af197a0):
+ *   "Moderator:in hinzufügen" passes the picked member's `uid`, the invite goes
+ *   to that account's Auth e-mail, and adminSetRegionModerator refuses to grant
+ *   the role to someone who is not a moderator yet.
  */
 import { createHash, randomBytes } from 'node:crypto';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
@@ -33,6 +37,7 @@ import { ALLOWED_ORIGINS } from './allowedOrigins';
 import {
   AUDIT_LOG_COLLECTION,
   assertNotSuperAdminUser,
+  assertTargetUid,
   hasSameModeratorRegions,
   moderatorRoleDoc,
   moderatorSnapshotOrRefuse,
@@ -237,10 +242,26 @@ export async function createModeratorInviteHandler(
 
   const data = (request.data ?? {}) as {
     email?: unknown;
+    uid?: unknown;
     regionIds?: unknown;
     sendEmail?: unknown;
   };
-  const email = normalizeInviteEmail(data.email);
+  // "Moderator:in hinzufügen" names a member by uid: the invite goes to the
+  // account's own (Auth) e-mail, which is what acceptModeratorInvite compares.
+  let existing: TargetUser | null;
+  let email: string;
+  if (data.uid !== undefined) {
+    const uid = assertTargetUid(data.uid);
+    existing = await deps.getUser(uid);
+    if (!existing) throw new HttpsError('not-found', 'No account with this uid.');
+    if (!existing.email) {
+      throw new HttpsError('failed-precondition', 'This account has no email address.');
+    }
+    email = normalizeInviteEmail(existing.email);
+  } else {
+    email = normalizeInviteEmail(data.email);
+    existing = null;
+  }
   const regionIds = validateModeratorRegionIds(data.regionIds);
   if (regionIds.length === 0) {
     throw new HttpsError('invalid-argument', 'Choose at least one region.');
@@ -248,7 +269,7 @@ export async function createModeratorInviteHandler(
   const sendEmail = data.sendEmail !== false;
 
   // An existing account with this address must not be a Super-Admin or the caller.
-  const existing = await deps.getUserByEmail(email);
+  existing ??= await deps.getUserByEmail(email);
   if (existing) {
     if (existing.uid === actorUid) {
       throw new HttpsError('failed-precondition', 'You cannot change your own role.');
@@ -290,6 +311,7 @@ export async function createModeratorInviteHandler(
           regionNames: regionNames(regionIds),
           inviteUrl,
           expiresAt: viennaDate(invite.expiresAtMs),
+          hasAccount: Boolean(existing),
         })
       );
       emailSent = true;

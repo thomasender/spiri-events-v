@@ -104,7 +104,19 @@ function RegionFieldset({ regionIds, onChange, firstFieldRef }) {
   );
 }
 
-function ModeratorDialog({ mode, moderator, moderatorUids, currentUid, onSave, onClose }) {
+// "Moderator:in hinzufügen" (pick a member) sends an invitation to the member's account
+// address: she shows up in the list only after finishing the onboarding (Trello 6af197a0).
+// "Regionen ändern" changes an existing moderator directly, as before.
+function ModeratorDialog({
+  mode,
+  moderator,
+  moderatorUids,
+  invitedEmails,
+  currentUid,
+  onSave,
+  onInvite,
+  onClose,
+}) {
   const isAdd = mode === 'add';
   const { members, loading: membersLoading, error: membersError } = useAdminMembers(isAdd);
   const [search, setSearch] = useState('');
@@ -112,6 +124,8 @@ function ModeratorDialog({ mode, moderator, moderatorUids, currentUid, onSave, o
   const [regionIds, setRegionIds] = useState(isAdd ? [] : moderator.regionIds);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [result, setResult] = useState(null);
+  const [copied, setCopied] = useState(false);
   const firstFieldRef = useRef(null);
 
   useEffect(() => {
@@ -141,6 +155,16 @@ function ModeratorDialog({ mode, moderator, moderatorUids, currentUid, onSave, o
     if (!canSave) return;
     setSaving(true);
     setError(null);
+    if (isAdd) {
+      try {
+        setResult(await onInvite(selected, regionIds));
+      } catch (err) {
+        setError(inviteAdminErrorMessage(err));
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
     try {
       await onSave(selected, regionIds);
     } catch (err) {
@@ -150,6 +174,45 @@ function ModeratorDialog({ mode, moderator, moderatorUids, currentUid, onSave, o
   };
 
   const titleId = 'moderation-dialog-title';
+
+  if (result) {
+    const name = personLabel(selected);
+    return (
+      <div className="moderation-dialog-backdrop" role="presentation">
+        <div
+          className="moderation-dialog"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          data-testid="moderation-dialog"
+        >
+          <h2 id={titleId}>Moderator:in hinzufügen</h2>
+          <p
+            className={result.emailSent ? 'moderation-notice' : 'moderation-error'}
+            role="status"
+            data-testid="moderation-add-result"
+          >
+            {result.emailSent
+              ? `${name} hat eine Einladung per E-Mail bekommen (gültig bis ${formatDay(result.expiresAt)}). Sobald die Einführung abgeschlossen ist, erscheint ${name} in der Liste der Moderator:innen.`
+              : `Die E-Mail an ${name} konnte nicht gesendet werden. Kopiere den Link und schick ihn selbst.`}
+          </p>
+          <div className="moderation-dialog-actions">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={async () => setCopied(await copyText(result.inviteUrl))}
+            >
+              <Link2 size={16} aria-hidden="true" />
+              <span>{copied ? 'Link kopiert' : 'Link kopieren'}</span>
+            </button>
+            <button type="button" className="btn btn-primary" onClick={onClose}>
+              Fertig
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="moderation-dialog-backdrop" role="presentation">
@@ -162,6 +225,13 @@ function ModeratorDialog({ mode, moderator, moderatorUids, currentUid, onSave, o
         data-testid="moderation-dialog"
       >
         <h2 id={titleId}>{isAdd ? 'Moderator:in hinzufügen' : 'Regionen ändern'}</h2>
+
+        {isAdd && (
+          <p className="moderation-hint">
+            Die Person bekommt zuerst eine E-Mail mit einer kurzen Einführung. Erst wenn sie diese
+            abgeschlossen und unterschrieben hat, wird sie Moderator:in der gewählten Regionen.
+          </p>
+        )}
 
         {isAdd ? (
           <div className="moderation-person-picker">
@@ -201,6 +271,8 @@ function ModeratorDialog({ mode, moderator, moderatorUids, currentUid, onSave, o
                 <ul className="moderation-results" aria-label="Suchergebnisse">
                   {results.map((m) => {
                     const reason = blockedReason(m, { currentUid, moderatorUids });
+                    const invited =
+                      !reason && Boolean(m.email) && invitedEmails?.has(m.email.toLowerCase());
                     return (
                       <li key={m.uid}>
                         <button
@@ -214,6 +286,9 @@ function ModeratorDialog({ mode, moderator, moderatorUids, currentUid, onSave, o
                             <span className="moderation-result-email">{m.email}</span>
                           )}
                           {reason && <span className="moderation-result-tag">{reason}</span>}
+                          {invited && (
+                            <span className="moderation-result-tag">Einladung offen</span>
+                          )}
                         </button>
                       </li>
                     );
@@ -253,7 +328,16 @@ function ModeratorDialog({ mode, moderator, moderatorUids, currentUid, onSave, o
             Abbrechen
           </button>
           <button type="submit" className="btn btn-primary" disabled={!canSave}>
-            {saving ? 'Wird gespeichert …' : 'Speichern'}
+            {isAdd ? (
+              <>
+                <Send size={16} aria-hidden="true" />
+                <span>{saving ? 'Wird gesendet …' : 'Einladung senden'}</span>
+              </>
+            ) : saving ? (
+              'Wird gespeichert …'
+            ) : (
+              'Speichern'
+            )}
           </button>
         </div>
       </form>
@@ -274,6 +358,9 @@ function inviteAdminErrorMessage(err) {
   }
   if (code === 'failed-precondition' && /own role/i.test(message)) {
     return 'Dich selbst kannst du nicht einladen.';
+  }
+  if (code === 'failed-precondition' && /no email/i.test(message)) {
+    return 'Dieses Konto hat keine E-Mail-Adresse. Lade die Person über „Per E-Mail einladen“ ein.';
   }
   if (code === 'not-found') return 'Diese Einladung gibt es nicht mehr.';
   return moderatorErrorMessage(err);
@@ -504,6 +591,10 @@ export default function ModerationTab() {
   const [newLinkInvite, setNewLinkInvite] = useState(null);
 
   const moderatorUids = useMemo(() => new Set(moderators.map((m) => m.uid)), [moderators]);
+  const invitedEmails = useMemo(
+    () => new Set(invitesApi.invites.filter((i) => !i.expired).map((i) => i.email)),
+    [invitesApi.invites]
+  );
 
   if (!isSuperAdmin) return null;
 
@@ -519,6 +610,13 @@ export default function ModerationTab() {
 
   const createInvite = async (email, regionIds, options) => {
     const result = await invitesApi.invite(email, regionIds, options);
+    setLinks((prev) => ({ ...prev, [result.inviteId]: result.inviteUrl }));
+    return result;
+  };
+
+  // "Moderator:in hinzufügen": the server sends the invitation to the member's account address.
+  const invitePerson = async (person, regionIds) => {
+    const result = await invitesApi.inviteMember(person.uid, regionIds);
     setLinks((prev) => ({ ...prev, [result.inviteId]: result.inviteUrl }));
     return result;
   };
@@ -648,7 +746,10 @@ export default function ModerationTab() {
       {!loading && !error && moderators.length === 0 && (
         <div className="moderation-empty" data-testid="moderation-empty">
           <ShieldCheck size={32} aria-hidden="true" />
-          <p>Noch keine Regions-Moderator:innen. Füge die erste Person hinzu.</p>
+          <p>
+            Noch keine Regions-Moderator:innen. Wer eingeladen wurde, erscheint hier, sobald die
+            Einführung abgeschlossen ist.
+          </p>
         </div>
       )}
       {!loading && !error && moderators.length > 0 && (
@@ -724,8 +825,10 @@ export default function ModerationTab() {
           mode={dialog.mode}
           moderator={dialog.moderator}
           moderatorUids={moderatorUids}
+          invitedEmails={invitedEmails}
           currentUid={user?.uid}
           onSave={save}
+          onInvite={invitePerson}
           onClose={() => setDialog(null)}
         />
       )}

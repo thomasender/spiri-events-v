@@ -71,8 +71,8 @@ _Test-Protokoll für die automatischen Benachrichtigungs-E-Mails, die beim Leben
 
 ## 5. „Einladung ins Moderations-Team" (an die eingeladene Person) und „Neue Moderator:in" (an Super-Admins)
 
-- **Wer löst aus:** Super-Admin in Verwaltung → „Moderation" → „Per E-Mail einladen" (oder „Erneut senden" in der Liste „Offene Einladungen")
-- **Empfänger:** die eingegebene Adresse (klein geschrieben)
+- **Wer löst aus:** Super-Admin in Verwaltung → „Moderation" → „Per E-Mail einladen" oder „Moderator:in hinzufügen" (Mitglied auswählen; seit Trello 6af197a0 auch eine Einladung, keine direkte Rolle) (oder „Erneut senden" in der Liste „Offene Einladungen")
+- **Empfänger:** die eingegebene Adresse (klein geschrieben); bei „Moderator:in hinzufügen" die Konto-Adresse des Mitglieds (Text dann „Melde dich dazu mit deinem bestehenden Konto an." statt „Hast du noch kein Konto …")
 - **Betreff:** `Einladung ins Moderations-Team vom Tribe {Region}` (mehrere Regionen: `Tribe A und Tribe B`)
 - **Inhalt:** Einladungstext + Button „Einladung annehmen" (Link `/einladung?t=<token>`, auf Staging zur Staging-Seite), „gilt bis {Datum}" (14 Tage), Hinweis auf die Adresse
 - **Danach:** Link öffnen → anmelden oder Konto anlegen (mit derselben Adresse) → Wizard durchklicken, Häkchen setzen, mit Namen unterschreiben → „Willkommen im Team!". Jetzt geht an **alle Super-Admins** je eine Mail `Neue Moderator:in: {Name} ({Tribe Region})` mit Button „Moderation ansehen".

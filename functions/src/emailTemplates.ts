@@ -858,6 +858,8 @@ export interface ModeratorInvitePayloadInput {
   inviteUrl: string;
   /** Last day the link works, YYYY-MM-DD (Vienna). */
   expiresAt: string;
+  /** The address already belongs to an account (e.g. "Moderator:in hinzufügen"). */
+  hasAccount?: boolean;
 }
 
 export function buildModeratorInvitePayload({
@@ -865,10 +867,14 @@ export function buildModeratorInvitePayload({
   regionNames,
   inviteUrl,
   expiresAt,
+  hasAccount = false,
 }: ModeratorInvitePayloadInput): EmailPayload {
   const tribe = tribeNames(regionNames);
   const link = escapeHtml(inviteUrl);
   const until = formatGermanDate(expiresAt);
+  const accountHint = hasAccount
+    ? 'Melde dich dazu mit deinem bestehenden Konto an.'
+    : 'Hast du noch kein Konto, kannst du es unterwegs anlegen.';
   const subject = `Einladung ins Moderations-Team vom ${tribe}`;
   const htmlBody = `
     <h1 style="${headingStyle(1)}">Du bist eingeladen! ❤️</h1>
@@ -887,14 +893,14 @@ export function buildModeratorInvitePayload({
       <a href="${link}" style="color:${COLOR_TEXT};text-decoration:underline;">${link}</a>
     </p>
     <p style="${mutedStyle()}">
-      Die Einladung gilt bis ${escapeHtml(until)} und nur für ein Konto mit dieser E-Mail-Adresse (${escapeHtml(recipient)}). Hast du noch kein Konto, kannst du es unterwegs anlegen.
+      Die Einladung gilt bis ${escapeHtml(until)} und nur für ein Konto mit dieser E-Mail-Adresse (${escapeHtml(recipient)}). ${accountHint}
     </p>`;
   const textBody =
     `Hallo,\n\n` +
     `wir laden dich herzlich ein, beim ${tribe} als Moderator:in mitzuwirken. Du hilfst mit, dass im Veranstaltungskalender ein Raum entsteht, in dem Menschen zusammenfinden, sich inspirieren und gemeinsam wachsen können.\n\n` +
     `Mit diesem Link kommst du zu einer kurzen Einführung in ein paar Schritten:\n\n` +
     `${inviteUrl}\n\n` +
-    `Die Einladung gilt bis ${until} und nur für ein Konto mit dieser E-Mail-Adresse (${recipient}). Hast du noch kein Konto, kannst du es unterwegs anlegen.`;
+    `Die Einladung gilt bis ${until} und nur für ein Konto mit dieser E-Mail-Adresse (${recipient}). ${accountHint}`;
   return {
     to: recipient,
     subject,
