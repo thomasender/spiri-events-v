@@ -189,40 +189,51 @@ describe('adminSetRegionModerator', () => {
     expect(w.audit).toEqual([]);
   });
 
-  it('grants, changes and revokes, with one audit entry per change', async () => {
+  it('never makes someone a NEW moderator: that needs an accepted invitation', async () => {
     const w = world();
-    const grant = await setRegionModeratorHandler(
-      call('admin', { uid: 'user', regionIds: ['steiermark', 'tirol'] }),
+    await expectCode(
+      setRegionModeratorHandler(call('admin', { uid: 'user', regionIds: ['tirol'] }), w.deps),
+      'failed-precondition',
+      /invitation/
+    );
+    expect(w.roleDocs.has('user')).toBe(false);
+    expect(w.writes()).toBe(0);
+  });
+
+  it('changes and revokes an existing moderator, with one audit entry per change', async () => {
+    const w = world();
+    const update = await setRegionModeratorHandler(
+      call('admin', { uid: 'mod', regionIds: ['steiermark', 'tirol'] }),
       w.deps
     );
-    expect(grant).toEqual({
-      uid: 'user',
+    expect(update).toEqual({
+      uid: 'mod',
       role: 'RegionModerator',
       regionIds: ['steiermark', 'tirol'],
       changed: true,
     });
-    expect(w.roleDocs.get('user')).toEqual({
+    expect(w.roleDocs.get('mod')).toEqual({
       role: 'RegionModerator',
       regionIds: ['steiermark', 'tirol'],
-      email: 'user@x.at',
+      email: 'mod@x.at',
       updatedBy: 'admin',
     });
 
-    await setRegionModeratorHandler(call('admin', { uid: 'user', regionIds: ['wien'] }), w.deps);
-    expect(w.roleDocs.get('user')?.regionIds).toEqual(['wien']);
+    await setRegionModeratorHandler(call('admin', { uid: 'mod', regionIds: ['wien'] }), w.deps);
+    expect(w.roleDocs.get('mod')?.regionIds).toEqual(['wien']);
 
     const revoke = await setRegionModeratorHandler(
-      call('admin2', { uid: 'user', regionIds: [] }),
+      call('admin2', { uid: 'mod', regionIds: [] }),
       w.deps
     );
-    expect(revoke).toEqual({ uid: 'user', role: null, regionIds: [], changed: true });
-    expect(w.roleDocs.has('user')).toBe(false);
+    expect(revoke).toEqual({ uid: 'mod', role: null, regionIds: [], changed: true });
+    expect(w.roleDocs.has('mod')).toBe(false);
 
     expect(w.audit.map((e) => [e.action, e.actorUid, e.before, e.after])).toEqual([
       [
-        'grantRegionModerator',
+        'updateRegionModerator',
         'admin',
-        null,
+        { role: 'RegionModerator', regionIds: ['tirol'] },
         { role: 'RegionModerator', regionIds: ['steiermark', 'tirol'] },
       ],
       [
@@ -233,9 +244,7 @@ describe('adminSetRegionModerator', () => {
       ],
       ['revokeRegionModerator', 'admin2', { role: 'RegionModerator', regionIds: ['wien'] }, null],
     ]);
-    expect(w.audit.every((e) => e.targetUid === 'user' && e.targetEmail === 'user@x.at')).toBe(
-      true
-    );
+    expect(w.audit.every((e) => e.targetUid === 'mod' && e.targetEmail === 'mod@x.at')).toBe(true);
   });
 
   it('is idempotent: same regions or revoking a non-moderator writes nothing', async () => {

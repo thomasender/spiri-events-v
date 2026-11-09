@@ -2,7 +2,7 @@
  * Super-Admin callables to manage Regions-Moderator:innen (ticket 18; UI: the
  * "Moderation" tab in the Verwaltung).
  *
- *   adminSetRegionModerator({ uid, regionIds })  grant / change / revoke ([])
+ *   adminSetRegionModerator({ uid, regionIds })  change / revoke ([]) an existing moderator
  *   adminListRegionModerators()                  current moderators
  *
  * Security model:
@@ -17,6 +17,11 @@
  *   holds trivially; demoting Admins is out of scope and stays a manual
  *   step via the Firebase console / a script).
  * - A caller can never target herself (no self-promotion, no self-lockout).
+ * - Nobody becomes a NEW moderator here (Trello 6af197a0): the role is granted
+ *   only once the person accepted an invitation and finished the onboarding
+ *   (moderatorInvites.ts). A uid without a moderator doc is refused with
+ *   failed-precondition 'invitation'. Existing moderators keep working as
+ *   before (change regions, revoke).
  * - Every effective change writes an `admin_audit_log` entry in the same
  *   transaction as the role change. A no-op (same regions, or revoking a
  *   non-moderator) writes nothing and reports `changed: false`.
@@ -219,10 +224,13 @@ export async function setRegionModeratorHandler(
     if (hasSameModeratorRegions(current, regionIds)) {
       return { uid, role: REGION_MODERATOR_ROLE, regionIds, changed: false };
     }
+    if (!current) {
+      throw new HttpsError('failed-precondition', 'New moderators need an invitation.');
+    }
 
     tx.setModerator(uid, { regionIds, email, updatedBy: actorUid as string });
     tx.addAuditEntry({
-      action: current ? 'updateRegionModerator' : 'grantRegionModerator',
+      action: 'updateRegionModerator',
       actorUid: actorUid as string,
       targetUid: uid,
       targetEmail: email,

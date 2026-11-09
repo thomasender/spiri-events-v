@@ -557,7 +557,10 @@ is a code change (see section 13).
   the prerender/sitemap yet.
 - `admin_users` is written only via the Admin SDK: callables
   `adminSetRegionModerator` / `adminListRegionModerators` (Super-Admin only,
-  audit entries in `admin_audit_log`; UI: tab "Moderation") or
+  audit entries in `admin_audit_log`; UI: tab "Moderation"; since Trello 6af197a0
+  `adminSetRegionModerator` only changes regions of / revokes an **existing** moderator and
+  refuses a uid without a moderator doc with failed-precondition "New moderators need an
+  invitation.") or
   `node scripts/promote-admin.mjs <email> --role RegionModerator --regions tirol,steiermark`
   (`--emulator` for local emulators, `--project tribe-vbg-staging` for staging
   with ADC; no flag = production via `scripts/service-account.json`; any other
@@ -587,7 +590,15 @@ is a code change (see section 13).
   the same account again gets `alreadyAccepted`). Consents and signature are stored on the
   invite and in the audit log, never in `admin_users`. Then the Super-Admins get a mail "Neue
   Moderator:in". Rules: `moderator_invites` is closed for every client
-  (`tests/rules/instagram.rules.spec.ts`). The direct way "Moderator:in hinzufügen" stays.
+  (`tests/rules/instagram.rules.spec.ts`).
+  **"Moderator:in hinzufügen" = invitation too (Trello 6af197a0):** picking a member sends
+  `adminCreateModeratorInvite({ uid, regionIds })`; the server takes the account's Auth e-mail
+  (no address: failed-precondition "no email", use "Per E-Mail einladen"), the mail says "Melde
+  dich dazu mit deinem bestehenden Konto an" (`hasAccount`). The person shows under "Offene
+  Einladungen" and enters the moderator list only after `acceptModeratorInvite`. Existing
+  moderators (also those added directly before this change) are not touched and need no
+  onboarding; "Regionen ändern" still works directly for them. `promote-admin.mjs` stays the
+  operator's bypass outside the app.
   **Region of the invitation (Trello f9bhbyUo):** `/einladung` has no region in its address,
   so the page lays the invited region over the header and texts (`usePageRegionContext`, like
   event pages; `inviteHomeRegionId`: an invited region the person already chose, else the first

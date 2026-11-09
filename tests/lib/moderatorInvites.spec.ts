@@ -249,6 +249,47 @@ describe('adminCreateModeratorInvite', () => {
     expect(w.mails).toHaveLength(2);
   });
 
+  it('invites a picked member by uid at her account address ("Moderator:in hinzufügen")', async () => {
+    const w = makeWorld({
+      roles: { boss: ADMIN },
+      users: { boss: { email: 'boss@tribe.at' }, anna: { email: 'Anna@X.at' }, nomail: {} },
+    });
+    const result = await createModeratorInviteHandler(
+      call('boss', { uid: 'anna', regionIds: ['tirol'] }),
+      w.deps
+    );
+    expect(result.emailSent).toBe(true);
+    expect(w.inviteDocs.get(result.inviteId)).toMatchObject({
+      email: 'anna@x.at',
+      regionIds: ['tirol'],
+      status: 'pending',
+    });
+    // No role yet: she becomes moderator only by accepting.
+    expect(w.roleDocs.has('anna')).toBe(false);
+    expect(w.mails[0].to).toBe('anna@x.at');
+    expect(w.mails[0].text).toContain('mit deinem bestehenden Konto an');
+    expect(w.mails[0].text).not.toContain('kannst du es unterwegs anlegen');
+
+    await expectCode(
+      createModeratorInviteHandler(call('boss', { uid: 'nomail', regionIds: ['tirol'] }), w.deps),
+      'failed-precondition',
+      /no email/
+    );
+    await expectCode(
+      createModeratorInviteHandler(call('boss', { uid: 'ghost', regionIds: ['tirol'] }), w.deps),
+      'not-found'
+    );
+    await expectCode(
+      createModeratorInviteHandler(call('boss', { uid: 'boss', regionIds: ['tirol'] }), w.deps),
+      'failed-precondition'
+    );
+    await expectCode(
+      createModeratorInviteHandler(call('boss', { uid: 'a/b', regionIds: ['tirol'] }), w.deps),
+      'invalid-argument'
+    );
+    expect(w.inviteDocs.size).toBe(1);
+  });
+
   it('keeps the invite when the mail fails, so the link can be copied', async () => {
     const w = makeWorld({ roles: { boss: ADMIN }, mailFails: true });
     const result = await createModeratorInviteHandler(

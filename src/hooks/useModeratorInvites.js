@@ -5,6 +5,8 @@ import { callable } from '../lib/firebase';
  * Super-Admin only: open moderator invitations (functions/src/moderatorInvites.ts).
  * `invite(email, regionIds, { sendEmail })` creates a new link (and revokes older open
  * ones for the same address); it resolves to { inviteId, inviteUrl, expiresAt, emailSent }.
+ * `inviteMember(uid, regionIds)` does the same for an existing member ("Moderator:in
+ * hinzufügen"): the server takes the account's own address.
  */
 export function useModeratorInvites(enabled) {
   const [invites, setInvites] = useState([]);
@@ -38,6 +40,15 @@ export function useModeratorInvites(enabled) {
     [load]
   );
 
+  const inviteMember = useCallback(
+    async (uid, regionIds) => {
+      const result = await callable('adminCreateModeratorInvite')({ uid, regionIds });
+      await load();
+      return result.data;
+    },
+    [load]
+  );
+
   const revoke = useCallback(
     async (inviteId) => {
       await callable('adminRevokeModeratorInvite')({ inviteId });
@@ -46,5 +57,5 @@ export function useModeratorInvites(enabled) {
     [load]
   );
 
-  return { invites, loading, error, reload: load, invite, revoke };
+  return { invites, loading, error, reload: load, invite, inviteMember, revoke };
 }
