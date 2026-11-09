@@ -27,6 +27,16 @@ vi.mock('../../src/hooks/useEvents', () => ({
   BEZIRKE: ['Bregenz', 'Dornbirn', 'Feldkirch', 'Bludenz', 'Grenznahe'],
 }));
 
+// No real Firestore listener (its late connection error used to be logged
+// after the worker closed, an unhandled error of the whole run).
+vi.mock('../../src/hooks/useProfile', () => ({
+  useProfile: () => ({ profile: null }),
+}));
+
+vi.mock('../../src/hooks/useOrganizerProfile', () => ({
+  useOrganizerProfile: () => ({ profile: null }),
+}));
+
 vi.mock('../../src/hooks/useCategories', () => ({
   useCategories: () => [
     'Yoga',

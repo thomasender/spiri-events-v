@@ -403,40 +403,83 @@ describe('events: owners cannot approve their own events', () => {
       );
     });
 
-    it('changing the content of an event that stays approved', async () => {
+    // Title, description, photos and the region are reviewed again (Trello 6af0678b).
+    it('changing a reviewed field of an event that stays approved', async () => {
+      const organizer = {
+        firstName: 'A',
+        lastName: 'B',
+        email: 'a@b.c',
+        photoURL: 'https://x/me.jpg',
+      };
       for (const patch of [
         { title: 'Neuer Titel' },
         { description: '<p>anders</p>' },
-        { date: '2026-12-24' },
-        { place: 'Woanders' },
-        { link: 'https://evil.example' },
-        { organizer: { firstName: 'X', lastName: 'Y', email: 'x@y' } },
-        { category: 'Yoga' },
+        { imageUrl: 'https://x/new.jpg' },
+        { imageThumbUrl: 'https://x/new-thumb.webp' },
+        { imageUrl: null, imageThumbUrl: null },
+        { regionId: 'tirol' },
+        { organizer: { ...organizer, photoURL: 'https://x/other.jpg' } },
+        { organizer: { ...organizer, photoURL: null } },
+        { organizer: { ...organizer, email: 'evil@x.y' } },
+        { organizer: { ...organizer, admin: true } },
+        { organizer: { ...organizer, firstName: 7 } },
+        { organizer: 'Mallory' },
         { title: 'Neuer Titel', instagramConsent: true },
-        { recurrence: 'weekly' },
+        { date: '2026-12-24', description: '<p>anders</p>' },
       ]) {
-        await seed('e', { status: 'approved', approvedBy: 'adminDoc', approvedAt: 1 });
+        await seed('e', {
+          status: 'approved',
+          approvedBy: 'adminDoc',
+          approvedAt: 1,
+          imageUrl: 'https://x/a.jpg',
+          imageThumbUrl: 'https://x/a-thumb.webp',
+          regionId: 'vorarlberg',
+          organizer,
+        });
         await assertFails(updateDoc(ownerRef('e'), { ...patch, status: 'approved', updatedAt: 1 }));
         await assertFails(updateDoc(ownerRef('e'), patch));
       }
     });
 
-    it('adding series dates to an approved event', async () => {
+    it('a reviewed field cannot be changed in a second step after a free edit', async () => {
       await seed('e', {
         status: 'approved',
-        recurrence: 'custom',
-        customDates: ['2026-11-01'],
-        recurrenceEndDate: '2026-12-31',
+        approvedBy: 'adminDoc',
+        approvedAt: 1,
+        date: '2026-11-01',
       });
-      await assertFails(updateDoc(ownerRef('e'), { customDates: ['2026-11-01', '2026-11-15'] }));
-      await assertFails(updateDoc(ownerRef('e'), { recurrenceEndDate: '2027-06-30' }));
-      await assertFails(updateDoc(ownerRef('e'), { recurrenceEndDate: '' }));
+      await assertSucceeds(
+        updateDoc(ownerRef('e'), { date: '2026-11-08', status: 'approved', updatedAt: 1 })
+      );
+      await assertFails(
+        updateDoc(ownerRef('e'), { title: 'Ganz anderes Event', status: 'approved', updatedAt: 2 })
+      );
+      await assertFails(updateDoc(ownerRef('e'), { description: '<p>Werbung</p>', updatedAt: 3 }));
+    });
+
+    it('free fields keep the value checks of every edit', async () => {
+      await seed('e', { status: 'approved', recurrence: 'custom', customDates: ['2026-11-01'] });
+      for (const patch of [
+        { registration: 'x'.repeat(301) },
+        { category: 'x'.repeat(41) },
+        { lat: 100, lng: 9 },
+        { customDates: '2026-11-08' },
+        { recurrenceEndDate: 20261231 },
+        { imageZoom: 5 },
+      ]) {
+        await assertFails(updateDoc(ownerRef('e'), { ...patch, status: 'approved', updatedAt: 1 }));
+      }
     });
 
     it('other verified users cannot touch the event at all', async () => {
       await seed('e', { status: 'pending' });
       const db = env.authenticatedContext('mallory', { email_verified: true }).firestore();
       await assertFails(updateDoc(doc(db, 'events/e'), { status: 'draft' }));
+      // Not even the fields its owner may change freely on an approved event.
+      await seed('e', { status: 'approved' });
+      await assertFails(updateDoc(doc(db, 'events/e'), { date: '2026-12-24' }));
+      await assertFails(updateDoc(doc(db, 'events/e'), { link: 'https://evil.example' }));
+      await assertFails(updateDoc(doc(anon().firestore(), 'events/e'), { date: '2026-12-24' }));
     });
   });
 
@@ -512,16 +555,94 @@ describe('events: owners cannot approve their own events', () => {
       }
     });
 
-    it('sets image focal point and zoom on an approved event', async () => {
+    it('sets image focal point and zoom on an approved event (a new cover needs a review)', async () => {
       await seed('e', { status: 'approved', imageUrl: 'https://x/a.jpg' });
       await assertSucceeds(
         updateDoc(ownerRef('e'), {
-          imageUrl: 'https://x/b.jpg',
           imageFocalPoint: { x: 0.2, y: 0.8 },
           imageZoom: 1.5,
           updatedAt: 1,
         })
       );
+      await assertFails(updateDoc(ownerRef('e'), { imageUrl: 'https://x/b.jpg', updatedAt: 2 }));
+    });
+
+    it('edits date, place, price, link, contact and organizer name; the event stays approved', async () => {
+      await seed('e', {
+        status: 'approved',
+        approvedBy: 'adminDoc',
+        approvedAt: 1,
+        date: '2026-11-01',
+        regionId: 'vorarlberg',
+        organizer: { name: 'Anna Muster', email: 'a@b.c', photoURL: 'https://x/me.jpg' },
+      });
+      // The diff EventForm sends (reviewEditChanges) plus lat / lng from useEvents.
+      await assertSucceeds(
+        updateDoc(ownerRef('e'), {
+          date: '2026-11-08',
+          time: '18:00',
+          endTime: '20:00',
+          endDate: '2026-11-09',
+          place: 'Neue Halle',
+          city: 'Hard',
+          bezirk: 'Bregenz',
+          isOnline: false,
+          regionId: 'vorarlberg',
+          lat: 47.48,
+          lng: 9.69,
+          contribution: 'fee',
+          fee: 25,
+          feeMax: 40,
+          priceCurrency: 'EUR',
+          feeNote: 'Abend',
+          firstSessionFree: true,
+          link: 'https://neu.example',
+          kontakt: '0664 123',
+          registration: 'Bitte anmelden',
+          category: 'Meditation',
+          organizer: {
+            firstName: 'Anna',
+            lastName: 'Neu',
+            email: 'a@b.c',
+            photoURL: 'https://x/me.jpg',
+          },
+          instagramConsent: true,
+          status: 'approved',
+          updatedAt: 1,
+        })
+      );
+      // Switching to an online event.
+      await assertSucceeds(
+        updateDoc(ownerRef('e'), {
+          isOnline: true,
+          city: '',
+          bezirk: '',
+          place: '',
+          lat: null,
+          lng: null,
+        })
+      );
+    });
+
+    it('extends a series: more custom dates, later or open end, other recurrence', async () => {
+      await seed('e', {
+        status: 'approved',
+        recurrence: 'custom',
+        customDates: ['2026-11-01'],
+        recurrenceEndDate: '2026-12-31',
+      });
+      await assertSucceeds(
+        updateDoc(ownerRef('e'), { customDates: ['2026-11-01', '2026-11-15'], updatedAt: 1 })
+      );
+      await assertSucceeds(
+        updateDoc(ownerRef('e'), {
+          recurrence: 'weekly',
+          recurrenceEndDate: '2027-06-30',
+          customDates: [],
+          updatedAt: 2,
+        })
+      );
+      await assertSucceeds(updateDoc(ownerRef('e'), { recurrenceEndDate: '', updatedAt: 3 }));
     });
 
     it('patches series exceptions and images on an approved event without touching status', async () => {
@@ -537,10 +658,11 @@ describe('events: owners cannot approve their own events', () => {
           updatedAt: 1,
         })
       );
-      await assertSucceeds(updateDoc(ownerRef('e'), { imageUrl: 'https://x/new.jpg' }));
+      // The own Instagram photo stays free; the cover photo needs a review.
       await assertSucceeds(
         updateDoc(ownerRef('e'), { instagramImage: { url: 'https://x/ig.jpg' } })
       );
+      await assertFails(updateDoc(ownerRef('e'), { imageUrl: 'https://x/new.jpg' }));
     });
 
     it('trashes (from any status) and restores to draft', async () => {
@@ -711,11 +833,11 @@ describe('events: cancelling an event or single dates (Abgesagt)', () => {
     await assertFails(updateDoc(ref(), { cancelledDates: [42] }));
   });
 
-  it('attack: cancelling does not open the door to content changes', async () => {
+  it('attack: cancelling does not open the door to reviewed changes', async () => {
     await seed({});
     await assertFails(updateDoc(ref(), { cancelled: true, title: 'Neuer Titel' }));
     await assertFails(
-      updateDoc(ref(), { cancelledDates: ['2026-11-08'], date: '2026-12-24', updatedAt: 1 })
+      updateDoc(ref(), { cancelledDates: ['2026-11-08'], description: 'x', updatedAt: 1 })
     );
   });
 
@@ -1029,9 +1151,9 @@ describe('events.regionId', () => {
     }),
     'series exception': () => ({ exceptionDates: arrayUnion('2026-11-09') }),
     'series end': () => ({ recurrenceEndDate: '2026-11-20' }),
-    // customDates may only shrink while an event stays approved.
     'custom series dates': () => ({ customDates: [], exceptionDates: [] }),
-    'image patch': () => ({ imageUrl: 'https://x/y.jpg', imageFocalPoint: { x: 0.2, y: 0.3 } }),
+    // A new cover (imageUrl) is only written once the event is pending again.
+    'image crop patch': () => ({ imageFocalPoint: { x: 0.2, y: 0.3 }, imageZoom: 1.2 }),
     'instagram image patch': () => ({ instagramImage: { url: 'https://x/y.jpg', zoom: 1 } }),
   };
   const adminOnlyUpdates: Record<string, () => Record<string, unknown>> = {

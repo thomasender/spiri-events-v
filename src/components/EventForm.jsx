@@ -71,6 +71,7 @@ import {
   resolveInstagramImage,
 } from '../utils/instagramImageChoice';
 import { REGISTRATION_MAX_LENGTH, KONTAKT_MAX_LENGTH } from '../utils/contactFormat';
+import { reviewEditChanges } from '../utils/eventReviewFields';
 import './EventForm.css';
 
 const INITIAL_STATE = {
@@ -289,9 +290,6 @@ export default function EventForm({ event }) {
     normalizeFocalPoint(event?.imageFocalPoint) ?? DEFAULT_FOCAL_POINT
   );
   const [imageRemoved, setImageRemoved] = useState(false);
-  // Baseline for "did the user change anything besides the Instagram settings?"
-  const [initialFormData] = useState(() => JSON.stringify(formData));
-  const [initialImageCrop] = useState(() => JSON.stringify([imageFocalPoint, imageZoom]));
 
   // Instagram photo + 4:5 crop. Works for every event, including old ones
   // that have no `instagramImage` yet; a stored URL that is neither the cover
@@ -359,15 +357,6 @@ export default function EventForm({ event }) {
   const isPending = event?.status === 'pending';
   const canDelete = isEdit && canDeleteEvent(user, event, role);
   const deleteReasonRequired = isEdit && requiresDeleteReason(user, event, role);
-  // Changing only the Instagram consent / photo of an approved event needs
-  // no new admin approval (product decision 52M1ujwr): it stays approved.
-  const onlyInstagramChanged =
-    isEdit &&
-    !imageFile &&
-    !imageRemoved &&
-    JSON.stringify(formData) === initialFormData &&
-    JSON.stringify([imageFocalPoint, imageZoom]) === initialImageCrop;
-  const needsReapproval = isEdit && wasApproved && !isAdmin && !onlyInstagramChanged;
 
   const getFormTitle = () => {
     if (isEdit) return 'Event bearbeiten';
@@ -832,7 +821,7 @@ export default function EventForm({ event }) {
     organizer: {
       firstName: splitOrganizerName(formData.organizer.name).firstName,
       lastName: splitOrganizerName(formData.organizer.name).lastName,
-      email: isEdit ? event.organizer.email : formData.organizer.email.trim(),
+      email: isEdit ? event.organizer?.email : formData.organizer.email.trim(),
       photoURL: resolveOrganizerPhotoURL({ isEdit, event, user, profile }),
     },
     kontakt: formData.kontakt.trim(),
@@ -845,6 +834,17 @@ export default function EventForm({ event }) {
     imageZoom: imageFile || imageRemoved || imageZoom <= MIN_IMAGE_ZOOM ? null : imageZoom,
     status,
   });
+
+  // An owner's edit of an approved event stays approved unless it touches
+  // the title, the description, a photo or the region (Trello 6af0678b;
+  // Instagram settings never need a review, product decision 52M1ujwr).
+  const reviewCheck =
+    isEdit && wasApproved && !isAdmin
+      ? reviewEditChanges(event, buildEventData(event.status), {
+          coverChanged: Boolean(imageFile) || imageRemoved,
+        })
+      : null;
+  const needsReapproval = Boolean(reviewCheck?.needsReview);
 
   const triggerWobble = (action) => {
     setWobblingAction(null);
@@ -881,12 +881,13 @@ export default function EventForm({ event }) {
       return;
     }
 
-    // An owner's approved event stays approved only for Instagram-only edits.
-    // Send just those fields: the security rules reject any other field change
-    // on an approved event, and the full form payload normalises fields (e.g.
-    // empty defaults on old events) that would count as changes.
-    if (wasApproved && !isAdmin) {
-      await saveEvent({ ...buildInstagramData(), status: 'approved' });
+    // An owner's approved event stays approved for edits outside the reviewed
+    // fields. Send just the changed fields plus the Instagram settings: the
+    // security rules reject a change of a reviewed field on an approved event,
+    // and the full form payload normalises fields (e.g. empty defaults on old
+    // events) that would count as changes.
+    if (reviewCheck) {
+      await saveEvent({ ...reviewCheck.patch, ...buildInstagramData(), status: 'approved' });
       return;
     }
     await saveEvent(buildEventData(event.status));
