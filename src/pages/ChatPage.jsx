@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ArrowDown, Flame } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
 import ChatMessage from '../components/chat/ChatMessage';
@@ -12,15 +13,20 @@ import ErrorPage from './ErrorPage';
 import { useAuth } from '../hooks/useAuth';
 import { useChat } from '../hooks/useChat';
 import { useChatAccess } from '../hooks/useChatSettings';
+import { useChatRoom } from '../hooks/useChatRoom';
+import { useRegion } from '../hooks/useRegion';
+import { useProfile } from '../hooks/useProfile';
 import { useChatHeartbeat, useChatPresence } from '../hooks/useChatPresence';
 import { useMessageJump } from '../hooks/useMessageJump';
 import {
   CHAT_RETENTION_DAYS,
+  chatRoomRegionId,
   describeOnline,
   describeChatBan,
   isChatBanActive,
 } from '../utils/chat';
 import { REACTION_FAILED } from '../utils/reactions';
+import { getStaffAccess } from '../utils/staffRoles';
 import './ChatPage.css';
 
 const RULES_KEY = 'chatRulesAccepted';
@@ -96,9 +102,14 @@ function WhoIsHere({ online, selfUid, onOpenMember }) {
   );
 }
 
-function ChatRoom() {
-  const { user, role } = useAuth();
+function ChatRoom({ roomId, regionMode }) {
+  const { user, role, staffRegionIds } = useAuth();
   const isAdmin = role === 'Admin';
+  // Regions-Moderator:innen delete messages in their region's Lagerfeuer (only with region rooms).
+  const canModerate =
+    isAdmin ||
+    (regionMode &&
+      getStaffAccess(role, staffRegionIds).canModerateRegion(chatRoomRegionId(roomId)));
   const {
     messages,
     loading,
@@ -111,7 +122,7 @@ function ChatRoom() {
     remove,
     report,
     react,
-  } = useChat();
+  } = useChat(roomId);
   const [notice, setNotice] = useState('');
   const [rulesAccepted, setRulesAccepted] = useState(readRulesAccepted);
   const [toDelete, setToDelete] = useState(null);
@@ -129,8 +140,8 @@ function ChatRoom() {
       stickToBottom.current = false;
     },
   });
-  useChatHeartbeat(true);
-  const { online } = useChatPresence(true);
+  useChatHeartbeat(true, roomId);
+  const { online } = useChatPresence(true, roomId);
 
   const banned = isChatBanActive(ban);
   const scrollToBottom = useCallback(() => {
@@ -262,7 +273,7 @@ function ChatRoom() {
               key={m.id}
               message={m}
               own={m.authorUid === user?.uid}
-              canDelete={m.authorUid === user?.uid || isAdmin}
+              canDelete={m.authorUid === user?.uid || canModerate}
               canReport={m.authorUid !== user?.uid}
               onDelete={setToDelete}
               onReport={setToReport}
@@ -350,15 +361,48 @@ function ChatRoom() {
   );
 }
 
+// "Anderes Feuer": every open fire (only with two or more active regions).
+function FireChooser({ room }) {
+  const navigate = useNavigate();
+  const id = useId();
+  if (room.choices.length < 2) return null;
+  return (
+    <div className="chat-fire-chooser" data-testid="chat-fire-chooser">
+      <label htmlFor={id}>{room.roomId ? 'Anderes Feuer:' : 'Offene Feuer:'}</label>
+      <select
+        id={id}
+        value={room.roomId ?? ''}
+        onChange={(e) => {
+          if (e.target.value) navigate(`/chat?raum=${encodeURIComponent(e.target.value)}`);
+        }}
+      >
+        {!room.roomId && <option value="">Bitte wählen…</option>}
+        {room.choices.map((c) => (
+          <option key={c.roomId} value={c.roomId}>
+            {c.roomId === room.ownRoomId ? `${c.name} (dein Feuer)` : c.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 export default function ChatPage() {
   const { user, loading: authLoading } = useAuth();
+  const { profile } = useProfile(user?.uid);
   const { available, loading: settingsLoading } = useChatAccess();
+  const room = useChatRoom(profile);
+  // Wait for the regions: with two active ones the room is a region's, not `lagerfeuer`.
+  const { loading: regionsLoading } = useRegion();
   const [verifyOpen, setVerifyOpen] = useState(false);
 
-  if (authLoading || settingsLoading) return <div className="loading-spinner"></div>;
+  if (authLoading || settingsLoading || regionsLoading) {
+    return <div className="loading-spinner"></div>;
+  }
   if (!available) return <ErrorPage type="not-found" redirectSeconds={5} />;
 
   const verified = Boolean(user?.emailVerified);
+  const regionMode = room.choices.length > 0;
 
   return (
     <>
@@ -367,15 +411,22 @@ export default function ChatPage() {
         <header className="chat-header">
           <Flame size={28} className="chat-header-icon" aria-hidden="true" />
           <div>
-            <h1>Lagerfeuer</h1>
+            <h1>{room.title}</h1>
             <p>
               Der Chat für alle Mitglieder. Nachrichten verschwinden nach {CHAT_RETENTION_DAYS}{' '}
               Tagen.
             </p>
           </div>
         </header>
-        {verified ? (
-          <ChatRoom />
+        {regionMode && <FireChooser room={room} />}
+        {verified && !room.roomId ? (
+          <p className="chat-state chat-no-room" data-testid="chat-no-room" role="status">
+            {room.ownRegionId
+              ? 'Das Lagerfeuer deiner Region startet, sobald die Region online geht. Bis dahin kannst du dich an eines der offenen Feuer setzen.'
+              : 'Wähle ein Lagerfeuer, an das du dich setzen möchtest.'}
+          </p>
+        ) : verified ? (
+          <ChatRoom key={room.roomId} roomId={room.roomId} regionMode={regionMode} />
         ) : (
           <div className="chat-state chat-unverified" data-testid="chat-unverified">
             <p>

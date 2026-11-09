@@ -42,6 +42,7 @@ export function useMentionNotifications(uid, enabled = true) {
               id: d.id,
               kind: ['event', 'donation'].includes(data.kind) ? data.kind : 'lagerfeuer',
               eventId: data.eventId ?? null,
+              roomId: typeof data.roomId === 'string' ? data.roomId : null,
               eventSlug: data.eventSlug ?? '',
               eventTitle: data.eventTitle ?? '',
               messageId: data.messageId ?? d.id,

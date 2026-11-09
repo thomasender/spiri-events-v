@@ -32,6 +32,8 @@ import {
   where,
 } from 'firebase/firestore';
 import { REACTION_EMOJIS } from '../utils/reactions';
+import { chatRoomIdsToClean } from '../utils/chat';
+import { knownActiveRegionIds } from './useRegions';
 import { splitProfileData } from '../utils/profile';
 import { revokeCalendarFeedToken } from './useCalendarFeedToken';
 import { findUniqueProfileSlug } from '../lib/slug';
@@ -198,12 +200,15 @@ export function isPasswordProviderUser(user) {
 
 // Removes the "who sits at the fire" and online-dot heartbeats before logging
 // out: once signed out the rules refuse the delete, and the person would stay
-// listed until the heartbeat goes stale. Capped so an offline logout (writes
-// wait for the server) never hangs.
-export async function dropHeartbeats(uid, waitMs = 2000) {
+// listed until the heartbeat goes stale. Every Lagerfeuer (`lagerfeuer` plus the
+// rooms of the active regions). Capped so an offline logout (writes wait for the
+// server) never hangs.
+export async function dropHeartbeats(uid, waitMs = 2000, activeRegionIds = knownActiveRegionIds()) {
   if (!uid) return;
   const deletes = Promise.allSettled([
-    deleteDoc(doc(db, 'chat_rooms', 'lagerfeuer', 'presence', uid)),
+    ...chatRoomIdsToClean(activeRegionIds).map((room) =>
+      deleteDoc(doc(db, 'chat_rooms', room, 'presence', uid))
+    ),
     deleteDoc(doc(db, 'presence', uid)),
   ]);
   let timer;
@@ -500,16 +505,29 @@ export function useAuth() {
     };
 
     try {
-      // Own chat messages and the cooldown marker (the messages would also be
-      // purged after 10 days, but a deleted account should not linger).
-      const chatMessages = await getDocs(
-        query(collection(db, 'chat_rooms', 'lagerfeuer', 'messages'), where('authorUid', '==', uid))
-      );
-      await Promise.all(chatMessages.docs.map((m) => deleteDoc(m.ref)));
-      await dropMyReactions(collection(db, 'chat_rooms', 'lagerfeuer', 'messages')).catch((err) =>
-        console.warn('Failed to delete chat reactions:', err)
-      );
-      await deleteDoc(doc(db, 'chat_rooms', 'lagerfeuer', 'members', uid));
+      // Own chat messages and the cooldown marker in every Lagerfeuer (`lagerfeuer` plus the
+      // rooms of the active regions; the messages would also be purged after 10 days, but a
+      // deleted account should not linger).
+      let activeIds = knownActiveRegionIds();
+      try {
+        const active = await getDocs(query(collection(db, 'regions'), where('active', '==', true)));
+        activeIds = [...new Set([...activeIds, ...active.docs.map((d) => d.id)])];
+      } catch (err) {
+        console.warn('Failed to load active regions for chat cleanup:', err);
+      }
+      for (const room of chatRoomIdsToClean(activeIds)) {
+        try {
+          const messages = collection(db, 'chat_rooms', room, 'messages');
+          const chatMessages = await getDocs(query(messages, where('authorUid', '==', uid)));
+          await Promise.all(chatMessages.docs.map((m) => deleteDoc(m.ref)));
+          await dropMyReactions(messages).catch((err) =>
+            console.warn('Failed to delete chat reactions:', err)
+          );
+          await deleteDoc(doc(db, 'chat_rooms', room, 'members', uid));
+        } catch (err) {
+          console.warn(`Failed to delete chat data in ${room}:`, err);
+        }
+      }
       // Private messages: own messages in every conversation, blocks, settings.
       const threads = await getDocs(
         query(collection(db, 'dm_threads'), where('participants', 'array-contains', uid))

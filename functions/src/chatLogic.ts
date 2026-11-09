@@ -24,11 +24,16 @@ function clean(value: unknown, max: number): string {
   return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, max) : '';
 }
 
+/**
+ * `roomName` = the region of the Lagerfeuer the message is in; only passed with two or more
+ * active regions (dark launch), otherwise the mail says "im Chat „Lagerfeuer“" as before.
+ */
 export function buildReportMail(
   report: { messageText?: unknown; messageAuthorName?: unknown; eventId?: unknown },
   openCount: number,
   adminUrl: string,
-  eventTitle?: string
+  eventTitle?: string,
+  roomName?: string
 ): { subject: string; text: string } {
   const author = clean(report.messageAuthorName, 80) || 'Unbekannt';
   const excerpt = clean(report.messageText, 200);
@@ -40,7 +45,9 @@ export function buildReportMail(
     ? title
       ? `im Event Chat zu „${title}“`
       : 'in einem Event Chat'
-    : 'im Chat „Lagerfeuer“';
+    : clean(roomName, 80)
+      ? `im Chat „Lagerfeuer ${clean(roomName, 80)}“`
+      : 'im Chat „Lagerfeuer“';
   return {
     subject: `Neue Meldung ${room}`,
     text: `Eine Nachricht von ${author} wurde ${room} gemeldet:\n\n„${excerpt}“${others}\n\nZur Moderation: ${adminUrl}`,

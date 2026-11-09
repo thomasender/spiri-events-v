@@ -40,6 +40,7 @@ import {
   shouldSendEventChatMail,
   viennaDay,
 } from './chatMailNotify';
+import { regionNameOf } from './regions';
 import {
   CHAT_RESOLVED_REPORT_RETENTION_DAYS,
   DM_RETENTION_DAYS,
@@ -57,7 +58,8 @@ if (getApps().length === 0) {
 }
 
 const REGION = 'europe-west3';
-const ROOM = 'lagerfeuer';
+// Vorarlberg's Lagerfeuer (the original room); other regions' rooms are chat_rooms/{regionId}.
+const LAGERFEUER_ROOM = 'lagerfeuer';
 const ADMIN_CHAT_URL = 'https://www.thetribe.at/admin?tab=chat';
 
 /** Deletes every doc of a query in chunks; returns how many were removed. */
@@ -163,18 +165,36 @@ export const purgeChatMessages = onSchedule(
       retentionCutoffMs(now, CHAT_RESOLVED_REPORT_RETENTION_DAYS)
     );
 
-    const messages = await deleteQuery(
-      db.collection(`chat_rooms/${ROOM}/messages`).where('createdAt', '<', messageCutoff)
-    );
-    const members = await deleteQuery(
-      db.collection(`chat_rooms/${ROOM}/members`).where('lastMessageAt', '<', messageCutoff)
-    );
-    // Heartbeats of closed tabs that never got to delete theirs.
-    const presence = await deleteQuery(
-      db
-        .collection(`chat_rooms/${ROOM}/presence`)
-        .where('lastSeen', '<', Timestamp.fromMillis(now - 24 * 60 * 60 * 1000))
-    );
+    // Every Lagerfeuer (one per region, Trello 6aef2dad): the room docs are never written,
+    // so listDocuments() (which also returns ids that only have subcollections) finds them.
+    let messages = 0;
+    let members = 0;
+    let presence = 0;
+    const roomRefs = await db.collection('chat_rooms').listDocuments();
+    if (!roomRefs.some((ref) => ref.id === LAGERFEUER_ROOM)) {
+      roomRefs.push(db.doc(`chat_rooms/${LAGERFEUER_ROOM}`));
+    }
+    for (const room of roomRefs) {
+      try {
+        messages += await deleteQuery(
+          room.collection('messages').where('createdAt', '<', messageCutoff)
+        );
+        members += await deleteQuery(
+          room.collection('members').where('lastMessageAt', '<', messageCutoff)
+        );
+        // Heartbeats of closed tabs that never got to delete theirs.
+        presence += await deleteQuery(
+          room
+            .collection('presence')
+            .where('lastSeen', '<', Timestamp.fromMillis(now - 24 * 60 * 60 * 1000))
+        );
+      } catch (err) {
+        logger.error('Failed to purge chat room', {
+          room: room.id,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
     const reports = await deleteQuery(
       db.collection('chat_reports').where('createdAt', '<', reportCutoff)
     );
@@ -215,6 +235,7 @@ export const purgeChatMessages = onSchedule(
       mentionNotices,
       dmMailMarkers,
       eventChatMailMarkers,
+      rooms: roomRefs.length,
       messages,
       members,
       presence,
@@ -269,7 +290,17 @@ export const onChatReportCreated = onDocumentCreated(
         logger.warn('Could not read event title for report mail', { eventId: data.eventId });
       }
     }
-    const mail = buildReportMail(data, open.data().count, ADMIN_CHAT_URL, eventTitle);
+    // A region's Lagerfeuer is named only with two or more active regions (dark launch).
+    let roomName: string | undefined;
+    if (typeof data.roomId === 'string' && data.roomId && data.roomId !== LAGERFEUER_ROOM) {
+      try {
+        const active = await db.collection('regions').where('active', '==', true).get();
+        if (active.size >= 2) roomName = regionNameOf(data.roomId) ?? undefined;
+      } catch (err) {
+        logger.warn('Could not read regions for report mail', { roomId: data.roomId });
+      }
+    }
+    const mail = buildReportMail(data, open.data().count, ADMIN_CHAT_URL, eventTitle, roomName);
     try {
       await notifyAdmins(mail.subject, mail.text);
     } catch (err) {
@@ -319,7 +350,8 @@ async function notifyMentions(
   kind: 'lagerfeuer' | 'event',
   eventId: string | null,
   messageId: string,
-  data: FirebaseFirestore.DocumentData | undefined
+  data: FirebaseFirestore.DocumentData | undefined,
+  roomId: string | null = null
 ): Promise<void> {
   if (!data) return;
   const authorUid = typeof data.authorUid === 'string' ? data.authorUid : '';
@@ -341,6 +373,8 @@ async function notifyMentions(
   const base = {
     kind,
     eventId,
+    // Lagerfeuer: the room, so the bell leads to /chat?raum=<roomId>#msg-<id>.
+    ...(kind === 'lagerfeuer' && roomId ? { roomId } : {}),
     eventSlug,
     eventTitle: eventTitle.slice(0, 200),
     messageId,
@@ -372,8 +406,15 @@ async function notifyMentions(
 }
 
 export const onLagerfeuerMention = onDocumentCreated(
-  { region: REGION, document: `chat_rooms/${ROOM}/messages/{messageId}` },
-  async (event) => notifyMentions('lagerfeuer', null, event.params.messageId, event.data?.data())
+  { region: REGION, document: 'chat_rooms/{roomId}/messages/{messageId}' },
+  async (event) =>
+    notifyMentions(
+      'lagerfeuer',
+      null,
+      event.params.messageId,
+      event.data?.data(),
+      event.params.roomId
+    )
 );
 
 export const onKerzenraumMention = onDocumentCreated(

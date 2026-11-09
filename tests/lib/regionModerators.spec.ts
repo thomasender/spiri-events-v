@@ -298,6 +298,26 @@ describe('adminSetRegionModerator', () => {
     );
     expect(w.writes()).toBe(0);
   });
+
+  it('revokes a moderator whose account was deleted; regions cannot be granted to it', async () => {
+    const w = makeWorld(
+      { admin: ADMIN, ghost: { role: 'RegionModerator', regionIds: ['tirol'], email: 'g@x.at' } },
+      users
+    );
+    await expectCode(
+      setRegionModeratorHandler(call('admin', { uid: 'ghost', regionIds: ['wien'] }), w.deps),
+      'not-found'
+    );
+    const revoke = await setRegionModeratorHandler(
+      call('admin', { uid: 'ghost', regionIds: [] }),
+      w.deps
+    );
+    expect(revoke).toEqual({ uid: 'ghost', role: null, regionIds: [], changed: true });
+    expect(w.roleDocs.has('ghost')).toBe(false);
+    expect(w.audit.map((e) => [e.action, e.targetUid, e.targetEmail])).toEqual([
+      ['revokeRegionModerator', 'ghost', 'g@x.at'],
+    ]);
+  });
 });
 
 describe('adminListRegionModerators', () => {
@@ -324,6 +344,7 @@ describe('adminListRegionModerators', () => {
         email: 'amy@x.at',
         displayName: 'AMY',
         disabled: false,
+        accountDeleted: false,
         regionIds: ['steiermark'],
         updatedAt: null,
       },
@@ -332,6 +353,7 @@ describe('adminListRegionModerators', () => {
         email: 'zed@x.at',
         displayName: 'ZED',
         disabled: false,
+        accountDeleted: false,
         regionIds: ['tirol', 'wien'],
         updatedAt: null,
       },
@@ -341,6 +363,24 @@ describe('adminListRegionModerators', () => {
       'permission-denied'
     );
     await expectCode(listRegionModeratorsHandler(call(null, {}), deps(roles)), 'unauthenticated');
+  });
+
+  it('marks moderators whose account was deleted (stored e-mail as fallback)', async () => {
+    const res = await listRegionModeratorsHandler(call('admin', {}), {
+      ...deps({
+        ...roles,
+        ghost: { role: 'RegionModerator', regionIds: ['tirol'], email: 'g@x.at' },
+      }),
+      getUsers: async (uids: string[]) =>
+        uids
+          .filter((uid) => uid !== 'ghost')
+          .map((uid) => ({ uid, email: `${uid}@x.at`, displayName: uid })),
+    });
+    expect(res.moderators.map((m) => [m.uid, m.email, m.accountDeleted])).toEqual([
+      ['amy', 'amy@x.at', false],
+      ['ghost', 'g@x.at', true],
+      ['zed', 'zed@x.at', false],
+    ]);
   });
 });
 

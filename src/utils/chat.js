@@ -1,6 +1,76 @@
 // Pure helpers of the community chat "Lagerfeuer" (docs/chat.md). No Firebase here.
 
-export const CHAT_ROOM_ID = 'lagerfeuer';
+// One Lagerfeuer per active region (Trello 6aef2dad). Vorarlberg keeps the original room id
+// `lagerfeuer` (no migration, the history stays); every other region's room is
+// `chat_rooms/{regionId}`. Dark launch: with fewer than two active regions there is only
+// `lagerfeuer`, as before.
+export const LAGERFEUER_ROOM_ID = 'lagerfeuer';
+const LAGERFEUER_REGION_ID = 'vorarlberg';
+
+/** Room id of a region's Lagerfeuer; outside region mode always `lagerfeuer`; null = no region. */
+export function chatRoomIdFor(regionId, regionMode) {
+  if (!regionMode) return LAGERFEUER_ROOM_ID;
+  if (typeof regionId !== 'string' || !regionId) return null;
+  return regionId === LAGERFEUER_REGION_ID ? LAGERFEUER_ROOM_ID : regionId;
+}
+
+/** The region a room belongs to (`lagerfeuer` is Vorarlberg's). */
+export function chatRoomRegionId(roomId) {
+  return roomId === LAGERFEUER_ROOM_ID ? LAGERFEUER_REGION_ID : roomId;
+}
+
+/**
+ * Which Lagerfeuer /chat shows. `activeRegions` are the active regions ({ id, name }),
+ * `ownRegionId` the person's region (header place, else the Feuerplatz; null = unknown),
+ * `requested` the `?raum=` of the address (room or region id). Access is soft: every active
+ * fire may be opened, the person's own is the default.
+ * Returns { roomId (null = none to show), regionId, title, ownRegionId, ownRoomId,
+ * ownRoomOpen, choices: [{ roomId, regionId, name }] }.
+ */
+export function resolveChatRoom({ regionMode, activeRegions = [], ownRegionId = null, requested }) {
+  if (!regionMode) {
+    return {
+      roomId: LAGERFEUER_ROOM_ID,
+      regionId: null,
+      title: 'Lagerfeuer',
+      ownRegionId: null,
+      ownRoomId: LAGERFEUER_ROOM_ID,
+      ownRoomOpen: true,
+      choices: [],
+    };
+  }
+  const choices = activeRegions.map((r) => ({
+    roomId: chatRoomIdFor(r.id, true),
+    regionId: r.id,
+    name: r.name || r.id,
+  }));
+  const own = choices.find((c) => c.regionId === ownRegionId) ?? null;
+  const asked =
+    typeof requested === 'string' && requested
+      ? (choices.find((c) => c.roomId === requested || c.regionId === requested) ?? null)
+      : null;
+  const shown = asked ?? own;
+  return {
+    roomId: shown?.roomId ?? null,
+    regionId: shown?.regionId ?? null,
+    title: shown ? `Lagerfeuer ${shown.name}` : 'Lagerfeuer',
+    ownRegionId: ownRegionId || null,
+    ownRoomId: own?.roomId ?? null,
+    ownRoomOpen: Boolean(own),
+    choices,
+  };
+}
+
+/** Rooms to clean up on logout / account deletion: `lagerfeuer` plus every active region's. */
+export function chatRoomIdsToClean(activeRegionIds = []) {
+  const ids = new Set([LAGERFEUER_ROOM_ID]);
+  for (const id of activeRegionIds) {
+    const room = chatRoomIdFor(id, true);
+    if (room) ids.add(room);
+  }
+  return [...ids];
+}
+
 export const CHAT_MAX_LENGTH = 500;
 export const CHAT_COOLDOWN_MS = 3000;
 export const CHAT_PAGE_SIZE = 50;
@@ -235,21 +305,27 @@ function seenStorage() {
   }
 }
 
+// Per person and room; Vorarlberg's `lagerfeuer` keeps the original key `lagerfeuerSeen:<uid>`.
+export function lagerfeuerSeenKey(uid, roomId = LAGERFEUER_ROOM_ID) {
+  const base = LAGERFEUER_SEEN_PREFIX + uid;
+  return !roomId || roomId === LAGERFEUER_ROOM_ID ? base : `${base}:${roomId}`;
+}
+
 // When this person last looked at the Lagerfeuer in this browser (ms), 0 if never.
-export function readLagerfeuerSeen(uid) {
+export function readLagerfeuerSeen(uid, roomId = LAGERFEUER_ROOM_ID) {
   try {
-    const value = Number(seenStorage()?.getItem(LAGERFEUER_SEEN_PREFIX + uid));
+    const value = Number(seenStorage()?.getItem(lagerfeuerSeenKey(uid, roomId)));
     return Number.isFinite(value) && value > 0 ? value : 0;
   } catch {
     return 0;
   }
 }
 
-export function markLagerfeuerSeen(uid, atMs) {
+export function markLagerfeuerSeen(uid, atMs, roomId = LAGERFEUER_ROOM_ID) {
   if (!uid || !atMs) return;
   try {
-    if (atMs > readLagerfeuerSeen(uid)) {
-      seenStorage()?.setItem(LAGERFEUER_SEEN_PREFIX + uid, String(atMs));
+    if (atMs > readLagerfeuerSeen(uid, roomId)) {
+      seenStorage()?.setItem(lagerfeuerSeenKey(uid, roomId), String(atMs));
     }
   } catch {
     // Private mode: the count just stays until the chat is opened again.

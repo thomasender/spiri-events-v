@@ -48,6 +48,11 @@ export function useRegions() {
   return { regions, loading: !loaded };
 }
 
+/** Ids of the active regions as far as this page knows them (no read; static register first). */
+export function knownActiveRegionIds() {
+  return (cached ?? STATIC_REGIONS).filter((r) => r.active).map((r) => r.id);
+}
+
 // Test helper.
 export function _resetRegionsCache() {
   cached = null;

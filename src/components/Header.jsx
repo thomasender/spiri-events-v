@@ -9,6 +9,7 @@ import { getStaffAccess } from '../utils/staffRoles';
 import { useChatAccess, useMessengerAccess } from '../hooks/useChatSettings';
 import { useThreads } from '../hooks/useMessenger';
 import { useChatUnread } from '../hooks/useChatUnread';
+import { useChatRoom } from '../hooks/useChatRoom';
 import EmailVerificationModal from './EmailVerificationModal';
 import AvatarImage from './AvatarImage';
 import { MemberBadgeFrame } from './MemberBadge';
@@ -89,10 +90,13 @@ export default function Header() {
   // Staff: new events in Review since the last visit (vX7TgrWN).
   const { count: newReviewCount } = useReviewNotifications(user?.uid, isStaff);
   const { available: chatAvailable } = useChatAccess();
+  // Only the person's own Lagerfeuer counts (one per region; `lagerfeuer` with one region).
+  const chatRoom = useChatRoom(profile);
   const { count: chatUnread } = useChatUnread(
     chatAvailable,
     user?.uid,
-    location.pathname.startsWith('/chat')
+    location.pathname.startsWith('/chat') && chatRoom.roomId === chatRoom.ownRoomId,
+    chatRoom.ownRoomId
   );
   const { available: messengerAvailable } = useMessengerAccess();
   const { unreadCount: dmUnread } = useThreads(messengerAvailable);

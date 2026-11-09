@@ -298,7 +298,7 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
       },
       {
         heading: `14. Community-Chat „Lagerfeuer“ und „${CANDLE_ROOM_NAME}“`,
-        text: `Angemeldete Nutzer:innen mit bestätigter E-Mail-Adresse können im Chat „Lagerfeuer“ mit anderen Mitgliedern schreiben. Der Chat steht nur mit Login zur Verfügung und ist nicht öffentlich im Internet sichtbar.
+        text: `Angemeldete Nutzer:innen mit bestätigter E-Mail-Adresse können im Chat „Lagerfeuer“ mit anderen Mitgliedern schreiben. Der Chat steht nur mit Login zur Verfügung und ist nicht öffentlich im Internet sichtbar. Sobald mehrere Regionen geöffnet sind, gibt es ein eigenes Lagerfeuer pro Region; voreingestellt ist das Lagerfeuer der Region, die Sie bei „Wo bist du?“ gewählt haben (ohne diese Wahl: die Region Ihres Feuerplatzes im Profil). Diese Zuordnung geschieht in Ihrem Browser, es wird dafür nichts zusätzlich gespeichert. Sie können sich auch an das Lagerfeuer einer anderen geöffneten Region setzen.
 
 *Welche Daten verarbeiten wir?*
 - Ihre Nachricht (Text und Emojis), der Zeitpunkt des Sendens, Ihr Anzeigename und Ihr Profilfoto (so wie in Ihrem Profil hinterlegt; ohne Foto wird der Anfangsbuchstabe Ihres Namens angezeigt) sowie eine interne Konto-Kennung
@@ -309,11 +309,11 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
 - Bei Sperren: die Dauer der Sperre und der Grund, den die Moderation vermerkt hat
 
 *Wer sieht Ihre Nachrichten?*
-- Alle angemeldeten Mitglieder mit bestätigter E-Mail-Adresse sowie die Administrator:innen. Schreiben Sie deshalb nichts, was nicht alle Mitglieder lesen sollen. Verschicken Sie keine sensiblen Daten, insbesondere keine Gesundheitsdaten (Art. 9 DSGVO), und keine personenbezogenen Daten anderer
+- Alle angemeldeten Mitglieder mit bestätigter E-Mail-Adresse sowie die Administrator:innen, und zwar in jedem Lagerfeuer, auch dem einer anderen Region. Schreiben Sie deshalb nichts, was nicht alle Mitglieder lesen sollen. Verschicken Sie keine sensiblen Daten, insbesondere keine Gesundheitsdaten (Art. 9 DSGVO), und keine personenbezogenen Daten anderer
 - Mitglieder können Nachrichten melden. Gemeldete Nachrichten und die Konto-Kennung der meldenden Person sehen nur die Administrator:innen. Bei einer neuen Meldung erhalten die Administrator:innen eine E-Mail
 
 *Moderation:*
-- Administrator:innen können Nachrichten löschen und Mitglieder für einen Zeitraum stumm schalten oder dauerhaft vom Chat ausschließen, etwa bei Beleidigungen, Spam, Hetze oder anderen Verstößen gegen die Chat-Regeln. Die Chat-Regeln werden beim ersten Betreten des Chats angezeigt; ob Sie sie bestätigt haben, speichern wir nur lokal in Ihrem Browser (Local Storage)
+- Administrator:innen können Nachrichten löschen und Mitglieder für einen Zeitraum stumm schalten oder dauerhaft vom Chat ausschließen, etwa bei Beleidigungen, Spam, Hetze oder anderen Verstößen gegen die Chat-Regeln. Regions-Moderator:innen können im Lagerfeuer ihrer Region Nachrichten löschen. Die Chat-Regeln werden beim ersten Betreten des Chats angezeigt; ob Sie sie bestätigt haben, speichern wir nur lokal in Ihrem Browser (Local Storage)
 
 *Speicherdauer:*
 - Chat-Nachrichten werden automatisch nach 10 Tagen gelöscht

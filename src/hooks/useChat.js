@@ -21,7 +21,7 @@ import { useProfile } from './useProfile';
 import {
   CHAT_MAX_LOADED,
   CHAT_PAGE_SIZE,
-  CHAT_ROOM_ID,
+  LAGERFEUER_ROOM_ID,
   chatAuthorName,
   chatPhotoUrl,
   cooldownRemainingMs,
@@ -29,8 +29,6 @@ import {
   validateChatText,
 } from '../utils/chat';
 import { sanitizeReactions } from '../utils/reactions';
-
-const messagesPath = ['chat_rooms', CHAT_ROOM_ID, 'messages'];
 
 function toMillis(value) {
   return value && typeof value.toMillis === 'function' ? value.toMillis() : null;
@@ -40,9 +38,10 @@ function isPermissionError(err) {
   return err?.code === 'permission-denied';
 }
 
-// Live messages of the chat room (newest `limit`, oldest first) plus send,
-// delete and report. The rules are the real gate; see firestore.rules.
-export function useChat() {
+// Live messages of the chat room `roomId` (`lagerfeuer` or a region id; null = none, no
+// listener) (newest `limit`, oldest first) plus send, delete and report. The rules are the
+// real gate; see firestore.rules.
+export function useChat(roomId = LAGERFEUER_ROOM_ID) {
   const { user } = useAuth();
   const { profile } = useProfile(user?.uid);
   const uid = user?.uid ?? null;
@@ -53,9 +52,10 @@ export function useChat() {
   const [windowSize, setWindowSize] = useState(CHAT_PAGE_SIZE);
   const [ban, setBan] = useState(null);
   const lastSentAt = useRef(0);
+  const messagesPath = useMemo(() => ['chat_rooms', roomId, 'messages'], [roomId]);
 
   useEffect(() => {
-    if (!uid) {
+    if (!uid || !roomId) {
       setMessages([]);
       setLoading(false);
       return undefined;
@@ -96,7 +96,7 @@ export function useChat() {
         setLoading(false);
       }
     );
-  }, [uid, windowSize]);
+  }, [uid, roomId, messagesPath, windowSize]);
 
   // Own mute/ban entry, so the input can explain why sending is blocked.
   useEffect(() => {
@@ -122,6 +122,7 @@ export function useChat() {
   const send = useCallback(
     async (raw, rawMentions) => {
       if (!user) throw new Error('Bitte melde dich an.');
+      if (!roomId) throw new Error('Wähle zuerst ein Lagerfeuer.');
       const checked = validateChatText(raw);
       const mentions = sanitizeMentions(rawMentions);
       if (!checked.ok) throw new Error(checked.error);
@@ -141,7 +142,7 @@ export function useChat() {
           ...(Object.keys(mentions).length > 0 ? { mentions } : {}),
           createdAt: serverTimestamp(),
         });
-        batch.set(doc(db, 'chat_rooms', CHAT_ROOM_ID, 'members', user.uid), {
+        batch.set(doc(db, 'chat_rooms', roomId, 'members', user.uid), {
           lastMessageAt: serverTimestamp(),
         });
         await batch.commit();
@@ -170,12 +171,15 @@ export function useChat() {
         setSending(false);
       }
     },
-    [user, authorName, authorPhotoURL]
+    [user, roomId, messagesPath, authorName, authorPhotoURL]
   );
 
-  const remove = useCallback(async (messageId) => {
-    await deleteDoc(doc(db, ...messagesPath, messageId));
-  }, []);
+  const remove = useCallback(
+    async (messageId) => {
+      await deleteDoc(doc(db, ...messagesPath, messageId));
+    },
+    [messagesPath]
+  );
 
   // One reaction per person: `emoji` replaces mine, null removes it.
   const react = useCallback(
@@ -187,7 +191,7 @@ export function useChat() {
         emoji ?? deleteField()
       );
     },
-    [uid]
+    [uid, messagesPath]
   );
 
   const report = useCallback(
@@ -199,11 +203,13 @@ export function useChat() {
         messageAuthorUid: message.authorUid,
         messageAuthorName: String(message.authorName).slice(0, 80),
         reportedBy: user.uid,
+        // Only for a region's room; a report without it is from `lagerfeuer` (as before).
+        ...(roomId && roomId !== LAGERFEUER_ROOM_ID ? { roomId } : {}),
         status: 'open',
         createdAt: serverTimestamp(),
       });
     },
-    [user]
+    [user, roomId]
   );
 
   return useMemo(

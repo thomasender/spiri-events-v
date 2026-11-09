@@ -11,7 +11,7 @@ import { db } from '../lib/firebase';
 import { useAuth } from './useAuth';
 import { useProfile } from './useProfile';
 import {
-  CHAT_ROOM_ID,
+  LAGERFEUER_ROOM_ID,
   PRESENCE_BEAT_MS,
   PRESENCE_TICK_MS,
   chatAuthorName,
@@ -19,21 +19,21 @@ import {
   onlineMembers,
 } from '../utils/chat';
 
-// Live list of the people who have the chat open right now. Pass `enabled`
-// false (chat closed for this person) to skip the listener entirely.
-export function useChatPresence(enabled) {
+// Live list of the people who have the Lagerfeuer `roomId` open right now. Pass `enabled`
+// false (chat closed for this person) or no room to skip the listener entirely.
+export function useChatPresence(enabled, roomId = LAGERFEUER_ROOM_ID) {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(Boolean(enabled));
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    if (!enabled) {
+    if (!enabled || !roomId) {
       setEntries([]);
       setLoading(false);
       return undefined;
     }
     return onSnapshot(
-      collection(db, 'chat_rooms', CHAT_ROOM_ID, 'presence'),
+      collection(db, 'chat_rooms', roomId, 'presence'),
       (snap) => {
         setEntries(
           snap.docs.map((d) => {
@@ -54,7 +54,7 @@ export function useChatPresence(enabled) {
         setLoading(false);
       }
     );
-  }, [enabled]);
+  }, [enabled, roomId]);
 
   // Heartbeats that stop (closed tab) must drop out without a new snapshot.
   useEffect(() => {
@@ -68,8 +68,8 @@ export function useChatPresence(enabled) {
 }
 
 // Keeps the signed-in person listed as present while the chat page is open
-// and visible. Errors are ignored on purpose: presence is a nicety.
-export function useChatHeartbeat(active) {
+// and visible, in the room shown (`roomId`). Errors are ignored on purpose: presence is a nicety.
+export function useChatHeartbeat(active, roomId = LAGERFEUER_ROOM_ID) {
   const { user } = useAuth();
   const { profile } = useProfile(user?.uid);
   const uid = user?.uid ?? null;
@@ -77,8 +77,8 @@ export function useChatHeartbeat(active) {
   const photoURL = chatPhotoUrl(profile?.photoURL || user?.photoURL);
 
   useEffect(() => {
-    if (!active || !uid) return undefined;
-    const ref = doc(db, 'chat_rooms', CHAT_ROOM_ID, 'presence', uid);
+    if (!active || !uid || !roomId) return undefined;
+    const ref = doc(db, 'chat_rooms', roomId, 'presence', uid);
     const beat = () => {
       if (document.visibilityState === 'hidden') return;
       setDoc(ref, { displayName: name, photoURL, lastSeen: serverTimestamp() }).catch(() => {});
@@ -103,5 +103,5 @@ export function useChatHeartbeat(active) {
       window.removeEventListener('pagehide', leave);
       leave();
     };
-  }, [active, uid, name, photoURL]);
+  }, [active, uid, roomId, name, photoURL]);
 }

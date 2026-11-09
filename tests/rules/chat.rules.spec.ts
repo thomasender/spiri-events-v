@@ -288,6 +288,153 @@ describe('chat messages: deleting', () => {
   });
 });
 
+describe('one Lagerfeuer per region', () => {
+  async function setRegion(id: string, active: boolean) {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), `regions/${id}`), { active });
+    });
+  }
+
+  async function sendIn(db: Firestore, room: string, uid: string) {
+    const batch = writeBatch(db);
+    batch.set(doc(collection(db, `chat_rooms/${room}/messages`)), messageData(uid));
+    batch.set(doc(db, `chat_rooms/${room}/members/${uid}`), { lastMessageAt: serverTimestamp() });
+    return batch.commit();
+  }
+
+  beforeEach(async () => {
+    await setRegion('vorarlberg', true);
+    await setRegion('tirol', true);
+    await setRegion('wien', false);
+  });
+
+  it('an active region has its own room: read, write and presence', async () => {
+    const db = verified('bob').firestore();
+    await assertSucceeds(getDocs(collection(db, 'chat_rooms/tirol/messages')));
+    await assertSucceeds(sendIn(db, 'tirol', 'bob'));
+    await assertSucceeds(
+      setDoc(doc(db, 'chat_rooms/tirol/presence/bob'), {
+        displayName: 'Bob',
+        photoURL: null,
+        lastSeen: serverTimestamp(),
+      })
+    );
+    await assertSucceeds(getDocs(collection(db, 'chat_rooms/tirol/presence')));
+  });
+
+  it('refuses the room of an inactive or unknown region, and "vorarlberg" (that is "lagerfeuer")', async () => {
+    const db = verified('bob').firestore();
+    for (const room of ['wien', 'bayern', 'vorarlberg', 'oesterreich']) {
+      await assertFails(getDocs(collection(db, `chat_rooms/${room}/messages`)));
+      await assertFails(sendIn(db, room, 'bob'));
+    }
+    // A region without a doc counts as inactive.
+    await assertFails(getDocs(collection(db, 'chat_rooms/steiermark/messages')));
+  });
+
+  it('"lagerfeuer" keeps working, also with region docs around', async () => {
+    const db = verified('bob').firestore();
+    await assertSucceeds(getDocs(collection(db, 'chat_rooms/lagerfeuer/messages')));
+    await assertSucceeds(sendIn(db, 'lagerfeuer', 'bob'));
+  });
+
+  it("still needs the flag and no ban in a region's room", async () => {
+    await setMode('off');
+    await assertFails(
+      getDocs(collection(verified('bob').firestore(), 'chat_rooms/tirol/messages'))
+    );
+    await setMode('all');
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'chat_bans/bob'), {
+        until: Timestamp.fromMillis(Date.now() + 60_000),
+        reason: '',
+        bannedBy: 'adminDoc',
+      });
+    });
+    await assertFails(sendIn(verified('bob').firestore(), 'tirol', 'bob'));
+  });
+
+  describe('Regions-Moderator:in', () => {
+    beforeEach(async () => {
+      await env.withSecurityRulesDisabled(async (ctx) => {
+        const db = ctx.firestore();
+        await setDoc(doc(db, 'admin_users/modTirol'), {
+          role: 'RegionModerator',
+          regionIds: ['tirol'],
+        });
+        await setDoc(doc(db, 'admin_users/modVbg'), {
+          role: 'RegionModerator',
+          regionIds: ['vorarlberg'],
+        });
+        await setDoc(doc(db, 'chat_rooms/tirol/messages/t1'), {
+          text: 'Servus',
+          authorUid: 'alice',
+          authorName: 'Alice',
+          createdAt: Timestamp.now(),
+        });
+      });
+    });
+
+    it("deletes messages in her own region's room only", async () => {
+      const mod = verified('modTirol').firestore();
+      await assertFails(deleteDoc(doc(mod, 'chat_rooms/lagerfeuer/messages/m1')));
+      await assertSucceeds(deleteDoc(doc(mod, 'chat_rooms/tirol/messages/t1')));
+    });
+
+    it('Vorarlberg\'s room is "lagerfeuer"', async () => {
+      const mod = verified('modVbg').firestore();
+      await assertFails(deleteDoc(doc(mod, 'chat_rooms/tirol/messages/t1')));
+      await assertSucceeds(deleteDoc(doc(mod, 'chat_rooms/lagerfeuer/messages/m1')));
+    });
+
+    it('gets no other new right: no mute/ban, no reports', async () => {
+      const mod = verified('modTirol').firestore();
+      await assertFails(
+        setDoc(doc(mod, 'chat_bans/alice'), {
+          until: Timestamp.fromMillis(Date.now() + 60_000),
+          reason: '',
+          bannedBy: 'modTirol',
+        })
+      );
+      await assertFails(getDocs(collection(mod, 'chat_reports')));
+    });
+  });
+
+  it('own data in the room of a region switched off again stays deletable', async () => {
+    const db = verified('bob').firestore();
+    await sendIn(db, 'tirol', 'bob');
+    await setRegion('tirol', false);
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'chat_rooms/tirol/messages/own'), {
+        text: 'x',
+        authorUid: 'bob',
+        authorName: 'Bob',
+        createdAt: Timestamp.now(),
+      });
+    });
+    await assertSucceeds(deleteDoc(doc(db, 'chat_rooms/tirol/messages/own')));
+    await assertSucceeds(deleteDoc(doc(db, 'chat_rooms/tirol/members/bob')));
+    await assertFails(getDocs(collection(db, 'chat_rooms/tirol/messages')));
+  });
+
+  it('a report may name the region room it comes from', async () => {
+    const db = verified('bob').firestore();
+    const report = (roomId: unknown) => ({
+      messageId: 't1',
+      messageText: 'Servus',
+      messageAuthorUid: 'alice',
+      messageAuthorName: 'Alice',
+      reportedBy: 'bob',
+      status: 'open',
+      createdAt: serverTimestamp(),
+      roomId,
+    });
+    await assertFails(setDoc(doc(db, 'chat_reports/t1_bob'), report(42)));
+    await assertFails(setDoc(doc(db, 'chat_reports/t1_bob'), report('bayern')));
+    await assertSucceeds(setDoc(doc(db, 'chat_reports/t1_bob'), report('tirol')));
+  });
+});
+
 describe('chat messages: reactions', () => {
   const path = 'chat_rooms/lagerfeuer/messages/m1';
   const react = (db: Firestore, uid: string, emoji: string | null) =>

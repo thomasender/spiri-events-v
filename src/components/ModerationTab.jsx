@@ -660,22 +660,25 @@ export default function ModerationTab() {
                 {m.email && m.displayName && (
                   <span className="moderation-card-email">{m.email}</span>
                 )}
+                {m.accountDeleted && <span className="moderation-result-tag">Konto gelöscht</span>}
                 {m.disabled && <span className="moderation-result-tag">Konto gesperrt</span>}
               </div>
               <RegionChips regionIds={m.regionIds} />
               <div className="moderation-card-actions">
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => {
-                    setNotice(null);
-                    setDialog({ mode: 'edit', moderator: m });
-                  }}
-                  aria-label={`Regionen von ${personLabel(m)} ändern`}
-                >
-                  <Pencil size={14} aria-hidden="true" />
-                  <span>Regionen ändern</span>
-                </button>
+                {!m.accountDeleted && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => {
+                      setNotice(null);
+                      setDialog({ mode: 'edit', moderator: m });
+                    }}
+                    aria-label={`Regionen von ${personLabel(m)} ändern`}
+                  >
+                    <Pencil size={14} aria-hidden="true" />
+                    <span>Regionen ändern</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   className="btn btn-subtle-danger btn-sm"

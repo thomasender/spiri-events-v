@@ -8,6 +8,7 @@ type Moderator = {
   email: string | null;
   displayName: string;
   disabled: boolean;
+  accountDeleted?: boolean;
   regionIds: string[];
   updatedAt: string | null;
 };
@@ -275,6 +276,31 @@ describe('ModerationTab', () => {
     await waitFor(() => expect(state.setCalls).toEqual([{ uid: 't', regionIds: [] }]));
     expect(await screen.findByTestId('moderation-empty')).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent('Tina ist keine Moderator:in mehr');
+  });
+
+  it('marks a moderator whose account was deleted and still lets you revoke the role', async () => {
+    state.moderators = [
+      {
+        uid: 'gone',
+        email: 'gone@x.at',
+        displayName: '',
+        disabled: false,
+        accountDeleted: true,
+        regionIds: ['tirol'],
+        updatedAt: null,
+      },
+    ];
+    render(<ModerationTab />);
+    const row = await screen.findByTestId('moderation-row');
+    expect(row).toHaveTextContent('Konto gelöscht');
+    expect(within(row).queryByRole('button', { name: /Regionen von/ })).not.toBeInTheDocument();
+    fireEvent.click(within(row).getByRole('button', { name: 'Rolle von gone@x.at entziehen' }));
+    const confirm = screen
+      .getAllByRole('button', { name: 'Rolle entziehen' })
+      .find((b) => b.classList.contains('confirm-confirm')) as HTMLElement;
+    fireEvent.click(confirm);
+    await waitFor(() => expect(state.setCalls).toEqual([{ uid: 'gone', regionIds: [] }]));
+    expect(await screen.findByTestId('moderation-empty')).toBeInTheDocument();
   });
 
   it('renders nothing for moderators and organizers', () => {
