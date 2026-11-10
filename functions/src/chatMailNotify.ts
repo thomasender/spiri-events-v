@@ -95,8 +95,7 @@ export type ChatMailSkipReason =
   | 'recipient_inactive'
   | 'recipient_no_email'
   | 'recipient_unverified'
-  | 'empty_text'
-  | 'broadcast';
+  | 'empty_text';
 
 export type ChatMailDecision = { send: true } | { send: false; reason: ChatMailSkipReason };
 
@@ -117,8 +116,6 @@ function accountReason(
 export interface DmMailInput {
   /** app_settings/messenger mode. */
   mode: unknown;
-  /** Set on messages of an admin's Sammelnachricht (adminBroadcast.ts): they never mail. */
-  broadcastId?: unknown;
   recipientIsAdmin: boolean;
   authorUid: string;
   /** dmRecipientUid(); null = the author is not a participant. */
@@ -137,7 +134,6 @@ export interface DmMailInput {
 
 /** Whether a new private message may trigger a mail; the throttle is checked afterwards. */
 export function decideDmMail(input: DmMailInput): ChatMailDecision {
-  if (isBroadcastMessage({ broadcastId: input.broadcastId })) return skip('broadcast');
   if (input.mode !== 'all' && input.mode !== 'admins') return skip('flag_off');
   if (!input.recipientUid) return skip('invalid_thread');
   if (input.recipientUid === input.authorUid) return skip('self');
@@ -152,15 +148,6 @@ export function decideDmMail(input: DmMailInput): ChatMailDecision {
   // The Postfach needs a verified address, so an unverified one could not open the link.
   if (input.recipient?.emailVerified !== true) return skip('recipient_unverified');
   return { send: true };
-}
-
-/**
- * A message written by adminSendBroadcastDm. The Sammelnachricht deliberately
- * sends no e-mail (product decision), so the mail trigger stops on it before
- * reading anything else.
- */
-export function isBroadcastMessage(data: { broadcastId?: unknown } | undefined | null): boolean {
-  return typeof data?.broadcastId === 'string' && data.broadcastId.length > 0;
 }
 
 export type BroadcastSkipReason =

@@ -35,7 +35,6 @@ import {
   dmRecipientUid,
   eventChatUrl,
   isBanActive,
-  isBroadcastMessage,
   shouldSendDmMail,
   shouldSendEventChatMail,
   viennaDay,
@@ -542,11 +541,6 @@ async function mailDirectMessage(
 ): Promise<void> {
   const authorUid = readText(data?.authorUid) ?? '';
   if (!data || !authorUid) return;
-  // An admin's Sammelnachricht never mails (adminBroadcast.ts).
-  if (isBroadcastMessage(data)) {
-    logger.info('Direct message mail skipped', { threadId, messageId, reason: 'broadcast' });
-    return;
-  }
   const db = getFirestore();
   const mode = (await db.doc('app_settings/messenger').get()).get('mode');
   if (mode !== 'all' && mode !== 'admins') return;
@@ -570,7 +564,6 @@ async function mailDirectMessage(
     ]);
   const decision = decideDmMail({
     mode,
-    broadcastId: data.broadcastId,
     recipientIsAdmin,
     authorUid,
     recipientUid,
