@@ -91,6 +91,7 @@ vi.mock('../../src/hooks/useChatUnread', () => ({
 }));
 
 beforeEach(() => {
+  window.localStorage.clear();
   mockAuth.user = null;
   mockAuth.canCreateEvents = true;
   mockAuth.role = null;
@@ -1509,5 +1510,30 @@ describe('Header Kalender / Verzeichnis keep the chosen region (gflD7CXa)', () =
     expect(hrefs('Kalender')).toContain('/niederoesterreich');
     expect(hrefs('Kalender')).not.toContain('/');
     expect(hrefs('Verzeichnis').every((h) => h === '/niederoesterreich/verzeichnis')).toBe(true);
+  });
+});
+
+describe('Header Lagerfeuer hint', () => {
+  const renderChatHeader = () => {
+    mockAuth.user = { uid: 'test-uid' };
+    mockChat.available = true;
+    return render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+  };
+
+  it('highlights the Lagerfeuer link until it was clicked once, then never again', () => {
+    const { container, unmount } = renderChatHeader();
+    expect(screen.getAllByTestId('chat-new-hint').length).toBeGreaterThan(0);
+    expect(container.querySelector('a[href="/chat"]')?.className).toContain('nav-link--hint');
+
+    fireEvent.click(screen.getAllByTestId('nav-chat')[0]);
+    expect(screen.queryByTestId('chat-new-hint')).toBeNull();
+    unmount();
+
+    renderChatHeader();
+    expect(screen.queryByTestId('chat-new-hint')).toBeNull();
   });
 });

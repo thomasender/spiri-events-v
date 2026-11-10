@@ -10,6 +10,7 @@ import { useChatAccess, useMessengerAccess } from '../hooks/useChatSettings';
 import { useThreads } from '../hooks/useMessenger';
 import { useChatUnread } from '../hooks/useChatUnread';
 import { useChatRoom } from '../hooks/useChatRoom';
+import { useNavHint } from '../hooks/useNavHint';
 import EmailVerificationModal from './EmailVerificationModal';
 import AvatarImage from './AvatarImage';
 import { MemberBadgeFrame } from './MemberBadge';
@@ -93,6 +94,7 @@ export default function Header() {
   const { available: chatAvailable, readable: chatReadable } = useChatAccess();
   // Only the person's own Lagerfeuer counts (one per region; `lagerfeuer` with one region).
   const chatRoom = useChatRoom(profile);
+  const chatHint = useNavHint('lagerfeuer');
   const { count: chatUnread } = useChatUnread(
     chatAvailable,
     user?.uid,
@@ -289,8 +291,13 @@ export default function Header() {
   const chatLink = chatReadable && (
     <NavLink
       to="/chat"
-      className={navClass}
-      onClick={closeMenu}
+      className={(state) =>
+        chatHint.active ? `${navClass(state)} nav-link--hint` : navClass(state)
+      }
+      onClick={() => {
+        chatHint.dismiss();
+        closeMenu();
+      }}
       data-testid="nav-chat"
       aria-label={
         chatUnread > 0
@@ -311,6 +318,11 @@ export default function Header() {
         )}
       </span>
       <span>Lagerfeuer</span>
+      {chatHint.active && (
+        <span className="nav-link-new" data-testid="chat-new-hint" aria-hidden="true">
+          Neu
+        </span>
+      )}
     </NavLink>
   );
 
