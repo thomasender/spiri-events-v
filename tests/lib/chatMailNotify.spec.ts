@@ -10,7 +10,6 @@ import {
   dmRecipientUid,
   eventChatUrl,
   isBanActive,
-  isBroadcastMessage,
   parseDmThreadId,
   shouldSendDmMail,
   shouldSendEventChatMail,
@@ -112,19 +111,12 @@ describe('decideDmMail', () => {
     expect(decideDmMail(dm())).toEqual({ send: true });
   });
 
-  it('never mails a message of an admin Sammelnachricht, before any other check', () => {
-    expect(decideDmMail(dm({ broadcastId: 'admin_req12345' }))).toEqual({
-      send: false,
-      reason: 'broadcast',
-    });
-    expect(decideDmMail(dm({ broadcastId: 'admin_req12345', mode: 'off' }))).toEqual({
-      send: false,
-      reason: 'broadcast',
-    });
-    expect(decideDmMail(dm({ broadcastId: '' }))).toEqual({ send: true });
-    expect(isBroadcastMessage({ broadcastId: 'x' })).toBe(true);
-    expect(isBroadcastMessage({ text: 'Hallo', authorUid: 'alice' })).toBe(false);
-    expect(isBroadcastMessage(undefined)).toBe(false);
+  it('mails a Sammelnachricht message like any other (same switch)', () => {
+    const over = { broadcastId: 'admin_req12345' } as Partial<DmMailInput>;
+    expect(decideDmMail(dm(over))).toEqual({ send: true });
+    expect(decideDmMail(dm({ ...over, prefEnabled: false }))).toEqual(
+      decideDmMail(dm({ prefEnabled: false }))
+    );
   });
 
   it.each([

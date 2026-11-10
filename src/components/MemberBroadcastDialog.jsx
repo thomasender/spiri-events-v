@@ -94,8 +94,9 @@ export default function MemberBroadcastDialog({ recipientUids, sourceLabel, onCl
       >
         <h2>Nachricht an {members(recipientUids.length)}</h2>
         <p className="members-dialog-hint">
-          {sourceLabel} Die Nachricht kommt von deinem Konto ins Postfach der Mitglieder, ohne
-          E-Mail. Antworten landen in deinem Postfach.
+          {sourceLabel} Die Nachricht kommt von deinem Konto ins Postfach der Mitglieder. Wer
+          E-Mail-Benachrichtigungen für neue Nachrichten an hat, bekommt auch eine E-Mail. Antworten
+          landen in deinem Postfach.
         </p>
 
         {step === 'compose' && (
