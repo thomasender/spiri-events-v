@@ -1476,7 +1476,13 @@ export async function prerender({
 
   if (jsBundlePath && cssBundlePath) {
     const calendarHtml = generateCalendarPageHtml(events, jsBundlePath, cssBundlePath, theme, regions)
-    fs.writeFileSync(path.join(distPath, 'index.html'), calendarHtml)
+    // TEMPORARY (2026-11-10): see public/redirect-heute.js. Injected here, not in the
+    // generator, so the golden hash of generateCalendarPageHtml stays untouched.
+    const withTempRedirect = calendarHtml.replace(
+      '<meta charset="UTF-8" />',
+      '<meta charset="UTF-8" />\n  <script src="/redirect-heute.js"></script>'
+    )
+    fs.writeFileSync(path.join(distPath, 'index.html'), withTempRedirect)
     writtenFiles.push({ path: '/index.html', slug: null, title: SITE_NAME })
     console.log(`Prerendered calendar index page with ${events.length} events.`)
   } else {
