@@ -98,6 +98,7 @@ export const ADMIN_TABS = [
   'events',
   'drafts',
   'review',
+  'protokoll',
   'messages',
   'feedback',
   'trash',

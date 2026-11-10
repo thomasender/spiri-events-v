@@ -1,0 +1,172 @@
+.modlog-tab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.modlog-intro,
+.modlog-muted {
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.modlog-note {
+  font-size: var(--text-85);
+}
+
+.modlog-error {
+  color: var(--error);
+  margin: 0;
+}
+
+.modlog-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.modlog-toolbar select,
+.modlog-search,
+.modlog-date input {
+  padding: var(--space-2) var(--space-2-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.modlog-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1 1 260px;
+}
+
+.modlog-search input {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  outline: none;
+  min-width: 0;
+}
+
+.modlog-date {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  color: var(--text-secondary);
+}
+
+.modlog-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.modlog-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-90);
+}
+
+.modlog-table th,
+.modlog-table td {
+  padding: var(--space-2) var(--space-2-5);
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--border);
+}
+
+.modlog-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.modlog-sort {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.modlog-time {
+  white-space: nowrap;
+}
+
+.modlog-event {
+  min-width: 220px;
+}
+
+.modlog-event-title {
+  font-weight: 600;
+}
+
+.modlog-detail {
+  display: block;
+  color: var(--text-secondary);
+  font-size: var(--text-85);
+}
+
+.modlog-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+
+.modlog-chip {
+  display: inline-block;
+  padding: var(--space-0-5) var(--space-2);
+  border-radius: var(--radius-md);
+  font-size: var(--text-80);
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.modlog-chip--success {
+  background: rgba(122, 138, 95, 0.15);
+  color: var(--free-text);
+}
+
+.modlog-chip--warning {
+  background: rgba(198, 160, 92, 0.15);
+  color: var(--pending-text);
+}
+
+.modlog-chip--error {
+  background: rgba(193, 122, 122, 0.15);
+  color: var(--error);
+}
+
+.modlog-chip--info {
+  background: var(--accent-soft);
+  color: var(--accent-primary-strong);
+}
+
+.modlog-empty {
+  margin: 0;
+  padding: var(--space-8);
+  text-align: center;
+  background: var(--bg-secondary);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+}
+
+.modlog-more {
+  align-self: center;
+}

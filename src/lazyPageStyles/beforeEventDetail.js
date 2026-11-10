@@ -44,6 +44,7 @@ import '../components/FaqTab.css';
 import '../components/EmailVerificationBanner.css';
 import '../components/EventStatusMismatchBanner.css';
 import '../components/ModerationTab.css';
+import '../components/ModerationLogTab.css';
 import '../components/RegionsTab.css';
 import '../components/RegionAboutTab.css';
 import '../pages/AdminPage.css';

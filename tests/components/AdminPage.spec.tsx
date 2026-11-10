@@ -144,6 +144,9 @@ vi.mock('../../src/hooks/useDonors', () => ({
 vi.mock('../../src/components/ModerationTab', () => ({
   default: () => <div data-testid="moderation-tab-stub">Moderation</div>,
 }));
+vi.mock('../../src/components/ModerationLogTab', () => ({
+  default: () => <div data-testid="moderation-log-tab-stub">Protokoll</div>,
+}));
 vi.mock('../../src/components/RegionsTab', () => ({
   default: () => <div data-testid="regions-tab-stub">Regionen</div>,
 }));
@@ -636,6 +639,7 @@ describe('AdminPage access per role', () => {
     'admin-tab-instagram',
     'admin-tab-analytics',
     'admin-tab-moderation',
+    'admin-tab-protokoll',
     'admin-tab-regions',
   ];
 
@@ -703,6 +707,7 @@ describe('AdminPage access per role', () => {
     'feedback',
     'donors',
     'moderation',
+    'protokoll',
     'regions',
   ])('moderator opening ?tab=%s directly gets "Kein Zugriff", not the content', (tab) => {
     asModerator();
@@ -711,7 +716,15 @@ describe('AdminPage access per role', () => {
     expect(screen.getByTestId('no-access')).toHaveTextContent('Kein Zugriff');
     expect(document.getElementById('admin-tab-events')).toHaveAttribute('hidden');
     expect(screen.queryByTestId('moderation-tab-stub')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('moderation-log-tab-stub')).not.toBeInTheDocument();
     expect(screen.queryByTestId('regions-tab-stub')).not.toBeInTheDocument();
+  });
+
+  it('Super-Admin opens the Protokoll tab by URL', () => {
+    mockAuth.role = 'Admin';
+    renderAdmin(['/admin?tab=protokoll']);
+    expect(screen.getByTestId('admin-tab-protokoll')).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByTestId('moderation-log-tab-stub')).toBeInTheDocument();
   });
 
   it('Super-Admin opens the Regionen tab by URL', () => {

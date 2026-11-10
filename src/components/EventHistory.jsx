@@ -2,44 +2,8 @@ import { History } from 'lucide-react';
 import { useEventRevisions } from '../hooks/useEventRevisions';
 import { diffWords } from '../utils/wordDiff';
 import { stripHtml } from '../utils/sanitize';
+import { FIELD_LABELS } from '../utils/eventFieldLabels';
 import './EventHistory.css';
-
-const FIELD_LABELS = {
-  title: 'Titel',
-  description: 'Beschreibung',
-  date: 'Datum',
-  endDate: 'Enddatum',
-  time: 'Beginn',
-  endTime: 'Ende',
-  place: 'Adresse',
-  city: 'Ort',
-  bezirk: 'Bezirk',
-  category: 'Kategorie',
-  contribution: 'Beitrag',
-  fee: 'Preis',
-  feeMax: 'Preis bis',
-  priceCurrency: 'Währung',
-  feeNote: 'Preis-Hinweis',
-  firstSessionFree: 'Erste Einheit gratis',
-  link: 'Link',
-  recurrence: 'Wiederholung',
-  recurrenceEndDate: 'Wiederholung bis',
-  customDates: 'Termine',
-  exceptionDates: 'Ausnahmen',
-  isOnline: 'Online',
-  organizer: 'Veranstalter',
-  kontakt: 'Kontakt',
-  registration: 'Anmeldung',
-  imageUrl: 'Bild',
-  imageThumbUrl: 'Vorschaubild',
-  imageFocalPoint: 'Bildausschnitt',
-  imageZoom: 'Bild-Zoom',
-  instagramImage: 'Instagram-Bild',
-  instagramConsent: 'Instagram-Einwilligung',
-  instagramHandleOverride: 'Instagram-Handle',
-  cancelled: 'Abgesagt',
-  cancelledDates: 'Abgesagte Termine',
-};
 
 const IMAGE_FIELDS = new Set(['imageUrl', 'imageThumbUrl', 'instagramImage']);
 

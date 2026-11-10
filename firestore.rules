@@ -592,6 +592,15 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Moderation log (admin tab "Protokoll"): one entry per approval,
+    // rejection, edit, trash, restore and delete of an event, written only by
+    // the event triggers in functions/src/eventRevisionTrigger.ts (Admin SDK).
+    // Super-Admins only; moderators and organizers never read it.
+    match /moderation_log/{entryId} {
+      allow read: if isAdminOrEmulatorAdmin();
+      allow write: if false;
+    }
+
     // Log of the Sammelnachrichten (functions/src/adminBroadcast.ts): sender,
     // counts, skip reasons and the admin's own text. Written only by the
     // callable; readable by Super-Admins only, never by moderators. The
