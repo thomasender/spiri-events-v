@@ -482,37 +482,39 @@ describe('ChatPage: one Lagerfeuer per region', () => {
     expect(state.roomIds.every((id) => id === 'lagerfeuer')).toBe(true);
   });
 
-  it('opens the fire of the region in the header, named after it', () => {
+  it('opens the fire of the region in the header, plainly named, with no chooser', () => {
     renderRegionPage('tirol');
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Lagerfeuer Tirol');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^Lagerfeuer$/);
     expect(state.roomIds.at(-1)).toBe('tirol');
-    const select = screen.getByLabelText('Anderes Feuer:') as HTMLSelectElement;
-    expect(select.value).toBe('tirol');
-    expect(Array.from(select.options).map((o) => o.textContent)).toEqual([
-      'Vorarlberg',
-      'Tirol (dein Feuer)',
-    ]);
+    expect(screen.queryByTestId('chat-fire-chooser')).toBeNull();
   });
 
-  it('Vorarlberg keeps the room "lagerfeuer"; ?raum= opens another open fire', () => {
+  it('?raum= does not take a normal member to another fire', () => {
+    renderRegionPage('tirol', '/chat?raum=lagerfeuer');
+    expect(state.roomIds.at(-1)).toBe('tirol');
+  });
+
+  it('Admins can open another open fire via ?raum= and the chooser', () => {
+    state.role = 'Admin';
     renderRegionPage('tirol', '/chat?raum=lagerfeuer');
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Lagerfeuer Vorarlberg');
     expect(state.roomIds.at(-1)).toBe('lagerfeuer');
+    fireEvent.change(screen.getByLabelText('Anderes Feuer:'), { target: { value: 'tirol' } });
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Lagerfeuer Tirol');
   });
 
-  it('switches to another fire with the chooser', () => {
-    renderRegionPage('tirol');
-    fireEvent.change(screen.getByLabelText('Anderes Feuer:'), { target: { value: 'lagerfeuer' } });
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Lagerfeuer Vorarlberg');
-  });
-
-  it('own region not open yet: a hint and the open fires, no chat', () => {
+  it('own region not open yet: a hint, no chat, no chooser', () => {
     renderRegionPage('wien');
     expect(screen.getByTestId('chat-no-room')).toHaveTextContent(
       'Das Lagerfeuer deiner Region startet, sobald die Region online geht'
     );
     expect(screen.queryByTestId('chat-list')).toBeNull();
-    expect(screen.getByLabelText('Offene Feuer:')).toBeInTheDocument();
+    expect(screen.queryByTestId('chat-fire-chooser')).toBeNull();
+  });
+
+  it("no region known: Vorarlberg's fire", () => {
+    renderRegionPage(null);
+    expect(state.roomIds.at(-1)).toBe('lagerfeuer');
   });
 
   it("a Regions-Moderator:in deletes others' messages only in her region's fire", () => {
@@ -521,7 +523,7 @@ describe('ChatPage: one Lagerfeuer per region', () => {
     const { unmount } = renderRegionPage('tirol');
     expect(screen.getAllByTestId('chat-message')[0]).toHaveTextContent('Löschen');
     unmount();
-    renderRegionPage('tirol', '/chat?raum=lagerfeuer');
+    renderRegionPage('vorarlberg');
     expect(screen.getAllByTestId('chat-message')[0]).not.toHaveTextContent('Löschen');
   });
 });

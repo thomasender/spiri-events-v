@@ -342,7 +342,7 @@ describe('one Lagerfeuer per region', () => {
     expect(chatRoomRegionId('tirol')).toBe('tirol');
   });
 
-  it('opens the own fire, named after the region, and lists every open fire', () => {
+  it('opens the own fire, plainly named "Lagerfeuer", and offers no choice', () => {
     const room = resolveChatRoom({
       regionMode: true,
       activeRegions: [vorarlberg, tirol],
@@ -351,39 +351,34 @@ describe('one Lagerfeuer per region', () => {
     expect(room).toMatchObject({
       roomId: 'tirol',
       regionId: 'tirol',
-      title: 'Lagerfeuer Tirol',
+      title: 'Lagerfeuer',
       ownRoomId: 'tirol',
       ownRoomOpen: true,
+      canChoose: false,
     });
-    expect(room.choices.map((c) => c.roomId)).toEqual(['lagerfeuer', 'tirol']);
   });
 
-  it('opens another open fire from ?raum= (room or region id), ignores closed ones', () => {
+  it('?raum= is ignored for everyone but those who may choose (Admins)', () => {
     const base = { regionMode: true, activeRegions: [vorarlberg, tirol], ownRegionId: 'tirol' };
-    expect(resolveChatRoom({ ...base, requested: 'lagerfeuer' }).title).toBe(
-      'Lagerfeuer Vorarlberg'
-    );
-    expect(resolveChatRoom({ ...base, requested: 'vorarlberg' }).roomId).toBe('lagerfeuer');
-    expect(resolveChatRoom({ ...base, requested: 'wien' }).roomId).toBe('tirol');
+    expect(resolveChatRoom({ ...base, requested: 'lagerfeuer' }).roomId).toBe('tirol');
+    const admin = { ...base, canChoose: true };
+    expect(resolveChatRoom({ ...admin, requested: 'lagerfeuer' })).toMatchObject({
+      roomId: 'lagerfeuer',
+      title: 'Lagerfeuer Vorarlberg',
+    });
+    expect(resolveChatRoom({ ...admin, requested: 'vorarlberg' }).roomId).toBe('lagerfeuer');
+    expect(resolveChatRoom({ ...admin, requested: 'wien' }).roomId).toBe('tirol');
+    expect(resolveChatRoom(admin).choices.map((c) => c.roomId)).toEqual(['lagerfeuer', 'tirol']);
   });
 
-  it('own region not open yet or unknown: no room, but the open fires to choose from', () => {
-    const closed = resolveChatRoom({
-      regionMode: true,
-      activeRegions: [vorarlberg, tirol],
-      ownRegionId: 'wien',
-    });
-    expect(closed).toMatchObject({
-      roomId: null,
-      title: 'Lagerfeuer',
-      ownRegionId: 'wien',
-      ownRoomOpen: false,
-    });
-    expect(closed.choices).toHaveLength(2);
+  it("own region not open yet: no room; no region known: Vorarlberg's fire", () => {
+    expect(
+      resolveChatRoom({ regionMode: true, activeRegions: [vorarlberg, tirol], ownRegionId: 'wien' })
+    ).toMatchObject({ roomId: null, title: 'Lagerfeuer', ownRegionId: 'wien', ownRoomOpen: false });
     expect(
       resolveChatRoom({ regionMode: true, activeRegions: [vorarlberg, tirol], ownRegionId: null })
         .roomId
-    ).toBeNull();
+    ).toBe('lagerfeuer');
   });
 
   it('cleans up "lagerfeuer" plus every active region room, once each', () => {

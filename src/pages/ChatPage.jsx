@@ -470,14 +470,14 @@ export default function ChatPage() {
             </p>
           </div>
         </header>
-        {regionMode && <FireChooser room={room} />}
+        {regionMode && room.canChoose && <FireChooser room={room} />}
         {readOnly && !guestsRead ? (
           // Test mode 'admins' with an unconfirmed e-mail: nothing to read along.
           <ReadOnlyHint user={user} />
         ) : !room.roomId ? (
           <p className="chat-state chat-no-room" data-testid="chat-no-room" role="status">
             {room.ownRegionId
-              ? 'Das Lagerfeuer deiner Region startet, sobald die Region online geht. Bis dahin kannst du dich an eines der offenen Feuer setzen.'
+              ? 'Das Lagerfeuer deiner Region startet, sobald die Region online geht.'
               : 'Wähle ein Lagerfeuer, an das du dich setzen möchtest.'}
           </p>
         ) : (
