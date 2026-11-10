@@ -6,6 +6,7 @@ import {
   GoogleAuthProvider,
   signOut,
   onAuthStateChanged,
+  onIdTokenChanged,
   updateProfile,
   updateEmail,
   verifyBeforeUpdateEmail,
@@ -278,9 +279,22 @@ export function useAuth() {
     return unsubscribe;
   }, []);
 
+  // Confirming the e-mail ("Ich habe bestätigt – erneut prüfen", the link in
+  // another tab) reloads the same user object: onAuthStateChanged stays
+  // silent, but the token listener fires. Every useAuth instance (the
+  // "Event erstellen" page, header, FAB) has to see it, not only the one
+  // that triggered the reload, or the page stays locked.
+  useEffect(
+    () =>
+      onIdTokenChanged(auth, (firebaseUser) => {
+        setEmailVerified(Boolean(firebaseUser?.emailVerified));
+      }),
+    []
+  );
+
   const canCreateEvents = useMemo(
-    () => Boolean(user) && (role === 'Admin' || Boolean(user?.emailVerified)),
-    [user, role]
+    () => Boolean(user) && (role === 'Admin' || emailVerified),
+    [user, role, emailVerified]
   );
 
   const register = async (email, password, displayName, subscribeNewsletter = false) => {
