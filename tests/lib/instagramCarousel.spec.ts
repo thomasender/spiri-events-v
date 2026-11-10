@@ -277,6 +277,36 @@ describe('buildCarouselCaption', () => {
     expect(caption).toContain('#dornbirn');
   });
 
+  it('adds one block per event in slide order after the weekly summary', () => {
+    const caption = buildCarouselCaption(
+      group([
+        ev({ title: 'Kakao Zeremonie', description: '<p>Ein warmer Abend mit Kakao.</p>' }),
+        ev({ id: 'e2', title: 'Yoga Flow', description: 'Sanftes Yoga.' }),
+      ]),
+      WINDOW
+    );
+    const summary = caption.indexOf('• Mi, 7. Okt');
+    const s2 = caption.indexOf('Slide 2: Kakao Zeremonie');
+    const s3 = caption.indexOf('Slide 3: Yoga Flow');
+    expect(summary).toBeGreaterThan(-1);
+    expect(s2).toBeGreaterThan(summary);
+    expect(s3).toBeGreaterThan(s2);
+    expect(caption).toContain('Ein warmer Abend mit Kakao.');
+    expect(caption).toContain('Sanftes Yoga.');
+    expect(caption).toContain('📍');
+    expect(caption.length).toBeLessThanOrEqual(CAPTION_MAX_LENGTH);
+  });
+
+  it('keeps nine long events within 2200 chars with every slide block shortened', () => {
+    const events = Array.from({ length: 9 }, (_, i) =>
+      ev({ id: `e${i}`, title: `Event ${i}`, description: 'Beschreibung '.repeat(200) })
+    );
+    const caption = buildCarouselCaption(group(events), WINDOW);
+    expect(caption.length).toBeLessThanOrEqual(CAPTION_MAX_LENGTH);
+    expect(caption).toContain('Slide 10: Event 8');
+    expect(caption).toContain(BIO_LINK_LINE);
+  });
+
   it('never exceeds 2200 chars and ends the list with the "more" line', () => {
     const events = Array.from({ length: 9 }, (_, i) =>
       ev({
@@ -739,6 +769,11 @@ describe('Grenznahe carousel', () => {
     });
     expect(preview.groups[0].label).toBe('Umgebung');
     expect(preview.groups[0].cover.bezirk).toBe('in der Umgebung');
+  });
+
+  it('writes the kind word on the cover: "im Bezirk Dornbirn"', () => {
+    const [g] = groupCarousels([ev()], WINDOW);
+    expect(buildCoverModel(g, WINDOW).bezirk).toBe('im Bezirk Dornbirn');
   });
 });
 

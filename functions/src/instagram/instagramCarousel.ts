@@ -13,6 +13,7 @@ import {
   CAPTION_MAX_LENGTH,
   DEFAULT_SITE_DOMAIN,
   buildCaptionFooter,
+  buildSlideCaptionBlock,
   formatEventDate,
   formatEventTime,
   stripImageUnsafeChars,
@@ -349,10 +350,15 @@ export function formatWeekRange(window: WeekWindow): string {
   return `${startPart} – ${e.getUTCDate()}. ${em} ${e.getUTCFullYear()}`;
 }
 
+/** Cover wording: "im Bezirk Dornbirn" (the kind word before the name); "in der Umgebung" stays. */
+export function bezirkCoverPhrase(bezirk: string): string {
+  return bezirk === 'Grenznahe' ? bezirkInPhrase(bezirk) : `im Bezirk ${bezirk}`;
+}
+
 export function buildCoverModel(group: CarouselGroup, window: WeekWindow): CoverModel {
   return {
     heading: 'Events nächste Woche',
-    bezirk: stripImageUnsafeChars(bezirkInPhrase(group.bezirk)),
+    bezirk: stripImageUnsafeChars(bezirkCoverPhrase(group.bezirk)),
     dateRange: formatWeekRange(window),
     partLabel: stripImageUnsafeChars(group.daysLabel),
     eventCount: group.events.length,
@@ -377,7 +383,15 @@ export function buildMentionLine(handles: string[]): string {
   return count > 0 ? line : '';
 }
 
-/** Always <= CAPTION_MAX_LENGTH; the event list is shortened gracefully when needed. */
+/** Smallest block worth adding: "Slide 9: " plus a short title line. */
+const MIN_SLIDE_BLOCK = 60;
+
+/**
+ * Always <= CAPTION_MAX_LENGTH. Instagram allows ONE caption per carousel (no per-slide
+ * text), so it holds the weekly summary first and then one block per event in slide order
+ * (slide 2 = first event), each with a share of the remaining room. The summary list is
+ * shortened first when even the bare blocks do not fit.
+ */
 export function buildCarouselCaption(
   group: CarouselGroup,
   window: WeekWindow,
@@ -403,16 +417,26 @@ export function buildCarouselCaption(
   });
 
   const mentions = buildMentionLine(handles);
-  const fixed = (list: string[]) =>
-    [heading, list.join('\n'), mentions, footer].filter(Boolean).join('\n\n');
-  if (fixed(lines).length <= CAPTION_MAX_LENGTH) return fixed(lines);
+  const assemble = (list: string[], blocks: string[]) =>
+    [heading, list.join('\n'), ...blocks, mentions, footer].filter(Boolean).join('\n\n');
+
+  // Room for the event blocks: what is left once summary, mentions and footer are in.
+  const room = CAPTION_MAX_LENGTH - assemble(lines, []).length;
+  const share = Math.floor(room / Math.max(1, group.events.length)) - 2;
+  if (share >= MIN_SLIDE_BLOCK) {
+    const blocks = group.events.map((event, i) => buildSlideCaptionBlock(event, i + 2, share));
+    const full = assemble(lines, blocks);
+    if (full.length <= CAPTION_MAX_LENGTH) return full;
+  }
+
+  if (assemble(lines, []).length <= CAPTION_MAX_LENGTH) return assemble(lines, []);
 
   const kept: string[] = [];
   for (const line of lines) {
-    if (fixed([...kept, line, MORE_LINE]).length > CAPTION_MAX_LENGTH) break;
+    if (assemble([...kept, line, MORE_LINE], []).length > CAPTION_MAX_LENGTH) break;
     kept.push(line);
   }
-  return fixed([...kept, MORE_LINE]).slice(0, CAPTION_MAX_LENGTH);
+  return assemble([...kept, MORE_LINE], []).slice(0, CAPTION_MAX_LENGTH);
 }
 
 export type CarouselPostId = string;
