@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useRegion } from './useRegion';
+import { useAuth } from './useAuth';
 import { loadGeoShapes } from '../lib/placeData';
 import { regionForPosition } from '../utils/geoRegion';
 import { resolveChatRoom } from '../utils/chat';
@@ -45,20 +46,23 @@ export function useOwnChatRegionId(profile) {
 }
 
 /**
- * Which Lagerfeuer is shown (`resolveChatRoom`): `?raum=` of the address on /chat, else the
- * own one. With fewer than two active regions always `lagerfeuer`, as before.
+ * Which Lagerfeuer is shown (`resolveChatRoom`): the own one; only Admins may pick another via
+ * `?raum=` on /chat. With fewer than two active regions always `lagerfeuer`, as before.
  */
 export function useChatRoom(profile) {
   const { regions, loading } = useRegion();
+  const { role } = useAuth();
+  const canChoose = role === 'Admin';
   const { pathname, search } = useLocation();
   const regionMode = !loading && regions.length >= 2;
   const ownRegionId = useOwnChatRegionId(profile);
   const requested = pathname.startsWith('/chat') ? new URLSearchParams(search).get('raum') : null;
   const activeKey = regions.map((r) => `${r.id}:${r.name ?? ''}`).join('|');
   return useMemo(
-    () => resolveChatRoom({ regionMode, activeRegions: regions, ownRegionId, requested }),
+    () =>
+      resolveChatRoom({ regionMode, activeRegions: regions, ownRegionId, requested, canChoose }),
     // `regions` is read through activeKey.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [regionMode, activeKey, ownRegionId, requested]
+    [regionMode, activeKey, ownRegionId, requested, canChoose]
   );
 }
