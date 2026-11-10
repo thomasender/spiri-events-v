@@ -20,6 +20,21 @@ export function chatRoomRegionId(roomId) {
 }
 
 /**
+ * The person's own region: place in the header, else Feuerplatz in the profile, else the last
+ * known region of this browser (only if active). null = unknown; `resolveChatRoom` then falls
+ * back to Vorarlberg as the last resort (Trello K0Ord0L9).
+ */
+export function ownChatRegionId({
+  placeRegionId = null,
+  fireplaceRegionId = null,
+  lastRegionId = null,
+  activeRegions = [],
+}) {
+  const lastActive = activeRegions.some((r) => r.id === lastRegionId) ? lastRegionId : null;
+  return placeRegionId || fireplaceRegionId || lastActive || null;
+}
+
+/**
  * Which Lagerfeuer /chat shows. `activeRegions` are the active regions ({ id, name }),
  * `ownRegionId` the person's region (header place, else the Feuerplatz; null = unknown),
  * `requested` the `?raum=` of the address (room or region id). Access is soft: every active

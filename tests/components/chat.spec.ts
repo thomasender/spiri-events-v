@@ -8,6 +8,7 @@ import {
   chatRoomIdsToClean,
   chatRoomRegionId,
   resolveChatRoom,
+  ownChatRegionId,
   chatPhotoUrl,
   chatTextLength,
   cooldownRemainingMs,
@@ -369,6 +370,19 @@ describe('one Lagerfeuer per region', () => {
     expect(resolveChatRoom({ ...admin, requested: 'vorarlberg' }).roomId).toBe('lagerfeuer');
     expect(resolveChatRoom({ ...admin, requested: 'wien' }).roomId).toBe('tirol');
     expect(resolveChatRoom(admin).choices.map((c) => c.roomId)).toEqual(['lagerfeuer', 'tirol']);
+  });
+
+  it('own region falls back to the last known region before Vorarlberg (K0Ord0L9)', () => {
+    const activeRegions = [vorarlberg, tirol];
+    expect(
+      ownChatRegionId({ placeRegionId: 'tirol', lastRegionId: 'vorarlberg', activeRegions })
+    ).toBe('tirol');
+    expect(
+      ownChatRegionId({ fireplaceRegionId: 'tirol', lastRegionId: 'vorarlberg', activeRegions })
+    ).toBe('tirol');
+    expect(ownChatRegionId({ lastRegionId: 'tirol', activeRegions })).toBe('tirol');
+    expect(ownChatRegionId({ lastRegionId: 'wien', activeRegions })).toBeNull();
+    expect(ownChatRegionId({ activeRegions })).toBeNull();
   });
 
   it("own region not open yet: no room; no region known: Vorarlberg's fire", () => {
