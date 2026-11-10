@@ -630,6 +630,29 @@ is a code change (see section 13).
   step in the admin tab "Moderation".
 - Admin mails (feedback, Instagram alerts) go to Super-Admins only. Submission
   mails are region-aware but currently switched off (section 7).
+- **Moderationsprotokoll (Trello 6af1bb84):** Super-Admin tab Events -> "Protokoll"
+  (`ModerationLogTab`, `?tab=protokoll`); moderators keep the normal Review tab and never see it.
+  One table over all regions: Zeitpunkt (Vienna time), Aktion, Event (link to the edit page,
+  Termin, Begründung / geänderte Felder), Region (only with two active regions, dark launch),
+  Wer (name + Super-Admin / Moderator:in / Veranstalter:in / System). Filters: Zeitraum (presets
+  or von/bis), Aktion, Region, Person, "Nur Team" vs. "Alle"; they go to the Firestore query
+  (pages of 50, "Ältere Einträge laden"). Text search and column sort work on the loaded rows.
+  Clicking a region or person in a row filters by it.
+  - **Data:** `moderation_log/{id}`, flat entry (`functions/src/moderationLog.ts`: `action`,
+    `eventId/Title/Slug/Date`, `regionId`, `ownerUid`, `statusFrom/To`, `changedFields`,
+    `reason`, `actorUid/Name/Role`, `byStaff`, `source`, `at`). Written only by the triggers in
+    `functions/src/eventRevisionTrigger.ts`: on update next to the revision (same doc id), on
+    create (submitted / approved right away) and on delete (`onEventDeletedWriteModerationLog`,
+    Admin SDK deletes such as the daily purge appear as "System"). Draft edits are not logged.
+    Rules: Super-Admin read, no client writes (`tests/rules/revisions.rules.spec.ts`). Indexes:
+    `(regionId|actorUid|action|byStaff, at desc)`; combinations rely on Firestore index merging.
+  - **History:** `scripts/backfill-moderation-log.mjs` (dry run by default, `--write`, idempotent)
+    builds entries from the existing revisions and from `approvedBy/At`, `unpublishedBy/At`,
+    `trashedBy/At`. Not recoverable: deleted events (incl. purged expired ones, whose revisions
+    went with them), the difference "abgelehnt" vs. "Papierkorb" except for the event's current
+    trash state, rejections before revisions existed, the person's role at the time (today's role
+    is used). Until the script has run, the tab shows only what happened after the deploy.
+  - No retention yet: the collection grows (a few entries per event).
 
 ## 4. Activation
 

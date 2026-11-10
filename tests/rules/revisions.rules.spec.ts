@@ -6,7 +6,7 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getDocs, setDoc, updateDoc } from 'firebase/firestore';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 
 let env: RulesTestEnvironment;
@@ -34,6 +34,18 @@ beforeEach(async () => {
     await setDoc(doc(db, 'admin_users/adminDoc'), { role: 'Admin' });
     await setDoc(doc(db, 'events/e1'), { status: 'pending', createdBy: 'owner' });
     await setDoc(doc(db, 'events/e1/revisions/r1'), { byRole: 'User', changes: {} });
+    await setDoc(doc(db, 'admin_users/tirolMod'), {
+      role: 'RegionModerator',
+      regionIds: ['tirol'],
+    });
+    await setDoc(doc(db, 'moderation_log/m1'), {
+      action: 'approved',
+      eventId: 'e1',
+      regionId: 'tirol',
+      actorUid: 'tirolMod',
+      actorRole: 'RegionModerator',
+      byStaff: true,
+    });
   });
 });
 
@@ -56,5 +68,33 @@ describe('events/{id}/revisions', () => {
   it('blocks client writes, even for admins', async () => {
     const db = env.authenticatedContext('adminDoc').firestore();
     await assertFails(setDoc(doc(db, 'events/e1/revisions/r2'), { byRole: 'Admin' }));
+  });
+});
+
+describe('moderation_log', () => {
+  it('lets Super-Admins read and list it', async () => {
+    const db = env.authenticatedContext('adminDoc').firestore();
+    await assertSucceeds(getDoc(doc(db, 'moderation_log/m1')));
+    await assertSucceeds(getDocs(collection(db, 'moderation_log')));
+  });
+
+  it('hides it from region moderators, even for their own entries', async () => {
+    const db = env.authenticatedContext('tirolMod').firestore();
+    await assertFails(getDoc(doc(db, 'moderation_log/m1')));
+    await assertFails(getDocs(collection(db, 'moderation_log')));
+  });
+
+  it('hides it from organizers and anonymous visitors', async () => {
+    await assertFails(
+      getDoc(doc(env.authenticatedContext('owner').firestore(), 'moderation_log/m1'))
+    );
+    await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), 'moderation_log/m1')));
+  });
+
+  it('blocks client writes, even for Super-Admins', async () => {
+    const db = env.authenticatedContext('adminDoc').firestore();
+    await assertFails(setDoc(doc(db, 'moderation_log/m2'), { action: 'approved' }));
+    await assertFails(updateDoc(doc(db, 'moderation_log/m1'), { action: 'rejected' }));
+    await assertFails(deleteDoc(doc(db, 'moderation_log/m1')));
   });
 });

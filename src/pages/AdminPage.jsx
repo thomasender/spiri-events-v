@@ -24,6 +24,7 @@ import {
   ChevronDown,
   Wallet,
   HelpCircle,
+  ScrollText,
 } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
 import EventList from '../components/EventList';
@@ -41,6 +42,7 @@ import MembersTab from '../components/MembersTab';
 import InstagramTab from '../components/InstagramTab';
 import AnalyticsTab from '../components/AnalyticsTab';
 import ModerationTab from '../components/ModerationTab';
+import ModerationLogTab from '../components/ModerationLogTab';
 import RegionsTab from '../components/RegionsTab';
 import RegionAboutTab from '../components/RegionAboutTab';
 import NoAccess from '../components/NoAccess';
@@ -69,6 +71,7 @@ const TAB_GROUPS = [
       { id: 'events', label: 'Meine Events', Icon: CalendarDays },
       { id: 'drafts', label: 'Entwürfe', Icon: FileText },
       { id: 'review', label: 'Review', Icon: ClipboardCheck },
+      { id: 'protokoll', label: 'Protokoll', Icon: ScrollText },
       { id: 'feedback', label: 'Feedback', Icon: MessageSquare },
     ],
   },
@@ -122,6 +125,7 @@ const PANELS = {
   events: EventList,
   drafts: DraftsTab,
   review: ReviewTab,
+  protokoll: ModerationLogTab,
   messages: MessagesTab,
   feedback: FeedbackTab,
   trash: TrashTab,
@@ -184,6 +188,7 @@ export default function AdminPage() {
       events: true,
       drafts: draftCount > 0,
       review: canReview,
+      protokoll: isAdmin,
       messages: hasMessages,
       feedback: isAdmin && hasFeedback,
       trash: trashedCount > 0,
