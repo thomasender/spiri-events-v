@@ -480,6 +480,19 @@ describe('the remembered place', () => {
     expect(within(dialog).queryByRole('radio', { name: '100 km' })).toBeNull();
   });
 
+  it('in a region not open yet is still named back on the profile page', async () => {
+    window.localStorage.setItem(REGION_CHOOSER_SEEN_KEY, '1');
+    const { unmount } = renderAt('/profil');
+    const dialog = openPicker();
+    await searchAndPick(dialog, 'luzern', 'Luzern');
+    apply(dialog);
+    expect(where()).toBe('/innerschweiz');
+    unmount();
+    renderAt('/profil');
+    expect(screen.getByRole('button', { name: /aktuell Luzern · 25 km/ })).toBeInTheDocument();
+    expect(headerTitle()).toBe('Dein Kalender');
+  });
+
   it('is ignored for another region address: Tirol by hand is Tirol, not a circle', () => {
     window.localStorage.setItem(
       PLACE_SELECTION_KEY,
