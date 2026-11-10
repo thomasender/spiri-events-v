@@ -355,9 +355,8 @@ service cloud.firestore {
 
       // While an owner's event stays approved, the fields a moderator has to
       // see again stay frozen: title, description, cover photo (imageUrl /
-      // imageThumbUrl), the organizer's profile photo and the region (a move
-      // into another region goes to that region's moderation). Changing one
-      // of them has to move the event to draft / pending / trashed first.
+      // imageThumbUrl) and an already set Instagram photo. Changing one of
+      // them has to move the event to draft / pending / trashed first.
       // Everything else in this list is saved without a new review (Trello
       // 6af0678b): date / time, place, price, link, contact, registration,
       // category, the whole series (recurrence, end date, more or fewer
@@ -368,7 +367,7 @@ service cloud.firestore {
       // (tests/components/eventReviewFields.spec.ts). The value checks of the
       // update rule below apply to these writes as to any other edit.
       function isOwnerApprovedPatch(before, after, changed) {
-        return changed.hasOnly(['date', 'time', 'endTime', 'endDate',
+        return changed.hasOnly(['date', 'time', 'endTime', 'endDate', 'regionId',
                                 'place', 'city', 'bezirk', 'lat', 'lng', 'isOnline',
                                 'contribution', 'fee', 'feeMax', 'priceCurrency', 'feeNote',
                                 'firstSessionFree',
@@ -378,14 +377,23 @@ service cloud.firestore {
                                 'instagramConsent', 'instagramHandleOverride', 'instagramImage',
                                 'cancelled', 'cancelledDates',
                                 'updatedAt'])
-          && !changed.hasAny(['title', 'description', 'imageUrl', 'imageThumbUrl', 'regionId'])
+          && !changed.hasAny(['title', 'description', 'imageUrl', 'imageThumbUrl'])
+          && (!changed.hasAny(['instagramImage']) || isInstagramPhotoKept(before, after))
           && (!changed.hasAny(['customDates']) || after.customDates is list)
           && (!changed.hasAny(['recurrenceEndDate']) || after.recurrenceEndDate is string)
           && (!changed.hasAny(['organizer']) || isOwnerOrganizerNameChange(before, after));
       }
 
-      // Only the organizer's name may change on an approved event: the
-      // profile photo (counts as a photo, needs a review) and the e-mail stay.
+      // An already set Instagram photo may only be re-cropped, not swapped
+      // (a new photo needs a review); setting it the first time is free.
+      function isInstagramPhotoKept(before, after) {
+        return before.get('instagramImage', null) == null
+          || (after.get('instagramImage', null) != null
+              && after.instagramImage.get('url', null) == before.instagramImage.get('url', null));
+      }
+
+      // The organizer's name and profile photo may change on an approved
+      // event (a renewed profile photo needs no review); the e-mail stays.
       function isOwnerOrganizerNameChange(before, after) {
         let was = before.get('organizer', {});
         return after.organizer is map
@@ -393,7 +401,8 @@ service cloud.firestore {
           && after.organizer.get('firstName', '') is string
           && after.organizer.get('lastName', '') is string
           && after.organizer.get('name', '') is string
-          && after.organizer.get('photoURL', null) == was.get('photoURL', null)
+          && (after.organizer.get('photoURL', null) == null
+              || after.organizer.get('photoURL', null) is string)
           && after.organizer.get('email', null) == was.get('email', null);
       }
 

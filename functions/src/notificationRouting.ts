@@ -12,6 +12,54 @@ export interface EventSnapshot {
   trashReason?: string | null;
   /** 'rejected' when staff rejected the pending event (buildRejectUpdate). */
   trashKind?: string | null;
+  /** Stable key of the content an owner edits (see eventContentKey). */
+  contentKey?: string | null;
+}
+
+// Fields an owner can change on an approved event (src/utils/eventReviewFields.js).
+// Cancellations, series exceptions, Instagram settings and the bookkeeping
+// fields are not part of it: they are no "edited event".
+const CONTENT_KEY_FIELDS = [
+  'title',
+  'description',
+  'imageUrl',
+  'imageThumbUrl',
+  'regionId',
+  'date',
+  'time',
+  'endTime',
+  'endDate',
+  'place',
+  'city',
+  'bezirk',
+  'isOnline',
+  'contribution',
+  'fee',
+  'feeMax',
+  'priceCurrency',
+  'feeNote',
+  'firstSessionFree',
+  'link',
+  'kontakt',
+  'registration',
+  'category',
+  'recurrence',
+  'recurrenceEndDate',
+  'customDates',
+  'organizer',
+] as const;
+
+/** Same content (empty defaults of old events count as unset) gives the same key. */
+export function eventContentKey(data: Record<string, unknown> | undefined | null): string | null {
+  if (!data) return null;
+  const empty = (v: unknown) =>
+    v == null || v === '' || v === false || (Array.isArray(v) && v.length === 0);
+  const picked: Record<string, unknown> = {};
+  for (const field of CONTENT_KEY_FIELDS) {
+    const value = data[field];
+    if (!empty(value)) picked[field] = value;
+  }
+  return JSON.stringify(picked);
 }
 
 export type AdminMessageRole = 'Admin' | 'User';
@@ -92,7 +140,27 @@ export function decideEventStatusNotification(
 ): EventNotificationDecision | null {
   const beforeStatus = isStatus(before.status) ? before.status : null;
   const afterStatus = isStatus(after.status) ? after.status : null;
-  if (!afterStatus || beforeStatus === afterStatus) return null;
+  if (!afterStatus) return null;
+
+  // An owner edited an approved event and it stayed approved (Trello 6af0678b):
+  // the owner still gets the "Dein Event ist live" mail.
+  if (
+    beforeStatus === 'approved' &&
+    afterStatus === 'approved' &&
+    before.contentKey != null &&
+    after.contentKey != null &&
+    before.contentKey !== after.contentKey
+  ) {
+    const ownerEmail = safeOwnerEmail(after.organizer);
+    if (!ownerEmail) return null;
+    return {
+      type: 'published',
+      event: buildEventFor(eventId, after, eventTitle, slug),
+      recipient: ownerEmail,
+    };
+  }
+
+  if (beforeStatus === afterStatus) return null;
 
   if (afterStatus === 'trashed') {
     const ownerEmail = safeOwnerEmail(after.organizer);

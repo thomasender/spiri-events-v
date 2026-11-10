@@ -403,7 +403,8 @@ describe('events: owners cannot approve their own events', () => {
       );
     });
 
-    // Title, description, photos and the region are reviewed again (Trello 6af0678b).
+    // Title, description and photos are reviewed again (Trello 6af0678b); region
+    // moves and the organizer's profile photo are free (feedback 2026-11-10).
     it('changing a reviewed field of an event that stays approved', async () => {
       const organizer = {
         firstName: 'A',
@@ -417,9 +418,7 @@ describe('events: owners cannot approve their own events', () => {
         { imageUrl: 'https://x/new.jpg' },
         { imageThumbUrl: 'https://x/new-thumb.webp' },
         { imageUrl: null, imageThumbUrl: null },
-        { regionId: 'tirol' },
-        { organizer: { ...organizer, photoURL: 'https://x/other.jpg' } },
-        { organizer: { ...organizer, photoURL: null } },
+        { organizer: { ...organizer, photoURL: 7 } },
         { organizer: { ...organizer, email: 'evil@x.y' } },
         { organizer: { ...organizer, admin: true } },
         { organizer: { ...organizer, firstName: 7 } },
@@ -439,6 +438,54 @@ describe('events: owners cannot approve their own events', () => {
         await assertFails(updateDoc(ownerRef('e'), { ...patch, status: 'approved', updatedAt: 1 }));
         await assertFails(updateDoc(ownerRef('e'), patch));
       }
+    });
+
+    it('a region move and a renewed organizer photo keep the event approved', async () => {
+      const organizer = {
+        firstName: 'A',
+        lastName: 'B',
+        email: 'a@b.c',
+        photoURL: 'https://x/me.jpg',
+      };
+      await seed('e', {
+        status: 'approved',
+        approvedBy: 'adminDoc',
+        approvedAt: 1,
+        regionId: 'vorarlberg',
+        organizer,
+      });
+      await assertSucceeds(
+        updateDoc(ownerRef('e'), { regionId: 'tirol', status: 'approved', updatedAt: 1 })
+      );
+      await assertSucceeds(
+        updateDoc(ownerRef('e'), {
+          organizer: { ...organizer, photoURL: 'https://x/other.jpg' },
+          updatedAt: 2,
+        })
+      );
+      await assertSucceeds(
+        updateDoc(ownerRef('e'), { organizer: { ...organizer, photoURL: null }, updatedAt: 3 })
+      );
+    });
+
+    it('an already set Instagram photo cannot be swapped without a review, only re-cropped', async () => {
+      const ig = { url: 'https://x/ig.jpg', focalPoint: { x: 0.5, y: 0.5 }, zoom: 1 };
+      await seed('e', {
+        status: 'approved',
+        approvedBy: 'adminDoc',
+        approvedAt: 1,
+        instagramImage: ig,
+      });
+      await assertFails(
+        updateDoc(ownerRef('e'), {
+          instagramImage: { ...ig, url: 'https://x/new.jpg' },
+          updatedAt: 1,
+        })
+      );
+      await assertFails(updateDoc(ownerRef('e'), { instagramImage: null, updatedAt: 1 }));
+      await assertSucceeds(
+        updateDoc(ownerRef('e'), { instagramImage: { ...ig, zoom: 2 }, updatedAt: 2 })
+      );
     });
 
     it('a reviewed field cannot be changed in a second step after a free edit', async () => {
@@ -529,9 +576,12 @@ describe('events: owners cannot approve their own events', () => {
       await assertSucceeds(
         updateDoc(ownerRef('e'), { title: 'T', description: 'd', instagramConsent: false })
       );
-      // Instagram photo uploaded after the save, and consent withdrawn.
+      // Re-cropping the set Instagram photo and withdrawing consent stay free.
       await assertSucceeds(
-        updateDoc(ownerRef('e'), { instagramImage: { url: 'https://x/up.jpg' }, updatedAt: 2 })
+        updateDoc(ownerRef('e'), {
+          instagramImage: { url: 'https://x/y.jpg', zoom: 2 },
+          updatedAt: 2,
+        })
       );
       await assertSucceeds(
         updateDoc(ownerRef('e'), { instagramConsent: false, status: 'approved', updatedAt: 3 })

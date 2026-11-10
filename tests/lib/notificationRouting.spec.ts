@@ -3,6 +3,7 @@ import {
   decideEventStatusNotification,
   decideCreatedEventNotification,
   decideAdminMessageNotification,
+  eventContentKey,
   EventSnapshot,
 } from '../../functions/src/notificationRouting';
 
@@ -52,6 +53,31 @@ describe('decideEventStatusNotification', () => {
     const decision = decideEventStatusNotification('evt1', before, after);
     expect(decision?.type).toBe('published');
     expect(decision?.recipient).toBe('owner@example.com');
+  });
+
+  it('emits a "published" decision when an approved event is edited and stays approved', () => {
+    const key = (data: Record<string, unknown>) => eventContentKey(data);
+    const base = { title: 'T', date: '2026-12-10', place: '' };
+    const before: EventSnapshot = {
+      status: 'approved',
+      organizer: organizer(),
+      contentKey: key(base),
+    };
+    const edited: EventSnapshot = {
+      status: 'approved',
+      organizer: organizer(),
+      contentKey: key({ ...base, date: '2026-12-17' }),
+    };
+    const decision = decideEventStatusNotification('evt1', before, edited);
+    expect(decision?.type).toBe('published');
+    expect(decision?.recipient).toBe('owner@example.com');
+    // Empty defaults, cancellations and bookkeeping are no edit.
+    const same: EventSnapshot = {
+      status: 'approved',
+      organizer: organizer(),
+      contentKey: key({ ...base, place: null, cancelled: true, instagramConsent: true }),
+    };
+    expect(decideEventStatusNotification('evt1', before, same)).toBeNull();
   });
 
   it('emits a "deleted" decision on transition to trashed (any source status)', () => {
