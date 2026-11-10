@@ -540,3 +540,74 @@
 .account-menu-panel .nav-link-admin-icon {
   margin-right: var(--space-1-5);
 }
+
+/* One-time hint on a new nav link (until it was clicked once): a soft pulse
+   ring around the icon, a gentle wiggle of the flame and a small "Neu" pill. */
+.nav-link--hint .nav-link-admin-icon::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  opacity: 0;
+  animation: nav-hint-pulse 2.4s ease-out infinite;
+  pointer-events: none;
+}
+
+.nav-link--hint .nav-link-admin-icon > svg {
+  color: var(--accent-primary);
+  transform-origin: 50% 90%;
+  animation: nav-hint-flicker 2.4s ease-in-out infinite;
+}
+
+.nav-link-new {
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: var(--radius-lg);
+  background: var(--accent-primary);
+  color: #fff;
+  font-size: var(--text-80);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+@keyframes nav-hint-pulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.35;
+  }
+  70%,
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+@keyframes nav-hint-flicker {
+  0%,
+  60%,
+  100% {
+    transform: rotate(0) scale(1);
+  }
+  70% {
+    transform: rotate(-8deg) scale(1.12);
+  }
+  80% {
+    transform: rotate(7deg) scale(1.12);
+  }
+  90% {
+    transform: rotate(-3deg) scale(1.05);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-link--hint .nav-link-admin-icon::before,
+  .nav-link--hint .nav-link-admin-icon > svg {
+    animation: none;
+  }
+
+  .nav-link--hint .nav-link-admin-icon::before {
+    opacity: 0.2;
+    transform: scale(1.2);
+  }
+}
