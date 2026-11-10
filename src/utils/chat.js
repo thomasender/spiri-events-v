@@ -27,7 +27,13 @@ export function chatRoomRegionId(roomId) {
  * Returns { roomId (null = none to show), regionId, title, ownRegionId, ownRoomId,
  * ownRoomOpen, choices: [{ roomId, regionId, name }] }.
  */
-export function resolveChatRoom({ regionMode, activeRegions = [], ownRegionId = null, requested }) {
+export function resolveChatRoom({
+  regionMode,
+  activeRegions = [],
+  ownRegionId = null,
+  requested,
+  canChoose = false,
+}) {
   if (!regionMode) {
     return {
       roomId: LAGERFEUER_ROOM_ID,
@@ -36,6 +42,7 @@ export function resolveChatRoom({ regionMode, activeRegions = [], ownRegionId = 
       ownRegionId: null,
       ownRoomId: LAGERFEUER_ROOM_ID,
       ownRoomOpen: true,
+      canChoose: false,
       choices: [],
     };
   }
@@ -46,17 +53,21 @@ export function resolveChatRoom({ regionMode, activeRegions = [], ownRegionId = 
   }));
   const own = choices.find((c) => c.regionId === ownRegionId) ?? null;
   const asked =
-    typeof requested === 'string' && requested
+    canChoose && typeof requested === 'string' && requested
       ? (choices.find((c) => c.roomId === requested || c.regionId === requested) ?? null)
       : null;
-  const shown = asked ?? own;
+  // Everyone sits at the fire of their own region (Trello 6aef2dad); a person without a known
+  // region gets Vorarlberg's. Only Admins may sit down at another fire.
+  const fallback = ownRegionId ? null : (choices.find((c) => c.regionId === 'vorarlberg') ?? null);
+  const shown = asked ?? own ?? fallback;
   return {
     roomId: shown?.roomId ?? null,
     regionId: shown?.regionId ?? null,
-    title: shown ? `Lagerfeuer ${shown.name}` : 'Lagerfeuer',
+    title: canChoose && shown ? `Lagerfeuer ${shown.name}` : 'Lagerfeuer',
     ownRegionId: ownRegionId || null,
     ownRoomId: own?.roomId ?? null,
     ownRoomOpen: Boolean(own),
+    canChoose,
     choices,
   };
 }

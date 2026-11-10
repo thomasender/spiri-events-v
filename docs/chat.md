@@ -38,15 +38,16 @@ Guests read along without writing (below).
   `src/utils/chat.js`, `chatRoomRegionId` the other way round). `chat_rooms/vorarlberg` is never used.
 - **Dark launch:** with fewer than two active regions everything is as before: room
   `lagerfeuer`, title "Lagerfeuer", no region name, no chooser (`resolveChatRoom` with
-  `regionMode` false). From two active regions on the title is "Lagerfeuer <Region>".
-- **Which room /chat shows** (`useChatRoom`, pure `resolveChatRoom`): `?raum=<roomId or regionId>`
-  if that is an open fire, else the person's own: region of the header place
-  (`placeSelection.regionId`, "Wo bist du?"), else of the Feuerplatz in the profile
+  `regionMode` false). From two active regions on the room follows the region, but the title stays
+  plain "Lagerfeuer" for members (Peter: the region is clear anyway); only Admins see "Lagerfeuer <Region>".
+- **Which room /chat shows** (`useChatRoom`, pure `resolveChatRoom`): the person's own: region of
+  the header place (`placeSelection.regionId`, "Wo bist du?"), else of the Feuerplatz in the profile
   (`regionForPosition`, Bundesland / Kanton / Liechtenstein outlines loaded on demand, so a
-  Feuerplatz in Germany gives none). Own region not open yet: hint "Das Lagerfeuer deiner Region
-  startet, sobald die Region online geht" plus the select of open fires; no region known at all:
-  "Wähle ein Lagerfeuer". The select ("Anderes Feuer") navigates to `/chat?raum=<id>`.
-- **Access is soft:** whoever has chat access reads and writes in every active fire
+  Feuerplatz in Germany gives none), else Vorarlberg's. Members cannot switch fires (Peter, Trello
+  6aef2dad: regional is the USP); `?raum=` and the select "Anderes Feuer" (navigates to
+  `/chat?raum=<id>`) exist for Admins only (`canChoose`). Own region not open yet: hint "Das
+  Lagerfeuer deiner Region startet, sobald die Region online geht", no chat, no chooser.
+- **Access is soft (rules only, the UI limits members to their own fire):** whoever has chat access reads and writes in every active fire
   (`isChatRoom(roomId)` in the rules: `lagerfeuer` or a valid region id other than `vorarlberg`
   whose `regions/{id}` doc is `active`). Own data in a room of a region switched off again stays
   deletable (`isChatRoomId`, no `get`). Kerzenräume are unchanged.
