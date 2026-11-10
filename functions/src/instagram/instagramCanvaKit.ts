@@ -49,7 +49,7 @@ const SAMPLE_EVENT: EventImageModel = {
 
 const SAMPLE_COVER = {
   heading: 'Events der Woche',
-  bezirk: 'in Feldkirch',
+  bezirk: 'im Bezirk Feldkirch',
   dateRange: '19. - 25. Okt 2026',
   partLabel: 'am Montag und Dienstag',
   eventCount: 7,
@@ -81,7 +81,7 @@ const SAMPLE_ITEMS = [
 
 const SAMPLE_STORY_LIST: StoryModel = {
   heading: 'Heute',
-  bezirk: 'in Feldkirch',
+  bezirk: 'im Bezirk Feldkirch',
   dateLabel: 'Sa, 17. Okt',
   partLabel: '',
   items: SAMPLE_ITEMS,
