@@ -67,8 +67,16 @@ const unchangedPayload = {
   status: 'approved',
 };
 
-const edit = (changes: Record<string, unknown>, options?: { coverChanged?: boolean }) =>
-  reviewEditChanges(stored, { ...unchangedPayload, ...changes }, options);
+const edit = (
+  changes: Record<string, unknown>,
+  options?: { coverChanged?: boolean; instagramUploadPending?: boolean },
+  base: Record<string, unknown> = stored
+) => reviewEditChanges(base, { ...unchangedPayload, ...changes }, options);
+
+const igStored = {
+  ...stored,
+  instagramImage: { url: 'https://x/ig.jpg', focalPoint: { x: 0.5, y: 0.5 }, zoom: 1 },
+};
 
 describe('reviewEditChanges', () => {
   it('nothing changed: no review, empty patch (empty defaults of old events are no change)', () => {
@@ -133,7 +141,7 @@ describe('reviewEditChanges', () => {
     expect(edit({ recurrence: 'weekly', recurrenceEndDate: '2027-06-30' }).needsReview).toBe(false);
   });
 
-  it('the organizer name is free and keeps the stored photo', () => {
+  it('the organizer name is free', () => {
     const result = edit({
       organizer: { firstName: 'Anna', lastName: 'Neu', email: 'a@b.c', photoURL: null },
     });
@@ -152,6 +160,38 @@ describe('reviewEditChanges', () => {
     expect(result.patch).toEqual({});
   });
 
+  it('moving the event to another region is free (feedback 2026-11-10)', () => {
+    const result = edit({ regionId: 'tirol' });
+    expect(result.needsReview).toBe(false);
+    expect(result.patch).toEqual({ regionId: 'tirol' });
+  });
+
+  it('a renewed organizer profile photo is free (feedback 2026-11-10)', () => {
+    const organizer = {
+      firstName: 'Anna',
+      lastName: 'Muster',
+      email: 'a@b.c',
+      photoURL: 'https://x/me.jpg',
+    };
+    const result = edit({ organizer });
+    expect(result.needsReview).toBe(false);
+    expect(result.patch).toEqual({ organizer });
+  });
+
+  it('the Instagram photo: first choice and re-crop are free, a swap or new upload is not', () => {
+    const ig = (url: string, zoom = 1) => ({
+      instagramImage: { url, focalPoint: { x: 0.5, y: 0.5 }, zoom },
+    });
+    expect(edit(ig('https://x/cover.jpg')).needsReview).toBe(false);
+    expect(edit(ig('https://x/ig.jpg', 2), undefined, igStored).needsReview).toBe(false);
+    expect(edit(ig('https://x/other.jpg'), undefined, igStored).reviewFields).toEqual([
+      'instagramImage',
+    ]);
+    expect(edit({ instagramImage: null }, undefined, igStored).needsReview).toBe(true);
+    expect(edit({}, { instagramUploadPending: true }, igStored).needsReview).toBe(true);
+    expect(edit({}, { instagramUploadPending: true }).needsReview).toBe(false);
+  });
+
   it('cover crop (focal point / zoom) is free', () => {
     const result = edit({ imageFocalPoint: { x: 0.2, y: 0.4 }, imageZoom: 1.5 });
     expect(result.needsReview).toBe(false);
@@ -162,19 +202,6 @@ describe('reviewEditChanges', () => {
     ['title', { title: 'Neuer Titel' }, ['title']],
     ['description', { description: '<p>anders</p>' }, ['description']],
     ['removed cover', { imageUrl: null, imageThumbUrl: null }, ['imageUrl', 'imageThumbUrl']],
-    ['other region', { regionId: 'tirol' }, ['regionId']],
-    [
-      'organizer photo',
-      {
-        organizer: {
-          firstName: 'Anna',
-          lastName: 'Muster',
-          email: 'a@b.c',
-          photoURL: 'https://x/me.jpg',
-        },
-      },
-      ['organizer.photoURL'],
-    ],
   ])('%s needs a review', (_name, changes, fields) => {
     const result = edit(changes);
     expect(result.needsReview).toBe(true);

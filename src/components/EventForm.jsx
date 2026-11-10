@@ -836,12 +836,14 @@ export default function EventForm({ event }) {
   });
 
   // An owner's edit of an approved event stays approved unless it touches
-  // the title, the description, a photo or the region (Trello 6af0678b;
-  // Instagram settings never need a review, product decision 52M1ujwr).
+  // the title, the description or a photo (cover, an already set Instagram
+  // photo; Trello 6af0678b). Region moves and the organizer's profile photo
+  // are free.
   const reviewCheck =
     isEdit && wasApproved && !isAdmin
       ? reviewEditChanges(event, buildEventData(event.status), {
           coverChanged: Boolean(imageFile) || imageRemoved,
+          instagramUploadPending: instagramImageNeedsUpload() && Boolean(instagramFile),
         })
       : null;
   const needsReapproval = Boolean(reviewCheck?.needsReview);
