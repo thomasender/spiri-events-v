@@ -397,46 +397,41 @@ describe('ModerationTab', () => {
       expired: false,
     };
 
-    it('invites an address for the chosen regions', async () => {
+    it('has a single add button; a typed address is invited by e-mail', async () => {
       render(<ModerationTab />);
       await screen.findByTestId('moderation-empty');
-      fireEvent.click(screen.getByTestId('moderation-invite'));
-      const dialog = screen.getByRole('dialog', { name: 'Per E-Mail einladen' });
+      expect(screen.queryByTestId('moderation-invite')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('moderation-add'));
+      const dialog = screen.getByRole('dialog', { name: 'Moderator:in hinzufügen' });
       const send = within(dialog).getByRole('button', { name: 'Einladung senden' });
-      expect(send).toBeDisabled();
-      fireEvent.change(within(dialog).getByLabelText('E-Mail-Adresse'), {
-        target: { value: ' neu@x.at ' },
-      });
+      fireEvent.change(within(dialog).getByRole('searchbox'), { target: { value: ' neu@x.at ' } });
+      fireEvent.click(await within(dialog).findByTestId('moderation-invite-typed-email'));
       expect(send).toBeDisabled();
       fireEvent.click(within(dialog).getByRole('checkbox', { name: /Tirol/ }));
       fireEvent.click(send);
-      expect(await within(dialog).findByTestId('moderation-invite-result')).toHaveTextContent(
-        'Die Einladung ist unterwegs an neu@x.at'
+      expect(await screen.findByTestId('moderation-add-result')).toHaveTextContent(
+        'neu@x.at hat eine Einladung per E-Mail bekommen'
       );
       expect(state.inviteCalls).toEqual([
         { email: 'neu@x.at', regionIds: ['tirol'], sendEmail: true },
       ]);
-      fireEvent.click(within(dialog).getByRole('button', { name: 'Fertig' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Fertig' }));
       const row = await screen.findByTestId('moderation-invite-row');
       expect(row).toHaveTextContent('neu@x.at');
       expect(row).toHaveTextContent('Tirol');
     });
 
-    it('says so when the mail could not be sent', async () => {
+    it('says so when the mail to a typed address could not be sent', async () => {
       state.inviteEmailSent = false;
-      render(<ModerationTab />);
-      await screen.findByTestId('moderation-empty');
-      fireEvent.click(screen.getByTestId('moderation-invite'));
-      const dialog = screen.getByRole('dialog', { name: 'Per E-Mail einladen' });
-      fireEvent.change(within(dialog).getByLabelText('E-Mail-Adresse'), {
-        target: { value: 'neu@x.at' },
-      });
+      const dialog = await openAddDialog();
+      fireEvent.change(within(dialog).getByRole('searchbox'), { target: { value: 'neu@x.at' } });
+      fireEvent.click(await within(dialog).findByTestId('moderation-invite-typed-email'));
       fireEvent.click(within(dialog).getByRole('checkbox', { name: /Tirol/ }));
       fireEvent.click(within(dialog).getByRole('button', { name: 'Einladung senden' }));
-      expect(await within(dialog).findByTestId('moderation-invite-result')).toHaveTextContent(
+      expect(await screen.findByTestId('moderation-add-result')).toHaveTextContent(
         'konnte nicht gesendet werden'
       );
-      expect(within(dialog).getByRole('button', { name: 'Link kopieren' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Link kopieren' })).toBeInTheDocument();
     });
 
     it('resends and revokes open invitations', async () => {
