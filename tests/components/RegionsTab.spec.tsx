@@ -148,6 +148,16 @@ describe('RegionsTab', () => {
     );
   });
 
+  it('makes the region address a link that opens in a new tab', async () => {
+    render(<RegionsTab />);
+    const link = within(await row('tirol')).getByRole('link', {
+      name: `${window.location.origin}/tirol`,
+    });
+    expect(link).toHaveAttribute('href', `${window.location.origin}/tirol`);
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'));
+  });
+
   it('groups the regions by country in foldable sections with a count', async () => {
     render(<RegionsTab />);
     const at = screen.getByRole('button', { name: /Österreich/ });
