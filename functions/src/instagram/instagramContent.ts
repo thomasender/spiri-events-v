@@ -112,6 +112,7 @@ export interface InstagramEventInput {
   instagramConsent?: unknown;
   /** Handle for tag/collab on this event only; wins over the profile handle. */
   instagramHandleOverride?: unknown;
+  instagramExtraHandles?: unknown;
   createdBy?: unknown;
   /** { firstName, lastName } (or name) as saved by the event form. */
   organizer?: unknown;
@@ -730,7 +731,7 @@ export function buildSlideCaptionBlock(
  */
 export function buildCaption(
   event: InstagramEventInput,
-  organizerHandle?: string | null,
+  organizerHandle?: string | string[] | null,
   now: Date = new Date()
 ): string {
   const model = buildEventImageModel(event);
@@ -739,7 +740,10 @@ export function buildCaption(
   const title = truncateTitle(event.title);
   const location = formatLocation(event);
   const when = [model.dateLabel, model.timeLabel].filter(Boolean).join(' · ');
-  const handle = normalizeInstagramHandle(organizerHandle);
+  const handles = (Array.isArray(organizerHandle) ? organizerHandle : [organizerHandle])
+    .map(normalizeInstagramHandle)
+    .filter((h): h is string => h !== null);
+  const handle = handles.length > 0 ? handles.join(' ') : null;
   const recurring = isRecurringEvent(event);
   const header = recurring
     ? [buildRecurringHeader(event, location, now), handle ? `Mit ${handle}` : '']

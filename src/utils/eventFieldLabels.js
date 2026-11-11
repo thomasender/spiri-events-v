@@ -33,6 +33,7 @@ export const FIELD_LABELS = {
   instagramImage: 'Instagram-Bild',
   instagramConsent: 'Instagram-Einwilligung',
   instagramHandleOverride: 'Instagram-Handle',
+  instagramExtraHandles: 'Weitere Instagram-Namen',
   cancelled: 'Abgesagt',
   cancelledDates: 'Abgesagte Termine',
 };

@@ -38,6 +38,7 @@ function makeHarness(
   opts: {
     enabled?: boolean;
     handle?: string | null | Error;
+    tagHandles?: string[];
     fetchImpl?: (url: string, init?: RequestInit) => Response | Promise<Response>;
   } = {}
 ): Harness {
@@ -72,6 +73,7 @@ function makeHarness(
       if (opts.handle instanceof Error) throw opts.handle;
       return opts.handle ?? null;
     },
+    ...(opts.tagHandles ? { getTagHandles: async () => opts.tagHandles as string[] } : {}),
     generateImage,
     notifyAdmins: notify,
     now: () => new Date(),
@@ -435,6 +437,49 @@ describe('collaborator invite and user tag', () => {
       collaboratorInvited: true,
       inviteFallbackReason: null,
     });
+  });
+
+  it('invites and tags every handle of getTagHandles, tags stacked without overlap', async () => {
+    const h = makeHarness({
+      tagHandles: ['@org', '@zwei', '@drei', '@vier'],
+      fetchImpl: (url, init) => {
+        if (url.endsWith('/media') && init?.method === 'POST') return json({ id: 'container1' });
+        if (url.includes('/container1?')) return json({ status_code: 'FINISHED' });
+        if (url.endsWith('/media_publish')) return json({ id: 'media1' });
+        return json({ permalink: 'https://instagram.com/p/abc/' });
+      },
+    });
+    await publishApprovedEvent(h.deps, 'e1', { status: 'pending' }, futureEvent);
+    const [body] = containerBodies(h);
+    // Instagram allows 3 collaborators in total.
+    expect(JSON.parse(body.get('collaborators') as string)).toEqual(['org', 'zwei', 'drei']);
+    const tags = JSON.parse(body.get('user_tags') as string);
+    expect(tags.map((t: { username: string }) => t.username)).toEqual(['org', 'zwei', 'drei']);
+    expect(new Set(tags.map((t: { y: number }) => t.y)).size).toBe(3);
+    expect(body.get('caption')).toContain('Mit @org @zwei @drei');
+  });
+
+  it('falls back to the plain post when Instagram rejects several collaborators', async () => {
+    const queue = [json(ERR_110, 400)];
+    const h = makeHarness({
+      tagHandles: ['@org', '@zwei'],
+      fetchImpl: (url, init) => {
+        if (url.endsWith('/media') && init?.method === 'POST') {
+          return queue.shift() ?? json({ id: 'container1' });
+        }
+        if (url.includes('/container1?')) return json({ status_code: 'FINISHED' });
+        if (url.endsWith('/media_publish')) return json({ id: 'media1' });
+        return json({ permalink: 'https://instagram.com/p/abc/' });
+      },
+    });
+    expect(await publishApprovedEvent(h.deps, 'e1', { status: 'pending' }, futureEvent)).toBe(
+      'published'
+    );
+    const bodies = containerBodies(h);
+    expect(bodies).toHaveLength(2);
+    expect(bodies[1].has('collaborators')).toBe(false);
+    expect(bodies[1].get('caption')).toContain('Mit @org @zwei');
+    expect(h.posts.get('feed_e1')).toMatchObject({ collaboratorInvited: false });
   });
 
   it('sends neither param without a handle', async () => {

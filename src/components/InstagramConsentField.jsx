@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import './InstagramConsentField.css';
-import { normalizeInstagramHandle } from '../utils/instagramHandle';
+import {
+  MAX_EXTRA_HANDLES,
+  normalizeExtraHandles,
+  normalizeInstagramHandle,
+} from '../utils/instagramHandle';
 import { useRegionInstagramAccount } from '../hooks/useRegion';
 
 /**
@@ -16,6 +20,8 @@ export default function InstagramConsentField({
   instagramHandle,
   handleOverride,
   onHandleOverrideChange,
+  extraHandles,
+  onExtraHandlesChange,
   forOrganizer = false,
   regionId,
 }) {
@@ -39,6 +45,23 @@ export default function InstagramConsentField({
     else if (normalizeInstagramHandle(trimmed)) onHandleOverrideChange(trimmed);
     setEditing(false);
   };
+
+  // Further names to tag (max. 2), only offered while consent is given.
+  const canAddExtra = typeof onExtraHandlesChange === 'function' && Boolean(checked);
+  const extras = normalizeExtraHandles(extraHandles, handle);
+  const [addingExtra, setAddingExtra] = useState(false);
+  const [extraDraft, setExtraDraft] = useState('');
+  const finishAddExtra = () => {
+    const trimmed = extraDraft.trim();
+    // Invalid input is discarded; duplicates and the main name are ignored.
+    if (normalizeInstagramHandle(trimmed)) {
+      onExtraHandlesChange(normalizeExtraHandles([...extras, trimmed], handle));
+    }
+    setExtraDraft('');
+    setAddingExtra(false);
+  };
+  const extraInvalid = extraDraft.trim() !== '' && !normalizeInstagramHandle(extraDraft);
+
   const draftInvalid = draft.trim() !== '' && !normalizeInstagramHandle(draft);
 
   const editButton = canEdit && (
@@ -124,6 +147,63 @@ export default function InstagramConsentField({
           </>
         )}
       </p>
+      {canAddExtra && (extras.length > 0 || extras.length < MAX_EXTRA_HANDLES) && (
+        <div className="instagram-consent-hint instagram-consent-extra">
+          {extras.length > 0 && (
+            <ul className="instagram-consent-extra-list" data-testid="instagram-extra-list">
+              {extras.map((extra) => (
+                <li key={extra}>
+                  {extra}
+                  <button
+                    type="button"
+                    className="instagram-consent-handle-edit"
+                    aria-label={`${extra} entfernen`}
+                    title="Entfernen"
+                    data-testid="instagram-extra-remove"
+                    onClick={() => onExtraHandlesChange(extras.filter((h) => h !== extra))}
+                  >
+                    ✕
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {extras.length < MAX_EXTRA_HANDLES &&
+            (addingExtra ? (
+              <input
+                type="text"
+                className="instagram-consent-handle-input"
+                value={extraDraft}
+                autoFocus
+                size={Math.max(extraDraft.length, 8)}
+                maxLength={31}
+                aria-label="Weiterer Instagram-Name"
+                aria-invalid={extraInvalid}
+                data-testid="instagram-extra-input"
+                onChange={(e) => setExtraDraft(e.target.value)}
+                onBlur={finishAddExtra}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    finishAddExtra();
+                  } else if (e.key === 'Escape') {
+                    setExtraDraft('');
+                    setAddingExtra(false);
+                  }
+                }}
+              />
+            ) : (
+              <button
+                type="button"
+                className="instagram-consent-extra-add"
+                data-testid="instagram-extra-add"
+                onClick={() => setAddingExtra(true)}
+              >
+                + weiteren Instagram-Namen hinzufügen
+              </button>
+            ))}
+        </div>
+      )}
     </div>
   );
 }

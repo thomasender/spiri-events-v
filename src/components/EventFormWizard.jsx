@@ -72,7 +72,11 @@ import { normalizeCategoryInput, isValidCategoryInput } from '../utils/categoryI
 import { getCategoryColor } from '../utils/categoryColors';
 import { getMissingProfileFields } from '../utils/profile';
 import InstagramConsentField from './InstagramConsentField';
-import { resolveInstagramHandleOverride } from '../utils/instagramHandle';
+import {
+  normalizeExtraHandles,
+  normalizeInstagramHandle,
+  resolveInstagramHandleOverride,
+} from '../utils/instagramHandle';
 import InstagramImagePicker from './InstagramImagePicker';
 import {
   COVER_SOURCE,
@@ -296,6 +300,10 @@ export default function EventFormWizard() {
       ? restoredDraft.instagramHandleOverride
       : ''
   );
+  // Further names to tag on this event (max. 2), also restored from a draft.
+  const [instagramExtraHandles, setInstagramExtraHandles] = useState(
+    Array.isArray(restoredDraft?.instagramExtraHandles) ? restoredDraft.instagramExtraHandles : []
+  );
   const profileInstagramDefault = profile?.instagramConsentDefault === true;
   useEffect(() => {
     if (!instagramConsentTouched.current) setInstagramConsent(profileInstagramDefault);
@@ -355,6 +363,7 @@ export default function EventFormWizard() {
         instagramConsent,
         instagramNoTextConfirmed,
         instagramHandleOverride,
+        instagramExtraHandles,
       });
     }, 300);
     return () => clearTimeout(timeoutId);
@@ -366,6 +375,7 @@ export default function EventFormWizard() {
     instagramConsent,
     instagramNoTextConfirmed,
     instagramHandleOverride,
+    instagramExtraHandles,
     loading,
   ]);
 
@@ -847,6 +857,12 @@ export default function EventFormWizard() {
     setCurrentStep((prev) => Math.max(prev - 1, 1));
   };
 
+  const extraInstagramHandles = normalizeExtraHandles(
+    instagramExtraHandles,
+    normalizeInstagramHandle(instagramHandleOverride) ||
+      normalizeInstagramHandle(profile?.socialMedia?.instagram)
+  );
+
   const buildEventData = (status) => ({
     title: formData.title.trim(),
     date: formData.date,
@@ -909,6 +925,9 @@ export default function EventFormWizard() {
             profile?.socialMedia?.instagram
           ),
         }
+      : {}),
+    ...(instagramConsent && extraInstagramHandles.length > 0
+      ? { instagramExtraHandles: extraInstagramHandles }
       : {}),
     // Description images already have their final URL; a picked cover photo
     // or extra Instagram photo is added after its upload in saveEvent().
@@ -1902,6 +1921,8 @@ export default function EventFormWizard() {
         instagramHandle={profile?.socialMedia?.instagram}
         handleOverride={instagramHandleOverride}
         onHandleOverrideChange={setInstagramHandleOverride}
+        extraHandles={instagramExtraHandles}
+        onExtraHandlesChange={setInstagramExtraHandles}
         regionId={eventRegionId}
       />
 

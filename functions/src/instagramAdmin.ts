@@ -11,6 +11,7 @@ import {
   buildStoryDeps,
   listCarouselEvents,
   lookupOrganizerHandle,
+  lookupTagHandles,
   resolveInstagramAccessToken,
 } from './instagramDeps';
 import {
@@ -268,6 +269,7 @@ export const adminPreviewWeeklyCarousels = onCall(
     return previewWeeklyCarousels({
       listEvents: (window) => listCarouselEvents(db, window),
       getOrganizerHandle: (ev) => lookupOrganizerHandle(db, ev),
+      getTagHandles: (ev) => lookupTagHandles(db, ev),
       getPostStatus: readStatus,
     });
   }

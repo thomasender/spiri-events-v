@@ -553,7 +553,11 @@ describe('carousel collaborators', () => {
 
   const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 
-  function run(handles: Record<string, string | null>, parentResponses: Response[] = []) {
+  function run(
+    handles: Record<string, string | null>,
+    parentResponses: Response[] = [],
+    tagHandles?: Record<string, string[]>
+  ) {
     const queue = [...parentResponses];
     const list = ['a', 'b', 'c', 'd', 'e'].map((id, i) =>
       ev({ id, createdBy: `u_${id}`, time: `1${i}:00` } as Partial<CarouselEvent>)
@@ -583,6 +587,12 @@ describe('carousel collaborators', () => {
         posts.set(id, { ...posts.get(id), ...patch });
       },
       getOrganizerHandle: async (event) => handles[String(event.createdBy)] ?? null,
+      ...(tagHandles
+        ? {
+            getTagHandles: async (event: CarouselEvent) =>
+              tagHandles[String(event.createdBy)] ?? [],
+          }
+        : {}),
       generateCoverImage: async (name) => `https://img/${name}.jpg`,
       generateEventImage: async (name) => `https://img/${name}.jpg`,
       notifyAdmins: async () => undefined,
@@ -607,6 +617,18 @@ describe('carousel collaborators', () => {
     expect(parent.get('caption')).toContain('Mit @one @two @three @four');
     expect(parent.get('caption')?.length).toBeLessThanOrEqual(2200);
     expect(h.posts.values().next().value).toMatchObject({ collaboratorInvited: true });
+  });
+
+  it('tags the extra names on their slide and keeps the cap of 3 collaborators', async () => {
+    const h = run({}, [], { u_a: ['@one', '@one_b'], u_b: ['@two'], u_c: ['@three'] });
+    await runWeeklyCarousels(h.deps);
+    const [parent] = h.parents();
+    expect(JSON.parse(parent.get('collaborators') as string)).toEqual(['one', 'one_b', 'two']);
+    expect(parent.get('caption')).toContain('Mit @one @one_b @two @three');
+    const slide = h.children()[1];
+    const tags = JSON.parse(slide.get('user_tags') as string);
+    expect(tags.map((t: { username: string }) => t.username)).toEqual(['one', 'one_b']);
+    expect(tags[0].y).not.toBe(tags[1].y);
   });
 
   it('tags each organizer on their own slide, never on the cover', async () => {

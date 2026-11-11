@@ -314,6 +314,37 @@ describe('events.instagramConsent', () => {
   });
 });
 
+describe('events.instagramExtraHandles', () => {
+  const base = { createdBy: 'owner', status: 'draft', description: 'd' };
+  const owner = () => env.authenticatedContext('owner', { email_verified: true });
+
+  it('create: up to 2 short strings or absent OK, the rest rejected', async () => {
+    const db = owner().firestore();
+    await assertSucceeds(setDoc(doc(db, 'events/x1'), base));
+    await assertSucceeds(setDoc(doc(db, 'events/x2'), { ...base, instagramExtraHandles: [] }));
+    await assertSucceeds(
+      setDoc(doc(db, 'events/x3'), { ...base, instagramExtraHandles: ['@a', '@b'] })
+    );
+    await assertFails(
+      setDoc(doc(db, 'events/x4'), { ...base, instagramExtraHandles: ['@a', '@b', '@c'] })
+    );
+    await assertFails(setDoc(doc(db, 'events/x5'), { ...base, instagramExtraHandles: '@a' }));
+    await assertFails(setDoc(doc(db, 'events/x6'), { ...base, instagramExtraHandles: [1] }));
+    await assertFails(
+      setDoc(doc(db, 'events/x7'), { ...base, instagramExtraHandles: ['@' + 'a'.repeat(31)] })
+    );
+  });
+
+  it('update: same checks, and the field may change on an approved event', async () => {
+    const db = owner().firestore();
+    await assertSucceeds(updateDoc(doc(db, 'events/ev1'), { instagramExtraHandles: ['@a'] }));
+    await assertFails(
+      updateDoc(doc(db, 'events/ev1'), { instagramExtraHandles: ['@a', '@b', '@c'] })
+    );
+    await assertFails(updateDoc(doc(db, 'events/ev1'), { instagramExtraHandles: [{ a: 1 }] }));
+  });
+});
+
 describe('events.registration', () => {
   const base = { createdBy: 'owner', status: 'draft', description: 'd' };
   const owner = () => env.authenticatedContext('owner', { email_verified: true });
@@ -568,6 +599,7 @@ describe('events: owners cannot approve their own events', () => {
           status: 'approved',
           instagramConsent: true,
           instagramHandleOverride: 'my_handle',
+          instagramExtraHandles: ['@zweite'],
           instagramImage: { url: 'https://x/y.jpg', focalPoint: { x: 0.5, y: 0.5 }, zoom: 1 },
           updatedAt: 1,
         })
