@@ -97,12 +97,17 @@ const COMPLETE_DRAFT = {
   rightsConfirmed: true,
 };
 
-function seedDraft() {
+function seedDraft(description?: string) {
+  const draft = description
+    ? { ...COMPLETE_DRAFT, formData: { ...COMPLETE_DRAFT.formData, description } }
+    : COMPLETE_DRAFT;
   localStorage.setItem(
     'eventWizardDraft:user-uid',
-    JSON.stringify({ version: 1, savedAt: Date.now(), draft: COMPLETE_DRAFT })
+    JSON.stringify({ version: 1, savedAt: Date.now(), draft })
   );
 }
+
+const WITH_PHOTO = '<p>Text</p><img src="https://firebasestorage.googleapis.com/a.jpg">';
 
 function renderWizard() {
   return render(
@@ -166,7 +171,7 @@ describe('EventFormWizard Instagram consent', () => {
 
   it('takes the default from the profile setting', async () => {
     mockProfile.value = profileWith({ instagramConsentDefault: true });
-    seedDraft();
+    seedDraft(WITH_PHOTO);
     renderWizard();
     expect(screen.getByTestId('instagram-consent-checkbox')).toBeChecked();
     const saved = await submitAndGetSavedEvent();
@@ -185,7 +190,7 @@ describe('EventFormWizard Instagram consent', () => {
 
   it('can be ticked when the profile default is off', async () => {
     mockProfile.value = profileWith({});
-    seedDraft();
+    seedDraft(WITH_PHOTO);
     renderWizard();
     fireEvent.click(screen.getByTestId('instagram-consent-checkbox'));
     const saved = await submitAndGetSavedEvent();
@@ -210,6 +215,18 @@ describe('EventFormWizard Instagram consent', () => {
     expect(screen.getByTestId('instagram-consent-hint')).toHaveTextContent(
       /Trage in deinem Profil/
     );
+  });
+});
+
+describe('EventFormWizard Instagram needs a photo', () => {
+  it('blocks submitting with Instagram on and no photo, and shows an error', () => {
+    mockProfile.value = profileWith({ instagramConsentDefault: true });
+    seedDraft();
+    renderWizard();
+    fireEvent.click(screen.getByTestId('submit-event-button'));
+    expect(document.querySelector('.confirm-dialog')).toBeNull();
+    expect(screen.getByTestId('instagram-image-error')).toHaveTextContent(/brauchst du ein Foto/);
+    expect(mockEvents.addEvent).not.toHaveBeenCalled();
   });
 });
 

@@ -43,7 +43,8 @@ Guests read along without writing (below).
 - **Which room /chat shows** (`useChatRoom`, pure `resolveChatRoom`): the person's own: region of
   the header place (`placeSelection.regionId`, "Wo bist du?"), else of the Feuerplatz in the profile
   (`regionForPosition`, Bundesland / Kanton / Liechtenstein outlines loaded on demand, so a
-  Feuerplatz in Germany gives none), else Vorarlberg's. Members cannot switch fires (Peter, Trello
+  Feuerplatz in Germany gives none), else the last region this browser visited
+  (`tribe:lastRegion`, only if active; `ownChatRegionId`, Trello K0Ord0L9), and only then Vorarlberg's. Members cannot switch fires (Peter, Trello
   6aef2dad: regional is the USP); `?raum=` and the select "Anderes Feuer" (navigates to
   `/chat?raum=<id>`) exist for Admins only (`canChoose`). Own region not open yet: hint "Das
   Lagerfeuer deiner Region startet, sobald die Region online geht", no chat, no chooser.

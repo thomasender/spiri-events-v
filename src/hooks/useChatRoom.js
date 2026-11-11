@@ -4,13 +4,15 @@ import { useRegion } from './useRegion';
 import { useAuth } from './useAuth';
 import { loadGeoShapes } from '../lib/placeData';
 import { regionForPosition } from '../utils/geoRegion';
-import { resolveChatRoom } from '../utils/chat';
+import { ownChatRegionId, resolveChatRoom } from '../utils/chat';
+import { readLastRegion } from '../utils/regionRouting';
 
 /**
  * The person's own region for the Lagerfeuer (Trello 6aef2dad): the region of the place in the
  * header ("Wo bist du?"), else the region of the Feuerplatz in the profile (only by the
  * Bundesland / Kanton / Liechtenstein outlines, loaded on demand; a Feuerplatz in Germany gives
- * none). null outside region mode or when neither is known.
+ * none), else the last region the browser visited (`tribe:lastRegion`, only if active).
+ * null outside region mode or when neither is known.
  */
 export function useOwnChatRegionId(profile) {
   const { placeSelection, regions, allRegions, loading } = useRegion();
@@ -42,7 +44,12 @@ export function useOwnChatRegionId(profile) {
   }, [needsFireplace, lat, lon, allRegions]);
 
   if (!regionMode) return null;
-  return placeRegionId ?? fireplaceRegionId;
+  return ownChatRegionId({
+    placeRegionId,
+    fireplaceRegionId,
+    lastRegionId: readLastRegion(),
+    activeRegions: regions,
+  });
 }
 
 /**

@@ -86,7 +86,8 @@ Recipients: the ticked members, else every member of the chosen list (ticks win)
   "keine Privatnachrichten". `dm_starters` (30 new threads/day) does not apply; instead: at most 500
   recipients, one Sammelnachricht per admin every 10 minutes (`admin_broadcast_locks/{uid}`,
   server-only), idempotent per `requestId` (`admin_broadcasts/{uid}_{requestId}`).
-- **No e-mail:** `onDirectMessageMailNotify` stops on messages with `broadcastId`.
+- **E-mail:** like any other message (Trello 6aef2c5e, Peter 2026-11-10): `onDirectMessageMailNotify` mails
+  each recipient who has the profile switch on, with the usual 1-per-conversation-per-hour throttle.
 - Writes go in batches of 200 recipients (thread summary + message atomic per recipient); a failed
   batch is counted as `write_failed`, the others still go out.
 - Log `admin_broadcasts/{id}`: sender, time, counts, skip-reason counters and the full text (it is the
@@ -97,7 +98,7 @@ Recipients: the ticked members, else every member of the chosen list (ticks win)
 
 Datenschutzerklärung Abschnitt 15 (+ 2, 3, 4 and 5). Keep it true: admins cannot read, not end-to-end
 encrypted, 90 days, the notification mail contains an excerpt and goes through Mailgun (section 4),
-the team's Sammelnachricht skips "keine Privatnachrichten" and sends no e-mail.
+the team's Sammelnachricht skips "keine Privatnachrichten" and mails like any other private message.
 
 ## Not built (ideas)
 

@@ -65,7 +65,11 @@ subagents don't all fall back to `--no-verify`. Start the emulators
 1. `get_lists` on the board, then find the "Bugs to Fix" list ID.
 2. `trello_get_list_cards`, then note each card's id, shortLink, name and desc.
 3. For each card, collect history **before** deciding anything:
-   - `trello_get_card_actions` (filter `commentCard`): all comments, newest first.
+   - **Always read the comments of every card, no exceptions**, even if the
+     list result shows a `comments` field (`list_by_list` returns it empty).
+     Local MCP: `trello_get_card_actions` (filter `commentCard`). Cloud MCP:
+     `trelloReadCard` `list_comments` per card. Newest first. Read the
+     latest comments carefully: they decide the bucket and what to fix.
    - `git log --all --oneline -i -E --grep="<shortLink>|<first 8 chars of card id>"`:
      earlier commits for this ticket. Older commits sometimes use the card-id
      prefix (e.g. `fix(6abf99cb): …`) instead of the shortLink, so search both.

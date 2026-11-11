@@ -304,6 +304,11 @@ export function stripHtml(html: unknown): string {
     .trim();
 }
 
+/** Plain text for Instagram, which renders single line breaks tightly: every break becomes a blank line. */
+export function stripHtmlForCaption(html: unknown): string {
+  return stripHtml(html).replace(/\n/g, '\n\n');
+}
+
 function parseIsoDate(value: string): Date | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (!match) return null;
@@ -691,6 +696,34 @@ export function buildPriceLine(event: InstagramEventInput): string {
 }
 
 /**
+ * Text block for one carousel slide inside the single carousel caption (Instagram has no
+ * per-slide caption): "Slide 2: Title", the same fact lines as an approved-event post
+ * (date/time, category + place, address), the shortened description and the price line.
+ * Always <= maxLength; only the description is shortened (and dropped when too little room is left).
+ */
+export function buildSlideCaptionBlock(
+  event: InstagramEventInput,
+  slide: number,
+  maxLength: number
+): string {
+  const model = buildEventImageModel(event);
+  const when = [model.dateLabel, model.timeLabel].filter(Boolean).join(' · ');
+  const location = formatLocation(event);
+  const facts = [
+    `Slide ${slide}: ${truncateTitle(event.title, 60) || 'Event'}`,
+    [when && `📅 ${when}`, buildCategoryLine(event), location && `📍 ${location}`]
+      .filter(Boolean)
+      .join('\n'),
+  ];
+  const priceLine = buildPriceLine(event);
+  const fixed = [...facts, priceLine].filter(Boolean);
+  const budget = maxLength - fixed.reduce((sum, part) => sum + part.length, 0) - 2 * fixed.length;
+  const description = stripHtmlForCaption(event.description);
+  const body = description && budget > 40 ? truncateText(description, budget, true) : '';
+  return [...facts, body, priceLine].filter(Boolean).join('\n\n').slice(0, maxLength);
+}
+
+/**
  * Feed caption: headline facts first, a short description, the price line, then the call to
  * action, the bio-link hint and the hashtags. Always <= CAPTION_MAX_LENGTH (Instagram's hard limit); the
  * description is what gets shortened when the budget runs out.
@@ -725,7 +758,7 @@ export function buildCaption(
   const footer = buildCaptionFooter(buildHashtags(event).join(' '), model.siteDomain);
 
   const priceLine = buildPriceLine(event);
-  const description = stripHtml(event.description);
+  const description = stripHtmlForCaption(event.description);
   // Blank-line separators (2 characters each) sit between the non-empty parts.
   // The price line is never shortened, only the description.
   const fixed = [header, priceLine, footer].filter(Boolean);

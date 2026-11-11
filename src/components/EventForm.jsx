@@ -485,6 +485,10 @@ export default function EventForm({ event }) {
     if (!formData.kontakt.trim()) {
       newErrors.kontakt = 'Kontakt ist erforderlich';
     }
+    if (instagramConsent && !event?.instagramConsent && instagramImageCandidates.length === 0) {
+      newErrors.instagramImage =
+        'Für das Teilen auf Instagram brauchst du ein Foto. Bitte lade ein Titelbild hoch oder deaktiviere „auf Instagram teilen“';
+    }
     return newErrors;
   };
 
@@ -836,12 +840,14 @@ export default function EventForm({ event }) {
   });
 
   // An owner's edit of an approved event stays approved unless it touches
-  // the title, the description, a photo or the region (Trello 6af0678b;
-  // Instagram settings never need a review, product decision 52M1ujwr).
+  // the title, the description or a photo (cover, an already set Instagram
+  // photo; Trello 6af0678b). Region moves and the organizer's profile photo
+  // are free.
   const reviewCheck =
     isEdit && wasApproved && !isAdmin
       ? reviewEditChanges(event, buildEventData(event.status), {
           coverChanged: Boolean(imageFile) || imageRemoved,
+          instagramUploadPending: instagramImageNeedsUpload() && Boolean(instagramFile),
         })
       : null;
   const needsReapproval = Boolean(reviewCheck?.needsReview);
@@ -867,7 +873,11 @@ export default function EventForm({ event }) {
     const newErrors = validate();
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      setValidationError('Bitte fülle alle Pflichtfelder aus.');
+      setValidationError(
+        newErrors.instagramImage
+          ? newErrors.instagramImage + '.'
+          : 'Bitte fülle alle Pflichtfelder aus.'
+      );
       triggerWobble('submit');
       return;
     }
@@ -900,7 +910,11 @@ export default function EventForm({ event }) {
     const newErrors = validate();
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      setValidationError('Bitte fülle alle Pflichtfelder aus.');
+      setValidationError(
+        newErrors.instagramImage
+          ? newErrors.instagramImage + '.'
+          : 'Bitte fülle alle Pflichtfelder aus.'
+      );
       triggerWobble('draft');
       return;
     }

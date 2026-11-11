@@ -227,8 +227,14 @@ export default function RegionsTab() {
                           <div>
                             <dt>Adresse (URL)</dt>
                             <dd data-testid="region-url">
-                              {window.location.origin}
-                              {regionCanonicalPath(region.id, '/', registry)}
+                              <a
+                                href={`${window.location.origin}${regionCanonicalPath(region.id, '/', registry)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                {window.location.origin}
+                                {regionCanonicalPath(region.id, '/', registry)}
+                              </a>
                             </dd>
                           </div>
                           <div>

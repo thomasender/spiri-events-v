@@ -376,11 +376,10 @@ describe('members tab helpers', () => {
 });
 
 describe('mail trigger', () => {
-  it('stops on a Sammelnachricht before reading anything', () => {
+  it('does not stop on a Sammelnachricht: it mails like any private message', () => {
     const src = readFileSync(join(__dirname, '../../functions/src/chat.ts'), 'utf8');
     const body = src.slice(src.indexOf('async function mailDirectMessage'));
-    const skip = body.indexOf('isBroadcastMessage(data)');
-    expect(skip).toBeGreaterThan(0);
-    expect(skip).toBeLessThan(body.indexOf("db.doc('app_settings/messenger')"));
+    expect(body).not.toContain('isBroadcastMessage');
+    expect(body).not.toContain("reason: 'broadcast'");
   });
 });

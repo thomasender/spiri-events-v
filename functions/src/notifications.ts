@@ -22,6 +22,7 @@ import {
 import {
   decideEventStatusNotification,
   decideCreatedEventNotification,
+  eventContentKey,
   decideAdminMessageNotification,
   EventSnapshot,
   AdminMessageSnapshot,
@@ -118,6 +119,7 @@ function snapshotToEventSnapshot(data: FirebaseFirestore.DocumentData | undefine
     unpublishedBy: readString(data.unpublishedBy),
     trashReason: readString(data.trashReason),
     trashKind: readString(data.trashKind),
+    contentKey: eventContentKey(data),
   };
 }
 
