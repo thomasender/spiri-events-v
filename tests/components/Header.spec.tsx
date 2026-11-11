@@ -12,12 +12,14 @@ const mockAuth = vi.hoisted(() => ({
   staffRegionIds: [] as string[],
 }));
 
-const mockAdminAlerts = vi.hoisted(() => ({ unread: 0 }));
+const mockAdminAlerts = vi.hoisted(() => ({ unread: 0, pending: 0 }));
 
 vi.mock('../../src/hooks/useReviewNotifications', () => ({
   // Like the real hook: nothing is counted unless the caller says the user is staff.
   useReviewNotifications: (_uid: string, enabled: boolean) => ({
     count: enabled ? mockAdminAlerts.unread : 0,
+    // Reported regardless of `enabled`, so the Header itself must gate by role.
+    pendingCount: mockAdminAlerts.pending,
   }),
 }));
 
@@ -97,6 +99,7 @@ beforeEach(() => {
   mockAuth.role = null;
   mockAuth.staffRegionIds = [];
   mockAdminAlerts.unread = 0;
+  mockAdminAlerts.pending = 0;
   if (mockAuth.user) mockAuth.user.photoURL = undefined;
   mockProfile.photoURL = null;
   mockProfile.placeSelection = null;
@@ -1535,5 +1538,139 @@ describe('Header Lagerfeuer hint', () => {
 
     renderChatHeader();
     expect(screen.queryByTestId('chat-new-hint')).toBeNull();
+  });
+});
+
+describe('Header Review shortcut (6af42379)', () => {
+  const links = () => screen.queryAllByTestId('nav-review');
+
+  it('shows staff a Review link to /admin?tab=review while events are pending', () => {
+    mockAuth.user = { uid: 'admin-uid' };
+    mockAuth.role = 'Admin';
+    mockAdminAlerts.pending = 3;
+
+    render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    // Desktop row and mobile menu.
+    expect(links().length).toBe(2);
+    links().forEach((link) => {
+      expect(link).toHaveAttribute('href', '/admin?tab=review');
+      expect(link).toHaveAttribute('aria-label', 'Review (3 Events warten)');
+    });
+    expect(screen.getAllByTestId('review-pending-badge')[0]).toHaveTextContent('3');
+  });
+
+  it('uses the singular in the label for one waiting event', () => {
+    mockAuth.user = { uid: 'admin-uid' };
+    mockAuth.role = 'Admin';
+    mockAdminAlerts.pending = 1;
+
+    render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    expect(links()[0]).toHaveAttribute('aria-label', 'Review (1 Event wartet)');
+  });
+
+  it('shows it to a Regions-Moderator:in too', () => {
+    mockAuth.user = { uid: 'mod-uid' };
+    mockAuth.role = 'RegionModerator';
+    mockAuth.staffRegionIds = ['tirol'];
+    mockAdminAlerts.pending = 2;
+
+    render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    expect(links().length).toBe(2);
+  });
+
+  it('hides it for staff when nothing is pending', () => {
+    mockAuth.user = { uid: 'admin-uid' };
+    mockAuth.role = 'Admin';
+    mockAdminAlerts.pending = 0;
+
+    render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    expect(links()).toHaveLength(0);
+  });
+
+  it('hides it for regular users even if pending events are reported', () => {
+    mockAuth.user = { uid: 'test-uid' };
+    mockAdminAlerts.pending = 4;
+
+    render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    expect(links()).toHaveLength(0);
+  });
+
+  it('hides it for guests even if pending events are reported', () => {
+    mockAdminAlerts.pending = 4;
+
+    render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+
+    expect(links()).toHaveLength(0);
+  });
+
+  it('lists it in the mobile menu right before Verwaltung', () => {
+    mockAuth.user = { uid: 'admin-uid' };
+    mockAuth.role = 'Admin';
+    mockAdminAlerts.pending = 2;
+
+    render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Menü öffnen/ }));
+
+    const items = Array.from(
+      document.getElementById('mobile-menu')?.querySelectorAll('a.nav-link, button.nav-link') ?? []
+    );
+    const reviewIndex = items.findIndex((el) => el.getAttribute('href') === '/admin?tab=review');
+    const adminIndex = items.findIndex((el) => el.getAttribute('href') === '/admin');
+    expect(reviewIndex).toBeGreaterThan(-1);
+    expect(reviewIndex).toBe(adminIndex - 1);
+  });
+
+  it('lights up on the Review tab only, not on the plain /admin page', () => {
+    mockAuth.user = { uid: 'admin-uid' };
+    mockAuth.role = 'Admin';
+    mockAdminAlerts.pending = 2;
+
+    const { unmount } = render(
+      <MemoryRouter initialEntries={['/admin']}>
+        <Header />
+      </MemoryRouter>
+    );
+    links().forEach((link) => expect(link.className).not.toContain('nav-link--active'));
+    unmount();
+
+    render(
+      <MemoryRouter initialEntries={['/admin?tab=review']}>
+        <Header />
+      </MemoryRouter>
+    );
+    links().forEach((link) => expect(link.className).toContain('nav-link--active'));
   });
 });
