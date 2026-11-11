@@ -503,6 +503,10 @@ export default function EventFormWizard() {
       if (!rightsConfirmed) {
         newErrors.rightsConfirmed = 'Bitte bestätige die Nutzungsrechte';
       }
+      if (instagramConsent && instagramImageCandidates.length === 0) {
+        newErrors.instagramImage =
+          'Für das Teilen auf Instagram brauchst du ein Foto. Bitte lade ein Titelbild hoch oder deaktiviere „auf Instagram teilen“';
+      }
       if (instagramConsent && instagramImageCandidates.length > 0 && !instagramNoTextConfirmed) {
         newErrors.instagramNoText = 'Bitte bestätige, dass dein Foto keinen Text enthält';
       }
@@ -928,6 +932,8 @@ export default function EventFormWizard() {
       setErrors(newErrors);
       if (step4Errors.rightsConfirmed) {
         setValidationError('Bitte bestätige die Nutzungsrechte.');
+      } else if (step4Errors.instagramImage) {
+        setValidationError(step4Errors.instagramImage + '.');
       } else if (step4Errors.instagramNoText) {
         setValidationError(step4Errors.instagramNoText + '.');
       } else {
@@ -951,6 +957,8 @@ export default function EventFormWizard() {
       setErrors(newErrors);
       if (step4Errors.rightsConfirmed) {
         setValidationError('Bitte bestätige die Nutzungsrechte.');
+      } else if (step4Errors.instagramImage) {
+        setValidationError(step4Errors.instagramImage + '.');
       } else if (step4Errors.instagramNoText) {
         setValidationError(step4Errors.instagramNoText + '.');
       } else {
@@ -1900,6 +1908,11 @@ export default function EventFormWizard() {
       {instagramConsent && (
         <details className="instagram-image-accordion" open data-testid="instagram-image-accordion">
           <summary>Foto und Bildausschnitt für Instagram wählen</summary>
+          {errors.instagramImage && (
+            <span className="error-text" data-testid="instagram-image-error">
+              {errors.instagramImage}
+            </span>
+          )}
           <InstagramImagePicker
             candidates={instagramImageCandidates}
             value={effectiveInstagramImageChoice}

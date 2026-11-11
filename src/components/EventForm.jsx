@@ -485,6 +485,10 @@ export default function EventForm({ event }) {
     if (!formData.kontakt.trim()) {
       newErrors.kontakt = 'Kontakt ist erforderlich';
     }
+    if (instagramConsent && !event?.instagramConsent && instagramImageCandidates.length === 0) {
+      newErrors.instagramImage =
+        'Für das Teilen auf Instagram brauchst du ein Foto. Bitte lade ein Titelbild hoch oder deaktiviere „auf Instagram teilen“';
+    }
     return newErrors;
   };
 
@@ -869,7 +873,11 @@ export default function EventForm({ event }) {
     const newErrors = validate();
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      setValidationError('Bitte fülle alle Pflichtfelder aus.');
+      setValidationError(
+        newErrors.instagramImage
+          ? newErrors.instagramImage + '.'
+          : 'Bitte fülle alle Pflichtfelder aus.'
+      );
       triggerWobble('submit');
       return;
     }
@@ -902,7 +910,11 @@ export default function EventForm({ event }) {
     const newErrors = validate();
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      setValidationError('Bitte fülle alle Pflichtfelder aus.');
+      setValidationError(
+        newErrors.instagramImage
+          ? newErrors.instagramImage + '.'
+          : 'Bitte fülle alle Pflichtfelder aus.'
+      );
       triggerWobble('draft');
       return;
     }
