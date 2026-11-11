@@ -115,6 +115,7 @@ function ModeratorDialog({
   currentUid,
   onSave,
   onInvite,
+  onInviteEmail,
   onClose,
 }) {
   const isAdd = mode === 'add';
@@ -148,6 +149,10 @@ function ModeratorDialog({
     );
   }, [isAdd, members, search]);
 
+  // A typed address can be invited directly, also if the person has no account yet.
+  const typedEmail = isAdd ? search.trim() : '';
+  const canInviteTypedEmail = EMAIL_PATTERN.test(typedEmail);
+
   const canSave = Boolean(selected) && regionIds.length > 0 && !saving;
 
   const submit = async (e) => {
@@ -157,7 +162,11 @@ function ModeratorDialog({
     setError(null);
     if (isAdd) {
       try {
-        setResult(await onInvite(selected, regionIds));
+        setResult(
+          selected.emailOnly
+            ? await onInviteEmail(selected.email, regionIds)
+            : await onInvite(selected, regionIds)
+        );
       } catch (err) {
         setError(inviteAdminErrorMessage(err));
       } finally {
@@ -242,7 +251,7 @@ function ModeratorDialog({
                 <input
                   ref={firstFieldRef}
                   type="search"
-                  placeholder="Name, Benutzername oder E-Mail"
+                  placeholder="Name, Benutzername oder E-Mail-Adresse"
                   value={search}
                   onChange={(e) => {
                     setSearch(e.target.value);
@@ -258,8 +267,23 @@ function ModeratorDialog({
                 es erneut.
               </p>
             )}
-            {!membersLoading && !membersError && search.trim() && results.length === 0 && (
-              <p className="moderation-hint">Keine passende Person gefunden.</p>
+            {!membersLoading &&
+              !membersError &&
+              search.trim() &&
+              results.length === 0 &&
+              !canInviteTypedEmail && (
+                <p className="moderation-hint">Keine passende Person gefunden.</p>
+              )}
+            {!selected && canInviteTypedEmail && (
+              <button
+                type="button"
+                className="moderation-result"
+                data-testid="moderation-invite-typed-email"
+                onClick={() => setSelected({ email: typedEmail, emailOnly: true })}
+              >
+                <Mail size={16} aria-hidden="true" />
+                <span className="moderation-result-name">{typedEmail} per E-Mail einladen</span>
+              </button>
             )}
             {selected ? (
               <p className="moderation-selected" data-testid="moderation-selected-person">
@@ -360,7 +384,7 @@ function inviteAdminErrorMessage(err) {
     return 'Dich selbst kannst du nicht einladen.';
   }
   if (code === 'failed-precondition' && /no email/i.test(message)) {
-    return 'Dieses Konto hat keine E-Mail-Adresse. Lade die Person über „Per E-Mail einladen“ ein.';
+    return 'Dieses Konto hat keine E-Mail-Adresse. Gib stattdessen die E-Mail-Adresse der Person ein.';
   }
   if (code === 'not-found') return 'Diese Einladung gibt es nicht mehr.';
   return moderatorErrorMessage(err);
@@ -379,133 +403,6 @@ async function copyText(text) {
   } catch {
     return false;
   }
-}
-
-// "Per E-Mail einladen": address + regions, then the result (mail sent or not) with
-// the link to copy.
-function InviteDialog({ onInvite, onClose }) {
-  const [email, setEmail] = useState('');
-  const [regionIds, setRegionIds] = useState([]);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
-  const [result, setResult] = useState(null);
-  const [copied, setCopied] = useState(false);
-  const firstFieldRef = useRef(null);
-
-  useEffect(() => {
-    firstFieldRef.current?.focus();
-  }, []);
-
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === 'Escape' && !saving) onClose();
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onClose, saving]);
-
-  const trimmed = email.trim();
-  const canSave = EMAIL_PATTERN.test(trimmed) && regionIds.length > 0 && !saving;
-
-  const submit = async (e) => {
-    e.preventDefault();
-    if (!canSave) return;
-    setSaving(true);
-    setError(null);
-    try {
-      setResult(await onInvite(trimmed, regionIds));
-    } catch (err) {
-      setError(inviteAdminErrorMessage(err));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const titleId = 'moderation-invite-title';
-
-  return (
-    <div className="moderation-dialog-backdrop" role="presentation">
-      <form
-        className="moderation-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        onSubmit={submit}
-        data-testid="moderation-invite-dialog"
-      >
-        <h2 id={titleId}>Per E-Mail einladen</h2>
-        {result ? (
-          <>
-            <p
-              className={result.emailSent ? 'moderation-notice' : 'moderation-error'}
-              role="status"
-              data-testid="moderation-invite-result"
-            >
-              {result.emailSent
-                ? `Die Einladung ist unterwegs an ${trimmed}. Sie gilt bis ${formatDay(result.expiresAt)}.`
-                : `Die E-Mail an ${trimmed} konnte nicht gesendet werden. Kopiere den Link und schick ihn selbst.`}
-            </p>
-            <div className="moderation-dialog-actions">
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={async () => setCopied(await copyText(result.inviteUrl))}
-              >
-                <Link2 size={16} aria-hidden="true" />
-                <span>{copied ? 'Link kopiert' : 'Link kopieren'}</span>
-              </button>
-              <button type="button" className="btn btn-primary" onClick={onClose}>
-                Fertig
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
-            <p className="moderation-hint">
-              Die Person bekommt eine E-Mail mit einem Link zu einer kurzen Einführung. Sobald sie
-              diese abgeschlossen und unterschrieben hat, ist sie Moderator:in der gewählten
-              Regionen. Der Link gilt 14 Tage.
-            </p>
-            <label className="moderation-search">
-              <span>E-Mail-Adresse</span>
-              <input
-                ref={firstFieldRef}
-                type="email"
-                className="moderation-email-input"
-                placeholder="name@beispiel.at"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="off"
-              />
-            </label>
-            <RegionFieldset regionIds={regionIds} onChange={setRegionIds} />
-            {regionIds.length === 0 && (
-              <p className="moderation-hint">Wähle mindestens eine Region.</p>
-            )}
-            {error && (
-              <p className="moderation-error" role="alert">
-                {error}
-              </p>
-            )}
-            <div className="moderation-dialog-actions">
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={onClose}
-                disabled={saving}
-              >
-                Abbrechen
-              </button>
-              <button type="submit" className="btn btn-primary" disabled={!canSave}>
-                <Send size={16} aria-hidden="true" />
-                <span>{saving ? 'Wird gesendet …' : 'Einladung senden'}</span>
-              </button>
-            </div>
-          </>
-        )}
-      </form>
-    </div>
-  );
 }
 
 // Open invitations with "Link kopieren", "Erneut senden" and "Widerrufen". Only the
@@ -703,18 +600,6 @@ export default function ModerationTab() {
         <div className="moderation-header-actions">
           <button
             type="button"
-            className="btn btn-secondary"
-            onClick={() => {
-              setNotice(null);
-              setDialog({ mode: 'invite' });
-            }}
-            data-testid="moderation-invite"
-          >
-            <Mail size={16} aria-hidden="true" />
-            <span>Per E-Mail einladen</span>
-          </button>
-          <button
-            type="button"
             className="btn btn-primary"
             onClick={() => {
               setNotice(null);
@@ -813,14 +698,7 @@ export default function ModerationTab() {
         />
       )}
 
-      {dialog?.mode === 'invite' && (
-        <InviteDialog
-          onInvite={(email, regionIds) => createInvite(email, regionIds)}
-          onClose={() => setDialog(null)}
-        />
-      )}
-
-      {dialog && dialog.mode !== 'invite' && (
+      {dialog && (
         <ModeratorDialog
           mode={dialog.mode}
           moderator={dialog.moderator}
@@ -829,6 +707,7 @@ export default function ModerationTab() {
           currentUid={user?.uid}
           onSave={save}
           onInvite={invitePerson}
+          onInviteEmail={(email, regionIds) => createInvite(email, regionIds)}
           onClose={() => setDialog(null)}
         />
       )}
