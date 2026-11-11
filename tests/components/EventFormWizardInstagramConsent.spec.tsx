@@ -218,6 +218,47 @@ describe('EventFormWizard Instagram consent', () => {
   });
 });
 
+describe('EventFormWizard extra Instagram names', () => {
+  it('saves names added with consent and restores them from a draft', async () => {
+    mockProfile.value = profileWith({
+      instagramConsentDefault: true,
+      socialMedia: { instagram: '@me' },
+    });
+    localStorage.setItem(
+      'eventWizardDraft:user-uid',
+      JSON.stringify({
+        version: 1,
+        savedAt: Date.now(),
+        draft: {
+          ...COMPLETE_DRAFT,
+          formData: { ...COMPLETE_DRAFT.formData, description: WITH_PHOTO },
+          instagramConsent: true,
+          instagramExtraHandles: ['@eins', '@me'],
+        },
+      })
+    );
+    renderWizard();
+    // The main name inside the restored list is ignored.
+    expect(screen.getByTestId('instagram-extra-list').textContent).toContain('@eins');
+    fireEvent.click(screen.getByTestId('instagram-extra-add'));
+    const input = screen.getByTestId('instagram-extra-input');
+    fireEvent.change(input, { target: { value: 'zwei' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    const saved = await submitAndGetSavedEvent();
+    expect(saved.instagramExtraHandles).toEqual(['@eins', '@zwei']);
+  });
+
+  it('stores no extra names without consent or without any name', async () => {
+    mockProfile.value = profileWith({});
+    seedDraft(WITH_PHOTO);
+    renderWizard();
+    expect(screen.queryByTestId('instagram-extra-add')).toBeNull();
+    fireEvent.click(screen.getByTestId('instagram-consent-checkbox'));
+    const saved = await submitAndGetSavedEvent();
+    expect(saved).not.toHaveProperty('instagramExtraHandles');
+  });
+});
+
 describe('EventFormWizard Instagram needs a photo', () => {
   it('blocks submitting with Instagram on and no photo, and shows an error', () => {
     mockProfile.value = profileWith({ instagramConsentDefault: true });

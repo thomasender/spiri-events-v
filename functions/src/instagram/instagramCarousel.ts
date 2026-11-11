@@ -23,10 +23,10 @@ import {
   type InstagramEventInput,
 } from './instagramContent';
 import {
-  COLLAB_TAG_X,
-  COLLAB_TAG_Y,
   MAX_COLLABORATORS,
   bareUsername,
+  buildUserTags,
+  resolveTagHandles,
   createContainerWithInvite,
   graphGet,
   graphPost,
@@ -73,6 +73,7 @@ export interface CarouselEvent extends InstagramEventInput {
   instagramConsent?: unknown;
   /** Handle for tag/collab on this event only; wins over the profile handle. */
   instagramHandleOverride?: unknown;
+  instagramExtraHandles?: unknown;
   /** Whole event called off. */
   cancelled?: unknown;
   /** Single cancelled occurrences of a series (YYYY-MM-DD). */
@@ -469,6 +470,8 @@ export interface CarouselDeps {
   updatePost(id: string, patch: Partial<CarouselPostRecord>): Promise<void>;
   /** Instagram mention ("@name") of the event's organizer, or null. Optional: no collab without it. */
   getOrganizerHandle?(event: CarouselEvent): Promise<string | null>;
+  /** Organizer plus extra names of the event; preferred over getOrganizerHandle. */
+  getTagHandles?(event: CarouselEvent): Promise<string[]>;
   generateCoverImage(name: string, cover: CoverModel): Promise<string>;
   generateEventImage(name: string, event: CarouselEvent): Promise<string>;
   notifyAdmins(subject: string, text: string): Promise<void>;
@@ -506,9 +509,9 @@ export function carouselPostId(
 }
 
 /** Distinct (case-insensitive) organizer handles in event order. */
-function distinctHandles(eventHandles: Array<string | null>): string[] {
+function distinctHandles(eventHandles: Array<string[]>): string[] {
   const handles: string[] = [];
-  for (const handle of eventHandles) {
+  for (const handle of eventHandles.flat()) {
     if (handle && !handles.some((h) => h.toLowerCase() === handle.toLowerCase())) {
       handles.push(handle);
     }
@@ -535,20 +538,16 @@ export async function publishCarousel(
   }
 
   // Organizer handle per event slide (events are consented already).
-  const eventHandles: Array<string | null> = [];
+  const eventHandles: string[][] = [];
   for (const event of group.events) {
-    let handle: string | null = null;
-    if (deps.getOrganizerHandle) {
-      try {
-        handle = await deps.getOrganizerHandle(event);
-      } catch (err) {
+    eventHandles.push(
+      await resolveTagHandles(deps, event, (err) =>
         log('Organizer handle lookup failed; skipping mention', {
           postId,
           error: sanitizeError(err, [deps.accessToken]),
-        });
-      }
-    }
-    eventHandles.push(handle);
+        })
+      )
+    );
   }
   const handles = distinctHandles(eventHandles);
   const collaborators = handles.slice(0, MAX_COLLABORATORS).map(bareUsername);
@@ -557,14 +556,13 @@ export async function publishCarousel(
   for (let i = 0; i < imageUrls.length; i += 1) {
     // Slide 0 is the cover; slide i shows event i-1. user_tags are allowed on
     // carousel items (not on the parent), so tag the organizer on their slide.
-    const handle = i > 0 ? eventHandles[i - 1] : null;
-    const username = handle ? bareUsername(handle) : '';
+    const slideUsernames = i > 0 ? eventHandles[i - 1].map(bareUsername) : [];
     const child = await createContainerWithInvite(
       deps,
       `${deps.userId}/media`,
       { image_url: imageUrls[i], is_carousel_item: 'true' },
-      username
-        ? { user_tags: JSON.stringify([{ username, x: COLLAB_TAG_X, y: COLLAB_TAG_Y }]) }
+      slideUsernames.length > 0
+        ? { user_tags: JSON.stringify(buildUserTags(slideUsernames)) }
         : null,
       'carousel item creation',
       log
@@ -682,6 +680,7 @@ export async function runWeeklyCarousels(deps: CarouselDeps): Promise<CarouselRu
 export interface CarouselPreviewDeps {
   listEvents(window: WeekWindow): Promise<CarouselEvent[]>;
   getOrganizerHandle?(event: CarouselEvent): Promise<string | null>;
+  getTagHandles?(event: CarouselEvent): Promise<string[]>;
   /** instagram_posts/<id>.status, or null when no record exists yet. */
   getPostStatus(id: string): Promise<string | null>;
   now?(): Date;
@@ -808,17 +807,9 @@ export async function previewWeeklyCarousels(deps: CarouselPreviewDeps): Promise
   const groups: CarouselPreviewGroup[] = [];
 
   for (const group of groupCarousels(events, window)) {
-    const eventHandles: Array<string | null> = [];
+    const eventHandles: string[][] = [];
     for (const event of group.events) {
-      let handle: string | null = null;
-      if (deps.getOrganizerHandle) {
-        try {
-          handle = await deps.getOrganizerHandle(event);
-        } catch {
-          handle = null;
-        }
-      }
-      eventHandles.push(handle);
+      eventHandles.push(await resolveTagHandles(deps, event, () => undefined));
     }
     const postId = carouselPostId(group.bezirk, window.start, group.part);
     groups.push({
@@ -836,7 +827,7 @@ export async function previewWeeklyCarousels(deps: CarouselPreviewDeps): Promise
         date: asString(event.date),
         time: asString(event.time),
         place: asString(event.city) || asString(event.place),
-        organizerHandle: eventHandles[i],
+        organizerHandle: eventHandles[i][0] ?? null,
       })),
       existingStatus: await deps.getPostStatus(postId),
     });

@@ -12,7 +12,7 @@ import type { CarouselDeps } from './instagram/instagramCarousel';
 import type { StoryDeps } from './instagram/instagramStory';
 import { expandOccurrencesInWindow, type SeriesFields } from './instagram/instagramOccurrences';
 import { normalizeInstagramHandle } from './instagram/instagramContent';
-import type { PublishDeps } from './instagram/instagramPublish';
+import { MAX_COLLABORATORS, type PublishDeps } from './instagram/instagramPublish';
 import { getInstagramAccessToken } from './instagram/instagramToken';
 import { readStoredInstagramToken } from './instagramTokenStore';
 import { notifyAdmins } from './adminNotify';
@@ -63,6 +63,7 @@ export function buildPublishDeps(db: Firestore, userId: string): PublishDeps {
       const snap = await db.doc(`users/${uid}`).get();
       return normalizeInstagramHandle(snap.get('socialMedia.instagram'));
     },
+    getTagHandles: (ev) => lookupTagHandles(db, ev),
     async generateImage(id, ev) {
       const colors: Record<string, string> = {};
       const categories = await db.collection('categories').get();
@@ -111,6 +112,25 @@ export async function lookupOrganizerHandle(
   if (!uid) return null;
   const snap = await db.doc(`users/${uid}`).get();
   return normalizeInstagramHandle(snap.get('socialMedia.instagram'));
+}
+
+/**
+ * All handles to tag: the organizer (override or profile) first, then the
+ * event's extra names. Distinct case-insensitively, at most MAX_COLLABORATORS.
+ */
+export async function lookupTagHandles(
+  db: Firestore,
+  ev: { instagramHandleOverride?: unknown; createdBy?: unknown; instagramExtraHandles?: unknown }
+): Promise<string[]> {
+  const extras = Array.isArray(ev.instagramExtraHandles) ? ev.instagramExtraHandles : [];
+  const handles: string[] = [];
+  for (const candidate of [await lookupOrganizerHandle(db, ev), ...extras]) {
+    const handle = normalizeInstagramHandle(candidate);
+    if (handle && !handles.some((h) => h.toLowerCase() === handle.toLowerCase())) {
+      handles.push(handle);
+    }
+  }
+  return handles.slice(0, MAX_COLLABORATORS);
 }
 
 /**
@@ -173,6 +193,7 @@ export function buildCarouselDeps(
         .update({ ...patch, updatedAt: FieldValue.serverTimestamp() });
     },
     getOrganizerHandle: (ev) => lookupOrganizerHandle(db, ev),
+    getTagHandles: (ev) => lookupTagHandles(db, ev),
     async generateCoverImage(name, cover) {
       return uploadInstagramImage(bucket, name, await renderCoverImage(cover, 'carousel'));
     },

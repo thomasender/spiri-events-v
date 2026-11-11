@@ -209,6 +209,50 @@ describe("EventForm — Instagram handle belongs to the event's creator", () => 
   });
 });
 
+describe('EventForm — extra Instagram names', () => {
+  const consentedEvent = { ...oldApprovedEvent, instagramConsent: true };
+  const savedPayload = async () => {
+    submitForm();
+    await waitFor(() => expect(mockEvents.updateEvent).toHaveBeenCalledTimes(1));
+    return (mockEvents.updateEvent.mock.calls[0] as unknown as unknown[])[1] as Record<
+      string,
+      unknown
+    >;
+  };
+
+  it('saves a newly added extra name together with the consent', async () => {
+    mockProfiles.own = { socialMedia: { instagram: '@owner_profile' } };
+    renderForm(consentedEvent);
+    fireEvent.click(screen.getByTestId('instagram-extra-add'));
+    const input = screen.getByTestId('instagram-extra-input');
+    fireEvent.change(input, { target: { value: '@zweite' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    const payload = await savedPayload();
+    expect(payload.instagramExtraHandles).toEqual(['@zweite']);
+  });
+
+  it('sends nothing when the stored names are unchanged', async () => {
+    renderForm({ ...consentedEvent, instagramExtraHandles: ['@zweite'] });
+    expect(screen.getByTestId('instagram-extra-list').textContent).toContain('@zweite');
+    const payload = await savedPayload();
+    expect(payload).not.toHaveProperty('instagramExtraHandles');
+  });
+
+  it('sends nothing without consent, and no link is shown', async () => {
+    renderForm({ ...oldApprovedEvent, instagramConsent: false, instagramExtraHandles: ['@x'] });
+    expect(screen.queryByTestId('instagram-extra-add')).toBeNull();
+    const payload = await savedPayload();
+    expect(payload).not.toHaveProperty('instagramExtraHandles');
+  });
+
+  it('sends an empty list when the last name is removed', async () => {
+    renderForm({ ...consentedEvent, instagramExtraHandles: ['@zweite'] });
+    fireEvent.click(screen.getByTestId('instagram-extra-remove'));
+    const payload = await savedPayload();
+    expect(payload.instagramExtraHandles).toEqual([]);
+  });
+});
+
 describe('EventForm — Instagram settings on existing events', () => {
   it('lets the owner of an old event opt in and pick a photo without re-approval', async () => {
     renderForm(oldApprovedEvent);

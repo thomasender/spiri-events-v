@@ -227,6 +227,15 @@ service cloud.firestore {
                || request.resource.data.instagramConsent is bool;
       }
 
+      // Extra Instagram names to tag: a list of at most 2 short strings.
+      function isValidInstagramExtraHandles() {
+        let list = request.resource.data.get('instagramExtraHandles', []);
+        return list is list
+               && list.size() <= 2
+               && (list.size() < 1 || (list[0] is string && list[0].size() <= 31))
+               && (list.size() < 2 || (list[1] is string && list[1].size() <= 31));
+      }
+
       // Region moderators read pending/approved/trashed events of their
       // regions; drafts of other people stay private (owner + Super-Admin).
       allow read: if isApproved() || isOwner() || isAdminOrEmulatorAdmin()
@@ -324,6 +333,7 @@ service cloud.firestore {
                         || (request.resource.data.category is string
                             && request.resource.data.category.size() <= 40))
                     && isValidInstagramConsent()
+                    && isValidInstagramExtraHandles()
                     && isValidFocalPoint()
                     && isValidImageZoom()
                     && isValidEventPosition()
@@ -374,7 +384,7 @@ service cloud.firestore {
                                 'link', 'kontakt', 'registration', 'category', 'organizer',
                                 'recurrence', 'recurrenceEndDate', 'customDates', 'exceptionDates',
                                 'imageFocalPoint', 'imageZoom',
-                                'instagramConsent', 'instagramHandleOverride', 'instagramImage',
+                                'instagramConsent', 'instagramHandleOverride', 'instagramExtraHandles', 'instagramImage',
                                 'cancelled', 'cancelledDates',
                                 'updatedAt'])
           && !changed.hasAny(['title', 'description', 'imageUrl', 'imageThumbUrl'])
@@ -417,6 +427,7 @@ service cloud.firestore {
                         || (request.resource.data.category is string
                             && request.resource.data.category.size() <= 40))
                     && isValidInstagramConsent()
+                    && isValidInstagramExtraHandles()
                     && isValidFocalPoint()
                     && isValidImageZoom()
                     && isValidEventPosition()

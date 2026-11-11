@@ -5,7 +5,9 @@ import InstagramConsentField from '../../src/components/InstagramConsentField';
 import InstagramConsentCard from '../../src/components/InstagramConsentCard';
 import { DEFAULT_REGION_CONTEXT, RegionContext } from '../../src/hooks/useRegion';
 import {
+  buildInstagramExtraHandlesPatch,
   buildInstagramHandleOverridePatch,
+  normalizeExtraHandles,
   normalizeInstagramHandle,
   resolveInstagramHandleOverride,
   resolveOrganizerProfileHandle,
@@ -127,6 +129,40 @@ describe('buildInstagramHandleOverridePatch', () => {
         organizerHandle: '',
         stored: '@alt',
       })
+    ).toEqual({});
+  });
+});
+
+describe('normalizeExtraHandles', () => {
+  it('normalizes, drops invalid, duplicates and the main handle, keeps at most 2', () => {
+    expect(normalizeExtraHandles(['a', '@A', 'bad name', '@main', '@b', '@c'], '@Main')).toEqual([
+      '@a',
+      '@b',
+    ]);
+  });
+  it('treats a missing or non-list value as empty', () => {
+    expect(normalizeExtraHandles(undefined, '@main')).toEqual([]);
+    expect(normalizeExtraHandles('@a', null)).toEqual([]);
+  });
+});
+
+describe('buildInstagramExtraHandlesPatch', () => {
+  const base = { consent: true, mainHandle: '@org' };
+  it('is empty when unchanged, also when nothing was ever stored', () => {
+    expect(buildInstagramExtraHandlesPatch({ ...base, list: [], stored: undefined })).toEqual({});
+    expect(buildInstagramExtraHandlesPatch({ ...base, list: ['@a'], stored: ['@a'] })).toEqual({});
+  });
+  it('writes the new list, also an empty one when all were removed', () => {
+    expect(buildInstagramExtraHandlesPatch({ ...base, list: ['a'], stored: [] })).toEqual({
+      instagramExtraHandles: ['@a'],
+    });
+    expect(buildInstagramExtraHandlesPatch({ ...base, list: [], stored: ['@a'] })).toEqual({
+      instagramExtraHandles: [],
+    });
+  });
+  it('does not touch the stored value without consent', () => {
+    expect(
+      buildInstagramExtraHandlesPatch({ ...base, consent: false, list: [], stored: ['@a'] })
     ).toEqual({});
   });
 });
@@ -253,5 +289,69 @@ describe('Instagram channel named after the event region', () => {
     const hint = screen.getByTestId('instagram-consent-card').textContent;
     expect(hint).toContain('auf unserem Instagram-Kanal veröffentlichen');
     expect(hint).not.toContain('@tribevorarlberg');
+  });
+});
+
+function ExtraHarness({ checked = true, initial = [] }: { checked?: boolean; initial?: string[] }) {
+  const [extras, setExtras] = useState<string[]>(initial);
+  return (
+    <InstagramConsentField
+      checked={checked}
+      onChange={() => {}}
+      instagramHandle="@petermathis_pm"
+      handleOverride=""
+      onHandleOverrideChange={() => {}}
+      extraHandles={extras}
+      onExtraHandlesChange={setExtras}
+    />
+  );
+}
+
+describe('InstagramConsentField extra Instagram names', () => {
+  const add = (value: string) => {
+    fireEvent.click(screen.getByTestId('instagram-extra-add'));
+    const input = screen.getByTestId('instagram-extra-input');
+    fireEvent.change(input, { target: { value } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+  };
+  const listed = () =>
+    Array.from(screen.queryByTestId('instagram-extra-list')?.querySelectorAll('li') ?? []).map(
+      (li) => li.textContent
+    );
+
+  it('offers the link only while consent is given', () => {
+    const { unmount } = render(<ExtraHarness checked={false} />);
+    expect(screen.queryByTestId('instagram-extra-add')).toBeNull();
+    unmount();
+    render(<ExtraHarness />);
+    expect(screen.getByTestId('instagram-extra-add').textContent).toContain(
+      'weiteren Instagram-Namen hinzufügen'
+    );
+  });
+
+  it('adds a normalized name and removes it again', () => {
+    render(<ExtraHarness />);
+    add('https://www.instagram.com/zweite.person/');
+    expect(listed()).toEqual(['@zweite.person✕']);
+    fireEvent.click(screen.getByTestId('instagram-extra-remove'));
+    expect(listed()).toEqual([]);
+  });
+
+  it('discards invalid input and ignores the main name and duplicates', () => {
+    render(<ExtraHarness />);
+    add('kein gültiger name');
+    add('@PeterMathis_PM');
+    expect(listed()).toEqual([]);
+    add('@eins');
+    add('EINS');
+    expect(listed()).toEqual(['@eins✕']);
+  });
+
+  it('hides the link once two names are added', () => {
+    render(<ExtraHarness />);
+    add('@eins');
+    add('@zwei');
+    expect(listed()).toHaveLength(2);
+    expect(screen.queryByTestId('instagram-extra-add')).toBeNull();
   });
 });
