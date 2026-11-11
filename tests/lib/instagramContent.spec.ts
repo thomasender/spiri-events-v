@@ -143,13 +143,13 @@ describe('instagram content', () => {
     expect(caption).toContain('#soundhealing');
   });
 
-  it('keeps the line breaks of the description in the caption', () => {
+  it('puts a blank line at every line and paragraph break of the description in the caption', () => {
     const caption = buildCaption({
       title: 'Kakao',
       date: '2026-10-17',
       description: '<p>Erste Zeile<br>Zweite Zeile</p><p>Neuer Absatz</p>',
     });
-    expect(caption).toContain('Erste Zeile\nZweite Zeile\nNeuer Absatz');
+    expect(caption).toContain('Erste Zeile\n\nZweite Zeile\n\nNeuer Absatz');
   });
 
   describe('recurring events', () => {
