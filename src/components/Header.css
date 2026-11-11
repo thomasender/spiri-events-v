@@ -526,7 +526,12 @@
     padding: var(--space-2-5);
   }
 
-  .nav-desktop .nav-link--create > span:not(.nav-link-admin-icon) {
+  .nav-desktop .nav-link--review {
+    padding: var(--space-2-5);
+  }
+
+  .nav-desktop .nav-link--create > span:not(.nav-link-admin-icon),
+  .nav-desktop .nav-link--review > span:not(.nav-link-admin-icon) {
     position: absolute;
     width: 1px;
     height: 1px;

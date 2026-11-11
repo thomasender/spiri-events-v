@@ -34,6 +34,7 @@ import {
   Pen,
   Menu,
   X,
+  ClipboardCheck,
 } from 'lucide-react';
 import './Header.css';
 
@@ -89,7 +90,11 @@ export default function Header() {
   const { count: unreadMessageCount } = useUnreadMessageCount();
   const { count: unreadFeedbackCount } = useUnreadFeedbackCount(isAdmin);
   // Staff: new events in Review since the last visit (vX7TgrWN).
-  const { count: newReviewCount } = useReviewNotifications(user?.uid, isStaff);
+  // `pendingReviewCount`: everything waiting for a decision, for the Review shortcut.
+  const { count: newReviewCount, pendingCount: pendingReviewCount = 0 } = useReviewNotifications(
+    user?.uid,
+    isStaff
+  );
   // Guests see the link too (mode 'all') and read along without writing (Trello 6af1955f).
   const { available: chatAvailable, readable: chatReadable } = useChatAccess();
   // Only the person's own Lagerfeuer counts (one per region; `lagerfeuer` with one region).
@@ -389,6 +394,30 @@ export default function Header() {
     </NavLink>
   );
 
+  // Shortcut straight to the Review tab, only while something waits there.
+  // NavLink ignores the query string, so "active" is checked by hand.
+  const onReviewTab =
+    location.pathname === '/admin' && new URLSearchParams(location.search).get('tab') === 'review';
+  const reviewLink = (extraClass = '') =>
+    isStaff &&
+    pendingReviewCount > 0 && (
+      <NavLink
+        to="/admin?tab=review"
+        className={`${navClass({ isActive: onReviewTab })}${extraClass}`}
+        onClick={closeMenu}
+        data-testid="nav-review"
+        aria-label={`Review (${pendingReviewCount} ${pendingReviewCount === 1 ? 'Event wartet' : 'Events warten'})`}
+      >
+        <span className="nav-link-admin-icon">
+          <ClipboardCheck size={18} aria-hidden="true" />
+          <span className="nav-link-badge" data-testid="review-pending-badge" aria-hidden="true">
+            {pendingReviewCount > 9 ? '9+' : pendingReviewCount}
+          </span>
+        </span>
+        <span>Review</span>
+      </NavLink>
+    );
+
   const profileLink = (
     <NavLink to="/profil" className={navClass} onClick={closeMenu}>
       {profilePhotoURL ? (
@@ -474,6 +503,7 @@ export default function Header() {
           {createLink()}
           {favoritesLink}
           {profileLink}
+          {reviewLink()}
           {adminLink}
           {logoutButton}
         </>
@@ -503,6 +533,7 @@ export default function Header() {
         {user ? (
           <>
             {createLink(' nav-link--create')}
+            {reviewLink(' nav-link--review')}
             {(chatAvailable || isStaff) && <MentionBell uid={user.uid} />}
             {messengerLink(true)}
             <div className="account-menu" ref={accountRef}>
