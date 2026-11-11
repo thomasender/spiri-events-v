@@ -304,6 +304,11 @@ export function stripHtml(html: unknown): string {
     .trim();
 }
 
+/** Plain text for Instagram, which renders single line breaks tightly: every break becomes a blank line. */
+export function stripHtmlForCaption(html: unknown): string {
+  return stripHtml(html).replace(/\n/g, '\n\n');
+}
+
 function parseIsoDate(value: string): Date | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (!match) return null;
@@ -713,7 +718,7 @@ export function buildSlideCaptionBlock(
   const priceLine = buildPriceLine(event);
   const fixed = [...facts, priceLine].filter(Boolean);
   const budget = maxLength - fixed.reduce((sum, part) => sum + part.length, 0) - 2 * fixed.length;
-  const description = stripHtml(event.description);
+  const description = stripHtmlForCaption(event.description);
   const body = description && budget > 40 ? truncateText(description, budget, true) : '';
   return [...facts, body, priceLine].filter(Boolean).join('\n\n').slice(0, maxLength);
 }
@@ -753,7 +758,7 @@ export function buildCaption(
   const footer = buildCaptionFooter(buildHashtags(event).join(' '), model.siteDomain);
 
   const priceLine = buildPriceLine(event);
-  const description = stripHtml(event.description);
+  const description = stripHtmlForCaption(event.description);
   // Blank-line separators (2 characters each) sit between the non-empty parts.
   // The price line is never shortened, only the description.
   const fixed = [header, priceLine, footer].filter(Boolean);
