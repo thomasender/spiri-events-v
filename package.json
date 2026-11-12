@@ -71,7 +71,7 @@
   "devDependencies": {
     "@firebase/rules-unit-testing": "^6.0.0",
     "@playwright/experimental-ct-react": "^1.62.1",
-    "@playwright/test": "^1.65.0",
+    "@playwright/test": "^1.62.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.3",
     "@types/canvas-confetti": "^1.9.0",
@@ -89,7 +89,7 @@
     "happy-dom": "^21.0.4",
     "husky": "^9.1.7",
     "lint-staged": "^15.5.2",
-    "playwright": "^1.61.1",
+    "playwright": "^1.62.1",
     "prettier": "^3.9.10",
     "sharp": "^0.35.5",
     "typescript": "^7.0.2",
