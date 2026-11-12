@@ -75,6 +75,10 @@ updates:
         update-types: ['version-update:semver-major']
       - dependency-name: 'vitest'
         update-types: ['version-update:semver-major']
+      # satori >0.35 drops the footer line ("N Events - weiter wischen") on the Instagram cover.
+      # Stays on 0.35.x until that is fixed/verified; 0.x minors are breaking, so block them too.
+      - dependency-name: 'satori'
+        update-types: ['version-update:semver-major', 'version-update:semver-minor']
 
   - package-ecosystem: github-actions
     directory: '/'
