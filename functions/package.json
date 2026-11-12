@@ -23,7 +23,7 @@
     "firebase-admin": "^14.5.0",
     "firebase-functions": "^7.4.0",
     "google-auth-library": "^11.3.3",
-    "satori": "^0.35.0",
+    "satori": "^0.35.2",
     "sharp": "^0.35.5"
   },
   "devDependencies": {
