@@ -143,6 +143,15 @@ describe('useReviewNotifications', () => {
     expect(result.current.newIds).toEqual(['e2', 'e3']);
   });
 
+  it('pendingCount counts every pending event, also when nothing is new (count 0)', () => {
+    const { result } = renderHook(() => useReviewNotifications('u1', true));
+    emitPending(['e1', 'e2']);
+    emitAlerts([]);
+    emitSeen({ eventIds: ['e1', 'e2'], at: ts(1000) });
+    expect(result.current.count).toBe(0);
+    expect(result.current.pendingCount).toBe(2);
+  });
+
   it('markSeen stores the current pending ids with the server time', async () => {
     const { result } = renderHook(() => useReviewNotifications('u1', true));
     emitPending(['e1', 'e2']);
@@ -163,5 +172,6 @@ describe('useReviewNotifications', () => {
     expect(fs.onSnapshot).not.toHaveBeenCalled();
     expect(fs.setDoc).not.toHaveBeenCalled();
     expect(result.current.count).toBe(0);
+    expect(result.current.pendingCount).toBe(0);
   });
 });

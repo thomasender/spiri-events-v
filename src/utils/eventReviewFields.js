@@ -60,6 +60,7 @@ export const OWNER_APPROVED_PATCH_FIELDS = Object.freeze([
   'exceptionDates',
   'instagramConsent',
   'instagramHandleOverride',
+  'instagramExtraHandles',
   'instagramImage',
   'cancelled',
   'cancelledDates',

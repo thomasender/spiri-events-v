@@ -62,6 +62,11 @@ export interface PublishDeps {
    * creator has no valid handle in their profile. Optional: no tag without it.
    */
   getOrganizerHandle?(event: InstagramEventInput): Promise<string | null>;
+  /**
+   * All handles to tag and invite: the organizer first, then the extra names
+   * typed on the event. Optional: without it the organizer handle alone is used.
+   */
+  getTagHandles?(event: InstagramEventInput): Promise<string[]>;
   generateImage(eventId: string, event: InstagramEventInput): Promise<string>;
   notifyAdmins(subject: string, text: string): Promise<void>;
   now?(): Date;
@@ -226,8 +231,46 @@ function toGraphApiError(step: string, response: Response, body: Record<string, 
 
 export const COLLAB_TAG_X = 0.2;
 export const COLLAB_TAG_Y = 0.93;
+/** Each further tag sits this much higher so tags never overlap. */
+export const COLLAB_TAG_Y_STEP = 0.07;
 /** Instagram's documented maximum number of collaborators per post. */
 export const MAX_COLLABORATORS = 3;
+
+/** user_tags for several usernames, stacked upwards from the first tag position. */
+export function buildUserTags(
+  usernames: string[]
+): Array<{ username: string; x: number; y: number }> {
+  return usernames.map((username, i) => ({
+    username,
+    x: COLLAB_TAG_X,
+    y: Math.round((COLLAB_TAG_Y - i * COLLAB_TAG_Y_STEP) * 100) / 100,
+  }));
+}
+
+/**
+ * Handles to tag for one event: getTagHandles when wired, else the single
+ * organizer handle. A failing lookup means no tag, never a failed post.
+ */
+export async function resolveTagHandles(
+  deps: {
+    getOrganizerHandle?(event: never): Promise<string | null>;
+    getTagHandles?(event: never): Promise<string[]>;
+  },
+  event: unknown,
+  onError: (err: unknown) => void
+): Promise<string[]> {
+  try {
+    if (deps.getTagHandles)
+      return (await deps.getTagHandles(event as never)).slice(0, MAX_COLLABORATORS);
+    if (deps.getOrganizerHandle) {
+      const handle = await deps.getOrganizerHandle(event as never);
+      return handle ? [handle] : [];
+    }
+  } catch (err) {
+    onError(err);
+  }
+  return [];
+}
 
 /** Graph usernames are sent without the leading "@". */
 export function bareUsername(handle: string): string {
@@ -417,29 +460,25 @@ export async function publishApprovedEvent(
   let collaboratorInvited = false;
   let inviteFallbackReason: string | null = null;
   try {
-    let handle: string | null = null;
-    if (deps.getOrganizerHandle) {
-      try {
-        handle = await deps.getOrganizerHandle(event);
-      } catch (err) {
-        log('Organizer handle lookup failed; posting without tag', {
-          eventId,
-          error: sanitizeError(err, [deps.accessToken]),
-        });
-      }
-    }
+    const handles = await resolveTagHandles(deps, event, (err) =>
+      log('Organizer handle lookup failed; posting without tag', {
+        eventId,
+        error: sanitizeError(err, [deps.accessToken]),
+      })
+    );
     const imageUrl = await deps.generateImage(eventId, event);
-    const username = handle ? bareUsername(handle) : '';
-    const invite = username
-      ? {
-          collaborators: JSON.stringify([username]),
-          user_tags: JSON.stringify([{ username, x: COLLAB_TAG_X, y: COLLAB_TAG_Y }]),
-        }
-      : null;
+    const usernames = handles.map(bareUsername);
+    const invite =
+      usernames.length > 0
+        ? {
+            collaborators: JSON.stringify(usernames),
+            user_tags: JSON.stringify(buildUserTags(usernames)),
+          }
+        : null;
     const created2 = await createContainerWithInvite(
       deps,
       `${deps.userId}/media`,
-      { image_url: imageUrl, caption: buildCaption(event, handle) },
+      { image_url: imageUrl, caption: buildCaption(event, handles) },
       invite,
       'media container creation',
       log

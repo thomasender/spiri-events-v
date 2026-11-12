@@ -56,5 +56,6 @@ export function useReviewNotifications(uid, enabled = true) {
     });
   }, [uid, enabled, pendingIds]);
 
-  return { count: newIds.length, newIds, markSeen };
+  // `pendingCount` is every event waiting for a decision, seen or not (header shortcut).
+  return { count: newIds.length, newIds, markSeen, pendingCount: enabled ? pendingIds.size : 0 };
 }

@@ -56,8 +56,10 @@ import EventRegionDialog, { BEZIRK_NOT_FOUND } from './EventRegionDialog';
 import { normalizeCategoryInput, isValidCategoryInput } from '../utils/categoryInput';
 import InstagramConsentField from './InstagramConsentField';
 import {
+  buildInstagramExtraHandlesPatch,
   buildInstagramHandleOverridePatch,
   isEditingForeignEvent,
+  normalizeInstagramHandle,
   resolveOrganizerProfileHandle,
 } from '../utils/instagramHandle';
 import { useOrganizerProfile } from '../hooks/useOrganizerProfile';
@@ -254,6 +256,9 @@ export default function EventForm({ event }) {
     event ? event.instagramConsent === true : profile?.instagramConsentDefault === true
   );
   const instagramConsentTouched = useRef(Boolean(event));
+  const [instagramExtraHandles, setInstagramExtraHandles] = useState(
+    Array.isArray(event?.instagramExtraHandles) ? event.instagramExtraHandles : []
+  );
   const [instagramHandleOverride, setInstagramHandleOverride] = useState(
     typeof event?.instagramHandleOverride === 'string' ? event.instagramHandleOverride : ''
   );
@@ -769,6 +774,14 @@ export default function EventForm({ event }) {
       input: instagramHandleOverride,
       organizerHandle: organizerInstagramHandle,
       stored: event?.instagramHandleOverride,
+    }),
+    ...buildInstagramExtraHandlesPatch({
+      consent: instagramConsent,
+      list: instagramExtraHandles,
+      mainHandle:
+        normalizeInstagramHandle(instagramHandleOverride) ||
+        normalizeInstagramHandle(organizerInstagramHandle),
+      stored: event?.instagramExtraHandles,
     }),
     // A newly picked cover / extra photo gets its URL after the upload in
     // saveEvent(); everything else can be resolved right away.
@@ -1798,6 +1811,8 @@ export default function EventForm({ event }) {
             forOrganizer={editsForeignEvent}
             handleOverride={instagramHandleOverride}
             onHandleOverrideChange={setInstagramHandleOverride}
+            extraHandles={instagramExtraHandles}
+            onExtraHandlesChange={setInstagramExtraHandles}
             regionId={pickEventRegionId(
               formData.placeRegionId ||
                 (regionChoices.enabled ? selectedRegion : formData.regionId),

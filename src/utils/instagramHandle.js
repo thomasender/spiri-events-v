@@ -59,3 +59,38 @@ export function buildInstagramHandleOverridePatch({ consent, input, organizerHan
   const previous = normalizeInstagramHandle(stored);
   return next === previous ? {} : { instagramHandleOverride: next };
 }
+
+/** Extra names per event: the organizer plus these fit Instagram's 3 collaborators. */
+export const MAX_EXTRA_HANDLES = 2;
+
+/**
+ * Extra Instagram names of an event as a clean list: every entry normalized to
+ * "@name", invalid ones, duplicates (case-insensitive) and the main handle
+ * dropped, at most MAX_EXTRA_HANDLES kept.
+ */
+export function normalizeExtraHandles(list, mainHandle) {
+  const main = normalizeInstagramHandle(mainHandle)?.toLowerCase();
+  const result = [];
+  for (const entry of Array.isArray(list) ? list : []) {
+    const handle = normalizeInstagramHandle(entry);
+    if (!handle) continue;
+    const key = handle.toLowerCase();
+    if (key === main || result.some((h) => h.toLowerCase() === key)) continue;
+    result.push(handle);
+    if (result.length === MAX_EXTRA_HANDLES) break;
+  }
+  return result;
+}
+
+/**
+ * Update patch for an existing event's `instagramExtraHandles`: {} when it is
+ * unchanged (or consent is off, which leaves the stored value alone), else the
+ * new list (empty = all removed).
+ */
+export function buildInstagramExtraHandlesPatch({ consent, list, mainHandle, stored }) {
+  if (!consent) return {};
+  const next = normalizeExtraHandles(list, mainHandle);
+  const previous = normalizeExtraHandles(stored, null);
+  const same = next.length === previous.length && next.every((h, i) => h === previous[i]);
+  return same ? {} : { instagramExtraHandles: next };
+}
