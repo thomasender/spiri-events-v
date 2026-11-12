@@ -50,6 +50,13 @@ updates:
         update-types: ['version-update:semver-major']
       - dependency-name: '@testing-library/jest-dom'
         update-types: ['version-update:semver-major']
+      # @playwright/experimental-ct-react (latest 1.62.x) needs the same playwright version as
+      # @playwright/test; a newer test/playwright pair loads two copies and no spec is found.
+      # Lift the three together once ct-react ships a matching release.
+      - dependency-name: '@playwright/test'
+        update-types: ['version-update:semver-minor']
+      - dependency-name: 'playwright'
+        update-types: ['version-update:semver-minor']
 
   - package-ecosystem: npm
     directory: '/functions'
@@ -75,6 +82,10 @@ updates:
         update-types: ['version-update:semver-major']
       - dependency-name: 'vitest'
         update-types: ['version-update:semver-major']
+      # satori >0.35 drops the footer line ("N Events - weiter wischen") on the Instagram cover.
+      # Stays on 0.35.x until that is fixed/verified; 0.x minors are breaking, so block them too.
+      - dependency-name: 'satori'
+        update-types: ['version-update:semver-major', 'version-update:semver-minor']
 
   - package-ecosystem: github-actions
     directory: '/'
