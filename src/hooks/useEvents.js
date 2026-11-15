@@ -424,6 +424,8 @@ export function useRegionEventQueryPlan({ regionScoped = false, allActive = fals
   } = useRegion();
   // Within a radius the events of every active region can qualify.
   const radiusMode = Boolean(radiusFilter) && !allActive;
+  const radiusLat = radiusMode ? radiusFilter.lat : null;
+  const radiusKm = radiusMode ? radiusFilter.km : null;
   const markerComplete = useRegionMigrationComplete({ enabled: regionScoped });
   // Combined view: the regions it covers; favourites (`allActive`): every active region.
   const activeKey = (isNational && !allActive ? combinedRegions : regions)
@@ -439,6 +441,8 @@ export function useRegionEventQueryPlan({ regionScoped = false, allActive = fals
             regionId,
             isNational: isNational || allActive || radiusMode,
             activeRegionIds: activeKey ? activeKey.split(',') : [],
+            // Approved events of regions not open yet still show within the radius (y5rU56bn).
+            radius: radiusMode ? { lat: radiusLat, km: radiusKm } : null,
           }),
     [
       waitForRegions,
@@ -448,6 +452,8 @@ export function useRegionEventQueryPlan({ regionScoped = false, allActive = fals
       isNational,
       allActive,
       radiusMode,
+      radiusLat,
+      radiusKm,
       activeKey,
     ]
   );

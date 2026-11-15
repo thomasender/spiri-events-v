@@ -203,6 +203,13 @@ describe('firestore.indexes.json covers the region queries', () => {
         { fieldPath: 'isOnline', order: 'ASCENDING' },
       ])
     ).toBe(true);
+    // "Wo bist du?" radius: status + lat range.
+    expect(
+      has('events', 'COLLECTION', [
+        { fieldPath: 'status', order: 'ASCENDING' },
+        { fieldPath: 'lat', order: 'ASCENDING' },
+      ])
+    ).toBe(true);
   });
 
   it('publicProfile (collection group): listedInDirectory + directoryRegionIds CONTAINS', () => {
