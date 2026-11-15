@@ -45,6 +45,9 @@ function validRegionIds(ids) {
  *                                     those of inactive regions)
  *   combined view (isNational)     -> `regions`: regionId in [active regions]
  *                                     (online events carry their regionId too)
+ *   + `radius` ("Wo bist du?")     -> `nearby`: lat within the radius' latitude band,
+ *                                     any region (approved events of a region that is
+ *                                     not open yet show within the radius, Trello y5rU56bn)
  *
  * Returns `null` while the marker state is unknown (`markerComplete === null`):
  * the caller waits instead of starting the expensive full query.
@@ -55,6 +58,7 @@ export function buildPublicEventQueryPlan({
   regionId = null,
   isNational = false,
   activeRegionIds = [],
+  radius = null,
 } = {}) {
   if (markerComplete === null || markerComplete === undefined) return null;
   const all = { mode: 'all', queries: [{ key: 'all', constraints: [APPROVED] }] };
@@ -62,13 +66,16 @@ export function buildPublicEventQueryPlan({
 
   if (isNational || !regionId) {
     const ids = validRegionIds(activeRegionIds);
-    // Nothing active: nothing to show (the client filter would drop it all).
-    if (ids.length === 0) return { mode: 'national', queries: [] };
     if (ids.length > MAX_IN_VALUES) return all;
-    return {
-      mode: 'national',
-      queries: [{ key: 'regions', constraints: [APPROVED, ['regionId', 'in', ids]] }],
-    };
+    const nearby = radiusLatitudeQuery(radius);
+    const queries = [
+      ...(ids.length > 0
+        ? [{ key: 'regions', constraints: [APPROVED, ['regionId', 'in', ids]] }]
+        : []),
+      ...(nearby ? [nearby] : []),
+    ];
+    // Nothing active: nothing to show (the client filter would drop it all).
+    return { mode: 'national', queries };
   }
 
   if (!REGION_SLUGS.includes(regionId)) return all;
@@ -78,6 +85,23 @@ export function buildPublicEventQueryPlan({
       { key: 'region', constraints: [APPROVED, ['regionId', '==', regionId]] },
       { key: 'online', constraints: [APPROVED, ['isOnline', '==', true]] },
     ],
+  };
+}
+
+// One degree of latitude is about 111 km; the band is rounded outwards to 2 decimals so
+// it stays stable and never cuts the radius (the client filter keeps the exact circle).
+const KM_PER_DEGREE_LAT = 111;
+
+function radiusLatitudeQuery(radius) {
+  const lat = Number(radius?.lat);
+  const km = Number(radius?.km);
+  if (!Number.isFinite(lat) || !Number.isFinite(km) || km <= 0) return null;
+  const span = km / KM_PER_DEGREE_LAT;
+  const min = Math.floor((lat - span) * 100) / 100;
+  const max = Math.ceil((lat + span) * 100) / 100;
+  return {
+    key: 'nearby',
+    constraints: [APPROVED, ['lat', '>=', min], ['lat', '<=', max]],
   };
 }
 
