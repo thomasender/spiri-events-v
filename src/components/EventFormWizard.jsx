@@ -193,7 +193,10 @@ export default function EventFormWizard() {
     .filter((cat, idx, arr) => arr.findIndex((c) => c.toLowerCase() === cat.toLowerCase()) === idx)
     .map((k) => ({ value: k, label: k }));
 
-  const organizerDefault = getOrganizerDefault(user?.displayName, user?.email);
+  const organizerDefault = getOrganizerDefault(
+    profile?.displayName || user?.displayName,
+    user?.email
+  );
   const profileDefaults = {
     organizer: {
       name: organizerDefault,
@@ -316,6 +319,19 @@ export default function EventFormWizard() {
     Array.isArray(restoredDraft?.instagramExtraHandles) ? restoredDraft.instagramExtraHandles : []
   );
   const profileInstagramDefault = profile?.instagramConsentDefault === true;
+  // The profile may load after the first render: swap the e-mail fallback in the
+  // organizer field for the profile name, as long as nobody has typed over it.
+  const emailFallbackName = getOrganizerDefault('', user?.email);
+  const profileDisplayName = (profile?.displayName || '').trim();
+  useEffect(() => {
+    if (!profileDisplayName) return;
+    setFormData((prev) =>
+      prev.organizer.name === '' || prev.organizer.name === emailFallbackName
+        ? { ...prev, organizer: { ...prev.organizer, name: profileDisplayName } }
+        : prev
+    );
+  }, [profileDisplayName, emailFallbackName]);
+
   useEffect(() => {
     if (!instagramConsentTouched.current) setInstagramConsent(profileInstagramDefault);
   }, [profileInstagramDefault]);

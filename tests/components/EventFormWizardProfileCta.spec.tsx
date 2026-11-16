@@ -228,3 +228,21 @@ describe('EventFormWizard confetti celebration', () => {
     expect(mockConfetti).not.toHaveBeenCalled();
   });
 });
+
+describe('EventFormWizard organizer prefill', () => {
+  it('uses the profile name instead of the e-mail prefix, also when the profile loads late', async () => {
+    mockProfile.value = null;
+    const view = renderWizard();
+    expect(await screen.findByLabelText(/Veranstalter/)).toHaveValue('user');
+
+    mockProfile.value = { displayName: 'Anna Blume', slug: 'user-uid' };
+    view.rerender(
+      <HelmetProvider>
+        <MemoryRouter initialEntries={['/admin/new']}>
+          <EventFormWizard />
+        </MemoryRouter>
+      </HelmetProvider>
+    );
+    await waitFor(() => expect(screen.getByLabelText(/Veranstalter/)).toHaveValue('Anna Blume'));
+  });
+});
