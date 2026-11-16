@@ -451,6 +451,7 @@ export default function EventFormWizard() {
       if (!formData.title.trim()) newErrors.title = 'Titel ist erforderlich';
       if (isHtmlEmpty(formData.description))
         newErrors.description = 'Beschreibung ist erforderlich';
+      if (!imageFile) newErrors.image = 'Bitte lade ein Titelbild hoch';
     } else if (step === 3) {
       if (!formData.date) newErrors.date = 'Datum ist erforderlich';
       if (!formData.time) newErrors.time = 'Uhrzeit ist erforderlich';
@@ -1214,10 +1215,12 @@ export default function EventFormWizard() {
       </div>
 
       <div className="form-group">
-        <label>Bild (optional)</label>
+        <label>Titelbild</label>
         <p className="image-hint" data-testid="title-image-hint">
           Das Titelbild sollte ein ausdrucksstarkes Symbolfoto sein. Flyer eignen sich dafür weniger
-          – lade sie lieber in die Beschreibung hoch.
+          – lade sie lieber in die Beschreibung hoch. Bitte verwende möglichst kein KI-generiertes
+          Foto: Viele Menschen empfinden solche Bilder als abstoßend, was zu weniger Interaktion
+          führt.
         </p>
         {imagePreview ? (
           <div className="image-preview-container">
@@ -1255,6 +1258,7 @@ export default function EventFormWizard() {
         )}
         <input
           ref={fileInputRef}
+          data-testid="title-image-input"
           type="file"
           accept="image/jpeg,image/png,image/webp"
           onChange={handleImageSelectFromInput}

@@ -1,7 +1,12 @@
 import { test, expect } from '@playwright/test';
 import { spawn } from 'child_process';
 
-import { waitForWizardToLoad, clickWeiter, confirmCopyrightCheckbox } from '../helpers/wizard';
+import {
+  waitForWizardToLoad,
+  clickWeiter,
+  confirmCopyrightCheckbox,
+  uploadTitleImage,
+} from '../helpers/wizard';
 
 import { STORAGE_STATE } from '../helpers/roles';
 import { openAdminTab } from '../helpers/admin';
@@ -48,6 +53,8 @@ test.describe('Event wizard: Copyright confirmation', () => {
     await clickWeiter(page);
 
     await page.fill('#title', EVENT_TITLE);
+
+    await uploadTitleImage(page);
     const editor = page.locator('[data-testid="description-editor"] .rte-content');
     await editor.click();
     await editor.fill('Event zum Testen der Copyright-Bestätigung im Wizard.');

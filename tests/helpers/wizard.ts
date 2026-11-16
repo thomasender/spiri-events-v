@@ -86,6 +86,14 @@ export async function fillStep1Organizer(
   }
 }
 
+/** The title image is mandatory in the create wizard (step 2). */
+export async function uploadTitleImage(page: Page) {
+  await page
+    .locator('[data-testid="title-image-input"]')
+    .setInputFiles('public/event-fallbacks/yoga.jpg');
+  await expect(page.locator('[data-testid="title-image-focal-picker"]')).toBeVisible();
+}
+
 export async function fillStep2EventInfo(
   page: Page,
   data: {
@@ -96,6 +104,7 @@ export async function fillStep2EventInfo(
 ) {
   if (data.title !== undefined) {
     await page.fill('#title', data.title);
+    await uploadTitleImage(page);
   }
   if (data.description !== undefined) {
     const editor = page.locator('[data-testid="description-editor"] .rte-content');
