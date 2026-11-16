@@ -22,6 +22,7 @@ vi.mock('../../src/lib/firebase', () => ({
 }));
 
 import {
+  capSlugPart,
   generateEventSlug,
   eventSlugPlace,
   planMissingEventSlugs,
@@ -217,5 +218,22 @@ describe('event slug uniqueness', () => {
     expect(await findFreeSlug(`${BASE}-2`, isTaken)).toBe(`${BASE}-3`);
     expect(slugBase(`${BASE}-12`)).toBe(BASE);
     expect(slugBase(BASE)).toBe(BASE);
+  });
+});
+
+describe('slug length cap', () => {
+  it('caps a very long title part at a word boundary, keeps the rest of the slug', () => {
+    const title = 'Yin Yoga Special '.repeat(30);
+    const slug = generateEventSlug(title, 'Yoga', 'Lustenau', '2026-11-17');
+    expect(slug.length).toBeLessThanOrEqual(80 + '-yoga-in-lustenau-20261117'.length);
+    expect(slug.endsWith('-yoga-in-lustenau-20261117')).toBe(true);
+    expect(slug).not.toContain('--');
+  });
+
+  it('leaves short titles untouched', () => {
+    expect(capSlugPart('lasst-uns-singen')).toBe('lasst-uns-singen');
+    expect(generateEventSlug('Lasst uns singen', 'Singkreis', 'Hohenems', '2026-11-02')).toBe(
+      'lasst-uns-singen-singkreis-in-hohenems-20261102'
+    );
   });
 });

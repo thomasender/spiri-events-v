@@ -25,6 +25,12 @@ When more than one source succeeds, the build **merges** them: events matched
 by `id`/`slug` get their live field values (so a freshly changed `imageUrl`
 wins immediately), and events that exist only in Firestore are appended.
 
+**Overlong slugs / failing events:** a path segment over 100 characters
+(`MAX_EVENT_PATH_LENGTH`) is not prerendered (filesystem limit 255 bytes, `ENAMETOOLONG`); the
+event stays reachable through the SPA fallback, just without OG preview, and shows up under
+"Skipped events" in the build log. The same goes for any event whose file write fails. New slugs
+cap the title part at 80 characters (`capSlugPart`); existing slugs are never changed.
+
 ### Auto-trigger on event changes (UIWI8kWx)
 
 The `onEventWriteTriggerBuild` Cloud Function fires on every Firestore

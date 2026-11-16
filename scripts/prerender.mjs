@@ -69,6 +69,16 @@ export function getEventPath(event) {
   return event.slug || event.id
 }
 
+// Filesystems cap a single path segment at 255 bytes (ENAMETOOLONG). The app
+// resolves /event/<slug> by exact Firestore match, so an existing slug must not
+// be shortened. Overlong ones get no static page (the SPA fallback still serves
+// the event, only without a prerendered OG preview) and are logged as skipped.
+export const MAX_EVENT_PATH_LENGTH = 100
+
+export function isEventPathTooLong(eventPath) {
+  return String(eventPath).length > MAX_EVENT_PATH_LENGTH
+}
+
 // Each event at its next upcoming date, soonest first. A running series whose first
 // date is already past still counts (at its next date), like in the calendar.
 function withNextDate(events) {
@@ -1456,13 +1466,27 @@ export async function prerender({
       skippedEvents.push({ id: event.id, title: event.title, reason: `duplicate path ${eventPath}` })
       continue
     }
+    if (isEventPathTooLong(eventPath)) {
+      skippedEvents.push({
+        id: event.id,
+        title: event.title,
+        reason: `path longer than ${MAX_EVENT_PATH_LENGTH} chars (${String(eventPath).length}), served by SPA fallback without prerender`,
+      })
+      continue
+    }
     seenPaths.add(eventPath)
 
-    const eventDir = path.join(distPath, 'event', eventPath)
-    ensureDir(eventDir)
-    const html = generateEventHtml(event, theme, jsBundlePath, cssBundlePath, regions)
-    const filePath = path.join(eventDir, 'index.html')
-    fs.writeFileSync(filePath, html)
+    // One broken event must never abort the whole build.
+    try {
+      const eventDir = path.join(distPath, 'event', eventPath)
+      ensureDir(eventDir)
+      const html = generateEventHtml(event, theme, jsBundlePath, cssBundlePath, regions)
+      const filePath = path.join(eventDir, 'index.html')
+      fs.writeFileSync(filePath, html)
+    } catch (err) {
+      skippedEvents.push({ id: event.id, title: event.title, reason: `write failed: ${err.message}` })
+      continue
+    }
     writtenFiles.push({ path: `/event/${eventPath}/index.html`, slug: eventPath, title: event.title })
   }
 

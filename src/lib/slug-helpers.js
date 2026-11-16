@@ -66,9 +66,21 @@ function dateSlug(date) {
 // Build the canonical event URL slug from title, category, place (Ort, see
 // `eventSlugPlace`) and date. Always appends the date suffix so each event
 // occurrence has a stable, unique URL.
+// The title part is capped so a pasted description cannot blow the URL up past
+// the filesystem limit for prerendered folders (255 bytes). Applies to new slugs only.
+const MAX_TITLE_SLUG_LENGTH = 80;
+
+export function capSlugPart(slug, max = MAX_TITLE_SLUG_LENGTH) {
+  if (slug.length <= max) return slug;
+  let cut = slug.slice(0, max);
+  // Cut mid-word: drop the partial word, unless that would leave nothing.
+  if (slug[max] !== '-' && cut.includes('-')) cut = cut.slice(0, cut.lastIndexOf('-'));
+  return cut.replace(/-+$/, '');
+}
+
 export function generateEventSlug(title, category, place, date) {
   const parts = [
-    slugify(title),
+    capSlugPart(slugify(title)),
     categorySlug(category),
     'in',
     slugPart(place, PLACE_FALLBACK_SLUG),

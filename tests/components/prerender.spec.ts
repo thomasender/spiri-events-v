@@ -607,6 +607,55 @@ describe('prerender() end-to-end', () => {
     expect(result.manifest.prerenderedPages).toBeGreaterThanOrEqual(5);
   });
 
+  it('skips events whose slug is too long for the filesystem instead of crashing the build', async () => {
+    const longSlug = `${'sehr-langer-titel-'.repeat(20)}20261117`;
+    const events = [
+      ...sampleEvents,
+      { ...sampleEvents[0], id: 'long-1', slug: longSlug, title: 'Lang' },
+    ];
+    writeJson(path.join(exportPath, 'events.json'), events);
+    const { prerender, MAX_EVENT_PATH_LENGTH, isEventPathTooLong } = await importPrerender();
+    expect(isEventPathTooLong('a'.repeat(MAX_EVENT_PATH_LENGTH))).toBe(false);
+    expect(isEventPathTooLong('a'.repeat(MAX_EVENT_PATH_LENGTH + 1))).toBe(true);
+    const result = await prerender({
+      rootDir: tmpRoot,
+      distPath,
+      exportPath,
+      skipFirestore: true,
+      skipRest: true,
+      skipAdmin: true,
+    });
+    expect(fs.existsSync(path.join(distPath, 'event', longSlug))).toBe(false);
+    for (const event of sampleEvents) {
+      expect(
+        fs.existsSync(path.join(distPath, 'event', event.slug || event.id, 'index.html'))
+      ).toBe(true);
+    }
+    expect(fs.existsSync(path.join(distPath, 'sitemap.xml'))).toBe(true);
+    expect(result.manifest.eventCount).toBe(4);
+  });
+
+  it('keeps building when writing a single event fails', async () => {
+    writeJson(path.join(exportPath, 'events.json'), sampleEvents);
+    // A file where the event folder should go makes mkdir/write fail for that one event.
+    fs.mkdirSync(path.join(distPath, 'event'), { recursive: true });
+    fs.writeFileSync(path.join(distPath, 'event', sampleEvents[0].slug), 'blocker');
+    const { prerender } = await importPrerender();
+    await expect(
+      prerender({
+        rootDir: tmpRoot,
+        distPath,
+        exportPath,
+        skipFirestore: true,
+        skipRest: true,
+        skipAdmin: true,
+      })
+    ).resolves.toBeDefined();
+    expect(fs.existsSync(path.join(distPath, 'event', sampleEvents[1].slug, 'index.html'))).toBe(
+      true
+    );
+  });
+
   it('generated event pages contain absolute og: and twitter: tags with the event slug in og:url', async () => {
     writeJson(path.join(exportPath, 'events.json'), sampleEvents);
     const { prerender } = await importPrerender();
