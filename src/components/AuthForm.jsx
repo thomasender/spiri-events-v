@@ -41,7 +41,8 @@ function GoogleIcon() {
 export default function AuthForm() {
   const location = useLocation();
   // Pages that send people here may preselect "Registrieren" and prefill the
-  // address (the moderator invitation, /einladung).
+  // address (the moderator invitation, /einladung) and name ("Zum Event anmelden",
+  // which also passes the event title for a short hint).
   const [mode, setMode] = useState(() =>
     location.state?.authMode === 'register' ? 'register' : 'login'
   );
@@ -51,7 +52,13 @@ export default function AuthForm() {
   );
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
+  const prefillName =
+    typeof location.state?.displayName === 'string' ? location.state.displayName : '';
+  const registrationEventTitle =
+    typeof location.state?.registrationEventTitle === 'string'
+      ? location.state.registrationEventTitle.trim()
+      : '';
+  const [displayName, setDisplayName] = useState(prefillName);
   const [acceptDatenschutz, setAcceptDatenschutz] = useState(false);
   const [subscribeNewsletter, setSubscribeNewsletter] = useState(false);
   const [error, setError] = useState('');
@@ -85,7 +92,7 @@ export default function AuthForm() {
     setErrorCode('');
     setPassword('');
     setConfirmPassword('');
-    setDisplayName('');
+    setDisplayName(prefillName);
     setAcceptDatenschutz(false);
     setSubscribeNewsletter(false);
     setWobbling(false);
@@ -234,6 +241,14 @@ export default function AuthForm() {
             </>
           )}
         </div>
+
+        {!isForgotPassword && registrationEventTitle && (
+          <p className="auth-registration-hint" data-testid="auth-registration-hint">
+            Anmeldung für Event „{registrationEventTitle}“: Deine Anmeldung ist schon beim
+            Veranstalter. {isLogin ? 'Melde dich an' : 'Erstelle dein Konto'}, dann speichern wir
+            das Event in deinen Favoriten.
+          </p>
+        )}
 
         {!isForgotPassword && (
           <div className="auth-tabs" role="tablist" aria-label="Anmeldung oder Registrierung">

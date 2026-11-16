@@ -34,6 +34,12 @@ beforeEach(async () => {
     await setDoc(doc(db, 'admin_users/adminDoc'), { role: 'Admin' });
     await setDoc(doc(db, 'events/e1'), { status: 'pending', createdBy: 'owner' });
     await setDoc(doc(db, 'events/e1/revisions/r1'), { byRole: 'User', changes: {} });
+    await setDoc(doc(db, 'events/e1/registrations/g1'), {
+      name: 'Gast',
+      contact: 'gast@example.com',
+      contactType: 'email',
+    });
+    await setDoc(doc(db, 'events/e1/registration_mails/m1'), { createdAt: 1 });
     await setDoc(doc(db, 'admin_users/tirolMod'), {
       role: 'RegionModerator',
       regionIds: ['tirol'],
@@ -69,6 +75,45 @@ describe('events/{id}/revisions', () => {
   it('blocks client writes, even for admins', async () => {
     const db = env.authenticatedContext('adminDoc').firestore();
     await assertFails(setDoc(doc(db, 'events/e1/revisions/r2'), { byRole: 'Admin' }));
+  });
+});
+
+describe('events/{id}/registrations', () => {
+  it('lets the organizer and admins read', async () => {
+    await assertSucceeds(
+      getDoc(doc(env.authenticatedContext('owner').firestore(), 'events/e1/registrations/g1'))
+    );
+    await assertSucceeds(
+      getDoc(doc(env.authenticatedContext('adminDoc').firestore(), 'events/e1/registrations/g1'))
+    );
+  });
+
+  it('hides registrations from other members and visitors', async () => {
+    await assertFails(
+      getDoc(doc(env.authenticatedContext('someone').firestore(), 'events/e1/registrations/g1'))
+    );
+    await assertFails(
+      getDoc(doc(env.unauthenticatedContext().firestore(), 'events/e1/registrations/g1'))
+    );
+  });
+
+  it('blocks every client write, even for the organizer and admins', async () => {
+    const guest = env.unauthenticatedContext().firestore();
+    await assertFails(setDoc(doc(guest, 'events/e1/registrations/g2'), { name: 'X' }));
+    const member = env.authenticatedContext('someone').firestore();
+    await assertFails(setDoc(doc(member, 'events/e1/registrations/g2'), { name: 'X' }));
+    const owner = env.authenticatedContext('owner').firestore();
+    await assertFails(updateDoc(doc(owner, 'events/e1/registrations/g1'), { name: 'Y' }));
+    await assertFails(deleteDoc(doc(owner, 'events/e1/registrations/g1')));
+    const admin = env.authenticatedContext('adminDoc').firestore();
+    await assertFails(setDoc(doc(admin, 'events/e1/registrations/g3'), { name: 'X' }));
+  });
+
+  it('keeps the confirmation markers server-only', async () => {
+    const admin = env.authenticatedContext('adminDoc').firestore();
+    await assertFails(getDoc(doc(admin, 'events/e1/registration_mails/m1')));
+    const member = env.authenticatedContext('someone').firestore();
+    await assertFails(setDoc(doc(member, 'events/e1/registration_mails/m2'), { createdAt: 1 }));
   });
 });
 

@@ -448,3 +448,34 @@ describe('AuthForm password manager hints', () => {
     );
   });
 });
+
+describe('AuthForm after "Zum Event anmelden"', () => {
+  const state = {
+    authMode: 'register',
+    email: 'ben@example.com',
+    displayName: 'Ben',
+    registrationEventTitle: 'Klangreise',
+  };
+
+  it('prefills name and e-mail and names the event', () => {
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/login', state }]}>
+        <AuthForm />
+      </MemoryRouter>
+    );
+    expect(screen.getByLabelText('Name')).toHaveValue('Ben');
+    expect(screen.getByLabelText('E-Mail')).toHaveValue('ben@example.com');
+    expect(screen.getByTestId('auth-registration-hint')).toHaveTextContent('„Klangreise“');
+  });
+
+  it('keeps the prefilled name when switching tabs', () => {
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/login', state }]}>
+        <AuthForm />
+      </MemoryRouter>
+    );
+    fireEvent.click(screen.getByTestId('auth-tab-login'));
+    fireEvent.click(screen.getByTestId('auth-tab-register'));
+    expect(screen.getByLabelText('Name')).toHaveValue('Ben');
+  });
+});
