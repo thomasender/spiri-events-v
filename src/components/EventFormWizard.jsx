@@ -67,7 +67,12 @@ import { formExamples } from '../utils/regionExamples';
 import { keepIfInRegion, selectedRegionId, subdivisionFor } from '../utils/regionChoices';
 import EventRegionDialog, { BEZIRK_NOT_FOUND } from './EventRegionDialog';
 import MonthlyModeOptions from './MonthlyModeOptions';
-import { getMonthlyWeekdayPhrase } from '../utils/eventOccurrences';
+import {
+  getMonthlyWeekdayPhrase,
+  getSeriesStartDates,
+  pruneExceptionDates,
+} from '../utils/eventOccurrences';
+import SeriesDatesOverview from './SeriesDatesOverview';
 import { saveWizardDraft, loadWizardDraft, clearWizardDraft } from '../utils/wizardDraftStorage';
 import { normalizeCategoryInput, isValidCategoryInput } from '../utils/categoryInput';
 import { getCategoryColor } from '../utils/categoryColors';
@@ -117,6 +122,7 @@ const INITIAL_STATE = {
   recurrence: 'none',
   recurrenceEndDate: '',
   customDates: [],
+  exceptionDates: [],
   category: '',
   bezirk: '',
   city: '',
@@ -139,6 +145,15 @@ const STEPS = [
   { id: 3, key: 'details', title: 'Details', icon: Calendar },
   { id: 4, key: 'summary', title: 'Zusammenfassung', icon: List },
 ];
+
+// " (12 Termine, 2 entfernt)" for a series with an end date, '' otherwise.
+function summarySeriesCount(formData) {
+  const total = getSeriesStartDates(formData).length;
+  if (total === 0) return '';
+  const removed = pruneExceptionDates(formData).length;
+  const text = `${total - removed} Termine${removed > 0 ? `, ${removed} entfernt` : ''}`;
+  return ` (${text})`;
+}
 
 function getOrganizerDefault(displayName, email) {
   const trimmed = (displayName || '').trim();
@@ -224,6 +239,9 @@ export default function EventFormWizard() {
         },
         customDates: Array.isArray(restoredDraft.formData.customDates)
           ? restoredDraft.formData.customDates
+          : [],
+        exceptionDates: Array.isArray(restoredDraft.formData.exceptionDates)
+          ? restoredDraft.formData.exceptionDates
           : [],
         kontaktMessenger: normalizeMessengerSelection(restoredDraft.formData.kontaktMessenger),
       };
@@ -437,6 +455,7 @@ export default function EventFormWizard() {
         recurrence: 'none',
         recurrenceEndDate: '',
         customDates: [],
+        exceptionDates: [],
       }));
       setErrors((prev) => ({
         ...prev,
@@ -445,6 +464,17 @@ export default function EventFormWizard() {
       }));
     }
   };
+
+  // Dates taken out of the series fall away when start date, kind or end date change
+  // so that they no longer lie in the series.
+  useEffect(() => {
+    setFormData((prev) => {
+      const before = prev.exceptionDates || [];
+      if (before.length === 0) return prev;
+      const kept = pruneExceptionDates(prev);
+      return kept.length === before.length ? prev : { ...prev, exceptionDates: kept };
+    });
+  }, [formData.date, formData.recurrence, formData.recurrenceEndDate]);
 
   const recurrenceMinDate = useMemo(() => {
     return formData.date || '';
@@ -925,6 +955,7 @@ export default function EventFormWizard() {
             ),
           ].sort()
         : [],
+    exceptionDates: pruneExceptionDates(formData),
     category: formData.category || 'Sonstiges',
     bezirk: formData.isOnline ? '' : formData.bezirk,
     city: formData.isOnline ? '' : canonicalCity(formData.city),
@@ -1794,6 +1825,16 @@ export default function EventFormWizard() {
           )}
         </div>
       )}
+
+      {formData.recurrence !== 'none' && formData.recurrence !== 'custom' && (
+        <SeriesDatesOverview
+          date={formData.date}
+          recurrence={formData.recurrence}
+          recurrenceEndDate={formData.recurrenceEndDate}
+          exceptionDates={formData.exceptionDates}
+          onChange={(exceptionDates) => setFormData((prev) => ({ ...prev, exceptionDates }))}
+        />
+      )}
     </div>
   );
 
@@ -1918,6 +1959,7 @@ export default function EventFormWizard() {
                     : formData.recurrence === 'monthlyWeekday'
                       ? `Monatlich am ${getMonthlyWeekdayPhrase(formData.date)}`
                       : `An einzelnen Terminen (${formData.customDates?.length || 0} Termine)`}
+              {formData.recurrence !== 'custom' && summarySeriesCount(formData)}
             </p>
           )}
           <p>

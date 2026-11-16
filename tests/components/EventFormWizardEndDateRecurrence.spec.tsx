@@ -366,3 +366,124 @@ describe('EventFormWizard — series needs an end date (XqeZro0q)', () => {
     expect(screen.queryByText(REQUIRED)).toBeNull();
   });
 });
+
+describe('EventFormWizard — Serientermine-Übersicht', () => {
+  const isoDaysFromToday = (days: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    return d.toISOString().split('T')[0];
+  };
+  // Weekly from today + 30 until today + 58: five dates.
+  const series = (extra: Record<string, unknown> = {}) => ({
+    formData: {
+      endDate: '',
+      recurrence: 'weekly',
+      recurrenceEndDate: isoDaysFromToday(58),
+      ...extra,
+    },
+    currentStep: 3,
+  });
+  const list = () => screen.getByTestId('series-dates');
+  const removeButtons = () => within(list()).getAllByRole('button', { name: /entfernen$/ });
+
+  async function submitAndGetPayload() {
+    fireEvent.click(screen.getByTestId('continue-button'));
+    await waitFor(() => expect(onSummary()).toBe(true));
+    fireEvent.click(screen.getByTestId('submit-event-button'));
+    await waitFor(() => {
+      expect(document.querySelector('.confirm-dialog')).not.toBeNull();
+    });
+    const dialog = document.querySelector('.confirm-dialog') as HTMLElement;
+    const buttons = within(dialog).getAllByRole('button');
+    fireEvent.click(buttons[buttons.length - 1]);
+    await waitFor(() => expect(mockEvents.addEvent).toHaveBeenCalledTimes(1));
+    return (mockEvents.addEvent.mock.calls[0] as unknown as unknown[])[0] as Record<
+      string,
+      unknown
+    >;
+  }
+  const onSummary = () => screen.queryByTestId('submit-event-button') !== null;
+
+  it('shows "Deine Termine (N)" once a series has an end date', () => {
+    seedDraft(series());
+    renderWizard();
+    expect(within(list()).getByText('Deine Termine (5)')).toBeInTheDocument();
+    expect(within(list()).getAllByRole('listitem')).toHaveLength(5);
+  });
+
+  it('shows nothing without an end date or for a one-off event', () => {
+    seedDraft(series({ recurrenceEndDate: '' }));
+    const { unmount } = renderWizard();
+    expect(screen.queryByTestId('series-dates')).toBeNull();
+    unmount();
+    localStorage.clear();
+    seedDraft(series({ recurrence: 'none' }));
+    renderWizard();
+    expect(screen.queryByTestId('series-dates')).toBeNull();
+  });
+
+  it('does not offer to remove the first date and explains why', () => {
+    seedDraft(series());
+    renderWizard();
+    const first = within(list()).getAllByRole('listitem')[0];
+    expect(within(first).queryByRole('button')).toBeNull();
+    expect(first).toHaveTextContent('Verschiebe dazu das Startdatum');
+    expect(removeButtons()).toHaveLength(4);
+  });
+
+  it('keeps a removed date struck through, restores it, and saves the exceptions', async () => {
+    seedDraft(series());
+    renderWizard();
+    fireEvent.click(removeButtons()[0]);
+    expect(within(list()).getByText('Deine Termine (4, 1 entfernt)')).toBeInTheDocument();
+    expect(within(list()).getAllByRole('listitem')).toHaveLength(5);
+
+    fireEvent.click(removeButtons()[0]);
+    fireEvent.click(within(list()).getAllByRole('button', { name: /wiederherstellen$/ })[0]);
+    expect(within(list()).getByText('Deine Termine (4, 1 entfernt)')).toBeInTheDocument();
+
+    const payload = await submitAndGetPayload();
+    expect(payload.exceptionDates).toHaveLength(1);
+    expect(payload.exceptionDates).toEqual([isoDaysFromToday(44)]);
+  });
+
+  it('shows the count in the summary', async () => {
+    seedDraft(series({ exceptionDates: [isoDaysFromToday(37)] }));
+    renderWizard();
+    fireEvent.click(screen.getByTestId('continue-button'));
+    await waitFor(() => expect(onSummary()).toBe(true));
+    expect(screen.getByText(/4 Termine, 1 entfernt/)).toBeInTheDocument();
+  });
+
+  it('drops exceptions that fall outside the series when the end date changes', async () => {
+    seedDraft(series({ exceptionDates: [isoDaysFromToday(37), isoDaysFromToday(51)] }));
+    renderWizard();
+    expect(within(list()).getByText('Deine Termine (3, 2 entfernt)')).toBeInTheDocument();
+
+    fireEvent.change(document.getElementById('recurrenceEndDate') as HTMLElement, {
+      target: { value: isoDaysFromToday(44) },
+    });
+    expect(within(list()).getByText('Deine Termine (2, 1 entfernt)')).toBeInTheDocument();
+
+    const payload = await submitAndGetPayload();
+    expect(payload.exceptionDates).toEqual([isoDaysFromToday(37)]);
+  });
+
+  it('sends no exceptions for a one-off event', async () => {
+    seedDraft(
+      series({ recurrence: 'none', recurrenceEndDate: '', exceptionDates: ['2030-01-01'] })
+    );
+    renderWizard();
+    const payload = await submitAndGetPayload();
+    expect(payload.exceptionDates).toEqual([]);
+  });
+
+  it('collapses long series to eight dates until "Alle anzeigen"', () => {
+    seedDraft(series({ recurrenceEndDate: isoDaysFromToday(30 + 7 * 11) }));
+    renderWizard();
+    expect(within(list()).getByText('Deine Termine (12)')).toBeInTheDocument();
+    expect(within(list()).getAllByRole('listitem')).toHaveLength(8);
+    fireEvent.click(within(list()).getByRole('button', { name: /Alle anzeigen/ }));
+    expect(within(list()).getAllByRole('listitem')).toHaveLength(12);
+  });
+});
