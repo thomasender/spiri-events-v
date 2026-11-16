@@ -657,6 +657,26 @@ is a code change (see section 13).
     trash state, rejections before revisions existed, the person's role at the time (today's role
     is used). Until the script has run, the tab shows only what happened after the deploy.
   - No retention yet: the collection grows (a few entries per event).
+  - **Rückfrage + category/city:** `clarification` ("Rückfrage gestellt") is written by
+    `onAdminMessageCreated` (`functions/src/notifications.ts`) when staff (by `admin_users`)
+    writes a message on a `pending` event, except rejection reasons; doc id
+    `clarification-{eventId}-{YYYY-MM-DD Vienna}` with `create()`, so at most one per event and
+    day. New entries also carry the event's `category` and `city` (older ones: not set; the
+    backfill script was not re-run).
+- **Fun Facts:** Super-Admin tab Dashboard & Einstellungen -> "Fun Facts" (`FunFactsTab`,
+  `?tab=funfacts`; moderators get "Kein Zugriff"). Callable `adminFunFacts`
+  (`functions/src/adminFunFacts.ts`, pure logic `funFacts.ts`, tests `tests/lib/funFacts.spec.ts`)
+  reads the whole `moderation_log` plus `count()` on `users` and the `favorites` collection group,
+  stores the result in `app_stats/fun_facts` (`computedAt`; Super-Admin read, no client writes,
+  `tests/rules/revisions.rules.spec.ts`) and recomputes at most every 6 h; `force: true`
+  ("Aktualisieren") at most once a minute. Per event, first pass = first `submitted` to first
+  `approved`; a review round = a pending phase with `returned`, `rejected`, a staff edit (not
+  only `instagramImage`/`regionId`) or a `clarification`. "Eingereicht" also counts events whose
+  first decision came from `pending` without a logged submission (submitted before the log);
+  "direkt veröffentlicht" = first `approved` without a submission before it and not from
+  `pending`. The tab says "Gezählt seit <first entry>" and the share of `source: 'backfill'`
+  entries: purged expired events and their history are gone, and Rückfragen only count since
+  the release, so older review numbers look smoother than they were.
 
 ## 4. Activation
 

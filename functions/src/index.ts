@@ -184,6 +184,7 @@ export {
 } from './moderatorInvites';
 export { adminSetRegionActive, adminListRegionActivation } from './adminRegions';
 export { adminAnalyticsReport } from './adminAnalytics';
+export { adminFunFacts } from './adminFunFacts';
 export { adminMailgunUsage } from './adminMailgun';
 export { onEventApprovedPostToInstagram } from './instagramPostOnApproval';
 export { onEventApprovedCount } from './approvedEventsCounter';

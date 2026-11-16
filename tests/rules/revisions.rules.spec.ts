@@ -46,6 +46,7 @@ beforeEach(async () => {
       actorRole: 'RegionModerator',
       byStaff: true,
     });
+    await setDoc(doc(db, 'app_stats/fun_facts'), { events: { published: 3 } });
   });
 });
 
@@ -96,5 +97,29 @@ describe('moderation_log', () => {
     await assertFails(setDoc(doc(db, 'moderation_log/m2'), { action: 'approved' }));
     await assertFails(updateDoc(doc(db, 'moderation_log/m1'), { action: 'rejected' }));
     await assertFails(deleteDoc(doc(db, 'moderation_log/m1')));
+  });
+});
+
+describe('app_stats (Fun Facts)', () => {
+  it('lets Super-Admins read it', async () => {
+    const db = env.authenticatedContext('adminDoc').firestore();
+    await assertSucceeds(getDoc(doc(db, 'app_stats/fun_facts')));
+  });
+
+  it('hides it from region moderators, organizers and anonymous visitors', async () => {
+    for (const db of [
+      env.authenticatedContext('tirolMod').firestore(),
+      env.authenticatedContext('owner').firestore(),
+      env.unauthenticatedContext().firestore(),
+    ]) {
+      await assertFails(getDoc(doc(db, 'app_stats/fun_facts')));
+    }
+  });
+
+  it('blocks client writes, even for Super-Admins', async () => {
+    const db = env.authenticatedContext('adminDoc').firestore();
+    await assertFails(setDoc(doc(db, 'app_stats/fun_facts'), { events: { published: 99 } }));
+    await assertFails(updateDoc(doc(db, 'app_stats/fun_facts'), { events: {} }));
+    await assertFails(deleteDoc(doc(db, 'app_stats/fun_facts')));
   });
 });

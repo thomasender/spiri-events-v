@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   actorRoleFromStaffDoc,
   buildBackfillEntries,
+  buildClarificationLogEntry,
   buildModerationLogEntry,
   classifyModerationAction,
 } from '../../functions/src/moderationLog';
@@ -99,6 +100,8 @@ describe('buildModerationLogEntry', () => {
       eventSlug: 'yoga',
       eventDate: '2026-12-01',
       regionId: 'tirol',
+      category: null,
+      city: null,
       ownerUid: 'o1',
       statusFrom: 'pending',
       statusTo: 'approved',
@@ -150,6 +153,72 @@ describe('buildModerationLogEntry', () => {
       actor: { uid: 'o1', name: 'Olga', role: 'User' },
     });
     expect(entry).toMatchObject({ action: 'edited', changedFields: ['title'], byStaff: false });
+  });
+});
+
+describe('category and city', () => {
+  it('are copied from the event', () => {
+    const entry = buildModerationLogEntry({
+      kind: 'create',
+      eventId: 'e5',
+      after: { status: 'pending', title: 'Kakao', category: 'Zeremonie', city: 'Dornbirn' },
+      actor: { uid: 'o1', name: 'Olga', role: 'User' },
+    });
+    expect(entry).toMatchObject({ action: 'submitted', category: 'Zeremonie', city: 'Dornbirn' });
+  });
+});
+
+describe('buildClarificationLogEntry', () => {
+  const event = {
+    status: 'pending',
+    title: 'Yoga',
+    slug: 'yoga',
+    regionId: 'tirol',
+    createdBy: 'o1',
+    category: 'Yoga',
+    city: 'Innsbruck',
+  };
+  const atMs = Date.UTC(2026, 10, 16, 23, 30); // 17.11. 00:30 in Vienna
+  const message = { authorRole: 'Admin', text: 'Gibt es einen Link?' };
+
+  it('logs a staff question on a pending event, one id per event and Vienna day', () => {
+    const built = buildClarificationLogEntry({ eventId: 'e1', event, message, actor: mod, atMs });
+    expect(built?.id).toBe('clarification-e1-2026-11-17');
+    expect(built?.entry).toMatchObject({
+      action: 'clarification',
+      eventId: 'e1',
+      eventTitle: 'Yoga',
+      regionId: 'tirol',
+      category: 'Yoga',
+      city: 'Innsbruck',
+      ownerUid: 'o1',
+      statusFrom: 'pending',
+      statusTo: 'pending',
+      actorUid: 'm1',
+      actorRole: 'RegionModerator',
+      byStaff: true,
+      source: 'trigger',
+    });
+  });
+
+  it('skips other events, organizer messages, rejection reasons and empty texts', () => {
+    const build = (over: {
+      event?: Record<string, unknown>;
+      message?: Record<string, unknown>;
+      actor?: typeof mod | { uid: string; name: string; role: 'User' };
+    }) =>
+      buildClarificationLogEntry({
+        eventId: 'e1',
+        event: over.event ?? event,
+        message: over.message ?? message,
+        actor: over.actor ?? mod,
+        atMs,
+      });
+    expect(build({ event: { ...event, status: 'approved' } })).toBeNull();
+    expect(build({ message: { ...message, authorRole: 'User' } })).toBeNull();
+    expect(build({ message: { ...message, kind: 'rejection' } })).toBeNull();
+    expect(build({ message: { ...message, text: '   ' } })).toBeNull();
+    expect(build({ actor: { uid: 'o1', name: 'Olga', role: 'User' } })).toBeNull();
   });
 });
 
