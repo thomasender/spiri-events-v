@@ -113,6 +113,18 @@ beforeEach(() => {
 });
 
 describe('EventForm — image preservation on edit (6bs5MvXI)', () => {
+  it('shows the 16:9 / 9:16 format tip before any image is chosen', () => {
+    render(
+      <MemoryRouter>
+        <EventForm event={{ ...baseEvent, imageUrl: undefined, imageFocalPoint: undefined }} />
+      </MemoryRouter>
+    );
+
+    const hint = screen.getByTestId('title-image-hint');
+    expect(hint).toHaveTextContent(/16:9/);
+    expect(hint).toHaveTextContent(/9:16/);
+  });
+
   it('preserves the existing imageUrl when editing without touching the picture', async () => {
     render(
       <MemoryRouter>

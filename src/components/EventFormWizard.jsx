@@ -21,6 +21,7 @@ import {
   getAspectRatioRecommendation,
   MAX_INPUT_SIZE_BYTES,
 } from '../lib/imageUpload';
+import { IMAGE_FORMAT_HINT } from '../utils/imageFormatHint';
 import {
   ArrowLeft,
   ArrowRight,
@@ -546,8 +547,7 @@ export default function EventFormWizard() {
     if (!recommendation.isRecommended) {
       setErrors((prev) => ({
         ...prev,
-        image:
-          'Tipp: Für beste Darstellung empfehlen wir 16:9 (Querformat) oder 9:16 (Hochformat).',
+        image: IMAGE_FORMAT_HINT,
       }));
     } else {
       setErrors((prev) => ({ ...prev, image: null }));
@@ -1221,6 +1221,8 @@ export default function EventFormWizard() {
           – lade sie lieber in die Beschreibung hoch. Bitte verwende möglichst kein KI-generiertes
           Foto: Viele Menschen empfinden solche Bilder als abstoßend, was zu weniger Interaktion
           führt.
+          <br />
+          {IMAGE_FORMAT_HINT}
         </p>
         {imagePreview ? (
           <div className="image-preview-container">
