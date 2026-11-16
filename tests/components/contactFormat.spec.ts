@@ -5,6 +5,7 @@ import {
   normalizeMessengerSelection,
   parseContactText,
   parseRegistrationText,
+  defaultCallingCode,
   toInternationalPhone,
 } from '../../src/utils/contactFormat';
 
@@ -105,6 +106,20 @@ describe('toInternationalPhone', () => {
   it('reads a leading 0 as an Austrian number', () => {
     expect(toInternationalPhone('0676 555 0000')).toBe('+436765550000');
     expect(toInternationalPhone('0664/1234567')).toBe('+436641234567');
+  });
+
+  it('reads a leading 0 with the country code of the site domain', () => {
+    expect(defaultCallingCode('tribe.ch')).toBe('41');
+    expect(defaultCallingCode('www.thetribe.DE')).toBe('49');
+    expect(defaultCallingCode('thetribe.at')).toBe('43');
+    expect(defaultCallingCode('localhost')).toBe('43');
+    expect(defaultCallingCode(undefined)).toBe('43');
+    expect(toInternationalPhone('079 123 45 67', 'x.ch')).toBe('+41791234567');
+    expect(toInternationalPhone('0171 2345678', 'x.de')).toBe('+491712345678');
+    expect(contactPhone('Tel 0171 2345678', 'x.de')).toBe('+491712345678');
+    expect(messengerLinks('0171 2345678', ['whatsapp'], 'x.de')[0].href).toBe(
+      'https://wa.me/491712345678'
+    );
   });
 
   it('returns null when the number is not clearly international or no number', () => {
