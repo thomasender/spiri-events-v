@@ -1243,11 +1243,8 @@ export default function EventFormWizard() {
           onChange={handleChange}
           maxLength={TITLE_MAX_LENGTH}
           placeholder="z.B. Morgen-Yoga im Park"
-          className={errors.title ? 'input-error' : ''}
+          className={errors.title || formData.title.length >= TITLE_MAX_LENGTH ? 'input-error' : ''}
         />
-        <span className="image-hint" data-testid="title-counter">
-          {formData.title.length}/{TITLE_MAX_LENGTH} Zeichen
-        </span>
         {errors.title && <span className="error-text">{errors.title}</span>}
       </div>
 
