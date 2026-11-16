@@ -74,6 +74,7 @@ import {
 } from '../utils/instagramImageChoice';
 import { REGISTRATION_MAX_LENGTH, KONTAKT_MAX_LENGTH } from '../utils/contactFormat';
 import { reviewEditChanges } from '../utils/eventReviewFields';
+import { IMAGE_FORMAT_HINT } from '../utils/imageFormatHint';
 import './EventForm.css';
 
 const INITIAL_STATE = {
@@ -518,8 +519,7 @@ export default function EventForm({ event }) {
     if (!recommendation.isRecommended) {
       setErrors((prev) => ({
         ...prev,
-        image:
-          'Tipp: Für beste Darstellung empfehlen wir 16:9 (Querformat) oder 9:16 (Hochformat). Andere Formate funktionieren auch, können aber abgeschnitten angezeigt werden.',
+        image: `${IMAGE_FORMAT_HINT} Andere Formate funktionieren auch, können aber abgeschnitten angezeigt werden.`,
       }));
     } else {
       setErrors((prev) => ({ ...prev, image: null }));
@@ -1732,6 +1732,8 @@ export default function EventForm({ event }) {
             <p className="image-hint" data-testid="title-image-hint">
               Das Titelbild sollte ein ausdrucksstarkes Symbolfoto sein. Flyer eignen sich dafür
               weniger – lade sie lieber in die Beschreibung hoch.
+              <br />
+              {IMAGE_FORMAT_HINT}
             </p>
             {imagePreview ? (
               <div className="image-preview-container">

@@ -166,6 +166,8 @@ describe('EventFormWizard step validation', () => {
     renderWizard();
 
     expect(screen.getByTestId('title-image-hint')).toHaveTextContent(/KI-generiert/);
+    expect(screen.getByTestId('title-image-hint')).toHaveTextContent(/16:9/);
+    expect(screen.getByTestId('title-image-hint')).toHaveTextContent(/9:16/);
     fireEvent.click(screen.getByRole('button', { name: /^weiter$/i }));
 
     expect(screen.getByTestId('wizard-validation-error')).toBeInTheDocument();
