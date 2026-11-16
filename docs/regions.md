@@ -553,9 +553,10 @@ is a code change (see section 13).
   when none is stored (code default, no migration), else null (wording then says "unserem
   Instagram-Kanal" without a name). Used by the event form consent box (event's region),
   the profile card, the regional "Über uns" (link, region mode only) and the Datenschutz
-  section 12: generic wording plus a collapsed list "Unsere Instagram-Kanäle (n)" and one
-  Impressum link per channel, all only once at least two channels of active regions exist
-  (dark launch). Have the legal wording confirmed before a second channel goes live.
+  section 12 and the Impressum "Onlinepräsenzen": generic wording plus the same collapsed list
+  "Unsere Instagram-Kanäle (n)" ("Region: @name", scales to many regions), only once at least two
+  channels of active regions exist (dark launch; names of inactive regions never show there).
+  Below that the single active region's stored name replaces `@tribevorarlberg` (Trello GJ2Yry7l). Have the legal wording confirmed before a second channel goes live.
   Not in
   the prerender/sitemap yet.
 - `admin_users` is written only via the Admin SDK: callables

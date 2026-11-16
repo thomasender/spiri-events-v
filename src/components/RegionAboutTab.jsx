@@ -290,8 +290,11 @@ export default function RegionAboutTab() {
           {access.isSuperAdmin ? (
             <>
               <p className="region-about-fixed-note">
-                Der Name wird nur angezeigt (Event-Formular, „Über uns“, Datenschutzerklärung). Er
-                richtet kein Konto ein und verbindet nichts mit Instagram.
+                Der Name wird nur angezeigt (Event-Formular, „Über uns“, Datenschutzerklärung und
+                Impressum). Er richtet kein Konto ein und verbindet nichts mit Instagram. In
+                Datenschutzerklärung und Impressum steht er in der Liste „Unsere Instagram-Kanäle“,
+                sobald die Region aktiv ist und mindestens zwei aktive Regionen einen
+                Instagram-Namen haben.
                 {current.id === 'vorarlberg' && ' Leer = @tribevorarlberg.'}
               </p>
               <label className="region-about-field">
