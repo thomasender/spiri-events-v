@@ -28,6 +28,11 @@
   margin-bottom: var(--space-8);
 }
 
+.legal-content section {
+  /* Deep links (#vereinsmitglieder) must not hide the heading under the sticky header. */
+  scroll-margin-top: calc(var(--space-16) + var(--space-4));
+}
+
 .legal-content section:last-child {
   margin-bottom: 0;
 }
