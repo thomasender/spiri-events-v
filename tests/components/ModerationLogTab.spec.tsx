@@ -9,6 +9,11 @@ const state = vi.hoisted(() => ({
   role: 'Admin' as string | null,
   multiRegion: true,
   specs: [] as Array<{ where: unknown[][] }>,
+  clarification: {
+    events: [] as Record<string, unknown>[],
+    inKlaerungAuthorNameByEvent: {} as Record<string, string | null>,
+    firstMessageAtByEvent: {} as Record<string, number>,
+  },
   log: {
     entries: [] as Record<string, unknown>[],
     loading: false,
@@ -27,6 +32,9 @@ vi.mock('../../src/hooks/useModerationLog', () => ({
     state.specs.push(spec);
     return state.log;
   },
+}));
+vi.mock('../../src/hooks/useEventsWithMessages', () => ({
+  useEventsWithMessages: () => state.clarification,
 }));
 vi.mock('../../src/hooks/useRegionModerators', () => ({
   useRegionModerators: () => ({ moderators: [{ uid: 'm1', displayName: 'Mia Moser' }] }),
@@ -101,6 +109,11 @@ beforeEach(() => {
   state.role = 'Admin';
   state.multiRegion = true;
   state.specs = [];
+  state.clarification = {
+    events: [],
+    inKlaerungAuthorNameByEvent: {},
+    firstMessageAtByEvent: {},
+  };
   state.log = {
     entries: ENTRIES,
     loading: false,
@@ -130,13 +143,88 @@ describe('ModerationLogTab', () => {
     );
   });
 
-  it('links to the event, except for deleted ones', () => {
+  it('links published events to the public page, others to nothing but an edit link', () => {
+    state.log.entries = [
+      { ...ENTRIES[0], statusTo: 'approved', eventSlug: 'yoga-am-see' },
+      { ...ENTRIES[1], statusTo: 'rejected' },
+      ENTRIES[2],
+    ];
     renderTab();
     expect(screen.getByRole('link', { name: 'Yoga am See' })).toHaveAttribute(
       'href',
-      '/admin/edit/e1'
+      '/event/yoga-am-see'
     );
+    expect(screen.queryByRole('link', { name: 'Kakao-Zeremonie' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Alter Kreis' })).not.toBeInTheDocument();
+    const hrefs = screen
+      .getAllByRole('link', { name: 'Bearbeiten' })
+      .map((a) => a.getAttribute('href'));
+    expect(hrefs).toEqual(['/admin/edit/e2', '/admin/edit/e1']);
+  });
+
+  it('shows submitted / edited / approved dates under the title', () => {
+    state.log.entries = [
+      { ...ENTRIES[0], action: 'submitted', at: at('2026-11-03T08:00:00Z') },
+      { ...ENTRIES[0], id: 'r1b', action: 'edited', at: at('2026-11-05T08:00:00Z') },
+      { ...ENTRIES[0], id: 'r1c', action: 'approved', at: at('2026-11-06T08:00:00Z') },
+    ];
+    renderTab();
+    expect(screen.getAllByTestId('modlog-overview')[0]).toHaveTextContent(
+      'Eingereicht 3.11. · Bearbeitet 5.11. · Genehmigt 6.11.'
+    );
+  });
+
+  describe('In Klärung block', () => {
+    const hourAgo = (h: number) => Date.now() - h * 60 * 60 * 1000;
+    beforeEach(() => {
+      state.clarification = {
+        events: [
+          { id: 'p1', title: 'Atemreise', regionId: 'vorarlberg' },
+          { id: 'p2', title: 'Tanz der Stille', regionId: 'tirol' },
+          { id: 'p3', title: 'Ohne Nachricht', regionId: 'tirol' },
+        ],
+        inKlaerungAuthorNameByEvent: { p1: 'Mia Moser', p2: 'Peter' },
+        firstMessageAtByEvent: { p1: hourAgo(24 * 3 + 1), p2: hourAgo(5) },
+      };
+    });
+
+    it('lists pending events with staff messages, longest first, with moderator and duration', () => {
+      renderTab();
+      const block = screen.getByTestId('modlog-clarification');
+      expect(within(block).getByText('In Klärung (2)')).toBeInTheDocument();
+      const rows = within(block).getAllByTestId('modlog-clarification-row');
+      expect(rows).toHaveLength(2);
+      expect(rows[0]).toHaveTextContent('Atemreise');
+      expect(rows[0]).toHaveTextContent('Mia Moser');
+      expect(rows[0]).toHaveTextContent('3 Tage');
+      expect(rows[1]).toHaveTextContent('Tanz der Stille');
+      expect(rows[1]).toHaveTextContent('5 Std.');
+      expect(within(rows[0]).getByRole('link', { name: 'Bearbeiten' })).toHaveAttribute(
+        'href',
+        '/admin/edit/p1'
+      );
+      expect(within(block).queryByText('Ohne Nachricht')).not.toBeInTheDocument();
+    });
+
+    it('is narrowed by the search (title, moderator)', () => {
+      renderTab();
+      fireEvent.change(screen.getByTestId('modlog-search'), { target: { value: 'peter' } });
+      const rows = screen.getAllByTestId('modlog-clarification-row');
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toHaveTextContent('Tanz der Stille');
+    });
+
+    it('shows an empty state', () => {
+      state.clarification = {
+        events: [],
+        inKlaerungAuthorNameByEvent: {},
+        firstMessageAtByEvent: {},
+      };
+      renderTab();
+      expect(screen.getByTestId('modlog-clarification-empty')).toHaveTextContent(
+        'Keine Events in Klärung'
+      );
+    });
   });
 
   it('starts with the team only, last 30 days', () => {

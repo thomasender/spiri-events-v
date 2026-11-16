@@ -41,6 +41,7 @@ const CONTENT_KEY_FIELDS = [
   'firstSessionFree',
   'link',
   'kontakt',
+  'kontaktMessenger',
   'registration',
   'category',
   'recurrence',

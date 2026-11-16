@@ -72,8 +72,17 @@ import {
   extractDescriptionImageUrls,
   resolveInstagramImage,
 } from '../utils/instagramImageChoice';
-import { REGISTRATION_MAX_LENGTH, KONTAKT_MAX_LENGTH } from '../utils/contactFormat';
+import {
+  REGISTRATION_MAX_LENGTH,
+  KONTAKT_MAX_LENGTH,
+  contactPhone,
+  normalizeMessengerSelection,
+} from '../utils/contactFormat';
+import ContactMessengerChoice from './ContactMessengerChoice';
+import SeriesDatesOverview from './SeriesDatesOverview';
+import { pruneExceptionDates } from '../utils/eventOccurrences';
 import { reviewEditChanges } from '../utils/eventReviewFields';
+import { IMAGE_FORMAT_HINT } from '../utils/imageFormatHint';
 import './EventForm.css';
 
 const INITIAL_STATE = {
@@ -94,6 +103,7 @@ const INITIAL_STATE = {
   recurrence: 'none',
   recurrenceEndDate: '',
   customDates: [],
+  exceptionDates: [],
   category: '',
   bezirk: '',
   city: '',
@@ -105,8 +115,24 @@ const INITIAL_STATE = {
   isOnline: false,
   organizer: { name: '', email: '' },
   kontakt: '',
+  // Messengers for the phone number in `kontakt` (Trello 6af6d067).
+  kontaktMessenger: [],
   registration: '',
 };
+
+const todayYmd = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+// Dates taken out of a weekly / biweekly / monthly series: past ones stay as stored,
+// upcoming ones that no longer lie in the series (changed start / end) fall away.
+// Other kinds of events keep what is stored.
+function seriesExceptionDates(formData) {
+  if (['none', 'custom'].includes(formData.recurrence || 'none'))
+    return formData.exceptionDates || [];
+  return pruneExceptionDates(formData, todayYmd());
+}
 
 function getOrganizerDefault(displayName, email) {
   const trimmed = (displayName || '').trim();
@@ -190,6 +216,7 @@ export default function EventForm({ event }) {
         recurrence: event.recurrence || 'none',
         recurrenceEndDate: event.recurrenceEndDate || '',
         customDates: Array.isArray(event.customDates) ? [...event.customDates] : [],
+        exceptionDates: Array.isArray(event.exceptionDates) ? [...event.exceptionDates] : [],
         category: event.category || '',
         bezirk: event.isOnline ? '' : event.bezirk || '',
         city: event.isOnline ? '' : event.city || '',
@@ -203,10 +230,14 @@ export default function EventForm({ event }) {
           email: storedOrganizer.email || '',
         },
         kontakt: event.kontakt || '',
+        kontaktMessenger: normalizeMessengerSelection(event.kontaktMessenger),
         registration: event.registration || '',
       };
     }
-    const organizerDefault = getOrganizerDefault(user?.displayName, user?.email);
+    const organizerDefault = getOrganizerDefault(
+      profile?.displayName || user?.displayName,
+      user?.email
+    );
     return {
       ...INITIAL_STATE,
       organizer: {
@@ -518,8 +549,7 @@ export default function EventForm({ event }) {
     if (!recommendation.isRecommended) {
       setErrors((prev) => ({
         ...prev,
-        image:
-          'Tipp: Für beste Darstellung empfehlen wir 16:9 (Querformat) oder 9:16 (Hochformat). Andere Formate funktionieren auch, können aber abgeschnitten angezeigt werden.',
+        image: `${IMAGE_FORMAT_HINT} Andere Formate funktionieren auch, können aber abgeschnitten angezeigt werden.`,
       }));
     } else {
       setErrors((prev) => ({ ...prev, image: null }));
@@ -830,6 +860,7 @@ export default function EventForm({ event }) {
             ),
           ].sort()
         : [],
+    exceptionDates: seriesExceptionDates(formData),
     category: formData.category || 'Sonstiges',
     bezirk: formData.isOnline ? '' : formData.bezirk,
     city: formData.isOnline ? '' : canonicalCity(formData.city),
@@ -842,6 +873,10 @@ export default function EventForm({ event }) {
       photoURL: resolveOrganizerPhotoURL({ isEdit, event, user, profile }),
     },
     kontakt: formData.kontakt.trim(),
+    // Only with a phone number in the contact; otherwise the choice is dropped.
+    kontaktMessenger: contactPhone(formData.kontakt)
+      ? normalizeMessengerSelection(formData.kontaktMessenger)
+      : [],
     registration: formData.registration.trim(),
     ...buildInstagramData(),
     imageUrl: imageFile || imageRemoved ? null : originalImageUrl || null,
@@ -1169,6 +1204,13 @@ export default function EventForm({ event }) {
               className={errors.kontakt ? 'input-error' : ''}
             />
             {errors.kontakt && <span className="error-text">{errors.kontakt}</span>}
+            <ContactMessengerChoice
+              kontakt={formData.kontakt}
+              value={formData.kontaktMessenger}
+              onChange={(kontaktMessenger) =>
+                setFormData((prev) => ({ ...prev, kontaktMessenger }))
+              }
+            />
           </div>
 
           <div className="form-group">
@@ -1692,6 +1734,17 @@ export default function EventForm({ event }) {
             </div>
           )}
 
+          {formData.recurrence !== 'none' && formData.recurrence !== 'custom' && (
+            <SeriesDatesOverview
+              date={formData.date}
+              recurrence={formData.recurrence}
+              recurrenceEndDate={formData.recurrenceEndDate}
+              exceptionDates={formData.exceptionDates}
+              fromDate={todayYmd()}
+              onChange={(exceptionDates) => setFormData((prev) => ({ ...prev, exceptionDates }))}
+            />
+          )}
+
           <div className="form-group">
             <label htmlFor="description">Beschreibung *</label>
             <RichTextEditor
@@ -1732,6 +1785,8 @@ export default function EventForm({ event }) {
             <p className="image-hint" data-testid="title-image-hint">
               Das Titelbild sollte ein ausdrucksstarkes Symbolfoto sein. Flyer eignen sich dafür
               weniger – lade sie lieber in die Beschreibung hoch.
+              <br />
+              {IMAGE_FORMAT_HINT}
             </p>
             {imagePreview ? (
               <div className="image-preview-container">

@@ -5,6 +5,7 @@ import {
   enableRecurrence,
   waitForWizardToLoad,
   openReviewTab,
+  uploadTitleImage,
 } from '../helpers/wizard';
 
 import { STORAGE_STATE } from '../helpers/roles';
@@ -44,6 +45,8 @@ async function createCustomDatesEvent(page, title: string) {
   await page.locator('button:has-text("Weiter")').click();
 
   await page.fill('#title', title);
+
+  await uploadTitleImage(page);
   const editor = page.locator('[data-testid="description-editor"] .rte-content');
   await editor.click();
   await editor.fill('Event zum Testen der benutzerdefinierten Daten.');

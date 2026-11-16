@@ -430,3 +430,74 @@ describe('EventFormWizard registration field', () => {
     expect(field).toHaveAttribute('maxlength', '300');
   });
 });
+
+describe('EventFormWizard messengers for the contact number', () => {
+  const seedWith = (formData: Record<string, unknown>, currentStep = 4) =>
+    localStorage.setItem(
+      'eventWizardDraft:user-uid',
+      JSON.stringify({
+        version: 1,
+        savedAt: Date.now(),
+        draft: {
+          ...COMPLETE_DRAFT,
+          currentStep,
+          formData: { ...COMPLETE_DRAFT.formData, ...formData },
+        },
+      })
+    );
+
+  it('offers the choice only while the contact is a phone number', () => {
+    mockProfile.value = profileWith({});
+    seedWith({}, 1);
+    renderWizard();
+    expect(screen.queryByTestId('contact-messenger-choice')).toBeNull();
+
+    const field = screen.getByLabelText(/Kontakt für Teilnehmer:innen/);
+    fireEvent.change(field, { target: { value: '0676 555 0000' } });
+    const choice = screen.getByTestId('contact-messenger-choice');
+    expect(within(choice).getByText('Auch erreichbar über:')).toBeInTheDocument();
+    expect(within(choice).getAllByRole('checkbox')).toHaveLength(3);
+    expect(within(choice).getByLabelText('WhatsApp')).not.toBeChecked();
+
+    fireEvent.change(field, { target: { value: 'Bitte per Mail' } });
+    expect(screen.queryByTestId('contact-messenger-choice')).toBeNull();
+  });
+
+  it('saves the ticked messengers and shows them in the summary', async () => {
+    mockProfile.value = profileWith({});
+    seedWith({ kontakt: '0676 555 0000' }, 1);
+    const { unmount } = renderWizard();
+    fireEvent.click(screen.getByLabelText('Signal'));
+    fireEvent.click(screen.getByLabelText('WhatsApp'));
+    expect(screen.getByLabelText('WhatsApp')).toBeChecked();
+
+    // The choice is part of the stored draft, so step 4 sees it.
+    await waitFor(() =>
+      expect(localStorage.getItem('eventWizardDraft:user-uid')).toContain('"signal"')
+    );
+    unmount();
+    reopenOnSummary();
+    expect(screen.getByTestId('summary-kontakt-messenger')).toHaveTextContent(
+      'Auch erreichbar über: WhatsApp, Signal'
+    );
+    const saved = await submitAndGetSavedEvent();
+    expect(saved.kontakt).toBe('0676 555 0000');
+    expect(saved.kontaktMessenger).toEqual(['whatsapp', 'signal']);
+  });
+
+  it('drops the choice when the contact is no phone number any more', async () => {
+    mockProfile.value = profileWith({});
+    seedWith({ kontakt: 'user@test.local', kontaktMessenger: ['whatsapp'] });
+    renderWizard();
+    expect(screen.queryByTestId('summary-kontakt-messenger')).toBeNull();
+    const saved = await submitAndGetSavedEvent();
+    expect(saved.kontaktMessenger).toEqual([]);
+  });
+
+  function reopenOnSummary() {
+    const raw = JSON.parse(localStorage.getItem('eventWizardDraft:user-uid') as string);
+    raw.draft.currentStep = 4;
+    localStorage.setItem('eventWizardDraft:user-uid', JSON.stringify(raw));
+    renderWizard();
+  }
+});

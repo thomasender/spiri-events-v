@@ -70,12 +70,23 @@ describe('useRegionEvents with a radius', () => {
     expect(result.current).toHaveLength(EVENTS.length);
   });
 
-  it('events of regions that are not open never pass, whatever the radius', () => {
+  it('approved events of a region not open yet show within the radius, online ones do not', () => {
     const { result } = renderHook(() => useRegionEvents(EVENTS), {
       wrapper: wrap({
         regions: activeRegions(STATIC_REGIONS),
         allRegions: STATIC_REGIONS,
-        radiusFilter: { ...BREGENZ_25, km: 500 },
+        radiusFilter: BREGENZ_25,
+      }),
+    });
+    expect(result.current.map((e) => e.id)).toEqual(['bregenz', 'lindau', 'old']);
+  });
+
+  it('without a radius events of regions not open yet never pass', () => {
+    const { result } = renderHook(() => useRegionEvents(EVENTS), {
+      wrapper: wrap({
+        regions: activeRegions(STATIC_REGIONS),
+        allRegions: STATIC_REGIONS,
+        radiusFilter: null,
       }),
     });
     expect(result.current.map((e) => e.id)).toEqual(['bregenz', 'old']);
@@ -123,6 +134,20 @@ describe('query plan with a radius', () => {
       'in',
       ['tirol', 'vorarlberg', 'st-gallen'],
     ]);
+  });
+
+  it('also loads approved events of any region in the latitude band of the radius', () => {
+    const { result } = renderHook(() => useRegionEventQueryPlan({ regionScoped: true }), {
+      wrapper: wrap({ radiusFilter: BREGENZ_25 }),
+    });
+    expect(result.current?.queries).toContainEqual({
+      key: 'nearby',
+      constraints: [
+        ['status', '==', 'approved'],
+        ['lat', '>=', 47.27],
+        ['lat', '<=', 47.73],
+      ],
+    });
   });
 
   it('is the region plan without a radius', () => {

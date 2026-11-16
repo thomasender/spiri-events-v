@@ -12,3 +12,4 @@ export function eventSlugPlace(
 export function planMissingEventSlugs(
   events: { id: string; data: Record<string, unknown> }[]
 ): { id: string; slug: string }[];
+export function capSlugPart(slug: string, max?: number): string;

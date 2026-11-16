@@ -221,6 +221,16 @@ service cloud.firestore {
                    && request.resource.data.registration.size() <= 300);
       }
 
+      // Messengers for the phone number in `kontakt` (Trello 6af6d067):
+      // absent, or a list of at most 3 distinct known ids.
+      function isValidKontaktMessenger() {
+        let list = request.resource.data.get('kontaktMessenger', []);
+        return list is list
+               && list.size() <= 3
+               && list.hasOnly(['whatsapp', 'telegram', 'signal'])
+               && list.toSet().size() == list.size();
+      }
+
       // Organizer opt-in for posting on Instagram; absent == no consent.
       function isValidInstagramConsent() {
         return !('instagramConsent' in request.resource.data)
@@ -329,6 +339,7 @@ service cloud.firestore {
                     && (request.resource.data.status in ['pending', 'draft'])
                     && request.resource.data.description.size() <= 20000
                     && isValidRegistration()
+                    && isValidKontaktMessenger()
                     && (!('category' in request.resource.data)
                         || (request.resource.data.category is string
                             && request.resource.data.category.size() <= 40))
@@ -368,7 +379,7 @@ service cloud.firestore {
       // imageThumbUrl) and an already set Instagram photo. Changing one of
       // them has to move the event to draft / pending / trashed first.
       // Everything else in this list is saved without a new review (Trello
-      // 6af0678b): date / time, place, price, link, contact, registration,
+      // 6af0678b): date / time, place, price, link, contact (+ messengers), registration,
       // category, the whole series (recurrence, end date, more or fewer
       // customDates, exceptions), the organizer's name, the cover crop
       // (focal point / zoom), Instagram settings incl. the own Instagram photo
@@ -381,7 +392,7 @@ service cloud.firestore {
                                 'place', 'city', 'bezirk', 'lat', 'lng', 'isOnline',
                                 'contribution', 'fee', 'feeMax', 'priceCurrency', 'feeNote',
                                 'firstSessionFree',
-                                'link', 'kontakt', 'registration', 'category', 'organizer',
+                                'link', 'kontakt', 'kontaktMessenger', 'registration', 'category', 'organizer',
                                 'recurrence', 'recurrenceEndDate', 'customDates', 'exceptionDates',
                                 'imageFocalPoint', 'imageZoom',
                                 'instagramConsent', 'instagramHandleOverride', 'instagramExtraHandles', 'instagramImage',
@@ -422,6 +433,7 @@ service cloud.firestore {
       allow update: if (isAdminOrEmulatorAdmin() || (isOwner() && isOwnerUpdateWithoutReview()))
                     && request.resource.data.description.size() <= 20000
                     && isValidRegistration()
+                    && isValidKontaktMessenger()
                     && (request.resource.data.status in ['pending', 'draft', 'approved', 'trashed'])
                     && (!('category' in request.resource.data)
                         || (request.resource.data.category is string

@@ -18,7 +18,7 @@ import {
   regionCanonicalPath,
   regionPath,
 } from '../utils/regionRouting';
-import { filterEventsByRadius } from '../utils/placeSearch';
+import { filterEventsByRadius, storedEventPosition } from '../utils/placeSearch';
 import { filterOnlineEventsForRegions } from '../utils/onlineEventEligibility';
 
 const noop = () => {};
@@ -91,7 +91,7 @@ export function useRegionCanonicalPath(path = '/') {
 /**
  * Public event lists: events of the current region plus online events; in the
  * combined view all events of active regions. Events of inactive regions never
- * pass. `{ allActive: true }` skips the region restriction (favourites) but
+ * pass, except within the "Wo bist du?" radius (events with a position). `{ allActive: true }` skips the region restriction (favourites) but
  * keeps the inactive-region rule. Online events with `onlineRegionIds` show
  * only in those regions (src/utils/onlineEventEligibility.js). `{ ignoreRadius: true }` drops
  * the "Wo bist du?" radius and shows the whole current region (a Bezirk / Landkreis picked in
@@ -107,11 +107,19 @@ export function useRegionEvents(events, { allActive = false, ignoreRadius = fals
   const { lat, lon, km } = radius ?? {};
   return useMemo(() => {
     const activeIds = activeKey ? activeKey.split(',') : [];
-    const inRegions = filterEventsForRegion(events, {
+    const inActive = filterEventsForRegion(events, {
       regionId,
       isNational: isNational || allActive || Boolean(radius),
       activeRegionIds: activeIds,
     });
+    // Within a radius an approved event with a position shows even when its region is not
+    // open yet (Trello y5rU56bn); online and position-less events keep the region rule.
+    const kept = new Set(inActive);
+    const inRegions = radius
+      ? (Array.isArray(events) ? events : []).filter(
+          (event) => kept.has(event) || (!event.isOnline && storedEventPosition(event))
+        )
+      : inActive;
     // Online events only where their organiser is listed (`onlineRegionIds`,
     // set by the server with two or more active regions). Favourites ignore it.
     const anchored = allActive

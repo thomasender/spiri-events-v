@@ -21,6 +21,7 @@ import {
   getAspectRatioRecommendation,
   MAX_INPUT_SIZE_BYTES,
 } from '../lib/imageUpload';
+import { IMAGE_FORMAT_HINT } from '../utils/imageFormatHint';
 import {
   ArrowLeft,
   ArrowRight,
@@ -66,7 +67,12 @@ import { formExamples } from '../utils/regionExamples';
 import { keepIfInRegion, selectedRegionId, subdivisionFor } from '../utils/regionChoices';
 import EventRegionDialog, { BEZIRK_NOT_FOUND } from './EventRegionDialog';
 import MonthlyModeOptions from './MonthlyModeOptions';
-import { getMonthlyWeekdayPhrase } from '../utils/eventOccurrences';
+import {
+  getMonthlyWeekdayPhrase,
+  getSeriesStartDates,
+  pruneExceptionDates,
+} from '../utils/eventOccurrences';
+import SeriesDatesOverview from './SeriesDatesOverview';
 import { saveWizardDraft, loadWizardDraft, clearWizardDraft } from '../utils/wizardDraftStorage';
 import { normalizeCategoryInput, isValidCategoryInput } from '../utils/categoryInput';
 import { getCategoryColor } from '../utils/categoryColors';
@@ -85,7 +91,14 @@ import {
   needsUploadedUrl,
   resolveInstagramImage,
 } from '../utils/instagramImageChoice';
-import { REGISTRATION_MAX_LENGTH, KONTAKT_MAX_LENGTH } from '../utils/contactFormat';
+import {
+  REGISTRATION_MAX_LENGTH,
+  KONTAKT_MAX_LENGTH,
+  messengerLinks,
+  contactPhone,
+  normalizeMessengerSelection,
+} from '../utils/contactFormat';
+import ContactMessengerChoice from './ContactMessengerChoice';
 import './EventForm.css';
 import './EventFormWizard.css';
 
@@ -109,6 +122,7 @@ const INITIAL_STATE = {
   recurrence: 'none',
   recurrenceEndDate: '',
   customDates: [],
+  exceptionDates: [],
   category: '',
   bezirk: '',
   city: '',
@@ -120,6 +134,8 @@ const INITIAL_STATE = {
   isOnline: false,
   organizer: { name: '', email: '' },
   kontakt: '',
+  // Messengers for the phone number in `kontakt` (Trello 6af6d067).
+  kontaktMessenger: [],
   registration: '',
 };
 
@@ -129,6 +145,15 @@ const STEPS = [
   { id: 3, key: 'details', title: 'Details', icon: Calendar },
   { id: 4, key: 'summary', title: 'Zusammenfassung', icon: List },
 ];
+
+// " (12 Termine, 2 entfernt)" for a series with an end date, '' otherwise.
+function summarySeriesCount(formData) {
+  const total = getSeriesStartDates(formData).length;
+  if (total === 0) return '';
+  const removed = pruneExceptionDates(formData).length;
+  const text = `${total - removed} Termine${removed > 0 ? `, ${removed} entfernt` : ''}`;
+  return ` (${text})`;
+}
 
 function getOrganizerDefault(displayName, email) {
   const trimmed = (displayName || '').trim();
@@ -183,7 +208,10 @@ export default function EventFormWizard() {
     .filter((cat, idx, arr) => arr.findIndex((c) => c.toLowerCase() === cat.toLowerCase()) === idx)
     .map((k) => ({ value: k, label: k }));
 
-  const organizerDefault = getOrganizerDefault(user?.displayName, user?.email);
+  const organizerDefault = getOrganizerDefault(
+    profile?.displayName || user?.displayName,
+    user?.email
+  );
   const profileDefaults = {
     organizer: {
       name: organizerDefault,
@@ -212,6 +240,10 @@ export default function EventFormWizard() {
         customDates: Array.isArray(restoredDraft.formData.customDates)
           ? restoredDraft.formData.customDates
           : [],
+        exceptionDates: Array.isArray(restoredDraft.formData.exceptionDates)
+          ? restoredDraft.formData.exceptionDates
+          : [],
+        kontaktMessenger: normalizeMessengerSelection(restoredDraft.formData.kontaktMessenger),
       };
     }
     return {
@@ -305,6 +337,19 @@ export default function EventFormWizard() {
     Array.isArray(restoredDraft?.instagramExtraHandles) ? restoredDraft.instagramExtraHandles : []
   );
   const profileInstagramDefault = profile?.instagramConsentDefault === true;
+  // The profile may load after the first render: swap the e-mail fallback in the
+  // organizer field for the profile name, as long as nobody has typed over it.
+  const emailFallbackName = getOrganizerDefault('', user?.email);
+  const profileDisplayName = (profile?.displayName || '').trim();
+  useEffect(() => {
+    if (!profileDisplayName) return;
+    setFormData((prev) =>
+      prev.organizer.name === '' || prev.organizer.name === emailFallbackName
+        ? { ...prev, organizer: { ...prev.organizer, name: profileDisplayName } }
+        : prev
+    );
+  }, [profileDisplayName, emailFallbackName]);
+
   useEffect(() => {
     if (!instagramConsentTouched.current) setInstagramConsent(profileInstagramDefault);
   }, [profileInstagramDefault]);
@@ -410,6 +455,7 @@ export default function EventFormWizard() {
         recurrence: 'none',
         recurrenceEndDate: '',
         customDates: [],
+        exceptionDates: [],
       }));
       setErrors((prev) => ({
         ...prev,
@@ -418,6 +464,17 @@ export default function EventFormWizard() {
       }));
     }
   };
+
+  // Dates taken out of the series fall away when start date, kind or end date change
+  // so that they no longer lie in the series.
+  useEffect(() => {
+    setFormData((prev) => {
+      const before = prev.exceptionDates || [];
+      if (before.length === 0) return prev;
+      const kept = pruneExceptionDates(prev);
+      return kept.length === before.length ? prev : { ...prev, exceptionDates: kept };
+    });
+  }, [formData.date, formData.recurrence, formData.recurrenceEndDate]);
 
   const recurrenceMinDate = useMemo(() => {
     return formData.date || '';
@@ -451,6 +508,7 @@ export default function EventFormWizard() {
       if (!formData.title.trim()) newErrors.title = 'Titel ist erforderlich';
       if (isHtmlEmpty(formData.description))
         newErrors.description = 'Beschreibung ist erforderlich';
+      if (!imageFile) newErrors.image = 'Bitte lade ein Titelbild hoch';
     } else if (step === 3) {
       if (!formData.date) newErrors.date = 'Datum ist erforderlich';
       if (!formData.time) newErrors.time = 'Uhrzeit ist erforderlich';
@@ -545,8 +603,7 @@ export default function EventFormWizard() {
     if (!recommendation.isRecommended) {
       setErrors((prev) => ({
         ...prev,
-        image:
-          'Tipp: Für beste Darstellung empfehlen wir 16:9 (Querformat) oder 9:16 (Hochformat).',
+        image: IMAGE_FORMAT_HINT,
       }));
     } else {
       setErrors((prev) => ({ ...prev, image: null }));
@@ -898,6 +955,7 @@ export default function EventFormWizard() {
             ),
           ].sort()
         : [],
+    exceptionDates: pruneExceptionDates(formData),
     category: formData.category || 'Sonstiges',
     bezirk: formData.isOnline ? '' : formData.bezirk,
     city: formData.isOnline ? '' : canonicalCity(formData.city),
@@ -910,6 +968,10 @@ export default function EventFormWizard() {
       photoURL: profile?.photoURL || null,
     },
     kontakt: formData.kontakt.trim(),
+    // Only with a phone number in the contact; otherwise the choice is dropped.
+    kontaktMessenger: contactPhone(formData.kontakt)
+      ? normalizeMessengerSelection(formData.kontaktMessenger)
+      : [],
     registration: formData.registration.trim(),
     imageUrl: null,
     imageThumbUrl: null,
@@ -1133,6 +1195,11 @@ export default function EventFormWizard() {
           className={errors.kontakt ? 'input-error' : ''}
         />
         {errors.kontakt && <span className="error-text">{errors.kontakt}</span>}
+        <ContactMessengerChoice
+          kontakt={formData.kontakt}
+          value={formData.kontaktMessenger}
+          onChange={(kontaktMessenger) => setFormData((prev) => ({ ...prev, kontaktMessenger }))}
+        />
       </div>
 
       <div className="form-group">
@@ -1214,10 +1281,14 @@ export default function EventFormWizard() {
       </div>
 
       <div className="form-group">
-        <label>Bild (optional)</label>
+        <label>Titelbild</label>
         <p className="image-hint" data-testid="title-image-hint">
           Das Titelbild sollte ein ausdrucksstarkes Symbolfoto sein. Flyer eignen sich dafür weniger
-          – lade sie lieber in die Beschreibung hoch.
+          – lade sie lieber in die Beschreibung hoch. Bitte verwende möglichst kein KI-generiertes
+          Foto: Viele Menschen empfinden solche Bilder als abstoßend, was zu weniger Interaktion
+          führt.
+          <br />
+          {IMAGE_FORMAT_HINT}
         </p>
         {imagePreview ? (
           <div className="image-preview-container">
@@ -1255,6 +1326,7 @@ export default function EventFormWizard() {
         )}
         <input
           ref={fileInputRef}
+          data-testid="title-image-input"
           type="file"
           accept="image/jpeg,image/png,image/webp"
           onChange={handleImageSelectFromInput}
@@ -1753,7 +1825,22 @@ export default function EventFormWizard() {
           )}
         </div>
       )}
+
+      {formData.recurrence !== 'none' && formData.recurrence !== 'custom' && (
+        <SeriesDatesOverview
+          date={formData.date}
+          recurrence={formData.recurrence}
+          recurrenceEndDate={formData.recurrenceEndDate}
+          exceptionDates={formData.exceptionDates}
+          onChange={(exceptionDates) => setFormData((prev) => ({ ...prev, exceptionDates }))}
+        />
+      )}
     </div>
+  );
+
+  const summaryMessengers = messengerLinks(
+    contactPhone(formData.kontakt),
+    formData.kontaktMessenger
   );
 
   const renderStep4 = () => (
@@ -1770,6 +1857,11 @@ export default function EventFormWizard() {
             <strong>{formData.organizer.name}</strong>
           </p>
           <p>{formData.kontakt}</p>
+          {summaryMessengers.length > 0 && (
+            <p data-testid="summary-kontakt-messenger">
+              Auch erreichbar über: {summaryMessengers.map((m) => m.label).join(', ')}
+            </p>
+          )}
           {formData.registration.trim() && <p>Anmeldung: {formData.registration.trim()}</p>}
         </div>
 
@@ -1867,6 +1959,7 @@ export default function EventFormWizard() {
                     : formData.recurrence === 'monthlyWeekday'
                       ? `Monatlich am ${getMonthlyWeekdayPhrase(formData.date)}`
                       : `An einzelnen Terminen (${formData.customDates?.length || 0} Termine)`}
+              {formData.recurrence !== 'custom' && summarySeriesCount(formData)}
             </p>
           )}
           <p>

@@ -57,6 +57,7 @@ import '../components/AdminCoverPreview.css';
 import '../components/EventForm.css';
 import '../components/RichTextView.css';
 import '../components/EventFormWizard.css';
+import '../components/SeriesDatesOverview.css';
 
 // LegalPage
 import '../pages/LegalPage.css';

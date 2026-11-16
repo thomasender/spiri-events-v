@@ -160,6 +160,27 @@ describe('EventFormWizard step validation', () => {
     expect(screen.getByTestId('wizard-validation-error')).toBeInTheDocument();
     expect(screen.getByTestId('description-error')).toBeInTheDocument();
   });
+
+  it('blocks "Weiter" on step 2 without a title image and advances once one is chosen', async () => {
+    seedDraft({ currentStep: 2 });
+    renderWizard();
+
+    expect(screen.getByTestId('title-image-hint')).toHaveTextContent(/KI-generiert/);
+    expect(screen.getByTestId('title-image-hint')).toHaveTextContent(/16:9/);
+    expect(screen.getByTestId('title-image-hint')).toHaveTextContent(/9:16/);
+    fireEvent.click(screen.getByRole('button', { name: /^weiter$/i }));
+
+    expect(screen.getByTestId('wizard-validation-error')).toBeInTheDocument();
+    expect(screen.getByText('Bitte lade ein Titelbild hoch')).toBeInTheDocument();
+
+    const file = new File(['x'], 'cover.jpg', { type: 'image/jpeg' });
+    URL.createObjectURL = vi.fn(() => 'blob:cover');
+    fireEvent.change(screen.getByTestId('title-image-input'), { target: { files: [file] } });
+    await waitFor(() => expect(screen.getByTestId('title-image-focal-picker')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: /^weiter$/i }));
+    await waitFor(() => expect(document.getElementById('date')).not.toBeNull());
+  });
 });
 
 describe('EventFormWizard copyright confirmation', () => {

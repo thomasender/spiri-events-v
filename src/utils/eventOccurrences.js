@@ -142,6 +142,46 @@ function monthlyOccurrenceYmd(startIso, recurrence, monthsAhead) {
   return formatDate(y, m, Math.min(day, daysInMonth));
 }
 
+// Start days (YYYY-MM-DD) of every date of a weekly / biweekly / monthly /
+// monthlyWeekday series from `date` up to `recurrenceEndDate` (inclusive).
+// Unlike the occurrence expansion it neither drops exception dates nor past
+// days: the form needs the whole series to let the organizer take dates out.
+// Returns [] without an end date or for other kinds of events.
+export function getSeriesStartDates(event) {
+  if (!event?.date || !event.recurrenceEndDate) return [];
+  const { recurrence } = event;
+  const weekly = recurrence === 'weekly' || recurrence === 'biweekly';
+  if (!weekly && !isMonthlyRecurrence(recurrence)) return [];
+  if (event.recurrenceEndDate < event.date) return [];
+
+  const dates = [];
+  if (weekly) {
+    const step = recurrence === 'biweekly' ? 14 : 7;
+    const { year, month, day } = parseYmd(event.date);
+    for (let i = 0; i < 1000; i++) {
+      const d = new Date(Date.UTC(year, month, day + i * step));
+      const ymd = formatDate(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+      if (ymd > event.recurrenceEndDate) break;
+      dates.push(ymd);
+    }
+    return dates;
+  }
+  for (let i = 0; i < 1000; i++) {
+    const ymd = monthlyOccurrenceYmd(event.date, recurrence, i);
+    if (ymd > event.recurrenceEndDate) break;
+    dates.push(ymd);
+  }
+  return dates;
+}
+
+// Exception dates that still belong to the series. Dates before `keepBefore`
+// (e.g. today when editing) are kept untouched.
+export function pruneExceptionDates(event, keepBefore = '') {
+  const exceptions = Array.isArray(event?.exceptionDates) ? event.exceptionDates : [];
+  const inSeries = new Set(getSeriesStartDates(event));
+  return exceptions.filter((d) => (keepBefore && d < keepBefore) || inSeries.has(d));
+}
+
 function isMonthlyRecurrence(recurrence) {
   return recurrence === 'monthly' || recurrence === 'monthlyWeekday';
 }

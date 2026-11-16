@@ -57,8 +57,9 @@ import {
 import { resolveOrganizerProfilePath } from '../utils/profile';
 import { canEditEvent, canDeleteEvent, requiresDeleteReason } from '../utils/eventPermissions';
 import { getStaffAccess, isModeratorForEvent } from '../utils/staffRoles';
-import { parseContactText, parseRegistrationText } from '../utils/contactFormat';
+import { parseRegistrationText } from '../utils/contactFormat';
 import RegistrationText from '../components/RegistrationText';
+import ContactText from '../components/ContactText';
 import { MemberBadgeFrame } from '../components/MemberBadge';
 import {
   getMonthlyWeekdayPhrase,
@@ -998,25 +999,11 @@ export default function EventDetailPage() {
                   <span data-testid="event-kontakt" className="detail-contact">
                     {event.organizer && getOrganizerName(event) && '('}
                     {/* One inline wrapper: as direct flex items the blank before a link would collapse. */}
-                    <span className="detail-contact-text">
-                      {parseContactText(event.kontakt).map((segment, index) => {
-                        if (segment.type === 'email') {
-                          return (
-                            <a key={index} href={`mailto:${segment.value}`} className="detail-link">
-                              {segment.value}
-                            </a>
-                          );
-                        }
-                        if (segment.type === 'phone') {
-                          return (
-                            <a key={index} href={`tel:${segment.value}`} className="detail-link">
-                              {segment.value}
-                            </a>
-                          );
-                        }
-                        return <span key={index}>{segment.value}</span>;
-                      })}
-                    </span>
+                    <ContactText
+                      kontakt={event.kontakt}
+                      messengers={event.kontaktMessenger}
+                      className="detail-contact-text"
+                    />
                     {event.organizer && getOrganizerName(event) && ')'}
                   </span>
                 )}

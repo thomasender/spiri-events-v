@@ -93,6 +93,13 @@ describe('RegionAboutTab Instagram name', () => {
     expect(screen.getByTestId('region-about-instagram').textContent).toMatch(/nur angezeigt/);
   });
 
+  it('says where and when the name shows in Datenschutz and Impressum', () => {
+    render(<RegionAboutTab />);
+    const hint = screen.getByTestId('region-about-instagram').textContent ?? '';
+    expect(hint).toContain('Datenschutzerklärung und Impressum');
+    expect(hint).toContain('mindestens zwei aktive Regionen');
+  });
+
   it('a moderator sees no input and never writes the field', async () => {
     state.role = 'RegionModerator';
     state.staffRegionIds = ['vorarlberg'];

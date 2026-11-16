@@ -40,6 +40,7 @@ export const FREE_EDIT_FIELDS = Object.freeze([
   'firstSessionFree',
   'link',
   'kontakt',
+  'kontaktMessenger',
   'registration',
   'category',
   'organizer',
@@ -127,6 +128,10 @@ export function reviewEditChanges(
   for (const field of FREE_EDIT_FIELDS) {
     if (field === 'organizer' || field === 'regionId' || !(field in (after || {}))) continue;
     if (!same(before?.[field], after[field])) patch[field] = after[field];
+  }
+  // Series exceptions (dates taken out of a series) are free as well.
+  if (after && 'exceptionDates' in after && !same(before?.exceptionDates, after.exceptionDates)) {
+    patch.exceptionDates = after.exceptionDates;
   }
   // Legacy events carry no regionId: compare the resolved region.
   if (resolveRegionId(before) !== resolveRegionId(after)) patch.regionId = after.regionId;
