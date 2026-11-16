@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import PioniereWizard from '../../src/components/PioniereWizard';
 import PioniereOnboardingPage from '../../src/pages/PioniereOnboardingPage';
+import PioniereMembershipCard from '../../src/components/PioniereMembershipCard';
 import { MEMBERSHIP_BENEFITS, membershipErrorMessage } from '../../src/utils/clubMembership';
 
 const state = vi.hoisted(() => ({
@@ -16,6 +17,9 @@ const state = vi.hoisted(() => ({
 vi.mock('../../src/lib/firebase', () => ({
   callable: (name: string) => async (data: unknown) => {
     state.calls.push({ name, data });
+    if (name === 'cancelMembership') {
+      return { data: { status: 'cancelled', paidUntil: '2026-12-16', alreadyCancelled: false } };
+    }
     return { data: { checkoutUrl: 'https://mollie.test/c' } };
   },
 }));
@@ -206,5 +210,43 @@ describe('PioniereOnboardingPage', () => {
     state.membership = { status: 'active' };
     renderPage();
     expect(screen.getByTestId('pioniere-already-member')).toBeInTheDocument();
+  });
+});
+
+describe('PioniereMembershipCard (profile)', () => {
+  const renderCard = () =>
+    render(
+      <MemoryRouter>
+        <PioniereMembershipCard uid="u1" />
+      </MemoryRouter>
+    );
+
+  it('shows members a clearly visible way to cancel, with a confirmation', async () => {
+    state.settings = { ...state.settings, mode: 'off' };
+    state.membership = { status: 'active', source: 'web', amount: 12.9, paidUntil: '2026-12-16' };
+    renderCard();
+    expect(screen.getByTestId('pioniere-status')).toHaveTextContent('12,90 €');
+    fireEvent.click(screen.getByTestId('pioniere-cancel'));
+    expect(screen.getByText(/bis zum Ende des bezahlten Monats/)).toBeInTheDocument();
+    expect(state.calls).toHaveLength(0);
+    fireEvent.click(screen.getByRole('button', { name: 'Ja, kündigen' }));
+    expect(await screen.findByRole('status')).toHaveTextContent('16. Dezember 2026');
+    expect(state.calls).toEqual([{ name: 'cancelMembership', data: {} }]);
+  });
+
+  it('shows a gekündigt membership with its end date and no cancel button', () => {
+    state.membership = { status: 'cancelled', source: 'web', paidUntil: '2099-01-01' };
+    renderCard();
+    expect(screen.getByTestId('pioniere-status')).toHaveTextContent('Gekündigt');
+    expect(screen.queryByTestId('pioniere-cancel')).not.toBeInTheDocument();
+  });
+
+  it('invites non-members while the sign-up is open, and is hidden while it is off', () => {
+    const { unmount } = renderCard();
+    expect(screen.getByTestId('pioniere-join')).toHaveAttribute('href', '/pioniere');
+    unmount();
+    state.settings = { ...state.settings, mode: 'off' };
+    renderCard();
+    expect(screen.queryByTestId('profile-pioniere')).not.toBeInTheDocument();
   });
 });

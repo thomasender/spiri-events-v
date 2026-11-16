@@ -14,7 +14,9 @@ import {
 import * as client from '../../src/utils/clubMembership';
 import { processMollieWebhook } from '../../functions/src/mollieWebhookLogic';
 import {
+  cancelMembershipHandler,
   createMembershipCheckoutHandler,
+  expireClubMembershipsHandler,
   type MembershipDeps,
 } from '../../functions/src/clubMembership';
 import { buildMembershipWelcomePayload } from '../../functions/src/emailTemplates';
@@ -422,6 +424,8 @@ function makeDeps(
   } = {}
 ) {
   const memberships = new Map<string, Doc>(Object.entries(over.memberships ?? {}));
+  const clubFlags = new Map<string, boolean>();
+  const notices: Array<{ id: string; text: string }> = [];
   const reportFailure = vi.fn(async () => {});
   const mollie = {
     createCustomer: vi.fn(async () => ({ id: 'cst_new' })),
@@ -450,9 +454,20 @@ function makeDeps(
     mollie,
     reportFailure,
     enforceRateLimit: () => {},
+    setClubMemberFlag: vi.fn(async (uid: string, value: boolean) => {
+      clubFlags.set(uid, value);
+      return true;
+    }),
+    notifySuperAdmins: vi.fn(async (id: string, text: string) => {
+      notices.push({ id, text });
+    }),
+    listCancelledMemberships: async () =>
+      [...memberships.entries()]
+        .filter(([, d]) => d.status === 'cancelled')
+        .map(([uid, data]) => ({ uid, data })),
     ...over,
   };
-  return { deps, memberships, mollie, reportFailure };
+  return { deps, memberships, mollie, reportFailure, clubFlags, notices };
 }
 
 const request = (data: Doc, uid: string | null = 'u1') => ({
@@ -594,5 +609,103 @@ describe('confirmation mail', () => {
     expect(mail.text).toContain(`${BASE}/datenschutz#vereinsmitglieder`);
     expect(mail.text).toContain(`${BASE}/profil#pioniere`);
     expect(mail.html).toContain('Willkommen bei den Pionieren');
+  });
+});
+
+describe('cancelMembership', () => {
+  const webMember = {
+    status: 'active',
+    source: 'web',
+    name: 'Anna',
+    amount: 12.9,
+    mollieCustomerId: 'cst_m',
+    mollieSubscriptionId: 'sub_m',
+    paidUntil: '2026-12-16',
+  };
+
+  it('web: deletes the Mollie subscription, keeps the membership until the paid month is over', async () => {
+    const { deps, memberships, mollie, clubFlags, notices } = makeDeps({
+      memberships: { u1: webMember },
+    });
+    const result = await cancelMembershipHandler(request({}), deps);
+    expect(result).toEqual({
+      status: 'cancelled',
+      paidUntil: '2026-12-16',
+      alreadyCancelled: false,
+    });
+    expect(mollie.cancelSubscription).toHaveBeenCalledWith('cst_m', 'sub_m');
+    expect(memberships.get('u1')).toMatchObject({ status: 'cancelled', paidUntil: '2026-12-16' });
+    // The badge stays until the end of the paid month.
+    expect(clubFlags.has('u1')).toBe(false);
+    expect(notices).toHaveLength(1);
+    expect(notices[0].text).toContain('gekündigt: Anna');
+  });
+
+  it('a second click changes nothing', async () => {
+    const { deps, mollie } = makeDeps({
+      memberships: { u1: { ...webMember, status: 'cancelled' } },
+    });
+    await expect(cancelMembershipHandler(request({}), deps)).resolves.toMatchObject({
+      alreadyCancelled: true,
+    });
+    expect(mollie.cancelSubscription).not.toHaveBeenCalled();
+  });
+
+  it('paper membership (no Mollie): ends at once and removes the badge', async () => {
+    const { deps, memberships, mollie, clubFlags } = makeDeps({
+      memberships: { u1: { status: 'active', source: 'manual', paidUntil: null } },
+    });
+    const result = await cancelMembershipHandler(request({}), deps);
+    expect(result.status).toBe('ended');
+    expect(mollie.cancelSubscription).not.toHaveBeenCalled();
+    expect(memberships.get('u1')).toMatchObject({ status: 'ended' });
+    expect(clubFlags.get('u1')).toBe(false);
+  });
+
+  it('refuses without a running membership or a login', async () => {
+    await expect(cancelMembershipHandler(request({}), makeDeps().deps)).rejects.toMatchObject({
+      code: 'not-found',
+    });
+    await expect(
+      cancelMembershipHandler(
+        request({}),
+        makeDeps({ memberships: { u1: { status: 'pending' } } }).deps
+      )
+    ).rejects.toMatchObject({ code: 'not-found' });
+    await expect(cancelMembershipHandler(request({}, null), makeDeps().deps)).rejects.toMatchObject(
+      { code: 'unauthenticated' }
+    );
+  });
+
+  it('keeps the membership active and alerts the admins when Mollie refuses', async () => {
+    const { deps, memberships, mollie, reportFailure } = makeDeps({
+      memberships: { u1: webMember },
+    });
+    mollie.cancelSubscription.mockRejectedValueOnce(new Error('Mollie 500'));
+    await expect(cancelMembershipHandler(request({}), deps)).rejects.toMatchObject({
+      code: 'unavailable',
+    });
+    expect(memberships.get('u1')).toMatchObject({ status: 'active' });
+    expect(reportFailure).toHaveBeenCalledWith(
+      expect.objectContaining({ step: 'mitgliedschaft-kuendigen' })
+    );
+  });
+});
+
+describe('expireClubMemberships', () => {
+  it('ends gekündigt memberships once the paid month is over and removes the badge', async () => {
+    const { deps, memberships, clubFlags } = makeDeps({
+      memberships: {
+        over: { status: 'cancelled', paidUntil: '2026-11-16' },
+        running: { status: 'cancelled', paidUntil: '2026-11-30' },
+        active: { status: 'active', paidUntil: '2026-11-01' },
+      },
+    });
+    await expect(expireClubMembershipsHandler(deps)).resolves.toBe(1);
+    expect(memberships.get('over')).toMatchObject({ status: 'ended' });
+    expect(clubFlags.get('over')).toBe(false);
+    expect(memberships.get('running')).toMatchObject({ status: 'cancelled' });
+    expect(memberships.get('active')).toMatchObject({ status: 'active' });
+    expect(clubFlags.has('running')).toBe(false);
   });
 });

@@ -8,6 +8,7 @@ import NotificationPreferencesCard from '../components/NotificationPreferencesCa
 import DirectMessageSetting from '../components/messenger/DirectMessageSetting';
 import InstagramConsentCard from '../components/InstagramConsentCard';
 import DeleteAccountSection from '../components/DeleteAccountSection';
+import PioniereMembershipCard from '../components/PioniereMembershipCard';
 import { RegionPickButton } from '../components/RegionSwitcher';
 import SeoMeta from '../components/SeoMeta';
 import './ProfilePage.css';
@@ -60,6 +61,8 @@ export default function ProfilePage() {
         </div>
 
         <ProfileForm profile={profile} uid={user.uid} onSave={handleProfileSave} />
+
+        <PioniereMembershipCard uid={user.uid} />
 
         {canPickRegion && (
           <section className="profile-card" data-testid="profile-region">

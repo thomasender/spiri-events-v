@@ -2,13 +2,16 @@
  * Vereinsmitgliedschaft "Pioniere" (Trello 6af620c0; wizard on /pioniere, flag
  * `app_settings/membership`, data model in clubMembershipLogic.ts).
  *
- *   createMembershipCheckout({ amount, name, consents, statutesVersion })  signed in
+ *   createMembershipCheckout({ amount, name, consents })  signed in
+ *   cancelMembership()                                     signed in, own membership
+ *   expireClubMemberships                                  daily: gekündigt -> ended
  *
  * Joining needs a login (no guest accounts from here). The membership only
  * becomes active when the first Mollie payment is paid (mollieWebhookLogic.ts,
  * membership branch); until then `club_memberships/{uid}` is 'pending'.
  */
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { logger } from 'firebase-functions';
 import { initializeApp, getApps } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
@@ -34,6 +37,7 @@ import {
   MIN_MEMBERSHIP_AMOUNT,
   formatMembershipAmount,
   hasAllMembershipConsents,
+  isMembershipDueToEnd,
   isMembershipRunning,
   isValidMembershipAmount,
   normalizeMemberName,
@@ -97,6 +101,12 @@ export interface MembershipDeps {
   mollie: MembershipMollie | null;
   reportFailure: typeof reportPaymentFailure;
   enforceRateLimit: typeof enforceRateLimit;
+  /** Sets `clubMember` on users/{uid}/publicProfile/data; false when there is no profile. */
+  setClubMemberFlag: (uid: string, value: boolean) => Promise<boolean>;
+  /** Bell entry for the Super-Admins only (create-once per id). */
+  notifySuperAdmins: (id: string, text: string) => Promise<void>;
+  /** Every membership with status 'cancelled' (for the daily expiry). */
+  listCancelledMemberships: () => Promise<Array<{ uid: string; data: Doc }>>;
 }
 
 interface CallableRequest {
@@ -230,6 +240,125 @@ export async function createMembershipCheckoutHandler(
   }
 }
 
+// ── Kündigung ────────────────────────────────────────────────────────────
+
+export interface CancelMembershipResult {
+  status: 'cancelled' | 'ended';
+  /** Web members: the membership runs until this day (YYYY-MM-DD). */
+  paidUntil: string | null;
+  alreadyCancelled: boolean;
+}
+
+function memberLabel(data: Doc): string {
+  const name = typeof data.name === 'string' && data.name ? data.name : null;
+  const email = typeof data.email === 'string' && data.email ? data.email : null;
+  return name ?? email ?? 'ohne Namen';
+}
+
+/**
+ * The member cancels in the profile. Web: the Mollie subscription is deleted, the
+ * membership stays 'cancelled' (and `clubMember` stays) until `paidUntil`, then
+ * expireClubMemberships ends it. Manual (paper form, no Mollie): ends at once.
+ * The Super-Admins get a bell notice.
+ */
+export async function cancelMembershipHandler(
+  request: CallableRequest,
+  deps: MembershipDeps
+): Promise<CancelMembershipResult> {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError('unauthenticated', 'Must be signed in.');
+  deps.enforceRateLimit(request as never, 'membershipCancel', CHECKOUT_LIMIT);
+
+  const now = deps.now();
+  const today = todayOf(now);
+  const membership = await deps.getMembership(uid);
+  if (membership?.status === 'cancelled' && isMembershipRunning(membership, today)) {
+    return {
+      status: 'cancelled',
+      paidUntil: (membership.paidUntil as string) ?? null,
+      alreadyCancelled: true,
+    };
+  }
+  if (!membership || membership.status !== 'active') {
+    throw new HttpsError('not-found', 'No running membership.');
+  }
+
+  const at = new Date(now);
+  const paidUntil =
+    typeof membership.paidUntil === 'string' && membership.paidUntil > today
+      ? membership.paidUntil
+      : null;
+  const customerId =
+    typeof membership.mollieCustomerId === 'string' ? membership.mollieCustomerId : '';
+  const subscriptionId =
+    typeof membership.mollieSubscriptionId === 'string' ? membership.mollieSubscriptionId : '';
+
+  if (customerId && subscriptionId) {
+    if (!deps.mollie) {
+      logger.error('MOLLIE_API_KEY secret is not configured');
+      throw new HttpsError('internal', 'payment provider is not configured');
+    }
+    try {
+      await deps.mollie.cancelSubscription(customerId, subscriptionId);
+    } catch (err) {
+      logger.error('Mollie membership cancel failed', { uid, error: describeError(err) });
+      await deps.reportFailure({
+        step: 'mitgliedschaft-kuendigen',
+        error: err,
+        ids: { customer: customerId, subscription: subscriptionId },
+      });
+      throw new HttpsError(
+        'unavailable',
+        'Die Kündigung hat gerade nicht geklappt. Bitte versuche es später noch einmal.'
+      );
+    }
+  }
+
+  // Runs on until the paid month is over; nothing paid ahead (or a paper
+  // membership) ends today.
+  const status: 'cancelled' | 'ended' = paidUntil ? 'cancelled' : 'ended';
+  await deps.setMembership(
+    uid,
+    {
+      status,
+      cancelledAt: at,
+      ...(status === 'ended' ? { endedAt: at } : {}),
+      updatedAt: at,
+    },
+    { merge: true }
+  );
+  if (status === 'ended') await deps.setClubMemberFlag(uid, false);
+
+  try {
+    const until = paidUntil ? `, läuft bis ${paidUntil}` : ', sofort beendet';
+    await deps.notifySuperAdmins(
+      `membership_cancel_${uid}_${today}`,
+      `Pioniere-Mitgliedschaft gekündigt: ${memberLabel(membership)}${until}`
+    );
+  } catch (err) {
+    logger.error('membership cancel notice failed', { uid, err });
+  }
+  return { status, paidUntil, alreadyCancelled: false };
+}
+
+/**
+ * Daily: gekündigt memberships whose paid month is over become 'ended' and
+ * lose `clubMember` on the public profile.
+ */
+export async function expireClubMembershipsHandler(deps: MembershipDeps): Promise<number> {
+  const now = deps.now();
+  const today = todayOf(now);
+  let ended = 0;
+  for (const { uid, data } of await deps.listCancelledMemberships()) {
+    if (!isMembershipDueToEnd(data, today)) continue;
+    const at = new Date(now);
+    await deps.setMembership(uid, { status: 'ended', endedAt: at, updatedAt: at }, { merge: true });
+    await deps.setClubMemberFlag(uid, false);
+    ended += 1;
+  }
+  return ended;
+}
+
 // ── Firebase wiring ──────────────────────────────────────────────────────
 
 export async function sendViaMailgun(payload: EmailPayload): Promise<void> {
@@ -303,6 +432,18 @@ export function firestoreMembershipDeps(apiKey?: string, appBaseUrl = ''): Membe
       : null,
     reportFailure: reportPaymentFailure,
     enforceRateLimit,
+    async setClubMemberFlag(uid, value) {
+      const ref = db.doc(`users/${uid}/publicProfile/data`);
+      const snap = await ref.get();
+      if (!snap.exists) return false;
+      if (snap.get('clubMember') !== value) await ref.set({ clubMember: value }, { merge: true });
+      return true;
+    },
+    notifySuperAdmins: notifySuperAdminsOfMembership,
+    async listCancelledMemberships() {
+      const snap = await col.where('status', '==', 'cancelled').get();
+      return snap.docs.map((d) => ({ uid: d.id, data: d.data() }));
+    },
   };
 }
 
@@ -316,6 +457,27 @@ export const createMembershipCheckout = onCall(
       firestoreMembershipDeps(MOLLIE_API_KEY.value(), appBaseUrl),
       appBaseUrl
     );
+  }
+);
+
+export const cancelMembership = onCall(
+  { region: REGION, secrets: [MOLLIE_API_KEY], cors: ALLOWED_ORIGINS, ...appCheckOptions() },
+  async (request) => {
+    logMissingAppCheck('cancelMembership', request);
+    const result = await cancelMembershipHandler(
+      request,
+      firestoreMembershipDeps(MOLLIE_API_KEY.value())
+    );
+    logger.info('cancelMembership', { uid: request.auth?.uid, status: result.status });
+    return result;
+  }
+);
+
+export const expireClubMemberships = onSchedule(
+  { region: REGION, schedule: 'every day 04:10', timeZone: 'Europe/Vienna' },
+  async () => {
+    const ended = await expireClubMembershipsHandler(firestoreMembershipDeps());
+    logger.info('expireClubMemberships', { ended });
   }
 );
 
