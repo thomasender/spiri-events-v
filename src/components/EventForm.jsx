@@ -75,6 +75,7 @@ import {
 import {
   REGISTRATION_MAX_LENGTH,
   KONTAKT_MAX_LENGTH,
+  TITLE_MAX_LENGTH,
   contactPhone,
   normalizeMessengerSelection,
 } from '../utils/contactFormat';
@@ -1244,9 +1245,13 @@ export default function EventForm({ event }) {
               type="text"
               value={formData.title}
               onChange={handleChange}
+              maxLength={TITLE_MAX_LENGTH}
               placeholder="z.B. Morgen-Yoga im Park"
               className={errors.title ? 'input-error' : ''}
             />
+            <span className="image-hint" data-testid="title-counter">
+              {formData.title.length}/{TITLE_MAX_LENGTH} Zeichen
+            </span>
             {errors.title && <span className="error-text">{errors.title}</span>}
           </div>
 
