@@ -550,6 +550,48 @@ describe('EventDetailPage — contact text spacing (cQ80gpL3)', () => {
   });
 });
 
+describe('EventDetailPage — messenger links for the contact number (6af6d067)', () => {
+  it('links only the messengers the organizer chose, after the phone number', async () => {
+    mockFirestoreDoc.getDocResult = {
+      id: foreignEvent.id,
+      data: { ...foreignEvent, kontakt: '0676 555 0000', kontaktMessenger: ['signal', 'whatsapp'] },
+    };
+    renderPage();
+    const kontakt = await screen.findByTestId('event-kontakt');
+    expect(within(kontakt).getByRole('link', { name: '06765550000' })).toHaveAttribute(
+      'href',
+      'tel:06765550000'
+    );
+    const links = within(screen.getByTestId('contact-messengers')).getAllByRole('link');
+    expect(links.map((l) => l.textContent)).toEqual(['WhatsApp', 'Signal']);
+    expect(links[0]).toHaveAttribute('href', 'https://wa.me/436765550000');
+    expect(links[1]).toHaveAttribute('href', 'https://signal.me/#p/+436765550000');
+    for (const link of links) {
+      expect(link).toHaveAttribute('target', '_blank');
+      expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    }
+  });
+
+  it('shows no messenger links for older events or an e-mail contact', async () => {
+    mockFirestoreDoc.getDocResult = {
+      id: foreignEvent.id,
+      data: { ...foreignEvent, kontakt: '0676 555 0000' },
+    };
+    const { unmount } = renderPage();
+    await screen.findByTestId('event-kontakt');
+    expect(screen.queryByTestId('contact-messengers')).toBeNull();
+    unmount();
+
+    mockFirestoreDoc.getDocResult = {
+      id: foreignEvent.id,
+      data: { ...foreignEvent, kontakt: 'anna@example.com', kontaktMessenger: ['whatsapp'] },
+    };
+    renderPage();
+    await screen.findByTestId('event-kontakt');
+    expect(screen.queryByTestId('contact-messengers')).toBeNull();
+  });
+});
+
 describe('EventDetailPage — cover crop in header and review', () => {
   const coverEvent = {
     ...foreignEvent,

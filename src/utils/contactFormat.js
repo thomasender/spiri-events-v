@@ -118,3 +118,77 @@ export function parseRegistrationText(text) {
 
   return segments;
 }
+
+// Messengers a visitor can reach the organizer with, in display order (Trello
+// 6af6d067). Stored as `kontaktMessenger` on the event: a list of these ids.
+export const CONTACT_MESSENGERS = Object.freeze([
+  { id: 'whatsapp', label: 'WhatsApp' },
+  { id: 'telegram', label: 'Telegram' },
+  { id: 'signal', label: 'Signal' },
+]);
+
+const MESSENGER_IDS = CONTACT_MESSENGERS.map((m) => m.id);
+
+// E.164 allows at most 15 digits; shorter than 8 is no reachable mobile number.
+const MIN_PHONE_DIGITS = 8;
+const MAX_PHONE_DIGITS = 15;
+
+/**
+ * Turns a typed phone number into international form (`+436765550000`), or
+ * null when it is none. Blanks, brackets, dashes, dots and slashes are dropped,
+ * `00` becomes `+`, a leading `0` means Austria (`+43`). Without either prefix
+ * the country is unknown: null. A trunk zero after +43 / +49 / +41 is dropped.
+ */
+export function toInternationalPhone(value) {
+  if (typeof value !== 'string') return null;
+  // "+43 (0) 676 ..." : the bracketed trunk zero is not dialled from abroad.
+  const compact = value
+    .trim()
+    .replace(/\(0\)/g, '')
+    .replace(/[\s()\-./]/g, '');
+  if (!/^\+?\d+$/.test(compact)) return null;
+  let digits;
+  if (compact.startsWith('+')) digits = compact.slice(1);
+  else if (compact.startsWith('00')) digits = compact.slice(2);
+  else if (compact.startsWith('0')) digits = `43${compact.slice(1)}`;
+  else return null;
+  // "+43 0676 ..." : a trunk zero typed after the country code (AT, DE, CH).
+  digits = digits.replace(/^(43|49|41)0/, '$1');
+  if (digits.startsWith('0')) return null;
+  if (digits.length < MIN_PHONE_DIGITS || digits.length > MAX_PHONE_DIGITS) return null;
+  return `+${digits}`;
+}
+
+/** The first phone number in the contact text, in international form, or null. */
+export function contactPhone(kontakt) {
+  const phone = parseContactText(typeof kontakt === 'string' ? kontakt : '').find(
+    (segment) => segment.type === 'phone'
+  );
+  return phone ? toInternationalPhone(phone.value) : null;
+}
+
+/** Known messenger ids only, without duplicates, in display order. */
+export function normalizeMessengerSelection(selected) {
+  if (!Array.isArray(selected)) return [];
+  return MESSENGER_IDS.filter((id) => selected.includes(id));
+}
+
+/**
+ * Links to open a chat with `phone` in the chosen messengers, in display
+ * order. Empty when the number cannot be put into international form.
+ */
+export function messengerLinks(phone, selected) {
+  const international = toInternationalPhone(phone);
+  if (!international) return [];
+  const digits = international.slice(1);
+  const hrefs = {
+    whatsapp: `https://wa.me/${digits}`,
+    telegram: `https://t.me/+${digits}`,
+    signal: `https://signal.me/#p/+${digits}`,
+  };
+  const chosen = normalizeMessengerSelection(selected);
+  return CONTACT_MESSENGERS.filter((m) => chosen.includes(m.id)).map((m) => ({
+    ...m,
+    href: hrefs[m.id],
+  }));
+}

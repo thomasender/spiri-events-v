@@ -40,6 +40,7 @@ export const FREE_EDIT_FIELDS = Object.freeze([
   'firstSessionFree',
   'link',
   'kontakt',
+  'kontaktMessenger',
   'registration',
   'category',
   'organizer',

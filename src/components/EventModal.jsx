@@ -21,6 +21,7 @@ import {
 } from '../utils/eventFormat';
 import { parseContactText } from '../utils/contactFormat';
 import RegistrationText from './RegistrationText';
+import ContactText from './ContactText';
 import DistrictBadge from './DistrictBadge';
 import { MemberBadgeFrame } from './MemberBadge';
 import { formatPriceWithCurrency } from '../utils/currency';
@@ -287,23 +288,7 @@ export default function EventModal({ event, onClose }) {
               <div>
                 <span className="detail-label">Kontakt</span>
                 <span className="detail-value">
-                  {parseContactText(event.kontakt).map((segment, index) => {
-                    if (segment.type === 'email') {
-                      return (
-                        <a key={index} href={`mailto:${segment.value}`} className="detail-link">
-                          {segment.value}
-                        </a>
-                      );
-                    }
-                    if (segment.type === 'phone') {
-                      return (
-                        <a key={index} href={`tel:${segment.value}`} className="detail-link">
-                          {segment.value}
-                        </a>
-                      );
-                    }
-                    return <span key={index}>{segment.value}</span>;
-                  })}
+                  <ContactText kontakt={event.kontakt} messengers={event.kontaktMessenger} />
                 </span>
               </div>
             </div>

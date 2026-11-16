@@ -176,6 +176,26 @@ describe('EventModal', () => {
       expect(screen.queryByTestId('event-modal-registration')).toBeNull();
     });
   });
+
+  describe('messenger links for the contact number', () => {
+    it('links the chosen messengers with the international number', () => {
+      render(
+        <EventModal
+          event={{ ...mockEvent, kontakt: '+43 664 1234567', kontaktMessenger: ['telegram'] }}
+          onClose={() => {}}
+        />
+      );
+      const links = screen.getByTestId('contact-messengers').querySelectorAll('a');
+      expect([...links].map((l) => l.textContent)).toEqual(['Telegram']);
+      expect(links[0]).toHaveAttribute('href', 'https://t.me/+436641234567');
+    });
+
+    it('shows none without a choice', () => {
+      render(<EventModal event={{ ...mockEvent, kontakt: '0664 1234567' }} onClose={() => {}} />);
+      expect(screen.getByRole('link', { name: '06641234567' })).toBeInTheDocument();
+      expect(screen.queryByTestId('contact-messengers')).toBeNull();
+    });
+  });
 });
 
 describe('EventModal location', () => {

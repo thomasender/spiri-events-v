@@ -367,6 +367,46 @@ describe('events.registration', () => {
   });
 });
 
+describe('events.kontaktMessenger', () => {
+  const base = { createdBy: 'owner', status: 'draft', description: 'd' };
+  const owner = () => env.authenticatedContext('owner', { email_verified: true });
+
+  it('create: absent, empty or up to 3 distinct known messengers OK', async () => {
+    const db = owner().firestore();
+    await assertSucceeds(setDoc(doc(db, 'events/m1'), base));
+    await assertSucceeds(setDoc(doc(db, 'events/m2'), { ...base, kontaktMessenger: [] }));
+    await assertSucceeds(
+      setDoc(doc(db, 'events/m3'), {
+        ...base,
+        kontaktMessenger: ['whatsapp', 'telegram', 'signal'],
+      })
+    );
+  });
+
+  it('create: unknown values, duplicates, non-lists and too many rejected', async () => {
+    const db = owner().firestore();
+    await assertFails(setDoc(doc(db, 'events/m4'), { ...base, kontaktMessenger: ['threema'] }));
+    await assertFails(
+      setDoc(doc(db, 'events/m5'), { ...base, kontaktMessenger: ['whatsapp', 'whatsapp'] })
+    );
+    await assertFails(setDoc(doc(db, 'events/m6'), { ...base, kontaktMessenger: 'whatsapp' }));
+    await assertFails(
+      setDoc(doc(db, 'events/m7'), {
+        ...base,
+        kontaktMessenger: ['whatsapp', 'telegram', 'signal', 'whatsapp'],
+      })
+    );
+  });
+
+  it('update: known values OK, unknown rejected', async () => {
+    const db = owner().firestore();
+    await assertSucceeds(updateDoc(doc(db, 'events/ev1'), { kontaktMessenger: ['telegram'] }));
+    await assertSucceeds(updateDoc(doc(db, 'events/ev1'), { kontaktMessenger: [] }));
+    await assertFails(updateDoc(doc(db, 'events/ev1'), { kontaktMessenger: ['sms'] }));
+    await assertFails(updateDoc(doc(db, 'events/ev1'), { kontaktMessenger: [1] }));
+  });
+});
+
 // Moderation: an owner (any user with a verified e-mail) must not be able to
 // publish their own event with a direct write. Each allowed case mirrors a
 // write the app makes (src/hooks/useEvents.js, EventForm, utils/trashUpdates,
@@ -680,6 +720,7 @@ describe('events: owners cannot approve their own events', () => {
           firstSessionFree: true,
           link: 'https://neu.example',
           kontakt: '0664 123',
+          kontaktMessenger: ['whatsapp', 'signal'],
           registration: 'Bitte anmelden',
           category: 'Meditation',
           organizer: {
