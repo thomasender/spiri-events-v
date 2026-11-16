@@ -79,6 +79,8 @@ import {
   normalizeMessengerSelection,
 } from '../utils/contactFormat';
 import ContactMessengerChoice from './ContactMessengerChoice';
+import SeriesDatesOverview from './SeriesDatesOverview';
+import { pruneExceptionDates } from '../utils/eventOccurrences';
 import { reviewEditChanges } from '../utils/eventReviewFields';
 import { IMAGE_FORMAT_HINT } from '../utils/imageFormatHint';
 import './EventForm.css';
@@ -101,6 +103,7 @@ const INITIAL_STATE = {
   recurrence: 'none',
   recurrenceEndDate: '',
   customDates: [],
+  exceptionDates: [],
   category: '',
   bezirk: '',
   city: '',
@@ -116,6 +119,20 @@ const INITIAL_STATE = {
   kontaktMessenger: [],
   registration: '',
 };
+
+const todayYmd = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+// Dates taken out of a weekly / biweekly / monthly series: past ones stay as stored,
+// upcoming ones that no longer lie in the series (changed start / end) fall away.
+// Other kinds of events keep what is stored.
+function seriesExceptionDates(formData) {
+  if (['none', 'custom'].includes(formData.recurrence || 'none'))
+    return formData.exceptionDates || [];
+  return pruneExceptionDates(formData, todayYmd());
+}
 
 function getOrganizerDefault(displayName, email) {
   const trimmed = (displayName || '').trim();
@@ -199,6 +216,7 @@ export default function EventForm({ event }) {
         recurrence: event.recurrence || 'none',
         recurrenceEndDate: event.recurrenceEndDate || '',
         customDates: Array.isArray(event.customDates) ? [...event.customDates] : [],
+        exceptionDates: Array.isArray(event.exceptionDates) ? [...event.exceptionDates] : [],
         category: event.category || '',
         bezirk: event.isOnline ? '' : event.bezirk || '',
         city: event.isOnline ? '' : event.city || '',
@@ -842,6 +860,7 @@ export default function EventForm({ event }) {
             ),
           ].sort()
         : [],
+    exceptionDates: seriesExceptionDates(formData),
     category: formData.category || 'Sonstiges',
     bezirk: formData.isOnline ? '' : formData.bezirk,
     city: formData.isOnline ? '' : canonicalCity(formData.city),
@@ -1713,6 +1732,17 @@ export default function EventForm({ event }) {
                 <span className="error-text">{errors.recurrenceEndDate}</span>
               )}
             </div>
+          )}
+
+          {formData.recurrence !== 'none' && formData.recurrence !== 'custom' && (
+            <SeriesDatesOverview
+              date={formData.date}
+              recurrence={formData.recurrence}
+              recurrenceEndDate={formData.recurrenceEndDate}
+              exceptionDates={formData.exceptionDates}
+              fromDate={todayYmd()}
+              onChange={(exceptionDates) => setFormData((prev) => ({ ...prev, exceptionDates }))}
+            />
           )}
 
           <div className="form-group">

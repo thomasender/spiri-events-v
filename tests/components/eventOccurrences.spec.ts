@@ -6,6 +6,8 @@ import {
   nthWeekdayOfMonth,
   getOccurrenceCount,
   getRecurrenceLabel,
+  getSeriesStartDates,
+  pruneExceptionDates,
 } from '../../src/utils/eventOccurrences';
 
 const dateStr = (offsetDays = 0) => {
@@ -879,5 +881,108 @@ describe('monthlyWeekday and monthly month-end handling (6adca49e)', () => {
       'Jeden letzten Freitag im Monat'
     );
     expect(getRecurrenceLabel({ date: '2026-01-30', recurrence: 'monthly' })).toBe('Jeden Monat');
+  });
+});
+
+describe('getSeriesStartDates', () => {
+  it('lists every week from the start date up to and including the end date', () => {
+    expect(
+      getSeriesStartDates({
+        date: '2026-01-05',
+        recurrence: 'weekly',
+        recurrenceEndDate: '2026-01-26',
+      })
+    ).toEqual(['2026-01-05', '2026-01-12', '2026-01-19', '2026-01-26']);
+  });
+
+  it('steps by 14 days for biweekly series', () => {
+    expect(
+      getSeriesStartDates({
+        date: '2026-01-05',
+        recurrence: 'biweekly',
+        recurrenceEndDate: '2026-02-08',
+      })
+    ).toEqual(['2026-01-05', '2026-01-19', '2026-02-02']);
+  });
+
+  it('keeps the day of month for monthly series and clamps at month end', () => {
+    expect(
+      getSeriesStartDates({
+        date: '2026-01-31',
+        recurrence: 'monthly',
+        recurrenceEndDate: '2026-04-30',
+      })
+    ).toEqual(['2026-01-31', '2026-02-28', '2026-03-31', '2026-04-30']);
+  });
+
+  it('keeps the n-th weekday for monthlyWeekday series, "last" for a 5th weekday', () => {
+    expect(
+      getSeriesStartDates({
+        date: '2026-01-14',
+        recurrence: 'monthlyWeekday',
+        recurrenceEndDate: '2026-03-31',
+      })
+    ).toEqual(['2026-01-14', '2026-02-11', '2026-03-11']);
+    expect(
+      getSeriesStartDates({
+        date: '2026-01-30',
+        recurrence: 'monthlyWeekday',
+        recurrenceEndDate: '2026-03-31',
+      })
+    ).toEqual(['2026-01-30', '2026-02-27', '2026-03-27']);
+  });
+
+  it('ignores exception dates and past days', () => {
+    expect(
+      getSeriesStartDates({
+        date: '2020-01-06',
+        recurrence: 'weekly',
+        recurrenceEndDate: '2020-01-20',
+        exceptionDates: ['2020-01-13'],
+      })
+    ).toEqual(['2020-01-06', '2020-01-13', '2020-01-20']);
+  });
+
+  it('returns [] without an end date, for other kinds and for an end before the start', () => {
+    expect(getSeriesStartDates({ date: '2026-01-05', recurrence: 'weekly' })).toEqual([]);
+    expect(getSeriesStartDates({ date: '2026-01-05', recurrence: 'none' })).toEqual([]);
+    expect(
+      getSeriesStartDates({
+        date: '2026-01-05',
+        recurrence: 'custom',
+        recurrenceEndDate: '2026-02-01',
+      })
+    ).toEqual([]);
+    expect(
+      getSeriesStartDates({
+        date: '2026-01-05',
+        recurrence: 'weekly',
+        recurrenceEndDate: '2026-01-01',
+      })
+    ).toEqual([]);
+    expect(getSeriesStartDates(null)).toEqual([]);
+  });
+});
+
+describe('pruneExceptionDates', () => {
+  const series = {
+    date: '2026-01-05',
+    recurrence: 'weekly',
+    recurrenceEndDate: '2026-01-26',
+  };
+
+  it('drops exceptions that are no longer part of the series', () => {
+    expect(
+      pruneExceptionDates({ ...series, exceptionDates: ['2026-01-12', '2026-01-13', '2026-02-02'] })
+    ).toEqual(['2026-01-12']);
+  });
+
+  it('keeps dates before keepBefore untouched', () => {
+    expect(
+      pruneExceptionDates(
+        { ...series, exceptionDates: ['2025-12-01', '2026-01-13', '2026-01-19'] },
+        '2026-01-10'
+      )
+    ).toEqual(['2025-12-01', '2026-01-19']);
   });
 });
