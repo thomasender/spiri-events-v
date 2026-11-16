@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { spawn } from 'child_process';
 
-import { waitForWizardToLoad } from '../helpers/wizard';
+import { waitForWizardToLoad, uploadTitleImage } from '../helpers/wizard';
 
 import { STORAGE_STATE } from '../helpers/roles';
 
@@ -98,6 +98,8 @@ test.describe('Rich-text event description', () => {
     await page.click('button:has-text("Weiter")');
 
     await page.fill('#title', 'Enter-im-Beschreibung-Test');
+
+    await uploadTitleImage(page);
 
     const editor = page.locator('[data-testid="description-editor"] .rte-content');
     await editor.click();

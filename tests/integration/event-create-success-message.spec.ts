@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { signInWithEmailAndPassword, signOut, waitForCalendarToLoad } from '../helpers/auth';
-import { confirmCopyrightCheckbox, waitForWizardToLoad } from '../helpers/wizard';
+import { confirmCopyrightCheckbox, waitForWizardToLoad, uploadTitleImage } from '../helpers/wizard';
 import { deleteEventsByTitlePrefix } from '../fixtures/events';
 
 const EVENT_TITLE = 'Success Dialog Test Event';
@@ -21,6 +21,8 @@ async function fillWizardAndSubmit(page, title) {
   await page.locator('button:has-text("Weiter")').click();
 
   await page.fill('#title', title);
+
+  await uploadTitleImage(page);
   const editor = page.locator('[data-testid="description-editor"] .rte-content');
   await editor.click();
   await editor.fill('Event created to verify the post-submit success dialog.');

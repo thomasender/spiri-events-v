@@ -4,6 +4,7 @@ import {
   confirmCopyrightCheckbox,
   waitForWizardToLoad,
   completeSubmissionAndReturnToAdmin,
+  uploadTitleImage,
 } from '../helpers/wizard';
 import { openAdminTab } from '../helpers/admin';
 
@@ -19,6 +20,8 @@ async function fillWizardAndSubmit(page, title, placeName) {
   await page.locator('button:has-text("Weiter")').click();
 
   await page.fill('#title', title);
+
+  await uploadTitleImage(page);
   const editor = page.locator('[data-testid="description-editor"] .rte-content');
   await editor.click();
   await editor.fill('Event created by admin to verify approval workflow.');
