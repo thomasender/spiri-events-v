@@ -1184,7 +1184,7 @@ export default function EventFormWizard() {
           <label htmlFor="kontakt">Kontakt für Teilnehmer:innen *</label>
           <span className="input-info">
             <Info size={14} />
-            <span>E-Mail oder Telefonnummer</span>
+            <span>Telefonnummer oder E-Mail</span>
           </span>
         </div>
         <input
@@ -1220,7 +1220,7 @@ export default function EventFormWizard() {
           value={formData.registration}
           onChange={handleChange}
           maxLength={REGISTRATION_MAX_LENGTH}
-          placeholder="z.B. Buchungslink, E-Mail oder Telefonnummer"
+          placeholder="z.B. Buchungslink, Telefonnummer oder E-Mail"
         />
       </div>
     </div>

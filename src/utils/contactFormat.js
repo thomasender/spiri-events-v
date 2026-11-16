@@ -134,13 +134,26 @@ const MESSENGER_IDS = CONTACT_MESSENGERS.map((m) => m.id);
 const MIN_PHONE_DIGITS = 8;
 const MAX_PHONE_DIGITS = 15;
 
+/** Country calling code (digits) a number without one is read with: .ch 41, .de 49, else 43. */
+export function defaultCallingCode(hostname) {
+  const host = typeof hostname === 'string' ? hostname.trim().toLowerCase() : '';
+  if (host.endsWith('.ch')) return '41';
+  if (host.endsWith('.de')) return '49';
+  return '43';
+}
+
+function currentHostname() {
+  return typeof window !== 'undefined' ? window.location?.hostname : '';
+}
+
 /**
  * Turns a typed phone number into international form (`+436765550000`), or
  * null when it is none. Blanks, brackets, dashes, dots and slashes are dropped,
- * `00` becomes `+`, a leading `0` means Austria (`+43`). Without either prefix
+ * `00` becomes `+`, a leading `0` means the country of the site (`hostname`,
+ * default: the current one; see defaultCallingCode). Without either prefix
  * the country is unknown: null. A trunk zero after +43 / +49 / +41 is dropped.
  */
-export function toInternationalPhone(value) {
+export function toInternationalPhone(value, hostname = currentHostname()) {
   if (typeof value !== 'string') return null;
   // "+43 (0) 676 ..." : the bracketed trunk zero is not dialled from abroad.
   const compact = value
@@ -151,7 +164,7 @@ export function toInternationalPhone(value) {
   let digits;
   if (compact.startsWith('+')) digits = compact.slice(1);
   else if (compact.startsWith('00')) digits = compact.slice(2);
-  else if (compact.startsWith('0')) digits = `43${compact.slice(1)}`;
+  else if (compact.startsWith('0')) digits = `${defaultCallingCode(hostname)}${compact.slice(1)}`;
   else return null;
   // "+43 0676 ..." : a trunk zero typed after the country code (AT, DE, CH).
   digits = digits.replace(/^(43|49|41)0/, '$1');
@@ -161,11 +174,11 @@ export function toInternationalPhone(value) {
 }
 
 /** The first phone number in the contact text, in international form, or null. */
-export function contactPhone(kontakt) {
+export function contactPhone(kontakt, hostname = currentHostname()) {
   const phone = parseContactText(typeof kontakt === 'string' ? kontakt : '').find(
     (segment) => segment.type === 'phone'
   );
-  return phone ? toInternationalPhone(phone.value) : null;
+  return phone ? toInternationalPhone(phone.value, hostname) : null;
 }
 
 /** Known messenger ids only, without duplicates, in display order. */
@@ -178,8 +191,8 @@ export function normalizeMessengerSelection(selected) {
  * Links to open a chat with `phone` in the chosen messengers, in display
  * order. Empty when the number cannot be put into international form.
  */
-export function messengerLinks(phone, selected) {
-  const international = toInternationalPhone(phone);
+export function messengerLinks(phone, selected, hostname = currentHostname()) {
+  const international = toInternationalPhone(phone, hostname);
   if (!international) return [];
   const digits = international.slice(1);
   const hrefs = {
