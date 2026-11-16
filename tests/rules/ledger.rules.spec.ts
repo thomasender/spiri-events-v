@@ -129,3 +129,90 @@ describe('ledger', () => {
     await assertFails(updateDoc(doc(db, 'ledger/l1'), { attachments: 'x' }));
   });
 });
+
+// Vereinsmitgliedschaft "Pioniere": Mollie ids, amounts and consents only for the
+// member and the Super-Admins; written only by the Cloud Functions.
+describe('club_memberships', () => {
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'club_memberships/member1'), {
+        uid: 'member1',
+        status: 'active',
+        amount: 12.9,
+        mollieCustomerId: 'cst_1',
+      });
+    });
+  });
+
+  it('lets the member and the Super-Admins read', async () => {
+    await assertSucceeds(
+      getDoc(doc(env.authenticatedContext('member1').firestore(), 'club_memberships/member1'))
+    );
+    await assertSucceeds(
+      getDoc(doc(env.authenticatedContext('adminDoc').firestore(), 'club_memberships/member1'))
+    );
+  });
+
+  it.each([
+    ['another member', 'someone'],
+    ['a region moderator', 'mod'],
+  ])('hides a membership from %s', async (_label, uid) => {
+    const db = env.authenticatedContext(uid).firestore();
+    await assertFails(getDoc(doc(db, 'club_memberships/member1')));
+  });
+
+  it('hides memberships from anonymous visitors', async () => {
+    const db = env.unauthenticatedContext().firestore();
+    await assertFails(getDoc(doc(db, 'club_memberships/member1')));
+  });
+
+  it('lets nobody write from the client, not even the member or a Super-Admin', async () => {
+    const own = env.authenticatedContext('member1').firestore();
+    await assertFails(updateDoc(doc(own, 'club_memberships/member1'), { status: 'cancelled' }));
+    await assertFails(setDoc(doc(own, 'club_memberships/x'), { status: 'active' }));
+    const admin = env.authenticatedContext('adminDoc').firestore();
+    await assertFails(updateDoc(doc(admin, 'club_memberships/member1'), { amount: 1 }));
+    await assertFails(deleteDoc(doc(admin, 'club_memberships/member1')));
+  });
+});
+
+describe('app_settings/membership', () => {
+  const settings = { mode: 'admins', statutesUrl: '', statutesVersion: '' };
+
+  it('is readable by everybody (the wizard needs mode and the Statuten link)', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'app_settings/membership'), settings);
+    });
+    const db = env.unauthenticatedContext().firestore();
+    await assertSucceeds(getDoc(doc(db, 'app_settings/membership')));
+  });
+
+  it('lets Super-Admins switch it and set the Statuten link', async () => {
+    const db = env.authenticatedContext('adminDoc').firestore();
+    await assertSucceeds(setDoc(doc(db, 'app_settings/membership'), settings));
+    await assertSucceeds(
+      updateDoc(doc(db, 'app_settings/membership'), {
+        mode: 'all',
+        statutesUrl: 'https://example.org/statuten.pdf',
+        statutesVersion: '2026-11',
+      })
+    );
+  });
+
+  it('refuses unknown modes, odd links and extra fields', async () => {
+    const db = env.authenticatedContext('adminDoc').firestore();
+    await assertFails(setDoc(doc(db, 'app_settings/membership'), { mode: 'everyone' }));
+    await assertFails(
+      setDoc(doc(db, 'app_settings/membership'), { mode: 'all', statutesUrl: 'javascript:x' })
+    );
+    await assertFails(setDoc(doc(db, 'app_settings/membership'), { ...settings, extra: 1 }));
+  });
+
+  it.each([
+    ['a region moderator', 'mod'],
+    ['a logged-in member', 'someone'],
+  ])('refuses %s', async (_label, uid) => {
+    const db = env.authenticatedContext(uid).firestore();
+    await assertFails(setDoc(doc(db, 'app_settings/membership'), settings));
+  });
+});

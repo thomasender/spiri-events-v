@@ -38,6 +38,7 @@ import ConfirmDialog from './ConfirmDialog';
 import DirectMessageLink from './messenger/DirectMessageLink';
 import MemberBroadcastDialog from './MemberBroadcastDialog';
 import StatusBadge from './StatusBadge';
+import PioniereAdminSection from './PioniereAdminSection';
 import './MembersTab.css';
 
 const COLUMNS = [
@@ -452,6 +453,8 @@ export default function MembersTab() {
           ? 'Mitglieder, die im Verzeichnis deiner Region eingetragen sind.'
           : 'Alle registrierten Mitglieder. Dieser Bereich ist nur für Admins sichtbar.'}
       </p>
+
+      {isAdmin && <PioniereAdminSection />}
 
       <div className="members-toolbar">
         <label className="members-search">

@@ -1,4 +1,5 @@
 import { DEFAULT_SITE_ORIGIN } from './siteOrigin';
+import { MEMBERSHIP_BENEFITS, formatMembershipAmount } from './clubMembershipLogic';
 
 export type NotificationType =
   | 'submitted'
@@ -1026,4 +1027,83 @@ export function buildEmailPayload(
       throw new Error(`Unknown notification type: ${exhaustive as string}`);
     }
   }
+}
+
+// ---------------------------------------------------------------------------
+// Vereinsmitgliedschaft "Pioniere" (Trello 6af620c0). Texte sind ein Entwurf,
+// von Peter zu prüfen.
+// ---------------------------------------------------------------------------
+
+function benefitsHtml(): string {
+  return `<ul style="${paragraphStyle()}padding-left:20px;">${MEMBERSHIP_BENEFITS.map(
+    (b) => `<li style="margin:0 0 6px 0;">${escapeHtml(b)}</li>`
+  ).join('')}</ul>`;
+}
+
+function benefitsText(): string {
+  return MEMBERSHIP_BENEFITS.map((b) => `- ${b}`).join('\n');
+}
+
+export interface MembershipWelcomePayloadInput {
+  recipient: string;
+  name?: string | null;
+  /** Monthly amount, "12.90". */
+  amount: string;
+  /** YYYY-MM-DD of the next monthly payment. */
+  nextPaymentDate: string;
+  /** Site the links point to (staging or production). */
+  baseUrl?: string;
+}
+
+/** Confirmation for a new Pioniere member after the first payment was paid. */
+export function buildMembershipWelcomePayload({
+  recipient,
+  name,
+  amount,
+  nextPaymentDate,
+  baseUrl = APP_BASE_URL,
+}: MembershipWelcomePayloadInput): EmailPayload {
+  const greeting = name && name.trim() ? `Hallo ${name.trim()},` : 'Hallo,';
+  const amountText = formatMembershipAmount(amount);
+  const next = formatGermanDate(nextPaymentDate);
+  const profileUrl = `${baseUrl}/profil#pioniere`;
+  const privacyUrl = `${baseUrl}/datenschutz#vereinsmitglieder`;
+  const subject = 'Willkommen bei den Pionieren!';
+  const htmlBody = `
+    <h1 style="${headingStyle(1)}">Willkommen bei den Pionieren! ❤️</h1>
+    <p style="${paragraphStyle()}">${escapeHtml(greeting)}</p>
+    <p style="${paragraphStyle()}">
+      schön, dass du dabei bist! Deine erste Zahlung ist angekommen, damit bist du ab heute Vereinsmitglied („Pionier:in“).
+    </p>
+    <h2 style="${headingStyle(2)}">Deine Mitgliedschaft</h2>
+    <p style="${paragraphStyle()}">
+      Monatlicher Beitrag: <strong>${escapeHtml(amountText)}</strong><br>
+      Nächste Abbuchung: ${escapeHtml(next)} (danach jeden Monat, über Mollie)
+    </p>
+    <h2 style="${headingStyle(2)}">Deine Vorteile</h2>
+    ${benefitsHtml()}
+    <p style="${paragraphStyle()}">
+      Du kannst jederzeit selbst kündigen, in deinem Profil unter „Pioniere-Mitgliedschaft“. Die Mitgliedschaft läuft dann bis zum Ende des bezahlten Monats.
+    </p>
+    <p style="margin:8px 0 24px 0;">
+      <a href="${escapeHtml(profileUrl)}" style="${brandButtonStyle()}">Zu meinem Profil</a>
+    </p>
+    <p style="${mutedStyle()}">
+      Wie wir deine Daten als Vereinsmitglied verarbeiten, steht in der <a href="${escapeHtml(privacyUrl)}" style="color:${COLOR_MUTED};text-decoration:underline;">Datenschutzerklärung</a>.
+    </p>`;
+  const textBody =
+    `${greeting}\n\n` +
+    `schön, dass du dabei bist! Deine erste Zahlung ist angekommen, damit bist du ab heute Vereinsmitglied („Pionier:in“).\n\n` +
+    `Monatlicher Beitrag: ${amountText}\n` +
+    `Nächste Abbuchung: ${next} (danach jeden Monat, über Mollie)\n\n` +
+    `Deine Vorteile:\n${benefitsText()}\n\n` +
+    `Du kannst jederzeit selbst kündigen, in deinem Profil unter „Pioniere-Mitgliedschaft“: ${profileUrl}\n` +
+    `Die Mitgliedschaft läuft dann bis zum Ende des bezahlten Monats.\n\n` +
+    `Datenschutzerklärung (Vereinsmitglieder): ${privacyUrl}`;
+  return {
+    to: recipient,
+    subject,
+    html: wrapHtml(htmlBody, 'auth'),
+    text: textBody + footerText('auth'),
+  };
 }

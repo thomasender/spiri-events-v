@@ -4,6 +4,11 @@ import { MOLLIE_API_KEY, ensureMollieSubscription, mollieRequest } from './molli
 import { reportPaymentFailure } from './paymentAlerts';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { isRegionId, regionNameOf } from './regions';
+import {
+  MEMBERSHIP_MAIL_SECRETS,
+  findMembershipUidBySubscription,
+  notifyNewMember,
+} from './clubMembership';
 import type { FirestoreLikeDb } from './mollieWebhookLogic';
 import {
   canonicalBodyBytes,
@@ -74,7 +79,8 @@ async function notifyStaffOfDonation(notice: DonationNotice): Promise<void> {
 export const mollieWebhook = onRequest(
   {
     region: REGION,
-    secrets: [MOLLIE_API_KEY],
+    // Mailgun: confirmation mail to new Pioniere members (clubMembership.ts).
+    secrets: [MOLLIE_API_KEY, ...MEMBERSHIP_MAIL_SECRETS],
   },
   async (req, res) => {
     const apiKey = MOLLIE_API_KEY.value();
@@ -119,6 +125,8 @@ export const mollieWebhook = onRequest(
       ensureSubscription: (args) => ensureMollieSubscription(apiKey, args),
       reportFailure: (args) => reportPaymentFailure(args),
       notifyDonation: notifyStaffOfDonation,
+      findMembershipUid: findMembershipUidBySubscription,
+      notifyMembership: notifyNewMember,
     });
 
     if (result.status >= 500) {

@@ -20,6 +20,14 @@
 
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { DEFAULT_REGION_ID, countryOfRegion, isRegionId } from './regions';
+import {
+  MEMBERSHIP_COLLECTION,
+  MEMBERSHIP_LEDGER_CATEGORY,
+  MEMBERSHIP_LEDGER_DESCRIPTION,
+  MEMBERSHIP_PAYMENT_TYPE,
+  MEMBERSHIP_SUBSCRIPTION_DESCRIPTION,
+  laterDate,
+} from './clubMembershipLogic';
 
 export const DONOR_NEXT_ORDER_STEP = 100;
 // Default currency; donations to a Swiss region (country CH) are in CHF.
@@ -368,11 +376,14 @@ export async function recordLedgerIncome({
   payment,
   now = () => new Date(),
   onError,
+  membership = false,
 }: {
   db: FirestoreLikeDb;
   payment: MolliePaymentResource;
   now?: () => Date;
   onError?: (err: unknown) => void;
+  /** A Pioniere membership fee: booked as "Mitgliedsbeitrag", not as a donation. */
+  membership?: boolean;
 }): Promise<{ written: boolean; reason?: string }> {
   try {
     if (payment.status !== 'paid') return { written: false, reason: `status:${payment.status}` };
@@ -400,8 +411,10 @@ export async function recordLedgerIncome({
         amount,
         // The books are in EUR; a CHF entry is listed but not added to the totals.
         currency,
-        description: `Spende via Mollie (${isRecurring ? 'monatlich' : 'einmalig'})`,
-        category: 'Spenden',
+        description: membership
+          ? MEMBERSHIP_LEDGER_DESCRIPTION
+          : `Spende via Mollie (${isRecurring ? 'monatlich' : 'einmalig'})`,
+        category: membership ? MEMBERSHIP_LEDGER_CATEGORY : 'Spenden',
         source: 'mollie',
         molliePaymentId: payment.id,
         createdAt: timestamp,
@@ -427,6 +440,8 @@ export async function processMollieWebhook({
   ensureSubscription,
   reportFailure,
   notifyDonation,
+  findMembershipUid,
+  notifyMembership,
   db,
   now = () => new Date(),
 }: ProcessMollieWebhookDeps): Promise<ProcessMollieWebhookResult> {
@@ -461,6 +476,8 @@ export async function processMollieWebhook({
       ensureSubscription,
       reportFailure,
       notifyDonation,
+      findMembershipUid,
+      notifyMembership,
     });
   }
 
@@ -472,6 +489,7 @@ export async function processMollieWebhook({
     try {
       const payment = await fetchPayment(body.id);
       if (payment.status !== 'paid') {
+        await reportFailedMembershipPayment({ payment, findMembershipUid, reportFailure });
         return {
           status: 200,
           body: { received: true, action: 'ignored', reason: payment.status },
@@ -485,6 +503,8 @@ export async function processMollieWebhook({
         ensureSubscription,
         reportFailure,
         notifyDonation,
+        findMembershipUid,
+        notifyMembership,
       });
     } catch (err) {
       await reportFailure?.({
@@ -532,6 +552,8 @@ async function handlePaidWebhookPayment({
   ensureSubscription,
   reportFailure,
   notifyDonation,
+  findMembershipUid,
+  notifyMembership,
 }: {
   payment: MolliePaymentResource;
   db: FirestoreLikeDb;
@@ -540,7 +562,30 @@ async function handlePaidWebhookPayment({
   ensureSubscription?: SubscriptionEnsurer;
   reportFailure?: PaymentFailureReporter;
   notifyDonation?: DonationNotifier;
+  findMembershipUid?: MembershipLookup;
+  notifyMembership?: MembershipNotifier;
 }): Promise<ProcessMollieWebhookResult> {
+  // Pioniere membership fees take their own branch: no donor, no donation notice,
+  // booked as Mitgliedsbeitrag. Donations never reach it (see membershipUidOf).
+  let membershipUid: string | null;
+  try {
+    membershipUid = await membershipUidOf(payment, findMembershipUid);
+  } catch (err) {
+    console.error('membership lookup failed', payment.id, err);
+    return { status: 500, body: { error: 'membership-lookup-failed' } };
+  }
+  if (membershipUid) {
+    return handleMembershipPayment({
+      payment,
+      uid: membershipUid,
+      db,
+      now,
+      ensureSubscription,
+      reportFailure,
+      notifyMembership,
+    });
+  }
+
   // Books first and fully isolated: also covers the recurring payments that
   // the donor flow below skips. Cannot change the response.
   await recordLedgerIncome({
@@ -732,6 +777,212 @@ async function enrichPaymentFromCustomerIfNeeded({
 }
 
 // ---------------------------------------------------------------------------
+// Vereinsmitgliedschaft "Pioniere" (Trello 6af620c0, clubMembershipLogic.ts)
+// ---------------------------------------------------------------------------
+
+export interface MembershipNotice {
+  uid: string;
+  name: string | null;
+  email: string | null;
+  /** Monthly amount, e.g. "12.90". */
+  amount: string;
+  paymentId: string;
+  /** YYYY-MM-DD: the next monthly payment is due on this day. */
+  paidUntil: string;
+}
+
+export type MembershipNotifier = (notice: MembershipNotice) => Promise<void>;
+export type MembershipLookup = (subscriptionId: string) => Promise<string | null>;
+
+/**
+ * The member a payment belongs to: the first payment carries `metadata.type =
+ * 'membership'` and the uid; recurring payments are found by their subscription
+ * (in club_memberships), whatever metadata Mollie copies onto them. Null for
+ * every donation.
+ */
+export async function membershipUidOf(
+  payment: MolliePaymentResource,
+  findMembershipUid?: MembershipLookup
+): Promise<string | null> {
+  const metadata = asMetadata(payment.metadata);
+  if (metadata.type === MEMBERSHIP_PAYMENT_TYPE) {
+    return typeof metadata.uid === 'string' && metadata.uid ? metadata.uid : null;
+  }
+  if (payment.subscriptionId && findMembershipUid) {
+    return findMembershipUid(payment.subscriptionId);
+  }
+  return null;
+}
+
+/**
+ * A paid membership payment. First payment: create the monthly subscription,
+ * activate `club_memberships/{uid}`, mark the public profile (`clubMember`),
+ * notify. Recurring payment: book it and move `paidUntil` on. Never a donor entry.
+ */
+async function handleMembershipPayment({
+  payment,
+  uid,
+  db,
+  now = () => new Date(),
+  ensureSubscription,
+  reportFailure,
+  notifyMembership,
+}: {
+  payment: MolliePaymentResource;
+  uid: string;
+  db: FirestoreLikeDb;
+  now?: () => Date;
+  ensureSubscription?: SubscriptionEnsurer;
+  reportFailure?: PaymentFailureReporter;
+  notifyMembership?: MembershipNotifier;
+}): Promise<ProcessMollieWebhookResult> {
+  await recordLedgerIncome({
+    db,
+    payment,
+    now,
+    membership: true,
+    onError: (err) => console.error('ledger write failed', payment.id, err),
+  });
+
+  const isFirst =
+    !payment.subscriptionId && payment.sequenceType === 'first' && Boolean(payment.customerId);
+  let subscriptionId = payment.subscriptionId ?? null;
+  if (isFirst && ensureSubscription) {
+    try {
+      const subscription = await ensureSubscription({
+        customerId: payment.customerId as string,
+        amount: payment.amount?.value ?? '',
+        currency: MOLLIE_DONATION_CURRENCY,
+        startDate: subscriptionStartDate(paidAtOf(payment, now)),
+        firstPaymentId: payment.id,
+        mandateId: payment.mandateId ?? null,
+        webhookUrl: payment.webhookUrl ?? null,
+        description: MEMBERSHIP_SUBSCRIPTION_DESCRIPTION,
+        metadata: { type: MEMBERSHIP_PAYMENT_TYPE, uid },
+      });
+      subscriptionId = subscription.id;
+    } catch (err) {
+      await reportFailure?.({
+        step: 'mitgliedschaft-abo-anlegen',
+        error: err,
+        amount: payment.amount?.value ?? null,
+        currency: payment.amount?.currency ?? null,
+        ids: { customer: payment.customerId, payment: payment.id },
+        alertId: `mollie_member_abo_${payment.id}`,
+      });
+      return {
+        status: 500,
+        body: { error: 'subscription-failed', message: (err as Error)?.message ?? 'unknown' },
+      };
+    }
+  }
+
+  const ref = db.collection(MEMBERSHIP_COLLECTION).doc(uid);
+  const existing = await ref.get();
+  const stored = (field: string): unknown => (existing.exists ? existing.get(field) : undefined);
+  const previousStatus = stored('status');
+  const paidUntil = laterDate(stored('paidUntil'), subscriptionStartDate(paidAtOf(payment, now)));
+  // Gekündigt / ended stays as it is (a late payment only moves paidUntil on).
+  const status =
+    previousStatus === 'cancelled' || previousStatus === 'ended' ? previousStatus : 'active';
+  const activated = status === 'active' && previousStatus !== 'active';
+  const timestamp = now();
+  const amount = parseEuroAmount(payment.amount);
+  const metadata = asMetadata(payment.metadata);
+  const metaName = typeof metadata.memberName === 'string' ? metadata.memberName.trim() : '';
+
+  const update: Record<string, unknown> = {
+    uid,
+    status,
+    paidUntil,
+    lastPaymentId: payment.id,
+    updatedAt: timestamp,
+  };
+  if (isFirst) {
+    if (amount !== null) update.amount = amount;
+    update.currency = MOLLIE_DONATION_CURRENCY;
+    update.mollieCustomerId = payment.customerId ?? null;
+    update.firstPaymentId = payment.id;
+  }
+  if (subscriptionId) update.mollieSubscriptionId = subscriptionId;
+  if (activated) update.joinedAt = stored('joinedAt') ?? timestamp;
+  if (!existing.exists) {
+    update.source = 'web';
+    update.createdAt = timestamp;
+    if (metaName) update.name = metaName;
+  }
+  await ref.set(update, { merge: true });
+
+  if (status === 'active' || status === 'cancelled') {
+    const profileRef = db.collection(`users/${uid}/publicProfile`).doc('data');
+    try {
+      const profile = await profileRef.get();
+      if (profile.exists && profile.get('clubMember') !== true) {
+        await profileRef.set({ clubMember: true }, { merge: true });
+      }
+    } catch (err) {
+      console.error('clubMember flag not set', uid, err);
+    }
+  }
+
+  if (activated && notifyMembership) {
+    const storedName = stored('name');
+    const storedEmail = stored('email');
+    try {
+      await notifyMembership({
+        uid,
+        name: typeof storedName === 'string' && storedName ? storedName : metaName || null,
+        email: typeof storedEmail === 'string' && storedEmail ? storedEmail : null,
+        amount: amount !== null ? amount.toFixed(2) : (payment.amount?.value ?? ''),
+        paymentId: payment.id,
+        paidUntil,
+      });
+    } catch (err) {
+      console.error('membership notice failed', payment.id, err);
+    }
+  }
+
+  return {
+    status: 200,
+    body: { received: true, action: 'membership', status, activated },
+  };
+}
+
+/**
+ * A monthly membership payment that failed: the membership stays, only the
+ * admins hear about it (Verwaltung "Feedback", paymentAlerts.ts). Never throws.
+ */
+async function reportFailedMembershipPayment({
+  payment,
+  findMembershipUid,
+  reportFailure,
+}: {
+  payment: MolliePaymentResource;
+  findMembershipUid?: MembershipLookup;
+  reportFailure?: PaymentFailureReporter;
+}): Promise<void> {
+  if (payment.status !== 'failed' || !reportFailure) return;
+  try {
+    const uid = await membershipUidOf(payment, findMembershipUid);
+    if (!uid) return;
+    await reportFailure({
+      step: 'mitgliedsbeitrag-fehlgeschlagen',
+      error: 'Mollie meldet die Zahlung als fehlgeschlagen.',
+      amount: payment.amount?.value ?? null,
+      currency: payment.amount?.currency ?? null,
+      ids: {
+        customer: payment.customerId,
+        subscription: payment.subscriptionId,
+        payment: payment.id,
+      },
+      alertId: `mollie_member_failed_${payment.id}`,
+    });
+  } catch (err) {
+    console.error('failed membership payment not reported', payment.id, err);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
@@ -756,10 +1007,14 @@ export type SubscriptionEnsurer = (args: {
   firstPaymentId: string;
   mandateId: string | null;
   webhookUrl: string | null;
+  // Only for membership subscriptions; donations pass neither.
+  description?: string;
+  metadata?: Record<string, unknown>;
 }) => Promise<{ id: string }>;
 
 export type PaymentFailureReporter = (args: {
-  step: 'abo-anlegen' | 'webhook';
+  step:
+    'abo-anlegen' | 'webhook' | 'mitgliedschaft-abo-anlegen' | 'mitgliedsbeitrag-fehlgeschlagen';
   error: unknown;
   amount?: string | null;
   currency?: string | null;
@@ -848,6 +1103,10 @@ export interface ProcessMollieWebhookDeps {
   reportFailure?: PaymentFailureReporter;
   /** In-app notice to the staff for a paid donation; failures never reach the webhook answer. */
   notifyDonation?: DonationNotifier;
+  /** uid of the membership a subscription belongs to (club_memberships), or null. */
+  findMembershipUid?: MembershipLookup;
+  /** New Pioniere member: notice to the Super-Admins and confirmation mail; never throws. */
+  notifyMembership?: MembershipNotifier;
   db: FirestoreLikeDb;
   now?: () => Date;
 }
