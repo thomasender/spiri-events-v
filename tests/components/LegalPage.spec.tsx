@@ -160,19 +160,34 @@ describe('LegalPage Instagram channels (per region)', () => {
     expect(container.textContent).toContain('Meta Platforms Ireland Limited');
   });
 
-  it('Impressum: unchanged for one channel, one link per region for several', () => {
+  it('Impressum: unchanged for one channel, the collapsed "Region: @name" list for several', () => {
     const first = renderLegalPage('impressum');
     expect(
       first.container.querySelector('a[href="https://www.instagram.com/tribevorarlberg"]')
     ).not.toBeNull();
+    expect(screen.queryByTestId('legal-instagram-channels')).toBeNull();
     first.unmount();
-    const { container } = renderWith('impressum', [vbg, tirol]);
+    renderWith('impressum', [vbg, tirol, wien]);
+    const details = screen.getByTestId('legal-instagram-channels');
+    expect(details.querySelector('summary')).toHaveTextContent('Unsere Instagram-Kanäle (2)');
+    const items = Array.from(details.querySelectorAll('li')).map((li) => li.textContent);
+    expect(items).toEqual(['Vorarlberg: @tribevorarlberg', 'Tirol: @tribetirol']);
+    expect(details.querySelector('a[href="https://www.instagram.com/tribetirol/"]')).not.toBeNull();
+  });
+
+  it('a name stored for the single active region replaces @tribevorarlberg', () => {
+    const own = { ...vbg, instagramHandle: '@tribe.vbg' };
+    const ds = renderWith('datenschutz', [own]);
+    expect(ds.container.textContent).toContain('Wir betreiben den Instagram-Kanal @tribe.vbg,');
+    expect(ds.container.textContent).not.toContain('@tribevorarlberg');
+    ds.unmount();
+    const { container } = renderWith('impressum', [own]);
     expect(
-      container.querySelector('a[href="https://www.instagram.com/tribevorarlberg/"]')
+      container.querySelector('a[href="https://www.instagram.com/tribe.vbg/"]')
     ).not.toBeNull();
     expect(
-      container.querySelector('a[href="https://www.instagram.com/tribetirol/"]')
-    ).not.toBeNull();
+      container.querySelector('a[href^="https://www.instagram.com/tribevorarlberg"]')
+    ).toBeNull();
   });
 });
 

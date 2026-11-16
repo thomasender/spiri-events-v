@@ -4,11 +4,15 @@ import './LegalPage.css';
 import { CANDLE_ROOM_NAME } from '../utils/candleRoom';
 import { useRegion } from '../hooks/useRegion';
 import { homePathFor } from '../utils/regionRouting';
-import { instagramChannels, instagramProfileUrl } from '../utils/regions';
+import { DEFAULT_INSTAGRAM_HANDLE, instagramChannels, instagramProfileUrl } from '../utils/regions';
 
 // Dark launch: the per-region wording and the channel list only appear once at
 // least two Instagram channels exist; with one channel the text stays as it was.
 const MIN_CHANNELS_FOR_LIST = 2;
+
+// The one channel while there is no list: the stored name of the single active
+// region (Vorarlberg: @tribevorarlberg when none is stored).
+const singleChannel = (channels) => channels[0]?.handle ?? DEFAULT_INSTAGRAM_HANDLE;
 
 const RESPONSIBLE_PEOPLE = [
   {
@@ -253,7 +257,7 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
           return `${
             multi
               ? 'Wir betreiben für unsere Regionen eigene Instagram-Kanäle, auf denen wir Veranstaltungen der jeweiligen Region bewerben. Instagram ist ein Dienst von Meta Platforms Ireland Limited.'
-              : 'Wir betreiben den Instagram-Kanal @tribevorarlberg, auf dem wir Veranstaltungen bewerben. Instagram ist ein Dienst von Meta Platforms Ireland Limited.'
+              : `Wir betreiben den Instagram-Kanal ${singleChannel(ctx.channels)}, auf dem wir Veranstaltungen bewerben. Instagram ist ein Dienst von Meta Platforms Ireland Limited.`
           }
 
 *Was wird veröffentlicht?*
@@ -457,17 +461,19 @@ Vorarlberg / Österreich`,
       },
       {
         heading: 'Onlinepräsenzen',
+        channelList: true,
         text: (ctx) => {
-          // One channel (today): the line as before. Several: one line per region.
+          // One channel (today): the line as before. Several: the collapsed
+          // "Region: @name" list below the section (scales to many regions).
+          const handle = singleChannel(ctx.channels);
+          const url =
+            handle === DEFAULT_INSTAGRAM_HANDLE
+              ? 'https://www.instagram.com/tribevorarlberg'
+              : instagramProfileUrl(handle);
           const instagramLines =
             ctx.channels.length >= MIN_CHANNELS_FOR_LIST
-              ? ctx.channels
-                  .map((c) => {
-                    const url = instagramProfileUrl(c.handle);
-                    return `- Instagram ${c.regionName}: [${url}](${url})`;
-                  })
-                  .join('\n')
-              : '- Instagram: [https://www.instagram.com/tribevorarlberg](https://www.instagram.com/tribevorarlberg)';
+              ? '- Instagram: je Region ein eigener Kanal (Liste „Unsere Instagram-Kanäle“ unten)'
+              : `- Instagram: [${url}](${url})`;
           return `Dieses Impressum gilt auch für folgende Onlinepräsenzen:
 
 - Facebook: [https://www.facebook.com/tribevorarlberg](https://www.facebook.com/tribevorarlberg)
