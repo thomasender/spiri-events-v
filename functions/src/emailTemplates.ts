@@ -1107,3 +1107,74 @@ export function buildMembershipWelcomePayload({
     text: textBody + footerText('auth'),
   };
 }
+
+export interface ClubMemberInvitePayloadInput {
+  recipient: string;
+  name?: string | null;
+  /** Link to set the password (new accounts only); null for an existing account. */
+  passwordUrl: string | null;
+  baseUrl?: string;
+}
+
+/**
+ * Members from a paper form (Super-Admin "Mitglied anlegen"): the website account
+ * that was created or linked for them, how to set the password, the benefits and
+ * the privacy section for Vereinsmitglieder.
+ */
+export function buildClubMemberInvitePayload({
+  recipient,
+  name,
+  passwordUrl,
+  baseUrl = APP_BASE_URL,
+}: ClubMemberInvitePayloadInput): EmailPayload {
+  const greeting = name && name.trim() ? `Hallo ${name.trim()},` : 'Hallo,';
+  const privacyUrl = `${baseUrl}/datenschutz#vereinsmitglieder`;
+  const loginUrl = `${baseUrl}/login`;
+  const profileUrl = `${baseUrl}/profil#pioniere`;
+  const subject = 'Willkommen bei den Pionieren: dein Zugang zur Website';
+  const accountHtml = passwordUrl
+    ? `<p style="${paragraphStyle()}">
+      Wie auf dem Beitrittsformular angekündigt, haben wir dir mit deinem Namen und dieser E-Mail-Adresse einen Account auf unserer Website angelegt. Lege jetzt dein Passwort fest:
+    </p>
+    <p style="margin:8px 0 16px 0;">
+      <a href="${escapeHtml(passwordUrl)}" style="${brandButtonStyle()}">Passwort festlegen</a>
+    </p>
+    <p style="${mutedStyle()}">Der Link gilt aus Sicherheitsgründen nur kurze Zeit. Ist er abgelaufen, wähle auf der <a href="${escapeHtml(loginUrl)}" style="color:${COLOR_MUTED};text-decoration:underline;">Anmeldeseite</a> „Passwort vergessen“ mit dieser E-Mail-Adresse.</p>`
+    : `<p style="${paragraphStyle()}">
+      Du hast mit dieser E-Mail-Adresse schon einen Account auf unserer Website. Deine Mitgliedschaft ist damit verknüpft, es wurde kein zweiter Account angelegt.
+    </p>
+    <p style="margin:8px 0 16px 0;">
+      <a href="${escapeHtml(loginUrl)}" style="${brandButtonStyle()}">Anmelden</a>
+    </p>`;
+  const htmlBody = `
+    <h1 style="${headingStyle(1)}">Willkommen bei den Pionieren! ❤️</h1>
+    <p style="${paragraphStyle()}">${escapeHtml(greeting)}</p>
+    <p style="${paragraphStyle()}">
+      schön, dass du Vereinsmitglied („Pionier:in“) geworden bist!
+    </p>
+    ${accountHtml}
+    <h2 style="${headingStyle(2)}">Deine Vorteile</h2>
+    ${benefitsHtml()}
+    <p style="${paragraphStyle()}">
+      Deine Mitgliedschaft siehst du in deinem <a href="${escapeHtml(profileUrl)}" style="color:${COLOR_TEXT};text-decoration:underline;">Profil</a> unter „Pioniere-Mitgliedschaft“.
+    </p>
+    <p style="${mutedStyle()}">
+      Wie wir deine Daten als Vereinsmitglied verarbeiten (auch den Website-Account), steht in der <a href="${escapeHtml(privacyUrl)}" style="color:${COLOR_MUTED};text-decoration:underline;">Datenschutzerklärung, Abschnitt Vereinsmitglieder</a>.
+    </p>`;
+  const accountText = passwordUrl
+    ? `Wie auf dem Beitrittsformular angekündigt, haben wir dir mit deinem Namen und dieser E-Mail-Adresse einen Account auf unserer Website angelegt. Lege jetzt dein Passwort fest:\n${passwordUrl}\n\nDer Link gilt aus Sicherheitsgründen nur kurze Zeit. Ist er abgelaufen, wähle auf der Anmeldeseite (${loginUrl}) „Passwort vergessen“ mit dieser E-Mail-Adresse.`
+    : `Du hast mit dieser E-Mail-Adresse schon einen Account auf unserer Website. Deine Mitgliedschaft ist damit verknüpft, es wurde kein zweiter Account angelegt.\nAnmelden: ${loginUrl}`;
+  const textBody =
+    `${greeting}\n\n` +
+    `schön, dass du Vereinsmitglied („Pionier:in“) geworden bist!\n\n` +
+    `${accountText}\n\n` +
+    `Deine Vorteile:\n${benefitsText()}\n\n` +
+    `Deine Mitgliedschaft im Profil: ${profileUrl}\n\n` +
+    `Datenschutzerklärung, Abschnitt Vereinsmitglieder: ${privacyUrl}`;
+  return {
+    to: recipient,
+    subject,
+    html: wrapHtml(htmlBody, 'auth'),
+    text: textBody + footerText('auth'),
+  };
+}

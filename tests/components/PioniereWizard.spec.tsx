@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import PioniereWizard from '../../src/components/PioniereWizard';
 import PioniereOnboardingPage from '../../src/pages/PioniereOnboardingPage';
 import PioniereMembershipCard from '../../src/components/PioniereMembershipCard';
+import { PioniereAddMemberForm } from '../../src/components/PioniereAdminSection';
 import { MEMBERSHIP_BENEFITS, membershipErrorMessage } from '../../src/utils/clubMembership';
 
 const state = vi.hoisted(() => ({
@@ -17,6 +18,9 @@ const state = vi.hoisted(() => ({
 vi.mock('../../src/lib/firebase', () => ({
   callable: (name: string) => async (data: unknown) => {
     state.calls.push({ name, data });
+    if (name === 'adminCreateClubMember') {
+      return { data: { uid: 'x', createdAccount: false, alreadyMember: false, emailSent: true } };
+    }
     if (name === 'cancelMembership') {
       return { data: { status: 'cancelled', paidUntil: '2026-12-16', alreadyCancelled: false } };
     }
@@ -248,5 +252,39 @@ describe('PioniereMembershipCard (profile)', () => {
     state.settings = { ...state.settings, mode: 'off' };
     renderCard();
     expect(screen.queryByTestId('profile-pioniere')).not.toBeInTheDocument();
+  });
+});
+
+describe('PioniereAddMemberForm (Verwaltung -> Mitglieder)', () => {
+  it('creates a member from a paper form and says that an existing account was linked', async () => {
+    const onCreated = vi.fn();
+    render(<PioniereAddMemberForm onCreated={onCreated} />);
+    expect(screen.queryByTestId('pioniere-admin-add')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('pioniere-admin-add-toggle'));
+    const submit = screen.getByRole('button', { name: 'Als Vereinsmitglied anlegen' });
+    expect(submit).toBeDisabled();
+    fireEvent.change(screen.getByTestId('pioniere-admin-add-name'), {
+      target: { value: 'Berta Beispiel' },
+    });
+    fireEvent.change(screen.getByTestId('pioniere-admin-add-email'), {
+      target: { value: 'berta@example.org' },
+    });
+    fireEvent.change(screen.getByTestId('pioniere-admin-add-amount'), { target: { value: '2' } });
+    expect(submit).toBeDisabled();
+    fireEvent.change(screen.getByTestId('pioniere-admin-add-amount'), {
+      target: { value: '5,50' },
+    });
+    expect(submit).toBeEnabled();
+    fireEvent.click(submit);
+    expect(await screen.findByTestId('pioniere-admin-add-result')).toHaveTextContent(
+      'Bestehendes Konto verknüpft'
+    );
+    expect(state.calls).toEqual([
+      {
+        name: 'adminCreateClubMember',
+        data: { name: 'Berta Beispiel', email: 'berta@example.org', amount: 5.5, sendEmail: true },
+      },
+    ]);
+    expect(onCreated).toHaveBeenCalled();
   });
 });

@@ -160,6 +160,7 @@ export {
   createMembershipCheckout,
   cancelMembership,
   expireClubMemberships,
+  adminCreateClubMember,
 } from './clubMembership';
 export { processMollieWebhook, handlePaidPayment } from './mollieWebhook';
 

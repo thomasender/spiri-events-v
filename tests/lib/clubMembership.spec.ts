@@ -14,7 +14,10 @@ import {
 import * as client from '../../src/utils/clubMembership';
 import { processMollieWebhook } from '../../functions/src/mollieWebhookLogic';
 import {
+  adminCreateClubMemberHandler,
   cancelMembershipHandler,
+  memberSlugBase,
+  type AdminCreateMemberDeps,
   createMembershipCheckoutHandler,
   expireClubMembershipsHandler,
   type MembershipDeps,
@@ -707,5 +710,152 @@ describe('expireClubMemberships', () => {
     expect(memberships.get('running')).toMatchObject({ status: 'cancelled' });
     expect(memberships.get('active')).toMatchObject({ status: 'active' });
     expect(clubFlags.has('running')).toBe(false);
+  });
+});
+
+describe('adminCreateClubMember (paper forms)', () => {
+  function makeAdminDeps(
+    opts: {
+      users?: Array<{ uid: string; email: string }>;
+      memberships?: Record<string, Doc>;
+      createRace?: boolean;
+      mailFails?: boolean;
+    } = {}
+  ) {
+    const users = [...(opts.users ?? [])];
+    const base = makeDeps({
+      roles: { admin: { role: 'Admin' }, mod: { role: 'RegionModerator', regionIds: ['tirol'] } },
+      memberships: opts.memberships,
+    });
+    const mails: Array<{ to: string; text: string; html: string }> = [];
+    const createUser = vi.fn(async ({ email }: { email: string; displayName: string }) => {
+      if (opts.createRace) {
+        users.push({ uid: 'raced', email });
+        throw Object.assign(new Error('exists'), { code: 'auth/email-already-exists' });
+      }
+      const user = { uid: `new_${users.length}`, email };
+      users.push(user);
+      return user;
+    });
+    const seedProfile = vi.fn(async () => {});
+    const deps: AdminCreateMemberDeps = {
+      ...base.deps,
+      getUserByEmail: async (email) =>
+        users.find((u) => u.email.toLowerCase() === email.toLowerCase()) ?? null,
+      createUser,
+      seedProfile,
+      passwordSetupUrl: async (email) =>
+        `https://site.test/auth-action?mode=resetPassword&oobCode=${email}`,
+      sendMail: async (payload) => {
+        if (opts.mailFails) throw new Error('mailgun down');
+        mails.push(payload);
+      },
+    };
+    return { ...base, deps, users, createUser, seedProfile, mails };
+  }
+
+  const req = (data: Doc, uid: string | null = 'admin') => ({ auth: uid ? { uid } : null, data });
+  const paper = { name: 'Berta Beispiel', email: 'Berta@Example.org', amount: 5 };
+
+  it('only Super-Admins may create members', async () => {
+    const { deps } = makeAdminDeps();
+    await expect(adminCreateClubMemberHandler(req(paper, 'mod'), deps)).rejects.toMatchObject({
+      code: 'permission-denied',
+    });
+    await expect(adminCreateClubMemberHandler(req(paper, 'someone'), deps)).rejects.toMatchObject({
+      code: 'permission-denied',
+    });
+  });
+
+  it('links an existing account with the same e-mail and never creates a second one', async () => {
+    const { deps, createUser, seedProfile, memberships, clubFlags, mails } = makeAdminDeps({
+      users: [{ uid: 'existing', email: 'berta@example.org' }],
+    });
+    const result = await adminCreateClubMemberHandler(req(paper), deps);
+    expect(result).toEqual({
+      uid: 'existing',
+      createdAccount: false,
+      alreadyMember: false,
+      emailSent: true,
+    });
+    expect(createUser).not.toHaveBeenCalled();
+    expect(seedProfile).not.toHaveBeenCalled();
+    expect(memberships.get('existing')).toMatchObject({
+      status: 'active',
+      source: 'manual',
+      name: 'Berta Beispiel',
+      email: 'berta@example.org',
+      amount: 5,
+      statutesAcceptance: 'paper',
+      createdBy: 'admin',
+    });
+    expect(clubFlags.get('existing')).toBe(true);
+    expect(mails).toHaveLength(1);
+    expect(mails[0].text).toContain('kein zweiter Account');
+    expect(mails[0].text).not.toContain('oobCode');
+    expect(mails[0].text).toContain('/datenschutz#vereinsmitglieder');
+  });
+
+  it('creates a new account with name and e-mail and mails the password link', async () => {
+    const { deps, createUser, seedProfile, users, mails } = makeAdminDeps();
+    const result = await adminCreateClubMemberHandler(req({ ...paper, amount: null }), deps);
+    expect(result.createdAccount).toBe(true);
+    expect(createUser).toHaveBeenCalledTimes(1);
+    expect(createUser).toHaveBeenCalledWith({
+      email: 'berta@example.org',
+      displayName: 'Berta Beispiel',
+    });
+    expect(seedProfile).toHaveBeenCalledWith(result.uid, {
+      name: 'Berta Beispiel',
+      email: 'berta@example.org',
+    });
+    expect(users).toHaveLength(1);
+    expect(mails[0].to).toBe('berta@example.org');
+    expect(mails[0].text).toContain('oobCode=berta@example.org');
+    expect(mails[0].text).toContain('/datenschutz#vereinsmitglieder');
+  });
+
+  it('links the account when someone registered with the address a moment ago', async () => {
+    const { deps, users } = makeAdminDeps({ createRace: true });
+    const result = await adminCreateClubMemberHandler(req(paper), deps);
+    expect(result).toMatchObject({ uid: 'raced', createdAccount: false });
+    expect(users).toHaveLength(1);
+  });
+
+  it('a second run for the same person changes nothing', async () => {
+    const { deps, memberships, mails } = makeAdminDeps({
+      users: [{ uid: 'existing', email: 'berta@example.org' }],
+      memberships: { existing: { status: 'active', source: 'web', amount: 12.9 } },
+    });
+    const result = await adminCreateClubMemberHandler(req(paper), deps);
+    expect(result).toMatchObject({ alreadyMember: true, emailSent: false });
+    expect(memberships.get('existing')).toMatchObject({ source: 'web', amount: 12.9 });
+    expect(mails).toHaveLength(0);
+  });
+
+  it('checks name, e-mail and the optional amount', async () => {
+    const { deps } = makeAdminDeps();
+    for (const bad of [
+      { ...paper, name: 'B' },
+      { ...paper, email: 'nope' },
+      { ...paper, amount: 2 },
+    ]) {
+      await expect(adminCreateClubMemberHandler(req(bad), deps)).rejects.toMatchObject({
+        code: 'invalid-argument',
+      });
+    }
+  });
+
+  it('keeps the membership when the mail fails', async () => {
+    const { deps, memberships } = makeAdminDeps({ mailFails: true });
+    const result = await adminCreateClubMemberHandler(req(paper), deps);
+    expect(result.emailSent).toBe(false);
+    expect(memberships.get(result.uid)).toMatchObject({ status: 'active' });
+  });
+
+  it('builds a readable profile address from the name', () => {
+    expect(memberSlugBase('Anna Müller-Groß')).toBe('anna-mueller-gross');
+    expect(memberSlugBase('  Zoë  ')).toBe('zoe');
+    expect(memberSlugBase('***')).toBe('mitglied');
   });
 });

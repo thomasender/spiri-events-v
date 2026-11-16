@@ -454,7 +454,7 @@ export default function MembersTab() {
           : 'Alle registrierten Mitglieder. Dieser Bereich ist nur für Admins sichtbar.'}
       </p>
 
-      {isAdmin && <PioniereAdminSection />}
+      {isAdmin && <PioniereAdminSection onMemberCreated={reload} />}
 
       <div className="members-toolbar">
         <label className="members-search">

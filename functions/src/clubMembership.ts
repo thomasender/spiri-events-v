@@ -5,6 +5,7 @@
  *   createMembershipCheckout({ amount, name, consents })  signed in
  *   cancelMembership()                                     signed in, own membership
  *   expireClubMemberships                                  daily: gekündigt -> ended
+ *   adminCreateClubMember({ email, name, amount?, sendEmail? })  Super-Admin (paper forms)
  *
  * Joining needs a login (no guest accounts from here). The membership only
  * becomes active when the first Mollie payment is paid (mollieWebhookLogic.ts,
@@ -19,7 +20,7 @@ import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { appCheckOptions, logMissingAppCheck } from './appCheck';
 import { ALLOWED_ORIGINS } from './allowedOrigins';
 import { enforceRateLimit } from './rateLimit';
-import { readRoleDoc, type RoleDocReader } from './staffRoles';
+import { assertSuperAdmin, readRoleDoc, type RoleDocReader } from './staffRoles';
 import { isSuperAdminDoc } from './adminEmails';
 import {
   MOLLIE_API_KEY,
@@ -45,8 +46,13 @@ import {
   type MembershipSettings,
 } from './clubMembershipLogic';
 import { viennaDateString, type MembershipNotice } from './mollieWebhookLogic';
-import { buildMembershipWelcomePayload, type EmailPayload } from './emailTemplates';
-import { inviteBaseUrl } from './moderatorInvites';
+import {
+  buildClubMemberInvitePayload,
+  buildMembershipWelcomePayload,
+  type EmailPayload,
+} from './emailTemplates';
+import { inviteBaseUrl, normalizeInviteEmail } from './moderatorInvites';
+import { requestSiteOrigin } from './siteOrigin';
 import {
   MAILGUN_API_KEY,
   MAILGUN_DOMAIN,
@@ -359,6 +365,134 @@ export async function expireClubMembershipsHandler(deps: MembershipDeps): Promis
   return ended;
 }
 
+// ── Super-Admin: Mitglied anlegen (paper forms) ──────────────────────────
+
+const ADMIN_LIMIT = { maxAttempts: 30, windowMs: 10 * 60 * 1000 };
+
+export interface AdminCreateMemberDeps extends MembershipDeps {
+  getUserByEmail: (email: string) => Promise<MembershipUser | null>;
+  /** Creates the Auth account; throws `auth/email-already-exists` on a race. */
+  createUser: (params: { email: string; displayName: string }) => Promise<MembershipUser>;
+  /** users/{uid} + publicProfile/data for a brand-new account (name, e-mail, slug). */
+  seedProfile: (uid: string, params: { name: string; email: string }) => Promise<void>;
+  /** Link to set the password on our own /auth-action page. */
+  passwordSetupUrl: (email: string) => Promise<string>;
+  sendMail: (payload: EmailPayload) => Promise<void>;
+}
+
+export interface AdminCreateMemberResult {
+  uid: string;
+  createdAccount: boolean;
+  alreadyMember: boolean;
+  emailSent: boolean;
+}
+
+/**
+ * A member from another (paper) form: the Super-Admin types name and e-mail.
+ * An existing account with that e-mail is linked, never a second one created;
+ * otherwise a new account is made and the invitation mail carries the link to
+ * set the password. Both mails link the privacy section for Vereinsmitglieder.
+ */
+export async function adminCreateClubMemberHandler(
+  request: CallableRequest,
+  deps: AdminCreateMemberDeps
+): Promise<AdminCreateMemberResult> {
+  const actorUid = request.auth?.uid;
+  await assertSuperAdmin(actorUid, deps.readRoleDoc);
+  deps.enforceRateLimit(request as never, 'membershipAdmin', ADMIN_LIMIT);
+
+  const data = (request.data ?? {}) as {
+    email?: unknown;
+    name?: unknown;
+    amount?: unknown;
+    sendEmail?: unknown;
+  };
+  const email = normalizeInviteEmail(data.email);
+  const name = normalizeMemberName(data.name);
+  if (!name) throw new HttpsError('invalid-argument', 'Please enter the name.');
+  let amount: number | null = null;
+  if (data.amount !== undefined && data.amount !== null && data.amount !== '') {
+    if (!isValidMembershipAmount(data.amount)) {
+      throw new HttpsError(
+        'invalid-argument',
+        `amount must be at least ${MIN_MEMBERSHIP_AMOUNT.toFixed(2)} EUR`
+      );
+    }
+    amount = data.amount;
+  }
+  const sendEmail = data.sendEmail !== false;
+
+  let user = await deps.getUserByEmail(email);
+  let createdAccount = false;
+  if (!user) {
+    try {
+      user = await deps.createUser({ email, displayName: name });
+      createdAccount = true;
+    } catch (err) {
+      // Someone registered with this address in the meantime: link that account.
+      if ((err as { code?: string })?.code !== 'auth/email-already-exists') throw err;
+      user = await deps.getUserByEmail(email);
+      if (!user) throw err;
+    }
+    if (createdAccount) await deps.seedProfile(user.uid, { name, email });
+  }
+  const uid = user.uid;
+
+  const now = deps.now();
+  const existing = await deps.getMembership(uid);
+  if (isMembershipRunning(existing, todayOf(now))) {
+    return { uid, createdAccount, alreadyMember: true, emailSent: false };
+  }
+
+  const settings = await deps.readSettings();
+  const at = new Date(now);
+  await deps.setMembership(
+    uid,
+    {
+      uid,
+      status: 'active',
+      source: 'manual',
+      name,
+      email,
+      amount,
+      currency: MEMBERSHIP_CURRENCY,
+      mollieCustomerId: null,
+      mollieSubscriptionId: null,
+      // Accepted on the paper form; the version is the one valid today.
+      statutesAcceptance: 'paper',
+      statutesAcceptedAt: at,
+      statutesVersion: settings.statutesVersion || settings.statutesUrl || null,
+      paidUntil: null,
+      joinedAt: at,
+      createdBy: actorUid,
+      createdAt: at,
+      updatedAt: at,
+    },
+    { merge: false }
+  );
+  await deps.setClubMemberFlag(uid, true);
+
+  let emailSent = false;
+  if (sendEmail) {
+    try {
+      const passwordUrl = createdAccount ? await deps.passwordSetupUrl(email) : null;
+      await deps.sendMail(
+        buildClubMemberInvitePayload({
+          recipient: email,
+          name,
+          passwordUrl,
+          baseUrl: inviteBaseUrl(),
+        })
+      );
+      emailSent = true;
+    } catch (err) {
+      // The membership stays; the admin can send a password mail via "Passwort vergessen".
+      logger.error('club member invitation mail failed', { uid, err: describeError(err) });
+    }
+  }
+  return { uid, createdAccount, alreadyMember: false, emailSent };
+}
+
 // ── Firebase wiring ──────────────────────────────────────────────────────
 
 export async function sendViaMailgun(payload: EmailPayload): Promise<void> {
@@ -469,6 +603,127 @@ export const cancelMembership = onCall(
       firestoreMembershipDeps(MOLLIE_API_KEY.value())
     );
     logger.info('cancelMembership', { uid: request.auth?.uid, status: result.status });
+    return result;
+  }
+);
+
+/** "Anna Müller" -> "anna-mueller" (same idea as slugifyName in src/lib/slug-helpers.js). */
+export function memberSlugBase(name: string): string {
+  return (
+    name
+      .replace(/ä/g, 'ae')
+      .replace(/ö/g, 'oe')
+      .replace(/ü/g, 'ue')
+      .replace(/Ä/g, 'Ae')
+      .replace(/Ö/g, 'Oe')
+      .replace(/Ü/g, 'Ue')
+      .replace(/ß/g, 'ss')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/[\s_-]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'mitglied'
+  );
+}
+
+async function uniqueProfileSlug(name: string): Promise<string> {
+  const db = getFirestore();
+  const base = memberSlugBase(name);
+  for (let n = 1; n < 50; n += 1) {
+    const slug = n === 1 ? base : `${base}-${n}`;
+    const taken = await db
+      .collectionGroup('publicProfile')
+      .where('slug', '==', slug)
+      .limit(1)
+      .get();
+    if (taken.empty) return slug;
+  }
+  return `${base}-${Date.now().toString(36)}`;
+}
+
+function adminCreateDeps(siteOrigin: string): AdminCreateMemberDeps {
+  const db = getFirestore();
+  const auth = getAuth();
+  const toUser = (u: { uid: string; email?: string; displayName?: string }): MembershipUser => ({
+    uid: u.uid,
+    email: u.email ?? null,
+    displayName: u.displayName ?? null,
+  });
+  return {
+    ...firestoreMembershipDeps(),
+    async getUserByEmail(email) {
+      try {
+        return toUser(await auth.getUserByEmail(email));
+      } catch (err) {
+        if ((err as { code?: string })?.code === 'auth/user-not-found') return null;
+        throw err;
+      }
+    },
+    async createUser({ email, displayName }) {
+      return toUser(await auth.createUser({ email, displayName, emailVerified: false }));
+    },
+    async seedProfile(uid, { name, email }) {
+      const slug = await uniqueProfileSlug(name);
+      const now = FieldValue.serverTimestamp();
+      const batch = db.batch();
+      batch.set(
+        db.doc(`users/${uid}`),
+        {
+          displayName: name,
+          bio: '',
+          website: '',
+          contact: email,
+          photoURL: null,
+          slug,
+          notifyNewsletter: false,
+          onboardingCompleted: false,
+          siteOrigin,
+          createdAt: now,
+          updatedAt: now,
+        },
+        { merge: true }
+      );
+      batch.set(
+        db.doc(`users/${uid}/publicProfile/data`),
+        { displayName: name, bio: '', website: '', photoURL: null, slug, updatedAt: now },
+        { merge: true }
+      );
+      await batch.commit();
+    },
+    async passwordSetupUrl(email) {
+      const link = await auth.generatePasswordResetLink(email, {
+        url: `${siteOrigin}/auth-action?mode=resetPassword`,
+      });
+      const oobCode = new URL(link).searchParams.get('oobCode');
+      if (!oobCode) throw new Error('No oobCode in the password reset link.');
+      return `${siteOrigin}/auth-action?mode=resetPassword&oobCode=${encodeURIComponent(oobCode)}`;
+    },
+    sendMail: sendViaMailgun,
+  };
+}
+
+export const adminCreateClubMember = onCall(
+  {
+    region: REGION,
+    cors: ALLOWED_ORIGINS,
+    secrets: MEMBERSHIP_MAIL_SECRETS,
+    ...appCheckOptions(),
+  },
+  async (request) => {
+    logMissingAppCheck('adminCreateClubMember', request);
+    const result = await adminCreateClubMemberHandler(
+      request,
+      adminCreateDeps(requestSiteOrigin(request))
+    );
+    logger.info('adminCreateClubMember', {
+      actorUid: request.auth?.uid,
+      uid: result.uid,
+      createdAccount: result.createdAccount,
+      alreadyMember: result.alreadyMember,
+      emailSent: result.emailSent,
+    });
     return result;
   }
 );
