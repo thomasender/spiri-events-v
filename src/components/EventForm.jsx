@@ -216,7 +216,10 @@ export default function EventForm({ event }) {
         registration: event.registration || '',
       };
     }
-    const organizerDefault = getOrganizerDefault(user?.displayName, user?.email);
+    const organizerDefault = getOrganizerDefault(
+      profile?.displayName || user?.displayName,
+      user?.email
+    );
     return {
       ...INITIAL_STATE,
       organizer: {

@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from './useAuth';
+import { useProfile } from './useProfile';
 import { getStaffAccess, messageAuthorRole } from '../utils/staffRoles';
 import {
   sanitizeHtml,
@@ -25,6 +26,7 @@ import {
 // writes as staff ('Admin') or, on her own event, as the organizer.
 export function useEventMessages(eventId, { ownerUid = null } = {}) {
   const { user, role, staffRegionIds } = useAuth();
+  const { profile } = useProfile(user?.uid);
   const authorRole = messageAuthorRole(
     getStaffAccess(role, staffRegionIds),
     Boolean(user && ownerUid && ownerUid === user.uid)
@@ -89,7 +91,7 @@ export function useEventMessages(eventId, { ownerUid = null } = {}) {
           text: clean,
           authorUid: user.uid,
           authorRole,
-          authorName: user.displayName || user.email || 'Unbekannt',
+          authorName: profile?.username || user.displayName || user.email || 'Unbekannt',
           createdAt: serverTimestamp(),
           readByRecipient: false,
           ...(kind === 'rejection' && authorRole === 'Admin' ? { kind } : {}),
@@ -98,7 +100,7 @@ export function useEventMessages(eventId, { ownerUid = null } = {}) {
         setSending(false);
       }
     },
-    [user, authorRole, eventId]
+    [user, profile?.username, authorRole, eventId]
   );
 
   const markAsRead = useCallback(
