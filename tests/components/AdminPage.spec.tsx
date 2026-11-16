@@ -147,6 +147,9 @@ vi.mock('../../src/components/ModerationTab', () => ({
 vi.mock('../../src/components/ModerationLogTab', () => ({
   default: () => <div data-testid="moderation-log-tab-stub">Protokoll</div>,
 }));
+vi.mock('../../src/components/FunFactsTab', () => ({
+  default: () => <div data-testid="funfacts-tab-stub">Fun Facts</div>,
+}));
 vi.mock('../../src/components/RegionsTab', () => ({
   default: () => <div data-testid="regions-tab-stub">Regionen</div>,
 }));
@@ -641,6 +644,7 @@ describe('AdminPage access per role', () => {
     'admin-tab-moderation',
     'admin-tab-protokoll',
     'admin-tab-regions',
+    'admin-tab-funfacts',
   ];
 
   function asModerator(regionIds = ['tirol']) {
@@ -709,6 +713,7 @@ describe('AdminPage access per role', () => {
     'moderation',
     'protokoll',
     'regions',
+    'funfacts',
   ])('moderator opening ?tab=%s directly gets "Kein Zugriff", not the content', (tab) => {
     asModerator();
     mockUseHasFeedback.hasFeedback = true;
@@ -718,6 +723,24 @@ describe('AdminPage access per role', () => {
     expect(screen.queryByTestId('moderation-tab-stub')).not.toBeInTheDocument();
     expect(screen.queryByTestId('moderation-log-tab-stub')).not.toBeInTheDocument();
     expect(screen.queryByTestId('regions-tab-stub')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('funfacts-tab-stub')).not.toBeInTheDocument();
+  });
+
+  it('Super-Admin opens Fun Facts under Dashboard & Einstellungen', () => {
+    mockAuth.role = 'Admin';
+    renderAdmin(['/admin?tab=funfacts']);
+    expect(screen.getByTestId('admin-group-menu-settings')).toContainElement(
+      screen.getByTestId('admin-tab-funfacts')
+    );
+    expect(screen.getByTestId('admin-tab-funfacts')).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByTestId('funfacts-tab-stub')).toBeInTheDocument();
+  });
+
+  it('organizers get "Kein Zugriff" for Fun Facts', () => {
+    mockAuth.role = 'User';
+    renderAdmin(['/admin?tab=funfacts']);
+    expect(screen.getByTestId('no-access')).toBeInTheDocument();
+    expect(screen.queryByTestId('funfacts-tab-stub')).not.toBeInTheDocument();
   });
 
   it('Super-Admin opens the Protokoll tab by URL', () => {

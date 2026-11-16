@@ -25,6 +25,7 @@ import {
   Wallet,
   HelpCircle,
   ScrollText,
+  Sparkles,
 } from 'lucide-react';
 import SeoMeta from '../components/SeoMeta';
 import EventList from '../components/EventList';
@@ -41,6 +42,7 @@ import DonorsTab from '../components/DonorsTab';
 import MembersTab from '../components/MembersTab';
 import InstagramTab from '../components/InstagramTab';
 import AnalyticsTab from '../components/AnalyticsTab';
+import FunFactsTab from '../components/FunFactsTab';
 import ModerationTab from '../components/ModerationTab';
 import ModerationLogTab from '../components/ModerationLogTab';
 import RegionsTab from '../components/RegionsTab';
@@ -104,6 +106,7 @@ const TAB_GROUPS = [
     Icon: BarChart3,
     tabs: [
       { id: 'analytics', label: 'Statistik', Icon: BarChart3 },
+      { id: 'funfacts', label: 'Fun Facts', Icon: Sparkles },
       { id: 'ledger', label: 'Finanzen', Icon: Wallet },
       { id: 'theme', label: 'Theme', Icon: Palette },
       { id: 'trash', label: 'Papierkorb', Icon: Trash2 },
@@ -137,6 +140,7 @@ const PANELS = {
   chat: ChatTab,
   instagram: InstagramTab,
   analytics: AnalyticsTab,
+  funfacts: FunFactsTab,
   mailgun: MailgunTab,
   ledger: LedgerTab,
   faq: FaqTab,
@@ -200,6 +204,7 @@ export default function AdminPage() {
       chat: allowedTabs.has('chat'),
       instagram: isAdmin,
       analytics: isAdmin,
+      funfacts: isAdmin,
       moderation: isAdmin,
       regions: isAdmin,
       about: allowedTabs.has('about'),

@@ -38,6 +38,7 @@ import '../components/DonorsTab.css';
 import '../components/MembersTab.css';
 import '../components/InstagramTab.css';
 import '../components/AnalyticsTab.css';
+import '../components/FunFactsTab.css';
 import '../components/MailgunTab.css';
 import '../components/LedgerTab.css';
 import '../components/FaqTab.css';

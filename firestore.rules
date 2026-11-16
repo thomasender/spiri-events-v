@@ -626,9 +626,18 @@ service cloud.firestore {
 
     // Moderation log (admin tab "Protokoll"): one entry per approval,
     // rejection, edit, trash, restore and delete of an event, written only by
-    // the event triggers in functions/src/eventRevisionTrigger.ts (Admin SDK).
+    // the event triggers in functions/src/eventRevisionTrigger.ts and the
+    // "Rückfrage" entry of onAdminMessageCreated (Admin SDK).
     // Super-Admins only; moderators and organizers never read it.
     match /moderation_log/{entryId} {
+      allow read: if isAdminOrEmulatorAdmin();
+      allow write: if false;
+    }
+
+    // Cached numbers of the Super-Admin tab "Fun Facts" (app_stats/fun_facts),
+    // written only by the callable adminFunFacts (Admin SDK). Super-Admins
+    // only; nobody writes from the client.
+    match /app_stats/{statId} {
       allow read: if isAdminOrEmulatorAdmin();
       allow write: if false;
     }
