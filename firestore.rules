@@ -1572,6 +1572,39 @@ service cloud.firestore {
       allow delete: if isChatStaff();
     }
 
+    // ---- Vereinsmitgliedschaft "Pioniere" (Trello 6af620c0) ----------------
+    // Feature flag app_settings/membership { mode: 'off' | 'admins' | 'all',
+    // statutesUrl, statutesVersion }. A missing doc means off. Public read (the
+    // wizard needs mode and the Statuten link) via the app_settings match above.
+    function isValidMembershipSettings(d) {
+      return d.mode in ['off', 'admins', 'all']
+        && (!('statutesUrl' in d)
+            || (d.statutesUrl is string && d.statutesUrl.size() <= 500
+                && (d.statutesUrl == '' || d.statutesUrl.matches('^(https://|/).*$'))))
+        && (!('statutesVersion' in d)
+            || (d.statutesVersion is string && d.statutesVersion.size() <= 40));
+    }
+
+    match /app_settings/membership {
+      allow create: if isChatStaff()
+                    && request.resource.data.keys().hasOnly(
+                        ['mode', 'statutesUrl', 'statutesVersion', 'updatedAt', 'updatedBy'])
+                    && isValidMembershipSettings(request.resource.data);
+      allow update: if isChatStaff()
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['mode', 'statutesUrl', 'statutesVersion', 'updatedAt', 'updatedBy'])
+                    && isValidMembershipSettings(request.resource.data);
+      allow delete: if isChatStaff();
+    }
+
+    // club_memberships/{uid}: amount, Mollie ids, status, Statuten consent. The
+    // member and the Super-Admins read; every write goes through the Cloud
+    // Functions (functions/src/clubMembership.ts, mollieWebhookLogic.ts).
+    match /club_memberships/{uid} {
+      allow read: if (isAuthenticated() && request.auth.uid == uid) || isAdminOrEmulatorAdmin();
+      allow write: if false;
+    }
+
     // ---- Private messenger "Postfach" (docs/messenger.md) -------------------
     // Feature flag: app_settings/messenger { mode: 'off' | 'admins' | 'all' },
     // same semantics as the chat flag. A missing doc means off.

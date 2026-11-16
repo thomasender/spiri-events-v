@@ -156,6 +156,12 @@ export const createMolliePayment = onCall(
 );
 
 export { mollieWebhook } from './mollieWebhook';
+export {
+  createMembershipCheckout,
+  cancelMembership,
+  expireClubMemberships,
+  adminCreateClubMember,
+} from './clubMembership';
 export { processMollieWebhook, handlePaidPayment } from './mollieWebhook';
 
 export {

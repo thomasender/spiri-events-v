@@ -50,6 +50,7 @@ export const RESERVED_USERNAMES = new Set([
   'impressum',
   'auth-action',
   'einladung',
+  'pioniere',
   'login-anleitungen',
   'api',
   'static',

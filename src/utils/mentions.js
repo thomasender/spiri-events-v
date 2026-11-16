@@ -117,6 +117,7 @@ export function splitMentions(text, mentions) {
 // Kerzenraum at the bottom of the event page.
 export function mentionLink(mention) {
   if (mention?.kind === 'donation') return '/admin';
+  if (mention?.kind === 'membership') return '/admin?tab=members';
   if (mention?.kind === 'event') {
     const slug = mention.eventSlug || mention.eventId;
     return slug ? `/event/${slug}#msg-${mention.messageId}` : '/';
@@ -132,6 +133,7 @@ export function mentionLink(mention) {
 // "Anna hat dich im Lagerfeuer erwähnt" / "... im Kerzenraum von «Yoga»".
 export function describeMention(mention, roomName) {
   if (mention?.kind === 'donation') return mention.excerpt || 'Neue Spende';
+  if (mention?.kind === 'membership') return mention.excerpt || 'Neues Vereinsmitglied';
   const who = mention?.fromName || 'Jemand';
   if (mention?.kind === 'event') {
     return mention.eventTitle

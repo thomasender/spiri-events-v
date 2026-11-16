@@ -55,6 +55,7 @@ vi.mock('../../src/hooks/useMemberLists', () => ({
 vi.mock('../../src/hooks/useMemberEvents', () => ({
   useMemberEvents: () => ({ events: state.memberEvents, loading: false, error: null }),
 }));
+vi.mock('../../src/components/PioniereAdminSection', () => ({ default: () => null }));
 vi.mock('../../src/hooks/useCategories', () => ({ useCategories: () => ['Yoga', 'Tanz'] }));
 
 const member = (uid: string, over: Record<string, unknown> = {}) => ({

@@ -1,0 +1,69 @@
+/* Pioniere sign-up (/pioniere, Trello 6af620c0). The card and the wizard reuse the
+   moderator onboarding styles (ModeratorOnboardingPage.css / ModeratorOnboardingWizard.css). */
+
+.pioniere-hint {
+  margin: 0;
+  font-size: var(--text-85);
+  color: var(--text-light);
+}
+
+.pioniere-amounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.pioniere-amounts legend {
+  margin-bottom: var(--space-2);
+  padding: 0;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pioniere-amount {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-calendar);
+  cursor: pointer;
+}
+
+.pioniere-amount--on {
+  border-color: var(--accent-primary);
+  background-color: var(--accent-soft);
+  font-weight: 600;
+}
+
+.pioniere-custom {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex-basis: 100%;
+  font-size: var(--text-90);
+  color: var(--text-secondary);
+}
+
+.pioniere-custom input {
+  max-width: 12rem;
+}
+
+.pioniere-placeholder {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px dashed var(--error);
+  border-radius: var(--radius-sm);
+  color: var(--error);
+  font-weight: 600;
+}
+
+.pioniere-membership-status {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}

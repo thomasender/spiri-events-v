@@ -1,0 +1,63 @@
+.pioniere-admin {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-calendar);
+}
+
+.pioniere-admin-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--text-110);
+}
+
+.pioniere-admin-statutes,
+.pioniere-admin-create {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.pioniere-admin-statutes label,
+.pioniere-admin-create label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--text-90);
+  color: var(--text-secondary);
+}
+
+.pioniere-admin-statutes button,
+.pioniere-admin-create button {
+  align-self: flex-start;
+}
+
+.pioniere-admin-warning {
+  margin: 0;
+  color: var(--error);
+  font-weight: 600;
+  font-size: var(--text-90);
+}
+
+.pioniere-admin-add {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.pioniere-admin-add > .pioniere-admin-create {
+  align-self: stretch;
+}
+
+.pioniere-admin-create .pioniere-admin-check {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-2);
+}

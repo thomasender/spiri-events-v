@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import SeoMeta from '../components/SeoMeta';
 import './LegalPage.css';
 import { CANDLE_ROOM_NAME } from '../utils/candleRoom';
@@ -100,6 +101,7 @@ Nach der Freigabe sind die Angaben zum Event, einschließlich Veranstalter-Name 
 
 *Wenn Sie Mitglied des Vereins Tribe Vorarlberg sind:*
 - Die Angabe, dass Sie Vereinsmitglied sind; sie wird nur mit Ihrer Einwilligung als Abzeichen an Ihrem Profilbild öffentlich angezeigt (siehe Abschnitt 18)
+- Bei der Vereinsaufnahme: die Angaben zu Ihrer Mitgliedschaft und zur Zahlung des Mitgliedsbeitrags (siehe Abschnitt 19)
 
 *Bei einer Spende mit Eintrag in der Spenderliste (freiwillig):*
 - Ein optionaler Kommentar (max. 140 Zeichen), den Sie nur zusammen mit Ihrer Einwilligung zur Nennung in der Spenderliste angeben können; er wird zusammen mit Ihrem Eintrag öffentlich auf der „Über uns“-Seite angezeigt. Sie können Ihre Einwilligung jederzeit per E-Mail an admin@thetribe.at widerrufen, dann entfernen wir Kommentar und Eintrag
@@ -129,11 +131,13 @@ Nach der Freigabe sind die Angaben zum Event, einschließlich Veranstalter-Name 
       },
       {
         heading: '4. Keine Weitergabe an Dritte',
-        text: `Wir geben Ihre personenbezogenen Daten nicht an Dritte weiter (Ausnahmen: die freiwillige Veröffentlichung Ihrer Events auf Instagram mit Ihrer Einwilligung, siehe Abschnitt 12, sowie die Nutzungsstatistik mit Google Analytics, die nur mit Ihrer Einwilligung erfolgt, siehe Abschnitt 7). Ihre Daten werden nicht verkauft, vermietet oder in sonstiger Weise an externe Unternehmen oder Organisationen übermittelt.
+        text: `Wir geben Ihre personenbezogenen Daten nicht an Dritte weiter (Ausnahmen: die freiwillige Veröffentlichung Ihrer Events auf Instagram mit Ihrer Einwilligung, siehe Abschnitt 12, die Nutzungsstatistik mit Google Analytics, die nur mit Ihrer Einwilligung erfolgt, siehe Abschnitt 7, sowie die Zahlungsabwicklung über Mollie bei Mitgliedsbeiträgen und Spenden, siehe unten und Abschnitt 19). Ihre Daten werden nicht verkauft, vermietet oder in sonstiger Weise an externe Unternehmen oder Organisationen übermittelt.
 
 Firebase (Google) fungiert als Auftragsverarbeiter und erhält Ihre Daten nur insoweit, als dies für die Bereitstellung der Authentifizierungs-, Datenbank- und Hosting-Dienste erforderlich ist.
 
 *E-Mail-Versand (Mailgun):* Unsere automatischen E-Mails (z.B. zum Status Ihrer Events, zum Zurücksetzen des Passworts und Benachrichtigungen über neue Nachrichten, siehe Abschnitte 14 und 15) versenden wir über den Dienst Mailgun der Mailgun Technologies, Inc. (USA). Wir nutzen die EU-Region von Mailgun. Mailgun erhält dafür Ihre E-Mail-Adresse und den Inhalt der jeweiligen E-Mail und speichert Versandprotokolle (Empfängeradresse, Betreff, Zeitpunkt, Zustellstatus) für begrenzte Zeit, um die Zustellung nachvollziehen zu können. Mailgun ist als Auftragsverarbeiter auf Grundlage eines Auftragsverarbeitungsvertrags gemäß Art. 28 DSGVO tätig und verarbeitet die Daten nur nach unserer Weisung. Soweit dabei Daten in die USA übermittelt werden können, erfolgt dies auf Grundlage der EU-Standardvertragsklauseln bzw. des EU-US Data Privacy Framework.
+
+*Zahlungsabwicklung (Mollie):* Wenn Sie einen Mitgliedsbeitrag oder eine Spende bezahlen, wickeln wir die Zahlung über den Zahlungsdienstleister Mollie ab. Mollie erhält dafür die zur Zahlung nötigen Angaben (insbesondere Name, E-Mail-Adresse, Betrag und gewählte Zahlungsart) und verarbeitet sie für die Abwicklung der Zahlung. Zahlungsdaten wie Kartennummer oder Bankverbindung geben Sie direkt bei Mollie ein; wir selbst erhalten sie nicht. Es gelten zusätzlich die Datenschutzbestimmungen von Mollie. Näheres zur Vereinsmitgliedschaft steht in Abschnitt 19.
 
 Wenn Sie den Kalender in einer Kalender-App oder bei einem Kalenderdienst (z.B. Google Kalender) abonnieren, ruft dieser Dienst die öffentlichen Event-Daten auf Ihre Veranlassung bei uns ab (siehe Abschnitt 13).`,
       },
@@ -149,9 +153,10 @@ Wenn Sie den Kalender in einer Kalender-App oder bei einem Kalenderdienst (z.B. 
 - *Zeitpunkt der letzten Benachrichtigungs-E-Mail:* Wird nur zur Begrenzung der Anzahl der E-Mails gespeichert und automatisch gelöscht, bei Privatnachrichten nach einem Tag, beim ${CANDLE_ROOM_NAME} nach zwei Tagen (siehe Abschnitte 14 und 15)
 - *Online-Status:* Der Zeitstempel wird beim Verlassen der Seite, beim Abmelden und beim Ausschalten der Option gelöscht, spätestens nach einem Tag automatisch (siehe Abschnitt 16)
 - *Vereinsmitgliedschaft (Abzeichen):* Wird entfernt, wenn Ihre Mitgliedschaft endet, wenn Sie Ihre Einwilligung widerrufen oder wenn Sie Ihr Konto löschen (siehe Abschnitt 18)
+- *Mitgliedsdaten und Zahlungsdaten (Mitgliedschaft, Spenden):* Werden so lange gespeichert, wie es für die Mitgliedschaft bzw. die Abwicklung nötig ist; danach werden sie gelöscht, soweit uns keine gesetzlichen Aufbewahrungspflichten zur Speicherung verpflichten (siehe Abschnitt 19)
 - *Server-Protokolle:* Siehe Abschnitt 9
 
-Nach einer Löschunganfrage werden die Daten innerhalb von 30 Tagen entfernt.`,
+Nach einer Löschunganfrage werden die Daten innerhalb von 30 Tagen entfernt, soweit keine gesetzliche Aufbewahrungspflicht entgegensteht.`,
       },
       {
         heading: '6. Ihre Rechte',
@@ -433,7 +438,38 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
 - Beim Löschen Ihres Kontos wird die Angabe zusammen mit Ihrem öffentlichen Profil gelöscht`,
       },
       {
-        heading: '19. Änderungen dieser Datenschutzerklärung',
+        id: 'vereinsmitglieder',
+        heading: '19. Vereinsmitglieder',
+        text: `Dieser Abschnitt gilt, wenn Sie beim Verein Tribe Vorarlberg Mitglied werden oder es bereits sind. Er informiert Sie nach Art. 13 DSGVO über die Verarbeitung Ihrer Daten für die Vereinsmitgliedschaft.
+
+*Verantwortlicher:* Der Verein Tribe Vorarlberg, dessen Kontaktdaten Sie in Abschnitt 1 finden.
+
+*Welche Daten verarbeiten wir?*
+- Ihre Angaben zur Mitgliedschaft (zum Beispiel Name, E-Mail-Adresse, gewählte Mitgliedschaft bzw. Beitragshöhe, Datum des Beitritts und, falls vorhanden, des Austritts)
+- Angaben zur Zahlung des Mitgliedsbeitrags (zum Beispiel Betrag, Zeitpunkt, Status der Zahlung und gewählte Zahlungsart)
+- Wenn Sie bereits ein Konto auf dieser Website haben, übernehmen wir Ihren Namen und Ihre E-Mail-Adresse aus Ihrem Konto in die Vereinsaufnahme, damit Sie diese nicht erneut eingeben müssen
+
+*Wofür verwenden wir die Daten?*
+- Aufnahme und Verwaltung Ihrer Mitgliedschaft, einschließlich der Mitgliederliste des Vereins
+- Abwicklung und Verbuchung des Mitgliedsbeitrags
+- Kontakt mit Ihnen in Angelegenheiten der Mitgliedschaft
+- Erfüllung gesetzlicher Pflichten, zum Beispiel zur Buchhaltung
+
+*Rechtsgrundlagen:*
+- Die Durchführung der Mitgliedschaft und die Abwicklung des Beitrags beruhen auf dem Mitgliedschaftsverhältnis zum Verein (Art. 6 Abs. 1 lit. b DSGVO)
+- Gesetzliche Aufbewahrungspflichten (Art. 6 Abs. 1 lit. c DSGVO)
+- Soweit wir Sie um Ihre Zustimmung bitten, ist die Rechtsgrundlage Ihre Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), die Sie jederzeit mit Wirkung für die Zukunft widerrufen können. Das betrifft zum Beispiel das Abzeichen am Profilbild (siehe Abschnitt 18)
+
+*Empfänger:* Für die Zahlung des Mitgliedsbeitrags nutzen wir den Zahlungsdienstleister Mollie (siehe Abschnitt 4). Mollie erhält die für die Zahlung nötigen Angaben. Darüber hinaus geben wir Ihre Mitgliedsdaten nicht an Dritte weiter, außer wir sind gesetzlich dazu verpflichtet. Technisch werden die Daten, wie die übrigen Daten dieser Website, bei unseren Dienstleistern gespeichert (siehe Abschnitt 9).
+
+*Speicherdauer:* Wir speichern Ihre Mitgliedsdaten, solange Ihre Mitgliedschaft besteht und solange es für ihre Abwicklung nötig ist. Daten, die für die Buchhaltung des Vereins relevant sind (zum Beispiel Zahlungsbelege), bewahren wir für die gesetzlichen Aufbewahrungsfristen auf, nach der Bundesabgabenordnung (BAO) in der Regel sieben Jahre. Danach werden sie gelöscht.
+
+*Ihre Rechte:* Sie haben die in Abschnitt 6 beschriebenen Rechte, insbesondere auf Auskunft, Berichtigung, Löschung und Widerspruch. Schreiben Sie uns dazu an admin@thetribe.at. Wenn Sie der Meinung sind, dass die Verarbeitung Ihrer Daten gegen das Datenschutzrecht verstößt, können Sie sich bei der Datenschutzbehörde beschweren (www.dsb.gv.at).
+
+*Zusammenspiel mit dem Abzeichen:* Dass Sie Mitglied sind, ist nicht automatisch öffentlich. Das Abzeichen am Profilbild (Abschnitt 18) wird nur mit Ihrer gesonderten Einwilligung angezeigt.`,
+      },
+      {
+        heading: '20. Änderungen dieser Datenschutzerklärung',
         text: `Wir behalten uns vor, diese Datenschutzerklärung bei Änderungen der App oder der Rechtslage anzupassen. Die jeweils aktuelle Version finden Sie immer auf dieser Seite.`,
       },
     ],
@@ -773,10 +809,18 @@ function InstagramChannelList({ channels }) {
 
 export default function LegalPage({ page }) {
   const data = content[page];
+  const { hash } = useLocation();
   // Channels of the active regions (Vorarlberg: code default when no handle is stored).
   const { regions, allRegions, pageSlug } = useRegion();
   const homePath = homePathFor({ pageSlug, regions: allRegions });
   const channels = instagramChannels(regions);
+
+  // Deep links like /datenschutz#vereinsmitglieder: scroll once the sections
+  // exist in the DOM, and again whenever the hash changes.
+  useEffect(() => {
+    if (!data || !hash) return;
+    document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView?.();
+  }, [data, hash]);
 
   if (!data) {
     return (
@@ -799,7 +843,7 @@ export default function LegalPage({ page }) {
         <h1 className="legal-title">{data.title}</h1>
         <div className="legal-content">
           {data.sections.map((section, index) => (
-            <section key={index}>
+            <section key={index} id={section.id}>
               <h2>{section.heading}</h2>
               <LegalText
                 text={

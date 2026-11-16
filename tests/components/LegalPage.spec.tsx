@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import LegalPage from '../../src/pages/LegalPage';
 import { DEFAULT_REGION_CONTEXT, RegionContext } from '../../src/hooks/useRegion';
 
@@ -90,6 +90,30 @@ describe('LegalPage formatting', () => {
     expect(headings[8]).toMatch(/^9\. Firebase/);
   });
 
+  it('has section 19 "Vereinsmitglieder" with an anchor, Mollie and legal bases; "Änderungen" is 20', () => {
+    const { container } = renderLegalPage('datenschutz');
+    const section = container.querySelector('section#vereinsmitglieder');
+    expect(section).not.toBeNull();
+    expect(section?.querySelector('h2')).toHaveTextContent('19. Vereinsmitglieder');
+    const text = section?.textContent ?? '';
+    expect(text).toContain('Mollie');
+    expect(text).toContain('Art. 6 Abs. 1 lit. b DSGVO');
+    expect(text).toContain('Art. 6 Abs. 1 lit. a DSGVO');
+    expect(text).toContain('Abschnitt 6');
+    const headings = Array.from(container.querySelectorAll('h2')).map((h) => h.textContent);
+    expect(headings[19]).toMatch(/^20\. Änderungen/);
+  });
+
+  it('names Mollie as recipient in section 4 (membership fee and donations)', () => {
+    const { container } = renderLegalPage('datenschutz');
+    const sections = container.querySelectorAll('section');
+    const four = sections[3].textContent ?? '';
+    expect(sections[3].querySelector('h2')).toHaveTextContent('4. Keine Weitergabe an Dritte');
+    expect(four).toContain('Mollie');
+    expect(four).toContain('Mitgliedsbeitrag');
+    expect(four).toContain('Spende');
+  });
+
   it('renders the Impressum content', () => {
     const { container } = renderLegalPage('impressum');
     expect(screen.getByText('Impressum')).toBeInTheDocument();
@@ -108,6 +132,34 @@ describe('LegalPage formatting', () => {
       ).not.toBeNull();
       unmount();
     }
+  });
+});
+
+describe('LegalPage hash scrolling', () => {
+  const original = Element.prototype.scrollIntoView;
+  afterEach(() => {
+    Element.prototype.scrollIntoView = original;
+  });
+
+  it('scrolls to #vereinsmitglieder after rendering', () => {
+    const scroll = vi.fn();
+    Element.prototype.scrollIntoView = scroll;
+    render(
+      <HelmetProvider>
+        <MemoryRouter initialEntries={['/datenschutz#vereinsmitglieder']}>
+          <LegalPage page="datenschutz" />
+        </MemoryRouter>
+      </HelmetProvider>
+    );
+    expect(scroll).toHaveBeenCalledTimes(1);
+    expect(scroll.mock.contexts[0]).toHaveProperty('id', 'vereinsmitglieder');
+  });
+
+  it('does not scroll without a hash', () => {
+    const scroll = vi.fn();
+    Element.prototype.scrollIntoView = scroll;
+    renderLegalPage('datenschutz');
+    expect(scroll).not.toHaveBeenCalled();
   });
 });
 

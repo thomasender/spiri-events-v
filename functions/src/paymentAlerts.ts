@@ -18,7 +18,11 @@ export type PaymentAlertStep =
   | 'einmalige-spende-start'
   | 'abo-anlegen'
   | 'webhook'
-  | 'rechnungen-abgleich';
+  | 'rechnungen-abgleich'
+  | 'mitgliedschaft-start'
+  | 'mitgliedschaft-abo-anlegen'
+  | 'mitgliedsbeitrag-fehlgeschlagen'
+  | 'mitgliedschaft-kuendigen';
 
 const STEP_LABELS: Record<PaymentAlertStep, string> = {
   'monatliche-spende-start': 'Monatliche Spende konnte nicht gestartet werden',
@@ -27,6 +31,13 @@ const STEP_LABELS: Record<PaymentAlertStep, string> = {
   webhook: 'Zahlungsbestätigung von Mollie konnte nicht verarbeitet werden',
   'rechnungen-abgleich':
     'Die Mollie-Rechnungen (Gebühren) konnten nicht in die Finanzen übernommen werden',
+  'mitgliedschaft-start': 'Pioniere-Mitgliedschaft konnte nicht gestartet werden',
+  'mitgliedschaft-abo-anlegen':
+    'Monatlicher Mitgliedsbeitrag (Pioniere) wurde nach der ersten Zahlung NICHT angelegt',
+  'mitgliedsbeitrag-fehlgeschlagen':
+    'Ein monatlicher Mitgliedsbeitrag (Pioniere) ist fehlgeschlagen. Die Mitgliedschaft bleibt bestehen',
+  'mitgliedschaft-kuendigen':
+    'Die Kündigung einer Pioniere-Mitgliedschaft konnte bei Mollie nicht ausgeführt werden',
 };
 
 export interface PaymentAlertInput {
@@ -61,7 +72,7 @@ export function buildPaymentAlert(input: PaymentAlertInput): Record<string, unkn
   if (ids.length > 0) {
     lines.push(`Mollie: ${ids.map(([k, v]) => `${k}=${v}`).join(', ')}`);
   }
-  if (input.step === 'abo-anlegen') {
+  if (input.step === 'abo-anlegen' || input.step === 'mitgliedschaft-abo-anlegen') {
     lines.push(
       'Die erste Monatszahlung wurde bezahlt. Bitte im Mollie-Dashboard prüfen, ob das Abo fehlt.'
     );

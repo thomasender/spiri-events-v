@@ -503,6 +503,7 @@ const OTHER_INTERNAL = new Set([
   'login',
   'auth-action',
   'einladung',
+  'pioniere',
   'datenschutz',
   'impressum',
 ]);

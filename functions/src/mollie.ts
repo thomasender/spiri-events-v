@@ -1,5 +1,10 @@
 import { defineSecret } from 'firebase-functions/params';
 import { MONTHLY_DONATION_TYPE, type DonationCurrency } from './mollieWebhookLogic';
+import {
+  MEMBERSHIP_CURRENCY,
+  MEMBERSHIP_PAYMENT_DESCRIPTION,
+  MEMBERSHIP_PAYMENT_TYPE,
+} from './clubMembershipLogic';
 
 // Kept inline because the functions bundle is CJS and the shared helpers in
 // src/lib/ are ESM modules. Keep in sync with the helper.
@@ -83,7 +88,7 @@ export function resolveAppBaseUrl(req: CallableRequest): string {
 }
 
 interface MollieRequestOptions {
-  method: 'GET' | 'POST';
+  method: 'GET' | 'POST' | 'DELETE';
   body?: Record<string, unknown>;
   idempotencyKey?: string;
 }
@@ -273,6 +278,9 @@ export async function ensureMollieSubscription(
     firstPaymentId: string;
     mandateId?: string | null;
     webhookUrl?: string | null;
+    // Membership subscriptions (clubMembership.ts) pass their own; donations keep the defaults.
+    description?: string;
+    metadata?: Record<string, unknown>;
   }
 ): Promise<{ id: string; created: boolean }> {
   const existing = await mollieRequest<{
@@ -285,10 +293,10 @@ export async function ensureMollieSubscription(
 
   const body: Record<string, unknown> = {
     amount: { currency: params.currency ?? DONATION_CURRENCY, value: params.amount },
-    description: SUBSCRIPTION_DESCRIPTION,
+    description: params.description ?? SUBSCRIPTION_DESCRIPTION,
     interval: SUBSCRIPTION_INTERVAL,
     startDate: params.startDate,
-    metadata: { firstPaymentId: params.firstPaymentId },
+    metadata: { ...(params.metadata ?? {}), firstPaymentId: params.firstPaymentId },
   };
   if (params.mandateId) body.mandateId = params.mandateId;
   if (params.webhookUrl) body.webhookUrl = params.webhookUrl;
@@ -360,4 +368,70 @@ export async function startMolliePaymentCheckout(
     checkoutUrl,
     paymentId: payment.id,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Vereinsmitgliedschaft "Pioniere" (clubMembership.ts, Trello 6af620c0)
+// ---------------------------------------------------------------------------
+
+/** A Mollie customer per membership checkout, tagged with the member's uid. */
+export async function createMembershipCustomer(
+  apiKey: string,
+  params: { name: string; email: string | null; uid: string }
+): Promise<MollieCustomerResponse> {
+  const body: Record<string, unknown> = {
+    name: params.name,
+    metadata: { type: MEMBERSHIP_PAYMENT_TYPE, uid: params.uid },
+  };
+  if (params.email) body.email = params.email;
+  return mollieRequest<MollieCustomerResponse>(apiKey, '/customers', { method: 'POST', body });
+}
+
+/**
+ * First monthly membership payment (sequenceType=first, so the customer gets a
+ * mandate). The webhook creates the subscription once it is paid, exactly like a
+ * monthly donation, but it is booked as Mitgliedsbeitrag and never lands on the
+ * donor list (metadata.type = 'membership').
+ */
+export async function startMembershipCheckout(
+  apiKey: string,
+  params: { customerId: string; amount: number; appBaseUrl: string; uid: string; name: string }
+): Promise<MolliePaymentCheckoutResult> {
+  const payment = await mollieRequest<MolliePaymentResponse>(apiKey, '/payments', {
+    method: 'POST',
+    body: {
+      amount: { currency: MEMBERSHIP_CURRENCY, value: formatAmount(params.amount) },
+      description: MEMBERSHIP_PAYMENT_DESCRIPTION,
+      customerId: params.customerId,
+      sequenceType: 'first',
+      redirectUrl: `${params.appBaseUrl}/pioniere/danke`,
+      webhookUrl: `${params.appBaseUrl}/mollieWebhook`,
+      locale: 'de_AT',
+      metadata: { type: MEMBERSHIP_PAYMENT_TYPE, uid: params.uid, memberName: params.name },
+    },
+  });
+  const checkoutUrl = extractMollieCheckoutUrl(payment);
+  if (!checkoutUrl) {
+    throw new Error(
+      `Mollie did not return a checkout URL for the membership payment (status: ${payment.status ?? 'unknown'})`
+    );
+  }
+  return { checkoutUrl, paymentId: payment.id };
+}
+
+/** Cancels a subscription. One that Mollie no longer knows counts as cancelled. */
+export async function cancelMollieSubscription(
+  apiKey: string,
+  customerId: string,
+  subscriptionId: string
+): Promise<void> {
+  try {
+    await mollieRequest(apiKey, `/customers/${customerId}/subscriptions/${subscriptionId}`, {
+      method: 'DELETE',
+    });
+  } catch (err) {
+    const status = (err as { status?: number })?.status;
+    if (status === 404 || status === 410) return;
+    throw err;
+  }
 }
