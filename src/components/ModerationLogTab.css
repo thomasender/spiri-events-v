@@ -101,7 +101,24 @@
 }
 
 .modlog-event {
-  min-width: 220px;
+  /* 4 x --space-16 = 256px: long titles wrap instead of widening the table */
+  max-width: calc(var(--space-16) * 4);
+  overflow-wrap: anywhere;
+}
+
+.modlog-edit-link {
+  color: var(--accent-primary-strong);
+}
+
+.modlog-clarification {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.modlog-clarification-title {
+  margin: 0;
+  font-size: var(--text-100);
 }
 
 .modlog-event-title {

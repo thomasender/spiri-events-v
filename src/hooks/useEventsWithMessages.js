@@ -5,6 +5,7 @@ import { useAuth } from './useAuth';
 import { getStaffAccess } from '../utils/staffRoles';
 import { staffEventQuerySpecs, subscribeEventQueries } from '../lib/staffEventQueries';
 import { messageIsUnreadFor, responsibleStaffUid } from '../utils/staffNotifications';
+import { timeToMillis } from '../utils/moderationLog';
 import { latestStaffMessage } from '../utils/rejectionTemplates';
 
 export function useEventsWithMessages() {
@@ -21,6 +22,9 @@ export function useEventsWithMessages() {
   // Newest staff message per pending event ({ id, text, kind }), the reason a
   // rejection in the Review tab needs (Trello 6ae46ad6). Missing = none yet.
   const [lastStaffMessageByEvent, setLastStaffMessageByEvent] = useState({});
+  // createdAt (millis) of the first staff message per pending event: since when
+  // it has been "in Klärung" (Protokoll tab). Missing = no staff message yet.
+  const [firstMessageAtByEvent, setFirstMessageAtByEvent] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -30,6 +34,7 @@ export function useEventsWithMessages() {
       setHasMessagesByEvent({});
       setInKlaerungAuthorNameByEvent({});
       setLastStaffMessageByEvent({});
+      setFirstMessageAtByEvent({});
       setLoading(false);
       return undefined;
     }
@@ -62,6 +67,8 @@ export function useEventsWithMessages() {
           setHasMessagesByEvent({});
           setInKlaerungAuthorNameByEvent({});
           setLastStaffMessageByEvent({});
+          setFirstMessageAtByEvent({});
+          setFirstMessageAtByEvent({});
           setLoading(false);
           return;
         }
@@ -70,6 +77,7 @@ export function useEventsWithMessages() {
         const perEventHasMessages = {};
         const perEventFirstAdmin = {};
         const perEventLastStaff = {};
+        const perEventFirstAt = {};
         const recompute = () => {
           const list = docs
             .filter((e) => perEventHasMessages[e.id])
@@ -84,6 +92,7 @@ export function useEventsWithMessages() {
           setHasMessagesByEvent({ ...perEventHasMessages });
           setInKlaerungAuthorNameByEvent({ ...perEventFirstAdmin });
           setLastStaffMessageByEvent({ ...perEventLastStaff });
+          setFirstMessageAtByEvent({ ...perEventFirstAt });
           setLoading(false);
         };
 
@@ -93,6 +102,7 @@ export function useEventsWithMessages() {
             messagesRef,
             (snap) => {
               let firstAdminName = null;
+              let firstAdminAt = null;
               const messages = snap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
               const hasAny = messages.length > 0;
               // An organizer's reply only reaches the staff member who started
@@ -108,13 +118,23 @@ export function useEventsWithMessages() {
                 // show "In Klärung mit [Name]". We only care about the
                 // first occurrence — additional admins joining later still
                 // show the originator.
-                if (data.authorRole === 'Admin' && firstAdminName == null) {
-                  firstAdminName = data.authorName || null;
+                if (data.authorRole === 'Admin') {
+                  // Snapshot order is by document id, so pick the oldest by time.
+                  const at = timeToMillis(data.createdAt) || null;
+                  if (firstAdminName == null && firstAdminAt == null) {
+                    firstAdminName = data.authorName || null;
+                    firstAdminAt = at;
+                  } else if (at != null && (firstAdminAt == null || at < firstAdminAt)) {
+                    firstAdminName = data.authorName || null;
+                    firstAdminAt = at;
+                  }
                 }
               });
               perEventUnread[event.id] = unread;
               perEventHasMessages[event.id] = hasAny;
               perEventFirstAdmin[event.id] = firstAdminName;
+              if (firstAdminAt != null) perEventFirstAt[event.id] = firstAdminAt;
+              else delete perEventFirstAt[event.id];
               const lastStaff = latestStaffMessage(messages);
               if (lastStaff) {
                 perEventLastStaff[event.id] = {
@@ -132,6 +152,7 @@ export function useEventsWithMessages() {
               perEventHasMessages[event.id] = false;
               perEventFirstAdmin[event.id] = null;
               delete perEventLastStaff[event.id];
+              delete perEventFirstAt[event.id];
               recompute();
             }
           );
@@ -145,6 +166,7 @@ export function useEventsWithMessages() {
         setHasMessagesByEvent({});
         setInKlaerungAuthorNameByEvent({});
         setLastStaffMessageByEvent({});
+        setFirstMessageAtByEvent({});
         setLoading(false);
       }
     );
@@ -171,6 +193,7 @@ export function useEventsWithMessages() {
     hasMessagesByEvent,
     inKlaerungAuthorNameByEvent,
     lastStaffMessageByEvent,
+    firstMessageAtByEvent,
     loading,
   };
 }

@@ -5,6 +5,10 @@ import {
   actorDisplayName,
   buildLogQuerySpec,
   countByAction,
+  eventEditPath,
+  eventPublicPath,
+  formatDuration,
+  groupLogByEvent,
   formatLogTime,
   matchesLogSearch,
   nextSort,
@@ -192,5 +196,58 @@ describe('small helpers', () => {
     expect(formatLogTime(new Date('2026-11-10T09:30:00Z').getTime())).toMatch(
       /10\.11\.2026.*10:30/
     );
+  });
+});
+
+describe('formatDuration', () => {
+  const now = new Date('2026-11-10T12:00:00Z').getTime();
+  const ago = (ms: number) => now - ms;
+  it('uses minutes, hours and days', () => {
+    expect(formatDuration(ago(5 * 60e3), now)).toBe('5 Min.');
+    expect(formatDuration(ago(10e3), now)).toBe('1 Min.');
+    expect(formatDuration(ago(3 * 3600e3), now)).toBe('3 Std.');
+    expect(formatDuration(ago(26 * 3600e3), now)).toBe('1 Tag');
+    expect(formatDuration(ago(3.5 * 24 * 3600e3), now)).toBe('3 Tage');
+  });
+  it('accepts timestamps and handles missing values', () => {
+    expect(formatDuration(at('2026-11-07T11:00:00Z'), now)).toBe('3 Tage');
+    expect(formatDuration(null, now)).toBe('–');
+  });
+});
+
+describe('eventPublicPath / eventEditPath', () => {
+  const base = { eventId: 'e1', eventSlug: 'yoga', action: 'approved', statusTo: 'approved' };
+  it('links published events by slug, falling back to the id', () => {
+    expect(eventPublicPath(base)).toBe('/event/yoga');
+    expect(eventPublicPath({ ...base, eventSlug: null })).toBe('/event/e1');
+  });
+  it('has no public page for pending, rejected, trashed or deleted events', () => {
+    expect(eventPublicPath({ ...base, action: 'submitted', statusTo: 'pending' })).toBeNull();
+    expect(eventPublicPath({ ...base, action: 'rejected', statusTo: 'rejected' })).toBeNull();
+    expect(eventPublicPath({ ...base, action: 'trashed', statusTo: 'trashed' })).toBeNull();
+    expect(eventPublicPath({ ...base, action: 'deleted', statusTo: null })).toBeNull();
+  });
+  it('offers the editor except for deleted and trashed events', () => {
+    expect(eventEditPath(base)).toBe('/admin/edit/e1');
+    expect(eventEditPath({ ...base, action: 'deleted', statusTo: null })).toBeNull();
+    expect(eventEditPath({ ...base, action: 'trashed', statusTo: 'trashed' })).toBeNull();
+  });
+});
+
+describe('groupLogByEvent', () => {
+  it('collects first submission, last edit and last approval per event', () => {
+    const g = groupLogByEvent([
+      { eventId: 'e1', action: 'edited', at: at('2026-11-05T08:00:00Z') },
+      { eventId: 'e1', action: 'submitted', at: at('2026-11-03T08:00:00Z') },
+      { eventId: 'e1', action: 'edited', at: at('2026-11-07T08:00:00Z') },
+      { eventId: 'e1', action: 'approved', at: at('2026-11-08T08:00:00Z') },
+      { eventId: 'e2', action: 'rejected', at: at('2026-11-08T08:00:00Z') },
+    ]);
+    expect(g.e1).toEqual({
+      submittedAt: new Date('2026-11-03T08:00:00Z').getTime(),
+      editedAt: new Date('2026-11-07T08:00:00Z').getTime(),
+      approvedAt: new Date('2026-11-08T08:00:00Z').getTime(),
+    });
+    expect(g.e2).toEqual({ submittedAt: null, editedAt: null, approvedAt: null });
   });
 });
