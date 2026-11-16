@@ -161,6 +161,16 @@ describe('EventFormWizard step validation', () => {
     expect(screen.getByTestId('description-error')).toBeInTheDocument();
   });
 
+  it('limits the title to 50 characters, shows a counter and blocks an over-long draft title', () => {
+    seedDraft({ currentStep: 2, formData: { title: 'x'.repeat(60) } });
+    renderWizard();
+
+    expect(document.getElementById('title')).toHaveAttribute('maxlength', '50');
+    expect(screen.getByTestId('title-counter')).toHaveTextContent('60/50');
+    fireEvent.click(screen.getByRole('button', { name: /^weiter$/i }));
+    expect(screen.getByText(/höchstens 50 Zeichen/)).toBeInTheDocument();
+  });
+
   it('blocks "Weiter" on step 2 without a title image and advances once one is chosen', async () => {
     seedDraft({ currentStep: 2 });
     renderWizard();

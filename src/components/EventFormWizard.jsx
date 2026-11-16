@@ -94,6 +94,7 @@ import {
 import {
   REGISTRATION_MAX_LENGTH,
   KONTAKT_MAX_LENGTH,
+  TITLE_MAX_LENGTH,
   messengerLinks,
   contactPhone,
   normalizeMessengerSelection,
@@ -506,6 +507,8 @@ export default function EventFormWizard() {
       }
     } else if (step === 2) {
       if (!formData.title.trim()) newErrors.title = 'Titel ist erforderlich';
+      else if (formData.title.trim().length > TITLE_MAX_LENGTH)
+        newErrors.title = `Der Titel darf höchstens ${TITLE_MAX_LENGTH} Zeichen lang sein`;
       if (isHtmlEmpty(formData.description))
         newErrors.description = 'Beschreibung ist erforderlich';
       if (!imageFile) newErrors.image = 'Bitte lade ein Titelbild hoch';
@@ -1238,9 +1241,13 @@ export default function EventFormWizard() {
           type="text"
           value={formData.title}
           onChange={handleChange}
+          maxLength={TITLE_MAX_LENGTH}
           placeholder="z.B. Morgen-Yoga im Park"
           className={errors.title ? 'input-error' : ''}
         />
+        <span className="image-hint" data-testid="title-counter">
+          {formData.title.length}/{TITLE_MAX_LENGTH} Zeichen
+        </span>
         {errors.title && <span className="error-text">{errors.title}</span>}
       </div>
 
