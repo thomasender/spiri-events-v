@@ -25,6 +25,7 @@ export const FIELD_LABELS = {
   isOnline: 'Online',
   organizer: 'Veranstalter',
   kontakt: 'Kontakt',
+  kontaktMessenger: 'Messenger',
   registration: 'Anmeldung',
   imageUrl: 'Bild',
   imageThumbUrl: 'Vorschaubild',

@@ -86,7 +86,14 @@ import {
   needsUploadedUrl,
   resolveInstagramImage,
 } from '../utils/instagramImageChoice';
-import { REGISTRATION_MAX_LENGTH, KONTAKT_MAX_LENGTH } from '../utils/contactFormat';
+import {
+  REGISTRATION_MAX_LENGTH,
+  KONTAKT_MAX_LENGTH,
+  messengerLinks,
+  contactPhone,
+  normalizeMessengerSelection,
+} from '../utils/contactFormat';
+import ContactMessengerChoice from './ContactMessengerChoice';
 import './EventForm.css';
 import './EventFormWizard.css';
 
@@ -121,6 +128,8 @@ const INITIAL_STATE = {
   isOnline: false,
   organizer: { name: '', email: '' },
   kontakt: '',
+  // Messengers for the phone number in `kontakt` (Trello 6af6d067).
+  kontaktMessenger: [],
   registration: '',
 };
 
@@ -213,6 +222,7 @@ export default function EventFormWizard() {
         customDates: Array.isArray(restoredDraft.formData.customDates)
           ? restoredDraft.formData.customDates
           : [],
+        kontaktMessenger: normalizeMessengerSelection(restoredDraft.formData.kontaktMessenger),
       };
     }
     return {
@@ -911,6 +921,10 @@ export default function EventFormWizard() {
       photoURL: profile?.photoURL || null,
     },
     kontakt: formData.kontakt.trim(),
+    // Only with a phone number in the contact; otherwise the choice is dropped.
+    kontaktMessenger: contactPhone(formData.kontakt)
+      ? normalizeMessengerSelection(formData.kontaktMessenger)
+      : [],
     registration: formData.registration.trim(),
     imageUrl: null,
     imageThumbUrl: null,
@@ -1134,6 +1148,11 @@ export default function EventFormWizard() {
           className={errors.kontakt ? 'input-error' : ''}
         />
         {errors.kontakt && <span className="error-text">{errors.kontakt}</span>}
+        <ContactMessengerChoice
+          kontakt={formData.kontakt}
+          value={formData.kontaktMessenger}
+          onChange={(kontaktMessenger) => setFormData((prev) => ({ ...prev, kontaktMessenger }))}
+        />
       </div>
 
       <div className="form-group">
@@ -1762,6 +1781,11 @@ export default function EventFormWizard() {
     </div>
   );
 
+  const summaryMessengers = messengerLinks(
+    contactPhone(formData.kontakt),
+    formData.kontaktMessenger
+  );
+
   const renderStep4 = () => (
     <div className="wizard-step-content">
       <div className="form-section-header">
@@ -1776,6 +1800,11 @@ export default function EventFormWizard() {
             <strong>{formData.organizer.name}</strong>
           </p>
           <p>{formData.kontakt}</p>
+          {summaryMessengers.length > 0 && (
+            <p data-testid="summary-kontakt-messenger">
+              Auch erreichbar über: {summaryMessengers.map((m) => m.label).join(', ')}
+            </p>
+          )}
           {formData.registration.trim() && <p>Anmeldung: {formData.registration.trim()}</p>}
         </div>
 

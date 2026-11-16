@@ -337,6 +337,38 @@ describe('EventForm — editing an approved event', () => {
     });
   });
 
+  it('messengers for the contact number are a free change, dropped with the number', async () => {
+    const withPhone = {
+      ...oldApprovedEvent,
+      kontakt: '0664 1234567',
+      kontaktMessenger: ['whatsapp'],
+    };
+    const { unmount } = renderForm(withPhone);
+    expect(screen.getByLabelText('WhatsApp')).toBeChecked();
+    fireEvent.click(screen.getByLabelText('Telegram'));
+    submitForm();
+    expect(await savedPayload()).toEqual({
+      kontaktMessenger: ['whatsapp', 'telegram'],
+      instagramConsent: false,
+      status: 'approved',
+    });
+    unmount();
+    mockEvents.updateEvent.mockClear();
+
+    renderForm(withPhone);
+    fireEvent.change(screen.getByLabelText('Kontakt für Teilnehmer:innen *'), {
+      target: { value: 'owner@test.local' },
+    });
+    expect(screen.queryByTestId('contact-messenger-choice')).toBeNull();
+    submitForm();
+    expect(await savedPayload()).toEqual({
+      kontakt: 'owner@test.local',
+      kontaktMessenger: [],
+      instagramConsent: false,
+      status: 'approved',
+    });
+  });
+
   it('an unchanged cover and crop are not sent along with a free change', async () => {
     renderForm({ ...oldApprovedEvent, imageZoom: 1.5 });
 

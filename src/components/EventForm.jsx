@@ -72,7 +72,13 @@ import {
   extractDescriptionImageUrls,
   resolveInstagramImage,
 } from '../utils/instagramImageChoice';
-import { REGISTRATION_MAX_LENGTH, KONTAKT_MAX_LENGTH } from '../utils/contactFormat';
+import {
+  REGISTRATION_MAX_LENGTH,
+  KONTAKT_MAX_LENGTH,
+  contactPhone,
+  normalizeMessengerSelection,
+} from '../utils/contactFormat';
+import ContactMessengerChoice from './ContactMessengerChoice';
 import { reviewEditChanges } from '../utils/eventReviewFields';
 import { IMAGE_FORMAT_HINT } from '../utils/imageFormatHint';
 import './EventForm.css';
@@ -106,6 +112,8 @@ const INITIAL_STATE = {
   isOnline: false,
   organizer: { name: '', email: '' },
   kontakt: '',
+  // Messengers for the phone number in `kontakt` (Trello 6af6d067).
+  kontaktMessenger: [],
   registration: '',
 };
 
@@ -204,6 +212,7 @@ export default function EventForm({ event }) {
           email: storedOrganizer.email || '',
         },
         kontakt: event.kontakt || '',
+        kontaktMessenger: normalizeMessengerSelection(event.kontaktMessenger),
         registration: event.registration || '',
       };
     }
@@ -842,6 +851,10 @@ export default function EventForm({ event }) {
       photoURL: resolveOrganizerPhotoURL({ isEdit, event, user, profile }),
     },
     kontakt: formData.kontakt.trim(),
+    // Only with a phone number in the contact; otherwise the choice is dropped.
+    kontaktMessenger: contactPhone(formData.kontakt)
+      ? normalizeMessengerSelection(formData.kontaktMessenger)
+      : [],
     registration: formData.registration.trim(),
     ...buildInstagramData(),
     imageUrl: imageFile || imageRemoved ? null : originalImageUrl || null,
@@ -1169,6 +1182,13 @@ export default function EventForm({ event }) {
               className={errors.kontakt ? 'input-error' : ''}
             />
             {errors.kontakt && <span className="error-text">{errors.kontakt}</span>}
+            <ContactMessengerChoice
+              kontakt={formData.kontakt}
+              value={formData.kontaktMessenger}
+              onChange={(kontaktMessenger) =>
+                setFormData((prev) => ({ ...prev, kontaktMessenger }))
+              }
+            />
           </div>
 
           <div className="form-group">

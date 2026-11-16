@@ -274,6 +274,7 @@ export function useEvents(user) {
         ? { ...source.organizer }
         : { name: '', email: '', photoURL: null },
       kontakt: source.kontakt || '',
+      kontaktMessenger: Array.isArray(source.kontaktMessenger) ? [...source.kontaktMessenger] : [],
       registration: source.registration || '',
       imageUrl: source.imageUrl || null,
       imageThumbUrl: source.imageThumbUrl || null,
