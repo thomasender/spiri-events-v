@@ -26,7 +26,7 @@ import { copyToClipboard } from '../utils/copyToClipboard';
 import { getCalendarCategories } from '../utils/calendarCategories';
 import { compareEventsByDateTime } from '../utils/eventSort';
 import { isOccurrencePast } from '../utils/pastEvents';
-import { computeFacetCounts } from '../utils/filterFacetCounts';
+import { computeFacetCounts, sortCategoriesByCount } from '../utils/filterFacetCounts';
 import { resolveEventColor } from '../utils/categoryColors';
 import {
   monthKeyToDate,
@@ -680,7 +680,7 @@ export default function CalendarPage() {
               </div>
             </div>
             <div className="filter-options" data-testid="filter-options-category">
-              {categories
+              {sortCategoriesByCount(categories, facetCounts.category)
                 .filter(
                   (category) =>
                     // Hide chips with 0 events for the current month/filters, but never
