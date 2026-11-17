@@ -194,6 +194,9 @@ two-line "read this when".
 - Read `docs/guest-event-draft.md` ONLY when you touch who may open `/admin/new`, the wizard's
   draft storage (`wizardDraftStorage.js`, `wizardDraftFiles.js`), its end page for guests /
   unconfirmed e-mails, or the `next` of the confirmation mail (`AuthActionPage`).
+- Read `docs/pre-entries.md` ONLY when you touch pre-entered events ("Vorab eingetragene
+  Events": `functions/src/preEntries*.ts`, the system account "Dein Tribe", `/vorschau/:token`,
+  `app_settings/preEntries`, `pre_entries` / `pre_entry_tokens`).
 - Read `docs/email-testing-protocol.md` ONLY when you test or change transactional
   emails; `docs/mailgun-sender-photo.md` ONLY for the Mailgun sender photo.
 

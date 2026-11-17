@@ -91,7 +91,7 @@ describe('LegalPage formatting', () => {
     expect(headings[8]).toMatch(/^9\. Firebase/);
   });
 
-  it('has section 19 "Vereinsmitglieder" with an anchor, Mollie and legal bases; "Anmeldung zu Events" is 20, "Änderungen" is 21', () => {
+  it('has section 19 "Vereinsmitglieder" with an anchor, Mollie and legal bases; "Anmeldung zu Events" is 20, "Änderungen" is 22', () => {
     const { container } = renderLegalPage('datenschutz');
     const section = container.querySelector('section#vereinsmitglieder');
     expect(section).not.toBeNull();
@@ -103,7 +103,19 @@ describe('LegalPage formatting', () => {
     expect(text).toContain('Abschnitt 6');
     const headings = Array.from(container.querySelectorAll('h2')).map((h) => h.textContent);
     expect(headings[19]).toMatch(/^20\. Anmeldung zu Events/);
-    expect(headings[20]).toMatch(/^21\. Änderungen/);
+    expect(headings[20]).toMatch(/^21\. Vorab eingetragene Events/);
+    expect(headings[21]).toMatch(/^22\. Änderungen/);
+  });
+
+  it('informs organizers of pre-entered events (Art. 14 DSGVO) under #vorab-eintraege', () => {
+    const { container } = renderLegalPage('datenschutz');
+    const section = container.querySelector('section#vorab-eintraege');
+    expect(section).not.toBeNull();
+    const text = section?.textContent ?? '';
+    expect(text).toContain('Art. 14 DSGVO');
+    expect(text).toContain('Art. 6 Abs. 1 lit. f DSGVO');
+    expect(text).toContain('Art. 21 DSGVO');
+    expect(text).toContain('öffentlich zugänglichen Quellen');
   });
 
   it('names Mollie as recipient in section 4 (membership fee and donations)', () => {

@@ -4,6 +4,7 @@ import PreEntryBanner from '../../src/components/PreEntryBanner';
 import {
   DAY_MS,
   DEFAULT_TEMPLATES,
+  buildPreEntrySettingsDoc,
   buildTemplateValues,
   derivePreEntryStatus,
   fillTemplate,
@@ -208,5 +209,30 @@ describe('analytics', () => {
   it('never sends the token of a preview link', () => {
     expect(redactSecretPath('/vorschau/abcDEF_123')).toBe('/vorschau');
     expect(redactSecretPath('/event/x')).toBe('/event/x');
+  });
+});
+
+describe('settings doc', () => {
+  it('stores only changed templates and valid whole numbers', () => {
+    const form = {
+      ...parsePreEntrySettings({ mode: 'all' }),
+      validDays: '21',
+      reminderDays: 99,
+      autoDeleteDays: '0',
+    };
+    form.templates = {
+      ...form.templates,
+      reminder: { ...form.templates.reminder, text: 'Hallo {ansprechperson}!' },
+    };
+    expect(buildPreEntrySettingsDoc(form)).toEqual({
+      mode: 'all',
+      validDays: 21,
+      reminderDays: 4,
+      autoDeleteDays: 0,
+      templates: {
+        reminder: { subject: DEFAULT_TEMPLATES.reminder.subject, text: 'Hallo {ansprechperson}!' },
+      },
+    });
+    expect(buildPreEntrySettingsDoc({ mode: 'x' }).mode).toBe('off');
   });
 });

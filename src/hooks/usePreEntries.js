@@ -41,13 +41,16 @@ export function usePreEntryAccess() {
   };
 }
 
-/** Super-Admin: writes flag, defaults and templates (firestore.rules validate them). */
-export async function savePreEntrySettings(patch, uid) {
-  await setDoc(
-    doc(db, 'app_settings', 'preEntries'),
-    { ...patch, updatedAt: serverTimestamp(), updatedBy: uid ?? null },
-    { merge: true }
-  );
+/**
+ * Super-Admin: writes flag, defaults and templates (firestore.rules validate them).
+ * Replaces the doc, so a template reset to the built-in text really disappears.
+ */
+export async function savePreEntrySettings(data, uid) {
+  await setDoc(doc(db, 'app_settings', 'preEntries'), {
+    ...data,
+    updatedAt: serverTimestamp(),
+    updatedBy: uid ?? null,
+  });
 }
 
 /** Calls preEntryAdmin({ action, ...payload }) and returns its data. */

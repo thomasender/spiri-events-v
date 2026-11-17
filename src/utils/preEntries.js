@@ -140,6 +140,31 @@ export function parsePreEntrySettings(data) {
   };
 }
 
+/**
+ * Doc to store for the settings form: numbers as integers, only templates that
+ * differ from the built-in texts (so later improvements of those reach everybody).
+ */
+export function buildPreEntrySettingsDoc(form) {
+  const templates = {};
+  for (const key of TEMPLATE_KEYS) {
+    const t = form?.templates?.[key] ?? DEFAULT_TEMPLATES[key];
+    const subject = String(t.subject ?? '').slice(0, SUBJECT_MAX);
+    const text = String(t.text ?? '').slice(0, TEMPLATE_TEXT_MAX);
+    if (subject !== DEFAULT_TEMPLATES[key].subject || text !== DEFAULT_TEMPLATES[key].text) {
+      templates[key] = { subject, text };
+    }
+  }
+  const num = (value, key) =>
+    clampInt(Number(value), PRE_ENTRY_LIMITS[key], PRE_ENTRY_DEFAULTS[key]);
+  return {
+    mode: PRE_ENTRY_MODES.includes(form?.mode) ? form.mode : 'off',
+    validDays: num(form?.validDays, 'validDays'),
+    reminderDays: num(form?.reminderDays, 'reminderDays'),
+    autoDeleteDays: num(form?.autoDeleteDays, 'autoDeleteDays'),
+    templates,
+  };
+}
+
 /** Whether this staff member may use the feature under the flag. */
 export function canUsePreEntries(mode, access) {
   if (!access?.isStaff) return false;

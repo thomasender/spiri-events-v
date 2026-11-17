@@ -6,6 +6,7 @@ import { useProfile } from '../hooks/useProfile';
 import { preEntryAdmin, usePreEntryAccess, usePreEntryList } from '../hooks/usePreEntries';
 import ConfirmDialog from './ConfirmDialog';
 import PreEntryContactPanel from './PreEntryContactPanel';
+import PreEntrySettingsSection from './PreEntrySettingsSection';
 import { PreEntryContactFields } from './PreEntryContactFields';
 import { ensureCategoryExists } from '../utils/ensureCategoryExists';
 import {
@@ -327,6 +328,11 @@ export default function PreEntriesTab() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {isSuperAdmin && (
+        // Remounted when the stored settings change, so the form starts from them.
+        <PreEntrySettingsSection key={JSON.stringify(settings)} settings={settings} />
       )}
 
       <ConfirmDialog

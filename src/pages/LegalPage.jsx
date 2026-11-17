@@ -482,7 +482,29 @@ Wir empfehlen Ihnen, nur Bilder hochzuladen, die Sie auch andernorts öffentlich
 - Rechtsgrundlage ist die Durchführung Ihrer Anfrage (Art. 6 Abs. 1 lit. b DSGVO). Die Daten werden in Google Cloud Firestore (Firebase) gespeichert (siehe Abschnitt 9), der E-Mail-Versand läuft über Mailgun (siehe Abschnitt 4)`,
       },
       {
-        heading: '21. Änderungen dieser Datenschutzerklärung',
+        id: 'vorab-eintraege',
+        heading: '21. Vorab eingetragene Events (Kontaktdaten von Veranstalter:innen)',
+        text: `Manche Veranstaltungen, die wir zum Beispiel auf Websites, Plakaten oder in sozialen Medien entdecken, bereiten wir selbst für unseren Kalender vor und fragen die Veranstalter:innen, ob sie sie veröffentlichen möchten. Dieser Abschnitt informiert Sie nach Art. 14 DSGVO, wenn wir Sie auf diese Weise kontaktieren.
+
+*Welche Daten verarbeiten wir?*
+- Ihre Kontaktdaten, soweit wir sie gefunden haben: Name bzw. Name der Organisation, Ansprechperson, E-Mail-Adresse, Telefonnummer und gegebenenfalls eine weitere Kontaktmöglichkeit (zum Beispiel ein Instagram-Profil)
+- Die Angaben zur Veranstaltung selbst (Titel, Beschreibung, Datum, Ort, Bild)
+- Wann und auf welchem Weg wir Sie kontaktiert haben, ob Sie den Vorschau-Link geöffnet haben, Ihre Entscheidung (veröffentlichen, übernehmen, ablehnen) und ein freiwilliger Kommentar von Ihnen
+
+*Woher stammen die Daten?* Aus öffentlich zugänglichen Quellen, in denen Sie Ihre Veranstaltung selbst angekündigt haben (zum Beispiel Ihre Website, Ihr Social-Media-Profil oder ein Aushang).
+
+*Wofür?* Nur für diese eine Anfrage: um Ihnen die vorbereitete Veranstaltung zu zeigen und Sie zu fragen, ob Sie sie in unserem Kalender veröffentlichen möchten. Ihre Kontaktdaten sind nie öffentlich sichtbar und werden nicht für Werbung oder andere Zwecke verwendet.
+
+*Rechtsgrundlage:* Unser berechtigtes Interesse (Art. 6 Abs. 1 lit. f DSGVO), als gemeinnütziger Verein Veranstaltungen rund um eine bewusste Lebensweise sichtbar zu machen. Wenn Sie ein Konto anlegen und die Veranstaltung übernehmen, gilt für Ihr Konto Abschnitt 2.
+
+*Empfänger:* Die Daten werden in Google Cloud Firestore (Firebase) gespeichert (siehe Abschnitt 9). E-Mails verschicken wir über Mailgun (siehe Abschnitt 4). Schreiben wir Ihnen über WhatsApp, SMS oder ein soziales Netzwerk, gelten zusätzlich die Bedingungen dieses Dienstes.
+
+*Speicherdauer:* Der Vorschau-Link ist zeitlich begrenzt (in der Regel 14 Tage). Lehnen Sie ab oder läuft der Link ungenutzt ab, löschen wir den Entwurf und Ihre Kontaktdaten spätestens nach 30 Tagen, auf Wunsch sofort. Wird die Veranstaltung veröffentlicht, bewahren wir die Kontaktdaten auf, bis Sie die Veranstaltung in Ihr eigenes Profil übernommen haben oder Sie uns um Löschung bitten.
+
+*Ihre Rechte:* Sie können der Verarbeitung jederzeit widersprechen (Art. 21 DSGVO), am einfachsten über „Ablehnen“ auf der Vorschau-Seite oder per E-Mail an admin@thetribe.at. Außerdem haben Sie die in Abschnitt 6 beschriebenen Rechte, insbesondere auf Auskunft, Berichtigung und Löschung, sowie das Recht auf Beschwerde bei der Datenschutzbehörde (www.dsb.gv.at).`,
+      },
+      {
+        heading: '22. Änderungen dieser Datenschutzerklärung',
         text: `Wir behalten uns vor, diese Datenschutzerklärung bei Änderungen der App oder der Rechtslage anzupassen. Die jeweils aktuelle Version finden Sie immer auf dieser Seite.
 
 Die Regeln für die Nutzung der Website finden Sie in unseren [Nutzungsbedingungen](/nutzungsbedingungen).`,
@@ -528,6 +550,7 @@ Betreiber ist der Verein Tribe Vorarlberg (Angaben im [Impressum](/impressum)). 
 - *Keine Prüfung:* Wir prüfen fremde Inhalte nicht laufend und sind dazu auch nicht verpflichtet. Auch wenn wir Events vor der Veröffentlichung ansehen, übernehmen wir keine Gewähr für ihre Richtigkeit, Vollständigkeit, Aktualität, Qualität oder Rechtmäßigkeit
 - *Verantwortung der Anbieter:innen:* Für ihre Inhalte, Angebote und Veranstaltungen (Durchführung, Absage, Preise, Sicherheit, Qualifikation) sind ausschließlich die jeweiligen Anbieter:innen verantwortlich
 - *Links:* Für Inhalte, Angebote, Preise und Datenschutz auf verlinkten Websites anderer sind ausschließlich deren Betreiber verantwortlich. Wir machen uns diese Inhalte nicht zu eigen
+- *Vorab eingetragene Events:* Manche Veranstaltungen tragen wir selbst ein, nachdem wir sie öffentlich angekündigt gefunden haben. Sie erscheinen erst, wenn die Veranstalter:innen zustimmen, und stehen dann unter „Dein Tribe“, bis sie die Veranstaltung in ihr eigenes Profil übernehmen. Wer eine solche Veranstaltung ändern oder entfernen lassen möchte, schreibt uns an [admin@thetribe.at](mailto:admin@thetribe.at)
 - *Teilnahme auf eigene Verantwortung:* Die Teilnahme an Veranstaltungen und die Inanspruchnahme von Angeboten erfolgen auf deine eigene Verantwortung. Angebote auf dieser Website ersetzen keine ärztliche, psychotherapeutische oder sonstige fachliche Beratung oder Behandlung. Bitte prüfe selbst, ob ein Angebot für dich passt
 
 Wenn dir ein rechtswidriger oder problematischer Inhalt auffällt, schreib uns bitte an [admin@thetribe.at](mailto:admin@thetribe.at) oder nutze die Melde-Funktion. Wir sehen ihn uns an und entfernen ihn gegebenenfalls.`,

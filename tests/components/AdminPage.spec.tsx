@@ -153,6 +153,13 @@ vi.mock('../../src/components/FunFactsTab', () => ({
 vi.mock('../../src/components/RegionsTab', () => ({
   default: () => <div data-testid="regions-tab-stub">Regionen</div>,
 }));
+const mockPreEntries = vi.hoisted(() => ({ available: false }));
+vi.mock('../../src/hooks/usePreEntries', () => ({
+  usePreEntryAccess: () => ({ available: mockPreEntries.available, settings: {}, loading: false }),
+}));
+vi.mock('../../src/components/PreEntriesTab', () => ({
+  default: () => <div data-testid="pre-entries-tab-stub">Vorab</div>,
+}));
 vi.mock('../../src/components/MembersTab', () => ({
   default: () => <div data-testid="members-tab-stub">Mitglieder</div>,
 }));
@@ -171,6 +178,7 @@ function renderAdmin(initialEntries: string[] = ['/admin']) {
 }
 
 beforeEach(() => {
+  mockPreEntries.available = false;
   mockAuth.user = { uid: 'test-uid' };
   mockAuth.role = 'User';
   mockAuth.staffRegionIds = [];
@@ -831,5 +839,33 @@ describe('AdminPage tab groups', () => {
     renderAdmin();
     expect(screen.queryByTestId('admin-group-community')).not.toBeInTheDocument();
     expect(screen.queryByTestId('admin-group-settings')).not.toBeInTheDocument();
+  });
+});
+
+// Feature flag app_settings/preEntries.mode (Trello 6afb1116): Super-Admins always see
+// the tab (to switch it on); moderators only while the flag lets them use it.
+describe('AdminPage "Vorab eingetragene Events" tab', () => {
+  it('is hidden for organizers, even with the flag on', () => {
+    mockPreEntries.available = false;
+    renderAdmin(['/admin?tab=vorab']);
+    expect(screen.queryByTestId('admin-tab-vorab')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('pre-entries-tab-stub')).not.toBeInTheDocument();
+  });
+
+  it('is shown to Super-Admins while the flag is off', () => {
+    mockAuth.role = 'Admin';
+    renderAdmin(['/admin?tab=vorab']);
+    expect(screen.getByTestId('admin-tab-vorab')).toHaveTextContent('Vorab eingetragene Events');
+    expect(screen.getByTestId('pre-entries-tab-stub')).toBeInTheDocument();
+  });
+
+  it('is shown to a Regions-Moderator:in only when the flag allows her', () => {
+    mockAuth.role = 'RegionModerator';
+    mockAuth.staffRegionIds = ['vorarlberg'];
+    renderAdmin(['/admin?tab=vorab']);
+    expect(screen.queryByTestId('pre-entries-tab-stub')).not.toBeInTheDocument();
+    mockPreEntries.available = true;
+    renderAdmin(['/admin?tab=vorab']);
+    expect(screen.getByTestId('pre-entries-tab-stub')).toBeInTheDocument();
   });
 });
